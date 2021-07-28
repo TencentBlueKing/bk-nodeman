@@ -1,0 +1,121 @@
+.w340 {
+  width: 340px; }
+
+.w190 {
+  width: 190px; }
+
+.w145 {
+  width: 145px; }
+
+.w80 {
+  width: 80px; }
+
+.w60 {
+  width: 60px; }
+
+.w30 {
+  width: 30px; }
+
+.datasource-info .accordion-content {
+  padding: 15px; }
+
+.log-attr .accordion-content {
+  padding: 15px; }
+.log-attr .crawl-object textarea {
+  width: 340px;
+  height: auto;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  resize: none;
+  vertical-align: top; }
+.log-attr .crawl-object .row-title {
+  vertical-align: top;
+  margin-top: 5px; }
+.log-attr .crawl-object .input-tips {
+  padding-top: 5px;
+  display: inline-block; }
+
+.accordion-content {
+  position: relative; }
+
+.field-define td a {
+  color: #00a8ff; }
+
+.instruction-info {
+  padding: 20px 30px;
+  font-size: 12px; }
+  .instruction-info.warning {
+    border: 1px solid #f2eee2;
+    background-color: #fffbee;
+    color: #ac945b; }
+  .instruction-info h5 {
+    margin: 0;
+    font-weight: bold; }
+  .instruction-info p {
+    margin: 5px 0 0 0; }
+
+.crawl-range .sub-row {
+  margin-bottom: 15px; }
+  .crawl-range .sub-row:last-child {
+    margin-bottom: 0; }
+.crawl-range .sub-row-operator i {
+  width: 20px;
+  height: 20px;
+  line-height: 20px;
+  margin-right: 5px;
+  border-radius: 50%;
+  color: #fff;
+  text-align: center;
+  cursor: pointer; }
+.crawl-range .sub-row-operator .add-row {
+  background-color: #00cc66; }
+.crawl-range .sub-row-operator .delete-row {
+  background-color: #ff6666; }
+
+.ds-btn-row {
+  text-align: center; }
+  .ds-btn-row button {
+    margin-right: 10px; }
+    .ds-btn-row button:last-child {
+      margin: 0; }
+
+.with-error {
+  position: relative; }
+
+.error-tips {
+  position: absolute;
+  top: -35px;
+  left: 50%;
+  width: 180px;
+  height: 32px;
+  line-height: 30px;
+  color: #ff6666;
+  font-size: 12px;
+  background-color: #fff1f2;
+  text-align: center;
+  box-shadow: rgba(0, 0, 0, 0.29804) 0px 1px 2px 0px;
+  border: 1px solid #ff6666;
+  border-radius: 2px;
+  transform: translateX(-50%); }
+  .error-tips:before {
+    content: "";
+    position: absolute;
+    left: 9px;
+    bottom: -10px;
+    width: 10px;
+    height: 10px;
+    border-top: 6px solid #ff6666;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent; }
+  .error-tips:after {
+    content: "";
+    position: absolute;
+    left: 10px;
+    bottom: -10px;
+    width: 10px;
+    height: 10px;
+    border-top: 5px solid #fff1f2;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent; }
+
+/*# sourceMappingURL=ds-setting.css.map */

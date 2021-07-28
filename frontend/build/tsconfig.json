@@ -1,0 +1,22 @@
+{
+  "exclude": [
+    "node_modules"
+  ],
+  "include": [
+    "./*.ts"
+  ],
+  "compilerOptions": {
+    "esModuleInterop": true, 
+    // 启用装饰器
+    "experimentalDecorators": true,
+    // 允许编译javascript文件
+    "allowJs": true,
+    // 采用的模块系统
+    "module": "CommonJS",
+    "sourceMap": true,
+    "pretty": true,
+    "strict": true,
+    "resolveJsonModule": true,
+    "noImplicitAny": false
+  }
+}

@@ -1,0 +1,111 @@
+.ds-tools {
+    margin-bottom: 15px;
+    .ds-search {
+        .ds-input {
+            margin-left: -4px;
+            width: 250px;
+        }
+        .search-icon {
+            width: 32px;
+            height: 32px;
+            line-height: 32px;
+            text-align: center;
+            background-color: #ccc;
+            color: #fff;
+            vertical-align: middle;
+        }
+    }
+}
+
+.ds-switchin {
+    i {
+        margin-right: 5px;
+        vertical-align: middle;
+    }
+}
+
+.pagination {
+    display: block;
+    margin: 0;
+}
+
+.ds-list-section {
+    position: relative;
+    .ds-icon-btn {
+        margin-right: 10px;
+    }
+}
+
+.ds-table {
+    .switch {
+        vertical-align: middle;
+    }
+}
+
+.side-dialog {
+    top: 50px;
+    left: 50px;
+    .basic-info {
+        background-color: #fafafa;
+        border-bottom: 1px solid #e1e1e1;
+    }
+    .dd-datetimepicker {
+        width: 160px;
+        input {
+            width: 130px;
+        }
+        .icon {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            background-color: #d9d9d9;
+            text-align: center;
+            margin-left: -5px;
+            vertical-align: top;
+            padding-top: 5px;
+        }
+    }
+    .sub-title {
+        margin: 5px 10px 0 0;
+    }
+    .data-detail .content-block,
+    .related-monitor .content-block {
+        position: relative;
+    }
+}
+
+.table-exclamation {
+    position: relative;
+    margin-left: 5px;
+    .table-exclamation-content {
+        position: absolute;
+        top: 25px;
+        left: -50px;
+        background-color: rgba(0, 0, 0, .6);
+        min-width: 150px;
+        padding: 10px;
+        color: #fff;
+        border-radius: 5px;
+        &:before {
+            content: '';
+            position: absolute;
+            top: -10px;
+            left: 50px;
+            border-bottom: 10px solid rgba(0, 0, 0, .6);
+            border-left: 5px solid transparent;
+            border-right: 5px solid transparent;
+        }
+    }
+}
+
+.data-report {
+    .add-record {
+        margin-left: 5px;
+        font-size: 18px;
+        vertical-align: middle;
+        cursor: pointer;
+    }
+    .ds-input {
+        height: 30px;
+    }
+}

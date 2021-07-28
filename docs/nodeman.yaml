@@ -1,0 +1,430 @@
+---
+
+- path: /v2/nodeman/package/
+  name: register_package
+  label: test
+  label_en: add plugin package
+  suggest_method: POST
+  api_type: operate
+  comp_codename: generic.v2.nodeman.nodeman_component
+  dest_path: /gateway/package/
+  dest_http_method: POST
+  is_hidden: true
+
+- path: /v2/nodeman/process/
+  name: register_process
+  label: test
+  label_en: add plugin
+  suggest_method: POST
+  api_type: operate
+  comp_codename: generic.v2.nodeman.nodeman_component
+  dest_path: /gateway/process/
+  dest_http_method: POST
+  is_hidden: true
+
+- path: /v2/nodeman/process_info/
+  name: register_process_info
+  label: test
+  label_en: add plugin control info
+  suggest_method: POST
+  api_type: operate
+  comp_codename: generic.v2.nodeman.nodeman_component
+  dest_path: /gateway/process_info/
+  dest_http_method: POST
+  is_hidden: true
+
+- path: /v2/nodeman/{bk_biz_id}/tasks/
+  name: add_task
+  label: test
+  label_en: add new job
+  suggest_method: POST
+  api_type: operate
+  comp_codename: generic.v2.nodeman.nodeman_component
+  dest_path: /gateway/{bk_biz_id}/tasks/
+  dest_http_method: POST
+  is_hidden: true
+
+- path: /v2/nodeman/process/{process_name}/
+  name: get_process_by_name
+  label: test
+  label_en: get process info
+  suggest_method: GET
+  api_type: query
+  comp_codename: generic.v2.nodeman.nodeman_component
+  dest_path: /gateway/process/{process_name}/
+  dest_http_method: GET
+  is_hidden: true
+
+- path: /v2/nodeman/{process_name}/package/
+  name: get_package_by_name
+  label: test
+  label_en: get process package info
+  suggest_method: GET
+  api_type: query
+  comp_codename: generic.v2.nodeman.nodeman_component
+  dest_path: /gateway/{process_name}/package/
+  dest_http_method: GET
+  is_hidden: true
+
+- path: /v2/nodeman/process_info/{process_name}/
+  name: get_process_info_by_name
+  label: test
+  label_en: get process control info
+  suggest_method: GET
+  api_type: query
+  comp_codename: generic.v2.nodeman.nodeman_component
+  dest_path: /gateway/process_info/{process_name}/
+  dest_http_method: GET
+  is_hidden: true
+
+- path: /v2/nodeman/{bk_biz_id}/tasks/{job_id}/
+  name: get_task_info
+  label: test
+  label_en: get job info
+  suggest_method: GET
+  api_type: query
+  comp_codename: generic.v2.nodeman.nodeman_component
+  dest_path: /gateway/{bk_biz_id}/tasks/{job_id}/
+  dest_http_method: GET
+  is_hidden: true
+
+- path: /v2/nodeman/{bk_biz_id}/host_status/get_host/
+  name: get_host
+  label: test
+  label_en: get host info
+  suggest_method: GET
+  api_type: query
+  comp_codename: generic.v2.nodeman.nodeman_component
+  dest_path: /gateway/{bk_biz_id}/host_status/get_host/
+  dest_http_method: GET
+  is_hidden: true
+
+- path: /v2/nodeman/get_log/
+  name: get_log
+  label: test
+  label_en: fetch log
+  suggest_method: GET
+  api_type: query
+  comp_codename: generic.v2.nodeman.nodeman_component
+  dest_path: /gateway/{bk_biz_id}/logs/{host_id}
+  dest_http_method: GET
+  is_hidden: true
+
+- path: /v2/nodeman/get_task_info/
+  name: get_task_info
+  label: test
+  label_en: get task info by id
+  suggest_method: GET
+  api_type: query
+  comp_codename: generic.v2.nodeman.nodeman_component
+  dest_path: /gateway/{bk_biz_id}/tasks/{job_id}/
+  dest_http_method: GET
+  is_hidden: true
+
+- path: /v2/nodeman/create_task/
+  name: create_task
+  label: test
+  label_en: create new task
+  suggest_method: POST
+  api_type: operate
+  comp_codename: generic.v2.nodeman.nodeman_component
+  dest_path: /gateway/{bk_biz_id}/tasks/
+  dest_http_method: POST
+  is_hidden: true
+
+- path: /v2/nodeman/create_cloud/
+  name: create_cloud
+  label: test
+  label_en: create cloud name
+  suggest_method: POST
+  api_type: operate
+  comp_codename: generic.v2.nodeman.nodeman_component
+  dest_path: /gateway/{bk_biz_id}/clouds/
+  dest_http_method: POST
+  is_hidden: true
+
+- path: /v2/nodeman/query_hosts/
+  name: query_hosts
+  label: test
+  label_en: query hosts
+  suggest_method: GET
+  api_type: query
+  comp_codename: generic.v2.nodeman.nodeman_component
+  dest_path: /gateway/hosts/
+  dest_http_method: GET
+  is_hidden: true
+
+- api_type: operate
+  comp_codename: generic.v2.nodeman.nodeman_component
+  name: plugin_render_config_template
+  label: test
+  label_en: null
+  dest_path: /backend/api/plugin/render_config_template/
+  path: /v2/nodeman/backend/api/plugin/render_config_template/
+  dest_http_method: POST
+  suggest_method: POST
+  is_hidden: true
+
+- api_type: operate
+  comp_codename: generic.v2.nodeman.nodeman_component
+  name: plugin_start_debug
+  label: test
+  label_en: null
+  dest_path: /backend/api/plugin/start_debug/
+  path: /v2/nodeman/backend/api/plugin/start_debug/
+  dest_http_method: POST
+  suggest_method: POST
+  is_hidden: true
+
+- api_type: query
+  comp_codename: generic.v2.nodeman.nodeman_component
+  name: plugin_query_debug
+  label: test
+  label_en: null
+  dest_path: /backend/api/plugin/query_debug/
+  path: /v2/nodeman/backend/api/plugin/query_debug/
+  dest_http_method: GET
+  suggest_method: GET
+  is_hidden: true
+
+- api_type: operate
+  comp_codename: generic.v2.nodeman.nodeman_component
+  name: plugin_stop_debug
+  label: test
+  label_en: null
+  dest_path: /backend/api/plugin/stop_debug/
+  path: /v2/nodeman/backend/api/plugin/stop_debug/
+  dest_http_method: POST
+  suggest_method: POST
+  is_hidden: true
+
+- api_type: operate
+  comp_codename: generic.v2.nodeman.nodeman_component
+  name: plugin_create_register_task
+  label: test
+  label_en: null
+  dest_path: /backend/api/plugin/create_register_task/
+  path: /v2/nodeman/backend/api/plugin/create_register_task/
+  dest_http_method: POST
+  suggest_method: POST
+  is_hidden: true
+
+- api_type: query
+  comp_codename: generic.v2.nodeman.nodeman_component
+  name: plugin_query_register_task
+  label: test
+  label_en: null
+  dest_path: /backend/api/plugin/query_register_task/
+  path: /v2/nodeman/backend/api/plugin/query_register_task/
+  dest_http_method: GET
+  suggest_method: GET
+  is_hidden: true
+
+- api_type: query
+  comp_codename: generic.v2.nodeman.nodeman_component
+  name: plugin_info
+  label: test
+  label_en: null
+  dest_path: /backend/api/plugin/info/
+  path: /v2/nodeman/backend/api/plugin/info/
+  dest_http_method: GET
+  suggest_method: GET
+  is_hidden: true
+
+- api_type: operate
+  comp_codename: generic.v2.nodeman.nodeman_component
+  name: plugin_create_config_template
+  label: test
+  label_en: null
+  dest_path: /backend/api/plugin/create_config_template/
+  path: /v2/nodeman/backend/api/plugin/create_config_template/
+  dest_http_method: POST
+  suggest_method: POST
+  is_hidden: true
+
+- api_type: operate
+  comp_codename: generic.v2.nodeman.nodeman_component
+  name: plugin_release
+  label: test
+  label_en: null
+  dest_path: /backend/api/plugin/release/
+  path: /v2/nodeman/backend/api/plugin/release/
+  dest_http_method: POST
+  suggest_method: POST
+  is_hidden: true
+
+- api_type: operate
+  comp_codename: generic.v2.nodeman.nodeman_component
+  name: plugin_release_config_template
+  label: test
+  label_en: null
+  dest_path: /backend/api/plugin/release_config_template/
+  path: /v2/nodeman/backend/api/plugin/release_config_template/
+  dest_http_method: POST
+  suggest_method: POST
+  is_hidden: true
+
+- api_type: operate
+  comp_codename: generic.v2.nodeman.nodeman_component
+  name: plugin_delete
+  label: test
+  label_en: null
+  dest_path: /backend/api/plugin/delete/
+  path: /v2/nodeman/backend/api/plugin/delete/
+  dest_http_method: POST
+  suggest_method: POST
+  is_hidden: true
+
+- api_type: operate
+  comp_codename: generic.v2.nodeman.nodeman_component
+  name: plugin_create_export_task
+  label: test
+  label_en: null
+  dest_path: /backend/api/plugin/create_export_task/
+  path: /v2/nodeman/backend/api/plugin/create_export_task/
+  dest_http_method: POST
+  suggest_method: POST
+  is_hidden: true
+
+- api_type: query
+  comp_codename: generic.v2.nodeman.nodeman_component
+  name: plugin_query_export_task
+  label: test
+  label_en: null
+  dest_path: /backend/api/plugin/query_export_task/
+  path: /v2/nodeman/backend/api/plugin/query_export_task/
+  dest_http_method: GET
+  suggest_method: GET
+  is_hidden: true
+
+- api_type: operate
+  comp_codename: generic.v2.nodeman.nodeman_component
+  name: subscription_create
+  label: test
+  label_en: null
+  dest_path: /backend/api/subscription/create/
+  path: /v2/nodeman/backend/api/subscription/create/
+  dest_http_method: POST
+  suggest_method: POST
+  is_hidden: true
+
+- api_type: query
+  comp_codename: generic.v2.nodeman.nodeman_component
+  name: subscription_info
+  label: test
+  label_en: null
+  dest_path: /backend/api/subscription/info/
+  path: /v2/nodeman/backend/api/subscription/info/
+  dest_http_method: POST
+  suggest_method: POST
+  is_hidden: true
+
+- api_type: operate
+  comp_codename: generic.v2.nodeman.nodeman_component
+  name: subscription_update
+  label: test
+  label_en: null
+  dest_path: /backend/api/subscription/update/
+  path: /v2/nodeman/backend/api/subscription/update/
+  dest_http_method: POST
+  suggest_method: POST
+  is_hidden: true
+
+- api_type: operate
+  comp_codename: generic.v2.nodeman.nodeman_component
+  name: subscription_delete
+  label: test
+  label_en: null
+  dest_path: /backend/api/subscription/delete/
+  path: /v2/nodeman/backend/api/subscription/delete/
+  dest_http_method: POST
+  suggest_method: POST
+  is_hidden: true
+
+- api_type: operate
+  comp_codename: generic.v2.nodeman.nodeman_component
+  name: subscription_run
+  label: test
+  label_en: null
+  dest_path: /backend/api/subscription/run/
+  path: /v2/nodeman/backend/api/subscription/run/
+  dest_http_method: POST
+  suggest_method: POST
+  is_hidden: true
+
+- api_type: operate
+  comp_codename: generic.v2.nodeman.nodeman_component
+  name: subscription_retry
+  label: test
+  label_en: null
+  dest_path: /backend/api/subscription/retry/
+  path: /v2/nodeman/backend/api/subscription/retry/
+  dest_http_method: POST
+  suggest_method: POST
+  is_hidden: true
+
+- api_type: operate
+  comp_codename: generic.v2.nodeman.nodeman_component
+  name: subscription_revoke
+  label: test
+  label_en: null
+  dest_path: /backend/api/subscription/revoke/
+  path: /v2/nodeman/backend/api/subscription/revoke/
+  dest_http_method: POST
+  suggest_method: POST
+  is_hidden: true
+
+- api_type: query
+  comp_codename: generic.v2.nodeman.nodeman_component
+  name: subscription_task_result
+  label: test
+  label_en: null
+  dest_path: /backend/api/subscription/task_result/
+  path: /v2/nodeman/backend/api/subscription/task_result/
+  dest_http_method: POST
+  suggest_method: POST
+  is_hidden: true
+
+- api_type: operate
+  comp_codename: generic.v2.nodeman.nodeman_component
+  name: subscription_switch
+  label: test
+  label_en: null
+  dest_path: /backend/api/subscription/switch/
+  path: /v2/nodeman/backend/api/subscription/switch/
+  dest_http_method: POST
+  suggest_method: POST
+  is_hidden: true
+
+- api_type: query
+  comp_codename: generic.v2.nodeman.nodeman_component
+  name: subscription_instance_status
+  label: test
+  label_en: null
+  dest_path: /backend/api/subscription/subscription_instance_status/
+  path: /v2/nodeman/backend/api/subscription/instance_status/
+  dest_http_method: POST
+  suggest_method: POST
+  is_hidden: true
+
+- api_type: query
+  comp_codename: generic.v2.nodeman.nodeman_component
+  name: subscription_task_result_detail
+  label: test
+  label_en: null
+  dest_path: /backend/api/subscription/task_result_detail/
+  path: /v2/nodeman/backend/api/subscription/task_result_detail/
+  dest_http_method: POST
+  suggest_method: POST
+  is_hidden: true
+
+- api_type: query
+  comp_codename: generic.v2.nodeman.nodeman_component
+  name: subscription_task_result_detail
+  label: test
+  label_en: null
+  dest_path: /backend/api/subscription/collect_task_result_detail/
+  path: /v2/nodeman/backend/api/subscription/collect_task_result_detail/
+  dest_http_method: POST
+  suggest_method: POST
+  is_hidden: true

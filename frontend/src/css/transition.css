@@ -1,0 +1,45 @@
+.slide-enter-active,
+.slide-leave-active{
+    .cloud-area {
+        transform: translateY(0);
+        transition: all linear .25s;
+    }
+}
+.slide-enter-active{
+    transition: opacity ease-in .15s, visibility linear .15s;
+}
+.slide-leave-active{
+    transition: opacity linear .3s, visibility linear .3s;
+}
+.slide-enter,
+.slide-leave-to {
+    opacity: 0;
+    visibility: hidden;
+    .cloud-area {
+        transform: translateY(-100%);
+    }
+}
+
+@keyframes loading {
+    0% {
+        transform: rotate(0);
+    }
+    100% {
+        transform: rotate(1turn);
+    }
+}
+
+@keyframes dot {
+    0% {
+        width: 0%;
+    }
+    33% {
+        width: 33.3%;
+    }
+    66% {
+        width: 66.7%;
+    }
+    100% {
+        width: 100%;
+    }
+}

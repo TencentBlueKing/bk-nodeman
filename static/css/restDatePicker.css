@@ -1,0 +1,58 @@
+/* 首页和自定义监控页面的日期选择器样式重置 */
+.daterangepicker.opensright:after {
+    display: none !important;
+}
+.daterangepicker.opensright:before {
+    display: none !important;
+}
+.daterangepicker {
+    position: absolute !important;
+    top: 35px !important;
+    left: -664px !important;
+}
+.daterangepicker td {
+    padding: 2px;
+}
+.daterangepicker .ranges li{
+    height: 30px;
+    line-height: 30px;
+    padding: 0 !important;
+    text-align: center;
+}
+.daterangepicker td.disabled, .daterangepicker option.disabled {
+    color: #999;
+    cursor: not-allowed;
+    text-decoration: line-through;
+}
+.ranges ul li:last-child {
+    display: none;
+}
+.cancelBtn {
+    display: none;
+}
+.applyBtn {
+    width: 160px;
+    background: #22adf6 !important;
+    border-radius: 4px;
+    position: absolute;
+    left: 10px;
+    bottom: 8px
+}
+.applyBtn[disabled] {
+    border-color: #22adf6;
+}
+.btn-success {
+    border-color: #22adf6;
+}
+.btn-success:hover {
+    border-color: #22adf6 !important;
+}
+.applyBtn:hover {
+  background: #42b5f5 !important;
+}
+.off {
+    font-size: 12px;
+}
+.calendar {
+    display: block !important;
+}

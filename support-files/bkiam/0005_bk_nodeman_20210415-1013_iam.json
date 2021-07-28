@@ -1,0 +1,305 @@
+{
+    "system_id": "bk_nodeman",
+    "operations": [
+        {
+            "operation": "upsert_resource_type",
+            "data": {
+                "id": "package",
+                "name": "插件包",
+                "name_en": "Package",
+                "description": "",
+                "description_en": "",
+                "provider_config": {
+                    "path": "/api/iam/v1/package"
+                },
+                "version": 1
+            }
+        },
+        {
+            "operation": "upsert_resource_type",
+            "data": {
+                "id": "strategy",
+                "name": "策略",
+                "name_en": "Strategy",
+                "description": "",
+                "description_en": "",
+                "provider_config": {
+                    "path": "/api/iam/v1/strategy"
+                },
+                "version": 1
+            }
+        },
+        {
+            "operation": "upsert_instance_selection",
+            "data": {
+                "id": "package_instance_selection",
+                "name": "插件包",
+                "name_en": "Package",
+                "resource_type_chain": [
+                    {
+                        "system_id": "bk_nodeman",
+                        "id": "package"
+                    }
+                ]
+            }
+        },
+        {
+            "operation": "upsert_instance_selection",
+            "data": {
+                "id": "strategy_instance_selection",
+                "name": "策略",
+                "name_en": "Strategy",
+                "resource_type_chain": [
+                    {
+                        "system_id": "bk_nodeman",
+                        "id": "strategy"
+                    }
+                ]
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "plugin_pkg_import",
+                "name": "插件包导入",
+                "name_en": "Plugin Package Import",
+                "description": "",
+                "description_en": "",
+                "type": "view",
+                "version": 1
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "plugin_pkg_operate",
+                "name": "插件包操作",
+                "name_en": "Plugin Package Operate",
+                "description": "",
+                "description_en": "",
+                "type": "view",
+                "version": 1,
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_nodeman",
+                        "id": "package",
+                        "name_alias": "",
+                        "name_alias_en": "",
+                        "selection_mode": "instance",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_nodeman",
+                                "id": "package_instance_selection"
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "strategy_create",
+                "name": "策略创建",
+                "name_en": "Strategy Create",
+                "description": "",
+                "description_en": "",
+                "type": "create",
+                "version": 1,
+                "related_resource_types": [
+                    {
+                        "id": "biz",
+                        "system_id": "bk_cmdb",
+                        "selection_mode": "instance",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_cmdb",
+                                "id": "business"
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "strategy_view",
+                "name": "策略查看",
+                "name_en": "Strategy View",
+                "description": "",
+                "description_en": "",
+                "type": "view",
+                "version": 1,
+                "related_resource_types": [
+                    {
+                        "id": "biz",
+                        "system_id": "bk_cmdb",
+                        "selection_mode": "instance",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_cmdb",
+                                "id": "business"
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "strategy_operate",
+                "name": "策略编辑",
+                "name_en": "Strategy Operate",
+                "description": "",
+                "description_en": "",
+                "type": "edit",
+                "version": 1,
+                "related_actions": [
+                    "strategy_view"
+                ],
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_nodeman",
+                        "id": "strategy",
+                        "name_alias": "",
+                        "name_alias_en": "",
+                        "selection_mode": "instance",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_nodeman",
+                                "id": "strategy_instance_selection"
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "operation": "upsert_action_groups",
+            "data": [
+                {
+                    "name": "常规功能",
+                    "name_en": "Normal",
+                    "sub_groups": [
+                        {
+                            "name": "Agent管理",
+                            "name_en": "Agent",
+                            "actions": [
+                                {
+                                    "id": "agent_view"
+                                },
+                                {
+                                    "id": "agent_operate"
+                                }
+                            ]
+                        },
+                        {
+                            "name": "云区域管理",
+                            "name_en": "Cloud Area",
+                            "actions": [
+                                {
+                                    "id": "cloud_create"
+                                },
+                                {
+                                    "id": "cloud_edit"
+                                },
+                                {
+                                    "id": "cloud_delete"
+                                },
+                                {
+                                    "id": "cloud_view"
+                                },
+                                {
+                                    "id": "proxy_operate"
+                                }
+                            ]
+                        },
+                        {
+                            "name": "插件管理",
+                            "name_en": "Plugin",
+                            "actions": [
+                                {
+                                    "id": "plugin_pkg_import"
+                                },
+                                {
+                                    "id": "plugin_pkg_operate"
+                                },
+                                {
+                                    "id": "plugin_view"
+                                },
+                                {
+                                    "id": "plugin_operate"
+                                },
+                                {
+                                    "id": "strategy_create"
+                                },
+                                {
+                                    "id": "strategy_view"
+                                },
+                                {
+                                    "id": "strategy_operate"
+                                }
+                            ]
+                        },
+                        {
+                            "name": "任务历史",
+                            "name_en": "Task History",
+                            "actions": [
+                                {
+                                    "id": "task_history_view"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "name": "全局配置",
+                    "name_en": "Globle Configuration",
+                    "sub_groups": [
+                        {
+                            "name": "接入点管理",
+                            "name_en": "Access Point",
+                            "actions": [{"id": "ap_create"}, {"id": "ap_delete"}, {"id": "ap_edit"}, {"id": "ap_view"}]
+                        },
+                        {
+                            "name": "任务配置",
+                            "name_en": "Task Configuration",
+                            "actions": [{"id": "globe_task_config"}]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "operation": "upsert_resource_creator_actions",
+            "data": {
+                "config": [
+                    {
+                        "id": "ap",
+                        "actions": [
+                            {"id": "ap_edit", "required": false},
+                            {"id": "ap_view", "required": false},
+                            {"id": "ap_delete", "required": false}
+                        ]
+                    },
+                    {
+                        "id": "cloud",
+                        "actions": [
+                            {"id": "cloud_edit", "required": false},
+                            {"id": "cloud_view", "required": false},
+                            {"id": "cloud_delete", "required": false}
+                        ]
+                    },
+                    {
+                        "id": "strategy",
+                        "actions": [
+                            {"id": "strategy_operate", "required": false}
+                        ]
+                    }
+                ]
+            }
+        }
+    ]
+}

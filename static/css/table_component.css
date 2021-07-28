@@ -1,0 +1,95 @@
+.tab-content {
+    position: relative;
+    margin: 0 auto;
+    width: 800px;
+    background: #ffffff;
+}
+[v-cloak] {
+    display: none;
+}
+.tab-content .dataTables_wrapper {
+  min-height: 316px;
+}
+
+.tab-content .mt10 {
+    margin-top: 0 !important;
+}
+.tab-content .p10 {
+    padding: 10px !important;
+}
+.tab-content .col-sm-12 {
+    padding-left: 0px;
+    padding-right: 0px;
+}
+.tab-content .row {
+    margin-right: 0px !important;
+    margin-left: 0px !important;
+}
+.tab-content .nav-tabs{
+    height: 40px;
+    line-height: 40px;
+    padding-left: 15px;
+}
+.tab-content .nav-tabs label{
+    margin-bottom: 0px;
+    margin-right: 0px;
+    margin-right: 20px;
+}
+.tab-content .nav-tabs label:last-child {
+    margin-right: 0;
+}
+.tab-content .nav-tabs input[type="radio"]  {
+    height: 14px;
+    position: relative;
+    top: 2px;
+    margin-top: 0px;
+    margin-right: 5px;
+}
+.tab-content .configCenter-tab-pane {
+    min-height: 415px;
+    max-height: 415px;
+    overflow: auto;
+}
+.tab-content .search {
+    width: 772px;
+    padding-left: 5px;
+    height: 34px;
+}
+.tab-content table {
+    width: 780px;
+}
+.tab-content thead tr {
+    border-top: 1px solid #ddd; 
+}
+.tab-content thead tr th{
+    border-bottom: 1px solid #ddd; 
+}
+.tab-content .savebtn {
+    margin-right: 5px;
+    background-color: #57a3f1;
+    color: #fff !important;
+    border: none !important;
+}
+.tab-content .savebtn:hover {
+    background-color: #4491e1;
+}
+.tab-content .bk-button.bk-default:hover {
+    background-color: #fafafa;
+}
+.tab-content .modal-footer {
+    background: #ffffff;
+}
+.tab-content .modal-footer .left-btn {
+    display: inline-block;
+    float: left;
+}
+.tab-content .modal-footer .left-btn .copyIPByPage {
+    margin-right: 5px;
+    border-color: #d6d6d6 !important;
+}
+.tab-content .modal-footer .right-btn {
+    display: inline-block;
+}
+.ipList-tab-pane .el-checkbox__inner {
+    top: 2px;
+}

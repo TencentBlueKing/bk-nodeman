@@ -1,0 +1,183 @@
+{
+  "name": "nodeman",
+  "version": "1.0.0",
+  "description": "Project description",
+  "author": "",
+  "repository": {},
+  "scripts": {
+    "dev": "better-npm-run dev",
+    "clean": "rimraf dist",
+    "clean-dll": "rimraf static/lib*",
+    "build": "better-npm-run build",
+    "build:analyzer": "better-npm-run build:analyzer",
+    "dll": "better-npm-run dll",
+    "fix": "eslint --fix --ext .ts,.js,.vue src/",
+    "check-dll": "ts-node --project build/tsconfig.json build/check-dll.ts"
+  },
+  "keywords": [],
+  "license": "MIT",
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged",
+      "pre-push": "lint-staged"
+    }
+  },
+  "lint-staged": {
+    "src/**/*.(vue|ts)": [
+      "eslint --fix",
+      "git add"
+    ]
+  },
+  "betterScripts": {
+    "dll": {
+      "command": "ts-node --project build/tsconfig.json build/build-dll.ts"
+    },
+    "dev": {
+      "command": "ts-node --project build/tsconfig.json build/dev-server.ts",
+      "env": {
+        "NODE_ENV": "development"
+      }
+    },
+    "build": {
+      "command": "npm run clean && npm run clean-dll && npm run dll && ts-node --project build/tsconfig.json build/build.ts",
+      "env": {
+        "NODE_ENV": "production"
+      }
+    },
+    "build:analyzer": {
+      "command": "npm run clean && npm run clean-dll && npm run dll && ts-node --project build/tsconfig.json build/build.ts",
+      "env": {
+        "NODE_ENV": "production",
+        "npm_config_report": 1
+      }
+    }
+  },
+  "dependencies": {
+    "@blueking/paas-login": "0.0.9",
+    "@icon-cool/bk-icon-node-manager": "latest",
+    "axios": "^0.21.1",
+    "bk-magic-vue": "2.2.17",
+    "cookie": "~0.4.0",
+    "jsonp": "~0.2.1",
+    "mavon-editor": "^2.9.0",
+    "query-string": "~6.5.0",
+    "resize-detector": "^0.2.0",
+    "vue": "2.6.12",
+    "vue-i18n": "^8.15.1",
+    "vue-router": "~3.0.6",
+    "vuex": "~3.1.1",
+    "xlsx": "^0.15.4"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.9.0",
+    "@babel/node": "~7.4.5",
+    "@babel/plugin-proposal-decorators": "~7.4.4",
+    "@babel/plugin-proposal-export-namespace-from": "~7.2.0",
+    "@babel/plugin-proposal-function-sent": "~7.2.0",
+    "@babel/plugin-proposal-numeric-separator": "~7.2.0",
+    "@babel/plugin-proposal-throw-expressions": "~7.2.0",
+    "@babel/plugin-syntax-dynamic-import": "~7.2.0",
+    "@babel/plugin-transform-async-to-generator": "~7.4.4",
+    "@babel/plugin-transform-object-assign": "~7.2.0",
+    "@babel/plugin-transform-runtime": "~7.4.4",
+    "@babel/preset-env": "^7.13.9",
+    "@babel/register": "~7.4.4",
+    "@babel/runtime": "~7.4.5",
+    "@bkui/eslint-config-bk": "^2.0.0-beta.2",
+    "@types/cookie": "^0.4.0",
+    "@types/copy-webpack-plugin": "^6.0.0",
+    "@types/cors": "^2.8.8",
+    "@types/css-minimizer-webpack-plugin": "^1.1.1",
+    "@types/fs-extra": "^9.0.3",
+    "@types/mini-css-extract-plugin": "^1.2.1",
+    "@types/node": "^14.0.14",
+    "@types/npm": "^2.0.31",
+    "@types/progress-bar-webpack-plugin": "^2.1.0",
+    "@types/rimraf": "^3.0.0",
+    "@types/semver": "^7.3.4",
+    "@types/shelljs": "^0.8.8",
+    "@types/speed-measure-webpack-plugin": "^1.3.1",
+    "@types/terser-webpack-plugin": "^5.0.2",
+    "@types/url-parse": "^1.4.3",
+    "@types/webpack-bundle-analyzer": "^3.9.0",
+    "@types/webpack-dev-server": "^3.11.1",
+    "@types/webpack-env": "^1.15.2",
+    "babel-helper-vue-jsx-merge-props": "^2.0.3",
+    "babel-loader": "~8.0.6",
+    "babel-plugin-import-bk-magic-vue": "^2.1.10",
+    "babel-plugin-istanbul": "~5.1.4",
+    "babel-plugin-lodash": "~3.3.4",
+    "babel-plugin-syntax-jsx": "^6.18.0",
+    "babel-plugin-transform-vue-jsx": "^3.7.0",
+    "better-npm-run": "~0.1.1",
+    "chalk": "~2.4.2",
+    "cheerio": "~1.0.0-rc.3",
+    "copy-webpack-plugin": "^6.3.0",
+    "core-js": "^3.7.0",
+    "cross-env": "~5.2.0",
+    "css-loader": "^5.0.0",
+    "css-minimizer-webpack-plugin": "^1.1.5",
+    "eslint-friendly-formatter": "^4.0.1",
+    "eventsource-polyfill": "~0.9.6",
+    "faker": "~4.1.0",
+    "file-loader": "^6.2.0",
+    "fs-extra": "~8.0.1",
+    "highlight.js": "~9.15.6",
+    "html-webpack-plugin": "^4.5.0",
+    "husky": "^4.2.3",
+    "lint-staged": "^10.2.11",
+    "markdown-it": "~8.4.2",
+    "markdown-it-anchor": "~5.0.2",
+    "markdown-it-attrs": "~2.3.4",
+    "markdown-it-container": "~2.0.0",
+    "mini-css-extract-plugin": "^1.2.1",
+    "moment": "~2.24.0",
+    "node-sass": "^4.13.1",
+    "npm": "^7.0.8",
+    "open": "^7.3.0",
+    "opencollective": "~1.0.3",
+    "ora": "^5.1.0",
+    "postcss": "^8.1.4",
+    "postcss-advanced-variables": "~3.0.0",
+    "postcss-atroot": "~0.1.3",
+    "postcss-extend-rule": "~2.0.0",
+    "postcss-import": "~12.0.1",
+    "postcss-import-webpack-resolver": "~1.0.1",
+    "postcss-loader": "^4.0.4",
+    "postcss-mixins": "~6.2.1",
+    "postcss-nested": "~4.1.2",
+    "postcss-preset-env": "~6.6.0",
+    "postcss-property-lookup": "~2.0.0",
+    "postcss-url": "~8.0.0",
+    "progress-bar-webpack-plugin": "^2.1.0",
+    "rimraf": "~2.6.3",
+    "sass-loader": "^8.0.2",
+    "semver": "^7.3.2",
+    "shelljs": "^0.8.4",
+    "speed-measure-webpack-plugin": "^1.4.2",
+    "style-loader": "^2.0.0",
+    "terser-webpack-plugin": "^5.0.3",
+    "thread-loader": "^3.0.1",
+    "transliteration": "~2.1.3",
+    "ts-loader": "^8.0.9",
+    "ts-node": "^9.0.0",
+    "typescript": "4.2.3",
+    "url-loader": "^4.1.1",
+    "url-parse": "^1.4.7",
+    "vue-class-component": "^7.2.3",
+    "vue-loader": "^15.9.5",
+    "vue-markdown-loader": "~2.4.1",
+    "vue-property-decorator": "^9.0.0",
+    "vue-template-compiler": "2.6.12",
+    "vuex-module-decorators": "^0.17.0",
+    "webpack": "5.30.0",
+    "webpack-bundle-analyzer": "^4.1.0",
+    "webpack-cli": "^4.2.0",
+    "webpack-dev-server": "^3.11.0",
+    "webpack-merge": "^5.3.0"
+  },
+  "engines": {
+    "node": "> 10.0.0",
+    "npm": ">= 6.0.0"
+  }
+}
