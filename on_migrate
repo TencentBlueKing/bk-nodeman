@@ -1,0 +1,11 @@
+#!/bin/bash
+
+source /root/.bkrc
+source $CTRL_DIR/functions
+
+# workon 会自动进入到工程目录
+workon bknodeman-nodeman || fail "activate virtualenv (nodeman) failed."
+
+# 初始化内置插件
+bin/manage.sh init_official_plugins
+bin/manage.sh copy_file_to_nginx

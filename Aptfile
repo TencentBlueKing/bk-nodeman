@@ -1,0 +1,4 @@
+http://radosgw.open.oa.com/paas-assets/buildpacks/apt/deb-packages/z-libc-bp-fix.deb
+libc6-dev
+libssl-dev
+default-libmysqlclient-dev

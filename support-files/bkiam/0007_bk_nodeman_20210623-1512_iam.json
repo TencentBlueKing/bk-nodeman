@@ -1,0 +1,55 @@
+{
+    "system_id": "bk_nodeman",
+    "operations": [
+        {
+            "operation": "update_common_actions",
+            "data": [
+                {
+                    "name": "业务运维",
+                    "name_en": "Operator",
+                    "actions": [
+                        {
+                            "id": "agent_view"
+                        },
+                        {
+                            "id": "agent_operate"
+                        },
+                        {
+                            "id": "plugin_view"
+                        },
+                        {
+                            "id": "plugin_operate"
+                        },
+                        {
+                            "id": "strategy_create"
+                        },
+                        {
+                            "id": "strategy_view"
+                        }
+                    ]
+                },
+                {
+                    "name": "全局配置",
+                    "name_en": "Global Config",
+                    "actions": [
+                        {
+                            "id": "ap_create"
+                        },
+                        {
+                            "id": "ap_delete"
+                        },
+                        {
+                            "id": "ap_edit"
+                        },
+                        {
+                            "id": "ap_view"
+                        },
+                        {
+                            "id": "globe_task_config"
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}

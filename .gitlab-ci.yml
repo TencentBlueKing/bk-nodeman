@@ -1,0 +1,31 @@
+before_script:
+  - source /data/gitlab-runner/paas-webfe/bin/activate
+  - which node && node --version
+  - alias tnpm="/data/gitlab-runner/node/bin/tnpm"
+  - which tnpm && tnpm --version
+
+stages:
+  - pep8
+  - pages
+
+pep8:
+  stage: pep8
+  script:
+    - echo $PWD
+    - /data/gitlab-runner/env/pep8/bin/flake8 --ignore=F401,F403,F405,N806,E501,F841  --config=$PWD/.flake8 ./
+    - echo 'end pep8'
+  allow_failure: true
+
+
+pages:
+  stage: pages
+  script:
+     # 生成apidoc文档
+     - apidoc -i ./apps . -o public
+  artifacts:
+    paths:
+      - public
+    expire_in: 30 days
+  only:
+    - deploy
+
