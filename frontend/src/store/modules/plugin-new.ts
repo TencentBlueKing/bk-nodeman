@@ -34,48 +34,48 @@ import {
   policyOperate,
   migratePreview,
   rollbackPreview,
-  fetchPolicyAbnormalInfo
-} from '@/api/modules/policy'
-import { nodesAgentStatus, listHost as previewHost } from '@/api/modules/host_v2'
-import { getFilterCondition } from '@/api/modules/meta'
-import { sort } from '@/common/util'
-import { IPluginRuleParams, IStrategy, IPluginDetail, IPkVersionRow, IPkParseRow, IPolicyBase, IPluginTopo, IPreviewHost, ITarget, IPolicyOperate, IPluginRow } from '@/types/plugin/plugin-type'
-import { ISearchItem } from '@/types'
-import { grayRuleType,  policyRuleType, pluginOperate } from '@/views/plugin/operateConfig'
+  fetchPolicyAbnormalInfo,
+} from '@/api/modules/policy';
+import { nodesAgentStatus, listHost as previewHost } from '@/api/modules/host_v2';
+import { getFilterCondition } from '@/api/modules/meta';
+import { sort } from '@/common/util';
+import { IPluginRuleParams, IStrategy, IPluginDetail, IPkVersionRow, IPkParseRow, IPolicyBase, IPluginTopo, IPreviewHost, ITarget, IPolicyOperate, IPluginRow } from '@/types/plugin/plugin-type';
+import { ISearchItem } from '@/types';
+import { grayRuleType,  policyRuleType, pluginOperate } from '@/views/plugin/operateConfig';
 
 // eslint-disable-next-line new-cap
 @Module({ name: 'pluginNew', namespaced: true })
 export default class PluginStore extends VuexModule {
-  public operateType = '' // 流程的操作类型
-  public strategyData: IStrategy = {}
-  public strategyList: IPluginTopo[] = []
-  public hostsByBizRange: number[] = []
-  public hostsByScopeRange: Dictionary = null
-  public authorityMap: Dictionary = {}
+  public operateType = ''; // 流程的操作类型
+  public strategyData: IStrategy = {};
+  public strategyList: IPluginTopo[] = [];
+  public hostsByBizRange: number[] = [];
+  public hostsByScopeRange: Dictionary = null;
+  public authorityMap: Dictionary = {};
 
   // 主策略
   public get isPolicyRule() {
-    return policyRuleType.includes(this.operateType)
+    return policyRuleType.includes(this.operateType);
   }
   // 灰度策略
   public get isGrayRule() {
-    return grayRuleType.includes(this.operateType)
+    return grayRuleType.includes(this.operateType);
   }
   // 手动操作插件
   public get isPluginRule() {
-    return pluginOperate.includes(this.operateType)
+    return pluginOperate.includes(this.operateType);
   }
   public get isCreateType() {
-    return /create/ig.test(this.operateType)
+    return /create/ig.test(this.operateType);
   }
 
   @Mutation
   public updateOperateType(type: string) {
-    this.operateType = type
+    this.operateType = type;
   }
   @Mutation
   public setStrategyDataByKey({ key, value }: { key: string, value: any }) {
-    this.strategyData[key] = value
+    this.strategyData[key] = value;
   }
   // 初始化流程数据
   @Mutation
@@ -89,7 +89,7 @@ export default class PluginStore extends VuexModule {
       scope: {
         object_type: 'HOST', // 当前始终为 HOST
         node_type: 'TOPO',
-        nodes: []
+        nodes: [],
       },
       steps: [], // 目前只能有一个插件，后端使用数组是为了扩展
       configs: [],
@@ -99,11 +99,11 @@ export default class PluginStore extends VuexModule {
   @Mutation
   public setStrategyList({ type = 'list', data = [], name = '' }: { type: 'list' | 'item', data: IPluginTopo[], name?: string  }) {
     if (type === 'list') {
-      this.strategyList = data.map(item => ({ ...item, children: [] }))
+      this.strategyList = data.map(item => ({ ...item, children: [] }));
     } else {
-      const node = this.strategyList.find(item => item.name === name)
+      const node = this.strategyList.find(item => item.name === name);
       if (node) {
-        node.children?.splice(0, 0, ...data)
+        node.children?.splice(0, 0, ...data);
       }
     }
   }
@@ -120,11 +120,11 @@ export default class PluginStore extends VuexModule {
   }
   @Mutation
   public updateBizRange(bizList: number[] = []) {
-    this.hostsByBizRange.splice(0, this.hostsByBizRange.length, ...bizList)
+    this.hostsByBizRange.splice(0, this.hostsByBizRange.length, ...bizList);
   }
   @Mutation
   public updateScopeRange(scope: any) {
-    this.hostsByScopeRange = scope
+    this.hostsByScopeRange = scope;
   }
 
   // 更新流程相关的数据、状态
@@ -132,10 +132,10 @@ export default class PluginStore extends VuexModule {
   public setStateOfStrategy(params: any) {
     if (params instanceof Array) {
       params.forEach((item: { key: keyof IStrategy, value: any }) => {
-        this.setStrategyDataByKey(item)
-      })
+        this.setStrategyDataByKey(item);
+      });
     } else {
-      this.setStrategyDataByKey(params)
+      this.setStrategyDataByKey(params);
     }
   }
   /**
@@ -207,7 +207,7 @@ export default class PluginStore extends VuexModule {
   // 查询策略下主机插件安装失败的情况
   @Action
   public async getFetchPolicyAbnormalInfo(params: { 'policy_ids': number[] }): Promise<Dictionary> {
-    return await fetchPolicyAbnormalInfo(params).catch(() => ({}))
+    return await fetchPolicyAbnormalInfo(params).catch(() => ({}));
   }
 
   @Action
@@ -217,9 +217,9 @@ export default class PluginStore extends VuexModule {
     const [step] = steps;
     const configs = (step?.configs || []).map((item: any) => ({
       ...item,
-      support_os_cpu: `${item.os} ${item.cpu_arch}`
-    }))
-    return { ...data, name, plugin_info, scope, steps, configs, params: step?.params || [] }
+      support_os_cpu: `${item.os} ${item.cpu_arch}`,
+    }));
+    return { ...data, name, plugin_info, scope, steps, configs, params: step?.params || [] };
   }
   // 策略拓扑
   @Action
@@ -247,12 +247,12 @@ export default class PluginStore extends VuexModule {
   */
   @Action
   public async getRollbackPreview(params: { conditions?: any[], page?: number, pagesize?: number }): Promise<any> {
-    return await rollbackPreview(params).catch(() => ({ total: 0, list: [] }))
+    return await rollbackPreview(params).catch(() => ({ total: 0, list: [] }));
   }
   // 执行预览 - 仅灰度删除查看agent异常的主机
   @Action
   public async  getAbnormalHost(param) {
-    return await previewHost(param).catch(() => ({ total: 0, list: [] }))
+    return await previewHost(param).catch(() => ({ total: 0, list: [] }));
   }
   // 统计给定拓扑节点的agent状态统计
   @Action
@@ -263,12 +263,12 @@ export default class PluginStore extends VuexModule {
   // 新建策略
   @Action
   public async createPolicy(params: any): Promise<IPolicyOperate> {
-    return await createPolicy(params).catch(() => ({}))
+    return await createPolicy(params).catch(() => ({}));
   }
   // 更新策略
   @Action
   public async updatePolicy({ pk, params }: { pk: string, params: any }): Promise<IPolicyOperate> {
-    return await updatePolicy(pk, params).catch(() => ({}))
+    return await updatePolicy(pk, params).catch(() => ({}));
   }
   // 更新策略信息
   @Action

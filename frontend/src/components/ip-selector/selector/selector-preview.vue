@@ -100,7 +100,7 @@ export default class SelectorPreview extends Vue {
     return !this.data.length || this.data.every(item => !item.data.length);
   }
   private get isTopoActive() {
-    return this.data.some(item => item.id === 'TOPO')
+    return this.data.some(item => item.id === 'TOPO');
   }
 
   @Watch('width')
