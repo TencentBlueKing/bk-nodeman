@@ -980,5 +980,5 @@ export default {
   近15天: 'Nearly 15 days',
   近30天: 'Nearly 30 days',
   近1年: 'Nearly 1 year',
-  总数成功失败忽略: 'Total/Success/Failure/Ignore'
-}
+  总数成功失败忽略: 'Total/Success/Failure/Ignore',
+};

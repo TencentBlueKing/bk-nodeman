@@ -29,25 +29,25 @@
   </div>
 </template>
 <script lang="ts">
-import { Component, Prop, Vue, ModelSync, Emit } from 'vue-property-decorator'
-import { IStep } from '@/types/plugin/plugin-type'
+import { Component, Prop, Vue, ModelSync, Emit } from 'vue-property-decorator';
+import { IStep } from '@/types/plugin/plugin-type';
 
 @Component
 export default class RuleStep extends Vue {
-  @Prop({ default: () => [], type: Array }) private readonly steps!: IStep[]
-  @Prop({ default: true, type: Boolean }) private readonly controllable!: boolean
-  @Prop({ default: true, type: Boolean }) private readonly showTips!: boolean
-  @ModelSync('value', 'change', { default: 1, type: Number }) private curStep!: number | string
+  @Prop({ default: () => [], type: Array }) private readonly steps!: IStep[];
+  @Prop({ default: true, type: Boolean }) private readonly controllable!: boolean;
+  @Prop({ default: true, type: Boolean }) private readonly showTips!: boolean;
+  @ModelSync('value', 'change', { default: 1, type: Number }) private curStep!: number | string;
 
   @Emit('change')
   private handleChangeStep(item: IStep) {
-    return item.icon
+    return item.icon;
   }
 
   private handleClickStep(item: IStep) {
-    if (!this.controllable) return
+    if (!this.controllable) return;
 
-    this.handleChangeStep(item)
+    this.handleChangeStep(item);
   }
 }
 </script>

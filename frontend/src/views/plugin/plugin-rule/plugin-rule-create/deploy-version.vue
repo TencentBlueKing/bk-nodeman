@@ -153,7 +153,10 @@ export default class DeployVersion extends Mixins(FormLabelMixin) {
         .findIndex((item: IPk) => `${item.os} ${item.cpu_arch}` === `${old.os} ${old.cpu_arch}`);
       if (index > -1) {
         oldIndex.push(index);
-        res.plugin_packages.splice(index, 1, { ...old, is_preselection: !!res.plugin_packages[index].is_preselection  });
+        res.plugin_packages.splice(index, 1, {
+          ...old,
+          is_preselection: !!res.plugin_packages[index].is_preselection,
+        });
       }
     });
     res.plugin_packages.forEach((item: IDeployPk, index: number) => {

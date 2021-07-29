@@ -157,9 +157,9 @@ export const setupInfo: ISetupHead[] = [
     rules: [
       {
         regx: '^(/[A-Za-z0-9_]{1,16}){1,}$',
-        content: window.i18n.t('Linux路径格式不正确')
-      }
-    ]
+        content: window.i18n.t('Linux路径格式不正确'),
+      },
+    ],
   },
   {
     label: '',
@@ -266,9 +266,9 @@ export const setupManualInfo: ISetupHead[] = [
     rules: [
       {
         regx: '^(/[A-Za-z0-9_]{1,16}){1,}$',
-        content: window.i18n.t('Linux路径格式不正确')
-      }
-    ]
+        content: window.i18n.t('Linux路径格式不正确'),
+      },
+    ],
   },
   {
     label: '',

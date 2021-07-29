@@ -226,42 +226,42 @@
   </section>
 </template>
 <script lang="ts">
-import { Component, Ref, Prop, Emit, Mixins } from 'vue-property-decorator'
-import { IPolicyRow } from '@/types/plugin/plugin-type'
-import { IBkColumn, IPagination, ISearchItem, ITabelFliter } from '@/types'
-import { MainStore, PluginStore } from '@/store'
-import HeaderRenderMixin from '@/components/common/header-render-mixins'
-import { debounceDecorate } from '@/common/util'
-import FlexibleTag from '@/components/common/flexible-tag.vue'
-import ColumnSetting from '@/components/common/column-setting.vue'
-import { CreateElement } from 'vue/types/umd'
+import { Component, Ref, Prop, Emit, Mixins } from 'vue-property-decorator';
+import { IPolicyRow } from '@/types/plugin/plugin-type';
+import { IBkColumn, IPagination, ISearchItem, ITabelFliter } from '@/types';
+import { MainStore, PluginStore } from '@/store';
+import HeaderRenderMixin from '@/components/common/header-render-mixins';
+import { debounceDecorate } from '@/common/util';
+import FlexibleTag from '@/components/common/flexible-tag.vue';
+import ColumnSetting from '@/components/common/column-setting.vue';
+import { CreateElement } from 'vue/types/umd';
 
-type GrayType = 'createGray' | 'editGray' | 'deleteGray' | 'releaseGray'
-type PolicyType = 'edit' | 'start' | 'stop' | 'delete' | 'stop_and_delete' | 'RETRY_ABNORMAL'
+type GrayType = 'createGray' | 'editGray' | 'deleteGray' | 'releaseGray';
+type PolicyType = 'edit' | 'start' | 'stop' | 'delete' | 'stop_and_delete' | 'RETRY_ABNORMAL';
 
 @Component({
   name: 'plugin-rule-table',
   components: {
-    FlexibleTag
-  }
+    FlexibleTag,
+  },
 })
 export default class PluginRuleTable extends Mixins(HeaderRenderMixin) {
-  @Ref('nameInput') private readonly nameInput: any
+  @Ref('nameInput') private readonly nameInput: any;
 
-  @Prop({ type: Array, default: () => ({}) }) private readonly data!: IPolicyRow[]
-  @Prop({ type: Number, default: -1 }) private readonly deleteId!: number
+  @Prop({ type: Array, default: () => ({}) }) private readonly data!: IPolicyRow[];
+  @Prop({ type: Number, default: -1 }) private readonly deleteId!: number;
   @Prop({ type: Object, default: () => ({
     current: 1,
     count: 0,
-    limit: 20
-  }) }) private readonly pagination!: IPagination
-  @Prop({ default: () => ([]), type: Array }) public readonly filterList!: ISearchItem[]
+    limit: 20,
+  }) }) private readonly pagination!: IPagination;
+  @Prop({ default: () => ([]), type: Array }) public readonly filterList!: ISearchItem[];
 
-  private editId: number | string = ''
-  private editName = ''
-  private hoverId: number | string = ''
-  public filterData: ISearchItem[] = this.filterList
-  private localMark = '__rule_list_table__'
+  private editId: number | string = '';
+  private editName = '';
+  private hoverId: number | string = '';
+  public filterData: ISearchItem[] = this.filterList;
+  private localMark = '__rule_list_table__';
   private filter: { [key: string]: ITabelFliter } = {
     name: { checked: true, disabled: true, mockChecked: true, name: window.i18n.t('部署策略'), id: 'name' },
     plugin_name: { checked: true, disabled: true, mockChecked: true, name: window.i18n.t('插件名称'), id: 'name' },
@@ -270,8 +270,8 @@ export default class PluginRuleTable extends Mixins(HeaderRenderMixin) {
     biz_scope: { checked: true, disabled: false, mockChecked: true, name: window.i18n.t('包含业务'), id: 'biz_scope' },
     version: { checked: true, disabled: true, mockChecked: true, name: window.i18n.t('部署版本'), id: 'name' },
     creator: { checked: true, disabled: false, mockChecked: true, name: window.i18n.t('操作账号'), id: 'creator' },
-    update_time: { checked: true, disabled: false, mockChecked: true, name: window.i18n.t('最近操作时间'), id: 'update_time' }
-  }
+    update_time: { checked: true, disabled: false, mockChecked: true, name: window.i18n.t('最近操作时间'), id: 'update_time' },
+  };
 
   private get bkBizList() {
     return MainStore.bkBizList;
@@ -283,14 +283,14 @@ export default class PluginRuleTable extends Mixins(HeaderRenderMixin) {
     return MainStore.language;
   }
   private get fontSize() {
-    return MainStore.fontSize
+    return MainStore.fontSize;
   }
 
   private mounted() {
-    window.addEventListener('resize', this.reCalcFlexibleTag)
+    window.addEventListener('resize', this.reCalcFlexibleTag);
   }
   private beforeDestroy() {
-    window.removeEventListener('resize', this.reCalcFlexibleTag)
+    window.removeEventListener('resize', this.reCalcFlexibleTag);
   }
 
   @Emit('page-change')
@@ -304,16 +304,16 @@ export default class PluginRuleTable extends Mixins(HeaderRenderMixin) {
 
   @Emit('more-operate')
   private moreOperate(row: IPolicyRow, type: string) {
-    return { row, type }
+    return { row, type };
   }
   @Emit('expand-change')
   private handleExpandChange(row: IPolicyRow) {
-    return row
+    return row;
   }
 
   private handleRuleOperate(row: IPolicyRow, type: GrayType | PolicyType) {
     if (['delete', 'stop'].includes(type)) {
-      this.moreOperate(row, type)
+      this.moreOperate(row, type);
     } else {
       // edit start stop_and_delete RETRY_ABNORMAL
       // createGray, editGray, deleteGray releaseGray, RETRY_ABNORMAL
@@ -322,39 +322,39 @@ export default class PluginRuleTable extends Mixins(HeaderRenderMixin) {
         id: row.id,
         policyName: row.name || '',
         pluginId: row.plugin_id,
-        pluginName: row.plugin_name
-      }
+        pluginName: row.plugin_name,
+      };
       if (type === 'releaseGray') {
-        params.id = row.pid // 灰度发布 - 使用的主策略id发布
-        params.subId = row.id
+        params.id = row.pid; // 灰度发布 - 使用的主策略id发布
+        params.subId = row.id;
       }
       if (type === 'RETRY_ABNORMAL') { // 策略失败主机重试
-        params.bkHostId = row.abnormal_host_ids
+        params.bkHostId = row.abnormal_host_ids;
       }
-      this.$router.push({ name: 'createRule', params })
+      this.$router.push({ name: 'createRule', params });
     }
   }
 
   private handleRowClick(row: IPolicyRow) {
     if (row.hasGrayRule) {
-      this.handleExpandChange(row)
+      this.handleExpandChange(row);
     }
   }
 
   private handleEdit(row: IPolicyRow) {
-    this.editId = row.id
-    this.editName = row.name
+    this.editId = row.id;
+    this.editName = row.name;
     this.$nextTick(() => {
       this.nameInput && this.nameInput.focus();
     });
   }
 
   private async handleBlur(row: IPolicyRow) {
-    const valueTrim = this.editName.trim()
-    this.editId = ''
-    this.editName = ''
-    if (valueTrim === '' || valueTrim === row.name) return
-    const message = this.verifyAlias(valueTrim)
+    const valueTrim = this.editName.trim();
+    this.editId = '';
+    this.editName = '';
+    if (valueTrim === '' || valueTrim === row.name) return;
+    const message = this.verifyAlias(valueTrim);
     if (message) {
       this.$bkMessage({
         theme: 'error',
@@ -375,8 +375,8 @@ export default class PluginRuleTable extends Mixins(HeaderRenderMixin) {
     this.nameInput && this.nameInput.blur();
   }
   public verifyAlias(value: string) {
-    let message
-    const valueLength = value.replace(/[\u0391-\uFFE5]/g, 'aa').length
+    let message;
+    const valueLength = value.replace(/[\u0391-\uFFE5]/g, 'aa').length;
     if (valueLength > 40) {
       message = this.$t('长度不能大于20个中文或40个英文字母');
     }
@@ -384,7 +384,7 @@ export default class PluginRuleTable extends Mixins(HeaderRenderMixin) {
   }
 
   private handleRowEnter(index: number, event: Event, row: IPolicyRow) {
-    this.hoverId = row.id
+    this.hoverId = row.id;
   }
 
   private handleRowLeave() {
@@ -393,7 +393,7 @@ export default class PluginRuleTable extends Mixins(HeaderRenderMixin) {
 
   // 查看关联的主机
   public async handleViewAssociatedHost(row: IPolicyRow) {
-    const bizIds = row.bk_biz_scope.map(item => item.bk_biz_id)
+    const bizIds = row.bk_biz_scope.map(item => item.bk_biz_id);
     if (window.localStorage) {
       window.localStorage.setItem('__bk-biz-id__', JSON.stringify(bizIds));
     }
@@ -404,14 +404,14 @@ export default class PluginRuleTable extends Mixins(HeaderRenderMixin) {
     });
   }
   public rowClassName({ row, rowIndex }: { row: IPolicyRow, rowIndex: number }) {
-    let className = row.isGrayRule ? 'gray-rule-row' : ''
+    let className = row.isGrayRule ? 'gray-rule-row' : '';
     if (!(!this.data[rowIndex + 1] || !this.data[rowIndex + 1].isGrayRule)) {
-      className = `${className} not-bottom-row`
+      className = `${className} not-bottom-row`;
     }
-    return  row.enable ? className : `${className} row-disabled`
+    return  row.enable ? className : `${className} row-disabled`;
   }
   public handleCellClass({ column, row }: { column: IBkColumn, row: IPolicyRow }) {
-    return column.type === 'expand' && row.hasGrayRule ?  'hide-cell' : ''
+    return column.type === 'expand' && row.hasGrayRule ?  'hide-cell' : '';
   }
   private handleGotoTask(row: IPolicyRow) {
     if (row.job_result && row.job_result.job_id) {
@@ -441,34 +441,34 @@ export default class PluginRuleTable extends Mixins(HeaderRenderMixin) {
   }
   @debounceDecorate(300)
   private reCalcFlexibleTag() {
-    const refs = this.$refs
+    const refs = this.$refs;
     Object.keys(refs).forEach((key) => {
       if (/flexibleTagRef/.test(key)) {
-        (this.$refs[key] as any).reCalcOverflow()
+        (this.$refs[key] as any).reCalcOverflow();
       }
-    })
+    });
   }
   private renderHeader(h: CreateElement) {
     return h(ColumnSetting, {
       props: {
         filterHead: true,
         localMark: this.localMark,
-        value: this.filter
+        value: this.filter,
       },
       on: {
-        update: (data: Dictionary) => this.handleColumnUpdate(data)
-      }
-    })
+        update: (data: Dictionary) => this.handleColumnUpdate(data),
+      },
+    });
   }
   private handleColumnUpdate(data: Dictionary) {
-    this.filter = data
-    this.$forceUpdate()
+    this.filter = data;
+    this.$forceUpdate();
   }
   private colspanHandle({ column }: { column: IBkColumn }) {
     if (column.property === 'colspanOperate') {
-      return [1, 2]
+      return [1, 2];
     } if (column.property === 'colspanSetting') {
-      return [0, 0]
+      return [0, 0];
     }
   }
 }
