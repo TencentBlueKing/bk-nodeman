@@ -1,4 +1,4 @@
-import { request } from '../base'
+import { request } from '../base';
 
 export const cmdbSubscription = request('POST', 'subscription/cmdb_subscription/');
 export const collectSubscriptionTaskResultDetail = request('POST', 'subscription/collect_task_result_detail/');
@@ -26,28 +26,28 @@ export const subscriptionTaskResultDetail = request('POST', 'subscription/task_r
 export const updateSubscription = request('POST', 'subscription/update/');
 
 export default {
-    cmdbSubscription,
-    collectSubscriptionTaskResultDetail,
-    createSubscription,
-    deleteSubscription,
-    fetchCommands,
-    fetchPolicyTopo,
-    getGseConfig,
-    listDeployPolicy,
-    queryHostPolicy,
-    queryHostSubscriptionIds,
-    queryInstanceStatus,
-    reportLog,
-    retryNode,
-    retrySubscription,
-    revokeSubscription,
-    runSubscription,
-    searchPluginPolicy,
-    statistic,
-    subscriptionCheckTaskReady,
-    subscriptionInfo,
-    subscriptionSwitch,
-    subscriptionTaskResult,
-    subscriptionTaskResultDetail,
-    updateSubscription
-}
+  cmdbSubscription,
+  collectSubscriptionTaskResultDetail,
+  createSubscription,
+  deleteSubscription,
+  fetchCommands,
+  fetchPolicyTopo,
+  getGseConfig,
+  listDeployPolicy,
+  queryHostPolicy,
+  queryHostSubscriptionIds,
+  queryInstanceStatus,
+  reportLog,
+  retryNode,
+  retrySubscription,
+  revokeSubscription,
+  runSubscription,
+  searchPluginPolicy,
+  statistic,
+  subscriptionCheckTaskReady,
+  subscriptionInfo,
+  subscriptionSwitch,
+  subscriptionTaskResult,
+  subscriptionTaskResultDetail,
+  updateSubscription,
+};

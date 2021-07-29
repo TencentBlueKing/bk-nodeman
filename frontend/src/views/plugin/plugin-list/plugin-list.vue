@@ -163,16 +163,16 @@ export default class PluginList extends Mixins(HeaderFilterMixins) {
     {
       id: 'MAIN_DELEGATE_PLUGIN',
       name: window.i18n.t('托管'),
-      tips: window.i18n.t('将插件注册到GSEAgent管理当插件异常退出时可尝试进行自动拉起')
+      tips: window.i18n.t('将插件注册到GSEAgent管理当插件异常退出时可尝试进行自动拉起'),
     },
     {
       id: 'MAIN_UNDELEGATE_PLUGIN',
       name: window.i18n.t('取消托管'),
-      tips: window.i18n.t('取消插件的GSEAgent管理当插件异常退出时将不再被自动拉起')
-    }
-  ]
-  private mixisPluginName: string[] = [] // 插件的状态和版本筛选条件组合到了一起
-  private pluginStatus: string[] = ['RUNNING', 'TERMINATED', 'UNREGISTER'] // 插件的三个固定状态
+      tips: window.i18n.t('取消插件的GSEAgent管理当插件异常退出时将不再被自动拉起'),
+    },
+  ];
+  private mixisPluginName: string[] = []; // 插件的状态和版本筛选条件组合到了一起
+  private pluginStatus: string[] = ['RUNNING', 'TERMINATED', 'UNREGISTER']; // 插件的三个固定状态
 
   private get selectedAllDisabled() {
     const statusCondition = this.searchSelectValue.find(item => item.id === 'status');
@@ -511,8 +511,8 @@ export default class PluginList extends Mixins(HeaderFilterMixins) {
     };
     this.$router.push({
       name: 'pluginOperation',
-      params: { type: operate, pluginId: id, pluginName: name, strategyData }
-    })
+      params: { type: operate, pluginId: id, pluginName: name, strategyData },
+    });
   }
 
   private handleDialogCancel() {

@@ -1,8 +1,8 @@
 /* eslint-disable max-len */
-import { RouteConfig, Route } from 'vue-router'
-import { MainStore } from '@/store/index'
-import { STRATEGY_VIEW, STRATEGY_CREATE, PLUGIN_VIEW } from '../action-map'
-import { IRuleRouterParams, pluginOperate, grayRuleType, stepOperate } from '@/views/plugin/operateConfig'
+import { RouteConfig, Route } from 'vue-router';
+import { MainStore } from '@/store/index';
+import { STRATEGY_VIEW, STRATEGY_CREATE, PLUGIN_VIEW } from '../action-map';
+import { IRuleRouterParams, pluginOperate, grayRuleType, stepOperate } from '@/views/plugin/operateConfig';
 
 const Plugin = () => import(/* webpackChunkName: 'Plugin' */'@/views/plugin/plugin-list/plugin-list.vue');
 const pluginRule = () => import(/* webpackChunkName: 'PluginRule' */'@/views/plugin/plugin-rule/plugin-rule.vue');
@@ -61,16 +61,16 @@ export default [
       title: '手动操作插件',
       customContent: true,
       parentName: 'plugin',
-      needBack: true
+      needBack: true,
     },
     beforeEnter(to: Route, from: Route, next) {
-      const { type, pluginId } = to.params as IRuleRouterParams
+      const { type, pluginId } = to.params as IRuleRouterParams;
       if (!pluginId || !pluginOperate.includes(type)) {
-        next({ name: 'plugin', replace: true })
-        return
+        next({ name: 'plugin', replace: true });
+        return;
       }
-      next()
-    }
+      next();
+    },
   },
   {
     path: '/plugin-manager/rule',
@@ -117,37 +117,37 @@ export default [
       needBack: true,
     },
     beforeEnter(to: Route, from: Route, next) {
-      const { type, pluginId, policyName, subId } = to.params as IRuleRouterParams
+      const { type, pluginId, policyName, subId } = to.params as IRuleRouterParams;
 
       if (!pluginId && /create/ig.test(type)) {
         if (type === 'create') {
-          next({ name: from.name !== 'chooseRule' ? 'chooseRule' : 'pluginRule' })
+          next({ name: from.name !== 'chooseRule' ? 'chooseRule' : 'pluginRule' });
         } else {
-          next({ name: 'pluginRule', replace: true })
+          next({ name: 'pluginRule', replace: true });
         }
-        return
+        return;
       }
       if (!subId && ['releaseGray'].includes(type)) {
-        next({ name: 'pluginRule', replace: true })
-        return
+        next({ name: 'pluginRule', replace: true });
+        return;
       }
       if (!policyName && ['start', 'stop', 'stop_and_delete', 'deleteGray'].includes(type)) {
-        next({ name: 'pluginRule', replace: true })
-        return
+        next({ name: 'pluginRule', replace: true });
+        return;
       }
       if (stepOperate.includes(type)) {
-        MainStore.updateEdited(true)
+        MainStore.updateEdited(true);
       }
 
       if (pluginOperate.includes(type)) {
-        to.params.ruleType = 'plugin'
+        to.params.ruleType = 'plugin';
       } else if (grayRuleType.includes(type)) {
-        to.params.ruleType = 'gray'
+        to.params.ruleType = 'gray';
       } else {
-        to.params.ruleType = 'policy'
+        to.params.ruleType = 'policy';
       }
-      next()
-    }
+      next();
+    },
   },
   {
     path: '/plugin-manager/package',

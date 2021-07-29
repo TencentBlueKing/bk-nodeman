@@ -1,12 +1,14 @@
 {
   "include": [
-    "src/**/*"
+    "src/**/*",
+    ".eslintrc.js",
+    "local_settings.js"
   ],
   "exclude": [
     "node_modules"
   ],
   "compilerOptions": {
-    "outDir": "",
+    "outDir": "./dist",
     // 解析非相对模块名的基准目录
     "baseUrl": ".",
     // 指定特殊模块的路径
