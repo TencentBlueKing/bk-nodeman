@@ -42,7 +42,7 @@ export const stepMap: { [key: string]: IStep[] } = {
     { title: '', icon: 1, com: 'performPreview' },
   ],
   RETRY_ABNORMAL: [ // 失败重试
-    { title: '', icon: 1, com: 'performPreview' }
+    { title: '', icon: 1, com: 'performPreview' },
   ],
 
   // 灰度策略操作流程
@@ -59,7 +59,7 @@ export const stepMap: { [key: string]: IStep[] } = {
     { title: window.i18n.t('执行预览'), icon: 4, com: 'performPreview' },
   ],
   deleteGray: [
-    { title: '', icon: 1, com: 'performPreview' }
+    { title: '', icon: 1, com: 'performPreview' },
   ],
   releaseGray: [
     { title: '', icon: 1, com: 'performPreview' },

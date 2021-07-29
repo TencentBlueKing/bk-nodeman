@@ -1,30 +1,25 @@
-===
+### 前端工程指引
 
-## 使用
+#### 新建配置文件
 
-``` bash
-# 本地运行蓝鲸前端开发脚手架的文档工程
-npm run doc
+在`frontend`目录下面新建`local_settings.js`，配置如下内容：
 
-# 构建蓝鲸前端开发脚手架的文档工程
-npm run build:doc
-
-# 本地开发
-npm install
-npm run dev
-
-# 创建 `Dll bundle`
-npm run dll
-
-# 打包构建
-npm run build
-
-# 打包构建分析
-npm run build:analyzer
+```javascript
+module.exports = {
+  proxyTableTarget: '线下代理地址',
+  devHost: '127.0.0.1'
+};
 ```
 
-## 详细说明
+#### 运行项目
 
-```bash
-npm run doc
+```shell
+// 1. 切换到 /frontend 目录
+cd frontend
+// 2. 安装 npm 依赖包
+npm install
+// 3. 更新 magicbox 组件库
+npm run dll
+// 4. 启动服务
+npm run dev 
 ```
