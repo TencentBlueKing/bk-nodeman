@@ -10,7 +10,8 @@ specific language governing permissions and limitations under the License.
 """
 import hashlib
 from collections import Counter, namedtuple
-from typing import Any, List, Set, Union
+from copy import deepcopy
+from typing import Any, Dict, Iterable, List, Set, Union
 
 
 def tuple_choices(tupl):
@@ -148,3 +149,38 @@ def to_int_or_default(val: Any, default: Any = None) -> Union[int, Any, None]:
         return int(val)
     except ValueError:
         return default
+
+
+def remove_keys_from_dict(
+    origin_data: Union[Dict, List], keys: Iterable[Any], return_deep_copy: bool = True, recursive: bool = False
+) -> Dict[str, str]:
+    """
+    从字典或列表结构中，移除结构中存在的字典所指定的key
+    :param origin_data: 原始数据
+    :param keys: 待移除的键
+    :param return_deep_copy: 是否返回深拷贝的数据
+    :param recursive: 是否递归移除
+    :return:
+    """
+
+    def _remove_dict_keys_recursively(_data: Union[List, Dict]) -> Union[List, Dict]:
+
+        if isinstance(_data, dict):
+            for _key in keys:
+                _data.pop(_key, None)
+
+        if not recursive:
+            return _data
+
+        _is_dict = isinstance(_data, dict)
+
+        for _key_or_item in _data:
+            _item = _data[_key_or_item] if _is_dict else _key_or_item
+            if not (isinstance(_item, dict) or isinstance(_item, list)):
+                continue
+            _remove_dict_keys_recursively(_item)
+
+        return _data
+
+    data = deepcopy(origin_data) if return_deep_copy else origin_data
+    return _remove_dict_keys_recursively(data)
