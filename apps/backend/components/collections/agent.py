@@ -478,7 +478,7 @@ class ChooseAccessPointService(AgentService):
             return True
 
     def _agent_choose_ap(self, host):
-        is_linux = host.os_type in [constants.OsType.LINUX, constants.OsType.AIX]
+        is_linux = host.os_type in [constants.OsType.LINUX, constants.OsType.AIX, constants.OsType.SOLARIS]
         ssh_man = None
         if is_linux:
             ssh_man = SshMan(host, self.logger)
@@ -983,7 +983,6 @@ class RunUpgradeCommandService(JobFastExecuteScriptService):
                 package_name_tar=package_name.replace("tgz", "tar"),
             )
         else:
-
             path = os.path.join(settings.PROJECT_ROOT, "script_tools", "upgrade_agent.sh.tpl")
             with open(path, encoding="utf-8") as fh:
                 script = fh.read()
