@@ -25,7 +25,6 @@ CA_FILE_MERGED_TEXT = """
 %%PRIVATE_KEY_MERGED_TEXT%%
 """
 
-DEFAULT_HTTP_PROXY_SERVER_PORT = 17981
 WIN_CURL_FILES = ("curl.exe", "curl-ca-bundle.crt", "libcurl-x64.dll")
 
 RECV_BUFLEN = 32768  # SSH通道recv接收缓冲区大小
@@ -183,11 +182,16 @@ def arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("-HNT", "--host-node-type", type=str, help="Host Node Type")
     parser.add_argument("-HOT", "--host-os-type", type=str, help="Host Os Type")
     parser.add_argument("-HDD", "--host-dest-dir", type=str, help="Host Dest Dir")
+    parser.add_argument("-HPP", "--host-proxy-port", type=int, default=17981, help="Host Proxy Port")
+    parser.add_argument("-HSN", "--host-script-name", type=str, help="Host Script Name")
+    parser.add_argument("-HS", "--host-shell", type=str, help="Host Shell")
 
     return parser
 
 
 args = arg_parser().parse_args(sys.argv[1:])
+
+DEFAULT_HTTP_PROXY_SERVER_PORT = args.host_proxy_port
 
 try:
     # import 3rd party libraries here, in case the python interpreter does not have them
@@ -426,20 +430,20 @@ def main() -> None:
     cloud_id = args.host_cloud
     _os = args.host_os_type
     tmp_dir = args.host_dest_dir
+    shell = args.host_shell
+    script_name = args.host_script_name
 
     # 启动proxy
     start_http_proxy(args.lan_eth_ip, DEFAULT_HTTP_PROXY_SERVER_PORT)
 
-    construct_cmd = {
-        "aix": [
-            f"rm -f {tmp_dir}setup_agent.ksh",
-            "curl {}/setup_agent.ksh -o {}setup_agent.ksh -sSf -x {}".format(
-                args.download_url,
-                tmp_dir,
-                "http://{}:{}".format(args.lan_eth_ip, DEFAULT_HTTP_PROXY_SERVER_PORT),
-            ),
-            "nohup ksh {dest_dir}setup_agent.ksh -T {dest_dir} -i {} -I {} -s {} -c {} -l {} -r {} -p {} -e {} "
+    http_proxy_url = "http://{}:{}".format(args.lan_eth_ip, DEFAULT_HTTP_PROXY_SERVER_PORT)
+    if shell and _os not in ["windows"]:
+        cmd = [
+            f"rm -f {tmp_dir}{script_name}",
+            f"curl {args.download_url}/{script_name} -o {tmp_dir}{script_name} -sSf -x {http_proxy_url}",
+            "nohup {} {dest_dir}{script_name} -T {dest_dir} -i {} -I {} -s {} -c {} -l {} -r {} -p {} -e {} "
             "-a {} -k {} -x {} -N PROXY {} -O {} -E {} -A {} -V {} -B {} -S {} -Z {} -K {} 2>&1 &".format(
+                shell,
                 cloud_id,
                 lan_eth_ip,
                 args.task_id,
@@ -450,7 +454,7 @@ def main() -> None:
                 args.btfile_server_ip,
                 args.data_server_ip,
                 args.task_server_ip,
-                "http://{}:{}".format(args.lan_eth_ip, DEFAULT_HTTP_PROXY_SERVER_PORT),
+                http_proxy_url,
                 REMOVE,
                 args.io_port,
                 args.file_svr_port,
@@ -460,46 +464,18 @@ def main() -> None:
                 args.bt_port_start,
                 args.bt_port_end,
                 args.tracker_port,
+                script_name=script_name,
                 dest_dir=tmp_dir,
             ),
-        ],
-        "linux": [
-            f"rm -f {tmp_dir}setup_agent.sh",
-            "curl {}/setup_agent.sh -o {}setup_agent.sh -sSf -x {}".format(
-                args.download_url,
-                tmp_dir,
-                "http://{}:{}".format(args.lan_eth_ip, DEFAULT_HTTP_PROXY_SERVER_PORT),
-            ),
-            "nohup bash {dest_dir}setup_agent.sh -T {dest_dir} -i {} -I {} -s {} -c {} -l {} -r {} -p {} -e {} "
-            "-a {} -k {} -x {} -N PROXY {} -O {} -E {} -A {} -V {} -B {} -S {} -Z {} -K {} 2>&1 &".format(
-                cloud_id,
-                lan_eth_ip,
-                args.task_id,
-                args.token,
-                args.package_url,
-                args.callback_url,
-                args.install_path,
-                args.btfile_server_ip,
-                args.data_server_ip,
-                args.task_server_ip,
-                "http://{}:{}".format(args.lan_eth_ip, DEFAULT_HTTP_PROXY_SERVER_PORT),
-                REMOVE,
-                args.io_port,
-                args.file_svr_port,
-                args.data_port,
-                args.btsvr_thrift_port,
-                args.bt_port,
-                args.bt_port_start,
-                args.bt_port_end,
-                args.tracker_port,
-                dest_dir=tmp_dir,
-            ),
-        ],
-        "windows": [
-            f"del /q /s /f {tmp_dir}setup_agent.bat {tmp_dir}gsectl.bat",
-            f"{tmp_dir}curl.exe {args.download_url}/setup_agent.bat -o {tmp_dir}setup_agent.bat "
+        ]
+    else:
+        cmd = [
+            f"del /q /s /f {tmp_dir}{script_name} {tmp_dir}gsectl.bat",
+            f"{tmp_dir}curl.exe {args.download_url}/{script_name} -o {tmp_dir}{script_name} "
             f"-x http://{args.lan_eth_ip}:{DEFAULT_HTTP_PROXY_SERVER_PORT} -sSf",
-            "{dest_dir}setup_agent.bat -T {dest_dir} -i {} -I {} -s {} -c {} -l {} -r {} -p {} "
+            f"{tmp_dir}curl.exe {args.download_url}/gsectl.bat -o {tmp_dir}gsectl.bat "
+            f"-x http://{args.lan_eth_ip}:{DEFAULT_HTTP_PROXY_SERVER_PORT} -sSf",
+            "{dest_dir}{script_name} -T {dest_dir} -i {} -I {} -s {} -c {} -l {} -r {} -p {} "
             '-e "{}" -a "{}" -k "{}" -x {} -N PROXY {} -O {} -E {} -A {} -V {} -B {} -S {} -Z {} -K {}'.format(
                 cloud_id,
                 lan_eth_ip,
@@ -511,7 +487,7 @@ def main() -> None:
                 args.btfile_server_ip,
                 args.data_server_ip,
                 args.task_server_ip,
-                "http://{}:{}".format(args.lan_eth_ip, DEFAULT_HTTP_PROXY_SERVER_PORT),
+                http_proxy_url,
                 REMOVE,
                 args.io_port,
                 args.file_svr_port,
@@ -521,12 +497,12 @@ def main() -> None:
                 args.bt_port_start,
                 args.bt_port_end,
                 args.tracker_port,
+                script_name=script_name,
                 dest_dir=tmp_dir,
             ),
-        ],
-    }
+        ]
 
-    _function = {"aix": rcmd_aix, "linux": rcmd, "windows": windows_cmd}
+    _function = {"aix": rcmd_aix, "linux": rcmd, "windows": windows_cmd, "solaris": rcmd}
 
     # # 当CPU或内存消耗较高时，
     # cpu_percent = psutil.cpu_percent()
@@ -548,7 +524,7 @@ def main() -> None:
 
     _function[_os](
         login_ip,
-        construct_cmd[_os],
+        cmd,
         user,
         int(port),
         identity,

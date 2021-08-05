@@ -17,6 +17,7 @@ from typing import List, Tuple
 from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
 
+from apps.backend.api import constants as const
 from apps.backend.exceptions import GenCommandsError
 from apps.node_man import constants, models
 from apps.node_man.models import aes_cipher
@@ -111,22 +112,21 @@ def choose_script_file(host: models.Host) -> str:
         return constants.SetupScriptFileName.SETUP_PAGENT_PY.value
 
     # 其它场景，按操作系统来区分
-    script_file_name_map = {
-        constants.OsType.LINUX: constants.SetupScriptFileName.SETUP_AGENT_SH.value,
-        constants.OsType.WINDOWS: constants.SetupScriptFileName.SETUP_AGENT_BAT.value,
-        constants.OsType.AIX: constants.SetupScriptFileName.SETUP_AGENT_KSH.value,
-    }
-    script_file_name = script_file_name_map[host.os_type]
+    script_file_name = constants.SCRIPT_FILE_NAME_MAP[host.os_type]
     return script_file_name
 
 
-def format_run_cmd_by_os_type(os_type: str, run_cmd: str) -> str:
-    if os_type == constants.OsType.WINDOWS:
+def format_run_cmd_by_os_type(os_type: str, run_cmd=None) -> str:
+    os_type = os_type.lower()
+    if os_type == const.OS.WINDOWS and run_cmd:
         return run_cmd
-    elif os_type == constants.OsType.AIX:
-        return f"nohup ksh {run_cmd} &"
+    suffix = const.SUFFIX_MAP[os_type]
+    if suffix != const.SUFFIX_MAP[const.OS.AIX]:
+        shell = "bash"
     else:
-        return f"nohup bash {run_cmd} &"
+        shell = suffix
+    run_cmd = f"nohup {shell} {run_cmd} &" if run_cmd else shell
+    return run_cmd
 
 
 def gen_commands(host: models.Host, pipeline_id: str, is_uninstall: bool) -> InstallationTools:
@@ -191,6 +191,7 @@ def gen_commands(host: models.Host, pipeline_id: str, is_uninstall: bool) -> Ins
         host_identity = (
             host.identity.key if host.identity.auth_type == constants.AuthType.KEY else host.identity.password
         )
+        host_shell = format_run_cmd_by_os_type(host.os_type)
         run_cmd_params.extend(
             [
                 f"-HLIP {host.login_ip or host.inner_ip}",
@@ -202,6 +203,9 @@ def gen_commands(host: models.Host, pipeline_id: str, is_uninstall: bool) -> Ins
                 f"-HNT {host.node_type}",
                 f"-HOT {host.os_type.lower()}",
                 f"-HDD '{host_tmp_path}'",
+                f"-HPP '{settings.BK_NODEMAN_NGINX_PROXY_PASS_PORT}'",
+                f"-HSN '{constants.SCRIPT_FILE_NAME_MAP[host.os_type]}'",
+                f"-HS '{host_shell}'",
             ]
         )
 

@@ -436,8 +436,8 @@ class Host(models.Model):
     @property
     def agent_config(self):
         os_type = self.os_type.lower()
-        # AIX与Linux共用配置
-        if self.os_type == constants.OsType.AIX:
+        # AIX、SOLARIS与Linux共用配置
+        if self.os_type in [constants.OsType.AIX, constants.OsType.SOLARIS]:
             os_type = constants.OsType.LINUX.lower()
         return self.ap.agent_config[os_type]
 

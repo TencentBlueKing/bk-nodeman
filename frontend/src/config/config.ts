@@ -40,7 +40,7 @@ const getSysOptions = () => {
     { id: 'LINUX', name: 'Linux' },
   ];
   if (window.PROJECT_CONFIG.BKAPP_RUN_ENV !== 'ce') {
-    options.push({ id: 'AIX', name: 'AIX' });
+    options.push({ id: 'AIX', name: 'AIX' }, { id: 'SOLARIS', name: 'Solaris' });
   }
   return options;
 };

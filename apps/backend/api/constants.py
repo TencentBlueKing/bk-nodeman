@@ -21,6 +21,7 @@ class OS(object):
     WINDOWS = "windows"
     LINUX = "linux"
     AIX = "aix"
+    SOLARIS = "solaris"
 
 
 # 操作系统->系统账户映射表
@@ -28,6 +29,7 @@ ACCOUNT_MAP = {
     OS.WINDOWS: settings.BACKEND_WINDOWS_ACCOUNT,
     OS.LINUX: "root",
     OS.AIX: "root",
+    OS.SOLARIS: "root",
 }
 
 # 操作系统->后缀映射表
@@ -35,6 +37,7 @@ SUFFIX_MAP = {
     OS.WINDOWS: "bat",
     OS.LINUX: "sh",
     OS.AIX: "ksh",
+    OS.SOLARIS: "sh",
 }
 
 
