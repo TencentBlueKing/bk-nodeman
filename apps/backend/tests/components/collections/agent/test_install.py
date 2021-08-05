@@ -328,7 +328,9 @@ class InstallPAgentSuccessTest(TestCase, ComponentTestMixin):
             f" -O 48668 -E 58925 -A 58625 -V 58930 -B 10020 -S 60020 -Z 60030 -K 10030"
             f' -e "1.1.1.1" -a "1.1.1.1" -k "1.1.1.1" -L /data/bkee/public/bknodeman/download'
             f" -HLIP 127.0.0.1 -HIIP 127.0.0.1 -HA root -HP 22 -HI 'aes_str:::H4MFaqax' -HC 0 -HNT PAGENT"
-            f" -HOT linux -HDD '/tmp/' -p '/usr/local/gse' -I 1.1.1.1"
+            f" -HOT linux -HDD '/tmp/'"
+            f" -HPP '17981' -HSN 'setup_agent.sh' -HS 'bash'"
+            f" -p '/usr/local/gse' -I 1.1.1.1"
             f" -o http://1.1.1.1:{settings.BK_NODEMAN_NGINX_DOWNLOAD_PORT}/ "
         )
         self.assertEqual(installation_tool.run_cmd, run_cmd)
@@ -521,7 +523,9 @@ class InstallAgentWithInstallChannelSuccessTest(TestCase, ComponentTestMixin):
             f" -O 48668 -E 58925 -A 58625 -V 58930 -B 10020 -S 60020 -Z 60030 -K 10030"
             f' -e "127.0.0.1" -a "127.0.0.1" -k "127.0.0.1" -L /data/bkee/public/bknodeman/download'
             f" -HLIP 127.0.0.1 -HIIP 127.0.0.1 -HA root -HP 22 -HI 'aes_str:::H4MFaqax' -HC 0 -HNT AGENT"
-            f" -HOT linux -HDD '/tmp/' -p '/usr/local/gse' -I 1.1.1.1"
+            f" -HOT linux -HDD '/tmp/'"
+            f" -HPP '17981' -HSN 'setup_agent.sh' -HS 'bash'"
+            f" -p '/usr/local/gse' -I 1.1.1.1"
             f" -o http://1.1.1.1:{settings.BK_NODEMAN_NGINX_DOWNLOAD_PORT}/ "
         )
         self.assertEqual(installation_tool.run_cmd, run_cmd)

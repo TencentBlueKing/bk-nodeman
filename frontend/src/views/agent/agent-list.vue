@@ -695,6 +695,7 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
     LINUX: 'Linux',
     WINDOWS: 'Windows',
     AIX: 'AIX',
+    SOLARIS: 'Solaris',
   };
   // 批量操作
   private operate: IOperateItem[] = [

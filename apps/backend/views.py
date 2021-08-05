@@ -431,12 +431,13 @@ PLUGIN_INFO_TEMPLATE = """
 
 def is_designated_upstream_servers(host: models.Host):
     """判断是否指定上游节点"""
+    without_zk_os = [constants.OsType.AIX, constants.OsType.SOLARIS]
     # 非直连区域，使用proxy作为上游节点
     if host.bk_cloud_id != constants.DEFAULT_CLOUD:
         return True
 
-    # 直连区域 AIX不支持zk，因此直接指定上游节点
-    if host.bk_cloud_id == constants.DEFAULT_CLOUD and host.os_type == constants.OsType.AIX:
+    # 直连区域 AIX, SOLARIS不支持zk，因此直接指定上游节点
+    if host.bk_cloud_id == constants.DEFAULT_CLOUD and host.os_type in without_zk_os:
         return True
 
     # 指定了安装通道，直接使用安装通道的上游节点

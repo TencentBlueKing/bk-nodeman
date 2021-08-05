@@ -198,6 +198,7 @@ class TestMeta(TestCase):
                     {"id": "LINUX", "name": "Linux"},
                     {"id": "WINDOWS", "name": "Windows"},
                     {"id": "AIX", "name": "AIX"},
+                    {"id": "SOLARIS", "name": "Solaris"},
                 ],
             },
         )

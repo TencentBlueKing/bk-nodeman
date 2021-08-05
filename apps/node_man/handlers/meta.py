@@ -13,11 +13,11 @@ import re
 from django.conf import settings
 from django.db import connection
 from django.utils.translation import ugettext as _
-from apps.node_man.handlers.install_channel import InstallChannelHandler
 
 from apps.node_man import constants, models, tools
 from apps.node_man.handlers.cloud import CloudHandler
 from apps.node_man.handlers.cmdb import CmdbHandler
+from apps.node_man.handlers.install_channel import InstallChannelHandler
 from apps.utils import APIModel
 
 
@@ -351,7 +351,8 @@ class MetaHandler(APIModel):
         os_dict = {"name": _("操作系统"), "id": "os_type", "children": []}
 
         for os_type in constants.OS_TUPLE:
-            if os_type == constants.OsType.AIX and settings.BKAPP_RUN_ENV == constants.BkappRunEnvType.CE.value:
+            special_os_type = [constants.OsType.AIX, constants.OsType.SOLARIS]
+            if os_type in special_os_type and settings.BKAPP_RUN_ENV == constants.BkappRunEnvType.CE.value:
                 continue
             os_dict["children"].append(
                 {"id": os_type, "name": os_type if os_type == constants.OsType.AIX else os_type.capitalize()}
