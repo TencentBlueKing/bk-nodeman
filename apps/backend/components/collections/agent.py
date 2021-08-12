@@ -42,7 +42,7 @@ from apps.backend.utils.wmi import execute_cmd, put_file
 from apps.backend.views import generate_gse_config
 from apps.component.esbclient import client_v2
 from apps.exceptions import AuthOverdueException, ComponentCallError
-from apps.node_man import constants as const
+from apps.node_man import constants
 from apps.node_man.handlers.tjj import TjjHandler
 from apps.node_man.models import (
     AccessPoint,
@@ -85,7 +85,7 @@ class AgentService(Service):
             if bk_host_id:
                 update_fields = {
                     "job_id": job.id,
-                    "status": const.JobStatusType.RUNNING,
+                    "status": constants.JobStatusType.RUNNING,
                     "current_step": _("正在{description}").format(description=description),
                     "pipeline_id": self.id,
                     "instance_id": subscription_instance.instance_id,
@@ -144,7 +144,7 @@ class QueryTjjPasswordService(AgentService):
         creator = data.get_one_of_inputs("creator")
         host = Host.get_by_host_info(host_info)
 
-        if host.identity.auth_type != const.AuthType.TJJ_PASSWORD:
+        if host.identity.auth_type != constants.AuthType.TJJ_PASSWORD:
             self.logger.info(_("当前主机验证类型无需查询密码"))
             return True
 
@@ -257,7 +257,7 @@ class RegisterHostService(AgentService):
         # 是否为手动安装
         is_manual = host_info.get("is_manual", False)
 
-        if host_info.get("auth_type") != const.AuthType.TJJ_PASSWORD and not is_manual:
+        if host_info.get("auth_type") != constants.AuthType.TJJ_PASSWORD and not is_manual:
             if not (host_info.get("password") or host_info.get("key")):
                 self.logger.error(_("该主机的登录认证信息已被清空，无法重试，请重新发起安装任务"))
                 return False
@@ -278,7 +278,7 @@ class RegisterHostService(AgentService):
                 "import_from": "3",
                 "bk_cloud_id": bk_cloud_id,
                 "bk_host_outerip": outer_ip,
-                "bk_os_type": const.BK_OS_TYPE[host_info["os_type"]],
+                "bk_os_type": constants.BK_OS_TYPE[host_info["os_type"]],
                 "bk_bak_operator": biz_info[0].get("bk_biz_maintainer"),
                 "operator": biz_info[0].get("bk_biz_maintainer"),
             }
@@ -340,7 +340,7 @@ class RegisterHostService(AgentService):
 
         if bk_host_id:
             # 写入数据库
-            if host_info["host_node_type"] == const.NodeType.PROXY:
+            if host_info["host_node_type"] == constants.NodeType.PROXY:
                 login_ip = login_ip or outer_ip or inner_ip
             else:
                 login_ip = login_ip or inner_ip
@@ -373,10 +373,10 @@ class RegisterHostService(AgentService):
                     )
                     if created:
                         # 初次创建主机时，初始化CPU架构，根据操作系统设置默认值，后续通过安装上报日志修正
-                        if host_info["os_type"] == const.OsType.AIX:
-                            host.cpu_arch = const.CpuType.powerpc
+                        if host_info["os_type"] == constants.OsType.AIX:
+                            host.cpu_arch = constants.CpuType.powerpc
                         else:
-                            host.cpu_arch = const.CpuType.x86_64
+                            host.cpu_arch = constants.CpuType.x86_64
                         host.save(update_fields=["cpu_arch"])
                     IdentityData.objects.update_or_create(
                         bk_host_id=bk_host_id,
@@ -397,7 +397,7 @@ class RegisterHostService(AgentService):
                         source_type=ProcessStatus.SourceType.DEFAULT,
                     )
                     if created:
-                        process_status.status = const.ProcStateType.NOT_INSTALLED
+                        process_status.status = constants.ProcStateType.NOT_INSTALLED
                         process_status.save()
             except Exception as error:
                 self.logger.info(f"something went wrong: {error}")
@@ -443,11 +443,11 @@ class ChooseAccessPointService(AgentService):
         host_info = data.get_one_of_inputs("host_info")
         host = Host.get_by_host_info({"bk_host_id": bk_host_id} if bk_host_id else host_info)
 
-        if host.ap_id != const.DEFAULT_AP_ID:
+        if host.ap_id != constants.DEFAULT_AP_ID:
             self.logger.info(_("当前主机已分配接入点[{ap_name}]").format(ap_name=host.ap.name))
             return True
 
-        if host.node_type == const.NodeType.PAGENT:
+        if host.node_type == constants.NodeType.PAGENT:
             proxy = host.get_random_alive_proxy()
             host.ap_id = proxy.ap_id
             host.save()
@@ -467,7 +467,7 @@ class ChooseAccessPointService(AgentService):
             return True
 
     def _agent_choose_ap(self, host):
-        is_linux = host.os_type in [const.OsType.LINUX, const.OsType.AIX]
+        is_linux = host.os_type in [constants.OsType.LINUX, constants.OsType.AIX]
         ssh_man = None
         if is_linux:
             ssh_man = SshMan(host, self.logger)
@@ -480,7 +480,7 @@ class ChooseAccessPointService(AgentService):
         for ap in AccessPoint.objects.all():
             gse_ping_time = []
             for gse_server in ap.taskserver:
-                ip = gse_server["inner_ip"] if host.bk_cloud_id == const.DEFAULT_CLOUD else gse_server["outer_ip"]
+                ip = gse_server["inner_ip"] if host.bk_cloud_id == constants.DEFAULT_CLOUD else gse_server["outer_ip"]
                 if is_linux:
                     ping_time = ssh_man.send_cmd(
                         f"ping {ip} -i 0.1 -c 4 -s 100 -W 1 | tail -1 | awk -F '/' '{{print $5}}'"
@@ -607,7 +607,7 @@ class InstallService(AgentService, JobFastExecuteScriptService):
             self.logger.info(_("开始执行远程安装"))
 
         # Windows相关提醒
-        if host.os_type == const.OsType.WINDOWS:
+        if host.os_type == constants.OsType.WINDOWS:
             self.logger.info(
                 _(
                     "正在安装Windows AGENT, 请确认: \n"
@@ -626,18 +626,31 @@ class InstallService(AgentService, JobFastExecuteScriptService):
 
         # 生成安装命令
         try:
-            dest_dir, commands, proxies, proxy, pre_commands, run_cmd = gen_commands(host, self.id, is_uninstall)
+            installation_tool = gen_commands(host, self.id, is_uninstall)
         except GenCommandsError as e:
             self.logger.info(e.message)
             return False
 
-        if host.node_type in [const.NodeType.AGENT, const.NodeType.PROXY]:
+        if installation_tool.script_file_name == constants.SetupScriptFileName.SETUP_PAGENT_PY.value:
+            # PAGENT 走 作业平台，再 ssh 到 PAGENT，这样可以无需保存 proxy 密码
+            self.logger.info(_("主机的上游节点为: {proxies}").format(proxies=",".join(installation_tool.upstream_nodes)))
+            self.logger.info(_("已选择 {inner_ip} 作为本次安装的跳板机").format(inner_ip=installation_tool.jump_server.inner_ip))
+            return self.execute_job_commands(
+                bk_username,
+                installation_tool.jump_server,
+                host,
+                installation_tool.run_cmd,
+                installation_tool.pre_commands,
+            )
+        else:
             # AGENT 或 PROXY安装走 ssh或wmi 连接
-            if host.os_type == const.OsType.WINDOWS:
-                self.execute_windows_commands(host, [f'if not exist "{dest_dir}" mkdir {dest_dir}'])
-                self.push_curl_exe(host, dest_dir)
+            if host.os_type == constants.OsType.WINDOWS:
+                self.execute_windows_commands(
+                    host, [f'if not exist "{installation_tool.dest_dir}" mkdir {installation_tool.dest_dir}']
+                )
+                self.push_curl_exe(host, installation_tool.dest_dir)
                 try:
-                    return self.execute_windows_commands(host, commands)
+                    return self.execute_windows_commands(host, installation_tool.win_commands)
                 except socket.error:
                     self.logger.error(
                         _("连接失败，请确认节点管理后台 -> 目标机器 [{ip}] 的端口 [{port}] 策略是否开通").format(
@@ -647,7 +660,7 @@ class InstallService(AgentService, JobFastExecuteScriptService):
                     return False
             else:
                 try:
-                    return self.execute_linux_commands(host, run_cmd, pre_commands)
+                    return self.execute_linux_commands(host, installation_tool.run_cmd, installation_tool.pre_commands)
                 except socket.timeout:
                     self.logger.error(
                         _("连接失败，请确认节点管理后台 -> 目标机器 [{ip}] 的端口 [{port}] 策略是否开通").format(
@@ -655,18 +668,13 @@ class InstallService(AgentService, JobFastExecuteScriptService):
                         )
                     )
                     return False
-        else:
-            # PAGENT 走 作业平台，再 ssh 到 PAGENT，这样可以无需保存 proxy 密码
-            self.logger.info(_("主机的Proxy为: {proxies}").format(proxies=",".join(proxies)))
-            self.logger.info(_("已选择 {inner_ip} 作为本次安装的proxy").format(inner_ip=proxy.inner_ip))
-            return self.execute_job_commands(bk_username, proxy, host, run_cmd, pre_commands)
 
     def execute_windows_commands(self, host, commands):
         # windows command executing
         ip = host.login_ip or host.inner_ip
         identity_data = IdentityData.objects.get(bk_host_id=host.bk_host_id)
-        if (identity_data.auth_type == const.AuthType.PASSWORD and not identity_data.password) or (
-            identity_data.auth_type == const.AuthType.KEY and not identity_data.key
+        if (identity_data.auth_type == constants.AuthType.PASSWORD and not identity_data.password) or (
+            identity_data.auth_type == constants.AuthType.KEY and not identity_data.key
         ):
             self.logger.info(_("认证信息已过期, 请重装并填入认证信息"))
             raise AuthOverdueException
@@ -724,26 +732,9 @@ class InstallService(AgentService, JobFastExecuteScriptService):
                     break
 
     def execute_job_commands(self, bk_username, proxy, host, run_cmd, pre_commands=None):
-        if not pre_commands:
-            pre_commands = []
-        pre_commands.append(run_cmd)
-        commands = " && ".join(pre_commands)
-        host_data = [
-            (
-                host.login_ip or host.inner_ip,
-                host.inner_ip,
-                host.identity.account,
-                str(host.identity.port),
-                host.identity.key if host.identity.auth_type == const.AuthType.KEY else host.identity.password,
-                str(host.bk_cloud_id),
-                host.node_type,
-                host.os_type.lower(),
-                suffix_slash(host.os_type.lower(), host.agent_config["temp_path"]),
-            )
-        ]
-        script_param = f"'{json.dumps(host_data)}'"
-        commands = commands.replace(script_param, "$1")
-
+        path = os.path.join(settings.PROJECT_ROOT, "script_tools", "setup_pagent.py")
+        with open(path, encoding="utf-8") as fh:
+            script = fh.read()
         bk_biz_id = proxy.bk_biz_id
         kwargs = {
             "bk_biz_id": bk_biz_id,
@@ -751,8 +742,8 @@ class InstallService(AgentService, JobFastExecuteScriptService):
             "script_timeout": 300,
             "script_type": 1,
             "account": "root",
-            "script_content": base64.b64encode(commands.encode()).decode(),
-            "script_param": base64.b64encode(script_param.encode()).decode(),
+            "script_content": base64.b64encode(script.encode()).decode(),
+            "script_param": base64.b64encode(run_cmd.encode()).decode(),
             "is_param_sensitive": 1,
         }
         try:
@@ -860,7 +851,7 @@ class InstallService(AgentService, JobFastExecuteScriptService):
                     self.logger.info(
                         f"[job] {job_status_kwargs['job_instance_id']} is succeeded. Waiting for script report. "
                         f"If there is no any report for a long time, please check the connection "
-                        f"from pagent({host.inner_ip} to proxy({host.get_random_alive_proxy().inner_ip}):17980,17981."
+                        f"from pagent({host.inner_ip} to proxy({host.jump_server.inner_ip}):17980,17981."
                     )
                     return True
                 elif job_status == JobDataStatus.FAILED:
@@ -897,94 +888,6 @@ class InstallService(AgentService, JobFastExecuteScriptService):
                 return True
 
 
-class UninstallService(AgentService):
-    name = _("下发卸载脚本命令")
-
-    def __init__(self):
-        super().__init__(name=self.name)
-
-    def inputs_format(self):
-        return [
-            Service.InputItem(name="host_info", key="host_info", type="object", required=True),
-            Service.InputItem(name="is_uninstall", key="is_uninstall", type="bool", required=False),
-            Service.InputItem(name="success_callback_step", key="success_callback_step", type="str", required=True),
-            Service.InputItem(name="bk_username", key="bk_username", type="str", required=True),
-        ]
-
-    def _execute(self, data, parent_data):
-        self.logger.info(_("开始执行卸载脚本"))
-        bk_username = data.get_one_of_inputs("bk_username")
-        bk_host_id = data.get_one_of_inputs("bk_host_id")
-        host_info = data.get_one_of_inputs("host_info")
-        host = Host.get_by_host_info({"bk_host_id": bk_host_id} if bk_host_id else host_info)
-
-        is_uninstall = data.get_one_of_inputs("is_uninstall")
-
-        # 生成安装命令
-        dest_dir, win_commands, __, __, pre_commands, run_cmd = gen_commands(host, self.id, is_uninstall)
-
-        if isinstance(win_commands, list):
-            win_commands = " && ".join(win_commands)
-        if isinstance(pre_commands, list):
-            pre_commands = " && ".join(pre_commands)
-
-        # 仅需要 pre_command 后 运行 run_cmd
-        pre_command = (win_commands or pre_commands) + " && "
-
-        self.logger.info(_("调用作业平台卸载Agent"))
-        if host.os_type == const.OsType.WINDOWS:
-            accounts = ["system", "Administrator"]
-            script_type_num = 2
-            cmd = f'if not exist "{dest_dir}" mkdir {dest_dir} & {pre_command} {run_cmd}'
-            script_content = base64.b64encode(cmd.encode()).decode()
-        else:
-            accounts = ["root"]
-            script_type_num = 1
-            cmd = f"{pre_command} {run_cmd}"
-            script_content = base64.b64encode(cmd.encode()).decode()
-
-        for index, account in enumerate(accounts, 1):
-            bk_biz_id = host.bk_biz_id
-            kwargs = {
-                "bk_biz_id": bk_biz_id,
-                "ip_list": [{"ip": host.inner_ip, "bk_cloud_id": host.bk_cloud_id}],
-                "script_timeout": 300,
-                "script_type": script_type_num,
-                "account": account,
-            }
-            kwargs.update({"script_content": script_content})
-            self.logger.info("job parameter is：\n{}\n".format(json.dumps(kwargs, indent=2)))
-
-            try:
-                data = client_v2.job.fast_execute_script(kwargs, bk_username=bk_username)
-            except Exception as err:
-                if index != len(accounts):
-                    self.logger.info("start job failed: {} ({}/{})".format(err, index, len(accounts)))
-                    continue
-                self.logger.error(f"start job failed: {err}")
-                return False
-            else:
-                task_inst_id = data.get("job_instance_id")
-                job_status_kwargs = {
-                    "bk_biz_id": bk_biz_id,
-                    "job_instance_id": task_inst_id,
-                }
-                job_status_data = client_v2.job.get_job_instance_status(job_status_kwargs)
-                # 判断任务是否在执行中
-                if job_status_data.get("job_instance", {}).get("status", "") != 2:
-                    self.logger.info(
-                        f"[{task_inst_id}]Job execution failed, please go to the Job"
-                        " platform to check the task execution details."
-                    )
-                    return False
-                self.logger.info(f"[{task_inst_id}]start job success，begin poll agent status")
-                break
-
-        # 下发job作业后等待5秒后再开始查状态,
-        time.sleep(5)
-        return True
-
-
 class PushUpgradePackageService(JobFastPushFileService):
     name = _("下发升级包")
 
@@ -1013,7 +916,7 @@ class PushUpgradePackageService(JobFastPushFileService):
 
         # 根据节点类型、位数、系统等组装包名
         arch = "x86" if bk_os_bit == "32-bit" else "x86_64"
-        gse_type = "proxy" if host.node_type == const.NodeType.PROXY else "client"
+        gse_type = "proxy" if host.node_type == constants.NodeType.PROXY else "client"
         package_name = f"gse_{gse_type}-{os_type}-{arch}_upgrade.tgz"
         files = [package_name]
 
@@ -1075,7 +978,7 @@ class RunUpgradeCommandService(JobFastExecuteScriptService):
             path = os.path.join(settings.PROJECT_ROOT, "script_tools", "upgrade_agent.sh.tpl")
             with open(path, encoding="utf-8") as fh:
                 script = fh.read()
-            if host.node_type == const.NodeType.PROXY:
+            if host.node_type == constants.NodeType.PROXY:
                 reload_cmd = (
                     "./gse_agent --reload && ./gse_transit --reload && ./gse_btsvr --reload || ./gsectl restart all"
                 )
@@ -1119,12 +1022,12 @@ class RestartService(AgentService):
         host_info = data.get_one_of_inputs("host_info")
         bk_username = data.get_one_of_inputs("bk_username")
         host = Host.get_by_host_info({"bk_host_id": host_info["bk_host_id"]})
-        if host.node_type == const.NodeType.PROXY and not host.os_type:
-            host.os_type = const.OsType.LINUX
+        if host.node_type == constants.NodeType.PROXY and not host.os_type:
+            host.os_type = constants.OsType.LINUX
             host.save()
         install_path = host.agent_config["setup_path"]
         install_path = suffix_slash(host.os_type, install_path)
-        if host.node_type == const.NodeType.PROXY:
+        if host.node_type == constants.NodeType.PROXY:
             sub_path = "proxy"
         else:
             sub_path = "agent"
@@ -1237,8 +1140,8 @@ class GetAgentStatusService(AgentService):
             self.logger.error(f"get agent status error, {error}")
             return
 
-        status.status = const.PROC_STATUS_DICT[agent_status["bk_agent_alive"]]
-        status.version = agent_info["version"] if status.status == const.PROC_STATUS_DICT[1] else ""
+        status.status = constants.PROC_STATUS_DICT[agent_status["bk_agent_alive"]]
+        status.version = agent_info["version"] if status.status == constants.PROC_STATUS_DICT[1] else ""
         status.save(update_fields=["status", "version"])
         self.logger.info(
             _("查询GSE主机({host_key})状态为{status}, 版本为{version}").format(
@@ -1249,8 +1152,8 @@ class GetAgentStatusService(AgentService):
         if status.status == expect_status:
             self.finish_schedule()
             # 更新主机来源
-            if host.node_from == const.NodeFrom.CMDB:
-                host.node_from = const.NodeFrom.NODE_MAN
+            if host.node_from == constants.NodeFrom.CMDB:
+                host.node_from = constants.NodeFrom.NODE_MAN
                 host.save(update_fields=["node_from"])
             return True
 
@@ -1276,12 +1179,12 @@ class UpdateProcessStatusService(AgentService):
         status = data.get_one_of_inputs("status")
         bk_host_id = data.get_one_of_inputs("bk_host_id")
         host_info = data.get_one_of_inputs("host_info")
-        if status == const.ProcStateType.NOT_INSTALLED:
+        if status == constants.ProcStateType.NOT_INSTALLED:
             host = Host.get_by_host_info({"bk_host_id": bk_host_id} if bk_host_id else host_info)
             host.node_from = "CMDB"
             host.save()
             process = ProcessStatus.objects.get(bk_host_id=host.bk_host_id, name="gseagent")
-            process.status = const.ProcStateType.NOT_INSTALLED
+            process.status = constants.ProcStateType.NOT_INSTALLED
             process.save()
 
         self.logger.info(_("更新主机状态为{status}").format(status=status))
@@ -1326,7 +1229,7 @@ class OperatePluginService(AgentService, GseBaseService):
         host = Host.get_by_host_info({"bk_host_id": bk_host_id} if bk_host_id else host_info)
 
         newest = (
-            Packages.objects.filter(project=plugin_name, cpu_arch=const.CpuType.x86_64)
+            Packages.objects.filter(project=plugin_name, cpu_arch=constants.CpuType.x86_64)
             .values("os")
             .annotate(max_id=Max("id"))
         )
@@ -1351,8 +1254,10 @@ class OperatePluginService(AgentService, GseBaseService):
 
         gse_client = GseClient(username=bk_username, os_type=os_type, _logger=self.logger)
 
-        hosts = [{"bk_cloud_id": host.bk_cloud_id, "ip": host.inner_ip, "bk_supplier_id": const.DEFAULT_SUPPLIER_ID}]
-        if package.os == const.PluginOsType.windows:
+        hosts = [
+            {"bk_cloud_id": host.bk_cloud_id, "ip": host.inner_ip, "bk_supplier_id": constants.DEFAULT_SUPPLIER_ID}
+        ]
+        if package.os == constants.PluginOsType.windows:
             path_handler = ntpath
         else:
             path_handler = posixpath
@@ -1463,7 +1368,7 @@ class CheckAgentStatusService(AgentService):
     def _execute(self, data, parent_data):
         bk_host_id = data.get_one_of_inputs("bk_host_id")
         process_status = ProcessStatus.objects.filter(bk_host_id=bk_host_id, name=ProcessStatus.GSE_AGENT_PROCESS_NAME)
-        running_status = process_status.filter(status=const.ProcStateType.RUNNING)
+        running_status = process_status.filter(status=constants.ProcStateType.RUNNING)
         process_status_count = process_status.count()
 
         if running_status:
@@ -1498,7 +1403,7 @@ class RenderAndPushGseConfigService(JobPushMultipleConfigFileService):
         host = Host.get_by_host_info(host_info)
 
         # 路径处理器
-        path_handler = ntpath if host.os_type == const.OsType.WINDOWS else posixpath
+        path_handler = ntpath if host.os_type == constants.OsType.WINDOWS else posixpath
 
         setup_path = host.agent_config["setup_path"]
 
@@ -1517,7 +1422,7 @@ class RenderAndPushGseConfigService(JobPushMultipleConfigFileService):
         config = generate_gse_config(
             host_info["bk_cloud_id"], file_name, host_info["host_node_type"].lower(), host_info["bk_host_innerip"]
         )
-        node_type = "proxy" if host.node_type == const.NodeType.PROXY else "agent"
+        node_type = "proxy" if host.node_type == constants.NodeType.PROXY else "agent"
 
         file_params = [
             {
@@ -1540,8 +1445,8 @@ class ReloadAgentConfigService(JobFastExecuteScriptService):
         host = Host.get_by_host_info(host_info)
 
         # 路径处理器
-        path_handler = ntpath if host.os_type == const.OsType.WINDOWS else posixpath
-        node_type = "proxy" if host.node_type == const.NodeType.PROXY else "agent"
+        path_handler = ntpath if host.os_type == constants.OsType.WINDOWS else posixpath
+        node_type = "proxy" if host.node_type == constants.NodeType.PROXY else "agent"
         setup_path = host.agent_config["setup_path"]
         agent_path = path_handler.join(setup_path, node_type, "bin")
         script_content = f"cd {agent_path} && ./gse_agent --reload"
@@ -1579,7 +1484,7 @@ class CheckPolicyGseToProxyService(JobFastExecuteScriptService):
                                     "operator": "in",
                                     "value": [svr["inner_ip"] for svr in gse_svr_list],
                                 },
-                                {"field": "bk_cloud_id", "operator": "equal", "value": const.DEFAULT_CLOUD},
+                                {"field": "bk_cloud_id", "operator": "equal", "value": constants.DEFAULT_CLOUD},
                             ],
                         },
                     }
@@ -1646,7 +1551,7 @@ exit $ret
             "os_type": "linux",
         }
         data.inputs.ip_list = [
-            {"ip": svr["inner_ip"], "bk_cloud_id": const.DEFAULT_CLOUD} for svr in host.ap.btfileserver
+            {"ip": svr["inner_ip"], "bk_cloud_id": constants.DEFAULT_CLOUD} for svr in host.ap.btfileserver
         ]
         data.inputs.script_content = script_content
         return super(CheckPolicyGseToProxyService, self).execute(data, parent_data)
@@ -1674,12 +1579,6 @@ class InstallComponent(Component):
     name = _("安装")
     code = "install"
     bound_service = InstallService
-
-
-class UninstallComponent(Component):
-    name = _("卸载")
-    code = "uninstall"
-    bound_service = UninstallService
 
 
 class PushUpgradePackageComponent(Component):

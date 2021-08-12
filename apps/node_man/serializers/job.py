@@ -45,6 +45,7 @@ class HostSerializer(serializers.Serializer):
     bk_cloud_id = serializers.IntegerField(label=_("云区域ID"))
     bk_host_id = serializers.IntegerField(label=_("主机ID"), required=False)
     ap_id = serializers.IntegerField(label=_("接入点ID"), required=False)
+    install_channel_id = serializers.IntegerField(label=_("安装通道ID"), required=False, allow_null=True)
     inner_ip = serializers.IPAddressField(label=_("内网IP"))
     outer_ip = serializers.IPAddressField(label=_("外网IP"), required=False)
     login_ip = serializers.IPAddressField(label=_("登录IP"), required=False)

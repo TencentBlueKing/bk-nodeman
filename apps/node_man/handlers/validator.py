@@ -155,14 +155,16 @@ def bulk_update_validate(
     modified_host = []
     for host in accept_list:
         # 系统变更/接入点变更/DHT变更需要更新主机
+        host_extra_data = host_info[host["bk_host_id"]]["extra_data"] or {}
         if (
             host.get("os_type") != host_info[host["bk_host_id"]]["os_type"]
             or host.get("ap_id") != host_info[host["bk_host_id"]]["ap_id"]
-            or host.get("bt_speed_limit") != host_info[host["bk_host_id"]]["extra_data"].get("bt_speed_limit")
+            or host.get("bt_speed_limit") != host_extra_data.get("bt_speed_limit")
             or host.get("peer_exchange_switch_for_agent")
-            != host_info[host["bk_host_id"]]["extra_data"].get("peer_exchange_switch_for_agent")
+            != host_extra_data.get("peer_exchange_switch_for_agent")
             or host.get("login_ip") != host_info[host["bk_host_id"]]["login_ip"]
-            or host.get("data_path") != host_info[host["bk_host_id"]]["extra_data"].get("data_path")
+            or host.get("data_path") != host_extra_data.get("data_path")
+            or host.get("install_channel_id") != host_info[host["bk_host_id"]]["install_channel_id"]
         ):
             modified_host.append(host)
         else:
@@ -367,20 +369,6 @@ def job_validate(
             ip_filter_list.append(error_host)
             proxy_not_alive.append(error_host)
             continue
-
-        # 检查：判断P-Agent情况下代理是否过期
-        # @TODO 已转为使用作业平台安装P-AGENT，待验证后删除此代码
-        # if (
-        #     bk_cloud_id != const.DEFAULT_CLOUD
-        #     and node_type != const.NodeType.PROXY
-        #     and op_type != const.OpType.RESTART
-        #     and host.get("bk_cloud_id") not in available_clouds
-        # ):
-        #     error_host["msg"] = _("该云区域下的代理均已过期")
-        #     error_host["exception"] = "overdue"
-        #     ip_filter_list.append(error_host)
-        #     proxy_not_alive.append(error_host)
-        #     continue
 
         # 检查：判断参数AP_ID是否存在
         if bk_cloud_id == const.DEFAULT_CLOUD and not ap_id:

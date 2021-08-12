@@ -46,11 +46,13 @@ from apps.backend.subscription.errors import PipelineExecuteFailed, Subscription
 from apps.backend.subscription.render_functions import get_hosts_by_node
 from apps.backend.utils.data_renderer import nested_render_data
 from apps.exceptions import ValidationError
-from apps.node_man import constants as const
+from apps.node_man import constants
 from apps.node_man.exceptions import (
     AliveProxyNotExistsError,
     ApIDNotExistsError,
     CreateRecordError,
+    HostNotExists,
+    InstallChannelNotExistsError,
     QueryGlobalSettingsException,
 )
 from apps.utils import env, orm
@@ -277,7 +279,9 @@ class AESTextField(models.TextField):
 
 class IdentityData(models.Model):
     bk_host_id = models.IntegerField(_("主机ID"), primary_key=True)
-    auth_type = models.CharField(_("认证类型"), max_length=45, choices=const.AUTH_CHOICES, default=const.AuthType.PASSWORD)
+    auth_type = models.CharField(
+        _("认证类型"), max_length=45, choices=constants.AUTH_CHOICES, default=constants.AuthType.PASSWORD
+    )
     account = models.CharField(_("账户名"), max_length=45, default="")
     password = AESTextField(_("密码"), blank=True, null=True)
     port = models.IntegerField(_("端口"), null=True, default=22)
@@ -302,15 +306,16 @@ class Host(models.Model):
     data_ip = models.CharField(_("数据IP"), max_length=45, blank=True, null=True, default="")
 
     os_type = models.CharField(
-        _("操作系统"), max_length=16, choices=const.OS_CHOICES, default=const.OsType.LINUX, db_index=True
+        _("操作系统"), max_length=16, choices=constants.OS_CHOICES, default=constants.OsType.LINUX, db_index=True
     )
     cpu_arch = models.CharField(
-        _("操作系统"), max_length=16, choices=const.CPU_CHOICES, default=const.CpuType.x86_64, db_index=True
+        _("操作系统"), max_length=16, choices=constants.CPU_CHOICES, default=constants.CpuType.x86_64, db_index=True
     )
-    node_type = models.CharField(_("节点类型"), max_length=16, choices=const.NODE_CHOICES, db_index=True)
-    node_from = models.CharField(_("节点来源"), max_length=45, choices=const.NODE_FROM_CHOICES, default="NODE_MAN")
+    node_type = models.CharField(_("节点类型"), max_length=16, choices=constants.NODE_CHOICES, db_index=True)
+    node_from = models.CharField(_("节点来源"), max_length=45, choices=constants.NODE_FROM_CHOICES, default="NODE_MAN")
     is_manual = models.BooleanField(_("是否手动安装"), default=False)
 
+    install_channel_id = models.IntegerField(_("安装通道"), null=True)
     ap_id = models.IntegerField(_("接入点ID"), null=True, db_index=True)
     upstream_nodes = JSONField(_("上游节点"), default=list)
 
@@ -369,7 +374,7 @@ class Host(models.Model):
         """
         proxy_ids = self.proxies.values_list("bk_host_id", flat=True)
         alive_proxies = ProcessStatus.objects.filter(
-            bk_host_id__in=proxy_ids, name=ProcessStatus.GSE_AGENT_PROCESS_NAME, status=const.ProcStateType.RUNNING
+            bk_host_id__in=proxy_ids, name=ProcessStatus.GSE_AGENT_PROCESS_NAME, status=constants.ProcStateType.RUNNING
         )
         if not alive_proxies:
             raise AliveProxyNotExistsError(_("主机所属云区域不存在可用Proxy"))
@@ -388,7 +393,7 @@ class Host(models.Model):
     def ap(self):
         if not getattr(self, "_ap", None):
             # 未选择接入点时，默认取第一个接入点
-            if self.ap_id == const.DEFAULT_AP_ID:
+            if self.ap_id == constants.DEFAULT_AP_ID:
                 ap = AccessPoint.objects.first()
                 if ap:
                     self._ap = ap
@@ -401,17 +406,59 @@ class Host(models.Model):
                     raise ApIDNotExistsError
         return self._ap
 
+    def install_channel(self):
+        # 指定了安装通道，使用安装通道的信息作为跳板和上游
+        if self.install_channel_id:
+            try:
+                install_channel = InstallChannel.objects.get(pk=self.install_channel_id)
+            except InstallChannel.DoesNotExist:
+                raise InstallChannelNotExistsError
+            jump_server_ip = random.choice(install_channel.jump_servers)
+            try:
+                jump_server = Host.objects.get(inner_ip=jump_server_ip, bk_cloud_id=self.bk_cloud_id)
+            except Host.DoesNotExist:
+                raise HostNotExists(_("安装节点主机{inner_ip}不存在，请确认是否已安装AGENT").format(inner_ip=jump_server_ip))
+            upstream_servers = install_channel.upstream_servers
+        # 云区域未指定安装通道的，用proxy作为跳板和上游
+        elif self.bk_cloud_id:
+            proxy_ips = [proxy.inner_ip for proxy in self.proxies]
+            jump_server = self.get_random_alive_proxy()
+            upstream_servers = {"taskserver": proxy_ips, "btfileserver": proxy_ips, "dataserver": proxy_ips}
+        # 普通直连的情况，无需跳板，使用接入点的数据
+        else:
+            jump_server = None
+            upstream_servers = {
+                "taskserver": [server["inner_ip"] for server in self.ap.taskserver],
+                "btfileserver": [server["inner_ip"] for server in self.ap.btfileserver],
+                "dataserver": [server["inner_ip"] for server in self.ap.dataserver],
+            }
+        return jump_server, upstream_servers
+
     @property
     def agent_config(self):
         os_type = self.os_type.lower()
         # AIX与Linux共用配置
-        if self.os_type == const.OsType.AIX:
-            os_type = const.OsType.LINUX.lower()
+        if self.os_type == constants.OsType.AIX:
+            os_type = constants.OsType.LINUX.lower()
         return self.ap.agent_config[os_type]
 
     @property
     def proxies(self):
-        return Host.objects.filter(bk_cloud_id=self.bk_cloud_id, node_type=const.NodeType.PROXY)
+        return Host.objects.filter(
+            bk_cloud_id=self.bk_cloud_id,
+            node_type=constants.NodeType.PROXY,
+        )
+
+    @property
+    def jump_server(self):
+        """获取跳板机"""
+        if self.install_channel_id:
+            jump_server, _ = self.install_channel()
+        elif self.node_type == constants.NodeType.PAGENT:
+            jump_server = self.get_random_alive_proxy()
+        else:
+            jump_server = None
+        return jump_server
 
     class Meta:
         verbose_name = _("主机信息")
@@ -435,14 +482,18 @@ class ProcessStatus(models.Model):
     bk_host_id = models.IntegerField(_("主机ID"), db_index=True)
     name = models.CharField(_("进程名称"), max_length=45, default=GSE_AGENT_PROCESS_NAME, db_index=True)
     status = models.CharField(
-        _("进程状态"), max_length=45, choices=const.PROC_STATE_CHOICES, default=const.ProcStateType.UNKNOWN, db_index=True
+        _("进程状态"),
+        max_length=45,
+        choices=constants.PROC_STATE_CHOICES,
+        default=constants.ProcStateType.UNKNOWN,
+        db_index=True,
     )
     is_auto = models.CharField(
-        _("是否自动启动"), max_length=45, choices=const.AUTO_STATE_CHOICES, default=const.AutoStateType.AUTO
+        _("是否自动启动"), max_length=45, choices=constants.AUTO_STATE_CHOICES, default=constants.AutoStateType.AUTO
     )
     version = models.CharField(_("进程版本"), max_length=45, blank=True, null=True, default="", db_index=True)
     proc_type = models.CharField(
-        _("进程类型"), db_index=True, max_length=45, choices=const.PROC_CHOICES, default=const.ProcType.AGENT
+        _("进程类型"), db_index=True, max_length=45, choices=constants.PROC_CHOICES, default=constants.ProcType.AGENT
     )
 
     configs = JSONField(_("配置文件"), default=list)
@@ -527,7 +578,7 @@ class ProcessStatus(models.Model):
             self._host_info = {
                 "ip": host.inner_ip,
                 "bk_cloud_id": host.bk_cloud_id,
-                "bk_supplier_id": const.DEFAULT_SUPPLIER_ID,
+                "bk_supplier_id": constants.DEFAULT_SUPPLIER_ID,
             }
         return self._host_info
 
@@ -569,7 +620,7 @@ class AccessPoint(models.Model):
         all_ap = cls.objects.all()
         ap_map: Dict[int, cls] = {ap.id: ap for ap in all_ap}
         # 未选择接入点的则取默认接入点
-        ap_map.update({const.DEFAULT_AP_ID: all_ap[0], None: all_ap[0]})
+        ap_map.update({constants.DEFAULT_AP_ID: all_ap[0], None: all_ap[0]})
         return ap_map
 
     @staticmethod
@@ -668,7 +719,7 @@ class Cloud(models.Model):
         all_cloud_map = {
             cloud.bk_cloud_id: cloud.bk_cloud_name for cloud in cls.objects.all().only("bk_cloud_id", "bk_cloud_name")
         }
-        all_cloud_map[const.DEFAULT_CLOUD] = _("直连区域")
+        all_cloud_map[constants.DEFAULT_CLOUD] = _("直连区域")
         return all_cloud_map
 
     class Meta:
@@ -676,19 +727,37 @@ class Cloud(models.Model):
         verbose_name_plural = _("云区域信息")
 
 
+class InstallChannel(models.Model):
+    """
+    安装通道，利用 jump_servers 作为跳板登录到目标机器执行脚本，使用 upstream_servers 作为上游来渲染配置，
+    由于各种特殊网络环境，目前安装通道需手动安装
+    jump_servers = ["127.0.0.1", "127.0.0.2"]
+    upstream_servers = {"taskserver": ["127.0.0.1"], "btfileserver": ["127.0.0.1"],"dataserver": ["127.0.0.1"]}
+    """
+
+    name = models.CharField(_("名称"), max_length=45)
+    bk_cloud_id = models.IntegerField(_("云区域ID"))
+    jump_servers = JSONField(_("安装通道跳板机"))
+    upstream_servers = JSONField(_("上游节点"))
+
+    class Meta:
+        verbose_name = _("安装通道")
+        verbose_name_plural = _("安装通道")
+
+
 class Job(models.Model):
     """任务信息"""
 
     created_by = models.CharField(_("操作人"), max_length=45, default="")
     job_type = models.CharField(
-        _("作业类型"), max_length=45, choices=const.JOB_CHOICES, default=const.JobType.INSTALL_PROXY
+        _("作业类型"), max_length=45, choices=constants.JOB_CHOICES, default=constants.JobType.INSTALL_PROXY
     )
     subscription_id = models.IntegerField(_("订阅ID"), db_index=True)
     task_id_list = JSONField(_("任务ID列表"), default=list)
     start_time = models.DateTimeField(_("创建任务时间"), auto_now_add=True)
     end_time = models.DateTimeField(_("任务结束时间"), blank=True, null=True)
     status = models.CharField(
-        _("任务状态"), max_length=45, choices=const.JobStatusType.get_choices(), default=const.JobStatusType.PENDING
+        _("任务状态"), max_length=45, choices=constants.JobStatusType.get_choices(), default=constants.JobStatusType.PENDING
     )
     global_params = JSONField(_("全局运行参数"), blank=True, null=True)
     statistics = JSONField(_("任务统计信息"), blank=True, null=True, default=dict)
@@ -709,7 +778,7 @@ class JobTask(models.Model):
     bk_host_id = models.IntegerField(_("主机ID"), db_index=True)
     instance_id = models.CharField(_("实例ID"), max_length=45, db_index=True)
     pipeline_id = models.CharField(_("Pipeline节点ID"), max_length=50, default="", blank=True, db_index=True)
-    status = models.CharField(max_length=45, choices=const.STATUS_CHOICES, default=const.StatusType.QUEUE)
+    status = models.CharField(max_length=45, choices=constants.STATUS_CHOICES, default=constants.StatusType.QUEUE)
     current_step = models.CharField(_("当前步骤"), max_length=45, default="")
     create_time = models.DateTimeField(auto_now_add=True, db_index=True)
     update_time = models.DateTimeField(auto_now=True, db_index=True)
@@ -743,14 +812,19 @@ class GsePluginDesc(models.Model):
     scenario = models.TextField(_("使用场景"))
     description_en = models.TextField(_("英文插件描述"), null=True, blank=True)
     scenario_en = models.TextField(_("英文使用场景"), null=True, blank=True)
-    category = models.CharField(_("所属范围"), max_length=32, choices=const.CATEGORY_CHOICES)
+    category = models.CharField(_("所属范围"), max_length=32, choices=constants.CATEGORY_CHOICES)
     launch_node = models.CharField(
         _("宿主节点类型要求"), max_length=32, choices=[("agent", "agent"), ("proxy", "proxy"), ("all", "all")], default="all"
     )
 
     config_file = models.CharField(_("配置文件名称"), max_length=128, null=True, blank=True)
     config_format = models.CharField(
-        _("配置文件格式类型"), max_length=32, choices=const.CONFIG_FILE_FORMAT_CHOICES, default="json", null=True, blank=True
+        _("配置文件格式类型"),
+        max_length=32,
+        choices=constants.CONFIG_FILE_FORMAT_CHOICES,
+        default="json",
+        null=True,
+        blank=True,
     )
 
     use_db = models.BooleanField(_("是否使用数据库"), default=0)
@@ -758,7 +832,9 @@ class GsePluginDesc(models.Model):
     is_binary = models.BooleanField(_("是否二进制文件"), default=1)
     is_ready = models.BooleanField(_("是否启用插件"), default=True)
 
-    deploy_type = models.CharField(_("部署方式"), choices=const.DEPLOY_TYPE_CHOICES, max_length=64, null=True, blank=True)
+    deploy_type = models.CharField(
+        _("部署方式"), choices=constants.DEPLOY_TYPE_CHOICES, max_length=64, null=True, blank=True
+    )
     source_app_code = models.CharField(_("来源系统APP CODE"), max_length=64, null=True, blank=True)
 
     node_manage_control = JSONField(_("节点管理管控插件信息"), null=True, blank=True)
@@ -775,7 +851,7 @@ class GsePluginDesc(models.Model):
         """
         是否为官方插件
         """
-        return self.category == const.CategoryType.official
+        return self.category == constants.CategoryType.official
 
     @classmethod
     def get_auto_launch_plugins(cls):
@@ -783,7 +859,10 @@ class GsePluginDesc(models.Model):
 
     def get_package_by_os(self, os, pkg_name):
         package = Packages.objects.get(
-            project=self.name, os=os, pkg_name=pkg_name, cpu_arch__in=[const.CpuType.x86_64, const.CpuType.powerpc]
+            project=self.name,
+            os=os,
+            pkg_name=pkg_name,
+            cpu_arch__in=[constants.CpuType.x86_64, constants.CpuType.powerpc],
         )
         return package
 
@@ -867,10 +946,14 @@ class Packages(models.Model):
     pkg_ctime = models.CharField(_("包创建时间"), max_length=48)
     location = models.CharField(_("安装包链接"), max_length=512)
     os = models.CharField(
-        _("系统类型"), max_length=32, choices=const.PLUGIN_OS_CHOICES, default=const.PluginOsType.linux, db_index=True
+        _("系统类型"),
+        max_length=32,
+        choices=constants.PLUGIN_OS_CHOICES,
+        default=constants.PluginOsType.linux,
+        db_index=True,
     )
     cpu_arch = models.CharField(
-        _("CPU类型"), max_length=32, choices=const.CPU_CHOICES, default=const.CpuType.x86_64, db_index=True
+        _("CPU类型"), max_length=32, choices=constants.CPU_CHOICES, default=constants.CpuType.x86_64, db_index=True
     )
     creator = models.CharField(_("操作人"), max_length=45, default="admin")
 
@@ -963,7 +1046,7 @@ class Packages(models.Model):
             )
 
         # 判断插件类型是否符合预期
-        if yaml_config["category"] not in const.CATEGORY_TUPLE:
+        if yaml_config["category"] not in constants.CATEGORY_TUPLE:
             logger.error(
                 "project->[%s] version->[%s] update(or create) with category->[%s] which is not acceptable, "
                 "nothing will do." % (package_name, version, yaml_config["category"])
@@ -1354,7 +1437,9 @@ class ProcControl(models.Model):
     health_cmd = models.TextField(_("进程健康检查命令"), default="", blank=True)
     debug_cmd = models.TextField(_("调试进程命令"), default="", blank=True)
 
-    os = models.CharField(_("系统类型"), max_length=32, choices=const.PLUGIN_OS_CHOICES, default=const.PluginOsType.linux)
+    os = models.CharField(
+        _("系统类型"), max_length=32, choices=constants.PLUGIN_OS_CHOICES, default=constants.PluginOsType.linux
+    )
     process_name = models.CharField(_("实际二进制执行文件名"), max_length=128, null=True, default=None)
     port_range = models.TextField(_("插件允许使用的端口范围，格式 1,3,6-8,10-100"), null=True, blank=True, default="")
     need_delegate = models.BooleanField(_("是否需要托管"), default=True)
@@ -1552,7 +1637,7 @@ class UploadPackage(models.Model):
         # 2. 遍历第一层的内容，得知当前的操作系统和cpu架构信息
         with transaction.atomic():
             for first_path in os.listdir(temp_path):
-                re_match = const.PACKAGE_PATH_RE.match(first_path)
+                re_match = constants.PACKAGE_PATH_RE.match(first_path)
                 if re_match is None:
                     logger.info("path->[%s] is not match re, jump it." % first_path)
                     continue
@@ -1635,7 +1720,7 @@ class UploadPackage(models.Model):
         # 遍历第一层的内容，获取操作系统和cpu架构信息，eg：external(可无，有表示自定义插件)_plugins_linux_x86_64
         for first_plugin_dir_name in os.listdir(temp_path):
             # 通过正则提取出插件（plugin）目录名中的插件信息
-            re_match = const.PACKAGE_PATH_RE.match(first_plugin_dir_name)
+            re_match = constants.PACKAGE_PATH_RE.match(first_plugin_dir_name)
             if re_match is None:
                 logger.info("path->[%s] is not match re, jump it." % first_plugin_dir_name)
                 continue
@@ -2109,7 +2194,7 @@ class Subscription(orm.SoftDeleteModel):
             base_kwargs["instance_id__in"] = instance_id_list
         status_set = set(SubscriptionInstanceRecord.objects.filter(**base_kwargs).values_list("status", flat=True))
         # 任务已执行完成（有明确结果），直接返回
-        if status_set & {const.JobStatusType.PENDING, const.JobStatusType.RUNNING}:
+        if status_set & {constants.JobStatusType.PENDING, constants.JobStatusType.RUNNING}:
             return True
         return False
 
@@ -2219,7 +2304,7 @@ class Subscription(orm.SoftDeleteModel):
 
             # 订阅全为主机节点，表明目标匹配的拓扑层级为HOST，直接返回
             if self.node_type == self.NodeType.INSTANCE and self.object_type == self.ObjectType.HOST:
-                return const.CmdbObjectId.HOST
+                return constants.CmdbObjectId.HOST
 
             # 订阅实例目标匹配的拓扑层级
             _sub_inst_bk_obj_id = None
@@ -2228,11 +2313,14 @@ class Subscription(orm.SoftDeleteModel):
 
             for sub_scope in self.nodes:
                 # 单独处理业务层级
-                if sub_scope.get("bk_obj_id") == const.CmdbObjectId.BIZ and sub_scope.get("bk_inst_id") == _bk_biz_id:
-                    _sub_inst_bk_obj_id = const.CmdbObjectId.BIZ
+                if (
+                    sub_scope.get("bk_obj_id") == constants.CmdbObjectId.BIZ
+                    and sub_scope.get("bk_inst_id") == _bk_biz_id
+                ):
+                    _sub_inst_bk_obj_id = constants.CmdbObjectId.BIZ
 
             for bk_obj_id in topo_order:
-                if bk_obj_id in [const.CmdbObjectId.BIZ, const.CmdbObjectId.HOST]:
+                if bk_obj_id in [constants.CmdbObjectId.BIZ, constants.CmdbObjectId.HOST]:
                     # 业务和主机单独处理
                     continue
 
@@ -2252,7 +2340,7 @@ class Subscription(orm.SoftDeleteModel):
                     and sub_scope["bk_cloud_id"] == cmdb_host_info["bk_cloud_id"]
                     and sub_scope["ip"] == cmdb_host_info["bk_host_innerip"]
                 ):
-                    _sub_inst_bk_obj_id = const.CmdbObjectId.HOST
+                    _sub_inst_bk_obj_id = constants.CmdbObjectId.HOST
             return _sub_inst_bk_obj_id
 
         def _construct_return_data(
@@ -2287,7 +2375,7 @@ class Subscription(orm.SoftDeleteModel):
             return _construct_return_data(_is_suppressed=False)
 
         # 一次性订阅仅 「安装 / 更新插件」（Action相同）需要计算抑制关系，其他动作允许策略中豁免
-        if self.category == self.CategoryType.ONCE and action not in [const.JobType.MAIN_INSTALL_PLUGIN]:
+        if self.category == self.CategoryType.ONCE and action not in [constants.JobType.MAIN_INSTALL_PLUGIN]:
             return _construct_return_data(_is_suppressed=False)
 
         # 获取订阅实例目标匹配的拓扑层级
@@ -2379,7 +2467,7 @@ class SubscriptionInstanceRecord(models.Model):
     is_latest = models.BooleanField(_("是否为实例最新记录"), default=True, db_index=True)
 
     status = models.CharField(
-        _("任务状态"), max_length=45, choices=const.JobStatusType.get_choices(), default=const.JobStatusType.PENDING
+        _("任务状态"), max_length=45, choices=constants.JobStatusType.get_choices(), default=constants.JobStatusType.PENDING
     )
 
     @property
@@ -2495,7 +2583,7 @@ class JobSubscriptionInstanceMap(models.Model):
     job_instance_id = models.BigIntegerField(_("作业实例ID"), db_index=True)
     subscription_instance_ids = JSONField(_("订阅实例ID列表"), default=list)
     node_id = models.CharField(_("节点ID"), max_length=32, db_index=True)
-    status = models.CharField(_("作业状态"), max_length=45, default=const.BkJobStatus.PENDING)
+    status = models.CharField(_("作业状态"), max_length=45, default=constants.BkJobStatus.PENDING)
 
     class Meta:
         verbose_name = _("作业平台ID映射表")
@@ -2523,7 +2611,7 @@ class SubscriptionInstanceStatusDetail(models.Model):
     subscription_instance_record_id = models.BigIntegerField(_("订阅实例ID"), db_index=True)
     node_id = models.CharField(_("Pipeline原子ID"), max_length=50, default="", blank=True, db_index=True)
     status = models.CharField(
-        _("任务状态"), max_length=45, choices=const.JobStatusType.get_choices(), default=const.JobStatusType.RUNNING
+        _("任务状态"), max_length=45, choices=constants.JobStatusType.get_choices(), default=constants.JobStatusType.RUNNING
     )
     log = models.TextField(_("日志内容"))
     update_time = models.DateTimeField(_("更新时间"), null=True, blank=True, db_index=True)
@@ -2597,7 +2685,7 @@ class PushFileRecord(models.Model):
     ip = models.CharField(_("内网IP"), max_length=45, db_index=True)
     bk_cloud_id = models.IntegerField(_("云区域ID"), db_index=True)
     os_type = models.CharField(
-        _("操作系统"), max_length=45, choices=const.OS_CHOICES, default=const.OsType.LINUX, db_index=True
+        _("操作系统"), max_length=45, choices=constants.OS_CHOICES, default=constants.OsType.LINUX, db_index=True
     )
     file_source_path = models.CharField(_("源文件路径"), max_length=128)
 
@@ -2606,7 +2694,7 @@ class PushFileRecord(models.Model):
 
     job_instance_id = models.BigIntegerField(_("作业实例ID"), null=True, blank=True)
     ip_status = models.CharField(
-        _("作业IP执行状态"), choices=const.JOB_IP_STATUS_CHOICES, default=const.JobIpStatusType.not_job, max_length=10
+        _("作业IP执行状态"), choices=constants.JOB_IP_STATUS_CHOICES, default=constants.JobIpStatusType.not_job, max_length=10
     )
     # 冗余字段
     is_finished = models.BooleanField(_("作业是否已完成"), default=False)
