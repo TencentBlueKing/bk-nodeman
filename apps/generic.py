@@ -139,9 +139,17 @@ def custom_exception_handler(exc, context):
     """
     logger.exception(getattr(exc, "message", exc))
     request = context["request"]
+
+    if request.method == "GET":
+        request_params = request.query_params
+    else:
+        if "multipart/form-data" in request.headers.get("Content-Type", ""):
+            request_params = {"files": str(getattr(request, "FILES"))}
+        else:
+            request_params = request.data
+
     logger.error(
-        """捕获未处理异常, 请求URL->[%s], 请求方法->[%s] 请求参数->[%s]"""
-        % (request.path, request.method, json.dumps(request.query_params if request.method == "GET" else request.data))
+        """捕获未处理异常, 请求URL->[%s], 请求方法->[%s] 请求参数->[%s]""" % (request.path, request.method, json.dumps(request_params))
     )
     # 专门处理 404 异常，直接返回前端，前端处理
     if isinstance(exc, Http404):

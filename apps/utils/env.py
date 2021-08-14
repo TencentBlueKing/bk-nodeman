@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 
 import logging
 import os
-from typing import Any
+from typing import Any, Dict
 
 from django.conf import settings
 
@@ -49,10 +49,10 @@ def get_env_list(env_prefix):
     return result
 
 
-def get_gse_env_path(package_name, is_windows=False):
+def get_gse_env_path(plugin_name: str, is_windows=False) -> Dict[str, str]:
     """
     获取gse agent的路径信息
-    :param package_name: 插件名，因为部分文件配置路径与插件名有关
+    :param plugin_name: 插件名，因为部分文件配置路径与插件名有关
     :param is_windows: 是否windows环境下的配置
     :return: {
         "install_path": "/usr/local",
@@ -66,7 +66,7 @@ def get_gse_env_path(package_name, is_windows=False):
         return {
             "install_path": settings.GSE_WIN_AGENT_HOME,
             "log_path": settings.GSE_WIN_AGENT_LOG_DIR,
-            "pid_path": settings.GSE_WIN_AGENT_RUN_DIR + "\\" + package_name + ".pid",
+            "pid_path": settings.GSE_WIN_AGENT_RUN_DIR + "\\" + plugin_name + ".pid",
             "data_path": settings.GSE_WIN_AGENT_DATA_DIR,
         }
     # linux & aix系统下的配置
@@ -74,7 +74,7 @@ def get_gse_env_path(package_name, is_windows=False):
         return {
             "install_path": settings.GSE_AGENT_HOME,
             "log_path": settings.GSE_AGENT_LOG_DIR,
-            "pid_path": settings.GSE_AGENT_RUN_DIR + "/" + package_name + ".pid",
+            "pid_path": settings.GSE_AGENT_RUN_DIR + "/" + plugin_name + ".pid",
             "data_path": settings.GSE_AGENT_DATA_DIR,
         }
 

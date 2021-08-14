@@ -9,7 +9,6 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-import hashlib
 import re
 import traceback
 from itertools import groupby
@@ -28,18 +27,6 @@ class PluginV2Tools:
     items_var_path_pattern = re.compile(r"([\w.]+).items\(\)")
     lower_var_path_pattern = re.compile(r"{{\s*[\w.]+\s*\|\s*lower\s*}}")
     lower_var_name_pattern = re.compile(r"{{\s*([\w.]+)\s*\|\s*lower\s*}}")
-
-    @staticmethod
-    def get_file_md5(file_name):
-        hash_md5 = hashlib.md5()
-        try:
-            with open(file_name, "rb") as f:
-                for chunk in iter(lambda: f.read(4096), b""):
-                    hash_md5.update(chunk)
-        except IOError:
-            return "-1"
-
-        return hash_md5.hexdigest()
 
     @classmethod
     def shield_tpl_unparse_content(cls, config_template_content: str):

@@ -423,7 +423,7 @@ class BulkPushUpgradePackageService(JobBulkPushFileService):
         self.logger.info(_("开始下发升级包"))
         host_info = data.get_one_of_inputs("host_info")
         host = models.Host.get_by_host_info(host_info)
-        nginx_path = host.ap.nginx_path or settings.NGINX_DOWNLOAD_PATH
+        nginx_path = host.ap.nginx_path or settings.DOWNLOAD_PATH
         data.inputs.file_target_path = host.agent_config["temp_path"]
 
         os_type = host.os_type.lower()
