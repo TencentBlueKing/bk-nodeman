@@ -18,6 +18,7 @@ from django.utils import timezone
 from django.utils.translation import ugettext as _
 
 from apps.backend.celery import app
+from apps.backend.plugin import tools
 from apps.backend.utils.pipeline_parser import PipelineParser as CustomPipelineParser
 from apps.node_man import constants as const
 from apps.node_man import models
@@ -41,23 +42,24 @@ def package_task(job_id, task_params):
         job = models.Job.objects.get(id=job_id, job_type=const.JobType.PACKING_PLUGIN)
 
     except models.Job.DoesNotExist:
-        logger.error("try to execute job->[%s] but is not exists")
+        logger.error("try to execute job-> {job_id} but is not exists".format(job_id=job_id))
         return False
 
     try:
         file_name = task_params["file_name"]
         is_release = task_params["is_release"]
-        select_pkg_abs_paths = task_params.get("select_pkg_abs_paths")
+        select_pkg_relative_paths = task_params.get("select_pkg_relative_paths")
         # 使用最后的一条上传记录
         upload_package_object = models.UploadPackage.objects.filter(file_name=file_name).order_by("-upload_time")[0]
 
         # 2. 执行任务
-        upload_package_object.create_package_records(
+        tools.create_package_records(
+            file_path=upload_package_object.file_path,
+            file_name=upload_package_object.file_name,
             is_release=is_release,
             creator=task_params["bk_username"],
-            select_pkg_abs_paths=select_pkg_abs_paths,
+            select_pkg_relative_paths=select_pkg_relative_paths,
             is_template_load=task_params.get("is_template_load", False),
-            is_template_overwrite=task_params.get("is_template_overwrite", False),
         )
 
     except PermissionError:
@@ -85,7 +87,7 @@ def package_task(job_id, task_params):
     job.save()
 
     if job.status == const.JobStatusType.SUCCESS:
-        logger.info("task->[%s] has finish all job." % job.id)
+        logger.info("task -> {job_id} has finish all job.".format(job_id=job.id))
 
 
 @app.task(queue="backend")

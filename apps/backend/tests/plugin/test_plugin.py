@@ -21,6 +21,7 @@ from django.conf import settings
 from django.core.management import call_command
 from django.test import TestCase
 
+from apps.backend.plugin import tools
 from apps.backend.plugin.tasks import export_plugin, package_task, run_pipeline
 from apps.backend.tests.plugin import utils
 from apps.backend.tests.plugin.test_plugin_status_change import TestApiBase
@@ -184,7 +185,7 @@ class TestPackageFunction(TestApiBase):
             tfile.add(temp_file_path, arcname=".", recursive=True)
 
         # nginx的模拟路径
-        settings.NGINX_DOWNLOAD_PATH = self.temp_path
+        settings.DOWNLOAD_PATH = self.temp_path
         settings.UPLOAD_PATH = self.upload_path
         settings.EXPORT_PATH = self.export_path
 
@@ -204,8 +205,8 @@ class TestPackageFunction(TestApiBase):
         """测试创建上传包记录功能"""
 
         # 插件包注册后存放地址
-        windows_file_path = os.path.join(settings.NGINX_DOWNLOAD_PATH, "windows", "x86", "test_plugin-1.0.1.tgz")
-        linux_file_path = os.path.join(settings.NGINX_DOWNLOAD_PATH, "linux", "x86_64", "test_plugin-1.0.1.tgz")
+        windows_file_path = os.path.join(settings.DOWNLOAD_PATH, "windows", "x86", "test_plugin-1.0.1.tgz")
+        linux_file_path = os.path.join(settings.DOWNLOAD_PATH, "linux", "x86_64", "test_plugin-1.0.1.tgz")
 
         # 验证创建前此时文件不存在
         self.assertFalse(os.path.exists(linux_file_path))
@@ -232,7 +233,9 @@ class TestPackageFunction(TestApiBase):
 
         # 测试单独注册插件包功能
         upload_object = UploadPackage.objects.get(file_name=self.tarfile_name)
-        package_object_list = upload_object.create_package_records(is_release=True)
+        package_object_list = tools.create_package_records(
+            file_path=upload_object.file_path, file_name=upload_object.file_name, is_release=True
+        )
 
         self.assertEqual(
             GsePluginDesc.objects.get(name="test_plugin").node_manage_control,
@@ -316,8 +319,8 @@ class TestPackageFunction(TestApiBase):
     def _test_register_api_success(self):
 
         # 插件包注册后存放地址
-        windows_file_path = os.path.join(settings.NGINX_DOWNLOAD_PATH, "windows", "x86", "test_plugin-1.0.1.tgz")
-        linux_file_path = os.path.join(settings.NGINX_DOWNLOAD_PATH, "linux", "x86_64", "test_plugin-1.0.1.tgz")
+        windows_file_path = os.path.join(settings.DOWNLOAD_PATH, "windows", "x86", "test_plugin-1.0.1.tgz")
+        linux_file_path = os.path.join(settings.DOWNLOAD_PATH, "linux", "x86_64", "test_plugin-1.0.1.tgz")
 
         # 验证创建前此时文件不存在
         self.assertFalse(os.path.exists(linux_file_path))
@@ -371,8 +374,8 @@ class TestPackageFunction(TestApiBase):
         self._test_upload_api_success()
 
         # 插件包注册后存放地址
-        windows_file_path = os.path.join(settings.NGINX_DOWNLOAD_PATH, "windows", "x86", "test_plugin-1.0.1.tgz")
-        linux_file_path = os.path.join(settings.NGINX_DOWNLOAD_PATH, "linux", "x86_64", "test_plugin-1.0.1.tgz")
+        windows_file_path = os.path.join(settings.DOWNLOAD_PATH, "windows", "x86", "test_plugin-1.0.1.tgz")
+        linux_file_path = os.path.join(settings.DOWNLOAD_PATH, "linux", "x86_64", "test_plugin-1.0.1.tgz")
 
         # 验证创建前此时文件不存在
         self.assertFalse(os.path.exists(linux_file_path))
@@ -384,7 +387,6 @@ class TestPackageFunction(TestApiBase):
             data={
                 "file_name": self.tarfile_name,
                 "is_release": True,
-                "is_template_overwrite": True,
                 "is_template_load": True,
                 "select_pkg_abs_paths": ["external_plugins_windows_x86/test_plugin"],
                 "bk_username": "admin",
@@ -595,7 +597,7 @@ class TestPackageFunction(TestApiBase):
         self.assertEqual(len(response["data"]), 2)
 
         self.assertEqual(
-            len([item for item in response["data"] if not item["result"] and item["message"] == "project.yaml文件信息缺失"]),
+            len([item for item in response["data"] if not item["result"] and item["message"] == "project.yaml 文件信息缺失"]),
             1,
         )
         self.assertEqual(
@@ -603,7 +605,7 @@ class TestPackageFunction(TestApiBase):
                 [
                     item
                     for item in response["data"]
-                    if not item["result"] and item["message"] == "project.yaml中category配置异常，请确认后重试"
+                    if not item["result"] and item["message"] == "project.yaml 中 category 配置异常，请确认后重试"
                 ]
             ),
             1,
@@ -648,7 +650,7 @@ class TestPackageFunction(TestApiBase):
                 [
                     item
                     for item in response["data"]
-                    if not item["result"] and item["message"] == "找不到需要导入的配置模板文件[etc/test_plugin.main.conf.tpl]"
+                    if not item["result"] and item["message"] == "找不到需要导入的配置模板文件 -> etc/test_plugin.main.conf.tpl"
                 ]
             ),
             1,
@@ -773,7 +775,7 @@ class TestImportCommand(TestCase):
             tfile.add(temp_file_path, arcname=".", recursive=True)
 
         # nginx的模拟路径
-        settings.NGINX_DOWNLOAD_PATH = settings.UPLOAD_PATH = self.target_path
+        settings.DOWNLOAD_PATH = settings.UPLOAD_PATH = self.target_path
 
         settings.BK_OFFICIAL_PLUGINS_INIT_PATH = self.temp_path
 
