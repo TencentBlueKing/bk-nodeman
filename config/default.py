@@ -9,9 +9,11 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import sys
+from enum import Enum
 
 from blueapps.conf.default_settings import *  # noqa
 
+from apps.utils.env import get_type_env
 from config import ENVIRONMENT
 
 # pipeline 配置
@@ -284,6 +286,76 @@ CACHES.update(
 
 CACHES["default"] = CACHES["db"]
 
+
+# ==============================================================================
+# 文件存储
+# ==============================================================================
+
+
+class StorageType(Enum):
+    """文件存储类型"""
+
+    # 本地文件系统
+    FILE_SYSTEM = "FILE_SYSTEM"
+
+    # 制品库
+    BKREPO = "BKREPO"
+
+
+# 用于控制默认的文件存储类型
+# 更多类型参考 apps.node_man.constants.STORAGE_TYPE
+STORAGE_TYPE = os.getenv("STORAGE_TYPE", StorageType.FILE_SYSTEM.value)
+
+# 是否覆盖同名文件
+FILE_OVERWRITE = get_type_env("FILE_OVERWRITE", _type=bool, default=False)
+
+# 节点管理后台外网域名，用于构造文件导入导出的API URL
+BACKEND_HOST = os.getenv("BKAPP_BACKEND_HOST", "")
+
+BKREPO_USERNAME = os.getenv("BKREPO_USERNAME")
+BKREPO_PASSWORD = os.getenv("BKREPO_PASSWORD")
+BKREPO_PROJECT = os.getenv("BKREPO_PROJECT")
+# 默认文件存放仓库
+BKREPO_BUCKET = os.getenv("BKREPO_BUCKET")
+# 对象存储平台域名
+BKREPO_ENDPOINT_URL = os.getenv("BKREPO_ENDPOINT_URL")
+
+# 存储类型 - storage class 映射关系
+STORAGE_TYPE_IMPORT_PATH_MAP = {
+    StorageType.FILE_SYSTEM.value: "apps.core.files.storage.AdminFileSystemStorage",
+    StorageType.BKREPO.value: "apps.core.files.storage.CustomBKRepoStorage",
+}
+
+# 默认的file storage
+DEFAULT_FILE_STORAGE = STORAGE_TYPE_IMPORT_PATH_MAP[STORAGE_TYPE]
+
+# 本地文件系统上传文件后台API
+FILE_SYSTEM_UPLOAD_API = f"{BACKEND_HOST}/backend/package/upload/"
+
+# 对象存储上传文件后台API
+COS_UPLOAD_API = f"{BACKEND_HOST}/backend/package/upload_cos/"
+
+# 暂时存在多个上传API的原因：原有文件上传接口被Nginx转发
+STORAGE_TYPE_UPLOAD_API_MAP = {
+    StorageType.FILE_SYSTEM.value: FILE_SYSTEM_UPLOAD_API,
+    StorageType.BKREPO.value: COS_UPLOAD_API,
+}
+
+DEFAULT_FILE_UPLOAD_API = STORAGE_TYPE_UPLOAD_API_MAP[STORAGE_TYPE]
+
+BKAPP_NODEMAN_DOWNLOAD_API = f"{BACKEND_HOST}/backend/export/download/"
+
+PUBLIC_PATH = os.getenv("BKAPP_PUBLIC_PATH") or "/data/bkee/public/bknodeman/"
+
+# NGINX miniweb路径
+DOWNLOAD_PATH = os.path.join(PUBLIC_PATH, "download")
+
+# 上传文件的保存位置
+UPLOAD_PATH = os.path.join(PUBLIC_PATH, "upload")
+
+# 下载文件路径
+EXPORT_PATH = os.path.join(PUBLIC_PATH, "export")
+
 # ==============================================================================
 # 后台配置
 # ==============================================================================
@@ -450,31 +522,11 @@ LOGGING["handlers"]["iam"] = {
 }
 LOGGING["loggers"]["iam"] = {"handlers": ["iam"], "level": LOGGING["loggers"]["root"]["level"], "propagate": True}
 
-PUBLIC_PATH = os.getenv("BKAPP_PUBLIC_PATH") or "/data/bkee/public/bknodeman/"
-
-# 上传文件的保存位置
-UPLOAD_PATH = os.path.join(PUBLIC_PATH, "upload")
-
-# 下载文件路径
-EXPORT_PATH = os.path.join(PUBLIC_PATH, "export")
-
-# NGINX miniweb路径
-NGINX_DOWNLOAD_PATH = os.path.join(PUBLIC_PATH, "download")
-
 # 节点管理后台 LAN_IP
 BKAPP_LAN_IP = os.getenv("LAN_IP")
 
 # 节点管理后台 NFS_IP
 BKAPP_NFS_IP = os.getenv("NFS_IP") or BKAPP_LAN_IP
-
-# 节点管理后台外网域名
-# TODO: 需要部署侧提供
-BACKEND_HOST = os.getenv("BKAPP_BACKEND_HOST", "")
-
-# 文件上传接口
-BKAPP_NODEMAN_UPLOAD_URL = f"{BACKEND_HOST}/backend/package/upload/"
-
-BKAPP_NODEMAN_DOWNLOAD_URL = f"{BACKEND_HOST}/backend/export/download/"
 
 # 节点管理回调地址
 BKAPP_NODEMAN_CALLBACK_URL = os.getenv("BKAPP_NODEMAN_CALLBACK_URL", "")
@@ -501,6 +553,7 @@ GSE_PROCESS_EVENT_DATAID = os.getenv("GSE_PROCESS_EVENT_DATAID") or 1100008
 USE_CMDB_SUBSCRIPTION_TRIGGER = bool(os.getenv("BKAPP_USE_CMDB_SUBSCRIPTION_TRIGGER"))
 
 VERSION_LOG = {"MD_FILES_DIR": os.path.join(PROJECT_ROOT, "release")}
+
 
 # remove disabled apps
 if locals().get("DISABLED_APPS"):

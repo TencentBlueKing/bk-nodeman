@@ -179,7 +179,7 @@ def gen_commands(host: models.Host, pipeline_id: str, is_uninstall: bool) -> Ins
     dest_dir = host.agent_config["temp_path"]
     dest_dir = suffix_slash(host.os_type.lower(), dest_dir)
     if script_file_name == constants.SetupScriptFileName.SETUP_PAGENT_PY.value:
-        run_cmd_params.append(f"-L {settings.NGINX_DOWNLOAD_PATH}")
+        run_cmd_params.append(f"-L {settings.DOWNLOAD_PATH}")
         # 云区域自动安装
         upstream_nodes = [proxy.inner_ip for proxy in host.proxies]
         host.upstream_nodes = proxies

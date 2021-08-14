@@ -51,3 +51,13 @@ class PackageVersionValidationError(BackendBaseException):
 class GenCommandsError(BackendBaseException):
     MESSAGE = _("安装命令生成失败")
     ERROR_CODE = 7
+
+
+class PluginParseError(BackendBaseException):
+    MESSAGE = _("插件解析错误")
+    ERROR_CODE = 8
+
+
+class CreatePackageRecordError(BackendBaseException):
+    MESSAGE = _("归档插件包信息错误")
+    ERROR_CODE = 9

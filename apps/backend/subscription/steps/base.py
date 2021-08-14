@@ -157,7 +157,7 @@ class Action(object, metaclass=abc.ABCMeta):
             # 如果为 external 插件，需要补上插件组目录
             setup_path = path_handler.join(
                 package.proc_control.install_path,
-                "external_plugins",
+                const.PluginChildDir.EXTERNAL.value,
                 group_id,
                 package.project,
             )
@@ -166,7 +166,9 @@ class Action(object, metaclass=abc.ABCMeta):
             pid_path_prefix, pid_filename = path_handler.split(package.proc_control.pid_path)
             pid_path = path_handler.join(pid_path_prefix, group_id, pid_filename)
         else:
-            setup_path = path_handler.join(package.proc_control.install_path, "plugins", "bin")
+            setup_path = path_handler.join(
+                package.proc_control.install_path, const.PluginChildDir.OFFICIAL.value, "bin"
+            )
             log_path = package.proc_control.log_path
             data_path = package.proc_control.data_path
             pid_path = package.proc_control.pid_path
