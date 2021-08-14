@@ -573,7 +573,7 @@ class PushFileToProxyService(JobFastPushFileService):
 
         data.inputs.file_source = [
             {
-                "files": [f"{settings.NGINX_DOWNLOAD_PATH}/{file}" for file in files],
+                "files": [f"{settings.DOWNLOAD_PATH}/{file}" for file in files],
                 "account": "root",
                 "ip_list": [{"ip": settings.BKAPP_LAN_IP, "bk_cloud_id": 0}],
             }

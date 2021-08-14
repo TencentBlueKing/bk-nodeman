@@ -10,7 +10,6 @@ specific language governing permissions and limitations under the License.
 """
 import base64
 import copy
-import errno
 import hashlib
 import json
 import os
@@ -22,17 +21,17 @@ import traceback
 import uuid
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from distutils.dir_util import copy_tree
 from enum import Enum
 from functools import cmp_to_key
 from typing import Any, Dict, List, Optional, Set, Union
 
 import requests
 import six
-import yaml
 from Cryptodome.Cipher import AES
 from django.conf import settings
 from django.core.cache import cache
-from django.db import models, transaction
+from django.db import models
 from django.db.models import DateTimeField, QuerySet
 from django.utils import timezone
 from django.utils.encoding import force_text
@@ -45,6 +44,7 @@ from jinja2 import Template
 from apps.backend.subscription.errors import PipelineExecuteFailed, SubscriptionNotExist
 from apps.backend.subscription.render_functions import get_hosts_by_node
 from apps.backend.utils.data_renderer import nested_render_data
+from apps.core.files.storage import get_storage
 from apps.exceptions import ValidationError
 from apps.node_man import constants
 from apps.node_man.exceptions import (
@@ -55,8 +55,7 @@ from apps.node_man.exceptions import (
     InstallChannelNotExistsError,
     QueryGlobalSettingsException,
 )
-from apps.utils import env, orm
-from apps.utils.basic import md5
+from apps.utils import files, orm
 from common.log import logger
 from pipeline.parser import PipelineParser
 from pipeline.service import task_service
@@ -980,267 +979,7 @@ class Packages(models.Model):
         return self._proc_control
 
     @classmethod
-    @transaction.atomic
-    def create_record(
-        cls,
-        dir_path,
-        package_os,
-        cpu_arch,
-        is_external,
-        creator=None,
-        is_release=True,
-        is_template_load=False,
-        is_template_overwrite=False,
-    ):
-        """
-        给定一个插件的路径，分析路径下的project.yaml，生成压缩包到nginx(多台)目录下
-        ！！！注意：该任务可能会导致长期的卡顿，请务必注意不要再wsgi等单线程环境中调用！！！
-        :param dir_path: 需要进行打包的插件路径, 例如，plugin_a路径，路径下放置了插件各个文件
-        :param package_os: 插件包支持的系统
-        :param cpu_arch: 插件支持的CPU架构
-        :param is_external: 是否第三方插件
-        :param creator: 操作人
-        :param is_release: 是否发布的版本
-        :param is_template_load: 是否需要读取插件包中的配置模板
-        :param is_template_overwrite: 是否可以覆盖已经存在的配置模板
-        :return: True | raise Exception
-        """
-        # 1. 判断是否存在project.yaml文件
-        project_file_path = os.path.join(dir_path, "project.yaml")
-        if not os.path.exists(project_file_path):
-            logger.error("try to pack path->[%s] but is not [project.yaml] file under file path" % dir_path)
-            raise CreateRecordError(_("找不到 {} project.yaml文件，打包失败").format(dir_path))
-
-        # 2. 解析project.yaml文件(版本，插件名等信息)
-        try:
-            with open(project_file_path, "r", encoding="utf-8") as project_file:
-                yaml_config = yaml.safe_load(project_file)
-
-        except (IOError, yaml.YAMLError) as error:
-            logger.error(
-                "failed to parse or read project_yaml->[{}] for->[{}]".format(project_file_path, traceback.format_exc())
-            )
-            six.raise_from(error, error)
-
-        try:
-            # 解析版本号转为字符串，防止x.x情况被解析为浮点型，同时便于后续写入及比较
-            yaml_config["version"] = str(yaml_config["version"])
-
-            package_name = yaml_config["name"]
-            version = yaml_config["version"]
-            control_info = yaml_config.get("control", {})
-
-        except KeyError as error:
-            logger.error(
-                "failed to get key info from project.yaml->[%s] for->[%s] maybe config file error?"
-                % (project_file_path, traceback.format_exc())
-            )
-            raise CreateRecordError(_("配置文件{}信息缺失，请确认后重试, 缺失字段: {}".format(project_file_path, error)))
-
-        # 判断之前是否已经有发布过的该插件版本
-        exists_object_list = cls.objects.filter(project=package_name, version=version, os=package_os, cpu_arch=cpu_arch)
-        if exists_object_list.filter(is_release_version=True).exists():
-            logger.error(
-                "project->[%s] version->[%s] os->[%s] cpu_arch->[%s] is release, no more operations is "
-                "allowed." % (package_name, version, package_os, cpu_arch)
-            )
-
-        # 判断插件类型是否符合预期
-        if yaml_config["category"] not in constants.CATEGORY_TUPLE:
-            logger.error(
-                "project->[%s] version->[%s] update(or create) with category->[%s] which is not acceptable, "
-                "nothing will do." % (package_name, version, yaml_config["category"])
-            )
-            raise ValueError(_("project.yaml中category配置异常，请确认后重试"))
-
-        # 3. 创建新的插件包信息
-        # 判断是否已经由插件描述信息，需要写入
-        desc, created = GsePluginDesc.objects.update_or_create(
-            name=package_name,
-            defaults=dict(
-                description=yaml_config.get("description", ""),
-                scenario=yaml_config.get("scenario", ""),
-                description_en=yaml_config.get("description_en", ""),
-                scenario_en=yaml_config.get("scenario_en", ""),
-                category=yaml_config["category"],
-                launch_node=yaml_config.get("launch_node", "all"),
-                config_file=yaml_config.get("config_file", ""),
-                config_format=yaml_config.get("config_format", ""),
-                use_db=bool(yaml_config.get("use_db", False)),
-                auto_launch=bool(yaml_config.get("auto_launch", False)),
-                is_binary=bool(yaml_config.get("is_binary", True)),
-                node_manage_control=yaml_config.get("node_manage_control", ""),
-            ),
-        )
-        if created:
-            logger.info("desc->[{}] for pack->[{}] is created".format(desc.id, package_name))
-
-        # 写入插件包信息
-        file_name = "{}-{}.tgz".format(package_name, version)
-        if not exists_object_list.exists():
-            # 如果之前未有未发布的插件包信息，需要新建
-            record = cls.objects.create(
-                pkg_name=file_name,
-                version=version,
-                module="gse_plugin",
-                # TODO: 留坑
-                creator=creator if creator is not None else settings.SYSTEM_USE_API_ACCOUNT,
-                project=package_name,
-                pkg_size=0,
-                pkg_path="",
-                md5="",
-                pkg_mtime="",
-                pkg_ctime="",
-                location="",
-                os=package_os,
-                cpu_arch=cpu_arch,
-                is_release_version=is_release,
-                is_ready=False,
-            )
-        else:
-            # 否则，更新已有的记录即可
-            record = exists_object_list[0]
-
-        path_info = env.get_gse_env_path(package_name, is_windows=(package_os == "windows"))
-        try:
-            proc_control = ProcControl.objects.get(plugin_package_id=record.id)
-
-        except ProcControl.DoesNotExist:
-            proc_control = ProcControl.objects.create(
-                module="gse_plugin", project=package_name, plugin_package_id=record.id
-            )
-
-        # 判断是否需要更新配置文件模板
-        if is_template_load:
-            config_templates = yaml_config.get("config_templates", [])
-            for templates_info in config_templates:
-
-                # 解析版本号转为字符串，防止x.x情况被解析为浮点型，同时便于后续写入及比较
-                templates_info["version"] = str(templates_info["version"])
-                templates_info["plugin_version"] = str(templates_info["plugin_version"])
-
-                is_main_config = templates_info.get("is_main_config", False)
-                source_path = templates_info["source_path"]
-
-                template_file_path = os.path.join(dir_path, source_path)
-                if not os.path.exists(template_file_path):
-                    logger.error(
-                        "project.yaml need to import file->[%s] but is not exists, nothing will do."
-                        % templates_info["source_path"]
-                    )
-                    raise IOError(_("找不到需要导入的配置模板文件[%s]") % source_path)
-
-                template, created = PluginConfigTemplate.objects.update_or_create(
-                    plugin_name=record.project,
-                    plugin_version=templates_info["plugin_version"],
-                    name=templates_info["name"],
-                    version=templates_info["version"],
-                    is_main=is_main_config,
-                    defaults=dict(
-                        format=templates_info["format"],
-                        file_path=templates_info["file_path"],
-                        content=open(template_file_path).read(),
-                        is_release_version=is_release,
-                        creator="system",
-                        create_time=timezone.now(),
-                        source_app_code="bk_nodeman",
-                    ),
-                )
-
-                logger.info(
-                    "template->[%s] version->[%s] is create for plugin->[%s] version->[%s] is add"
-                    % (template.name, template.version, record.project, record.version)
-                )
-
-                # 由于文件已经进入到了数据库中，此时需要清理tpl文件
-                os.remove(template_file_path)
-                logger.info("template->[%s] now is delete for info has loaded into database." % template_file_path)
-
-        # 更新信息
-        proc_control.install_path = path_info["install_path"]
-        proc_control.log_path = path_info["log_path"]
-        proc_control.data_path = path_info["data_path"]
-        proc_control.pid_path = path_info["pid_path"]
-        proc_control.start_cmd = control_info.get("start", "")
-        proc_control.stop_cmd = control_info.get("stop", "")
-        proc_control.restart_cmd = control_info.get("restart", "")
-        proc_control.reload_cmd = control_info.get("reload", "")
-        proc_control.kill_cmd = control_info.get("kill", "")
-        proc_control.version_cmd = control_info.get("version", "")
-        proc_control.health_cmd = control_info.get("health_check", "")
-        proc_control.debug_cmd = control_info.get("debug", "")
-        proc_control.os = package_os
-
-        # 更新插件二进制配置信息，如果不存在默认为空
-        proc_control.process_name = yaml_config.get("process_name")
-
-        # 更新是否需要托管
-        proc_control.need_delegate = yaml_config.get("need_delegate", True)
-
-        # 更新端口范围信息
-        port_range = yaml_config.get("port_range", "")
-
-        # 校验端口范围合法性
-        port_range_list = ProcControl.parse_port_range(port_range)
-        if port_range_list:
-            proc_control.port_range = port_range
-
-        proc_control.save()
-        logger.info(
-            "process control->[%s] for package->[%s] version->[%s] os->[%s] is created."
-            % (proc_control.id, package_name, version, package_os)
-        )
-
-        # 4. 打包创建新的tar包
-        file_name = "{}-{}.tgz".format(package_name, version)
-        temp_file_path = "/tmp/{}-{}-{}-{}.tgz".format(package_name, version, package_os, cpu_arch)
-        nginx_path = os.path.join(settings.NGINX_DOWNLOAD_PATH, record.os, record.cpu_arch, file_name)
-
-        try:
-            # 尝试创建 Nginx download path，已存在则忽略
-            os.makedirs(os.path.dirname(nginx_path))
-        except OSError as e:
-            if e.errno != errno.EEXIST:
-                raise e
-
-        with tarfile.open(temp_file_path, "w:gz") as tfile:
-            tfile.add(
-                dir_path,
-                # 判断是否第三方插件的路径
-                arcname="external_plugins/%s" % package_name if is_external else "plugins/",
-            )
-            logger.info(
-                "package->[%s] version->[%s] now is pack to temp_path->[%s], ready to send to nginx."
-                % (package_name, version, file_name)
-            )
-
-        # 4. 文件SCP转移到nginx路径下
-        # 注意：此处需要依赖 NGINX_DOWNLOAD_PATH 挂载到 NFS
-        shutil.copy(temp_file_path, nginx_path)
-
-        # 5. 标记已经完成同步及其他信息
-        record.is_ready = True
-        record.pkg_ctime = record.pkg_mtime = str(timezone.now())
-        record.pkg_size = os.path.getsize(temp_file_path)
-        record.pkg_path = os.path.dirname(nginx_path)
-        record.md5 = md5(temp_file_path)
-        # 这里没有加上包名，是因为原本脚本(bkee/bkce)中就没有加上，为了防止已有逻辑异常，保持一致
-        # 后面有哪位发现这里不适用了，可以一并修改
-        record.location = "http://{}/download/{}/{}".format(os.getenv("LAN_IP"), package_os, cpu_arch)
-
-        record.save()
-        logger.info(
-            "plugin->[{}] version->[{}] now is sync to nginx ready to use.".format(record.project, record.version)
-        )
-
-        # 清理临时文件
-        os.remove(temp_file_path)
-        logger.info("clean temp tgz file -> [{temp_file_path}] done.".format(temp_file_path=temp_file_path))
-
-        return record
-
-    @classmethod
-    def export_plugins(cls, project, version, os_type=None, cpu_arch=None):
+    def export_plugins(cls, project: str, version: str, os_type: str = None, cpu_arch: str = None) -> Dict[str, str]:
         """
         导出指定插件
         !!! 注意：该方法会有打包及同步等高延迟的动作，请勿在同步环境(uwsgi)下使用 !!!
@@ -1259,8 +998,8 @@ class Packages(models.Model):
             filter_params["cpu_arch"] = cpu_arch
         # 1. 确认需要导出的文件
         # 注意：未完成发布及nginx准备的插件不可导出
-        plugin_list = cls.objects.filter(**filter_params, is_ready=True, is_release_version=True)
-        if not plugin_list.exists():
+        package_objs = cls.objects.filter(**filter_params, is_ready=True, is_release_version=True)
+        if not package_objs.exists():
             logger.error(
                 "user try to export plugin project->[{project}] version->[{version}] "
                 "filter_params->[{filter_params}] but is not exists, nothing will do.".format(
@@ -1270,141 +1009,109 @@ class Packages(models.Model):
             raise ValueError(_("找不到可导出插件，请确认后重试"))
 
         # 临时的解压目录
-        temp_path = "/tmp/%s" % uuid.uuid4().hex
-        # 临时的压缩包路径
-        temp_file_path = "/tmp/%s.tgz" % uuid.uuid4().hex
+        local_unzip_target_dir = files.mk_and_return_tmpdir()
+        # 暂存导出插件的文件路径
+        export_plugin_tmp_path = os.path.join(
+            constants.TMP_DIR, constants.TMP_FILE_NAME_FORMAT.format(name=f"{uuid.uuid4().hex}.tgz")
+        )
 
         # 2. 各个插件解压到指定的目录
-        for plugin in plugin_list:
-            plugin.unzip(temp_path)
+        for package_obj in package_objs:
+            package_obj.unzip(local_unzip_target_dir)
             logger.info(
-                "plugin->[{}] os->[{}] cpu->[{}] unzip success.".format(plugin.pkg_name, plugin.os, plugin.cpu_arch)
+                "package -> {pkg_name} os -> {os} cpu -> {cpu_arch} unzip success.".format(
+                    pkg_name=package_obj.pkg_name, os=package_obj.os, cpu_arch=package_obj.cpu_arch
+                )
             )
 
-        # 3. 解压的指定目录打包
-        with tarfile.open(temp_file_path, "w:gz") as tar_file:
+        # 3. 将解压的各个插件包打包成一个完整的插件
+        with tarfile.open(export_plugin_tmp_path, "w:gz") as tar_file:
             # temp_path下的内容由于是从plugin处解压获得，所以应该已经符合external_plugins或者plugins的目录规范
             # 此处则不再指定
-            tar_file.add(temp_path, ".")
+            tar_file.add(local_unzip_target_dir, ".")
 
         logger.debug(
-            "export plugin->[%s] version->[%s] create temp_file->[%s] from path->[%s] success, "
-            "ready to trans to nginx." % (project, version, temp_file_path, temp_path)
-        )
-
-        # 4. 同步到nginx指定目录
-        file_name = "{}-{}-{}.tgz".format(project, version, md5(temp_file_path))
-
-        if not os.path.exists(settings.EXPORT_PATH):
-            os.makedirs(settings.EXPORT_PATH)
-
-        download_file_path = os.path.join(settings.EXPORT_PATH, file_name)
-        shutil.copy(temp_file_path, download_file_path)
-        logger.info(
-            "plugin->[{}] version->[{}] export file->[{}] is ready".format(project, version, download_file_path)
-        )
-
-        logger.info("plugin->[{}] version->[{}] export job success.".format(project, version))
-
-        # 清除临时文件
-        shutil.rmtree(temp_path)
-        os.remove(temp_file_path)
-        logger.info(
-            "clean temp tgz file -> [{temp_file_path}], temp path -> [{temp_path}] done.".format(
-                temp_file_path=temp_file_path, temp_path=temp_path
+            "export plugin -> {plugin_name} version -> {version} create export tmp path -> {export_plugin_tmp_path} "
+            "from path-> {local_unzip_target_dir} success, ready to storage".format(
+                plugin_name=project,
+                version=version,
+                export_plugin_tmp_path=export_plugin_tmp_path,
+                local_unzip_target_dir=local_unzip_target_dir,
             )
         )
 
-        return {"file_path": download_file_path}
+        # 4. 将导出的插件上传到存储源
+        plugin_export_target_path = os.path.join(
+            settings.EXPORT_PATH, f"{project}-{version}-{files.md5sum(name=export_plugin_tmp_path)}.tgz"
+        )
+        with open(export_plugin_tmp_path, mode="rb") as tf:
+            storage_path = get_storage().save(plugin_export_target_path, tf)
 
-    def unzip(self, target_path):
+        logger.info(
+            "export done: plugin-> {plugin_name} version -> {version} export file -> {storage_path}".format(
+                plugin_name=project, version=version, storage_path=storage_path
+            )
+        )
+
+        # 清除临时文件
+        os.remove(export_plugin_tmp_path)
+        shutil.rmtree(local_unzip_target_dir)
+
+        logger.info(
+            "plugin -> {plugin_name} version -> {version} export job success.".format(
+                plugin_name=project, version=version
+            )
+        )
+
+        return {"file_path": storage_path}
+
+    def unzip(self, local_target_dir: str) -> None:
         """
         将一个指定的插件解压到指定的目录下
-        :param target_path: 指定的解压目录
+        :param local_target_dir: 指定的解压目录
         :return: True | raise Exception
         """
 
+        storage = get_storage()
         file_path = os.path.join(self.pkg_path, self.pkg_name)
 
-        # 1. 获取文件
-        if not os.path.exists(file_path):
+        # 校验插件包是否存在
+        if not storage.exists(file_path):
             logger.error(
-                "try to unzip package->[{}] but file_path->[{}] is not exists, nothing will do.".format(
-                    self.pkg_name, file_path
+                "try to unzip package-> {pkg_name} but file_path -> {file_path} is not exists, nothing will do.".format(
+                    pkg_name=self.pkg_name, file_path=file_path
                 )
             )
-            raise ValueError(_("插件文件不存在，请联系管理员处理"))
+            raise ValueError(_("插件包不存在，请联系管理员处理"))
 
-        # 2. 解压到指定的目录
-        with tarfile.open(file_path) as tar_file:
+        # 将插件包解压到临时目录中
+        package_tmp_dir = files.mk_and_return_tmpdir()
+        # 文件的读取是从指定数据源（NFS或对象存储），可切换源模式，不直接使用原生open
+        with storage.open(name=file_path, mode="rb") as tf_from_storage:
+            with tarfile.open(fileobj=tf_from_storage) as tf:
+                tf.extractall(path=package_tmp_dir)
 
-            file_members = tar_file.getmembers()
+        # 遍历插件包的一级目录，找出 PluginExternalTypePrefix 匹配的文件夹并加入到指定的解压目录
+        # 一般来说，插件包是具体到机器操作系统类型的，所以 package_tmp_dir 下基本只有一个目录
+        for external_type_prefix in os.listdir(package_tmp_dir):
+            if external_type_prefix not in constants.PluginChildDir.get_optional_items():
+                continue
+            # 将匹配的目录拷贝并格式化命名
+            # 关于拷贝目录，参考：https://stackoverflow.com/questions/1868714/
+            copy_tree(
+                src=os.path.join(package_tmp_dir, external_type_prefix),
+                dst=os.path.join(local_target_dir, f"{external_type_prefix}_{self.os}_{self.cpu_arch}"),
+            )
 
-            # 判断获取需要解压到的目标位置
-            if "external_plugins" in file_members[0].name:
-                # 第三方插件的导出
-                # 目标路径变更为：${target_path}/external_plugins_linux_x86/${project_name}/
-                target_path = os.path.join(
-                    target_path, "external_plugins_{}_{}".format(self.os, self.cpu_arch), self.project
-                )
-                logger.info(
-                    "project->[%s] version->[%s] is external_plugins so set target_path->[%s]"
-                    % (self.project, self.version, target_path)
-                )
-                plugin_root_path = "external_plugins/%s/" % self.project
-                type_root_path = "external_plugins/"
-
-            else:
-                # 目标路径变更为：${target_path}/plugins_linux_x86/${project_name}/
-                target_path = os.path.join(target_path, "plugins_{}_{}".format(self.os, self.cpu_arch), self.project)
-                logger.info(
-                    "project->[%s] version->[%s] is offical plugins so set target_path->[%s]"
-                    % (self.project, self.version, target_path)
-                )
-                plugin_root_path = "plugins/%s/" % self.project
-                type_root_path = "plugins/"
-
-            if not os.path.exists(target_path):
-                os.makedirs(target_path)
-                logger.info("temp path->[{}] for package->[{}] is created".format(target_path, self.pkg_name))
-
-            # 对所有的内容进行遍历，然后找到是文件的内容，解压到我们的目标路径上
-            for member in file_members:
-
-                # 如果是类型的层级文件夹，跳过
-                if member.name == plugin_root_path[:-1] or member.name == type_root_path[:-1]:
-                    logger.info(
-                        "path->[{}] plugin_root_path->[{}] type_root_path->[{}] jump it".format(
-                            member.name, plugin_root_path, type_root_path
-                        )
-                    )
-                    continue
-
-                # 解压时，只关注最底层的文件名及文件夹
-                # 上层的external_plugins/project_name废弃
-                file_name = member.name.replace(plugin_root_path, "")
-                logger.info(
-                    "path->[{}] is extract to->[{}] with replace_root->[{}]".format(
-                        member.name, file_name, plugin_root_path
-                    )
-                )
-                current_target_path = os.path.join(target_path, file_name)
-
-                # 此处使用私有方法，是因为改名没有其他方式了
-                # 如果其他大锅有更好的方案，欢迎修改。。。囧
-                tar_file._extract_member(member, current_target_path)
-                logger.info(
-                    "project->[%s] version->[%s] file->[%s] is extract to->[%s]"
-                    % (self.project, self.version, member.name, current_target_path)
-                )
+        # 移除临时解压目录
+        shutil.rmtree(package_tmp_dir)
 
         logger.info(
-            "package->[{}] os->[{}] cpu->[{}] unzip to path->[{}] success.".format(
-                self.pkg_name, self.os, self.cpu_arch, target_path
+            "package-> {pkg_name} os -> {os} cpu_arch -> {cpu_arch} unzip to "
+            "path -> {local_target_dir} success.".format(
+                pkg_name=self.pkg_name, os=self.os, cpu_arch=self.cpu_arch, local_target_dir=local_target_dir
             )
         )
-
-        return True
 
     class Meta:
         verbose_name = _("模块/工程安装包信息表")
@@ -1550,209 +1257,68 @@ class UploadPackage(models.Model):
         """
         创建一个新的上传记录
         :param module: 文件模块
-        :param file_path: 文件在机器上的本地路径
+        :param file_path: 文件源路径
         :param md5: 文件MD5
         :param operator: 操作者
         :param source_app_code: 上传来源APP_CODE
-        :param file_name: 文件上传前的名字
+        :param file_name: 期望的文件保存名，在非文件覆盖的情况下，该名称不是文件最终的保存名
         :param is_file_copy: 是否复制而非剪切文件，适应初始化内置插件需要使用
         :return: upload record
         """
         # 注意：MD5参数值将会直接使用，因为服务器上的MD5是由nginx协助计算，应该在views限制
 
-        # 1. 判断文件是否已经存在
-        if not os.path.exists(file_path):
-            logger.warning(
-                "user->[{}] try to create record for file->[{}] but is not exists.".format(operator, file_path)
-            )
-            raise CreateRecordError(_("文件{file_path}不存在，请确认后重试").format(file_path=file_path))
-
-        # 判断上传文件的路径是否已经存在
-        if not os.path.exists(settings.UPLOAD_PATH):
-            os.makedirs(settings.UPLOAD_PATH)
-            logger.info("path->[{}] is not exists, and now is created by us.".format(settings.UPLOAD_PATH))
-
-        # 3. 文件迁移到public
-        new_file_path = os.path.join(settings.UPLOAD_PATH, file_name)
-
         try:
-            if is_file_copy:
-                shutil.copy(file_path, new_file_path)
-            else:
-                shutil.move(file_path, new_file_path)
-        except IOError:
+            storage = get_storage()
+            # 判断文件是否已经存在
+            if not storage.exists(file_path):
+                logger.warning(
+                    "operator -> {operator} try to create record for file -> {file_path} but is not exists.".format(
+                        operator=operator, file_path=file_path
+                    )
+                )
+                raise CreateRecordError(_("文件{file_path}不存在，请确认后重试").format(file_path=file_path))
+
+            target_file_path = os.path.join(settings.UPLOAD_PATH, file_name)
+
+            # 如果读写路径一致无需拷贝文件，此处 target_file_path / file_path 属于同个文件源
+            if target_file_path != file_path:
+                with storage.open(name=file_path, mode="rb") as fs:
+                    # 不允许覆盖同名文件的情况下，文件名会添加随机串，此时 target_file_path / file_name 应刷新
+                    target_file_path = storage.save(name=target_file_path, content=fs)
+                    file_name = os.path.basename(target_file_path)
+
+                # 如果是通过 mv 拷贝到指定目录，此时原文件应该删除
+                if not is_file_copy:
+                    storage.delete(file_path)
+
+            record = cls.objects.create(
+                file_name=file_name,
+                module=module,
+                file_path=target_file_path,
+                file_size=storage.size(target_file_path),
+                md5=md5,
+                upload_time=timezone.now(),
+                creator=operator,
+                source_app_code=source_app_code,
+            )
+
+        except Exception:
             logger.error(
-                "failed to mv source_file->[%s] to targe_path->[%s] for->[%s]"
-                % (file_path, new_file_path, traceback.format_exc())
+                "failed to mv source_file -> {file_path} to target_file_path -> {target_file_path}, "
+                "err_msg -> {err_msg}".format(
+                    file_path=file_path, target_file_path=target_file_path, err_msg=traceback.format_exc()
+                )
             )
             raise CreateRecordError(_("文件迁移失败，请联系管理员协助处理"))
 
-        record = cls.objects.create(
-            file_name=file_name,
-            module=module,
-            file_path=new_file_path,
-            file_size=os.path.getsize(new_file_path),
-            md5=md5,
-            upload_time=timezone.now(),
-            creator=operator,
-            source_app_code=source_app_code,
-        )
         logger.info(
-            "new record for file->[%s] module->[%s] is added by operator->[%s] from system->[%s]."
-            % (file_path, module, operator, source_app_code)
+            "new record for file -> {file_path} module -> {module} is added by operator -> {operator} "
+            "from system -> {source_app_code}.".format(
+                file_path=file_path, module=module, operator=operator, source_app_code=source_app_code
+            )
         )
 
         return record
-
-    def create_package_records(
-        self, is_release, creator=None, select_pkg_abs_paths=None, is_template_load=False, is_template_overwrite=False
-    ):
-        """
-        拆解一个上传包并将里面的插件录入到package表中
-        :param is_release: 是否正式发布
-        :param creator: 操作人
-        :param select_pkg_abs_paths: 指定注册包名列表
-        :param is_template_load: 是否需要读取配置文件
-        :param is_template_overwrite: 是否可以覆盖已经存在的配置文件
-        :return: [package_object, ...]
-        """
-        # 1. 解压压缩文件
-        package_result = []
-        temp_path = "/tmp/%s" % uuid.uuid4().hex
-
-        with tarfile.open(self.file_path) as tfile:
-            # 检查是否存在可疑内容
-            for file_info in tfile.getmembers():
-                if file_info.name.startswith("/") or "../" in file_info.name:
-                    logger.error(
-                        "WTF? file->[{}] contains member->[{}] try to escape! We won't use it.".format(
-                            self.file_path, file_info.name
-                        )
-                    )
-                    raise CreateRecordError(_("文件包含非法路径成员[{name}]，请检查").format(name=file_info.name))
-
-            logger.info("file->[{}] extract to path->[{}] success.".format(self.file_path, temp_path))
-            tfile.extractall(path=temp_path)
-
-        # 2. 遍历第一层的内容，得知当前的操作系统和cpu架构信息
-        with transaction.atomic():
-            for first_path in os.listdir(temp_path):
-                re_match = constants.PACKAGE_PATH_RE.match(first_path)
-                if re_match is None:
-                    logger.info("path->[%s] is not match re, jump it." % first_path)
-                    continue
-
-                path_dict = re_match.groupdict()
-                current_os = path_dict["os"]
-                cpu_arch = path_dict["cpu_arch"]
-                logger.info("path->[{}] is match for os->[{}] cpu->[{}]".format(first_path, current_os, cpu_arch))
-
-                # 遍历第二层的内容，得知当前的插件名
-                abs_first_path = os.path.join(temp_path, first_path)
-                for second_path in os.listdir(abs_first_path):
-                    # 注册新的内容，并触发同步
-                    # second_path 是包名
-                    abs_path = os.path.join(abs_first_path, second_path)
-
-                    if not os.path.isdir(abs_path):
-                        logger.info("found file path->[%s] jump it" % abs_path)
-                        continue
-                    if select_pkg_abs_paths is not None and f"{first_path}/{second_path}" not in select_pkg_abs_paths:
-                        logger.info("path->[%s] not select, jump it" % abs_path)
-                        continue
-                    record = Packages.create_record(
-                        dir_path=abs_path,
-                        package_os=current_os,
-                        cpu_arch=cpu_arch,
-                        is_release=is_release,
-                        creator=creator,
-                        is_external=path_dict["is_external"] is not None,
-                        is_template_load=is_template_load,
-                        is_template_overwrite=is_template_overwrite,
-                    )
-
-                    logger.info("package->[{}] now add record->[{}] success.".format(self.file_name, record.id))
-                    package_result.append(record)
-
-        # 3. 完成
-        logger.info("now package->[%s] is all add done." % self.file_name)
-
-        # 4. 清理临时文件夹
-        shutil.rmtree(temp_path)
-        logger.info("clean temp path -> [{temp_path}] done.".format(temp_path=temp_path))
-        return package_result
-
-    def list_package_infos(self):
-        """
-        解析`self.file_path`下插件，获取包信息字典列表
-        :return: [
-            {
-                # 插件包的相对路径
-                "pkg_abs_path": "plugins_linux_x86_64/package_name"
-                # 插件包目录路径
-                "dir_path": "/tmp/12134/plugins_linux_x86_64/package_name",
-                # 插件所需操作系统
-                "package_os": "linux",
-                # 支持cpu位数
-                "cpu_arch": "x86_64",
-                # 是否为自定义插件
-                "is_external": "False"
-            },
-            ...
-        ]
-        """
-        # 1. 解压压缩文件
-        temp_path = "/tmp/%s" % uuid.uuid4().hex
-        with tarfile.open(self.file_path) as tfile:
-            # 检查是否存在可疑内容
-            for file_info in tfile.getmembers():
-                if file_info.name.startswith("/") or "../" in file_info.name:
-                    logger.error(
-                        "WTF? file->[{}] contains member->[{}] try to escape! We won't use it.".format(
-                            self.file_path, file_info.name
-                        )
-                    )
-                    raise ValueError(_("文件包含非法路径成员[%s]，请检查") % file_info.name)
-            logger.info("file->[{}] extract to path->[{}] success.".format(self.file_path, temp_path))
-            tfile.extractall(path=temp_path)
-
-        package_infos = []
-        # 遍历第一层的内容，获取操作系统和cpu架构信息，eg：external(可无，有表示自定义插件)_plugins_linux_x86_64
-        for first_plugin_dir_name in os.listdir(temp_path):
-            # 通过正则提取出插件（plugin）目录名中的插件信息
-            re_match = constants.PACKAGE_PATH_RE.match(first_plugin_dir_name)
-            if re_match is None:
-                logger.info("path->[%s] is not match re, jump it." % first_plugin_dir_name)
-                continue
-
-            # 将文件名解析为插件信息字典
-            plugin_info_dict = re_match.groupdict()
-            current_os = plugin_info_dict["os"]
-            cpu_arch = plugin_info_dict["cpu_arch"]
-            logger.info(
-                "path->[{}] is match for os->[{}] cpu->[{}]".format(first_plugin_dir_name, current_os, cpu_arch)
-            )
-
-            first_level_plugin_path = os.path.join(temp_path, first_plugin_dir_name)
-            # 遍历第二层的内容，获取包名, eg：plugins_linux_x86_64/package_name
-            for second_package_dir_name in os.listdir(first_level_plugin_path):
-                # 拼接获取包路径
-                second_level_package_dir_path = os.path.join(first_level_plugin_path, second_package_dir_name)
-                if not os.path.isdir(second_level_package_dir_path):
-                    logger.info("found file path->[%s] jump it" % second_level_package_dir_path)
-                    continue
-
-                package_infos.append(
-                    {
-                        "pkg_abs_path": f"{first_plugin_dir_name}/{second_package_dir_name}",
-                        "dir_path": second_level_package_dir_path,
-                        "package_os": current_os,
-                        "cpu_arch": cpu_arch,
-                        "is_external": plugin_info_dict["is_external"] is not None,
-                    }
-                )
-
-        return package_infos
 
 
 class DownloadRecord(models.Model):
@@ -1825,7 +1391,7 @@ class DownloadRecord(models.Model):
         return md5.hexdigest()
 
     @classmethod
-    def create_record(cls, category, query_params, creator, source_app_code):
+    def create_record(cls, category: str, query_params: Dict[str, Any], creator: str, source_app_code: str):
         """
         创建下载任务记录
         :param category: 下载文件类型
@@ -1834,13 +1400,6 @@ class DownloadRecord(models.Model):
         :param source_app_code: 请求来源蓝鲸系统代号
         :return: download record
         """
-
-        if category not in cls.CATEGORY_TASK_DICT:
-            logger.error(
-                "user->[%s] from source_app->[%s] request category->[%s] is not supported now, "
-                "nothing will do." % (creator, source_app_code, category)
-            )
-            raise ValueError(_("请求下载类型[%s]暂不支持，请确认后重试") % category)
 
         record = cls.objects.create(
             category=category,
@@ -1853,8 +1412,9 @@ class DownloadRecord(models.Model):
             source_app_code=source_app_code,
         )
         logger.info(
-            "download record->[{}] is create from app->[{}] for category->[{}] query_params->[{}]".format(
-                record.id, source_app_code, category, query_params
+            "download record -> {record_id} is create from app -> {source_app_code} for category -> {category} "
+            "query_params -> {query_params}".format(
+                record_id=record.id, source_app_code=source_app_code, category=category, query_params=query_params
             )
         )
 
@@ -1879,10 +1439,14 @@ class DownloadRecord(models.Model):
             self.file_path = result["file_path"]
 
         except Exception as error:
-            logger.error("failed to execute task->[{}] for->[{}]".format(self.id, traceback.format_exc()))
+            logger.error(
+                "failed to execute task -> {record_id} for -> {err_msg}".format(
+                    record_id=self.id, err_msg=traceback.format_exc()
+                )
+            )
 
             task_status = self.TASK_STATUS_FAILED
-            error_message = _("任务失败: %s") % error
+            error_message = _("任务失败: {err_msg}").format(err_msg=error)
 
             six.raise_from(error, error)
 
@@ -1892,8 +1456,9 @@ class DownloadRecord(models.Model):
             self.finish_time = timezone.now()
             self.save()
             logger.info(
-                "task->[%s] is done with status->[%s] error_message->[%s]"
-                % (self.id, self.task_status, self.error_message)
+                "task -> {record_id} is done with status -> {task_status} error_message -> {err_msg}".format(
+                    record_id=self.id, task_status=self.task_status, err_msg=self.error_message
+                )
             )
 
 

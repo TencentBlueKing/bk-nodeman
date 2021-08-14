@@ -56,3 +56,13 @@ class GenCommandsError(BackendBaseException):
 class GseEncryptedError(BackendBaseException):
     MESSAGE = _("GSE敏感信息加密失败")
     ERROR_CODE = 8
+
+
+class PluginParseError(BackendBaseException):
+    MESSAGE = _("插件解析错误")
+    ERROR_CODE = 9
+
+
+class CreatePackageRecordError(BackendBaseException):
+    MESSAGE = _("归档插件包信息错误")
+    ERROR_CODE = 10
