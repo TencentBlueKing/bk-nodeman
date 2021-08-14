@@ -19,8 +19,9 @@ from django.conf import settings
 from django.core.management.base import BaseCommand
 from django.db.transaction import atomic
 
+from apps.backend.plugin import tools
 from apps.node_man import models
-from apps.utils.basic import md5
+from apps.utils.files import md5sum
 from common.log import logger
 
 
@@ -59,7 +60,7 @@ class Command(BaseCommand):
                         # 后续可以考虑通过路径来判断
                         module="gse_plugin",
                         file_path=file_abs_path,
-                        md5=md5(file_abs_path),
+                        md5=md5sum(name=file_abs_path),
                         operator="system",
                         source_app_code="bk_nodeman",
                         file_name=file_name,
@@ -68,10 +69,11 @@ class Command(BaseCommand):
 
                     try:
                         # 如果是官方内置的插件，那么应该是直接发布的
-                        package_list = upload_record.create_package_records(
+                        package_list = tools.create_package_records(
+                            file_path=upload_record.file_path,
+                            file_name=upload_record.file_name,
                             is_release=True,
                             is_template_load=True,
-                            is_template_overwrite=True,
                         )
                     except Exception as error:
                         # 但是需要注意这个文件可能是已经存在的文件，会有导入失败的问题

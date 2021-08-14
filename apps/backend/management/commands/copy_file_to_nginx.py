@@ -29,7 +29,7 @@ class Command(BaseCommand):
         # 接入点配置的nginx路径
         nginx_paths = [ap.nginx_path for ap in AccessPoint.objects.all() if ap.nginx_path]
         # 默认nginx路径
-        nginx_paths.append(settings.NGINX_DOWNLOAD_PATH)
+        nginx_paths.append(settings.DOWNLOAD_PATH)
         # 去重
         nginx_paths = list(set(nginx_paths))
         for _path in os.listdir(settings.BK_SCRIPTS_PATH):

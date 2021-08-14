@@ -13,11 +13,12 @@ from __future__ import absolute_import, unicode_literals
 import base64
 import hashlib
 
+from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
 from apps.node_man import constants
-from apps.node_man.models import GsePluginDesc, Packages
+from apps.node_man.models import DownloadRecord, GsePluginDesc, Packages
 
 
 class GatewaySerializer(serializers.Serializer):
@@ -202,14 +203,28 @@ class PluginConfigInstanceInfoSerializer(GatewaySerializer):
         return attrs
 
 
-class UploadInfoSerializer(GatewaySerializer):
+class UploadInfoBaseSerializer(GatewaySerializer):
+    md5 = serializers.CharField(help_text=_("上传端计算的文件md5"), max_length=32)
+    file_name = serializers.CharField(help_text=_("上传端提供的文件名"), min_length=1)
+    module = serializers.CharField(max_length=32, required=False, default="gse_plugin")
+
+
+class UploadInfoSerializer(UploadInfoBaseSerializer):
     """上传插件包接口序列化器"""
 
-    module = serializers.CharField(max_length=32, required=False, default="gse_plugin")
-    md5 = serializers.CharField(max_length=32)
-    file_name = serializers.CharField()
-    file_local_path = serializers.CharField(max_length=512)
-    file_local_md5 = serializers.CharField(max_length=32)
+    file_local_path = serializers.CharField(help_text=_("本地文件路径"), max_length=512)
+    file_local_md5 = serializers.CharField(help_text=_("Nginx所计算的文件md5"), max_length=32)
+
+
+class CosUploadInfoSerializer(UploadInfoBaseSerializer):
+    download_url = serializers.URLField(help_text=_("对象存储文件下载url"), required=False)
+    file_path = serializers.CharField(help_text=_("文件保存路径"), min_length=1, required=False)
+
+    def validate(self, attrs):
+        # 两种参数模式少要有一种满足
+        if not ("download_url" in attrs or "file_path" in attrs):
+            raise ValidationError("at least has download_url or file_path")
+        return attrs
 
 
 class PluginStartDebugSerializer(GatewaySerializer):
@@ -238,16 +253,24 @@ class PluginStartDebugSerializer(GatewaySerializer):
 
 
 class PluginRegisterSerializer(GatewaySerializer):
-    file_name = serializers.CharField()
-    is_release = serializers.BooleanField()
+    file_name = serializers.CharField(help_text=_("文件名称"))
+    is_release = serializers.BooleanField(help_text=_("是否立即发布该插件"))
 
     # 两个配置文件相关参数选填，兼容监控
-    # 是否需要读取配置文件
-    is_template_load = serializers.BooleanField(required=False, default=False)
-    # 是否可以覆盖已经存在的配置文件
-    is_template_overwrite = serializers.BooleanField(required=False, default=False)
+    is_template_load = serializers.BooleanField(help_text=_("是否需要读取配置文件"), required=False, default=False)
+    is_template_overwrite = serializers.BooleanField(help_text=_("是否可以覆盖已经存在的配置文件"), required=False, default=False)
 
+    # TODO 废弃字段，改用 select_pkg_relative_paths，待与前端联调后移除该字段
     select_pkg_abs_paths = serializers.ListField(required=False, min_length=1, child=serializers.CharField())
+
+    select_pkg_relative_paths = serializers.ListField(
+        required=False, min_length=1, child=serializers.CharField(), help_text=_("选择注册的插件包相对路径，缺省默认全选")
+    )
+
+    def validate(self, attrs):
+        attrs["select_pkg_relative_paths"] = attrs.get("select_pkg_abs_paths")
+
+        return attrs
 
 
 class PluginRegisterTaskSerializer(GatewaySerializer):
@@ -286,6 +309,15 @@ class ExportSerializer(GatewaySerializer):
     query_params = GsePluginParamsSerializer()
     creator = serializers.CharField()
     bk_app_code = serializers.CharField()
+
+    def validate(self, attrs):
+        if attrs["category"] not in DownloadRecord.CATEGORY_TASK_DICT:
+            raise ValidationError(
+                "请求下载类型 -> {category} 暂不支持，可选项 -> {choices}".format(
+                    category=attrs["category"], choices=DownloadRecord.CATEGORY_CHOICES
+                )
+            )
+        return attrs
 
 
 class DeletePluginSerializer(GatewaySerializer):

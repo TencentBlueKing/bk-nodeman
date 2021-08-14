@@ -202,3 +202,9 @@ class ApNotSupportOsError(NodeManBaseException):
 class PolicyIsRunningError(NodeManBaseException):
     MESSAGE_TPL = _("策略 -> {policy_id}「{name}」正在执行")
     ERROR_CODE = 36
+
+
+class PluginUploadError(NodeManBaseException):
+    MESSAGE = _("插件上传失败")
+    MESSAGE_TPL = _("插件上传失败: plugin_name -> {plugin_name}, error -> {error}")
+    ERROR_CODE = 37

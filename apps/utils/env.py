@@ -11,8 +11,11 @@ specific language governing permissions and limitations under the License.
 
 import logging
 import os
+from typing import Any, Dict
 
 from django.conf import settings
+
+from apps.utils.string import str2bool
 
 logger = logging.getLogger("app")
 
@@ -46,10 +49,10 @@ def get_env_list(env_prefix):
     return result
 
 
-def get_gse_env_path(package_name, is_windows=False):
+def get_gse_env_path(plugin_name: str, is_windows=False) -> Dict[str, str]:
     """
     获取gse agent的路径信息
-    :param package_name: 插件名，因为部分文件配置路径与插件名有关
+    :param plugin_name: 插件名，因为部分文件配置路径与插件名有关
     :param is_windows: 是否windows环境下的配置
     :return: {
         "install_path": "/usr/local",
@@ -63,7 +66,7 @@ def get_gse_env_path(package_name, is_windows=False):
         return {
             "install_path": settings.GSE_WIN_AGENT_HOME,
             "log_path": settings.GSE_WIN_AGENT_LOG_DIR,
-            "pid_path": settings.GSE_WIN_AGENT_RUN_DIR + "\\" + package_name + ".pid",
+            "pid_path": settings.GSE_WIN_AGENT_RUN_DIR + "\\" + plugin_name + ".pid",
             "data_path": settings.GSE_WIN_AGENT_DATA_DIR,
         }
     # linux & aix系统下的配置
@@ -71,6 +74,34 @@ def get_gse_env_path(package_name, is_windows=False):
         return {
             "install_path": settings.GSE_AGENT_HOME,
             "log_path": settings.GSE_AGENT_LOG_DIR,
-            "pid_path": settings.GSE_AGENT_RUN_DIR + "/" + package_name + ".pid",
+            "pid_path": settings.GSE_AGENT_RUN_DIR + "/" + plugin_name + ".pid",
             "data_path": settings.GSE_AGENT_DATA_DIR,
         }
+
+
+def get_type_env(key: str, default: Any = None, _type: type = str, exempt_empty_str: bool = False) -> Any:
+    """
+    获取环境变量并转为目标类型
+    :param key: 变量名
+    :param default: 默认值，若获取不到环境变量会默认使用该值
+    :param _type: 环境变量需要转换的类型，不会转 default
+    :param exempt_empty_str: 是否豁免空串
+    :return:
+    """
+    value = os.getenv(key) or default
+    if value == default:
+        return value
+
+    # 豁免空串
+    if isinstance(value, str) and not value and exempt_empty_str:
+        return value
+
+    if _type == bool:
+        return str2bool(value)
+
+    try:
+        value = _type(value)
+    except TypeError:
+        raise TypeError(f"can not convert env value -> {value} to type -> {_type}")
+
+    return value
