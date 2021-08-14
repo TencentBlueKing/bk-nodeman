@@ -130,7 +130,7 @@ def gen_commands(host, pipeline_id, is_uninstall, batch_install=False):
         download_cmd = f"curl {package_url}/{shell_file_name} -o {dest_dir}{shell_file_name} --connect-timeout 5 -sSf"
 
     else:
-        run_cmd_params.append(f"-L {settings.NGINX_DOWNLOAD_PATH}")
+        run_cmd_params.append(f"-L {settings.DOWNLOAD_PATH}")
         # 云区域自动安装
         dest_host = host
         # 手动批量安装均走该分支

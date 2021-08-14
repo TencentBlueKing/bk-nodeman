@@ -17,6 +17,7 @@ import json
 import logging
 import os
 import re
+import shutil
 from collections import defaultdict
 from copy import deepcopy
 from itertools import groupby
@@ -46,10 +47,12 @@ from apps.backend.subscription.errors import (
 )
 from apps.backend.subscription.handler import SubscriptionHandler
 from apps.backend.subscription.tasks import run_subscription_task_and_create_instance
+from apps.core.files.storage import get_storage
 from apps.exceptions import AppBaseException, ValidationError
 from apps.generic import APIViewSet
 from apps.node_man import constants as const
 from apps.node_man import models
+from apps.utils import files
 
 LOG_PREFIX_RE = re.compile(r"(\[\d{4}-\d{1,2}-\d{1,2}\s\d{1,2}:\d{1,2}.*?\] )")
 logger = logging.getLogger("app")
@@ -159,7 +162,9 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         )
         # 这个新的任务，应该是指派到自己机器上的打包任务
         tasks.package_task.delay(job.id, params)
-        logger.info("create job->[{}] to unpack file->[{}] plugin".format(job.id, file_name))
+        logger.info(
+            "create job-> {job_id} to unpack file-> {file_name} plugin".format(job_id=job.id, file_name=file_name)
+        )
 
         return Response({"job_id": job.id})
 
@@ -715,16 +720,18 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         record = models.DownloadRecord.create_record(
             category=params["category"],
             query_params=params["query_params"],
-            creator=params["creator"],
+            creator=params["bk_username"],
             source_app_code=params["bk_app_code"],
         )
         logger.info(
-            "user->[%s] request to export from system->[%s] success created record->[%s]."
-            % (params["creator"], params["bk_app_code"], record.id)
+            "user -> {username} request to export from system -> {bk_app_code} success created "
+            "record -> {record_id}.".format(
+                username=params["bk_username"], bk_app_code=params["bk_app_code"], record_id=record.id
+            )
         )
 
         tasks.export_plugin.delay(record.id)
-        logger.info("record->[%s] now is active to celery" % record.id)
+        logger.info("record-> {record_id} now is active to celery".format(record_id=record.id))
 
         return Response({"job_id": record.id})
 
@@ -753,19 +760,30 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         try:
             record = models.DownloadRecord.objects.get(id=job_id)
         except models.DownloadRecord.DoesNotExist:
-            logger.error("record->[%s] not exists, something go wrong?" % job_id)
+            logger.error("record-> {record_id} not exists, something go wrong?".format(record_id=job_id))
             raise ValueError(_("请求任务不存在，请确认后重试"))
 
-        uri_with_params = "?".join([settings.BKAPP_NODEMAN_DOWNLOAD_URL, record.download_params])
+        if record.is_failed or not record.file_path:
+            download_url = ""
+        else:
+            # TODO: 此处后续需要提供一个统一的 storage.tmp_url(name) 方法，用于插件包的临时下载
+            if settings.STORAGE_TYPE in const.COS_TYPES:
+                download_url = get_storage().url(record.file_path)
+            else:
+                download_url = "?".join([settings.BKAPP_NODEMAN_DOWNLOAD_API, record.download_params])
 
         response_data = {
             "is_finish": record.is_finish,
             "is_failed": record.is_failed,
-            "download_url": uri_with_params if not record.is_failed else "",  # 下载URL
+            "download_url": download_url,
             "error_message": record.error_message,
         }
 
-        logger.info("export record->[{}] response_data->[{}]".format(job_id, response_data))
+        logger.info(
+            "export record -> {record_id} response_data -> {response_data}".format(
+                record_id=job_id, response_data=response_data
+            )
+        )
         return Response(response_data)
 
     @action(detail=False, methods=["POST"], url_path="parse")
@@ -820,13 +838,32 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         )
         if upload_package_obj is None:
             raise exceptions.UploadPackageNotExistError(_("找不到请求发布的文件，请确认后重试"))
-        # 获取包信息并解析
-        return Response(
-            [
-                tools.parse_package(package_info, params["is_update"], params.get("project"))
-                for package_info in upload_package_obj.list_package_infos()
-            ]
-        )
+
+        # 获取插件中各个插件包的路径信息
+        package_infos = tools.list_package_infos(file_path=upload_package_obj.file_path)
+        # 解析插件包
+        pkg_parse_results = []
+        for package_info in package_infos:
+            pkg_parse_result = tools.parse_package(
+                pkg_absolute_path=package_info["pkg_absolute_path"],
+                package_os=package_info["package_os"],
+                cpu_arch=package_info["cpu_arch"],
+                is_update=params["is_update"],
+            )
+            pkg_parse_result.update(
+                {
+                    "pkg_abs_path": package_info["pkg_relative_path"],
+                    # parse_package 对 category 执行校验并返回错误信息，此处category不一定是合法值，所以使用get填充释义
+                    "category": const.CATEGORY_DICT.get(pkg_parse_result["category"]),
+                }
+            )
+            pkg_parse_results.append(pkg_parse_result)
+
+        # 清理临时解压目录
+        plugin_tmp_dirs = set([package_info["plugin_tmp_dir"] for package_info in package_infos])
+        for plugin_tmp_dir in plugin_tmp_dirs:
+            shutil.rmtree(plugin_tmp_dir)
+        return Response(pkg_parse_results)
 
     def list(self, request, *args, **kwargs):
         """
@@ -1231,6 +1268,77 @@ def upload_package(request):
         "user->[%s] from app->[%s] upload file->[%s] success."
         % (record.creator, record.source_app_code, record.file_path)
     )
+    return JsonResponse(
+        {
+            "result": True,
+            "message": "",
+            "code": "00",
+            "data": {
+                "id": record.id,  # 包文件的ID
+                "name": record.file_name,  # 包名
+                "pkg_size": record.file_size,  # 单位byte
+            },
+        }
+    )
+
+
+@csrf_exempt
+@login_exempt
+def upload_package_by_cos(request):
+    ser = serializers.CosUploadInfoSerializer(data=request.POST)
+    if not ser.is_valid():
+        logger.error("failed to valid request data for->[%s] maybe something go wrong?" % ser.errors)
+        raise ValidationError(_("请求参数异常 [{err}]，请确认后重试").format(err=ser.errors))
+
+    md5 = ser.data["md5"]
+    origin_file_name = ser.data["file_name"]
+    file_path = ser.data.get("file_path")
+    download_url: str = ser.data.get("download_url")
+
+    storage = get_storage()
+
+    # TODO 此处的md5校验放到文件实际读取使用的地方更合理?
+    # file_path 不为空表示文件已在项目管理的对象存储上，此时仅需校验md5，减少文件IO
+    if file_path:
+        try:
+            if files.md5sum(file_obj=storage.open(name=file_path)) != md5:
+                raise ValidationError(_("上传文件MD5校验失败，请确认重试"))
+        except Exception as e:
+            raise ValidationError(_("文件不存在：file_path -> {file_path}，error -> {err}").format(file_path=file_path, err=e))
+    else:
+        # 创建临时存放下载插件的目录
+        tmp_dir = files.mk_and_return_tmpdir()
+        with open(file=os.path.join(tmp_dir, origin_file_name), mode="wb+") as fs:
+            # 下载文件并写入fs
+            files.download_file(url=download_url, file_obj=fs, closed=False)
+            # 计算下载文件的md5
+            local_md5 = files.md5sum(file_obj=fs, closed=False)
+            if local_md5 != md5:
+                logger.error(
+                    "failed to valid file md5 local->[{}] user->[{}] maybe network error".format(local_md5, md5)
+                )
+                raise ValidationError(_("上传文件MD5校验失败，请确认重试"))
+
+            # 使用上传端提供的期望保存文件名，保存文件到项目所管控的存储
+            file_path = storage.save(name=os.path.join(settings.UPLOAD_PATH, origin_file_name), content=fs)
+
+        # 移除临时目录
+        shutil.rmtree(tmp_dir)
+
+    record = models.UploadPackage.create_record(
+        module=ser.data["module"],
+        file_path=file_path,
+        md5=md5,
+        operator=ser.data["bk_username"],
+        source_app_code=ser.data["bk_app_code"],
+        # 此处使用落地到文件系统的文件名，对象存储情况下文件已经写到仓库，使用接口传入的file_name会在后续判断中再转移一次文件
+        file_name=os.path.basename(file_path),
+    )
+    logger.info(
+        "user->[%s] from app->[%s] upload file->[%s] success."
+        % (record.creator, record.source_app_code, record.file_path)
+    )
+
     return JsonResponse(
         {
             "result": True,

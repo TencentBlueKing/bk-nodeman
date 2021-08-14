@@ -8,7 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import hashlib
 from collections import Counter, namedtuple
 from copy import deepcopy
 from typing import Any, Dict, Iterable, List, Set, Union
@@ -70,21 +69,6 @@ def suffix_slash(os, path):
         if not path.endswith("/"):
             path = path + "/"
     return path
-
-
-def md5(file_name):
-    """内部实现的平台无关性计算MD5"""
-    hash = hashlib.md5()
-    try:
-        with open(file_name, "rb") as f:
-            for chunk in iter(lambda: f.read(4096), b""):
-                if not chunk:
-                    break
-                hash.update(chunk)
-    except IOError:
-        return "-1"
-
-    return hash.hexdigest()
 
 
 def chunk_lists(lst, n):

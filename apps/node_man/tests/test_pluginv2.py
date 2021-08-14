@@ -67,30 +67,6 @@ class TesetPluginV2(TestCase):
             },
         )
 
-    @patch("apps.node_man.handlers.plugin_v2.requests.post", upload_package_return)
-    def test_upload(self):
-        class package_file:
-            name = "123.txt"
-
-            @classmethod
-            def chunks(cls):
-                return [b"test1", b"test2"]
-
-        result = PluginV2Handler().upload(package_file=package_file, module="test_module", username="")
-        self.assertEqual(
-            result,
-            {
-                "result": True,
-                "message": "",
-                "code": "00",
-                "data": {
-                    "id": 21,  # 包上传记录ID
-                    "name": "test-0.01.tgz",  # 包名
-                    "pkg_size": "23412434",  # 单位byte
-                },
-            },
-        )
-
     @patch("apps.node_man.handlers.cmdb.CmdbHandler.cmdb_or_cache_biz", cmdb_or_cache_biz)
     def test_list_plugin_host(self):
         # 构造数据
