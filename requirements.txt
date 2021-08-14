@@ -61,3 +61,5 @@ prettytable==2.1.0
 raven==6.1.0
 # for apm
 ddtrace==0.14.1
+
+bkstorages==1.0.1

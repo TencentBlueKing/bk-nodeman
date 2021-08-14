@@ -917,7 +917,7 @@ class PushUpgradePackageService(JobFastPushFileService):
         self.logger.info(_("开始下发升级包"))
         host_info = data.get_one_of_inputs("host_info")
         host = Host.get_by_host_info(host_info)
-        nginx_path = host.ap.nginx_path or settings.NGINX_DOWNLOAD_PATH
+        nginx_path = host.ap.nginx_path or settings.DOWNLOAD_PATH
         data.inputs.file_target_path = host.agent_config["temp_path"]
 
         os_type = host.os_type.lower()
@@ -1271,7 +1271,7 @@ class OperatePluginService(AgentService, GseBaseService):
         else:
             path_handler = posixpath
 
-        setup_path = path_handler.join(package.proc_control.install_path, "plugins", "bin")
+        setup_path = path_handler.join(package.proc_control.install_path, const.PluginChildDir.OFFICIAL.value, "bin")
         pid_path = package.proc_control.pid_path
 
         result = gse_client.register_process(hosts, control, setup_path, pid_path, plugin_name, plugin_name)

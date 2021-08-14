@@ -11,16 +11,16 @@ specific language governing permissions and limitations under the License.
 import json
 import os
 import random
-import shutil
-import uuid
 from collections import ChainMap, defaultdict
 from typing import Any, Dict, List
 
 import requests
 from django.conf import settings
 from django.core.cache import cache
+from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.utils.translation import ugettext_lazy as _
 
+from apps.core.files.storage import get_storage
 from apps.node_man import constants, exceptions, models, tools
 from apps.node_man.constants import DEFAULT_CLOUD_NAME, IamActionType
 from apps.node_man.handlers.cmdb import CmdbHandler
@@ -28,27 +28,70 @@ from apps.node_man.handlers.host import HostHandler
 from apps.node_man.handlers.iam import IamHandler
 from apps.utils.basic import distinct_dict_list, list_slice
 from apps.utils.concurrent import batch_call
+from apps.utils.files import md5sum
 from apps.utils.local import get_request_username
 from common.api import NodeApi
 
 
 class PluginV2Handler:
     @staticmethod
-    def upload(package_file, module, username):
-        tmp_dir = os.path.join("/tmp/", uuid.uuid4().hex)
-        os.mkdir(tmp_dir)
-        tmp_path = os.path.join(tmp_dir, package_file.name)
-        with open(tmp_path, "wb") as tmp_file:
-            for chunk in package_file.chunks():
-                tmp_file.write(chunk)
-        md5 = tools.PluginV2Tools.get_file_md5(tmp_path)
-        with open(tmp_path, "rb") as tf:
-            response = requests.post(
-                url=settings.BKAPP_NODEMAN_UPLOAD_URL,
-                data={"bk_app_code": settings.APP_CODE, "bk_username": username, "module": module, "md5": md5},
-                files={"package_file": tf},
-            )
-        shutil.rmtree(tmp_dir)
+    def upload(package_file: InMemoryUploadedFile, module: str) -> Dict[str, Any]:
+        """
+        将文件上传至
+        :param package_file: InMemoryUploadedFile
+        :param module: 所属模块
+        :return:
+        {
+            "result": True,
+            "message": "",
+            "code": "00",
+            "data": {
+                "id": record.id,  # 上传文件记录ID
+                "name": record.file_name,  # 包名
+                "pkg_size": record.file_size,  # 大小，
+            }
+        }
+        """
+        with package_file.open("rb") as tf:
+
+            # 计算上传文件的md5
+            md5 = md5sum(file_obj=tf, closed=False)
+
+            # 构造通用参数
+            upload_params = {
+                "url": settings.DEFAULT_FILE_UPLOAD_API,
+                "data": {
+                    "bk_app_code": settings.APP_CODE,
+                    "bk_username": get_request_username(),
+                    "module": module,
+                    "md5": md5,
+                },
+            }
+
+            # 如果采用对象存储，文件直接上传至仓库，并将返回的目标路径传到后台，由后台进行校验并创建上传记录
+            # TODO 后续应该由前端上传文件并提供md5
+            if settings.STORAGE_TYPE in constants.COS_TYPES:
+                storage = get_storage()
+
+                try:
+                    storage_path = storage.save(name=os.path.join(settings.UPLOAD_PATH, tf.name), content=tf)
+                except Exception as e:
+                    raise exceptions.PluginUploadError(plugin_name=tf.name, error=e)
+
+                upload_params["data"].update(
+                    {
+                        # 最初文件上传的名称，后台会使用该文件名保存并覆盖同名文件
+                        "file_name": tf.name,
+                        "file_path": storage_path,
+                        "download_url": storage.url(storage_path),
+                    }
+                )
+            else:
+                # 本地文件系统仍通过上传文件到Nginx并回调后台
+                upload_params["files"] = {"package_file": tf}
+
+            response = requests.post(**upload_params)
+
         return json.loads(response.content)
 
     @staticmethod

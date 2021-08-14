@@ -207,3 +207,9 @@ class PolicyIsRunningError(NodeManBaseException):
 class InstallChannelNotExistsError(NodeManBaseException):
     ERROR_CODE = 37
     MESSAGE = _("主机的安装通道不存在，请重新选择")
+
+
+class PluginUploadError(NodeManBaseException):
+    MESSAGE = _("插件上传失败")
+    MESSAGE_TPL = _("插件上传失败: plugin_name -> {plugin_name}, error -> {error}")
+    ERROR_CODE = 38
