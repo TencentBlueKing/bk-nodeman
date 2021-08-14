@@ -358,7 +358,7 @@ class AgentManager(object):
             type=Var.PLAIN,
             value=[{"ip": self.host_info["bk_host_innerip"], "bk_cloud_id": self.host_info["bk_cloud_id"]}],
         )
-        act.component.inputs.file_target_path = Var(type=Var.PLAIN, value=settings.NGINX_DOWNLOAD_PATH)
+        act.component.inputs.file_target_path = Var(type=Var.PLAIN, value=settings.DOWNLOAD_PATH)
         act.component.inputs.files = Var(type=Var.PLAIN, value=file["files"])
         act.component.inputs.from_type = Var(type=Var.PLAIN, value=file.get("from_type", ""))
         act.component.inputs.context = Var(type=Var.PLAIN, value="")
@@ -369,7 +369,7 @@ class AgentManager(object):
         path = os.path.join(settings.PROJECT_ROOT, "script_tools", "start_nginx.sh.tpl")
         with open(path, encoding="utf-8") as fh:
             script = fh.read()
-        script_content = script % {"nginx_path": settings.NGINX_DOWNLOAD_PATH}
+        script_content = script % {"nginx_path": settings.DOWNLOAD_PATH}
         act = AgentServiceActivity(component_code=JobFastExecuteScriptComponent.code, name=_("启动 NGINX 服务"))
         act.component.inputs.job_client = Var(
             type=Var.PLAIN,
@@ -447,14 +447,16 @@ class AgentManager(object):
 
             setup_path = path_handler.join(
                 package.proc_control.install_path,
-                "external_plugins",
+                const.PluginChildDir.EXTERNAL.value,
                 group_id,
                 package.project,
             )
             pid_path_prefix, pid_filename = path_handler.split(package.proc_control.pid_path)
             pid_path = path_handler.join(pid_path_prefix, group_id, pid_filename)
         else:
-            setup_path = path_handler.join(package.proc_control.install_path, "plugins", "bin")
+            setup_path = path_handler.join(
+                package.proc_control.install_path, const.PluginChildDir.OFFICIAL.value, "bin"
+            )
             pid_path = package.proc_control.pid_path
 
         act = AgentServiceActivity(

@@ -458,11 +458,7 @@ class PluginV2ViewSet(ModelViewSet):
         ser = self.serializer_class(data=request.data)
         ser.is_valid(raise_exception=True)
         data = ser.validated_data
-        return JsonResponse(
-            PluginV2Handler.upload(
-                package_file=data["package_file"], module=data["module"], username=get_request_username()
-            )
-        )
+        return JsonResponse(PluginV2Handler.upload(package_file=data["package_file"], module=data["module"]))
 
     @action(detail=False, methods=["POST"], serializer_class=plugin_v2.PluginFetchConfigVarsSerializer)
     def fetch_config_variables(self, request):
