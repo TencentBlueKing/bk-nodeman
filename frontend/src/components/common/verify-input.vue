@@ -1,5 +1,11 @@
 <template>
-  <div @click="handleFocus" class="step-verify-input" :class="{ 'is-error': validator.show || proxyStatus }">
+  <div
+    :class="['step-verify-input',{
+      'is-error': validator.show || proxyStatus,
+      'normal-error': isNormalError,
+      'mask-error': !isNormalError
+    }]">
+    <div v-if="validator.show || proxyStatus" class="verify-input-mask"></div>
     <slot></slot>
     <!-- 冲突提示 -->
     <span
@@ -66,12 +72,16 @@ export default class StepVerifyInput extends Vue {
   @Prop({ type: Array, default: () => ([]) }) private readonly rules!: IRule[]; // 校验规则
   @Prop({ type: String, default: '' }) private readonly proxyStatus!: string; // proxy过期校验
   @Prop({ type: [Number, String], default: '' }) private readonly iconOffset!: string | number; // icon 偏移
+  @Prop({ type: String, default: 'icon' }) private readonly errorMode!: string;
 
   private validator: IValidator = this.defaultValidator;
   private inputInstance: any = null;
 
   private get iconOffsetStyle() {
     return this.iconOffset ? { right: `${this.iconOffset}px` } : {};
+  }
+  private get isNormalError() {
+    return this.errorMode === 'icon';
   }
 
   private created() {
@@ -88,6 +98,7 @@ export default class StepVerifyInput extends Vue {
   private beforeDestroy() {
     this.inputInstance = null;
   }
+  @Emit('focus')
   public handleFocus() {
     this.validator.content = '';
     this.validator.show = false;
@@ -164,6 +175,7 @@ export default class StepVerifyInput extends Vue {
     align-items: center;
     flex-wrap: wrap;
     width: 100%;
+    z-index: 1;
     .tooltips-icon {
       position: absolute;
       display: inline-block;
@@ -179,30 +191,6 @@ export default class StepVerifyInput extends Vue {
     }
   }
   .is-error {
-    /deep/ {
-      input[type=text],
-      .bk-select,
-      input[type=password],
-      .bk-textarea-wrapper {
-        border-color: #ff5656;
-      }
-      .input-type .input-text {
-        border-color: #ff5656;
-      }
-      .ghost-input {
-        border-color: #ff5656;
-      }
-    }
-    .tooltips-icon {
-      color: #ea3636;
-      cursor: pointer;
-    }
-    .bottom-text {
-      padding-top: 4px;
-      color: #ea3636;
-      font-size: 12px;
-      line-height: 1;
-    }
     .error-top-tag {
       position: absolute;
       right: -18px;
@@ -216,6 +204,54 @@ export default class StepVerifyInput extends Vue {
       background: #ea3636;
       color: #fff;
       transform: scale(.5);
+    }
+    .tooltips-icon {
+      color: #ea3636;
+      cursor: pointer;
+    }
+    &.normal-error {
+      /deep/ {
+        input[type=text],
+        .bk-select,
+        input[type=password],
+        .bk-textarea-wrapper {
+          border-color: #ff5656;
+        }
+        .input-type .input-text {
+          border-color: #ff5656;
+        }
+        .ghost-input {
+          border-color: #ff5656;
+        }
+      }
+      .bottom-text {
+        padding-top: 4px;
+        color: #ea3636;
+        font-size: 12px;
+        line-height: 1;
+      }
+    }
+    &.mask-error {
+      .verify-input-mask {
+        position: absolute;
+        top: -1px;
+        right: -1px;
+        bottom: -1px;
+        left: -1px;
+        display: block;
+        border: 1px solid transparent;
+        background: rgba(255, 112, 112, .1);
+        z-index: -1;
+      }
+      .error-top-tag {
+        position: absolute;
+        right: -20px;
+        top: -8px;
+        z-index: 1;
+      }
+      .tooltips-icon {
+        top: 13px;
+      }
     }
   }
 </style>

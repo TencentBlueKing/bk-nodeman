@@ -2,7 +2,10 @@
   <article :class="['tips', theme]" v-show="showTips">
     <!--提示icon-->
     <section class="tips-icon">
-      <i class="nodeman-icon nc-tips"></i>
+      <template v-if="$slots.tipsIcon">
+        <slot name="tipsIcon"></slot>
+      </template>
+      <i v-else class="nodeman-icon nc-tips"></i>
     </section>
     <!--提示内容-->
     <section class="tips-content">

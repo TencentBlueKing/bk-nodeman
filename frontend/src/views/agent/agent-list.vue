@@ -243,6 +243,17 @@
           </template>
         </bk-table-column>
         <bk-table-column
+          key="install_channel_id"
+          :label="$t('安装通道')"
+          :render-header="renderFilterHeader"
+          prop="install_channel_id"
+          show-overflow-tooltip
+          v-if="filter['install_channel_id'].mockChecked">
+          <template #default="{ row }">
+            {{ row.install_channel_name || $t('默认通道') }}
+          </template>
+        </bk-table-column>
+        <bk-table-column
           key="system"
           :label="$t('操作系统')"
           prop="os_type"
@@ -578,6 +589,13 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
       disabled: false,
       name: window.i18n.t('云区域'),
       id: 'bk_cloud_id',
+    },
+    install_channel_id: {
+      checked: false,
+      mockChecked: false,
+      disabled: false,
+      name: window.i18n.t('安装通道'),
+      id: 'install_channel_id',
     },
     bk_biz_name: {
       checked: true,
@@ -1443,7 +1461,9 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
     this.$router.push({
       name: 'agentEdit',
       params: {
-        tableData: data.map(item => Object.assign({}, item, item.identity_info)),
+        tableData: data.map(item => Object.assign({}, item, item.identity_info, {
+          install_channel_id: item.install_channel_id ? item.install_channel_id : 'default',
+        })),
         type: jobType,
         // true：跨页全选（tableData表示标记删除的数据） false：非跨页全选（tableData表示编辑的数据）
         isSelectedAllPages: batch && this.isSelectedAllPages,

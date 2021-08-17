@@ -56,6 +56,21 @@
             </i18n>
           </bk-form-item>
           <bk-form-item
+            property="install_channel_id"
+            error-display-type="normal"
+            :label="$t('安装通道')"
+            :desc="{ content: $t('安装通道Desc'), placements: ['right'], width: 220 }"
+            required>
+            <bk-select
+              class="content-basic"
+              v-model="formData.install_channel_id"
+              :clearable="false"
+              :disabled="channelDisabled"
+              :loading="loadingChannelList">
+              <bk-option v-for="item in filterChannelList" :key="item.id" :id="item.id" :name="item.name"></bk-option>
+            </bk-select>
+          </bk-form-item>
+          <bk-form-item
             error-display-type="normal"
             property="ap_id"
             :label="$t('接入点')"
@@ -75,15 +90,15 @@
               <bk-option v-for="item in curApList" :key="item.id" :id="item.id" :name="item.name"></bk-option>
             </bk-select>
           </bk-form-item>
-          <bk-form-item :label="$t('安装信息')" :class="{ 'mb30': isScroll }" required>
+          <bk-form-item class="form-item-vertical" :label="$t('安装信息')" :class="{ 'mb30': isScroll }" required>
             <filter-ip-tips
               class="mb15 filter-tips"
               v-if="filterList.length && showFilterTips"
               @click="handleShowDetail">
             </filter-ip-tips>
-            <setup-table
+            <InstallTable
               :class="{ 'agent-setup-table': isManual }"
-              ref="setupTable"
+              ref="installTable"
               :local-mark="'agent_steup'"
               :is-manual="isManual"
               :setup-info="setupInfo"
@@ -91,7 +106,7 @@
               auto-sort
               @add="handleAddItem"
               @delete="handleDeleteItem">
-            </setup-table>
+            </InstallTable>
           </bk-form-item>
         </bk-form>
         <div class="form-btn" :class="{ 'fixed': isScroll, 'shrink': isScroll && showRightPanel }">
@@ -116,10 +131,10 @@
 </template>
 <script lang="ts">
 import { Component, Ref, Mixins, Watch } from 'vue-property-decorator';
-import { AgentStore, MainStore } from '@/store/index';
+import { AgentStore, CloudStore, MainStore } from '@/store/index';
 import Tips from '@/components/common/tips.vue';
 import RightPanel from '@/components/common/right-panel-tips.vue';
-import SetupTable from '@/components/setup-table/setup-table.vue';
+import InstallTable from '@/components/setup-table/install-table.vue';
 import InstallMethod from '@/components/common/install-method.vue';
 import FilterIpTips from '@/components/common/filter-ip-tips.vue';
 import mixin from '@/components/common/filter-ip-mixin';
@@ -139,7 +154,7 @@ import { ISetupHead, ISetupRow } from '@/types';
   components: {
     Tips,
     RightPanel,
-    SetupTable,
+    InstallTable,
     InstallMethod,
     FilterIpTips,
     FilterDialog,
@@ -149,7 +164,7 @@ import { ISetupHead, ISetupRow } from '@/types';
 
 export default class AgentSetup extends Mixins(mixin, formLabelMixin) {
   @Ref('form') private readonly form!: any;
-  @Ref('setupTable') private readonly setupTable!: any;
+  @Ref('installTable') private readonly installTable!: any;
 
   // 是否为安装方式
   private isManual = false;
@@ -160,28 +175,16 @@ export default class AgentSetup extends Mixins(mixin, formLabelMixin) {
     ap_id: '',
   };
   // 表单校验
+  private required = {
+    required: true,
+    message: window.i18n.t('必填项'),
+    trigger: 'blur',
+  };
   private rules = {
-    bk_biz_id: [
-      {
-        required: true,
-        message: this.$t('必填项'),
-        trigger: 'blur',
-      },
-    ],
-    bk_cloud_id: [
-      {
-        required: true,
-        message: this.$t('必填项'),
-        trigger: 'blur',
-      },
-    ],
-    ap_id: [
-      {
-        required: true,
-        message: this.$t('必填项'),
-        trigger: 'blur',
-      },
-    ],
+    bk_biz_id: [this.required],
+    bk_cloud_id: [this.required],
+    install_channel_id: [this.required],
+    ap_id: [this.required],
   };
   // 右侧提示面板是否显示
   private showRightPanel = false;
@@ -199,6 +202,7 @@ export default class AgentSetup extends Mixins(mixin, formLabelMixin) {
   private loadingCloudList = false;
   // 接入点列表加载状态
   private loadingApList = false;
+  private loadingChannelList = false;
   // 安装信息数量
   private setupNum = 1;
   private apList: IApExpand[] = [];
@@ -266,6 +270,12 @@ export default class AgentSetup extends Mixins(mixin, formLabelMixin) {
       ap_id: this.formData.ap_id,
     }));
   }
+  private get channelDisabled() {
+    return isEmpty(this.formData.bk_cloud_id);
+  }
+  private get filterChannelList() {
+    return AgentStore.channelList.filter(item => item.id === 'default' || item.bk_cloud_id === this.formData.bk_cloud_id);
+  }
 
   @Watch('formData.ap_id')
   public handleApIdChange(val: number) {
@@ -299,6 +309,7 @@ export default class AgentSetup extends Mixins(mixin, formLabelMixin) {
   public handleInit() {
     this.initApList();
     this.initCloudList();
+    this.initChannelList();
   }
   public async initApList() {
     this.loadingApList = true;
@@ -309,6 +320,11 @@ export default class AgentSetup extends Mixins(mixin, formLabelMixin) {
     this.loadingCloudList = true;
     await AgentStore.getCloudList({ RUN_VER: window.PROJECT_CONFIG.RUN_VER });
     this.loadingCloudList = false;
+  }
+  public async initChannelList() {
+    this.loadingChannelList = true;
+    await CloudStore.getChannelList();
+    this.loadingChannelList = false;
   }
   /**
    * 监听界面滚动
@@ -321,11 +337,13 @@ export default class AgentSetup extends Mixins(mixin, formLabelMixin) {
    * 获取表单数据
    */
   public getFormData() {
-    return this.setupTable.getData().map((item: ISetupRow) => ({
+    const { bk_biz_id, bk_cloud_id, ap_id, install_channel_id: channelId } = this.formData;
+    return this.installTable.getData().map((item: ISetupRow) => ({
       ...item,
-      bk_biz_id: this.formData.bk_biz_id,
-      bk_cloud_id: this.formData.bk_cloud_id,
-      ap_id: this.formData.ap_id,
+      bk_biz_id,
+      bk_cloud_id,
+      ap_id,
+      install_channel_id: channelId === 'default' ? null : channelId,
       is_manual: this.isManual,
     }));
   }
@@ -333,7 +351,7 @@ export default class AgentSetup extends Mixins(mixin, formLabelMixin) {
    * 开始安装agent
    */
   public handleSetup() {
-    const setupTableValidate = this.setupTable.validate();
+    const setupTableValidate = this.installTable.validate();
     this.form.validate().then(async () => {
       if (setupTableValidate) {
         this.loadingSetupBtn = true;
@@ -428,6 +446,7 @@ export default class AgentSetup extends Mixins(mixin, formLabelMixin) {
     }
     // eslint-disable-next-line @typescript-eslint/prefer-optional-chain
     this.proxyCount = item && item.proxy_count ? item.proxy_count : 0;
+    this.formData.install_channel_id = this.filterChannelList.length === 1 ? 'default' : '';
   }
   public handleCloudToggle(toggle: boolean) {
     if (toggle) {
@@ -464,9 +483,9 @@ export default class AgentSetup extends Mixins(mixin, formLabelMixin) {
       }
       this.handleCloudChange(this.formData.bk_cloud_id);
     }
-    this.setupInfo.data = deepClone(this.setupTable.getData());
-    this.setupTable.handleInit();
-    this.setupTable.handleScroll();
+    this.setupInfo.data = deepClone(this.installTable.getData());
+    this.installTable.handleInit();
+    this.installTable.handleScroll();
   }
   /**
    * 跳转Proxy界面
@@ -506,7 +525,7 @@ export default class AgentSetup extends Mixins(mixin, formLabelMixin) {
     this.$router.push({ name: 'cloudManager' });
   }
   public handleShowSetting() {
-    this.setupTable.handleToggleSetting(true);
+    this.installTable.handleToggleSetting(true);
   }
 }
 </script>

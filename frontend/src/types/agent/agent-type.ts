@@ -47,6 +47,7 @@ export interface IAgentHost {
     job_id: number
     status: string
   }
+  install_channel_id: number | string | null
 }
 
 export interface IPagination {

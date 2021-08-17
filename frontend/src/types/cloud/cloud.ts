@@ -85,3 +85,11 @@ export interface IProxyDetail {
   status_display?: string
   version?: string
 }
+
+export interface IChannel {
+  id: number | string
+  name: string
+  bk_cloud_id: number
+  jump_servers: string[]
+  upstream_servers: { [key: string]: string[] }
+}
