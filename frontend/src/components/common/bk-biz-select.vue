@@ -135,7 +135,7 @@ export default class BkBizSelect extends Vue {
   }
   @Emit('toggle')
   private handleToggle(toggle: boolean) {
-    return { toggle, selected: this.selectedItems };
+    return toggle;
   }
   @Emit('change')
   private handleChange(newValue: IBizValue) { // , oldValue: IBizValue) {

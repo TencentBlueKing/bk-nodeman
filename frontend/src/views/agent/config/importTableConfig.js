@@ -10,6 +10,7 @@ export const tableConfig = [
     union: 'bk_cloud_id',
     unique: true,
     errTag: true,
+    placeholder: window.i18n.t('请输入'),
     rules: [
       {
         regx: '^((25[0-5]|2[0-4]\\d|[01]?\\d\\d?)\\.){3}(25[0-5]|2[0-4]\\d|[01]?\\d\\d?)$',
@@ -67,9 +68,27 @@ export const tableConfig = [
       } else {
         row.ap_id = -1;
       }
+      if (row.install_channel_id !== 'default') {
+        row.install_channel_id = '';
+      }
     },
     getProxyStatus(row) {
       return row.proxyStatus;
+    },
+  },
+  {
+    label: '安装通道',
+    prop: 'install_channel_id',
+    type: 'select',
+    required: true,
+    batch: true,
+    popoverMinWidth: 160,
+    noRequiredMark: false,
+    placeholder: window.i18n.t('请选择'),
+    getOptions(row) {
+      return row.bk_cloud_id || row.bk_cloud_id === 0
+        ? this.channelList.filter(item => item.bk_cloud_id === row.bk_cloud_id || item.id === 'default')
+        : this.channelList;
     },
   },
   {
@@ -215,15 +234,15 @@ export const tableConfig = [
     width: 115,
   },
   {
-    label: '传输限速',
+    label: '传输限速Unit',
     prop: 'bt_speed_limit',
     type: 'text',
     batch: true,
     required: false,
     noRequiredMark: false,
-    appendSlot: 'MB/s',
+    // appendSlot: 'MB/s',
     iconOffset: 40,
-    width: 115,
+    width: 120,
     placeholder: window.i18n.t('请输入'),
     rules: [
       {
@@ -250,6 +269,7 @@ export const tableManualConfig = [
     union: 'bk_cloud_id',
     unique: true,
     errTag: true,
+    placeholder: window.i18n.t('请输入'),
     rules: [
       {
         regx: '^((25[0-5]|2[0-4]\\d|[01]?\\d\\d?)\\.){3}(25[0-5]|2[0-4]\\d|[01]?\\d\\d?)$',
@@ -312,9 +332,27 @@ export const tableManualConfig = [
       } else {
         row.ap_id = defaultId;
       }
+      if (row.install_channel_id !== 'default') {
+        row.install_channel_id = '';
+      }
     },
     getProxyStatus(row) {
       return row.proxyStatus;
+    },
+  },
+  {
+    label: '安装通道',
+    prop: 'install_channel_id',
+    type: 'select',
+    required: true,
+    batch: true,
+    popoverMinWidth: 160,
+    noRequiredMark: false,
+    placeholder: window.i18n.t('请选择'),
+    getOptions(row) {
+      return row.bk_cloud_id || row.bk_cloud_id === 0
+        ? this.channelList.filter(item => item.bk_cloud_id === row.bk_cloud_id || item.id === 'default')
+        : this.channelList;
     },
   },
   {
@@ -401,7 +439,8 @@ export const tableManualConfig = [
     noRequiredMark: false,
     appendSlot: 'MB/s',
     iconOffset: 40,
-    width: 115,
+    width: 120,
+    placeholder: window.i18n.t('请输入'),
     rules: [
       {
         regx: '^[1-9]\\d*$',

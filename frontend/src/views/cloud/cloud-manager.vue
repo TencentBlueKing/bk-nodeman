@@ -67,23 +67,47 @@
           :pagination="pagination"
           :span-method="colspanHandle"
           :data="tableData"
+          :row-class-name="rowClassName"
           @page-change="handlePageChange"
-          @page-limit-change="handlePageLimitChange">
+          @page-limit-change="handlePageLimitChange"
+          @row-click="handleExpandChange">
           <bk-table-column
             key="selection"
             width="70"
             :render-header="renderSelectionHeader">
             <template #default="{ row }">
-              <bk-checkbox
-                :value="row.selected"
-                :disabled="!row.proxyCount"
-                @change="handleRowCheck(arguments, row)">
-              </bk-checkbox>
+              <div @click.stop>
+                <bk-checkbox
+                  v-if="!row.isChannel"
+                  :value="row.selected"
+                  :disabled="!row.proxyCount"
+                  @change="handleRowCheck(arguments, row)">
+                </bk-checkbox>
+              </div>
             </template>
           </bk-table-column>
-          <bk-table-column :label="$t('云区域名称')" prop="cloudNameCopy" sortable show-overflow-tooltip>
+          <bk-table-column class-name="fs10 col-pad-none" width="25" prop="expand" :resizable="false">
             <template #default="{ row }">
+              <div
+                v-if="!row.isChannel"
+                :class="['bk-table-expand-icon', { 'bk-table-expand-icon-expanded': row.expand }]">
+                <i class="bk-icon icon-play-shape"></i>
+              </div>
+            </template>
+          </bk-table-column>
+          <bk-table-column
+            class-name="col-pl-none"
+            sortable
+            :label="$t('云区域名称')"
+            prop="cloudNameCopy"
+            show-overflow-tooltip>
+            <template #default="{ row }">
+              <div v-if="row.isChannel" class="channel-name">
+                <i class="nodeman-icon nc-parenet-node-line channel-icon"></i>
+                <span>{{ row.name }}</span>
+              </div>
               <auth-component
+                v-else
                 :class="{ 'text-btn': row.view }"
                 :authorized="row.view"
                 :apply-info="[{
@@ -96,7 +120,7 @@
               </auth-component>
             </template>
           </bk-table-column>
-          <bk-table-column :label="$t('云区域ID')" prop="bkCloudId"></bk-table-column>
+          <bk-table-column :label="$t('云区域ID')" prop="bkCloudId" width="110"></bk-table-column>
           <bk-table-column align="right" width="55" :resizable="false">
             <template #default="{ row }">
               <img :src="`data:image/svg+xml;base64,${row.ispIcon}`" class="col-svg" v-if="row.ispIcon">
@@ -104,61 +128,63 @@
           </bk-table-column>
           <bk-table-column :label="$t('云服务商')" prop="ispName" sortable show-overflow-tooltip>
             <template #default="{ row }">
-              {{ row.ispName || '--' }}
+              {{ !row.isChannel ? row.ispName || '--' : '' }}
             </template>
           </bk-table-column>
           <bk-table-column
             :label="$t('Proxy数量')"
-            width="150"
+            width="110"
             prop="proxyCount"
             align="right"
             :resizable="false"
             sortable>
             <template #default="{ row }">
-              <auth-component
-                v-if="row.proxyCount"
-                class="auth-inline"
-                tag="div"
-                :authorized="row.view"
-                :apply-info="[{
-                  action: 'cloud_view',
-                  instance_id: row.bkCloudId,
-                  instance_name: row.bkCloudName
-                }]">
-                <template slot-scope="{ disabled }">
-                  <bk-popover width="240" placement="top" :disabled="row.proxyCount !== 1">
-                    <bk-button
-                      ext-cls="col-btn"
-                      theme="primary"
-                      text
-                      :disabled="disabled"
-                      @click="handleGotoDetail(row)">
-                      {{ row.proxyCount }}
-                      <span v-if="row.proxyCount === 1" class="count-warning-text">!</span>
-                    </bk-button>
-                    <div slot="content">
-                      {{ $t('proxy数量提示') }}
-                    </div>
-                  </bk-popover>
-                </template>
-              </auth-component>
-              <auth-component
-                v-else
-                class="auth-inline"
-                :authorized="!!proxyOperateList.length"
-                :apply-info="[{ action: 'proxy_operate' }]">
-                <template slot-scope="{ disabled }">
-                  <span class="install-proxy" :disabled="disabled" v-bk-tooltips="$t('点击前往安装')">
-                    <span @click="handleInstallProxy(row)">{{ $t('未安装') }}</span>
-                    <span class="count-error-text">!</span>
-                  </span>
-                </template>
-              </auth-component>
+              <section v-if="!row.isChannel">
+                <auth-component
+                  v-if="row.proxyCount"
+                  class="auth-inline"
+                  tag="div"
+                  :authorized="row.view"
+                  :apply-info="[{
+                    action: 'cloud_view',
+                    instance_id: row.bkCloudId,
+                    instance_name: row.bkCloudName
+                  }]">
+                  <template slot-scope="{ disabled }">
+                    <bk-popover width="240" placement="top" :disabled="row.proxyCount !== 1">
+                      <bk-button
+                        ext-cls="col-btn"
+                        theme="primary"
+                        text
+                        :disabled="disabled"
+                        @click="handleGotoDetail(row)">
+                        {{ row.proxyCount }}
+                        <span v-if="row.proxyCount === 1" class="count-warning-text">!</span>
+                      </bk-button>
+                      <div slot="content">
+                        {{ $t('proxy数量提示') }}
+                      </div>
+                    </bk-popover>
+                  </template>
+                </auth-component>
+                <auth-component
+                  v-else
+                  class="auth-inline"
+                  :authorized="!!proxyOperateList.length"
+                  :apply-info="[{ action: 'proxy_operate' }]">
+                  <template slot-scope="{ disabled }">
+                    <span class="install-proxy" :disabled="disabled" v-bk-tooltips="$t('点击前往安装')">
+                      <span @click="handleInstallProxy(row)">{{ $t('未安装') }}</span>
+                      <span class="count-error-text">!</span>
+                    </span>
+                  </template>
+                </auth-component>
+              </section>
             </template>
           </bk-table-column>
-          <bk-table-column :label="$t('节点数量')" prop="nodeCount" align="right" :resizable="false" sortable>
+          <bk-table-column :label="$t('Agent数量')" prop="nodeCount" align="right" :resizable="false" sortable>
             <template #default="{ row }">
-              <span v-if="row.nodeCount" class="text-btn" @click="handleGotoAgent(row)">{{ row.nodeCount }}</span>
+              <span v-if="row.nodeCount" class="text-btn" @click.stop="handleGotoAgent(row)">{{ row.nodeCount }}</span>
               <span v-else>0</span>
             </template>
           </bk-table-column>
@@ -170,71 +196,73 @@
             :width="fontSize === 'large' ? 175 : 155"
             :resizable="false">
             <template #default="{ row }">
-              <auth-component
-                tag="div"
-                :authorized="row.view && !!proxyOperateList.length"
-                :apply-info="row.view ? [{ action: 'proxy_operate' }] : [
-                  {
-                    action: 'proxy_operate'
-                  },
-                  {
-                    action: 'cloud_view',
+              <div v-if="!row.isChannel">
+                <auth-component
+                  tag="div"
+                  :authorized="row.view && !!proxyOperateList.length"
+                  :apply-info="row.view ? [{ action: 'proxy_operate' }] : [
+                    {
+                      action: 'proxy_operate'
+                    },
+                    {
+                      action: 'cloud_view',
+                      instance_id: row.bkCloudId,
+                      instance_name: row.bkCloudName
+                    }
+                  ]">
+                  <template slot-scope="{ disabled }">
+                    <bk-button
+                      text
+                      ext-cls="col-btn"
+                      theme="primary"
+                      :disabled="disabled"
+                      @click="handleInstallProxy(row)">
+                      {{ $t("Proxy安装") }}
+                    </bk-button>
+                  </template>
+                </auth-component>
+                <auth-component
+                  class="auth-inline"
+                  tag="div"
+                  :authorized="row.edit"
+                  :apply-info="[{
+                    action: 'cloud_edit',
                     instance_id: row.bkCloudId,
                     instance_name: row.bkCloudName
-                  }
-                ]">
-                <template slot-scope="{ disabled }">
-                  <bk-button
-                    text
-                    ext-cls="col-btn"
-                    theme="primary"
-                    :disabled="disabled"
-                    @click="handleInstallProxy(row)">
-                    {{ $t("Proxy安装") }}
-                  </bk-button>
-                </template>
-              </auth-component>
-              <auth-component
-                class="auth-inline"
-                tag="div"
-                :authorized="row.edit"
-                :apply-info="[{
-                  action: 'cloud_edit',
-                  instance_id: row.bkCloudId,
-                  instance_name: row.bkCloudName
-                }]">
-                <template slot-scope="{ disabled }">
-                  <bk-button
-                    ext-cls="col-btn ml10"
-                    theme="primary" text
-                    :disabled="disabled"
-                    @click="handleEdit(row)">
-                    {{ $t("编辑") }}
-                  </bk-button>
-                </template>
-              </auth-component>
-              <auth-component
-                class="auth-inline"
-                tag="div"
-                :authorized="row.delete"
-                :apply-info="[{
-                  action: 'cloud_delete',
-                  instance_id: row.bkCloudId,
-                  instance_name: row.bkCloudName
-                }]">
-                <template slot="default" slot-scope="{ disabled }">
-                  <bk-popover :content="deleteTips" :disabled="!(row.proxyCount || row.nodeCount)" class="ml10">
+                  }]">
+                  <template slot-scope="{ disabled }">
                     <bk-button
-                      ext-cls="col-btn"
-                      :disabled="disabled || !!(row.proxyCount || row.nodeCount)"
-                      theme="primary"
-                      text
-                      @click="handleDelete(row)">
-                      {{ $t("删除") }}
+                      ext-cls="col-btn ml10"
+                      theme="primary" text
+                      :disabled="disabled"
+                      @click="handleEdit(row)">
+                      {{ $t("编辑") }}
                     </bk-button>
-                  </bk-popover>
-                </template>
-              </auth-component>
+                  </template>
+                </auth-component>
+                <auth-component
+                  class="auth-inline"
+                  tag="div"
+                  :authorized="row.delete"
+                  :apply-info="[{
+                    action: 'cloud_delete',
+                    instance_id: row.bkCloudId,
+                    instance_name: row.bkCloudName
+                  }]">
+                  <template slot="default" slot-scope="{ disabled }">
+                    <bk-popover :content="deleteTips" :disabled="!(row.proxyCount || row.nodeCount)" class="ml10">
+                      <bk-button
+                        ext-cls="col-btn"
+                        :disabled="disabled || !!(row.proxyCount || row.nodeCount)"
+                        theme="primary"
+                        text
+                        @click="handleDelete(row)">
+                        {{ $t("删除") }}
+                      </bk-button>
+                    </bk-popover>
+                  </template>
+                </auth-component>
+              </div>
             </template>
           </bk-table-column>
           <!--自定义字段显示列-->
@@ -262,8 +290,11 @@ import { copyText, debounce } from '@/common/util';
 import { CreateElement } from 'vue';
 
 interface ICloudRow extends ICloud {
+  expand?: boolean
+  isChannel?: boolean
   selected: boolean
   cloudNameCopy?: string
+  children: ICloudRow[]
 }
 
 @Component({
@@ -284,12 +315,13 @@ export default class CloudManager extends Vue {
   ];
   // 表格属性
   private table: {
-    list: ICloudRow[]
+    list: any[]
     data: ICloudRow[]
   } = {
     list: [],
     data: [],
   };
+  private tableData: ICloudRow[] = [];
   private pagination = {
     current: 1,
     limit: 20,
@@ -322,11 +354,6 @@ export default class CloudManager extends Vue {
   }
   private get authority() {
     return CloudStore.authority;
-  }
-  private get tableData() {
-    const { current, limit } = this.pagination;
-    const start = (current - 1) * limit;
-    return this.table.data.slice(start, start + limit);
   }
   private get proxyOperateList() {
     return this.authority.proxy_operate || [];
@@ -374,42 +401,53 @@ export default class CloudManager extends Vue {
   /**
    * 初始化
    */
-  private async handleInit() {
+  public async handleInit() {
     this.loading = true;
-    const promiseAll = [CloudStore.getCloudList()];
-    const [data] = await Promise.all(promiseAll);
+    const promiseAll = [CloudStore.getCloudList(), CloudStore.getChannelList()];
+    const [data, channelList] = await Promise.all(promiseAll);
     if (this.permissionSwitch) {
-      data.sort((a, b) => Number(b.view) - Number(a.view));
+      data.sort((a: any, b: any) => Number(b.view) - Number(a.view));
     }
     // 利用组件自带的排序给云区域名称做一个不区分大小写的排序优化
-    this.table.list = data.map((item: ICloud) => ({
-      ...item,
-      selected: false,
-      cloudNameCopy: item.bkCloudName.toLocaleLowerCase(),
-    }));
+    this.table.list = data.map((item: ICloud) => {
+      const children: Dictionary[] = [
+        { id: 'default', name: this.$t('默认通道'), nodeCount: 0, isChannel: true, bk_cloud_id: item.bkCloudId },
+      ];
+      const filterChannels = channelList.filter((channel: Dictionary) => channel.bk_cloud_id === item.bkCloudId)
+        .map((channel: Dictionary) => ({ ...channel, isChannel: true }));
+      children.push(...filterChannels);
+
+      return {
+        ...item,
+        expand: false,
+        selected: false,
+        cloudNameCopy: item.bkCloudName.toLocaleLowerCase(),
+        children,
+      };
+    });
     this.handleSearch();
     this.loading = false;
   }
   /**
    * 前端搜索
    */
-  private handleSearch() {
+  public handleSearch() {
     this.table.list.forEach(item => item.selected = false);
     this.table.data = this.searchValue.length === 0
-      ? this.table.list
+      ? [...this.table.list]
       : this.table.list.filter((item: any) => this.searchParams.some((param) => {
         const value = this.searchValue.toLocaleLowerCase();
         return item[param] && ~(item[param]).toString().toLocaleLowerCase()
           .indexOf(value);
       }));
-    this.pagination.current = 1;
     this.pagination.count = this.table.data.length;
+    this.handlePageChange(1);
   }
   /**
    * 编辑
    * @param {Object} row
    */
-  private handleEdit(row: ICloud) {
+  public handleEdit(row: ICloud) {
     this.$router.push({
       name: 'addCloudManager',
       params: {
@@ -422,7 +460,7 @@ export default class CloudManager extends Vue {
    * 删除
    * @param {Object} row
    */
-  private handleDelete(row: ICloud) {
+  public handleDelete(row: ICloud) {
     const deleteCloud = async (id: number) => {
       this.loading = true;
       const result = await CloudStore.deleteCloud(id);
@@ -446,7 +484,7 @@ export default class CloudManager extends Vue {
   /**
    * 添加云区域
    */
-  private handleAddCloud() {
+  public handleAddCloud() {
     this.$router.push({
       name: 'addCloudManager',
       params: {
@@ -458,7 +496,7 @@ export default class CloudManager extends Vue {
    * 跳转详情
    * @param {Object} row
    */
-  private handleGotoDetail(row: ICloud) {
+  public handleGotoDetail(row: ICloud) {
     this.$router.push({
       name: 'cloudManagerDetail',
       params: {
@@ -469,7 +507,7 @@ export default class CloudManager extends Vue {
   /**
    * 新增Proxy
    */
-  private handleInstallProxy(row: ICloud) {
+  public handleInstallProxy(row: ICloud) {
     this.$router.push({
       name: 'setupCloudManager',
       params: {
@@ -482,23 +520,26 @@ export default class CloudManager extends Vue {
    * 自定义字段显示列
    * @param {createElement 函数} h 渲染函数
    */
-  private renderHeader(h: CreateElement) {
+  public renderHeader(h: CreateElement) {
     return h(ColumnSetting);
   }
   /**
    * 合并最后两列
    */
-  private colspanHandle({ column }: { column: IBkColumn }) {
+  public colspanHandle({ column }: { column: IBkColumn }) {
     if (column.property === 'colspaOpera') {
       return [1, 2];
     } if (column.property === 'colspaSetting') {
       return [0, 0];
     }
   }
+  public rowClassName({ row }: { row: ICloudRow }) {
+    return row.isChannel ? 'row-expand-bg' : 'pointer-row';
+  }
   /**
    * 跳转agent并筛选出云区域
    */
-  private handleGotoAgent(row: ICloud) {
+  public handleGotoAgent(row: ICloud) {
     MainStore.setSelectedBiz([]);
     this.$router.push({
       name: 'agentStatus',
@@ -511,14 +552,17 @@ export default class CloudManager extends Vue {
       },
     });
   }
-  private handlePageChange(newPage: number) {
+  public handlePageChange(newPage: number) {
     this.pagination.current = newPage || 1;
+    const { current, limit } = this.pagination;
+    const start = (current - 1) * limit;
+    this.tableData = this.table.data.filter((item, index) => index >= start && index < start + limit);
   }
-  private handlePageLimitChange(limit: number) {
+  public handlePageLimitChange(limit: number) {
     this.pagination.limit = limit || 20;
     this.handlePageChange(1);
   }
-  private renderSelectionHeader(h: CreateElement) {
+  public renderSelectionHeader(h: CreateElement) {
     return h(ColumnCheck, {
       ref: 'customSelectionHeader',
       props: {
@@ -532,7 +576,7 @@ export default class CloudManager extends Vue {
       },
     });
   }
-  private handleRowCheck(arg: boolean[], row: ICloudRow) {
+  public handleRowCheck(arg: boolean[], row: ICloudRow) {
     // 跨页全选采用标记删除法
     if (this.isSelectAllPages) {
       if (!arg[0]) {
@@ -546,7 +590,7 @@ export default class CloudManager extends Vue {
     }
     row.selected = !!arg[0];
   }
-  private async handleCheckAll(value: boolean, type: string) {
+  public async handleCheckAll(value: boolean, type: string) {
     if (type === 'current' && !this.checkableRows) return;
     if (type === 'all' && !this.checkableRowsAll) return;
     // 跨页全选
@@ -567,7 +611,7 @@ export default class CloudManager extends Vue {
       });
     }
   }
-  private async handleCopyProxyIp(type: 'selected' | 'all') {
+  public async handleCopyProxyIp(type: 'selected' | 'all') {
     if (type === 'selected' && !this.hasSelectedRows) return;
     if (type === 'all' && !this.checkableRowsAll) return;
 
@@ -584,6 +628,27 @@ export default class CloudManager extends Vue {
       this.$bkMessage({ theme: 'success', message: this.$t('IP复制成功', { num: data.length }) });
     }
     this.copyIpDropdown.hide();
+  }
+  // 表格折叠
+  public handleExpandChange(row: ICloudRow) {
+    if (row.isChannel) return;
+    const copyTable = [...this.tableData.filter(item => !item.isChannel)];
+    const rowIndex = copyTable.findIndex(item => item.bkCloudId === row.bkCloudId);
+    // 手风琴模式
+    const expandedRow = this.tableData.find(item => item.expand);
+    if (expandedRow) {
+      if (expandedRow.bkCloudId === row.bkCloudId) {
+        row.expand = false;
+      } else {
+        expandedRow.expand = false;
+        copyTable.splice(rowIndex + 1, 0, ...row.children);
+        row.expand = true;
+      }
+      this.tableData.splice(0, this.tableData.length, ...copyTable);
+    } else {
+      this.tableData.splice(rowIndex + 1, 0, ...row.children);
+      row.expand = true;
+    }
   }
 }
 </script>
@@ -650,6 +715,24 @@ export default class CloudManager extends Vue {
     &[disabled] {
       color: #dcdee5;
     }
+  }
+  >>> .col-pl-none .cell {
+    padding-left: 0;
+  }
+  >>> .col-pad-none .cell {
+    padding-left: 0;
+    padding-right: 0;
+  }
+  .channel-name {
+    display: flex;
+    align-items: center;
+    .channel-icon {
+      color: #c4c6cc;
+      margin-right: 4px;
+    }
+  }
+  >>> .row-expand-bg {
+    background: #fafbfd;
   }
 }
 </style>

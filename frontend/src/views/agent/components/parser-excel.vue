@@ -246,7 +246,7 @@ export default class ParserExcel extends Vue {
     const optional = [
       this.$tc('登录IP'),
       this.$tc('BT节点探测'),
-      this.$tc('传输限速'),
+      this.$tc('传输限速Unit'),
     ];
     try {
       jsonData.forEach((item) => {

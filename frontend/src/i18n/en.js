@@ -300,6 +300,7 @@ export default {
   加速设置: 'Speed settings',
   启动BT传输加速: 'Start BT transmission acceleration',
   传输限速: 'Speed ​​limit',
+  传输限速Unit: 'Speed ​​limit M/s',
   高级: 'Advanced',
   高级设置: 'Advanced settings',
   批量高级设置: 'Batch advanced settings',
@@ -319,6 +320,24 @@ export default {
   手动安装提示: 'No need to provide login information, execute the given command on the Proxy server to complete the installation',
   勾选云区域的ProxyIP: 'Check the Proxy IP',
   所有云区域的ProxyIP: 'All Proxy IP',
+
+  // 安装通道
+  安装通道: 'Install channel',
+  默认通道: 'Default channel',
+  复制ProxyIP: 'Copy Proxy IP',
+  通道名称: 'Channel name',
+  新建安装通道: 'New install channel',
+  编辑安装通道: 'Edit install channel',
+  默认通道: 'Default channel',
+  删除通道: 'Delete channel',
+  确认删除此通道: 'Delete this channel?',
+  通过此通道安装的Agent不受影响: 'Agents installed through this channel are not affected',
+  该通道的节点尚未进行手动部署请根据指引部署方可使用此通道进行agent安装: 'The nodes of this channel have not been manually deployed, please deploy according to the instructions before using this channel for agent installation',
+  安装通道Desc: 'In a special complex network, the target host cannot directly connect with the host in the cloud area, and the Agent can be installed by specifying the "install channel". Select "Default Channel" by default.',
+  部署指引: 'Deployment guidelines',
+  节点IP: 'Node IP',
+  上游节点: 'Upstream node',
+  上游节点信息: 'Upstream node information',
 
   // agent管理 - 自动发现
   待处理: 'Pending',
