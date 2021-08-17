@@ -235,6 +235,9 @@ export default class SetupTable extends Vue {
   private get apList() {
     return AgentStore.apList;
   }
+  private get channelList() {
+    return AgentStore.channelList;
+  }
   private get ghostStyle() {
     const allDataLength = this.table.data ? this.table.data.length : 0;
     return {
@@ -762,7 +765,12 @@ export default class SetupTable extends Vue {
         this.$set(this.table.data[index], config.prop, fileInfo.value);
         this.$set(this.table.data[index], 'fileInfo', fileInfo);
       } else if (!isEmpty(value)) {
-        this.$set(this.table.data[index], config.prop, value);
+        if (type === 'select') {
+          const option = this.getCellInputOptions(this.table.data[index], config);
+          this.$set(this.table.data[index], config.prop, option.find(item => item.id === value) ? value : '');
+        } else {
+          this.$set(this.table.data[index], config.prop, value);
+        }
       } else if (isEmpty(value) && type === 'switcher') {
         this.$set(this.table.data[index], config.prop, !!value);
       }
