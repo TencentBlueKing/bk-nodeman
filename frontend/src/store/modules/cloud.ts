@@ -4,8 +4,12 @@ import { retrieveCloudProxies, updateHost, removeHost } from '@/api/modules/host
 import { listAp } from '@/api/modules/ap';
 import { installJob, operateJob } from '@/api/modules/job';
 import { listCloudPermission } from '@/api/modules/permission';
+import {
+  createInstallChannel, deleteInstallChannel,
+  listInstallChannel, updateInstallChannel,
+} from '@/api/modules/installchannel';
 import { transformDataKey } from '@/common/util';
-import { ICloud, ICloudAuth, ICloudForm, ICloudSource, IProxyDetail } from '@/types/cloud/cloud';
+import { ICloud, ICloudAuth, ICloudForm, ICloudSource, IProxyDetail, IChannel } from '@/types/cloud/cloud';
 import { IAp } from '@/types/config/config';
 import axios from 'axios';
 
@@ -15,10 +19,11 @@ export const UPDATE_AP_URL = 'updateApUrl';
 // eslint-disable-next-line new-cap
 @Module({ name: 'cloud', namespaced: true })
 export default class CloudStore extends VuexModule {
-  private apData: IAp[] = []; // 接入点
-  private list: ICloud[] = []; // 云区域列表
-  private url = ''; // 接入点Url
-  private authorityMap: ICloudAuth = {};
+  public apData: IAp[] = []; // 接入点
+  public list: any[] = []; // 云区域列表
+  public url = ''; // 接入点Url
+  public authorityMap: ICloudAuth = {};
+  public channelServerKeys = ['btfileserver', 'dataserver', 'taskserver'];
 
   public get apList() {
     return this.apData;
@@ -226,5 +231,26 @@ export default class CloudStore extends VuexModule {
       };
     });
     return res;
+  }
+
+  // 安装通道相关
+  @Action
+  public async createChannel(params: any): Promise<IChannel> {
+    return await createInstallChannel(params).catch(() => ({}));
+  }
+  @Action
+  public async deleteChannel({ id, params }: { id: number, params: { 'bk_cloud_id': number }}) {
+    return await deleteInstallChannel(id, { data: params }, { hasBody: true }).catch(() => false);
+  }
+  @Action
+  public async getChannelList(params?: { 'bk_cloud_id': number }) {
+    const list = await listInstallChannel(params).catch(() => []);
+    const defaultChannel = { id: 'default', name: window.i18n.t('默认通道') };
+    this.store.commit('agent/setChannelList', [defaultChannel, ...list]);
+    return list;
+  }
+  @Action
+  public async updateChannel({ id, params }: { id: number, params: Dictionary }) {
+    return await updateInstallChannel(id, params).catch(() => false);
   }
 }

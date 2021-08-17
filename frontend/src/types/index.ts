@@ -60,6 +60,7 @@ export interface IResponse {
 }
 
 export interface IAxiosConfig {
+  hasBody?: boolean
   checkData?: boolean
   needRes?: boolean
 }
@@ -242,6 +243,7 @@ export interface ISetupRow {
   isRowValidate?: boolean
   errType?: string
   validator?: { [key: string]: ISetupValidator }
+  install_channel_id: string | number | null
 }
 // table 表头配置
 export interface ISetupHead {

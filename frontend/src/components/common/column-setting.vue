@@ -221,17 +221,4 @@ export default class ColumnSetting extends Vue {
 
   @mixin layout-flex row, center, center;
 }
-.col-setting {
-  margin-left: -1px;
-  font-size: 14px;
-  color: #979ba5;
-  outline: 0;
-  width: 42px;
-  height: 42px;
-
-  @mixin layout-flex row, center, center;
-  &:hover {
-    color: #63656f;
-  }
-}
 </style>

@@ -1,60 +1,62 @@
 <template>
-  <div class="setup">
-    <div :class="['setup-header-wrapper', { 'setup-setting': localMark }]">
-      <table>
-        <colgroup>
-          <col v-for="(item, index) in tableHead" :key="index" :width="item.width ? item.width : 'auto'">
-        </colgroup>
-        <!-- 表头 -->
-        <thead class="setup-header">
-          <tr>
-            <th v-for="(config, index) in tableHead" :key="index">
-              <ColumnSetting
-                v-if="localMark && index === tableHead.length - 1"
-                class="column-setting"
-                filter-head
-                :local-mark="localMark"
-                :font-setting="false"
-                :value="filter"
-                @update="handleColumnUpdate">
-              </ColumnSetting>
-              <table-header
-                :ref="`header_${config.prop}`"
-                v-else
-                v-bind="{
-                  tips: config.tips,
-                  label: config.label,
-                  required: !config.noRequiredMark && config.required,
-                  batch: config.batch,
-                  isBatchIconShow: !!table.data.length,
-                  type: config.type,
-                  subTitle: config.subTitle,
-                  options: getCellInputOptions({}, config),
-                  multiple: !!config.multiple,
-                  placeholder: config.placeholder,
-                  appendSlot: config.appendSlot
-                }"
-                @confirm="handleBatchConfirm(arguments, config)">
-              </table-header>
-            </th>
-          </tr>
-        </thead>
-      </table>
-    </div>
-    <div
-      v-if="table.data.length"
-      class="setup-body-wrapper"
-      ref="tableBody"
-      :style="{ 'height': height }"
-      @scroll="rootScroll">
-      <div class="virtual-scroll-wrapper" :style="ghostStyle" v-if="virtualScroll"></div>
-      <div class="body-content" :class="{ 'virtual-scroll-content': virtualScroll }" ref="content">
-        <table>
+  <div :class="`install-table-wrapper table-${virtualScroll && hasScroll ? 'has' : 'not'}-scroll`">
+    <!-- 表头 -->
+    <section :class="['install-table-header', { 'table-setting': localMark }]">
+      <div class="table-header">
+        <table class="form-table">
           <colgroup>
             <col v-for="(item, index) in tableHead" :key="index" :width="item.width ? item.width : 'auto'">
           </colgroup>
-          <!-- 表体 -->
-          <tbody class="setup-body">
+          <thead>
+            <tr>
+              <th v-for="(config, index) in tableHead" :key="index">
+                <ColumnSetting
+                  v-if="localMark && index === tableHead.length - 1"
+                  class="column-setting"
+                  filter-head
+                  :local-mark="localMark"
+                  :font-setting="false"
+                  :value="filter"
+                  @update="handleColumnUpdate">
+                </ColumnSetting>
+                <TableHeader
+                  :ref="`header_${config.prop}`"
+                  v-else
+                  v-bind="{
+                    tips: config.tips,
+                    label: config.label,
+                    required: !config.noRequiredMark && config.required,
+                    batch: config.batch,
+                    isBatchIconShow: !!table.data.length,
+                    type: config.type,
+                    subTitle: config.subTitle,
+                    options: getCellInputOptions({}, config),
+                    multiple: !!config.multiple,
+                    placeholder: config.placeholder,
+                    appendSlot: config.appendSlot
+                  }"
+                  @confirm="handleBatchConfirm(arguments, config)">
+                </TableHeader>
+              </th>
+            </tr>
+          </thead>
+        </table>
+      </div>
+    </section>
+    <!-- 表体 -->
+    <section
+      v-if="table.data.length"
+      class="install-table-body"
+      ref="tableBody"
+      :style="{ 'height': height }"
+      @scroll="rootScroll">
+      <div ref="scrollPlace" class="virtual-scroll-wrapper" :style="ghostStyle" v-if="virtualScroll"></div>
+      <div class="body-content" :class="{ 'virtual-scroll-content': virtualScroll }" ref="content">
+        <table class="form-table">
+          <colgroup>
+            <col v-for="(item, index) in tableHead" :key="index" :width="item.width ? item.width : 'auto'">
+          </colgroup>
+          <tbody class="table-body">
             <tr v-for="row in renderData" :key="row.id">
               <td v-for="(config, index) in tableHead" :key="index">
                 <div class="cell-operate" v-if="config.type === 'operate'">
@@ -65,8 +67,9 @@
                     @click="handleDeleteItem(row.id)"></i>
                 </div>
                 <!-- 验证输入 -->
-                <verify-input
+                <VerifyInput
                   position="right"
+                  error-mode="mask"
                   :id="row.id"
                   :prop="config.prop"
                   :required="config.required"
@@ -110,11 +113,12 @@
                     </span>
                   </div>
                   <!-- 编辑态 -->
-                  <input-type
+                  <InstallInputType
                     v-else
                     v-model.trim="row[config.prop]"
-                    :class="{ ml20: getCellInputType(row, config) === 'switcher' }"
+                    :class="{ 'fixed-form-el': getCellInputType(row, config) === 'switcher' }"
                     v-bind="{
+                      clearable: false,
                       prop: config.prop,
                       type: getCellInputType(row, config),
                       disabled: getCellDisabled(row, config),
@@ -133,16 +137,16 @@
                     @blur="handleCellBlur"
                     @change="handleCellValueChange(row, config)"
                     @upload-change="handleCellUploadChange($event, row)">
-                  </input-type>
-                </verify-input>
+                  </InstallInputType>
+                </VerifyInput>
               </td>
             </tr>
           </tbody>
         </table>
       </div>
-    </div>
+    </section>
     <!--空数据内容区-->
-    <section class="setup-empty" v-if="!table.data.length">
+    <section class="table-empty" v-if="!table.data.length">
       <slot name="empty">
         <i class="table-empty-icon bk-icon icon-empty"></i>
         <span class="table-empty-text">{{ $t('暂无数据') }}</span>
@@ -151,12 +155,12 @@
   </div>
 </template>
 <script lang="ts">
-import { Component, Vue, Prop, Ref, Emit } from 'vue-property-decorator';
+import { Component, Vue, Prop, Ref, Emit, Watch } from 'vue-property-decorator';
 import { MainStore, AgentStore } from '@/store/index';
 import { bus } from '@/common/bus';
 import ColumnSetting from '@/components/common/column-setting.vue';
 import VerifyInput from '@/components/common/verify-input.vue';
-import InputType from './input-type.vue';
+import InstallInputType from './install-input-type.vue';
 import { throttle, isEmpty } from '@/common/util';
 import TableHeader from './table-header.vue';
 import { STORAGE_KEY_COL } from '@/config/storage-key';
@@ -168,11 +172,11 @@ interface IFilterRow {
 }
 
 @Component({
-  name: 'setup-table',
+  name: 'InstallTable',
   components: {
     ColumnSetting,
     VerifyInput,
-    InputType,
+    InstallInputType,
     TableHeader,
   },
 })
@@ -206,6 +210,7 @@ export default class SetupTable extends Vue {
   @Prop({ type: Function }) private readonly beforeDelete!: Function;
 
   @Ref('tableBody') private readonly tableBody!: any;
+  @Ref('scrollPlace') private readonly scrollPlace!: any;
   @Ref('content') private readonly content!: any;
   @Ref('verify') private readonly verify!: any[];
 
@@ -225,6 +230,8 @@ export default class SetupTable extends Vue {
   private handleScroll!: Function;
   // 处于编辑态的数据
   private editData: {  id: number, prop: string }[] = [];
+  private hasScroll= false;
+  private listenResize!: Function;
 
   private get fetchPwd() {
     return AgentStore.fetchPwd;
@@ -254,6 +261,15 @@ export default class SetupTable extends Vue {
   }
   private get disableDelete() {
     return this.table.data.length <= this.minItems;
+  }
+
+  @Watch('table.data.length')
+  public handleTableLengthChange(len: number) {
+    if (len) {
+      this.$nextTick(this.handleResize);
+    } else {
+      this.hasScroll = false;
+    }
   }
 
   private created() {
@@ -920,177 +936,13 @@ export default class SetupTable extends Vue {
     this.popoverEl && this.popoverEl.tipsHide();
     this.popoverEl = null;
   }
-}
+  public handleResize() {
+    const { tableBody, scrollPlace } = this;
+    if (tableBody && scrollPlace) {
+      this.hasScroll = tableBody.clientHeight < scrollPlace.clientHeight;
+    } else {
+      this.hasScroll = false;
+    }
+  }
+};
 </script>
-<style lang="postcss" scoped>
-  @import "@/css/mixins/nodeman.css";
-
-  @define-mixin operate-btn {
-    font-size: 18px;
-    color: #c4c6cc;
-    cursor: pointer;
-    &:hover {
-      color: #979ba5;
-    }
-  }
-  @define-mixin scroll-content {
-    position: absolute;
-    left: 0;
-    top: 0;
-    right: 0;
-  }
-
-  .setup {
-    table {
-      width: 100%;
-      table-layout: fixed;
-    }
-    &-header-wrapper {
-      padding: 0 15px;
-      border: 1px solid #dcdee5;
-      background: #fafbfd;
-      .setup-header {
-        tr {
-          height: 42px;
-          color: #313238;
-          th {
-            padding: 0 5px;
-          }
-        }
-      }
-      &.setup-setting {
-        tr th:last-child {
-          padding: 0;
-        }
-      }
-      .column-setting {
-        position: relative;
-        >>> .bk-tooltip-ref {
-          position: absolute;
-          right: -15px;
-          border-left: 1px solid #dcdee5;
-          &:hover {
-            background-color: #f0f1f5;
-          }
-        }
-      }
-    }
-    &-body-wrapper {
-      border: 1px solid #dcdee5;
-      border-top: 0;
-      background: #fff;
-      overflow: auto;
-      position: relative;
-      .ghost-wrapper {
-        width: 100%;
-        &.is-disabled {
-          background-color: #fafbfd;
-          cursor: not-allowed;
-          border-color: #dcdee5;
-          .ghost-input {
-            background-color: #fafbfd;
-          }
-        }
-        .ghost-input {
-          display: flex;
-          align-items: center;
-          width: 100%;
-          .name {
-            height: 32px;
-            line-height: 32px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-          }
-          &::before {
-            content: attr(data-placeholder);
-            color: #c4c6cc;
-            position: relative;
-            top: -1px
-          }
-          &.select {
-            i {
-              position: absolute;
-              right: 3px;
-              top: 5px;
-              color: #979ba5;
-              font-size: 22px;
-              transition: transform .3s cubic-bezier(.4,0,.2,1);
-              pointer-events: none;
-            }
-          }
-          &.speed {
-            display: flex;
-            justify-content: space-between;
-            border: 1px solid #c4c6cc;
-            padding-left: 10px;
-            .name {
-              flex: 1;
-              border: 0;
-              height: 30px;
-              line-height: 30px;
-            }
-            .speed-unit {
-              width: 38px;
-              line-height: 30px;
-              height: 30px;
-              padding: 0 4px;
-              border-left: 1px solid #c4c6cc;
-            }
-          }
-          &.password {
-            .name {
-              height: 26px;
-            }
-          }
-        }
-      }
-      .body-content {
-        padding: 8px 15px;
-      }
-      .virtual-scroll {
-        &-content {
-          @mixin scroll-content;
-        }
-        &-wrapper {
-          @mixin scroll-content;
-        }
-      }
-      .setup-body {
-        tr {
-          height: 44px;
-          td {
-            padding: 0 5px;
-            .cell-operate {
-              display: flex;
-              &-plus {
-                @mixin operate-btn;
-              }
-              &-delete {
-                margin-left: 8px;
-
-                @mixin operate-btn;
-                &[disabled] {
-                  color: #dcdee5;
-                  cursor: not-allowed;
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-    &-empty {
-      border: 1px solid #dcdee5;
-      border-top: 0;
-      min-height: 200px;
-      background: #fff;
-
-      @mixin layout-flex column, center, center;
-      &-icon {
-        font-size: 65px;
-        color: #c3cdd7;
-      }
-    }
-  }
-</style>

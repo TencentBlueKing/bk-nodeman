@@ -100,7 +100,7 @@
 <script lang="ts">
 import { Component, Prop, Ref, Mixins } from 'vue-property-decorator';
 import { MainStore, CloudStore } from '@/store/index';
-import SetupTable from '@/components/setup-table/setup-table.vue';
+import SetupTable from '@/components/setup-table/install-table.vue';
 import InstallMethod from '@/components/common/install-method.vue';
 import RightPanel from '@/components/common/right-panel-tips.vue';
 import Tips from '@/components/common/tips.vue';

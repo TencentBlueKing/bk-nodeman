@@ -203,6 +203,9 @@ body {
                 background: #DCDEE5;
             }
         }
+        .pointer-row {
+            cursor: pointer;
+        }
     }
     .num-link {
         padding-right: 20px;
@@ -223,6 +226,29 @@ body {
 .bk-table-expand-icon {
     .bk-icon {
         margin-top: -7px;
+    }
+}
+.fs10 .bk-table-expand-icon {
+    transform: scale(0.5);
+    .bk-icon {
+        margin-top: -10px;
+        left: 0;
+        font-size: 20px;
+    }
+}
+
+.col-setting {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: -1px;
+    font-size: 14px;
+    color: #979ba5;
+    outline: 0;
+    min-width: 42px;
+    height: 42px;
+    &:hover {
+        color: #63656f;
     }
 }
 
@@ -274,6 +300,18 @@ body {
         overflow:hidden;
         text-overflow:ellipsis;
         white-space:nowrap;
+    }
+    .form-item-vertical {
+        &.label-left .bk-label  {
+            text-align: left;
+        }
+        .bk-label {
+            width: auto;
+        }
+        .bk-form-content {
+            clear: both;
+            margin-left: 0!important;
+        }
     }
     .form-item-not-lable {
         .bk-label {
