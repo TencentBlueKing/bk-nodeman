@@ -137,4 +137,5 @@ export default class App extends Vue {
 <style>
 @import "../src/css/reset.css";
 @import "../src/css/app.css";
+@import "../src/css/install-table.css";
 </style>

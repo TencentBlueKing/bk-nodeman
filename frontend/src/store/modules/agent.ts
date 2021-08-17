@@ -10,10 +10,11 @@ import { sort } from '@/common/util';
 import { ISearchChild, ISearchItem } from '@/types';
 import { IAgentSearch, IAgentSearchIp, IAgentJob, IAgentHost } from '@/types/agent/agent-type';
 import { IAp } from '@/types/config/config';
-import { ICloudSource } from '@/types/cloud/cloud';
+import { IChannel, ICloudSource } from '@/types/cloud/cloud';
 
 export const SET_AP_LIST = 'setApList';
 export const SET_CLOUD_LIST = 'setCloudList';
+export const SET_CHANNEL_LIST = 'setChannelList';
 export const UPDATE_AP_URL = 'updateApUrl';
 
 // eslint-disable-next-line new-cap
@@ -21,6 +22,7 @@ export const UPDATE_AP_URL = 'updateApUrl';
 export default class AgentStore extends VuexModule {
   public apList: IAp[] = [];
   public cloudList: ICloudSource[] = [];
+  public channelList: IChannel[] = [];
   public apUrl = '';
 
   @Mutation
@@ -30,6 +32,10 @@ export default class AgentStore extends VuexModule {
   @Mutation
   public [SET_AP_LIST](data: IAp[] = []) {
     this.apList = data;
+  }
+  @Mutation
+  public [SET_CHANNEL_LIST](data: IChannel = []) {
+    this.channelList = data;
   }
   @Mutation
   public [UPDATE_AP_URL](apUrl = '') {

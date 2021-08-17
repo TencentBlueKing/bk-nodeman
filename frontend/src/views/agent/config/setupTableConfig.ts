@@ -203,16 +203,16 @@ export const setupTableConfig: ISetupHead[] = [
     width: 115,
   },
   {
-    label: '传输限速',
+    label: '传输限速Unit',
     prop: 'bt_speed_limit',
     type: 'text',
     batch: true,
     required: false,
     show: true,
     noRequiredMark: false,
-    appendSlot: 'MB/s',
+    // appendSlot: 'MB/s',
     iconOffset: 40,
-    width: 160,
+    width: 180,
     rules: [
       {
         regx: '^[1-9]\\d*$',
@@ -224,7 +224,7 @@ export const setupTableConfig: ISetupHead[] = [
     label: '',
     prop: '',
     type: 'operate',
-    width: 60,
+    width: 70,
   },
 ];
 
@@ -365,16 +365,16 @@ export const setupTableManualConfig = [
     width: 115,
   },
   {
-    label: '传输限速',
+    label: '传输限速Unit',
     prop: 'bt_speed_limit',
     type: 'text',
     batch: true,
     required: false,
     show: true,
     noRequiredMark: false,
-    appendSlot: 'MB/s',
+    // appendSlot: 'MB/s',
     iconOffset: 40,
-    width: 160,
+    width: 180,
     rules: [
       {
         regx: '^[1-9]\\d*$',
@@ -386,6 +386,6 @@ export const setupTableManualConfig = [
     label: '',
     prop: '',
     type: 'operate',
-    width: 60,
+    width: 70,
   },
 ];

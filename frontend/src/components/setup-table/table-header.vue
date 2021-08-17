@@ -123,9 +123,13 @@ export default class TableHeader extends Vue {
   }
 
   public handleBatchClick() {
-    this.batchRef && this.batchRef.instance.show();
-    this.isActive = true;
-    bus.$emit('batch-btn-click', this);
+    if (this.isActive) {
+      this.handleBatchCancel();
+    } else {
+      this.batchRef && this.batchRef.instance.show();
+      this.isActive = true;
+      bus.$emit('batch-btn-click', this);
+    }
   }
   @Emit('confirm')
   public handleBatchConfirm() {
@@ -189,7 +193,7 @@ export default class TableHeader extends Vue {
     .header-label {
       position: relative;
       display: flex;
-      line-height: 20px;
+      line-height: 16px;
       &-required {
         margin-right: 6px;
         &::after {
