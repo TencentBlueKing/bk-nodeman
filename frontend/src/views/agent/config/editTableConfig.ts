@@ -47,6 +47,21 @@ export const editConfig: ISetupHead[] = [
     readonly: true,
   },
   {
+    label: '安装通道',
+    prop: 'install_channel_id',
+    type: 'select',
+    required: true,
+    batch: true,
+    popoverMinWidth: 160,
+    noRequiredMark: false,
+    placeholder: window.i18n.t('请选择'),
+    getOptions(row) {
+      return row.bk_cloud_id || row.bk_cloud_id === 0
+        ? this.channelList.filter(item => item.bk_cloud_id === row.bk_cloud_id || item.id === 'default')
+        : this.channelList;
+    },
+  },
+  {
     label: '接入点',
     prop: 'ap_id',
     type: 'select',
@@ -191,13 +206,13 @@ export const editConfig: ISetupHead[] = [
     width: 115,
   },
   {
-    label: '传输限速',
+    label: '传输限速Unit',
     prop: 'bt_speed_limit',
     type: 'text',
     batch: true,
     required: false,
     noRequiredMark: false,
-    appendSlot: 'MB/s',
+    // appendSlot: 'MB/s',
     iconOffset: 40,
     placeholder: window.i18n.t('请输入'),
     rules: [
@@ -211,7 +226,7 @@ export const editConfig: ISetupHead[] = [
     label: '',
     prop: '',
     type: 'operate',
-    width: 35,
+    width: 42,
   },
 ];
 
@@ -257,6 +272,21 @@ export const editManualConfig = [
       return row.proxyStatus;
     },
     readonly: true,
+  },
+  {
+    label: '安装通道',
+    prop: 'install_channel_id',
+    type: 'select',
+    required: true,
+    batch: true,
+    popoverMinWidth: 160,
+    noRequiredMark: false,
+    placeholder: window.i18n.t('请选择'),
+    getOptions(row) {
+      return row.bk_cloud_id || row.bk_cloud_id === 0
+        ? this.channelList.filter(item => item.bk_cloud_id === row.bk_cloud_id || item.id === 'default')
+        : this.channelList;
+    },
   },
   {
     label: '接入点',
@@ -318,13 +348,13 @@ export const editManualConfig = [
     width: 115,
   },
   {
-    label: '传输限速',
+    label: '传输限速Unit',
     prop: 'bt_speed_limit',
     type: 'text',
     batch: true,
     required: false,
     noRequiredMark: false,
-    appendSlot: 'MB/s',
+    // appendSlot: 'MB/s',
     iconOffset: 40,
     placeholder: window.i18n.t('请输入'),
     rules: [
@@ -338,6 +368,6 @@ export const editManualConfig = [
     label: '',
     prop: '',
     type: 'operate',
-    width: 35,
+    width: 42,
   },
 ];

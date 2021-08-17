@@ -25,23 +25,28 @@
         v-if="showTab"
         class="mb20 fs0 label-tl-form auto-width-form"
         :label-width="0">
-        <install-method :is-manual="isManual" @change="installMethodHandle"></install-method>
+        <install-method required :is-manual="isManual" @change="installMethodHandle"></install-method>
       </bk-form>
-      <setup-table ref="setupTable"
-                   :local-mark="`agent_${type}`"
-                   :setup-info="setupInfo"
-                   :is-manual="isManual"
-                   :min-items="minItems"
-                   :height="scrollHeight"
-                   :need-plus="false"
-                   :virtual-scroll="virtualScroll"
-                   :extra-params="extraParams"
-                   auto-sort
-                   @delete="handleItemDelete">
-        <template #empty>
-          <parser-excel v-model="importDialog" @uploading="handleUploading"></parser-excel>
-        </template>
-      </setup-table>
+      <bk-form form-type="vertical">
+        <bk-form-item :class="{ 'form-item-not-lable': !showTab }" :label="$t('安装信息')" required>
+          <InstallTable
+            ref="setupTable"
+            :local-mark="`agent_${type}`"
+            :setup-info="setupInfo"
+            :is-manual="isManual"
+            :min-items="minItems"
+            :height="scrollHeight"
+            :need-plus="false"
+            :virtual-scroll="virtualScroll"
+            :extra-params="extraParams"
+            auto-sort
+            @delete="handleItemDelete">
+            <template #empty>
+              <parser-excel v-model="importDialog" @uploading="handleUploading"></parser-excel>
+            </template>
+          </InstallTable>
+        </bk-form-item>
+      </bk-form>
       <div class="mt30 left-footer">
         <bk-button
           v-if="!showSetupBtn"
@@ -79,9 +84,9 @@
 </template>
 <script lang="ts">
 import { Component, Ref, Mixins, Prop } from 'vue-property-decorator';
-import { MainStore, AgentStore } from '@/store/index';
+import { MainStore, AgentStore, CloudStore } from '@/store/index';
 import RightPanel from '@/components/common/right-panel-tips.vue';
-import SetupTable from '@/components/setup-table/setup-table.vue';
+import InstallTable from '@/components/setup-table/install-table.vue';
 import InstallMethod from '@/components/common/install-method.vue';
 import Tips from '@/components/common/tips.vue';
 import FilterIpTips from '@/components/common/filter-ip-tips.vue';
@@ -101,7 +106,7 @@ import { ISetupHead, ISetupRow } from '@/types';
   name: 'agent-import',
   components: {
     RightPanel,
-    SetupTable,
+    InstallTable,
     InstallMethod,
     ParserExcel,
     FilterDialog,
@@ -178,6 +183,9 @@ export default class AgentImport extends Mixins(mixin) {
     // 135： footer、表头和tips的高度
     return this.virtualScroll && this.height ? `${this.height - this.surplusHeight}px` : 'auto';
   }
+  private get isInstallType() {
+    return ['INSTALL_AGENT', 'REINSTALL_AGENT'].includes(this.type);
+  }
   // 剩余高度
   private get surplusHeight() {
     let height = 135; // 以下条件可能并列出现
@@ -188,8 +196,8 @@ export default class AgentImport extends Mixins(mixin) {
       height += 52;
     }
     // 安装类型的行高
-    if (this.showSetupBtn && !this.isEdit) {
-      height += 52;
+    if (this.showSetupBtn && this.isInstallType) {
+      height += 94;
     }
     return height;
   }
@@ -285,6 +293,7 @@ export default class AgentImport extends Mixins(mixin) {
       AgentStore.setApUrl({ id: -1, urlType: '' });
       return res;
     }));
+    promiseList.push(CloudStore.getChannelList());
     // if (!this.bkBizList.length) {
     //   promiseList.push(this.getBkBizList({ action: 'agent_view' }))
     // }
@@ -366,6 +375,9 @@ export default class AgentImport extends Mixins(mixin) {
           item.bt_speed_limit = Number(item.bt_speed_limit);
         }
         item.peer_exchange_switch_for_agent = Number(item.peer_exchange_switch_for_agent);
+        if (item.install_channel_id === 'default') {
+          item.install_channel_id = null;
+        }
       });
       // 安装agent或pagent时，需要设置初始的安装类型
       if (['INSTALL_AGENT', 'REINSTALL_AGENT'].includes(this.type)) {
