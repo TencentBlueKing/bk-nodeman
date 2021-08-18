@@ -79,7 +79,7 @@ def _worker_check(func):
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         def on_connection_error(exc, interval):
-            logger.warning("Connection Error: {!r}. Retry in {}s.".format(exc, interval), file=sys.stderr)
+            logger.warning("Connection Error: {!r}. Retry in {}s.".format(exc, interval))
 
         if kwargs.get("check_workers", True):
             try:
@@ -88,7 +88,7 @@ def _worker_check(func):
                         conn.ensure_connection(on_connection_error, current_app.conf.BROKER_CONNECTION_MAX_RETRIES)
                         print(dir(conn))
                     except conn.connection_errors + conn.channel_errors as exc:
-                        logger.warning("Connection lost: {!r}".format(exc), file=sys.stderr)
+                        logger.warning("Connection lost: {!r}".format(exc))
                     if not workers(conn):
                         return ActionResult(
                             result=False, message="can not find celery workers, please check worker status"
