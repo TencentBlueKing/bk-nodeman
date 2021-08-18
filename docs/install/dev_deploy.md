@@ -105,7 +105,7 @@ python manage.py createcachetable django_cache
 
 
 ## 配置本地 hosts  
-windows: 在 C:\Windows\System32\drivers\etc\host 文件中添加“127.0.0.1 dev.{BK_PAAS_HOST}”。  
+windows: 在 C:\Windows\System32\drivers\etc\hosts 文件中添加“127.0.0.1 dev.{BK_PAAS_HOST}”。  
 mac: 执行 “sudo vim /etc/hosts”，添加“127.0.0.1 dev.{BK_PAAS_HOST}”。
 
 
