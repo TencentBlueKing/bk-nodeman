@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 import base64
 import random
 import time
-from collections import Counter
+from collections import Counter, defaultdict
 from itertools import chain
 from unittest.mock import patch
 
@@ -28,6 +28,7 @@ from apps.node_man.models import (
     Cloud,
     Host,
     IdentityData,
+    InstallChannel,
     Job,
     ProcessStatus,
 )
@@ -139,12 +140,15 @@ def create_host_from_a_to_b(
                     "bk_host_id": bk_host_id or i,
                     "bk_cloud_id": bk_cloud_id if bk_cloud_id is not None else [0, 1][random.randint(0, 1)],
                     "bk_biz_id": SEARCH_BUSINESS[random.randint(0, len(SEARCH_BUSINESS) - 1)]["bk_biz_id"],
-                    "inner_ip": ip
-                    or f"{random.randint(1, 250)}.{random.randint(1, 250)}." f"{random.randint(1, 250)}.1",
-                    "outer_ip": outer_ip
-                    or f"{random.randint(1, 250)}.{random.randint(1, 250)}." f"{random.randint(1, 250)}.1",
-                    "login_ip": login_ip
-                    or f"{random.randint(1, 250)}.{random.randint(1, 250)}." f"{random.randint(1, 250)}.1",
+                    "inner_ip": (
+                        ip or f"{random.randint(1, 250)}.{random.randint(1, 250)}." f"{random.randint(1, 250)}.1"
+                    ),
+                    "outer_ip": (
+                        outer_ip or f"{random.randint(1, 250)}.{random.randint(1, 250)}." f"{random.randint(1, 250)}.1"
+                    ),
+                    "login_ip": (
+                        login_ip or f"{random.randint(1, 250)}.{random.randint(1, 250)}." f"{random.randint(1, 250)}.1"
+                    ),
                     "node_type": node_type or ["AGENT", "PAGENT", "PROXY"][random.randint(0, 2)],
                     "os_type": const.OS_TUPLE[random.randint(0, 1)],
                     "ap_id": 1,
@@ -549,6 +553,24 @@ def create_cloud_area(number, creator="admin", begin=1):
     return bk_cloud_ids
 
 
+def create_install_channel(number, begin=1):
+    install_channels = []
+    for install_channel_id in range(begin, number + begin):
+        install_channel = InstallChannel(
+            id=install_channel_id,
+            name="".join(random.choice(DIGITS) for _ in range(8)),
+            bk_cloud_id=random.randint(0, number),
+            jump_servers=["127.0.0.1"],
+            upstream_servers={"taskserver": ["127.0.0.1"], "btfileserver": ["127.0.0.1"], "dataserver": ["127.0.0.1"]},
+        )
+        install_channels.append(install_channel)
+    install_channels = InstallChannel.objects.bulk_create(install_channels)
+    bk_cloud_channel_map = defaultdict(list)
+    for install_channel in install_channels:
+        bk_cloud_channel_map[install_channel.bk_cloud_id].append(install_channel)
+    return bk_cloud_channel_map
+
+
 def mock_read_remote_file_content(url):
     return [
         {
@@ -633,7 +655,6 @@ def create_ap(number):
 
 
 def create_job(number, id=None, end_time=None, bk_biz_scope=None):
-
     job_types = list(chain(*list(const.JOB_TYPE_MAP.values())))
 
     jobs = []

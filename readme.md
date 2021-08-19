@@ -2,9 +2,9 @@
 ---
 [![license](https://img.shields.io/badge/license-MIT-brightgreen.svg)](https://github.com/TencentBlueKing/bk-nodeman/blob/master/LICENSE)
 [![Release](https://img.shields.io/badge/release-1.0.0-brightgreen.svg)](https://github.com/TencentBlueKing/bk-nodeman/releases)
-[![travis-ci](https://travis-ci.com/TencentBlueKing/bk-nodeman.svg?branch=master)](https://travis-ci.com/TencentBlueKing/bk-nodeman)
-[![Coverage Status](https://codecov.io/gh/TencentBlueKing/bk-nodeman/branch/master/graph/badge.svg)](https://codecov.io/gh/TencentBlueKing/bk-nodeman)
+[![Coverage Status](https://codecov.io/gh/TencentBlueKing/bk-nodeman/branch/V2.1.X/graph/badge.svg)](https://codecov.io/gh/TencentBlueKing/bk-nodeman)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/TencentBlueKing/bk-nodeman/pulls)
+[![unittest](https://github.com/TencentBlueKing/bk-nodeman/actions/workflows/codecov.yml/badge.svg?event=schedule)](https://github.com/TencentBlueKing/bk-nodeman/actions/workflows/codecov.yml)
 
 [English](readme_en.md) | 简体中文
 

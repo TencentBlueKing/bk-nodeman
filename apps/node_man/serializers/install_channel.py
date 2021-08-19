@@ -8,15 +8,23 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from django.utils.translation import ugettext_lazy as _
+from rest_framework import serializers
 
-from django.db import migrations
+
+class BaseSerializer(serializers.Serializer):
+    """
+    用于安装节点管理校验
+    """
+
+    bk_cloud_id = serializers.IntegerField(label=_("云区域ID"))
 
 
-class Migration(migrations.Migration):
+class UpdateSerializer(BaseSerializer):
+    """
+    用于更新安装节点的验证
+    """
 
-    dependencies = [
-        ("node_man", "0046_merge_20210719_1607"),
-        ("node_man", "0047_auto_20210707_1201"),
-    ]
-
-    operations = []
+    name = serializers.CharField(label=_("安装通道名称"))
+    jump_servers = serializers.ListField(label=_("跳板机节点"))
+    upstream_servers = serializers.DictField(label=_("上游节点"))

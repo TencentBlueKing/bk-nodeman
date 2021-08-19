@@ -202,3 +202,8 @@ class ApNotSupportOsError(NodeManBaseException):
 class PolicyIsRunningError(NodeManBaseException):
     MESSAGE_TPL = _("策略 -> {policy_id}「{name}」正在执行")
     ERROR_CODE = 36
+
+
+class InstallChannelNotExistsError(NodeManBaseException):
+    ERROR_CODE = 37
+    MESSAGE = _("主机的安装通道不存在，请重新选择")
