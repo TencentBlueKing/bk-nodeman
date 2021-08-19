@@ -547,6 +547,7 @@ FIND_HOST_BY_TEMPLATE_FIELD = (
     "bk_supplier_account",
     "bk_state",
     "bk_os_version",
+
     "bk_state",
 )
 
@@ -574,6 +575,14 @@ class BkJobStatus(object):
     RUNNING = 2
     SUCCEEDED = 3
     FAILED = 4
+
+
+class BkAgentStatus(object):
+    """
+    Gse agent状态码：
+    0为不在线，1为在线
+    """
+    ALIVE = 1
 
 
 class BkJobErrorCode(object):
@@ -670,3 +679,33 @@ class TimeUnit:
     MINUTE = SECOND * 60
     HOUR = MINUTE * 60
     DAY = HOUR * 24
+
+
+FILES_TO_PUSH_TO_PROXY = [
+    {"files": ["py36.tgz"], "name": _("检测 BT 分发策略（下发Py36包）")},
+    {
+        "files": [
+            "gse_client-windows-x86.tgz",
+            "gse_client-windows-x86_64.tgz",
+            "gse_client-aix-powerpc.tgz",
+            "gse_client-linux-x86.tgz",
+            "gse_client-linux-x86_64.tgz",
+        ],
+        "name": _("下发安装包"),
+        "from_type": ProxyFileFromType.AP_CONFIG.value,
+    },
+    {
+        "files": [
+            "curl-ca-bundle.crt",
+            "curl.exe",
+            "libcurl-x64.dll",
+            "7z.dll",
+            "7z.exe",
+            "handle.exe",
+            "unixdate.exe",
+            "tcping.exe",
+            "nginx-portable.tgz",
+        ],
+        "name": _("下发安装工具"),
+    },
+]

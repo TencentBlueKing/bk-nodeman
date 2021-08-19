@@ -8,16 +8,12 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.conf import settings  # noqa
 
-from .clean_expired_info import clean_expired_info  # noqa
-from .clean_requests_tracker_records import clean_requests_tracker_records  # noqa
-from .clean_subscription_record_info import clean_subscription_record_info  # noqa
-from .sync_agent_status_task import sync_agent_status_task  # noqa
-from .sync_cmdb_cloud_area import sync_cmdb_cloud_area  # noqa
-from .sync_cmdb_host import sync_cmdb_host  # noqa
-from .sync_proc_status_task import sync_proc_status_task  # noqa
-from .update_proxy_file import update_proxy_file  # noqa
 
-if getattr(settings, "CONFIG_POLICY_BY_TENCENT_VPC", False):
-    from .configuration_policy import configuration_policy  # noqa
+from django.core.management.base import BaseCommand
+from apps.node_man.periodic_tasks import update_proxy_file
+
+
+class Command(BaseCommand):
+    def handle(self, *args, **options):
+        update_proxy_file()

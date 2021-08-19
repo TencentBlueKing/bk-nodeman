@@ -33,35 +33,6 @@ from pipeline.builder import Data, NodeOutput, Var
 from ...components.collections.agent import RegisterHostComponent
 from .base import Action, Step
 
-FILES_TO_PUSH_TO_PROXY = [
-    {"files": ["py36.tgz"], "name": _("检测 BT 分发策略（下发Py36包）")},
-    {
-        "files": [
-            "gse_client-windows-x86.tgz",
-            "gse_client-windows-x86_64.tgz",
-            "gse_client-aix-powerpc.tgz",
-            "gse_client-linux-x86.tgz",
-            "gse_client-linux-x86_64.tgz",
-        ],
-        "name": _("下发安装包"),
-        "from_type": constants.ProxyFileFromType.AP_CONFIG.value,
-    },
-    {
-        "files": [
-            "curl-ca-bundle.crt",
-            "curl.exe",
-            "libcurl-x64.dll",
-            "7z.dll",
-            "7z.exe",
-            "handle.exe",
-            "unixdate.exe",
-            "tcping.exe",
-            "nginx-portable.tgz",
-        ],
-        "name": _("下发安装工具"),
-    },
-]
-
 
 class AgentStep(Step):
     STEP_TYPE = "AGENT"
@@ -239,7 +210,7 @@ class AgentAction(Action, abc.ABC):
 
     @staticmethod
     def append_push_file_activities(agent_manager, activities):
-        for file in FILES_TO_PUSH_TO_PROXY:
+        for file in constants.FILES_TO_PUSH_TO_PROXY:
             activities.append(agent_manager.push_files_to_proxy(file))
         return activities
 
