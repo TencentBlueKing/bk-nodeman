@@ -33,7 +33,7 @@ http {
     default_type  application/octet-stream;
     sendfile        on;
     server {
-        listen 17980;
+        listen %(bk_nodeman_nginx_download_port)s;
         server_name localhost;
         root %(nginx_path)s;
 
@@ -46,7 +46,7 @@ http {
         }
     }
     server {
-        listen 17981;
+        listen %(bk_nodeman_nginx_proxy_pass_port)s;
         server_name localhost;
         resolver ${DNS_LIST[@]};
         proxy_connect;
@@ -75,5 +75,5 @@ is_port_listen_by_pid () {
     return "$ret"
 }
 pid=$(cat /opt/nginx-portable/logs/nginx.pid);
-is_port_listen_by_pid "$pid" 17980 17981
+is_port_listen_by_pid "$pid" %(bk_nodeman_nginx_download_port)s %(bk_nodeman_nginx_proxy_pass_port)s
 exit $?

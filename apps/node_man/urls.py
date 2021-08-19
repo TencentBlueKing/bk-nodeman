@@ -36,6 +36,7 @@ from apps.node_man.views import (
     plugin,
     policy,
     tjj,
+    install_channel,
 )
 from apps.node_man.views.healthz import HealthzViewSet
 from apps.node_man.views.host_v2 import HostV2ViewSet
@@ -48,6 +49,7 @@ router = routers.DefaultRouter(trailing_slash=True)
 
 router.register(r"ap", ap.ApViewSet, basename="ap")
 router.register(r"cloud", cloud.CloudViewSet, basename="cloud")
+router.register(r"install_channel", install_channel.InstallChannelViewSet, basename="install_channel")
 router.register(r"host", host.HostViewSet, basename="host")
 router.register(r"v2/host", HostV2ViewSet, basename="host_v2")
 router.register(r"job", job.JobViewSet, basename="job")

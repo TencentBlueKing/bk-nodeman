@@ -37,7 +37,7 @@ from apps.node_man.models import (
     Host,
     IdentityData,
     JobTask,
-    ProcessStatus,
+    ProcessStatus, InstallChannel,
 )
 from apps.utils import APIModel
 from apps.utils.basic import filter_values
@@ -89,8 +89,8 @@ class HostHandler(APIModel):
 
         return permission_host_ids
 
-    @staticmethod
-    def fuzzy_cond(custom: str, wheres: list, sql_params: list):
+    @classmethod
+    def fuzzy_cond(cls, custom: str, wheres: list, sql_params: list):
         """
         用于生成模糊搜索的条件
         :param custom: 用户的输入
@@ -98,34 +98,20 @@ class HostHandler(APIModel):
         :param sql_params: escape 参数列表
         :return: where, sql_params
         """
+        search_sql = f"{Host._meta.db_table}.inner_ip like %s"
 
-        # 状态搜索
-        status = [status for status in const.PROC_STATUS_CHN if const.PROC_STATUS_CHN[status].find(custom) != -1]
-        statuses = ",".join(status)
+        sql_params.extend([f"%{custom}%"])
 
         # 云区域搜索
         bk_cloud_names = CloudHandler().list_cloud_name()
         cloud_ids = [str(cloud) for cloud in bk_cloud_names if bk_cloud_names[cloud].find(custom) != -1]
         cloud_ids = ",".join(cloud_ids)
-
-        search_sql = (
-            f"{ProcessStatus._meta.db_table}.status in (%s) OR "
-            f"{ProcessStatus._meta.db_table}.version like %s OR "
-            f"{Host._meta.db_table}.os_type like %s OR "
-            f"{Host._meta.db_table}.node_from like %s OR "
-            f"{Host._meta.db_table}.inner_ip like %s"
-        )
-
-        sql_params.extend([statuses, f"%{custom}%", f"%{custom}%", f"%{custom}%", f"%{custom}%"])
-
         # 如果存在云区域结果
         if cloud_ids:
             search_sql += f" OR {Host._meta.db_table}.bk_cloud_id in (%s)"
             sql_params.append(cloud_ids)
 
-        # 四种搜索
         wheres.append("(" + search_sql + ")")
-
         return wheres, sql_params
 
     @staticmethod
@@ -261,7 +247,7 @@ class HostHandler(APIModel):
                     placeholder.append("%s")
                 wheres.append(f'{ProcessStatus._meta.db_table}.{condition["key"]} in ({",".join(placeholder)})')
 
-            elif condition["key"] in ["is_manual", "bk_cloud_id"]:
+            elif condition["key"] in ["is_manual", "bk_cloud_id", "install_channel_id"]:
                 # 是否手动安装
                 kwargs[condition["key"] + "__in"] = (
                     condition["value"] if "".join([str(v) for v in condition["value"]]).isdigit() else []
@@ -400,6 +386,7 @@ class HostHandler(APIModel):
                     "inner_ip",
                     "outer_ip",
                     "ap_id",
+                    "install_channel_id",
                     "login_ip",
                     "data_ip",
                     "status",
@@ -425,6 +412,9 @@ class HostHandler(APIModel):
             Cloud.objects.filter(bk_cloud_id__in=bk_clouds_id).values_list("bk_cloud_id", "bk_cloud_name")
         )
         cloud_name[0] = DEFAULT_CLOUD_NAME
+
+        # 获得安装通道名称
+        install_name_dict = dict(InstallChannel.objects.values_list("id", "name"))
 
         # 如果需要job result数据
         host_id_job_status = {}
@@ -481,6 +471,7 @@ class HostHandler(APIModel):
         for hs in hosts_status:
             hs["status_display"] = const.PROC_STATUS_CHN.get(hs["status"], "")
             hs["bk_cloud_name"] = cloud_name.get(hs["bk_cloud_id"])
+            hs["install_channel_name"] = install_name_dict.get(hs["install_channel_id"])
             hs["bk_biz_name"] = user_biz.get(hs["bk_biz_id"], "")
             hs["identity_info"] = host_id_identities.get(hs["bk_host_id"], {})
             hs["job_result"] = host_id_job_status.get(hs["bk_host_id"], {})
