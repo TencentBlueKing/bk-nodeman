@@ -13,6 +13,7 @@ import re
 from django.conf import settings
 from django.db import connection
 from django.utils.translation import ugettext as _
+from apps.node_man.handlers.install_channel import InstallChannelHandler
 
 from apps.node_man import constants, models, tools
 from apps.node_man.handlers.cloud import CloudHandler
@@ -155,6 +156,10 @@ class MetaHandler(APIModel):
             {"name": bk_cloud_names.get(bk_cloud_id, {}).get("bk_cloud_name", bk_cloud_id), "id": bk_cloud_id}
             for bk_cloud_id in bk_cloud_ids
         ]
+        install_channel_children = [
+            {"name": install_channel["name"], "id": install_channel["id"]}
+            for install_channel in InstallChannelHandler.list()
+        ]
         return self.filter_empty_children(
             [
                 {"name": "操作系统", "id": "os_type", "children": os_types_children + [{"name": _("其它"), "id": "none"}]},
@@ -162,6 +167,7 @@ class MetaHandler(APIModel):
                 {"name": "安装方式", "id": "is_manual", "children": is_manual_children},
                 {"name": "Agent版本", "id": "version", "children": versions_children},
                 {"name": "云区域", "id": "bk_cloud_id", "children": bk_cloud_ids_children},
+                {"name": "安装通道", "id": "install_channel_id", "children": install_channel_children},
                 {"name": "IP", "id": "inner_ip"},
             ]
         )

@@ -18,7 +18,7 @@ from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 
 from apps.backend.utils.data_renderer import nested_render_data
-from apps.node_man import constants
+from apps.node_man import constants, models
 from apps.node_man.models import Host, JobSubscriptionInstanceMap, aes_cipher
 from pipeline.service import task_service
 
@@ -58,9 +58,6 @@ AGENT_TEMPLATE = """
     "recvthread": 5,
     "timeout": 120,
     "tasknum": 100,
-    "clean_script_files_maxhours": 72,
-    "processstatusdataid":{{ process_status_dataid }},
-    "processeventdataid":{{ process_event_dataid }},
     "thriftport": {{ agent_thrift_port }},
     "trunkport": {{ trunk_port }},
     "dbproxyport": {{ db_proxy_port }},
@@ -70,7 +67,7 @@ AGENT_TEMPLATE = """
     {%- if bt_speed_limit %}
     "btSpeedLimit": {{ bt_speed_limit }},
     {%- endif -%}
-    {% if bk_cloud_id == default_cloud_id and is_aix %}
+    {% if is_designated_upstream_servers %}
     "btfileserver": [
         {%- for server in btfileserver_inner_ips%}
         {
@@ -94,40 +91,15 @@ AGENT_TEMPLATE = """
             "port": {{ io_port }}
         }{% if not loop.last %},{% endif %}
         {%- endfor %}
-    ]
-    {%- elif bk_cloud_id == default_cloud_id and zkauth %}
+    ],
+    {%- elif zkauth %}
     "zkhost": "{{ zkhost }}",
-    "zkauth": "{{ zkauth }}"
-    {%- elif bk_cloud_id == default_cloud_id %}
-    "zkhost": "{{ zkhost }}"
+    "zkauth": "{{ zkauth }}",
     {%- else %}
-    "btfileserver": [
-        {%- for server in proxy_servers%}
-        {
-            "ip": "{{ server }}",
-            "port": {{ file_svr_port }}
-        }{% if not loop.last %},{% endif %}
-        {%- endfor %}
-    ],
-    "dataserver": [
-        {%- for server in proxy_servers%}
-        {
-            "ip": "{{ server }}",
-            "port": {{ data_port }}
-        }{% if not loop.last %},{% endif %}
-        {%- endfor %}
-    ],
-    "taskserver": [
-        {%- for server in proxy_servers%}
-        {
-            "ip": "{{ server }}",
-            "port": {{ io_port }}
-        }{% if not loop.last %},{% endif %}
-        {%- endfor %}
-    ],
+    "zkhost": "{{ zkhost }}",
+    {%- endif %}
     "btserver_is_bridge": 0,
     "btserver_is_report": 1
-    {%- endif %}
 }
 """
 
@@ -388,6 +360,24 @@ PLUGIN_INFO_TEMPLATE = """
 """
 
 
+def is_designated_upstream_servers(host: models.Host):
+    """判断是否指定上游节点"""
+    # 非直连区域，使用proxy作为上游节点
+    if host.bk_cloud_id != constants.DEFAULT_CLOUD:
+        return True
+
+    # 直连区域 AIX不支持zk，因此直接指定上游节点
+    if host.bk_cloud_id == constants.DEFAULT_CLOUD and host.os_type == constants.OsType.AIX:
+        return True
+
+    # 指定了安装通道，直接使用安装通道的上游节点
+    if host.install_channel_id:
+        return True
+
+    # 其它场景都无需指定上游节点
+    return False
+
+
 def generate_gse_config(bk_cloud_id, filename, node_type, inner_ip):
     host = Host.objects.get(bk_cloud_id=bk_cloud_id, inner_ip=inner_ip)
     agent_config = host.agent_config
@@ -400,9 +390,10 @@ def generate_gse_config(bk_cloud_id, filename, node_type, inner_ip):
     btfileserver_outer_ips = [server["outer_ip"] for server in host.ap.btfileserver]
     dataserver_outer_ips = [server["outer_ip"] for server in host.ap.dataserver]
 
-    taskserver_inner_ips = [server["inner_ip"] for server in host.ap.taskserver]
-    btfileserver_inner_ips = [server["inner_ip"] for server in host.ap.btfileserver]
-    dataserver_inner_ips = [server["inner_ip"] for server in host.ap.dataserver]
+    jump_server, upstream_nodes = host.install_channel()
+    taskserver_inner_ips = [server for server in upstream_nodes["taskserver"]]
+    btfileserver_inner_ips = [server for server in upstream_nodes["btfileserver"]]
+    dataserver_inner_ips = [server for server in upstream_nodes["dataserver"]]
 
     if host.os_type == constants.OsType.WINDOWS:
         path_sep = constants.WINDOWS_SEP
@@ -495,6 +486,7 @@ def generate_gse_config(bk_cloud_id, filename, node_type, inner_ip):
             "taskserver_inner_ips": taskserver_inner_ips,
             "btfileserver_inner_ips": btfileserver_inner_ips,
             "dataserver_inner_ips": dataserver_inner_ips,
+            "is_designated_upstream_servers": is_designated_upstream_servers(host),
         }
 
     if node_type == "proxy":
@@ -627,8 +619,8 @@ def report_log(request):
         ]
     }
     """
-    data = json.loads(str(request.body, encoding="utf8").replace("\\", "/"))
     logger.info(f"[report_log]: {request.body}")
+    data = json.loads(str(request.body, encoding="utf8").replace("\\\"", "'").replace("\\", "/"))
 
     token = data.get("token")
     decrypted_token = _decrypt_token(token)
