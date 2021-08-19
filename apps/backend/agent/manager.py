@@ -369,7 +369,11 @@ class AgentManager(object):
         path = os.path.join(settings.PROJECT_ROOT, "script_tools", "start_nginx.sh.tpl")
         with open(path, encoding="utf-8") as fh:
             script = fh.read()
-        script_content = script % {"nginx_path": settings.NGINX_DOWNLOAD_PATH}
+        script_content = script % {
+            "nginx_path": settings.NGINX_DOWNLOAD_PATH,
+            "bk_nodeman_nginx_download_port": settings.BK_NODEMAN_NGINX_DOWNLOAD_PORT,
+            "bk_nodeman_nginx_proxy_pass_port": settings.BK_NODEMAN_NGINX_PROXY_PASS_PORT,
+        }
         act = AgentServiceActivity(component_code=JobFastExecuteScriptComponent.code, name=_("启动 NGINX 服务"))
         act.component.inputs.job_client = Var(
             type=Var.PLAIN,

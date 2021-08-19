@@ -563,6 +563,15 @@ CMDB_SUBSCRIPTION_DEBOUNCE_WINDOWS = (
 )
 
 
+class SetupScriptFileName(Enum):
+    SETUP_PROXY_SH = "setup_proxy.sh"
+    SETUP_AGENT_SH = "setup_agent.sh"
+    SETUP_AGENT_KSH = "setup_agent.ksh"
+    SETUP_AGENT_BAT = "setup_agent.bat"
+    SETUP_PAGENT_PY = "setup_pagent.py"
+    GSECTL_BAT = "gsectl.bat"
+
+
 class BkJobStatus(object):
     """
     作业步骤状态码:

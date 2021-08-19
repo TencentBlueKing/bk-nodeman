@@ -137,6 +137,32 @@ class CloudPermission(permissions.BasePermission):
         return False
 
 
+class InstallChannelPermission(permissions.BasePermission):
+    """
+    安装通道权限控制，复用云区域的编辑权限
+    """
+
+    message = _("您没有权限执行操作，请申请云区域编辑权限")
+
+    def has_permission(self, request, view):
+        perms = IamHandler().fetch_policy(
+            get_request_username(),
+            [
+                IamActionType.cloud_edit,
+            ],
+        )
+        if view.action == "list":
+            # List接口不需要鉴权
+            return True
+        if request.method == "GET":
+            bk_cloud_id = request.query_params.get("bk_cloud_id")
+        else:
+            bk_cloud_id = request.data.get("bk_cloud_id")
+        if bk_cloud_id in perms[IamActionType.cloud_edit]:
+            return True
+        return False
+
+
 class DebugPermission(permissions.BasePermission):
     """
     Debug接口权限控制
