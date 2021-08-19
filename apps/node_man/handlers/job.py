@@ -523,6 +523,7 @@ class JobHandler(APIModel):
             instance_info = {
                 "is_manual": host["is_manual"],
                 "ap_id": host_ap_id,
+                "install_channel_id": host.get("install_channel_id"),
                 "bk_os_type": constants.BK_OS_TYPE[host["os_type"]],
                 "bk_host_innerip": inner_ip,
                 "bk_host_outerip": outer_ip,
@@ -614,6 +615,7 @@ class JobHandler(APIModel):
                 "os_type": host["os_type"],
                 "node_type": host["node_type"],
                 "ap_id": host["ap_id"],
+                "install_channel_id": host["install_channel_id"],
                 "upstream_nodes": host["upstream_nodes"],
                 "created_at": host["created_at"],
                 "updated_at": host["updated_at"],
@@ -684,6 +686,7 @@ class JobHandler(APIModel):
                         "os_type": host.get("os_type", origin_host["os_type"]),
                         "node_type": origin_host["node_type"],
                         "ap_id": host.get("ap_id", origin_host["ap_id"]),
+                        "install_channel_id": host.get("install_channel_id", origin_host["install_channel_id"]),
                         "upstream_nodes": origin_host["upstream_nodes"],
                         "created_at": origin_host["created_at"],
                         "updated_at": update_time,

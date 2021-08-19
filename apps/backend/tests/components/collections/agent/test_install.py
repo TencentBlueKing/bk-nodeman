@@ -8,11 +8,14 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import re
 import time
 
+from django.conf import settings
 from django.test import TestCase
 from mock import patch
 
+from apps.backend.agent.tools import gen_commands
 from apps.backend.api.constants import JobDataStatus, JobIPStatus
 from apps.backend.components.collections.agent import InstallComponent, InstallService
 from apps.backend.tests.components.collections.agent import utils
@@ -64,7 +67,6 @@ class InstallLinuxAgentSuccessTest(TestCase, ComponentTestMixin):
                 inputs=COMMON_INPUTS,
                 parent_data={},
                 execute_assertion=ExecuteAssertion(success=True, outputs={}),
-                # TODO: 确认是否只有走作业平台的需要轮询查日志
                 schedule_assertion=ScheduleAssertion(
                     success=True, schedule_finished=True, outputs={}, callback_data=[]
                 ),
@@ -73,7 +75,23 @@ class InstallLinuxAgentSuccessTest(TestCase, ComponentTestMixin):
             )
         ]
 
+    def test_gen_agent_command(self):
+        host = models.Host.objects.get(bk_host_id=utils.BK_HOST_ID)
+        installation_tool = gen_commands(host, utils.JOB_TASK_PIPELINE_ID, is_uninstall=False)
+        token = re.match(r"(.*) -c (.*?) -O", installation_tool.run_cmd).group(2)
+        run_cmd = (
+            f"nohup bash /tmp/setup_agent.sh -s {utils.JOB_TASK_PIPELINE_ID}"
+            f" -r http://127.0.0.1/backend -l http://127.0.0.1/download"
+            f" -c {token}"
+            f' -O 48668 -E 58925 -A 58625 -V 58930 -B 10020 -S 60020 -Z 60030 -K 10030 -e "" -a "" -k ""'
+            f" -i 0 -I 127.0.0.1 -N SERVER -p /usr/local/gse -T /tmp/  &"
+        )
+        self.assertEqual(installation_tool.run_cmd, run_cmd)
+
     def tearDown(self):
+        if self._testMethodName == "test_gen_agent_command":
+            return
+
         # 状态检查
         self.assertTrue(
             models.JobTask.objects.filter(bk_host_id=utils.BK_HOST_ID, current_step__endswith=DESCRIPTION).exists()
@@ -113,7 +131,21 @@ class InstallWindowsAgentSuccessTest(TestCase, ComponentTestMixin):
             )
         ]
 
+    def test_gen_win_command(self):
+        host = models.Host.objects.get(bk_host_id=utils.BK_HOST_ID)
+        installation_tool = gen_commands(host, utils.JOB_TASK_PIPELINE_ID, is_uninstall=False)
+        token = re.match(r"(.*) -c (.*?) -O", installation_tool.run_cmd).group(2)
+        run_cmd = (
+            f"C:\\tmp\\setup_agent.bat -s {utils.JOB_TASK_PIPELINE_ID}"
+            f" -r http://127.0.0.1/backend -l http://127.0.0.1/download -c {token}"
+            f' -O 48668 -E 58925 -A 58625 -V 58930 -B 10020 -S 60020 -Z 60030 -K 10030 -e "" -a "" -k ""'
+            f" -i 0 -I 127.0.0.1 -N SERVER -p c:\\gse -T C:\\tmp\\ "
+        )
+        self.assertEqual(installation_tool.run_cmd, run_cmd)
+
     def tearDown(self):
+        if self._testMethodName == "test_gen_win_command":
+            return
         # 状态检查
         self.assertTrue(
             models.JobTask.objects.filter(bk_host_id=utils.BK_HOST_ID, current_step__endswith=DESCRIPTION).exists()
@@ -286,7 +318,24 @@ class InstallPAgentSuccessTest(TestCase, ComponentTestMixin):
             )
         ]
 
+    def test_gen_pagent_command(self):
+        host = models.Host.objects.get(bk_host_id=utils.BK_HOST_ID)
+        installation_tool = gen_commands(host, utils.JOB_TASK_PIPELINE_ID, is_uninstall=False)
+        token = re.match(r"(.*) -c (.*?) -O", installation_tool.run_cmd).group(2)
+        run_cmd = (
+            f"-s {utils.JOB_TASK_PIPELINE_ID} -r http://127.0.0.1/backend -l http://127.0.0.1/download"
+            f" -c {token}"
+            f" -O 48668 -E 58925 -A 58625 -V 58930 -B 10020 -S 60020 -Z 60030 -K 10030"
+            f' -e "1.1.1.1" -a "1.1.1.1" -k "1.1.1.1" -L /data/bkee/public/bknodeman/download'
+            f" -HLIP 127.0.0.1 -HIIP 127.0.0.1 -HA root -HP 22 -HI aes_str:::H4MFaqax -HC 0 -HNT PAGENT"
+            f" -HOT linux -HDD /tmp/ -p /usr/local/gse -I 1.1.1.1"
+            f" -o http://1.1.1.1:{settings.BK_NODEMAN_NGINX_DOWNLOAD_PORT}/ "
+        )
+        self.assertEqual(installation_tool.run_cmd, run_cmd)
+
     def tearDown(self):
+        if self._testMethodName == "test_gen_pagent_command":
+            return
         # 状态检查
         self.assertTrue(
             models.JobTask.objects.filter(bk_host_id=utils.BK_HOST_ID, current_step__endswith=DESCRIPTION).exists()
@@ -376,3 +425,112 @@ class InstallPAgentFailTest(TestCase, ComponentTestMixin):
         self.assertTrue(
             models.JobTask.objects.filter(bk_host_id=utils.BK_HOST_ID, current_step__endswith=DESCRIPTION).exists()
         )
+
+
+class InstallAgentWithInstallChannelSuccessTest(TestCase, ComponentTestMixin):
+    GET_JOB_INSTANCE_LOG_RETURN = [
+        {
+            "status": JobDataStatus.SUCCESS,
+            "step_results": [
+                {"tag": "", "ip_logs": [{"ip": "1.1.1.1", "log_content": "success"}], "ip_status": JobIPStatus.SUCCESS}
+            ],
+        },
+    ]
+
+    JOB_MOCK_CLIENT = utils.JobMockClient(
+        fast_execute_script_return=FAST_EXECUTE_SCRIPT_RETURN, get_job_instance_log_return=GET_JOB_INSTANCE_LOG_RETURN
+    )
+
+    def setUp(self):
+        utils.AgentTestObjFactory.init_db()
+        # 设置默安装通道
+        install_channel = models.InstallChannel.objects.create(
+            bk_cloud_id=constants.DEFAULT_CLOUD,
+            jump_servers=["1.1.1.1"],
+            upstream_servers={"taskserver": ["127.0.0.1"], "btfileserver": ["127.0.0.1"], "dataserver": ["127.0.0.1"]},
+        )
+        models.Host.objects.filter(bk_host_id=utils.BK_HOST_ID).update(install_channel_id=install_channel.id)
+        # 创建可用安装通道节点
+        jump_server_host_id = 23535
+        models.Host.objects.create(
+            **utils.AgentTestObjFactory.host_obj(
+                {
+                    "node_type": constants.NodeType.AGENT,
+                    "bk_host_id": jump_server_host_id,
+                    "inner_ip": "1.1.1.1",
+                    "login_ip": "1.1.1.1",
+                }
+            )
+        )
+        models.ProcessStatus.objects.create(
+            bk_host_id=jump_server_host_id,
+            name=models.ProcessStatus.GSE_AGENT_PROCESS_NAME,
+            status=constants.ProcStateType.RUNNING,
+        )
+
+        patch(JOB_CLIENT_V2_PATH, self.JOB_MOCK_CLIENT).start()
+        self.job_client_v2 = patch(JOB_CLIENT_V2_PATH, self.JOB_MOCK_CLIENT)
+        self.job_client_v2.start()
+
+    def component_cls(self):
+        return InstallTestComponent
+
+    def cases(self):
+        return [
+            ComponentTestCase(
+                name="测试安装通道Agent下发安装命令成功",
+                inputs=COMMON_INPUTS,
+                parent_data={},
+                execute_assertion=ExecuteAssertion(success=True, outputs={}),
+                schedule_assertion=ScheduleAssertion(
+                    success=True,
+                    schedule_finished=True,
+                    outputs={},
+                    callback_data=[
+                        {
+                            "timestamp": time.time(),
+                            "level": "INFO",
+                            "step": "wait_for_job",
+                            "log": "waiting job result",
+                            "status": "-",
+                            "job_status_kwargs": {
+                                "bk_biz_id": utils.DEFAULT_BIZ_ID_NAME["bk_biz_id"],
+                                "job_instance_id": 10000,
+                            },
+                            "prefix": "job",
+                        }
+                    ],
+                ),
+                execute_call_assertion=None,
+                patchers=[
+                    Patcher(
+                        target="apps.backend.components.collections.agent.task_service.callback.apply_async",
+                        return_value=True,
+                    )
+                ],
+            )
+        ]
+
+    def test_gen_install_channel_agent_command(self):
+        host = models.Host.objects.get(bk_host_id=utils.BK_HOST_ID)
+        installation_tool = gen_commands(host, utils.JOB_TASK_PIPELINE_ID, is_uninstall=False)
+        token = re.match(r"(.*) -c (.*?) -O", installation_tool.run_cmd).group(2)
+        run_cmd = (
+            f"-s {utils.JOB_TASK_PIPELINE_ID} -r http://127.0.0.1/backend"
+            f" -l http://1.1.1.1:{settings.BK_NODEMAN_NGINX_DOWNLOAD_PORT}/ -c {token}"
+            f" -O 48668 -E 58925 -A 58625 -V 58930 -B 10020 -S 60020 -Z 60030 -K 10030"
+            f' -e "127.0.0.1" -a "127.0.0.1" -k "127.0.0.1" -L /data/bkee/public/bknodeman/download'
+            f" -HLIP 127.0.0.1 -HIIP 127.0.0.1 -HA root -HP 22 -HI aes_str:::H4MFaqax -HC 0 -HNT AGENT"
+            f" -HOT linux -HDD /tmp/ -p /usr/local/gse -I 1.1.1.1"
+            f" -o http://1.1.1.1:{settings.BK_NODEMAN_NGINX_DOWNLOAD_PORT}/ "
+        )
+        self.assertEqual(installation_tool.run_cmd, run_cmd)
+
+    def tearDown(self):
+        if self._testMethodName == "test_gen_install_channel_agent_command":
+            return
+        # 状态检查
+        self.assertTrue(
+            models.JobTask.objects.filter(bk_host_id=utils.BK_HOST_ID, current_step__endswith=DESCRIPTION).exists()
+        )
+        self.job_client_v2.stop()

@@ -25,7 +25,8 @@
 3. 在新建的文件中请加入 license 和 copy right 申明。
 4. 确保一致的代码风格。
 5. 做充分的测试。
-6. 然后，你可以提交你的代码到 `dev` 或者 `hotfix` 分支。
+6. 提交前尽量使用 `git rebase -i <commit-id>` 对你的 commits 进行精简
+7. 然后，你可以提交你的代码到 `dev` 或者 `hotfix` 分支。
 
 
 ## 代码协议
