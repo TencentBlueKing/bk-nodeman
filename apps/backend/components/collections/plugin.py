@@ -1159,7 +1159,8 @@ class DebugService(PluginExecuteScriptService):
 
         # 只写入新的日志，保证轮询过程中不会重复写入job的日志
         last_logs = data.get_one_of_outputs("last_logs", "")
-        new_logs = task_result["log_content"]
+        # job在任务pending的情况下，返回的log_content为None，new_logs.replace(last_logs, "") 需要保证字符串类型
+        new_logs = task_result.get("log_content") or ""
         self.log_info([subscription_instance_id], new_logs.replace(last_logs, ""))
         data.outputs.last_logs = new_logs
 
