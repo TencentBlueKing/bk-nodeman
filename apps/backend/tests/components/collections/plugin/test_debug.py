@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from collections import ChainMap
 from unittest.mock import patch
 
 from django.test import TestCase
@@ -23,7 +24,23 @@ from pipeline.component_framework.test import (
 )
 
 
+class JobMockClientEmptyIpLog(utils.JobMockClient):
+    @classmethod
+    def get_job_instance_ip_log(cls, *args, **kwargs):
+        return dict(ChainMap({"log_content": ""}, super().get_job_instance_ip_log(*args, **kwargs)))
+
+
+class JobMockClientNoneIpLog(utils.JobMockClient):
+    @classmethod
+    def get_job_instance_ip_log(cls, *args, **kwargs):
+        return dict(ChainMap({"log_content": None}, super().get_job_instance_ip_log(*args, **kwargs)))
+
+
 class DebugTest(TestCase, TestCaseLifeCycleMixin, ComponentTestMixin):
+
+    JOB_MOCK_CLIENT = utils.JobMockClient
+    MAX_DEBUG_POLLING_TIME = 5
+
     def setUp(self):
         self.ids = utils.PluginTestObjFactory.init_db()
         self.COMMON_INPUTS = utils.PluginTestObjFactory.inputs(
@@ -37,13 +54,13 @@ class DebugTest(TestCase, TestCaseLifeCycleMixin, ComponentTestMixin):
             instance_info_attr_values={},
         )
         patch(utils.CMDB_CLIENT_MOCK_PATH, utils.CmdbClient).start()
-        patch(utils.PLUGIN_CLIENT_MOCK_PATH, utils.JobMockClient).start()
+        patch(utils.PLUGIN_CLIENT_MOCK_PATH, self.JOB_MOCK_CLIENT).start()
         patch(utils.PLUGIN_MULTI_THREAD_PATH, utils.request_multi_thread_client).start()
-        patch(utils.JOB_JOBAPI, utils.JobMockClient).start()
         patch(utils.JOB_MULTI_THREAD_PATH, utils.request_multi_thread_client).start()
+        patch(utils.JOB_JOBAPI, self.JOB_MOCK_CLIENT).start()
 
         max_debug_polling_time_path = "apps.backend.components.collections.plugin.DebugService.MAX_DEBUG_POLLING_TIME"
-        patch(max_debug_polling_time_path, 5).start()
+        patch(max_debug_polling_time_path, self.MAX_DEBUG_POLLING_TIME).start()
 
         super().setUp()
 
@@ -95,3 +112,41 @@ class DebugTest(TestCase, TestCaseLifeCycleMixin, ComponentTestMixin):
                 execute_call_assertion=None,
             )
         ]
+
+
+class DebugEmptyLogTest(DebugTest):
+
+    CASE_NAME = "测试DEBUG原子：日志为空字符串"
+    JOB_MOCK_CLIENT = JobMockClientEmptyIpLog
+    # 仅验证日志处理是否正常，无需轮训
+    MAX_DEBUG_POLLING_TIME = -1
+
+    def cases(self):
+        return [
+            ComponentTestCase(
+                name=self.CASE_NAME,
+                inputs=self.COMMON_INPUTS,
+                parent_data={},
+                execute_assertion=ExecuteAssertion(
+                    success=True,
+                    outputs={"succeeded_subscription_instance_ids": [self.ids["subscription_instance_record_id"]]},
+                ),
+                schedule_assertion=[
+                    ScheduleAssertion(
+                        success=True,
+                        schedule_finished=True,
+                        outputs={
+                            "last_logs": "",
+                            "succeeded_subscription_instance_ids": [self.ids["subscription_instance_record_id"]],
+                        },
+                        callback_data=[],
+                    )
+                ],
+                execute_call_assertion=None,
+            )
+        ]
+
+
+class DebugNoneLogTest(DebugEmptyLogTest):
+    CASE_NAME = "测试DEBUG原子：日志为None"
+    JOB_MOCK_CLIENT = JobMockClientNoneIpLog
