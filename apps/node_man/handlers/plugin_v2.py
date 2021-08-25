@@ -20,6 +20,7 @@ from django.core.cache import cache
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.utils.translation import ugettext_lazy as _
 
+from apps.core.files import core_files_constants
 from apps.core.files.storage import get_storage
 from apps.node_man import constants, exceptions, models, tools
 from apps.node_man.constants import DEFAULT_CLOUD_NAME, IamActionType
@@ -70,7 +71,7 @@ class PluginV2Handler:
 
             # 如果采用对象存储，文件直接上传至仓库，并将返回的目标路径传到后台，由后台进行校验并创建上传记录
             # TODO 后续应该由前端上传文件并提供md5
-            if settings.STORAGE_TYPE in constants.COS_TYPES:
+            if settings.STORAGE_TYPE in core_files_constants.StorageType.list_cos_member_values():
                 storage = get_storage()
 
                 try:

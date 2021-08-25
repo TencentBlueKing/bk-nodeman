@@ -23,6 +23,7 @@ from django.utils.translation import ugettext_lazy as _
 from apps.backend.api.constants import POLLING_INTERVAL, POLLING_TIMEOUT
 from apps.backend.api.job import JobClient, process_parms
 from apps.backend.components.collections.base import BaseService
+from apps.core.files.storage import get_storage
 from apps.exceptions import AppBaseException
 from apps.node_man import constants
 from apps.node_man.models import (
@@ -167,9 +168,6 @@ class JobV3BaseService(six.with_metaclass(abc.ABCMeta, BaseService)):
                 "account_alias": account_alias,
             }
         )
-        for index, file_source in enumerate(job_params.get("file_source_list", [])):
-            # 给文件源填充调用用户
-            job_params["file_source_list"][index]["account"] = {"alias": account_alias}
 
         if "timeout" not in job_params:
             # 设置默认超时时间
@@ -177,7 +175,10 @@ class JobV3BaseService(six.with_metaclass(abc.ABCMeta, BaseService)):
 
         if isinstance(subscription_instance_id, int):
             subscription_instance_id = [subscription_instance_id]
+
         try:
+            storage = get_storage()
+            job_params = storage.process_query_params(job_func, job_params)
             # 请求作业平台
             job_instance_id = job_func(job_params)["job_instance_id"]
         except AppBaseException as err:
@@ -191,13 +192,10 @@ class JobV3BaseService(six.with_metaclass(abc.ABCMeta, BaseService)):
             # 组装调用作业平台的日志
             file_target_path = job_params.get("file_target_path")
             if job_func == JobApi.fast_transfer_file:
-                source_ips = []
-                source_files = []
-                for file_source in job_params.get("file_source_list", []):
-                    for server in file_source["server"]["ip_list"]:
-                        source_ips.append(f"{server['bk_cloud_id']}-{server['ip']}")
-                    source_files.extend(file_source["file_list"])
-                log = f"从 [{','.join(source_ips)}] 下发文件 [{','.join(source_files)}] 到目标机器路径 [{file_target_path}]"
+                log = storage.gen_transfer_file_log(
+                    file_target_path=file_target_path, file_source_list=job_params.get("file_source_list")
+                )
+            # 节点管理仅使用 push_config_file 下发 content，不涉及从文件源读取文件
             elif job_func == JobApi.push_config_file:
                 file_names = ",".join([file["file_name"] for file in job_params.get("file_list", [])])
                 log = f"下发配置文件 [{file_names}] 到目标机器路径 [{file_target_path}]，若下发失败，请检查作业平台所部署的机器是否已安装AGENT"
@@ -571,13 +569,7 @@ class PushFileToProxyService(JobFastPushFileService):
                 self.logger.error(_("上传至Proxy的文件列表为空，请联系节点管理管理员配置接入点信息"))
                 return False
 
-        data.inputs.file_source = [
-            {
-                "files": [f"{settings.DOWNLOAD_PATH}/{file}" for file in files],
-                "account": "root",
-                "ip_list": [{"ip": settings.BKAPP_LAN_IP, "bk_cloud_id": 0}],
-            }
-        ]
+        data.inputs.file_source = [{"files": [f"{settings.DOWNLOAD_PATH}/{file}" for file in files]}]
 
         return super(PushFileToProxyService, self).execute(data, parent_data)
 

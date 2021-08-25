@@ -1,4 +1,4 @@
-# coding: utf-8
+# -*- coding: utf-8 -*-
 """
 TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-节点管理(BlueKing-BK-NODEMAN) available.
 Copyright (C) 2017-2021 THL A29 Limited, a Tencent company. All rights reserved.
@@ -9,12 +9,30 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+from django.utils.translation import ugettext_lazy as _
 
-from django.core.management.base import BaseCommand
-
-from apps.node_man.periodic_tasks import sync_proc_status_task
+from apps.core.exceptions import CoreBaseException
 
 
-class Command(BaseCommand):
-    def handle(self, **kwargs):
-        sync_proc_status_task()
+class FilesBaseException(CoreBaseException):
+    MODULE_CODE = 3001
+
+
+class FilesRegisterCredentialError(CoreBaseException):
+    MESSAGE = _("注册凭证失败")
+    ERROR_CODE = 1
+
+
+class FilesStorageTypeError(CoreBaseException):
+    MESSAGE = _("文件源类型错误")
+    ERROR_CODE = 2
+
+
+class FilesRegisterFileSourceError(CoreBaseException):
+    MESSAGE = _("注册文件失败")
+    ERROR_CODE = 3
+
+
+class FilesTransferError(CoreBaseException):
+    MESSAGE = _("文件传输失败")
+    ERROR_CODE = 4

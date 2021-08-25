@@ -220,10 +220,13 @@ class TestJob(TestCase):
         assert task_result["pending"] == []
         assert task_result["failed"] == []
 
+    @mock.patch(
+        "apps.core.files.base.JobApi.fast_transfer_file",
+        mock.MagicMock(return_value=FAST_PUSH_FILE_JOB_RESPONSE["data"]),
+    )
     def test_fast_push_file(self):
         job = JobClient(**self.JOB_INIT)
         job.client.job.execute_platform_job = mock.MagicMock(return_value=self.FAST_PUSH_FILE_JOB_RESPONSE)
-        job.client.job.fast_push_file = mock.MagicMock(return_value=self.FAST_PUSH_FILE_JOB_RESPONSE)
         job.client.job.get_job_instance_log = mock.MagicMock(return_value=self.FAST_PUSH_FILE_JOB_INSTANCE_LOG)
 
         job_instance_id = job.fast_push_file(**self.FAST_PUSH_FILE)
