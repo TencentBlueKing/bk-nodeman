@@ -47,6 +47,7 @@ from apps.backend.subscription.errors import (
 )
 from apps.backend.subscription.handler import SubscriptionHandler
 from apps.backend.subscription.tasks import run_subscription_task_and_create_instance
+from apps.core.files import core_files_constants
 from apps.core.files.storage import get_storage
 from apps.exceptions import AppBaseException, ValidationError
 from apps.generic import APIViewSet
@@ -767,7 +768,7 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
             download_url = ""
         else:
             # TODO: 此处后续需要提供一个统一的 storage.tmp_url(name) 方法，用于插件包的临时下载
-            if settings.STORAGE_TYPE in const.COS_TYPES:
+            if settings.STORAGE_TYPE in core_files_constants.StorageType.list_cos_member_values():
                 download_url = get_storage().url(record.file_path)
             else:
                 download_url = "?".join([settings.BKAPP_NODEMAN_DOWNLOAD_API, record.download_params])

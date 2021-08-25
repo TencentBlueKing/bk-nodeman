@@ -39,7 +39,7 @@ from apps.exceptions import AppBaseException
 from apps.node_man import constants, exceptions, models
 from apps.node_man.handlers.cmdb import CmdbHandler
 from apps.utils.batch_request import request_multi_thread
-from apps.utils.path_handler import PathHandler
+from apps.utils.files import PathHandler
 from common.api import GseApi, JobApi
 from pipeline.component_framework.component import Component
 from pipeline.core.flow import Service, StaticIntervalGenerator
@@ -415,14 +415,7 @@ class TransferPackageService(JobV3BaseService, PluginBaseService):
                     "subscription_id": common_data.subscription.id,
                     "job_params": {
                         "file_target_path": job["temp_path"],
-                        "file_source_list": [
-                            {
-                                "file_list": file_list,
-                                "server": {
-                                    "ip_list": [{"bk_cloud_id": settings.DEFAULT_CLOUD_ID, "ip": settings.BKAPP_NFS_IP}]
-                                },
-                            }
-                        ],
+                        "file_source_list": [{"file_list": file_list}],
                         "os_type": job["os_type"],
                         "target_server": {"ip_list": job["ip_list"]},
                     },

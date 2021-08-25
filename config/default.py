@@ -32,6 +32,7 @@ INSTALLED_APPS += (
     "version_log",
     "apps.node_man",
     "apps.backend",
+    "apps.core.files",
     "requests_tracker",
     # pipeline
     "pipeline",
@@ -299,7 +300,7 @@ class StorageType(Enum):
     FILE_SYSTEM = "FILE_SYSTEM"
 
     # 制品库
-    BKREPO = "BKREPO"
+    BLUEKING_ARTIFACTORY = "BLUEKING_ARTIFACTORY"
 
 
 # 用于控制默认的文件存储类型
@@ -323,7 +324,7 @@ BKREPO_ENDPOINT_URL = os.getenv("BKREPO_ENDPOINT_URL")
 # 存储类型 - storage class 映射关系
 STORAGE_TYPE_IMPORT_PATH_MAP = {
     StorageType.FILE_SYSTEM.value: "apps.core.files.storage.AdminFileSystemStorage",
-    StorageType.BKREPO.value: "apps.core.files.storage.CustomBKRepoStorage",
+    StorageType.BLUEKING_ARTIFACTORY.value: "apps.core.files.storage.CustomBKRepoStorage",
 }
 
 # 默认的file storage
@@ -338,7 +339,7 @@ COS_UPLOAD_API = f"{BACKEND_HOST}/backend/package/upload_cos/"
 # 暂时存在多个上传API的原因：原有文件上传接口被Nginx转发
 STORAGE_TYPE_UPLOAD_API_MAP = {
     StorageType.FILE_SYSTEM.value: FILE_SYSTEM_UPLOAD_API,
-    StorageType.BKREPO.value: COS_UPLOAD_API,
+    StorageType.BLUEKING_ARTIFACTORY.value: COS_UPLOAD_API,
 }
 
 DEFAULT_FILE_UPLOAD_API = STORAGE_TYPE_UPLOAD_API_MAP[STORAGE_TYPE]
@@ -522,7 +523,9 @@ LOGGING["handlers"]["iam"] = {
 }
 LOGGING["loggers"]["iam"] = {"handlers": ["iam"], "level": LOGGING["loggers"]["root"]["level"], "propagate": True}
 
-# 节点管理后台 LAN_IP
+
+# TODO 目前后台使用
+# 节点管理后台 BKAPP_LAN_IP 或 BKAPP_NFS_IP 进行文件分发，是否能统一变量
 BKAPP_LAN_IP = os.getenv("LAN_IP")
 
 # 节点管理后台 NFS_IP

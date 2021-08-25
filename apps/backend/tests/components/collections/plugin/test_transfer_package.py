@@ -10,10 +10,10 @@ specific language governing permissions and limitations under the License.
 """
 from unittest.mock import patch
 
-from django.test import TestCase
-
 from apps.backend.components.collections.plugin import TransferPackageComponent
+from apps.backend.tests.components.collections.job import utils as job_utils
 from apps.backend.tests.components.collections.plugin import utils
+from apps.utils.unittest.testcase import CustomBaseTestCase
 from pipeline.component_framework.test import (
     ComponentTestCase,
     ComponentTestMixin,
@@ -22,7 +22,7 @@ from pipeline.component_framework.test import (
 )
 
 
-class TransferPackageTest(TestCase, ComponentTestMixin):
+class TransferPackageTest(CustomBaseTestCase, ComponentTestMixin):
     def setUp(self):
         self.ids = utils.PluginTestObjFactory.init_db()
         self.COMMON_INPUTS = utils.PluginTestObjFactory.inputs(
@@ -35,25 +35,14 @@ class TransferPackageTest(TestCase, ComponentTestMixin):
             # 主机信息保持和默认一致
             instance_info_attr_values={},
         )
-        self.cmdb_client = patch(utils.CMDB_CLIENT_MOCK_PATH, utils.CmdbClient)
-        self.plugin_client = patch(utils.PLUGIN_CLIENT_MOCK_PATH, utils.JobMockClient)
-        self.plugin_multi_thread = patch(utils.PLUGIN_MULTI_THREAD_PATH, utils.request_multi_thread_client)
-        self.job_jobapi = patch(utils.JOB_JOBAPI, utils.JobMockClient)
-        self.job_multi_thread = patch(utils.JOB_MULTI_THREAD_PATH, utils.request_multi_thread_client)
-        self.plugin_gseapi = patch(utils.PLUGIN_GSEAPI, utils.GseMockClient)
+        patch(utils.CMDB_CLIENT_MOCK_PATH, utils.CmdbClient).start()
+        patch(utils.PLUGIN_MULTI_THREAD_PATH, utils.request_multi_thread_client).start()
+        patch(utils.JOB_MULTI_THREAD_PATH, utils.request_multi_thread_client).start()
+        patch(utils.PLUGIN_GSEAPI, utils.GseMockClient).start()
 
-        self.cmdb_client.start()
-        self.plugin_client.start()
-        self.plugin_multi_thread.start()
-        self.job_jobapi.start()
-        self.job_multi_thread.start()
-
-    def tearDown(self):
-        self.cmdb_client.stop()
-        self.plugin_client.stop()
-        self.plugin_multi_thread.stop()
-        self.job_jobapi.stop()
-        self.job_multi_thread.stop()
+        patch(utils.JOB_JOBAPI, utils.JobMockClient).start()
+        patch(utils.PLUGIN_CLIENT_MOCK_PATH, utils.JobMockClient).start()
+        patch(job_utils.CORE_FILES_JOB_API_PATH, utils.JobMockClient).start()
 
     def component_cls(self):
         return TransferPackageComponent
@@ -61,7 +50,7 @@ class TransferPackageTest(TestCase, ComponentTestMixin):
     def cases(self):
         return [
             ComponentTestCase(
-                name="测试文件分发",
+                name="测试插件包分发",
                 inputs=self.COMMON_INPUTS,
                 parent_data={},
                 execute_assertion=ExecuteAssertion(

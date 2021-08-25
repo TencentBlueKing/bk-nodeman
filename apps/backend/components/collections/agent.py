@@ -1020,13 +1020,7 @@ class PushUpgradePackageService(JobFastPushFileService):
         # windows机器需要添加解压文件
         if os_type == "windows":
             files.extend(["7z.dll", "7z.exe"])
-        file_source = [
-            {
-                "files": [f"{nginx_path}/{file}" for file in files],
-                "account": "root",
-                "ip_list": [{"ip": settings.BKAPP_LAN_IP, "bk_cloud_id": 0}],
-            }
-        ]
+        file_source = [{"files": [f"{nginx_path}/{file}" for file in files]}]
 
         data.inputs.file_source = file_source
 

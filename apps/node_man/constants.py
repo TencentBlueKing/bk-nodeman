@@ -26,7 +26,6 @@ from apps.utils.basic import (
     reverse_dict,
     tuple_choices,
 )
-from config.default import StorageType
 
 # 此值为历史遗留，后续蓝鲸不使用此字段后可废弃
 DEFAULT_SUPPLIER_ID = 0
@@ -696,12 +695,3 @@ class PolicyRollBackType:
     TRANSFER_TO_ANOTHER = "TRANSFER_TO_ANOTHER"
 
     ROLLBACK_TYPE__ALIAS_MAP = {SUPPRESSED: "已被其他策略管控", LOSE_CONTROL: "脱离策略管控", TRANSFER_TO_ANOTHER: "转移到优先级最高的策略"}
-
-
-class CosBucketEnum(Enum):
-    PUBLIC = "public"
-
-    PRIVATE = "private"
-
-
-COS_TYPES = [StorageType.BKREPO.value]

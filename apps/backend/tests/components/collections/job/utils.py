@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from typing import Dict
 
 from mock import MagicMock
 
@@ -20,25 +21,11 @@ def api_success_return(data):
 
 TASK_ID = 10000
 
-
-class JobMockClient(object):
-    def __init__(
-        self,
-        push_config_file_return=None,
-        get_job_instance_log_return=None,
-        fast_execute_script_return=None,
-        fast_push_file_return=None,
-    ):
-        self.job = MagicMock()
-        self.job.push_config_file = MagicMock(return_value=push_config_file_return)
-        self.job.get_job_instance_log = MagicMock(return_value=get_job_instance_log_return)
-        self.job.fast_execute_script = MagicMock(return_value=fast_execute_script_return)
-        self.job.fast_push_file = MagicMock(return_value=fast_push_file_return)
-
-
 JOB_CLIENT_MOCK_PATH = "apps.backend.api.job.get_client_by_user"
 
 JOB_VERSION_MOCK_PATH = "apps.backend.api.job.settings.JOB_VERSION"
+
+CORE_FILES_JOB_API_PATH = "apps.core.files.base.JobApi"
 
 JOB_EXECUTE_TASK_RETURN = {
     "result": True,
@@ -79,3 +66,27 @@ JOB_GET_INSTANCE_LOG_RETURN = {
         }
     ],
 }
+
+
+class JobMockClient(object):
+    def __init__(
+        self,
+        push_config_file_return=None,
+        get_job_instance_log_return=None,
+        fast_execute_script_return=None,
+        fast_push_file_return=None,
+    ):
+        self.job = MagicMock()
+        self.job.push_config_file = MagicMock(return_value=push_config_file_return)
+        self.job.get_job_instance_log = MagicMock(return_value=get_job_instance_log_return)
+        self.job.fast_execute_script = MagicMock(return_value=fast_execute_script_return)
+        self.job.fast_push_file = MagicMock(return_value=fast_push_file_return)
+
+
+# JobApi Mock
+# 和 JobMockClient 的区别：1. 获取接口方式-client.job.api / JobApi.api  2.JobApi 仅返回 data
+class JobV3MockApi:
+    fast_transfer_file_return = JOB_EXECUTE_TASK_RETURN["data"]
+
+    def __init__(self, fast_transfer_file_return: Dict = None):
+        self.fast_transfer_file = MagicMock(return_value=fast_transfer_file_return or self.fast_transfer_file_return)
