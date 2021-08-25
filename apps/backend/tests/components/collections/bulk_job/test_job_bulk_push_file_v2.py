@@ -47,6 +47,7 @@ class JobBulkPushFileV2ComponentTestCase(test_bulk_push_file.JobBulkPushFileComp
         patch(utils.JOB_VERSION_MOCK_PATH, "V3").start()
         # 设置小阈值，直接触发批量分发
         patch(self.POLLING_TIMEOUT_MOCK_PATH, 2).start()
+        patch(utils.CORE_FILES_JOB_API_PATH, utils.JobV3MockApi()).start()
 
         self.task_id = test_bulk_push_file.push_file_record_params["task_id"]
         self.hash_ip_status_key = f"{self.REDIS_CACHE_PREFIX}:task_id:{self.task_id}:ip:status"

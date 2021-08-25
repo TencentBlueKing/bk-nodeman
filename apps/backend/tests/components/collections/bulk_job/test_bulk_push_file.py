@@ -11,7 +11,6 @@ specific language governing permissions and limitations under the License.
 import uuid
 from copy import deepcopy
 
-from django.test import TestCase
 from mock import patch
 
 from apps.backend.api.constants import OS, JobDataStatus, JobIPStatus
@@ -22,6 +21,7 @@ from apps.backend.components.collections.bulk_job import (
 from apps.backend.tests.components.collections.agent import utils as agent_utils
 from apps.backend.tests.components.collections.job import utils
 from apps.node_man import constants, models
+from apps.utils.unittest.testcase import CustomBaseTestCase
 from pipeline.component_framework.test import (
     ComponentTestCase,
     ComponentTestMixin,
@@ -96,7 +96,7 @@ class RedisMockLock:
         return True
 
 
-class JobBulkPushFileComponentTestCase(TestCase, ComponentTestMixin):
+class JobBulkPushFileComponentTestCase(CustomBaseTestCase, ComponentTestMixin):
 
     PUSH_FILE_RECORD_ID = 1
 
@@ -122,13 +122,7 @@ class JobBulkPushFileComponentTestCase(TestCase, ComponentTestMixin):
         "job_client": JOB_CLIENT,
         "host_info": {"ip": "127.0.0.3", "bk_supplier_id": 0, "bk_cloud_id": 0},
         "file_target_path": "/data/",
-        "file_source": [
-            {
-                "files": ["/data/dev_pipeline_unit_test"],
-                "account": "root",
-                "ip_list": [{"bk_cloud_id": 0, "ip": "127.0.0.1", "bk_supplier_id": 0}],
-            }
-        ],
+        "file_source": [{"files": ["/data/dev_pipeline_unit_test"]}],
     }
 
     POLLING_TIMEOUT_MOCK_PATH = "apps.backend.components.collections.bulk_job.TRIGGER_THRESHOLD"
@@ -140,6 +134,7 @@ class JobBulkPushFileComponentTestCase(TestCase, ComponentTestMixin):
             fast_push_file_return=utils.JOB_EXECUTE_TASK_RETURN,
             get_job_instance_log_return=JOB_GET_INSTANCE_LOG_RETURN,
         )
+        patch(utils.CORE_FILES_JOB_API_PATH, utils.JobV3MockApi()).start()
         patch(utils.JOB_VERSION_MOCK_PATH, "V3").start()
         # 设置小阈值，直接触发批量分发
         patch(self.POLLING_TIMEOUT_MOCK_PATH, 2).start()

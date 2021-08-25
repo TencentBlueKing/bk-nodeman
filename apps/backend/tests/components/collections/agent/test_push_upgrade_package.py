@@ -8,7 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.test import TestCase
 from mock import patch
 
 from apps.backend.components.collections.agent import (
@@ -16,7 +15,9 @@ from apps.backend.components.collections.agent import (
     PushUpgradePackageService,
 )
 from apps.backend.tests.components.collections.agent import utils
+from apps.backend.tests.components.collections.job import utils as job_utils
 from apps.node_man import constants, models
+from apps.utils.unittest.testcase import CustomBaseTestCase
 from pipeline.component_framework.test import (
     ComponentTestCase,
     ComponentTestMixin,
@@ -45,14 +46,7 @@ COMMON_INPUTS.update(
         "context": "test",
         # 由执行业务逻辑填充，在此只是展示数据结构
         "file_target_path": "/tmp/test",
-        "file_source": [
-            {
-                "files": ["/tmp/REGEX:[a-z]*.txt"],
-                "account": "root",
-                "ip_list": [{"bk_cloud_id": constants.DEFAULT_CLOUD, "ip": utils.TEST_IP}],
-                "custom_query_id": ["3"],
-            }
-        ],
+        "file_source": [{"files": ["/tmp/REGEX:[a-z]*.txt"]}],
     }
 )
 
@@ -66,7 +60,7 @@ class PushUpgradePackageTestComponent(PushUpgradePackageComponent):
     bound_service = PushUpgradePackageTestService
 
 
-class PushUpgradePackageSuccessTest(TestCase, ComponentTestMixin):
+class PushUpgradePackageSuccessTest(CustomBaseTestCase, ComponentTestMixin):
     JOB_MOCK_CLIENT = utils.JobMockClient(
         fast_push_file_return=utils.JOB_INSTANCE_ID_METHOD_RETURN,
         get_job_instance_log_return=utils.JOB_GET_INSTANCE_LOG_RETURN,
@@ -81,8 +75,7 @@ class PushUpgradePackageSuccessTest(TestCase, ComponentTestMixin):
         self.job_version = patch(utils.JOB_VERSION_MOCK_PATH, "V3")
         self.job_version.start()
 
-    def tearDown(self):
-        self.job_version.stop()
+        patch(job_utils.CORE_FILES_JOB_API_PATH, job_utils.JobV3MockApi()).start()
 
     def component_cls(self):
         return PushUpgradePackageTestComponent
