@@ -22,7 +22,7 @@ from apps.backend.api.job import JobClient
 from apps.component.esbclient import client_v2
 from apps.node_man import constants as const
 from apps.node_man.models import Host
-from apps.utils.basic import md5
+from apps.utils.files import md5sum
 from common.log import logger
 
 
@@ -54,7 +54,7 @@ def update_proxy_file():
     for download_file in file_name:
         file_path = os.path.join(settings.NGINX_DOWNLOAD_PATH, download_file)
         if os.path.exists(file_path):
-            local_file_md5.update({download_file: md5(file_path)})
+            local_file_md5.update({download_file: md5sum(file_path)})
         else:
             logger.warning(
                 f"File ->[{download_file}] not found in download path ->[{settings.NGINX_DOWNLOAD_PATH}], "

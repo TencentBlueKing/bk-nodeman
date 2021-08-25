@@ -49,3 +49,15 @@ class _JobApi(BaseApi):
             module=self.MODULE,
             description="根据作业实例ID查询作业执行日志",
         )
+        self.create_credential = DataAPI(
+            method="POST",
+            url=JOB_APIGATEWAY_ROOT_V3 + "create_credential/",
+            module=self.MODULE,
+            description="新建凭证",
+        )
+        self.create_file_source = DataAPI(
+            method="POST",
+            url=JOB_APIGATEWAY_ROOT_V3 + "create_file_source/",
+            module=self.MODULE,
+            description="新建文件源",
+        )

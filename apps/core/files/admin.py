@@ -8,19 +8,19 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import ntpath
-import posixpath
 
-from apps.node_man import constants
+from django.contrib import admin
+
+from . import models
 
 
-class PathHandler(object):
-    def __init__(self, os_type):
-        self.os_type = os_type.lower()
-        if os_type == constants.OsType.WINDOWS:
-            self.path_handler = ntpath
-        else:
-            self.path_handler = posixpath
+@admin.register(models.BKJobFileCredential)
+class BKJobFileCredentialAdmin(admin.ModelAdmin):
+    list_display = ["id", "bk_biz_id", "storage_type", "name", "type", "description", "credential_id"]
+    search_fields = ["id", "bk_biz_id", "storage_type", "name", "type", "credential_id"]
 
-    def __getattr__(self, item):
-        return getattr(self.path_handler, item)
+
+@admin.register(models.BKJobFileSource)
+class BKJobFileSourceAdmin(admin.ModelAdmin):
+    list_display = ["credential_id", "file_source_id", "code"]
+    search_fields = ["credential_id", "file_source_id", "code"]
