@@ -366,6 +366,7 @@ class RegisterHostService(AgentService):
                             "os_type": host_info["os_type"],
                             "node_type": host_info["host_node_type"],
                             "ap_id": host_info["ap_id"],
+                            "install_channel_id": host_info.get("install_channel_id"),
                             "upstream_nodes": host_info.get("upstream_nodes", []),
                             "updated_at": timezone.now(),
                             "extra_data": extra_data,
