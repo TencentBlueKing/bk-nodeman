@@ -23,8 +23,8 @@ export const setupTableConfig: ISetupHead[] = [
           if (!value) return true;
           const regx = new RegExp('^((25[0-5]|2[0-4]\\d|[01]?\\d\\d?)\\.){3}(25[0-5]|2[0-4]\\d|[01]?\\d\\d?)$');
           const splitCode = splitCodeArr.find(split => value.indexOf(split) > 0);
-          const valueSplit = splitCode ? value.split(splitCode).filter(text => !!text)
-            .map(text => text.trim()) : [value.trim()];
+          const valueSplit = value.split(splitCode).filter(text => !!text)
+            .map(text => text.trim());
           // IP校验
           const ipValidate = valueSplit.some(item => !regx.test(item));
           return !ipValidate;
@@ -61,7 +61,7 @@ export const setupTableConfig: ISetupHead[] = [
         async validator(v: string, id: number) {
           if (!useTjj) return true;
           // 铁将军校验
-          const splitCode = splitCodeArr.find(split => v.indexOf(split) > 0) || '';
+          const splitCode = splitCodeArr.find(split => v.indexOf(split) > 0);
           const valueSplit = v.split(splitCode).filter(text => !!text)
             .map(text => text.trim());
           const data = await this.fetchPwd({
@@ -285,7 +285,7 @@ export const setupTableManualConfig = [
         async validator(v: string, id: number) {
           if (!useTjj) return true;
           // 铁将军校验
-          const splitCode = splitCodeArr.find(split => v.indexOf(split) > 0) || '';
+          const splitCode = splitCodeArr.find(split => v.indexOf(split) > 0);
           const valueSplit = v.trim().split(splitCode)
             .filter(text => !!text);
           const data = await this.fetchPwd({
