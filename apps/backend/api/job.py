@@ -18,6 +18,8 @@ import ujson as json
 from blueapps.utils.esbclient import get_client_by_user
 from django.conf import settings
 
+from apps.core.files.storage import get_storage
+
 from .constants import (
     ACCOUNT_MAP,
     POLLING_INTERVAL,
@@ -286,44 +288,19 @@ class JobClient(object):
         :param timeout: 超时时间
         :return: Job任务id
         """
-        params = {
-            "bk_biz_id": settings.BLUEKING_BIZ_ID,
-            "task_name": task_name,
-            "timeout": timeout,
-            "file_target_path": file_target_path,
-            "file_source": file_source,
-            "ip_list": ip_list,
-            "account": self.account,
-            "bk_username": self.username,
-        }
-        response = self.client.job.fast_push_file(params)
-        data = self._response_exception_filter("client.job.fast_push_file", params, response)
 
-        return data["job_instance_id"]
+        file_source_list = []
+        for file_source_item in file_source:
+            file_source_list.append({"file_list": file_source_item.get("files", [])})
 
-
-class DummyJobClient(JobClient):
-    """
-    dummy job client
-    """
-
-    TASK_RESULT = {
-        "success": [{"ip": "127.0.0.1", "bk_cloud_id": 0, "log_content": "dummy-job-log-content"}],
-        "pending": [],
-        "failed": [],
-    }
-
-    def fast_push_file(self, ip_list, file_target_path, file_source):
-        return "dummy-job-instance-id"
-
-    def push_config_file(self, ip_list, file_target_path, file_list):
-        return "dummy-job-instance-id"
-
-    def fast_execute_script(self, ip_list, script_content, script_param, script_timeout=3000):
-        return "dummy-job-instance-id"
-
-    def get_task_result(self, job_instance_id):
-        return True, self.TASK_RESULT
-
-
-# JobClient = DummyJobClient
+        # TODO 重定向到JOB V3，待后续Agent优化改造时统一使用JOBV3
+        storage = get_storage()
+        return storage.fast_transfer_file(
+            bk_biz_id=settings.BLUEKING_BIZ_ID,
+            task_name=task_name,
+            timeout=timeout,
+            account_alias=self.account,
+            file_target_path=file_target_path,
+            file_source_list=file_source_list,
+            target_server={"ip_list": ip_list},
+        )

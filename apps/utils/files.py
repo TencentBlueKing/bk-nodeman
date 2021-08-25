@@ -10,9 +10,11 @@ specific language governing permissions and limitations under the License.
 """
 
 import hashlib
+import ntpath
 import os
+import posixpath
 import uuid
-from typing import IO, Any, Optional
+from typing import IO, Any, Callable, Optional
 
 import requests
 
@@ -124,3 +126,29 @@ def mk_and_return_tmpdir() -> str:
     tmp_dir = os.path.join(constants.TMP_DIR, constants.TMP_FILE_NAME_FORMAT.format(name=uuid.uuid4().hex))
     os.makedirs(tmp_dir, exist_ok=True)
     return tmp_dir
+
+
+class PathHandler:
+    """
+    根据传入的操作系统，返回文件路径处理模块
+    背景：需要根据「目标机器」的操作系统生成命令，涉及路径处理
+    如果是本地的路径处理，os.path 会根据本地的操作系统，返回正确的文件处理模块，无需使用该类
+    """
+
+    # 文件处理模块
+    path_handler: [ntpath, posixpath]
+
+    def __init__(self, os_type: str):
+        self.os_type = os_type.lower()
+        if os_type == constants.OsType.WINDOWS:
+            self.path_handler = ntpath
+        else:
+            self.path_handler = posixpath
+
+    def __getattr__(self, item: str) -> Callable:
+        """
+        重写__getattr__方法，使得该类的 .item 直接获取到 self.path_handle 的成员
+        :param item: [ntpath, posixpath] method name
+        :return: [ntpath, posixpath] method
+        """
+        return getattr(self.path_handler, item)
