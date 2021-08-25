@@ -44,10 +44,10 @@ def tuple_to_namedtuple(tupl):
     return dict_to_namedtuple(dict(tuple_choices(tupl)))
 
 
-def filter_values(data: dict, filter_empty=False) -> dict:
+def filter_values(data: Dict, filter_empty=False) -> Dict:
     """
     用于过滤空值
-    :param filter_empty: 是否同时过滤空值
+    :param filter_empty: 是否同时过滤布尔值为False的值
     :param data: 存放各个映射关系的字典
     :return: 去掉None值的字典
     """

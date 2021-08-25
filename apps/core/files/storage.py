@@ -9,7 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import os
-from typing import Callable, Dict
+from typing import Any, Callable, Dict, List
 
 from bkstorages.backends import bkrepo
 from django.conf import settings
@@ -17,20 +17,25 @@ from django.core.files.storage import FileSystemStorage, Storage, get_storage_cl
 from django.utils.deconstruct import deconstructible
 from django.utils.functional import cached_property
 
-from apps.core.files.base import StorageFileOverwriteMixin
+from apps.utils.basic import filter_values
+
+from . import constants
+from .base import BaseStorage
+from .file_source import BkJobFileSourceManager
 
 
 @deconstructible
-class CustomBKRepoStorage(StorageFileOverwriteMixin, bkrepo.BKRepoStorage):
+class CustomBKRepoStorage(BaseStorage, bkrepo.BKRepoStorage):
 
-    location = getattr(settings, "BKREPO_LOCATION", "")
-    file_overwrite = getattr(settings, "FILE_OVERWRITE", False)
+    storage_type: str = constants.StorageType.BLUEKING_ARTIFACTORY.value
+    location: str = getattr(settings, "BKREPO_LOCATION", "")
+    file_overwrite: bool = getattr(settings, "FILE_OVERWRITE", False)
 
-    endpoint_url = settings.BKREPO_ENDPOINT_URL
-    username = settings.BKREPO_USERNAME
-    password = settings.BKREPO_PASSWORD
-    project_id = settings.BKREPO_PROJECT
-    bucket = settings.BKREPO_BUCKET
+    endpoint_url: str = settings.BKREPO_ENDPOINT_URL
+    username: str = settings.BKREPO_USERNAME
+    password: str = settings.BKREPO_PASSWORD
+    project_id: str = settings.BKREPO_PROJECT
+    bucket: str = settings.BKREPO_BUCKET
 
     def __init__(
         self,
@@ -50,7 +55,11 @@ class CustomBKRepoStorage(StorageFileOverwriteMixin, bkrepo.BKRepoStorage):
         bucket = bucket or self.bucket
         endpoint_url = endpoint_url or self.endpoint_url
         file_overwrite = file_overwrite or self.file_overwrite
-        super().__init__(
+
+        # 根据 MRO 顺序，super() 仅调用 BaseStorage.__init__()，通过显式调用 BKRepoStorage 的初始化函数
+        # 获得自定义 BaseStorage 类的重写特性，同时向 BKRepoStorage 注入成员变量
+        bkrepo.BKRepoStorage.__init__(
+            self,
             root_path=root_path,
             username=username,
             password=password,
@@ -60,10 +69,44 @@ class CustomBKRepoStorage(StorageFileOverwriteMixin, bkrepo.BKRepoStorage):
             file_overwrite=file_overwrite,
         )
 
+    def path(self, name):
+        raise NotImplementedError()
+
+    def _handle_file_source_list(
+        self, file_source_list: List[Dict[str, Any]], extra_transfer_file_params: Dict[str, Any]
+    ) -> List[Dict[str, Any]]:
+
+        # 获取或创建文件源
+        file_source_obj = BkJobFileSourceManager.get_or_create_file_source(
+            bk_biz_id=extra_transfer_file_params["bk_biz_id"],
+            storage_type=self.storage_type,
+            credential_type=constants.FileCredentialType.USERNAME_PASSWORD.value,
+            credential_auth_info={"credential_username": self.username, "credential_password": self.password},
+            access_params={"base_url": self.endpoint_url},
+        )
+
+        file_source_with_source_info_list = []
+        for file_source in file_source_list:
+            # 作业平台要求制品库分发的路径带上 project/bucket 前缀
+            file_list = [
+                os.path.join(self.project_id, self.bucket) + file_path for file_path in file_source.get("file_list", [])
+            ]
+
+            file_source_with_source_info_list.append(
+                {
+                    "file_list": file_list,
+                    "file_source_id": file_source_obj.file_source_id,
+                    "file_type": constants.StorageType.get_member_value__job_file_type_map()[self.storage_type],
+                }
+            )
+
+        return file_source_with_source_info_list
+
 
 @deconstructible
-class AdminFileSystemStorage(StorageFileOverwriteMixin, FileSystemStorage):
+class AdminFileSystemStorage(BaseStorage, FileSystemStorage):
 
+    storage_type = constants.StorageType.FILE_SYSTEM.value
     safe_class = FileSystemStorage
     OS_OPEN_FLAGS = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_BINARY", 0)
 
@@ -75,7 +118,8 @@ class AdminFileSystemStorage(StorageFileOverwriteMixin, FileSystemStorage):
         directory_permissions_mode=None,
         file_overwrite=None,
     ):
-        super().__init__(
+        FileSystemStorage.__init__(
+            self,
             location=location,
             base_url=base_url,
             file_permissions_mode=file_permissions_mode,
@@ -99,6 +143,37 @@ class AdminFileSystemStorage(StorageFileOverwriteMixin, FileSystemStorage):
     def location(self):
         """路径指向 / ，重写前路径指向「项目根目录」"""
         return self.base_location
+
+    def _handle_file_source_list(
+        self, file_source_list: List[Dict[str, Any]], extra_transfer_file_params: Dict[str, Any]
+    ) -> List[Dict[str, Any]]:
+        """
+        预处理源文件列表，添加文件源等信息
+        :param file_source_list: 源文件
+        :param extra_transfer_file_params: transfer_files 的其他参数
+        :return: 源文件对象列表
+        """
+
+        account = {
+            "alias": extra_transfer_file_params.get("account_alias"),
+            "id": extra_transfer_file_params.get("account_id"),
+        }
+
+        file_source_with_source_info_list = []
+        for file_source in file_source_list:
+            file_source_with_source_info_list.append(
+                {
+                    "file_list": file_source.get("file_list", []),
+                    "server": {
+                        # 添加 NFS 服务器信息
+                        "ip_list": [{"bk_cloud_id": settings.DEFAULT_CLOUD_ID, "ip": settings.BKAPP_NFS_IP}]
+                    },
+                    "account": filter_values(account),
+                    "file_type": constants.StorageType.get_member_value__job_file_type_map()[self.storage_type],
+                }
+            )
+
+        return file_source_with_source_info_list
 
 
 # 缓存最基础的Storage
@@ -125,7 +200,7 @@ def cache_storage_obj(get_storage_func: Callable[[str, Dict], Storage]):
 
 
 @cache_storage_obj
-def get_storage(storage_type: str = settings.STORAGE_TYPE, safe: bool = False, **construct_params) -> Storage:
+def get_storage(storage_type: str = settings.STORAGE_TYPE, safe: bool = False, **construct_params) -> BaseStorage:
     """
     获取 Storage
     :param storage_type: 文件存储类型，参考 constants.StorageType

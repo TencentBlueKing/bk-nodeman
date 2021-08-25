@@ -932,13 +932,7 @@ class PushUpgradePackageService(JobFastPushFileService):
         # windows机器需要添加解压文件
         if os_type == "windows":
             files.extend(["7z.dll", "7z.exe"])
-        file_source = [
-            {
-                "files": [f"{nginx_path}/{file}" for file in files],
-                "account": "root",
-                "ip_list": [{"ip": settings.BKAPP_LAN_IP, "bk_cloud_id": 0}],
-            }
-        ]
+        file_source = [{"files": [f"{nginx_path}/{file}" for file in files]}]
 
         data.inputs.file_source = file_source
 
@@ -1271,7 +1265,9 @@ class OperatePluginService(AgentService, GseBaseService):
         else:
             path_handler = posixpath
 
-        setup_path = path_handler.join(package.proc_control.install_path, const.PluginChildDir.OFFICIAL.value, "bin")
+        setup_path = path_handler.join(
+            package.proc_control.install_path, constants.PluginChildDir.OFFICIAL.value, "bin"
+        )
         pid_path = package.proc_control.pid_path
 
         result = gse_client.register_process(hosts, control, setup_path, pid_path, plugin_name, plugin_name)
