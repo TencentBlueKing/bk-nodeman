@@ -41,9 +41,9 @@
           <tbody>
             <template v-if="actionsList.length > 0">
               <tr v-for="(action, index) in actionsList" :key="index">
-                <td width="20%">{{ action.system || '--' }}</td>
-                <td width="30%">{{ action.action || '--' }}</td>
-                <td width="50%">{{ action.instance_name || '--' }}</td>
+                <td width="20%">{{ action.system | filterEmpty }}</td>
+                <td width="30%">{{ action.action | filterEmpty }}</td>
+                <td width="50%">{{ action.instance_name | filterEmpty }}</td>
                 <!-- <td width="50%">
                   <p
                     class="resource-type-item"

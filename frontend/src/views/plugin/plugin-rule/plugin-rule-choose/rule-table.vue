@@ -25,7 +25,7 @@
       <bk-table-column :label="$t('最近修改人')" prop="creator" sortable></bk-table-column>
       <bk-table-column :label="$t('最近部署时间')" prop="update_time" sortable>
         <template #default="{ row }">
-          {{ formatTimeByTimezone(row.update_time) }}
+          {{ row.update_time | filterTimezone }}
         </template>
       </bk-table-column>
       <bk-table-column :label="$t('关联主机数')">

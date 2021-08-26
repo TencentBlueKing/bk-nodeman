@@ -76,7 +76,8 @@
                   :proxy-status="getCurrentPorxyStatus(row, config)"
                   ref="verify"
                   v-else
-                  @jump-proxy="handleGotoProxy(row)">
+                  @jump-proxy="handleGotoProxy(row)"
+                  @validator-change="setValidator(row, config.prop, ...arguments)">
                   <!-- 查看态（不要嵌入组件，防止虚拟滚动的时候渲染卡顿） -->
                   <div :class="['ghost-wrapper', {
                          'is-disabled': getCellDisabled(row, config)
@@ -541,7 +542,7 @@ export default class SetupTable extends Vue {
   private handleValidateValue(row: ISetupRow | any, config: ISetupHead) {
     const validator = {
       show: false,
-      content: '',
+      message: '',
       type: '',
     };
     if (!row || !config) return validator;
@@ -552,25 +553,27 @@ export default class SetupTable extends Vue {
       // 1. 密码过期校验
       if (!row.is_manual && isEmpty(value) && row.re_certification) {
         validator.show = true;
-        validator.content = window.i18n.t('认证信息过期');
+        validator.message = window.i18n.t('认证信息过期');
       }
       return validator;
     }
-    // 2. 必填项校验
-    if (config.required && isEmpty(value)) {
-      validator.show = true;
-      validator.content = window.i18n.t('必填项');
+    if (isEmpty(value)) {
+      // 2. 必填项校验
+      if (config.required) {
+        validator.show = true;
+        validator.message = window.i18n.t('必填项');
+      }
       return validator;
     }
     // 3. rules校验
     config.rules && config.rules.some((rule: any) => {
-      if (rule.regx && !isEmpty(value)) {
-        validator.show = !new RegExp(rule.regx).test(value);
-        validator.content = rule.content;
-      } else if (typeof rule.validator === 'function' && rule.trigger !== 'blur') {
-        const isValidate = rule.validator(value);
+      if (rule.regex && !isEmpty(value)) {
+        validator.show = !rule.regex.test(value);
+        validator.message = rule.message;
+      } else if (rule.validator && typeof rule.validator === 'function') {
+        const isValidate = rule.validator(value, row.id);
         validator.show = !isValidate;
-        validator.content = rule.content || '';
+        validator.message = rule.message || '';
       }
       // 存在失败校验就终止
       return validator.show;
@@ -582,7 +585,7 @@ export default class SetupTable extends Vue {
       const unique = this.handleValidateUnique(row, config);
       validator.type = config.prop === 'inner_ip' && !unique ? 'unique' : '';
       validator.show = !unique;
-      validator.content = window.i18n.t('冲突校验', { prop: 'IP' });
+      validator.message = window.i18n.t('冲突校验', { prop: 'IP' });
     }
     return validator;
   }
@@ -607,7 +610,7 @@ export default class SetupTable extends Vue {
           union[config.prop] = union[config.prop] ? union[config.prop] : [];
           const unionValue = value + row[config.union];
           validator.show = union[config.prop].includes(unionValue);
-          validator.content = window.i18n.t('冲突校验', { prop: config.label });
+          validator.message = window.i18n.t('冲突校验', { prop: config.label });
           union[config.prop].push(unionValue);
         }
 
@@ -794,9 +797,12 @@ export default class SetupTable extends Vue {
   private getDefaultValidator(row: ISetupRow | any, config: ISetupHead) {
     return {
       show: row.validator[config.prop] ? row.validator[config.prop].show : false,
-      content: row.validator[config.prop] ? row.validator[config.prop].content : '',
+      message: row.validator[config.prop] ? row.validator[config.prop].message : '',
       errTag: config.errTag,
     };
+  }
+  private setValidator(row: ISetupRow | any, prop: string, validator: Dictionary) {
+    this.$set(row.validator, prop, validator);
   }
   private handleUpdateData(data: ISetupRow[]) {
     this.$set(this.table, 'data', data);

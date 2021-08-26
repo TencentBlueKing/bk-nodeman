@@ -10,7 +10,7 @@
     <!-- 冲突提示 -->
     <span
       class="error-top-tag"
-      v-if="validator.show && validator.errTag && validator.content.indexOf($t('冲突reg')) !== -1">
+      v-if="validator.show && validator.errTag && validator.message.indexOf($t('冲突reg')) !== -1">
       {{ $t('冲突') }}
     </span>
     <!-- 右侧提示 -->
@@ -18,10 +18,10 @@
       class="bk-icon icon-exclamation-circle-shape tooltips-icon"
       :style="iconOffsetStyle"
       v-else-if="validator.show && position === 'right'"
-      v-bk-tooltips.right="validator">
+      v-bk-tooltips.right="{ content: validator.message, ...validator }">
     </span>
     <!-- 底部提示 -->
-    <p class="bottom-text" v-else-if="validator.show && position === 'bottom'">{{ validator.content }}</p>
+    <p class="bottom-text" v-else-if="validator.show && position === 'bottom'">{{ validator.message }}</p>
     <!-- Proxy校验提示 -->
     <bk-popover
       v-bind="{
@@ -49,11 +49,11 @@ import promiseSequence from '@/common/promise-sequence';
 
 interface IValidator {
   show: boolean
-  content: string
+  message: string
   errTag: boolean
 }
 interface IRule {
-  regx?: string
+  regex?: RegExp
   validator?: any
 }
 type IValue = string | number | boolean | Array<number | string>;
@@ -64,7 +64,7 @@ export default class StepVerifyInput extends Vue {
   @Prop({ type: [Number, String], default: 0 }) private readonly id!: string | number;
   @Prop({ type: Object, default: () => ({
     show: false,
-    content: '',
+    message: '',
     errTag: false,
   }) }) private readonly defaultValidator!: IValidator; // 默认值
   @Prop({ type: String, default: 'bottom' }) private readonly position!: string; // 校验位置
@@ -100,7 +100,7 @@ export default class StepVerifyInput extends Vue {
   }
   @Emit('focus')
   public handleFocus() {
-    this.validator.content = '';
+    this.validator.message = '';
     this.validator.show = false;
   }
   public handleRegistry(instance: any) {
@@ -115,14 +115,17 @@ export default class StepVerifyInput extends Vue {
   }
   public validate(value: IValue, cb: Function) {
     this.validator.show = false;
-    this.validator.content = '';
+    this.validator.message = '';
     // 1. 必填项校验
-    if (this.required && isEmpty(value)) {
-      this.validator.show = true;
-      this.validator.content = window.i18n.t('必填项');
-      if (typeof cb === 'function') {
-        cb(this.validator);
+    if (isEmpty(value)) {
+      if (this.required) {
+        this.validator.show = true;
+        this.validator.message = window.i18n.t('必填项');
+        if (typeof cb === 'function') {
+          cb(this.validator);
+        }
       }
+      this.handleValidatorChange();
       return false;
     }
     // 2. rules校验
@@ -139,22 +142,25 @@ export default class StepVerifyInput extends Vue {
     });
     promiseSequence(promiseList, () => {}).then(() => {
       this.validator.show = false;
-      this.validator.content = '';
+      this.validator.message = '';
       if (typeof cb === 'function') {
         cb(this.validator);
       }
     })
       .catch((error: any) => {
         this.validator.show = true;
-        this.validator.content = error.content ? error.content : '';
+        this.validator.message = error.message ? error.message : '';
         if (typeof cb === 'function') {
           cb(this.validator);
         }
+      })
+      .finally(() => {
+        this.handleValidatorChange();
       });
   }
   public async checkRule(rule: IRule, value: IValue) {
-    if (rule.regx && !isEmpty(value)) {
-      return new RegExp(rule.regx).test(value as string);
+    if (rule.regex && !isEmpty(value)) {
+      return rule.regex.test(value as string);
     } if (rule.validator && typeof rule.validator === 'function') {
       const result = await rule.validator(value, this.id);
       return result;
@@ -163,6 +169,10 @@ export default class StepVerifyInput extends Vue {
   }
   public handleUpdateDefaultValidator() {
     this.validator = JSON.parse(JSON.stringify(this.defaultValidator));
+  }
+  @Emit('validator-change')
+  public handleValidatorChange() {
+    return this.validator;
   }
   @Emit('jump-proxy')
   public  handleClick() {}

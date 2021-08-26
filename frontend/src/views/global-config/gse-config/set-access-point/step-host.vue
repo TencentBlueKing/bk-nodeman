@@ -1,184 +1,115 @@
 <template>
   <div class="access-point-host">
     <bk-form :label-width="labelWidth" :model="formData" ref="formData">
-      <bk-form-item
-        :label="$t('接入点名称')"
-        :required="true" :rules="rules.name"
-        property="name"
-        error-display-type="normal">
-        <bk-input v-model.trim="formData.name" :placeholder="$t('用户创建的接入点')" @change="hadleFormChange"></bk-input>
-      </bk-form-item>
-      <bk-form-item :label="$t('接入点说明')">
-        <bk-input
-          ext-cls="bg-white textarea-description"
-          type="textarea"
-          :rows="4"
-          :maxlength="100"
-          :placeholder="$t('接入点说明placeholder')"
-          v-model.trim="formData.description"
-          @change="hadleFormChange">
-        </bk-input>
-      </bk-form-item>
-      <bk-form-item
-        :label="$t('区域')"
-        :required="true"
-        :rules="rules.required"
-        property="region_id"
-        error-display-type="normal">
-        <bk-input v-model.trim="formData.region_id" :placeholder="$t('请输入')" @change="hadleFormChange"></bk-input>
-      </bk-form-item>
-      <bk-form-item
-        :label="$t('城市')"
-        :required="true"
-        :rules="rules.required"
-        property="city_id"
-        error-display-type="normal">
-        <bk-input v-model.trim="formData.city_id" :placeholder="$t('请输入')" @change="hadleFormChange"></bk-input>
-      </bk-form-item>
-      <bk-form-item
-        class="mt40"
-        :label="$t('Zookeeper用户名')"
-        :required="false"
-        property="zk_account"
-        error-display-type="normal">
-        <bk-input v-model.trim="formData.zk_account" :placeholder="$t('请输入')" @change="hadleFormChange"></bk-input>
-      </bk-form-item>
-      <bk-form-item
-        :label="$t('Zookeeper密码')"
-        :required="false"
-        property="zk_password"
-        error-display-type="normal">
-        <bk-input
-          :type="zkPasswordType"
-          v-model.trim="formData.zk_password"
-          :placeholder="$t('请输入')"
-          @change="hadleFormChange">
-        </bk-input>
-      </bk-form-item>
-      <div
-        v-for="(label, labelIndex) in labelTableList" :key="labelIndex"
-        :style="{ width: `${relatedContentWidth}px` }"
-        :class="['bk-form-item ip-related-item clearfix', { mb40: !labelIndex }]">
-        <div class="bk-form-item is-required">
-          <label class="bk-label" :style="{ width: `${ labelWidth }px` }">
-            <span class="bk-label-text">{{label.name}}</span>
-          </label>
-          <div class="bk-form-content" :style="{ 'margin-left': `${ labelWidth }px` }">
-            <setup-form-table
-              ref="zookeeperTable"
-              :table-head="checkConfig[label.thead]">
-              <tbody class="setup-body" slot="tbody">
-                <tr v-for="(host, index) in formData[label.key]" :key="`${label.key}td${index}`">
-                  <td>{{ index + 1 }}</td>
-                  <td
-                    class="is-required"
-                    v-for="(config, idx) in checkConfig[label.key]"
-                    :key="`${label.key}td${idx}`">
-                    <verify-input
-                      position="right"
-                      ref="checkItem"
-                      required
-                      :rules="config.rules"
-                      :id="index"
-                      :default-validator="getDefaultValidator()">
-                      <input-type
-                        v-model.trim="host[config.prop]"
-                        v-bind="{
-                          type: 'text',
-                          placeholder: $t('请输入'),
-                          disabled: checkLoading
-                        }"
-                        @change="hadleFormChange">
-                      </input-type>
-                    </verify-input>
-                  </td>
-                  <td>
-                    <div class="opera-icon-group">
-                      <i
-                        :class="['nodeman-icon nc-plus', { 'disable-icon': checkLoading }]"
-                        @click="addAddress(index, label.key)">
-                      </i>
-                      <i
-                        :class="['nodeman-icon nc-minus', { 'disable-icon': formData[label.key].length <= 1 }]"
-                        @click="deleteAddress(index, label.key)">
-                      </i>
-                    </div>
-                  </td>
-                </tr>
-              </tbody>
-            </setup-form-table>
+      <template v-for="(formItem, itemIndex) in formList">
+        <!-- zk&server - table -->
+        <template v-if="formItem.type === 'zk'">
+          <div
+            v-for="(label, labelIndex) in labelTableList" :key="`${itemIndex}_${labelIndex}`"
+            :style="{ width: `${relatedContentWidth}px` }"
+            :class="['bk-form-item ip-related-item clearfix', { mb40: !labelIndex }]">
+            <div class="bk-form-item is-required">
+              <label class="bk-label" :style="{ width: `${ labelWidth }px` }">
+                <span class="bk-label-text">{{label.name}}</span>
+              </label>
+              <div class="bk-form-content" :style="{ 'margin-left': `${ labelWidth }px` }">
+                <SetupFormTable :table-head="checkConfig[label.thead]">
+                  <tbody class="setup-body" slot="tbody">
+                    <tr v-for="(host, index) in formData[label.key]" :key="`${label.key}td${index}`">
+                      <td>{{ index + 1 }}</td>
+                      <td
+                        class="is-required"
+                        v-for="(config, idx) in checkConfig[label.key]"
+                        :key="`${label.key}td${idx}`">
+                        <VerifyInput
+                          position="right"
+                          ref="checkItem"
+                          required
+                          :rules="config.rules"
+                          :id="index"
+                          :default-validator="getDefaultValidator()">
+                          <InputType
+                            v-model.trim="host[config.prop]"
+                            v-bind="{ type: 'text', placeholder: $t('请输入'), disabled: checkLoading }"
+                            @change="hadleFormChange">
+                          </InputType>
+                        </VerifyInput>
+                      </td>
+                      <td>
+                        <div class="opera-icon-group">
+                          <i
+                            :class="['nodeman-icon nc-plus', { 'disable-icon': checkLoading }]"
+                            @click="addAddress(index, label.key)">
+                          </i>
+                          <i
+                            :class="['nodeman-icon nc-minus', { 'disable-icon': formData[label.key].length <= 1 }]"
+                            @click="deleteAddress(index, label.key)">
+                          </i>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </SetupFormTable>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
-      <bk-form-item
-        class="mt20"
-        :label="$t('外网回调地址')"
-        :rules="rules.callback"
-        property="outer_callback_url"
-        error-display-type="normal">
-        <bk-input
-          v-model.trim="formData.outer_callback_url"
-          :disabled="checkLoading"
-          :placeholder="$t('请输入外网回调地址')"
-          @change="hadleFormChange">
-        </bk-input>
-      </bk-form-item>
-      <bk-form-item
-        class="mt40"
-        :label="$t('Agent包服务器目录')"
-        :required="false"
-        :rules="rules.nginxPath"
-        property="nginx_path"
-        error-display-type="normal">
-        <bk-input
-          v-model.trim="formData.nginx_path"
-          :disabled="checkLoading"
-          :placeholder="$t('请输入服务器目录')"
-          @change="hadleFormChange">
-        </bk-input>
-      </bk-form-item>
-      <bk-form-item
-        class="mt20"
-        :label="$t('Agent包URL')"
-        :required="true"
-        :rules="rules.url"
-        property="package_inner_url"
-        error-display-type="normal">
-        <bk-input
-          v-model.trim="formData.package_inner_url"
-          :disabled="checkLoading"
-          :placeholder="$t('请输入内网下载URL')"
-          @change="hadleFormChange">
-        </bk-input>
-      </bk-form-item>
-      <bk-form-item class="mt10" label="" :rules="rules.url" property="package_outer_url" error-display-type="normal">
-        <bk-input
-          v-model.trim="formData.package_outer_url"
-          :disabled="checkLoading"
-          :placeholder="$t('请输入外网下载URL')"
-          @change="hadleFormChange">
-        </bk-input>
-      </bk-form-item>
-      <bk-form-item class="mt30">
-        <bk-button
-          class="check-btn"
-          theme="primary"
-          :loading="checkLoading"
-          :disabled="checkedResult"
-          @click.stop="checkCommit">
-          {{ $t('测试Server及URL可用性') }}
-        </bk-button>
-        <section class="check-result" v-if="isChecked">
-          <div class="check-result-detail">
-            <template v-if="isChecked">
-              <h4 class="result-title">{{ $t('测试结果') }}</h4>
-              <template v-for="(info, index) in checkedResultList">
-                <p :key="index" :class="{ error: info.log_level === 'ERROR' }">{{ `- ${ info.log }` }}</p>
+        </template>
+        <!-- 可用性测试 -->
+        <bk-form-item :key="itemIndex" class="mt30" v-else-if="formItem.type === 'usability'">
+          <bk-button
+            class="check-btn"
+            theme="primary"
+            :loading="checkLoading"
+            :disabled="checkedResult"
+            @click.stop="checkCommit">
+            {{ $t('测试Server及URL可用性') }}
+          </bk-button>
+          <section class="check-result" v-if="isChecked">
+            <div class="check-result-detail">
+              <template v-if="isChecked">
+                <h4 class="result-title">{{ $t('测试结果') }}</h4>
+                <template v-for="(info, index) in checkedResultList">
+                  <p :key="index" :class="{ error: info.log_level === 'ERROR' }">{{ `- ${ info.log }` }}</p>
+                </template>
               </template>
-            </template>
-          </div>
-        </section>
-      </bk-form-item>
+            </div>
+          </section>
+        </bk-form-item>
+
+        <bk-form-item
+          v-else-if="formItem.type === 'zkPassword'"
+          :key="itemIndex"
+          :label="$t('Zookeeper密码')"
+          property="zk_password">
+          <bk-input
+            :type="zkPasswordType"
+            :placeholder="$t('请输入')"
+            v-model.trim="formData.zk_password"
+            @change="hadleFormChange">
+          </bk-input>
+        </bk-form-item>
+
+        <bk-form-item
+          v-else
+          :class="formItem.extCls"
+          :key="itemIndex"
+          :label="formItem.label"
+          :required="formItem.required"
+          :rules="rules[formItem.ruleName]"
+          :property="formItem.key"
+          error-display-type="normal">
+          <bk-input
+            :ext-cls="formItem.inputExtCls"
+            :type="formItem.type || 'text'"
+            :placeholder="formItem.placeholder"
+            :rows="formItem.rows"
+            :maxlength="formItem.maxLength"
+            v-model.trim="formData[formItem.key]"
+            @change="hadleFormChange">
+          </bk-input>
+        </bk-form-item>
+      </template>
+
       <bk-form-item class="item-button-group mt30">
         <bk-button
           class="nodeman-primary-btn"
@@ -197,6 +128,7 @@
   </div>
 </template>
 
+
 <script lang="ts">
 import { Component, Prop, Ref, Watch } from 'vue-property-decorator';
 import { MainStore, ConfigStore } from '@/store/index';
@@ -206,10 +138,11 @@ import InputType from '@/components/setup-table/input-type.vue';
 import formLabelMixin from '@/common/form-label-mixin';
 import SetupFormTable from './step-form-table.vue';
 import { isEmpty } from '@/common/util';
+import { stepHost } from './apFormConfig';
+import { regUrl, reguRequired, reguUrl, reguIp, reguPort, regFnSysPath, reguFnName } from '@/common/form-check';
 
 type IServer = 'btfileserver' | 'dataserver' | 'taskserver';
 
-const ipRegExp = '^((25[0-5]|2[0-4]\\d|[01]?\\d\\d?)\\.){3}(25[0-5]|2[0-4]\\d|[01]?\\d\\d?)$';
 @Component({
   name: 'StepHost',
   components: {
@@ -230,6 +163,8 @@ export default class StepHost extends formLabelMixin {
   private checkedResult = false; // 检测结果
   private isChecked = false; // 是否已进行过检测
   private checkedResultList = []; // 检测详情
+  private formList = stepHost;
+  private linuxPathReg = regFnSysPath({ maxText: 32, minLevel: 2 });
   private formData: IApBase = {
     name: '',
     description: '',
@@ -282,46 +217,14 @@ export default class StepHost extends formLabelMixin {
         classExt: 'ip-input ip-input-inner',
         required: true,
         placeholder: window.i18n.t('请输入Zookeeper主机的IP'),
-        rules: [
-          {
-            regx: ipRegExp,
-            content: this.$t('IP格式不正确'),
-          },
-          {
-            content: this.$t('冲突校验', { prop: 'IP' }),
-            validator: (value: string, index: number) => this.validateUnique(value, {
-              index,
-              prop: 'zk_ip',
-              type: 'zk_hosts',
-            }),
-          },
+        rules: [reguIp, this.ipConflictRule('zk_ip', 'zk_hosts'),
         ],
       },
       {
         prop: 'zk_port',
         classExt: 'ip-input ip-input-outer',
         placeholder: window.i18n.t('请输入Zookeeper主机的端口号'),
-        rules: [
-          {
-            content: this.$t('数字0_65535'),
-            validator: (value: string) => {
-              if (!value) return true;
-              let portValidate =  /^[0-9]*$/.test(value);
-              if (portValidate) {
-                portValidate = parseInt(value, 10) <= 65535;
-              }
-              return portValidate;
-            },
-          },
-          {
-            content: this.$t('冲突校验', { prop: this.$t('端口') }),
-            validator: (value: string, index: number) => this.validateUnique(value, {
-              index,
-              prop: 'zk_port',
-              type: 'zk_hosts',
-            }),
-          },
-        ],
+        rules: [reguPort, this.ipConflictRule('zk_port', 'zk_hosts')],
       },
     ],
     btfileserver: [
@@ -330,39 +233,13 @@ export default class StepHost extends formLabelMixin {
         classExt: 'ip-input ip-input-inner',
         required: true,
         placeholder: window.i18n.t('请输入Server的内网IP', { type: 'Btfile' }),
-        rules: [
-          {
-            regx: ipRegExp,
-            content: this.$t('IP格式不正确'),
-          },
-          {
-            content: this.$t('冲突校验', { prop: 'IP' }),
-            validator: (value: string, index: number) => this.validateUnique(value, {
-              index,
-              prop: 'inner_ip',
-              type: 'btfileserver',
-            }),
-          },
-        ],
+        rules: [reguIp, this.ipConflictRule('inner_ip', 'btfileserver')],
       },
       {
         prop: 'outer_ip',
         classExt: 'ip-input ip-input-outer',
         placeholder: window.i18n.t('请输入Server的外网IP', { type: 'Btfile' }),
-        rules: [
-          {
-            regx: ipRegExp,
-            content: this.$t('IP格式不正确'),
-          },
-          {
-            content: this.$t('冲突校验', { prop: 'IP' }),
-            validator: (value: string, index: number) => this.validateUnique(value, {
-              index,
-              prop: 'outer_ip',
-              type: 'btfileserver',
-            }),
-          },
-        ],
+        rules: [reguIp, this.ipConflictRule('outer_ip', 'btfileserver')],
       },
     ],
     dataserver: [
@@ -371,39 +248,13 @@ export default class StepHost extends formLabelMixin {
         classExt: 'ip-input ip-input-inner',
         required: true,
         placeholder: window.i18n.t('请输入Server的内网IP', { type: 'Data' }),
-        rules: [
-          {
-            regx: ipRegExp,
-            content: this.$t('IP格式不正确'),
-          },
-          {
-            content: this.$t('冲突校验', { prop: 'IP' }),
-            validator: (value: string, index: number) => this.validateUnique(value, {
-              index,
-              prop: 'inner_ip',
-              type: 'dataserver',
-            }),
-          },
-        ],
+        rules: [reguIp, this.ipConflictRule('inner_ip', 'dataserver')],
       },
       {
         prop: 'outer_ip',
         classExt: 'ip-input ip-input-outer',
         placeholder: window.i18n.t('请输入Server的外网IP', { type: 'Data' }),
-        rules: [
-          {
-            regx: ipRegExp,
-            content: this.$t('IP格式不正确'),
-          },
-          {
-            content: this.$t('冲突校验', { prop: 'IP' }),
-            validator: (value: string, index: number) => this.validateUnique(value, {
-              index,
-              prop: 'outer_ip',
-              type: 'dataserver',
-            }),
-          },
-        ],
+        rules: [reguIp, this.ipConflictRule('outer_ip', 'dataserver')],
       },
     ],
     taskserver: [
@@ -412,43 +263,17 @@ export default class StepHost extends formLabelMixin {
         classExt: 'ip-input ip-input-inner',
         required: true,
         placeholder: window.i18n.t('请输入Server的内网IP', { type: 'Task' }),
-        rules: [
-          {
-            regx: ipRegExp,
-            content: this.$t('IP格式不正确'),
-          },
-          {
-            content: this.$t('冲突校验', { prop: 'IP' }),
-            validator: (value: string, index: number) => this.validateUnique(value, {
-              index,
-              prop: 'inner_ip',
-              type: 'taskserver',
-            }),
-          },
-        ],
+        rules: [reguIp, this.ipConflictRule('inner_ip', 'taskserver')],
       },
       {
         prop: 'outer_ip',
         classExt: 'ip-input ip-input-outer',
         placeholder: window.i18n.t('请输入Server的外网IP', { type: 'Task' }),
-        rules: [
-          {
-            regx: ipRegExp,
-            content: this.$t('IP格式不正确'),
-          },
-          {
-            content: this.$t('冲突校验', { prop: 'IP' }),
-            validator: (value: string, index: number) => this.validateUnique(value, {
-              index,
-              prop: 'outer_ip',
-              type: 'taskserver',
-            }),
-          },
-        ],
+        rules: [reguIp, this.ipConflictRule('outer_ip', 'taskserver')],
         nginxPath: [
           {
             validator(val: string) {
-              return !val || /^(\/[A-Za-z0-9_-]{1,32}){2,}$/.test(val);
+              return !val || this.linuxPathReg.test(val);
             },
             message: this.$t('路径格式不正确', { num: 32 }),
             trigger: 'blur',
@@ -465,7 +290,6 @@ export default class StepHost extends formLabelMixin {
       },
     ],
   };
-  private urlReg = /^(?:http(s)?:\/\/)?[\w.-]+(?:\.[\w.-]+)+[\w\-._~:/?#[\]@!$&'*+,;=.]+$/;
   // 目录名可以包含但不相等，所以末尾加了 /, 校验的时候给值也需要加上 /
   private linuxNotInclude: string[] = [
     '/etc/', '/root/', '/boot/', '/dev/', '/sys/', '/tmp/', '/var/', '/usr/lib/',
@@ -478,40 +302,12 @@ export default class StepHost extends formLabelMixin {
     '/usr/local/lib64', '/usr/local/bin', '/usr/local/libexec', '/usr/local/sbin',
   ];
   private rules = {
-    required: [
-      {
-        required: true,
-        message: this.$t('必填项'),
-        trigger: 'blur',
-      },
-    ],
-    name: [
-      {
-        required: true,
-        message: this.$t('必填项'),
-        trigger: 'blur',
-      },
-      {
-        validator: (val: string) => /^[A-Za-z0-9_\u4e00-\u9fa5]{3,32}$/.test(val),
-        message: this.$t('长度为3_32的字符'),
-        trigger: 'blur',
-      },
-    ],
-    url: [
-      {
-        required: true,
-        message: this.$t('必填项'),
-        trigger: 'blur',
-      },
-      {
-        validator: (val: string) => this.urlReg.test(val),
-        message: this.$t('URL格式不正确'),
-        trigger: 'blur',
-      },
-    ],
+    required: [reguRequired],
+    name: [reguRequired, reguFnName()],
+    url: [reguRequired, reguUrl],
     callback: [
       {
-        validator: (val: string) => !val || (this.urlReg.test(val) && /(\/backend)$/.test(val)),
+        validator: (val: string) => !val || (regUrl.test(val) && /(\/backend)$/.test(val)),
         message: this.$t('请输入以backend结尾的URL地址'),
         trigger: 'blur',
       },
@@ -526,11 +322,6 @@ export default class StepHost extends formLabelMixin {
   private get relatedContentWidth() {
     // 580: 两个输入框宽度
     return this.labelWidth + 580;
-  }
-  // 动态表单类型第一个item宽度
-  private get firstRelatedInputWidth() {
-    // 285: 输入框的宽度
-    return this.labelWidth + 285;
   }
   private get zkPasswordType() {
     if (!isEmpty(this.formData.zk_password)) {
@@ -631,8 +422,14 @@ export default class StepHost extends formLabelMixin {
   private getDefaultValidator() {
     return {
       show: false,
-      content: '',
+      message: '',
       errTag: true,
+    };
+  }
+  private ipConflictRule(prop: string, type: string) {
+    return {
+      message: this.$t('冲突校验', { prop: 'IP' }),
+      validator: (value: string, index: number) => this.validateUnique(value, { index, prop, type }),
     };
   }
   private validateUnique(value: string, { prop, type, index }: { prop: string, type: string, index: number }) {

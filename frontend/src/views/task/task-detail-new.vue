@@ -116,7 +116,7 @@ import HeaderFilterMixins from '@/components/common/header-filter-mixins';
 import PollMixin from '@/common/poll-mixin';
 import { ICondition, IPagination, ISearchChild, ISearchItem } from '@/types';
 import { ITaskHost, ITotalCount, ITask, ITaskParams } from '@/types/task/task';
-import { copyText, debounce, formatTimeByTimezone, takesTimeFormat, toHump } from '@/common/util';
+import { copyText, debounce, takesTimeFormat, toHump } from '@/common/util';
 import { Route } from 'vue-router';
 
 Component.registerHooks([
@@ -275,7 +275,7 @@ export default class TaskDeatail extends Mixins(PollMixin, HeaderFilterMixins) {
       Object.assign(this.detail, {
         jobType: toHump((jobType || '').toLowerCase()),
         jobTypeDisplay: jobTypeDisplay || '--',
-        timestamp: formatTimeByTimezone(startTime),
+        timestamp: this.$filters('filterTimezone', startTime),
         createdBy,
         jobId,
         costTime: takesTimeFormat(costTime),

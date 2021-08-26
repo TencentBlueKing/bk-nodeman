@@ -100,10 +100,10 @@
         <!-- 忽略的没有这两列信息 -->
         <template v-if="!isIgnoredTab || !isManualType">
           <bk-table-column :label="$t('所属业务')" prop="bk_biz_name" :render-header="renderFilterHeader">
-            <template #default="{ row }">{{ row.bk_biz_name || '--' }}</template>
+            <template #default="{ row }">{{ row.bk_biz_name | filterEmpty }}</template>
           </bk-table-column>
           <bk-table-column :label="$t('操作系统')" prop="os_type" :render-header="renderFilterHeader">
-            <template #default="{ row }">{{ row.os_type || '--' }}</template>
+            <template #default="{ row }">{{ row.os_type | filterEmpty }}</template>
           </bk-table-column>
         </template>
         <bk-table-column
@@ -165,15 +165,15 @@
               {{ row.target_policy.name }}
               <i class="nodeman-icon nc-jump-link"></i>
             </router-link>
-            <span v-else>{{ row.target_policy.msg || '--' }}</span>
+            <span v-else>{{ row.target_policy.msg | filterEmpty }}</span>
           </template>
         </bk-table-column>
         <template v-else-if="!hideVersionColumn">
           <bk-table-column :key="tabActive" :label="$t('当前版本')" prop="current_version">
-            <template #default="{ row }">{{ row.current_version || '--' }}</template>
+            <template #default="{ row }">{{ row.current_version | filterEmpty }}</template>
           </bk-table-column>
           <bk-table-column :label="$t('目标版本')" prop="target_version">
-            <template #default="{ row }">{{ row.target_version || '--' }}</template>
+            <template #default="{ row }">{{ row.target_version | filterEmpty }}</template>
           </bk-table-column>
         </template>
       </bk-table>
@@ -654,7 +654,7 @@ export default class PerformPreview extends Mixins(HeaderRenderMixin, HeaderFilt
       data: item.list.map((row: Dictionary) => ({
         ...row,
         inner_ip: row.ip,
-        os_type: this.osMap[row.os_type] || row.os_type  || '--',
+        os_type: this.osMap[row.os_type] || row.os_type || '--',
         current_version: row.migrate_reason ? row.migrate_reason.current_version || '--' : '--',
         target_version: row.migrate_reason ? row.migrate_reason.target_version || '--' : '--',
       })),

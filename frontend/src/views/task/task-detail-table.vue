@@ -30,7 +30,7 @@
         :label="$t('目标版本')"
         :resizable="false">
         <template #default="{ row }">
-          {{ row.targetVersion || '--' }}
+          {{ row.targetVersion | filterEmpty }}
         </template>
       </bk-table-column>
       <bk-table-column v-else min-width="100" :label="$t('安装方式')" prop="isManual" :resizable="false">
@@ -69,13 +69,13 @@
               :title="filteredTitle(row)"
               @click.stop="handleRowView('filterrd', row)">
               {{ `${titleStatusMap[row.status]} ` }}
-              ({{ row.statusDisplay || '--' }}
+              ({{ row.statusDisplay | filterEmpty }}
               <i
                 v-if="row.exception && row.exception === 'is_running'"
                 class="nodeman-icon nc-icon-audit filtered-icon">
               </i>)
             </span>
-            <span class="execut-text" v-else>{{ row.statusDisplay || '--' }}</span>
+            <span class="execut-text" v-else>{{ row.statusDisplay | filterEmpty }}</span>
           </div>
         </template>
       </bk-table-column>

@@ -5,7 +5,7 @@
         <span class="content-icon" @click="handleBack">
           <i class="nodeman-icon nc-back-left"></i>
         </span>
-        <span class="content-header">{{ `${ $t('任务详情') } ${ detail.jobTypeDisplay || '--' }` }}</span>
+        <span class="content-header">{{ `${ $t('任务详情') } ${ detail.jobTypeDisplay | filterEmpty }` }}</span>
         <div class="content-subtitle">
           <span v-if="manualWaiting" class="tab-badge bg-filtered">{{ manualWaitingTitle }}</span>
           <span v-else :class="`tab-badge bg-${taskStatus}`">{{ titleStatusMap[taskStatus] || $t('状态未知') }}</span>
@@ -18,7 +18,7 @@
               {{ item.name }}
             </span>
             <span class="info-value text-ellipsis" v-if="item.name" v-bk-overflow-tips>
-              {{ detail[item.id] || '--' }}
+              {{ detail[item.id] | filterEmpty }}
             </span>
           </li>
         </ul>
