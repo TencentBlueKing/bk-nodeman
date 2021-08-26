@@ -1,8 +1,8 @@
 import { ISetupHead, ISetupRow } from '@/types';
 import { authentication, defaultPort, sysOptions } from '@/config/config';
+import { reguFnMinInteger, reguPort, reguIp, reguIpBatch, reguIpInLineRepeat, splitCodeArr } from '@/common/form-check';
 
 const useTjj = window.PROJECT_CONFIG.USE_TJJ === 'True';
-const splitCodeArr = ['\n', '，', ' ', '、', ','];
 
 export const setupTableConfig: ISetupHead[] = [
   {
@@ -17,33 +17,11 @@ export const setupTableConfig: ISetupHead[] = [
     width: '20%',
     errTag: true,
     rules: [
-      {
-        content: window.i18n.t('IP不符合规范'),
-        validator(value: string) {
-          if (!value) return true;
-          const regx = new RegExp('^((25[0-5]|2[0-4]\\d|[01]?\\d\\d?)\\.){3}(25[0-5]|2[0-4]\\d|[01]?\\d\\d?)$');
-          const splitCode = splitCodeArr.find(split => value.indexOf(split) > 0);
-          const valueSplit = value.split(splitCode).filter(text => !!text)
-            .map(text => text.trim());
-          // IP校验
-          const ipValidate = valueSplit.some(item => !regx.test(item));
-          return !ipValidate;
-        },
-      },
-      {
-        content: window.i18n.t('冲突校验', { prop: 'IP' }),
-        validator(value: string) {
-          // 一个输入框内不能重复
-          if (!value) return true;
-          const splitCode = splitCodeArr.find(split => value.indexOf(split) > 0);
-          const valueSplit = value.split(splitCode).filter(text => !!text)
-            .map(text => text.trim());
-          return new Set(valueSplit).size === valueSplit.length;
-        },
-      },
+      reguIpBatch,
+      reguIpInLineRepeat,
       {
         trigger: 'blur',
-        content: window.i18n.t('冲突校验', { prop: 'IP' }),
+        message: window.i18n.t('冲突校验', { prop: 'IP' }),
         validator(v: string, id: number) {
           // 与其他输入框的值不能重复
           if (!v) return true;
@@ -57,7 +35,7 @@ export const setupTableConfig: ISetupHead[] = [
       },
       {
         trigger: 'blur',
-        content: '',
+        message: '',
         async validator(v: string, id: number) {
           if (!useTjj) return true;
           // 铁将军校验
@@ -105,19 +83,7 @@ export const setupTableConfig: ISetupHead[] = [
     required: true,
     batch: true,
     default: defaultPort,
-    rules: [
-      {
-        content: window.i18n.t('端口范围', { range: '0-65535' }),
-        validator(value: string) {
-          if (!value) return true;
-          let portValidate =  /^[0-9]*$/.test(value);
-          if (portValidate) {
-            portValidate = parseInt(value, 10) <= 65535;
-          }
-          return portValidate;
-        },
-      },
-    ],
+    rules: [reguPort],
     getReadonly(row: ISetupRow) {
       return row && row.os_type === 'WINDOWS';
     },
@@ -171,14 +137,10 @@ export const setupTableConfig: ISetupHead[] = [
     placeholder: window.i18n.t('请输入'),
     width: '15%',
     errTag: true,
-    rules: [
-      {
-        regx: '^((25[0-5]|2[0-4]\\d|[01]?\\d\\d?)\\.){3}(25[0-5]|2[0-4]\\d|[01]?\\d\\d?)$',
-        content: window.i18n.t('IP不符合规范'),
-      },
+    rules: [reguIp,
       {
         trigger: 'blur',
-        content: window.i18n.t('冲突校验', { prop: 'IP' }),
+        message: window.i18n.t('冲突校验', { prop: 'IP' }),
         validator(v: string, id: number) {
           // 与其他输入框的值不能重复
           if (!v) return true;
@@ -211,14 +173,9 @@ export const setupTableConfig: ISetupHead[] = [
     show: true,
     noRequiredMark: false,
     // appendSlot: 'MB/s',
-    iconOffset: 40,
+    // iconOffset: 40,
     width: 180,
-    rules: [
-      {
-        regx: '^[1-9]\\d*$',
-        content: window.i18n.t('整数最小值校验提示', { min: 1 }),
-      },
-    ],
+    rules: [reguFnMinInteger(1)],
   },
   {
     label: '',
@@ -241,33 +198,11 @@ export const setupTableManualConfig = [
     width: 'auto',
     errTag: true,
     rules: [
-      {
-        content: window.i18n.t('IP不符合规范'),
-        validator(value: string) {
-          if (!value) return true;
-          const regx = new RegExp('^((25[0-5]|2[0-4]\\d|[01]?\\d\\d?)\\.){3}(25[0-5]|2[0-4]\\d|[01]?\\d\\d?)$');
-          const splitCode = splitCodeArr.find(split => value.indexOf(split) > 0);
-          const valueSplit = value.trim().split(splitCode)
-            .filter(text => !!text);
-          // IP校验
-          const ipValidate = valueSplit.some(item => !regx.test(item));
-          return !ipValidate;
-        },
-      },
-      {
-        content: window.i18n.t('冲突校验', { prop: 'IP' }),
-        validator(value: string) {
-          // 一个输入框内不能重复
-          if (!value) return true;
-          const splitCode = splitCodeArr.find(split => value.indexOf(split) > 0);
-          const valueSplit = value.trim().split(splitCode)
-            .filter(text => !!text);
-          return new Set(valueSplit).size === valueSplit.length;
-        },
-      },
+      reguIpBatch,
+      reguIpInLineRepeat,
       {
         trigger: 'blur',
-        content: window.i18n.t('冲突校验', { prop: 'IP' }),
+        message: window.i18n.t('冲突校验', { prop: 'IP' }),
         validator(v: string, id: number) {
           // 与其他输入框的值不能重复
           if (!v) return true;
@@ -281,7 +216,7 @@ export const setupTableManualConfig = [
       },
       {
         trigger: 'blur',
-        content: '',
+        message: '',
         async validator(v: string, id: number) {
           if (!useTjj) return true;
           // 铁将军校验
@@ -333,14 +268,10 @@ export const setupTableManualConfig = [
     placeholder: window.i18n.t('请输入'),
     width: 'auto',
     errTag: true,
-    rules: [
-      {
-        regx: '^((25[0-5]|2[0-4]\\d|[01]?\\d\\d?)\\.){3}(25[0-5]|2[0-4]\\d|[01]?\\d\\d?)$',
-        content: window.i18n.t('IP不符合规范'),
-      },
+    rules: [reguIp,
       {
         trigger: 'blur',
-        content: window.i18n.t('冲突校验', { prop: 'IP' }),
+        message: window.i18n.t('冲突校验', { prop: 'IP' }),
         validator(v: string, id: number) {
           // 与其他输入框的值不能重复
           if (!v) return true;
@@ -373,14 +304,9 @@ export const setupTableManualConfig = [
     show: true,
     noRequiredMark: false,
     // appendSlot: 'MB/s',
-    iconOffset: 40,
+    // iconOffset: 40,
     width: 180,
-    rules: [
-      {
-        regx: '^[1-9]\\d*$',
-        content: window.i18n.t('整数最小值校验提示', { min: 1 }),
-      },
-    ],
+    rules: [reguFnMinInteger(1)],
   },
   {
     label: '',

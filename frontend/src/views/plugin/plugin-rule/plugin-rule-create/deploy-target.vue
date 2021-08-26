@@ -42,6 +42,7 @@ import FormLabelMixin from '@/common/form-label-mixin';
 import IpSelect from '@/components/ip-selector/business/topo-selector-nodeman.vue';
 import { PluginStore } from '@/store';
 import { ITarget } from '@/types/plugin/plugin-type';
+import { reguRequired, reguFnName } from '@/common/form-check';
 
 @Component({
   name: 'deploy-target',
@@ -58,18 +59,7 @@ export default class DeployTarget extends Mixins(FormLabelMixin) {
     policyName: PluginStore.strategyData.name || '',
   };
   private rules: Dictionary = {
-    policyName: [
-      {
-        required: true,
-        message: window.i18n.t('必填项'),
-        trigger: 'blur',
-      },
-      {
-        validator: (val: string) => val.replace(/[\u0391-\uFFE5]/g, 'aa').length <= 40,
-        message: this.$t('长度不能大于20个中文或40个英文字母'),
-        trigger: 'blur',
-      },
-    ],
+    policyName: [reguRequired, reguFnName({ max: 40 })],
   };
   private stepChanged = false;
 

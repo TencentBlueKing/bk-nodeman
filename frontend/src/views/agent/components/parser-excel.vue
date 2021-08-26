@@ -70,6 +70,7 @@ import { tableConfig } from '../config/importTableConfig';
 import { authentication } from '@/config/config';
 import { isEmpty } from '@/common/util';
 import { IAgent } from '@/types/agent/agent-type';
+import { regIp } from '@/common/form-check';
 
 @Component({
   name: 'parser-excel',
@@ -114,7 +115,7 @@ export default class ParserExcel extends Vue {
     {
       prop: 'outer_ip',
       label: `${this.$tc('外网IP')}${this.$tc('可选')}`,
-      regx: '^((25[0-5]|2[0-4]\\d|[01]?\\d\\d?)\\.){3}(25[0-5]|2[0-4]\\d|[01]?\\d\\d?)$',
+      regex: regIp,
     },
   ];
 
@@ -288,7 +289,7 @@ export default class ParserExcel extends Vue {
         // 自定义额外参数
         this.extraParams.forEach((config) => {
           const value = item[config.label];
-          const validate = !config.regx || new RegExp(config.regx).test(value);
+          const validate = !config.regex || config.regex.test(value);
           if (validate) {
             info[config.prop] = value;
           }

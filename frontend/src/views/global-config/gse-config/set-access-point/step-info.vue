@@ -71,6 +71,7 @@ import { Vue, Component, Prop, Ref } from 'vue-property-decorator';
 import { MainStore, ConfigStore } from '@/store/index';
 import { IApParams } from '@/types/config/config';
 import { transformDataKey, toLine } from '@/common/util';
+import { apAgentInfo, apAgentInfoRules } from './apFormConfig';
 
 @Component({ name: 'StepInfo' })
 
@@ -79,58 +80,8 @@ export default class StepInfo extends Vue {
   @Prop({ type: Boolean, default: false }) private readonly isEdit!: boolean;
 
   private submitLoading = false;
-  private pathSet = [
-    {
-      type: 'linux',
-      title: this.$t('Agent信息Linux'),
-      children: [
-        {
-          label: this.$t('hostid路径'), required: true, prop: 'linuxHostidPath',
-          rules: 'linuxPath', placeholder: '',
-        },
-        { label: 'dataipc', required: true, prop: 'linuxDataipc', rules: 'linuxDataipc', placeholder: '' },
-        {
-          label: this.$t('安装路径'), required: true, prop: 'linuxSetupPath',
-          rules: 'linuxInstallPath', placeholder: '',
-        },
-        { label: this.$t('数据文件路径'), required: true, prop: 'linuxDataPath', rules: 'linuxPath', placeholder: '' },
-        { label: this.$t('运行时路径'), required: true, prop: 'linuxRunPath', rules: 'linuxPath', placeholder: '' },
-        { label: this.$t('日志文件路径'), required: true, prop: 'linuxLogPath', rules: 'linuxPath', placeholder: '' },
-        { label: this.$t('临时文件路径'), required: true, prop: 'linuxTempPath', rules: 'linuxPath', placeholder: '' },
-      ],
-    },
-    {
-      type: 'windows',
-      title: this.$t('Agent信息Windows'),
-      children: [
-        {
-          label: this.$t('hostid路径'),
-          required: true,
-          prop: 'windowsHostidPath',
-          rules: 'winPath',
-          placeholder: '',
-        },
-        {
-          label: 'dataipc',
-          required: true,
-          prop: 'windowsDataipc',
-          rules: 'winDataipc',
-          placeholder: this.$t('请输入不小于零的整数'),
-        },
-        {
-          label: this.$t('安装路径'),
-          required: true,
-          prop: 'windowsSetupPath',
-          rules: 'winInstallPath',
-          placeholder: '',
-        },
-        { label: this.$t('数据文件路径'), required: true, prop: 'windowsDataPath', rules: 'winPath', placeholder: '' },
-        { label: this.$t('运行时路径'), required: true, prop: 'windowsRunPath', rules: 'winPath', placeholder: '' },
-        { label: this.$t('日志文件路径'), required: true, prop: 'windowsLogPath', rules: 'winPath', placeholder: '' },
-        { label: this.$t('临时文件路径'), required: true, prop: 'windowsTempPath', rules: 'winPath', placeholder: '' },
-      ],
-    },
-  ];
+  private pathSet = apAgentInfo;
+  private rules = apAgentInfoRules;
   private formData: Dictionary = {
     linuxDataipc: '/var/run/ipc.state.report',
     linuxHostidPath: '/var/lib/gse/host/hostid',
@@ -148,143 +99,6 @@ export default class StepInfo extends Vue {
     windowsTempPath: 'C:\\tmp',
     packageList: [
       { value: '' },
-    ],
-  };
-  // 目录名可以包含但不相等，所以末尾加了 /, 校验的时候给值也需要加上 /
-  private linuxNotInclude = [
-    '/etc/', '/root/', '/boot/', '/dev/', '/sys/', '/tmp/', '/var/', '/usr/lib/',
-    '/usr/lib64/', '/usr/include/', '/usr/local/etc/', '/usr/local/sa/', '/usr/local/lib/',
-    '/usr/local/lib64/', '/usr/local/bin/', '/usr/local/libexec/', '/usr/local/sbin/',
-  ];
-  private linuxNotIncludeError = [
-    '/etc', '/root', '/boot', '/dev', '/sys', '/tmp', '/var', '/usr/lib',
-    '/usr/lib64', '/usr/include', '/usr/local/etc', '/usr/local/sa', '/usr/local/lib',
-    '/usr/local/lib64', '/usr/local/bin', '/usr/local/libexec', '/usr/local/sbin',
-  ];
-  // 转换为正则需要四个 \
-  private winNotInclude = [
-    'C:\\\\Windows\\\\', 'C:\\\\Windows\\\\', 'C:\\\\config\\\\',
-    'C:\\\\Users\\\\', 'C:\\\\Recovery\\\\',
-  ];
-  private winNotIncludeError = ['C:\\Windows', 'C:\\Windows', 'C:\\config', 'C:\\Users', 'C:\\Recovery'];
-  private rules = {
-    linuxDataipc: [
-      {
-        required: true,
-        message: this.$t('必填项'),
-        trigger: 'blur',
-      },
-      {
-        validator(val: string) {
-          return /^(\/[A-Za-z0-9_.]{1,}){1,}$/.test(val);
-        },
-        message: this.$t('LinuxIpc校验不正确'),
-        trigger: 'blur',
-      },
-    ],
-    winDataipc: [
-      {
-        required: true,
-        message: this.$t('必填项'),
-        trigger: 'blur',
-      },
-      {
-        validator(val: string) {
-          return /^(0|[1-9][0-9]*)$/.test(val);
-        },
-        message: this.$t('winIpc校验不正确'),
-        trigger: 'blur',
-      },
-    ],
-    linuxPath: [
-      {
-        required: true,
-        message: this.$t('必填项'),
-        trigger: 'blur',
-      },
-      {
-        validator(val: string) {
-          return /^(\/[A-Za-z0-9_]{1,16}){1,}$/.test(val);
-        },
-        message: this.$t('Linux路径格式不正确'),
-        trigger: 'blur',
-      },
-    ],
-    winPath: [
-      {
-        required: true,
-        message: this.$t('必填项'),
-        trigger: 'blur',
-      },
-      {
-        validator(val: string) {
-          return /^([c-zC-Z]:)(\\[A-Za-z0-9_]{1,16}){1,}$/.test(val);
-        },
-        message: this.$t('windows路径格式不正确'),
-        trigger: 'blur',
-      },
-    ],
-    linuxInstallPath: [
-      {
-        required: true,
-        message: this.$t('必填项'),
-        trigger: 'blur',
-      },
-      {
-        validator(val: string) {
-          // / 开头，至少包含两级目录，且为长度不超过16的大小写英文、数字和下划线
-          return /^(\/[A-Za-z0-9_]{1,16}){2,}$/.test(val);
-        },
-        message: this.$t('Linux安装路径格式不正确'),
-        trigger: 'blur',
-      },
-      {
-        validator: (val: string) => {
-          // 前缀不能匹配到以下
-          // /etc, /root, /boot, /dev, /sys, /tmp, /var,
-          // /usr/lib, /usr/lib64, /usr/include,
-          // /usr/local/etc, /usr/local/sa, /usr/local/lib, /usr/local/lib64,
-          // /usr/local/bin, /usr/local/;libexec, /usr/local/sbin
-          const path = `${val}/`;
-          return !this.linuxNotInclude.find(item => path.search(item) > -1);
-        },
-        message: () => this.$t('不能以如下内容开头', { path: this.linuxNotIncludeError.join(', ') }),
-        trigger: 'blur',
-      },
-    ],
-    winInstallPath: [
-      {
-        required: true,
-        message: this.$t('必填项'),
-        trigger: 'blur',
-      },
-      {
-        validator(val: string) {
-          // [c-zC-Z]:\ 开头，至少包含一级目录，且为长度不超过16的大小写英文、数字和下划线
-          return /^([c-zC-Z]:)(\\[A-Za-z0-9_]{1,16}){1,}$/.test(val);
-        },
-        message: this.$t('windows路径格式不正确'),
-        trigger: 'blur',
-      },
-      {
-        validator: (val: string) => {
-          // 前缀不能匹配到 C:\Windows, C:\config, C:\Users, C:\Recovery
-          const path = `${val}\\\\`;
-          return !this.winNotInclude.find(item => path.search(new RegExp(item, 'i')) > -1);
-        },
-        message: () => this.$t('不能以如下内容开头', { path: this.winNotIncludeError.join(', ') }),
-        trigger: 'blur',
-      },
-    ],
-    package: [
-      { required: true, message: this.$t('必填项'), trigger: 'blur' },
-      {
-        validator(val: string) {
-          return /^[A-Za-z0-9_-]{1,}(.tgz)$/.test(val);
-        },
-        message: this.$t('包名称格式不正确'),
-        trigger: 'blur',
-      },
     ],
   };
   @Ref('formData') private readonly formDataRef!: any;

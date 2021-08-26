@@ -1,6 +1,7 @@
 import { ISetupHead, ISetupRow } from '@/types';
 import { authentication, defaultPort, sysOptions } from '@/config/config';
 import { ICloudSource } from '@/types/cloud/cloud';
+import { reguFnMinInteger, reguPort, reguIp } from '@/common/form-check';
 
 export const editConfig: ISetupHead[] = [
   {
@@ -9,12 +10,7 @@ export const editConfig: ISetupHead[] = [
     type: 'text',
     required: true,
     noRequiredMark: false,
-    rules: [
-      {
-        regx: '^((25[0-5]|2[0-4]\\d|[01]?\\d\\d?)\\.){3}(25[0-5]|2[0-4]\\d|[01]?\\d\\d?)$',
-        content: window.i18n.t('IP不符合规范'),
-      },
-    ],
+    rules: [reguIp],
     readonly: true,
   },
   {
@@ -105,19 +101,7 @@ export const editConfig: ISetupHead[] = [
     required: true,
     batch: true,
     default: defaultPort,
-    rules: [
-      {
-        content: window.i18n.t('端口范围', { range: '0-65535' }),
-        validator(value: string) {
-          if (!value) return true;
-          let portValidate =  /^[0-9]*$/.test(value);
-          if (portValidate) {
-            portValidate = parseInt(value, 10) <= 65535;
-          }
-          return portValidate;
-        },
-      },
-    ],
+    rules: [reguPort],
     getReadonly(row: ISetupRow) {
       return row && row.os_type === 'WINDOWS';
     },
@@ -158,7 +142,7 @@ export const editConfig: ISetupHead[] = [
     placeholder: window.i18n.t('请输入'),
     rules: [
       {
-        content: window.i18n.t('认证信息过期'),
+        message: window.i18n.t('认证信息过期'),
         validator(v: string, id: number) {
           const row = this.table.data.find((row: ISetupRow) => row.id === id);
           const isValueEmpty = typeof v === 'undefined' || v === null || v === '';
@@ -187,12 +171,7 @@ export const editConfig: ISetupHead[] = [
     required: false,
     noRequiredMark: false,
     placeholder: window.i18n.t('请输入'),
-    rules: [
-      {
-        regx: '^((25[0-5]|2[0-4]\\d|[01]?\\d\\d?)\\.){3}(25[0-5]|2[0-4]\\d|[01]?\\d\\d?)$',
-        content: window.i18n.t('IP不符合规范'),
-      },
-    ],
+    rules: [reguIp],
   },
   {
     label: 'BT节点探测',
@@ -213,14 +192,9 @@ export const editConfig: ISetupHead[] = [
     required: false,
     noRequiredMark: false,
     // appendSlot: 'MB/s',
-    iconOffset: 40,
+    // iconOffset: 40,
     placeholder: window.i18n.t('请输入'),
-    rules: [
-      {
-        regx: '^[1-9]\\d*$',
-        content: window.i18n.t('整数最小值校验提示', { min: 1 }),
-      },
-    ],
+    rules: [reguFnMinInteger(1)],
   },
   {
     label: '',
@@ -237,12 +211,7 @@ export const editManualConfig = [
     type: 'text',
     required: true,
     noRequiredMark: false,
-    rules: [
-      {
-        regx: '^((25[0-5]|2[0-4]\\d|[01]?\\d\\d?)\\.){3}(25[0-5]|2[0-4]\\d|[01]?\\d\\d?)$',
-        content: window.i18n.t('IP不符合规范'),
-      },
-    ],
+    rules: [reguIp],
     readonly: true,
   },
   {
@@ -329,12 +298,7 @@ export const editManualConfig = [
     required: false,
     noRequiredMark: false,
     placeholder: window.i18n.t('请输入'),
-    rules: [
-      {
-        regx: '^((25[0-5]|2[0-4]\\d|[01]?\\d\\d?)\\.){3}(25[0-5]|2[0-4]\\d|[01]?\\d\\d?)$',
-        content: window.i18n.t('IP不符合规范'),
-      },
-    ],
+    rules: [reguIp],
   },
   {
     label: 'BT节点探测',
@@ -355,14 +319,9 @@ export const editManualConfig = [
     required: false,
     noRequiredMark: false,
     // appendSlot: 'MB/s',
-    iconOffset: 40,
+    // iconOffset: 40,
     placeholder: window.i18n.t('请输入'),
-    rules: [
-      {
-        regx: '^[1-9]\\d*$',
-        content: window.i18n.t('整数最小值校验提示', { min: 1 }),
-      },
-    ],
+    rules: [reguFnMinInteger(1)],
   },
   {
     label: '',

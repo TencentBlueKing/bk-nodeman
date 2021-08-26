@@ -143,6 +143,7 @@ import { ConfigStore } from '@/store';
 import ExceptionPage from '@/components/exception/exception-page.vue';
 import formLabelMixin from '@/common/form-label-mixin';
 import { bus } from '@/common/bus';
+import { reguFnRangeInteger, reguNaturalNumber, reguRequired } from '@/common/form-check';
 
 @Component({
   name: 'TaskConfig',
@@ -172,49 +173,11 @@ export default class TaskConfig extends formLabelMixin {
   ];
   private hasPermission = true;
   private rules = {
-    must: [
-      {
-        required: true,
-        message: this.$t('必填项'),
-        trigger: 'blur',
-      },
+    must: [reguRequired],
+    speed: [reguRequired, reguNaturalNumber,
     ],
-    speed: [
-      {
-        required: true,
-        message: this.$t('必填项'),
-        trigger: 'blur',
-      },
-      {
-        validator: (val: string) => /^\d+$/.test(val),
-        message: this.$t('整数最小值校验提示', { min: 0 }),
-        trigger: 'blur',
-      },
-    ],
-    install: [
-      {
-        required: true,
-        message: this.$t('必填项'),
-        trigger: 'blur',
-      },
-      {
-        validator: (val: string) => /^\+?[1-9][0-9]*$/.test(val) && Number(val) <= 2000,
-        message: this.$t('整数范围校验提示', { max: 2000, min: 1 }),
-        trigger: 'blur',
-      },
-    ],
-    outTime: [
-      {
-        required: true,
-        message: this.$t('必填项'),
-        trigger: 'blur',
-      },
-      {
-        validator: (val: string) => /^\d+$/.test(val) && Number(val) <= 86400,
-        message: this.$t('整数范围校验提示', { max: 86400, min: 0 }),
-        trigger: 'blur',
-      },
-    ],
+    install: [reguRequired, reguFnRangeInteger(1, 2000)],
+    outTime: [reguRequired, reguFnRangeInteger(0, 86400)],
   };
 
   private created() {

@@ -14,10 +14,6 @@ export const detailConfig = [
     label: window.i18n.t('内网IP'),
     type: 'text',
     readonly: true,
-    validation: {
-      regx: '^((25[0-5]|2[0-4]\\d|[01]?\\d\\d?)\\.){3}(25[0-5]|2[0-4]\\d|[01]?\\d\\d?)$',
-      content: window.i18n.t('IP不符合规范'),
-    },
   },
   {
     prop: 'account',
@@ -31,37 +27,18 @@ export const detailConfig = [
     tip: window.i18n.t('数据传输IP提示'),
     type: 'text',
     readonly: true,
-    validation: {
-      regx: '^((25[0-5]|2[0-4]\\d|[01]?\\d\\d?)\\.){3}(25[0-5]|2[0-4]\\d|[01]?\\d\\d?)$',
-      content: window.i18n.t('IP不符合规范'),
-    },
   },
   {
     prop: 'port',
     label: window.i18n.t('登录端口'),
     type: 'text',
     readonly: true,
-    validation: {
-      content: window.i18n.t('端口范围', { range: '0-65535' }),
-      validator(value) {
-        if (!value) return true;
-        let portValidate =  /^[0-9]*$/.test(value);
-        if (portValidate) {
-          portValidate = parseInt(value, 10) <= 65535;
-        }
-        return portValidate;
-      },
-    },
   },
   {
     prop: 'login_ip',
     label: window.i18n.t('登录IP'),
     type: 'text',
     readonly: true,
-    validation: {
-      regx: '^((25[0-5]|2[0-4]\\d|[01]?\\d\\d?)\\.){3}(25[0-5]|2[0-4]\\d|[01]?\\d\\d?)$',
-      content: window.i18n.t('IP不符合规范'),
-    },
   },
   {
     prop: 'auth_type',

@@ -65,7 +65,7 @@
         :label="$t('节点类型')"
         :render-header="renderFilterHeader">
         <template #default="{ row }">
-          {{ row.node_type || '--' }}
+          {{ row.node_type | filterEmpty }}
         </template>
       </bk-table-column>
       <bk-table-column
@@ -76,7 +76,7 @@
         v-if="getColumnShowStatus('bk_cloud_id')"
         :render-header="renderFilterHeader">
         <template #default="{ row }">
-          <span>{{ row.bk_cloud_name || '--' }}</span>
+          <span>{{ row.bk_cloud_name | filterEmpty }}</span>
         </template>
       </bk-table-column>
       <bk-table-column
@@ -95,7 +95,7 @@
         :resizable="false"
         :render-header="renderFilterHeader">
         <template #default="{ row }">
-          {{ osMap[row.os_type] || '--' }}
+          {{ osMap[row.os_type] | filterEmpty }}
         </template>
       </bk-table-column>
       <template v-for="(plugin, index) in officialPlugin">

@@ -44,7 +44,7 @@
             {{row[item.prop] }}
           </span>
           <span v-else v-bk-overflow-tips class="column-string">
-            {{ row[item.prop] || '--' }}
+            {{ row[item.prop] | filterEmpty }}
           </span>
         </template>
       </bk-table-column>

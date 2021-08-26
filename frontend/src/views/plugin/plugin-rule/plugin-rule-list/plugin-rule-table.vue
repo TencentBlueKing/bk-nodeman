@@ -73,7 +73,7 @@
       </bk-table-column>
       <bk-table-column :label="$t('插件名称')" prop="plugin_name" min-width="140">
         <template #default="{ row }">
-          <span>{{ row.plugin_name || '--' }}</span>
+          <span>{{ row.plugin_name | filterEmpty }}</span>
         </template>
       </bk-table-column>
       <bk-table-column :label="$t('策略状态')" prop="enable" min-width="100" :render-header="renderFilterHeader">
@@ -127,7 +127,7 @@
         prop="update_time"
         min-width="180">
         <template #default="{ row }">
-          {{ formatTimeByTimezone(row.update_time) }}
+          {{ row.update_time | filterTimezone }}
         </template>
       </bk-table-column>
       <bk-table-column prop="colspanOperate" :label="$t('操作')" width="150" :resizable="false">
