@@ -223,7 +223,7 @@
           prop="login_ip"
           v-if="filter['login_ip'].mockChecked">
           <template #default="{ row }">
-            {{ row.login_ip || '--' }}
+            {{ row.login_ip | filterEmpty }}
           </template>
         </bk-table-column>
         <bk-table-column
@@ -239,7 +239,7 @@
           prop="bk_cloud_id"
           v-if="filter['bk_cloud_id'].mockChecked">
           <template #default="{ row }">
-            {{ row.bk_cloud_name || '--' }}
+            {{ row.bk_cloud_name | filterEmpty }}
           </template>
         </bk-table-column>
         <bk-table-column
@@ -260,7 +260,7 @@
           :render-header="renderFilterHeader"
           v-if="filter['os_type'].mockChecked">
           <template #default="{ row }">
-            {{ osMap[row.os_type] || '--' }}
+            {{ osMap[row.os_type] | filterEmpty }}
           </template>
         </bk-table-column>
         <bk-table-column
@@ -316,7 +316,7 @@
           :label="`${$t('传输限速')}(MB/s)`"
           v-if="filter['speedLimit'].mockChecked">
           <template #default="{ row }">
-            {{ row.bt_speed_limit || '--' }}
+            {{ row.bt_speed_limit | filterEmpty }}
           </template>
         </bk-table-column>
         <bk-table-column v-if="filter['speedLimit'].mockChecked" min-width="30" :resizable="false">
@@ -329,7 +329,7 @@
           :resizable="false"
           v-if="filter['created_at'].mockChecked">
           <template #default="{ row }">
-            {{ formatTimeByTimezone(row.created_at) }}
+            {{ row.created_at | filterTimezone }}
           </template>
         </bk-table-column>
         <bk-table-column
@@ -340,7 +340,7 @@
           :resizable="false"
           v-if="filter['updated_at'].mockChecked">
           <template #default="{ row }">
-            {{ formatTimeByTimezone(row.updated_at) }}
+            {{ row.updated_at | filterTimezone }}
           </template>
         </bk-table-column>
         <bk-table-column

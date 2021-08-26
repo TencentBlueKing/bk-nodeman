@@ -73,7 +73,7 @@
                   <div class="col-status" v-if="plug">
                     <span class="plugin-name">{{ plug.name }}：</span>
                     <span :class="'status-mark status-' + plug.status.toLowerCase()"></span>
-                    <span class="plugin-version">{{ plug.version || '--' }}</span>
+                    <span class="plugin-version">{{ plug.version | filterEmpty }}</span>
                   </div>
                 </div>
               </template>
@@ -152,7 +152,7 @@
           :render-header="renderFilterHeader"
           v-if="filter['os_type'].mockChecked">
           <template #default="{ row }">
-            {{ osMap[row.os_type] || '--' }}
+            {{ osMap[row.os_type] | filterEmpty }}
           </template>
         </bk-table-column>
         <bk-table-column
@@ -181,7 +181,7 @@
           resizable
           v-if="filter['agent_version'].mockChecked">
           <template #default="{ row }">
-            <span>{{ row.version || '--' }}</span>
+            <span>{{ row.version | filterEmpty }}</span>
           </template>
         </bk-table-column>
         <template v-for="(plugin, index) in pluginList">

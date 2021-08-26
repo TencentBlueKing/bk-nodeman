@@ -94,6 +94,7 @@ import Tips from '@/components/common/tips.vue';
 import formLabelMixin from '@/common/form-label-mixin';
 import { ICloudSource } from '@/types/cloud/cloud';
 import { IAp } from '@/types/config/config';
+import { reguFnName, reguRequired } from '@/common/form-check';
 
 @Component({
   name: 'cloud-manager-add',
@@ -129,36 +130,8 @@ export default class CloudManagerAdd extends formLabelMixin {
   };
   // 表单校验
   private rules = {
-    bkCloudName: [
-      {
-        required: true,
-        message: this.$t('必填项'),
-        trigger: 'blur',
-      },
-      {
-        message: this.$t('不能超过32个字符'),
-        trigger: 'blur',
-        validator(v: string) {
-          return v.length <= 32;
-        },
-      },
-      {
-        message: this.$t('特殊字符限制'),
-        trigger: 'blur',
-        validator(v: string) {
-          // 仅支持 _ 特殊字符
-          const pattern = new RegExp('^[\u4e00-\u9fa5A-Za-z0-9-_]+$');
-          return pattern.test(v);
-        },
-      },
-    ],
-    isp: [
-      {
-        required: true,
-        message: this.$t('必填项'),
-        trigger: 'blur',
-      },
-    ],
+    bkCloudName: [reguRequired, reguFnName()],
+    isp: [reguRequired],
   };
   private loading = false;
   // 是否显示下一步加载效果

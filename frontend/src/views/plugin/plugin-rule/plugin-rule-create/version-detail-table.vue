@@ -27,7 +27,7 @@
         </bk-table-column>
         <bk-table-column :label="$t('插件包版本')" sortable prop="version">
           <template #default="{ row, $index }">
-            <span>{{ row.version || '--'}}</span>
+            <span>{{ row.version | filterEmpty }}</span>
             <!-- 测试用例 -->
             <bk-popover v-if="$index < 2 && !row.is_newest" placement="right-start">
               <span v-if="row.is_release_version === false" class="tag-switch tag-yellow ml5">{{ $t('测试') }}</span>

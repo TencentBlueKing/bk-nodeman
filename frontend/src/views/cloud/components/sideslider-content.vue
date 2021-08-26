@@ -146,7 +146,7 @@ export default class SidesliderCcontent extends Vue {
     if (item.unit) {
       return item.value ? `${item.value} ${item.unit}` : '--';
     }
-    return item.value;
+    return item.value || '--';
   }
   private getLabelMaxWidth(): number {
     const el = this.$el;

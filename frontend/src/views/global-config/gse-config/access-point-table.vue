@@ -10,8 +10,9 @@
         </tr>
       </thead>
       <tbody>
+        <!-- Server信息 -->
         <tr>
-          <td :rowspan="rowspanNum.servers + 5">{{ $t('Server信息') }}</td>
+          <td :rowspan="rowspanNum.servers">{{ $t('Server信息') }}</td>
           <td rowspan="2">{{ $t('地域信息') }}</td>
           <td>{{ $t('区域') }}</td>
           <td class="table-content">{{ formData.region_id }}</td>
@@ -25,7 +26,7 @@
           <td>{{ $t('集群地址') }}</td>
           <td class="table-content">{{ zookeeper }}</td>
         </tr>
-        <template v-for="(str, idx) in serversMap">
+        <template v-for="(str, idx) in serversSets">
           <tr v-for="(server, index) in formData[str]" :key="`server${idx + index}`">
             <td>{{ `${str} ${ index + 1 }` }}</td>
             <td>IP</td>
@@ -36,7 +37,7 @@
           <td>{{ $t('外网回调') }}</td>
           <td>URL</td>
           <td class="table-content">
-            {{ formData.outer_callback_url }}
+            {{ formData.outer_callback_url | filterEmpty }}
           </td>
         </tr>
         <tr>
@@ -48,16 +49,18 @@
         </tr>
         <tr>
           <td>{{ $t('服务器目录') }}</td>
-          <td class="table-content">{{ formData.nginx_path }}</td>
+          <td class="table-content">{{ formData.nginx_path | filterEmpty }}</td>
         </tr>
+        <!-- Agent信息 - Linux -->
         <template v-if="rowspanNum.linux">
-          <td :rowspan="rowspanNum.agent">{{ $t('Agent信息') }}</td>
           <tr v-for="(path, index) in formData.linux" :key="index + 100">
+            <td v-if="index === 0" :rowspan="rowspanNum.agent">{{ $t('Agent信息') }}</td>
             <td v-if="index === 0" :rowspan="rowspanNum.linux">Linux</td>
             <td>{{ path.name }}</td>
             <td class="table-content">{{ path.value }}</td>
           </tr>
         </template>
+        <!-- Agent信息 - Windows -->
         <template v-if="rowspanNum.windows">
           <tr v-for="(path, index) in formData.windows" :key="index + 200">
             <td v-if="index === 0" :rowspan="rowspanNum.windows">Windows</td>
@@ -65,6 +68,7 @@
             <td class="table-content">{{ path.value }}</td>
           </tr>
         </template>
+        <!-- Proxy 信息 -->
         <template v-if="rowspanNum.proxy">
           <tr>
             <td colspan="2" class="tc">{{ $t('Proxy信息') }}</td>
@@ -97,25 +101,27 @@ export default class AccessPointTable extends Vue {
     log_path: window.i18n.t('日志文件路径'),
     temp_path: window.i18n.t('临时文件路径'),
   };
-  private serversMap =['BtfileServer', 'DataServer', 'TaskServer'];
+  private serversSets =['BtfileServer', 'DataServer', 'TaskServer'];
+  private serversOtherKeys = ['region_id', 'city_id', 'zookeeper', 'outer_callback_url', 'package__url', 'nginx_path'];
   private  sortLinux = ['hostid_path', 'dataipc', 'setup_path', 'data_path', 'run_path', 'log_path'];
   private sortWin = ['hostid_path', 'dataipc', 'setup_path', 'data_path', 'run_path', 'log_path'];
   private formData = {};
 
   // 将表格rowspan的值计算出来
   private get rowspanNum(): { [key: string]: number } {
+    const linux = this.sortLinux.length;
+    const windows = this.sortWin.length;
     const tableRow = {
-      servers: 1,
-      agent: 0,
-      linux: this.sortLinux.length,
-      windows: this.sortWin.length,
+      servers: this.serversOtherKeys.length,
+      agent: linux + windows,
+      linux,
+      windows,
       proxy: this.accessPoint.proxy_package.length ? 1 : 0,
     };
-    this.serversMap.forEach((item) => {
+    this.serversSets.forEach((item) => {
       tableRow.servers += this.accessPoint[item as keyof IApExpand]
         ? this.accessPoint[item as IServer].length : 0;
     });
-    tableRow.agent = tableRow.linux + tableRow.windows + 1;
     return tableRow;
   }
   private get zookeeper(): string {

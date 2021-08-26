@@ -113,6 +113,7 @@ import { setupInfo, setupManualInfo } from '../config/netTableConfig';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { defaultPort } from '@/config/config';
 import { ISetupHead, ISetupRow } from '@/types';
+import { reguPort, reguRequired } from '@/common/form-check';
 
 @Component({
   name: 'cloud-manager-setup',
@@ -155,46 +156,10 @@ export default class CloudManagerSetup extends Mixins(formLabelMixin, FilterIpMi
   };
   // 表单校验
   private rules = {
-    osType: [
-      {
-        required: true,
-        message: this.$t('必填项'),
-        trigger: 'blur',
-      },
-    ],
-    port: [
-      {
-        required: true,
-        message: this.$t('必填项'),
-        trigger: 'blur',
-      },
-      {
-        message: this.$t('端口范围', { range: '0-65535' }),
-        trigger: 'blur',
-        validator(value: string) {
-          if (!value) return true;
-          let portValidate =  /^[0-9]*$/.test(value);
-          if (portValidate) {
-            portValidate = parseInt(value, 10) <= 65535;
-          }
-          return portValidate;
-        },
-      },
-    ],
-    account: [
-      {
-        required: true,
-        message: this.$t('必填项'),
-        trigger: 'blur',
-      },
-    ],
-    bkBizId: [
-      {
-        required: true,
-        message: this.$t('必填项'),
-        trigger: 'blur',
-      },
-    ],
+    osType: [reguRequired],
+    port: [reguRequired, reguPort],
+    account: [reguRequired],
+    bkBizId: [reguRequired],
   };
   private setupConfig: { header: ISetupHead[], data: ISetupRow[] } = {
     header: setupInfo,

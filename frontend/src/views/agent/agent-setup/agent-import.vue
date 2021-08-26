@@ -31,7 +31,7 @@
         <bk-form-item :class="{ 'form-item-not-lable': !showTab }" :label="$t('安装信息')" required>
           <InstallTable
             ref="setupTable"
-            :local-mark="`agent_${type}`"
+            :local-mark="`agent${isManual ? '_manual' : '' }_${type}`"
             :setup-info="setupInfo"
             :is-manual="isManual"
             :min-items="minItems"

@@ -6,19 +6,19 @@
               v-show="item.display">
           {{ item.count }}
         </span>
-        <span>{{ item.display || '--' }}</span>
+        <span>{{ item.display | filterEmpty }}</span>
         <span class="separator" v-if="index !== (data.length - 1)">, </span>
       </div>
       <div v-else-if="type === 1">
         <span :class="['status-mark', `status-${String(item.status).toLocaleLowerCase()}`]">
         </span>
-        <span>{{ item.display || '--' }}</span>
+        <span>{{ item.display | filterEmpty }}</span>
       </div>
       <!-- 扩散点状态样式 -->
       <div class="agent-status-2" v-else-if="type === 2">
         <span :class="['status-halo', `status-${String(item.status).toLocaleLowerCase()}-halo`]">
         </span>
-        <span>{{ item.display || '--' }}</span>
+        <span>{{ item.display | filterEmpty }}</span>
       </div>
       <div v-else>
         <span :class="['status-count', !!item.errorCount ? 'status-terminated' : 'status-2']">

@@ -46,7 +46,7 @@
         <template #default="{ row }">
           <div class="col-execution">
             <span :class="`execut-mark execut-${ row.result ? 'success' : 'failed' }`"></span>
-            <span class="execut-text" :title="row.parseRes">{{ row.message || '--' }}</span>
+            <span class="execut-text" :title="row.parseRes">{{ row.message | filterEmpty }}</span>
           </div>
         </template>
       </bk-table-column>

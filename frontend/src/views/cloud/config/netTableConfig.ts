@@ -1,5 +1,6 @@
 import { authentication } from '@/config/config';
 import { ISetupHead, ISetupRow } from '@/types';
+import { reguFnMinInteger, reguFnSysPath, reguIp } from '@/common/form-check';
 
 export const setupInfo: ISetupHead[] = [
   {
@@ -11,14 +12,10 @@ export const setupInfo: ISetupHead[] = [
     unique: true,
     errTag: true,
     iconOffset: 10,
-    rules: [
-      {
-        regx: '^((25[0-5]|2[0-4]\\d|[01]?\\d\\d?)\\.){3}(25[0-5]|2[0-4]\\d|[01]?\\d\\d?)$',
-        content: window.i18n.t('IP不符合规范'),
-      },
+    rules: [reguIp,
       {
         trigger: 'blur',
-        content: window.i18n.t('冲突校验', { prop: 'IP' }),
+        message: window.i18n.t('冲突校验', { prop: 'IP' }),
         validator(v: string, id: number) {
           // 与其他输入框的值不能重复
           if (!v) return true;
@@ -40,14 +37,10 @@ export const setupInfo: ISetupHead[] = [
     errTag: true,
     required: true,
     iconOffset: 10,
-    rules: [
-      {
-        regx: '^((25[0-5]|2[0-4]\\d|[01]?\\d\\d?)\\.){3}(25[0-5]|2[0-4]\\d|[01]?\\d\\d?)$',
-        content: window.i18n.t('IP不符合规范'),
-      },
+    rules: [reguIp,
       {
         trigger: 'blur',
-        content: window.i18n.t('冲突校验', { prop: 'IP' }),
+        message: window.i18n.t('冲突校验', { prop: 'IP' }),
         validator(v: string, id: number) {
           // 与其他输入框的值不能重复
           if (!v) return true;
@@ -69,14 +62,10 @@ export const setupInfo: ISetupHead[] = [
     unique: true,
     errTag: true,
     iconOffset: 10,
-    rules: [
-      {
-        regx: '^((25[0-5]|2[0-4]\\d|[01]?\\d\\d?)\\.){3}(25[0-5]|2[0-4]\\d|[01]?\\d\\d?)$',
-        content: window.i18n.t('IP不符合规范'),
-      },
+    rules: [reguIp,
       {
         trigger: 'blur',
-        content: window.i18n.t('冲突校验', { prop: 'IP' }),
+        message: window.i18n.t('冲突校验', { prop: 'IP' }),
         validator(v: string, id: number) {
           // 与其他输入框的值不能重复
           if (!v) return true;
@@ -128,12 +117,7 @@ export const setupInfo: ISetupHead[] = [
     show: true,
     iconOffset: 10,
     width: 160,
-    rules: [
-      {
-        regx: '^(/[A-Za-z0-9_]{1,16}){1,}$',
-        content: window.i18n.t('Linux路径格式不正确'),
-      },
-    ],
+    rules: [reguFnSysPath()],
   },
   {
     label: 'BT节点探测',
@@ -152,14 +136,9 @@ export const setupInfo: ISetupHead[] = [
     required: false,
     show: true,
     // appendSlot: 'MB/s',
-    iconOffset: 45,
+    // iconOffset: 45,
     width: 120,
-    rules: [
-      {
-        regx: '^[1-9]\\d*$',
-        content: window.i18n.t('整数最小值校验提示', { min: 1 }),
-      },
-    ],
+    rules: [reguFnMinInteger(1)],
   },
   {
     label: '',
@@ -179,14 +158,10 @@ export const setupManualInfo: ISetupHead[] = [
     unique: true,
     errTag: true,
     iconOffset: 10,
-    rules: [
-      {
-        regx: '^((25[0-5]|2[0-4]\\d|[01]?\\d\\d?)\\.){3}(25[0-5]|2[0-4]\\d|[01]?\\d\\d?)$',
-        content: window.i18n.t('IP不符合规范'),
-      },
+    rules: [reguIp,
       {
         trigger: 'blur',
-        content: window.i18n.t('冲突校验', { prop: 'IP' }),
+        message: window.i18n.t('冲突校验', { prop: 'IP' }),
         validator(v: string, id: number) {
           // 与其他输入框的值不能重复
           if (!v) return true;
@@ -208,14 +183,10 @@ export const setupManualInfo: ISetupHead[] = [
     errTag: true,
     required: true,
     iconOffset: 10,
-    rules: [
-      {
-        regx: '^((25[0-5]|2[0-4]\\d|[01]?\\d\\d?)\\.){3}(25[0-5]|2[0-4]\\d|[01]?\\d\\d?)$',
-        content: window.i18n.t('IP不符合规范'),
-      },
+    rules: [reguIp,
       {
         trigger: 'blur',
-        content: window.i18n.t('冲突校验', { prop: 'IP' }),
+        message: window.i18n.t('冲突校验', { prop: 'IP' }),
         validator(v: string, id: number) {
           // 与其他输入框的值不能重复
           if (!v) return true;
@@ -237,12 +208,7 @@ export const setupManualInfo: ISetupHead[] = [
     show: true,
     iconOffset: 10,
     width: 240,
-    rules: [
-      {
-        regx: '^(/[A-Za-z0-9_]{1,16}){1,}$',
-        content: window.i18n.t('Linux路径格式不正确'),
-      },
-    ],
+    rules: [reguFnSysPath()],
   },
   {
     label: 'BT节点探测',
@@ -261,14 +227,9 @@ export const setupManualInfo: ISetupHead[] = [
     required: false,
     show: true,
     // appendSlot: 'MB/s',
-    iconOffset: 45,
+    // iconOffset: 45,
     width: 160,
-    rules: [
-      {
-        regx: '^[1-9]\\d*$',
-        content: window.i18n.t('整数最小值校验提示', { min: 1 }),
-      },
-    ],
+    rules: [reguFnMinInteger(1)],
   },
   {
     label: '',

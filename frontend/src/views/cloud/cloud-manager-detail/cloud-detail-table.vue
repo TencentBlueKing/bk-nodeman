@@ -37,7 +37,7 @@
           v-if="filter['outer_ip'].mockChecked"
           :render-header="renderTipHeader">
           <template #default="{ row }">
-            <span>{{ row.outer_ip | emptyDataFilter }}</span>
+            <span>{{ row.outer_ip | filterEmpty }}</span>
           </template>
         </bk-table-column>
         <bk-table-column
@@ -46,7 +46,7 @@
           prop="login_ip"
           v-if="filter['login_ip'].mockChecked">
           <template #default="{ row }">
-            {{ row.login_ip || emptyDataFilter }}
+            {{ row.login_ip || filterEmpty }}
           </template>
         </bk-table-column>
         <bk-table-column
@@ -54,7 +54,7 @@
           prop="bk_biz_name"
           v-if="filter['bk_biz_name'].mockChecked" show-overflow-tooltip>
           <template #default="{ row }">
-            <span>{{ row.bk_biz_name | emptyDataFilter }}</span>
+            <span>{{ row.bk_biz_name | filterEmpty }}</span>
           </template>
         </bk-table-column>
         <bk-table-column :label="$t('Proxy状态')" prop="status" v-if="filter['proxy_status'].mockChecked">
@@ -78,7 +78,7 @@
         </bk-table-column>
         <bk-table-column :label="$t('Proxy版本')" prop="version" v-if="filter['proxy_version'].mockChecked">
           <template #default="{ row }">
-            <span>{{ row.version | emptyDataFilter }}</span>
+            <span>{{ row.version | filterEmpty }}</span>
           </template>
         </bk-table-column>
         <bk-table-column :label="$t('Agent数量')" prop="pagent_count" v-if="filter['pagent_count'].mockChecked">
@@ -117,7 +117,7 @@
           :label="`${$t('传输限速')}(MB/s)`"
           v-if="filter['speedLimit'].mockChecked">
           <template #default="{ row }">
-            {{ row.bt_speed_limit || '--' }}
+            {{ row.bt_speed_limit | filterEmpty }}
           </template>
         </bk-table-column>
         <bk-table-column
@@ -257,11 +257,6 @@ import { TranslateResult } from 'vue-i18n';
   name: 'CloudDetailTable',
   components: {
     CloudDetailSlider,
-  },
-  filters: {
-    emptyDataFilter(v: string) {
-      return !isEmpty(v) ? v : '--';
-    },
   },
 })
 
