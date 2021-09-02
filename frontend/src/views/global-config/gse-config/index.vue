@@ -22,7 +22,6 @@
           class="access-point-item"
           :align-center="false"
           :key="accessPoint.id"
-          :need-border="true"
           collapse-color="#313238"
           title-bg-color="#FAFBFD"
           :collapse.sync="accessPoint.collapse">
@@ -84,7 +83,7 @@
               </div>
               <p class="access-point-remarks" v-if="accessPoint.description">
                 <span>ID:</span>
-                <span class="point-id">{{ `  ${ accessPoint.id || '--' }` }}</span>
+                <span class="point-id">{{ accessPoint.id | filterEmpty }}</span>
                 <span class="point-desc" v-if="accessPoint.description">{{ accessPoint.description }}</span>
               </p>
             </div>
@@ -92,7 +91,7 @@
           <div class="collapse-container" slot>
             <AccessPointTable
               v-if="accessPoint.view"
-              class="not-outer-border"
+              class="access-point-table"
               :access-point="accessPoint">
             </AccessPointTable>
             <exception-card
@@ -230,13 +229,18 @@ export default class GseConfig extends Vue {
   .access-point-collapse {
     /deep/ .right-panel-title {
       padding-right: 14px;
+      border: 1px solid #dcdee5;
+      border-bottom: 0;
     }
     /deep/ .title-desc {
       width: 100%;
     }
   }
-  .access-point-item + .access-point-item {
-    margin-top: 20px;
+  .access-point-item {
+    border-bottom: 1px solid #dcdee5;
+    & + .access-point-item {
+      margin-top: 20px;
+    }
   }
   .collapse-header {
     display: flex;
@@ -311,12 +315,8 @@ export default class GseConfig extends Vue {
   .collapse-container {
     background: #fff;
   }
-  .not-outer-border {
-    margin: 0 -1px;
-    /deep/ table {
-      margin: -2px 0 -1px 0;
-      z-index: 50;
-    }
+  >>> .access-point-table tr:last-child td {
+    border-bottom: 0;
   }
 }
 </style>

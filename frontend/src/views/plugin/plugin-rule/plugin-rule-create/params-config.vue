@@ -236,6 +236,7 @@ import { addListener, removeListener } from 'resize-detector';
 import { debounce, deepClone } from '@/common/util';
 import VariablePopover from './variable-popover.vue';
 import ExceptionCard from '@/components/exception/exception-card.vue';
+import { reguRequired } from '@/common/form-check';
 
 interface IVariables {
   title: string
@@ -400,7 +401,7 @@ export default class ParamsConfig extends Vue {
             // eslint-disable-next-line no-underscore-dangle
             required: item.is_main ? !!value._required : false,
             // eslint-disable-next-line no-underscore-dangle
-            rules: item.is_main && !!value._required ? [{ required: true, message: '必填项', trigger: 'blur' }] : [],
+            rules: item.is_main && !!value._required ? [reguRequired] : [],
             default: value.default || '',
             inputName: `${item.is_main ? '' : item.id}-${key}`,
             ...value,

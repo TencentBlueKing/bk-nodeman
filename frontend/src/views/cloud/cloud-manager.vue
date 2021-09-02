@@ -128,7 +128,7 @@
           </bk-table-column>
           <bk-table-column :label="$t('云服务商')" prop="ispName" sortable show-overflow-tooltip>
             <template #default="{ row }">
-              {{ !row.isChannel ? row.ispName || '--' : '' }}
+              <span v-if="!row.isChannel">{{ row.ispName | filterEmpty }}</span>
             </template>
           </bk-table-column>
           <bk-table-column

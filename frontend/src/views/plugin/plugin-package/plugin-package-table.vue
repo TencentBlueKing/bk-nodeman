@@ -21,7 +21,7 @@
               instance_name: row.name
             }]"
             @click="handleViewPlugin(row)">
-            {{ row.description || '--' }}
+            {{ row.description | filterEmpty }}
           </auth-component>
         </template>
       </bk-table-column>
@@ -33,7 +33,7 @@
         sortable
         :resizable="false">
         <template #default="{ row }">
-          {{ row.category || '--' }}
+          {{ row.category | filterEmpty }}
         </template>
       </bk-table-column>
       <bk-table-column
@@ -80,7 +80,7 @@
         :resizable="false">
         <template #default="{ row }">
           <span :title="row.scenario">
-            {{ row.scenario || '--' }}
+            {{ row.scenario | filterEmpty }}
           </span>
         </template>
       </bk-table-column>
@@ -90,7 +90,7 @@
         prop="deploy_type"
         :resizable="false">
         <template #default="{ row }">
-          {{ row.deploy_type || '--' }}
+          {{ row.deploy_type | filterEmpty }}
         </template>
       </bk-table-column>
       <bk-table-column

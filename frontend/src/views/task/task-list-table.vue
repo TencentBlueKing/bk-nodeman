@@ -33,7 +33,7 @@
           :label="$t('任务类型')"
           :render-header="renderFilterHeader">
           <template #default="{ row }">
-            {{ row.stepTypeDisplay || '--' }}
+            {{ row.stepTypeDisplay | filterEmpty }}
           </template>
         </bk-table-column>
         <bk-table-column
@@ -42,7 +42,7 @@
           :label="$t('操作类型')"
           :render-header="renderFilterHeader">
           <template #default="{ row }">
-            {{ row.opTypeDisplay || '--' }}
+            {{ row.opTypeDisplay | filterEmpty }}
           </template>
         </bk-table-column>
         <bk-table-column
@@ -52,7 +52,7 @@
           :label="$t('部署策略')"
           :render-header="renderFilterHeader">
           <template #default="{ row }">
-            {{ row.policyName || '--' }}
+            {{ row.policyName | filterEmpty }}
           </template>
         </bk-table-column>
         <bk-table-column
@@ -65,7 +65,7 @@
         </bk-table-column>
         <bk-table-column width="185" :label="$t('执行时间')" prop="startTime">
           <template #default="{ row }">
-            {{ formatTimeByTimezone(row.startTime) }}
+            {{ row.startTime | filterTimezone }}
           </template>
         </bk-table-column>
         <bk-table-column align="right" :label="$t('总耗时')" prop="costTime">

@@ -46,20 +46,20 @@
           <ul class="detail-info-list">
             <li class="list-item">
               <label>{{$t('开发商')}}</label>
-              <span>{{pluginInfo.category || '--'}}</span>
+              <span>{{pluginInfo.category | filterEmpty}}</span>
             </li>
             <li class="list-item">
               <label>{{$t('数据对接SaaS')}}</label>
-              <span>{{pluginInfo.source_app_code || '--'}}</span>
+              <span>{{pluginInfo.source_app_code | filterEmpty}}</span>
             </li>
             <li class="list-item">
               <label>{{$t('插件部署方式')}}</label>
-              <span>{{pluginInfo.deploy_type || '--'}}</span>
+              <span>{{pluginInfo.deploy_type | filterEmpty}}</span>
             </li>
           </ul>
           <div class="list-item plugin-desc">
             <label>{{$t('插件描述')}}</label>
-            <span>{{pluginInfo.scenario || '--'}}</span>
+            <span>{{pluginInfo.scenario | filterEmpty}}</span>
           </div>
         </div>
         <div class="detail-operate">
@@ -106,7 +106,7 @@
         <bk-table-column :label="$t('最新程序版本')" prop="version" sortable :resizable="false" min-width="100" />
         <bk-table-column :label="$t('更新时间')" prop="pkg_mtime" sortable :resizable="false" min-width="120">
           <template #default="{ row }">
-            {{ formatTimeByTimezone(row.pkg_mtime) }}
+            {{ row.pkg_mtime | filterTimezone }}
           </template>
         </bk-table-column>
         <bk-table-column :label="$t('操作')" :resizable="false" width="120">

@@ -22,7 +22,7 @@
       <bk-table-column :label="$t('包大小')" prop="pkg_size" width="80" sortable></bk-table-column>
       <bk-table-column :label="$t('更新时间')" prop="pkg_mtime" min-width="110" sortable>
         <template #default="{ row }">
-          {{ formatTimeByTimezone(row.pkg_mtime) }}
+          {{ row.pkg_mtime | filterTimezone }}
         </template>
       </bk-table-column>
       <bk-table-column :label="$t('更新人')" prop="creator" width="100" sortable></bk-table-column>

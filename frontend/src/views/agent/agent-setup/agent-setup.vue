@@ -99,7 +99,7 @@
             <InstallTable
               :class="{ 'agent-setup-table': isManual }"
               ref="installTable"
-              :local-mark="'agent_steup'"
+              :local-mark="`agent_steup${isManual ? '_manual' : ''}`"
               :is-manual="isManual"
               :setup-info="setupInfo"
               :extra-params="extraParams"
@@ -148,6 +148,7 @@ import { debounce, isEmpty, deepClone } from '@/common/util';
 import { IApExpand } from '@/types/config/config';
 import { IAgent } from '@/types/agent/agent-type';
 import { ISetupHead, ISetupRow } from '@/types';
+import { reguRequired } from '@/common/form-check';
 
 @Component({
   name: 'agent-setup',
@@ -172,19 +173,14 @@ export default class AgentSetup extends Mixins(mixin, formLabelMixin) {
   private formData: IAgent = {
     bk_biz_id: '',
     bk_cloud_id: '',
+    install_channel_id: '',
     ap_id: '',
   };
-  // 表单校验
-  private required = {
-    required: true,
-    message: window.i18n.t('必填项'),
-    trigger: 'blur',
-  };
   private rules = {
-    bk_biz_id: [this.required],
-    bk_cloud_id: [this.required],
-    install_channel_id: [this.required],
-    ap_id: [this.required],
+    bk_biz_id: [reguRequired],
+    bk_cloud_id: [reguRequired],
+    install_channel_id: [reguRequired],
+    ap_id: [reguRequired],
   };
   // 右侧提示面板是否显示
   private showRightPanel = false;

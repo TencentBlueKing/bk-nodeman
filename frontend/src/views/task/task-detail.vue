@@ -110,17 +110,17 @@
           </bk-table-column> -->
           <bk-table-column class-name="row-ip" label="IP" prop="innerIp" :resizable="false">
             <template #default="{ row }">
-              {{ row.innerIp || '--' }}
+              {{ row.innerIp | filterEmpty }}
             </template>
           </bk-table-column>
           <bk-table-column :label="$t('云区域')" prop="bkCloudName" :resizable="false">
             <template #default="{ row }">
-              {{ row.bkCloudName || '--' }}
+              {{ row.bkCloudName | filterEmpty }}
             </template>
           </bk-table-column>
           <bk-table-column min-width="100" :label="$t('业务')" prop="bkBizName" :resizable="false">
             <template #default="{ row }">
-              {{ row.bkBizName || '--' }}
+              {{ row.bkBizName | filterEmpty }}
             </template></bk-table-column>
           <bk-table-column min-width="100" :label="$t('安装方式')" prop="isManual" :resizable="false">
             <template #default="{ row }">
@@ -143,12 +143,12 @@
                   :title="filteredTitle(row)"
                   @click.stop="filterrdHandle(row)">
                   {{ `${titleStatusMap[row.status]} ` }}
-                  ({{ row.statusDisplay || '--' }}<i
+                  ({{ row.statusDisplay | filterEmpty }}<i
                     v-if="row.exception && row.exception === 'is_running'"
                     class="nodeman-icon nc-icon-audit filtered-icon">
                   </i>)
                 </span>
-                <span v-else>{{ row.statusDisplay || '--' }}</span>
+                <span v-else>{{ row.statusDisplay | filterEmpty }}</span>
               </div>
             </template>
           </bk-table-column>

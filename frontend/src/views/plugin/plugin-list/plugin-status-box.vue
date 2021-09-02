@@ -3,7 +3,7 @@
     <loading-icon class="mr5" v-if="status === 'running'"></loading-icon>
     <span :class="`status-mark status-${status}`" v-else></span>
     <slot>
-      <span v-if="showText">{{ statusMap[status] || '--' }}</span>
+      <span v-if="showText">{{ statusMap[status] | filterEmpty }}</span>
     </slot>
   </div>
 </template>

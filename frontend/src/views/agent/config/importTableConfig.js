@@ -1,4 +1,5 @@
 import { authentication, defaultPort, sysOptions } from '@/config/config';
+import { reguFnMinInteger, reguPort, reguIp } from '@/common/form-check';
 
 export const tableConfig = [
   {
@@ -11,14 +12,10 @@ export const tableConfig = [
     unique: true,
     errTag: true,
     placeholder: window.i18n.t('请输入'),
-    rules: [
-      {
-        regx: '^((25[0-5]|2[0-4]\\d|[01]?\\d\\d?)\\.){3}(25[0-5]|2[0-4]\\d|[01]?\\d\\d?)$',
-        content: window.i18n.t('IP不符合规范'),
-      },
+    rules: [reguIp,
       {
         trigger: 'blur',
-        content: window.i18n.t('冲突校验', { prop: 'IP' }),
+        message: window.i18n.t('冲突校验', { prop: 'IP' }),
         validator(v, id) {
           // 与其他输入框的值不能重复
           if (!v) return true;
@@ -135,19 +132,7 @@ export const tableConfig = [
     noRequiredMark: false,
     batch: true,
     default: defaultPort,
-    rules: [
-      {
-        content: window.i18n.t('端口范围', { range: '0-65535' }),
-        validator(value) {
-          if (!value) return true;
-          let portValidate =  /^[0-9]*$/.test(value);
-          if (portValidate) {
-            portValidate = parseInt(value, 10) <= 65535;
-          }
-          return portValidate;
-        },
-      },
-    ],
+    rules: [reguPort],
     getReadonly(row) {
       return row && row.os_type === 'WINDOWS';
     },
@@ -204,20 +189,16 @@ export const tableConfig = [
     placeholder: window.i18n.t('请输入'),
     unique: true,
     errTag: true,
-    rules: [
-      {
-        regx: '^((25[0-5]|2[0-4]\\d|[01]?\\d\\d?)\\.){3}(25[0-5]|2[0-4]\\d|[01]?\\d\\d?)$',
-        content: window.i18n.t('IP不符合规范'),
-      },
+    rules: [reguIp,
       {
         trigger: 'blur',
-        content: window.i18n.t('冲突校验', { prop: 'IP' }),
+        message: window.i18n.t('冲突校验', { prop: 'IP' }),
         validator(v, id) {
           // 与其他输入框的值不能重复
           if (!v) return true;
           const row = this.table.data.find(item => item.id === id);
           if (!row) return;
-          return this.handleValidateUnique(row, { prop: 'inner_ip' });
+          return this.handleValidateUnique(row, { prop: 'login_ip' });
         },
       },
     ],
@@ -241,15 +222,10 @@ export const tableConfig = [
     required: false,
     noRequiredMark: false,
     // appendSlot: 'MB/s',
-    iconOffset: 40,
+    // iconOffset: 40,
     width: 120,
     placeholder: window.i18n.t('请输入'),
-    rules: [
-      {
-        regx: '^[1-9]\\d*$',
-        content: window.i18n.t('整数最小值校验提示', { min: 1 }),
-      },
-    ],
+    rules: [reguFnMinInteger(1)],
   },
   {
     label: '',
@@ -270,14 +246,10 @@ export const tableManualConfig = [
     unique: true,
     errTag: true,
     placeholder: window.i18n.t('请输入'),
-    rules: [
-      {
-        regx: '^((25[0-5]|2[0-4]\\d|[01]?\\d\\d?)\\.){3}(25[0-5]|2[0-4]\\d|[01]?\\d\\d?)$',
-        content: window.i18n.t('IP不符合规范'),
-      },
+    rules: [reguIp,
       {
         trigger: 'blur',
-        content: window.i18n.t('冲突校验', { prop: 'IP' }),
+        message: window.i18n.t('冲突校验', { prop: 'IP' }),
         validator(v, id) {
           // 与其他输入框的值不能重复
           if (!v) return true;
@@ -296,6 +268,7 @@ export const tableManualConfig = [
     required: true,
     noRequiredMark: false,
     multiple: false,
+    placeholder: window.i18n.t('选择业务'),
   },
   {
     label: '云区域',
@@ -401,20 +374,16 @@ export const tableManualConfig = [
     placeholder: window.i18n.t('请输入'),
     unique: true,
     errTag: true,
-    rules: [
-      {
-        regx: '^((25[0-5]|2[0-4]\\d|[01]?\\d\\d?)\\.){3}(25[0-5]|2[0-4]\\d|[01]?\\d\\d?)$',
-        content: window.i18n.t('IP不符合规范'),
-      },
+    rules: [reguIp,
       {
         trigger: 'blur',
-        content: window.i18n.t('冲突校验', { prop: 'IP' }),
+        message: window.i18n.t('冲突校验', { prop: 'IP' }),
         validator(v, id) {
           // 与其他输入框的值不能重复
           if (!v) return true;
           const row = this.table.data.find(item => item.id === id);
           if (!row) return;
-          return this.handleValidateUnique(row, { prop: 'inner_ip' });
+          return this.handleValidateUnique(row, { prop: 'login_ip' });
         },
       },
     ],
@@ -431,22 +400,17 @@ export const tableManualConfig = [
     width: 115,
   },
   {
-    label: '传输限速',
+    label: '传输限速Unit',
     prop: 'bt_speed_limit',
     type: 'text',
     batch: true,
     required: false,
     noRequiredMark: false,
-    appendSlot: 'MB/s',
-    iconOffset: 40,
+    // appendSlot: 'MB/s',
+    // iconOffset: 40,
     width: 120,
     placeholder: window.i18n.t('请输入'),
-    rules: [
-      {
-        regx: '^[1-9]\\d*$',
-        content: window.i18n.t('整数最小值校验提示', { min: 1 }),
-      },
-    ],
+    rules: [reguFnMinInteger(1)],
   },
   {
     label: '',

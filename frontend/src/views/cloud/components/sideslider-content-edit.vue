@@ -96,6 +96,7 @@ import { isEmpty } from '@/common/util';
 import { authentication } from '@/config/config';
 import Upload from '@/components/setup-table/upload.vue';
 import { IProxyDetail } from '@/types/cloud/cloud';
+import { reguFnMinInteger, reguPort, reguIp, reguRequired, reguFnSysPath } from '@/common/form-check';
 
 @Component({
   name: 'sideslider-content-edit',
@@ -121,21 +122,7 @@ export default class SidesliderContentEdit extends Vue {
   };
   private proxyData: Dictionary = {};
   private rules = {
-    outerIp: [
-      {
-        required: true,
-        message: this.$t('必填项'),
-        trigger: 'blur',
-      },
-      {
-        message: this.$t('IP不符合规范'),
-        trigger: 'blur',
-        validator: (val: string) => {
-          const regx = '^((25[0-5]|2[0-4]\\d|[01]?\\d\\d?)\\.){3}(25[0-5]|2[0-4]\\d|[01]?\\d\\d?)$';
-          return new RegExp(regx).test(val);
-        },
-      },
-    ],
+    outerIp: [reguRequired, reguIp],
     loginIp: [
       {
         message: this.$t('IP不符合规范'),
@@ -147,50 +134,10 @@ export default class SidesliderContentEdit extends Vue {
         },
       },
     ],
-    port: [
-      {
-        required: true,
-        message: this.$t('必填项'),
-        trigger: 'blur',
-      },
-      {
-        message: this.$t('端口范围', { range: '0-65535' }),
-        trigger: 'blur',
-        validator: (value: string) => {
-          let portValidate =  /^[0-9]*$/.test(value);
-          if (portValidate) {
-            portValidate = parseInt(value, 10) <= 65535;
-          }
-          return portValidate;
-        },
-      },
-    ],
-    account: [
-      {
-        required: true,
-        message: this.$t('必填项'),
-        trigger: 'blur',
-      },
-    ],
-    speedLimit: [
-      {
-        message: this.$t('整数最小值校验提示', { min: 1 }),
-        trigger: 'blur',
-        validator: (val: string) => !val || /^[1-9]\d*$/.test(val),
-      },
-    ],
-    path: [
-      {
-        required: true,
-        message: this.$t('必填项'),
-        trigger: 'blur',
-      },
-      {
-        message: this.$t('Linux路径格式不正确'),
-        trigger: 'blur',
-        validator: (value: string) => /^(\/[A-Za-z0-9_]{1,16}){1,}$/.test(value),
-      },
-    ],
+    port: [reguRequired, reguPort],
+    account: [reguRequired],
+    speedLimit: [reguFnMinInteger(1)],
+    path: [reguRequired, reguFnSysPath()],
   };
   private loading = false;
   private showErrMsg = false;

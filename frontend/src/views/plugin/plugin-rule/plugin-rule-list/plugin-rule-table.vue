@@ -14,7 +14,7 @@
       @page-limit-change="handleLimitChange"
       @row-click="handleRowClick"
       @expand-change="handleExpandChange">
-      <bk-table-column width="36" prop="expand" :resizable="false">
+      <bk-table-column width="36" prop="expand" :resizable="false" fixed>
         <template #default="{ row }">
           <div
             v-if="row.hasGrayRule"
@@ -23,7 +23,7 @@
           </div>
         </template>
       </bk-table-column>
-      <bk-table-column width="12" :resizable="false" class-name="abnormal-column">
+      <bk-table-column width="12" :resizable="false" class-name="abnormal-column" fixed>
         <template #default="{ row }">
           <bk-popover
             v-if="row.abnormal_host_count && row.enable"
@@ -43,7 +43,8 @@
           </bk-popover>
         </template>
       </bk-table-column>
-      <bk-table-column :label="$t('部署策略')" min-width="200" class-name="name-column" label-class-name="name-column">
+      <bk-table-column
+        :label="$t('部署策略')" min-width="200" class-name="name-column" label-class-name="name-column" fixed>
         <template #default="{ row }">
           <bk-input
             v-if="editId === row.id"
@@ -73,7 +74,7 @@
       </bk-table-column>
       <bk-table-column :label="$t('插件名称')" prop="plugin_name" min-width="140">
         <template #default="{ row }">
-          <span>{{ row.plugin_name || '--' }}</span>
+          <span>{{ row.plugin_name | filterEmpty }}</span>
         </template>
       </bk-table-column>
       <bk-table-column :label="$t('策略状态')" prop="enable" min-width="100" :render-header="renderFilterHeader">
@@ -127,10 +128,10 @@
         prop="update_time"
         min-width="180">
         <template #default="{ row }">
-          {{ formatTimeByTimezone(row.update_time) }}
+          {{ row.update_time | filterTimezone }}
         </template>
       </bk-table-column>
-      <bk-table-column prop="colspanOperate" :label="$t('操作')" width="150" :resizable="false">
+      <bk-table-column prop="colspanOperate" :label="$t('操作')" width="150" :resizable="false" fixed="right">
         <template #default="{ row }">
           <template v-if="row.id === deleteId">
             <loading-icon class="mr5"></loading-icon>
@@ -213,7 +214,8 @@
         prop="colspanSetting"
         :render-header="renderHeader"
         width="42"
-        :resizable="false">
+        :resizable="false"
+        fixed="right">
         <template #default="{ row }">
           <div class="operate">
             <span class="more-btn" @click="handleShowMore($event, row)">

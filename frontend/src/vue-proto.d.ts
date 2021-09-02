@@ -27,6 +27,7 @@ declare module 'vue/types/vue' {
       confirmFn?: Function
       cancelFn?: Function
     }) => {}
+    $filters: Function
   }
 }
 

@@ -46,7 +46,7 @@
               <template v-if="row.status">
                 <loading-icon class="mr5" v-if="row.status.toLocaleLowerCase() === 'running'"></loading-icon>
                 <span :class="`execut-mark execut-${row.status.toLocaleLowerCase()}`" v-else></span>
-                <span class="execut-text">{{ statusMap[row.status.toLocaleLowerCase()] || '--' }}</span>
+                <span class="execut-text">{{ statusMap[row.status.toLocaleLowerCase()] | filterEmpty }}</span>
               </template>
               <span v-else>--</span>
             </div>
@@ -60,16 +60,16 @@
                 :disabled="!row[columnFilter[key].id]"
                 v-bk-tooltips.right="$t('前往部署策略模块查看')"
                 @click="handleGotoRule(row)">
-                {{ row[columnFilter[key].id] || '--' }}
+                {{ row[columnFilter[key].id] | filterEmpty }}
               </bk-button>
               <span v-if="row.category === 'once'">{{ $t('手动安装') }}</span>
             </div>
 
             <div v-else-if="columnFilter[key].id === 'update_time'">
-              {{ formatTimeByTimezone(row.update_time) }}
+              {{ row.update_time | filterTimezone }}
             </div>
 
-            <template v-else>{{ row[columnFilter[key].id] || '--' }}</template>
+            <template v-else>{{ row[columnFilter[key].id] | filterEmpty }}</template>
           </template>
         </bk-table-column>
       </template>
