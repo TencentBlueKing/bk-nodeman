@@ -1,0 +1,2 @@
+bugfix:
+  - "host_policy 接口鉴权 (fixed #56)"
