@@ -270,8 +270,6 @@ class PolicyPermission(permissions.BasePermission):
 
         if view.action in [
             "fetch_common_variable",
-            "empty",
-            "host_policy",
             "fetch_policy_topo",
             "selected_preview",
             "plugin_preselection",
@@ -281,8 +279,12 @@ class PolicyPermission(permissions.BasePermission):
             # 不需要鉴权的action
             return True
 
+        bk_biz_scope = list(set([node["bk_biz_id"] for node in request.data["scope"]["nodes"]]))
+
+        if view.action in ["host_policy"]:
+            return CmdbHandler().check_biz_permission(bk_biz_scope, IamActionType.strategy_view)
+
         if view.action in ["create_policy"]:
-            bk_biz_scope = list(set([node["bk_biz_id"] for node in request.data["scope"]["nodes"]]))
             return CmdbHandler().check_biz_permission(bk_biz_scope, IamActionType.strategy_create)
 
         return False
