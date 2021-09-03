@@ -20,16 +20,17 @@
       <span>{{ $t('该通道的节点尚未进行手动部署请根据指引部署方可使用此通道进行agent安装') }}</span>
     </Tips>
 
-    <section class="deploy-guide" v-if="false">
-      <h3 class="mb10">{{ $t('部署指引') }}</h3>
-      <p>
-        <span>{{ '产品说随便放点文案占位，非最终版' }}</span>
-        <br />
-        <span>{{ '以下为极验无感本机认证的集成流程，整个集成流程是顺序进行的，在下一个步骤开始前请确保上一个步骤的操作都已正确完成。' }}</span>
-      </p>
-      <p>{{ '1.创建账号和应用申请 具体步骤请参照创建账号。' }}</p>
-      <p>{{ '2.客户端部署 客户端部署涉及Android和iOS两端，客户端主要完成用户交互和获取Token工作，具体集成和实现细节请参考相应的部署文档和demo。' }} </p>
-      <p>{{ '3.服务端部署 服务端使用客户端获取的Token换取真实的手机号或认证结果，具体集成和实现细节，请参考服务端部署文档。' }}</p>
+    <section class="deploy-guide">
+      <mavon-editor
+        class="markdown-content"
+        :value="channelMdText"
+        :toolbars-flag="false"
+        :editable="false"
+        :box-shadow="false"
+        :subfield="false"
+        default-open="preview"
+        preview-background="#fff">
+      </mavon-editor>
     </section>
   </section>
 </template>
@@ -38,6 +39,7 @@ import { Component, Emit, Prop, Vue } from 'vue-property-decorator';
 import ChannelTable from './channel-table.vue';
 import Tips from '@/components/common/tips.vue';
 import { CloudStore } from '@/store';
+import channelMdFile from './install_channel.md';
 
 @Component({
   components: {
@@ -49,6 +51,7 @@ export default class CloudChannel extends Vue {
   @Prop({ default: () => ({}), type: Object }) private readonly channel!: Dictionary;
 
   private deleteLoading = false;
+  private channelMdText = channelMdFile;
 
   private get showTips() {
     return !this.channel || this.channel.status !== 'running';
@@ -67,7 +70,6 @@ export default class CloudChannel extends Vue {
     this.deleteLoading = true;
     const { id, bk_cloud_id } = this.channel;
     const res = await CloudStore.deleteChannel({ id, params: { bk_cloud_id } });
-    console.log(res);
     this.deleteLoading = false;
     if (res) {
       this.$bkMessage({

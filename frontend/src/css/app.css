@@ -656,3 +656,12 @@ body {
         }
     }
 }
+
+.markdown-content {
+    ul {
+        list-style-type: disc
+    }
+    li {
+        list-style: inherit;
+    }
+}
