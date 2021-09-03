@@ -139,6 +139,10 @@ const baseConfig: webpack.Configuration = {
                 name: assetsPath('fonts/[name].[hash:7].[ext]')
               }
             }
+          },
+          {
+            test: /.md$/,
+            loader: 'text-loader'
           }
         ]
       }
