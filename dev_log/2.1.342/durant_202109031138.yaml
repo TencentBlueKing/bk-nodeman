@@ -1,0 +1,5 @@
+bugfix:
+  - "Windows P-Agent 安装时路径转义导致作业平台报错的问题"
+
+docs:
+  - "调整文档和图片"

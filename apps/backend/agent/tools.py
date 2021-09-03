@@ -201,13 +201,13 @@ def gen_commands(host: models.Host, pipeline_id: str, is_uninstall: bool) -> Ins
                 f"-HC {host.bk_cloud_id}",
                 f"-HNT {host.node_type}",
                 f"-HOT {host.os_type.lower()}",
-                f"-HDD {host_tmp_path}",
+                f"-HDD '{host_tmp_path}'",
             ]
         )
 
         run_cmd_params.extend(
             [
-                f"-p {install_path}",
+                f"-p '{install_path}'",
                 f"-I {jump_server.inner_ip}",
                 f"-o {gen_nginx_download_url(jump_server.inner_ip)}",
                 "-R" if is_uninstall else "",
