@@ -14,7 +14,7 @@
           <bk-form-item :label="$t('节点IP')" property="jump_servers" required :rules="ipRules">
             <bk-input v-model.trim="channelForm.jump_servers"></bk-input>
           </bk-form-item>
-          <p class="mt30">{{ $t('上游节点信息') }}</p>
+          <p class="mt30 mb10 upstream-node">{{ $t('上游节点信息') }}</p>
           <template v-for="(server, keyIndex) in channelServerKeys">
             <bk-form-item
               v-for="(item, index) in channelForm[server]"
@@ -197,6 +197,10 @@ export default class ChannelEdit extends Vue {
     >>> .group-append {
       border: 0;
     }
+  }
+  .upstream-node {
+    font-size: 14px;
+    font-weight: 700;
   }
   .input-control-slot {
     display: flex;
