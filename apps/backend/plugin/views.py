@@ -50,6 +50,9 @@ from apps.exceptions import AppBaseException, ValidationError
 from apps.generic import APIViewSet
 from apps.node_man import constants as const
 from apps.node_man import models
+from pipeline.engine.exceptions import InvalidOperationException
+from pipeline.service import task_service
+from pipeline.service.pipeline_engine_adapter.adapter_api import STATE_MAP
 
 LOG_PREFIX_RE = re.compile(r"(\[\d{4}-\d{1,2}-\d{1,2}\s\d{1,2}:\d{1,2}.*?\] )")
 logger = logging.getLogger("app")
@@ -632,18 +635,35 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         @apiGroup backend_plugin
         """
         task_id = request.data["task_id"]
+
         try:
             task = models.SubscriptionTask.objects.get(pk=task_id)
             subscription = models.Subscription.objects.get(pk=task.subscription_id)
             step = models.SubscriptionStep.objects.get(subscription_id=task.subscription_id)
-        except ObjectDoesNotExist:
+            pipeline_id = task.pipeline_id
+            status = task_service.get_state(pipeline_id)
+            is_finished = status["state"] == STATE_MAP["FINISHED"]
+            is_running = status["state"] == STATE_MAP["RUNNING"]
+        except (ObjectDoesNotExist, InvalidOperationException):
             # 不存在的直接跳过
             return Response()
-        config = step.config
-        config["job_type"] = backend_const.ActionNameType.STOP_DEBUG_PLUGIN
-        step.config = config
-        step.save()
-        run_subscription_task_and_create_instance.delay(subscription, task)
+
+        # 结束则忽略，只撤销正在运行的队列
+        if is_finished:
+            logger.info(f"plugin debug task has been finished, task_id: {task_id}")
+
+        if is_running:
+            revoke_result = task_service.revoke_pipeline(pipeline_id)
+            if revoke_result.result:
+                logger.info(f"plugin debug task has been revoked, pipeline id: {pipeline_id}")
+            else:
+                logger.error(f"plugin debug task revoke failed, pipeline id: {pipeline_id}")
+
+            config = step.config
+            config["job_type"] = backend_const.ActionNameType.STOP_DEBUG_PLUGIN
+            step.config = config
+            step.save()
+            run_subscription_task_and_create_instance.delay(subscription, task)
         return Response()
 
     @action(detail=False, methods=["GET"], url_path="query_debug")
