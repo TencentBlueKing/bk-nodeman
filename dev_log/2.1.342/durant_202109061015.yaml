@@ -1,0 +1,2 @@
+feature:
+  - "支持接入点中 cityid 和 regionid 配置为空 (#46)"

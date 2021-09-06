@@ -84,7 +84,7 @@ class UpdateOrCreateSerializer(serializers.ModelSerializer):
     port_config = serializers.DictField(default=GSE_PORT_DEFAULT_VALUE)
     proxy_package = serializers.ListField()
     bscp_config = serializers.DictField(_("BSCP配置"), required=False)
-    outer_callback_url = serializers.CharField(label=_("节点管理外网回调地址"), required=False)
+    outer_callback_url = serializers.CharField(label=_("节点管理外网回调地址"), required=False, allow_blank=True)
 
     class Meta:
         fields = "__all__"
