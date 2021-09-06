@@ -594,8 +594,8 @@ class ProcessStatus(models.Model):
 class AccessPoint(models.Model):
     name = models.CharField(_("接入点名称"), max_length=255)
     ap_type = models.CharField(_("接入点类型"), max_length=255, default="user")
-    region_id = models.CharField(_("区域id"), max_length=255, default="")  # 从100开始自增
-    city_id = models.CharField(_("城市id"), max_length=255, default="")
+    region_id = models.CharField(_("区域id"), max_length=255, default="", blank=True, null=True)
+    city_id = models.CharField(_("城市id"), max_length=255, default="", blank=True, null=True)
     btfileserver = JSONField(_("GSE BT文件服务器列表"))
     dataserver = JSONField(_("GSE 数据服务器列表"))
     taskserver = JSONField(_("GSE 任务服务器列表"))
