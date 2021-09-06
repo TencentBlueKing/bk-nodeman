@@ -51,8 +51,12 @@ AGENT_TEMPLATE = """
     "btportend": {{ bt_port_end }},
     "agentip": "{{ agentip }}",
     "identityip": "{{ identityip }}",
+    {%- if region_id %}
     "dftregid": "{{ region_id }}",
+    {%- endif %}
+    {%- if city_id %}
     "dftcityid": "{{ city_id }}",
+    {%- endif %}
     "bizid": {{ bk_supplier_id }},
     "cloudid": {{ bk_cloud_id }},
     "recvthread": 5,
@@ -620,7 +624,7 @@ def report_log(request):
     }
     """
     logger.info(f"[report_log]: {request.body}")
-    data = json.loads(str(request.body, encoding="utf8").replace("\\\"", "'").replace("\\", "/"))
+    data = json.loads(str(request.body, encoding="utf8").replace('\\"', "'").replace("\\", "/"))
 
     token = data.get("token")
     decrypted_token = _decrypt_token(token)
