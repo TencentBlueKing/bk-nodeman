@@ -2,6 +2,7 @@
 
 static/nodeman
 config/local_settings.py
+app.ymle
 
 ## Project Part
 .idea/

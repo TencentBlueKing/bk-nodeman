@@ -26,8 +26,9 @@ jobs:
         git tag -a V${yml_version} -m "$(cat release/V${yml_version}*)"
         git push origin V${yml_version}
         echo next_version:${yml_next_version}
-        sed -e "s/version: ${yml_version}/version: ${yml_next_version}/" app.yml > app.yml
+        sed -ie "s/version: ${yml_version}/version: ${yml_next_version}/" app.yml
         mkdir -p dev_log/${yml_next_version}
+        touch dev_log/${yml_next_version}/.gitkeep
         git add .
         git commit -m "minor: start new version ${yml_next_version}"
         git branch V${yml_next_version}rc
