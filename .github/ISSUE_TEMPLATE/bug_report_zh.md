@@ -1,6 +1,6 @@
 ---
 name: Bug反馈
-about: 反馈Bug
+about: Bug反馈
 title: "[BUG]"
 labels: bug
 assignees: zhangzhw8

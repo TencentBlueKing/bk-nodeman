@@ -1,3 +1,4 @@
+#!/bin/bash
 
 # DJANGO配置
 export DJANGO_SETTINGS_MODULE="settings"

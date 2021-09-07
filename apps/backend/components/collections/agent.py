@@ -736,7 +736,8 @@ class InstallService(AgentService, JobFastExecuteScriptService):
         path = os.path.join(settings.PROJECT_ROOT, "script_tools", "setup_pagent.py")
         with open(path, encoding="utf-8") as fh:
             script = fh.read()
-        bk_biz_id = proxy.bk_biz_id
+        # 使用全业务执行作业
+        bk_biz_id = settings.BLUEKING_BIZ_ID
         kwargs = {
             "bk_biz_id": bk_biz_id,
             "ip_list": [{"ip": proxy.inner_ip, "bk_cloud_id": proxy.bk_cloud_id}],
@@ -748,12 +749,18 @@ class InstallService(AgentService, JobFastExecuteScriptService):
             "is_param_sensitive": 1,
         }
         try:
-            data = client_v2.job.fast_execute_script(kwargs, bk_username=bk_username)
+            data = client_v2.job.fast_execute_script(kwargs)
         except Exception as err:
             self.logger.error(f"start job failed: {err}")
             return False
         else:
             task_inst_id = data.get("job_instance_id")
+            self.logger.info(
+                _('作业任务ID为[{job_instance_id}]，点击跳转到<a href="{link}" target="_blank">[作业平台]</a>').format(
+                    job_instance_id=task_inst_id,
+                    link=f"{settings.BK_JOB_HOST}/{settings.BLUEKING_BIZ_ID}/execute/step/{task_inst_id}",
+                )
+            )
 
             task_service.callback.apply_async(
                 (
