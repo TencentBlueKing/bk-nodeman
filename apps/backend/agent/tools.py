@@ -197,7 +197,7 @@ def gen_commands(host: models.Host, pipeline_id: str, is_uninstall: bool) -> Ins
                 f"-HIIP {host.inner_ip}",
                 f"-HA {host.identity.account}",
                 f"-HP {host.identity.port}",
-                f"-HI {host_identity}",
+                f"-HI '{host_identity}'",
                 f"-HC {host.bk_cloud_id}",
                 f"-HNT {host.node_type}",
                 f"-HOT {host.os_type.lower()}",
