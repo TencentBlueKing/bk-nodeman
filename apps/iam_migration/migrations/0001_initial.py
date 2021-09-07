@@ -9,17 +9,34 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+import os
+import re
+
+from django.conf import settings
 from django.db import migrations
 from iam.contrib.iam_migration.migrator import IAMMigrator
 
 
 def forward_func(apps, schema_editor):
+    file_path = getattr(settings, "BK_IAM_MIGRATION_JSON_PATH", "support-files/iam/")
+    tpl_path = os.path.join(settings.BASE_DIR, file_path, Migration.migration_tpl)
+    json_path = os.path.join(settings.BASE_DIR, file_path, Migration.migration_json)
+
+    with open(tpl_path, "r", encoding="utf-8") as f:
+        with open(json_path, "w+", encoding="utf-8") as e:
+            result = re.sub(
+                "http://__BK_NODEMAN_API_ADDR__",
+                os.environ.get("BKAPP_NODEMAN_BACKEND_ADDR", settings.BK_IAM_URL),
+                f.read(),
+            )
+            e.write(result)
 
     migrator = IAMMigrator(Migration.migration_json)
     migrator.migrate()
 
 
 class Migration(migrations.Migration):
+    migration_tpl = "0003_bk_nodeman_20200811-1145_iam.tpl"
     migration_json = "0003_bk_nodeman_20200811-1145_iam.json"
 
     dependencies = []
