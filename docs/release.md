@@ -1,5 +1,11 @@
 # Release
 
+## 2.1.343
+
+- feature
+  - UI、代码优化 (#48)
+  - 使用全业务执行作业安装P-Agent (fixed #74)
+
 ## 2.1.342
 
 - feature
