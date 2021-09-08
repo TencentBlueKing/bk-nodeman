@@ -1,5 +1,12 @@
 # Release
 
+## 2.1.344
+
+- bugfix
+  - 修复重复收集相同的自动触发任务的问题 (fixed #1)
+- optimization
+  - 支持使用CMDB主机监听事件触发订阅变更 (close #85)
+
 ## 2.1.343
 
 - feature
