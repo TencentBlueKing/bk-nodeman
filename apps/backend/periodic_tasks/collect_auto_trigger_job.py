@@ -118,7 +118,10 @@ def collect_auto_trigger_job():
         not_ready_task_info_map[task_id] = not_ready_task_info_map.get(task_id, 0) + 1
 
     # 指针后移至已完成同步id的最大值，若本轮无同步数据，指针位置不变
-    last_sub_task_id = max([auto_task_info["id"] for auto_task_info in auto_task_infos] or [last_sub_task_id])
+    all_task_ids = {auto_task_info["id"] for auto_task_info in auto_task_infos}
+    # 仅统计新增task_id，防止指针回退
+    new_add_task_ids = all_task_ids - set(not_ready_task_ids)
+    last_sub_task_id = max(new_add_task_ids or [last_sub_task_id])
 
     with transaction.atomic():
         models.Job.objects.bulk_create(auto_jobs_to_be_created)
