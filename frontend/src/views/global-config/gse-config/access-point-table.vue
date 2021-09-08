@@ -15,11 +15,11 @@
           <td :rowspan="rowspanNum.servers">{{ $t('Server信息') }}</td>
           <td rowspan="2">{{ $t('地域信息') }}</td>
           <td>{{ $t('区域') }}</td>
-          <td class="table-content">{{ formData.region_id }}</td>
+          <td class="table-content">{{ formData.region_id | filterEmpty }}</td>
         </tr>
         <tr>
           <td>{{ $t('城市') }}</td>
-          <td class="table-content">{{ formData.city_id }}</td>
+          <td class="table-content">{{ formData.city_id | filterEmpty }}</td>
         </tr>
         <tr>
           <td>Zookeeper</td>
