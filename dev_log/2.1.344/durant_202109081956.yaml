@@ -1,0 +1,2 @@
+optimization:
+  - "支持使用CMDB主机监听事件触发订阅变更 (close #85)"

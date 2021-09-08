@@ -25,17 +25,6 @@ MAX_WAIT_OUTPUT = 32  # 最大重试等待recv_ready次数
 SLEEP_INTERVAL = 1  # recv等待间隔
 
 
-class TargetNodeType(object):
-    """
-    目标节点类型
-    """
-
-    TOPO = "TOPO"  # 动态实例（拓扑）
-    INSTANCE = "INSTANCE"  # 静态实例
-    SERVICE_TEMPLATE = "SERVICE_TEMPLATE"  # 服务模板
-    SET_TEMPLATE = "SET_TEMPLATE"  # 集群模板
-
-
 class InstNodeType(object):
 
     BIZ = "biz"

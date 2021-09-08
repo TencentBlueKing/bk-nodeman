@@ -10,10 +10,9 @@ specific language governing permissions and limitations under the License.
 """
 import logging
 
-from apps.backend.constants import TargetNodeType
 from apps.backend.subscription.commons import get_host_by_inst
 from apps.component.esbclient import client_v2
-from apps.node_man import constants
+from apps.node_man import constants, models
 from apps.utils.batch_request import batch_request
 
 """
@@ -37,7 +36,7 @@ def get_host_detail_by_template(bk_obj_id, template_info_list: list, bk_biz_id: 
 
     fields = constants.FIND_HOST_BY_TEMPLATE_FIELD
 
-    if bk_obj_id == TargetNodeType.SERVICE_TEMPLATE:
+    if bk_obj_id == models.Subscription.NodeType.SERVICE_TEMPLATE:
         # 服务模板
         call_func = client_v2.cc.find_host_by_service_template
         template_ids = [info["bk_inst_id"] for info in template_info_list]
@@ -72,7 +71,7 @@ def get_hosts_by_node(config_hosts):
     else:
         bk_biz_id = config_hosts[0]["bk_biz_id"]
         bk_obj_id = config_hosts[0]["bk_obj_id"]
-        if bk_obj_id in [TargetNodeType.SERVICE_TEMPLATE, TargetNodeType.SET_TEMPLATE]:
+        if bk_obj_id in [models.Subscription.NodeType.SERVICE_TEMPLATE, models.Subscription.NodeType.SET_TEMPLATE]:
             # 根据 模板 类型节点来计算IP
             instances.extend(
                 [

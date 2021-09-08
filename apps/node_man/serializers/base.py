@@ -11,7 +11,6 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
-from apps.backend.constants import TargetNodeType
 from apps.exceptions import ValidationError
 from apps.node_man import constants, exceptions, models
 
@@ -78,11 +77,11 @@ class ScopeSerializer(serializers.Serializer):
                 continue
             raise ValidationError(_("部署节点属性组合必须是 (bk_biz_id, bk_host_id) 或者 (bk_biz_id, bk_obj_id, bk_inst_id)"))
 
-        if data["node_type"] == TargetNodeType.INSTANCE:
+        if data["node_type"] == models.Subscription.NodeType.INSTANCE:
             for node in data["nodes"]:
                 if "bk_host_id" not in node:
                     raise ValidationError(_("部署节点[{node}]不是主机实例").format(node=node))
-        elif data["node_type"] == TargetNodeType.TOPO:
+        elif data["node_type"] == models.Subscription.NodeType.TOPO:
             for node in data["nodes"]:
                 if "bk_inst_id" not in node:
                     raise ValidationError(_("部署节点[{node}不是拓扑节点]").format(node=node))

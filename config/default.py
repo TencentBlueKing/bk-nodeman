@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import sys
+from distutils.util import strtobool
 
 from blueapps.conf.default_settings import *  # noqa
 
@@ -498,7 +499,7 @@ GSE_PROCESS_STATUS_DATAID = os.getenv("GSE_PROCESS_STATUS_DATAID") or 1200000
 GSE_PROCESS_EVENT_DATAID = os.getenv("GSE_PROCESS_EVENT_DATAID") or 1100008
 
 # 是否使用CMDB订阅机制去主动触发插件下发
-USE_CMDB_SUBSCRIPTION_TRIGGER = bool(os.getenv("BKAPP_USE_CMDB_SUBSCRIPTION_TRIGGER"))
+USE_CMDB_SUBSCRIPTION_TRIGGER = strtobool(os.getenv("BKAPP_USE_CMDB_SUBSCRIPTION_TRIGGER", "true"))
 
 VERSION_LOG = {"MD_FILES_DIR": os.path.join(PROJECT_ROOT, "release")}
 

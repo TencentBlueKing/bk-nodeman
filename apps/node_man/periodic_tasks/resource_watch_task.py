@@ -286,8 +286,11 @@ def trigger_nodeman_subscription(bk_biz_id):
             bk_biz_id=bk_biz_id,
             enable=True,
             is_deleted=False,
-            object_type=Subscription.ObjectType.HOST,
-            node_type=Subscription.NodeType.TOPO,  # 当前只支持主机+节点类型
+            node_type__in=[
+                Subscription.NodeType.TOPO,
+                Subscription.NodeType.SERVICE_TEMPLATE,
+                Subscription.NodeType.SET_TEMPLATE,
+            ],
         ).values_list("id", flat=True)
     )
 
