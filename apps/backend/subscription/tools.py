@@ -23,7 +23,6 @@ from django.conf import settings
 from django.db.models import Q
 from django.utils import timezone
 
-from apps.backend.constants import TargetNodeType
 from apps.backend.subscription import task_tools
 from apps.backend.subscription.commons import get_host_by_inst, list_biz_hosts
 from apps.backend.subscription.errors import (
@@ -371,7 +370,7 @@ def get_host_detail_by_template(bk_obj_id, template_info_list: list, bk_biz_id: 
 
     fields = constants.FIND_HOST_BY_TEMPLATE_FIELD
 
-    if bk_obj_id == TargetNodeType.SERVICE_TEMPLATE:
+    if bk_obj_id == models.Subscription.NodeType.SERVICE_TEMPLATE:
         # 服务模板
         call_func = client_v2.cc.find_host_by_service_template
         template_ids = [info["bk_inst_id"] for info in template_info_list]
@@ -402,7 +401,7 @@ def get_service_instances_by_template(bk_obj_id, template_info_list: list, bk_bi
 
     template_ids = [info["bk_inst_id"] for info in template_info_list]
 
-    if bk_obj_id == TargetNodeType.SERVICE_TEMPLATE:
+    if bk_obj_id == models.Subscription.NodeType.SERVICE_TEMPLATE:
         # 服务模板下的服务实例
         call_func = client_v2.cc.find_host_by_service_template
         params = dict(
@@ -566,7 +565,7 @@ def set_template_scope_nodes(scope):
     params = {"bk_biz_id": int(scope["bk_biz_id"])}
     modules_info = batch_request(client_v2.cc.search_module, params)
     template_ids = [node["bk_inst_id"] for node in scope["nodes"]]
-    if scope["node_type"] == TargetNodeType.SERVICE_TEMPLATE:
+    if scope["node_type"] == models.Subscription.NodeType.SERVICE_TEMPLATE:
         # 转化服务模板为node
         scope["nodes"] = [
             {"bk_inst_id": node["bk_module_id"], "bk_obj_id": "module"}
@@ -709,7 +708,10 @@ def get_instances_by_scope(scope: Dict[str, Union[Dict, int, Any]]) -> Dict[str,
             )
 
     # 按照模板查询
-    elif scope["node_type"] in [TargetNodeType.SERVICE_TEMPLATE, TargetNodeType.SET_TEMPLATE]:
+    elif scope["node_type"] in [
+        models.Subscription.NodeType.SERVICE_TEMPLATE,
+        models.Subscription.NodeType.SET_TEMPLATE,
+    ]:
         # 校验是否都选择了同一种模板
         bk_obj_id_set = check_instances_object_type(nodes)
         if scope["object_type"] == models.Subscription.ObjectType.HOST:

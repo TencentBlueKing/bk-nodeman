@@ -1,6 +1,6 @@
 ---
-name: 需求
-about: 需求，建议
+name: 需求、优化、建议
+about: 需求、优化、建议
 title: "[FEATURE]"
 labels: feature
 assignees: zhangzhw8

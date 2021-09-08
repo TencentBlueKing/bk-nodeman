@@ -2091,10 +2091,14 @@ class Subscription(orm.SoftDeleteModel):
     class NodeType(object):
         TOPO = "TOPO"
         INSTANCE = "INSTANCE"
+        SERVICE_TEMPLATE = "SERVICE_TEMPLATE"
+        SET_TEMPLATE = "SET_TEMPLATE"
 
     NODE_TYPE_CHOICES = (
-        (NodeType.TOPO, _("拓扑")),
-        (NodeType.INSTANCE, _("实例")),
+        (NodeType.TOPO, _("动态实例（拓扑）")),
+        (NodeType.INSTANCE, _("静态实例")),
+        (NodeType.SERVICE_TEMPLATE, _("服务模板")),
+        (NodeType.SET_TEMPLATE, _("集群模板")),
     )
 
     class CategoryType(object):
