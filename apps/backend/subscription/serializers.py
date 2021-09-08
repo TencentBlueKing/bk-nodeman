@@ -12,9 +12,8 @@ specific language governing permissions and limitations under the License.
 
 from rest_framework import serializers
 
-from apps.backend.constants import TargetNodeType
 from apps.exceptions import ValidationError
-from apps.node_man import constants
+from apps.node_man import constants, models
 from apps.node_man.models import ProcessStatus
 
 
@@ -26,15 +25,8 @@ class GatewaySerializer(serializers.Serializer):
 class ScopeSerializer(serializers.Serializer):
     bk_biz_id = serializers.IntegerField(required=False, default=None)
     bk_biz_scope = serializers.ListField(required=False)
-    object_type = serializers.ChoiceField(choices=["HOST", "SERVICE"])
-    node_type = serializers.ChoiceField(
-        choices=[
-            TargetNodeType.INSTANCE,
-            TargetNodeType.TOPO,
-            TargetNodeType.SET_TEMPLATE,
-            TargetNodeType.SERVICE_TEMPLATE,
-        ]
-    )
+    object_type = serializers.ChoiceField(choices=models.Subscription.OBJECT_TYPE_CHOICES)
+    node_type = serializers.ChoiceField(choices=models.Subscription.NODE_TYPE_CHOICES)
     need_register = serializers.BooleanField(required=False, default=False)
     nodes = serializers.ListField()
 
@@ -61,15 +53,8 @@ class CreateSubscriptionSerializer(GatewaySerializer):
     class ScopeSerializer(serializers.Serializer):
         bk_biz_id = serializers.IntegerField(required=False, default=None)
         bk_biz_scope = serializers.ListField(required=False)
-        object_type = serializers.ChoiceField(choices=["HOST", "SERVICE"])
-        node_type = serializers.ChoiceField(
-            choices=[
-                TargetNodeType.INSTANCE,
-                TargetNodeType.TOPO,
-                TargetNodeType.SET_TEMPLATE,
-                TargetNodeType.SERVICE_TEMPLATE,
-            ]
-        )
+        object_type = serializers.ChoiceField(choices=models.Subscription.OBJECT_TYPE_CHOICES)
+        node_type = serializers.ChoiceField(choices=models.Subscription.NODE_TYPE_CHOICES)
         need_register = serializers.BooleanField(required=False, default=False)
         nodes = serializers.ListField()
 
@@ -102,14 +87,7 @@ class GetSubscriptionSerializer(GatewaySerializer):
 
 class UpdateSubscriptionSerializer(GatewaySerializer):
     class ScopeSerializer(serializers.Serializer):
-        node_type = serializers.ChoiceField(
-            choices=[
-                TargetNodeType.INSTANCE,
-                TargetNodeType.TOPO,
-                TargetNodeType.SET_TEMPLATE,
-                TargetNodeType.SERVICE_TEMPLATE,
-            ]
-        )
+        node_type = serializers.ChoiceField(choices=models.Subscription.NODE_TYPE_CHOICES)
         nodes = serializers.ListField()
         bk_biz_id = serializers.IntegerField(required=False, default=None)
 
@@ -141,14 +119,7 @@ class SwitchSubscriptionSerializer(GatewaySerializer):
 
 class RunSubscriptionSerializer(GatewaySerializer):
     class ScopeSerializer(serializers.Serializer):
-        node_type = serializers.ChoiceField(
-            choices=[
-                TargetNodeType.INSTANCE,
-                TargetNodeType.TOPO,
-                TargetNodeType.SET_TEMPLATE,
-                TargetNodeType.SERVICE_TEMPLATE,
-            ]
-        )
+        node_type = serializers.ChoiceField(choices=models.Subscription.NODE_TYPE_CHOICES)
         nodes = serializers.ListField()
 
     subscription_id = serializers.IntegerField()

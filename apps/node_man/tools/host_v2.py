@@ -15,7 +15,7 @@ from typing import Any, Dict, List, Optional, Union
 
 from django.db.models import QuerySet
 
-from apps.backend.constants import InstNodeType, TargetNodeType
+from apps.backend.constants import InstNodeType
 from apps.node_man import constants, models
 from apps.node_man.handlers.cmdb import CmdbHandler
 from apps.utils.local import get_request
@@ -177,9 +177,9 @@ class HostV2Tools:
     @classmethod
     def list_scope_host_ids(cls, scope: Dict) -> List[int]:
         bk_host_ids = []
-        if scope["node_type"] == TargetNodeType.INSTANCE:
+        if scope["node_type"] == models.Subscription.NodeType.INSTANCE:
             bk_host_ids = [node["bk_host_id"] for node in scope["nodes"]]
-        elif scope["node_type"] == TargetNodeType.TOPO:
+        elif scope["node_type"] == models.Subscription.NodeType.TOPO:
             bk_host_ids = cls.parse_conditions2host_ids(cls.parse_nodes2conditions(nodes=scope["nodes"]))
         return bk_host_ids
 
