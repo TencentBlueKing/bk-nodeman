@@ -161,3 +161,19 @@ class TestCollectAutoTriggerJob(CustomBaseTestCase):
             collect_result[models.GlobalSettings.KeyEnum.LAST_SUB_TASK_ID.value], max(self.init_auto_sub_task_ids)
         )
         self.assertEqual(collect_result["TASK_IDS_GBY_REASON"], {"NOT_READY": [], "READY": [], "ERROR": []})
+
+    def test_history_not_ready(self):
+        """验证无新增且历史存在not ready时，指针不回退"""
+
+        self.test_exist_not_ready()
+
+        before_collect_last_sub_task_id = models.GlobalSettings.get_config(
+            models.GlobalSettings.KeyEnum.LAST_SUB_TASK_ID.value
+        )
+
+        collect_auto_trigger_job()
+
+        last_sub_task_id = models.GlobalSettings.get_config(models.GlobalSettings.KeyEnum.LAST_SUB_TASK_ID.value)
+
+        # 指针不变
+        self.assertEqual(before_collect_last_sub_task_id, last_sub_task_id)
