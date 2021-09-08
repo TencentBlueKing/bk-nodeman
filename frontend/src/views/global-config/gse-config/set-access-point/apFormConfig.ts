@@ -20,15 +20,15 @@ export const stepHost = [
   {
     label: window.i18n.t('区域'),
     key: 'region_id',
-    required: true,
-    ruleName: 'required',
+    required: false,
+    ruleName: '',
     placeholder: window.i18n.t('请输入'),
   },
   {
     label: window.i18n.t('城市'),
     key: 'city_id',
-    required: true,
-    ruleName: 'required',
+    required: false,
+    ruleName: '',
     placeholder: window.i18n.t('请输入'),
   },
   {
