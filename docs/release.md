@@ -1,5 +1,10 @@
 # Release
 
+## 2.1.345
+
+- optimization
+  - 支持使用CMDB主机监听事件触发订阅变更 (close #85)
+
 ## 2.1.344
 
 - bugfix
