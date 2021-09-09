@@ -13,6 +13,7 @@ import time
 
 from django.conf import settings
 from django.core.cache import cache
+from django.db.models import Q
 from django.db.utils import IntegrityError
 
 from apps.component.esbclient import client_v2
@@ -282,8 +283,8 @@ def trigger_nodeman_subscription(bk_biz_id):
 
     # 获取当前业务的订阅ID，进行变更判断。使用celery变更将于 debounce_time 后执行
     subscription_ids = list(
-        Subscription.objects.filter(
-            bk_biz_id=bk_biz_id,
+        Subscription.objects.filter(Q(bk_biz_id=bk_biz_id) | Q(bk_biz_scope__contains=bk_biz_id))
+        .filter(
             enable=True,
             is_deleted=False,
             node_type__in=[
@@ -291,7 +292,8 @@ def trigger_nodeman_subscription(bk_biz_id):
                 Subscription.NodeType.SERVICE_TEMPLATE,
                 Subscription.NodeType.SET_TEMPLATE,
             ],
-        ).values_list("id", flat=True)
+        )
+        .values_list("id", flat=True)
     )
 
     if not subscription_ids:
