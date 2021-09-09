@@ -9,7 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import os
-from typing import Any, Callable, Dict, List
+from typing import Any, Callable, Dict, List, Optional
 
 from bkstorages.backends import bkrepo
 from django.conf import settings
@@ -29,13 +29,13 @@ class CustomBKRepoStorage(BaseStorage, bkrepo.BKRepoStorage):
 
     storage_type: str = constants.StorageType.BLUEKING_ARTIFACTORY.value
     location: str = getattr(settings, "BKREPO_LOCATION", "")
-    file_overwrite: bool = getattr(settings, "FILE_OVERWRITE", False)
+    file_overwrite: Optional[bool] = None
 
-    endpoint_url: str = settings.BKREPO_ENDPOINT_URL
-    username: str = settings.BKREPO_USERNAME
-    password: str = settings.BKREPO_PASSWORD
-    project_id: str = settings.BKREPO_PROJECT
-    bucket: str = settings.BKREPO_BUCKET
+    endpoint_url: Optional[str] = None
+    username: Optional[str] = None
+    password: Optional[str] = None
+    project_id: Optional[str] = None
+    bucket: Optional[str] = None
 
     def __init__(
         self,
@@ -49,12 +49,12 @@ class CustomBKRepoStorage(BaseStorage, bkrepo.BKRepoStorage):
     ):
         # 类成员变量应该和构造函数解耦，通过 params or default 的形式给构造参数赋值，防止该类被继承扩展时需要覆盖全部的成员默认值
         root_path = root_path or self.location
-        username = username or self.username
-        password = password or self.password
-        project_id = project_id or self.project_id
-        bucket = bucket or self.bucket
-        endpoint_url = endpoint_url or self.endpoint_url
-        file_overwrite = file_overwrite or self.file_overwrite
+        username = username or settings.BKREPO_USERNAME
+        password = password or settings.BKREPO_PASSWORD
+        project_id = project_id or settings.BKREPO_PROJECT
+        bucket = bucket or settings.BKREPO_BUCKET
+        endpoint_url = endpoint_url or settings.BKREPO_ENDPOINT_URL
+        file_overwrite = file_overwrite or settings.FILE_OVERWRITE
 
         # 根据 MRO 顺序，super() 仅调用 BaseStorage.__init__()，通过显式调用 BKRepoStorage 的初始化函数
         # 获得自定义 BaseStorage 类的重写特性，同时向 BKRepoStorage 注入成员变量
@@ -183,7 +183,7 @@ _STORAGE_OBJ_CACHE: [str, Storage] = {}
 def cache_storage_obj(get_storage_func: Callable[[str, Dict], Storage]):
     """用于Storage 缓存读写的装饰器"""
 
-    def inner(storage_type: str = settings.STORAGE_TYPE, *args, **construct_params) -> Storage:
+    def inner(storage_type: Optional[str] = None, *args, **construct_params) -> Storage:
         # 仅默认参数情况下返回缓存
         if not (construct_params or args) and storage_type in _STORAGE_OBJ_CACHE:
             return _STORAGE_OBJ_CACHE[storage_type]
@@ -200,7 +200,7 @@ def cache_storage_obj(get_storage_func: Callable[[str, Dict], Storage]):
 
 
 @cache_storage_obj
-def get_storage(storage_type: str = settings.STORAGE_TYPE, safe: bool = False, **construct_params) -> BaseStorage:
+def get_storage(storage_type: Optional[str] = None, safe: bool = False, **construct_params) -> BaseStorage:
     """
     获取 Storage
     :param storage_type: 文件存储类型，参考 constants.StorageType
@@ -208,6 +208,7 @@ def get_storage(storage_type: str = settings.STORAGE_TYPE, safe: bool = False, *
     :param construct_params: storage class 构造参数，用于修改storage某些默认行为（写入仓库、base url等）
     :return: Storage实例
     """
+    storage_type = storage_type or settings.STORAGE_TYPE
     storage_import_path = settings.STORAGE_TYPE_IMPORT_PATH_MAP.get(storage_type)
     if storage_import_path is None:
         raise ValueError(f"please provide valid storage_type {settings.STORAGE_TYPE_IMPORT_PATH_MAP.values()}")

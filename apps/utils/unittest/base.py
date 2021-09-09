@@ -23,8 +23,11 @@ DEFAULT_FORMAT = "json"
 class CustomAPIClient(APIClient):
     @staticmethod
     def assert_response(response) -> Dict[str, Any]:
-        assert response.status_code == status.HTTP_200_OK
-        return json.loads(response.content)
+        if response.status_code != status.HTTP_200_OK:
+            print(json.dumps(json.loads(response.content)))
+            assert False
+        else:
+            return json.loads(response.content)
 
     def get(self, path, data=None, follow=False, **extra):
         response = super().get(path=path, data=data, follow=float, **extra)

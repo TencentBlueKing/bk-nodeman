@@ -8,51 +8,13 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import json
-
-from django.test import Client, TestCase
-from django.test.client import MULTIPART_CONTENT
 
 from apps.backend.tests.plugin import utils
 from apps.node_man import constants, models
+from apps.utils.unittest.testcase import CustomAPITestCase
 
 
-class TestApiBase(TestCase):
-    test_client = Client()
-
-    def success_assert(self, response):
-        response_data = json.loads(response.content)
-        self.assertEqual(response.status_code, 200)
-        self.assertTrue(response_data["result"])
-        return response_data
-
-    def get(self, path, data=None, follow=False, secure=False, success_assert=True, **extra):
-        response = self.test_client.get(path, data, follow, secure, **extra)
-        return self.success_assert(response)
-
-    def post(
-        self,
-        path,
-        data=None,
-        content_type=MULTIPART_CONTENT,
-        follow=False,
-        secure=False,
-        success_assert=True,
-        is_json=True,
-        **extra
-    ):
-        # 默认用json格式
-        if is_json:
-            content_type = "application/json"
-            data = json.dumps(data) if isinstance(data, dict) else data
-        response = self.test_client.post(path, data, content_type, follow, secure, **extra)
-        if success_assert:
-            return self.success_assert(response)
-        else:
-            return json.loads(response.content)
-
-
-class TestPkgStatusChange(TestApiBase):
+class PluginStatusTestCase(CustomAPITestCase):
     def setUp(self):
         utils.PluginTestObjFactory.batch_create_plugin_desc([utils.PluginTestObjFactory.gse_plugin_desc_obj()])
         utils.PluginTestObjFactory.batch_create_pkg(
@@ -69,7 +31,7 @@ class TestPkgStatusChange(TestApiBase):
 
     def test_pkg_release(self):
         pkg_objs = models.Packages.objects.all()
-        response = self.post(
+        response = self.client.post(
             path="/backend/api/plugin/release/",
             data={
                 "id": [pkg_objs[0].id, pkg_objs[1].id],
@@ -83,14 +45,14 @@ class TestPkgStatusChange(TestApiBase):
 
         models.Packages.objects.all().update(is_release_version=False)
 
-        response = self.post(
+        response = self.client.post(
             path="/backend/api/plugin/release/",
             data={
                 "md5_list": ["456"],
                 "bk_app_code": "test",
                 "bk_username": "test_person",
                 "version": "1.0.1",
-                "name": utils.DEFAULT_PLUGIN_NAME,
+                "name": utils.PLUGIN_NAME,
             },
         )
         self.assertEquals(response["data"], [pkg_objs[1].id])
@@ -100,7 +62,7 @@ class TestPkgStatusChange(TestApiBase):
         # 测试未启用状态下不允许上下线变更
         pkg_objs.update(is_ready=False, is_release_version=True)
 
-        response = self.post(
+        response = self.client.post(
             path="/backend/api/plugin/release/",
             data={
                 "id": [pkg_objs[0].id, pkg_objs[1].id],
@@ -124,7 +86,7 @@ class TestPkgStatusChange(TestApiBase):
             constants.PkgStatusOpType.release,
         ]
         for op in op_order:
-            response = self.post(
+            response = self.client.post(
                 path="/backend/api/plugin/package_status_operation/",
                 data={
                     "id": [pkg_objs[0].id, pkg_objs[1].id],
@@ -144,10 +106,10 @@ class TestPkgStatusChange(TestApiBase):
         )
 
         # 下线1.0.0
-        response = self.post(
+        response = self.client.post(
             path="/backend/api/plugin/package_status_operation/",
             data={
-                "name": utils.DEFAULT_PLUGIN_NAME,
+                "name": utils.PLUGIN_NAME,
                 "version": "1.0.0",
                 "operation": constants.PkgStatusOpType.offline,
                 "md5_list": ["123"],
@@ -168,7 +130,7 @@ class TestPkgStatusChange(TestApiBase):
             constants.PluginStatusOpType.ready,
         ]
         for op in op_order:
-            response = self.post(
+            response = self.client.post(
                 path="/backend/api/plugin/plugin_status_operation/",
                 data={"operation": op, "id": [gse_plugin_objs[0].id], "bk_app_code": "test", "bk_username": "admin"},
             )

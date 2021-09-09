@@ -1096,11 +1096,17 @@ class Packages(models.Model):
         for external_type_prefix in os.listdir(package_tmp_dir):
             if external_type_prefix not in constants.PluginChildDir.get_optional_items():
                 continue
+
+            # 官方插件的插件包目录缺少 project，为了保证导出插件包可用，解压目标目录需要补充 project 层级
+            dst_shims = [local_target_dir, f"{external_type_prefix}_{self.os}_{self.cpu_arch}"]
+            if external_type_prefix == constants.PluginChildDir.OFFICIAL:
+                dst_shims.append(self.project)
+
             # 将匹配的目录拷贝并格式化命名
             # 关于拷贝目录，参考：https://stackoverflow.com/questions/1868714/
             copy_tree(
                 src=os.path.join(package_tmp_dir, external_type_prefix),
-                dst=os.path.join(local_target_dir, f"{external_type_prefix}_{self.os}_{self.cpu_arch}"),
+                dst=os.path.join(*dst_shims),
             )
 
         # 移除临时解压目录

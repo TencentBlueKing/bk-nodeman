@@ -12,6 +12,7 @@ specific language governing permissions and limitations under the License.
 from __future__ import unicode_literals
 
 import os
+import platform
 import re
 from enum import Enum
 from typing import List
@@ -73,7 +74,7 @@ LINUX_SEP = "/"
 WINDOWS_SEP = "\\"
 
 # 临时文件存放位置
-TMP_DIR = "/tmp"
+TMP_DIR = ("/tmp", "c:/")[platform.system() == "Windows"]
 
 # 临时文件名格式模板
 TMP_FILE_NAME_FORMAT = "nm_tf_{name}"
