@@ -39,7 +39,7 @@ def collect_auto_trigger_job():
         not_ready_task_info_map = {}
         models.GlobalSettings.set_config(models.GlobalSettings.KeyEnum.NOT_READY_TASK_INFO_MAP.value, {})
 
-    not_ready_task_ids = list(not_ready_task_info_map.keys())
+    not_ready_task_ids = list(int(not_ready_task_id_str) for not_ready_task_id_str in not_ready_task_info_map.keys())
     all_auto_task_infos = models.SubscriptionTask.objects.filter(
         Q(id__gt=last_sub_task_id) | Q(id__in=not_ready_task_ids), is_auto_trigger=True
     ).values("subscription_id", "id", "is_ready", "err_msg")
