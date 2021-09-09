@@ -498,6 +498,9 @@ def create_pkg_record(
                 )
             )
 
+            # 配置文件已写入DB，从插件包中移除
+            os.remove(template_file_path)
+
     proc_control, __ = models.ProcControl.objects.get_or_create(
         plugin_package_id=pkg_record.id, defaults=dict(module="gse_plugin", project=pkg_parse_info["project"])
     )
@@ -554,7 +557,7 @@ def create_pkg_record(
             # 判断是否第三方插件的路径
             arcname=f"{constants.PluginChildDir.EXTERNAL.value}/{project}"
             if is_external
-            else f"{constants.PluginChildDir.OFFICIAL.value}/{project}",
+            else f"{constants.PluginChildDir.OFFICIAL.value}/",
         )
         logger.info(
             "project -> {project} version -> {version} now is pack to package_tmp_path -> {package_tmp_path}".format(
