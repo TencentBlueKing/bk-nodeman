@@ -84,6 +84,15 @@ class TestCollectAutoTriggerJob(CustomBaseTestCase):
         cls.init_sub_ids = [sub.id for sub in cls.init_sub_objs]
         cls.init_auto_sub_task_ids = [auto_sub_task_obj.id for auto_sub_task_obj in cls.init_auto_sub_task_objs]
 
+    @classmethod
+    def create_auto_task(cls, is_ready: bool) -> models.SubscriptionTask:
+        sub_obj = random.choice(cls.init_sub_objs)
+        auto_sub_task_data: Dict = basic.remove_keys_from_dict(sub_mock_data.unit.SUB_TASK_MODEL_DATA, keys=["id"])
+        auto_sub_task_data.update({"subscription_id": sub_obj.id, "is_auto_trigger": True, "is_ready": is_ready})
+        auto_sub_task_obj = models.SubscriptionTask(**auto_sub_task_data)
+        auto_sub_task_obj.save()
+        return auto_sub_task_obj
+
     def test_first_collect(self):
         """测试初次同步，此时global settings 还未保存执行端点"""
 
@@ -127,11 +136,7 @@ class TestCollectAutoTriggerJob(CustomBaseTestCase):
         self.test_first_collect()
 
         # 创建一个未就绪状态的sub task
-        not_ready_sub_obj = self.init_sub_objs[random.randint(0, self.init_sub_num - 1)]
-        auto_sub_task_data: Dict = basic.remove_keys_from_dict(sub_mock_data.unit.SUB_TASK_MODEL_DATA, keys=["id"])
-        auto_sub_task_data.update({"subscription_id": not_ready_sub_obj.id, "is_auto_trigger": True, "is_ready": False})
-        auto_sub_task_obj = models.SubscriptionTask(**auto_sub_task_data)
-        auto_sub_task_obj.save()
+        auto_sub_task_obj = self.create_auto_task(is_ready=False)
 
         collect_result = collect_auto_trigger_job()
 
@@ -167,13 +172,14 @@ class TestCollectAutoTriggerJob(CustomBaseTestCase):
 
         self.test_exist_not_ready()
 
-        before_collect_last_sub_task_id = models.GlobalSettings.get_config(
-            models.GlobalSettings.KeyEnum.LAST_SUB_TASK_ID.value
-        )
+        # 创建一个就绪状态的sub task
+        auto_sub_task_obj = self.create_auto_task(is_ready=True)
 
+        # 第一次收集，指针前进至 auto_sub_task_obj.id
+        collect_auto_trigger_job()
+        # 第二次收集，not_ready task 依然存在，但此时没有新增task，预期排除not ready后，指针保持原值
         collect_auto_trigger_job()
 
+        # 验证指针不回退
         last_sub_task_id = models.GlobalSettings.get_config(models.GlobalSettings.KeyEnum.LAST_SUB_TASK_ID.value)
-
-        # 指针不变
-        self.assertEqual(before_collect_last_sub_task_id, last_sub_task_id)
+        self.assertEqual(auto_sub_task_obj.id, last_sub_task_id)
