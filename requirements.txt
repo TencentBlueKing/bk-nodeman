@@ -1,7 +1,7 @@
 
 # -*- coding: utf-8 -*-
 
-blueapps-open==3.3.5
+blueapps-open==3.3.11
 
 Django==2.2.6
 requests==2.22.0
@@ -15,7 +15,6 @@ Mako==1.0.6
 MarkupSafe==1.1.1
 pyCryptodome==3.9.7
 gunicorn==19.6.0
-six==1.11.0
 arrow==0.15.4
 PyJWT==1.7.1
 whitenoise==3.3.0

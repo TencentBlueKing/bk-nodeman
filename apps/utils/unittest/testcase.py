@@ -8,7 +8,8 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from typing import Dict, List, Union
+from collections import defaultdict
+from typing import Any, Dict, List, Optional, Union
 from unittest import mock
 
 from django.contrib.auth.models import User
@@ -139,7 +140,7 @@ class TestCaseLifeCycleMixin:
 
     @classmethod
     def setUpTestData(cls):
-        """Hook in testcase.__call__ , before setUpClass"""
+        """Hook in testcase.__call__ , after setUpClass"""
         super().setUpTestData()
 
     @classmethod
@@ -154,7 +155,36 @@ class TestCaseLifeCycleMixin:
         mock.patch.stopall()
 
 
-class CustomBaseTestCase(AssertDataMixin, TestCaseLifeCycleMixin, TestCase):
+class OverwriteSettingsMixin(TestCaseLifeCycleMixin):
+    OVERWRITE_OBJ__KV_MAP: Optional[Dict[Any, Dict[str, Any]]] = None
+    OBJ__ORIGIN_KV_MAP: Optional[Dict[Any, Dict[str, Any]]] = None
+
+    @classmethod
+    def setUpClass(cls):
+        cls.OVERWRITE_OBJ__KV_MAP = cls.OVERWRITE_OBJ__KV_MAP or {}
+        cls.OBJ__ORIGIN_KV_MAP = defaultdict(lambda: defaultdict(dict))
+
+        super().setUpClass()
+
+    @classmethod
+    def setUpTestData(cls):
+        for setting_obj, kv in cls.OVERWRITE_OBJ__KV_MAP.items():
+            for k, v in kv.items():
+                cls.OBJ__ORIGIN_KV_MAP[setting_obj][k] = getattr(setting_obj, k, None)
+                setattr(setting_obj, k, v)
+        super().setUpTestData()
+
+    @classmethod
+    def tearDownClass(cls):
+        for setting_obj, origin_kv in cls.OBJ__ORIGIN_KV_MAP.items():
+            for k, origin_value in origin_kv.items():
+                setattr(setting_obj, k, origin_value)
+
+        cls.OBJ__ORIGIN_KV_MAP = cls.OBJ__ORIGIN_KV_MAP = None
+        super().tearDownClass()
+
+
+class CustomBaseTestCase(AssertDataMixin, OverwriteSettingsMixin, TestCase):
     client_class = Client
 
     @property
