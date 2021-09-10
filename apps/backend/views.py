@@ -24,6 +24,70 @@ from pipeline.service import task_service
 
 logger = logging.getLogger("app")
 
+DATA_TMPLATE = """
+{
+    "level":"error",
+    "log": "{{ log_path }}",
+    "password_keyfile": "{{ setup_path }}/proxy/cert/cert_encrypt.key",
+    "cert":"{{ setup_path }}/proxy/cert",
+    "runtimedata":"{{ setup_path }}/proxy/public/gse",
+    "runmode":1,
+    "datasvrip":"{{ inner_ip }}",
+    "dbgipc":"{{ setup_path }}/public/gse/ipc.dbg.data",
+    "dataflow":"{{ setup_path }}/proxy/etc/dataflow.conf",
+    "prometheus_http_svr_ip":"0.0.0.0",
+    "prometheus_datasvr_port": {{ data_prometheus_port }},
+    "enableops": false,
+    "zkhost": "",
+    "dftregid": "{{ region_id }}",
+    "dftcityid": "{{ city_id }}"
+} """
+
+DATALOFW_TMPLATE = """
+{
+    "receiver":[
+      {
+        "name":"r_agent",
+        "protocol":1,
+        "bind": "{{ inner_ip }}",
+        "port": {{ data_port }},
+        "cert":"{{ setup_path}}/proxy/cert",
+        "protostack":2
+      }
+    ],
+    "exporter":[
+      {
+        "name":"e_transfer_to_ds",
+        "type":9,
+        "cert":"{{ setup_path }}/proxy/cert",
+        "proxyprotocol":"tcp",
+        "connectionnum":4,
+        "proxyversion":"v1",
+        "heartbeat":true,
+        "addresses":[
+            {% for gse_outer_ip in taskserver_outer_ips%}
+                {
+                    "ip": "{{ gse_outer_ip }}",
+                    "port": {{ data_port }}
+                }{% if not loop.last %},{% endif %}
+            {% endfor %}
+        ]
+      }
+    ],
+    "filters":[
+    ],
+    "channel":[
+        {
+            "name":"c_transfer_ds",
+            "decode":5,
+            "receiver":"r_agent",
+            "exporter":[
+                "e_transfer_to_ds"
+            ]
+        }
+    ]
+} """
+
 AGENT_TEMPLATE = """
 {
     "log": {{ log_path }},
@@ -501,6 +565,8 @@ def generate_gse_config(bk_cloud_id, filename, node_type, inner_ip):
             "agent.conf": PROXY_TEMPLATE,
             "transit.conf": TRANSIT_TEMPLATE,
             "plugin_info.json": PLUGIN_INFO_TEMPLATE,
+            "dataflow.conf": DATALOFW_TMPLATE,
+            "data.conf": DATA_TMPLATE,
         }[filename]
 
         context = {
@@ -524,6 +590,7 @@ def generate_gse_config(bk_cloud_id, filename, node_type, inner_ip):
             "io_port": port_config.get("io_port"),
             "file_svr_port": port_config.get("file_svr_port"),
             "data_port": port_config.get("data_port"),
+            "data_prometheus_port": port_config.get("data_prometheus_port"),
             "bt_port_start": port_config.get("bt_port_start"),
             "bt_port_end": port_config.get("bt_port_end"),
             "btsvr_thrift_port": port_config.get("btsvr_thrift_port"),

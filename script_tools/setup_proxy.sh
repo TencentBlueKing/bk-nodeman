@@ -3,6 +3,7 @@
 # gse proxy安装脚本, 仅在节点管理2.0中使用
 
 # DEFAULT DEFINITION
+GSE_COMPARE_VERSION="1.7.2"
 NODE_TYPE=proxy
 PKG_NAME=gse_${NODE_TYPE}-linux-x86_64.tgz
 
@@ -12,6 +13,7 @@ GSE_AGENT_LOG_DIR=/var/log/gse
 
 OS_INFO=""
 OS_TYPE=""
+PROC_LIST=""
 RC_LOCAL_FILE=/etc/rc.d/rc.local
 
 # 收到如下信号或者exit退出时，执行清理逻辑
@@ -355,11 +357,12 @@ start_proxy () {
     "$AGENT_SETUP_PATH"/bin/gsectl start || fail setup_proxy FAILED "start gse proxy failed"
 
     sleep 3
-    for p in agent transit btsvr; do
+    for p in "${PROC_LIST[@]}"; do
         is_process_ok $p && break
         sleep 1
     done
 }
+
 
 remove_agent_if_exists () {
     local i pids
@@ -388,7 +391,7 @@ stop_proxy () {
     ! [[ -d $AGENT_SETUP_PATH ]] && return 0
     "$AGENT_SETUP_PATH/bin/gsectl" stop
 
-    for p in agent transit btsvr; do
+    for p in agent transit btsvr data; do
         for i in {0..10}; do
             read -r -a pids <<< "$(pidof "$AGENT_SETUP_PATH/bin/gse_${p}")"
             if [ ${#pids[@]} -eq 0 ]; then
@@ -421,7 +424,7 @@ remove_proxy () {
 
 get_config () {
     local filename http_status
-    local config=(agent.conf btsvr.conf transit.conf opts.conf)
+    local config=(agent.conf btsvr.conf transit.conf opts.conf plugin_info.json data.conf dataflow.conf)
 
     log get_config - "request $NODE_TYPE config file(s)"
 
@@ -448,6 +451,19 @@ _OO_
     done
 }
 
+get_gse_proc_list () {
+    local version=$("$AGENT_SETUP_PATH"proxy/bin/gse_agent --version)
+    if ! which test > /dev/null 2>&1; then
+        fail setup_proxy FAILED "command test not found"
+    fi
+    # version -ge GSE_COMPARE_VERSION
+    if test "$(echo "$version" "$GSE_COMPARE_VERSION" | tr " " "\n" | sort -rV | head -n 1)" == "$version"; then
+        PROC_LIST=(agent btsvr data)
+    else
+        PROC_LIST=(agent btsvr transit)
+    fi
+}
+
 setup_proxy () {
     log setup_proxy START "setting up gse proxy."
     mkdir -p "$AGENT_SETUP_PATH"
@@ -461,7 +477,7 @@ setup_proxy () {
     # setup config file
     get_config
 
-    local config=(agent.conf btsvr.conf transit.conf opts.conf)
+    local config=(agent.conf btsvr.conf transit.conf opts.conf plugin_info.json data.conf dataflow.conf)
     for f in "${config[@]}"; do
         if [[ -f $TMP_DIR/$f ]]; then
             log setup_proxy - "copy config file: ${f%.$LAN_ETH_IP}"
@@ -475,6 +491,8 @@ setup_proxy () {
 
     # create dir
     mkdir -p "$GSE_AGENT_RUN_DIR" "$GSE_AGENT_DATA_DIR" "$GSE_AGENT_LOG_DIR"
+
+    get_gse_proc_list
 
     start_proxy
 
@@ -493,7 +511,7 @@ start_basic_gse_plugin () {
     cd "$AGENT_SETUP_PATH/../plugins/bin" || fail start_plugin FAILED "change directory to $AGENT_SETUP_PATH/../plugins/bin failed"
 
     if [[ -x ./basereport ]]; then
-        ./stop.sh basereport 
+        ./stop.sh basereport
         ./start.sh basereport || fail start_plugin FAILED "basereport start failed."
     fi
     if [[ -x ./processbeat ]]; then
@@ -508,7 +526,7 @@ download_pkg () {
     local f http_status path
 
     log download_pkg START "download gse agent package from $DOWNLOAD_URL/$PKG_NAME)."
-    cd "$TMP_DIR" && rm -f "$PKG_NAME" {agent,btsvr,transit,opts}.conf."$LAN_ETH_IP"
+    cd "$TMP_DIR" && rm -f "$PKG_NAME" {agent,btsvr,transit,opts,data,dataflow}.conf."$LAN_ETH_IP"
 
     # 安装Proxy，需要下载py36.tgz
     # 该包中包含impackt，ssh2-python, proxy.py 等安装p-agent所需的模块
