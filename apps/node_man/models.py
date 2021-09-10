@@ -420,7 +420,7 @@ class Host(models.Model):
                 raise HostNotExists(_("安装节点主机{inner_ip}不存在，请确认是否已安装AGENT").format(inner_ip=jump_server_ip))
             upstream_servers = install_channel.upstream_servers
         # 云区域未指定安装通道的，用proxy作为跳板和上游
-        elif self.bk_cloud_id:
+        elif self.bk_cloud_id and self.node_type != constants.NodeType.PROXY:
             proxy_ips = [proxy.inner_ip for proxy in self.proxies]
             jump_server = self.get_random_alive_proxy()
             upstream_servers = {"taskserver": proxy_ips, "btfileserver": proxy_ips, "dataserver": proxy_ips}
