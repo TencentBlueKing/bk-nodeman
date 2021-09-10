@@ -1,0 +1,2 @@
+bugfix:
+  - "安装proxy不应选择上游节点(fixed #100)"
