@@ -1,0 +1,2 @@
+feature:
+  - "支持gse的transmit进程更换为data (resolved #96)"
