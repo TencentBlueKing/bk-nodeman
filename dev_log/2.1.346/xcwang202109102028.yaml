@@ -1,0 +1,2 @@
+bugfix:
+  - "安装proxy脚本渲染错误 (fixed #98)"
