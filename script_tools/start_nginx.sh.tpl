@@ -52,7 +52,7 @@ http {
         proxy_connect;
         proxy_connect_allow 443 563;
         location / {
-            proxy_pass http://\\$http_host\\$request_uri;
+            proxy_pass http://\$http_host\$request_uri;
         }
     }
 }" > /opt/nginx-portable/conf/nginx.conf;
