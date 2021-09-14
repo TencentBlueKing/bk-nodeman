@@ -51,3 +51,8 @@ class PackageVersionValidationError(BackendBaseException):
 class GenCommandsError(BackendBaseException):
     MESSAGE = _("安装命令生成失败")
     ERROR_CODE = 7
+
+
+class GseEncryptedError(BackendBaseException):
+    MESSAGE = _("GSE敏感信息加密失败")
+    ERROR_CODE = 8
