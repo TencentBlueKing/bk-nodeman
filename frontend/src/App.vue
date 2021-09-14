@@ -50,6 +50,9 @@ export default class App extends Vue {
     },
   ];
 
+  private get loginUrl() {
+    return MainStore.loginUrl;
+  }
   private get mainContentLoading() {
     return MainStore.mainContentLoading;
   }
@@ -91,7 +94,7 @@ export default class App extends Vue {
           const href = res.login_url ? res.login_url : (LOGIN_DEV_URL + window.location.href);
           window.location.href = href;
         }
-        // this.$refs.bkAuth.showLoginModal(res)
+      // this.$refs.bkAuth.showLoginModal(res)
       }
     });
     bus.$on('close-login-modal', () => {
