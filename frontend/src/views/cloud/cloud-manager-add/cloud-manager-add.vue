@@ -1,17 +1,22 @@
 <template>
-  <article class="add-cloud" v-bkloading="{ isLoading: loading }">
+  <article class="add-cloud" v-bkloading="{ isLoading: loading }" v-test.cloudInfo="'cloudInfo'">
     <!--提示-->
     <section class="add-cloud-tips mb20">
       <tips :list="tipsList"></tips>
     </section>
     <!--表单-->
     <section class="add-cloud-form">
-      <bk-form :label-width="116" :model="formData" :rules="rules" ref="form">
+      <bk-form :label-width="116" :model="formData" :rules="rules" ref="form" v-test.cloudInfo="'cloudForm'">
         <bk-form-item error-display-type="normal" :label="$t('云区域名称')" property="bkCloudName" required>
-          <bk-input class="content-basic" :placeholder="$t('请输入')" v-model="formData.bkCloudName"></bk-input>
+          <bk-input
+            v-test.cloudInfo="'cloudName'"
+            class="content-basic"
+            :placeholder="$t('请输入')"
+            v-model="formData.bkCloudName" />
         </bk-form-item>
         <bk-form-item error-display-type="normal" :label="$t('云服务商')" property="isp" required>
           <bk-select
+            v-test.cloudInfo="'cloudIsp'"
             class="content-basic"
             :placeholder="$t('请选择')"
             v-model="formData.isp"
@@ -35,6 +40,7 @@
             <bk-button
               v-for="item in apList"
               :key="item.id"
+              v-test.cloudInfo="'cloudAp'"
               @click="handleChangeAp(item)"
               :class="{ 'is-selected': item.id === formData.apId }">
               {{ item.name }}

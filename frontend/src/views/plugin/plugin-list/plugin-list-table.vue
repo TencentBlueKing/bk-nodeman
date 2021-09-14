@@ -2,6 +2,7 @@
   <section>
     <bk-table
       ref="nodeListTable"
+      v-test="'listTable'"
       :max-height="windowHeight - 180"
       :class="`head-customize-table ${ fontSize }`"
       :data="tableList"
@@ -31,6 +32,7 @@
           <div class="checkbox-row-item">
             <bk-popover placement="right" :disabled="row.status === 'RUNNING'">
               <bk-checkbox
+                v-test="'rowSelect'"
                 :value="getRowCheckStatus(row)"
                 :disabled="row.status !== 'RUNNING'"
                 @change="handleRowSelect($event, row)"
@@ -54,7 +56,7 @@
         :label="$t('内网IP')"
         fixed>
         <template #default="{ row }">
-          <bk-button text @click="handleRowClick(row)">{{ row.inner_ip }}</bk-button>
+          <bk-button v-test="'showDetail'" text @click="handleRowClick(row)">{{ row.inner_ip }}</bk-button>
         </template>
       </bk-table-column>
       <bk-table-column

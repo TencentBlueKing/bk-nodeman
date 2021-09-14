@@ -15,11 +15,11 @@
           </ul>
         </template>
       </tips>
-      <filter-ip-tips
+      <FilterIpTips
         class="mb15"
         v-if="filterList.length && showFilterTips"
         @click="handleShowDetail">
-      </filter-ip-tips>
+      </FilterIpTips>
       <bk-form
         ref="form"
         v-if="showTab"
@@ -27,7 +27,7 @@
         :label-width="0">
         <install-method required :is-manual="isManual" @change="installMethodHandle"></install-method>
       </bk-form>
-      <bk-form form-type="vertical">
+      <bk-form form-type="vertical" v-test.agentImport="'importForm'">
         <bk-form-item :class="{ 'form-item-not-lable': !showTab }" :label="$t('安装信息')" required>
           <InstallTable
             ref="setupTable"
@@ -52,13 +52,19 @@
           v-if="!showSetupBtn"
           theme="primary"
           ext-cls="nodeman-primary-btn mr10"
+          v-test="'formImport'"
           :disabled="disabledImport"
           :loading="isUploading"
           @click="handleImport">
           {{ $t('导入') }}
         </bk-button>
         <div class="btn-wrapper" v-else>
-          <bk-button theme="primary" ext-cls="nodeman-primary-btn mr10" @click="handleSetup" :loading="loadingSetupBtn">
+          <bk-button
+            theme="primary"
+            ext-cls="nodeman-primary-btn mr10"
+            v-test.common="'formCommit'"
+            :loading="loadingSetupBtn"
+            @click="handleSetup">
             <div class="install">
               <span>{{ setupBtnText }}</span>
               <span class="num">{{ setupNum }}</span>
@@ -76,10 +82,10 @@
     </section>
     <!--右侧提示信息-->
     <section class="agent-setup-right" :class="{ 'right-panel': showRightPanel }">
-      <right-panel v-model="showRightPanel" :host-type="hostType" :host-list="hostList"></right-panel>
+      <RightPanel v-model="showRightPanel" :host-type="hostType" :host-list="hostList"></RightPanel>
     </section>
     <!--过滤ip信息-->
-    <filter-dialog v-model="showFilterDialog" :list="filterList" :title="$t('忽略详情')"></filter-dialog>
+    <FilterDialog v-model="showFilterDialog" :list="filterList" :title="$t('忽略详情')"></FilterDialog>
   </article>
 </template>
 <script lang="ts">

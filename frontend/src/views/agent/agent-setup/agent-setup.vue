@@ -1,5 +1,5 @@
 <template>
-  <article class="agent-setup">
+  <article class="agent-setup" v-test="'setupWrapper'">
     <!--左侧表单信息-->
     <section class="agent-setup-left">
       <tips class="mb20">
@@ -13,8 +13,8 @@
         </template>
       </tips>
       <div class="setup-form">
-        <bk-form ref="form" class="mb30" :model="formData" :rules="rules">
-          <install-method :is-manual="isManual" @change="installMethodHandle"></install-method>
+        <bk-form ref="form" class="mb30" :model="formData" :rules="rules" v-test="'formSetup'">
+          <install-method :is-manual="isManual" required @change="installMethodHandle"></install-method>
           <bk-form-item error-display-type="normal" property="bk_biz_id" :label="$t('安装到业务')" required>
             <bk-biz-select
               class="content-basic"
@@ -110,7 +110,12 @@
           </bk-form-item>
         </bk-form>
         <div class="form-btn" :class="{ 'fixed': isScroll, 'shrink': isScroll && showRightPanel }">
-          <bk-button theme="primary" ext-cls="nodeman-primary-btn" @click="handleSetup" :loading="loadingSetupBtn">
+          <bk-button
+            theme="primary"
+            ext-cls="nodeman-primary-btn"
+            @click="handleSetup"
+            :loading="loadingSetupBtn"
+            v-test.common="'formCommit'">
             <div class="form-btn-install">
               <span>{{ $t('安装') }}</span>
               <span class="num">{{ setupNum }}</span>

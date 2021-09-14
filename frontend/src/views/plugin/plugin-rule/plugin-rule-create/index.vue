@@ -1,5 +1,5 @@
 <template>
-  <div class="rule-create">
+  <div class="rule-create" v-test.policy="'policyProcess'">
     <div :class="[isPolicyOperate ? '' : 'header']">
       <div class="nodeman-navigation-content">
         <span class="content-icon">
@@ -11,6 +11,7 @@
       <template v-if="!previewOperate">
         <bk-steps v-if="isPluginRule" :steps="steps" :cur-step.sync="curStep"></bk-steps>
         <RuleStep
+          v-test.policy="'policyStep'"
           v-else
           :steps="steps"
           :controllable="createOperate ? false : hasSelectedTarget"

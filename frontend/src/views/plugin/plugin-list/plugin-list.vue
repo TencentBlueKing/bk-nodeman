@@ -1,5 +1,5 @@
 <template>
-  <article class="plugin-node" v-bkloading="{ isLoading: loading }">
+  <article class="plugin-node" v-bkloading="{ isLoading: loading }" v-test="'pluginList'">
     <PluginListOperate
       :search-select-data="filterData"
       :selections="selections"
@@ -40,7 +40,7 @@
       :title="dialogInfo.title"
       @cancel="handleDialogCancel">
       <template #default>
-        <bk-form :label-width="isZh ? 90 : 128">
+        <bk-form v-test="'operateForm'" :label-width="isZh ? 90 : 128">
           <bk-form-item :label="$t('操作范围')">
             <i18n path="已选择插件">
               <b class="num">{{ operateNum }}</b>
@@ -51,6 +51,7 @@
               <bk-button
                 v-for="item in pluginOperateList"
                 :key="item.id"
+                v-test="item.id"
                 ext-cls="btn-item"
                 :class="dialogInfo.operate === item.id ? 'is-selected' : ''"
                 v-bk-tooltips="{
@@ -64,6 +65,7 @@
           </bk-form-item>
           <bk-form-item :label="$t('选择插件')" required>
             <bk-select
+              v-test="'pluginName'"
               ext-cls="plugin-select"
               searchable
               :popover-options="{ 'boundary': 'HTMLElement' }"
@@ -81,6 +83,7 @@
       <template #footer>
         <div class="footer">
           <bk-button
+            v-test.common="'formCommit'"
             theme="primary"
             :disabled="!dialogInfo.plugin"
             @click="handleDialogConfirm">

@@ -52,7 +52,7 @@
       @scroll="rootScroll">
       <div ref="scrollPlace" class="virtual-scroll-wrapper" :style="ghostStyle" v-if="virtualScroll"></div>
       <div class="body-content" :class="{ 'virtual-scroll-content': virtualScroll }" ref="content">
-        <table class="form-table">
+        <table class="form-table" v-test.common="'installTable'">
           <colgroup>
             <col v-for="(item, index) in tableHead" :key="index" :width="item.width ? item.width : 'auto'">
           </colgroup>

@@ -1,6 +1,6 @@
 <template>
   <section class="sideslider-content">
-    <bk-form form-type="vertical" :model="proxyData" ref="form">
+    <bk-form form-type="vertical" :model="proxyData" ref="form" v-test="'proxyForm'">
       <bk-form-item :label="$t('内网IP')" required>
         <bk-input v-model="proxyData.inner_ip" readonly></bk-input>
       </bk-form-item>
@@ -79,6 +79,7 @@
     </bk-form>
     <div class="mt30 mb10">
       <bk-button
+        v-test.common="'formCommit'"
         theme="primary"
         class="nodeman-cancel-btn"
         :loading="loading"

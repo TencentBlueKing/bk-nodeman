@@ -1,5 +1,5 @@
 <template>
-  <div class="parser-excel">
+  <div class="parser-excel" v-test="'excelUpload'">
     <div class="parser-excel-file">
       <div class="file-wrapper"
            :class="{ hover: isHover }"
@@ -12,6 +12,7 @@
         </i18n>
         <input
           ref="upload"
+          v-test="'excelInput'"
           @change="handleFileChange"
           :accept="accept"
           :multiple="false"

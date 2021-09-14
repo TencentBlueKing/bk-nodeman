@@ -1,8 +1,9 @@
 <template>
-  <div class="task-log-wrapper" v-bkloading="{ isLoading: loading }">
+  <div class="task-log-wrapper" v-test="'taskLog'" v-bkloading="{ isLoading: loading }">
     <section class="log-side-nav" ref="sideContent">
       <div class="log-nav-select">
         <bk-input
+          v-test="'hostSearch'"
           class="ip-filter-select"
           :placeholder="$t('IP模糊搜索')"
           v-model.trim="search"
@@ -15,7 +16,7 @@
            @scroll="handleSideScroll">
         <div class="log-nav-head" :style="ghostStyle" v-if="virtualScroll"></div>
         <div class="log-nav-body auto-height" ref="content">
-          <ul class="nav-list">
+          <ul class="nav-list" v-test="'hostList'">
             <template v-for="item in renderNavData">
               <li
                 :key="item.instanceId"
@@ -53,6 +54,7 @@
       <div class="log-operate">
         <bk-button
           class="retry-btn mr10 mb20"
+          v-test="'retry'"
           v-if="showHostRetryBtn"
           :disabled="atomLoading || retryLoading"
           @click="handleRetry()">
@@ -114,6 +116,7 @@
                 <template #default="{ row, $index }">
                   <bk-button
                     v-if="row.status === 'running' && !(showCommandBtn && row.step === commandStep)"
+                    v-test="'stop'"
                     ext-cls="step-operation"
                     size="small"
                     hover-theme="danger"
@@ -140,6 +143,7 @@
                      theme: 'log-operate',
                      placements: ['top']
                    }"
+                   v-test="'download'"
                    @click="exportHandle"></i>
                 <i :class="`nodeman-icon nc-icon-${ isFullScreen ? 'un-' : '' }full-screen`"
                    v-bk-tooltips="{

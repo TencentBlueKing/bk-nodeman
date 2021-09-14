@@ -1,6 +1,6 @@
 <template>
   <div class="access-point-host">
-    <bk-form :label-width="labelWidth" :model="formData" ref="formData">
+    <bk-form v-test="'apBaseForm'" :label-width="labelWidth" :model="formData" ref="formData">
       <template v-for="(formItem, itemIndex) in formList">
         <!-- zk&server - table -->
         <template v-if="formItem.type === 'zk'">
@@ -13,7 +13,7 @@
                 <span class="bk-label-text">{{label.name}}</span>
               </label>
               <div class="bk-form-content" :style="{ 'margin-left': `${ labelWidth }px` }">
-                <SetupFormTable :table-head="checkConfig[label.thead]">
+                <SetupFormTable :table-head="checkConfig[label.thead]" v-test="'apBaseTable'">
                   <tbody class="setup-body" slot="tbody">
                     <tr v-for="(host, index) in formData[label.key]" :key="`${label.key}td${index}`">
                       <td>{{ index + 1 }}</td>
@@ -29,6 +29,7 @@
                           :id="index"
                           :default-validator="getDefaultValidator()">
                           <InputType
+                            v-test="'apBaseInput'"
                             v-model.trim="host[config.prop]"
                             v-bind="{ type: 'text', placeholder: $t('请输入'), disabled: checkLoading }"
                             @change="hadleFormChange">
@@ -38,10 +39,12 @@
                       <td>
                         <div class="opera-icon-group">
                           <i
+                            v-test="'addRowBtn'"
                             :class="['nodeman-icon nc-plus', { 'disable-icon': checkLoading }]"
                             @click="addAddress(index, label.key)">
                           </i>
                           <i
+                            v-test="'deleteRowBtn'"
                             :class="['nodeman-icon nc-minus', { 'disable-icon': formData[label.key].length <= 1 }]"
                             @click="deleteAddress(index, label.key)">
                           </i>
@@ -61,6 +64,7 @@
             theme="primary"
             :loading="checkLoading"
             :disabled="checkedResult"
+            v-test="'apTestBtn'"
             @click.stop="checkCommit">
             {{ $t('测试Server及URL可用性') }}
           </bk-button>
@@ -99,6 +103,7 @@
           :property="formItem.key"
           error-display-type="normal">
           <bk-input
+            v-test="'apBaseInput'"
             :ext-cls="formItem.inputExtCls"
             :type="formItem.type || 'text'"
             :placeholder="formItem.placeholder"
@@ -115,6 +120,7 @@
           class="nodeman-primary-btn"
           theme="primary"
           :disabled="!checkedResult || checkLoading"
+          v-test.common="'formCommit'"
           @click="submitInfo">
           {{ $t('下一步') }}
         </bk-button>

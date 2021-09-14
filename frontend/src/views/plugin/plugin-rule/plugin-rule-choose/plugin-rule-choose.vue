@@ -1,5 +1,5 @@
 <template>
-  <bk-form ref="form" class="pb10" v-bkloading="{ isLoading }">
+  <bk-form v-test.policy="'chooseForm'" ref="form" class="pb10" v-bkloading="{ isLoading }">
     <bk-form-item
       :label="$t('插件功能')"
       error-display-type="normal"
@@ -37,7 +37,8 @@
       </RuleTable>
     </bk-form-item>
     <bk-form-item>
-      <bk-button class="nodeman-primary-btn" theme="primary" :disabled="btnNextDisabled" @click="handleCreateRule">
+      <bk-button v-test.common="'formCommit'"
+                 class="nodeman-primary-btn" theme="primary" :disabled="btnNextDisabled" @click="handleCreateRule">
         {{ btnText }}
       </bk-button>
       <bk-button class="ml5 nodeman-cancel-btn" @click="routerBack">

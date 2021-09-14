@@ -1,5 +1,5 @@
 <template>
-  <article class="cloud-manager">
+  <article class="cloud-manager" v-test="'cloudManager'">
     <!--提示-->
     <section class="cloud-tips mb20">
       <tips :list="tipsList"></tips>
@@ -15,6 +15,7 @@
             :apply-info="[{ action: 'cloud_create' }]">
             <template slot-scope="{ disabled }">
               <bk-button
+                v-test="'addCloud'"
                 theme="primary"
                 :disabled="disabled"
                 ext-cls="header-btn"
@@ -31,7 +32,7 @@
             :disabled="!checkableRowsAll"
             @show="cpyDropdownShow = true"
             @hide="cpyDropdownShow = false">
-            <bk-button class="dropdown-btn" slot="dropdown-trigger" :disabled="!checkableRowsAll">
+            <bk-button class="dropdown-btn" v-test="'copyProxy'" slot="dropdown-trigger" :disabled="!checkableRowsAll">
               <span class="icon-down-wrapper">
                 <span>{{ $t('复制') }}</span>
                 <i :class="['bk-icon icon-angle-down', { 'icon-flip': cpyDropdownShow }]"></i>
@@ -51,6 +52,7 @@
         </div>
         <!--搜索云区域-->
         <bk-input
+          v-test="'searchCloud'"
           :placeholder="$t('搜索名称')"
           right-icon="bk-icon icon-search"
           ext-cls="header-input"
@@ -62,6 +64,7 @@
       <!--云区域列表-->
       <div class="content-table" v-bkloading="{ isLoading: loading }">
         <bk-table
+          v-test="'cloudTable'"
           :class="`head-customize-table ${ fontSize }`"
           :max-height="windowHeight - 240"
           :pagination="pagination"
@@ -108,6 +111,7 @@
               </div>
               <auth-component
                 v-else
+                v-test="'viewDetail'"
                 :class="{ 'text-btn': row.view }"
                 :authorized="row.view"
                 :apply-info="[{
@@ -157,6 +161,7 @@
                         theme="primary"
                         text
                         :disabled="disabled"
+                        v-test="'viewDetail'"
                         @click="handleGotoDetail(row)">
                         {{ row.proxyCount }}
                         <span v-if="row.proxyCount === 1" class="count-warning-text">!</span>
@@ -174,7 +179,7 @@
                   :apply-info="[{ action: 'proxy_operate' }]">
                   <template slot-scope="{ disabled }">
                     <span class="install-proxy" :disabled="disabled" v-bk-tooltips="$t('点击前往安装')">
-                      <span @click="handleInstallProxy(row)">{{ $t('未安装') }}</span>
+                      <span v-test="'instalProxy'" @click="handleInstallProxy(row)">{{ $t('未安装') }}</span>
                       <span class="count-error-text">!</span>
                     </span>
                   </template>
@@ -184,7 +189,9 @@
           </bk-table-column>
           <bk-table-column :label="$t('Agent数量')" prop="nodeCount" align="right" :resizable="false" sortable>
             <template #default="{ row }">
-              <span v-if="row.nodeCount" class="text-btn" @click.stop="handleGotoAgent(row)">{{ row.nodeCount }}</span>
+              <span v-if="row.nodeCount" class="text-btn" v-test="'filterAgent'" @click.stop="handleGotoAgent(row)">
+                {{ row.nodeCount }}
+              </span>
               <span v-else>0</span>
             </template>
           </bk-table-column>
@@ -213,6 +220,7 @@
                   <template slot-scope="{ disabled }">
                     <bk-button
                       text
+                      v-test="'instalProxy'"
                       ext-cls="col-btn"
                       theme="primary"
                       :disabled="disabled"
@@ -232,6 +240,7 @@
                   }]">
                   <template slot-scope="{ disabled }">
                     <bk-button
+                      v-test="'editCloud'"
                       ext-cls="col-btn ml10"
                       theme="primary" text
                       :disabled="disabled"
@@ -252,6 +261,7 @@
                   <template slot="default" slot-scope="{ disabled }">
                     <bk-popover :content="deleteTips" :disabled="!(row.proxyCount || row.nodeCount)" class="ml10">
                       <bk-button
+                        v-test="'deleteCloud'"
                         ext-cls="col-btn"
                         :disabled="disabled || !!(row.proxyCount || row.nodeCount)"
                         theme="primary"

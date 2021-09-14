@@ -1,6 +1,7 @@
 <template>
   <section>
     <bk-table
+      v-test.policy="'policyTable'"
       ref="tableRef"
       :data="sortTableData"
       :pagination="pagination"
@@ -10,6 +11,7 @@
       <bk-table-column class-name="td-radio" :width="50" prop="value" :resizable="false">
         <template #default="{ row }">
           <bk-radio
+            v-test.policy="'policyRadio'"
             :value="chooseId === row.id"
             v-authority="{
               active: !row.permissions || !row.permissions.edit,
