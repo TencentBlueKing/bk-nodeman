@@ -13,6 +13,7 @@
         <template #default="{ row }">
           <auth-component
             class="alias-text-btn"
+            v-test="'viewPlugin'"
             :title="row.description"
             :authorized="row.permissions.operate"
             :apply-info="[{
@@ -47,7 +48,7 @@
         <template #default="{ row }">
           <loading-icon v-if="numLoading"></loading-icon>
           <div class="num-link" v-else>
-            <bk-button v-if="row.nodes_number" text @click.stop="handleViewTarget(row)">
+            <bk-button v-test="'filterNode'" v-if="row.nodes_number" text @click.stop="handleViewTarget(row)">
               {{ row.nodes_number }}
             </bk-button>
             <span v-else>0</span>
@@ -108,7 +109,9 @@
       <bk-table-column prop="colspaOpera" :width="100" :label="$t('操作')" :resizable="false">
         <template #default="{ row }">
           <bk-popover placement="top-end" :disabled="row.is_ready">
-            <bk-button text :disabled="!row.is_ready" @click="handleDeploy(row)">{{ $t('去部署') }}</bk-button>
+            <bk-button v-test="'goDeploy'" text :disabled="!row.is_ready" @click="handleDeploy(row)">
+              {{ $t('去部署') }}
+            </bk-button>
             <span slot="content">{{ $t('插件已停用无法部署') }}</span>
           </bk-popover>
         </template>

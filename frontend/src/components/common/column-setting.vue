@@ -6,11 +6,11 @@
     placement="bottom-end"
     :on-hide="handleOnHide"
     ref="popover">
-    <span v-bk-tooltips.top="$t('表格展示设置')" class="col-setting">
+    <span v-bk-tooltips.top="$t('表格展示设置')" class="col-setting" v-test.common="'headSet'">
       <i class="bk-icon icon-cog-shape"></i>
     </span>
     <template #content>
-      <div class="set-filter" ref="filterPanel">
+      <div class="set-filter" ref="filterPanel" v-test.common="'headSetPanel'">
         <div class="set-filter-title">{{ $t('表格设置') }}</div>
         <ul class="set-filter-list" v-if="filterHead">
           <li class="list-item">

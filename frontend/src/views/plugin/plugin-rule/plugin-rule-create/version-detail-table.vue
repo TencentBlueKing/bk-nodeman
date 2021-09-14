@@ -11,11 +11,12 @@
       <bk-table
         :data="data"
         class="detail-table-left"
+        v-test.policy="'chooseVersionTable'"
         :row-class-name="handleRowClass"
         @row-click="handleRowClick">
         <bk-table-column width="60" align="center">
           <template #default="{ row }">
-            <bk-radio :disabled="row.disabled"
+            <bk-radio v-test.policy="'versionRadio'" :disabled="row.disabled"
                       :value="selectedVersion === row.version"
                       width="90"
                       v-bk-tooltips.left="{

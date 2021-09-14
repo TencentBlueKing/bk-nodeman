@@ -1,5 +1,5 @@
 <template>
-  <bk-form-item :label="$t('安装方式')" :required="required">
+  <bk-form-item :label="$t('安装方式')" :required="required" v-test.common="'installMethod'">
     <div class="bk-button-group mothod-switch">
       <bk-button
         :class="{ 'is-selected': !isManual }"

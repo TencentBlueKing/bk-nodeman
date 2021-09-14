@@ -1,5 +1,5 @@
 <template>
-  <div class="task-list">
+  <div class="task-list" v-test="'history'">
     <p class="task-list-title">{{ $t('任务历史') }}</p>
     <TaskListFilter
       :filter-data="filterData"

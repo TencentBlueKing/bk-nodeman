@@ -1,6 +1,6 @@
 <template>
   <ul class="rule-type">
-    <li v-for="(item, index) in list"
+    <li v-for="(item, index) in list" v-test.policy="item.id"
         :key="index"
         :class="[
           'item',

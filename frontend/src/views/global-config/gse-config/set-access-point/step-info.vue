@@ -13,6 +13,7 @@
           :key="`${system.type}-${itemIndex}`">
           <bk-input
             v-model.trim="formData[path.prop]"
+            v-test="'apHostInput'"
             :placeholder="path.placeholder || $t('请输入')"
             @blur="pathRepair(arguments, path.prop)"
             @change="hadleFormChange">
@@ -28,13 +29,15 @@
         :rules="rules.package"
         :property="'packageList.' + index + '.value'"
         :key="`package_${index}`">
-        <bk-input v-model.trim="item.value" :placeholder="$t('请输入')" @change="hadleFormChange"></bk-input>
+        <bk-input v-test="'apHostPackage'" v-model.trim="item.value" @change="hadleFormChange" />
         <div class="opera-icon-group">
           <i
+            v-test="'addPackageBtn'"
             :class="['nodeman-icon nc-plus', { 'disable-icon': submitLoading }]"
             @click="handlePackageOperate('add', index)">
           </i>
           <i
+            v-test="'deletePackageBtn'"
             :class="['nodeman-icon nc-minus', { 'disable-icon': submitLoading || formData.packageList.length <= 1 }]"
             @click="handlePackageOperate('delete', index)">
           </i>
@@ -44,6 +47,7 @@
       <bk-form-item class="mt30 item-button-group">
         <bk-button
           class="nodeman-primary-btn"
+          v-test.common="'formCommit'"
           theme="primary"
           :disabled="submitLoading"
           @click.stop.prevent="submitHandle">

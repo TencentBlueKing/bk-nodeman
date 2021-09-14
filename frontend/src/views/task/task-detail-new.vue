@@ -1,5 +1,5 @@
 <template>
-  <div class="task-detail-wrapper" v-bkloading="{ isLoading: loading }">
+  <div class="task-detail-wrapper" v-test="'taskDetail'" v-bkloading="{ isLoading: loading }">
     <template v-if="!loading">
       <TaskDetailInfo
         :detail="detail"
@@ -22,7 +22,8 @@
             ref="dropdownCopy"
             font-size="medium"
             :disabled="copyLoading">
-            <bk-button class="copy-dropdown-btn" type="primary" slot="dropdown-trigger" :loading="copyLoading">
+            <bk-button
+              class="copy-dropdown-btn" v-test="'copy'" type="primary" slot="dropdown-trigger" :loading="copyLoading">
               <span class="icon-down-wrapper">
                 <span>{{ $t('复制') }}</span>
                 <i :class="['bk-icon icon-angle-down', { 'icon-flip': isShowCopy }]"></i>
@@ -35,6 +36,7 @@
             </ul>
           </bk-dropdown-menu>
           <bk-button
+            v-test="'stop'"
             class="ml10"
             hover-theme="danger"
             :loading="stopLoading"
@@ -43,6 +45,7 @@
             {{ stopLoading ? '' : $t('终止') }}
           </bk-button>
           <bk-button
+            v-test="'retry'"
             class="ml10"
             :loading="retryLoading"
             :disabled="staticDetail.failed === 0 || retryLoading"
@@ -50,6 +53,7 @@
             {{ $t('失败重试')}}
           </bk-button>
           <bk-search-select
+            v-test="'filter'"
             class="fr task-filter-select"
             split-code=","
             :show-condition="false"

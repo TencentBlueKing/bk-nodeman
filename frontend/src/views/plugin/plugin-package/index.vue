@@ -1,5 +1,5 @@
 <template>
-  <div class="plugin-package">
+  <div class="plugin-package" v-test="'package'">
     <div class="package-top">
       <auth-component
         tag="div"
@@ -8,6 +8,7 @@
         <template slot-scope="{ disabled }">
           <bk-button
             class="package-import-btn"
+            v-test="'import'"
             theme="primary"
             :disabled="disabled"
             @click="handleImport">
@@ -16,6 +17,7 @@
         </template>
       </auth-component>
       <bk-input
+        v-test="'search'"
         :placeholder="$t('搜索插件别名插件名称')"
         right-icon="bk-icon icon-search"
         ext-cls="package-search-input"
@@ -56,6 +58,7 @@
       <div class="plugin-import-footer" slot="footer">
         <div class="button-group">
           <bk-button
+            v-test.common="'formCommit'"
             theme="primary"
             :disabled="!uploadFileName || uploadLoading"
             :loading="uploadLoading"

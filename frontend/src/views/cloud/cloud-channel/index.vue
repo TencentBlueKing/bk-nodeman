@@ -1,7 +1,7 @@
 <template>
   <section class="cloud-channel">
     <div class="tr fs0">
-      <bk-button @click="handleEdit">{{ $t('编辑') }}</bk-button>
+      <bk-button v-test="'editChannel'" @click="handleEdit">{{ $t('编辑') }}</bk-button>
       <bk-popconfirm
         style="margin-left: 8px;"
         width="280"
@@ -10,7 +10,7 @@
         :content="$t('通过此通道安装的Agent不受影响')"
         :disabled="deleteLoading"
         @confirm="confirmDeleteChannel">
-        <bk-button class="delete-btn" :loading="deleteLoading">{{ $t('删除通道') }}</bk-button>
+        <bk-button class="delete-btn" v-test="'deleteChannel'" :loading="deleteLoading">{{ $t('删除通道') }}</bk-button>
       </bk-popconfirm>
     </div>
     <ChannelTable class="mt20" :channel="channel"></ChannelTable>

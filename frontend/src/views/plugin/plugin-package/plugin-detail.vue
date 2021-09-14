@@ -1,5 +1,6 @@
 <template>
   <div class="plugin-detail"
+       v-test="'pluginDetail'"
        v-bkloading="{ isLoading: loading }"
        v-freezing-page="{
          disabled: pluginInfo.is_ready,
@@ -68,7 +69,7 @@
               <i class="nodeman-icon nc-deploy-2"></i>
               {{ $t('去部署') }}
             </bk-button>
-            <span class="operate-menu" ref="moreMenu" @click="handleShowMenu">
+            <span class="operate-menu" v-test.common="'more'" ref="moreMenu" @click="handleShowMenu">
               <i class="nodeman-icon nc-more"></i>
             </span>
           </template>
@@ -79,6 +80,7 @@
             :apply-info="[authInfo]">
             <template slot-scope="{ disabled }">
               <bk-button
+                v-test="'ready'"
                 text
                 title="primary"
                 size="small"
@@ -117,6 +119,7 @@
               :apply-info="[authInfo]">
               <template slot-scope="{ disabled }">
                 <bk-button
+                  v-test="'versionManage'"
                   text
                   theme="primary"
                   :disabled="disabled"

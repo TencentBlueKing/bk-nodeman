@@ -1,7 +1,6 @@
 <template>
-  <section class="task-detail-table" v-bkloading="{ isLoading: loading }">
+  <section class="task-detail-table" v-bkloading="{ isLoading: loading }" v-test="'detailTable'">
     <bk-table
-      ref="agentTable"
       row-key="instanceId"
       :data="tableList"
       :pagination="pagination"
@@ -87,6 +86,7 @@
         <template #default="{ row }">
           <div>
             <bk-button
+              v-test="'log'"
               class="mr10"
               text
               v-if="row.status !== 'filtered' && row.status !== 'ignored'"
@@ -97,6 +97,7 @@
             <loading-icon v-if="row.loading"></loading-icon>
             <template v-else>
               <bk-button
+                v-test="'singleRetry'"
                 text
                 v-if="row.status === 'failed'"
                 theme="primary"
@@ -104,6 +105,7 @@
                 {{ $t('重试') }}
               </bk-button>
               <bk-button
+                v-test="'singleStop'"
                 text
                 v-if="row.status === 'running'"
                 theme="primary"

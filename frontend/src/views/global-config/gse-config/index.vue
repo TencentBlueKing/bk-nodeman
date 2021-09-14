@@ -1,5 +1,5 @@
 <template>
-  <div class="gse-config-wrapper" v-bkloading="{ isLoading: loading }">
+  <div class="gse-config-wrapper" v-bkloading="{ isLoading: loading }" v-test="'configWrapper'">
     <Tips :list="tipsList" class="mb20"></Tips>
     <auth-component
       class="mb14"
@@ -8,6 +8,7 @@
       :apply-info="[{ action: 'ap_create' }]">
       <template slot-scope="{ disabled }">
         <bk-button
+          v-test="'addAp'"
           class="w100"
           theme="primary"
           :disabled="disabled"
@@ -50,6 +51,7 @@
                   }]">
                   <template slot-scope="{ disabled }">
                     <bk-button
+                      v-test="'editAp'"
                       ext-cls="access-point-operation"
                       text
                       :disabled="disabled"
@@ -71,6 +73,7 @@
                       <bk-button
                         ext-cls="access-point-operation"
                         v-if="accessPoint.ap_type !== 'system'"
+                        v-test="'deleteAp'"
                         text
                         :disabled="disabled || accessPoint.is_used"
                         @click.stop="operaHandler(accessPoint, 'delete')">

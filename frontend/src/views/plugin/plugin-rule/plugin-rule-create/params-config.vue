@@ -1,11 +1,13 @@
 <template>
   <div
     :class="['params-config', { 'has-scroll': isScroll }]"
+    v-test.policy="'policyParams'"
     v-bkloading="{ isLoading: loading || stepLoading, opacity: 1 }">
     <div class="scroll-content" ref="configContent">
       <bk-collapse v-if="!loading" class="params-config-content" v-model="activeName">
         <bk-collapse-item
           v-for="mainItem in list"
+          v-test.policy="'collapseItem'"
           :key="mainItem.id"
           :name="mainItem.name"
           :class="['mb10', { 'item-content-empty': !mainItem.data.length && !mainItem.child.length }]"
@@ -211,16 +213,16 @@
 
       <section v-if="!loading" :class="['footer', { 'fixed': isScroll }]">
         <div class="footer-content">
-          <bk-button theme="primary" class="nodeman-primary-btn" @click="handleNextStep">
+          <bk-button v-test.common="'stepNext'" theme="primary" class="nodeman-primary-btn" @click="handleNextStep">
             {{ $t('下一步') }}
           </bk-button>
-          <bk-button class="ml5" @click="handleStepChange(step - 1)">
+          <bk-button class="ml5" v-test.common="'stepPrev'" @click="handleStepChange(step - 1)">
             {{ $t('上一步') }}
           </bk-button>
           <bk-button class="ml5" @click="handleCancel">
             {{ $t('取消') }}
           </bk-button>
-          <bk-button class="fr" @click="handleRestore('all')">
+          <bk-button class="fr" v-test.common="'formReset'" @click="handleRestore('all')">
             {{ $t('重置') }}
           </bk-button>
         </div>

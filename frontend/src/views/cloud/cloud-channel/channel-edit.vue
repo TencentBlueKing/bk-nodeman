@@ -7,7 +7,8 @@
     @hidden="handleToggle(false)">
     <template #content>
       <section class="channel-edit">
-        <bk-form form-type="vertical" :label-width="400" :model="channelForm" ref="channelFormRef">
+        <bk-form
+          v-test="'channelForm'" form-type="vertical" :label-width="400" :model="channelForm" ref="channelFormRef">
           <bk-form-item :label="$t('通道名称')" property="name" required :rules="[required]">
             <bk-input v-model.trim="channelForm.name"></bk-input>
           </bk-form-item>
@@ -40,7 +41,8 @@
             </bk-form-item>
           </template>
           <bk-form-item class="mt30">
-            <bk-button theme="primary" :loading="btnLoading" @click.stop.prevent="handleSave">
+            <bk-button
+              v-test.common="'formCommit'" theme="primary" :loading="btnLoading" @click.stop.prevent="handleSave">
               {{ confirmText }}
             </bk-button>
             <bk-button class="ml10" :disabled="btnLoading" @click="handleToggle(false)">

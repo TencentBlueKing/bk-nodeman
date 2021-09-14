@@ -1,7 +1,7 @@
 <template>
   <div class="rule-operate">
     <div class="rule-operate-left">
-      <bk-button theme="primary" v-authority="{
+      <bk-button v-test="'addPolicy'" theme="primary" v-authority="{
         active: !createdOperate, // mixin
         apply_info: [
           { action: 'strategy_view' },
@@ -19,6 +19,7 @@
     </div>
     <div class="rule-operate-right">
       <bk-input
+        v-test="'searchInput'"
         :placeholder="$t('搜索策略插件')"
         clearable
         :right-icon="'bk-icon icon-search'"

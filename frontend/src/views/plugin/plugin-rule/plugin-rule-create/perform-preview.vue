@@ -1,11 +1,12 @@
 <template>
-  <div class="perform-preview" v-bkloading="{ isLoading: loading || stepLoading }">
+  <div v-test.policy="'preview'" class="perform-preview" v-bkloading="{ isLoading: loading || stepLoading }">
     <div class="tc" v-if="invisibleStep > -1">
       <ExceptionCard type="dataAbnormal" :text="$t('仍有步骤未完成，无法预览')" :has-border="false">
         <bk-button
           slot="content"
           class="completion-btn"
           theme="primary"
+          v-test.policy="'stepBtn'"
           @click="handleStepChange(invisibleStep)">
           {{ '跳转处理' }}
         </bk-button>
@@ -55,6 +56,7 @@
             @tab-change="handleTabChange">
             <bk-tab-panel
               v-for="(panel, index) in targetTabList"
+              v-test.policy="'tableTab'"
               v-bind="panel"
               :key="`${index}_${panel.total}`">
               <template slot="label">
@@ -87,6 +89,7 @@
       </div>
       <bk-table
         ref="previewTableRef"
+        v-test.policy="'previewTable'"
         :data="data"
         :pagination="pagination"
         :max-height="windowHeight - calcHeight"
@@ -181,6 +184,7 @@
       <div class="footer mt30">
         <bk-popover placement="top" :disabled="!noHostAvailable">
           <bk-button
+            v-test.common="'formCommit'"
             theme="primary"
             class="nodeman-primary-btn"
             :loading="executeLoading"
@@ -191,7 +195,7 @@
           <template #content>{{ $t('当前没有可操作的主机') }}</template>
         </bk-popover>
         <template v-if="showDeleteBtn">
-          <bk-button v-if="deleteLoading" disabled>{{ $t('强制删除') }}</bk-button>
+          <bk-button v-if="deleteLoading" v-test.policy="'deleteBtn'" disabled>{{ $t('强制删除') }}</bk-button>
           <bk-popconfirm
             v-else
             trigger="click"
@@ -204,11 +208,12 @@
                 <span class="primary">{{ totalNum }}</span>
               </i18n>
             </template>
-            <bk-button>{{ $t('强制删除') }}</bk-button>
+            <bk-button v-test.policy="'deletePopBtn'">{{ $t('强制删除') }}</bk-button>
           </bk-popconfirm>
         </template>
         <bk-button
           v-if="hasPreStep"
+          v-test.common="'stepPrev'"
           class="nodeman-cancel-btn ml5"
           @click="handleStepChange(step - 1)">
           {{ $t('上一步') }}

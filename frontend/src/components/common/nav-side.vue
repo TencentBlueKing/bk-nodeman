@@ -3,6 +3,7 @@
     <!--左侧导航-->
     <bk-navigation-menu
       :default-active="currentActive"
+      v-test.nav="'side'"
       @select="handleSelect">
       <bk-navigation-menu-item
         v-for="item in list"
