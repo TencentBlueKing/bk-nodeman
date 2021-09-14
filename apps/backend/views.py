@@ -18,6 +18,7 @@ from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 
 from apps.backend.utils.data_renderer import nested_render_data
+from apps.backend.utils.encrypted import GseEncrypted
 from apps.node_man import constants, models
 from apps.node_man.models import Host, JobSubscriptionInstanceMap, aes_cipher
 from pipeline.service import task_service
@@ -420,8 +421,7 @@ def generate_gse_config(bk_cloud_id, filename, node_type, inner_ip):
         alarmcfgpath = path_sep.join([setup_path, "plugins", "etc"])
         plugincfg = path_sep.join([setup_path, "agent", "etc", "plugin_info.json"])
         pluginbin = path_sep.join([setup_path, "agent", "lib"])
-        pluginipc = path_sep.join([setup_path, "agent", "data", "ipc.plugin.manage"])
-        # plugin_info.json 配置
+        pluginipc = path_sep.join([setup_path, "agent", "data", "ipc.plugin.manage"])  # plugin_info.json 配置
         plugin_path = path_sep.join([setup_path, "agent", "lib", "libbkbscp-gseplugin.so"])
         if host.os_type.lower() == "windows":
             setup_path = json.dumps(setup_path)
@@ -447,6 +447,11 @@ def generate_gse_config(bk_cloud_id, filename, node_type, inner_ip):
             pluginbin = f'"{pluginbin}"'
             pluginipc = f'"{pluginipc}"'
 
+        if settings.USE_GSE_ENCRYPTED:
+            zk_auth = GseEncrypted.encrypted(f"{host.ap.zk_account}:{host.ap.zk_password}")
+        else:
+            zk_auth = f"{host.ap.zk_account}:{host.ap.zk_password}"
+
         context = {
             "setup_path": setup_path,
             "log_path": log_path,
@@ -469,9 +474,7 @@ def generate_gse_config(bk_cloud_id, filename, node_type, inner_ip):
             "pluginbin": pluginbin,
             "pluginipc": pluginipc,
             "zkhost": ",".join(f'{zk_host["zk_ip"]}:{zk_host["zk_port"]}' for zk_host in host.ap.zk_hosts),
-            "zkauth": f"{host.ap.zk_account}:{host.ap.zk_password}"
-            if host.ap.zk_account and host.ap.zk_password
-            else "",
+            "zkauth": zk_auth if host.ap.zk_account and host.ap.zk_password else "",
             "proxy_servers": [proxy.inner_ip for proxy in host.proxies],
             "peer_exchange_switch_for_agent": host.extra_data.get("peer_exchange_switch_for_agent", 1),
             "bt_speed_limit": host.extra_data.get("bt_speed_limit"),

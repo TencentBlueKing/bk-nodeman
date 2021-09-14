@@ -1,0 +1,2 @@
+feature:
+  - "agent配置zkauth支持加密 (close #97)"
