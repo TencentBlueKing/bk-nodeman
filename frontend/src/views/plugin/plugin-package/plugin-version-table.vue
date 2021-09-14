@@ -55,9 +55,9 @@
               boundary: 'window'
             }"
             v-else>
-            <bk-button theme="primary" text>{{ $t('更改状态') }}</bk-button>
+            <bk-button v-test="'statusChange'" theme="primary" text>{{ $t('更改状态') }}</bk-button>
             <template #content>
-              <ul class="dropdown-list">
+              <ul class="dropdown-list" v-test="'statusUL'">
                 <li v-for="item in operateList"
                     :key="item.id"
                     :class="['list-item', { 'disabled': getOperateDisabled(row, item) }]"

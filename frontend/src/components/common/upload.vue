@@ -12,6 +12,7 @@
           <span class="btn">{{ $t('点击上传') }}</span>
         </i18n>
         <input
+          v-test.common="'fileInput'"
           ref="uploadel"
           @change="handleChange"
           :accept="accept"

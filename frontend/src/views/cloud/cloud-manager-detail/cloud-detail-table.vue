@@ -7,6 +7,7 @@
         :apply-info="[{ action: 'proxy_operate' }]">
         <template slot-scope="{ disabled }">
           <bk-button
+            v-test="'install'"
             theme="primary"
             class="content-btn nodeman-primary-btn"
             :disabled="disabled"
@@ -16,7 +17,7 @@
         </template>
       </auth-component>
       <bk-popover>
-        <bk-button ext-cls="ml10 content-btn" :disabled="!proxyData.length" @click="handleCopyIp">
+        <bk-button v-test="'copy'" ext-cls="ml10 content-btn" :disabled="!proxyData.length" @click="handleCopyIp">
           {{ $t('复制IP') }}
         </bk-button>
         <template #content>
@@ -26,10 +27,14 @@
     </div>
 
     <div v-bkloading="{ isLoading: loadingProxy || loading }">
-      <bk-table :class="`head-customize-table ${ fontSize }`" :data="proxyData" :span-method="colspanHandle">
+      <bk-table
+        v-test="'proxyTable'"
+        :class="`head-customize-table ${ fontSize }`" :data="proxyData" :span-method="colspanHandle">
         <bk-table-column label="Proxy IP" show-overflow-tooltip>
           <template #default="{ row }">
-            <bk-button text @click="handleViewProxy(row, false)" class="row-btn">{{ row.inner_ip }}</bk-button>
+            <bk-button v-test="'view'" text @click="handleViewProxy(row, false)" class="row-btn">
+              {{ row.inner_ip }}
+            </bk-button>
           </template>
         </bk-table-column>
         <bk-table-column
@@ -132,7 +137,7 @@
           :resizable="false"
           v-if="filter['created_at'].mockChecked">
           <template #default="{ row }">
-            {{ formatTimeByTimezone(row.created_at) }}
+            {{ row.created_at | filterTimezone }}
           </template>
         </bk-table-column>
 
@@ -175,6 +180,7 @@
                       :disabled="!row.re_certification || disabled"
                       :content="$t('认证资料过期不可操作', { type: $t('重装') })">
                       <bk-button
+                        v-test="'reinstall'"
                         text
                         :disabled="row.re_certification || disabled"
                         @click="handleConfirmOperate($t('确定重装选择的主机'), row, handleReinstall)"
@@ -182,7 +188,8 @@
                         {{ $t('重装') }}
                       </bk-button>
                     </bk-popover>
-                    <bk-button text ext-cls="row-btn" :disabled="disabled" @click="handleViewProxy(row, true)">
+                    <bk-button
+                      v-test="'edit'" text ext-cls="row-btn" :disabled="disabled" @click="handleViewProxy(row, true)">
                       {{ $t('编辑') }}
                     </bk-button>
                     <bk-popover
@@ -193,7 +200,9 @@
                       offset="30, 5"
                       placement="bottom"
                       :disabled="disabled">
-                      <bk-button :disabled="disabled" text ext-cls="row-btn">{{ $t('更多') }}</bk-button>
+                      <bk-button v-test.common="'more'" :disabled="disabled" text ext-cls="row-btn">
+                        {{ $t('更多') }}
+                      </bk-button>
                       <template #content>
                         <ul class="dropdown-list">
                           <li
@@ -244,7 +253,7 @@
 <script lang="ts">
 import { Component, Prop, Ref, Vue, Emit } from 'vue-property-decorator';
 import { CloudStore, MainStore } from '@/store';
-import { copyText, isEmpty } from '@/common/util';
+import { copyText } from '@/common/util';
 import ColumnSetting from '@/components/common/column-setting.vue';
 import CloudDetailSlider from './cloud-detail-slider.vue';
 import { STORAGE_KEY_COL } from '@/config/storage-key';

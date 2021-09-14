@@ -5,6 +5,7 @@
       <auth-component :authorized="!notOperatePermissonBiz.length" :apply-info="applyInfo">
         <template slot-scope="{ disabled }">
           <bk-button
+            v-test="'operate'"
             theme="primary"
             :disabled="selectionCount || disabled"
             @click="handleOperate">
@@ -19,7 +20,7 @@
         @show="isDropdownShow = true"
         @hide="isDropdownShow = false">
         <bk-button class="dropdown-btn" slot="dropdown-trigger" :loading="copyLoading">
-          <div class="dropdown-trigger-btn">
+          <div class="dropdown-trigger-btn" v-test="'copy'">
             <div>{{ $t('复制') }}</div>
             <i :class="['bk-icon icon-angle-down',{ 'icon-flip': isDropdownShow }]"></i>
           </div>
@@ -44,6 +45,7 @@
         <bk-select
           ref="strategySelectRef"
           class="list-select-strategy"
+          v-test="'strategy'"
           searchable
           multiple
           :value="strategyValue"
@@ -71,6 +73,7 @@
     <div class="list-operate-right ml10">
       <bk-search-select
         ref="searchSelect"
+        v-test="'searchSelect'"
         ext-cls="right-select"
         :data="filterSearchSelectData"
         v-model="searchSelectValue"

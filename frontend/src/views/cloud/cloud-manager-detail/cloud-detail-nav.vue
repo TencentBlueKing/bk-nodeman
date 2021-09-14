@@ -1,9 +1,10 @@
 <template>
   <!--详情左侧面板-->
-  <section class="detail-left">
+  <section class="detail-left" v-test="'cloudNav'">
     <!--搜索云区域别名-->
     <div class="detail-left-search">
       <bk-input
+        v-test="'cloudFilter'"
         :placeholder="$t('搜索云区域名称')"
         right-icon="bk-icon icon-search"
         v-model="bkCloudName"
@@ -27,6 +28,7 @@
           }]">
           <template slot-scope="{ disabled }">
             <div
+              v-test="'cloudItem'"
               class="list-item"
               :class="{ 'is-selected': item.bkCloudId === id, 'auth-disabled': disabled }"
               @click="handleAreaChange(item)">

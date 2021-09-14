@@ -18,7 +18,7 @@
       <template #header>
         <div class="nodeman-navigation-header">
           <div class="nav-left">
-            <ol class="header-nav">
+            <ol class="header-nav" v-test.nav="'head'">
               <li v-for="(route, index) in navList"
                   :key="index"
                   class="header-nav-item"

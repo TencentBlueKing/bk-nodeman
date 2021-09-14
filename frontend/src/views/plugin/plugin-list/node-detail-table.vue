@@ -1,4 +1,3 @@
-<!-- 方案二 -->
 <template>
   <section class="node-detail">
     <bk-input

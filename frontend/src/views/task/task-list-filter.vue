@@ -11,6 +11,7 @@
         </bk-biz-select>
         <div class="filter-check ml20">
           <bk-checkbox
+            v-test="'toggleDeploy'"
             :value="hideAutoDeploy"
             @change="handleCheckChange">
             {{ $t('隐藏自动部署任务') }}
@@ -19,6 +20,7 @@
       </div>
       <div class="task-filter-right">
         <bk-date-picker
+          v-test="'datePicker'"
           ext-cls="ml10 right-picker"
           :clearable="false"
           :shortcuts="shortcuts"
@@ -33,6 +35,7 @@
         </bk-date-picker>
         <bk-search-select
           class="ml10 right-select"
+          v-test="'searchSelect'"
           ref="searchSelectRef"
           :show-condition="false"
           :placeholder="$t('搜索任务ID、执行者、任务类型、操作类型、部署策略、执行状态')"

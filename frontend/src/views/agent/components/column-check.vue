@@ -15,6 +15,7 @@
               'indeterminate': indeterminate && checkType.active === 'all'
             }"
             :disabled="disabled || permission.disabled"
+            v-test.common="'headCheck'"
             @change="handleCheckChange">
           </bk-checkbox>
         </template>
@@ -30,7 +31,7 @@
         :on-hide="handleOnHide">
         <i class="check-icon nodeman-icon" :class="isDropDownShow ? 'nc-arrow-up' : 'nc-arrow-down'"></i>
         <template #content>
-          <ul class="dropdown-list">
+          <ul class="dropdown-list" v-test.common="'headCheckUl'">
             <template v-for="(item, index) in checkList">
               <auth-component
                 v-if="item.id === 'current'"

@@ -17,6 +17,7 @@
     :disabled="disabled"
     :remote-method="remoteMethod"
     ref="select"
+    v-test.common="'biz'"
     @selected="handleSelected"
     @toggle="handleToggle"
     @change="handleChange"

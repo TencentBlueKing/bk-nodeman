@@ -1,8 +1,9 @@
 <template>
-  <bk-form ref="form" :model="formData" :rules="rules">
+  <bk-form v-test.policy="'targetForm'" ref="form" :model="formData" :rules="rules">
     <bk-form-item
       v-if="isCreateType"
       class="rule-name"
+      v-test.policy="'name'"
       :label="isGrayRule ? $t('灰度名称') : $t('策略名称')"
       property="policyName"
       required>
@@ -14,6 +15,7 @@
       required>
       <IpSelect
         class="ip-selector"
+        v-test.policy="'ipSelect'"
         :action="['strategy_create', 'strategy_view']"
         :node-type="isGrayRule ? 'INSTANCE' : targetPreview.node_type"
         :checked-data="targetPreview.nodes"
@@ -24,6 +26,7 @@
       <bk-button
         class="nodeman-primary-btn"
         theme="primary"
+        v-test.common="'stepNext'"
         :disabled="!targetPreview.nodes || !targetPreview.nodes.length || !formData.policyName"
         @click="handleNext">
         {{ $t('下一步') }}

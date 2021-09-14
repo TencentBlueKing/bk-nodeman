@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div v-test="'policy'">
     <PluginRuleOperate
       :search-values="searchSelectValue"
       :created-operate="authority.operate"
@@ -33,12 +33,12 @@
         <tips class="mb15" :list="$t('停用策略Tips')"></tips>
         <bk-radio-group v-model="dialogInfo.onlyDisabled">
           <div>
-            <bk-radio :value="true">
+            <bk-radio v-test="'stopPolicy'" :value="true">
               <i18n path="停用策略dialogContentOnly"><b class="focus-stag">{{ $t('运行中') }}</b></i18n>
             </bk-radio>
           </div>
           <div class="mt10">
-            <bk-radio :value="false">
+            <bk-radio v-test="'stopPlugin'" :value="false">
               <i18n path="停用策略dialogContentAll"><b class="focus-stag">{{ $t('停用') }}</b></i18n>
             </bk-radio>
           </div>
@@ -46,7 +46,8 @@
       </template>
       <template #footer>
         <div class="footer">
-          <bk-button theme="primary" :loading="dialogInfo.loading" @click="handleDialogConfirm">
+          <bk-button
+            v-test.common="'formCommit'" theme="primary" :loading="dialogInfo.loading" @click="handleDialogConfirm">
             {{ $t('确定') }}
           </bk-button>
           <bk-button class="ml10" @click="dialogInfo.visible = false">{{ $t('取消') }}</bk-button>

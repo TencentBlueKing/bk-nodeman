@@ -3,6 +3,7 @@
     <div class="step-item" v-for="(item, index) in list" :key="index" @click="handleClickStep(item)">
       <bk-popover placement="top" :disabled="!showTips">
         <div
+          v-test="'channelItem'"
           :class="['step', {
             active: active === item.id,
             controllable: controllable,
@@ -16,7 +17,7 @@
         </div>
       </bk-popover>
     </div>
-    <div class="add-btn" v-if="addable" @click="handleAddClick">
+    <div class="add-btn" v-test="'addChannel'" v-if="addable" @click="handleAddClick">
       <bk-button class="tab-loading" theme="default" v-if="loading" loading />
       <slot v-else name="add">
         <i class="nodeman-icon nc-plus-line"></i>

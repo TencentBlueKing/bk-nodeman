@@ -1,5 +1,5 @@
 <template>
-  <bk-form class="align-form" ref="form" v-bkloading="{ isLoading: loading }">
+  <bk-form v-test.policy="'versionForm'" class="align-form" ref="form" v-bkloading="{ isLoading: loading }">
     <bk-form-item v-if="showTips">
       <Tips
         :list="$t('通过检测现有主机操作系统已自动选中必须部署的插件包')"
@@ -26,6 +26,7 @@
     </bk-form-item>
     <bk-form-item>
       <bk-button
+        v-test.common="'stepNext'"
         theme="primary"
         class="nodeman-primary-btn"
         :disabled="!selectedVersion.length"
@@ -34,6 +35,7 @@
       </bk-button>
       <bk-button
         v-if="hasPreStep"
+        v-test.common="'stepPrev'"
         class="nodeman-cancel-btn ml5"
         @click="handleStepChange(step - 1)">
         {{ $t('上一步') }}

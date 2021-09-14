@@ -59,6 +59,7 @@
         :apply-info="[{ action: 'plugin_pkg_import' }]">
         <template slot-scope="{ disabled }">
           <bk-button
+            v-test.common="'formCommit'"
             theme="primary"
             ext-cls="import-btn"
             :loading="loadingSetupBtn"

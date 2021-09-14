@@ -1,5 +1,5 @@
 <template>
-  <bk-table :data="tableData" ref="tableRef" @selection-change="handleSelectd">
+  <bk-table v-test.policy="'curVersionTable'" :data="tableData" ref="tableRef" @selection-change="handleSelectd">
     <bk-table-column v-if="showSelect" type="selection" :selectable="handleSelectable"></bk-table-column>
     <bk-table-column :label="$t('操作系统')" prop="support_os_cpu"></bk-table-column>
     <bk-table-column :label="showSelect ? $t('部署版本') : $t('目标版本')">
