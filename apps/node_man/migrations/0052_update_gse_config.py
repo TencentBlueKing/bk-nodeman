@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 from django.db import migrations
 
-from apps.node_man import constants as const
+from apps.node_man import constants
 
 
 def update_gse_port(apps, schema_editor):
     AccessPoint = apps.get_model("node_man", "AccessPoint")
-    port = {"data_prometheus_port": const.GSE_PORT_DEFAULT_VALUE["data_prometheus_port"]}
+    port = {"data_prometheus_port": constants.GSE_PORT_DEFAULT_VALUE["data_prometheus_port"]}
     aps = AccessPoint.objects.all()
     for ap in aps:
         ports = dict(ap.port_config)
