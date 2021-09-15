@@ -192,7 +192,7 @@ SHOW_EXCEPTION_DETAIL = False
 USE_IAM = bool(os.getenv("BKAPP_USE_IAM", False))
 
 # 使用GSE加密敏感信息
-USE_GSE_ENCRYPTED = bool(os.getenv("BK_NODEMAN_GSE_ENCRYPTION", False))
+GSE_USE_ENCRYPTION = bool(os.getenv("GSE_USE_ENCRYPTION", False))
 
 # 并发数
 CONCURRENT_NUMBER = int(os.getenv("CONCURRENT_NUMBER", 50) or 50)
