@@ -52,16 +52,8 @@
       </bk-table>
       <div class="detail-table-right">
         <p class="title">{{ $t('版本描述') }}</p>
-        <mavon-editor
-          class="content"
-          :value="markdown"
-          :toolbars-flag="false"
-          :editable="false"
-          :box-shadow="false"
-          :subfield="false"
-          default-open="preview"
-          preview-background="#fff">
-        </mavon-editor>
+        <!-- eslint-disable-next-line vue/no-v-html -->
+        <div class="markdown-body" v-html="markdown"></div>
       </div>
     </div>
     <template slot="footer">

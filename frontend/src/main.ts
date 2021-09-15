@@ -8,6 +8,7 @@ import { bus } from '@/common/bus';
 import i18n from '@/setup';
 import LoadingIcon from '@/components/common/loading-icon.vue';
 import '@icon-cool/bk-icon-node-manager';
+import 'github-markdown-css';
 
 if (process.env.NODE_ENV === 'development') {
   Vue.config.devtools = true;
