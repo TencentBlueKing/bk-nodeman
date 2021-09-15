@@ -22,6 +22,7 @@ from pipeline.celery.settings import CELERY_ROUTES as PIPELINE_CELERY_ROUTES
 # SaaS运行环境用于区分环境差异
 BKAPP_RUN_ENV = os.getenv("BKAPP_RUN_ENV")
 REDIRECT_FIELD_NAME = "c_url"
+IS_AJAX_PLAIN_MODE = True
 
 # 请在这里加入你的自定义 APP
 INSTALLED_APPS += (
