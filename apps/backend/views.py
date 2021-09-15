@@ -511,7 +511,7 @@ def generate_gse_config(bk_cloud_id, filename, node_type, inner_ip):
             pluginbin = f'"{pluginbin}"'
             pluginipc = f'"{pluginipc}"'
 
-        if settings.USE_GSE_ENCRYPTED:
+        if settings.GSE_USE_ENCRYPTION:
             zk_auth = GseEncrypted.encrypted(f"{host.ap.zk_account}:{host.ap.zk_password}")
         else:
             zk_auth = f"{host.ap.zk_account}:{host.ap.zk_password}"
