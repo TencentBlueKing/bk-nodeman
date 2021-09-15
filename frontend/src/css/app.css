@@ -658,6 +658,8 @@ body {
 }
 
 .markdown-content {
+    padding: 20px 25px;
+    background: #fff;
     ul {
         list-style-type: disc
     }
