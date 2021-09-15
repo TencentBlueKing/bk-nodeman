@@ -1,0 +1,2 @@
+bugfix:
+  - "非管理员P-agent安装使用全业务安装查询Job无权限问题(fixed #112)"

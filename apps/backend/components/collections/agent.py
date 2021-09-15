@@ -828,9 +828,7 @@ class InstallService(AgentService, JobFastExecuteScriptService):
             job_status_kwargs = log.get("job_status_kwargs")
             if job_status_kwargs:
                 # 判断任务是否在执行中或成功
-                job_instance_log = client_v2.job.get_job_instance_log(
-                    job_status_kwargs, bk_username=data.get_one_of_inputs("bk_username")
-                )
+                job_instance_log = client_v2.job.get_job_instance_log(job_status_kwargs)
 
                 job_status = job_instance_log[0].get("status", "")
                 if job_status == JobDataStatus.PENDING:
