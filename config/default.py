@@ -191,9 +191,6 @@ SHOW_EXCEPTION_DETAIL = False
 # 使用权限中心
 USE_IAM = bool(os.getenv("BKAPP_USE_IAM", False))
 
-# 使用GSE加密敏感信息
-GSE_USE_ENCRYPTION = bool(os.getenv("GSE_USE_ENCRYPTION", False))
-
 # 并发数
 CONCURRENT_NUMBER = int(os.getenv("CONCURRENT_NUMBER", 50) or 50)
 
@@ -498,6 +495,9 @@ GSE_WIN_AGENT_HOME = os.getenv("BKAPP_GSE_WIN_AGENT_HOME") or "C:\\gse"
 GSE_WIN_AGENT_LOG_DIR = os.getenv("BKAPP_GSE_WIN_AGENT_LOG_DIR") or "C:\\gse\\logs"
 GSE_WIN_AGENT_RUN_DIR = os.getenv("BKAPP_GSE_WIN_AGENT_RUN_DIR") or "C:\\gse\\logs"
 GSE_WIN_AGENT_DATA_DIR = os.getenv("BKAPP_GSE_WIN_AGENT_DATA_DIR") or "C:\\gse\\data"
+
+# 是否使用GSE加密敏感信息
+GSE_USE_ENCRYPTION = strtobool(os.getenv("BKAPP_GSE_USE_ENCRYPTION", "false"))
 
 GSE_PROCESS_STATUS_DATAID = os.getenv("GSE_PROCESS_STATUS_DATAID") or 1200000
 GSE_PROCESS_EVENT_DATAID = os.getenv("GSE_PROCESS_EVENT_DATAID") or 1100008
