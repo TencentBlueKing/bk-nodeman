@@ -235,7 +235,9 @@ get_pid_by_comm_path () {
     if [[ -e "$path" ]]; then
         for pid in "${_pids[@]}"; do
             if [[ "$(readlink -f "$path")" = "$(readlink -f /proc/"$pid"/exe)" ]]; then
-                pids+=("$pid")
+                if ! grep -nEq '^\ +$' <<< "$pid"; then
+                    pids+=("$pid")
+                fi
             fi
         done
     else
