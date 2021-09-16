@@ -13,6 +13,7 @@ from distutils.util import strtobool
 
 from blueapps.conf.default_settings import *  # noqa
 
+from apps.utils.env import get_type_env
 from config import ENVIRONMENT
 
 # pipeline 配置
@@ -497,13 +498,13 @@ GSE_WIN_AGENT_RUN_DIR = os.getenv("BKAPP_GSE_WIN_AGENT_RUN_DIR") or "C:\\gse\\lo
 GSE_WIN_AGENT_DATA_DIR = os.getenv("BKAPP_GSE_WIN_AGENT_DATA_DIR") or "C:\\gse\\data"
 
 # 是否使用GSE加密敏感信息
-GSE_USE_ENCRYPTION = strtobool(os.getenv("BKAPP_GSE_USE_ENCRYPTION", "false"))
+GSE_USE_ENCRYPTION = get_type_env(key="BKAPP_GSE_USE_ENCRYPTION", default=False, _type=bool)
 
 GSE_PROCESS_STATUS_DATAID = os.getenv("GSE_PROCESS_STATUS_DATAID") or 1200000
 GSE_PROCESS_EVENT_DATAID = os.getenv("GSE_PROCESS_EVENT_DATAID") or 1100008
 
 # 是否使用CMDB订阅机制去主动触发插件下发
-USE_CMDB_SUBSCRIPTION_TRIGGER = strtobool(os.getenv("BKAPP_USE_CMDB_SUBSCRIPTION_TRIGGER", "true"))
+USE_CMDB_SUBSCRIPTION_TRIGGER = get_type_env(key="BKAPP_USE_CMDB_SUBSCRIPTION_TRIGGER", default=True, _type=bool)
 
 VERSION_LOG = {"MD_FILES_DIR": os.path.join(PROJECT_ROOT, "release")}
 

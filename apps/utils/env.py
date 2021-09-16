@@ -11,8 +11,11 @@ specific language governing permissions and limitations under the License.
 
 import logging
 import os
+from typing import Any
 
 from django.conf import settings
+
+from apps.utils.string import str2bool
 
 logger = logging.getLogger("app")
 
@@ -74,3 +77,31 @@ def get_gse_env_path(package_name, is_windows=False):
             "pid_path": settings.GSE_AGENT_RUN_DIR + "/" + package_name + ".pid",
             "data_path": settings.GSE_AGENT_DATA_DIR,
         }
+
+
+def get_type_env(key: str, default: Any = None, _type: type = str, exempt_empty_str: bool = False) -> Any:
+    """
+    获取环境变量并转为目标类型
+    :param key: 变量名
+    :param default: 默认值，若获取不到环境变量会默认使用该值
+    :param _type: 环境变量需要转换的类型，不会转 default
+    :param exempt_empty_str: 是否豁免空串
+    :return:
+    """
+    value = os.getenv(key) or default
+    if value == default:
+        return value
+
+    # 豁免空串
+    if isinstance(value, str) and not value and exempt_empty_str:
+        return value
+
+    if _type == bool:
+        return str2bool(value)
+
+    try:
+        value = _type(value)
+    except TypeError:
+        raise TypeError(f"can not convert env value -> {value} to type -> {_type}")
+
+    return value
