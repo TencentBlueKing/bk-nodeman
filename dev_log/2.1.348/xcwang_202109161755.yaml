@@ -1,0 +1,2 @@
+bugfix:
+  - "某些情况下suse操作系统pid获取为空 (fixed #128)"
