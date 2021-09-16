@@ -1,5 +1,10 @@
 # Release
 
+## 2.1.347
+
+- bugfix
+  - 后台渲染变量与settings读取不一致 (fixed #122)
+
 ## 2.1.346
 
 - feature
