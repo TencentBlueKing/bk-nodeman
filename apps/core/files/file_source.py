@@ -12,6 +12,7 @@ from typing import Any, Dict, Optional
 
 from django.utils.translation import ugettext_lazy as _
 
+from apps.utils.md5 import count_md5
 from common.api import JobApi
 
 from . import constants, exceptions, models
@@ -143,6 +144,8 @@ class BkJobFileSourceManager:
     # 文件源别名
     FILE_SOURCE_ALIAS_TMPL = _("节点管理[biz:{bk_biz_id}]{storage_type_alias}文件源")
 
+    FILE_SOURCE_CACHE: Dict[str, models.BKJobFileSource] = {}
+
     @classmethod
     def gen_file_source_code(cls, storage_type: str) -> str:
         """
@@ -228,18 +231,23 @@ class BkJobFileSourceManager:
         :return: models.BKJobFileCredential
         """
 
-        credential = BkJobFileCredentialManager.get_or_create_credential(
-            bk_biz_id=bk_biz_id,
-            storage_type=storage_type,
-            credential_type=credential_type,
-            credential_auth_info=credential_auth_info,
-        )
+        credential_info = {
+            "bk_biz_id": bk_biz_id,
+            "storage_type": storage_type,
+            "credential_type": credential_type,
+            "credential_auth_info": credential_auth_info,
+        }
+        query_file_source_params_md5 = count_md5({**credential_info, "access_params": access_params})
 
+        if query_file_source_params_md5 in cls.FILE_SOURCE_CACHE:
+            return cls.FILE_SOURCE_CACHE[query_file_source_params_md5]
+
+        credential = BkJobFileCredentialManager.get_or_create_credential(**credential_info)
         try:
             file_source = models.BKJobFileSource.objects.get(credential_id=credential.credential_id)
         except models.BKJobFileSource.DoesNotExist:
             file_source = cls.register_file_source(credential=credential, access_params=access_params)
 
         file_source.credential = credential
-
+        cls.FILE_SOURCE_CACHE[query_file_source_params_md5] = file_source
         return file_source

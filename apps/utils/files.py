@@ -14,7 +14,7 @@ import ntpath
 import os
 import posixpath
 import uuid
-from typing import IO, Any, Callable, Optional
+from typing import IO, Any, Callable, List, Optional
 
 import requests
 
@@ -152,3 +152,42 @@ class PathHandler:
         :return: [ntpath, posixpath] method
         """
         return getattr(self.path_handler, item)
+
+
+def fetch_file_paths_from_dir(
+    dir_path: str, ignored_dir_names: Optional[List[str]] = None, ignored_file_names: Optional[List[str]] = None
+) -> List[str]:
+    """
+    获取目录下全部文件
+    :param dir_path: 目录路径
+    :param ignored_dir_names: 忽略的目录名称
+    :param ignored_file_names: 忽略的文件名称
+    :return: 文件路径列表
+    """
+    if not os.path.isdir(dir_path):
+        raise NotADirectoryError(f"{dir_path} is not a directory.")
+    if not os.path.exists(dir_path):
+        raise FileNotFoundError(f"{dir_path} doesn't exist.")
+
+    file_paths = []
+    ignored_dir_paths = set()
+    ignored_dir_names = set(ignored_dir_names or {})
+    ignored_file_names = set(ignored_file_names or {})
+
+    for child_dir_path, dir_names, file_names in os.walk(dir_path):
+
+        # 记录忽略的目录路径
+        for dir_name in dir_names:
+            if dir_name in ignored_dir_names:
+                ignored_dir_paths.add(os.path.join(child_dir_path, dir_name))
+
+        if child_dir_path in ignored_dir_paths:
+            continue
+
+        # 将未忽略的文件路径加入到返回列表
+        for file_name in file_names:
+            if file_name in ignored_file_names:
+                continue
+            file_paths.append(os.path.join(child_dir_path, file_name))
+
+    return file_paths

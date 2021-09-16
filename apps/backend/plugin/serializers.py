@@ -305,19 +305,10 @@ class ExportSerializer(GatewaySerializer):
                 )
             return data
 
-    category = serializers.CharField()
+    category = serializers.ChoiceField(choices=DownloadRecord.CATEGORY_CHOICES)
     query_params = GsePluginParamsSerializer()
     creator = serializers.CharField()
     bk_app_code = serializers.CharField()
-
-    def validate(self, attrs):
-        if attrs["category"] not in DownloadRecord.CATEGORY_TASK_DICT:
-            raise ValidationError(
-                "请求下载类型 -> {category} 暂不支持，可选项 -> {choices}".format(
-                    category=attrs["category"], choices=DownloadRecord.CATEGORY_CHOICES
-                )
-            )
-        return attrs
 
 
 class DeletePluginSerializer(GatewaySerializer):

@@ -42,7 +42,6 @@ class FileSystemTestCase(utils.PluginBaseTestCase):
         upload_result = self.client.post(
             path="/backend/package/upload/",
             data={
-                **self.API_AUTH_PARAMS,
                 "module": "gse_plugin",
                 "md5": md5,
                 # nginx 计算并回调的额外参数
@@ -63,7 +62,6 @@ class FileSystemTestCase(utils.PluginBaseTestCase):
 
     def register_plugin(self, file_name: str, select_pkg_relative_paths: Optional[List[str]] = None):
         base_query_params = {
-            **self.API_AUTH_PARAMS,
             "file_name": file_name,
             "is_release": True,
             "is_template_load": True,
@@ -76,7 +74,7 @@ class FileSystemTestCase(utils.PluginBaseTestCase):
     def parse_plugin(self, file_name: str) -> List[Dict[str, Any]]:
         pkg_parse_results = self.client.post(
             path="/backend/api/plugin/parse/",
-            data={**self.API_AUTH_PARAMS, "file_name": file_name},
+            data={"file_name": file_name},
         )["data"]
         return pkg_parse_results
 
@@ -159,7 +157,6 @@ class FileSystemTestCase(utils.PluginBaseTestCase):
         export_result = self.client.post(
             path="/backend/api/plugin/create_export_task/",
             data={
-                **self.API_AUTH_PARAMS,
                 "category": "gse_plugin",
                 "creator": "admin",
                 "query_params": {"project": utils.PLUGIN_NAME, "version": utils.PACKAGE_VERSION},
@@ -173,7 +170,6 @@ class FileSystemTestCase(utils.PluginBaseTestCase):
         export_result = self.client.post(
             path="/backend/api/plugin/create_export_task/",
             data={
-                **self.API_AUTH_PARAMS,
                 "category": "gse_plugin",
                 "creator": "admin",
                 "query_params": {
@@ -191,7 +187,6 @@ class FileSystemTestCase(utils.PluginBaseTestCase):
         export_result = self.client.post(
             path="/backend/api/plugin/create_export_task/",
             data={
-                **self.API_AUTH_PARAMS,
                 "category": "gse_plugin",
                 "creator": "admin",
                 "query_params": {
@@ -310,7 +305,6 @@ class BkRepoTestCase(FileSystemTestCase):
         upload_result = self.client.post(
             path="/backend/package/upload_cos/",
             data={
-                **self.API_AUTH_PARAMS,
                 "module": "gse_plugin",
                 "md5": files.md5sum(file_local_path),
                 # nginx 计算并回调的额外参数
