@@ -53,10 +53,10 @@ from apps.exceptions import AppBaseException, ValidationError
 from apps.generic import APIViewSet
 from apps.node_man import constants as const
 from apps.node_man import models
+from apps.utils import files
 from pipeline.engine.exceptions import InvalidOperationException
 from pipeline.service import task_service
 from pipeline.service.pipeline_engine_adapter.adapter_api import STATE_MAP
-from apps.utils import files
 
 LOG_PREFIX_RE = re.compile(r"(\[\d{4}-\d{1,2}-\d{1,2}\s\d{1,2}:\d{1,2}.*?\] )")
 logger = logging.getLogger("app")
@@ -1321,11 +1321,10 @@ def upload_package_by_cos(request):
     # TODO 此处的md5校验放到文件实际读取使用的地方更合理?
     # file_path 不为空表示文件已在项目管理的对象存储上，此时仅需校验md5，减少文件IO
     if file_path:
-        try:
-            if files.md5sum(file_obj=storage.open(name=file_path)) != md5:
-                raise ValidationError(_("上传文件MD5校验失败，请确认重试"))
-        except Exception as e:
-            raise ValidationError(_("文件不存在：file_path -> {file_path}，error -> {err}").format(file_path=file_path, err=e))
+        if not storage.exists(name=file_path):
+            raise ValidationError(_("文件不存在：file_path -> {file_path}").format(file_path=file_path))
+        if files.md5sum(file_obj=storage.open(name=file_path)) != md5:
+            raise ValidationError(_("上传文件MD5校验失败，请确认重试"))
     else:
         # 创建临时存放下载插件的目录
         tmp_dir = files.mk_and_return_tmpdir()

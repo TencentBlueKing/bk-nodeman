@@ -197,9 +197,6 @@ class PluginBaseTestCase(CustomAPITestCase):
         (constants.OsType.LINUX.lower(), constants.CpuType.x86_64),
         (constants.OsType.WINDOWS.lower(), constants.CpuType.x86),
     ]
-    # BKAPP_PUBLIC_PATH = TMP_DIR
-
-    API_AUTH_PARAMS: Dict[str, str] = {"bk_app_code": settings.APP_CODE, "bk_username": "admin"}
 
     PLUGIN_CHILD_DIR_NAME: str = (constants.PluginChildDir.OFFICIAL.value, constants.PluginChildDir.EXTERNAL.value)[
         IS_EXTERNAL
@@ -232,6 +229,12 @@ class PluginBaseTestCase(CustomAPITestCase):
         super().setUpTestData()
 
     def setUp(self):
+        # 设置请求附加参数
+        self.client.common_request_data = {
+            "bk_app_code": settings.APP_CODE,
+            "bk_username": settings.SYSTEM_USE_API_ACCOUNT,
+        }
+
         for setting_name in PathSettingOverwrite.list_member_values():
             overwrite_path = os.path.join(
                 self.TMP_DIR, PathSettingOverwrite.get_setting_name__path_suffix_map()[setting_name]

@@ -9,7 +9,8 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import json
-from typing import Any, Dict
+from collections import ChainMap
+from typing import Any, Dict, Optional
 
 from rest_framework import status
 from rest_framework.test import APIClient
@@ -21,6 +22,13 @@ DEFAULT_FORMAT = "json"
 
 
 class CustomAPIClient(APIClient):
+    # 通用请求参数，同键覆盖策略 data > common_request_data
+    common_request_data: Optional[Dict[str, Any]] = None
+
+    def __init__(self, enforce_csrf_checks=False, **defaults):
+        self.common_request_data = {}
+        super().__init__(enforce_csrf_checks=enforce_csrf_checks, **defaults)
+
     @staticmethod
     def assert_response(response) -> Dict[str, Any]:
         if response.status_code != status.HTTP_200_OK:
@@ -29,23 +37,38 @@ class CustomAPIClient(APIClient):
         else:
             return json.loads(response.content)
 
+    def process_request_data(self, data: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        请求参数预处理
+        :param data: 请求参数
+        :return: 返回处理后的data
+        """
+        if data is None:
+            return self.common_request_data
+
+        return dict(ChainMap(data, self.common_request_data))
+
     def get(self, path, data=None, follow=False, **extra):
-        response = super().get(path=path, data=data, follow=float, **extra)
+        data = self.process_request_data(data)
+        response = super().get(path=path, data=data, follow=follow, **extra)
         return self.assert_response(response)
 
     def post(self, path, data=None, format=DEFAULT_FORMAT, content_type=DEFAULT_CONTENT_TYPE, follow=False, **extra):
+        data = self.process_request_data(data)
         response = super().post(
             path=path, data=data, format=format, content_type=DEFAULT_CONTENT_TYPE, follow=follow, **extra
         )
         return self.assert_response(response)
 
     def put(self, path, data=None, format=DEFAULT_FORMAT, content_type=DEFAULT_CONTENT_TYPE, follow=False, **extra):
+        data = self.process_request_data(data)
         response = super().put(
             path=path, data=data, format=format, content_type=DEFAULT_CONTENT_TYPE, follow=follow, **extra
         )
         return self.assert_response(response)
 
     def delete(self, path, data=None, format=DEFAULT_FORMAT, content_type=DEFAULT_CONTENT_TYPE, follow=False, **extra):
+        data = self.process_request_data(data)
         response = super().delete(
             path=path, data=data, format=format, content_type=content_type, follow=follow, **extra
         )

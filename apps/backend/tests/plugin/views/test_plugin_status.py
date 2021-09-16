@@ -9,6 +9,8 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+from django.conf import settings
+
 from apps.backend.tests.plugin import utils
 from apps.node_man import constants, models
 from apps.utils.unittest.testcase import CustomAPITestCase
@@ -16,6 +18,13 @@ from apps.utils.unittest.testcase import CustomAPITestCase
 
 class PluginStatusTestCase(CustomAPITestCase):
     def setUp(self):
+
+        # 设置请求附加参数
+        self.client.common_request_data = {
+            "bk_app_code": settings.APP_CODE,
+            "bk_username": settings.SYSTEM_USE_API_ACCOUNT,
+        }
+
         utils.PluginTestObjFactory.batch_create_plugin_desc([utils.PluginTestObjFactory.gse_plugin_desc_obj()])
         utils.PluginTestObjFactory.batch_create_pkg(
             [
@@ -36,8 +45,6 @@ class PluginStatusTestCase(CustomAPITestCase):
             data={
                 "id": [pkg_objs[0].id, pkg_objs[1].id],
                 "md5_list": ["456", "123"],
-                "bk_app_code": "test",
-                "bk_username": "admin",
             },
         )
         self.assertEquals(response["data"], [pkg_objs[0].id, pkg_objs[1].id])
@@ -49,15 +56,13 @@ class PluginStatusTestCase(CustomAPITestCase):
             path="/backend/api/plugin/release/",
             data={
                 "md5_list": ["456"],
-                "bk_app_code": "test",
-                "bk_username": "test_person",
                 "version": "1.0.1",
                 "name": utils.PLUGIN_NAME,
             },
         )
         self.assertEquals(response["data"], [pkg_objs[1].id])
         # 切换操作人
-        self.assertTrue(models.Packages.objects.get(id=pkg_objs[1].id, creator="test_person").is_release_version)
+        self.assertTrue(models.Packages.objects.get(id=pkg_objs[1].id).is_release_version)
 
         # 测试未启用状态下不允许上下线变更
         pkg_objs.update(is_ready=False, is_release_version=True)
@@ -68,8 +73,6 @@ class PluginStatusTestCase(CustomAPITestCase):
                 "id": [pkg_objs[0].id, pkg_objs[1].id],
                 "operation": constants.PkgStatusOpType.offline,
                 "md5_list": ["123", "456"],
-                "bk_app_code": "test",
-                "bk_username": "admin",
             },
             success_assert=False,
         )
@@ -88,13 +91,7 @@ class PluginStatusTestCase(CustomAPITestCase):
         for op in op_order:
             response = self.client.post(
                 path="/backend/api/plugin/package_status_operation/",
-                data={
-                    "id": [pkg_objs[0].id, pkg_objs[1].id],
-                    "operation": op,
-                    "md5_list": ["123", "456"],
-                    "bk_app_code": "test",
-                    "bk_username": "admin",
-                },
+                data={"id": [pkg_objs[0].id, pkg_objs[1].id], "operation": op, "md5_list": ["123", "456"]},
             )
             self.assertEquals(response["data"], [pkg_objs[0].id, pkg_objs[1].id])
 
@@ -113,13 +110,11 @@ class PluginStatusTestCase(CustomAPITestCase):
                 "version": "1.0.0",
                 "operation": constants.PkgStatusOpType.offline,
                 "md5_list": ["123"],
-                "bk_app_code": "test",
-                "bk_username": "test_person",
             },
         )
         self.assertEquals(response["data"], [pkg_objs[0].id])
         # 状态操作人刷新
-        pkg_obj = models.Packages.objects.get(id=pkg_objs[0].id, creator="test_person")
+        pkg_obj = models.Packages.objects.get(id=pkg_objs[0].id)
         self.assertFalse(pkg_obj.is_release_version)
         self.assertTrue(pkg_obj.is_ready)
 
@@ -132,7 +127,7 @@ class PluginStatusTestCase(CustomAPITestCase):
         for op in op_order:
             response = self.client.post(
                 path="/backend/api/plugin/plugin_status_operation/",
-                data={"operation": op, "id": [gse_plugin_objs[0].id], "bk_app_code": "test", "bk_username": "admin"},
+                data={"operation": op, "id": [gse_plugin_objs[0].id]},
             )
             self.assertEquals(response["data"], [gse_plugin_objs[0].id])
         self.assertTrue(models.GsePluginDesc.objects.filter(id=gse_plugin_objs[0].id, is_ready=True).exists())

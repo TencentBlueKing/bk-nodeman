@@ -49,24 +49,24 @@ class CustomBKRepoStorage(BaseStorage, bkrepo.BKRepoStorage):
     ):
         # 类成员变量应该和构造函数解耦，通过 params or default 的形式给构造参数赋值，防止该类被继承扩展时需要覆盖全部的成员默认值
         root_path = root_path or self.location
-        username = username or settings.BKREPO_USERNAME
-        password = password or settings.BKREPO_PASSWORD
-        project_id = project_id or settings.BKREPO_PROJECT
-        bucket = bucket or settings.BKREPO_BUCKET
-        endpoint_url = endpoint_url or settings.BKREPO_ENDPOINT_URL
-        file_overwrite = file_overwrite or settings.FILE_OVERWRITE
+        self.username = username or settings.BKREPO_USERNAME
+        self.password = password or settings.BKREPO_PASSWORD
+        self.project_id = project_id or settings.BKREPO_PROJECT
+        self.bucket = bucket or settings.BKREPO_BUCKET
+        self.endpoint_url = endpoint_url or settings.BKREPO_ENDPOINT_URL
+        self.file_overwrite = file_overwrite or settings.FILE_OVERWRITE
 
         # 根据 MRO 顺序，super() 仅调用 BaseStorage.__init__()，通过显式调用 BKRepoStorage 的初始化函数
         # 获得自定义 BaseStorage 类的重写特性，同时向 BKRepoStorage 注入成员变量
         bkrepo.BKRepoStorage.__init__(
             self,
             root_path=root_path,
-            username=username,
-            password=password,
-            project_id=project_id,
-            bucket=bucket,
-            endpoint_url=endpoint_url,
-            file_overwrite=file_overwrite,
+            username=self.username,
+            password=self.password,
+            project_id=self.project_id,
+            bucket=self.bucket,
+            endpoint_url=self.endpoint_url,
+            file_overwrite=self.file_overwrite,
         )
 
     def path(self, name):
@@ -88,6 +88,9 @@ class CustomBKRepoStorage(BaseStorage, bkrepo.BKRepoStorage):
         file_source_with_source_info_list = []
         for file_source in file_source_list:
             # 作业平台要求制品库分发的路径带上 project/bucket 前缀
+            print(file_source)
+            print(self.project_id, self.bucket)
+            print(os.path.join(self.project_id, self.bucket))
             file_list = [
                 os.path.join(self.project_id, self.bucket) + file_path for file_path in file_source.get("file_list", [])
             ]

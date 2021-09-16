@@ -919,16 +919,14 @@ class PushUpgradePackageService(JobFastPushFileService):
         data.inputs.file_target_path = host.agent_config["temp_path"]
 
         os_type = host.os_type.lower()
-        bk_os_bit = host_info.get("bk_os_bit")
 
         # 根据节点类型、位数、系统等组装包名
-        arch = "x86" if bk_os_bit == "32-bit" else "x86_64"
         gse_type = "proxy" if host.node_type == constants.NodeType.PROXY else "client"
-        package_name = f"gse_{gse_type}-{os_type}-{arch}_upgrade.tgz"
+        package_name = f"gse_{gse_type}-{os_type}-{host.cpu_arch}_upgrade.tgz"
         files = [package_name]
 
         # windows机器需要添加解压文件
-        if os_type == "windows":
+        if os_type == constants.OsType.WINDOWS:
             files.extend(["7z.dll", "7z.exe"])
         file_source = [{"files": [f"{nginx_path}/{file}" for file in files]}]
 
