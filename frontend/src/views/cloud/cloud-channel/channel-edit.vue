@@ -26,7 +26,7 @@
               :rules="getIpRules(server)"
               :property="`${server}.${index}.value`"
               :key="`${keyIndex}_${index}`">
-              <bk-input v-model.trim="item.value" :placeholder="$t('请输入')">
+              <bk-input v-test="`formItem.${server}`" v-model.trim="item.value" :placeholder="$t('请输入')">
                 <div class="input-control-slot" slot="append">
                   <i
                     :class="['nodeman-icon nc-plus', { 'disable-icon': btnLoading }]"
