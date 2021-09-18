@@ -1,0 +1,2 @@
+bugfix:
+  - "修复主机类型订阅 nodes 传入信息错误导致 KeyError 的问题 (fixed #132)"

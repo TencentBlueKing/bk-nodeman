@@ -473,7 +473,12 @@ def get_host_detail(host_info_list: list, bk_biz_id: int = None):
             }
         }
     else:
-        cond = {}
+        # 如果不满足 bk_host_id / ip & bk_cloud_id 的传入格式，此时直接返回空列表，表示查询不到任何主机
+        # 说明：
+        #   1. list_hosts_without_biz 无需业务进行全量查询，无效传参格式会匹配单业务或全业务（不传bk_biz_id）主机
+        #   2. 无有效 ip 在后续执行 create_host_key 获取 bk_cloud_id 也会 KeyError
+        #   3. 综上所述，提前返回可以减少无效执行逻辑及网络IO
+        return []
 
     hosts = list_biz_hosts(bk_biz_id, cond, "list_hosts_without_biz")
     bk_host_ids = []
