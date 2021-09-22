@@ -7,7 +7,6 @@
         </keep-alive>
       </div>
     </nodeman-navigation>
-    <app-auth ref="bkAuth"></app-auth>
     <permission-modal ref="permissionModal"></permission-modal>
     <bk-paas-login ref="login" :login-url="loginUrl"></bk-paas-login>
   </div>
@@ -17,7 +16,6 @@ import { MainStore } from '@/store/index';
 import { bus } from '@/common/bus';
 import NodemanNavigation from '@/components/common/navigation.vue';
 import PermissionModal from '@/components/auth/PermissionModal.vue';
-import AppAuth from '@/components/auth/index.vue';
 import { STORAGE_KEY_BIZ, STORAGE_KEY_FONT } from '@/config/storage-key';
 import { Vue, Component, Ref, Watch } from 'vue-property-decorator';
 import { IAuthApply, IBkBiz, ILoginRes } from '@/types/index';
@@ -32,7 +30,6 @@ import BkPaasLogin from '@blueking/paas-login/dist/paas-login.umd';
   },
 })
 export default class App extends Vue {
-  @Ref('bkAuth') private readonly bkAuth!: AppAuth;
   @Ref('permissionModal') private readonly permissionModal!: any;
 
   private routerKey = +new Date();
@@ -94,14 +91,7 @@ export default class App extends Vue {
           const href = res.login_url ? res.login_url : (LOGIN_DEV_URL + window.location.href);
           window.location.href = href;
         }
-      // this.$refs.bkAuth.showLoginModal(res)
       }
-    });
-    bus.$on('close-login-modal', () => {
-      this.bkAuth.hideLoginModal();
-      setTimeout(() => {
-        window.location.reload();
-      }, 0);
     });
     bus.$on('show-permission-modal', (data: { trigger: 'request' | 'click', params: IAuthApply }) => {
       this.permissionModal.show(data);
