@@ -472,20 +472,18 @@ class SubscriptionViewSet(APIViewSet):
         params = self.get_validated_data()
 
         subscription_id_list = params["subscription_id_list"]
-        plugin_name = params["plugin_name"]
 
         subscriptions = models.Subscription.objects.filter(id__in=params["subscription_id_list"], is_deleted=False)
 
         # 插件version 统计
         host_statuses = models.ProcessStatus.objects.filter(
             source_id__in=subscription_id_list,
-            name=plugin_name,
             source_type=models.ProcessStatus.SourceType.SUBSCRIPTION,
-        ).only("version", "group_id")
+        ).only("version", "group_id", "name", "id")
 
-        instance_host_statuses = {}
+        instance_host_statuses = defaultdict(dict)
         for host_status in host_statuses:
-            instance_host_statuses[host_status.group_id] = host_status
+            instance_host_statuses[host_status.group_id][host_status.id] = host_status
 
         # 实例状态统计
         subscription_instances = list(
@@ -512,8 +510,8 @@ class SubscriptionViewSet(APIViewSet):
                 current_instances = json.loads(current_instances)
 
             status_statistic = {"SUCCESS": 0, "PENDING": 0, "FAILED": 0, "RUNNING": 0}
-            plugin_versions = {}
-            for instance_id, host_info in current_instances.items():
+            plugin_versions = defaultdict(lambda: defaultdict(int))
+            for instance_id, __ in current_instances.items():
                 if instance_id not in subscription_instance_status_map.get(subscription.id, {}):
                     continue
                 subscription_instance_info = subscription_instance_status_map[subscription.id][instance_id]
@@ -522,11 +520,17 @@ class SubscriptionViewSet(APIViewSet):
                     continue
 
                 status_statistic[subscription_instance_info["status"]] += 1
-                instance_status = instance_host_statuses.get(group_id)
-                if instance_status:
-                    plugin_versions[instance_status.version] = plugin_versions.get(instance_status.version, 0) + 1
+                instance_status_list = instance_host_statuses.get(group_id).values()
+                for instance in instance_status_list:
+                    amount = plugin_versions[instance.name][instance.version] or 0
+                    amount += 1
+                    plugin_versions[instance.name][instance.version] = amount
 
-            data["versions"] = [{"version": version, "count": count} for version, count in plugin_versions.items()]
+            data["versions"] = [
+                {"version": version, "count": count, "name": name}
+                for name, versions in plugin_versions.items()
+                for version, count in versions.items()
+            ]
             data["instances"] = sum(status_statistic.values())
             for status, count in status_statistic.items():
                 data["status"].append({"status": status, "count": count})

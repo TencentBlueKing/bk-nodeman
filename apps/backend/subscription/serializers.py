@@ -191,7 +191,6 @@ class FetchCommandsSerializer(serializers.Serializer):
 
 class SubscriptionStatisticSerializer(serializers.Serializer):
     subscription_id_list = serializers.ListField()
-    plugin_name = serializers.CharField()
 
 
 class SearchDeployPolicySerializer(GatewaySerializer):
