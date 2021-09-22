@@ -209,6 +209,7 @@
                             v-for="item in operate"
                             :key="item.id"
                             :class="['list-item', fontSize , { 'disabled': getDisabledStatus(item.id, row) }] "
+                            v-test.common="`moreItem.${item.id}`"
                             v-show="getOperateShow(row, item)"
                             v-bk-tooltips="{
                               width: language === 'zh' ? 160 : 370,
