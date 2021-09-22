@@ -16,12 +16,12 @@ try {
   console.log('弹窗方法已注册到当前窗口', window.close_login_dialog);
 }
 export function openLoginDialog() {
-  window.parent.LoginModal && (window.parent.LoginModal.show());
+  window.LoginModal && (window.LoginModal.show());
 }
 export function closeLoginDialog() {
   try {
-    window.parent.LoginModal && (window.parent.LoginModal.$data.visible = false);
-    window.parent.location.reload();
+    window.LoginModal && (window.LoginModal.$data.visible = false);
+    window.location.reload();
   } catch (err) {
     console.log(err);
   }
