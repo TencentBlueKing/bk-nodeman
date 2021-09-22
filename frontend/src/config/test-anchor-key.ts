@@ -18,6 +18,9 @@ export default {
     stepNext: 'btn_stepNext',
     fileInput: 'input_fileInput',
     versionForm: 'form_versionForm',
+    more: 'btn_more',
+    moreItem: 'btn_moreItem',
+    iconMore: 'icon_more',
   },
   // route.name
   agentStatus: {
@@ -156,6 +159,7 @@ export default {
     editChannel: 'btn_editChannel',
     deleteChannel: 'btn_deleteChannel',
     channelForm: 'form_channelForm',
+    formItem: 'input_formItem',
   },
   taskList: {
     history: 'wrapper_history',

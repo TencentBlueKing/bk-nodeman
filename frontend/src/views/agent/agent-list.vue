@@ -41,8 +41,16 @@
                 </span>
               </bk-button>
               <ul class="bk-dropdown-list" slot="dropdown-content" v-test="'installUl'">
-                <li><a @click.prevent="triggerHandler({ type: 'setup' })">{{ $t('普通安装') }}</a></li>
-                <li><a @click.prevent="triggerHandler({ type: 'import' })">{{ $t('Excel导入安装') }}</a></li>
+                <li>
+                  <a @click.prevent="triggerHandler({ type: 'setup' })" v-test.common="'moreItem.setup'">
+                    {{ $t('普通安装') }}
+                  </a>
+                </li>
+                <li>
+                  <a @click.prevent="triggerHandler({ type: 'import' })" v-test.common="'moreItem.import'">
+                    {{ $t('Excel导入安装') }}
+                  </a>
+                </li>
               </ul>
             </bk-dropdown-menu>
           </template>
@@ -70,6 +78,7 @@
           <ul class="bk-dropdown-list" slot="dropdown-content">
             <li>
               <a :class="{ 'item-disabled': selectionCount === 0 }"
+                 v-test.common="'moreItem.checkedIp'"
                  @click.prevent.stop="triggerHandler({
                    type: 'checkedIp',
                    disabled: selectionCount === 0
@@ -77,7 +86,11 @@
                 {{ $t('勾选IP') }}
               </a>
             </li>
-            <li><a @click.prevent="triggerHandler({ type: 'allIp' })">{{ $t('所有IP') }}</a></li>
+            <li>
+              <a @click.prevent="triggerHandler({ type: 'allIp' })" v-test.common="'moreItem.allIp'">
+                {{ $t('所有IP') }}
+              </a>
+            </li>
           </ul>
         </bk-dropdown-menu>
         <!--批量操作-->
@@ -107,7 +120,10 @@
           <ul class="bk-dropdown-list" slot="dropdown-content">
             <template v-for="item in operate">
               <li v-if="!item.single" :key="item.id" :class="{ 'disabled': getBatchMenuStaus(item) }">
-                <a @click.prevent="!getBatchMenuStaus(item) && triggerHandler({ type: item.id })">{{ item.name }}</a>
+                <a @click.prevent="!getBatchMenuStaus(item) && triggerHandler({ type: item.id })"
+                   v-test.common="`moreItem.${item.id}`">
+                  {{ item.name }}
+                </a>
               </li>
             </template>
           </ul>
@@ -464,6 +480,7 @@
                             { 'disabled': row.status === 'not_installed' && !(['log', 'remove'].includes(item.id)) }
                           ]"
                           :key="item.id"
+                          v-test.common="`moreItem.${item.id}`"
                           @click="handleOperate(item.id, [row])">
                           {{ item.name }}
                         </li>

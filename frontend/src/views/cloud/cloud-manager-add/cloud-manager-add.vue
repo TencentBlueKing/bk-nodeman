@@ -40,7 +40,7 @@
             <bk-button
               v-for="item in apList"
               :key="item.id"
-              v-test.cloudInfo="'cloudAp'"
+              v-test.cloudInfo="`cloudAp.${item.id}`"
               @click="handleChangeAp(item)"
               :class="{ 'is-selected': item.id === formData.apId }">
               {{ item.name }}
