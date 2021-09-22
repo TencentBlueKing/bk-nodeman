@@ -103,7 +103,7 @@
           :property="formItem.key"
           error-display-type="normal">
           <bk-input
-            v-test="'apBaseInput'"
+            v-test="`apBaseInput.${formItem.key}`"
             :ext-cls="formItem.inputExtCls"
             :type="formItem.type || 'text'"
             :placeholder="formItem.placeholder"

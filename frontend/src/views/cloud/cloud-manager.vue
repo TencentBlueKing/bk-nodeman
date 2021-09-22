@@ -40,12 +40,16 @@
             </bk-button>
             <ul class="bk-dropdown-list" slot="dropdown-content">
               <li>
-                <a :class="{ 'item-disabled': !hasSelectedRows }" @click.prevent.stop="handleCopyProxyIp('selected')">
+                <a :class="{ 'item-disabled': !hasSelectedRows }"
+                   v-test.common="'moreItem.selected'"
+                   @click.prevent.stop="handleCopyProxyIp('selected')">
                   {{ $t('勾选云区域的ProxyIP') }}
                 </a>
               </li>
               <li>
-                <a @click.prevent="handleCopyProxyIp('all')">{{ $t('所有云区域的ProxyIP') }}</a>
+                <a v-test.common="'moreItem.all'" @click.prevent="handleCopyProxyIp('all')">
+                  {{ $t('所有云区域的ProxyIP') }}
+                </a>
               </li>
             </ul>
           </bk-dropdown-menu>

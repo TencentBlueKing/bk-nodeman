@@ -29,15 +29,19 @@
         offset="35, 0"
         :on-show="handleOnShow"
         :on-hide="handleOnHide">
-        <i class="check-icon nodeman-icon" :class="isDropDownShow ? 'nc-arrow-up' : 'nc-arrow-down'"></i>
+        <i
+          :class="['check-icon nodeman-icon', `nc-arrow-${ isDropDownShow ? 'up' : 'down'}`]"
+          v-test.common="'iconMore'">
+        </i>
         <template #content>
           <ul class="dropdown-list" v-test.common="'headCheckUl'">
             <template v-for="(item, index) in checkList">
               <auth-component
-                v-if="item.id === 'current'"
                 tag="li"
                 class="list-item"
-                :authorized="checkAllPermission"
+                style="display: block;"
+                v-test.common="`moreItem.${item.id}`"
+                :authorized="checkAllPermission || item.id !== 'current'"
                 :apply-info="[{ action }]"
                 :key="index"
                 @click="handleCheckAll(item.id, item.disabled)">
@@ -47,14 +51,6 @@
                   </span>
                 </template>
               </auth-component>
-              <li
-                v-else
-                class="list-item"
-                :disabled="item.disabled"
-                :key="index"
-                @click="handleCheckAll(item.id, item.disabled)">
-                {{ item.name }}
-              </li>
             </template>
           </ul>
         </template>

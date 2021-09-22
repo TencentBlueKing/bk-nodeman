@@ -31,7 +31,11 @@
             </bk-button>
             <ul class="bk-dropdown-list" slot="dropdown-content">
               <li v-for="copyType in copyTypeList" :key="copyType.key">
-                <a href="javascript:" @click.prevent.stop="handleCopy(copyType)">{{ copyType.name }}</a>
+                <a href="javascript:"
+                   v-test.common="`moreItem.${copyType.key || 'all'}`"
+                   @click.prevent.stop="handleCopy(copyType)">
+                  {{ copyType.name }}
+                </a>
               </li>
             </ul>
           </bk-dropdown-menu>

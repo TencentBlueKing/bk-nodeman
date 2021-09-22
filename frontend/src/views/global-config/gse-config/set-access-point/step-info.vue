@@ -13,7 +13,7 @@
           :key="`${system.type}-${itemIndex}`">
           <bk-input
             v-model.trim="formData[path.prop]"
-            v-test="'apHostInput'"
+            v-test="`apHostInput.${path.prop}`"
             :placeholder="path.placeholder || $t('请输入')"
             @blur="pathRepair(arguments, path.prop)"
             @change="hadleFormChange">
