@@ -1,0 +1,2 @@
+optimization:
+  - statistic接口支持不传plugin_name参数(close #73)
