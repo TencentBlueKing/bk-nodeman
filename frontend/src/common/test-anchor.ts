@@ -23,11 +23,15 @@ export default class TestAnchorDirective {
       bind(el: IElement, { value, modifiers }: DirectiveBinding, { context }: VNode) {
         const moduleName = moduleNames.find(key => modifiers[key]) || context.$route.name;
         const anchorModule = testAnchorMap[moduleName];
-        if (anchorModule?.[value]) {
-          el.setAttribute('data-test-id', `${moduleName}_${anchorModule[value]}`);
+        const [testId, testKey] = value.split('.');
+        if (anchorModule?.[testId]) {
+          el.setAttribute('data-test-id', `${moduleName}_${anchorModule[testId]}`);
+          if (testKey) {
+            el.setAttribute('data-test-key', testKey);
+          }
         } else {
-          window.testAnchor.moduleUnknown.push({ module: moduleName, key: value });
-          console.warn(`not find test anchor: data-test-id="{{${moduleName}.${value}}}"`);
+          window.testAnchor.moduleUnknown.push({ module: moduleName, key: testId });
+          console.warn(`not find test anchor: data-test-id="{{${moduleName}.${testId}}}"`);
         }
       },
     });
