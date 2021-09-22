@@ -88,9 +88,6 @@ class CustomBKRepoStorage(BaseStorage, bkrepo.BKRepoStorage):
         file_source_with_source_info_list = []
         for file_source in file_source_list:
             # 作业平台要求制品库分发的路径带上 project/bucket 前缀
-            print(file_source)
-            print(self.project_id, self.bucket)
-            print(os.path.join(self.project_id, self.bucket))
             file_list = [
                 os.path.join(self.project_id, self.bucket) + file_path for file_path in file_source.get("file_list", [])
             ]
