@@ -1,0 +1,2 @@
+optimization:
+  - "单元测试仅统计有效文件 (closed #145)"
