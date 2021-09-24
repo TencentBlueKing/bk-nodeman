@@ -539,7 +539,7 @@ GSE_PORT_DEFAULT_VALUE = {
 }
 
 # 社区版GSE SERVER的端口有所不同，TODO 考虑把这些端口放到环境变量中
-if settings.BKAPP_RUN_ENV == BkappRunEnvType.CE:
+if settings.BKAPP_RUN_ENV == BkappRunEnvType.CE.value:
     GSE_PORT_DEFAULT_VALUE.update(
         {
             "io_port": 48533,
