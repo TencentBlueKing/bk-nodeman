@@ -69,7 +69,7 @@ def update_or_create_proc_status(task_id, sync_proc_list, start):
         source_type=ProcessStatus.SourceType.DEFAULT,
         proc_type=const.ProcType.PLUGIN,
         is_latest=True,
-    ).values("bk_host_id", "id", "name")
+    ).values("bk_host_id", "id", "name", "status")
 
     host_proc_key__proc_map = {}
     for item in process_status_objs:
