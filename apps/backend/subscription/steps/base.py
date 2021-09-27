@@ -11,12 +11,8 @@ specific language governing permissions and limitations under the License.
 
 
 import abc
-import ntpath
-import posixpath
 from typing import List
 
-from apps.backend.subscription.errors import PluginValidationError
-from apps.backend.subscription.tools import create_group_id
 from apps.node_man import constants as const
 from apps.node_man.models import (
     ProcessStatus,
@@ -108,80 +104,9 @@ class Action(object, metaclass=abc.ABCMeta):
         self.step = step
         self.instance_record_ids = instance_record_ids
 
-    def get_group_id(self):
-        """
-        获取插件组ID
-        """
-        return create_group_id(self.step.subscription, self.instance_record.instance_info)
-
-    def get_all_step_data(self):
-        """
-        获取所有步骤的上下文信息
-        """
-        all_extra_info = {}
-        all_step_data = self.instance_record.get_all_step_data()
-        for step_data in all_step_data:
-            all_extra_info[step_data["id"]] = step_data["extra_info"].get(self.get_group_id())
-        return all_extra_info
-
     @abc.abstractmethod
     def generate_activities(self, *args, **kwargs):
         raise NotImplementedError
-
-    def _generate_process_status_record(self, host):
-        """
-        根据目标主机生成主机进程实例记录
-        :param host: Host
-        :return: HostStatus
-        """
-        group_id = self.get_group_id()
-
-        try:
-            package = self.step.package_by_os[host.os_type.lower()]
-        except KeyError:
-            raise PluginValidationError(
-                msg="插件 [{name}-{version}] 不支持 {os} 系统".format(
-                    name=self.step.plugin_name,
-                    version=self.step.plugin_version,
-                    os=host.os_type,
-                )
-            )
-
-        # 配置插件进程实际运行路径配置信息
-        if package.os == const.PluginOsType.windows:
-            path_handler = ntpath
-        else:
-            path_handler = posixpath
-
-        if package.plugin_desc.category == const.CategoryType.external:
-            # 如果为 external 插件，需要补上插件组目录
-            setup_path = path_handler.join(
-                package.proc_control.install_path,
-                const.PluginChildDir.EXTERNAL.value,
-                group_id,
-                package.project,
-            )
-            log_path = path_handler.join(package.proc_control.log_path, group_id)
-            data_path = path_handler.join(package.proc_control.data_path, group_id)
-            pid_path_prefix, pid_filename = path_handler.split(package.proc_control.pid_path)
-            pid_path = path_handler.join(pid_path_prefix, group_id, pid_filename)
-        else:
-            setup_path = path_handler.join(
-                package.proc_control.install_path, const.PluginChildDir.OFFICIAL.value, "bin"
-            )
-            log_path = package.proc_control.log_path
-            data_path = package.proc_control.data_path
-            pid_path = package.proc_control.pid_path
-
-        rewrite_path_info = {
-            "setup_path": setup_path,
-            "log_path": log_path,
-            "data_path": data_path,
-            "pid_path": pid_path,
-        }
-        host_status = self._update_or_create_process_status(host.bk_host_id, group_id, rewrite_path_info)
-
-        return host_status
 
     def _update_or_create_process_status(self, bk_host_id, group_id, rewrite_path_info):
         if self.step.subscription.is_main:
