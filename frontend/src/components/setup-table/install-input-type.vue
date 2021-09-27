@@ -1,5 +1,5 @@
 <template>
-  <div :class="['input-type', { 'is-focus': isFocus }]" :style="{ 'z-index': zIndex }" @click.stop>
+  <div :class="[`input-type input-${type}`, { 'is-focus': isFocus }]" :style="{ 'z-index': zIndex }" @click.stop>
     <div v-if="isFocus" class="input-type-border"></div>
     <!--input类型-->
     <bk-input
@@ -372,8 +372,20 @@ export default class InputType extends Mixins(emitter) {
   .input-type {
     position: relative;
     width: 100%;
-    &.is-focus .input-type-border {
-      display: block;
+    &.is-focus {
+      z-index: 5;
+      .input-type-border {
+        display: block;
+      }
+      >>> textarea {
+        border: 1px solid #3a84ff;
+        background: #fff;
+      }
+    }
+    &.input-textarea {
+      .input-type-border {
+        display: none;
+      }
     }
     >>> .bk-textarea-wrapper textarea {
       height: auto;
@@ -428,15 +440,13 @@ export default class InputType extends Mixins(emitter) {
       top: 0;
       left: 0;
       padding: 5px 10px;
-      height: 32px;
+      height: 43px;
       width: 100%;
       color: #63656e;
-      border: 1px solid #c4c6cc;
       background-color: #fff;
-      padding: 5px 10px;
       z-index: 1;
       cursor: text;
-      line-height: 20px;
+      line-height: 30px;
       border-radius: 2px;
       overflow: hidden;
       text-overflow: ellipsis;
