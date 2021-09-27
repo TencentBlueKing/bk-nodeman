@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import abc
 import base64
 import ntpath
 import os
@@ -15,20 +16,20 @@ import posixpath
 import re
 import socket
 import time
-import traceback
 from pathlib import Path
 
 import ujson as json
 from django.conf import settings
 from django.db import transaction
 from django.db.models import Max, Subquery
-from django.utils import timezone, translation
+from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
 from apps.backend.agent.tools import gen_commands
 from apps.backend.api.constants import POLLING_INTERVAL, POLLING_TIMEOUT, JobDataStatus
 from apps.backend.api.gse import GseClient
 from apps.backend.components import task_service
+from apps.backend.components.collections.base import BaseService
 from apps.backend.components.collections.gse import GseBaseService
 from apps.backend.components.collections.job import (
     JobFastExecuteScriptService,
@@ -49,8 +50,6 @@ from apps.node_man.models import (
     AccessPoint,
     Host,
     IdentityData,
-    Job,
-    JobTask,
     Packages,
     ProcessStatus,
     SubscriptionInstanceRecord,
@@ -63,7 +62,7 @@ from pipeline.core.flow import Service, StaticIntervalGenerator
 win_ping_pattern = re.compile(r"(?<=\=\s)\d+(?=ms)")
 
 
-class AgentService(Service):
+class AgentBaseService(BaseService, metaclass=abc.ABCMeta):
     """
     AGENT安装基类
     """
@@ -71,59 +70,60 @@ class AgentService(Service):
     def __init__(self, name):
         super().__init__(name=name)
 
-    def execute(self, data, parent_data):
-        # 国际化
-        translation.activate(data.get_one_of_inputs("blueking_language", "zh-hans"))
+    # def execute(self, data, parent_data):
+    #     # 国际化
+    #     translation.activate(data.get_one_of_inputs("blueking_language", "zh-hans"))
+    #
+    #     try:
+    #         bk_host_id = data.get_one_of_inputs("bk_host_id") or data.get_one_of_inputs("host_info")["bk_host_id"]
+    #         description = data.get_one_of_inputs("description")
+    #     except (KeyError, TypeError):
+    #         pass
+    #     else:
+    #         subscription_instance = SubscriptionInstanceRecord.objects.get(pipeline_id=self.root_pipeline_id)
+    #         job = Job.objects.get(subscription_id=subscription_instance.subscription_id)
+    #         if bk_host_id:
+    #             update_fields = {
+    #                 "job_id": job.id,
+    #                 "status": constants.JobStatusType.RUNNING,
+    #                 "current_step": _("正在{description}").format(description=description),
+    #                 "pipeline_id": self.id,
+    #                 "instance_id": subscription_instance.instance_id,
+    #             }
+    #             # do not use update_or_create, prevent of deadlock
+    #             job_task = JobTask.objects.filter(bk_host_id=bk_host_id)
+    #             if job_task.exists():
+    #                 job_task.update(**update_fields)
+    #             else:
+    #                 JobTask.objects.create(bk_host_id=bk_host_id, **update_fields)
+    #
+    #     self.logger.info(_("开始{name}").format(name=self.name))
+    #     try:
+    #         result = self._execute(data, parent_data)
+    #         if not result:
+    #             self.logger.info(_("{name}失败").format(name=self.name))
+    #     except Exception as err:
+    #         reason = str(err)
+    #         # traceback日志进行折叠
+    #         self.logger.error(
+    #             "[DEBUG]{debug_begin}\n{traceback}\n{debug_end}".format(
+    #                 debug_begin=" Begin of collected logs: ".center(40, "*"),
+    #                 traceback=traceback.format_exc(),
+    #                 debug_end=" End of collected logs ".center(40, "*"),
+    #             )
+    #         )
+    #         self.logger.error(traceback.format_exc())
+    #         self.logger.info(_("{name}失败: {reason}, 请先尝试查看日志并处理，若无法解决，请联系管理员处理。"
+    #         ).format(name=self.name, reason=reason))
+    #         result = False
+    #
+    #     return result
+    #
+    # def _execute(self, data, parent_data):
+    #     raise NotImplementedError
 
-        try:
-            bk_host_id = data.get_one_of_inputs("bk_host_id") or data.get_one_of_inputs("host_info")["bk_host_id"]
-            description = data.get_one_of_inputs("description")
-        except (KeyError, TypeError):
-            pass
-        else:
-            subscription_instance = SubscriptionInstanceRecord.objects.get(pipeline_id=self.root_pipeline_id)
-            job = Job.objects.get(subscription_id=subscription_instance.subscription_id)
-            if bk_host_id:
-                update_fields = {
-                    "job_id": job.id,
-                    "status": constants.JobStatusType.RUNNING,
-                    "current_step": _("正在{description}").format(description=description),
-                    "pipeline_id": self.id,
-                    "instance_id": subscription_instance.instance_id,
-                }
-                # do not use update_or_create, prevent of deadlock
-                job_task = JobTask.objects.filter(bk_host_id=bk_host_id)
-                if job_task.exists():
-                    job_task.update(**update_fields)
-                else:
-                    JobTask.objects.create(bk_host_id=bk_host_id, **update_fields)
 
-        self.logger.info(_("开始{name}").format(name=self.name))
-        try:
-            result = self._execute(data, parent_data)
-            if not result:
-                self.logger.info(_("{name}失败").format(name=self.name))
-        except Exception as err:
-            reason = str(err)
-            # traceback日志进行折叠
-            self.logger.error(
-                "[DEBUG]{debug_begin}\n{traceback}\n{debug_end}".format(
-                    debug_begin=" Begin of collected logs: ".center(40, "*"),
-                    traceback=traceback.format_exc(),
-                    debug_end=" End of collected logs ".center(40, "*"),
-                )
-            )
-            self.logger.error(traceback.format_exc())
-            self.logger.info(_("{name}失败: {reason}, 请先尝试查看日志并处理，若无法解决，请联系管理员处理。").format(name=self.name, reason=reason))
-            result = False
-
-        return result
-
-    def _execute(self, data, parent_data):
-        raise NotImplementedError
-
-
-class QueryTjjPasswordService(AgentService):
+class QueryTjjPasswordService(AgentBaseService):
     """
     查询主机是否支持铁将军密码
     """
@@ -168,7 +168,7 @@ class QueryTjjPasswordService(AgentService):
         return True
 
 
-class RegisterHostService(AgentService):
+class RegisterHostService(AgentBaseService):
     name = _("注册主机到配置平台")
 
     __need_schedule__ = True
@@ -432,7 +432,7 @@ class RegisterHostService(AgentService):
         return True
 
 
-class ChooseAccessPointService(AgentService):
+class ChooseAccessPointService(AgentBaseService):
     """
     选择接入点
     """
@@ -440,42 +440,47 @@ class ChooseAccessPointService(AgentService):
     name = _("选择接入点")
     MIN_PING_TIME = 9999
 
-    def __init__(self):
-        super().__init__(name=self.name)
+    # def __init__(self):
+    #     super().__init__(name=self.name)
+    #
+    # def inputs_format(self):
+    #     return [
+    #         Service.InputItem(name="host_info", key="host_info", type="object", required=True),
+    #     ]
 
-    def inputs_format(self):
-        return [
-            Service.InputItem(name="host_info", key="host_info", type="object", required=True),
-        ]
+    def _execute(self, data, parent_data, common_data):
+        ap_id_obj_map = common_data.ap_id_obj_map
+        # 查询当前主机是否已配置接入点
+        for sub_inst in common_data.subscription_instances:
+            bk_host_id = sub_inst.instance_info["host"]["bk_host_id"]
+            host = common_data.host_id_obj_map[bk_host_id]
 
-    def _execute(self, data, parent_data):
-        # 1. 查询当前主机是否已配置接入点
-        bk_host_id = data.get_one_of_inputs("bk_host_id")
-        host_info = data.get_one_of_inputs("host_info")
-        host = Host.get_by_host_info({"bk_host_id": bk_host_id} if bk_host_id else host_info)
+            if host.ap_id != constants.DEFAULT_AP_ID:
+                # TODO 打日志可以考虑聚合一波再打
+                self.log_info(
+                    sub_inst_ids=[sub_inst.id],
+                    log_content=_("当前主机已分配接入点[{ap_name}]").format(ap_name=ap_id_obj_map[host.ap_id].name),
+                )
+                continue
 
-        if host.ap_id != constants.DEFAULT_AP_ID:
-            self.logger.info(_("当前主机已分配接入点[{ap_name}]").format(ap_name=host.ap.name))
-            return True
-
-        if host.node_type == constants.NodeType.PAGENT:
-            proxy = host.get_random_alive_proxy()
-            host.ap_id = proxy.ap_id
-            host.save()
-            self.logger.info(_("已选择[{ap_name}]作为本次安装接入点").format(ap_name=proxy.ap.name))
-            return True
-        else:
-            min_ping_ap_id, ap_ping_time, min_ping_time = self._agent_choose_ap(host)
-            if not ap_ping_time:
-                self.logger.error(_("自动选择接入点失败，请到全局配置新建接入点"))
-                return False
-            if min_ping_time == self.MIN_PING_TIME:
-                self.logger.error(_("自动选择接入点失败，没有可以用接入点"))
-                return False
-            host.ap_id = min_ping_ap_id
-            host.save()
-            self.logger.info(_("已选择[{ap_name}]作为本次安装接入点").format(ap_name=host.ap.name))
-            return True
+            if host.node_type == constants.NodeType.PAGENT:
+                proxy = host.get_random_alive_proxy()
+                host.ap_id = proxy.ap_id
+                host.save()
+                self.log_info(_("已选择[{ap_name}]作为本次安装接入点").format(ap_name=ap_id_obj_map[proxy.ap_id].name))
+                continue
+            else:
+                min_ping_ap_id, ap_ping_time, min_ping_time = self._agent_choose_ap(host)
+                if not ap_ping_time:
+                    self.move_insts_to_failed([sub_inst.id], _("自动选择接入点失败，请到全局配置新建接入点"))
+                    continue
+                if min_ping_time == self.MIN_PING_TIME:
+                    self.move_insts_to_failed([sub_inst.id], _("自动选择接入点失败，接入点均ping不可达"))
+                    continue
+                host.ap_id = min_ping_ap_id
+                host.save()
+                self.logger.info(_("已选择[{ap_name}]作为本次安装接入点").format(ap_name=ap_id_obj_map[host.ap_id].name))
+                return True
 
     def _agent_choose_ap(self, host):
         is_linux = host.os_type in [constants.OsType.LINUX, constants.OsType.AIX]
@@ -526,7 +531,7 @@ class ChooseAccessPointService(AgentService):
         return min_ping_ap_id, ap_ping_time, min_ping_time
 
 
-class ConfigurePolicyService(AgentService):
+class ConfigurePolicyService(AgentBaseService):
     """
     配置网络策略
     """
@@ -580,7 +585,7 @@ class ConfigurePolicyService(AgentService):
         return True
 
 
-class InstallService(AgentService, JobFastExecuteScriptService):
+class InstallService(AgentBaseService, JobFastExecuteScriptService):
     name = _("下发脚本命令")
 
     def __init__(self):
@@ -1028,7 +1033,7 @@ fi
             return super().schedule(data, parent_data, callback_data=callback_data)
 
 
-class RestartService(AgentService):
+class RestartService(AgentBaseService):
     name = _("重启")
 
     def __init__(self):
@@ -1108,7 +1113,7 @@ class RestartService(AgentService):
         return True
 
 
-class GetAgentStatusService(AgentService):
+class GetAgentStatusService(AgentBaseService):
     name = _("查询 GSE 状态")
 
     def __init__(self):
@@ -1186,7 +1191,7 @@ class GetAgentStatusService(AgentService):
             return False
 
 
-class UpdateProcessStatusService(AgentService):
+class UpdateProcessStatusService(AgentBaseService):
     name = _("更新主机进程状态")
 
     def __init__(self):
@@ -1214,7 +1219,7 @@ class UpdateProcessStatusService(AgentService):
         return True
 
 
-class UpdateJobStatusService(AgentService):
+class UpdateJobStatusService(AgentBaseService):
     name = _("更新任务状态")
 
     def __init__(self):
@@ -1231,7 +1236,7 @@ class UpdateJobStatusService(AgentService):
         return True
 
 
-class OperatePluginService(AgentService, GseBaseService):
+class OperatePluginService(AgentBaseService, GseBaseService):
     """
     操作插件基类
     """
@@ -1354,7 +1359,7 @@ class OperatePluginService(AgentService, GseBaseService):
         ]
 
 
-class WaitService(AgentService):
+class WaitService(AgentBaseService):
     name = _("等待")
 
     __need_schedule__ = True
@@ -1379,7 +1384,7 @@ class WaitService(AgentService):
         return True
 
 
-class CheckAgentStatusService(AgentService):
+class CheckAgentStatusService(AgentBaseService):
     name = _("检查Agent状态")
 
     def __init__(self):
