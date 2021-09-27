@@ -35,8 +35,13 @@ export default class InstallMethod extends Vue {
   @Prop({ type: Boolean, default: false }) private readonly required!: boolean;
 
   @Emit('change')
+  public handleChange() {
+    return !this.isManual;
+  }
   public installMethodHandle(isManual: boolean) {
-    return isManual;
+    if (isManual !== this.isManual) {
+      this.handleChange();
+    }
   }
 }
 </script>

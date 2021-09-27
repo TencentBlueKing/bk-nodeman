@@ -185,7 +185,7 @@ export default class StepVerifyInput extends Vue {
     align-items: center;
     flex-wrap: wrap;
     width: 100%;
-    z-index: 1;
+    /* z-index: 1; */
     .tooltips-icon {
       position: absolute;
       display: inline-block;
@@ -251,7 +251,10 @@ export default class StepVerifyInput extends Vue {
         display: block;
         border: 1px solid transparent;
         background: rgba(255, 112, 112, .1);
-        z-index: -1;
+        /* z-index: -1; */
+      }
+      >>> .input-text {
+        background: #fff0f0;
       }
       .error-top-tag {
         position: absolute;
