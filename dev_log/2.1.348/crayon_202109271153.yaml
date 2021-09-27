@@ -1,0 +1,2 @@
+bugfix:
+  - "修复周期任务执行报错：ZeroDivisionError('division by zero',) (fixed #153)"

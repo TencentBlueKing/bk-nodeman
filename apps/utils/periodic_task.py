@@ -13,6 +13,14 @@ DURATION = 60 * 15
 
 
 def calculate_countdown(count: int, index: int) -> int:
-    # 把周期任务平均分布到 ${DURATION}秒 内执行，用于削峰
+    """
+    把周期任务平均分布到 ${DURATION}秒 内执行，用于削峰
+    :param count: 任务总数
+    :param index: 当前任务索引
+    :return: 执行倒计时（s）
+    """
+    # 任务总数小于等于1时立即执行
+    if count <= 1:
+        return 0
     countdown = (index % DURATION) * (DURATION / (count - 1))
     return int(countdown)
