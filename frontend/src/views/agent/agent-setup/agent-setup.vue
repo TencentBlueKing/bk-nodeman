@@ -551,6 +551,9 @@ export default class AgentSetup extends Mixins(mixin, formLabelMixin) {
     >>> .agent-setup-table {
       max-width: 1200px;
     }
+    >>> .install-table-body {
+      overflow: visible;
+    }
     .content-basic {
       width: 480px;
       &.is-error {

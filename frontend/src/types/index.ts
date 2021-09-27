@@ -2,6 +2,8 @@ import RequestQueue from '@/api/request-queue';
 import CachedPromise from '@/api/cached-promise';
 import { CancelToken, Canceler } from 'axios';
 
+export type IKeysMatch<T, V> = {[K in keyof T]-?: T[K] extends V ? K : never}[keyof T]; // 根据value类型找key
+
 export type IAgentStatus = 'running' | 'terminated' | 'not_installed'; // 正常 异常 未安装
 
 /* eslint-disable camelcase */

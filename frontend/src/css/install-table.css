@@ -235,10 +235,18 @@
     background: transparent;
     box-shadow: none;
   }
+  .bk-textarea-wrapper {
+    position: absolute;
+    top: -1px;
+    left: -1px;
+    right: -1px;
+    bottom: -1px;
+    height: 44px;
+  }
   .bk-form-textarea {
     /* stylelint-disable-next-line declaration-no-important */
-    min-height: 42px !important;
-    padding: 11px 10px;
+    min-height: 44px !important;
+    padding: 12px 11px;
   }
   .bk-form-control {
     /* stylelint-disable-next-line declaration-no-important */

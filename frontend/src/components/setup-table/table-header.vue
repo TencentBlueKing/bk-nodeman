@@ -194,6 +194,7 @@ export default class TableHeader extends Vue {
       position: relative;
       display: flex;
       line-height: 16px;
+      white-space: nowrap;
       &-required {
         margin-right: 6px;
         &::after {
