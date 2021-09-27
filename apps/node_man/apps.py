@@ -13,7 +13,7 @@ import os
 from blueapps.utils.esbclient import get_client_by_user
 from django.apps import AppConfig
 from django.conf import settings
-from django.db import ProgrammingError
+from django.db import ProgrammingError, connection
 
 from common.log import logger
 
@@ -26,12 +26,18 @@ class ApiConfig(AppConfig):
         """
         初始化部分配置，主要目的是为了SaaS和后台共用部分配置
         """
-        self.fetch_esb_api_key()
+        from apps.node_man.models import GlobalSettings
+
+        if GlobalSettings._meta.db_table not in connection.introspection.table_names():
+            # 初次部署表不存在时跳过DB写入操作
+            logger.info(f"{GlobalSettings._meta.db_table} not exists, skip fetch_esb_api_key before migrate.")
+        else:
+            self.fetch_esb_api_key()
 
         try:
             self.init_settings()
-        except ProgrammingError:
-            pass
+        except ProgrammingError as e:
+            logger.info(f"init settings failed, err_msg -> {e}.")
         return True
 
     def fetch_esb_api_key(self):
