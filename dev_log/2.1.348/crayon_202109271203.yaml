@@ -1,0 +1,2 @@
+bugfix:
+  - "修复初次部署Django migrate报错：globalsettings doesn't exist (fixed #152)"
