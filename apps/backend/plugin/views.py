@@ -927,9 +927,9 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         }
         """
         query_params = self.get_validated_data()
-        gse_plugin_desc_qs = models.GsePluginDesc.objects.filter(
-            category=const.CategoryType.official, is_ready=True
-        ).order_by("-is_ready")
+        gse_plugin_desc_qs = models.GsePluginDesc.objects.filter(category=const.CategoryType.official).order_by(
+            "-is_ready"
+        )
         if "search" in query_params:
             gse_plugin_desc_qs = gse_plugin_desc_qs.filter(
                 Q(description__contains=query_params["search"]) | Q(name__contains=query_params["search"])
@@ -944,7 +944,7 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
 
         # 返回插件概要信息
         if query_params["simple_all"]:
-            ret_plugins = list(gse_plugin_desc_qs.values("id", "description", "name"))
+            ret_plugins = list(gse_plugin_desc_qs.values("id", "description", "name", "is_ready"))
             return Response({"total": len(ret_plugins), "list": ret_plugins})
 
         plugins = list(
