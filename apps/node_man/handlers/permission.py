@@ -187,7 +187,7 @@ class PackagePermission(permissions.BasePermission):
     message = _("您没有该操作的权限")
 
     def has_permission(self, request, view):
-        if view.action in ["list", "retrieve", "operate"]:
+        if view.action in ["list", "retrieve", "operate", "fetch_package_deploy_info"]:
             # 不需要鉴权的action
             return True
 
