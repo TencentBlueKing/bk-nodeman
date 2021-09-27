@@ -13,6 +13,7 @@ import os
 import posixpath
 import random
 import time
+from typing import List
 
 from django.conf import settings
 from django.db.models import Max, Subquery
@@ -49,7 +50,7 @@ from apps.backend.components.collections.sops import CreateAndStartTaskComponent
 from apps.backend.subscription.tools import create_group_id
 from apps.node_man import constants as const
 from apps.node_man.constants import DEFAULT_SUPPLIER_ID
-from apps.node_man.models import Host, Packages, SubscriptionInstanceRecord
+from apps.node_man.models import Host, Packages
 from pipeline.builder import ServiceActivity, Var
 
 SCRIPT_TIMEOUT = 3000
@@ -66,11 +67,17 @@ class AgentManager(object):
     Agent动作管理
     """
 
-    def __init__(self, instance_record: SubscriptionInstanceRecord, creator: str, blueking_language: str):
-        self.task_id = instance_record.task_id
-        self.host_info = instance_record.instance_info["host"]
-        self.creator = creator
-        self.blueking_language = blueking_language
+    def __init__(self, subscription_instance_ids: List[int], step):
+        self.subscription_instance_ids = subscription_instance_ids
+        self.step = step
+        self.creator = step.subscription.creator
+        self.blueking_language = step.subscription_step.params.get("blueking_language")
+
+    # def __init__(self, instance_record: SubscriptionInstanceRecord, creator: str, blueking_language: str):
+    #     self.task_id = instance_record.task_id
+    #     self.host_info = instance_record.instance_info["host"]
+    #     self.creator = creator
+    #     self.blueking_language = blueking_language
 
     def register_host(self):
         """
@@ -105,8 +112,8 @@ class AgentManager(object):
             component_code=ChooseAccessPointComponent.code,
             name=ChooseAccessPointComponent.name,
         )
-        act.component.inputs.bk_host_id = Var(type=Var.SPLICE, value="${bk_host_id}")
-        act.component.inputs.host_info = Var(type=Var.PLAIN, value=self.host_info)
+        # act.component.inputs.bk_host_id = Var(type=Var.SPLICE, value="${bk_host_id}")
+        # act.component.inputs.host_info = Var(type=Var.PLAIN, value=self.host_info)
         act.component.inputs.blueking_language = Var(type=Var.PLAIN, value=self.blueking_language)
         return act
 
