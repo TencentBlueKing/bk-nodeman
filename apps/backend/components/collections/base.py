@@ -8,17 +8,15 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import operator
 import traceback
-from functools import reduce, wraps
+from functools import wraps
 from typing import Dict, List, Set, Union
 
-from django.db.models import F, Q, Value
+from django.db.models import F, Value
 from django.db.models.functions import Concat
 from django.utils import timezone
 from django.utils.translation import ugettext as _
 
-from apps.backend.subscription import errors
 from apps.backend.subscription.tools import create_group_id
 from apps.node_man import constants, models
 from apps.utils.time_handler import strftime_local
@@ -148,27 +146,16 @@ class CommonData:
     def __init__(
         self,
         bk_host_ids: Set[int],
-        process_statuses: List[models.ProcessStatus],
         host_id_obj_map: Dict[int, models.Host],
-        target_host_objs: List[models.Host],
         ap_id_obj_map: Dict[int, models.AccessPoint],
         subscription: models.Subscription,
-        policy_step_adapter,
-        group_id_instance_map: Dict[str, models.SubscriptionInstanceRecord],
         subscription_instances: List[models.SubscriptionInstanceRecord],
         subscription_instance_ids: Set[int],
     ):
-        from apps.backend.subscription.steps.adapter import PolicyStepAdapter
-
         self.bk_host_ids = bk_host_ids
-        self.process_statuses = process_statuses
         self.host_id_obj_map = host_id_obj_map
-        self.target_host_objs = target_host_objs
         self.ap_id_obj_map = ap_id_obj_map
         self.subscription = subscription
-        self.policy_step_adapter: PolicyStepAdapter = policy_step_adapter
-        self.group_id_instance_map = group_id_instance_map
-        self.plugin_name = policy_step_adapter.plugin_name
         self.subscription_instances = subscription_instances
         self.subscription_instance_ids = subscription_instance_ids
 
@@ -258,10 +245,7 @@ class BaseService(Service, LogMixin):
         初始化常用数据，注意这些数据不能放在 self 属性里，否则会产生较大的 process snap shot，
         另外也尽量不要在 schedule 中使用，否则多次回调可能引起性能问题
         """
-        from apps.backend.subscription.steps.adapter import PolicyStepAdapter
-
         subscription_instance_ids = BaseService.get_subscription_instance_ids(data)
-
         subscription_instances = list(
             models.SubscriptionInstanceRecord.objects.filter(id__in=subscription_instance_ids)
         )
@@ -269,54 +253,17 @@ class BaseService(Service, LogMixin):
         subscription = models.Subscription.get_subscription(
             subscription_instances[0].subscription_id, show_deleted=True
         )
-
-        subscription_step_id = data.get_one_of_inputs("subscription_step_id")
-        try:
-            subscription_step = models.SubscriptionStep.objects.get(id=subscription_step_id)
-        except models.SubscriptionStep.DoesNotExist:
-            raise errors.SubscriptionStepNotExist({"step_id": subscription_step_id})
-
         bk_host_ids = set()
         subscription_instance_ids = set()
-        group_id_instance_map: Dict[str, models.SubscriptionInstanceRecord] = {}
         for subscription_instance in subscription_instances:
             bk_host_ids.add(subscription_instance.instance_info["host"]["bk_host_id"])
-            group_id = create_group_id(subscription, subscription_instance.instance_info)
-            group_id_instance_map[group_id] = subscription_instance
             subscription_instance_ids.add(subscription_instance.id)
 
-        target_host_objs = None
-        if subscription.target_hosts:
-            # 目标主机，用于远程采集场景
-            query_conditions = reduce(
-                operator.or_,
-                [
-                    Q(inner_ip=target_host["ip"], bk_cloud_id=target_host["bk_cloud_id"])
-                    for target_host in subscription.target_hosts
-                ],
-            )
-            target_host_objs = models.Host.objects.filter(query_conditions)
-            for host in target_host_objs:
-                bk_host_ids.add(host.bk_host_id)
-
-        policy_step_adapter = PolicyStepAdapter(subscription_step)
         host_id_obj_map: Dict[int, models.Host] = models.Host.host_id_obj_map(bk_host_id__in=bk_host_ids)
         ap_id_obj_map = models.AccessPoint.ap_id_obj_map()
 
-        process_statuses = models.ProcessStatus.objects.filter(
-            name=policy_step_adapter.plugin_name, group_id__in=group_id_instance_map.keys()
-        )
         return CommonData(
-            bk_host_ids,
-            process_statuses,
-            host_id_obj_map,
-            target_host_objs,
-            ap_id_obj_map,
-            subscription,
-            policy_step_adapter,
-            group_id_instance_map,
-            subscription_instances,
-            subscription_instance_ids,
+            bk_host_ids, host_id_obj_map, ap_id_obj_map, subscription, subscription_instances, subscription_instance_ids
         )
 
     def set_current_id(self, subscription_instance_ids: List[int]):

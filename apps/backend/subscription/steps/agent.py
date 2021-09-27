@@ -11,26 +11,22 @@ specific language governing permissions and limitations under the License.
 
 import abc
 from functools import reduce
+from typing import List, Tuple
 
 from django.conf import settings
 from django.utils.translation import ugettext as _
 
 from apps.backend import constants as backend_const
 from apps.backend.agent.manager import AgentManager
-from apps.backend.subscription.tools import create_group_id
-from apps.node_man import constants
+from apps.node_man import constants, models
 from apps.node_man.constants import ProcStateType
-from apps.node_man.models import (
-    GsePluginDesc,
-    Host,
-    SubscriptionInstanceRecord,
-    SubscriptionStep,
-)
+from apps.node_man.models import GsePluginDesc, Host, SubscriptionStep
 from pipeline import builder
 from pipeline.builder import Data, NodeOutput, Var
 
 # 需分发到 PROXY 的文件（由于放到一次任务中会给用户等待过久的体验，因此拆分成多次任务）
 from ...components.collections.agent import RegisterHostComponent
+from ...plugin.manager import PluginServiceActivity
 from .base import Action, Step
 
 
@@ -99,63 +95,27 @@ class AgentAction(Action, abc.ABC):
     # 动作描述
     ACTION_DESCRIPTION = ""
 
-    def __init__(self, action_name, step: Step, instance_record: SubscriptionInstanceRecord):
+    def __init__(self, action_name, step: Step, instance_record_ids: List[int]):
         """
         :param Step step: 步骤实例
-        :param models.SubscriptionInstanceRecord instance_record: 订阅实例执行记录
+        :param models.SubscriptionInstanceRecord instance_record_ids: 订阅实例执行记录
         """
         self.step = step
-        self.instance_record = instance_record
-        self._set_step_data({"action": action_name})
-        super().__init__(action_name, step, [instance_record.id])
+        super().__init__(action_name, step, instance_record_ids)
 
-    def _get_step_data(self):
-        return self.instance_record.get_step_data(self.step.step_id)
-
-    def _set_step_data(self, data):
-        self.instance_record.set_step_data(self.step.step_id, data)
-
-    def set_pipeline_id(self, pipeline_id):
-        self._set_step_data({"pipeline_id": pipeline_id})
-
-    def get_action_status(self):
-        return self._get_step_data()["status"]
-
-    def set_action_status(self, status):
-        self._set_step_data({"status": status})
-
-    def get_group_id(self):
-        """
-        获取插件组ID
-        """
-        return create_group_id(self.step.subscription, self.instance_record.instance_info)
-
-    def get_extra_info(self):
-        return self._get_step_data()["extra_info"].get(self.get_group_id())
-
-    def set_extra_info(self, extra_info):
-        self._set_step_data({"extra_info": {self.get_group_id(): extra_info}})
-
-    def get_all_step_data(self):
-        """
-        获取所有步骤的上下文信息
-        """
-        all_extra_info = {}
-        all_step_data = self.instance_record.get_all_step_data()
-        for step_data in all_step_data:
-            all_extra_info[step_data["id"]] = step_data["extra_info"].get(self.get_group_id())
-        return all_extra_info
-
-    def get_agent_manager(self, instance_record):
+    def get_agent_manager(self, subscription_instances: List[models.SubscriptionInstanceRecord]):
         """
         根据主机生成Agent管理器
         """
-        agent_manager = AgentManager(
-            instance_record=instance_record,
-            creator=self.step.subscription.creator,
-            blueking_language=self.step.subscription_step.params.get("blueking_language"),
-        )
-        return agent_manager
+        subscription_instance_ids = [sub_inst.id for sub_inst in subscription_instances]
+        return AgentManager(subscription_instance_ids, self.step)
+
+        # agent_manager = AgentManager(
+        #     instance_record=instance_record,
+        #     creator=self.step.subscription.creator,
+        #     blueking_language=self.step.subscription_step.params.get("blueking_language"),
+        # )
+        # return agent_manager
 
     def generate_pipeline(self, agent_manager):
         """
@@ -200,7 +160,10 @@ class AgentAction(Action, abc.ABC):
     def _generate_activities(self, agent_manager):
         pass
 
-    def generate_activities(self, agent_manager):
+    def generate_activities(
+        self, subscription_instances: List[models.SubscriptionInstanceRecord], current_activities=None
+    ) -> Tuple[List[PluginServiceActivity], Data]:
+        agent_manager = self.get_agent_manager(subscription_instances)
         return self._generate_activities(agent_manager)
 
     def append_delegate_activities(self, agent_manager, activities):
@@ -277,26 +240,26 @@ class ReinstallAgent(AgentAction):
 
     def _generate_activities(self, agent_manager: AgentManager):
 
-        is_manual = Host.objects.get(bk_host_id=agent_manager.host_info["bk_host_id"]).is_manual
-        if is_manual:
-            install_name = _("手动安装")
-        else:
-            install_name = _("安装")
+        # is_manual = Host.objects.get(bk_host_id=agent_manager.host_info["bk_host_id"]).is_manual
+        # if is_manual:
+        #     install_name = _("手动安装")
+        # else:
+        #     install_name = _("安装")
 
         activities = [
             agent_manager.choose_ap(),
-            agent_manager.install(install_name),
-            agent_manager.get_agent_status(expect_status=ProcStateType.RUNNING),
+            # agent_manager.install(install_name),
+            # agent_manager.get_agent_status(expect_status=ProcStateType.RUNNING),
         ]
 
         # 上云增加查询密码原子
-        if settings.USE_TJJ:
-            activities.insert(0, agent_manager.query_tjj_password())
+        # if settings.USE_TJJ:
+        #     activities.insert(0, agent_manager.query_tjj_password())
 
         pipeline_data = Data()
-        pipeline_data.inputs["${bk_host_id}"] = Var(type=Var.PLAIN, value=agent_manager.host_info["bk_host_id"])
+        # pipeline_data.inputs["${bk_host_id}"] = Var(type=Var.PLAIN, value=agent_manager.host_info["bk_host_id"])
 
-        activities = self.append_delegate_activities(agent_manager, activities)
+        # activities = self.append_delegate_activities(agent_manager, activities)
 
         return activities, pipeline_data
 

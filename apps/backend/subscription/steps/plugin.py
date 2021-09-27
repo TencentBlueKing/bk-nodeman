@@ -842,9 +842,6 @@ class BasePluginAction(six.with_metaclass(abc.ABCMeta, Action)):
     # 操作类型
     OP_TYPE = None
 
-    # 执行成功后的步骤状态
-    SUCCESS_STATE_TYPE = None
-
     # 动作描述
     ACTION_DESCRIPTION = ""
 
