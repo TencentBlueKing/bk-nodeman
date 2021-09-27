@@ -24,7 +24,7 @@ from django.utils.translation import ugettext as _
 
 from apps.backend.celery import app
 from apps.backend.components.collections.base import ActivityType
-from apps.backend.subscription import agent_tasks, tools
+from apps.backend.subscription import tools
 from apps.backend.subscription.constants import (
     SUBSCRIPTION_UPDATE_INTERVAL,
     TASK_HOST_LIMIT,
@@ -386,12 +386,12 @@ def create_task(
         }
 
     # TODO 判断是否AGENT类型的任务，待AGENT流程统一化后干掉此处差异的逻辑分支
-    is_agent = "agent" in step_action
-    if is_agent:
-        to_be_saved_records, to_be_saved_pipelines, to_be_displayed_errors = agent_tasks.build_task(
-            subscription_task, instance_actions, to_be_created_records_map.values()
-        )
-        models.PipelineTree.objects.bulk_create(to_be_saved_pipelines, batch_size=batch_size)
+    # is_agent = "agent" in step_action
+    # if is_agent:
+    #     to_be_saved_records, to_be_saved_pipelines, to_be_displayed_errors = agent_tasks.build_task(
+    #         subscription_task, instance_actions, to_be_created_records_map.values()
+    #     )
+    #     models.PipelineTree.objects.bulk_create(to_be_saved_pipelines, batch_size=batch_size)
 
     # 将最新属性置为False并批量创建订阅实例
     models.SubscriptionInstanceRecord.objects.filter(
@@ -400,18 +400,18 @@ def create_task(
     ).update(is_latest=False)
     models.SubscriptionInstanceRecord.objects.bulk_create(to_be_created_records_map.values(), batch_size=batch_size)
 
-    if not is_agent:
+    # if not is_agent:
 
-        # 批量创建订阅实例，由于bulk_create返回的objs没有主键，此处需要重新查出
-        created_instance_records = list(
-            models.SubscriptionInstanceRecord.objects.filter(
-                subscription_id=subscription.id, instance_id__in=instance_id_list, is_latest=True
-            )
+    # 批量创建订阅实例，由于bulk_create返回的objs没有主键，此处需要重新查出
+    created_instance_records = list(
+        models.SubscriptionInstanceRecord.objects.filter(
+            subscription_id=subscription.id, instance_id__in=instance_id_list, is_latest=True
         )
+    )
 
-        pipeline = create_pipeline(subscription, instance_actions, created_instance_records)
-        # 保存pipeline id
-        subscription_task.pipeline_id = pipeline.id
+    pipeline = create_pipeline(subscription, instance_actions, created_instance_records)
+    # 保存pipeline id
+    subscription_task.pipeline_id = pipeline.id
     subscription_task.save(update_fields=["actions", "pipeline_id"])
     logger.info(
         "subscription({}),subscription_task({})  execute actions: {}".format(
