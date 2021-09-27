@@ -1,0 +1,2 @@
+bugfix:
+  - "清除cookies后重新登录异常问题 (close #156)"

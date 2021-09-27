@@ -1,7 +1,7 @@
 
 # -*- coding: utf-8 -*-
 
-blueapps-open==3.3.11
+blueapps-open==3.3.12
 
 Django==2.2.6
 requests==2.22.0
