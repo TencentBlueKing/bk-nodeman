@@ -42,7 +42,8 @@ from apps.node_man.tests.utils import (
 
 
 class TestValidator(TestCase):
-    def wrap_job_validate(self, data, task_info=None):
+    @staticmethod
+    def wrap_job_validate(data, task_info=None):
         if task_info is None:
             task_info = {}
         # 封装数据生成和job_validate，减少重复代码
@@ -63,8 +64,6 @@ class TestValidator(TestCase):
             cloud_info,
             ap_id_name,
             all_inner_ip_info,
-            all_outer_ip_info,
-            all_login_ip_info,
             bk_biz_scope,
             task_info,
             "admin",
@@ -127,8 +126,6 @@ class TestValidator(TestCase):
             cloud_info,
             ap_id_name,
             all_inner_ip_info,
-            all_outer_ip_info,
-            all_login_ip_info,
             bk_biz_scope,
             task_info,
             username,
@@ -136,7 +133,8 @@ class TestValidator(TestCase):
             "ticket",
         )
 
-    def wrap_update_pwd_validate(self, host_to_create, identity_to_create, no_change):
+    @staticmethod
+    def wrap_update_pwd_validate(host_to_create, identity_to_create, no_change):
 
         accept_list = gen_update_accept_list(host_to_create, identity_to_create, no_change=no_change)
         identity_info = {
@@ -155,7 +153,8 @@ class TestValidator(TestCase):
         }
         return accept_list, identity_info
 
-    def wrap_special_pwd_validate(self, host_to_create, identity_to_create, auth_type, ip=False):
+    @staticmethod
+    def wrap_special_pwd_validate(host_to_create, identity_to_create, auth_type, ip=False):
         accept_list = [
             {
                 "bk_host_id": host_to_create[i].bk_host_id,
@@ -226,8 +225,6 @@ class TestValidator(TestCase):
             cloud_info,
             ap_id_name,
             all_inner_ip_info,
-            all_outer_ip_info,
-            all_login_ip_info,
             bk_biz_scope,
             {},
             "test",
@@ -268,8 +265,6 @@ class TestValidator(TestCase):
             cloud_info,
             ap_id_name,
             all_inner_ip_info,
-            all_outer_ip_info,
-            all_login_ip_info,
             bk_biz_scope,
             {},
             "admin",
@@ -315,32 +310,6 @@ class TestValidator(TestCase):
             bk_cloud_id=1,
             ap_id=const.DEFAULT_AP_ID,
             ip="255.255.255.1",
-        )
-        ip_filter_list, accept_list = self.wrap_job_validate(data)
-        self.assertEquals(number, len(ip_filter_list))
-
-    def _test_job_validate_outer_ip_had_exists(self):
-        number = 1
-        create_host(number=1, bk_host_id=9001, node_type="AGENT", bk_cloud_id=0, outer_ip="255.255.255.2")
-        data = gen_job_data(
-            job_type=const.JobType.INSTALL_AGENT,
-            count=number,
-            bk_cloud_id=0,
-            ap_id=const.DEFAULT_AP_ID,
-            outer_ip="255.255.255.2",
-        )
-        ip_filter_list, accept_list = self.wrap_job_validate(data)
-        self.assertEquals(number, len(ip_filter_list))
-
-    def _test_job_validate_login_ip_had_exists(self):
-        number = 1
-        create_host(number=1, bk_host_id=9002, login_ip="255.255.255.3", node_type="AGENT", bk_cloud_id=0)
-        data = gen_job_data(
-            job_type=const.JobType.INSTALL_AGENT,
-            count=number,
-            bk_cloud_id=0,
-            ap_id=const.DEFAULT_AP_ID,
-            login_ip="255.255.255.3",
         )
         ip_filter_list, accept_list = self.wrap_job_validate(data)
         self.assertEquals(number, len(ip_filter_list))
@@ -439,10 +408,6 @@ class TestValidator(TestCase):
         self._test_job_validate_ap_id_not_in_db()
         # 测试内网ip占用
         self._test_job_validate_inner_ip_had_exists()
-        # ip是否已被占用, 外网
-        self._test_job_validate_outer_ip_had_exists()
-        # ip是否已被占用, 登录IP
-        self._test_job_validate_login_ip_had_exists()
         # 安装操作外，其他操作时内网IP是否存在
         self._test_job_validate_inner_ip_had_exists_other_op()
         # 节点类型是否与操作类型一致, 如本身为PROXY，重装却为AGENT
