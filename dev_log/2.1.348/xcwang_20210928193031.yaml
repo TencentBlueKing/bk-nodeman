@@ -1,0 +1,2 @@
+bugfix:
+  - "因Gse升级导致升级Proxy失败 (fixed #170)"
