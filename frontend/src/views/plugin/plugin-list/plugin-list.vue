@@ -175,7 +175,7 @@ export default class PluginList extends Mixins(HeaderFilterMixins) {
     },
   ];
   private mixisPluginName: string[] = []; // 插件的状态和版本筛选条件组合到了一起
-  private pluginStatus: string[] = ['RUNNING', 'TERMINATED', 'UNREGISTER']; // 插件的三个固定状态
+  private pluginStatusMap: { [key: string]: string[] } = {}; // 插件的状态列表
 
   private get selectedAllDisabled() {
     const statusCondition = this.searchSelectValue.find(item => item.id === 'status');
@@ -293,6 +293,7 @@ export default class PluginList extends Mixins(HeaderFilterMixins) {
       data.forEach((item) => {
         if (!statusReg.test(item.id)) {
           const statusItem = data.find(child => child.id === `${item.id}_status`);
+          this.pluginStatusMap[item.id] = statusItem?.children?.map(item => item.id) || [];
           if (statusItem) {
             item.name = item.id;
             item.children?.splice(0, 0, ...(statusItem.children || []));
@@ -334,8 +335,8 @@ export default class PluginList extends Mixins(HeaderFilterMixins) {
       // 从插件里区分状态和版本
       if (this.mixisPluginName.includes(item.id)) {
         const values = item.values || [];
-        const status = values.filter(child => this.pluginStatus.includes(child.id));
-        const version = values.filter(child => !this.pluginStatus.includes(child.id));
+        const status = values.filter(child => this.pluginStatusMap[item.id].includes(child.id));
+        const version = values.filter(child => !this.pluginStatusMap[item.id].includes(child.id));
         if (status.length) {
           conditions.push({
             key: `${item.id}_status`,
