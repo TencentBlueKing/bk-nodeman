@@ -178,6 +178,7 @@ export default class AgentSetup extends Mixins(mixin, formLabelMixin) {
   private formData: IAgent = {
     bk_biz_id: '',
     bk_cloud_id: '',
+    install_channel_id: '',
     ap_id: '',
   };
   private rules = {
