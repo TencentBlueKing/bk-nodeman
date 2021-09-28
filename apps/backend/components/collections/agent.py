@@ -43,6 +43,7 @@ from apps.backend.views import generate_gse_config
 from apps.component.esbclient import client_v2
 from apps.exceptions import AuthOverdueException, ComponentCallError
 from apps.node_man import constants
+from apps.node_man.exceptions import HostNotExists
 from apps.node_man.handlers.tjj import TjjHandler
 from apps.node_man.models import (
     AccessPoint,
@@ -253,6 +254,15 @@ class RegisterHostService(AgentService):
 
     def _execute(self, data, parent_data):
         host_info = data.get_one_of_inputs("host_info")
+        try:
+            host = Host.get_by_host_info(host_info)
+        except HostNotExists:
+            self.logger.info(_("主机待注册"))
+        else:
+            # 主机已存在，Agent 转安装 Proxy的场景，无需再注册
+            if host.node_type != constants.NodeType.PROXY and host_info["host_node_type"] == constants.NodeType.PROXY:
+                data.outputs.is_register = True
+                return True
 
         # 是否为手动安装
         is_manual = host_info.get("is_manual", False)
@@ -297,11 +307,11 @@ class RegisterHostService(AgentService):
         return True
 
     def schedule(self, data, parent_data, callback_data=None):
-        polling_time = data.get_one_of_outputs("polling_time")
-        is_register = data.get_one_of_outputs("is_register")
+        polling_time = data.get_one_of_outputs("polling_time") or 0
+        is_register = data.get_one_of_outputs("is_register") or False
         host_info = data.get_one_of_inputs("host_info")
         bk_host_id = data.get_one_of_outputs("bk_host_id")
-        query_cc_count = data.get_one_of_outputs("query_cc_count")
+        query_cc_count = data.get_one_of_outputs("query_cc_count") or 0
         inner_ip = host_info["bk_host_innerip"]
         outer_ip = host_info.get("bk_host_outerip", "")
         login_ip = host_info.get("login_ip", "")

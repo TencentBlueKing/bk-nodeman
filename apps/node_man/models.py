@@ -359,7 +359,7 @@ class Host(models.Model):
             except Host.DoesNotExist:
                 exception = _("{ip}|{bk_cloud_id} 主机信息不存在").format(ip=ip, bk_cloud_id=bk_cloud_id)
 
-        raise Exception(exception)
+        raise HostNotExists(exception)
 
     @classmethod
     def host_id_obj_map(cls, **conditions):

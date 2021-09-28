@@ -1,0 +1,2 @@
+bugfix:
+  - "Agent转安装Proxy报错问题(fixed #161)"
