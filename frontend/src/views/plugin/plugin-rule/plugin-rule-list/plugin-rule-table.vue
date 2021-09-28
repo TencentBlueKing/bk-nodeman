@@ -15,7 +15,7 @@
       @page-limit-change="handleLimitChange"
       @row-click="handleRowClick"
       @expand-change="handleExpandChange">
-      <bk-table-column width="36" prop="expand" :resizable="false">
+      <bk-table-column width="36" prop="expand" :resizable="false" fixed>
         <template #default="{ row }">
           <div
             v-if="row.hasGrayRule"
@@ -24,7 +24,7 @@
           </div>
         </template>
       </bk-table-column>
-      <bk-table-column width="12" :resizable="false" class-name="abnormal-column">
+      <bk-table-column width="12" :resizable="false" class-name="abnormal-column" fixed>
         <template #default="{ row }">
           <bk-popover
             v-if="row.abnormal_host_count && row.enable"
@@ -44,7 +44,8 @@
           </bk-popover>
         </template>
       </bk-table-column>
-      <bk-table-column :label="$t('部署策略')" min-width="200" class-name="name-column" label-class-name="name-column">
+      <bk-table-column
+        :label="$t('部署策略')" min-width="200" class-name="name-column" label-class-name="name-column" fixed>
         <template #default="{ row }">
           <bk-input
             v-if="editId === row.id"
