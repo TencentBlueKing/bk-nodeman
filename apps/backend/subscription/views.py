@@ -820,16 +820,20 @@ class SubscriptionViewSet(APIViewSet):
 
         params = self.get_validated_data()
         host = models.Host.objects.get(bk_host_id=params["bk_host_id"])
-        __, win_commands, __, __, pre_commands, run_cmd = gen_commands(
-            host, params["host_install_pipeline_id"], params["is_uninstall"]
-        )
+        installation_tool = gen_commands(host, params["host_install_pipeline_id"], params["is_uninstall"])
 
-        return Response({"win_commands": win_commands, "pre_commands": pre_commands, "run_cmd": run_cmd})
+        return Response(
+            {
+                "win_commands": installation_tool.win_commands,
+                "pre_commands": installation_tool.pre_commands,
+                "run_cmd": installation_tool.run_cmd,
+            }
+        )
 
     @action(detail=False, methods=["POST"], url_path="search_deploy_policy")
     def search_deploy_policy(self, *args, **kwargs):
         """
-        @api {POST} /subscription/search_deploy_policy/ 查询策略列表
+        @api {POST} /subscription/search_deploy_policy/. 查询策略列表
         @apiName list_deploy_policy
         @apiGroup subscription
         @apiParam {Int[]} [bk_biz_ids] 业务ID列表, 不传取全业务
@@ -854,7 +858,7 @@ class SubscriptionViewSet(APIViewSet):
                     "nodes_scope": {
                         "host_count": 99,
                         "node_count": 123,
-                    }
+                    }.
                     "bk_biz_scope": [1, 2, 3]
                     "operator": "admin",
                     "updated_at": "2020-07-26 19:17:56"

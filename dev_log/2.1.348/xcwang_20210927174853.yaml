@@ -1,0 +1,2 @@
+bugfix:
+  - "subscription/fetch_commands 接口报错 (fixed #159)"
