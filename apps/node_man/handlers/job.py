@@ -384,8 +384,6 @@ class JobHandler(APIModel):
         ap_ids = set()
         bk_biz_scope = set()
         inner_ips = set()
-        outer_ips = set()
-        login_ips = set()
         is_manual = set()
 
         for host in params["hosts"]:
@@ -395,10 +393,6 @@ class JobHandler(APIModel):
             is_manual.add(host["is_manual"])
             if host.get("ap_id"):
                 ap_ids.add(host["ap_id"])
-            if host.get("outer_ip"):
-                outer_ips.add(host["outer_ip"])
-            if host.get("login_ip"):
-                login_ips.add(host["login_ip"])
 
         # 如果混合了【手动安装】，【自动安装】则不允许通过
         # 此处暂不和入job validator.
@@ -427,8 +421,6 @@ class JobHandler(APIModel):
         # 获得用户输入的ip是否存在于数据库中
         # 格式 { bk_cloud_id+ip: { 'bk_host_id': ..., 'bk_biz_id': ..., 'node_type': ...}}
         inner_ip_info = HostHandler().ip_list(inner_ips)
-        outer_ip_info = HostHandler().ip_list(outer_ips)
-        login_ip_info = HostHandler().ip_list(login_ips)
 
         # 获得正在执行的任务状态
         task_info = self.task_status_list()
@@ -441,8 +433,6 @@ class JobHandler(APIModel):
             cloud_info,
             ap_id_name,
             inner_ip_info,
-            outer_ip_info,
-            login_ip_info,
             bk_biz_scope,
             task_info,
             username,

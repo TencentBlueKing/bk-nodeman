@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+
 from django.conf import settings
 from django.db.models.aggregates import Count
 from django.utils.translation import ugettext_lazy as _
@@ -160,8 +161,7 @@ def bulk_update_validate(
             host.get("os_type") != host_info[host["bk_host_id"]]["os_type"]
             or host.get("ap_id") != host_info[host["bk_host_id"]]["ap_id"]
             or host.get("bt_speed_limit") != host_extra_data.get("bt_speed_limit")
-            or host.get("peer_exchange_switch_for_agent")
-            != host_extra_data.get("peer_exchange_switch_for_agent")
+            or host.get("peer_exchange_switch_for_agent") != host_extra_data.get("peer_exchange_switch_for_agent")
             or host.get("login_ip") != host_info[host["bk_host_id"]]["login_ip"]
             or host.get("data_path") != host_extra_data.get("data_path")
             or host.get("install_channel_id") != host_info[host["bk_host_id"]]["install_channel_id"]
@@ -270,8 +270,6 @@ def job_validate(
     cloud_info: dict,
     ap_id_name: dict,
     inner_ip_info: dict,
-    outer_ip_info: dict,
-    login_ip_info: dict,
     bk_biz_scope: list,
     task_info: dict,
     username: str,
@@ -284,12 +282,12 @@ def job_validate(
     :param data: 请求参数数据
     :param cloud_info: 获得相应云区域 id, name, ap_id, bk_biz_scope
     :param ap_id_name: 获得接入点列表
-    :param inner_ip_info: 获得请求里所有在数据库中的IP的相关信息
+    :param inner_ip_info: DB中内网IP信息
     :param bk_biz_scope: Host中的bk_biz_scope列表
-    :param ip_info: 所有Ip的信息
     :param task_info: 任务执行信息
     :param username: 用户名
     :param is_superuser: 是否为超管
+    :param ticket: 用户ticket，用于后台异步执行时调用第三方接口使用
     :return: 列表，ip被占用及其原因
     """
 
@@ -391,9 +389,11 @@ def job_validate(
 
         # 检查：判断内网ip是否已被占用
         cloud_inner_ip = str(bk_cloud_id) + "-" + ip
-        if op_type in [const.OpType.INSTALL, const.OpType.REPLACE] and cloud_inner_ip in inner_ip_info:
-            if data["job_type"] == const.JobType.INSTALL_PROXY:
-                continue
+        if (
+            op_type in [const.OpType.INSTALL, const.OpType.REPLACE]
+            and cloud_inner_ip in inner_ip_info
+            and data["job_type"] != const.JobType.INSTALL_PROXY  # 这里允许把Agent安装为proxy，因此不做IP冲突检查
+        ):
             # 已被占用则跳过并记录
             error_host["msg"] = _(
                 """
@@ -407,52 +407,6 @@ def job_validate(
                     inner_ip_info[cloud_inner_ip]["bk_biz_id"], inner_ip_info[cloud_inner_ip]["bk_biz_id"]
                 ),
                 node_type=inner_ip_info[cloud_inner_ip]["node_type"],
-            )
-            ip_filter_list.append(error_host)
-            continue
-
-        # 检查：判断外网ip是否已被占用
-        cloud_outer_ip = str(bk_cloud_id) + "-" + host.get("outer_ip", "")
-        if (
-            op_type in [const.OpType.INSTALL, const.OpType.REPLACE]
-            and host.get("outer_ip")
-            and cloud_outer_ip in outer_ip_info
-        ):
-            error_host["msg"] = _(
-                """
-                该主机的外网IP已存在于所选云区域：{cloud_name} 下,
-                业务：{bk_biz_id},
-                节点类型：{node_type}
-                """
-            ).format(
-                cloud_name=cloud_name,
-                bk_biz_id=biz_info.get(
-                    outer_ip_info[cloud_outer_ip]["bk_biz_id"], outer_ip_info[cloud_outer_ip]["bk_biz_id"]
-                ),
-                node_type=outer_ip_info[cloud_outer_ip]["node_type"],
-            )
-            ip_filter_list.append(error_host)
-            continue
-
-        # 检查：判断登录ip是否已被占用
-        cloud_login_ip = str(bk_cloud_id) + "-" + host.get("login_ip", "")
-        if (
-            op_type in [const.OpType.INSTALL, const.OpType.REPLACE]
-            and host.get("login_ip")
-            and cloud_login_ip in login_ip_info
-        ):
-            error_host["msg"] = _(
-                """
-                该主机的登录IP已存在于所选云区域：{cloud_name} 下,
-                业务：{bk_biz_id},
-                节点类型：{node_type}
-                """
-            ).format(
-                cloud_name=cloud_name,
-                bk_biz_id=biz_info.get(
-                    biz_info.get(login_ip_info[cloud_login_ip]["bk_biz_id"], login_ip_info[cloud_login_ip]["bk_biz_id"])
-                ),
-                node_type=login_ip_info[cloud_login_ip]["node_type"],
             )
             ip_filter_list.append(error_host)
             continue
