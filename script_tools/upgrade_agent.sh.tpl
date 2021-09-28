@@ -96,4 +96,5 @@ remove_crontab () {{
 
 setup_startup_scripts
 remove_crontab
-cd "{setup_path}" && tar xf "{temp_path}/{package_name}" && cd "{setup_path}/{node_type}/bin" && {reload_cmd}
+cd "{setup_path}" && tar xf "{temp_path}/{package_name}" || echo "tar xf {temp_path}/{package_name} failed"
+{reload_cmd}
