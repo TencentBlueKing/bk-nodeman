@@ -986,10 +986,22 @@ class RunUpgradeCommandService(JobFastExecuteScriptService):
             with open(path, encoding="utf-8") as fh:
                 script = fh.read()
             if host.node_type == constants.NodeType.PROXY:
-                reload_cmd = (
-                    "./gse_agent --reload && ./gse_transit --reload && ./gse_btsvr --reload || ./gsectl restart all"
-                )
                 node_type = "proxy"
+                reload_cmd = """
+result=0
+count=0
+for proc in gse_agent gse_transit gse_btsvr gse_data; do
+     [ -f {setup_path}/{node_type}/bin/$proc ] && cd {setup_path}/{node_type}/bin && ./$proc --reload && \
+     count=$((count + 1))
+     sleep 1
+     result=$((result + $?))
+done
+if [[ $result -gt 0 || $count -lt 3 ]]; then
+   cd {setup_path}/{node_type}/bin && ./gsectl restart all
+fi
+                """.format(
+                    setup_path=setup_path, node_type=node_type
+                )
             else:
                 reload_cmd = "./gse_agent --reload || ./gsectl restart all"
                 node_type = "agent"
