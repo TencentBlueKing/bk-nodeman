@@ -235,20 +235,22 @@ def gen_commands(host: models.Host, pipeline_id: str, is_uninstall: bool) -> Ins
             ]
         )
 
-        # WINDOWS 下的 Agent 安装
-        win_remove_cmd = (
-            f"del /q /s /f {dest_dir}{script_file_name} " f"{dest_dir}{constants.SetupScriptFileName.GSECTL_BAT.value}"
-        )
-        win_download_cmd = (
-            f"{dest_dir}curl.exe {host.ap.package_inner_url}/{script_file_name}"
-            f" -o {dest_dir}{script_file_name} -sSf"
-            f" && "
-            f"{dest_dir}curl.exe {host.ap.package_inner_url}/{constants.SetupScriptFileName.GSECTL_BAT.value}"
-            f" -o {dest_dir}{constants.SetupScriptFileName.GSECTL_BAT.value} -sSf"
-        )
-
         run_cmd = format_run_cmd_by_os_type(host.os_type, f"{dest_dir}{script_file_name} {' '.join(run_cmd_params)}")
-        win_commands = [win_remove_cmd, win_download_cmd, run_cmd]
+        if host.os_type == constants.OsType.WINDOWS:
+            # WINDOWS 下的 Agent 安装
+            win_remove_cmd = (
+                f"del /q /s /f {dest_dir}{script_file_name} "
+                f"{dest_dir}{constants.SetupScriptFileName.GSECTL_BAT.value}"
+            )
+            win_download_cmd = (
+                f"{dest_dir}curl.exe {host.ap.package_inner_url}/{script_file_name}"
+                f" -o {dest_dir}{script_file_name} -sSf"
+                f" && "
+                f"{dest_dir}curl.exe {host.ap.package_inner_url}/{constants.SetupScriptFileName.GSECTL_BAT.value}"
+                f" -o {dest_dir}{constants.SetupScriptFileName.GSECTL_BAT.value} -sSf"
+            )
+
+            win_commands = [win_remove_cmd, win_download_cmd, run_cmd]
         download_cmd = f"curl {package_url}/{script_file_name} -o {dest_dir}{script_file_name} --connect-timeout 5 -sSf"
     chmod_cmd = f"chmod +x {dest_dir}{script_file_name}"
     pre_commands = [
