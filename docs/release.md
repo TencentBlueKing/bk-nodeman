@@ -1,5 +1,11 @@
 # Release
 
+## 2.1.349
+
+- bugfix
+  - 升级agent失败 (fixed #175)
+  - settings.NGINX_DOWNLOAD_PATH 变量不存在 (fixed #177)
+
 ## 2.1.348
 
 - optimization
