@@ -1005,8 +1005,10 @@ fi
                     setup_path=setup_path, node_type=node_type
                 )
             else:
-                reload_cmd = "./gse_agent --reload || ./gsectl restart all"
                 node_type = "agent"
+                reload_cmd = "cd {setup_path}/{node_type}/bin && ./gse_agent --reload || ./gsectl restart all".format(
+                    setup_path=setup_path, node_type=node_type
+                )
             data.inputs.script_content = script.format(
                 setup_path=setup_path,
                 temp_path=temp_path,
