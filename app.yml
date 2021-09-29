@@ -5,7 +5,7 @@ is_use_celery: False
 author: 蓝鲸智云
 introduction: 通过节点管理，可以对蓝鲸体系中的gse agent进行管理，包括状态查询、版本更新、配置管理、健康检查、进程管理等。
 introduction_en: NodeMan can be used to manage the gse agent in the BlueKing system. Its functions include agent installation, status query, version update, plugin management, health check, process control, and so on.
-version: 2.1.349
+version: 2.1.350
 category: 运维工具
 language_support: 英语,中文
 desktop:
