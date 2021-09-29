@@ -52,12 +52,12 @@ def update_proxy_file():
     file_name = [file for key in const.FILES_TO_PUSH_TO_PROXY for file in key["files"]]
     local_file_md5 = {}
     for download_file in file_name:
-        file_path = os.path.join(settings.NGINX_DOWNLOAD_PATH, download_file)
+        file_path = os.path.join(settings.DOWNLOAD_PATH, download_file)
         if os.path.exists(file_path):
             local_file_md5.update({download_file: md5sum(file_path)})
         else:
             logger.warning(
-                f"File ->[{download_file}] not found in download path ->[{settings.NGINX_DOWNLOAD_PATH}], "
+                f"File ->[{download_file}] not found in download path ->[{settings.DOWNLOAD_PATH}], "
                 f"please check in order not to affect proxy installation."
             )
     if not local_file_md5:
@@ -92,7 +92,7 @@ for file in {files}:
         proxy_md5.update({{file: md5(file_path)}})
 print(json.dumps(proxy_md5))
 """.format(
-        files=files, path=settings.NGINX_DOWNLOAD_PATH
+        files=files, path=settings.DOWNLOAD_PATH
     )
 
     kwargs = {
@@ -128,13 +128,13 @@ print(json.dumps(proxy_md5))
     )
     file_source = [
         {
-            "files": [os.path.join(settings.NGINX_DOWNLOAD_PATH, file) for file in files],
+            "files": [os.path.join(settings.DOWNLOAD_PATH, file) for file in files],
             "account": const.LINUX_ACCOUNT,
             "ip_list": [{"ip": settings.BKAPP_LAN_IP, "bk_cloud_id": 0}],
         }
     ]
     job_instance_id = client.fast_push_file(
-        ip_list=ip_list, file_target_path=settings.NGINX_DOWNLOAD_PATH, file_source=file_source
+        ip_list=ip_list, file_target_path=settings.DOWNLOAD_PATH, file_source=file_source
     )
 
     time.sleep(5)
