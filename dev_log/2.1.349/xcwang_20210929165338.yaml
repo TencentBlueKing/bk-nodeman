@@ -1,0 +1,2 @@
+bugfix:
+  - "settings.NGINX_DOWNLOAD_PATH 变量不存在 (fixed #177)"
