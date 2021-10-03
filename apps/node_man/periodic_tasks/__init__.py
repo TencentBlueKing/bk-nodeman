@@ -17,7 +17,7 @@ from .sync_agent_status_task import sync_agent_status_task  # noqa
 from .sync_cmdb_cloud_area import sync_cmdb_cloud_area  # noqa
 from .sync_cmdb_host import sync_cmdb_host  # noqa
 from .sync_proc_status_task import sync_proc_status_task  # noqa
-from .update_proxy_file import update_proxy_file  # noqa
+from .update_proxy_file import update_proxy_files  # noqa
 
 # 是否启用 gse svr 服务发现，启用后，默认接入点会通过zk的方式，自动更新gse svr信息
 if getattr(settings, "GSE_ENABLE_SVR_DISCOVERY", False):

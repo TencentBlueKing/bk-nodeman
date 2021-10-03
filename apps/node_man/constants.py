@@ -630,6 +630,7 @@ class BkAgentStatus(object):
     """
 
     ALIVE = 1
+    NOT_ALIVE = 0
 
 
 class BkJobErrorCode(object):
