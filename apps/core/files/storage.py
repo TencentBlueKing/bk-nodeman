@@ -18,9 +18,11 @@ from django.utils.deconstruct import deconstructible
 from django.utils.functional import cached_property
 
 from apps.utils.basic import filter_values
+from apps.utils.files import md5sum
 
 from . import constants
 from .base import BaseStorage
+from .exceptions import FilesNotFoundError
 from .file_source import BkJobFileSourceManager
 
 
@@ -71,6 +73,13 @@ class CustomBKRepoStorage(BaseStorage, bkrepo.BKRepoStorage):
 
     def path(self, name):
         raise NotImplementedError()
+
+    def get_file_md5(self, file_name: str) -> str:
+        if not self.exists(name=file_name):
+            raise FilesNotFoundError(f"{self.project_id}/{self.bucket}/{file_name} not exist.")
+        file_metadata = self.get_file_metadata(key=file_name)
+        file_md5 = file_metadata["X-Checksum-Md5"]
+        return file_md5
 
     def _handle_file_source_list(
         self, file_source_list: List[Dict[str, Any]], extra_transfer_file_params: Dict[str, Any]
@@ -138,6 +147,12 @@ class AdminFileSystemStorage(BaseStorage, FileSystemStorage):
     # 本项目的读写控制不存在用户行为，保留safe_mode成员变量，便于切换
     def path(self, name):
         return os.path.join(self.location, name)
+
+    def get_file_md5(self, file_name: str) -> str:
+        if not os.path.isfile(file_name):
+            raise FileExistsError(f"{file_name} not exist.")
+        file_md5 = md5sum(file_name)
+        return file_md5
 
     @cached_property
     def location(self):

@@ -11,9 +11,10 @@ specific language governing permissions and limitations under the License.
 
 
 from django.core.management.base import BaseCommand
-from apps.node_man.periodic_tasks import update_proxy_file
+
+from apps.node_man.periodic_tasks import update_proxy_files
 
 
 class Command(BaseCommand):
     def handle(self, *args, **options):
-        update_proxy_file()
+        update_proxy_files()

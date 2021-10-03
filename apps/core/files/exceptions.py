@@ -36,3 +36,8 @@ class FilesRegisterFileSourceError(CoreBaseException):
 class FilesTransferError(CoreBaseException):
     MESSAGE = _("文件传输失败")
     ERROR_CODE = 4
+
+
+class FilesNotFoundError(CoreBaseException):
+    MESSAGE = _("文件不存在")
+    ERROR_CODE = 5

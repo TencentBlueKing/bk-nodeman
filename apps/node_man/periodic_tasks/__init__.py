@@ -17,7 +17,7 @@ from .sync_agent_status_task import sync_agent_status_task  # noqa
 from .sync_cmdb_cloud_area import sync_cmdb_cloud_area  # noqa
 from .sync_cmdb_host import sync_cmdb_host  # noqa
 from .sync_proc_status_task import sync_proc_status_task  # noqa
-from .update_proxy_file import update_proxy_file  # noqa
+from .update_proxy_file import update_proxy_files  # noqa
 
 if getattr(settings, "CONFIG_POLICY_BY_TENCENT_VPC", False):
     from .configuration_policy import configuration_policy  # noqa

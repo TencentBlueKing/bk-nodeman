@@ -332,6 +332,17 @@ class JobMockClient:
         self.job.get_job_instance_status = MagicMock(return_value=get_job_instance_status_return)
 
 
+class JobDemandMock:
+    def __init__(self, poll_task_result_return=None):
+        self.poll_task_result = MagicMock(return_value=poll_task_result_return)
+
+
+class StorageMock:
+    def __init__(self, get_file_md5_return=None, fast_transfer_file_return=None):
+        self.get_file_md5 = MagicMock(return_value=get_file_md5_return)
+        self.fast_transfer_file = MagicMock(return_value=fast_transfer_file_return)
+
+
 class AgentTestObjFactory:
     @classmethod
     def replace_obj_attr_values(cls, obj, obj_attr_values):
