@@ -12,12 +12,11 @@ import traceback
 from functools import wraps
 from typing import Dict, List, Set, Union
 
-from django.db.models import F, Value
+from django.db.models import Value
 from django.db.models.functions import Concat
 from django.utils import timezone
 from django.utils.translation import ugettext as _
 
-from apps.backend.subscription.tools import create_group_id
 from apps.node_man import constants, models
 from apps.utils.time_handler import strftime_local
 from common.log import logger
@@ -102,7 +101,7 @@ class LogMixin:
         return self.log_maker_class()
 
     def log_base(
-        self, sub_inst_ids: [int, List[int], None] = None, log_content: str = None, level: int = LogLevel.INFO
+        self, sub_inst_ids: Union[int, List[int], None] = None, log_content: str = None, level: int = LogLevel.INFO
     ):
         """
         记录日志
@@ -124,16 +123,16 @@ class LogMixin:
             update_time=timezone.now(),
         )
 
-    def log_info(self, sub_inst_ids: [int, List[int], None] = None, log_content: str = None):
+    def log_info(self, sub_inst_ids: Union[int, List[int], None] = None, log_content: str = None):
         self.log_base(sub_inst_ids, log_content, level=LogLevel.INFO)
 
-    def log_warning(self, sub_inst_ids: [int, List[int], None] = None, log_content: str = None):
+    def log_warning(self, sub_inst_ids: Union[int, List[int], None] = None, log_content: str = None):
         self.log_base(sub_inst_ids, log_content, level=LogLevel.WARNING)
 
-    def log_error(self, sub_inst_ids: [int, List[int], None] = None, log_content: str = None):
+    def log_error(self, sub_inst_ids: Union[int, List[int], None] = None, log_content: str = None):
         self.log_base(sub_inst_ids, log_content, level=LogLevel.ERROR)
 
-    def log_debug(self, sub_inst_ids: [int, List[int], None] = None, log_content: str = None):
+    def log_debug(self, sub_inst_ids: Union[int, List[int], None] = None, log_content: str = None):
         self.log_base(sub_inst_ids, log_content, level=LogLevel.DEBUG)
 
 
@@ -179,24 +178,10 @@ class BaseService(Service, LogMixin):
 
     def sub_inst_failed_handler(self, sub_inst_ids: Union[List[int], Set[int]]):
         """
-        订阅实例失败处理器，主要用于记录日志并把自增重试次数
+        订阅实例失败处理器
         :param sub_inst_ids: 订阅实例ID列表/集合
         """
-        instance_record_objs = list(models.SubscriptionInstanceRecord.objects.filter(id__in=sub_inst_ids))
-        # 同一批实例来自同一订阅
-        subscription = models.Subscription.get_subscription(instance_record_objs[0].subscription_id, show_deleted=True)
-        group_ids = [
-            create_group_id(subscription, inst_record_obj.instance_info) for inst_record_obj in instance_record_objs
-        ]
-        models.ProcessStatus.objects.filter(source_id=subscription.id, group_id__in=group_ids).update(
-            retry_times=F("retry_times") + 1
-        )
-
-        logger.info(
-            f"subscription_id -> [{subscription.id}], subscription_instance_ids -> {sub_inst_ids}, "
-            f"act_id -> {self.id}: 插件部署失败，重试次数 +1"
-        )
-        self.log_warning(sub_inst_ids=sub_inst_ids, log_content=_("插件部署失败，重试次数 +1"))
+        raise NotImplementedError()
 
     def bulk_set_sub_inst_status(self, status: str, sub_inst_ids: Union[List[int], Set[int]]):
         """批量设置实例状态，对于实例及原子的状态更新只应该在base内部使用"""
@@ -263,7 +248,12 @@ class BaseService(Service, LogMixin):
         ap_id_obj_map = models.AccessPoint.ap_id_obj_map()
 
         return CommonData(
-            bk_host_ids, host_id_obj_map, ap_id_obj_map, subscription, subscription_instances, subscription_instance_ids
+            bk_host_ids=bk_host_ids,
+            host_id_obj_map=host_id_obj_map,
+            ap_id_obj_map=ap_id_obj_map,
+            subscription=subscription,
+            subscription_instances=subscription_instances,
+            subscription_instance_ids=subscription_instance_ids,
         )
 
     def set_current_id(self, subscription_instance_ids: List[int]):
@@ -280,7 +270,7 @@ class BaseService(Service, LogMixin):
         return bool(data.outputs.succeeded_subscription_instance_ids)
 
     def _execute(self, data, parent_data, common_data: CommonData):
-        raise NotImplementedError
+        raise NotImplementedError()
 
     def _schedule(self, data, parent_data, callback_data=None):
         pass

@@ -35,9 +35,7 @@ def inject_request(func: Callable):
     return inner
 
 
-def batch_call(
-    func: Callable, params_list: List[Dict], get_data=lambda x: x["info"], expand_result: bool = False
-) -> List:
+def batch_call(func: Callable, params_list: List[Dict], get_data=lambda x: x, expand_result: bool = False) -> List:
     """
     并发请求接口，每次按不同参数请求最后叠加请求结果
     :param func: 请求方法
@@ -61,7 +59,9 @@ def batch_call(
 def batch_call_multi_proc(
     func, params_list: List[Dict], get_data=lambda x: x["info"], expand_result: bool = False
 ) -> List:
-    """多进程执行函数
+    """
+    多进程执行函数
+    不适用于DB请求类处理，容易引发Lose Connect，如有需求，使用 batch_call
     :param func: 请求方法
     :param params_list: 参数列表
     :param get_data: 获取数据函数
@@ -76,7 +76,7 @@ def batch_call_multi_proc(
     result = []
 
     pool = ctx.Pool(processes=cpu_count())
-    futures = [pool.apply_async(func=func, kwds=params) for params in params_list]
+    futures = [pool.apply_async(func=inject_request(func), kwds=params) for params in params_list]
 
     pool.close()
     pool.join()
