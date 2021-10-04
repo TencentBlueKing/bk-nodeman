@@ -17,7 +17,7 @@ import traceback
 from collections import OrderedDict, defaultdict
 from copy import deepcopy
 from functools import wraps
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Optional, Union
 
 from celery.task import periodic_task
 from django.utils.translation import ugettext as _
@@ -279,10 +279,7 @@ def create_task(
             continue
 
         # 新装AGENT或PROXY会保存安装信息，需要清理
-        need_clean = step_action.get("agent") in [
-            InstallAgent.ACTION_NAME,
-            InstallProxy.ACTION_NAME,
-        ]
+        need_clean = step_action.get("agent") in [InstallAgent.ACTION_NAME, InstallProxy.ACTION_NAME]
         instance_info = instances[instance_id]
         host_info = instance_info["host"]
         record = models.SubscriptionInstanceRecord(
@@ -385,22 +382,11 @@ def create_task(
             "error_hosts": error_hosts,
         }
 
-    # TODO 判断是否AGENT类型的任务，待AGENT流程统一化后干掉此处差异的逻辑分支
-    # is_agent = "agent" in step_action
-    # if is_agent:
-    #     to_be_saved_records, to_be_saved_pipelines, to_be_displayed_errors = agent_tasks.build_task(
-    #         subscription_task, instance_actions, to_be_created_records_map.values()
-    #     )
-    #     models.PipelineTree.objects.bulk_create(to_be_saved_pipelines, batch_size=batch_size)
-
     # 将最新属性置为False并批量创建订阅实例
     models.SubscriptionInstanceRecord.objects.filter(
-        subscription_id=subscription.id,
-        instance_id__in=instance_id_list,
+        subscription_id=subscription.id, instance_id__in=instance_id_list
     ).update(is_latest=False)
     models.SubscriptionInstanceRecord.objects.bulk_create(to_be_created_records_map.values(), batch_size=batch_size)
-
-    # if not is_agent:
 
     # 批量创建订阅实例，由于bulk_create返回的objs没有主键，此处需要重新查出
     created_instance_records = list(
@@ -456,8 +442,8 @@ def run_subscription_task_and_create_instance_transaction(func):
 def run_subscription_task_and_create_instance(
     subscription: models.Subscription,
     subscription_task: models.SubscriptionTask,
-    scope: Dict = None,
-    actions: Dict = None,
+    scope: Optional[Dict] = None,
+    actions: Optional[Dict] = None,
     preview_only: bool = False,
 ):
     """
@@ -508,12 +494,23 @@ def run_subscription_task_and_create_instance(
             instances, auto_trigger=subscription_task.is_auto_trigger, preview_only=preview_only
         )
         # 归类变更动作
-        instance_id_action_map = migrate_results["instance_actions"]
+        # eg: {"host|instance|host|1": "MAIN_INSTALL_PLUGIN"}
+        instance_id_action_map: Dict[str, str] = migrate_results["instance_actions"]
         for instance_id, action in instance_id_action_map.items():
             instance_actions[instance_id][step.step_id] = action
 
         # 归类变更原因
-        instance_id_action_reason_map = migrate_results["migrate_reasons"]
+        # eg:
+        # {
+        #   "host|instance|host|1": {
+        #     "processbeat": {
+        #       "target_version": "1.17.66",
+        #       "current_version": "1.17.66",
+        #       "migrate_type": "NOT_CHANGE"
+        #     }
+        #   }
+        # }
+        instance_id_action_reason_map: Dict[str, str] = migrate_results["migrate_reasons"]
         for instance_id, migrate_reason in instance_id_action_reason_map.items():
             instance_migrate_reasons[instance_id][step.step_id] = migrate_reason
 

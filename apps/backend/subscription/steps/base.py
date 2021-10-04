@@ -11,15 +11,9 @@ specific language governing permissions and limitations under the License.
 
 
 import abc
-from typing import List
+from typing import Any, Dict, List, Union
 
-from apps.node_man import constants as const
-from apps.node_man.models import (
-    ProcessStatus,
-    Subscription,
-    SubscriptionInstanceRecord,
-    SubscriptionStep,
-)
+from apps.node_man import models
 
 
 class Step(object, metaclass=abc.ABCMeta):
@@ -29,15 +23,15 @@ class Step(object, metaclass=abc.ABCMeta):
 
     STEP_TYPE = ""
 
-    def __init__(self, subscription_step: SubscriptionStep):
+    def __init__(self, subscription_step: models.SubscriptionStep):
         """
         :param models.SubscriptionStep subscription_step: 订阅步骤
         """
-        self.subscription_step = subscription_step
+        self.subscription_step: models.SubscriptionStep = subscription_step
 
         # shortcut
-        self.step_id = subscription_step.step_id
-        self.subscription: Subscription = subscription_step.subscription
+        self.step_id: str = subscription_step.step_id
+        self.subscription: models.Subscription = subscription_step.subscription
 
     def get_supported_actions(self):
         """
@@ -45,20 +39,22 @@ class Step(object, metaclass=abc.ABCMeta):
         """
         return {}
 
-    def create_action(self, action_name: str, subscription_instances: List[SubscriptionInstanceRecord]):
+    def create_action(self, action_name: str, subscription_instances: List[models.SubscriptionInstanceRecord]):
         """
         获取步骤的动作处理类
         :param action_name: 动作名称
         :param subscription_instances: 订阅实例记录
         :rtype: Action
         """
-        for name, action_cls in self.get_supported_actions().items():
-            if name == action_name:
-                return action_cls(action_name, self, subscription_instances)
-        raise ValueError("action [%s] is not registered" % action_name)
+        action_cls = self.get_supported_actions().get(action_name)
+        if not action_cls:
+            raise ValueError(f"action -> {action_name} is not registered")
+        return action_cls(action_name, self, subscription_instances)
 
     @abc.abstractmethod
-    def make_instances_migrate_actions(self, instances, auto_trigger=False, preview_only=False, **kwargs):
+    def make_instances_migrate_actions(
+        self, instances: Dict[str, Dict[str, Union[Dict, Any]]], auto_trigger=False, preview_only=False, **kwargs
+    ):
         """
         计算实例变化所需要变更动作
         :param instances: list 变更后的实例列表
@@ -69,9 +65,15 @@ class Step(object, metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def get_step_data(self, instance_info, target_host, agent_config):
+    def get_step_data(
+        self, instance_info: Dict, target_host: models.Host, agent_config: Dict[str, Union[Dict, str]]
+    ) -> Dict:
         """
         根据当前实例及目标机器，获取步骤上下文数据数据
+        :param instance_info: 主机实例信息
+        :param target_host: 目标主机
+        :param agent_config: models.AccessPoint.agent_config 接入点中有关Agent的路径信息
+        :return:
         """
         raise NotImplementedError
 
@@ -91,47 +93,20 @@ class Action(object, metaclass=abc.ABCMeta):
     """
 
     # 动作名称
-    ACTION_NAME = ""
+    ACTION_NAME: str = ""
 
     # 动作描述
-    ACTION_DESCRIPTION = ""
+    ACTION_DESCRIPTION: str = ""
 
     def __init__(self, action_name: str, step: Step, instance_record_ids: List[int]):
         """
         :param Step step: 步骤实例
         :param models.SubscriptionInstanceRecord instance_record_ids: 订阅实例执行记录
         """
-        self.step = step
+        self.action_name: str = action_name
+        self.step: Step = step
         self.instance_record_ids = instance_record_ids
 
     @abc.abstractmethod
     def generate_activities(self, *args, **kwargs):
         raise NotImplementedError
-
-    def _update_or_create_process_status(self, bk_host_id, group_id, rewrite_path_info):
-        if self.step.subscription.is_main:
-            source_id = self.step.subscription.id
-            source_type = ProcessStatus.SourceType.SUBSCRIPTION
-        else:
-            source_id = None
-            source_type = ProcessStatus.SourceType.DEFAULT
-            group_id = ""
-        host_status, is_created = ProcessStatus.objects.get_or_create(
-            bk_host_id=bk_host_id,
-            name=self.step.plugin_name,
-            source_id=source_id,
-            source_type=source_type,
-            group_id=group_id,
-            proc_type=const.ProcType.PLUGIN,
-            defaults=dict(
-                rewrite_path_info,
-                version=self.step.plugin_version,
-            ),
-        )
-
-        if not is_created:
-            for key, value in rewrite_path_info.items():
-                setattr(host_status, key, value)
-            host_status.version = self.step.plugin_version
-            host_status.save()
-        return host_status

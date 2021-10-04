@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 
 import abc
 from functools import reduce
-from typing import List, Tuple
+from typing import List, Tuple, Union
 
 from django.conf import settings
 from django.utils.translation import ugettext as _
@@ -22,11 +22,10 @@ from apps.node_man import constants, models
 from apps.node_man.constants import ProcStateType
 from apps.node_man.models import GsePluginDesc, Host, SubscriptionStep
 from pipeline import builder
-from pipeline.builder import Data, NodeOutput, Var
+from pipeline.builder.flow.base import Element
 
 # 需分发到 PROXY 的文件（由于放到一次任务中会给用户等待过久的体验，因此拆分成多次任务）
 from ...components.collections.agent import RegisterHostComponent
-from ...plugin.manager import PluginServiceActivity
 from .base import Action, Step
 
 
@@ -110,13 +109,6 @@ class AgentAction(Action, abc.ABC):
         subscription_instance_ids = [sub_inst.id for sub_inst in subscription_instances]
         return AgentManager(subscription_instance_ids, self.step)
 
-        # agent_manager = AgentManager(
-        #     instance_record=instance_record,
-        #     creator=self.step.subscription.creator,
-        #     blueking_language=self.step.subscription_step.params.get("blueking_language"),
-        # )
-        # return agent_manager
-
     def generate_pipeline(self, agent_manager):
         """
         :param PluginManager agent_manager:
@@ -126,7 +118,7 @@ class AgentAction(Action, abc.ABC):
         end_event = builder.EmptyEndEvent()
 
         activities, pipeline_data = self.generate_activities(agent_manager)
-        pipeline_data.inputs["${description}"] = Var(type=Var.PLAIN, value=self.ACTION_DESCRIPTION)
+        pipeline_data.inputs["${description}"] = builder.Var(type=builder.Var.PLAIN, value=self.ACTION_DESCRIPTION)
 
         activities.insert(0, start_event)
         need_register = False
@@ -162,7 +154,7 @@ class AgentAction(Action, abc.ABC):
 
     def generate_activities(
         self, subscription_instances: List[models.SubscriptionInstanceRecord], current_activities=None
-    ) -> Tuple[List[PluginServiceActivity], Data]:
+    ) -> Tuple[List[Union[builder.ServiceActivity, Element]], builder.Data]:
         agent_manager = self.get_agent_manager(subscription_instances)
         return self._generate_activities(agent_manager)
 
@@ -207,17 +199,17 @@ class InstallAgent(AgentAction):
         ]
 
         # 把注册 CMDB 得到的bk_host_id 作为输出给到后续节点使用
-        pipeline_data = Data()
-        pipeline_data.inputs["${bk_host_id}"] = NodeOutput(
+        pipeline_data = builder.Data()
+        pipeline_data.inputs["${bk_host_id}"] = builder.NodeOutput(
             source_act=register_host.id,
             source_key="bk_host_id",
-            type=Var.SPLICE,
+            type=builder.Var.SPLICE,
             value="",
         )
-        pipeline_data.inputs["${is_manual}"] = NodeOutput(
+        pipeline_data.inputs["${is_manual}"] = builder.NodeOutput(
             source_act=register_host.id,
             source_key="is_manual",
-            type=Var.SPLICE,
+            type=builder.Var.SPLICE,
             value=False,
         )
 
@@ -256,8 +248,10 @@ class ReinstallAgent(AgentAction):
         # if settings.USE_TJJ:
         #     activities.insert(0, agent_manager.query_tjj_password())
 
-        pipeline_data = Data()
-        # pipeline_data.inputs["${bk_host_id}"] = Var(type=Var.PLAIN, value=agent_manager.host_info["bk_host_id"])
+        pipeline_data = builder.Data()
+        pipeline_data.inputs["${bk_host_id}"] = builder.Var(
+            type=builder.Var.PLAIN, value=agent_manager.host_info["bk_host_id"]
+        )
 
         # activities = self.append_delegate_activities(agent_manager, activities)
 
@@ -280,14 +274,16 @@ class UpgradeAgent(ReinstallAgent):
             agent_manager.get_agent_status(expect_status=ProcStateType.RUNNING),
         ]
 
-        pipeline_data = Data()
-        pipeline_data.inputs["${package_name}"] = NodeOutput(
+        pipeline_data = builder.Data()
+        pipeline_data.inputs["${package_name}"] = builder.NodeOutput(
             source_act=push_upgrade_package.id,
             source_key="package_name",
-            type=Var.SPLICE,
+            type=builder.Var.SPLICE,
             value="",
         )
-        pipeline_data.inputs["${bk_host_id}"] = Var(type=Var.PLAIN, value=agent_manager.host_info["bk_host_id"])
+        pipeline_data.inputs["${bk_host_id}"] = builder.Var(
+            type=builder.Var.PLAIN, value=agent_manager.host_info["bk_host_id"]
+        )
 
         return activities, pipeline_data
 
@@ -306,8 +302,10 @@ class RestartAgent(AgentAction):
             agent_manager.get_agent_status(expect_status=ProcStateType.RUNNING),
         ]
 
-        pipeline_data = Data()
-        pipeline_data.inputs["${bk_host_id}"] = Var(type=Var.PLAIN, value=agent_manager.host_info["bk_host_id"])
+        pipeline_data = builder.Data()
+        pipeline_data.inputs["${bk_host_id}"] = builder.Var(
+            type=builder.Var.PLAIN, value=agent_manager.host_info["bk_host_id"]
+        )
 
         return activities, pipeline_data
 
@@ -326,8 +324,10 @@ class RestartProxy(AgentAction):
             agent_manager.get_agent_status(expect_status=ProcStateType.RUNNING, name=_("查询Proxy状态")),
         ]
 
-        pipeline_data = Data()
-        pipeline_data.inputs["${bk_host_id}"] = Var(type=Var.PLAIN, value=agent_manager.host_info["bk_host_id"])
+        pipeline_data = builder.Data()
+        pipeline_data.inputs["${bk_host_id}"] = builder.Var(
+            type=builder.Var.PLAIN, value=agent_manager.host_info["bk_host_id"]
+        )
 
         return activities, pipeline_data
 
@@ -363,17 +363,17 @@ class InstallProxy(AgentAction):
         activities.append(agent_manager.start_nginx())
 
         # 把注册 CMDB 得到的bk_host_id 作为输出给到后续节点使用
-        pipeline_data = Data()
-        pipeline_data.inputs["${bk_host_id}"] = NodeOutput(
+        pipeline_data = builder.Data()
+        pipeline_data.inputs["${bk_host_id}"] = builder.NodeOutput(
             source_act=register_host.id,
             source_key="bk_host_id",
-            type=Var.SPLICE,
+            type=builder.Var.SPLICE,
             value="",
         )
-        pipeline_data.inputs["${is_manual}"] = NodeOutput(
+        pipeline_data.inputs["${is_manual}"] = builder.NodeOutput(
             source_act=register_host.id,
             source_key="is_manual",
-            type=Var.SPLICE,
+            type=builder.Var.SPLICE,
             value=False,
         )
 
@@ -415,9 +415,11 @@ class ReinstallProxy(AgentAction):
         activities = self.append_push_file_activities(agent_manager, activities)
         activities.append(agent_manager.start_nginx())
 
-        pipeline_data = Data()
-        pipeline_data.inputs["${bk_host_id}"] = Var(type=Var.PLAIN, value=agent_manager.host_info["bk_host_id"])
-        pipeline_data.inputs["${is_manual}"] = Var(type=Var.PLAIN, value=is_manual)
+        pipeline_data = builder.Data()
+        pipeline_data.inputs["${bk_host_id}"] = builder.Var(
+            type=builder.Var.PLAIN, value=agent_manager.host_info["bk_host_id"]
+        )
+        pipeline_data.inputs["${is_manual}"] = builder.Var(type=builder.Var.PLAIN, value=is_manual)
 
         return activities, pipeline_data
 
@@ -443,14 +445,16 @@ class UpgradeProxy(ReinstallProxy):
         activities = self.append_push_file_activities(agent_manager, activities)
         activities.append(agent_manager.start_nginx())
 
-        pipeline_data = Data()
-        pipeline_data.inputs["${package_name}"] = NodeOutput(
+        pipeline_data = builder.Data()
+        pipeline_data.inputs["${package_name}"] = builder.NodeOutput(
             source_act=push_upgrade_package.id,
             source_key="package_name",
-            type=Var.SPLICE,
+            type=builder.Var.SPLICE,
             value="",
         )
-        pipeline_data.inputs["${bk_host_id}"] = Var(type=Var.PLAIN, value=agent_manager.host_info["bk_host_id"])
+        pipeline_data.inputs["${bk_host_id}"] = builder.Var(
+            type=builder.Var.PLAIN, value=agent_manager.host_info["bk_host_id"]
+        )
 
         return activities, pipeline_data
 
@@ -480,8 +484,10 @@ class UninstallAgent(AgentAction):
             agent_manager.update_process_status(status=ProcStateType.NOT_INSTALLED),
         ]
 
-        pipeline_data = Data()
-        pipeline_data.inputs["${bk_host_id}"] = Var(type=Var.PLAIN, value=agent_manager.host_info["bk_host_id"])
+        pipeline_data = builder.Data()
+        pipeline_data.inputs["${bk_host_id}"] = builder.Var(
+            type=builder.Var.PLAIN, value=agent_manager.host_info["bk_host_id"]
+        )
 
         return activities, pipeline_data
 
@@ -501,8 +507,10 @@ class UninstallProxy(AgentAction):
             agent_manager.update_process_status(status=ProcStateType.NOT_INSTALLED),
         ]
 
-        pipeline_data = Data()
-        pipeline_data.inputs["${bk_host_id}"] = Var(type=Var.PLAIN, value=agent_manager.host_info["bk_host_id"])
+        pipeline_data = builder.Data()
+        pipeline_data.inputs["${bk_host_id}"] = builder.Var(
+            type=builder.Var.PLAIN, value=agent_manager.host_info["bk_host_id"]
+        )
 
         return activities, pipeline_data
 
@@ -528,8 +536,10 @@ class ReloadAgent(AgentAction):
             activities.append(agent_manager.restart()),
             activities.append(agent_manager.get_agent_status(expect_status=ProcStateType.RUNNING)),
 
-        pipeline_data = Data()
-        pipeline_data.inputs["${bk_host_id}"] = Var(type=Var.PLAIN, value=agent_manager.host_info["bk_host_id"])
+        pipeline_data = builder.Data()
+        pipeline_data.inputs["${bk_host_id}"] = builder.Var(
+            type=builder.Var.PLAIN, value=agent_manager.host_info["bk_host_id"]
+        )
 
         return activities, pipeline_data
 
