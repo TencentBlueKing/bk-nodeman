@@ -73,12 +73,6 @@ class AgentManager(object):
         self.creator = step.subscription.creator
         self.blueking_language = step.subscription_step.params.get("blueking_language")
 
-    # def __init__(self, instance_record: SubscriptionInstanceRecord, creator: str, blueking_language: str):
-    #     self.task_id = instance_record.task_id
-    #     self.host_info = instance_record.instance_info["host"]
-    #     self.creator = creator
-    #     self.blueking_language = blueking_language
-
     def register_host(self):
         """
         注册主机

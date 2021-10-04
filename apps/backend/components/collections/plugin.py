@@ -15,11 +15,11 @@ import operator
 import os
 from collections import defaultdict
 from functools import reduce
-from typing import Dict, List, Set, Tuple, Union
+from typing import Dict, List, Optional, Set, Tuple, Union
 
 from django.conf import settings
 from django.db import IntegrityError
-from django.db.models import Q
+from django.db.models import F, Q
 from django.utils.translation import ugettext as _
 
 from apps.backend.api.constants import (
@@ -58,31 +58,36 @@ class PluginCommonData(CommonData):
     def __init__(
         self,
         bk_host_ids: Set[int],
-        process_statuses: List[models.ProcessStatus],
         host_id_obj_map: Dict[int, models.Host],
-        target_host_objs: List[models.Host],
         ap_id_obj_map: Dict[int, models.AccessPoint],
         subscription: models.Subscription,
-        policy_step_adapter,
-        group_id_instance_map: Dict[str, models.SubscriptionInstanceRecord],
         subscription_instances: List[models.SubscriptionInstanceRecord],
         subscription_instance_ids: Set[int],
+        # 插件新增的公共数据
+        process_statuses: List[models.ProcessStatus],
+        target_host_objs: Optional[List[models.Host]],
+        policy_step_adapter: PolicyStepAdapter,
+        group_id_instance_map: Dict[str, models.SubscriptionInstanceRecord],
     ):
-        from apps.backend.subscription.steps.adapter import PolicyStepAdapter
 
-        self.bk_host_ids = bk_host_ids
+        # 进程状态列表
         self.process_statuses = process_statuses
-        self.host_id_obj_map = host_id_obj_map
+        # 目标主机列表，用于远程采集场景
         self.target_host_objs = target_host_objs
-        self.ap_id_obj_map = ap_id_obj_map
-        self.subscription = subscription
+        # PluginStep 适配器，用于屏蔽不同类型的插件操作类订阅差异
         self.policy_step_adapter: PolicyStepAdapter = policy_step_adapter
+        # group_id - 订阅实例记录映射关系
         self.group_id_instance_map = group_id_instance_map
+        # 插件名称
         self.plugin_name = policy_step_adapter.plugin_name
-        self.subscription_instances = subscription_instances
-        self.subscription_instance_ids = subscription_instance_ids
+
         super().__init__(
-            bk_host_ids, host_id_obj_map, ap_id_obj_map, subscription, subscription_instances, subscription_instance_ids
+            bk_host_ids=bk_host_ids,
+            host_id_obj_map=host_id_obj_map,
+            ap_id_obj_map=ap_id_obj_map,
+            subscription=subscription,
+            subscription_instances=subscription_instances,
+            subscription_instance_ids=subscription_instance_ids,
         )
 
 
@@ -97,7 +102,6 @@ class PluginBaseService(BaseService, metaclass=abc.ABCMeta):
         初始化常用数据，注意这些数据不能放在 self 属性里，否则会产生较大的 process snap shot，
         另外也尽量不要在 schedule 中使用，否则多次回调可能引起性能问题
         """
-        from apps.backend.subscription.steps.adapter import PolicyStepAdapter
 
         common_data = super().get_common_data(data)
         subscription_instances = common_data.subscription_instances
@@ -110,14 +114,10 @@ class PluginBaseService(BaseService, metaclass=abc.ABCMeta):
         except models.SubscriptionStep.DoesNotExist:
             raise errors.SubscriptionStepNotExist({"step_id": subscription_step_id})
 
-        bk_host_ids = set()
-        subscription_instance_ids = set()
         group_id_instance_map: Dict[str, models.SubscriptionInstanceRecord] = {}
         for subscription_instance in subscription_instances:
-            bk_host_ids.add(subscription_instance.instance_info["host"]["bk_host_id"])
             group_id = create_group_id(subscription, subscription_instance.instance_info)
             group_id_instance_map[group_id] = subscription_instance
-            subscription_instance_ids.add(subscription_instance.id)
 
         target_host_objs = None
         if subscription.target_hosts:
@@ -130,8 +130,6 @@ class PluginBaseService(BaseService, metaclass=abc.ABCMeta):
                 ],
             )
             target_host_objs = models.Host.objects.filter(query_conditions)
-            for host in target_host_objs:
-                bk_host_ids.add(host.bk_host_id)
 
         policy_step_adapter = PolicyStepAdapter(subscription_step)
 
@@ -139,17 +137,39 @@ class PluginBaseService(BaseService, metaclass=abc.ABCMeta):
             name=policy_step_adapter.plugin_name, group_id__in=group_id_instance_map.keys()
         )
         return PluginCommonData(
-            common_data.bk_host_ids,
-            process_statuses,
-            common_data.host_id_obj_map,
-            target_host_objs,
-            common_data.ap_id_obj_map,
-            common_data.subscription,
-            policy_step_adapter,
-            group_id_instance_map,
-            common_data.subscription_instances,
-            common_data.subscription_instance_ids,
+            bk_host_ids=common_data.bk_host_ids,
+            host_id_obj_map=common_data.host_id_obj_map,
+            ap_id_obj_map=common_data.ap_id_obj_map,
+            subscription=common_data.subscription,
+            subscription_instances=common_data.subscription_instances,
+            subscription_instance_ids=common_data.subscription_instance_ids,
+            process_statuses=process_statuses,
+            target_host_objs=target_host_objs,
+            policy_step_adapter=policy_step_adapter,
+            group_id_instance_map=group_id_instance_map,
         )
+
+    def sub_inst_failed_handler(self, sub_inst_ids: Union[List[int], Set[int]]):
+        """
+        订阅实例失败处理器，主要用于记录日志并把自增重试次数
+        :param sub_inst_ids: 订阅实例ID列表/集合
+        """
+        instance_record_objs = list(models.SubscriptionInstanceRecord.objects.filter(id__in=sub_inst_ids))
+        # 同一批实例来自同一订阅
+        subscription = models.Subscription.get_subscription(instance_record_objs[0].subscription_id, show_deleted=True)
+        group_ids = [
+            create_group_id(subscription, inst_record_obj.instance_info) for inst_record_obj in instance_record_objs
+        ]
+        models.ProcessStatus.objects.filter(source_id=subscription.id, group_id__in=group_ids).update(
+            retry_times=F("retry_times") + 1
+        )
+
+        base_log = _("插件部署失败，重试次数 +1")
+        logger.info(
+            f"subscription_id -> [{subscription.id}], subscription_instance_ids -> {sub_inst_ids}, "
+            f"act_id -> {self.id}: {base_log}"
+        )
+        self.log_warning(sub_inst_ids=sub_inst_ids, log_content=base_log)
 
     @staticmethod
     def get_host_by_process_status(process_status: models.ProcessStatus, common_data: PluginCommonData) -> models.Host:
