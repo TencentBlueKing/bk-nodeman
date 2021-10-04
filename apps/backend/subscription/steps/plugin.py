@@ -900,8 +900,7 @@ class BasePluginAction(six.with_metaclass(abc.ABCMeta, Action)):
 
 
 class MainPluginAction(BasePluginAction, ABC):
-    def _update_or_create_process_status(self, bk_host_id, group_id, rewrite_path_info):
-        return Action._update_or_create_process_status(self, bk_host_id, group_id, rewrite_path_info)
+    pass
 
 
 class PluginAction(six.with_metaclass(abc.ABCMeta, BasePluginAction)):
