@@ -13,10 +13,9 @@ import random
 from itertools import chain
 from typing import Any, Dict, List
 
-from apps.backend.mock_data import subscription as sub_mock_data
 from apps.backend.periodic_tasks import collect_auto_trigger_job
+from apps.mock_data import common_unit
 from apps.node_man import models
-from apps.node_man.mock_data import job as job_mock_data
 from apps.utils import basic
 from apps.utils.unittest.testcase import CustomBaseTestCase
 
@@ -37,7 +36,7 @@ class TestCollectAutoTriggerJob(CustomBaseTestCase):
         for idx in range(cls.init_sub_num):
             subs_to_be_created.append(
                 models.Subscription(
-                    **basic.remove_keys_from_dict(origin_data=sub_mock_data.unit.POLICY_MODEL_DATA, keys=["id"])
+                    **basic.remove_keys_from_dict(origin_data=common_unit.subscription.POLICY_MODEL_DATA, keys=["id"])
                 )
             )
         models.Subscription.objects.bulk_create(subs_to_be_created)
@@ -48,7 +47,7 @@ class TestCollectAutoTriggerJob(CustomBaseTestCase):
         sub_tasks_to_be_created = []
         for sub_obj in cls.init_sub_objs:
             sub_task_data: Dict[str, Any] = basic.remove_keys_from_dict(
-                origin_data=sub_mock_data.unit.SUB_TASK_MODEL_DATA, keys=["id"]
+                origin_data=common_unit.subscription.SUB_TASK_MODEL_DATA, keys=["id"]
             )
             sub_task_data.update({"subscription_id": sub_obj.id, "is_auto_trigger": False})
             sub_tasks_to_be_created.append(models.SubscriptionTask(**sub_task_data))
@@ -58,7 +57,7 @@ class TestCollectAutoTriggerJob(CustomBaseTestCase):
         # 创建主动触发任务关联的任务历史记录
         jobs_to_be_created = []
         for sub_task_obj in cls.init_sub_task_objs:
-            job_data = basic.remove_keys_from_dict(origin_data=job_mock_data.unit.JOB_MODEL_DATA, keys=["id"])
+            job_data = basic.remove_keys_from_dict(origin_data=common_unit.job.JOB_MODEL_DATA, keys=["id"])
             job_data.update(
                 {
                     "subscription_id": sub_task_obj.subscription_id,
@@ -73,7 +72,7 @@ class TestCollectAutoTriggerJob(CustomBaseTestCase):
         auto_sub_tasks_to_be_created = []
         for sub_obj in cls.init_sub_objs:
             auto_sub_task_data: Dict[str, Any] = basic.remove_keys_from_dict(
-                origin_data=sub_mock_data.unit.SUB_TASK_MODEL_DATA, keys=["id"]
+                origin_data=common_unit.subscription.SUB_TASK_MODEL_DATA, keys=["id"]
             )
             auto_sub_task_data.update({"subscription_id": sub_obj.id, "is_auto_trigger": True})
             auto_sub_tasks_to_be_created.append(models.SubscriptionTask(**auto_sub_task_data))
@@ -87,7 +86,9 @@ class TestCollectAutoTriggerJob(CustomBaseTestCase):
     @classmethod
     def create_auto_task(cls, is_ready: bool) -> models.SubscriptionTask:
         sub_obj = random.choice(cls.init_sub_objs)
-        auto_sub_task_data: Dict = basic.remove_keys_from_dict(sub_mock_data.unit.SUB_TASK_MODEL_DATA, keys=["id"])
+        auto_sub_task_data: Dict = basic.remove_keys_from_dict(
+            common_unit.subscription.SUB_TASK_MODEL_DATA, keys=["id"]
+        )
         auto_sub_task_data.update({"subscription_id": sub_obj.id, "is_auto_trigger": True, "is_ready": is_ready})
         auto_sub_task_obj = models.SubscriptionTask(**auto_sub_task_data)
         auto_sub_task_obj.save()
