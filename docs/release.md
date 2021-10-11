@@ -1,5 +1,11 @@
 # Release
 
+## 2.1.350
+
+- optimization
+  - 周期任务削峰 (closed #182)
+  - CMDB list_hosts_without_biz 聚合查询 (closed #192)
+
 ## 2.1.349
 
 - bugfix
