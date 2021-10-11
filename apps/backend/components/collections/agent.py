@@ -70,9 +70,6 @@ class AgentBaseService(BaseService, metaclass=abc.ABCMeta):
     AGENT安装基类
     """
 
-    def __init__(self, name):
-        super().__init__(name=name)
-
     def sub_inst_failed_handler(self, sub_inst_ids: Union[List[int], Set[int]]):
         """
         订阅实例失败处理器
@@ -507,7 +504,7 @@ class ChooseAccessPointService(AgentBaseService):
         ping_logs = []
         for ap_id, ping_time in detect_result["ap_id__ping_time_map"].items():
             ping_logs.append(
-                _("连接至接入点[{ap_name}]的平均延迟为{ping_time}").format(ap_name=ap_id_obj_map[ap_id], ap_ping_time=ping_time)
+                _("连接至接入点[{ap_name}]的平均延迟为{ping_time}").format(ap_name=ap_id_obj_map[ap_id], ping_time=ping_time)
             )
         if ping_logs:
             self.log_info(sub_inst_id, log_content="\n".join(ping_logs))
@@ -562,7 +559,7 @@ class ChooseAccessPointService(AgentBaseService):
         # 将存活的 Proxy 按云区域进行聚合
         # 转为set，提高 in 的执行效率
         alive_proxy_host_ids = set(alive_proxy_host_ids)
-        alive_proxy_host_ids__gby_cloud_id: Dict[int, List[int]] = defaultdict[list]
+        alive_proxy_host_ids__gby_cloud_id: Dict[int, List[int]] = defaultdict(list)
         for proxy in all_proxies:
             if proxy["bk_host_id"] not in alive_proxy_host_ids:
                 continue

@@ -169,10 +169,6 @@ class AgentAction(Action, abc.ABC):
             activities.append(agent_manager.push_files_to_proxy(file))
         return activities
 
-    def execute(self, instance_record):
-        agent_manager = self.get_agent_manager(instance_record)
-        return self.generate_pipeline(agent_manager)
-
 
 class InstallAgent(AgentAction):
     """
@@ -249,9 +245,9 @@ class ReinstallAgent(AgentAction):
         #     activities.insert(0, agent_manager.query_tjj_password())
 
         pipeline_data = builder.Data()
-        pipeline_data.inputs["${bk_host_id}"] = builder.Var(
-            type=builder.Var.PLAIN, value=agent_manager.host_info["bk_host_id"]
-        )
+        # pipeline_data.inputs["${bk_host_id}"] = builder.Var(
+        #     type=builder.Var.PLAIN, value=agent_manager.host_info["bk_host_id"]
+        # )
 
         # activities = self.append_delegate_activities(agent_manager, activities)
 
