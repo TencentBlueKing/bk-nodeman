@@ -60,6 +60,7 @@ class AgentServiceActivity(ServiceActivity):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.component.inputs.description = Var(type=Var.SPLICE, value="${description}")
+        self.component.inputs.act_name = Var(type=Var.SPLICE, value=kwargs.get("name"))
 
 
 class AgentManager(object):
