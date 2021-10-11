@@ -15,6 +15,7 @@ from celery.task import periodic_task, task
 from django.core.cache import caches
 
 from apps.backend.subscription import constants, tools
+from apps.node_man import constants as node_man_constants
 from apps.node_man import models
 from apps.utils.md5 import count_md5
 from apps.utils.periodic_task import calculate_countdown
@@ -50,6 +51,6 @@ def cache_scope_instances():
     subscriptions = models.Subscription.objects.filter(enable=True, is_deleted=False)
     count = subscriptions.count()
     for index, subscription in enumerate(subscriptions):
-        countdown = calculate_countdown(count, index)
+        countdown = calculate_countdown(count=count, index=index, duration=15 * node_man_constants.TimeUnit.MINUTE)
         logger.info(f"[cache_scope_instances] ({subscription.id}) will be run after {countdown} seconds.")
         get_instances_by_scope_task.apply_async((subscription.id,), countdown=countdown)

@@ -622,7 +622,7 @@ def update_subscription_instances():
     count = len(subscription_ids)
     for index, subscription_id in enumerate(subscription_ids):
         # 把订阅平均分布到10分钟内执行，用于削峰
-        countdown = calculate_countdown(count, index)
+        countdown = calculate_countdown(count=count, index=index, duration=15 * constants.TimeUnit.MINUTE)
         logger.info(f"subscription({subscription_id}) will be run after {countdown} seconds.")
         update_subscription_instances_chunk.apply_async(([subscription_id],), countdown=countdown)
 
