@@ -456,22 +456,25 @@ def get_host_detail(host_info_list: list, bk_biz_id: int = None):
                 ],
             }
         }
+
     elif "ip" in first_host_info and "bk_cloud_id" in first_host_info:
-        cond = {
-            "host_property_filter": {
-                "condition": "OR",
-                "rules": [
-                    {
-                        "condition": "AND",
-                        "rules": [
-                            {"field": "bk_host_innerip", "operator": "equal", "value": host["ip"]},
-                            {"field": "bk_cloud_id", "operator": "equal", "value": host["bk_cloud_id"]},
-                        ],
-                    }
-                    for host in host_info_list
-                ],
-            }
-        }
+
+        host_infos_gby_bk_cloud_id = defaultdict(list)
+        for host_info in host_info_list:
+            host_infos_gby_bk_cloud_id[host_info["bk_cloud_id"]].append(host_info)
+        rules = []
+        for bk_cloud_id, host_infos in host_infos_gby_bk_cloud_id.items():
+            ips = [host_info["ip"] for host_info in host_infos]
+            rules.append(
+                {
+                    "condition": "AND",
+                    "rules": [
+                        {"field": "bk_host_innerip", "operator": "in", "value": ips},
+                        {"field": "bk_cloud_id", "operator": "equal", "value": bk_cloud_id},
+                    ],
+                }
+            )
+        cond = {"host_property_filter": {"condition": "OR", "rules": rules}}
     else:
         # 如果不满足 bk_host_id / ip & bk_cloud_id 的传入格式，此时直接返回空列表，表示查询不到任何主机
         # 说明：

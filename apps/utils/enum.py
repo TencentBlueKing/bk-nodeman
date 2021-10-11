@@ -36,7 +36,7 @@ class EnhanceEnum(Enum):
         """
         member_values = []
         for member in cls._member_names_:
-            member_values.append(cls._value2member_map_[member].value)
+            member_values.append(cls._member_map_[member].value)
         return member_values
 
     @classmethod
