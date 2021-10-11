@@ -71,10 +71,10 @@ def suffix_slash(os, path):
     return path
 
 
-def chunk_lists(lst, n):
+def chunk_lists(lst: List[Any], n) -> List[Any]:
     """Yield successive n-sized chunks from lst."""
-    for i in range(0, len(lst), n):
-        yield lst[i : i + n]
+    for idx in range(0, len(lst), n):
+        yield lst[idx : idx + n]
 
 
 def distinct_dict_list(dict_list: list):
