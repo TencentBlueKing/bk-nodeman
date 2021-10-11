@@ -17,6 +17,7 @@ from django.conf import settings
 from django.core.cache import cache
 
 from apps.component.esbclient import client_v2
+from apps.node_man import constants
 from apps.node_man.handlers import cmdb
 from apps.utils.periodic_task import calculate_countdown
 from common.log import logger
@@ -176,7 +177,7 @@ def sync_cmdb_biz_topo_task():
     biz_data = client_v2.cc.search_business({"fields": ["bk_biz_id"]})
     bk_biz_ids = [biz["bk_biz_id"] for biz in biz_data.get("info", []) if biz["default"] == 0]
     for index, bk_biz_id in enumerate(bk_biz_ids):
-        countdown = calculate_countdown(len(bk_biz_ids), index)
+        countdown = calculate_countdown(count=len(bk_biz_ids), index=index, duration=15 * constants.TimeUnit.MINUTE)
         logger.info(f"{task_id} | sync_cmdb_biz_topo_task after {countdown} seconds")
         get_and_cache_format_biz_topo.apply_async((bk_biz_id,), countdown=countdown)
     logger.info(f"{task_id} | sync_cmdb_biz_topo_task: Sync cmdb biz topo complete.")

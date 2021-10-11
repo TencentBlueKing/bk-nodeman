@@ -13,18 +13,18 @@ from celery.schedules import crontab
 from celery.task import periodic_task, task
 
 from apps.component.esbclient import client_v2
-from apps.node_man import constants as const
+from apps.node_man import constants
 from apps.node_man.models import GsePluginDesc, Host, ProcessStatus
 from apps.utils.periodic_task import calculate_countdown
 from common.log import logger
 
 
 def get_version(version_str):
-    version = const.VERSION_PATTERN.search(version_str)
+    version = constants.VERSION_PATTERN.search(version_str)
     return version.group() if version else ""
 
 
-def query_proc_status(start=0, limit=const.QUERY_PROC_STATUS_HOST_LENS):
+def query_proc_status(start=0, limit=constants.QUERY_PROC_STATUS_HOST_LENS):
     kwargs = {"meta": {"namespace": "nodeman"}, "page": {"start": start, "limit": limit}}
 
     data = client_v2.gse.sync_proc_status(kwargs)
@@ -50,8 +50,8 @@ def update_or_create_proc_status(task_id, sync_proc_list, start):
         bk_cloud_ids.append(info["host"]["bk_cloud_id"])
         host_proc_status_map[f'{info["host"]["ip"]}:{info["host"]["bk_cloud_id"]}'] = {
             "version": get_version(info["version"]),
-            "status": const.PLUGIN_STATUS_DICT[info["status"]],
-            "is_auto": const.AutoStateType.AUTO if info["isauto"] else const.AutoStateType.UNAUTO,
+            "status": constants.PLUGIN_STATUS_DICT[info["status"]],
+            "is_auto": constants.AutoStateType.AUTO if info["isauto"] else constants.AutoStateType.UNAUTO,
             "name": info["meta"]["name"],
         }
 
@@ -67,7 +67,7 @@ def update_or_create_proc_status(task_id, sync_proc_list, start):
         name__in=proc_name_list,
         bk_host_id__in=bk_host_id_map.values(),
         source_type=ProcessStatus.SourceType.DEFAULT,
-        proc_type=const.ProcType.PLUGIN,
+        proc_type=constants.ProcType.PLUGIN,
         is_latest=True,
     ).values("bk_host_id", "id", "name", "status")
 
@@ -86,8 +86,8 @@ def update_or_create_proc_status(task_id, sync_proc_list, start):
         # 如果DB中进程状态为手动停止，并且同步回来的进程状态为终止，此时保持手动停止的标记，用于订阅的豁免操作
         if (
             db_proc_info
-            and db_proc_info["status"] == const.ProcStateType.MANUAL_STOP
-            and host_proc_info["status"] == const.ProcStateType.TERMINATED
+            and db_proc_info["status"] == constants.ProcStateType.MANUAL_STOP
+            and host_proc_info["status"] == constants.ProcStateType.TERMINATED
         ):
             host_proc_info["status"] = db_proc_info["status"]
 
@@ -108,7 +108,7 @@ def update_or_create_proc_status(task_id, sync_proc_list, start):
                 is_auto=host_proc_info["is_auto"],
                 name=host_proc_info["name"],
                 source_type=ProcessStatus.SourceType.DEFAULT,
-                proc_type=const.ProcType.PLUGIN,
+                proc_type=constants.ProcType.PLUGIN,
                 bk_host_id=bk_host_id_map[host_cloud_key],
                 is_latest=True,
             )
@@ -125,13 +125,17 @@ def update_or_create_proc_status(task_id, sync_proc_list, start):
     run_every=crontab(hour="*", minute="*/15", day_of_week="*", day_of_month="*", month_of_year="*"),
 )
 def sync_proc_status_task():
-    sync_proc_list = GsePluginDesc.objects.filter(category=const.CategoryType.official).values_list("name", flat=True)
+    sync_proc_list = GsePluginDesc.objects.filter(category=constants.CategoryType.official).values_list(
+        "name", flat=True
+    )
     task_id = sync_proc_status_task.request.id
     count, _ = query_proc_status(limit=1)
     logger.info(f"{task_id} | sync host proc status count={count}.")
-    for start in range(0, count, const.QUERY_PROC_STATUS_HOST_LENS):
+    for start in range(0, count, constants.QUERY_PROC_STATUS_HOST_LENS):
         countdown = calculate_countdown(
-            count / const.QUERY_PROC_STATUS_HOST_LENS, start / const.QUERY_PROC_STATUS_HOST_LENS
+            count=count / constants.QUERY_PROC_STATUS_HOST_LENS,
+            index=start / constants.QUERY_PROC_STATUS_HOST_LENS,
+            duration=15 * constants.TimeUnit.MINUTE,
         )
         logger.info(f"{task_id} | sync host proc status after {countdown} seconds")
         update_or_create_proc_status.apply_async((task_id, sync_proc_list, start), countdown=countdown)

@@ -12,7 +12,7 @@ from celery.schedules import crontab
 from celery.task import periodic_task, task
 
 from apps.component.esbclient import client_v2
-from apps.node_man import constants as const
+from apps.node_man import constants
 from apps.node_man.models import Host, ProcessStatus
 from apps.utils.periodic_task import calculate_countdown
 from common.log import logger
@@ -61,33 +61,33 @@ def update_or_create_host_agent_status(task_id, start, end):
     to_be_created_status = []
     for key, host_info in agent_status_data.items():
         process_status_id = process_status_id_map.get(bk_host_id_map[key], {}).get("id")
-        is_running = host_info["bk_agent_alive"] == const.BkAgentStatus.ALIVE
-        version = const.VERSION_PATTERN.search(agent_info_data[key]["version"])
+        is_running = host_info["bk_agent_alive"] == constants.BkAgentStatus.ALIVE
+        version = constants.VERSION_PATTERN.search(agent_info_data[key]["version"])
 
         if not process_status_id:
             # 如果不存在ProcessStatus对象需要创建
             to_be_created_status.append(
                 ProcessStatus(
                     bk_host_id=bk_host_id_map[key],
-                    status=const.PROC_STATUS_DICT[host_info["bk_agent_alive"]],
+                    status=constants.PROC_STATUS_DICT[host_info["bk_agent_alive"]],
                     version=version.group() if version else "",
                 )
             )
         else:
             if is_running:
-                status = const.PROC_STATUS_DICT[host_info["bk_agent_alive"]]
-                if node_from_map[key] == const.NodeFrom.CMDB:
+                status = constants.PROC_STATUS_DICT[host_info["bk_agent_alive"]]
+                if node_from_map[key] == constants.NodeFrom.CMDB:
                     need_update_node_from_host.append(
-                        Host(bk_host_id=bk_host_id_map[key], node_from=const.NodeFrom.NODE_MAN)
+                        Host(bk_host_id=bk_host_id_map[key], node_from=constants.NodeFrom.NODE_MAN)
                     )
             else:
                 # 状态为0时如果节点管理为CMDB标记为未安装否则为异常
-                if node_from_map[key] == const.NodeFrom.CMDB:
+                if node_from_map[key] == constants.NodeFrom.CMDB:
                     # NOT_INSTALLED
-                    status = const.PROC_STATUS_DICT[3]
+                    status = constants.PROC_STATUS_DICT[3]
                 else:
                     # TERMINATED
-                    status = const.PROC_STATUS_DICT[2]
+                    status = constants.PROC_STATUS_DICT[2]
 
             process_objs.append(
                 ProcessStatus(
@@ -115,11 +115,13 @@ def sync_agent_status_task():
     task_id = sync_agent_status_task.request.id
     logger.info(f"{task_id} | sync_agent_status_task: Start syncing host status.")
     count = Host.objects.count()
-    for start in range(0, count, const.QUERY_AGENT_STATUS_HOST_LENS):
+    for start in range(0, count, constants.QUERY_AGENT_STATUS_HOST_LENS):
         countdown = calculate_countdown(
-            count / const.QUERY_AGENT_STATUS_HOST_LENS, start / const.QUERY_AGENT_STATUS_HOST_LENS
+            count=count / constants.QUERY_AGENT_STATUS_HOST_LENS,
+            index=start / constants.QUERY_AGENT_STATUS_HOST_LENS,
+            duration=15 * constants.TimeUnit.MINUTE,
         )
         logger.info(f"{task_id} | sync_agent_status_task after {countdown} seconds")
         update_or_create_host_agent_status.apply_async(
-            (task_id, start, start + const.QUERY_AGENT_STATUS_HOST_LENS), countdown=countdown
+            (task_id, start, start + constants.QUERY_AGENT_STATUS_HOST_LENS), countdown=countdown
         )
