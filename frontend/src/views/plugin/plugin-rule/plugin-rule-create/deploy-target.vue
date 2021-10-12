@@ -45,7 +45,7 @@ import FormLabelMixin from '@/common/form-label-mixin';
 import IpSelect from '@/components/ip-selector/business/topo-selector-nodeman.vue';
 import { PluginStore } from '@/store';
 import { ITarget } from '@/types/plugin/plugin-type';
-import { reguRequired, reguFnName } from '@/common/form-check';
+import { reguRequired, reguFnStrLength } from '@/common/form-check';
 
 @Component({
   name: 'deploy-target',
@@ -62,7 +62,7 @@ export default class DeployTarget extends Mixins(FormLabelMixin) {
     policyName: PluginStore.strategyData.name || '',
   };
   private rules: Dictionary = {
-    policyName: [reguRequired, reguFnName({ max: 40 })],
+    policyName: [reguRequired, reguFnStrLength()],
   };
   private stepChanged = false;
 
