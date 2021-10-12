@@ -81,6 +81,13 @@ export function reguFnName(params?: { max: number } = {}) {
     trigger: 'blur',
   };
 }
+export function reguFnStrLength(max = 40) {
+  return {
+    validator: (val: string) => regrLengthCheck(val, max),
+    message: window.i18n.t('字符串长度校验', [Math.floor(max / 2), max]),
+    trigger: 'blur',
+  };
+}
 export function reguFnSysPath(params?: { [key: string]: number | string } = {}) { // 操作系统路径校验
   const { minText = 1, maxText = 16, minLevel = 1, type = 'linux' } = params;
   const reg = regFnSysPath({ minText, maxText, minLevel, type });

@@ -1003,6 +1003,7 @@ export default {
 
   // form-check
   正常输入内容校验: 'Chinese and English, numbers, hyphens and underscores with a length not exceeding {0}',
+  字符串长度校验: 'The length cannot be greater than {0} Chinese or {1} English letters',
   不小于零的整数: 'An integer not less than zero',
   Linux路径格式错误: 'Start with /, contain at least level {minLevel} directories, and be uppercase and lowercase English, numbers, and underscores with a length not exceeding {maxText}',
   windows路径格式错误: 'Start with [c-fC-F]:\\, contain at least {minLevel} levels of directories, and be uppercase and lowercase English, numbers, and underscores up to {maxText} in length',
