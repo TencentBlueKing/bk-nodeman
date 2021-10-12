@@ -243,6 +243,7 @@ import { debounceDecorate } from '@/common/util';
 import FlexibleTag from '@/components/common/flexible-tag.vue';
 import ColumnSetting from '@/components/common/column-setting.vue';
 import { CreateElement } from 'vue/types/umd';
+import { regrLengthCheck } from '@/common/form-check';
 
 type GrayType = 'createGray' | 'editGray' | 'deleteGray' | 'releaseGray';
 type PolicyType = 'edit' | 'start' | 'stop' | 'delete' | 'stop_and_delete' | 'RETRY_ABNORMAL';
@@ -362,11 +363,11 @@ export default class PluginRuleTable extends Mixins(HeaderRenderMixin) {
     this.editId = '';
     this.editName = '';
     if (valueTrim === '' || valueTrim === row.name) return;
-    const message = this.verifyAlias(valueTrim);
-    if (message) {
+    const checkRes = regrLengthCheck(valueTrim, 40);
+    if (!checkRes) {
       this.$bkMessage({
         theme: 'error',
-        message,
+        message: this.$t('字符串长度校验', [20, 40]),
       });
       return;
     }
@@ -381,14 +382,6 @@ export default class PluginRuleTable extends Mixins(HeaderRenderMixin) {
   }
   private async handleEnter() {
     this.nameInput && this.nameInput.blur();
-  }
-  public verifyAlias(value: string) {
-    let message;
-    const valueLength = value.replace(/[\u0391-\uFFE5]/g, 'aa').length;
-    if (valueLength > 40) {
-      message = this.$t('长度不能大于20个中文或40个英文字母');
-    }
-    return message;
   }
 
   private handleRowEnter(index: number, event: Event, row: IPolicyRow) {
