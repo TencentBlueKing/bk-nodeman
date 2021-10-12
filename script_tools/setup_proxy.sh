@@ -452,7 +452,7 @@ _OO_
 }
 
 get_gse_proc_list () {
-    local version=$("$AGENT_SETUP_PATH"proxy/bin/gse_agent --version)
+    local version=$("$AGENT_SETUP_PATH"/bin/gse_agent --version)
     if ! which test > /dev/null 2>&1; then
         fail setup_proxy FAILED "command test not found"
     fi
