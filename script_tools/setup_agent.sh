@@ -486,7 +486,7 @@ _OO_
         rm -f "$tmp_json_body" "$tmp_json_resp"
 
         if [[ "$http_status" != "200" ]]; then
-            fail get_config FAILED "request config $filename failed. request info:$CLOUD_ID,$LAN_ETH_IP,$NODE_TYPE,$filename,$TOKEN. http status:$http_status"
+            fail get_config FAILED "request config $filename failed. request info:$CLOUD_ID,$LAN_ETH_IP,$NODE_TYPE,$filename,$TOKEN. http status:$http_status, file content: $(cat "$TMP_DIR/$filename")"
         fi
     done
 }
