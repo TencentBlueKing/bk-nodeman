@@ -662,10 +662,13 @@ def get_gse_config(request):
         )
         raise PermissionError("what are you doing?")
 
-    if filename in ["bscp.yaml"]:
-        config = generate_bscp_config(bk_cloud_id, inner_ip)
-    else:
-        config = generate_gse_config(bk_cloud_id, filename, node_type, inner_ip)
+    try:
+        if filename in ["bscp.yaml"]:
+            config = generate_bscp_config(bk_cloud_id, inner_ip)
+        else:
+            config = generate_gse_config(bk_cloud_id, filename, node_type, inner_ip)
+    except Exception:
+        return HttpResponse(config, status=500)
 
     return HttpResponse(config)
 
