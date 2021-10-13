@@ -1,0 +1,2 @@
+optmization:
+  - "安装agent时，获取配置文件失败时安装流程主动终止 (close #195)"
