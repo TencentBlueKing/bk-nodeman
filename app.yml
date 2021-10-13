@@ -7,7 +7,7 @@ introduction: 通过节点管理，可以对蓝鲸体系中的gse agent进行管
 introduction_en: NodeMan can be used to manage the gse agent in the BlueKing system.
   Its functions include agent installation, status query, version update, plugin management,
   health check, process control, and so on.
-version: 2.1.356
+version: 2.2.0
 category: 运维工具
 language_support: 英语,中文
 desktop:
