@@ -35,13 +35,13 @@ def inject_request(func: Callable):
     return inner
 
 
-def batch_call(func: Callable, params_list: List[Dict], get_data=lambda x: x, expand_result: bool = False) -> List:
+def batch_call(func: Callable, params_list: List[Dict], get_data=lambda x: x, extend_result: bool = False) -> List:
     """
     并发请求接口，每次按不同参数请求最后叠加请求结果
     :param func: 请求方法
     :param params_list: 参数列表
     :param get_data: 获取数据函数
-    :param expand_result: 是否展开结果
+    :param extend_result: 是否展开结果
     :return: 请求结果累计
     """
 
@@ -49,7 +49,7 @@ def batch_call(func: Callable, params_list: List[Dict], get_data=lambda x: x, ex
     with ThreadPoolExecutor(max_workers=settings.CONCURRENT_NUMBER) as ex:
         tasks = [ex.submit(inject_request(func), **params) for params in params_list]
     for future in as_completed(tasks):
-        if expand_result:
+        if extend_result:
             result.extend(get_data(future.result()))
         else:
             result.append(get_data(future.result()))
@@ -57,7 +57,7 @@ def batch_call(func: Callable, params_list: List[Dict], get_data=lambda x: x, ex
 
 
 def batch_call_multi_proc(
-    func, params_list: List[Dict], get_data=lambda x: x["info"], expand_result: bool = False
+    func, params_list: List[Dict], get_data=lambda x: x["info"], extend_result: bool = False
 ) -> List:
     """
     多进程执行函数
@@ -65,11 +65,11 @@ def batch_call_multi_proc(
     :param func: 请求方法
     :param params_list: 参数列表
     :param get_data: 获取数据函数
-    :param expand_result: 是否展开结果
+    :param extend_result: 是否展开结果
     :return: 请求结果累计
     """
     if sys.platform in ["win32", "cygwim", "msys"]:
-        return batch_call(func, params_list, get_data, expand_result)
+        return batch_call(func, params_list, get_data, extend_result)
     else:
         ctx = get_context("fork")
 
@@ -83,7 +83,7 @@ def batch_call_multi_proc(
 
     # 取值
     for future in futures:
-        if expand_result:
+        if extend_result:
             result.extend(get_data(future.get()))
         else:
             result.append(get_data(future.get()))

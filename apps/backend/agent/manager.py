@@ -107,8 +107,6 @@ class AgentManager(object):
             component_code=ChooseAccessPointComponent.code,
             name=ChooseAccessPointComponent.name,
         )
-        # act.component.inputs.bk_host_id = Var(type=Var.SPLICE, value="${bk_host_id}")
-        # act.component.inputs.host_info = Var(type=Var.PLAIN, value=self.host_info)
         act.component.inputs.blueking_language = Var(type=Var.PLAIN, value=self.blueking_language)
         return act
 
