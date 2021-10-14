@@ -95,8 +95,9 @@ while (( $# > 0 )); do
 done
 
 LANG="zh_CN.UTF-8"
-source /data/bkee/.envs/bknodeman-nodeman/bin/activate
-cd /data/bkee/bknodeman/nodeman
+[ -f "${HOME}"/.bkrc ] && source "${HOME}"/.bkrc
+source "${WORKON_HOME}"/bknodeman-nodeman/bin/activate
+cd "${BK_HOME}"/bknodeman/nodeman
 
 
 # 订阅ID范围
