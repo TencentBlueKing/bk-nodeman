@@ -378,7 +378,7 @@ class Command(BaseCommand):
             begin += limit
 
         error_sub_ids = concurrent.batch_call(
-            func=transfer_record_slice, params_list=call_params_list, get_data=lambda x: x, expand_result=True
+            func=transfer_record_slice, params_list=call_params_list, get_data=lambda x: x, extend_result=True
         )
 
         log_and_print(
