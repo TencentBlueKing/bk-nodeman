@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 
 import copy
 import random
+import textwrap
 from abc import ABC
 from typing import Any, Callable, Dict, List, Optional, Type
 
@@ -91,6 +92,7 @@ class AgentTestObjFactory:
 
     bk_host_ids: List[int] = []
     host_objs: List[models.Host] = []
+    identity_data_objs: List[models.IdentityData] = []
 
     def __init__(self):
         pass
@@ -167,6 +169,20 @@ class AgentTestObjFactory:
             )
 
         return host_data_list
+
+    def structure_identity_data_list(self, host_objs: List[models.Host]) -> List[Dict[str, Any]]:
+        """
+        构造主机认证信息列表
+        :param host_objs: 主机对象列表
+        :return: 主机认证信息列表
+        """
+        identity_data_list = []
+        for host_obj in host_objs:
+            identity_data = copy.deepcopy(common_unit.host.IDENTITY_MODEL_DATA)
+            identity_data["bk_host_id"] = host_obj.bk_host_id
+            identity_data_list.append(identity_data)
+
+        return identity_data_list
 
     def structure_instance_host_info_list(self) -> List[Dict[str, Any]]:
         """
@@ -300,6 +316,10 @@ class AgentTestObjFactory:
         self.bulk_create_model(model=models.Host, create_data_list=host_data_list)
         self.host_objs = models.Host.objects.filter(bk_host_id__in=self.bk_host_ids)
 
+        identity_data_list = self.structure_identity_data_list(host_objs=self.host_objs)
+        self.bulk_create_model(model=models.IdentityData, create_data_list=identity_data_list)
+        self.identity_data_objs = models.IdentityData.objects.filter(bk_host_id__in=self.bk_host_ids)
+
     def init_db(self):
         """
         初始化DB测试数据
@@ -331,6 +351,7 @@ class AgentTestObjFactory:
         assert self.sub_inst_record_objs
         assert self.host_objs
         assert self.bk_host_ids
+        assert self.identity_data_objs
 
         _check_objs_fields_type(
             _objs=self.sub_inst_record_objs, _field__type__map={"id": int, "subscription_id": int, "task_id": int}
@@ -339,9 +360,13 @@ class AgentTestObjFactory:
             _objs=self.sub_step_objs, _field__type__map={"id": int, "subscription_id": int, "step_id": str, "type": str}
         )
         _check_objs_fields_type(_objs=self.host_objs, _field__type__map={"bk_host_id": int})
+        _check_objs_fields_type(_objs=self.identity_data_objs, _field__type__map={"bk_host_id": int})
 
 
 class AgentServiceBaseTestCase(CustomAPITestCase, ComponentTestMixin, ABC):
+    # DEBUG = True 时，会打印原子执行日志，帮助定位问题和确认执行步骤是否准确
+    # ⚠️ 注意：请仅在本地开发机上使用，最后提交时，上层原子测试该值必须为 False
+    DEBUG: bool = False
     OBJ_FACTORY_CLASS: Type[AgentTestObjFactory] = AgentTestObjFactory
     BATCH_CALL_MOCK_PATHS = ["apps.backend.components.collections.agent.concurrent.batch_call"]
     SSH_MAN_MOCK_PATH = "apps.backend.components.collections.agent.SshMan"
@@ -382,8 +407,32 @@ class AgentServiceBaseTestCase(CustomAPITestCase, ComponentTestMixin, ABC):
         self.common_inputs = self.structure_common_inputs()
         super().setUp()
 
+    def print_debug_log(self):
+        if not self.DEBUG:
+            return
+
+        sub_inst_id__status_detail_obj_map: Dict[int, models.SubscriptionInstanceStatusDetail] = {}
+        sub_inst_status_detail_objs = models.SubscriptionInstanceStatusDetail.objects.filter(
+            subscription_instance_record_id__in=self.common_inputs["subscription_instance_ids"]
+        ).all()
+        for sub_inst_status_detail_obj in sub_inst_status_detail_objs:
+            sub_inst_id__status_detail_obj_map[sub_inst_status_detail_obj.id] = sub_inst_status_detail_obj
+
+        for sub_inst_obj in self.obj_factory.sub_inst_record_objs:
+            print(f"sub_inst_id -> {sub_inst_obj.id} | ip -> {sub_inst_obj.instance_info['host']['bk_host_innerip']}")
+            sub_inst_status_detail_obj = sub_inst_id__status_detail_obj_map.get(sub_inst_obj.id)
+            if sub_inst_status_detail_obj is None:
+                log = "There is no SubscriptionInstanceStatusDetail"
+            else:
+                log = sub_inst_status_detail_obj.log
+            # 多行缩进，参考：https://stackoverflow.com/questions/8234274/
+            print(textwrap.indent(log, 4 * " "))
+
+    def tearDown(self) -> None:
+        self.print_debug_log()
+        super().tearDown()
+
     def _test_fail(self):
         # 打印错误日志
-        logs = models.SubscriptionInstanceStatusDetail.objects.filter().values_list("log", flat=True)
-        print("\n".join(logs))
+        self.print_debug_log()
         super()._test_fail()

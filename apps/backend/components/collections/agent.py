@@ -430,13 +430,12 @@ class ChooseAccessPointService(AgentBaseService):
         :param ap_objs: 接入点对象
         :return: 探测结果
         """
-        is_linux = host.os_type in [constants.OsType.LINUX, constants.OsType.AIX]
+        is_windows = host.os_type in [constants.OsType.WINDOWS]
         ssh_man = None
-        if is_linux:
+        if not is_windows:
             ssh_man = SshMan(host, self.logger)
             # 一定要先设置一个干净的提示符号，否则会导致console_ready识别失效
             ssh_man.get_and_set_prompt()
-            # 2. 若未配置接入点，登录机器ping接入点，选择平均延迟最低的接入点
 
         # 接入点id - ping时间 映射关系
         ap_id__ping_time_map: Dict[int, float] = {}
@@ -449,13 +448,7 @@ class ChooseAccessPointService(AgentBaseService):
             task_server_ping_time_list: List[float] = []
             for task_server in ap.taskserver:
                 ip = task_server["inner_ip"] if host.bk_cloud_id == constants.DEFAULT_CLOUD else task_server["outer_ip"]
-                if is_linux:
-                    ping_time = ssh_man.send_cmd(
-                        f"ping {ip} -i 0.1 -c 4 -s 100 -W 1 | tail -1 | awk -F '/' '{{print $5}}'"
-                    )
-                    if ping_time:
-                        task_server_ping_time_list.append(float(ping_time))
-                else:
+                if is_windows:
                     output = execute_cmd(
                         f"ping {ip} -w 1000",
                         host.login_ip or host.inner_ip,
@@ -467,6 +460,12 @@ class ChooseAccessPointService(AgentBaseService):
                         task_server_ping_time_list.append(float(ping_time))
                     except IndexError:
                         pass
+                else:
+                    ping_time = ssh_man.send_cmd(
+                        f"ping {ip} -i 0.1 -c 4 -s 100 -W 1 | tail -1 | awk -F '/' '{{print $5}}'"
+                    )
+                    if ping_time:
+                        task_server_ping_time_list.append(float(ping_time))
             if task_server_ping_time_list:
                 ap_id__ping_time_map[ap.id] = sum(task_server_ping_time_list) / len(task_server_ping_time_list)
             else:
@@ -476,7 +475,7 @@ class ChooseAccessPointService(AgentBaseService):
                 min_ping_time = ap_id__ping_time_map[ap.id]
                 min_ping_ap_id = ap.id
 
-        if is_linux:
+        if not is_windows:
             ssh_man.safe_close(ssh_man.ssh)
 
         return {
@@ -504,7 +503,9 @@ class ChooseAccessPointService(AgentBaseService):
         ping_logs = []
         for ap_id, ping_time in detect_result["ap_id__ping_time_map"].items():
             ping_logs.append(
-                _("连接至接入点[{ap_name}]的平均延迟为{ping_time}").format(ap_name=ap_id_obj_map[ap_id], ping_time=ping_time)
+                _("连接至接入点[{ap_name}]的平均延迟为 {ping_time}ms").format(
+                    ap_name=ap_id_obj_map[ap_id].name, ping_time=ping_time
+                )
             )
         if ping_logs:
             self.log_info(sub_inst_id, log_content="\n".join(ping_logs))
@@ -527,6 +528,9 @@ class ChooseAccessPointService(AgentBaseService):
         :param detect_and_choose_ap_params_list: 调用 self.detect_and_choose_ap 的参数列表
         :return: 接入点选择结果列表
         """
+        if not detect_and_choose_ap_params_list:
+            return []
+
         # 通过多线程并行提高效率
         return concurrent.batch_call(
             func=self.detect_and_choose_ap, params_list=detect_and_choose_ap_params_list, get_data=lambda x: x
@@ -543,13 +547,16 @@ class ChooseAccessPointService(AgentBaseService):
         :param ap_id_obj_map: 接入点ID - 接入点对象映射
         :return: 接入点选择结果列表
         """
+        if not pagent_host_ids__gby_cloud_id:
+            return []
         bk_cloud_ids = pagent_host_ids__gby_cloud_id.keys()
 
         # 获取指定云区域范围内全部的Proxy
         all_proxies = models.Host.objects.filter(
             bk_cloud_id__in=bk_cloud_ids, node_type=constants.NodeType.PROXY
-        ).values("bk_host_id", "bk_cloud_id")
+        ).values("bk_host_id", "bk_cloud_id", "ap_id")
         all_proxy_host_ids = [proxy["bk_host_id"] for proxy in all_proxies]
+        proxy_host_id__ap_id_map = {proxy["bk_host_id"]: proxy["ap_id"] for proxy in all_proxies}
 
         # 获取存活的Proxy ID 列表
         alive_proxy_host_ids = models.ProcessStatus.objects.filter(
@@ -559,16 +566,16 @@ class ChooseAccessPointService(AgentBaseService):
         # 将存活的 Proxy 按云区域进行聚合
         # 转为set，提高 in 的执行效率
         alive_proxy_host_ids = set(alive_proxy_host_ids)
-        alive_proxy_host_ids__gby_cloud_id: Dict[int, List[int]] = defaultdict(list)
+        alive_proxy_host_ids_gby_cloud_id: Dict[int, List[int]] = defaultdict(list)
         for proxy in all_proxies:
             if proxy["bk_host_id"] not in alive_proxy_host_ids:
                 continue
-            alive_proxy_host_ids__gby_cloud_id[proxy["bk_cloud_id"]].append(proxy["bk_host_id"])
+            alive_proxy_host_ids_gby_cloud_id[proxy["bk_cloud_id"]].append(proxy["bk_host_id"])
 
         # 随机选取Proxy
         choose_ap_results: List[Dict[str, Any]] = []
         for bk_cloud_id, bk_host_ids in pagent_host_ids__gby_cloud_id.items():
-            alive_proxy_host_ids_in_cloud = alive_proxy_host_ids__gby_cloud_id[bk_cloud_id]
+            alive_proxy_host_ids_in_cloud = alive_proxy_host_ids_gby_cloud_id[bk_cloud_id]
             if not alive_proxy_host_ids_in_cloud:
                 for bk_host_id in bk_host_ids:
                     choose_ap_results.append(
@@ -579,9 +586,11 @@ class ChooseAccessPointService(AgentBaseService):
                             log=_("云区域 -> {bk_cloud_id} 下无存活的 Proxy").format(bk_cloud_id=bk_cloud_id),
                         )
                     )
+                continue
 
             for bk_host_id in bk_host_ids:
-                ap_id = random.choice(alive_proxy_host_ids_in_cloud)
+                alive_proxy_host_id = random.choice(alive_proxy_host_ids_in_cloud)
+                ap_id = proxy_host_id__ap_id_map[alive_proxy_host_id]
                 choose_ap_results.append(
                     self.construct_return_data(ap_id_obj_map=ap_id_obj_map, bk_host_id=bk_host_id, ap_id=ap_id)
                 )
@@ -610,10 +619,10 @@ class ChooseAccessPointService(AgentBaseService):
                 succeed_choose_ap_results.append(choose_ap_result)
 
         # 移除失败的实例ID并打印错误信息
-        failed_sub_inst_ids__gby_log = self.get_sub_inst_ids__gby_log(
+        failed_sub_inst_ids_gby_log = self.get_sub_inst_ids_gby_log(
             choose_ap_results=failed_choose_ap_results, bk_host_id__sub_inst_id_map=bk_host_id__sub_inst_id_map
         )
-        for log, sub_inst_ids in failed_sub_inst_ids__gby_log.items():
+        for log, sub_inst_ids in failed_sub_inst_ids_gby_log.items():
             self.move_insts_to_failed(sub_inst_ids=sub_inst_ids, log_content=log)
 
         # 更新主机接入点
@@ -629,14 +638,14 @@ class ChooseAccessPointService(AgentBaseService):
                 models.Host.objects.filter(bk_host_id__in=bk_host_ids_to_be_updated).update(ap_id=ap_id)
 
         # 打印成功选择接入点的信息
-        succeed_sub_inst_ids__gby_log = self.get_sub_inst_ids__gby_log(
+        succeed_sub_inst_ids__gby_log = self.get_sub_inst_ids_gby_log(
             choose_ap_results=succeed_choose_ap_results, bk_host_id__sub_inst_id_map=bk_host_id__sub_inst_id_map
         )
         for log, sub_inst_ids in succeed_sub_inst_ids__gby_log.items():
             self.log_info(sub_inst_ids=sub_inst_ids, log_content=log)
 
     @classmethod
-    def get_sub_inst_ids__gby_log(
+    def get_sub_inst_ids_gby_log(
         cls, choose_ap_results: List[Dict[str, Any]], bk_host_id__sub_inst_id_map: Dict[int, int]
     ) -> Dict[str, List[int]]:
         sub_inst_ids__gby_log: Dict[str, List[int]] = defaultdict(list)
