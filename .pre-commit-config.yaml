@@ -31,6 +31,12 @@ repos:
         types: [python]
       - id: check-commit-message
         name: Check commit message
-        entry: python scripts/check_commit_message.py
+        entry: python scripts/workflows/pre-commit/check_commit_message.py
         language: system
+        stages: [commit-msg]
+      - id: generate-dev-log
+        name: Generate dev log
+        entry: python scripts/workflows/pre-commit/generate_dev_log.py
+        language: system
+        always_run: true
         stages: [commit-msg]
