@@ -77,7 +77,7 @@ class HostV2ViewSet(ModelViewSet):
         @apiName nodes_agent_status
         @apiGroup Host_v2
         @apiParam {List} [nodes] 拓扑节点, 例如：[{"bk_biz_id": 1, "bk_inst_id": 10, "bk_obj_id": "module"}, ...]
-        @apiParam {String} 权限类型，默认为agent_view
+        @apiParam {String} [action] 权限类型，默认为agent_view
         @apiSuccessExample {json} 成功返回：
         [
             {
@@ -104,7 +104,7 @@ class HostV2ViewSet(ModelViewSet):
         @apiName node_statistic
         @apiGroup Host_v2
         @apiParam {List} [nodes] 拓扑节点, 例如：[{"bk_biz_id": 1, "bk_inst_id": 10, "bk_obj_id": "module"}, ...]
-        @apiParam {String} 权限类型，默认为agent_view
+        @apiParam {String} [action] 权限类型，默认为agent_view
         @apiSuccessExample {json} 成功返回：
         [
             {

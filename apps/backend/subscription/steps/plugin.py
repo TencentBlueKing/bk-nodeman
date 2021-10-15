@@ -299,7 +299,7 @@ class PluginStep(Step):
                 # 被移除的记录如果is_latest=True，周期任务同步回插件最新状态，交由用户决定是否从机器中移除插件
                 models.ProcessStatus.objects.filter(
                     source_id=self.subscription.id, name=self.plugin_name, bk_host_id__in=uninstall_ids
-                ).update(source_id=None, group_id=None, bk_obj_id=None)
+                ).update(source_id=None, group_id="", bk_obj_id=None)
 
     def handle_new_add_instances(
         self,
