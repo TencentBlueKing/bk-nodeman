@@ -48,7 +48,7 @@ from apps.component.esbclient import client_v2
 from apps.exceptions import AuthOverdueException, ComponentCallError
 from apps.node_man import constants, models
 from apps.node_man.exceptions import HostNotExists
-from apps.node_man.handlers.tjj import TjjHandler
+from apps.node_man.handlers.password import DefaultPasswordHandler
 from apps.node_man.models import (
     Host,
     IdentityData,
@@ -82,48 +82,58 @@ class AgentCommonData(CommonData):
     pass
 
 
-class QueryTjjPasswordService(AgentBaseService):
+class QueryPasswordService(AgentBaseService):
     """
-    查询主机是否支持铁将军密码
+    查询主机密码，可根据实际场景自行定义密码库查询处理器
     """
 
-    name = _("查询铁将军密码")
+    name = _("查询主机密码")
 
     def __init__(self):
         super().__init__(name=self.name)
 
-    def inputs_format(self):
-        return [
-            Service.InputItem(name="host_info", key="host_info", type="object", required=True),
-            Service.InputItem(name="creator", key="creator", type="str", required=True),
-        ]
-
-    def _execute(self, data, parent_data):
-        # 查询主机是否支持铁将军
-        host_info = data.get_one_of_inputs("host_info")
+    def _execute(self, data, parent_data, common_data: AgentCommonData):
         creator = data.get_one_of_inputs("creator")
-        host = Host.get_by_host_info(host_info)
+        host_id_obj_map = common_data.host_id_obj_map
 
-        if host.identity.auth_type != constants.AuthType.TJJ_PASSWORD:
-            self.logger.info(_("当前主机验证类型无需查询密码"))
+        no_need_query_inst_ids = []
+        # 这里暂不支持多
+        cloud_ip_map = {}
+        oa_ticket = ""
+        for sub_inst in common_data.subscription_instances:
+            bk_host_id = sub_inst.instance_info["host"]["bk_host_id"]
+            host = host_id_obj_map[bk_host_id]
+
+            if host.identity.auth_type != constants.AuthType.TJJ_PASSWORD:
+                no_need_query_inst_ids.append(sub_inst.id)
+            else:
+                cloud_ip_map[f"{host.bk_cloud_id}-{host.inner_ip}"] = {"host": host, "sub_inst_id": sub_inst.id}
+                oa_ticket = host.identity.extra_data.get("oa_ticket")
+
+        self.log_info(sub_inst_ids=no_need_query_inst_ids, log_content=_("当前主机验证类型无需查询密码"))
+        need_query_inst_ids = [item["sub_inst_id"] for item in cloud_ip_map.values()]
+        if not need_query_inst_ids:
             return True
 
-        is_ok, success_ips, failed_ips, err_msg = TjjHandler().get_password(
-            creator, [host.inner_ip], host.identity.extra_data.get("oa_ticket")
+        is_ok, success_ips, failed_ips, err_msg = DefaultPasswordHandler().get_password(
+            creator, list(cloud_ip_map.keys()), oa_ticket
         )
 
         if not is_ok:
-            self.logger.error(err_msg)
-            self.logger.error(_("若 OA TICKET 过期，请重新登录 OA 后再重试您的操作。请注意不要直接使用此任务中的重试功能~"))
-            return False
+            self.log_error(sub_inst_ids=need_query_inst_ids, log_content=err_msg)
+            self.move_insts_to_failed(
+                sub_inst_ids=need_query_inst_ids, log_content=_("若 OA TICKET 过期，请重新登录 OA 后再重试您的操作。请注意不要直接使用此任务中的重试功能~")
+            )
 
-        if host.inner_ip in failed_ips:
-            self.logger.error(failed_ips[host.inner_ip]["Message"])
-            return False
+        for cloud_ip, failed_data in failed_ips.items():
+            inst_id = cloud_ip_map[cloud_ip]["sub_inst_id"]
+            self.move_insts_to_failed(sub_inst_ids=[inst_id], log_content=failed_data["Message"])
 
-        host.identity.retention = 1
-        host.identity.password = success_ips.get(host.inner_ip, "")
-        host.identity.save()
+        identity_objs = []
+        for cloud_ip, password in success_ips.items():
+            host = cloud_ip_map[cloud_ip]["host"]
+            identity_objs.append(IdentityData(bk_host_id=host.bk_host_id, retention=1, password=password))
+        IdentityData.objects.bulk_update(identity_objs, fields=["retention", "password"])
         return True
 
 
@@ -1771,10 +1781,10 @@ exit $ret
         return super(CheckPolicyGseToProxyService, self).execute(data, parent_data)
 
 
-class QueryTjjPasswordComponent(Component):
-    name = _("查询铁将军密码")
-    code = "query_tjj_password"
-    bound_service = QueryTjjPasswordService
+class QueryPasswordComponent(Component):
+    name = _("查询主机密码")
+    code = "query_password"
+    bound_service = QueryPasswordService
 
 
 class ChooseAccessPointComponent(Component):
