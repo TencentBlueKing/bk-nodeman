@@ -467,9 +467,11 @@ def generate_gse_config(bk_cloud_id, filename, node_type, inner_ip):
     if host.os_type == constants.OsType.WINDOWS:
         path_sep = constants.WINDOWS_SEP
         dataipc = agent_config.get("dataipc", 47000)
+        pluginipc = agent_config.get("pluginipc", 47200)
     else:
         path_sep = constants.LINUX_SEP
         dataipc = agent_config.get("dataipc", "/var/run/ipc.state.report")
+        pluginipc = path_sep.join([setup_path, "agent", "data", "ipc.plugin.manage"])
 
     template = {}
     context = {}
@@ -485,7 +487,6 @@ def generate_gse_config(bk_cloud_id, filename, node_type, inner_ip):
         alarmcfgpath = path_sep.join([setup_path, "plugins", "etc"])
         plugincfg = path_sep.join([setup_path, "agent", "etc", "plugin_info.json"])
         pluginbin = path_sep.join([setup_path, "agent", "lib"])
-        pluginipc = path_sep.join([setup_path, "agent", "data", "ipc.plugin.manage"])  # plugin_info.json 配置
         plugin_path = path_sep.join([setup_path, "agent", "lib", "libbkbscp-gseplugin.so"])
         if host.os_type.lower() == "windows":
             setup_path = json.dumps(setup_path)
