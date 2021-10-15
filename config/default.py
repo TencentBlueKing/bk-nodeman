@@ -43,6 +43,8 @@ INSTALLED_APPS += (
     "pipeline.component_framework",
     "pipeline.django_signal_valve",
     "apps.iam_migration",
+    # DB重连
+    "django_dbconn_retry",
 )
 
 # 这里是默认的中间件，大部分情况下，不需要改动

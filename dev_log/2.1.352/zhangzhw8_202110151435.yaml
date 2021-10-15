@@ -1,0 +1,3 @@
+---
+optimization:
+  - "添加DB重连机制 (close #211)"
