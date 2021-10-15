@@ -245,9 +245,6 @@ def gen_commands(host: models.Host, pipeline_id: str, is_uninstall: bool) -> Ins
             win_download_cmd = (
                 f"{dest_dir}curl.exe {host.ap.package_inner_url}/{script_file_name}"
                 f" -o {dest_dir}{script_file_name} -sSf"
-                f" && "
-                f"{dest_dir}curl.exe {host.ap.package_inner_url}/{constants.SetupScriptFileName.GSECTL_BAT.value}"
-                f" -o {dest_dir}{constants.SetupScriptFileName.GSECTL_BAT.value} -sSf"
             )
 
             win_commands = [win_remove_cmd, win_download_cmd, run_cmd]
