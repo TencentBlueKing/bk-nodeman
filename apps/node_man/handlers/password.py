@@ -14,15 +14,32 @@ import hmac
 import os
 import re
 import time
+from typing import Dict, Tuple
 
 import requests
 import ujson as json
 from Crypto.Cipher import AES
 
+from apps.node_man import constants
 
-class TjjHandler(object):
+
+class BasePasswordHandler(object):
+    def get_password(self, username: str, cloud_ip_list: list, ticket: str) -> Tuple[bool, Dict, Dict, str]:
+        """
+        查询主机密码
+        :param username: 用户名
+        :param cloud_ip_list: 云区域-IP列表，如"0-127.0.0.1"
+        :param ticket: 用户凭证
+        :return: is_ok, success_ips, failed_ips, message
+        (True, {"0-127.0.0.1": "passwordSuccessExample"}, {"0-255.255.255.255": "用户没有权限"}, "success")
+        (False, {}, {}, "{'10': 'ticket is expired'}")
+        """
+        raise NotImplementedError()
+
+
+class DefaultPasswordHandler(BasePasswordHandler):
     """
-    Tjj处理器
+    默认密码处理器
     """
 
     TJJ_PASSWORD = os.environ.get("TJJ_PASSWORD", "")
@@ -139,16 +156,18 @@ class TjjHandler(object):
         """
         查询主机密码
         """
-        is_success, success_ips, failed_ips, message = self.get_password(username, hosts, ticket)
+        cloud_ip_list = [f"{constants.DEFAULT_CLOUD}-{ip}" for ip in hosts]
+        is_success, success_ips, failed_ips, message = self.get_password(username, cloud_ip_list, ticket)
+        success_ips = [cloud_ip.split("-")[1] for cloud_ip in success_ips.keys()]
         return {
             "code": 0 if is_success else -1,
             "message": message,
-            "data": {"success_ips": list(success_ips.keys()), "failed_ips": failed_ips},
+            "data": {"success_ips": success_ips, "failed_ips": failed_ips},
             "result": is_success,
         }
 
-    def get_password(self, username, ip_list: list, ticket):
-
+    def get_password(self, username: str, cloud_ip_list: list, ticket: str) -> Tuple[bool, Dict, Dict, str]:
+        ip_list = [cloud_ip.split("-")[1] for cloud_ip in cloud_ip_list]
         kwargs = {"operator": username, "data": {"Key": self.TJJ_KEY, "IpList": ip_list, "Ticket": ticket}}
 
         try:
@@ -164,9 +183,12 @@ class TjjHandler(object):
 
         success_ips = {}
         failed_ips = {}
-        for key, value in result["data"]["ResponseItems"]["IpList"].items():
+        for ip, value in result["data"]["ResponseItems"]["IpList"].items():
+            # 目前仅支持直连区域的密码查询，填充默认云区域ID
             if value["Code"] == 0:
-                success_ips.update({key: str(self.decrypt(value["Password"]), encoding="utf8")})
+                success_ips.update(
+                    {f"{constants.DEFAULT_CLOUD}-{ip}": str(self.decrypt(value["Password"]), encoding="utf8")}
+                )
             else:
-                failed_ips.update({key: value})
+                failed_ips.update({f"{constants.DEFAULT_CLOUD}-{ip}": value})
         return True, success_ips, failed_ips, "success"

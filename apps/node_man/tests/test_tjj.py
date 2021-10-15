@@ -13,7 +13,7 @@ from unittest.mock import patch
 
 from Crypto.Cipher import AES
 
-from apps.node_man.handlers.tjj import TjjHandler
+from apps.node_man.handlers.password import DefaultPasswordHandler
 from apps.utils.unittest.testcase import CustomBaseTestCase
 
 # 保证salt为8字符且msg为16字符整数倍
@@ -22,7 +22,7 @@ msg = b"I am so happy!!" + bytes(chr(1).encode())
 
 
 def get_cipher_text():
-    key, iv = TjjHandler().get_key_and_iv(salt)
+    key, iv = DefaultPasswordHandler().get_key_and_iv(salt)
     cipher = AES.new(key, AES.MODE_CBC, iv)
     # 构造加密文本
     cipher_text = cipher.encrypt(msg)
@@ -51,8 +51,8 @@ class requests:
 
 
 class TestTJJ(CustomBaseTestCase):
-    @patch("apps.node_man.handlers.tjj.requests", requests)
+    @patch("apps.node_man.handlers.password.requests", requests)
     def test_fetch_pwd(self):
         # 第一个分支
-        result = TjjHandler().fetch_pwd("admin", ["127.0.0.1"], "ticket")
+        result = DefaultPasswordHandler().fetch_pwd("admin", ["127.0.0.1"], "ticket")
         self.assertEqual(result["code"], 0)

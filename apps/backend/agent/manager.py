@@ -28,7 +28,7 @@ from apps.backend.components.collections.agent import (
     InstallComponent,
     OperatePluginComponent,
     PushUpgradePackageComponent,
-    QueryTjjPasswordComponent,
+    QueryPasswordComponent,
     RegisterHostComponent,
     ReloadAgentConfigComponent,
     RenderAndPushGseConfigComponent,
@@ -90,8 +90,8 @@ class AgentManager(object):
         """
         # 验证类型为tjj第一步骤先查询密码
         act = AgentServiceActivity(
-            component_code=QueryTjjPasswordComponent.code,
-            name=QueryTjjPasswordComponent.name,
+            component_code=QueryPasswordComponent.code,
+            name=QueryPasswordComponent.name,
         )
         act.component.inputs.host_info = Var(type=Var.PLAIN, value=self.host_info)
         act.component.inputs.creator = Var(type=Var.PLAIN, value=self.creator)
