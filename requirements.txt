@@ -62,3 +62,5 @@ raven==6.1.0
 ddtrace==0.14.1
 
 bkstorages==1.0.1
+
+ruamel.yaml==0.17.16
