@@ -30,13 +30,13 @@ from apps.node_man.views import (
     cmdb,
     debug,
     host,
+    install_channel,
     job,
     meta,
+    password,
     permission,
     plugin,
     policy,
-    tjj,
-    install_channel,
 )
 from apps.node_man.views.healthz import HealthzViewSet
 from apps.node_man.views.host_v2 import HostV2ViewSet
@@ -57,7 +57,7 @@ router.register(r"permission", permission.PermissionViewSet, basename="permissio
 router.register(r"cmdb", cmdb.CmdbViews, basename="cmdb")
 router.register(r"debug", debug.DebugViews, basename="debug")
 router.register(r"meta", meta.MetaViews, basename="meta")
-router.register(r"tjj", tjj.TjjViews, basename="tjj")
+router.register(r"tjj", password.PasswordViews, basename="tjj")
 router.register(r"policy", policy.PolicyViewSet, basename="policy")
 router.register(r"plugin/(?P<category>\w+)/process", GsePluginViewSet)
 router.register(r"plugin", plugin.PluginViewSet, basename="plugin")

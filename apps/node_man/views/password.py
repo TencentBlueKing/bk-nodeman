@@ -15,14 +15,14 @@ from django.http import JsonResponse
 from rest_framework.decorators import action
 
 from apps.generic import APIViewSet
-from apps.node_man.handlers.tjj import TjjHandler
+from apps.node_man.handlers.password import DefaultPasswordHandler
 
 
-class TjjViews(APIViewSet):
+class PasswordViews(APIViewSet):
     @action(methods=["post"], detail=False)
     def fetch_pwd(self, request, *args, **kwargs):
         """
-        @api {POST} /tjj/fetch_pwd/  查询支持铁将军的主机
+        @api {POST} /tjj/fetch_pwd/  查询支持查询密码的主机
         @apiName fetch pwd
         @apiGroup Tjj
         @apiParam {String[]} hosts 主机IP
@@ -51,7 +51,7 @@ class TjjViews(APIViewSet):
         }
         """
 
-        result = TjjHandler().fetch_pwd(
+        result = DefaultPasswordHandler().fetch_pwd(
             request.user.username, request.data.get("hosts", []), request.COOKIES.get("TCOA_TICKET")
         )
 
