@@ -10,11 +10,11 @@ specific language governing permissions and limitations under the License.
 """
 from django.test import TestCase
 
-from apps.node_man.handlers.tjj import TjjHandler
+from apps.node_man.handlers.password import DefaultPasswordHandler
 
 
 class TestTJJ(TestCase):
     def test_fetch_pwd(self):
         # 第一个分支
-        result = TjjHandler().fetch_pwd("admin", ["127.0.0.1"], "ticket")
+        result = DefaultPasswordHandler().fetch_pwd("admin", ["127.0.0.1"], "ticket")
         self.assertEqual(result["code"], -1)
