@@ -1,0 +1,2 @@
+bugfix:
+  - "windows的agent配置中pluginipc应该为47200 (fixed #210)"
