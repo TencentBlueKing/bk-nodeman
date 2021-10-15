@@ -28,6 +28,7 @@ jinja2schema==0.1.4
 PyYAML==5.1
 python-json-logger==0.1.7
 packaging==20.9
+django-dbconn-retry==0.1.5
 
 # pipeline
 ujson==1.35
