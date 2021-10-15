@@ -7,6 +7,13 @@
 - bugfix
   - 修复Proxy安装脚本二进制路径错误的问题 (fixed #200)
 
+## 2.1.351
+
+- optimization
+  - 策略名称移除仅包含汉字英文数字下划线的限制 (closed #198)
+- bugfix
+  - 修复Proxy安装脚本二进制路径错误的问题 (fixed #200)
+
 ## 2.1.350
 
 - optimization
