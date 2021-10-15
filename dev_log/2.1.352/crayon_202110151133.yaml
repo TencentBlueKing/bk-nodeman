@@ -1,0 +1,3 @@
+---
+feature:
+  - "pre-commit 自动生成dev_log(closed #209)"
