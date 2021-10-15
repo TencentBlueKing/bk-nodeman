@@ -191,9 +191,9 @@ args = arg_parser().parse_args(sys.argv[1:])
 
 try:
     # import 3rd party libraries here, in case the python interpreter does not have them
+    import impacket  # noqa
     import paramiko  # noqa
     import requests  # noqa
-    import impacket  # noqa
 
     # import psutil
 
@@ -498,8 +498,6 @@ def main() -> None:
         "windows": [
             f"del /q /s /f {tmp_dir}setup_agent.bat {tmp_dir}gsectl.bat",
             f"{tmp_dir}curl.exe {args.download_url}/setup_agent.bat -o {tmp_dir}setup_agent.bat "
-            f"-x http://{args.lan_eth_ip}:{DEFAULT_HTTP_PROXY_SERVER_PORT} -sSf",
-            f"{tmp_dir}curl.exe {args.download_url}/gsectl.bat -o {tmp_dir}gsectl.bat "
             f"-x http://{args.lan_eth_ip}:{DEFAULT_HTTP_PROXY_SERVER_PORT} -sSf",
             "{dest_dir}setup_agent.bat -T {dest_dir} -i {} -I {} -s {} -c {} -l {} -r {} -p {} "
             '-e "{}" -a "{}" -k "{}" -x {} -N PROXY {} -O {} -E {} -A {} -V {} -B {} -S {} -Z {} -K {}'.format(

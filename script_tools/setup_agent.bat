@@ -453,13 +453,6 @@ goto :EOF
         )
     )
 
-    if exist %TMP_DIR%\gsectl.bat (
-        copy /Y %TMP_DIR%\gsectl.bat %AGENT_SETUP_PATH%\agent\bin\gsectl.bat 1>nul 2>&1
-    ) else (
-        call :print FAIL get_gsectl FAILED "gsectl.bat file lost. please check."
-        call :multi_report_step_status
-    )
-
     if not exist %GSE_AGENT_RUN_DIR% (md %GSE_AGENT_RUN_DIR%)
     if not exist %GSE_AGENT_DATA_DIR% (md %GSE_AGENT_DATA_DIR%)
     if not exist %GSE_AGENT_LOG_DIR% (md %GSE_AGENT_LOG_DIR%)
