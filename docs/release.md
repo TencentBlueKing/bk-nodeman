@@ -5,6 +5,11 @@
 - optimization
   - 统一'gsectl.bat'安装脚本的来源为gse对应的安装包 (closed #205)
 
+## 2.1.353
+
+- optimization
+  - 统一'gsectl.bat'安装脚本的来源为gse对应的安装包 (closed #205)
+
 ## 2.1.352
 
 - optimization
