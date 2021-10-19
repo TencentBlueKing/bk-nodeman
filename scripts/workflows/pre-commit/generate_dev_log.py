@@ -142,7 +142,7 @@ def main() -> int:
     commit_message_file_path = get_commit_message_result["commit_message_file_path"]
     if WF_CMD_PATTERN not in commit_message_untreated:
         print("workflow command not found, skip")
-        return 1
+        return 0
 
     commit_message = commit_message_untreated.replace(WF_CMD_PATTERN, "")
     if commit_message.endswith("\n"):
