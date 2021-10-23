@@ -13,14 +13,13 @@ import os
 from collections import defaultdict
 
 import yaml
-from django.conf import settings
 from django.core.management.base import BaseCommand
 
 from apps.utils.generate_api_js import main
 
 
-def esb_json2apigw_yaml(json_file_path: str):
-    with open(file=json_file_path, encoding="utf-8") as esb_json_file_stream:
+def esb_json2apigw_yaml(esb_json_file_path: str, apigw_yaml_save_path: str):
+    with open(file=esb_json_file_path, encoding="utf-8") as esb_json_file_stream:
         esb_json = json.loads(esb_json_file_stream.read())
 
     # 对相同api路径进行聚合
@@ -62,11 +61,7 @@ def esb_json2apigw_yaml(json_file_path: str):
             }
         apigw_json["paths"][api_path] = http_method_api_info_map
 
-    with open(
-        os.path.join(settings.BASE_DIR, settings.APP_CODE, "support-files", "nodeman.apigw.yaml"),
-        encoding="utf-8",
-        mode="w",
-    ) as f:
+    with open(apigw_yaml_save_path, encoding="utf-8", mode="w") as f:
         yaml.dump(apigw_json, f, encoding="utf-8", allow_unicode=True)
 
 
@@ -74,11 +69,13 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument("-g", "--is_apigw", action="store_true", help="whether for api_gateway")
         parser.add_argument("--is_apigw_yaml", action="store_true", help="convert esb json to apigw yaml")
-        parser.add_argument("-f", type=str, help="json file path, required when select --is-apigw-yaml")
+        parser.add_argument("-f", type=str, help="apigw yaml save path")
 
     def handle(self, **kwargs):
 
         if kwargs["is_apigw_yaml"]:
-            esb_json2apigw_yaml(kwargs["f"])
+            esb_json_file_path = main(is_apigw=True)
+            esb_json2apigw_yaml(esb_json_file_path=esb_json_file_path, apigw_yaml_save_path=kwargs["f"])
+            os.remove(esb_json_file_path)
         else:
             main(kwargs["is_apigw"])

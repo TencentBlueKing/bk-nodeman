@@ -5,7 +5,6 @@ export const collectSubscriptionTaskResultDetail = request('POST', 'subscription
 export const createSubscription = request('POST', 'subscription/create/');
 export const deleteSubscription = request('POST', 'subscription/delete/');
 export const fetchCommands = request('POST', 'subscription/fetch_commands/');
-export const fetchPolicyTopo = request('POST', 'subscription/fetch_policy_topo/');
 export const getGseConfig = request('POST', 'get_gse_config/');
 export const listDeployPolicy = request('POST', 'subscription/search_deploy_policy/');
 export const queryHostPolicy = request('GET', 'subscription/query_host_policy/');
@@ -31,7 +30,6 @@ export default {
   createSubscription,
   deleteSubscription,
   fetchCommands,
-  fetchPolicyTopo,
   getGseConfig,
   listDeployPolicy,
   queryHostPolicy,
