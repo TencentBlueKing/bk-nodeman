@@ -12,41 +12,90 @@
 2. 从蓝鲸获取 `python36.tgz`和 `nginx-portable.tgz` 并上传到安装通道服务器，并解压到 `/opt/` 目录下。
 
 3. 执行`vim /opt/nginx-portable/conf/nginx.conf`，编辑 nginx 配置，配置内容如下，注意 resolver 需填写正确的DNS
+   * 根据不同的网络场景，酌情选择以下对应的配置模板
+     * 模板一
+         ```
+         events {
+             worker_connections  65535;
+         }
+         http {
+             include       mime.types;
+             default_type  application/octet-stream;
+             sendfile        on;
+             server {
+                 listen 17980;
+                 server_name localhost;
+                 root /data/bkee/public/bknodeman/download;
 
-   ```
-   events {
-       worker_connections  65535;
-   }
-   http {
-       include       mime.types;
-       default_type  application/octet-stream;
-       sendfile        on;
-       server {
-           listen 17980;
-           server_name localhost;
-           root /data/bkee/public/bknodeman/download;
+                 location / {
+                     index index.html;
+                 }
+                 error_page   500 502 503 504  /50x.html;
+                 location = /50x.html {
+                     root   html;
+                 }
+             }
+             server {
+                 listen 17981;
+                 server_name localhost;
+                 # 需根据实际情况填写正确的 DNS
+                 resolver 183.60.83.19 183.60.82.98;
+                 proxy_connect;
+                 proxy_connect_allow 443 563;
+                 location / {
+                     proxy_pass http://$http_host$request_uri;
+                 }
+             }
+         }
+         ```
+     * 模板二: 当安装通道并不能直连节点管理外网回调地址时，请手动配置上游节点proxy地址作为配置模板当upstream，实现回调请求多级转发
+       ```
+       events {
+           worker_connections  65535;
+       }
+       http {
+           include       mime.types;
+           default_type  application/octet-stream;
+           sendfile        on;
+           server {
+               listen 17980;
+               server_name localhost;
+               root /data/bkee/public/bknodeman/download;
 
-           location / {
-               index index.html;
+               location / {
+                   index index.html;
+               }
+               error_page   500 502 503 504  /50x.html;
+               location = /50x.html {
+                   root   html;
+               }
            }
-           error_page   500 502 503 504  /50x.html;
-           location = /50x.html {
-               root   html;
+           upstream proxy {
+               server 10.0.0.1:17981;         
+               server 10.0.0.2:17981;         
+           }
+           server {
+               listen 17981;
+               server_name localhost;
+               # 需根据实际情况填写正确的 DNS
+               resolver 183.60.83.19 183.60.82.98;
+               proxy_connect;
+               proxy_connect_allow 443 563;
+               location / {
+                   proxy_set_header X-Forwarded-For $remote_addr;
+                   proxy_set_header X-Real-IP $remote_addr;
+                   proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                   proxy_set_header Host $host;
+                   proxy_redirect off;
+                   proxy_read_timeout 600;
+                   proxy_connect_timeout 600;
+                   proxy_headers_hash_max_size 51200;
+                   proxy_headers_hash_bucket_size 6400;
+                   proxy_pass http://proxy;
+               }
            }
        }
-       server {
-           listen 17981;
-           server_name localhost;
-           # 需根据实际情况填写正确的 DNS
-           resolver 183.60.83.19 183.60.82.98;
-           proxy_connect;
-           proxy_connect_allow 443 563;
-           location / {
-               proxy_pass http://$http_host$request_uri;
-           }
-       }
-   }
-   ```
+       ```
 
 4. 执行 `/opt/nginx-portable/nginx-portable start` 启动 nginx 进程
 
@@ -71,4 +120,10 @@
    -rw-r--r-- 1 blueking blueking     5864 Aug 25 19:32 gsectl.bat
    ```
 
+## 解决方案
+
+#### NAT网络
+
+``Proxy``服务器作为``NAT``地址安装在直连区域时，通过手动安装并配置安装通道打通网络，实现远程安装
+![11](solution/安装通道NAT网络路由图.png)
    
