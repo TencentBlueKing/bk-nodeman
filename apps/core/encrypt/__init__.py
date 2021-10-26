@@ -8,14 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from . import constants
 
-"""
-该层级用于将不存在强绑定关系的逻辑（如获取主机插件的最新版本、获取主机信息列表）抽取为公共逻辑，被handlers进行调用
-防止handlers互调导致循环依赖
-"""
-
-from .host import HostTools  # noqa
-from .host_v2 import HostV2Tools  # noqa
-from .job import JobTools  # noqa
-from .plugin_v2 import PluginV2Tools  # noqa
-from .policy import PolicyTools  # noqa
+core_encrypt_constants = constants

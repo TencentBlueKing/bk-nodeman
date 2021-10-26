@@ -8,14 +8,19 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from apps.core.encrypt import constants as core_encrypt_constants
+from apps.core.encrypt import handlers as core_encrypt_handlers
+from apps.utils.encrypt import rsa
 
-"""
-该层级用于将不存在强绑定关系的逻辑（如获取主机插件的最新版本、获取主机信息列表）抽取为公共逻辑，被handlers进行调用
-防止handlers互调导致循环依赖
-"""
 
-from .host import HostTools  # noqa
-from .host_v2 import HostV2Tools  # noqa
-from .job import JobTools  # noqa
-from .plugin_v2 import PluginV2Tools  # noqa
-from .policy import PolicyTools  # noqa
+class HostTools:
+    @classmethod
+    def get_rsa_util(cls) -> rsa.RSAUtil:
+        """
+        获取用于处理Agent、主机等敏感信息的非对称加密工具类
+        此处作用主要是固定指定数据源所使用的密钥名称，减少多处加解密导致密钥使用分散
+        :return:
+        """
+        return core_encrypt_handlers.RSAHandler.get_or_generate_rsa_in_db(
+            name=core_encrypt_constants.InternalRSAKeyNameEnum.DEFAULT.value
+        )["rsa_util"]

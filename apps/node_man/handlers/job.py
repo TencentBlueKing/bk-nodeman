@@ -503,6 +503,7 @@ class JobHandler(APIModel):
 
         # 节点变量，用于后续订阅任务注册主机，安装等操作
         subscription_nodes = []
+        rsa_util = tools.HostTools.get_rsa_util()
         for host in accept_list:
             inner_ip = host["inner_ip"]
             outer_ip = host.get("outer_ip", "")
@@ -529,7 +530,7 @@ class JobHandler(APIModel):
                 "auth_type": host.get("auth_type", "MANUAL"),
                 "account": host.get("account", "MANUAL"),
                 "port": host.get("port"),
-                "password": base64.b64encode(host.get("password", "").encode()).decode(),
+                "password": rsa_util.encrypt(host.get("password", "")),
                 "key": base64.b64encode(host.get("key", "").encode()).decode(),
                 "retention": host.get("retention", 1),
                 "peer_exchange_switch_for_agent": host.get("peer_exchange_switch_for_agent"),

@@ -35,6 +35,7 @@ INSTALLED_APPS += (
     "apps.node_man",
     "apps.backend",
     "apps.core.files",
+    "apps.core.encrypt",
     "requests_tracker",
     # pipeline
     "pipeline",
