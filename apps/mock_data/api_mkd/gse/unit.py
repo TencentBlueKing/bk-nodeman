@@ -8,8 +8,13 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from mock import MagicMock
+
+from ... import utils
 
 
-from . import gse, host, job, plugin, subscription
-
-__all__ = ["host", "job", "plugin", "subscription", "gse"]
+class GseMockClient(utils.BaseMockClient):
+    def __init__(self, get_agent_status_return=None, get_agent_info_return=None):
+        self.gse = MagicMock()
+        self.gse.get_agent_status = MagicMock(return_value=get_agent_status_return)
+        self.gse.get_agent_info = MagicMock(return_value=get_agent_info_return)

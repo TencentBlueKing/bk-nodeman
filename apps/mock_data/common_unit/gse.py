@@ -10,6 +10,24 @@ specific language governing permissions and limitations under the License.
 """
 
 
-from . import gse, host, job, plugin, subscription
+from apps.node_man import constants
 
-__all__ = ["host", "job", "plugin", "subscription", "gse"]
+from . import host
+
+GET_AGENT_STATUS_DATA = {
+    f"{constants.DEFAULT_CLOUD}:{host.DEFAULT_IP}": {
+        "ip": host.DEFAULT_IP,
+        "bk_cloud_id": constants.DEFAULT_CLOUD,
+        "bk_agent_alive": constants.BkAgentStatus.ALIVE,
+    }
+}
+
+GET_AGENT_INFO_DATA = {
+    f"{constants.DEFAULT_CLOUD}:{host.DEFAULT_IP}": {
+        "ip": host.DEFAULT_IP,
+        "version": "V0.01R060D38",
+        "bk_cloud_id": 0,
+        "parent_ip": host.DEFAULT_IP,
+        "parent_port": 50000,
+    }
+}

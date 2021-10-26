@@ -241,8 +241,10 @@ class BaseService(Service, LogMixin):
         bk_host_ids = set()
         subscription_instance_ids = set()
         for subscription_instance in subscription_instances:
-            bk_host_ids.add(subscription_instance.instance_info["host"]["bk_host_id"])
             subscription_instance_ids.add(subscription_instance.id)
+            # 兼容新安装Agent主机无bk_host_id的场景
+            if "bk_host_id" in subscription_instance.instance_info["host"]:
+                bk_host_ids.add(subscription_instance.instance_info["host"]["bk_host_id"])
 
         host_id_obj_map: Dict[int, models.Host] = models.Host.host_id_obj_map(bk_host_id__in=bk_host_ids)
         ap_id_obj_map = models.AccessPoint.ap_id_obj_map()
