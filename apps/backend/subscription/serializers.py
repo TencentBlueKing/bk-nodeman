@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+import base64
 
 from rest_framework import serializers
 
@@ -85,6 +86,9 @@ class CreateSubscriptionSerializer(GatewaySerializer):
             for field_need_decrypt in fields_need_decrypt:
                 if isinstance(instance_info.get(field_need_decrypt), str):
                     instance_info[field_need_decrypt] = rsa_util.decrypt(instance_info[field_need_decrypt])
+                instance_info[field_need_decrypt] = base64.b64encode(
+                    instance_info.get(field_need_decrypt, "").encode()
+                ).decode()
         return attrs
 
 
