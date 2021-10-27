@@ -731,7 +731,10 @@ class InstallChannel(models.Model):
     安装通道，利用 jump_servers 作为跳板登录到目标机器执行脚本，使用 upstream_servers 作为上游来渲染配置，
     由于各种特殊网络环境，目前安装通道需手动安装
     jump_servers = ["127.0.0.1", "127.0.0.2"]
-    upstream_servers = {"taskserver": ["127.0.0.1"], "btfileserver": ["127.0.0.1"],"dataserver": ["127.0.0.1"]}
+    upstream_servers = {
+        "taskserver": ["127.0.0.1"], "btfileserver": ["127.0.0.1"],"dataserver": ["127.0.0.1"],
+        "agent_download_proxy": true, "channel_proxy_address": "http://127.0.0.1:17981"
+    }
     """
 
     name = models.CharField(_("名称"), max_length=45)

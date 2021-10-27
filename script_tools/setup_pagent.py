@@ -185,7 +185,8 @@ def arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("-HPP", "--host-proxy-port", type=int, default=17981, help="Host Proxy Port")
     parser.add_argument("-HSN", "--host-script-name", type=str, help="Host Script Name")
     parser.add_argument("-HS", "--host-shell", type=str, help="Host Shell")
-
+    parser.add_argument("-CPA", "--channel-proxy-address", type=str, help="Channel Proxy Address", default=None)
+    parser.add_argument("-ADP", "--agent-download-proxy", type=str, help="Agent Download Proxy", default=True)
     return parser
 
 
@@ -415,7 +416,14 @@ def report_log(step, text, status="-"):
             }
         ],
     }
-    r = requests.post(f"{args.callback_url}/report_log/", json=data)
+    if args.channel_proxy_address:
+        proxy_address = {
+            "http": args.channel_proxy_address,
+            "https": args.channel_proxy_address,
+        }
+        r = requests.post(f"{args.callback_url}/report_log/", json=data, proxies=proxy_address)
+    else:
+        r = requests.post(f"{args.callback_url}/report_log/", json=data)
     return r
 
 
@@ -440,7 +448,14 @@ def main() -> None:
     if shell and _os not in ["windows"]:
         cmd = [
             f"rm -f {tmp_dir}{script_name}",
-            f"curl {args.download_url}/{script_name} -o {tmp_dir}{script_name} -sSf -x {http_proxy_url}",
+        ]
+        download_cmd = (
+            f"curl {args.download_url}/{script_name} -o {tmp_dir}{script_name} -sSf "
+            if args.agent_download_proxy
+            else f"curl {args.download_url}/{script_name} -o {tmp_dir}{script_name} -sSf -x {http_proxy_url} "
+        )
+        cmd.append(download_cmd)
+        cmd.append(
             "nohup {} {dest_dir}{script_name} -T {dest_dir} -i {} -I {} -s {} -c {} -l {} -r {} -p {} -e {} "
             "-a {} -k {} -x {} -N PROXY {} -O {} -E {} -A {} -V {} -B {} -S {} -Z {} -K {} 2>&1 &".format(
                 shell,
@@ -466,15 +481,19 @@ def main() -> None:
                 args.tracker_port,
                 script_name=script_name,
                 dest_dir=tmp_dir,
-            ),
-        ]
+            )
+        )
     else:
-        cmd = [
-            f"del /q /s /f {tmp_dir}{script_name} {tmp_dir}gsectl.bat",
-            f"{tmp_dir}curl.exe {args.download_url}/{script_name} -o {tmp_dir}{script_name} "
-            f"-x http://{args.lan_eth_ip}:{DEFAULT_HTTP_PROXY_SERVER_PORT} -sSf",
-            f"{tmp_dir}curl.exe {args.download_url}/gsectl.bat -o {tmp_dir}gsectl.bat "
-            f"-x http://{args.lan_eth_ip}:{DEFAULT_HTTP_PROXY_SERVER_PORT} -sSf",
+        cmd = [f"del /q /s /f {tmp_dir}{script_name} {tmp_dir}gsectl.bat"]
+        download_cmd = (
+            f"{tmp_dir}curl.exe {args.download_url}/{script_name} -o {tmp_dir}{script_name} -sSf "
+            if args.agent_download_proxy
+            else f"{tmp_dir}curl.exe {args.download_url}/{script_name}"
+            f"-o {tmp_dir}{script_name} -sSf -x {http_proxy_url} "
+        )
+        cmd.append(download_cmd)
+
+        cmd.append(
             "{dest_dir}{script_name} -T {dest_dir} -i {} -I {} -s {} -c {} -l {} -r {} -p {} "
             '-e "{}" -a "{}" -k "{}" -x {} -N PROXY {} -O {} -E {} -A {} -V {} -B {} -S {} -Z {} -K {}'.format(
                 cloud_id,
@@ -499,8 +518,8 @@ def main() -> None:
                 args.tracker_port,
                 script_name=script_name,
                 dest_dir=tmp_dir,
-            ),
-        ]
+            )
+        )
 
     _function = {"aix": rcmd_aix, "linux": rcmd, "windows": windows_cmd, "solaris": rcmd}
 

@@ -449,7 +449,13 @@ class InstallAgentWithInstallChannelSuccessTest(TestCase, ComponentTestMixin):
         install_channel = models.InstallChannel.objects.create(
             bk_cloud_id=constants.DEFAULT_CLOUD,
             jump_servers=["1.1.1.1"],
-            upstream_servers={"taskserver": ["127.0.0.1"], "btfileserver": ["127.0.0.1"], "dataserver": ["127.0.0.1"]},
+            upstream_servers={
+                "taskserver": ["127.0.0.1"],
+                "btfileserver": ["127.0.0.1"],
+                "dataserver": ["127.0.0.1"],
+                "channel_proxy_address": "http://127.0.0.1:17981",
+                "agent_download_proxy": True,
+            },
         )
         models.Host.objects.filter(bk_host_id=utils.BK_HOST_ID).update(install_channel_id=install_channel.id)
         # 创建可用安装通道节点
@@ -527,6 +533,7 @@ class InstallAgentWithInstallChannelSuccessTest(TestCase, ComponentTestMixin):
             f" -HPP '17981' -HSN 'setup_agent.sh' -HS 'bash'"
             f" -p '/usr/local/gse' -I 1.1.1.1"
             f" -o http://1.1.1.1:{settings.BK_NODEMAN_NGINX_DOWNLOAD_PORT}/ "
+            f" -ADP 'True' -CPA 'http://127.0.0.1:17981'"
         )
         self.assertEqual(installation_tool.run_cmd, run_cmd)
 
