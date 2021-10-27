@@ -4,6 +4,7 @@ import http from '@/api';
 import navList from '@/router/navigation-config';
 import { retrieveBiz, fetchTopo } from '@/api/modules/cmdb';
 import { retrieveGlobalSettings } from '@/api/modules/meta';
+import { fetchPublicKeys } from '@/api/modules/rsa';
 import {
   fetchPermission,
   listCloudPermission,
@@ -12,7 +13,7 @@ import {
   listPackagePermission,
 } from '@/api/modules/permission';
 import axios from 'axios';
-import { INavConfig, ISubNavConfig, IBkBiz, ICheckItem, IIsp, IAuthApply } from '@/types';
+import { INavConfig, ISubNavConfig, IBkBiz, ICheckItem, IIsp, IAuthApply, IKeyItem } from '@/types';
 import { Route } from 'vue-router';
 
 const permissionMethodsMap: Dictionary = {
@@ -369,5 +370,14 @@ export default class Main extends VuexModule {
   @Action
   public async getPagePermission(name: string) {
     return await permissionMethodsMap[name]().catch(() => ({}));
+  }
+  /**
+   * get RSA public_key
+   */
+  @Action
+  public async getPublicKeyRSA(params = { names: ['DEFAULT'] }): Promise<string> {
+    const data: IKeyItem[] = await fetchPublicKeys(params).catch(() => []);
+    const item = data.find(item => item.name === 'DEFAULT');
+    return item?.content || '';
   }
 }

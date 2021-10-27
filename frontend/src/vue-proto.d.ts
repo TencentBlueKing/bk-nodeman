@@ -28,6 +28,11 @@ declare module 'vue/types/vue' {
       cancelFn?: Function
     }) => {}
     $filters: Function
+    $RSA: {
+      instance: Dictionary,
+      setPublicKey: (publicKey: string) => void
+      get: (word: string, publicKey?: string) => string
+    }
   }
 }
 
