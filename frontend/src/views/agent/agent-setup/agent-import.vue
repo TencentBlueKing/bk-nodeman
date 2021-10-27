@@ -384,6 +384,9 @@ export default class AgentImport extends Mixins(mixin) {
         if (item.install_channel_id === 'default') {
           item.install_channel_id = null;
         }
+        if (item.auth_type === 'PASSWORD' && item.password) {
+          item.password = this.$RSA.get(item.password);
+        }
       });
       // 安装agent或pagent时，需要设置初始的安装类型
       if (['INSTALL_AGENT', 'REINSTALL_AGENT'].includes(this.type)) {
