@@ -61,7 +61,7 @@ class RSAUtil:
 
     def decrypt(self, encrypt_message: str) -> str:
         cipher = PKCS1_v1_5_cipher.new(self.private_key_obj)
-        decrypt_message = cipher.decrypt(base64.b64decode(encrypt_message), "", expected_pt_len=0)
+        decrypt_message = cipher.decrypt(base64.b64decode(encrypt_message), "")
         return decrypt_message.decode("utf-8")
 
     def sign(self, message: str) -> bytes:
