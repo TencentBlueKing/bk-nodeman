@@ -126,11 +126,15 @@ class InstallSerializer(serializers.Serializer):
             raise ValidationError(_("替换PROXY必须填写replace_host_id."))
 
         rsa_util = tools.HostTools.get_rsa_util()
+        fields_need_decrypt = ["password", "key"]
         # 密码解密
         for host in attrs["hosts"]:
-            if isinstance(host.get("password"), str):
-                host["password"] = rsa_util.decrypt(host["password"])
-
+            for field_need_decrypt in fields_need_decrypt:
+                if not isinstance(host.get(field_need_decrypt), str):
+                    continue
+                host[field_need_decrypt] = tools.HostTools.decrypt_with_friendly_exc_handle(
+                    rsa_util=rsa_util, encrypt_message=host[field_need_decrypt], raise_exec=ValidationError
+                )
         return attrs
 
 

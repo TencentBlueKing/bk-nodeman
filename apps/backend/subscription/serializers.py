@@ -77,7 +77,7 @@ class CreateSubscriptionSerializer(GatewaySerializer):
         if constants.SubStepType.AGENT not in step_types:
             return attrs
 
-        fields_need_decrypt = ["password"]
+        fields_need_decrypt = ["password", "key"]
         rsa_util = tools.HostTools.get_rsa_util()
         for node in attrs["scope"]["nodes"]:
             instance_info = node.get("instance_info", {})
@@ -85,7 +85,9 @@ class CreateSubscriptionSerializer(GatewaySerializer):
                 continue
             for field_need_decrypt in fields_need_decrypt:
                 if isinstance(instance_info.get(field_need_decrypt), str):
-                    instance_info[field_need_decrypt] = rsa_util.decrypt(instance_info[field_need_decrypt])
+                    instance_info[field_need_decrypt] = tools.HostTools.decrypt_with_friendly_exc_handle(
+                        rsa_util=rsa_util, encrypt_message=instance_info[field_need_decrypt], raise_exec=ValidationError
+                    )
                 instance_info[field_need_decrypt] = base64.b64encode(
                     instance_info.get(field_need_decrypt, "").encode()
                 ).decode()

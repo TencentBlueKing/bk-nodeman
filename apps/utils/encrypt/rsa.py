@@ -10,12 +10,12 @@ specific language governing permissions and limitations under the License.
 """
 
 import base64
-from typing import Optional, Tuple, Union
+from typing import Any, List, Optional, Tuple, Union
 
+from Cryptodome import Util
 from Cryptodome.Cipher import PKCS1_v1_5 as PKCS1_v1_5_cipher
 from Cryptodome.Hash import SHA
 from Cryptodome.PublicKey import RSA
-from Cryptodome.PublicKey.RSA import RsaKey
 from Cryptodome.Signature import PKCS1_v1_5
 
 
@@ -27,11 +27,11 @@ def generate_keys() -> Tuple[str, str]:
 
 
 class RSAUtil:
-    public_key_obj: RsaKey = None
-    private_key_obj: RsaKey = None
+    public_key_obj: RSA.RsaKey = None
+    private_key_obj: RSA.RsaKey = None
 
     @staticmethod
-    def load_key(extern_key: Optional[Union[str, bytes]] = None, extern_key_file: Optional[str] = None) -> RsaKey:
+    def load_key(extern_key: Optional[Union[str, bytes]] = None, extern_key_file: Optional[str] = None) -> RSA.RsaKey:
         if not (extern_key or extern_key_file):
             raise ValueError("key or key_file need to provide at least one.")
 
@@ -44,6 +44,31 @@ class RSAUtil:
 
         return RSA.importKey(extern_key)
 
+    @staticmethod
+    def get_block_size(key_obj: RSA.RsaKey, is_encrypt: bool = True) -> int:
+        """
+        获取加解密最大片长度，单位：bytes
+        :param key_obj:
+        :param is_encrypt:
+        :return:
+        """
+        block_size = Util.number.size(key_obj.n) / 8
+        reserve_size = 11
+        if not is_encrypt:
+            reserve_size = 0
+        return int(block_size - reserve_size)
+
+    @staticmethod
+    def block_list(lst: Union[str, bytes, List[Any]], block_size) -> Union[str, bytes, List[Any]]:
+        """
+        序列切片
+        :param lst:
+        :param block_size:
+        :return:
+        """
+        for idx in range(0, len(lst), block_size):
+            yield lst[idx : idx + block_size]
+
     def __init__(
         self,
         public_extern_key: Optional[Union[str, bytes]] = None,
@@ -54,23 +79,53 @@ class RSAUtil:
         self.public_key_obj = self.load_key(public_extern_key, public_extern_key_file)
         self.private_key_obj = self.load_key(private_extern_key, private_extern_key_file)
 
-    def encrypt(self, message: str):
+    def encrypt(self, message: str) -> str:
+        """
+        加密
+        :param message: 待加密的字符串
+        :return: 密文
+        """
+        message_bytes = message.encode()
+        encrypt_message_bytes = b""
+        block_size = self.get_block_size(self.public_key_obj)
         cipher = PKCS1_v1_5_cipher.new(self.public_key_obj)
-        encrypt_message = base64.b64encode(cipher.encrypt(message.encode("utf-8")))
-        return encrypt_message.decode("utf-8")
+        for block in self.block_list(message_bytes, block_size):
+            encrypt_message_bytes += cipher.encrypt(block)
+        encrypt_message = base64.b64encode(encrypt_message_bytes)
+        return encrypt_message.decode()
 
     def decrypt(self, encrypt_message: str) -> str:
+        """
+        解密
+        :param encrypt_message: 密文
+        :return: 解密后的信息
+        """
+        decrypt_message_bytes = b""
+        encrypt_message_bytes = base64.b64decode(encrypt_message)
+        block_size = self.get_block_size(self.private_key_obj, is_encrypt=False)
         cipher = PKCS1_v1_5_cipher.new(self.private_key_obj)
-        decrypt_message = cipher.decrypt(base64.b64decode(encrypt_message), "")
-        return decrypt_message.decode("utf-8")
+        for block in self.block_list(encrypt_message_bytes, block_size):
+            decrypt_message_bytes += cipher.decrypt(block, "")
+        return decrypt_message_bytes.decode()
 
     def sign(self, message: str) -> bytes:
+        """
+        根据私钥和需要发送的信息生成签名
+        :param message: 需要发送给客户端的信息
+        :return:
+        """
         cipher = PKCS1_v1_5.new(self.private_key_obj)
         sha = SHA.new(message)
         signature = cipher.sign(sha)
         return base64.b64encode(signature)
 
     def verify(self, message: str, signature: bytes):
+        """
+        使用公钥验证签名
+        :param message: 客户端接受的信息
+        :param signature: 签名
+        :return:
+        """
         signature = base64.b64decode(signature)
         cipher = PKCS1_v1_5.new(self.public_key_obj)
         sha = SHA.new(message)

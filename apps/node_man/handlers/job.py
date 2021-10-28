@@ -8,7 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import base64
 import logging
 import re
 from typing import Any, Dict, List
@@ -531,7 +530,7 @@ class JobHandler(APIModel):
                 "account": host.get("account", "MANUAL"),
                 "port": host.get("port"),
                 "password": rsa_util.encrypt(host.get("password", "")),
-                "key": base64.b64encode(host.get("key", "").encode()).decode(),
+                "key": rsa_util.encrypt(host.get("key", "")),
                 "retention": host.get("retention", 1),
                 "peer_exchange_switch_for_agent": host.get("peer_exchange_switch_for_agent"),
                 "bt_speed_limit": host.get("bt_speed_limit"),

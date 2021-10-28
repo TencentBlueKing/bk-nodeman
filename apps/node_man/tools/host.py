@@ -8,6 +8,10 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from typing import Type
+
+from django.utils.translation import ugettext_lazy as _
+
 from apps.core.encrypt import constants as core_encrypt_constants
 from apps.core.encrypt import handlers as core_encrypt_handlers
 from apps.utils.encrypt import rsa
@@ -24,3 +28,14 @@ class HostTools:
         return core_encrypt_handlers.RSAHandler.get_or_generate_rsa_in_db(
             name=core_encrypt_constants.InternalRSAKeyNameEnum.DEFAULT.value
         )["rsa_util"]
+
+    @classmethod
+    def decrypt_with_friendly_exc_handle(
+        cls, rsa_util: rsa.RSAUtil, encrypt_message: str, raise_exec: Type[Exception]
+    ) -> str:
+        try:
+            return rsa_util.decrypt(encrypt_message)
+        except ValueError as e:
+            raise raise_exec(_("密文无法解密，请检查是否按规则使用密钥加密：{err_msg}").format(err_msg=e))
+        except Exception as e:
+            raise raise_exec(_("密文解密失败：{err_msg").format(err_msg=e))

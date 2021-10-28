@@ -12,7 +12,7 @@ from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
 from apps.exceptions import ValidationError
-from apps.node_man import constants as const
+from apps.node_man import constants, tools
 
 
 class HostSerializer(serializers.Serializer):
@@ -47,12 +47,20 @@ class HostUpdateSerializer(serializers.Serializer):
     account = serializers.CharField(label=_("账号"), required=False)
     port = serializers.IntegerField(label=_("端口号"), required=False)
     ap_id = serializers.IntegerField(label=_("接入点ID"), required=False)
-    auth_type = serializers.ChoiceField(label=_("认证类型"), choices=list(const.AUTH_TUPLE), required=False)
+    auth_type = serializers.ChoiceField(label=_("认证类型"), choices=list(constants.AUTH_TUPLE), required=False)
     password = serializers.CharField(label=_("密码"), required=False)
     key = serializers.CharField(label=_("秘钥"), required=False)
     peer_exchange_switch_for_agent = serializers.IntegerField(label=_("加速设置"), required=False, default=1)
     bt_speed_limit = serializers.IntegerField(label=_("加速"), required=False)
     data_path = serializers.CharField(label=_("数据文件路径"), required=False)
+
+    def validate(self, attrs):
+        rsa_util = tools.HostTools.get_rsa_util()
+        fields_need_encrypt = ["password", "key"]
+        for field_need_encrypt in fields_need_encrypt:
+            if field_need_encrypt not in attrs:
+                continue
+            attrs[field_need_encrypt] = rsa_util.decrypt(attrs[fields_need_encrypt])
 
 
 class RemoveSerializer(serializers.Serializer):

@@ -77,6 +77,9 @@ class RSAHandler:
         hit_internal_rsa_key_names: Set[str] = set()
         public_key_infos: List[Dict[str, Any]] = []
         for rsa_public_key_detail in rsa_public_key_details:
+            public_key_obj = rsa.RSAUtil.load_key(rsa_public_key_detail["content"])
+            rsa_public_key_detail.update(block_size=rsa.RSAUtil.get_block_size(public_key_obj))
+
             public_key_infos.append(rsa_public_key_detail)
             hit_internal_rsa_key_names.add(rsa_public_key_detail["name"])
 
@@ -87,14 +90,15 @@ class RSAHandler:
         internal_rsa_key_names_to_be_created = query_internal_rsa_key_names - hit_internal_rsa_key_names
 
         for name in internal_rsa_key_names_to_be_created:
-            rsa_public_key: models.RSAKey = cls.get_or_generate_rsa_in_db(name=name, return_rsa_util=False)[
-                "rsa_public_key"
-            ]
+            get_or_generate_rsa_result = cls.get_or_generate_rsa_in_db(name=name, return_rsa_util=False)
+            rsa_util: rsa.RSAUtil = get_or_generate_rsa_result["rsa_util"]
+            rsa_public_key: models.RSAKey = get_or_generate_rsa_result["rsa_public_key"]
             public_key_infos.append(
                 {
                     "name": rsa_public_key.name,
                     "description": rsa_public_key.description,
                     "content": rsa_public_key.content,
+                    "block_size": rsa.RSAUtil.get_block_size(rsa_util.public_key_obj),
                 }
             )
 
