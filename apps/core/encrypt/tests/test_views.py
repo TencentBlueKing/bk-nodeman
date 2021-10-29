@@ -8,6 +8,9 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+
+from django.db import transaction
+
 from apps.utils.unittest import testcase
 
 from .. import constants, handlers
@@ -23,11 +26,13 @@ class RSAViewSetTestCase(testcase.CustomAPITestCase):
             "data"
         ]
         self.assertEqual(len(public_keys), len(fetch_names))
-
         key_name__item_map = {public_key["name"]: public_key for public_key in public_keys}
         default_public_key_content = key_name__item_map[constants.InternalRSAKeyNameEnum.DEFAULT.value]["content"]
 
         # 验证取得的密钥可正常加解密
-        result = handlers.RSAHandler.get_or_generate_rsa_in_db(name=constants.InternalRSAKeyNameEnum.DEFAULT.value)
-        self.assertEqual(result["rsa_public_key"].content, default_public_key_content)
-        utils.validate_rsa_util(rsa_util=result["rsa_util"])
+        # Django unittest 通过抛出一个特殊异常触发数据库回滚，此处冗余事务处理避免TransactionManagementError
+        # 参考 -> https://stackoverflow.com/questions/21458387
+        with transaction.atomic():
+            result = handlers.RSAHandler.get_or_generate_rsa_in_db(name=constants.InternalRSAKeyNameEnum.DEFAULT.value)
+            self.assertEqual(result["rsa_public_key"].content, default_public_key_content)
+            utils.validate_rsa_util(rsa_util=result["rsa_util"])

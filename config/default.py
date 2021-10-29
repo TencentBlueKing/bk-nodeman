@@ -79,6 +79,8 @@ if "test" in sys.argv:
     index = MIDDLEWARE.index("blueapps.account.middlewares.LoginRequiredMiddleware")
     MIDDLEWARE = MIDDLEWARE[:index] + MIDDLEWARE[index + 1 :]
 
+    # testcase 在两次test中会执行回滚，该行为被django_dbconn_retry误判，所以在单元测试禁用该中间件
+    # 参考 -> https://github.com/jdelic/django-dbconn-retry/issues/3
     index = INSTALLED_APPS.index("django_dbconn_retry")
     INSTALLED_APPS = INSTALLED_APPS[:index] + INSTALLED_APPS[index + 1 :]
 
