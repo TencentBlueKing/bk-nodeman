@@ -79,6 +79,10 @@ if "test" in sys.argv:
     index = MIDDLEWARE.index("blueapps.account.middlewares.LoginRequiredMiddleware")
     MIDDLEWARE = MIDDLEWARE[:index] + MIDDLEWARE[index + 1 :]
 
+    index = INSTALLED_APPS.index("django_dbconn_retry")
+    INSTALLED_APPS = INSTALLED_APPS[:index] + INSTALLED_APPS[index + 1 :]
+
+
 # 供应商账户，默认为0，内部为tencent
 DEFAULT_SUPPLIER_ACCOUNT = os.getenv("DEFAULT_SUPPLIER_ACCOUNT", "0")
 # 云区域ID，默认为0
