@@ -8,7 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import base64
 import random
 import time
 from collections import Counter, defaultdict
@@ -19,6 +18,7 @@ from django.utils import timezone
 
 from apps.exceptions import ComponentCallError
 from apps.node_man import constants as const
+from apps.node_man import tools
 from apps.node_man.handlers.ap import APHandler
 from apps.node_man.handlers.cloud import CloudHandler
 from apps.node_man.handlers.cmdb import CmdbHandler
@@ -32,73 +32,11 @@ from apps.node_man.models import (
     Job,
     ProcessStatus,
 )
-from apps.utils.basic import filter_values
+from apps.utils.basic import filter_values, get_chr_seq
 
 CONST_IP_LEN = 2234
 IP_REG = r"((2(5[0-5]|[0-4]\d))|[0-1]?\d{1,2})(\.((2(5[0-5]|[0-4]\d))|[0-1]?\d{1,2})){3}"
-DIGITS = [
-    "0",
-    "1",
-    "2",
-    "3",
-    "4",
-    "5",
-    "6",
-    "7",
-    "8",
-    "9",
-    "q",
-    "c",
-    "d",
-    "e",
-    "f",
-    "g",
-    "h",
-    "i",
-    "j",
-    "k",
-    "l",
-    "m",
-    "n",
-    "o",
-    "p",
-    "q",
-    "r",
-    "s",
-    "t",
-    "u",
-    "v",
-    "w",
-    "x",
-    "y",
-    "z",
-    "A",
-    "B",
-    "C",
-    "D",
-    "E",
-    "F",
-    "G",
-    "H",
-    "I",
-    "J",
-    "K",
-    "L",
-    "M",
-    "N",
-    "O",
-    "P",
-    "W",
-    "R",
-    "S",
-    "T",
-    "U",
-    "V",
-    "W",
-    "X",
-    "Y",
-    "Z",
-]
+DIGITS = get_chr_seq("0", "9") + get_chr_seq("a", "z") + get_chr_seq("A", "Z")
 SEARCH_BUSINESS = [
     {"bk_biz_id": 27, "bk_biz_name": "12"},
     {"bk_biz_id": 28, "bk_biz_name": "t2"},
@@ -243,6 +181,8 @@ def create_host(
 
 class Subscription:
     def create_subscription(self, job_type, nodes):
+
+        rsa_util = tools.HostTools.get_rsa_util()
         subscription_id = random.randint(100, 1000)
         task_id = random.randint(10, 1000)
         if job_type in ["REINSTALL_AGENT", "REINSTALL_PROXY", "RESTART_PROXY", "RESTART_AGENT"]:
@@ -275,9 +215,9 @@ class Subscription:
                 defaults={
                     "auth_type": host_info.get("auth_type"),
                     "account": host_info.get("account"),
-                    "password": base64.b64decode(host_info.get("password", "")).decode(),
+                    "password": rsa_util.decrypt(host_info["password"]),
                     "port": host_info.get("port"),
-                    "key": base64.b64decode(host_info.get("key", "")).decode(),
+                    "key": rsa_util.decrypt(host_info["key"]),
                     "retention": host_info.get("retention", 1),
                     "extra_data": host_info.get("extra_data"),
                     "updated_at": timezone.now(),

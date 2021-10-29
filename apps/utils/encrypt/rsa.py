@@ -14,16 +14,25 @@ from typing import Any, List, Optional, Tuple, Union
 
 from Cryptodome import Util
 from Cryptodome.Cipher import PKCS1_v1_5 as PKCS1_v1_5_cipher
-from Cryptodome.Hash import SHA
+from Cryptodome.Hash import SHA1
 from Cryptodome.PublicKey import RSA
 from Cryptodome.Signature import PKCS1_v1_5
 
+# 默认编码
+ENCODING = "utf-8"
+
 
 def generate_keys() -> Tuple[str, str]:
+    """
+    生成公私钥
+    :return:
+    """
+    # In 2017, a sufficient length is deemed to be 2048 bits.
+    # 具体参考 -> https://pycryptodome.readthedocs.io/en/latest/src/public_key/rsa.html
     private_key_obj = RSA.generate(2048)
     private_key = private_key_obj.exportKey()
     public_key = private_key_obj.publickey().exportKey()
-    return private_key.decode("utf-8"), public_key.decode("utf-8")
+    return private_key.decode(encoding=ENCODING), public_key.decode(encoding=ENCODING)
 
 
 class RSAUtil:
@@ -32,6 +41,12 @@ class RSAUtil:
 
     @staticmethod
     def load_key(extern_key: Optional[Union[str, bytes]] = None, extern_key_file: Optional[str] = None) -> RSA.RsaKey:
+        """
+        导入rsa密钥
+        :param extern_key: 密钥内容
+        :param extern_key_file: 密钥文件，
+        :return:
+        """
         if not (extern_key or extern_key_file):
             raise ValueError("key or key_file need to provide at least one.")
 
@@ -47,7 +62,7 @@ class RSAUtil:
     @staticmethod
     def get_block_size(key_obj: RSA.RsaKey, is_encrypt: bool = True) -> int:
         """
-        获取加解密最大片长度，单位：bytes
+        获取加解密最大片长度，用于分割过长的文本，单位：bytes
         :param key_obj:
         :param is_encrypt:
         :return:
@@ -85,14 +100,14 @@ class RSAUtil:
         :param message: 待加密的字符串
         :return: 密文
         """
-        message_bytes = message.encode()
+        message_bytes = message.encode(encoding=ENCODING)
         encrypt_message_bytes = b""
         block_size = self.get_block_size(self.public_key_obj)
         cipher = PKCS1_v1_5_cipher.new(self.public_key_obj)
         for block in self.block_list(message_bytes, block_size):
             encrypt_message_bytes += cipher.encrypt(block)
         encrypt_message = base64.b64encode(encrypt_message_bytes)
-        return encrypt_message.decode()
+        return encrypt_message.decode(encoding=ENCODING)
 
     def decrypt(self, encrypt_message: str) -> str:
         """
@@ -106,7 +121,7 @@ class RSAUtil:
         cipher = PKCS1_v1_5_cipher.new(self.private_key_obj)
         for block in self.block_list(encrypt_message_bytes, block_size):
             decrypt_message_bytes += cipher.decrypt(block, "")
-        return decrypt_message_bytes.decode()
+        return decrypt_message_bytes.decode(encoding=ENCODING)
 
     def sign(self, message: str) -> bytes:
         """
@@ -115,7 +130,7 @@ class RSAUtil:
         :return:
         """
         cipher = PKCS1_v1_5.new(self.private_key_obj)
-        sha = SHA.new(message)
+        sha = SHA1.new(message.encode(encoding=ENCODING))
         signature = cipher.sign(sha)
         return base64.b64encode(signature)
 
@@ -128,5 +143,5 @@ class RSAUtil:
         """
         signature = base64.b64decode(signature)
         cipher = PKCS1_v1_5.new(self.public_key_obj)
-        sha = SHA.new(message)
+        sha = SHA1.new(message.encode(encoding=ENCODING))
         return cipher.verify(sha, signature)
