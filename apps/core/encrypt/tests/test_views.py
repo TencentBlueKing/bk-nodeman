@@ -9,30 +9,31 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from django.db import transaction
-
+from apps.utils.encrypt import rsa
 from apps.utils.unittest import testcase
 
-from .. import constants, handlers
+from .. import constants, handlers, models
 from . import utils
 
 
 class RSAViewSetTestCase(testcase.CustomAPITestCase):
     def test_fetch_public_keys(self):
+        default_rsa_name = constants.InternalRSAKeyNameEnum.DEFAULT.value
         external_rsa_name = "EXTERNAL"
-        fetch_names = [constants.InternalRSAKeyNameEnum.DEFAULT.value, external_rsa_name]
+        fetch_names = [default_rsa_name, external_rsa_name]
         handlers.RSAHandler.get_or_generate_rsa_in_db(external_rsa_name, description="外部密钥")
         public_keys = self.client.post(path="/core/api/encrypt_rsa/fetch_public_keys/", data={"names": fetch_names})[
             "data"
         ]
         self.assertEqual(len(public_keys), len(fetch_names))
         key_name__item_map = {public_key["name"]: public_key for public_key in public_keys}
-        default_public_key_content = key_name__item_map[constants.InternalRSAKeyNameEnum.DEFAULT.value]["content"]
+        default_public_key_content = key_name__item_map[default_rsa_name]["content"]
 
-        # 验证取得的密钥可正常加解密
-        # Django unittest 通过抛出一个特殊异常触发数据库回滚，此处冗余事务处理避免TransactionManagementError
-        # 参考 -> https://stackoverflow.com/questions/21458387
-        with transaction.atomic():
-            result = handlers.RSAHandler.get_or_generate_rsa_in_db(name=constants.InternalRSAKeyNameEnum.DEFAULT.value)
-            self.assertEqual(result["rsa_public_key"].content, default_public_key_content)
-            utils.validate_rsa_util(rsa_util=result["rsa_util"])
+        default_private_key_content = models.RSAKey.objects.get(
+            name=default_rsa_name, type=constants.RSAKeyType.PRIVATE_KEY.value
+        ).content
+
+        rsa_util = rsa.RSAUtil(
+            public_extern_key=default_public_key_content, private_extern_key=default_private_key_content
+        )
+        utils.validate_rsa_util(rsa_util=rsa_util)
