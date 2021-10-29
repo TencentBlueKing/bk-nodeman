@@ -8,12 +8,9 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-
-from apps.utils.encrypt import rsa
 from apps.utils.unittest import testcase
 
-from .. import constants, handlers, models
-from . import utils
+from .. import constants, handlers
 
 
 class RSAViewSetTestCase(testcase.CustomAPITestCase):
@@ -26,14 +23,3 @@ class RSAViewSetTestCase(testcase.CustomAPITestCase):
             "data"
         ]
         self.assertEqual(len(public_keys), len(fetch_names))
-        key_name__item_map = {public_key["name"]: public_key for public_key in public_keys}
-        default_public_key_content = key_name__item_map[default_rsa_name]["content"]
-
-        default_private_key_content = models.RSAKey.objects.get(
-            name=default_rsa_name, type=constants.RSAKeyType.PRIVATE_KEY.value
-        ).content
-
-        rsa_util = rsa.RSAUtil(
-            public_extern_key=default_public_key_content, private_extern_key=default_private_key_content
-        )
-        utils.validate_rsa_util(rsa_util=rsa_util)
