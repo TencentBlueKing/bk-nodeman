@@ -1,0 +1,150 @@
+# This workflow will install Python dependencies, run tests and lint with a single version of Python
+# For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
+
+name: Release version
+
+on:
+  push:
+    branches:
+      - V[0-9]+.[0-9]+.X
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      # 构建环境的Python版本
+      PYTHON_VERSION: "3.7"
+      # yaml中版本的描述路径
+      VERSION_KW_P: "version"
+      # 描述app的yaml文件
+      APP_YAML: "app.yml"
+      # github 提交用户名
+      GITHUB_USERNAME: "github-actions"
+      # 开发日志所在目录
+      DEV_LOG_ROOT: "dev_log"
+      # 发布日志所在目录
+      RELEASE_LOG_ROOT: "release"
+      RELEASE_MD_PATH: "docs/release.md"
+      # tag 名称前缀
+      TAG_NAME_PREFIX: "V"
+      # release 名称前缀
+      RELEASE_NAME_PREFIX: "V"
+      # 开发分支名称后缀
+      DEV_BRANCH_SUFFIX: "-rc"
+      # 开发分支名称前缀
+      DEV_BRANCH_PREFIX: "V"
+
+    steps:
+    - id: checkout
+      name: Checkout
+      uses: actions/checkout@v2
+
+    - id: set-up-python
+      name: Set up Python ${{ env.PYTHON_VERSION }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - id: install-requirements
+      name: Install requirements
+      run: |
+        pip install PyYAML
+        pip install packaging
+        pip install ruamel.yaml
+
+    - id: generate-dev-log
+      name: Generate dev log
+      run: |
+        # 获取预发布版本
+        prerelease_version=$( python scripts/workflows/release/op_yaml.py -f ${{ env.APP_YAML }} --keyword-path ${{ env.VERSION_KW_P }} --op get )
+        echo "🚀 prerelease_version -> $prerelease_version"
+
+        # 获取发布日志路径并更新发布日志
+        release_log_path=$( python scripts/workflows/release/upgrade_release_log.py -d ${{ env.DEV_LOG_ROOT }} -r ${{ env.RELEASE_LOG_ROOT }} -p ${{ env.RELEASE_MD_PATH }} -v $prerelease_version )
+        echo "🌟 release_log_path -> $release_log_path"
+        release_log=$( cat "$release_log_path" )
+        echo "📒 release_log -> 👇👇👇 $release_log"
+
+        # 获取发布日志路径
+        release_log_path=$( echo ${{ env.RELEASE_LOG_ROOT }}/$(ls -a ${{ env.RELEASE_LOG_ROOT }} | grep "$prerelease_version"-) )
+
+        # 推送发布日志
+        git config --global user.email "${{ env.GITHUB_USERNAME }}@users.noreply.github.com"
+        git config --global user.name "${{ env.GITHUB_USERNAME }}"
+        git add .
+        git commit -m "docs: auto generate $prerelease_version release log"
+        git push origin ${{ github.ref }}
+        echo "✨️ main branch -> ${{ github.ref }} has been updated"
+
+        # 设置输出
+        echo "::set-output name=release_log_path::$(echo $release_log_path)"
+        echo "::set-output name=prerelease_version::$(echo $prerelease_version)"
+
+    - id: create-tag
+      name: Create tag
+      run: |
+        # 从上个步骤获取预发布版本号，拼接为标签名称
+        tag_name=$( echo "${{ env.TAG_NAME_PREFIX }}${{ steps.generate-dev-log.outputs.prerelease_version }}" )
+        release_log=$( cat ${{ steps.generate-dev-log.outputs.release_log_path }} )
+        echo "🏷️ tag -> $tag_name will be created"
+
+        # 创建并推送标签
+        # --cleanup=verbatim 修改默认的注释清理模式，保持完整的提交信息，默认的模式会将 # 开头的信息视为注释行
+        # 参考：https://stackoverflow.com/questions/2788092/start-a-git-commit-message-with-a-hashmark
+        # 参考：https://git.kernel.org/pub/scm/git/git.git/plain/Documentation/git-commit.txt
+        git tag -a "$tag_name" -m "$release_log" --cleanup=verbatim
+        git push origin "$tag_name"
+        echo "✨️ tag -> $tag_name has been created"
+
+        # 输出 tag_name
+        echo "::set-output name=tag_name::$(echo $tag_name)"
+
+    - id: create-release
+      name: Create release
+      uses: actions/create-release@latest
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ steps.create-tag.outputs.tag_name }}
+        release_name: ${{ env.RELEASE_NAME_PREFIX }}${{ steps.generate-dev-log.outputs.prerelease_version }}
+        body_path: ${{ steps.generate-dev-log.outputs.release_log_path }}
+        draft: false
+        prerelease: true
+
+    - id: start-new-version
+      name: Start new version
+      run: |
+
+        # 版本已发布，此时取出的预发布版本是最新版本
+        latest_version=$( echo "${{ steps.generate-dev-log.outputs.prerelease_version }}" )
+        echo "🔥️ latest_version -> $latest_version"
+
+        next_version=$( python scripts/workflows/release/version_increment.py --version "$latest_version" )
+        echo "⬇️ next_version -> $next_version"
+
+        # 检出新开发分支
+        dev_branch_name=$( echo "${{ env.DEV_BRANCH_PREFIX }}${next_version}${{ env.DEV_BRANCH_SUFFIX }}" )
+        echo "🌿 dev_branch_name -> $dev_branch_name"
+        git checkout -b "$dev_branch_name"
+
+        # 开发分支写入预发布版本号
+        python scripts/workflows/release/op_yaml.py -f ${{ env.APP_YAML }} --keyword-path ${{ env.VERSION_KW_P }} --op set --value "$next_version"
+
+        # 创建新开发版本的开发日志目录
+        next_version_dev_log_dir_path=$(echo "${{ env.DEV_LOG_ROOT }}/$next_version" )
+        echo "📖 next_version_dev_log_dir_path -> $next_version_dev_log_dir_path"
+        mkdir -p "$next_version_dev_log_dir_path"
+        touch "$next_version_dev_log_dir_path/.gitkeep"
+
+        # 推送到仓库
+        git add .
+        git commit -m "minor: start new version $next_version"
+        git push origin "$dev_branch_name"
+        echo "✨️ dev_branch -> $dev_branch_name has been created"
+
+    - id: celebrate
+      name: Celebrate
+      run: |
+        echo "🎉 Worth celebrating"
+        echo "🍻 All steps are successfully completed"
+        echo "👋 Goodbye!"
