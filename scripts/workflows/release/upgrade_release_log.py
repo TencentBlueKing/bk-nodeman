@@ -54,7 +54,7 @@ if __name__ == "__main__":
     params = extract_params(sys.argv[1:])
     dev_log_root = params["dev-log-root"]
     release_log_root = params["release-log-root"]
-    release_md_path = params["release-md-path"] or os.path.join(release_log_root, "readme.md")
+    release_md_path = params["release-md-path"] or os.path.join(release_log_root, "release.md")
 
     # 获取等待发布的版本号
     prerelease_version = params["prerelease-version"] or get_prerelease_version(dev_log_root=dev_log_root)

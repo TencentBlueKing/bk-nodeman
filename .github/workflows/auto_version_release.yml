@@ -24,6 +24,7 @@ jobs:
       DEV_LOG_ROOT: "dev_log"
       # 发布日志所在目录
       RELEASE_LOG_ROOT: "release"
+      RELEASE_MD_PATH: "docs/release.md"
       # tag 名称前缀
       TAG_NAME_PREFIX: "V"
       # release 名称前缀
@@ -59,7 +60,7 @@ jobs:
         echo "🚀 prerelease_version -> $prerelease_version"
 
         # 获取发布日志路径并更新发布日志
-        release_log_path=$( python scripts/workflows/release/upgrade_release_log.py -d ${{ env.DEV_LOG_ROOT }} -r ${{ env.RELEASE_LOG_ROOT }} )
+        release_log_path=$( python scripts/workflows/release/upgrade_release_log.py -d ${{ env.DEV_LOG_ROOT }} -r ${{ env.RELEASE_LOG_ROOT }} -p ${{ env.RELEASE_MD_PATH }} -v $prerelease_version )
         echo "🌟 release_log_path -> $release_log_path"
         release_log=$( cat "$release_log_path" )
         echo "📒 release_log -> 👇👇👇 $release_log"
