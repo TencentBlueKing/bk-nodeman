@@ -113,7 +113,9 @@ if __name__ == "__main__":
         os.remove(release_md_path_to_be_deleted)
 
     # 另写一份发布日志到 version-date.md
-    version_release_md_path = os.path.join(release_log_root, f"V{prerelease_version}-{datetime.date.today()}.md")
+    version_release_md_path = os.path.join(
+        release_log_root, f"V{prerelease_version}-{datetime.datetime.now().strftime('%Y%m%d')}.md"
+    )
     # w -> overwrite
     with open(file=version_release_md_path, mode="w", encoding="utf-8") as version_release_md_fs:
         version_release_md_fs.write(release_text + "\n")
