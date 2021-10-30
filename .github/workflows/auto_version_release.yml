@@ -123,7 +123,7 @@ jobs:
         echo "⬇️ next_version -> $next_version"
 
         # 检出新开发分支
-        dev_branch_name=${{ env.DEV_BRANCH_PREFIX }}" )$( echo "${next_version}${{ env.DEV_BRANCH_SUFFIX }}" )
+        dev_branch_name=$( echo "${{ env.DEV_BRANCH_PREFIX }}${next_version}${{ env.DEV_BRANCH_SUFFIX }}" )
         echo "🌿 dev_branch_name -> $dev_branch_name"
         git checkout -b "$dev_branch_name"
 
