@@ -55,7 +55,7 @@ jobs:
       name: Generate dev log
       run: |
         # 获取预发布版本
-        prerelease_version=$( python scripts/utils/op_yaml.py -f ${{ env.APP_YAML }} --keyword-path ${{ env.VERSION_KW_P }} --op get )
+        prerelease_version=$( python scripts/workflows/release/op_yaml.py -f ${{ env.APP_YAML }} --keyword-path ${{ env.VERSION_KW_P }} --op get )
         echo "🚀 prerelease_version -> $prerelease_version"
 
         # 获取发布日志路径并更新发布日志
@@ -127,7 +127,7 @@ jobs:
         git checkout -b "$dev_branch_name"
 
         # 开发分支写入预发布版本号
-        python scripts/utils/op_yaml.py -f ${{ env.APP_YAML }} --keyword-path ${{ env.VERSION_KW_P }} --op set --value "$next_version"
+        python scripts/workflows/release/op_yaml.py -f ${{ env.APP_YAML }} --keyword-path ${{ env.VERSION_KW_P }} --op set --value "$next_version"
 
         # 创建新开发版本的开发日志目录
         next_version_dev_log_dir_path=$(echo "${{ env.DEV_LOG_ROOT }}/$next_version" )
