@@ -119,11 +119,3 @@
    -rw-r--r-- 1 blueking blueking    39640 Aug 25 19:32 setup_agent.bat
    -rw-r--r-- 1 blueking blueking     5864 Aug 25 19:32 gsectl.bat
    ```
-
-## 解决方案
-
-#### NAT网络
-
-``Proxy``服务器作为``NAT``地址安装在直连区域时，通过手动安装并配置安装通道打通网络，实现远程安装
-![11](solution/安装通道NAT网络路由图.png)
-   
