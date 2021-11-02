@@ -102,6 +102,7 @@ AGENT_TEMPLATE = """
     "procgroupcfg": {{ procgroupcfg }},
     "alarmcfgpath": {{ alarmcfgpath }},
     "dataipc": {{ dataipc }},
+    "dbgipc": "{{ dbgipc }}",
     "plugincfg": {{ plugincfg }},
     "pluginbin": {{ pluginbin }},
     "pluginipc": {{ pluginipc }},
@@ -469,10 +470,12 @@ def generate_gse_config(bk_cloud_id, filename, node_type, inner_ip):
         path_sep = constants.WINDOWS_SEP
         dataipc = agent_config.get("dataipc", 47000)
         pluginipc = agent_config.get("pluginipc", 47200)
+        dbgipc = agent_config.get("dbgipc", 47100)
     else:
         path_sep = constants.LINUX_SEP
         dataipc = agent_config.get("dataipc", "/var/run/ipc.state.report")
         pluginipc = path_sep.join([setup_path, "agent", "data", "ipc.plugin.manage"])
+        dbgipc = agent_config.get("dbgipc", f"{settings.GSE_AGENT_HOME}/agent/data/ipc.dbg.agent")
 
     template = {}
     context = {}
@@ -536,6 +539,7 @@ def generate_gse_config(bk_cloud_id, filename, node_type, inner_ip):
             "procgroupcfg": procgroupcfg,
             "alarmcfgpath": alarmcfgpath,
             "dataipc": dataipc,
+            "dbgipc": dbgipc,
             "plugincfg": plugincfg,
             "pluginbin": pluginbin,
             "pluginipc": pluginipc,

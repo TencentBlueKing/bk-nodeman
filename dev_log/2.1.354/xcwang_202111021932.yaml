@@ -1,0 +1,3 @@
+---
+bugfix:
+  - "gse agent 缺少 dbgipc 配置项(close #244)"
