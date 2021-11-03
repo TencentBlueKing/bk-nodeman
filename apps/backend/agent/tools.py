@@ -106,7 +106,7 @@ def choose_script_file(host: models.Host) -> str:
         # proxy 安装
         return "setup_proxy.sh"
 
-    if host.install_channel_id or (host.node_type == constants.NodeType.PAGENT and not host.is_manual):
+    if host.install_channel_id or host.node_type == constants.NodeType.PAGENT:
         # 远程安装 P-AGENT 或者指定安装通道时，用 setup_pagent 脚本
         return constants.SetupScriptFileName.SETUP_PAGENT_PY.value
 
@@ -187,6 +187,8 @@ def gen_commands(host: models.Host, pipeline_id: str, is_uninstall: bool) -> Ins
 
         dest_dir = jump_server.agent_config["temp_path"]
         dest_dir = suffix_slash("linux", dest_dir)
+        if host.is_manual:
+            run_cmd_params.insert(0, f"{dest_dir}{script_file_name} ")
         host_tmp_path = suffix_slash(host.os_type.lower(), host.agent_config["temp_path"])
         host_identity = (
             host.identity.key if host.identity.auth_type == constants.AuthType.KEY else host.identity.password
