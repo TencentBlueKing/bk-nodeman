@@ -367,8 +367,9 @@ export default class AgentSetup extends Mixins(mixin, formLabelMixin) {
             } else {
               item.bt_speed_limit = Number(item.bt_speed_limit);
             }
-            if (item.auth_type === 'PASSWORD' && item.password) {
-              item.password = this.$RSA.get(item.password);
+            if (prove) {
+              const authType = item.auth_type?.toLowerCase() as ('key' | 'password');
+              item[authType] = this.$RSA.encryptChunk(prove);
             }
             item.peer_exchange_switch_for_agent = Number(item.peer_exchange_switch_for_agent);
             return item;
