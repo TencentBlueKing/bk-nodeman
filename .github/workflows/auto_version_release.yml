@@ -66,7 +66,7 @@ jobs:
         echo "📒 release_log -> 👇👇👇 $release_log"
 
         # 获取发布日志路径
-        release_log_path=$( echo ${{ env.RELEASE_LOG_ROOT }}/$(ls -a ${{ env.RELEASE_LOG_ROOT }} | grep "$prerelease_version"-) )
+        release_log_path=$( echo ${{ env.RELEASE_LOG_ROOT }}/$(ls -a ${{ env.RELEASE_LOG_ROOT }} | grep "$prerelease_version"_) )
 
         # 推送发布日志
         git config --global user.email "${{ env.GITHUB_USERNAME }}@users.noreply.github.com"
