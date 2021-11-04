@@ -8,15 +8,17 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from typing import List, Optional
+
 from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import permissions
 
+from apps.node_man import models
 from apps.node_man.constants import IamActionType
 from apps.node_man.exceptions import CloudNotExistError
 from apps.node_man.handlers.cmdb import CmdbHandler
 from apps.node_man.handlers.iam import IamHandler
-from apps.node_man.models import Cloud, GsePluginDesc, Packages, Subscription
 from apps.utils.local import get_request_username
 
 
@@ -94,8 +96,8 @@ class CloudPermission(permissions.BasePermission):
 
             # 只有创建者和超管才有云区域详情、编辑、删除权限
             try:
-                cloud = Cloud.objects.get(pk=int(view.kwargs.get("pk", -1)))
-            except Cloud.DoesNotExist:
+                cloud = models.Cloud.objects.get(pk=int(view.kwargs.get("pk", -1)))
+            except models.Cloud.DoesNotExist:
                 raise CloudNotExistError(_("不存在ID为: {bk_cloud_id} 的云区域").format(bk_cloud_id=int(view.kwargs.get("pk"))))
 
             if get_request_username() in cloud.creator or IamHandler.is_superuser(get_request_username()):
@@ -212,9 +214,11 @@ class PackagePermission(permissions.BasePermission):
             if view.action in ["package_status_operation"]:
                 plugin_package_ids = request.data.get("id", [])
                 plugin_names = list(
-                    Packages.objects.filter(id__in=plugin_package_ids).values_list("project", flat=True)
+                    models.Packages.objects.filter(id__in=plugin_package_ids).values_list("project", flat=True)
                 )
-                plugin_ids = list(GsePluginDesc.objects.filter(name__in=plugin_names).values_list("id", flat=True))
+                plugin_ids = list(
+                    models.GsePluginDesc.objects.filter(name__in=plugin_names).values_list("id", flat=True)
+                )
                 return not set(plugin_ids) - set(perms[IamActionType.plugin_pkg_operate])
 
             if view.action in ["upload", "parse", "create_register_task", "query_register_task"]:
@@ -262,8 +266,8 @@ class PolicyPermission(permissions.BasePermission):
                 pk = int(request.data.get("policy_id", 0))
 
             try:
-                policy = Subscription.objects.get(id=pk)
-            except Subscription.DoesNotExist:
+                policy = models.Subscription.objects.get(id=pk)
+            except models.Subscription.DoesNotExist:
                 return False
 
             return policy.pid in operate_perms if policy.pid != -1 else policy.id in operate_perms
@@ -279,12 +283,15 @@ class PolicyPermission(permissions.BasePermission):
             # 不需要鉴权的action
             return True
 
-        bk_biz_scope = list(set([node["bk_biz_id"] for node in request.data["scope"]["nodes"]]))
-
         if view.action in ["host_policy"]:
+            bk_host_id: Optional[int] = request.query_params.get("bk_host_id")
+            bk_biz_scope: List[int] = list(
+                models.Host.objects.filter(bk_host_id=bk_host_id).values_list("bk_biz_id", flat=True)
+            )
             return CmdbHandler().check_biz_permission(bk_biz_scope, IamActionType.strategy_view)
 
         if view.action in ["create_policy"]:
+            bk_biz_scope: List[int] = list(set([node["bk_biz_id"] for node in request.data["scope"]["nodes"]]))
             return CmdbHandler().check_biz_permission(bk_biz_scope, IamActionType.strategy_create)
 
         return False
