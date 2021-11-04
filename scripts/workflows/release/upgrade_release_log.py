@@ -80,7 +80,7 @@ if __name__ == "__main__":
     # 拼接日志
     release_text = f"\n## {prerelease_version} - {datetime.date.today()} \n"
     for pr_type, msgs in msgs_group_by_pr_type.items():
-        release_text += f"\n### {pr_type}: \n  * " + "\n  * ".join(msgs)
+        release_text += f"\n\n### {pr_type}: \n  * " + "\n  * ".join(msgs)
 
     # 如果发布日志目录路径不存在，逐层进行创建，并且忽略已创建的层级（exist_ok）
     if not os.path.exists(release_log_root):
@@ -114,7 +114,7 @@ if __name__ == "__main__":
 
     # 另写一份发布日志到 version-date.md
     version_release_md_path = os.path.join(
-        release_log_root, f"V{prerelease_version}-{datetime.datetime.now().strftime('%Y%m%d')}.md"
+        release_log_root, f"V{prerelease_version}_{datetime.datetime.now().strftime('%Y%m%d')}.md"
     )
     # w -> overwrite
     with open(file=version_release_md_path, mode="w", encoding="utf-8") as version_release_md_fs:
