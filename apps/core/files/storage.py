@@ -144,6 +144,12 @@ class AdminFileSystemStorage(BaseStorage, FileSystemStorage):
         """路径指向 / ，重写前路径指向「项目根目录」"""
         return self.base_location
 
+    def _save(self, name, content):
+        # 如果允许覆盖，保存前删除文件
+        if self.file_overwrite:
+            self.delete(name)
+        return super()._save(name, content)
+
     def _handle_file_source_list(
         self, file_source_list: List[Dict[str, Any]], extra_transfer_file_params: Dict[str, Any]
     ) -> List[Dict[str, Any]]:
