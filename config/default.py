@@ -9,13 +9,15 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import sys
-from distutils.util import strtobool
 from enum import Enum
+from typing import Dict, Optional
 
 from blueapps.conf.default_settings import *  # noqa
+from blueapps.conf.log import get_logging_config_dict
 
+import env
+from apps.utils.enum import EnhanceEnum
 from apps.utils.env import get_type_env
-from config import ENVIRONMENT
 
 # pipeline 配置
 from pipeline.celery.settings import CELERY_QUEUES as PIPELINE_CELERY_QUEUES
@@ -167,34 +169,43 @@ CELERY_IMPORTS = (
 # ===============================================================================
 # 项目配置
 # ===============================================================================
-BK_PAAS_HOST = os.getenv("BK_PAAS_HOST", "") or BK_URL
-BK_PAAS_INNER_HOST = os.getenv("BK_PAAS_INNER_HOST") or BK_PAAS_HOST
-
-BK_NODEMAN_URL = os.getenv("BK_NODEMAN_URL", f"{BK_PAAS_INNER_HOST}/o/bk_nodeman")
-BK_CMDB_HOST = os.environ.get("BK_CMDB_HOST", BK_PAAS_HOST.replace("paas", "cmdb"))
-BK_JOB_HOST = os.environ.get("BK_JOB_HOST", BK_PAAS_HOST.replace("paas", "job"))
-
-BK_IAM_ESB_PAAS_HOST = os.getenv("BK_IAM_ESB_PAAS_HOST") or BK_PAAS_INNER_HOST
-BK_IAM_HOST = os.getenv("BK_IAM_V3_INNER_HOST", "http://bkiam.service.consul:9081")
-BK_IAM_SYSTEM_ID = os.getenv("BK_IAM_SYSTEM_ID", "bk_nodeman")
-BK_IAM_CMDB_SYSTEM_ID = os.getenv("BK_IAM_CMDB_SYSTEM_ID", "bk_cmdb")
-BK_IAM_URL = os.getenv("BK_IAM_URL", f"{BK_PAAS_HOST}/o/bk_iam/apply-custom-perm")
-
-BK_IAM_MIGRATION_APP_NAME = "iam_migrations"
-BK_IAM_SKIP = False
 
 CONF_PATH = os.path.abspath(__file__)
 PROJECT_ROOT = os.path.dirname(os.path.dirname(CONF_PATH))
 PYTHON_BIN = os.path.dirname(sys.executable)
+
+
+BK_PAAS_HOST = os.getenv("BK_PAAS_HOST", "")
+BK_PAAS_INNER_HOST = os.getenv("BK_PAAS_INNER_HOST") or BK_PAAS_HOST
+# ESB、APIGW 的域名，新增于PaaSV3，如果取不到该值，则使用 BK_PAAS_INNER_HOST
+BK_COMPONENT_API_URL = env.BK_COMPONENT_API_URL
+
+BK_NODEMAN_HOST = env.BK_NODEMAN_HOST
+# 节点管理后台外网域名，用于构造文件导入导出的API URL
+BK_NODEMAN_BACKEND_HOST = env.BK_NODEMAN_BACKEND_HOST
+BK_JOB_HOST = os.environ.get("BK_JOB_HOST", BK_PAAS_HOST.replace("paas", "job"))
+
+# 使用权限中心
+USE_IAM = bool(os.getenv("BKAPP_USE_IAM", False))
+
+BK_IAM_APP_CODE = os.getenv("BK_IAM_V3_APP_CODE", "bk_iam")
+BK_IAM_INNER_HOST = os.getenv("BK_IAM_V3_INNER_HOST", "http://bkiam.service.consul:9081")
+BK_IAM_SAAS_HOST = env.BK_IAM_SAAS_HOST
+
+BK_IAM_SYSTEM_ID = os.getenv("BKAPP_IAM_SYSTEM_ID", "bk_nodeman")
+BK_IAM_CMDB_SYSTEM_ID = os.getenv("BKAPP_IAM_CMDB_SYSTEM_ID", "bk_cmdb")
+BK_IAM_MIGRATION_JSON_PATH = os.path.join(PROJECT_ROOT, "support-files/bkiam")
+BK_IAM_RESOURCE_API_HOST = env.BK_IAM_RESOURCE_API_HOST
+
+
+BK_IAM_MIGRATION_APP_NAME = "iam_migrations"
+BK_IAM_SKIP = False
 
 BK_DOCS_CENTER_HOST = os.getenv("BK_DOCS_CENTER_HOST")
 
 INIT_SUPERUSER = ["admin"]
 DEBUG = False
 SHOW_EXCEPTION_DETAIL = False
-
-# 使用权限中心
-USE_IAM = bool(os.getenv("BKAPP_USE_IAM", False))
 
 # 并发数
 CONCURRENT_NUMBER = int(os.getenv("CONCURRENT_NUMBER", 50) or 50)
@@ -255,7 +266,7 @@ SYSTEM_USE_API_ACCOUNT = "admin"
 
 MAKO_TEMPLATE_DIR = [os.path.join(PROJECT_ROOT, directory) for directory in ["static/dist", "templates"]]
 
-VUE_INDEX = f"{ENVIRONMENT}/index.html"
+VUE_INDEX = f"{env.ENVIRONMENT}/index.html"
 
 TEMPLATES = [
     {
@@ -314,14 +325,11 @@ STORAGE_TYPE = os.getenv("STORAGE_TYPE", StorageType.FILE_SYSTEM.value)
 # 是否覆盖同名文件
 FILE_OVERWRITE = get_type_env("FILE_OVERWRITE", _type=bool, default=False)
 
-# 节点管理后台外网域名，用于构造文件导入导出的API URL
-BACKEND_HOST = os.getenv("BKAPP_BACKEND_HOST", "")
-
 BKREPO_USERNAME = os.getenv("BKREPO_USERNAME")
 BKREPO_PASSWORD = os.getenv("BKREPO_PASSWORD")
 BKREPO_PROJECT = os.getenv("BKREPO_PROJECT")
 # 默认文件存放仓库
-BKREPO_BUCKET = os.getenv("BKREPO_BUCKET")
+BKREPO_BUCKET = os.getenv("BKREPO_PUBLIC_BUCKET")
 # 对象存储平台域名
 BKREPO_ENDPOINT_URL = os.getenv("BKREPO_ENDPOINT_URL")
 
@@ -335,10 +343,10 @@ STORAGE_TYPE_IMPORT_PATH_MAP = {
 DEFAULT_FILE_STORAGE = STORAGE_TYPE_IMPORT_PATH_MAP[STORAGE_TYPE]
 
 # 本地文件系统上传文件后台API
-FILE_SYSTEM_UPLOAD_API = f"{BACKEND_HOST}/backend/package/upload/"
+FILE_SYSTEM_UPLOAD_API = f"{BK_NODEMAN_BACKEND_HOST}/backend/package/upload/"
 
 # 对象存储上传文件后台API
-COS_UPLOAD_API = f"{BACKEND_HOST}/backend/package/upload_cos/"
+COS_UPLOAD_API = f"{BK_NODEMAN_BACKEND_HOST}/backend/package/upload_cos/"
 
 # 暂时存在多个上传API的原因：原有文件上传接口被Nginx转发
 STORAGE_TYPE_UPLOAD_API_MAP = {
@@ -348,7 +356,7 @@ STORAGE_TYPE_UPLOAD_API_MAP = {
 
 DEFAULT_FILE_UPLOAD_API = STORAGE_TYPE_UPLOAD_API_MAP[STORAGE_TYPE]
 
-BKAPP_NODEMAN_DOWNLOAD_API = f"{BACKEND_HOST}/backend/export/download/"
+BKAPP_NODEMAN_DOWNLOAD_API = f"{BK_NODEMAN_BACKEND_HOST}/backend/export/download/"
 
 PUBLIC_PATH = os.getenv("BKAPP_PUBLIC_PATH") or "/data/bkee/public/bknodeman/"
 
@@ -413,7 +421,47 @@ if IS_USE_CELERY:
     CELERY_TASK_RESULT_EXPIRES = 60 * 30  # 30分钟丢弃结果
 
 # 后台配置
-BK_BACKEND_CONFIG = bool(os.getenv("BK_BACKEND_CONFIG", None))
+BK_BACKEND_CONFIG = env.BK_BACKEND_CONFIG
+BKAPP_IS_PAAS_DEPLOY = env.BKAPP_IS_PAAS_DEPLOY
+
+
+class ConfigRedisMode(EnhanceEnum):
+    """
+    后台配置的Redis模式
+    背景：脱离PaaS的后台部署，运维提供的Redis模式切换控制变量
+    """
+
+    STANDALONE = "standalone"
+    SENTINEL = "sentinel"
+
+    @classmethod
+    def _get_member__alias_map(cls) -> Dict[Enum, str]:
+        return {cls.STANDALONE: "单例模式", cls.SENTINEL: "哨兵模式"}
+
+
+class RedisMode(EnhanceEnum):
+    """标准Redis模式"""
+
+    SINGLE = "single"
+    REPLICATION = "replication"
+    CLUSTER = "cluster"
+
+    @classmethod
+    def _get_member__alias_map(cls) -> Dict[Enum, str]:
+        return {cls.SINGLE: "单例模式", cls.REPLICATION: "主从模式", cls.CLUSTER: "集群模式"}
+
+    @classmethod
+    def get_config_mode__redis_mode_map(cls):
+        """获取配置Redis模式 - 标准Redis模式映射"""
+        return {
+            ConfigRedisMode.SENTINEL.value: cls.REPLICATION.value,
+            ConfigRedisMode.STANDALONE.value: cls.SINGLE.value,
+        }
+
+    @classmethod
+    def get_standard_redis_mode(cls, config_redis_mode: str, default: Optional[str] = None) -> Optional[str]:
+        return cls.get_config_mode__redis_mode_map().get(config_redis_mode, default)
+
 
 if BK_BACKEND_CONFIG:
     IS_LOCAL = False
@@ -440,11 +488,11 @@ if BK_BACKEND_CONFIG:
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.mysql",  # 默认用mysql
-            "NAME": os.getenv("BK_NODEMAN_MYSQL_NAME", "bk_nodeman"),  # 数据库名
-            "USER": os.getenv("BK_NODEMAN_MYSQL_USER"),
-            "PASSWORD": os.getenv("BK_NODEMAN_MYSQL_PASSWORD"),
-            "HOST": os.getenv("BK_NODEMAN_MYSQL_HOST"),
-            "PORT": os.getenv("BK_NODEMAN_MYSQL_PORT"),
+            "NAME": os.getenv("MYSQL_NAME", "bk_nodeman"),  # 数据库名
+            "USER": os.getenv("MYSQL_USER"),
+            "PASSWORD": os.getenv("MYSQL_PASSWORD"),
+            "HOST": os.getenv("MYSQL_HOST"),
+            "PORT": os.getenv("MYSQL_PORT"),
             "OPTIONS": {"isolation_level": "repeatable read"},
         }
     }
@@ -453,39 +501,54 @@ if BK_BACKEND_CONFIG:
     REST_FRAMEWORK["DEFAULT_AUTHENTICATION_CLASSES"] = [
         "apps.utils.drf.CsrfExemptSessionAuthentication",
     ]
-    # redis 集群sentinel模式
-    REDIS_HOST = os.getenv("BK_NODEMAN_REDIS_SENTINEL_HOST")
-    REDIS_PORT = os.getenv("BK_NODEMAN_REDIS_SENTINEL_PORT")
-    REDIS_PASSWD = os.getenv("BK_NODEMAN_REDIS_PASSWORD")
-    REDIS_MASTER_NAME = os.getenv("BK_NODEMAN_REDIS_MASTER_NAME")
+
+    # BROKER_URL
+    BROKER_URL = "amqp://{user}:{passwd}@{host}:{port}/{vhost}".format(
+        user=os.getenv("RABBITMQ_USER"),
+        passwd=os.getenv("RABBITMQ_PASSWORD"),
+        host=os.getenv("RABBITMQ_HOST"),
+        port=os.getenv("RABBITMQ_PORT"),
+        vhost=os.getenv("RABBITMQ_VHOST") or "bk_bknodeman",
+    )
+
+    CONFIG_REDIS_MODE = os.getenv("REDIS_MODE", ConfigRedisMode.SENTINEL.value)
+    REDIS_MODE = RedisMode.get_standard_redis_mode(CONFIG_REDIS_MODE, default=RedisMode.REPLICATION.value)
+
+    REDIS_PASSWORD = os.getenv("REDIS_PASSWORD")
+    REDIS_MASTER_NAME = os.getenv("REDIS_MASTER_NAME")
+
+    if REDIS_MODE == "replication":
+        # redis 集群sentinel模式
+        REDIS_HOST = os.getenv("REDIS_SENTINEL_HOST")
+        REDIS_PORT = os.getenv("REDIS_SENTINEL_PORT")
+        # # celery redbeat config
+        REDBEAT_REDIS_URL = "redis-sentinel://redis-sentinel:{port}/0".format(port=REDIS_PORT or 26379)
+
+        # 临时兼容社区版单例配置
+        if BKAPP_RUN_ENV == "ce":
+            REDBEAT_REDIS_URL = "redis://:{passwd}@{host}:{port}/0".format(
+                passwd=REDIS_PASSWORD, host=REDIS_HOST, port=REDIS_PORT or 6379
+            )
+            REDIS_MODE = "single"
+    else:
+        REDIS_HOST = os.getenv("REDIS_HOST")
+        REDIS_PORT = os.getenv("REDIS_PORT")
+        # # celery redbeat config
+        REDBEAT_REDIS_URL = "redis://:{passwd}@{host}:{port}/0".format(
+            passwd=REDIS_PASSWORD, host=REDIS_HOST, port=REDIS_PORT or 6379
+        )
 
     REDIS = {
         "host": REDIS_HOST,
         "port": REDIS_PORT,
-        "password": REDIS_PASSWD,
+        "password": REDIS_PASSWORD,
         "service_name": REDIS_MASTER_NAME,
-        "mode": "replication",  # 哨兵模式，可选 single, cluster, replication
+        "mode": REDIS_MODE,  # 哨兵模式，可选 single, cluster, replication
     }
-    # BROKER_URL
-    BROKER_URL = "amqp://{user}:{passwd}@{host}:{port}/{vhost}".format(
-        user=os.getenv("BK_NODEMAN_RABBITMQ_USERNAME"),
-        passwd=os.getenv("BK_NODEMAN_RABBITMQ_PASSWORD"),
-        host=os.getenv("BK_NODEMAN_RABBITMQ_HOST"),
-        port=os.getenv("BK_NODEMAN_RABBITMQ_PORT"),
-        vhost=os.getenv("BK_NODEMAN_RABBITMQ_VHOST") or "bk_bknodeman",
-    )
 
-    # celery redbeat config
-    if BKAPP_RUN_ENV == "ce":
-        REDBEAT_REDIS_URL = "redis://:{passwd}@{host}:{port}/0".format(
-            passwd=REDIS_PASSWD, host=REDIS_HOST, port=REDIS_PORT or 6379
-        )
-        REDIS["mode"] = "single"
-    else:
-        REDBEAT_REDIS_URL = "redis-sentinel://redis-sentinel:{port}/0".format(port=REDIS_PORT or 26379)
     REDBEAT_REDIS_OPTIONS = {
         "sentinels": [(REDIS_HOST, REDIS_PORT)],
-        "password": REDIS_PASSWD,
+        "password": REDIS_PASSWORD,
         "service_name": REDIS_MASTER_NAME or "mymaster",
         "socket_timeout": 0.1,
         "retry_period": 60,
@@ -500,16 +563,18 @@ if BK_BACKEND_CONFIG:
     BKAPP_EE_SOPS_TEMPLATE_ID = os.getenv("BKAPP_EE_SOPS_TEMPLATE_ID")
     BKAPP_REQUEST_EE_SOPS_BK_BIZ_ID = os.getenv("BKAPP_REQUEST_EE_SOPS_BK_BIZ_ID")
 
-    from blueapps.patch.log import get_paas_v2_logging_config_dict
+    # 后台不基于PaaS部署的情况下，需要重定向日志
+    if not BKAPP_IS_PAAS_DEPLOY:
+        from blueapps.patch.log import get_paas_v2_logging_config_dict
 
-    # 日志
-    BK_LOG_DIR = os.getenv("BK_LOG_DIR", "./../bk_nodeman/logs")
-    LOGGING = get_paas_v2_logging_config_dict(
-        is_local=IS_LOCAL, bk_log_dir=BK_LOG_DIR, log_level=locals().get("LOG_LEVEL", "INFO")
-    )
-else:
-    from blueapps.conf.log import get_logging_config_dict
+        # 日志
+        BK_LOG_DIR = os.getenv("BK_LOG_DIR", "./../bk_nodeman/logs")
+        LOGGING = get_paas_v2_logging_config_dict(
+            is_local=IS_LOCAL, bk_log_dir=BK_LOG_DIR, log_level=locals().get("LOG_LEVEL", "INFO")
+        )
 
+# 基于PaaS部署的后台，以及SaaS需要修改日志编码
+if not BK_BACKEND_CONFIG or BKAPP_IS_PAAS_DEPLOY:
     LOGGING = get_logging_config_dict(locals())
     LOGGING["handlers"]["root"]["encoding"] = "utf-8"
     LOGGING["handlers"]["component"]["encoding"] = "utf-8"
@@ -558,6 +623,9 @@ GSE_USE_ENCRYPTION = get_type_env(key="BKAPP_GSE_USE_ENCRYPTION", default=False,
 
 GSE_PROCESS_STATUS_DATAID = os.getenv("GSE_PROCESS_STATUS_DATAID") or 1200000
 GSE_PROCESS_EVENT_DATAID = os.getenv("GSE_PROCESS_EVENT_DATAID") or 1100008
+
+# 是否启用 gse svr 服务发现，启用后，默认接入点会通过zk的方式，自动更新gse svr信息
+GSE_ENABLE_SVR_DISCOVERY = get_type_env(key="GSE_ENABLE_SVR_DISCOVERY", default=False, _type=bool)
 
 # 是否使用CMDB订阅机制去主动触发插件下发
 USE_CMDB_SUBSCRIPTION_TRIGGER = get_type_env(key="BKAPP_USE_CMDB_SUBSCRIPTION_TRIGGER", default=True, _type=bool)

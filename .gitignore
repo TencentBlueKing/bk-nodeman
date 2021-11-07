@@ -91,7 +91,6 @@ celerybeat-schedule
 # Environments
 .env
 .venv
-env/
 venv/
 ENV/
 
@@ -177,3 +176,6 @@ tests/postman/bkman
 # Thumbnails
 ._*
 
+
+.helm
+!env/

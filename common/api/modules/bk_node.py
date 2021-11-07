@@ -20,6 +20,14 @@ class _BKNodeApi(object):
 
     def __init__(self):
 
+        self.upload_cos = DataAPI(
+            method="POST",
+            url=BK_NODE_APIGATEWAY_ROOT + "backend/package/upload_cos/",
+            module=self.MODULE,
+            description=u"上传插件",
+            before_request=add_esb_info_before_request,
+        )
+
         self.create_subscription = DataAPI(
             method="POST",
             url=BK_NODE_APIGATEWAY_ROOT + "backend/api/subscription/create/",
