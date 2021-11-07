@@ -49,6 +49,7 @@ cp -R bk_nodeman/script_tools ${NODEMAN_DIST_DIR}
 cp -R bk_nodeman/config ${NODEMAN_DIST_DIR}
 cp -R bk_nodeman/iam ${NODEMAN_DIST_DIR}
 cp -R bk_nodeman/upgrade ${NODEMAN_DIST_DIR}
+cp -R bk_nodeman/env ${NODEMAN_DIST_DIR}
 
 cp bk_nodeman/manage.py ${NODEMAN_DIST_DIR}
 cp bk_nodeman/settings.py ${NODEMAN_DIST_DIR}

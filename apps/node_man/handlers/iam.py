@@ -40,7 +40,7 @@ class IamHandler(APIModel):
     ]
 
     if settings.USE_IAM:
-        _iam = IAM(settings.APP_CODE, settings.SECRET_KEY, settings.BK_IAM_HOST, settings.BK_IAM_ESB_PAAS_HOST)
+        _iam = IAM(settings.APP_CODE, settings.SECRET_KEY, settings.BK_IAM_INNER_HOST, settings.BK_COMPONENT_API_URL)
     else:
         _iam = object
 
@@ -322,7 +322,7 @@ class IamHandler(APIModel):
                         apply_info["related_resource_types"][0]["instances"] = instances
             data["actions"].append(apply_info)
         ok, message, result = IamHandler._iam._client.get_apply_url(bk_token="", bk_username=username, data=data)
-        return result or settings.BK_IAM_URL
+        return result or settings.BK_IAM_SAAS_HOST
 
     @staticmethod
     def return_resource_instance_creator(resource_id, instance_id, instance_name, creator):

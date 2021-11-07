@@ -22,7 +22,3 @@ CSRF_COOKIE_NAME = f"{APP_CODE}_csrftoken"
 
 # 只对正式环境日志级别进行配置，可以在这里修改
 LOG_LEVEL = os.environ.get("LOG_LEVEL", "ERROR")
-
-BK_IAM_INNER_HOST = os.getenv("BK_IAM_V3_INNER_HOST")
-BK_IAM_MIGRATION_JSON_PATH = os.path.join(PROJECT_ROOT, "support-files/bkiam")
-BK_IAM_RESOURCE_API_HOST = os.getenv("BKAPP_IAM_RESOURCE_API_HOST", "{}{}".format(BK_PAAS_INNER_HOST, SITE_URL))
