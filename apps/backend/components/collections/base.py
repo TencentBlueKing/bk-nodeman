@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import traceback
 from functools import wraps
-from typing import Dict, List, Set, Union
+from typing import Dict, Iterable, List, Set, Union
 
 from django.db.models import Value
 from django.db.models.functions import Concat
@@ -123,16 +123,16 @@ class LogMixin:
             update_time=timezone.now(),
         )
 
-    def log_info(self, sub_inst_ids: Union[int, List[int], None] = None, log_content: str = None):
+    def log_info(self, sub_inst_ids: Union[int, Iterable[int], None] = None, log_content: str = None):
         self.log_base(sub_inst_ids, log_content, level=LogLevel.INFO)
 
-    def log_warning(self, sub_inst_ids: Union[int, List[int], None] = None, log_content: str = None):
+    def log_warning(self, sub_inst_ids: Union[int, Iterable[int], None] = None, log_content: str = None):
         self.log_base(sub_inst_ids, log_content, level=LogLevel.WARNING)
 
-    def log_error(self, sub_inst_ids: Union[int, List[int], None] = None, log_content: str = None):
+    def log_error(self, sub_inst_ids: Union[int, Iterable[int], None] = None, log_content: str = None):
         self.log_base(sub_inst_ids, log_content, level=LogLevel.ERROR)
 
-    def log_debug(self, sub_inst_ids: Union[int, List[int], None] = None, log_content: str = None):
+    def log_debug(self, sub_inst_ids: Union[int, Iterable[int], None] = None, log_content: str = None):
         self.log_base(sub_inst_ids, log_content, level=LogLevel.DEBUG)
 
 
@@ -241,8 +241,10 @@ class BaseService(Service, LogMixin):
         bk_host_ids = set()
         subscription_instance_ids = set()
         for subscription_instance in subscription_instances:
-            bk_host_ids.add(subscription_instance.instance_info["host"]["bk_host_id"])
             subscription_instance_ids.add(subscription_instance.id)
+            # 兼容新安装Agent主机无bk_host_id的场景
+            if "bk_host_id" in subscription_instance.instance_info["host"]:
+                bk_host_ids.add(subscription_instance.instance_info["host"]["bk_host_id"])
 
         host_id_obj_map: Dict[int, models.Host] = models.Host.host_id_obj_map(bk_host_id__in=bk_host_ids)
         ap_id_obj_map = models.AccessPoint.ap_id_obj_map()
