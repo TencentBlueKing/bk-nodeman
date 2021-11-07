@@ -12,13 +12,23 @@ import os
 
 from django.conf import settings
 
-BK_PAAS_HOST = settings.BK_PAAS_INNER_HOST or settings.BK_PAAS_HOST or ""
 ESB_PREFIX_V2 = os.getenv("ESB_PREFIX_V2") or "/api/c/compapi/v2/"
 
 
 def gen_api_root(api_gw_env_key: str, suffix: str) -> str:
     """生成API根路径，首先从环境变量获取，若环境变量没有，则按默认规则拼接"""
-    return os.getenv(api_gw_env_key) or f"{BK_PAAS_HOST}/{ESB_PREFIX_V2}/{suffix}/"
+    api_gw_env_val = os.getenv(api_gw_env_key)
+    if api_gw_env_val:
+        return api_gw_env_val
+
+    api_root = f"{settings.BK_COMPONENT_API_URL}/{ESB_PREFIX_V2}/{suffix}/"
+    if api_root.startswith("http://"):
+        api_root = api_root[:7] + api_root[7:].replace("//", "/")
+    elif api_root.startswith("https://"):
+        api_root = api_root[:8] + api_root[8:].replace("//", "/")
+    else:
+        api_root = api_root.replace("//", "/")
+    return api_root
 
 
 # 蓝鲸平台模块域名

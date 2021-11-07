@@ -16,10 +16,6 @@ if RUN_VER == "open":
 else:
     from blueapps.patch.settings_paas_services import *  # noqa
 
-BK_IAM_INNER_HOST = os.getenv("BK_IAM_V3_INNER_HOST")
-BK_IAM_MIGRATION_JSON_PATH = os.path.join(PROJECT_ROOT, "support-files/bkiam")
-BK_IAM_RESOURCE_API_HOST = os.getenv("BKAPP_IAM_RESOURCE_API_HOST", "{}{}".format(BK_PAAS_INNER_HOST, SITE_URL))
-
 # 预发布环境
 RUN_MODE = "STAGING"
 

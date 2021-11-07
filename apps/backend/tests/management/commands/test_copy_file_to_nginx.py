@@ -30,6 +30,7 @@ class CopyFileToNginxTestCase(CustomBaseTestCase):
         settings: {
             "BK_SCRIPTS_PATH": BK_SCRIPTS_PATH,
             "STORAGE_TYPE": core_files_constants.StorageType.FILE_SYSTEM.value,
+            "BK_BACKEND_CONFIG": True,
         },
     }
 
@@ -69,6 +70,7 @@ class BkRepoCopyFileToNginxTestCase(CopyFileToNginxTestCase):
             "BKREPO_ENDPOINT_URL": "http://127.0.0.1",
             "BK_SCRIPTS_PATH": BK_SCRIPTS_PATH,
             "STORAGE_TYPE": core_files_constants.StorageType.BLUEKING_ARTIFACTORY.value,
+            "BK_BACKEND_CONFIG": True,
         },
     }
 
