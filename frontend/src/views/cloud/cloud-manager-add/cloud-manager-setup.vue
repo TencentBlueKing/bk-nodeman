@@ -209,6 +209,7 @@ export default class CloudManagerSetup extends Mixins(formLabelMixin, FilterIpMi
 
   private created() {
     this.handleInit();
+    MainStore.getPublicKeyRSA().then(res => this.$RSA.setPublicKey(res));
   }
   private mounted() {
     this.marginLeft = this.initLabelWidth(this.formRef) || 0;
@@ -324,6 +325,10 @@ export default class CloudManagerSetup extends Mixins(formLabelMixin, FilterIpMi
         data.bt_speed_limit = Number(data.bt_speed_limit);
       }
       data.peer_exchange_switch_for_agent += 0;
+      const authType = item.auth_type?.toLowerCase() as ('key' | 'password');
+      if (item[authType]) {
+        data[authType] = this.$RSA.encryptChunk(item[authType] as string);
+      }
       return data;
     });
   }

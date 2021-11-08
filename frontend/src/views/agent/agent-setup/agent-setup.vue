@@ -358,7 +358,7 @@ export default class AgentSetup extends Mixins(mixin, formLabelMixin) {
         this.loadingSetupBtn = true;
         const params = {
           job_type: 'INSTALL_AGENT',
-          hosts: this.getFormData().map((item: ISetupRow) => {
+          hosts: this.getFormData().map(({ prove, ...item }: ISetupRow) => {
             if (isEmpty(item.login_ip)) {
               delete item.login_ip;
             }
@@ -366,6 +366,10 @@ export default class AgentSetup extends Mixins(mixin, formLabelMixin) {
               delete item.bt_speed_limit;
             } else {
               item.bt_speed_limit = Number(item.bt_speed_limit);
+            }
+            if (prove) {
+              const authType = item.auth_type?.toLowerCase() as ('key' | 'password');
+              item[authType] = this.$RSA.encryptChunk(prove);
             }
             item.peer_exchange_switch_for_agent = Number(item.peer_exchange_switch_for_agent);
             return item;

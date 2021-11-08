@@ -12,13 +12,12 @@ from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
 from apps.exceptions import ValidationError
-from apps.node_man import constants as const
-from apps.node_man.constants import AuthType
+from apps.node_man import constants, tools
 
 
 class SortSerializer(serializers.Serializer):
-    head = serializers.ChoiceField(label=_("排序字段"), choices=list(const.HEAD_TUPLE))
-    sort_type = serializers.ChoiceField(label=_("排序类型"), choices=list(const.SORT_TUPLE))
+    head = serializers.ChoiceField(label=_("排序字段"), choices=list(constants.HEAD_TUPLE))
+    sort_type = serializers.ChoiceField(label=_("排序类型"), choices=list(constants.SORT_TUPLE))
 
 
 class ListSerializer(serializers.Serializer):
@@ -50,8 +49,8 @@ class HostSerializer(serializers.Serializer):
     outer_ip = serializers.IPAddressField(label=_("外网IP"), required=False)
     login_ip = serializers.IPAddressField(label=_("登录IP"), required=False)
     data_ip = serializers.IPAddressField(label=_("数据IP"), required=False)
-    os_type = serializers.ChoiceField(label=_("操作系统"), choices=list(const.OS_TUPLE))
-    auth_type = serializers.ChoiceField(label=_("认证类型"), choices=list(const.AUTH_TUPLE), required=False)
+    os_type = serializers.ChoiceField(label=_("操作系统"), choices=list(constants.OS_TUPLE))
+    auth_type = serializers.ChoiceField(label=_("认证类型"), choices=list(constants.AUTH_TUPLE), required=False)
     account = serializers.CharField(label=_("账户"), required=False, allow_blank=True)
     password = serializers.CharField(label=_("密码"), required=False, allow_blank=True)
     port = serializers.IntegerField(label=_("端口"), required=False)
@@ -68,11 +67,11 @@ class HostSerializer(serializers.Serializer):
         op_type = job_type.split("_")[0]
 
         op_not_need_identity = [
-            const.OpType.REINSTALL,
-            const.OpType.RESTART,
-            const.OpType.UPGRADE,
-            const.OpType.UNINSTALL,
-            const.OpType.RELOAD,
+            constants.OpType.REINSTALL,
+            constants.OpType.RESTART,
+            constants.OpType.UPGRADE,
+            constants.OpType.UNINSTALL,
+            constants.OpType.RELOAD,
         ]
 
         if op_type in op_not_need_identity and not attrs.get("bk_host_id"):
@@ -80,21 +79,21 @@ class HostSerializer(serializers.Serializer):
         if (
             not attrs.get("is_manual")
             and not attrs.get("auth_type")
-            and job_type not in [const.JobType.RELOAD_AGENT, const.JobType.RELOAD_PROXY]
+            and job_type not in [constants.JobType.RELOAD_AGENT, constants.JobType.RELOAD_PROXY]
         ):
             raise ValidationError(_("{op_type} 操作必须填写认证类型.").format(op_type=op_type))
 
         # identity校验
         if op_type not in op_not_need_identity and not attrs.get("is_manual"):
-            if not attrs.get("password") and attrs["auth_type"] == AuthType.PASSWORD:
+            if not attrs.get("password") and attrs["auth_type"] == constants.AuthType.PASSWORD:
                 raise ValidationError(_("密码认证方式必须填写密码"))
-            if not attrs.get("key") and attrs["auth_type"] == AuthType.KEY:
+            if not attrs.get("key") and attrs["auth_type"] == constants.AuthType.KEY:
                 raise ValidationError(_("密钥认证方式必须上传密钥"))
             if attrs.get("account") is None or attrs.get("port") is None:
                 raise ValidationError(_("必须上传账号和端口"))
 
         # 直连区域必须填写Ap_id
-        if attrs["bk_cloud_id"] == int(const.DEFAULT_CLOUD) and attrs.get("ap_id") is None:
+        if attrs["bk_cloud_id"] == int(constants.DEFAULT_CLOUD) and attrs.get("ap_id") is None:
             raise ValidationError(_("直连区域必须填写Ap_id."))
 
         # 去除空值
@@ -107,7 +106,7 @@ class HostSerializer(serializers.Serializer):
 
 
 class InstallSerializer(serializers.Serializer):
-    job_type = serializers.ChoiceField(label=_("任务类型"), choices=list(const.JOB_TYPE_DICT))
+    job_type = serializers.ChoiceField(label=_("任务类型"), choices=list(constants.JOB_TYPE_DICT))
     hosts = HostSerializer(label=_("主机信息"), many=True)
     replace_host_id = serializers.IntegerField(label=_("被替换的Proxy主机ID"), required=False)
 
@@ -123,14 +122,24 @@ class InstallSerializer(serializers.Serializer):
         attrs["node_type"] = job_type_slices[-1]
 
         # 替换PROXY必须填写replace_host_id
-        if attrs["job_type"] == const.JobType.REPLACE_PROXY and not attrs.get("replace_host_id"):
+        if attrs["job_type"] == constants.JobType.REPLACE_PROXY and not attrs.get("replace_host_id"):
             raise ValidationError(_("替换PROXY必须填写replace_host_id."))
 
+        rsa_util = tools.HostTools.get_rsa_util()
+        fields_need_decrypt = ["password", "key"]
+        # 密码解密
+        for host in attrs["hosts"]:
+            for field_need_decrypt in fields_need_decrypt:
+                if not isinstance(host.get(field_need_decrypt), str):
+                    continue
+                host[field_need_decrypt] = tools.HostTools.decrypt_with_friendly_exc_handle(
+                    rsa_util=rsa_util, encrypt_message=host[field_need_decrypt], raise_exec=ValidationError
+                )
         return attrs
 
 
 class OperateSerializer(serializers.Serializer):
-    job_type = serializers.ChoiceField(label=_("任务类型"), choices=list(const.JOB_TYPE_DICT))
+    job_type = serializers.ChoiceField(label=_("任务类型"), choices=list(constants.JOB_TYPE_DICT))
     bk_biz_id = serializers.ListField(label=_("业务ID"), required=False)
     version = serializers.ListField(label=_("Agent版本"), required=False)
     conditions = serializers.ListField(label=_("搜索条件"), required=False)

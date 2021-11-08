@@ -76,6 +76,7 @@ export default class App extends Vue {
     }
     MainStore.setLanguage(window.language);
     this.handleInit();
+    MainStore.getPublicKeyRSA().then(publicKey => this.$RSA.setPublicKey(publicKey));
   }
   private mounted() {
     window.LoginModal = this.$refs.login;
