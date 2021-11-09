@@ -327,7 +327,7 @@ export default class CloudManagerSetup extends Mixins(formLabelMixin, FilterIpMi
       data.peer_exchange_switch_for_agent += 0;
       const authType = item.auth_type?.toLowerCase() as ('key' | 'password');
       if (item[authType]) {
-        data[authType] = this.$RSA.encryptChunk(item[authType] as string);
+        data[authType] = this.$RSA.getNameMixinEncrypt(item[authType] as string);
       }
       return data;
     });

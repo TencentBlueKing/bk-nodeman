@@ -375,9 +375,8 @@ export default class Main extends VuexModule {
    * get RSA public_key
    */
   @Action
-  public async getPublicKeyRSA(params = { names: ['DEFAULT'] }): Promise<string> {
+  public async getPublicKeyRSA(params = { names: ['DEFAULT'] }): Promise<IKeyItem> {
     const data: IKeyItem[] = await fetchPublicKeys(params).catch(() => []);
-    const item = data.find(item => item.name === 'DEFAULT');
-    return item?.content || '';
+    return data.find(item => item.name === 'DEFAULT') || {};
   }
 }

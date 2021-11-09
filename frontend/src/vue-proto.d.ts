@@ -31,6 +31,7 @@ declare module 'vue/types/vue' {
     $RSA: {
       instance: Dictionary,
       setPublicKey: (publicKey: string) => void
+      setName: (name: string) => void
       setPrivateKey: (privateKey: string) => void
       getKey: () => Dictionary
       getKeyLength: () => number
@@ -39,6 +40,7 @@ declare module 'vue/types/vue' {
       decrypt: (word: string) => string
       encryptChunk: (word: string) => string
       decryptChunk: (word: string) => string
+      getNameMixinEncrypt: (word: string) => string
     }
   }
 }

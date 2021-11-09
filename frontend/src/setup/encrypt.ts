@@ -5,15 +5,20 @@ import { b64tohex, hex2b64 }  from 'jsencrypt/lib/lib/jsbn/base64';
 class EncryptRSA {
   private instance: Dictionary = null;
   private publicKey = '';
+  private name = '';
   public constructor() {
     this.instance = new EncryptJS();
     this.publicKey = '';
+    this.name = '';
   }
 
   // 设置公钥
   public setPublicKey(publicKey: string) {
     this.publicKey = publicKey;
     this.instance.setPublicKey(publicKey);
+  }
+  public setName(name: string) {
+    this.name = name;
   }
   public setPrivateKey(privateKey: string) {
     this.instance.setPrivateKey(privateKey);
@@ -108,6 +113,11 @@ class EncryptRSA {
       console.warn(err);
       return '';
     }
+  }
+
+  getNameMixinEncrypt(string: string): string {
+    const encryptRes = this.encryptChunk(string);
+    return `${btoa(this.name)}${encryptRes}`;
   }
 }
 

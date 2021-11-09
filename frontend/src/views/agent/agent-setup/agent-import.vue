@@ -386,7 +386,7 @@ export default class AgentImport extends Mixins(mixin) {
         }
         const authType = item.auth_type?.toLowerCase() as ('key' | 'password');
         if (item[authType]) {
-          item[authType] = this.$RSA.encryptChunk(item[authType] as string);
+          item[authType] = this.$RSA.getNameMixinEncrypt(item[authType] as string);
         }
       });
       // 安装agent或pagent时，需要设置初始的安装类型
