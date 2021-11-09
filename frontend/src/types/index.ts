@@ -238,6 +238,8 @@ export interface ISetupRow {
   port?: number
   peer_exchange_switch_for_agent: boolean | number
   prove?: string
+  password?: string
+  key?: string
   retention?: number
   data_path?: string
   fileInfo?: IFileInfo
@@ -299,4 +301,10 @@ export interface IFileInfo {
 export interface ISortData {
   head: string
   sort_type: string
+}
+
+export interface IKeyItem {
+  name: string
+  description: string
+  content: string
 }

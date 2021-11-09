@@ -47,8 +47,8 @@ def remove_first_slash(url):
     return url
 
 
-def route(api: Dict[str, str]):
-    url = api["url"].format()
+def route(api: Dict[str, str], double_brace: bool = False):
+    url = (api["url"].format(), api["url"])[double_brace]
     if api["url"] in ("/get_gse_config/", "/report_log/", "/package/upload/", "/export/download/"):
         url = "/backend" + url
     elif api["group"] in ("subscription", "backend_plugin"):
@@ -92,7 +92,7 @@ def main(is_apigw=False):
     else:
         for api in apis:
             api["name"] = underscore_to_camel(api["name"])
-            api["url"] = remove_first_slash(api["url"])
+            api["url"] = remove_first_slash(route(api, double_brace=True))
             group = api["group"].lower()
             grouped_data[group] = grouped_data.get(group, []) + [api]
 

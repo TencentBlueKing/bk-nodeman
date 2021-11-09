@@ -14,6 +14,7 @@ specific language governing permissions and limitations under the License.
 防止handlers互调导致循环依赖
 """
 
+from .host import HostTools  # noqa
 from .host_v2 import HostV2Tools  # noqa
 from .job import JobTools  # noqa
 from .plugin_v2 import PluginV2Tools  # noqa

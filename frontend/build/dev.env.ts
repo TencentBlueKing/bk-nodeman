@@ -30,7 +30,7 @@ export default merge<any>(prodEnv, {
     NODE_ENV: NODE_ENV,
     LOCAL_DEV_URL: JSON.stringify(`${devHost}`), // 本地代理地址（和host的配置保持一致）
     LOCAL_DEV_PORT: JSON.stringify('8005'),
-    AJAX_URL_PREFIX: JSON.stringify('api/'),
+    AJAX_URL_PREFIX: JSON.stringify(''),
     AJAX_MOCK_PARAM: JSON.stringify('mock-file'),
     USER_INFO_URL: JSON.stringify('account/get_user_info/'),
     LOGIN_DEV_URL: JSON.stringify(`${proxyTableTarget}/login/?c_url=`)// paas平台登录地址

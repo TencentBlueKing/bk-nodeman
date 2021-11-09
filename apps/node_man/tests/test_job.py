@@ -14,6 +14,7 @@ from django.test import TestCase
 from django.utils import timezone
 
 from apps.node_man import constants as const
+from apps.node_man import tools
 from apps.node_man.exceptions import (
     AliveProxyNotExistsError,
     AllIpFiltered,
@@ -38,6 +39,12 @@ from apps.node_man.tests.utils import (
 
 
 class TestJob(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        # 生成公私钥并存储到DB
+        tools.HostTools.get_rsa_util()
+        super().setUpTestData()
+
     @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)
     @patch(
         "apps.node_man.handlers.cmdb.CmdbHandler.cmdb_or_cache_biz",
