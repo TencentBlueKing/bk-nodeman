@@ -8,7 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import base64
 import logging
 import re
 from typing import Any, Dict, List
@@ -503,6 +502,7 @@ class JobHandler(APIModel):
 
         # 节点变量，用于后续订阅任务注册主机，安装等操作
         subscription_nodes = []
+        rsa_util = tools.HostTools.get_rsa_util()
         for host in accept_list:
             inner_ip = host["inner_ip"]
             outer_ip = host.get("outer_ip", "")
@@ -529,8 +529,8 @@ class JobHandler(APIModel):
                 "auth_type": host.get("auth_type", "MANUAL"),
                 "account": host.get("account", "MANUAL"),
                 "port": host.get("port"),
-                "password": base64.b64encode(host.get("password", "").encode()).decode(),
-                "key": base64.b64encode(host.get("key", "").encode()).decode(),
+                "password": tools.HostTools.USE_RSA_PREFIX + rsa_util.encrypt(host.get("password", "")),
+                "key": tools.HostTools.USE_RSA_PREFIX + rsa_util.encrypt(host.get("key", "")),
                 "retention": host.get("retention", 1),
                 "peer_exchange_switch_for_agent": host.get("peer_exchange_switch_for_agent"),
                 "bt_speed_limit": host.get("bt_speed_limit"),

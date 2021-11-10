@@ -428,3 +428,14 @@
   dest_http_method: POST
   suggest_method: POST
   is_hidden: true
+
+- api_type: query
+  comp_codename: generic.v2.nodeman.nodeman_component
+  name: encrypt_rsa_encrypt_rsa
+  label: test
+  label_en: null
+  dest_path: /core/api/encrypt_rsa/fetch_public_keys/
+  path: /v2/nodeman/core/api/encrypt_rsa/fetch_public_keys/
+  dest_http_method: POST
+  suggest_method: POST
+  is_hidden: true
