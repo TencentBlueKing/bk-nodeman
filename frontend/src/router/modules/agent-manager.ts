@@ -1,5 +1,3 @@
-import { MainStore } from '@/store';
-import { RSA } from '@/setup/encrypt';
 import { RouteConfig } from 'vue-router';
 import { AGENT_VIEW, AGENT_OPERATE } from '../action-map';
 const AgentStatus = () => import(/* webpackChunkName: 'AgentStatus' */'@/views/agent/agent-list.vue');
@@ -32,10 +30,6 @@ export default [
         page: AGENT_OPERATE,
       },
     },
-    beforeEnter: (to: Route, from: Route, next: () => void) => {
-      beforeEnter();
-      next();
-    },
   },
   {
     path: '/agent-manager/import',
@@ -48,10 +42,6 @@ export default [
       authority: {
         page: AGENT_OPERATE,
       },
-    },
-    beforeEnter: (to: Route, from: Route, next: () => void) => {
-      beforeEnter();
-      next();
     },
   },
   {
@@ -66,13 +56,5 @@ export default [
         page: AGENT_OPERATE,
       },
     },
-    beforeEnter: (to: Route, from: Route, next: () => void) => {
-      beforeEnter();
-      next();
-    },
   },
 ] as RouteConfig[];
-
-function beforeEnter() {
-  MainStore.getPublicKeyRSA().then(publicKey => RSA.setPublicKey(publicKey));
-}

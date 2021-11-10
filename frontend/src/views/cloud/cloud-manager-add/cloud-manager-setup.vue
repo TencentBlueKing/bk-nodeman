@@ -209,7 +209,6 @@ export default class CloudManagerSetup extends Mixins(formLabelMixin, FilterIpMi
 
   private created() {
     this.handleInit();
-    MainStore.getPublicKeyRSA().then(res => this.$RSA.setPublicKey(res));
   }
   private mounted() {
     this.marginLeft = this.initLabelWidth(this.formRef) || 0;
