@@ -33,6 +33,24 @@ export default {
                   referer: proxyTableTarget
                 }
             },
+            '/core/api': {
+                target: `${proxyTableTarget}${targetSiteUrl}`,
+                changeOrigin: true,
+                secure: false,
+                toProxy: true,
+                headers: {
+                  referer: proxyTableTarget
+                }
+            },
+            '/backend/api': {
+                target: `${proxyTableTarget}${targetSiteUrl}`,
+                changeOrigin: true,
+                secure: false,
+                toProxy: true,
+                headers: {
+                  referer: proxyTableTarget
+                }
+            },
             '/download': {
                 target: `${proxyTableTarget}${targetSiteUrl}/static`,
                 changeOrigin: true,

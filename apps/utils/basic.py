@@ -168,3 +168,13 @@ def remove_keys_from_dict(
 
     data = deepcopy(origin_data) if return_deep_copy else origin_data
     return _remove_dict_keys_recursively(data)
+
+
+def get_chr_seq(begin_chr: str, end_chr: str) -> List[str]:
+    """
+
+    :param begin_chr:
+    :param end_chr:
+    :return:
+    """
+    return [chr(ascii_int) for ascii_int in range(ord(begin_chr), ord(end_chr) + 1)]

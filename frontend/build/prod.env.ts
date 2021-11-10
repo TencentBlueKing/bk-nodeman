@@ -14,7 +14,7 @@ export default {
     NODE_ENV: NODE_ENV,
     LOCAL_DEV_URL: JSON.stringify('http://localhost'),
     LOCAL_DEV_PORT: JSON.stringify('8005'),
-    AJAX_URL_PREFIX: JSON.stringify('api/'),
+    AJAX_URL_PREFIX: JSON.stringify(''),
     AJAX_MOCK_PARAM: JSON.stringify('mock-file'),
     USER_INFO_URL: JSON.stringify('account/get_user_info/')
 }
