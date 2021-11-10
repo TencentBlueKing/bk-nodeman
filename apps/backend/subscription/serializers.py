@@ -9,11 +9,12 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+import base64
 
 from rest_framework import serializers
 
 from apps.exceptions import ValidationError
-from apps.node_man import constants, models
+from apps.node_man import constants, models, tools
 from apps.node_man.models import ProcessStatus
 
 
@@ -50,14 +51,6 @@ class TargetHostSerializer(serializers.Serializer):
 
 
 class CreateSubscriptionSerializer(GatewaySerializer):
-    class ScopeSerializer(serializers.Serializer):
-        bk_biz_id = serializers.IntegerField(required=False, default=None)
-        bk_biz_scope = serializers.ListField(required=False)
-        object_type = serializers.ChoiceField(choices=models.Subscription.OBJECT_TYPE_CHOICES)
-        node_type = serializers.ChoiceField(choices=models.Subscription.NODE_TYPE_CHOICES)
-        need_register = serializers.BooleanField(required=False, default=False)
-        nodes = serializers.ListField()
-
     class StepSerializer(serializers.Serializer):
         id = serializers.CharField()
         type = serializers.CharField()
@@ -78,6 +71,27 @@ class CreateSubscriptionSerializer(GatewaySerializer):
 
     # 灰度策略指定父策略
     pid = serializers.IntegerField(required=False)
+
+    def validate(self, attrs):
+        step_types = {step["type"] for step in attrs["steps"]}
+        if constants.SubStepType.AGENT not in step_types:
+            return attrs
+
+        fields_need_decrypt = ["password", "key"]
+        rsa_util = tools.HostTools.get_rsa_util()
+        for node in attrs["scope"]["nodes"]:
+            instance_info = node.get("instance_info", {})
+            if not instance_info:
+                continue
+            for field_need_decrypt in fields_need_decrypt:
+                if isinstance(instance_info.get(field_need_decrypt), str):
+                    instance_info[field_need_decrypt] = tools.HostTools.decrypt_with_friendly_exc_handle(
+                        rsa_util=rsa_util, encrypt_message=instance_info[field_need_decrypt], raise_exec=ValidationError
+                    )
+                instance_info[field_need_decrypt] = base64.b64encode(
+                    instance_info.get(field_need_decrypt, "").encode()
+                ).decode()
+        return attrs
 
 
 class GetSubscriptionSerializer(GatewaySerializer):

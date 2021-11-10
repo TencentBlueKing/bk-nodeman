@@ -59,6 +59,7 @@
     "bk-magic-vue": "2.2.17",
     "cookie": "~0.4.0",
     "github-markdown-css": "^4.0.0",
+    "jsencrypt": "^3.2.1",
     "jsonp": "~0.2.1",
     "query-string": "~6.5.0",
     "resize-detector": "^0.2.0",
