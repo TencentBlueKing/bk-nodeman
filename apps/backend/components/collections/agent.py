@@ -56,7 +56,6 @@ from apps.node_man.models import (
     ProcessStatus,
     SubscriptionInstanceRecord,
 )
-from apps.node_man.policy.tencent_vpc_client import VpcClient
 from apps.utils import concurrent
 from apps.utils.basic import suffix_slash
 from pipeline.component_framework.component import Component
@@ -724,60 +723,6 @@ class ChooseAccessPointService(AgentBaseService):
             bk_host_id__sub_inst_id_map=bk_host_id__sub_inst_id_map,
             host_id_obj_map=host_id_obj_map,
         )
-
-
-class ConfigurePolicyService(AgentBaseService):
-    """
-    配置网络策略
-    """
-
-    name = _("配置到Gse&Nginx的策略")
-
-    __need_schedule__ = True
-    interval = StaticIntervalGenerator(POLLING_INTERVAL)
-
-    def __init__(self):
-        super().__init__(name=self.name)
-
-    def inputs_format(self):
-        return [Service.InputItem(name="host_info", key="host_info", type="object", required=True)]
-
-    def outputs_format(self):
-        return [Service.OutputItem(name="login_ip", key="login_ip", type="str", required=True)]
-
-    def _execute(self, data, parent_data):
-        """
-        添加策略的接口不能同时调用，此原子只用查询，策略由configuration_policy周期任务进行添加
-        """
-        host_info = data.get_one_of_inputs("host_info")
-        host = Host.get_by_host_info(host_info)
-        data.outputs.login_ip = host.login_ip
-        data.outputs.polling_time = 0
-        self.logger.info(_("等待策略生效..."))
-        return True
-
-    def schedule(self, data, parent_data, callback_data=None):
-        login_ip = data.get_one_of_outputs("login_ip")
-        polling_time = data.get_one_of_outputs("polling_time")
-        client = VpcClient()
-        is_ok, message = client.init()
-        if not is_ok:
-            self.logger.error(_("配置到Gse和Nginx的策略失败:{message}").format(message=message))
-            return False
-
-        policy_ip_list = client.describe_address_templates(client.ip_templates[0])
-        if login_ip in policy_ip_list:
-            self.logger.info(_("[{login_ip}]到Gse和Nginx的策略配置成功").format(login_ip=login_ip))
-            self.finish_schedule()
-            return True
-
-        elif polling_time + POLLING_INTERVAL > POLLING_TIMEOUT / 2:
-            self.logger.error(_("[{login_ip}]配置到Gse和Nginx的策略失败请联系节点管理维护人员").format(login_ip=login_ip))
-            self.finish_schedule()
-            return False
-
-        data.outputs.polling_time = polling_time + POLLING_INTERVAL
-        return True
 
 
 class InstallService(AgentBaseService, JobFastExecuteScriptService):
@@ -1791,12 +1736,6 @@ class ChooseAccessPointComponent(Component):
     name = _("选择接入点")
     code = "choose_access_point"
     bound_service = ChooseAccessPointService
-
-
-class ConfigurePolicyComponent(Component):
-    name = _("配置策略")
-    code = "configure_policy"
-    bound_service = ConfigurePolicyService
 
 
 class InstallComponent(Component):
