@@ -13,7 +13,7 @@ import decimal
 import json
 import uuid
 
-from django.utils import six
+import six
 from django.utils.duration import duration_iso_string
 from django.utils.functional import Promise
 from django.utils.timezone import is_aware

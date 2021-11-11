@@ -402,13 +402,14 @@ CELERY_DEFAULT_ROUTING_KEY = "default"
 """
 # celery settings
 if IS_USE_CELERY:
-    INSTALLED_APPS = locals().get("INSTALLED_APPS", [])
-    import djcelery
+    # 废弃相关的djcelery设置
+    # INSTALLED_APPS = locals().get("INSTALLED_APPS", [])
+    # import djcelery
 
-    INSTALLED_APPS += ("djcelery",)
-    djcelery.setup_loader()
+    # INSTALLED_APPS += ("djcelery",)
+    # djcelery.setup_loader()
     CELERY_ENABLE_UTC = True
-    CELERYBEAT_SCHEDULER = "djcelery.schedulers.DatabaseScheduler"
+    # CELERYBEAT_SCHEDULER = "djcelery.schedulers.DatabaseScheduler"
     CELERY_RESULT_BACKEND = "amqp"
     CELERY_TASK_RESULT_EXPIRES = 60 * 30  # 30分钟丢弃结果
 
