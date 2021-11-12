@@ -20,13 +20,10 @@ from django.utils.translation import ugettext as _
 from apps.backend.components.collections.agent import (
     CheckAgentStatusComponent,
     CheckPolicyGseToProxyComponent,
-    ChooseAccessPointComponent,
     GetAgentStatusComponent,
     InstallComponent,
     OperatePluginComponent,
     PushUpgradePackageComponent,
-    QueryPasswordComponent,
-    RegisterHostComponent,
     ReloadAgentConfigComponent,
     RenderAndPushGseConfigComponent,
     RestartComponent,
@@ -35,12 +32,10 @@ from apps.backend.components.collections.agent import (
     UpdateProcessStatusComponent,
     WaitComponent,
 )
+from apps.backend.components.collections.agent_new import components
 from apps.backend.components.collections.bulk_job import BulkPushUpgradePackageComponent
 from apps.backend.components.collections.bulk_job_redis import (
     BulkPushUpgradePackageV2Component,
-)
-from apps.backend.components.collections.configure_policy import (
-    ConfigurePolicyComponent,
 )
 from apps.backend.components.collections.job import (
     JobFastExecuteScriptComponent,
@@ -77,7 +72,9 @@ class AgentManager(object):
         """
         注册主机
         """
-        act = AgentServiceActivity(component_code=RegisterHostComponent.code, name=RegisterHostComponent.name)
+        act = AgentServiceActivity(
+            component_code=components.RegisterHostComponent.code, name=components.RegisterHostComponent.name
+        )
         act.component.inputs.host_info = Var(type=Var.PLAIN, value=self.host_info)
         act.component.inputs.bk_host_id = Var(type=Var.PLAIN, value="")
         act.component.inputs.blueking_language = Var(type=Var.PLAIN, value=self.blueking_language)
@@ -89,8 +86,8 @@ class AgentManager(object):
         """
         # 验证类型为tjj第一步骤先查询密码
         act = AgentServiceActivity(
-            component_code=QueryPasswordComponent.code,
-            name=QueryPasswordComponent.name,
+            component_code=components.QueryPasswordComponent.code,
+            name=components.QueryPasswordComponent.name,
         )
         act.component.inputs.host_info = Var(type=Var.PLAIN, value=self.host_info)
         act.component.inputs.creator = Var(type=Var.PLAIN, value=self.creator)
@@ -103,8 +100,8 @@ class AgentManager(object):
         """
         # 若主机未明确选择接入点，则自动进行接入点选择
         act = AgentServiceActivity(
-            component_code=ChooseAccessPointComponent.code,
-            name=ChooseAccessPointComponent.name,
+            component_code=components.ChooseAccessPointComponent.code,
+            name=components.ChooseAccessPointComponent.name,
         )
         act.component.inputs.blueking_language = Var(type=Var.PLAIN, value=self.blueking_language)
         return act
@@ -114,8 +111,8 @@ class AgentManager(object):
         开通网络策略
         """
         act = AgentServiceActivity(
-            component_code=ConfigurePolicyComponent.code,
-            name=ConfigurePolicyComponent.name,
+            component_code=components.ConfigurePolicyComponent.code,
+            name=components.ConfigurePolicyComponent.name,
         )
         act.component.inputs.blueking_language = Var(type=Var.PLAIN, value=self.blueking_language)
         return act

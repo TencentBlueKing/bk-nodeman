@@ -9,16 +9,20 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+import base64
 import copy
+import os
 import random
 import textwrap
 from abc import ABC
 from typing import Any, Callable, Dict, List, Optional, Type
 
 import mock
+from django.conf import settings
 from django.db.models import Model
 from django.utils import timezone
 
+from apps.backend.components.collections import agent_new
 from apps.backend.subscription import tools
 from apps.mock_data import common_unit, utils
 from apps.node_man import constants, models
@@ -40,8 +44,8 @@ AGENT_INSTANCE_HOST_INFO = {
     "bk_host_innerip": utils.DEFAULT_IP,
     "bk_host_outerip": utils.DEFAULT_IP,
     "port": 22,
-    "password": "password",
-    "key": "password:::key",
+    "password": base64.b64encode("password".encode()).decode(),
+    "key": base64.b64encode("password:::key".encode()).decode(),
     "auth_type": constants.AuthType.PASSWORD,
     "retention": 1,
     "bk_biz_id": utils.DEFAULT_BK_BIZ_ID,
@@ -53,11 +57,11 @@ AGENT_INSTANCE_HOST_INFO = {
 }
 
 
-def mock_batch_call(func: Callable, params_list: List[Dict], get_data=lambda x: x, expand_result: bool = False) -> List:
+def mock_batch_call(func: Callable, params_list: List[Dict], get_data=lambda x: x, extend_result: bool = False) -> List:
     results = []
     for params in params_list:
         result = get_data(func(**params))
-        if expand_result:
+        if extend_result:
             results.extend(result)
         else:
             results.append(result)
@@ -177,9 +181,24 @@ class AgentTestObjFactory:
         :return: 主机认证信息列表
         """
         identity_data_list = []
+        host_key__host_data_map: Dict[str, Dict[str, Any]] = {
+            f"{host_info['bk_cloud_id']}-{host_info['bk_host_innerip']}": host_info
+            for host_info in self.structure_instance_host_info_list()
+        }
         for host_obj in host_objs:
-            identity_data = copy.deepcopy(common_unit.host.IDENTITY_MODEL_DATA)
-            identity_data["bk_host_id"] = host_obj.bk_host_id
+            host_key = f"{host_obj.bk_cloud_id}-{host_obj.inner_ip}"
+            host_info = host_key__host_data_map[host_key]
+            identity_data = {
+                "bk_host_id": host_obj.bk_host_id,
+                "auth_type": host_info["auth_type"],
+                "account": host_info["account"],
+                "password": base64.b64decode(host_info.get("password", "")).decode(),
+                "port": host_info.get("port"),
+                "key": base64.b64decode(host_info.get("key", "")).decode(),
+                "retention": host_info.get("retention", 1),
+                "extra_data": host_info.get("extra_data", {}),
+                "updated_at": timezone.now(),
+            }
             identity_data_list.append(identity_data)
 
         return identity_data_list
@@ -368,8 +387,7 @@ class AgentServiceBaseTestCase(CustomAPITestCase, ComponentTestMixin, ABC):
     # ⚠️ 注意：请仅在本地开发机上使用，最后提交时，上层原子测试该值必须为 False
     DEBUG: bool = False
     OBJ_FACTORY_CLASS: Type[AgentTestObjFactory] = AgentTestObjFactory
-    BATCH_CALL_MOCK_PATHS = ["apps.backend.components.collections.agent.concurrent.batch_call"]
-    SSH_MAN_MOCK_PATH = "apps.backend.components.collections.agent.SshMan"
+    BATCH_CALL_MOCK_PATHS = []
 
     obj_factory: Optional[AgentTestObjFactory] = None
     # 原子的公共输入
@@ -379,9 +397,25 @@ class AgentServiceBaseTestCase(CustomAPITestCase, ComponentTestMixin, ABC):
     def setUpClass(cls):
         cls.obj_factory = AgentTestObjFactory()
 
-        # 全局mock多线程执行，改为串行
+        # 多线程会影响测试debug，全局mock多线程执行，改为串行
         for batch_call_mock_path in cls.BATCH_CALL_MOCK_PATHS:
             mock.patch(batch_call_mock_path, mock_batch_call).start()
+
+        agent_dir_path = os.path.dirname(agent_new.__file__)
+        relative_dir_path = agent_dir_path.replace(settings.BASE_DIR + os.path.sep, "")
+        for file_name in os.listdir(agent_dir_path):
+            if not (os.path.isfile(os.path.join(agent_dir_path, file_name)) or file_name.endswith(".py")):
+                continue
+            module_name = file_name[:-3]
+            if module_name in ["__init__"]:
+                continue
+            batch_call_mock_path = ".".join(
+                [relative_dir_path.replace(os.path.sep, "."), module_name, "concurrent.batch_call"]
+            )
+            try:
+                mock.patch(batch_call_mock_path, mock_batch_call).start()
+            except ModuleNotFoundError:
+                pass
 
         super().setUpClass()
 

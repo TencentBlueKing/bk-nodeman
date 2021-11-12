@@ -93,6 +93,7 @@ except (TypeError, ValueError):
 JOB_VERSION = os.getenv("JOB_VERSION") or "V3"
 # 资源池业务ID
 BK_CMDB_RESOURCE_POOL_BIZ_ID = int(os.getenv("BK_CMDB_RESOURCE_POOL_BIZ_ID", 1)) or 1
+BK_CMDB_RESOURCE_POOL_BIZ_NAME = "资源池"
 
 BKAPP_DEFAULT_SSH_PORT = int(os.getenv("BKAPP_DEFAULT_SSH_PORT", 22))
 

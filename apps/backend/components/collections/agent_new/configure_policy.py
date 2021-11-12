@@ -15,7 +15,6 @@ from apps.backend.api.constants import POLLING_INTERVAL, POLLING_TIMEOUT
 from apps.backend.components.collections.agent import AgentBaseService
 from apps.node_man import models
 from apps.node_man.handlers.security_group import get_security_group_factory
-from pipeline.component_framework.component import Component
 from pipeline.core.flow import StaticIntervalGenerator
 
 
@@ -24,13 +23,8 @@ class ConfigurePolicyService(AgentBaseService):
     配置网络策略
     """
 
-    name = _("配置到Gse&Nginx的策略")
-
     __need_schedule__ = True
     interval = StaticIntervalGenerator(POLLING_INTERVAL)
-
-    def __init__(self):
-        super().__init__(name=self.name)
 
     def _execute(self, data, parent_data, common_data):
         host_id_obj_map = common_data.host_id_obj_map
@@ -68,9 +62,3 @@ class ConfigurePolicyService(AgentBaseService):
 
         data.outputs.polling_time = polling_time + POLLING_INTERVAL
         return True
-
-
-class ConfigurePolicyComponent(Component):
-    name = _("配置策略")
-    code = "configure_policy"
-    bound_service = ConfigurePolicyService

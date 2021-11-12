@@ -18,6 +18,9 @@ from django.utils.translation import ugettext as _
 
 from apps.backend import constants as backend_const
 from apps.backend.agent.manager import AgentManager
+from apps.backend.components.collections.agent_new.components import (
+    RegisterHostComponent,
+)
 from apps.node_man import constants, models
 from apps.node_man.constants import ProcStateType
 from apps.node_man.models import GsePluginDesc, SubscriptionStep
@@ -25,7 +28,6 @@ from pipeline import builder
 from pipeline.builder.flow.base import Element
 
 # 需分发到 PROXY 的文件（由于放到一次任务中会给用户等待过久的体验，因此拆分成多次任务）
-from ...components.collections.agent import RegisterHostComponent
 from .base import Action, Step
 
 

@@ -17,7 +17,7 @@ from tencentcloud.vpc.v20170312.models import (
     ModifyAddressTemplateAttributeResponse,
 )
 
-from apps.backend.components.collections.configure_policy import (
+from apps.backend.components.collections.agent_new.components import (
     ConfigurePolicyComponent,
 )
 from apps.mock_data import api_mkd
@@ -76,7 +76,7 @@ class SopsConfigurePolicyComponentBaseTest(ConfigurePolicyComponentBaseTest):
     @classmethod
     def structure_sops_mock_data(cls):
         """
-        构造CMDB接口返回数据
+        构造SOPS接口返回数据
         :return:
         """
         cls.create_task_result = 123
@@ -141,6 +141,8 @@ class SopsConfigurePolicyComponentBaseTest(ConfigurePolicyComponentBaseTest):
 
 
 class MockVpcClient(mock_data_utils.BaseMockClient):
+    """mock腾讯云vpc客户端"""
+
     class VpcClient(mock_data_utils.BaseMockClient):
         def __init__(self, *args, **kwargs):
             resp = DescribeAddressTemplatesResponse()

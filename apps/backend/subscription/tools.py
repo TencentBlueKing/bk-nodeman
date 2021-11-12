@@ -232,7 +232,7 @@ def create_host_key(data: Dict) -> str:
     return "{}-{}-{}".format(data.get("bk_host_innerip") or data.get("ip"), bk_cloud_id, constants.DEFAULT_SUPPLIER_ID)
 
 
-def find_host_biz_relations(bk_host_ids: List[int]) -> Dict:
+def find_host_biz_relations(bk_host_ids: List[int]) -> List[Dict]:
     """
     查询主机所属拓扑关系
     :param bk_host_ids: 主机ID列表 [1, 2, 3]
@@ -247,6 +247,10 @@ def find_host_biz_relations(bk_host_ids: List[int]) -> Dict:
         }
     ]
     """
+    # 查询条件为空提前返回
+    if not bk_host_ids:
+        return []
+
     # CMDB 限制了单次查询数量，这里需分批并发请求查询
     param_list = [
         {"bk_host_id": bk_host_ids[count * constants.QUERY_CMDB_LIMIT : (count + 1) * constants.QUERY_CMDB_LIMIT]}

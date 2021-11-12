@@ -10,6 +10,24 @@ specific language governing permissions and limitations under the License.
 """
 
 
-from . import unit, utils
+import abc
+from typing import List, Set, Union
 
-__all__ = ["unit", "utils"]
+from ..base import BaseService, CommonData
+
+
+class AgentBaseService(BaseService, metaclass=abc.ABCMeta):
+    """
+    AGENT安装基类
+    """
+
+    def sub_inst_failed_handler(self, sub_inst_ids: Union[List[int], Set[int]]):
+        """
+        订阅实例失败处理器
+        :param sub_inst_ids: 订阅实例ID列表/集合
+        """
+        pass
+
+
+class AgentCommonData(CommonData):
+    pass
