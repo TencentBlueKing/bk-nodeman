@@ -14,7 +14,9 @@ from typing import Dict, List, Optional
 
 import mock
 
-from apps.backend.components.collections.agent import RegisterHostComponent
+from apps.backend.components.collections.agent_new.components import (
+    RegisterHostComponent,
+)
 from apps.mock_data import api_mkd
 from apps.mock_data import utils as mock_data_utils
 from apps.node_man import constants, models
@@ -26,7 +28,7 @@ from . import utils
 class RegisterHostTestCase(utils.AgentServiceBaseTestCase):
     CLIENT_V2_MOCK_PATHS: List[str] = [
         "apps.backend.subscription.tools.client_v2",
-        "apps.backend.components.collections.agent.client_v2",
+        "apps.backend.components.collections.agent_new.register_host.client_v2",
     ]
 
     search_business_result: Optional[Dict] = None

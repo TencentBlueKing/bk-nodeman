@@ -11,7 +11,9 @@ specific language governing permissions and limitations under the License.
 
 import mock
 
-from apps.backend.components.collections.agent import QueryPasswordComponent
+from apps.backend.components.collections.agent_new.components import (
+    QueryPasswordComponent,
+)
 from apps.node_man import constants, models
 from pipeline.component_framework.test import ComponentTestCase, ExecuteAssertion
 
