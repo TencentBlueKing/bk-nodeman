@@ -15,6 +15,7 @@ from django.utils.translation import ugettext_lazy as _
 from pipeline.component_framework.component import Component
 
 from .choose_access_point import ChooseAccessPointService
+from .get_agent_status import GetAgentStatusService
 from .query_password import QueryPasswordService
 from .register_host import RegisterHostService
 
@@ -35,3 +36,9 @@ class RegisterHostComponent(Component):
     name = _("注册主机到配置平台")
     code = "register_host_to_cmdb"
     bound_service = RegisterHostService
+
+
+class GetAgentStatusComponent(Component):
+    name = _("查询Agent状态")
+    code = "get_agent_status"
+    bound_service = GetAgentStatusService

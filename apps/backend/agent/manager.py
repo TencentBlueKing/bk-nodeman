@@ -23,7 +23,6 @@ from apps.backend.components.collections.agent import (
     CheckAgentStatusComponent,
     CheckPolicyGseToProxyComponent,
     ConfigurePolicyComponent,
-    GetAgentStatusComponent,
     InstallComponent,
     OperatePluginComponent,
     PushUpgradePackageComponent,
@@ -297,11 +296,11 @@ class AgentManager(object):
         act.component.inputs.blueking_language = Var(type=Var.PLAIN, value=self.blueking_language)
         return act
 
-    def get_agent_status(self, expect_status, name=GetAgentStatusComponent.name):
+    def get_agent_status(self, expect_status, name=components.GetAgentStatusComponent.name):
         """
         查询Agent状态
         """
-        act = AgentServiceActivity(component_code=GetAgentStatusComponent.code, name=name)
+        act = AgentServiceActivity(component_code=components.GetAgentStatusComponent.code, name=name)
         act.component.inputs.bk_host_id = Var(type=Var.SPLICE, value="${bk_host_id}")
         act.component.inputs.host_info = Var(type=Var.PLAIN, value=self.host_info)
         act.component.inputs.expect_status = Var(type=Var.PLAIN, value=expect_status)

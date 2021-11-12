@@ -14,7 +14,9 @@ from typing import AnyStr, Dict, List, Optional
 
 import mock
 
-from apps.backend.components.collections.agent import GetAgentStatusComponent
+from apps.backend.components.collections.agent_new.components import (
+    GetAgentStatusComponent,
+)
 from apps.mock_data import api_mkd, common_unit
 from apps.node_man import constants, models
 from apps.node_man.models import Host
@@ -27,7 +29,7 @@ from pipeline.component_framework.test import (
 from . import utils
 
 gse_mock_client: Optional[api_mkd.gse.unit.GseMockClient] = None
-gse_v2_mock_path: AnyStr = "apps.backend.components.collections.agent.client_v2"
+gse_v2_mock_path: AnyStr = "apps.backend.components.collections.agent_new.get_agent_status.client_v2"
 
 
 class GetAgentStatusTestCase(utils.AgentServiceBaseTestCase):

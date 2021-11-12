@@ -1,0 +1,3 @@
+---
+feature:
+  - "Install-GetAgentStatusService 原子文件分割 (close #186)"
