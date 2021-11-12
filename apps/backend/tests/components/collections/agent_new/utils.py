@@ -11,15 +11,18 @@ specific language governing permissions and limitations under the License.
 
 import base64
 import copy
+import os
 import random
 import textwrap
 from abc import ABC
 from typing import Any, Callable, Dict, List, Optional, Type
 
 import mock
+from django.conf import settings
 from django.db.models import Model
 from django.utils import timezone
 
+from apps.backend.components.collections import agent_new
 from apps.backend.subscription import tools
 from apps.mock_data import common_unit, utils
 from apps.node_man import constants, models
@@ -384,8 +387,7 @@ class AgentServiceBaseTestCase(CustomAPITestCase, ComponentTestMixin, ABC):
     # ⚠️ 注意：请仅在本地开发机上使用，最后提交时，上层原子测试该值必须为 False
     DEBUG: bool = False
     OBJ_FACTORY_CLASS: Type[AgentTestObjFactory] = AgentTestObjFactory
-    BATCH_CALL_MOCK_PATHS = ["apps.backend.components.collections.agent.concurrent.batch_call"]
-    SSH_MAN_MOCK_PATH = "apps.backend.components.collections.agent.SshMan"
+    BATCH_CALL_MOCK_PATHS = []
 
     obj_factory: Optional[AgentTestObjFactory] = None
     # 原子的公共输入
@@ -395,9 +397,25 @@ class AgentServiceBaseTestCase(CustomAPITestCase, ComponentTestMixin, ABC):
     def setUpClass(cls):
         cls.obj_factory = AgentTestObjFactory()
 
-        # 全局mock多线程执行，改为串行
+        # 多线程会影响测试debug，全局mock多线程执行，改为串行
         for batch_call_mock_path in cls.BATCH_CALL_MOCK_PATHS:
             mock.patch(batch_call_mock_path, mock_batch_call).start()
+
+        agent_dir_path = os.path.dirname(agent_new.__file__)
+        relative_dir_path = agent_dir_path.replace(settings.BASE_DIR + os.path.sep, "")
+        for file_name in os.listdir(agent_dir_path):
+            if not (os.path.isfile(os.path.join(agent_dir_path, file_name)) or file_name.endswith(".py")):
+                continue
+            module_name = file_name[:-3]
+            if module_name in ["__init__"]:
+                continue
+            batch_call_mock_path = ".".join(
+                [relative_dir_path.replace(os.path.sep, "."), module_name, "concurrent.batch_call"]
+            )
+            try:
+                mock.patch(batch_call_mock_path, mock_batch_call).start()
+            except ModuleNotFoundError:
+                pass
 
         super().setUpClass()
 
