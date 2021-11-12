@@ -132,7 +132,15 @@ class DataAPI(object):
         self.default_timeout = default_timeout
 
     def __call__(
-        self, params=None, data=None, raw=False, timeout=None, raise_exception=True, use_admin=False, headers=None
+        self,
+        params=None,
+        data=None,
+        raw=False,
+        timeout=None,
+        raise_exception=True,
+        use_admin=False,
+        headers=None,
+        url=None,
     ):
         """
         调用传参
