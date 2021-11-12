@@ -36,7 +36,7 @@ class RegisterHostComponent(Component):
     name = _("注册主机到配置平台")
     code = "register_host_to_cmdb"
     bound_service = RegisterHostService
-
+    
 
 class GetAgentStatusComponent(Component):
     name = _("查询Agent状态")
