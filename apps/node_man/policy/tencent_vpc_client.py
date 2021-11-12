@@ -17,6 +17,7 @@ from tencentcloud.common.exception.tencent_cloud_sdk_exception import (
 )
 from tencentcloud.vpc.v20170312 import models, vpc_client
 
+from apps.node_man.exceptions import ConfigurationPolicyError
 from common.log import logger
 
 
@@ -28,17 +29,14 @@ class VpcClient(object):
         self.tencent_secret_key = os.getenv("TXY_SECRETKEY")
         self.ip_templates = os.getenv("TXY_IP_TEMPLATES")
 
-    def init(self):
         # 配置文件包含敏感信息，不需要的环境需要注意去掉
         if not all([self.tencent_secret_id, self.tencent_secret_key, self.ip_templates]):
-            return False, "Please contact maintenaner to check Tencent cloud configuration."
+            raise ConfigurationPolicyError("Please contact maintenaner to check Tencent cloud configuration.")
 
         # 将字符串变量转换为列表
         self.ip_templates = self.ip_templates.split(",")
-
         cred = credential.Credential(self.tencent_secret_id, self.tencent_secret_key)
         self.client = vpc_client.VpcClient(cred, self.region)
-        return True, None
 
     def describe_address_templates(self, template_name):
         req = models.DescribeAddressTemplatesRequest()
@@ -53,15 +51,10 @@ class VpcClient(object):
             )
         return result["AddressTemplateSet"][0]["AddressSet"]
 
-    def add_ip_to_template(self, template_name, ip_list, need_query=True):
+    def add_ip_to_template(self, template_name, ip_list):
         try:
-            if need_query:
-                using_ip_list = self.describe_address_templates(template_name)
-                ips = ip_list + using_ip_list
-            else:
-                ips = ip_list
             req = models.ModifyAddressTemplateAttributeRequest()
-            params = {"AddressTemplateId": template_name, "Addresses": ips}
+            params = {"AddressTemplateId": template_name, "Addresses": ip_list}
             req.from_json_string(json.dumps(params))
             resp = self.client.ModifyAddressTemplateAttribute(req)
             result = json.loads(resp.to_json_string())

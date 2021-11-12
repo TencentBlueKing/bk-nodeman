@@ -84,6 +84,7 @@ class GlobalSettings(models.Model):
         REGISTER_WIN_SERVICE_WITH_PASS = "REGISTER_WIN_SERVICE_WITH_PASS"  # 是否使用密码注册windows服务
         CONFIG_POLICY_BY_SOPS = "CONFIG_POLICY_BY_SOPS"  # 是否使用标准运维自动开通网络策略
         CONFIG_POLICY_BY_TENCENT_VPC = "CONFIG_POLICY_BY_TENCENT_VPC"  # 是否使用腾讯云SDK自动开通网络策略
+        SECURITY_GROUP_TYPE = "SECURITY_GROUP_TYPE"  # 开通Proxy策略类型，可在BaseSecurityGroupAdapter中扩展
         APIGW_PUBLIC_KEY = "APIGW_PUBLIC_KEY"  # APIGW公钥，从PaaS接口获取或直接配到settings中
         SYNC_CMDB_HOST_BIZ_BLACKLIST = "SYNC_CMDB_HOST_BIZ_BLACKLIST"  # 排除掉黑名单业务的主机同步，比如 SA 业务，包含大量主机但无需同步
         LAST_SUB_TASK_ID = "LAST_SUB_TASK_ID"  # 定时任务 collect_auto_trigger_job 用于记录最后一个同步的 sub_task ID
