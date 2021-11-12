@@ -23,7 +23,7 @@ from apps.backend.components.collections.agent_new.components import (
 )
 from apps.node_man import constants, models
 from apps.node_man.constants import ProcStateType
-from apps.node_man.models import GsePluginDesc, Host, SubscriptionStep
+from apps.node_man.models import GsePluginDesc, SubscriptionStep
 from pipeline import builder
 from pipeline.builder.flow.base import Element
 
@@ -340,19 +340,12 @@ class InstallProxy(AgentAction):
 
     def _generate_activities(self, agent_manager: AgentManager):
         register_host = agent_manager.register_host()
-        if agent_manager.host_info["is_manual"]:
-            self.ACTION_DESCRIPTION = "手动安装"
-            install_name = _("手动安装")
-        else:
-            install_name = _("安装")
-
         activities = [
             register_host,
             agent_manager.query_tjj_password() if settings.USE_TJJ else None,
-            agent_manager.configure_policy_by_sops() if settings.CONFIG_POLICY_BY_SOPS else None,
-            agent_manager.configure_policy() if settings.CONFIG_POLICY_BY_TENCENT_VPC else None,
+            agent_manager.configure_policy(),
             agent_manager.choose_ap(),
-            agent_manager.install(install_name),
+            agent_manager.install(),
             agent_manager.get_agent_status(expect_status=ProcStateType.RUNNING, name=_("查询Proxy状态")),
             # agent_manager.check_policy_gse_to_proxy(),
         ]
@@ -390,18 +383,11 @@ class ReinstallProxy(AgentAction):
 
     def _generate_activities(self, agent_manager: AgentManager):
 
-        is_manual = Host.objects.get(bk_host_id=agent_manager.host_info["bk_host_id"]).is_manual
-        if is_manual:
-            install_name = _("手动安装")
-        else:
-            install_name = _("安装")
-
         activities = [
             agent_manager.query_tjj_password() if settings.USE_TJJ else None,
-            agent_manager.configure_policy_by_sops() if settings.CONFIG_POLICY_BY_SOPS else None,
-            agent_manager.configure_policy() if settings.CONFIG_POLICY_BY_TENCENT_VPC else None,
+            agent_manager.configure_policy(),
             agent_manager.choose_ap(),
-            agent_manager.install(install_name),
+            agent_manager.install(),
             agent_manager.wait(30),  # 重装时由于初始 Proxy 的状态仍是RUNNING，这里等待30秒再重新查询
             agent_manager.get_agent_status(expect_status=ProcStateType.RUNNING, name=_("查询Proxy状态")),
             # agent_manager.check_policy_gse_to_proxy(),
@@ -414,11 +400,6 @@ class ReinstallProxy(AgentAction):
         activities.append(agent_manager.start_nginx())
 
         pipeline_data = builder.Data()
-        pipeline_data.inputs["${bk_host_id}"] = builder.Var(
-            type=builder.Var.PLAIN, value=agent_manager.host_info["bk_host_id"]
-        )
-        pipeline_data.inputs["${is_manual}"] = builder.Var(type=builder.Var.PLAIN, value=is_manual)
-
         return activities, pipeline_data
 
 
