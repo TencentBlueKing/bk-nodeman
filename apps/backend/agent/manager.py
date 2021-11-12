@@ -11,8 +11,6 @@ specific language governing permissions and limitations under the License.
 import ntpath
 import os
 import posixpath
-import random
-import time
 from typing import List
 
 from django.conf import settings
@@ -22,7 +20,6 @@ from django.utils.translation import ugettext as _
 from apps.backend.components.collections.agent import (
     CheckAgentStatusComponent,
     CheckPolicyGseToProxyComponent,
-    ConfigurePolicyComponent,
     GetAgentStatusComponent,
     InstallComponent,
     OperatePluginComponent,
@@ -44,7 +41,6 @@ from apps.backend.components.collections.job import (
     JobFastExecuteScriptComponent,
     PushFileToProxyComponent,
 )
-from apps.backend.components.collections.sops import CreateAndStartTaskComponent
 from apps.backend.subscription.tools import create_group_id
 from apps.node_man import constants as const
 from apps.node_man.constants import DEFAULT_SUPPLIER_ID
@@ -115,10 +111,9 @@ class AgentManager(object):
         开通网络策略
         """
         act = AgentServiceActivity(
-            component_code=ConfigurePolicyComponent.code,
-            name=ConfigurePolicyComponent.name,
+            component_code=components.ConfigurePolicyComponent.code,
+            name=components.ConfigurePolicyComponent.name,
         )
-        act.component.inputs.host_info = Var(type=Var.PLAIN, value=self.host_info)
         act.component.inputs.blueking_language = Var(type=Var.PLAIN, value=self.blueking_language)
         return act
 
@@ -543,33 +538,6 @@ class AgentManager(object):
         act.component.inputs.script_param = Var(type=Var.PLAIN, value="")
         act.component.inputs.script_timeout = Var(type=Var.PLAIN, value=300)
         act.component.inputs.context = Var(type=Var.PLAIN, value="")
-        act.component.inputs.blueking_language = Var(type=Var.PLAIN, value=self.blueking_language)
-        return act
-
-    def configure_policy_by_sops(self):
-        """
-        调用标准运维开通网络策略，需要在标准运维里创建一个流程模板，并把模板ID写入环境变量 BKAPP_EE_SOPS_TEMPLATE_ID
-        """
-        act = AgentServiceActivity(component_code=CreateAndStartTaskComponent.code, name=_("开通策略"))
-        act.component.inputs.sops_client = Var(
-            type=Var.PLAIN,
-            # 此处为请求ee环境标准运维使用参数
-            value={
-                "bk_app_code": settings.BKAPP_REQUEST_EE_SOPS_APP_CODE,
-                "bk_app_secret": settings.BKAPP_REQUEST_EE_SOPS_APP_SECRET,
-                "sops_api_host": settings.BKAPP_EE_SOPS_API_HOST,
-                "default": False,
-                "bk_biz_id": settings.BKAPP_REQUEST_EE_SOPS_BK_BIZ_ID,
-                "username": settings.BKAPP_REQUEST_EE_SOPS_OPERATOR,
-            },
-        )
-        # 作业名称
-        name = "【正式环境】gse外网集群添加IP白名单_{}{}{}".format(
-            time.strftime("%Y%m%d"), random.randint(10000, 99999), "".join(random.sample(str(int(time.time())), 3))
-        )
-        act.component.inputs.host_info = Var(type=Var.PLAIN, value=self.host_info)
-        act.component.inputs.name = Var(type=Var.PLAIN, value=name)
-        act.component.inputs.template_id = Var(type=Var.PLAIN, value=settings.BKAPP_EE_SOPS_TEMPLATE_ID)
         act.component.inputs.blueking_language = Var(type=Var.PLAIN, value=self.blueking_language)
         return act
 

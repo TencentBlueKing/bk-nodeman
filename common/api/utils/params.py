@@ -36,8 +36,11 @@ for argv in sys.argv:
 if IS_BACKEND:
 
     def add_esb_info_before_request(params):
-        params["bk_app_code"] = settings.APP_CODE
-        params["bk_app_secret"] = settings.SECRET_KEY
+        # 默认填充当前环境的app code和secret，部分场景需调用另外一套蓝鲸环境的API，则在参数中指定
+        if "bk_app_code" not in params:
+            params["bk_app_code"] = settings.APP_CODE
+        if "bk_app_secret" not in params:
+            params["bk_app_secret"] = settings.SECRET_KEY
 
         if "bk_username" not in params:
             params["bk_username"] = "admin"
@@ -55,9 +58,10 @@ else:
 
         @param {Boolean} [params.no_request] 是否需要带上 request 标识
         """
-        # 规范后的参数
-        params["bk_app_code"] = settings.APP_CODE
-        params["bk_app_secret"] = settings.SECRET_KEY
+        if "bk_app_code" not in params:
+            params["bk_app_code"] = settings.APP_CODE
+        if "bk_app_secret" not in params:
+            params["bk_app_secret"] = settings.SECRET_KEY
 
         if "no_request" in params and params["no_request"]:
             params["bk_username"] = "admin"
@@ -65,6 +69,7 @@ else:
             # _request，用于并发请求的场景
             _request = params.get("_request")
             req = _request or get_request()
+            # 补充请求凭证，如bk_token
             auth_info = build_auth_args(req)
             params.update(auth_info)
 
