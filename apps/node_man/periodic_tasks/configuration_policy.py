@@ -31,11 +31,6 @@ def configuration_policy():
     logger.info(f"{task_id} | Start configuring policy.")
 
     client = VpcClient()
-    is_ok, message = client.init()
-    if not is_ok:
-        logger.error(f"configuration_policy error: {message}")
-        raise ConfigurationPolicyError()
-
     # 兼容nat网络，外网IP和登录IP都添加到策略中
     hosts = Host.objects.filter(node_type=NodeType.PROXY).values("login_ip", "outer_ip")
     need_add_ip_list = []
@@ -50,7 +45,7 @@ def configuration_policy():
         need_add_ip_list = list(set(need_add_ip_list) - set(using_ip_list))
         if need_add_ip_list:
             new_ip_list = need_add_ip_list + using_ip_list
-            is_ok, message = client.add_ip_to_template(template, new_ip_list, need_query=False)
+            is_ok, message = client.add_ip_to_template(template, new_ip_list)
             if not is_ok:
                 logger.error(f"configuration_policy error: {message}")
                 raise ConfigurationPolicyError()

@@ -9,6 +9,16 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from . import cmdb, sops
+from ... import utils
 
-__all__ = ["cmdb", "sops"]
+
+class SOPSMockClient(utils.BaseMockClient):
+    def __init__(
+        self,
+        create_task_return=None,
+        start_task_return=None,
+        get_task_status_return=None,
+    ):
+        self.create_task = self.generate_magic_mock(mock_return_obj=create_task_return)
+        self.start_task = self.generate_magic_mock(mock_return_obj=start_task_return)
+        self.get_task_status = self.generate_magic_mock(mock_return_obj=get_task_status_return)
