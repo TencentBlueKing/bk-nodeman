@@ -14,9 +14,11 @@ from typing import Callable, List, Optional
 
 import mock
 
-from apps.backend.components.collections.agent import (
-    ChooseAccessPointComponent,
+from apps.backend.components.collections.agent_new.choose_access_point import (
     ChooseAccessPointService,
+)
+from apps.backend.components.collections.agent_new.components import (
+    ChooseAccessPointComponent,
 )
 from apps.mock_data import common_unit
 from apps.mock_data import utils as mock_data_utils
@@ -42,6 +44,7 @@ def win_ping_time_selector(*args, **kwargs):
 class ChooseAccessPointTestCase(utils.AgentServiceBaseTestCase):
     OS_TYPE = constants.OsType.LINUX
     NODE_TYPE = constants.NodeType.AGENT
+    SSH_MAN_MOCK_PATH = "apps.backend.components.collections.agent_new.choose_access_point.SshMan"
 
     except_ap_ids: Optional[List[int]] = None
     ssh_man_mock_client: Optional[utils.SshManMockClient] = None
@@ -150,7 +153,7 @@ class AssignedAccessPointTestCase(ChooseAccessPointTestCase):
 
 class WindowsAgentTestCase(ChooseAccessPointTestCase):
     OS_TYPE = constants.OsType.WINDOWS
-    EXECUTE_CMD_MOCK_PATH = "apps.backend.components.collections.agent.execute_cmd"
+    EXECUTE_CMD_MOCK_PATH = "apps.backend.components.collections.agent_new.choose_access_point.execute_cmd"
 
     def init_mock_clients(self):
         # windows 用不上 sshMan
