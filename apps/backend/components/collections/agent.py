@@ -592,84 +592,6 @@ class RestartService(AgentBaseService):
         return True
 
 
-class GetAgentStatusService(AgentBaseService):
-    name = _("查询 GSE 状态")
-
-    def __init__(self):
-        super().__init__(name=self.name)
-
-    __need_schedule__ = True
-    interval = StaticIntervalGenerator(5)
-
-    def inputs_format(self):
-        return [
-            Service.InputItem(name="host_info", key="host_info", type="object", required=True),
-            Service.InputItem(name="expect_status", key="expect_status", type="str", required=True),
-        ]
-
-    def _execute(self, data, parent_data):
-        expect_status = data.get_one_of_inputs("expect_status")
-        self.logger.info(_("期望的GSE主机状态为{expect_status}").format(expect_status=expect_status))
-        return True
-
-    def schedule(self, data, parent_data, callback_data=None):
-        expect_status = data.get_one_of_inputs("expect_status")
-        bk_host_id = data.get_one_of_inputs("bk_host_id")
-        host_info = data.get_one_of_inputs("host_info")
-        host = Host.get_by_host_info({"bk_host_id": bk_host_id} if bk_host_id else host_info)
-        status_queryset = ProcessStatus.objects.filter(
-            bk_host_id=host.bk_host_id,
-            name=ProcessStatus.GSE_AGENT_PROCESS_NAME,
-            source_type=ProcessStatus.SourceType.DEFAULT,
-        )
-        if not status_queryset:
-            # 需要创建process status
-            status = ProcessStatus.objects.create(
-                bk_host_id=host.bk_host_id,
-                name=ProcessStatus.GSE_AGENT_PROCESS_NAME,
-                source_type=ProcessStatus.SourceType.DEFAULT,
-            )
-        elif status_queryset.count() > 1:
-            # 需要清理掉重复记录
-            status = status_queryset.first()
-            status_queryset.exclude(id=status.id).delete()
-        else:
-            status = status_queryset.first()
-
-        bk_inner_ip = host.inner_ip
-        bk_cloud_id = host.bk_cloud_id
-        params = {"hosts": [{"ip": bk_inner_ip, "bk_cloud_id": bk_cloud_id}]}
-        host_key = f"{bk_cloud_id}:{bk_inner_ip}"
-        try:
-            agent_status = client_v2.gse.get_agent_status(params)[host_key]
-            agent_info = client_v2.gse.get_agent_info(params)[host_key]
-        except Exception as error:
-            self.logger.error(f"get agent status error, {error}")
-            return
-
-        status.status = constants.PROC_STATUS_DICT[agent_status["bk_agent_alive"]]
-        status.version = agent_info["version"] if status.status == constants.PROC_STATUS_DICT[1] else ""
-        status.save(update_fields=["status", "version"])
-        self.logger.info(
-            _("查询GSE主机({host_key})状态为{status}, 版本为{version}").format(
-                host_key=host_key, status=status.status, version=status.version
-            )
-        )
-
-        if status.status == expect_status:
-            self.finish_schedule()
-            # 更新主机来源
-            if host.node_from == constants.NodeFrom.CMDB:
-                host.node_from = constants.NodeFrom.NODE_MAN
-                host.save(update_fields=["node_from"])
-            return True
-
-        if self.interval.count > 60:
-            self.logger.error(_("查询GSE状态超时"))
-            self.finish_schedule()
-            return False
-
-
 class UpdateProcessStatusService(AgentBaseService):
     name = _("更新主机进程状态")
 
@@ -1088,12 +1010,6 @@ class RestartComponent(Component):
     name = _("重启")
     code = "restart"
     bound_service = RestartService
-
-
-class GetAgentStatusComponent(Component):
-    name = _("查询Agent状态")
-    code = "get_agent_status"
-    bound_service = GetAgentStatusService
 
 
 class UpdateProcessStatusComponent(Component):
