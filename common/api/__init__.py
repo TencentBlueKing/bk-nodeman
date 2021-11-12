@@ -30,6 +30,7 @@ def new_api_module(module_name, api_name, module_dir="modules"):
 # 蓝鲸平台模块域名
 JobApi = SimpleLazyObject(lambda: new_api_module("job", "_JobApi"))
 GseApi = SimpleLazyObject(lambda: new_api_module("gse", "_GseApi"))
+SopsApi = SimpleLazyObject(lambda: new_api_module("sops", "_SopsApi"))
 # CMSI
 CmsiApi = SimpleLazyObject(lambda: new_api_module("cmsi", "_CmsiApi"))
 
@@ -42,6 +43,7 @@ EsbApi = SimpleLazyObject(lambda: new_api_module("esb", "_ESBApi"))
 __all__ = [
     "JobApi",
     "GseApi",
+    "SopsApi",
     "CmsiApi",
     "NodeApi",
 ]
