@@ -386,6 +386,7 @@ class AgentServiceBaseTestCase(CustomAPITestCase, ComponentTestMixin, ABC):
     # DEBUG = True 时，会打印原子执行日志，帮助定位问题和确认执行步骤是否准确
     # ⚠️ 注意：请仅在本地开发机上使用，最后提交时，上层原子测试该值必须为 False
     DEBUG: bool = False
+
     OBJ_FACTORY_CLASS: Type[AgentTestObjFactory] = AgentTestObjFactory
     BATCH_CALL_MOCK_PATHS = []
 
