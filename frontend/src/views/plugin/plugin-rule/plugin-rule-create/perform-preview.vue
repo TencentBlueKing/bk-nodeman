@@ -296,11 +296,6 @@ export default class PerformPreview extends Mixins(HeaderRenderMixin, HeaderFilt
     head: '',
     sort_type: '',
   };
-  private osMap: Dictionary = {
-    LINUX: 'Linux',
-    WINDOWS: 'Windows',
-    AIX: 'AIX',
-  };
   private statusMap = {
     running: window.i18n.t('正常'),
     terminated: window.i18n.t('异常'),
@@ -308,7 +303,9 @@ export default class PerformPreview extends Mixins(HeaderRenderMixin, HeaderFilt
   };
   public filterData: ISearchItem[] = [];
 
-
+  private get osMap() {
+    return MainStore.osMap;
+  }
   private get statisticsList() {
     return [
       { id: 'running', count: this.runningNum, path: '正常agent个数' },

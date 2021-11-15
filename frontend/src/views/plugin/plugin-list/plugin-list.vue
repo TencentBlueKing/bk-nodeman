@@ -140,11 +140,6 @@ export default class PluginList extends Mixins(HeaderFilterMixins) {
   private runningCount = 0;
   private checkValue: CheckValueEnum = 0;
   private hasOldRouteParams = false;
-  private osMap = {
-    LINUX: 'Linux',
-    WINDOWS: 'Windows',
-    AIX: 'AIX',
-  };
   private strategyValue: Array<number | string> = []; // 插件id number， 策略名称 string
   private sortData: ISortData = {
     head: '',

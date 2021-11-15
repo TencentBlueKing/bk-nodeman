@@ -3,7 +3,7 @@ import Vue from 'vue';
 import http from '@/api';
 import navList from '@/router/navigation-config';
 import { retrieveBiz, fetchTopo } from '@/api/modules/cmdb';
-import { retrieveGlobalSettings } from '@/api/modules/meta';
+import { retrieveGlobalSettings, getFilterCondition } from '@/api/modules/meta';
 import { fetchPublicKeys } from '@/api/modules/rsa';
 import {
   fetchPermission,
@@ -65,6 +65,8 @@ export default class Main extends VuexModule {
   // cache view
   public cacheViews: string[] = [];
   public routerBackName = '';
+  public osList: any = null;
+  public osMap: Dictionary = null;
 
   // 公共 mutations
   /**
@@ -274,6 +276,15 @@ export default class Main extends VuexModule {
   public updateRouterBackName(name = '') {
     this.routerBackName = name;
   }
+  @Mutation
+  public updateOsList(list = []) {
+    this.osList = list;
+    this.osMap = list.reduce((map, item) => {
+      map[item.id] = item.name;
+      return map;
+    }, {});
+  }
+
   /**
    * 获取用户信息
    *
@@ -378,5 +389,10 @@ export default class Main extends VuexModule {
   public async getPublicKeyRSA(params = { names: ['DEFAULT'] }): Promise<IKeyItem> {
     const data: IKeyItem[] = await fetchPublicKeys(params).catch(() => []);
     return data.find(item => item.name === 'DEFAULT') || {};
+  }
+  @Action
+  public async getOsList(category = 'os_type'): Promise<Dictionary> {
+    const res = await getFilterCondition({ category }).catch(() => []);
+    return res || [];
   }
 }
