@@ -56,7 +56,7 @@ class ApiMixin(GenericViewSet):
             response.status_code = status.HTTP_200_OK
 
         # 禁用客户端的 MIME 类型嗅探行为，防止基于"MIME"的攻击
-        response._headers["x-content-type-options"] = ("X-Content-Type-Options", "nosniff")
+        response.headers["x-content-type-options"] = ("X-Content-Type-Options", "nosniff")
         return super(ApiMixin, self).finalize_response(request, response, *args, **kwargs)
 
 
