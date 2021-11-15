@@ -103,7 +103,7 @@ AuthType = choices_to_namedtuple(AUTH_CHOICES)
 OS_TUPLE = ("LINUX", "WINDOWS", "AIX", "SOLARIS")
 OS_CHOICES = tuple_choices(OS_TUPLE)
 OsType = choices_to_namedtuple(OS_CHOICES)
-OS_CHN = {"WINDOWS": "Windows", "LINUX": "Linux", "AIX": "Aix", "SOLARIS": "Solaris"}
+OS_CHN = {os_type: os_type if os_type == OsType.AIX else os_type.capitalize() for os_type in OS_TUPLE}
 BK_OS_TYPE = {"LINUX": "1", "WINDOWS": "2", "AIX": "3", "SOLARIS": "5"}
 
 # 操作系统->系统账户映射表

@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import re
+from typing import Tuple
 
 from django.conf import settings
 from django.db import connection
@@ -145,7 +146,7 @@ class MetaHandler(APIModel):
             for index, item in enumerate(sublist):
                 col_map[index].add(item)
 
-        os_types_children = [{"name": constants.OS_CHN.get(os, os), "id": os} for os in os_types if os != ""]
+        os_types_children = self.fetch_os_type_children(tuple(os_types))
         statuses_children = [
             {"name": constants.PROC_STATUS_CHN.get(status, status), "id": status} for status in statuses if status != ""
         ]
@@ -354,9 +355,7 @@ class MetaHandler(APIModel):
             special_os_type = [constants.OsType.AIX, constants.OsType.SOLARIS]
             if os_type in special_os_type and settings.BKAPP_RUN_ENV == constants.BkappRunEnvType.CE.value:
                 continue
-            os_dict["children"].append(
-                {"id": os_type, "name": os_type if os_type == constants.OsType.AIX else os_type.capitalize()}
-            )
+            os_dict["children"].append({"id": os_type, "name": constants.OS_CHN.get(os_type, os_type)})
 
         ret_value.append(os_dict)
 
@@ -437,6 +436,15 @@ class MetaHandler(APIModel):
 
         return plugin_result
 
+    @staticmethod
+    def fetch_os_type_children(os_types: Tuple = constants.OsType):
+        os_type_children = []
+        for os_type in os_types:
+            if os_type == "":
+                continue
+            os_type_children.append({"id": os_type, "name": constants.OS_CHN.get(os_type, os_type)})
+        return os_type_children
+
     def filter_condition(self, category):
         """
         获取过滤条件
@@ -459,6 +467,9 @@ class MetaHandler(APIModel):
             return ret
         elif category == "plugin_host":
             ret = self.fetch_plugin_host_condition()
+            return ret
+        elif category == "os_type":
+            ret = self.fetch_os_type_children()
             return ret
 
     def search(self, key):
