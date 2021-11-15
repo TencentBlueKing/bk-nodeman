@@ -16,8 +16,6 @@ import pkgutil
 import sys
 from importlib import import_module
 
-from django.utils._os import npath, upath
-
 logger = logging.getLogger("root")
 
 
@@ -26,10 +24,10 @@ def autodiscover_items(module):
     Given a path to discover, auto register all items
     """
     # Workaround for a Python 3.2 bug with pkgutil.iter_modules
-    module_dir = upath(module.__path__[0])
+    module_dir = module.__path__[0]
     sys.path_importer_cache.pop(module_dir, None)
     modules = [
-        name for _, name, is_pkg in pkgutil.iter_modules([npath(module_dir)]) if not is_pkg and not name.startswith("_")
+        name for _, name, is_pkg in pkgutil.iter_modules([module_dir]) if not is_pkg and not name.startswith("_")
     ]
     for name in modules:
         module_path = "{}.{}".format(module.__name__, name)

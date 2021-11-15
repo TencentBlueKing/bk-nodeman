@@ -239,7 +239,7 @@ class AESTextField(models.TextField):
             kwargs["prefix"] = self.prefix
         return name, path, args, kwargs
 
-    def from_db_value(self, value, expression, connection, context):
+    def from_db_value(self, value, expression, connection, context=None):
         """
         出库后解密数据
         """
