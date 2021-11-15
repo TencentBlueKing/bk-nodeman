@@ -202,11 +202,6 @@ export default class PluginRuleTable extends Mixins(FormLabelMixin, HeaderRender
   private currentHostId = -1;
   private currentHostStatus = '';
   private showSlider = false;
-  private osMap = {
-    LINUX: 'Linux',
-    WINDOWS: 'Windows',
-    AIX: 'AIX',
-  };
   // 本地存储Key
   private localMark = 'plugin_list_table';
   private filterField: ITabelFliter[] = [];
@@ -220,6 +215,9 @@ export default class PluginRuleTable extends Mixins(FormLabelMixin, HeaderRender
     failed: this.$t('异常'),   // 失败
   };
 
+  private get osMap() {
+    return MainStore.osMap;
+  }
   private get selectionCount() {
     if (this.checkType === 'current') {
       return this.selections.length;

@@ -45,6 +45,7 @@ const router = new VueRouter({
   routes,
 });
 
+const loadOsRoute = ['agentSetup', 'agentImport', 'agentEdit'];
 const cancelRequest = async () => {
   const allRequest = http.queue.get() as any[];
   const requestQueue = allRequest.filter(request => request.cancelWhenRouteChange);
@@ -72,6 +73,14 @@ const beforeRouterMethod = async (to: Route, next: any) => {
   // 重置业务权限
   MainStore.updateBizAction(authority ? authority.page : '');
   await cancelRequest();
+  if (!MainStore.osList) {
+    if (loadOsRoute.includes(to.name)) {
+      const list = await MainStore.getOsList();
+      MainStore.updateOsList(list);
+    } else {
+      MainStore.getOsList().then(list => MainStore.updateOsList(list));
+    }
+  }
   next();
 };
 

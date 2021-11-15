@@ -1,3 +1,5 @@
+import { MainStore } from '@/store';
+
 export interface IAuth {
   id: string
   name: string
@@ -34,17 +36,8 @@ const getAuthentication = () => {
   }
   return auths;
 };
-const getSysOptions = () => {
-  const options: {id: string, name: string }[] = [
-    { id: 'WINDOWS', name: 'Windows' },
-    { id: 'LINUX', name: 'Linux' },
-  ];
-  if (window.PROJECT_CONFIG.BKAPP_RUN_ENV !== 'ce') {
-    options.push({ id: 'AIX', name: 'AIX' }, { id: 'SOLARIS', name: 'Solaris' });
-  }
-  return options;
-};
+
 export const authentication = getAuthentication();
 export const defaultPort = window.PROJECT_CONFIG.DEFAULT_SSH_PORT ? Number(window.PROJECT_CONFIG.DEFAULT_SSH_PORT) : 22;
-export const sysOptions = getSysOptions();
+export const sysOptions = MainStore.osList;
 export default authentication;
