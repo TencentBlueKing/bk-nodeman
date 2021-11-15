@@ -18,7 +18,7 @@ import redis
 from django.apps import AppConfig
 from django.conf import settings
 from redis.sentinel import Sentinel
-from rediscluster import StrictRedisCluster
+from rediscluster import RedisCluster
 
 logger = logging.getLogger("root")
 
@@ -43,7 +43,7 @@ def get_cluster_client():
     if "password" in settings.REDIS:
         kwargs["password"] = settings.REDIS["password"]
 
-    r = StrictRedisCluster(**kwargs)
+    r = RedisCluster(**kwargs)
     r.echo("Hello Redis")
     return r
 
@@ -70,8 +70,12 @@ class PipelineConfig(AppConfig):
     verbose_name = "Pipeline"
 
     def ready(self):
-        from pipeline.signals.handlers import pipeline_template_post_save_handler  # noqa
-        from pipeline.validators.handlers import post_new_end_event_register_handler  # noqa
+        from pipeline.signals.handlers import (  # noqa
+            pipeline_template_post_save_handler,
+        )
+        from pipeline.validators.handlers import (  # noqa
+            post_new_end_event_register_handler,
+        )
 
         # init redis pool
         if hasattr(settings, "REDIS"):
@@ -82,7 +86,7 @@ class PipelineConfig(AppConfig):
                 # fall back to single node mode
                 logger.error("redis client init error: %s" % traceback.format_exc())
         elif (
-            getattr(settings, "PIPELINE_DATA_BACKEND", None) ==
-            "pipeline.engine.core.data.redis_backend.RedisDataBackend"
+            getattr(settings, "PIPELINE_DATA_BACKEND", None)
+            == "pipeline.engine.core.data.redis_backend.RedisDataBackend"
         ):
             logger.error("can not find REDIS in settings!")
