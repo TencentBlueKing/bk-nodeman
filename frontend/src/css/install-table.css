@@ -102,19 +102,6 @@
       }
     }
   }
-
-  /* error-mark */
-  .input-type-border {
-    display: none;
-    position: absolute;
-    top: -1px;
-    right: -1px;
-    bottom: -1px;
-    left: -1px;
-    border: 1px solid #3a84ff;
-    z-index: 5;
-    pointer-events: none;
-  }
   .step-verify-input:not(.is-error) .select:hover i {
     display: block;
   }
@@ -277,4 +264,17 @@
   .fixed-form-el {
     padding: 0 12px
   }
+}
+
+/* error-mark */
+.input-type-border {
+  display: none;
+  position: absolute;
+  top: -1px;
+  right: -1px;
+  bottom: -1px;
+  left: -1px;
+  border: 1px solid #3a84ff;
+  z-index: 5;
+  pointer-events: none;
 }
