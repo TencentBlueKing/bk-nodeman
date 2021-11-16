@@ -34,7 +34,7 @@ export interface IAuthApply {
 }
 
 export type RequestMethods = 'delete' | 'get' | 'head' | 'post' | 'put' | 'patch';
-export type IOs = 'LINUX' | 'WINDOWS' | 'AIX';
+export type IOs = 'LINUX' | 'WINDOWS' | 'AIX' | 'SOLARIS';
 
 export interface IUserConfig {
   // http 请求默认 id
