@@ -12,6 +12,9 @@ from mock import MagicMock
 
 from ... import utils
 
+# 操作类接口一般返回的是 task_id
+OP_RESULT = {"task_id": "GSETASK:S:202111161138323563236795:143"}
+
 
 class GseMockClient(utils.BaseMockClient):
     def __init__(self, get_agent_status_return=None, get_agent_info_return=None):
