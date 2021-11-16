@@ -10,7 +10,6 @@ specific language governing permissions and limitations under the License.
 """
 import copy
 import os
-import platform
 import shutil
 import tarfile
 import uuid
@@ -23,14 +22,13 @@ from django.conf import settings
 
 from apps.backend.plugin import tasks
 from apps.core.files import storage
+from apps.mock_data import common_unit
 from apps.node_man import constants, models
 from apps.utils import files
 
 # 测试文件根路径
 from apps.utils.enum import EnhanceEnum
 from apps.utils.unittest.testcase import CustomAPITestCase
-
-TEST_ROOT = ("/tmp", "c:/")[platform.system().upper() == constants.OsType.WINDOWS]
 
 # 插件包yaml配置
 PROJECT_YAML_CONTENT = """
@@ -80,48 +78,19 @@ node_manage_control:
 """
 
 # 插件名称
-PLUGIN_NAME = "test_plugin"
+PLUGIN_NAME = common_unit.plugin.PLUGIN_NAME
 
 # 插件包版本
-PACKAGE_VERSION = "1.0.1"
+PACKAGE_VERSION = common_unit.plugin.PACKAGE_VERSION
 
 # 是否为第三方插件
 IS_EXTERNAL = False
 
 # models.GsePluginDesc 创建参数
-GSE_PLUGIN_DESC_PARAMS = {
-    "name": PLUGIN_NAME,
-    "description": "单元测试插件",
-    "description_en": "plugin for unittest",
-    "scenario": "单元测试插件",
-    "scenario_en": "plugin for unittest",
-    "category": constants.CategoryType.official,
-    "launch_node": "all",
-    "config_file": "test_plugin.conf",
-    "config_format": "yaml",
-    "use_db": 0,
-    "is_binary": 1,
-    "auto_launch": 0,
-}
+GSE_PLUGIN_DESC_PARAMS = common_unit.plugin.GSE_PLUGIN_DESC_MODEL_DATA
 
 # models.Packages 创建参数
-PKG_PARAMS = {
-    "id": 1,
-    "pkg_name": f"{PLUGIN_NAME}-{PACKAGE_VERSION}.tgz",
-    "version": PACKAGE_VERSION,
-    "module": "gse_plugin",
-    "project": PLUGIN_NAME,
-    "pkg_size": 0,
-    "pkg_path": "",
-    "md5": "",
-    "pkg_mtime": "",
-    "pkg_ctime": "",
-    "location": "",
-    "os": constants.OsType.LINUX.lower(),
-    "cpu_arch": constants.CpuType.x86_64,
-    "is_release_version": True,
-    "is_ready": True,
-}
+PKG_PARAMS = common_unit.plugin.PACKAGES_MODEL_DATA
 
 
 class PathSettingOverwrite(EnhanceEnum):
