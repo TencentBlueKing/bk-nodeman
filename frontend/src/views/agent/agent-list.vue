@@ -252,7 +252,8 @@
           key="biz"
           :label="$t('归属业务')"
           prop="bk_biz_name"
-          v-if="filter['bk_biz_name'].mockChecked">
+          v-if="filter['bk_biz_name'].mockChecked"
+          show-overflow-tooltip>
         </bk-table-column>
         <bk-table-column
           key="cloudArea"

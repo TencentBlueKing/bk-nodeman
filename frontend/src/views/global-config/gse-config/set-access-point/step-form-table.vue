@@ -17,7 +17,7 @@
     </div>
     <div class="setup-body-wrapper">
       <div class="body-content">
-        <table>
+        <table class="form-table">
           <colgroup>
             <col v-for="(item, index) in tableHead" :key="index" :width="item.width ? item.width : 'auto'">
           </colgroup>
@@ -64,6 +64,7 @@ export default class SetupFormTable extends Vue {
     }
     &-header-wrapper {
       border: 1px solid #dcdee5;
+      border-bottom: 0;
       background: #fafbfd;
       .setup-header {
         tr {
@@ -83,10 +84,20 @@ export default class SetupFormTable extends Vue {
     }
     &-body-wrapper {
       border: 1px solid #dcdee5;
-      border-top: 0;
       background: #fff;
       position: relative;
-      padding: 8px 0;
+      td {
+        border: 1px solid #dcdee5;
+      }
+      tr td:first-child {
+        border-left: 0;
+      }
+      tr td:last-child {
+        border-right: 0;
+      }
+      tr:first-child td {
+        border-top: 0;
+      }
     }
   }
 </style>

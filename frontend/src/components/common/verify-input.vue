@@ -214,6 +214,7 @@ export default class StepVerifyInput extends Vue {
       background: #ea3636;
       color: #fff;
       transform: scale(.5);
+      transform-origin: right top;
     }
     .tooltips-icon {
       color: #ea3636;
@@ -258,8 +259,8 @@ export default class StepVerifyInput extends Vue {
       }
       .error-top-tag {
         position: absolute;
-        right: -20px;
-        top: -8px;
+        right: 1px;
+        top: 1px;
         z-index: 1;
       }
       .tooltips-icon {

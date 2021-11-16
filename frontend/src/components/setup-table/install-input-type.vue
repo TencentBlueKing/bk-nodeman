@@ -172,7 +172,7 @@ const basicInputType = ['text', 'number', 'email', 'url', 'date'];
 type IValue = string | number | boolean | Array<number | string>;
 
 @Component({
-  name: 'input-type',
+  name: 'install-input-type',
   components: {
     Upload,
     PermissionSelect,

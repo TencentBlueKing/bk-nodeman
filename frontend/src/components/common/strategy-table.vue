@@ -1,20 +1,20 @@
 <template>
   <bk-table show-overflow-tooltip :data="guideTable">
-    <bk-table-column width="280" prop="source" :label="$t('源地址')">
+    <bk-table-column width="280" prop="source" :label="$t('源地址')" show-overflow-tooltip>
       <template #default="{ row }">
         <div v-if="row.sourceKey === 'agent'">
           <span>{{ row.source }}：</span>
           <template v-if="row.sourceRe">
-            <bk-popover v-if=" detail[row.sourceKey]" placement="top" :content="$t('复制IP')">
+            <div class="bk-tooltip" v-if=" detail[row.sourceKey]">
               <div class="cell-flex">
                 <span class="cell-text" @click.stop="handleCopy(row.sourceKey)">
                   {{ detail[`${row.sourceKey}Str`] }}
                 </span>
                 <span v-if="detail[row.sourceKey] > 1">...</span>
                 <span v-if="detail[row.sourceKey] > 1" class="num-tag">+{{ detail[row.sourceKey] }}</span>
-                <i class="copy-icon nodeman-icon nc-copy" @click.stop="handleCopy(row.sourceKey)"></i>
+                <i class="copy-icon nodeman-icon nc-copy-2" @click.stop="handleCopy(row.sourceKey)"></i>
               </div>
-            </bk-popover>
+            </div>
             <span class="cell-placeholder" v-else>{{ hasCloud ? $t('请输入IP') : $t('请选择云区域') }}</span>
           </template>
         </div>
@@ -22,14 +22,14 @@
           <span>{{ row.source }}：</span>
           <bk-popover
             placement="top"
-            :disabled="!(detail[row.sourceKey] || (row.sourceKey === 'proxy' && notAvailableProxy))">
+            :disabled="!(row.sourceKey === 'proxy' && notAvailableProxy)">
             <div class="cell-flex" v-if="detail[row.sourceKey]">
               <span class="cell-text" @click.stop="handleCopy(row.sourceKey)">
                 {{ detail[`${row.sourceKey}Str`] }}
               </span>
               <span v-if="detail[row.sourceKey] > 1">...</span>
               <span v-if="detail[row.sourceKey] > 1" class="num-tag">+{{ detail[row.sourceKey] }}</span>
-              <i class="copy-icon nodeman-icon nc-copy" @click.stop="handleCopy(row.sourceKey)"></i>
+              <i class="copy-icon nodeman-icon nc-copy-2" @click.stop="handleCopy(row.sourceKey)"></i>
             </div>
             <span v-else-if="row.sourceKey === 'proxy' && notAvailableProxy" class="cell-placeholder">
               {{ $t('云区域未安装Proxy') }}
@@ -37,7 +37,6 @@
             <span v-else-if="row.sourceRe" class="cell-placeholder">{{ row.source ? emptyPlaceholder : '' }}</span>
             <div slot="content">
               <bk-link v-if="notAvailableProxy" theme="primary" @click.stop="handleGotoProxy">{{$t('前往安装')}}</bk-link>
-              <span v-else>{{ $t('复制IP') }}</span>
             </div>
           </bk-popover>
         </div>
@@ -50,19 +49,16 @@
             <span>{{ row.targetAdress }}</span>
             <span v-if="row.targetRe">：</span>
             <template v-if="row.targetRe">
-              <bk-popover
-                v-if="detail[row.targetKey]"
-                placement="top"
-                :content="$t('复制IP')">
+              <div class="bk-tooltip" v-if="detail[row.sourceKey]">
                 <div class="cell-flex">
                   <span class="cell-text" @click.stop="handleCopy(row.targetKey)">
                     {{ detail[`${row.targetKey}Str`] }}
                   </span>
                   <span v-if="detail[row.targetKey] > 1">...</span>
                   <span v-if="detail[row.targetKey] > 1" class="num-tag">+{{ detail[row.targetKey] }}</span>
-                  <i class="copy-icon nodeman-icon nc-copy" @click.stop="handleCopy(row.targetKey)"></i>
+                  <i class="copy-icon nodeman-icon nc-copy-2" @click.stop="handleCopy(row.targetKey)"></i>
                 </div>
-              </bk-popover>
+              </div>
               <span v-else class="cell-placeholder">{{ hasCloud ? $t('请输入IP') : $t('请选择云区域') }}</span>
             </template>
           </div>
@@ -71,14 +67,14 @@
             <span v-if="row.targetRe">：</span>
             <bk-popover
               placement="top"
-              :disabled="!(detail[row.targetKey] || (row.targetKey === 'proxy' && notAvailableProxy))">
+              :disabled="!(row.targetKey === 'proxy' && notAvailableProxy)">
               <div class="cell-flex" v-if="detail[row.targetKey]">
                 <span class="cell-text" @click.stop="handleCopy(row.targetKey)">
                   {{ detail[`${row.targetKey}Str`] }}
                 </span>
                 <span v-if="detail[row.targetKey] > 1">...</span>
                 <span v-if="detail[row.targetKey] > 1" class="num-tag">+{{ detail[row.targetKey] }}</span>
-                <i class="copy-icon nodeman-icon nc-copy" @click.stop="handleCopy(row.targetKey)"></i>
+                <i class="copy-icon nodeman-icon nc-copy-2" @click.stop="handleCopy(row.targetKey)"></i>
               </div>
               <span v-else-if="row.targetKey === 'proxy' && notAvailableProxy" class="cell-placeholder">
                 {{ $t('云区域未安装Proxy') }}
@@ -88,7 +84,6 @@
               </span>
               <div slot="content">
                 <bk-link v-if="notAvailableProxy" theme="primary" @click.stop="handleGotoProxy">{{$t('前往安装')}}</bk-link>
-                <span v-else>{{ $t('复制IP') }}</span>
               </div>
             </bk-popover>
           </div>

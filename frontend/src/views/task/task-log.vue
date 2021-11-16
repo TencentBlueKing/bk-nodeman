@@ -168,6 +168,7 @@
                           :class="['log-item', log.type, { 'is-flod': log.isFlod }]">
                           <!-- eslint-disable-next-line vue/no-v-html -->
                           <span class="log-text" v-html="log.content"></span>
+                          <i class="log-error-icon nodeman-icon nc-remind-fill" v-if="log.type === 'error'"></i>
                           <i
                             v-if="log.type === 'debug'"
                             :class="`log-flod-icon bk-icon icon-play-shape ${ log.isFlod ? 'right' : 'down'}`"
@@ -1176,7 +1177,7 @@ $headerColor: #313238;
         font-family: "Monaco", "Menlo", "Ubuntu Mono", "Consolas", "source-code-pro", "monospace" !important;
         line-height: 24px;
         font-size: 12px;
-        color: #c4c6cc;
+        color: #a8acb8;
         white-space: pre-wrap;
         word-wrap: break-word;
         word-break: break-word;
@@ -1185,8 +1186,22 @@ $headerColor: #313238;
           text-decoration: underline;
         }
       }
-      &.error .log-text {
-        color: #cc4141;
+      &.error {
+        margin: 10px 0;
+        padding-top: 10px;
+        padding-bottom: 10px;
+        border-top: 1px solid #550613;
+        border-bottom: 1px solid #550613;
+        background: #2B1517;
+        .log-error-icon {
+          position: absolute;
+          top: 17px;
+          left: 9px;
+          color: #d2332b;
+        }
+        .log-text {
+          color: #ebebeb;
+        }
       }
       &.debug {
         padding-top: 7px;
