@@ -25,19 +25,20 @@
                           position="right"
                           ref="checkItem"
                           required
+                          error-mode="mask"
                           :rules="config.rules"
                           :id="index"
                           :default-validator="getDefaultValidator()">
-                          <InputType
+                          <InstallInputType
                             v-test="'apBaseInput'"
                             v-model.trim="host[config.prop]"
                             v-bind="{ type: 'text', placeholder: $t('请输入'), disabled: checkLoading }"
                             @change="hadleFormChange">
-                          </InputType>
+                          </InstallInputType>
                         </VerifyInput>
                       </td>
                       <td>
-                        <div class="opera-icon-group">
+                        <div class="opera-icon-group pl10">
                           <i
                             v-test="'addRowBtn'"
                             :class="['nodeman-icon nc-plus', { 'disable-icon': checkLoading }]"
@@ -141,6 +142,7 @@ import { MainStore, ConfigStore } from '@/store/index';
 import { IApBase, IIpGroup, IZk } from '@/types/config/config';
 import VerifyInput from '@/components/common/verify-input.vue';
 import InputType from '@/components/setup-table/input-type.vue';
+import InstallInputType from '@/components/setup-table/install-input-type.vue';
 import formLabelMixin from '@/common/form-label-mixin';
 import SetupFormTable from './step-form-table.vue';
 import { isEmpty } from '@/common/util';
@@ -154,6 +156,7 @@ type IServer = 'btfileserver' | 'dataserver' | 'taskserver';
   components: {
     VerifyInput,
     InputType,
+    InstallInputType,
     SetupFormTable,
   },
 })
@@ -521,7 +524,7 @@ export default class StepHost extends formLabelMixin {
     tr {
       height: 44px;
       td {
-        padding: 0 5px;
+        /* padding: 0 5px; */
         &:first-child {
           padding-left: 16px;
         }
