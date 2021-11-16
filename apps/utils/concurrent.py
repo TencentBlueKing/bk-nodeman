@@ -46,6 +46,11 @@ def batch_call(func: Callable, params_list: List[Dict], get_data=lambda x: x, ex
     """
 
     result = []
+
+    # 不存在参数列表，直接返回
+    if not params_list:
+        return result
+
     with ThreadPoolExecutor(max_workers=settings.CONCURRENT_NUMBER) as ex:
         tasks = [ex.submit(inject_request(func), **params) for params in params_list]
     for future in as_completed(tasks):
