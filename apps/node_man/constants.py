@@ -113,9 +113,9 @@ ACCOUNT_MAP = {
     OsType.AIX: "root",
     OsType.SOLARIS: "root",
     OsType.WINDOWS.lower(): settings.BACKEND_WINDOWS_ACCOUNT,
-    OsType.LINUX.lower: "root",
-    OsType.AIX.lower: "root",
-    OsType.SOLARIS.lower: "root",
+    OsType.LINUX.lower(): "root",
+    OsType.AIX.lower(): "root",
+    OsType.SOLARIS.lower(): "root",
 }
 
 OS_TYPE = {"1": "LINUX", "2": "WINDOWS", "3": "AIX", "5": "SOLARIS"}

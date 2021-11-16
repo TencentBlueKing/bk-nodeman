@@ -59,6 +59,10 @@ AGENT_INSTANCE_HOST_INFO = {
 
 def mock_batch_call(func: Callable, params_list: List[Dict], get_data=lambda x: x, extend_result: bool = False) -> List:
     results = []
+
+    if not params_list:
+        return results
+
     for params in params_list:
         result = get_data(func(**params))
         if extend_result:
