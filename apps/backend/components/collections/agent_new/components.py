@@ -17,8 +17,9 @@ from pipeline.component_framework.component import Component
 from .check_agent_status import CheckAgentStatusService
 from .choose_access_point import ChooseAccessPointService
 from .configure_policy import ConfigurePolicyService
-from .get_agent_status import GetAgentStatusService
 from .install import InstallService
+from .delegate_plugin_proc import DelegatePluginProcService
+from .get_agent_status import GetAgentStatusService
 from .query_password import QueryPasswordService
 from .register_host import RegisterHostService
 from .update_process_status import UpdateProcessStatusService
@@ -52,6 +53,12 @@ class ConfigurePolicyComponent(Component):
     name = _("配置策略")
     code = "configure_policy"
     bound_service = ConfigurePolicyService
+
+
+class DelegatePluginProcComponent(Component):
+    name = _("托管插件进程")
+    code = "delegate_plugin_proc"
+    bound_service = DelegatePluginProcService
 
 
 class GetAgentStatusComponent(Component):
