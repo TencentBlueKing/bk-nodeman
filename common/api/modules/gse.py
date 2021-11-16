@@ -49,3 +49,9 @@ class _GseApi(BaseApi):
             module=self.MODULE,
             description="同步进程状态信息",
         )
+        self.update_proc_info = DataAPI(
+            method="POST",
+            url=GSE_APIGATEWAY_ROOT_V2 + "update_proc_info/",
+            module=self.MODULE,
+            description="更新进程信息",
+        )
