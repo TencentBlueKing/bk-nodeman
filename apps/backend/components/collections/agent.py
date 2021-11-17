@@ -452,37 +452,6 @@ class WaitService(AgentBaseService):
         return True
 
 
-class CheckAgentStatusService(AgentBaseService):
-    name = _("检查Agent状态")
-
-    def __init__(self):
-        super().__init__(name=self.name)
-
-    def inputs_format(self):
-        return [
-            Service.InputItem(name="bk_host_id", key="bk_host_id", type="int", required=True),
-        ]
-
-    def _execute(self, data, parent_data):
-        bk_host_id = data.get_one_of_inputs("bk_host_id")
-        process_status = ProcessStatus.objects.filter(bk_host_id=bk_host_id, name=ProcessStatus.GSE_AGENT_PROCESS_NAME)
-        running_status = process_status.filter(status=constants.ProcStateType.RUNNING)
-        process_status_count = process_status.count()
-
-        if running_status:
-            if process_status_count > 1:
-                # 如果状态记录重复进行清理
-                process_status.exclude(id=running_status.first().id).delete()
-            self.logger.info(_("Agent 状态【正常】"))
-            return True
-        else:
-            if process_status_count > 1:
-                # 如果状态记录重复进行清理
-                process_status.exclude(id=process_status.first().id).delete()
-            self.logger.error(_("Agent 状态【异常】"))
-            return False
-
-
 class RenderAndPushGseConfigService(JobPushMultipleConfigFileService):
     name = _("渲染并下发Agent配置")
 
@@ -695,12 +664,6 @@ class WaitComponent(Component):
     name = _("等待")
     code = "wait"
     bound_service = WaitService
-
-
-class CheckAgentStatusComponent(Component):
-    name = _("检查Agent状态")
-    code = "agent_check_agent_status"
-    bound_service = CheckAgentStatusService
 
 
 class RenderAndPushGseConfigComponent(Component):
