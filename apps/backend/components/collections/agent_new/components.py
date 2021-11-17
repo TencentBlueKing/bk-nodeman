@@ -14,9 +14,10 @@ from django.utils.translation import ugettext_lazy as _
 
 from pipeline.component_framework.component import Component
 
+from .check_agent_status import CheckAgentStatusService
 from .choose_access_point import ChooseAccessPointService
-from .get_agent_status import GetAgentStatusService
 from .configure_policy import ConfigurePolicyService
+from .get_agent_status import GetAgentStatusService
 from .query_password import QueryPasswordService
 from .register_host import RegisterHostService
 
@@ -49,3 +50,9 @@ class GetAgentStatusComponent(Component):
     name = _("查询Agent状态")
     code = "get_agent_status"
     bound_service = GetAgentStatusService
+
+
+class CheckAgentStatusComponent(Component):
+    name = _("检查Agent状态")
+    code = "agent_check_agent_status"
+    bound_service = CheckAgentStatusService
