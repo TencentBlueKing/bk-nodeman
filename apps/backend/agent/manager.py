@@ -18,7 +18,6 @@ from django.db.models import Max, Subquery
 from django.utils.translation import ugettext as _
 
 from apps.backend.components.collections.agent import (
-    CheckAgentStatusComponent,
     CheckPolicyGseToProxyComponent,
     InstallComponent,
     OperatePluginComponent,
@@ -302,11 +301,11 @@ class AgentManager(object):
         act.component.inputs.blueking_language = Var(type=Var.PLAIN, value=self.blueking_language)
         return act
 
-    def check_agent_status(self, name=CheckAgentStatusComponent.name):
+    def check_agent_status(self, name=components.CheckAgentStatusComponent.name):
         """
         查询Agent状态是否正常
         """
-        act = AgentServiceActivity(component_code=CheckAgentStatusComponent.code, name=name)
+        act = AgentServiceActivity(component_code=components.CheckAgentStatusComponent.code, name=name)
         act.component.inputs.bk_host_id = Var(type=Var.SPLICE, value="${bk_host_id}")
         act.component.inputs.host_info = Var(type=Var.PLAIN, value=self.host_info)
         act.component.inputs.blueking_language = Var(type=Var.PLAIN, value=self.blueking_language)
