@@ -19,6 +19,7 @@
         :action="['strategy_create', 'strategy_view']"
         :node-type="isGrayRule ? 'INSTANCE' : targetPreview.node_type"
         :checked-data="targetPreview.nodes"
+        :customize-limit="isGrayRule"
         @check-change="handleTargetChange">
       </IpSelect>
     </bk-form-item>
