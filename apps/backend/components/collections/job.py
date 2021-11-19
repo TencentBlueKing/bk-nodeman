@@ -14,6 +14,7 @@ import copy
 import hashlib
 import logging
 from collections import defaultdict
+from typing import Any, Callable, Dict, List
 
 import six
 import ujson as json
@@ -136,6 +137,9 @@ class JobV3BaseService(six.with_metaclass(abc.ABCMeta, BaseService)):
     """
 
     __need_schedule__ = True
+
+    PRINT_PARAMS_TO_LOG: bool = False
+
     interval = StaticIntervalGenerator(POLLING_INTERVAL)
 
     @staticmethod
@@ -143,6 +147,13 @@ class JobV3BaseService(six.with_metaclass(abc.ABCMeta, BaseService)):
         md5 = hashlib.md5()
         md5.update(content.encode("utf-8"))
         return md5.hexdigest()
+
+    def run_job_or_finish_schedule(self, multi_job_params_map: Dict):
+        """如果作业平台参数为空，代表无需执行，直接finish_schedule去执行下一个原子"""
+        if multi_job_params_map:
+            request_multi_thread(self.request_single_job_and_create_map, multi_job_params_map.values())
+        else:
+            self.finish_schedule()
 
     def request_single_job_and_create_map(
         self, job_func, subscription_instance_id: [int, list], subscription_id, job_params: dict
@@ -169,7 +180,7 @@ class JobV3BaseService(six.with_metaclass(abc.ABCMeta, BaseService)):
             }
         )
 
-        if "timeout" not in job_params:
+        if not job_params.get("timeout"):
             # 设置默认超时时间
             job_params["timeout"] = 300
 
@@ -200,19 +211,41 @@ class JobV3BaseService(six.with_metaclass(abc.ABCMeta, BaseService)):
                 file_names = ",".join([file["file_name"] for file in job_params.get("file_list", [])])
                 log = f"下发配置文件 [{file_names}] 到目标机器路径 [{file_target_path}]，若下发失败，请检查作业平台所部署的机器是否已安装AGENT"
             elif job_func == JobApi.fast_execute_script:
-                log = f"快速执行脚本{getattr(self, 'script_name', '')}"
+                log = f"快速执行脚本 {getattr(self, 'script_name', '')}"
             else:
                 log = "调用作业平台"
 
+            # 采用拼接上文的方式添加接口请求日志，减少DB操作
+            if self.PRINT_PARAMS_TO_LOG:
+                api_params_log = self.generate_api_params_log(
+                    subscription_instance_ids=subscription_instance_id, job_params=job_params, job_func=job_func
+                )
+                log = f"{log}, 请求参数为：\n {api_params_log}"
+
             self.log_info(
                 subscription_instance_id,
-                _('{log}，作业任务ID为[{job_instance_id}]，点击跳转到<a href="{link}" target="_blank">[作业平台]</a>').format(
+                _('{log}\n作业任务ID为[{job_instance_id}]，点击跳转到<a href="{link}" target="_blank">[作业平台]</a>').format(
                     log=log,
                     job_instance_id=job_instance_id,
                     link=f"{settings.BK_JOB_HOST}/{settings.BLUEKING_BIZ_ID}/execute/step/{job_instance_id}",
                 ),
             )
         return []
+
+    def generate_api_params_log(
+        self, subscription_instance_ids: List[int], job_params: Dict[str, Any], job_func: Callable
+    ) -> str:
+        """
+        生成接口调用参数日志
+        :param subscription_instance_ids:
+        :param job_params:
+        :param job_func:
+        :return:
+        """
+        job_params = copy.deepcopy(job_params)
+        # 聚合执行场景下，打印的日志忽略 ip_list，从而屏蔽差异
+        job_params.get("target_server", {}).pop("ip_list", None)
+        return json.dumps(job_params, indent=2)
 
     def handler_job_result(self, job_sub_map, cloud_ip_status_map):
         subscription_instances = SubscriptionInstanceRecord.objects.filter(id__in=job_sub_map.subscription_instance_ids)
@@ -229,8 +262,10 @@ class JobV3BaseService(six.with_metaclass(abc.ABCMeta, BaseService)):
             else:
                 ip_status = ip_result["status"]
                 err_code = ip_result["error_code"]
-            err_msg = "{ip_status_msg}, {err_msg}".format(
-                ip_status_msg=constants.BkJobErrorCode.BK_JOB_ERROR_CODE_MAP.get(ip_status),
+            err_msg = "status -> [{status}-{ip_status_msg}], error_code -> [{error_code}-{err_msg}]".format(
+                status=ip_status,
+                ip_status_msg=constants.BkJobIpStatus.BK_JOB_IP_STATUS_MAP.get(ip_status),
+                error_code=err_code,
                 err_msg=constants.BkJobErrorCode.BK_JOB_ERROR_CODE_MAP.get(err_code),
             )
             if ip_status != constants.BkJobIpStatus.SUCCEEDED:

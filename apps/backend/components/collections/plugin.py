@@ -657,13 +657,6 @@ class PluginExecuteScriptService(PluginBaseService, JobV3BaseService, metaclass=
                 SCRIPT_CONTENT_CACHE[file_name] = fh.read()
         return SCRIPT_CONTENT_CACHE[file_name]
 
-    def run_job_or_finish_schedule(self, multi_job_params_map: Dict):
-        """如果作业平台参数为空，代表无需执行，直接finish_schedule去执行下一个原子"""
-        if multi_job_params_map:
-            request_multi_thread(self.request_single_job_and_create_map, multi_job_params_map.values())
-        else:
-            self.finish_schedule()
-
 
 class InstallPackageService(PluginExecuteScriptService):
     """调用作业平台安装插件包"""

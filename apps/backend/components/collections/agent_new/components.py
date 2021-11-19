@@ -20,6 +20,7 @@ from .delegate_plugin_proc import DelegatePluginProcService
 from .get_agent_status import GetAgentStatusService
 from .query_password import QueryPasswordService
 from .register_host import RegisterHostService
+from .reload_agent_config import ReloadAgentConfigService
 
 
 class QueryPasswordComponent(Component):
@@ -56,3 +57,9 @@ class GetAgentStatusComponent(Component):
     name = _("查询Agent状态")
     code = "get_agent_status"
     bound_service = GetAgentStatusService
+
+
+class ReloadAgentConfigComponent(Component):
+    name = _("重载Agent配置")
+    code = "reload_agent_config"
+    bound_service = ReloadAgentConfigService

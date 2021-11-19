@@ -392,7 +392,7 @@ class AgentServiceBaseTestCase(CustomAPITestCase, ComponentTestMixin, ABC):
     DEBUG: bool = False
 
     OBJ_FACTORY_CLASS: Type[AgentTestObjFactory] = AgentTestObjFactory
-    BATCH_CALL_MOCK_PATHS = []
+    BATCH_CALL_MOCK_PATHS = ["apps.backend.components.collections.job.request_multi_thread"]
 
     obj_factory: Optional[AgentTestObjFactory] = None
     # 原子的公共输入
