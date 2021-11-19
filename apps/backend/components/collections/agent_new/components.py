@@ -24,6 +24,7 @@ from .query_password import QueryPasswordService
 from .register_host import RegisterHostService
 from .update_process_status import UpdateProcessStatusService
 from .reload_agent_config import ReloadAgentConfigService
+from .restart import RestartService
 
 
 class QueryPasswordComponent(Component):
@@ -72,6 +73,12 @@ class ReloadAgentConfigComponent(Component):
     name = _("重载Agent配置")
     code = "reload_agent_config"
     bound_service = ReloadAgentConfigService
+
+
+class RestartComponent(Component):
+    name = _("重启")
+    code = "restart"
+    bound_service = RestartService
 
 
 class UpdateProcessStatusComponent(Component):
