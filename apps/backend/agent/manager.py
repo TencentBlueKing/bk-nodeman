@@ -26,7 +26,6 @@ from apps.backend.components.collections.agent import (
     RestartComponent,
     RunUpgradeCommandComponent,
     UpdateJobStatusComponent,
-    UpdateProcessStatusComponent,
     WaitComponent,
 )
 from apps.backend.components.collections.agent_new import components
@@ -310,11 +309,11 @@ class AgentManager(object):
         act.component.inputs.blueking_language = Var(type=Var.PLAIN, value=self.blueking_language)
         return act
 
-    def update_process_status(self, status, name=UpdateProcessStatusComponent.name):
+    def update_process_status(self, status, name=components.UpdateProcessStatusComponent.name):
         """
-        查询Agent状态
+        更新Agent状态
         """
-        act = AgentServiceActivity(component_code=UpdateProcessStatusComponent.code, name=name)
+        act = AgentServiceActivity(component_code=components.UpdateProcessStatusComponent.code, name=name)
         act.component.inputs.bk_host_id = Var(type=Var.SPLICE, value="${bk_host_id}")
         act.component.inputs.host_info = Var(type=Var.PLAIN, value=self.host_info)
         act.component.inputs.status = Var(type=Var.PLAIN, value=status)

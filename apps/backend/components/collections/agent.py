@@ -34,7 +34,7 @@ from apps.backend.subscription import tools
 from apps.backend.views import generate_gse_config
 from apps.component.esbclient import client_v2
 from apps.node_man import constants
-from apps.node_man.models import Host, Packages, ProcessStatus
+from apps.node_man.models import Host, Packages
 from apps.utils import basic
 from pipeline.component_framework.component import Component
 from pipeline.core.flow import Service, StaticIntervalGenerator
@@ -256,34 +256,6 @@ class RestartService(AgentBaseService):
 
         # 下发job作业后等待5秒后再开始查状态,
         time.sleep(5)
-        return True
-
-
-class UpdateProcessStatusService(AgentBaseService):
-    name = _("更新主机进程状态")
-
-    def __init__(self):
-        super().__init__(name=self.name)
-
-    def inputs_format(self):
-        return [
-            Service.InputItem(name="host_info", key="host_info", type="object", required=True),
-            Service.InputItem(name="status", key="status", type="str", required=True),
-        ]
-
-    def _execute(self, data, parent_data):
-        status = data.get_one_of_inputs("status")
-        bk_host_id = data.get_one_of_inputs("bk_host_id")
-        host_info = data.get_one_of_inputs("host_info")
-        if status == constants.ProcStateType.NOT_INSTALLED:
-            host = Host.get_by_host_info({"bk_host_id": bk_host_id} if bk_host_id else host_info)
-            host.node_from = "CMDB"
-            host.save()
-            process = ProcessStatus.objects.get(bk_host_id=host.bk_host_id, name="gseagent")
-            process.status = constants.ProcStateType.NOT_INSTALLED
-            process.save()
-
-        self.logger.info(_("更新主机状态为{status}").format(status=status))
         return True
 
 
@@ -640,12 +612,6 @@ class RestartComponent(Component):
     name = _("重启")
     code = "restart"
     bound_service = RestartService
-
-
-class UpdateProcessStatusComponent(Component):
-    name = _("更新主机进程状态")
-    code = "update_process_status"
-    bound_service = UpdateProcessStatusService
 
 
 class UpdateJobStatusComponent(Component):

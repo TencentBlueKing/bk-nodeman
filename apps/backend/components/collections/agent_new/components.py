@@ -20,6 +20,7 @@ from .get_agent_status import GetAgentStatusService
 from .install import InstallService
 from .query_password import QueryPasswordService
 from .register_host import RegisterHostService
+from .update_process_status import UpdateProcessStatusService
 
 
 class QueryPasswordComponent(Component):
@@ -56,6 +57,12 @@ class GetAgentStatusComponent(Component):
     name = _("查询Agent状态")
     code = "get_agent_status"
     bound_service = GetAgentStatusService
+
+
+class UpdateProcessStatusComponent(Component):
+    name = _("更新主机进程状态")
+    code = "update_process_status"
+    bound_service = UpdateProcessStatusService
 
 
 class CheckAgentStatusComponent(Component):
