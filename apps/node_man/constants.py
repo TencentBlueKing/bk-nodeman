@@ -635,6 +635,7 @@ class BkAgentStatus(object):
 
 class BkJobErrorCode(object):
     NOT_RUNNING = -1
+    AGENT_ABNORMAL = 117
 
     BK_JOB_ERROR_CODE_MAP = {
         NOT_RUNNING: _("该IP未执行作业，请联系管理员排查问题"),
@@ -651,7 +652,7 @@ class BkJobErrorCode(object):
         102: _("脚本执行超时"),
         103: _("脚本执行被终止"),
         104: _("脚本返回码非零"),
-        117: _("Agent异常"),
+        AGENT_ABNORMAL: _("Agent异常"),
         202: _("文件传输失败"),
         203: _("源文件不存在"),
         310: _("Agent异常"),
@@ -666,10 +667,11 @@ class BkJobErrorCode(object):
 class BkJobIpStatus(object):
     NOT_RUNNING = -1
     SUCCEEDED = 9
+    AGENT_ABNORMAL = 1
 
     BK_JOB_IP_STATUS_MAP = {
         NOT_RUNNING: _("该IP未执行作业，请联系管理员排查问题"),
-        1: _("Agent异常"),
+        AGENT_ABNORMAL: _("Agent异常"),
         5: _("等待执行"),
         7: _("正在执行"),
         SUCCEEDED: _("执行成功"),
