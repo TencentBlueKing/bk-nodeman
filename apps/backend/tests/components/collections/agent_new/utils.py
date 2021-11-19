@@ -209,7 +209,7 @@ class AgentTestObjFactory:
 
     def structure_instance_host_info_list(self) -> List[Dict[str, Any]]:
         """
-        构造Agent安装目标实例，如需修改测试样例，可从此处入手
+        构造Agent安装目标实例，如需修改测试样例，可以继承该类，覆盖该方法
         :return:
         """
         instance_host_info_list = self.fill_mock_ip([copy.deepcopy(self.BASE_INSTANCE_HOST_INFO)])
@@ -400,7 +400,7 @@ class AgentServiceBaseTestCase(CustomAPITestCase, ComponentTestMixin, ABC):
 
     @classmethod
     def setUpClass(cls):
-        cls.obj_factory = AgentTestObjFactory()
+        cls.obj_factory = cls.OBJ_FACTORY_CLASS()
 
         # 多线程会影响测试debug，全局mock多线程执行，改为串行
         for batch_call_mock_path in cls.BATCH_CALL_MOCK_PATHS:
