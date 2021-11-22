@@ -244,7 +244,7 @@ class JobV3BaseService(six.with_metaclass(abc.ABCMeta, BaseService)):
         """
         job_params = copy.deepcopy(job_params)
         # 聚合执行场景下，打印的日志忽略 ip_list，从而屏蔽差异
-        job_params.get("target_server", {}).pop("ip_list", None)
+        job_params.pop("target_server", None)
         return json.dumps(job_params, indent=2)
 
     def handler_job_result(self, job_sub_map, cloud_ip_status_map):
