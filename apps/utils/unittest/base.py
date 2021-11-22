@@ -9,8 +9,9 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import json
-from collections import ChainMap
-from typing import Any, Dict, Optional
+from collections import ChainMap, defaultdict
+from threading import Lock
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from rest_framework import status
 from rest_framework.test import APIClient
@@ -73,3 +74,52 @@ class CustomAPIClient(APIClient):
             path=path, data=data, format=format, content_type=content_type, follow=follow, **extra
         )
         return self.assert_response(response)
+
+
+class CallRecord:
+    args: Tuple[Any] = None
+    kwargs: Dict[str, Any] = None
+    result: Any = None
+    ex: Exception = None
+    is_success: bool = None
+
+    def __init__(self, args: Tuple[Any], kwargs: Dict[str, Any]):
+        self.args = args
+        self.kwargs = kwargs
+        self.is_success = True
+
+
+class CallRecorder:
+    """函数调用记录器，仅用于测试"""
+
+    # 调用记录
+    record: Optional[Dict[Callable, List[CallRecord]]] = None
+    # 记录锁
+    _lock: Optional[Lock] = None
+
+    def __init__(self):
+        self.record = defaultdict(list)
+        self._lock = Lock()
+
+    def start(self, func: Callable, key: Any = None):
+        """
+        开始记录某个函数的调用情况，参考装饰器实现
+        :param key:
+        :param func:
+        :return:
+        """
+
+        def recorder(*args, **kwargs):
+            with self._lock:
+                record = CallRecord(args=args, kwargs=kwargs)
+                self.record[key or func].append(record)
+
+                try:
+                    record.result = func(*args, **kwargs)
+                except Exception as ex:
+                    record.exec = ex
+                    record.is_success = False
+                else:
+                    return record.result
+
+        return recorder

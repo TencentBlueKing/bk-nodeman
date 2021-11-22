@@ -33,10 +33,10 @@ class RestartService(AgentExecuteScriptService):
         # TODO 原代码逻辑采用多账户 ["system", "Administrator"] 执行，请 reviewer 确认背景
         # 路径处理器
         path_handler = (posixpath, ntpath)[host.os_type == constants.OsType.WINDOWS]
-        ctl_exe_name = ("gsectl", "gsectl.gat")[host.os_type == constants.OsType.WINDOWS]
+        ctl_exe_name = ("gsectl", "gsectl.bat")[host.os_type == constants.OsType.WINDOWS]
         cmd_suffix = ("restart >/dev/null 2>&1", "restart")[host.os_type == constants.OsType.WINDOWS]
         node_type = ("agent", "proxy")[host.os_type == constants.NodeType.PROXY]
-        setup_path = host.agent_config["setup_path"]
+        setup_path = common_data.host_id__ap_map[host.bk_host_id].get_agent_config(host.os_type)["setup_path"]
         agent_path = path_handler.join(setup_path, node_type, "bin", ctl_exe_name)
 
         return f"{agent_path} {cmd_suffix}"

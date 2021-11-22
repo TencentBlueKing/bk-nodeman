@@ -391,16 +391,12 @@ class Host(models.Model):
             return self._ap
         # 未选择接入点时，默认取第一个接入点
         if self.ap_id == constants.DEFAULT_AP_ID:
-            ap = AccessPoint.objects.first()
-            if ap:
-                self._ap = ap
-            else:
-                raise ApIDNotExistsError
+            self._ap = AccessPoint.get_default_ap()
         else:
             try:
                 self._ap = AccessPoint.objects.get(pk=self.ap_id)
             except AccessPoint.DoesNotExist:
-                raise ApIDNotExistsError
+                raise ApIDNotExistsError({"ap_id": self.ap_id})
         return self._ap
 
     @property
@@ -437,8 +433,9 @@ class Host(models.Model):
 
     @property
     def agent_config(self):
+        """不要在循环中使用该方法，会有 n+1 查询问题"""
         os_type = self.os_type.lower()
-        # 非windows机器共用Linux配置
+        # 非 Windows 机器共用 Linux 配置
         if self.os_type != constants.OsType.WINDOWS:
             os_type = constants.OsType.LINUX.lower()
         return self.ap.agent_config[os_type]
@@ -611,6 +608,7 @@ class AccessPoint(models.Model):
     zk_password = AESTextField(_("密码"), blank=True, null=True)
     package_inner_url = models.TextField(_("安装包内网地址"))
     package_outer_url = models.TextField(_("安装包外网地址"))
+    # 历史遗留命名，现在该路径表示存储源的存储目录路径
     nginx_path = models.TextField(_("Nginx路径"), blank=True, null=True)
     agent_config = JSONField(_("Agent配置信息"))
     status = models.CharField(_("接入点状态"), max_length=255, default="", blank=True, null=True)
@@ -629,6 +627,17 @@ class AccessPoint(models.Model):
         # 未选择接入点的则取默认接入点
         ap_map.update({constants.DEFAULT_AP_ID: all_ap[0], None: all_ap[0]})
         return ap_map
+
+    @classmethod
+    def get_default_ap(cls):
+        """
+        获取默认接入点
+        :return:
+        """
+        default_ap = cls.objects.first()
+        if default_ap is None:
+            raise ApIDNotExistsError(_("默认接入点不存在"))
+        return default_ap
 
     def get_agent_config(self, os_type: str) -> Dict[str, Any]:
         """

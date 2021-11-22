@@ -10,167 +10,21 @@ specific language governing permissions and limitations under the License.
 """
 
 
-import copy
-from collections import ChainMap
-from typing import Any, Dict, List, Optional
-
-import mock
-
 from apps.backend.components.collections.agent_new import components
-from apps.mock_data import api_mkd
-from apps.mock_data import utils as mock_data_utils
-from apps.node_man import constants
-from pipeline.component_framework.test import (
-    ComponentTestCase,
-    ExecuteAssertion,
-    ScheduleAssertion,
-)
 
-from . import utils
+from . import base
 
 
-class ReloadAgentConfigTestCase(utils.AgentServiceBaseTestCase):
-
-    JOB_API_MOCK_PATHS = [
-        "apps.backend.components.collections.agent_new.base.JobApi",
-        "apps.backend.components.collections.job.JobApi",
-    ]
-
-    job_api_mock_client: Optional[api_mkd.job.utils.JobApiMockClient] = None
-    get_job_instance_status_result: Optional[Dict[str, Any]] = None
-
-    @staticmethod
-    def get_job_instance_ip_log_func(query_params):
-        get_job_instance_ip_log_data = copy.deepcopy(api_mkd.job.unit.GET_JOB_INSTANCE_IP_LOG_DATA)
-        get_job_instance_ip_log_data.update(bk_cloud_id=query_params["bk_cloud_id"], ip=query_params["ip"])
-        return get_job_instance_ip_log_data
-
-    @classmethod
-    def structure_mock_data(cls):
-        """
-        构造GSE接口返回数据
-        :return:
-        """
-
-        step_ip_result_list = []
-        step_ip_result = copy.deepcopy(api_mkd.job.unit.STEP_IP_RESULT)
-        cls.get_job_instance_status_result = copy.deepcopy(api_mkd.job.unit.GET_JOB_INSTANCE_STATUS_DATA)
-        for host_obj in cls.obj_factory.host_objs:
-            info_to_be_updated = {
-                "ip": host_obj.inner_ip,
-                "bk_cloud_id": host_obj.bk_cloud_id,
-                "status": constants.BkJobStatus.SUCCEEDED,
-            }
-            step_ip_result_list.append(dict(ChainMap(info_to_be_updated, step_ip_result)))
-        cls.get_job_instance_status_result["step_instance_list"][0]["step_ip_result_list"] = step_ip_result_list
-
-    @classmethod
-    def setUpTestData(cls):
-        super().setUpTestData()
-        # 初始化DB数据后再修改
-        cls.structure_mock_data()
-
+class ReloadAgentConfigTestCase(base.JobBaseTestCase):
     @classmethod
     def get_default_case_name(cls) -> str:
         return "重载Agent配置成功"
 
-    def fetch_succeeded_sub_inst_ids(self) -> List[int]:
-        return self.common_inputs["subscription_instance_ids"]
-
     def component_cls(self):
         return components.ReloadAgentConfigComponent
 
-    def init_mock_clients(self):
-        self.job_api_mock_client = api_mkd.job.utils.JobApiMockClient(
-            get_job_instance_status_return=mock_data_utils.MockReturn(
-                return_type=mock_data_utils.MockReturnType.RETURN_VALUE.value,
-                return_obj=self.get_job_instance_status_result,
-            ),
-            get_job_instance_ip_log_return=mock_data_utils.MockReturn(
-                return_type=mock_data_utils.MockReturnType.SIDE_EFFECT.value,
-                return_obj=self.get_job_instance_ip_log_func,
-            ),
-        )
 
-    def structure_common_outputs(self, polling_time: Optional[int] = None, **extra_kw) -> Dict[str, Any]:
-
-        base_common_outputs = {"succeeded_subscription_instance_ids": self.fetch_succeeded_sub_inst_ids()}
-
-        if polling_time is not None:
-            base_common_outputs["polling_time"] = polling_time
-
-        return dict(ChainMap(extra_kw, base_common_outputs))
-
-    def setUp(self) -> None:
-        self.init_mock_clients()
-        for gse_api_mock_path in self.JOB_API_MOCK_PATHS:
-            mock.patch(gse_api_mock_path, self.job_api_mock_client).start()
-        super().setUp()
-
-    def cases(self):
-        return [
-            ComponentTestCase(
-                name=self.get_default_case_name(),
-                inputs=self.common_inputs,
-                parent_data={},
-                execute_assertion=ExecuteAssertion(
-                    success=bool(self.fetch_succeeded_sub_inst_ids()), outputs=self.structure_common_outputs()
-                ),
-                schedule_assertion=[
-                    ScheduleAssertion(
-                        success=True, schedule_finished=True, outputs=self.structure_common_outputs(polling_time=5)
-                    ),
-                ],
-                execute_call_assertion=None,
-            )
-        ]
-
-
-class IpFailedTestCase(ReloadAgentConfigTestCase):
-    @staticmethod
-    def get_job_instance_ip_log_func(query_params):
-        get_job_instance_ip_log_data = ReloadAgentConfigTestCase.get_job_instance_ip_log_func(query_params)
-
-        get_job_instance_ip_log_data.update(log_content="")
-        get_job_instance_ip_log_data = copy.deepcopy(api_mkd.job.unit.GET_JOB_INSTANCE_IP_LOG_DATA)
-        get_job_instance_ip_log_data.update(bk_cloud_id=query_params["bk_cloud_id"], ip=query_params["ip"])
-        return get_job_instance_ip_log_data
-
-    @classmethod
-    def structure_mock_data(cls):
-        """
-        构造GSE接口返回数据
-        :return:
-        """
-
-        super().structure_mock_data()
-
-        cls.get_job_instance_status_result["job_instance"]["status"] = constants.BkJobStatus.FAILED
-        for step_ip_result in cls.get_job_instance_status_result["step_instance_list"][0]["step_ip_result_list"]:
-            step_ip_result.update(
-                status=constants.BkJobIpStatus.AGENT_ABNORMAL, error_code=constants.BkJobErrorCode.AGENT_ABNORMAL
-            )
-
+class IpFailedTestCase(base.JobFailedBaseTestCase, ReloadAgentConfigTestCase):
     @classmethod
     def get_default_case_name(cls) -> str:
         return "IP执行错误"
-
-    def cases(self):
-        return [
-            ComponentTestCase(
-                name=self.get_default_case_name(),
-                inputs=self.common_inputs,
-                parent_data={},
-                execute_assertion=ExecuteAssertion(
-                    success=bool(self.fetch_succeeded_sub_inst_ids()), outputs=self.structure_common_outputs()
-                ),
-                schedule_assertion=[
-                    ScheduleAssertion(
-                        success=False,
-                        schedule_finished=True,
-                        outputs=self.structure_common_outputs(polling_time=5, succeeded_subscription_instance_ids=[]),
-                    ),
-                ],
-                execute_call_assertion=None,
-            )
-        ]
