@@ -83,6 +83,15 @@ class ValidationMixin(GenericViewSet):
             data = self.request.query_params
         else:
             data = self.request.data
+
+        # 从 esb 获取参数
+        bk_username = self.request.META.get("HTTP_BK_USERNAME")
+        bk_app_code = self.request.META.get("HTTP_BK_APP_CODE")
+
+        data = data.copy()
+        data.setdefault("bk_username", bk_username)
+        data.setdefault("bk_app_code", bk_app_code)
+
         serializer = self.serializer_class or self.get_serializer_class()
         return self.params_valid(serializer, data)
 

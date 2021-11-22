@@ -19,7 +19,6 @@ import os
 import re
 import shutil
 from collections import defaultdict
-from copy import deepcopy
 from itertools import groupby
 from operator import itemgetter
 
@@ -41,6 +40,7 @@ from rest_framework.response import Response
 from apps.backend import constants as backend_const
 from apps.backend import exceptions
 from apps.backend.plugin import serializers, tasks, tools
+from apps.backend.plugin.handler import PluginHandler
 from apps.backend.subscription.errors import (
     CreateSubscriptionTaskError,
     InstanceTaskIsRunning,
@@ -53,36 +53,12 @@ from apps.exceptions import AppBaseException, ValidationError
 from apps.generic import APIViewSet
 from apps.node_man import constants as const
 from apps.node_man import models
-from apps.utils import files
 from pipeline.engine.exceptions import InvalidOperationException
 from pipeline.service import task_service
 from pipeline.service.pipeline_engine_adapter.adapter_api import STATE_MAP
 
 LOG_PREFIX_RE = re.compile(r"(\[\d{4}-\d{1,2}-\d{1,2}\s\d{1,2}:\d{1,2}.*?\] )")
 logger = logging.getLogger("app")
-
-# 接口到序列化器的映射关系
-PluginAPISerializerClasses = dict(
-    info=serializers.PluginInfoSerializer,
-    release=serializers.ReleasePluginSerializer,
-    package_status_operation=serializers.PkgStatusOperationSerializer,
-    plugin_status_operation=serializers.PluginStatusOperationSerializer,
-    create_config_template=serializers.CreatePluginConfigTemplateSerializer,
-    release_config_template=serializers.ReleasePluginConfigTemplateSerializer,
-    render_config_template=serializers.RenderPluginConfigTemplateSerializer,
-    query_config_template=serializers.PluginConfigTemplateInfoSerializer,
-    query_config_instance=serializers.PluginConfigInstanceInfoSerializer,
-    start_debug=serializers.PluginStartDebugSerializer,
-    create_plugin_register_task=serializers.PluginRegisterSerializer,
-    query_plugin_register_task=serializers.PluginRegisterTaskSerializer,
-    delete=serializers.DeletePluginSerializer,
-    create_export_task=serializers.ExportSerializer,
-    upload=serializers.PluginUploadSerializer,
-    history=serializers.PluginQueryHistorySerializer,
-    parse=serializers.PluginParseSerializer,
-    list=serializers.PluginListSerializer,
-    retrieve=serializers.GatewaySerializer,
-)
 
 
 class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin):
@@ -94,39 +70,12 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
 
     # permission_classes = (BackendBasePermission,)
 
-    def get_validated_data(self):
-        """
-        使用serializer校验参数，并返回校验后参数
-        :return: dict
-        """
-        if self.request.method == "GET":
-            data = self.request.query_params
-        else:
-            data = self.request.data
-
-        # 从 esb 获取参数
-        bk_username = self.request.META.get("HTTP_BK_USERNAME")
-        bk_app_code = self.request.META.get("HTTP_BK_APP_CODE")
-
-        data = data.copy()
-        data.setdefault("bk_username", bk_username)
-        data.setdefault("bk_app_code", bk_app_code)
-
-        serializer = self.get_serializer(data=data)
-        serializer.is_valid(raise_exception=True)
-        return deepcopy(serializer.validated_data)
-
-    def get_serializer_class(self):
-        """
-        根据方法名返回合适的序列化器
-        """
-        return PluginAPISerializerClasses.get(self.action)
-
-    """
-    触发注册插件包及查询任务状态
-    """
-
-    @action(detail=False, methods=["POST"], url_path="create_register_task")
+    @action(
+        detail=False,
+        methods=["POST"],
+        url_path="create_register_task",
+        serializer_class=serializers.PluginRegisterSerializer,
+    )
     def create_plugin_register_task(self, request):
         """
         @api {POST} /plugin/create_register_task/ 创建注册任务
@@ -148,7 +97,7 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
             "job_id": 1
         }
         """
-        params = self.get_validated_data()
+        params = self.validated_data
         file_name = params["file_name"]
 
         # 1. 判断是否存在需要注册的文件信息
@@ -172,7 +121,12 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
 
         return Response({"job_id": job.id})
 
-    @action(detail=False, methods=["GET"], url_path="query_register_task")
+    @action(
+        detail=False,
+        methods=["GET"],
+        url_path="query_register_task",
+        serializer_class=serializers.PluginRegisterTaskSerializer,
+    )
     def query_plugin_register_task(self, request):
         """
         @api {GET} /plugin/query_register_task/ 查询插件注册任务
@@ -190,7 +144,7 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
             "message": "~",
         }
         """
-        params = self.get_validated_data()
+        params = self.validated_data
         job_id = params["job_id"]
 
         # 寻找这个任务对应的job_task
@@ -209,43 +163,30 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
             }
         )
 
-    @action(detail=False, methods=["GET"], url_path="info")
+    @action(detail=False, methods=["GET"], serializer_class=serializers.PluginInfoSerializer)
     def info(self, request):
         """
         @api {GET} /plugin/info/ 查询插件信息
         @apiName query_plugin_info
         @apiGroup backend_plugin
         """
-        params = self.get_validated_data()
-        plugin = params.pop("plugin")
-        bk_username = params.pop("bk_username")
-        bk_app_code = params.pop("bk_app_code")
+        package_infos = PluginHandler.package_infos(
+            name=self.validated_data["name"],
+            version=self.validated_data.get("version"),
+            os_type=self.validated_data.get("os"),
+            cpu_arch=self.validated_data.get("cpu_arch"),
+        )
 
-        plugin_packages = plugin.get_packages(**params)
-
-        result = []
-
-        for package in plugin_packages:
-            result.append(
-                dict(
-                    id=package.id,
-                    name=plugin.name,
-                    os=package.os,
-                    cpu_arch=package.cpu_arch,
-                    version=package.version,
-                    is_release_version=package.is_release_version,
-                    is_ready=package.is_ready,
-                    pkg_size=package.pkg_size,
-                    md5=package.md5,
-                    location=package.location,
-                    creator=bk_username,
-                    source_app_code=bk_app_code,
-                )
+        for package_info in package_infos:
+            # 历史遗留原因，创建人 & app_code 采用回填的方式返回
+            package_info.update(
+                creator=self.validated_data["bk_username"],
+                source_app_code=self.validated_data["bk_app_code"],
             )
 
-        return Response(result)
+        return Response(package_infos)
 
-    @action(detail=False, methods=["POST"], url_path="release")
+    @action(detail=False, methods=["POST"], serializer_class=serializers.ReleasePluginSerializer)
     def release(self, request):
         """
         @api {POST} /plugin/release/ 发布（上线）插件包
@@ -263,7 +204,7 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         @apiSuccessExample {json} 返回上线的插件包id列表:
         [1, 2, 4]
         """
-        params = self.get_validated_data()
+        params = self.validated_data
         operator = params.pop("bk_username")
         params.pop("bk_app_code")
 
@@ -289,7 +230,7 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         plugin_packages.update(is_release_version=True, creator=operator)
         return Response([package.id for package in plugin_packages])
 
-    @action(detail=False, methods=["POST"], url_path="package_status_operation")
+    @action(detail=False, methods=["POST"], serializer_class=serializers.PkgStatusOperationSerializer)
     def package_status_operation(self, request):
         """
         @api {POST} /plugin/package_status_operation/ 插件包状态类操作
@@ -308,7 +249,7 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         @apiSuccessExample {json} 返回操作成功的插件包id列表:
         [1, 2, 4]
         """
-        params = self.get_validated_data()
+        params = self.validated_data
         status_field_map = {
             const.PkgStatusOpType.release: {"is_release_version": True, "is_ready": True},
             const.PkgStatusOpType.offline: {"is_release_version": False, "is_ready": True},
@@ -329,7 +270,7 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         plugin_packages.update(**status_field_map[operation], creator=operator)
         return Response([package.id for package in plugin_packages])
 
-    @action(detail=False, methods=["POST"], url_path="delete")
+    @action(detail=False, methods=["POST"], serializer_class=serializers.DeletePluginSerializer)
     def delete(self, request):
         """
         @api {POST} /plugin/delete/ 删除插件
@@ -337,7 +278,7 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         @apiGroup backend_plugin
         """
         # TODO: 完成采集配置后需要添加检测逻辑
-        params = self.get_validated_data()
+        params = self.validated_data
         params.pop("bk_username")
         params.pop("bk_app_code")
         name = params["name"]
@@ -358,14 +299,14 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
 
         return Response()
 
-    @action(detail=False, methods=["POST"], url_path="create_config_template")
+    @action(detail=False, methods=["POST"], serializer_class=serializers.CreatePluginConfigTemplateSerializer)
     def create_config_template(self, request):
         """
         @api {POST} /plugin/create_config_template/ 创建配置模板
         @apiName create_plugin_config_template
         @apiGroup backend_plugin
         """
-        params = self.get_validated_data()
+        params = self.validated_data
         bk_username = params.pop("bk_username")
         bk_app_code = params.pop("bk_app_code")
 
@@ -391,14 +332,14 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         params["id"] = plugin.id
         return Response(params)
 
-    @action(detail=False, methods=["POST"], url_path="release_config_template")
+    @action(detail=False, methods=["POST"], serializer_class=serializers.ReleasePluginConfigTemplateSerializer)
     def release_config_template(self, request):
         """
         @api {POST} /plugin/release_config_template/ 发布配置模板
         @apiName release_plugin_config_template
         @apiGroup backend_plugin
         """
-        params = self.get_validated_data()
+        params = self.validated_data
         bk_username = params.pop("bk_username")
         bk_app_code = params.pop("bk_app_code")
 
@@ -430,14 +371,14 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
 
         return Response(result)
 
-    @action(detail=False, methods=["POST"], url_path="render_config_template")
+    @action(detail=False, methods=["POST"], serializer_class=serializers.RenderPluginConfigTemplateSerializer)
     def render_config_template(self, request):
         """
         @api {POST} /plugin/render_config_template/ 渲染配置模板
         @apiName render_plugin_config_template
         @apiGroup backend_plugin
         """
-        params = self.get_validated_data()
+        params = self.validated_data
         bk_username = params.pop("bk_username")
         bk_app_code = params.pop("bk_app_code")
         data = params.pop("data")
@@ -461,14 +402,14 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
             )
         )
 
-    @action(detail=False, methods=["GET"], url_path="query_config_template")
+    @action(detail=False, methods=["GET"], serializer_class=serializers.PluginConfigTemplateInfoSerializer)
     def query_config_template(self, request):
         """
         @api {GET} /plugin/query_config_template/ 查询配置模板
         @apiName query_plugin_config_template
         @apiGroup backend_plugin
         """
-        params = self.get_validated_data()
+        params = self.validated_data
         params.pop("bk_username")
         params.pop("bk_app_code")
 
@@ -497,14 +438,14 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
 
         return Response(result)
 
-    @action(detail=False, methods=["GET"], url_path="query_config_instance")
+    @action(detail=False, methods=["GET"], serializer_class=serializers.PluginConfigInstanceInfoSerializer)
     def query_config_instance(self, request):
         """
         @api {GET} /plugin/query_config_instance/ 查询配置模板实例
         @apiName query_plugin_config_instance
         @apiGroup backend_plugin
         """
-        params = self.get_validated_data()
+        params = self.validated_data
         params.pop("bk_username")
         params.pop("bk_app_code")
 
@@ -536,14 +477,14 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
 
         return Response(result)
 
-    @action(detail=False, methods=["POST"], url_path="start_debug")
+    @action(detail=False, methods=["POST"], serializer_class=serializers.PluginStartDebugSerializer)
     def start_debug(self, request):
         """
         @api {POST} /plugin/start_debug/ 开始调试
         @apiName start_debug
         @apiGroup backend_plugin
         """
-        params = self.get_validated_data()
+        params = self.validated_data
         host_info = params["host_info"]
         plugin_name = params["plugin_name"]
         plugin_version = params["version"]
@@ -633,7 +574,7 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
 
         return Response({"task_id": subscription_task.id})
 
-    @action(detail=False, methods=["POST"], url_path="stop_debug")
+    @action(detail=False, methods=["POST"])
     def stop_debug(self, request):
         """
         @api {POST} /plugin/stop_debug/ 停止调试
@@ -672,7 +613,7 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
             run_subscription_task_and_create_instance.delay(subscription, task)
         return Response()
 
-    @action(detail=False, methods=["GET"], url_path="query_debug")
+    @action(detail=False, methods=["GET"])
     def query_debug(self, request):
         """
         @api {GET} /plugin/query_debug/ 查询调试结果
@@ -707,7 +648,7 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
 
         return Response({"status": status, "step": step_name, "message": "\n".join(log_content)})
 
-    @action(detail=False, methods=["POST"])
+    @action(detail=False, methods=["POST"], serializer_class=serializers.ExportSerializer)
     def create_export_task(self, request):
         """
         @api {POST} /plugin/create_export_task/ 触发插件打包导出
@@ -733,7 +674,7 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         }
         """
 
-        params = self.get_validated_data()
+        params = self.validated_data
 
         if "os" in params["query_params"]:
             params["query_params"]["os_type"] = params["query_params"].pop("os")
@@ -807,7 +748,7 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         )
         return Response(response_data)
 
-    @action(detail=False, methods=["POST"], url_path="parse")
+    @action(detail=False, methods=["POST"], serializer_class=serializers.PluginParseSerializer)
     def parse(self, request):
         """
         @api {POST} /plugin/parse/ 解析插件包
@@ -853,7 +794,7 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
             },
         ]
         """
-        params = self.get_validated_data()
+        params = self.validated_data
         upload_package_obj = (
             models.UploadPackage.objects.filter(file_name=params["file_name"]).order_by("-upload_time").first()
         )
@@ -926,7 +867,8 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
             ]
         }
         """
-        query_params = self.get_validated_data()
+        self.serializer_class = serializers.PluginListSerializer
+        query_params = self.validated_data
         gse_plugin_desc_qs = models.GsePluginDesc.objects.filter(category=const.CategoryType.official).order_by(
             "-is_ready"
         )
@@ -1086,7 +1028,7 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         gse_plugin_desc["plugin_packages"] = plugin_packages
         return Response(dict(gse_plugin_desc))
 
-    @action(detail=False, methods=["POST"], url_path="plugin_status_operation")
+    @action(detail=False, methods=["POST"], serializer_class=serializers.PluginStatusOperationSerializer)
     def plugin_status_operation(self, request):
         """
         @api {POST} /plugin/plugin_status_operation/ 插件状态类操作
@@ -1102,7 +1044,7 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         @apiSuccessExample {json} 返回操作成功的插件id列表:
         [1, 2]
         """
-        params = self.get_validated_data()
+        params = self.validated_data
         status_field_map = {
             const.PluginStatusOpType.ready: {"is_ready": True},
             const.PluginStatusOpType.stop: {"is_ready": False},
@@ -1111,7 +1053,7 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         update_plugins.update(**status_field_map[params["operation"]])
         return Response([plugin.id for plugin in update_plugins])
 
-    @action(detail=True, methods=["GET", "POST"])
+    @action(detail=True, methods=["GET", "POST"], serializer_class=serializers.PluginQueryHistorySerializer)
     def history(self, request, pk):
         """
         @api {GET} /plugin/{{pk}}/history/ 插件包历史
@@ -1166,7 +1108,7 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
             },
         ]
         """
-        params = self.get_validated_data()
+        params = self.validated_data
         params.pop("bk_username")
         params.pop("bk_app_code")
 
@@ -1228,6 +1170,46 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
             package["config_templates"] = tools.fetch_latest_config_templates(package["config_templates"])
         return Response(sorted(packages, key=lambda x: version.parse(x["version"]), reverse=True))
 
+    @action(detail=False, methods=["POST"], serializer_class=serializers.CosUploadSerializer)
+    def upload(self, request, *args, **kwargs):
+        """
+        @api {POST} /plugin/upload/ 上传文件接口
+        @apiName upload
+        @apiGroup backend_plugin
+        @apiParam {String} module 模块名称
+        @apiParam {String} md5 上传端计算的文件md5
+        @apiParam {String} file_name 上传端提供的文件名
+        @apiParam {String} download_url 文件下载url，download_url & file_path 其中一个必填
+        @apiParam {String} file_path 文件保存路径，download_url & file_path 其中一个必填
+        @apiParamExample {Json} 请求参数
+        {
+          "bk_app_code": "bk_nodeman",
+          "bk_app_secret": "xxx",
+          "bk_username": "xxx",
+          "md5": "e86c07536ada151dd85ca533874e8883",
+          "filename": "bkmonitorbeat-2.0.48.tgz",
+          "download_url": "http://xxxx/bkmonitorbeat-2.0.48.tgz"
+        }
+        @apiSuccessExample {json} 成功返回:
+        {
+            "id": 1,
+            "name": "bkmonitorbeat-2.0.48.tgz",
+            "pkg_size": "2333"
+        }
+        """
+        params = self.validated_data
+
+        upload_result = PluginHandler.upload(
+            md5=params["md5"],
+            origin_file_name=params["file_name"],
+            module=params["module"],
+            operator=params["bk_username"],
+            app_code=params["bk_app_code"],
+            file_path=params.get("file_path"),
+            download_url=params.get("download_url"),
+        )
+        return Response(upload_result)
+
 
 @csrf_exempt
 @login_exempt
@@ -1262,7 +1244,7 @@ def upload_package(request):
     }
     """
     # 1. 获取上传的参数 & nginx的上传信息
-    ser = serializers.UploadInfoSerializer(data=request.POST)
+    ser = serializers.NginxUploadSerializer(data=request.POST)
     if not ser.is_valid():
         logger.error("failed to valid request data for->[%s] maybe something go wrong?" % ser.errors)
         raise ValidationError(_("请求参数异常 [{err}]，请确认后重试").format(err=ser.errors))
@@ -1306,71 +1288,22 @@ def upload_package(request):
 @csrf_exempt
 @login_exempt
 def upload_package_by_cos(request):
-    ser = serializers.CosUploadInfoSerializer(data=request.POST)
+    ser = serializers.CosUploadSerializer(data=request.POST)
     if not ser.is_valid():
         logger.error("failed to valid request data for->[%s] maybe something go wrong?" % ser.errors)
         raise ValidationError(_("请求参数异常 [{err}]，请确认后重试").format(err=ser.errors))
 
-    md5 = ser.data["md5"]
-    origin_file_name = ser.data["file_name"]
-    file_path = ser.data.get("file_path")
-    download_url: str = ser.data.get("download_url")
-
-    storage = get_storage()
-
-    # TODO 此处的md5校验放到文件实际读取使用的地方更合理?
-    # file_path 不为空表示文件已在项目管理的对象存储上，此时仅需校验md5，减少文件IO
-    if file_path:
-        if not storage.exists(name=file_path):
-            raise ValidationError(_("文件不存在：file_path -> {file_path}").format(file_path=file_path))
-        if files.md5sum(file_obj=storage.open(name=file_path)) != md5:
-            raise ValidationError(_("上传文件MD5校验失败，请确认重试"))
-    else:
-        # 创建临时存放下载插件的目录
-        tmp_dir = files.mk_and_return_tmpdir()
-        with open(file=os.path.join(tmp_dir, origin_file_name), mode="wb+") as fs:
-            # 下载文件并写入fs
-            files.download_file(url=download_url, file_obj=fs, closed=False)
-            # 计算下载文件的md5
-            local_md5 = files.md5sum(file_obj=fs, closed=False)
-            if local_md5 != md5:
-                logger.error(
-                    "failed to valid file md5 local->[{}] user->[{}] maybe network error".format(local_md5, md5)
-                )
-                raise ValidationError(_("上传文件MD5校验失败，请确认重试"))
-
-            # 使用上传端提供的期望保存文件名，保存文件到项目所管控的存储
-            file_path = storage.save(name=os.path.join(settings.UPLOAD_PATH, origin_file_name), content=fs)
-
-        # 移除临时目录
-        shutil.rmtree(tmp_dir)
-
-    record = models.UploadPackage.create_record(
+    upload_result = PluginHandler.upload(
+        md5=ser.data["md5"],
+        origin_file_name=ser.data["file_name"],
         module=ser.data["module"],
-        file_path=file_path,
-        md5=md5,
         operator=ser.data["bk_username"],
-        source_app_code=ser.data["bk_app_code"],
-        # 此处使用落地到文件系统的文件名，对象存储情况下文件已经写到仓库，使用接口传入的file_name会在后续判断中再转移一次文件
-        file_name=os.path.basename(file_path),
-    )
-    logger.info(
-        "user->[%s] from app->[%s] upload file->[%s] success."
-        % (record.creator, record.source_app_code, record.file_path)
+        app_code=ser.data["bk_app_code"],
+        file_path=ser.data.get("file_path"),
+        download_url=ser.data.get("download_url"),
     )
 
-    return JsonResponse(
-        {
-            "result": True,
-            "message": "",
-            "code": "00",
-            "data": {
-                "id": record.id,  # 包文件的ID
-                "name": record.file_name,  # 包名
-                "pkg_size": record.file_size,  # 单位byte
-            },
-        }
-    )
+    return JsonResponse({"result": True, "message": "", "code": "00", "data": upload_result})
 
 
 @csrf_exempt

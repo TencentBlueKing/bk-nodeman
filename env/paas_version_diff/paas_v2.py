@@ -30,7 +30,7 @@ BK_BACKEND_CONFIG = get_type_env(key="BK_BACKEND_CONFIG", default=False, _type=b
 BKAPP_IS_PAAS_DEPLOY = False
 
 # esb 访问地址
-BK_COMPONENT_API_URL = BK_PAAS_HOST or BK_PAAS_INNER_HOST or ""
+BK_COMPONENT_API_URL = BK_PAAS_INNER_HOST or BK_PAAS_HOST or ""
 
 # 节点管理 default 模块地址
 BK_NODEMAN_HOST = get_type_env(key="BK_NODEMAN_URL", default=f"{BK_PAAS_INNER_HOST}/o/{APP_CODE}", _type=str)

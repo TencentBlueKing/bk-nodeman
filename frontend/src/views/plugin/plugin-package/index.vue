@@ -48,7 +48,7 @@
           v-if="showUploadDialog"
           name="package_file"
           accept="application/x-compressed,application/x-gzip,application/gzip"
-          :action="`${baseUrl}v2/plugin/upload/`"
+          :action="`${baseUrl}api/v2/plugin/upload/`"
           :headers="uploadHeader"
           :on-upload-success="handleUploadSuccess"
           :on-upload-error="handleUploadError"

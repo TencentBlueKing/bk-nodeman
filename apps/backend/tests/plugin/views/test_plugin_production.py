@@ -289,6 +289,7 @@ class BkRepoTestCase(FileSystemTestCase):
             "BKREPO_PASSWORD": "blueking",
             "BKREPO_PROJECT": "project",
             "BKREPO_BUCKET": "private",
+            "BKREPO_PUBLIC_BUCKET": "public",
             "BKREPO_ENDPOINT_URL": "http://127.0.0.1",
         },
         utils.CustomBKRepoMockStorage: {"file_overwrite": FILE_OVERWRITE},
@@ -302,8 +303,10 @@ class BkRepoTestCase(FileSystemTestCase):
 
     def upload_plugin(self, file_local_path: Optional[str] = None) -> Dict[str, Any]:
         file_local_path = file_local_path or self.PLUGIN_ARCHIVE_PATH
+
+        upload_path = random.choice(["/backend/package/upload_cos/", "/backend/api/plugin/upload/"])
         upload_result = self.client.post(
-            path="/backend/package/upload_cos/",
+            path=upload_path,
             data={
                 "module": "gse_plugin",
                 "md5": files.md5sum(file_local_path),
