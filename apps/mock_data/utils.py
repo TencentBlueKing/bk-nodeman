@@ -14,6 +14,7 @@ from typing import Any, Callable, Dict, Optional, Union
 import mock
 
 from apps.utils.enum import EnhanceEnum
+from apps.utils.unittest.base import CallRecorder
 
 DEFAULT_BK_BIZ_ID = 2
 
@@ -50,6 +51,11 @@ class MockReturn:
 
 
 class BaseMockClient:
+    call_recorder: CallRecorder = None
+
+    def __init__(self):
+        self.call_recorder = CallRecorder()
+
     @classmethod
     def generate_magic_mock(cls, mock_return_obj: Optional[MockReturn]):
         mock_return_obj = mock_return_obj or MockReturn(return_type=MockReturnType.RETURN_VALUE.value, return_obj=None)

@@ -14,10 +14,12 @@ from django.utils.translation import ugettext_lazy as _
 
 from pipeline.component_framework.component import Component
 
+from .check_policy_gse_to_proxy import CheckPolicyGseToProxyService
 from .choose_access_point import ChooseAccessPointService
 from .configure_policy import ConfigurePolicyService
 from .delegate_plugin_proc import DelegatePluginProcService
 from .get_agent_status import GetAgentStatusService
+from .push_upgrade_package import PushUpgradePackageService
 from .query_password import QueryPasswordService
 from .register_host import RegisterHostService
 from .reload_agent_config import ReloadAgentConfigService
@@ -70,3 +72,15 @@ class RestartComponent(Component):
     name = _("重启")
     code = "restart"
     bound_service = RestartService
+
+
+class PushUpgradePackageComponent(Component):
+    name = _("下发升级包")
+    code = "push_upgrade_package"
+    bound_service = PushUpgradePackageService
+
+
+class CheckPolicyGseToProxyComponent(Component):
+    name = _("检测 GSE Server 到 Proxy 策略")
+    code = "check_policy_gse_to_proxy"
+    bound_service = CheckPolicyGseToProxyService
