@@ -33,7 +33,7 @@ class ReloadAgentConfigService(AgentExecuteScriptService):
         # 路径处理器
         path_handler = (posixpath, ntpath)[host.os_type == constants.OsType.WINDOWS]
         node_type = ("agent", "proxy")[host.os_type == constants.NodeType.PROXY]
-        setup_path = host.agent_config["setup_path"]
+        setup_path = common_data.host_id__ap_map[host.bk_host_id].get_agent_config(host.os_type)["setup_path"]
         agent_path = path_handler.join(setup_path, node_type, "bin")
 
         return f"cd {agent_path} && ./gse_agent --reload"

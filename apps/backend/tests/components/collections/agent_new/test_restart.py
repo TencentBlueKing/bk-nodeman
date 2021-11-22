@@ -8,14 +8,15 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import base64
 from typing import Any, Dict, List
 
 from apps.backend.components.collections.agent_new import components
 from apps.mock_data import common_unit
 from apps.node_man import constants
+from common.api import JobApi
 
-from . import utils
-from .test_reload_agent_config import ReloadAgentConfigTestCase
+from . import base, utils
 
 
 class WindowsAgentTestObjFactory(utils.AgentTestObjFactory):
@@ -24,21 +25,17 @@ class WindowsAgentTestObjFactory(utils.AgentTestObjFactory):
         构造Agent安装目标实例，如需修改测试样例，可以继承该类，覆盖该方法
         :return:
         """
-
         instance_host_info_list = super().structure_instance_host_info_list()
-
         # 改用 Windows
         os_type = constants.OsType.WINDOWS
         for instance_host_info in instance_host_info_list:
             instance_host_info.update(
                 os_type=os_type, bk_os_type=constants.BK_OS_TYPE[common_unit.host.HOST_MODEL_DATA["os_type"]]
             )
-
         return instance_host_info_list
 
 
-class RestartTestCase(ReloadAgentConfigTestCase):
-
+class RestartTestCase(base.JobBaseTestCase):
     OBJ_FACTORY_CLASS = WindowsAgentTestObjFactory
 
     @classmethod
@@ -47,3 +44,12 @@ class RestartTestCase(ReloadAgentConfigTestCase):
 
     def component_cls(self):
         return components.RestartComponent
+
+    def tearDown(self) -> None:
+        record = self.job_api_mock_client.call_recorder.record
+        fast_execute_script_query_params = record[JobApi.fast_execute_script][0].args[0]
+        self.assertEqual(
+            "c:\\gse\\agent\\bin\\gsectl.bat restart",
+            base64.b64decode(fast_execute_script_query_params["script_content"]).decode(),
+        )
+        super().tearDown()
