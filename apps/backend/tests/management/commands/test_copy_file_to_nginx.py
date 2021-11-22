@@ -67,6 +67,7 @@ class BkRepoCopyFileToNginxTestCase(CopyFileToNginxTestCase):
             "BKREPO_PASSWORD": "blueking",
             "BKREPO_PROJECT": "project",
             "BKREPO_BUCKET": "private",
+            "BKREPO_PUBLIC_BUCKET": "public",
             "BKREPO_ENDPOINT_URL": "http://127.0.0.1",
             "BK_SCRIPTS_PATH": BK_SCRIPTS_PATH,
             "STORAGE_TYPE": core_files_constants.StorageType.BLUEKING_ARTIFACTORY.value,

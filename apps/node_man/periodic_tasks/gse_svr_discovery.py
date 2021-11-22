@@ -9,7 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from telnetlib import Telnet
-from typing import List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from celery.schedules import crontab
 from celery.task import periodic_task
@@ -103,7 +103,17 @@ def gse_svr_discovery():
                     logger.info(f"zk_node_path -> {zk_node_path} get empty ip list, skip.")
                     continue
                 logger.info(f"zk_node_path -> {zk_node_path}, svr_ips -> {svr_ips}")
-                setattr(ap, ap_field, [{"inner_ip": svr_ip, "outer_ip": svr_ip} for svr_ip in svr_ips])
+
+                inner_ip__outer_ip_map: Dict[str, str] = {}
+                for svr_info in getattr(ap, ap_field, []):
+                    inner_ip__outer_ip_map[svr_info.get("inner_ip")] = svr_info.get("outer_ip")
+
+                svr_infos: List[Dict[str, Any]] = []
+                for svr_ip in svr_ips:
+                    # svr_ip 通常解析为内网IP，外网IP允许自定义，如果为空再取 svr_ip
+                    outer_ip = inner_ip__outer_ip_map.get(svr_ip) or svr_ip
+                    svr_infos.append({"inner_ip": svr_ip, "outer_ip": outer_ip})
+                setattr(ap, ap_field, svr_infos)
                 is_change = True
     if is_change:
         ap.save()

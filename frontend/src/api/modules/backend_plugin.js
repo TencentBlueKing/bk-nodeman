@@ -22,6 +22,7 @@ export const renderPluginConfigTemplate = request('POST', 'backend/api/plugin/re
 export const retrievePlugin = request('GET', 'backend/api/plugin/{{pk}}/');
 export const startDebug = request('POST', 'backend/api/plugin/start_debug/');
 export const stopDebug = request('POST', 'backend/api/plugin/stop_debug/');
+export const upload = request('POST', 'backend/api/plugin/upload/');
 export const uploadFile = request('POST', 'backend/package/upload/');
 
 export default {
@@ -47,5 +48,6 @@ export default {
   retrievePlugin,
   startDebug,
   stopDebug,
+  upload,
   uploadFile,
 };

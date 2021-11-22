@@ -98,34 +98,46 @@ modules:
 
         processes:
             backend-web:
-                command: gunicorn --timeout 300 -w 4 -b :$PORT -k gevent wsgi:application --access-logfile - --error-logfile - --access-logformat '[%(h)s] %({request_id}i)s %(u)s %(t)s "%(r)s" %(s)s %(D)s %(b)s "%(f)s" "%(a)s"'
+                command: gunicorn --timeout 300 -w 8 -b :$PORT -k gevent wsgi:application --access-logfile - --error-logfile - --access-logformat '[%(h)s] %({request_id}i)s %(u)s %(t)s "%(r)s" %(s)s %(D)s %(b)s "%(f)s" "%(a)s"'
                 plan: 4C2G5R
-                replicas: 5
+                replicas: 1
             celery-beat:
                 command: celery -A apps.backend beat -l info
                 plan: 4C2G5R
                 replicas: 1
             dworker:
-                command: celery -A apps.backend worker -Q default -c 8 -n default@%h --maxtasksperchild=50 -O fair --time-limit=1800
+                command: celery -A apps.backend worker -Q default --autoscale=8,2 -n default@%h --maxtasksperchild=50 -O fair --time-limit=1800
                 plan: 4C2G5R
-                replicas: 5
+                replicas: 1
             bworker:
-                command: celery -A apps.backend worker -Q backend  -c 32 -n bworker@%h --maxtasksperchild=50 -O fair --time-limit=1800
+                command: celery -A apps.backend worker -Q backend  --autoscale=16,2 -n bworker@%h --maxtasksperchild=50 -O fair --time-limit=1800
                 plan: 4C2G5R
-                replicas: 5
+                replicas: 1
             baworker:
-                command: celery -A apps.backend worker -Q backend_additional_task -c 32 -n baworker@%h -O fair --time-limit=1800 --maxtasksperchild=50
+                command: celery -A apps.backend worker -Q backend_additional_task -c 10 -n baworker@%h -O fair --time-limit=1800 --maxtasksperchild=50
                 plan: 4C2G5R
-                replicas: 5
+                replicas: 1
             pworker:
-                command: celery -A apps.backend worker -Q pipeline,pipeline_priority -n pipeline_worker@%h --maxtasksperchild=50 -c 16 -O fair --time-limit=1800
+                command: celery -A apps.backend worker -Q pipeline,pipeline_priority -n pipeline_worker@%h --maxtasksperchild=50 --autoscale=16,2 -O fair --time-limit=1800
                 plan: 4C2G5R
-                replicas: 5
+                replicas: 2
             psworker:
-                command: celery -A apps.backend worker -Q service_schedule,service_schedule_priority -n schedule_worker@%h --maxtasksperchild=50 -c 32  -O fair --time-limit=1800
+                command: celery -A apps.backend worker -Q service_schedule,service_schedule_priority -n schedule_worker@%h --maxtasksperchild=50 --autoscale=50,16  -O fair --time-limit=1800
                 plan: 4C2G5R
-                replicas: 5
+                replicas: 2
             paworker:
-                command: celery -A apps.backend worker -Q pipeline_additional_task,pipeline_additional_task_priority -n common_worker@%h -l info -c 8 --maxtasksperchild=50 -O fair --time-limit=1800
+                command: celery -A apps.backend worker -Q pipeline_additional_task,pipeline_additional_task_priority -n common_worker@%h -l info --autoscale=16,2 --maxtasksperchild=50 -O fair --time-limit=1800
                 plan: 4C2G5R
-                replicas: 5
+                replicas: 1
+            sync-host:
+                command: python manage.py sync_host_event
+                plan: 4C2G5R
+                replicas: 1
+            sync-host-re:
+                command: python manage.py sync_host_relation_event
+                plan: 4C2G5R
+                replicas: 1
+            resource-w:
+                command: python manage.py apply_resource_watched_events
+                plan: 4C2G5R
+                replicas: 1
