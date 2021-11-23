@@ -12,6 +12,7 @@ import base64
 import json
 import os
 import time
+from json import JSONDecodeError
 
 from celery.schedules import crontab
 from celery.task import periodic_task
@@ -96,6 +97,7 @@ print(json.dumps(proxy_md5))
     )
 
     kwargs = {
+        "task_name": "NODE_MAN_PROXY_FILES_CHECK_MD5",
         "bk_biz_id": settings.BLUEKING_BIZ_ID,
         "script_content": base64.b64encode(script.encode()).decode(),
         "script_timeout": 300,
@@ -117,7 +119,17 @@ print(json.dumps(proxy_md5))
         raise Exception(f"get proxy files md5 by job failed, msg: {task_result}")
     ip_list = []
     for result in task_result["success"]:
-        proxy_md5 = json.loads(result["log_content"])
+        logs = result["log_content"].split("\n")
+        proxy_md5 = None
+        for log in logs:
+            try:
+                proxy_md5 = json.loads(log)
+            except JSONDecodeError:
+                # 期望得到的结果是一行json，解析失败则认为该行不符合预期，抛弃即可
+                continue
+        if not proxy_md5:
+            logger.error(f"load proxy files md5 failed, result: {result}")
+            continue
         for name, file_md5 in local_file_md5.items():
             if name not in proxy_md5 or proxy_md5[name] != file_md5:
                 ip_list.append({"ip": result["ip"], "bk_cloud_id": result["bk_cloud_id"]})
@@ -134,7 +146,10 @@ print(json.dumps(proxy_md5))
         }
     ]
     job_instance_id = client.fast_push_file(
-        ip_list=ip_list, file_target_path=settings.DOWNLOAD_PATH, file_source=file_source
+        ip_list=ip_list,
+        file_target_path=settings.DOWNLOAD_PATH,
+        file_source=file_source,
+        task_name="NODE_MAN_PROXY_FILES_PUSH",
     )
 
     time.sleep(5)
