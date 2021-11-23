@@ -9,7 +9,6 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-
 from django.utils.translation import ugettext_lazy as _
 
 from pipeline.component_framework.component import Component
@@ -27,6 +26,7 @@ from .register_host import RegisterHostService
 from .update_process_status import UpdateProcessStatusService
 from .reload_agent_config import ReloadAgentConfigService
 from .restart import RestartService
+from .run_upgrade_command import RunUpgradeCommandService
 
 
 class QueryPasswordComponent(Component):
@@ -105,3 +105,9 @@ class CheckPolicyGseToProxyComponent(Component):
     name = _("检测 GSE Server 到 Proxy 策略")
     code = "check_policy_gse_to_proxy"
     bound_service = CheckPolicyGseToProxyService
+
+
+class RunUpgradeCommandComponent(Component):
+    name = _("下发升级脚本命令")
+    code = "run_upgrade_command"
+    bound_service = RunUpgradeCommandService
