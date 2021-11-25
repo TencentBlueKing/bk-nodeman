@@ -12,6 +12,7 @@ import base64
 import json
 import os
 import time
+from json import JSONDecodeError
 from typing import Dict, List
 
 from celery.schedules import crontab
@@ -105,6 +106,7 @@ print(json.dumps(proxy_md5))
     )
 
     kwargs = {
+        "task_name": "NODE_MAN_PROXY_FILES_CHECK_MD5",
         "bk_biz_id": settings.BLUEKING_BIZ_ID,
         "script_content": base64.b64encode(script.encode()).decode(),
         "script_timeout": 300,
@@ -121,14 +123,25 @@ print(json.dumps(proxy_md5))
     if not result["is_finished"] or not task_result["success"]:
         logger.error(f"get proxy files md5 by job failed, msg: {task_result}")
         raise Exception(f"get proxy files md5 by job failed, msg: {task_result}")
+
     for proxy_task_result in task_result["success"]:
-        proxy_file_md5_map = json.loads(proxy_task_result["log_content"])
-        for file_name, file_md5 in local_file__md5_map.items():
-            if file_name not in proxy_file_md5_map or proxy_file_md5_map[file_name] != file_md5:
+        logs = proxy_task_result["log_content"].split("\n")
+        proxy_file_md5_map = {}
+        for log in logs:
+            try:
+                proxy_file_md5_map = json.loads(log)
+            except JSONDecodeError:
+                # 期望得到的结果是一行json，解析失败则认为该行不符合预期，抛弃即可
+                continue
+        if not proxy_file_md5_map:
+            logger.error(f"load proxy files md5 failed, result: {result}")
+            continue
+        for name, file_md5 in local_file__md5_map.items():
+            if name not in proxy_file_md5_map or proxy_file_md5_map[name] != file_md5:
                 update_proxy_host_list.append(
                     {"ip": proxy_task_result["ip"], "bk_cloud_id": proxy_task_result["bk_cloud_id"]}
                 )
-                break
+
     if not update_proxy_host_list:
         logger.info("There are no files with local differences on all proxy servers")
         return
@@ -143,6 +156,7 @@ print(json.dumps(proxy_md5))
         target_server={"ip_list": update_proxy_host_list},
     )
     time.sleep(5)
+    transfer_result = {"task_result": {"pending": update_proxy_host_list, "failed": []}}
     try:
         transfer_result = JobDemand.poll_task_result(job_transfer_id)
         if transfer_result["is_finished"]:

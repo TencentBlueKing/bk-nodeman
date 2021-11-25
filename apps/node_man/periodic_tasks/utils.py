@@ -23,12 +23,6 @@ logger = logging.getLogger("app")
 
 
 class JobDemand(object):
-    def __init__(
-        self,
-    ):
-        self.bk_biz_id = settings.BLUEKING_BIZ_ID
-        self.username = settings.BACKEND_JOB_OPERATOR
-
     @classmethod
     def poll_task_result(cls, job_instance_id: int):
         """
@@ -40,7 +34,11 @@ class JobDemand(object):
         result = cls.get_task_result(job_instance_id)
         while not result["is_finished"]:
             if polling_time > POLLING_TIMEOUT:
-                logger.error("user->[{}] called api->[get_task_result] but got JobExecuteTimeout.".format(cls.username))
+                logger.error(
+                    "user->[{}] called api->[get_task_result] but got JobExecuteTimeout.".format(
+                        settings.BACKEND_JOB_OPERATOR
+                    )
+                )
                 raise JobPollTimeout({"job_instance_id": job_instance_id})
 
             # 每次查询后，睡觉
@@ -51,7 +49,8 @@ class JobDemand(object):
 
         return result
 
-    def get_task_result(self, job_instance_id: int):
+    @classmethod
+    def get_task_result(cls, job_instance_id: int):
         """
         获取执行结果
         :param job_instance_id: job任务id
@@ -69,12 +68,11 @@ class JobDemand(object):
         """
         params = {
             "job_instance_id": job_instance_id,
-            "bk_biz_id": self.bk_biz_id,
-            "bk_username": self.username,
+            "bk_biz_id": settings.BLUEKING_BIZ_ID,
+            "bk_username": settings.BACKEND_JOB_OPERATOR,
             "return_ip_result": True,
         }
-        result = JobApi.get_job_instance_status(params)
-        job_status = self._response_exception_filter("JobApi.get_job_instance_status", params, result)
+        job_status = JobApi.get_job_instance_status(params)
         is_finished = job_status["finished"]
         host_infos__gby_job_status = defaultdict(list)
         step_instance_id = job_status["step_instance_list"][0]["step_instance_id"]
@@ -83,7 +81,7 @@ class JobDemand(object):
             host_infos__gby_job_status[instance["status"]].append(host_info)
         logger.info(
             "user->[{}] called api->[{}] and got response->[{}].".format(
-                self.username, job_instance_id, json.dumps(job_status)
+                settings.BACKEND_JOB_OPERATOR, job_instance_id, json.dumps(job_status)
             )
         )
 
@@ -106,7 +104,7 @@ class JobDemand(object):
             for host in hosts:
                 log_params = {
                     "job_instance_id": job_instance_id,
-                    "bk_biz_id": self.bk_biz_id,
+                    "bk_biz_id": settings.BLUEKING_BIZ_ID,
                     "bk_username": settings.BACKEND_JOB_OPERATOR,
                     "step_instance_id": step_instance_id,
                     "ip": host["ip"],
