@@ -13,5 +13,5 @@ from django.apps import AppConfig
 
 
 class AppIAMConfig(AppConfig):
-    name = "apps.iam"
+    name = "apps.iam_migration"
     verbose_name = "AppIAM"

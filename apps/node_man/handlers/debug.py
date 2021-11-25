@@ -93,7 +93,7 @@ class DebugHandler(APIModel):
                 "task_actions": task.actions,
                 "is_auto_trigger": task.is_auto_trigger,
                 "create_time": task.create_time,
-                "details": f"{settings.BK_NODEMAN_URL}/api/debug/fetch_task_details?"
+                "details": f"{settings.BK_NODEMAN_HOST}/api/debug/fetch_task_details?"
                 f"subscription_id={subscription_id}&task_id={task.id}",
             }
 
@@ -171,7 +171,7 @@ class DebugHandler(APIModel):
             result.append(
                 {
                     "subscription_id": record.subscription_id,
-                    "subscription_detail": f"{settings.BK_NODEMAN_URL}/api/debug/fetch_subscription_details?"
+                    "subscription_detail": f"{settings.BK_NODEMAN_HOST}/api/debug/fetch_subscription_details?"
                     f"subscription_id={record.subscription_id}",
                 }
             )

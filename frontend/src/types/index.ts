@@ -34,7 +34,7 @@ export interface IAuthApply {
 }
 
 export type RequestMethods = 'delete' | 'get' | 'head' | 'post' | 'put' | 'patch';
-export type IOs = 'LINUX' | 'WINDOWS' | 'AIX';
+export type IOs = 'LINUX' | 'WINDOWS' | 'AIX' | 'SOLARIS';
 
 export interface IUserConfig {
   // http 请求默认 id
@@ -238,6 +238,8 @@ export interface ISetupRow {
   port?: number
   peer_exchange_switch_for_agent: boolean | number
   prove?: string
+  password?: string
+  key?: string
   retention?: number
   data_path?: string
   fileInfo?: IFileInfo
@@ -299,4 +301,10 @@ export interface IFileInfo {
 export interface ISortData {
   head: string
   sort_type: string
+}
+
+export interface IKeyItem {
+  name: string
+  description: string
+  content: string
 }

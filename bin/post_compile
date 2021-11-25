@@ -1,3 +1,4 @@
 #!/bin/bash
 python manage.py createcachetable django_cache
 python manage.py migrate
+python manage.py copy_file_to_nginx

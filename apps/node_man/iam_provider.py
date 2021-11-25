@@ -575,7 +575,9 @@ class IamRegister(object):
     ]
 
     def __init__(self):
-        self._iam = IAM(settings.APP_CODE, settings.SECRET_KEY, settings.BK_IAM_HOST, settings.BK_PAAS_INNER_HOST)
+        self._iam = IAM(
+            settings.APP_CODE, settings.SECRET_KEY, settings.BK_IAM_INNER_HOST, settings.BK_COMPONENT_API_URL
+        )
 
     def register_system(self):
         # ***需要将placeholder改为内网访问地址***

@@ -194,12 +194,7 @@ class TestMeta(TestCase):
             {
                 "name": "操作系统",
                 "id": "os_type",
-                "children": [
-                    {"id": "LINUX", "name": "Linux"},
-                    {"id": "WINDOWS", "name": "Windows"},
-                    {"id": "AIX", "name": "AIX"},
-                    {"id": "SOLARIS", "name": "Solaris"},
-                ],
+                "children": MetaHandler.fetch_os_type_children(),
             },
         )
         self.assertEqual(

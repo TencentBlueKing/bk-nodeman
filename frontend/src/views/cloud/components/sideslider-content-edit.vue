@@ -177,7 +177,7 @@ export default class SidesliderContentEdit extends Vue {
         const authType = this.proxyData.auth_type.toLocaleLowerCase();
         if (this.proxyData[authType]) {
           params.auth_type = this.proxyData.auth_type;
-          params[authType] = this.proxyData[authType];
+          params[authType] = this.$RSA.getNameMixinEncrypt(this.proxyData[authType]);
         }
       }
       if (this.proxyData.bt_speed_limit) {

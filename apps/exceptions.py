@@ -111,3 +111,10 @@ class BkJwtVerifyFailException(AppBaseException):
 class AuthOverdueException(AppBaseException):
     ERROR_CODE = 19
     MESSAGE = _("认证信息已过期, 请重装并填入认证信息")
+
+
+# 背景：后台序列化逻辑改造导致接口校验错误码默认指向 ValidationError(ERROR_CODE=1)
+# 作用：部分接口需要兼容老的校验错误码，兼容调用方使用错误码分类异常的情况
+class BackendValidationError(AppBaseException):
+    ERROR_CODE = 100
+    MESSAGE = _("参数验证失败")

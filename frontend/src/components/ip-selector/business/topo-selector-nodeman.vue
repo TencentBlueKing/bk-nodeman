@@ -65,6 +65,7 @@ export default class TopoSelector extends Vue {
   @Prop({ default: 280, type: Number }) private readonly previewWidth!: number;
   @Prop({ default: 0, type: [Number, String] }) private readonly height!: number |  string;
   @Prop({ default: () => [], type: Array }) private readonly action!: string[];
+  @Prop({ default: false, type: Boolean }) private readonly customizeLimit!: boolean;
 
   @Ref('selector') private readonly selector!: IpSelector;
 
@@ -135,7 +136,7 @@ export default class TopoSelector extends Vue {
         disabled: !!this.checkedData.length && this.active === 'dynamic-topo',
       },
     ];
-    return this.isGrayRule ? panels.filter(item => item.name === 'static-topo') : panels;
+    return this.isGrayRule ? panels.filter(item => item.name !== 'dynamic-topo') : panels;
   }
 
   @Watch('active')
@@ -343,6 +344,9 @@ export default class TopoSelector extends Vue {
       return await this.getStaticTableData(params, type);
     }
     if (this.active === 'custom-input') {
+      if (this.customizeLimit && PluginStore.hostsByScopeRange) {
+        params.scope = PluginStore.hostsByScopeRange;
+      }
       return await this.getCustomInput(params);
     }
     return {
@@ -439,7 +443,7 @@ export default class TopoSelector extends Vue {
 
   // 获取自定义输入表格数据
   private async getCustomInput(params: any) {
-    const { ipList = [] } = params;
+    const { ipList = [], scope } = params;
     const { list = [], total } = await listHost({
       pagesize: -1,
       action: 'strategy_create',
@@ -449,6 +453,7 @@ export default class TopoSelector extends Vue {
           value: ipList,
         },
       ],
+      scope,
     }).catch(() => ({ list: [] }));
     return {
       total,

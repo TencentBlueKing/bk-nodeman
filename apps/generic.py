@@ -56,7 +56,7 @@ class ApiMixin(GenericViewSet):
             response.status_code = status.HTTP_200_OK
 
         # 禁用客户端的 MIME 类型嗅探行为，防止基于"MIME"的攻击
-        response._headers["x-content-type-options"] = ("X-Content-Type-Options", "nosniff")
+        response.headers["x-content-type-options"] = ("X-Content-Type-Options", "nosniff")
         return super(ApiMixin, self).finalize_response(request, response, *args, **kwargs)
 
 
@@ -83,6 +83,15 @@ class ValidationMixin(GenericViewSet):
             data = self.request.query_params
         else:
             data = self.request.data
+
+        # 从 esb 获取参数
+        bk_username = self.request.META.get("HTTP_BK_USERNAME")
+        bk_app_code = self.request.META.get("HTTP_BK_APP_CODE")
+
+        data = data.copy()
+        data.setdefault("bk_username", bk_username)
+        data.setdefault("bk_app_code", bk_app_code)
+
         serializer = self.serializer_class or self.get_serializer_class()
         return self.params_valid(serializer, data)
 

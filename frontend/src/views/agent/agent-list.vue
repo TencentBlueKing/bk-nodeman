@@ -691,12 +691,6 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
     terminated: this.$t('异常'),
     unknown: this.$t('未知'),
   };
-  private osMap = {
-    LINUX: 'Linux',
-    WINDOWS: 'Windows',
-    AIX: 'AIX',
-    SOLARIS: 'Solaris',
-  };
   // 批量操作
   private operate: IOperateItem[] = [
     {
@@ -768,6 +762,9 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
   private operateBiz: IBizValue[] =[]; // 有操作权限的业务
   private cloudAgentNum = 0; // 从云区域点击跳转过来的主机数量，区分是否因为权限问题看不到主机
 
+  private get osMap() {
+    return MainStore.osMap;
+  }
   private get fontSize() {
     return MainStore.fontSize;
   }

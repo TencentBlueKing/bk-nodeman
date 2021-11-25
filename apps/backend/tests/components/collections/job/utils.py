@@ -88,5 +88,6 @@ class JobMockClient(object):
 class JobV3MockApi:
     fast_transfer_file_return = JOB_EXECUTE_TASK_RETURN["data"]
 
-    def __init__(self, fast_transfer_file_return: Dict = None):
+    def __init__(self, fast_transfer_file_return: Dict = None, fast_execute_script_return: Dict = None):
         self.fast_transfer_file = MagicMock(return_value=fast_transfer_file_return or self.fast_transfer_file_return)
+        self.fast_execute_script = MagicMock(return_value=fast_execute_script_return)

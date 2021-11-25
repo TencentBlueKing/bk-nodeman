@@ -84,8 +84,8 @@ class TestDebug(TestCase):
         self.assertEqual(result[0]["task_id"], self.subscription_task_obj.id)
         self.assertEqual(
             result[0]["details"],
-            f"{settings.BK_NODEMAN_URL}/api/debug/fetch_task_details?"
-            f"subscription_id={self.subscription_obj.id}&task_id={self.subscription_task_obj.id}"
+            f"{settings.BK_NODEMAN_HOST}/api/debug/fetch_task_details?"
+            f"subscription_id={self.subscription_obj.id}&task_id={self.subscription_task_obj.id}",
         )
 
     def test_fetch_hosts_by_subscription(self):
@@ -99,8 +99,8 @@ class TestDebug(TestCase):
             [
                 {
                     "subscription_id": self.subscription_obj.id,
-                    "subscription_detail": f"{settings.BK_NODEMAN_URL}/api/debug/fetch_subscription_details?"
-                                           f"subscription_id={self.subscription_obj.id}",
+                    "subscription_detail": f"{settings.BK_NODEMAN_HOST}/api/debug/fetch_subscription_details?"
+                    f"subscription_id={self.subscription_obj.id}",
                 }
             ],
         )
