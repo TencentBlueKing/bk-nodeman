@@ -160,7 +160,7 @@ class BkJobMixin:
         file_source_list: List[Dict[str, Any]],
         target_server: Dict[str, List[Dict[str, Union[str, int]]]],
         **kwargs,
-    ) -> str:
+    ) -> int:
         """
         分发文件
         :param bk_biz_id: 业务ID
@@ -220,3 +220,6 @@ class BkJobMixin:
 
 class BaseStorage(StorageFileOverwriteMixin, BkJobMixin, Storage, ABC):
     storage_type: str = None
+
+    def get_file_md5(self, file_name: str) -> str:
+        raise NotImplementedError

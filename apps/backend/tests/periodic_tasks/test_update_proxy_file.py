@@ -146,7 +146,8 @@ class TestUpdateProxyFile(CustomBaseTestCase):
 
             # 本地文件不存在差异
             for job_result in POLL_RESULT["task_result"]["success"]:
-                job_result["log_content"] = json.dumps(local_files_md5_map)
+                md5_log = json.dumps(local_files_md5_map)
+                job_result["log_content"] = f"test error lines\n{md5_log}\ntest error lines\n"
             patch("apps.node_man.periodic_tasks.update_proxy_file.JobDemand", self.JOB_DEMAND_MOCK_CLIENT).start()
             self.assertIsNone(call_command("update_proxy_file"))
 
