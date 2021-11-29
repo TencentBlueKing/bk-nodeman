@@ -266,7 +266,7 @@ class MetaHandler(APIModel):
         biz_permission = list(biz_id_name.keys())
 
         # 初始化各个条件集合
-        plugin_names = constants.HEAD_PLUGINS
+        plugin_names = settings.HEAD_PLUGINS
         plugin_result = {}
 
         # 获得数据
@@ -386,7 +386,7 @@ class MetaHandler(APIModel):
 
     @staticmethod
     def fetch_plugin_version_condition():
-        plugin_names = constants.HEAD_PLUGINS
+        plugin_names = settings.HEAD_PLUGINS
         versions = (
             models.ProcessStatus.objects.filter(
                 source_type=models.ProcessStatus.SourceType.DEFAULT,

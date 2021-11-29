@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 import random
 from unittest.mock import patch
 
+from django.conf import settings
 from django.test import TestCase
 
 from apps.node_man import constants as const
@@ -153,7 +154,7 @@ class TestMeta(TestCase):
                     bk_host_id=host.bk_host_id,
                     proc_type=const.ProcType.PLUGIN,
                     version=f"{random.randint(1, 10)}",
-                    name=const.HEAD_PLUGINS[random.randint(0, len(const.HEAD_PLUGINS) - 1)],
+                    name=settings.HEAD_PLUGINS[random.randint(0, len(settings.HEAD_PLUGINS) - 1)],
                     status="RUNNING",
                 )
             )
@@ -177,7 +178,7 @@ class TestMeta(TestCase):
                     bk_host_id=host.bk_host_id,
                     proc_type=const.ProcType.PLUGIN,
                     version=f"{random.randint(1, 10)}",
-                    name=const.HEAD_PLUGINS[random.randint(0, len(const.HEAD_PLUGINS) - 1)],
+                    name=settings.HEAD_PLUGINS[random.randint(0, len(settings.HEAD_PLUGINS) - 1)],
                     status="RUNNING",
                 )
             )
@@ -230,7 +231,7 @@ class TestMeta(TestCase):
                     bk_host_id=host.bk_host_id,
                     proc_type=const.ProcType.PLUGIN,
                     version=f"{random.randint(1, 10)}",
-                    name=const.HEAD_PLUGINS[random.randint(0, len(const.HEAD_PLUGINS) - 1)],
+                    name=settings.HEAD_PLUGINS[random.randint(0, len(settings.HEAD_PLUGINS) - 1)],
                     status="RUNNING",
                 )
             )
