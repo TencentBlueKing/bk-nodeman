@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
@@ -36,8 +37,9 @@ from apps.node_man.models import (
     GsePluginDesc,
     Host,
     IdentityData,
+    InstallChannel,
     JobTask,
-    ProcessStatus, InstallChannel,
+    ProcessStatus,
 )
 from apps.utils import APIModel
 from apps.utils.basic import filter_values
@@ -191,7 +193,7 @@ class HostHandler(APIModel):
         # 插件查询条件
         has_conditional = False
         bk_host_id_list = []
-        plugin_names = set(list(GsePluginDesc.objects.all().values_list("name", flat=True)) + const.HEAD_PLUGINS)
+        plugin_names = set(list(GsePluginDesc.objects.all().values_list("name", flat=True)) + settings.HEAD_PLUGINS)
         if plugin:
             bk_host_id_list = cls._handle_plugin_conditions(params, plugin_names, select)
             if bk_host_id_list:
