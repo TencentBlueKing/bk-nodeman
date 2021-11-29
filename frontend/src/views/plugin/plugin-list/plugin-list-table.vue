@@ -100,7 +100,7 @@
           {{ osMap[row.os_type] | filterEmpty }}
         </template>
       </bk-table-column>
-      <template v-for="(plugin, index) in officialPlugin">
+      <template v-for="(plugin, index) in pluginNames">
         <bk-table-column
           min-width="108"
           :key="index"
@@ -175,6 +175,7 @@ export default class PluginRuleTable extends Mixins(FormLabelMixin, HeaderRender
   @Prop({ default: 0, type: Number }) private readonly runningCount!: number;
   @Prop({ default: () => [], type: Array }) private readonly selections!: IPluginList[];
   @Prop({ default: () => [], type: Array }) private readonly excludeData!: IPluginList[];
+  @Prop({ default: () => [], type: Array }) private readonly pluginNames!: string[];
 
   @Ref('nodeListTable') private readonly nodeListTable!: any;
 
@@ -197,7 +198,6 @@ export default class PluginRuleTable extends Mixins(FormLabelMixin, HeaderRender
     });
   }
 
-  private officialPlugin: string[] = ['basereport', 'processbeat', 'exceptionbeat', 'bkunifylogbeat', 'bkmonitorbeat'];
   private currentIp = '';
   private currentHostId = -1;
   private currentHostStatus = '';
@@ -226,7 +226,7 @@ export default class PluginRuleTable extends Mixins(FormLabelMixin, HeaderRender
   }
 
   private created() {
-    const plugin = this.officialPlugin.map(name => ({
+    const plugin = this.pluginNames.map(name => ({
       name,
       id: name,
       checked: true,
@@ -242,7 +242,7 @@ export default class PluginRuleTable extends Mixins(FormLabelMixin, HeaderRender
       {
         checked: true,
         disabled: false,
-        name: this.$t('节点类型'),
+        name: window.i18n.t('节点类型'),
         id: 'node_type',
       },
       {

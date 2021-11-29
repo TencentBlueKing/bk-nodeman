@@ -12,6 +12,7 @@
       @plugin-operate="handlePluginOperate">
     </PluginListOperate>
     <PluginListTable
+      v-if="showHostTable"
       v-bkloading="{ isLoading: tableLoading }"
       class="plugin-node-table"
       :table-list="tableList"
@@ -24,6 +25,7 @@
       :check-value="checkValue"
       :check-type="checkType"
       :running-count="runningCount"
+      :plugin-names="mixisPluginName"
       @selection-change="handleSelectionChange"
       @row-check="handleRowCheck"
       @filter-confirm="tableHeaderConfirm"
@@ -171,6 +173,7 @@ export default class PluginList extends Mixins(HeaderFilterMixins) {
   ];
   private mixisPluginName: string[] = []; // 插件的状态和版本筛选条件组合到了一起
   private pluginStatusMap: { [key: string]: string[] } = {}; // 插件的状态列表
+  private showHostTable = false;
 
   private get selectedAllDisabled() {
     const statusCondition = this.searchSelectValue.find(item => item.id === 'status');
@@ -299,6 +302,7 @@ export default class PluginList extends Mixins(HeaderFilterMixins) {
       this.mixisPluginName = statusName;
       this.filterData.splice(this.filterData.length, 0, ...data.filter(item => !statusReg.test(item.id)));
     });
+    this.showHostTable = true;
   }
 
   public async getHostList(params: ISearchParams) {
