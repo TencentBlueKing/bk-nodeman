@@ -19,6 +19,7 @@ from django.views.decorators.csrf import csrf_exempt
 
 from apps.backend.utils.data_renderer import nested_render_data
 from apps.backend.utils.encrypted import GseEncrypted
+from apps.backend.utils.redis import REDIS_INST
 from apps.node_man import constants, models
 from apps.node_man.models import Host, JobSubscriptionInstanceMap, aes_cipher
 from pipeline.service import task_service
@@ -461,7 +462,7 @@ def generate_gse_config(bk_cloud_id, filename, node_type, inner_ip):
     btfileserver_outer_ips = [server["outer_ip"] for server in host.ap.btfileserver]
     dataserver_outer_ips = [server["outer_ip"] for server in host.ap.dataserver]
 
-    jump_server, upstream_nodes = host.install_channel()
+    jump_server, upstream_nodes = host.install_channel
     taskserver_inner_ips = [server for server in upstream_nodes["taskserver"]]
     btfileserver_inner_ips = [server for server in upstream_nodes["btfileserver"]]
     dataserver_inner_ips = [server for server in upstream_nodes["dataserver"]]
@@ -712,7 +713,10 @@ def report_log(request):
         logger.error(f"token[{token}] 非法, task_id为:{data['task_id']}, token解析为: {decrypted_token}")
         raise PermissionError("what are you doing?")
 
-    task_service.callback(data["task_id"], data["logs"])
+    # 把日志写入redis中，由install service中的schedule方法统一读取，避免频繁callback
+    name = f"{decrypted_token['task_id']}_{decrypted_token['inst_id']}"
+    json_dumps_logs = [json.dumps(log) for log in data["logs"]]
+    REDIS_INST.lpush(name, *json_dumps_logs)
     return JsonResponse({})
 
 
@@ -753,12 +757,13 @@ def _decrypt_token(token: str) -> dict:
         logger.error(f"{token}解析失败")
         raise err
 
-    inner_ip, bk_cloud_id, task_id, timestamp = token_decrypt.split("|")
+    inner_ip, bk_cloud_id, task_id, timestamp, inst_id = token_decrypt.split("|")
     return_value = {
         "inner_ip": inner_ip,
         "bk_cloud_id": int(bk_cloud_id),
         "task_id": task_id,
         "timestamp": timestamp,
+        "inst_id": inst_id,
     }
     # timestamp 超过1小时，认为是非法请求
     if time.time() - float(timestamp) > 3600:

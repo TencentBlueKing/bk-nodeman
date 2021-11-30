@@ -21,13 +21,12 @@ from apps.backend.api.constants import POLLING_INTERVAL, POLLING_TIMEOUT
 from apps.backend.api.job import JobClient
 from apps.backend.components.collections import bulk_job
 from apps.backend.components.collections.job import JobBaseService
+from apps.backend.utils.redis import REDIS_INST
 from apps.node_man import constants, models
 from pipeline.component_framework.component import Component
 from pipeline.core.flow.activity import Service
 
 logger = logging.getLogger("app")
-
-REDIS_INST = bulk_job.RedisInstSingleTon.get_inst()
 
 
 class JobBulkPushFileV2Service(JobBaseService):

@@ -12,7 +12,7 @@ specific language governing permissions and limitations under the License.
 import re
 import time
 from pathlib import Path
-from typing import List, Tuple
+from typing import Dict, List, Tuple
 
 from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
@@ -29,11 +29,13 @@ class InstallationTools:
         self,
         script_file_name: str,
         dest_dir: str,
-        win_commands: str,
+        win_commands: List[str],
         upstream_nodes: List[str],
         jump_server: models.Host,
         pre_commands: List[str],
         run_cmd: str,
+        host: models.Host,
+        ap: models.AccessPoint,
     ):
         """
         :param script_file_name: 脚本名称，如 setup_agent.sh
@@ -43,6 +45,8 @@ class InstallationTools:
         :param jump_server: 跳板服务器，通常为proxy或者安装通道的跳板机
         :param pre_commands: 预执行命令，目前仅 Windows 需要，提前推送 curl.exe 等工具
         :param run_cmd: 运行命令，通过 format_run_cmd_by_os_type 方法生成
+        :param host: 主机对象
+        :param ap: 接入点对象
         """
         self.script_file_name = script_file_name
         self.dest_dir = dest_dir
@@ -51,6 +55,8 @@ class InstallationTools:
         self.jump_server = jump_server
         self.pre_commands = pre_commands
         self.run_cmd = run_cmd
+        self.host = host
+        self.ap = ap
 
 
 def gen_nginx_download_url(nginx_ip: str) -> str:
@@ -61,7 +67,7 @@ def fetch_gse_servers(host: models.Host) -> Tuple:
     jump_server = None
     if host.install_channel_id:
         # 指定安装通道时，由安装通道生成相关配置
-        jump_server, upstream_servers = host.install_channel()
+        jump_server, upstream_servers = host.install_channel
         bt_file_servers = ",".join(upstream_servers["btfileserver"])
         data_servers = ",".join(upstream_servers["dataserver"])
         task_servers = ",".join(upstream_servers["taskserver"])
@@ -89,7 +95,7 @@ def fetch_gse_servers(host: models.Host) -> Tuple:
         callback_url = host.ap.outer_callback_url or settings.BKAPP_NODEMAN_OUTER_CALLBACK_URL
     else:
         # PAGENT的场景
-        proxy_ips = [proxy.inner_ip for proxy in host.proxies]
+        proxy_ips = list(set([proxy.inner_ip for proxy in host.proxies]))
         jump_server = host.get_random_alive_proxy()
         bt_file_servers = ",".join(ip for ip in proxy_ips)
         data_servers = ",".join(ip for ip in proxy_ips)
@@ -263,8 +269,9 @@ def gen_commands(host: models.Host, pipeline_id: str, is_uninstall: bool) -> Ins
     if Path(dest_dir) != Path("/tmp"):
         pre_commands.insert(0, f"mkdir -p {dest_dir}")
 
+    upstream_nodes = list(set(upstream_nodes))
     return InstallationTools(
-        script_file_name, dest_dir, win_commands, upstream_nodes, jump_server, pre_commands, run_cmd
+        script_file_name, dest_dir, win_commands, upstream_nodes, jump_server, pre_commands, run_cmd, host, host.ap
     )
 
 
@@ -273,3 +280,35 @@ def check_run_commands(run_commands):
         if command.startswith("-r"):
             if not re.match("^-r https?://.+/backend$", command):
                 raise GenCommandsError(context=_("CALLBACK_URL不符合规范, 请联系运维人员修改。 例：http://domain.com/backend"))
+
+
+def batch_gen_commands(hosts: List[models.Host], pipeline_id: str, is_uninstall: bool) -> Dict[int, InstallationTools]:
+    """批量生成安装命令"""
+    # 批量查出主机的属性并设置为property，避免在循环中进行ORM查询，提高效率
+    host_id__installation_tool_map = {}
+    ap_id_obj_map = models.AccessPoint.ap_id_obj_map()
+    bk_host_ids = [host.bk_host_id for host in hosts]
+    host_id_identity_map = {
+        identity.bk_host_id: identity for identity in models.IdentityData.objects.filter(bk_host_id__in=bk_host_ids)
+    }
+    install_channel_id_obj_map = {}
+    cloud_id_proxies_map = {}
+    for host in hosts:
+        # 批量查出接入点后设置host的ap属性，以便使用agent_config属性时能命中接入点缓存，提高性能
+        host.ap = ap_id_obj_map[host.ap_id]
+        # 避免部分主机认证信息丢失的情况下，通过host.identity重新创建来兜底保证不会异常
+        host.identity = host_id_identity_map.get(host.bk_host_id) or host.identity
+        host.install_channel = install_channel_id_obj_map.get(host.install_channel_id)
+        # 缓存proxies，提高性能，大部分场景下同时安装的P-Agent都属于同一个云区域
+        if host.bk_cloud_id in cloud_id_proxies_map:
+            host.proxies = cloud_id_proxies_map[host.bk_cloud_id]
+        else:
+            cloud_id_proxies_map[host.bk_cloud_id] = host.proxies
+        if host.install_channel_id in install_channel_id_obj_map:
+            host.install_channel = install_channel_id_obj_map[host.install_channel_id]
+        else:
+            install_channel_id_obj_map[host.install_channel_id] = host.install_channel
+
+        host_id__installation_tool_map[host.bk_host_id] = gen_commands(host, pipeline_id, is_uninstall)
+
+    return host_id__installation_tool_map

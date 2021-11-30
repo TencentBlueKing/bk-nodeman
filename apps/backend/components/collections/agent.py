@@ -13,9 +13,7 @@ import base64
 import ntpath
 import os
 import posixpath
-import socket
 import time
-from pathlib import Path
 from typing import List, Set, Union
 
 import ujson as json
@@ -23,10 +21,8 @@ from django.conf import settings
 from django.db.models import Max, Subquery
 from django.utils.translation import ugettext_lazy as _
 
-from apps.backend.agent.tools import gen_commands
-from apps.backend.api.constants import POLLING_INTERVAL, POLLING_TIMEOUT, JobDataStatus
+from apps.backend.api.constants import POLLING_INTERVAL, POLLING_TIMEOUT
 from apps.backend.api.gse import GseClient
-from apps.backend.components import task_service
 from apps.backend.components.collections.base import BaseService, CommonData
 from apps.backend.components.collections.gse import GseBaseService
 from apps.backend.components.collections.job import (
@@ -34,15 +30,11 @@ from apps.backend.components.collections.job import (
     JobFastPushFileService,
     JobPushMultipleConfigFileService,
 )
-from apps.backend.exceptions import GenCommandsError
 from apps.backend.subscription import tools
-from apps.backend.utils.ssh import SshMan
-from apps.backend.utils.wmi import execute_cmd, put_file
 from apps.backend.views import generate_gse_config
 from apps.component.esbclient import client_v2
-from apps.exceptions import AuthOverdueException
 from apps.node_man import constants
-from apps.node_man.models import Host, IdentityData, Packages, ProcessStatus
+from apps.node_man.models import Host, Packages, ProcessStatus
 from apps.utils import basic
 from pipeline.component_framework.component import Component
 from pipeline.core.flow import Service, StaticIntervalGenerator
@@ -63,331 +55,6 @@ class AgentBaseService(BaseService, metaclass=abc.ABCMeta):
 
 class AgentCommonData(CommonData):
     pass
-
-
-class InstallService(AgentBaseService, JobFastExecuteScriptService):
-    name = _("下发脚本命令")
-
-    def __init__(self):
-        super().__init__(name=self.name)
-
-    __need_schedule__ = True
-    __multi_callback_enabled__ = True
-    interval = None
-
-    def inputs_format(self):
-        return [
-            Service.InputItem(name="host_info", key="host_info", type="object", required=True),
-            Service.InputItem(name="is_uninstall", key="is_uninstall", type="bool", required=False),
-            Service.InputItem(
-                name="success_callback_step",
-                key="success_callback_step",
-                type="str",
-                required=True,
-            ),
-        ]
-
-    def _execute(self, data, parent_data):
-        bk_host_id = data.get_one_of_inputs("bk_host_id")
-        host_info = data.get_one_of_inputs("host_info")
-        host = Host.get_by_host_info({"bk_host_id": bk_host_id} if bk_host_id else host_info)
-        bk_username = data.get_one_of_inputs("bk_username")
-
-        is_uninstall = data.get_one_of_inputs("is_uninstall")
-        is_manual = host.is_manual
-
-        if is_manual:
-            self.logger.info(_("等待手动执行安装命令"))
-            return True
-        else:
-            self.logger.info(_("开始执行远程安装"))
-
-        # Windows相关提醒
-        if host.os_type == constants.OsType.WINDOWS:
-            self.logger.info(
-                _(
-                    "正在安装Windows AGENT, 请确认: \n"
-                    "1. 检查文件共享相关服务，确认以下服务均已开启\n"
-                    "    - Function Discovery Resource Publication\n"
-                    "    - SSDP Discovery \n"
-                    "    - UPnP Device Host\n"
-                    "    - Server\n"
-                    "    - NetLogon // 如果没有加入域，可以不启动这个\n"
-                    "    - TCP/IP NetBIOS Helper\n"
-                    "2. 开启网卡 Net BOIS \n"
-                    "3. 开启文件共享 Net share \n"
-                    "4. 检查防火墙是否有放开 139/135/445 端口 \n"
-                )
-            )
-
-        # 生成安装命令
-        try:
-            installation_tool = gen_commands(host, self.id, is_uninstall)
-        except GenCommandsError as e:
-            self.logger.info(e.message)
-            return False
-
-        if installation_tool.script_file_name == constants.SetupScriptFileName.SETUP_PAGENT_PY.value:
-            # PAGENT 走 作业平台，再 ssh 到 PAGENT，这样可以无需保存 proxy 密码
-            self.logger.info(_("主机的上游节点为: {proxies}").format(proxies=",".join(installation_tool.upstream_nodes)))
-            self.logger.info(_("已选择 {inner_ip} 作为本次安装的跳板机").format(inner_ip=installation_tool.jump_server.inner_ip))
-            return self.execute_job_commands(
-                bk_username,
-                installation_tool.jump_server,
-                host,
-                installation_tool.run_cmd,
-                installation_tool.pre_commands,
-            )
-        else:
-            # AGENT 或 PROXY安装走 ssh或wmi 连接
-            if host.os_type == constants.OsType.WINDOWS:
-                self.execute_windows_commands(
-                    host, [f'if not exist "{installation_tool.dest_dir}" mkdir {installation_tool.dest_dir}']
-                )
-                self.push_curl_exe(host, installation_tool.dest_dir)
-                try:
-                    return self.execute_windows_commands(host, installation_tool.win_commands)
-                except socket.error:
-                    self.logger.error(
-                        _("连接失败，请确认节点管理后台 -> 目标机器 [{ip}] 的端口 [{port}] 策略是否开通").format(
-                            ip=host.login_ip or host.inner_ip, port=host.identity.port
-                        )
-                    )
-                    return False
-            else:
-                try:
-                    return self.execute_linux_commands(host, installation_tool.run_cmd, installation_tool.pre_commands)
-                except socket.timeout:
-                    self.logger.error(
-                        _("连接失败，请确认节点管理后台 -> 目标机器 [{ip}] 的端口 [{port}] 策略是否开通").format(
-                            ip=host.login_ip or host.outer_ip or host.inner_ip, port=host.identity.port
-                        )
-                    )
-                    return False
-
-    def execute_windows_commands(self, host, commands):
-        # windows command executing
-        ip = host.login_ip or host.inner_ip
-        identity_data = IdentityData.objects.get(bk_host_id=host.bk_host_id)
-        if (identity_data.auth_type == constants.AuthType.PASSWORD and not identity_data.password) or (
-            identity_data.auth_type == constants.AuthType.KEY and not identity_data.key
-        ):
-            self.logger.info(_("认证信息已过期, 请重装并填入认证信息"))
-            raise AuthOverdueException
-        retry_times = 5
-        for i, cmd in enumerate(commands, 1):
-            for try_time in range(retry_times):
-                try:
-                    if i == len(commands):
-                        # Executing scripts is the last command and takes time, using asynchronous
-                        self.logger.info(f"Sending install cmd: {cmd}")
-                        execute_cmd(
-                            cmd,
-                            ip,
-                            identity_data.account,
-                            identity_data.password,
-                            no_output=True,
-                        )
-                    else:
-                        # Other commands is quick and depends on previous ones, using synchronous
-                        self.logger.info(f"Sending cmd: {cmd}")
-                        execute_cmd(cmd, ip, identity_data.account, identity_data.password)
-                except ConnectionResetError as e:
-                    if try_time < retry_times:
-                        time.sleep(1)
-                        continue
-                    else:
-                        raise e
-                else:
-                    break
-        return True
-
-    def push_curl_exe(self, host, dest_dir):
-        ip = host.login_ip or host.inner_ip or host.outer_ip
-        identity_data = IdentityData.objects.get(bk_host_id=host.bk_host_id)
-        retry_times = 5
-        for name in ("curl.exe", "curl-ca-bundle.crt", "libcurl-x64.dll"):
-            for try_time in range(retry_times):
-                try:
-                    curl_file = str(Path.cwd() / "script_tools" / name)
-                    self.logger.info(f"pushing file {curl_file} to {dest_dir}")
-                    put_file(
-                        curl_file,
-                        dest_dir,
-                        ip,
-                        identity_data.account,
-                        identity_data.password,
-                    )
-                except ConnectionResetError as e:
-                    if try_time < retry_times:
-                        time.sleep(1)
-                        continue
-                    else:
-                        raise e
-                else:
-                    break
-
-    def execute_job_commands(self, bk_username, proxy, host, run_cmd, pre_commands=None):
-        path = os.path.join(settings.PROJECT_ROOT, "script_tools", "setup_pagent.py")
-        with open(path, encoding="utf-8") as fh:
-            script = fh.read()
-        # 使用全业务执行作业
-        bk_biz_id = settings.BLUEKING_BIZ_ID
-        kwargs = {
-            "bk_biz_id": bk_biz_id,
-            "ip_list": [{"ip": proxy.inner_ip, "bk_cloud_id": proxy.bk_cloud_id}],
-            "script_timeout": 300,
-            "script_type": 1,
-            "account": "root",
-            "script_content": base64.b64encode(script.encode()).decode(),
-            "script_param": base64.b64encode(run_cmd.encode()).decode(),
-            "is_param_sensitive": 1,
-        }
-        try:
-            data = client_v2.job.fast_execute_script(kwargs)
-        except Exception as err:
-            self.logger.error(f"start job failed: {err}")
-            return False
-        else:
-            task_inst_id = data.get("job_instance_id")
-            self.logger.info(
-                _('作业任务ID为[{job_instance_id}]，点击跳转到<a href="{link}" target="_blank">[作业平台]</a>').format(
-                    job_instance_id=task_inst_id,
-                    link=f"{settings.BK_JOB_HOST}/{settings.BLUEKING_BIZ_ID}/execute/step/{task_inst_id}",
-                )
-            )
-
-            task_service.callback.apply_async(
-                (
-                    self.id,
-                    [
-                        {
-                            "timestamp": time.time(),
-                            "level": "INFO",
-                            "step": "wait_for_job",
-                            "log": "waiting job result",
-                            "status": "-",
-                            "job_status_kwargs": {"bk_biz_id": bk_biz_id, "job_instance_id": task_inst_id},
-                            "prefix": "job",
-                        }
-                    ],
-                ),
-                countdown=5,
-            )
-        return True
-
-    def execute_linux_commands(self, host, run_cmd, pre_commands=None):
-        if not pre_commands:
-            pre_commands = []
-        ssh_man = SshMan(host, self.logger)
-
-        # 一定要先设置一个干净的提示符号，否则会导致console_ready识别失效
-        ssh_man.get_and_set_prompt()
-        for cmd in pre_commands:
-            self.logger.info(f"Sending cmd: {cmd}")
-            ssh_man.send_cmd(cmd)
-
-        if "echo" in run_cmd:
-            self.logger.info(f"Sending install cmd with host_data: {run_cmd.split('&&')[-1]}")
-        else:
-            self.logger.info(f"Sending install cmd: {run_cmd}")
-        ssh_man.send_cmd(run_cmd, wait_console_ready=False)
-        ssh_man.safe_close(ssh_man.ssh)
-        return True
-
-    def schedule(self, data, parent_data, callback_data=None):
-        """
-        回调函数
-        :param data:
-        :param parent_data:
-        :param callback_data: 回调数据
-        [
-            {
-                "timestamp": "1580870937",
-                "level": "INFO",
-                "step": "check_deploy_result",
-                "log": "gse agent has been deployed successfully",
-                "status": "DONE",
-                "job_status_kwargs": {
-                    "bk_biz_id": bk_biz_id,
-                    "job_instance_id": job_instance_id,
-                }
-            }
-        ]
-        :return:
-        """
-        # 等待脚本上报日志
-        for log in callback_data:
-
-            # 作业平台回调
-            job_status_kwargs = log.get("job_status_kwargs")
-            if job_status_kwargs:
-                # 判断任务是否在执行中或成功
-                job_instance_log = client_v2.job.get_job_instance_log(job_status_kwargs)
-
-                job_status = job_instance_log[0].get("status", "")
-                if job_status == JobDataStatus.PENDING:
-                    self.logger.info(f"[job] {job_status_kwargs['job_instance_id']} is pending")
-                    task_service.callback.apply_async(
-                        (
-                            self.id,
-                            [
-                                {
-                                    "timestamp": time.time(),
-                                    "level": "INFO",
-                                    "step": "wait_for_job",
-                                    "log": "waiting job result",
-                                    "status": "-",
-                                    "job_status_kwargs": job_status_kwargs,
-                                }
-                            ],
-                        ),
-                        countdown=5,
-                    )
-                    return True
-                elif job_status == JobDataStatus.SUCCESS:
-                    bk_host_id = data.get_one_of_inputs("bk_host_id")
-                    host_info = data.get_one_of_inputs("host_info")
-                    host = Host.get_by_host_info({"bk_host_id": bk_host_id} if bk_host_id else host_info)
-                    self.logger.info(
-                        f"[job] {job_status_kwargs['job_instance_id']} is succeeded. Waiting for script report. "
-                        f"If there is no any report for a long time, please check the connection "
-                        f"from pagent({host.inner_ip} to proxy({host.jump_server.inner_ip}):"
-                        f"{settings.BK_NODEMAN_NGINX_DOWNLOAD_PORT},{settings.BK_NODEMAN_NGINX_PROXY_PASS_PORT}."
-                    )
-                    return True
-                elif job_status == JobDataStatus.FAILED:
-                    self.logger.error(f"[job] {job_status_kwargs['job_instance_id']} is failed")
-                    try:
-                        log_content = job_instance_log[0]["step_results"][0]["ip_logs"][0]["log_content"]
-                    except (IndexError, KeyError):
-                        self.logger.error("[job] get job instance log error!")
-                    else:
-                        self.logger.error(f"[job] {log_content}")
-                    self.finish_schedule()
-                    return False
-
-            # 日志上报
-            _log = f'{log.get("step")} {log.get("status")} {log.get("log")}'
-            tag = log.get("prefix") if log.get("prefix") else "[script]"
-            if log["status"] == "FAILED":
-                self.logger.error(f"{tag} {_log}")
-                self.finish_schedule()
-                return False
-            else:
-                self.logger.info(f"{tag} {_log}")
-
-            if log["step"] == "report_cpu_arch":
-                # 上报主机的CPU架构
-                bk_host_id = data.get_one_of_inputs("bk_host_id")
-                host_info = data.get_one_of_inputs("host_info")
-                host = Host.get_by_host_info({"bk_host_id": bk_host_id} if bk_host_id else host_info)
-                host.cpu_arch = log["log"]
-                host.save(update_fields=["cpu_arch"])
-
-            if log["status"] == "DONE" and log["step"] == data.get_one_of_inputs("success_callback_step"):
-                self.finish_schedule()
-                return True
 
 
 class PushUpgradePackageService(JobFastPushFileService):
@@ -986,12 +653,6 @@ exit $ret
         ]
         data.inputs.script_content = script_content
         return super(CheckPolicyGseToProxyService, self).execute(data, parent_data)
-
-
-class InstallComponent(Component):
-    name = _("安装")
-    code = "install"
-    bound_service = InstallService
 
 
 class PushUpgradePackageComponent(Component):

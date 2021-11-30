@@ -372,41 +372,49 @@ class Host(models.Model):
         """
         随机选一台可用的proxy
         """
-        proxy_ids = self.proxies.values_list("bk_host_id", flat=True)
-        alive_proxies = ProcessStatus.objects.filter(
-            bk_host_id__in=proxy_ids, name=ProcessStatus.GSE_AGENT_PROCESS_NAME, status=constants.ProcStateType.RUNNING
-        )
+        proxies = self.proxies
+        alive_proxies = [proxy for proxy in proxies if proxy.status == constants.ProcStateType.RUNNING]
         if not alive_proxies:
             raise AliveProxyNotExistsError(_("主机所属云区域不存在可用Proxy"))
         else:
-            proxy_id = random.choice(alive_proxies).bk_host_id
-            return Host.objects.get(bk_host_id=proxy_id)
+            return random.choice(alive_proxies)
 
     @property
     def identity(self) -> IdentityData:
-
         if not getattr(self, "_identity", None):
             self._identity, created = IdentityData.objects.get_or_create(bk_host_id=self.bk_host_id)
         return self._identity
 
+    @identity.setter
+    def identity(self, value):
+        self._identity = value
+
     @property
     def ap(self):
-        if not getattr(self, "_ap", None):
-            # 未选择接入点时，默认取第一个接入点
-            if self.ap_id == constants.DEFAULT_AP_ID:
-                ap = AccessPoint.objects.first()
-                if ap:
-                    self._ap = ap
-                else:
-                    raise ApIDNotExistsError
+        if getattr(self, "_ap", None):
+            return self._ap
+        # 未选择接入点时，默认取第一个接入点
+        if self.ap_id == constants.DEFAULT_AP_ID:
+            ap = AccessPoint.objects.first()
+            if ap:
+                self._ap = ap
             else:
-                try:
-                    self._ap = AccessPoint.objects.get(pk=self.ap_id)
-                except AccessPoint.DoesNotExist:
-                    raise ApIDNotExistsError
+                raise ApIDNotExistsError
+        else:
+            try:
+                self._ap = AccessPoint.objects.get(pk=self.ap_id)
+            except AccessPoint.DoesNotExist:
+                raise ApIDNotExistsError
         return self._ap
 
+    @ap.setter
+    def ap(self, value):
+        self._ap = value
+
+    @property
     def install_channel(self):
+        if getattr(self, "_install_channel", None):
+            return self._install_channel
         # 指定了安装通道，使用安装通道的信息作为跳板和上游
         if self.install_channel_id:
             try:
@@ -432,33 +440,44 @@ class Host(models.Model):
                 "btfileserver": [server["inner_ip"] for server in self.ap.btfileserver],
                 "dataserver": [server["inner_ip"] for server in self.ap.dataserver],
             }
-        return jump_server, upstream_servers
+        self._install_channel = jump_server, upstream_servers
+        return self._install_channel
+
+    @install_channel.setter
+    def install_channel(self, value):
+        self._install_channel = value
 
     @property
     def agent_config(self):
         os_type = self.os_type.lower()
-        # AIX、SOLARIS与Linux共用配置
-        if self.os_type in [constants.OsType.AIX, constants.OsType.SOLARIS]:
+        # 非windows机器共用Linux配置
+        if self.os_type != constants.OsType.WINDOWS:
             os_type = constants.OsType.LINUX.lower()
         return self.ap.agent_config[os_type]
 
     @property
     def proxies(self):
-        return Host.objects.filter(
+        if getattr(self, "_proxies", None):
+            return self._proxies
+        proxy_objs = Host.objects.filter(
             bk_cloud_id=self.bk_cloud_id,
             node_type=constants.NodeType.PROXY,
         )
+        proxy_host_ids = [proxy.bk_host_id for proxy in proxy_objs]
+        alive_proxies = ProcessStatus.objects.filter(
+            bk_host_id__in=proxy_host_ids,
+            name=ProcessStatus.GSE_AGENT_PROCESS_NAME,
+            status=constants.ProcStateType.RUNNING,
+        )
+        host_id_status_map = {proxy.bk_host_id: proxy.status for proxy in alive_proxies}
+        for proxy in proxy_objs:
+            proxy.status = host_id_status_map.get(proxy.bk_host_id) or constants.ProcStateType.TERMINATED
+        self._proxies = proxy_objs
+        return self._proxies
 
-    @property
-    def jump_server(self):
-        """获取跳板机"""
-        if self.install_channel_id:
-            jump_server, _ = self.install_channel()
-        elif self.node_type == constants.NodeType.PAGENT:
-            jump_server = self.get_random_alive_proxy()
-        else:
-            jump_server = None
-        return jump_server
+    @proxies.setter
+    def proxies(self, value):
+        self._proxies = value
 
     class Meta:
         verbose_name = _("主机信息")
