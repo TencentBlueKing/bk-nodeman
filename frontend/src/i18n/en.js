@@ -338,6 +338,9 @@ export default {
   节点IP: 'Node IP',
   上游节点: 'Upstream node',
   上游节点信息: 'Upstream node information',
+  高级选项: 'Advanced options',
+  通道上游节点: 'Upstream node of the channel',
+  通道上游节点tips: 'In a complex network architecture, you need to specify the upstream agent address of the installation channel itself, which is used to report P-Agent logs and other information to the node management background',
 
   // agent管理 - 自动发现
   待处理: 'Pending',

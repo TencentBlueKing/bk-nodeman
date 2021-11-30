@@ -19,6 +19,18 @@
         <td class="title-td">{{ server.key }}</td>
         <td>{{ server.value }}</td>
       </tr>
+      <template v-if="showAdvancedConfig">
+        <tr>
+          <td class="title-td" colspan="2">
+            <span class="text-underline" v-bk-tooltips="{
+              width: 200,
+              placement: 'top-start',
+              content: $t('通道上游节点tips'),
+            }">{{ $t("通道上游节点") }}</span>
+          </td>
+          <td class="title-td">{{ channel.upstream_servers.channel_proxy_address | filterEmpty }}</td>
+        </tr>
+      </template>
     </tbody>
   </table>
 </template>
@@ -39,6 +51,9 @@ export default class ChannelTable extends Vue {
       key,
       value: servers[key] ? servers[key].join(';') : '',
     }));
+  }
+  private get showAdvancedConfig() {
+    return !!this.channel.upstream_servers.channel_proxy_address;
   }
 }
 </script>
