@@ -8,11 +8,16 @@
     <template #content>
       <section class="channel-edit">
         <bk-form
-          v-test="'channelForm'" form-type="vertical" :label-width="400" :model="channelForm" ref="channelFormRef">
-          <bk-form-item :label="$t('通道名称')" property="name" required :rules="[required]">
+          v-test="'channelForm'"
+          form-type="vertical"
+          :label-width="400"
+          :model="channelForm"
+          :rules="rules"
+          ref="channelFormRef">
+          <bk-form-item :label="$t('通道名称')" property="name" required>
             <bk-input v-model.trim="channelForm.name"></bk-input>
           </bk-form-item>
-          <bk-form-item :label="$t('节点IP')" property="jump_servers" required :rules="ipRules">
+          <bk-form-item :label="$t('节点IP')" property="jump_servers" required>
             <bk-input v-model.trim="channelForm.jump_servers"></bk-input>
           </bk-form-item>
           <p class="mt30 mb10 upstream-node">{{ $t('上游节点信息') }}</p>
@@ -40,6 +45,27 @@
               </bk-input>
             </bk-form-item>
           </template>
+          <bk-link class="advanced-config mt20" theme="primary" @click="showAdvancedConfig = !showAdvancedConfig">
+            {{ $t('高级选项') }}
+            <i :class="['nodeman-icon nc-double-up config-icon', { 'reverse': showAdvancedConfig }]"></i>
+          </bk-link>
+          <template v-if="showAdvancedConfig">
+            <bk-form-item
+              class="channel-upstream-item"
+              property="channel_proxy_address"
+              :label="$t('通道上游节点')"
+              :desc="{
+                width: 200,
+                placement: 'left-start',
+                content: $t('通道上游节点tips'),
+              }">
+              <bk-input
+                v-test="'formItem.address'"
+                v-model.trim="channelForm.channel_proxy_address"
+                :placeholder="$t('请输入')">
+              </bk-input>
+            </bk-form-item>
+          </template>
           <bk-form-item class="mt30">
             <bk-button
               v-test.common="'formCommit'" theme="primary" :loading="btnLoading" @click.stop.prevent="handleSave">
@@ -57,6 +83,7 @@
 <script lang="ts">
 import { Component, Prop, Vue, ModelSync, Emit, Watch, Ref } from 'vue-property-decorator';
 import { CloudStore } from '@/store';
+import { regUrl, reguIp, reguRequired } from '@/common/form-check';
 
 @Component
 export default class ChannelEdit extends Vue {
@@ -67,17 +94,23 @@ export default class ChannelEdit extends Vue {
 
   @Ref('channelFormRef') private readonly channelFormRef!: any;
 
-  private required = {
-    required: true,
-    message: this.$t('必填项'),
-    trigger: 'blur',
-  };
+  private required = reguRequired;
   private ipRule = {
     regex: /^((25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(25[0-5]|2[0-4]\d|[01]?\d\d?)$/,
     message: '请输入正确IP',
     trigger: 'blur',
   };
-  private ipRules = [this.required, this.ipRule];
+  private rules = {
+    name: [reguRequired],
+    jump_servers: [reguRequired, reguIp],
+    channel_proxy_address: [
+      {
+        validator: (val: string) => !val || regUrl.test(val),
+        message: window.i18n.t('URL格式不正确'),
+        trigger: 'blur',
+      },
+    ],
+  };
   private btnLoading = false;
   private channelForm: Dictionary = {};
   private labelMap: Dictionary = {
@@ -85,6 +118,7 @@ export default class ChannelEdit extends Vue {
     dataserver: 'Dataserver',
     taskserver: 'Taskserver',
   };
+  private showAdvancedConfig = false;
 
   private get title() {
     return this.edit ? this.$t('编辑安装通道') : this.$t('新建安装通道');
@@ -100,6 +134,7 @@ export default class ChannelEdit extends Vue {
   public handleShowChange(show: boolean) {
     this.btnLoading = false;
     this.$set(this, 'channelForm', this.getFormatForm(show && this.edit ? this.channel : undefined));
+    this.showAdvancedConfig = !!this.channelForm.channel_proxy_address;
   }
 
   @Emit('change')
@@ -114,7 +149,7 @@ export default class ChannelEdit extends Vue {
 
   public handleSave() {
     this.channelFormRef.validate().then(async () => {
-      const { id, name, jump_servers: jumpServers } = this.channelForm;
+      const { id, name, jump_servers: jumpServers, channel_proxy_address: channelProxyAddress } = this.channelForm;
       const params: Dictionary = {
         name,
         bk_cloud_id: this.cloudId,
@@ -124,6 +159,10 @@ export default class ChannelEdit extends Vue {
       this.channelServerKeys.forEach((key) => {
         params.upstream_servers[key] = this.channelForm[key].map((item: { value: string }) => item.value);
       });
+      if (channelProxyAddress) {
+        params.upstream_servers.channel_proxy_address = channelProxyAddress;
+        params.upstream_servers.agent_download_proxy = false;
+      }
       this.btnLoading = true;
       let res;
       if (this.edit) {
@@ -152,6 +191,7 @@ export default class ChannelEdit extends Vue {
     const formData: Dictionary = {
       name: '',
       jump_servers: '',
+      channel_proxy_address: '',
     };
     if (channel) {
       Object.keys(channel).forEach((key) => {
@@ -162,6 +202,7 @@ export default class ChannelEdit extends Vue {
               ? upstream[server].map((ip: string) => ({ value: ip }))
               : [{ value: '' }];
           });
+          formData.channel_proxy_address = upstream.channel_proxy_address || '';
         } else if (key === 'jump_servers') {
           const [jumpServers] = channel[key];
           formData[key] = jumpServers;
@@ -222,5 +263,18 @@ export default class ChannelEdit extends Vue {
         cursor: not-allowed;
       }
     }
+  }
+  .advanced-config {
+    display: inline-flex;
+    align-items: center;
+    .config-icon {
+      display: inline-block;
+      &.reverse {
+        transform: rotateZ(180deg);
+      }
+    }
+  }
+  .channel-upstream-item {
+    margin-top: 8px;
   }
 </style>
