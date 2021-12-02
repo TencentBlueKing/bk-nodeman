@@ -31,6 +31,9 @@ def generate_keys() -> Tuple[str, str]:
     # 具体参考 -> https://pycryptodome.readthedocs.io/en/latest/src/public_key/rsa.html
     private_key_obj = RSA.generate(2048)
     private_key = private_key_obj.exportKey()
+    # publickey & exportKey 为兼容写法
+    # pycryptodomex > 3.9.7 提供 public_key & export_key，为了兼容 pycryptodome 和 Crypto 暂不采用
+    # 参考： https://stackoverflow.com/questions/48155294/
     public_key = private_key_obj.publickey().exportKey()
     return private_key.decode(encoding=ENCODING), public_key.decode(encoding=ENCODING)
 

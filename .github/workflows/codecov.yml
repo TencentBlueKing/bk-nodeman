@@ -23,12 +23,12 @@ jobs:
       BKAPP_BK_NODE_APIGATEWAY: "http://127.0.0.1:8000/"
       BKAPP_NODEMAN_CALLBACK_URL: "http://127.0.0.1:10300/backend"
       BKAPP_NODEMAN_OUTER_CALLBACK_URL: "http://127.0.0.1:10300/backend"
-      BK_MYSQL_NAME: "bk_nodeman"
-      BK_MYSQL_USER: "root"
-      BK_MYSQL_PASSWORD: "root"
-      BK_MYSQL_HOST: "localhost"
-      BK_MYSQL_PORT: 3306
-      BK_MYSQL_TEST_NAME: "bk_nodeman_test"
+      MYSQL_NAME: "bk_nodeman"
+      MYSQL_USER: "root"
+      MYSQL_PASSWORD: "root"
+      MYSQL_HOST: "localhost"
+      MYSQL_PORT: 3306
+      MYSQL_TEST_NAME: "bk_nodeman_test"
       WORKFLOW_DIR: "scripts/workflows"
       YUM_INSTALL_SERVICE: ""
       CREATE_PYTHON_VENV: ""

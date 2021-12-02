@@ -147,6 +147,7 @@ if SENTRY_DSN:
 
 # ==============================================================================
 # CELERY相关配置
+# 参考：https://docs.celeryproject.org/en/stable/userguide/configuration.html
 # ==============================================================================
 
 # CELERY 开关，使用时请改为 True，修改项目目录下的 Procfile 文件，添加以下两行命令：
@@ -162,7 +163,10 @@ CELERY_EVENT_QUEUE_EXPIRES = 60
 
 # CELERY 并发数，默认为 2，可以通过环境变量或者 Procfile 设置
 CELERYD_CONCURRENCY = os.getenv("BK_CELERYD_CONCURRENCY", 2)
-# CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'  # Redis 结果后端
+
+CELERY_ACCEPT_CONTENT = ["pickle", "json"]
+CELERY_TASK_SERIALIZER = "pickle"
+CELERY_RESULT_SERIALIZER = "pickle"
 
 # CELERY 配置，申明任务的文件路径，即包含有 @task 装饰器的函数文件
 CELERY_IMPORTS = (
@@ -172,6 +176,31 @@ CELERY_IMPORTS = (
     "pipeline.engine.tasks",
     "apps.node_man.periodic_tasks",
 )
+
+# celery settings
+if IS_USE_CELERY:
+    INSTALLED_APPS = locals().get("INSTALLED_APPS", [])
+    INSTALLED_APPS += ("django_celery_beat", "django_celery_results")
+    CELERY_ENABLE_UTC = False
+    CELERYBEAT_SCHEDULER = "django_celery_beat.schedulers.DatabaseScheduler"
+    CELERY_RESULT_BACKEND = "rpc://"
+    CELERY_RESULT_PERSISTENT = True
+    # celery3 的配置，升级后先行注释，待确认无用后废弃
+    # CELERY_TASK_RESULT_EXPIRES = 60 * 30  # 30分钟丢弃结果
+
+
+CELERY_ROUTES = {
+    "apps.backend.subscription.tasks.*": {"queue": "backend"},
+    "apps.backend.plugin.tasks.*": {"queue": "backend"},
+    "apps.node_man.handler.policy.*": {"queue": "saas"},
+}
+
+CELERY_ROUTES.update(PIPELINE_CELERY_ROUTES)
+CELERY_QUEUES = PIPELINE_CELERY_QUEUES
+
+CELERY_DEFAULT_QUEUE = "default"
+CELERY_DEFAULT_EXCHANGE = "default"
+CELERY_DEFAULT_ROUTING_KEY = "default"
 
 # ===============================================================================
 # 项目配置
@@ -192,7 +221,7 @@ BK_NODEMAN_HOST = env.BK_NODEMAN_HOST
 BK_NODEMAN_BACKEND_HOST = env.BK_NODEMAN_BACKEND_HOST
 BK_JOB_HOST = os.environ.get("BK_JOB_HOST", BK_PAAS_HOST.replace("paas", "job"))
 
-# 使用权限中心
+# 是否使用权限中心
 USE_IAM = bool(os.getenv("BKAPP_USE_IAM", False))
 
 BK_IAM_APP_CODE = os.getenv("BK_IAM_V3_APP_CODE", "bk_iam")
@@ -399,33 +428,9 @@ BACKEND_SOPS_OPERATOR = os.getenv("BKAPP_BACKEND_SOPS_OPERATOR", "admin")
 BACKEND_WINDOWS_ACCOUNT = os.getenv("BKAPP_BACKEND_WINDOWS_ACCOUNT", "system")
 BACKEND_UNIX_ACCOUNT = os.getenv("BKAPP_BACKEND_UNIX_ACCOUNT", "root")
 
-CELERY_ROUTES = {
-    "apps.backend.subscription.tasks.*": {"queue": "backend"},
-    "apps.backend.plugin.tasks.*": {"queue": "backend"},
-    "apps.node_man.handler.policy.*": {"queue": "saas"},
-}
-
-CELERY_ROUTES.update(PIPELINE_CELERY_ROUTES)
-CELERY_QUEUES = PIPELINE_CELERY_QUEUES
-
-CELERY_DEFAULT_QUEUE = "default"
-CELERY_DEFAULT_EXCHANGE = "default"
-CELERY_DEFAULT_ROUTING_KEY = "default"
-
 """
 以下为框架代码 请勿修改
 """
-# celery settings
-if IS_USE_CELERY:
-    INSTALLED_APPS = locals().get("INSTALLED_APPS", [])
-    # import djcelery
-
-    # INSTALLED_APPS += ("djcelery",)
-    # djcelery.setup_loader()
-    CELERY_ENABLE_UTC = True
-    # CELERYBEAT_SCHEDULER = "djcelery.schedulers.DatabaseScheduler"
-    CELERY_RESULT_BACKEND = "amqp"
-    CELERY_TASK_RESULT_EXPIRES = 60 * 30  # 30分钟丢弃结果
 
 # 后台配置
 BK_BACKEND_CONFIG = env.BK_BACKEND_CONFIG

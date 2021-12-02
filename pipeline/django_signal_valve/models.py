@@ -11,8 +11,8 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-import zlib
 import pickle
+import zlib
 
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
@@ -31,7 +31,7 @@ class IOField(models.BinaryField):
         value = super(IOField, self).to_python(value)
         return pickle.loads(zlib.decompress(value))
 
-    def from_db_value(self, value, expression, connection, context):
+    def from_db_value(self, value, expression, connection, context=None):
         return self.to_python(value)
 
 

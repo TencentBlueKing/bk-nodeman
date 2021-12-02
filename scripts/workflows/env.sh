@@ -42,12 +42,12 @@ export BKAPP_NODEMAN_OUTER_CALLBACK_URL=http://127.0.0.1:10300/backend
 
 # CI自定义环境变量
 # 数据库
-export BK_MYSQL_NAME=$APP_CODE
-export BK_MYSQL_USER="root"
-export BK_MYSQL_PASSWORD=
-export BK_MYSQL_HOST="localhost"
-export BK_MYSQL_PORT="3306"
-export BK_MYSQL_TEST_NAME="${BK_MYSQL_NAME}_test"
+export MYSQL_NAME=$APP_CODE
+export MYSQL_USER="root"
+export MYSQL_PASSWORD=
+export MYSQL_HOST="localhost"
+export MYSQL_PORT="3306"
+export MYSQL_TEST_NAME="${BK_MYSQL_NAME}_test"
 
 # CI脚本所在目录
 export WORKFLOW_DIR="scripts/workflows"

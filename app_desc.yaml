@@ -24,19 +24,18 @@ modules:
             - key: BKAPP_IS_V3_CONTAINER
               value: "True"
               description: 是否运行在V3容器版本
+            - key: BKAPP_USE_IAM
+              value: "True"
+              description: 是否使用权限中心
             - key: PIP_VERSION
               value: "20.2.3"
               description: 固化pip版本
             - key: STORAGE_TYPE
               value: "BLUEKING_ARTIFACTORY"
               description: 存储类型
-            - key: BKAPP_RUN_ENV
-              value: "ce"
-              description: 运行环境，app_desc 暂时只在社区版使用，为了简化部署在此声明配置
             - key: GSE_ENABLE_SVR_DISCOVERY
               value: "True"
-              description: 是否启用 gse svr 服务发现，启用后，默认接入点会通过zk的方式，自动更新gse svr信息
-
+              description: 是否启用 gse svr 服务发现，启用后，默认接入点会通过zk的方式，自动更新 gse svr 信息
         svc_discovery:
             bk_saas:
                 - bk_app_code: "bk_iam"
@@ -65,6 +64,9 @@ modules:
             - key: BKAPP_IS_V3_CONTAINER
               value: "True"
               description: 是否运行在V3容器版本
+            - key: BKAPP_USE_IAM
+              value: "True"
+              description: 是否使用权限中心
             - key: REDIS_MODE
               value: "standalone"
               description: 后台配置的Redis模式
@@ -80,13 +82,9 @@ modules:
             - key: STORAGE_TYPE
               value: "BLUEKING_ARTIFACTORY"
               description: 存储类型
-            - key: BKAPP_RUN_ENV
-              value: "ce"
-              description: 运行环境，app_desc 暂时只在社区版使用，为了简化部署在此声明配置
             - key: GSE_ENABLE_SVR_DISCOVERY
               value: "True"
               description: 是否启用 gse svr 服务发现，启用后，默认接入点会通过zk的方式，自动更新gse svr信息
-
         svc_discovery:
             bk_saas:
                 - bk_app_code: "bk_iam"
@@ -94,8 +92,6 @@ modules:
                   module_name: "backend"
                 - bk_app_code: "bk_nodeman"
                   module_name: "default"
-
-
         processes:
             backend-web:
                 command: gunicorn --timeout 300 -w 8 -b :$PORT -k gevent wsgi:application --access-logfile - --error-logfile - --access-logformat '[%(h)s] %({request_id}i)s %(u)s %(t)s "%(r)s" %(s)s %(D)s %(b)s "%(f)s" "%(a)s"'
@@ -106,27 +102,32 @@ modules:
                 plan: 4C2G5R
                 replicas: 1
             dworker:
-                command: celery -A apps.backend worker -Q default --autoscale=8,2 -n default@%h --maxtasksperchild=50 -O fair --time-limit=1800
+                command: celery -A apps.backend worker -Q default -n default@%h -P threads -c 64 --maxtasksperchild=50 -O fair --time-limit=1800
                 plan: 4C2G5R
                 replicas: 1
             bworker:
-                command: celery -A apps.backend worker -Q backend  --autoscale=16,2 -n bworker@%h --maxtasksperchild=50 -O fair --time-limit=1800
+                command: celery -A apps.backend worker -Q backend -n bworker@%h -P threads -c 64 --maxtasksperchild=50 -O fair --time-limit=1800
                 plan: 4C2G5R
                 replicas: 1
             baworker:
-                command: celery -A apps.backend worker -Q backend_additional_task -c 10 -n baworker@%h -O fair --time-limit=1800 --maxtasksperchild=50
+                command: celery -A apps.backend worker -Q backend_additional_task -n baworker@%h -P threads -c 64 -O fair --time-limit=1800 --maxtasksperchild=50
                 plan: 4C2G5R
                 replicas: 1
             pworker:
-                command: celery -A apps.backend worker -Q pipeline,pipeline_priority -n pipeline_worker@%h --maxtasksperchild=50 --autoscale=16,2 -O fair --time-limit=1800
+                command: celery -A apps.backend worker -Q pipeline,pipeline_priority -n pipeline_worker@%h -P threads -c 100 --maxtasksperchild=50 -O fair --time-limit=1800
                 plan: 4C2G5R
-                replicas: 2
+                replicas: 1
             psworker:
-                command: celery -A apps.backend worker -Q service_schedule,service_schedule_priority -n schedule_worker@%h --maxtasksperchild=50 --autoscale=50,16  -O fair --time-limit=1800
+                # -P eventlet -> threads
+                # eventlet 会导致报错 -> django.db.utils.DatabaseError: DatabaseWrapper objects created in a thread can only be used in that same thread. The object with alias 'default' was created in thread id 140032074089736 and this is thread id 140031737889904.
+                # 该问题目前的解决方式是不使用 eventlet
+                # 参考 -> https://github.com/celery/celery/issues/5924
+                # 参考 -> https://github.com/intelowlproject/IntelOwl/issues/379
+                command: celery -A apps.backend worker -Q service_schedule,service_schedule_priority -n schedule_worker@%h -P threads -c 100 --maxtasksperchild=50 -O fair --time-limit=1800
                 plan: 4C2G5R
-                replicas: 2
+                replicas: 1
             paworker:
-                command: celery -A apps.backend worker -Q pipeline_additional_task,pipeline_additional_task_priority -n common_worker@%h -l info --autoscale=16,2 --maxtasksperchild=50 -O fair --time-limit=1800
+                command: celery -A apps.backend worker -Q pipeline_additional_task,pipeline_additional_task_priority -n common_worker@%h -l info -P threads -c 32 --maxtasksperchild=50 -O fair --time-limit=1800
                 plan: 4C2G5R
                 replicas: 1
             sync-host:
