@@ -12,8 +12,30 @@ specific language governing permissions and limitations under the License.
 
 import django_mysql.models
 from django.db import migrations
+from django.db.backends.mysql import schema
 
 import apps.node_man.models
+
+
+# cf https://github.com/adamchainz/django-mysql/issues/417
+# this is supposed to be fixed in django 1.11 but in the meantime
+# we need this patch to get the migration working
+def skip_default(self, field):
+    db_type = field.db_type(self.connection)
+    return db_type is not None and db_type.lower() in {
+        "tinyblob",
+        "blob",
+        "mediumblob",
+        "longblob",
+        "tinytext",
+        "text",
+        "mediumtext",
+        "longtext",
+        "json",
+    }
+
+
+schema.DatabaseSchemaEditor.skip_default = skip_default
 
 
 class Migration(migrations.Migration):

@@ -74,7 +74,7 @@ class JobBulkPushFileV2ComponentTestCase(test_bulk_push_file.JobBulkPushFileComp
             # 初始化等待分发ip状态
             ip_info_str = JobBulkPushFileV2Service.ip_info_str({"ip": ip, "bk_cloud_id": 0})
             REDIS_INST.hset(name=self.hash_ip_status_key, key=ip_info_str, value=constants.JobIpStatusType.not_job)
-            REDIS_INST.zadd(self.zset_source_files_wait_key, timezone.now().timestamp(), ip_info_str)
+            REDIS_INST.zadd(self.zset_source_files_wait_key, {ip_info_str: timezone.now().timestamp()})
 
         # 验证存量
         self.assertEqual(REDIS_INST.zcard(self.zset_source_files_wait_key), 2)

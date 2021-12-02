@@ -32,7 +32,7 @@ from apps.node_man.tests.utils import (
 from apps.utils.batch_request import request_multi_thread
 
 
-class Test_Cmdb(TestCase):
+class TestCmdb(TestCase):
     @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)
     def test_cmdb_or_cache_biz(self):
         # 未缓存

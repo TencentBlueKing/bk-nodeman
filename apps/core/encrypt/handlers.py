@@ -43,7 +43,7 @@ class RSAHandler:
             rsa_public_key, __ = models.RSAKey.objects.update_or_create(
                 name=name,
                 type=constants.RSAKeyType.PUBLIC_KEY.value,
-                defaults={**base_info, "content": private_key_obj.public_key().exportKey().decode("utf-8")},
+                defaults={**base_info, "content": private_key_obj.publickey().exportKey().decode("utf-8")},
             )
 
         except models.RSAKey.DoesNotExist:

@@ -12,7 +12,7 @@ from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
 
 from ..base import BaseApi, DataAPI
-from .domains import ESB_APIGATEWAY_ROOT_V2
+from ..domains import ESB_APIGATEWAY_ROOT_V2
 
 
 def add_params_before_request(params):

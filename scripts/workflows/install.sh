@@ -18,16 +18,16 @@ pip install black
 
 # 删除遗留数据库，并新建一个空的本地数据库
 CREATE_DB_SQL="
-drop database if exists ${BK_MYSQL_NAME};
-drop database if exists ${BK_MYSQL_TEST_NAME};
-create database ${BK_MYSQL_NAME} default character set utf8mb4 collate utf8mb4_general_ci;
+drop database if exists ${MYSQL_NAME};
+drop database if exists ${MYSQL_TEST_NAME};
+create database ${MYSQL_NAME} default character set utf8mb4 collate utf8mb4_general_ci;
 "
 
-if [ "$BK_MYSQL_PASSWORD" ]; then
-  mysql -h"$BK_MYSQL_HOST" -P"$BK_MYSQL_PORT" -u"$BK_MYSQL_USER" -p"$BK_MYSQL_PASSWORD" -sNe "$CREATE_DB_SQL"
+if [ "$MYSQL_PASSWORD" ]; then
+  mysql -h"$MYSQL_HOST" -P"$MYSQL_PORT" -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" -sNe "$CREATE_DB_SQL"
 else
   # 没有密码时无需-p，防止回车阻塞
-  mysql -h"$BK_MYSQL_HOST" -P"$BK_MYSQL_PORT" -u"$BK_MYSQL_USER" -sNe "$CREATE_DB_SQL"
+  mysql -h"$MYSQL_HOST" -P"$MYSQL_PORT" -u"$MYSQL_USER" -sNe "$CREATE_DB_SQL"
 fi
 
 # 构建数据库表
