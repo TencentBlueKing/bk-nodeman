@@ -219,8 +219,7 @@ class JobBulkPushFileV2Service(JobBaseService):
         # 记录一条带时间戳的待分发记录
         add_wait_record_result = REDIS_INST.zadd(
             self.zset_source_files_wait_key(bk_biz_id, task_id, file_source),
-            timezone.now().timestamp(),
-            self.ip_info_str(host_info),
+            {self.ip_info_str(host_info): timezone.now().timestamp()},
         )
 
         if not all([add_wait_record_result, add_ip_status_result]):
