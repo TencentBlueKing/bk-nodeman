@@ -32,7 +32,7 @@ import { Component, Emit, Prop, Vue } from 'vue-property-decorator';
 import ChannelTable from './channel-table.vue';
 import Tips from '@/components/common/tips.vue';
 import { CloudStore } from '@/store';
-import ChannelMdFile from './install_channel.md';
+import ChannelMdFile from '../../../../../docs/install_channel.md';
 
 @Component({
   components: {

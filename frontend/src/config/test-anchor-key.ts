@@ -160,6 +160,7 @@ export default {
     deleteChannel: 'btn_deleteChannel',
     channelForm: 'form_channelForm',
     formItem: 'input_formItem',
+    address: 'input_formItem',
   },
   taskList: {
     history: 'wrapper_history',
