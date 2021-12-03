@@ -98,3 +98,7 @@ class PluginMigrateType:
     }
 
     MIGRATE_TYPES = list(MIGRATE_TYPE_ALIAS_MAP.keys())
+
+
+# redis键名模板
+REDIS_INSTALL_CALLBACK_KEY_TPL = "NODEMAN_INSTALL_CALLBACK_KEY_{sub_inst_id}"

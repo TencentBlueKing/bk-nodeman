@@ -174,7 +174,7 @@ CELERY_IMPORTS = (
 CONF_PATH = os.path.abspath(__file__)
 PROJECT_ROOT = os.path.dirname(os.path.dirname(CONF_PATH))
 PYTHON_BIN = os.path.dirname(sys.executable)
-
+BK_SCRIPTS_PATH = os.path.join(PROJECT_ROOT, "script_tools")
 
 BK_PAAS_HOST = os.getenv("BK_PAAS_HOST", "")
 BK_PAAS_INNER_HOST = os.getenv("BK_PAAS_INNER_HOST") or BK_PAAS_HOST
@@ -498,7 +498,6 @@ if BK_BACKEND_CONFIG:
         }
     }
     BK_OFFICIAL_PLUGINS_INIT_PATH = os.path.join(PROJECT_ROOT, "official_plugin")
-    BK_SCRIPTS_PATH = os.path.join(PROJECT_ROOT, "script_tools")
     REST_FRAMEWORK["DEFAULT_AUTHENTICATION_CLASSES"] = [
         "apps.utils.drf.CsrfExemptSessionAuthentication",
     ]
