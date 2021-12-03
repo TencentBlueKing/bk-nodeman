@@ -19,7 +19,6 @@ from django.utils.translation import ugettext as _
 
 from apps.backend.components.collections.agent import (
     CheckPolicyGseToProxyComponent,
-    InstallComponent,
     OperatePluginComponent,
     PushUpgradePackageComponent,
     ReloadAgentConfigComponent,
@@ -114,11 +113,11 @@ class AgentManager(object):
         act.component.inputs.blueking_language = Var(type=Var.PLAIN, value=self.blueking_language)
         return act
 
-    def install(self, name=InstallComponent.name):
+    def install(self, name=components.InstallComponent.name):
         """
         执行安装脚本
         """
-        act = AgentServiceActivity(component_code=InstallComponent.code, name=name)
+        act = AgentServiceActivity(component_code=components.InstallComponent.code, name=name)
         act.component.inputs.task_id = Var(type=Var.PLAIN, value=self.task_id)
         act.component.inputs.bk_username = Var(type=Var.PLAIN, value=self.creator)
         act.component.inputs.bk_host_id = Var(type=Var.SPLICE, value="${bk_host_id}")
@@ -136,7 +135,7 @@ class AgentManager(object):
             name = _("手动卸载")
         else:
             name = _("卸载Agent")
-        act = AgentServiceActivity(component_code=InstallComponent.code, name=name)
+        act = AgentServiceActivity(component_code=components.InstallComponent.code, name=name)
         act.component.inputs.host_info = Var(type=Var.PLAIN, value=self.host_info)
         act.component.inputs.is_uninstall = Var(type=Var.PLAIN, value=True)
         act.component.inputs.bk_username = Var(type=Var.PLAIN, value=self.creator)
@@ -153,7 +152,7 @@ class AgentManager(object):
             name = _("手动卸载")
         else:
             name = _("卸载Proxy")
-        act = AgentServiceActivity(component_code=InstallComponent.code, name=name)
+        act = AgentServiceActivity(component_code=components.InstallComponent.code, name=name)
         act.component.inputs.host_info = Var(type=Var.PLAIN, value=self.host_info)
         act.component.inputs.is_uninstall = Var(type=Var.PLAIN, value=True)
         act.component.inputs.bk_username = Var(type=Var.PLAIN, value=self.creator)

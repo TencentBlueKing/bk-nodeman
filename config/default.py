@@ -210,7 +210,7 @@ CELERY_DEFAULT_ROUTING_KEY = "default"
 CONF_PATH = os.path.abspath(__file__)
 PROJECT_ROOT = os.path.dirname(os.path.dirname(CONF_PATH))
 PYTHON_BIN = os.path.dirname(sys.executable)
-
+BK_SCRIPTS_PATH = os.path.join(PROJECT_ROOT, "script_tools")
 
 BK_PAAS_HOST = os.getenv("BK_PAAS_HOST", "")
 BK_PAAS_INNER_HOST = os.getenv("BK_PAAS_INNER_HOST") or BK_PAAS_HOST
