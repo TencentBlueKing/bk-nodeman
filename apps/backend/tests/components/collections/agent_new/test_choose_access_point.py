@@ -8,7 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import copy
 import random
 from typing import Callable, List, Optional
 
@@ -20,10 +19,8 @@ from apps.backend.components.collections.agent_new.choose_access_point import (
 from apps.backend.components.collections.agent_new.components import (
     ChooseAccessPointComponent,
 )
-from apps.mock_data import common_unit
 from apps.mock_data import utils as mock_data_utils
 from apps.node_man import constants, models
-from apps.utils import basic
 from pipeline.component_framework.test import (
     ComponentTestCase,
     ExecuteAssertion,
@@ -49,15 +46,6 @@ class ChooseAccessPointTestCase(utils.AgentServiceBaseTestCase):
     except_ap_ids: Optional[List[int]] = None
     ssh_man_mock_client: Optional[utils.SshManMockClient] = None
     ssh_man_ping_time_selector: Optional[Callable] = None
-
-    @classmethod
-    def create_ap(cls, name: str, description: str) -> models.AccessPoint:
-        # 创建一个测试接入点
-        ap_model_data = basic.remove_keys_from_dict(origin_data=common_unit.host.AP_MODEL_DATA, keys=["id"])
-        ap_model_data.update({"name": name, "description": description, "is_default": False, "is_enabled": True})
-        ap_obj = models.AccessPoint(**ap_model_data)
-        ap_obj.save()
-        return ap_obj
 
     def init_mock_clients(self):
         self.ssh_man_mock_client = utils.SshManMockClient(
@@ -166,42 +154,6 @@ class WindowsAgentTestCase(ChooseAccessPointTestCase):
 
 class LinuxPAgentTestCase(ChooseAccessPointTestCase):
     NODE_TYPE = constants.NodeType.PAGENT
-
-    def init_alive_proxies(self, bk_cloud_id: int):
-
-        ap_obj = self.create_ap(name="Proxy专用接入点", description="用于测试PAgent是否正确通过存活Proxy获取到接入点")
-        self.except_ap_ids = [ap_obj.id]
-
-        proxy_host_ids = []
-        proxy_data_host_list = []
-        proc_status_data_list = []
-        init_proxy_num = random.randint(5, 10)
-        random_begin_host_id = self.obj_factory.RANDOM_BEGIN_HOST_ID + len(self.obj_factory.bk_host_ids) + 1
-
-        for index in range(init_proxy_num):
-            proxy_host_id = random_begin_host_id + index
-            proxy_host_ids.append(proxy_host_id)
-            proxy_data = copy.deepcopy(common_unit.host.HOST_MODEL_DATA)
-            proxy_data.update(
-                {
-                    "ap_id": ap_obj.id,
-                    "bk_cloud_id": bk_cloud_id,
-                    "node_type": constants.NodeType.PROXY,
-                    "bk_host_id": proxy_host_id,
-                }
-            )
-            proc_status_data = copy.deepcopy(common_unit.host.PROCESS_STATUS_MODEL_DATA)
-            proc_status_data.update(
-                {
-                    "bk_host_id": proxy_host_id,
-                    "status": constants.ProcStateType.RUNNING,
-                    "proc_type": constants.ProcType.AGENT,
-                }
-            )
-            proxy_data_host_list.append(proxy_data)
-            proc_status_data_list.append(proc_status_data)
-        self.obj_factory.bulk_create_model(model=models.Host, create_data_list=proxy_data_host_list)
-        self.obj_factory.bulk_create_model(model=models.ProcessStatus, create_data_list=proc_status_data_list)
 
     def init_hosts(self):
         random_cloud_id = random.randint(10, 20)

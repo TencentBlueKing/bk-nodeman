@@ -18,6 +18,7 @@ from .check_agent_status import CheckAgentStatusService
 from .choose_access_point import ChooseAccessPointService
 from .configure_policy import ConfigurePolicyService
 from .get_agent_status import GetAgentStatusService
+from .install import InstallService
 from .query_password import QueryPasswordService
 from .register_host import RegisterHostService
 from .update_process_status import UpdateProcessStatusService
@@ -39,6 +40,12 @@ class RegisterHostComponent(Component):
     name = _("注册主机到配置平台")
     code = "register_host_to_cmdb"
     bound_service = RegisterHostService
+
+
+class InstallComponent(Component):
+    name = _("安装")
+    code = "install"
+    bound_service = InstallService
 
 
 class ConfigurePolicyComponent(Component):
