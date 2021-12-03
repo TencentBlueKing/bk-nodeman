@@ -23,6 +23,8 @@ DEFAULT_USERNAME = "admin"
 
 DEFAULT_IP = "127.0.0.1"
 
+JOB_TASK_PIPELINE_ID = "1ae89ce9deec319bbd8727a0c4b2ca82"
+
 
 class MockReturnType(EnhanceEnum):
 

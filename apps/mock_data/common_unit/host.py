@@ -16,6 +16,8 @@ DEFAULT_HOST_ID = 1
 
 DEFAULT_IP = "127.0.0.1"
 
+PROXY_INNER_IP = "1.1.1.1"
+
 AP_MODEL_DATA = {
     "id": 1,
     "name": "默认接入点",
