@@ -82,8 +82,29 @@ class SshManMockClient(utils.BaseMockClient):
         self.ssh = self.generate_magic_mock(mock_return_obj=ssh_return)
 
 
-class AgentTestObjFactory:
+class JobMockClient(utils.BaseMockClient):
+    def __init__(
+        self,
+        fast_execute_script_return: Optional[utils.MockReturn] = None,
+    ):
+        self.fast_execute_script = self.generate_magic_mock(mock_return_obj=fast_execute_script_return)
 
+
+class RedisMockClient(utils.BaseMockClient):
+    def __init__(
+        self,
+        lpush_return: Optional[utils.MockReturn] = None,
+        llen_return: Optional[utils.MockReturn] = None,
+        ltrim_return: Optional[utils.MockReturn] = None,
+        lrange_return: Optional[utils.MockReturn] = None,
+    ):
+        self.lpush = self.generate_magic_mock(mock_return_obj=lpush_return)
+        self.llen = self.generate_magic_mock(mock_return_obj=llen_return)
+        self.ltrim = self.generate_magic_mock(mock_return_obj=ltrim_return)
+        self.lrange = self.generate_magic_mock(mock_return_obj=lrange_return)
+
+
+class AgentTestObjFactory:
     # 如需创建数据，请通过深拷贝的方式复制
     BASE_INSTANCE_HOST_INFO = copy.deepcopy(AGENT_INSTANCE_HOST_INFO)
     RANDOM_BEGIN_HOST_ID = random.randint(int(1e2), int(1e5))
@@ -424,6 +445,80 @@ class AgentServiceBaseTestCase(CustomAPITestCase, ComponentTestMixin, ABC):
     def setUpTestData(cls):
         cls.obj_factory.init_db()
         super().setUpTestData()
+
+    def create_install_channel(self):
+        """创建安装通道"""
+        install_channel = models.InstallChannel.objects.create(
+            bk_cloud_id=constants.DEFAULT_CLOUD,
+            jump_servers=[common_unit.host.PROXY_INNER_IP],
+            upstream_servers={"taskserver": ["127.0.0.1"], "btfileserver": ["127.0.0.1"], "dataserver": ["127.0.0.1"]},
+        )
+        jump_server_host_id = self.obj_factory.RANDOM_BEGIN_HOST_ID + len(self.obj_factory.bk_host_ids) + 1
+        jump_server = copy.deepcopy(common_unit.host.HOST_MODEL_DATA)
+        jump_server.update(
+            {
+                "install_channel_id": install_channel.id,
+                "bk_host_id": jump_server_host_id,
+                "inner_ip": common_unit.host.PROXY_INNER_IP,
+            }
+        )
+        proc_status_data = copy.deepcopy(common_unit.host.PROCESS_STATUS_MODEL_DATA)
+        proc_status_data.update(
+            {
+                "bk_host_id": jump_server_host_id,
+                "status": constants.ProcStateType.RUNNING,
+                "proc_type": constants.ProcType.AGENT,
+            }
+        )
+        self.obj_factory.bulk_create_model(model=models.Host, create_data_list=[jump_server])
+        self.obj_factory.bulk_create_model(model=models.ProcessStatus, create_data_list=[proc_status_data])
+        return install_channel
+
+    @classmethod
+    def create_ap(cls, name: str, description: str) -> models.AccessPoint:
+        # 创建一个测试接入点
+        ap_model_data = basic.remove_keys_from_dict(origin_data=common_unit.host.AP_MODEL_DATA, keys=["id"])
+        ap_model_data.update({"name": name, "description": description, "is_default": False, "is_enabled": True})
+        ap_obj = models.AccessPoint(**ap_model_data)
+        ap_obj.save()
+        return ap_obj
+
+    def init_alive_proxies(self, bk_cloud_id: int):
+
+        ap_obj = self.create_ap(name="Proxy专用接入点", description="用于测试PAgent是否正确通过存活Proxy获取到接入点")
+        self.except_ap_ids = [ap_obj.id]
+
+        proxy_host_ids = []
+        proxy_data_host_list = []
+        proc_status_data_list = []
+        init_proxy_num = random.randint(5, 10)
+        random_begin_host_id = self.obj_factory.RANDOM_BEGIN_HOST_ID + len(self.obj_factory.bk_host_ids) + 1
+
+        for index in range(init_proxy_num):
+            proxy_host_id = random_begin_host_id + index
+            proxy_host_ids.append(proxy_host_id)
+            proxy_data = copy.deepcopy(common_unit.host.HOST_MODEL_DATA)
+            proxy_data.update(
+                {
+                    "ap_id": ap_obj.id,
+                    "bk_cloud_id": bk_cloud_id,
+                    "node_type": constants.NodeType.PROXY,
+                    "bk_host_id": proxy_host_id,
+                    "inner_ip": common_unit.host.PROXY_INNER_IP,
+                }
+            )
+            proc_status_data = copy.deepcopy(common_unit.host.PROCESS_STATUS_MODEL_DATA)
+            proc_status_data.update(
+                {
+                    "bk_host_id": proxy_host_id,
+                    "status": constants.ProcStateType.RUNNING,
+                    "proc_type": constants.ProcType.AGENT,
+                }
+            )
+            proxy_data_host_list.append(proxy_data)
+            proc_status_data_list.append(proc_status_data)
+        self.obj_factory.bulk_create_model(model=models.Host, create_data_list=proxy_data_host_list)
+        self.obj_factory.bulk_create_model(model=models.ProcessStatus, create_data_list=proc_status_data_list)
 
     def structure_common_inputs(self) -> Dict[str, Any]:
         """

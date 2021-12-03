@@ -83,6 +83,7 @@ class PluginCommonData(CommonData):
         super().__init__(
             bk_host_ids=bk_host_ids,
             host_id_obj_map=host_id_obj_map,
+            sub_inst_id__host_id_map={},
             ap_id_obj_map=ap_id_obj_map,
             subscription=subscription,
             subscription_instances=subscription_instances,

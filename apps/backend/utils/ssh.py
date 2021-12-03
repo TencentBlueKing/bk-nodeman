@@ -13,6 +13,7 @@ import re
 import socket
 import time
 import traceback
+from typing import Optional
 
 import paramiko
 from django.utils.translation import ugettext_lazy as _
@@ -378,7 +379,7 @@ class SshMan(object):
     SshMan，负责SSH终端命令交互
     """
 
-    def __init__(self, host: Host, log):
+    def __init__(self, host: Host, log, identity_data: Optional[IdentityData] = None):
         self.set_proxy_prompt = r'export PS1="[\u@\h_BKproxy \W]\$"'
 
         # 初始化ssh会话
@@ -386,7 +387,7 @@ class SshMan(object):
             ip = host.login_ip or host.outer_ip
         else:
             ip = host.login_ip or host.inner_ip
-        identity_data = IdentityData.objects.get(bk_host_id=host.bk_host_id)
+        identity_data = identity_data or host.identity
         if (identity_data.auth_type == AuthType.PASSWORD and not identity_data.password) or (
             identity_data.auth_type == AuthType.KEY and not identity_data.key
         ):
