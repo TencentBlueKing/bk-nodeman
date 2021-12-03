@@ -9,9 +9,9 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-
 import abc
-from typing import List, Set, Union
+from functools import wraps
+from typing import Dict, List, Set, Union
 
 from ..base import BaseService, CommonData
 
@@ -30,4 +30,18 @@ class AgentBaseService(BaseService, metaclass=abc.ABCMeta):
 
 
 class AgentCommonData(CommonData):
-    pass
+    def __init__(self, sub_inst_id__host_id_map: Dict[int, int], **kwargs):
+        self.sub_inst_id__host_id_map = sub_inst_id__host_id_map
+        super().__init__(**kwargs)
+
+
+def batch_call_single_exception_handler(single_func):
+    # 批量执行时单个机器的异常处理
+    @wraps(single_func)
+    def wrapper(self, sub_inst_id, *args, **kwargs):
+        try:
+            return single_func(self, sub_inst_id, *args, **kwargs)
+        except Exception as error:
+            self.move_insts_to_failed([sub_inst_id], error)
+
+    return wrapper
