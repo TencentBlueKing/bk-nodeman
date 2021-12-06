@@ -13,7 +13,8 @@ import abc
 from functools import wraps
 from typing import Any, Dict, List, Set, Union
 
-from apps.node_man import models
+from apps.backend.api.job import process_parms
+from apps.node_man import constants, models
 from common.api import JobApi
 
 from ..base import BaseService, CommonData
@@ -72,6 +73,28 @@ class AgentBaseService(BaseService, metaclass=abc.ABCMeta):
             host_id__ap_map=host_id__ap_map,
             sub_inst_id__host_id_map=sub_inst_id__host_id_map
         )
+
+    @classmethod
+    def get_general_node_type(cls, node_type: str) -> str:
+        """
+        获取广义上的节点类型，既仅为 proxy 或 agent
+        :param node_type: 取值参考 models.HOST.node_type
+        :return:
+        """
+        return (constants.NodeType.AGENT.lower(), constants.NodeType.PROXY.lower())[
+            node_type == constants.NodeType.PROXY
+        ]
+
+    @classmethod
+    def get_agent_upgrade_pkg_name(cls, host: models.Host) -> str:
+        """
+        获取 Agent 升级包名称
+        :param host:
+        :return:
+        """
+        package_type = ("client", "proxy")[host.node_type == constants.NodeType.PROXY]
+        agent_upgrade_package_name = f"gse_{package_type}-{host.os_type.lower()}-{host.cpu_arch}_upgrade.tgz"
+        return agent_upgrade_package_name
 
 
 class AgentCommonData(CommonData):
@@ -225,6 +248,79 @@ class AgentTransferPackageService(JobV3BaseService, AgentBaseService, metaclass=
     def get_file_list(self, data, common_data: AgentCommonData, host: models.Host) -> List[str]:
         """
         获取主机所需的文件路径列表
+        :param data:
+        :param common_data:
+        :param host: 主机对象
+        :return: 文件路径列表
+        """
+        raise NotImplementedError()
+
+    def get_file_target_path(self, data, common_data: AgentCommonData, host: models.Host) -> str:
+        """
+        获取主机所需的文件路径列表
+        :param data:
+        :param common_data:
+        :param host: 主机对象
+        :return: 文件路径列表
+        """
+        raise NotImplementedError()
+
+
+class AgentPushConfigService(JobV3BaseService, AgentBaseService, metaclass=abc.ABCMeta):
+    def cal_job_unique_key(self, config_info_list: List[Dict[str, Any]], file_target_path: str):
+        """
+        计算分发任务的唯一标识
+        如果配置文件名称、MD5、目标路径一致，认为分发内容一致，整合到一个作业中
+        :param config_info_list:
+        :param file_target_path:
+        :return:
+        """
+        config_unique_keys = []
+        for config_info in config_info_list:
+            config_unique_keys.append(f"{config_info['file_name']}-{self.get_md5(config_info['content'])}")
+        return f"{'-'.join(sorted(config_unique_keys))}-{file_target_path}"
+
+    def _execute(self, data, parent_data, common_data: AgentCommonData):
+        timeout = data.get_one_of_inputs("timeout")
+        # 批量请求作业平台的参数
+        multi_job_params_map: Dict[str, Dict[str, Any]] = {}
+        for sub_inst in common_data.subscription_instances:
+            bk_host_id = sub_inst.instance_info["host"]["bk_host_id"]
+            host_obj = common_data.host_id_obj_map[bk_host_id]
+
+            config_info_list = self.get_config_info_list(data=data, common_data=common_data, host=host_obj)
+            file_target_path = self.get_file_target_path(data=data, common_data=common_data, host=host_obj)
+
+            job_unique_key = self.cal_job_unique_key(config_info_list, file_target_path)
+            if job_unique_key in multi_job_params_map:
+                multi_job_params_map[job_unique_key]["subscription_instance_id"].append(sub_inst.id)
+                multi_job_params_map[job_unique_key]["job_params"]["target_server"]["ip_list"].append(
+                    {"bk_cloud_id": host_obj.bk_cloud_id, "ip": host_obj.inner_ip}
+                )
+            else:
+                file_source_list = []
+                for config_info in config_info_list:
+                    file_source_list.append(
+                        {"file_name": config_info["file_name"], "content": process_parms(config_info["content"])}
+                    )
+                multi_job_params_map[job_unique_key] = {
+                    "job_func": JobApi.push_config_file,
+                    "subscription_instance_id": [sub_inst.id],
+                    "subscription_id": common_data.subscription.id,
+                    "job_params": {
+                        "target_server": {"ip_list": [{"bk_cloud_id": host_obj.bk_cloud_id, "ip": host_obj.inner_ip}]},
+                        "file_target_path": file_target_path,
+                        "file_list": file_source_list,
+                        "timeout": timeout,
+                        "os_type": host_obj.os_type,
+                    },
+                }
+
+        self.run_job_or_finish_schedule(multi_job_params_map)
+
+    def get_config_info_list(self, data, common_data: AgentCommonData, host: models.Host) -> List[Dict[str, Any]]:
+        """
+        获取主机所需的配置文件信息列表
         :param data:
         :param common_data:
         :param host: 主机对象
