@@ -14,16 +14,14 @@ from typing import List
 from django.conf import settings
 
 from apps.node_man import constants, models
-from apps.node_man.models import JobSubscriptionInstanceMap
 
 from .base import AgentCommonData, AgentExecuteScriptService
 
-"""
-1. 停止agent，此时无法从Job获取任务结果
-2. 解压升级包到目标路径，使用 -aot 参数把已存在的二进制文件重命名
-3. 启动agent
-"""
-WINDOWS_SCRIPTS_TEMPLATE = (
+# Windows 升级命令模板
+# 1. 停止 agent，此时无法从Job获取任务结果
+# 2. 解压升级包到目标路径，使用 -aot 参数把已存在的二进制文件重命名
+# 3. 启动agent
+WINDOWS_UPGRADE_CMD_TEMPLATE = (
     'reg add "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run" '
     '/v gse_agent /t reg_sz /d "{setup_path}\\agent\\bin\\gsectl.bat start" /f 1>nul 2>&1'
     " && start gsectl.bat stop && ping -n 20 127.0.0.1 >> c:\\ping_ip.txt && {temp_path}\\7z.exe x"
@@ -31,7 +29,8 @@ WINDOWS_SCRIPTS_TEMPLATE = (
     "{temp_path}\\{package_name_tar} -aot -o{setup_path} -y 1>nul 2>&1 && gsectl.bat start"
 )
 
-PROXY_RELOAD_SCRIPTS_TEMPLATE = """
+# Proxy 重载配置命令模板
+PROXY_RELOAD_CMD_TEMPLATE = """
 result=0
 count=0
 for proc in gse_agent gse_transit gse_btsvr gse_data; do
@@ -44,10 +43,14 @@ if [[ $result -gt 0 || $count -lt 3 ]]; then
    cd {setup_path}/{node_type}/bin && ./gsectl restart all
 fi
 """
-AGENT_RELOAD_SCRIPTS_TEMPLATE = "cd {setup_path}/{node_type}/bin && ./gse_agent --reload || ./gsectl restart all"
+
+# Agent 重载配置命令模板
+AGENT_RELOAD_CMD_TEMPLATE = "cd {setup_path}/{node_type}/bin && ./gse_agent --reload || ./gsectl restart all"
+
+# 节点类型 - 重载命令模板映射关系
 NODE_TYPE__RELOAD_CMD_TPL_MAP = {
-    constants.NodeType.PROXY.lower(): PROXY_RELOAD_SCRIPTS_TEMPLATE,
-    constants.NodeType.AGENT.lower(): AGENT_RELOAD_SCRIPTS_TEMPLATE,
+    constants.NodeType.PROXY.lower(): PROXY_RELOAD_CMD_TEMPLATE,
+    constants.NodeType.AGENT.lower(): AGENT_RELOAD_CMD_TEMPLATE,
 }
 
 
@@ -57,54 +60,45 @@ class RunUpgradeCommandService(AgentExecuteScriptService):
         return "upgrade_command"
 
     def get_script_content(self, data, common_data: AgentCommonData, host: models.Host) -> str:
-        # 获取主机基本属性
+        agent_upgrade_pkg_name = self.get_agent_upgrade_pkg_name(host)
+        general_node_type = self.get_general_node_type(host.node_type)
         agent_config = common_data.host_id__ap_map[host.bk_host_id].get_agent_config(host.os_type)
-        temp_path = agent_config["temp_path"]
-        setup_path = agent_config["setup_path"]
-        package_type = data.get_one_of_inputs("package_type")
-        package_name = f"gse_{package_type}-{host.os_type.lower()}-{host.cpu_arch}_upgrade.tgz"
-        # 排除掉PAGENT情况
-        node_type = "proxy" if host.node_type == constants.NodeType.PROXY else "agent"
 
         if host.os_type == constants.OsType.WINDOWS:
-            scripts = WINDOWS_SCRIPTS_TEMPLATE.format(
-                setup_path=setup_path,
-                temp_path=temp_path,
-                package_name=package_name,
-                package_name_tar=package_name.replace("tgz", "tar"),
+            scripts = WINDOWS_UPGRADE_CMD_TEMPLATE.format(
+                setup_path=agent_config["setup_path"],
+                temp_path=agent_config["temp_path"],
+                package_name=agent_upgrade_pkg_name,
+                package_name_tar=agent_upgrade_pkg_name.replace("tgz", "tar"),
             )
             return scripts
         else:
             path = os.path.join(settings.BK_SCRIPTS_PATH, "upgrade_agent.sh.tpl")
             with open(path, encoding="utf-8") as fh:
                 scripts = fh.read()
-            reload_cmd = NODE_TYPE__RELOAD_CMD_TPL_MAP[node_type].format(setup_path=setup_path, node_type=node_type)
+            reload_cmd = NODE_TYPE__RELOAD_CMD_TPL_MAP[general_node_type].format(
+                setup_path=agent_config["setup_path"], node_type=general_node_type
+            )
             scripts = scripts.format(
-                setup_path=setup_path,
-                temp_path=temp_path,
-                package_name=package_name,
-                node_type=node_type,
+                setup_path=agent_config["setup_path"],
+                temp_path=agent_config["temp_path"],
+                package_name=agent_upgrade_pkg_name,
+                node_type=general_node_type,
                 reload_cmd=reload_cmd,
             )
             return scripts
 
-    def _schedule(self, data, parent_data, callback_data=None):
-        """
-        取消对windows机器的轮询，将windows的任务取消轮询，直接设置为True
-        TODO 是否需要设置SKIP之类的状态?
-        """
-        common_data = self.get_common_data(data)
-        bk_host_ids = common_data.bk_host_ids
-        sub_instance_ids = common_data.subscription_instance_ids
-        # 记录已经更新的windows主机集合，防止多次更新
-        is_updated_win_sub_ids: List[int] = []
-        for sub_instance_id, bk_host_id in zip(sub_instance_ids, bk_host_ids):
-            host_os_type = common_data.host_id_obj_map[bk_host_id].os_type
-            if host_os_type == constants.OsType.WINDOWS and sub_instance_id not in is_updated_win_sub_ids:
-                job_sub_ins_map = JobSubscriptionInstanceMap.objects.filter(
-                    node_id=self.id, subscription_instance_ids__contains=[sub_instance_id]
-                )
-                is_updated_win_sub_ids.extend(job_sub_ins_map.first().subscription_instance_ids)
-                job_sub_ins_map.update(status=constants.BkJobStatus.SUCCEEDED)
+    def _execute(self, data, parent_data, common_data: AgentCommonData):
+        super()._execute(data, parent_data, common_data)
 
-        super()._schedule(data, parent_data, callback_data)
+        # Windows 重启 Agent 会导致无法在作业平台获取脚本执行结果，此时默认该步骤成功
+        skip_job_instance_ids: List[int] = []
+        for job_instance_id, call_params in self.job_instance_id__call_params_map.items():
+            # 通过调用参数判断 job_instance_id 是否执行的是 Windows 机器
+            os_type = call_params["job_params"]["os_type"]
+            if os_type == constants.OsType.WINDOWS:
+                skip_job_instance_ids.append(job_instance_id)
+
+        models.JobSubscriptionInstanceMap.objects.filter(
+            node_id=self.id, job_instance_id__in=skip_job_instance_ids
+        ).update(status=constants.BkJobStatus.SUCCEEDED)

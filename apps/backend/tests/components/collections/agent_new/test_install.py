@@ -19,6 +19,7 @@ from apps.backend.agent.tools import gen_commands
 from apps.backend.components.collections.agent_new.components import InstallComponent
 from apps.backend.constants import REDIS_INSTALL_CALLBACK_KEY_TPL
 from apps.backend.utils.redis import REDIS_INST
+from apps.mock_data import api_mkd
 from apps.mock_data import utils as mock_data_utils
 from apps.node_man import constants, models
 from pipeline.component_framework.test import (
@@ -32,11 +33,13 @@ from . import utils
 
 
 class InstallBaseTestCase(utils.AgentServiceBaseTestCase):
+
+    DEBUG = True
+
     OS_TYPE = constants.OsType.LINUX
     NODE_TYPE = constants.NodeType.AGENT
     SSH_MAN_MOCK_PATH = "apps.backend.components.collections.agent_new.install.SshMan"
     JOB_API_MOCK_PATH = "apps.backend.components.collections.agent_new.install.JobApi"
-    REDIS_MOCK_PATH = "apps.backend.components.collections.agent_new.install.REDIS_INST"
     EXECUTE_CMD_MOCK_PATH = "apps.backend.components.collections.agent_new.install.execute_cmd"
     PUT_FILE_MOCK_PATH = "apps.backend.components.collections.agent_new.install.put_file"
 
@@ -56,7 +59,7 @@ class InstallBaseTestCase(utils.AgentServiceBaseTestCase):
                 return_type=mock_data_utils.MockReturnType.RETURN_VALUE.value, return_obj=""
             ),
         )
-        self.job_mock_client = utils.JobMockClient(
+        self.job_mock_client = api_mkd.job.utils.JobApiMockClient(
             fast_execute_script_return=mock_data_utils.MockReturn(
                 return_type=mock_data_utils.MockReturnType.RETURN_VALUE.value, return_obj={"job_instance_id": 1}
             ),
@@ -276,5 +279,6 @@ class InstallAgentWithInstallChannelSuccessTest(InstallBaseTestCase):
             f" -HPP '17981' -HSN 'setup_agent.sh' -HS 'bash'"
             f" -p '/usr/local/gse' -I 1.1.1.1"
             f" -o http://1.1.1.1:{settings.BK_NODEMAN_NGINX_DOWNLOAD_PORT}/ "
+            f" -ADP 'True' -CPA 'http://127.0.0.1:17981'"
         )
         self.assertEqual(installation_tool.run_cmd, run_cmd)
