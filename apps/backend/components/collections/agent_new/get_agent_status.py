@@ -108,7 +108,7 @@ class GetAgentStatusService(AgentBaseService):
             if hasattr(data.outputs, output):
                 delattr(data.outputs, output)
 
-    def schedule(self, data, parent_data, callback_data=None):
+    def _schedule(self, data, parent_data, callback_data=None):
         expect_status = data.get_one_of_inputs("expect_status")
         host_id_to_inst_id_map = data.get_one_of_outputs("host_id_to_inst_id_map")
         host_id_obj_map = data.get_one_of_outputs("host_id_obj_map")

@@ -257,7 +257,7 @@ def gen_commands(
 
         # 通道特殊配置
         if host.install_channel_id:
-            __, upstream_servers = host.install_channel()
+            __, upstream_servers = host.install_channel
             agent_download_proxy = upstream_servers.get("agent_download_proxy", True)
             if not agent_download_proxy:
                 # 关闭agent下载代理选项时传入
