@@ -1,7 +1,7 @@
 <template>
   <bk-dialog
     width="1105"
-    :value="show"
+    v-model="show"
     :show-footer="false"
     @value-change="handleValueChange">
     <div class="log-version" v-bkloading="{ isLoading: loading }">
@@ -26,7 +26,7 @@
   </bk-dialog>
 </template>
 <script lang="ts">
-import { Vue, Component, Prop, Emit, Watch } from 'vue-property-decorator';
+import { Vue, Component, Emit, Watch, Model } from 'vue-property-decorator';
 import { axiosInstance } from '@/api';
 
 interface ILog {
@@ -37,7 +37,7 @@ interface ILog {
 
 @Component({ name: 'log-version' })
 export default class LogVersion extends Vue {
-  @Prop({ type: Boolean, default: false }) private readonly dialogShow!: boolean;
+  @Model('change', { default: false, type: Boolean }) private readonly dialogShow!: boolean;
 
   private show = false;
   private loading = false;
@@ -69,7 +69,7 @@ export default class LogVersion extends Vue {
   }
 
   //  dialog显示变更触发
-  @Emit('update-dialogShow')
+  @Emit('change')
   private handleValueChange(isShow: boolean) {
     return isShow;
   }

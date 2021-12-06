@@ -96,7 +96,7 @@
         </div>
       </template>
     </bk-navigation>
-    <log-version :dialog-show.sync="showLog"></log-version>
+    <log-version v-model="showLog"></log-version>
   </article>
 </template>
 <script lang="ts">
