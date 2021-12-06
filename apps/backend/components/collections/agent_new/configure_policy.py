@@ -40,7 +40,7 @@ class ConfigurePolicyService(AgentBaseService):
         data.outputs.polling_time = 0
         return True
 
-    def schedule(self, data, parent_data, callback_data=None):
+    def _schedule(self, data, parent_data, callback_data=None):
         common_data = self.get_common_data(data)
         subscription_instance_ids = common_data.subscription_instance_ids
         security_group_type = models.GlobalSettings.get_config(models.GlobalSettings.KeyEnum.SECURITY_GROUP_TYPE.value)

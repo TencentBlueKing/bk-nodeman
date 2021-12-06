@@ -63,7 +63,7 @@ def mock_batch_call(func, params_list, get_data):
 
 
 class TestPolicy(CustomBaseTestCase):
-    exempted_fields = ["id"]
+    EXEMPTED_FIELDS = ["id"]
 
     @classmethod
     def setUpTestData(cls):

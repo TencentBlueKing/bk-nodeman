@@ -23,9 +23,6 @@ from . import base
 
 
 class CheckPolicyGseToProxyTestCase(base.JobBaseTestCase):
-
-    DEBUG = True
-
     @classmethod
     def get_default_case_name(cls) -> str:
         return "检测 GSE Server 到 Proxy 策略成功"

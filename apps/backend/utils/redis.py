@@ -6,7 +6,7 @@ import traceback
 import uuid
 
 from django.conf import settings
-from rediscluster import StrictRedisCluster
+from redis import StrictRedis
 
 from apps.backend.api.constants import POLLING_INTERVAL
 from pipeline.apps import CLIENT_GETTER
@@ -94,4 +94,4 @@ class RedisLock:
         return result
 
 
-REDIS_INST: StrictRedisCluster = RedisInstSingleTon.get_inst()
+REDIS_INST: StrictRedis = RedisInstSingleTon.get_inst()

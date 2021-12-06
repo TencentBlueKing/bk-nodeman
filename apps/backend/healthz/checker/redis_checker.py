@@ -13,15 +13,13 @@ specific language governing permissions and limitations under the License.
 import time
 from contextlib import contextmanager
 
-from apps.backend.components.collections.bulk_job import RedisInstSingleTon
 from apps.backend.utils.healthz import CallCache
+from apps.backend.utils.redis import REDIS_INST
 from common.log import logger
 
 from .checker import CheckerRegister
 
 register = CheckerRegister.redis
-
-REDIS_INST = RedisInstSingleTon.get_inst()
 
 
 @contextmanager
