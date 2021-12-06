@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import logging
 import time
+from typing import Optional
 
 import ujson as json
 from blueapps.account.decorators import login_exempt
@@ -451,9 +452,20 @@ def is_designated_upstream_servers(host: models.Host):
     return False
 
 
-def generate_gse_config(bk_cloud_id, filename, node_type, inner_ip):
-    host = Host.objects.get(bk_cloud_id=bk_cloud_id, inner_ip=inner_ip)
-    agent_config = host.agent_config
+def generate_gse_config(host: models.Host, filename: str, node_type: str, ap: Optional[models.AccessPoint] = None):
+    """
+    生成 GSE 相关配置
+    :param host: 主机对象
+    :param filename: 文件名
+    :param node_type: 节点类型（lower）
+    :param ap: 接入点对象
+    :return:
+    """
+    # 批量执行时，通过指定 ap 减少DB查询次数
+    if ap is None:
+        agent_config = host.agent_config
+    else:
+        agent_config = ap.get_agent_config(host.os_type)
     setup_path = agent_config["setup_path"]
     log_path = agent_config["log_path"]
     # 如果没有自定义则使用接入点默认配置
@@ -526,11 +538,11 @@ def generate_gse_config(bk_cloud_id, filename, node_type, inner_ip):
         context = {
             "setup_path": setup_path,
             "log_path": log_path,
-            "agentip": inner_ip,
+            "agentip": host.inner_ip,
             "bk_supplier_id": 0,
-            "bk_cloud_id": bk_cloud_id,
+            "bk_cloud_id": host.bk_cloud_id,
             "default_cloud_id": constants.DEFAULT_CLOUD,
-            "identityip": inner_ip,
+            "identityip": host.inner_ip,
             "region_id": host.ap.region_id,
             "city_id": host.ap.city_id,
             "password_keyfile": False
@@ -586,13 +598,13 @@ def generate_gse_config(bk_cloud_id, filename, node_type, inner_ip):
             "log_path": log_path,
             "data_path": data_path,
             "bk_supplier_id": 0,
-            "bk_cloud_id": bk_cloud_id,
+            "bk_cloud_id": host.bk_cloud_id,
             "taskserver_outer_ips": taskserver_outer_ips,
             "btfileserver_outer_ips": btfileserver_outer_ips,
             "dataserver_outer_ips": dataserver_outer_ips,
-            "inner_ip": inner_ip,
+            "inner_ip": host.inner_ip,
             "outer_ip": host.outer_ip,
-            "proxy_servers": [inner_ip],
+            "proxy_servers": [host.inner_ip],
             "region_id": host.ap.region_id,
             "city_id": host.ap.city_id,
             "dataipc": dataipc,
@@ -619,11 +631,19 @@ def generate_gse_config(bk_cloud_id, filename, node_type, inner_ip):
     return nested_render_data(template, context)
 
 
-def generate_bscp_config(bk_cloud_id, inner_ip):
-    host = Host.objects.get(bk_cloud_id=bk_cloud_id, inner_ip=inner_ip)
-    bscp_config = host.ap.bscp_config
+def generate_bscp_config(host: models.Host, ap: Optional[models.AccessPoint] = None):
+    """
+    生成 BSCP 配置
+    :param host: 主机对象
+    :param ap: 接入点对象
+    :return:
+    """
+    if ap is None:
+        bscp_config = host.ap.bscp_config
+    else:
+        bscp_config = ap.bscp_config
     context = {
-        "ENDPOINT_IP": inner_ip,
+        "ENDPOINT_IP": host.inner_ip,
         "ENDPOINT_PORT": bscp_config.get("ENDPOINT_PORT", 59516),
         "FILE_RELOAD_MODE": bscp_config.get("FILE_RELOAD_MODE", False),
         "FILE_RELOAD_NAME": bscp_config.get("FILE_RELOAD_NAME", "BSCP.reload"),
@@ -671,10 +691,11 @@ def get_gse_config(request):
         raise PermissionError("what are you doing?")
 
     try:
+        host = Host.objects.get(bk_cloud_id=bk_cloud_id, inner_ip=inner_ip)
         if filename in ["bscp.yaml"]:
-            config = generate_bscp_config(bk_cloud_id, inner_ip)
+            config = generate_bscp_config(host=host)
         else:
-            config = generate_gse_config(bk_cloud_id, filename, node_type, inner_ip)
+            config = generate_gse_config(host=host, filename=filename, node_type=node_type)
     except Exception:
         return HttpResponse(config, status=500)
 
