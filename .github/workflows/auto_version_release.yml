@@ -11,6 +11,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    # 非稳定开发分支，暂时禁用自动发布workflow
+    if: ${{ false }}
     env:
       # 构建环境的Python版本
       PYTHON_VERSION: "3.7"
