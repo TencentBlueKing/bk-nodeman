@@ -14,7 +14,7 @@ import copy
 import hashlib
 import logging
 from collections import defaultdict
-from typing import Any, Callable, Dict, List
+from typing import Any, Callable, Dict, List, Optional
 
 import six
 import ujson as json
@@ -136,11 +136,22 @@ class JobV3BaseService(six.with_metaclass(abc.ABCMeta, BaseService)):
     # TODO 因此这里暂时使用主动查询的方式，后续切换新引擎时可以考虑使用 callback 回调的模式
     """
 
-    __need_schedule__ = True
+    # 默认操作系统类型
+    DEFAULT_OS_TYPE = constants.OsType.LINUX
 
+    # 是否打印作业平台调用参数
     PRINT_PARAMS_TO_LOG: bool = False
 
+    __need_schedule__ = True
+
     interval = StaticIntervalGenerator(POLLING_INTERVAL)
+
+    # 作业实例ID - 调用参数映射关系
+    job_instance_id__call_params_map: Optional[Dict[int, Dict[str, Any]]] = None
+
+    def __init__(self, *args, **kwargs):
+        self.job_instance_id__call_params_map = {}
+        super().__init__(*args, **kwargs)
 
     @staticmethod
     def get_md5(content):
@@ -162,10 +173,14 @@ class JobV3BaseService(six.with_metaclass(abc.ABCMeta, BaseService)):
         if not job_params["target_server"]["ip_list"]:
             # 没有IP列表时，不发起请求
             return []
+
         # 补充作业平台通用参数
-        os_type = constants.OsType.LINUX
-        if job_params.get("os_type"):
-            os_type = job_params.get("os_type")
+        if not job_params.get("os_type"):
+            job_params["os_type"] = self.DEFAULT_OS_TYPE
+        os_type = job_params["os_type"]
+
+        # Windows 执行账户问题：已确认用 administrator 注册也可以用 system 账户执行，统一使用 system 执行即可
+        # Ref -> https://github.com/TencentBlueKing/bk-nodeman/pull/290#discussion_r760064447
         account_alias = (
             settings.BACKEND_WINDOWS_ACCOUNT if os_type == constants.OsType.WINDOWS else settings.BACKEND_UNIX_ACCOUNT
         )
@@ -200,6 +215,11 @@ class JobV3BaseService(six.with_metaclass(abc.ABCMeta, BaseService)):
                 subscription_instance_ids=subscription_instance_id,
                 node_id=self.id,
             )
+            self.job_instance_id__call_params_map[job_instance_id] = {
+                "subscription_id": subscription_id,
+                "subscription_instance_id": subscription_instance_id,
+                "job_params": job_params,
+            }
             # 组装调用作业平台的日志
             file_target_path = job_params.get("file_target_path")
             if job_func == JobApi.fast_transfer_file:

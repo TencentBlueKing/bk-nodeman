@@ -25,6 +25,7 @@ from .query_password import QueryPasswordService
 from .register_host import RegisterHostService
 from .update_process_status import UpdateProcessStatusService
 from .reload_agent_config import ReloadAgentConfigService
+from .render_and_push_gse_config import RenderAndPushGseConfigService
 from .restart import RestartService
 from .run_upgrade_command import RunUpgradeCommandService
 
@@ -111,3 +112,9 @@ class RunUpgradeCommandComponent(Component):
     name = _("下发升级脚本命令")
     code = "run_upgrade_command"
     bound_service = RunUpgradeCommandService
+
+
+class RenderAndPushGseConfigComponent(Component):
+    name = _("渲染并下发Agent配置")
+    code = "render_and_push_gse_config"
+    bound_service = RenderAndPushGseConfigService

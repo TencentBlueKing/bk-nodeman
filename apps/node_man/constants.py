@@ -109,13 +109,13 @@ BK_OS_TYPE = {"LINUX": "1", "WINDOWS": "2", "AIX": "3", "SOLARIS": "5"}
 # 操作系统->系统账户映射表
 ACCOUNT_MAP = {
     OsType.WINDOWS: settings.BACKEND_WINDOWS_ACCOUNT,
-    OsType.LINUX: "root",
-    OsType.AIX: "root",
-    OsType.SOLARIS: "root",
+    OsType.LINUX: settings.BACKEND_UNIX_ACCOUNT,
+    OsType.AIX: settings.BACKEND_UNIX_ACCOUNT,
+    OsType.SOLARIS: settings.BACKEND_UNIX_ACCOUNT,
     OsType.WINDOWS.lower(): settings.BACKEND_WINDOWS_ACCOUNT,
-    OsType.LINUX.lower(): "root",
-    OsType.AIX.lower(): "root",
-    OsType.SOLARIS.lower(): "root",
+    OsType.LINUX.lower(): settings.BACKEND_UNIX_ACCOUNT,
+    OsType.AIX.lower(): settings.BACKEND_UNIX_ACCOUNT,
+    OsType.SOLARIS.lower(): settings.BACKEND_UNIX_ACCOUNT,
 }
 
 OS_TYPE = {"1": "LINUX", "2": "WINDOWS", "3": "AIX", "5": "SOLARIS"}
