@@ -30,7 +30,8 @@ const baseConfig: webpack.Configuration = {
     extensions: ['.js', '.vue', '.json', '.ts', 'tsx'],
     alias: {
       vue$: 'vue/dist/vue.esm.js',
-      '@': resolve('src')
+      '@': resolve('src'),
+      '@static': resolve('static'),
     }
   },
 
