@@ -19,7 +19,7 @@ from apps.utils.unittest.testcase import CustomBaseTestCase
 
 
 class TestPolicy(CustomBaseTestCase):
-    exempted_fields = ["id"]
+    EXEMPTED_FIELDS = ["id"]
 
     @classmethod
     def setUpTestData(cls):
