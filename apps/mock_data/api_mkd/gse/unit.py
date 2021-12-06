@@ -18,6 +18,7 @@ OP_RESULT = {"task_id": "GSETASK:S:202111161138323563236795:143"}
 
 class GseMockClient(utils.BaseMockClient):
     def __init__(self, get_agent_status_return=None, get_agent_info_return=None):
+        super().__init__()
         self.gse = MagicMock()
         self.gse.get_agent_status = MagicMock(return_value=get_agent_status_return)
         self.gse.get_agent_info = MagicMock(return_value=get_agent_info_return)
