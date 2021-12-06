@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import traceback
 from functools import wraps
-from typing import Dict, Iterable, List, Set, Union
+from typing import Any, Dict, Iterable, List, Optional, Set, Type, Union
 
 from django.db.models import Value
 from django.db.models.functions import Concat
@@ -95,7 +95,9 @@ def exception_handler(service_func):
 
 
 class LogMixin:
-    log_maker_class = LogMaker
+
+    # 日志类
+    log_maker_class: Type[LogMaker] = LogMaker
 
     def get_log_maker(self):
         return self.log_maker_class()
@@ -162,6 +164,12 @@ class CommonData:
 
 
 class BaseService(Service, LogMixin):
+
+    # 失败订阅实例ID - 失败原因 映射关系
+    failed_subscription_instance_id_reason_map: Optional[Dict[int, Any]] = None
+    # 日志制作类实例
+    log_maker: Optional[LogMaker] = None
+
     def __init__(self, *args, **kwargs):
         self.failed_subscription_instance_id_reason_map: Dict = {}
         self.log_maker = self.get_log_maker()
