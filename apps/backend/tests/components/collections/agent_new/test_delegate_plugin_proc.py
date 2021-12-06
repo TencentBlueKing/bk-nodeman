@@ -268,7 +268,7 @@ class OpProcResultErrorTestCase(OpProcResultNotFoundTestCase):
         cls.get_proc_operate_result["data"] = {
             cls.get_gse_proc_key(host_obj, add_supplier_id=False): {
                 "content": "",
-                "error_code": 117,
+                "error_code": GseDataErrCode.AGENT_ABNORMAL,
                 "error_msg": f"can not find connection by ip {host_obj.inner_ip}",
             }
             for host_obj in cls.obj_factory.host_objs

@@ -25,13 +25,12 @@ class PushUpgradePackageService(AgentTransferPackageService):
 
     def get_file_list(self, data, common_data: AgentCommonData, host: models.Host) -> List[str]:
 
-        package_type = ("client", "proxy")[host.node_type == constants.NodeType.PROXY]
         download_path = common_data.host_id__ap_map[host.bk_host_id].nginx_path or settings.DOWNLOAD_PATH
-        agent_upgrade_package_name = f"gse_{package_type}-{host.os_type.lower()}-{host.cpu_arch}_upgrade.tgz"
+        agent_upgrade_package_name = self.get_agent_upgrade_pkg_name(host=host)
 
         file_names: List[str] = [agent_upgrade_package_name]
 
-        # Windows机器需要添加解压文件
+        # Windows 机器需要添加解压工具
         if host.os_type == constants.OsType.WINDOWS:
             file_names.extend(["7z.dll", "7z.exe"])
 

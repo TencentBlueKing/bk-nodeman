@@ -22,8 +22,12 @@ class AssertDataMixin:
     # None表示展示全量断言差异
     maxDiff = None
 
-    recursion_type = [dict, list]
-    exempted_fields = ["created_at", "updated_at"]
+    # 递归遍历类型
+    RECURSION_TYPE: List[type] = [dict, list]
+    # assertExemptDataStructure 断言豁免字段
+    EXEMPTED_FIELDS: List[str] = ["created_at", "updated_at"]
+    # 是否在 assertDictEqual 前先对列表进行排序
+    LIST_SORT: bool = False
 
     def remove_keys(self, data: Union[Dict, List], keys: List[str]) -> None:
         """
@@ -40,7 +44,7 @@ class AssertDataMixin:
         elif isinstance(data, list):
             children = data
         for child_data in children:
-            if type(child_data) in self.recursion_type:
+            if type(child_data) in self.RECURSION_TYPE:
                 self.remove_keys(child_data, keys)
         return
 
@@ -53,8 +57,8 @@ class AssertDataMixin:
         :param list_exempt: 是否豁免列表
         :return:
         """
-        self.remove_keys(actual_data, self.exempted_fields)
-        self.remove_keys(expected_data, self.exempted_fields)
+        self.remove_keys(actual_data, self.EXEMPTED_FIELDS)
+        self.remove_keys(expected_data, self.EXEMPTED_FIELDS)
         return self.assertDataStructure(actual_data, expected_data, value_eq, list_exempt, is_sort=False)
 
     def assertDataStructure(self, actual_data, expected_data, value_eq=True, list_exempt=False, is_sort=True):
@@ -101,6 +105,24 @@ class AssertDataMixin:
             list1.sort()
             list2.sort()
         super().assertListEqual(list1, list2, msg=msg)
+
+    def assertDictEqual(self, d1: Dict, d2: Dict, msg: Any = None) -> None:
+        def _sort_list_recursively(_data: Union[Dict, List]) -> Union[Dict, List]:
+            if isinstance(_data, dict) or isinstance(_data, list):
+                _iter_obj = _data.items() if isinstance(_data, dict) else enumerate(_data)
+                for _idx, _val in _iter_obj:
+                    if isinstance(_val, dict) or isinstance(_val, list):
+                        _data[_idx] = _sort_list_recursively(_val)
+
+            if isinstance(_data, list):
+                return sorted(_data)
+            return _data
+
+        if self.LIST_SORT:
+            _sort_list_recursively(d1)
+            _sort_list_recursively(d2)
+
+        super().assertDictEqual(d1, d2, msg=msg)
 
 
 class MockSuperUserMixin:

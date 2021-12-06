@@ -47,12 +47,6 @@ class AgentBaseService(BaseService, metaclass=abc.ABCMeta):
         # 主机ID - 接入点 映射关系
         # 引入背景：在聚合流程中，类似 host.agent_config, host.ap 的逻辑会引发 n + 1 DB查询问题
         host_id__ap_map: Dict[int, models.AccessPoint] = {}
-        # 订阅实例 - 主机ID 映射关系
-        sub_inst_id__host_id_map: Dict[int, int] = {}
-        
-        for sub_inst in common_data.subscription_instances:
-            if "bk_host_id" in sub_inst.instance_info["host"]:
-                sub_inst_id__host_id_map[sub_inst.id] = sub_inst.instance_info["host"]["bk_host_id"]
 
         for bk_host_id in common_data.bk_host_ids:
             host = common_data.host_id_obj_map[bk_host_id]
@@ -68,10 +62,10 @@ class AgentBaseService(BaseService, metaclass=abc.ABCMeta):
             subscription=common_data.subscription,
             subscription_instances=common_data.subscription_instances,
             subscription_instance_ids=common_data.subscription_instance_ids,
+            sub_inst_id__host_id_map=common_data.sub_inst_id__host_id_map,
             # Agent 新增的公共数据
             default_ap=default_ap,
             host_id__ap_map=host_id__ap_map,
-            sub_inst_id__host_id_map=sub_inst_id__host_id_map
         )
 
     @classmethod
@@ -106,18 +100,16 @@ class AgentCommonData(CommonData):
         subscription: models.Subscription,
         subscription_instances: List[models.SubscriptionInstanceRecord],
         subscription_instance_ids: Set[int],
+        sub_inst_id__host_id_map: Dict[int, int],
         # Agent 新增的公共数据
         default_ap: models.AccessPoint,
         host_id__ap_map: Dict[int, models.AccessPoint],
-        sub_inst_id__host_id_map: Dict[int, int],
     ):
 
         # 默认接入点
         self.default_ap = default_ap
         # 主机ID - 接入点 映射关系
         self.host_id__ap_map = host_id__ap_map
-        # 订阅实例 - 主机ID 映射关系
-        self.sub_inst_id__host_id_map = sub_inst_id__host_id_map
 
         super().__init__(
             bk_host_ids=bk_host_ids,
@@ -126,6 +118,7 @@ class AgentCommonData(CommonData):
             subscription=subscription,
             subscription_instances=subscription_instances,
             subscription_instance_ids=subscription_instance_ids,
+            sub_inst_id__host_id_map=sub_inst_id__host_id_map,
         )
 
 
