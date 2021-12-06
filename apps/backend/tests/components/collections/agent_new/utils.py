@@ -80,38 +80,24 @@ class SshManMockClient(utils.BaseMockClient):
         safe_close_return: Optional[utils.MockReturn] = None,
         ssh_return: Optional[utils.MockReturn] = None,
     ):
+        super().__init__()
         self.get_and_set_prompt = self.generate_magic_mock(mock_return_obj=get_and_set_prompt_return)
         self.send_cmd = self.generate_magic_mock(mock_return_obj=send_cmd_return_return)
         self.safe_close = self.generate_magic_mock(mock_return_obj=safe_close_return)
         self.ssh = self.generate_magic_mock(mock_return_obj=ssh_return)
 
 
-class JobMockClient(utils.BaseMockClient):
-    def __init__(
-        self,
-        fast_execute_script_return: Optional[utils.MockReturn] = None,
-    ):
-        self.fast_execute_script = self.generate_magic_mock(mock_return_obj=fast_execute_script_return)
-
-
-class RedisMockClient(utils.BaseMockClient):
-    def __init__(
-        self,
-        lpush_return: Optional[utils.MockReturn] = None,
-        llen_return: Optional[utils.MockReturn] = None,
-        ltrim_return: Optional[utils.MockReturn] = None,
-        lrange_return: Optional[utils.MockReturn] = None,
-    ):
-        self.lpush = self.generate_magic_mock(mock_return_obj=lpush_return)
-        self.llen = self.generate_magic_mock(mock_return_obj=llen_return)
-        self.ltrim = self.generate_magic_mock(mock_return_obj=ltrim_return)
-        self.lrange = self.generate_magic_mock(mock_return_obj=lrange_return)
-
-
 class AgentTestObjFactory:
-    # 如需创建数据，请通过深拷贝的方式复制
-    BASE_INSTANCE_HOST_INFO = copy.deepcopy(AGENT_INSTANCE_HOST_INFO)
-    RANDOM_BEGIN_HOST_ID = random.randint(int(1e2), int(1e5))
+
+    # 主机实例信息，如需创建数据，请通过深拷贝的方式复制
+    BASE_INSTANCE_HOST_INFO: Dict[str, Any] = copy.deepcopy(AGENT_INSTANCE_HOST_INFO)
+    # 随机生成的起始主机ID
+    RANDOM_BEGIN_HOST_ID: int = random.randint(int(1e2), int(1e5))
+
+    # 构造的主机数
+    init_host_num: Optional[int] = None
+    # 操作系统可选项
+    host_os_type_options: Optional[List[int]] = None
 
     sub_obj: Optional[models.Subscription] = None
     sub_task_obj: Optional[models.SubscriptionTask] = None
@@ -124,7 +110,8 @@ class AgentTestObjFactory:
     identity_data_objs: List[models.IdentityData] = []
 
     def __init__(self):
-        pass
+        self.init_host_num = 1
+        self.host_os_type_options = [constants.OsType.LINUX]
 
     @classmethod
     def bulk_create_model(cls, model: Type[Model], create_data_list: List[Dict]):
@@ -150,6 +137,12 @@ class AgentTestObjFactory:
         for index, host_data in enumerate(host_related_data_list):
             host_data.update(bk_host_id=cls.RANDOM_BEGIN_HOST_ID + index)
         return host_related_data_list
+
+    def fill_host_os_type(self, instance_host_info_list) -> List[Dict[str, Any]]:
+        for instance_host_info in instance_host_info_list:
+            os_type = random.choice(self.host_os_type_options)
+            instance_host_info.update(os_type=os_type, bk_os_type=constants.BK_OS_TYPE.get(os_type))
+        return instance_host_info_list
 
     @classmethod
     def structure_action(cls) -> Dict[str, str]:
@@ -233,8 +226,11 @@ class AgentTestObjFactory:
         构造Agent安装目标实例，如需修改测试样例，可以继承该类，覆盖该方法
         :return:
         """
-        instance_host_info_list = self.fill_mock_ip([copy.deepcopy(self.BASE_INSTANCE_HOST_INFO)])
-        return self.fill_mock_bk_host_id(instance_host_info_list)
+        instance_host_info_list = []
+        for __ in range(0, self.init_host_num):
+            instance_host_info = copy.deepcopy(self.BASE_INSTANCE_HOST_INFO)
+            instance_host_info_list.append(instance_host_info)
+        return self.fill_mock_ip(self.fill_host_os_type(self.fill_mock_bk_host_id(instance_host_info_list)))
 
     def structure_sub_data(self) -> Dict[str, Any]:
         base_sub_data = basic.remove_keys_from_dict(
@@ -408,6 +404,10 @@ class AgentTestObjFactory:
 
 
 class AgentServiceBaseTestCase(CustomAPITestCase, ComponentTestMixin, ABC):
+
+    # CustomAPITestCase
+    LIST_SORT = True
+
     # DEBUG = True 时，会打印原子执行日志，帮助定位问题和确认执行步骤是否准确
     # ⚠️ 注意：请仅在本地开发机上使用，最后提交时，上层原子测试该值必须为 False
     DEBUG: bool = False
@@ -422,6 +422,7 @@ class AgentServiceBaseTestCase(CustomAPITestCase, ComponentTestMixin, ABC):
     @classmethod
     def setUpClass(cls):
         cls.obj_factory = cls.OBJ_FACTORY_CLASS()
+        cls.setup_obj_factory()
 
         # 多线程会影响测试debug，全局mock多线程执行，改为串行
         for batch_call_mock_path in cls.BATCH_CALL_MOCK_PATHS:
@@ -444,6 +445,11 @@ class AgentServiceBaseTestCase(CustomAPITestCase, ComponentTestMixin, ABC):
                 pass
 
         super().setUpClass()
+
+    @classmethod
+    def setup_obj_factory(cls):
+        """设置 obj_factory"""
+        pass
 
     @classmethod
     def setUpTestData(cls):
@@ -550,7 +556,8 @@ class AgentServiceBaseTestCase(CustomAPITestCase, ComponentTestMixin, ABC):
             subscription_instance_record_id__in=self.common_inputs["subscription_instance_ids"]
         ).all()
         for sub_inst_status_detail_obj in sub_inst_status_detail_objs:
-            sub_inst_id__status_detail_obj_map[sub_inst_status_detail_obj.id] = sub_inst_status_detail_obj
+            sub_inst_id = sub_inst_status_detail_obj.subscription_instance_record_id
+            sub_inst_id__status_detail_obj_map[sub_inst_id] = sub_inst_status_detail_obj
 
         for sub_inst_obj in self.obj_factory.sub_inst_record_objs:
             print(f"sub_inst_id -> {sub_inst_obj.id} | ip -> {sub_inst_obj.instance_info['host']['bk_host_innerip']}")

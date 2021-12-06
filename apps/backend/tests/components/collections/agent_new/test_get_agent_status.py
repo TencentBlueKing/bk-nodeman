@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 
 import copy
-from typing import AnyStr, Dict, List, Optional
+from typing import Any, Dict, List
 
 import mock
 
@@ -28,11 +28,11 @@ from pipeline.component_framework.test import (
 
 from . import utils
 
-gse_mock_client: Optional[api_mkd.gse.unit.GseMockClient] = None
-gse_v2_mock_path: AnyStr = "apps.backend.components.collections.agent_new.get_agent_status.client_v2"
-
 
 class GetAgentStatusTestCase(utils.AgentServiceBaseTestCase):
+
+    GSE_V2_MOCK_PATH: str = "apps.backend.components.collections.agent_new.get_agent_status.client_v2"
+
     def init_mock_client(self):
         self.gse_mock_client = api_mkd.gse.unit.GseMockClient(
             get_agent_status_return=common_unit.gse.GET_AGENT_STATUS_DATA,
@@ -42,7 +42,7 @@ class GetAgentStatusTestCase(utils.AgentServiceBaseTestCase):
     @classmethod
     def init_db(cls):
         models.GlobalSettings.set_config(key="BATCH_SIZE", value=50)
-        proc_status_list: List[Dict[str, AnyStr]] = []
+        proc_status_list: List[Dict[str, str]] = []
         for host_id in cls.obj_factory.bk_host_ids:
             proc_status_list.append(
                 {
@@ -65,7 +65,7 @@ class GetAgentStatusTestCase(utils.AgentServiceBaseTestCase):
     def setUp(self) -> None:
         self.init_db()
         self.init_mock_client()
-        mock.patch(gse_v2_mock_path, self.gse_mock_client).start()
+        mock.patch(self.GSE_V2_MOCK_PATH, self.gse_mock_client).start()
         super().setUp()
 
     def cases(self):
@@ -97,7 +97,7 @@ class GetAbnormalAgentStatusTestCase(GetAgentStatusTestCase):
             get_agent_info_return=common_unit.gse.GET_AGENT_INFO_DATA,
         )
 
-    def fetch_outputs(self) -> Dict[AnyStr, List]:
+    def fetch_outputs(self) -> Dict[str, Any]:
         return {
             "unexpected_status_agents": self.obj_factory.bk_host_ids,
             "host_id_obj_map": {host_id: Host(bk_host_id=host_id) for host_id in self.obj_factory.bk_host_ids},
@@ -112,7 +112,7 @@ class GetAbnormalAgentStatusTestCase(GetAgentStatusTestCase):
     def setUp(self) -> None:
         super().setUp()
         self.init_mock_client()
-        mock.patch(gse_v2_mock_path, self.gse_mock_client).start()
+        mock.patch(self.GSE_V2_MOCK_PATH, self.gse_mock_client).start()
 
     def cases(self):
         return [

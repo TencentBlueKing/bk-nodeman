@@ -19,6 +19,7 @@ from apps.backend.agent.tools import gen_commands
 from apps.backend.components.collections.agent_new.components import InstallComponent
 from apps.backend.constants import REDIS_INSTALL_CALLBACK_KEY_TPL
 from apps.backend.utils.redis import REDIS_INST
+from apps.mock_data import api_mkd
 from apps.mock_data import utils as mock_data_utils
 from apps.node_man import constants, models
 from pipeline.component_framework.test import (
@@ -36,7 +37,6 @@ class InstallBaseTestCase(utils.AgentServiceBaseTestCase):
     NODE_TYPE = constants.NodeType.AGENT
     SSH_MAN_MOCK_PATH = "apps.backend.components.collections.agent_new.install.SshMan"
     JOB_API_MOCK_PATH = "apps.backend.components.collections.agent_new.install.JobApi"
-    REDIS_MOCK_PATH = "apps.backend.components.collections.agent_new.install.REDIS_INST"
     EXECUTE_CMD_MOCK_PATH = "apps.backend.components.collections.agent_new.install.execute_cmd"
     PUT_FILE_MOCK_PATH = "apps.backend.components.collections.agent_new.install.put_file"
 
@@ -56,7 +56,7 @@ class InstallBaseTestCase(utils.AgentServiceBaseTestCase):
                 return_type=mock_data_utils.MockReturnType.RETURN_VALUE.value, return_obj=""
             ),
         )
-        self.job_mock_client = utils.JobMockClient(
+        self.job_mock_client = api_mkd.job.utils.JobApiMockClient(
             fast_execute_script_return=mock_data_utils.MockReturn(
                 return_type=mock_data_utils.MockReturnType.RETURN_VALUE.value, return_obj={"job_instance_id": 1}
             ),
