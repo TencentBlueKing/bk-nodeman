@@ -70,7 +70,7 @@ class ApiConfig(AppConfig):
                 settings.APIGW_PUBLIC_KEY = api_public_key
                 # 获取到公钥之后回写数据库
                 GlobalSettings.objects.update_or_create(
-                    key=GlobalSettings.KeyEnum.APIGW_PUBLIC_KEY,
+                    key=GlobalSettings.KeyEnum.APIGW_PUBLIC_KEY.value,
                     defaults={"v_json": api_public_key},
                 )
                 logger.info("[ESB][JWT]get esb api public key success (from realtime api)")
