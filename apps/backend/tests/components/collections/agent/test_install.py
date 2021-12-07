@@ -84,7 +84,7 @@ class InstallLinuxAgentSuccessTest(TestCase, ComponentTestMixin):
             f" -r http://127.0.0.1/backend -l http://127.0.0.1/download"
             f" -c {token}"
             f' -O 48668 -E 58925 -A 58625 -V 58930 -B 10020 -S 60020 -Z 60030 -K 10030 -e "" -a "" -k ""'
-            f" -i 0 -I 127.0.0.1 -N SERVER -p /usr/local/gse -T /tmp/  &"
+            f" -i 0 -I 127.0.0.1 -N SERVER -p /usr/local/gse -T /tmp/ &"
         )
         self.assertEqual(installation_tool.run_cmd, run_cmd)
 
@@ -139,7 +139,7 @@ class InstallWindowsAgentSuccessTest(TestCase, ComponentTestMixin):
             f"C:\\tmp\\setup_agent.bat -s {utils.JOB_TASK_PIPELINE_ID}"
             f" -r http://127.0.0.1/backend -l http://127.0.0.1/download -c {token}"
             f' -O 48668 -E 58925 -A 58625 -V 58930 -B 10020 -S 60020 -Z 60030 -K 10030 -e "" -a "" -k ""'
-            f" -i 0 -I 127.0.0.1 -N SERVER -p c:\\gse -T C:\\tmp\\ "
+            f" -i 0 -I 127.0.0.1 -N SERVER -p c:\\gse -T C:\\tmp\\"
         )
         self.assertEqual(installation_tool.run_cmd, run_cmd)
 
@@ -150,6 +150,25 @@ class InstallWindowsAgentSuccessTest(TestCase, ComponentTestMixin):
         self.assertTrue(
             models.JobTask.objects.filter(bk_host_id=utils.BK_HOST_ID, current_step__endswith=DESCRIPTION).exists()
         )
+
+
+class InstallWindowsAgentWithEncryptedPasswordSuccessTest(InstallWindowsAgentSuccessTest):
+    def setUp(self):
+        super().setUp()
+        settings.REGISTER_WIN_SERVICE_WITH_PASS = True
+
+    def test_gen_win_command(self):
+        host = models.Host.objects.get(bk_host_id=utils.BK_HOST_ID)
+        installation_tool = gen_commands(host, utils.JOB_TASK_PIPELINE_ID, is_uninstall=False)
+        token = re.match(r"(.*) -c (.*?) -O", installation_tool.run_cmd).group(2)
+        run_cmd = (
+            f"C:\\tmp\\setup_agent.bat -s {utils.JOB_TASK_PIPELINE_ID}"
+            f" -r http://127.0.0.1/backend -l http://127.0.0.1/download -c {token}"
+            f' -O 48668 -E 58925 -A 58625 -V 58930 -B 10020 -S 60020 -Z 60030 -K 10030 -e "" -a "" -k ""'
+            f" -i 0 -I 127.0.0.1 -N SERVER -p c:\\gse -T C:\\tmp\\ -U root -P "
+        )
+        # RSA每次加密的结果都不一样，因此只要保证startswith即可
+        self.assertTrue(installation_tool.run_cmd.startswith(run_cmd))
 
 
 class InstallWindowsPasswordAuthOverdueTest(TestCase, ComponentTestMixin):
@@ -331,7 +350,7 @@ class InstallPAgentSuccessTest(TestCase, ComponentTestMixin):
             f" -HOT linux -HDD '/tmp/'"
             f" -HPP '17981' -HSN 'setup_agent.sh' -HS 'bash'"
             f" -p '/usr/local/gse' -I 1.1.1.1"
-            f" -o http://1.1.1.1:{settings.BK_NODEMAN_NGINX_DOWNLOAD_PORT}/ "
+            f" -o http://1.1.1.1:{settings.BK_NODEMAN_NGINX_DOWNLOAD_PORT}/"
         )
         self.assertEqual(installation_tool.run_cmd, run_cmd)
 
@@ -532,7 +551,7 @@ class InstallAgentWithInstallChannelSuccessTest(TestCase, ComponentTestMixin):
             f" -HOT linux -HDD '/tmp/'"
             f" -HPP '17981' -HSN 'setup_agent.sh' -HS 'bash'"
             f" -p '/usr/local/gse' -I 1.1.1.1"
-            f" -o http://1.1.1.1:{settings.BK_NODEMAN_NGINX_DOWNLOAD_PORT}/ "
+            f" -o http://1.1.1.1:{settings.BK_NODEMAN_NGINX_DOWNLOAD_PORT}/"
             f" -ADP 'True' -CPA 'http://127.0.0.1:17981'"
         )
         self.assertEqual(installation_tool.run_cmd, run_cmd)
@@ -545,3 +564,27 @@ class InstallAgentWithInstallChannelSuccessTest(TestCase, ComponentTestMixin):
             models.JobTask.objects.filter(bk_host_id=utils.BK_HOST_ID, current_step__endswith=DESCRIPTION).exists()
         )
         self.job_client_v2.stop()
+
+
+class InstallWindowsPAgentWithEncryptedPasswordSuccessTest(InstallPAgentSuccessTest):
+    def setUp(self):
+        super().setUp()
+        settings.REGISTER_WIN_SERVICE_WITH_PASS = True
+        models.Host.objects.filter(bk_host_id=utils.BK_HOST_ID).update(os_type=constants.OsType.WINDOWS)
+
+    def test_gen_pagent_command(self):
+        host = models.Host.objects.get(bk_host_id=utils.BK_HOST_ID)
+        installation_tool = gen_commands(host, utils.JOB_TASK_PIPELINE_ID, is_uninstall=False)
+        token = re.match(r"(.*) -c (.*?) -O", installation_tool.run_cmd).group(2)
+        run_cmd = (
+            f"-s {utils.JOB_TASK_PIPELINE_ID} -r http://127.0.0.1/backend -l http://127.0.0.1/download"
+            f" -c {token}"
+            f" -O 48668 -E 58925 -A 58625 -V 58930 -B 10020 -S 60020 -Z 60030 -K 10030"
+            f' -e "1.1.1.1" -a "1.1.1.1" -k "1.1.1.1" -L /data/bkee/public/bknodeman/download'
+            f" -HLIP 127.0.0.1 -HIIP 127.0.0.1 -HA root -HP 22 -HI 'aes_str:::H4MFaqax' -HC 0 -HNT PAGENT"
+            f" -HOT windows -HDD 'C:\\tmp\\'"
+            f" -HPP '17981' -HSN 'setup_agent.bat' -HS 'bash'"
+            f" -p 'c:\\gse' -I 1.1.1.1"
+            f" -o http://1.1.1.1:{settings.BK_NODEMAN_NGINX_DOWNLOAD_PORT}/ -HEP"
+        )
+        self.assertTrue(installation_tool.run_cmd.startswith(run_cmd))

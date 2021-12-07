@@ -97,3 +97,8 @@ class ApiConfig(AppConfig):
             key=GlobalSettings.KeyEnum.CONFIG_POLICY_BY_TENCENT_VPC.value, defaults=dict(v_json=False)
         )
         settings.CONFIG_POLICY_BY_TENCENT_VPC = obj.v_json
+
+        obj, created = GlobalSettings.objects.get_or_create(
+            key=GlobalSettings.KeyEnum.REGISTER_WIN_SERVICE_WITH_PASS.value, defaults=dict(v_json=False)
+        )
+        settings.REGISTER_WIN_SERVICE_WITH_PASS = obj.v_json
