@@ -1,0 +1,3 @@
+---
+feature:
+  - "Windows Agent安装支持用administrator用户注册服务(close #277)"
