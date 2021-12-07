@@ -10,9 +10,12 @@ specific language governing permissions and limitations under the License.
 """
 
 import base64
+from enum import Enum
+from functools import wraps
 from typing import Any, List, Optional, Tuple, Union
 
 from Cryptodome import Util
+from Cryptodome.Cipher import PKCS1_OAEP
 from Cryptodome.Cipher import PKCS1_v1_5 as PKCS1_v1_5_cipher
 from Cryptodome.Hash import SHA1
 from Cryptodome.PublicKey import RSA
@@ -20,6 +23,39 @@ from Cryptodome.Signature import PKCS1_v1_5
 
 # 默认编码
 ENCODING = "utf-8"
+
+
+class CipherPadding(Enum):
+    """填充标志"""
+
+    PKCS1 = "PKCS1"
+    PKCS1_OAEP = "PKCS1_OAEP"
+
+
+class KeyObjType(Enum):
+    """密钥对象类型"""
+
+    PRIVATE_KEY_OBJ = "private_key_obj"
+    PUBLIC_KEY_OBJ = "public_key_obj"
+
+
+def key_obj_checker(key_obj_type: str):
+    """
+    密钥对象检查器
+    :param key_obj_type: KeyObjType
+    :return:
+    """
+
+    def decorate(func):
+        @wraps(func)
+        def wrapper(self, *args, **kwargs):
+            if not getattr(self, key_obj_type):
+                raise ValueError(f"{key_obj_type} must be set if you want to call {func.__name__}")
+            return func(self, *args, **kwargs)
+
+        return wrapper
+
+    return decorate
 
 
 def generate_keys() -> Tuple[str, str]:
@@ -39,11 +75,13 @@ def generate_keys() -> Tuple[str, str]:
 
 
 class RSAUtil:
-    public_key_obj: RSA.RsaKey = None
-    private_key_obj: RSA.RsaKey = None
+    public_key_obj: Optional[RSA.RsaKey] = None
+    private_key_obj: Optional[RSA.RsaKey] = None
 
     @staticmethod
-    def load_key(extern_key: Optional[Union[str, bytes]] = None, extern_key_file: Optional[str] = None) -> RSA.RsaKey:
+    def load_key(
+        extern_key: Optional[Union[str, bytes]] = None, extern_key_file: Optional[str] = None
+    ) -> Optional[RSA.RsaKey]:
         """
         导入rsa密钥
         :param extern_key: 密钥内容
@@ -51,7 +89,7 @@ class RSAUtil:
         :return:
         """
         if not (extern_key or extern_key_file):
-            raise ValueError("key or key_file need to provide at least one.")
+            return None
 
         if extern_key_file:
             try:
@@ -93,10 +131,16 @@ class RSAUtil:
         private_extern_key: Optional[Union[str, bytes]] = None,
         public_extern_key_file: Optional[str] = None,
         private_extern_key_file: Optional[str] = None,
+        padding: str = CipherPadding.PKCS1.value,
     ):
         self.public_key_obj = self.load_key(public_extern_key, public_extern_key_file)
         self.private_key_obj = self.load_key(private_extern_key, private_extern_key_file)
+        if padding == CipherPadding.PKCS1_OAEP.value:
+            self.cipher_method = PKCS1_OAEP
+        else:
+            self.cipher_method = PKCS1_v1_5_cipher
 
+    @key_obj_checker(KeyObjType.PUBLIC_KEY_OBJ.value)
     def encrypt(self, message: str) -> str:
         """
         加密
@@ -106,12 +150,13 @@ class RSAUtil:
         message_bytes = message.encode(encoding=ENCODING)
         encrypt_message_bytes = b""
         block_size = self.get_block_size(self.public_key_obj)
-        cipher = PKCS1_v1_5_cipher.new(self.public_key_obj)
+        cipher = self.cipher_method.new(self.public_key_obj)
         for block in self.block_list(message_bytes, block_size):
             encrypt_message_bytes += cipher.encrypt(block)
         encrypt_message = base64.b64encode(encrypt_message_bytes)
         return encrypt_message.decode(encoding=ENCODING)
 
+    @key_obj_checker(KeyObjType.PRIVATE_KEY_OBJ.value)
     def decrypt(self, encrypt_message: str) -> str:
         """
         解密
@@ -121,11 +166,12 @@ class RSAUtil:
         decrypt_message_bytes = b""
         encrypt_message_bytes = base64.b64decode(encrypt_message)
         block_size = self.get_block_size(self.private_key_obj, is_encrypt=False)
-        cipher = PKCS1_v1_5_cipher.new(self.private_key_obj)
+        cipher = self.cipher_method.new(self.private_key_obj)
         for block in self.block_list(encrypt_message_bytes, block_size):
             decrypt_message_bytes += cipher.decrypt(block, "")
         return decrypt_message_bytes.decode(encoding=ENCODING)
 
+    @key_obj_checker(KeyObjType.PRIVATE_KEY_OBJ.value)
     def sign(self, message: str) -> bytes:
         """
         根据私钥和需要发送的信息生成签名
@@ -137,6 +183,7 @@ class RSAUtil:
         signature = cipher.sign(sha)
         return base64.b64encode(signature)
 
+    @key_obj_checker(KeyObjType.PUBLIC_KEY_OBJ.value)
     def verify(self, message: str, signature: bytes):
         """
         使用公钥验证签名

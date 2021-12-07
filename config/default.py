@@ -405,6 +405,9 @@ UPLOAD_PATH = os.path.join(PUBLIC_PATH, "upload")
 # 下载文件路径
 EXPORT_PATH = os.path.join(PUBLIC_PATH, "export")
 
+# 脚本工具存放位置
+BK_SCRIPTS_PATH = os.path.join(PROJECT_ROOT, "script_tools")
+
 # ==============================================================================
 # 后台配置
 # ==============================================================================
@@ -509,7 +512,6 @@ if BK_BACKEND_CONFIG:
         }
     }
     BK_OFFICIAL_PLUGINS_INIT_PATH = os.path.join(PROJECT_ROOT, "official_plugin")
-    BK_SCRIPTS_PATH = os.path.join(PROJECT_ROOT, "script_tools")
     REST_FRAMEWORK["DEFAULT_AUTHENTICATION_CLASSES"] = [
         "apps.utils.drf.CsrfExemptSessionAuthentication",
     ]

@@ -8,7 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-
+import os
 import re
 import time
 from pathlib import Path
@@ -22,6 +22,7 @@ from apps.backend.exceptions import GenCommandsError
 from apps.node_man import constants, models
 from apps.node_man.models import aes_cipher
 from apps.utils.basic import suffix_slash
+from apps.utils.encrypt import rsa
 
 
 class InstallationTools:
@@ -29,7 +30,7 @@ class InstallationTools:
         self,
         script_file_name: str,
         dest_dir: str,
-        win_commands: str,
+        win_commands: List[str],
         upstream_nodes: List[str],
         jump_server: models.Host,
         pre_commands: List[str],
@@ -139,7 +140,7 @@ def gen_commands(host: models.Host, pipeline_id: str, is_uninstall: bool) -> Ins
              proxy 云区域所使用的代理, pre_commands 安装前命令, run_cmd 安装命令
     """
     proxies = []
-    win_commands = []
+    encrypted_password = ""
     (
         jump_server,
         bt_file_servers,
@@ -172,6 +173,15 @@ def gen_commands(host: models.Host, pipeline_id: str, is_uninstall: bool) -> Ins
         f'-a "{data_servers}"',
         f'-k "{task_servers}"',
     ]
+
+    # 系统开启使用密码注册windows服务时，需额外传入用户名和加密密码参数，用于注册windows服务，详见setup_agent.bat脚本
+    need_encrypted_password = settings.REGISTER_WIN_SERVICE_WITH_PASS and host.os_type == constants.OsType.WINDOWS
+    if need_encrypted_password:
+        # 系统开启使用密码注册windows服务时，需额外传入 -U -P参数，用于注册windows服务，详见setup_agent.bat脚本
+        encrypted_password = rsa.RSAUtil(
+            public_extern_key_file=os.path.join(settings.BK_SCRIPTS_PATH, "gse_public_key"),
+            padding=rsa.CipherPadding.PKCS1_OAEP.value,
+        ).encrypt(host.identity.password)
 
     check_run_commands(run_cmd_params)
     script_file_name = choose_script_file(host)
@@ -208,14 +218,10 @@ def gen_commands(host: models.Host, pipeline_id: str, is_uninstall: bool) -> Ins
                 f"-HPP '{settings.BK_NODEMAN_NGINX_PROXY_PASS_PORT}'",
                 f"-HSN '{constants.SCRIPT_FILE_NAME_MAP[host.os_type]}'",
                 f"-HS '{host_shell}'",
-            ]
-        )
-
-        run_cmd_params.extend(
-            [
                 f"-p '{install_path}'",
                 f"-I {jump_server.inner_ip}",
                 f"-o {gen_nginx_download_url(jump_server.inner_ip)}",
+                f"-HEP '{encrypted_password}'" if need_encrypted_password else "",
                 "-R" if is_uninstall else "",
             ]
         )
@@ -231,7 +237,7 @@ def gen_commands(host: models.Host, pipeline_id: str, is_uninstall: bool) -> Ins
             if channel_proxy_address:
                 run_cmd_params.extend([f"-CPA '{channel_proxy_address}'"])
 
-        run_cmd = " ".join(run_cmd_params)
+        run_cmd = " ".join(list(filter(None, run_cmd_params)))
 
         download_cmd = (
             f"if [ ! -e {dest_dir}{script_file_name} ] || "
@@ -251,20 +257,17 @@ def gen_commands(host: models.Host, pipeline_id: str, is_uninstall: bool) -> Ins
                 "-R" if is_uninstall else "",
             ]
         )
-
-        run_cmd = format_run_cmd_by_os_type(host.os_type, f"{dest_dir}{script_file_name} {' '.join(run_cmd_params)}")
-        if host.os_type == constants.OsType.WINDOWS:
-            # WINDOWS 下的 Agent 安装
-            win_remove_cmd = (
-                f"del /q /s /f {dest_dir}{script_file_name} "
-                f"{dest_dir}{constants.SetupScriptFileName.GSECTL_BAT.value}"
-            )
-            win_download_cmd = (
-                f"{dest_dir}curl.exe {host.ap.package_inner_url}/{script_file_name}"
-                f" -o {dest_dir}{script_file_name} -sSf"
+        if need_encrypted_password:
+            run_cmd_params.extend(
+                [
+                    f"-U {host.identity.account}",
+                    f'-P "{encrypted_password}"',
+                ]
             )
 
-            win_commands = [win_remove_cmd, win_download_cmd, run_cmd]
+        run_cmd = format_run_cmd_by_os_type(
+            host.os_type, f"{dest_dir}{script_file_name} {' '.join(list(filter(None, run_cmd_params)))}"
+        )
         download_cmd = f"curl {package_url}/{script_file_name} -o {dest_dir}{script_file_name} --connect-timeout 5 -sSf"
     chmod_cmd = f"chmod +x {dest_dir}{script_file_name}"
     pre_commands = [
@@ -275,7 +278,16 @@ def gen_commands(host: models.Host, pipeline_id: str, is_uninstall: bool) -> Ins
         pre_commands.insert(0, f"mkdir -p {dest_dir}")
 
     return InstallationTools(
-        script_file_name, dest_dir, win_commands, upstream_nodes, jump_server, pre_commands, run_cmd
+        script_file_name,
+        dest_dir,
+        [
+            f"{dest_dir}curl.exe {host.ap.package_inner_url}/{script_file_name} -o {dest_dir}{script_file_name} -sSf",
+            run_cmd,
+        ],
+        upstream_nodes,
+        jump_server,
+        pre_commands,
+        run_cmd,
     )
 
 

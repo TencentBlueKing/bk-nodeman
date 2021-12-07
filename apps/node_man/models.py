@@ -81,6 +81,7 @@ class GlobalSettings(models.Model):
         """枚举全局配置KEY，避免散落在各处难以维护"""
 
         USE_TJJ = "USE_TJJ"  # 是否启用TJJ
+        REGISTER_WIN_SERVICE_WITH_PASS = "REGISTER_WIN_SERVICE_WITH_PASS"  # 是否使用密码注册windows服务
         CONFIG_POLICY_BY_SOPS = "CONFIG_POLICY_BY_SOPS"  # 是否使用标准运维自动开通网络策略
         CONFIG_POLICY_BY_TENCENT_VPC = "CONFIG_POLICY_BY_TENCENT_VPC"  # 是否使用腾讯云SDK自动开通网络策略
         APIGW_PUBLIC_KEY = "APIGW_PUBLIC_KEY"  # APIGW公钥，从PaaS接口获取或直接配到settings中

@@ -31,3 +31,6 @@ class RsaTestCase(testcase.CustomBaseTestCase):
         message = "验证私钥签名，如果验证结果为True，表明该消息从私钥拥有方发出，没有被修改"
         signature = rsa_util.sign(message=message)
         self.assertTrue(rsa_util.verify(message=message, signature=signature))
+
+    def test_key_obj_check_failed(self):
+        self.assertRaises(ValueError, rsa.RSAUtil().encrypt, "test")
