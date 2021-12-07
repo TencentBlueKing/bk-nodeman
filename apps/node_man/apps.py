@@ -105,3 +105,8 @@ class ApiConfig(AppConfig):
             ),
         )
         settings.HEAD_PLUGINS = obj.v_json
+
+        obj, created = GlobalSettings.objects.get_or_create(
+            key=GlobalSettings.KeyEnum.REGISTER_WIN_SERVICE_WITH_PASS.value, defaults=dict(v_json=False)
+        )
+        settings.REGISTER_WIN_SERVICE_WITH_PASS = obj.v_json

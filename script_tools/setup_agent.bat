@@ -35,13 +35,21 @@ if "%1" EQU "-B" (set BT_PORT=%~2) && shift && shift && goto CheckOpts
 if "%1" EQU "-S" (set BT_PORT_START=%~2) && shift && shift && goto CheckOpts
 if "%1" EQU "-Z" (set BT_PORT_END=%~2) && shift && shift && goto CheckOpts
 if "%1" EQU "-K" (set TRACKER_PORT=%~2) && shift && shift && goto CheckOpts
+if "%1" EQU "-U" (set INSTALL_USER=%~2) && shift && shift && goto CheckOpts
+if "%1" EQU "-P" (set INSTALL_PASSWORD=%~2) && shift && shift && goto CheckOpts
 if "%1" NEQ "" echo Invalid option: "%1" && goto :EOF && exit /B 1
 
 if not defined UPSTREAM_TYPE (set UPSTREAM_TYPE=SERVER) else (set UPSTREAM_TYPE=%UPSTREAM_TYPE%)
 if not defined HTTP_PROXY (set HTTP_PROXY=) else (set HTTP_PROXY=%HTTP_PROXY%)
+if not defined INSTALL_USER (set INSTALL_USER=) else (set INSTALL_USER=%INSTALL_USER%)
+if not defined INSTALL_PASSWORD (set INSTALL_PASSWORD=) else (set INSTALL_PASSWORD=%INSTALL_PASSWORD%)
 if "%PROCESSOR_ARCHITECTURE%" == "x86" (set PKG_NAME=gse_client-windows-x86.tgz) else (set PKG_NAME=gse_client-windows-x86_64.tgz)
 if "%PROCESSOR_ARCHITECTURE%" == "x86" (set CPU_ARCH=x86) else (set CPU_ARCH=x86_64)
 if "%CLOUD_ID%" == "0" (set NODE_TYPE=agent) else (set NODE_TYPE=pagent)
+set gse_winagent_home=%AGENT_SETUP_PATH%
+set service_id=%gse_winagent_home:~3,20%
+if %service_id%=="gse" (set _service_id=) else (set _service_id=_%service_id%)
+set gse_winagent_home=%gse_winagent_home:\=\\%
 
 set report_line_num=3
 set tmp_json_resp=%TMP_DIR%\nm.setup_agent.bat.%TASK_ID%
@@ -347,18 +355,6 @@ goto :EOF
     )
 goto :EOF
 
-:start_agent
-    if exist %AGENT_SETUP_PATH% (
-        cd /d %AGENT_SETUP_PATH%\agent\bin && .\gsectl start 1>nul 2>&1
-        ping -n 3 127.0.0.1 1>nul 2>&1
-        cd /d %TMP_DIR%
-        call :is_process_start_ok
-    ) else (
-        call :print FAIL start_agent FAILED "%AGENT_SETUP_PATH% not exist , ERROR"
-        call :multi_report_step_status
-    )
-goto :EOF
-
 :stop_agent
     if exist %AGENT_SETUP_PATH% (
         cd /d %AGENT_SETUP_PATH%\agent\bin && .\gsectl stop 1>nul 2>&1
@@ -457,8 +453,10 @@ goto :EOF
     if not exist %GSE_AGENT_DATA_DIR% (md %GSE_AGENT_DATA_DIR%)
     if not exist %GSE_AGENT_LOG_DIR% (md %GSE_AGENT_LOG_DIR%)
 
-    call :start_agent
+    call :quit_legacy_agent
+    call :install_gse_agent_service_with_user_special
     ping -n 3 127.0.0.1 >nul 2>&1
+
     call :print INFO setup_agent DONE "agent setup successfully"
 goto :EOF
 
@@ -668,7 +666,7 @@ goto :EOF
 
     for /f "tokens=1* delims=:" %%i in ('type %tmp_check_deploy_result_files% ^|findstr /n "."') do (set ret=%%i)
     echo %ret% ---------------------------------------------------------------------------------------------------------------------Final
-    if %ret% GEQ 4 (
+    if %ret% GEQ 2 (
         rem DEL /F /S /Q %tmp_json_resp% %TMP_DIR%\nm.setup_agent.bat.%TASK_ID% %TMP_DIR%\nm.test.XXXXXXXX %TMP_DIR%\nm.test.ZZZZZZZ
         call :print INFO check_deploy_result DONE "gse agent has been deployed successfully"
         rem call :multi_report_step_status
@@ -835,6 +833,35 @@ goto :EOF
             if %errorlevel% equ 1 (goto :EOF)
         )
     )
+goto :EOF
+
+:install_gse_agent_service_with_user_special
+    if %INSTALL_USER% == "" (
+        %gse_winagent_home%\\agent\\bin\\gse_agent_daemon.exe -f %gse_winagent_home%\\agent\\etc\\agent.conf --name gse_agent_daemon_%service_id%
+        if %errorlevel% equ 0 (
+            call :print INFO setup_agent DONE "create gse_agent service without special user succeed"
+        ) else (
+            call :print FAIL setup_agent DONE "create gse_agent service without special user failed"
+        )
+    ) else (
+        %gse_winagent_home%\\agent\\bin\\gse_agent_daemon.exe -f %gse_winagent_home%\\agent\\etc\\agent.conf --name gse_agent_daemon_%service_id% --user .\\%INSTALL_USER% --pwd %INSTALL_PASSWORD% --encode
+        if %errorlevel% equ 0 (
+            call :print INFO setup_agent DONE "create gse_agent service with special user: %INSTALL_USER%, pwd: %INSTALL_PASSWORD% succeed"
+        ) else (
+            call :print FAIL setup_agent DONE "create gse_agent service with special user %INSTALL_USER% failed"
+        )
+    )
+    %gse_winagent_home%\\agent\\bin\\gse_agent_daemon.exe --start --name gse_agent_daemon_%service_id%
+goto :EOF
+
+:quit_legacy_agent
+    rem 兼容性处理，停用并删除老版本agent
+    sc stop gse_agent_daemon_%service_id%
+    sc delete gse_agent_daemon_%service_id%
+    sc stop gseDaemon
+    sc delete gseDaemon
+    cd C:
+    RD /S /Q  C:\gse\gseagentw
 goto :EOF
 
 :help
