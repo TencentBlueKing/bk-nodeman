@@ -17,7 +17,7 @@ from typing import List
 from django.utils.translation import ugettext as _
 
 from apps.backend.api.constants import OS
-from apps.backend.components.collections import bulk_job_redis, plugin
+from apps.backend.components.collections import plugin
 from apps.backend.utils.pipeline_parser import PipelineParser as CustomPipelineParser
 from apps.backend.utils.pipeline_parser import parse_pipeline
 from apps.node_man import constants
@@ -91,11 +91,6 @@ class PluginManager(object):
 
     def uninstall_package(self):
         act = PluginServiceActivity(component_code=plugin.UnInstallPackageComponent.code, name=_("卸载插件包"))
-        return act
-
-    def bulk_deploy_redis(self):
-        act = PluginServiceActivity(component_code=bulk_job_redis.JobBulkPushFileV2Component.code, name=_("批量下发插件包"))
-
         return act
 
     def reset_retry_times(self):

@@ -8,26 +8,36 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from typing import Optional, Type
 from unittest.mock import patch
 
-from django.test import TestCase
-
 from apps.backend.agent.tasks import collect_log
-from apps.backend.tests.components.collections.agent.utils import (
-    BK_HOST_ID,
-    AgentTestObjFactory,
-    SshManMockClient,
-)
+from apps.backend.tests.components.collections.agent_new import utils
+from apps.utils.unittest.testcase import CustomBaseTestCase
 from pipeline.log.models import LogEntry
 
 
-class Collectlog(TestCase):
-    def setUp(self):
-        AgentTestObjFactory.init_db()
+class CollectLogTestCase(CustomBaseTestCase):
 
-    @patch("apps.backend.agent.tasks.SshMan", SshManMockClient)
+    OBJ_FACTORY_CLASS: Type[utils.AgentTestObjFactory] = utils.AgentTestObjFactory
+
+    obj_factory: Optional[utils.AgentTestObjFactory] = None
+
+    @classmethod
+    def setUpClass(cls):
+        cls.obj_factory = cls.OBJ_FACTORY_CLASS()
+        super().setUpClass()
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.obj_factory.init_db()
+        super().setUpTestData()
+
+    @patch("apps.backend.agent.tasks.SshMan", utils.SshManMockClient)
     def test_collect_log(self):
-        NODE_ID = "node_id"
-        collect_log(BK_HOST_ID, NODE_ID)
-        log_result = list(LogEntry.objects.all().values_list(NODE_ID, flat=True))
-        self.assertEqual(set(log_result), {NODE_ID})
+        node_id = "node_id"
+
+        for host in self.obj_factory.host_objs:
+            collect_log(host.bk_host_id, node_id)
+            log_result = list(LogEntry.objects.all().values_list(node_id, flat=True))
+            self.assertEqual(set(log_result), {node_id})

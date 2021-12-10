@@ -11,7 +11,6 @@ specific language governing permissions and limitations under the License.
 from unittest.mock import patch
 
 from apps.backend.components.collections.plugin import TransferPackageComponent
-from apps.backend.tests.components.collections.job import utils as job_utils
 from apps.backend.tests.components.collections.plugin import utils
 from apps.utils.unittest.testcase import CustomBaseTestCase
 from pipeline.component_framework.test import (
@@ -42,7 +41,7 @@ class TransferPackageTest(CustomBaseTestCase, ComponentTestMixin):
 
         patch(utils.JOB_JOBAPI, utils.JobMockClient).start()
         patch(utils.PLUGIN_CLIENT_MOCK_PATH, utils.JobMockClient).start()
-        patch(job_utils.CORE_FILES_JOB_API_PATH, utils.JobMockClient).start()
+        patch("apps.core.files.base.JobApi", utils.JobMockClient).start()
 
     def component_cls(self):
         return TransferPackageComponent
