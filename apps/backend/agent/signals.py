@@ -10,24 +10,19 @@ specific language governing permissions and limitations under the License.
 """
 from django.dispatch import receiver
 
-from apps.backend.subscription.tools import update_job_status
-from apps.node_man import constants, models
 from pipeline.engine.signals import activity_failed, pipeline_end, pipeline_revoke
 
 
 @receiver(pipeline_end)
 def pipeline_end_handler(sender, root_pipeline_id, **kwargs):
-    update_job_status(root_pipeline_id, False)
-    models.JobTask.objects.filter(pipeline_id=root_pipeline_id).update(status=constants.JobStatusType.SUCCESS)
+    pass
 
 
 @receiver(activity_failed)
 def activity_failed_handler(pipeline_id, *args, **kwargs):
-    update_job_status(pipeline_id, False)
-    models.JobTask.objects.filter(pipeline_id=pipeline_id).update(status=constants.JobStatusType.FAILED)
+    pass
 
 
 @receiver(pipeline_revoke)
 def pipeline_revoke_handler(sender, root_pipeline_id, **kwargs):
-    update_job_status(root_pipeline_id)
-    models.JobTask.objects.filter(pipeline_id=root_pipeline_id).update(status=constants.JobStatusType.FAILED)
+    pass

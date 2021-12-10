@@ -35,7 +35,6 @@ class JobBaseTestCase(utils.AgentServiceBaseTestCase, ABC):
     JOB_API_MOCK_PATHS = [
         "apps.core.files.base.JobApi",
         "apps.backend.components.collections.job.JobApi",
-        "apps.backend.components.collections.agent_new.base.JobApi",
     ]
 
     job_api_mock_client: Optional[api_mkd.job.utils.JobApiMockClient] = None

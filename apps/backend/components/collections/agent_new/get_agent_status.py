@@ -8,7 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-
 from collections import defaultdict
 from typing import Any, Dict, List
 
@@ -149,7 +148,8 @@ class GetAgentStatusService(AgentBaseService):
 
         inst_ids = [host_id_to_inst_id_map[host_id] for host_id in host_ids]
         agent_host = [
-            {"ip": host_id_obj_map[host_id], "bk_cloud_id": host_id_obj_map[host_id].bk_host_id} for host_id in host_ids
+            {"ip": host_id_obj_map[host_id].inner_ip, "bk_cloud_id": host_id_obj_map[host_id].bk_cloud_id}
+            for host_id in host_ids
         ]
 
         for host_id in host_ids:

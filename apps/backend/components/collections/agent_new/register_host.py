@@ -9,10 +9,10 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import base64
+import json
 from collections import ChainMap, defaultdict
 from typing import Any, Callable, Dict, Iterable, List, Optional, Set
 
-import ujson as json
 from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
@@ -88,8 +88,8 @@ class RegisterHostService(AgentBaseService):
             "host_property_filter": {
                 "condition": "AND",
                 "rules": [
-                    {"field": "bk_cloud_id", "operator": "in", "value": bk_cloud_ids},
-                    {"field": "bk_host_innerip", "operator": "in", "value": bk_host_innerips},
+                    {"field": "bk_cloud_id", "operator": "in", "value": list(bk_cloud_ids)},
+                    {"field": "bk_host_innerip", "operator": "in", "value": list(bk_host_innerips)},
                 ],
             },
         }
