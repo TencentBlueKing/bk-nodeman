@@ -16,10 +16,10 @@ from django.conf import settings
 
 from apps.node_man import constants, models
 
-from .base import AgentCommonData, AgentTransferPackageService
+from .base import AgentCommonData, AgentTransferFileService
 
 
-class PushUpgradePackageService(AgentTransferPackageService):
+class PushUpgradeFileService(AgentTransferFileService):
     def get_file_target_path(self, data, common_data: AgentCommonData, host: models.Host) -> str:
         return common_data.host_id__ap_map[host.bk_host_id].get_agent_config(host.os_type)["temp_path"]
 

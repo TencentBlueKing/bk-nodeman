@@ -13,6 +13,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from apps.node_man import constants, models
 from apps.node_man.handlers.password import DefaultPasswordHandler
+from pipeline.core.flow import Service
 
 from .base import AgentBaseService, AgentCommonData
 
@@ -22,10 +23,10 @@ class QueryPasswordService(AgentBaseService):
     查询主机密码，可根据实际场景自行定义密码库查询处理器
     """
 
-    name = _("查询主机密码")
-
-    def __init__(self):
-        super().__init__(name=self.name)
+    def inputs_format(self):
+        return super().inputs_format() + [
+            Service.InputItem(name="creator", key="creator", type="str", required=True),
+        ]
 
     def _execute(self, data, parent_data, common_data: AgentCommonData):
         creator = data.get_one_of_inputs("creator")

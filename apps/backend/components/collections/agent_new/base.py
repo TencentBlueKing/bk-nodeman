@@ -11,14 +11,12 @@ specific language governing permissions and limitations under the License.
 
 import abc
 from functools import wraps
-from typing import Any, Dict, List, Set, Union
+from typing import Dict, List, Set, Union
 
-from apps.backend.api.job import process_parms
 from apps.node_man import constants, models
-from common.api import JobApi
 
+from .. import job
 from ..base import BaseService, CommonData
-from ..job import JobV3BaseService
 
 
 class AgentBaseService(BaseService, metaclass=abc.ABCMeta):
@@ -134,199 +132,16 @@ def batch_call_single_exception_handler(single_func):
     return wrapper
 
 
-class AgentExecuteScriptService(JobV3BaseService, AgentBaseService, metaclass=abc.ABCMeta):
-
-    PRINT_PARAMS_TO_LOG = True
-
-    @property
-    def script_name(self):
-        """
-        插件需要执行的脚本文件名称，由子类继承定义
-        """
-        raise NotImplementedError()
-
-    def _execute(self, data, parent_data, common_data: AgentCommonData):
-
-        timeout = data.get_one_of_inputs("timeout")
-        # 批量请求作业平台的参数
-        multi_job_params_map: Dict[str, Dict[str, Any]] = {}
-        for sub_inst in common_data.subscription_instances:
-            bk_host_id = sub_inst.instance_info["host"]["bk_host_id"]
-            host_obj = common_data.host_id_obj_map[bk_host_id]
-            script_param = self.get_script_param(data=data, common_data=common_data, host=host_obj)
-            script_content = self.get_script_content(data=data, common_data=common_data, host=host_obj)
-
-            # script_content 和 script_param md5一样的则认为是同样的脚本操作，合并到一个作业中，提高执行效率
-            script_content_md5 = self.get_md5(script_content)
-            script_param_md5 = self.get_md5(script_param)
-            md5_key = f"{script_content_md5}-{script_param_md5}"
-
-            if md5_key in multi_job_params_map:
-                multi_job_params_map[md5_key]["subscription_instance_id"].append(sub_inst.id)
-                multi_job_params_map[md5_key]["job_params"]["target_server"]["ip_list"].append(
-                    {"bk_cloud_id": host_obj.bk_cloud_id, "ip": host_obj.inner_ip}
-                )
-            else:
-                multi_job_params_map[md5_key] = {
-                    "job_func": JobApi.fast_execute_script,
-                    "subscription_instance_id": [sub_inst.id],
-                    "subscription_id": common_data.subscription.id,
-                    "job_params": {
-                        "target_server": {"ip_list": [{"bk_cloud_id": host_obj.bk_cloud_id, "ip": host_obj.inner_ip}]},
-                        "script_content": script_content,
-                        "script_param": script_param,
-                        "timeout": timeout,
-                        "os_type": host_obj.os_type,
-                    },
-                }
-
-        self.run_job_or_finish_schedule(multi_job_params_map)
-
-    def get_script_content(self, data, common_data: AgentCommonData, host: models.Host) -> str:
-        """
-        获取脚本内容
-        :param data:
-        :param common_data:
-        :param host: 主机对象
-        :return: 脚本内容
-        """
-        raise NotImplementedError()
-
-    def get_script_param(self, data, common_data: AgentCommonData, host: models.Host) -> str:
-        """
-        获取脚本参数
-        :param data:
-        :param common_data:
-        :param host: 主机类型
-        :return: 脚本参数
-        """
-        return ""
+# 根据 JOB 的插件额外封装一层，保证后续基于 Agent 增加定制化功能的可扩展性
 
 
-class AgentTransferPackageService(JobV3BaseService, AgentBaseService, metaclass=abc.ABCMeta):
-    def _execute(self, data, parent_data, common_data: AgentCommonData):
-        timeout = data.get_one_of_inputs("timeout")
-        # 批量请求作业平台的参数
-        multi_job_params_map: Dict[str, Dict[str, Any]] = {}
-        for sub_inst in common_data.subscription_instances:
-            bk_host_id = sub_inst.instance_info["host"]["bk_host_id"]
-            host_obj = common_data.host_id_obj_map[bk_host_id]
-
-            file_list = self.get_file_list(data=data, common_data=common_data, host=host_obj)
-            file_target_path = self.get_file_target_path(data=data, common_data=common_data, host=host_obj)
-            # 如果分发的文件列表 & 目标路径一致，合并到一个作业中，提高执行效率
-            md5_key = f"{self.get_md5('|'.join(sorted(file_list)))}-{file_target_path}"
-
-            if md5_key in multi_job_params_map:
-                multi_job_params_map[md5_key]["subscription_instance_id"].append(sub_inst.id)
-                multi_job_params_map[md5_key]["job_params"]["target_server"]["ip_list"].append(
-                    {"bk_cloud_id": host_obj.bk_cloud_id, "ip": host_obj.inner_ip}
-                )
-            else:
-                multi_job_params_map[md5_key] = {
-                    "job_func": JobApi.fast_transfer_file,
-                    "subscription_instance_id": [sub_inst.id],
-                    "subscription_id": common_data.subscription.id,
-                    "job_params": {
-                        "target_server": {"ip_list": [{"bk_cloud_id": host_obj.bk_cloud_id, "ip": host_obj.inner_ip}]},
-                        "file_target_path": file_target_path,
-                        "file_source_list": [{"file_list": file_list}],
-                        "timeout": timeout,
-                        "os_type": host_obj.os_type,
-                    },
-                }
-
-        self.run_job_or_finish_schedule(multi_job_params_map)
-
-    def get_file_list(self, data, common_data: AgentCommonData, host: models.Host) -> List[str]:
-        """
-        获取主机所需的文件路径列表
-        :param data:
-        :param common_data:
-        :param host: 主机对象
-        :return: 文件路径列表
-        """
-        raise NotImplementedError()
-
-    def get_file_target_path(self, data, common_data: AgentCommonData, host: models.Host) -> str:
-        """
-        获取主机所需的文件路径列表
-        :param data:
-        :param common_data:
-        :param host: 主机对象
-        :return: 文件路径列表
-        """
-        raise NotImplementedError()
+class AgentExecuteScriptService(job.JobExecuteScriptService, AgentBaseService):
+    pass
 
 
-class AgentPushConfigService(JobV3BaseService, AgentBaseService, metaclass=abc.ABCMeta):
-    def cal_job_unique_key(self, config_info_list: List[Dict[str, Any]], file_target_path: str):
-        """
-        计算分发任务的唯一标识
-        如果配置文件名称、MD5、目标路径一致，认为分发内容一致，整合到一个作业中
-        :param config_info_list:
-        :param file_target_path:
-        :return:
-        """
-        config_unique_keys = []
-        for config_info in config_info_list:
-            config_unique_keys.append(f"{config_info['file_name']}-{self.get_md5(config_info['content'])}")
-        return f"{'-'.join(sorted(config_unique_keys))}-{file_target_path}"
+class AgentTransferFileService(job.JobTransferFileService, AgentBaseService):
+    pass
 
-    def _execute(self, data, parent_data, common_data: AgentCommonData):
-        timeout = data.get_one_of_inputs("timeout")
-        # 批量请求作业平台的参数
-        multi_job_params_map: Dict[str, Dict[str, Any]] = {}
-        for sub_inst in common_data.subscription_instances:
-            bk_host_id = sub_inst.instance_info["host"]["bk_host_id"]
-            host_obj = common_data.host_id_obj_map[bk_host_id]
 
-            config_info_list = self.get_config_info_list(data=data, common_data=common_data, host=host_obj)
-            file_target_path = self.get_file_target_path(data=data, common_data=common_data, host=host_obj)
-
-            job_unique_key = self.cal_job_unique_key(config_info_list, file_target_path)
-            if job_unique_key in multi_job_params_map:
-                multi_job_params_map[job_unique_key]["subscription_instance_id"].append(sub_inst.id)
-                multi_job_params_map[job_unique_key]["job_params"]["target_server"]["ip_list"].append(
-                    {"bk_cloud_id": host_obj.bk_cloud_id, "ip": host_obj.inner_ip}
-                )
-            else:
-                file_source_list = []
-                for config_info in config_info_list:
-                    file_source_list.append(
-                        {"file_name": config_info["file_name"], "content": process_parms(config_info["content"])}
-                    )
-                multi_job_params_map[job_unique_key] = {
-                    "job_func": JobApi.push_config_file,
-                    "subscription_instance_id": [sub_inst.id],
-                    "subscription_id": common_data.subscription.id,
-                    "job_params": {
-                        "target_server": {"ip_list": [{"bk_cloud_id": host_obj.bk_cloud_id, "ip": host_obj.inner_ip}]},
-                        "file_target_path": file_target_path,
-                        "file_list": file_source_list,
-                        "timeout": timeout,
-                        "os_type": host_obj.os_type,
-                    },
-                }
-
-        self.run_job_or_finish_schedule(multi_job_params_map)
-
-    def get_config_info_list(self, data, common_data: AgentCommonData, host: models.Host) -> List[Dict[str, Any]]:
-        """
-        获取主机所需的配置文件信息列表
-        :param data:
-        :param common_data:
-        :param host: 主机对象
-        :return: 文件路径列表
-        """
-        raise NotImplementedError()
-
-    def get_file_target_path(self, data, common_data: AgentCommonData, host: models.Host) -> str:
-        """
-        获取主机所需的文件路径列表
-        :param data:
-        :param common_data:
-        :param host: 主机对象
-        :return: 文件路径列表
-        """
-        raise NotImplementedError()
+class AgentPushConfigService(job.JobPushConfigService, AgentBaseService):
+    pass

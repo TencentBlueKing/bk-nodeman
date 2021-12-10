@@ -34,8 +34,6 @@ from . import utils
 
 class InstallBaseTestCase(utils.AgentServiceBaseTestCase):
 
-    DEBUG = True
-
     OS_TYPE = constants.OsType.LINUX
     NODE_TYPE = constants.NodeType.AGENT
     SSH_MAN_MOCK_PATH = "apps.backend.components.collections.agent_new.install.SshMan"

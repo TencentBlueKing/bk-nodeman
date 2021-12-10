@@ -16,11 +16,10 @@ from django.conf import settings
 from django.core.cache import cache
 from django.utils.translation import ugettext as _
 
-from apps.backend.tests.components.collections.agent.utils import DEFAULT_CLOUD_NAME
 from apps.component.esbclient import client_v2
 from apps.exceptions import ComponentCallError
 from apps.node_man import exceptions, models
-from apps.node_man.constants import BIZ_CACHE_SUFFIX, IamActionType
+from apps.node_man.constants import BIZ_CACHE_SUFFIX, DEFAULT_CLOUD_NAME, IamActionType
 from apps.node_man.exceptions import (
     BusinessNotPermissionError,
     CacheExpiredError,
