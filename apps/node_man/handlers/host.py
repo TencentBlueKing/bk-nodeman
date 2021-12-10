@@ -13,7 +13,6 @@ from django.db import transaction
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
-from apps.backend.tests.components.collections.agent.utils import DEFAULT_CLOUD_NAME
 from apps.node_man import constants as const
 from apps.node_man.constants import IamActionType
 from apps.node_man.exceptions import (
@@ -413,7 +412,7 @@ class HostHandler(APIModel):
         cloud_name = dict(
             Cloud.objects.filter(bk_cloud_id__in=bk_clouds_id).values_list("bk_cloud_id", "bk_cloud_name")
         )
-        cloud_name[0] = DEFAULT_CLOUD_NAME
+        cloud_name[0] = const.DEFAULT_CLOUD_NAME
 
         # 获得安装通道名称
         install_name_dict = dict(InstallChannel.objects.values_list("id", "name"))

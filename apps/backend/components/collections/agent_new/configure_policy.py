@@ -12,7 +12,7 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import ugettext_lazy as _
 
 from apps.backend.api.constants import POLLING_INTERVAL, POLLING_TIMEOUT
-from apps.backend.components.collections.agent import AgentBaseService
+from apps.backend.components.collections.agent_new.base import AgentBaseService
 from apps.node_man import models
 from apps.node_man.handlers.security_group import get_security_group_factory
 from pipeline.core.flow import StaticIntervalGenerator
