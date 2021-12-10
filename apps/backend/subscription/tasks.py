@@ -88,7 +88,7 @@ def build_instances_task(
         action_name = step_actions[step_manager.step_id]
         action_manager = step_manager.create_action(action_name, subscription_instances)
 
-        activities, pipeline_data = action_manager.generate_activities(
+        activities, __ = action_manager.generate_activities(
             subscription_instances, current_activities=current_activities
         )
 
@@ -353,7 +353,7 @@ def create_task(
             continue
         to_be_created_records_map[instance_id] = record
 
-    # 保存instance_actions，用于重试场景
+    # 保存 instance_actions，用于重试场景
     subscription_task.actions = instance_actions
     if preview_only:
         # 仅做预览，不执行下面的代码逻辑，直接返回计算后的结果

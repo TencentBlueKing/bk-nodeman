@@ -20,14 +20,32 @@ from django.conf import settings
 from django.core.management import call_command
 from mock import patch
 
-from apps.backend.tests.components.collections.agent import utils
-from apps.backend.tests.components.collections.job import utils as job_utils
 from apps.core.files import constants as core_const
+from apps.mock_data import api_mkd, utils
 from apps.node_man import constants
 from apps.node_man.tests.utils import create_cloud_area, create_host
 from apps.utils import files
 from apps.utils.files import md5sum
 from apps.utils.unittest.testcase import CustomBaseTestCase
+
+
+class GseMockClient:
+    def __init__(self, get_agent_status_return=None, get_agent_info_return=None):
+        self.gse = mock.MagicMock()
+        self.gse.get_agent_status = mock.MagicMock(return_value=get_agent_status_return)
+        self.gse.get_agent_info = mock.MagicMock(return_value=get_agent_info_return)
+
+
+class JobDemandMock:
+    def __init__(self, poll_task_result_return=None):
+        self.poll_task_result = mock.MagicMock(return_value=poll_task_result_return)
+
+
+class StorageMock:
+    def __init__(self, get_file_md5_return=None, fast_transfer_file_return=None):
+        self.get_file_md5 = mock.MagicMock(return_value=get_file_md5_return)
+        self.fast_transfer_file = mock.MagicMock(return_value=fast_transfer_file_return)
+
 
 FAST_EXECUTE_SCRIPT = {
     "job_instance_name": "API Quick execution script1521100521303",
@@ -37,8 +55,8 @@ FAST_EXECUTE_SCRIPT = {
 
 
 GET_AGENT_STATUS = {
-    f"{constants.DEFAULT_CLOUD}:{utils.TEST_IP}": {
-        "ip": utils.TEST_IP,
+    f"{constants.DEFAULT_CLOUD}:{utils.DEFAULT_IP}": {
+        "ip": utils.DEFAULT_IP,
         "bk_cloud_id": constants.DEFAULT_CLOUD,
         "bk_agent_alive": constants.BkAgentStatus.ALIVE,
     }
@@ -47,7 +65,7 @@ GET_AGENT_STATUS = {
 POLL_RESULT = {
     "is_finished": True,
     "task_result": {
-        "success": [{"ip": utils.TEST_IP, "bk_cloud_id": constants.DEFAULT_CLOUD, "log_content": ""}],
+        "success": [{"ip": utils.DEFAULT_IP, "bk_cloud_id": constants.DEFAULT_CLOUD, "log_content": ""}],
         "pending": [],
         "failed": [],
     },
@@ -88,13 +106,13 @@ class TestUpdateProxyFile(CustomBaseTestCase):
 
     @classmethod
     def setUpTestData(cls):
-        cls.JOB_MOCK_CLIENT = job_utils.JobV3MockApi(
-            fast_execute_script_return=FAST_EXECUTE_SCRIPT,
+        cls.JOB_MOCK_CLIENT = api_mkd.job.utils.JobApiMockClient(
+            utils.MockReturn(return_type=utils.MockReturnType.RETURN_VALUE.value, return_obj=FAST_EXECUTE_SCRIPT)
         )
-        cls.GSE_MOCK_CLIENT = utils.GseMockClient(
+        cls.GSE_MOCK_CLIENT = GseMockClient(
             get_agent_status_return=GET_AGENT_STATUS,
         )
-        cls.JOB_DEMAND_MOCK_CLIENT = utils.JobDemandMock(poll_task_result_return=POLL_RESULT)
+        cls.JOB_DEMAND_MOCK_CLIENT = JobDemandMock(poll_task_result_return=POLL_RESULT)
 
     def setUp(self) -> None:
         create_cloud_area(number=5, creator="admin")
@@ -105,7 +123,7 @@ class TestUpdateProxyFile(CustomBaseTestCase):
         self.assertIsNone(call_command("update_proxy_file"))
 
         # 没有存活的proxy
-        GET_AGENT_STATUS[f"{constants.DEFAULT_CLOUD}:{utils.TEST_IP}"][
+        GET_AGENT_STATUS[f"{constants.DEFAULT_CLOUD}:{utils.DEFAULT_IP}"][
             "bk_agent_alive"
         ] = constants.BkAgentStatus.NOT_ALIVE
         patch("apps.node_man.periodic_tasks.update_proxy_file.client_v2", self.GSE_MOCK_CLIENT).start()
@@ -118,13 +136,13 @@ class TestUpdateProxyFile(CustomBaseTestCase):
             STORAGE_TYPE=core_const.StorageType.FILE_SYSTEM.value,
         ):
             local_files_md5_map: Dict[str, str] = {}
-            GET_AGENT_STATUS[f"{constants.DEFAULT_CLOUD}:{utils.TEST_IP}"][
+            GET_AGENT_STATUS[f"{constants.DEFAULT_CLOUD}:{utils.DEFAULT_IP}"][
                 "bk_agent_alive"
             ] = constants.BkAgentStatus.ALIVE
             patch("apps.node_man.periodic_tasks.update_proxy_file.client_v2", self.GSE_MOCK_CLIENT).start()
 
             # 本地服务器没有相关文件
-            self.init_proxy_host(alive_number=1, ip=utils.TEST_IP, bk_cloud_id=constants.DEFAULT_CLOUD)
+            self.init_proxy_host(alive_number=1, ip=utils.DEFAULT_IP, bk_cloud_id=constants.DEFAULT_CLOUD)
             self.assertRaises(FileExistsError, call_command("update_proxy_file"))
 
             mock_source_file = self.download_files[random.randint(1, 5)]
@@ -137,9 +155,7 @@ class TestUpdateProxyFile(CustomBaseTestCase):
             compare_file_md5 = md5sum(os.path.join(settings.DOWNLOAD_PATH, mock_compare_file))
             for file in self.download_files:
                 local_files_md5_map.update({file: source_file_md5})
-            storage_mock_client = utils.StorageMock(
-                get_file_md5_return=source_file_md5, fast_transfer_file_return=10001
-            )
+            storage_mock_client = StorageMock(get_file_md5_return=source_file_md5, fast_transfer_file_return=10001)
             patch(
                 "apps.node_man.periodic_tasks.update_proxy_file.get_storage", mock.MagicMock(storage_mock_client)
             ).start()
@@ -154,9 +170,7 @@ class TestUpdateProxyFile(CustomBaseTestCase):
             # 存在差异 同步文件
             for file in self.download_files:
                 local_files_md5_map.update({file: compare_file_md5})
-            storage_mock_client = utils.StorageMock(
-                get_file_md5_return=compare_file_md5, fast_transfer_file_return=10001
-            )
+            storage_mock_client = StorageMock(get_file_md5_return=compare_file_md5, fast_transfer_file_return=10001)
             patch(
                 "apps.node_man.periodic_tasks.update_proxy_file.get_storage", mock.MagicMock(storage_mock_client)
             ).start()

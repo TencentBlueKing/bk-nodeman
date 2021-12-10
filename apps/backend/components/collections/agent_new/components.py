@@ -13,21 +13,23 @@ from django.utils.translation import ugettext_lazy as _
 
 from pipeline.component_framework.component import Component
 
+from . import base
 from .check_agent_status import CheckAgentStatusService
 from .check_policy_gse_to_proxy import CheckPolicyGseToProxyService
 from .choose_access_point import ChooseAccessPointService
 from .configure_policy import ConfigurePolicyService
-from .install import InstallService
 from .delegate_plugin_proc import DelegatePluginProcService
 from .get_agent_status import GetAgentStatusService
-from .push_upgrade_package import PushUpgradePackageService
+from .install import InstallService
+from .push_upgrade_package import PushUpgradeFileService
 from .query_password import QueryPasswordService
 from .register_host import RegisterHostService
-from .update_process_status import UpdateProcessStatusService
 from .reload_agent_config import ReloadAgentConfigService
 from .render_and_push_gse_config import RenderAndPushGseConfigService
 from .restart import RestartService
 from .run_upgrade_command import RunUpgradeCommandService
+from .update_process_status import UpdateProcessStatusService
+from .wait import WaitService
 
 
 class QueryPasswordComponent(Component):
@@ -99,7 +101,7 @@ class CheckAgentStatusComponent(Component):
 class PushUpgradePackageComponent(Component):
     name = _("下发升级包")
     code = "push_upgrade_package"
-    bound_service = PushUpgradePackageService
+    bound_service = PushUpgradeFileService
 
 
 class CheckPolicyGseToProxyComponent(Component):
@@ -118,3 +120,27 @@ class RenderAndPushGseConfigComponent(Component):
     name = _("渲染并下发Agent配置")
     code = "render_and_push_gse_config"
     bound_service = RenderAndPushGseConfigService
+
+
+class WaitComponent(Component):
+    name = _("等待")
+    code = "wait"
+    bound_service = WaitService
+
+
+class AgentExecuteScriptComponent:
+    name = _("执行脚本")
+    code = "agent_execute_script"
+    bound_service = base.AgentExecuteScriptService
+
+
+class AgentTransferFiletComponent:
+    name = _("分发文件")
+    code = "agent_transfer_file"
+    bound_service = base.AgentTransferFileService
+
+
+class AgentPushConfigComponent:
+    name = _("分发配置")
+    code = "agent_push_config"
+    bound_service = base.AgentPushConfigService
