@@ -13,7 +13,6 @@ from typing import Any, Dict
 
 from django.db.models import Q
 
-from apps.backend.tests.components.collections.agent.utils import DEFAULT_CLOUD_NAME
 from apps.node_man import constants as const
 from apps.node_man import tools
 from apps.node_man.constants import IamActionType
@@ -232,7 +231,7 @@ class PluginHandler(APIModel):
         cloud_name = dict(
             Cloud.objects.filter(bk_cloud_id__in=bk_cloud_ids).values_list("bk_cloud_id", "bk_cloud_name")
         )
-        cloud_name[0] = DEFAULT_CLOUD_NAME
+        cloud_name[0] = const.DEFAULT_CLOUD_NAME
 
         # 获得 Job Result 数据
         job_status = JobTask.objects.filter(bk_host_id__in=bk_host_ids).values(

@@ -21,8 +21,9 @@ from django.utils.translation import ugettext_lazy as _
 
 from apps.backend.agent.tools import InstallationTools, batch_gen_commands
 from apps.backend.api.constants import POLLING_INTERVAL, POLLING_TIMEOUT
-from apps.backend.components.collections.agent import AgentBaseService, AgentCommonData
 from apps.backend.components.collections.agent_new.base import (
+    AgentBaseService,
+    AgentCommonData,
     batch_call_single_exception_handler,
 )
 from apps.backend.constants import REDIS_INSTALL_CALLBACK_KEY_TPL
@@ -33,7 +34,6 @@ from apps.exceptions import AuthOverdueException
 from apps.node_man import constants, models
 from apps.utils import concurrent
 from common.api import JobApi
-from pipeline.component_framework.component import Component
 from pipeline.core.flow import Service, StaticIntervalGenerator
 
 
@@ -51,12 +51,7 @@ class InstallService(AgentBaseService):
     def inputs_format(self):
         return super().inputs_format() + [
             Service.InputItem(name="is_uninstall", key="is_uninstall", type="bool", required=False),
-            Service.InputItem(
-                name="success_callback_step",
-                key="success_callback_step",
-                type="str",
-                required=True,
-            ),
+            Service.InputItem(name="success_callback_step", key="success_callback_step", type="str", required=True),
         ]
 
     def outputs_format(self):
@@ -403,9 +398,3 @@ class InstallService(AgentBaseService):
         if polling_time + POLLING_INTERVAL > POLLING_TIMEOUT:
             self.move_insts_to_failed(left_scheduling_sub_inst_ids, _("安装超时"))
         data.outputs.polling_time = polling_time + POLLING_INTERVAL
-
-
-class InstallComponent(Component):
-    name = _("安装")
-    code = "install"
-    bound_service = InstallService
