@@ -8,9 +8,15 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-
+import json
 from functools import wraps
 from typing import Callable, Optional
+
+from django.core.cache import cache
+
+from apps.utils.md5 import count_md5
+
+DEFAULT_CACHE_TIME = 60 * 15
 
 
 def class_member_cache(name: Optional[str] = None):
@@ -36,3 +42,37 @@ def class_member_cache(name: Optional[str] = None):
         return wrapper
 
     return class_member_cache_inner
+
+
+def format_cache_key(func: Callable, *args, **kwargs):
+    """计算缓存的key，通过函数名加上参数md5值得到"""
+    kwargs.update({"args": args})
+    return f"{func.__name__}_{count_md5(kwargs)}"
+
+
+def func_cache_decorator(cache_time: int = DEFAULT_CACHE_TIME):
+    """
+    函数缓存装饰器
+    :param cache_time: 缓存时间
+    """
+
+    def decorate(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            get_cache = kwargs.pop("get_cache", False)
+            cache_key = format_cache_key(func, *args, **kwargs)
+            func_result = None
+            if get_cache:
+                func_result = cache.get(cache_key, None)
+
+            # 若无需从缓存中获取数据或者缓存中没有数据，则执行函数得到结果，并设置缓存
+            if func_result is None:
+                func_result = func(*args, **kwargs)
+                cache.set(cache_key, json.dumps(func_result), cache_time)
+            else:
+                func_result = json.loads(func_result)
+            return func_result
+
+        return wrapper
+
+    return decorate
