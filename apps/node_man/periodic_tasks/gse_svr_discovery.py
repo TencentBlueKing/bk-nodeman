@@ -11,13 +11,12 @@ specific language governing permissions and limitations under the License.
 from telnetlib import Telnet
 from typing import Any, Dict, List, Optional, Tuple
 
-from celery.schedules import crontab
 from celery.task import periodic_task
 from django.conf import settings
 from kazoo.client import KazooClient
 from kazoo.exceptions import NoAuthError, NoNodeError
 
-from apps.node_man import models
+from apps.node_man import constants, models
 from common.log import logger
 
 
@@ -51,7 +50,7 @@ class ZkSafeClient:
 @periodic_task(
     queue="default",
     options={"queue": "default"},
-    run_every=crontab(hour="*", minute="*/1", day_of_week="*", day_of_month="*", month_of_year="*"),
+    run_every=constants.GSE_SVR_DISCOVERY_INTERVAL,
 )
 def gse_svr_discovery():
     if not settings.GSE_ENABLE_SVR_DISCOVERY:

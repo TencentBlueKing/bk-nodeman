@@ -33,7 +33,6 @@ from apps.backend.subscription.handler import SubscriptionHandler
 from apps.backend.utils.pipeline_parser import PipelineParser
 from apps.generic import APIViewSet
 from apps.node_man import constants, models
-from apps.utils.md5 import count_md5
 
 logger = logging.getLogger("app")
 cache = caches["db"]
@@ -501,13 +500,7 @@ class SubscriptionViewSet(APIViewSet):
         result = []
         for subscription in subscriptions:
             data = {"subscription_id": subscription.id, "status": []}
-            scope_md5 = count_md5(subscription.scope)
-            current_instances = cache.get("bknodeman:subscription_scope_cache_{}".format(scope_md5), None)
-            if current_instances is None:
-                current_instances = tools.get_instances_by_scope(subscription.scope)
-                cache.set("bknodeman:subscription_scope_cache_{}".format(scope_md5), json.dumps(current_instances), 300)
-            else:
-                current_instances = json.loads(current_instances)
+            current_instances = tools.get_instances_by_scope(subscription.scope, get_cache=True)
 
             status_statistic = {"SUCCESS": 0, "PENDING": 0, "FAILED": 0, "RUNNING": 0}
             plugin_versions = defaultdict(lambda: defaultdict(int))
@@ -635,14 +628,7 @@ class SubscriptionViewSet(APIViewSet):
         result = []
         for subscription in subscriptions:
             subscription_result = []
-            # 使用scope md5保证范围变化不会使用缓存
-            scope_md5 = count_md5(subscription.scope)
-            current_instances = cache.get("bknodeman:subscription_scope_cache_{}".format(scope_md5), None)
-            if current_instances is None:
-                current_instances = tools.get_instances_by_scope(subscription.scope)
-                cache.set("bknodeman:subscription_scope_cache_{}".format(scope_md5), json.dumps(current_instances), 300)
-            else:
-                current_instances = json.loads(current_instances)
+            current_instances = tools.get_instances_by_scope(subscription.scope, get_cache=True)
 
             # 对于每个instance，通过group_id找到其对应的host_status
             for instance_id in current_instances:

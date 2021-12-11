@@ -8,7 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from celery.schedules import crontab
 from celery.task import periodic_task, task
 
 from apps.component.esbclient import client_v2
@@ -106,7 +105,7 @@ def update_or_create_host_agent_status(task_id, start, end):
 @periodic_task(
     queue="default",
     options={"queue": "default"},
-    run_every=crontab(hour="*", minute="*/15", day_of_week="*", day_of_month="*", month_of_year="*"),
+    run_every=constants.SYNC_AGENT_STATUS_TASK_INTERVAL,
 )
 def sync_agent_status_task():
     """
@@ -119,7 +118,7 @@ def sync_agent_status_task():
         countdown = calculate_countdown(
             count=count / constants.QUERY_AGENT_STATUS_HOST_LENS,
             index=start / constants.QUERY_AGENT_STATUS_HOST_LENS,
-            duration=15 * constants.TimeUnit.MINUTE,
+            duration=constants.SYNC_AGENT_STATUS_TASK_INTERVAL,
         )
         logger.info(f"{task_id} | sync_agent_status_task after {countdown} seconds")
         update_or_create_host_agent_status.apply_async(

@@ -8,22 +8,21 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from celery.schedules import crontab
 from celery.task import periodic_task
 
 from apps.component.esbclient import client_v2
 from apps.exceptions import ComponentCallError
-from apps.node_man import constants as const
+from apps.node_man import constants
 from apps.node_man.models import AccessPoint, Cloud
 from common.log import logger
 
 
 def update_or_create_cloud_area(task_id, start):
-    logger.info(f"{task_id} | Sync cloud area task start.[{start}-{start + const.QUERY_CLOUD_LIMIT}]")
+    logger.info(f"{task_id} | Sync cloud area task start.[{start}-{start + constants.QUERY_CLOUD_LIMIT}]")
 
     # 查询云区域兼容低版本paas无search_cloud_area情况
     try:
-        plats = client_v2.cc.search_cloud_area({"page": {"start": start, "limit": const.QUERY_CLOUD_LIMIT}})
+        plats = client_v2.cc.search_cloud_area({"page": {"start": start, "limit": constants.QUERY_CLOUD_LIMIT}})
     except ComponentCallError as e:
         logger.error(f"{task_id} | call search_cloud_area error {e.message}")
         plats = client_v2.cc.search_inst({"bk_obj_id": "plat"})
@@ -45,12 +44,12 @@ def update_or_create_cloud_area(task_id, start):
     if access_points.count() == 1:
         default_ap_id = access_points[0].id
     else:
-        default_ap_id = const.DEFAULT_AP_ID
+        default_ap_id = constants.DEFAULT_AP_ID
 
     # 存在的批量更新，不存在的批量创建
     for _cloud in cloud_list:
         # 默认云区域不同步
-        if _cloud["bk_cloud_id"] == const.DEFAULT_CLOUD:
+        if _cloud["bk_cloud_id"] == constants.DEFAULT_CLOUD:
             continue
         elif _cloud["bk_cloud_id"] in exist_cloud_ids:
             need_update_cloud.append(Cloud(bk_cloud_id=_cloud["bk_cloud_id"], bk_cloud_name=_cloud["bk_cloud_name"]))
@@ -68,14 +67,14 @@ def update_or_create_cloud_area(task_id, start):
     Cloud.objects.bulk_create(need_create_cloud)
     Cloud.objects.bulk_update(need_update_cloud, fields=["bk_cloud_name"])
 
-    if cloud_count > start + const.QUERY_CLOUD_LIMIT:
-        update_or_create_cloud_area(task_id, start + const.QUERY_CLOUD_LIMIT)
+    if cloud_count > start + constants.QUERY_CLOUD_LIMIT:
+        update_or_create_cloud_area(task_id, start + constants.QUERY_CLOUD_LIMIT)
 
 
 @periodic_task(
     queue="default",
     options={"queue": "default"},
-    run_every=crontab(hour="*", minute="*/15", day_of_week="*", day_of_month="*", month_of_year="*"),
+    run_every=constants.SYNC_CMDB_CLOUD_AREA_INTERVAL,
 )
 def sync_cmdb_cloud_area():
     """
