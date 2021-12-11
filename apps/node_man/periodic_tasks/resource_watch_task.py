@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import logging
 import random
 import time
 
@@ -31,10 +32,12 @@ from apps.node_man.periodic_tasks.sync_cmdb_host import (
     _generate_host,
     update_or_create_host_base,
 )
-from common.log import logger
+
+logger = logging.getLogger("app")
 
 RESOURCE_WATCH_HOST_CURSOR_KEY = "resource_watch_host_cursor"
 RESOURCE_WATCH_HOST_RELATION_CURSOR_KEY = "resource_watch_host_relation_cursor"
+RESOURCE_WATCH_PROCESS_CURSOR_KEY = "resource_watch_process_cursor"
 APPLY_RESOURCE_WATCHED_EVENTS_KEY = "apply_resource_watched_events"
 
 
@@ -151,6 +154,14 @@ def sync_resource_watch_host_relation_event():
     _resource_watch(RESOURCE_WATCH_HOST_RELATION_CURSOR_KEY, kwargs)
 
 
+def sync_resource_watch_process_event():
+    """
+    拉取进程
+    """
+    kwargs = {"bk_resource": const.ResourceType.process}
+    _resource_watch(RESOURCE_WATCH_PROCESS_CURSOR_KEY, kwargs)
+
+
 def delete_host(bk_host_id):
     Host.objects.filter(bk_host_id=bk_host_id).delete()
     IdentityData.objects.filter(bk_host_id=bk_host_id).delete()
@@ -187,6 +198,7 @@ def apply_resource_watched_events():
             time.sleep(10)
             continue
 
+        event_bk_biz_id = event.bk_detail.get("bk_biz_id")
         try:
             if event.bk_event_type in ["update", "create"] and event.bk_resource == const.ResourceType.host:
                 _, need_delete_host_ids = update_or_create_host_base(None, None, [event.bk_detail])
@@ -197,18 +209,18 @@ def apply_resource_watched_events():
                 bk_host_id = event.bk_detail["bk_host_id"]
                 host_obj = Host.objects.filter(bk_host_id=bk_host_id).first()
                 if host_obj:
-                    if host_obj.bk_biz_id != event.bk_detail["bk_biz_id"]:
+                    if host_obj.bk_biz_id != event_bk_biz_id:
                         # 更新业务
-                        host_obj.bk_biz_id = event.bk_detail["bk_biz_id"]
+                        host_obj.bk_biz_id = event_bk_biz_id
                         host_obj.save()
                 else:
-                    host = list_biz_host(event.bk_detail["bk_biz_id"], bk_host_id)
+                    host = list_biz_host(event_bk_biz_id, bk_host_id)
                     if host:
                         ap_id = (
                             const.DEFAULT_AP_ID if AccessPoint.objects.count() > 1 else AccessPoint.objects.first().id
                         )
                         host_data, identify_data, process_status_data = _generate_host(
-                            event.bk_detail["bk_biz_id"], host, host["bk_host_innerip"], host["bk_host_outerip"], ap_id
+                            event_bk_biz_id, host, host["bk_host_innerip"], host["bk_host_outerip"], ap_id
                         )
                         # 与注册CC原子存在同时写入的可能，防止更新进行强制插入
                         try:
@@ -218,19 +230,19 @@ def apply_resource_watched_events():
                         except IntegrityError:
                             pass
 
-                if settings.USE_CMDB_SUBSCRIPTION_TRIGGER:
-                    try:
-                        # 触发订阅
-                        trigger_nodeman_subscription(event.bk_detail["bk_biz_id"])
-                    except Exception as e:
-                        logger.exception(
-                            "[trigger_nodeman_subscription] bk_biz_id->({}) handler error: {}".format(
-                                event.bk_detail["bk_biz_id"], e
-                            )
-                        )
-
             elif event.bk_event_type in ["delete"]:
                 delete_host(event.bk_detail["bk_host_id"])
+
+            if event_bk_biz_id and settings.USE_CMDB_SUBSCRIPTION_TRIGGER:
+                try:
+                    # 触发订阅
+                    trigger_nodeman_subscription(event_bk_biz_id)
+                except Exception as e:
+                    logger.exception(
+                        "[trigger_nodeman_subscription] bk_biz_id->({}) handler error: {}".format(
+                            event.bk_detail["bk_biz_id"], e
+                        )
+                    )
 
         except Exception as err:
             logger.exception("apply_resource_watched_events events: {} error: {}".format(event.bk_detail, err))

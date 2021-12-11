@@ -12,29 +12,23 @@ specific language governing permissions and limitations under the License.
 # 动作轮询间隔
 from __future__ import absolute_import, unicode_literals
 
-from celery.schedules import crontab
+from apps.node_man import constants
 
-ACTION_POLLING_INTERVAL = 1
-# 动作轮询超时时间
-ACTION_POLLING_TIMEOUT = 60 * 3 * ACTION_POLLING_INTERVAL
-
+# run_every 周期都用秒作为单位的 int 类型，不使用crontab格式，以便与削峰函数 calculate_countdown 所用的 duration 复用
 # 自动下发触发周期
-SUBSCRIPTION_UPDATE_INTERVAL = crontab(hour="*", minute="*/15", day_of_week="*", day_of_month="*", month_of_year="*")
+SUBSCRIPTION_UPDATE_INTERVAL = 2 * constants.TimeUnit.HOUR
 
-# 订阅任务清理周期
-INSTANCE_CLEAR_INTERVAL = crontab(minute="*/5", hour="*", day_of_week="*", day_of_month="*", month_of_year="*")
+# 检查僵尸订阅实例记录周期
+CHECK_ZOMBIE_SUB_INST_RECORD_INTERVAL = 15 * constants.TimeUnit.MINUTE
 
 # 任务超时时间。距离 create_time 多久后会被判定为超时，防止 pipeline 后台僵死的情况
-TASK_TIMEOUT = 60 * 15
+TASK_TIMEOUT = 15 * constants.TimeUnit.MINUTE
 
 # 最大重试次数
 MAX_RETRY_TIME = 3
 
-# 自动下发 - 订阅配置单个切片所包含的最大订阅个数 (根据经验，一个订阅需要消耗1~2s）
-SUBSCRIPTION_UPDATE_SLICE_SIZE = 20
-
 # 单个任务主机数量
 TASK_HOST_LIMIT = 500
 
-# 订阅范围实例缓存时间
-SUBSCRIPTION_SCOPE_CACHE_TIME = 60 * 60
+# 订阅范围实例缓存时间，比自动下发周期多1小时
+SUBSCRIPTION_SCOPE_CACHE_TIME = SUBSCRIPTION_UPDATE_INTERVAL + constants.TimeUnit.HOUR

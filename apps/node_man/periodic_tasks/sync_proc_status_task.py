@@ -9,7 +9,6 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from celery.schedules import crontab
 from celery.task import periodic_task, task
 
 from apps.component.esbclient import client_v2
@@ -122,7 +121,7 @@ def update_or_create_proc_status(task_id, sync_proc_list, start):
 @periodic_task(
     queue="default",
     options={"queue": "default"},
-    run_every=crontab(hour="*", minute="*/15", day_of_week="*", day_of_month="*", month_of_year="*"),
+    run_every=constants.SYNC_PROC_STATUS_TASK_INTERVAL,
 )
 def sync_proc_status_task():
     sync_proc_list = GsePluginDesc.objects.filter(category=constants.CategoryType.official).values_list(
@@ -135,7 +134,7 @@ def sync_proc_status_task():
         countdown = calculate_countdown(
             count=count / constants.QUERY_PROC_STATUS_HOST_LENS,
             index=start / constants.QUERY_PROC_STATUS_HOST_LENS,
-            duration=15 * constants.TimeUnit.MINUTE,
+            duration=constants.SYNC_PROC_STATUS_TASK_INTERVAL,
         )
         logger.info(f"{task_id} | sync host proc status after {countdown} seconds")
         update_or_create_proc_status.apply_async((task_id, sync_proc_list, start), countdown=countdown)

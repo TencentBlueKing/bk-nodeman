@@ -50,6 +50,25 @@ JOB_SLEEP_SECOND = 3  # 默认轮询作业周期 3s
 MAX_POLL_TIMES = JOB_MAX_RETRY
 MAX_UNINSTALL_RETRY = JOB_MAX_RETRY
 
+
+########################################################################################################
+# 周期任务周期 run_every，非特殊统一使用秒作为单位的 int 类型，不使用crontab格式
+# 以便与削峰函数 calculate_countdown 所用的 duration 复用
+########################################################################################################
+
+CONFIGURATION_POLICY_INTERVAL = 1 * TimeUnit.MINUTE
+GSE_SVR_DISCOVERY_INTERVAL = 1 * TimeUnit.MINUTE
+COLLECT_AUTO_TRIGGER_JOB_INTERVAL = 5 * TimeUnit.MINUTE
+SYNC_CMDB_CLOUD_AREA_INTERVAL = 15 * TimeUnit.MINUTE
+SYNC_AGENT_STATUS_TASK_INTERVAL = 30 * TimeUnit.MINUTE
+SYNC_PROC_STATUS_TASK_INTERVAL = 30 * TimeUnit.MINUTE
+
+CLEAN_REQUESTS_TRACKER_RECORDS_INTERVAL = 3 * TimeUnit.HOUR
+CLEAN_EXPIRED_INFO_INTERVAL = 6 * TimeUnit.HOUR
+
+SYNC_CMDB_BIZ_TOPO_TASK_INTERVAL = 1 * TimeUnit.DAY
+SYNC_CMDB_HOST_INTERVAL = 1 * TimeUnit.DAY
+
 ########################################################################################################
 # 第三方系统相关配置
 ########################################################################################################
@@ -501,7 +520,7 @@ BIZ_CUSTOM_PROPERTY_CACHE_SUFFIX = "_property_cache"
 JOB_MAX_VALUE = 100000
 
 # 监听资源类型
-RESOURCE_TUPLE = ("host", "host_relation")
+RESOURCE_TUPLE = ("host", "host_relation", "process")
 RESOURCE_CHOICES = tuple_choices(RESOURCE_TUPLE)
 ResourceType = choices_to_namedtuple(RESOURCE_CHOICES)
 

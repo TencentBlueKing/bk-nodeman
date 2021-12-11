@@ -8,9 +8,9 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from celery.schedules import crontab
 from celery.task import periodic_task
 
+from apps.node_man import constants
 from apps.node_man.constants import NodeType
 from apps.node_man.exceptions import ConfigurationPolicyError
 from apps.node_man.models import Host
@@ -21,7 +21,7 @@ from common.log import logger
 @periodic_task(
     queue="default",
     options={"queue": "default"},
-    run_every=crontab(hour="*", minute="*/1", day_of_week="*", day_of_month="*", month_of_year="*"),
+    run_every=constants.CONFIGURATION_POLICY_INTERVAL,
 )
 def configuration_policy():
     """

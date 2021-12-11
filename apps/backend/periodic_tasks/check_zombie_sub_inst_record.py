@@ -17,7 +17,7 @@ from django.db.models import Value
 from django.db.models.functions import Concat
 from django.utils import timezone
 
-from apps.backend.subscription.constants import SUBSCRIPTION_UPDATE_INTERVAL
+from apps.backend.subscription.constants import CHECK_ZOMBIE_SUB_INST_RECORD_INTERVAL
 from apps.node_man import constants, models
 from apps.utils.time_handler import strftime_local
 
@@ -28,7 +28,7 @@ MAX_RUNNING_TIME_OF_TASK = 30 * 60
 
 
 @periodic_task(
-    run_every=SUBSCRIPTION_UPDATE_INTERVAL,
+    run_every=CHECK_ZOMBIE_SUB_INST_RECORD_INTERVAL,
     queue="backend",  # 这个是用来在代码调用中指定队列的，例如： update_subscription_instances.delay()
     options={"queue": "backend"},  # 这个是用来celery beat调度指定队列的
 )
