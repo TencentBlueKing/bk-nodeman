@@ -12,7 +12,6 @@
       @plugin-operate="handlePluginOperate">
     </PluginListOperate>
     <PluginListTable
-      v-if="showHostTable"
       v-bkloading="{ isLoading: tableLoading }"
       class="plugin-node-table"
       :table-list="tableList"
@@ -173,7 +172,6 @@ export default class PluginList extends Mixins(HeaderFilterMixins) {
   ];
   private mixisPluginName: string[] = []; // 插件的状态和版本筛选条件组合到了一起
   private pluginStatusMap: { [key: string]: string[] } = {}; // 插件的状态列表
-  private showHostTable = false;
 
   private get selectedAllDisabled() {
     const statusCondition = this.searchSelectValue.find(item => item.id === 'status');
@@ -234,9 +232,11 @@ export default class PluginList extends Mixins(HeaderFilterMixins) {
   // 拉取筛选条件 并 插入插件名称项
   public async getFilterData() {
     const [
-      list,
+      data,
       { list: data2 },
     ] = await Promise.all([PluginStore.getFilterList(), PluginStore.pluginPkgList({ simple_all: true })]);
+    this.mixisPluginName = data.filter(item => item.children && !item.children.length).map(item => item.id);
+    const list = data.filter(item => !item.children || item.children.length);
     if (data2.length) {
       const pluginName = this.pluginName || this.$route.params.pluginName;
       const pluginItem = {
@@ -283,6 +283,7 @@ export default class PluginList extends Mixins(HeaderFilterMixins) {
       }
     }
     this.filterData.splice(0, 0, ...list);
+    return Promise.resolve(true);
   }
   public async getPluginFilter() {
     await PluginStore.getFilterList({ category: 'plugin_version' }).then((data) => {
@@ -299,10 +300,8 @@ export default class PluginList extends Mixins(HeaderFilterMixins) {
           }
         }
       });
-      this.mixisPluginName = statusName;
       this.filterData.splice(this.filterData.length, 0, ...data.filter(item => !statusReg.test(item.id)));
     });
-    this.showHostTable = true;
   }
 
   public async getHostList(params: ISearchParams) {
@@ -310,6 +309,7 @@ export default class PluginList extends Mixins(HeaderFilterMixins) {
     const { list, total } = data;
     this.tableList = list;
     this.pagination.count = total;
+    return Promise.resolve(true);
   }
 
   // 获取请求参数
