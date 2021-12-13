@@ -165,15 +165,20 @@
                         <div
                           v-for="(log, logIndex) in step.formatLog"
                           :key="logIndex"
-                          :class="['log-item', log.type, { 'is-flod': log.isFlod }]">
+                          :class="[
+                            'log-item',
+                            log.type.join(' '),
+                            { 'fold-block': log.foldAble, 'is-fold': log.isFold
+                            }]">
                           <!-- eslint-disable-next-line vue/no-v-html -->
                           <span class="log-text" v-html="log.content"></span>
-                          <i class="log-error-icon nodeman-icon nc-remind-fill" v-if="log.type === 'error'"></i>
                           <i
-                            v-if="log.type === 'debug'"
-                            :class="`log-flod-icon bk-icon icon-play-shape ${ log.isFlod ? 'right' : 'down'}`"
+                            v-if="log.foldAble"
+                            :class="`log-fold-icon bk-icon icon-play-shape ${ log.isFold ? 'right' : 'down'}`"
                             @click="logTextToggle(log)">
                           </i>
+                          <i v-else-if="log.type.includes('error')"
+                             class="log-error-icon nodeman-icon nc-remind-fill"></i>
                         </div>
                       </template>
                     </div>
@@ -658,25 +663,47 @@ export default {
       if (!log) {
         return null;
       }
-      // 提取 debug 日志
-      const debugLog = log.match(/\[((?!\[).)*DEBUG\] \*+ Begin of collected logs[\s\S]*End of collected logs \*+/ig);
       // eslint-disable-next-line vue/max-len
-      const copyLog = log.replace(/\[((?!\[).)*DEBUG\] \*+ Begin of collected logs[\s\S]*End of collected logs \*+/ig, '**__DEBUG__**');
+      const collectedReg = /\[((?!\[).)*DEBUG\]\s*\*+ Begin of collected logs[\s\S]*End of collected logs \*+/ig;
+      // eslint-disable-next-line vue/max-len
+      const debugReg = /\[DEBUG\]((?!\[(DEBUG|DEBUGEND)\]).)*(\[DEBUGEND\])/g; // 防嵌套, 严格遵循格式： [DEBUG]xxx[DEBUGEND]
+      const tagReg = /\[((?![[]]).)* [A-Z]+\]/g; // 仅大写
+      const typeReg = /([[\d-: ]*)([A-Z]+)(\])/g; // 提取type标签 $1: 空格、数字、[、-、:
+
+      // 提取 上报的日志 & debug日志 逻辑
+      let copyLog = log;
+      const collectedLog = copyLog.match(collectedReg) || [];
+      copyLog = copyLog.replace(collectedReg, '**__COLLECTED__**');
+      const debugLog = copyLog.match(debugReg) || [];
+      copyLog = copyLog.replace(debugReg, '**__DEBUG__**');
+
       // 换行符 切分日志
-      const logSplit = copyLog.split('\n');
-      const logList = logSplit.map((item) => {
-        if (/\*\*__DEBUG__\*\*/g.test(item)) {
-          return {
-            type: 'debug',
-            content: item.replace(/\*\*__DEBUG__\*\*/g, debugLog.shift()), // 回填 debug 日志
-            isFlod: true,
-          };
-        }
-        return {
-          type: /\[((?!\[).)*ERROR\]/ig.test(item) ? 'error' : 'info',
+      const logList = copyLog.split('\n').map((item) => {
+        const lineItem = {
+          type: [],
           content: item,
-          isFlod: false,
+          foldAble: false,
+          isFold: false,
         };
+        if (/\*\*__COLLECTED__\*\*/g.test(item)) {
+          lineItem.foldAble = true;
+          lineItem.isFold = true;
+          lineItem.content = item.replace(/\*\*__COLLECTED__\*\*/g, collectedLog.shift()); // 回填 COLLECTED 日志
+        } else if (/\*\*__DEBUG__\*\*/g.test(item)) {
+          lineItem.foldAble = true;
+          lineItem.isFold = true;
+          // 回填 DEBUG 日志 并去除[DEBUGEND]字符串
+          lineItem.content = item.replace(/\*\*__DEBUG__\*\*/g, debugLog.shift().replace(/\[DEBUGEND\]/, ''));
+        }
+
+        // 提取信息类型
+        const tagMatchRes = lineItem.content.match(tagReg);
+        if (tagMatchRes) {
+          lineItem.type = tagMatchRes.map(tagStr => tagStr.replace(typeReg, '$2').toLowerCase());
+        } else {
+          lineItem.type.push('info');
+        }
+        return lineItem;
       });
       return logList;
     },
@@ -806,8 +833,8 @@ export default {
      * 折叠日志
      */
     logTextToggle(log) {
-      if (log.type === 'debug') {
-        log.isFlod = !log.isFlod;
+      if (log.foldAble) {
+        log.isFold = !log.isFold;
         this.$nextTick(() => {
           this.logOffsetTop = this.$refs.step ? this.$refs.step.map(item => ({
             top: item.offsetTop,
@@ -1159,7 +1186,7 @@ $headerColor: #313238;
       position: relative;
       padding-left: 30px;
       padding-right: 28px;
-      .log-flod-icon {
+      .log-fold-icon {
         position: absolute;
         top: 10px;
         left: 4px;
@@ -1186,7 +1213,7 @@ $headerColor: #313238;
           text-decoration: underline;
         }
       }
-      &.error {
+      &.error:not(.fold-block ) {
         margin: 10px 0;
         padding-top: 10px;
         padding-bottom: 10px;
@@ -1203,7 +1230,7 @@ $headerColor: #313238;
           color: #ebebeb;
         }
       }
-      &.debug {
+      &.fold-block {
         padding-top: 7px;
         padding-bottom: 7px;
         background: #2a2b2f;
@@ -1212,7 +1239,7 @@ $headerColor: #313238;
           font-weight: 700;
         }
       }
-      &.is-flod .log-text {
+      &.is-fold .log-text {
         height: 24px;
         overflow: hidden;
         text-overflow: ellipsis;
