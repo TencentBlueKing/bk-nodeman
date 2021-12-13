@@ -205,7 +205,7 @@ class PackagePermission(permissions.BasePermission):
                 get_request_username(), [IamActionType.plugin_pkg_operate, IamActionType.plugin_pkg_import]
             )
 
-            if view.action in ["update", "history"]:
+            if view.action in ["update"]:
                 return int(view.kwargs.get("pk", 0)) in perms[IamActionType.plugin_pkg_operate]
 
             if view.action in ["plugin_status_operation"]:
@@ -224,7 +224,13 @@ class PackagePermission(permissions.BasePermission):
             if view.action in ["upload", "parse", "create_register_task", "query_register_task"]:
                 return perms[IamActionType.plugin_pkg_import]
 
-            if view.action in ["create_export_task", "query_export_task", "fetch_config_variables", "list_plugin_host"]:
+            if view.action in [
+                "create_export_task",
+                "query_export_task",
+                "fetch_config_variables",
+                "list_plugin_host",
+                "history",
+            ]:
                 return True
 
         return False
