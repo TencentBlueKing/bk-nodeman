@@ -193,13 +193,20 @@ export default class DynamicTopo extends Vue {
   // 树搜索
   private async searchTreeMethod(treeKeyword: string) {
     try {
+      let isCovered = true;
       if (this.getSearchTreeData) {
-        this.searchPanelData = await this.getSearchTreeData({ treeKeyword });
+        const { nodes, uncovered = false } = await this.getSearchTreeData({ treeKeyword });
+        isCovered = uncovered;
+        this.searchPanelData = nodes;
       } else {
         this.searchPanelData = this.defaultTreeSearchMethod(this.nodes, '', treeKeyword);
       }
       this.handleSearchPanelShow();
-      return this.searchPanelData;
+      return {
+        total: this.searchPanelData.length,
+        data: this.searchPanelData,
+        uncovered: isCovered,
+      };
     } catch (err) {
       console.log(err);
       return {

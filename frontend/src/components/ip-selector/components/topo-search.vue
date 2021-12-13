@@ -148,10 +148,11 @@ export default class TopoSearch extends Vue {
       return;
     }
     this.isLoading = true;
-    const data = await this.searchMethod(keyword).catch((err: any) => {
+    const { data, uncovered } = await this.searchMethod(keyword).catch((err: any) => {
       console.log(err);
       return [];
     });
+    if (!uncovered) return; // 多次搜索结果乱序
     this.isLoading = false;
 
     const { idKey, nameKey, pathKey } = this.dataOptions;

@@ -66,7 +66,7 @@
 import { Vue, Component, Prop, Emit, Watch } from 'vue-property-decorator';
 import ColumnCheck from '@/views/agent/components/column-check.vue';
 import { CreateElement } from 'vue';
-import { IPagination } from '@/types/plugin/plugin-type';
+import { IPagination } from '@/types/index';
 
 @Component({ name: 'static-content-table' })
 export default class StaticContentTable extends Vue {

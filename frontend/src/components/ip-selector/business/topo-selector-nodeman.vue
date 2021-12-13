@@ -108,6 +108,7 @@ export default class TopoSelector extends Vue {
   private isLoading = false;
   // 默认勾选的节点
   private defaultSelectedNode = '0';
+  private searchCounter = 0; // 搜索计数器
 
   private get isGrayRule(): boolean {
     return PluginStore.isGrayRule;
@@ -692,15 +693,24 @@ export default class TopoSelector extends Vue {
   }
 
   private async getSearchTreeData({ treeKeyword }: { treeKeyword: string }) {
+    this.searchCounter += 1;
+    const requestIndex = this.searchCounter;
     const { nodes } = await searchTopo({
       kw: treeKeyword,
       action: 'strategy_create',
     }).catch(() => ({ total: 0, nodes: [] }));
     // 搜索结果ID字段和topo保持一致，便于对比
-    return nodes.map((node: any) => ({
-      ...node,
-      biz_inst_id: `${node.id}`,
-    }));
+    if (requestIndex === this.searchCounter) {
+      return {
+        uncovered: true,
+        total: nodes.length,
+        nodes: nodes.map((node: any) => ({
+          ...node,
+          biz_inst_id: `${node.id}`,
+        })),
+      };
+    }
+    return Promise.reject(false);
   }
 }
 </script>
