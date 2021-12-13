@@ -197,6 +197,16 @@ export default class PluginRuleTable extends Mixins(FormLabelMixin, HeaderRender
       this.nodeListTable.doLayout();
     });
   }
+  @Watch('pluginNames')
+  private handleResetFilterField(val: string[]) {
+    const plugin = val.map(name => ({
+      name,
+      id: name,
+      checked: true,
+      disabled: false,
+    }));
+    this.filterField.splice(this.filterField.length, 0, ...plugin);
+  }
 
   private currentIp = '';
   private currentHostId = -1;
@@ -204,7 +214,44 @@ export default class PluginRuleTable extends Mixins(FormLabelMixin, HeaderRender
   private showSlider = false;
   // 本地存储Key
   private localMark = 'plugin_list_table';
-  private filterField: ITabelFliter[] = [];
+  private filterField: ITabelFliter[] = [
+    {
+      checked: true,
+      disabled: true,
+      name: 'IP',
+      id: 'inner_ip',
+    },
+    {
+      checked: true,
+      disabled: false,
+      name: window.i18n.t('节点类型'),
+      id: 'node_type',
+    },
+    {
+      checked: true,
+      disabled: false,
+      name: window.i18n.t('云区域'),
+      id: 'bk_cloud_id',
+    },
+    {
+      checked: true,
+      disabled: false,
+      name: window.i18n.t('归属业务'),
+      id: 'bk_biz_name',
+    },
+    {
+      checked: true,
+      disabled: false,
+      name: window.i18n.t('操作系统'),
+      id: 'os_type',
+    },
+    // {
+    //   checked: true,
+    //   disabled: false,
+    //   name: window.i18n.t('Agent状态'),
+    //   id: 'agent_status'
+    // },
+  ];
   private popoverIns: any = null;
   private loading = false;
   private detailData: IPluginStatus[] = [];
@@ -223,54 +270,6 @@ export default class PluginRuleTable extends Mixins(FormLabelMixin, HeaderRender
       return this.selections.length;
     }
     return this.runningCount - this.excludeData.length;
-  }
-
-  private created() {
-    const plugin = this.pluginNames.map(name => ({
-      name,
-      id: name,
-      checked: true,
-      disabled: false,
-    }));
-    this.filterField = [
-      {
-        checked: true,
-        disabled: true,
-        name: 'IP',
-        id: 'inner_ip',
-      },
-      {
-        checked: true,
-        disabled: false,
-        name: window.i18n.t('节点类型'),
-        id: 'node_type',
-      },
-      {
-        checked: true,
-        disabled: false,
-        name: window.i18n.t('云区域'),
-        id: 'bk_cloud_id',
-      },
-      {
-        checked: true,
-        disabled: false,
-        name: window.i18n.t('归属业务'),
-        id: 'bk_biz_name',
-      },
-      {
-        checked: true,
-        disabled: false,
-        name: window.i18n.t('操作系统'),
-        id: 'os_type',
-      },
-      // {
-      //   checked: true,
-      //   disabled: false,
-      //   name: window.i18n.t('Agent状态'),
-      //   id: 'agent_status'
-      // },
-      ...plugin,
-    ];
   }
 
   private getColumnShowStatus(id: string) {
