@@ -381,8 +381,19 @@ class MetaHandler(APIModel):
                 ],
             }
         )
+        ret_value.extend(
+            [
+                {
+                    "id": plugin_name,
+                    "name": plugin_name,
+                    # 数据量较大的情况下，children获取较慢，此处插件的children设置为空，由前端异步请求获取
+                    "children": [],
+                }
+                for plugin_name in settings.HEAD_PLUGINS
+            ]
+        )
 
-        return self.filter_empty_children(ret_value)
+        return ret_value
 
     @staticmethod
     def fetch_plugin_version_condition():
