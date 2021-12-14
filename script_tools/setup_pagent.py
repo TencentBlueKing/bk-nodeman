@@ -112,7 +112,7 @@ def arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("-HSN", "--host-script-name", type=str, help="Host Script Name")
     parser.add_argument("-HS", "--host-shell", type=str, help="Host Shell")
     parser.add_argument("-CPA", "--channel-proxy-address", type=str, help="Channel Proxy Address", default=None)
-    parser.add_argument("-ADP", "--agent-download-proxy", type=str, help="Agent Download Proxy", default=True)
+    parser.add_argument("-ADP", "--agent-download-proxy", type=str, help="Agent Download Proxy", default=None)
     return parser
 
 
@@ -416,7 +416,7 @@ def main() -> None:
             f"{tmp_dir}curl.exe {args.download_url}/{script_name} -o {tmp_dir}{script_name} -sSf "
             if args.agent_download_proxy
             else f"{tmp_dir}curl.exe {args.download_url}/{script_name}"
-            f"-o {tmp_dir}{script_name} -sSf -x {http_proxy_url} "
+            f" -o {tmp_dir}{script_name} -sSf -x {http_proxy_url} "
         )
         cmd.append(download_cmd)
 
