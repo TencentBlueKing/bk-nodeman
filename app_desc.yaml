@@ -138,6 +138,10 @@ modules:
                 command: python manage.py sync_host_relation_event
                 plan: 4C2G5R
                 replicas: 1
+            sync-host-pr:
+                command: python manage.py sync_process_event
+                plan: 4C2G5R
+                replicas: 1
             resource-w:
                 command: python manage.py apply_resource_watched_events
                 plan: 4C2G5R
