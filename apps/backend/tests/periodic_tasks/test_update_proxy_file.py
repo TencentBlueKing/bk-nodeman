@@ -60,12 +60,12 @@ GET_AGENT_STATUS = {
     f"{constants.DEFAULT_CLOUD}:{utils.DEFAULT_IP}": {
         "ip": utils.DEFAULT_IP,
         "bk_cloud_id": constants.DEFAULT_CLOUD,
-        "bk_agent_alive": constants.BkAgentStatus.ALIVE,
+        "bk_agent_alive": constants.BkAgentStatus.ALIVE.value,
     },
     f"{constants.DEFAULT_CLOUD}:{CHANNEL_TEST_IP}": {
         "ip": CHANNEL_TEST_IP,
         "bk_cloud_id": constants.DEFAULT_CLOUD,
-        "bk_agent_alive": constants.BkAgentStatus.ALIVE,
+        "bk_agent_alive": constants.BkAgentStatus.ALIVE.value,
     },
 }
 
@@ -163,7 +163,7 @@ class TestUpdateProxyFile(CustomBaseTestCase):
         # 没有存活的proxy
         GET_AGENT_STATUS[f"{constants.DEFAULT_CLOUD}:{utils.DEFAULT_IP}"][
             "bk_agent_alive"
-        ] = constants.BkAgentStatus.NOT_ALIVE
+        ] = constants.BkAgentStatus.NOT_ALIVE.value
         patch("apps.node_man.periodic_tasks.update_proxy_file.client_v2", self.GSE_MOCK_CLIENT).start()
         self.init_proxy_host(alive_number=0, unknown_number=1)
         self.assertIsNone(call_command("update_proxy_file"))
@@ -176,7 +176,7 @@ class TestUpdateProxyFile(CustomBaseTestCase):
             local_files_md5_map: Dict[str, str] = {}
             GET_AGENT_STATUS[f"{constants.DEFAULT_CLOUD}:{utils.DEFAULT_IP}"][
                 "bk_agent_alive"
-            ] = constants.BkAgentStatus.ALIVE
+            ] = constants.BkAgentStatus.ALIVE.value
             patch("apps.node_man.periodic_tasks.update_proxy_file.client_v2", self.GSE_MOCK_CLIENT).start()
 
             # 创建接入点

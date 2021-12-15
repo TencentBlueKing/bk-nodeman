@@ -15,7 +15,7 @@ import os
 import platform
 import re
 from enum import Enum
-from typing import List
+from typing import Dict, List
 
 from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
@@ -27,6 +27,7 @@ from apps.utils.basic import (
     reverse_dict,
     tuple_choices,
 )
+from apps.utils.enum import EnhanceEnum
 
 # 此值为历史遗留，后续蓝鲸不使用此字段后可废弃
 DEFAULT_SUPPLIER_ID = 0
@@ -389,14 +390,28 @@ class JobStatusType(object):
 
 NODE_MAN_LOG_LEVEL = ("INFO", "DEBUG", "PRIMARY", "WARNING", "ERROR")
 
+
+class BkAgentStatus(EnhanceEnum):
+    """对应 GSE get_agent_status 中 bk_agent_alive 的取值"""
+
+    NOT_ALIVE = 0
+    ALIVE = 1
+    TERMINATED = 2
+    NOT_INSTALLED = 3
+
+    @classmethod
+    def _get_member__alias_map(cls) -> Dict[Enum, str]:
+        return {cls.NOT_ALIVE: _("未知"), cls.ALIVE: _("正常"), cls.TERMINATED: _("异常"), cls.NOT_INSTALLED: _("未安装")}
+
+
 PROC_STATE_TUPLE = ("RUNNING", "UNKNOWN", "TERMINATED", "NOT_INSTALLED", "UNREGISTER", "REMOVED", "MANUAL_STOP")
 PROC_STATE_CHOICES = tuple_choices(PROC_STATE_TUPLE)
 ProcStateType = choices_to_namedtuple(PROC_STATE_CHOICES)
 PROC_STATUS_DICT = {
-    0: ProcStateType.UNKNOWN,
-    1: ProcStateType.RUNNING,
-    2: ProcStateType.TERMINATED,
-    3: ProcStateType.NOT_INSTALLED,
+    BkAgentStatus.NOT_ALIVE.value: ProcStateType.UNKNOWN,
+    BkAgentStatus.ALIVE.value: ProcStateType.RUNNING,
+    BkAgentStatus.TERMINATED.value: ProcStateType.TERMINATED,
+    BkAgentStatus.NOT_INSTALLED.value: ProcStateType.NOT_INSTALLED,
 }
 PROC_STATUS_CHN = {
     ProcStateType.UNKNOWN: _("未知"),
@@ -640,16 +655,6 @@ class BkJobStatus(object):
     RUNNING = 2
     SUCCEEDED = 3
     FAILED = 4
-
-
-class BkAgentStatus(object):
-    """
-    Gse agent状态码：
-    0为不在线，1为在线
-    """
-
-    ALIVE = 1
-    NOT_ALIVE = 0
 
 
 class BkJobErrorCode(object):

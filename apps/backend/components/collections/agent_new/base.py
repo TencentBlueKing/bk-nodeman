@@ -10,8 +10,9 @@ specific language governing permissions and limitations under the License.
 """
 
 import abc
+from collections import defaultdict
 from functools import wraps
-from typing import Dict, List, Set, Union
+from typing import Any, Dict, List, Set, Union
 
 from apps.node_man import constants, models
 
@@ -87,6 +88,54 @@ class AgentBaseService(BaseService, metaclass=abc.ABCMeta):
         package_type = ("client", "proxy")[host.node_type == constants.NodeType.PROXY]
         agent_upgrade_package_name = f"gse_{package_type}-{host.os_type.lower()}-{host.cpu_arch}_upgrade.tgz"
         return agent_upgrade_package_name
+
+    @property
+    def agent_proc_common_data(self) -> Dict[str, Any]:
+        """
+        获取 agent ProcessStatus 通用构造数据
+        :return:
+        """
+        return {
+            "name": models.ProcessStatus.GSE_AGENT_PROCESS_NAME,
+            "source_type": models.ProcessStatus.SourceType.DEFAULT,
+        }
+
+    def maintain_agent_proc_status_uniqueness(self, bk_host_ids: Set[int]) -> None:
+        """
+        维持 Agent 进程的唯一性
+        :param bk_host_ids: 主机ID列表
+        :return:
+        """
+        proc_status_infos = models.ProcessStatus.objects.filter(
+            **self.agent_proc_common_data, bk_host_id__in=bk_host_ids
+        ).values("id", "bk_host_id", "status")
+
+        proc_status_infos_gby_host_id: Dict[int, List[Dict[str, Union[str, int]]]] = defaultdict(list)
+        for proc_status_info in proc_status_infos:
+            proc_status_infos_gby_host_id[proc_status_info["bk_host_id"]].append(proc_status_info)
+
+        # 对进程按 status 排序，保证 RUNNING 值最小位于列表第一位
+        proc_status_infos_gby_host_id = {
+            host_id: sorted(proc_status_infos, key=lambda x: (1, -1)[x["status"] == constants.ProcStateType.RUNNING])
+            for host_id, proc_status_infos in proc_status_infos_gby_host_id.items()
+        }
+
+        # 记录多余的进程ID
+        proc_status_ids_to_be_deleted: List[int] = []
+        for __, proc_status_infos in proc_status_infos_gby_host_id.items():
+            # 按上述的排序规则，保证保留至少一个RUNNING的记录 或 第一个异常记录
+            proc_status_ids_to_be_deleted.extend([proc_status_info["id"] for proc_status_info in proc_status_infos[1:]])
+
+        # 删除多余的进程
+        models.ProcessStatus.objects.filter(id__in=proc_status_ids_to_be_deleted).delete()
+
+        # 如果没有进程记录则创建
+        proc_statuses_to_be_created: List[models.ProcessStatus] = []
+        host_ids_without_proc = bk_host_ids - set(proc_status_infos_gby_host_id.keys())
+        for host_id in host_ids_without_proc:
+            proc_statuses_to_be_created.append(models.ProcessStatus(bk_host_id=host_id, **self.agent_proc_common_data))
+        batch_size = models.GlobalSettings.get_config(models.GlobalSettings.KeyEnum.BATCH_SIZE.value, default=100)
+        models.ProcessStatus.objects.bulk_create(proc_statuses_to_be_created, batch_size=batch_size)
 
 
 class AgentCommonData(CommonData):
