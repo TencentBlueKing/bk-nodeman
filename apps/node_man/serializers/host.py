@@ -61,8 +61,9 @@ class HostUpdateSerializer(serializers.Serializer):
             if field_need_encrypt not in attrs:
                 continue
             attrs[field_need_encrypt] = tools.HostTools.decrypt_with_friendly_exc_handle(
-                rsa_util=rsa_util, encrypt_message=attrs[fields_need_encrypt], raise_exec=ValidationError
+                rsa_util=rsa_util, encrypt_message=attrs[field_need_encrypt], raise_exec=ValidationError
             )
+        return attrs
 
 
 class RemoveSerializer(serializers.Serializer):
