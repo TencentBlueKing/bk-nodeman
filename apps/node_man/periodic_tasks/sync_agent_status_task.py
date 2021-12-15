@@ -60,7 +60,7 @@ def update_or_create_host_agent_status(task_id, start, end):
     to_be_created_status = []
     for key, host_info in agent_status_data.items():
         process_status_id = process_status_id_map.get(bk_host_id_map[key], {}).get("id")
-        is_running = host_info["bk_agent_alive"] == constants.BkAgentStatus.ALIVE
+        is_running = host_info["bk_agent_alive"] == constants.BkAgentStatus.ALIVE.value
         version = constants.VERSION_PATTERN.search(agent_info_data[key]["version"])
 
         if not process_status_id:
@@ -83,10 +83,10 @@ def update_or_create_host_agent_status(task_id, start, end):
                 # 状态为0时如果节点管理为CMDB标记为未安装否则为异常
                 if node_from_map[key] == constants.NodeFrom.CMDB:
                     # NOT_INSTALLED
-                    status = constants.PROC_STATUS_DICT[3]
+                    status = constants.ProcStateType.NOT_INSTALLED
                 else:
                     # TERMINATED
-                    status = constants.PROC_STATUS_DICT[2]
+                    status = constants.ProcStateType.TERMINATED
 
             process_objs.append(
                 ProcessStatus(

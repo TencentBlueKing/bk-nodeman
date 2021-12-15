@@ -119,8 +119,17 @@ SUPERVISOR_SOCK = "unix:///var/run/bknodeman/nodeman-supervisord.sock"
 # 自监控rabbitmq队列最大长度配置
 RABBITMQ_MAX_MESSAGE_COUNT = 10000
 
+
+# ===============================================================================
+# Django 基础配置
+# ===============================================================================
+
 # 所有环境的日志级别可以在这里配置
 # LOG_LEVEL = 'INFO'
+
+# 默认DB主键字段
+# https://docs.djangoproject.com/en/3.2/releases/3.2/#customizing-type-of-auto-created-primary-keys
+DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
 
 # ===============================================================================
 # 静态资源配置
