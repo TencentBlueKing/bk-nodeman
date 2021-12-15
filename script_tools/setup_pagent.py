@@ -112,7 +112,7 @@ def arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("-HSN", "--host-script-name", type=str, help="Host Script Name")
     parser.add_argument("-HS", "--host-shell", type=str, help="Host Shell")
     parser.add_argument("-CPA", "--channel-proxy-address", type=str, help="Channel Proxy Address", default=None)
-    parser.add_argument("-ADP", "--agent-download-proxy", type=str, help="Agent Download Proxy", default=True)
+    parser.add_argument("-ADP", "--agent-download-proxy", type=bool, help="Agent Download Proxy", default=True)
     return parser
 
 
@@ -377,9 +377,9 @@ def main() -> None:
             f"rm -f {tmp_dir}{script_name}",
         ]
         download_cmd = (
-            f"curl {args.download_url}/{script_name} -o {tmp_dir}{script_name} -sSf "
+            f"curl {args.download_url}/{script_name} -o {tmp_dir}{script_name} -sSf -x {http_proxy_url} "
             if args.agent_download_proxy
-            else f"curl {args.download_url}/{script_name} -o {tmp_dir}{script_name} -sSf -x {http_proxy_url} "
+            else f"curl {args.download_url}/{script_name} -o {tmp_dir}{script_name} -sSf "
         )
         cmd.append(download_cmd)
         cmd.append(
@@ -413,10 +413,10 @@ def main() -> None:
     else:
         cmd = [f"del /q /s /f {tmp_dir}{script_name} {tmp_dir}gsectl.bat"]
         download_cmd = (
-            f"{tmp_dir}curl.exe {args.download_url}/{script_name} -o {tmp_dir}{script_name} -sSf "
+            f"{tmp_dir}curl.exe {args.download_url}/{script_name}"
+            f" -o {tmp_dir}{script_name} -sSf -x {http_proxy_url} "
             if args.agent_download_proxy
-            else f"{tmp_dir}curl.exe {args.download_url}/{script_name}"
-            f"-o {tmp_dir}{script_name} -sSf -x {http_proxy_url} "
+            else f"{tmp_dir}curl.exe {args.download_url}/{script_name} -o {tmp_dir}{script_name} -sSf "
         )
         cmd.append(download_cmd)
 
