@@ -157,7 +157,7 @@ class LinuxInstallTestCase(InstallBaseTestCase):
             f" -r http://127.0.0.1/backend -l http://127.0.0.1/download"
             f" -c {token}"
             f' -O 48668 -E 58925 -A 58625 -V 58930 -B 10020 -S 60020 -Z 60030 -K 10030 -e "" -a "" -k ""'
-            f" -i 0 -I 127.0.0.1 -N SERVER -p /usr/local/gse -T /tmp/  &"
+            f" -i 0 -I 127.0.0.1 -N SERVER -p /usr/local/gse -T /tmp/ &"
         )
         self.assertEqual(installation_tool.run_cmd, run_cmd)
 
@@ -173,7 +173,7 @@ class InstallWindowsTestCase(InstallBaseTestCase):
             f"C:\\tmp\\setup_agent.bat -s {mock_data_utils.JOB_TASK_PIPELINE_ID}"
             f" -r http://127.0.0.1/backend -l http://127.0.0.1/download -c {token}"
             f' -O 48668 -E 58925 -A 58625 -V 58930 -B 10020 -S 60020 -Z 60030 -K 10030 -e "" -a "" -k ""'
-            f" -i 0 -I 127.0.0.1 -N SERVER -p c:\\gse -T C:\\tmp\\ "
+            f" -i 0 -I 127.0.0.1 -N SERVER -p c:\\gse -T C:\\tmp\\"
         )
         self.assertEqual(installation_tool.run_cmd, run_cmd)
 
@@ -201,7 +201,7 @@ class InstallLinuxPagentTestCase(InstallBaseTestCase):
             f" -HOT linux -HDD '/tmp/'"
             f" -HPP '17981' -HSN 'setup_agent.sh' -HS 'bash'"
             f" -p '/usr/local/gse' -I 1.1.1.1"
-            f" -o http://1.1.1.1:{settings.BK_NODEMAN_NGINX_DOWNLOAD_PORT}/ "
+            f" -o http://1.1.1.1:{settings.BK_NODEMAN_NGINX_DOWNLOAD_PORT}/"
         )
         self.assertEqual(installation_tool.run_cmd, run_cmd)
 
@@ -276,7 +276,7 @@ class InstallAgentWithInstallChannelSuccessTest(InstallBaseTestCase):
             f" -HOT linux -HDD '/tmp/'"
             f" -HPP '17981' -HSN 'setup_agent.sh' -HS 'bash'"
             f" -p '/usr/local/gse' -I 1.1.1.1"
-            f" -o http://1.1.1.1:{settings.BK_NODEMAN_NGINX_DOWNLOAD_PORT}/ "
+            f" -o http://1.1.1.1:{settings.BK_NODEMAN_NGINX_DOWNLOAD_PORT}/"
             f" -ADP 'True' -CPA 'http://127.0.0.1:17981'"
         )
         self.assertEqual(installation_tool.run_cmd, run_cmd)
