@@ -55,3 +55,15 @@ class _GseApi(BaseApi):
             module=self.MODULE,
             description="更新进程信息",
         )
+        self.get_agent_info = DataAPI(
+            method="POST",
+            url=GSE_APIGATEWAY_ROOT_V2 + "get_agent_info/",
+            module=self.MODULE,
+            description="获取Agent版本信息",
+        )
+        self.get_agent_status = DataAPI(
+            method="POST",
+            url=GSE_APIGATEWAY_ROOT_V2 + "get_agent_status/",
+            module=self.MODULE,
+            description="获取Agent状态",
+        )
