@@ -80,6 +80,8 @@ class GlobalSettings(models.Model):
     class KeyEnum(Enum):
         """枚举全局配置KEY，避免散落在各处难以维护"""
 
+        # DB 每批操作数
+        BATCH_SIZE = "BATCH_SIZE"
         USE_TJJ = "USE_TJJ"  # 是否启用TJJ
         REGISTER_WIN_SERVICE_WITH_PASS = "REGISTER_WIN_SERVICE_WITH_PASS"  # 是否使用密码注册windows服务
         CONFIG_POLICY_BY_SOPS = "CONFIG_POLICY_BY_SOPS"  # 是否使用标准运维自动开通网络策略

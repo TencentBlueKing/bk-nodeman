@@ -273,7 +273,14 @@ class DelegatePluginProcService(AgentBaseService):
                     self.move_insts_to_failed([sub_inst.id], _("GSE任务轮询超时"))
             elif error_code != GseDataErrCode.SUCCESS:
                 # 其它状态码非 SUCCESS 的任务则认为是失败的
-                self.move_insts_to_failed([sub_inst.id], log_content=error_msg)
+                self.move_insts_to_failed(
+                    [sub_inst.id],
+                    log_content=_("调用 GSE 接口异常：错误码 -> {error_code}「{error_code_alias}」, 错误信息 -> {error_msg}").format(
+                        error_code_alias=GseDataErrCode.ERROR_CODE__ALIAS_MAP.get(error_code, error_code),
+                        error_msg=error_msg,
+                        error_code=error_code,
+                    ),
+                )
 
         if is_finished:
             self.finish_schedule()

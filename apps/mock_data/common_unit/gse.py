@@ -18,7 +18,7 @@ GET_AGENT_STATUS_DATA = {
     f"{constants.DEFAULT_CLOUD}:{host.DEFAULT_IP}": {
         "ip": host.DEFAULT_IP,
         "bk_cloud_id": constants.DEFAULT_CLOUD,
-        "bk_agent_alive": constants.BkAgentStatus.ALIVE,
+        "bk_agent_alive": constants.BkAgentStatus.ALIVE.value,
     }
 }
 

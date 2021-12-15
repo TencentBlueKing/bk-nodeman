@@ -36,10 +36,12 @@ class UpdateProcessStatusService(AgentBaseService):
             for host_id, host_obj in host_id_obj_map.items():
                 if host_obj.node_from != constants.NodeFrom.CMDB:
                     update_host_ids.append(host_id)
+
+            # TODO 修改主机的逻辑应该单独抽出一个插件，防止后续插件复用，该更新逻辑影响其他流程
             Host.objects.filter(bk_host_id__in=update_host_ids).update(node_from=constants.NodeFrom.CMDB)
 
             # 更新进程状态
-            ProcessStatus.objects.filter(bk_host_id__in=bk_host_ids, name=ProcessStatus.GSE_AGENT_PROCESS_NAME).update(
+            ProcessStatus.objects.filter(bk_host_id__in=bk_host_ids, **self.agent_proc_common_data).update(
                 status=constants.ProcStateType.NOT_INSTALLED
             )
 
