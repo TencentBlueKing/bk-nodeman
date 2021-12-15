@@ -10,7 +10,6 @@ specific language governing permissions and limitations under the License.
 """
 
 import abc
-from functools import reduce
 from typing import List, Optional, Tuple, Union
 
 from django.conf import settings
@@ -19,7 +18,6 @@ from django.utils.translation import ugettext as _
 from apps.backend import constants as backend_const
 from apps.backend.agent.manager import AgentManager
 from apps.node_man import constants, models
-from apps.node_man.constants import ProcStateType
 from apps.node_man.models import GsePluginDesc, SubscriptionStep
 from pipeline import builder
 from pipeline.builder.flow.base import Element
@@ -112,35 +110,6 @@ class AgentAction(Action, abc.ABC):
         subscription_instance_ids = [sub_inst.id for sub_inst in subscription_instances]
         return AgentManager(subscription_instance_ids, self.step)
 
-    def generate_pipeline(self, agent_manager):
-        """
-        :param PluginManager agent_manager:
-        :return builder.SubProcess
-        """
-        start_event = builder.EmptyStartEvent()
-        end_event = builder.EmptyEndEvent()
-
-        activities, pipeline_data = self.generate_activities(agent_manager)
-        pipeline_data.inputs["${description}"] = builder.Var(type=builder.Var.PLAIN, value=self.ACTION_DESCRIPTION)
-
-        activities.insert(0, start_event)
-        activities.append(end_event)
-
-        # activity 编排
-        reduce(lambda l, r: l.extend(r), [act for act in activities if act])
-
-        sub_process = builder.SubProcess(
-            start=start_event,
-            name="[{}] {} {}:{}".format(
-                self.ACTION_NAME,
-                self.ACTION_DESCRIPTION,
-                agent_manager.host_info["bk_cloud_id"],
-                agent_manager.host_info["bk_host_innerip"],
-            ),
-            data=pipeline_data,
-        )
-        return sub_process
-
     @abc.abstractmethod
     def _generate_activities(self, agent_manager):
         pass
@@ -188,7 +157,7 @@ class InstallAgent(AgentAction):
             agent_manager.query_tjj_password() if settings.USE_TJJ else None,
             agent_manager.choose_ap(),
             agent_manager.install(install_name),
-            agent_manager.get_agent_status(expect_status=ProcStateType.RUNNING),
+            agent_manager.get_agent_status(expect_status=constants.ProcStateType.RUNNING),
         ]
         activities = self.append_delegate_activities(agent_manager, activities)
 
@@ -211,7 +180,7 @@ class ReinstallAgent(AgentAction):
             agent_manager.query_tjj_password() if settings.USE_TJJ else None,
             agent_manager.choose_ap(),
             agent_manager.install(install_name),
-            agent_manager.get_agent_status(expect_status=ProcStateType.RUNNING),
+            agent_manager.get_agent_status(expect_status=constants.ProcStateType.RUNNING),
         ]
         activities = self.append_delegate_activities(agent_manager, activities)
 
@@ -230,7 +199,7 @@ class UpgradeAgent(ReinstallAgent):
         activities = [
             agent_manager.push_upgrade_package(),
             agent_manager.run_upgrade_command(),
-            agent_manager.get_agent_status(expect_status=ProcStateType.RUNNING),
+            agent_manager.get_agent_status(expect_status=constants.ProcStateType.RUNNING),
         ]
         return activities, None
 
@@ -246,7 +215,7 @@ class RestartAgent(AgentAction):
     def _generate_activities(self, agent_manager: AgentManager):
         activities = [
             agent_manager.restart(),
-            agent_manager.get_agent_status(expect_status=ProcStateType.RUNNING),
+            agent_manager.get_agent_status(expect_status=constants.ProcStateType.RUNNING),
         ]
 
         return activities, None
@@ -263,7 +232,7 @@ class RestartProxy(AgentAction):
     def _generate_activities(self, agent_manager: AgentManager):
         activities = [
             agent_manager.restart(),
-            agent_manager.get_agent_status(expect_status=ProcStateType.RUNNING, name=_("查询Proxy状态")),
+            agent_manager.get_agent_status(expect_status=constants.ProcStateType.RUNNING, name=_("查询Proxy状态")),
         ]
         return activities, None
 
@@ -284,7 +253,7 @@ class InstallProxy(AgentAction):
             agent_manager.configure_policy(),
             agent_manager.choose_ap(),
             agent_manager.install(),
-            agent_manager.get_agent_status(expect_status=ProcStateType.RUNNING, name=_("查询Proxy状态")),
+            agent_manager.get_agent_status(expect_status=constants.ProcStateType.RUNNING, name=_("查询Proxy状态")),
             agent_manager.check_policy_gse_to_proxy(),
         ]
 
@@ -312,7 +281,7 @@ class ReinstallProxy(AgentAction):
             agent_manager.install(),
             # 重装时由于初始 Proxy 的状态仍是RUNNING，这里等待30秒再重新查询
             agent_manager.wait(30),
-            agent_manager.get_agent_status(expect_status=ProcStateType.RUNNING, name=_("查询Proxy状态")),
+            agent_manager.get_agent_status(expect_status=constants.ProcStateType.RUNNING, name=_("查询Proxy状态")),
         ]
 
         activities = self.append_delegate_activities(agent_manager, activities)
@@ -337,7 +306,7 @@ class UpgradeProxy(ReinstallProxy):
             agent_manager.push_upgrade_package(),
             agent_manager.run_upgrade_command(),
             agent_manager.wait(30),
-            agent_manager.get_agent_status(expect_status=ProcStateType.RUNNING),
+            agent_manager.get_agent_status(expect_status=constants.ProcStateType.RUNNING),
         ]
 
         # 推送文件到proxy
@@ -368,8 +337,8 @@ class UninstallAgent(AgentAction):
         activities = [
             agent_manager.query_tjj_password() if settings.USE_TJJ else None,
             agent_manager.uninstall_agent(),
-            agent_manager.get_agent_status(expect_status=ProcStateType.UNKNOWN),
-            agent_manager.update_process_status(status=ProcStateType.NOT_INSTALLED),
+            agent_manager.get_agent_status(expect_status=constants.ProcStateType.UNKNOWN),
+            agent_manager.update_process_status(status=constants.ProcStateType.NOT_INSTALLED),
         ]
 
         return list(filter(None, activities)), None
@@ -386,8 +355,10 @@ class UninstallProxy(AgentAction):
     def _generate_activities(self, agent_manager: AgentManager):
         activities = [
             agent_manager.uninstall_proxy(),
-            agent_manager.get_agent_status(expect_status=ProcStateType.UNKNOWN, name=_("查询Proxy状态")),
-            agent_manager.update_process_status(status=ProcStateType.NOT_INSTALLED),
+            agent_manager.get_agent_status(
+                expect_status=constants.constants.ProcStateType.UNKNOWN, name=_("查询Proxy状态")
+            ),
+            agent_manager.update_process_status(status=constants.ProcStateType.NOT_INSTALLED),
         ]
 
         return activities, None
@@ -407,7 +378,7 @@ class ReloadAgent(AgentAction):
             agent_manager.render_and_push_gse_config(),
             agent_manager.reload_agent(),
             agent_manager.restart(),
-            agent_manager.get_agent_status(expect_status=ProcStateType.RUNNING),
+            agent_manager.get_agent_status(expect_status=constants.ProcStateType.RUNNING),
         ]
 
         # TODO 不同操作系统分支不同
@@ -416,7 +387,7 @@ class ReloadAgent(AgentAction):
         #     activities.append(agent_manager.reload_agent())
         # else:
         #     activities.append(agent_manager.restart()),
-        #     activities.append(agent_manager.get_agent_status(expect_status=ProcStateType.RUNNING)),
+        #     activities.append(agent_manager.get_agent_status(expect_status=constants.ProcStateType.RUNNING)),
 
         return activities, None
 

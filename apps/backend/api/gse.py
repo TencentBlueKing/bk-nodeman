@@ -173,7 +173,7 @@ class GseClient(object):
         for key, value in data.items():
             bk_cloud_id, bk_supplier_id, ip = key.split(":")[:3]
             result_type = constants.GSE_TASK_RESULT_MAP.get(value["error_code"], "failed")
-            if value["error_code"] == constants.GseDataErrCode.NON_EXIST:
+            if value["error_code"] == constants.GseDataErrCode.PROC_NO_RUNNING:
                 result_type = "success"
             result_content = dict(value, bk_cloud_id=bk_cloud_id, bk_supplier_id=bk_supplier_id, ip=ip)
             result[result_type].append(result_content)

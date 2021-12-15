@@ -9,13 +9,13 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from collections import defaultdict
-from typing import Any, Dict, List
+from typing import Dict, List, Set, Union
 
 from django.utils.translation import ugettext_lazy as _
 
-from apps.component.esbclient import client_v2
+from apps.backend.api.constants import POLLING_INTERVAL, POLLING_TIMEOUT
 from apps.node_man import constants, models
-from apps.node_man.models import Host, ProcessStatus
+from common.api import GseApi
 from pipeline.core.flow import Service, StaticIntervalGenerator
 
 from .base import AgentBaseService, AgentCommonData
@@ -24,220 +24,121 @@ from .base import AgentBaseService, AgentCommonData
 class GetAgentStatusService(AgentBaseService):
 
     __need_schedule__ = True
-    interval = StaticIntervalGenerator(5)
+    interval = StaticIntervalGenerator(POLLING_INTERVAL)
 
     def inputs_format(self):
-        return [
+        return super().inputs_format() + [
             Service.InputItem(name="expect_status", key="expect_status", type="str", required=True),
         ]
 
-    def _execute(self, data, parent_data, common_data: AgentCommonData, callback_data=None):
-        expect_status = data.get_one_of_inputs("expect_status")
-        host_id_obj_map = common_data.host_id_obj_map
-        subscription_instances = common_data.subscription_instances
-        subscription_instance_ids = common_data.subscription_instance_ids
-        batch_size = models.GlobalSettings.get_config("BATCH_SIZE", default=100)
-        host_ids = list(common_data.bk_host_ids)
-
-        create_proc_status_host_id_list: List[int] = []
-        delete_proc_status_id_list: List[Dict[str, Any]] = []
-        proc_statistics_map: Dict[int, Dict[str, Any]] = defaultdict(lambda: defaultdict(list))
-        to_be_created_process_status: List[models.ProcessStatus] = []
-        host_id_to_inst_id_map: Dict[int, int] = defaultdict()
-
-        for subscription_instance in subscription_instances:
-            bk_host_id = subscription_instance.instance_info["host"]["bk_host_id"]
-            subscription_instance_ids.add(subscription_instance.id)
-            host_id_to_inst_id_map[bk_host_id] = subscription_instance.id
-
-        status_queryset = ProcessStatus.objects.filter(
-            bk_host_id__in=host_ids,
-            name=ProcessStatus.GSE_AGENT_PROCESS_NAME,
-            source_type=ProcessStatus.SourceType.DEFAULT,
-        )
-        if not status_queryset:
-            create_proc_status_host_id_list = host_ids
-        else:
-            for proc_status in status_queryset:
-                count = proc_statistics_map[proc_status.bk_host_id]["count"] or 0
-                proc_statistics_map[proc_status.bk_host_id]["count"] = count + 1
-                proc_statistics_map[proc_status.bk_host_id]["proc_ids"].append(proc_status.id)
-            for host_id, statistics in proc_statistics_map.items():
-                if statistics["count"] > 1:
-                    delete_proc_status_id_list.append(statistics["proc_ids"][1:])
-                elif statistics["count"] == 0:
-                    create_proc_status_host_id_list.append(host_id)
-
-        # 创建不存在的进程记录
-        if create_proc_status_host_id_list:
-            for host_id in create_proc_status_host_id_list:
-                to_be_created_process_status.append(
-                    ProcessStatus(
-                        bk_host_id=host_id,
-                        name=ProcessStatus.GSE_AGENT_PROCESS_NAME,
-                        source_type=ProcessStatus.SourceType.DEFAULT,
-                    )
-                )
-            ProcessStatus.objects.bulk_create(to_be_created_process_status, batch_size=batch_size)
-
-        # 删掉多余进程记录
-        if delete_proc_status_id_list:
-            status_queryset.filter(id__in=delete_proc_status_id_list).delete()
-
-        unexpected_status_agents = self.get_agent_statues(
-            host_ids,
-            expect_status=expect_status,
-            batch_size=batch_size,
-            host_id_to_inst_id_map=host_id_to_inst_id_map,
-            host_id_obj_map=host_id_obj_map,
-        )
-
-        if not unexpected_status_agents:
-            self.__need_schedule__ = False
-            self.clear_expired_outputs(data)
-            return True
-        data.set_outputs("unexpected_status_agents", unexpected_status_agents)
-        data.set_outputs("host_id_obj_map", host_id_obj_map)
-        data.set_outputs("host_id_to_inst_id_map", host_id_to_inst_id_map)
-
-    @classmethod
-    def clear_expired_outputs(cls, data):
-        outputs = ["unexpected_status_agents", "host_id_to_inst_id_map", "host_id_obj_map"]
-        for output in outputs:
-            if hasattr(data.outputs, output):
-                delattr(data.outputs, output)
-
-    def _schedule(self, data, parent_data, callback_data=None):
-        expect_status = data.get_one_of_inputs("expect_status")
-        host_id_to_inst_id_map = data.get_one_of_outputs("host_id_to_inst_id_map")
-        host_id_obj_map = data.get_one_of_outputs("host_id_obj_map")
-        batch_size = models.GlobalSettings.get_config("BATCH_SIZE", default=100)
-        schedule_agent_ids = data.get_one_of_outputs("unexpected_status_agents")
-        inst_ids = [host_id_to_inst_id_map[host_id] for host_id in schedule_agent_ids]
-        if self.interval.count > 60:
-            self.move_insts_to_failed(sub_inst_ids=inst_ids, log_content=_("查询GSE主机状态超时"))
-            self.finish_schedule()
-            self.clear_expired_outputs(data)
-            return False
-        unexpected_status_agents = self.get_agent_statues(
-            schedule_agent_ids,
-            expect_status=expect_status,
-            batch_size=batch_size,
-            host_id_to_inst_id_map=host_id_to_inst_id_map,
-            host_id_obj_map=host_id_obj_map,
-        )
-        if not unexpected_status_agents:
-            self.clear_expired_outputs(data)
-            self.finish_schedule()
-            return True
-        data.set_outputs("unexpected_status_agents", unexpected_status_agents)
-
-    def get_agent_statues(
-        self,
-        host_ids: List[int],
-        expect_status: Any,
-        batch_size: int,
-        host_id_to_inst_id_map: Dict[int, int],
-        host_id_obj_map: Dict[int, models.Host],
-    ):
-        unexpected_status_agents: List[int] = []
-        host_key_map = defaultdict()
-        update_proc_list: Dict[str, List[models.ProcessStatus]] = defaultdict(list)
-        update_host_list: Dict[str, List[models.Host]] = defaultdict(list)
-        except_status_agents: Dict[str, Dict[str, Any]] = defaultdict(lambda: defaultdict(list))
-
-        inst_ids = [host_id_to_inst_id_map[host_id] for host_id in host_ids]
-        agent_host = [
-            {"ip": host_id_obj_map[host_id].inner_ip, "bk_cloud_id": host_id_obj_map[host_id].bk_cloud_id}
-            for host_id in host_ids
+    def outputs_format(self):
+        return super().outputs_format() + [
+            Service.InputItem(name="polling_time", key="polling_time", type="int", required=True),
+            Service.InputItem(name="host_ids_need_to_query", key="host_ids_need_to_query", type="list", required=True),
         ]
 
-        for host_id in host_ids:
-            key = "{}:{}".format(host_id_obj_map[host_id].bk_cloud_id, host_id_obj_map[host_id].inner_ip)
-            host_key_map[key] = host_id
+    def _execute(self, data, parent_data, common_data: AgentCommonData):
+        expect_status = data.get_one_of_inputs("expect_status")
+        self.log_info(
+            sub_inst_ids=common_data.subscription_instance_ids,
+            log_content=_("期望的 Agent 状态为 {expect_status_alias}「{expect_status}」").format(
+                expect_status=expect_status,
+                expect_status_alias=constants.PROC_STATUS_CHN.get(expect_status, expect_status),
+            ),
+        )
+        # 保证进程记录唯一性
+        self.maintain_agent_proc_status_uniqueness(bk_host_ids=common_data.bk_host_ids)
 
-        try:
-            agent_status_data = client_v2.gse.get_agent_status({"hosts": agent_host})
-            agent_info_data = client_v2.gse.get_agent_info({"hosts": agent_host})
-        except Exception as error:
-            self.move_insts_to_failed(sub_inst_ids=inst_ids, log_content=_(f"get agent status error, {error}"))
+        data.outputs.polling_time = 0
+        data.outputs.host_ids_need_to_query = list(common_data.bk_host_ids)
+
+    def _schedule(self, data, parent_data, callback_data=None):
+        common_data: AgentCommonData = self.get_common_data(data)
+        expect_status = data.get_one_of_inputs("expect_status")
+        host_ids_need_to_query: Set[int] = data.get_one_of_outputs("host_ids_need_to_query")
+
+        # 构造 gse 请求参数
+        hosts: List[Dict[str, Union[int, str]]] = []
+        for host_id in host_ids_need_to_query:
+            host_obj = common_data.host_id_obj_map[host_id]
+            hosts.append({"ip": host_obj.inner_ip, "bk_cloud_id": host_obj.bk_cloud_id})
+
+        # 请求 gse
+        host_key__agent_info_map: Dict[str, Dict[str, Union[int, str]]] = GseApi.get_agent_info({"hosts": hosts})
+        host_key__agent_status_info_map: Dict[str, Dict[str, Union[int, str]]] = GseApi.get_agent_status(
+            {"hosts": hosts}
+        )
+
+        # 分隔符，用于构造 bk_cloud_id - ip，status - version 等键
+        sep = ":"
+        # 已获取期望状态的主机ID列表
+        host_ids_get_expect_status: List[int] = []
+        # 需要在下一个调度查询 Agent 相关信息的主机ID列表
+        host_ids_need_to_next_query: List[int] = []
+        # 按 status - version 聚合的主机ID列表
+        host_ids_gby_status_version_key: Dict[str, List[int]] = defaultdict(list)
+        # 主机ID - 订阅实例ID 映射关系
+        host_id__sub_inst_id_map: Dict[int, int] = {
+            host_id: sub_inst_id for sub_inst_id, host_id in common_data.sub_inst_id__host_id_map.items()
+        }
+        for host_id in host_ids_need_to_query:
+            host_obj = common_data.host_id_obj_map[host_id]
+            host_key = f"{host_obj.bk_cloud_id}{sep}{host_obj.inner_ip}"
+            # 根据 host_key，取得 agent 版本及状态信息
+            agent_info = host_key__agent_info_map.get(host_key, {"version": ""})
+            agent_status_info = host_key__agent_status_info_map.get(
+                host_key, {"bk_agent_alive": constants.BkAgentStatus.NOT_ALIVE.value}
+            )
+            # 获取 agent 版本号及状态
+            agent_status = constants.PROC_STATUS_DICT[agent_status_info["bk_agent_alive"]]
+            agent_version = agent_info["version"]
+
+            self.log_info(
+                host_id__sub_inst_id_map[host_id],
+                log_content=_("查询 GSE 得到主机 [{host_key}] Agent 状态 -> {status_alias}「{status}」, 版本 -> {version}").format(
+                    host_key=host_key,
+                    status_alias=constants.PROC_STATUS_CHN.get(agent_status, agent_status),
+                    status=agent_status,
+                    version=agent_version or _("无"),
+                ),
+            )
+
+            if agent_status != expect_status:
+                host_ids_need_to_next_query.append(host_id)
+            else:
+                host_ids_get_expect_status.append(host_id)
+                host_ids_gby_status_version_key[f"{agent_status}{sep}{agent_version}"].append(host_id)
+
+        # 更新 ProcessStatus
+        # status - version 的组合总类有限，聚合更新减少 DB 请求次数
+        for status_version_key, bk_host_ids in host_ids_gby_status_version_key.items():
+            status, version = status_version_key.split(sep=sep, maxsplit=1)
+            models.ProcessStatus.objects.filter(**self.agent_proc_common_data, bk_host_id__in=bk_host_ids).update(
+                status=status, version=version
+            )
+
+        # 将查询到期望状态的主机节点来源更新为 NODE_MAN
+        # TODO 单独拎一个插件
+        host_ids_need_to_update_node_from = []
+        for host_id in host_ids_get_expect_status:
+            if common_data.host_id_obj_map[host_id].node_from != constants.NodeFrom.NODE_MAN:
+                host_ids_need_to_update_node_from.append(host_id)
+        models.Host.objects.filter(bk_host_id__in=host_ids_need_to_update_node_from).update(
+            node_from=constants.NodeFrom.NODE_MAN
+        )
+
+        # 提前结束调度
+        if not host_ids_need_to_next_query:
+            data.outputs.host_ids_need_to_query = []
+            self.finish_schedule()
             return
 
-        for key, agent_status in agent_status_data.items():
-            # 先处理预期状态的agent
-            status = constants.PROC_STATUS_DICT[agent_status["bk_agent_alive"]]
-            host_id = host_key_map[key]
-            if status == expect_status:
-                version = agent_info_data[key]["version"]
-                host_ids = except_status_agents[version]["host_ids"]
-                inst_ids = except_status_agents[version]["inst_ids"]
-                host_ids.append(host_id)
-                inst_ids.append(host_id_to_inst_id_map[host_id])
-                except_status_agents[version] = {
-                    "host_ids": host_ids,
-                    "version": version,
-                    "status": status,
-                    "inst_ids": inst_ids,
-                }
+        polling_time = data.get_one_of_outputs("polling_time")
+        if polling_time + POLLING_INTERVAL > POLLING_TIMEOUT:
+            sub_inst_ids = [host_id__sub_inst_id_map[host_id] for host_id in host_ids_need_to_query]
+            self.move_insts_to_failed(sub_inst_ids=sub_inst_ids, log_content=_("查询 GSE 超时"))
+            self.finish_schedule()
+            return
 
-                update_proc_list[version].append(
-                    ProcessStatus(
-                        bk_host_id=host_id,
-                        name=ProcessStatus.GSE_AGENT_PROCESS_NAME,
-                        source_type=ProcessStatus.SourceType.DEFAULT,
-                        version=agent_info_data[key]["version"],
-                        status=agent_status["bk_agent_alive"],
-                    )
-                )
-
-                update_host_list[version].append(
-                    Host(
-                        bk_host_id=host_id,
-                        node_from=constants.NodeFrom.NODE_MAN,
-                    )
-                )
-                for version, except_agents in except_status_agents.items():
-                    # 以版本号为纬度更新表并且打印日志
-                    proc_objs: List[ProcessStatus] = []
-                    host_objs: List[Host] = []
-                    proc_queryset = ProcessStatus.objects.filter(
-                        bk_host_id__in=except_agents["host_ids"],
-                        name=ProcessStatus.GSE_AGENT_PROCESS_NAME,
-                        source_type=ProcessStatus.SourceType.DEFAULT,
-                        is_latest=True,
-                    )
-                    host_queryset = Host.objects.filter(
-                        bk_host_id__in=except_agents["host_ids"], node_from=constants.NodeFrom.CMDB
-                    )
-                    for host_query in host_queryset:
-                        host_objs.append(Host(pk=host_query.id, node_from=constants.NodeFrom.NODE_MAN))
-                    for proc in proc_queryset:
-                        proc_objs.append(
-                            ProcessStatus(
-                                pk=proc.id,
-                                status=except_agents["status"],
-                                version=except_agents["version"],
-                            )
-                        )
-                    ProcessStatus.objects.bulk_update(
-                        proc_objs,
-                        ["version", "status"],
-                        batch_size=batch_size,
-                    )
-                    Host.objects.bulk_update(
-                        host_objs,
-                        ["node_from"],
-                        batch_size=batch_size,
-                    )
-
-                    self.log_info(
-                        sub_inst_ids=except_agents["inst_ids"],
-                        log_content=_("查询GSE主机状态为{status}, 版本为{version}").format(
-                            status=status,
-                            version=version,
-                        ),
-                    )
-            else:
-                unexpected_status_agents.append(host_key_map[key])
-
-        return unexpected_status_agents
+        data.outputs.polling_time = polling_time + POLLING_INTERVAL
+        data.outputs.host_ids_need_to_query = host_ids_need_to_next_query

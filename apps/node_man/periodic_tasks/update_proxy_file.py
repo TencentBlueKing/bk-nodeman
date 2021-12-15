@@ -60,7 +60,7 @@ def update_proxy_files():
     # 实时查询主机状态
     agent_statuses = client_v2.gse.get_agent_status({"hosts": total_update_hosts})
     for __, host_info in agent_statuses.items():
-        if host_info["bk_agent_alive"] == constants.BkAgentStatus.ALIVE:
+        if host_info["bk_agent_alive"] == constants.BkAgentStatus.ALIVE.value:
             alive_hosts.append({"ip": host_info["ip"], "bk_cloud_id": host_info["bk_cloud_id"]})
     if not alive_hosts:
         return
