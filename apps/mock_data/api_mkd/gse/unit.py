@@ -8,17 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from mock import MagicMock
-
-from ... import utils
 
 # 操作类接口一般返回的是 task_id
 OP_RESULT = {"task_id": "GSETASK:S:202111161138323563236795:143"}
-
-
-class GseMockClient(utils.BaseMockClient):
-    def __init__(self, get_agent_status_return=None, get_agent_info_return=None):
-        super().__init__()
-        self.gse = MagicMock()
-        self.gse.get_agent_status = MagicMock(return_value=get_agent_status_return)
-        self.gse.get_agent_info = MagicMock(return_value=get_agent_info_return)

@@ -298,7 +298,7 @@ class RegisterHostService(AgentBaseService):
             return {}
 
         host_infos_gby_bk_biz_id: Dict[int, List[Dict[str, Any]]] = defaultdict(list)
-        for host_key, sub_inst in host_key__sub_inst_map.items():
+        for __, sub_inst in host_key__sub_inst_map.items():
             host_info = sub_inst.instance_info["host"]
             host_infos_gby_bk_biz_id[host_info["bk_biz_id"]].append(host_info)
 

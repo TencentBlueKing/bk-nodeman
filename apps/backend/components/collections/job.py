@@ -12,11 +12,11 @@ specific language governing permissions and limitations under the License.
 import abc
 import copy
 import hashlib
+import json
 import logging
 from typing import Any, Callable, Dict, List, Optional
 
 import six
-import ujson as json
 from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
 
@@ -149,7 +149,7 @@ class JobV3BaseService(six.with_metaclass(abc.ABCMeta, BaseService)):
 
             self.log_info(
                 subscription_instance_id,
-                _('{log}\n作业任务ID为[{job_instance_id}]，点击跳转到<a href="{link}" target="_blank">[作业平台]</a>').format(
+                _('{log}\n作业任务ID为 [{job_instance_id}]，点击跳转到 <a href="{link}" target="_blank">[作业平台]</a>').format(
                     log=log,
                     job_instance_id=job_instance_id,
                     link=f"{settings.BK_JOB_HOST}/{settings.BLUEKING_BIZ_ID}/execute/step/{job_instance_id}",
@@ -189,9 +189,12 @@ class JobV3BaseService(six.with_metaclass(abc.ABCMeta, BaseService)):
             else:
                 ip_status = ip_result["status"]
                 err_code = ip_result["error_code"]
-            err_msg = "status -> [{status}-{ip_status_msg}], error_code -> [{error_code}-{err_msg}]".format(
+            err_msg = "作业执行状态 -> {status}「{ip_status_msg}」, 主机任务状态码 -> {error_code}「{err_msg}」".format(
                 status=ip_status,
-                ip_status_msg=constants.BkJobIpStatus.BK_JOB_IP_STATUS_MAP.get(ip_status),
+                ip_status_msg=(
+                    constants.BkJobIpStatus.BK_JOB_IP_STATUS_MAP.get(ip_status)
+                    or constants.BkJobErrorCode.BK_JOB_ERROR_CODE_MAP.get(ip_status)
+                ),
                 error_code=err_code,
                 err_msg=constants.BkJobErrorCode.BK_JOB_ERROR_CODE_MAP.get(err_code),
             )
