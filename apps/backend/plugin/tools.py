@@ -308,17 +308,33 @@ def parse_package(
     return pkg_parse_info
 
 
-def fetch_latest_config_templates(config_templates: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def fetch_latest_config_templates(
+    config_templates: List[Dict[str, Any]], plugin_version: str = None
+) -> List[Dict[str, Any]]:
+    """
+    如果存在多个版本的同名配置，仅展示最新版本
+    若指定了插件版本，则优先取指定版本的配置
+    若未匹配指定版本，再从通配(*)的版本中取最新版本
+    :param config_templates: 配置模板列表
+    :param plugin_version: 指定插件版本号
+    :return:
+    """
     config_tmpls_gby_name = defaultdict(list)
     for config_tmpl in config_templates:
         config_tmpls_gby_name[config_tmpl["name"]].append(config_tmpl)
 
     latest_config_templates = []
     for config_tmpl_name, config_tmpls_with_the_same_name in config_tmpls_gby_name.items():
-        config_tmpls_order_by_version = sorted(
-            config_tmpls_with_the_same_name, key=lambda tmpl: version.parse(tmpl["version"])
-        )
-        latest_config_templates.append(config_tmpls_order_by_version[-1])
+        latest_config_template = {"version": ""}
+        for tmpl in config_tmpls_with_the_same_name:
+            # 优先取指定插件版本号的配置模板
+            if tmpl["version"] == plugin_version:
+                latest_config_template = tmpl
+                break
+            # 未匹配则从剩余的版本中取最大版本号的配置模板
+            if version.parse(tmpl["version"]) > version.parse(latest_config_template["version"]):
+                latest_config_template = tmpl
+        latest_config_templates.append(latest_config_template)
 
     return latest_config_templates
 

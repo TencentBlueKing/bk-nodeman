@@ -1167,7 +1167,9 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
                 + config_group_by_name_version[package["project"] + package["version"]]
             )
             # 如果存在多个版本的同名配置，仅展示最新版本
-            package["config_templates"] = tools.fetch_latest_config_templates(package["config_templates"])
+            package["config_templates"] = tools.fetch_latest_config_templates(
+                package["config_templates"], plugin_version=package["version"]
+            )
         return Response(sorted(packages, key=lambda x: version.parse(x["version"]), reverse=True))
 
     @action(detail=False, methods=["POST"], serializer_class=serializers.CosUploadSerializer)
