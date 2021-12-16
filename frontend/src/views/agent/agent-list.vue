@@ -235,15 +235,20 @@
           </template>
         </bk-table-column>
         <bk-table-column
+          fixed
           key="IP"
           label="IP"
-          prop="inner_ip">
+          prop="inner_ip"
+          width="110"
+          show-overflow-tooltip>
         </bk-table-column>
         <bk-table-column
           key="login_ip"
           :label="$t('登录IP')"
           prop="login_ip"
-          v-if="filter['login_ip'].mockChecked">
+          width="110"
+          v-if="filter['login_ip'].mockChecked"
+          show-overflow-tooltip>
           <template #default="{ row }">
             {{ row.login_ip | filterEmpty }}
           </template>
@@ -1763,9 +1768,6 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
 >>> .icon-down-wrapper {
   position: relative;
   left: 3px;
-}
->>> .bk-table-fixed-right-patch {
-  display: none;
 }
 .agent {
   min-height: calc(100vh - 112px);

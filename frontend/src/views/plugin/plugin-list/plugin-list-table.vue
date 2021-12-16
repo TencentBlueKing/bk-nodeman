@@ -387,10 +387,6 @@ export default class PluginRuleTable extends Mixins(FormLabelMixin, HeaderRender
       padding-left: 0;
     }
   }
-  >>> .bk-table-fixed {
-    /* stylelint-disable-next-line declaration-no-important */
-    bottom: 0 !important;
-  }
   .checkbox-row-item {
     display: flex;
     .col-status {
