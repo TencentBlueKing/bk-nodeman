@@ -13,16 +13,19 @@
         class="detail-table-left"
         v-test.policy="'chooseVersionTable'"
         :row-class-name="handleRowClass"
+        :max-height="500"
         @row-click="handleRowClick">
         <bk-table-column width="60" align="center">
           <template #default="{ row }">
-            <bk-radio v-test.policy="'versionRadio'" :disabled="row.disabled"
-                      :value="selectedVersion === row.version"
-                      width="90"
-                      v-bk-tooltips.left="{
-                        content: row.isBelowVersion ? $t('版本未处于正式状态') : $t('不能低于当前版本'),
-                        disabled: !row.disabled
-                      }">
+            <bk-radio
+              v-test.policy="'versionRadio'" :disabled="row.disabled"
+              :ref="selectedVersion === row.version ? 'selectedRowRef' : ''"
+              :value="selectedVersion === row.version"
+              width="90"
+              v-bk-tooltips.left="{
+                content: row.isBelowVersion ? $t('版本未处于正式状态') : $t('不能低于当前版本'),
+                disabled: !row.disabled
+              }">
             </bk-radio>
           </template>
         </bk-table-column>
@@ -63,7 +66,7 @@
   </bk-dialog>
 </template>
 <script lang="ts">
-import { Vue, Component, Prop, Emit, Model, Watch } from 'vue-property-decorator';
+import { Vue, Component, Prop, Emit, Model, Watch, Ref } from 'vue-property-decorator';
 import { IPkVersionRow } from '@/types/plugin/plugin-type';
 
 @Component({
@@ -74,6 +77,8 @@ export default class VersionDetailTable extends Vue {
   @Prop({ type: Array, default: () => ([]) }) private readonly data!: IPkVersionRow[];
   @Prop({ default: false, type: Boolean }) private readonly loading!: boolean;
   @Prop({ type: String, default: '' }) private readonly version!: string;
+
+  @Ref('selectedRowRef') private readonly selectedRowRef!: any;
 
   private selectedVersion = '';
   private selectedRow: IPkVersionRow | null = null;
@@ -86,6 +91,11 @@ export default class VersionDetailTable extends Vue {
     } else {
       this.selectedVersion = this.version;
       this.selectedRow = this.data.find(row => row.version === this.version) || null;
+      if (this.selectedRow) {
+        this.$nextTick(() => {
+          this.selectedRowRef && this.selectedRowRef.$el.scrollIntoView();
+        });
+      }
     }
   }
 
