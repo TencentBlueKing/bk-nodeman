@@ -593,11 +593,12 @@ class UnInstallPackageService(PluginExecuteScriptService):
 
         policy_step_adapter = common_data.policy_step_adapter
         category = policy_step_adapter.plugin_desc.category
-        script_param = "-t {category} -p {gse_home} -z {tmp_dir} -n {name} -r".format(
+        script_param = "-t {category} -p {gse_home} -z {tmp_dir} -n {name} -f {package} -r".format(
             category=category,
             gse_home=agent_config["setup_path"],
             name=package.project,
             tmp_dir=agent_config["temp_path"],
+            package=package.pkg_name,
         )
         group_id = process_status.group_id
         if category == constants.CategoryType.external and group_id:
