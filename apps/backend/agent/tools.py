@@ -230,8 +230,8 @@ def gen_commands(host: models.Host, pipeline_id: str, is_uninstall: bool) -> Ins
         if host.install_channel_id:
             __, upstream_servers = host.install_channel()
             agent_download_proxy = upstream_servers.get("agent_download_proxy", True)
-            if agent_download_proxy:
-                # 打开agent下载代理选项时传入
+            if not agent_download_proxy:
+                # 关闭agent下载代理选项时传入
                 run_cmd_params.extend([f"-ADP '{agent_download_proxy}'"])
             channel_proxy_address = upstream_servers.get("channel_proxy_address", None)
             if channel_proxy_address:

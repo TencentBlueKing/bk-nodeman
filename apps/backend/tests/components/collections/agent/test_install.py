@@ -473,7 +473,7 @@ class InstallAgentWithInstallChannelSuccessTest(TestCase, ComponentTestMixin):
                 "btfileserver": ["127.0.0.1"],
                 "dataserver": ["127.0.0.1"],
                 "channel_proxy_address": "http://127.0.0.1:17981",
-                "agent_download_proxy": True,
+                "agent_download_proxy": False,
             },
         )
         models.Host.objects.filter(bk_host_id=utils.BK_HOST_ID).update(install_channel_id=install_channel.id)
@@ -552,7 +552,7 @@ class InstallAgentWithInstallChannelSuccessTest(TestCase, ComponentTestMixin):
             f" -HPP '17981' -HSN 'setup_agent.sh' -HS 'bash'"
             f" -p '/usr/local/gse' -I 1.1.1.1"
             f" -o http://1.1.1.1:{settings.BK_NODEMAN_NGINX_DOWNLOAD_PORT}/"
-            f" -ADP 'True' -CPA 'http://127.0.0.1:17981'"
+            f" -ADP 'False' -CPA 'http://127.0.0.1:17981'"
         )
         self.assertEqual(installation_tool.run_cmd, run_cmd)
 
