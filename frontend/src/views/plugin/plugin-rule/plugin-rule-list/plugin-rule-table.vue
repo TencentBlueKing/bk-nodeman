@@ -132,7 +132,7 @@
           {{ row.update_time | filterTimezone }}
         </template>
       </bk-table-column>
-      <bk-table-column prop="colspanOperate" :label="$t('操作')" width="150" :resizable="false">
+      <bk-table-column prop="colspanOperate" :label="$t('操作')" width="150" :resizable="false" fixed="right">
         <template #default="{ row }">
           <template v-if="row.id === deleteId">
             <loading-icon class="mr5"></loading-icon>
@@ -222,7 +222,8 @@
         prop="colspanSetting"
         :render-header="renderHeader"
         width="42"
-        :resizable="false">
+        :resizable="false"
+        fixed="right">
         <template #default="{ row }">
           <div class="operate">
             <span class="more-btn" @click="handleShowMore($event, row)">

@@ -322,9 +322,6 @@ export default class PluginRuleTable extends Vue {
     }
     >>> .bk-table-expanded-cell {
       padding: 0 0 0 30px;
-      .bk-table-fixed-right {
-        border-bottom: 0;
-      }
     }
     >>> .is-last .cell {
       border-left: 0;
