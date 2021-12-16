@@ -38,6 +38,7 @@
             :current.sync="pagination.current"
             :show-limit="false"
             :limit="pagination.limit"
+            :limit-list="pagination.limitList"
             align="center"
             @change="handlePageChange" />
         </div>
@@ -293,6 +294,7 @@ export default {
         current: isNaN(this.query.page) ? 1 : Number(this.query.page),
         count: 0,
         limit: isNaN(this.query.pageSize) ? 50 : Number(this.query.pageSize),
+        limitList: [isNaN(this.query.pageSize) ? 50 : Number(this.query.pageSize)], // 需要把自定义pagesize塞进去
       },
       listLoading: false,
       relativePosition: 0,
