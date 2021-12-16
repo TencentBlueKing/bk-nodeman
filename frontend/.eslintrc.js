@@ -1,5 +1,11 @@
 module.exports = {
   root: true,
+  // 前端项目不在根目录时, 配合 vetur.config.js 来保证eslint正确解析ts的配置
+  parserOptions: {
+    project: 'tsconfig.json',
+    tsconfigRootDir: __dirname,
+    sourceType: 'module',
+  },
   extends: ['plugin:vue/recommended', '@bkui/eslint-config-bk/tsvue'],
   globals: {
     // value 为 true 允许被重写，为 false 不允许被重写
