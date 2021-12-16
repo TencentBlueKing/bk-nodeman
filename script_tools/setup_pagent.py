@@ -485,6 +485,9 @@ def main() -> None:
 def ssh_login(login_ip, port, account, identity):
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    # 作业平台传参后key的换行符被转义，需重新替换
+    if identity.startswith("-----BEGIN "):
+        identity = identity.replace("\\n", "\n")
     try:
         if identity.startswith("-----BEGIN RSA"):
             try:
