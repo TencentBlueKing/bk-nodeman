@@ -38,6 +38,7 @@ CLEAR_CONSOLE_RE = re.compile(r"\\u001b\[\D|\[\d{1,2}\D?|\\u001b\[\d{1,2}\D?~?|\
 CLEAR_MISC_RE = re.compile(r"\$.?\[\D", re.I | re.U)
 # 换行转换
 LINE_BREAK_RE = re.compile(r"\r\n|\r|\n", re.I | re.U)
+JOB_PRIVATE_KEY_RE = re.compile(r"^(-{5}BEGIN .*? PRIVATE KEY-{5})(.*?)(-{5}END .*? PRIVATE KEY-{5}.?)$")
 
 
 def arg_parser() -> argparse.ArgumentParser:
@@ -485,9 +486,15 @@ def main() -> None:
 def ssh_login(login_ip, port, account, identity):
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    # 作业平台传参后key的换行符被转义，需重新替换
-    if identity.startswith("-----BEGIN "):
-        identity = identity.replace("\\n", "\n")
+    matched_private_key = JOB_PRIVATE_KEY_RE.match(identity)
+    if matched_private_key:
+        start, content, end = matched_private_key.groups()
+        # 作业平台传参后key的换行符被转义为【空格】，需重新替换为换行符
+        content = content.replace(" ", "\n")
+        # 手动安装命令key的换行符被转义为 \n 字符串，需重新替换为换行符
+        content = content.replace("\\n", "\n")
+        identity = f"{start}{content}{end}"
+
     try:
         if identity.startswith("-----BEGIN RSA"):
             try:
