@@ -1,0 +1,3 @@
+---
+bugfix:
+  - "修复windows插件卸载失败的问题 (fixed #366)"
