@@ -575,6 +575,7 @@ def create_ap(number):
                     "taskserver": [{"inner_ip": random_ip(), "outer_ip": random_ip()}],
                     "package_inner_url": "http://127.0.0.1:80/download",
                     "package_outer_url": "http://127.0.0.1:80/download",
+                    "nginx_path": "/data/bkee/public/bknodeman/download",
                     "agent_config": {
                         "linux": {
                             "setup_path": "/usr/local/gse",

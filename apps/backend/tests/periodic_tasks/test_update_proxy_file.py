@@ -24,7 +24,8 @@ from apps.backend.tests.components.collections.agent import utils
 from apps.backend.tests.components.collections.job import utils as job_utils
 from apps.core.files import constants as core_const
 from apps.node_man import constants
-from apps.node_man.tests.utils import create_cloud_area, create_host
+from apps.node_man.models import AccessPoint, InstallChannel
+from apps.node_man.tests.utils import create_ap, create_cloud_area, create_host
 from apps.utils import files
 from apps.utils.files import md5sum
 from apps.utils.unittest.testcase import CustomBaseTestCase
@@ -35,13 +36,19 @@ FAST_EXECUTE_SCRIPT = {
     "step_instance_id": 10001,
 }
 
+CHANNEL_TEST_IP = "127.0.0.2"
 
 GET_AGENT_STATUS = {
     f"{constants.DEFAULT_CLOUD}:{utils.TEST_IP}": {
         "ip": utils.TEST_IP,
         "bk_cloud_id": constants.DEFAULT_CLOUD,
         "bk_agent_alive": constants.BkAgentStatus.ALIVE,
-    }
+    },
+    f"{constants.DEFAULT_CLOUD}:{CHANNEL_TEST_IP}": {
+        "ip": CHANNEL_TEST_IP,
+        "bk_cloud_id": constants.DEFAULT_CLOUD,
+        "bk_agent_alive": constants.BkAgentStatus.ALIVE,
+    },
 }
 
 POLL_RESULT = {
@@ -71,8 +78,8 @@ class TestUpdateProxyFile(CustomBaseTestCase):
         if unknown_number:
             create_host(
                 number=unknown_number,
-                node_type="PROXY",
-                proc_type="UNKNOWN",
+                node_type=constants.NodeType.PROXY,
+                proc_type=constants.ProcStateType.UNKNOWN,
                 ip=ip,
                 bk_cloud_id=bk_cloud_id,
                 bk_host_id=random.randint(1e2, 1e5),
@@ -80,11 +87,42 @@ class TestUpdateProxyFile(CustomBaseTestCase):
         if alive_number:
             create_host(
                 number=alive_number,
-                node_type="PROXY",
+                node_type=constants.NodeType.PROXY,
                 ip=ip,
                 bk_cloud_id=bk_cloud_id,
                 bk_host_id=random.randint(1e2, 1e5),
             )
+
+    @classmethod
+    def init_channel_db(cls):
+        InstallChannel.objects.create(
+            bk_cloud_id=constants.DEFAULT_CLOUD,
+            jump_servers=[utils.TEST_IP],
+            upstream_servers={
+                "taskserver": [CHANNEL_TEST_IP],
+                "btfileserver": [CHANNEL_TEST_IP],
+                "dataserver": [CHANNEL_TEST_IP],
+                "channel_proxy_address": f"http://{CHANNEL_TEST_IP}:{settings.BK_NODEMAN_NGINX_PROXY_PASS_PORT}",
+                "agent_download_proxy": False,
+            },
+        )
+        create_host(
+            number=1,
+            node_type=constants.NodeType.PAGENT,
+            ip=CHANNEL_TEST_IP,
+            bk_cloud_id=constants.DEFAULT_CLOUD,
+            bk_host_id=random.randint(1e2, 1e5),
+        )
+
+    @classmethod
+    def init_ap_db(cls, number=None, nginx_path=None):
+        if not number:
+            create_ap(1)
+        if not nginx_path:
+            AccessPoint.objects.all().update(nginx_path="")
+        if nginx_path:
+            create_ap(number)
+            AccessPoint.objects.exclude(id=1).update(nginx_path=nginx_path)
 
     @classmethod
     def setUpTestData(cls):
@@ -123,8 +161,12 @@ class TestUpdateProxyFile(CustomBaseTestCase):
             ] = constants.BkAgentStatus.ALIVE
             patch("apps.node_man.periodic_tasks.update_proxy_file.client_v2", self.GSE_MOCK_CLIENT).start()
 
+            # 创建接入点
+            self.init_ap_db()
+
             # 本地服务器没有相关文件
             self.init_proxy_host(alive_number=1, ip=utils.TEST_IP, bk_cloud_id=constants.DEFAULT_CLOUD)
+            self.init_channel_db()
             self.assertRaises(FileExistsError, call_command("update_proxy_file"))
 
             mock_source_file = self.download_files[random.randint(1, 5)]
@@ -160,6 +202,7 @@ class TestUpdateProxyFile(CustomBaseTestCase):
             patch(
                 "apps.node_man.periodic_tasks.update_proxy_file.get_storage", mock.MagicMock(storage_mock_client)
             ).start()
+            self.init_ap_db(number=3, nginx_path="/data/bkee/public/bknodeman/download/test")
             self.assertIsNone(call_command("update_proxy_file"))
             shutil.rmtree(settings.DOWNLOAD_PATH)
 
