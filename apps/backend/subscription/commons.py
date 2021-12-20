@@ -47,6 +47,7 @@ def list_biz_hosts(bk_biz_id, condition, func, split_params=False):
     kwargs["fields"] += list(set(biz_custom_property))
     kwargs["fields"] = list(set(kwargs["fields"]))
     kwargs.update(condition)
+
     hosts = batch_request(getattr(client_v2.cc, func), kwargs, split_params=split_params)
     # 排除掉CMDB中内网IP为空的主机
     cleaned_hosts = [host for host in hosts if host.get("bk_host_innerip")]
@@ -68,6 +69,10 @@ def get_host_by_inst(bk_biz_id, inst_list):
     bk_set_ids = []
     bk_biz_ids = []
 
+    # 获取主线模型的业务拓扑信息
+    topo_data_list = client_v2.cc.get_mainline_object_topo()
+    bk_obj_id_list = [topo_data["bk_obj_id"] for topo_data in topo_data_list]
+
     for inst in inst_list:
         # 处理各种类型的节点
         if inst["bk_obj_id"] == "biz":
@@ -76,7 +81,7 @@ def get_host_by_inst(bk_biz_id, inst_list):
             bk_set_ids.append(inst["bk_inst_id"])
         elif inst["bk_obj_id"] == "module":
             bk_module_ids.append(inst["bk_inst_id"])
-        else:
+        elif inst["bk_obj_id"] in bk_obj_id_list:
             # 自定义层级
             topo_cond = {"bk_obj_id": inst["bk_obj_id"], "bk_inst_id": inst["bk_inst_id"]}
             hosts.extend(list_biz_hosts(bk_biz_id, topo_cond, "find_host_by_topo"))
