@@ -17,7 +17,6 @@ TASK_ID = 10000
 
 GSE_CLIENT_MOCK_PATH = "apps.backend.api.gse.get_client_by_user"
 
-
 GSE_TASK_RESULT = {
     "success": [
         {
@@ -80,6 +79,18 @@ GET_PROC_OPERATE_RESULT_RETURN = {
     },
 }
 
+MOCK_GET_PROC_STATUS = {
+    "proc_infos": [
+        {
+            "host": {"ip": "127.0.0.1", "bk_cloud_id": 0},
+            "status": 1,
+            "version": "1.1.13",
+            "isauto": True,
+            "meta": {"name": "test_proc", "namespace": "nodeman", "labels": {"proc_name": "test_proc"}},
+        }
+    ]
+}
+
 
 class GseMockClient(object):
     def __init__(
@@ -88,9 +99,11 @@ class GseMockClient(object):
         unregister_proc_info_return=None,
         operate_proc_return=None,
         get_proc_operate_result_return=None,
+        get_proc_status_return=None,
     ):
         self.gse = MagicMock()
         self.gse.update_proc_info = MagicMock(return_value=update_proc_info_return)
         self.gse.unregister_proc_info = MagicMock(return_value=unregister_proc_info_return)
         self.gse.operate_proc = MagicMock(return_value=operate_proc_return)
         self.gse.get_proc_operate_result = MagicMock(return_value=get_proc_operate_result_return)
+        self.gse.get_proc_status = MagicMock(return_value=get_proc_status_return)
