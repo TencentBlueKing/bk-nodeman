@@ -9,7 +9,7 @@
           </colgroup>
           <thead>
             <tr>
-              <th v-for="(config, index) in tableHead" :key="index">
+              <th v-for="(config, index) in tableHead" :key="config.prop">
                 <ColumnSetting
                   v-if="localMark && index === tableHead.length - 1"
                   class="column-setting"
@@ -614,6 +614,7 @@ export default class SetupTable extends Vue {
    */
   private validate() {
     const union: { [key: string]: any } = {};
+    const failedProp: string[] = [];
     const isValidate = this.table.data.map((row: ISetupRow | any, index: number) => {
       // 当前行是否校验通过：true通过，false不通过
       row.isRowValidate = this.table.config.map((config) => {
@@ -635,6 +636,9 @@ export default class SetupTable extends Vue {
         }
 
         this.$set((this.table.data[index] as any).validator, config.prop, validator);
+        if (validator.show) {
+          failedProp.push(config.prop);
+        }
         return !validator.show;
       }).every(val => !!val);
 
@@ -644,9 +648,23 @@ export default class SetupTable extends Vue {
     this.autoSort && this.sortTableData();
     this.$nextTick().then(() => {
       this.verify.map(instance => instance.handleUpdateDefaultValidator());
+      if (!isValidate) {
+        this.showFailedRow(Array.from(new Set(failedProp)));
+      }
     });
     return isValidate;
   }
+  public showFailedRow(failedRows: string[]) {
+    const copyFilter = JSON.parse(JSON.stringify(this.filter));
+    failedRows.forEach((prop) => {
+      if (copyFilter[prop]) {
+        copyFilter[prop].checked = true;
+        copyFilter[prop].mockChecked = true;
+      }
+    });
+    this.handleColumnUpdate(copyFilter);
+  }
+
   private sortTableData() {
     const copyData: ISetupRow[] = [];
     const uniqueData: ISetupRow[] = [];

@@ -1,0 +1,3 @@
+---
+optimization:
+  - "Agent 安装弹出参数校验失败列 (close #376)"
