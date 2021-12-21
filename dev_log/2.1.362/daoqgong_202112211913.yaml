@@ -1,0 +1,3 @@
+---
+bugfix:
+  - "Firefox 浏览器粘贴 IP 解析错误 (close #378)"
