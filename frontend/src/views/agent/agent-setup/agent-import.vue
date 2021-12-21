@@ -327,6 +327,9 @@ export default class AgentImport extends Mixins(mixin) {
           ? { ap_id: apDefault }
           : {};
           // 打平数据
+        if (!item.install_channel_id) {
+          item.install_channel_id = 'default';
+        }
         return Object.assign({}, item, item.identity_info, ap);
       });
     } else {
