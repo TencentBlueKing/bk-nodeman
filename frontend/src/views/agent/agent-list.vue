@@ -885,7 +885,7 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
       this.searchSelectValue.push({
         id: 'inner_ip',
         name: 'IP',
-        values: this.ipList.map(item => ({ id: item, name: item })),
+        values: this.ipList.map(item => ({ id: item, name: item, checked: false })),
       });
     }
   }
@@ -1493,6 +1493,7 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
       params: {
         tableData: data.map(item => Object.assign({}, item, item.identity_info, {
           install_channel_id: item.install_channel_id ? item.install_channel_id : 'default',
+          port: item.os_type  === 'WINDOWS' ? 445 : item.port,
         })),
         type: jobType,
         // true：跨页全选（tableData表示标记删除的数据） false：非跨页全选（tableData表示编辑的数据）

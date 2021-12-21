@@ -11,6 +11,7 @@ export interface IAgent {
 export interface IAgentHost {
   bk_host_id: number
   os_type: string
+  port: number
   inner_ip: string
   data_ip: string
   login_ip: string
