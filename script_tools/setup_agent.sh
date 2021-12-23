@@ -436,7 +436,13 @@ stop_agent () {
     "$AGENT_SETUP_PATH/bin/gsectl" stop
 
     for i in {1..10}; do
-        read -r -a pids <<< "$(pidof "$AGENT_SETUP_PATH"/bin/gse_agent)"
+        for pid in $(pidof "${AGENT_SETUP_PATH}"/bin/gse_agent); do
+          # 富容器场景下，会误杀docker里的agent进程，因此需要判断父进程ID是否为1，仅干掉这些进程
+          if [[ $(ps  --no-header -o ppid -p $pid) -eq 1 ]]; then
+             pids=($pid $(pgrep -P $pid))
+             break
+          fi
+        done
         if [[ ${#pids[@]} -eq 0 ]]; then
             log remove_agent SUCCESS 'old agent has been stopped successfully'
             break
