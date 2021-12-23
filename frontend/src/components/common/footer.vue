@@ -7,7 +7,9 @@
         </a>
       </span>
     </p>
-    <p class="footer-copyright">{{ $t('蓝鲸版权', { year: new Date().getFullYear() }) }}</p>
+    <p class="footer-copyright">
+      {{ $t('蓝鲸版权', { year: new Date().getFullYear(), version: version }) }}
+    </p>
   </footer>
 </template>
 
@@ -20,6 +22,7 @@ export default class NmFooter extends Vue {
   private link: { name: string, href: string, target?: string }[] = [];
 
   private created() {
+    this.version =  window.PROJECT_CONFIG.VERSION;
     if (window.PROJECT_CONFIG.RUN_VER === 'ieod') {
       this.link = [
         {

@@ -14,6 +14,7 @@ from typing import Dict, Optional
 
 from blueapps.conf.default_settings import *  # noqa
 from blueapps.conf.log import get_logging_config_dict
+from django.utils.translation import ugettext_lazy as _
 
 import env
 from apps.utils.enum import EnhanceEnum
@@ -85,7 +86,6 @@ if "test" in sys.argv:
     # 参考 -> https://github.com/jdelic/django-dbconn-retry/issues/3
     index = INSTALLED_APPS.index("django_dbconn_retry")
     INSTALLED_APPS = INSTALLED_APPS[:index] + INSTALLED_APPS[index + 1 :]
-
 
 # 供应商账户，默认为0，内部为tencent
 DEFAULT_SUPPLIER_ACCOUNT = os.getenv("DEFAULT_SUPPLIER_ACCOUNT", "0")
@@ -202,7 +202,6 @@ if IS_USE_CELERY:
     # celery3 的配置，升级后先行注释，待确认无用后废弃
     # CELERY_TASK_RESULT_EXPIRES = 60 * 30  # 30分钟丢弃结果
 
-
 CELERY_ROUTES = {
     "apps.backend.subscription.tasks.*": {"queue": "backend"},
     "apps.backend.plugin.tasks.*": {"queue": "backend"},
@@ -242,10 +241,10 @@ BK_IAM_INNER_HOST = os.getenv("BK_IAM_V3_INNER_HOST", "http://bkiam.service.cons
 BK_IAM_SAAS_HOST = env.BK_IAM_SAAS_HOST
 
 BK_IAM_SYSTEM_ID = os.getenv("BKAPP_IAM_SYSTEM_ID", "bk_nodeman")
+BK_IAM_SYSTEM_NAME = _("节点管理")
 BK_IAM_CMDB_SYSTEM_ID = os.getenv("BKAPP_IAM_CMDB_SYSTEM_ID", "bk_cmdb")
 BK_IAM_MIGRATION_JSON_PATH = os.path.join(PROJECT_ROOT, "support-files/bkiam")
 BK_IAM_RESOURCE_API_HOST = env.BK_IAM_RESOURCE_API_HOST
-
 
 BK_IAM_MIGRATION_APP_NAME = "iam_migrations"
 BK_IAM_SKIP = False
@@ -269,7 +268,6 @@ REST_FRAMEWORK = {
     "SEARCH_PARAM": "keyword",
     "DEFAULT_RENDERER_CLASSES": ("apps.utils.drf.GeneralJSONRenderer",),
 }
-
 
 # ==============================================================================
 # 国际化相关配置
@@ -611,7 +609,6 @@ LOGGING["handlers"]["iam"] = {
 }
 LOGGING["loggers"]["iam"] = {"handlers": ["iam"], "level": LOGGING["loggers"]["root"]["level"], "propagate": True}
 
-
 # TODO 目前后台使用
 # 节点管理后台 BKAPP_LAN_IP 或 BKAPP_NFS_IP 进行文件分发，是否能统一变量
 BKAPP_LAN_IP = os.getenv("LAN_IP")
@@ -658,7 +655,6 @@ GSE_ENABLE_SVR_DISCOVERY = get_type_env(key="GSE_ENABLE_SVR_DISCOVERY", default=
 USE_CMDB_SUBSCRIPTION_TRIGGER = get_type_env(key="BKAPP_USE_CMDB_SUBSCRIPTION_TRIGGER", default=True, _type=bool)
 
 VERSION_LOG = {"MD_FILES_DIR": os.path.join(PROJECT_ROOT, "release")}
-
 
 # remove disabled apps
 if locals().get("DISABLED_APPS"):

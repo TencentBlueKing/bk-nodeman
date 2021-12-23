@@ -8,6 +8,8 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from typing import List
+
 from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
@@ -17,8 +19,6 @@ from apps.node_man import constants as const
 from apps.node_man.constants import IamActionType
 from apps.node_man.exceptions import (
     ApIDNotExistsError,
-    BusinessNotPermissionError,
-    CloudNotPermissionError,
     HostIDNotExists,
     HostNotExists,
     IpInUsedError,
@@ -28,7 +28,6 @@ from apps.node_man.exceptions import (
 from apps.node_man.handlers.ap import APHandler
 from apps.node_man.handlers.cloud import CloudHandler
 from apps.node_man.handlers.cmdb import CmdbHandler
-from apps.node_man.handlers.iam import IamHandler
 from apps.node_man.handlers.validator import update_pwd_validate
 from apps.node_man.models import (
     AccessPoint,
@@ -42,7 +41,6 @@ from apps.node_man.models import (
 )
 from apps.utils import APIModel
 from apps.utils.basic import filter_values
-from apps.utils.local import get_request_username
 
 
 class HostHandler(APIModel):
@@ -50,48 +48,21 @@ class HostHandler(APIModel):
     Host处理器
     """
 
-    def check_hosts_permission(self, bk_host_ids: list, permission_biz_ids: list):
+    @staticmethod
+    def check_hosts_permission(bk_host_ids: List, permission_biz_ids: List):
         """
         在步骤开始前检查权限
         :param bk_host_ids: 主机ID
         :param permission_biz_ids: 用户有权限的业务ID
         :return permission_host_ids: 有权限的主机ID
         """
-
-        permission_host_ids = []
         hosts = Host.objects.filter(bk_host_id__in=bk_host_ids).values(
             "bk_host_id", "bk_biz_id", "inner_ip", "bk_cloud_id"
         )
-
-        # 获得所有Host的云区域
-        bk_cloud_ids = [host["bk_cloud_id"] for host in hosts]
-
-        # 获得所有云区域的权限
-        cloud_info = CloudHandler().list_cloud_info(bk_cloud_ids)
-
-        for host in hosts:
-            # 是否有业务权限
-            if host["bk_biz_id"] in permission_biz_ids:
-                permission_host_ids.append(host["bk_host_id"])
-
-            # 云区域权限列表
-            cloud_permissions = IamHandler().fetch_policy(get_request_username(), [IamActionType.cloud_view])[
-                IamActionType.cloud_view
-            ]
-            cloud_permissions.append(const.DEFAULT_CLOUD)
-
-            # 是否有云区域权限
-            if host["bk_cloud_id"] not in cloud_permissions:
-                raise CloudNotPermissionError(
-                    _("您没有云区域 {bk_cloud_name} 的权限").format(
-                        bk_cloud_name=cloud_info.get(host["bk_cloud_id"], {}).get("bk_cloud_name")
-                    )
-                )
-
-        return permission_host_ids
+        return [host["bk_host_id"] for host in hosts if host["bk_biz_id"] in permission_biz_ids]
 
     @classmethod
-    def fuzzy_cond(cls, custom: str, wheres: list, sql_params: list):
+    def fuzzy_cond(cls, custom: str, wheres: List, sql_params: List):
         """
         用于生成模糊搜索的条件
         :param custom: 用户的输入
@@ -483,24 +454,17 @@ class HostHandler(APIModel):
 
         return result
 
-    def proxies(self, params: dict, username: str, is_superuser: bool):
+    @staticmethod
+    def proxies(bk_cloud_id: int):
         """
         查询云区域的proxy列表
-        :param params: 经校验后的数据
-        :param username: 用户名
-        :param is_superuser: 是否超管
+        :param bk_cloud_id: 云区域ID
         """
-
-        # 用户有权限的业务
-        user_biz = CmdbHandler().biz_id_name({"action": IamActionType.proxy_operate})
         all_biz = CmdbHandler().biz_id_name_without_permission()
-
-        # 检测是否有该云区域权限
-        CloudHandler().check_cloud_permission(params["bk_cloud_id"], username, is_superuser)
 
         # 获得proxy相应数据
         proxies = list(
-            Host.objects.filter(bk_cloud_id=params["bk_cloud_id"], node_type=const.NodeType.PROXY).values(
+            Host.objects.filter(bk_cloud_id=bk_cloud_id, node_type=const.NodeType.PROXY).values(
                 "bk_cloud_id",
                 "bk_host_id",
                 "inner_ip",
@@ -516,7 +480,7 @@ class HostHandler(APIModel):
 
         # 获得使用proxy的PAGENT个数
         pagent_upstream_nodes = {}
-        host_pagent = Host.objects.filter(node_type=const.NodeType.PAGENT, bk_cloud_id=params["bk_cloud_id"]).values(
+        host_pagent = Host.objects.filter(node_type=const.NodeType.PAGENT, bk_cloud_id=bk_cloud_id).values(
             "upstream_nodes"
         )
         for nodes in host_pagent:
@@ -583,36 +547,21 @@ class HostHandler(APIModel):
             proxy["re_certification"] = host_id_identities.get(proxy["bk_host_id"], {}).get("re_certification", "")
             proxy["job_result"] = host_id_job_status.get(proxy["bk_host_id"], {})
             proxy["pagent_count"] = pagent_upstream_nodes.get(proxy["inner_ip"], 0)
-            proxy["permissions"] = {"operate": proxy["bk_biz_id"] in user_biz}
 
         return proxies
 
-    def biz_proxies(self, params: dict, username: str, is_superuser: bool):
+    @staticmethod
+    def biz_proxies(bk_biz_id: int):
         """
         查询业务下云区域的proxy列表
-        :param params: 经校验后的数据
-        :param username: 用户名
-        :param is_superuser: 是否超管
+        :param bk_biz_id: 业务ID
         """
-
-        bk_biz_id = params["bk_biz_id"]
-
-        # 用户有权限的业务
-        user_biz = CmdbHandler().biz_id_name({"action": IamActionType.proxy_operate}, username=username)
-        if bk_biz_id not in user_biz:
-            raise BusinessNotPermissionError(_("不存在该业务权限"))
-
         bk_cloud_ids = (
             Host.objects.filter(bk_biz_id=bk_biz_id)
             .values_list("bk_cloud_id", flat=True)
             .order_by("bk_cloud_id")
             .distinct()
         )
-
-        # 检测是否有该云区域权限
-        for cloud_id in bk_cloud_ids:
-            if cloud_id != 0:
-                CloudHandler().check_cloud_permission(cloud_id, username, is_superuser)
 
         # 获得proxy相应数据
         proxies = list(
@@ -623,12 +572,11 @@ class HostHandler(APIModel):
 
         return proxies
 
-    def update(self, params: dict, username: str, is_superuser: bool):
+    @staticmethod
+    def update_proxy_info(params: dict):
         """
         更新host相关信息
         :param params: 经校验后的数据
-        :param username: 用户名
-        :param is_superuser: 是否超管
         """
 
         # 获得需要更新到Host上的参数信息
@@ -661,19 +609,10 @@ class HostHandler(APIModel):
             }
         )
 
-        # 检测是否有该云区域权限
-        CloudHandler().check_cloud_permission(params["bk_cloud_id"], username, is_superuser)
-
         # 对数据进行校验
         # 检查：Host ID是否正确
         if not Host.objects.filter(bk_host_id=kwargs["bk_host_id"]).exists():
             raise HostIDNotExists(_("Host ID:{bk_host_id} 不存在").format(bk_host_id=kwargs["bk_host_id"]))
-
-        # 检测业务权限
-        user_biz = CmdbHandler().biz_id_name({"action": IamActionType.proxy_operate})
-        biz = Host.objects.get(bk_host_id=params["bk_host_id"]).bk_biz_id
-        if not user_biz.get(biz):
-            raise BusinessNotPermissionError(_("您没有该Proxy的操作权限"))
 
         # 获得该主机的信息
         the_host = Host.objects.get(bk_host_id=kwargs["bk_host_id"])
@@ -723,19 +662,19 @@ class HostHandler(APIModel):
             raise PwdCheckError(ip_filter_list[0]["msg"])
 
         # 校验通过，以下进行信息修改
-        update_propeties = filter_values({"bk_host_outerip": kwargs.get("outer_ip")})
+        update_properties = filter_values({"bk_host_outerip": kwargs.get("outer_ip")})
         update_cloud = filter_values({"bk_host_ids": [kwargs["bk_host_id"]], "bk_cloud_id": kwargs.get("bk_cloud_id")})
 
         # 如果需要更新Host的IP信息
         if (
-            update_propeties != {}
+            update_properties != {}
             and not Host.objects.filter(
                 **filter_values(
-                    {"bk_host_id": kwargs.get("bk_host_id"), "outer_ip": update_propeties.get("bk_host_outerip")}
+                    {"bk_host_id": kwargs.get("bk_host_id"), "outer_ip": update_properties.get("bk_host_outerip")}
                 )
             ).exists()
         ):
-            CmdbHandler().cmdb_update_host(kwargs["bk_host_id"], update_propeties)
+            CmdbHandler().cmdb_update_host(kwargs["bk_host_id"], update_properties)
 
         # 如果需要更新Host的Cloud信息
         if (
@@ -789,7 +728,7 @@ class HostHandler(APIModel):
             diff = set(params["bk_host_id"]) - set(permission_host_ids)
             if diff != set():
                 ips = list(Host.objects.filter(bk_host_id__in=list(diff)).values_list("inner_ip", flat=True))
-                if ips == []:
+                if not ips:
                     raise HostNotExists(_("主机 {diff} 不存在").format(diff=diff))
                 raise NotHostPermission(_("您没有移除主机 {ips} 的权限").format(ips=ips))
             # 如果不是跨页全选模式
