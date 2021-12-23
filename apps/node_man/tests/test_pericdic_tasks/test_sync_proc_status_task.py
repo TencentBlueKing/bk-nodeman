@@ -28,7 +28,7 @@ from apps.node_man.tests.test_pericdic_tasks.utils import MockClient
 
 class TestSyncProcStatus(TestCase):
     @contextlib.contextmanager
-    def generate_mock_data(self):
+    def init_db(self):
         # 创造一个虚拟主机和虚拟进程信息
         mock_host, _ = Host.objects.get_or_create(**MOCK_HOST)
         mock_proc, _ = ProcessStatus.objects.get_or_create(**MOCK_PROC_STATUS)
@@ -41,7 +41,7 @@ class TestSyncProcStatus(TestCase):
 
     @patch("apps.node_man.periodic_tasks.sync_proc_status_task.client_v2", MockClient)
     def test_update_or_create_proc_status(self, *args, **kwargs):
-        with self.generate_mock_data() as mock_host:
+        with self.init_db() as mock_host:
             # 测试update_proc_status
             # result = query_proc_status("test_proc", [{"ip": "127.0.0.1", "bk_cloud_id": 0}])
             update_or_create_proc_status(None, [mock_host], [MOCK_PROC_NAME], 0)

@@ -23,7 +23,7 @@ from requests_tracker.models import Config, Record
     options={"queue": "default"},
     run_every=constants.CLEAN_REQUESTS_TRACKER_RECORDS_INTERVAL,
 )
-def clean_requests_tracker_records():
+def clean_requests_tracker_records_periodic_task():
     # 检查组件请求记录，清空2天前的记录
     logger.info("Start cleaning up requests tracker records.")
     two_days_before = datetime.datetime.now() - datetime.timedelta(days=2)

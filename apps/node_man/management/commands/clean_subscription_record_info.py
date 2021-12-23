@@ -1,4 +1,4 @@
-# coding: utf-8
+# -*- coding: utf-8 -*-
 """
 TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-节点管理(BlueKing-BK-NODEMAN) available.
 Copyright (C) 2017-2021 THL A29 Limited, a Tencent company. All rights reserved.
@@ -9,12 +9,11 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-
 from django.core.management.base import BaseCommand
 
-from apps.node_man.periodic_tasks import sync_cmdb_cloud_area_periodic_task
+from apps.node_man.periodic_tasks import clean_subscription_record_info_periodic_task
 
 
 class Command(BaseCommand):
     def handle(self, **kwargs):
-        sync_cmdb_cloud_area_periodic_task()
+        clean_subscription_record_info_periodic_task()

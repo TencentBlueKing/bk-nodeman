@@ -12,9 +12,9 @@ specific language governing permissions and limitations under the License.
 
 from django.core.management.base import BaseCommand
 
-from apps.node_man.periodic_tasks import sync_agent_status_task
+from apps.node_man.periodic_tasks import sync_agent_status_periodic_task
 
 
 class Command(BaseCommand):
     def handle(self, **kwargs):
-        sync_agent_status_task()
+        sync_agent_status_periodic_task()
