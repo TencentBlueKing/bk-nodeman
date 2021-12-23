@@ -19,7 +19,6 @@ from apps.node_man.exceptions import (
     AliveProxyNotExistsError,
     AllIpFiltered,
     JobDostNotExistsError,
-    JobNotPermissionError,
     MixedOperationError,
 )
 from apps.node_man.handlers.job import JobHandler
@@ -44,19 +43,6 @@ class TestJob(TestCase):
         # 生成公私钥并存储到DB
         tools.HostTools.get_rsa_util()
         super().setUpTestData()
-
-    @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)
-    @patch(
-        "apps.node_man.handlers.cmdb.CmdbHandler.cmdb_or_cache_biz",
-        return_value={"info": [{"bk_biz_id": 27, "bk_biz_name": "12"}, {"bk_biz_id": 28, "bk_biz_name": "t2"}]},
-    )
-    def test_check_job_permission(self, *args, **kwargs):
-        # 创建一个任务，创建者为admin
-        create_job(1, id=1, bk_biz_scope=[28, 29, 30])
-        # 非任务创建者并且没有完整业务权限范围，抛出无权限异常
-        self.assertRaises(
-            JobNotPermissionError, JobHandler(job_id=1).check_job_permission, "special_test", [28, 29, 30]
-        )
 
     @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)
     def test_job_list(self):
@@ -121,22 +107,22 @@ class TestJob(TestCase):
         # 创建云区域信息
         pagent_upstream_nodes = {0: [], 1: [1, 2, 3, 4, 5]}
 
-        def get_cloud_info(accept_list):
+        def get_cloud_info(_accept_list):
             cloud_info = {
                 0: {
                     "bk_cloud_name": "直连区域",
                     "ap_id": 1,
-                    "bk_biz_scope": list({host["bk_biz_id"] for host in accept_list}),
+                    "bk_biz_scope": list({host["bk_biz_id"] for host in _accept_list}),
                 },
                 1: {
                     "bk_cloud_name": "蓝鲸",
                     "ap_id": -1,
-                    "bk_biz_scope": list({host["bk_biz_id"] for host in accept_list}),
+                    "bk_biz_scope": list({host["bk_biz_id"] for host in _accept_list}),
                 },
                 2: {
                     "bk_cloud_name": "蓝鲸2",
                     "ap_id": -1,
-                    "bk_biz_scope": list({host["bk_biz_id"] for host in accept_list}),
+                    "bk_biz_scope": list({host["bk_biz_id"] for host in _accept_list}),
                 },
             }
             return cloud_info
@@ -144,30 +130,20 @@ class TestJob(TestCase):
         # 生成存入表
         node_type = "PROXY"
         accept_list = gen_install_accept_list(test_count, node_type)
-        JobHandler().subscription_install(
-            accept_list, node_type, get_cloud_info(accept_list), pagent_upstream_nodes, "admin"
-        )
+        JobHandler().subscription_install(accept_list, node_type, get_cloud_info(accept_list), pagent_upstream_nodes)
         node_type = "AGENT"
         accept_list.extend(gen_install_accept_list(test_count, node_type))
-        JobHandler().subscription_install(
-            accept_list, node_type, get_cloud_info(accept_list), pagent_upstream_nodes, "admin"
-        )
+        JobHandler().subscription_install(accept_list, node_type, get_cloud_info(accept_list), pagent_upstream_nodes)
         node_type = "PAGENT"
         accept_list.extend(gen_install_accept_list(test_count, node_type, bk_cloud_id=2))
-        JobHandler().subscription_install(
-            accept_list, node_type, get_cloud_info(accept_list), pagent_upstream_nodes, "admin"
-        )
+        JobHandler().subscription_install(accept_list, node_type, get_cloud_info(accept_list), pagent_upstream_nodes)
         # 测试注册失败
         accept_list.extend(gen_install_accept_list(1, node_type, bk_cloud_id=999))
-        JobHandler().subscription_install(
-            accept_list, node_type, get_cloud_info(accept_list), pagent_upstream_nodes, "admin"
-        )
+        JobHandler().subscription_install(accept_list, node_type, get_cloud_info(accept_list), pagent_upstream_nodes)
         # 测试tjj ticket
         node_type = "AGENT"
         accept_list.extend(gen_install_accept_list(test_count, node_type, auth_type="TJJ_PASSWORD", ticket="test"))
-        JobHandler().subscription_install(
-            accept_list, node_type, get_cloud_info(accept_list), pagent_upstream_nodes, "admin"
-        )
+        JobHandler().subscription_install(accept_list, node_type, get_cloud_info(accept_list), pagent_upstream_nodes)
 
     @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)
     def test_host_update(self):
@@ -179,11 +155,6 @@ class TestJob(TestCase):
         host_ids, _ = JobHandler().update(accept_list, [])
         self.assertEqual(len(host_ids), number)
 
-        # 时间计算
-        # profile = LineProfiler(JobHandler().django_bulk_update)
-        # profile.runcall(JobHandler().django_bulk_update, accept_list, [])
-        # profile.print_stats()
-
     @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)
     @patch("apps.node_man.handlers.job.JobHandler.create_subscription", Subscription.create_subscription)
     def test_host_operate(self):
@@ -194,28 +165,13 @@ class TestJob(TestCase):
 
         proxies_ids = [host.bk_host_id for host in host_to_create if host.node_type == const.NodeType.PROXY]
         agent_or_pagent_ids = [host.bk_host_id for host in host_to_create if host.node_type != const.NodeType.PROXY]
-
+        bk_biz_scope = [host.bk_biz_id for host in host_to_create]
         # 执行任务
         job_types = ["RESTART_PROXY", "RESTART_AGENT"]
         for job_type in job_types:
             node_filter_type = job_type.split("_")[1]
-            JobHandler().operate(
-                {
-                    "job_type": job_type,
-                    "node_type": node_filter_type,
-                    "bk_host_id": proxies_ids if node_filter_type == const.NodeType.PROXY else agent_or_pagent_ids,
-                },
-                "admin",
-                True,
-            )
-            # 跨页全选
-            if node_filter_type == const.NodeType.PROXY:
-                exclude_hosts = proxies_ids[:100]
-            else:
-                exclude_hosts = agent_or_pagent_ids[:100]
-            JobHandler().operate(
-                {"job_type": job_type, "node_type": node_filter_type, "exclude_hosts": exclude_hosts}, "admin", True
-            )
+            bk_host_ids = proxies_ids if node_filter_type == const.NodeType.PROXY else agent_or_pagent_ids
+            JobHandler().operate(job_type, bk_host_ids, bk_biz_scope)
 
     # 以下测试Job安装接口
 
@@ -228,7 +184,7 @@ class TestJob(TestCase):
 
         # 安装代理
         data = gen_job_data("INSTALL_PROXY", number, ap_id=-1)
-        JobHandler().job(data, "admin", True, "ticket")
+        JobHandler().install(data["hosts"], data["op_type"], data["node_type"], data["job_type"], "ticket")
 
     @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)
     @patch("apps.node_man.handlers.job.JobHandler.create_subscription", Subscription.create_subscription)
@@ -241,7 +197,15 @@ class TestJob(TestCase):
         # 混合安装
         data["hosts"][0]["is_manual"] = True
         data["hosts"][1]["is_manual"] = False
-        self.assertRaises(MixedOperationError, JobHandler().job, data, "admin", True, "ticket")
+        self.assertRaises(
+            MixedOperationError,
+            JobHandler().install,
+            data["hosts"],
+            data["op_type"],
+            data["node_type"],
+            data["job_type"],
+            "ticket",
+        )
 
     @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)
     @patch("apps.node_man.handlers.job.JobHandler.create_subscription", Subscription.create_subscription)
@@ -252,7 +216,7 @@ class TestJob(TestCase):
 
         # 执行任务
         data = gen_job_data("INSTALL_AGENT", number)
-        JobHandler().job(data, "admin", True, "ticket")
+        JobHandler().install(data["hosts"], data["op_type"], data["node_type"], data["job_type"], "ticket")
 
     # 测试不存在可用代理异常分支
     @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)
@@ -264,7 +228,15 @@ class TestJob(TestCase):
 
         # 执行任务
         data = gen_job_data("INSTALL_PAGENT", number, bk_cloud_id=2)
-        self.assertRaises(AliveProxyNotExistsError, JobHandler().job, data, "admin", True, "ticket")
+        self.assertRaises(
+            AliveProxyNotExistsError,
+            JobHandler().install,
+            data["hosts"],
+            data["op_type"],
+            data["node_type"],
+            data["job_type"],
+            "ticket",
+        )
 
     @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)
     @patch("apps.node_man.handlers.job.JobHandler.create_subscription", Subscription.create_subscription)
@@ -273,7 +245,7 @@ class TestJob(TestCase):
         bk_cloud_ids = create_cloud_area(1)
         # 执行任务
         data = gen_job_data("REPLACE_PROXY", 1, bk_cloud_id=bk_cloud_ids[0], ap_id=const.DEFAULT_AP_ID)
-        JobHandler().job(data, "admin", True, "ticket")
+        JobHandler().install(data["hosts"], data["op_type"], data["node_type"], data["job_type"], "ticket")
 
     @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)
     @patch("apps.node_man.handlers.job.JobHandler.create_subscription", Subscription.create_subscription)
@@ -285,10 +257,18 @@ class TestJob(TestCase):
         # 测试【全部被过滤】
         ip = "255.255.255.254"
         data = gen_job_data("INSTALL_AGENT", 1, ip=ip)
-        JobHandler().job(data, "admin", True, "ticket")
+        JobHandler().install(data["hosts"], data["op_type"], data["node_type"], data["job_type"], "ticket")
         host = Host.objects.get(inner_ip=ip)
         self.assertEqual(host.inner_ip, ip)
-        self.assertRaises(AllIpFiltered, JobHandler().job, data, "admin", True, "ticket")
+        self.assertRaises(
+            AllIpFiltered,
+            JobHandler().install,
+            data["hosts"],
+            data["op_type"],
+            data["node_type"],
+            data["job_type"],
+            "ticket",
+        )
 
     @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)
     @patch("common.api.NodeApi.create_subscription", NodeApi.create_subscription)
@@ -302,21 +282,21 @@ class TestJob(TestCase):
         data = gen_job_data(
             "INSTALL_AGENT", number, host_to_create, identity_to_create, bk_cloud_id=const.DEFAULT_CLOUD
         )
-        JobHandler().job(data, "admin", True, "ticket")
+        JobHandler().install(data["hosts"], data["op_type"], data["node_type"], data["job_type"], "ticket")
 
         # 执行任务
         data = gen_job_data(
             "REINSTALL_AGENT", number, host_to_create, identity_to_create, bk_cloud_id=const.DEFAULT_CLOUD
         )
-        JobHandler().job(data, "admin", True, "ticket")
+        JobHandler().install(data["hosts"], data["op_type"], data["node_type"], data["job_type"], "ticket")
 
         # 执行任务
         data = gen_job_data("INSTALL_PROXY", number, host_to_create, identity_to_create, ap_id=const.DEFAULT_AP_ID)
-        JobHandler().job(data, "admin", True, "ticket")
+        JobHandler().install(data["hosts"], data["op_type"], data["node_type"], data["job_type"], "ticket")
 
         # 执行任务
         data = gen_job_data("REINSTALL_PROXY", number, host_to_create, identity_to_create, ap_id=const.DEFAULT_AP_ID)
-        JobHandler().job(data, "admin", True, "ticket")
+        JobHandler().install(data["hosts"], data["op_type"], data["node_type"], data["job_type"], "ticket")
 
         # 全部被过滤
         host_to_create, process_to_create, identity_to_create = create_host(
@@ -327,65 +307,61 @@ class TestJob(TestCase):
         )
         data["hosts"][0].pop("password")
         data["hosts"][0]["auth_type"] = "KEY"
-        self.assertRaises(AllIpFiltered, JobHandler().job, data, "admin", True, "ticket")
+        self.assertRaises(
+            AllIpFiltered,
+            JobHandler().install,
+            data["hosts"],
+            data["op_type"],
+            data["node_type"],
+            data["job_type"],
+            "ticket",
+        )
+
+    @staticmethod
+    def init_job():
+        # 初始化一个任务
+        number = 1
+        host_to_create, process_to_create, identity_to_create = create_host(number)
+        create_cloud_area(number)
+        data = gen_job_data(
+            "INSTALL_AGENT", number, host_to_create, identity_to_create, bk_cloud_id=const.DEFAULT_CLOUD
+        )
+        job_id = JobHandler().install(data["hosts"], data["op_type"], data["node_type"], data["job_type"], "ticket")[
+            "job_id"
+        ]
+        return job_id
 
     @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)
     @patch("apps.node_man.handlers.job.JobHandler.create_subscription", Subscription.create_subscription)
     @patch("common.api.NodeApi.retry_subscription_task", NodeApi.retry_subscription_task)
     def test_job_retry(self):
         # 测试retry接口
-
-        # 初始化一个任务
-        number = 1
-        host_to_create, process_to_create, identity_to_create = create_host(number)
-        create_cloud_area(number)
-        data = gen_job_data(
-            "INSTALL_AGENT", number, host_to_create, identity_to_create, bk_cloud_id=const.DEFAULT_CLOUD
-        )
-        job_id = JobHandler().job(data, "admin", True, "ticket")["job_id"]
+        job_id = self.init_job()
 
         # 有instance的分支
-        self.assertIsInstance(JobHandler(job_id=job_id).retry(["1"], "admin"), list)
+        self.assertIsInstance(JobHandler(job_id=job_id).retry(["1"]), list)
 
         # 无instance的分支
-        self.assertIsInstance(JobHandler(job_id=job_id).retry([], "admin"), list)
+        self.assertIsInstance(JobHandler(job_id=job_id).retry([]), list)
 
     @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)
     @patch("apps.node_man.handlers.job.JobHandler.create_subscription", Subscription.create_subscription)
     @patch("common.api.NodeApi.revoke_subscription_task", NodeApi.revoke_subscription_task)
     def test_job_revoke(self):
         # 测试revoke接口
-
-        # 初始化一个任务
-        number = 1
-        host_to_create, process_to_create, identity_to_create = create_host(number)
-        create_cloud_area(number)
-        data = gen_job_data(
-            "INSTALL_AGENT", number, host_to_create, identity_to_create, bk_cloud_id=const.DEFAULT_CLOUD
-        )
-        job_id = JobHandler().job(data, "admin", True, "ticket")["job_id"]
-
+        job_id = self.init_job()
         # 有instance的分支
-        self.assertIsInstance(JobHandler(job_id=job_id).revoke(["1"], "admin"), list)
+        self.assertIsInstance(JobHandler(job_id=job_id).revoke(["1"]), list)
 
         # 无instance的分支
-        self.assertIsInstance(JobHandler(job_id=job_id).revoke([], "admin"), list)
+        self.assertIsInstance(JobHandler(job_id=job_id).revoke([]), list)
 
     @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)
     @patch("apps.node_man.handlers.job.JobHandler.create_subscription", Subscription.create_subscription)
     @patch("common.api.NodeApi.get_subscription_task_status", NodeApi.get_subscription_task_status)
     def test_job_retrieve(self):
         # 测试revoke接口
-
-        # 初始化一个任务
-        number = 1
-        host_to_create, process_to_create, identity_to_create = create_host(number)
-        create_cloud_area(number)
-        data = gen_job_data(
-            "INSTALL_AGENT", number, host_to_create, identity_to_create, bk_cloud_id=const.DEFAULT_CLOUD
-        )
-        result = JobHandler().job(data, "admin", True, "ticket")
-        job_id = result["job_id"]
+        job_id = self.init_job()
         # 测试参数
         params = {
             "page": 1,
@@ -396,49 +372,40 @@ class TestJob(TestCase):
         job = Job.objects.get(id=job_id)
         job.subscription_id = 1
         job.save()
-        self.assertEqual(JobHandler(job_id=job_id).retrieve(params, "admin")["status"], "SUCCESS")
+        self.assertEqual(JobHandler(job_id=job_id).retrieve(params)["status"], "SUCCESS")
         # FAILED
         job = Job.objects.get(id=job_id)
         job.subscription_id = 2
         job.save()
-        self.assertEqual(JobHandler(job_id=job_id).retrieve(params, "admin")["status"], "FAILED")
+        self.assertEqual(JobHandler(job_id=job_id).retrieve(params)["status"], "FAILED")
         # RUNNING
         job = Job.objects.get(id=job_id)
         job.subscription_id = 3
         job.save()
-        self.assertEqual(JobHandler(job_id=job_id).retrieve(params, "admin").get("statistics").get("running_count"), 1)
+        self.assertEqual(JobHandler(job_id=job_id).retrieve(params).get("statistics").get("running_count"), 1)
         # PENDING
         job = Job.objects.get(id=job_id)
         job.subscription_id = 4
         job.save()
-        JobHandler(job_id=job_id).retrieve(params, "admin")
+        JobHandler(job_id=job_id).retrieve(params)
         # 异常分支
         job = Job.objects.get(id=job_id)
         job.subscription_id = 0
         job.save()
-        self.assertEqual(JobHandler(job_id=job_id).retrieve(params, "admin")["status"], "FAILED")
+        self.assertEqual(JobHandler(job_id=job_id).retrieve(params)["status"], "FAILED")
         # PART_FAILED
         job = Job.objects.get(id=job_id)
         job.subscription_id = 6
         job.save()
-        self.assertEqual(JobHandler(job_id=job_id).retrieve(params, "admin")["status"], "PART_FAILED")
+        self.assertEqual(JobHandler(job_id=job_id).retrieve(params)["status"], "PART_FAILED")
 
     @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)
     @patch("apps.node_man.handlers.job.JobHandler.create_subscription", Subscription.create_subscription)
     @patch("common.api.NodeApi.get_subscription_task_detail", NodeApi.get_subscription_task_detail)
     def test_get_log(self):
         # 测试get_log接口
-
-        # 初始化一个任务
-        number = 1
-        host_to_create, process_to_create, identity_to_create = create_host(number)
-        create_cloud_area(number)
-        data = gen_job_data(
-            "INSTALL_AGENT", number, host_to_create, identity_to_create, bk_cloud_id=const.DEFAULT_CLOUD
-        )
-        result = JobHandler().job(data, "admin", True, "ticket")
-        job_id = result["job_id"]
-        self.assertIsInstance(JobHandler(job_id=job_id).get_log(instance_id=1, username="admin"), list)
+        job_id = self.init_job()
+        self.assertIsInstance(JobHandler(job_id=job_id).get_log(instance_id="1"), list)
 
     @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)
     @patch("apps.node_man.handlers.job.JobHandler.create_subscription", Subscription.create_subscription)
@@ -452,26 +419,16 @@ class TestJob(TestCase):
         data = gen_job_data(
             "INSTALL_AGENT", number, host_to_create, identity_to_create, bk_cloud_id=const.DEFAULT_CLOUD
         )
-        result = JobHandler().job(data, "admin", True, "ticket")
+        result = JobHandler().install(data["hosts"], data["op_type"], data["node_type"], data["job_type"], "ticket")
         job_id = result["job_id"]
-        self.assertEqual(JobHandler(job_id=job_id).collect_log(1, "admin"), "SUCCESS")
+        self.assertEqual(JobHandler(job_id=job_id).collect_log(1), "SUCCESS")
 
     @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)
     @patch("apps.node_man.handlers.job.JobHandler.create_subscription", Subscription.create_subscription)
     @patch("common.api.NodeApi.get_subscription_task_detail", NodeApi.get_subscription_task_detail)
     def test_get_data(self):
         # 测试get_data接口
-
-        # 初始化一个任务
-        number = 1
-        host_to_create, process_to_create, identity_to_create = create_host(number)
-        create_cloud_area(number)
-        data = gen_job_data(
-            "INSTALL_AGENT", number, host_to_create, identity_to_create, bk_cloud_id=const.DEFAULT_CLOUD
-        )
-        result = JobHandler().job(data, "admin", True, "ticket")
-        job_id = result["job_id"]
-
+        job_id = self.init_job()
         # 测试
         self.assertEqual(JobHandler(job_id=job_id)._get_data().id, job_id)
 
@@ -490,14 +447,14 @@ class TestJob(TestCase):
         data = gen_job_data(
             "INSTALL_AGENT", number, host_to_create, identity_to_create, bk_cloud_id=const.DEFAULT_CLOUD
         )
-        result = JobHandler().job(data, "admin", True, "ticket")
+        result = JobHandler().install(data["hosts"], data["op_type"], data["node_type"], data["job_type"], "ticket")
 
         job_id = result["job_id"]
         job = Job.objects.get(id=job_id)
         job.subscription_id = 5
         job.save()
 
-        commands = JobHandler(job_id=job_id).get_commands("admin", -1, False)
+        commands = JobHandler(job_id=job_id).get_commands(-1, False)
 
         # 测试
         self.assertEqual(len(commands[0]["ips_commands"]), 1)

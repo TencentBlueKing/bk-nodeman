@@ -12,7 +12,10 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from apps.generic import ModelViewSet
+from apps.iam import ActionEnum
+from apps.node_man.handlers.cmdb import CmdbHandler
 from apps.node_man.handlers.host import HostHandler
+from apps.node_man.handlers.permission import HostPermission
 from apps.node_man.models import Host
 from apps.node_man.serializers.host import (
     BizProxySerializer,
@@ -26,8 +29,9 @@ from apps.utils.local import get_request_username
 
 class HostViewSet(ModelViewSet):
     model = Host
+    permission_classes = (HostPermission,)
 
-    @action(detail=False, methods=["POST"])
+    @action(detail=False, methods=["POST"], serializer_class=HostSerializer)
     def search(self, request):
         """
         @api {POST} /host/search/ 查询主机列表
@@ -71,16 +75,9 @@ class HostViewSet(ModelViewSet):
             ]
         }
         """
+        return Response(HostHandler().list(self.validated_data, get_request_username()))
 
-        # 校验
-        self.serializer_class = HostSerializer
-        data = self.validated_data
-
-        # 处理
-        hosts = HostHandler().list(data, get_request_username())
-        return Response(hosts)
-
-    @action(detail=False)
+    @action(detail=False, serializer_class=ProxySerializer)
     def proxies(self, request, *args, **kwargs):
         """
         @api {GET} /host/proxies/ 查询云区域的proxy列表
@@ -106,16 +103,15 @@ class HostViewSet(ModelViewSet):
             "ap_name": "接入点名称"
         }]
         """
+        proxies = HostHandler().proxies(self.validated_data["bk_cloud_id"])
+        # 用户有proxy操作权限的业务
+        user_biz = CmdbHandler().biz_id_name({"action": ActionEnum.PROXY_OPERATE.id})
+        for proxy in proxies:
+            proxy["permissions"] = {"operate": proxy["bk_biz_id"] in user_biz}
 
-        # 校验
-        self.serializer_class = ProxySerializer
-        data = self.validated_data
-
-        # 处理
-        proxies = HostHandler().proxies(data, get_request_username(), request.user.is_superuser)
         return Response(proxies)
 
-    @action(detail=False)
+    @action(detail=False, serializer_class=BizProxySerializer)
     def biz_proxies(self, request, *args, **kwargs):
         """
         @api {GET} /host/biz_proxies/ 查询业务下云区域的proxy集合
@@ -133,16 +129,9 @@ class HostViewSet(ModelViewSet):
             "bk_biz_id": 1
         }]
         """
+        return Response(HostHandler().biz_proxies(self.validated_data["bk_biz_id"]))
 
-        # 校验
-        self.serializer_class = BizProxySerializer
-        data = self.validated_data
-
-        # 处理
-        proxies = HostHandler().biz_proxies(data, get_request_username(), request.user.is_superuser)
-        return Response(proxies)
-
-    @action(detail=False, methods=["POST"])
+    @action(detail=False, methods=["POST"], serializer_class=RemoveSerializer)
     def remove_host(self, request, *args, **kwargs):
         """
         @api {POST} /host/remove_host/ 移除主机
@@ -172,19 +161,12 @@ class HostViewSet(ModelViewSet):
             "fail": []
         }
         """
+        return Response(HostHandler().remove_host(self.validated_data))
 
-        # 校验
-        self.serializer_class = RemoveSerializer
-        data = self.validated_data
-
-        # 处理
-        response = HostHandler().remove_host(data)
-        return Response(response)
-
-    @action(detail=False, methods=["POST"])
+    @action(detail=False, methods=["POST"], serializer_class=HostUpdateSerializer)
     def update_single(self, request):
         """
-        @api {POST} /host/update_single/ 更新主机信息
+        @api {POST} /host/update_single/ 更新Proxy主机信息
         @apiName update_host
         @apiGroup Host
         @apiParam {Int} bk_host_id 主机ID
@@ -199,11 +181,4 @@ class HostViewSet(ModelViewSet):
         @apiParam {String} [auth_type] 认证类型
         @apiParam {String} [password] 密码
         """
-
-        # 校验
-        self.serializer_class = HostUpdateSerializer
-        data = self.validated_data
-
-        # 处理
-        HostHandler().update(data, get_request_username(), request.user.is_superuser)
-        return Response({})
+        return Response(HostHandler().update_proxy_info(self.validated_data))

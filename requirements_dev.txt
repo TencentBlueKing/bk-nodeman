@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 # 规范和测试
-pre-commit==1.18.2
-flake8==3.7.9
-seed-isort-config==1.9.2
+pre-commit==2.16.0
+flake8==4.0.1
+seed-isort-config==2.2.0
 coverage==4.5.4
