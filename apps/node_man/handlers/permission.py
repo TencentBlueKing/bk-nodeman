@@ -8,15 +8,19 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from typing import List, Optional
+from typing import Dict, List, Optional, Set, Union
 
 from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import permissions
 
-from apps.node_man import models
+from apps.exceptions import PermissionError
+from apps.iam import ActionEnum, Permission
+from apps.iam.exceptions import PermissionDeniedError
+from apps.iam.handlers import resources
+from apps.node_man import constants, models
 from apps.node_man.constants import IamActionType
-from apps.node_man.exceptions import CloudNotExistError
+from apps.node_man.exceptions import CloudNotExistError, JobDostNotExistsError
 from apps.node_man.handlers.cmdb import CmdbHandler
 from apps.node_man.handlers.iam import IamHandler
 from apps.utils.local import get_request_username
@@ -299,5 +303,99 @@ class PolicyPermission(permissions.BasePermission):
         if view.action in ["create_policy"]:
             bk_biz_scope: List[int] = list(set([node["bk_biz_id"] for node in request.data["scope"]["nodes"]]))
             return CmdbHandler().check_biz_permission(bk_biz_scope, IamActionType.strategy_create)
+
+        return False
+
+
+def has_biz_scope_node_type_operate_permission(request, node_type: str, bk_biz_scope: Union[Set[int], List[int]]):
+    # 权限中心暂不支持资源池业务的权限申请，因此资源池仅用superuser来判断权限
+    if settings.BK_CMDB_RESOURCE_POOL_BIZ_ID in bk_biz_scope and not request.user.is_superuser:
+        raise PermissionError(_("【资源池】业务暂不支持从权限中心申请，请在admin中将用户添加为superuser"))
+    else:
+        # 剔除掉资源池业务，再请求权限中心
+        bk_biz_scope = [biz_id for biz_id in bk_biz_scope if biz_id != settings.BK_CMDB_RESOURCE_POOL_BIZ_ID]
+    if node_type == constants.NodeType.PROXY:
+        action = ActionEnum.PROXY_OPERATE.id
+    else:
+        action = ActionEnum.AGENT_OPERATE.id
+    CmdbHandler().check_biz_permission(bk_biz_scope, action)
+    return True
+
+
+def has_cloud_area_view_permission(bk_cloud_ids: Set[int]) -> bool:
+    # 用户在权限中心中已有的云区域权限
+    cloud_view_permission = IamHandler().fetch_policy(get_request_username(), [IamActionType.cloud_view])[
+        IamActionType.cloud_view
+    ]
+    no_permission_cloud_ids = set()
+    for bk_cloud_id in bk_cloud_ids:
+        # 直连区域（DEFAULT_CLOUD）无需鉴权
+        # 得出用户没有权限的云区域
+        if bk_cloud_id != constants.DEFAULT_CLOUD and bk_cloud_id not in cloud_view_permission:
+            no_permission_cloud_ids.add(str(bk_cloud_id))
+    action = ActionEnum.CLOUD_VIEW.id
+    if no_permission_cloud_ids:
+        iam_resources = resources.Cloud.create_instances(no_permission_cloud_ids)
+        apply_data, apply_url = Permission().get_apply_data([action], iam_resources)
+        raise PermissionDeniedError(action_name=action, apply_url=apply_url, permission=apply_data)
+    return True
+
+
+class JobPermission(permissions.BasePermission):
+    def has_permission(self, request, view):
+        validated_data = view.validated_data
+        if view.action == "install":
+            return self.has_install_permission(request, validated_data)
+        elif view.action == "operate":
+            return self.has_operate_permission(request, validated_data)
+        elif view.action in ["details", "retry", "revoke", "retry_node", "log", "collect_log", "get_job_commands"]:
+            return self.has_task_history_view_permission(view.kwargs.get("pk", 0))
+        elif view.action in ["job_list"]:
+            return True
+        return False
+
+    @staticmethod
+    def has_install_permission(request, validated_data: Dict) -> bool:
+        bk_biz_scope = set()
+        bk_cloud_ids = set()
+        for host in validated_data["hosts"]:
+            bk_biz_scope.add(host["bk_biz_id"])
+            bk_cloud_ids.add(host["bk_cloud_id"])
+        node_type = validated_data["node_type"]
+        has_biz_scope_node_type_operate_permission(request, node_type, bk_biz_scope)
+        has_cloud_area_view_permission(bk_cloud_ids)
+        return True
+
+    @staticmethod
+    def has_operate_permission(request, validated_data: Dict):
+        bk_biz_scope = validated_data["bk_biz_scope"]
+        node_type = validated_data["node_type"]
+        return has_biz_scope_node_type_operate_permission(request, node_type, bk_biz_scope)
+
+    @staticmethod
+    def has_task_history_view_permission(job_id):
+        try:
+            job = models.Job.objects.get(pk=job_id)
+        except models.Job.DoesNotExist:
+            raise JobDostNotExistsError(_("不存在ID为{job_id}的任务").format(job_id=job_id))
+        CmdbHandler().check_biz_permission(job.bk_biz_scope, ActionEnum.TASK_HISTORY_VIEW.id)
+        return True
+
+
+class HostPermission(permissions.BasePermission):
+    def has_permission(self, request, view):
+        validated_data = view.validated_data
+        if view.action == "biz_proxies":
+            bk_biz_id = validated_data["bk_biz_id"]
+            return has_biz_scope_node_type_operate_permission(request, constants.NodeType.PROXY, {bk_biz_id})
+        elif view.action in ["proxies", "update_single"]:
+            has_cloud_area_view_permission({validated_data["bk_cloud_id"]})
+            has_biz_scope_node_type_operate_permission(request, constants.NodeType.PROXY, {validated_data["bk_biz_id"]})
+            return True
+        elif view.action == "remove_host":
+            return True
+        elif view.action in ["search"]:
+            # 此类接口不鉴权或在接口中插入是否有权限的字段，以便前端进行展示并申请
+            return True
 
         return False

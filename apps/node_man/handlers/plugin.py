@@ -296,12 +296,11 @@ class PluginHandler(APIModel):
         return result
 
     @staticmethod
-    def operate(params: dict, username: str, is_superuser: bool):
+    def operate(params: dict, username: str):
         """
         用于只有bk_host_id参数的插件操作
         :param params: 任务类型及host_id
         :param username: 用户名
-        :param is_superuser: 是否为超级用户
         """
 
         # 用户有权限获取的业务
@@ -325,7 +324,7 @@ class PluginHandler(APIModel):
             ).values("bk_host_id", "bk_biz_id", "bk_cloud_id", "inner_ip", "node_type", "os_type")
 
         # 校验器进行校验
-        db_host_ids, host_biz_scope = operate_validator(list(db_host_sql), user_biz, username, {}, is_superuser)
+        db_host_ids, host_biz_scope = operate_validator(list(db_host_sql))
 
         jobs_to_be_created = []
         subscription_id__plugin_name_map = {}

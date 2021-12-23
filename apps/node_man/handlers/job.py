@@ -29,6 +29,7 @@ from apps.node_man.handlers.cmdb import CmdbHandler
 from apps.node_man.handlers.host import HostHandler
 from apps.utils import APIModel
 from apps.utils.basic import filter_values, suffix_slash, to_int_or_default
+from apps.utils.local import get_request_username
 from apps.utils.time_tools import local_dt_str2utc_dt
 from common.api import NodeApi
 
@@ -56,18 +57,6 @@ class JobHandler(APIModel):
         for filter_info in ip_filter_list:
             filter_info["msg"] = str(filter_info["msg"])
         return ip_filter_list
-
-    def check_job_permission(self, username: str, bk_biz_scope: list):
-        """
-        检测用户是否有当前任务的权限
-        :param username: 用户名
-        :param bk_biz_scope: 任务业务范围
-        """
-        # 检测是否有权限：拥有业务权限或创建人可以访问当前任务
-        biz_info = CmdbHandler().biz_id_name({"action": constants.IamActionType.task_history_view})
-        diff = list(set(bk_biz_scope).difference(set(biz_info.keys())))
-        if diff != [] and self.data.created_by != username:
-            raise exceptions.JobNotPermissionError(_("用户无权限访问当前任务"))
 
     def task_status_list(self):
         """
@@ -115,19 +104,15 @@ class JobHandler(APIModel):
 
         return host_ap_id, host_node_type
 
-    def get_commands(self, username: str, request_bk_host_id: int, is_uninstall: bool):
+    def get_commands(self, request_bk_host_id: int, is_uninstall: bool):
         """
         获取命令
-        :param username: 用户名
         :param request_bk_host_id: 主机ID
         :param is_uninstall: 是否为卸载
         :return: ips_commands 每个ip的安装命令， total_commands：
         """
 
         job = self.data
-
-        # 检查权限
-        self.check_job_permission(username, job.bk_biz_scope)
 
         def gen_pre_manual_command(host, host_install_pipeline_id, batch_install, sub_inst_id):
             result = NodeApi.fetch_commands(
@@ -374,11 +359,14 @@ class JobHandler(APIModel):
 
         return {"total": len(job_list), "list": job_page}
 
-    def job(self, params: dict, username: str, is_superuser: bool, ticket: str):
+    def install(self, hosts: List, op_type: str, node_type: str, job_type: str, ticket: str):
         """
         Job 任务处理器
-
-        :param params: 请求参数的字典
+        :param hosts: 主机列表
+        :param op_type: 操作类型
+        :param node_type: 节点类型
+        :param job_type: 任务作业类型
+        :param ticket: 请求参数的字典
         """
 
         # 获取Hosts中的cloud_id列表、ap_id列表、内网、外网、登录IP列表、bk_biz_scope列表
@@ -388,11 +376,13 @@ class JobHandler(APIModel):
         inner_ips = set()
         is_manual = set()
 
-        for host in params["hosts"]:
+        for host in hosts:
             bk_cloud_ids.add(host["bk_cloud_id"])
             bk_biz_scope.add(host["bk_biz_id"])
             inner_ips.add(host["inner_ip"])
             is_manual.add(host["is_manual"])
+            # 用户ticket，用于后台异步执行时调用第三方接口使用
+            host["ticket"] = ticket
             if host.get("ap_id"):
                 ap_ids.add(host["ap_id"])
 
@@ -405,13 +395,9 @@ class JobHandler(APIModel):
 
         bk_biz_scope = list(bk_biz_scope)
 
-        # 获得用户的业务列表
+        # 获得所有的业务列表
         # 格式 { bk_biz_id: bk_biz_name , ...}
-        if params["node_type"] == constants.NodeType.PROXY:
-            biz_info = CmdbHandler().biz_id_name({"action": constants.IamActionType.proxy_operate})
-        else:
-            biz_info = CmdbHandler().biz_id_name({"action": constants.IamActionType.agent_operate})
-
+        biz_info = CmdbHandler().biz_id_name_without_permission()
         # 获得相应云区域 id, name, ap_id
         # 格式 { cloud_id: {'bk_cloud_name': name, 'ap_id': id}, ...}
         cloud_info = CloudHandler().list_cloud_info(bk_cloud_ids)
@@ -429,17 +415,16 @@ class JobHandler(APIModel):
 
         # 对数据进行校验
         # 重装则校验IP是否存在，存在才可重装
-        ip_filter_list, accept_list, proxy_not_alive = validator.job_validate(
+        ip_filter_list, accept_list, proxy_not_alive = validator.install_validate(
+            hosts,
+            op_type,
+            node_type,
+            job_type,
             biz_info,
-            params,
             cloud_info,
             ap_id_name,
             inner_ip_info,
-            bk_biz_scope,
             task_info,
-            username,
-            is_superuser,
-            ticket,
         )
 
         if proxy_not_alive:
@@ -449,32 +434,28 @@ class JobHandler(APIModel):
 
         if not accept_list:
             # 如果都被过滤了
-            raise exceptions.AllIpFiltered(
-                context="所有IP均被过滤", data={"job_id": "", "ip_filter": self.ugettext_to_unicode(ip_filter_list)}
-            )
+            raise exceptions.AllIpFiltered(data={"job_id": "", "ip_filter": self.ugettext_to_unicode(ip_filter_list)})
 
-        if params["op_type"] in [constants.OpType.INSTALL, constants.OpType.REPLACE, constants.OpType.RELOAD]:
+        if op_type in [constants.OpType.INSTALL, constants.OpType.REPLACE, constants.OpType.RELOAD]:
             # 安装、替换Proxy操作
-            subscription_nodes = self.subscription_install(
-                accept_list, params["node_type"], cloud_info, biz_info, username
-            )
-            subscription = self.create_subscription(params["job_type"], subscription_nodes)
+            subscription_nodes = self.subscription_install(accept_list, node_type, cloud_info, biz_info)
+            subscription = self.create_subscription(job_type, subscription_nodes)
         else:
             # 重装、卸载等操作
             # 此步骤需要校验密码、秘钥
             subscription_nodes, ip_filter_list = self.update(accept_list, ip_filter_list, is_manual)
             if not subscription_nodes:
                 raise exceptions.AllIpFiltered(
-                    context="所有IP均被过滤", data={"job_id": "", "ip_filter": self.ugettext_to_unicode(ip_filter_list)}
+                    data={"job_id": "", "ip_filter": self.ugettext_to_unicode(ip_filter_list)}
                 )
-            subscription = self.create_subscription(params["job_type"], subscription_nodes)
+            subscription = self.create_subscription(job_type, subscription_nodes)
 
         # ugettext_lazy需要转为unicode才可进行序列化
         ip_filter_list = self.ugettext_to_unicode(ip_filter_list)
 
         # 创建Job
         job = models.Job.objects.create(
-            job_type=params["job_type"],
+            job_type=job_type,
             bk_biz_scope=bk_biz_scope,
             subscription_id=subscription["subscription_id"],
             task_id_list=[subscription["task_id"]],
@@ -486,20 +467,19 @@ class JobHandler(APIModel):
                 "total_count": len(ip_filter_list) + len(subscription_nodes),
             },
             error_hosts=ip_filter_list,
-            created_by=username,
+            created_by=get_request_username(),
         )
 
         # 返回被过滤的ip列表
         return {"job_id": job.id, "ip_filter": ip_filter_list}
 
-    def subscription_install(self, accept_list: list, node_type: str, cloud_info: dict, biz_info: dict, username: str):
+    def subscription_install(self, accept_list: list, node_type: str, cloud_info: dict, biz_info: dict):
         """
         Job 订阅安装任务
         :param accept_list: 所有通过校验需要新安装的主机
         :param node_type: 节点类型
         :param cloud_info: 云区域信息
         :param biz_info: 业务ID及其对应的名称
-        :param username: 用户名
         :return
         """
 
@@ -521,7 +501,7 @@ class JobHandler(APIModel):
                 "bk_host_innerip": inner_ip,
                 "bk_host_outerip": outer_ip,
                 "login_ip": login_ip,
-                "username": username,
+                "username": get_request_username(),
                 "bk_biz_id": host["bk_biz_id"],
                 "bk_biz_name": biz_info.get(host["bk_biz_id"]),
                 "bk_cloud_id": host["bk_cloud_id"],
@@ -562,7 +542,8 @@ class JobHandler(APIModel):
 
         return subscription_nodes
 
-    def update(self, accept_list: list, ip_filter_list: list, is_manual: bool = False):
+    @staticmethod
+    def update(accept_list: list, ip_filter_list: list, is_manual: bool = False):
         """
         用于更新identity认证信息
         :param accept_list: 所有需要修改的数据
@@ -703,65 +684,29 @@ class JobHandler(APIModel):
 
         return update_data_info["subscription_host_ids"], ip_filter_list
 
-    def operate(self, params: dict, username: str, is_superuser: bool):
+    def operate(self, job_type, bk_host_ids, bk_biz_scope):
         """
         用于只有bk_host_id参数的下线、重启等操作
-        :param params: 任务类型及host_id
-        :param is_superuser: 是否超管
         """
-
-        # 获得正在执行的任务状态
-        task_info = self.task_status_list()
-
-        if params["node_type"] == constants.NodeType.PROXY:
-            # 是否为针对代理的操作，用户有权限获取的业务
-            # 格式 { bk_biz_id: bk_biz_name , ...}
-            user_biz = CmdbHandler().biz_id_name({"action": constants.IamActionType.proxy_operate})
-            filter_node_types = [constants.NodeType.PROXY]
-            is_proxy = True
-        else:
-            # 用户有权限获取的业务
-            # 格式 { bk_biz_id: bk_biz_name , ...}
-            user_biz = CmdbHandler().biz_id_name({"action": constants.IamActionType.agent_operate})
-            filter_node_types = [constants.NodeType.AGENT, constants.NodeType.PAGENT]
-            is_proxy = False
-
-        if params.get("exclude_hosts") is not None:
-            # 跨页全选
-            db_host_sql = (
-                HostHandler()
-                .multiple_cond_sql(params, user_biz, proxy=is_proxy)
-                .exclude(bk_host_id__in=params.get("exclude_hosts", []))
-                .values("bk_host_id", "bk_biz_id", "bk_cloud_id", "inner_ip", "node_type", "os_type")
-            )
-
-        else:
-            # 不是跨页全选
-            db_host_sql = models.Host.objects.filter(
-                bk_host_id__in=params["bk_host_id"], node_type__in=filter_node_types
-            ).values("bk_host_id", "bk_biz_id", "bk_cloud_id", "inner_ip", "node_type", "os_type")
-
         # 校验器进行校验
-        db_host_ids, host_biz_scope = validator.operate_validator(
-            list(db_host_sql), user_biz, username, task_info, is_superuser
-        )
-        subscription = self.create_subscription(params["job_type"], db_host_ids)
+
+        subscription = self.create_subscription(job_type, bk_host_ids)
 
         # 创建Job
         job = models.Job.objects.create(
-            job_type=params["job_type"],
+            job_type=job_type,
             subscription_id=subscription["subscription_id"],
             task_id_list=[subscription["task_id"]],
             statistics={
                 "success_count": 0,
                 "failed_count": 0,
-                "pending_count": len(db_host_ids),
+                "pending_count": len(bk_host_ids),
                 "running_count": 0,
-                "total_count": len(db_host_ids),
+                "total_count": len(bk_host_ids),
             },
             error_hosts=[],
-            created_by=username,
-            bk_biz_scope=list(set(host_biz_scope)),
+            created_by=get_request_username(),
+            bk_biz_scope=bk_biz_scope,
         )
 
         return {"job_id": job.id}
@@ -819,17 +764,12 @@ class JobHandler(APIModel):
         }
         return NodeApi.create_subscription(params)
 
-    def retry(self, username: str, instance_id_list: List[str] = None):
+    def retry(self, instance_id_list: List[str] = None):
         """
         重试部分实例或主机
-        :param username: 用户名
         :param instance_id_list: 需重试的实例列表
         :return: task_id_list
         """
-
-        # 检测是否有权限
-        self.check_job_permission(username, self.data.bk_biz_scope)
-
         params = {
             "subscription_id": self.data.subscription_id,
             "task_id_list": self.data.task_id_list,
@@ -848,11 +788,7 @@ class JobHandler(APIModel):
         self.data.save()
         return self.data.task_id_list
 
-    def revoke(self, instance_id_list: list, username: str):
-
-        # 检测是否有权限
-        self.check_job_permission(username, self.data.bk_biz_scope)
-
+    def revoke(self, instance_id_list: list):
         params = {
             "subscription_id": self.data.subscription_id,
         }
@@ -864,16 +800,11 @@ class JobHandler(APIModel):
         self.data.save()
         return self.data.task_id_list
 
-    def retrieve(self, params: Dict[str, Any], username: str):
+    def retrieve(self, params: Dict[str, Any]):
         """
         任务详情页接口
         :param params: 接口请求参数
-        :param username: 用户名
         """
-
-        # 检测是否有权限
-        self.check_job_permission(username, self.data.bk_biz_scope)
-
         if self.data.task_id_list:
 
             try:
@@ -1049,41 +980,28 @@ class JobHandler(APIModel):
                     )
         return logs
 
-    def get_log(self, instance_id: str, username: str) -> list:
+    def get_log(self, instance_id: str) -> list:
         """
         获得日志
         :param instance_id: 实例ID
-        :param username: 用户名
         :return: 日志列表
         """
-
-        # 检测是否有权限
-        self.check_job_permission(username, self.data.bk_biz_scope)
-
         # 获得并返回日志
         return JobHandler.get_log_base(self.data.subscription_id, self.data.task_id_list, instance_id)
 
-    def collect_log(self, instance_id: int, username: str) -> list:
-        self.check_job_permission(username, self.data.bk_biz_scope)
+    def collect_log(self, instance_id: int) -> list:
+        return NodeApi.collect_subscription_task_detail({"job_id": self.job_id, "instance_id": instance_id})
 
-        res = NodeApi.collect_subscription_task_detail({"job_id": self.job_id, "instance_id": instance_id})
-        return res
-
-    def retry_node(self, instance_id: str, username: str):
+    def retry_node(self, instance_id: str):
         """
         安装过程原子粒度重试
         :param instance_id: 实例id，eg： host|instance|host|127.0.0.1-0-0
-        :param username: 用户名
         :return: 重试pipeline节点id，重试节点名称
         {
             "retry_node_id": "6f48169ed1193574961757a57d03a778",
             "retry_node_name": "安装"
         }
         """
-
-        # 检查是否有权限
-        self.check_job_permission(username, self.data.bk_biz_scope)
-
         params = {
             "subscription_id": self.data.subscription_id,
             "instance_id": instance_id,

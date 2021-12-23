@@ -53,11 +53,6 @@ class ApIDNotExistsError(NodeManBaseException):
     ERROR_CODE = 7
 
 
-class BusinessNotPermissionError(NodeManBaseException):
-    MESSAGE = _("不存在某业务权限.")
-    ERROR_CODE = 8
-
-
 class IpInUsedError(NodeManBaseException):
     MESSAGE = _("该Ip已被占用.")
     ERROR_CODE = 9
@@ -88,19 +83,9 @@ class CloudNotPermissionError(NodeManBaseException):
     ERROR_CODE = 14
 
 
-class JobNotPermissionError(NodeManBaseException):
-    MESSAGE = _("不存在某任务的权限.")
-    ERROR_CODE = 14
-
-
 class ApNotChooseError(NodeManBaseException):
     MESSAGE = _("该主机未选择接入点，请尝试重装主机自动选择接入点")
     ERROR_CODE = 15
-
-
-class CmdbAddCloudPermissionError(NodeManBaseException):
-    MESSAGE = _("没有Cmdb增加云区域的权限.")
-    ERROR_CODE = 16
 
 
 class NotSuperUserError(NodeManBaseException):
@@ -176,11 +161,6 @@ class CacheExpiredError(NodeManBaseException):
 class PolicyNotExistError(NodeManBaseException):
     MESSAGE = _("策略不存在")
     ERROR_CODE = 31
-
-
-class PolicyNotPermissionError(NodeManBaseException):
-    MESSAGE = _("不存在某策略权限")
-    ERROR_CODE = 32
 
 
 class PluginConfigTplNotExistError(NodeManBaseException):

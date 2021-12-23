@@ -16,11 +16,7 @@ from django.utils.translation import ugettext_lazy as _
 from apps.exceptions import ValidationError
 from apps.node_man import constants as const
 from apps.node_man.constants import DEFAULT_CLOUD_NAME, IamActionType
-from apps.node_man.exceptions import (
-    CloudNotExistError,
-    CloudNotPermissionError,
-    CloudUpdateHostError,
-)
+from apps.node_man.exceptions import CloudNotExistError, CloudUpdateHostError
 from apps.node_man.handlers.cmdb import CmdbHandler
 from apps.node_man.handlers.iam import IamHandler
 from apps.node_man.models import (
@@ -39,31 +35,6 @@ class CloudHandler(APIModel):
     """
     云区域API处理器
     """
-
-    def check_cloud_permission(self, bk_cloud_id: int, username: str, is_superuser: bool):
-        """
-        在步骤开始前检查权限
-        :param bk_cloud_id: 云区域id
-        :param username: 用户名
-        :param is_superuser: 是否为超管
-        :return cloud: 该云区域信息
-        """
-        try:
-            cloud = Cloud.objects.get(pk=bk_cloud_id)
-            if not settings.USE_IAM:
-                # 如果没有使用权限中心
-                if username in cloud.creator or is_superuser:
-                    return cloud
-            else:
-                # 如果使用权限中心
-                clouds = IamHandler().fetch_policy(get_request_username(), [IamActionType.cloud_view])[
-                    IamActionType.cloud_view
-                ]
-                if bk_cloud_id in clouds:
-                    return cloud
-            raise CloudNotPermissionError(_("您没有云区域 {cloud_name} 的权限").format(cloud_name=cloud.bk_cloud_name))
-        except Cloud.DoesNotExist:
-            raise CloudNotExistError(_("不存在ID为: {bk_cloud_id} 的云区域").format(bk_cloud_id=bk_cloud_id))
 
     def retrieve(self, bk_cloud_id: int):
         """

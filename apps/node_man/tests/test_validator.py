@@ -15,17 +15,13 @@ from django.test import TestCase
 from apps.node_man import constants as const
 from apps.node_man.exceptions import (
     ApIDNotExistsError,
-    BusinessNotPermissionError,
     CloudNotExistError,
-    CloudNotPermissionError,
-    IpRunningJob,
     NotExistsOs,
     ProxyNotAvaliableError,
 )
-from apps.node_man.handlers.cmdb import CmdbHandler
 from apps.node_man.handlers.validator import (
     bulk_update_validate,
-    job_validate,
+    install_validate,
     operate_validator,
     update_pwd_validate,
 )
@@ -58,17 +54,16 @@ class TestValidator(TestCase):
             bk_biz_scope,
         ) = ret_to_validate_data(data)
 
-        ip_filter_list, accept_list, proxy_not_alive = job_validate(
+        ip_filter_list, accept_list, proxy_not_alive = install_validate(
+            data["hosts"],
+            data["op_type"],
+            data["node_type"],
+            data["job_type"],
             biz_info,
-            data,
             cloud_info,
             ap_id_name,
             all_inner_ip_info,
-            bk_biz_scope,
             task_info,
-            "admin",
-            True,
-            "ticket",
         )
         return ip_filter_list, accept_list
 
@@ -120,17 +115,16 @@ class TestValidator(TestCase):
 
         self.assertRaises(
             error,
-            job_validate,
+            install_validate,
+            data["hosts"],
+            data["op_type"],
+            data["node_type"],
+            data["job_type"],
             biz_info,
-            data,
             cloud_info,
             ap_id_name,
             all_inner_ip_info,
-            bk_biz_scope,
             task_info,
-            username,
-            is_superuser,
-            "ticket",
         )
 
     @staticmethod
@@ -195,12 +189,6 @@ class TestValidator(TestCase):
         data["hosts"][0]["os_type"] = None
         self.wrap_job_validate_raise(data, "admin", True, NotExistsOs)
 
-    def _test_job_validate_not_biz_permission(self):
-        # 用户不具有业务的权限
-        number = 1
-        data = gen_job_data(job_type=const.JobType.INSTALL_PROXY, count=number, bk_cloud_id=1, bk_biz_id=2123)
-        self.wrap_job_validate_raise(data, "test", False, BusinessNotPermissionError)
-
     def _test_job_validate_cloud_not_exists(self):
         number = 1
         data = gen_job_data(job_type=const.JobType.INSTALL_AGENT, count=number, bk_cloud_id=99, bk_biz_id=27)
@@ -219,24 +207,17 @@ class TestValidator(TestCase):
         cloud_info.pop(99)
         self.assertRaises(
             CloudNotExistError,
-            job_validate,
+            install_validate,
+            data["hosts"],
+            data["op_type"],
+            data["node_type"],
+            data["job_type"],
             biz_info,
-            data,
             cloud_info,
             ap_id_name,
             all_inner_ip_info,
-            bk_biz_scope,
             {},
-            "test",
-            False,
-            "ticket",
         )
-
-    def _test_job_validate_not_cloud_permission(self):
-        # 是否有云区域权限
-        number = 1
-        data = gen_job_data(job_type=const.JobType.INSTALL_PROXY, count=number, bk_cloud_id=99, bk_biz_id=27)
-        self.wrap_job_validate_raise(data, "test", False, CloudNotPermissionError)
 
     def _test_job_validate_proxy_not_available(self):
         number = 1
@@ -259,17 +240,16 @@ class TestValidator(TestCase):
             all_login_ip_info,
             bk_biz_scope,
         ) = ret_to_validate_data(data)
-        _, _, proxy_not_alive = job_validate(
+        _, _, proxy_not_alive = install_validate(
+            data["hosts"],
+            data["op_type"],
+            data["node_type"],
+            data["job_type"],
             biz_info,
-            data,
             cloud_info,
             ap_id_name,
             all_inner_ip_info,
-            bk_biz_scope,
             {},
-            "admin",
-            True,
-            "ticket",
         )
         self.assertEqual(len(proxy_not_alive), 1)
 
@@ -390,12 +370,8 @@ class TestValidator(TestCase):
         self._test_job_validate_success()
         # 测试操作系统不存在
         self._test_job_validate_os_not_exists()
-        # 测试业务不存在
-        self._test_job_validate_not_biz_permission()
         # 测试云区域不存在
         self._test_job_validate_cloud_not_exists()
-        # 测试无云区域权限
-        self._test_job_validate_not_cloud_permission()
         # 测试直连区域下不允许安装Proxy
         self._test_job_validate_proxy_not_available()
         # PAGENT的情况下，该云区域下是否有可用PROXY
@@ -552,39 +528,7 @@ class TestValidator(TestCase):
         db_host_sql = [
             {"inner_ip": inner_ip, "bk_host_id": bk_host_id, "bk_cloud_id": bk_cloud_id, "node_type": node_type}
         ]
-        # 需测试权限中心时，params需要传递相关key:value参数
-        user_biz = CmdbHandler().biz_id_name({})
-        self.assertRaises(NotExistsOs, operate_validator, db_host_sql, user_biz, "admin", {}, True)
-
-    @patch("apps.node_man.handlers.cmdb.CmdbHandler.cmdb_or_cache_biz", cmdb_or_cache_biz)
-    @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)
-    def test_job_operator_validate_not_biz_permission(self):
-        # 该主机是否有操作系统
-        inner_ip = "1.1.1.1"
-        bk_host_id = 1
-        bk_cloud_id = 1
-        node_type = "AGENT"
-        os_type = "LINUX"
-        bk_biz_id = 2
-
-        create_cloud_area(1)
-        create_host(number=1, bk_cloud_id=bk_cloud_id, bk_host_id=bk_host_id, ip=inner_ip, node_type=node_type)
-        # 是否有业务权限
-        db_host_sql = [
-            {
-                "inner_ip": inner_ip,
-                "bk_host_id": bk_host_id,
-                "os_type": os_type,
-                "bk_cloud_id": 0,
-                "node_type": node_type,
-                "bk_biz_id": bk_biz_id,
-            }
-        ]
-        # 无权限测试
-        user_biz = CmdbHandler().biz_id_name({})
-        self.assertRaises(
-            BusinessNotPermissionError, operate_validator, db_host_sql, user_biz, "special_test", {}, True
-        )
+        self.assertRaises(NotExistsOs, operate_validator, db_host_sql)
 
     @patch("apps.node_man.handlers.cmdb.CmdbHandler.cmdb_or_cache_biz", cmdb_or_cache_biz)
     @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)
@@ -611,44 +555,4 @@ class TestValidator(TestCase):
                 "bk_biz_id": bk_biz_id,
             }
         ]
-        user_biz = CmdbHandler().biz_id_name({})
-
-        self.assertRaises(CloudNotPermissionError, operate_validator, db_host_sql, user_biz, "admin", {}, True)
-
-    @patch("apps.node_man.handlers.cmdb.CmdbHandler.cmdb_or_cache_biz", cmdb_or_cache_biz)
-    @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)
-    def test_job_operator_validate_ip_running_job(self):
-        # 该主机是否有操作系统
-        inner_ip = "1.1.1.1"
-        bk_host_id = 1
-        bk_cloud_id = 1
-        node_type = "AGENT"
-        os_type = "LINUX"
-        bk_biz_id = 27
-
-        # 创建一个代理
-        create_host(number=1, bk_cloud_id=bk_cloud_id, bk_host_id=2, ip=inner_ip, node_type="PROXY")
-        # 将密码设置为空
-        identity = IdentityData.objects.get(bk_host_id=2)
-        identity.password = None
-        identity.key = None
-        identity.save()
-        # 测试
-        db_host_sql = [
-            {
-                "inner_ip": inner_ip,
-                "bk_host_id": bk_host_id,
-                "os_type": os_type,
-                "bk_cloud_id": 0,
-                "node_type": node_type,
-                "bk_biz_id": bk_biz_id,
-            }
-        ]
-        user_biz = CmdbHandler().biz_id_name({})
-
-        # 是否正在执行任务
-        # 创建一个可用代理
-        create_host(number=1, bk_cloud_id=bk_cloud_id, bk_host_id=3, ip=inner_ip, node_type="PROXY")
-        self.assertRaises(
-            IpRunningJob, operate_validator, db_host_sql, user_biz, "admin", {bk_host_id: {"status": "RUNNING"}}, True
-        )
+        self.assertRaises(CloudNotExistError, operate_validator, db_host_sql)

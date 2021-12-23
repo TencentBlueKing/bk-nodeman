@@ -923,11 +923,7 @@ class MockClient(object):
 
         @classmethod
         def create_cloud_area(cls, *args, **kwargs):
-            if args[0]["bk_cloud_name"][0] == "a":
-                raise ComponentCallError({"code": 1199048})
-            if args[0]["bk_cloud_name"][0] == "b":
-                raise ComponentCallError({"code": 1111111})
-            return {"created": {"id": random.randint(1001, 10000)}}
+            return {"created": {"id": 10000}}
 
         @classmethod
         def update_cloud_area(cls, *args, **kwargs):
@@ -1075,6 +1071,11 @@ class MockClient(object):
             if bk_biz_id == 0:
                 raise ComponentCallError
             return []
+
+
+class MockPermission(object):
+    def get_apply_data(self, *args, **kwargs):
+        return {}, ""
 
 
 class MockIAM(object):

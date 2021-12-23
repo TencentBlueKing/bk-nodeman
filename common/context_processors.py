@@ -18,6 +18,7 @@ from django.utils.translation import ugettext as _
 from apps.node_man import constants
 from apps.node_man.handlers.iam import IamHandler
 from apps.utils.local import get_request_username
+from version_log.utils import get_latest_version
 
 """
 context_processor for common(setting)
@@ -75,6 +76,7 @@ def mysetting(request):
         "NOW": datetime.datetime.now(),
         "RUN_VER": settings.RUN_VER,
         "WEB_TITLE": get_title(),
+        "VERSION": get_latest_version(),
         "DEFAULT_CLOUD": constants.DEFAULT_CLOUD,
         "USERNAME": request.user.username,
         # 是否使用权限中心

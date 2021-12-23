@@ -198,7 +198,7 @@ export default {
   确定重启选择的主机: '确定重启选择的主机',
   确定重载选择的主机配置: '确定重载选择主机的配置',
   重启成功: '重启成功',
-  蓝鲸版权: 'Copyright © 2012-{year} Tencent BlueKing. All Rights Reserved.',
+  蓝鲸版权: 'Copyright © 2012-{year} Tencent BlueKing. All Rights Reserved. {version}',
   确定重装选择的主机: '确定重装选择的主机',
   全部过滤提示: '主机不符合安装要求，创建任务失败。',
   忽略详情: '忽略主机列表',
