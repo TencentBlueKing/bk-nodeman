@@ -16,9 +16,6 @@ from django.test import TestCase
 from apps.node_man import constants as const
 from apps.node_man.exceptions import (
     ApIDNotExistsError,
-    BusinessNotPermissionError,
-    CloudNotExistError,
-    CloudNotPermissionError,
     HostIDNotExists,
     HostNotExists,
     IpInUsedError,
@@ -213,7 +210,7 @@ class TestHost(TestCase):
 
         # 检查结果
         for bk_cloud_id in bk_cloud_ids:
-            result = HostHandler().proxies({"bk_cloud_id": bk_cloud_id}, "admin", True)
+            result = HostHandler().proxies(bk_cloud_id)
 
             proxies_number = Host.objects.filter(bk_cloud_id=bk_cloud_id, node_type=const.NodeType.PROXY).count()
 
@@ -243,7 +240,7 @@ class TestHost(TestCase):
                 "auth_type": "PASSWORD",
                 "password": f"{random.randint(1, 132) * random.randint(1, 132)}",
             }
-            HostHandler().update(update_data, "admin", True)
+            HostHandler().update_proxy_info(update_data)
 
         # HostID是否正确
         update_data = {
@@ -259,25 +256,9 @@ class TestHost(TestCase):
             "auth_type": "PASSWORD",
             "password": f"{random.randint(1, 132) * random.randint(1, 132)}",
         }
-        self.assertRaises(HostIDNotExists, HostHandler().update, update_data, "admin", True)
+        self.assertRaises(HostIDNotExists, HostHandler().update_proxy_info, update_data)
 
-        # 云区域是否正确
-        update_data = {
-            "bk_host_id": 1,
-            "bk_cloud_id": 32232134,
-            "ap_id": -1,
-            "bk_biz_id": random.randint(2, 7),
-            "os_type": "Linux",
-            "inner_ip": "127.0.0.1",
-            "account": "root",
-            "port": random.randint(3000, 4000),
-            "bk_biz_scope": [random.randint(1, 132), random.randint(321, 342)],
-            "auth_type": "PASSWORD",
-            "password": f"{random.randint(1, 132) * random.randint(1, 132)}",
-        }
-        self.assertRaises(CloudNotExistError, HostHandler().update, update_data, "admin", True)
-
-        # APID是否存在
+        # 接入点是否存在
         update_data = {
             "bk_host_id": 1,
             "bk_cloud_id": 2,
@@ -290,7 +271,7 @@ class TestHost(TestCase):
             "auth_type": "PASSWORD",
             "password": f"{random.randint(1, 132) * random.randint(1, 132)}",
         }
-        self.assertRaises(ApIDNotExistsError, HostHandler().update, update_data, "admin", True)
+        self.assertRaises(ApIDNotExistsError, HostHandler().update_proxy_info, update_data)
 
         host_to_create, identity_to_create, _ = create_host(1, bk_host_id=5324523, auth_type="PASSWORD")
         # 认证信息校验测试
@@ -304,12 +285,12 @@ class TestHost(TestCase):
             "auth_type": "KEY",
             "password": "",
         }
-        self.assertRaises(PwdCheckError, HostHandler().update, update_data, "admin", True)
+        self.assertRaises(PwdCheckError, HostHandler().update_proxy_info, update_data)
 
         host_to_create, identity_to_create, _ = create_host(1, ip="127.0.0.1", bk_host_id=654645645)
         # Cloud信息的CMDB校验
         update_data = {"bk_host_id": host_to_create[0].bk_host_id, "bk_cloud_id": 5, "outer_ip": "127.0.0.1"}
-        HostHandler().update(update_data, "admin", True)
+        HostHandler().update_proxy_info(update_data)
         self.assertEqual(
             list(Host.objects.filter(bk_host_id=host_to_create[0].bk_host_id).values_list("bk_cloud_id", "inner_ip"))[
                 0
@@ -319,42 +300,16 @@ class TestHost(TestCase):
         # 外网占用
         create_host(number=1, outer_ip="255.255.255.255", bk_cloud_id=5, bk_host_id=9999)
         update_data = {"bk_host_id": host_to_create[0].bk_host_id, "outer_ip": "255.255.255.255", "bk_cloud_id": 5}
-        self.assertRaises(IpInUsedError, HostHandler().update, update_data, "admin", True)
+        self.assertRaises(IpInUsedError, HostHandler().update_proxy_info, update_data)
 
         # 登录IP占用
         create_host(number=1, login_ip="255.255.255.255", bk_cloud_id=5, bk_host_id=10000)
         update_data = {"bk_host_id": host_to_create[0].bk_host_id, "login_ip": "255.255.255.255", "bk_cloud_id": 5}
-        self.assertRaises(IpInUsedError, HostHandler().update, update_data, "admin", True)
-
-    # 测试更新主机业务无权限
-    @patch("apps.node_man.handlers.cmdb.CmdbHandler.cmdb_or_cache_biz", cmdb_or_cache_biz)
-    @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)
-    @patch("apps.node_man.handlers.cmdb.get_request_username", return_value="special_test")
-    def test_host_update_not_biz_permission(self, *args, **kwargs):
-        number = 10
-        create_cloud_area(number)
-        host_to_create, identity_to_create, _ = create_host(number, bk_cloud_id=1)
-
-        # 是否有业务权限
-        update_data = {
-            "bk_host_id": 1,
-            "bk_cloud_id": 2,
-            "ap_id": -1,
-            "bk_biz_id": random.randint(2, 7),
-            "os_type": "Linux",
-            "inner_ip": "127.0.0.1",
-            "account": "root",
-            "port": random.randint(3000, 4000),
-            "bk_biz_scope": [random.randint(1, 132), random.randint(321, 342)],
-            "auth_type": "PASSWORD",
-            "password": f"{random.randint(1, 132) * random.randint(1, 132)}",
-        }
-        self.assertRaises(BusinessNotPermissionError, HostHandler().update, update_data, "special_test", True)
+        self.assertRaises(IpInUsedError, HostHandler().update_proxy_info, update_data)
 
     # 测试主机移除
     @patch("apps.node_man.handlers.cmdb.CmdbHandler.cmdb_or_cache_biz", cmdb_or_cache_biz)
     @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)
-    @patch("apps.node_man.handlers.host.get_request_username", return_value="admin")
     @patch("apps.node_man.handlers.cmdb.get_request_username", return_value="admin")
     def test_host_remove(self, *args, **kwargs):
         number = 1000
@@ -373,26 +328,6 @@ class TestHost(TestCase):
     # 测试无权限删除主机的情况
     @patch("apps.node_man.handlers.cmdb.CmdbHandler.cmdb_or_cache_biz", cmdb_or_cache_biz)
     @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)
-    @patch("apps.node_man.handlers.host.get_request_username", return_value="my")
-    @patch("apps.node_man.handlers.cmdb.get_request_username", return_value="my")
-    def test_host_remove_not_cloud_permission(self, *args, **kwargs):
-        # 通过超管账号创建一批主机
-        number = 1000
-        bk_cloud_ids = create_cloud_area(number, creator="admin")
-        host_to_create, identity_to_create, _ = create_host(number)
-        # 权限测试
-        host, _, _ = create_host(number=1, bk_cloud_id=bk_cloud_ids[0], bk_host_id=1001)
-
-        self.assertRaises(
-            CloudNotPermissionError,
-            HostHandler().remove_host,
-            {"is_proxy": False, "bk_cloud_id": bk_cloud_ids[0], "bk_host_id": [1001]},
-        )
-
-    # 测试无权限删除主机的情况
-    @patch("apps.node_man.handlers.cmdb.CmdbHandler.cmdb_or_cache_biz", cmdb_or_cache_biz)
-    @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)
-    @patch("apps.node_man.handlers.host.get_request_username", return_value="admin")
     @patch("apps.node_man.handlers.cmdb.get_request_username", return_value="admin")
     def test_host_remove_host_not_exist(self, *args, **kwargs):
         # 通过超管账号创建一批主机

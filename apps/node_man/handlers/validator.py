@@ -8,26 +8,20 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from typing import List
 
-from django.conf import settings
 from django.db.models.aggregates import Count
 from django.utils.translation import ugettext_lazy as _
 
 from apps.node_man import constants as const
-from apps.node_man.constants import IamActionType
 from apps.node_man.exceptions import (
     ApIDNotExistsError,
-    BusinessNotPermissionError,
     CloudNotExistError,
-    CloudNotPermissionError,
-    IpRunningJob,
     NotExistsOs,
     ProxyNotAvaliableError,
 )
 from apps.node_man.handlers.cloud import CloudHandler
-from apps.node_man.handlers.iam import IamHandler
 from apps.node_man.models import Host, IdentityData, ProcessStatus
-from apps.utils.local import get_request_username
 
 
 def check_available_proxy():
@@ -264,59 +258,38 @@ def update_pwd_validate(accept_list: list, identity_info: dict, ip_filter_list: 
     return not_modified_host, modified_host, ip_filter_list
 
 
-def job_validate(
+def install_validate(
+    hosts: List,
+    op_type: str,
+    node_type: str,
+    job_type: str,
     biz_info: dict,
-    data: dict,
     cloud_info: dict,
     ap_id_name: dict,
     inner_ip_info: dict,
-    bk_biz_scope: list,
     task_info: dict,
-    username: str,
-    is_superuser: bool,
-    ticket: str,
 ):
     """
     用于job任务的校验
+    :param hosts: 主机列表
+    :param op_type: 操作类型
+    :param node_type: 节点类型
+    :param job_type: 任务作业类型
     :param biz_info: 用户的业务列表
-    :param data: 请求参数数据
     :param cloud_info: 获得相应云区域 id, name, ap_id, bk_biz_scope
     :param ap_id_name: 获得接入点列表
     :param inner_ip_info: DB中内网IP信息
-    :param bk_biz_scope: Host中的bk_biz_scope列表
     :param task_info: 任务执行信息
-    :param username: 用户名
-    :param is_superuser: 是否为超管
-    :param ticket: 用户ticket，用于后台异步执行时调用第三方接口使用
     :return: 列表，ip被占用及其原因
     """
-
-    op_type = data["op_type"]
-    node_type = data["node_type"]
-
     ip_filter_list = []
     accept_list = []
     proxy_not_alive = []
 
-    # 向权限中心获取用户的云区域权限
-    if settings.USE_IAM:
-        cloud_view_permission = IamHandler().fetch_policy(get_request_username(), [IamActionType.cloud_view])[
-            IamActionType.cloud_view
-        ]
-    else:
-        cloud_view_permission = [cloud for cloud in cloud_info if username in cloud_info[cloud]["creator"]]
-
     # 获得有可用代理的云区域
     available_clouds, proxies_count = check_available_proxy()
 
-    # 检查：用户是否有操作这些业务的权限
-    # TODO: 转移至权限中心
-    diff = set(bk_biz_scope) - set(biz_info.keys())
-    if diff != set():
-        raise BusinessNotPermissionError(_("用户不具有 {diff} 的业务权限").format(diff=diff))
-
-    for host in data["hosts"]:
-        host["ticket"] = ticket
+    for host in hosts:
         ip = host["inner_ip"]
         bk_cloud_id = host["bk_cloud_id"]
         bk_biz_id = host["bk_biz_id"]
@@ -344,12 +317,6 @@ def job_validate(
         # 检查：云区域是否存在
         if bk_cloud_id != const.DEFAULT_CLOUD and bk_cloud_id not in cloud_info:
             raise CloudNotExistError(_("云区域(ID:{bk_cloud_id}) 不存在").format(bk_cloud_id=bk_cloud_id))
-
-        # 检查：是否有该云区域权限
-        if bk_cloud_id != const.DEFAULT_CLOUD and bk_cloud_id not in cloud_view_permission and not is_superuser:
-            raise CloudNotPermissionError(
-                _("您不具有云区域 {bk_cloud_name} 的权限").format(bk_cloud_name=cloud_info[bk_cloud_id]["bk_cloud_name"])
-            )
 
         # 检查：直连区域不允许安装PROXY
         if bk_cloud_id == const.DEFAULT_CLOUD and node_type == const.NodeType.PROXY:
@@ -392,7 +359,7 @@ def job_validate(
         if (
             op_type in [const.OpType.INSTALL, const.OpType.REPLACE]
             and cloud_inner_ip in inner_ip_info
-            and data["job_type"] != const.JobType.INSTALL_PROXY  # 这里允许把Agent安装为proxy，因此不做IP冲突检查
+            and job_type != const.JobType.INSTALL_PROXY  # 这里允许把Agent安装为proxy，因此不做IP冲突检查
         ):
             # 已被占用则跳过并记录
             error_host["msg"] = _(
@@ -417,7 +384,7 @@ def job_validate(
             # 检查：除安装操作外，其他操作时内网IP是否存在
             if cloud_inner_ip not in inner_ip_info:
                 error_host["msg"] = _("尚未被安装，无法执行 {op_type} 操作").format(
-                    op_type=const.JOB_TYPE_DICT[data["op_type"] + "_" + data["node_type"]]
+                    op_type=const.JOB_TYPE_DICT[op_type + "_" + node_type]
                 )
                 ip_filter_list.append(error_host)
                 continue
@@ -425,7 +392,7 @@ def job_validate(
             # 检查：除安装操作外，其他操作时检测Host ID是否正确
             if host["bk_host_id"] != inner_ip_info[cloud_inner_ip]["bk_host_id"]:
                 error_host["msg"] = _("Host ID 不正确，无法执行 {op_type} 操作").format(
-                    op_type=const.JOB_TYPE_DICT[data["op_type"] + "_" + data["node_type"]]
+                    op_type=const.JOB_TYPE_DICT[op_type + "_" + node_type]
                 )
                 ip_filter_list.append(error_host)
                 continue
@@ -456,14 +423,10 @@ def job_validate(
     return ip_filter_list, accept_list, proxy_not_alive
 
 
-def operate_validator(db_host_sql, user_biz: dict, username: str, task_info: dict, is_superuser: bool):
+def operate_validator(db_host_sql):
     """
     用于operate任务的校验
     :param db_host_sql: 用户操作主机的详细信息
-    :param user_biz: 用户业务权限
-    :param username: 用户名
-    :param task_info: 任务信息
-    :param is_superuser: 是否超管
     :return: 列表，ip被占用及其原因
     """
 
@@ -479,29 +442,9 @@ def operate_validator(db_host_sql, user_biz: dict, username: str, task_info: dic
         if not host.get("os_type") and host["node_type"] != const.NodeType.PROXY:
             raise NotExistsOs(_("主机(IP:{inner_ip}) 没有操作系统, 请【重装】并补全相关信息").format(inner_ip=host["inner_ip"]))
 
-        # 是否有业务权限
-        if not host["bk_biz_id"] in user_biz:
-            raise BusinessNotPermissionError(_("您没有主机(IP:{inner_ip})的业务权限").format(inner_ip=host["inner_ip"]))
-
         # 云区域是否存在
         if not cloud_info.get(host["bk_cloud_id"]):
-            raise CloudNotPermissionError(_("不允许操作【云区域不存在】的主机, 云区域id: {}").format(host["bk_cloud_id"]))
-
-        if not settings.USE_IAM:
-            # 是否有云区域权限
-            if username not in cloud_info.get(host["bk_cloud_id"], {}).get("creator") and not is_superuser:
-                raise CloudNotPermissionError(
-                    _("您没有云区域 {bk_cloud_name} 的权限").format(
-                        bk_cloud_name=cloud_info.get(host["bk_cloud_id"], {}).get("bk_cloud_name")
-                    )
-                )
-
-        # 检查：是否该Host正在执行任务
-        if task_info.get(host["bk_host_id"], {}).get("status") in [
-            "RUNNING",
-            "PENDING",
-        ]:
-            raise IpRunningJob(_("IP:{inner_ip} 正在执行其他任务，无法执行新任务").format(inner_ip=host["inner_ip"]))
+            raise CloudNotExistError(_("不允许操作【云区域不存在】的主机, 云区域id: {}").format(host["bk_cloud_id"]))
 
         permission_host_ids.append(host["bk_host_id"])
 

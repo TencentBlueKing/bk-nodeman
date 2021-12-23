@@ -209,7 +209,6 @@ class TestPlugin(TestCase):
                 "plugin_params_list": [{"name": "pluginplugin", "version": "latest"}],
             },
             "admin",
-            True,
         )
         # 跨页全选
         PluginHandler.operate(
@@ -219,7 +218,6 @@ class TestPlugin(TestCase):
                 "exclude_hosts": [],
             },
             "admin",
-            True,
         )
 
     # 测试package获取

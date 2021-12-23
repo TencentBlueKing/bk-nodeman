@@ -12,7 +12,10 @@ from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
 from apps.exceptions import ValidationError
-from apps.node_man import constants, tools
+from apps.node_man import constants, models, tools
+from apps.node_man.handlers import validator
+from apps.node_man.handlers.cmdb import CmdbHandler
+from apps.node_man.handlers.host import HostHandler
 
 
 class SortSerializer(serializers.Serializer):
@@ -164,6 +167,37 @@ class OperateSerializer(serializers.Serializer):
             raise ValidationError(_("跨页全选模式下不允许传bk_host_id参数."))
         if attrs.get("exclude_hosts") is None and attrs.get("bk_host_id") is None:
             raise ValidationError(_("必须选择一种模式(【是否跨页全选】)"))
+
+        if attrs["node_type"] == constants.NodeType.PROXY:
+            # 是否为针对代理的操作，用户有权限获取的业务
+            # 格式 { bk_biz_id: bk_biz_name , ...}
+            user_biz = CmdbHandler().biz_id_name({"action": constants.IamActionType.proxy_operate})
+            filter_node_types = [constants.NodeType.PROXY]
+            is_proxy = True
+        else:
+            # 用户有权限获取的业务
+            # 格式 { bk_biz_id: bk_biz_name , ...}
+            user_biz = CmdbHandler().biz_id_name({"action": constants.IamActionType.agent_operate})
+            filter_node_types = [constants.NodeType.AGENT, constants.NodeType.PAGENT]
+            is_proxy = False
+
+        if attrs.get("exclude_hosts") is not None:
+            # 跨页全选
+            db_host_sql = (
+                HostHandler()
+                .multiple_cond_sql(attrs, user_biz, proxy=is_proxy)
+                .exclude(bk_host_id__in=attrs.get("exclude_hosts", []))
+                .values("bk_host_id", "bk_biz_id", "bk_cloud_id", "inner_ip", "node_type", "os_type")
+            )
+
+        else:
+            # 不是跨页全选
+            db_host_sql = models.Host.objects.filter(
+                bk_host_id__in=attrs["bk_host_id"], node_type__in=filter_node_types
+            ).values("bk_host_id", "bk_biz_id", "bk_cloud_id", "inner_ip", "node_type", "os_type")
+        bk_host_ids, bk_biz_scope = validator.operate_validator(list(db_host_sql))
+        attrs["bk_host_ids"] = bk_host_ids
+        attrs["bk_biz_scope"] = bk_biz_scope
         return attrs
 
 
@@ -176,3 +210,11 @@ class RetrieveSerializer(serializers.Serializer):
 class FetchCommandSerializer(serializers.Serializer):
     bk_host_id = serializers.IntegerField(label=_("主机ID"), required=True)
     is_uninstall = serializers.BooleanField(required=False, default=False)
+
+
+class JobInstancesOperateSerializer(serializers.Serializer):
+    instance_id_list = serializers.ListField(label=_("任务实例ID列表"), required=False)
+
+
+class JobInstanceOperateSerializer(serializers.Serializer):
+    instance_id = serializers.ListField(label=_("任务实例ID"), required=False)

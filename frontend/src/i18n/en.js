@@ -198,7 +198,7 @@ export default {
   确定重启选择的主机: 'OK to restart the host selected?',
   确定重载选择的主机配置: 'OK to reload the host selected?',
   重启成功: 'Successful reload',
-  蓝鲸版权: 'Copyright © 2012- {year} Tencent BlueKing. All Rights Reserved.',
+  蓝鲸版权: 'Copyright © 2012- {year} Tencent BlueKing. All Rights Reserved. {version}',
   确定重装选择的主机: 'Confirm to reinstall the hosts selected?',
   全部过滤提示: 'Host does not meet the installation requirements, create a task fails.',
   忽略详情: 'Ignore hosts details',

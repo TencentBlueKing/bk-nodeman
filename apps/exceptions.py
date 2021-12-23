@@ -15,6 +15,7 @@ class ErrorCode(object):
     # 平台错误码
     PLAT_CODE = 3800000
     WEB_CODE = 0
+    IAM_CODE = 99
 
 
 class AppBaseException(Exception):
@@ -30,12 +31,13 @@ class AppBaseException(Exception):
         if context is None:
             context = {}
 
-        self.code = ErrorCode.PLAT_CODE + self.MODULE_CODE + self.ERROR_CODE
         self.errors = kwargs.get("errors")
 
         # 优先使用第三方系统的错误编码
         if kwargs.get("code"):
             self.code = kwargs["code"]
+        else:
+            self.code = ErrorCode.PLAT_CODE + self.MODULE_CODE + self.ERROR_CODE
 
         if self.MESSAGE_TPL:
             try:

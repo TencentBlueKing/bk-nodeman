@@ -14,10 +14,13 @@ from rest_framework.response import Response
 
 from apps.generic import ModelViewSet
 from apps.node_man.handlers.job import JobHandler
+from apps.node_man.handlers.permission import JobPermission
 from apps.node_man.models import Job
 from apps.node_man.serializers.job import (
     FetchCommandSerializer,
     InstallSerializer,
+    JobInstanceOperateSerializer,
+    JobInstancesOperateSerializer,
     ListSerializer,
     OperateSerializer,
     RetrieveSerializer,
@@ -27,6 +30,7 @@ from apps.utils.local import get_request_username
 
 class JobViewSet(ModelViewSet):
     model = Job
+    permission_classes = (JobPermission,)
 
     @action(detail=False, methods=["POST"], serializer_class=ListSerializer)
     def job_list(self, request, *args, **kwargs):
@@ -108,7 +112,7 @@ class JobViewSet(ModelViewSet):
             "status": "RUNNING"
         }
         """
-        return Response(JobHandler(job_id=kwargs["pk"]).retrieve(self.validated_data, get_request_username()))
+        return Response(JobHandler(job_id=kwargs["pk"]).retrieve(self.validated_data))
 
     @action(detail=False, methods=["POST"], serializer_class=InstallSerializer)
     def install(self, request):
@@ -164,12 +168,18 @@ class JobViewSet(ModelViewSet):
             "ip_filter": []
         }
         """
-        ticket = request.COOKIES.get("TCOA_TICKET") or self.validated_data.get("tcoa_ticket")
+        validated_data = self.validated_data
+        hosts = validated_data["hosts"]
+        op_type = validated_data["op_type"]
+        node_type = validated_data["node_type"]
+        job_type = validated_data["job_type"]
+        ticket = request.COOKIES.get("TCOA_TICKET") or validated_data.get("tcoa_ticket")
         return Response(
-            JobHandler().job(
-                self.validated_data,
-                get_request_username(),
-                request.user.is_superuser,
+            JobHandler().install(
+                hosts,
+                op_type,
+                node_type,
+                job_type,
                 ticket,
             )
         )
@@ -197,9 +207,13 @@ class JobViewSet(ModelViewSet):
             "bk_host_id": [7731, 7732]
         }
         """
-        return Response(JobHandler().operate(self.validated_data, get_request_username(), request.user.is_superuser))
+        validated_data = self.validated_data
+        job_type = validated_data["job_type"]
+        bk_host_ids = validated_data["bk_host_ids"]
+        bk_biz_scope = validated_data["bk_biz_scope"]
+        return Response(JobHandler().operate(job_type, bk_host_ids, bk_biz_scope))
 
-    @action(detail=True, methods=["POST"])
+    @action(detail=True, methods=["POST"], serializer_class=JobInstancesOperateSerializer)
     def retry(self, request, *args, **kwargs):
         """
         @api {POST} /job/{{pk}}/retry/ 重试任务
@@ -211,11 +225,9 @@ class JobViewSet(ModelViewSet):
             "instance_id_list": [1, 2, 3]
         }
         """
-        return Response(
-            JobHandler(job_id=kwargs["pk"]).retry(get_request_username(), request.data.get("instance_id_list"))
-        )
+        return Response(JobHandler(job_id=kwargs["pk"]).retry(request.data.get("instance_id_list")))
 
-    @action(detail=True, methods=["POST"])
+    @action(detail=True, methods=["POST"], serializer_class=JobInstancesOperateSerializer)
     def revoke(self, request, *args, **kwargs):
         """
         @api {POST} /job/{{pk}}/revoke/ 终止任务
@@ -227,11 +239,9 @@ class JobViewSet(ModelViewSet):
             "instance_id_list": [1, 2, 3]
         }
         """
-        return Response(
-            JobHandler(job_id=kwargs["pk"]).revoke(request.data.get("instance_id_list", []), get_request_username())
-        )
+        return Response(JobHandler(job_id=kwargs["pk"]).revoke(request.data.get("instance_id_list", [])))
 
-    @action(detail=True, methods=["POST"])
+    @action(detail=True, methods=["POST"], serializer_class=JobInstanceOperateSerializer)
     def retry_node(self, request, *args, **kwargs):
         """
         @api {POST} /job/{{pk}}/retry_node/ 原子粒度重试任务
@@ -253,11 +263,9 @@ class JobViewSet(ModelViewSet):
             "message": ""
         }
         """
-        return Response(
-            JobHandler(job_id=kwargs["pk"]).retry_node(request.data.get("instance_id", None), get_request_username())
-        )
+        return Response(JobHandler(job_id=kwargs["pk"]).retry_node(request.data.get("instance_id", None)))
 
-    @action(detail=True)
+    @action(detail=True, serializer_class=JobInstanceOperateSerializer)
     def log(self, request, *args, **kwargs):
         """
         @api {GET} /job/{{pk}}/log/ 查询日志
@@ -283,11 +291,9 @@ class JobViewSet(ModelViewSet):
             }
         ]
         """
-        return Response(
-            JobHandler(job_id=kwargs["pk"]).get_log(request.query_params["instance_id"], get_request_username())
-        )
+        return Response(JobHandler(job_id=kwargs["pk"]).get_log(request.query_params["instance_id"]))
 
-    @action(detail=True, methods=["POST"])
+    @action(detail=True, methods=["POST"], serializer_class=JobInstanceOperateSerializer)
     def collect_log(self, request, *args, **kwargs):
         """
         @api {POST} /job/{{pk}}/collect_log/ 查询日志
@@ -299,9 +305,7 @@ class JobViewSet(ModelViewSet):
             "celery_id": "c0072075-730b-461b-8c3e-1f00095b7348"
         },
         """
-        return Response(
-            JobHandler(job_id=kwargs["pk"]).collect_log(request.data.get("instance_id"), get_request_username())
-        )
+        return Response(JobHandler(job_id=kwargs["pk"]).collect_log(request.data.get("instance_id")))
 
     @action(detail=True, methods=["GET"], serializer_class=FetchCommandSerializer)
     def get_job_commands(self, request, *args, **kwargs):
@@ -323,7 +327,6 @@ class JobViewSet(ModelViewSet):
         validated_data = self.validated_data
         return Response(
             JobHandler(job_id=kwargs["pk"]).get_commands(
-                username=get_request_username(),
                 request_bk_host_id=validated_data["bk_host_id"],
                 is_uninstall=validated_data["is_uninstall"],
             )

@@ -13,7 +13,7 @@ from unittest.mock import patch
 
 from django.test import TestCase
 
-from apps.node_man import exceptions
+from apps.iam.exceptions import PermissionDeniedError
 from apps.node_man.constants import IamActionType
 from apps.node_man.handlers.permission import (
     CloudPermission,
@@ -23,7 +23,12 @@ from apps.node_man.handlers.permission import (
     PackagePermission,
     PolicyPermission,
 )
-from apps.node_man.tests.utils import SEARCH_BUSINESS, MockClient, create_host
+from apps.node_man.tests.utils import (
+    SEARCH_BUSINESS,
+    MockClient,
+    MockPermission,
+    create_host,
+)
 
 
 def fetch_policy(*args, **kwargs):
@@ -138,6 +143,7 @@ class TestPermission(TestCase):
     @patch("apps.node_man.handlers.permission.IamHandler.fetch_policy", fetch_policy)
     @patch("apps.node_man.handlers.cmdb.IamHandler.fetch_policy", fetch_policy)
     @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)
+    @patch("apps.node_man.handlers.cmdb.Permission", MockPermission)
     def test_policy_permissions(self):
         """
         测试策略权限控制
@@ -156,6 +162,4 @@ class TestPermission(TestCase):
         self.assertTrue(result)
 
         # 测试鉴权create_policy
-        self.assertRaises(
-            exceptions.BusinessNotPermissionError, PolicyPermission().has_permission, request, view("create_policy")
-        )
+        self.assertRaises(PermissionDeniedError, PolicyPermission().has_permission, request, view("create_policy"))

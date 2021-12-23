@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import hashlib
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import List
 
 from blueapps.account.models import User
 from django.conf import settings
@@ -19,14 +20,15 @@ from django.utils.translation import ugettext as _
 from apps.backend.tests.components.collections.agent.utils import DEFAULT_CLOUD_NAME
 from apps.component.esbclient import client_v2
 from apps.exceptions import ComponentCallError
-from apps.node_man import exceptions, models
+from apps.iam import Permission
+from apps.iam.exceptions import PermissionDeniedError
+from apps.iam.handlers.resources import Business
+from apps.node_man import models
 from apps.node_man.constants import BIZ_CACHE_SUFFIX, IamActionType
 from apps.node_man.exceptions import (
-    BusinessNotPermissionError,
     CacheExpiredError,
     CloudNotExistError,
     CloudUpdateAgentError,
-    CmdbAddCloudPermissionError,
 )
 from apps.node_man.handlers.iam import IamHandler
 from apps.node_man.periodic_tasks.sync_cmdb_biz_topo_task import (
@@ -164,12 +166,13 @@ class CmdbHandler(APIModel):
             logger.error("esb->call get_biz_internal_module error %s" % e.message)
             return {"info": []}
 
-    def cmdb_hosts_by_biz(self, start, bk_biz_id, bk_set_ids=None, bk_module_ids=None):
+    @staticmethod
+    def cmdb_hosts_by_biz(start, bk_biz_id, bk_set_ids=None, bk_module_ids=None):
         """
         Host列表
         :param start: 开始数
         :param bk_biz_id: 业务ID
-        :param bk_set_id: 集群ID列表
+        :param bk_set_ids: 集群ID列表
         :param bk_module_ids: 模块ID列表
         :return: 主机列表
         """
@@ -356,29 +359,20 @@ class CmdbHandler(APIModel):
             return True
         user_biz = self.biz_id_name({"action": action})
         diff = set(bk_biz_scope) - set(user_biz.keys())
-        if diff != set():
-            raise exceptions.BusinessNotPermissionError(_("用户不具有 {diff} 的业务权限").format(diff=diff))
-
-        return True
+        if not diff:
+            return True
+        resources = Business.create_instances(diff)
+        apply_data, apply_url = Permission().get_apply_data([action], resources)
+        raise PermissionDeniedError(action_name=action, apply_url=apply_url, permission=apply_data)
 
     @staticmethod
     def add_cloud(bk_cloud_name):
         """
         新增云区域
         """
-        try:
-            # 增删改查CMDB操作以admin用户进行
-            data = client_v2.cc.create_cloud_area({"bk_cloud_name": bk_cloud_name})
-            return data.get("created", {}).get("id")
-        except ComponentCallError as e:
-            if e.message and e.message["code"] == 1199048:
-                raise CmdbAddCloudPermissionError(
-                    _("您没有增加CMDB云区域的权限"),
-                )
-            logger.error("esb->call create_cloud_area error %s" % e.message)
-            data = client_v2.cc.create_inst({"bk_obj_id": "plat", "bk_cloud_name": bk_cloud_name})
-
-            return data.get("bk_cloud_id")
+        # 增删改查CMDB操作以admin用户进行
+        data = client_v2.cc.create_cloud_area({"bk_cloud_name": bk_cloud_name})
+        return data.get("created", {}).get("id")
 
     @staticmethod
     def delete_cloud(bk_cloud_id):
@@ -387,25 +381,12 @@ class CmdbHandler(APIModel):
         """
         try:
             # 增删改查CMDB操作以admin用户进行
-            return client_v2.cc.delete_cloud_area(
-                {
-                    # "bk_supplier_account": settings.DEFAULT_SUPPLIER_ACCOUNT,
-                    "bk_cloud_id": bk_cloud_id
-                }
-            )
+            return client_v2.cc.delete_cloud_area({"bk_cloud_id": bk_cloud_id})
         except ComponentCallError as e:
             if e.message and e.message["code"] == 1101030:
                 raise CloudUpdateAgentError(
                     _("在CMDB中，还有主机关联到当前云区域下，无法删除"),
                 )
-            logger.error("esb->call delete_cloud_area error %s" % e.message)
-            return client_v2.cc.delete_inst(
-                {
-                    "bk_supplier_account": settings.DEFAULT_SUPPLIER_ACCOUNT,
-                    "bk_obj_id": "plat",
-                    "bk_inst_id": bk_cloud_id,
-                }
-            )
 
     @staticmethod
     def get_cloud(bk_cloud_name):
@@ -441,34 +422,22 @@ class CmdbHandler(APIModel):
         except CloudNotExistError:
             return cls.add_cloud(bk_cloud_name)
 
-    def fetch_topo(self, bk_biz_id: int, is_superuser: bool, with_biz_node=False, action=IamActionType.agent_view):
+    def fetch_topo(self, bk_biz_id: int, with_biz_node: bool = False) -> List:
         """
         获得相关业务数据的拓扑
         :param bk_biz_id:
-        :param is_superuser: 是否超管
         :param with_biz_node: 业务拓扑是否返回业务父节点
-        :param action: action_id
         """
-
-        # 用户有权限获取的业务
-        # 格式 { bk_biz_id: bk_biz_name , ...}
-        user_biz = CmdbHandler().biz_id_name({"action": action})
-
-        if not user_biz.get(bk_biz_id) and not is_superuser:
-            raise BusinessNotPermissionError(_("您没有该业务权限"))
-
         biz_topo = CmdbTool.get_or_cache_biz_topo(bk_biz_id)
-
         if not with_biz_node:
             return biz_topo.get("children", [])
-
         return biz_topo
 
-    def fetch_all_topo(self, is_superuser: bool, action=IamActionType.agent_view) -> list:
-        user_biz = CmdbHandler().biz_id_name({"action": action})
+    def fetch_all_topo(self, action=IamActionType.agent_view) -> List:
+        user_biz = self.biz_id_name({"action": action})
         topo_list = []
         with ThreadPoolExecutor(max_workers=settings.CONCURRENT_NUMBER) as ex:
-            tasks = [ex.submit(self.fetch_topo, biz_id, is_superuser, True) for biz_id in user_biz]
+            tasks = [ex.submit(self.fetch_topo, biz_id, True) for biz_id in user_biz]
             for future in as_completed(tasks):
                 topo_list.append(future.result())
         return topo_list

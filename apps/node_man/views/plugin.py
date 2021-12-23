@@ -278,7 +278,7 @@ class PluginViewSet(ModelViewSet):
             "bkunifylogbeat": 2
         }
         """
-        return Response(PluginHandler.operate(self.validated_data, get_request_username(), request.user.is_superuser))
+        return Response(PluginHandler.operate(self.validated_data, get_request_username()))
 
     @action(detail=False, methods=["GET"])
     def statistics(self, request):
