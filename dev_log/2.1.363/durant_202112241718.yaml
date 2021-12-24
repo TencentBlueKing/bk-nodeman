@@ -1,0 +1,3 @@
+---
+optimization:
+  - "windows脚本兼容性优化 (fixed #397)"

@@ -836,7 +836,7 @@ goto :EOF
 goto :EOF
 
 :install_gse_agent_service_with_user_special
-    if %INSTALL_USER% == "" (
+    if "%INSTALL_USER%" == "" (
         %gse_winagent_home%\\agent\\bin\\gse_agent_daemon.exe -f %gse_winagent_home%\\agent\\etc\\agent.conf --name gse_agent_daemon_%service_id%
         if %errorlevel% equ 0 (
             call :print INFO setup_agent DONE "create gse_agent service without special user succeed"
@@ -856,12 +856,12 @@ goto :EOF
 
 :quit_legacy_agent
     rem 兼容性处理，停用并删除老版本agent
-    sc stop gse_agent_daemon_%service_id%
-    sc delete gse_agent_daemon_%service_id%
-    sc stop gseDaemon
-    sc delete gseDaemon
+    sc stop gse_agent_daemon_%service_id% 1>nul 2>&1
+    sc delete gse_agent_daemon_%service_id% 1>nul 2>&1
+    sc stop gseDaemon 1>nul 2>&1
+    sc delete gseDaemon 1>nul 2>&1
     cd C:
-    RD /S /Q  C:\gse\gseagentw
+    RD /S /Q  C:\gse\gseagentw 1>nul 2>&1
 goto :EOF
 
 :help
