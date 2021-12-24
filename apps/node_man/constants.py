@@ -105,10 +105,6 @@ class PluginChildDir(Enum):
         return [cls.EXTERNAL.value, cls.OFFICIAL.value]
 
 
-PACKAGE_PATH_RE = re.compile(
-    "(?P<is_external>external_)?plugins_(?P<os>(linux|windows|aix))_(?P<cpu_arch>(x86_64|x86|powerpc|aarch64))"
-)
-
 ########################################################################################################
 # CHOICES
 ########################################################################################################
@@ -480,6 +476,11 @@ DEFAULT_OS_CPU_MAP = {
     OsType.AIX: CpuType.powerpc,
     OsType.SOLARIS: CpuType.sparc,
 }
+
+PACKAGE_PATH_RE = re.compile(
+    f"(?P<is_external>external_)?plugins_(?P<os>({'|'.join(map(str, PLUGIN_OS_TUPLE))}))"
+    f"_(?P<cpu_arch>({'|'.join(map(str, CPU_TUPLE))}))"
+)
 
 # TODO: 部署方式，后续确认
 DEPLOY_TYPE_TUPLE = ("package", "config", "agent")

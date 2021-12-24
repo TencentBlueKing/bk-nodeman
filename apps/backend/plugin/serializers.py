@@ -93,6 +93,8 @@ class CreatePluginConfigTemplateSerializer(GatewaySerializer):
     content = serializers.CharField()
     md5 = serializers.CharField()
     is_release_version = serializers.BooleanField()
+    cpu_arch = serializers.CharField(max_length=32)
+    os = serializers.CharField(max_length=32)
 
     def validate(self, attrs):
         # base64解码配置模板内容
@@ -127,6 +129,8 @@ class CreatePluginConfigTemplateSerializer(GatewaySerializer):
 class ReleasePluginConfigTemplateSerializer(GatewaySerializer):
     """发布插件配置模板"""
 
+    cpu_arch = serializers.CharField(max_length=32, required=False)
+    os = serializers.CharField(max_length=32, required=False)
     plugin_name = serializers.CharField(max_length=32, required=False)
     plugin_version = serializers.CharField(max_length=128, required=False)
     name = serializers.CharField(max_length=32, required=False)
@@ -152,6 +156,8 @@ class RenderPluginConfigTemplateSerializer(GatewaySerializer):
     plugin_name = serializers.CharField(max_length=32, required=False)
     plugin_version = serializers.CharField(max_length=128, required=False)
     name = serializers.CharField(max_length=32, required=False)
+    cpu_arch = serializers.CharField(max_length=32, required=False)
+    os = serializers.CharField(max_length=32, required=False)
     version = serializers.CharField(max_length=32, required=False)
     id = serializers.IntegerField(required=False)
     data = serializers.DictField()
@@ -169,6 +175,8 @@ class RenderPluginConfigTemplateSerializer(GatewaySerializer):
 class PluginConfigTemplateInfoSerializer(GatewaySerializer):
     """插件配置模板信息"""
 
+    cpu_arch = serializers.CharField(max_length=32, required=False)
+    os = serializers.CharField(max_length=32, required=False)
     plugin_name = serializers.CharField(max_length=32, required=False)
     plugin_version = serializers.CharField(max_length=128, required=False)
     name = serializers.CharField(max_length=32, required=False)
@@ -186,6 +194,8 @@ class PluginConfigTemplateInfoSerializer(GatewaySerializer):
 class PluginConfigInstanceInfoSerializer(GatewaySerializer):
     """插件配置实例信息"""
 
+    cpu_arch = serializers.CharField(max_length=32, required=False)
+    os = serializers.CharField(max_length=32, required=False)
     plugin_name = serializers.CharField(max_length=32, required=False)
     plugin_version = serializers.CharField(max_length=128, required=False)
     name = serializers.CharField(max_length=32, required=False)

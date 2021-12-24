@@ -57,6 +57,8 @@ from pipeline.engine.exceptions import InvalidOperationException
 from pipeline.service import task_service
 from pipeline.service.pipeline_engine_adapter.adapter_api import STATE_MAP
 
+from .tools import add_default_platform
+
 LOG_PREFIX_RE = re.compile(r"(\[\d{4}-\d{1,2}-\d{1,2}\s\d{1,2}:\d{1,2}.*?\] )")
 logger = logging.getLogger("app")
 
@@ -315,6 +317,8 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
             plugin_version=params["plugin_version"],
             name=params["name"],
             version=params["version"],
+            os=params.get("os"),
+            cpu_arch=params.get("cpu_arch"),
             defaults=dict(
                 plugin_name=params["plugin_name"],
                 plugin_version=params["plugin_version"],
@@ -346,7 +350,7 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         if "id" in params:
             plugin_templates = models.PluginConfigTemplate.objects.filter(id__in=params["id"])
         else:
-            plugin_templates = models.PluginConfigTemplate.objects.filter(**params)
+            plugin_templates = models.PluginConfigTemplate.objects.filter(**add_default_platform(params))
 
         # 更改发布状态
         plugin_templates.update(is_release_version=True)
@@ -387,7 +391,7 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
             if "id" in params:
                 plugin_template = models.PluginConfigTemplate.objects.get(id=params["id"])
             else:
-                plugin_template = models.PluginConfigTemplate.objects.get(**params)
+                plugin_template = models.PluginConfigTemplate.objects.get(**add_default_platform(params))
         except models.PluginConfigTemplate.DoesNotExist:
             raise ValidationError("plugin template not found")
 
@@ -416,7 +420,7 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         if "id" in params:
             plugin_templates = models.PluginConfigTemplate.objects.filter(id=params["id"])
         else:
-            plugin_templates = models.PluginConfigTemplate.objects.filter(**params)
+            plugin_templates = models.PluginConfigTemplate.objects.filter(**add_default_platform(params))
 
         result = []
         for template in plugin_templates:
@@ -452,7 +456,7 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         if "id" in params:
             plugin_instances = models.PluginConfigInstance.objects.filter(id=params["id"])
         else:
-            plugin_templates = models.PluginConfigTemplate.objects.filter(**params)
+            plugin_templates = models.PluginConfigTemplate.objects.filter(**add_default_platform(params))
             plugin_instances = models.PluginConfigInstance.objects.filter(
                 plugin_config_template__in=[template.id for template in plugin_templates]
             )
@@ -1015,7 +1019,7 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
                 is_main=True,  # 目前只支持主配置
             )
             .order_by("plugin_version")
-            .values("id", "name", "version", "is_main", "plugin_version")
+            .values("id", "name", "version", "is_main", "plugin_version", "cpu_arch", "os")
         )
         configs_group_by_pkg_v = {
             pkg_version: list(config_group)
@@ -1144,7 +1148,9 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         if newest_pkg:
             newest_pkg["is_newest"] = True
 
-        config_files = models.PluginConfigTemplate.objects.filter(plugin_name=plugin_name).values()
+        config_files = models.PluginConfigTemplate.objects.filter(
+            plugin_name=plugin_name, os=newest_pkg["os"], cpu_arch=newest_pkg["cpu_arch"]
+        ).values()
         # 根据版本号对配置文件归类
         config_group_by_name_version = defaultdict(list)
         for config_file in config_files:
@@ -1153,6 +1159,8 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
                 {
                     "id": config_file["id"],
                     "version": config_file["version"],
+                    "os": config_file["os"],
+                    "cpu_arch": config_file["cpu_arch"],
                     "name": config_file["name"],
                     "is_main": config_file["is_main"],
                 }
