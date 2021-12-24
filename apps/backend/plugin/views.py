@@ -51,8 +51,7 @@ from apps.core.files import core_files_constants
 from apps.core.files.storage import get_storage
 from apps.exceptions import AppBaseException, ValidationError
 from apps.generic import APIViewSet
-from apps.node_man import constants as const
-from apps.node_man import models
+from apps.node_man import constants, models
 from pipeline.engine.exceptions import InvalidOperationException
 from pipeline.service import task_service
 from pipeline.service.pipeline_engine_adapter.adapter_api import STATE_MAP
@@ -108,10 +107,10 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         # 2. 创建一个新的task,返回任务ID
         job = models.Job.objects.create(
             created_by=params["bk_username"],
-            job_type=const.JobType.PACKING_PLUGIN,
+            job_type=constants.JobType.PACKING_PLUGIN,
             # TODO 打包任务是否也用一次性订阅的方式下发
             subscription_id=-1,
-            status=const.JobStatusType.RUNNING,
+            status=constants.JobStatusType.RUNNING,
         )
         # 这个新的任务，应该是指派到自己机器上的打包任务
         tasks.package_task.delay(job.id, params)
@@ -157,7 +156,7 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
 
         return Response(
             {
-                "is_finish": job.status in [const.JobStatusType.SUCCESS, const.JobStatusType.FAILED],
+                "is_finish": job.status in [constants.JobStatusType.SUCCESS, constants.JobStatusType.FAILED],
                 "status": job.status,
                 "message": job.global_params.get("err_msg"),
             }
@@ -251,9 +250,9 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         """
         params = self.validated_data
         status_field_map = {
-            const.PkgStatusOpType.release: {"is_release_version": True, "is_ready": True},
-            const.PkgStatusOpType.offline: {"is_release_version": False, "is_ready": True},
-            const.PkgStatusOpType.stop: {"is_ready": False},
+            constants.PkgStatusOpType.release: {"is_release_version": True, "is_ready": True},
+            constants.PkgStatusOpType.offline: {"is_release_version": False, "is_ready": True},
+            constants.PkgStatusOpType.stop: {"is_ready": False},
         }
         operator = params.pop("bk_username")
         params.pop("bk_app_code")
@@ -302,7 +301,7 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
     @action(detail=False, methods=["POST"], serializer_class=serializers.CreatePluginConfigTemplateSerializer)
     def create_config_template(self, request):
         """
-        @api {POST} /plugin/create_config_template/ 创建配置模板
+        @api {POST} /plugin/create_config_template/ 创建配置模板,未指定则创建全部平台类型
         @apiName create_plugin_config_template
         @apiGroup backend_plugin
         """
@@ -310,26 +309,37 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         bk_username = params.pop("bk_username")
         bk_app_code = params.pop("bk_app_code")
 
-        plugin, created = models.PluginConfigTemplate.objects.update_or_create(
-            plugin_name=params["plugin_name"],
-            plugin_version=params["plugin_version"],
-            name=params["name"],
-            version=params["version"],
-            defaults=dict(
-                plugin_name=params["plugin_name"],
-                plugin_version=params["plugin_version"],
-                name=params["name"],
-                version=params["version"],
-                format=params["format"],
-                content=params["content"],
-                file_path=params["file_path"],
-                is_release_version=params["is_release_version"],
-                creator=bk_username,
-                source_app_code=bk_app_code,
-            ),
+        created_template_ids = []
+        template_os_list = [params["os"]] if params.get("os") else [os_type for os_type in constants.OS_TUPLE]
+        template_cpu_arch_list = (
+            [params["cpu_arch"]] if params.get("cpu_arch") else [cpu_arch for cpu_arch in constants.CPU_TUPLE]
         )
 
-        params["id"] = plugin.id
+        for os_type in template_os_list:
+            for cpu_arch in template_cpu_arch_list:
+                plugin, created = models.PluginConfigTemplate.objects.update_or_create(
+                    plugin_name=params["plugin_name"],
+                    plugin_version=params["plugin_version"],
+                    name=params["name"],
+                    version=params["version"],
+                    os=os_type.lower(),
+                    cpu_arch=cpu_arch.lower(),
+                    defaults=dict(
+                        plugin_name=params["plugin_name"],
+                        plugin_version=params["plugin_version"],
+                        name=params["name"],
+                        version=params["version"],
+                        format=params["format"],
+                        content=params["content"],
+                        file_path=params["file_path"],
+                        is_release_version=params["is_release_version"],
+                        creator=bk_username,
+                        source_app_code=bk_app_code,
+                    ),
+                )
+                created_template_ids.append(plugin["id"])
+        params["ids"] = created_template_ids
+
         return Response(params)
 
     @action(detail=False, methods=["POST"], serializer_class=serializers.ReleasePluginConfigTemplateSerializer)
@@ -387,7 +397,7 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
             if "id" in params:
                 plugin_template = models.PluginConfigTemplate.objects.get(id=params["id"])
             else:
-                plugin_template = models.PluginConfigTemplate.objects.get(**params)
+                plugin_template = models.PluginConfigTemplate.objects.get(**tools.add_default_platform(params))
         except models.PluginConfigTemplate.DoesNotExist:
             raise ValidationError("plugin template not found")
 
@@ -416,7 +426,7 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         if "id" in params:
             plugin_templates = models.PluginConfigTemplate.objects.filter(id=params["id"])
         else:
-            plugin_templates = models.PluginConfigTemplate.objects.filter(**params)
+            plugin_templates = models.PluginConfigTemplate.objects.filter(**tools.add_default_platform(params))
 
         result = []
         for template in plugin_templates:
@@ -452,7 +462,7 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         if "id" in params:
             plugin_instances = models.PluginConfigInstance.objects.filter(id=params["id"])
         else:
-            plugin_templates = models.PluginConfigTemplate.objects.filter(**params)
+            plugin_templates = models.PluginConfigTemplate.objects.filter(**tools.add_default_platform(params))
             plugin_instances = models.PluginConfigInstance.objects.filter(
                 plugin_config_template__in=[template.id for template in plugin_templates]
             )
@@ -624,7 +634,7 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         task = models.SubscriptionTask.objects.get(pk=task_id)
         subscription_handler = SubscriptionHandler(subscription_id=task.subscription_id)
         if not subscription_handler.check_task_ready([task.id]):
-            return Response({"status": const.JobStatusType.PENDING, "step": "preparing", "message": _("调试任务准备中")})
+            return Response({"status": constants.JobStatusType.PENDING, "step": "preparing", "message": _("调试任务准备中")})
 
         task_result = subscription_handler.task_result(task_id_list=[task_id], need_detail=True)
         try:
@@ -632,7 +642,7 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         except (IndexError, KeyError, TypeError):
             raise AppBaseException("查询调试结果错误")
         log_content = []
-        status = const.JobStatusType.RUNNING
+        status = constants.JobStatusType.RUNNING
         step_name = ""
         for step in steps:
             log_content.append(_(" 开始{name} ").format(name=step["node_name"]).center(30, "*"))
@@ -641,9 +651,9 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
             log_content.append(cleaned_log)
             status = step["status"]
             step_name = step["step_code"]
-            if status in (const.JobStatusType.PENDING, const.JobStatusType.RUNNING):
+            if status in (constants.JobStatusType.PENDING, constants.JobStatusType.RUNNING):
                 # PENDING 状态也转为 RUNNING
-                status = const.JobStatusType.RUNNING
+                status = constants.JobStatusType.RUNNING
                 break
 
         return Response({"status": status, "step": step_name, "message": "\n".join(log_content)})
@@ -816,7 +826,7 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
                 {
                     "pkg_abs_path": package_info["pkg_relative_path"],
                     # parse_package 对 category 执行校验并返回错误信息，此处category不一定是合法值，所以使用get填充释义
-                    "category": const.CATEGORY_DICT.get(pkg_parse_result["category"]),
+                    "category": constants.CATEGORY_DICT.get(pkg_parse_result["category"]),
                 }
             )
             pkg_parse_results.append(pkg_parse_result)
@@ -869,7 +879,7 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         """
         self.serializer_class = serializers.PluginListSerializer
         query_params = self.validated_data
-        gse_plugin_desc_qs = models.GsePluginDesc.objects.filter(category=const.CategoryType.official).order_by(
+        gse_plugin_desc_qs = models.GsePluginDesc.objects.filter(category=constants.CategoryType.official).order_by(
             "-is_ready"
         )
         if "search" in query_params:
@@ -879,7 +889,7 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
 
         if "sort" in query_params:
             sort_head = query_params["sort"]["head"]
-            if query_params["sort"]["sort_type"] == const.SortType.DEC:
+            if query_params["sort"]["sort_type"] == constants.SortType.DEC:
                 gse_plugin_desc_qs = gse_plugin_desc_qs.order_by(f"-{sort_head}")
             else:
                 gse_plugin_desc_qs = gse_plugin_desc_qs.order_by(sort_head)
@@ -979,8 +989,8 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         # 字段翻译
         gse_plugin_desc.update(
             {
-                "category": const.CATEGORY_DICT[gse_plugin_desc["category"]],
-                "deploy_type": const.DEPLOY_TYPE_DICT[gse_plugin_desc["deploy_type"]]
+                "category": constants.CATEGORY_DICT[gse_plugin_desc["category"]],
+                "deploy_type": constants.DEPLOY_TYPE_DICT[gse_plugin_desc["deploy_type"]]
                 if gse_plugin_desc["deploy_type"]
                 else gse_plugin_desc["deploy_type"],
             }
@@ -1015,7 +1025,7 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
                 is_main=True,  # 目前只支持主配置
             )
             .order_by("plugin_version")
-            .values("id", "name", "version", "is_main", "plugin_version")
+            .values("id", "name", "version", "is_main", "plugin_version", "cpu_arch", "os")
         )
         configs_group_by_pkg_v = {
             pkg_version: list(config_group)
@@ -1046,8 +1056,8 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         """
         params = self.validated_data
         status_field_map = {
-            const.PluginStatusOpType.ready: {"is_ready": True},
-            const.PluginStatusOpType.stop: {"is_ready": False},
+            constants.PluginStatusOpType.ready: {"is_ready": True},
+            constants.PluginStatusOpType.stop: {"is_ready": False},
         }
         update_plugins = models.GsePluginDesc.objects.filter(id__in=params["id"])
         update_plugins.update(**status_field_map[params["operation"]])
@@ -1144,7 +1154,9 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         if newest_pkg:
             newest_pkg["is_newest"] = True
 
-        config_files = models.PluginConfigTemplate.objects.filter(plugin_name=plugin_name).values()
+        config_files = models.PluginConfigTemplate.objects.filter(
+            plugin_name=plugin_name, os=newest_pkg["os"], cpu_arch=newest_pkg["cpu_arch"]
+        ).values()
         # 根据版本号对配置文件归类
         config_group_by_name_version = defaultdict(list)
         for config_file in config_files:
@@ -1153,6 +1165,8 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
                 {
                     "id": config_file["id"],
                     "version": config_file["version"],
+                    "os": config_file["os"],
+                    "cpu_arch": config_file["cpu_arch"],
                     "name": config_file["name"],
                     "is_main": config_file["is_main"],
                 }
