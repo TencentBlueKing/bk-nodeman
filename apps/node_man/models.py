@@ -1578,13 +1578,20 @@ class PluginConfigTemplate(models.Model):
     create_time = models.DateTimeField(_("创建时间"), auto_now_add=True)
     source_app_code = models.CharField(_("来源系统app code"), max_length=64)
 
+    os = models.CharField(
+        _("操作系统"), max_length=16, choices=constants.PLUGIN_OS_CHOICES, default=constants.PluginOsType.linux
+    )
+    cpu_arch = models.CharField(
+        _("CPU架构"), max_length=16, choices=constants.CPU_CHOICES, default=constants.CpuType.x86_64
+    )
+
     class Meta:
         verbose_name = _("插件配置文件模板")
         verbose_name_plural = _("插件配置文件模板表")
         # 唯一性限制
         unique_together = (
             # 对于同一个插件的同一个版本，同名配置文件只能存在一个
-            ("plugin_name", "plugin_version", "name", "version", "is_main"),
+            ("plugin_name", "plugin_version", "name", "version", "is_main", "os", "cpu_arch"),
         )
 
     def create_instance(self, data, creator=None, source_app_code=None):
