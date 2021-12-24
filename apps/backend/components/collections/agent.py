@@ -47,6 +47,7 @@ from apps.node_man.exceptions import HostNotExists
 from apps.node_man.handlers.tjj import TjjHandler
 from apps.node_man.models import (
     AccessPoint,
+    GseAgentDesc,
     Host,
     IdentityData,
     Job,
@@ -608,6 +609,11 @@ class InstallService(AgentService, JobFastExecuteScriptService):
         host = Host.get_by_host_info({"bk_host_id": bk_host_id} if bk_host_id else host_info)
         bk_username = data.get_one_of_inputs("bk_username")
 
+        version = host_info.get("version") or ProcessStatus.fetch_client_version_by_host_id(host.bk_host_id)
+        if not version:
+            is_proxy_package = bool(host.node_type == constants.NodeType.PROXY)
+            version = GseAgentDesc.fetch_version(is_proxy_package=is_proxy_package)
+
         is_uninstall = data.get_one_of_inputs("is_uninstall")
         is_manual = host.is_manual
 
@@ -637,7 +643,7 @@ class InstallService(AgentService, JobFastExecuteScriptService):
 
         # 生成安装命令
         try:
-            installation_tool = gen_commands(host, self.id, is_uninstall)
+            installation_tool = gen_commands(host, self.id, is_uninstall, version)
         except GenCommandsError as e:
             self.logger.info(e.message)
             return False

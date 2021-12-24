@@ -130,12 +130,13 @@ def format_run_cmd_by_os_type(os_type: str, run_cmd=None) -> str:
     return run_cmd
 
 
-def gen_commands(host: models.Host, pipeline_id: str, is_uninstall: bool) -> InstallationTools:
+def gen_commands(host: models.Host, pipeline_id: str, is_uninstall: bool, version: str = None) -> InstallationTools:
     """
     生成安装命令
     :param host: 主机信息
     :param pipeline_id: Node ID
     :param is_uninstall: 是否卸载
+    :param version: 版本号
     :return: dest_dir 目标目录, win_commands: Windows安装命令, proxies 代理列表,
              proxy 云区域所使用的代理, pre_commands 安装前命令, run_cmd 安装命令
     """
@@ -151,6 +152,12 @@ def gen_commands(host: models.Host, pipeline_id: str, is_uninstall: bool) -> Ins
         callback_url,
     ) = fetch_gse_servers(host)
     upstream_nodes = task_servers
+
+    # 匹配版本
+    from apps.node_man.models import GseAgentDesc
+
+    is_proxy_package = True if host.node_type == constants.NodeType.PROXY else False
+    version = GseAgentDesc.fetch_version(version=version, is_proxy_package=is_proxy_package)
 
     # 安装操作
     install_path = host.agent_config["setup_path"]
@@ -172,6 +179,7 @@ def gen_commands(host: models.Host, pipeline_id: str, is_uninstall: bool) -> Ins
         f'-e "{bt_file_servers}"',
         f'-a "{data_servers}"',
         f'-k "{task_servers}"',
+        f"-G {version}",
     ]
 
     # 系统开启使用密码注册windows服务时，需额外传入用户名和加密密码参数，用于注册windows服务，详见setup_agent.bat脚本

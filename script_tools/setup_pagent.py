@@ -97,6 +97,7 @@ def arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("-Z", "--bt-port-end", type=int, help="BT_PORT_END")
     parser.add_argument("-K", "--tracker-port", type=int, help="TRACKER_PORT")
     parser.add_argument("-L", "--download-path", type=str, help="Tool kit storage path")
+    parser.add_argument("-G", "--gse-agent-version", type=str, help="Gse Agent Version")
 
     # 主机信息
     parser.add_argument("-HLIP", "--host-login-ip", type=str, help="Host Login IP")
@@ -384,9 +385,10 @@ def main() -> None:
         )
         cmd.append(download_cmd)
         cmd.append(
-            "nohup {} {dest_dir}{script_name} -T {dest_dir} -i {} -I {} -s {} -c {} -l {} -r {} -p {} -e {} "
+            "nohup {} {dest_dir}{script_name} -T {dest_dir} -G {} -i {} -I {} -s {} -c {} -l {} -r {} -p {} -e {} "
             "-a {} -k {} -x {} -N PROXY {} -O {} -E {} -A {} -V {} -B {} -S {} -Z {} -K {} 2>&1 &".format(
                 shell,
+                args.gse_agent_version,
                 cloud_id,
                 lan_eth_ip,
                 args.task_id,
@@ -422,9 +424,10 @@ def main() -> None:
         cmd.append(download_cmd)
 
         cmd.append(
-            "{dest_dir}{script_name} -T {dest_dir} -i {} -I {} -s {} -c {} -l {} -r {} -p {} "
+            "{dest_dir}{script_name} -T {dest_dir} -G {} -i {} -I {} -s {} -c {} -l {} -r {} -p {} "
             '-e "{}" -a "{}" -k "{}" -x {} -N PROXY {} -O {} -E {} -A {} -V {} -B {} -S {} -Z {} -K {} {}'.format(
                 cloud_id,
+                args.gse_agent_version,
                 lan_eth_ip,
                 args.task_id,
                 args.token,

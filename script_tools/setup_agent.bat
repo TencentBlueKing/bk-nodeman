@@ -37,13 +37,14 @@ if "%1" EQU "-Z" (set BT_PORT_END=%~2) && shift && shift && goto CheckOpts
 if "%1" EQU "-K" (set TRACKER_PORT=%~2) && shift && shift && goto CheckOpts
 if "%1" EQU "-U" (set INSTALL_USER=%~2) && shift && shift && goto CheckOpts
 if "%1" EQU "-P" (set INSTALL_PASSWORD=%~2) && shift && shift && goto CheckOpts
+if "%1" EQU "-G" (set GSE_AGENT_VERSION=%~2) && shift && shift && goto CheckOpts
 if "%1" NEQ "" echo Invalid option: "%1" && goto :EOF && exit /B 1
 
 if not defined UPSTREAM_TYPE (set UPSTREAM_TYPE=SERVER) else (set UPSTREAM_TYPE=%UPSTREAM_TYPE%)
 if not defined HTTP_PROXY (set HTTP_PROXY=) else (set HTTP_PROXY=%HTTP_PROXY%)
 if not defined INSTALL_USER (set INSTALL_USER=) else (set INSTALL_USER=%INSTALL_USER%)
 if not defined INSTALL_PASSWORD (set INSTALL_PASSWORD=) else (set INSTALL_PASSWORD=%INSTALL_PASSWORD%)
-if "%PROCESSOR_ARCHITECTURE%" == "x86" (set PKG_NAME=gse_client-windows-x86.tgz) else (set PKG_NAME=gse_client-windows-x86_64.tgz)
+if "%PROCESSOR_ARCHITECTURE%" == "x86" (set PKG_NAME=gse_client-windows-x86-%GSE_AGENT_VERSION%.tgz) else (set PKG_NAME=gse_client-windows-x86_64-%GSE_AGENT_VERSION%.tgz)
 if "%PROCESSOR_ARCHITECTURE%" == "x86" (set CPU_ARCH=x86) else (set CPU_ARCH=x86_64)
 if "%CLOUD_ID%" == "0" (set NODE_TYPE=agent) else (set NODE_TYPE=pagent)
 set gse_winagent_home=%AGENT_SETUP_PATH%

@@ -19,6 +19,7 @@ from apps.node_man import constants, models, tools
 from apps.node_man.handlers.cloud import CloudHandler
 from apps.node_man.handlers.cmdb import CmdbHandler
 from apps.node_man.handlers.install_channel import InstallChannelHandler
+from apps.node_man.models import ProcessStatus
 from apps.utils import APIModel
 
 
@@ -82,7 +83,7 @@ class MetaHandler(APIModel):
         biz_permission: list,
         col_list: list,
         node_types: list,
-        name: str = models.ProcessStatus.GSE_AGENT_PROCESS_NAME,
+        name: str = ProcessStatus.GSE_AGENT_PROCESS_NAME,
         proc_type: str = "AGENT",
     ):
         """

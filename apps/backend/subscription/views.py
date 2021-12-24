@@ -810,7 +810,12 @@ class SubscriptionViewSet(APIViewSet):
 
         params = self.get_validated_data()
         host = models.Host.objects.get(bk_host_id=params["bk_host_id"])
-        installation_tool = gen_commands(host, params["host_install_pipeline_id"], params["is_uninstall"])
+        if "version" in params:
+            installation_tool = gen_commands(
+                host, params["host_install_pipeline_id"], params["is_uninstall"], params["version"]
+            )
+        else:
+            installation_tool = gen_commands(host, params["host_install_pipeline_id"], params["is_uninstall"])
 
         return Response(
             {

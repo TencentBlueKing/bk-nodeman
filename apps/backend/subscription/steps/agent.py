@@ -21,6 +21,7 @@ from apps.backend.subscription.tools import create_group_id
 from apps.node_man import constants
 from apps.node_man.constants import ProcStateType
 from apps.node_man.models import (
+    GseAgentDesc,
     GsePluginDesc,
     Host,
     SubscriptionInstanceRecord,
@@ -212,6 +213,7 @@ class AgentAction(Action, abc.ABC):
     def append_push_file_activities(agent_manager, activities):
         for file in constants.FILES_TO_PUSH_TO_PROXY:
             activities.append(agent_manager.push_files_to_proxy(file))
+        activities.append(agent_manager.push_files_to_proxy(GseAgentDesc.fetch_push_to_proxy_files()))
         return activities
 
     def execute(self, instance_record):

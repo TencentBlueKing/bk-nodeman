@@ -133,6 +133,7 @@ class JobViewSet(ModelViewSet):
         @apiParam {String} hosts.auth_type 认证类型
         @apiParam {String} [hosts.password] 密码
         @apiParam {String} [hosts.key] 密钥
+        @apiParam {String} version 版本号
         @apiParam {Number} [hosts.retention] 密码保留天数
         @apiParam {Number} [replace_host_id] 要替换的ProxyID，替换proxy时使用
         @apiParamExample {Json} 安装请求参数
@@ -151,6 +152,7 @@ class JobViewSet(ModelViewSet):
                     "account": "root",
                     "port": 22,
                     "auth_type": "PASSWORD",
+                    "version": "1.7.15",
                     "password": "password",
                     "key": "key"
                 }

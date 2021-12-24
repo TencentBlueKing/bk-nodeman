@@ -5,7 +5,6 @@
 # DEFAULT DEFINITION
 GSE_COMPARE_VERSION="1.7.2"
 NODE_TYPE=proxy
-PKG_NAME=gse_${NODE_TYPE}-linux-x86_64.tgz
 
 GSE_AGENT_RUN_DIR=/var/run/gse
 GSE_AGENT_DATA_DIR=/var/lib/gse
@@ -738,7 +737,7 @@ CALLBACK_URL=
 AGENT_PID=
 
 # main program
-while getopts I:i:l:s:uc:r:x:p:e:a:k:N:g:v:oT:RO:E:A:V:B:S:Z:K: arg; do
+while getopts I:i:l:s:uc:r:x:p:e:a:k:N:g:v:oT:RO:E:A:V:B:S:Z:K:G: arg; do
     case $arg in
         I) export LAN_ETH_IP=$OPTARG ;;
         i) export CLOUD_ID=$OPTARG ;;
@@ -765,10 +764,12 @@ while getopts I:i:l:s:uc:r:x:p:e:a:k:N:g:v:oT:RO:E:A:V:B:S:Z:K: arg; do
         S) export BT_PORT_START=$OPTARG ;;
         Z) export BT_PORT_END=$OPTARG ;;
         K) export TRACKER_PORT=$OPTARG ;;
+        G) export GSE_AGENT_VERSION=$OPTARG ;;
         *)  _help ;;
     esac
 done
 
+PKG_NAME=gse_${NODE_TYPE}-linux-x86_64-${GSE_AGENT_VERSION}.tgz
 
 ## 检查自定义环境变量
 for var_name in ${VARS_LIST//;/ /}; do

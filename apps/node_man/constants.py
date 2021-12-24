@@ -125,6 +125,11 @@ OsType = choices_to_namedtuple(OS_CHOICES)
 OS_CHN = {os_type: os_type if os_type == OsType.AIX else os_type.capitalize() for os_type in OS_TUPLE}
 BK_OS_TYPE = {"LINUX": "1", "WINDOWS": "2", "AIX": "3", "SOLARIS": "5"}
 
+AGENT_PACKAGE_SOURCE_TUPLE = ("deploy_init", "backend", "frontend")
+AGENT_PACKAGE_SOURCE_CHOICES = tuple_choices(AGENT_PACKAGE_SOURCE_TUPLE)
+RELEASING_TYPE_TUPLE = ("offline", "release", "grayscale")
+RELEASING_TYPE_CHOICES = tuple_choices(RELEASING_TYPE_TUPLE)
+
 # 操作系统->系统账户映射表
 ACCOUNT_MAP = {
     OsType.WINDOWS: settings.BACKEND_WINDOWS_ACCOUNT,
@@ -745,17 +750,6 @@ FILES_TO_PUSH_TO_PROXY = [
     {"files": ["py36.tgz"], "name": _("检测 BT 分发策略（下发Py36包）")},
     {
         "files": [
-            "gse_client-windows-x86.tgz",
-            "gse_client-windows-x86_64.tgz",
-            "gse_client-aix-powerpc.tgz",
-            "gse_client-linux-x86.tgz",
-            "gse_client-linux-x86_64.tgz",
-        ],
-        "name": _("下发安装包"),
-        "from_type": ProxyFileFromType.AP_CONFIG.value,
-    },
-    {
-        "files": [
             "curl-ca-bundle.crt",
             "curl.exe",
             "libcurl-x64.dll",
@@ -776,4 +770,11 @@ SCRIPT_FILE_NAME_MAP = {
     OsType.WINDOWS: SetupScriptFileName.SETUP_AGENT_BAT.value,
     OsType.AIX: SetupScriptFileName.SETUP_AGENT_KSH.value,
     OsType.SOLARIS: SetupScriptFileName.SETUP_AGENT_SOLARIS_SH.value,
+}
+
+
+CERT_RULE_MAP = {
+    NodeType.AGENT: ["gseca.crt", "gse_agent.crt", "gse_agent.key"],
+    NodeType.PROXY: re.compile(r"^(gse_agent|gse_server|gse_api_client).*"),
+    "spicial": ["cert_encrypt.key"],
 }

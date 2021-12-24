@@ -24,7 +24,7 @@ from apps.backend.tests.components.collections.agent import utils
 from apps.backend.tests.components.collections.job import utils as job_utils
 from apps.core.files import constants as core_const
 from apps.node_man import constants
-from apps.node_man.models import AccessPoint, InstallChannel
+from apps.node_man.models import AccessPoint, GseAgentDesc, InstallChannel
 from apps.node_man.tests.utils import create_ap, create_cloud_area, create_host
 from apps.utils import files
 from apps.utils.files import md5sum
@@ -71,6 +71,8 @@ OVERWRITE_OBJ__KV_MAP = {
 
 
 class TestUpdateProxyFile(CustomBaseTestCase):
+    client_packages = GseAgentDesc.fetch_push_to_proxy_files()
+    constants.FILES_TO_PUSH_TO_PROXY.append(client_packages)
     download_files = [file_name for file_set in constants.FILES_TO_PUSH_TO_PROXY for file_name in file_set["files"]]
 
     @classmethod
