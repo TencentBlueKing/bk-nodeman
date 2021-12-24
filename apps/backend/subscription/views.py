@@ -160,10 +160,14 @@ class SubscriptionViewSet(APIViewSet):
                             {
                                 "name": "config.yaml",
                                 "version": "2",
+                                "os": "windows",
+                                "cpu_arch": "x86_64",
                             },
                             {
                                 "name": "env.yaml",
                                 "version": "2",
+                                "os": "windows",
+                                "cpu_arch": "x86_64",
                             }
                         ]
                     },
