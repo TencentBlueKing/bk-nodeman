@@ -531,7 +531,7 @@ goto :EOF
         for /F %%i in ('curl --connect-timeout 5 -o %TMP_DIR%/%%p --progress-bar -w "%%{http_code}" %DOWNLOAD_URL%/%%p') do (set http_status=%%i)
         if "%http_status%" == "200" (
             call :print INFO download_pkg - "gse_agent package %%p download succeeded"
-            call :print INFO report_cpu_arch DONE %CPU_ARCH%
+            call :print INFO report_cpu_arch DONE "%CPU_ARCH%"
         ) else (
             call :print FAIL download_pkg FAILED "file %%p download failed. url:%DOWNLOAD_URL%/%%p, http_status:%http_status%"
         )

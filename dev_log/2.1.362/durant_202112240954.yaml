@@ -1,0 +1,3 @@
+---
+bugfix:
+  - "windows安装上报系统架构错误 (fixed #394)"
