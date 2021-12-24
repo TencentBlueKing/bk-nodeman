@@ -21,6 +21,7 @@ from apps.backend.tests.subscription.utils import (
     CmdbClient,
     list_biz_hosts_without_info_client,
 )
+from apps.node_man import constants
 from apps.node_man.models import (
     GsePluginDesc,
     Host,
@@ -247,32 +248,23 @@ class TestSubscription(TestCase):
             is_ready=True,
         )
         pac.save()
-        PluginConfigTemplate.objects.create(
-            plugin_name="mysql_exporter",
-            plugin_version="*",
-            name="config.yaml",
-            version="2.3",
-            format="yaml",
-            file_path="etc",
-            content="sss",
-            is_release_version=0,
-            creator="admin",
-            create_time="2019-06-25 15:26:25.051187",
-            source_app_code="bk_monitor",
-        )
-        PluginConfigTemplate.objects.create(
-            plugin_name="mysql_exporter",
-            plugin_version="*",
-            name="env.yaml",
-            version="2.3",
-            format="yaml",
-            file_path="etc",
-            content="sss",
-            is_release_version=0,
-            creator="admin",
-            create_time="2019-06-25 15:26:25.051187",
-            source_app_code="bk_monitor",
-        )
+        for os_type in [constants.OsType.LINUX, constants.OsType.WINDOWS]:
+            for config_file in ["config.yaml", "env.yaml"]:
+                PluginConfigTemplate.objects.create(
+                    plugin_name="mysql_exporter",
+                    plugin_version="*",
+                    name=config_file,
+                    version="2.3",
+                    format="yaml",
+                    os=os_type,
+                    cpu_arch="x86_64",
+                    file_path="etc",
+                    content="sss",
+                    is_release_version=0,
+                    creator="admin",
+                    create_time="2019-06-25 15:26:25.051187",
+                    source_app_code="bk_monitor",
+                )
         ProcControl.objects.create(
             id=142,
             module="gse_plugin",
@@ -338,8 +330,8 @@ class TestSubscription(TestCase):
                                 "plugin_name": "mysql_exporter",
                                 "plugin_version": "2.3",
                                 "config_templates": [
-                                    {"name": "config.yaml", "version": "2"},
-                                    {"name": "env.yaml", "version": "2"},
+                                    {"name": "config.yaml", "version": "2", "os": "windows", "cpu_arch": "x86_64"},
+                                    {"name": "env.yaml", "version": "2", "os": "windows", "cpu_arch": "x86_64"},
                                 ],
                             },
                             "params": {"url": "asdfasdfs"},

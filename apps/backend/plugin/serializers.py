@@ -26,6 +26,11 @@ class GatewaySerializer(serializers.Serializer):
     bk_app_code = serializers.CharField()
 
 
+class PlatformSerializer(serializers.Serializer):
+    cpu_arch = serializers.CharField(max_length=32, required=False)
+    os = serializers.CharField(max_length=32, required=False)
+
+
 class PluginInfoSerializer(GatewaySerializer):
     """插件信息接口序列化器"""
 
@@ -81,7 +86,7 @@ class PluginStatusOperationSerializer(GatewaySerializer):
         return data
 
 
-class CreatePluginConfigTemplateSerializer(GatewaySerializer):
+class CreatePluginConfigTemplateSerializer(GatewaySerializer, PlatformSerializer):
     """创建插件配置模板"""
 
     plugin_name = serializers.CharField(max_length=32)
@@ -124,7 +129,7 @@ class CreatePluginConfigTemplateSerializer(GatewaySerializer):
         return attrs
 
 
-class ReleasePluginConfigTemplateSerializer(GatewaySerializer):
+class ReleasePluginConfigTemplateSerializer(GatewaySerializer, PlatformSerializer):
     """发布插件配置模板"""
 
     plugin_name = serializers.CharField(max_length=32, required=False)
@@ -146,7 +151,7 @@ class ReleasePluginConfigTemplateSerializer(GatewaySerializer):
         return attrs
 
 
-class RenderPluginConfigTemplateSerializer(GatewaySerializer):
+class RenderPluginConfigTemplateSerializer(GatewaySerializer, PlatformSerializer):
     """渲染插件配置模板"""
 
     plugin_name = serializers.CharField(max_length=32, required=False)
@@ -166,7 +171,7 @@ class RenderPluginConfigTemplateSerializer(GatewaySerializer):
         return attrs
 
 
-class PluginConfigTemplateInfoSerializer(GatewaySerializer):
+class PluginConfigTemplateInfoSerializer(GatewaySerializer, PlatformSerializer):
     """插件配置模板信息"""
 
     plugin_name = serializers.CharField(max_length=32, required=False)
@@ -183,7 +188,7 @@ class PluginConfigTemplateInfoSerializer(GatewaySerializer):
         return attrs
 
 
-class PluginConfigInstanceInfoSerializer(GatewaySerializer):
+class PluginConfigInstanceInfoSerializer(GatewaySerializer, PlatformSerializer):
     """插件配置实例信息"""
 
     plugin_name = serializers.CharField(max_length=32, required=False)

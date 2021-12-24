@@ -251,6 +251,8 @@ class TestPolicy(TestCase):
             version="2.3",
             format="yaml",
             file_path="etc",
+            os="linux",
+            cpu_arch="x86_64",
             content="sss",
             is_release_version=0,
             creator="admin",

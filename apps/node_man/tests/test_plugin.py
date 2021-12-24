@@ -299,6 +299,8 @@ class TestPlugin(TestCase):
             name=f"{plugin_name}.conf",
             version=version,
             format="yaml",
+            os="linux",
+            cpu_arch="x86_64",
             file_path="etc",
             content="",
             is_release_version=1,
