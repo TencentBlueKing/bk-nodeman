@@ -44,12 +44,8 @@ class TimeUnit:
     DAY = HOUR * 24
 
 
-TASK_TIMEOUT = 0  # 脚本超时控制在180s=3min
-TASK_MAX_TIMEOUT = 3600  # 脚本超时控制在180s=3min
-JOB_MAX_RETRY = 60  # 默认轮询作业最大次数 100次=3min
-JOB_SLEEP_SECOND = 3  # 默认轮询作业周期 3s
-MAX_POLL_TIMES = JOB_MAX_RETRY
-MAX_UNINSTALL_RETRY = JOB_MAX_RETRY
+# JOB 任务超时时间
+JOB_TIMEOUT = 30 * TimeUnit.MINUTE
 
 
 ########################################################################################################
@@ -643,6 +639,19 @@ class SetupScriptFileName(Enum):
     SETUP_AGENT_SOLARIS_SH = "setup_solaris_agent.sh"
 
 
+SCRIPT_FILE_NAME_MAP = {
+    OsType.LINUX: SetupScriptFileName.SETUP_AGENT_SH.value,
+    OsType.WINDOWS: SetupScriptFileName.SETUP_AGENT_BAT.value,
+    OsType.AIX: SetupScriptFileName.SETUP_AGENT_KSH.value,
+    OsType.SOLARIS: SetupScriptFileName.SETUP_AGENT_SOLARIS_SH.value,
+}
+
+
+########################################################################################################
+# JOB
+########################################################################################################
+
+
 class BkJobStatus(object):
     """
     作业步骤状态码:
@@ -665,6 +674,7 @@ class BkJobErrorCode(object):
         NOT_RUNNING: _("该IP未执行作业，请联系管理员排查问题"),
         1: _("Agent异常"),
         3: _("上次已成功"),
+        4: _("执行失败"),
         5: _("等待执行"),
         7: _("正在执行"),
         9: _("执行成功"),
@@ -696,6 +706,7 @@ class BkJobIpStatus(object):
     BK_JOB_IP_STATUS_MAP = {
         NOT_RUNNING: _("该IP未执行作业，请联系管理员排查问题"),
         AGENT_ABNORMAL: _("Agent异常"),
+        4: _("执行失败"),
         5: _("等待执行"),
         7: _("正在执行"),
         SUCCEEDED: _("执行成功"),
@@ -704,6 +715,37 @@ class BkJobIpStatus(object):
         403: _("任务强制终止成功"),
         404: _("任务强制终止失败"),
     }
+
+
+class BkJobParamSensitiveType(EnhanceEnum):
+    """参数是否敏感"""
+
+    YES = 1
+    NO = 0
+
+    @classmethod
+    def _get_member__alias_map(cls) -> Dict[Enum, str]:
+        return {cls.YES: _("是，参数将会在执行详情页面上隐藏"), cls.NO: _("否，默认值")}
+
+
+class ScriptLanguageType(EnhanceEnum):
+    """脚本语言类型"""
+
+    SHELL = 1
+    BAT = 2
+    PERL = 3
+    PYTHON = 4
+    POWER_SHELL = 5
+
+    @classmethod
+    def _get_member__alias_map(cls) -> Dict[Enum, str]:
+        return {
+            cls.SHELL: _("shell"),
+            cls.BAT: _("bat"),
+            cls.PERL: _("perl"),
+            cls.PYTHON: _("python"),
+            cls.POWER_SHELL: _("power_shell"),
+        }
 
 
 class GseOpType(object):
@@ -776,11 +818,3 @@ FILES_TO_PUSH_TO_PROXY = [
         "name": _("下发安装工具"),
     },
 ]
-
-
-SCRIPT_FILE_NAME_MAP = {
-    OsType.LINUX: SetupScriptFileName.SETUP_AGENT_SH.value,
-    OsType.WINDOWS: SetupScriptFileName.SETUP_AGENT_BAT.value,
-    OsType.AIX: SetupScriptFileName.SETUP_AGENT_KSH.value,
-    OsType.SOLARIS: SetupScriptFileName.SETUP_AGENT_SOLARIS_SH.value,
-}
