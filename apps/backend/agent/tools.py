@@ -151,6 +151,7 @@ def gen_commands(
     host: models.Host,
     pipeline_id: str,
     is_uninstall: bool,
+    sub_inst_id: int,
     identity_data: Optional[models.IdentityData] = None,
     host_ap: Optional[models.AccessPoint] = None,
     proxies: Optional[List[models.Host]] = None,
@@ -161,6 +162,7 @@ def gen_commands(
     :param host: 主机信息
     :param pipeline_id: Node ID
     :param is_uninstall: 是否卸载
+    :param sub_inst_id: 订阅实例 ID
     :param identity_data: 主机认证数据对象
     :param host_ap: 主机接入点对象
     :param proxies: 主机代理列表
@@ -187,7 +189,7 @@ def gen_commands(
     agent_config = host_ap.get_agent_config(host.os_type)
     # 安装操作
     install_path = agent_config["setup_path"]
-    token = aes_cipher.encrypt(f"{host.inner_ip}|{host.bk_cloud_id}|{pipeline_id}|{time.time()}")
+    token = aes_cipher.encrypt(f"{host.inner_ip}|{host.bk_cloud_id}|{pipeline_id}|{time.time()}|{sub_inst_id}")
     port_config = host_ap.port_config
     run_cmd_params = [
         f"-s {pipeline_id}",
@@ -332,9 +334,12 @@ def check_run_commands(run_commands):
                 raise GenCommandsError(context=_("CALLBACK_URL不符合规范, 请联系运维人员修改。 例：http://domain.com/backend"))
 
 
-def batch_gen_commands(hosts: List[models.Host], pipeline_id: str, is_uninstall: bool) -> Dict[int, InstallationTools]:
+def batch_gen_commands(
+    hosts: List[models.Host], pipeline_id: str, is_uninstall: bool, host_id__sub_inst_id: Dict[int, int]
+) -> Dict[int, InstallationTools]:
     """批量生成安装命令"""
     # 批量查出主机的属性并设置为property，避免在循环中进行ORM查询，提高效率
+    host_id__sub_inst_id = host_id__sub_inst_id or host_id__sub_inst_id
     host_id__installation_tool_map = {}
     ap_id_obj_map = models.AccessPoint.ap_id_obj_map()
     bk_host_ids = [host.bk_host_id for host in hosts]
@@ -359,7 +364,14 @@ def batch_gen_commands(hosts: List[models.Host], pipeline_id: str, is_uninstall:
         install_channel = install_channel_id_obj_map[host.install_channel_id]
 
         host_id__installation_tool_map[host.bk_host_id] = gen_commands(
-            host, pipeline_id, is_uninstall, identity_data, host_ap, proxies, install_channel
+            host=host,
+            pipeline_id=pipeline_id,
+            is_uninstall=is_uninstall,
+            sub_inst_id=host_id__sub_inst_id[host.bk_host_id],
+            identity_data=identity_data,
+            host_ap=host_ap,
+            proxies=proxies,
+            install_channel=install_channel,
         )
 
     return host_id__installation_tool_map

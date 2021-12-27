@@ -128,6 +128,7 @@ def create_pipeline(
     subscription: models.Subscription,
     instances_action: Dict[str, Dict[str, str]],
     subscription_instances: List[models.SubscriptionInstanceRecord],
+    task_host_limit: int,
 ) -> Pipeline:
     """
       批量执行实例的步骤的动作
@@ -139,6 +140,7 @@ def create_pipeline(
           }
       }
       :param subscription_instances
+      :param task_host_limit:
     构造形如以下的pipeline，根据 ${TASK_HOST_LIMIT} 来决定单条流水线的执行机器数量
                          StartEvent
                              |
@@ -179,10 +181,10 @@ def create_pipeline(
         start = 0
         while start < len(instances):
             activities_start_event = build_instances_task(
-                instances[start : start + TASK_HOST_LIMIT], step_actions, subscription, global_pipeline_data
+                instances[start : start + task_host_limit], step_actions, subscription, global_pipeline_data
             )
             sub_processes.append(activities_start_event)
-            start = start + TASK_HOST_LIMIT
+            start = start + task_host_limit
     parallel_gw = builder.ParallelGateway()
     converge_gw = builder.ConvergeGateway()
     end_event = builder.EmptyEndEvent()
@@ -264,7 +266,6 @@ def create_task(
 
     # 前置错误需要跳过的主机，不创建订阅任务实例
     error_hosts = []
-
     topo_order = CmdbHandler.get_topo_order()
     # 批量创建订阅实例执行记录
     to_be_created_records_map = {}
@@ -390,7 +391,10 @@ def create_task(
         )
     )
 
-    pipeline = create_pipeline(subscription, instance_actions, created_instance_records)
+    task_host_limit = models.GlobalSettings.get_config(
+        models.GlobalSettings.KeyEnum.TASK_HOST_LIMIT.value, default=TASK_HOST_LIMIT
+    )
+    pipeline = create_pipeline(subscription, instance_actions, created_instance_records, task_host_limit)
     # 保存pipeline id
     subscription_task.pipeline_id = pipeline.id
     subscription_task.save(update_fields=["actions", "pipeline_id"])

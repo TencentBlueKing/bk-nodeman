@@ -355,9 +355,7 @@ class UninstallProxy(AgentAction):
     def _generate_activities(self, agent_manager: AgentManager):
         activities = [
             agent_manager.uninstall_proxy(),
-            agent_manager.get_agent_status(
-                expect_status=constants.constants.ProcStateType.UNKNOWN, name=_("查询Proxy状态")
-            ),
+            agent_manager.get_agent_status(expect_status=constants.ProcStateType.UNKNOWN, name=_("查询Proxy状态")),
             agent_manager.update_process_status(status=constants.ProcStateType.NOT_INSTALLED),
         ]
 
