@@ -86,11 +86,11 @@ class GetAgentStatusService(AgentBaseService):
             host_key = f"{host_obj.bk_cloud_id}{sep}{host_obj.inner_ip}"
             # 根据 host_key，取得 agent 版本及状态信息
             agent_info = host_key__agent_info_map.get(host_key, {"version": ""})
-            agent_status_info = host_key__agent_status_info_map.get(
-                host_key, {"bk_agent_alive": constants.BkAgentStatus.NOT_ALIVE.value}
-            )
+            # 默认值为 None 的背景：expect_status 是可传入的，不能设定一个明确状态作为默认值，不然可能与 expect_status 一致
+            # 误判为当前 Agent 状态已符合预期
+            agent_status_info = host_key__agent_status_info_map.get(host_key, {"bk_agent_alive": None})
             # 获取 agent 版本号及状态
-            agent_status = constants.PROC_STATUS_DICT[agent_status_info["bk_agent_alive"]]
+            agent_status = constants.PROC_STATUS_DICT.get(agent_status_info["bk_agent_alive"], None)
             agent_version = agent_info["version"]
 
             self.log_info(
