@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 
 import abc
+import traceback
 from collections import defaultdict
 from functools import wraps
 from typing import Any, Dict, List, Set, Union
@@ -172,11 +173,20 @@ class AgentCommonData(CommonData):
 def batch_call_single_exception_handler(single_func):
     # 批量执行时单个机器的异常处理
     @wraps(single_func)
-    def wrapper(self, sub_inst_id, *args, **kwargs):
+    def wrapper(self: AgentBaseService, sub_inst_id, *args, **kwargs):
         try:
             return single_func(self, sub_inst_id, *args, **kwargs)
         except Exception as error:
-            self.move_insts_to_failed([sub_inst_id], error)
+            self.move_insts_to_failed([sub_inst_id], str(error))
+            # traceback日志进行折叠
+            self.log_debug(
+                sub_inst_ids=sub_inst_id,
+                log_content="{debug_begin}\n{traceback}\n{debug_end}".format(
+                    debug_begin=" Begin of collected logs: ".center(40, "*"),
+                    traceback=traceback.format_exc(),
+                    debug_end=" End of collected logs ".center(40, "*"),
+                ),
+            )
 
     return wrapper
 

@@ -80,6 +80,10 @@ class GlobalSettings(models.Model):
     class KeyEnum(Enum):
         """枚举全局配置KEY，避免散落在各处难以维护"""
 
+        # 并发控制相关配置
+        CONCURRENT_CONTROLLER_SETTINGS = "CONCURRENT_CONTROLLER_SETTINGS"
+        # 订阅任务单Pipeline执行主机数
+        TASK_HOST_LIMIT = "TASK_HOST_LIMIT"
         # DB 每批操作数
         BATCH_SIZE = "BATCH_SIZE"
         USE_TJJ = "USE_TJJ"  # 是否启用TJJ

@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import importlib
 import json
 import re
 from typing import List, Optional
@@ -16,6 +17,7 @@ import mock
 from django.conf import settings
 
 from apps.backend.agent.tools import gen_commands
+from apps.backend.components.collections.agent_new import install
 from apps.backend.components.collections.agent_new.components import InstallComponent
 from apps.backend.constants import REDIS_INSTALL_CALLBACK_KEY_TPL
 from apps.backend.utils.redis import REDIS_INST
@@ -113,6 +115,11 @@ class InstallBaseTestCase(utils.AgentServiceBaseTestCase):
         return self.common_inputs["subscription_instance_ids"]
 
     def component_cls(self):
+        # 模块 mock 装饰器，需要重新加载
+        # 参考：https://stackoverflow.com/questions/7667567/can-i-patch-a-python-decorator-before-it-wraps-a-function
+        importlib.reload(install)
+        InstallComponent.bound_service = install.InstallService
+        self.start_patch()
         return InstallComponent
 
     def cases(self):
@@ -150,7 +157,7 @@ class InstallBaseTestCase(utils.AgentServiceBaseTestCase):
 class LinuxInstallTestCase(InstallBaseTestCase):
     def test_gen_agent_command(self):
         host = models.Host.objects.get(bk_host_id=self.obj_factory.bk_host_ids[0])
-        installation_tool = gen_commands(host, mock_data_utils.JOB_TASK_PIPELINE_ID, is_uninstall=False)
+        installation_tool = gen_commands(host, mock_data_utils.JOB_TASK_PIPELINE_ID, is_uninstall=False, sub_inst_id=0)
         token = re.match(r"(.*) -c (.*?) -O", installation_tool.run_cmd).group(2)
         run_cmd = (
             f"nohup bash /tmp/setup_agent.sh -s {mock_data_utils.JOB_TASK_PIPELINE_ID}"
@@ -167,7 +174,7 @@ class InstallWindowsTestCase(InstallBaseTestCase):
 
     def test_gen_win_command(self):
         host = models.Host.objects.get(bk_host_id=self.obj_factory.bk_host_ids[0])
-        installation_tool = gen_commands(host, mock_data_utils.JOB_TASK_PIPELINE_ID, is_uninstall=False)
+        installation_tool = gen_commands(host, mock_data_utils.JOB_TASK_PIPELINE_ID, is_uninstall=False, sub_inst_id=0)
         token = re.match(r"(.*) -c (.*?) -O", installation_tool.run_cmd).group(2)
         run_cmd = (
             f"C:\\tmp\\setup_agent.bat -s {mock_data_utils.JOB_TASK_PIPELINE_ID}"
@@ -190,7 +197,7 @@ class InstallLinuxPagentTestCase(InstallBaseTestCase):
 
     def test_gen_pagent_command(self):
         host = models.Host.objects.get(bk_host_id=self.obj_factory.bk_host_ids[0])
-        installation_tool = gen_commands(host, mock_data_utils.JOB_TASK_PIPELINE_ID, is_uninstall=False)
+        installation_tool = gen_commands(host, mock_data_utils.JOB_TASK_PIPELINE_ID, is_uninstall=False, sub_inst_id=0)
         token = re.match(r"(.*) -c (.*?) -O", installation_tool.run_cmd).group(2)
         run_cmd = (
             f"-s {mock_data_utils.JOB_TASK_PIPELINE_ID} -r http://127.0.0.1/backend -l http://127.0.0.1/download"
@@ -265,7 +272,7 @@ class InstallAgentWithInstallChannelSuccessTest(InstallBaseTestCase):
 
     def test_gen_install_channel_agent_command(self):
         host = models.Host.objects.get(bk_host_id=self.obj_factory.bk_host_ids[0])
-        installation_tool = gen_commands(host, mock_data_utils.JOB_TASK_PIPELINE_ID, is_uninstall=False)
+        installation_tool = gen_commands(host, mock_data_utils.JOB_TASK_PIPELINE_ID, is_uninstall=False, sub_inst_id=0)
         token = re.match(r"(.*) -c (.*?) -O", installation_tool.run_cmd).group(2)
         run_cmd = (
             f"-s {mock_data_utils.JOB_TASK_PIPELINE_ID} -r http://127.0.0.1/backend"

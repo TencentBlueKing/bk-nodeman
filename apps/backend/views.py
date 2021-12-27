@@ -738,7 +738,20 @@ def report_log(request):
     # 把日志写入redis中，由install service中的schedule方法统一读取，避免频繁callback
     name = REDIS_INSTALL_CALLBACK_KEY_TPL.format(sub_inst_id=decrypted_token["inst_id"])
     json_dumps_logs = [json.dumps(log) for log in data["logs"]]
-    REDIS_INST.lpush(name, *json_dumps_logs)
+
+    # 记录日志并设置过期时间
+    # 使用 lua 脚本合并 Redis 请求，保证操作的原子性，同时减少网络 IO
+    # unpack(ARGV, 2) 对 table（lua 中的 list / dict）解包，2 为切片的起始位置（lua 索引从 1 开始），实现日志添加到列表
+    # ARGV[1] 过期时间（单位 seconds）
+    lpush_and_expire_script = """
+    local length
+    length = redis.call("lpush", KEYS[1], unpack(ARGV, 2))
+    redis.call("expire", KEYS[1], ARGV[1])
+    return length
+    """
+    lpush_and_expire_func = REDIS_INST.register_script(script=lpush_and_expire_script)
+    # 日志会被 Service 消费并持久化，在 Redis 保留一段时间便于排查「主机 -api-> Redis -log-> DB」 上的问题
+    lpush_and_expire_func(keys=[name], args=[2 * constants.TimeUnit.DAY] + json_dumps_logs)
     return JsonResponse({})
 
 

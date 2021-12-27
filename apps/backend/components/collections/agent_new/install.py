@@ -21,20 +21,19 @@ from django.utils.translation import ugettext_lazy as _
 
 from apps.backend.agent.tools import InstallationTools, batch_gen_commands
 from apps.backend.api.constants import POLLING_INTERVAL, POLLING_TIMEOUT
-from apps.backend.components.collections.agent_new.base import (
-    AgentBaseService,
-    AgentCommonData,
-    batch_call_single_exception_handler,
-)
 from apps.backend.constants import REDIS_INSTALL_CALLBACK_KEY_TPL
 from apps.backend.utils.redis import REDIS_INST
 from apps.backend.utils.ssh import SshMan
 from apps.backend.utils.wmi import execute_cmd, put_file
+from apps.core.concurrent import controller
 from apps.exceptions import AuthOverdueException
 from apps.node_man import constants, models
 from apps.utils import concurrent
 from common.api import JobApi
 from pipeline.core.flow import Service, StaticIntervalGenerator
+
+from .. import core
+from . import base
 
 
 class InstallSubInstObj:
@@ -44,7 +43,7 @@ class InstallSubInstObj:
         self.installation_tool = installation_tool
 
 
-class InstallService(AgentBaseService):
+class InstallService(base.AgentBaseService):
     __need_schedule__ = True
     interval = StaticIntervalGenerator(5)
 
@@ -59,6 +58,12 @@ class InstallService(AgentBaseService):
             Service.InputItem(name="polling_time", key="polling_time", type="int", required=True),
         ]
 
+    @controller.ConcurrentController(
+        data_list_name="install_sub_inst_objs",
+        batch_call_func=concurrent.batch_call,
+        get_config_dict_func=core.get_config_dict,
+        get_config_dict_kwargs={"config_name": core.ServiceCCConfigName.JOB_CMD.value},
+    )
     def handle_non_lan_inst(self, install_sub_inst_objs: List[InstallSubInstObj]) -> List[int]:
         """处理跨云机器，通过执行作业平台脚本来操作"""
         params_list = [
@@ -70,6 +75,12 @@ class InstallService(AgentBaseService):
         ]
         return concurrent.batch_call(func=self.execute_job_commands, params_list=params_list)
 
+    @controller.ConcurrentController(
+        data_list_name="install_sub_inst_objs",
+        batch_call_func=concurrent.batch_call,
+        get_config_dict_func=core.get_config_dict,
+        get_config_dict_kwargs={"config_name": core.ServiceCCConfigName.WMIEXE.value},
+    )
     def handle_lan_windows_sub_inst(self, install_sub_inst_objs: List[InstallSubInstObj]):
         """处理直连windows机器，通过wmiexe连接windows机器"""
         pre_commands_params_list = []
@@ -107,6 +118,12 @@ class InstallService(AgentBaseService):
         concurrent.batch_call(func=self.push_curl_exe, params_list=push_curl_exe_params_list)
         return concurrent.batch_call(func=self.execute_windows_commands, params_list=run_install_params_list)
 
+    @controller.ConcurrentController(
+        data_list_name="install_sub_inst_objs",
+        batch_call_func=concurrent.batch_call,
+        get_config_dict_func=core.get_config_dict,
+        get_config_dict_kwargs={"config_name": core.ServiceCCConfigName.SSH.value},
+    )
     def handle_lan_linux_sub_inst(self, install_sub_inst_objs: List[InstallSubInstObj]):
         """处理直连linux机器，通过paramiko连接linux机器"""
         params_list = [
@@ -118,7 +135,11 @@ class InstallService(AgentBaseService):
         ]
         return concurrent.batch_call(func=self.execute_linux_commands, params_list=params_list)
 
-    def _execute(self, data, parent_data, common_data: AgentCommonData):
+    def _execute(self, data, parent_data, common_data: base.AgentCommonData):
+
+        host_id__sub_inst_id = {
+            host_id: sub_inst_id for sub_inst_id, host_id in common_data.sub_inst_id__host_id_map.items()
+        }
         is_uninstall = data.get_one_of_inputs("is_uninstall")
         host_id_obj_map = common_data.host_id_obj_map
 
@@ -126,7 +147,9 @@ class InstallService(AgentBaseService):
         lan_windows_sub_inst = []
         lan_linux_sub_inst = []
 
-        host_id__installation_tool_map = batch_gen_commands(list(host_id_obj_map.values()), self.id, is_uninstall)
+        host_id__installation_tool_map = batch_gen_commands(
+            list(host_id_obj_map.values()), self.id, is_uninstall, host_id__sub_inst_id=host_id__sub_inst_id
+        )
 
         for sub_inst in common_data.subscription_instances:
             bk_host_id = sub_inst.instance_info["host"]["bk_host_id"]
@@ -145,15 +168,16 @@ class InstallService(AgentBaseService):
                 else:
                     lan_linux_sub_inst.append(install_sub_inst_obj)
 
-        succeed_non_lan_inst_ids = self.handle_non_lan_inst(non_lan_sub_inst)
-        succeed_lan_windows_sub_inst = self.handle_lan_windows_sub_inst(lan_windows_sub_inst)
-        succeed_lan_linux_sub_inst = self.handle_lan_linux_sub_inst(lan_linux_sub_inst)
+        succeed_non_lan_inst_ids = self.handle_non_lan_inst(install_sub_inst_objs=non_lan_sub_inst)
+        succeed_lan_windows_sub_inst = self.handle_lan_windows_sub_inst(install_sub_inst_objs=lan_windows_sub_inst)
+        succeed_lan_linux_sub_inst = self.handle_lan_linux_sub_inst(install_sub_inst_objs=lan_linux_sub_inst)
+        # 使用 filter 移除并发过程中抛出异常的实例
         data.outputs.scheduling_sub_inst_ids = list(
-            succeed_non_lan_inst_ids + succeed_lan_windows_sub_inst + succeed_lan_linux_sub_inst
+            filter(None, succeed_non_lan_inst_ids + succeed_lan_windows_sub_inst + succeed_lan_linux_sub_inst)
         )
         data.outputs.polling_time = 0
 
-    @batch_call_single_exception_handler
+    @base.batch_call_single_exception_handler
     def execute_windows_commands(
         self, sub_inst_id: int, host: models.Host, commands: List[str], identity_data: models.IdentityData
     ):
@@ -209,7 +233,7 @@ class InstallService(AgentBaseService):
                     break
         return sub_inst_id
 
-    @batch_call_single_exception_handler
+    @base.batch_call_single_exception_handler
     def push_curl_exe(self, sub_inst_id: int, host: models.Host, dest_dir: str, identity_data: models.IdentityData):
         ip = host.login_ip or host.inner_ip or host.outer_ip
         retry_times = 5
@@ -235,7 +259,7 @@ class InstallService(AgentBaseService):
                     break
         return sub_inst_id
 
-    @batch_call_single_exception_handler
+    @base.batch_call_single_exception_handler
     def execute_job_commands(self, sub_inst_id, installation_tool: InstallationTools):
         # p-agent 走 作业平台，再 ssh 到 p-agent，这样可以无需保存 proxy 密码
         host = installation_tool.host
@@ -248,20 +272,22 @@ class InstallService(AgentBaseService):
             sub_inst_ids=sub_inst_id,
             log_content=_("已选择 {inner_ip} 作为本次安装的跳板机").format(inner_ip=jump_server.inner_ip),
         )
-        path = os.path.join(settings.BK_SCRIPTS_PATH, "setup_pagent.py")
+        path = os.path.join(settings.BK_SCRIPTS_PATH, constants.SetupScriptFileName.SETUP_PAGENT_PY.value)
         with open(path, encoding="utf-8") as fh:
             script = fh.read()
+
         # 使用全业务执行作业
         bk_biz_id = settings.BLUEKING_BIZ_ID
         kwargs = {
             "bk_biz_id": bk_biz_id,
-            "ip_list": [{"ip": jump_server.inner_ip, "bk_cloud_id": jump_server.bk_cloud_id}],
-            "script_timeout": 300,
-            "script_type": 1,
-            "account": "root",
+            "task_name": f"NODEMAN_{sub_inst_id}_{self.__class__.__name__}",
+            "target_server": {"ip_list": [{"ip": jump_server.inner_ip, "bk_cloud_id": jump_server.bk_cloud_id}]},
+            "timeout": constants.JOB_TIMEOUT,
+            "account_alias": settings.BACKEND_UNIX_ACCOUNT,
+            "script_language": constants.ScriptLanguageType.PYTHON.value,
             "script_content": base64.b64encode(script.encode()).decode(),
             "script_param": base64.b64encode(installation_tool.run_cmd.encode()).decode(),
-            "is_param_sensitive": 1,
+            "is_param_sensitive": constants.BkJobParamSensitiveType.YES.value,
         }
         data = JobApi.fast_execute_script(kwargs)
         job_instance_id = data.get("job_instance_id")
@@ -303,7 +329,7 @@ class InstallService(AgentBaseService):
         host.save(update_fields=["upstream_nodes"])
         return sub_inst_id
 
-    @batch_call_single_exception_handler
+    @base.batch_call_single_exception_handler
     def execute_linux_commands(self, sub_inst_id, installation_tool: InstallationTools):
         host = installation_tool.host
         run_cmd = installation_tool.run_cmd
@@ -357,8 +383,9 @@ class InstallService(AgentBaseService):
             # 只要匹配到成功返回步骤完成，则认为是执行完成了
             if step == success_callback_step and status == "DONE":
                 is_finished = True
-
-        self.log_info(sub_inst_ids=sub_inst_id, log_content="\n".join(logs))
+        # 并非每次调度都能取到日志，所以仅在非空情况下打印日志
+        if logs:
+            self.log_info(sub_inst_ids=sub_inst_id, log_content="\n".join(logs))
         if error_log:
             self.move_insts_to_failed([sub_inst_id], log_content=error_log)
         return {"sub_inst_id": sub_inst_id, "is_finished": is_finished, "cpu_arch": cpu_arch}

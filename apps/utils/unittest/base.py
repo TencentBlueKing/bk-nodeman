@@ -56,16 +56,12 @@ class CustomAPIClient(APIClient):
 
     def post(self, path, data=None, format=DEFAULT_FORMAT, content_type=DEFAULT_CONTENT_TYPE, follow=False, **extra):
         data = self.process_request_data(data)
-        response = super().post(
-            path=path, data=data, format=format, content_type=DEFAULT_CONTENT_TYPE, follow=follow, **extra
-        )
+        response = super().post(path=path, data=data, format=format, content_type=content_type, follow=follow, **extra)
         return self.assert_response(response)
 
     def put(self, path, data=None, format=DEFAULT_FORMAT, content_type=DEFAULT_CONTENT_TYPE, follow=False, **extra):
         data = self.process_request_data(data)
-        response = super().put(
-            path=path, data=data, format=format, content_type=DEFAULT_CONTENT_TYPE, follow=follow, **extra
-        )
+        response = super().put(path=path, data=data, format=format, content_type=content_type, follow=follow, **extra)
         return self.assert_response(response)
 
     def delete(self, path, data=None, format=DEFAULT_FORMAT, content_type=DEFAULT_CONTENT_TYPE, follow=False, **extra):
