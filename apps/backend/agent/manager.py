@@ -160,7 +160,7 @@ class AgentManager(object):
     @classmethod
     def push_files_to_proxy(cls, file: Dict[str, Any]):
         """下发文件到 Proxy """
-        act = AgentServiceActivity(component_code=components.AgentTransferFiletComponent.code, name=file["name"])
+        act = AgentServiceActivity(component_code=components.PushFilesToProxyComponent.code, name=file["name"])
         act.component.inputs.file_list = Var(type=Var.PLAIN, value=file["files"])
         act.component.inputs.file_target_path = Var(type=Var.PLAIN, value=settings.DOWNLOAD_PATH)
         return act
@@ -171,12 +171,15 @@ class AgentManager(object):
         act = AgentServiceActivity(component_code=components.AgentExecuteScriptComponent.code, name=_("启动 NGINX 服务"))
         with open(os.path.join(settings.BK_SCRIPTS_PATH, "start_nginx.sh.tpl"), encoding="utf-8") as fh:
             script = fh.read()
-        act.component.inputs.script_content = script.format(
-            nginx_path=settings.DOWNLOAD_PATH,
-            bk_nodeman_nginx_download_port=settings.BK_NODEMAN_NGINX_DOWNLOAD_PORT,
-            bk_nodeman_nginx_proxy_pass_port=settings.BK_NODEMAN_NGINX_PROXY_PASS_PORT,
-        )
-        act.component.inputs.script_param = ""
+        # 脚本模板中存在 {print $2} 等和 format 关键字冲突的片段
+        # 此处的字符串渲染采用 % 的方式
+        script_content = script % {
+            "nginx_path": settings.DOWNLOAD_PATH,
+            "bk_nodeman_nginx_download_port": settings.BK_NODEMAN_NGINX_DOWNLOAD_PORT,
+            "bk_nodeman_nginx_proxy_pass_port": settings.BK_NODEMAN_NGINX_PROXY_PASS_PORT,
+        }
+        act.component.inputs.script_content = Var(type=Var.PLAIN, value=script_content)
+        act.component.inputs.script_param = Var(type=Var.PLAIN, value="")
         return act
 
     @classmethod

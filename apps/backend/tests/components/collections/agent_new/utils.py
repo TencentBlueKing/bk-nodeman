@@ -15,7 +15,7 @@ import os
 import random
 import textwrap
 from abc import ABC
-from typing import Any, Callable, Dict, List, Optional, Type
+from typing import Any, Dict, List, Optional, Type
 
 import mock
 from django.conf import settings
@@ -24,9 +24,10 @@ from django.utils import timezone
 
 from apps.backend.components.collections import agent_new
 from apps.backend.subscription import tools
+from apps.core.concurrent.controller import ConcurrentController
 from apps.mock_data import common_unit, utils
 from apps.node_man import constants, models
-from apps.utils import basic
+from apps.utils import basic, concurrent
 from apps.utils.unittest.testcase import CustomAPITestCase
 
 # 目标主机信息
@@ -55,21 +56,6 @@ AGENT_INSTANCE_HOST_INFO = {
     "bk_supplier_account": constants.DEFAULT_SUPPLIER_ID,
     "peer_exchange_switch_for_agent": True,
 }
-
-
-def mock_batch_call(func: Callable, params_list: List[Dict], get_data=lambda x: x, extend_result: bool = False) -> List:
-    results = []
-
-    if not params_list:
-        return results
-
-    for params in params_list:
-        result = get_data(func(**params))
-        if extend_result:
-            results.extend(result)
-        else:
-            results.append(result)
-    return results
 
 
 class SshManMockClient(utils.BaseMockClient):
@@ -424,9 +410,11 @@ class AgentServiceBaseTestCase(CustomAPITestCase, ComponentTestMixin, ABC):
         cls.obj_factory = cls.OBJ_FACTORY_CLASS()
         cls.setup_obj_factory()
 
+        mock.patch.object(ConcurrentController, "batch_call_func", concurrent.batch_call_serial).start()
+
         # 多线程会影响测试debug，全局mock多线程执行，改为串行
         for batch_call_mock_path in cls.BATCH_CALL_MOCK_PATHS:
-            mock.patch(batch_call_mock_path, mock_batch_call).start()
+            mock.patch(batch_call_mock_path, concurrent.batch_call_serial).start()
 
         agent_dir_path = os.path.dirname(agent_new.__file__)
         relative_dir_path = agent_dir_path.replace(settings.BASE_DIR + os.path.sep, "")
@@ -440,7 +428,7 @@ class AgentServiceBaseTestCase(CustomAPITestCase, ComponentTestMixin, ABC):
                 [relative_dir_path.replace(os.path.sep, "."), module_name, "concurrent.batch_call"]
             )
             try:
-                mock.patch(batch_call_mock_path, mock_batch_call).start()
+                mock.patch(batch_call_mock_path, concurrent.batch_call_serial).start()
             except ModuleNotFoundError:
                 pass
 

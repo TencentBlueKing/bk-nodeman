@@ -21,6 +21,7 @@ from .configure_policy import ConfigurePolicyService
 from .delegate_plugin_proc import DelegatePluginProcService
 from .get_agent_status import GetAgentStatusService
 from .install import InstallService
+from .push_files_to_proxy import PushFilesToProxyService
 from .push_upgrade_package import PushUpgradeFileService
 from .query_password import QueryPasswordService
 from .register_host import RegisterHostService
@@ -128,19 +129,25 @@ class WaitComponent(Component):
     bound_service = WaitService
 
 
-class AgentExecuteScriptComponent:
+class AgentExecuteScriptComponent(Component):
     name = _("执行脚本")
     code = "agent_execute_script"
     bound_service = base.AgentExecuteScriptService
 
 
-class AgentTransferFiletComponent:
+class AgentTransferFiletComponent(Component):
     name = _("分发文件")
     code = "agent_transfer_file"
     bound_service = base.AgentTransferFileService
 
 
-class AgentPushConfigComponent:
+class AgentPushConfigComponent(Component):
     name = _("分发配置")
     code = "agent_push_config"
     bound_service = base.AgentPushConfigService
+
+
+class PushFilesToProxyComponent(Component):
+    name = _("下发文件到Proxy")
+    code = "push_files_to_proxy"
+    bound_service = PushFilesToProxyService

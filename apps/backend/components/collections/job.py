@@ -86,13 +86,16 @@ class JobV3BaseService(six.with_metaclass(abc.ABCMeta, BaseService)):
 
         # Windows 执行账户问题：已确认用 administrator 注册也可以用 system 账户执行，统一使用 system 执行即可
         # Ref -> https://github.com/TencentBlueKing/bk-nodeman/pull/290#discussion_r760064447
-        account_alias = (
-            settings.BACKEND_WINDOWS_ACCOUNT if os_type == constants.OsType.WINDOWS else settings.BACKEND_UNIX_ACCOUNT
-        )
+        account_alias = (settings.BACKEND_UNIX_ACCOUNT, settings.BACKEND_WINDOWS_ACCOUNT)[
+            os_type == constants.OsType.WINDOWS
+        ]
+        script_language = (constants.ScriptLanguageType.SHELL.value, constants.ScriptLanguageType.BAT.value)[
+            os_type == constants.OsType.WINDOWS
+        ]
         job_params.update(
             {
                 "bk_biz_id": settings.BLUEKING_BIZ_ID,
-                "script_language": 2 if os_type == constants.OsType.WINDOWS else 1,
+                "script_language": script_language,
                 "script_content": process_parms(job_params.get("script_content", "")),
                 "script_param": process_parms(job_params.get("script_param", "")),
                 "task_name": f"NODE_MAN_{subscription_id}_{self.__class__.__name__}",
@@ -102,7 +105,7 @@ class JobV3BaseService(six.with_metaclass(abc.ABCMeta, BaseService)):
 
         if not job_params.get("timeout"):
             # 设置默认超时时间
-            job_params["timeout"] = 300
+            job_params["timeout"] = constants.JOB_TIMEOUT
 
         if isinstance(subscription_instance_id, int):
             subscription_instance_id = [subscription_instance_id]
