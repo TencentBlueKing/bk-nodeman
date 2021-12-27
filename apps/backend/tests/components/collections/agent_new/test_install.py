@@ -284,6 +284,6 @@ class InstallAgentWithInstallChannelSuccessTest(InstallBaseTestCase):
             f" -HPP '17981' -HSN 'setup_agent.sh' -HS 'bash'"
             f" -p '/usr/local/gse' -I 1.1.1.1"
             f" -o http://1.1.1.1:{settings.BK_NODEMAN_NGINX_DOWNLOAD_PORT}/"
-            f" -ADP 'True' -CPA 'http://127.0.0.1:17981'"
+            f" -CPA 'http://127.0.0.1:17981'"
         )
         self.assertEqual(installation_tool.run_cmd, run_cmd)

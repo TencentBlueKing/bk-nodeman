@@ -115,7 +115,7 @@ class TestUpdateProxyFile(CustomBaseTestCase):
     def init_channel_db(cls):
         InstallChannel.objects.create(
             bk_cloud_id=constants.DEFAULT_CLOUD,
-            jump_servers=[utils.TEST_IP],
+            jump_servers=[utils.DEFAULT_IP],
             upstream_servers={
                 "taskserver": [CHANNEL_TEST_IP],
                 "btfileserver": [CHANNEL_TEST_IP],
