@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import sys
+import time
 from concurrent.futures import as_completed
 from concurrent.futures.thread import ThreadPoolExecutor
 from multiprocessing import cpu_count, get_context
@@ -35,13 +36,22 @@ def inject_request(func: Callable):
     return inner
 
 
-def batch_call(func: Callable, params_list: List[Dict], get_data=lambda x: x, extend_result: bool = False) -> List:
+def batch_call(
+    func: Callable,
+    params_list: List[Dict],
+    get_data=lambda x: x,
+    extend_result: bool = False,
+    interval: float = 0,
+    **kwargs
+) -> List:
     """
+    # TODO 后续 batch_call 支持 *args 类参数
     并发请求接口，每次按不同参数请求最后叠加请求结果
     :param func: 请求方法
     :param params_list: 参数列表
     :param get_data: 获取数据函数
     :param extend_result: 是否展开结果
+    :param interval: 任务提交间隔
     :return: 请求结果累计
     """
 
@@ -52,7 +62,12 @@ def batch_call(func: Callable, params_list: List[Dict], get_data=lambda x: x, ex
         return result
 
     with ThreadPoolExecutor(max_workers=settings.CONCURRENT_NUMBER) as ex:
-        tasks = [ex.submit(inject_request(func), **params) for params in params_list]
+        tasks = []
+        for idx, params in enumerate(params_list):
+            if idx != 0:
+                time.sleep(interval)
+            tasks.append(ex.submit(inject_request(func), **params))
+
     for future in as_completed(tasks):
         if extend_result:
             result.extend(get_data(future.result()))
@@ -61,8 +76,27 @@ def batch_call(func: Callable, params_list: List[Dict], get_data=lambda x: x, ex
     return result
 
 
+def batch_call_serial(
+    func: Callable,
+    params_list: List[Dict],
+    get_data: Callable = lambda x: x,
+    extend_result: bool = False,
+    interval: float = 0,
+    **kwargs
+):
+    result = []
+    for idx, params in enumerate(params_list):
+        if idx != 0:
+            time.sleep(interval)
+        if extend_result:
+            result.extend(get_data(func(**params)))
+        else:
+            result.append(get_data(func(**params)))
+    return result
+
+
 def batch_call_multi_proc(
-    func, params_list: List[Dict], get_data=lambda x: x["info"], extend_result: bool = False
+    func, params_list: List[Dict], get_data=lambda x: x, extend_result: bool = False, **kwargs
 ) -> List:
     """
     多进程执行函数
