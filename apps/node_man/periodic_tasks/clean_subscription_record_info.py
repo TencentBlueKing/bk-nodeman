@@ -39,7 +39,7 @@ def update_subscription_instance_record(task_id):
         need_clean=True,
     )
 
-    last_sub_task_id = last_sub_inst_record.id
+    last_sub_task_id = last_sub_inst_record.id or 0
 
     # 结束递归
     if not record_query_set:
@@ -66,9 +66,9 @@ def update_subscription_instance_record(task_id):
     options={"queue": "default"},
     run_every=crontab(hour="0", minute="0", day_of_week="*", day_of_month="*", month_of_year="*"),
 )
-def clean_subscription_record_info():
+def clean_subscription_record_info_periodic_task():
     # 清除订阅记录中过期的密码信息
-    task_id = clean_subscription_record_info.request.id
+    task_id = clean_subscription_record_info_periodic_task.request.id
     logger.info(f"{task_id} | Start cleaning up subscription records.")
     update_subscription_instance_record(task_id)
     logger.info(f"{task_id} | Clean up subscription records complete.")

@@ -265,11 +265,11 @@ def _update_or_create_host(biz_id, start=0, task_id=None):
     options={"queue": "default"},
     run_every=crontab(hour="0", minute="0", day_of_week="*", day_of_month="*", month_of_year="*"),
 )
-def sync_cmdb_host(bk_biz_id=None):
+def sync_cmdb_host_periodic_task(bk_biz_id=None):
     """
     同步cmdb主机
     """
-    task_id = sync_cmdb_host.request.id
+    task_id = sync_cmdb_host_periodic_task.request.id
     logger.info(f"{task_id} | sync cmdb host start.")
 
     # 记录CC所有host id

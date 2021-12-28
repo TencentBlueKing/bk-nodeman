@@ -107,11 +107,11 @@ def update_or_create_host_agent_status(task_id, start, end):
     options={"queue": "default"},
     run_every=constants.SYNC_AGENT_STATUS_TASK_INTERVAL,
 )
-def sync_agent_status_task():
+def sync_agent_status_periodic_task():
     """
     同步agent状态
     """
-    task_id = sync_agent_status_task.request.id
+    task_id = sync_agent_status_periodic_task.request.id
     logger.info(f"{task_id} | sync_agent_status_task: Start syncing host status.")
     count = Host.objects.count()
     for start in range(0, count, constants.QUERY_AGENT_STATUS_HOST_LENS):

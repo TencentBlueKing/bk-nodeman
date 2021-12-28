@@ -41,12 +41,12 @@ def clean_identity_data(task_id, start, end):
     options={"queue": "default"},
     run_every=constants.CLEAN_EXPIRED_INFO_INTERVAL,
 )
-def clean_expired_info():
+def clean_expired_info_periodic_task():
     """
     清理保留期限为一天的主机认证信息
     """
     # 清除过期的账户信息
-    task_id = clean_expired_info.request.id
+    task_id = clean_expired_info_periodic_task.request.id
     logger.info(f"{task_id} | Start cleaning host authentication information.")
     clean_identity_data(task_id, 0, constants.QUERY_EXPIRED_INFO_LENS)
     logger.info(f"{task_id} | Clean up the host authentication information complete.")

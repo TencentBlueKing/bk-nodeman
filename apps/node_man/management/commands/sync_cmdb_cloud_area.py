@@ -12,9 +12,9 @@ specific language governing permissions and limitations under the License.
 
 from django.core.management.base import BaseCommand
 
-from apps.node_man.periodic_tasks import sync_cmdb_cloud_area
+from apps.node_man.periodic_tasks import sync_cmdb_cloud_area_periodic_task
 
 
 class Command(BaseCommand):
     def handle(self, **kwargs):
-        sync_cmdb_cloud_area()
+        sync_cmdb_cloud_area_periodic_task()
