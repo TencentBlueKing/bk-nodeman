@@ -52,7 +52,7 @@ class ZkSafeClient:
     options={"queue": "default"},
     run_every=constants.GSE_SVR_DISCOVERY_INTERVAL,
 )
-def gse_svr_discovery():
+def gse_svr_discovery_periodic_task():
     if not settings.GSE_ENABLE_SVR_DISCOVERY:
         logger.info(f"GSE_ENABLE_SVR_DISCOVERY == {settings.GSE_ENABLE_SVR_DISCOVERY}, skip")
         return

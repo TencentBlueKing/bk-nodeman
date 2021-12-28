@@ -87,7 +87,8 @@ class TestCmdb(TestCase):
     @patch("apps.node_man.handlers.cmdb.CmdbHandler.cmdb_or_cache_biz", cmdb_or_cache_biz)
     @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)
     def test_add_cloud(self):
-        bk_cloud_name = "".join(random.choice(DIGITS) for x in range(8))
+        # 排除掉首字母是a的情况，否则有几率引发ComponentCallError
+        bk_cloud_name = "".join(random.choice(DIGITS) for x in range(8)).replace("a", "b")
         id = CmdbHandler().add_cloud(bk_cloud_name)
         self.assertLessEqual(int(id), 10000)
 

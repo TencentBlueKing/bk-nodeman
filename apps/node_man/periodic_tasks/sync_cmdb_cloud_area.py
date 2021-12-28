@@ -76,11 +76,11 @@ def update_or_create_cloud_area(task_id, start):
     options={"queue": "default"},
     run_every=constants.SYNC_CMDB_CLOUD_AREA_INTERVAL,
 )
-def sync_cmdb_cloud_area():
+def sync_cmdb_cloud_area_periodic_task():
     """
     同步CMDB云区域
     """
-    task_id = sync_cmdb_cloud_area.request.id
+    task_id = sync_cmdb_cloud_area_periodic_task.request.id
     logger.info(f"{task_id} | Start syncing cloud area.")
     update_or_create_cloud_area(task_id, 0)
     logger.info(f"{task_id} | Sync cloud area task complete.")

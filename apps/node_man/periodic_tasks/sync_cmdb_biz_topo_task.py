@@ -158,7 +158,7 @@ def cache_all_biz_topo():
 
 @task(queue="default", ignore_result=True)
 def cache_all_biz_topo_delay_task():
-    task_id = sync_cmdb_biz_topo_task.request.id
+    task_id = sync_cmdb_biz_topo_periodic_task.request.id
     logger.warning(f"{task_id} | cache_all_biz_topo_delay_task: Sync cmdb biz topo task' cache expired")
     cache_all_biz_topo()
     logger.warning(f"{task_id} | cache_all_biz_topo_delay_task: Re-cache finished")
@@ -169,8 +169,8 @@ def cache_all_biz_topo_delay_task():
     options={"queue": "default"},
     run_every=constants.SYNC_CMDB_BIZ_TOPO_TASK_INTERVAL,
 )
-def sync_cmdb_biz_topo_task():
-    task_id = sync_cmdb_biz_topo_task.request.id
+def sync_cmdb_biz_topo_periodic_task():
+    task_id = sync_cmdb_biz_topo_periodic_task.request.id
     logger.info(f"{task_id} | sync_cmdb_biz_topo_task: Start sync cmdb biz topo task.")
 
     biz_data = client_v2.cc.search_business({"fields": ["bk_biz_id"]})

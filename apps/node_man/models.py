@@ -2041,7 +2041,7 @@ class SubscriptionInstanceRecord(models.Model):
     steps = JSONField(_("步骤信息"))
     pipeline_id = models.CharField(_("Pipeline ID"), max_length=50, default="", blank=True, db_index=True)
     start_pipeline_id = models.CharField(_("Start Pipeline ID"), max_length=50, default="", blank=True, db_index=True)
-    update_time = models.DateTimeField(_("更新时间"), auto_now=True, db_index=True)
+    update_time = models.DateTimeField(_("更新时间"), default=timezone.now, db_index=True)
     create_time = models.DateTimeField(_("创建时间"), auto_now_add=True, db_index=True)
     need_clean = models.BooleanField(_("是否需要清洗临时信息"), default=False)
     is_latest = models.BooleanField(_("是否为实例最新记录"), default=True, db_index=True)
