@@ -124,7 +124,6 @@ def _resource_watch(cursor_key, kwargs):
                     bk_detail=event["bk_detail"],
                 )
             )
-
         ResourceWatchEvent.objects.bulk_create(objs)
 
         # 记录最新cursor

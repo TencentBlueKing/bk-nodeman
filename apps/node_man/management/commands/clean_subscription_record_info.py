@@ -9,22 +9,11 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from celery.schedules import crontab
-from celery.task import periodic_task
+from django.core.management.base import BaseCommand
 
-from apps.node_man.models import ResourceWatchEvent
-from common.log import logger
+from apps.node_man.periodic_tasks import clean_subscription_record_info_periodic_task
 
 
-@periodic_task(
-    queue="default",
-    options={"queue": "default"},
-    run_every=crontab(hour="2", minute="0", day_of_week="*", day_of_month="*", month_of_year="*"),
-)
-def clean_resource_watch_event_periodic_task():
-    """
-    每天清理缓存的 CMDB 资源订阅事件，防止异常时 ResourceWatchEvent 不停增长导致 MySQL 慢查询的问题
-    """
-    logger.info("Start cleaning up resource watch event.")
-    ResourceWatchEvent.objects.all().delete()
-    logger.info("Clean up resource watch event complete.")
+class Command(BaseCommand):
+    def handle(self, **kwargs):
+        clean_subscription_record_info_periodic_task()
