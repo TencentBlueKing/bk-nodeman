@@ -8,8 +8,13 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from __future__ import absolute_import, unicode_literals
+
+import math
 import random
 from typing import Optional
+
+from apps.node_man.constants import TimeUnit
 
 DURATION = 60 * 15
 
@@ -22,7 +27,14 @@ def calculate_countdown__mod(count: int, index: int, duration: int) -> int:
     :param duration: 执行周期
     :return: 执行倒计时（s）
     """
-    return max(index, 1) % max(duration, 1)
+    # 前提: 一般durations >= count, 否则考虑提高一次task的任务的执行数量
+    # 将每个task随机分配分配在一段时间区间内执行, example: 50s/10task 则期望每个task都有5s间隔时间
+    # 计算出每个task的期望间隔时间unit(最低间隔为60s, 考虑到duration基本都是以min为单位), 将总时间区间分割为 duration/unit 份
+    # 然后每个task下标对区间总份数(duration/unit)取模即可得到该task的执行时间区间, 最后用random函数生成的具体执行时间
+    unit = max(math.ceil(duration / count), TimeUnit.MINUTE)
+    pos = index % math.ceil(duration / unit)
+
+    return random.randint(pos * unit, min((pos + 1) * unit - 1, duration))
 
 
 def calculate_countdown__random(count: int, index: int, duration: int) -> int:
