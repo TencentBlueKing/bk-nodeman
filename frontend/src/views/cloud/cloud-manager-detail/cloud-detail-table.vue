@@ -556,10 +556,9 @@ export default class CloudDetailTable extends Vue {
   public handleCopyIp() {
     const checkedIpText = this.proxyData.map(item => item.inner_ip).join('\n');
     if (!checkedIpText) return;
-    const result = copyText(checkedIpText);
-    if (result) {
+    copyText(checkedIpText, () => {
       this.$bkMessage({ theme: 'success', message: this.$t('IP复制成功', { num: this.proxyData.length }) });
-    }
+    });
   }
 }
 </script>
