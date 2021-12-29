@@ -212,17 +212,14 @@ export default class TaskDetailSlider extends Vue {
       const commandItem = commandList.find((item: any) => item.ip === row.innerIp);
       commandStr = commandItem ? commandItem.command.replace(/<[^>]+>/gi, '') : '';
     }
-    const content = { theme: 'error', message: this.$t('命令复制失败') };
     if (res && commandStr) {
-      const result = copyText(commandStr);
-      if (result) {
-        Object.assign(content, {
+      copyText(commandStr, () => {
+        this.$bkMessage({
           theme: 'success',
           message: this.$t('命令复制成功'),
         });
-      }
+      });
     }
-    this.$bkMessage(content);
   }
 
   @Emit('update')

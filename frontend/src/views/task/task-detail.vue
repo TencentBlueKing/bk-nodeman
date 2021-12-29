@@ -645,18 +645,15 @@ export default {
         params,
       });
       if (res) {
-        const content = { theme: 'error', message: this.$t('IP复制失败') };
         if (res.list ? res.list.length : false) {
           const ipStr = res.list.map(item => item.innerIp).join('\n');
-          const result = copyText(ipStr);
-          if (result) {
-            Object.assign(content, {
+          copyText(ipStr, () => {
+            this.$bkMessage({
               theme: 'success',
               message: this.$t('IP复制成功', { num: res.list.length }),
             });
-          }
+          });
         }
-        this.$bkMessage(content);
       }
       this.copyLoading = false;
     },
@@ -856,17 +853,14 @@ export default {
         const commandItem = commandList.find(item => item.ip === row.innerIp);
         commandStr = commandItem ? commandItem.command.replace(/<[^>]+>/gi, '') : '';
       }
-      const content = { theme: 'error', message: this.$t('命令复制失败') };
       if (res && commandStr) {
-        const result = copyText(commandStr);
-        if (result) {
-          Object.assign(content, {
+        copyText(commandStr, () => {
+          this.$bkMessage({
             theme: 'success',
             message: this.$t('命令复制成功'),
           });
-        }
+        });
       }
-      this.$bkMessage(content);
     },
     viewCommand(row) {
       this.commandError = false;

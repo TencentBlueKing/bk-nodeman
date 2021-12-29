@@ -358,10 +358,9 @@ export default class PluginListOperate extends Mixins(HeaderFilterMixins) {
       return;
     }
     const allIpText = ipList.join('\n');
-    const result = copyText(allIpText);
-    if (result) {
+    copyText(allIpText, () => {
       this.$bkMessage({ theme: 'success', message: this.$t('IP复制成功', { num: ipTotal }) });
-    }
+    });
   }
 
   private async handleSelectRemote(keyword: string) {

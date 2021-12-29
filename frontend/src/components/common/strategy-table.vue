@@ -576,16 +576,10 @@ export default class StrategyTable extends Vue {
 
   private handleCopy(str: string) {
     if (this.detail[str]) {
-      const content = { theme: 'error', message: this.$t('IP复制失败') };
       const data = str === 'zkHosts' ? this.detail.zkHosts : this.area[str];
-      const result = copyText(data.join('\n'));
-      if (result) {
-        Object.assign(content, {
-          theme: 'success',
-          message: this.$t('IP复制成功', { num: data.length }),
-        });
-      }
-      this.$bkMessage(content);
+      copyText(data.join('\n'), () => {
+        this.$bkMessage({ theme: 'success', message: this.$t('IP复制成功', { num: data.length }) });
+      });
     }
   }
   private handleGotoProxy() {
