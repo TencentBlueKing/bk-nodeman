@@ -184,13 +184,9 @@ export default class NodePreview extends Vue {
     }
     const { list, total } = await this.resetTableData(params);
     data = list;
-    const res = copyText(data.map((item: any) => item.inner_ip).join());
-    if (res) {
-      this.$bkMessage({
-        message: this.$t('IP复制成功', { num: total }),
-        theme: 'success',
-      });
-    }
+    copyText(data.map((item: any) => item.inner_ip).join(), () => {
+      this.$bkMessage({ message: this.$t('IP复制成功', { num: total }), theme: 'success' });
+    });
   }
   private destroyPopover() {
     this.popoverInstance && this.popoverInstance.destroy();

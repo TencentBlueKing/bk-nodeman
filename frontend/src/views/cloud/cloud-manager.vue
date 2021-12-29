@@ -637,10 +637,9 @@ export default class CloudManager extends Vue {
     });
     const checkedIpText = data.join('\n');
     if (!checkedIpText) return;
-    const result = copyText(checkedIpText);
-    if (result) {
+    copyText(checkedIpText, () => {
       this.$bkMessage({ theme: 'success', message: this.$t('IP复制成功', { num: data.length }) });
-    }
+    });
     this.copyIpDropdown.hide();
   }
   // 表格折叠

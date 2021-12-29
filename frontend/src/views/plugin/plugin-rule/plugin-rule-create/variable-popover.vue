@@ -47,17 +47,12 @@ export default class VariablePreview extends Vue {
 
   public handleClick(item: Dictionary) {
     if (this.copy) {
-      if (copyText(item.key)) {
+      copyText(item.key, () => {
         this.$bkMessage({
           theme: 'success',
           message: this.$t('复制成功'),
         });
-      } else {
-        this.$bkMessage({
-          theme: 'warning',
-          message: this.$t('复制失败请重试'),
-        });
-      }
+      });
     }
     this.$emit('selected', item);
   }

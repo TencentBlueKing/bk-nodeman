@@ -538,18 +538,15 @@ export default class TaskDeatail extends Mixins(PollMixin, HeaderFilterMixins) {
       params,
     });
     if (res) {
-      const content = { theme: 'error', message: this.$t('IP复制失败') };
       if (res.list ? res.list.length : false) {
         const ipStr = res.list.map((item: ITaskHost) => item.innerIp).join('\n');
-        const result = copyText(ipStr);
-        if (result) {
-          Object.assign(content, {
+        copyText(ipStr, () => {
+          this.$bkMessage({
             theme: 'success',
             message: this.$t('IP复制成功', { num: res.list.length }),
           });
-        }
+        });
       }
-      this.$bkMessage(content);
     }
     this.copyLoading = false;
   }

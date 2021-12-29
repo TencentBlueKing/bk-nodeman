@@ -438,35 +438,76 @@ export const transformDataKey = (data: Dictionary = {}, mode = 'camel'): Diction
  * 复制文本
  * @param {String} text
  */
-export const copyText = (text: string) => {
-  const textarea = document.createElement('textarea');
-  textarea.setAttribute('readonly', '');
-  textarea.style.position = 'absolute';
-  textarea.style.left = '-9999px';
+export const copyText = (text: string, successFn?: Function) => {
+  window.copyContentText = text || '';
+  let result = 'failed';
+  if (!window.copyContentText) {
+    window.bus.$bkMessage({
+      theme: 'error',
+      message: window.i18n.t('复制出错，再重新复制一遍吧'),
+    });
+    return result;
+  }
+  result = copyListener();
+  if (result === 'success' && successFn) {
+    successFn(result);
+  }
+  if (result === 'failed') {
+    window.copyFailedMsg = window.bus.$bkMessage({
+      theme: 'error',
+      message: getCopyBtn(successFn),
+    });
+  }
+  return result;
+};
 
-  document.body.appendChild(textarea);
-  textarea.value = text;
-
-  textarea.focus();
-  textarea.select();
-  let result = false;
+function copyListener() {
+  let result = '';
   try {
-    result = document.execCommand('copy');
+    document.addEventListener('copy', copyHandler);
+    const copyRes = document.execCommand('copy');
+    document.removeEventListener('copy', copyHandler);
+    result = copyRes ? 'success' : 'failed';
   } catch (_) {
+    result = 'error';
     window.bus.$bkMessage({
       theme: 'error',
       message: '浏览器不支持此功能，请使用谷歌浏览器。',
     });
   }
-  if (!result) {
-    window.bus.$bkMessage({
-      theme: 'error',
-      message: window.i18n.t('复制出错，再重新复制一遍吧'),
-    });
-  }
-  textarea.blur();
-  document.body.removeChild(textarea);
   return result;
+}
+
+export const copyHandler = (e: any) => {
+  e.preventDefault();
+  e.clipboardData.setData('text/html', window.copyContentText);
+  e.clipboardData.setData('text/plain', window.copyContentText);
+};
+
+export const getCopyBtn = (successFn?: Function) => {
+  const h = window.mainComponent.$createElement;
+  const copyBtn = h('p', [
+    window.i18n.t('复制出错，再重新复制一遍吧'),
+    h('span', {
+      style: { color: '#3A84FF', cursor: 'pointer' },
+      on: {
+        click: () => {
+          const res = copyListener();
+          if (window.copyFailedMsg) {
+            window.copyFailedMsg.close();
+          }
+          if (successFn && res === 'success') {
+            successFn(res);
+          }
+          if (res === 'failed') {
+            window.bus.$bkMessage({ theme: 'error', message: '复制失败' });
+          }
+          window.copyContentText = '';
+        },
+      },
+    }, window.i18n.t('点击复制')),
+  ]);
+  return copyBtn;
 };
 
 /**

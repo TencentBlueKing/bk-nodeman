@@ -1309,10 +1309,9 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
     }
     const checkedIpText = data.list.join('\n');
     if (!checkedIpText) return;
-    const result = copyText(checkedIpText);
-    if (result) {
+    copyText(checkedIpText, () => {
       this.$bkMessage({ theme: 'success', message: this.$t('IP复制成功', { num: data.total }) });
-    }
+    });
     this.loadingCopyBtn = false;
   }
   /**
@@ -1323,10 +1322,9 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
     const data = await AgentStore.getHostIp(this.getAllIpCondition() as IAgentSearchIp);
     const allIpText = data.list.join('\n');
     if (!allIpText) return;
-    const result = copyText(allIpText);
-    if (result) {
+    copyText(allIpText, () => {
       this.$bkMessage({ theme: 'success', message: this.$t('IP复制成功', { num: data.total }) });
-    }
+    });
     this.loadingCopyBtn = false;
   }
   /**
