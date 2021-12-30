@@ -23,6 +23,7 @@ from apps.node_man.handlers.ap import APHandler
 from apps.node_man.handlers.cloud import CloudHandler
 from apps.node_man.handlers.cmdb import CmdbHandler
 from apps.node_man.handlers.host import HostHandler
+from apps.node_man.handlers.iam import IamHandler
 from apps.node_man.models import (
     AccessPoint,
     Cloud,
@@ -1043,6 +1044,56 @@ class MockClient(object):
                 return {"bk_set_id": 10, "module": None, "bk_set_name": "空闲机池"}
             else:
                 raise ComponentCallError
+
+
+class MockIAM(object):
+    def __init__(self, app_code, secret_key, bk_iam_inner_host, bk_component_api_url):
+        self.app_code = app_code
+        self.secret_key = secret_key
+        self.bk_iam_inner_host = bk_iam_inner_host
+        self.bk_component_api_url = bk_component_api_url
+
+    class _client:
+        @staticmethod
+        def policy_query(request_data):
+            """
+            根据测试角色类型来返回不同的权限数据
+            """
+            user = request_data["subject"]["id"]
+            instance_type, action_type, *args = request_data["action"]["id"].split("_")
+            instance_type = IamHandler.get_instance_type(instance_type, action_type)
+
+            if user == "creator":
+                # 构造创建者的数据情况
+                condition = {"field": f"{instance_type}.iam_resource_owner", "op": "eq", "value": user}
+            elif user.startswith("normal"):
+                # 构建普通角色的数据情况
+                op = user.split("_")[1]
+                if op == "any" and action_type == "view":
+                    condition = {"field": f"{instance_type}.id", "op": op, "value": []}
+                else:
+                    user_value_map = {"eq": 1, "in": [1, 2], "null": []}
+                    op = "null" if op == "any" else op
+                    condition = {"field": f"{instance_type}.id", "op": op, "value": user_value_map[op]}
+            else:
+                # 模拟未注册或者不合法用户
+                condition = {}
+
+            code, message, data = (1, "ok", condition)
+            return code, message, data
+
+        @staticmethod
+        def get_apply_url(bk_token, bk_username, data):
+            related_resource_types = data["actions"][0].get("related_resource_types")
+            if not related_resource_types:
+                # 生成不带资源实例的url
+                url = "127.0.0.1/without_resource"
+            else:
+                # 生成带资源实例的url
+                url = "127.0.0.1/with_resource"
+
+            code, message, data = (1, "ok", url)
+            return code, message, data
 
 
 @patch("apps.node_man.handlers.cmdb.CmdbHandler.cmdb_or_cache_biz", cmdb_or_cache_biz)
