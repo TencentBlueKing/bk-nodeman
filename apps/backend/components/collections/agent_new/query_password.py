@@ -9,12 +9,17 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+from typing import Any, Dict, List, Union
+
 from django.utils.translation import ugettext_lazy as _
 
+from apps.core.concurrent import controller
 from apps.node_man import constants, models
 from apps.node_man.handlers.password import DefaultPasswordHandler
+from apps.utils import concurrent
 from pipeline.core.flow import Service
 
+from .. import core
 from .base import AgentBaseService, AgentCommonData
 
 
@@ -27,6 +32,32 @@ class QueryPasswordService(AgentBaseService):
         return super().inputs_format() + [
             Service.InputItem(name="creator", key="creator", type="str", required=True),
         ]
+
+    @controller.ConcurrentController(
+        data_list_name="cloud_ip_list",
+        batch_call_func=concurrent.batch_call,
+        extend_result=False,
+        get_config_dict_func=core.get_config_dict,
+        get_config_dict_kwargs={"config_name": core.ServiceCCConfigName.JOB_CMD.value},
+    )
+    def query_password(
+        self,
+        cloud_ip_list: List[str],
+        cloud_ip_map: Dict[str, Dict[str, Union[models.Host, int]]],
+        creator: str,
+        oa_ticket: str,
+    ):
+        is_ok, success_ips, failed_ips, err_msg = DefaultPasswordHandler().get_password(
+            creator, cloud_ip_list, oa_ticket
+        )
+        if not is_ok:
+            sub_inst_ids = [cloud_ip_map[cloud_ip]["sub_inst_id"] for cloud_ip in cloud_ip_list]
+            self.log_error(sub_inst_ids=sub_inst_ids, log_content=err_msg)
+            self.move_insts_to_failed(
+                sub_inst_ids=sub_inst_ids, log_content=_("若 OA TICKET 过期，请重新登录 OA 后再重试您的操作。请注意不要直接使用此任务中的重试功能~")
+            )
+
+        return {"is_ok": is_ok, "success_ips": success_ips, "failed_ips": failed_ips, "err_msg": err_msg}
 
     def _execute(self, data, parent_data, common_data: AgentCommonData):
         creator = data.get_one_of_inputs("creator")
@@ -51,15 +82,19 @@ class QueryPasswordService(AgentBaseService):
         if not need_query_inst_ids:
             return True
 
-        is_ok, success_ips, failed_ips, err_msg = DefaultPasswordHandler().get_password(
-            creator, list(cloud_ip_map.keys()), oa_ticket
+        # self.query_password 通过并发控制器执行，结果叠加返回列表
+        query_password_results: List[Dict[str, Any]] = self.query_password(
+            cloud_ip_list=list(cloud_ip_map.keys()), cloud_ip_map=cloud_ip_map, creator=creator, oa_ticket=oa_ticket
         )
 
-        if not is_ok:
-            self.log_error(sub_inst_ids=need_query_inst_ids, log_content=err_msg)
-            self.move_insts_to_failed(
-                sub_inst_ids=need_query_inst_ids, log_content=_("若 OA TICKET 过期，请重新登录 OA 后再重试您的操作。请注意不要直接使用此任务中的重试功能~")
-            )
+        success_ips: Dict[str, str] = {}
+        failed_ips: Dict[str, Dict[str, Any]] = {}
+        for query_password_result in query_password_results:
+            # 查询失败的情况已处理
+            if not query_password_result["is_ok"]:
+                continue
+            success_ips.update(query_password_result["success_ips"])
+            failed_ips.update(query_password_result["failed_ips"])
 
         for cloud_ip, failed_data in failed_ips.items():
             inst_id = cloud_ip_map[cloud_ip]["sub_inst_id"]

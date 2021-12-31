@@ -21,6 +21,7 @@ import mock
 from django.conf import settings
 from django.db.models import Model
 from django.utils import timezone
+from django.utils.translation import get_language
 
 from apps.backend.components.collections import agent_new
 from apps.backend.subscription import tools
@@ -532,6 +533,7 @@ class AgentServiceBaseTestCase(CustomAPITestCase, ComponentTestMixin, ABC):
         subscription_step_id = self.obj_factory.sub_step_objs[0].id
         subscription_instance_ids = [sub_inst_obj.id for sub_inst_obj in self.obj_factory.sub_inst_record_objs]
         return {
+            "blueking_language": get_language(),
             "act_name": self.component_cls().name,
             "subscription_step_id": subscription_step_id,
             "subscription_instance_ids": subscription_instance_ids,

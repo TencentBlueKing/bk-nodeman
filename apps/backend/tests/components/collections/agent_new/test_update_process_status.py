@@ -21,9 +21,14 @@ from pipeline.component_framework.test import ComponentTestCase, ExecuteAssertio
 from . import utils
 
 
-class UpdateProcessStatusService(utils.AgentServiceBaseTestCase):
+class UpdateProcessStatusTestCase(utils.AgentServiceBaseTestCase):
 
-    batch_size = int(GlobalSettings.get_config("BATCH_SIZE", default=100))
+    batch_size: int = None
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.batch_size = GlobalSettings.get_config("BATCH_SIZE", default=100)
 
     @classmethod
     def adjust_test_data_in_db(cls, node_from):
@@ -105,7 +110,7 @@ class UpdateProcessStatusService(utils.AgentServiceBaseTestCase):
         self.assertTrue(proc_status_queryset)
 
 
-class UpdateNodeManProcessService(UpdateProcessStatusService):
+class UpdateNodeManProcessTestCase(UpdateProcessStatusTestCase):
     def setUp(self) -> None:
         super().setUp()
         self.adjust_test_data_in_db(node_from=constants.NodeFrom.NODE_MAN)

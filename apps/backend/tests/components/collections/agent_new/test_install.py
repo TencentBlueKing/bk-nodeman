@@ -287,3 +287,10 @@ class InstallAgentWithInstallChannelSuccessTest(InstallBaseTestCase):
             f" -CPA 'http://127.0.0.1:17981'"
         )
         self.assertEqual(installation_tool.run_cmd, run_cmd)
+
+
+class ManualInstallSuccessTest(InstallBaseTestCase):
+    def init_hosts(self):
+        models.Host.objects.filter(bk_host_id__in=self.obj_factory.bk_host_ids).update(
+            os_type=self.OS_TYPE, node_type=self.NODE_TYPE, is_manual=True
+        )

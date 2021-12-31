@@ -17,9 +17,10 @@ from typing import Any, Dict, List, Optional
 
 import mock
 
+from apps.backend.api.constants import POLLING_INTERVAL
 from apps.mock_data import api_mkd
 from apps.mock_data import utils as mock_data_utils
-from apps.node_man import constants
+from apps.node_man import constants, models
 from pipeline.component_framework.test import (
     ComponentTestCase,
     ExecuteAssertion,
@@ -130,12 +131,39 @@ class JobBaseTestCase(utils.AgentServiceBaseTestCase, ABC):
                 ),
                 schedule_assertion=[
                     ScheduleAssertion(
-                        success=True, schedule_finished=True, outputs=self.structure_common_outputs(polling_time=5)
+                        success=True,
+                        schedule_finished=True,
+                        outputs=self.structure_common_outputs(polling_time=POLLING_INTERVAL),
                     ),
                 ],
                 execute_call_assertion=None,
             )
         ]
+
+
+class JobSkipPollingResultTestCase(JobBaseTestCase, ABC):
+    def structure_common_inputs(self) -> Dict[str, Any]:
+        common_inputs = super().structure_common_inputs()
+        common_inputs.update(skip_polling_result=True)
+        return common_inputs
+
+    def tearDown(self) -> None:
+        self.assertEqual(
+            len(self.obj_factory.sub_inst_record_ids),
+            models.JobSubscriptionInstanceMap.objects.filter(
+                job_instance_id=api_mkd.job.unit.DEFAULT_JOB_INSTANCE_ID
+            ).count(),
+        )
+        super().tearDown()
+
+    def cases(self):
+        cases = super().cases()
+        if not cases:
+            return
+        cases[0].schedule_assertion = ScheduleAssertion(
+            success=True, schedule_finished=True, outputs=self.structure_common_outputs()
+        )
+        return cases
 
 
 class JobFailedBaseTestCase(JobBaseTestCase, ABC):
@@ -176,9 +204,68 @@ class JobFailedBaseTestCase(JobBaseTestCase, ABC):
                     ScheduleAssertion(
                         success=False,
                         schedule_finished=True,
-                        outputs=self.structure_common_outputs(polling_time=5, succeeded_subscription_instance_ids=[]),
+                        outputs=self.structure_common_outputs(
+                            polling_time=POLLING_INTERVAL, succeeded_subscription_instance_ids=[]
+                        ),
                     ),
                 ],
                 execute_call_assertion=None,
+            )
+        ]
+
+
+class JobTimeOutBaseTestCase(JobBaseTestCase, ABC):
+
+    # JOB 任务轮训次数
+    POLLING_COUNT = 3
+
+    @classmethod
+    def structure_mock_data(cls):
+        """
+        构造GSE接口返回数据
+        :return:
+        """
+        super().structure_mock_data()
+        cls.get_job_instance_status_result["job_instance"]["status"] = constants.BkJobStatus.RUNNING
+        for step_ip_result in cls.get_job_instance_status_result["step_instance_list"][0]["step_ip_result_list"]:
+            step_ip_result.update(status=constants.BkJobIpStatus.RUNNING, error_code=constants.BkJobErrorCode.RUNNING)
+
+    def setUp(self) -> None:
+        super().setUp()
+        mock.patch(
+            "apps.backend.components.collections.job.POLLING_TIMEOUT", (self.POLLING_COUNT - 1) * POLLING_INTERVAL
+        ).start()
+
+    def cases(self):
+        # 根据 component_cls 是否实现来跳过基类的测试
+        try:
+            self.component_cls()
+        except NotImplementedError:
+            return []
+
+        schedule_assertion = []
+        for idx in range(1, self.POLLING_COUNT + 1):
+            schedule_assertion.append(
+                ScheduleAssertion(
+                    success=idx != self.POLLING_COUNT,
+                    schedule_finished=idx == self.POLLING_COUNT,
+                    outputs=self.structure_common_outputs(
+                        polling_time=idx * POLLING_INTERVAL,
+                        succeeded_subscription_instance_ids=[self.fetch_succeeded_sub_inst_ids(), []][
+                            idx == self.POLLING_COUNT
+                        ],
+                    ),
+                )
+            )
+        return [
+            ComponentTestCase(
+                name=self.get_default_case_name(),
+                inputs=self.common_inputs,
+                parent_data={},
+                execute_assertion=ExecuteAssertion(
+                    success=bool(self.fetch_succeeded_sub_inst_ids()), outputs=self.structure_common_outputs()
+                ),
+                execute_call_assertion=None,
+                schedule_assertion=schedule_assertion,
             )
         ]

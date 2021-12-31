@@ -669,6 +669,7 @@ class BkJobStatus(object):
 class BkJobErrorCode(object):
     NOT_RUNNING = -1
     AGENT_ABNORMAL = 117
+    RUNNING = 7
 
     BK_JOB_ERROR_CODE_MAP = {
         NOT_RUNNING: _("该IP未执行作业，请联系管理员排查问题"),
@@ -676,7 +677,7 @@ class BkJobErrorCode(object):
         3: _("上次已成功"),
         4: _("执行失败"),
         5: _("等待执行"),
-        7: _("正在执行"),
+        RUNNING: _("正在执行"),
         9: _("执行成功"),
         11: _("任务失败"),
         12: _("任务下发失败"),
@@ -702,13 +703,14 @@ class BkJobIpStatus(object):
     NOT_RUNNING = -1
     SUCCEEDED = 9
     AGENT_ABNORMAL = 1
+    RUNNING = 7
 
     BK_JOB_IP_STATUS_MAP = {
         NOT_RUNNING: _("该IP未执行作业，请联系管理员排查问题"),
         AGENT_ABNORMAL: _("Agent异常"),
         4: _("执行失败"),
         5: _("等待执行"),
-        7: _("正在执行"),
+        RUNNING: _("正在执行"),
         SUCCEEDED: _("执行成功"),
         11: _("执行失败"),
         12: _("任务下发失败"),
