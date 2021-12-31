@@ -26,7 +26,7 @@ from common.api import JobApi
 from . import base
 
 
-class PushUpgradePackageLinuxSuccessTest(base.JobBaseTestCase):
+class RunUpgradeCommandSuccessTestCase(base.JobBaseTestCase):
 
     # 获取Linux测试脚本和Windows测试脚本
     SCRIPT_PATH = os.path.join(settings.BK_SCRIPTS_PATH, "upgrade_agent.sh.tpl")
@@ -71,7 +71,7 @@ class PushUpgradePackageLinuxSuccessTest(base.JobBaseTestCase):
             super().tearDown()
 
 
-class PushUpgradePackageWindowsSuccessTest(PushUpgradePackageLinuxSuccessTest):
+class WindowsSuccessTestCase(RunUpgradeCommandSuccessTestCase):
     @classmethod
     def setup_obj_factory(cls):
         cls.obj_factory.init_host_num = 10
@@ -85,7 +85,7 @@ class PushUpgradePackageWindowsSuccessTest(PushUpgradePackageLinuxSuccessTest):
         return RunUpgradeCommandComponent
 
 
-class PushUpgradePackageHybridSuccessTest(PushUpgradePackageLinuxSuccessTest):
+class HybridSuccessTest(RunUpgradeCommandSuccessTestCase):
     @classmethod
     def setup_obj_factory(cls):
         cls.obj_factory.init_host_num = 10

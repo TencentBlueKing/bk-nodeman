@@ -424,24 +424,22 @@ class RegisterHostService(AgentBaseService):
             sub_inst_obj.instance_info["host"]["is_manual"] = host_obj.is_manual
             sub_inst_objs_to_be_updated.append(sub_inst_obj)
 
-        # 批量创建或更新进程状态表，受限于部分MySQL配置的原因，这里 BATCH_SIZE 支持可配置，默认为100
-        batch_size = models.GlobalSettings.get_config("BATCH_SIZE", default=100)
-        models.Host.objects.bulk_create(host_objs_to_be_created, batch_size=batch_size)
+        models.Host.objects.bulk_create(host_objs_to_be_created, batch_size=self.batch_size)
         models.Host.objects.bulk_update(
             host_objs_to_be_updated,
             fields=["bk_biz_id", "bk_cloud_id", "inner_ip", "outer_ip", "login_ip", "data_ip", "os_type"]
             + ["is_manual", "ap_id", "install_channel_id", "upstream_nodes", "updated_at", "extra_data"],
-            batch_size=batch_size,
+            batch_size=self.batch_size,
         )
-        models.ProcessStatus.objects.bulk_create(proc_status_objs_to_be_created, batch_size=batch_size)
-        models.IdentityData.objects.bulk_create(identity_data_objs_to_be_created, batch_size=batch_size)
+        models.ProcessStatus.objects.bulk_create(proc_status_objs_to_be_created, batch_size=self.batch_size)
+        models.IdentityData.objects.bulk_create(identity_data_objs_to_be_created, batch_size=self.batch_size)
         models.IdentityData.objects.bulk_update(
             identity_data_objs_to_be_updated,
             fields=["auth_type", "account", "password", "port", "key", "retention", "extra_data", "updated_at"],
-            batch_size=batch_size,
+            batch_size=self.batch_size,
         )
         models.SubscriptionInstanceRecord.objects.bulk_update(
-            sub_inst_objs_to_be_updated, fields=["instance_info"], batch_size=batch_size
+            sub_inst_objs_to_be_updated, fields=["instance_info"], batch_size=self.batch_size
         )
 
         sub_inst_ids = self.fetch_sub_inst_ids_by_host_keys(

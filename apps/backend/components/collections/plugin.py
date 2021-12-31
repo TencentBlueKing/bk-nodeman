@@ -305,13 +305,11 @@ class InitProcessStatusService(PluginBaseService):
                         to_be_created_process_status,
                     )
 
-        # 批量创建或更新进程状态表，受限于部分MySQL配置的原因，这里 BATCH_SIZE 支持可配置，默认为100
-        batch_size = models.GlobalSettings.get_config("BATCH_SIZE", default=100)
-        models.ProcessStatus.objects.bulk_create(to_be_created_process_status, batch_size=batch_size)
+        models.ProcessStatus.objects.bulk_create(to_be_created_process_status, batch_size=self.batch_size)
         models.ProcessStatus.objects.bulk_update(
             to_be_updated_process_status,
             fields=["setup_path", "log_path", "data_path", "pid_path", "version"],
-            batch_size=batch_size,
+            batch_size=self.batch_size,
         )
 
     def inputs_format(self):

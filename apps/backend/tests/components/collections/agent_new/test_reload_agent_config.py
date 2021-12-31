@@ -28,3 +28,9 @@ class IpFailedTestCase(base.JobFailedBaseTestCase, ReloadAgentConfigTestCase):
     @classmethod
     def get_default_case_name(cls) -> str:
         return "IP执行错误"
+
+
+class TimeOutTestCase(base.JobTimeOutBaseTestCase, ReloadAgentConfigTestCase):
+    @classmethod
+    def get_default_case_name(cls) -> str:
+        return "作业平台执行作业超时"

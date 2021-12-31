@@ -53,3 +53,9 @@ class RestartTestCase(base.JobBaseTestCase):
             base64.b64decode(fast_execute_script_query_params["script_content"]).decode(),
         )
         super().tearDown()
+
+
+class SkipPollingResultTestCase(base.JobSkipPollingResultTestCase, RestartTestCase):
+    @classmethod
+    def get_default_case_name(cls) -> str:
+        return "重启成功: 跳过作业平台任务结果等待"

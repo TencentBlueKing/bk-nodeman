@@ -118,7 +118,6 @@ class GetAgentStatusService(AgentBaseService):
             )
 
         # 将查询到期望状态的主机节点来源更新为 NODE_MAN
-        # TODO 单独拎一个插件
         host_ids_need_to_update_node_from = []
         for host_id in host_ids_get_expect_status:
             if common_data.host_id_obj_map[host_id].node_from != constants.NodeFrom.NODE_MAN:

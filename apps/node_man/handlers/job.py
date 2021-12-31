@@ -129,13 +129,14 @@ class JobHandler(APIModel):
         # 检查权限
         self.check_job_permission(username, job.bk_biz_scope)
 
-        def gen_pre_manual_command(host, host_install_pipeline_id, batch_install):
+        def gen_pre_manual_command(host, host_install_pipeline_id, batch_install, sub_inst_id):
             result = NodeApi.fetch_commands(
                 {
                     "bk_host_id": host.bk_host_id,
                     "host_install_pipeline_id": host_install_pipeline_id[host.bk_host_id],
                     "is_uninstall": is_uninstall,
                     "batch_install": batch_install,
+                    "sub_inst_id": sub_inst_id,
                 }
             )
             win_commands = result["win_commands"]
@@ -154,6 +155,8 @@ class JobHandler(APIModel):
         cloud_host_id = {}
         # 所有主机对应的安装步骤node_id
         host_install_pipeline_id = {}
+        # 主机ID - 订阅实例ID映射
+        host_id__sub_inst_id_map = {}
         # 获取任务状态
         task_result = NodeApi.get_subscription_task_status(
             {"subscription_id": job.subscription_id, "task_id_list": job.task_id_list, "return_all": True}
@@ -164,13 +167,11 @@ class JobHandler(APIModel):
             if not bk_host_id:
                 # 还有主机没注册成功
                 return {"status": "PENDING"}
-
+            host_id__sub_inst_id_map[bk_host_id] = result["record_id"]
             # 获取每台主机安装任务的pipeline_id
             sub_steps = result["steps"][0]["target_hosts"][0]["sub_steps"]
             for step in sub_steps:
-                if step["node_name"] in ["手动安装", "手动卸载"] and (
-                    step["status"] == "RUNNING" or step["status"] == "SUCCESS"
-                ):
+                if step["node_name"] in ["安装", "卸载"] and (step["status"] == "RUNNING" or step["status"] == "SUCCESS"):
                     pipeline_id = step["pipeline_id"]
                     if bk_cloud_id not in cloud_host_id:
                         cloud_host_id[bk_cloud_id] = [bk_host_id]
@@ -204,7 +205,9 @@ class JobHandler(APIModel):
             if len(cloud_host_id[host.bk_cloud_id]) > 1:
                 batch_install = True
 
-            run_cmd, manual_pre_command = gen_pre_manual_command(host, host_install_pipeline_id, batch_install)
+            run_cmd, manual_pre_command = gen_pre_manual_command(
+                host, host_install_pipeline_id, batch_install, host_id__sub_inst_id_map[host.bk_host_id]
+            )
 
             # 每个IP的单独执行命令
             ips_commands = []
@@ -215,7 +218,7 @@ class JobHandler(APIModel):
             for host_id in host_ids:
                 batch_install = False
                 single_run_cmd, single_manual_pre_command = gen_pre_manual_command(
-                    host, host_install_pipeline_id, batch_install
+                    host, host_install_pipeline_id, batch_install, host_id__sub_inst_id_map[host.bk_host_id]
                 )
                 login_ip = all_hosts[host_id].login_ip
                 inner_ip = all_hosts[host_id].inner_ip
