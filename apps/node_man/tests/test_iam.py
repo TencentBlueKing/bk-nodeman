@@ -65,3 +65,15 @@ class TestIAM(CustomBaseTestCase):
         apply_info_list = [{"action": IamActionType.agent_view, "instance_id": 1, "instance_name": "host"}]
         ret = IamHandler().fetch_redirect_url(apply_info_list, "admin")
         self.assertEqual(ret, "127.0.0.1/with_resource")
+
+    @patch("apps.node_man.handlers.iam.IamHandler._iam", MockIAM)
+    def test_fetch_policy_without_use_iam(self):
+        self.init_db()
+
+        # 测试超级用户
+        ret = IamHandler().fetch_policy("admin", [IamActionType.cloud_edit])
+        self.assertEqual(len(ret[IamActionType.cloud_edit]), self.resource_num)
+
+        # 测试无权限用户
+        ret = IamHandler().fetch_policy("normal", [IamActionType.ap_edit])
+        self.assertEqual(len(ret[IamActionType.ap_edit]), 0)
