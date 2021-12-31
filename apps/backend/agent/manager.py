@@ -22,7 +22,9 @@ class AgentServiceActivity(ServiceActivity):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.component.inputs.description = Var(type=Var.SPLICE, value="${description}")
-        self.component.inputs.act_name = Var(type=Var.SPLICE, value=kwargs.get("name"))
+        self.component.inputs.blueking_language = Var(type=Var.SPLICE, value="${blueking_language}")
+        self.component.inputs.subscription_step_id = Var(type=Var.SPLICE, value="${subscription_step_id}")
+        self.component.inputs.act_name = Var(type=Var.PLAIN, value=kwargs.get("name"))
 
 
 class AgentManager(object):
@@ -34,8 +36,6 @@ class AgentManager(object):
         self.subscription_instance_ids = subscription_instance_ids
         self.step = step
         self.creator = step.subscription.creator
-        # TODO 如果需要该变量，后续需要移动到基类
-        self.blueking_language = step.subscription_step.params.get("blueking_language")
 
     @classmethod
     def register_host(cls):
@@ -79,12 +79,6 @@ class AgentManager(object):
     @classmethod
     def uninstall_agent(cls):
         """执行卸载AGENT脚本"""
-        # TODO is_manual 是 step or task 的属性
-        # host = Host.get_by_host_info(self.host_info)
-        # if host.is_manual:
-        #     name = _("手动卸载")
-        # else:
-        #     name = _("卸载Agent")
         name = _("卸载Agent")
         act = AgentServiceActivity(component_code=components.InstallComponent.code, name=name)
         act.component.inputs.is_uninstall = Var(type=Var.PLAIN, value=True)
@@ -94,12 +88,6 @@ class AgentManager(object):
     @classmethod
     def uninstall_proxy(cls):
         """执行卸载PROXY脚本"""
-        # host = Host.get_by_host_info(self.host_info)
-        # if host.is_manual:
-        #     name = _("手动卸载")
-        # else:
-        #     name = _("卸载Proxy")
-
         name = _("卸载Proxy")
         act = AgentServiceActivity(component_code=components.InstallComponent.code, name=name)
         act.component.inputs.is_uninstall = Var(type=Var.PLAIN, value=True)
@@ -216,5 +204,13 @@ class AgentManager(object):
         act = AgentServiceActivity(
             component_code=components.CheckPolicyGseToProxyComponent.code,
             name=components.CheckPolicyGseToProxyComponent.name,
+        )
+        return act
+
+    @classmethod
+    def update_install_info(cls):
+        """更新安装信息"""
+        act = AgentServiceActivity(
+            component_code=components.UpdateInstallInfoService.code, name=components.UpdateInstallInfoService.name
         )
         return act

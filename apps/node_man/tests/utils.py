@@ -279,7 +279,7 @@ class NodeApi:
                         {
                             "status": status,
                             "index": 1,
-                            "node_name": "手动安装" if param["subscription_id"] == 5 else "1",
+                            "node_name": "安装" if param["subscription_id"] == 5 else "1",
                             "pipeline_id": 1,
                         }
                     ]
@@ -289,6 +289,7 @@ class NodeApi:
         result = [
             {
                 "status": status,
+                "record_id": random.randint(1, 100),
                 "instance_id": random.randint(100, 1000),
                 "create_time": "2021-05-17 15:54:13",
                 "start_time": "2021-05-17 15:54:14",
@@ -313,6 +314,7 @@ class NodeApi:
             result.append(
                 {
                     "status": "FAILED",
+                    "record_id": random.randint(1, 100),
                     "instance_id": random.randint(100, 1000),
                     "create_time": "2021-05-17 15:54:13",
                     "start_time": "2021-05-17 15:54:14",

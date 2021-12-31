@@ -9,8 +9,11 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+import importlib
+
 import mock
 
+from apps.backend.components.collections.agent_new import query_password
 from apps.backend.components.collections.agent_new.components import (
     QueryPasswordComponent,
 )
@@ -24,6 +27,8 @@ class QueryPasswordTestCase(utils.AgentServiceBaseTestCase):
     GET_PASSWORD_MOCK_PATH = "apps.node_man.handlers.password.DefaultPasswordHandler.get_password"
 
     def component_cls(self):
+        importlib.reload(query_password)
+        QueryPasswordComponent.bound_service = query_password.QueryPasswordService
         return QueryPasswordComponent
 
     def cases(self):
