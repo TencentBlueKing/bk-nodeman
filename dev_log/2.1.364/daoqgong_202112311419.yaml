@@ -1,0 +1,3 @@
+---
+feature:
+  - "gent 管理页面支持在 url 中进行条件过滤 (fixed #405)"
