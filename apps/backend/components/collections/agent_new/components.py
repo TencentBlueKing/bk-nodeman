@@ -29,6 +29,7 @@ from .reload_agent_config import ReloadAgentConfigService
 from .render_and_push_gse_config import RenderAndPushGseConfigService
 from .restart import RestartService
 from .run_upgrade_command import RunUpgradeCommandService
+from .update_install_info import UpdateInstallInfoService
 from .update_process_status import UpdateProcessStatusService
 from .wait import WaitService
 
@@ -151,3 +152,9 @@ class PushFilesToProxyComponent(Component):
     name = _("下发文件到Proxy")
     code = "push_files_to_proxy"
     bound_service = PushFilesToProxyService
+
+
+class UpdateInstallInfoComponent(Component):
+    name = _("更新安装信息")
+    code = "update_install_info"
+    bound_service = UpdateInstallInfoService

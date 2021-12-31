@@ -60,7 +60,7 @@ def build_instances_task(
     :param subscription_instances: 订阅实例列表
     :param step_actions: {"basereport": "MAIN_INSTALL_PLUGIN"}
     :param subscription: 订阅对象
-    :param global_pipeline_data: 全局pipeline变量
+    :param global_pipeline_data: 全局pipeline公共变量
     :return:
     """
     # 首先获取当前订阅对应步骤的工厂类
@@ -84,7 +84,7 @@ def build_instances_task(
         action_manager = step_manager.create_action(action_name, subscription_instances)
 
         activities, __ = action_manager.generate_activities(
-            subscription_instances, current_activities=current_activities
+            subscription_instances, global_pipeline_data=global_pipeline_data, current_activities=current_activities
         )
 
         # 记录每个step的起始id及步骤名称

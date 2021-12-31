@@ -9,7 +9,6 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import os
-from typing import List
 
 from django.conf import settings
 
@@ -90,15 +89,4 @@ class RunUpgradeCommandService(AgentExecuteScriptService):
 
     def _execute(self, data, parent_data, common_data: AgentCommonData):
         super()._execute(data, parent_data, common_data)
-
-        # Windows 重启 Agent 会导致无法在作业平台获取脚本执行结果，此时默认该步骤成功
-        skip_job_instance_ids: List[int] = []
-        for job_instance_id, call_params in self.job_instance_id__call_params_map.items():
-            # 通过调用参数判断 job_instance_id 是否执行的是 Windows 机器
-            os_type = call_params["job_params"]["os_type"]
-            if os_type == constants.OsType.WINDOWS:
-                skip_job_instance_ids.append(job_instance_id)
-
-        models.JobSubscriptionInstanceMap.objects.filter(
-            node_id=self.id, job_instance_id__in=skip_job_instance_ids
-        ).update(status=constants.BkJobStatus.SUCCEEDED)
+        self.skip_polling_result_by_os_types(os_types=[constants.OsType.WINDOWS])
