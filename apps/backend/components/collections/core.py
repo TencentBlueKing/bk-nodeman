@@ -24,6 +24,7 @@ class ServiceCCConfigName(enum.EnhanceEnum):
     SSH = "SERVICE_SSH"
     WMIEXE = "SERVICE_WMIEXE"
     JOB_CMD = "SERVICE_JOB_CMD"
+    QUERY_PASSWORD = "QUERY_PASSWORD"
 
     @classmethod
     def _get_member__alias_map(cls) -> Dict[Enum, str]:
@@ -31,6 +32,7 @@ class ServiceCCConfigName(enum.EnhanceEnum):
             cls.SSH: _("使用 ssh 会话执行命令"),
             cls.WMIEXE: _("使用 wmiexe 会话执行命令"),
             cls.JOB_CMD: _("使用 job 执行命令"),
+            cls.QUERY_PASSWORD: _("查询密码"),
         }
 
 

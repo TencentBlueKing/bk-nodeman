@@ -54,6 +54,12 @@ class JobV3BaseService(six.with_metaclass(abc.ABCMeta, BaseService)):
     # 作业实例ID - 调用参数映射关系
     job_instance_id__call_params_map: Optional[Dict[int, Dict[str, Any]]] = None
 
+    def inputs_format(self):
+        return super().inputs_format() + [
+            # 是否跳过作业平台任务结果轮训
+            Service.InputItem(name="skip_polling_result", key="skip_polling_result", type="str", required=False),
+        ]
+
     def __init__(self, *args, **kwargs):
         self.job_instance_id__call_params_map = {}
         super().__init__(*args, **kwargs)
@@ -244,8 +250,29 @@ class JobV3BaseService(six.with_metaclass(abc.ABCMeta, BaseService)):
         job_sub_map.status = job_status
         job_sub_map.save()
 
+    def skip_polling_result_by_os_types(self, os_types: Optional[List[str]] = None):
+        """
+        跳过作业平台结果轮训
+        :param os_types: 操作系统类型列表，为 None 全豁免
+        :return:
+        """
+        sub_inst_ids = []
+        skip_job_instance_ids: List[int] = []
+        for job_instance_id, call_params in self.job_instance_id__call_params_map.items():
+            # 通过调用参数判断 job_instance_id 是否执行的是 Windows 机器
+            os_type = call_params["job_params"]["os_type"]
+            if os_types is None or os_type in os_types:
+                skip_job_instance_ids.append(job_instance_id)
+                sub_inst_ids.extend(call_params["subscription_instance_id"])
+        self.log_info(sub_inst_ids=sub_inst_ids, log_content=_("该步骤无需等待作业平台执行结果"))
+
+        models.JobSubscriptionInstanceMap.objects.filter(
+            node_id=self.id, job_instance_id__in=skip_job_instance_ids, status=constants.BkJobStatus.PENDING
+        ).update(status=constants.BkJobStatus.SUCCEEDED)
+
     def _schedule(self, data, parent_data, callback_data=None):
         polling_time = data.get_one_of_outputs("polling_time") or 0
+        skip_polling_result = data.get_one_of_inputs("skip_polling_result", default=False)
         # 查询未完成的作业, 批量查询作业状态并更新DB
         multi_params = [
             {"job_sub_map": job_sub_map}
@@ -253,6 +280,13 @@ class JobV3BaseService(six.with_metaclass(abc.ABCMeta, BaseService)):
                 node_id=self.id, status=constants.BkJobStatus.PENDING
             )
         ]
+
+        # 处理跳过作业平台结果轮训的情况
+        if skip_polling_result:
+            self.skip_polling_result_by_os_types()
+            self.finish_schedule()
+            return
+
         request_multi_thread(self.request_get_job_instance_status, multi_params)
 
         # 判断 JobSubscriptionInstanceMap 中对应的 job_instance_id 都执行完成的，把成功的 subscription_instance_ids 向下传递
@@ -263,10 +297,17 @@ class JobV3BaseService(six.with_metaclass(abc.ABCMeta, BaseService)):
             self.finish_schedule()
         elif polling_time + POLLING_INTERVAL > POLLING_TIMEOUT:
             # 由于JOB的超时机制可能会失效，因此这里节点管理自己需要有超时机制进行兜底
+            pending_job_sub_maps = models.JobSubscriptionInstanceMap.objects.filter(
+                node_id=self.id, status=constants.BkJobStatus.PENDING
+            )
+            pending_sub_inst_ids: List[int] = []
+            for pending_job_sub_map in pending_job_sub_maps:
+                pending_sub_inst_ids.extend(pending_job_sub_map.subscription_instance_ids)
+            self.move_insts_to_failed(sub_inst_ids=pending_sub_inst_ids, log_content=_("作业平台执行任务超时"))
             models.JobSubscriptionInstanceMap.objects.filter(
                 node_id=self.id, status=constants.BkJobStatus.PENDING
             ).update(status=constants.BkJobStatus.FAILED)
-
+            self.finish_schedule()
         data.outputs.polling_time = polling_time + POLLING_INTERVAL
 
 
@@ -275,7 +316,7 @@ class JobExecuteScriptService(JobV3BaseService, metaclass=abc.ABCMeta):
     PRINT_PARAMS_TO_LOG = True
 
     def inputs_format(self):
-        return self.inputs_format() + [
+        return super().inputs_format() + [
             Service.InputItem(name="script_content", key="script_content", type="str", required=False),
             Service.InputItem(name="script_param", key="script_param", type="str", required=False),
         ]
@@ -345,7 +386,7 @@ class JobExecuteScriptService(JobV3BaseService, metaclass=abc.ABCMeta):
 
 class JobTransferFileService(JobV3BaseService, metaclass=abc.ABCMeta):
     def inputs_format(self):
-        return self.inputs_format() + [
+        return super().inputs_format() + [
             Service.InputItem(name="file_list", key="file_list", type="list", required=False),
             Service.InputItem(name="file_target_path", key="file_target_path", type="str", required=False),
         ]
@@ -407,7 +448,7 @@ class JobTransferFileService(JobV3BaseService, metaclass=abc.ABCMeta):
 
 class JobPushConfigService(JobV3BaseService, metaclass=abc.ABCMeta):
     def inputs_format(self):
-        return self.inputs_format() + [
+        return super().inputs_format() + [
             Service.InputItem(name="config_info_list", key="config_info_list", type="list", required=False),
             Service.InputItem(name="file_target_path", key="file_target_path", type="str", required=False),
         ]

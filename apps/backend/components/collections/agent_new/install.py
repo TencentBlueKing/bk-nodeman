@@ -14,7 +14,7 @@ import os
 import socket
 import time
 from collections import defaultdict
-from typing import Dict, List
+from typing import Dict, List, Set
 
 from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
@@ -147,12 +147,25 @@ class InstallService(base.AgentBaseService):
         lan_windows_sub_inst = []
         lan_linux_sub_inst = []
 
+        manual_install_sub_inst_ids: List[int] = []
+        hosts_need_gen_commands: List[models] = []
+        host_ids_need_gen_commands: Set[int] = set()
+        for host in host_id_obj_map.values():
+            if not host.is_manual:
+                hosts_need_gen_commands.append(host)
+                host_ids_need_gen_commands.add(host.bk_host_id)
+                continue
+            manual_install_sub_inst_ids.append(host_id__sub_inst_id[host.bk_host_id])
+        self.log_info(sub_inst_ids=manual_install_sub_inst_ids, log_content=_("等待手动执行安装命令"))
+
         host_id__installation_tool_map = batch_gen_commands(
-            list(host_id_obj_map.values()), self.id, is_uninstall, host_id__sub_inst_id=host_id__sub_inst_id
+            hosts_need_gen_commands, self.id, is_uninstall, host_id__sub_inst_id=host_id__sub_inst_id
         )
 
         for sub_inst in common_data.subscription_instances:
             bk_host_id = sub_inst.instance_info["host"]["bk_host_id"]
+            if bk_host_id not in host_ids_need_gen_commands:
+                continue
             host = host_id_obj_map[bk_host_id]
             installation_tool = host_id__installation_tool_map[bk_host_id]
             install_sub_inst_obj = InstallSubInstObj(
@@ -169,11 +182,19 @@ class InstallService(base.AgentBaseService):
                     lan_linux_sub_inst.append(install_sub_inst_obj)
 
         succeed_non_lan_inst_ids = self.handle_non_lan_inst(install_sub_inst_objs=non_lan_sub_inst)
-        succeed_lan_windows_sub_inst = self.handle_lan_windows_sub_inst(install_sub_inst_objs=lan_windows_sub_inst)
-        succeed_lan_linux_sub_inst = self.handle_lan_linux_sub_inst(install_sub_inst_objs=lan_linux_sub_inst)
+        succeed_lan_windows_sub_inst_ids = self.handle_lan_windows_sub_inst(install_sub_inst_objs=lan_windows_sub_inst)
+        succeed_lan_linux_sub_inst_ids = self.handle_lan_linux_sub_inst(install_sub_inst_objs=lan_linux_sub_inst)
         # 使用 filter 移除并发过程中抛出异常的实例
         data.outputs.scheduling_sub_inst_ids = list(
-            filter(None, succeed_non_lan_inst_ids + succeed_lan_windows_sub_inst + succeed_lan_linux_sub_inst)
+            filter(
+                None,
+                (
+                    succeed_non_lan_inst_ids
+                    + succeed_lan_windows_sub_inst_ids
+                    + succeed_lan_linux_sub_inst_ids
+                    + manual_install_sub_inst_ids
+                ),
+            )
         )
         data.outputs.polling_time = 0
 
@@ -307,11 +328,11 @@ class InstallService(base.AgentBaseService):
                     "level": "INFO",
                     "step": "wait_for_job",
                     "log": _(
-                        "作业执行中，如果卡在这里较长时间，请检查："
+                        "作业执行中，如果卡在这里较长时间，请检查：\n"
                         "1. P-Agent({host_inner_ip}) 到 Proxy({jump_server_ip})"
-                        " 的 {download_port}{proxy_pass_port} 是否可连通。 "
-                        "2. Proxy是否已正确完成所有安装步骤且状态正常。 "
-                        "3. 点击上面链接跳转到作业平台查看任务执行情况。"
+                        " 的 {download_port}、{proxy_pass_port} 是否可连通。 \n"
+                        "2. Proxy是否已正确完成所有安装步骤且状态正常。 \n"
+                        "3. 点击上面链接跳转到作业平台查看任务执行情况。\n"
                     ).format(
                         host_inner_ip=host.inner_ip,
                         jump_server_ip=jump_server.inner_ip,

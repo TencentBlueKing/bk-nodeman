@@ -16,7 +16,6 @@ from typing import List
 
 from django.utils.translation import ugettext as _
 
-from apps.backend.api.constants import OS
 from apps.backend.components.collections import plugin
 from apps.backend.utils.pipeline_parser import PipelineParser as CustomPipelineParser
 from apps.backend.utils.pipeline_parser import parse_pipeline
@@ -29,13 +28,10 @@ logger = logging.getLogger("app")
 class PluginServiceActivity(ServiceActivity):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.component.inputs.subscription_step_id = Var(type=Var.SPLICE, value="${plugin_name}")
+        self.component.inputs.subscription_step_id = Var(type=Var.SPLICE, value="${subscription_step_id}")
         self.component.inputs.description = Var(type=Var.SPLICE, value="${description}")
-        self.component.inputs.act_name = Var(type=Var.SPLICE, value=kwargs.get("name"))
-
-
-class CategoryType(object):
-    official = "official"
-    external = "external"
+        self.component.inputs.act_name = Var(type=Var.PLAIN, value=kwargs.get("name"))
 
 
 class StatusType(object):
@@ -44,11 +40,6 @@ class StatusType(object):
     SUCCESS = "SUCCESS"
     FAILED = "FAILED"
 
-
-TARGET_PATH_MAP = {
-    OS.LINUX: "/tmp/nodeman_upload/",
-    OS.WINDOWS: "c:\\tmp\\nodeman_upload",
-}
 
 SCRIPT_TIMEOUT = 60 * 5
 

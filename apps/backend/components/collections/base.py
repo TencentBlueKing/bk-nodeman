@@ -18,6 +18,7 @@ from django.utils import timezone
 from django.utils.translation import ugettext as _
 
 from apps.node_man import constants, models
+from apps.utils.cache import class_member_cache
 from apps.utils.time_handler import strftime_local
 from common.log import logger
 from pipeline.core.flow import Service
@@ -138,6 +139,19 @@ class LogMixin:
         self.log_base(sub_inst_ids, log_content, level=LogLevel.DEBUG)
 
 
+class DBHelperMixin:
+    @property
+    @class_member_cache()
+    def batch_size(self) -> int:
+        """
+        获取 update / create 每批次操作数
+        批量创建或更新进程状态表，受限于部分MySQL配置的原因，这里 BATCH_SIZE 支持可配置，默认为100
+        :return:
+        """
+        batch_size = models.GlobalSettings.get_config(models.GlobalSettings.KeyEnum.BATCH_SIZE.value, default=100)
+        return batch_size
+
+
 class CommonData:
     """
     抽象出通用数据结构体，同于原子执行时常用数据，避免重复编写
@@ -163,7 +177,7 @@ class CommonData:
         self.subscription_instance_ids = subscription_instance_ids
 
 
-class BaseService(Service, LogMixin):
+class BaseService(Service, LogMixin, DBHelperMixin):
 
     # 失败订阅实例ID - 失败原因 映射关系
     failed_subscription_instance_id_reason_map: Optional[Dict[int, Any]] = None

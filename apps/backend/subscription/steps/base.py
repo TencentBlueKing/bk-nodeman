@@ -11,9 +11,11 @@ specific language governing permissions and limitations under the License.
 
 
 import abc
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from apps.node_man import models
+from pipeline import builder
+from pipeline.builder.flow.base import Element
 
 
 class Step(object, metaclass=abc.ABCMeta):
@@ -22,6 +24,10 @@ class Step(object, metaclass=abc.ABCMeta):
     """
 
     STEP_TYPE = ""
+
+    subscription: models.Subscription = None
+    subscription_step: models.SubscriptionStep = None
+    step_id: str = None
 
     def __init__(self, subscription_step: models.SubscriptionStep):
         """
@@ -107,6 +113,23 @@ class Action(object, metaclass=abc.ABCMeta):
         self.step: Step = step
         self.instance_record_ids = instance_record_ids
 
+    def inject_vars_to_global_data(self, global_pipeline_data: builder.Data):
+        """
+        注入流程公共变量
+        参考：https://github.com/TencentBlueKing/bamboo-engine/blob/master/docs/user_guide/flow_orchestration.md
+        增加公共变量后，在相应的 manager ServiceActivity 基类添加相关的变量引用
+        :param global_pipeline_data: 全局pipeline公共变量
+        :return:
+        """
+        global_pipeline_data.inputs["${subscription_step_id}"] = builder.Var(
+            type=builder.Var.PLAIN, value=self.step.subscription_step.id
+        )
+
     @abc.abstractmethod
-    def generate_activities(self, *args, **kwargs):
+    def generate_activities(
+        self,
+        subscription_instances: List[models.SubscriptionInstanceRecord],
+        global_pipeline_data: builder.Data,
+        current_activities=None,
+    ) -> Tuple[List[Union[builder.ServiceActivity, Element]], Optional[builder.Data]]:
         raise NotImplementedError

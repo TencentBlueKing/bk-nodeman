@@ -9,13 +9,14 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from apps.node_man import models
+from apps.node_man import constants, models
 from apps.utils.files import PathHandler
 
-from .base import AgentCommonData, AgentExecuteScriptService
+from .base import AgentCommonData
+from .restart import RestartService
 
 
-class ReloadAgentConfigService(AgentExecuteScriptService):
+class ReloadAgentConfigService(RestartService):
     @property
     def script_name(self):
         return "reload"
@@ -28,6 +29,10 @@ class ReloadAgentConfigService(AgentExecuteScriptService):
         :param host: 主机对象
         :return: 脚本内容
         """
+        # Windows 复用重启逻辑完成重载操作
+        if host.os_type == constants.OsType.WINDOWS:
+            return super().get_script_content(data, common_data, host)
+
         # 路径处理器
         path_handler = PathHandler(host.os_type)
         general_node_type = self.get_general_node_type(host.node_type)

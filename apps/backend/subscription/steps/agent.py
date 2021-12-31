@@ -114,10 +114,20 @@ class AgentAction(Action, abc.ABC):
     def _generate_activities(self, agent_manager):
         pass
 
+    def inject_vars_to_global_data(self, global_pipeline_data: builder.Data):
+        global_pipeline_data.inputs["${blueking_language}"] = builder.Var(
+            type=builder.Var.PLAIN, value=self.step.subscription_step.params.get("blueking_language")
+        )
+        super().inject_vars_to_global_data(global_pipeline_data)
+
     def generate_activities(
-        self, subscription_instances: List[models.SubscriptionInstanceRecord], current_activities=None
+        self,
+        subscription_instances: List[models.SubscriptionInstanceRecord],
+        global_pipeline_data: builder.Data,
+        current_activities=None,
     ) -> Tuple[List[Union[builder.ServiceActivity, Element]], Optional[builder.Data]]:
         agent_manager = self.get_agent_manager(subscription_instances)
+        self.inject_vars_to_global_data(global_pipeline_data)
         return self._generate_activities(agent_manager)
 
     def append_delegate_activities(self, agent_manager, activities):
@@ -141,22 +151,11 @@ class InstallAgent(AgentAction):
     ACTION_DESCRIPTION = "安装"
 
     def _generate_activities(self, agent_manager: AgentManager):
-
-        # TODO 在一个订阅中只能有一种安装方式，后续把 is_manual 抽成 step 中的参数
-
-        # if agent_manager.host_info["is_manual"]:
-        #     self.ACTION_DESCRIPTION = "手动安装"
-        #     install_name = _("手动安装")
-        # else:
-        #     install_name = _("安装")
-
-        install_name = _("安装")
-
         activities = [
             agent_manager.register_host(),
             agent_manager.query_tjj_password() if settings.USE_TJJ else None,
             agent_manager.choose_ap(),
-            agent_manager.install(install_name),
+            agent_manager.install(),
             agent_manager.get_agent_status(expect_status=constants.ProcStateType.RUNNING),
         ]
         activities = self.append_delegate_activities(agent_manager, activities)
@@ -174,12 +173,10 @@ class ReinstallAgent(AgentAction):
 
     def _generate_activities(self, agent_manager: AgentManager):
 
-        install_name = _("安装")
-
         activities = [
             agent_manager.query_tjj_password() if settings.USE_TJJ else None,
             agent_manager.choose_ap(),
-            agent_manager.install(install_name),
+            agent_manager.install(),
             agent_manager.get_agent_status(expect_status=constants.ProcStateType.RUNNING),
         ]
         activities = self.append_delegate_activities(agent_manager, activities)
@@ -373,20 +370,12 @@ class ReloadAgent(AgentAction):
     def _generate_activities(self, agent_manager: AgentManager):
         activities = [
             agent_manager.check_agent_status(),
+            agent_manager.update_install_info(),
             agent_manager.render_and_push_gse_config(),
             agent_manager.reload_agent(),
-            agent_manager.restart(),
+            agent_manager.wait(5),
             agent_manager.get_agent_status(expect_status=constants.ProcStateType.RUNNING),
         ]
-
-        # TODO 不同操作系统分支不同
-        # os_type = constants.OS_TYPE.get(agent_manager.host_info.get("bk_os_type"))
-        # if os_type != constants.OsType.WINDOWS:
-        #     activities.append(agent_manager.reload_agent())
-        # else:
-        #     activities.append(agent_manager.restart()),
-        #     activities.append(agent_manager.get_agent_status(expect_status=constants.ProcStateType.RUNNING)),
-
         return activities, None
 
 

@@ -16,6 +16,7 @@ from functools import wraps
 from typing import Any, Dict, List, Set, Union
 
 from apps.node_man import constants, models
+from pipeline.core.flow import Service
 
 from .. import job
 from ..base import BaseService, CommonData
@@ -25,6 +26,11 @@ class AgentBaseService(BaseService, metaclass=abc.ABCMeta):
     """
     AGENT安装基类
     """
+
+    def inputs_format(self):
+        return super().inputs_format() + [
+            Service.InputItem(name="blueking_language", key="blueking_language", type="str", required=True),
+        ]
 
     def sub_inst_failed_handler(self, sub_inst_ids: Union[List[int], Set[int]]):
         """
@@ -135,8 +141,7 @@ class AgentBaseService(BaseService, metaclass=abc.ABCMeta):
         host_ids_without_proc = bk_host_ids - set(proc_status_infos_gby_host_id.keys())
         for host_id in host_ids_without_proc:
             proc_statuses_to_be_created.append(models.ProcessStatus(bk_host_id=host_id, **self.agent_proc_common_data))
-        batch_size = models.GlobalSettings.get_config(models.GlobalSettings.KeyEnum.BATCH_SIZE.value, default=100)
-        models.ProcessStatus.objects.bulk_create(proc_statuses_to_be_created, batch_size=batch_size)
+        models.ProcessStatus.objects.bulk_create(proc_statuses_to_be_created, batch_size=self.batch_size)
 
 
 class AgentCommonData(CommonData):
