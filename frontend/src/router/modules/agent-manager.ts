@@ -8,7 +8,17 @@ export default [
   {
     path: '/agent-manager/status',
     name: 'agentStatus',
-    props: true,
+    props: (router) => {
+      const props: any = {};
+      Object.keys(router.query).forEach((key) => {
+        let value = router.query[key].replace(/[\s;,]+/ig, ' ').split(/\s+/g);
+        if (key === 'bizId') {
+          value = value.map(item => parseInt(item, 10));
+        }
+        props[key] = value;
+      });
+      return props;
+    },
     component: AgentStatus,
     meta: {
       navId: 'agentManager',

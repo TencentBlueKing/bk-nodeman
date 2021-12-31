@@ -162,6 +162,7 @@
           ref="searchSelect"
           ext-cls="right-select"
           :data="searchSelectData"
+          :key="searchInputKey"
           v-model="searchSelectValue"
           :show-condition="false"
           :placeholder="$t('agent列表搜索')"
@@ -530,7 +531,7 @@
 import { Component, Watch, Ref, Mixins, Prop } from 'vue-property-decorator';
 import { CreateElement } from 'vue';
 import { MainStore, AgentStore } from '@/store/index';
-import { IBizValue, IBkColumn, ISortData, ITabelFliter } from '@/types';
+import { IBizValue, IBkColumn, ISearchItem, ISortData, ITabelFliter } from '@/types';
 import {
   IAgent, IAgentHost, IAgentJob, IAgentTable, IAgentTopo,
   IOperateItem, IAgentSearchIp, IAgentSearch,
@@ -560,6 +561,9 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
   @Ref('agentTable') private readonly agentTable!: any;
 
   @Prop({ default: () => [], type: Array }) private readonly ipList!: string[];
+  @Prop({ default: () => [], type: Array }) private readonly bk_biz_id!: number[];
+  @Prop({ default: () => [], type: Array }) private readonly agent_status!: string[];
+  @Prop({ default: () => [], type: Array }) private readonly inner_ip!: string[];
 
   private table: IAgentTable = {
     // 所有运行主机的数量
@@ -581,6 +585,7 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
     sort_type: '',
   };
   private loading = true;
+  private searchInputKey = 0;
   // 跨页全选loading
   private checkLoading = false;
   // ip复制按钮加载状态
@@ -879,15 +884,7 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
   }
 
   private created() {
-    this.search.biz = this.selectedBiz;
-    // 初始化IP条件
-    if (this.ipList && this.ipList.length) {
-      this.searchSelectValue.push({
-        id: 'inner_ip',
-        name: 'IP',
-        values: this.ipList.map(item => ({ id: item, name: item, checked: false })),
-      });
-    }
+    this.initRouterQuery();
   }
   private mounted() {
     this.handleInit();
@@ -897,28 +894,60 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
   private async handleInit() {
     this.initCustomColStatus();
     const { cloud, agentNum } = this.$route.params;
-    if (!cloud) {
+    if (!cloud && !this.agent_status.length) {
       this.initAgentList();
     }
     if (agentNum) {
       this.cloudAgentNum = (agentNum as any);
     }
-    AgentStore.getFilterCondition().then((data) => {
-      this.filterData = data;
-      if (cloud) {
-        this.handleSearchSelectChange([
-          {
-            name: '云区域',
-            id: 'bk_cloud_id',
-            values: [cloud as any],
-          },
-        ]);
-        this.handlePushValue('bk_cloud_id', [cloud as any], false);
-      }
-    });
     if (this.bkBizList) {
       this.initTopoFormat();
     }
+  }
+  private initRouterQuery() {
+    this.search.biz = this.bk_biz_id.length ? this.selectedBiz : [...this.bk_biz_id];
+    const searchParams: ISearchItem[] = [];
+    const { cloud } = this.$route.params;
+    AgentStore.getFilterCondition().then((data) => {
+      this.filterData = data;
+      if (cloud) {
+        searchParams.push({
+          name: this.filter.bk_cloud_id.name,
+          id: 'bk_cloud_id',
+          values: [cloud as any],
+        });
+      }
+      if (this.inner_ip.length || (this.ipList && this.ipList.length)) {
+        const ipList = this.inner_ip.length ? this.inner_ip : this.ipList;
+        searchParams.push({
+          id: 'inner_ip',
+          name: 'IP',
+          values: ipList.map(item => ({ id: item, name: item, checked: false })),
+        });
+      }
+      if (this.agent_status.length) {
+        const statusFilter = data.find(item => item.id === 'status');
+        if (statusFilter?.children) {
+          const statusArr = this.agent_status.map((status) => {
+            const childFilter = (statusFilter.children || []).find(item => item.id === status);
+            return {
+              checked: true,
+              id: status,
+              name: childFilter?.name || status,
+            };
+          });
+          searchParams.push({
+            id: 'agent_status',
+            name: this.filter.agent_status.name,
+            values: statusArr,
+          });
+        }
+      }
+      if (searchParams.length) {
+        this.searchSelectValue.push(...searchParams);
+        this.searchInputKey += 1;
+      }
+    });
   }
   private initCustomColStatus() {
     const data = this.handleGetStorage();
