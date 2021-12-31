@@ -808,14 +808,13 @@ class SubscriptionViewSet(APIViewSet):
         @apiGroup subscription
         """
 
-        # TODO Agent 安装优化后，该接口需要传 sub_inst_id
         params = self.get_validated_data()
         host = models.Host.objects.get(bk_host_id=params["bk_host_id"])
         installation_tool = gen_commands(
             host=host,
             pipeline_id=params["host_install_pipeline_id"],
             is_uninstall=params["is_uninstall"],
-            sub_inst_id=0,
+            sub_inst_id=params["sub_inst_id"],
         )
 
         return Response(
