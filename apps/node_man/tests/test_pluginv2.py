@@ -10,11 +10,12 @@ specific language governing permissions and limitations under the License.
 """
 from unittest.mock import patch
 
-from django.test import TestCase
+from django.core.cache import cache
 
 from apps.node_man import constants, models
 from apps.node_man.handlers.plugin_v2 import PluginV2Handler
 from apps.node_man.tests.utils import NodeApi, cmdb_or_cache_biz, create_host
+from apps.utils.unittest.testcase import CustomBaseTestCase
 
 
 def upload_package_return(url, data, files):
@@ -27,7 +28,19 @@ def upload_package_return(url, data, files):
     return response
 
 
-class TesetPluginV2(TestCase):
+def mock_batch_call(func, params_list, get_data):
+    """
+    mock掉并发接口为单线程接口
+    并发接口会出现测试数据丢失情况，问题未知
+    """
+    result = []
+    for params in params_list:
+        result.append(get_data(func(**params)))
+
+    return result
+
+
+class TesetPluginV2(CustomBaseTestCase):
     @patch("common.api.NodeApi.plugin_list", NodeApi.plugin_list)
     def test_list_plugin(self):
         process_to_create = []
@@ -135,3 +148,37 @@ class TesetPluginV2(TestCase):
                 },
             ],
         )
+
+    @patch("common.api.NodeApi.create_subscription", NodeApi.create_subscription)
+    @patch("apps.node_man.handlers.permission.IamHandler.is_superuser", lambda x: True)
+    def test_operate(self):
+        job_type = constants.JobType.MAIN_INSTALL_PLUGIN
+        plugin = "exceptionbeat"
+        scope = {"nodes": [{"bk_biz_id": 1}, {"bk_biz_id": 2}]}
+        steps = [{"id": "exceptionbeat", "type": "PLUGIN", "configs": {}, "params": {}}]
+
+        result = PluginV2Handler().operate(job_type, plugin, scope, steps)["param"]
+        self.assertEqual(result["plugin_name"], plugin)
+        self.assertEqual(result["steps"][0]["config"]["job_type"], job_type)
+
+        job_type = constants.JobType.MAIN_DELEGATE_PLUGIN
+        result = PluginV2Handler().operate(job_type, plugin, scope, steps)["param"]
+        self.assertEqual(result["plugin_name"], plugin)
+        self.assertEqual(result["steps"][0]["config"]["job_type"], job_type)
+
+    @patch("apps.node_man.handlers.plugin_v2.batch_call", mock_batch_call)
+    def test_fetch_package_deploy_info(self):
+        host_num = 10
+        create_host(host_num)
+
+        # 验证是否拿到正确的插件包部署信息
+        models.ProcessStatus.objects.all().update(is_latest=True)
+        result = PluginV2Handler().fetch_package_deploy_info(["gseagent"], ["project"] + ["os"])
+        nodes_num = sum([node["nodes_number"] for key, node in result.items()])
+        self.assertEqual(nodes_num, host_num)
+
+        # 验证cache是否成功缓存
+        cache_deploy_number_template = "plugin_v2:fetch_package_deploy_info:{project}:{keys_combine_str}"
+        result = cache.get(cache_deploy_number_template.format(project="gseagent", keys_combine_str="project|os"))
+        nodes_num = sum([node_num for key, node_num in result.items()])
+        self.assertEqual(nodes_num, host_num)
