@@ -34,6 +34,10 @@ class TestIAM(CustomBaseTestCase):
         ret = IamHandler().fetch_policy("admin", [IamActionType.cloud_edit])
         self.assertEqual(len(ret[IamActionType.cloud_edit]), self.resource_num)
 
+        # 测试创建者
+        ret = IamHandler().fetch_policy("creator", [IamActionType.cloud_edit])
+        self.assertEqual(len(ret[IamActionType.cloud_edit]), self.resource_num)
+
         # 测试拥有any权限的用户
         ret = IamHandler().fetch_policy("normal_any", [IamActionType.cloud_view, IamActionType.cloud_edit])
         self.assertEqual(len(ret[IamActionType.cloud_view]), self.resource_num)
