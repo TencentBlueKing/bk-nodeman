@@ -604,8 +604,8 @@ export default {
   请将操作指令中的数据替换再执行: 'Please replace the {0} {1} {2} in the installation instruction with {3} before executing.',
   等待手动操作查看: 'Wait for manual operation to view {0}',
   操作指引: 'Operation guide',
-  手动安装Guide: '手动安装',
-  手动卸载Guide: '手动卸载',
+  手动安装Guide: 'Installation',
+  手动卸载Guide: 'Uninstall',
 
   插件管理: 'Plugin',
   全局配置: 'Global Configuration',
