@@ -240,7 +240,7 @@ class NodeApi:
     def create_subscription(param):
         subscription_id = random.randint(100, 1000)
         task_id = random.randint(10, 1000)
-        return {"subscription_id": subscription_id, "task_id": task_id}
+        return {"subscription_id": subscription_id, "task_id": task_id, "param": param}
 
     @staticmethod
     def retry_subscription_task(param):

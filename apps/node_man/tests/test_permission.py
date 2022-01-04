@@ -130,6 +130,10 @@ class TestPermission(TestCase):
         result = PackagePermission().has_permission(request, view("plugin_status_operation"))
         self.assertFalse(result)
 
+        # 测试无鉴权
+        result = PackagePermission().has_permission(request, view("history"))
+        self.assertTrue(result)
+
     @patch("apps.node_man.handlers.permission.settings.USE_IAM", True)
     @patch("apps.node_man.handlers.permission.IamHandler.fetch_policy", fetch_policy)
     @patch("apps.node_man.handlers.cmdb.IamHandler.fetch_policy", fetch_policy)
