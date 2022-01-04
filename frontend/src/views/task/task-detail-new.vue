@@ -233,11 +233,11 @@ export default class TaskDeatail extends Mixins(PollMixin, HeaderFilterMixins) {
     }
     return false;
   }
-  private get manualStepText(): string {
-    return /UN/ig.test(this.jobType) ? window.i18n.t('手动卸载Guide') : window.i18n.t('手动安装Guide');
+  private get manualStepText(): string[] {
+    return /UN/ig.test(this.jobType) ? [window.i18n.t('手动卸载Guide'), '卸载'] : [window.i18n.t('手动安装Guide'), '安装'];
   }
   private get hasWaitingHost() {
-    return this.tableList.some(item => item.step === this.manualStepText && item.status === 'running');
+    return this.tableList.some(item => this.manualStepText.includes(item.step as string) && item.status === 'running');
   }
 
   private created() {

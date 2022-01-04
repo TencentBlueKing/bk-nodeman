@@ -95,7 +95,8 @@
                 <template #default="{ row }">
                   <div
                     class="command-guide col-execution"
-                    v-if="['running', 'pending'].includes(row.status) && showCommandBtn && row.step === commandStep">
+                    v-if="['running', 'pending'].includes(row.status)
+                      && showCommandBtn && commandStep.includes(row.step)">
                     <span class="execut-mark execut-ignored"></span>
                     <i18n tag="span" path="等待手动操作查看" class="execut-text">
                       <bk-button text theme="primary" @click="handleRowView">
@@ -116,7 +117,7 @@
                 :width="hasOperaCell ? 100 : 30">
                 <template #default="{ row, $index }">
                   <bk-button
-                    v-if="row.status === 'running' && !(showCommandBtn && row.step === commandStep)"
+                    v-if="row.status === 'running' && !(showCommandBtn && commandStep.includes(row.step))"
                     v-test="'stop'"
                     ext-cls="step-operation"
                     size="small"
@@ -373,7 +374,7 @@ export default {
       return /(INSTALL)|(REINSTALL)|(UPGRADE)/ig.test(this.jobType);
     },
     commandStep() {
-      return /UN/ig.test(this.jobType) ? this.$t('手动卸载Guide') : this.$t('手动安装Guide');
+      return /UN/ig.test(this.jobType) ? [this.$t('手动卸载Guide'), '卸载'] : [this.$t('手动安装Guide'), '安装'];
     },
   },
   watch: {
