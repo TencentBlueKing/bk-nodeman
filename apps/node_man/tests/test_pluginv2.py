@@ -31,7 +31,7 @@ def upload_package_return(url, data, files):
 def mock_batch_call(func, params_list, get_data):
     """
     mock掉并发接口为单线程接口
-    并发接口会出现测试数据丢失情况，问题未知
+    并发接口会出现测试数据丢失情况
     """
     result = []
     for params in params_list:

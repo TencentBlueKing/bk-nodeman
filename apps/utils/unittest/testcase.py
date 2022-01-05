@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import operator
 from collections import defaultdict
 from typing import Any, Dict, List, Optional, Union
 from unittest import mock
@@ -97,9 +98,12 @@ class AssertDataMixin:
 
     def assertListEqual(self, list1, list2, msg=None, is_sort=False):
         if is_sort:
-            # TODO 没有考虑Dict类型的排序
-            list1.sort()
-            list2.sort()
+            # Dict类型排序默认以第一个key为排序参数
+            key = None
+            if len(list1) and isinstance(list1[0], dict):
+                key = operator.itemgetter(list(list1[0].keys())[0])
+            list1.sort(key=key)
+            list2.sort(key=key)
         super().assertListEqual(list1, list2, msg=msg)
 
 

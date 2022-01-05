@@ -53,6 +53,7 @@ SEARCH_BUSINESS = [
     {"bk_biz_id": 38, "bk_biz_name": "t8"},
     {"bk_biz_id": 39, "bk_biz_name": "t9"},
 ]
+TOPO_ORDER = ["biz", "syy2", "syy1", "set", "module", "host", "test"]
 
 
 def create_host_from_a_to_b(
@@ -406,7 +407,7 @@ class NodeApi:
 
     @staticmethod
     def run_subscription_task(param):
-        return {"subscription_id": 1, "task_id": 1}
+        return {"subscription_id": 1, "task_id": 1, "param": param}
 
     @staticmethod
     def plugin_retrieve(param):
