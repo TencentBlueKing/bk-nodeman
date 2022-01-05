@@ -11,11 +11,55 @@ specific language governing permissions and limitations under the License.
 import random
 from unittest.mock import patch
 
+from django.forms import model_to_dict
+
+from apps.backend.subscription.constants import MAX_RETRY_TIME
 from apps.node_man import constants
 from apps.node_man.handlers.policy import PolicyHandler
-from apps.node_man.models import GsePluginDesc, Subscription, SubscriptionStep
-from apps.node_man.tests.utils import SEARCH_BUSINESS, NodeApi, cmdb_or_cache_biz
+from apps.node_man.models import (
+    GsePluginDesc,
+    Host,
+    Packages,
+    ProcessStatus,
+    Subscription,
+    SubscriptionStep,
+)
+from apps.node_man.tests.utils import (
+    SEARCH_BUSINESS,
+    TOPO_ORDER,
+    NodeApi,
+    cmdb_or_cache_biz,
+    create_host,
+)
 from apps.utils.unittest.testcase import CustomBaseTestCase
+
+
+def get_instances_by_scope(scope):
+    host_id = scope["nodes"][0]["bk_host_id"]
+    host = Host.objects.filter(bk_host_id=host_id)
+    instance_key = f"host|instance|host|{host_id}"
+    instances = {
+        instance_key: {
+            "host": list(host.values())[0],
+            "scope": [{"ip": host.first().inner_ip, "bk_cloud_id": host.first().bk_cloud_id, "bk_supplier_id": 0}],
+            "process": {},
+            "service": None,
+        }
+    }
+
+    return instances
+
+
+def mock_batch_call(func, params_list, get_data):
+    """
+    mock掉并发接口为单线程接口
+    并发接口会出现测试数据丢失情况
+    """
+    result = []
+    for params in params_list:
+        result.append(get_data(func(**params)))
+
+    return result
 
 
 class TestPolicy(CustomBaseTestCase):
@@ -34,10 +78,12 @@ class TestPolicy(CustomBaseTestCase):
             object_type=Subscription.ObjectType.HOST,
             node_type=Subscription.NodeType.INSTANCE,
             bk_biz_scope=[SEARCH_BUSINESS[0]["bk_biz_id"], SEARCH_BUSINESS[1]["bk_biz_id"]],
+            nodes=[{"bk_host_id": 0}, {"bk_host_id": 1}],
             name="2W",
             creator="admin",
             category=Subscription.CategoryType.POLICY,
             plugin_name=cls.plugin_obj.name,
+            pid=1,
         )
         cls.subscription_obj.save()
 
@@ -47,6 +93,7 @@ class TestPolicy(CustomBaseTestCase):
                 "version": "1.0",
                 "os": constants.OsType.LINUX.lower(),
                 "cpu_arch": constants.CpuType.x86_64,
+                "project": cls.plugin_obj.name,
                 "config_templates": [
                     {
                         "id": 595,
@@ -70,6 +117,21 @@ class TestPolicy(CustomBaseTestCase):
             params={"details": cls.pkg_params_list},
         )
         cls.subscription_step_obj.save()
+
+        cls.package_obj = Packages(
+            id=1,
+            pkg_name=f"{cls.plugin_obj.name}-{cls.select_pkg_infos[0]['version']}.tgz",
+            version=cls.select_pkg_infos[0]["version"],
+            module="gse_plugin",
+            project=cls.plugin_obj.name,
+            pkg_size=14425833,
+            pkg_path="/data/plugin",
+            md5="66b0b2614eeda53510f94412eb396499",
+            pkg_mtime="2000-01-01: 09:30:00",
+            pkg_ctime="2000-01-01: 09:30:00",
+            location="127.0.0.1",
+        )
+        cls.package_obj.save()
 
         super().setUpTestData()
 
@@ -278,3 +340,101 @@ class TestPolicy(CustomBaseTestCase):
                 ],
             },
         )
+
+    @patch("apps.backend.subscription.tasks.CmdbHandler.get_topo_order", lambda: TOPO_ORDER)
+    @patch("apps.backend.subscription.tasks.tools.get_instances_by_scope", get_instances_by_scope)
+    @patch("apps.backend.subscription.tools.request_multi_thread", mock_batch_call)
+    def test_migrate_preview(self):
+        host, process, identity = create_host(number=1)
+        host[0].status = "NOT_INSTALLED"
+        query_params = {
+            "category": "policy",
+            "steps": [
+                {
+                    "id": "processbeat",
+                    "type": "PLUGIN",
+                    "params": self.pkg_params_list,
+                    "configs": self.select_pkg_infos,
+                }
+            ],
+            "scope": {"object_type": "HOST", "node_type": "INSTANCE", "nodes": [{**host[0].__dict__}]},
+        }
+
+        # 验证变更动作
+        result = PolicyHandler.migrate_preview(query_params)[0]
+        self.assertEqual(result["action_id"], constants.JobType.MAIN_INSTALL_PLUGIN)
+
+    def create_custom_hosts(self, number):
+        """
+        创建host和process数据
+        """
+        host, process, identity = create_host(number=number)
+        ProcessStatus.objects.all().update(
+            retry_times=MAX_RETRY_TIME + 1,
+            source_id=self.subscription_obj.id,
+            name=self.plugin_obj.name,
+            is_latest=True,
+        )
+
+        return host, process, identity
+
+    def create_custom_sub(self, process):
+        """
+        用于创建第二优先级的策略数据
+        """
+        subscription = {**model_to_dict(self.subscription_obj), "id": 999, "name": "sub_test"}
+        proc = {**model_to_dict(process), "source_id": 999, "is_latest": False, "name": self.plugin_obj.name}
+        ProcessStatus(**proc).save()
+        Subscription(**subscription).save()
+
+    @patch("common.api.NodeApi.run_subscription_task", NodeApi.run_subscription_task)
+    @patch("apps.node_man.tools.policy.CmdbHandler.get_topo_order", lambda: TOPO_ORDER)
+    def test_policy_operate(self):
+        host, process, _ = self.create_custom_hosts(number=2)
+
+        # 测试action为start
+        result = PolicyHandler.policy_operate(self.subscription_obj.id, constants.PolicyOpType.START)
+        self.assertIsInstance(result["job_id"], int)
+
+        # 测试action为retry_abnormal
+        result = PolicyHandler.policy_operate(self.subscription_obj.id, constants.PolicyOpType.RETRY_ABNORMAL)
+        actions = result["param"]["actions"]
+        self.assertEqual(actions, {self.plugin_obj.name: constants.JobType.MAIN_INSTALL_PLUGIN})
+
+        # 测试action为STOP/STOP_AND_DELETE
+        result = PolicyHandler.policy_operate(self.subscription_obj.id, constants.PolicyOpType.STOP)
+        actions = result["param"]["actions"]
+        self.assertEqual(actions, {self.plugin_obj.name: constants.JobType.MAIN_STOP_PLUGIN})
+
+        # 测试action为delete(测试灰度策略删除)
+        self.create_custom_sub(process[0])
+        result = PolicyHandler.policy_operate(self.subscription_obj.id, constants.PolicyOpType.DELETE)
+        actions = result["operate_results"][0]["param"]["actions"]
+        self.assertEqual(actions, {self.plugin_obj.name: constants.JobType.MAIN_INSTALL_PLUGIN})
+
+    @patch(
+        "apps.node_man.handlers.host_v2.CmdbHandler.biz_id_name",
+        lambda *args: {biz["bk_biz_id"]: biz["bk_biz_name"] for biz in SEARCH_BUSINESS},
+    )
+    @patch("apps.node_man.handlers.host_v2.CmdbHandler.get_topo_order", lambda: TOPO_ORDER)
+    def test_rollback_preview(self):
+        host, process, _ = self.create_custom_hosts(number=1)
+        query_params = {"page": 1, "pagesize": 10, "scope": self.subscription_obj.scope}
+
+        # 测试策略回滚，主机失去掌控
+        result = PolicyHandler.rollback_preview(self.subscription_obj.id, query_params)
+        self.assertEqual(result["list"][0]["target_policy"]["type"], constants.PolicyRollBackType.LOSE_CONTROL)
+
+        # 测试策略回滚，第二优先级作为主策略
+        self.create_custom_sub(process[0])
+        result = PolicyHandler.rollback_preview(self.subscription_obj.id, query_params)
+        self.assertEqual(result["list"][0]["target_policy"]["type"], constants.PolicyRollBackType.TRANSFER_TO_ANOTHER)
+
+    @patch("apps.node_man.handlers.policy.concurrent.batch_call", mock_batch_call)
+    def test_fetch_policy_abnormal_info(self):
+        self.create_custom_hosts(number=2)
+        policy_ids = [self.subscription_obj.id]
+
+        # 测试非正常主机信息
+        result = PolicyHandler.fetch_policy_abnormal_info(policy_ids)
+        self.assertEqual(result[self.subscription_obj.id]["abnormal_host_count"], len(self.subscription_obj.nodes))
