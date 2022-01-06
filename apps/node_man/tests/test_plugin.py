@@ -15,7 +15,14 @@ from django.test import TestCase
 
 from apps.node_man import constants as const
 from apps.node_man.handlers.plugin import PluginHandler
-from apps.node_man.models import Packages, ProcessStatus
+from apps.node_man.models import (
+    Packages,
+    PluginConfigTemplate,
+    ProcControl,
+    ProcessStatus,
+    Subscription,
+    SubscriptionTask,
+)
 from apps.node_man.tests.utils import (
     IP_REG,
     SEARCH_BUSINESS,
@@ -258,3 +265,74 @@ class TestPlugin(TestCase):
         statistics = PluginHandler.get_statistics()
         actual_host_count = sum([h["host_count"] for h in statistics])
         self.assertEqual(actual_host_count, host_count)
+
+    # 测试主机订阅任务查询
+    def test_get_host_subscription_plugins(self):
+        # 构造所需数据
+        plugin_name = "exceptionbeat"
+        version = "v1.0.0"
+        package = Packages(
+            id=1,
+            pkg_name=f"{plugin_name}-{version}.tgz",
+            version=version,
+            module="gse_plugin",
+            project=plugin_name,
+            pkg_size=14425833,
+            pkg_path="/data/plugin",
+            md5="66b0b2614eeda53510f94412eb396499",
+            pkg_mtime="2000-01-01: 09:30:00",
+            pkg_ctime="2000-01-01: 09:30:00",
+            location="127.0.0.1",
+        )
+        package.save()
+        proc_control = ProcControl(
+            module="gse_plugin",
+            project=plugin_name,
+            plugin_package_id=package.id,
+            install_path="/plugin/install",
+            log_path="/plugin/log",
+            data_path="/plugin/data",
+            pid_path="/plugin/pid",
+        )
+        proc_control.save()
+        proc_config_template = PluginConfigTemplate(
+            plugin_name=plugin_name,
+            plugin_version=version,
+            name=f"{plugin_name}.conf",
+            version=version,
+            format="yaml",
+            file_path="etc",
+            content="",
+            is_release_version=1,
+            creator="admin",
+            create_time="2000-01-01 09:30:00",
+            source_app_code="bk_nodeman",
+        )
+        proc_config_template.save()
+        subscription = Subscription(
+            object_type=Subscription.ObjectType.HOST,
+            node_type=Subscription.NodeType.INSTANCE,
+            bk_biz_scope=[SEARCH_BUSINESS[0]["bk_biz_id"], SEARCH_BUSINESS[1]["bk_biz_id"]],
+            nodes=[{"bk_host_id": 0}, {"bk_host_id": 1}],
+            name="2W",
+            creator="admin",
+            category=Subscription.CategoryType.POLICY,
+            plugin_name=plugin_name,
+            pid=1,
+        )
+        subscription.save()
+        subscription_task = SubscriptionTask(
+            subscription_id=subscription.id,
+            scope={"nodes": subscription.nodes},
+            actions={},
+        )
+        subscription_task.save()
+        host_list, process_list, _ = create_host(number=2)
+        ProcessStatus.objects.all().update(
+            name=plugin_name, source_id=subscription.id, source_type="subscription", version=version
+        )
+
+        # 验证是否成功拿到了主机下的插件状态
+        result = PluginHandler.get_host_subscription_plugins([host.bk_host_id for host in host_list])
+        for host in host_list:
+            self.assertTrue(result[host.bk_host_id][plugin_name]["subscription_statistics"]["running"])
