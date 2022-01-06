@@ -8,13 +8,49 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.test import TestCase
+import base64
+from unittest.mock import patch
+
+from Crypto.Cipher import AES
 
 from apps.node_man.handlers.tjj import TjjHandler
+from apps.utils.unittest.testcase import CustomBaseTestCase
+
+salt = b"superman"
+msg = b"I am so happy!!" + bytes(chr(1).encode())
 
 
-class TestTJJ(TestCase):
+def get_cipher_text():
+    key, iv = TjjHandler().get_key_and_iv(salt)
+    cipher = AES.new(key, AES.MODE_CBC, iv)
+    cipher_text = cipher.encrypt(msg)
+    cipher_text = b"Salted__" + salt + cipher_text
+    cipher_text = base64.b64encode(cipher_text)
+
+    return cipher_text
+
+
+class requests:
+    class post:
+        def __init__(self, url, data, headers):
+            self.url = url
+            self.data = data
+            self.headers = headers
+
+        def json(self):
+            return_value = {
+                "result": True,
+                "data": {
+                    "HasError": 0,
+                    "ResponseItems": {"IpList": {"127.0.0.1": {"Code": 0, "Password": get_cipher_text()}}},
+                },
+            }
+            return return_value
+
+
+class TestTJJ(CustomBaseTestCase):
+    @patch("apps.node_man.handlers.tjj.requests", requests)
     def test_fetch_pwd(self):
         # 第一个分支
         result = TjjHandler().fetch_pwd("admin", ["127.0.0.1"], "ticket")
-        self.assertEqual(result["code"], -1)
+        self.assertEqual(result["code"], 0)
