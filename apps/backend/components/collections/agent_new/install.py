@@ -199,6 +199,7 @@ class InstallService(base.AgentBaseService):
         data.outputs.polling_time = 0
 
     @base.batch_call_single_exception_handler
+    @base.RetryHandler(interval=0, retry_times=5, exception_types=[Exception])
     def execute_windows_commands(
         self, sub_inst_id: int, host: models.Host, commands: List[str], identity_data: models.IdentityData
     ):
@@ -351,6 +352,7 @@ class InstallService(base.AgentBaseService):
         return sub_inst_id
 
     @base.batch_call_single_exception_handler
+    @base.RetryHandler(interval=0, retry_times=5, exception_types=[socket.timeout])
     def execute_linux_commands(self, sub_inst_id, installation_tool: InstallationTools):
         host = installation_tool.host
         run_cmd = installation_tool.run_cmd

@@ -38,7 +38,7 @@ class QueryPasswordService(AgentBaseService):
         batch_call_func=concurrent.batch_call,
         extend_result=False,
         get_config_dict_func=core.get_config_dict,
-        get_config_dict_kwargs={"config_name": core.ServiceCCConfigName.JOB_CMD.value},
+        get_config_dict_kwargs={"config_name": core.ServiceCCConfigName.QUERY_PASSWORD.value},
     )
     def query_password(
         self,
