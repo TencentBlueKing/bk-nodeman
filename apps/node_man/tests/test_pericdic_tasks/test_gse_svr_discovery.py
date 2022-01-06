@@ -9,10 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-import contextlib
 from unittest.mock import patch
-
-from django.conf import settings
 
 from apps.node_man.models import AccessPoint
 from apps.node_man.periodic_tasks.gse_svr_discovery import (
@@ -25,21 +22,14 @@ from .utils import MockKazooClient, check_ip_ports_reachable
 
 
 class TestGseSvrDiscovery(CustomBaseTestCase):
-    @contextlib.contextmanager
-    def config_settings(self):
-        is_svr_enable = settings.GSE_ENABLE_SVR_DISCOVERY
-        settings.GSE_ENABLE_SVR_DISCOVERY = True
-        yield
-        settings.GSE_ENABLE_SVR_DISCOVERY = is_svr_enable
-
+    @patch("apps.node_man.periodic_tasks.gse_svr_discovery.settings.GSE_ENABLE_SVR_DISCOVERY", True)
     @patch("apps.node_man.periodic_tasks.gse_svr_discovery.KazooClient", MockKazooClient)
     @patch("apps.node_man.periodic_tasks.gse_svr_discovery.check_ip_ports_reachable", check_ip_ports_reachable)
     def test_gse_svr_discovery(self):
-        with self.config_settings():
-            gse_svr_discovery_periodic_task()
-            ap = AccessPoint.objects.all().first()
+        gse_svr_discovery_periodic_task()
+        ap = AccessPoint.objects.all().first()
 
-            # 检查ap_field是否已经更新。注: 如果gse_svr_discovery的ap_field更改了，单测这里也需要同步更改
-            ap_field_list = ["dataserver", "dataserver", "btfileserver"]
-            for ap_field in ap_field_list:
-                self.assertEqual(getattr(ap, ap_field, []), MOCK_AP_FIELD_MAP)
+        # 检查ap_field是否已经更新。注: 如果gse_svr_discovery的ap_field更改了，单测这里也需要同步更改
+        ap_field_list = ["dataserver", "dataserver", "btfileserver"]
+        for ap_field in ap_field_list:
+            self.assertEqual(getattr(ap, ap_field, []), MOCK_AP_FIELD_MAP)
