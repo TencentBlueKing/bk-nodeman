@@ -13,9 +13,10 @@ import re
 import socket
 import time
 import traceback
-from typing import Optional
+from typing import Any, Callable, Dict, Optional, Tuple
 
 import paramiko
+import wrapt
 from django.utils.translation import ugettext_lazy as _
 from six import StringIO
 
@@ -374,6 +375,27 @@ class Inspector(object):
 inspector = Inspector()
 
 
+@wrapt.decorator
+def ssh_man_exception_handler(wrapped: Callable, instance: Optional[object], args: Tuple[Any], kwargs: Dict[str, Any]):
+    """
+    捕获 SshMan 类方法的异常，尝试释放连接，减少占用IO资源
+    :param wrapped: 被装饰的函数或类方法
+    :param instance:
+        - 如果被装饰者为普通类方法，该值为类实例
+        - 如果被装饰者为 classmethod / 类方法，该值为类
+        - 如果被装饰者为类/函数/静态方法，该值为 None
+    :param args: 位置参数
+    :param kwargs: 关键字参数
+    :return:
+    """
+    try:
+        return wrapped(*args, **kwargs)
+    except Exception:
+        if instance:
+            instance.safe_close(getattr(instance, "ssh"))
+        raise
+
+
 class SshMan(object):
     """
     SshMan，负责SSH终端命令交互
@@ -432,6 +454,7 @@ class SshMan(object):
         timeout = RECV_TIMEOUT if timeout < 0 else timeout
         self.chan.settimeout(timeout=timeout)
 
+    @ssh_man_exception_handler
     def send_cmd(
         self,
         cmd,
@@ -490,7 +513,7 @@ class SshMan(object):
                 self.log.info(output)
 
             except socket.timeout:
-                raise Exception(f"recv socket timeout after %s seconds: {RECV_TIMEOUT}")
+                raise socket.timeout(f"recv socket timeout after {RECV_TIMEOUT} seconds")
             except Exception as e:
                 raise Exception(f"recv exception: {e}")
 
