@@ -16,7 +16,7 @@ from django.utils.translation import ugettext as _
 from rest_framework import exceptions
 
 from apps.exceptions import ValidationError
-from apps.utils import basic, cache, concurrent
+from apps.utils import basic, concurrent
 
 from . import serializers
 
@@ -109,9 +109,7 @@ class ConcurrentController:
         self.extend_result = extend_result
         self.batch_call_kwargs = batch_call_kwargs or {}
 
-    @property
-    @cache.class_member_cache()
-    def config_obj(self) -> ConcurrentControlConfig:
+    def get_config_obj(self) -> ConcurrentControlConfig:
         """并发配置实例"""
         config_dict = {}
         if self.get_config_dict_func is not None:
@@ -133,17 +131,17 @@ class ConcurrentController:
         :param kwargs: 关键字参数
         :return:
         """
-
+        config_obj = self.get_config_obj()
         # 全量执行
-        if self.config_obj.execute_all:
+        if config_obj.execute_all:
             return wrapped(*args, **kwargs)
 
         params_list: List[Dict[str, Any]] = []
-        for chunk_list in basic.chunk_lists(kwargs[self.data_list_name], self.config_obj.limit):
+        for chunk_list in basic.chunk_lists(kwargs[self.data_list_name], config_obj.limit):
             params_list.append(dict(ChainMap({self.data_list_name: chunk_list}, kwargs)))
 
         # 如果批次间非并发，batch_call_func 默认使用 batch_call_serial
-        if not self.config_obj.is_concurrent_between_batches:
+        if not config_obj.is_concurrent_between_batches:
             self.batch_call_func = concurrent.batch_call_serial
         return self.batch_call_func(
             func=wrapped,
@@ -154,7 +152,7 @@ class ConcurrentController:
                     {
                         "get_data": self.get_data,
                         "extend_result": self.extend_result,
-                        "interval": self.config_obj.interval,
+                        "interval": config_obj.interval,
                     },
                 )
             )
