@@ -57,10 +57,11 @@ class ConcurrentControllerTestCase(testcase.CustomBaseTestCase):
         # 验证经过排序后返回结果一致
         self.assertListEqual(double_numbers, double_numbers_execute_all, is_sort=True)
 
-        if controller_inst.config_obj.execute_all:
+        config_obj = controller_inst.get_config_obj()
+        if config_obj.execute_all:
             expect_batch_num = 1
         else:
-            expect_batch_num = math.ceil(len(random_numbers) / controller_inst.config_obj.limit)
+            expect_batch_num = math.ceil(len(random_numbers) / config_obj.limit)
         # 验证分片执行
         self.assertEqual(expect_batch_num, call_info["count"])
 
