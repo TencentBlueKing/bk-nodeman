@@ -495,7 +495,7 @@ class JobHealthzChecker(BaseHealthzChecker):
         args = {}
         if job_test_cases[api_name].get("args", None):
             args = job_test_cases[api_name]["args"]
-        if kwargs["data"]:
+        if kwargs.get("data"):
             args.update(kwargs["data"])
         args.update({"bk_biz_id": request.biz_id, "operator": request.user.username})
         try:

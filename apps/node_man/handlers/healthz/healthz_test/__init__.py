@@ -34,7 +34,8 @@ def load_yaml_by_name_and_env(name):
     test_cases_name = "{name}_test_cases".format(name=name)
     try:
         with open(
-            os.path.join(settings.PROJECT_ROOT, "apps", "node_man", "handlers", "healthz", "healthz_test", filename)
+            os.path.join(settings.PROJECT_ROOT, "apps", "node_man", "handlers", "healthz", "healthz_test", filename),
+            encoding="utf-8",
         ) as f:
             # 将当前填充的数据填充到global中
             globals()[test_cases_name] = yaml.safe_load(f)
