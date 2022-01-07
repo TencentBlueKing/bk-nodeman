@@ -3,12 +3,12 @@ search_business:
     description: 查询业务信息
     dependencies: []
     args:
-        bk_biz_id: 2
+        bk_biz_id: 1
 
 get_biz_internal_module:
     method: POST
     description: 查询业务下的module
     dependencies: []
     args:
-        bk_biz_id: 2
+        bk_biz_id: 1
         bk_supplier_account: 0

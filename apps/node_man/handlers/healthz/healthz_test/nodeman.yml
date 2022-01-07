@@ -3,6 +3,6 @@ plugin_info:
     description: 获取业务下bkmonitorbeat插件信息
     dependencies: []
     args:
-        bk_biz_id: 2
+        bk_biz_id: 1
         name: bkmonitorbeat
 
