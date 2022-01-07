@@ -236,6 +236,24 @@ class Subscription:
         return {"subscription_id": subscription_id, "task_id": task_id}
 
 
+class GseApi:
+    @staticmethod
+    def get_agent_status(*args, **kwargs):
+        return {"bk_host_id": 1, "agent_status": "RUNNING"}
+
+
+class JobApi:
+    @staticmethod
+    def fast_execute_script(*args, **kwargs):
+        job_id = random.randint(100, 1000)
+        return {"job_id": job_id, "args": args, "kwargs": kwargs}
+
+    @staticmethod
+    def get_job_instance_log(*args, **kwargs):
+        job_id = random.randint(100, 1000)
+        return [{"job_id": job_id, "args": args, "kwargs": kwargs}]
+
+
 class NodeApi:
     @staticmethod
     def create_subscription(param):
@@ -479,6 +497,10 @@ class NodeApi:
     @staticmethod
     def metric_list():
         return []
+
+    @staticmethod
+    def plugin_info(*args, **kwargs):
+        return {}
 
 
 def create_cloud_area(number, creator="admin", begin=1):
@@ -1045,6 +1067,12 @@ class MockClient(object):
                 return {"bk_set_id": 10, "module": None, "bk_set_name": "空闲机池"}
             else:
                 raise ComponentCallError
+
+        @classmethod
+        def get_host_by_topo_node(cls, bk_biz_id, *args, **kwargs):
+            if bk_biz_id == 0:
+                raise ComponentCallError
+            return []
 
 
 class MockIAM(object):
