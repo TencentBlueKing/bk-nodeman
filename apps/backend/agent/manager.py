@@ -111,11 +111,12 @@ class AgentManager(object):
         return act
 
     @classmethod
-    def restart(cls):
+    def restart(cls, skip_polling_result: bool):
         """重启"""
         act = AgentServiceActivity(
             component_code=components.RestartComponent.code, name=components.RestartComponent.name
         )
+        act.component.inputs.skip_polling_result = Var(type=Var.PLAIN, value=skip_polling_result)
         return act
 
     @classmethod
@@ -191,11 +192,12 @@ class AgentManager(object):
         return act
 
     @classmethod
-    def reload_agent(cls):
+    def reload_agent(cls, skip_polling_result: bool):
         """重载agent"""
         act = AgentServiceActivity(
             component_code=components.ReloadAgentConfigComponent.code, name=components.ReloadAgentConfigComponent.name
         )
+        act.component.inputs.skip_polling_result = Var(type=Var.PLAIN, value=skip_polling_result)
         return act
 
     @classmethod
@@ -211,6 +213,7 @@ class AgentManager(object):
     def update_install_info(cls):
         """更新安装信息"""
         act = AgentServiceActivity(
-            component_code=components.UpdateInstallInfoService.code, name=components.UpdateInstallInfoService.name
+            component_code=components.UpdateProcessStatusComponent.code,
+            name=components.UpdateProcessStatusComponent.name,
         )
         return act
