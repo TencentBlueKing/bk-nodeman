@@ -211,7 +211,8 @@ class RestartAgent(AgentAction):
 
     def _generate_activities(self, agent_manager: AgentManager):
         activities = [
-            agent_manager.restart(),
+            agent_manager.restart(skip_polling_result=True),
+            agent_manager.wait(5),
             agent_manager.get_agent_status(expect_status=constants.ProcStateType.RUNNING),
         ]
 
@@ -228,7 +229,8 @@ class RestartProxy(AgentAction):
 
     def _generate_activities(self, agent_manager: AgentManager):
         activities = [
-            agent_manager.restart(),
+            agent_manager.restart(skip_polling_result=True),
+            agent_manager.wait(5),
             agent_manager.get_agent_status(expect_status=constants.ProcStateType.RUNNING, name=_("查询Proxy状态")),
         ]
         return activities, None
@@ -372,7 +374,7 @@ class ReloadAgent(AgentAction):
             agent_manager.check_agent_status(),
             agent_manager.update_install_info(),
             agent_manager.render_and_push_gse_config(),
-            agent_manager.reload_agent(),
+            agent_manager.reload_agent(skip_polling_result=True),
             agent_manager.wait(5),
             agent_manager.get_agent_status(expect_status=constants.ProcStateType.RUNNING),
         ]

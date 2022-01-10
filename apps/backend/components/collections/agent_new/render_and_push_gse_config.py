@@ -17,18 +17,6 @@ from apps.utils.files import PathHandler
 
 from .base import AgentCommonData, AgentPushConfigService
 
-# TODO 原逻辑有更新 data_path, ap_id，后续检查这块逻辑是否需要，新定义一个service完成该更新
-# # 新配置写入数据库
-# extra_data = {
-#     "peer_exchange_switch_for_agent": host_info.get("peer_exchange_switch_for_agent", True),
-#     "bt_speed_limit": host_info.get("bt_speed_limit", 0),
-# }
-# if host_info.get("data_path"):
-#     extra_data.update({"data_path": host_info["data_path"]})
-# host.extra_data = extra_data
-# host.ap_id = host_info["ap_id"]
-# host.save()
-
 
 class RenderAndPushGseConfigService(AgentPushConfigService):
     def get_config_info_list(self, data, common_data: AgentCommonData, host: models.Host) -> List[Dict[str, Any]]:
