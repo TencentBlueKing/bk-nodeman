@@ -8,7 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-
+import copy
 from enum import Enum
 from typing import Any, Dict
 
@@ -37,7 +37,10 @@ class ServiceCCConfigName(enum.EnhanceEnum):
 
 
 def get_config_dict(config_name: str) -> Dict[str, Any]:
+    default_concurrent_control_config = copy.deepcopy(core_concurrent_constants.DEFAULT_CONCURRENT_CONTROL_CONFIG)
+    if config_name in [ServiceCCConfigName.SSH.value, ServiceCCConfigName.WMIEXE.value]:
+        default_concurrent_control_config.update(limit=10)
     current_controller_settings = models.GlobalSettings.get_config(
         key=models.GlobalSettings.KeyEnum.CONCURRENT_CONTROLLER_SETTINGS.value, default={}
     )
-    return current_controller_settings.get(config_name, core_concurrent_constants.DEFAULT_CONCURRENT_CONTROL_CONFIG)
+    return current_controller_settings.get(config_name, default_concurrent_control_config)
