@@ -114,9 +114,9 @@ class InstallService(base.AgentBaseService):
                 }
             )
 
-        concurrent.batch_call(func=self.execute_windows_commands, params_list=pre_commands_params_list)
-        concurrent.batch_call(func=self.push_curl_exe, params_list=push_curl_exe_params_list)
-        return concurrent.batch_call(func=self.execute_windows_commands, params_list=run_install_params_list)
+        concurrent.batch_call_serial(func=self.execute_windows_commands, params_list=pre_commands_params_list)
+        concurrent.batch_call_serial(func=self.push_curl_exe, params_list=push_curl_exe_params_list)
+        return concurrent.batch_call_serial(func=self.execute_windows_commands, params_list=run_install_params_list)
 
     @controller.ConcurrentController(
         data_list_name="install_sub_inst_objs",
@@ -133,7 +133,7 @@ class InstallService(base.AgentBaseService):
             }
             for install_sub_inst_obj in install_sub_inst_objs
         ]
-        return concurrent.batch_call(func=self.execute_linux_commands, params_list=params_list)
+        return concurrent.batch_call_serial(func=self.execute_linux_commands, params_list=params_list)
 
     def _execute(self, data, parent_data, common_data: base.AgentCommonData):
 
@@ -199,7 +199,7 @@ class InstallService(base.AgentBaseService):
         data.outputs.polling_time = 0
 
     @base.batch_call_single_exception_handler
-    @base.RetryHandler(interval=0, retry_times=5, exception_types=[Exception])
+    @base.RetryHandler(interval=0, retry_times=2, exception_types=[Exception])
     def execute_windows_commands(
         self, sub_inst_id: int, host: models.Host, commands: List[str], identity_data: models.IdentityData
     ):
@@ -352,7 +352,7 @@ class InstallService(base.AgentBaseService):
         return sub_inst_id
 
     @base.batch_call_single_exception_handler
-    @base.RetryHandler(interval=0, retry_times=5, exception_types=[socket.timeout])
+    @base.RetryHandler(interval=0, retry_times=2, exception_types=[socket.timeout])
     def execute_linux_commands(self, sub_inst_id, installation_tool: InstallationTools):
         host = installation_tool.host
         run_cmd = installation_tool.run_cmd
