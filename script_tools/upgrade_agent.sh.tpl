@@ -94,7 +94,10 @@ remove_crontab () {{
     fi
 }}
 
+
 setup_startup_scripts
 remove_crontab
-cd "{setup_path}" && tar xf "{temp_path}/{package_name}" || echo "tar xf {temp_path}/{package_name} failed"
+cd "{setup_path}"
+for file in `lsattr -R |egrep "i-" |awk "{{print $NF}}"`;do echo "--- $file" && chattr -i $file ;done
+tar xf "{temp_path}/{package_name}" || echo "tar xf {temp_path}/{package_name} failed"
 {reload_cmd}
