@@ -1,0 +1,3 @@
+---
+bugfix:
+  - "redis sentinel 连接死循环(fixed #427)"
