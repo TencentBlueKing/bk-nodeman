@@ -213,7 +213,7 @@ class AgentManager(object):
     def update_install_info(cls):
         """更新安装信息"""
         act = AgentServiceActivity(
-            component_code=components.UpdateProcessStatusComponent.code,
-            name=components.UpdateProcessStatusComponent.name,
+            component_code=components.UpdateInstallInfoComponent.code,
+            name=components.UpdateInstallInfoComponent.name,
         )
         return act
