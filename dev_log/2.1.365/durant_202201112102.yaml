@@ -1,0 +1,3 @@
+---
+optimization:
+  - "Agent升级去除目录保护(close #428)"
