@@ -20,6 +20,7 @@ django-mysql==3.3.0
 Mako==1.0.6
 MarkupSafe==1.1.1
 pyCryptodome==3.9.7
+pynacl==1.4.0
 gunicorn==19.6.0
 arrow==0.15.4
 PyJWT==1.7.1
