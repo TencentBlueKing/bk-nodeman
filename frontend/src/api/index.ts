@@ -155,7 +155,7 @@ function handleResponse({ config, response, resolve, reject }: IResponse) {
     if (`${response.code}` === '9900403') {
       window.bus.$emit('show-permission-modal', {
         trigger: 'request',
-        requestData: response.data,
+        questRes: response.data,
       });
     }
     reject({ message: response.message });
