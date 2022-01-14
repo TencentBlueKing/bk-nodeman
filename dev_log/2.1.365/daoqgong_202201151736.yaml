@@ -1,0 +1,3 @@
+---
+feature:
+  - "去掉 agent、proxy 的「移除」入口(close #436)"
