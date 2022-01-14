@@ -722,12 +722,12 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
       disabled: false,
       show: true,
     },
-    {
-      id: 'remove',
-      name: window.i18n.t('移除'),
-      disabled: false,
-      show: true,
-    },
+    // {
+    //   id: 'remove',
+    //   name: window.i18n.t('移除'),
+    //   disabled: false,
+    //   show: true,
+    // },
     {
       id: 'reload',
       name: window.i18n.t('重载配置'),
