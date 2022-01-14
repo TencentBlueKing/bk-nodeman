@@ -120,6 +120,26 @@ class ActionEnum:
         version=1,
     )
 
+    STRATEGY_CREATE = ActionMeta(
+        id="strategy_create",
+        name="策略创建",
+        name_en="Strategy Create",
+        type="manage",
+        related_resource_types=[ResourceEnum.BUSINESS],
+        related_actions=[],
+        version=1,
+    )
+
+    STRATEGY_VIEW = ActionMeta(
+        id="strategy_view",
+        name="策略查看",
+        name_en="Strategy View",
+        type="view",
+        related_resource_types=[ResourceEnum.BUSINESS],
+        related_actions=[],
+        version=1,
+    )
+
 
 _all_actions = {action.id: action for action in ActionEnum.__dict__.values() if isinstance(action, ActionMeta)}
 

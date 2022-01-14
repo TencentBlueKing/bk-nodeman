@@ -14,6 +14,7 @@
     width="768"
     ext-cls="permission-dialog"
     :z-index="2010"
+    :draggable="false"
     :mask-close="false"
     :header-position="'left'"
     :title="''"
@@ -41,17 +42,17 @@
           <tbody>
             <template v-if="actionsList.length > 0">
               <tr v-for="(action, index) in actionsList" :key="index">
-                <td width="20%">{{ action.system | filterEmpty }}</td>
-                <td width="30%">{{ action.action | filterEmpty }}</td>
-                <td width="50%">{{ action.instance_name | filterEmpty }}</td>
-                <!-- <td width="50%">
+                <td width="20%">{{ (isCompatibleRes ? action.systemName : action.system) | filterEmpty }}</td>
+                <td width="30%">{{ (isCompatibleRes ? action.actionName : action.action) | filterEmpty }}</td>
+                <td width="50%" v-if="!isCompatibleRes">{{ action.instance_name | filterEmpty }}</td>
+                <td width="50%" v-else>
                   <p
                     class="resource-type-item"
                     v-for="(reItem, reIndex) in getResource(action.related_resource_types)"
                     :key="reIndex">
                     {{reItem}}
                   </p>
-                </td> -->
+                </td>
               </tr>
             </template>
             <tr v-else>
@@ -96,9 +97,14 @@ export default class PermissionModal extends Vue {
     system?: string
     action?: string
     'instance_name'?: string
+    related_resource_types?: any[]
   }[] = [];
   private loading = false;
   private lock = lockSvg;
+
+  private get isCompatibleRes() {
+    return !!this.actionsList.find(item => !!item.related_resource_types);
+  }
 
   private async loadPermissionUrl(params: IAuthApply) {
     this.loading = true;
@@ -128,6 +134,21 @@ export default class PermissionModal extends Vue {
     }));
     this.url = applyUrl;
   }
+  public getResource(resources: any[]) {
+    if (resources.length === 0) {
+      return ['--'];
+    }
+
+    const data: string[] = [];
+    resources.forEach((resource) => {
+      if (resource.instances.length > 0) {
+        const instances = resource.instances.map((instanceItem: any[]) => instanceItem.map(item => item.name || item.id).join('，')).join('，');
+        const resourceItemData = `${resource.type_name}：${instances}`;
+        data.push(resourceItemData);
+      }
+    });
+    return data;
+  }
   private goToApply() {
     if (this.loading) {
       return;
@@ -152,7 +173,7 @@ export default class PermissionModal extends Vue {
   }
 }
 </script>
-<style lang="scss" scoped>
+<style lang="postcss" scoped>
 .permission-modal {
   .permission-header {
     text-align: center;
@@ -209,7 +230,7 @@ export default class PermissionModal extends Vue {
       }
     }
     .no-data {
-      // padding: 30px;
+      /* padding: 30px; */
       text-align: center;
       color: #999;
     }
