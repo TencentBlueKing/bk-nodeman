@@ -175,9 +175,6 @@ class NotSupportOsTestCase(DelegatePluginProcTestCase):
     def get_default_case_name(cls) -> str:
         return "操作系统不支持"
 
-    def fetch_succeeded_sub_inst_ids(self) -> List[int]:
-        return []
-
     def cases(self):
         return [
             ComponentTestCase(
@@ -189,7 +186,7 @@ class NotSupportOsTestCase(DelegatePluginProcTestCase):
                     # 操作系统不支持时，task_id 等数据还未写入outputs
                     outputs={"succeeded_subscription_instance_ids": self.fetch_succeeded_sub_inst_ids()},
                 ),
-                schedule_assertion=None,
+                schedule_assertion=[],
                 execute_call_assertion=None,
             )
         ]
@@ -203,6 +200,9 @@ class UpdateResultNotFoundTestCase(NotSupportOsTestCase):
     def get_default_case_name(cls) -> str:
         return "未能查询到进程更新结果"
 
+    def fetch_succeeded_sub_inst_ids(self) -> List[int]:
+        return []
+
     @classmethod
     def structure_gse_mock_data(cls):
         """
@@ -212,6 +212,21 @@ class UpdateResultNotFoundTestCase(NotSupportOsTestCase):
         super().structure_gse_mock_data()
         # 更新插件进程信息接口置空
         cls.update_proc_info_result = {}
+
+    def cases(self):
+        return [
+            ComponentTestCase(
+                name=self.get_default_case_name(),
+                inputs=self.common_inputs,
+                parent_data={},
+                execute_assertion=ExecuteAssertion(
+                    success=bool(self.fetch_succeeded_sub_inst_ids()),
+                    outputs={"succeeded_subscription_instance_ids": self.fetch_succeeded_sub_inst_ids()},
+                ),
+                schedule_assertion=None,
+                execute_call_assertion=None,
+            )
+        ]
 
 
 class OpProcResultNotFoundTestCase(DelegatePluginProcTestCase):
