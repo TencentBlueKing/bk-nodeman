@@ -173,9 +173,9 @@ class DelegatePluginProcService(AgentBaseService):
             # 处理插件包不适配的场景
             if host_obj.os_type.lower() not in os__package_map:
                 # 考虑这种情况较少且为了简化逻辑，暂不聚合相同日志内容再打印
-                self.move_insts_to_failed(
+                self.log_warning(
                     [sub_inst.id],
-                    log_content=_("「{plugin_name}」不支持操作系统 -> {os_type}").format(
+                    log_content=_("「{plugin_name}」不支持操作系统 -> {os_type}，跳过该步骤").format(
                         plugin_name=plugin_name, os_type=host_obj.os_type
                     ),
                 )
