@@ -1128,11 +1128,11 @@ class GseOperateProcService(PluginBaseService):
         :return:
         """
         success_conditions = (
-            # 停止插件时，若插件本身未运行，也认为是成功
+            # 停止插件时，若插件本身未运行，也认为是成功的
             op_type == constants.GseOpType.STOP
-            and error_code == GseDataErrCode.NON_EXIST
+            and error_code == GseDataErrCode.PROC_NO_RUNNING
         ) or (
-            # 启动插件时，若插件本身已运行，也认为是成功
+            # 启动插件时，若插件本身已运行，也认为是成功的
             op_type == constants.GseOpType.START
             and error_code == GseDataErrCode.PROC_RUNNING
         )
