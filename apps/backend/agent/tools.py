@@ -9,16 +9,13 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import os
-import re
 import time
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 from django.conf import settings
-from django.utils.translation import ugettext_lazy as _
 
 from apps.backend.api import constants as const
-from apps.backend.exceptions import GenCommandsError
 from apps.node_man import constants, models
 from apps.node_man.models import aes_cipher
 from apps.utils.basic import suffix_slash
@@ -97,7 +94,8 @@ def fetch_gse_servers(
         data_servers = ",".join(server["inner_ip"] for server in host_ap.dataserver)
         task_servers = ",".join(server["inner_ip"] for server in host_ap.taskserver)
         package_url = host_ap.package_inner_url
-        callback_url = settings.BKAPP_NODEMAN_CALLBACK_URL
+        # 优先使用接入点配置的内网回调地址
+        callback_url = host_ap.callback_url or settings.BKAPP_NODEMAN_CALLBACK_URL
     elif host.node_type == constants.NodeType.PROXY:
         bt_file_servers = ",".join(server["outer_ip"] for server in host_ap.btfileserver)
         data_servers = ",".join(server["outer_ip"] for server in host_ap.dataserver)
@@ -328,10 +326,14 @@ def gen_commands(
 
 
 def check_run_commands(run_commands):
-    for command in run_commands:
-        if command.startswith("-r"):
-            if not re.match("^-r https?://.+/backend$", command):
-                raise GenCommandsError(context=_("CALLBACK_URL不符合规范, 请联系运维人员修改。 例：http://domain.com/backend"))
+    return
+    # 不对回调地址做格式化检验
+    # 背景：ip:port 等转发模式也可以作为回调地址配置的方式
+    # 考虑该方法位于单主机命令生成的逻辑下，将可达性验证放在接入点保存前校验逻辑，减少批量执行下对单个url执行重复校验
+    # for command in run_commands:
+    #     if command.startswith("-r"):
+    #         if not re.match("^-r https?://.+/backend$", command):
+    #             raise GenCommandsError(context=_("CALLBACK_URL不符合规范, 请联系运维人员修改。 例：http://domain.com/backend"))
 
 
 def batch_gen_commands(
