@@ -23,6 +23,7 @@ from apps.backend.utils.data_renderer import nested_render_data
 from apps.backend.utils.encrypted import GseEncrypted
 from apps.backend.utils.redis import REDIS_INST
 from apps.node_man import constants, models
+from apps.node_man.handlers import base_info
 from apps.node_man.models import Host, JobSubscriptionInstanceMap, aes_cipher
 from pipeline.service import task_service
 
@@ -806,3 +807,8 @@ def _decrypt_token(token: str) -> dict:
         raise PermissionError("what are you doing?")
 
     return return_value
+
+
+@login_exempt
+def version(request):
+    return JsonResponse(base_info.BaseInfoHandler.version())
