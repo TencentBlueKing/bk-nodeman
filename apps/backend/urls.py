@@ -36,4 +36,5 @@ urlpatterns = [
     url(r"^get_gse_config/", views.get_gse_config),
     url(r"^report_log/", views.report_log),
     url(r"^api/job_callback/", views.job_callback),
+    url(r"^version/", views.version),
 ]

@@ -53,6 +53,7 @@ cp -R bk_nodeman/env ${NODEMAN_DIST_DIR}
 
 cp bk_nodeman/manage.py ${NODEMAN_DIST_DIR}
 cp bk_nodeman/settings.py ${NODEMAN_DIST_DIR}
+cp bk_nodeman/app.yml ${NODEMAN_DIST_DIR}
 cp bk_nodeman/urls.py ${NODEMAN_DIST_DIR}
 cp bk_nodeman/wsgi.py ${NODEMAN_DIST_DIR}
 cp bk_nodeman/on_migrate ${NODEMAN_DIST_DIR}

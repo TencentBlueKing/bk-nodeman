@@ -8,28 +8,22 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from blueapps.account.decorators import login_exempt
-from django.core.cache import cache
-from django.http import HttpResponse, JsonResponse
-from django.shortcuts import render
-from django.views.decorators.cache import never_cache
+import os
 
-from apps.node_man.handlers import base_info
-from requests_tracker.models import Config
+import yaml
+from django.conf import settings
 
 
-@never_cache
-def index(request):
-    value = Config.objects.get(key="is_track").value
-    cache.set("is_track", value)
-    return render(request, "index.html")
-
-
-@login_exempt
-def ping(request):
-    return HttpResponse("pong")
-
-
-@login_exempt
-def version(request):
-    return JsonResponse(base_info.BaseInfoHandler.version())
+class BaseInfoHandler:
+    @staticmethod
+    def version():
+        version_info = {
+            "app_code": settings.APP_CODE,
+            "module": ("default", "backend")[settings.BK_BACKEND_CONFIG is True],
+        }
+        app_yaml_path = os.path.join(settings.PROJECT_ROOT, "app.yml")
+        # 获取版本信息
+        with open(file=app_yaml_path, encoding="utf-8") as dev_yaml_fs:
+            app_yaml = yaml.safe_load(dev_yaml_fs)
+        version_info["version"] = app_yaml["version"]
+        return version_info
