@@ -9,24 +9,35 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import os
+import platform
 import stat
 import subprocess
 
 from django.conf import settings
 
 from apps.backend.exceptions import GseEncryptedError
+from apps.node_man import constants
 
-path = os.path.join(settings.PROJECT_ROOT, "script_tools", "encryptedpasswd")
+BACKEND_PLATFORM = f"{platform.system().lower()}_{platform.machine().lower()}"
+
+default_platform = f"{constants.OsType.LINUX.lower()}_{constants.CpuType.x86_64.lower()}"
+grabbed_platform_path = os.path.join(
+    settings.PROJECT_ROOT, "script_tools", "encryptedpasswd", BACKEND_PLATFORM, "encryptedpasswd"
+)
+platform_path = default_platform if not os.path.isfile(grabbed_platform_path) else BACKEND_PLATFORM
+encrypted_tools_path = os.path.join(
+    settings.PROJECT_ROOT, "script_tools", "encryptedpasswd", platform_path, "encryptedpasswd"
+)
 
 # 增加可执行权限
-if not os.access(path, os.X_OK):
-    os.chmod(path, os.stat(path).st_mode | stat.S_IXGRP)
+if not os.access(encrypted_tools_path, os.X_OK):
+    os.chmod(encrypted_tools_path, os.stat(encrypted_tools_path).st_mode | stat.S_IXGRP)
 
 
 class GseEncrypted(object):
     @classmethod
     def encrypted(cls, key, debug=False):
-        command = [path, "-encrypt", key]
+        command = [encrypted_tools_path, "-encrypt", key]
         if debug:
             command.extend("-v")
         result = subprocess.Popen(command, stderr=subprocess.PIPE, stdout=subprocess.PIPE, encoding="utf-8")
