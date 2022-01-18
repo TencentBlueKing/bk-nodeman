@@ -54,6 +54,7 @@ from apps.node_man.exceptions import (
     HostNotExists,
     InstallChannelNotExistsError,
     QueryGlobalSettingsException,
+    UrlNotReachableError,
 )
 from apps.utils import files, orm
 from common.log import logger
@@ -627,6 +628,7 @@ class AccessPoint(models.Model):
     port_config = JSONField(_("GSE端口配置"), default=dict)
     proxy_package = JSONField(_("Proxy上的安装包"), default=list)
     outer_callback_url = models.CharField(_("节点管理外网回调地址"), max_length=128, blank=True, null=True, default="")
+    callback_url = models.CharField(_("节点管理内网回调地址"), max_length=128, blank=True, null=True, default="")
 
     @classmethod
     def ap_id_obj_map(cls):
@@ -657,6 +659,29 @@ class AccessPoint(models.Model):
         if os_type in [constants.OsType.AIX, constants.OsType.SOLARIS]:
             os_type = constants.OsType.LINUX.lower()
         return self.agent_config[os_type]
+
+    @staticmethod
+    def check_callback_url_reachable(callback_url: str, raise_exception: bool = False) -> Dict[str, Union[str, bool]]:
+        """
+        校验回调地址是否可达
+        :param callback_url: 回调地址
+        :param raise_exception: 是否抛出异常
+        :return:
+        """
+
+        def _raise_exc_or_return(_err_msg: str):
+            if raise_exception:
+                raise UrlNotReachableError(_err_msg)
+            return {"result": False, "err_msg": _err_msg}
+
+        try:
+            response = requests.get(url=f"{callback_url}/version")
+            version_info = json.loads(response.content)
+        except Exception as exc:
+            return _raise_exc_or_return(_("回调地址请求失败，报错信息：{exc}").format(exc=exc))
+        if version_info.get("module") != "backend":
+            return _raise_exc_or_return(_("回调地址指向站点非节点管理后台"))
+        return {"result": True}
 
     @staticmethod
     def test(params: dict):
