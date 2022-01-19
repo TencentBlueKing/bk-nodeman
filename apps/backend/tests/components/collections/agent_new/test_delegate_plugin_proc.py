@@ -135,6 +135,7 @@ class DelegatePluginProcTestCase(utils.AgentServiceBaseTestCase):
             "polling_time": 0,
             "proc_name": self.proc_name,
             "task_id": self.operate_proc_result["task_id"],
+            "skipped_host_ids": set(),
             "succeeded_subscription_instance_ids": self.fetch_succeeded_sub_inst_ids(),
         }
 
