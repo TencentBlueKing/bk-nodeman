@@ -1,5 +1,18 @@
 # Release
 
+## 2.1.365 - 2022-01-19 
+
+
+### bugfix: 
+  * redis sentinel 连接死循环(fixed #427)
+
+### feature: 
+  * 去掉 agent、proxy 的「移除」入口(close #436)
+  * 插件操作入口优化(close #434)
+
+### optimization: 
+  * Agent升级去除目录保护(close #428)
+
 ## 2.1.364 - 2022-01-11 
 
 
