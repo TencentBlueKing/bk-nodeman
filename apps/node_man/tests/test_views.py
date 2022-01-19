@@ -19,11 +19,11 @@ from apps.utils.unittest.testcase import CustomAPITestCase
 
 
 class ViewsTestCase(CustomAPITestCase):
-    def version__assert_version(self, except_version: str):
+    def version__assert_version(self, expect_status: str):
         app_yaml_path = os.path.join(settings.PROJECT_ROOT, "app.yml")
         with open(file=app_yaml_path, encoding="utf-8") as dev_yaml_fs:
             app_yaml = yaml.safe_load(dev_yaml_fs)
-        self.assertEqual(except_version, app_yaml["version"])
+        self.assertEqual(expect_status, app_yaml["version"])
 
     @override_settings(BK_BACKEND_CONFIG=False)
     def test_version(self):
@@ -31,11 +31,11 @@ class ViewsTestCase(CustomAPITestCase):
             version_info = self.client.get(url)
             self.assertEqual(version_info["app_code"], settings.APP_CODE)
             self.assertEqual(version_info["module"], "default")
-            self.version__assert_version(except_version=version_info["version"])
+            self.version__assert_version(expect_status=version_info["version"])
 
     @override_settings(BK_BACKEND_CONFIG=True)
     def test_version__backend(self):
         for url in ["/version/", "/backend/version"]:
             version_info = self.client.get(url)
             self.assertEqual(version_info["module"], "backend")
-            self.version__assert_version(except_version=version_info["version"])
+            self.version__assert_version(expect_status=version_info["version"])

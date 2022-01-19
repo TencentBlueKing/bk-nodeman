@@ -12,7 +12,7 @@ import json
 import ntpath
 import posixpath
 from collections import defaultdict
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Set, Union
 
 from django.db.models import Max
 from django.utils.translation import ugettext_lazy as _
@@ -164,6 +164,7 @@ class DelegatePluginProcService(AgentBaseService):
         packages = models.Packages.objects.filter(id__in=latest_pkg_ids_of_each_os)
         os__package_map: Dict[str, models.Packages] = {package.os: package for package in packages}
 
+        skipped_host_ids: Set[int] = set()
         bk_host_id__sub_inst_id_map: Dict[int, int] = {}
         # 按操作系统类型对订阅实例进行聚合，仅取匹配插件包成功的实例
         host_objs_gby_host_os: Dict[str, List[models.Host]] = defaultdict(list)
@@ -172,6 +173,7 @@ class DelegatePluginProcService(AgentBaseService):
             host_obj: models.Host = host_id_obj_map[sub_inst.instance_info["host"]["bk_host_id"]]
             # 处理插件包不适配的场景
             if host_obj.os_type.lower() not in os__package_map:
+                skipped_host_ids.add(host_obj.bk_host_id)
                 # 考虑这种情况较少且为了简化逻辑，暂不聚合相同日志内容再打印
                 self.log_warning(
                     [sub_inst.id],
@@ -233,10 +235,12 @@ class DelegatePluginProcService(AgentBaseService):
         data.outputs.polling_time = 0
         data.outputs.task_id = task_id
         data.outputs.proc_name = plugin_name
+        data.outputs.skipped_host_ids = skipped_host_ids
 
     def _schedule(self, data, parent_data, callback_data=None):
         task_id = data.get_one_of_outputs("task_id")
         polling_time = data.get_one_of_outputs("polling_time")
+        skipped_host_ids: Set[int] = data.get_one_of_outputs("skipped_host_ids")
 
         # 查询进程操作结果，raw=True，返回接口完整响应数据
         procs_operate_result = GseApi.get_proc_operate_result({"task_id": task_id}, raw=True)
@@ -253,6 +257,9 @@ class DelegatePluginProcService(AgentBaseService):
         for sub_inst in common_data.subscription_instances:
             host_obj = common_data.host_id_obj_map[sub_inst.instance_info["host"]["bk_host_id"]]
             gse_proc_key = f"{host_obj.bk_cloud_id}:{host_obj.inner_ip}:{constants.GSE_NAMESPACE}:{proc_name}"
+
+            if host_obj.bk_host_id in skipped_host_ids:
+                continue
 
             proc_operate_result = procs_operate_result["data"].get(gse_proc_key)
             if not proc_operate_result:
