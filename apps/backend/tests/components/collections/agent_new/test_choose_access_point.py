@@ -8,14 +8,13 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import importlib
 import random
 from typing import Callable, List, Optional
 
 import mock
 
-from apps.backend.components.collections.agent_new.choose_access_point import (
-    ChooseAccessPointService,
-)
+from apps.backend.components.collections.agent_new import choose_access_point
 from apps.backend.components.collections.agent_new.components import (
     ChooseAccessPointComponent,
 )
@@ -62,6 +61,9 @@ class ChooseAccessPointTestCase(utils.AgentServiceBaseTestCase):
             os_type=self.OS_TYPE, node_type=self.NODE_TYPE, ap_id=constants.DEFAULT_AP_ID
         )
 
+    def start_patch(self):
+        pass
+
     def setUp(self) -> None:
         self.ssh_man_ping_time_selector = ping_time_selector
         self.init_mock_clients()
@@ -75,6 +77,9 @@ class ChooseAccessPointTestCase(utils.AgentServiceBaseTestCase):
         return self.common_inputs["subscription_instance_ids"]
 
     def component_cls(self):
+        importlib.reload(choose_access_point)
+        ChooseAccessPointComponent.bound_service = choose_access_point.ChooseAccessPointService
+        self.start_patch()
         return ChooseAccessPointComponent
 
     def cases(self):
@@ -120,7 +125,7 @@ class PingErrorTestCase(ChooseAccessPointTestCase):
 
     def init_mock_clients(self):
         def ping_error_selector(*args, **kwargs):
-            return random.choice([None, ChooseAccessPointService.MIN_PING_TIME + 1])
+            return random.choice([None, choose_access_point.ChooseAccessPointService.MIN_PING_TIME + 1])
 
         self.ssh_man_ping_time_selector = ping_error_selector
         super().init_mock_clients()
@@ -147,8 +152,11 @@ class WindowsAgentTestCase(ChooseAccessPointTestCase):
         # windows 用不上 sshMan
         pass
 
-    def setUp(self) -> None:
+    def start_patch(self):
         mock.patch(target=self.EXECUTE_CMD_MOCK_PATH, side_effect=win_ping_time_selector).start()
+
+    def setUp(self) -> None:
+        self.start_patch()
         super().setUp()
 
 
