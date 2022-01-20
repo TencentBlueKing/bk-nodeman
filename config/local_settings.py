@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-节点管理(BlueKing-BK-NODEMAN) available.
-Copyright (C) 2017-2021 THL A29 Limited, a Tencent company. All rights reserved.
+Copyright (C) 2017-2022 THL A29 Limited, a Tencent company. All rights reserved.
 Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
 You may obtain a copy of the License at https://opensource.org/licenses/MIT
 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
@@ -19,14 +19,14 @@ import requests
 from config import BASE_DIR
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'bk-nodeman-test',
-        'USER': 'root',
-        'PASSWORD': '',
-        'HOST': '127.0.0.1',
-        'PORT': '3306',
-        'OPTIONS': {'charset': 'utf8mb4'},
+    "default": {
+        "ENGINE": "django.db.backends.mysql",
+        "NAME": "bk-nodeman-test",
+        "USER": "root",
+        "PASSWORD": "",
+        "HOST": "127.0.0.1",
+        "PORT": "3306",
+        "OPTIONS": {"charset": "utf8mb4"},
     },
 }
 # MIDDLEWARE = (
@@ -64,25 +64,28 @@ DATABASES = {
 #     }
 # ]
 # ENGINE_ZOMBIE_PROCESS_HEAL_CRON = {'minute': '*/1'}
-BK_OFFICIAL_PLUGINS_INIT_PATH = os.path.join(BASE_DIR, 'official_plugin')
-UPLOAD_PATH = '/tmp'
+BK_OFFICIAL_PLUGINS_INIT_PATH = os.path.join(BASE_DIR, "official_plugin")
+UPLOAD_PATH = "/tmp"
 # NGINX_DOWNLOAD_PATH = '/tmp/download'
 
-if __name__ == '__main__':
-    task_id = '7e32ca3a1aa431599e30696bc536df22'
+if __name__ == "__main__":
+    task_id = "7e32ca3a1aa431599e30696bc536df22"
     for i in range(5):
-        requests.post('http://127.0.0.1:8000/backend/report_log/', {
-            "task_id": task_id,
-            "logs": [
-                {
-                    "timestamp": "1576826749",
-                    "level": "INFO",
-                    "step": "check_deploy_result",
-                    "log": i,
-                    "status": "DONE"
-                },
-            ]
-        })
+        requests.post(
+            "http://127.0.0.1:8000/backend/report_log/",
+            {
+                "task_id": task_id,
+                "logs": [
+                    {
+                        "timestamp": "1576826749",
+                        "level": "INFO",
+                        "step": "check_deploy_result",
+                        "log": i,
+                        "status": "DONE",
+                    },
+                ],
+            },
+        )
 
 
 # celery redbeat config
