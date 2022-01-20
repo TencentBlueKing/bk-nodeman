@@ -38,8 +38,15 @@ class ServiceCCConfigName(enum.EnhanceEnum):
 
 def get_config_dict(config_name: str) -> Dict[str, Any]:
     default_concurrent_control_config = copy.deepcopy(core_concurrent_constants.DEFAULT_CONCURRENT_CONTROL_CONFIG)
-    if config_name in [ServiceCCConfigName.SSH.value, ServiceCCConfigName.WMIEXE.value]:
+    if config_name == ServiceCCConfigName.SSH.value:
         default_concurrent_control_config.update(limit=10)
+    elif config_name == ServiceCCConfigName.WMIEXE.value:
+        # Windows 管控数量相对较少，且单个执行约为 30 秒，需要减少批次内串行的数量
+        default_concurrent_control_config.update(limit=4)
+    elif config_name == ServiceCCConfigName.JOB_CMD.value:
+        # 通过作业平台执行时，批次间串行防止触发接口限频
+        default_concurrent_control_config.update(is_concurrent_between_batches=False, interval=2)
+
     current_controller_settings = models.GlobalSettings.get_config(
         key=models.GlobalSettings.KeyEnum.CONCURRENT_CONTROLLER_SETTINGS.value, default={}
     )

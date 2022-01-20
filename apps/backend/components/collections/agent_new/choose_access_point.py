@@ -17,10 +17,12 @@ from django.utils.translation import ugettext_lazy as _
 
 from apps.backend.utils.ssh import SshMan
 from apps.backend.utils.wmi import execute_cmd
+from apps.core.concurrent import controller
 from apps.node_man import constants, models
 from apps.utils import concurrent
 
-from .base import AgentBaseService, AgentCommonData
+from .. import core
+from .base import AgentBaseService, AgentCommonData, batch_call_single_exception_handler
 
 
 class ChooseAccessPointService(AgentBaseService):
@@ -119,6 +121,7 @@ class ChooseAccessPointService(AgentBaseService):
             "min_ping_ap_id": min_ping_ap_id,
         }
 
+    @batch_call_single_exception_handler
     def detect_and_choose_ap(
         self,
         sub_inst_id: int,
@@ -157,6 +160,12 @@ class ChooseAccessPointService(AgentBaseService):
             ap_id_obj_map=ap_id_obj_map, bk_host_id=host.bk_host_id, ap_id=detect_result["min_ping_ap_id"]
         )
 
+    @controller.ConcurrentController(
+        data_list_name="detect_and_choose_ap_params_list",
+        batch_call_func=concurrent.batch_call,
+        get_config_dict_func=core.get_config_dict,
+        get_config_dict_kwargs={"config_name": core.ServiceCCConfigName.SSH.value},
+    )
     def handle_detect_condition(self, detect_and_choose_ap_params_list: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
         处理需要探测选择接入点的情况
@@ -166,8 +175,7 @@ class ChooseAccessPointService(AgentBaseService):
         if not detect_and_choose_ap_params_list:
             return []
 
-        # 通过多线程并行提高效率
-        return concurrent.batch_call(
+        return concurrent.batch_call_serial(
             func=self.detect_and_choose_ap, params_list=detect_and_choose_ap_params_list, get_data=lambda x: x
         )
 
@@ -345,7 +353,8 @@ class ChooseAccessPointService(AgentBaseService):
         )
 
         self.handle_choose_ap_results(
-            choose_ap_results=choose_ap_results,
+            # 返回结果中的 None 表示执行过程中抛出异常，此处无需处理，需要过滤防止流程卡住
+            choose_ap_results=list(filter(None, choose_ap_results)),
             bk_host_id__sub_inst_id_map=bk_host_id__sub_inst_id_map,
             host_id_obj_map=host_id_obj_map,
         )
