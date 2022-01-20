@@ -14,7 +14,7 @@ import os
 import socket
 import time
 from collections import defaultdict
-from typing import Dict, List, Set
+from typing import Any, Dict, List, Optional, Set
 
 from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
@@ -114,9 +114,30 @@ class InstallService(base.AgentBaseService):
                 }
             )
 
-        concurrent.batch_call_serial(func=self.execute_windows_commands, params_list=pre_commands_params_list)
-        concurrent.batch_call_serial(func=self.push_curl_exe, params_list=push_curl_exe_params_list)
-        return concurrent.batch_call_serial(func=self.execute_windows_commands, params_list=run_install_params_list)
+        def _filter_params_list_in_next_step(
+            _params_list: List[Dict[str, Any]], _succeed_sub_inst_ids: List[Optional[int]]
+        ) -> List[Dict[str, Any]]:
+            _params_list_in_next_step: List[Dict[str, Any]] = []
+            _succeed_sub_inst_ids: Set[Optional[int]] = set(_succeed_sub_inst_ids)
+            for _params in _params_list:
+                if _params["sub_inst_id"] in _succeed_sub_inst_ids:
+                    _params_list_in_next_step.append(_params)
+            return _params_list_in_next_step
+
+        # 前置命令执行较快，可以并发执行
+        succeed_sub_inst_ids = concurrent.batch_call(
+            func=self.execute_windows_commands, params_list=pre_commands_params_list
+        )
+        # 单个调用大约耗时 14s
+        succeed_sub_inst_ids = concurrent.batch_call_serial(
+            func=self.push_curl_exe,
+            params_list=_filter_params_list_in_next_step(push_curl_exe_params_list, succeed_sub_inst_ids),
+        )
+        # 单个调用大约耗时 15s
+        return concurrent.batch_call_serial(
+            func=self.execute_windows_commands,
+            params_list=_filter_params_list_in_next_step(run_install_params_list, succeed_sub_inst_ids),
+        )
 
     @controller.ConcurrentController(
         data_list_name="install_sub_inst_objs",
@@ -199,7 +220,7 @@ class InstallService(base.AgentBaseService):
         data.outputs.polling_time = 0
 
     @base.batch_call_single_exception_handler
-    @base.RetryHandler(interval=0, retry_times=2, exception_types=[Exception])
+    @base.RetryHandler(interval=0, retry_times=2, exception_types=[ConnectionResetError])
     def execute_windows_commands(
         self, sub_inst_id: int, host: models.Host, commands: List[str], identity_data: models.IdentityData
     ):
@@ -210,75 +231,72 @@ class InstallService(base.AgentBaseService):
         ):
             self.log_info(sub_inst_ids=sub_inst_id, log_content=_("认证信息已过期, 请重装并填入认证信息"))
             raise AuthOverdueException
-        retry_times = 5
         for i, cmd in enumerate(commands, 1):
-            for try_time in range(retry_times):
-                try:
-                    if i == len(commands):
-                        # Executing scripts is the last command and takes time, using asynchronous
-                        self.log_info(sub_inst_ids=sub_inst_id, log_content=f"Sending install cmd: {cmd}")
-                        execute_cmd(
-                            cmd,
-                            ip,
-                            identity_data.account,
-                            identity_data.password,
-                            no_output=True,
-                        )
-                    else:
-                        # Other commands is quick and depends on previous ones, using synchronous
-                        self.log_info(sub_inst_ids=sub_inst_id, log_content=f"Sending cmd: {cmd}")
-                        execute_cmd(cmd, ip, identity_data.account, identity_data.password)
-                except socket.error:
-                    self.logger.error(
-                        _(
-                            "正在安装Windows AGENT, 命令执行失败，请确认: \n"
-                            "1. 检查文件共享相关服务，确认以下服务均已开启\n"
-                            "    - Function Discovery Resource Publication\n"
-                            "    - SSDP Discovery \n"
-                            "    - UPnP Device Host\n"
-                            "    - Server\n"
-                            "    - NetLogon // 如果没有加入域，可以不启动这个\n"
-                            "    - TCP/IP NetBIOS Helper\n"
-                            "2. 开启网卡 Net BOIS \n"
-                            "3. 开启文件共享 Net share \n"
-                            "4. 检查防火墙是否有放开 139/135/445 端口 \n"
-                        )
-                    )
-                except ConnectionResetError as e:
-                    # 高并发下可能导致连接重置，这里添加重置机制
-                    if try_time < retry_times:
-                        time.sleep(1)
-                        continue
-                    else:
-                        raise e
-                else:
-                    break
-        return sub_inst_id
-
-    @base.batch_call_single_exception_handler
-    def push_curl_exe(self, sub_inst_id: int, host: models.Host, dest_dir: str, identity_data: models.IdentityData):
-        ip = host.login_ip or host.inner_ip or host.outer_ip
-        retry_times = 5
-        for name in ("curl.exe", "curl-ca-bundle.crt", "libcurl-x64.dll"):
-            for try_time in range(retry_times):
-                try:
-                    curl_file = os.path.join(settings.BK_SCRIPTS_PATH, name)
-                    self.log_info(sub_inst_ids=sub_inst_id, log_content=f"pushing file {curl_file} to {dest_dir}")
-                    put_file(
-                        curl_file,
-                        dest_dir,
+            try:
+                if i == len(commands):
+                    # Executing scripts is the last command and takes time, using asynchronous
+                    self.log_info(sub_inst_ids=sub_inst_id, log_content=f"Sending install cmd: {cmd}")
+                    execute_cmd(
+                        cmd,
                         ip,
                         identity_data.account,
                         identity_data.password,
+                        no_output=True,
                     )
-                except ConnectionResetError as e:
-                    if try_time < retry_times:
-                        time.sleep(1)
-                        continue
-                    else:
-                        raise e
                 else:
-                    break
+                    # Other commands is quick and depends on previous ones, using synchronous
+                    self.log_info(sub_inst_ids=sub_inst_id, log_content=f"Sending cmd: {cmd}")
+                    execute_cmd(cmd, ip, identity_data.account, identity_data.password)
+            except socket.error:
+                self.move_insts_to_failed(
+                    _(
+                        "正在安装 Windows AGENT, 命令执行失败，请确认: \n"
+                        "1. 检查文件共享相关服务，确认以下服务均已开启\n"
+                        "    - Function Discovery Resource Publication\n"
+                        "    - SSDP Discovery \n"
+                        "    - UPnP Device Host\n"
+                        "    - Server\n"
+                        "    - NetLogon // 如果没有加入域，可以不启动这个\n"
+                        "    - TCP/IP NetBIOS Helper\n"
+                        "2. 开启网卡 Net BOIS \n"
+                        "3. 开启文件共享 Net share \n"
+                        "4. 检查防火墙是否有放开 139/135/445 端口 \n"
+                    )
+                )
+            except ConnectionResetError as e:
+                # 高并发模式下可能导致连接重置，记录报错信息并抛出异常，等待上层处理逻辑重试或抛出异常
+                self.log_warning(sub_inst_ids=sub_inst_id, log_content=_("远程登录失败，等待自动重试，重试失败将打印异常信息。"))
+                raise e
+            except Exception as e:
+                self.log_error(sub_inst_ids=[sub_inst_id], log_content=_("远程登录失败"))
+                # batch_call_single_exception_handler 由最上层捕获并打印 DEBUG 日志
+                raise e
+
+        return sub_inst_id
+
+    @base.batch_call_single_exception_handler
+    @base.RetryHandler(interval=0, retry_times=2, exception_types=[ConnectionResetError])
+    def push_curl_exe(self, sub_inst_id: int, host: models.Host, dest_dir: str, identity_data: models.IdentityData):
+        ip = host.login_ip or host.inner_ip or host.outer_ip
+        for name in ("curl.exe", "curl-ca-bundle.crt", "libcurl-x64.dll"):
+            try:
+                curl_file = os.path.join(settings.BK_SCRIPTS_PATH, name)
+                self.log_info(sub_inst_ids=sub_inst_id, log_content=f"pushing file {curl_file} to {dest_dir}")
+                put_file(
+                    curl_file,
+                    dest_dir,
+                    ip,
+                    identity_data.account,
+                    identity_data.password,
+                )
+            except ConnectionResetError as e:
+                # 高并发模式下可能导致连接重置，记录报错信息并抛出异常，等待上层处理逻辑重试或抛出异常
+                self.log_warning(sub_inst_ids=sub_inst_id, log_content=_("远程登录失败，等待自动重试，重试失败将打印异常信息。"))
+                raise e
+            except Exception as e:
+                self.log_error(sub_inst_ids=[sub_inst_id], log_content=_("远程登录失败"))
+                # batch_call_single_exception_handler 由最上层捕获并打印 DEBUG 日志
+                raise e
         return sub_inst_id
 
     @base.batch_call_single_exception_handler
@@ -357,6 +375,13 @@ class InstallService(base.AgentBaseService):
         host = installation_tool.host
         run_cmd = installation_tool.run_cmd
         pre_commands = installation_tool.pre_commands or []
+        if installation_tool.identity_data.account not in [constants.LINUX_ACCOUNT, constants.WINDOWS_ACCOUNT]:
+            self.log_warning(
+                sub_inst_id,
+                log_content=_("当前登录用户为「{account}」，请确保该用户具有 sudo 权限").format(
+                    account=installation_tool.identity_data.account
+                ),
+            )
         ssh_man = SshMan(host, self.logger, identity_data=installation_tool.identity_data)
         # 一定要先设置一个干净的提示符号，否则会导致console_ready识别失效
         ssh_man.get_and_set_prompt()
