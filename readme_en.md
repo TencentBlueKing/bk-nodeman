@@ -60,3 +60,5 @@ For more features, please refer to [BlueKing NodeMan White Paper](http://docs.bk
 
 ## License
 BlueKing NodeMan is based on MIT protocol, please refer to [LICENSE](https://github.com/TencentBlueKing/bk-nodeman/blob/master/LICENSE) for details 
+
+We undertake not to change the open source license (MIT license) applicable to the current version of the project delivered to anyone in the future.
