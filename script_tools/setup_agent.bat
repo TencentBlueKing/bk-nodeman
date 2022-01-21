@@ -179,7 +179,7 @@ goto :EOF
     echo=
     for %%p in (%TASK_SERVER_IP%) do (
         rem goto is_target_reachable
-        for /f %%i in ('%TMP_DIR%\tcping.exe %%p %IO_PORT% ^| findstr successful') do (
+        for /f %%i in ('%TMP_DIR%\tcping.exe -i 0.01 %%p %IO_PORT% ^| findstr successful') do (
             rem echo %%i
             for /f "tokens=1,2 delims=successful" %%s in ("%%i") do (
             rem echo %%s
@@ -198,7 +198,7 @@ goto :EOF
     echo=
     for %%p in (%DATA_SERVER_IP%) do (
         rem goto is_target_reachable
-        for /f %%i in ('%TMP_DIR%\tcping.exe %%p %DATA_PORT% ^| findstr successful') do (
+        for /f %%i in ('%TMP_DIR%\tcping.exe -i 0.01 %%p %DATA_PORT% ^| findstr successful') do (
             rem echo %%i
             for /f "tokens=1,2 delims=successful" %%s in ("%%i") do (
             rem echo %%s
@@ -219,7 +219,7 @@ goto :EOF
     for %%p in (%BT_FILE_SERVER_IP%) do (
         for %%a in (%FILE_SVR_PORT%,%BT_PORT%) do (
             rem goto is_target_reachable
-            for /f %%i in ('%TMP_DIR%\tcping.exe %%p %%a ^| findstr successful') do (
+            for /f %%i in ('%TMP_DIR%\tcping.exe -i 0.01 %%p %%a ^| findstr successful') do (
                 rem echo %%i
                 for /f "tokens=1,2 delims=successful" %%s in ("%%i") do (
                 rem echo %%s
@@ -246,7 +246,7 @@ goto :EOF
     call :multi_report_step_status
     for %%p in (%TASK_SERVER_IP%) do (
         rem for %%a in (48668,58625,58925,10020) do (
-        for /f %%i in ('%TMP_DIR%\tcping.exe %%p %IO_PORT% ^| findstr successful') do (
+        for /f %%i in ('%TMP_DIR%\tcping.exe -i 0.01 %%p %IO_PORT% ^| findstr successful') do (
             rem echo %%i
             for /f "tokens=1,2 delims=successful" %%s in ("%%i") do (
             rem echo %%s
@@ -267,7 +267,7 @@ goto :EOF
     call :multi_report_step_status
     for %%p in (%DATA_SERVER_IP%) do (
         rem for %%a in (48668,58625,58925,10020) do (
-        for /f %%i in ('%TMP_DIR%\tcping.exe %%p %DATA_PORT% ^| findstr successful') do (
+        for /f %%i in ('%TMP_DIR%\tcping.exe -i 0.01 %%p %DATA_PORT% ^| findstr successful') do (
             rem echo %%i
             for /f "tokens=1,2 delims=successful" %%s in ("%%i") do (
             rem echo %%s
@@ -288,7 +288,7 @@ goto :EOF
     for %%p in (%BT_FILE_SERVER_IP%) do (
         rem for %%a in (48668,58625,58925,10020) do (
         for %%a in (%FILE_SVR_PORT%,%BT_PORT%) do (
-            for /f %%i in ('%TMP_DIR%\tcping.exe %%p %%a ^| findstr successful') do (
+            for /f %%i in ('%TMP_DIR%\tcping.exe -i 0.01 %%p %%a ^| findstr successful') do (
                 rem echo %%i
                 for /f "tokens=1,2 delims=successful" %%s in ("%%i") do (
                 rem echo %%s
