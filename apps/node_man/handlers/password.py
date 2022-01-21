@@ -14,22 +14,22 @@ import hmac
 import os
 import re
 import time
-from typing import Dict, Tuple
+from typing import Any, Dict, Tuple
 
 import requests
 import ujson as json
 from Crypto.Cipher import AES
 
 from apps.node_man import constants
+from apps.utils import env
 
 
 class BasePasswordHandler(object):
-    def get_password(self, username: str, cloud_ip_list: list, ticket: str) -> Tuple[bool, Dict, Dict, str]:
+    def get_password(self, username: str, cloud_ip_list: list, **options) -> Tuple[bool, Dict, Dict, str]:
         """
         查询主机密码
         :param username: 用户名
         :param cloud_ip_list: 云区域-IP列表，如"0-127.0.0.1"
-        :param ticket: 用户凭证
         :return: is_ok, success_ips, failed_ips, message
         (True, {"0-127.0.0.1": "passwordSuccessExample"}, {"0-255.255.255.255": "用户没有权限"}, "success")
         (False, {}, {}, "{'10': 'ticket is expired'}")
@@ -152,12 +152,14 @@ class DefaultPasswordHandler(BasePasswordHandler):
         plaintext = padded_plaintext[:-padding_len]
         return plaintext.rstrip(b"\n")
 
-    def fetch_pwd(self, username, hosts, ticket):
+    def fetch_pwd(self, username, hosts, **options):
         """
         查询主机密码
         """
         cloud_ip_list = [f"{constants.DEFAULT_CLOUD}-{ip}" for ip in hosts]
-        is_success, success_ips, failed_ips, message = self.get_password(username, cloud_ip_list, ticket)
+        is_success, success_ips, failed_ips, message = self.get_password(
+            username, cloud_ip_list, ticket=options.get("ticket")
+        )
         success_ips = [cloud_ip.split("-")[1] for cloud_ip in success_ips.keys()]
         return {
             "code": 0 if is_success else -1,
@@ -166,9 +168,25 @@ class DefaultPasswordHandler(BasePasswordHandler):
             "result": is_success,
         }
 
-    def get_password(self, username: str, cloud_ip_list: list, ticket: str) -> Tuple[bool, Dict, Dict, str]:
+    def parse_response_items(self, response_items: Dict) -> Dict[str, Any]:
+        success_ips = {}
+        failed_ips = {}
+        for ip, value in response_items["IpList"].items():
+            # 目前仅支持直连区域的密码查询，填充默认云区域ID
+            if value["Code"] == 0:
+                success_ips.update(
+                    {f"{constants.DEFAULT_CLOUD}-{ip}": str(self.decrypt(value["Password"]), encoding="utf8")}
+                )
+            else:
+                failed_ips.update({f"{constants.DEFAULT_CLOUD}-{ip}": value})
+        return {"success_ips": success_ips, "failed_ips": failed_ips}
+
+    def get_password(self, username: str, cloud_ip_list: list, **options) -> Tuple[bool, Dict, Dict, str]:
         ip_list = [cloud_ip.split("-")[1] for cloud_ip in cloud_ip_list]
-        kwargs = {"operator": username, "data": {"Key": self.TJJ_KEY, "IpList": ip_list, "Ticket": ticket}}
+        kwargs = {
+            "operator": username,
+            "data": {"Key": self.TJJ_KEY, "IpList": ip_list, "Ticket": options.get("ticket")},
+        }
 
         try:
             result = self.post(self.TJJ_ACTION, kwargs)
@@ -181,14 +199,37 @@ class DefaultPasswordHandler(BasePasswordHandler):
         if result["data"]["HasError"]:
             return False, {}, {}, str(result["data"]["ResponseItems"])
 
-        success_ips = {}
-        failed_ips = {}
-        for ip, value in result["data"]["ResponseItems"]["IpList"].items():
-            # 目前仅支持直连区域的密码查询，填充默认云区域ID
-            if value["Code"] == 0:
-                success_ips.update(
-                    {f"{constants.DEFAULT_CLOUD}-{ip}": str(self.decrypt(value["Password"]), encoding="utf8")}
-                )
-            else:
-                failed_ips.update({f"{constants.DEFAULT_CLOUD}-{ip}": value})
-        return True, success_ips, failed_ips, "success"
+        parse_response_items_result = self.parse_response_items(result["data"]["ResponseItems"])
+        return True, parse_response_items_result["success_ips"], parse_response_items_result["failed_ips"], "success"
+
+
+class TjjPasswordHandler(DefaultPasswordHandler):
+
+    # 访问地址
+    TJJ_IED_HOST = env.get_type_env(key="TJJ_IED_HOST", _type=str)
+    # 请求资源
+    TJJ_IED_ACTION = env.get_type_env(key="TJJ_IED_ACTION", _type=str)
+    # 解密密钥
+    TJJ_IED_PASSWORD = env.get_type_env(key="TJJ_IED_PASSWORD", default="", _type=str)
+    # 认证唯一标识
+    TJJ_IED_KEY = env.get_type_env(key="TJJ_IED_KEY", _type=str)
+
+    def __init__(self):
+        self.TJJ_PASSWORD = self.TJJ_IED_PASSWORD
+
+    def get_password(self, username: str, cloud_ip_list: list, **options) -> Tuple[bool, Dict, Dict, str]:
+        ip_list = [cloud_ip.split("-")[1] for cloud_ip in cloud_ip_list]
+        try:
+            response = requests.post(
+                url=f"{self.TJJ_IED_HOST}{self.TJJ_IED_ACTION}",
+                data=json.dumps({"Key": self.TJJ_IED_KEY, "Username": username, "IpList": ip_list}),
+            )
+            result = response.json()["Result"]
+        except Exception as e:
+            return False, {}, {}, str(e)
+
+        if result["HasError"]:
+            return False, {}, {}, str(result["ResponseItems"])
+
+        parse_response_items_result = self.parse_response_items(result["ResponseItems"])
+        return True, parse_response_items_result["success_ips"], parse_response_items_result["failed_ips"], "success"
