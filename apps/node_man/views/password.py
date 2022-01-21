@@ -15,7 +15,7 @@ from django.http import JsonResponse
 from rest_framework.decorators import action
 
 from apps.generic import APIViewSet
-from apps.node_man.handlers.password import DefaultPasswordHandler
+from apps.node_man.handlers import password
 
 
 class PasswordViews(APIViewSet):
@@ -51,8 +51,8 @@ class PasswordViews(APIViewSet):
         }
         """
 
-        result = DefaultPasswordHandler().fetch_pwd(
-            request.user.username, request.data.get("hosts", []), request.COOKIES.get("TCOA_TICKET")
+        result = password.TjjPasswordHandler().fetch_pwd(
+            request.user.username, request.data.get("hosts", []), ticket=request.COOKIES.get("TCOA_TICKET")
         )
 
         # ticket过期返回401

@@ -15,7 +15,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from apps.core.concurrent import controller
 from apps.node_man import constants, models
-from apps.node_man.handlers.password import DefaultPasswordHandler
+from apps.node_man.handlers.password import TjjPasswordHandler
 from apps.utils import concurrent
 from pipeline.core.flow import Service
 
@@ -47,8 +47,8 @@ class QueryPasswordService(AgentBaseService):
         creator: str,
         oa_ticket: str,
     ):
-        is_ok, success_ips, failed_ips, err_msg = DefaultPasswordHandler().get_password(
-            creator, cloud_ip_list, oa_ticket
+        is_ok, success_ips, failed_ips, err_msg = TjjPasswordHandler().get_password(
+            creator, cloud_ip_list, ticket=oa_ticket
         )
         if not is_ok:
             sub_inst_ids = [cloud_ip_map[cloud_ip]["sub_inst_id"] for cloud_ip in cloud_ip_list]

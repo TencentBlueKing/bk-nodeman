@@ -24,7 +24,7 @@ from . import utils
 
 
 class QueryPasswordTestCase(utils.AgentServiceBaseTestCase):
-    GET_PASSWORD_MOCK_PATH = "apps.node_man.handlers.password.DefaultPasswordHandler.get_password"
+    GET_PASSWORD_MOCK_PATH = "apps.node_man.handlers.password.TjjPasswordHandler.get_password"
 
     def component_cls(self):
         importlib.reload(query_password)
