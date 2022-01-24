@@ -21,7 +21,7 @@ export BINDIR=$INSTALL_PATH/external_plugins/$GROUP_ID/$PLUGIN_NAME/
 
 echo "Stopping debug process..."
 
-for file in $plugin_install_path/external_plugins/$2/pid/*
+for file in $BINDIR/pid/*
 do
     if test -f $file
     then
