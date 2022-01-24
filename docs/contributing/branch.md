@@ -30,4 +30,6 @@
 
 
 ## PR & COMMIT 规范
-请尽量使用 `git rebase -i [commit_id]` 来整理你的commits，最后以 `rebase merge` 的方式合入 PR
+- 请尽量使用 `git rebase -i [commit_id]` 来整理你的commits，原则上一个 Pull Request 只对应一个commit
+- 发起 Pull Request 时请将目标分支修改为「最新的预发布分支」
+- 仓库维护者最后会以 `rebase merge` 的方式合入代码
