@@ -14,7 +14,7 @@
 - [蓝鲸智云配置平台](https://github.com/Tencent/bk-cmdb)  
 
 部署方法请参考各个开源产品的相关文档，在蓝鲸智云PaaS平台部署完成后，你还需要上传部署蓝鲸节点管理SaaS并开通应用免登录态验证白名单。
-你可以[点击这里](https://github.com/TencentBlueKing/bk-nodeman/releases)下载蓝鲸节点管理Release版本，然后前往蓝鲸PaaS平台的"开发者中心"->"S-mart应用"上传部署新应用。
+你可以[点击这里](https://github.com/TencentBlueKing/bk-nodeman/releases)下载蓝鲸节点管理Release版本(选择.tar.gz格式压缩包)，然后前往蓝鲸PaaS平台的"开发者中心"->"S-mart应用"上传部署新应用。
 你可以参考蓝鲸PaaS平台的"开发者中心"->"API网关"->"使用指南"->"API调用说明"页面中"用户认证"文档，添加默认蓝鲸节点管理APP_ID即bk_nodeman到应用免登录态验证白名单。
 
 
