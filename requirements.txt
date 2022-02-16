@@ -76,3 +76,8 @@ bkstorages==1.0.1
 ruamel.yaml==0.17.16
 
 kazoo==2.8.0
+
+
+asgiref==3.4.1
+
+asyncssh==2.8.1

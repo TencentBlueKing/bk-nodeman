@@ -473,6 +473,16 @@ class Host(models.Model):
     def proxies(self, value):
         self._proxies = value
 
+    @property
+    def status(self):
+        if getattr(self, "_status", None):
+            return self._status
+        return None
+
+    @status.setter
+    def status(self, value):
+        self._status = value
+
     class Meta:
         verbose_name = _("主机信息")
         verbose_name_plural = _("主机信息")

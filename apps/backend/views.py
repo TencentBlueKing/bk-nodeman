@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import logging
 import time
-from typing import Optional
+from typing import Dict, List, Optional, Tuple
 
 import ujson as json
 from blueapps.account.decorators import login_exempt
@@ -18,7 +18,10 @@ from django.conf import settings
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 
-from apps.backend.constants import REDIS_INSTALL_CALLBACK_KEY_TPL
+from apps.backend.constants import (
+    REDIS_AGENT_CONF_KEY_TPL,
+    REDIS_INSTALL_CALLBACK_KEY_TPL,
+)
 from apps.backend.utils.data_renderer import nested_render_data
 from apps.backend.utils.encrypted import GseEncrypted
 from apps.backend.utils.redis import REDIS_INST
@@ -433,6 +436,23 @@ PLUGIN_INFO_TEMPLATE = """
 }
 """
 
+# 记录日志并设置过期时间
+# 使用 lua 脚本合并 Redis 请求，保证操作的原子性，同时减少网络 IO
+# unpack(ARGV, 2) 对 table（lua 中的 list / dict）解包，2 为切片的起始位置（lua 索引从 1 开始），实现日志添加到列表
+# ARGV[1] 过期时间（单位 seconds）
+LPUSH_AND_EXPIRE_SCRIPT = """
+local length
+length = redis.call("lpush", KEYS[1], unpack(ARGV, 2))
+redis.call("expire", KEYS[1], ARGV[1])
+return length
+"""
+
+try:
+    LPUSH_AND_EXPIRE_FUNC = REDIS_INST.register_script(script=LPUSH_AND_EXPIRE_SCRIPT)
+except Exception as e:
+    LPUSH_AND_EXPIRE_FUNC = None
+    logger.exception(e)
+
 
 def is_designated_upstream_servers(host: models.Host):
     """判断是否指定上游节点"""
@@ -453,30 +473,38 @@ def is_designated_upstream_servers(host: models.Host):
     return False
 
 
-def generate_gse_config(host: models.Host, filename: str, node_type: str, ap: Optional[models.AccessPoint] = None):
+def generate_gse_config(
+    host: models.Host,
+    filename: str,
+    node_type: str,
+    ap: Optional[models.AccessPoint] = None,
+    proxies: Optional[List[models.Host]] = None,
+    install_channel: Tuple[Optional[models.Host], Dict[str, List]] = None,
+):
     """
     生成 GSE 相关配置
     :param host: 主机对象
     :param filename: 文件名
     :param node_type: 节点类型（lower）
     :param ap: 接入点对象
+    :param proxies: Proxy 主机列表
+    :param install_channel: 安装通道
     :return:
     """
     # 批量执行时，通过指定 ap 减少DB查询次数
-    if ap is None:
-        agent_config = host.agent_config
-    else:
-        agent_config = ap.get_agent_config(host.os_type)
+    ap = ap or host.ap
+    agent_config = ap.get_agent_config(host.os_type)
     setup_path = agent_config["setup_path"]
     log_path = agent_config["log_path"]
     # 如果没有自定义则使用接入点默认配置
     data_path = host.extra_data.get("data_path") or agent_config["data_path"]
 
-    taskserver_outer_ips = [server["outer_ip"] for server in host.ap.taskserver]
-    btfileserver_outer_ips = [server["outer_ip"] for server in host.ap.btfileserver]
-    dataserver_outer_ips = [server["outer_ip"] for server in host.ap.dataserver]
+    taskserver_outer_ips = [server["outer_ip"] for server in ap.taskserver]
+    btfileserver_outer_ips = [server["outer_ip"] for server in ap.btfileserver]
+    dataserver_outer_ips = [server["outer_ip"] for server in ap.dataserver]
 
-    jump_server, upstream_nodes = host.install_channel
+    install_channel = install_channel or host.install_channel
+    __, upstream_nodes = install_channel
     taskserver_inner_ips = [server for server in upstream_nodes["taskserver"]]
     btfileserver_inner_ips = [server for server in upstream_nodes["btfileserver"]]
     dataserver_inner_ips = [server for server in upstream_nodes["dataserver"]]
@@ -494,7 +522,7 @@ def generate_gse_config(host: models.Host, filename: str, node_type: str, ap: Op
 
     template = {}
     context = {}
-    port_config = host.ap.port_config
+    port_config = ap.port_config
     if node_type in ["agent", "pagent"]:
         template = {"agent.conf": AGENT_TEMPLATE, "plugin_info.json": PLUGIN_INFO_TEMPLATE}[filename]
         # 路径使用json.dumps 主要是为了解决Windows路径，如 C:\gse —> C:\\gse
@@ -532,10 +560,11 @@ def generate_gse_config(host: models.Host, filename: str, node_type: str, ap: Op
             pluginipc = f'"{pluginipc}"'
 
         if settings.GSE_USE_ENCRYPTION:
-            zk_auth = GseEncrypted.encrypted(f"{host.ap.zk_account}:{host.ap.zk_password}")
+            zk_auth = GseEncrypted.encrypted(f"{ap.zk_account}:{ap.zk_password}")
         else:
-            zk_auth = f"{host.ap.zk_account}:{host.ap.zk_password}"
+            zk_auth = f"{ap.zk_account}:{ap.zk_password}"
 
+        proxies = proxies if proxies is not None else host.proxies
         context = {
             "setup_path": setup_path,
             "log_path": log_path,
@@ -544,8 +573,8 @@ def generate_gse_config(host: models.Host, filename: str, node_type: str, ap: Op
             "bk_cloud_id": host.bk_cloud_id,
             "default_cloud_id": constants.DEFAULT_CLOUD,
             "identityip": host.inner_ip,
-            "region_id": host.ap.region_id,
-            "city_id": host.ap.city_id,
+            "region_id": ap.region_id,
+            "city_id": ap.city_id,
             "password_keyfile": False
             if settings.BKAPP_RUN_ENV == constants.BkappRunEnvType.CE.value
             else password_keyfile,
@@ -558,9 +587,9 @@ def generate_gse_config(host: models.Host, filename: str, node_type: str, ap: Op
             "plugincfg": plugincfg,
             "pluginbin": pluginbin,
             "pluginipc": pluginipc,
-            "zkhost": ",".join(f'{zk_host["zk_ip"]}:{zk_host["zk_port"]}' for zk_host in host.ap.zk_hosts),
-            "zkauth": zk_auth if host.ap.zk_account and host.ap.zk_password else "",
-            "proxy_servers": [proxy.inner_ip for proxy in host.proxies],
+            "zkhost": ",".join(f'{zk_host["zk_ip"]}:{zk_host["zk_port"]}' for zk_host in ap.zk_hosts),
+            "zkauth": zk_auth if ap.zk_account and ap.zk_password else "",
+            "proxy_servers": [proxy.inner_ip for proxy in proxies],
             "peer_exchange_switch_for_agent": host.extra_data.get("peer_exchange_switch_for_agent", 1),
             "bt_speed_limit": host.extra_data.get("bt_speed_limit"),
             "io_port": port_config.get("io_port"),
@@ -606,8 +635,8 @@ def generate_gse_config(host: models.Host, filename: str, node_type: str, ap: Op
             "inner_ip": host.inner_ip,
             "outer_ip": host.outer_ip,
             "proxy_servers": [host.inner_ip],
-            "region_id": host.ap.region_id,
-            "city_id": host.ap.city_id,
+            "region_id": ap.region_id,
+            "city_id": ap.city_id,
             "dataipc": dataipc,
             "peer_exchange_switch_for_agent": host.extra_data.get("peer_exchange_switch_for_agent", 1),
             "bt_speed_limit": host.extra_data.get("bt_speed_limit"),
@@ -691,6 +720,10 @@ def get_gse_config(request):
         )
         raise PermissionError("what are you doing?")
 
+    config = REDIS_INST.get(REDIS_AGENT_CONF_KEY_TPL.format(file_name=filename, sub_inst_id=decrypted_token["inst_id"]))
+    if config:
+        return HttpResponse(config.decode())
+
     try:
         host = Host.objects.get(bk_cloud_id=bk_cloud_id, inner_ip=inner_ip)
         if filename in ["bscp.yaml"]:
@@ -739,20 +772,8 @@ def report_log(request):
     # 把日志写入redis中，由install service中的schedule方法统一读取，避免频繁callback
     name = REDIS_INSTALL_CALLBACK_KEY_TPL.format(sub_inst_id=decrypted_token["inst_id"])
     json_dumps_logs = [json.dumps(log) for log in data["logs"]]
-
-    # 记录日志并设置过期时间
-    # 使用 lua 脚本合并 Redis 请求，保证操作的原子性，同时减少网络 IO
-    # unpack(ARGV, 2) 对 table（lua 中的 list / dict）解包，2 为切片的起始位置（lua 索引从 1 开始），实现日志添加到列表
-    # ARGV[1] 过期时间（单位 seconds）
-    lpush_and_expire_script = """
-    local length
-    length = redis.call("lpush", KEYS[1], unpack(ARGV, 2))
-    redis.call("expire", KEYS[1], ARGV[1])
-    return length
-    """
-    lpush_and_expire_func = REDIS_INST.register_script(script=lpush_and_expire_script)
     # 日志会被 Service 消费并持久化，在 Redis 保留一段时间便于排查「主机 -api-> Redis -log-> DB」 上的问题
-    lpush_and_expire_func(keys=[name], args=[2 * constants.TimeUnit.DAY] + json_dumps_logs)
+    LPUSH_AND_EXPIRE_FUNC(keys=[name], args=[constants.TimeUnit.DAY] + json_dumps_logs)
     return JsonResponse({})
 
 

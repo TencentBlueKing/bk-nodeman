@@ -8,13 +8,16 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import asyncio
+import inspect
 import sys
 import time
 from concurrent.futures import as_completed
 from concurrent.futures.thread import ThreadPoolExecutor
 from multiprocessing import cpu_count, get_context
-from typing import Callable, Dict, List
+from typing import Callable, Coroutine, Dict, List
 
+from asgiref.sync import async_to_sync
 from django.conf import settings
 
 from apps.exceptions import AppBaseException
@@ -61,6 +64,9 @@ def batch_call(
     if not params_list:
         return result
 
+    if inspect.iscoroutinefunction(func):
+        func = async_to_sync(func)
+
     with ThreadPoolExecutor(max_workers=settings.CONCURRENT_NUMBER) as ex:
         tasks = []
         for idx, params in enumerate(params_list):
@@ -84,6 +90,10 @@ def batch_call_serial(
     interval: float = 0,
     **kwargs
 ):
+
+    if inspect.iscoroutinefunction(func):
+        func = async_to_sync(func)
+
     result = []
     for idx, params in enumerate(params_list):
         if idx != 0:
@@ -92,6 +102,41 @@ def batch_call_serial(
             result.extend(get_data(func(**params)))
         else:
             result.append(get_data(func(**params)))
+    return result
+
+
+def batch_call_coroutine(
+    func: Callable[..., Coroutine],
+    params_list: List[Dict],
+    get_data: Callable = lambda x: x,
+    extend_result: bool = False,
+    interval: float = 0,
+    **kwargs
+):
+    """
+    协程并发
+    :param func: 返回协程对象的方法
+    :param params_list: 参数列表
+    :param get_data: 获取数据函数
+    :param extend_result: 是否展开结果
+    :param interval: 暂不支持
+    :param kwargs:
+    :return:
+    """
+
+    async def _batch_call_coroutine(_coros: List[Coroutine]):
+        return await asyncio.gather(*_coros, return_exceptions=True)
+
+    coros: List[Coroutine] = [func(**params) for params in params_list]
+    loop = asyncio.new_event_loop()
+    coro_results = loop.run_until_complete(_batch_call_coroutine(coros))
+
+    result = []
+    for coro_result in coro_results:
+        if extend_result:
+            result.extend(get_data(coro_result))
+        else:
+            result.append(get_data(coro_result))
     return result
 
 

@@ -15,14 +15,15 @@ from typing import Any, Dict, List, Optional, Union
 
 from django.utils.translation import ugettext_lazy as _
 
-from apps.backend.utils.ssh import SshMan
+from apps.backend import constants as backend_constants
 from apps.backend.utils.wmi import execute_cmd
 from apps.core.concurrent import controller
+from apps.core.remote import conns
 from apps.node_man import constants, models
-from apps.utils import concurrent
+from apps.utils import concurrent, exc
 
 from .. import core
-from .base import AgentBaseService, AgentCommonData, batch_call_single_exception_handler
+from .base import AgentBaseService, AgentCommonData
 
 
 class ChooseAccessPointService(AgentBaseService):
@@ -68,11 +69,21 @@ class ChooseAccessPointService(AgentBaseService):
         :return: 探测结果
         """
         is_windows = host.os_type in [constants.OsType.WINDOWS]
-        ssh_man = None
+        ssh_conn = None
         if not is_windows:
-            ssh_man = SshMan(host, self.logger)
-            # 一定要先设置一个干净的提示符号，否则会导致console_ready识别失效
-            ssh_man.get_and_set_prompt()
+            ip = host.login_ip or (host.inner_ip, host.outer_ip)[host.node_type == constants.NodeType.PROXY]
+            client_key_strings = []
+            if host.identity.auth_type == constants.AuthType.KEY:
+                client_key_strings.append(host.identity.key)
+            ssh_conn = conns.ParamikoConn(
+                host=ip,
+                port=host.identity.port,
+                username=host.identity.account,
+                password=host.identity.password,
+                client_key_strings=client_key_strings,
+                connect_timeout=backend_constants.SSH_CON_TIMEOUT,
+            )
+            ssh_conn.connect()
 
         # 接入点id - ping时间 映射关系
         ap_id__ping_time_map: Dict[int, float] = {}
@@ -98,11 +109,14 @@ class ChooseAccessPointService(AgentBaseService):
                     except IndexError:
                         pass
                 else:
-                    ping_time = ssh_man.send_cmd(
-                        f"ping {ip} -i 0.1 -c 4 -s 100 -W 1 | tail -1 | awk -F '/' '{{print $5}}'"
+                    run_output = ssh_conn.run(
+                        command=f"ping {ip} -i 0.1 -c 4 -s 100 -W 1 | tail -1 | awk -F '/' '{{print $5}}'",
+                        check=False,
+                        timeout=backend_constants.SSH_RUN_TIMEOUT,
                     )
-                    if ping_time:
-                        task_server_ping_time_list.append(float(ping_time))
+                    ping_time_str = run_output.stdout or str(self.MIN_PING_TIME)
+                    if ping_time_str:
+                        task_server_ping_time_list.append(float(ping_time_str))
             if task_server_ping_time_list:
                 ap_id__ping_time_map[ap.id] = sum(task_server_ping_time_list) / len(task_server_ping_time_list)
             else:
@@ -113,7 +127,7 @@ class ChooseAccessPointService(AgentBaseService):
                 min_ping_ap_id = ap.id
 
         if not is_windows:
-            ssh_man.safe_close(ssh_man.ssh)
+            ssh_conn.close()
 
         return {
             "ap_id__ping_time_map": ap_id__ping_time_map,
@@ -121,7 +135,7 @@ class ChooseAccessPointService(AgentBaseService):
             "min_ping_ap_id": min_ping_ap_id,
         }
 
-    @batch_call_single_exception_handler
+    @exc.ExceptionHandler(exc_handler=core.default_sub_inst_task_exc_handler)
     def detect_and_choose_ap(
         self,
         sub_inst_id: int,
@@ -175,7 +189,7 @@ class ChooseAccessPointService(AgentBaseService):
         if not detect_and_choose_ap_params_list:
             return []
 
-        return concurrent.batch_call_serial(
+        return concurrent.batch_call(
             func=self.detect_and_choose_ap, params_list=detect_and_choose_ap_params_list, get_data=lambda x: x
         )
 

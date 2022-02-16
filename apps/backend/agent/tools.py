@@ -132,7 +132,7 @@ def choose_script_file(host: models.Host) -> str:
     return script_file_name
 
 
-def format_run_cmd_by_os_type(os_type: str, run_cmd=None) -> str:
+def format_run_cmd_by_os_type(os_type: str, host_tmp_path: str, run_cmd=None) -> str:
     os_type = os_type.lower()
     if os_type == const.OS.WINDOWS and run_cmd:
         return run_cmd
@@ -141,7 +141,7 @@ def format_run_cmd_by_os_type(os_type: str, run_cmd=None) -> str:
         shell = "bash"
     else:
         shell = suffix
-    run_cmd = f"nohup {shell} {run_cmd} &" if run_cmd else shell
+    run_cmd = f"nohup {shell} {run_cmd} &> {host_tmp_path}nm.nohup.out &" if run_cmd else shell
     return run_cmd
 
 
@@ -172,7 +172,7 @@ def gen_commands(
     host_ap = host_ap or host.ap
     identity_data = identity_data or host.identity
     install_channel = install_channel or host.install_channel
-    proxies = proxies or host.proxies
+    proxies = proxies if proxies is not None else host.proxies
     encrypted_password = ""
     (
         jump_server,
@@ -214,13 +214,13 @@ def gen_commands(
         encrypted_password = rsa.RSAUtil(
             public_extern_key_file=os.path.join(settings.BK_SCRIPTS_PATH, "gse_public_key"),
             padding=rsa.CipherPadding.PKCS1_OAEP.value,
-        ).encrypt(host.identity.password)
+        ).encrypt(identity_data.password)
 
     check_run_commands(run_cmd_params)
     script_file_name = choose_script_file(host)
 
-    dest_dir = agent_config["temp_path"]
-    dest_dir = suffix_slash(host.os_type.lower(), dest_dir)
+    host_tmp_path = suffix_slash(host.os_type.lower(), agent_config["temp_path"])
+    dest_dir = host_tmp_path
     if script_file_name == constants.SetupScriptFileName.SETUP_PAGENT_PY.value:
         run_cmd_params.append(f"-L {settings.DOWNLOAD_PATH}")
         # P-Agent在proxy上执行，proxy都是Linux机器
@@ -228,11 +228,10 @@ def gen_commands(
         dest_dir = suffix_slash(constants.OsType.LINUX, dest_dir)
         if host.is_manual:
             run_cmd_params.insert(0, f"{dest_dir}{script_file_name} ")
-        host_tmp_path = suffix_slash(host.os_type.lower(), agent_config["temp_path"])
         host_identity = (
             identity_data.key if identity_data.auth_type == constants.AuthType.KEY else identity_data.password
         )
-        host_shell = format_run_cmd_by_os_type(host.os_type)
+        host_shell = format_run_cmd_by_os_type(host.os_type, host_tmp_path)
         run_cmd_params.extend(
             [
                 f"-HLIP {host.login_ip or host.inner_ip}",
@@ -257,7 +256,7 @@ def gen_commands(
 
         # 通道特殊配置
         if host.install_channel_id:
-            __, upstream_servers = host.install_channel
+            __, upstream_servers = install_channel
             agent_download_proxy = upstream_servers.get("agent_download_proxy", True)
             if not agent_download_proxy:
                 # 关闭agent下载代理选项时传入
@@ -289,13 +288,13 @@ def gen_commands(
         if need_encrypted_password:
             run_cmd_params.extend(
                 [
-                    f"-U {host.identity.account}",
+                    f"-U {identity_data.account}",
                     f'-P "{encrypted_password}"',
                 ]
             )
 
         run_cmd = format_run_cmd_by_os_type(
-            host.os_type, f"{dest_dir}{script_file_name} {' '.join(list(filter(None, run_cmd_params)))}"
+            host.os_type, host_tmp_path, f"{dest_dir}{script_file_name} {' '.join(list(filter(None, run_cmd_params)))}"
         )
         download_cmd = f"curl {package_url}/{script_file_name} -o {dest_dir}{script_file_name} --connect-timeout 5 -sSf"
     chmod_cmd = f"chmod +x {dest_dir}{script_file_name}"
@@ -311,7 +310,7 @@ def gen_commands(
         script_file_name,
         dest_dir,
         [
-            f"{dest_dir}curl.exe {host.ap.package_inner_url}/{script_file_name} -o {dest_dir}{script_file_name} -sSf",
+            f"{dest_dir}curl.exe {host_ap.package_inner_url}/{script_file_name} -o {dest_dir}{script_file_name} -sSf",
             run_cmd,
         ],
         upstream_nodes,
@@ -337,33 +336,27 @@ def check_run_commands(run_commands):
 
 
 def batch_gen_commands(
-    hosts: List[models.Host], pipeline_id: str, is_uninstall: bool, host_id__sub_inst_id: Dict[int, int]
+    hosts: List[models.Host],
+    pipeline_id: str,
+    is_uninstall: bool,
+    host_id__sub_inst_id: Dict[int, int],
+    ap_id_obj_map: Dict[int, models.AccessPoint],
+    cloud_id__proxies_map: Dict[int, List[models.Host]],
+    host_id__install_channel_map: Dict[int, Tuple[Optional[models.Host], Dict[str, List]]],
 ) -> Dict[int, InstallationTools]:
     """批量生成安装命令"""
     # 批量查出主机的属性并设置为property，避免在循环中进行ORM查询，提高效率
     host_id__sub_inst_id = host_id__sub_inst_id or host_id__sub_inst_id
     host_id__installation_tool_map = {}
-    ap_id_obj_map = models.AccessPoint.ap_id_obj_map()
     bk_host_ids = [host.bk_host_id for host in hosts]
     host_id_identity_map = {
         identity.bk_host_id: identity for identity in models.IdentityData.objects.filter(bk_host_id__in=bk_host_ids)
     }
-    install_channel_id_obj_map = {}
-    cloud_id_proxies_map = {}
 
     for host in hosts:
         host_ap = ap_id_obj_map[host.ap_id]
         # 避免部分主机认证信息丢失的情况下，通过host.identity重新创建来兜底保证不会异常
         identity_data = host_id_identity_map.get(host.bk_host_id) or host.identity
-        # 缓存相同云区域的proxies，提高性能，大部分场景下同时安装的P-Agent都属于同一个云区域
-        if host.bk_cloud_id not in cloud_id_proxies_map:
-            cloud_id_proxies_map[host.bk_cloud_id] = host.proxies
-        proxies = cloud_id_proxies_map[host.bk_cloud_id]
-
-        # 同理缓存安装通道
-        if host.install_channel_id not in install_channel_id_obj_map:
-            install_channel_id_obj_map[host.install_channel_id] = host.install_channel
-        install_channel = install_channel_id_obj_map[host.install_channel_id]
 
         host_id__installation_tool_map[host.bk_host_id] = gen_commands(
             host=host,
@@ -372,8 +365,8 @@ def batch_gen_commands(
             sub_inst_id=host_id__sub_inst_id[host.bk_host_id],
             identity_data=identity_data,
             host_ap=host_ap,
-            proxies=proxies,
-            install_channel=install_channel,
+            proxies=cloud_id__proxies_map.get(host.bk_cloud_id),
+            install_channel=host_id__install_channel_map.get(host.bk_host_id),
         )
 
     return host_id__installation_tool_map
