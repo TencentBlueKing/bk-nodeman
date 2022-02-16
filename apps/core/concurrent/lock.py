@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 
 import logging
 import math
+import typing
 import uuid
 
 from redis import StrictRedis
@@ -23,11 +24,12 @@ logger = logging.getLogger("app")
 
 
 class RedisLock:
-    redis_inst: StrictRedis = redis.RedisInstSingleTon.get_inst()
+    redis_inst: StrictRedis = None
 
-    def __init__(self, lock_name: str = None, lock_expire: int = None):
+    def __init__(self, lock_name: str, lock_expire: int = None, redis_inst: typing.Optional[StrictRedis] = None):
         self.lock_name = lock_name
         self.lock_expire = lock_expire or constants.DEFAULT_LOCK_EXPIRE
+        self.redis_inst = redis_inst or redis.RedisInstSingleTon.get_inst()
 
     def __enter__(self):
         if self.lock_name is None:

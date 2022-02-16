@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 
 from __future__ import unicode_literals
 
+from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
 
 from apps.utils import basic
@@ -20,7 +21,8 @@ from apps.utils import basic
 ########################################################################################################
 RECV_BUFLEN = 32768  # SSH通道recv接收缓冲区大小
 RECV_TIMEOUT = 60  # SSH通道recv超时 RECV_TIMEOUT秒
-SSH_CON_TIMEOUT = 10  # SSH连接超时设置10s
+SSH_CON_TIMEOUT = 30  # SSH连接最长等待时间
+SSH_RUN_TIMEOUT = 30  # SSH命令执行最长等待时间
 MAX_WAIT_OUTPUT = 32  # 最大重试等待recv_ready次数
 SLEEP_INTERVAL = 1  # recv等待间隔
 
@@ -101,4 +103,7 @@ class PluginMigrateType:
 
 
 # redis键名模板
-REDIS_INSTALL_CALLBACK_KEY_TPL = "NODEMAN_INSTALL_CALLBACK_KEY_{sub_inst_id}"
+REDIS_INSTALL_CALLBACK_KEY_TPL = f"{settings.APP_CODE}:backend:agent:log:list:" + "{sub_inst_id}"
+
+# redis Gse Agent 配置缓存
+REDIS_AGENT_CONF_KEY_TPL = f"{settings.APP_CODE}:backend:agent:config:" + "{file_name}:str:{sub_inst_id}"

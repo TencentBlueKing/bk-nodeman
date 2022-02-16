@@ -2,3 +2,4 @@ nodeman/apps/backend/utils/data_renderer.py
 nodeman/apps/node_man/models.py
 nodeman/script_tools
 nodeman/upgrade.py
+nodeman/apps/utils/exc.py

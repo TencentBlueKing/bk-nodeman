@@ -8,27 +8,38 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import asyncio
 import base64
 import json
 import os
+import random
 import socket
 import time
 from collections import defaultdict
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 
+from asgiref.sync import sync_to_async
 from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
+from redis.client import Pipeline
 
 from apps.backend.agent.tools import InstallationTools, batch_gen_commands
 from apps.backend.api.constants import POLLING_INTERVAL, POLLING_TIMEOUT
-from apps.backend.constants import REDIS_INSTALL_CALLBACK_KEY_TPL
+from apps.backend.constants import (
+    REDIS_AGENT_CONF_KEY_TPL,
+    REDIS_INSTALL_CALLBACK_KEY_TPL,
+    SSH_CON_TIMEOUT,
+    SSH_RUN_TIMEOUT,
+)
 from apps.backend.utils.redis import REDIS_INST
 from apps.backend.utils.ssh import SshMan
 from apps.backend.utils.wmi import execute_cmd, put_file
+from apps.backend.views import generate_gse_config
 from apps.core.concurrent import controller
+from apps.core.remote import conns
 from apps.exceptions import AuthOverdueException
 from apps.node_man import constants, models
-from apps.utils import concurrent
+from apps.utils import concurrent, exc
 from common.api import JobApi
 from pipeline.core.flow import Service, StaticIntervalGenerator
 
@@ -154,7 +165,93 @@ class InstallService(base.AgentBaseService):
             }
             for install_sub_inst_obj in install_sub_inst_objs
         ]
-        return concurrent.batch_call_serial(func=self.execute_linux_commands, params_list=params_list)
+        # 冗余代码，运行稳定后删除
+        # return concurrent.batch_call(func=self.execute_linux_commands, params_list=params_list)
+        # return concurrent.batch_call_serial(func=self.execute_linux_commands, params_list=params_list)
+        # return concurrent.batch_call(func=self.execute_linux_commands_with_asyncssh_in_sync, params_list=params_list)
+        return concurrent.batch_call_coroutine(func=self.execute_linux_commands_with_asyncssh, params_list=params_list)
+
+    @staticmethod
+    def get_cloud_id__proxies_map(bk_cloud_ids: Iterable[int]) -> Dict[int, List[models.Host]]:
+        proxies = models.Host.objects.filter(bk_cloud_id__in=set(bk_cloud_ids), node_type=constants.NodeType.PROXY)
+        proxy_host_ids = [proxy.bk_host_id for proxy in proxies]
+        alive_proxy_host_ids = models.ProcessStatus.objects.filter(
+            bk_host_id__in=proxy_host_ids,
+            name=models.ProcessStatus.GSE_AGENT_PROCESS_NAME,
+            status=constants.ProcStateType.RUNNING,
+        ).values_list("bk_host_id", flat=True)
+        alive_proxy_host_ids: Set[int] = set(alive_proxy_host_ids)
+
+        cloud_id__proxies_map: Dict[int, List[models.Host]] = defaultdict(list)
+        for proxy in proxies:
+            proxy.status = (constants.ProcStateType.TERMINATED, constants.ProcStateType.RUNNING)[
+                proxy.bk_host_id in alive_proxy_host_ids
+            ]
+            cloud_id__proxies_map[proxy.bk_cloud_id].append(proxy)
+        return cloud_id__proxies_map
+
+    def get_host_id__install_channel_map(
+        self,
+        hosts: List[models.Host],
+        host_id__sub_inst_id: Dict[int, int],
+        host_id__ap_map: Dict[int, models.AccessPoint],
+        cloud_id__proxies_map: Dict[int, List[models.Host]],
+    ) -> Dict[int, Tuple[Optional[models.Host], Dict[str, List]]]:
+        id__install_channel_obj_map: Dict[int, models.InstallChannel] = {}
+        install_channel_id__jump_servers_map: Dict[int, List[models.Host]] = defaultdict(list)
+        install_channel_objs = models.InstallChannel.objects.filter(id__in={host.install_channel_id for host in hosts})
+        # 安装通道数量通常是个位数，兼顾可读性在循环中执行DB查询操作
+        for install_channel_obj in install_channel_objs:
+            id__install_channel_obj_map[install_channel_obj.id] = install_channel_obj
+            install_channel_id__jump_servers_map[install_channel_obj.id] = list(
+                models.Host.objects.filter(
+                    inner_ip__in=install_channel_obj.jump_servers, bk_cloud_id=install_channel_obj.bk_cloud_id
+                )
+            )
+
+        cloud_id__alive_proxies_map: Dict[int, List[models.Host]] = defaultdict(list)
+        for cloud_id, proxies in cloud_id__proxies_map.items():
+            cloud_id__alive_proxies_map[cloud_id] = [
+                proxy for proxy in proxies if proxy.status == constants.ProcStateType.RUNNING
+            ]
+
+        host_id__install_channel_map: Dict[int, Tuple[Optional[models.Host], Dict[str, List]]] = {}
+        for host in hosts:
+            sub_inst_id = host_id__sub_inst_id[host.bk_host_id]
+            install_channel_obj = id__install_channel_obj_map.get(host.install_channel_id)
+            if install_channel_obj:
+                try:
+                    jump_server = random.choice(install_channel_id__jump_servers_map[install_channel_obj.id])
+                except IndexError:
+                    self.move_insts_to_failed(
+                        [sub_inst_id], log_content=_("所选安装通道「{name} 没有可用跳板机".format(name=install_channel_obj.name))
+                    )
+                else:
+                    host_id__install_channel_map[host.bk_host_id] = (jump_server, install_channel_obj.upstream_servers)
+            elif host.bk_cloud_id != constants.DEFAULT_CLOUD and host.node_type != constants.NodeType.PROXY:
+                alive_proxies = cloud_id__alive_proxies_map[host.bk_cloud_id]
+                try:
+                    jump_server = random.choice(alive_proxies)
+                except IndexError:
+                    self.move_insts_to_failed(
+                        [sub_inst_id],
+                        log_content=_("云区域 -> {bk_cloud_id} 下无存活的 Proxy").format(bk_cloud_id=host.bk_cloud_id),
+                    )
+                else:
+                    proxy_ips = [alive_proxy.inner_ip for alive_proxy in alive_proxies]
+                    upstream_servers = {"taskserver": proxy_ips, "btfileserver": proxy_ips, "dataserver": proxy_ips}
+                    host_id__install_channel_map[host.bk_host_id] = (jump_server, upstream_servers)
+            else:
+                host_ap = host_id__ap_map[host.bk_host_id]
+                jump_server = None
+                upstream_servers = {
+                    "taskserver": [server["inner_ip"] for server in host_ap.taskserver],
+                    "btfileserver": [server["inner_ip"] for server in host_ap.btfileserver],
+                    "dataserver": [server["inner_ip"] for server in host_ap.dataserver],
+                }
+                host_id__install_channel_map[host.bk_host_id] = (jump_server, upstream_servers)
+
+        return host_id__install_channel_map
 
     def _execute(self, data, parent_data, common_data: base.AgentCommonData):
 
@@ -170,24 +267,57 @@ class InstallService(base.AgentBaseService):
 
         manual_install_sub_inst_ids: List[int] = []
         hosts_need_gen_commands: List[models] = []
-        host_ids_need_gen_commands: Set[int] = set()
         for host in host_id_obj_map.values():
             if not host.is_manual:
                 hosts_need_gen_commands.append(host)
-                host_ids_need_gen_commands.add(host.bk_host_id)
                 continue
             manual_install_sub_inst_ids.append(host_id__sub_inst_id[host.bk_host_id])
         self.log_info(sub_inst_ids=manual_install_sub_inst_ids, log_content=_("等待手动执行安装命令"))
 
-        host_id__installation_tool_map = batch_gen_commands(
-            hosts_need_gen_commands, self.id, is_uninstall, host_id__sub_inst_id=host_id__sub_inst_id
+        cloud_id__proxies_map = self.get_cloud_id__proxies_map(
+            bk_cloud_ids=[host.bk_cloud_id for host in hosts_need_gen_commands]
         )
 
+        host_id__install_channel_map = self.get_host_id__install_channel_map(
+            hosts=hosts_need_gen_commands,
+            host_id__sub_inst_id=host_id__sub_inst_id,
+            host_id__ap_map=common_data.host_id__ap_map,
+            cloud_id__proxies_map=cloud_id__proxies_map,
+        )
+
+        # get_host_id__install_channel_map 仅返回成功匹配安装通道的主机，需要过滤失败主机
+        hosts_need_gen_commands = [
+            host for host in hosts_need_gen_commands if host.bk_host_id in host_id__install_channel_map
+        ]
+        host_id__installation_tool_map = batch_gen_commands(
+            hosts=hosts_need_gen_commands,
+            pipeline_id=self.id,
+            is_uninstall=is_uninstall,
+            host_id__sub_inst_id=host_id__sub_inst_id,
+            ap_id_obj_map=common_data.ap_id_obj_map,
+            cloud_id__proxies_map=cloud_id__proxies_map,
+            host_id__install_channel_map=host_id__install_channel_map,
+        )
+
+        get_gse_config_tuple_params_list: List[Dict[str, Any]] = []
+        host_ids_need_gen_commands = set(host_id__installation_tool_map.keys())
         for sub_inst in common_data.subscription_instances:
             bk_host_id = sub_inst.instance_info["host"]["bk_host_id"]
             if bk_host_id not in host_ids_need_gen_commands:
                 continue
+
             host = host_id_obj_map[bk_host_id]
+            if not is_uninstall:
+                # 仅在安装时需要缓存配置文件
+                # 考虑手动安装也是小规模场景且依赖用户输入，暂不做缓存
+                get_gse_config_tuple_params_list.append(
+                    {
+                        "sub_inst_id": sub_inst.id,
+                        "host": host,
+                        "ap": common_data.host_id__ap_map[host.bk_host_id],
+                        "file_name": "agent.conf",
+                    }
+                )
             installation_tool = host_id__installation_tool_map[bk_host_id]
             install_sub_inst_obj = InstallSubInstObj(
                 sub_inst_id=sub_inst.id, host=host, installation_tool=installation_tool
@@ -201,6 +331,22 @@ class InstallService(base.AgentBaseService):
                     lan_windows_sub_inst.append(install_sub_inst_obj)
                 else:
                     lan_linux_sub_inst.append(install_sub_inst_obj)
+
+        gse_config_tuples = concurrent.batch_call(
+            func=self.get_gse_config_tuple, params_list=get_gse_config_tuple_params_list
+        )
+        cache_key__config_content_map: Dict[str, str] = dict(list(filter(None, gse_config_tuples)))
+        if cache_key__config_content_map:
+            # 该场景下需要批量设置键过期时间，采用 Pipeline 批量提交命令，减少 IO 消耗
+            pipeline: Pipeline = REDIS_INST.pipeline()
+            # 缓存 Agent 配置
+            pipeline.mset(cache_key__config_content_map)
+            # 设置过期时间
+            for cache_key in cache_key__config_content_map:
+                # 根据调度超时时间预估一个过期时间
+                # 由于此时还未执行「命令下发」动作，随机增量过期时长，避免缓存雪崩
+                pipeline.expire(cache_key, POLLING_TIMEOUT + random.randint(POLLING_TIMEOUT, 2 * POLLING_TIMEOUT))
+            pipeline.execute()
 
         succeed_non_lan_inst_ids = self.handle_non_lan_inst(install_sub_inst_objs=non_lan_sub_inst)
         succeed_lan_windows_sub_inst_ids = self.handle_lan_windows_sub_inst(install_sub_inst_objs=lan_windows_sub_inst)
@@ -219,7 +365,15 @@ class InstallService(base.AgentBaseService):
         )
         data.outputs.polling_time = 0
 
-    @base.batch_call_single_exception_handler
+    @exc.ExceptionHandler(exc_handler=core.default_sub_inst_task_exc_handler)
+    def get_gse_config_tuple(
+        self, sub_inst_id: int, host: models.Host, ap: models.AccessPoint, file_name: str
+    ) -> Tuple[str, str]:
+        general_node_type = self.get_general_node_type(host.node_type)
+        content = generate_gse_config(host=host, filename=file_name, node_type=general_node_type, ap=ap)
+        return REDIS_AGENT_CONF_KEY_TPL.format(file_name=file_name, sub_inst_id=sub_inst_id), content
+
+    @exc.ExceptionHandler(exc_handler=core.default_sub_inst_task_exc_handler)
     @base.RetryHandler(interval=0, retry_times=2, exception_types=[ConnectionResetError])
     def execute_windows_commands(
         self, sub_inst_id: int, host: models.Host, commands: List[str], identity_data: models.IdentityData
@@ -274,7 +428,7 @@ class InstallService(base.AgentBaseService):
 
         return sub_inst_id
 
-    @base.batch_call_single_exception_handler
+    @exc.ExceptionHandler(exc_handler=core.default_sub_inst_task_exc_handler)
     @base.RetryHandler(interval=0, retry_times=2, exception_types=[ConnectionResetError])
     def push_curl_exe(self, sub_inst_id: int, host: models.Host, dest_dir: str, identity_data: models.IdentityData):
         ip = host.login_ip or host.inner_ip or host.outer_ip
@@ -299,7 +453,7 @@ class InstallService(base.AgentBaseService):
                 raise e
         return sub_inst_id
 
-    @base.batch_call_single_exception_handler
+    @exc.ExceptionHandler(exc_handler=core.default_sub_inst_task_exc_handler)
     def execute_job_commands(self, sub_inst_id, installation_tool: InstallationTools):
         # p-agent 走 作业平台，再 ssh 到 p-agent，这样可以无需保存 proxy 密码
         host = installation_tool.host
@@ -369,7 +523,7 @@ class InstallService(base.AgentBaseService):
         host.save(update_fields=["upstream_nodes"])
         return sub_inst_id
 
-    @base.batch_call_single_exception_handler
+    @exc.ExceptionHandler(exc_handler=core.default_sub_inst_task_exc_handler)
     @base.RetryHandler(interval=0, retry_times=2, exception_types=[socket.timeout])
     def execute_linux_commands(self, sub_inst_id, installation_tool: InstallationTools):
         host = installation_tool.host
@@ -399,6 +553,58 @@ class InstallService(base.AgentBaseService):
         ssh_man.send_cmd(run_cmd, wait_console_ready=False)
         ssh_man.safe_close(ssh_man.ssh)
         return sub_inst_id
+
+    @exc.ExceptionHandler(exc_handler=core.default_sub_inst_task_exc_handler)
+    async def execute_linux_commands_with_asyncssh(self, sub_inst_id, installation_tool: InstallationTools):
+        # 解决如下报错
+        # django.core.exceptions.SynchronousOnlyOperation: You cannot call this from an async context -
+        # use a thread or sync_to_async.
+        # 参考：https://docs.djangoproject.com/en/3.2/topics/async/
+        log_info = sync_to_async(self.log_info)
+        log_warning = sync_to_async(self.log_warning)
+
+        if installation_tool.identity_data.account not in [constants.LINUX_ACCOUNT, constants.WINDOWS_ACCOUNT]:
+            await log_warning(
+                sub_inst_id,
+                log_content=_("当前登录用户为「{account}」，请确保该用户具有 sudo 权限").format(
+                    account=installation_tool.identity_data.account
+                ),
+            )
+
+        if installation_tool.host.node_type == constants.NodeType.PROXY:
+            ip = installation_tool.host.login_ip or installation_tool.host.outer_ip
+        else:
+            ip = installation_tool.host.login_ip or installation_tool.host.inner_ip
+
+        client_key_strings = []
+        if installation_tool.identity_data.auth_type == constants.AuthType.KEY:
+            client_key_strings.append(installation_tool.identity_data.key)
+
+        async with conns.AsyncsshConn(
+            host=ip,
+            port=installation_tool.identity_data.port,
+            username=installation_tool.identity_data.account,
+            password=installation_tool.identity_data.password,
+            client_key_strings=client_key_strings,
+            connect_timeout=SSH_CON_TIMEOUT,
+        ) as conn:
+            run_cmd = installation_tool.run_cmd
+            pre_commands = installation_tool.pre_commands or []
+            for cmd in pre_commands:
+                await log_info(sub_inst_ids=sub_inst_id, log_content=f"Sending cmd: {cmd}")
+                await conn.run(command=cmd, check=True, timeout=SSH_RUN_TIMEOUT)
+            await log_info(sub_inst_ids=sub_inst_id, log_content=f"Sending install cmd: {run_cmd}")
+            await conn.run(command=run_cmd, check=True, timeout=SSH_RUN_TIMEOUT)
+
+        return sub_inst_id
+
+    @exc.ExceptionHandler(exc_handler=core.default_sub_inst_task_exc_handler)
+    def execute_linux_commands_with_asyncssh_in_sync(self, sub_inst_id, installation_tool: InstallationTools):
+        # 直接把 self.execute_linux_commands_with_asyncssh 通过 async_to_sync 转为同步，asyncssh 会有如下报错：
+        # unhandled exception during loop shutdown
+        # 单独开一个新的事件循环实现同步执行
+        loop = asyncio.new_event_loop()
+        return loop.run_until_complete(self.execute_linux_commands_with_asyncssh(sub_inst_id, installation_tool))
 
     def handle_report_data(self, sub_inst_id: int, success_callback_step: str) -> Dict:
         """处理上报数据"""
@@ -472,4 +678,5 @@ class InstallService(base.AgentBaseService):
         polling_time = data.get_one_of_outputs("polling_time")
         if polling_time + POLLING_INTERVAL > POLLING_TIMEOUT:
             self.move_insts_to_failed(left_scheduling_sub_inst_ids, _("安装超时"))
+            self.finish_schedule()
         data.outputs.polling_time = polling_time + POLLING_INTERVAL

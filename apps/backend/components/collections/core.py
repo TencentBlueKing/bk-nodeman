@@ -9,14 +9,17 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import copy
+import traceback
 from enum import Enum
-from typing import Any, Dict
+from typing import Any, Callable, Dict, Tuple
 
 from django.utils.translation import ugettext_lazy as _
 
 from apps.core.concurrent import core_concurrent_constants
 from apps.node_man import models
 from apps.utils import enum
+
+from . import base
 
 
 class ServiceCCConfigName(enum.EnhanceEnum):
@@ -39,7 +42,8 @@ class ServiceCCConfigName(enum.EnhanceEnum):
 def get_config_dict(config_name: str) -> Dict[str, Any]:
     default_concurrent_control_config = copy.deepcopy(core_concurrent_constants.DEFAULT_CONCURRENT_CONTROL_CONFIG)
     if config_name == ServiceCCConfigName.SSH.value:
-        default_concurrent_control_config.update(limit=10)
+        # 目前 asyncssh 协程执行的最佳批次内数量
+        default_concurrent_control_config.update(limit=100)
     elif config_name == ServiceCCConfigName.WMIEXE.value:
         # Windows 管控数量相对较少，且单个执行约为 30 秒，需要减少批次内串行的数量
         default_concurrent_control_config.update(limit=4)
@@ -51,3 +55,35 @@ def get_config_dict(config_name: str) -> Dict[str, Any]:
         key=models.GlobalSettings.KeyEnum.CONCURRENT_CONTROLLER_SETTINGS.value, default={}
     )
     return current_controller_settings.get(config_name, default_concurrent_control_config)
+
+
+def default_sub_inst_id_extractor(args: Tuple[Any], kwargs: Dict[str, Any]):
+    """
+    默认订阅实例ID提取器
+    :param args: 位置参数
+    :param kwargs: 关键字参数
+    :return: 订阅实例ID
+    """
+    if args:
+        return args[0]
+    else:
+        return kwargs["sub_inst_id"]
+
+
+def default_sub_inst_task_exc_handler(
+    wrapped: Callable, instance: base.BaseService, args: Tuple[Any], kwargs: Dict[str, Any], exc: Exception
+) -> Any:
+    """
+    默认的单订阅实例任务异常处理，用于批量调用时规避单任务异常导致整体执行失败的情况
+    :param wrapped: 被装饰的函数或类方法
+    :param instance: 基础Pipeline服务
+    :param exc: 捕获到异常
+    :param args: 位置参数
+    :param kwargs: 关键字参数
+    :return:
+    """
+    sub_inst_id = default_sub_inst_id_extractor(args, kwargs)
+    instance.move_insts_to_failed([sub_inst_id], str(exc))
+    # 打印 DEBUG 日志
+    instance.log_debug(sub_inst_id, log_content=traceback.format_exc(), fold=True)
+    return None

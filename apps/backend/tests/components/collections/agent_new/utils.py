@@ -425,13 +425,12 @@ class AgentServiceBaseTestCase(CustomAPITestCase, ComponentTestMixin, ABC):
             module_name = file_name[:-3]
             if module_name in ["__init__"]:
                 continue
-            batch_call_mock_path = ".".join(
-                [relative_dir_path.replace(os.path.sep, "."), module_name, "concurrent.batch_call"]
-            )
-            try:
-                mock.patch(batch_call_mock_path, concurrent.batch_call_serial).start()
-            except ModuleNotFoundError:
-                pass
+            for child_path in ["concurrent.batch_call_coroutine", "concurrent.batch_call"]:
+                batch_call_mock_path = ".".join([relative_dir_path.replace(os.path.sep, "."), module_name, child_path])
+                try:
+                    mock.patch(batch_call_mock_path, concurrent.batch_call_serial).start()
+                except (ModuleNotFoundError, AttributeError):
+                    pass
 
         super().setUpClass()
 

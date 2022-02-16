@@ -10,15 +10,19 @@ specific language governing permissions and limitations under the License.
 """
 import importlib
 import random
-from typing import Callable, List, Optional
+from typing import Any, Callable, List, Optional
 
 import mock
+from six import StringIO
 
 from apps.backend.components.collections.agent_new import choose_access_point
 from apps.backend.components.collections.agent_new.components import (
     ChooseAccessPointComponent,
 )
-from apps.mock_data import utils as mock_data_utils
+from apps.core.remote.tests.base import (
+    PARAMIKO_SSH_CLIENT_MOCK_PATH,
+    ParamikoSSHMockClient,
+)
 from apps.node_man import constants, models
 from pipeline.component_framework.test import (
     ComponentTestCase,
@@ -30,7 +34,7 @@ from . import utils
 
 
 def ping_time_selector(*args, **kwargs):
-    return 1.0
+    return "1.0"
 
 
 def win_ping_time_selector(*args, **kwargs):
@@ -43,18 +47,18 @@ class ChooseAccessPointTestCase(utils.AgentServiceBaseTestCase):
     SSH_MAN_MOCK_PATH = "apps.backend.components.collections.agent_new.choose_access_point.SshMan"
 
     except_ap_ids: Optional[List[int]] = None
-    ssh_man_mock_client: Optional[utils.SshManMockClient] = None
-    ssh_man_ping_time_selector: Optional[Callable] = None
+    ssh_mock_client: Optional[Any] = None
+    ssh_ping_time_selector: Optional[Callable] = None
 
     def init_mock_clients(self):
-        self.ssh_man_mock_client = utils.SshManMockClient(
-            ssh_return=mock_data_utils.MockReturn(
-                return_type=mock_data_utils.MockReturnType.RETURN_VALUE.value, return_obj="close"
-            ),
-            send_cmd_return_return=mock_data_utils.MockReturn(
-                return_type=mock_data_utils.MockReturnType.SIDE_EFFECT.value, return_obj=self.ssh_man_ping_time_selector
-            ),
-        )
+        ssh_man_ping_time_selector = self.ssh_ping_time_selector
+
+        class CustomParamikoSSHMockClient(ParamikoSSHMockClient):
+            @staticmethod
+            def exec_command(command: str, check=False, timeout=None, **kwargs):
+                return command, StringIO(ssh_man_ping_time_selector()), StringIO("")
+
+        self.ssh_mock_client = CustomParamikoSSHMockClient
 
     def init_hosts(self):
         models.Host.objects.filter(bk_host_id__in=self.obj_factory.bk_host_ids).update(
@@ -65,7 +69,7 @@ class ChooseAccessPointTestCase(utils.AgentServiceBaseTestCase):
         pass
 
     def setUp(self) -> None:
-        self.ssh_man_ping_time_selector = ping_time_selector
+        self.ssh_ping_time_selector = ping_time_selector
         self.init_mock_clients()
         self.init_hosts()
         super().setUp()
@@ -94,7 +98,7 @@ class ChooseAccessPointTestCase(utils.AgentServiceBaseTestCase):
                 ),
                 schedule_assertion=None,
                 execute_call_assertion=None,
-                patchers=[Patcher(target=self.SSH_MAN_MOCK_PATH, return_value=self.ssh_man_mock_client)],
+                patchers=[Patcher(target=PARAMIKO_SSH_CLIENT_MOCK_PATH, return_value=self.ssh_mock_client)],
             )
         ]
 
@@ -125,9 +129,9 @@ class PingErrorTestCase(ChooseAccessPointTestCase):
 
     def init_mock_clients(self):
         def ping_error_selector(*args, **kwargs):
-            return random.choice([None, choose_access_point.ChooseAccessPointService.MIN_PING_TIME + 1])
+            return random.choice(["", str(choose_access_point.ChooseAccessPointService.MIN_PING_TIME + 1)])
 
-        self.ssh_man_ping_time_selector = ping_error_selector
+        self.ssh_ping_time_selector = ping_error_selector
         super().init_mock_clients()
 
 
@@ -149,7 +153,7 @@ class WindowsAgentTestCase(ChooseAccessPointTestCase):
     EXECUTE_CMD_MOCK_PATH = "apps.backend.components.collections.agent_new.choose_access_point.execute_cmd"
 
     def init_mock_clients(self):
-        # windows 用不上 sshMan
+        # windows 用不上 ssh
         pass
 
     def start_patch(self):

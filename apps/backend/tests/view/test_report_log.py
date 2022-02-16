@@ -12,25 +12,16 @@ import random
 import time
 from typing import Any, Dict
 
-import mock
 import ujson as json
 
 from apps.backend.constants import REDIS_INSTALL_CALLBACK_KEY_TPL
 from apps.backend.utils.redis import REDIS_INST
-from apps.mock_data import common_unit
-from apps.node_man import constants, models
-from apps.utils.unittest.testcase import CustomAPITestCase
+from apps.node_man import constants
+
+from .base import ViewBaseTestCase
 
 
-class ReportLogTestCase(CustomAPITestCase):
-    PIPELINE_ID = "03502d112bf1416d8584f179edf86bd1"
-    SUB_INST_ID = random.randint(1, 10000)
-
-    @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
-        mock.patch("apps.backend.views.json.loads", lambda x: eval(x)).start()
-
+class ReportLogTestCase(ViewBaseTestCase):
     def setUp(self) -> None:
         super().setUp()
         # 每个 case 执行前移除 redis 日志列表
@@ -42,12 +33,6 @@ class ReportLogTestCase(CustomAPITestCase):
 
     def gen_redis_list_key(self) -> str:
         return REDIS_INSTALL_CALLBACK_KEY_TPL.format(sub_inst_id=self.SUB_INST_ID)
-
-    def gen_token(self) -> str:
-        return models.aes_cipher.encrypt(
-            f"{common_unit.host.DEFAULT_IP}|{constants.DEFAULT_CLOUD}|{self.PIPELINE_ID}|"
-            f"{time.time()}|{self.SUB_INST_ID}"
-        )
 
     @classmethod
     def gen_log(cls) -> Dict[str, Any]:
@@ -81,9 +66,7 @@ class ReportLogTestCase(CustomAPITestCase):
         self.assertEqual(REDIS_INST.llen(self.gen_redis_list_key()), len(query_params["logs"]))
         self.assertTrue(REDIS_INST.ttl(self.gen_redis_list_key()) <= 2 * constants.TimeUnit.DAY)
         # 预估上面语句执行时间不超过一分钟，验证过期时间下限
-        self.assertTrue(
-            REDIS_INST.ttl(self.gen_redis_list_key()) > 2 * constants.TimeUnit.DAY - constants.TimeUnit.MINUTE
-        )
+        self.assertTrue(REDIS_INST.ttl(self.gen_redis_list_key()) > constants.TimeUnit.DAY - constants.TimeUnit.MINUTE)
 
     def test_extend(self):
         """验证日志叠加"""
