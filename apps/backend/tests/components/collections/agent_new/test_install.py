@@ -21,6 +21,7 @@ from apps.backend.components.collections.agent_new import install
 from apps.backend.components.collections.agent_new.components import InstallComponent
 from apps.backend.constants import REDIS_INSTALL_CALLBACK_KEY_TPL
 from apps.backend.utils.redis import REDIS_INST
+from apps.core.remote.tests import base
 from apps.mock_data import api_mkd
 from apps.mock_data import utils as mock_data_utils
 from apps.node_man import constants, models
@@ -102,6 +103,7 @@ class InstallBaseTestCase(utils.AgentServiceBaseTestCase):
         mock.patch(self.JOB_API_MOCK_PATH, self.job_mock_client).start()
         mock.patch(target=self.EXECUTE_CMD_MOCK_PATH, return_value="").start()
         mock.patch(target=self.PUT_FILE_MOCK_PATH, return_value="").start()
+        base.get_asyncssh_connect_mock_patch().start()
 
     def setUp(self) -> None:
         self.update_callback_url()
@@ -164,7 +166,7 @@ class LinuxInstallTestCase(InstallBaseTestCase):
             f" -r http://127.0.0.1/backend -l http://127.0.0.1/download"
             f" -c {token}"
             f' -O 48668 -E 58925 -A 58625 -V 58930 -B 10020 -S 60020 -Z 60030 -K 10030 -e "" -a "" -k ""'
-            f" -i 0 -I 127.0.0.1 -N SERVER -p /usr/local/gse -T /tmp/ &"
+            f" -i 0 -I 127.0.0.1 -N SERVER -p /usr/local/gse -T /tmp/ &> /tmp/nm.nohup.out &"
         )
         self.assertEqual(installation_tool.run_cmd, run_cmd)
 

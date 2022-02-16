@@ -1,0 +1,3 @@
+---
+optimization:
+  - "提升通过 SSH 通道批量安装 Agent 的稳定性和效率 (closed #463)"

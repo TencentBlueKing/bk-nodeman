@@ -131,6 +131,10 @@ RABBITMQ_MAX_MESSAGE_COUNT = 10000
 # https://docs.djangoproject.com/en/3.2/releases/3.2/#customizing-type-of-auto-created-primary-keys
 DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
 
+# 请求最大存储占用，默认为 2.5 MB，仅能支持 4k 台主机信息的传入
+# 调整为默认值的4倍，支持 Agent 安装一次性传入 2w 台
+DATA_UPLOAD_MAX_MEMORY_SIZE = 1024 * 1024 * 10
+
 # ===============================================================================
 # 静态资源配置
 # ===============================================================================

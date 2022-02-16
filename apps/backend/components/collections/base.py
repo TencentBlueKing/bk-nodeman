@@ -9,8 +9,18 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import traceback
-from functools import wraps
-from typing import Any, Dict, Iterable, List, Optional, Set, Type, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Iterable,
+    List,
+    Optional,
+    Set,
+    Tuple,
+    Type,
+    Union,
+)
 
 from django.db.models import Value
 from django.db.models.functions import Concat
@@ -19,6 +29,7 @@ from django.utils.translation import ugettext as _
 
 from apps.node_man import constants, models
 from apps.utils.cache import class_member_cache
+from apps.utils.exc import ExceptionHandler
 from apps.utils.time_handler import strftime_local
 from common.log import logger
 from pipeline.core.flow import Service
@@ -60,39 +71,32 @@ class LogMaker:
         return self.get_log_content(LogLevel.DEBUG, content)
 
 
-def exception_handler(service_func):
-    # 原子执行逻辑最外层异常兜底
-    @wraps(service_func)
-    def wrapper(self, data, parent_data, *args, **kwargs):
-        act_name = data.get_one_of_inputs("act_name")
-        sub_inst_ids = self.get_subscription_instance_ids(data)
-        try:
-            return service_func(self, data, parent_data, *args, **kwargs)
-        except Exception as error:
-            error_msg = _("{act_name} 失败: {err}，请先尝试查看错误日志进行处理，若无法解决，请联系管理员处理").format(
-                act_name=act_name, err=str(error), msg=traceback.format_exc()
-            )
-            logger.exception(error_msg)
-            # 尝试更新实例状态
-            self.bulk_set_sub_inst_act_status(
-                sub_inst_ids=sub_inst_ids,
-                status=constants.JobStatusType.FAILED,
-                common_log=self.log_maker.error_log(error_msg),
-            )
-            # traceback日志进行折叠
-            self.log_debug(
-                sub_inst_ids=sub_inst_ids,
-                log_content="{debug_begin}\n{traceback}\n{debug_end}".format(
-                    debug_begin=" Begin of collected logs: ".center(40, "*"),
-                    traceback=traceback.format_exc(),
-                    debug_end=" End of collected logs ".center(40, "*"),
-                ),
-            )
-            if self.schedule == service_func:
-                self.finish_schedule()
-            return False
+def service_run_exc_handler(
+    wrapped: Callable, instance: "BaseService", args: Tuple[Any], kwargs: Dict[str, Any], exc: Exception
+) -> bool:
+    if args:
+        data = args[0]
+    else:
+        data = kwargs["data"]
 
-    return wrapper
+    act_name = data.get_one_of_inputs("act_name")
+    sub_inst_ids = instance.get_subscription_instance_ids(data)
+
+    error_msg = _("{act_name} 失败: {exc}，请先尝试查看错误日志进行处理，若无法解决，请联系管理员处理").format(act_name=act_name, exc=str(exc))
+    logger.exception(error_msg)
+
+    instance.bulk_set_sub_inst_act_status(
+        sub_inst_ids=sub_inst_ids,
+        status=constants.JobStatusType.FAILED,
+        common_log=instance.log_maker.error_log(error_msg),
+    )
+
+    # traceback日志进行折叠
+    instance.log_debug(sub_inst_ids=sub_inst_ids, log_content=traceback.format_exc(), fold=True)
+
+    if instance.schedule == wrapped:
+        instance.finish_schedule()
+    return False
 
 
 class LogMixin:
@@ -135,7 +139,16 @@ class LogMixin:
     def log_error(self, sub_inst_ids: Union[int, Iterable[int], None] = None, log_content: str = None):
         self.log_base(sub_inst_ids, log_content, level=LogLevel.ERROR)
 
-    def log_debug(self, sub_inst_ids: Union[int, Iterable[int], None] = None, log_content: str = None):
+    def log_debug(
+        self, sub_inst_ids: Union[int, Iterable[int], None] = None, log_content: str = None, fold: bool = False
+    ):
+        if fold:
+            # 背景：前端会识别该模式并折叠文本
+            log_content = "{debug_begin}\n{content}\n{debug_end}".format(
+                debug_begin=" Begin of collected logs: ".center(40, "*"),
+                content=log_content,
+                debug_end=" End of collected logs ".center(40, "*"),
+            )
         self.log_base(sub_inst_ids, log_content, level=LogLevel.DEBUG)
 
 
@@ -368,7 +381,7 @@ class BaseService(Service, LogMixin, DBHelperMixin):
 
         return bool(succeeded_subscription_instance_ids)
 
-    @exception_handler
+    @ExceptionHandler(exc_handler=service_run_exc_handler)
     def execute(self, data, parent_data):
         common_data = self.get_common_data(data)
         act_name = data.get_one_of_inputs("act_name")
@@ -387,7 +400,7 @@ class BaseService(Service, LogMixin, DBHelperMixin):
         self.set_current_id(subscription_instance_ids)
         return self.run(self._execute, data, parent_data, common_data=common_data)
 
-    @exception_handler
+    @ExceptionHandler(exc_handler=service_run_exc_handler)
     def schedule(self, data, parent_data, callback_data=None):
         return self.run(self._schedule, data, parent_data, callback_data=callback_data)
 
