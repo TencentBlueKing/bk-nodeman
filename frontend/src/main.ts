@@ -7,7 +7,8 @@ import store from '@/store/index';
 import { bus } from '@/common/bus';
 import i18n from '@/setup';
 import LoadingIcon from '@/components/common/loading-icon.vue';
-import '@icon-cool/bk-icon-node-manager';
+// import '@icon-cool/bk-icon-node-manager';
+import '@/bk_icon_font/style.css';
 import 'github-markdown-css';
 
 if (process.env.NODE_ENV === 'development') {
