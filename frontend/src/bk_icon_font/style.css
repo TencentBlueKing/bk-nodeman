@@ -1,0 +1,307 @@
+@font-face {
+	font-family: "nodeman";
+	src: url("fonts/iconcool.svg#iconcool") format("svg"),
+url("fonts/iconcool.ttf") format("truetype"),
+url("fonts/iconcool.woff") format("woff"),
+url("fonts/iconcool.eot?#iefix") format("embedded-opentype");
+    font-weight: normal;
+    font-style: normal;
+}
+
+.nodeman-icon {
+  /* use !important to prevent issues with browser extensions that change fonts */
+  font-family: 'nodeman' !important;
+  speak: none;
+  font-style: normal;
+  font-weight: normal;
+  font-variant: normal;
+  text-transform: none;
+  line-height: 1;
+  text-align: center;
+  /* Better Font Rendering =========== */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.nc-alicloud:before {
+	content: "\e101";
+}
+.nc-aws:before {
+	content: "\e102";
+}
+.nc-tencentcould:before {
+	content: "\e103";
+}
+.nc-back-left:before {
+	content: "\e104";
+}
+.nc-tips-fill:before {
+	content: "\e105";
+}
+.nc-tips:before {
+	content: "\e106";
+}
+.nc-plus:before {
+	content: "\e107";
+}
+.nc-minus:before {
+	content: "\e108";
+}
+.nc-delete:before {
+	content: "\e109";
+}
+.nc-arrow-left:before {
+	content: "\e10a";
+}
+.nc-arrow-right:before {
+	content: "\e10b";
+}
+.nc-setting:before {
+	content: "\e10c";
+}
+.nc-double-up:before {
+	content: "\e10d";
+}
+.nc-increase:before {
+	content: "\e113";
+}
+.nc-increase-2:before {
+	content: "\e114";
+}
+.nc-filter-fill:before {
+	content: "\e115";
+}
+.nc-loading:before {
+	content: "\e116";
+}
+.nc-key:before {
+	content: "\e117";
+}
+.nc-loading-2:before {
+	content: "\e118";
+}
+.nc-arrow-down:before {
+	content: "\e119";
+}
+.nc-bulk-edit:before {
+	content: "\e11a";
+}
+.nc-azure:before {
+	content: "\e11c";
+}
+.nc-huaweicloud:before {
+	content: "\e11d";
+}
+.nc-googlecloudplatform:before {
+	content: "\e11e";
+}
+.nc-salesforce:before {
+	content: "\e11f";
+}
+.nc-oraclecloud:before {
+	content: "\e120";
+}
+.nc-ibmcloud:before {
+	content: "\e121";
+}
+.nc-ecloud:before {
+	content: "\e122";
+}
+.nc-export:before {
+	content: "\e123";
+}
+.nc-u-cloud:before {
+	content: "\e124";
+}
+.nc-meituanopenservices:before {
+	content: "\e125";
+}
+.nc-ksyun:before {
+	content: "\e126";
+}
+.nc-baiducloud:before {
+	content: "\e127";
+}
+.nc-upload-cloud:before {
+	content: "\e128";
+}
+.nc-excel:before {
+	content: "\e129";
+}
+.nc-check-small:before {
+	content: "\e12b";
+}
+.nc-retry:before {
+	content: "\e12c";
+}
+.nc-arrow-up:before {
+	content: "\e12d";
+}
+.nc-icon-edit-2:before {
+	content: "\e12e";
+}
+.nc-delete-2:before {
+	content: "\e12f";
+}
+.nc-icon-export:before {
+	content: "\e130";
+}
+.nc-icon-full-screen:before {
+	content: "\e131";
+}
+.nc-icon-un-full-screen:before {
+	content: "\e132";
+}
+.nc-icon-topping-fill:before {
+	content: "\e133";
+}
+.nc-icon-control-fill:before {
+	content: "\e134";
+}
+.nc-jump-link:before {
+	content: "\e136";
+}
+.nc-monitor:before {
+	content: "\e137";
+}
+.nc-icon-bottom-fill:before {
+	content: "\e138";
+}
+.nc-discover:before {
+	content: "\e139";
+}
+.nc-icon-excel-fill:before {
+	content: "\e13b";
+}
+.nc-install:before {
+	content: "\e13a";
+}
+.nc-package:before {
+	content: "\e13d";
+}
+.nc-state:before {
+	content: "\e13e";
+}
+.nc-upload-2:before {
+	content: "\e13f";
+}
+.nc-icon-audit:before {
+	content: "\e140";
+}
+.nc-copy:before {
+	content: "\e141";
+}
+.nc-help-document-fill:before {
+	content: "\e142";
+}
+.nc-remind-fill:before {
+	content: "\e143";
+}
+.nc-export2:before {
+	content: "\e145";
+}
+.nc-qiyesiyouyun:before {
+	content: "\e146";
+}
+.nc-danger:before {
+	content: "\e147";
+}
+.nc-reduce:before {
+	content: "\e148";
+}
+.nc-shoudouyun:before {
+	content: "\e149";
+}
+.nc-danger-fill:before {
+	content: "\e14a";
+}
+.nc-danger-fill-2:before {
+	content: "\e14b";
+}
+.nc-reduce-fill:before {
+	content: "\e14c";
+}
+.nc-package-2:before {
+	content: "\e14e";
+}
+.nc-strategy:before {
+	content: "\e150";
+}
+.nc-change-target:before {
+	content: "\e151";
+}
+.nc-brush-fill:before {
+	content: "\e152";
+}
+.nc-withdraw-fill:before {
+	content: "\e154";
+}
+.nc-minus-line:before {
+	content: "\e155";
+}
+.nc-plus-line:before {
+	content: "\e156";
+}
+.nc-alert:before {
+	content: "\e157";
+}
+.nc-xiazai:before {
+	content: "\e158";
+}
+.nc-switchon:before {
+	content: "\e159";
+}
+.nc-variable:before {
+	content: "\e15b";
+}
+.nc-deploy:before {
+	content: "\e15a";
+}
+.nc-list:before {
+	content: "\e15c";
+}
+.nc-more:before {
+	content: "\e15d";
+}
+.nc-deploy-2:before {
+	content: "\e15e";
+}
+.nc-sub:before {
+	content: "\e15f";
+}
+.nc-environment:before {
+	content: "\e160";
+}
+.nc-saas:before {
+	content: "\e161";
+}
+.nc-backstage:before {
+	content: "\e162";
+}
+.nc-alert-2:before {
+	content: "\e163";
+}
+.nc-wrong:before {
+	content: "\e164";
+}
+.nc-linux:before {
+	content: "\e165";
+}
+.nc-windows:before {
+	content: "\e166";
+}
+.nc-aix:before {
+	content: "\e167";
+}
+.nc-xiezai:before {
+	content: "\e168";
+}
+.nc-parenet-node-line:before {
+	content: "\e169";
+}
+.nc-copy-2:before {
+	content: "\e16a";
+}
+.nc-manual:before {
+	content: "\e16b";
+}
