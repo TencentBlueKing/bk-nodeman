@@ -57,6 +57,12 @@ const navConfig: INavConfig[] = [
         path: '/plugin-manager/package',
         name: 'pluginPackage',
       },
+      {
+        title: '资源配额',
+        icon: 'nc-icon-control-fill',
+        path: '/plugin-manager/resource-quota',
+        name: 'resourceQuota',
+      },
     ],
   },
   {
