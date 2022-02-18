@@ -108,7 +108,7 @@ export function reguFnMinInteger(min = 0) {
 export function reguFnRangeInteger(min: number, max: number) {
   return {
     validator: (val: string) => regInteger.test(val) && Number(val) <= max && Number(val) >= min,
-    message: this.$t('整数范围校验提示', { max, min }),
+    message: window.i18n.t('整数范围校验提示', { max, min }),
     trigger: 'blur',
   };
 }

@@ -11,6 +11,8 @@ const PackageParse = () => import(/* webpackChunkName: 'PackageParse' */'@/views
 const PluginDetail = () => import(/* webpackChunkName: 'PluginDetail' */'@/views/plugin/plugin-package/plugin-detail.vue');
 const ChooseRule = () => import(/* webpackChunkName: 'AddRule' */'@/views/plugin/plugin-rule/plugin-rule-choose/plugin-rule-choose.vue');
 const CreateRule = () => import(/* webpackChunkName: 'CreateRule' */'@/views/plugin/plugin-rule/plugin-rule-create/index.vue');
+const ResourceQuota = () => import(/* webpackChunkName: 'ResourceQuota' */'@/views/plugin/resource-quota/index.vue');
+const ResourceQuotaEdit = () => import(/* webpackChunkName: 'ResourceQuotaEdit' */'@/views/plugin/resource-quota/edit.vue');
 
 export default [
   // 其它saas跳转
@@ -191,6 +193,40 @@ export default [
       title: '插件详情',
       customContent: true,
       needBack: true,
+    },
+  },
+  {
+    path: '/plugin-manager/resource-quota',
+    name: 'resourceQuota',
+    props: route => ({
+      bizId: route.query.bizId ? Number(route.query.bizId) : -1,
+      moduleId: route.query.moduleId ? Number(route.query.moduleId) : -1,
+    }),
+    component: ResourceQuota,
+    meta: {
+      navId: 'pluginManagerNew',
+      title: '资源配额',
+      customContent: true,
+    },
+    async beforeEnter(to: Route, from: Route, next: () => void) {
+      await MainStore.getBkBizPermission({ action: PLUGIN_VIEW, updateBiz: true });
+      next();
+    },
+  },
+  {
+    path: '/plugin-manager/resource-quota/edit',
+    name: 'resourceQuotaEdit',
+    props: route => ({
+      bizId: route.query.bizId ? Number(route.query.bizId) : -1,
+      moduleId: route.query.moduleId ? Number(route.query.moduleId) : -1,
+    }),
+    component: ResourceQuotaEdit,
+    meta: {
+      navId: 'pluginManagerNew',
+      parentId: 'resourceQuota',
+      parentName: 'resourceQuota',
+      title: '编辑资源配额',
+      customContent: true,
     },
   },
 ] as RouteConfig[];
