@@ -18,6 +18,9 @@ import {
   fetchConfigVariables,
   operatePlugin,
   fetchPackageDeployInfo,
+  fetchResourcePolicy,
+  fetchResourcePolicyStatus,
+  setResourcePolicy,
 } from '@/api/modules/plugin_v2';
 import {
   listPolicy,
@@ -38,6 +41,7 @@ import {
 } from '@/api/modules/policy';
 import { nodesAgentStatus, listHost as previewHost } from '@/api/modules/host_v2';
 import { getFilterCondition } from '@/api/modules/meta';
+import { serviceTemplate } from '@/api/modules/cmdb';
 import { sort } from '@/common/util';
 import { IPluginRuleParams, IStrategy, IPluginDetail, IPkVersionRow, IPkParseRow, IPolicyBase, IPluginTopo, IPreviewHost, ITarget, IPolicyOperate, IPluginRow } from '@/types/plugin/plugin-type';
 import { ISearchItem } from '@/types';
@@ -397,5 +401,40 @@ export default class PluginStore extends VuexModule {
   @Action
   public async getRegisterTask(params: { 'job_id': string }) {
     return await queryRegisterTask(params).catch(() => ({ status: 'failed' }));
+  }
+
+  // 查询业务下的资源树结构（单业务）
+  @Action
+  public async getTemplatesByBiz({ bk_biz_id }: { bk_biz_id: number }) {
+    const res = await serviceTemplate({ bk_biz_id }).catch(() => []);
+    return res.map(item => ({
+      ...item,
+      bk_inst_id: item.id,
+      bk_inst_name: item.name,
+      bk_obj_id: 'template',
+    }));
+  }
+
+  // 查询资源策略信息
+  @Action
+  public async fetchResourcePolicy(params: { bk_biz_id: number, bk_obj_id: string, bk_inst_id?: number }) {
+    const res = await fetchResourcePolicy(params).catch(() => ({ resource_policy: [] }));
+    res.resource_policy = res.resource_policy.map(({ statistics = {}, ...item }) => ({
+      ...item,
+      total: statistics.total_count || 0,
+      running: statistics.running_count || 0,
+      terminated: statistics.terminated_count || 0,
+    }));
+    return res;
+  }
+  // 查询资源策略状态
+  @Action
+  public async fetchResourcePolicyStatus(params: { bk_biz_id: number, bk_obj_id: 'service_template' }) {
+    return await fetchResourcePolicyStatus(params).catch(() => []);
+  }
+  // 更新
+  @Action
+  public async updateResourcePolicy(param) {
+    return await setResourcePolicy(param).catch(() => ({ job_id_list: [] }));
   }
 }

@@ -121,6 +121,35 @@ body {
         background: #ea3636;
     }
 }
+
+.nodeman-navigation-content {
+    display: flex;
+    flex-flow: row nowrap;
+    align-items: center;
+    justify-content: flex-start;
+    .content-icon {
+      position: relative;
+      height: 20px;
+      line-height: 20px;
+      top: -4px;
+      margin-left: -7px;
+      font-size: 28px;
+      color: $primaryFontColor;
+      cursor: pointer;
+    }
+    .content-header {
+      font-size: 16px;
+      color: #313238;
+    }
+    .content-subtitle {
+      display: flex;
+      margin-left: 10px;
+      font-size: 12px;
+      color: #979ba5;
+    }
+  }
+
+
 .flexible-tag-group {
     height: 22px;
     overflow: hidden;
