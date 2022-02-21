@@ -16,6 +16,9 @@ export const queryExportPluginTask = request('GET', 'api/v2/plugin/query_export_
 export const queryRegisterTask = request('GET', 'api/v2/plugin/query_register_task/');
 export const retrievePlugin = request('GET', 'api/v2/plugin/{{pk}}/');
 export const updatePlugin = request('PUT', 'api/v2/plugin/{{pk}}/');
+export const fetchResourcePolicy = request('GET', 'api/v2/plugin/fetch_resource_policy/');
+export const setResourcePolicy = request('POST', 'api/v2/plugin/set_resource_policy/');
+export const fetchResourcePolicyStatus = request('GET', 'api/v2/plugin/fetch_resource_policy_status/');
 
 export default {
   createExportPluginTask,

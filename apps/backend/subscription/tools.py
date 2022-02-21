@@ -393,6 +393,12 @@ def get_host_detail_by_template(bk_obj_id, template_info_list: list, bk_biz_id: 
         host_info_result = batch_request(
             call_func, dict(bk_set_template_ids=template_ids, bk_biz_id=bk_biz_id, fields=fields)
         )
+    biz_info = fetch_biz_info({"condition": {"bk_biz_id": bk_biz_id}})
+    cloud_id_name_map = models.Cloud.cloud_id_name_map()
+    for host in host_info_result:
+        host["bk_biz_id"] = bk_biz_id
+        host["bk_biz_name"] = host["bk_biz_name"] = biz_info[bk_biz_id]["bk_biz_name"]
+        host["bk_cloud_name"] = cloud_id_name_map.get(host["bk_cloud_id"])
 
     return host_info_result
 

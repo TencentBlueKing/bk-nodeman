@@ -41,13 +41,7 @@ def get_docs_center_url():
 
 
 def get_title():
-    if settings.BKAPP_RUN_ENV == constants.BkappRunEnvType.CE.value:
-        return _("节点管理 | 蓝鲸智云社区版")
-
-    if settings.RUN_VER == "open":
-        return _("节点管理 | 蓝鲸智云企业版")
-    else:
-        return _("节点管理 | 蓝鲸")
+    return _("节点管理 | 腾讯蓝鲸智云")
 
 
 def mysetting(request):

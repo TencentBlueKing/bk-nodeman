@@ -12,14 +12,16 @@ import json
 import os
 import random
 from collections import ChainMap, defaultdict
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Union
 
 import requests
 from django.conf import settings
 from django.core.cache import cache
 from django.core.files.uploadedfile import InMemoryUploadedFile
+from django.db.models import Count
 from django.utils.translation import ugettext_lazy as _
 
+from apps.component.esbclient import client_v2
 from apps.core.files import core_files_constants
 from apps.core.files.storage import get_storage
 from apps.node_man import constants, exceptions, models, tools
@@ -28,6 +30,7 @@ from apps.node_man.handlers.cmdb import CmdbHandler
 from apps.node_man.handlers.host import HostHandler
 from apps.node_man.handlers.iam import IamHandler
 from apps.utils.basic import distinct_dict_list, list_slice
+from apps.utils.batch_request import batch_request
 from apps.utils.concurrent import batch_call
 from apps.utils.files import md5sum
 from apps.utils.local import get_request_username
@@ -351,3 +354,126 @@ class PluginV2Handler:
         for key_str, deploy_number in all_key_str__deploy_number_map.items():
             key_str__deploy_info_map[key_str] = {"nodes_number": deploy_number}
         return key_str__deploy_info_map
+
+    @classmethod
+    def fetch_resource_policy(cls, bk_biz_id: int, bk_obj_id: str, bk_inst_id: int) -> Dict:
+        """
+        查询资源策略
+        """
+        resource_policy_qs = models.PluginResourcePolicy.objects.filter(
+            bk_biz_id=bk_biz_id, bk_obj_id=bk_obj_id, bk_inst_id=bk_inst_id, plugin_name__in=settings.HEAD_PLUGINS
+        )
+        # 暂时只支持服务模板，需扩展时可通过bk_obj_id进一步区分
+        if bk_obj_id == constants.CmdbObjectId.SERVICE_TEMPLATE:
+            hosts = batch_request(
+                client_v2.cc.find_host_by_service_template,
+                {"bk_service_template_ids": [bk_inst_id], "bk_biz_id": bk_biz_id, "fields": ["bk_host_id"]},
+            )
+        else:
+            hosts = []
+        bk_host_ids = [host["bk_host_id"] for host in hosts]
+        is_default = not resource_policy_qs.exists()
+        resource_policy = {
+            plugin_name: {
+                "plugin_name": plugin_name,
+                "cpu": constants.PLUGIN_DEFAULT_CPU_LIMIT,
+                "mem": constants.PLUGIN_DEFAULT_MEM_LIMIT,
+                "statistics": {"total_count": 0, "running_count": 0, "terminated_count": 0},
+            }
+            for plugin_name in settings.HEAD_PLUGINS
+        }
+
+        for policy in resource_policy_qs:
+            resource_policy[policy.plugin_name] = {
+                "plugin_name": policy.plugin_name,
+                "cpu": policy.cpu,
+                "mem": policy.mem,
+                "statistics": {"total_count": 0, "running_count": 0, "terminated_count": 0},
+            }
+
+        statistics = (
+            models.ProcessStatus.objects.filter(
+                bk_host_id__in=bk_host_ids, name__in=settings.HEAD_PLUGINS, is_latest=True
+            )
+            .values("name", "status")
+            .annotate(count=Count("status"))
+        )
+        for stati in statistics:
+            count = stati["count"]
+            if stati["status"] == constants.ProcStateType.TERMINATED:
+                resource_policy[stati["name"]]["statistics"]["terminated_count"] = count
+            elif stati["status"] == constants.ProcStateType.RUNNING:
+                resource_policy[stati["name"]]["statistics"]["running_count"] = count
+            resource_policy[stati["name"]]["statistics"]["total_count"] += count
+        return {"is_default": is_default, "resource_policy": list(resource_policy.values())}
+
+    @classmethod
+    def set_resource_policy(
+        cls, bk_biz_id: int, bk_obj_id: str, bk_inst_id: int, resource_policy: List[Dict]
+    ) -> Dict[str, List[int]]:
+        """
+        设置资源策略
+        """
+        # 查询数据库中已配置的资源策略
+        plugin_name_policy_map = {
+            policy.plugin_name: policy
+            for policy in models.PluginResourcePolicy.objects.filter(bk_obj_id=bk_obj_id, bk_inst_id=bk_inst_id)
+        }
+
+        # 对比差异，得出需要重新设定的插件及主机
+        diff_policy = []
+        for policy in resource_policy:
+            current_policy = plugin_name_policy_map.get(policy["plugin_name"])
+            current_cpu = getattr(current_policy, "cpu", constants.PLUGIN_DEFAULT_CPU_LIMIT)
+            current_mem = getattr(current_policy, "mem", constants.PLUGIN_DEFAULT_MEM_LIMIT)
+            if current_cpu != policy["cpu"] or current_mem != policy["mem"]:
+                diff_policy.append(policy)
+
+        if not diff_policy:
+            raise exceptions.PluginResourcePolicyNoDiff()
+        # 重载插件应用最新的资源策略
+        job_ids = []
+        for policy in diff_policy:
+            models.PluginResourcePolicy.objects.update_or_create(
+                plugin_name=policy["plugin_name"],
+                bk_biz_id=bk_biz_id,
+                bk_obj_id=bk_obj_id,
+                bk_inst_id=bk_inst_id,
+                defaults=dict(cpu=policy["cpu"], mem=policy["mem"]),
+            )
+            job_id = cls.operate(
+                job_type=constants.JobType.MAIN_RELOAD_PLUGIN,
+                plugin_name=policy["plugin_name"],
+                scope={
+                    "node_type": models.Subscription.NodeType.SERVICE_TEMPLATE,
+                    "object_type": models.Subscription.ObjectType.HOST,
+                    "nodes": [
+                        {
+                            "bk_biz_id": bk_biz_id,
+                            "bk_obj_id": models.Subscription.NodeType.SERVICE_TEMPLATE,
+                            "bk_inst_id": bk_inst_id,
+                        }
+                    ],
+                },
+                steps=[],
+            )["job_id"]
+            job_ids.append(job_id)
+        return {"job_id_list": job_ids}
+
+    @classmethod
+    def fetch_resource_policy_status(cls, bk_biz_id: int, bk_obj_id: str) -> List[Dict[str, Union[int, bool]]]:
+        """查询资源策略状态"""
+        exist_policy_bk_inst_ids = list(
+            models.PluginResourcePolicy.objects.filter(bk_biz_id=bk_biz_id, bk_obj_id=bk_obj_id).values_list(
+                "bk_inst_id", flat=True
+            )
+        )
+        biz_inst_ids = []
+        if bk_obj_id == constants.CmdbObjectId.SERVICE_TEMPLATE:
+            biz_inst_ids = [
+                service_template["id"] for service_template in CmdbHandler.get_biz_service_template(bk_biz_id=bk_biz_id)
+            ]
+        return [
+            {"bk_inst_id": biz_inst_id, "is_default": biz_inst_id not in exist_policy_bk_inst_ids}
+            for biz_inst_id in biz_inst_ids
+        ]

@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import hashlib
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import List
+from typing import Dict, List
 
 from blueapps.account.models import User
 from django.conf import settings
@@ -35,6 +35,7 @@ from apps.node_man.periodic_tasks.sync_cmdb_biz_topo_task import (
     get_and_cache_format_biz_topo,
 )
 from apps.utils import APIModel
+from apps.utils.batch_request import batch_request
 from apps.utils.local import get_request_username
 from common.log import logger
 
@@ -607,3 +608,15 @@ class CmdbHandler(APIModel):
         """
         topo = client_v2.cc.get_mainline_object_topo()
         return [obj["bk_obj_id"] for obj in topo]
+
+    @staticmethod
+    def find_host_service_template(bk_host_ids: List[int]) -> List[Dict]:
+        """
+        查询主机服务模板
+        :return: [{"bk_host_id": 1, "service_template_id": [2, 3]}]
+        """
+        return client_v2.cc.find_host_service_template({"bk_host_id": list(bk_host_ids)})
+
+    @staticmethod
+    def get_biz_service_template(bk_biz_id: int) -> List[Dict]:
+        return batch_request(client_v2.cc.list_service_template, {"bk_biz_id": bk_biz_id})

@@ -20,6 +20,7 @@ from typing import Dict, List, Optional, Set, Tuple, Union
 from django.conf import settings
 from django.db import IntegrityError
 from django.db.models import F, Q
+from django.utils import timezone
 from django.utils.translation import ugettext as _
 
 from apps.backend.api.constants import (
@@ -38,7 +39,7 @@ from apps.backend.subscription.tools import (
     get_all_subscription_steps_context,
     render_config_files_by_config_templates,
 )
-from apps.exceptions import AppBaseException
+from apps.exceptions import AppBaseException, ComponentCallError
 from apps.node_man import constants, exceptions, models
 from apps.node_man.handlers.cmdb import CmdbHandler
 from apps.utils.batch_request import request_multi_thread
@@ -69,7 +70,6 @@ class PluginCommonData(CommonData):
         policy_step_adapter: PolicyStepAdapter,
         group_id_instance_map: Dict[str, models.SubscriptionInstanceRecord],
     ):
-
         # 进程状态列表
         self.process_statuses = process_statuses
         # 目标主机列表，用于远程采集场景
@@ -1038,6 +1038,56 @@ class GseOperateProcService(PluginBaseService):
             }
         return gse_control
 
+    @staticmethod
+    def get_resource_policy(bk_host_ids: Set[int], plugin_name: str) -> Dict[int, Dict]:
+        """查询资源策略"""
+        # 给每台主机设置默认资源配置
+        host_id__resource_policy_map = {
+            bk_host_id: {
+                "updated_at": timezone.datetime(1970, 1, 1, tzinfo=timezone.get_current_timezone()),
+                "resource": {"cpu": constants.PLUGIN_DEFAULT_CPU_LIMIT, "mem": constants.PLUGIN_DEFAULT_MEM_LIMIT},
+            }
+            for bk_host_id in bk_host_ids
+        }
+        # 查询主机对应的服务模板ID列表
+        try:
+            host_service_templates = CmdbHandler.find_host_service_template(list(bk_host_ids))
+        except ComponentCallError as error:
+            # 接口不存在时，使用默认配置
+            logger.exception(
+                "call find_host_service_template error: {error}," " use default resource policy".format(error=error)
+            )
+            return host_id__resource_policy_map
+
+        all_service_template = []
+        for service_template in host_service_templates:
+            all_service_template.extend(service_template["service_template_id"])
+        # 查询服务模板已设置的资源策略
+        resource_policies = models.PluginResourcePolicy.objects.filter(
+            plugin_name=plugin_name,
+            bk_obj_id=constants.CmdbObjectId.SERVICE_TEMPLATE,
+            bk_inst_id__in=all_service_template,
+        )
+        service_template_id__resource_policy_map = {
+            policy.bk_inst_id: {
+                "updated_at": policy.updated_at or policy.created_at,
+                "resource": {"cpu": policy.cpu, "mem": policy.mem},
+            }
+            for policy in resource_policies
+        }
+        # 匹配资源策略到主机上，若同一主机属于多个服务模板，则取最近更新的策略为准
+        for service_template in host_service_templates:
+            bk_host_id = service_template["bk_host_id"]
+            for service_template_id in service_template["service_template_id"]:
+                policy = service_template_id__resource_policy_map.get(service_template_id)
+                # 服务模板未配置策略，则使用默认值
+                if not policy:
+                    continue
+                if policy["updated_at"] > host_id__resource_policy_map[bk_host_id]["updated_at"]:
+                    host_id__resource_policy_map[bk_host_id] = policy
+
+        return host_id__resource_policy_map
+
     def request_gse_or_finish_schedule(self, proc_operate_req: List, data):
         """批量请求GSE接口"""
         # 当请求参数为空时，代表无需请求，直接 finish_schedule 跳过即可
@@ -1056,6 +1106,7 @@ class GseOperateProcService(PluginBaseService):
         group_id_instance_map = common_data.group_id_instance_map
         host_id_obj_map = common_data.host_id_obj_map
 
+        host_id__resource_policy_map = self.get_resource_policy(common_data.bk_host_ids, plugin.name)
         proc_operate_req = []
         for process_status in process_statuses:
             bk_host_id = process_status.bk_host_id
@@ -1089,11 +1140,7 @@ class GseOperateProcService(PluginBaseService):
                         "user": constants.ACCOUNT_MAP.get(host.os_type, "root"),
                     },
                     "control": gse_control,
-                    "resource": {
-                        "mem": 10,
-                        # 日志采集器需要更高的CPU，TODO 后续通过资源配额来解决
-                        "cpu": 30 if plugin.name == "bkunifylogbeat" else 10,
-                    },
+                    "resource": host_id__resource_policy_map[bk_host_id]["resource"],
                     "alive_monitor_policy": {
                         # 托管类型，0为周期执行进程，1为常驻进程，2为单次执行进程，这里仅需使用常驻进程
                         "auto_type": 1,
