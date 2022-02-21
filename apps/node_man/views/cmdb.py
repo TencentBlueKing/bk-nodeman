@@ -165,3 +165,29 @@ class CmdbViews(APIViewSet):
         }
         """
         return Response(CmdbHandler().search_ip(self.validated_data))
+
+    @action(detail=False, methods=["GET"], serializer_class=cmdb.FetchBizServiceTemplateSerializer)
+    def service_template(self, request, *args, **kwargs):
+        """
+        @api {GET} /cmdb/service_template/  查询服务模板列表
+        @apiName service_template
+        @apiGroup cmdb
+        @apiParam {Int} bk_biz_id 业务ID
+        @apiParamExample {json} 请求参数:
+        {
+            "bk_biz_id": 2
+        }
+        @apiSuccessExample {json} 成功返回:
+        [
+            {
+                id: 68,
+                name: "db模板",
+            },
+            {
+                bk_biz_id: 2,
+                id: 65,
+                name: "服务模板名称",
+            },
+        ]
+        """
+        return Response(CmdbHandler().get_biz_service_template(self.validated_data["bk_biz_id"]))

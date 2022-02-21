@@ -198,3 +198,8 @@ class PluginUploadError(NodeManBaseException):
 class UrlNotReachableError(NodeManBaseException):
     MESSAGE = _("访问地址不可达")
     ERROR_CODE = 39
+
+
+class PluginResourcePolicyNoDiff(NodeManBaseException):
+    MESSAGE = _("插件配置未变更，无需执行")
+    ERROR_CODE = 40

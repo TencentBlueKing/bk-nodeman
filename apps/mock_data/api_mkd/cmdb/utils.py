@@ -22,6 +22,7 @@ class CMDBMockClient(utils.BaseMockClient):
         list_biz_hosts_return=None,
         list_hosts_without_biz_return=None,
         find_host_biz_relations_return=None,
+        find_host_by_service_template_return=None,
     ):
         self.cc = mock.MagicMock()
         self.cc.add_host_to_resource = self.generate_magic_mock(mock_return_obj=add_host_to_resource_return)
@@ -29,3 +30,6 @@ class CMDBMockClient(utils.BaseMockClient):
         self.cc.list_biz_hosts = self.generate_magic_mock(mock_return_obj=list_biz_hosts_return)
         self.cc.list_hosts_without_biz = self.generate_magic_mock(mock_return_obj=list_hosts_without_biz_return)
         self.cc.find_host_biz_relations = self.generate_magic_mock(mock_return_obj=find_host_biz_relations_return)
+        self.cc.find_host_by_service_template = self.generate_magic_mock(
+            mock_return_obj=find_host_by_service_template_return
+        )

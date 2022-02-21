@@ -12,8 +12,12 @@ from unittest.mock import patch
 
 from django.test import TestCase
 
-from apps.backend.components.collections.plugin import GseOperateProcComponent
+from apps.backend.components.collections.plugin import (
+    GseOperateProcComponent,
+    GseOperateProcService,
+)
 from apps.backend.tests.components.collections.plugin import utils
+from apps.node_man import constants, models
 from pipeline.component_framework.test import (
     ComponentTestCase,
     ComponentTestMixin,
@@ -84,3 +88,51 @@ class GseOperateProcTest(TestCase, ComponentTestMixin):
                 execute_call_assertion=None,
             )
         ]
+
+
+class TestGseOperateResourcePolicy(TestCase):
+    PLUGIN_NAME = "bkmonitorbeat"
+    CPU_LIMIT = 20
+    MEM_LIMIT = 30
+
+    def init_service_template_resource_policy(self):
+        models.PluginResourcePolicy.objects.create(
+            plugin_name=self.PLUGIN_NAME,
+            cpu=self.CPU_LIMIT,
+            mem=self.MEM_LIMIT,
+            bk_biz_id=utils.DEFAULT_BIZ_ID_NAME["bk_biz_id"],
+            bk_obj_id=constants.CmdbObjectId.SERVICE_TEMPLATE,
+            bk_inst_id=utils.SERVICE_TEMPLATE_ID,
+        )
+
+    def setUp(self):
+        self.ids = utils.PluginTestObjFactory.init_db()
+        self.init_service_template_resource_policy()
+        self.cmdb_client = patch(utils.CMDB_CLIENT_MOCK_PATH, utils.CmdbClient)
+        self.cmdb_client.start()
+
+    def test_get_resource_policy(self):
+        resource_policy = GseOperateProcService.get_resource_policy({utils.BK_HOST_ID}, self.PLUGIN_NAME)
+        self.assertDictEqual(resource_policy[utils.BK_HOST_ID]["resource"], {"cpu": 20, "mem": 30})
+
+    def test_get_resource_policy_by_non_set_host_id(self):
+        # 未配置资源配额，预期拿到默认值
+        non_set_host_id = 123456789
+        resource_policy = GseOperateProcService.get_resource_policy({non_set_host_id}, self.PLUGIN_NAME)
+        self.assertDictEqual(
+            resource_policy[non_set_host_id]["resource"],
+            {"cpu": constants.PLUGIN_DEFAULT_CPU_LIMIT, "mem": constants.PLUGIN_DEFAULT_MEM_LIMIT},
+        )
+
+    def test_get_resource_policy_cmdb_component_error(self):
+        # 接口不存在时，则直接使用默认值
+        bk_host_id_set = {1, 2}
+        resource_policy = GseOperateProcService.get_resource_policy(bk_host_id_set, self.PLUGIN_NAME)
+        for bk_host_id in bk_host_id_set:
+            self.assertDictEqual(
+                resource_policy[bk_host_id]["resource"],
+                {"cpu": constants.PLUGIN_DEFAULT_CPU_LIMIT, "mem": constants.PLUGIN_DEFAULT_MEM_LIMIT},
+            )
+
+    def tearDown(self):
+        self.cmdb_client.stop()

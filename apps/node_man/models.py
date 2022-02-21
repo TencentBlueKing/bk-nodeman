@@ -789,7 +789,7 @@ class Cloud(models.Model):
         all_cloud_map = {
             cloud.bk_cloud_id: cloud.bk_cloud_name for cloud in cls.objects.all().only("bk_cloud_id", "bk_cloud_name")
         }
-        all_cloud_map[constants.DEFAULT_CLOUD] = _("直连区域")
+        all_cloud_map[constants.DEFAULT_CLOUD] = str(_("直连区域"))
         return all_cloud_map
 
     class Meta:
@@ -1540,6 +1540,22 @@ class DownloadRecord(models.Model):
                     record_id=self.id, task_status=self.task_status, err_msg=self.error_message
                 )
             )
+
+
+class PluginResourcePolicy(models.Model):
+    plugin_name = models.CharField(_("插件名"), max_length=32, db_index=True)
+    cpu = models.IntegerField(_("CPU限额"), default=constants.PLUGIN_DEFAULT_CPU_LIMIT)
+    mem = models.IntegerField(_("内存限额"), default=constants.PLUGIN_DEFAULT_MEM_LIMIT)
+    bk_biz_id = models.IntegerField(_("业务ID"), db_index=True)
+    bk_obj_id = models.CharField(_("CMDB对象ID"), max_length=32, db_index=True)
+    bk_inst_id = models.IntegerField(_("CMDB实例ID"), db_index=True)
+    created_at = models.DateTimeField(_("创建时间"), auto_now_add=True, db_index=True)
+    updated_at = models.DateTimeField(_("更新时间"), auto_now=True, db_index=True)
+
+    class Meta:
+        verbose_name = _("插件资源设置")
+        verbose_name_plural = _("插件资源设置")
+        unique_together = (("plugin_name", "bk_obj_id", "bk_inst_id"),)
 
 
 class PluginConfigTemplate(models.Model):

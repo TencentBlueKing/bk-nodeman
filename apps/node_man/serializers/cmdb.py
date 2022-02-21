@@ -40,6 +40,10 @@ class FetchTopoSerializer(serializers.Serializer):
     action = serializers.CharField(required=False)
 
 
+class FetchBizServiceTemplateSerializer(serializers.Serializer):
+    bk_biz_id = serializers.IntegerField(label=_("业务ID"))
+
+
 class CmdbSearchTopoSerializer(serializers.Serializer):
     kw = serializers.CharField(label=_("搜索关键字"), min_length=1, max_length=256)
     bk_biz_ids = serializers.ListField(

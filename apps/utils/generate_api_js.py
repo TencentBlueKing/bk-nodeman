@@ -12,6 +12,7 @@ import os
 from typing import Dict
 
 import ujson as json
+from django.conf import settings
 from django.template import engines
 
 TEMPLATE = """import { request } from '../base';
@@ -61,9 +62,10 @@ def route(api: Dict[str, str], double_brace: bool = False):
 
 
 def main(is_apigw=False):
-    apidoc_path = os.path.join("static", "apidoc")
-    os.system(f"apidoc -i apps -o {apidoc_path}")
-    with open(os.path.join(apidoc_path, "api_data.json"), "rb") as fh:
+    apidoc_dest_path = os.path.join(settings.PROJECT_ROOT, "static", "apidoc")
+    apidoc_source_path = os.path.join(settings.PROJECT_ROOT, "apps")
+    os.system(f"apidoc -i {apidoc_source_path} -o {apidoc_dest_path}")
+    with open(os.path.join(apidoc_dest_path, "api_data.json"), "rb") as fh:
         apis = json.load(fh)
 
     grouped_data = {}
@@ -85,7 +87,7 @@ def main(is_apigw=False):
                 "resource_classification": api["group"],
             }
             output.append(data)
-        file_name = os.path.join("support-files", "api_gateway.json")
+        file_name = os.path.join(settings.PROJECT_ROOT, "support-files", "api_gateway.json")
         with open(file_name, "w", encoding="utf-8") as fh:
             fh.write(json.dumps(output))
         return file_name
@@ -97,7 +99,7 @@ def main(is_apigw=False):
             grouped_data[group] = grouped_data.get(group, []) + [api]
 
         for group, data in grouped_data.items():
-            file_name = os.path.join("frontend", "src", "api", "modules", "{}.js".format(group))
+            file_name = os.path.join(settings.PROJECT_ROOT, "frontend", "src", "api", "modules", "{}.js".format(group))
             template = engines["django"].from_string(TEMPLATE)
             code = template.render({"apis": data})
             with open(file_name, "w", encoding="utf-8") as fh:

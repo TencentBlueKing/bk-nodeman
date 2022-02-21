@@ -24,6 +24,8 @@
               const BK_DOCS_CENTER_URL = '{{ BK_DOCS_CENTER_URL }}'
               const BKAPP_RUN_ENV = '{{ BKAPP_RUN_ENV }}'
               const TAM_ID = '{{ TAM_ID }}'
+              const LOGIN_URL = '{{ LOGIN_URL }}'
+              const VERSION = '{{ VERSION }}'
 
               return {
                   SITE_URL: SITE_URL,
@@ -50,7 +52,9 @@
                   USE_TJJ,
                   BK_DOCS_CENTER_URL,
                   BKAPP_RUN_ENV,
-                  TAM_ID
+                  TAM_ID,
+                  LOGIN_URL,
+                  VERSION
               }
           })()</script><script src="{{ TAM_URL }}"></script><script>if(window.PROJECT_CONFIG.TAM_ID !== 'None') {
             const aegis = new Aegis({
@@ -66,4 +70,4 @@
               restfulApiList: [], // 当开启了接口测速，且项目中有些接口采用了 restful 规范，需要在该配置中列出，帮助 Aegis 识别哪些接口是同一条接
               spa: true
             })
-          }</script><link href={{STATIC_URL}}nodeman/css/chunk-bk-magic-vue.b979f41e4e9b687ac4c1.css rel=stylesheet><link href={{STATIC_URL}}nodeman/css/main.06888a0952744c048138.css rel=stylesheet></head><body><div id=app></div><script src="{{ STATIC_URL }}nodeman/lib.bundle.js?t=1626265828745"></script><script src={{STATIC_URL}}nodeman/js/chunk-bk-magic-vue.62b25f70526bd7dca288.js></script><script src={{STATIC_URL}}nodeman/js/defaultVendors-node_modules_babel_runtime_helpers_asyncToGenerator_js-node_modules_babel_runt-cfcf7a.fbb1fcd17c50d04f5101.js></script><script src={{STATIC_URL}}nodeman/js/main.b0737c74d7958109b252.js></script></body></html>
+          }</script><link href={{STATIC_URL}}nodeman/css/chunk-bk-magic-vue.c3b6bddb5e40f8e09629.css rel=stylesheet><link href={{STATIC_URL}}nodeman/css/main.540746199ff51762ce24.css rel=stylesheet></head><body><div id=app></div><script src="{{ STATIC_URL }}nodeman/lib.bundle.js?t=1645410559379"></script><script src={{STATIC_URL}}nodeman/js/chunk-bk-magic-vue.ee175be8b47ddc8fc052.js></script><script src={{STATIC_URL}}nodeman/js/defaultVendors-node_modules_babel_runtime_helpers_asyncToGenerator_js-node_modules_babel_runt-a33a34.97a5e381188178c2acb3.js></script><script src={{STATIC_URL}}nodeman/js/main.24851cef50af5cb37f4c.js></script></body></html>
