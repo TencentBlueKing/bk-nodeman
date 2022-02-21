@@ -758,3 +758,120 @@ class PluginV2ViewSet(ModelViewSet):
                 projects=self.validated_data["projects"], keys=["project"] + self.validated_data["keys"]
             )
         )
+
+    @action(detail=False, methods=["GET"], serializer_class=plugin_v2.FetchResourcePolicyStatusSerializer)
+    def fetch_resource_policy_status(self, request):
+        """
+        @api {GET} /v2/plugin/fetch_resource_policy_status/ 查询资源策略状态
+        @apiName fetch_resource_policy
+        @apiGroup plugin_v2
+        @apiParam {Number} bk_biz_id 业务ID
+        @apiParam {String} bk_obj_id CMDB对象ID
+        @apiParamExample {Json} 请求参数
+        {
+            "bk_biz_id": 2,
+            "bk_obj_id": "service_template"
+        }
+        @apiSuccessExample {json} :
+        [
+            {
+                "bk_inst_id": 1,
+                "is_default": true
+            },
+            {
+                "bk_inst_id": 2,
+                "is_default": false
+            }
+        ]
+        """
+        data = self.validated_data
+        bk_biz_id = data["bk_biz_id"]
+        bk_obj_id = data["bk_obj_id"]
+        return Response(PluginV2Handler.fetch_resource_policy_status(bk_biz_id, bk_obj_id))
+
+    @action(detail=False, methods=["GET"], serializer_class=plugin_v2.FetchResourcePolicySerializer)
+    def fetch_resource_policy(self, request):
+        """
+        @api {GET} /v2/plugin/fetch_resource_policy/ 查询资源策略
+        @apiName fetch_resource_policy
+        @apiGroup plugin_v2
+        @apiParam {Number} bk_biz_id 业务ID
+        @apiParam {String} bk_obj_id CMDB对象ID
+        @apiParamExample {Json} 请求参数
+        {
+            "bk_biz_id": 2,
+            "bk_obj_id": "service_template",
+            "bk_inst_id": 1
+        }
+        @apiSuccessExample {json} 插件资源策略:
+        {
+            "resource_policy": [
+                {
+                    "plugin_name": "bkmonitorbeat",
+                    "cpu": 10,
+                    "mem": 10,
+                    "statistics": {
+                        "total_count": 3,
+                        "running_count": 2,
+                        "terminated_count": 1
+                    }
+                }
+                {
+                    "plugin_name": "bkunifylogbeat",
+                    "cpu": 30,
+                    "mem": 10,
+                    "statistics": {
+                        "total_count": 42,
+                        "running_count": 32,
+                        "terminated_count": 10
+                    }
+                }
+            ]
+        }
+        """
+        data = self.validated_data
+        bk_biz_id = data["bk_biz_id"]
+        bk_obj_id = data["bk_obj_id"]
+        bk_inst_id = data["bk_inst_id"]
+        return Response(PluginV2Handler.fetch_resource_policy(bk_biz_id, bk_obj_id, bk_inst_id))
+
+    @action(detail=False, methods=["POST"], serializer_class=plugin_v2.SetResourcePolicySerializer)
+    def set_resource_policy(self, request):
+        """
+        @api {POST} /v2/plugin/set_resource_policy/ 设置资源策略
+        @apiName set_resource_policy
+        @apiGroup plugin_v2
+        @apiParam {Number} bk_biz_id 业务ID
+        @apiParam {String} bk_obj_id CMDB对象ID
+        @apiParam {Number} bk_inst_id CMDB实例ID
+        @apiParam {Object[]} resource_policy 资源策略
+        @apiParamExample {Json} 请求参数
+        {
+            "bk_biz_id": 2,
+            "bk_obj_id": "service_template",
+            "bk_inst_id": 1,
+            "resource_policy": [
+                {
+                    "plugin_name": "bkmonitorbeat",
+                    "cpu": 10,
+                    "mem": 10
+                },
+                {
+                    "plugin_name": "bkunifylogbeat",
+                    "cpu": 30,
+                    "mem": 10
+                }
+            ]
+        }
+        @apiSuccessExample {json} 插件资源策略:
+        {
+            "job_id_list": [1, 2]
+        }
+        """
+        data = self.validated_data
+        bk_biz_id = data["bk_biz_id"]
+        bk_obj_id = data["bk_obj_id"]
+        bk_inst_id = data["bk_inst_id"]
+        resource_policy = data["resource_policy"]
+
+        return Response(PluginV2Handler.set_resource_policy(bk_biz_id, bk_obj_id, bk_inst_id, resource_policy))

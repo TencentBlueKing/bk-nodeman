@@ -10,11 +10,18 @@ specific language governing permissions and limitations under the License.
 """
 from unittest.mock import patch
 
+import mock
 from django.core.cache import cache
 
+from apps.mock_data import api_mkd, utils
 from apps.node_man import constants, models
 from apps.node_man.handlers.plugin_v2 import PluginV2Handler
-from apps.node_man.tests.utils import NodeApi, cmdb_or_cache_biz, create_host
+from apps.node_man.tests.utils import (
+    MockClient,
+    NodeApi,
+    cmdb_or_cache_biz,
+    create_host,
+)
 from apps.utils.unittest.testcase import CustomBaseTestCase
 
 
@@ -40,18 +47,40 @@ def mock_batch_call(func, params_list, get_data):
     return result
 
 
-class TesetPluginV2(CustomBaseTestCase):
-    @patch("common.api.NodeApi.plugin_list", NodeApi.plugin_list)
-    def test_list_plugin(self):
+class TestPluginV2(CustomBaseTestCase):
+    def init_mock_clients(self):
+        self.cmdb_mock_client = api_mkd.cmdb.utils.CMDBMockClient(
+            find_host_by_service_template_return=utils.MockReturn(
+                return_type=utils.MockReturnType.RETURN_VALUE.value,
+                return_obj={"count": 3, "info": [{"bk_host_id": 1}, {"bk_host_id": 2}, {"bk_host_id": 3}]},
+            )
+        )
+
+    def setUp(self) -> None:
+        self.init_mock_clients()
+        mock.patch("apps.node_man.handlers.plugin_v2.client_v2", self.cmdb_mock_client).start()
+        super().setUp()
+
+    @staticmethod
+    def init_process_statuses(number=100):
         process_to_create = []
-        for i in range(0, 100):
+        for bk_host_id in range(0, number):
             process_to_create.append(
                 models.ProcessStatus(
-                    bk_host_id=i, name="basereport", source_type=models.ProcessStatus.SourceType.DEFAULT, is_latest=True
+                    bk_host_id=bk_host_id,
+                    name="basereport",
+                    source_type=models.ProcessStatus.SourceType.DEFAULT,
+                    proc_type=constants.ProcType.PLUGIN,
+                    is_latest=True,
+                    status=(constants.ProcStateType.TERMINATED, constants.ProcStateType.RUNNING)[bk_host_id % 2],
                 )
             )
         # bulk_create创建进程状态
         models.ProcessStatus.objects.bulk_create(process_to_create)
+
+    @patch("common.api.NodeApi.plugin_list", NodeApi.plugin_list)
+    def test_list_plugin(self):
+        self.init_process_statuses()
 
         page_size = 10
         result = PluginV2Handler().list_plugin(
@@ -85,20 +114,7 @@ class TesetPluginV2(CustomBaseTestCase):
         # 构造数据
         number = 100
         create_host(number)
-        process_to_create = []
-        for i in range(0, number):
-            process_to_create.append(
-                models.ProcessStatus(
-                    bk_host_id=i,
-                    name="basereport",
-                    proc_type=constants.ProcType.PLUGIN,
-                    source_type=models.ProcessStatus.SourceType.DEFAULT,
-                    is_latest=True,
-                )
-            )
-        # bulk_create创建进程状态
-        models.ProcessStatus.objects.bulk_create(process_to_create)
-
+        self.init_process_statuses(number=number)
         result = PluginV2Handler().list_plugin_host(params={"project": "basereport", "page": 1, "pagesize": -1})
         self.assertEqual(result["total"], number)
 
@@ -182,3 +198,63 @@ class TesetPluginV2(CustomBaseTestCase):
         result = cache.get(cache_deploy_number_template.format(project="gseagent", keys_combine_str="project|os"))
         nodes_num = sum([node_num for key, node_num in result.items()])
         self.assertEqual(nodes_num, host_num)
+
+    @patch("common.api.NodeApi.create_subscription", NodeApi.create_subscription)
+    @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)
+    @patch("apps.node_man.handlers.permission.IamHandler.is_superuser", lambda x: True)
+    def test_resource_policy(self):
+        self.init_process_statuses()
+        bk_biz_id = 2
+        has_been_set_service_template = 1
+        non_set_service_template = 2
+        result = PluginV2Handler.set_resource_policy(
+            bk_biz_id,
+            constants.CmdbObjectId.SERVICE_TEMPLATE,
+            has_been_set_service_template,
+            [
+                {"plugin_name": "bkmonitorbeat", "cpu": 10, "mem": 20},
+                {"plugin_name": "bkunifylogbeat", "cpu": 30, "mem": 10},
+                {
+                    "plugin_name": "basereport",
+                    "cpu": constants.PLUGIN_DEFAULT_CPU_LIMIT,
+                    "mem": constants.PLUGIN_DEFAULT_MEM_LIMIT,
+                },
+            ],
+        )
+        self.assertEqual(len(result["job_id_list"]), 2)
+
+        # 非默认资源配额
+        resource_policy = PluginV2Handler.fetch_resource_policy(
+            bk_biz_id, constants.CmdbObjectId.SERVICE_TEMPLATE, has_been_set_service_template
+        )
+        self.assertFalse(resource_policy["is_default"])
+        for policy in resource_policy["resource_policy"]:
+            if policy["plugin_name"] == "bkmonitorbeat":
+                self.assertEqual(policy["cpu"], 10)
+                self.assertEqual(policy["mem"], 20)
+            elif policy["plugin_name"] == "bkunifylogbeat":
+                self.assertEqual(policy["cpu"], 30)
+                self.assertEqual(policy["mem"], 10)
+            else:
+                self.assertEqual(policy["cpu"], constants.PLUGIN_DEFAULT_CPU_LIMIT)
+                self.assertEqual(policy["mem"], constants.PLUGIN_DEFAULT_MEM_LIMIT)
+
+        # 默认资源配额
+        resource_policy = PluginV2Handler.fetch_resource_policy(
+            bk_biz_id, constants.CmdbObjectId.SERVICE_TEMPLATE, non_set_service_template
+        )
+        self.assertTrue(resource_policy["is_default"])
+        for policy in resource_policy["resource_policy"]:
+            self.assertEqual(policy["cpu"], constants.PLUGIN_DEFAULT_CPU_LIMIT)
+            self.assertEqual(policy["mem"], constants.PLUGIN_DEFAULT_MEM_LIMIT)
+
+        resource_policy_status = PluginV2Handler.fetch_resource_policy_status(
+            bk_biz_id, constants.CmdbObjectId.SERVICE_TEMPLATE
+        )
+        self.assertEqual(
+            resource_policy_status,
+            [
+                {"bk_inst_id": has_been_set_service_template, "is_default": False},
+                {"bk_inst_id": non_set_service_template, "is_default": True},
+            ],
+        )

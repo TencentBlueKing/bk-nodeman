@@ -109,6 +109,10 @@ PACKAGE_PATH_RE = re.compile(
     "(?P<is_external>external_)?plugins_(?P<os>(linux|windows|aix))_(?P<cpu_arch>(x86_64|x86|powerpc|aarch64))"
 )
 
+# 插件默认
+PLUGIN_DEFAULT_MEM_LIMIT = 10
+PLUGIN_DEFAULT_CPU_LIMIT = 10
+
 ########################################################################################################
 # CHOICES
 ########################################################################################################
@@ -780,6 +784,9 @@ class CmdbObjectId:
     MODULE = "module"
     HOST = "host"
     CUSTOM = "custom"
+
+    SERVICE_TEMPLATE = "service_template"
+    SET_TEMPLATE = "set_template"
 
     OBJ_ID_ALIAS_MAP = {BIZ: _("业务"), SET: _("集群"), MODULE: _("模块"), HOST: _("主机"), CUSTOM: _("自定义")}
 

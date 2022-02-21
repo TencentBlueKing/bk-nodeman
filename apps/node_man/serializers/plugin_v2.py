@@ -235,3 +235,21 @@ class FetchPackageDeployInfoSerializer(serializers.Serializer):
                 )
             )
         return data
+
+
+class FetchResourcePolicyStatusSerializer(serializers.Serializer):
+    bk_biz_id = serializers.IntegerField(label=_("业务ID"))
+    bk_obj_id = serializers.CharField(label=_("对象ID"))
+
+
+class FetchResourcePolicySerializer(FetchResourcePolicyStatusSerializer):
+    bk_inst_id = serializers.IntegerField(label=_("实例ID"))
+
+
+class SetResourcePolicySerializer(FetchResourcePolicySerializer):
+    class ResourcePolicySerializer(serializers.Serializer):
+        plugin_name = serializers.CharField(label=_("插件名称"))
+        cpu = serializers.IntegerField(label=_("CPU限额"))
+        mem = serializers.IntegerField(label=_("内存限额"))
+
+    resource_policy = serializers.ListField(child=ResourcePolicySerializer())

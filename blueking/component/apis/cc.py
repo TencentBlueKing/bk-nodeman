@@ -767,3 +767,15 @@ class CollectionsCC(object):
             path="/api/c/compapi{bk_api_ver}/cc/find_host_by_set_template/",
             description="根据集群模板查主机",
         )
+        self.find_host_service_template = ComponentAPI(
+            client=self.client,
+            method="POST",
+            path="/api/c/compapi{bk_api_ver}/cc/find_host_service_template/",
+            description="查询主机服务模板",
+        )
+        self.list_service_template = ComponentAPI(
+            client=self.client,
+            method="POST",
+            path="/api/c/compapi{bk_api_ver}/cc/list_service_template/",
+            description="查询业务服务模板列表",
+        )

@@ -1072,6 +1072,10 @@ class MockClient(object):
                 raise ComponentCallError
             return []
 
+        @classmethod
+        def list_service_template(cls, *args, **kwargs):
+            return {"count": 1, "info": [{"id": 1}, {"id": 2}]}
+
 
 class MockPermission(object):
     def get_apply_data(self, *args, **kwargs):
