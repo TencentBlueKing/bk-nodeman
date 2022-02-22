@@ -17,6 +17,7 @@ from django.conf import settings
 
 from apps.backend.api.constants import POLLING_INTERVAL, POLLING_TIMEOUT, JobIPStatus
 from apps.backend.api.errors import JobPollTimeout
+from apps.node_man import constants
 from common.api import JobApi
 
 logger = logging.getLogger("app")
@@ -69,6 +70,8 @@ class JobDemand(object):
         params = {
             "job_instance_id": job_instance_id,
             "bk_biz_id": settings.BLUEKING_BIZ_ID,
+            "bk_scope_type": constants.BkJobScopeType.BIZ_SET.value,
+            "bk_scope_id": settings.BLUEKING_BIZ_ID,
             "bk_username": settings.BACKEND_JOB_OPERATOR,
             "return_ip_result": True,
         }
@@ -105,6 +108,8 @@ class JobDemand(object):
                 log_params = {
                     "job_instance_id": job_instance_id,
                     "bk_biz_id": settings.BLUEKING_BIZ_ID,
+                    "bk_scope_type": constants.BkJobScopeType.BIZ_SET.value,
+                    "bk_scope_id": settings.BLUEKING_BIZ_ID,
                     "bk_username": settings.BACKEND_JOB_OPERATOR,
                     "step_instance_id": step_instance_id,
                     "ip": host["ip"],

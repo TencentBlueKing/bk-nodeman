@@ -101,6 +101,8 @@ class JobV3BaseService(six.with_metaclass(abc.ABCMeta, BaseService)):
         job_params.update(
             {
                 "bk_biz_id": settings.BLUEKING_BIZ_ID,
+                "bk_scope_type": constants.BkJobScopeType.BIZ_SET.value,
+                "bk_scope_id": settings.BLUEKING_BIZ_ID,
                 "script_language": script_language,
                 "script_content": process_parms(job_params.get("script_content", "")),
                 "script_param": process_parms(job_params.get("script_param", "")),
@@ -235,6 +237,8 @@ class JobV3BaseService(six.with_metaclass(abc.ABCMeta, BaseService)):
         ip_results = JobApi.get_job_instance_status(
             {
                 "bk_biz_id": settings.BLUEKING_BIZ_ID,
+                "bk_scope_type": constants.BkJobScopeType.BIZ_SET.value,
+                "bk_scope_id": settings.BLUEKING_BIZ_ID,
                 "job_instance_id": job_sub_map.job_instance_id,
                 "return_ip_result": True,
             }

@@ -20,6 +20,7 @@ from django.conf import settings
 
 from apps.core.files.storage import get_storage
 
+from ...node_man import constants
 from .constants import (
     ACCOUNT_MAP,
     POLLING_INTERVAL,
@@ -243,6 +244,8 @@ class JobClient(object):
         """
         params = {
             "bk_biz_id": settings.BLUEKING_BIZ_ID,
+            "bk_scope_type": constants.BkJobScopeType.BIZ_SET.value,
+            "bk_scope_id": settings.BLUEKING_BIZ_ID,
             "task_name": task_name,
             "script_param": process_parms(script_param),
             "script_content": process_parms(script_content),

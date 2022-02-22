@@ -806,6 +806,8 @@ class JobAllocatePortService(PluginExecuteScriptService):
         result = JobApi.get_job_instance_ip_log(
             {
                 "bk_biz_id": settings.BLUEKING_BIZ_ID,
+                "bk_scope_type": constants.BkJobScopeType.BIZ_SET.value,
+                "bk_scope_id": settings.BLUEKING_BIZ_ID,
                 "job_instance_id": job_instance_id,
                 "step_instance_id": step_instance_id,
                 "bk_cloud_id": host.bk_cloud_id,
@@ -847,6 +849,8 @@ class JobAllocatePortService(PluginExecuteScriptService):
         result = JobApi.get_job_instance_status(
             {
                 "bk_biz_id": settings.BLUEKING_BIZ_ID,
+                "bk_scope_type": constants.BkJobScopeType.BIZ_SET.value,
+                "bk_scope_id": settings.BLUEKING_BIZ_ID,
                 "job_instance_id": job_sub_map.job_instance_id,
                 "return_ip_result": True,
             }
@@ -1300,7 +1304,13 @@ class DebugService(PluginExecuteScriptService):
         job_instance_id = job_sub_inst_map.job_instance_id
 
         result = JobApi.get_job_instance_status(
-            {"bk_biz_id": settings.BLUEKING_BIZ_ID, "job_instance_id": job_instance_id, "return_ip_result": True}
+            {
+                "bk_biz_id": settings.BLUEKING_BIZ_ID,
+                "bk_scope_type": constants.BkJobScopeType.BIZ_SET.value,
+                "bk_scope_id": settings.BLUEKING_BIZ_ID,
+                "job_instance_id": job_instance_id,
+                "return_ip_result": True,
+            }
         )
         # 调试插件时仅有一个IP，以下取值方式与作业平台API文档一致，不会抛出 IndexError/KeyError 的异常
         step_instance_id = result["step_instance_list"][0]["step_instance_id"]
@@ -1310,6 +1320,8 @@ class DebugService(PluginExecuteScriptService):
         params = {
             "job_instance_id": job_instance_id,
             "bk_biz_id": settings.BLUEKING_BIZ_ID,
+            "bk_scope_type": constants.BkJobScopeType.BIZ_SET.value,
+            "bk_scope_id": settings.BLUEKING_BIZ_ID,
             "bk_username": settings.BACKEND_JOB_OPERATOR,
             "step_instance_id": step_instance_id,
             "ip": ip,
