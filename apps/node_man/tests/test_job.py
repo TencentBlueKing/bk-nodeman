@@ -458,4 +458,4 @@ class TestJob(TestCase):
 
         # 测试
         self.assertEqual(len(commands[0]["ips_commands"]), 1)
-        self.assertEqual(commands[0]["ips_commands"][0]["command"], "test && test")
+        self.assertEqual(commands[0]["ips_commands"][0]["command"], "test")
