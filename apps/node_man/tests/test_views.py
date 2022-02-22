@@ -27,7 +27,7 @@ class ViewsTestCase(CustomAPITestCase):
 
     @override_settings(BK_BACKEND_CONFIG=False)
     def test_version(self):
-        for url in ["/version/", "/backend/version"]:
+        for url in ["/version/", "/backend/version/"]:
             version_info = self.client.get(url)
             self.assertEqual(version_info["app_code"], settings.APP_CODE)
             self.assertEqual(version_info["module"], "default")
@@ -35,7 +35,7 @@ class ViewsTestCase(CustomAPITestCase):
 
     @override_settings(BK_BACKEND_CONFIG=True)
     def test_version__backend(self):
-        for url in ["/version/", "/backend/version"]:
+        for url in ["/version/", "/backend/version/"]:
             version_info = self.client.get(url)
             self.assertEqual(version_info["module"], "backend")
             self.version__assert_version(expect_status=version_info["version"])
