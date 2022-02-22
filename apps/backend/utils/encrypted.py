@@ -22,11 +22,11 @@ BACKEND_PLATFORM = f"{platform.system().lower()}_{platform.machine().lower()}"
 
 default_platform = f"{constants.OsType.LINUX.lower()}_{constants.CpuType.x86_64.lower()}"
 grabbed_platform_path = os.path.join(
-    settings.PROJECT_ROOT, "script_tools", "encryptedpasswd", BACKEND_PLATFORM, "encryptedpasswd"
+    settings.PROJECT_ROOT, "script_tools", "encrypted_tools", BACKEND_PLATFORM, "encrypted_tools"
 )
 platform_path = default_platform if not os.path.isfile(grabbed_platform_path) else BACKEND_PLATFORM
 encrypted_tools_path = os.path.join(
-    settings.PROJECT_ROOT, "script_tools", "encryptedpasswd", platform_path, "encryptedpasswd"
+    settings.PROJECT_ROOT, "script_tools", "encrypted_tools", platform_path, "encryptedpasswd"
 )
 
 # 增加可执行权限
