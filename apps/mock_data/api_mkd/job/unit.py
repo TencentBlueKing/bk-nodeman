@@ -41,6 +41,8 @@ GET_JOB_INSTANCE_STATUS_DATA = {
     "job_instance": {
         "job_instance_id": DEFAULT_JOB_INSTANCE_NAME,
         "bk_biz_id": settings.BLUEKING_BIZ_ID,
+        "bk_scope_type": constants.BkJobScopeType.BIZ_SET.value,
+        "bk_scope_id": settings.BLUEKING_BIZ_ID,
         "name": DEFAULT_JOB_INSTANCE_NAME,
         "start_time": 1637135613979,
         "create_time": 1637135613813,

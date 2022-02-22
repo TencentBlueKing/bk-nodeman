@@ -146,6 +146,8 @@ print(json.dumps(proxy_md5))
     kwargs = {
         "task_name": "NODE_MAN_PROXY_FILES_CHECK_MD5",
         "bk_biz_id": settings.BLUEKING_BIZ_ID,
+        "bk_scope_type": constants.BkJobScopeType.BIZ_SET.value,
+        "bk_scope_id": settings.BLUEKING_BIZ_ID,
         "script_content": base64.b64encode(script.encode()).decode(),
         "script_timeout": 300,
         "account_alias": constants.LINUX_ACCOUNT,

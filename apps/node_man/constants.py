@@ -724,7 +724,7 @@ class BkJobIpStatus(object):
 
 
 class BkJobParamSensitiveType(EnhanceEnum):
-    """参数是否敏感"""
+    """作业平台参数是否敏感"""
 
     YES = 1
     NO = 0
@@ -732,6 +732,17 @@ class BkJobParamSensitiveType(EnhanceEnum):
     @classmethod
     def _get_member__alias_map(cls) -> Dict[Enum, str]:
         return {cls.YES: _("是，参数将会在执行详情页面上隐藏"), cls.NO: _("否，默认值")}
+
+
+class BkJobScopeType(EnhanceEnum):
+    """作业平台执行范围类型"""
+
+    BIZ = 1
+    BIZ_SET = 2
+
+    @classmethod
+    def _get_member__alias_map(cls) -> Dict[Enum, str]:
+        return {cls.BIZ: _("业务"), cls.NO: _("业务集")}
 
 
 class ScriptLanguageType(EnhanceEnum):
