@@ -1,0 +1,3 @@
+---
+bugfix:
+  - "多级目录copy_file_to_nginx报错的问题 (fixed #490)"
