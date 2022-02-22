@@ -239,7 +239,7 @@ class JobHandler(APIModel):
                 ips_commands.append(
                     {
                         "ip": inner_ip,
-                        "command": (single_manual_pre_command + single_run_cmd),
+                        "command": single_run_cmd,
                         "os_type": all_hosts[host_id].os_type,
                     }
                 )

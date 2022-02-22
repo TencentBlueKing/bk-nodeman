@@ -149,9 +149,11 @@ class OperateSerializer(serializers.Serializer):
     bk_host_id = serializers.ListField(label=_("主机ID"), required=False)
     exclude_hosts = serializers.ListField(label=_("跨页全选排除主机"), required=False)
 
-    # 以下非参数传值
+    # 以下非参数传值，通过validate方法计算转化得到
     op_type = serializers.CharField(label=_("操作类型,"), required=False)
     node_type = serializers.CharField(label=_("节点类型"), required=False)
+    bk_host_ids = serializers.ListField(label=_("主机ID列表"), required=False)
+    bk_biz_scope = serializers.ListField(label=_("业务ID列表"), required=False)
 
     def validate(self, attrs):
         # 取得操作类型
@@ -217,4 +219,4 @@ class JobInstancesOperateSerializer(serializers.Serializer):
 
 
 class JobInstanceOperateSerializer(serializers.Serializer):
-    instance_id = serializers.ListField(label=_("任务实例ID"), required=False)
+    instance_id = serializers.CharField(label=_("任务实例ID"), required=False)
