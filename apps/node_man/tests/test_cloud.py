@@ -107,7 +107,7 @@ class TestCloud(TestCase):
         bk_cloud_id = cloud["bk_cloud_id"]
         kwarg["ap_id"] = 1
         kwarg["bk_cloud_name"] = "cktest"
-        CloudHandler().update(bk_cloud_id, kwarg)
+        CloudHandler().update(bk_cloud_id, kwarg["bk_cloud_name"], kwarg["isp"], kwarg["ap_id"])
 
         # 测试重复名字
         CloudHandler().create(
@@ -122,7 +122,9 @@ class TestCloud(TestCase):
         )
 
         kwarg["bk_cloud_name"] = "ck_test"
-        self.assertRaises(ValidationError, CloudHandler().update, bk_cloud_id, kwarg)
+        self.assertRaises(
+            ValidationError, CloudHandler().update, bk_cloud_id, kwarg["bk_cloud_name"], kwarg["isp"], kwarg["ap_id"]
+        )
 
     @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)
     def test_cloud_destroy(self):

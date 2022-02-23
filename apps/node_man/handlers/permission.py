@@ -20,7 +20,11 @@ from apps.iam.exceptions import PermissionDeniedError
 from apps.iam.handlers import resources
 from apps.node_man import constants, models
 from apps.node_man.constants import IamActionType
-from apps.node_man.exceptions import CloudNotExistError, JobDostNotExistsError
+from apps.node_man.exceptions import (
+    CloudNotExistError,
+    HostIDNotExists,
+    JobDostNotExistsError,
+)
 from apps.node_man.handlers.cmdb import CmdbHandler
 from apps.node_man.handlers.iam import IamHandler
 from apps.utils.local import get_request_username
@@ -388,11 +392,18 @@ class HostPermission(permissions.BasePermission):
         if view.action == "biz_proxies":
             bk_biz_id = validated_data["bk_biz_id"]
             return has_biz_scope_node_type_operate_permission(request, constants.NodeType.PROXY, {bk_biz_id})
-        elif view.action in ["proxies", "update_single"]:
+        elif view.action == "proxies":
             has_cloud_area_view_permission({validated_data["bk_cloud_id"]})
-            has_biz_scope_node_type_operate_permission(request, constants.NodeType.PROXY, {validated_data["bk_biz_id"]})
             return True
-        elif view.action == "remove_host":
+        elif view.action == "update_single":
+            has_cloud_area_view_permission({validated_data["bk_cloud_id"]})
+            bk_host_id = validated_data["bk_host_id"]
+            try:
+                host = models.Host.objects.get(bk_host_id=bk_host_id)
+            except models.Host.DoesNotExist:
+                raise HostIDNotExists(_("Host ID:{bk_host_id} 不存在").format(bk_host_id=bk_host_id))
+
+            has_biz_scope_node_type_operate_permission(request, constants.NodeType.PROXY, {host.bk_biz_id})
             return True
         elif view.action in ["search"]:
             # 此类接口不鉴权或在接口中插入是否有权限的字段，以便前端进行展示并申请

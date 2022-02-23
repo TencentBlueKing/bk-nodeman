@@ -339,17 +339,6 @@ def install_validate(
         if bk_cloud_id == const.DEFAULT_CLOUD and not ap_id:
             raise ApIDNotExistsError(_("直连区域必须选择接入点"))
 
-        # 检查：判断非直连区域的接入点是否为其云区域接入点
-        if (
-            bk_cloud_id != const.DEFAULT_CLOUD
-            and cloud_info[bk_cloud_id]["ap_id"] != const.DEFAULT_AP_ID
-            and ap_id != cloud_info[bk_cloud_id]["ap_id"]
-            and not host["is_manual"]
-        ):
-            raise ApIDNotExistsError(
-                _("接入点参数与所属云区域({bk_cloud_name})的接入点不对应").format(bk_cloud_name=cloud_info[bk_cloud_id]["bk_cloud_name"])
-            )
-
         # 检查：判断AP_ID是否存在数据库中
         if ap_id != const.DEFAULT_AP_ID and ap_id not in ap_id_name:
             raise ApIDNotExistsError(_("接入点(id:{ap_id})不存在").format(ap_id=ap_id))
