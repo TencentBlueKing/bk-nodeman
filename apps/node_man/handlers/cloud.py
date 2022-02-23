@@ -219,27 +219,21 @@ class CloudHandler(APIModel):
 
             return {"bk_cloud_id": cloud.bk_cloud_id}
 
-    def update(self, bk_cloud_id: int, params: dict):
+    @staticmethod
+    def update(bk_cloud_id: int, bk_cloud_name: str, isp: str, ap_id: int):
         """
         编辑云区域
-        :param bk_cloud_id: 云区域ID
-        :param params: 存有各个参数的值
         """
-
         cloud = Cloud.objects.get(pk=bk_cloud_id)
-
-        cloud.bk_cloud_name = params.get("bk_cloud_name")
-        cloud.isp = params.get("isp")
-        cloud.ap_id = params.get("ap_id")
-
-        created = list(Cloud.objects.filter(bk_cloud_name=params["bk_cloud_name"]).exclude(bk_cloud_id=bk_cloud_id))
-        if created != [] and created[0].bk_cloud_name == params["bk_cloud_name"]:
+        if Cloud.objects.filter(bk_cloud_name=bk_cloud_name).exclude(bk_cloud_id=bk_cloud_id).exists():
             raise ValidationError(_("云区域名称不可重复"))
 
-        # 向云端修改云区域名称
-        if params.get("bk_cloud_name"):
-            CmdbHandler.rename_cloud(bk_cloud_id, params["bk_cloud_name"])
+        # 向CMDB修改云区域名称
+        CmdbHandler.rename_cloud(bk_cloud_id, bk_cloud_name)
 
+        cloud.bk_cloud_name = bk_cloud_name
+        cloud.isp = isp
+        cloud.ap_id = ap_id
         cloud.save()
 
     def destroy(self, bk_cloud_id: int):

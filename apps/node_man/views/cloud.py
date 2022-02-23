@@ -115,14 +115,16 @@ class CloudViewSet(ModelViewSet):
             "bk_cloud_name": "云区域名称",
             "isp": "tencent",
             "ap_id": 1,
-            "bk_biz_scope": [1, 2, 3]
         }
         """
 
         self.serializer_class = EditSerializer
         data = self.validated_data
-
-        CloudHandler().update(int(kwargs["pk"]), data)
+        bk_cloud_id = int(kwargs["pk"])
+        bk_cloud_name = data["bk_cloud_name"]
+        isp = data["isp"]
+        ap_id = data["ap_id"]
+        CloudHandler().update(bk_cloud_id, bk_cloud_name, isp, ap_id)
         return Response({})
 
     def destroy(self, request, *args, **kwargs):
