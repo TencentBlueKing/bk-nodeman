@@ -3,6 +3,7 @@ import { RouteConfig } from 'vue-router';
 import { PROXY_OPERATE, CLOUD_VIEW } from '@/router/action-map';
 const CloudManager = () => import(/* webpackChunkName: 'CloudManager' */'@/views/cloud/cloud-manager.vue');
 const AddCloudManager = () => import(/* webpackChunkName: 'AddCloudManager' */'@/views/cloud/cloud-manager-add/cloud-manager-add.vue');
+const AddCloudManagerPreview = () => import(/* webpackChunkName: 'AddCloudManagerPreview' */'@/views/cloud/cloud-manager-add/cloud-manager-preview.vue');
 const SetupCloudManager = () => import(/* webpackChunkName: 'SetupCloudManager' */'@/views/cloud/cloud-manager-add/cloud-manager-setup.vue');
 const CloudManagerDetail = () => import(/* webpackChunkName: 'CloudManagerDetail' */'@/views/cloud/cloud-manager-detail/cloud-manager-detail.vue');
 
@@ -25,6 +26,25 @@ export default [
       navId: 'cloudManager',
       title: '新建云区域',
       needBack: true,
+    },
+  },
+  {
+    path: '/cloud-manager/form/:type/:id/preview',
+    props: true,
+    name: 'addManagerPreview',
+    component: AddCloudManagerPreview,
+    meta: {
+      navId: 'cloudManager',
+      title: '重装Proxy',
+      needBack: true,
+    },
+    beforeEnter(to: Route, from: Route, next) {
+      const { formData } = to.params as IRuleRouterParams;
+      if (formData) {
+        next();
+      } else {
+        next({ name: 'cloudManager' });
+      }
     },
   },
   {

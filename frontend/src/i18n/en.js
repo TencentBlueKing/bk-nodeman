@@ -21,6 +21,8 @@ export default {
   删除: 'Delete',
   云区域管理提示一: 'Cloud zone: a group of mutually between direct communication server unit, such as a corporate LAN, public cloud the VPC (Virtual Private Network). Proxy: Proxy node cloud area of ​​external communication.',
   云区域管理提示二: 'In order to manage the host at different regions of the cloud region must be added after the addition of at least one default Proxy host, blue whale GSE is typically used to communicate with the external network can only pass, for other hosts in the area communication with Proxy.',
+  变更云区域原有的接入点: 'To change the previous access point of the cloud region:',
+  将会重装该云区域下所有Proxy: 'Will reload all Proxy configurations under the cloud zone',
   阿里云: 'Ali Cloud',
   AWS: 'AWS',
   腾讯云: 'Tencent cloud',
@@ -320,6 +322,7 @@ export default {
   手动安装提示: 'No need to provide login information, execute the given command on the Proxy server to complete the installation',
   勾选云区域的ProxyIP: 'Check the Proxy IP',
   所有云区域的ProxyIP: 'All Proxy IP',
+  重装Proxy: 'Reinstall Proxy',
 
   // 安装通道
   安装通道: 'Install channel',
