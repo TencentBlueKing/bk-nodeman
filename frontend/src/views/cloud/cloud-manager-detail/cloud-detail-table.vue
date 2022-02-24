@@ -294,6 +294,7 @@ export default class CloudDetailTable extends Vue {
   private statusMap = {
     running: this.$t('正常'),
     terminated: this.$t('异常'),
+    not_installed: this.$t('未安装'),
     unknown: this.$t('未知'),
   };
   // Proxy列表加载
