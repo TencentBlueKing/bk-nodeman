@@ -69,6 +69,9 @@ export default class Tips extends Vue {
   $tipsDangerBorder: #ffd2d2;
   $tipsWarningBackground: #fff4e2;
   $tipsWarningBorder: #ffdfac;
+  $tipsDefaultBackground: #f5f6fa;
+  $tipsDefaultBorder: #f5f6fa;
+  $tipsDefault: #878A99;
 
   .tips {
     padding: 7px 15px 7px 10px;
@@ -114,6 +117,13 @@ export default class Tips extends Vue {
       background: $tipsWarningBackground;
       .tips-icon {
         color: $bgWarning;
+      }
+    }
+    &.default {
+      border: 1px solid $tipsDefaultBackground;
+      background: $tipsDefaultBackground;
+      .tips-icon {
+        color: $tipsDefault;
       }
     }
   }

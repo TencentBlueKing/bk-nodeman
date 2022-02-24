@@ -46,6 +46,7 @@
               {{ item.name }}
             </bk-button>
           </div>
+          <tips class="content-basic mt10" v-if="apSelectedChanged" theme="default" :list="apTipsList"></tips>
         </bk-form-item>
       </bk-form>
     </section>
@@ -124,6 +125,10 @@ export default class CloudManagerAdd extends formLabelMixin {
   private tipsList = [
     this.$t('云区域管理提示一'),
   ];
+  private apTipsList = [
+    this.$t('变更云区域原有的接入点'),
+    this.$t('将会重装该云区域下所有Proxy'),
+  ];
   // 表单数据
   private formData: {
     bkCloudName:  string
@@ -148,6 +153,7 @@ export default class CloudManagerAdd extends formLabelMixin {
     show: false,
     bk_cloud_id: null,
   };
+  private initApid = -1;
 
   private get ispList() {
     return MainStore.ispList;
@@ -156,6 +162,9 @@ export default class CloudManagerAdd extends formLabelMixin {
     return this.apList.length === 1 ? this.apList[0] : { id: -1, name: this.$t('自动选择接入点') };
   }
   private get submitBtnText(): string {
+    if (this.apSelectedChanged) {
+      return window.i18n.t('执行预览');
+    }
     const textMap: Dictionary = {
       add: this.$t('提交'),
       edit: this.$t('保存'),
@@ -165,6 +174,9 @@ export default class CloudManagerAdd extends formLabelMixin {
   }
   private get proxyOperateList() {
     return CloudStore.authority.proxy_operate || [];
+  }
+  private get apSelectedChanged() {
+    return this.type === 'edit' && this.formData.apId !== this.initApid;
   }
 
   @Watch('id', { immediate: true })
@@ -192,6 +204,7 @@ export default class CloudManagerAdd extends formLabelMixin {
     // 接入点为-1或者不存在就取默认第一个接入点
     if (this.apList.length && (this.formData.apId === -1 || !this.formData.apId)) {
       this.formData.apId = this.apList[0].id;
+      this.initApid = this.formData.apId;
     }
   }
   /**
@@ -199,6 +212,7 @@ export default class CloudManagerAdd extends formLabelMixin {
    */
   private async handleGetCloudDetail() {
     const form = await CloudStore.getCloudDetail(`${this.id}`);
+    this.initApid = form.apId;
     this.$set(this, 'formData', Object.assign(this.formData, form));
   }
   /**
@@ -229,20 +243,31 @@ export default class CloudManagerAdd extends formLabelMixin {
    */
   private handleSubmit() {
     this.formRef.validate().then(async () => {
-      this.loadingSubmitBtn = true;
-      let data = null;
-      if (this.type === 'add') {
-        data = await this.handleCreateCloud();
+      if (this.apSelectedChanged) {
+        this.$router.push({
+          name: 'addManagerPreview',
+          params: {
+            id: this.id,
+            type: this.type,
+            formData: this.formData,
+          },
+        });
       } else {
-        data = await this.handleUpdateCloud();
-      }
-      this.loadingSubmitBtn = false;
-      if (!data) return;
+        this.loadingSubmitBtn = true;
+        let data = null;
+        if (this.type === 'add') {
+          data = await this.handleCreateCloud();
+        } else {
+          data = await this.handleUpdateCloud();
+        }
+        this.loadingSubmitBtn = false;
+        if (!data) return;
 
-      if (this.type === 'add') {
-        this.handleCreateSuccess(data);
-      } else {
-        this.handleEditSuccess();
+        if (this.type === 'add') {
+          this.handleCreateSuccess(data);
+        } else {
+          this.handleEditSuccess();
+        }
       }
     });
   }
