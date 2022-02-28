@@ -400,7 +400,10 @@ class AgentServiceBaseTestCase(CustomAPITestCase, ComponentTestMixin, ABC):
     DEBUG: bool = False
 
     OBJ_FACTORY_CLASS: Type[AgentTestObjFactory] = AgentTestObjFactory
-    BATCH_CALL_MOCK_PATHS = ["apps.backend.components.collections.job.request_multi_thread"]
+    BATCH_CALL_MOCK_PATHS = [
+        "apps.backend.components.collections.job.request_multi_thread",
+        "apps.backend.components.collections.common.remote.concurrent.batch_call_coroutine",
+    ]
 
     obj_factory: Optional[AgentTestObjFactory] = None
     # 原子的公共输入

@@ -8,21 +8,25 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import copy
 import importlib
 import random
 from typing import Any, Callable, List, Optional
 
+import asyncssh
 import mock
-from six import StringIO
 
 from apps.backend.components.collections.agent_new import choose_access_point
 from apps.backend.components.collections.agent_new.components import (
     ChooseAccessPointComponent,
 )
+from apps.core.remote import exceptions
 from apps.core.remote.tests.base import (
-    PARAMIKO_SSH_CLIENT_MOCK_PATH,
-    ParamikoSSHMockClient,
+    AsyncMockConn,
+    AsyncSSHMockClient,
+    get_asyncssh_connect_mock_patch,
 )
+from apps.mock_data import common_unit
 from apps.node_man import constants, models
 from pipeline.component_framework.test import (
     ComponentTestCase,
@@ -32,19 +36,33 @@ from pipeline.component_framework.test import (
 
 from . import utils
 
+WINDOWS_PING_STDOUT = """
+Pinging 127.0.0.1 with 32 bytes of data:
+Reply from 127.0.0.1: bytes=32 time=2ms TTL=128
+Reply from 127.0.0.1: bytes=32 time=2ms TTL=128
+Reply from 127.0.0.1: bytes=32 time=2ms TTL=128
+Reply from 127.0.0.1: bytes=32 time=2ms TTL=128
+
+Ping statistics for 127.0.0.1:
+    Packets: Sent = 4, Received = 4, Lost = 0 (0% loss),
+Approximate round trip times in milli-seconds:
+    Minimum = 2ms, Maximum = 2ms, Average = 2ms
+"""
+
 
 def ping_time_selector(*args, **kwargs):
     return "1.0"
 
 
 def win_ping_time_selector(*args, **kwargs):
-    return {"data": "ping = 3ms"}
+    return {"data": WINDOWS_PING_STDOUT}
 
 
 class ChooseAccessPointTestCase(utils.AgentServiceBaseTestCase):
     OS_TYPE = constants.OsType.LINUX
     NODE_TYPE = constants.NodeType.AGENT
     SSH_MAN_MOCK_PATH = "apps.backend.components.collections.agent_new.choose_access_point.SshMan"
+    EXECUTE_CMD_MOCK_PATH = "apps.backend.components.collections.agent_new.choose_access_point.execute_cmd"
 
     except_ap_ids: Optional[List[int]] = None
     ssh_mock_client: Optional[Any] = None
@@ -53,12 +71,13 @@ class ChooseAccessPointTestCase(utils.AgentServiceBaseTestCase):
     def init_mock_clients(self):
         ssh_man_ping_time_selector = self.ssh_ping_time_selector
 
-        class CustomParamikoSSHMockClient(ParamikoSSHMockClient):
-            @staticmethod
-            def exec_command(command: str, check=False, timeout=None, **kwargs):
-                return command, StringIO(ssh_man_ping_time_selector()), StringIO("")
+        class CustomAsyncSSHMockClient(AsyncSSHMockClient):
+            async def run(self, command: str, check=False, timeout=None, **kwargs):
+                return asyncssh.SSHCompletedProcess(
+                    command=command, exit_status=0, stdout=ssh_man_ping_time_selector(), stderr=""
+                )
 
-        self.ssh_mock_client = CustomParamikoSSHMockClient
+        self.ssh_mock_client = CustomAsyncSSHMockClient
 
     def init_hosts(self):
         models.Host.objects.filter(bk_host_id__in=self.obj_factory.bk_host_ids).update(
@@ -66,7 +85,7 @@ class ChooseAccessPointTestCase(utils.AgentServiceBaseTestCase):
         )
 
     def start_patch(self):
-        pass
+        get_asyncssh_connect_mock_patch(self.ssh_mock_client).start()
 
     def setUp(self) -> None:
         self.ssh_ping_time_selector = ping_time_selector
@@ -98,7 +117,7 @@ class ChooseAccessPointTestCase(utils.AgentServiceBaseTestCase):
                 ),
                 schedule_assertion=None,
                 execute_call_assertion=None,
-                patchers=[Patcher(target=PARAMIKO_SSH_CLIENT_MOCK_PATH, return_value=self.ssh_mock_client)],
+                patchers=[Patcher(target=self.EXECUTE_CMD_MOCK_PATH, side_effect=win_ping_time_selector)],
             )
         ]
 
@@ -114,6 +133,11 @@ class ChooseAccessPointTestCase(utils.AgentServiceBaseTestCase):
                 self.assertTrue(host_info["ap_id"] in self.except_ap_ids)
 
         super().tearDown()
+
+    @classmethod
+    def tearDownClass(cls):
+        mock.patch.stopall()
+        super().tearDownClass()
 
 
 class PingErrorTestCase(ChooseAccessPointTestCase):
@@ -148,20 +172,33 @@ class AssignedAccessPointTestCase(ChooseAccessPointTestCase):
         )
 
 
-class WindowsAgentTestCase(ChooseAccessPointTestCase):
+class WindowsSSHAgentTestCase(ChooseAccessPointTestCase):
     OS_TYPE = constants.OsType.WINDOWS
-    EXECUTE_CMD_MOCK_PATH = "apps.backend.components.collections.agent_new.choose_access_point.execute_cmd"
+
+    def get_default_case_name(self) -> str:
+        return f"{self.NODE_TYPE}-{self.OS_TYPE} 通过 SSH 通道检测网络情况"
 
     def init_mock_clients(self):
-        # windows 用不上 ssh
-        pass
+        def ping_error_selector(*args, **kwargs):
+            return WINDOWS_PING_STDOUT
+
+        self.ssh_ping_time_selector = ping_error_selector
+        super().init_mock_clients()
+
+
+class WindowsAgentTestCase(ChooseAccessPointTestCase):
+    OS_TYPE = constants.OsType.WINDOWS
+
+    def get_default_case_name(self) -> str:
+        return f"{self.NODE_TYPE}-{self.OS_TYPE} 通过 WMI 检测网络情况"
 
     def start_patch(self):
-        mock.patch(target=self.EXECUTE_CMD_MOCK_PATH, side_effect=win_ping_time_selector).start()
+        # 让 Windows SSH 检测失败
+        class AsyncMockErrorConn(AsyncMockConn):
+            async def connect(self):
+                raise exceptions.DisconnectError
 
-    def setUp(self) -> None:
-        self.start_patch()
-        super().setUp()
+        mock.patch("apps.backend.components.collections.common.remote.conns.AsyncsshConn", AsyncMockErrorConn).start()
 
 
 class LinuxPAgentTestCase(ChooseAccessPointTestCase):
@@ -186,3 +223,23 @@ class NotAliveProxiesTestCase(LinuxPAgentTestCase):
         super().setUp()
         self.except_ap_ids = [constants.DEFAULT_AP_ID]
         models.ProcessStatus.objects.update(status=constants.ProcStateType.TERMINATED)
+
+
+class ProxyTestCase(ChooseAccessPointTestCase):
+    NODE_TYPE = constants.NodeType.PROXY
+
+    def init_hosts(self):
+        bk_cloud_id = random.randint(10, 1000)
+        cloud_model_data = copy.deepcopy(common_unit.host.CLOUD_MODEL_DATA)
+        cloud_model_data.update(bk_cloud_id=bk_cloud_id, ap_id=constants.DEFAULT_AP_ID)
+        models.Cloud.objects.create(**cloud_model_data)
+        models.Host.objects.filter(bk_host_id__in=self.obj_factory.bk_host_ids).update(
+            os_type=self.OS_TYPE,
+            node_type=self.NODE_TYPE,
+            bk_cloud_id=bk_cloud_id,
+            ap_id=random.randint(constants.DEFAULT_AP_ID + 10, constants.DEFAULT_AP_ID + 100),
+        )
+
+    def tearDown(self) -> None:
+        self.except_ap_ids = [constants.DEFAULT_AP_ID]
+        super().tearDown()
