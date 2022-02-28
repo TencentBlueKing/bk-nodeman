@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 import importlib
 import json
 import re
-from typing import List, Optional
+from typing import List
 
 import mock
 from django.conf import settings
@@ -21,14 +21,15 @@ from apps.backend.components.collections.agent_new import install
 from apps.backend.components.collections.agent_new.components import InstallComponent
 from apps.backend.constants import REDIS_INSTALL_CALLBACK_KEY_TPL
 from apps.backend.utils.redis import REDIS_INST
+from apps.core.remote import exceptions
 from apps.core.remote.tests import base
+from apps.core.remote.tests.base import AsyncMockConn
 from apps.mock_data import api_mkd
 from apps.mock_data import utils as mock_data_utils
 from apps.node_man import constants, models
 from pipeline.component_framework.test import (
     ComponentTestCase,
     ExecuteAssertion,
-    Patcher,
     ScheduleAssertion,
 )
 
@@ -36,10 +37,8 @@ from . import utils
 
 
 class InstallBaseTestCase(utils.AgentServiceBaseTestCase):
-
     OS_TYPE = constants.OsType.LINUX
     NODE_TYPE = constants.NodeType.AGENT
-    SSH_MAN_MOCK_PATH = "apps.backend.components.collections.agent_new.install.SshMan"
     JOB_API_MOCK_PATH = "apps.backend.components.collections.agent_new.install.JobApi"
     EXECUTE_CMD_MOCK_PATH = "apps.backend.components.collections.agent_new.install.execute_cmd"
     PUT_FILE_MOCK_PATH = "apps.backend.components.collections.agent_new.install.put_file"
@@ -49,17 +48,7 @@ class InstallBaseTestCase(utils.AgentServiceBaseTestCase):
         settings.BKAPP_NODEMAN_CALLBACK_URL = "http://127.0.0.1/backend"
         settings.BKAPP_NODEMAN_OUTER_CALLBACK_URL = "http://127.0.0.1/backend"
 
-    ssh_man_mock_client: Optional[utils.SshManMockClient] = None
-
     def init_mock_clients(self):
-        self.ssh_man_mock_client = utils.SshManMockClient(
-            ssh_return=mock_data_utils.MockReturn(
-                return_type=mock_data_utils.MockReturnType.RETURN_VALUE.value, return_obj="close"
-            ),
-            send_cmd_return_return=mock_data_utils.MockReturn(
-                return_type=mock_data_utils.MockReturnType.RETURN_VALUE.value, return_obj=""
-            ),
-        )
         self.job_mock_client = api_mkd.job.utils.JobApiMockClient(
             fast_execute_script_return=mock_data_utils.MockReturn(
                 return_type=mock_data_utils.MockReturnType.RETURN_VALUE.value, return_obj={"job_instance_id": 1}
@@ -149,11 +138,14 @@ class InstallBaseTestCase(utils.AgentServiceBaseTestCase):
                     },
                 ),
                 execute_call_assertion=None,
-                patchers=[
-                    Patcher(target=self.SSH_MAN_MOCK_PATH, return_value=self.ssh_man_mock_client),
-                ],
+                patchers=[],
             )
         ]
+
+    @classmethod
+    def tearDownClass(cls):
+        mock.patch.stopall()
+        super().tearDownClass()
 
 
 class LinuxInstallTestCase(InstallBaseTestCase):
@@ -171,7 +163,7 @@ class LinuxInstallTestCase(InstallBaseTestCase):
         self.assertEqual(installation_tool.run_cmd, run_cmd)
 
 
-class InstallWindowsTestCase(InstallBaseTestCase):
+class InstallWindowsSSHTestCase(InstallBaseTestCase):
     OS_TYPE = constants.OsType.WINDOWS
 
     def test_gen_win_command(self):
@@ -179,12 +171,37 @@ class InstallWindowsTestCase(InstallBaseTestCase):
         installation_tool = gen_commands(host, mock_data_utils.JOB_TASK_PIPELINE_ID, is_uninstall=False, sub_inst_id=0)
         token = re.match(r"(.*) -c (.*?) -O", installation_tool.run_cmd).group(2)
         run_cmd = (
+            f"nohup C:/tmp/setup_agent.bat -s {mock_data_utils.JOB_TASK_PIPELINE_ID}"
+            f" -r http://127.0.0.1/backend -l http://127.0.0.1/download -c {token}"
+            f' -O 48668 -E 58925 -A 58625 -V 58930 -B 10020 -S 60020 -Z 60030 -K 10030 -e " " -a " " -k " "'
+            f" -i 0 -I 127.0.0.1 -N SERVER -p c:\\\\gse -T C:\\\\tmp\\\\ &> C:/tmp/nm.nohup.out &"
+        )
+        self.assertEqual(installation_tool.run_cmd, run_cmd)
+
+
+class InstallWindowsTestCase(InstallBaseTestCase):
+    OS_TYPE = constants.OsType.WINDOWS
+
+    def test_gen_win_command(self):
+        host = models.Host.objects.get(bk_host_id=self.obj_factory.bk_host_ids[0])
+        installation_tool = gen_commands(host, mock_data_utils.JOB_TASK_PIPELINE_ID, is_uninstall=False, sub_inst_id=0)
+        token = re.match(r"(.*) -c (.*?) -O", installation_tool.run_cmd).group(2)
+        windows_run_cmd = (
             f"C:\\tmp\\setup_agent.bat -s {mock_data_utils.JOB_TASK_PIPELINE_ID}"
             f" -r http://127.0.0.1/backend -l http://127.0.0.1/download -c {token}"
             f' -O 48668 -E 58925 -A 58625 -V 58930 -B 10020 -S 60020 -Z 60030 -K 10030 -e "" -a "" -k ""'
             f" -i 0 -I 127.0.0.1 -N SERVER -p c:\\gse -T C:\\tmp\\"
         )
-        self.assertEqual(installation_tool.run_cmd, run_cmd)
+        self.assertEqual(installation_tool.win_commands[-1], windows_run_cmd)
+
+    def start_patch(self):
+        # 让 Windows SSH 检测失败
+        class AsyncMockErrorConn(AsyncMockConn):
+            async def connect(self):
+                raise exceptions.DisconnectError
+
+        mock.patch("apps.backend.components.collections.common.remote.conns.AsyncsshConn", AsyncMockErrorConn).start()
+        super().start_patch()
 
 
 class InstallLinuxPagentTestCase(InstallBaseTestCase):
@@ -258,9 +275,7 @@ class InstallFailedTestCase(InstallBaseTestCase):
                     },
                 ),
                 execute_call_assertion=None,
-                patchers=[
-                    Patcher(target=self.SSH_MAN_MOCK_PATH, return_value=self.ssh_man_mock_client),
-                ],
+                patchers=[],
             )
         ]
 

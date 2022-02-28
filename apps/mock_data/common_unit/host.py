@@ -69,6 +69,17 @@ AP_MODEL_DATA = {
     "outer_callback_url": f"http://{DEFAULT_IP}:10300/backend",
 }
 
+
+CLOUD_MODEL_DATA = {
+    "bk_cloud_id": constants.DEFAULT_CLOUD,
+    "bk_cloud_name": constants.DEFAULT_CLOUD_NAME,
+    "ap_id": constants.DEFAULT_AP_ID,
+    "isp": "Tencent",
+    "creator": [utils.DEFAULT_USERNAME],
+    "is_visible": True,
+    "is_deleted": False,
+}
+
 HOST_MODEL_DATA = {
     "bk_host_id": DEFAULT_HOST_ID,
     "bk_biz_id": utils.DEFAULT_BK_BIZ_ID,

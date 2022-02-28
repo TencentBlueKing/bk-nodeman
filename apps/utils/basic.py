@@ -61,7 +61,7 @@ def filter_values(data: Dict, filter_empty=False) -> Dict:
     return ret
 
 
-def suffix_slash(os, path):
+def suffix_slash(os, path) -> str:
     if os.lower() in ["windows", "WINDOWS"]:
         if not path.endswith("\\"):
             path = path + "\\"

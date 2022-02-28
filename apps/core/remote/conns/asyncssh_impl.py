@@ -16,6 +16,7 @@ import asyncssh
 from django.utils.translation import ugettext_lazy as _
 
 from .. import constants, exceptions
+from ..clients import file
 from . import base
 
 
@@ -104,6 +105,12 @@ class AsyncsshConn(base.BaseConn):
         for inspector in self.inspectors:
             inspector(self, run_output)
         return run_output
+
+    async def file_client(self) -> file.AsyncSFTPClient:
+        if self._conn is None:
+            await self.connect()
+        sftp_client = await self._conn.start_sftp_client()
+        return file.AsyncSFTPClient(sftp_client)
 
     async def __aenter__(self):
         """异步上下文支持"""
