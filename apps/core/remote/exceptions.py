@@ -57,3 +57,13 @@ class ProcessError(RemoteBaseException):
 class SessionError(RemoteBaseException):
     MESSAGE_TPL = _("会话异常：{err_msg}")
     ERROR_CODE = 8
+
+
+class RemoteIOError(RemoteBaseException):
+    MESSAGE_TPL = _("IO 异常：{err_msg}")
+    ERROR_CODE = 9
+
+
+class FileClientError(RemoteBaseException):
+    MESSAGE_TPL = _("文件远程客户端异常：{err_msg}")
+    ERROR_CODE = 10

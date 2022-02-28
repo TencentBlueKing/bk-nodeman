@@ -9,6 +9,8 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from . import constants
+from . import constants, exceptions
 
 core_remote_constants = constants
+
+core_remote_exceptions = exceptions

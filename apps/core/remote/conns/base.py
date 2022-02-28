@@ -13,6 +13,7 @@ import abc
 import typing
 
 from .. import constants
+from ..clients import file
 
 BytesOrStr = typing.Union[str, bytes]
 
@@ -125,6 +126,17 @@ class BaseConn(abc.ABC):
         for inspector in self.inspectors:
             inspector(self, run_output)
         return run_output
+
+    @abc.abstractmethod
+    def file_client(self) -> file.FileBaseClient:
+        """
+        获取一个文件客户端
+        :return:
+        :raises:
+            RemoteIOError IO 异常
+            FileClientError 文件远程客户端异常
+        """
+        raise NotImplementedError
 
     def __enter__(self) -> "BaseConn":
         self.connect()

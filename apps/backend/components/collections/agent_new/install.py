@@ -8,7 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import asyncio
 import base64
 import json
 import os
@@ -28,11 +27,9 @@ from apps.backend.api.constants import POLLING_INTERVAL, POLLING_TIMEOUT
 from apps.backend.constants import (
     REDIS_AGENT_CONF_KEY_TPL,
     REDIS_INSTALL_CALLBACK_KEY_TPL,
-    SSH_CON_TIMEOUT,
     SSH_RUN_TIMEOUT,
 )
 from apps.backend.utils.redis import REDIS_INST
-from apps.backend.utils.ssh import SshMan
 from apps.backend.utils.wmi import execute_cmd, put_file
 from apps.backend.views import generate_gse_config
 from apps.core.concurrent import controller
@@ -44,17 +41,20 @@ from common.api import JobApi
 from pipeline.core.flow import Service, StaticIntervalGenerator
 
 from .. import core
+from ..common import remote
 from . import base
 
 
-class InstallSubInstObj:
+class InstallSubInstObj(remote.RemoteConnHelper):
+
+    installation_tool: InstallationTools = None
+
     def __init__(self, sub_inst_id: int, host: models.Host, installation_tool: InstallationTools):
-        self.sub_inst_id = sub_inst_id
-        self.host = host
         self.installation_tool = installation_tool
+        super().__init__(sub_inst_id=sub_inst_id, host=host, identity_data=installation_tool.identity_data)
 
 
-class InstallService(base.AgentBaseService):
+class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
     __need_schedule__ = True
     interval = StaticIntervalGenerator(5)
 
@@ -154,22 +154,29 @@ class InstallService(base.AgentBaseService):
         data_list_name="install_sub_inst_objs",
         batch_call_func=concurrent.batch_call,
         get_config_dict_func=core.get_config_dict,
+        get_config_dict_kwargs={"config_name": core.ServiceCCConfigName.WMIEXE.value},
+    )
+    def handle_lan_cygwin_sub_inst(self, install_sub_inst_objs: List[InstallSubInstObj]):
+        """处理直连 Cygwin 的情况"""
+        params_list = [
+            {"sub_inst_id": install_sub_inst_obj.sub_inst_id, "install_sub_inst_obj": install_sub_inst_obj}
+            for install_sub_inst_obj in install_sub_inst_objs
+        ]
+        return concurrent.batch_call_coroutine(func=self.execute_cygwin_commands_async, params_list=params_list)
+
+    @controller.ConcurrentController(
+        data_list_name="install_sub_inst_objs",
+        batch_call_func=concurrent.batch_call,
+        get_config_dict_func=core.get_config_dict,
         get_config_dict_kwargs={"config_name": core.ServiceCCConfigName.SSH.value},
     )
     def handle_lan_linux_sub_inst(self, install_sub_inst_objs: List[InstallSubInstObj]):
-        """处理直连linux机器，通过paramiko连接linux机器"""
+        """处理直连 Linux 机器"""
         params_list = [
-            {
-                "sub_inst_id": install_sub_inst_obj.sub_inst_id,
-                "installation_tool": install_sub_inst_obj.installation_tool,
-            }
+            {"sub_inst_id": install_sub_inst_obj.sub_inst_id, "install_sub_inst_obj": install_sub_inst_obj}
             for install_sub_inst_obj in install_sub_inst_objs
         ]
-        # 冗余代码，运行稳定后删除
-        # return concurrent.batch_call(func=self.execute_linux_commands, params_list=params_list)
-        # return concurrent.batch_call_serial(func=self.execute_linux_commands, params_list=params_list)
-        # return concurrent.batch_call(func=self.execute_linux_commands_with_asyncssh_in_sync, params_list=params_list)
-        return concurrent.batch_call_coroutine(func=self.execute_linux_commands_with_asyncssh, params_list=params_list)
+        return concurrent.batch_call_coroutine(func=self.execute_linux_commands_async, params_list=params_list)
 
     @staticmethod
     def get_cloud_id__proxies_map(bk_cloud_ids: Iterable[int]) -> Dict[int, List[models.Host]]:
@@ -348,8 +355,17 @@ class InstallService(base.AgentBaseService):
                 pipeline.expire(cache_key, POLLING_TIMEOUT + random.randint(POLLING_TIMEOUT, 2 * POLLING_TIMEOUT))
             pipeline.execute()
 
+        remote_conn_helpers_gby_result_type = self.bulk_check_ssh(remote_conn_helpers=lan_windows_sub_inst)
+
         succeed_non_lan_inst_ids = self.handle_non_lan_inst(install_sub_inst_objs=non_lan_sub_inst)
-        succeed_lan_windows_sub_inst_ids = self.handle_lan_windows_sub_inst(install_sub_inst_objs=lan_windows_sub_inst)
+        succeed_lan_windows_sub_inst_ids = self.handle_lan_windows_sub_inst(
+            install_sub_inst_objs=remote_conn_helpers_gby_result_type.get(
+                remote.SshCheckResultType.UNAVAILABLE.value, []
+            )
+        )
+        succeed_lan_cygwin_sub_inst_ids = self.handle_lan_cygwin_sub_inst(
+            install_sub_inst_objs=remote_conn_helpers_gby_result_type.get(remote.SshCheckResultType.AVAILABLE.value, [])
+        )
         succeed_lan_linux_sub_inst_ids = self.handle_lan_linux_sub_inst(install_sub_inst_objs=lan_linux_sub_inst)
         # 使用 filter 移除并发过程中抛出异常的实例
         data.outputs.scheduling_sub_inst_ids = list(
@@ -358,6 +374,7 @@ class InstallService(base.AgentBaseService):
                 (
                     succeed_non_lan_inst_ids
                     + succeed_lan_windows_sub_inst_ids
+                    + succeed_lan_cygwin_sub_inst_ids
                     + succeed_lan_linux_sub_inst_ids
                     + manual_install_sub_inst_ids
                 ),
@@ -524,70 +541,23 @@ class InstallService(base.AgentBaseService):
         return sub_inst_id
 
     @exc.ExceptionHandler(exc_handler=core.default_sub_inst_task_exc_handler)
-    @base.RetryHandler(interval=0, retry_times=2, exception_types=[socket.timeout])
-    def execute_linux_commands(self, sub_inst_id, installation_tool: InstallationTools):
-        host = installation_tool.host
-        run_cmd = installation_tool.run_cmd
-        pre_commands = installation_tool.pre_commands or []
-        if installation_tool.identity_data.account not in [constants.LINUX_ACCOUNT, constants.WINDOWS_ACCOUNT]:
-            self.log_warning(
-                sub_inst_id,
-                log_content=_("当前登录用户为「{account}」，请确保该用户具有 sudo 权限").format(
-                    account=installation_tool.identity_data.account
-                ),
-            )
-        ssh_man = SshMan(host, self.logger, identity_data=installation_tool.identity_data)
-        # 一定要先设置一个干净的提示符号，否则会导致console_ready识别失效
-        ssh_man.get_and_set_prompt()
-        for cmd in pre_commands:
-            self.log_info(sub_inst_ids=sub_inst_id, log_content=f"Sending cmd: {cmd}")
-            ssh_man.send_cmd(cmd)
+    async def execute_linux_commands_async(self, sub_inst_id, install_sub_inst_obj: InstallSubInstObj) -> int:
+        """
+        执行 Linux 命令
+        :param sub_inst_id:
+        :param install_sub_inst_obj:
+        :return:
+        """
+        # sudo 权限提示
+        await self.sudo_prompt(install_sub_inst_obj)
 
-        if "echo" in run_cmd:
-            self.log_info(
-                sub_inst_ids=sub_inst_id, log_content=f"Sending install cmd with host_data: {run_cmd.split('&&')[-1]}"
-            )
-        else:
-            self.log_info(sub_inst_ids=sub_inst_id, log_content=f"Sending install cmd: {run_cmd}")
-        # 执行脚本命令，通过report log上报日志，无需等待返回，提高执行效率
-        ssh_man.send_cmd(run_cmd, wait_console_ready=False)
-        ssh_man.safe_close(ssh_man.ssh)
-        return sub_inst_id
-
-    @exc.ExceptionHandler(exc_handler=core.default_sub_inst_task_exc_handler)
-    async def execute_linux_commands_with_asyncssh(self, sub_inst_id, installation_tool: InstallationTools):
         # 解决如下报错
         # django.core.exceptions.SynchronousOnlyOperation: You cannot call this from an async context -
         # use a thread or sync_to_async.
         # 参考：https://docs.djangoproject.com/en/3.2/topics/async/
         log_info = sync_to_async(self.log_info)
-        log_warning = sync_to_async(self.log_warning)
-
-        if installation_tool.identity_data.account not in [constants.LINUX_ACCOUNT, constants.WINDOWS_ACCOUNT]:
-            await log_warning(
-                sub_inst_id,
-                log_content=_("当前登录用户为「{account}」，请确保该用户具有 sudo 权限").format(
-                    account=installation_tool.identity_data.account
-                ),
-            )
-
-        if installation_tool.host.node_type == constants.NodeType.PROXY:
-            ip = installation_tool.host.login_ip or installation_tool.host.outer_ip
-        else:
-            ip = installation_tool.host.login_ip or installation_tool.host.inner_ip
-
-        client_key_strings = []
-        if installation_tool.identity_data.auth_type == constants.AuthType.KEY:
-            client_key_strings.append(installation_tool.identity_data.key)
-
-        async with conns.AsyncsshConn(
-            host=ip,
-            port=installation_tool.identity_data.port,
-            username=installation_tool.identity_data.account,
-            password=installation_tool.identity_data.password,
-            client_key_strings=client_key_strings,
-            connect_timeout=SSH_CON_TIMEOUT,
-        ) as conn:
+        installation_tool = install_sub_inst_obj.installation_tool
+        async with conns.AsyncsshConn(**install_sub_inst_obj.conns_init_params) as conn:
             run_cmd = installation_tool.run_cmd
             pre_commands = installation_tool.pre_commands or []
             for cmd in pre_commands:
@@ -599,12 +569,28 @@ class InstallService(base.AgentBaseService):
         return sub_inst_id
 
     @exc.ExceptionHandler(exc_handler=core.default_sub_inst_task_exc_handler)
-    def execute_linux_commands_with_asyncssh_in_sync(self, sub_inst_id, installation_tool: InstallationTools):
-        # 直接把 self.execute_linux_commands_with_asyncssh 通过 async_to_sync 转为同步，asyncssh 会有如下报错：
-        # unhandled exception during loop shutdown
-        # 单独开一个新的事件循环实现同步执行
-        loop = asyncio.new_event_loop()
-        return loop.run_until_complete(self.execute_linux_commands_with_asyncssh(sub_inst_id, installation_tool))
+    async def execute_cygwin_commands_async(self, sub_inst_id, install_sub_inst_obj: InstallSubInstObj) -> int:
+        """
+        通过 Cygwin 执行命令
+        :param sub_inst_id:
+        :param install_sub_inst_obj:
+        :return:
+        """
+        log_info = sync_to_async(self.log_info)
+        localpaths = [
+            os.path.join(settings.BK_SCRIPTS_PATH, filename)
+            for filename in ["curl.exe", "curl-ca-bundle.crt", "libcurl-x64.dll"]
+        ]
+        async with await conns.AsyncsshConn(**install_sub_inst_obj.conns_init_params).file_client() as file_client:
+            await file_client.makedirs(path=install_sub_inst_obj.installation_tool.dest_dir)
+            await log_info(
+                sub_inst_ids=install_sub_inst_obj.sub_inst_id,
+                log_content=_("推送下列文件到「{dest_dir}」\n{filenames_str}").format(
+                    filenames_str="\n".join(localpaths), dest_dir=install_sub_inst_obj.installation_tool.dest_dir
+                ),
+            )
+            await file_client.put(localpaths=localpaths, remotepath=install_sub_inst_obj.installation_tool.dest_dir)
+        return await self.execute_linux_commands_async(sub_inst_id, install_sub_inst_obj)
 
     def handle_report_data(self, sub_inst_id: int, success_callback_step: str) -> Dict:
         """处理上报数据"""

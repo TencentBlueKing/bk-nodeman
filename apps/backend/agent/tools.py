@@ -44,7 +44,7 @@ class InstallationTools:
         :param upstream_nodes: 上游节点，通常为proxy或者安装通道指定的商用
         :param jump_server: 跳板服务器，通常为proxy或者安装通道的跳板机
         :param pre_commands: 预执行命令，目前仅 Windows 需要，提前推送 curl.exe 等工具
-        :param run_cmd: 运行命令，通过 format_run_cmd_by_os_type 方法生成
+        :param run_cmd: shell 运行命令，通过 format_run_cmd_by_os_type 方法生成
         :param host: 主机对象
         :param ap: 接入点对象
         :param identity_data: 认证数据对象
@@ -132,7 +132,7 @@ def choose_script_file(host: models.Host) -> str:
     return script_file_name
 
 
-def format_run_cmd_by_os_type(os_type: str, host_tmp_path: str, run_cmd=None) -> str:
+def format_run_cmd_by_os_type(os_type: str, dest_dir: str, run_cmd=None) -> str:
     os_type = os_type.lower()
     if os_type == const.OS.WINDOWS and run_cmd:
         return run_cmd
@@ -141,8 +141,63 @@ def format_run_cmd_by_os_type(os_type: str, host_tmp_path: str, run_cmd=None) ->
         shell = "bash"
     else:
         shell = suffix
-    run_cmd = f"nohup {shell} {run_cmd} &> {host_tmp_path}nm.nohup.out &" if run_cmd else shell
+    run_cmd = f"nohup {shell} {run_cmd} &> {dest_dir}nm.nohup.out &" if run_cmd else shell
     return run_cmd
+
+
+def lan_node_shell_cmds_generator(
+    os_type: str,
+    dest_dir: str,
+    script_file_name: str,
+    package_url: str,
+    run_cmd_params: List[str],
+    options_path: List[str],
+    options_value_inside_quotes: List[str],
+):
+    """
+    直连区域 shell 命令生产器
+    :param os_type: 操作系统类型
+    :param dest_dir: 工作目录
+    :param script_file_name: 安装脚本名称
+    :param package_url: 安装包下载地址
+    :param run_cmd_params: 执行参数
+    :param options_path: 待转义的路径参数项，适配 Cygwin
+    :param options_value_inside_quotes: 值包含 , 或 ; 的参数项
+    :return:
+    """
+    curl_cmd = "curl"
+    if os_type == constants.OsType.WINDOWS:
+        dest_dir = dest_dir.replace("\\", "/")
+        curl_cmd = f"{dest_dir}curl.exe"
+        run_cmd_params_treated = []
+        for run_cmd_param in run_cmd_params:
+            if not run_cmd_param:
+                continue
+            option, value = run_cmd_param.split(" ", 1)
+            if option in options_path:
+                value = value.replace("\\", "\\\\")
+            elif option in options_value_inside_quotes:
+                # Invalid option 处理 cygwin 执行 .bat 报错：Invalid option
+                # Including space anywhere inside quotes will ensure that
+                # parameter with semicolon or comma is passed correctly.
+                # 参考：https://stackoverflow.com/questions/17747961/
+                value = f'{value[:-1]} "'
+            run_cmd_params_treated.append(f"{option} {value}")
+    else:
+        run_cmd_params_treated = list(filter(None, run_cmd_params))
+
+    chmod_cmd = f"chmod +x {dest_dir}{script_file_name}"
+    download_cmd = (
+        f"{curl_cmd} {package_url}/{script_file_name} " f"-o {dest_dir}{script_file_name} --connect-timeout 5 -sSf"
+    )
+    run_cmd = format_run_cmd_by_os_type(
+        os_type, dest_dir, f"{dest_dir}{script_file_name} {' '.join(run_cmd_params_treated)}"
+    )
+
+    if os_type == constants.OsType.WINDOWS:
+        run_cmd = f"nohup {run_cmd} &> {dest_dir}nm.nohup.out &"
+
+    return {"chmod_cmd": chmod_cmd, "download_cmd": download_cmd, "run_cmd": run_cmd}
 
 
 def gen_commands(
@@ -219,8 +274,12 @@ def gen_commands(
     check_run_commands(run_cmd_params)
     script_file_name = choose_script_file(host)
 
+    # run_cmd: shell 运行命令，Windows 会生成兼容 cygwin 的运行命令
+    # run_cmd_os_based: 根据操作系统类型所生成运行命令 Windows - bat | 其他 - shell
+    run_cmd = ""
     host_tmp_path = suffix_slash(host.os_type.lower(), agent_config["temp_path"])
     dest_dir = host_tmp_path
+    chmod_cmd = f"chmod +x {dest_dir}{script_file_name}"
     if script_file_name == constants.SetupScriptFileName.SETUP_PAGENT_PY.value:
         run_cmd_params.append(f"-L {settings.DOWNLOAD_PATH}")
         # P-Agent在proxy上执行，proxy都是Linux机器
@@ -265,7 +324,7 @@ def gen_commands(
             if channel_proxy_address:
                 run_cmd_params.extend([f"-CPA '{channel_proxy_address}'"])
 
-        run_cmd = " ".join(list(filter(None, run_cmd_params)))
+        run_cmd_os_based = " ".join(list(filter(None, run_cmd_params)))
 
         download_cmd = (
             f"if [ ! -e {dest_dir}{script_file_name} ] || "
@@ -293,16 +352,28 @@ def gen_commands(
                 ]
             )
 
-        run_cmd = format_run_cmd_by_os_type(
+        name__cmd_map = lan_node_shell_cmds_generator(
+            os_type=host.os_type,
+            dest_dir=dest_dir,
+            script_file_name=script_file_name,
+            package_url=package_url,
+            run_cmd_params=run_cmd_params,
+            options_path=["-T", "-p"],
+            options_value_inside_quotes=["-e", "-a", "-k"],
+        )
+        chmod_cmd = name__cmd_map["chmod_cmd"]
+        download_cmd = name__cmd_map["download_cmd"]
+        run_cmd = name__cmd_map["run_cmd"]
+
+        run_cmd_os_based = format_run_cmd_by_os_type(
             host.os_type, host_tmp_path, f"{dest_dir}{script_file_name} {' '.join(list(filter(None, run_cmd_params)))}"
         )
-        download_cmd = f"curl {package_url}/{script_file_name} -o {dest_dir}{script_file_name} --connect-timeout 5 -sSf"
-    chmod_cmd = f"chmod +x {dest_dir}{script_file_name}"
+
     pre_commands = [
         download_cmd,
         chmod_cmd,
     ]
-    if Path(dest_dir) != Path("/tmp"):
+    if Path(dest_dir) != Path("/tmp") and host.os_type != constants.OsType.WINDOWS:
         pre_commands.insert(0, f"mkdir -p {dest_dir}")
 
     upstream_nodes = list(set(upstream_nodes))
@@ -311,12 +382,15 @@ def gen_commands(
         dest_dir,
         [
             f"{dest_dir}curl.exe {host_ap.package_inner_url}/{script_file_name} -o {dest_dir}{script_file_name} -sSf",
-            run_cmd,
+            # 如果是 Windows 机器，run_cmd_os_based 为 bat 命令
+            run_cmd_os_based,
         ],
         upstream_nodes,
         jump_server,
         pre_commands,
-        run_cmd,
+        # 背景：直连 Windows 支持 Cygwin
+        # 对于直连机器，会优先取 run_cmd（shell），非直连 run_cmd 为空，取 run_cmd_os_based
+        run_cmd or run_cmd_os_based,
         host,
         host_ap,
         identity_data,

@@ -17,6 +17,7 @@ from django.utils.translation import ugettext_lazy as _
 from six import StringIO
 
 from .. import exceptions
+from ..clients import file
 from . import base
 
 
@@ -85,3 +86,9 @@ class ParamikoConn(base.BaseConn):
                 raise exceptions.RemoteTimeoutError(_("连接超时：{err_msg}").format(err_msg=e)) from e
             stdout, stderr = StringIO(""), StringIO(str(e))
         return base.RunOutput(command=command, stdout=stdout.read(), stderr=stderr.read())
+
+    def file_client(self) -> file.ParamikoSFTPClient:
+        if self._conn is None:
+            self.connect()
+        sftp_client = self._conn.open_sftp()
+        return file.ParamikoSFTPClient(sftp_client)
