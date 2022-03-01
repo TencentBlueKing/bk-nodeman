@@ -176,6 +176,7 @@ class CommonData:
         bk_host_ids: Set[int],
         host_id_obj_map: Dict[int, models.Host],
         sub_inst_id__host_id_map: Dict[int, int],
+        host_id__sub_inst_id_map: Dict[int, int],
         ap_id_obj_map: Dict[int, models.AccessPoint],
         subscription: models.Subscription,
         subscription_instances: List[models.SubscriptionInstanceRecord],
@@ -184,6 +185,7 @@ class CommonData:
         self.bk_host_ids = bk_host_ids
         self.host_id_obj_map = host_id_obj_map
         self.sub_inst_id__host_id_map = sub_inst_id__host_id_map
+        self.host_id__sub_inst_id_map = host_id__sub_inst_id_map
         self.ap_id_obj_map = ap_id_obj_map
         self.subscription = subscription
         self.subscription_instances = subscription_instances
@@ -278,6 +280,7 @@ class BaseService(Service, LogMixin, DBHelperMixin):
         bk_host_ids = set()
         subscription_instance_ids = set()
         sub_inst_id__host_id_map = {}
+        host_id__sub_inst_id_map = {}
         for subscription_instance in subscription_instances:
             subscription_instance_ids.add(subscription_instance.id)
             # 兼容新安装Agent主机无bk_host_id的场景
@@ -285,6 +288,7 @@ class BaseService(Service, LogMixin, DBHelperMixin):
                 bk_host_id = subscription_instance.instance_info["host"]["bk_host_id"]
                 bk_host_ids.add(bk_host_id)
                 sub_inst_id__host_id_map[subscription_instance.id] = bk_host_id
+                host_id__sub_inst_id_map[bk_host_id] = subscription_instance.id
 
         host_id_obj_map: Dict[int, models.Host] = models.Host.host_id_obj_map(bk_host_id__in=bk_host_ids)
         ap_id_obj_map = models.AccessPoint.ap_id_obj_map()
@@ -292,6 +296,7 @@ class BaseService(Service, LogMixin, DBHelperMixin):
             bk_host_ids=bk_host_ids,
             host_id_obj_map=host_id_obj_map,
             sub_inst_id__host_id_map=sub_inst_id__host_id_map,
+            host_id__sub_inst_id_map=host_id__sub_inst_id_map,
             ap_id_obj_map=ap_id_obj_map,
             subscription=subscription,
             subscription_instances=subscription_instances,

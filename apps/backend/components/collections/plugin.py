@@ -64,6 +64,7 @@ class PluginCommonData(CommonData):
         subscription_instances: List[models.SubscriptionInstanceRecord],
         subscription_instance_ids: Set[int],
         sub_inst_id__host_id_map: Dict[int, int],
+        host_id__sub_inst_id_map: Dict[int, int],
         # 插件新增的公共数据
         process_statuses: List[models.ProcessStatus],
         target_host_objs: Optional[List[models.Host]],
@@ -89,6 +90,7 @@ class PluginCommonData(CommonData):
             subscription_instances=subscription_instances,
             subscription_instance_ids=subscription_instance_ids,
             sub_inst_id__host_id_map=sub_inst_id__host_id_map,
+            host_id__sub_inst_id_map=host_id__sub_inst_id_map,
         )
 
 
@@ -145,6 +147,7 @@ class PluginBaseService(BaseService, metaclass=abc.ABCMeta):
             subscription_instances=common_data.subscription_instances,
             subscription_instance_ids=common_data.subscription_instance_ids,
             sub_inst_id__host_id_map=common_data.sub_inst_id__host_id_map,
+            host_id__sub_inst_id_map=common_data.host_id__sub_inst_id_map,
             # Plugin 新增的公共数据
             process_statuses=process_statuses,
             target_host_objs=target_host_objs,

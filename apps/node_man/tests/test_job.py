@@ -13,6 +13,7 @@ from unittest.mock import patch
 from django.test import TestCase
 from django.utils import timezone
 
+from apps.mock_data import common_unit
 from apps.node_man import constants as const
 from apps.node_man import tools
 from apps.node_man.exceptions import (
@@ -370,22 +371,22 @@ class TestJob(TestCase):
         }
         # SUCCESS
         job = Job.objects.get(id=job_id)
-        job.subscription_id = 1
+        job.subscription_id = common_unit.subscription.DEFAULT_SUBSCRIPTION_ID
         job.save()
         self.assertEqual(JobHandler(job_id=job_id).retrieve(params)["status"], "SUCCESS")
         # FAILED
         job = Job.objects.get(id=job_id)
-        job.subscription_id = 2
+        job.subscription_id = common_unit.subscription.FAILED_SUBSCRIPTION_ID
         job.save()
         self.assertEqual(JobHandler(job_id=job_id).retrieve(params)["status"], "FAILED")
         # RUNNING
         job = Job.objects.get(id=job_id)
-        job.subscription_id = 3
+        job.subscription_id = common_unit.subscription.RUNNING_SUBSCRIPTION_ID
         job.save()
         self.assertEqual(JobHandler(job_id=job_id).retrieve(params).get("statistics").get("running_count"), 1)
         # PENDING
         job = Job.objects.get(id=job_id)
-        job.subscription_id = 4
+        job.subscription_id = common_unit.subscription.PENDING_SUBSCRIPTION_ID
         job.save()
         JobHandler(job_id=job_id).retrieve(params)
         # 异常分支
@@ -451,7 +452,7 @@ class TestJob(TestCase):
 
         job_id = result["job_id"]
         job = Job.objects.get(id=job_id)
-        job.subscription_id = 5
+        job.subscription_id = common_unit.subscription.POINT_HOST_RUNNING_SUBSCRIPTION_ID
         job.save()
 
         commands = JobHandler(job_id=job_id).get_commands(-1, False)

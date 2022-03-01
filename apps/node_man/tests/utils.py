@@ -17,6 +17,7 @@ from unittest.mock import patch
 from django.utils import timezone
 
 from apps.exceptions import ComponentCallError
+from apps.mock_data import common_unit
 from apps.node_man import constants as const
 from apps.node_man import tools
 from apps.node_man.handlers.ap import APHandler
@@ -256,40 +257,44 @@ class JobApi:
 
 class NodeApi:
     @staticmethod
-    def create_subscription(param):
-        subscription_id = random.randint(100, 1000)
-        task_id = random.randint(10, 1000)
-        return {"subscription_id": subscription_id, "task_id": task_id, "param": param}
+    def create_subscription(params):
+        return {
+            "subscription_id": common_unit.subscription.DEFAULT_SUBSCRIPTION_ID,
+            "task_id": common_unit.subscription.DEFAULT_SUB_TASK_ID,
+            "param": params,
+        }
 
     @staticmethod
     def retry_subscription_task(param):
-        subscription_id = random.randint(100, 1000)
-        task_id = random.randint(10, 1000)
-        return {"subscription_id": subscription_id, "task_id": task_id}
+        return {
+            "subscription_id": common_unit.subscription.DEFAULT_SUBSCRIPTION_ID,
+            "task_id": common_unit.subscription.DEFAULT_SUB_TASK_ID,
+        }
 
     @staticmethod
     def revoke_subscription_task(param):
-        subscription_id = random.randint(100, 1000)
-        task_id = random.randint(10, 1000)
-        return {"subscription_id": subscription_id, "task_id": task_id}
+        return {
+            "subscription_id": common_unit.subscription.DEFAULT_SUBSCRIPTION_ID,
+            "task_id": common_unit.subscription.DEFAULT_SUB_TASK_ID,
+        }
 
     @staticmethod
-    def get_subscription_task_status(param):
-        if param["subscription_id"] == 1:
+    def get_subscription_task_status(params):
+        if params["subscription_id"] == common_unit.subscription.DEFAULT_SUBSCRIPTION_ID:
             status = "SUCCESS"
-        elif param["subscription_id"] == 2:
+        elif params["subscription_id"] == common_unit.subscription.FAILED_SUBSCRIPTION_ID:
             status = "FAILED"
-        elif param["subscription_id"] == 3:
+        elif params["subscription_id"] == common_unit.subscription.RUNNING_SUBSCRIPTION_ID:
             status = "RUNNING"
-        elif param["subscription_id"] == 4:
+        elif params["subscription_id"] == common_unit.subscription.PENDING_SUBSCRIPTION_ID:
             status = "PENDING"
-        elif param["subscription_id"] == 5:
+        elif params["subscription_id"] == common_unit.subscription.POINT_HOST_RUNNING_SUBSCRIPTION_ID:
             status = "RUNNING"
         else:
             status = "SUCCESS"
 
         # 测异常分支
-        if param["subscription_id"] == 0:
+        if params["subscription_id"] == 0:
             target_hosts = []
             status = "FAILED"
         else:
@@ -299,7 +304,7 @@ class NodeApi:
                         {
                             "status": status,
                             "index": 1,
-                            "node_name": "安装" if param["subscription_id"] == 5 else "1",
+                            "node_name": "安装",
                             "pipeline_id": 1,
                         }
                     ]
@@ -309,6 +314,7 @@ class NodeApi:
         result = [
             {
                 "status": status,
+                "node_name": "test_node_name",
                 "record_id": random.randint(1, 100),
                 "instance_id": random.randint(100, 1000),
                 "create_time": "2021-05-17 15:54:13",
@@ -318,19 +324,19 @@ class NodeApi:
                     "host": {
                         "bk_host_innerip": f"{random.randint(1, 250)}.{random.randint(1, 250)}."
                         f"{random.randint(1, 250)}.{random.randint(1, 250)}",
-                        "bk_cloud_id": 0 if param["subscription_id"] == 5 else random.randint(100, 1000),
+                        "bk_cloud_id": 0,
                         "bk_cloud_name": random.randint(100, 1000),
                         "bk_biz_id": random.randint(100, 1000),
                         "bk_biz_name": random.randint(100, 1000),
-                        "bk_host_id": 1 if param["subscription_id"] == 5 else random.randint(1, 1000),
+                        "bk_host_id": 1,
                     }
                 },
-                "steps": [{"target_hosts": target_hosts}],
+                "steps": [{"node_name": "test_sub_step_node_name", "status": status, "target_hosts": target_hosts}],
             }
         ]
 
         # 测试PART_FAILED
-        if param["subscription_id"] == 6:
+        if params["subscription_id"] == 6:
             result.append(
                 {
                     "status": "FAILED",
@@ -350,12 +356,14 @@ class NodeApi:
                             "bk_host_id": 1,
                         }
                     },
-                    "steps": [{"target_hosts": target_hosts}],
+                    "steps": [
+                        {"node_name": "test_sub_step_node_name", "status": "FAILED", "target_hosts": target_hosts}
+                    ],
                 }
             )
 
         # 该接口已分页优化，兼容原先逻辑，没有传pagesize则不分页，传return_all需要返回分页结构
-        if not param.get("return_all") and param.get("pagesize", -1) == -1:
+        if not params.get("return_all") and params.get("pagesize", -1) == -1:
             return result
         # 状态统计
         status_counter = []

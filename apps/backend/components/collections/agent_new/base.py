@@ -69,6 +69,7 @@ class AgentBaseService(BaseService, metaclass=abc.ABCMeta):
             subscription_instances=common_data.subscription_instances,
             subscription_instance_ids=common_data.subscription_instance_ids,
             sub_inst_id__host_id_map=common_data.sub_inst_id__host_id_map,
+            host_id__sub_inst_id_map=common_data.host_id__sub_inst_id_map,
             # Agent 新增的公共数据
             default_ap=default_ap,
             host_id__ap_map=host_id__ap_map,
@@ -154,6 +155,7 @@ class AgentCommonData(CommonData):
         subscription_instances: List[models.SubscriptionInstanceRecord],
         subscription_instance_ids: Set[int],
         sub_inst_id__host_id_map: Dict[int, int],
+        host_id__sub_inst_id_map: Dict[int, int],
         # Agent 新增的公共数据
         default_ap: models.AccessPoint,
         host_id__ap_map: Dict[int, models.AccessPoint],
@@ -172,6 +174,7 @@ class AgentCommonData(CommonData):
             subscription_instances=subscription_instances,
             subscription_instance_ids=subscription_instance_ids,
             sub_inst_id__host_id_map=sub_inst_id__host_id_map,
+            host_id__sub_inst_id_map=host_id__sub_inst_id_map,
         )
 
 

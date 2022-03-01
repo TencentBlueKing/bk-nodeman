@@ -26,8 +26,16 @@ def _clean_auth_info_uin(auth_info):
     return auth_info
 
 
+is_celery = False
+is_manage = False
+for argv in sys.argv:
+    if "celery" in argv:
+        is_celery = True
+    if "manage.py" in argv:
+        is_manage = True
+
 # 后台任务 & 测试任务调用 ESB 接口不需要用户权限控制
-if "celery" in sys.argv or "manage.py" in sys.argv[0]:
+if is_celery or is_manage:
 
     def add_esb_info_before_request(params):
         params["bk_app_code"] = settings.APP_CODE
