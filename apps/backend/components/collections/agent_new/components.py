@@ -21,6 +21,7 @@ from .configure_policy import ConfigurePolicyService
 from .delegate_plugin_proc import DelegatePluginProcService
 from .get_agent_status import GetAgentStatusService
 from .install import InstallService
+from .install_plugins import InstallPluginsService
 from .push_files_to_proxy import PushFilesToProxyService
 from .push_upgrade_package import PushUpgradeFileService
 from .query_password import QueryPasswordService
@@ -56,6 +57,12 @@ class InstallComponent(Component):
     name = _("安装")
     code = "install"
     bound_service = InstallService
+
+
+class InstallPluginsComponent(Component):
+    name = _("安装预设插件")
+    code = "install_plugins"
+    bound_service = InstallPluginsService
 
 
 class ConfigurePolicyComponent(Component):

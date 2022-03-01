@@ -29,7 +29,7 @@ GSE_PLUGIN_DESC_MODEL_DATA = {
     "config_format": "yaml",
     "use_db": 0,
     "is_binary": 1,
-    "auto_launch": 0,
+    "auto_launch": 1,
 }
 
 PACKAGES_MODEL_DATA = {

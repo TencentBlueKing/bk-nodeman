@@ -77,6 +77,12 @@ class AgentManager(object):
         return act
 
     @classmethod
+    def install_plugins(cls, name=components.InstallPluginsComponent.name):
+        """安装预设插件"""
+        act = AgentServiceActivity(component_code=components.InstallPluginsComponent.code, name=name)
+        return act
+
+    @classmethod
     def uninstall_agent(cls):
         """执行卸载AGENT脚本"""
         name = _("卸载Agent")
