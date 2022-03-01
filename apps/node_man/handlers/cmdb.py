@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import hashlib
+import math
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Dict, List
 
@@ -22,7 +23,7 @@ from apps.exceptions import ComponentCallError
 from apps.iam import Permission
 from apps.iam.exceptions import PermissionDeniedError
 from apps.iam.handlers.resources import Business
-from apps.node_man import models
+from apps.node_man import constants, models
 from apps.node_man.constants import BIZ_CACHE_SUFFIX, DEFAULT_CLOUD_NAME, IamActionType
 from apps.node_man.exceptions import (
     CacheExpiredError,
@@ -35,7 +36,7 @@ from apps.node_man.periodic_tasks.sync_cmdb_biz_topo_task import (
     get_and_cache_format_biz_topo,
 )
 from apps.utils import APIModel
-from apps.utils.batch_request import batch_request
+from apps.utils.batch_request import batch_request, request_multi_thread
 from apps.utils.local import get_request_username
 from common.log import logger
 
@@ -615,7 +616,21 @@ class CmdbHandler(APIModel):
         查询主机服务模板
         :return: [{"bk_host_id": 1, "service_template_id": [2, 3]}]
         """
-        return client_v2.cc.find_host_service_template({"bk_host_id": list(bk_host_ids)})
+        # CMDB 限制了单次查询数量，这里需分批并发请求查询
+        param_list = [
+            {
+                "bk_host_id": bk_host_ids[
+                    page
+                    * constants.QUERY_HOST_SERVICE_TEMPLATE_LIMIT : (page + 1)
+                    * constants.QUERY_HOST_SERVICE_TEMPLATE_LIMIT
+                ]
+            }
+            for page in range(math.ceil(len(bk_host_ids) / constants.QUERY_HOST_SERVICE_TEMPLATE_LIMIT))
+        ]
+        host_service_templates = request_multi_thread(
+            client_v2.cc.find_host_service_template, param_list, get_data=lambda x: x
+        )
+        return host_service_templates
 
     @staticmethod
     def get_biz_service_template(bk_biz_id: int) -> List[Dict]:
