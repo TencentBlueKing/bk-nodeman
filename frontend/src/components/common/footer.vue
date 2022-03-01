@@ -36,6 +36,24 @@ export default class NmFooter extends Vue {
           target: '_blank',
         },
       ];
+    } else {
+      this.link = [
+        {
+          name: window.i18n.t('技术支持'),
+          href: 'https://wpa1.qq.com/KziXGWJs?_type=wpa&qidian=true',
+          target: '_blank',
+        },
+        {
+          name: window.i18n.t('社区论坛'),
+          href: 'https://bk.tencent.com/s-mart/community/',
+          target: '_blank',
+        },
+        {
+          name: window.i18n.t('产品官网'),
+          href: 'https://bk.tencent.com/index/',
+          target: '_blank',
+        },
+      ];
     }
   }
 }
