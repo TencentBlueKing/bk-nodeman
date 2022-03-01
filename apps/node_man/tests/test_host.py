@@ -153,7 +153,7 @@ class TestHost(TestCase):
         result = HostHandler().list(
             {"exclude_hosts": bk_host_ids[:100], "pagesize": -1, "page": 1, "running_count": True}, "admin"
         )
-        self.assertEqual(list(result.keys()), ["running_count", "no_permission_count"])
+        self.assertEqual(list(result.keys()), ["running_count", "no_permission_count", "manual_statistics"])
 
     # 测试跨页全选
     @patch("apps.node_man.handlers.cmdb.CmdbHandler.cmdb_or_cache_biz", cmdb_or_cache_biz)
