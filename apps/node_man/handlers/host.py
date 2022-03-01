@@ -12,6 +12,7 @@ from typing import List
 
 from django.conf import settings
 from django.db import transaction
+from django.db.models import Count
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
@@ -303,6 +304,15 @@ class HostHandler(APIModel):
             ],
         ).count()
 
+    @staticmethod
+    def multiple_cond_sql_manual_statistics(queryset):
+        """
+        返回通过 multiple_cond_sql 后得到的安装方式统计
+        :param queryset:
+        :return:
+        """
+        return dict(queryset.values_list("is_manual").order_by("is_manual").annotate(count=Count("is_manual")))
+
     def list(self, params: dict, username: str):
         """
         查询主机
@@ -337,6 +347,7 @@ class HostHandler(APIModel):
             return {
                 "running_count": self.multiple_cond_sql_running_number(self.multiple_cond_sql(params, user_biz)),
                 "no_permission_count": self.multiple_cond_sql(params, no_operate_permission).count(),
+                "manual_statistics": self.multiple_cond_sql_manual_statistics(self.multiple_cond_sql(params, user_biz)),
             }
 
         # 查询
