@@ -72,10 +72,7 @@ export default class ResourceTree extends Vue {
       this.$emit('selected', node);
       this.setActiveNode({ key: 'id', value: node.id });
       this.toggleExpandedParent(node, true);
-      this.$nextTick(() => {
-        const ele = document.querySelector('div[class="tree-node-item topo-active"]');
-        ele?.scrollIntoView();
-      });
+      this.setActiveVisible();
     }
   }
 
@@ -181,6 +178,19 @@ export default class ResourceTree extends Vue {
         child.show = show;
       });
       item.show = item.name.includes(searchKey) || hasShowChild;
+    });
+  }
+
+  public setActiveVisible() {
+    this.$nextTick(() => {
+      const { top, bottom } = this.$el.getBoundingClientRect();
+      const ele = document.querySelector('div[class="tree-node-item topo-active"]');
+      if (ele) {
+        const { height: itemHeight, top: itemTop, bottom: itemBottom } = ele.getBoundingClientRect();
+        if (top > itemTop || bottom < itemBottom - itemHeight) {
+          ele.scrollIntoView();
+        }
+      }
     });
   }
 }
