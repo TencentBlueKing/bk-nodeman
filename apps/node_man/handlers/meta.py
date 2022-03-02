@@ -9,7 +9,8 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import re
-from typing import Tuple
+from collections import ChainMap
+from typing import Any, Callable, Dict, Tuple
 
 from django.conf import settings
 from django.db import connection
@@ -483,13 +484,70 @@ class MetaHandler(APIModel):
             ret = self.fetch_os_type_children()
             return ret
 
+    @staticmethod
+    def install_default_values_formatter(install_default_values: Dict[str, Dict[str, Any]]):
+        """
+        安装参数默认值格式化器
+        auth_type, account, port, retention, peer_exchange_switch_for_agent, bt_speed_limit, data_path
+        字段含义参考：apps/node_man/serializers/job.py HostSerializer
+        :return:
+        {
+            "COMMON": {
+                "auth_type": "KEY"
+            },
+            "WINDOWS": {
+                "port": 445,
+                "auth_type": "PASSWORD",
+                "account": "Administrator"
+            },
+            "LINUX": {
+                "port": 22,
+                "auth_type": "KEY",
+                "account": "root"
+            },
+            "AIX": {
+                "port": 22,
+                "auth_type": "KEY",
+                "account": "root"
+            },
+            "SOLARIS": {
+                "port": 22,
+                "auth_type": "KEY",
+                "account": "root"
+            }
+        }
+        """
+        common_values = install_default_values.get("COMMON", {})
+
+        for os_type in constants.OS_TUPLE:
+            default_values = {}
+            if os_type in [constants.OsType.WINDOWS]:
+                default_values.update({"port": constants.WINDOWS_PORT, "account": constants.WINDOWS_ACCOUNT})
+            else:
+                default_values.update({"port": settings.BKAPP_DEFAULT_SSH_PORT, "account": constants.LINUX_ACCOUNT})
+
+            # 取值顺序：全局变量所设置的值 -> 公共默认值（COMMON） -> 默认值
+            install_default_values[os_type] = dict(
+                ChainMap(install_default_values.get(os_type, {}), common_values, default_values)
+            )
+
+        return install_default_values
+
     def search(self, key):
         """
         查询相关配置
         """
+        setting_name__formatter_map: Dict[str, Callable] = {
+            models.GlobalSettings.KeyEnum.INSTALL_DEFAULT_VALUES.value: self.install_default_values_formatter
+        }
+        setting_kv = dict(models.GlobalSettings.objects.filter(key=key).values_list("key", "v_json"))
 
-        settings = dict(models.GlobalSettings.objects.filter(key=key).values_list("key", "v_json"))
-        return settings
+        formatted_setting_kv = {}
+        for setting_name, setting_value in setting_kv.items():
+            formatter = setting_name__formatter_map.get(setting_name, lambda v: v)
+            formatted_setting_kv[setting_name] = formatter(setting_value)
+
+        return formatted_setting_kv
 
     def job_setting(self, params):
         """

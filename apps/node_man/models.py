@@ -97,6 +97,7 @@ class GlobalSettings(models.Model):
         LAST_SUB_TASK_ID = "LAST_SUB_TASK_ID"  # 定时任务 collect_auto_trigger_job 用于记录最后一个同步的 sub_task ID
         NOT_READY_TASK_INFO_MAP = "NOT_READY_TASK_INFO_MAP"  # 定时任务 collect_auto_trigger_job 记录未就绪 sub_task 信息
         HEAD_PLUGINS = "HEAD_PLUGINS"  # 插件类型名字
+        INSTALL_DEFAULT_VALUES = "INSTALL_DEFAULT_VALUES"  # 安装默认值
 
     key = models.CharField(_("键"), max_length=255, db_index=True, primary_key=True)
     v_json = JSONField(_("值"))
