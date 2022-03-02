@@ -121,7 +121,11 @@ export default class ResourceQuotaEdit extends Vue {
       });
       const taskIds = res.job_id_list;
       if (taskIds.length) {
-        this.$router.push({ name: 'taskList', params: { taskIds } });
+        const router = {
+          name: taskIds.length > 1 ? 'taskList' : 'taskDetail',
+          params: taskIds.length > 1 ? { taskIds } : { taskId: taskIds[0] },
+        };
+        this.$router.push(router);
       }
       this.submitLoading = false;
     });
