@@ -688,13 +688,13 @@ class AccessPoint(models.Model):
             response = requests.get(url=f"{callback_url}/version")
             version_info = json.loads(response.content)
         except Exception as exc:
-            return _raise_exc_or_return(_("回调地址请求失败，报错信息：{exc}").format(exc=exc))
+            return _raise_exc_or_return(_("回调地址请求失败，报错信息 -> {exc}").format(exc=exc))
         if version_info.get("module") != "backend":
             return _raise_exc_or_return(_("回调地址指向站点非节点管理后台"))
         return {"result": True}
 
-    @staticmethod
-    def test(params: dict):
+    @classmethod
+    def test(cls, params: dict):
         """
         接入点可用性测试
         :param params: Dict
@@ -751,6 +751,20 @@ class AccessPoint(models.Model):
                         }
                     )
 
+        def _check_callback_url(url: str, _logs: list):
+            _check_callback_url_return = cls.check_callback_url_reachable(url, raise_exception=False)
+            if _check_callback_url_return["result"]:
+                _logs.append({"log_level": "INFO", "log": ugettext("回调地址 -> {url} 验证可达").format(url=url)})
+            else:
+                _logs.append(
+                    {
+                        "log_level": "ERROR",
+                        "log": ugettext("回调地址 -> {url} 不正确：{err_msg}").format(
+                            url=url, err_msg=_check_callback_url_return["err_msg"]
+                        ),
+                    }
+                )
+
         test_logs = []
 
         servers = params.get("btfileserver", []) + params.get("dataserver", []) + params.get("taskserver", [])
@@ -759,6 +773,10 @@ class AccessPoint(models.Model):
             tasks = [ex.submit(_check_ip, server["inner_ip"], test_logs) for server in servers]
             tasks.append(ex.submit(_check_package_url, params["package_inner_url"], test_logs))
             tasks.append(ex.submit(_check_package_url, params["package_outer_url"], test_logs))
+            if params.get("outer_callback_url"):
+                tasks.append(ex.submit(_check_callback_url, params["outer_callback_url"], test_logs))
+            if params.get("callback_url"):
+                tasks.append(ex.submit(_check_callback_url, params["callback_url"], test_logs))
             as_completed(tasks)
         test_result = True
         for log in test_logs:
