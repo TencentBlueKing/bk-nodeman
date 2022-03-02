@@ -12,7 +12,7 @@ import random
 from unittest.mock import patch
 
 from django.conf import settings
-from django.test import TestCase
+from django.test import override_settings
 
 from apps.node_man import constants as const
 from apps.node_man import tools
@@ -26,9 +26,10 @@ from apps.node_man.tests.utils import (
     create_host,
     create_job,
 )
+from apps.utils.unittest import testcase
 
 
-class TestMeta(TestCase):
+class TestMeta(testcase.CustomAPITestCase):
     def fetch_host_unique_col_count(self, col):
         """
         返回Host中指定列的唯一值
@@ -239,3 +240,34 @@ class TestMeta(TestCase):
 
         self.assertEqual(len(result), 13)
         self.assertEqual(len(result[0]["children"]), 10)
+
+    @override_settings(BKAPP_DEFAULT_SSH_PORT=22)
+    def test_global_settings__install_default_values(self):
+
+        GlobalSettings.set_config(
+            GlobalSettings.KeyEnum.INSTALL_DEFAULT_VALUES.value,
+            value={"COMMON": {"auth_type": const.AuthType.KEY}, "WINDOWS": {"auth": const.AuthType.PASSWORD}},
+        )
+        kv = self.client.get(
+            "/api/meta/global_settings/", {"key": GlobalSettings.KeyEnum.INSTALL_DEFAULT_VALUES.value}
+        )["data"]
+
+        expect_install_default_values = {
+            "COMMON": {"auth_type": const.AuthType.KEY},
+            **{
+                os_type: {
+                    "port": settings.BKAPP_DEFAULT_SSH_PORT,
+                    "auth_type": const.AuthType.KEY,
+                    "account": const.LINUX_ACCOUNT,
+                }
+                for os_type in const.OS_TUPLE
+                if os_type not in [const.OsType.WINDOWS]
+            },
+            "WINDOWS": {
+                "port": const.WINDOWS_PORT,
+                "auth_type": const.AuthType.KEY,
+                "account": const.WINDOWS_ACCOUNT,
+                "auth": const.AuthType.PASSWORD,
+            },
+        }
+        self.assertDictEqual(kv, {GlobalSettings.KeyEnum.INSTALL_DEFAULT_VALUES.value: expect_install_default_values})
