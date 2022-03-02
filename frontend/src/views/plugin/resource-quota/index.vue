@@ -108,6 +108,7 @@ export default class ResourceQuota extends Mixins(HeaderFilterMixins) {
   @Prop({ type: Number, default: -1 }) private readonly moduleId!: number;
   @Ref('treeRef') private readonly treeRef!: any;
 
+  public init = false;
   public loading = true;
   public pluginLoading = false;
   public curNode: ITreeNode | null = null;
@@ -117,7 +118,7 @@ export default class ResourceQuota extends Mixins(HeaderFilterMixins) {
   public pluginList: any[] = [];
   public headTipsMap = {
     cpu: this.$t('限制最高CPU使用率'),
-    ram: this.$t('限制最高内存使用率'),
+    mem: this.$t('限制最高内存使用率'),
   };
   public biz: number[] = [];
   public handleSearchChange!: Function;
@@ -174,10 +175,13 @@ export default class ResourceQuota extends Mixins(HeaderFilterMixins) {
     const hasAuthBizList = this.bkBizList.filter(item => !item.disabled);
     if (hasAuthBizList.length) {
       const loadBizId = this.bizId > -1 && hasAuthBizList.find(item => item.bk_biz_id === this.bizId)
-        ? this.bizId : hasAuthBizList[0].bk_biz_id;
+        ? this.bizId :  -1;
       // 初始化选中业务
-      this.biz = this.selectedBiz.length ? Array.from(new Set([...this.selectedBiz, loadBizId])) : [];
-
+      if (!this.init && loadBizId > -1) {
+        this.biz = Array.from(new Set([...this.selectedBiz, loadBizId]));
+      } else {
+        this.biz = this.selectedBiz;
+      }
       // 设置业务列表 && 树
       const selectedBizList = this.biz.length
         ? hasAuthBizList.filter(item => this.biz.includes(item.bk_biz_id))
@@ -216,13 +220,13 @@ export default class ResourceQuota extends Mixins(HeaderFilterMixins) {
           ? this.moduleId
           : children[0].bk_inst_id;
       }
-      if (this.bizId !== loadBizId || (this.moduleId !== loadModuleId)) {
+      this.init = true;
+      // if (this.bizId !== loadBizId || (this.moduleId !== loadModuleId)) {
+      if (this.moduleId !== loadModuleId && loadModuleId > -1) {
         const query: any = {
           bizId: loadBizId,
+          moduleId: loadModuleId,
         };
-        if (loadModuleId > -1) {
-          query.moduleId = loadModuleId;
-        }
         this.$router.replace({ query });
       }
       this.loading = false;
@@ -296,7 +300,7 @@ export default class ResourceQuota extends Mixins(HeaderFilterMixins) {
     return h(TableHeader, {
       props: {
         label,
-        tips: this.headTipsMap[property as 'cpu' | 'ram'],
+        tips: this.headTipsMap[property as 'cpu' | 'mem'],
       },
     });
   }
@@ -317,6 +321,7 @@ export default class ResourceQuota extends Mixins(HeaderFilterMixins) {
     height: 48px;
     border-bottom: 1px solid #dcdee5;
     background: #fff;
+    overflow: hidden;
     .title {
       font-size: 16px;
       color: #313238;
@@ -343,6 +348,9 @@ export default class ResourceQuota extends Mixins(HeaderFilterMixins) {
       color: #3A84FF;
       z-index: 50;
       pointer-events: none;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
   }
   .biz-select-rimless {

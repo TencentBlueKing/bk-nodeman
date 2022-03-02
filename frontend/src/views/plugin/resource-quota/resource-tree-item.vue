@@ -20,7 +20,7 @@
         </span>
         <span v-bk-overflow-tips class="node-name">{{ node.name }}</span>
         <div v-show="node.topoIcon">
-          <i class="nodeman-icon nc-manual" v-bk-tooltips="{
+          <i class="topo-icon nodeman-icon nc-manual" v-bk-tooltips="{
             content: $t('已手动调整资源配额（非默认配置）'),
             boundary: 'window'
           }"></i>
@@ -129,6 +129,10 @@ export default class ResourceTreeItem extends Vue {
         .icon-right-shape {
           font-size: 14px;
           color: #c3c6cc;
+        }
+
+        .topo-icon {
+          color: #c4c6cc;
         }
 
         .svg-icon {
