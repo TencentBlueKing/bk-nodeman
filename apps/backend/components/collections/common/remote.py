@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 import traceback
 import typing
 from abc import ABC
-from collections import defaultdict
+from collections import ChainMap, defaultdict
 from enum import Enum
 
 from asgiref.sync import sync_to_async
@@ -111,17 +111,22 @@ class RemoteServiceMixin(base.BaseService, ABC):
         :return:
         """
         check_result = {"remote_conn_helper": remote_conn_helper, "type": SshCheckResultType.AVAILABLE.value}
+        conns_init_params = dict(ChainMap({"connect_timeout": 10}, remote_conn_helper.conns_init_params))
         try:
-            async with conns.AsyncsshConn(**remote_conn_helper.conns_init_params):
+            async with conns.AsyncsshConn(**conns_init_params):
                 pass
-        except (core_remote_exceptions.DisconnectError, core_remote_exceptions.ConnectionLostError):
+        except (
+            core_remote_exceptions.DisconnectError,
+            core_remote_exceptions.ConnectionLostError,
+            core_remote_exceptions.RemoteTimeoutError,
+        ):
             # 抛出以上异常表示 SSH 通道不可用
             check_result["type"] = SshCheckResultType.UNAVAILABLE.value
         except Exception as exception:
             # 其他异常表示 SSH 可用，但出现认证错误等问题
             check_result.update(type=SshCheckResultType.AVAILABLE_BUT_RAISE_EXC.value, exc=exception)
             await sync_to_async(self.move_insts_to_failed)(
-                sub_inst_ids=remote_conn_helper.sub_inst_id, log_content=exception
+                sub_inst_ids=[remote_conn_helper.sub_inst_id], log_content=exception
             )
         return check_result
 

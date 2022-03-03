@@ -96,7 +96,12 @@ class AsyncsshConn(base.BaseConn):
                 }
             ) from e
 
-        return base.RunOutput(command=command, stdout=ssh_completed_process.stdout, stderr=ssh_completed_process.stderr)
+        return base.RunOutput(
+            command=command,
+            exit_status=ssh_completed_process.exit_status,
+            stdout=ssh_completed_process.stdout,
+            stderr=ssh_completed_process.stderr,
+        )
 
     async def run(
         self, command: str, check: bool = False, timeout: typing.Optional[typing.Union[int, float]] = None, **kwargs

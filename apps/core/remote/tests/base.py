@@ -22,6 +22,23 @@ ASYNCSSH_CONNECT_MOCK_PATH = "apps.core.remote.conns.asyncssh_impl.asyncssh.conn
 PARAMIKO_SSH_CLIENT_MOCK_PATH = "apps.core.remote.conns.paramiko_impl.paramiko.SSHClient"
 
 
+class ParamikoStringIO(StringIO):
+    class Channel:
+        exit_status: int = None
+
+        def __init__(self, exit_status: typing.Optional[int]):
+            self.exit_status = (exit_status, 0)[exit_status is None]
+
+        def recv_exit_status(self):
+            return self.exit_status
+
+    channel: Channel = None
+
+    def __init__(self, *args, **kwargs):
+        self.channel = self.Channel(exit_status=0)
+        super().__init__()
+
+
 class ParamikoSFTPMockClient:
     def close(self, *ars, **kwargs):
         pass
@@ -112,7 +129,7 @@ class ParamikoSSHMockClient(FileMockClientMixin):
 
     @staticmethod
     def exec_command(command: str, check=False, timeout=None, **kwargs):
-        return command, StringIO(""), StringIO("")
+        return command, ParamikoStringIO(""), StringIO("")
 
     def open_sftp(self, *args, **kwargs):
         return self.create_file_mock_client()
