@@ -1,0 +1,3 @@
+---
+feature:
+  - "Cygwin 安装 Agent 支持 curl 拉取依赖文件 (closed #532)"

@@ -77,6 +77,8 @@ class ParamikoConn(base.BaseConn):
         begin_time = time.time()
         try:
             __, stdout, stderr = self._conn.exec_command(command=command, timeout=timeout)
+            # 获取 exit_status 方式参考：https://stackoverflow.com/questions/3562403/
+            exit_status = stdout.channel.recv_exit_status()
         except paramiko.SSHException as e:
             if check:
                 raise exceptions.ProcessError({"err_msg": e})
@@ -84,8 +86,8 @@ class ParamikoConn(base.BaseConn):
             cost_time = time.time() - begin_time
             if cost_time > timeout:
                 raise exceptions.RemoteTimeoutError(_("连接超时：{err_msg}").format(err_msg=e)) from e
-            stdout, stderr = StringIO(""), StringIO(str(e))
-        return base.RunOutput(command=command, stdout=stdout.read(), stderr=stderr.read())
+            exit_status, stdout, stderr = 1, StringIO(""), StringIO(str(e))
+        return base.RunOutput(command=command, exit_status=exit_status, stdout=stdout.read(), stderr=stderr.read())
 
     def file_client(self) -> file.ParamikoSFTPClient:
         if self._conn is None:

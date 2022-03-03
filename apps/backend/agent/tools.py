@@ -36,6 +36,7 @@ class InstallationTools:
         ap: models.AccessPoint,
         identity_data: models.IdentityData,
         proxies: List[models.Host],
+        package_url: str,
     ):
         """
         :param script_file_name: 脚本名称，如 setup_agent.sh
@@ -49,6 +50,7 @@ class InstallationTools:
         :param ap: 接入点对象
         :param identity_data: 认证数据对象
         :param proxies: 代理列表
+        :param package_url 文件下载链接
         """
         self.script_file_name = script_file_name
         self.dest_dir = dest_dir
@@ -61,6 +63,7 @@ class InstallationTools:
         self.ap = ap
         self.identity_data = identity_data
         self.proxies = proxies
+        self.package_url = package_url
 
 
 def gen_nginx_download_url(nginx_ip: str) -> str:
@@ -381,7 +384,7 @@ def gen_commands(
         script_file_name,
         dest_dir,
         [
-            f"{dest_dir}curl.exe {host_ap.package_inner_url}/{script_file_name} -o {dest_dir}{script_file_name} -sSf",
+            f"{dest_dir}curl.exe {package_url}/{script_file_name} -o {dest_dir}{script_file_name} -sSf",
             # 如果是 Windows 机器，run_cmd_os_based 为 bat 命令
             run_cmd_os_based,
         ],
@@ -395,6 +398,7 @@ def gen_commands(
         host_ap,
         identity_data,
         proxies,
+        package_url,
     )
 
 
