@@ -167,17 +167,17 @@ export default class ResourceTree extends Vue {
   }
 
   public search(key: string) {
-    const searchKey = `${key}`;
+    const searchKey = `${key}`.toLowerCase();
     this.nodeList.forEach((item) => {
       let hasShowChild = false;
       item.child.forEach((child) => {
-        const show = child.name.includes(searchKey);
+        const show = `${child.name}`.toLowerCase().includes(searchKey);
         if (show) {
           hasShowChild = true;
         }
         child.show = show;
       });
-      item.show = item.name.includes(searchKey) || hasShowChild;
+      item.show = `${item.name}`.toLowerCase().includes(searchKey) || hasShowChild;
     });
   }
 

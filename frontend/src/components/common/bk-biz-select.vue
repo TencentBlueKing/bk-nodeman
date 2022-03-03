@@ -12,7 +12,7 @@
     :style="{ 'min-width': minWidth }"
     :popover-options="{ 'boundary': 'window' }"
     :clearable="clearable"
-    :popover-min-width="160"
+    :popover-min-width="popoverMinWidth"
     :readonly="readonly"
     :disabled="disabled"
     :remote-method="remoteMethod"
@@ -73,6 +73,7 @@ export default class BkBizSelect extends Vue {
   @Prop({ type: Boolean, default: true }) private readonly multiple!: boolean;
   @Prop({ type: Boolean, default: true }) private readonly autoUpdateStorage!: boolean;  // 是否自动更新storage
   @Prop({ type: String, default: '240px' }) private readonly minWidth!: string;
+  @Prop({ type: Number, default: 160 }) private readonly popoverMinWidth!: number;
   @Prop({ type: Boolean, default: true }) private readonly clearable!: boolean;
   @Prop({ type: Boolean, default: false }) private readonly readonly!: boolean;
   @Prop({ type: Boolean, default: false }) private readonly disabled!: boolean;
