@@ -154,7 +154,7 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
         data_list_name="install_sub_inst_objs",
         batch_call_func=concurrent.batch_call,
         get_config_dict_func=core.get_config_dict,
-        get_config_dict_kwargs={"config_name": core.ServiceCCConfigName.WMIEXE.value},
+        get_config_dict_kwargs={"config_name": core.ServiceCCConfigName.SSH.value},
     )
     def handle_lan_cygwin_sub_inst(self, install_sub_inst_objs: List[InstallSubInstObj]):
         """处理直连 Cygwin 的情况"""
@@ -420,6 +420,7 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
                     execute_cmd(cmd, ip, identity_data.account, identity_data.password)
             except socket.error:
                 self.move_insts_to_failed(
+                    [sub_inst_id],
                     _(
                         "正在安装 Windows AGENT, 命令执行失败，请确认: \n"
                         "1. 检查文件共享相关服务，确认以下服务均已开启\n"
@@ -432,7 +433,7 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
                         "2. 开启网卡 Net BOIS \n"
                         "3. 开启文件共享 Net share \n"
                         "4. 检查防火墙是否有放开 139/135/445 端口 \n"
-                    )
+                    ),
                 )
             except ConnectionResetError as e:
                 # 高并发模式下可能导致连接重置，记录报错信息并抛出异常，等待上层处理逻辑重试或抛出异常
@@ -577,19 +578,35 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
         :return:
         """
         log_info = sync_to_async(self.log_info)
-        localpaths = [
-            os.path.join(settings.BK_SCRIPTS_PATH, filename)
-            for filename in ["curl.exe", "curl-ca-bundle.crt", "libcurl-x64.dll"]
-        ]
-        async with await conns.AsyncsshConn(**install_sub_inst_obj.conns_init_params).file_client() as file_client:
-            await file_client.makedirs(path=install_sub_inst_obj.installation_tool.dest_dir)
-            await log_info(
-                sub_inst_ids=install_sub_inst_obj.sub_inst_id,
-                log_content=_("推送下列文件到「{dest_dir}」\n{filenames_str}").format(
-                    filenames_str="\n".join(localpaths), dest_dir=install_sub_inst_obj.installation_tool.dest_dir
-                ),
-            )
-            await file_client.put(localpaths=localpaths, remotepath=install_sub_inst_obj.installation_tool.dest_dir)
+        installation_tool = install_sub_inst_obj.installation_tool
+        filenames = ["curl.exe", "curl-ca-bundle.crt", "libcurl-x64.dll"]
+        localpaths = [os.path.join(settings.BK_SCRIPTS_PATH, filename) for filename in filenames]
+        async with conns.AsyncsshConn(**install_sub_inst_obj.conns_init_params) as conn:
+            check_curl_output = await conn.run("command -v curl", check=False, timeout=SSH_RUN_TIMEOUT)
+            if not check_curl_output.exit_status:
+                await log_info(
+                    install_sub_inst_obj.sub_inst_id,
+                    log_content=_("检测到目标机器已安装 curl -> {curl_path}，将通过 curl 下载依赖文件").format(
+                        curl_path=check_curl_output.stdout
+                    ),
+                )
+                dest_dir = installation_tool.dest_dir.replace("\\", "/")
+                download_cmds = [f"mkdir -p {dest_dir}"]
+                for filename in filenames:
+                    download_cmds.append(
+                        f"curl -o {dest_dir}/{filename} -sSf {installation_tool.package_url}/{filename}"
+                    )
+                installation_tool.pre_commands = download_cmds + installation_tool.pre_commands
+            else:
+                async with await conn.file_client() as file_client:
+                    await file_client.makedirs(path=installation_tool.dest_dir)
+                    await log_info(
+                        sub_inst_ids=install_sub_inst_obj.sub_inst_id,
+                        log_content=_("推送下列文件到「{dest_dir}」\n{filenames_str}").format(
+                            filenames_str="\n".join(localpaths), dest_dir=installation_tool.dest_dir
+                        ),
+                    )
+                    await file_client.put(localpaths=localpaths, remotepath=installation_tool.dest_dir)
         return await self.execute_linux_commands_async(sub_inst_id, install_sub_inst_obj)
 
     def handle_report_data(self, sub_inst_id: int, success_callback_step: str) -> Dict:

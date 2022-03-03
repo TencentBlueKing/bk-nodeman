@@ -20,10 +20,12 @@ BytesOrStr = typing.Union[str, bytes]
 
 class RunOutput:
     command: str = None
+    exit_status: int = None
     stdout: typing.Optional[str] = None
     stderr: typing.Optional[str] = None
 
-    def __init__(self, command: BytesOrStr, stdout: BytesOrStr, stderr: BytesOrStr):
+    def __init__(self, command: BytesOrStr, exit_status: int, stdout: BytesOrStr, stderr: BytesOrStr):
+        self.exit_status = exit_status
         self.command = self.bytes2str(command)
         self.stdout = self.bytes2str(stdout)
         self.stderr = self.bytes2str(stderr)
@@ -35,7 +37,12 @@ class RunOutput:
         return val
 
     def __str__(self):
-        outputs = [f"command: {self.command}", f"stdout: {self.stdout}", f"stderr: {self.stderr}"]
+        outputs = [
+            f"command: {self.command}",
+            f"exit_status: {self.exit_status}",
+            f"stdout: {self.stdout}",
+            f"stderr: {self.stderr}",
+        ]
         return "\n".join(outputs)
 
 
