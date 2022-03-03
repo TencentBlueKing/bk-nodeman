@@ -84,8 +84,8 @@ export const setupTableConfig: ISetupHead[] = [
     batch: true,
     default: defaultPort,
     rules: [reguPort],
-    getReadonly(row: ISetupRow) {
-      return row && row.os_type === 'WINDOWS';
+    getReadonly(row: ISetupRow, isDefaultCloud: Boolean) {
+      return row && row.os_type === 'WINDOWS' && !isDefaultCloud;
     },
   },
   {

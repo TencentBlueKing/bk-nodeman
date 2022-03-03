@@ -219,8 +219,10 @@
     border: 0;
     border-radius: 0;
     font-size: 12px;
-    background: transparent;
     box-shadow: none;
+    &:not(.is-disabled) {
+      background: transparent;
+    }
   }
   .bk-textarea-wrapper {
     position: absolute;
