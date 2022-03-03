@@ -905,7 +905,7 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
     }
   }
   private initRouterQuery() {
-    this.search.biz = this.bk_biz_id.length ? this.selectedBiz : [...this.bk_biz_id];
+    this.search.biz = this.bk_biz_id.length ? [...this.bk_biz_id] : this.selectedBiz;
     const searchParams: ISearchItem[] = [];
     const { cloud } = this.$route.params;
     AgentStore.getFilterCondition().then((data) => {
@@ -1520,7 +1520,8 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
       params: {
         tableData: data.map(item => Object.assign({}, item, item.identity_info, {
           install_channel_id: item.install_channel_id ? item.install_channel_id : 'default',
-          port: item.os_type  === 'WINDOWS' ? 445 : item.port,
+          port: item.os_type  === 'WINDOWS' && (!item.port || item.bk_cloud_id !== window.PROJECT_CONFIG.DEFAULT_CLOUD)
+            ? 445 : item.port,
         })),
         type: jobType,
         // true：跨页全选（tableData表示标记删除的数据） false：非跨页全选（tableData表示编辑的数据）

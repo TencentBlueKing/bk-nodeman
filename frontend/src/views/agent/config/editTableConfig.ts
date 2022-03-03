@@ -103,7 +103,7 @@ export const editConfig: ISetupHead[] = [
     default: defaultPort,
     rules: [reguPort],
     getReadonly(row: ISetupRow) {
-      return row && row.os_type === 'WINDOWS';
+      return row && row.os_type === 'WINDOWS' && row.bk_cloud_id !== window.PROJECT_CONFIG.DEFAULT_CLOUD;
     },
   },
   {

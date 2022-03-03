@@ -105,6 +105,7 @@
               :is-manual="isManual"
               :setup-info="setupInfo"
               :extra-params="extraParams"
+              :bk-cloud-id="formData.bk_cloud_id"
               auto-sort
               @add="handleAddItem"
               @delete="handleDeleteItem">
@@ -451,6 +452,13 @@ export default class AgentSetup extends Mixins(mixin, formLabelMixin) {
     } else {
       this.apDisabled = false;
       this.formData.ap_id = this.curApList.length ? this.curApList[0].id : -1;
+    }
+    if (value !== window.PROJECT_CONFIG.DEFAULT_CLOUD) {
+      this.installTable.updateRow((row: ISetupRow) => {
+        if (row.os_type === 'WINDOWS') {
+          row.port = 445;
+        }
+      });
     }
     // eslint-disable-next-line @typescript-eslint/prefer-optional-chain
     this.proxyCount = item && item.proxy_count ? item.proxy_count : 0;
