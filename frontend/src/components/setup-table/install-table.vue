@@ -209,6 +209,7 @@ export default class SetupTable extends Vue {
   // 是否开启表头设置
   @Prop({ type: String, default: '' }) private readonly localMark!: string;
   @Prop({ type: Function }) private readonly beforeDelete!: Function;
+  @Prop({ type: Number }) private readonly bkCloudId!: number;
 
   @Ref('tableBody') private readonly tableBody!: any;
   @Ref('scrollPlace') private readonly scrollPlace!: any;
@@ -403,7 +404,7 @@ export default class SetupTable extends Vue {
    */
   private getCellDisabled(row: ISetupRow, config: ISetupHead) {
     if (config.getReadonly) {
-      return !!config.getReadonly.call(this, row);
+      return !!config.getReadonly.call(this, row, this.bkCloudId === window.PROJECT_CONFIG.DEFAULT_CLOUD);
     }
     return !!config.readonly;
   }
@@ -970,6 +971,9 @@ export default class SetupTable extends Vue {
     } else {
       this.hasScroll = false;
     }
+  }
+  public updateRow(fn: Function) {
+    this.table.data.forEach(row => fn(row));
   }
 };
 </script>

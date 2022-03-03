@@ -68,6 +68,10 @@ export const tableConfig = [
       if (row.install_channel_id !== 'default') {
         row.install_channel_id = '';
       }
+      // windows 非直连区域的端口不允许修改
+      if (row.os_type === 'WINDOWS' && row.bk_cloud_id !== window.PROJECT_CONFIG.DEFAULT_CLOUD) {
+        row.port = 445;
+      }
     },
     getProxyStatus(row) {
       return row.proxyStatus;
@@ -134,7 +138,7 @@ export const tableConfig = [
     default: defaultPort,
     rules: [reguPort],
     getReadonly(row) {
-      return row && row.os_type === 'WINDOWS';
+      return row && row.os_type === 'WINDOWS' && row.bk_cloud_id !== window.PROJECT_CONFIG.DEFAULT_CLOUD;
     },
   },
   {
