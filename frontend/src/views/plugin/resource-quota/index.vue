@@ -10,6 +10,7 @@
           v-if="!loading"
           class="biz-select-rimless"
           min-width="50"
+          :popover-min-width="480"
           :value="biz"
           @change="handleBizChange">
         </bk-biz-select>
