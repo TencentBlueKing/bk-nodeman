@@ -1,0 +1,3 @@
+---
+optimization:
+  - "优化CPU架构获取和检查 (close #530)"
