@@ -39,7 +39,7 @@ get_cpu_arch () {
     fi
 }
 
-get_cpu_arch "uname -p" || get_cpu_arch "uname -m" || fail get_cpu_arch "Failed to get CPU arch, please contact the developer."
+get_cpu_arch "uname -p" || get_cpu_arch "uname -m"  || arch || fail get_cpu_arch "Failed to get CPU arch, please contact the developer."
 
 PKG_NAME=gse_client-linux-${CPU_ARCH}.tgz
 

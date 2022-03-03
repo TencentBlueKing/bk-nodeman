@@ -3,6 +3,24 @@ OS_INFO=""
 OS_TYPE=""
 RC_LOCAL_FILE=/etc/rc.d/rc.local
 
+get_cpu_arch () {{
+    local cmd=$1
+    CPU_ARCH=$($cmd)
+    CPU_ARCH=$(echo $CPU_ARCH | tr 'A-Z' 'a-z')
+    if [[ "$CPU_ARCH" =~ "x86_64" ]]; then
+        return 0
+    elif [[ "$CPU_ARCH" =~ "x86" || "$CPU_ARCH" =~ ^i[3456]86 ]]; then
+        CPU_ARCH="x86"
+        return 0
+    elif [[ "$CPU_ARCH" =~ "aarch" ]]; then
+        return 0
+    else
+        return 1
+    fi
+}}
+
+get_cpu_arch "uname -p" || get_cpu_arch "uname -m" || get_cpu_arch "arch" || echo "Failed to get CPU arch, please contact the developer."
+
 get_os_info () {{
     if [ -f "/proc/version" ]; then
         OS_INFO="$OS_INFO $(cat /proc/version)"
@@ -94,6 +112,12 @@ remove_crontab () {{
     fi
 }}
 
+if grep "$CPU_ARCH" <<<{package_name} > /dev/null; then
+        echo "pkg:{package_name} and arch:$CPU_ARCH is ok"
+else
+        echo "pkg:{package_name} and arch:$CPU_ARCH is bad"
+        exit 1
+fi
 
 setup_startup_scripts
 remove_crontab
