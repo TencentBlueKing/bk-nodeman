@@ -46,7 +46,7 @@
           <bk-button class="action-btn" theme="primary" :loading="submitLoading" @click="handleFormSubmit">
             {{ $t('执行') }}
           </bk-button>
-          <bk-button class="action-btn" :disabled="submitLoading" theme="default" @click="handleFormReset">
+          <bk-button class="action-btn" :disabled="submitLoading" theme="default" @click="handleFormReset(10)">
             {{ $t('还原默认') }}
           </bk-button>
           <bk-button theme="default" :disabled="submitLoading" @click="handleBack">
@@ -130,18 +130,18 @@ export default class ResourceQuotaEdit extends Vue {
       this.submitLoading = false;
     });
   }
-  public handleFormReset() {
+  public handleFormReset(defaultValue = 0) {
     this.resourceForm && this.resourceForm.clearError();
-    this.formatFormData();
+    this.formatFormData(defaultValue);
   }
-  public formatFormData(defaultValue = 10) {
+  public formatFormData(defaultValue = 0) {
     const formData: { [key: string]: number } = {};
     const nameMap: { [key: string]: string } = {};
-    this.pluginList.forEach(({ plugin_name }) => {
+    this.pluginList.forEach(({ plugin_name, cpu, mem }) => {
       const cpuKey = `${plugin_name}_cpu`;
       const memKey = `${plugin_name}_mem`;
-      formData[cpuKey] = defaultValue;
-      formData[memKey] = defaultValue;
+      formData[cpuKey] = defaultValue || cpu || 0;
+      formData[memKey] = defaultValue || mem || 0;
       nameMap[cpuKey] = plugin_name;
     });
     this.$set(this, 'formData', formData);
