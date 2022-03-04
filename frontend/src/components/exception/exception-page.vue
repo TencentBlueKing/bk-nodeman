@@ -12,7 +12,8 @@
           v-if="type === 'notPower'"
           class="power-apply-btn"
           theme="primary"
-          @click="handleClick">{{ $t('去申请') }}
+          @click="handleClick">
+          {{ btnText || $t('去申请') }}
         </bk-button>
       </template>
     </div>
@@ -31,6 +32,7 @@ export default class AppExceptionPage extends Vue {
   @Prop({ type: String, default: '' }) private readonly title!: string;
   @Prop({ type: String, default: () => window.i18n.t('页面auth') }) private readonly subTitle!: string;
   @Prop({ type: Boolean, default: true }) private readonly hasBorder!: boolean;
+  @Prop({ type: String, default: '' }) private readonly btnText!: string;
 
   private show = false;
   private image = '';

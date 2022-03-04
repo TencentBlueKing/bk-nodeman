@@ -9,6 +9,7 @@
         <bk-biz-select
           v-if="!loading"
           class="biz-select-rimless"
+          :action="action"
           min-width="50"
           :popover-min-width="480"
           :value="biz"
@@ -17,7 +18,7 @@
         <div class="biz-text">{{ bizNames }}</div>
       </div>
     </section>
-    <section class="page-body">
+    <section class="page-body" v-if="hasBizAuth">
       <section class="side-block pb20">
         <div class="side-search">
           <bk-input
@@ -37,41 +38,59 @@
         </ResourceTree>
       </section>
       <section class="content-body" v-bkloading="{ isLoading: pluginLoading }">
-        <div class="content-body-head mb20">
-          <p class="content-body-title">{{ moduleName }}</p>
-          <bk-button theme="primary" :disabled="moduleId < 0" @click="editResourceQuota">{{ $t('编辑') }}</bk-button>
-        </div>
-        <section class="content-body-table">
-          <bk-table :data="pluginList" :max-height="windowHeight - 192">
-            <bk-table-column :label="$t('插件名称')" prop="plugin_name" :resizable="false"></bk-table-column>
-            <bk-table-column :label="$t('总数运行中异常')" :resizable="false">
-              <template #default="{ row }">
-                <div>
-                  <span class="num">{{ row.total }}</span>
-                  <span>/</span>
-                  <span class="num running">{{ row.running }}</span>
-                  <span>/</span>
-                  <span class="num abort">{{ row.terminated }}</span>
-                </div>
-              </template>
-            </bk-table-column>
-            <bk-table-column
-              :label="$t('CPU配额及单位')"
-              prop="cpu"
-              align="right"
-              :resizable="false"
-              :render-header="tipsHeadRender" />
-            <bk-table-column
-              :label="$t('内存配额及单位')"
-              prop="mem"
-              align="right"
-              :resizable="false"
-              :render-header="tipsHeadRender" />
-            <bk-table-column width="40"></bk-table-column>
-          </bk-table>
-        </section>
+        <template v-if="selectedTemp">
+          <div class="content-body-head mb20">
+            <p class="content-body-title">{{ moduleName }}</p>
+            <bk-button theme="primary" :disabled="moduleId < 0" @click="editResourceQuota">{{ $t('编辑') }}</bk-button>
+          </div>
+          <section class="content-body-table">
+            <bk-table :data="pluginList" :max-height="windowHeight - 192">
+              <bk-table-column :label="$t('插件名称')" prop="plugin_name" :resizable="false"></bk-table-column>
+              <bk-table-column :label="$t('总数运行中异常')" :resizable="false">
+                <template #default="{ row }">
+                  <div>
+                    <span class="num">{{ row.total }}</span>
+                    <span>/</span>
+                    <span class="num running">{{ row.running }}</span>
+                    <span>/</span>
+                    <span class="num abort">{{ row.terminated }}</span>
+                  </div>
+                </template>
+              </bk-table-column>
+              <bk-table-column
+                :label="$t('CPU配额及单位')"
+                prop="cpu"
+                align="right"
+                :resizable="false"
+                :render-header="tipsHeadRender" />
+              <bk-table-column
+                :label="$t('内存配额及单位')"
+                prop="mem"
+                align="right"
+                :resizable="false"
+                :render-header="tipsHeadRender" />
+              <bk-table-column width="40"></bk-table-column>
+            </bk-table>
+          </section>
+        </template>
+        <exception-card
+          v-else
+          class="template-card"
+          type="notData"
+          :has-border="false"
+          :text="$t('请选择服务模板')">
+        </exception-card>
       </section>
     </section>
+    <exception-page
+      v-else
+      class="resource-quota-page"
+      type="notPower"
+      :title="$t('无业务权限')"
+      :btn-text="$t('申请权限')"
+      :has-border="false"
+      @click="handleApplyPermission">
+    </exception-page>
   </article>
 </template>
 <script lang="ts">
@@ -83,6 +102,9 @@ import { IBkColumn } from '@/types';
 import { CreateElement } from 'vue';
 import TableHeader from '@/components/setup-table/table-header.vue';
 import { debounce } from '@/common/util';
+import ExceptionPage from '@/components/exception/exception-page.vue';
+import ExceptionCard from '@/components/exception/exception-card.vue';
+import { bus } from '@/common/bus';
 
 interface ITreeNode {
   id: number
@@ -102,6 +124,8 @@ interface ITreeNode {
   components: {
     ResourceTree,
     TableHeader,
+    ExceptionPage,
+    ExceptionCard,
   },
 })
 export default class ResourceQuota extends Mixins(HeaderFilterMixins) {
@@ -112,6 +136,7 @@ export default class ResourceQuota extends Mixins(HeaderFilterMixins) {
   public init = false;
   public loading = true;
   public pluginLoading = false;
+  public action = 'plugin_view';
   public curNode: ITreeNode | null = null;
   public searchKey = '';
   public treeData: any[] = [];
@@ -122,6 +147,7 @@ export default class ResourceQuota extends Mixins(HeaderFilterMixins) {
     mem: this.$t('限制最高内存使用率'),
   };
   public biz: number[] = [];
+  public hasBizAuth = true;
   public handleSearchChange!: Function;
   public handleBizOrModuleChange!: Function;
 
@@ -151,6 +177,9 @@ export default class ResourceQuota extends Mixins(HeaderFilterMixins) {
     }
     return this.$t('全部业务');
   }
+  private get selectedTemp() {
+    return this.curNode && this.curNode.id;
+  }
 
   @Watch('bizId')
   public handleRouteBizChange() {
@@ -174,6 +203,7 @@ export default class ResourceQuota extends Mixins(HeaderFilterMixins) {
    */
   public async replaceBizAndModule() {
     const hasAuthBizList = this.bkBizList.filter(item => !item.disabled);
+    this.hasBizAuth = !!hasAuthBizList.length;
     if (hasAuthBizList.length) {
       const loadBizId = this.bizId > -1 && hasAuthBizList.find(item => item.bk_biz_id === this.bizId)
         ? this.bizId :  -1;
@@ -232,6 +262,9 @@ export default class ResourceQuota extends Mixins(HeaderFilterMixins) {
       }
       this.loading = false;
     }
+    this.$nextTick(() => {
+      this.loading = false;
+    });
   }
 
   public async getTemplatesByBiz(bizId?: number) {
@@ -302,6 +335,17 @@ export default class ResourceQuota extends Mixins(HeaderFilterMixins) {
       props: {
         label,
         tips: this.headTipsMap[property as 'cpu' | 'mem'],
+      },
+    });
+  }
+
+  public handleApplyPermission() {
+    bus.$emit('show-permission-modal', {
+      params: {
+        apply_info: [
+          { action: this.action },
+          { action: 'plugin_operate' },
+        ],
       },
     });
   }
@@ -432,6 +476,13 @@ export default class ResourceQuota extends Mixins(HeaderFilterMixins) {
         color: #EA3636;
       }
     }
+  }
+  .resource-quota-page {
+    background: #f5f7fa;
+  }
+  .template-card {
+    margin-top: 100px;
+    background: transparent;
   }
 }
 </style>
