@@ -67,6 +67,7 @@ export default class Main extends VuexModule {
   public routerBackName = '';
   public osList: any = null;
   public osMap: Dictionary = null;
+  public installDefaultValues: Dictionary = {};
 
   // 公共 mutations
   /**
@@ -284,6 +285,11 @@ export default class Main extends VuexModule {
       return map;
     }, {});
   }
+  @Mutation
+  public updateInstallDefaultValues(config: Dictionary) {
+    this.installDefaultValues = config;
+  }
+
 
   /**
    * 获取用户信息
@@ -394,5 +400,16 @@ export default class Main extends VuexModule {
   public async getOsList(category = 'os_type'): Promise<Dictionary> {
     const res = await getFilterCondition({ category }).catch(() => []);
     return res || [];
+  }
+
+  /**
+   * agent 安装默认配置
+   * @param {*} param0
+   * @param {*} params
+   */
+  @Action
+  public async getDefaultConfig() {
+    const data = await retrieveGlobalSettings({ key: 'INSTALL_DEFAULT_VALUES' }).catch(() => ({ }));
+    this.updateInstallDefaultValues(data.INSTALL_DEFAULT_VALUES ? data.INSTALL_DEFAULT_VALUES : {});
   }
 }

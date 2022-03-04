@@ -157,6 +157,7 @@ import { IApExpand } from '@/types/config/config';
 import { IAgent } from '@/types/agent/agent-type';
 import { ISetupHead, ISetupRow } from '@/types';
 import { reguRequired } from '@/common/form-check';
+import { getDefaultConfig } from '@/config/config';
 
 @Component({
   name: 'agent-setup',
@@ -456,7 +457,7 @@ export default class AgentSetup extends Mixins(mixin, formLabelMixin) {
     if (value !== window.PROJECT_CONFIG.DEFAULT_CLOUD) {
       this.installTable.updateRow((row: ISetupRow) => {
         if (row.os_type === 'WINDOWS') {
-          row.port = 445;
+          row.port = getDefaultConfig(row.os_type, 'port', 445);
         }
       });
     }

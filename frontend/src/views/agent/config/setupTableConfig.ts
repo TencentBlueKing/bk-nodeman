@@ -1,5 +1,5 @@
 import { ISetupHead, ISetupRow } from '@/types';
-import { authentication, defaultPort, sysOptions } from '@/config/config';
+import { authentication, defaultPort, sysOptions, defaultOsType, getDefaultConfig } from '@/config/config';
 import { reguFnMinInteger, reguPort, reguIp, reguIpBatch, reguIpInLineRepeat, splitCodeArr } from '@/common/form-check';
 
 const useTjj = window.PROJECT_CONFIG.USE_TJJ === 'True';
@@ -64,16 +64,12 @@ export const setupTableConfig: ISetupHead[] = [
     type: 'select',
     batch: true,
     required: true,
-    default: 'LINUX',
+    default: defaultOsType,
     options: sysOptions,
     handleValueChange(row: ISetupRow) {
-      if (row.os_type === 'WINDOWS') {
-        row.port = 445;
-        row.account = 'Administrator';
-      } else {
-        row.port = defaultPort;
-        row.account = 'root';
-      }
+      const osType = row.os_type || defaultOsType;
+      row.port = getDefaultConfig(osType, 'port', osType === 'WINDOWS' ? 445 : defaultPort);
+      row.account = getDefaultConfig(osType, 'account', osType === 'WINDOWS' ? 'Administrator' : 'root');
     },
   },
   {
@@ -82,7 +78,7 @@ export const setupTableConfig: ISetupHead[] = [
     type: 'text',
     required: true,
     batch: true,
-    default: defaultPort,
+    default: getDefaultConfig(defaultOsType, 'port', defaultPort),
     rules: [reguPort],
     getReadonly(row: ISetupRow, isDefaultCloud: Boolean) {
       return row && row.os_type === 'WINDOWS' && !isDefaultCloud;
@@ -94,7 +90,7 @@ export const setupTableConfig: ISetupHead[] = [
     type: 'text',
     required: true,
     batch: true,
-    default: 'root',
+    default: getDefaultConfig(defaultOsType, 'account', 'root'),
   },
   {
     label: '认证方式',
@@ -102,7 +98,7 @@ export const setupTableConfig: ISetupHead[] = [
     type: 'select',
     required: true,
     batch: true,
-    default: 'PASSWORD',
+    default: getDefaultConfig(defaultOsType, 'auth_type', 'PASSWORD'),
     subTitle: window.i18n.t('密钥方式仅对Linux/AIX系统生效'),
     getOptions(row: ISetupRow) {
       return row.os_type === 'WINDOWS' ? authentication.filter(auth => auth.id !== 'KEY') : authentication;
@@ -157,7 +153,7 @@ export const setupTableConfig: ISetupHead[] = [
     prop: 'peer_exchange_switch_for_agent',
     tips: window.i18n.t('BT节点探测提示'),
     type: 'switcher',
-    default: true,
+    default: getDefaultConfig(defaultOsType, 'peer_exchange_switch_for_agent', true),
     batch: true,
     required: false,
     show: true,
@@ -245,17 +241,13 @@ export const setupTableManualConfig = [
     type: 'select',
     batch: true,
     required: true,
-    default: 'LINUX',
+    default: defaultOsType,
     width: 'auto',
     options: sysOptions,
     handleValueChange(row: ISetupRow) {
-      if (row.os_type === 'WINDOWS') {
-        row.port = 445;
-        row.account = 'Administrator';
-      } else {
-        row.port = defaultPort;
-        row.account = 'root';
-      }
+      const osType = row.os_type || defaultOsType;
+      row.port = getDefaultConfig(osType, 'port', osType === 'WINDOWS' ? 445 : defaultPort);
+      row.account = getDefaultConfig(osType, 'account', osType === 'WINDOWS' ? 'Administrator' : 'root');
     },
   },
   {
@@ -288,7 +280,7 @@ export const setupTableManualConfig = [
     prop: 'peer_exchange_switch_for_agent',
     tips: window.i18n.t('BT节点探测提示'),
     type: 'switcher',
-    default: true,
+    default: getDefaultConfig(defaultOsType, 'peer_exchange_switch_for_agent', true),
     batch: true,
     required: false,
     show: true,

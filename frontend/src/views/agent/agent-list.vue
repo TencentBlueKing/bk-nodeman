@@ -546,6 +546,7 @@ import authorityMixin from '@/common/authority-mixin';
 import { copyText, debounce, getFilterChildBySelected, isEmpty } from '@/common/util';
 import { bus } from '@/common/bus';
 import { STORAGE_KEY_COL } from '@/config/storage-key';
+import { getDefaultConfig } from '@/config/config';
 
 @Component({
   name: 'agent-list',
@@ -1518,10 +1519,12 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
     this.$router.push({
       name: 'agentEdit',
       params: {
-        tableData: data.map(item => Object.assign({}, item, item.identity_info, {
+        tableData: data.map(({ identity_info = {}, ...item }) => ({
+          ...item,
+          ...identity_info,
           install_channel_id: item.install_channel_id ? item.install_channel_id : 'default',
-          port: item.os_type  === 'WINDOWS' && (!item.port || item.bk_cloud_id !== window.PROJECT_CONFIG.DEFAULT_CLOUD)
-            ? 445 : item.port,
+          port: item.os_type === 'WINDOWS' && (!identity_info.port || item.bk_cloud_id !== window.PROJECT_CONFIG.DEFAULT_CLOUD)
+            ? getDefaultConfig(item.os_type, 'port', 445)  : identity_info.port,
         })),
         type: jobType,
         // true：跨页全选（tableData表示标记删除的数据） false：非跨页全选（tableData表示编辑的数据）

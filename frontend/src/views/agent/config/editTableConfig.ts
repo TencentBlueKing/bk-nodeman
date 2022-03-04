@@ -1,5 +1,5 @@
 import { ISetupHead, ISetupRow } from '@/types';
-import { authentication, defaultPort, sysOptions } from '@/config/config';
+import { authentication, defaultPort, sysOptions, defaultOsType, getDefaultConfig } from '@/config/config';
 import { ICloudSource } from '@/types/cloud/cloud';
 import { reguFnMinInteger, reguPort, reguIp } from '@/common/form-check';
 
@@ -63,7 +63,7 @@ export const editConfig: ISetupHead[] = [
     type: 'select',
     required: true,
     batch: true,
-    default: -1,
+    default: getDefaultConfig(defaultOsType, 'ap_id', -1),
     options: [],
     popoverMinWidth: 160,
     noRequiredMark: false,
@@ -85,13 +85,9 @@ export const editConfig: ISetupHead[] = [
       return row.is_manual || /RELOAD_AGENT/ig.test(this.localMark);
     },
     handleValueChange(row: ISetupRow) {
-      if (row.os_type === 'WINDOWS') {
-        row.port = 445;
-        row.account = 'Administrator';
-      } else {
-        row.port = defaultPort;
-        row.account = 'root';
-      }
+      const osType = row.os_type || defaultOsType;
+      row.port = getDefaultConfig(osType, 'port', osType === 'WINDOWS' ? 445 : defaultPort);
+      row.account = getDefaultConfig(osType, 'account', osType === 'WINDOWS' ? 'Administrator' : 'root');
     },
   },
   {
@@ -100,7 +96,7 @@ export const editConfig: ISetupHead[] = [
     type: 'text',
     required: true,
     batch: true,
-    default: defaultPort,
+    default: getDefaultConfig(defaultOsType, 'port', defaultPort),
     rules: [reguPort],
     getReadonly(row: ISetupRow) {
       return row && row.os_type === 'WINDOWS' && row.bk_cloud_id !== window.PROJECT_CONFIG.DEFAULT_CLOUD;
@@ -121,7 +117,7 @@ export const editConfig: ISetupHead[] = [
     required: true,
     batch: true,
     subTitle: window.i18n.t('密钥方式仅对Linux/AIX系统生效'),
-    default: 'PASSWORD',
+    default: getDefaultConfig(defaultOsType, 'auth_type', 'PASSWORD'),
     getOptions(row: ISetupRow) {
       return row.os_type === 'WINDOWS' ? authentication.filter(auth => auth.id !== 'KEY') : authentication;
     },
@@ -178,7 +174,7 @@ export const editConfig: ISetupHead[] = [
     prop: 'peer_exchange_switch_for_agent',
     tips: window.i18n.t('BT节点探测提示'),
     type: 'switcher',
-    default: true,
+    default: getDefaultConfig(defaultOsType, 'peer_exchange_switch_for_agent', true),
     batch: true,
     required: false,
     noRequiredMark: false,
@@ -263,7 +259,7 @@ export const editManualConfig = [
     type: 'select',
     required: true,
     batch: true,
-    default: -1,
+    default: getDefaultConfig(defaultOsType, 'ap_id', -1),
     options: [],
     popoverMinWidth: 160,
     noRequiredMark: false,
@@ -282,13 +278,9 @@ export const editManualConfig = [
     placeholder: window.i18n.t('请选择'),
     options: sysOptions,
     handleValueChange(row: ISetupRow) {
-      if (row.os_type === 'WINDOWS') {
-        row.port = 445;
-        row.account = 'Administrator';
-      } else {
-        row.port = defaultPort;
-        row.account = 'root';
-      }
+      const osType = row.os_type || defaultOsType;
+      row.port = getDefaultConfig(osType, 'port', osType === 'WINDOWS' ? 445 : defaultPort);
+      row.account = getDefaultConfig(osType, 'account', osType === 'WINDOWS' ? 'Administrator' : 'root');
     },
   },
   {
@@ -305,7 +297,7 @@ export const editManualConfig = [
     prop: 'peer_exchange_switch_for_agent',
     tips: window.i18n.t('BT节点探测提示'),
     type: 'switcher',
-    default: true,
+    default: getDefaultConfig(defaultOsType, 'peer_exchange_switch_for_agent', true),
     batch: true,
     required: false,
     noRequiredMark: false,
