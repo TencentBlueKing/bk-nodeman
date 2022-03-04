@@ -212,6 +212,10 @@ class PackagePermission(permissions.BasePermission):
             perms = IamHandler().fetch_policy(
                 get_request_username(), [IamActionType.plugin_pkg_operate, IamActionType.plugin_pkg_import]
             )
+            if view.action in ["set_resource_policy"]:
+                bk_biz_id = view.validated_data["bk_biz_id"]
+                CmdbHandler().check_biz_permission([bk_biz_id], ActionEnum.PLUGIN_OPERATE.id)
+                return True
 
             if view.action in ["update"]:
                 return int(view.kwargs.get("pk", 0)) in perms[IamActionType.plugin_pkg_operate]
@@ -238,6 +242,8 @@ class PackagePermission(permissions.BasePermission):
                 "fetch_config_variables",
                 "list_plugin_host",
                 "history",
+                "fetch_resource_policy_status",
+                "fetch_resource_policy",
             ]:
                 return True
 

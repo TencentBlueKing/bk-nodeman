@@ -139,6 +139,24 @@ class ActionEnum:
         related_actions=[],
         version=1,
     )
+    PLUGIN_VIEW = ActionMeta(
+        id="plugin_view",
+        name="插件查看",
+        name_en="Plugin View",
+        type="view",
+        related_resource_types=[ResourceEnum.BUSINESS],
+        related_actions=[VIEW_BUSINESS.id],
+        version=1,
+    )
+    PLUGIN_OPERATE = ActionMeta(
+        id="plugin_operate",
+        name="插件操作",
+        name_en="Plugin Operate",
+        type="manage",
+        related_resource_types=[ResourceEnum.BUSINESS],
+        related_actions=[PLUGIN_VIEW.id],
+        version=1,
+    )
 
 
 _all_actions = {action.id: action for action in ActionEnum.__dict__.values() if isinstance(action, ActionMeta)}
