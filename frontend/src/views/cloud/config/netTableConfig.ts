@@ -1,7 +1,8 @@
-import { authentication } from '@/config/config';
+import { authentication, getDefaultConfig } from '@/config/config';
 import { ISetupHead, ISetupRow } from '@/types';
 import { reguFnMinInteger, reguFnSysPath, reguIp } from '@/common/form-check';
 
+const defaultOsType = 'LINUX'; // proxy 一定为 LINUX
 export const setupInfo: ISetupHead[] = [
   {
     label: '内网IP',
@@ -83,7 +84,7 @@ export const setupInfo: ISetupHead[] = [
     prop: 'auth_type',
     type: 'select',
     required: true,
-    default: 'PASSWORD',
+    default: getDefaultConfig(defaultOsType, 'auth_type', 'PASSWORD'),
     iconOffset: 10,
     getOptions(row: ISetupRow) {
       return row.os_type === 'WINDOWS' ? authentication.filter(auth => auth.id !== 'KEY') : authentication;
@@ -124,7 +125,7 @@ export const setupInfo: ISetupHead[] = [
     prop: 'peer_exchange_switch_for_agent',
     tips: window.i18n.t('BT节点探测提示'),
     type: 'switcher',
-    default: true,
+    default: getDefaultConfig(defaultOsType, 'peer_exchange_switch_for_agent', true),
     required: false,
     show: true,
     width: 115,
@@ -215,7 +216,7 @@ export const setupManualInfo: ISetupHead[] = [
     prop: 'peer_exchange_switch_for_agent',
     tips: window.i18n.t('BT节点探测提示'),
     type: 'switcher',
-    default: true,
+    default: getDefaultConfig(defaultOsType, 'peer_exchange_switch_for_agent', true),
     required: false,
     show: true,
     width: 115,
