@@ -355,8 +355,18 @@ class BaseService(Service, LogMixin, DBHelperMixin):
 
         data.outputs.succeeded_subscription_instance_ids = succeeded_subscription_instance_ids
 
+        # 过滤之前已设置为失败的订阅实例ID
+        previous_failed_subscription_instance_id_set = set(
+            models.SubscriptionInstanceStatusDetail.objects.filter(
+                node_id=self.id,
+                status=constants.JobStatusType.FAILED,
+                subscription_instance_record_id__in=failed_subscription_instance_id_set,
+            ).values_list("subscription_instance_record_id", flat=True)
+        )
+
+        # failed_subscription_instance_id_set - sub_inst_ids_previous_failed_set 取差集，仅更新本轮失败的订阅实例详情
         self.bulk_set_sub_inst_act_status(
-            sub_inst_ids=failed_subscription_instance_id_set,
+            sub_inst_ids=failed_subscription_instance_id_set - previous_failed_subscription_instance_id_set,
             status=constants.JobStatusType.FAILED,
             common_log=self.log_maker.error_log(
                 _("{act_name} 失败，请先尝试查看日志并处理，若无法解决，请联系管理员处理。").format(act_name=act_name)
