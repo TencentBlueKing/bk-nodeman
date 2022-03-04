@@ -17,6 +17,7 @@ const pageRoute = routeFiles.keys().reduce<RouteConfig[]>((route, modulePath) =>
 
 const MainEntry = () => import(/* webpackChunkName: 'entry' */'@/views/index.vue');
 const NotFound = () => import(/* webpackChunkName: 'none' */'@/views/404.vue');
+let defaultConfigLoaded = false;
 
 const routes = [
   {
@@ -80,6 +81,11 @@ const beforeRouterMethod = async (to: Route, next: any) => {
     } else {
       MainStore.getOsList().then(list => MainStore.updateOsList(list));
     }
+  }
+
+  if (!defaultConfigLoaded) {
+    await MainStore.getDefaultConfig();
+    defaultConfigLoaded = true;
   }
   next();
 };

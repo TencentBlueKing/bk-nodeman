@@ -1,4 +1,4 @@
-import { authentication, defaultPort, sysOptions } from '@/config/config';
+import { authentication, defaultPort, sysOptions, defaultOsType, getDefaultConfig } from '@/config/config';
 import { reguFnMinInteger, reguPort, reguIp } from '@/common/form-check';
 
 export const tableConfig = [
@@ -70,7 +70,7 @@ export const tableConfig = [
       }
       // windows 非直连区域的端口不允许修改
       if (row.os_type === 'WINDOWS' && row.bk_cloud_id !== window.PROJECT_CONFIG.DEFAULT_CLOUD) {
-        row.port = 445;
+        row.port = getDefaultConfig(row.os_type, 'port', 445);
       }
     },
     getProxyStatus(row) {
@@ -99,7 +99,7 @@ export const tableConfig = [
     batch: true,
     required: true,
     noRequiredMark: false,
-    default: -1,
+    default: getDefaultConfig(defaultOsType, 'ap_id', -1),
     options: [],
     popoverMinWidth: 160,
     getOptions() {
@@ -119,13 +119,8 @@ export const tableConfig = [
     placeholder: window.i18n.t('请选择'),
     options: sysOptions,
     handleValueChange(row) {
-      if (row.os_type === 'WINDOWS') {
-        row.port = 445;
-        row.account = 'Administrator';
-      } else {
-        row.port = defaultPort;
-        row.account = 'root';
-      }
+      row.port = getDefaultConfig(row.os_type, 'port', row.os_type === 'WINDOWS' ? 445 : defaultPort);
+      row.account = getDefaultConfig(row.os_type, 'account', row.os_type === 'WINDOWS' ? 'Administrator' : 'root');
     },
   },
   {
@@ -135,7 +130,7 @@ export const tableConfig = [
     required: true,
     noRequiredMark: false,
     batch: true,
-    default: defaultPort,
+    default: getDefaultConfig(defaultOsType, 'port', defaultPort),
     rules: [reguPort],
     getReadonly(row) {
       return row && row.os_type === 'WINDOWS' && row.bk_cloud_id !== window.PROJECT_CONFIG.DEFAULT_CLOUD;
@@ -148,7 +143,7 @@ export const tableConfig = [
     required: true,
     noRequiredMark: false,
     batch: true,
-    default: 'root',
+    default: getDefaultConfig(defaultOsType, 'account', 'root'),
   },
   {
     label: '认证方式',
@@ -158,7 +153,7 @@ export const tableConfig = [
     noRequiredMark: false,
     batch: true,
     subTitle: window.i18n.t('密钥方式仅对Linux/AIX系统生效'),
-    default: 'PASSWORD',
+    default: getDefaultConfig(defaultOsType, 'auth_type', 'PASSWORD'),
     getOptions(row) {
       return row.os_type === 'WINDOWS' ? authentication.filter(auth => auth.id !== 'KEY') : authentication;
     },
@@ -212,7 +207,7 @@ export const tableConfig = [
     prop: 'peer_exchange_switch_for_agent',
     tips: window.i18n.t('BT节点探测提示'),
     type: 'switcher',
-    default: true,
+    default: getDefaultConfig(defaultOsType, 'peer_exchange_switch_for_agent', true),
     batch: true,
     required: false,
     noRequiredMark: false,
@@ -338,7 +333,7 @@ export const tableManualConfig = [
     batch: true,
     required: true,
     noRequiredMark: false,
-    default: -1,
+    default: getDefaultConfig(defaultOsType, 'ap_id', -1),
     options: [],
     popoverMinWidth: 160,
     getOptions() {
@@ -359,13 +354,8 @@ export const tableManualConfig = [
     placeholder: window.i18n.t('请选择'),
     options: sysOptions,
     handleValueChange(row) {
-      if (row.os_type === 'WINDOWS') {
-        row.port = 445;
-        row.account = 'Administrator';
-      } else {
-        row.port = defaultPort;
-        row.account = 'root';
-      }
+      row.port = getDefaultConfig(row.os_type, 'port', row.os_type === 'WINDOWS' ? 445 : defaultPort);
+      row.account = getDefaultConfig(row.os_type, 'account', row.os_type === 'WINDOWS' ? 'Administrator' : 'root');
     },
   },
   {
@@ -396,7 +386,7 @@ export const tableManualConfig = [
     prop: 'peer_exchange_switch_for_agent',
     tips: window.i18n.t('BT节点探测提示'),
     type: 'switcher',
-    default: true,
+    default: getDefaultConfig(defaultOsType, 'peer_exchange_switch_for_agent', true),
     batch: true,
     required: false,
     noRequiredMark: false,

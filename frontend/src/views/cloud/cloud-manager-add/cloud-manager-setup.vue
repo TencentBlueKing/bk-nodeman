@@ -111,7 +111,7 @@ import FilterDialog from '@/components/common/filter-dialog.vue';
 // import getTemplate from '../config/tips-template'
 import { setupInfo, setupManualInfo } from '../config/netTableConfig';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { defaultPort } from '@/config/config';
+import { defaultPort, getDefaultConfig } from '@/config/config';
 import { ISetupHead, ISetupRow } from '@/types';
 import { reguPort, reguRequired } from '@/common/form-check';
 
@@ -238,8 +238,8 @@ export default class CloudManagerSetup extends Mixins(formLabelMixin, FilterIpMi
       bkCloudSetupInfo: this.setupConfig,
       retention: -1,
       osType: 'LINUX',
-      port: defaultPort,
-      account: 'root',
+      port: getDefaultConfig('LINUX', 'port', defaultPort),
+      account: getDefaultConfig('LINUX', 'account', 'root'),
       bkBizId: '',
     };
   }
