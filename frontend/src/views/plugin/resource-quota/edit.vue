@@ -134,14 +134,14 @@ export default class ResourceQuotaEdit extends Vue {
     this.resourceForm && this.resourceForm.clearError();
     this.formatFormData();
   }
-  public formatFormData() {
+  public formatFormData(defaultValue = 10) {
     const formData: { [key: string]: number } = {};
     const nameMap: { [key: string]: string } = {};
-    this.pluginList.forEach(({ plugin_name, cpu, mem }) => {
+    this.pluginList.forEach(({ plugin_name }) => {
       const cpuKey = `${plugin_name}_cpu`;
       const memKey = `${plugin_name}_mem`;
-      formData[cpuKey] = cpu || 0;
-      formData[memKey] = mem || 0;
+      formData[cpuKey] = defaultValue;
+      formData[memKey] = defaultValue;
       nameMap[cpuKey] = plugin_name;
     });
     this.$set(this, 'formData', formData);
