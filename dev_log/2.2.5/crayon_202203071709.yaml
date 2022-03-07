@@ -1,0 +1,3 @@
+---
+bugfix:
+  - "修复 Proxy dataflow.conf addresses 渲染值有误的问题 (fixed #552)"
