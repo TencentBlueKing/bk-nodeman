@@ -109,7 +109,7 @@
       <bk-table-column :label="$t('部署版本')" key="configs" min-width="170">
         <div slot-scope="{ row, $index }" class="col-execution">
           <div class="execut-text" v-if="row.configs">
-            <p v-for="config in row.configs" :key="`${$index}_${config.os}`">
+            <p v-for="(config, index) in row.configs" :key="`${$index}_${index}`">
               <i :class="`large td-sys-icon nodeman-icon nc-${config.os}`"></i>
               {{ config.cpu_arch }}:
               <span
