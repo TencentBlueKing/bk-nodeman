@@ -15,6 +15,7 @@ from typing import List
 
 import mock
 from django.conf import settings
+from django.test import override_settings
 
 from apps.backend.agent.tools import gen_commands
 from apps.backend.components.collections.agent_new import install
@@ -175,6 +176,22 @@ class InstallWindowsSSHTestCase(InstallBaseTestCase):
             f" -r http://127.0.0.1/backend -l http://127.0.0.1/download -c {token}"
             f' -O 48668 -E 58925 -A 58625 -V 58930 -B 10020 -S 60020 -Z 60030 -K 10030 -e " " -a " " -k " "'
             f" -i 0 -I 127.0.0.1 -N SERVER -p c:\\\\gse -T C:\\\\tmp\\\\ &> C:/tmp/nm.nohup.out &"
+        )
+        self.assertEqual(installation_tool.run_cmd, run_cmd)
+
+    @override_settings(REGISTER_WIN_SERVICE_WITH_PASS=True)
+    def test_gen_agent_command(self):
+        host = models.Host.objects.get(bk_host_id=self.obj_factory.bk_host_ids[0])
+        installation_tool = gen_commands(host, mock_data_utils.JOB_TASK_PIPELINE_ID, is_uninstall=False, sub_inst_id=0)
+        token = re.match(r"(.*) -c (.*?) -O", installation_tool.run_cmd).group(2)
+        encrypted_password = re.match(r"(.*) -P (.*?) &", installation_tool.run_cmd).group(2)
+        self.assertTrue(encrypted_password.endswith(' "'))
+        run_cmd = (
+            f"nohup C:/tmp/setup_agent.bat -s {mock_data_utils.JOB_TASK_PIPELINE_ID}"
+            f" -r http://127.0.0.1/backend -l http://127.0.0.1/download -c {token}"
+            f' -O 48668 -E 58925 -A 58625 -V 58930 -B 10020 -S 60020 -Z 60030 -K 10030 -e " " -a " " -k " "'
+            f" -i 0 -I 127.0.0.1 -N SERVER -p c:\\\\gse -T C:\\\\tmp\\\\ -U root -P {encrypted_password} "
+            f"&> C:/tmp/nm.nohup.out &"
         )
         self.assertEqual(installation_tool.run_cmd, run_cmd)
 
