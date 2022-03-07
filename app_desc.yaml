@@ -45,9 +45,11 @@ modules:
                   module_name: "default"
         processes:
             web:
-                command: gunicorn wsgi -w 4 -b :$PORT --access-logfile - --error-logfile - --access-logformat '[%(h)s] %({request_id}i)s %(u)s %(t)s "%(r)s" %(s)s %(D)s %(b)s "%(f)s" "%(a)s"'
+                command: ./bin/start_web.sh
                 plan: 4C2G5R
                 replicas: 5
+        scripts:
+          pre_release_hook: bash bin/pre-release
 
     backend:
         is_default: False
@@ -146,3 +148,5 @@ modules:
                 command: python manage.py apply_resource_watched_events
                 plan: 4C2G5R
                 replicas: 1
+        scripts:
+          pre_release_hook: bash bin/pre-release
