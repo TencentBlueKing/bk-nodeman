@@ -52,6 +52,13 @@ export const stepHost = [
     extCls: 'mt20',
   },
   {
+    label: window.i18n.t('内网回调地址'),
+    key: 'callback_url',
+    ruleName: 'callback',
+    placeholder: window.i18n.t('请输入内网回调地址'),
+    extCls: 'mt20',
+  },
+  {
     label: window.i18n.t('Agent包服务器目录'),
     key: 'nginx_path',
     ruleName: 'nginxPath',

@@ -479,6 +479,8 @@ export default {
   外网回调: 'WAN callback',
   外网回调地址: 'WAN callback address',
   请输入外网回调地址: 'Please enter the WAN callback address',
+  内网回调地址: 'LAN callback address',
+  请输入内网回调地址: 'Please enter the LAN callback address',
   请输入以backend结尾的URL地址: 'Please enter the URL address ending with /backend',
 
   // 任务历史

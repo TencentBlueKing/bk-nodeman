@@ -141,7 +141,8 @@ export default class StepInfo extends Vue {
     this.formDataRef.validate().then(async () => {
       const {
         name, zk_account, zk_password, region_id, city_id, zk_hosts, btfileserver, dataserver,
-        taskserver, outer_callback_url, package_inner_url, package_outer_url, nginx_path, description,
+        taskserver, callback_url, outer_callback_url, package_inner_url, package_outer_url,
+        nginx_path, description,
       } = this.detail;
       this.submitLoading = true;
       const agentConfig: { linux: Dictionary, windows: Dictionary } = {
@@ -169,6 +170,7 @@ export default class StepInfo extends Vue {
         btfileserver,
         dataserver,
         taskserver,
+        callback_url,
         outer_callback_url,
         package_inner_url,
         package_outer_url,
