@@ -367,7 +367,7 @@ def gen_commands(
             package_url=package_url,
             run_cmd_params=run_cmd_params,
             options_path=["-T", "-p"],
-            options_value_inside_quotes=["-e", "-a", "-k"],
+            options_value_inside_quotes=["-e", "-a", "-k", "-P"],
         )
         chmod_cmd = name__cmd_map["chmod_cmd"]
         download_cmd = name__cmd_map["download_cmd"]
