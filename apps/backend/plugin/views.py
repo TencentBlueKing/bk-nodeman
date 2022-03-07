@@ -333,11 +333,13 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
                         content=params["content"],
                         file_path=params["file_path"],
                         is_release_version=params["is_release_version"],
+                        os=os_type.lower(),
+                        cpu_arch=cpu_arch.lower(),
                         creator=bk_username,
                         source_app_code=bk_app_code,
                     ),
                 )
-                created_template_ids.append(plugin["id"])
+                created_template_ids.append(plugin.id)
         params["ids"] = created_template_ids
 
         return Response(params)
