@@ -139,7 +139,7 @@
 <script lang="ts">
 import { Component, Prop, Ref, Watch } from 'vue-property-decorator';
 import { MainStore, ConfigStore } from '@/store/index';
-import { IApBase, IIpGroup, IZk } from '@/types/config/config';
+import { IApBase, IAvailable, IIpGroup, IZk } from '@/types/config/config';
 import VerifyInput from '@/components/common/verify-input.vue';
 import InputType from '@/components/setup-table/input-type.vue';
 import InstallInputType from '@/components/setup-table/install-input-type.vue';
@@ -196,6 +196,7 @@ export default class StepHost extends formLabelMixin {
     taskserver: [
       { inner_ip: '', outer_ip: '' },
     ],
+    callback_url: '',
     outer_callback_url: '',
     package_inner_url: '',
     package_outer_url: '',
@@ -316,8 +317,10 @@ export default class StepHost extends formLabelMixin {
     url: [reguRequired, reguUrl],
     callback: [
       {
-        validator: (val: string) => !val || (regUrl.test(val) && /(\/backend)$/.test(val)),
-        message: this.$t('请输入以backend结尾的URL地址'),
+        validator: (val: string) => !val || regUrl.test(val),
+        message: this.$t('URL格式不正确'),
+        // validator: (val: string) => !val || (regUrl.test(val) && /(\/backend)$/.test(val)),
+        // message: this.$t('请输入以backend结尾的URL地址'),
         trigger: 'blur',
       },
     ],
@@ -365,10 +368,20 @@ export default class StepHost extends formLabelMixin {
     this.formDataRef.validate().then(() => {
       this.validate(async () => {
         this.checkLoading = true;
-        const { btfileserver, dataserver, taskserver, package_inner_url, package_outer_url } = this.formData;
-        const data = await ConfigStore.requestCheckUsability({
+        const {
+          btfileserver, dataserver, taskserver, package_inner_url,
+          package_outer_url, callback_url, outer_callback_url,
+        } = this.formData;
+        const params: IAvailable = {
           btfileserver, dataserver, taskserver, package_inner_url, package_outer_url,
-        });
+        };
+        if (callback_url) {
+          params.callback_url = callback_url;
+        }
+        if (outer_callback_url) {
+          params.outer_callback_url = outer_callback_url;
+        }
+        const data = await ConfigStore.requestCheckUsability(params);
         this.checkedResult = !!data.test_result;
         this.checkedResultList = data.test_logs || [];
         this.isChecked = true;

@@ -46,6 +46,7 @@ export default class ConfigStore extends VuexModule {
       taskserver: [
         { inner_ip: '', outer_ip: '' },
       ],
+      callback_url: '',
       outer_callback_url: '',
       package_inner_url: '',
       package_outer_url: '',
