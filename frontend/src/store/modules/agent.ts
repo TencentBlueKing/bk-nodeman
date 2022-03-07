@@ -77,6 +77,10 @@ export default class AgentStore extends VuexModule {
   @Action
   public async getRunningHost(params: IAgentSearch) {
     const data = await listHost(params).catch(() => ({
+      manual_statistics: {
+        false: 0,
+        true: 0,
+      },
       running_count: 0,
       no_permission_count: 0,
     }));

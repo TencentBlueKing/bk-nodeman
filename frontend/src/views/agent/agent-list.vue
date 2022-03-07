@@ -767,6 +767,11 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
   private initAgentListDebounce: Function = function () {};
   // 是否是跨页全选
   private isSelectedAllPages = false;
+  // 跨页全选状态下的数量统计
+  private statistics = {
+    remote: 0,
+    manual: 0,
+  };
   // 标记删除数组
   private markDeleteArr: IAgentHost[] = [];
   private ipRegx = new RegExp('^((25[0-5]|2[0-4]\\d|[01]?\\d\\d?)\\.){3}(25[0-5]|2[0-4]\\d|[01]?\\d\\d?)$');
@@ -842,11 +847,11 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
   }
   // 选中机器是否为单种安装类型
   private get isSingleHosts() {
-    if (this.isSingleInstallFilter) {
-      return true;
-    }
-    if (this.isSelectedAllPages || !this.selectionCount) {
-      return false;
+    if (this.isSingleInstallFilter) return true;
+    if (!this.selectionCount) return false;
+    if (this.isSelectedAllPages) {
+      const { manual, remote } = this.statistics;
+      return (manual && !remote) || (!manual && remote);
     }
     return new Set(this.selection.map(item => item.is_manual)).size === 1;
   }
@@ -1402,14 +1407,24 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
     if (this.isSelectedAllPages) {
       if (!arg[0]) {
         this.markDeleteArr.push(row);
+        this.setStatistics(row, 'remove');
       } else {
         const index = this.markDeleteArr.findIndex(item => item.bk_host_id === row.bk_host_id);
         if (index > -1) {
           this.markDeleteArr.splice(index, 1);
+          this.setStatistics(row);
         }
       }
     }
     this.$set(row, 'selection', arg[0]);
+  }
+  private setStatistics(row: IAgentHost, operate: 'add' | 'remove' = 'add')  {
+    const  type = row.is_manual ? 'manual' : 'remote';
+    if (operate === 'add') {
+      this.statistics[type] += 1;
+    } else {
+      this.statistics[type] -= 1;
+    }
   }
   /**
    * 自定义selection表头
@@ -1440,6 +1455,10 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
     if (type === 'current' && this.disabledCheckBox) return;
     // 跨页全选
     this.isSelectedAllPages = value && type === 'all';
+    if (!value) {
+      this.statistics.remote = 0;
+      this.statistics.manual = 0;
+    }
     // 删除标记数组
     this.markDeleteArr.splice(0, this.markDeleteArr.length);
     if (this.isSelectedAllPages) {
@@ -1449,9 +1468,12 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
         running_count: true,
       }, this.getCommonCondition());
       const {
+        manual_statistics: statistics,
         running_count: runningCount,
         no_permission_count: noPermissionCount,
       } = await AgentStore.getRunningHost(params);
+      this.statistics.remote = statistics.false;
+      this.statistics.manual = statistics.true;
       this.table.runningCount = runningCount;
       this.table.noPermissionCount = noPermissionCount;
       this.checkLoading = false;
