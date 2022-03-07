@@ -337,7 +337,7 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
                         source_app_code=bk_app_code,
                     ),
                 )
-                created_template_ids.append(plugin["id"])
+                created_template_ids.append(plugin.id)
         params["ids"] = created_template_ids
 
         return Response(params)
