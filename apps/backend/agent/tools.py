@@ -176,7 +176,12 @@ def lan_node_shell_cmds_generator(
         for run_cmd_param in run_cmd_params:
             if not run_cmd_param:
                 continue
-            option, value = run_cmd_param.split(" ", 1)
+            try:
+                option, value = run_cmd_param.split(" ", 1)
+            except ValueError:
+                # 适配无值参数
+                run_cmd_params_treated.append(run_cmd_param)
+                continue
             if option in options_path:
                 value = value.replace("\\", "\\\\")
             elif option in options_value_inside_quotes:

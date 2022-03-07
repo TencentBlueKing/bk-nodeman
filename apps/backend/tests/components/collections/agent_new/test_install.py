@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 import importlib
 import json
 import re
-from typing import List
+from typing import Any, Dict, List
 
 import mock
 from django.conf import settings
@@ -311,3 +311,23 @@ class ManualInstallSuccessTest(InstallBaseTestCase):
         models.Host.objects.filter(bk_host_id__in=self.obj_factory.bk_host_ids).update(
             os_type=self.OS_TYPE, node_type=self.NODE_TYPE, is_manual=True
         )
+
+
+class UninstallSuccessTest(InstallBaseTestCase):
+    def structure_common_inputs(self) -> Dict[str, Any]:
+        common_inputs = super().structure_common_inputs()
+        common_inputs["is_uninstall"] = True
+        return common_inputs
+
+    def test_gen_agent_command(self):
+        host = models.Host.objects.get(bk_host_id=self.obj_factory.bk_host_ids[0])
+        installation_tool = gen_commands(host, mock_data_utils.JOB_TASK_PIPELINE_ID, is_uninstall=True, sub_inst_id=0)
+        token = re.match(r"(.*) -c (.*?) -O", installation_tool.run_cmd).group(2)
+        run_cmd = (
+            f"nohup bash /tmp/setup_agent.sh -s {mock_data_utils.JOB_TASK_PIPELINE_ID}"
+            f" -r http://127.0.0.1/backend -l http://127.0.0.1/download"
+            f" -c {token}"
+            f' -O 48668 -E 58925 -A 58625 -V 58930 -B 10020 -S 60020 -Z 60030 -K 10030 -e "" -a "" -k ""'
+            f" -i 0 -I 127.0.0.1 -N SERVER -p /usr/local/gse -T /tmp/ -R &> /tmp/nm.nohup.out &"
+        )
+        self.assertEqual(installation_tool.run_cmd, run_cmd)
