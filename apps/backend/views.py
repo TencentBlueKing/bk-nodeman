@@ -51,7 +51,7 @@ DATA_TMPLATE = """
     "dftcityid": "{{ city_id }}"
 } """
 
-DATALOFW_TMPLATE = """
+DATAFLOW_TMPLATE = """
 {
     "receiver":[
       {
@@ -73,7 +73,7 @@ DATALOFW_TMPLATE = """
         "proxyversion":"v1",
         "heartbeat":true,
         "addresses":[
-            {% for gse_outer_ip in taskserver_outer_ips%}
+            {% for gse_outer_ip in dataserver_outer_ips%}
                 {
                     "ip": "{{ gse_outer_ip }}",
                     "port": {{ data_port }}
@@ -618,7 +618,7 @@ def generate_gse_config(
             "agent.conf": PROXY_TEMPLATE,
             "transit.conf": TRANSIT_TEMPLATE,
             "plugin_info.json": PLUGIN_INFO_TEMPLATE,
-            "dataflow.conf": DATALOFW_TMPLATE,
+            "dataflow.conf": DATAFLOW_TMPLATE,
             "data.conf": DATA_TMPLATE,
         }[filename]
 
