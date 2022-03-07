@@ -38,6 +38,7 @@ export interface IApBase {
   dataserver: IIpGroup[]
   taskserver: IIpGroup[]
   description: string
+  callback_url: string
   outer_callback_url: string
   package_inner_url: string
   package_outer_url: string
@@ -85,4 +86,6 @@ export interface IAvailable {
   taskserver: IIpGroup[]
   package_inner_url: string
   package_outer_url: string
+  callback_url?: string
+  outer_callback_url?: string
 }

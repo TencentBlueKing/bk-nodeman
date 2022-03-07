@@ -41,6 +41,13 @@
           </td>
         </tr>
         <tr>
+          <td>{{ $t('内网回调') }}</td>
+          <td>URL</td>
+          <td class="table-content">
+            {{ formData.callback_url | filterEmpty }}
+          </td>
+        </tr>
+        <tr>
           <td rowspan="2">{{ $t('Agent安装包') }}</td>
           <td>URL</td>
           <td class="table-content">
@@ -102,7 +109,7 @@ export default class AccessPointTable extends Vue {
     temp_path: window.i18n.t('临时文件路径'),
   };
   private serversSets =['BtfileServer', 'DataServer', 'TaskServer'];
-  private serversOtherKeys = ['region_id', 'city_id', 'zookeeper', 'outer_callback_url', 'package__url', 'nginx_path'];
+  private serversOtherKeys = ['region_id', 'city_id', 'zookeeper', 'outer_callback_url', 'callback_url', 'package__url', 'nginx_path'];
   private  sortLinux = ['hostid_path', 'dataipc', 'setup_path', 'data_path', 'run_path', 'log_path'];
   private sortWin = ['hostid_path', 'dataipc', 'setup_path', 'data_path', 'run_path', 'log_path'];
   private formData = {};
