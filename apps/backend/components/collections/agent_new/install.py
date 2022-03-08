@@ -651,9 +651,11 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
         """通过轮询redis的方式来处理，避免使用callback的方式频繁调用schedule"""
         common_data = self.get_common_data(data)
         success_callback_step = data.get_one_of_inputs("success_callback_step")
+        # 与上一轮次的订阅实例ID取交集，确保本轮次需执行的订阅实例ID已排除手动终止的情况
         scheduling_sub_inst_ids = (
-            data.get_one_of_outputs("scheduling_sub_inst_ids") or common_data.subscription_instance_ids
+            set(data.get_one_of_outputs("scheduling_sub_inst_ids", [])) & common_data.subscription_instance_ids
         )
+
         params_list = [
             {"sub_inst_id": sub_inst_id, "success_callback_step": success_callback_step}
             for sub_inst_id in scheduling_sub_inst_ids
