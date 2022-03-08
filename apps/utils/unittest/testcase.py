@@ -210,7 +210,7 @@ class OverwriteSettingsMixin(TestCaseLifeCycleMixin):
         super().tearDownClass()
 
 
-class CustomBaseTestCase(AssertDataMixin, OverwriteSettingsMixin, TestCase):
+class CustomBaseTestCase(OverwriteSettingsMixin, AssertDataMixin, TestCase):
     client_class = Client
 
     @property

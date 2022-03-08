@@ -33,9 +33,6 @@ from apps.node_man.models import (
     SubscriptionTask,
 )
 
-# 全局使用的mock
-run_task = mock.patch("apps.backend.subscription.tasks.run_subscription_task").start()
-
 
 class TestPolicy(TestCase):
     """
@@ -45,6 +42,7 @@ class TestPolicy(TestCase):
     client = Client()
 
     def setUp(self):
+        mock.patch.stopall()
         self.get_host_object_attribute_client = mock.patch(
             "apps.backend.subscription.commons.get_host_object_attribute", lambda args: []
         )
@@ -71,14 +69,10 @@ class TestPolicy(TestCase):
 
         self.run_subscription_task_and_create_instance_client.start()
 
+        self.run_task = mock.patch("apps.backend.subscription.tasks.run_subscription_task").start()
+
     def tearDown(self):
-        self.tools_client.stop()
-        self.commons_client.stop()
-        self.handlers_client.stop()
-        self.get_host_object_attribute_client.stop()
-        self.get_process_by_biz_id_client.stop()
-        self.batch_request_client.stop()
-        self.run_subscription_task_and_create_instance_client.stop()
+        mock.patch.stopall()
 
     def _test_create_subscription(self):
         r = self.client.post(
@@ -214,7 +208,7 @@ class TestPolicy(TestCase):
         self._test_update_subscription(subscription_id)
 
     def _test_run_subscription(self):
-        run_task.apply_async.call_count = 0
+        self.run_task.apply_async.call_count = 0
         GsePluginDesc.objects.create(
             **{
                 "name": "mysql_exporter",
