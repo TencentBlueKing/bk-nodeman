@@ -55,7 +55,12 @@ class GetAgentStatusService(AgentBaseService):
     def _schedule(self, data, parent_data, callback_data=None):
         common_data: AgentCommonData = self.get_common_data(data)
         expect_status = data.get_one_of_inputs("expect_status")
-        host_ids_need_to_query: Set[int] = data.get_one_of_outputs("host_ids_need_to_query")
+
+        # 排除手动终止等已失败的订阅实例ID
+        host_ids = {
+            common_data.sub_inst_id__host_id_map[sub_inst_id] for sub_inst_id in common_data.subscription_instance_ids
+        }
+        host_ids_need_to_query: Set[int] = set(data.get_one_of_outputs("host_ids_need_to_query", [])) & host_ids
 
         # 构造 gse 请求参数
         hosts: List[Dict[str, Union[int, str]]] = []
