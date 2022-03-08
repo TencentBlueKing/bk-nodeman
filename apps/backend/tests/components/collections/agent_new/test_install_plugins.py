@@ -8,7 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import copy
 from typing import List
 
 import mock
@@ -44,8 +43,8 @@ class InstallPluginsTestCase(utils.AgentServiceBaseTestCase):
 
     @staticmethod
     def init_plugins():
-        plugins = copy.deepcopy(common_unit.plugin.GSE_PLUGIN_DESC_MODEL_DATA)
-        models.GsePluginDesc.objects.create(**plugins)
+        models.GsePluginDesc.objects.create(**common_unit.plugin.GSE_PLUGIN_DESC_MODEL_DATA)
+        models.Packages.objects.create(**common_unit.plugin.PACKAGES_MODEL_DATA)
 
     def start_patch(self):
         class CustomNodeApi(NodeApi):

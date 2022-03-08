@@ -13,7 +13,12 @@ import logging
 from collections import defaultdict
 from typing import Dict, List, Optional, Tuple
 
-from apps.backend.api.constants import POLLING_INTERVAL, POLLING_TIMEOUT
+from django.utils.translation import ugettext as _
+
+from apps.backend.api.constants import (
+    POLLING_INTERVAL,
+    SUB_SUBSCRIPTION_POLLING_TIMEOUT,
+)
 from apps.backend.components.collections.base import BaseService, CommonData
 from apps.backend.subscription import errors
 from apps.node_man import constants
@@ -74,27 +79,32 @@ class SubSubscriptionBaseService(BaseService, metaclass=abc.ABCMeta):
                     )
         return ", ".join(failed_reasons)
 
-    def handle_task_results(self, task_results_list: List[List[Dict]]) -> Tuple[bool, Dict[int, str]]:
+    def handle_task_results(self, task_results_list: List[List[Dict]]) -> Tuple[bool, Dict[int, str], Dict[int, str]]:
         is_finished = True
         failed_host_reason_map: Dict[int, Optional[List, str]] = defaultdict(list)
+        succeeded_host_message_map: Dict[int, Optional[List, str]] = defaultdict(list)
         for task_results in task_results_list:
             for task_result in task_results:
                 bk_host_id = task_result["instance_info"]["host"]["bk_host_id"]
+                node_name = task_result["steps"][0]["node_name"]
                 if task_result["status"] in [constants.JobStatusType.PENDING, constants.JobStatusType.RUNNING]:
                     is_finished = False
-                    failed_host_reason_map[bk_host_id].append(
-                        "{node_name} 执行超时".format(node_name=task_result["steps"][0]["node_name"])
-                    )
-                if task_result["status"] == constants.JobStatusType.FAILED:
+                    failed_host_reason_map[bk_host_id].append("{node_name} 执行超时".format(node_name=node_name))
+                elif task_result["status"] == constants.JobStatusType.FAILED:
                     failed_reason = self.extract_failed_reason_from_steps(task_result["steps"])
                     failed_host_reason_map[bk_host_id].append(failed_reason)
-                    continue
+                elif task_result["status"] == constants.JobStatusType.SUCCESS:
+                    succeeded_host_message_map[bk_host_id].append(_("{node_name} 执行成功".format(node_name=node_name)))
         for bk_host_id, failed_reasons in failed_host_reason_map.items():
             failed_host_reason_map[bk_host_id] = ", ".join(failed_reasons)
-        return is_finished, failed_host_reason_map
+        for bk_host_id, messages in succeeded_host_message_map.items():
+            succeeded_host_message_map[bk_host_id] = ", ".join(messages)
+        return is_finished, failed_host_reason_map, succeeded_host_message_map
 
-    def handle_failed_reasons(self, data, failed_host_reason_map: Dict[int, str]):
-        # 处理个别执行失败的任务并标记失败状态
+    def handle_task_result_message(
+        self, data, failed_host_reason_map: Dict[int, str], succeeded_host_message_map: Dict[int, str]
+    ):
+        # 处理失败的任务并标记失败状态
         common_data = self.get_common_data(data)
         failed_reason__sub_inst_ids_map = defaultdict(list)
         for bk_host_id, failed_reason in failed_host_reason_map.items():
@@ -102,6 +112,14 @@ class SubSubscriptionBaseService(BaseService, metaclass=abc.ABCMeta):
             failed_reason__sub_inst_ids_map[failed_reason].append(sub_inst_id)
         for failed_reason, sub_inst_ids in failed_reason__sub_inst_ids_map.items():
             self.move_insts_to_failed(sub_inst_ids=sub_inst_ids, log_content=failed_reason)
+
+        # 处理成功的任务并聚合写日志
+        succeeded_message__sub_inst_ids_map = defaultdict(list)
+        for bk_host_id, message in succeeded_host_message_map.items():
+            sub_inst_id = common_data.host_id__sub_inst_id_map.get(bk_host_id, 0)
+            succeeded_message__sub_inst_ids_map[message].append(sub_inst_id)
+        for message, sub_inst_ids in succeeded_message__sub_inst_ids_map.items():
+            self.log_info(sub_inst_ids=sub_inst_ids, log_content=message)
 
     def _execute(self, data, parent_data, common_data: CommonData):
         data.outputs.subscription_ids = self.create_subscriptions(common_data)
@@ -117,14 +135,14 @@ class SubSubscriptionBaseService(BaseService, metaclass=abc.ABCMeta):
             data.outputs.polling_time = next_polling_time
             return True
 
-        is_finished, failed_host_reason_map = self.handle_task_results(task_results)
+        is_finished, failed_host_reason_map, succeeded_host_message_map = self.handle_task_results(task_results)
         if is_finished:
-            self.handle_failed_reasons(data, failed_host_reason_map)
+            self.handle_task_result_message(data, failed_host_reason_map, succeeded_host_message_map)
             self.finish_schedule()
             return True
-        elif next_polling_time > POLLING_TIMEOUT:
+        elif next_polling_time > SUB_SUBSCRIPTION_POLLING_TIMEOUT:
             # 任务执行超时
-            self.handle_failed_reasons(data, failed_host_reason_map)
+            self.handle_task_result_message(data, failed_host_reason_map, succeeded_host_message_map)
             self.finish_schedule()
             return False
         data.outputs.polling_time = next_polling_time
