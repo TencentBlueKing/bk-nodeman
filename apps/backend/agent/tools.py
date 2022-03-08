@@ -28,7 +28,7 @@ class InstallationTools:
         script_file_name: str,
         dest_dir: str,
         win_commands: List[str],
-        upstream_nodes: List[str],
+        upstream_nodes: str,
         jump_server: models.Host,
         pre_commands: List[str],
         run_cmd: str,
@@ -384,7 +384,6 @@ def gen_commands(
     if Path(dest_dir) != Path("/tmp") and host.os_type != constants.OsType.WINDOWS:
         pre_commands.insert(0, f"mkdir -p {dest_dir}")
 
-    upstream_nodes = list(set(upstream_nodes))
     return InstallationTools(
         script_file_name,
         dest_dir,
