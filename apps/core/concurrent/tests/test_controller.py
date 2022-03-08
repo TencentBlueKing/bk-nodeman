@@ -76,11 +76,11 @@ class ConcurrentControllerTestCase(testcase.CustomBaseTestCase):
 
     def test_multi_threads_with_interval(self):
         """测试多线程间隔调用"""
-        interval = 0.1
+        interval = 0.5
         controller_inst = controller.ConcurrentController(
             data_list_name="numbers", batch_call_func=concurrent.batch_call, batch_call_kwargs={"interval": interval}
         )
-        call_info = {"sleep_time": interval + 0.1}
+        call_info = {"sleep_time": 0.1}
         self.base_assert(
             max_length=settings.CONCURRENT_NUMBER * 10, call_info=call_info, controller_inst=controller_inst
         )
