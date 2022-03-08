@@ -358,6 +358,7 @@ class BaseService(Service, LogMixin, DBHelperMixin):
             ),
         )
 
+        data.inputs.succeeded_subscription_instance_ids = succeeded_subscription_instance_ids
         data.outputs.succeeded_subscription_instance_ids = succeeded_subscription_instance_ids
 
         # 过滤之前已设置为失败的订阅实例ID

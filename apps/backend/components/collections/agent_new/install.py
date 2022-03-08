@@ -655,6 +655,9 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
         scheduling_sub_inst_ids = (
             set(data.get_one_of_outputs("scheduling_sub_inst_ids", [])) & common_data.subscription_instance_ids
         )
+        if not scheduling_sub_inst_ids:
+            self.finish_schedule()
+            return
 
         params_list = [
             {"sub_inst_id": sub_inst_id, "success_callback_step": success_callback_step}
