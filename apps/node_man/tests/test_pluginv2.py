@@ -8,15 +8,13 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import json
+
 from unittest.mock import patch
 
 import mock
 from django.core.cache import cache
-from django.test import Client
 
-from apps.mock_data import api_mkd, utils
-from apps.mock_data.common_unit import plugin
+from apps.mock_data import api_mkd, common_unit, utils
 from apps.node_man import constants, models
 from apps.node_man.handlers.plugin_v2 import PluginV2Handler
 from apps.node_man.tests.utils import (
@@ -25,6 +23,7 @@ from apps.node_man.tests.utils import (
     cmdb_or_cache_biz,
     create_host,
 )
+from apps.utils import basic
 from apps.utils.unittest.testcase import CustomBaseTestCase
 
 
@@ -263,45 +262,26 @@ class TestPluginV2(CustomBaseTestCase):
         )
 
     def test_create_config_template(self):
-        models.Packages.objects.create(
-            pkg_name="test1.tar",
-            version="1.1",
-            module="gse_plugin",
-            project="test_plugin-1.0.1.tgz",
-            pkg_size=10255,
-            pkg_path="/data/bkee/miniweb/download/windows/x86_64",
-            location="http://127.0.0.1/download/windows/x86_64",
-            md5="a95c530a7af5f492a74499e70578d150",
-            pkg_ctime="2019-05-05 11:54:28.070771",
-            pkg_mtime="2019-05-05 11:54:28.070771",
-            os="liunx",
-            cpu_arch="x86_64",
-            is_release_version=False,
-            is_ready=True,
+        pkg_obj = models.Packages.objects.create(
+            **basic.remove_keys_from_dict(origin_data=common_unit.plugin.PACKAGES_MODEL_DATA, keys=["id"])
         )
-
-        plugin_name = f"{plugin.PLUGIN_NAME}-{plugin.PACKAGE_VERSION}"
-        result = Client().post(
+        self.client.post(
             path="/backend/api/plugin/create_config_template/",
-            content_type="application/json",
-            data=json.dumps(
-                {
-                    "bk_username": "admin",
-                    "bk_app_code": "blueking",
-                    "plugin_name": plugin_name,
-                    "plugin_version": "*",
-                    "name": "env.yaml",
-                    "file_path": "etc",
-                    "format": "yaml",
-                    "content": "R1NFX0FHRU5UX0hPTUU6IHt7IGNvbnRyb2xfaW5mby5nc2VfYWdlbnRfaG9tZSB9fQpCS19QTFVHSU5fTE9HX1B"
-                    "BVEg6IHt7IGNvbnRyb2xfaW5mby5sb2dfcGF0aCB9fQpCS19QTFVHSU5fUElEX1BBVEg6IHt7IGNvbnRyb2xfaW"
-                    "5mby5waWRfcGF0aCB9fQoKCgpCS19DTURfQVJHUzoge3sgY21kX2FyZ3MgfX0=",
-                    "md5": "49a11211fa91dd7fee4fed3fcefc5919",
-                    "version": "1",
-                    "is_release_version": False,
-                }
-            ),
+            data={
+                "bk_username": "admin",
+                "bk_app_code": "blueking",
+                "plugin_name": pkg_obj.project,
+                "plugin_version": pkg_obj.version,
+                "name": "env.yaml",
+                "file_path": "etc",
+                "format": "yaml",
+                "content": "R1NFX0FHRU5UX0hPTUU6IHt7IGNvbnRyb2xfaW5mby5nc2VfYWdlbnRfaG9tZSB9fQpCS19QTFVHSU5fTE9HX1B"
+                "BVEg6IHt7IGNvbnRyb2xfaW5mby5sb2dfcGF0aCB9fQpCS19QTFVHSU5fUElEX1BBVEg6IHt7IGNvbnRyb2xfaW"
+                "5mby5waWRfcGF0aCB9fQoKCgpCS19DTURfQVJHUzoge3sgY21kX2FyZ3MgfX0=",
+                "md5": "49a11211fa91dd7fee4fed3fcefc5919",
+                "version": "1",
+                "is_release_version": False,
+            },
         )
-        template_num = models.PluginConfigTemplate.objects.filter(plugin_name=plugin_name).count()
-        assert result.status_code == 200
-        assert template_num == len(constants.CPU_CHOICES) * len(constants.OS_CHOICES)
+        template_num = models.PluginConfigTemplate.objects.filter(plugin_name=pkg_obj.project).count()
+        self.assertEqual(template_num, len(constants.CPU_CHOICES) * len(constants.OS_CHOICES))

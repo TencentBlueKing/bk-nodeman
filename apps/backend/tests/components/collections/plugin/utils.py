@@ -389,7 +389,12 @@ class CmdbClient:
 
         @classmethod
         def find_host_service_template(cls, *args, **kwargs):
-            if len(args[0]["bk_host_id"]) > 1:
+            if args:
+                query_params = args[0]
+            else:
+                query_params = kwargs
+
+            if len(query_params["bk_host_id"]) > 1:
                 # 模拟接口不存在的场景
                 raise ComponentCallError()
 
@@ -400,7 +405,7 @@ class CmdbClient:
                     if bk_host_id == BK_HOST_ID
                     else [SERVICE_TEMPLATE_ID_2],
                 }
-                for bk_host_id in args[0]["bk_host_id"]
+                for bk_host_id in query_params["bk_host_id"]
             ]
 
 
