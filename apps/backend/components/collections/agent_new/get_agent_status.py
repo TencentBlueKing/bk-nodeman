@@ -62,6 +62,10 @@ class GetAgentStatusService(AgentBaseService):
         }
         host_ids_need_to_query: Set[int] = set(data.get_one_of_outputs("host_ids_need_to_query", [])) & host_ids
 
+        if not host_ids_need_to_query:
+            self.finish_schedule()
+            return
+
         # 构造 gse 请求参数
         hosts: List[Dict[str, Union[int, str]]] = []
         for host_id in host_ids_need_to_query:
