@@ -9,12 +9,26 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import abc
+import random
 import time
 from collections import defaultdict
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Type, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Iterable,
+    List,
+    Optional,
+    Set,
+    Tuple,
+    Type,
+    Union,
+)
 
 import wrapt
+from django.utils.translation import ugettext_lazy as _
 
+from apps.backend.agent.tools import InstallationTools, batch_gen_commands
 from apps.node_man import constants, models
 from pipeline.core.flow import Service
 
@@ -96,6 +110,118 @@ class AgentBaseService(BaseService, metaclass=abc.ABCMeta):
         package_type = ("client", "proxy")[host.node_type == constants.NodeType.PROXY]
         agent_upgrade_package_name = f"gse_{package_type}-{host.os_type.lower()}-{host.cpu_arch}_upgrade.tgz"
         return agent_upgrade_package_name
+
+    @staticmethod
+    def get_cloud_id__proxies_map(bk_cloud_ids: Iterable[int]) -> Dict[int, List[models.Host]]:
+        proxies = models.Host.objects.filter(bk_cloud_id__in=set(bk_cloud_ids), node_type=constants.NodeType.PROXY)
+        proxy_host_ids = [proxy.bk_host_id for proxy in proxies]
+        alive_proxy_host_ids = models.ProcessStatus.objects.filter(
+            bk_host_id__in=proxy_host_ids,
+            name=models.ProcessStatus.GSE_AGENT_PROCESS_NAME,
+            status=constants.ProcStateType.RUNNING,
+        ).values_list("bk_host_id", flat=True)
+        alive_proxy_host_ids: Set[int] = set(alive_proxy_host_ids)
+
+        cloud_id__proxies_map: Dict[int, List[models.Host]] = defaultdict(list)
+        for proxy in proxies:
+            proxy.status = (constants.ProcStateType.TERMINATED, constants.ProcStateType.RUNNING)[
+                proxy.bk_host_id in alive_proxy_host_ids
+            ]
+            cloud_id__proxies_map[proxy.bk_cloud_id].append(proxy)
+        return cloud_id__proxies_map
+
+    def get_host_id__install_channel_map(
+        self,
+        hosts: List[models.Host],
+        host_id__sub_inst_id: Dict[int, int],
+        host_id__ap_map: Dict[int, models.AccessPoint],
+        cloud_id__proxies_map: Dict[int, List[models.Host]],
+    ) -> Dict[int, Tuple[Optional[models.Host], Dict[str, List]]]:
+        id__install_channel_obj_map: Dict[int, models.InstallChannel] = {}
+        install_channel_id__jump_servers_map: Dict[int, List[models.Host]] = defaultdict(list)
+        install_channel_objs = models.InstallChannel.objects.filter(id__in={host.install_channel_id for host in hosts})
+        # 安装通道数量通常是个位数，兼顾可读性在循环中执行DB查询操作
+        for install_channel_obj in install_channel_objs:
+            id__install_channel_obj_map[install_channel_obj.id] = install_channel_obj
+            install_channel_id__jump_servers_map[install_channel_obj.id] = list(
+                models.Host.objects.filter(
+                    inner_ip__in=install_channel_obj.jump_servers, bk_cloud_id=install_channel_obj.bk_cloud_id
+                )
+            )
+
+        cloud_id__alive_proxies_map: Dict[int, List[models.Host]] = defaultdict(list)
+        for cloud_id, proxies in cloud_id__proxies_map.items():
+            cloud_id__alive_proxies_map[cloud_id] = [
+                proxy for proxy in proxies if proxy.status == constants.ProcStateType.RUNNING
+            ]
+
+        host_id__install_channel_map: Dict[int, Tuple[Optional[models.Host], Dict[str, List]]] = {}
+        for host in hosts:
+            sub_inst_id = host_id__sub_inst_id[host.bk_host_id]
+            install_channel_obj = id__install_channel_obj_map.get(host.install_channel_id)
+            if install_channel_obj:
+                try:
+                    jump_server = random.choice(install_channel_id__jump_servers_map[install_channel_obj.id])
+                except IndexError:
+                    self.move_insts_to_failed(
+                        [sub_inst_id], log_content=_("所选安装通道「{name} 没有可用跳板机".format(name=install_channel_obj.name))
+                    )
+                else:
+                    host_id__install_channel_map[host.bk_host_id] = (jump_server, install_channel_obj.upstream_servers)
+            elif host.bk_cloud_id != constants.DEFAULT_CLOUD and host.node_type != constants.NodeType.PROXY:
+                alive_proxies = cloud_id__alive_proxies_map[host.bk_cloud_id]
+                try:
+                    jump_server = random.choice(alive_proxies)
+                except IndexError:
+                    self.move_insts_to_failed(
+                        [sub_inst_id],
+                        log_content=_("云区域 -> {bk_cloud_id} 下无存活的 Proxy").format(bk_cloud_id=host.bk_cloud_id),
+                    )
+                else:
+                    proxy_ips = [alive_proxy.inner_ip for alive_proxy in alive_proxies]
+                    upstream_servers = {"taskserver": proxy_ips, "btfileserver": proxy_ips, "dataserver": proxy_ips}
+                    host_id__install_channel_map[host.bk_host_id] = (jump_server, upstream_servers)
+            else:
+                host_ap = host_id__ap_map[host.bk_host_id]
+                jump_server = None
+                upstream_servers = {
+                    "taskserver": [server["inner_ip"] for server in host_ap.taskserver],
+                    "btfileserver": [server["inner_ip"] for server in host_ap.btfileserver],
+                    "dataserver": [server["inner_ip"] for server in host_ap.dataserver],
+                }
+                host_id__install_channel_map[host.bk_host_id] = (jump_server, upstream_servers)
+
+        return host_id__install_channel_map
+
+    def get_host_id__installation_tool_map(
+        self, common_data: "AgentCommonData", hosts_need_gen_commands: List[models.Host], is_uninstall: bool
+    ) -> Dict[int, InstallationTools]:
+
+        cloud_id__proxies_map = self.get_cloud_id__proxies_map(
+            bk_cloud_ids=[host.bk_cloud_id for host in hosts_need_gen_commands]
+        )
+
+        host_id__install_channel_map = self.get_host_id__install_channel_map(
+            hosts=hosts_need_gen_commands,
+            host_id__sub_inst_id=common_data.host_id__sub_inst_id_map,
+            host_id__ap_map=common_data.host_id__ap_map,
+            cloud_id__proxies_map=cloud_id__proxies_map,
+        )
+
+        # get_host_id__install_channel_map 仅返回成功匹配安装通道的主机，需要过滤失败主机
+        hosts_need_gen_commands = [
+            host for host in hosts_need_gen_commands if host.bk_host_id in host_id__install_channel_map
+        ]
+        host_id__installation_tool_map = batch_gen_commands(
+            hosts=hosts_need_gen_commands,
+            pipeline_id=self.id,
+            is_uninstall=is_uninstall,
+            host_id__sub_inst_id=common_data.host_id__sub_inst_id_map,
+            ap_id_obj_map=common_data.ap_id_obj_map,
+            cloud_id__proxies_map=cloud_id__proxies_map,
+            host_id__install_channel_map=host_id__install_channel_map,
+        )
+        return host_id__installation_tool_map
 
     @property
     def agent_proc_common_data(self) -> Dict[str, Any]:
