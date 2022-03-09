@@ -1,0 +1,3 @@
+---
+bugfix:
+  - "PaaSV2部署下admin页面缺少静态文件 (close #570)"
