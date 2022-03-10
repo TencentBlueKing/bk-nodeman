@@ -675,6 +675,7 @@ class BkJobStatus(object):
 class BkJobErrorCode(object):
     NOT_RUNNING = -1
     AGENT_ABNORMAL = 117
+    SUCCEED = 9
     RUNNING = 7
 
     BK_JOB_ERROR_CODE_MAP = {
@@ -684,7 +685,7 @@ class BkJobErrorCode(object):
         4: _("执行失败"),
         5: _("等待执行"),
         RUNNING: _("正在执行"),
-        9: _("执行成功"),
+        SUCCEED: _("执行成功"),
         11: _("任务失败"),
         12: _("任务下发失败"),
         13: _("任务超时"),
