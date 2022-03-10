@@ -15,6 +15,7 @@ import os
 import random
 import textwrap
 from abc import ABC
+from functools import partial
 from typing import Any, Dict, List, Optional, Type
 
 import mock
@@ -418,7 +419,12 @@ class AgentServiceBaseTestCase(CustomAPITestCase, ComponentTestMixin, ABC):
 
         # 多线程会影响测试debug，全局mock多线程执行，改为串行
         for batch_call_mock_path in cls.BATCH_CALL_MOCK_PATHS:
-            mock.patch(batch_call_mock_path, concurrent.batch_call_serial).start()
+            if "request_multi_thread" in batch_call_mock_path:
+                batch_call_mock_func = partial(concurrent.batch_call_serial, extend_result=True, get_data=lambda x: [])
+            else:
+                batch_call_mock_func = concurrent.batch_call_serial
+
+            mock.patch(batch_call_mock_path, batch_call_mock_func).start()
 
         agent_dir_path = os.path.dirname(agent_new.__file__)
         relative_dir_path = agent_dir_path.replace(settings.BASE_DIR + os.path.sep, "")
