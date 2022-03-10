@@ -188,10 +188,20 @@ class JobV3BaseService(six.with_metaclass(abc.ABCMeta, BaseService)):
             id__in=job_sub_map.subscription_instance_ids
         )
 
+        bk_host_ids = [sub_inst.instance_info["host"]["bk_host_id"] for sub_inst in subscription_instances]
+        host_id__cloud_ip_map = {
+            host_info["bk_host_id"]: f"{host_info['bk_cloud_id']}-{host_info['inner_ip']}"
+            for host_info in models.Host.objects.filter(bk_host_id__in=bk_host_ids).values(
+                "bk_host_id", "inner_ip", "bk_cloud_id"
+            )
+        }
+
         for sub_inst in subscription_instances:
             ip = sub_inst.instance_info["host"]["bk_host_innerip"]
             cloud_id = sub_inst.instance_info["host"]["bk_cloud_id"]
-            cloud_ip = f"{cloud_id}-{ip}"
+            # 不直接使用 bk_host_innerip，保证下发和查询作业采用的都是 models.Host.inner_ip，避免 CMDB 与本地数据不一致的情况
+            # 不一致情况举例：多IP，同步主机时会截断成单一IP保存
+            cloud_ip = host_id__cloud_ip_map.get(sub_inst.instance_info["host"]["bk_host_id"], f"{cloud_id}-{ip}")
             try:
                 ip_result = cloud_ip_status_map[cloud_ip]
             except KeyError:
