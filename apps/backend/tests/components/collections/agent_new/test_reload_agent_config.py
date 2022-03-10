@@ -34,3 +34,9 @@ class TimeOutTestCase(base.JobTimeOutBaseTestCase, ReloadAgentConfigTestCase):
     @classmethod
     def get_default_case_name(cls) -> str:
         return "作业平台执行作业超时"
+
+
+class TimeOutButSuccessInTheLastQuery(base.JobTimeOutButSuccessInTheLastQuery, ReloadAgentConfigTestCase):
+    @classmethod
+    def get_default_case_name(cls) -> str:
+        return "作业平台执行作业即将超时：最后一次查询已完成"

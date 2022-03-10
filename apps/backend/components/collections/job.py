@@ -14,7 +14,7 @@ import copy
 import hashlib
 import json
 import logging
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Set
 
 import six
 from django.conf import settings
@@ -183,7 +183,28 @@ class JobV3BaseService(six.with_metaclass(abc.ABCMeta, BaseService)):
         job_params.pop("target_server", None)
         return json.dumps(job_params, indent=2)
 
-    def handler_job_result(self, job_sub_map, cloud_ip_status_map):
+    def handler_job_result(self, job_sub_map: models.JobSubscriptionInstanceMap) -> List[int]:
+        """
+        处理作业平台执行结果
+        :param job_sub_map: 作业平台ID映射
+        :return: succeed_sub_inst_ids
+        """
+        ip_results = JobApi.get_job_instance_status(
+            {
+                "bk_biz_id": settings.BLUEKING_BIZ_ID,
+                "bk_scope_type": constants.BkJobScopeType.BIZ_SET.value,
+                "bk_scope_id": settings.BLUEKING_BIZ_ID,
+                "job_instance_id": job_sub_map.job_instance_id,
+                "return_ip_result": True,
+            }
+        )
+
+        # 构造主机作业状态映射表
+        cloud_ip_status_map: Dict[str, Dict] = {}
+        for ip_result in ip_results["step_instance_list"][0]["step_ip_result_list"]:
+            cloud_ip_status_map[f'{ip_result["bk_cloud_id"]}-{ip_result["ip"]}'] = ip_result
+
+        succeed_sub_inst_ids: List[int] = []
         subscription_instances = models.SubscriptionInstanceRecord.objects.filter(
             id__in=job_sub_map.subscription_instance_ids
         )
@@ -211,9 +232,16 @@ class JobV3BaseService(six.with_metaclass(abc.ABCMeta, BaseService)):
             )
             if ip_status != constants.BkJobIpStatus.SUCCEEDED:
                 self.move_insts_to_failed([sub_inst.id], _("作业平台执行失败: {err_msg}").format(err_msg=err_msg))
+            else:
+                succeed_sub_inst_ids.append(sub_inst.id)
+        return succeed_sub_inst_ids
 
     def request_get_job_instance_status(self, job_sub_map: models.JobSubscriptionInstanceMap):
-        """查询作业平台执行状态"""
+        """
+        查询作业平台执行状态
+        :param job_sub_map:
+        :return:
+        """
         result = JobApi.get_job_instance_status(
             {
                 "bk_biz_id": settings.BLUEKING_BIZ_ID,
@@ -234,22 +262,7 @@ class JobV3BaseService(six.with_metaclass(abc.ABCMeta, BaseService)):
             return
 
         # 其它都认为存在失败的情况，需要具体查作业平台的接口查IP详情
-        ip_results = JobApi.get_job_instance_status(
-            {
-                "bk_biz_id": settings.BLUEKING_BIZ_ID,
-                "bk_scope_type": constants.BkJobScopeType.BIZ_SET.value,
-                "bk_scope_id": settings.BLUEKING_BIZ_ID,
-                "job_instance_id": job_sub_map.job_instance_id,
-                "return_ip_result": True,
-            }
-        )
-
-        # 构造主机作业状态映射表
-        cloud_ip_status_map = {}
-        for ip_result in ip_results["step_instance_list"][0]["step_ip_result_list"]:
-            cloud_ip_status_map[f'{ip_result["bk_cloud_id"]}-{ip_result["ip"]}'] = ip_result
-
-        self.handler_job_result(job_sub_map, cloud_ip_status_map)
+        self.handler_job_result(job_sub_map)
 
         job_sub_map.status = job_status
         job_sub_map.save()
@@ -304,10 +317,28 @@ class JobV3BaseService(six.with_metaclass(abc.ABCMeta, BaseService)):
             pending_job_sub_maps = models.JobSubscriptionInstanceMap.objects.filter(
                 node_id=self.id, status=constants.BkJobStatus.PENDING
             )
-            pending_sub_inst_ids: List[int] = []
+            handler_job_result_params_list = [
+                {"job_sub_map": pending_job_sub_map} for pending_job_sub_map in pending_job_sub_maps
+            ]
+            # 挽救策略，查询作业中已完成的节点，避免全部误判为超时失败
+            succeed_sub_inst_ids: Set[int] = set(
+                request_multi_thread(
+                    self.handler_job_result, params_list=handler_job_result_params_list, get_data=lambda x: x
+                )
+            )
+
+            timeout_sub_inst_ids: Set[int] = set()
             for pending_job_sub_map in pending_job_sub_maps:
-                pending_sub_inst_ids.extend(pending_job_sub_map.subscription_instance_ids)
-            self.move_insts_to_failed(sub_inst_ids=pending_sub_inst_ids, log_content=_("作业平台执行任务超时"))
+                pending_sub_inst_ids = set(pending_job_sub_map.subscription_instance_ids)
+                # 处理 PENDING 的订阅实例任务已全部完成的情况
+                if pending_sub_inst_ids.issubset(succeed_sub_inst_ids):
+                    pending_job_sub_map.status = constants.BkJobStatus.SUCCEEDED
+                    pending_job_sub_map.save()
+                    continue
+                # pending_sub_inst_ids 与 succeed_sub_inst_ids 取差集获得已超时的订阅实例ID集合
+                timeout_sub_inst_ids = timeout_sub_inst_ids | (pending_sub_inst_ids - succeed_sub_inst_ids)
+
+            self.move_insts_to_failed(sub_inst_ids=timeout_sub_inst_ids, log_content=_("作业平台执行任务超时"))
             models.JobSubscriptionInstanceMap.objects.filter(
                 node_id=self.id, status=constants.BkJobStatus.PENDING
             ).update(status=constants.BkJobStatus.FAILED)

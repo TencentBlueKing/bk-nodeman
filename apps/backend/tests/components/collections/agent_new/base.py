@@ -236,13 +236,7 @@ class JobTimeOutBaseTestCase(JobBaseTestCase, ABC):
             "apps.backend.components.collections.job.POLLING_TIMEOUT", (self.POLLING_COUNT - 1) * POLLING_INTERVAL
         ).start()
 
-    def cases(self):
-        # 根据 component_cls 是否实现来跳过基类的测试
-        try:
-            self.component_cls()
-        except NotImplementedError:
-            return []
-
+    def fetch_schedule_assertion(self) -> List[ScheduleAssertion]:
         schedule_assertion = []
         for idx in range(1, self.POLLING_COUNT + 1):
             schedule_assertion.append(
@@ -257,6 +251,15 @@ class JobTimeOutBaseTestCase(JobBaseTestCase, ABC):
                     ),
                 )
             )
+        return schedule_assertion
+
+    def cases(self):
+        # 根据 component_cls 是否实现来跳过基类的测试
+        try:
+            self.component_cls()
+        except NotImplementedError:
+            return []
+
         return [
             ComponentTestCase(
                 name=self.get_default_case_name(),
@@ -266,6 +269,67 @@ class JobTimeOutBaseTestCase(JobBaseTestCase, ABC):
                     success=bool(self.fetch_succeeded_sub_inst_ids()), outputs=self.structure_common_outputs()
                 ),
                 execute_call_assertion=None,
-                schedule_assertion=schedule_assertion,
+                schedule_assertion=self.fetch_schedule_assertion(),
             )
         ]
+
+    def do_assert(self):
+        self.assertTrue(
+            models.JobSubscriptionInstanceMap.objects.filter(
+                job_instance_id=api_mkd.job.unit.DEFAULT_JOB_INSTANCE_ID, status=constants.BkJobStatus.FAILED
+            ).exists()
+        )
+
+    def tearDown(self) -> None:
+        self.do_assert()
+        super().tearDown()
+
+
+class JobTimeOutButSuccessInTheLastQuery(JobTimeOutBaseTestCase, ABC):
+    def init_mock_clients(self):
+        def _get_job_instance_status_result_func(query_params):
+            if query_params.get("return_ip_result"):
+                self.get_job_instance_status_result["job_instance"]["status"] = constants.BkJobStatus.SUCCEEDED
+                for step_ip_result in self.get_job_instance_status_result["step_instance_list"][0][
+                    "step_ip_result_list"
+                ]:
+                    step_ip_result.update(
+                        status=constants.BkJobIpStatus.SUCCEEDED, error_code=constants.BkJobErrorCode.SUCCEED
+                    )
+            else:
+                self.get_job_instance_status_result["job_instance"]["status"] = constants.BkJobStatus.RUNNING
+
+            return self.get_job_instance_status_result
+
+        self.job_api_mock_client = api_mkd.job.utils.JobApiMockClient(
+            get_job_instance_status_return=mock_data_utils.MockReturn(
+                return_type=mock_data_utils.MockReturnType.SIDE_EFFECT.value,
+                return_obj=_get_job_instance_status_result_func,
+            ),
+            get_job_instance_ip_log_return=mock_data_utils.MockReturn(
+                return_type=mock_data_utils.MockReturnType.SIDE_EFFECT.value,
+                return_obj=self.get_job_instance_ip_log_func,
+            ),
+        )
+
+    def fetch_schedule_assertion(self) -> List[ScheduleAssertion]:
+        schedule_assertion = []
+        for idx in range(1, self.POLLING_COUNT + 1):
+            schedule_assertion.append(
+                ScheduleAssertion(
+                    success=True,
+                    schedule_finished=idx == self.POLLING_COUNT,
+                    outputs=self.structure_common_outputs(
+                        polling_time=idx * POLLING_INTERVAL,
+                        succeeded_subscription_instance_ids=self.fetch_succeeded_sub_inst_ids(),
+                    ),
+                )
+            )
+        return schedule_assertion
+
+    def do_assert(self):
+        self.assertTrue(
+            models.JobSubscriptionInstanceMap.objects.filter(
+                job_instance_id=api_mkd.job.unit.DEFAULT_JOB_INSTANCE_ID, status=constants.BkJobStatus.SUCCEEDED
+            ).exists()
+        )
