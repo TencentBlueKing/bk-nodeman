@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 
 
 import copy
+import random
 from abc import ABC
 from collections import ChainMap
 from typing import Any, Dict, List, Optional
@@ -76,6 +77,12 @@ class JobBaseTestCase(utils.AgentServiceBaseTestCase, ABC):
         super().setUpTestData()
         # 初始化DB数据后再修改
         cls.structure_mock_data()
+
+        # 随机构造多IP
+        for sub_inst_record_obj in cls.obj_factory.sub_inst_record_objs:
+            inner_ip = sub_inst_record_obj.instance_info["host"]["bk_host_innerip"]
+            sub_inst_record_obj.instance_info["host"]["bk_host_innerip"] = ",".join([inner_ip] * random.randint(1, 3))
+            sub_inst_record_obj.save()
 
     @classmethod
     def get_default_case_name(cls) -> str:
