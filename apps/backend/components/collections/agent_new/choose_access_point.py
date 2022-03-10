@@ -79,13 +79,15 @@ class ChooseAccessPointService(AgentBaseService, remote.RemoteServiceMixin):
         :param detect_host_info:
         :return:
         """
-        detect_host = (detect_host_info["inner_ip"], detect_host_info["inner_ip"])[
+        detect_host = (detect_host_info["outer_ip"], detect_host_info["inner_ip"])[
             host.bk_cloud_id == constants.DEFAULT_CLOUD
         ]
         if host.os_type == constants.OsType.WINDOWS:
             return f"ping {detect_host} -w 1000"
         else:
-            return f"ping {detect_host} -i 0.1 -c 4 -s 100 -W 1 | tail -1 | awk -F '/' '{{print $5}}'"
+            # awk -F '/' '{{printf $5}}'：提取 ping 平均时长 avg 「rtt min/avg/max/mdev = 28.080/28.112/28.143/0.170 ms」
+            # 使用 printf 输出 avg，避免解析到换行符
+            return f"ping {detect_host} -i 0.1 -c 4 -s 100 -W 1 | tail -1 | awk -F '/' '{{printf $5}}'"
 
     def parse_ping_time(self, os_type: str, ping_stdout: str) -> float:
         """
@@ -100,11 +102,15 @@ class ChooseAccessPointService(AgentBaseService, remote.RemoteServiceMixin):
         if os_type.lower() == constants.OsType.WINDOWS.lower():
             try:
                 ping_time_str = self.WIN_PING_PATTERN.findall(ping_stdout)[-1]
-                return float(ping_time_str)
             except IndexError:
-                return self.MIN_PING_TIME
+                ping_time_str = self.MIN_PING_TIME
         else:
-            return float(ping_stdout)
+            ping_time_str = ping_stdout
+
+        try:
+            return float(ping_time_str)
+        except ValueError:
+            return self.MIN_PING_TIME
 
     def handle_single_detect_result(
         self, remote_conn_helper: ExternalRemoteConnHelper, ping_times_gby_ap_id: Dict[int, List[float]]
