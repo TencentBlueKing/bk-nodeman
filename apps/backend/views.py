@@ -176,7 +176,10 @@ AGENT_TEMPLATE = """
     "zkhost": "{{ zkhost }}",
     {%- endif %}
     "btserver_is_bridge": 0,
-    "btserver_is_report": 1
+    "btserver_is_report": 1,
+    "clean_script_files_beginhour": 0,
+    "clean_script_files_maxhours": 72,
+    "clean_script_files_stepcount": 100
 }
 """
 
@@ -251,7 +254,10 @@ PROXY_TEMPLATE = """
     "dftregid": "{{ region_id }}",
     "dftcityid": "{{ city_id }}",
     "btserver_is_bridge": 0,
-    "btserver_is_report": 1
+    "btserver_is_report": 1,
+    "clean_script_files_beginhour": 0,
+    "clean_script_files_maxhours": 72,
+    "clean_script_files_stepcount": 100
 }"""
 
 BTSVR_TEMPLATE = """
