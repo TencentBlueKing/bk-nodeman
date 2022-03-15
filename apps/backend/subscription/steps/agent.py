@@ -159,6 +159,7 @@ class InstallAgent(AgentAction):
             agent_manager.choose_ap(),
             agent_manager.install(),
             agent_manager.get_agent_status(expect_status=constants.ProcStateType.RUNNING),
+            agent_manager.get_agent_id(),
             agent_manager.install_plugins() if self.is_install_latest_plugins else None,
         ]
 
@@ -180,6 +181,7 @@ class ReinstallAgent(AgentAction):
             agent_manager.choose_ap(),
             agent_manager.install(),
             agent_manager.get_agent_status(expect_status=constants.ProcStateType.RUNNING),
+            agent_manager.get_agent_id(),
             agent_manager.install_plugins() if self.is_install_latest_plugins else None,
         ]
 
@@ -199,6 +201,7 @@ class UpgradeAgent(ReinstallAgent):
             agent_manager.push_upgrade_package(),
             agent_manager.run_upgrade_command(),
             agent_manager.get_agent_status(expect_status=constants.ProcStateType.RUNNING),
+            agent_manager.get_agent_id(),
         ]
         return activities, None
 
@@ -216,6 +219,7 @@ class RestartAgent(AgentAction):
             agent_manager.restart(skip_polling_result=True),
             agent_manager.wait(5),
             agent_manager.get_agent_status(expect_status=constants.ProcStateType.RUNNING),
+            agent_manager.get_agent_id(),
         ]
 
         return activities, None
@@ -310,6 +314,7 @@ class UpgradeProxy(ReinstallProxy):
             agent_manager.run_upgrade_command(),
             agent_manager.wait(30),
             agent_manager.get_agent_status(expect_status=constants.ProcStateType.RUNNING),
+            agent_manager.get_agent_id(),
         ]
 
         # 推送文件到proxy
@@ -381,6 +386,7 @@ class ReloadAgent(AgentAction):
             agent_manager.reload_agent(skip_polling_result=True),
             agent_manager.wait(5),
             agent_manager.get_agent_status(expect_status=constants.ProcStateType.RUNNING),
+            agent_manager.get_agent_id(),
         ]
         return activities, None
 
