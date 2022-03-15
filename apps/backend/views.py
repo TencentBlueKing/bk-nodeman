@@ -720,19 +720,18 @@ def get_gse_config(request):
 
     decrypted_token = _decrypt_token(token)
     if inner_ip != decrypted_token["inner_ip"] or bk_cloud_id != decrypted_token["bk_cloud_id"]:
-        logger.error(
-            "token[{token}] 非法, 请求参数为: {data}, token解析为: {decrypted_token}".format(
-                token=token, data=data, decrypted_token=decrypted_token
-            )
+        err_msg = "token[{token}] 非法, 请求参数为: {data}, token解析为: {decrypted_token}".format(
+            token=token, data=data, decrypted_token=decrypted_token
         )
-        raise PermissionError("what are you doing?")
+        logger.error(err_msg)
+        raise PermissionError(err_msg)
 
     config = REDIS_INST.get(REDIS_AGENT_CONF_KEY_TPL.format(file_name=filename, sub_inst_id=decrypted_token["inst_id"]))
     if config:
         return HttpResponse(config.decode())
 
     try:
-        host = Host.objects.get(bk_cloud_id=bk_cloud_id, inner_ip=inner_ip)
+        host = Host.objects.get(bk_host_id=decrypted_token["bk_host_id"])
         if filename in ["bscp.yaml"]:
             config = generate_bscp_config(host=host)
         else:
@@ -818,11 +817,12 @@ def _decrypt_token(token: str) -> dict:
     try:
         token_decrypt = aes_cipher.decrypt(token)
     except Exception as err:
-        logger.error(f"{token}解析失败")
+        logger.error(f"{token} 解析失败")
         raise err
 
-    inner_ip, bk_cloud_id, task_id, timestamp, inst_id = token_decrypt.split("|")
+    bk_host_id, inner_ip, bk_cloud_id, task_id, timestamp, inst_id = token_decrypt.split("|")
     return_value = {
+        "bk_host_id": bk_host_id,
         "inner_ip": inner_ip,
         "bk_cloud_id": int(bk_cloud_id),
         "task_id": task_id,
@@ -831,8 +831,7 @@ def _decrypt_token(token: str) -> dict:
     }
     # timestamp 超过1小时，认为是非法请求
     if time.time() - float(timestamp) > 3600:
-        logger.error(f"token[{token}] 非法, timestamp超时不符合预期, {return_value}")
-        raise PermissionError("what are you doing?")
+        raise PermissionError(f"token[{token}] 非法, timestamp超时不符合预期, {return_value}")
 
     return return_value
 
