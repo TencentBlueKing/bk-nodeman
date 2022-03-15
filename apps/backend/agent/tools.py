@@ -271,7 +271,15 @@ def gen_commands(
     ]
 
     # 系统开启使用密码注册windows服务时，需额外传入用户名和加密密码参数，用于注册windows服务，详见setup_agent.bat脚本
-    need_encrypted_password = settings.REGISTER_WIN_SERVICE_WITH_PASS and host.os_type == constants.OsType.WINDOWS
+    need_encrypted_password = all(
+        [
+            settings.REGISTER_WIN_SERVICE_WITH_PASS,
+            host.os_type == constants.OsType.WINDOWS,
+            # 背景：过期密码会重置为 None，导致加密失败
+            # 仅在密码非空的情况下加密，防止密码过期 / 手动安装的情况下报错
+            identity_data.password is not None,
+        ]
+    )
     if need_encrypted_password:
         # 系统开启使用密码注册windows服务时，需额外传入 -U -P参数，用于注册windows服务，详见setup_agent.bat脚本
         encrypted_password = rsa.RSAUtil(
