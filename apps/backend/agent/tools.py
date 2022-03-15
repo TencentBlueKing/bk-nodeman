@@ -250,7 +250,9 @@ def gen_commands(
     agent_config = host_ap.get_agent_config(host.os_type)
     # 安装操作
     install_path = agent_config["setup_path"]
-    token = aes_cipher.encrypt(f"{host.inner_ip}|{host.bk_cloud_id}|{pipeline_id}|{time.time()}|{sub_inst_id}")
+    token = aes_cipher.encrypt(
+        f"{host.bk_host_id}|{host.inner_ip}|{host.bk_cloud_id}|{pipeline_id}|{time.time()}|{sub_inst_id}"
+    )
     port_config = host_ap.port_config
     run_cmd_params = [
         f"-s {pipeline_id}",
@@ -309,8 +311,9 @@ def gen_commands(
         host_shell = format_run_cmd_by_os_type(host.os_type, host_tmp_path)
         run_cmd_params.extend(
             [
-                f"-HLIP {host.login_ip or host.inner_ip}",
+                f"-HLIP {host.login_ip or host.inner_ip or host.inner_ipv6}",
                 f"-HIIP {host.inner_ip}",
+                f"-HIIP6 {host.inner_ipv6}" if host.inner_ipv6 else "",
                 f"-HA {identity_data.account}",
                 f"-HP {identity_data.port}",
                 f"-HI '{host_identity}'",
@@ -323,6 +326,8 @@ def gen_commands(
                 f"-HS '{host_shell}'",
                 f"-p '{install_path}'",
                 f"-I {jump_server.inner_ip}",
+                f"-I6 {jump_server.inner_ipv6}" if jump_server.inner_ipv6 else "",
+                f"-AI {host.bk_agent_id}" if host.bk_agent_id else "",
                 f"-o {gen_nginx_download_url(jump_server.inner_ip)}",
                 f"-HEP '{encrypted_password}'" if need_encrypted_password else "",
                 "-R" if is_uninstall else "",
@@ -354,6 +359,8 @@ def gen_commands(
             [
                 f"-i {host.bk_cloud_id}",
                 f"-I {host.inner_ip}",
+                f"-I6 {host.inner_ipv6}" if host.inner_ipv6 else "",
+                f"-AI {host.bk_agent_id}" if host.bk_agent_id else "",
                 "-N SERVER",
                 f"-p {install_path}",
                 f"-T {dest_dir}",
