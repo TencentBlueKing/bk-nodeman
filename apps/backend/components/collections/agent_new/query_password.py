@@ -75,7 +75,9 @@ class QueryPasswordService(AgentBaseService):
                 no_need_query_inst_ids.append(sub_inst.id)
             else:
                 cloud_ip_map[f"{host.bk_cloud_id}-{host.inner_ip}"] = {"host": host, "sub_inst_id": sub_inst.id}
-                oa_ticket = host.identity.extra_data.get("oa_ticket")
+                # 兼容 extra 为 None 的情况
+                if host.identity.extra_data:
+                    oa_ticket = host.identity.extra_data.get("oa_ticket")
 
         self.log_info(sub_inst_ids=no_need_query_inst_ids, log_content=_("当前主机验证类型无需查询密码"))
         need_query_inst_ids = [item["sub_inst_id"] for item in cloud_ip_map.values()]
