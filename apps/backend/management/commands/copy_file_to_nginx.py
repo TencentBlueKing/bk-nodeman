@@ -64,9 +64,14 @@ def copy_dir_files_to_storage(
             storage.endpoint_url, "generic", storage.project_id, storage.bucket, default_save_path
         )
         log_and_print(f"storage_type -> {storage.storage_type}, init package_download_url -> {package_download_url}")
-
-        default_ap.package_inner_url = package_download_url
-        default_ap.package_outer_url = package_download_url
+        # migrations 中默认写入的下载地址
+        default_pkg_download_url = "http://127.0.0.1/download"
+        # 仅在初始化默认值 或 无值 时写入下载地址
+        # 背景：写入下载地址减少部署成本，限制写入是兼容用户自定义填入的新下载地址被重置
+        if not default_ap.package_inner_url or default_ap.package_inner_url == default_pkg_download_url:
+            default_ap.package_inner_url = package_download_url
+        if not default_ap.package_outer_url or default_ap.package_outer_url == default_pkg_download_url:
+            default_ap.package_outer_url = package_download_url
         default_ap.save()
 
 
