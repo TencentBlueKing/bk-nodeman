@@ -139,6 +139,14 @@ class AgentManager(object):
         return act
 
     @classmethod
+    def get_agent_id(cls, name=components.GetAgentIDComponent.name):
+        """查询 Agent ID"""
+        if settings.GSE_VERSION == "V1":
+            return None
+        act = AgentServiceActivity(component_code=components.GetAgentIDComponent.code, name=name)
+        return act
+
+    @classmethod
     def check_agent_status(cls, name=components.CheckAgentStatusComponent.name):
         """查询Agent状态是否正常"""
         act = AgentServiceActivity(component_code=components.CheckAgentStatusComponent.code, name=name)
