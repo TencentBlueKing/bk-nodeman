@@ -163,8 +163,12 @@ export default class CloudStore extends VuexModule {
    */
   @Action
   public async updateHost(params: any) {
-    const data = await updateHost(params).catch(() => false);
-    return data;
+    let isCatch = false;
+    const data = await updateHost(params).catch(() => {
+      isCatch = true;
+      return false;
+    });
+    return isCatch ? data : true;
   }
   /**
    * Proxy 重启 下线 卸载操作
