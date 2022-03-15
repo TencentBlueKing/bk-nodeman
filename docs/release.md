@@ -1,5 +1,23 @@
 # Release
 
+## 2.2.7 - 2022-03-15 
+
+
+### bugfix: 
+  * 修复 Agent 安装失败：'NoneType' object has no attribute 'get' 的问题 (fixed #587)
+  * 手动卸载没有给出命令 (fixed #581)
+  * 修复手动安装命令获取失败的问题 (fixed #586)
+  * 修复选择接入点报错 could not convert string to float (fixed #578)
+  * 无法编辑保存proxy主机信息 (fixed #589)
+  * 修复作业平台少数IP超时导致整体任务失败的问题 (fixed #573)
+
+### feature: 
+  * Agent 配置调整脚本清理策略(close #580)
+
+### optimization: 
+  * 仅初始化情况下更新默认接入点下载地址 (closed #594)
+  * 多内网IP兼容 (closed #572)
+
 ## 2.2.6 - 2022-03-10 
 
 
