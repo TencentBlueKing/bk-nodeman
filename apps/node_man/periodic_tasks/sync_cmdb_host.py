@@ -16,8 +16,7 @@ from django.conf import settings
 
 from apps.component.esbclient import client_v2
 from apps.exceptions import ComponentCallError
-from apps.node_man import constants as const
-from apps.node_man import models, tools
+from apps.node_man import constants, models, tools
 from common.log import logger
 
 
@@ -44,8 +43,8 @@ def _list_biz_hosts(biz_id: int, start: int) -> dict:
     biz_hosts = client_v2.cc.list_biz_hosts(
         {
             "bk_biz_id": biz_id,
-            "fields": const.CC_HOST_FIELDS,
-            "page": {"start": start, "limit": const.QUERY_CMDB_LIMIT, "sort": "bk_host_id"},
+            "fields": constants.CC_HOST_FIELDS,
+            "page": {"start": start, "limit": constants.QUERY_CMDB_LIMIT, "sort": "bk_host_id"},
         }
     )
     # 去除内网IP为空的主机
@@ -57,8 +56,8 @@ def _list_resource_pool_hosts(start):
     try:
         result = client_v2.cc.list_resource_pool_hosts(
             {
-                "page": {"start": start, "limit": const.QUERY_CMDB_LIMIT, "sort": "bk_host_id"},
-                "fields": const.CC_HOST_FIELDS,
+                "page": {"start": start, "limit": constants.QUERY_CMDB_LIMIT, "sort": "bk_host_id"},
+                "fields": constants.CC_HOST_FIELDS,
             }
         )
         return result
@@ -66,44 +65,56 @@ def _list_resource_pool_hosts(start):
         return {"info": []}
 
 
-def _bulk_update_host(hosts, fields):
+def _bulk_update_host(hosts, extra_fields):
+    update_fields = ["bk_cloud_id", "inner_ip", "outer_ip", "inner_ipv6", "outer_ipv6", "bk_agent_id"] + extra_fields
     if hosts:
-        models.Host.objects.bulk_update(hosts, fields=fields)
+        models.Host.objects.bulk_update(hosts, fields=update_fields)
 
 
-def _generate_host(biz_id, host, bk_host_innerip, bk_host_outerip, ap_id):
+def _generate_host(biz_id, host, ap_id):
     os_type = tools.HostV2Tools.get_os_type(host)
     cpu_arch = tools.HostV2Tools.get_cpu_arch(host)
     host_data = models.Host(
         bk_host_id=host["bk_host_id"],
+        bk_agent_id=host.get("bk_agent_id"),
         bk_biz_id=biz_id,
         bk_cloud_id=host["bk_cloud_id"],
-        inner_ip=bk_host_innerip,
-        outer_ip=bk_host_outerip,
-        node_from=const.NodeFrom.CMDB,
+        inner_ip=host["bk_host_innerip"].split(",")[0],
+        outer_ip=host["bk_host_outerip"].split(",")[0],
+        inner_ipv6=host.get("bk_host_innerip_v6"),
+        outer_ipv6=host.get("bk_host_outerip_v6"),
+        node_from=constants.NodeFrom.CMDB,
         os_type=os_type,
         cpu_arch=cpu_arch,
-        node_type=const.NodeType.AGENT if host["bk_cloud_id"] == const.DEFAULT_CLOUD else const.NodeType.PAGENT,
+        node_type=constants.NodeType.AGENT
+        if host["bk_cloud_id"] == constants.DEFAULT_CLOUD
+        else constants.NodeType.PAGENT,
         ap_id=ap_id,
     )
 
     identify_data = models.IdentityData(
         bk_host_id=host["bk_host_id"],
         auth_type="PASSWORD",
-        account=const.WINDOWS_ACCOUNT if os_type == const.OsType.WINDOWS else const.LINUX_ACCOUNT,
-        port=const.WINDOWS_PORT if os_type == const.OsType.WINDOWS else settings.BKAPP_DEFAULT_SSH_PORT,
+        account=constants.WINDOWS_ACCOUNT if os_type == constants.OsType.WINDOWS else constants.LINUX_ACCOUNT,
+        port=constants.WINDOWS_PORT if os_type == constants.OsType.WINDOWS else settings.BKAPP_DEFAULT_SSH_PORT,
     )
 
-    process_status_data = models.ProcessStatus(bk_host_id=host["bk_host_id"], name="gseagent")
+    process_status_data = models.ProcessStatus(
+        bk_host_id=host["bk_host_id"], name=models.ProcessStatus.GSE_AGENT_PROCESS_NAME
+    )
 
     return host_data, identify_data, process_status_data
 
 
 def find_host_biz_relations(find_host_biz_ids):
     host_biz_relation = {}
-    for count in range(math.ceil(len(find_host_biz_ids) / const.QUERY_CMDB_LIMIT)):
+    for count in range(math.ceil(len(find_host_biz_ids) / constants.QUERY_CMDB_LIMIT)):
         cc_host_biz_relations = client_v2.cc.find_host_biz_relations(
-            {"bk_host_id": find_host_biz_ids[count * const.QUERY_CMDB_LIMIT : (count + 1) * const.QUERY_CMDB_LIMIT]}
+            {
+                "bk_host_id": find_host_biz_ids[
+                    count * constants.QUERY_CMDB_LIMIT : (count + 1) * constants.QUERY_CMDB_LIMIT
+                ]
+            }
         )
         for _host_biz in cc_host_biz_relations:
             host_biz_relation[_host_biz["bk_host_id"]] = _host_biz["bk_biz_id"]
@@ -115,12 +126,12 @@ def update_or_create_host_base(biz_id, task_id, cmdb_host_data):
     bk_host_ids = [_host["bk_host_id"] for _host in cmdb_host_data]
 
     # 查询节点管理已存在的主机
-    exist_proxy_host_ids = models.Host.objects.filter(bk_host_id__in=bk_host_ids, node_type="PROXY").values_list(
-        "bk_host_id", flat=True
-    )
+    exist_proxy_host_ids = models.Host.objects.filter(
+        bk_host_id__in=bk_host_ids, node_type=constants.NodeType.PROXY
+    ).values_list("bk_host_id", flat=True)
     exist_agent_host_ids = (
         models.Host.objects.filter(bk_host_id__in=bk_host_ids)
-        .exclude(node_type="PROXY")
+        .exclude(node_type=constants.NodeType.PROXY)
         .values_list("bk_host_id", flat=True)
     )
 
@@ -134,7 +145,7 @@ def update_or_create_host_base(biz_id, task_id, cmdb_host_data):
     need_create_host_without_biz = []
     need_delete_host_ids = []
 
-    ap_id = const.DEFAULT_AP_ID if models.AccessPoint.objects.count() > 1 else models.AccessPoint.objects.first().id
+    ap_id = constants.DEFAULT_AP_ID if models.AccessPoint.objects.count() > 1 else models.AccessPoint.objects.first().id
 
     # 已存在的主机批量更新,不存在的主机批量创建
     for host in cmdb_host_data:
@@ -146,24 +157,16 @@ def update_or_create_host_base(biz_id, task_id, cmdb_host_data):
             )
             continue
 
-        if any(["," in host["bk_host_innerip"], "," in host["bk_host_outerip"]]):
-            logger.info(
-                f"{task_id} | sync_cmdb_host error: biz[{biz_id}] | bk_host_id[{host['bk_host_id']}]] | "
-                f"inner_ip [{host['bk_host_innerip']}]"
-            )
-            bk_host_innerip = host["bk_host_innerip"].split(",")[0]
-            bk_host_outerip = host["bk_host_outerip"].split(",")[0]
-        else:
-            bk_host_innerip = host["bk_host_innerip"]
-            bk_host_outerip = host["bk_host_outerip"]
-
+        host_params = {
+            "bk_host_id": host["bk_host_id"],
+            "bk_agent_id": host.get("bk_agent_id"),
+            "bk_cloud_id": host["bk_cloud_id"],
+            "inner_ip": host["bk_host_innerip"].split(",")[0],
+            "outer_ip": host["bk_host_outerip"].split(",")[0],
+            "inner_ipv6": host.get("bk_host_innerip_v6"),
+            "outer_ipv6": host.get("bk_host_outerip_v6"),
+        }
         if host["bk_host_id"] in exist_agent_host_ids:
-            host_params = {
-                "bk_host_id": host["bk_host_id"],
-                "bk_cloud_id": host["bk_cloud_id"],
-                "inner_ip": bk_host_innerip,
-                "outer_ip": bk_host_outerip,
-            }
 
             os_type = tools.HostV2Tools.get_os_type(host)
 
@@ -180,13 +183,7 @@ def update_or_create_host_base(biz_id, task_id, cmdb_host_data):
             else:
                 need_update_hosts_without_biz_os.append(models.Host(**host_params))
         elif host["bk_host_id"] in exist_proxy_host_ids:
-            host_params = {
-                "bk_host_id": host["bk_host_id"],
-                "bk_cloud_id": host["bk_cloud_id"],
-                "inner_ip": bk_host_innerip,
-                "outer_ip": bk_host_outerip,
-                "os_type": const.OsType.LINUX,
-            }
+            host_params["os_type"] = constants.OsType.LINUX
             if biz_id:
                 host_params["bk_biz_id"] = biz_id
                 need_update_hosts.append(models.Host(**host_params))
@@ -197,9 +194,7 @@ def update_or_create_host_base(biz_id, task_id, cmdb_host_data):
             if not biz_id:
                 need_create_host_without_biz.append(host)
             else:
-                host_data, identify_data, process_status_data = _generate_host(
-                    biz_id, host, bk_host_innerip, bk_host_outerip, ap_id
-                )
+                host_data, identify_data, process_status_data = _generate_host(biz_id, host, ap_id)
                 need_create_hosts.append(host_data)
                 host_identity_objs.append(identify_data)
                 process_status_objs.append(process_status_data)
@@ -216,18 +211,16 @@ def update_or_create_host_base(biz_id, task_id, cmdb_host_data):
                 host_data, identify_data, process_status_data = _generate_host(
                     host_biz_relation[need_create_host["bk_host_id"]],
                     need_create_host,
-                    need_create_host["bk_host_innerip"].split(",")[0],
-                    need_create_host["bk_host_outerip"].split(",")[0],
                     ap_id,
                 )
                 need_create_hosts.append(host_data)
                 host_identity_objs.append(identify_data)
                 process_status_objs.append(process_status_data)
 
-    _bulk_update_host(need_update_hosts, ["bk_biz_id", "bk_cloud_id", "inner_ip", "outer_ip", "os_type"])
-    _bulk_update_host(need_update_hosts_without_biz, ["bk_cloud_id", "inner_ip", "outer_ip", "os_type"])
-    _bulk_update_host(need_update_hosts_without_os, ["bk_biz_id", "bk_cloud_id", "inner_ip", "outer_ip"])
-    _bulk_update_host(need_update_hosts_without_biz_os, ["bk_cloud_id", "inner_ip", "outer_ip"])
+    _bulk_update_host(need_update_hosts, ["bk_biz_id", "os_type"])
+    _bulk_update_host(need_update_hosts_without_biz, ["os_type"])
+    _bulk_update_host(need_update_hosts_without_os, ["bk_biz_id"])
+    _bulk_update_host(need_update_hosts_without_biz_os, [])
 
     if need_create_hosts:
         models.Host.objects.bulk_create(need_create_hosts)
@@ -248,14 +241,14 @@ def _update_or_create_host(biz_id, start=0, task_id=None):
 
     logger.info(
         f"{task_id} | sync_cmdb_host biz:[{biz_id}] "
-        f"host count: [{host_count}] current sync[{start}-{start + const.QUERY_CMDB_LIMIT}]"
+        f"host count: [{host_count}] current sync[{start}-{start + constants.QUERY_CMDB_LIMIT}]"
     )
 
     bk_host_ids, _ = update_or_create_host_base(biz_id, task_id, host_data)
 
     # 递归
-    if host_count > start + const.QUERY_CMDB_LIMIT:
-        bk_host_ids += _update_or_create_host(biz_id, start + const.QUERY_CMDB_LIMIT, task_id=task_id)
+    if host_count > start + constants.QUERY_CMDB_LIMIT:
+        bk_host_ids += _update_or_create_host(biz_id, start + constants.QUERY_CMDB_LIMIT, task_id=task_id)
 
     return bk_host_ids
 

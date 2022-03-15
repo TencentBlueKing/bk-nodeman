@@ -52,6 +52,7 @@ from apps.core.files.storage import get_storage
 from apps.exceptions import AppBaseException, ValidationError
 from apps.generic import APIViewSet
 from apps.node_man import constants, models
+from apps.node_man.exceptions import HostNotExists
 from pipeline.engine.exceptions import InvalidOperationException
 from pipeline.service import task_service
 from pipeline.service.pipeline_engine_adapter.adapter_api import STATE_MAP
@@ -500,15 +501,15 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         host_info = params["host_info"]
         plugin_name = params["plugin_name"]
         plugin_version = params["version"]
+        query_host_params = dict(
+            bk_biz_id=host_info["bk_biz_id"], inner_ip=host_info["ip"], bk_cloud_id=host_info["bk_cloud_id"]
+        )
+        if params.get("bk_host_id"):
+            query_host_params.update(bk_host_id=params["bk_host_id"])
 
-        try:
-            host = models.Host.objects.get(
-                bk_biz_id=host_info["bk_biz_id"],
-                inner_ip=host_info["ip"],
-                bk_cloud_id=host_info["bk_cloud_id"],
-            )
-        except models.Host.DoesNotExist:
-            raise ValidationError("host does not exist")
+        host = models.Host.objects.get(**query_host_params).first()
+        if not host:
+            raise HostNotExists("host does not exist")
 
         plugin_id = params.get("plugin_id")
         if plugin_id:

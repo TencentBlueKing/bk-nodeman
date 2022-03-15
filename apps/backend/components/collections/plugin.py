@@ -1131,7 +1131,10 @@ class GseOperateProcService(PluginBaseService):
             gse_op_params = {
                 "meta": {"namespace": constants.GSE_NAMESPACE, "name": meta_name},
                 "op_type": op_type,
+                # GSE 1.0 目标对象
                 "hosts": [{"ip": host.inner_ip, "bk_cloud_id": host.bk_cloud_id}],
+                # GSE 2.0 目标对象
+                "agent_id_list": [host.bk_agent_id],
                 # 此字段是节点管理自用，仅用于标识，不会被GSE使用
                 "nodeman_spec": {
                     "process_status_id": process_status.id,
@@ -1227,7 +1230,10 @@ class GseOperateProcService(PluginBaseService):
             subscription_instance = group_id_instance_map.get(process_status.group_id)
 
             proc_name = self.get_plugin_meta_name(plugin, process_status)
-            gse_proc_key = f"{host.bk_cloud_id}:{host.inner_ip}:{constants.GSE_NAMESPACE}:{proc_name}"
+            if host.bk_agent_id:
+                gse_proc_key = f"{host.bk_agent_id}:{constants.GSE_NAMESPACE}:{proc_name}"
+            else:
+                gse_proc_key = f"{host.bk_cloud_id}:{host.inner_ip}:{constants.GSE_NAMESPACE}:{proc_name}"
             proc_operate_result = result["data"].get(gse_proc_key)
             if not proc_operate_result:
                 self.move_insts_to_failed(

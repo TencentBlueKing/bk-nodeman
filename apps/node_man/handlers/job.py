@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import copy
 import logging
 import re
 from typing import Any, Dict, List
@@ -443,7 +444,7 @@ class JobHandler(APIModel):
         else:
             # 重装、卸载等操作
             # 此步骤需要校验密码、秘钥
-            subscription_nodes, ip_filter_list = self.update(accept_list, ip_filter_list, is_manual)
+            subscription_nodes, ip_filter_list = self.update_host(accept_list, ip_filter_list, is_manual)
             if not subscription_nodes:
                 raise exceptions.AllIpFiltered(
                     data={"job_id": "", "ip_filter": self.ugettext_to_unicode(ip_filter_list)}
@@ -492,32 +493,34 @@ class JobHandler(APIModel):
             login_ip = host.get("login_ip", "")
 
             host_ap_id, host_node_type = self.check_ap_and_biz_scope(node_type, host, cloud_info)
-
-            instance_info = {
-                "is_manual": host["is_manual"],
-                "ap_id": host_ap_id,
-                "install_channel_id": host.get("install_channel_id"),
-                "bk_os_type": constants.BK_OS_TYPE[host["os_type"]],
-                "bk_host_innerip": inner_ip,
-                "bk_host_outerip": outer_ip,
-                "login_ip": login_ip,
-                "username": get_request_username(),
-                "bk_biz_id": host["bk_biz_id"],
-                "bk_biz_name": biz_info.get(host["bk_biz_id"]),
-                "bk_cloud_id": host["bk_cloud_id"],
-                "bk_cloud_name": str(cloud_info.get(host["bk_cloud_id"], {}).get("bk_cloud_name")),
-                "bk_supplier_account": settings.DEFAULT_SUPPLIER_ACCOUNT,
-                "host_node_type": host_node_type,
-                "os_type": host["os_type"],
-                "auth_type": host.get("auth_type", "MANUAL"),
-                "account": host.get("account", "MANUAL"),
-                "port": host.get("port"),
-                "password": tools.HostTools.USE_RSA_PREFIX + rsa_util.encrypt(host.get("password", "")),
-                "key": tools.HostTools.USE_RSA_PREFIX + rsa_util.encrypt(host.get("key", "")),
-                "retention": host.get("retention", 1),
-                "peer_exchange_switch_for_agent": host.get("peer_exchange_switch_for_agent"),
-                "bt_speed_limit": host.get("bt_speed_limit"),
-            }
+            instance_info = copy.deepcopy(host)
+            instance_info.update(
+                {
+                    "is_manual": host["is_manual"],
+                    "ap_id": host_ap_id,
+                    "install_channel_id": host.get("install_channel_id"),
+                    "bk_os_type": constants.BK_OS_TYPE[host["os_type"]],
+                    "bk_host_innerip": inner_ip,
+                    "bk_host_outerip": outer_ip,
+                    "login_ip": login_ip,
+                    "username": get_request_username(),
+                    "bk_biz_id": host["bk_biz_id"],
+                    "bk_biz_name": biz_info.get(host["bk_biz_id"]),
+                    "bk_cloud_id": host["bk_cloud_id"],
+                    "bk_cloud_name": str(cloud_info.get(host["bk_cloud_id"], {}).get("bk_cloud_name")),
+                    "bk_supplier_account": settings.DEFAULT_SUPPLIER_ACCOUNT,
+                    "host_node_type": host_node_type,
+                    "os_type": host["os_type"],
+                    "auth_type": host.get("auth_type", "MANUAL"),
+                    "account": host.get("account", "MANUAL"),
+                    "port": host.get("port"),
+                    "password": tools.HostTools.USE_RSA_PREFIX + rsa_util.encrypt(host.get("password", "")),
+                    "key": tools.HostTools.USE_RSA_PREFIX + rsa_util.encrypt(host.get("key", "")),
+                    "retention": host.get("retention", 1),
+                    "peer_exchange_switch_for_agent": host.get("peer_exchange_switch_for_agent"),
+                    "bt_speed_limit": host.get("bt_speed_limit"),
+                }
+            )
 
             if host_node_type == constants.NodeType.PROXY and host.get("data_path"):
                 # proxy增加数据文件路径
@@ -543,11 +546,12 @@ class JobHandler(APIModel):
         return subscription_nodes
 
     @staticmethod
-    def update(accept_list: list, ip_filter_list: list, is_manual: bool = False):
+    def update_host(accept_list: list, ip_filter_list: list, is_manual: bool = False):
         """
         用于更新identity认证信息
         :param accept_list: 所有需要修改的数据
         :param ip_filter_list: 过滤数据
+        :param is_manual: 是否手动安装
         """
 
         identity_to_create = []
@@ -583,7 +587,9 @@ class JobHandler(APIModel):
                 "bk_biz_id": host["bk_biz_id"],
                 "bk_cloud_id": host["bk_cloud_id"],
                 "inner_ip": host["inner_ip"],
+                "inner_ipv6": host["inner_ipv6"],
                 "outer_ip": host["outer_ip"],
+                "outer_ipv6": host["outer_ipv6"],
                 "login_ip": host["login_ip"],
                 "data_ip": host["data_ip"],
                 "os_type": host["os_type"],
@@ -655,6 +661,8 @@ class JobHandler(APIModel):
                         "bk_cloud_id": origin_host["bk_cloud_id"],
                         "inner_ip": origin_host["inner_ip"],
                         "outer_ip": origin_host["outer_ip"],
+                        "inner_ipv6": origin_host["inner_ipv6"],
+                        "outer_ipv6": origin_host["outer_ipv6"],
                         "login_ip": host.get("login_ip", origin_host["login_ip"]),
                         "data_ip": origin_host["data_ip"],
                         "os_type": host.get("os_type", origin_host["os_type"]),

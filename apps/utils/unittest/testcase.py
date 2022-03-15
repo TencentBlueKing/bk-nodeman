@@ -13,7 +13,8 @@ from collections import defaultdict
 from typing import Any, Dict, List, Optional, Union
 from unittest import mock
 
-from django.contrib.auth.models import User
+from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.test import Client, RequestFactory, TestCase
 
 from apps.utils.unittest import base
@@ -138,17 +139,15 @@ class MockSuperUserMixin:
         super().setUpTestData()
 
         # 创建用于测试的超管
-        cls.superuser = User.objects.create_user(
-            username=cls.SUPERUSER_NAME,
-            password=cls.SUPERUSER_PASSWORD,
-            is_superuser=True,
-            is_staff=True,
-            is_active=True,
-        )
+        user_model = get_user_model()
+        user = user_model.objects.first()
+        user.set_password(cls.SUPERUSER_PASSWORD)
+        user.save()
 
     def setUp(self) -> None:
         super().setUp()
-        self.client.login(username=self.SUPERUSER_NAME, password=self.SUPERUSER_PASSWORD)
+        settings.AUTHENTICATION_BACKENDS = ["django.contrib.auth.backends.ModelBackend"]
+        self.client.login(username=self.SUPERUSER_NAME, password=self.SUPERUSER_NAME)
 
     def tearDown(self) -> None:
         super().tearDown()

@@ -153,7 +153,7 @@ class TestJob(TestCase):
         host_to_create, process_to_create, identity_to_create = create_host(number)
         # 创建完毕，进行修改
         accept_list = gen_update_accept_list(host_to_create, identity_to_create)
-        host_ids, _ = JobHandler().update(accept_list, [])
+        host_ids, _ = JobHandler().update_host(accept_list, [])
         self.assertEqual(len(host_ids), number)
 
     @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)

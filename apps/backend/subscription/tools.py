@@ -377,7 +377,7 @@ def get_host_detail_by_template(bk_obj_id, template_info_list: list, bk_biz_id: 
     if not template_info_list:
         return []
 
-    fields = constants.FIND_HOST_BY_TEMPLATE_FIELD
+    fields = constants.CC_HOST_FIELDS
 
     if bk_obj_id == models.Subscription.NodeType.SERVICE_TEMPLATE:
         # 服务模板

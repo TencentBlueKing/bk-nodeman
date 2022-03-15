@@ -98,6 +98,8 @@ except (TypeError, ValueError):
     BLUEKING_BIZ_ID = 9991001
 # 作业平台版本
 JOB_VERSION = os.getenv("JOB_VERSION") or "V3"
+# 管控平台平台版本
+GSE_VERSION = os.getenv("GSE_VERSION") or "V1"
 # 资源池业务ID
 BK_CMDB_RESOURCE_POOL_BIZ_ID = int(os.getenv("BK_CMDB_RESOURCE_POOL_BIZ_ID", 1)) or 1
 BK_CMDB_RESOURCE_POOL_BIZ_NAME = "资源池"

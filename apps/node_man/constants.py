@@ -32,6 +32,7 @@ from apps.utils.enum import EnhanceEnum
 # 此值为历史遗留，后续蓝鲸不使用此字段后可废弃
 DEFAULT_SUPPLIER_ID = 0
 
+
 ########################################################################################################
 # 任务超时控制
 ########################################################################################################
@@ -46,7 +47,6 @@ class TimeUnit:
 
 # JOB 任务超时时间
 JOB_TIMEOUT = 30 * TimeUnit.MINUTE
-
 
 ########################################################################################################
 # 周期任务周期 run_every，非特殊统一使用秒作为单位的 int 类型，不使用crontab格式
@@ -77,9 +77,6 @@ DEFAULT_CLOUD_NAME = os.environ.get("DEFAULT_CLOUD_NAME", str(_("直连区域"))
 DEFAULT_AP_ID = int(os.environ.get("DEFAULT_AP_ID", -1))
 # GSE命名空间
 GSE_NAMESPACE = "nodeman"
-
-CC_HOST_FIELDS = ["bk_host_id", "bk_cloud_id", "bk_host_innerip", "bk_host_outerip", "bk_os_type", "bk_os_name"]
-
 
 ########################################################################################################
 # 字符串常量
@@ -588,40 +585,29 @@ if settings.BKAPP_RUN_ENV == BkappRunEnvType.CE.value:
         }
     )
 
-LIST_BIZ_HOSTS_KWARGS = [
+CC_HOST_FIELDS = [
     "bk_host_id",
-    "bk_os_type",
-    "bk_host_outerip",
-    "bk_host_innerip",
-    "bk_cpu_module",
+    "bk_agent_id",
     "bk_cloud_id",
+    "bk_host_innerip",
+    "bk_host_outerip",
+    "bk_host_innerip_v6",
+    "bk_host_outerip_v6",
+    "bk_host_name",
+    "bk_os_type",
+    "bk_os_name",
+    "bk_os_bit",
+    "bk_os_version",
+    "bk_cpu_module",
     "operator",
     "bk_bak_operator",
-    "bk_os_bit",
-    "bk_os_name",
-    "bk_host_name",
+    "bk_isp_name",
+    "bk_biz_id",
+    "bk_province_name",
+    "bk_state",
+    "bk_state_name",
     "bk_supplier_account",
 ]
-
-FIND_HOST_BY_TEMPLATE_FIELD = (
-    "bk_host_innerip",
-    "bk_cloud_id",
-    "bk_host_id",
-    "bk_biz_id",
-    "bk_host_outerip",
-    "bk_host_name",
-    "bk_os_name",
-    "bk_os_type",
-    "operator",
-    "bk_bak_operator",
-    "bk_state_name",
-    "bk_isp_name",
-    "bk_province_name",
-    "bk_supplier_account",
-    "bk_state",
-    "bk_os_version",
-    "bk_state",
-)
 
 # 限流窗口配置，用于控制CMDB订阅触发的变更频率
 # 二元组：防抖时间，防抖解除窗口大小
@@ -790,6 +776,60 @@ class GseOpType(object):
         RESTART: _("重启进程"),
         RELOAD: _("重载进程"),
     }
+
+
+class GseAgentStatusCode(EnhanceEnum):
+    NOT_FOUND = -2
+    QUERY_FAILED = -1
+    INITIAL = 0
+    STARTING = 1
+    RUNNING = 2
+    LOSSY = 3
+    BUSY = 4
+    STOPPED = 5
+    UPGRADING = 6
+
+    @classmethod
+    def _get_member__alias_map(cls) -> Dict[Enum, str]:
+        return {
+            cls.NOT_FOUND: _("未找到"),
+            cls.QUERY_FAILED: _("查询失败"),
+            cls.INITIAL: _("初始状态"),
+            cls.STARTING: _("启动中"),
+            cls.RUNNING: _("运行中"),
+            cls.LOSSY: _("有损状态"),
+            cls.BUSY: _("繁忙状态"),
+            cls.STOPPED: _("已停止"),
+            cls.UPGRADING: _("升级中"),
+        }
+
+
+class GseProcessStatusCode(EnhanceEnum):
+    UNREGISTER = 0
+    RUNNING = 1
+    STOPPED = 2
+
+    @classmethod
+    def _get_member__alias_map(cls) -> Dict[Enum, str]:
+        return {
+            cls.UNREGISTER: _("未注册"),
+            cls.RUNNING: _("运行中"),
+            cls.STOPPED: _("已停止"),
+        }
+
+
+class GseProcessAutoCode(EnhanceEnum):
+    """进程是否在GSE托管"""
+
+    AUTO = True
+    NOT_AUTO = False
+
+    @classmethod
+    def _get_member__alias_map(cls) -> Dict[Enum, str]:
+        return {
+            cls.AUTO: _("已托管"),
+            cls.NOT_AUTO: _("未托管"),
+        }
 
 
 class CmdbObjectId:

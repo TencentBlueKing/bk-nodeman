@@ -146,11 +146,13 @@ class RegisterHostService(AgentBaseService):
             host_key = f"{host_info['bk_cloud_id']}-{host_info['bk_host_innerip']}"
             register_params = {
                 index: {
-                    "bk_host_innerip": host_info["bk_host_innerip"],
+                    "bk_host_innerip": host_info.get("bk_host_innerip", ""),
+                    "bk_host_innerip_v6": host_info.get("bk_host_innerip_v6", ""),
                     # "3" 表示API导入
                     "import_from": "3",
                     "bk_cloud_id": host_info["bk_cloud_id"],
                     "bk_host_outerip": host_info.get("bk_host_outerip", ""),
+                    "bk_host_outerip_v6": host_info.get("bk_host_outerip_v6", ""),
                     "bk_os_type": constants.BK_OS_TYPE[host_info["os_type"]],
                     "bk_bak_operator": biz_info.get("bk_biz_maintainer") or host_info.get("username"),
                     "operator": biz_info.get("bk_biz_maintainer") or host_info.get("username"),

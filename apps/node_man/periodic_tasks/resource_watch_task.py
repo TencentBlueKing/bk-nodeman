@@ -18,7 +18,7 @@ from django.db.models import Q
 from django.db.utils import IntegrityError
 
 from apps.component.esbclient import client_v2
-from apps.node_man import constants as const
+from apps.node_man import constants
 from apps.node_man.models import (
     AccessPoint,
     GlobalSettings,
@@ -135,7 +135,7 @@ def sync_resource_watch_host_event():
     拉取主机事件
     """
     kwargs = {
-        "bk_resource": const.ResourceType.host,
+        "bk_resource": constants.ResourceType.host,
         "bk_fields": ["bk_host_innerip", "bk_os_type", "bk_host_id", "bk_cloud_id", "bk_host_outerip"],
     }
 
@@ -147,7 +147,7 @@ def sync_resource_watch_host_relation_event():
     拉取主机关系事件
     """
     kwargs = {
-        "bk_resource": const.ResourceType.host_relation,
+        "bk_resource": constants.ResourceType.host_relation,
     }
 
     _resource_watch(RESOURCE_WATCH_HOST_RELATION_CURSOR_KEY, kwargs)
@@ -157,7 +157,7 @@ def sync_resource_watch_process_event():
     """
     拉取进程
     """
-    kwargs = {"bk_resource": const.ResourceType.process}
+    kwargs = {"bk_resource": constants.ResourceType.process}
     _resource_watch(RESOURCE_WATCH_PROCESS_CURSOR_KEY, kwargs)
 
 
@@ -170,7 +170,7 @@ def delete_host(bk_host_id):
 def list_biz_host(bk_biz_id, bk_host_id):
     kwargs = {
         "bk_biz_id": bk_biz_id,
-        "fields": ["bk_host_id", "bk_cloud_id", "bk_host_innerip", "bk_host_outerip", "bk_os_type", "bk_os_name"],
+        "fields": constants.CC_HOST_FIELDS,
         "host_property_filter": {
             "condition": "AND",
             "rules": [{"field": "bk_host_id", "operator": "equal", "value": bk_host_id}],
@@ -199,11 +199,11 @@ def apply_resource_watched_events():
 
         event_bk_biz_id = event.bk_detail.get("bk_biz_id")
         try:
-            if event.bk_event_type in ["update", "create"] and event.bk_resource == const.ResourceType.host:
+            if event.bk_event_type in ["update", "create"] and event.bk_resource == constants.ResourceType.host:
                 _, need_delete_host_ids = update_or_create_host_base(None, None, [event.bk_detail])
                 if need_delete_host_ids:
                     delete_host(need_delete_host_ids[0])
-            elif event.bk_event_type in ["create"] and event.bk_resource == const.ResourceType.host_relation:
+            elif event.bk_event_type in ["create"] and event.bk_resource == constants.ResourceType.host_relation:
                 # 查询主机信息创建或者更新
                 bk_host_id = event.bk_detail["bk_host_id"]
                 host_obj = Host.objects.filter(bk_host_id=bk_host_id).first()
@@ -216,10 +216,14 @@ def apply_resource_watched_events():
                     host = list_biz_host(event_bk_biz_id, bk_host_id)
                     if host:
                         ap_id = (
-                            const.DEFAULT_AP_ID if AccessPoint.objects.count() > 1 else AccessPoint.objects.first().id
+                            constants.DEFAULT_AP_ID
+                            if AccessPoint.objects.count() > 1
+                            else AccessPoint.objects.first().id
                         )
                         host_data, identify_data, process_status_data = _generate_host(
-                            event_bk_biz_id, host, host["bk_host_innerip"], host["bk_host_outerip"], ap_id
+                            event_bk_biz_id,
+                            host,
+                            ap_id,
                         )
                         # 与注册CC原子存在同时写入的可能，防止更新进行强制插入
                         try:
@@ -273,7 +277,7 @@ def trigger_nodeman_subscription(bk_biz_id):
         """
         计算出下一次的防抖窗口
         """
-        windows = const.CMDB_SUBSCRIPTION_DEBOUNCE_WINDOWS
+        windows = constants.CMDB_SUBSCRIPTION_DEBOUNCE_WINDOWS
 
         if current_time < windows[0][0]:
             # 防抖时间下限

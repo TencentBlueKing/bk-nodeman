@@ -8,15 +8,15 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import time
 
 from celery.task import periodic_task, task
 from django.conf import settings
+from django.db.models import Q
 
-from apps.component.esbclient import client_v2
 from apps.node_man import constants
 from apps.node_man.models import Host, ProcessStatus
 from apps.utils.periodic_task import calculate_countdown
+from common.api import GseApi
 from common.log import logger
 
 
@@ -35,10 +35,11 @@ def query_proc_status(proc_name, host_list):
     5000: 2s-4s (2.3s 2.2s 4.1s 4.3s)
     """
     kwargs = {
-        "meta": {"namespace": "nodeman", "name": proc_name, "labels": {"proc_name": proc_name}},
+        "meta": {"namespace": constants.GSE_NAMESPACE, "name": proc_name, "labels": {"proc_name": proc_name}},
         "hosts": host_list,
+        "agent_id_list": [host["agent_id"] for host in host_list],
     }
-    data = client_v2.gse.get_proc_status(kwargs)
+    data = GseApi.get_proc_status(kwargs)
 
     return data.get("proc_infos") or []
 
@@ -48,17 +49,23 @@ def update_or_create_proc_status(task_id, hosts, sync_proc_list, start):
     host_ip_cloud_list = []
     bk_host_id_map = {}
     for host in hosts:
-        host_ip_cloud_list.append({"ip": host.inner_ip, "bk_cloud_id": host.bk_cloud_id})
-        bk_host_id_map[f"{host.inner_ip}:{host.bk_cloud_id}"] = host.bk_host_id
+        if host.bk_agent_id:
+            agent_id = host.bk_agent_id
+        else:
+            agent_id = f"{host.bk_cloud_id}:{host.inner_ip}"
+        host_ip_cloud_list.append({"ip": host.inner_ip, "bk_cloud_id": host.bk_cloud_id, "agent_id": agent_id})
+        bk_host_id_map[agent_id] = host.bk_host_id
 
     for proc_name in sync_proc_list:
-        past = time.time()
         proc_infos = query_proc_status(proc_name, host_ip_cloud_list)
-        logger.info(f"this get_proc_status cost {time.time() - past}s")
 
         host_proc_status_map = {}
         for info in proc_infos:
-            host_proc_status_map[f'{info["host"]["ip"]}:{info["host"]["bk_cloud_id"]}'] = {
+            if "bk_agent_id" in info:
+                key = info["bk_agent_id"]
+            else:
+                key = f'{info["host"]["bk_cloud_id"]}:{info["host"]["ip"]}'
+            host_proc_status_map[key] = {
                 "version": get_version(info["version"]),
                 "status": constants.PLUGIN_STATUS_DICT[info["status"]],
                 "is_auto": constants.AutoStateType.AUTO if info["isauto"] else constants.AutoStateType.UNAUTO,
@@ -80,10 +87,10 @@ def update_or_create_proc_status(task_id, hosts, sync_proc_list, start):
         need_update_status = []
         need_create_status = []
 
-        for host_cloud_key, host_proc_info in host_proc_status_map.items():
-            if host_cloud_key not in bk_host_id_map:
+        for agent_id, host_proc_info in host_proc_status_map.items():
+            if agent_id not in bk_host_id_map:
                 continue
-            db_proc_info = host_proc_key__proc_map.get(f'{host_proc_info["name"]}:{bk_host_id_map[host_cloud_key]}')
+            db_proc_info = host_proc_key__proc_map.get(f'{host_proc_info["name"]}:{bk_host_id_map[agent_id]}')
 
             # 如果DB中进程状态为手动停止，并且同步回来的进程状态为终止，此时保持手动停止的标记，用于订阅的豁免操作
             if (
@@ -111,16 +118,16 @@ def update_or_create_proc_status(task_id, hosts, sync_proc_list, start):
                     name=host_proc_info["name"],
                     source_type=ProcessStatus.SourceType.DEFAULT,
                     proc_type=constants.ProcType.PLUGIN,
-                    bk_host_id=bk_host_id_map[host_cloud_key],
+                    bk_host_id=bk_host_id_map[agent_id],
                     is_latest=True,
                 )
                 # 忽略无用的进程信息
-                if obj.status != "UNREGISTER":
+                if obj.status != constants.ProcStateType.UNREGISTER:
                     need_create_status.append(obj)
 
         ProcessStatus.objects.bulk_update(need_update_status, fields=["status", "version", "is_auto"])
         ProcessStatus.objects.bulk_create(need_create_status)
-        logger.info(f"{task_id} | Sync process status start flag: {start} complate")
+        logger.info(f"{task_id} | Sync process status start flag: {start} complete")
 
 
 @periodic_task(
@@ -131,22 +138,26 @@ def update_or_create_proc_status(task_id, hosts, sync_proc_list, start):
 def sync_proc_status_periodic_task():
     sync_proc_list = settings.HEAD_PLUGINS
     task_id = sync_proc_status_periodic_task.request.id
-    hosts = Host.objects.all()
-    count = hosts.count()
-    logger.info(f"{task_id} | sync host proc status... host_count={count}.")
+    host_queryset_list = [
+        Host.objects.exclude(bk_agent_id__isnull=True).exclude(bk_agent_id__exact=""),
+        Host.objects.filter(Q(bk_agent_id__isnull=True) | Q(bk_agent_id__exact="")),
+    ]
+    for host_queryset in host_queryset_list:
+        count = host_queryset.count()
+        logger.info(f"{task_id} | sync host proc status... host_count={count}.")
 
-    for start in range(0, count, constants.QUERY_PROC_STATUS_HOST_LENS):
-        countdown = calculate_countdown(
-            count=count / constants.QUERY_PROC_STATUS_HOST_LENS,
-            index=start / constants.QUERY_PROC_STATUS_HOST_LENS,
-            duration=constants.SYNC_PROC_STATUS_TASK_INTERVAL,
-        )
-        logger.info(f"{task_id} | sync host proc status after {countdown} seconds")
+        for start in range(0, count, constants.QUERY_PROC_STATUS_HOST_LENS):
+            countdown = calculate_countdown(
+                count=count / constants.QUERY_PROC_STATUS_HOST_LENS,
+                index=start / constants.QUERY_PROC_STATUS_HOST_LENS,
+                duration=constants.SYNC_PROC_STATUS_TASK_INTERVAL,
+            )
+            logger.info(f"{task_id} | sync host proc status after {countdown} seconds")
 
-        # (task_id, hosts[start: start + constants.QUERY_PROC_STATUS_HOST_LENS], sync_proc_list, start)
-        update_or_create_proc_status.apply_async(
-            (task_id, hosts[start : start + constants.QUERY_PROC_STATUS_HOST_LENS], sync_proc_list, start),
-            countdown=countdown,
-        )
+            # (task_id, hosts[start: start + constants.QUERY_PROC_STATUS_HOST_LENS], sync_proc_list, start)
+            update_or_create_proc_status.apply_async(
+                (task_id, host_queryset[start : start + constants.QUERY_PROC_STATUS_HOST_LENS], sync_proc_list, start),
+                countdown=countdown,
+            )
 
-    logger.info(f"{task_id} | sync host proc status complate.")
+        logger.info(f"{task_id} | sync host proc status complete.")

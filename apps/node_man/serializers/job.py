@@ -48,10 +48,12 @@ class HostSerializer(serializers.Serializer):
     bk_host_id = serializers.IntegerField(label=_("主机ID"), required=False)
     ap_id = serializers.IntegerField(label=_("接入点ID"), required=False)
     install_channel_id = serializers.IntegerField(label=_("安装通道ID"), required=False, allow_null=True)
-    inner_ip = serializers.IPAddressField(label=_("内网IP"))
-    outer_ip = serializers.IPAddressField(label=_("外网IP"), required=False)
-    login_ip = serializers.IPAddressField(label=_("登录IP"), required=False)
-    data_ip = serializers.IPAddressField(label=_("数据IP"), required=False)
+    inner_ip = serializers.IPAddressField(label=_("内网IP"), required=False, allow_blank=True)
+    outer_ip = serializers.IPAddressField(label=_("外网IP"), required=False, allow_blank=True)
+    login_ip = serializers.IPAddressField(label=_("登录IP"), required=False, allow_blank=True)
+    data_ip = serializers.IPAddressField(label=_("数据IP"), required=False, allow_blank=True)
+    inner_ipv6 = serializers.IPAddressField(label=_("内网IPv6"), required=False, allow_blank=True)
+    outer_ipv6 = serializers.IPAddressField(label=_("外网IPv6"), required=False, allow_blank=True)
     os_type = serializers.ChoiceField(label=_("操作系统"), choices=list(constants.OS_TUPLE))
     auth_type = serializers.ChoiceField(label=_("认证类型"), choices=list(constants.AUTH_TUPLE), required=False)
     account = serializers.CharField(label=_("账户"), required=False, allow_blank=True)
@@ -68,6 +70,12 @@ class HostSerializer(serializers.Serializer):
         # 获取任务类型，如果是除安装以外的操作，则密码和秘钥可以为空
         job_type = self.root.initial_data.get("job_type", "")
         op_type = job_type.split("_")[0]
+        node_type = job_type.split("_")[1]
+
+        if not (attrs.get("inner_ip") or attrs.get("inner_ipv6")):
+            raise ValidationError(_("请求参数 inner_ip 和 inner_ipv6 不能同时为空"))
+        if node_type == constants.NodeType.PROXY and not (attrs.get("outer_ip") or attrs.get("outer_ipv6")):
+            raise ValidationError(_("Proxy 操作的请求参数 outer_ip 和 outer_ipv6 不能同时为空"))
 
         op_not_need_identity = [
             constants.OpType.REINSTALL,
@@ -78,13 +86,13 @@ class HostSerializer(serializers.Serializer):
         ]
 
         if op_type in op_not_need_identity and not attrs.get("bk_host_id"):
-            raise ValidationError(_("{op_type} 操作必须填写bk_host_id.").format(op_type=op_type))
+            raise ValidationError(_("{op_type} 操作必须传入 bk_host_id 参数").format(op_type=op_type))
         if (
             not attrs.get("is_manual")
             and not attrs.get("auth_type")
             and job_type not in [constants.JobType.RELOAD_AGENT, constants.JobType.RELOAD_PROXY]
         ):
-            raise ValidationError(_("{op_type} 操作必须填写认证类型.").format(op_type=op_type))
+            raise ValidationError(_("{op_type} 操作必须填写认证类型").format(op_type=op_type))
 
         # identity校验
         if op_type not in op_not_need_identity and not attrs.get("is_manual"):
@@ -97,7 +105,7 @@ class HostSerializer(serializers.Serializer):
 
         # 直连区域必须填写Ap_id
         if attrs["bk_cloud_id"] == int(constants.DEFAULT_CLOUD) and attrs.get("ap_id") is None:
-            raise ValidationError(_("直连区域必须填写Ap_id."))
+            raise ValidationError(_("直连区域必须填写Ap_id"))
 
         # 去除空值
         if attrs.get("key") == "":
@@ -116,7 +124,6 @@ class InstallSerializer(serializers.Serializer):
     # 以下非参数传值
     op_type = serializers.CharField(label=_("操作类型"), required=False)
     node_type = serializers.CharField(label=_("节点类型"), required=False)
-    tcoa_ticket = serializers.CharField(label=_("OA Ticket"), required=False)
 
     def validate(self, attrs):
         # 取得节点类型
@@ -126,7 +133,7 @@ class InstallSerializer(serializers.Serializer):
 
         # 替换PROXY必须填写replace_host_id
         if attrs["job_type"] == constants.JobType.REPLACE_PROXY and not attrs.get("replace_host_id"):
-            raise ValidationError(_("替换PROXY必须填写replace_host_id."))
+            raise ValidationError(_("替换PROXY必须填写replace_host_id"))
 
         rsa_util = tools.HostTools.get_rsa_util()
         fields_need_decrypt = ["password", "key"]
@@ -161,12 +168,12 @@ class OperateSerializer(serializers.Serializer):
         attrs["node_type"] = attrs["job_type"].split("_")[1]
 
         if attrs["op_type"] == "INSTALL":
-            raise ValidationError(_("该接口不可用于安装."))
+            raise ValidationError(_("该接口不可用于安装"))
         if attrs["op_type"] == "REPLACE":
-            raise ValidationError(_("该接口不可用于替换代理."))
+            raise ValidationError(_("该接口不可用于替换代理"))
 
         if attrs.get("exclude_hosts") is not None and attrs.get("bk_host_id") is not None:
-            raise ValidationError(_("跨页全选模式下不允许传bk_host_id参数."))
+            raise ValidationError(_("跨页全选模式下不允许传bk_host_id参数"))
         if attrs.get("exclude_hosts") is None and attrs.get("bk_host_id") is None:
             raise ValidationError(_("必须选择一种模式(【是否跨页全选】)"))
 

@@ -10,19 +10,50 @@ specific language governing permissions and limitations under the License.
 """
 
 from ... import utils
+from . import unit
 
 
 class GseApiMockClient(utils.BaseMockClient):
+    DEFAULT_OPERATE_PROC_RETURN = utils.MockReturn(
+        return_type=utils.MockReturnType.RETURN_VALUE.value, return_obj=unit.OP_RESULT
+    )
+    DEFAULT_GET_OPERATE_RESULT_RETURN = utils.MockReturn(
+        return_type=utils.MockReturnType.RETURN_VALUE.value, return_obj=unit.GET_PROC_OPERATE_RESULT
+    )
+    DEFAULT_GET_AGENT_INFO_RETURN = utils.MockReturn(
+        return_type=utils.MockReturnType.RETURN_VALUE.value, return_obj=unit.GET_AGENT_INFO_DATA
+    )
+    DEFAULT_GET_AGENT_STATUS_RETURN = utils.MockReturn(
+        return_type=utils.MockReturnType.RETURN_VALUE.value, return_obj=unit.GET_AGENT_ALIVE_STATUS_DATA
+    )
+    GET_AGENT_NOT_ALIVE_STATUS_RETURN = utils.MockReturn(
+        return_type=utils.MockReturnType.RETURN_VALUE.value, return_obj=unit.GET_AGENT_NOT_ALIVE_STATUS_DATA
+    )
+    DEFAULT_GET_AGENT_INFO_LIST_RETURN = utils.MockReturn(
+        return_type=utils.MockReturnType.SIDE_EFFECT.value, return_obj=unit.mock_get_agent_info_list
+    )
+    DEFAULT_GET_AGENT_STATE_LIST_RETURN = utils.MockReturn(
+        return_type=utils.MockReturnType.SIDE_EFFECT.value, return_obj=unit.mock_get_agent_state_list
+    )
+    GET_AGENT_NOT_ALIVE_STATE_LIST_RETURN = utils.MockReturn(
+        return_type=utils.MockReturnType.RETURN_VALUE.value, return_obj=unit.GET_AGENT_NOT_ALIVE_STATE_LIST_DATA
+    )
+    DEFAULT_GET_PROC_STATUS_RETURN = utils.MockReturn(
+        return_type=utils.MockReturnType.SIDE_EFFECT.value, return_obj=unit.mock_get_proc_status
+    )
+
     def __init__(
         self,
-        operate_proc_return=None,
-        operate_proc_multi_return=None,
-        get_proc_operate_result_return=None,
-        get_proc_status_return=None,
+        operate_proc_return=DEFAULT_OPERATE_PROC_RETURN,
+        operate_proc_multi_return=DEFAULT_OPERATE_PROC_RETURN,
+        get_proc_operate_result_return=DEFAULT_GET_OPERATE_RESULT_RETURN,
+        get_proc_status_return=DEFAULT_GET_PROC_STATUS_RETURN,
         sync_proc_status_return=None,
         update_proc_info_return=None,
-        get_agent_info_return=None,
-        get_agent_status_return=None,
+        get_agent_info_return=DEFAULT_GET_AGENT_INFO_RETURN,
+        get_agent_status_return=DEFAULT_GET_AGENT_STATUS_RETURN,
+        get_agent_info_list_return=DEFAULT_GET_AGENT_INFO_LIST_RETURN,
+        get_agent_state_list_return=DEFAULT_GET_AGENT_STATE_LIST_RETURN,
     ):
         super().__init__()
         self.operate_proc = self.generate_magic_mock(mock_return_obj=operate_proc_return)
@@ -33,3 +64,5 @@ class GseApiMockClient(utils.BaseMockClient):
         self.update_proc_info = self.generate_magic_mock(mock_return_obj=update_proc_info_return)
         self.get_agent_info = self.generate_magic_mock(mock_return_obj=get_agent_info_return)
         self.get_agent_status = self.generate_magic_mock(mock_return_obj=get_agent_status_return)
+        self.get_agent_info_list = self.generate_magic_mock(mock_return_obj=get_agent_info_list_return)
+        self.get_agent_state_list = self.generate_magic_mock(mock_return_obj=get_agent_state_list_return)
