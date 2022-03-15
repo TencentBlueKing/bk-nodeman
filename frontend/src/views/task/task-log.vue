@@ -96,7 +96,7 @@
                   <div
                     class="command-guide col-execution"
                     v-if="['running', 'pending'].includes(row.status)
-                      && showCommandBtn && commandStep.includes(row.step)">
+                      && showCommandBtn && commandStep.includes(row.step) ">
                     <span class="execut-mark execut-ignored"></span>
                     <i18n tag="span" path="等待手动操作查看" class="execut-text">
                       <bk-button text theme="primary" @click="handleRowView">
@@ -374,7 +374,8 @@ export default {
       return /(INSTALL)|(REINSTALL)|(UPGRADE)/ig.test(this.jobType);
     },
     commandStep() {
-      return /UN/ig.test(this.jobType) ? [this.$t('手动卸载Guide'), '卸载'] : [this.$t('手动安装Guide'), '安装'];
+      return [this.$t('手动安装Guide'), '安装', this.$t('手动卸载Guide'), '卸载', '卸载Agent', '卸载Proxy'];
+      // return /UN/ig.test(this.jobType) ? [this.$t('手动卸载Guide'), '卸载'] : [this.$t('手动安装Guide'), '安装'];
     },
   },
   watch: {

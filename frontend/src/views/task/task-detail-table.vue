@@ -50,7 +50,7 @@
         <template #default="{ row }">
           <div
             class="col-execution"
-            v-if="'running' === row.status && showCommindBtn && commandStepTextArr.includes(row.step)">
+            v-if="'running' === row.status && showCommindBtn && commandStep.includes(row.step)">
             <span class="execut-mark execut-ignored"></span>
             <i18n tag="span" path="等待手动操作查看" class="execut-text">
               <bk-button text theme="primary" @click="handleRowView('viewCommind',row)">
@@ -188,8 +188,9 @@ export default class TaskDeatailTable extends Mixins(HeaderRenderMixin) {
   private get isUninstallType() {
     return /UN/ig.test(this.jobType);
   }
-  private get commandStepTextArr() {
-    return this.isUninstallType ? [this.$t('手动卸载Guide'), '卸载'] : [this.$t('手动安装Guide'), '安装'];
+  private get commandStep() {
+    return [this.$t('手动安装Guide'), '安装', this.$t('手动卸载Guide'), '卸载', '卸载Agent', '卸载Proxy'];
+    // return this.isUninstallType ? [this.$t('手动卸载Guide'), '卸载'] : [this.$t('手动安装Guide'), '安装'];
   }
 
   @Emit('row-operate')
