@@ -237,6 +237,7 @@ class PluginStartDebugSerializer(GatewaySerializer):
     """
 
     class HostInfoSerializer(serializers.Serializer):
+        bk_host_id = serializers.IntegerField(required=False)
         ip = serializers.CharField(required=True)
         bk_cloud_id = serializers.IntegerField(required=True)
         bk_supplier_id = serializers.IntegerField(default=constants.DEFAULT_SUPPLIER_ID)
