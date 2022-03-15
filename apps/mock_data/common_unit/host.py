@@ -8,13 +8,19 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import copy
+
 from apps.node_man import constants, models
 
 from .. import utils
 
+BK_AGENT_ID = "xxxx-xxxx-xxxx-xxxx-xxxx-xxxx-xxxx-xxxx-xxxx-xxxx-xxxx-xxxx-xxxx"
+
 DEFAULT_HOST_ID = 1
 
 DEFAULT_IP = "127.0.0.1"
+
+DEFAULT_IPv6 = "ABCD:EF01:2345:6789:ABCD:EF01:2345:6789"
 
 PROXY_INNER_IP = "1.1.1.1"
 
@@ -91,12 +97,21 @@ HOST_MODEL_DATA = {
     "os_type": constants.OsType.LINUX,
     "cpu_arch": constants.CpuType.x86_64,
     "node_type": constants.NodeType.AGENT,
-    "node_from": constants.NodeFrom.NODE_MAN,
+    "node_from": constants.NodeFrom.CMDB,
     "ap_id": constants.DEFAULT_AP_ID,
     "upstream_nodes": [],
     "is_manual": False,
     "extra_data": {"bt_speed_limit": None, "peer_exchange_switch_for_agent": 1},
 }
+
+HOST_MODEL_DATA_WITH_AGENT_ID = copy.deepcopy(HOST_MODEL_DATA)
+HOST_MODEL_DATA_WITH_AGENT_ID.update(
+    **{
+        "bk_agent_id": BK_AGENT_ID,
+        "inner_ipv6": DEFAULT_IPv6,
+        "outer_ipv6": DEFAULT_IPv6,
+    }
+)
 
 IDENTITY_MODEL_DATA = {
     "bk_host_id": DEFAULT_HOST_ID,

@@ -12,13 +12,14 @@ import time
 import typing
 
 from celery.task import periodic_task, task
+from django.db.models import Q
 
-from apps.component.esbclient import client_v2
 from apps.core.concurrent import controller
 from apps.node_man import constants, tools
 from apps.node_man.models import Host, ProcessStatus
 from apps.utils import concurrent
 from apps.utils.periodic_task import calculate_countdown
+from common.api import GseApi
 from common.log import logger
 
 
@@ -42,10 +43,11 @@ def query_proc_status(proc_name, host_list):
     5000: 2s-4s (2.3s 2.2s 4.1s 4.3s)
     """
     kwargs = {
-        "meta": {"namespace": "nodeman", "name": proc_name, "labels": {"proc_name": proc_name}},
+        "meta": {"namespace": constants.GSE_NAMESPACE, "name": proc_name, "labels": {"proc_name": proc_name}},
         "hosts": host_list,
+        "agent_id_list": [host["agent_id"] for host in host_list],
     }
-    data = client_v2.gse.get_proc_status(kwargs)
+    data = GseApi.get_proc_status(kwargs)
 
     return data.get("proc_infos") or []
 
@@ -60,7 +62,11 @@ def proc_statues2host_key__readable_proc_status_map(
     """
     host_key__readable_proc_status_map: typing.Dict[str, typing.Dict[str, typing.Any]] = {}
     for proc_status in proc_statuses:
-        host_key__readable_proc_status_map[f'{proc_status["host"]["ip"]}:{proc_status["host"]["bk_cloud_id"]}'] = {
+        if "bk_agent_id" in proc_status:
+            host_key = proc_status["bk_agent_id"]
+        else:
+            host_key = f"{proc_status['host']['bk_cloud_id']}:{proc_status['host']['ip']}"
+        host_key__readable_proc_status_map[host_key] = {
             "version": get_version(proc_status["version"]),
             "status": constants.PLUGIN_STATUS_DICT[proc_status["status"]],
             "is_auto": constants.AutoStateType.AUTO if proc_status["isauto"] else constants.AutoStateType.UNAUTO,
@@ -74,17 +80,21 @@ def update_or_create_proc_status(task_id, hosts, sync_proc_list, start):
     host_ip_cloud_list = []
     bk_host_id_map = {}
     for host in hosts:
-        host_ip_cloud_list.append({"ip": host.inner_ip, "bk_cloud_id": host.bk_cloud_id})
-        bk_host_id_map[f"{host.inner_ip}:{host.bk_cloud_id}"] = host.bk_host_id
+        if host.bk_agent_id:
+            agent_id = host.bk_agent_id
+        else:
+            agent_id = f"{host.bk_cloud_id}:{host.inner_ip}"
+        host_ip_cloud_list.append({"ip": host.inner_ip, "bk_cloud_id": host.bk_cloud_id, "agent_id": agent_id})
+        bk_host_id_map[agent_id] = host.bk_host_id
 
     for proc_name in sync_proc_list:
         past = time.time()
-        proc_statues = query_proc_status(proc_name=proc_name, host_list=host_ip_cloud_list)
+        proc_statuses = query_proc_status(proc_name=proc_name, host_list=host_ip_cloud_list)
         logger.info(f"this get_proc_status cost {time.time() - past}s")
 
         host_key__readable_proc_status_map: typing.Dict[
             str, typing.Dict[str, typing.Any]
-        ] = proc_statues2host_key__readable_proc_status_map(proc_statues)
+        ] = proc_statues2host_key__readable_proc_status_map(proc_statuses)
 
         process_status_objs = ProcessStatus.objects.filter(
             name=proc_name,
@@ -154,22 +164,26 @@ def update_or_create_proc_status(task_id, hosts, sync_proc_list, start):
 def sync_proc_status_periodic_task():
     sync_proc_list = tools.PluginV2Tools.fetch_head_plugins()
     task_id = sync_proc_status_periodic_task.request.id
-    hosts = Host.objects.all()
-    count = hosts.count()
-    logger.info(f"{task_id} | sync host proc status... host_count={count}.")
+    host_queryset_list = [
+        Host.objects.exclude(bk_agent_id__isnull=True).exclude(bk_agent_id__exact=""),
+        Host.objects.filter(Q(bk_agent_id__isnull=True) | Q(bk_agent_id__exact="")),
+    ]
+    for host_queryset in host_queryset_list:
+        count = host_queryset.count()
+        logger.info(f"{task_id} | sync host proc status... host_count={count}.")
 
-    for start in range(0, count, constants.QUERY_PROC_STATUS_HOST_LENS):
-        countdown = calculate_countdown(
-            count=count / constants.QUERY_PROC_STATUS_HOST_LENS,
-            index=start / constants.QUERY_PROC_STATUS_HOST_LENS,
-            duration=constants.SYNC_PROC_STATUS_TASK_INTERVAL,
-        )
-        logger.info(f"{task_id} | sync host proc status after {countdown} seconds")
+        for start in range(0, count, constants.QUERY_PROC_STATUS_HOST_LENS):
+            countdown = calculate_countdown(
+                count=count / constants.QUERY_PROC_STATUS_HOST_LENS,
+                index=start / constants.QUERY_PROC_STATUS_HOST_LENS,
+                duration=constants.SYNC_PROC_STATUS_TASK_INTERVAL,
+            )
+            logger.info(f"{task_id} | sync host proc status after {countdown} seconds")
 
-        # (task_id, hosts[start: start + constants.QUERY_PROC_STATUS_HOST_LENS], sync_proc_list, start)
-        update_or_create_proc_status.apply_async(
-            (task_id, hosts[start : start + constants.QUERY_PROC_STATUS_HOST_LENS], sync_proc_list, start),
-            countdown=countdown,
-        )
+            # (task_id, hosts[start: start + constants.QUERY_PROC_STATUS_HOST_LENS], sync_proc_list, start)
+            update_or_create_proc_status.apply_async(
+                (task_id, host_queryset[start : start + constants.QUERY_PROC_STATUS_HOST_LENS], sync_proc_list, start),
+                countdown=countdown,
+            )
 
-    logger.info(f"{task_id} | sync host proc status complate.")
+        logger.info(f"{task_id} | sync host proc status complete.")
