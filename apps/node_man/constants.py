@@ -740,12 +740,12 @@ class BkJobParamSensitiveType(EnhanceEnum):
 class BkJobScopeType(EnhanceEnum):
     """作业平台执行范围类型"""
 
-    BIZ = 1
-    BIZ_SET = 2
+    BIZ = "biz"
+    BIZ_SET = "biz_set"
 
     @classmethod
     def _get_member__alias_map(cls) -> Dict[Enum, str]:
-        return {cls.BIZ: _("业务"), cls.NO: _("业务集")}
+        return {cls.BIZ: _("业务"), cls.BIZ_SET: _("业务集")}
 
 
 class ScriptLanguageType(EnhanceEnum):
