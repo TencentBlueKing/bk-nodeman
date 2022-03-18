@@ -21,19 +21,19 @@ class _SopsApi(BaseApi):
     def __init__(self):
         self.create_task = DataAPI(
             method="POST",
-            url=SOPS_APIGATEWAY_ROOT + "create_task/",
+            url=SOPS_APIGATEWAY_ROOT + "create_task/{template_id}/{bk_biz_id}/",
             module=self.MODULE,
             description="创建任务",
         )
         self.start_task = DataAPI(
             method="POST",
-            url=SOPS_APIGATEWAY_ROOT + "start_task/",
+            url=SOPS_APIGATEWAY_ROOT + "start_task/{task_id}/{bk_biz_id}/",
             module=self.MODULE,
             description="启动任务",
         )
         self.get_task_status = DataAPI(
-            method="POST",
-            url=SOPS_APIGATEWAY_ROOT + "get_task_status/",
+            method="GET",
+            url=SOPS_APIGATEWAY_ROOT + "get_task_status/{task_id}/{bk_biz_id}/",
             module=self.MODULE,
             description="查询任务状态",
         )
