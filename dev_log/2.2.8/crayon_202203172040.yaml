@@ -1,0 +1,3 @@
+---
+optimization:
+  - "插件订阅变更计算优化 (closed #599)"
