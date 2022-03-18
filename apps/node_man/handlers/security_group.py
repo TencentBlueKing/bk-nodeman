@@ -38,9 +38,9 @@ class SopsSecurityGroupFactory(BaseSecurityGroupFactory):
                 "template_id": settings.BKAPP_EE_SOPS_TEMPLATE_ID,
                 "bk_biz_id": settings.BKAPP_REQUEST_EE_SOPS_BK_BIZ_ID,
                 "bk_username": settings.BKAPP_REQUEST_EE_SOPS_OPERATOR,
-                "constants": {"${iplist}": ",".join(ip_list)},
+                "constants": {"${ip_list}": " ".join(ip_list)},
             }
-        )
+        )["task_id"]
         SopsApi.start_task(
             {
                 "task_id": task_id,
