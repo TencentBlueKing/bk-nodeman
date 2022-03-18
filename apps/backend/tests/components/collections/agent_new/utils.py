@@ -57,6 +57,7 @@ AGENT_INSTANCE_HOST_INFO = {
     "bk_cloud_name": constants.DEFAULT_CLOUD_NAME,
     "bk_supplier_account": constants.DEFAULT_SUPPLIER_ID,
     "peer_exchange_switch_for_agent": True,
+    "data_path": "/tmp",
 }
 
 
@@ -76,7 +77,6 @@ class SshManMockClient(utils.BaseMockClient):
 
 
 class AgentTestObjFactory:
-
     # 主机实例信息，如需创建数据，请通过深拷贝的方式复制
     BASE_INSTANCE_HOST_INFO: Dict[str, Any] = copy.deepcopy(AGENT_INSTANCE_HOST_INFO)
     # 随机生成的起始主机ID
@@ -391,8 +391,16 @@ class AgentTestObjFactory:
         _check_objs_fields_type(_objs=self.identity_data_objs, _field__type__map={"bk_host_id": int})
 
 
-class AgentServiceBaseTestCase(CustomAPITestCase, ComponentTestMixin, ABC):
+class ProxyTestObjFactory(AgentTestObjFactory):
+    def structure_instance_host_info_list(self) -> List[Dict[str, Any]]:
+        instance_host_info_list = super().structure_instance_host_info_list()
+        # 改为Proxy
+        for instance_host_info in instance_host_info_list:
+            instance_host_info.update(host_node_type=constants.NodeType.PROXY)
+        return instance_host_info_list
 
+
+class AgentServiceBaseTestCase(CustomAPITestCase, ComponentTestMixin, ABC):
     # CustomAPITestCase
     LIST_SORT = True
 
