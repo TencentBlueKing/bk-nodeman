@@ -68,7 +68,7 @@ class ConfigurePolicyComponentBaseTest(utils.AgentServiceBaseTestCase):
 class SopsConfigurePolicyComponentBaseTest(ConfigurePolicyComponentBaseTest):
     SOPS_CLIENT_MOCK_PATH = "apps.node_man.handlers.security_group.SopsApi"
 
-    create_task_result: int = None
+    create_task_result: Dict[str, int] = None
     start_task_result: bool = None
     get_task_status_result: Optional[Dict] = None
     sops_mock_client: Optional[api_mkd.sops.utils.SOPSMockClient] = None
@@ -79,7 +79,7 @@ class SopsConfigurePolicyComponentBaseTest(ConfigurePolicyComponentBaseTest):
         构造SOPS接口返回数据
         :return:
         """
-        cls.create_task_result = 123
+        cls.create_task_result = {"task_id": 123}
         cls.start_task_result = True
         cls.get_task_status_result = {"state": "FINISHED"}
 
@@ -119,7 +119,7 @@ class SopsConfigurePolicyComponentBaseTest(ConfigurePolicyComponentBaseTest):
                 execute_assertion=ExecuteAssertion(
                     success=bool(self.common_inputs["subscription_instance_ids"]),
                     outputs={
-                        "add_ip_output": {"task_id": self.create_task_result},
+                        "add_ip_output": self.create_task_result,
                         "polling_time": 0,
                         "succeeded_subscription_instance_ids": self.common_inputs["subscription_instance_ids"],
                     },
@@ -129,7 +129,7 @@ class SopsConfigurePolicyComponentBaseTest(ConfigurePolicyComponentBaseTest):
                         success=True,
                         schedule_finished=True,
                         outputs={
-                            "add_ip_output": {"task_id": self.create_task_result},
+                            "add_ip_output": self.create_task_result,
                             "polling_time": 0,
                             "succeeded_subscription_instance_ids": self.common_inputs["subscription_instance_ids"],
                         },
