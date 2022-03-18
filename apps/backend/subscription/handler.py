@@ -13,9 +13,9 @@ from __future__ import absolute_import, unicode_literals
 import logging
 from collections import Counter
 from copy import deepcopy
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Set
 
-from django.db.models import Max, QuerySet
+from django.db.models import Max, Q, QuerySet
 from django.utils.translation import ugettext as _
 
 from apps.backend.subscription import errors, task_tools, tasks, tools
@@ -276,13 +276,24 @@ class SubscriptionHandler(object):
             filter_empty=True,
         )
 
+        # 需要排除处在执行状态或执行成功的订阅实例 ID
+        exclude_instance_ids: Set[int] = set(
+            models.SubscriptionInstanceRecord.objects.filter(
+                **base_filter_kwargs,
+                status__in=[
+                    constants.JobStatusType.RUNNING,
+                    constants.JobStatusType.PENDING,
+                    constants.JobStatusType.SUCCESS,
+                ],
+            ).values_list("instance_id", flat=True)
+        )
+        instance_record_qs = models.SubscriptionInstanceRecord.objects.filter(
+            Q(**base_filter_kwargs) & ~Q(instance_id__in=exclude_instance_ids)
+        )
+
         # 如果不传重试范围，则查询已失败的任务
         if not instance_id_list:
-            instance_record_qs = models.SubscriptionInstanceRecord.objects.filter(
-                **{"status": constants.JobStatusType.FAILED, **base_filter_kwargs}
-            )
-        else:
-            instance_record_qs = models.SubscriptionInstanceRecord.objects.filter(**base_filter_kwargs)
+            instance_record_qs = instance_record_qs.filter(status=constants.JobStatusType.FAILED)
 
         instance_record_ids = SubscriptionTools.fetch_latest_record_ids_in_same_inst_id(instance_record_qs)
         instance_records = models.SubscriptionInstanceRecord.objects.filter(id__in=instance_record_ids).values(
@@ -297,7 +308,7 @@ class SubscriptionHandler(object):
         scope = deepcopy(subscription.scope)
         scope.update({"object_type": first_node["object_type"], "node_type": first_node["node_type"], "nodes": []})
 
-        # 以HOST or SERVICE 为单位重试
+        # 以 HOST or SERVICE 为单位重试
         instances = {}
         for instance_record in instance_records:
             instances[instance_record["instance_id"]] = instance_record["instance_info"]
