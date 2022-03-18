@@ -404,7 +404,7 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
             sub_inst_ids=sub_inst_id,
             log_content=_('作业任务ID为[{job_instance_id}]，点击跳转到<a href="{link}" target="_blank">[作业平台]</a>').format(
                 job_instance_id=job_instance_id,
-                link=f"{settings.BK_JOB_HOST}/{settings.BLUEKING_BIZ_ID}/execute/step/{job_instance_id}",
+                link=f"{settings.BK_JOB_HOST}/api_execute/{job_instance_id}",
             ),
         )
         name = REDIS_INSTALL_CALLBACK_KEY_TPL.format(sub_inst_id=sub_inst_id)

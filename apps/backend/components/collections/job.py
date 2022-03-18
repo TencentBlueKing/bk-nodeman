@@ -163,7 +163,7 @@ class JobV3BaseService(six.with_metaclass(abc.ABCMeta, BaseService)):
                 _('{log}\n作业任务ID为 [{job_instance_id}]，点击跳转到 <a href="{link}" target="_blank">[作业平台]</a>').format(
                     log=log,
                     job_instance_id=job_instance_id,
-                    link=f"{settings.BK_JOB_HOST}/{settings.BLUEKING_BIZ_ID}/execute/step/{job_instance_id}",
+                    link=f"{settings.BK_JOB_HOST}/api_execute/{job_instance_id}",
                 ),
             )
         return []
@@ -255,6 +255,8 @@ class JobV3BaseService(six.with_metaclass(abc.ABCMeta, BaseService)):
         result = JobApi.get_job_instance_status(
             {
                 "bk_biz_id": settings.BLUEKING_BIZ_ID,
+                "bk_scope_type": constants.BkJobScopeType.BIZ_SET.value,
+                "bk_scope_id": settings.BLUEKING_BIZ_ID,
                 "job_instance_id": job_sub_map.job_instance_id,
                 "return_ip_result": False,
             }
