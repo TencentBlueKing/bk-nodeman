@@ -18,7 +18,7 @@ from collections import ChainMap, defaultdict
 from typing import Any, Callable, Dict, List, Tuple, Union
 
 import six
-from django.db.models import Q
+from django.db.models import Q, QuerySet
 
 from apps.backend import constants as backend_const
 from apps.backend.plugin.manager import PluginManager, PluginServiceActivity
@@ -28,6 +28,7 @@ from apps.backend.subscription.steps import adapter
 from apps.backend.subscription.steps.base import Action, Step
 from apps.node_man import constants, models
 from apps.node_man.exceptions import ApIDNotExistsError
+from apps.utils import concurrent
 from common.log import logger
 from pipeline.builder import Data, Var
 
@@ -35,7 +36,13 @@ from pipeline.builder import Data, Var
 class PluginStep(Step):
     STEP_TYPE = "PLUGIN"
 
+    # 进程配置缓存，用于 get_all_subscription_steps_context
+    group_id_host_id__last_proc_status_map: Dict[str, Dict[str, Any]] = None
+
     def __init__(self, subscription_step: models.SubscriptionStep):
+
+        super(PluginStep, self).__init__(subscription_step)
+
         # 配置数据校验
         policy_step_adapter = adapter.PolicyStepAdapter(subscription_step)
 
@@ -59,7 +66,25 @@ class PluginStep(Step):
         self.target_hosts = subscription_step.subscription.target_hosts
 
         self.process_cache = defaultdict(dict)
-        super(PluginStep, self).__init__(subscription_step)
+
+        self.group_id_host_id__last_proc_status_map = {}
+        # 初次部署预览时订阅 ID 为空 或 -1，此时不会执行配置对比，无需进行查询
+        if self.subscription.id not in [-1, None]:
+            # 1. 原逻辑是查询 source_id & bk_host_id 最后一个 proc_status
+            # 2. 通过 is_latest 查询所得数据是 1. 提及范围的子集，目的是避免主机下存在 proc_status 数据过多
+            # 3. 兜底，get_step_data 在 get 不到数据时会捞 DB
+            proc_status_infos = models.ProcessStatus.objects.filter(
+                name=self.plugin_name,
+                source_id=self.subscription.id,
+                proc_type=constants.ProcType.PLUGIN,
+                is_latest=True,
+            ).values(
+                "bk_host_id", "group_id", "listen_ip", "listen_port", "setup_path", "log_path", "data_path", "pid_path"
+            )
+            for proc_status_info in proc_status_infos:
+                self.group_id_host_id__last_proc_status_map[
+                    f"{proc_status_info['group_id']}-{proc_status_info['bk_host_id']}"
+                ] = proc_status_info
 
     def get_matching_package(self, os_type: str, cpu_arch: str) -> models.Packages:
         try:
@@ -118,28 +143,43 @@ class PluginStep(Step):
         """
         获取步骤上下文数据
         """
-        filter_condition = dict(
-            bk_host_id=target_host.bk_host_id,
-            name=self.plugin_name,
-            source_id=self.subscription_step.subscription_id,
-            proc_type=constants.ProcType.PLUGIN,
-            group_id=tools.create_group_id(self.subscription, instance_info),
-        )
-        # TODO 查询优化
-        process_status = models.ProcessStatus.objects.filter(**filter_condition).last()
-        if not process_status:
+        group_id = tools.create_group_id(self.subscription, instance_info)
+        proc_status_info = self.group_id_host_id__last_proc_status_map.get(f"{group_id}-{target_host.bk_host_id}")
+        if not proc_status_info:
+            filter_condition = dict(
+                bk_host_id=target_host.bk_host_id,
+                name=self.plugin_name,
+                source_id=self.subscription.id,
+                proc_type=constants.ProcType.PLUGIN,
+                group_id=tools.create_group_id(self.subscription, instance_info),
+            )
+            proc_status_info = (
+                models.ProcessStatus.objects.filter(**filter_condition)
+                .values(
+                    "bk_host_id",
+                    "group_id",
+                    "listen_ip",
+                    "listen_port",
+                    "setup_path",
+                    "log_path",
+                    "data_path",
+                    "pid_path",
+                )
+                .last()
+            )
+
+        if not proc_status_info:
             return {}
 
-        control_info = self.generate_plugin_control_info(process_status, target_host, agent_config)
+        control_info = self.generate_plugin_control_info(proc_status_info, target_host, agent_config)
         return {"control_info": control_info}
 
     def generate_plugin_control_info(
-        self, process_status: models.ProcessStatus, host: models.Host, agent_config: Dict
+        self, process_status_info: Dict[str, Any], host: models.Host, agent_config: Dict
     ) -> Dict[str, Any]:
         """
         生成插件控制信息
         """
-        # TODO 此处容易引发n+1查询，后续如果用到这段逻辑，需要把host_id 和 host映射后放到构造函数缓存
         package = self.get_matching_package(host.os_type, host.cpu_arch)
         # 序列化器效率较低，直接通过getattr将模型转为字典
         proc_control = package.proc_control
@@ -171,35 +211,37 @@ class PluginStep(Step):
 
         control_info.update(
             gse_agent_home=agent_config["setup_path"],
-            listen_ip=process_status.listen_ip,
-            listen_port=process_status.listen_port,
-            group_id=process_status.group_id,
-            setup_path=process_status.setup_path,
-            log_path=process_status.log_path,
-            data_path=process_status.data_path,
-            pid_path=process_status.pid_path,
+            listen_ip=process_status_info["listen_ip"],
+            listen_port=process_status_info["listen_port"],
+            group_id=process_status_info["group_id"],
+            setup_path=process_status_info["setup_path"],
+            log_path=process_status_info["log_path"],
+            data_path=process_status_info["data_path"],
+            pid_path=process_status_info["pid_path"],
         )
         return control_info
 
     def check_config_change(
         self,
+        instance_id: str,
         subscription_step: models.SubscriptionStep,
         instance_info: Dict,
         host_map: Dict,
         ap_id_obj_map: Dict,
-        process_status_list: List[models.ProcessStatus],
-    ) -> bool:
+        process_status_list: List[Dict[str, Any]],
+        proc_status_id__configs_map: Dict[int, List[Dict]],
+    ) -> Dict[str, Union[bool, str]]:
         """检测配置是否有变动"""
         try:
             for process_status in process_status_list:
                 # 渲染新配置
-                target_host = host_map[process_status.bk_host_id]
+                target_host = host_map[process_status["bk_host_id"]]
                 ap = ap_id_obj_map.get(target_host.ap_id)
                 if not ap:
                     raise ApIDNotExistsError()
                 agent_config = ap.agent_config[target_host.os_type.lower()]
                 context = tools.get_all_subscription_steps_context(
-                    subscription_step, instance_info, target_host, process_status.name, agent_config
+                    subscription_step, instance_info, target_host, process_status["name"], agent_config
                 )
 
                 rendered_configs = tools.render_config_files_by_config_templates(
@@ -208,7 +250,8 @@ class PluginStep(Step):
                     context,
                     package_obj=self.get_matching_package(target_host.os_type, target_host.cpu_arch),
                 )
-                old_rendered_configs = process_status.configs
+
+                old_rendered_configs = proc_status_id__configs_map[process_status["id"]]
 
                 for new_config in rendered_configs:
                     for old_config in old_rendered_configs:
@@ -217,24 +260,25 @@ class PluginStep(Step):
                             break
                     else:
                         # 如果在老配置中找不到新配置，则必须重新下发
-                        return True
+                        return {"instance_id": instance_id, "is_config_change": True}
 
         except Exception as e:
+
             logger.exception("检测配置文件变动失败：%s" % e)
             # 遇到异常也被认为有改动
-            return True
-        return False
+            return {"instance_id": instance_id, "is_config_change": True}
+        return {"instance_id": instance_id, "is_config_change": False}
 
-    def check_version_change(self, host_map: Dict[int, models.Host], statuses: List[models.ProcessStatus]) -> Dict:
+    def check_version_change(self, host_map: Dict[int, models.Host], statuses: List[Dict[str, Any]]) -> Dict:
         """检查版本是否有变更，并返回当前版本及目标版本"""
         current_version = None
         target_version = None
         for status in statuses:
-            host = host_map[status.bk_host_id]
+            host = host_map[status["bk_host_id"]]
             package = self.get_matching_package(host.os_type, host.cpu_arch)
-            current_version = status.version
+            current_version = status["version"]
             target_version = package.version
-            if package.version != status.version:
+            if package.version != status["version"]:
                 return {"has_change": True, "current_version": current_version, "target_version": target_version}
         return {"has_change": False, "current_version": current_version, "target_version": target_version}
 
@@ -434,19 +478,86 @@ class PluginStep(Step):
         for instance_id in no_change_instance_ids:
             push_migrate_reason_func(_instance_id=instance_id, migrate_type=backend_const.PluginMigrateType.NOT_CHANGE)
 
-    def list_related_process_statuses(self, auto_trigger: bool) -> List:
+    def handle_config_change_instances(
+        self,
+        auto_trigger: bool,
+        instance_ids: List[str],
+        push_config_action: str,
+        instance_actions: Dict[str, str],
+        push_migrate_reason_func: Callable,
+        ap_id_obj_map: Dict[int, models.AccessPoint],
+        bk_host_id__host_map: Dict[int, models.Host],
+        instances: Dict[str, Dict[str, Union[Dict, Any]]],
+        instance_id__proc_statuses_map: Dict[str, List[Dict[str, Any]]],
+    ):
+        """
+        处理配置变更的情况
+        :param auto_trigger: 是否为自动触发任务
+        :param instance_ids: 需要处理配置变更的实例ID列表
+        :param push_config_action: 配置变更动作
+        :param instance_actions: 实例ID - 实例动作 映射关系
+        :param push_migrate_reason_func: 变更原因归档函数
+        :param ap_id_obj_map: 接入点 ID - 接入点对象映射关系
+        :param bk_host_id__host_map: 主机 ID - 主机对象映射关系
+        :param instances: 实例ID - 实例信息 映射关系，当前订阅范围的实际范围
+        :param instance_id__proc_statuses_map: 实例ID - 进程实例信息映射
+        :return:
+        """
+        bk_host_ids: List[int] = []
+        for proc_statuses in instance_id__proc_statuses_map.values():
+            bk_host_ids.extend([proc_status["bk_host_id"] for proc_status in proc_statuses])
+        # 延迟查询配置
+        # 配置变更作为一个可能发生的 case，要避免在上层将 JSON 数据查出，因为这部分数据对其他 case 而言是多余的
+        proc_configs_list = (
+            self.filter_related_process_statuses(auto_trigger=auto_trigger)
+            .filter(bk_host_id__in=set(bk_host_ids))
+            .values("id", "configs")
+        )
+        proc_status_id__configs_map: Dict[int, List[Dict]] = {
+            proc_configs["id"]: proc_configs["configs"] for proc_configs in proc_configs_list
+        }
+
+        check_config_change_params_list: List[Dict] = []
+        for instance_id in instance_ids:
+            check_config_change_params_list.append(
+                {
+                    "instance_id": instance_id,
+                    "subscription_step": self.subscription_step,
+                    "instance_info": instances[instance_id],
+                    "host_map": bk_host_id__host_map,
+                    "ap_id_obj_map": ap_id_obj_map,
+                    "process_status_list": instance_id__proc_statuses_map[instance_id],
+                    "proc_status_id__configs_map": proc_status_id__configs_map,
+                }
+            )
+
+        # 计算密集型任务，通过多线程并行加速
+        check_results = concurrent.batch_call(
+            func=self.check_config_change, params_list=check_config_change_params_list
+        )
+
+        for check_result in check_results:
+            if not check_result["is_config_change"]:
+                continue
+            instance_actions[check_result["instance_id"]] = push_config_action
+            push_migrate_reason_func(
+                _instance_id=check_result["instance_id"], migrate_type=backend_const.PluginMigrateType.CONFIG_CHANGE
+            )
+
+    def filter_related_process_statuses(self, auto_trigger: bool) -> QuerySet:
         """
         查询此步骤相关联的进程状态
         :param auto_trigger: 任务是否自动触发的
         :return:
         """
         if self.subscription_step.subscription_id in [None, -1]:
-            return []
-        # 由于 ProcessStatus 字段太多，出于优化和节省内存的习惯，这里仅 only 出需要用到的字段
+            return models.ProcessStatus.objects.none()
+        # 默认仅查出需要使用的非 JSON 字段
+        # 此处不考虑用 only，only 隐式仅加载某些字段，容易在引用对象处造成 n+1 查询
         statuses = models.ProcessStatus.objects.filter(
             source_id=self.subscription_step.subscription_id,
             name=self.plugin_name,
-        ).only("id", "bk_host_id", "retry_times", "status", "version", "group_id", "configs")
+        ).values("id", "bk_host_id", "retry_times", "status", "version", "group_id", "name")
         # 仅主程序部署需要获取最新的状态，第三方订阅互相不影响，没有所谓最新状态
         # 当自动触发时，不需要过滤 is_latest=True，否则会导致一些没成功的任务进程查询不出来，最终导致max_retry_times不生效
         # 非自动触发时仅筛选is_latest=True，解决策略拓扑节点减少后，变更情况与已部署节点数 & 策略编辑后实际范围 关联不一致的问题
@@ -456,7 +567,6 @@ class PluginStep(Step):
         # 情况2导致关联不一致的问题，但该问题仅影响数量层面，对实际结果没有影响，为了保证SaaS查看的变更正常，仅计算策略实际管控范围内的变更
         if self.subscription.is_main and not auto_trigger:
             statuses = statuses.filter(is_latest=True)
-        statuses = list(statuses)
         return statuses
 
     def get_action_dict(self) -> Dict[str, str]:
@@ -480,7 +590,7 @@ class PluginStep(Step):
         instances: Dict[str, Dict[str, Union[Dict, Any]]],
         auto_trigger: bool = False,
         preview_only: bool = False,
-        **kwargs
+        **kwargs,
     ) -> Dict[str, Dict]:
         """
         计算实例变化所需要变更动作
@@ -506,16 +616,18 @@ class PluginStep(Step):
             }
 
         bk_host_ids = set()
+        instance_ids = set()
         id_to_instance_id = {}
         instance_key = "host" if self.subscription.object_type == models.Subscription.ObjectType.HOST else "service"
         id_key = "bk_host_id" if instance_key == "host" else "id"
         for instance_id, instance in list(instances.items()):
-            id_to_instance_id[instance[instance_key][id_key]] = instance_id
+            instance_ids.add(instance_id)
             bk_host_ids.add(instance["host"]["bk_host_id"])
+            id_to_instance_id[instance[instance_key][id_key]] = instance_id
 
-        statuses = self.list_related_process_statuses(auto_trigger=auto_trigger)
+        statuses = list(self.filter_related_process_statuses(auto_trigger=auto_trigger))
         for status in statuses:
-            bk_host_ids.add(status.bk_host_id)
+            bk_host_ids.add(status["bk_host_id"])
 
         group_id__host_key__proc_status_map = defaultdict(dict)
         bk_host_id__host_map = {
@@ -523,15 +635,18 @@ class PluginStep(Step):
         }
         for status in statuses:
             # 未同步的主机，忽略
-            if status.bk_host_id not in bk_host_id__host_map:
+            if status["bk_host_id"] not in bk_host_id__host_map:
                 continue
-            host_key = tools.create_host_key({"bk_host_id": status.bk_host_id})
+            host_key = tools.create_host_key({"bk_host_id": status["bk_host_id"]})
             # group 已经可以包含主机id了，为啥还要套一层字典？
             # 因为服务实例远程采集场景中，一个 group_id 可能对应多个主机
-            group_id__host_key__proc_status_map[status.group_id][host_key] = status
+            group_id__host_key__proc_status_map[status["group_id"]][host_key] = status
 
-        uninstall_ids = []
-        max_retry_instance_ids = []
+        uninstall_ids: List[int] = []
+        max_retry_instance_ids: List[str] = []
+        wait_for_config_check_instance_ids: List[str] = []
+        instance_id__proc_statuses_map: Dict[str, List[Dict[str, Any]]] = {}
+
         action_dict = self.get_action_dict()
         ap_id_obj_map = models.AccessPoint.ap_id_obj_map()
         for group_id, host_key__proc_status_map in list(group_id__host_key__proc_status_map.items()):
@@ -546,13 +661,13 @@ class PluginStep(Step):
             process_statuses = list(host_key__proc_status_map.values())
 
             for process_status in process_statuses:
-                if process_status.retry_times > MAX_RETRY_TIME:
+                if process_status["retry_times"] > MAX_RETRY_TIME:
                     max_retry_instance_ids.append(instance_id)
 
-            if instance_id not in id_to_instance_id.values():
+            if instance_id not in instance_ids:
                 # 如果实例已经不存在且状态不是已停止，则卸载插件/停止插件
                 for process_status in process_statuses:
-                    if process_status.status != constants.ProcStateType.TERMINATED:
+                    if process_status["status"] != constants.ProcStateType.TERMINATED:
                         uninstall_ids.append(_id)
                         break
             else:
@@ -581,7 +696,7 @@ class PluginStep(Step):
                     continue
 
                 # 如果运行中进程存在任何异常，则重新下发
-                instance_statuses = {status.status for status in process_statuses}
+                instance_statuses = {status["status"] for status in process_statuses}
                 if {constants.ProcStateType.UNKNOWN, constants.ProcStateType.TERMINATED} & instance_statuses:
                     if constants.ProcStateType.UNKNOWN in instance_statuses:
                         instance_actions[instance_id] = action_dict["install_action"]
@@ -601,20 +716,20 @@ class PluginStep(Step):
 
                 # 如果配置文件变化，则需要重新下发
                 if instance_actions.get(instance_id) in [None, action_dict["start_action"]]:
-                    is_config_change = self.check_config_change(
-                        self.subscription_step,
-                        instances[instance_id],
-                        bk_host_id__host_map,
-                        ap_id_obj_map,
-                        process_statuses,
-                    )
+                    wait_for_config_check_instance_ids.append(instance_id)
+                    instance_id__proc_statuses_map[instance_id] = process_statuses
 
-                    if is_config_change:
-                        # 如果实例的配置文件发生变化，则更新配置
-                        instance_actions[instance_id] = action_dict["push_config"]
-                        _push_migrate_reason(
-                            _instance_id=instance_id, migrate_type=backend_const.PluginMigrateType.CONFIG_CHANGE
-                        )
+        self.handle_config_change_instances(
+            auto_trigger=auto_trigger,
+            instance_ids=wait_for_config_check_instance_ids,
+            push_config_action=action_dict["push_config"],
+            instance_actions=instance_actions,
+            push_migrate_reason_func=_push_migrate_reason,
+            ap_id_obj_map=ap_id_obj_map,
+            bk_host_id__host_map=bk_host_id__host_map,
+            instances=instances,
+            instance_id__proc_statuses_map=instance_id__proc_statuses_map,
+        )
 
         # 处理已不在订阅范围内实例
         self.handle_uninstall_instances(
