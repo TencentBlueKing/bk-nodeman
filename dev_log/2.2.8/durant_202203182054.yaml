@@ -1,0 +1,3 @@
+---
+bugfix:
+  - "Agent安装为Proxy未更新节点类型 (fixed #605)"

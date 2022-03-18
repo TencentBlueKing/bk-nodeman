@@ -197,6 +197,8 @@ class RegisterHostTestCase(utils.AgentServiceBaseTestCase):
 
 
 class UpdateDBTestCase(RegisterHostTestCase):
+    OBJ_FACTORY_CLASS = utils.ProxyTestObjFactory
+
     @classmethod
     def adjust_test_data_in_db(cls):
         """
@@ -208,13 +210,17 @@ class UpdateDBTestCase(RegisterHostTestCase):
             host_obj.bk_biz_id = random.randint(100, 200)
             host_obj.bk_cloud_id = random.randint(100, 200)
             host_obj.inner_ip = ""
+            # 数据库中的host为AGENT，重装为PROXY，OBJ_FACTORY_CLASS设为PROXY
+            host_obj.node_type = constants.NodeType.AGENT
         for identity_data_obj in cls.obj_factory.identity_data_objs:
             identity_data_obj.auth_type = random.choice(constants.AUTH_TUPLE)
             identity_data_obj.port = random.randint(3306, 65535)
             identity_data_obj.password = "test"
         for sub_inst_obj in cls.obj_factory.sub_inst_record_objs:
             sub_inst_obj.instance_info["host"].pop("bk_host_id")
-        models.Host.objects.bulk_update(cls.obj_factory.host_objs, fields=["bk_biz_id", "bk_cloud_id", "inner_ip"])
+        models.Host.objects.bulk_update(
+            cls.obj_factory.host_objs, fields=["bk_biz_id", "bk_cloud_id", "inner_ip", "node_type"]
+        )
         models.IdentityData.objects.bulk_update(
             cls.obj_factory.identity_data_objs, fields=["auth_type", "port", "password"]
         )
@@ -225,6 +231,10 @@ class UpdateDBTestCase(RegisterHostTestCase):
     @classmethod
     def get_default_case_name(cls) -> str:
         return "注册主机到配置平台成功「更新DB存量数据」"
+
+    def assert_in_teardown(self):
+        for host in models.Host.objects.all():
+            self.assertEqual(host.node_type, constants.NodeType.PROXY)
 
 
 class EmptyAuthInfoTestCase(RegisterHostTestCase):

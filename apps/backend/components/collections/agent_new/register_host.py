@@ -427,7 +427,7 @@ class RegisterHostService(AgentBaseService):
         models.Host.objects.bulk_create(host_objs_to_be_created, batch_size=self.batch_size)
         models.Host.objects.bulk_update(
             host_objs_to_be_updated,
-            fields=["bk_biz_id", "bk_cloud_id", "inner_ip", "outer_ip", "login_ip", "data_ip", "os_type"]
+            fields=["bk_biz_id", "bk_cloud_id", "inner_ip", "outer_ip", "login_ip", "data_ip", "os_type", "node_type"]
             + ["is_manual", "ap_id", "install_channel_id", "upstream_nodes", "updated_at", "extra_data"],
             batch_size=self.batch_size,
         )
