@@ -1915,14 +1915,14 @@ class Subscription(orm.SoftDeleteModel):
             bk_host_id__in=bk_host_ids,
             name=plugin_name,
             is_latest=is_latest,
-        ).only("bk_host_id", "source_id")
+        ).values("bk_host_id", "source_id", "bk_obj_id")
 
         # 主机插件对应的范围层级列表映射
         for proc_status in exist_process_statuses:
-            host_id__bk_obj_sub_map[proc_status.bk_host_id].append(
+            host_id__bk_obj_sub_map[proc_status["bk_host_id"]].append(
                 {
-                    "bk_obj_id": proc_status.bk_obj_id,
-                    "subscription": exist_subscription_id__obj_map.get(int(proc_status.source_id))
+                    "bk_obj_id": proc_status["bk_obj_id"],
+                    "subscription": exist_subscription_id__obj_map.get(int(proc_status["source_id"]))
                     # "subscription_id": int(proc_status.source_id),
                     # "name": exist_subscription_id__obj_map.get(int(proc_status.source_id)),
                 }

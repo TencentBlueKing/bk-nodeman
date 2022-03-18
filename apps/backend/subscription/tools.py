@@ -1039,7 +1039,7 @@ def render_config_files(
 
 def render_config_files_by_config_templates(
     config_templates: List[models.PluginConfigTemplate],
-    process_status: models.ProcessStatus,
+    process_status_info: Dict[str, Any],
     context: Dict,
     package_obj: models.Packages,
 ):
@@ -1047,7 +1047,7 @@ def render_config_files_by_config_templates(
     根据订阅配置及步骤信息渲染配置模板
     :param package_obj: 插件包对象
     :param list[PluginConfigTemplate] config_templates: 配置文件模板
-    :param HostStatus process_status: 主机进程信息
+    :param HostStatus process_status_info: 主机进程信息
     :param dict context: 上下文信息
     :return: example: [
         {
@@ -1079,7 +1079,7 @@ def render_config_files_by_config_templates(
             # 官方插件的部署方式为单实例多配置，在配置模板的名称上追加 group id 即可对配置文件做唯一标识
             filename, extension = os.path.splitext(template.name)
             rendered_config["name"] = "{filename}_{group_id}{extension}".format(
-                filename=filename, group_id=process_status.group_id, extension=extension
+                filename=filename, group_id=process_status_info["group_id"], extension=extension
             )
         else:
             # 非官方插件、官方插件中的主配置文件，无需追加 group id

@@ -936,7 +936,7 @@ class RenderAndPushConfigService(PluginBaseService, JobV3BaseService):
             # 根据配置模板和上下文变量渲染配置文件
             rendered_configs = render_config_files_by_config_templates(
                 policy_step_adapter.get_matching_config_tmpl_objs(target_host.os_type, target_host.cpu_arch),
-                process_status,
+                {"group_id": process_status.group_id},
                 context,
                 package_obj=package,
             )
