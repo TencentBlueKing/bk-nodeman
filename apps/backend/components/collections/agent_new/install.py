@@ -17,7 +17,6 @@ import time
 from collections import defaultdict
 from typing import Any, Dict, List, Optional, Set, Tuple
 
-from asgiref.sync import sync_to_async
 from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
 from redis.client import Pipeline
@@ -36,7 +35,7 @@ from apps.core.concurrent import controller
 from apps.core.remote import conns
 from apps.exceptions import AuthOverdueException
 from apps.node_man import constants, models
-from apps.utils import concurrent, exc
+from apps.utils import concurrent, exc, sync
 from common.api import JobApi
 from pipeline.core.flow import Service, StaticIntervalGenerator
 
@@ -453,7 +452,7 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
         # django.core.exceptions.SynchronousOnlyOperation: You cannot call this from an async context -
         # use a thread or sync_to_async.
         # 参考：https://docs.djangoproject.com/en/3.2/topics/async/
-        log_info = sync_to_async(self.log_info)
+        log_info = sync.sync_to_async(self.log_info)
         installation_tool = install_sub_inst_obj.installation_tool
         async with conns.AsyncsshConn(**install_sub_inst_obj.conns_init_params) as conn:
             run_cmd = installation_tool.run_cmd
@@ -474,7 +473,7 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
         :param install_sub_inst_obj:
         :return:
         """
-        log_info = sync_to_async(self.log_info)
+        log_info = sync.sync_to_async(self.log_info)
         installation_tool = install_sub_inst_obj.installation_tool
         filenames = ["curl.exe", "curl-ca-bundle.crt", "libcurl-x64.dll"]
         localpaths = [os.path.join(settings.BK_SCRIPTS_PATH, filename) for filename in filenames]
