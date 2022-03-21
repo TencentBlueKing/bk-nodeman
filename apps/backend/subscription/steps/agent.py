@@ -253,7 +253,6 @@ class InstallProxy(AgentAction):
             agent_manager.choose_ap(),
             agent_manager.install(),
             agent_manager.get_agent_status(expect_status=constants.ProcStateType.RUNNING, name=_("查询Proxy状态")),
-            agent_manager.check_policy_gse_to_proxy(),
         ]
 
         activities = self.append_push_file_activities(agent_manager, activities)
