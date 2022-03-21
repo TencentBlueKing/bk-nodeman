@@ -14,14 +14,13 @@ from abc import ABC
 from collections import ChainMap, defaultdict
 from enum import Enum
 
-from asgiref.sync import sync_to_async
 from django.utils.translation import ugettext_lazy as _
 
 from apps.backend import constants as backend_constants
 from apps.core.concurrent import controller
 from apps.core.remote import conns, core_remote_exceptions
 from apps.node_man import constants, models
-from apps.utils import concurrent, enum, exc
+from apps.utils import concurrent, enum, exc, sync
 from apps.utils.cache import class_member_cache
 
 from .. import base, core
@@ -125,13 +124,13 @@ class RemoteServiceMixin(base.BaseService, ABC):
         except Exception as exception:
             # 其他异常表示 SSH 可用，但出现认证错误等问题
             check_result.update(type=SshCheckResultType.AVAILABLE_BUT_RAISE_EXC.value, exc=exception)
-            await sync_to_async(self.move_insts_to_failed)(
+            await sync.sync_to_async(self.move_insts_to_failed)(
                 sub_inst_ids=[remote_conn_helper.sub_inst_id], log_content=exception
             )
         return check_result
 
     async def sudo_prompt(self, remote_conn_helper: RemoteConnHelperT):
-        log_warning = sync_to_async(self.log_warning)
+        log_warning = sync.sync_to_async(self.log_warning)
         if remote_conn_helper.identity_data.account not in [constants.LINUX_ACCOUNT, constants.WINDOWS_ACCOUNT]:
             await log_warning(
                 remote_conn_helper.sub_inst_id,
