@@ -368,6 +368,7 @@ class JobStatusType(object):
     REMOVED = "REMOVED"
     FILTERED = "FILTERED"
     IGNORED = "IGNORED"
+    PROCESSING_STATUS = [PENDING, RUNNING]
 
     @classmethod
     def get_choices(cls):
