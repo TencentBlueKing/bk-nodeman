@@ -1,0 +1,3 @@
+---
+bugfix:
+  - "安装 Proxy 去除 check_policy_gse_to_proxy 步骤 (fixed #612)"
