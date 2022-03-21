@@ -49,6 +49,8 @@ INSTALLED_APPS += (
     "apps.iam_migration",
     # DB重连
     "django_dbconn_retry",
+    # django_prometheus
+    "django_prometheus",
 )
 
 # 这里是默认的中间件，大部分情况下，不需要改动
@@ -76,6 +78,18 @@ MIDDLEWARE = (
     "apps.middlewares.CommonMid",
     "apps.middlewares.UserLocalMiddleware",
 )
+
+# 添加django_prometheus中间件
+MIDDLEWARE = (
+    ("django_prometheus.middleware.PrometheusBeforeMiddleware",)
+    + MIDDLEWARE
+    + ("django_prometheus.middleware.PrometheusAfterMiddleware",)
+)
+
+# open telemetry
+ENABLE_OTEL_TRACE = get_type_env("ENABLE_OTEL_TRACE", _type=bool, default=False)
+OTLP_GRPC_HOST = get_type_env("OTLP_GRPC_HOST", _type=str, default="")
+OTLP_BK_DATA_ID = get_type_env("OTLP_BK_DATA_ID", _type=int, default=0)
 
 # 单元测试豁免登录
 if "test" in sys.argv:
@@ -118,7 +132,6 @@ SUPERVISOR_PASSWORD = ""
 SUPERVISOR_SOCK = "unix:///var/run/bknodeman/nodeman-supervisord.sock"
 # 自监控rabbitmq队列最大长度配置
 RABBITMQ_MAX_MESSAGE_COUNT = 10000
-
 
 # ===============================================================================
 # Django 基础配置
@@ -215,6 +228,12 @@ CELERY_DEFAULT_QUEUE = "default"
 CELERY_DEFAULT_EXCHANGE = "default"
 CELERY_DEFAULT_ROUTING_KEY = "default"
 
+IS_CELERY = False
+IS_CELERY_BEAT = False
+if "celery" in sys.argv:
+    IS_CELERY = True
+    if "beat" in sys.argv:
+        IS_CELERY_BEAT = True
 # ===============================================================================
 # 项目配置
 # ===============================================================================
