@@ -81,3 +81,18 @@ kazoo==2.8.0
 asgiref==3.4.1
 
 asyncssh==2.8.1
+
+# prometheus
+django-prometheus==2.2.0
+
+# opentelemetry
+opentelemetry-api==1.5.0
+opentelemetry-sdk==1.5.0
+opentelemetry-exporter-otlp==1.5.0
+opentelemetry-instrumentation-django==0.24b0
+opentelemetry-instrumentation-elasticsearch==0.24b0
+opentelemetry-instrumentation-dbapi==0.24b0
+opentelemetry-instrumentation-redis==0.24b0
+opentelemetry-instrumentation-requests==0.24b0
+opentelemetry-instrumentation-celery==0.24b0
+opentelemetry-instrumentation-logging==0.24b0

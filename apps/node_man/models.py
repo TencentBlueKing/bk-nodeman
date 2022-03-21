@@ -56,6 +56,7 @@ from apps.node_man.exceptions import (
     QueryGlobalSettingsException,
     UrlNotReachableError,
 )
+from apps.prometheus.models import export_job_prometheus_mixin
 from apps.utils import files, orm
 from common.log import logger
 from pipeline.parser import PipelineParser
@@ -837,7 +838,7 @@ class InstallChannel(models.Model):
         verbose_name_plural = _("安装通道")
 
 
-class Job(models.Model):
+class Job(export_job_prometheus_mixin(), models.Model):
     """任务信息"""
 
     created_by = models.CharField(_("操作人"), max_length=45, default="")
