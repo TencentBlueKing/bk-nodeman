@@ -130,6 +130,7 @@ def batch_call_coroutine(
     coros: List[Coroutine] = [func(**params) for params in params_list]
     loop = asyncio.new_event_loop()
     coro_results = loop.run_until_complete(_batch_call_coroutine(coros))
+    loop.close()
 
     result = []
     for coro_result in coro_results:

@@ -12,7 +12,8 @@ import inspect
 from typing import Any, Callable, Coroutine, Dict, Optional, Tuple, Union
 
 import wrapt
-from asgiref.sync import sync_to_async
+
+from . import sync
 
 
 class ExceptionHandler:
@@ -56,7 +57,7 @@ class ExceptionHandler:
             if inspect.iscoroutinefunction(self.exc_handler):
                 return await self.exc_handler(wrapped, instance, args, kwargs, exc)
             else:
-                return await sync_to_async(self.exc_handler)(wrapped, instance, args, kwargs, exc)
+                return await sync.sync_to_async(self.exc_handler)(wrapped, instance, args, kwargs, exc)
 
     def wrapped_executor(self, wrapped: Callable, instance: Any, args: Tuple[Any], kwargs: Dict[str, Any]):
         """

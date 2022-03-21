@@ -13,7 +13,6 @@ import re
 from collections import defaultdict
 from typing import Any, Dict, List, Optional
 
-from asgiref.sync import sync_to_async
 from django.utils.translation import ugettext_lazy as _
 
 from apps.backend import constants as backend_constants
@@ -21,7 +20,7 @@ from apps.backend.utils.wmi import execute_cmd
 from apps.core.concurrent import controller
 from apps.core.remote import conns
 from apps.node_man import constants, models
-from apps.utils import concurrent, exc
+from apps.utils import concurrent, exc, sync
 
 from .. import core
 from ..common import remote
@@ -175,7 +174,7 @@ class ChooseAccessPointService(AgentBaseService, remote.RemoteServiceMixin):
                     ping_times_gby_ap_id[ap_id].append(
                         self.parse_ping_time(remote_conn_helper.host.os_type, run_output.stdout)
                     )
-        return await sync_to_async(self.handle_single_detect_result)(remote_conn_helper, ping_times_gby_ap_id)
+        return await sync.sync_to_async(self.handle_single_detect_result)(remote_conn_helper, ping_times_gby_ap_id)
 
     @exc.ExceptionHandler(exc_handler=remote.sub_inst_task_exc_handler)
     def detect_host_to_aps_network__win(self, remote_conn_helper: ExternalRemoteConnHelper) -> Dict[str, Any]:
