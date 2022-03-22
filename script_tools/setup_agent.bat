@@ -73,7 +73,7 @@ if exist %tmp_check_deploy_result_files% (DEL /F /S /Q %tmp_check_deploy_result_
 
 set /a nsttret=0
 rem for %%p in (check_env,download_pkg,remove_crontab,remove_agent_tmp,setup_agent,start_basic_gse_plugin,setup_startup_scripts,setup_crontab,check_deploy_result) do (
-for %%p in (check_env,download_pkg,remove_crontab,remove_agent_tmp,setup_agent,start_basic_gse_plugin,setup_startup_scripts,check_deploy_result) do (
+for %%p in (check_env,add_user_right,download_pkg,remove_crontab,remove_agent_tmp,setup_agent,start_basic_gse_plugin,setup_startup_scripts,check_deploy_result) do (
     call :%%p
     call :multi_report_step_status
 )
@@ -862,6 +862,14 @@ goto :EOF
     sc delete gseDaemon 1>nul 2>&1
     cd C:
     RD /S /Q  C:\gse\gseagentw 1>nul 2>&1
+goto :EOF
+
+:add_user_right
+    rem 使用 ntrights 给用户添加权限
+    if not "%INSTALL_USER%" == "" (
+        %TMP_DIR%\ntrights.exe -u %INSTALL_USER% +r SeServiceLogonRight
+        %TMP_DIR%\ntrights.exe -u %INSTALL_USER% +r SeAssignPrimaryTokenPrivilege
+    )
 goto :EOF
 
 :help

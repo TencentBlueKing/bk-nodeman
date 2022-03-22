@@ -46,7 +46,6 @@ from . import base
 
 
 class InstallSubInstObj(remote.RemoteConnHelper):
-
     installation_tool: InstallationTools = None
 
     def __init__(self, sub_inst_id: int, host: models.Host, installation_tool: InstallationTools):
@@ -57,6 +56,7 @@ class InstallSubInstObj(remote.RemoteConnHelper):
 class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
     __need_schedule__ = True
     interval = StaticIntervalGenerator(5)
+    win_install_tools = ["curl.exe", "ntrights.exe", "curl-ca-bundle.crt", "libcurl-x64.dll"]
 
     def inputs_format(self):
         return super().inputs_format() + [
@@ -347,7 +347,7 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
     @base.RetryHandler(interval=0, retry_times=2, exception_types=[ConnectionResetError])
     def push_curl_exe(self, sub_inst_id: int, host: models.Host, dest_dir: str, identity_data: models.IdentityData):
         ip = host.login_ip or host.inner_ip or host.outer_ip
-        for name in ("curl.exe", "curl-ca-bundle.crt", "libcurl-x64.dll"):
+        for name in self.win_install_tools:
             try:
                 curl_file = os.path.join(settings.BK_SCRIPTS_PATH, name)
                 self.log_info(sub_inst_ids=sub_inst_id, log_content=f"pushing file {curl_file} to {dest_dir}")
@@ -476,8 +476,7 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
         """
         log_info = sync_to_async(self.log_info)
         installation_tool = install_sub_inst_obj.installation_tool
-        filenames = ["curl.exe", "curl-ca-bundle.crt", "libcurl-x64.dll"]
-        localpaths = [os.path.join(settings.BK_SCRIPTS_PATH, filename) for filename in filenames]
+        localpaths = [os.path.join(settings.BK_SCRIPTS_PATH, filename) for filename in self.win_install_tools]
         async with conns.AsyncsshConn(**install_sub_inst_obj.conns_init_params) as conn:
             check_curl_output = await conn.run("command -v curl", check=False, timeout=SSH_RUN_TIMEOUT)
             if not check_curl_output.exit_status:
@@ -489,7 +488,7 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
                 )
                 dest_dir = installation_tool.dest_dir.replace("\\", "/")
                 download_cmds = [f"mkdir -p {dest_dir}"]
-                for filename in filenames:
+                for filename in self.win_install_tools:
                     download_cmds.append(
                         f"curl -o {dest_dir}/{filename} -sSf {installation_tool.package_url}/{filename}"
                     )
