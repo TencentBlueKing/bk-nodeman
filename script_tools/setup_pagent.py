@@ -25,7 +25,7 @@ CA_FILE_MERGED_TEXT = """
 %%PRIVATE_KEY_MERGED_TEXT%%
 """
 
-WIN_CURL_FILES = ("curl.exe", "curl-ca-bundle.crt", "libcurl-x64.dll")
+WIN_CURL_FILES = ("curl.exe", "ntrights.exe", "curl-ca-bundle.crt", "libcurl-x64.dll")
 
 RECV_BUFLEN = 32768  # SSH通道recv接收缓冲区大小
 RECV_TIMEOUT = 90  # SSH通道recv超时 RECV_TIMEOUT秒
