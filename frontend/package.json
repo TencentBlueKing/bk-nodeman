@@ -56,7 +56,7 @@
   "dependencies": {
     "@blueking/paas-login": "0.0.9",
     "@icon-cool/bk-icon-node-manager": "latest",
-    "axios": "^0.21.1",
+    "axios": "0.26.1",
     "bk-magic-vue": "2.4.0",
     "cookie": "~0.4.0",
     "github-markdown-css": "^4.0.0",
@@ -68,7 +68,7 @@
     "vue-i18n": "^8.15.1",
     "vue-router": "~3.0.6",
     "vuex": "~3.1.1",
-    "xlsx": "0.17.0"
+    "xlsx": "0.18.4"
   },
   "devDependencies": {
     "@babel/core": "^7.9.0",
