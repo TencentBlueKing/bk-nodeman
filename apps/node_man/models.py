@@ -32,7 +32,7 @@ from Cryptodome.Cipher import AES
 from django.conf import settings
 from django.core.cache import cache
 from django.db import models
-from django.db.models import DateTimeField, QuerySet
+from django.db.models import QuerySet
 from django.utils import timezone
 from django.utils.encoding import force_text
 from django.utils.functional import Promise
@@ -137,8 +137,8 @@ class GlobalSettings(models.Model):
         cls.objects.filter(key=key).update(v_json=value)
 
     class Meta:
-        verbose_name = _("配置表")
-        verbose_name_plural = _("配置表")
+        verbose_name = _("配置表（GlobalSettings）")
+        verbose_name_plural = _("配置表（GlobalSettings）")
 
 
 class AESCipher(object):
@@ -302,8 +302,8 @@ class IdentityData(models.Model):
     updated_at = models.DateTimeField(_("更新时间"), null=True, auto_now=False)
 
     class Meta:
-        verbose_name = _("主机认证信息")
-        verbose_name_plural = _("主机认证信息")
+        verbose_name = _("临时认证数据（IdentityData）")
+        verbose_name_plural = _("临时认证数据（IdentityData）")
 
 
 class Host(models.Model):
@@ -486,8 +486,8 @@ class Host(models.Model):
         self._status = value
 
     class Meta:
-        verbose_name = _("主机信息")
-        verbose_name_plural = _("主机信息")
+        verbose_name = _("主机（Host）")
+        verbose_name_plural = _("主机（Host）")
         ordering = ["-updated_at", "-bk_host_id"]
 
 
@@ -612,8 +612,8 @@ class ProcessStatus(models.Model):
             ["source_type", "proc_type"],
         ]
         unique_together = (("bk_host_id", "listen_port"),)
-        verbose_name = _("主机进程状态")
-        verbose_name_plural = _("主机进程状态")
+        verbose_name = _("进程状态（ProcessStatus）")
+        verbose_name_plural = _("进程状态（ProcessStatus）")
 
 
 class AccessPoint(models.Model):
@@ -788,8 +788,8 @@ class AccessPoint(models.Model):
         return test_result, test_logs
 
     class Meta:
-        verbose_name = _("接入点信息")
-        verbose_name_plural = _("接入点信息")
+        verbose_name = _("接入点（AccessPoint）")
+        verbose_name_plural = _("接入点（AccessPoint）")
 
 
 class Cloud(models.Model):
@@ -813,8 +813,8 @@ class Cloud(models.Model):
         return all_cloud_map
 
     class Meta:
-        verbose_name = _("云区域信息")
-        verbose_name_plural = _("云区域信息")
+        verbose_name = _("云区域（Cloud）")
+        verbose_name_plural = _("云区域（Cloud）")
 
 
 class InstallChannel(models.Model):
@@ -834,8 +834,8 @@ class InstallChannel(models.Model):
     upstream_servers = JSONField(_("上游节点"))
 
     class Meta:
-        verbose_name = _("安装通道")
-        verbose_name_plural = _("安装通道")
+        verbose_name = _("安装通道（InstallChannel）")
+        verbose_name_plural = _("安装通道（InstallChannel）")
 
 
 class Job(export_job_prometheus_mixin(), models.Model):
@@ -859,8 +859,8 @@ class Job(export_job_prometheus_mixin(), models.Model):
     is_auto_trigger = models.BooleanField(_("是否为自动触发"), default=False)
 
     class Meta:
-        verbose_name = _("任务信息")
-        verbose_name_plural = _("任务信息")
+        verbose_name = _("任务信息（Job）")
+        verbose_name_plural = _("任务信息（Job）")
         ordering = ["-id"]
 
 
@@ -878,20 +878,8 @@ class JobTask(models.Model):
     end_time = models.DateTimeField(blank=True, null=True)
 
     class Meta:
-        verbose_name = _("任务详情")
-        verbose_name_plural = _("任务详情")
-
-
-class Profile(models.Model):
-    """个人资料补充信息"""
-
-    bk_username = models.CharField(_("用户名"), max_length=45)
-    favorite = JSONField(_("用户收藏信息,比如云区域等"))
-    update_time = DateTimeField(auto_now_add=True)
-
-    class Meta:
-        verbose_name = _("个人资料")
-        verbose_name_plural = _("个人资料")
+        verbose_name = _("任务详情（JobTask）")
+        verbose_name_plural = _("任务详情（JobTask）")
 
 
 class GsePluginDesc(models.Model):
@@ -933,8 +921,8 @@ class GsePluginDesc(models.Model):
     node_manage_control = JSONField(_("节点管理管控插件信息"), null=True, blank=True)
 
     class Meta:
-        verbose_name = _("插件信息表")
-        verbose_name_plural = _("插件信息表")
+        verbose_name = _("插件信息（GsePluginDesc）")
+        verbose_name_plural = _("插件信息（GsePluginDesc）")
 
     def __unicode__(self):
         return self.name
@@ -1214,8 +1202,8 @@ class Packages(models.Model):
         )
 
     class Meta:
-        verbose_name = _("模块/工程安装包信息表")
-        verbose_name_plural = _("模块/工程安装包信息表")
+        verbose_name = _("插件包（Packages）")
+        verbose_name_plural = _("插件包（Packages）")
 
     def __unicode__(self):
         return "{}-{}".format(self.module, self.project)
@@ -1322,8 +1310,8 @@ class ProcControl(models.Model):
         return port_range_list
 
     class Meta:
-        verbose_name = _("模块/进程控制信息表")
-        verbose_name_plural = _("模块/进程控制信息表")
+        verbose_name = _("插件控制表（ProcControl）")
+        verbose_name_plural = _("插件控制表（ProcControl）")
 
     def __unicode__(self):
         return "{}-{}".format(self.module, self.project)
@@ -1561,6 +1549,10 @@ class DownloadRecord(models.Model):
                 )
             )
 
+    class Meta:
+        verbose_name = _("下载记录")
+        verbose_name_plural = _("下载记录")
+
 
 class PluginResourcePolicy(models.Model):
     plugin_name = models.CharField(_("插件名"), max_length=32, db_index=True)
@@ -1760,6 +1752,8 @@ class SubscriptionStep(models.Model):
         self._subscription = value
 
     class Meta:
+        verbose_name = _("订阅步骤")
+        verbose_name_plural = _("订阅步骤")
         ordering = ["index"]
         unique_together = (("subscription_id", "index"), ("subscription_id", "step_id"))
 
@@ -2108,6 +2102,10 @@ class Subscription(orm.SoftDeleteModel):
             )
         return _construct_return_data(False, sub_inst_bk_obj_id, _ordered_bk_obj_subs=ordered_bk_obj_subs)
 
+    class Meta:
+        verbose_name = _("订阅（Subscription）")
+        verbose_name_plural = _("订阅（Subscription）")
+
 
 class SubscriptionTask(models.Model):
     """订阅执行任务"""
@@ -2139,6 +2137,8 @@ class SubscriptionTask(models.Model):
         return SubscriptionInstanceRecord.objects.filter(task_id=self.id)
 
     class Meta:
+        verbose_name = _("订阅任务")
+        verbose_name_plural = _("订阅任务")
         ordering = ["-create_time"]
 
 
@@ -2270,6 +2270,10 @@ class SubscriptionInstanceRecord(models.Model):
             },
         }
 
+    class Meta:
+        verbose_name = _("订阅实例记录")
+        verbose_name_plural = _("订阅实例记录")
+
 
 class JobSubscriptionInstanceMap(models.Model):
     job_instance_id = models.BigIntegerField(_("作业实例ID"), db_index=True)
@@ -2289,8 +2293,8 @@ class SubscriptionInstanceLog(models.Model):
     created_at = models.DateTimeField(_("创建时间"), auto_now_add=True, db_index=True)
 
     class Meta:
-        verbose_name = _("作业平台ID映射表")
-        verbose_name_plural = _("作业平台ID映射表")
+        verbose_name = _("订阅实例日志")
+        verbose_name_plural = _("订阅实例日志")
 
 
 class AutoDateTimeField(models.DateTimeField):
@@ -2324,6 +2328,10 @@ class CmdbEventRecord(models.Model):
     obj_type = models.CharField(_("对象类型"), max_length=32)
     data = JSONField(_("实例信息"))
     create_time = models.DateTimeField(_("创建时间"), auto_now_add=True)
+
+    class Meta:
+        verbose_name = _("CMDB事件记录")
+        verbose_name_plural = _("CMDB事件记录")
 
 
 class PipelineTree(models.Model):
@@ -2365,30 +2373,5 @@ class ResourceWatchEvent(models.Model):
     create_time = models.DateTimeField(_("创建时间"), auto_now_add=True)
 
     class Meta:
-        verbose_name = _("资源监听事件")
-        verbose_name_plural = _("资源监听事件")
-
-
-class PushFileRecord(models.Model):
-    subscription_id = models.IntegerField(_("订阅ID"), db_index=True)
-    task_id = models.IntegerField(_("订阅任务ID"), db_index=True)
-    record_id = models.BigIntegerField("订阅任务记录ID", db_index=True)
-
-    ip = models.CharField(_("内网IP"), max_length=45, db_index=True)
-    bk_cloud_id = models.IntegerField(_("云区域ID"), db_index=True)
-    os_type = models.CharField(
-        _("操作系统"), max_length=45, choices=constants.OS_CHOICES, default=constants.OsType.LINUX, db_index=True
-    )
-    file_source_path = models.CharField(_("源文件路径"), max_length=128)
-
-    update_time = models.DateTimeField(_("更新时间"), auto_now=True, db_index=True)
-    create_time = models.DateTimeField(_("创建时间"), auto_now_add=True, db_index=True)
-
-    job_instance_id = models.BigIntegerField(_("作业实例ID"), null=True, blank=True)
-    ip_status = models.CharField(
-        _("作业IP执行状态"), choices=constants.JOB_IP_STATUS_CHOICES, default=constants.JobIpStatusType.not_job, max_length=10
-    )
-    # 冗余字段
-    is_finished = models.BooleanField(_("作业是否已完成"), default=False)
-    # 一个订阅记录主动轮询作业实例状态的最后时间
-    job_polling_time = models.DateTimeField(_("作业主动轮询时间"), db_index=True, null=True, blank=True)
+        verbose_name = _("CMDB资源监听事件")
+        verbose_name_plural = _("CMDB资源监听事件")

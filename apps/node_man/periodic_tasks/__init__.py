@@ -11,9 +11,6 @@ specific language governing permissions and limitations under the License.
 from django.conf import settings  # noqa
 
 from .clean_expired_info import clean_expired_info_periodic_task  # noqa
-from .clean_requests_tracker_records import (  # noqa
-    clean_requests_tracker_records_periodic_task,
-)
 from .clean_subscription_record_info import (  # noqa
     clean_subscription_record_info_periodic_task,
 )
