@@ -10,92 +10,94 @@ specific language governing permissions and limitations under the License.
 """
 
 import inspect
+import json
+import operator
+from functools import reduce
 
 from django.contrib import admin
+from django.contrib.admin.sites import AlreadyRegistered
+from django.db.models import Q
 
 from . import models
 
-# 自动导入所有model
-for name, obj in inspect.getmembers(models):
-    try:
-        if inspect.isclass(obj) and name not in [
-            "HostStatus",
-            "Job",
-            "Host",
-            "IdentityData",
-            "Profile",
-            "IP",
-            "SshKey",
-            "JobTask",
-            "Cloud",
-            "ProcessStatus",
-            "TaskLog",
-            "CMDBHosts",
-            "AccessPoint",
-            "GlobalSettings",
-            "Packages",
-            "ProcControl",
-            "GsePluginDesc",
-        ]:
-            admin.site.register(getattr(models, name))
-    except Exception:
-        pass
 
+class MultiSearchResultAdmin(admin.ModelAdmin):
+    """支持按逗号分割进行多对象多模糊搜索"""
 
-@admin.register(models.Profile)
-class ProfileAdmin(admin.ModelAdmin):
-    list_display = ("bk_username",)
-    search_fields = ["bk_username"]
-    list_filter = []
+    def get_search_results(self, request, queryset, search_term):
+        queryset, use_distinct = super(MultiSearchResultAdmin, self).get_search_results(request, queryset, search_term)
+
+        search_words = search_term.split(",")
+        if search_words:
+            q_objects = []
+            for word in search_words:
+                for field in self.search_fields:
+                    q_objects.append(Q(**{f"{field}__icontains": word}))
+            if q_objects:
+                queryset |= self.model.objects.filter(reduce(operator.or_, q_objects))
+        return queryset, use_distinct
 
 
 @admin.register(models.GlobalSettings)
-class GlobalSettingsAdmin(admin.ModelAdmin):
-    list_display = ("key",)
+class GlobalSettingsAdmin(MultiSearchResultAdmin):
+    list_display = ("key", "value")
     search_fields = ["key"]
-    list_filter = []
+
+    def value(self, settings_obj):
+        return json.dumps(settings_obj.v_json)[:100]
 
 
 @admin.register(models.Job)
-class JobAdmin(admin.ModelAdmin):
-    list_display = ("id", "created_by", "job_type", "status")
-    search_fields = ["job_type"]
-    list_filter = ["job_type", "status"]
+class JobAdmin(MultiSearchResultAdmin):
+    list_display = ("id", "subscription_id", "created_by", "start_time", "job_type", "status", "is_auto_trigger")
+    search_fields = ["job_type", "subscription_id"]
+    list_filter = ["job_type", "status", "is_auto_trigger"]
 
 
 @admin.register(models.Host)
-class HostAdmin(admin.ModelAdmin):
-    list_display = ["bk_host_id", "inner_ip", "bk_biz_id", "bk_cloud_id", "os_type", "node_from", "node_type"]
-    search_fields = ["inner_ip"]
-    list_filter = ["os_type", "node_type", "node_from"]
+class HostAdmin(MultiSearchResultAdmin):
+    list_display = [
+        "bk_host_id",
+        "inner_ip",
+        "outer_ip",
+        "bk_biz_id",
+        "bk_cloud_id",
+        "os_type",
+        "cpu_arch",
+        "node_type",
+        "node_from",
+    ]
+    search_fields = ["bk_host_id", "inner_ip", "outer_ip"]
+    list_editable = ["os_type", "cpu_arch", "node_type"]
+    list_filter = ["os_type", "cpu_arch", "node_type", "node_from", "install_channel_id"]
 
 
 @admin.register(models.IdentityData)
-class IdentityDataAdmin(admin.ModelAdmin):
+class IdentityDataAdmin(MultiSearchResultAdmin):
     def inner_ip(self):
         try:
             return models.Host.objects.get(bk_host_id=self.bk_host_id).inner_ip
-        except models.IdentityData.DoesNotExist:
+        except models.Host.DoesNotExist:
             return "--"
 
-    list_display = ["bk_host_id", inner_ip, "auth_type", "retention", "updated_at"]
+    list_display = ["bk_host_id", inner_ip, "account", "port", "auth_type", "retention", "updated_at"]
     search_fields = ["bk_host_id"]
-    list_filter = ["auth_type", "retention"]
+    list_filter = ["auth_type", "retention", "port"]
 
 
 @admin.register(models.Cloud)
-class CloudAdmin(admin.ModelAdmin):
+class CloudAdmin(MultiSearchResultAdmin):
     list_display = ("bk_cloud_id", "bk_cloud_name", "isp", "ap_id", "creator", "is_visible", "is_deleted")
-    search_fields = ["bk_cloud_id", "bk_cloud_name", "creator"]
+    search_fields = ["bk_cloud_id", "bk_cloud_name"]
     list_filter = ["creator", "isp", "ap_id", "is_visible", "is_deleted"]
 
 
 @admin.register(models.ProcessStatus)
-class ProcessStatusAdmin(admin.ModelAdmin):
+class ProcessStatusAdmin(MultiSearchResultAdmin):
     def inner_ip(self):
         try:
             return models.Host.objects.get(bk_host_id=self.bk_host_id).inner_ip
-        except models.IdentityData.DoesNotExist:
+        except models.Host.DoesNotExist:
             return "--"
 
     list_display = ("bk_host_id", inner_ip, "name", "status", "is_auto", "version", "proc_type")
@@ -104,14 +106,14 @@ class ProcessStatusAdmin(admin.ModelAdmin):
 
 
 @admin.register(models.AccessPoint)
-class AccessPointAdmin(admin.ModelAdmin):
+class AccessPointAdmin(MultiSearchResultAdmin):
     list_display = ("name", "ap_type", "status", "is_enabled", "is_default")
     search_fields = ["name"]
     list_filter = ["ap_type", "status", "is_enabled", "is_default"]
 
 
 @admin.register(models.JobTask)
-class JobTaskAdmin(admin.ModelAdmin):
+class JobTaskAdmin(MultiSearchResultAdmin):
     def inner_ip(self):
         try:
             return models.Host.objects.get(bk_host_id=self.bk_host_id).inner_ip
@@ -124,21 +126,82 @@ class JobTaskAdmin(admin.ModelAdmin):
 
 
 @admin.register(models.Packages)
-class PackagesAdmin(admin.ModelAdmin):
+class PackagesAdmin(MultiSearchResultAdmin):
     list_display = ("pkg_name", "version", "project", "module", "os", "cpu_arch")
     search_fields = ("pkg_name", "version", "module", "project", "md5")
     list_filter = ("cpu_arch", "os", "version")
 
 
 @admin.register(models.ProcControl)
-class ProcControlAdmin(admin.ModelAdmin):
+class ProcControlAdmin(MultiSearchResultAdmin):
     list_display = ("project", "module", "install_path", "plugin_package_id", "os", "need_delegate")
     search_fields = ("project", "module")
     list_filter = ("project", "os")
 
 
 @admin.register(models.GsePluginDesc)
-class GsePluginDescAdmin(admin.ModelAdmin):
+class GsePluginDescAdmin(MultiSearchResultAdmin):
     list_display = ("name", "category", "launch_node", "config_file", "config_format", "auto_launch", "use_db")
     search_fields = ("name", "description", "description_en", "scenario", "scenario_en", "config_format")
     list_filter = ("name", "category", "auto_launch")
+
+
+@admin.register(models.Subscription)
+class SubscriptionAdmin(MultiSearchResultAdmin):
+    list_display = (
+        "id",
+        "name",
+        "bk_biz_id",
+        "bk_biz_scope",
+        "object_type",
+        "node_type",
+        "create_time",
+        "creator",
+        "enable",
+        "is_main",
+        "category",
+        "plugin_name",
+    )
+    search_fields = ("name",)
+    list_filter = (
+        "object_type",
+        "node_type",
+        "category",
+        "enable",
+        "is_main",
+    )
+
+
+@admin.register(models.PluginConfigTemplate)
+class PluginConfigTemplateAdmin(MultiSearchResultAdmin):
+    list_display = (
+        "plugin_name",
+        "plugin_version",
+        "name",
+        "version",
+        "os",
+        "cpu_arch",
+        "is_main",
+        "file_path",
+        "creator",
+        "create_time",
+        "source_app_code",
+        "is_release_version",
+    )
+    search_fields = ("plugin_name", "plugin_version", "name", "version")
+    list_filter = ("os", "cpu_arch", "is_main", "is_release_version", "source_app_code")
+
+
+@admin.register(models.PluginResourcePolicy)
+class PluginResourcePolicyAdmin(MultiSearchResultAdmin):
+    list_display = ("plugin_name", "cpu", "mem", "bk_biz_id", "bk_obj_id", "created_at")
+    search_fields = ("plugin_name",)
+
+
+# 自动导入所有未注册的model
+for name, obj in inspect.getmembers(models):
+    if inspect.isclass(obj) and issubclass(obj, models.models.Model):
+        try:
+            admin.site.register(getattr(models, name))
+        except AlreadyRegistered:
+            continue
