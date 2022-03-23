@@ -9,19 +9,15 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from blueapps.account.decorators import login_exempt
-from django.core.cache import cache
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render
 from django.views.decorators.cache import never_cache
 
 from apps.node_man.handlers import base_info
-from requests_tracker.models import Config
 
 
 @never_cache
 def index(request):
-    value = Config.objects.get(key="is_track").value
-    cache.set("is_track", value)
     return render(request, "index.html")
 
 

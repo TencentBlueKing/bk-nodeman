@@ -42,7 +42,6 @@ cp -R bk_nodeman/blueking ${NODEMAN_DIST_DIR}
 cp -R bk_nodeman/common ${NODEMAN_DIST_DIR}
 cp -R bk_nodeman/locale ${NODEMAN_DIST_DIR}
 cp -R bk_nodeman/pipeline ${NODEMAN_DIST_DIR}
-cp -R bk_nodeman/requests_tracker ${NODEMAN_DIST_DIR}
 cp -R bk_nodeman/version_log ${NODEMAN_DIST_DIR}
 cp -R bk_nodeman/sites/${RUN_VER} ${NODEMAN_DIST_DIR}/sites
 cp -R bk_nodeman/script_tools ${NODEMAN_DIST_DIR}

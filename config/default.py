@@ -39,7 +39,6 @@ INSTALLED_APPS += (
     "apps.backend",
     "apps.core.files",
     "apps.core.encrypt",
-    "requests_tracker",
     # pipeline
     "pipeline",
     "pipeline.log",
