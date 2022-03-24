@@ -157,6 +157,7 @@ class AgentManager(object):
         """下发文件到 Proxy """
         act = AgentServiceActivity(component_code=components.PushFilesToProxyComponent.code, name=file["name"])
         act.component.inputs.file_list = Var(type=Var.PLAIN, value=file["files"])
+        act.component.inputs.from_type = Var(type=Var.PLAIN, value=file.get("from_type"))
         act.component.inputs.file_target_path = Var(type=Var.PLAIN, value=settings.DOWNLOAD_PATH)
         return act
 
