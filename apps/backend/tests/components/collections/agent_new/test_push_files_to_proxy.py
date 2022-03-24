@@ -25,7 +25,11 @@ class PushUpgradePackageTestCase(base.JobBaseTestCase):
     def structure_common_inputs(self) -> Dict[str, Any]:
         common_inputs = super().structure_common_inputs()
         common_inputs.update(
-            {"file_list": constants.FILES_TO_PUSH_TO_PROXY[1]["files"], "file_target_path": settings.DOWNLOAD_PATH}
+            {
+                "file_list": constants.FILES_TO_PUSH_TO_PROXY[1]["files"],
+                "file_target_path": settings.DOWNLOAD_PATH,
+                "from_type": constants.ProxyFileFromType.AP_CONFIG.value,
+            }
         )
         return common_inputs
 

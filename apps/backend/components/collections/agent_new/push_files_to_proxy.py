@@ -14,7 +14,7 @@ from typing import List
 
 from django.conf import settings
 
-from apps.node_man import models
+from apps.node_man import constants, models
 
 from .base import AgentCommonData, AgentTransferFileService
 
@@ -22,5 +22,9 @@ from .base import AgentCommonData, AgentTransferFileService
 class PushFilesToProxyService(AgentTransferFileService):
     def get_file_list(self, data, common_data: AgentCommonData, host: models.Host) -> List[str]:
         file_list = data.get_one_of_inputs("file_list", default=[])
-        download_path = common_data.host_id__ap_map[host.bk_host_id].nginx_path or settings.DOWNLOAD_PATH
+        from_type = data.get_one_of_inputs("from_type")
+        host_ap = common_data.host_id__ap_map[host.bk_host_id]
+        if from_type == constants.ProxyFileFromType.AP_CONFIG.value:
+            file_list = host_ap.proxy_package or file_list
+        download_path = host_ap.nginx_path or settings.DOWNLOAD_PATH
         return [os.path.join(download_path, file_name) for file_name in file_list]
