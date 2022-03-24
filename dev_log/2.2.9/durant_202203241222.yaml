@@ -1,0 +1,3 @@
+---
+optimization:
+  - "安装 PROXY 时下发的安装包使用接入点指定的包 (close #622)"
