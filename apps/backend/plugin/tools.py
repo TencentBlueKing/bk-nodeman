@@ -321,7 +321,8 @@ def fetch_latest_config_templates(
     """
     config_tmpls_gby_name = defaultdict(list)
     for config_tmpl in config_templates:
-        config_tmpls_gby_name[config_tmpl["name"]].append(config_tmpl)
+        tag = f"{config_tmpl['name']}-{config_tmpl['os']}-{config_tmpl['cpu_arch']}"
+        config_tmpls_gby_name[tag].append(config_tmpl)
 
     latest_config_templates = []
     for config_tmpl_name, config_tmpls_with_the_same_name in config_tmpls_gby_name.items():

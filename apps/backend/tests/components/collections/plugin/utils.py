@@ -14,8 +14,7 @@ from apps.backend.api.constants import GseDataErrCode, JobDataStatus, JobIPStatu
 from apps.backend.subscription import tools
 from apps.backend.subscription.tools import create_group_id
 from apps.exceptions import ComponentCallError
-from apps.node_man import constants as const
-from apps.node_man import models
+from apps.node_man import constants, models
 from apps.node_man.models import SubscriptionStep
 
 DEFAULT_CREATOR = "admin"
@@ -24,7 +23,7 @@ DEFAULT_BIZ_ID_NAME = {"bk_biz_id": "10", "bk_biz_name": "测试Pipeline原子�
 
 DEFAULT_CLOUD_NAME = "直连区域"
 
-DEFAULT_AP_ID = const.DEFAULT_AP_ID
+DEFAULT_AP_ID = constants.DEFAULT_AP_ID
 
 DEFAULT_NODE_TYPE = "INSTANCE"
 
@@ -85,22 +84,22 @@ PLUGIN_GSEAPI = "apps.backend.components.collections.plugin.GseApi"
 INSTANCE_INFO = {
     "key": "",
     "port": 22,
-    "ap_id": const.DEFAULT_AP_ID,
+    "ap_id": constants.DEFAULT_AP_ID,
     "account": "root",
-    "os_type": const.OsType.LINUX,
+    "os_type": constants.OsType.LINUX,
     "login_ip": "",
     "password": "MTIyMTM0",
     "username": DEFAULT_CREATOR,
-    "auth_type": const.AuthType.PASSWORD,
+    "auth_type": constants.AuthType.PASSWORD,
     "bk_biz_id": DEFAULT_BIZ_ID_NAME["bk_biz_id"],
     "is_manual": False,
     "retention": 1,
-    "bk_os_type": const.BK_OS_TYPE[const.OsType.LINUX],
+    "bk_os_type": constants.BK_OS_TYPE[constants.OsType.LINUX],
     "bk_host_id": BK_HOST_ID,
     "bk_biz_name": DEFAULT_BIZ_ID_NAME["bk_biz_name"],
-    "bk_cloud_id": const.DEFAULT_CLOUD,
+    "bk_cloud_id": constants.DEFAULT_CLOUD,
     "bk_cloud_name": DEFAULT_CLOUD_NAME,
-    "host_node_type": const.NodeType.AGENT,
+    "host_node_type": constants.NodeType.AGENT,
     "bk_host_innerip": TEST_IP,
     "bk_host_outerip": "",
     "bk_supplier_account": "0",
@@ -122,15 +121,15 @@ ACT_INPUTS = {
 HOST_PARAMS = {
     "bk_host_id": BK_HOST_ID,
     "bk_biz_id": DEFAULT_BIZ_ID_NAME["bk_biz_id"],
-    "bk_cloud_id": const.DEFAULT_CLOUD,
+    "bk_cloud_id": constants.DEFAULT_CLOUD,
     "inner_ip": TEST_IP,
     "outer_ip": None,
     "login_ip": TEST_IP,
     "data_ip": None,
     "os_type": "LINUX",
-    "node_type": const.NodeType.AGENT,
+    "node_type": constants.NodeType.AGENT,
     "node_from": "NODE_MAN",
-    "ap_id": const.DEFAULT_AP_ID,
+    "ap_id": constants.DEFAULT_AP_ID,
     "upstream_nodes": [],
     "is_manual": 0,
     "extra_data": {"bt_speed_limit": None, "peer_exchange_switch_for_agent": 1},
@@ -138,7 +137,7 @@ HOST_PARAMS = {
 
 IDENTITY_DATA_PARAMS = {
     "bk_host_id": BK_HOST_ID,
-    "auth_type": const.AuthType.PASSWORD,
+    "auth_type": constants.AuthType.PASSWORD,
     "account": "root",
     "password": "aes_str:::H4MFaqax",
     "port": 22,
@@ -155,7 +154,7 @@ SUBSCRIPTION_PARAMS = {
     "nodes": [
         {
             "ip": INSTANCE_INFO["bk_host_innerip"],
-            "bk_cloud_id": const.DEFAULT_CLOUD,
+            "bk_cloud_id": constants.DEFAULT_CLOUD,
             "instance_info": INSTANCE_INFO,
             "bk_supplier_account": "0",
         }
@@ -171,7 +170,7 @@ SUBSCRIPTION_TASK_PARAMS = {
         "nodes": [
             {
                 "ip": INSTANCE_INFO["bk_host_innerip"],
-                "bk_cloud_id": const.DEFAULT_CLOUD,
+                "bk_cloud_id": constants.DEFAULT_CLOUD,
                 "instance_info": INSTANCE_INFO,
                 "bk_supplier_account": "0",
             }
@@ -184,7 +183,7 @@ SUBSCRIPTION_TASK_PARAMS = {
         # 每台主机都有一个实例id，最后根据补参重新生成
         DEFAULT_INSTANCE_ID: {
             # 默认安装任务
-            "agent": const.JobType.INSTALL_AGENT
+            "agent": constants.JobType.INSTALL_AGENT
         }
     },
     # 是否为自动触发
@@ -194,11 +193,11 @@ SUBSCRIPTION_TASK_PARAMS = {
 JOB_PARAMS = {
     "id": JOB_ID,
     "created_by": DEFAULT_CREATOR,
-    "job_type": const.JobType.INSTALL_AGENT,
+    "job_type": constants.JobType.INSTALL_AGENT,
     "subscription_id": SUBSCRIPTION_ID,  # 根据实际创建进行修改
     # Pipeline原子默认只有一个安装任务
     "task_id_list": [SUBSCRIPTION_TASK_ID],
-    "status": const.JobStatusType.RUNNING,
+    "status": constants.JobStatusType.RUNNING,
     "global_params": {},
     "statistics": {"total_count": 1, "failed_count": 0, "pending_count": 1, "running_count": 0, "success_count": 0},
     "bk_biz_scope": [DEFAULT_BIZ_ID_NAME["bk_biz_id"]],
@@ -212,7 +211,7 @@ JOB_TASK_PARAMS = {
     "bk_host_id": BK_HOST_ID,
     "instance_id": DEFAULT_INSTANCE_ID,
     "pipeline_id": JOB_TASK_PIPELINE_ID,
-    "status": const.StatusType.RUNNING,
+    "status": constants.StatusType.RUNNING,
     "current_step": "正在安装",
 }
 
@@ -226,8 +225,8 @@ SUBSCRIPTION_INSTANCE_RECORD_PARAMS = {
     "steps": [
         {
             "id": "agent",
-            "type": const.NodeType.AGENT,
-            "action": const.JobType.INSTALL_AGENT,
+            "type": constants.NodeType.AGENT,
+            "action": constants.JobType.INSTALL_AGENT,
             "extra_info": {},
             "pipeline_id": "3341978fe1f33b2b99615818df5c7a89",
         }
@@ -240,6 +239,8 @@ PLUGIN_CONFIG_TEMPLATE_INFO = {
     "name": "basereport.conf",
     "is_main": True,
     "version": "1",
+    "os": constants.OsType.LINUX.lower(),
+    "cpu_arch": constants.CpuType.x86_64,
     "plugin_version": "*",
 }
 
@@ -264,14 +265,14 @@ GSE_PLUGIN_DESC_INFO = {
     "name": PKG_PROJECT_NAME,
     "description": "description",
     "scenario": "",
-    "category": const.CategoryType.official,
+    "category": constants.CategoryType.official,
 }
 
 SUBSCRIPTION_STEP_PARAMS = {
     "id": SUBSCRIPTIONSTEP_ID,
     "subscription_id": SUBSCRIPTION_ID,
     "step_id": SUBSCRIPTIONSTEP_STEP_ID,
-    "type": const.ProcType.PLUGIN,
+    "type": constants.ProcType.PLUGIN,
     "config": {"details": [PKG_INFO]},
     "params": {
         "details": [
@@ -286,8 +287,8 @@ PROCESS_STATUS_PARAMS = {
     "name": PKG_PROJECT_NAME,
     "group_id": "",
     "bk_host_id": BK_HOST_ID,
-    "status": const.ProcStateType.RUNNING,
-    "proc_type": const.ProcType.PLUGIN,
+    "status": constants.ProcStateType.RUNNING,
+    "proc_type": constants.ProcType.PLUGIN,
     "configs": [],
 }
 
@@ -328,7 +329,7 @@ JOB_GET_INSTANCE_LOG_RETURN = {
                             "start_time": "2020-08-05 14:39:30 +0800",
                             "end_time": "2020-08-05 14:40:31 +0800",
                             "ip": TEST_IP,
-                            "bk_cloud_id": const.DEFAULT_CLOUD,
+                            "bk_cloud_id": constants.DEFAULT_CLOUD,
                             "error_code": 0,
                             "exit_code": 0,
                             "log_content": "success",
@@ -368,7 +369,7 @@ class GseMockClient:
             "result": True,
             "code": "",
             "data": {
-                f"{const.DEFAULT_CLOUD}:{TEST_IP}:{const.GSE_NAMESPACE}:{PKG_PROJECT_NAME}": {
+                f"{constants.DEFAULT_CLOUD}:{TEST_IP}:{constants.GSE_NAMESPACE}:{PKG_PROJECT_NAME}": {
                     "error_code": GseDataErrCode.SUCCESS,
                     "error_msg": "",
                 }
@@ -421,17 +422,17 @@ class JobMockClient:
             "job_instance": {
                 "job_instance_id": JOB_INSTANCE_ID,
                 "bk_biz_id": DEFAULT_BIZ_ID_NAME["bk_biz_id"],
-                "status": const.BkJobIpStatus.SUCCEEDED,
+                "status": constants.BkJobIpStatus.SUCCEEDED,
             },
             "step_instance_list": [
                 {
-                    "status": const.BkJobIpStatus.SUCCEEDED,
+                    "status": constants.BkJobIpStatus.SUCCEEDED,
                     "step_instance_id": 75,
                     "step_ip_result_list": [
                         {
                             "ip": TEST_IP,
-                            "bk_cloud_id": const.DEFAULT_CLOUD,
-                            "status": const.BkJobIpStatus.SUCCEEDED,
+                            "bk_cloud_id": constants.DEFAULT_CLOUD,
+                            "status": constants.BkJobIpStatus.SUCCEEDED,
                             "error_code": 0,
                         }
                     ],
@@ -449,7 +450,7 @@ class JobMockClient:
 
     @classmethod
     def get_job_instance_ip_log(cls, *args, **kwargs):
-        return {"ip": TEST_IP, "bk_cloud_id": const.DEFAULT_CLOUD, "log_content": "job_start\n"}
+        return {"ip": TEST_IP, "bk_cloud_id": constants.DEFAULT_CLOUD, "log_content": "job_start\n"}
 
 
 def request_multi_thread_client(func, params_list):
@@ -512,7 +513,7 @@ class PluginTestObjFactory:
             }
         )
         subscription_task_params["actions"].pop(DEFAULT_INSTANCE_ID)
-        subscription_task_params["actions"] = {instance_id: {"agent": const.JobType.INSTALL_AGENT}}
+        subscription_task_params["actions"] = {instance_id: {"agent": constants.JobType.INSTALL_AGENT}}
         cls.replace_obj_attr_values(subscription_task_params, obj_attr_values)
         if not is_obj:
             subscription_task_params.pop("id", None)
