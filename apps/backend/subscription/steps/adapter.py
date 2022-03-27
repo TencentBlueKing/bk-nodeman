@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import copy
 from collections import ChainMap, OrderedDict, defaultdict
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Union
 
 from django.db.models import Max, Subquery
 from django.utils.translation import ugettext as _
@@ -89,7 +89,7 @@ class PolicyStepAdapter:
         self.subscription_step = subscription_step
         self.subscription = subscription_step.subscription
 
-        self.plugin_name: str = self.config["plugin_name"]
+        self.plugin_name = self.config["plugin_name"]
         self.selected_pkg_infos: List[Dict] = self.config["details"]
 
         self.except_os_key_pkg_map: Dict[str, Dict] = {
@@ -100,12 +100,16 @@ class PolicyStepAdapter:
     def config(self) -> OrderedDict:
         if hasattr(self, "_config") and self._config:
             return self._config
-
         policy_config = self.format2policy_config(self.subscription_step.config)
 
         # 处理同名配置模板，取最新版本
         for selected_pkg_info in policy_config["details"]:
-            selected_pkg_info["config_templates"] = fetch_latest_config_templates(selected_pkg_info["config_templates"])
+            selected_pkg_info["config_templates"] = fetch_latest_config_templates(
+                config_templates=selected_pkg_info["config_templates"],
+                os_type=selected_pkg_info["os"],
+                cpu_arch=selected_pkg_info["cpu_arch"],
+                plugin_name=policy_config["plugin_name"],
+            )
 
         setattr(self, "_config", self.validated_data(data=policy_config, serializer=PolicyStepConfigSerializer))
         return self._config
@@ -199,13 +203,13 @@ class PolicyStepAdapter:
         setattr(self, "_os_key_params_map", os_cpu_params_map)
         return self._os_key_params_map
 
-    def format2policy_config(self, original_config: Dict) -> Dict:
+    def format2policy_config(self, original_config: Dict):
         try:
-            self.validated_data(data=original_config, serializer=PolicyStepConfigSerializer)
+            format_result = self.validated_data(data=original_config, serializer=PolicyStepConfigSerializer)
         except exceptions.ValidationError:
             pass
         else:
-            return original_config
+            return format_result
 
         validated_config = self.validated_data(data=original_config, serializer=PluginStepConfigSerializer)
         plugin_name = validated_config["plugin_name"]
@@ -226,7 +230,9 @@ class PolicyStepAdapter:
             raise errors.PluginValidationError(
                 msg=_("插件包 [{name}-{version}] 不存在").format(name=plugin_name, version=plugin_version)
             )
-        config_templates = []
+
+        plugin_version: str = packages[0].version
+        config_templates: List[Dict[str, Any]] = []
         for template in validated_config["config_templates"]:
             is_main_template = template["is_main"]
             if template["version"] != "latest":
@@ -245,7 +251,7 @@ class PolicyStepAdapter:
             else:
                 config_template = (
                     models.PluginConfigTemplate.objects.filter(
-                        plugin_version__in=[packages[0].version, "*"],
+                        plugin_version__in=[plugin_version, "*"],
                         name=template["name"],
                         os=template.get("os", constants.OsType.LINUX.lower()),
                         cpu_arch=template.get("cpu_arch", constants.CpuType.x86_64),
@@ -278,7 +284,7 @@ class PolicyStepAdapter:
                 }
             )
 
-        policy_packages = []
+        policy_packages: List[Dict[str, Union[str, List[Dict[str, Any]]]]] = []
         for package in packages:
             policy_packages.append(
                 {
