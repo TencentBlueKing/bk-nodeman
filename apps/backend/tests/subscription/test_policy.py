@@ -232,7 +232,7 @@ class TestPolicy(TestCase):
             md5="a95c530a7af5f492a74499e70578d150",
             pkg_ctime="2019-05-05 11:54:28.070771",
             pkg_mtime="2019-05-05 11:54:28.070771",
-            os="windows",
+            os="linux",
             cpu_arch="x86_64",
             is_release_version=False,
             is_ready=True,
@@ -296,7 +296,8 @@ class TestPolicy(TestCase):
             outer_ip=None,
             login_ip="127.0.0.1",
             data_ip="127.0.0.1",
-            os_type="WINDOWS",
+            os_type="LINUX",
+            cpu_arch="x86_64",
             node_type="AGENT",
             ap_id=DEFAULT_AP_ID,
         )

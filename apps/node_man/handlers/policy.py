@@ -394,7 +394,13 @@ class PolicyHandler:
                     "config": {
                         "config_templates": distinct_dict_list(
                             [
-                                {"name": conf_tmpl.name, "version": "latest", "is_main": True}
+                                {
+                                    "name": conf_tmpl.name,
+                                    "version": "latest",
+                                    "is_main": True,
+                                    "os": conf_tmpl.os,
+                                    "cpu_arch": conf_tmpl.cpu_arch,
+                                }
                                 for conf_tmpl in config_templates
                             ]
                         ),
