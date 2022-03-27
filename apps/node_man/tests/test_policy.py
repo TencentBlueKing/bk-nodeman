@@ -98,6 +98,8 @@ class TestPolicy(CustomBaseTestCase):
                     {
                         "id": 595,
                         "version": "1",
+                        "os": constants.OsType.LINUX.lower(),
+                        "cpu_arch": constants.CpuType.x86_64,
                         "is_main": True,
                         "name": "processbeat.conf",
                     }
