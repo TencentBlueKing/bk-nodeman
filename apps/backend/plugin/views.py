@@ -1157,7 +1157,7 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
             newest_pkg["is_newest"] = True
 
         config_files = models.PluginConfigTemplate.objects.filter(
-            plugin_name=plugin_name, os=newest_pkg["os"], cpu_arch=newest_pkg["cpu_arch"]
+            plugin_name=plugin_name, os=params["os"], cpu_arch=params["cpu_arch"]
         ).values()
         # 根据版本号对配置文件归类
         config_group_by_name_version = defaultdict(list)
