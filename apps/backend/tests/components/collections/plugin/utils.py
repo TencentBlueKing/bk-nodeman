@@ -240,6 +240,8 @@ PLUGIN_CONFIG_TEMPLATE_INFO = {
     "name": "basereport.conf",
     "is_main": True,
     "version": "1",
+    "os": const.OsType.LINUX.lower(),
+    "cpu_arch": const.CpuType.x86_64,
     "plugin_version": "*",
 }
 
