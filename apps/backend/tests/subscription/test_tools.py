@@ -113,6 +113,22 @@ class TestTools(TestCase):
         self.assertEqual(len(list(instances.keys())), 1)
         self.assertIn("host|instance|host|1", instances)
 
+    def test_get_host_topo_scope_with_multi_biz(self):
+        instances = get_instances_by_scope(
+            {
+                "object_type": "HOST",
+                "node_type": "TOPO",
+                "nodes": [
+                    {"bk_obj_id": "module", "bk_inst_id": 1, "bk_biz_id": 2},
+                    {"bk_obj_id": "set", "bk_inst_id": 2, "bk_biz_id": 2},
+                    {"bk_obj_id": "test", "bk_inst_id": 1000, "bk_biz_id": 2},
+                ],
+            },
+            get_cache=True,
+        )
+
+        self.assertEqual(len(list(instances.keys())), 1)
+
     def test_get_service_topo_scope(self):
         instances = get_instances_by_scope(
             {
