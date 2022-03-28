@@ -634,14 +634,14 @@ def support_multi_biz(get_instances_by_scope_func):
     @wraps(get_instances_by_scope_func)
     def wrapper(scope: Dict[str, Union[Dict, Any]], *args, **kwargs) -> Dict[str, Dict[str, Union[Dict, Any]]]:
         if scope.get("bk_biz_id") is not None:
-            return get_instances_by_scope_func(scope)
+            return get_instances_by_scope_func(scope, **kwargs)
         # 兼容只传bk_host_id的情况
         if (
             scope["object_type"] == models.Subscription.ObjectType.HOST
             and scope["node_type"] == models.Subscription.NodeType.INSTANCE
         ):
             if None in [node.get("bk_biz_id") for node in scope["nodes"]]:
-                return get_instances_by_scope_func(scope)
+                return get_instances_by_scope_func(scope, **kwargs)
 
         instance_id_info_map = {}
         nodes = sorted(scope["nodes"], key=lambda node: node["bk_biz_id"])
@@ -652,7 +652,8 @@ def support_multi_biz(get_instances_by_scope_func):
                     "object_type": scope["object_type"],
                     "node_type": scope["node_type"],
                     "nodes": list(nodes),
-                }
+                },
+                **kwargs,
             }
             for bk_biz_id, nodes in groupby(nodes, key=lambda x: x["bk_biz_id"])
         ]
