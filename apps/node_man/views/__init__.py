@@ -13,6 +13,7 @@ from django.core.cache import cache
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render
 from django.views.decorators.cache import never_cache
+from django_prometheus.exports import ExportToDjangoView
 
 from apps.node_man.handlers import base_info
 from requests_tracker.models import Config
@@ -33,3 +34,8 @@ def ping(request):
 @login_exempt
 def version(request):
     return JsonResponse(base_info.BaseInfoHandler.version())
+
+
+@login_exempt
+def metrics(request):
+    return ExportToDjangoView(request)
