@@ -55,7 +55,7 @@ def mysetting(request):
         "APP_CODE": settings.APP_CODE,
         "SITE_URL": settings.SITE_URL,
         # 远程静态资源url
-        "REMOTE_STATIC_URL": settings.REMOTE_STATIC_URL,
+        "REMOTE_STATIC_URL": settings.SITE_URL + "static/remote/",
         # 静态资源
         "STATIC_URL": settings.STATIC_URL,
         "BK_STATIC_URL": settings.STATIC_URL[: len(settings.STATIC_URL) - 1],
