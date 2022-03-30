@@ -392,7 +392,7 @@ def gen_commands(
     if Path(dest_dir) != Path("/tmp") and host.os_type != constants.OsType.WINDOWS:
         pre_commands.insert(0, f"mkdir -p {dest_dir}")
 
-    return InstallationTools(
+    install_tools = InstallationTools(
         script_file_name,
         dest_dir,
         [
@@ -412,6 +412,18 @@ def gen_commands(
         proxies,
         package_url,
     )
+
+    # 非 Windows 机器使用 sudo 权限执行命令
+    # PAgent 依赖 setup_pagent.py 添加 sudo
+    # Windows Cygwin sudo command not found：Cygwin 本身通过 administrator 启动，无需 sudo
+    if not (
+        host.os_type == constants.OsType.WINDOWS
+        or script_file_name == constants.SetupScriptFileName.SETUP_PAGENT_PY.value
+    ):
+        install_tools.run_cmd = f"sudo {install_tools.run_cmd}"
+        install_tools.pre_commands = [f"sudo {pre_command}" for pre_command in install_tools.pre_commands]
+
+    return install_tools
 
 
 def check_run_commands(run_commands):
