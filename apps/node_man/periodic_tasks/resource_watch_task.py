@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 import logging
 import random
 import time
+from functools import wraps
 
 from django.conf import settings
 from django.core.cache import cache
@@ -19,19 +20,8 @@ from django.db.utils import IntegrityError
 
 from apps.component.esbclient import client_v2
 from apps.node_man import constants as const
-from apps.node_man.models import (
-    AccessPoint,
-    GlobalSettings,
-    Host,
-    IdentityData,
-    ProcessStatus,
-    ResourceWatchEvent,
-    Subscription,
-)
-from apps.node_man.periodic_tasks.sync_cmdb_host import (
-    _generate_host,
-    update_or_create_host_base,
-)
+from apps.node_man.models import GlobalSettings, ResourceWatchEvent, Subscription
+from apps.utils.cache import format_cache_key
 
 logger = logging.getLogger("app")
 
@@ -111,19 +101,15 @@ def _resource_watch(cursor_key, kwargs):
             set_cursor(data, cursor_key)
             continue
 
-        objs = []
-        for event in data["bk_events"]:
-            if cursor_key == RESOURCE_WATCH_HOST_RELATION_CURSOR_KEY and event["bk_event_type"] == "delete":
-                # 不记录主机关系的删除事件
-                continue
-            objs.append(
-                ResourceWatchEvent(
-                    bk_cursor=event["bk_cursor"],
-                    bk_event_type=event["bk_event_type"],
-                    bk_resource=event["bk_resource"],
-                    bk_detail=event["bk_detail"],
-                )
+        objs = [
+            ResourceWatchEvent(
+                bk_cursor=event["bk_cursor"],
+                bk_event_type=event["bk_event_type"],
+                bk_resource=event["bk_resource"],
+                bk_detail=event["bk_detail"],
             )
+            for event in data["bk_events"]
+        ]
         ResourceWatchEvent.objects.bulk_create(objs)
 
         # 记录最新cursor
@@ -146,9 +132,7 @@ def sync_resource_watch_host_relation_event():
     """
     拉取主机关系事件
     """
-    kwargs = {
-        "bk_resource": const.ResourceType.host_relation,
-    }
+    kwargs = {"bk_resource": const.ResourceType.host_relation}
 
     _resource_watch(RESOURCE_WATCH_HOST_RELATION_CURSOR_KEY, kwargs)
 
@@ -159,28 +143,6 @@ def sync_resource_watch_process_event():
     """
     kwargs = {"bk_resource": const.ResourceType.process}
     _resource_watch(RESOURCE_WATCH_PROCESS_CURSOR_KEY, kwargs)
-
-
-def delete_host(bk_host_id):
-    Host.objects.filter(bk_host_id=bk_host_id).delete()
-    IdentityData.objects.filter(bk_host_id=bk_host_id).delete()
-    ProcessStatus.objects.filter(bk_host_id=bk_host_id).delete()
-
-
-def list_biz_host(bk_biz_id, bk_host_id):
-    kwargs = {
-        "bk_biz_id": bk_biz_id,
-        "fields": ["bk_host_id", "bk_cloud_id", "bk_host_innerip", "bk_host_outerip", "bk_os_type", "bk_os_name"],
-        "host_property_filter": {
-            "condition": "AND",
-            "rules": [{"field": "bk_host_id", "operator": "equal", "value": bk_host_id}],
-        },
-        "page": {"start": 0, "limit": 1},
-    }
-    data = client_v2.cc.list_biz_hosts(kwargs)
-    if data.get("info") or []:
-        return data["info"][0]
-    return {}
 
 
 def apply_resource_watched_events():
@@ -199,38 +161,9 @@ def apply_resource_watched_events():
 
         event_bk_biz_id = event.bk_detail.get("bk_biz_id")
         try:
-            if event.bk_event_type in ["update", "create"] and event.bk_resource == const.ResourceType.host:
-                _, need_delete_host_ids = update_or_create_host_base(None, None, [event.bk_detail])
-                if need_delete_host_ids:
-                    delete_host(need_delete_host_ids[0])
-            elif event.bk_event_type in ["create"] and event.bk_resource == const.ResourceType.host_relation:
-                # 查询主机信息创建或者更新
-                bk_host_id = event.bk_detail["bk_host_id"]
-                host_obj = Host.objects.filter(bk_host_id=bk_host_id).first()
-                if host_obj:
-                    if host_obj.bk_biz_id != event_bk_biz_id:
-                        # 更新业务
-                        host_obj.bk_biz_id = event_bk_biz_id
-                        host_obj.save()
-                else:
-                    host = list_biz_host(event_bk_biz_id, bk_host_id)
-                    if host:
-                        ap_id = (
-                            const.DEFAULT_AP_ID if AccessPoint.objects.count() > 1 else AccessPoint.objects.first().id
-                        )
-                        host_data, identify_data, process_status_data = _generate_host(
-                            event_bk_biz_id, host, host["bk_host_innerip"], host["bk_host_outerip"], ap_id
-                        )
-                        # 与注册CC原子存在同时写入的可能，防止更新进行强制插入
-                        try:
-                            host_data.save(force_insert=True)
-                            identify_data.save(force_insert=True)
-                            process_status_data.save(force_insert=True)
-                        except IntegrityError:
-                            pass
-
-            elif event.bk_event_type in ["delete"]:
-                delete_host(event.bk_detail["bk_host_id"])
+            if event_bk_biz_id:
+                # 触发同步CMDB
+                trigger_sync_cmdb_host(bk_biz_id=event_bk_biz_id)
 
             if event_bk_biz_id and settings.USE_CMDB_SUBSCRIPTION_TRIGGER:
                 try:
@@ -250,46 +183,87 @@ def apply_resource_watched_events():
         event.delete()
 
 
-def trigger_nodeman_subscription(bk_biz_id):
+def func_debounce_decorator(func):
+    """
+    函数防抖装饰器
+    """
+
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        cache_key = format_cache_key(func, *args, **kwargs)
+        debounce_flag_key = f"debounce_flag__{cache_key}"
+        debounce_window_key = f"debounce_window__{cache_key}"
+
+        is_debounced = cache.get(debounce_flag_key)
+        debounce_time = cache.get(debounce_window_key, 0)
+
+        if is_debounced:
+            # 已经有待执行的任务在队列中，触发了防抖机制，则直接退出
+            logger.info(
+                f"[{func.__name__}] with params {args}, {kwargs} is debounced, " f"debounce_time->({debounce_time})"
+            )
+            return
+
+        def cal_next_debounce_window(current_time):
+            """
+            计算出下一次的防抖窗口
+            """
+            windows = const.CMDB_SUBSCRIPTION_DEBOUNCE_WINDOWS
+
+            if current_time < windows[0][0]:
+                # 防抖时间下限
+                return windows[0]
+
+            if current_time > windows[-1][0]:
+                # 防抖时间上限
+                return windows[0]
+
+            for index in range(len(windows) - 1):
+                if windows[index][0] <= current_time < windows[index + 1][0]:
+                    return windows[index + 1]
+            return windows[-1]
+
+        debounce_time, debounce_window = cal_next_debounce_window(debounce_time)
+
+        func_result = func(*args, **kwargs, debounce_time=debounce_time)
+
+        # 设置 debounce_flag_key 声明已经开始了防抖，过期时间为 debounce_time。即当上面的celery任务开始执行后，防抖限制解除
+        cache.set(debounce_flag_key, True, debounce_time)
+
+        # 设置 debounce_window_key 声明限流
+        # 当在防抖窗口的时间范围内又触发了变更，会导致防抖窗口的增加。避免过于频繁地触发变更
+        # 当超出了防抖窗口的事件发生变更，防抖窗口就会重新计算
+        cache.set(debounce_window_key, debounce_time, debounce_window)
+
+        logger.info(
+            f"[{func.__name__}] with params {args}, {kwargs}."
+            f"debounce windows refreshed->({debounce_time}/{debounce_window}), "
+        )
+
+        return func_result
+
+    return wrapper
+
+
+@func_debounce_decorator
+def trigger_sync_cmdb_host(bk_biz_id, debounce_time=0):
+    """
+    主动触发CMDB主机同步，复用周期任务的同步逻辑，保证结果的一致性
+    :param bk_biz_id: 业务ID
+    :param debounce_time: 防抖时间
+    """
+    from apps.node_man.periodic_tasks.sync_cmdb_host import sync_cmdb_host_periodic_task
+
+    sync_cmdb_host_periodic_task.apply_async(kwargs={"bk_biz_id": bk_biz_id}, countdown=debounce_time)
+
+
+@func_debounce_decorator
+def trigger_nodeman_subscription(bk_biz_id, debounce_time=0):
     """
     主动触发节点管理订阅变更
     :param bk_biz_id: 业务ID
+    :param debounce_time: 防抖时间
     """
-    debounce_flag_key = f"subscription_debounce_flag__biz__{bk_biz_id}"
-    debounce_window_key = f"subscription_debounce_window__biz__{bk_biz_id}"
-
-    is_debounced = cache.get(debounce_flag_key)
-    debounce_time = cache.get(debounce_window_key, 0)
-
-    if is_debounced:
-        # 已经有待执行的任务在队列中，触发了防抖机制，则直接退出
-        logger.info(
-            "[trigger_nodeman_subscription] bk_biz_id->({}) is debounced, "
-            "debounce_time->({})".format(bk_biz_id, debounce_time)
-        )
-        return
-
-    def cal_next_debounce_window(current_time):
-        """
-        计算出下一次的防抖窗口
-        """
-        windows = const.CMDB_SUBSCRIPTION_DEBOUNCE_WINDOWS
-
-        if current_time < windows[0][0]:
-            # 防抖时间下限
-            return windows[0]
-
-        if current_time > windows[-1][0]:
-            # 防抖时间上限
-            return windows[0]
-
-        for index in range(len(windows) - 1):
-            if windows[index][0] <= current_time < windows[index + 1][0]:
-                return windows[index + 1]
-        return windows[-1]
-
-    debounce_time, debounce_window = cal_next_debounce_window(debounce_time)
-
     from apps.backend.subscription.tasks import update_subscription_instances_chunk
 
     # 获取当前业务的订阅ID，进行变更判断。使用celery变更将于 debounce_time 后执行
@@ -314,15 +288,4 @@ def trigger_nodeman_subscription(bk_biz_id):
         kwargs={"subscription_ids": subscription_ids}, countdown=debounce_time
     )
 
-    # 设置 debounce_flag_key 声明已经开始了防抖，过期时间为 debounce_time。即当上面的celery任务开始执行后，防抖限制解除
-    cache.set(debounce_flag_key, True, debounce_time)
-
-    # 设置 debounce_window_key 声明限流
-    # 当在防抖窗口的时间范围内又触发了变更，会导致防抖窗口的增加。避免过于频繁地触发变更
-    # 当超出了防抖窗口的事件发生变更，防抖窗口就会重新计算
-    cache.set(debounce_window_key, debounce_time, debounce_window)
-
-    logger.info(
-        "[trigger_nodeman_subscription] bk_biz_id->({}) debounce windows refreshed->({}/{}), "
-        "following subscriptions will be run->({}),".format(bk_biz_id, debounce_time, debounce_window, subscription_ids)
-    )
+    logger.info(f"[trigger_nodeman_subscription] following subscriptions will be run->({subscription_ids})")
