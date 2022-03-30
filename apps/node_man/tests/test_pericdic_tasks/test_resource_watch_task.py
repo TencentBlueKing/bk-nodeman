@@ -10,7 +10,8 @@ specific language governing permissions and limitations under the License.
 """
 
 from functools import wraps
-from unittest.mock import patch
+from unittest import mock
+from unittest.mock import MagicMock, patch
 
 from django.core.cache import cache
 
@@ -59,11 +60,9 @@ class TestResourceWatchTask(CustomBaseTestCase):
         _sync_resource_watch_host_event()
         self._apply_resource_watched_events()
 
-        # 简单验证一下ip是否更改了, 从而证明了成功监视到数据更改并更新
-        self.assertEqual(Host.objects.get(bk_host_id=mock_data.MOCK_HOST_ID).inner_ip, "127.0.0.9")
-
     @patch("apps.node_man.periodic_tasks.resource_watch_task.GlobalSettings.update_config", InterruptedError)
     @patch("apps.node_man.periodic_tasks.resource_watch_task.client_v2", MockClient)
+    @patch("apps.node_man.periodic_tasks.resource_watch_task.trigger_sync_cmdb_host", MagicMock())
     def test_sync_resource_watch_host_relation_event(self):
         @exception_handler
         def _sync_resource_watch_host_relation_event():
@@ -71,9 +70,11 @@ class TestResourceWatchTask(CustomBaseTestCase):
 
         _sync_resource_watch_host_relation_event()
         self._apply_resource_watched_events()
+        from apps.node_man.periodic_tasks.resource_watch_task import (
+            trigger_sync_cmdb_host,
+        )
 
-        # 验证是否成功创建了主机，从而证明了成功监视到host_relation
-        self.assertEqual(Host.objects.filter(bk_biz_id=999).count(), 1)
+        trigger_sync_cmdb_host.assert_has_calls([mock.call(bk_biz_id=999)])
 
     @patch("apps.node_man.periodic_tasks.resource_watch_task.GlobalSettings.update_config", InterruptedError)
     @patch("apps.node_man.periodic_tasks.resource_watch_task.client_v2", MockClient)
@@ -86,6 +87,5 @@ class TestResourceWatchTask(CustomBaseTestCase):
         self._apply_resource_watched_events()
 
         # 验证是否触发了订阅，从而证明是否监视进程改变
-        bk_biz_id = 999
-        debounce_window_key = f"subscription_debounce_window__biz__{bk_biz_id}"
+        debounce_window_key = "debounce_window__trigger_nodeman_subscription_404407a5290c409be67c50f4494f5f9f"
         self.assertEqual(bool(cache.get(debounce_window_key)), True)
