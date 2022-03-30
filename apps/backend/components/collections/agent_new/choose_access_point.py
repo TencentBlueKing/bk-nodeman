@@ -86,7 +86,7 @@ class ChooseAccessPointService(AgentBaseService, remote.RemoteServiceMixin):
         else:
             # awk -F '/' '{{printf $5}}'：提取 ping 平均时长 avg 「rtt min/avg/max/mdev = 28.080/28.112/28.143/0.170 ms」
             # 使用 printf 输出 avg，避免解析到换行符
-            return f"ping {detect_host} -i 0.1 -c 4 -s 100 -W 1 | tail -1 | awk -F '/' '{{printf $5}}'"
+            return f"sudo ping {detect_host} -i 0.1 -c 4 -s 100 -W 1 | tail -1 | awk -F '/' '{{printf $5}}'"
 
     def parse_ping_time(self, os_type: str, ping_stdout: str) -> float:
         """
