@@ -86,7 +86,7 @@ class ChooseAccessPointService(AgentBaseService, remote.RemoteServiceMixin):
         else:
             # awk -F '/' '{{printf $5}}'：提取 ping 平均时长 avg 「rtt min/avg/max/mdev = 28.080/28.112/28.143/0.170 ms」
             # 使用 printf 输出 avg，避免解析到换行符
-            return f"sudo ping {detect_host} -i 0.1 -c 4 -s 100 -W 1 | tail -1 | awk -F '/' '{{printf $5}}'"
+            return f"ping {detect_host} -i 0.1 -c 4 -s 100 -W 1 | tail -1 | awk -F '/' '{{printf $5}}'"
 
     def parse_ping_time(self, os_type: str, ping_stdout: str) -> float:
         """
@@ -163,11 +163,21 @@ class ChooseAccessPointService(AgentBaseService, remote.RemoteServiceMixin):
         :param remote_conn_helper:
         :return:
         """
+        use_sudo = False
+        if not any(
+            [
+                remote_conn_helper.host.os_type == constants.OsType.WINDOWS,
+                remote_conn_helper.identity_data.account in [constants.LINUX_ACCOUNT],
+            ]
+        ):
+            use_sudo = True
         ping_times_gby_ap_id: Dict[int, List[float]] = defaultdict(list)
         for ap_id, ap_info in remote_conn_helper.ap_id__info_map.items():
             async with conns.AsyncsshConn(**remote_conn_helper.conns_init_params) as conn:
                 for detect_host_info in ap_info["detect_host_infos"]:
                     ping_cmd = self.get_ping_cmd(remote_conn_helper.host, detect_host_info=detect_host_info)
+                    if use_sudo:
+                        ping_cmd = f"sudo {ping_cmd}"
                     run_output = await conn.run(
                         command=ping_cmd, check=False, timeout=backend_constants.SSH_RUN_TIMEOUT
                     )

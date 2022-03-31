@@ -155,7 +155,7 @@ class LinuxInstallTestCase(InstallBaseTestCase):
         installation_tool = gen_commands(host, mock_data_utils.JOB_TASK_PIPELINE_ID, is_uninstall=False, sub_inst_id=0)
         token = re.match(r"(.*) -c (.*?) -O", installation_tool.run_cmd).group(2)
         run_cmd = (
-            f"sudo nohup bash /tmp/setup_agent.sh -s {mock_data_utils.JOB_TASK_PIPELINE_ID}"
+            f"nohup bash /tmp/setup_agent.sh -s {mock_data_utils.JOB_TASK_PIPELINE_ID}"
             f" -r http://127.0.0.1/backend -l http://127.0.0.1/download"
             f" -c {token}"
             f' -O 48668 -E 58925 -A 58625 -V 58930 -B 10020 -S 60020 -Z 60030 -K 10030 -e "" -a "" -k ""'
@@ -338,6 +338,8 @@ class UninstallSuccessTest(InstallBaseTestCase):
 
     def test_gen_agent_command(self):
         host = models.Host.objects.get(bk_host_id=self.obj_factory.bk_host_ids[0])
+        # 验证非 root 添加 sudo
+        host.identity.account = "test"
         installation_tool = gen_commands(host, mock_data_utils.JOB_TASK_PIPELINE_ID, is_uninstall=True, sub_inst_id=0)
         token = re.match(r"(.*) -c (.*?) -O", installation_tool.run_cmd).group(2)
         run_cmd = (
