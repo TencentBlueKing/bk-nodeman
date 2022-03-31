@@ -231,58 +231,39 @@ class PolicyStepAdapter:
                 msg=_("插件包 [{name}-{version}] 不存在").format(name=plugin_name, version=plugin_version)
             )
 
-        plugin_version: str = packages[0].version
-        config_templates: List[Dict[str, Any]] = []
+        latest_packages_version_set = set(packages.values_list("version", flat=True))
+        os_cpu__config_templates_map = defaultdict(list)
         for template in validated_config["config_templates"]:
             is_main_template = template["is_main"]
             if template["version"] != "latest":
-                config_template = (
-                    models.PluginConfigTemplate.objects.filter(
-                        plugin_version__in=[plugin_version, "*"],
-                        name=template["name"],
-                        os=template.get("os", constants.OsType.LINUX.lower()),
-                        cpu_arch=template.get("cpu_arch", constants.CpuType.x86_64),
-                        plugin_name=plugin_name,
-                        is_main=is_main_template,
-                    )
-                    .order_by("id")
-                    .last()
-                )
+                plugin_version_set = {plugin_version, "*"}
             else:
-                config_template = (
-                    models.PluginConfigTemplate.objects.filter(
-                        plugin_version__in=[plugin_version, "*"],
-                        name=template["name"],
-                        os=template.get("os", constants.OsType.LINUX.lower()),
-                        cpu_arch=template.get("cpu_arch", constants.CpuType.x86_64),
-                        plugin_name=plugin_name,
-                        is_main=is_main_template,
-                    )
-                    .order_by("id")
-                    .last()
+                plugin_version_set = latest_packages_version_set | {"*"}
+            config_templates_group_by_os_cpu = (
+                models.PluginConfigTemplate.objects.filter(
+                    plugin_version__in=plugin_version_set,
+                    name=template["name"],
+                    plugin_name=plugin_name,
+                    is_main=is_main_template,
                 )
-            if not config_template:
-                if is_main_template:
-                    # 不校验主配置模板是否存在是为了兼容老版本插件没有主配置模板
-                    continue
-                raise errors.PluginValidationError(
-                    msg=_("配置模板 [{name}-{version}-{os}-{cpu_arch}] 不存在").format(
-                        name=template["name"],
-                        version=template["version"],
-                        os=template.get("os", constants.OsType.LINUX.lower()),
-                        cpu_arch=template.get("cpu_arch", constants.CpuType.x86_64),
-                    )
-                )
-            config_templates.append(
-                {
-                    "id": config_template.id,
-                    "version": config_template.version,
-                    "name": config_template.name,
-                    "os": config_template.os,
-                    "cpu_arch": config_template.cpu_arch,
-                    "is_main": config_template.is_main,
-                }
+                .values("os", "cpu_arch")
+                .annotate(max_id=Max("id"))
             )
+            config_templates = models.PluginConfigTemplate.objects.filter(
+                id__in=Subquery(config_templates_group_by_os_cpu.values("max_id"))
+            )
+
+            for config_template in config_templates:
+                os_cpu__config_templates_map[self.get_os_key(config_template.os, config_template.cpu_arch)].append(
+                    {
+                        "id": config_template.id,
+                        "version": config_template.version,
+                        "name": config_template.name,
+                        "os": config_template.os,
+                        "cpu_arch": config_template.cpu_arch,
+                        "is_main": config_template.is_main,
+                    }
+                )
 
         policy_packages: List[Dict[str, Union[str, List[Dict[str, Any]]]]] = []
         for package in packages:
@@ -293,9 +274,10 @@ class PolicyStepAdapter:
                     "version": package.version,
                     "cpu_arch": package.cpu_arch,
                     "os": package.os,
-                    "config_templates": config_templates,
+                    "config_templates": os_cpu__config_templates_map[self.get_os_key(package.os, package.cpu_arch)],
                 }
             )
+
         policy_step_config = {**copy.deepcopy(validated_config), "details": policy_packages}
 
         # 补充original_config中部分必要参数
