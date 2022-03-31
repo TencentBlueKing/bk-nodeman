@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import copy
 from collections import defaultdict
 
 import mock
@@ -33,11 +34,47 @@ from apps.node_man.models import (
     SubscriptionTask,
 )
 
+DEFEAULT_CREATE_SUBSCRIPTION_DATA = {
+    "bk_username": "admin",
+    "bk_app_code": "blueking",
+    "scope": {
+        "bk_biz_id": 2,
+        "node_type": "TOPO",
+        "object_type": "HOST",
+        "nodes": [
+            {
+                "ip": "127.0.0.1",
+                "bk_cloud_id": 0,
+                "bk_supplier_id": 0,
+                "bk_obj_id": "biz",
+                "bk_inst_id": 32,
+            }
+        ],
+    },
+    "steps": [
+        {
+            "id": "my_first",
+            "type": "PLUGIN",
+            "config": {
+                "plugin_name": "mysql_exporter",
+                "plugin_version": "2.3",
+                "config_templates": [
+                    {"name": "config.yaml", "version": "2"},
+                    {"name": "env.yaml", "version": "2"},
+                ],
+            },
+            "params": {"url": "asdfasdfs"},
+        }
+    ],
+}
+
 
 class TestPolicy(TestCase):
     """
     在策略场景下的测试订阅相关的接口
     """
+
+    CREATE_SUBSCRIPTION_DATA = copy.deepcopy(DEFEAULT_CREATE_SUBSCRIPTION_DATA)
 
     client = Client()
 
@@ -306,41 +343,7 @@ class TestPolicy(TestCase):
         r = self.client.post(
             path="/backend/api/subscription/create/",
             content_type="application/json",
-            data=json.dumps(
-                {
-                    "bk_username": "admin",
-                    "bk_app_code": "blueking",
-                    "scope": {
-                        "bk_biz_id": 2,
-                        "node_type": "TOPO",
-                        "object_type": "HOST",
-                        "nodes": [
-                            {
-                                "ip": "127.0.0.1",
-                                "bk_cloud_id": 0,
-                                "bk_supplier_id": 0,
-                                "bk_obj_id": "biz",
-                                "bk_inst_id": 32,
-                            }
-                        ],
-                    },
-                    "steps": [
-                        {
-                            "id": "my_first",
-                            "type": "PLUGIN",
-                            "config": {
-                                "plugin_name": "mysql_exporter",
-                                "plugin_version": "2.3",
-                                "config_templates": [
-                                    {"name": "config.yaml", "version": "2"},
-                                    {"name": "env.yaml", "version": "2"},
-                                ],
-                            },
-                            "params": {"url": "asdfasdfs"},
-                        }
-                    ],
-                }
-            ),
+            data=json.dumps(self.CREATE_SUBSCRIPTION_DATA),
         )
 
         subscription_id = r.data["data"]["subscription_id"]
@@ -462,3 +465,12 @@ class TestPolicy(TestCase):
 
         subscription = Subscription.objects.get(id=subscription_id, is_deleted=True)
         self.assertEqual(subscription.is_deleted, True)
+
+
+class TestPolicyWithLatestVersion(TestPolicy):
+
+    CREATE_SUBSCRIPTION_DATA = copy.deepcopy(DEFEAULT_CREATE_SUBSCRIPTION_DATA)
+    for step in CREATE_SUBSCRIPTION_DATA["steps"]:
+        step["config"]["plugin_version"] = "latest"
+        for config_template in step["config"]["config_templates"]:
+            config_template["version"] = "latest"
