@@ -418,6 +418,7 @@ def gen_commands(
     # Windows Cygwin sudo command not found：Cygwin 本身通过 administrator 启动，无需 sudo
     if not (
         host.os_type == constants.OsType.WINDOWS
+        or install_tools.identity_data.account in [constants.LINUX_ACCOUNT]
         or script_file_name == constants.SetupScriptFileName.SETUP_PAGENT_PY.value
     ):
         install_tools.run_cmd = f"sudo {install_tools.run_cmd}"
