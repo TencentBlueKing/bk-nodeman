@@ -21,6 +21,7 @@ from apps.backend.tests.subscription.utils import (
     CmdbClient,
     list_biz_hosts_without_info_client,
 )
+from apps.mock_data.backend_mkd.subscription.unit import GSE_PLUGIN_DESC_DATA
 from apps.node_man import constants
 from apps.node_man.models import (
     GsePluginDesc,
@@ -213,18 +214,8 @@ class TestSubscription(TestCase):
 
     def _test_run_subscription(self):
         self.run_task.apply_async.call_count = 0
-        GsePluginDesc.objects.create(
-            **{
-                "name": "mysql_exporter",
-                "description": "测试插件啊",
-                "scenario": "测试",
-                "category": "external",
-                "launch_node": "all",
-                "config_file": "config.yaml",
-                "config_format": "yaml",
-                "use_db": False,
-            }
-        )
+        plugin_desc_data = dict(GSE_PLUGIN_DESC_DATA, **{"name": "mysql_exporter", "config_file": "config.yaml"})
+        GsePluginDesc.objects.create(**plugin_desc_data)
         pac = Packages(
             pkg_name="test1.tar",
             version="2.3",
