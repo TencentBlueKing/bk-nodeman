@@ -24,42 +24,14 @@ from apps.backend.subscription.tasks import (
 )
 from apps.backend.subscription.tools import get_subscription_task_instance_status
 from apps.backend.utils.pipeline_parser import PipelineParser
+from apps.mock_data.backend_mkd.subscription.unit import (
+    GSE_PLUGIN_DESC_DATA,
+    SUBSCRIPTION_DATA,
+)
 from apps.node_man import models
 from common.log import logger
 
 IS_OPEN_PERFORMANCE_UNITTEST = os.environ.get("IS_OPEN_PERFORMANCE_UNITTEST", False)
-
-subscription_data = {
-    "scope": {
-        "bk_biz_id": 2,
-        "node_type": "INSTANCE",
-        "object_type": "HOST",
-        "nodes": [{"ip": "127.0.0.1", "bk_cloud_id": 0, "bk_supplier_id": 0}],
-    },
-    "target_hosts": None,
-    "steps": [
-        {
-            "config": {
-                "config_templates": [{"version": "1", "name": "env.yaml"}],
-                "plugin_version": "1.1",
-                "plugin_name": "nodeman_performance_test",
-            },
-            "type": "PLUGIN",
-            "id": "nodeman_performance_test",
-            "params": {"context": {"cmd_args": ""}},
-        },
-        {
-            "config": {
-                "plugin_name": "bkmonitorbeat",
-                "plugin_version": "latest",
-                "config_templates": [{"name": "bkmonitorbeat_script.conf", "version": "latest"}],
-            },
-            "type": "PLUGIN",
-            "id": "bkmonitorbeat",
-            "params": {"context": {"cmd_args": ""}},
-        },
-    ],
-}
 
 mocked_instance = {
     "process": {
@@ -262,16 +234,7 @@ class TestPerformance(TestCase):
         run_pipeline_function.side_effect = lambda x: None
 
     def setUp(self):
-        desc_params = dict(
-            name="nodeman_performance_test",
-            description="测试插件啊",
-            scenario="测试",
-            category="external",
-            launch_node="all",
-            config_file="config.yaml",
-            config_format="yaml",
-            use_db=False,
-        )
+        desc_params = dict(GSE_PLUGIN_DESC_DATA, **{"name": "nodeman_performance_test", "config_file": "config.yaml"})
         models.GsePluginDesc.objects.create(**desc_params)
         desc_params["name"] = "bkmonitorbeat"
         models.GsePluginDesc.objects.create(**desc_params)
@@ -385,7 +348,7 @@ class TestPerformance(TestCase):
         print_with_time("Creating Task...")
 
         for subscription_id in range(task_num):
-            runner = SubscriptionRunner(subscription_data)
+            runner = SubscriptionRunner(SUBSCRIPTION_DATA)
             runners.append(runner)
 
         end_time = datetime.datetime.now()
