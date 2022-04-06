@@ -30,9 +30,9 @@ export const setupInfo: ISetupHead[] = [
     ],
   },
   {
-    label: '数据传输IP',
+    label: '出口IP',
     prop: 'outer_ip',
-    tips: window.i18n.t('数据传输IP提示'),
+    tips: window.i18n.t('出口IP提示'),
     type: 'text',
     unique: true,
     errTag: true,
@@ -176,9 +176,9 @@ export const setupManualInfo: ISetupHead[] = [
     ],
   },
   {
-    label: '数据传输IP',
+    label: '出口IP',
     prop: 'outer_ip',
-    tips: window.i18n.t('数据传输IP提示'),
+    tips: window.i18n.t('出口IP提示'),
     type: 'text',
     unique: true,
     errTag: true,

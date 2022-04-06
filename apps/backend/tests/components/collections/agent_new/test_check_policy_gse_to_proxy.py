@@ -17,6 +17,7 @@ from apps.backend.components.collections.agent_new import (
     check_policy_gse_to_proxy,
     components,
 )
+from apps.node_man import constants
 from common.api import JobApi
 
 from . import base
@@ -42,17 +43,20 @@ class CheckPolicyGseToProxyTestCase(base.JobBaseTestCase):
 
         # 检查渲染的脚本内容是否符合预期
         for host in self.obj_factory.host_objs:
-            host_key = f"{host.bk_cloud_id}-{host.inner_ip}"
-            port_config = host.ap.port_config
-            self.assertEqual(
-                host_key__script_content_map[host_key],
-                check_policy_gse_to_proxy.REACHABLE_SCRIPT_TEMPLATE
-                % {
-                    "proxy_ip": host.outer_ip,
-                    "btsvr_thrift_port": port_config.get("btsvr_thrift_port"),
-                    "bt_port": port_config.get("bt_port"),
-                    "tracker_port": port_config.get("tracker_port"),
-                    "msg": _("请检查数据传输IP是否正确或策略是否开通"),
-                },
-            )
+            ap = host.ap
+            port_config = ap.port_config
+            for bt_server in ap.btfileserver:
+                host_key = f"{constants.DEFAULT_CLOUD}-{bt_server['inner_ip']}"
+
+                self.assertEqual(
+                    host_key__script_content_map[host_key],
+                    check_policy_gse_to_proxy.REACHABLE_SCRIPT_TEMPLATE
+                    % {
+                        "proxy_ip": host.outer_ip,
+                        "btsvr_thrift_port": port_config.get("btsvr_thrift_port"),
+                        "bt_port": port_config.get("bt_port"),
+                        "tracker_port": port_config.get("tracker_port"),
+                        "msg": _("请检查出口IP是否正确或策略是否开通"),
+                    },
+                )
         super().tearDown()

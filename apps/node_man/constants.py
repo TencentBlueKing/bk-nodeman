@@ -673,13 +673,13 @@ class BkJobStatus(object):
 
 
 class BkJobErrorCode(object):
-    NOT_RUNNING = -1
+    NOT_EXIST_HOST = -1
     AGENT_ABNORMAL = 117
     SUCCEED = 9
     RUNNING = 7
 
     BK_JOB_ERROR_CODE_MAP = {
-        NOT_RUNNING: _("该IP未执行作业，请联系管理员排查问题"),
+        NOT_EXIST_HOST: _("作业平台API返回中不存在此IP的日志，请联系管理员排查问题"),
         1: _("Agent异常"),
         3: _("上次已成功"),
         4: _("执行失败"),
@@ -697,23 +697,26 @@ class BkJobErrorCode(object):
         AGENT_ABNORMAL: _("Agent异常"),
         202: _("文件传输失败"),
         203: _("源文件不存在"),
+        303: _("文件任务超时"),
         310: _("Agent异常"),
         311: _("用户名不存在"),
+        312: _("用户密码错误"),
         320: _("文件获取失败"),
         321: _("文件超出限制"),
         329: _("文件传输错误"),
         399: _("任务执行出错"),
+        403: _("任务被强制终止"),
     }
 
 
 class BkJobIpStatus(object):
-    NOT_RUNNING = -1
+    NOT_EXIST_HOST = -1
     SUCCEEDED = 9
     AGENT_ABNORMAL = 1
     RUNNING = 7
 
     BK_JOB_IP_STATUS_MAP = {
-        NOT_RUNNING: _("该IP未执行作业，请联系管理员排查问题"),
+        NOT_EXIST_HOST: _("作业平台API返回中不存在此IP的日志，请联系管理员排查问题"),
         AGENT_ABNORMAL: _("Agent异常"),
         4: _("执行失败"),
         5: _("等待执行"),
