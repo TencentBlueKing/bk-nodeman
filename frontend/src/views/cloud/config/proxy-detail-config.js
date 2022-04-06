@@ -23,8 +23,8 @@ export const detailConfig = [
   },
   {
     prop: 'outer_ip',
-    label: window.i18n.t('数据传输IP'),
-    tip: window.i18n.t('数据传输IP提示'),
+    label: window.i18n.t('出口IP'),
+    tip: window.i18n.t('出口IP提示'),
     type: 'text',
     readonly: true,
   },
