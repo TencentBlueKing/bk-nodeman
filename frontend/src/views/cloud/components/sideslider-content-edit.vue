@@ -5,7 +5,7 @@
         <bk-input v-model="proxyData.inner_ip" readonly></bk-input>
       </bk-form-item>
       <bk-form-item
-        :label="$t('数据传输IP')"
+        :label="$t('出口IP')"
         property="outer_ip"
         error-display-type="normal"
         :rules="rules.outerIp"
@@ -114,7 +114,7 @@ export default class SidesliderContentEdit extends Vue {
   private descOuterIpTip = {
     width: 200,
     theme: 'light',
-    content: this.$t('数据传输IP提示'),
+    content: this.$t('出口IP提示'),
   };
   private descDataPathTip = {
     width: 200,

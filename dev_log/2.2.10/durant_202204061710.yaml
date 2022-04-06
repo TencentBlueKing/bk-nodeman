@@ -1,0 +1,3 @@
+---
+optimization:
+  - "安装Proxy时检查 GSE_BT_SERVER 的网络连通性 (close #612)"

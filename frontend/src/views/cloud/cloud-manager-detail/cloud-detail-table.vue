@@ -38,7 +38,7 @@
           </template>
         </bk-table-column>
         <bk-table-column
-          :label="$t('数据传输IP')"
+          :label="$t('出口IP')"
           v-if="filter['outer_ip'].mockChecked"
           :render-header="renderTipHeader">
           <template #default="{ row }">
@@ -305,7 +305,7 @@ export default class CloudDetailTable extends Vue {
   private filterSet: Dictionary[] = [
     { key: 'inner_ip', value: [true, true, true, 'inner_ip', 'Proxy IP'] },
     { key: 'proxy_version', value: [true, false, true, 'version', this.$t('Proxy版本')] },
-    { key: 'outer_ip', value: [false, false, false, 'outer_ip', this.$t('数据传输IP')] },
+    { key: 'outer_ip', value: [false, false, false, 'outer_ip', this.$t('出口IP')] },
     { key: 'login_ip', value: [true, false, true, 'login_ip', this.$t('登录IP')] },
     { key: 'pagent_count', value: [true, false, true, 'pagent_count', this.$t('Agent数量')] },
     { key: 'bk_biz_name', value: [true, false, true, 'bk_biz_name', this.$t('归属业务')] },
@@ -521,7 +521,7 @@ export default class CloudDetailTable extends Vue {
     const directive = {
       name: 'bkTooltips',
       theme: 'light',
-      content: this.$t('数据传输IP提示'),
+      content: this.$t('出口IP提示'),
       width: 238,
       placement: 'top',
     };
