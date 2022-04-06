@@ -201,7 +201,7 @@ class JobV3BaseService(six.with_metaclass(abc.ABCMeta, BaseService)):
 
         # 构造主机作业状态映射表
         cloud_ip_status_map: Dict[str, Dict] = {}
-        for ip_result in ip_results["step_instance_list"][0]["step_ip_result_list"]:
+        for ip_result in ip_results["step_instance_list"][0].get("step_ip_result_list") or []:
             cloud_ip_status_map[f'{ip_result["bk_cloud_id"]}-{ip_result["ip"]}'] = ip_result
 
         succeed_sub_inst_ids: List[int] = []
@@ -226,8 +226,8 @@ class JobV3BaseService(six.with_metaclass(abc.ABCMeta, BaseService)):
             try:
                 ip_result = cloud_ip_status_map[cloud_ip]
             except KeyError:
-                ip_status = constants.BkJobIpStatus.NOT_RUNNING
-                err_code = constants.BkJobErrorCode.NOT_RUNNING
+                ip_status = constants.BkJobIpStatus.NOT_EXIST_HOST
+                err_code = constants.BkJobErrorCode.NOT_EXIST_HOST
             else:
                 ip_status = ip_result["status"]
                 err_code = ip_result["error_code"]
@@ -359,9 +359,6 @@ class JobV3BaseService(six.with_metaclass(abc.ABCMeta, BaseService)):
 
 
 class JobExecuteScriptService(JobV3BaseService, metaclass=abc.ABCMeta):
-
-    PRINT_PARAMS_TO_LOG = True
-
     def inputs_format(self):
         return super().inputs_format() + [
             Service.InputItem(name="script_content", key="script_content", type="str", required=False),
@@ -383,6 +380,7 @@ class JobExecuteScriptService(JobV3BaseService, metaclass=abc.ABCMeta):
             host_obj = common_data.host_id_obj_map[bk_host_id]
             script_param = self.get_script_param(data=data, common_data=common_data, host=host_obj)
             script_content = self.get_script_content(data=data, common_data=common_data, host=host_obj)
+            target_servers = self.get_target_servers(data=data, common_data=common_data, host=host_obj)
 
             # script_content 和 script_param md5一样的则认为是同样的脚本操作，合并到一个作业中，提高执行效率
             script_content_md5 = self.get_md5(script_content)
@@ -391,16 +389,14 @@ class JobExecuteScriptService(JobV3BaseService, metaclass=abc.ABCMeta):
 
             if md5_key in multi_job_params_map:
                 multi_job_params_map[md5_key]["subscription_instance_id"].append(sub_inst.id)
-                multi_job_params_map[md5_key]["job_params"]["target_server"]["ip_list"].append(
-                    {"bk_cloud_id": host_obj.bk_cloud_id, "ip": host_obj.inner_ip}
-                )
+                multi_job_params_map[md5_key]["job_params"]["target_server"]["ip_list"].extend(target_servers)
             else:
                 multi_job_params_map[md5_key] = {
                     "job_func": JobApi.fast_execute_script,
                     "subscription_instance_id": [sub_inst.id],
                     "subscription_id": common_data.subscription.id,
                     "job_params": {
-                        "target_server": {"ip_list": [{"bk_cloud_id": host_obj.bk_cloud_id, "ip": host_obj.inner_ip}]},
+                        "target_server": {"ip_list": target_servers},
                         "script_content": script_content,
                         "script_param": script_param,
                         "timeout": timeout,
@@ -429,6 +425,16 @@ class JobExecuteScriptService(JobV3BaseService, metaclass=abc.ABCMeta):
         :return: 脚本参数
         """
         return data.get_one_of_inputs("script_param", default="")
+
+    def get_target_servers(self, data, common_data: CommonData, host: models.Host) -> List[Dict[str, Any]]:
+        """
+        获取目标服务器
+        :param data:
+        :param common_data:
+        :param host: 主机类型
+        :return: 目标服务器
+        """
+        return [{"bk_cloud_id": host.bk_cloud_id, "ip": host.inner_ip}]
 
 
 class JobTransferFileService(JobV3BaseService, metaclass=abc.ABCMeta):
