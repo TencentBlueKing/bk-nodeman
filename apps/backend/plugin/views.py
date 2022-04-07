@@ -998,14 +998,9 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
             }
         )
         # 筛选可用包，规则：启用，版本降序
-        packages = (
-            models.Packages.objects.filter(project=gse_plugin_desc["name"])
-            .order_by("-is_ready")
-            .values(
-                "id", "pkg_name", "module", "project", "version", "os", "cpu_arch", "pkg_mtime", "creator", "is_ready"
-            )
+        packages = models.Packages.objects.filter(project=gse_plugin_desc["name"]).values(
+            "id", "pkg_name", "module", "project", "version", "os", "cpu_arch", "pkg_mtime", "creator", "is_ready"
         )
-        packages = sorted(packages, key=lambda x: version.parse(x["version"]), reverse=True)
         plugin_packages = []
         # 按支持的cpu, os对包进行分类
         packages_group_by_os_cpu = defaultdict(list)
@@ -1015,7 +1010,12 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         # 取每个支持系统的最新版本插件包
         for os_cpu, package_group in packages_group_by_os_cpu.items():
             # 取启用版本的最新插件包，如无启用，取未启用的最新版本插件包
+            package_group = sorted(package_group, key=lambda pkg: version.parse(pkg["version"]), reverse=True)
             release_package = package_group[0]
+            for package in package_group:
+                if package["is_ready"]:
+                    release_package = package
+                    break
             release_package["support_os_cpu"] = os_cpu
             plugin_packages.append(release_package)
 
