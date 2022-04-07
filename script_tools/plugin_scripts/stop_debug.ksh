@@ -28,7 +28,7 @@ do
         pid=`cat $file`
         echo "Found PID file: $file"
         echo "PID to be killed: $pid"
-        kill $pid
+        kill -9 $pid
     fi
 done
 
