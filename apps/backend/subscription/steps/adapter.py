@@ -344,7 +344,7 @@ class PolicyStepAdapter:
 
     def get_matching_package_obj(self, os_type: str, cpu_arch: str) -> models.Packages:
         try:
-            return self.os_key_pkg_map[self.get_os_key(os_type, cpu_arch)]
+            package = self.os_key_pkg_map[self.get_os_key(os_type, cpu_arch)]
         except KeyError:
             msg = _("插件 [{name}] 不支持 系统:{os_type}-架构:{cpu_arch}-版本:{plugin_version}").format(
                 name=self.plugin_name,
@@ -353,6 +353,16 @@ class PolicyStepAdapter:
                 plugin_version=self.get_matching_package_dict(os_type, cpu_arch)["version"],
             )
             raise errors.PackageNotExists(msg)
+        else:
+            if not package.is_ready:
+                msg = _("插件 [{name}] 系统:{os_type}-架构:{cpu_arch}-版本:{plugin_version} 未启用").format(
+                    name=self.plugin_name,
+                    os_type=os_type,
+                    cpu_arch=cpu_arch,
+                    plugin_version=self.get_matching_package_dict(os_type, cpu_arch)["version"],
+                )
+                raise errors.PluginValidationError(msg)
+            return package
 
     def get_matching_config_tmpl_objs(self, os_type: str, cpu_arch: str) -> List[models.PluginConfigTemplate]:
         return self.config_tmpl_obj_gby_os_key.get(self.get_os_key(os_type, cpu_arch), [])
