@@ -65,7 +65,6 @@ class PolicyStepConfigSerializer(serializers.Serializer):
             raise serializers.ValidationError(f"package's project should be the same, but not {project_set}")
         if not attrs["plugin_name"]:
             attrs["plugin_name"] = attrs["details"][0]["project"]
-
         return attrs
 
 

@@ -19,8 +19,6 @@ import os
 import re
 import shutil
 from collections import defaultdict
-from itertools import groupby
-from operator import itemgetter
 
 import six
 from blueapps.account.decorators import login_exempt
@@ -1019,24 +1017,7 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
             release_package["support_os_cpu"] = os_cpu
             plugin_packages.append(release_package)
 
-        # 获取各个系统最新插件包的配置文件
-        configs = list(
-            models.PluginConfigTemplate.objects.filter(
-                plugin_name=gse_plugin_desc["name"],
-                plugin_version__in=[pkg["version"] for pkg in plugin_packages] + ["*"],
-                is_main=True,  # 目前只支持主配置
-            )
-            .order_by("plugin_version")
-            .values("id", "name", "version", "is_main", "plugin_version", "cpu_arch", "os")
-        )
-        configs_group_by_pkg_v = {
-            pkg_version: list(config_group)
-            for pkg_version, config_group in groupby(configs, key=itemgetter("plugin_version"))
-        }
-        for pkg in plugin_packages:
-            pkg["config_templates"] = list(configs_group_by_pkg_v.get(pkg["version"], [])) + list(
-                configs_group_by_pkg_v.get("*", [])
-            )
+        tools.fill_latest_config_tmpls_to_packages(packages)
         gse_plugin_desc["plugin_packages"] = plugin_packages
         return Response(dict(gse_plugin_desc))
 
@@ -1156,40 +1137,7 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         if newest_pkg:
             newest_pkg["is_newest"] = True
 
-        config_files = models.PluginConfigTemplate.objects.filter(
-            plugin_name=plugin_name, os=params["os"], cpu_arch=params["cpu_arch"]
-        ).values()
-        # 根据版本号对配置文件归类
-        config_group_by_name_version = defaultdict(list)
-        for config_file in config_files:
-            name_version_str = config_file["plugin_name"] + config_file["plugin_version"]
-            config_group_by_name_version[name_version_str].append(
-                {
-                    "id": config_file["id"],
-                    "version": config_file["version"],
-                    "os": config_file["os"],
-                    "cpu_arch": config_file["cpu_arch"],
-                    "name": config_file["name"],
-                    "is_main": config_file["is_main"],
-                }
-            )
-
-        # 通用版本通配符
-        plugin_name_version_passcode = f"{plugin_name}*"
-        for package in packages:
-            # 配置模板 = 通用版本配置模板 + 该版本的配置文件
-            package["config_templates"] = (
-                config_group_by_name_version[plugin_name_version_passcode]
-                + config_group_by_name_version[package["project"] + package["version"]]
-            )
-            # 如果存在多个版本的同名配置，仅展示最新版本
-            package["config_templates"] = tools.fetch_latest_config_templates(
-                config_templates=package["config_templates"],
-                plugin_version=package["version"],
-                os_type=package["os"],
-                cpu_arch=package["cpu_arch"],
-                plugin_name=plugin_name,
-            )
+        tools.fill_latest_config_tmpls_to_packages(packages)
         return Response(sorted(packages, key=lambda x: version.parse(x["version"]), reverse=True))
 
     @action(detail=False, methods=["POST"], serializer_class=serializers.CosUploadSerializer)
