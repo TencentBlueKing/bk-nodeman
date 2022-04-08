@@ -357,18 +357,10 @@ def fetch_latest_config_templates(
             ]["version"]
 
     latest_config_templates: List[Dict[str, Any]] = []
-    config_tmpl_names: List[str] = []
-
     for config_tmpl_name, config_tmpls_with_the_same_name in config_tmpls_gby_name.items():
-        config_tmpl_names.append(config_tmpl_name)
         same_name_tmpl_map: Dict[str, Dict[str, str]] = {}
         for tmpl in config_tmpls_with_the_same_name:
-
-            is_same_platform = tmpl["os"].lower() == os_type and tmpl["cpu_arch"] == cpu_arch
-            if not is_same_platform:
-                continue
-            else:
-                same_name_tmpl_map[tmpl["version"]] = tmpl
+            same_name_tmpl_map[tmpl["version"]] = tmpl
 
         #  选取对应平台模板名中的指定版本号或者是最大版本号
         same_name_tmp_versions: KeysView[str] = same_name_tmpl_map.keys()
@@ -382,9 +374,9 @@ def fetch_latest_config_templates(
 
             latest_config_templates.append(latest_config_template)
 
-    latest_config_template_names: List[str] = [temp["name"] for temp in latest_config_templates]
+    latest_config_template_names: Set[str] = {tmpl["name"] for tmpl in latest_config_templates}
     # 对于传入模板列表中不存在相符插件包平台配置模板时，为这个配置项补充当前平台下插件的最新版本
-    for missed_config_template_name in config_tmpl_names:
+    for missed_config_template_name in config_tmpls_gby_name.keys():
         if missed_config_template_name not in latest_config_template_names and platform_config_template_objs:
             try:
                 latest_config_templates.append(
@@ -408,6 +400,61 @@ def fetch_latest_config_templates(
                 )
 
     return latest_config_templates
+
+
+def fill_latest_config_tmpls_to_packages(packages: List[Dict[str, Any]]) -> None:
+    """
+    填充最新配置文件到插件包信息列表
+    :param packages: 插件包列表
+    :return:
+    """
+    plugin_names: Set[str] = set()
+    os_types: Set[str] = set()
+    cpu_arches: Set[str] = set()
+
+    for package in packages:
+        plugin_names.add(package["project"])
+        os_types.add(package["os"])
+        cpu_arches.add(package["cpu_arch"])
+
+    # 获取插件包关联的配置模板
+    config_tmpls = list(
+        models.PluginConfigTemplate.objects.filter(
+            plugin_name__in=plugin_names, os__in=os_types, cpu_arch__in=cpu_arches
+        ).values("id", "name", "version", "is_main", "plugin_version", "cpu_arch", "os", "plugin_name")
+    )
+
+    # 以 plugin_name & os & cpu_arch & plugin_version 作为唯一标识，聚合配置模板
+    config_tmpls_gby_pkg_key: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
+    for config_tmpl in config_tmpls:
+        pkg_key = "_".join(
+            [config_tmpl["plugin_name"], config_tmpl["os"], config_tmpl["cpu_arch"], config_tmpl["plugin_version"]]
+        )
+        config_tmpls_gby_pkg_key[pkg_key].append(
+            {
+                "id": config_tmpl["id"],
+                "version": config_tmpl["version"],
+                "os": config_tmpl["os"],
+                "cpu_arch": config_tmpl["cpu_arch"],
+                "name": config_tmpl["name"],
+                "is_main": config_tmpl["is_main"],
+            }
+        )
+
+    for package in packages:
+        # 配置模板 = 通用版本配置模板 + 该版本的配置模板
+        pkg_key_prefix = f"{package['project']}_{package['os']}_{package['cpu_arch']}_"
+        config_templates = (
+            config_tmpls_gby_pkg_key[f"{pkg_key_prefix}{package['version']}"]
+            + config_tmpls_gby_pkg_key[f"{pkg_key_prefix}*"]
+        )
+        # 筛选最新配置
+        package["config_templates"] = fetch_latest_config_templates(
+            plugin_name=package["project"],
+            os_type=package["os"],
+            cpu_arch=package["cpu_arch"],
+            config_templates=config_templates,
+        )
 
 
 def create_package_records(
