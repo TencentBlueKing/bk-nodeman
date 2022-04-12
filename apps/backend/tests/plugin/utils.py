@@ -47,12 +47,44 @@ launch_node: {launch_node}
 auto_launch: {auto_launch}
 config_templates:
 - plugin_version: "{package_version}"
-  name: test_plugin.conf
+  name: {plugin_name}.conf
   version: {package_version}
   file_path: etc
   format: {config_format}
   source_path: etc/{plugin_name}.conf.tpl
   is_main_config: 1
+  variables:
+    type: "object"
+    properties:
+      enabled:
+        type: "boolean"
+        _required: false
+        default: true
+      config_name:
+        type: "string"
+      max_timeout:
+        type: "number"
+        default: 300
+      sleep_time:
+        type: "number"
+        default: 0.01
+      labels:
+        type: "array"
+        items:
+          title: "label"
+          type: "object"
+          _required: false
+      named_labels:
+        type: "array"
+        items:
+          title: "named_label"
+          type: "object"
+          properties:
+            name:
+              type: "string"
+              _required: false
+            value:
+              type: "string"
 - plugin_version: "{package_version}"
   name: child.conf
   version: {package_version}
@@ -60,21 +92,21 @@ config_templates:
   format: {config_format}
   source_path: etc/child.conf.tpl
 control:
- start: "./start.sh {plugin_name}"
- stop: "./stop.sh {plugin_name}"
- restart: "./restart.sh {plugin_name}"
- version: "./{plugin_name} -v"
- reload: "./{plugin_name} -s reload"
- health_check: "./{plugin_name} -z"
+  start: "./start.sh {plugin_name}"
+  stop: "./stop.sh {plugin_name}"
+  restart: "./restart.sh {plugin_name}"
+  version: "./{plugin_name} -v"
+  reload: "./{plugin_name} -s reload"
+  health_check: "./{plugin_name} -z"
 node_manage_control:
- package_update: false
- package_remove: false
- plugin_install: false
- plugin_update: false
- plugin_uninstall: false
- plugin_upgrade: false
- plugin_remove: false
- plugin_restart: false
+  package_update: false
+  package_remove: false
+  plugin_install: false
+  plugin_update: false
+  plugin_uninstall: false
+  plugin_upgrade: false
+  plugin_remove: false
+  plugin_restart: false
 """
 
 # 插件名称

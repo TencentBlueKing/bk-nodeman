@@ -18,10 +18,10 @@ from typing import Any, Dict, List, Optional
 import mock
 from django.conf import settings
 
+from apps.backend.plugin import tools
 from apps.backend.tests.plugin import utils
 from apps.core.files import base, core_files_constants
 from apps.node_man import constants, models
-from apps.node_man.models import Packages, ProcControl
 from apps.utils import files
 
 
@@ -95,6 +95,18 @@ class FileSystemTestCase(utils.PluginBaseTestCase):
             self.assertRaises(KeyError, tf.getmember, os.path.join(*pkg_path_shims, "etc", f"{project}.conf.tpl"))
             self.assertRaises(KeyError, tf.getmember, os.path.join(*pkg_path_shims, "etc", "child.conf.tpl"))
 
+    def check_config_templates(self, project: str, os_type: str, cpu_arch: str):
+        base_filter_params = {"plugin_name": project, "os": os_type, "cpu_arch": cpu_arch}
+        main_config_tmpl_obj = models.PluginConfigTemplate.objects.get(
+            **base_filter_params, name=f"{project}.conf", is_main=True
+        )
+        tools.validate_config_variables(main_config_tmpl_obj.variables)
+        self.assertTrue(main_config_tmpl_obj.variables["from_project_yaml"])
+        child_config_tmpl_obj = models.PluginConfigTemplate.objects.get(
+            **base_filter_params, name="child.conf", is_main=False
+        )
+        self.assertEqual(child_config_tmpl_obj.variables, None)
+
     def check_and_fetch_parse_results(self, file_name: str, except_message_list: List[str]) -> List[Dict[str, Any]]:
         pkg_parse_results = self.parse_plugin(file_name=file_name)
         parse_message_list = [pkg_parse_result["message"] for pkg_parse_result in pkg_parse_results]
@@ -128,12 +140,13 @@ class FileSystemTestCase(utils.PluginBaseTestCase):
         self.register_plugin(upload_result["name"])
         plugin_obj = models.GsePluginDesc.objects.get(name=utils.PLUGIN_NAME)
         for package_os, cpu_arch in self.OS_CPU_CHOICES:
-            pkg_obj = Packages.objects.get(
+            pkg_obj = models.Packages.objects.get(
                 pkg_name=self.PLUGIN_ARCHIVE_NAME, version=utils.PACKAGE_VERSION, os=package_os, cpu_arch=cpu_arch
             )
+            self.check_config_templates(project=plugin_obj.name, os_type=package_os, cpu_arch=cpu_arch)
             self.check_pkg_structure(project=plugin_obj.name, pkg_path=os.path.join(pkg_obj.pkg_path, pkg_obj.pkg_name))
 
-        self.assertEqual(ProcControl.objects.all().count(), len(self.OS_CPU_CHOICES))
+        self.assertEqual(models.ProcControl.objects.all().count(), len(self.OS_CPU_CHOICES))
 
     def test_create_register_task__select_pkgs(self):
         upload_result = self.upload_plugin()
@@ -147,9 +160,10 @@ class FileSystemTestCase(utils.PluginBaseTestCase):
         )
 
         plugin_obj = models.GsePluginDesc.objects.get(name=utils.PLUGIN_NAME)
-        pkg_obj = Packages.objects.get(
+        pkg_obj = models.Packages.objects.get(
             pkg_name=self.PLUGIN_ARCHIVE_NAME, version=utils.PACKAGE_VERSION, os=package_os, cpu_arch=cpu_arch
         )
+        self.check_config_templates(project=plugin_obj.name, os_type=package_os, cpu_arch=cpu_arch)
         self.check_pkg_structure(project=plugin_obj.name, pkg_path=os.path.join(pkg_obj.pkg_path, pkg_obj.pkg_name))
 
     def test_create_export_task(self):
