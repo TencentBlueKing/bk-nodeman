@@ -14,7 +14,7 @@ import shutil
 import tarfile
 import traceback
 from collections import defaultdict
-from typing import Any, Dict, KeysView, List, Optional, Set, Union
+from typing import Any, Dict, KeysView, List, Optional, Set
 
 import yaml
 from django.conf import settings
@@ -308,53 +308,17 @@ def parse_package(
     return pkg_parse_info
 
 
-def fetch_latest_config_templates(
-    plugin_name,
-    os_type: str,
-    cpu_arch: str,
-    config_templates: List[Dict[str, Any]],
-    plugin_version: Optional[str] = None,
-) -> List[Dict[str, Any]]:
+def fetch_latest_config_templates(config_templates: List[Dict[str, Any]], plugin_version: str) -> List[Dict[str, Any]]:
     """
-    如果存在多个版本的同名配置，仅展示最新版本，且仅展示指定平台的配置，缺省为当前平台插件最新版本
-    优先级： plugin_name > currect platfrom last version > other platform with plugin_version
-    若指定了插件版本，则优先取指定版本的配置
-    若未匹配指定版本，再从通配(*)的版本中取最新版本
-    若存在同名不同平台多版本，只选择指定平台
-    :param plugin_name:  插件名称
-    :param os_type: 操作系统
-    :param cpu_arch: CPU
+    过滤最新的配置模板
+    优先取和插件版本一致的配置模板，否则取最新版本的配置模板
     :param config_templates: 配置模板列表
     :param plugin_version: 指定插件版本号
     """
     config_tmpls_gby_name: Dict[str, List] = defaultdict(list)
-    platform_id__version_and_main_map: Dict[str, Dict[str, Union[str, bool]]] = defaultdict(dict)
-    platform_name__ids_map: Dict[str, List[int]] = defaultdict(list)
-    platform_name__id_and_version_map: Dict[str, Dict[str, Any]] = defaultdict(dict)
 
     for config_tmpl in config_templates:
         config_tmpls_gby_name[config_tmpl["name"]].append(config_tmpl)
-
-    platform_config_template_objs: Set[Union[str, int]] = set(
-        models.PluginConfigTemplate.objects.filter(
-            plugin_name=plugin_name,
-            name__in=config_tmpls_gby_name.keys(),
-            os=os_type,
-            cpu_arch=cpu_arch,
-        ).values_list("name", "id", "version", "is_main")
-    )
-
-    if platform_config_template_objs:
-        for (tmpl_name, tmpl_id, tmpl_version, tmpl_is_main) in platform_config_template_objs:
-            platform_id__version_and_main_map[tmpl_id]["version"] = tmpl_version
-            platform_name__ids_map[tmpl_name].append(tmpl_id)
-            platform_id__version_and_main_map[tmpl_id]["is_main"] = tmpl_is_main
-
-        for tmpl_name in platform_name__ids_map.keys():
-            platform_name__id_and_version_map[tmpl_name]["id"] = sorted(platform_name__ids_map[tmpl_name])[-1]
-            platform_name__id_and_version_map[tmpl_name]["version"] = platform_id__version_and_main_map[
-                platform_name__id_and_version_map[tmpl_name]["id"]
-            ]["version"]
 
     latest_config_templates: List[Dict[str, Any]] = []
     for config_tmpl_name, config_tmpls_with_the_same_name in config_tmpls_gby_name.items():
@@ -366,38 +330,15 @@ def fetch_latest_config_templates(
         same_name_tmp_versions: KeysView[str] = same_name_tmpl_map.keys()
         if same_name_tmp_versions:
             if plugin_version in same_name_tmp_versions:
+                # 优先取和插件版本一致的配置模板
                 latest_config_template = same_name_tmpl_map[plugin_version]
             else:
+                # 否则，取最新版本的配置模板
                 latest_config_template = same_name_tmpl_map[
                     sorted(same_name_tmp_versions, key=lambda v: version.parse(v))[-1]
                 ]
 
             latest_config_templates.append(latest_config_template)
-
-    latest_config_template_names: Set[str] = {tmpl["name"] for tmpl in latest_config_templates}
-    # 对于传入模板列表中不存在相符插件包平台配置模板时，为这个配置项补充当前平台下插件的最新版本
-    for missed_config_template_name in config_tmpls_gby_name.keys():
-        if missed_config_template_name not in latest_config_template_names and platform_config_template_objs:
-            try:
-                latest_config_templates.append(
-                    {
-                        "id": platform_name__id_and_version_map[missed_config_template_name]["id"],
-                        "version": platform_name__id_and_version_map[missed_config_template_name]["version"],
-                        "os": os_type,
-                        "cpu_arch": cpu_arch,
-                        "name": missed_config_template_name,
-                        "is_main": platform_id__version_and_main_map[
-                            platform_name__id_and_version_map[missed_config_template_name]["id"]
-                        ]["is_main"],
-                    }
-                )
-            except KeyError:
-                logger.error(
-                    _(
-                        f"plugin config template -> {missed_config_template_name} with "
-                        f"platform -> {os_type}-{cpu_arch} is not exist "
-                    )
-                )
 
     return latest_config_templates
 
@@ -450,10 +391,7 @@ def fill_latest_config_tmpls_to_packages(packages: List[Dict[str, Any]]) -> None
         )
         # 筛选最新配置
         package["config_templates"] = fetch_latest_config_templates(
-            plugin_name=package["project"],
-            os_type=package["os"],
-            cpu_arch=package["cpu_arch"],
-            config_templates=config_templates,
+            config_templates=config_templates, plugin_version=package["version"]
         )
 
 
