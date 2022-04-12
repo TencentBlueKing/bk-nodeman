@@ -104,10 +104,7 @@ class PolicyStepAdapter:
         # 处理同名配置模板，取最新版本
         for selected_pkg_info in policy_config["details"]:
             selected_pkg_info["config_templates"] = fetch_latest_config_templates(
-                config_templates=selected_pkg_info["config_templates"],
-                os_type=selected_pkg_info["os"],
-                cpu_arch=selected_pkg_info["cpu_arch"],
-                plugin_name=policy_config["plugin_name"],
+                config_templates=selected_pkg_info["config_templates"], plugin_version=selected_pkg_info["version"]
             )
 
         setattr(self, "_config", self.validated_data(data=policy_config, serializer=PolicyStepConfigSerializer))
