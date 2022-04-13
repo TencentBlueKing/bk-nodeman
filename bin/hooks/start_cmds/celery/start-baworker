@@ -1,0 +1,2 @@
+#!/bin/bash
+celery -A apps.backend worker -Q backend_additional_task -n baworker@%h -P threads -c 64 -O fair --time-limit=1800 --maxtasksperchild=50

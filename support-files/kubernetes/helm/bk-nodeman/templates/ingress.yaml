@@ -1,0 +1,104 @@
+{{- if .Values.ingress.enabled -}}
+{{- $fullName := include "bk-nodeman.fullname" . -}}
+{{- $saasApiFullName := include "bk-nodeman.saas-api.fullname" . -}}
+{{- $saasWebFullName := include "bk-nodeman.saas-web.fullname" . -}}
+{{- $backendApiFullName := include "bk-nodeman.backend-api.fullname" . -}}
+{{- $saasWebSvcPort := .Values.saas.web.service.port | default 80 -}}
+{{- $saasApiSvcPort := .Values.saas.api.service.port | default 10300 -}}
+{{- $backendApiSvcPort := .Values.backend.api.service.port | default 10300 -}}
+{{- if and .Values.ingress.className (not (semverCompare ">=1.18-0" .Capabilities.KubeVersion.GitVersion)) }}
+  {{- if not (hasKey .Values.ingress.annotations "kubernetes.io/ingress.class") }}
+  {{- $_ := set .Values.ingress.annotations "kubernetes.io/ingress.class" .Values.ingress.className}}
+  {{- end }}
+{{- end }}
+{{- if semverCompare ">=1.19-0" .Capabilities.KubeVersion.GitVersion -}}
+apiVersion: networking.k8s.io/v1
+{{- else if semverCompare ">=1.14-0" .Capabilities.KubeVersion.GitVersion -}}
+apiVersion: networking.k8s.io/v1beta1
+{{- else -}}
+apiVersion: extensions/v1beta1
+{{- end }}
+kind: Ingress
+metadata:
+  name: {{ $fullName }}
+  labels:
+    {{- include "bk-nodeman.labels" . | nindent 4 }}
+    {{- if .Values.commonLabels }}
+    {{- include "common.tplvalues.render" (dict "value" .Values.commonLabels "context" $) | nindent 4 }}
+    {{- end }}
+  annotations:
+    {{- if .Values.commonAnnotations }}
+    {{- include "common.tplvalues.render" (dict "value" .Values.commonAnnotations "context" $) | nindent 4 }}
+    {{- end }}
+    {{- range $key, $value := .Values.ingress.annotations }}
+    {{ $key }}: {{ include "common.tplvalues.render" (dict "value" $value "context" $) | quote }}
+    {{- end }}
+spec:
+  {{- if and .Values.ingress.className (semverCompare ">=1.18-0" .Capabilities.KubeVersion.GitVersion) }}
+  ingressClassName: {{ .Values.ingress.className }}
+  {{- end }}
+  {{- if .Values.ingress.tls }}
+  tls:
+    {{- range .Values.ingress.tls }}
+    - hosts:
+        {{- range .hosts }}
+        - {{ . | quote }}
+        {{- end }}
+      secretName: {{ .secretName }}
+    {{- end }}
+  {{- end }}
+  rules:
+    {{- if .Values.ingress.hostname }}
+    - host: {{ .Values.ingress.hostname }}
+      http:
+        paths:
+          {{- if .Values.ingress.extraPaths }}
+          {{- toYaml .Values.ingress.extraPaths | nindent 10 }}
+          {{- end }}
+          {{- range .Values.ingress.paths }}
+          - path: {{ .path }}
+            {{- if and .pathType (semverCompare ">=1.18-0" $.Capabilities.KubeVersion.GitVersion) }}
+            pathType: {{ .pathType }}
+            {{- end }}
+            backend:
+              {{- if semverCompare ">=1.19-0" $.Capabilities.KubeVersion.GitVersion }}
+              service:
+                {{- if eq "/backend/" .path }}
+                name: "{{ $backendApiFullName }}"
+                port:
+                  number: {{ $backendApiSvcPort }}
+                {{- else if eq "/static/" .path }}
+                name: "{{ $saasWebFullName }}"
+                port:
+                  number: {{ $saasWebSvcPort }}
+                {{- else }}
+                name: "{{ $saasApiFullName }}"
+                port:
+                  number: {{ $saasApiSvcPort }}
+                {{- end }}
+              {{- else }}
+              {{- if eq "/backend/" .path }}
+              serviceName: "{{ $backendApiFullName }}"
+              servicePort: {{ $backendApiSvcPort }}
+              {{- else if eq "/static/" .path }}
+              serviceName: "{{ $saasApiFullName }}"
+              servicePort: {{ $saasWebSvcPort }}
+              {{- else }}
+              serviceName: "{{ $saasApiFullName }}"
+              servicePort: {{ $saasApiSvcPort }}
+              {{- end }}
+              {{- end }}
+          {{- end }}
+    {{- end }}
+  {{- if or (and .Values.ingress.tls (or (include "bk-nodeman.ingress.certManagerRequest" .Values.ingress.annotations) .Values.ingress.selfSigned)) .Values.ingress.extraTls }}
+  tls:
+    {{- if and .Values.ingress.tls (or (include "bk-nodeman.ingress.certManagerRequest" .Values.ingress.annotations) .Values.ingress.selfSigned) }}
+    - hosts:
+        - {{ .Values.ingress.hostname | quote }}
+      secretName: {{ printf "%s-tls" .Values.ingress.hostname }}
+    {{- end }}
+    {{- if .Values.ingress.extraTls }}
+    {{- include "common.tplvalues.render" (dict "value" .Values.ingress.extraTls "context" $) | nindent 4 }}
+    {{- end }}
+  {{- end }}
+{{- end }}

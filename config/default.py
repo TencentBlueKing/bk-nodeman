@@ -13,7 +13,6 @@ from enum import Enum
 from typing import Dict, Optional
 
 from blueapps.conf.default_settings import *  # noqa
-from blueapps.conf.log import get_logging_config_dict
 from django.utils.translation import ugettext_lazy as _
 
 import env
@@ -24,8 +23,23 @@ from apps.utils.env import get_type_env
 from pipeline.celery.settings import CELERY_QUEUES as PIPELINE_CELERY_QUEUES
 from pipeline.celery.settings import CELERY_ROUTES as PIPELINE_CELERY_ROUTES
 
-# SaaS运行环境用于区分环境差异
-BKAPP_RUN_ENV = os.getenv("BKAPP_RUN_ENV")
+from .patchers import logging
+
+# ===============================================================================
+# 运行时，用于区分环境差异
+# ===============================================================================
+BKAPP_RUN_ENV = env.BKAPP_RUN_ENV
+BKAPP_IS_PAAS_DEPLOY = env.BKAPP_IS_PAAS_DEPLOY
+BK_BACKEND_CONFIG = env.BK_BACKEND_CONFIG
+
+
+# ===============================================================================
+# 日志
+# ===============================================================================
+LOG_TYPE = env.LOG_TYPE
+LOG_LEVEL = env.LOG_LEVEL
+
+
 REDIRECT_FIELD_NAME = "c_url"
 IS_AJAX_PLAIN_MODE = True
 
@@ -136,8 +150,16 @@ RABBITMQ_MAX_MESSAGE_COUNT = 10000
 # Django 基础配置
 # ===============================================================================
 
-# 所有环境的日志级别可以在这里配置
-# LOG_LEVEL = 'INFO'
+LOGGING = logging.get_logging(
+    log_type=LOG_TYPE,
+    log_level=LOG_LEVEL,
+    bk_log_dir=env.BK_LOG_DIR,
+    is_local=False,
+    bk_backend_config=BK_BACKEND_CONFIG,
+    bkapp_is_paas_deploy=BKAPP_IS_PAAS_DEPLOY,
+    settings_module=locals(),
+)
+
 
 # 默认DB主键字段
 # https://docs.djangoproject.com/en/3.2/releases/3.2/#customizing-type-of-auto-created-primary-keys
@@ -464,10 +486,6 @@ BACKEND_UNIX_ACCOUNT = os.getenv("BKAPP_BACKEND_UNIX_ACCOUNT", "root")
 以下为框架代码 请勿修改
 """
 
-# 后台配置
-BK_BACKEND_CONFIG = env.BK_BACKEND_CONFIG
-BKAPP_IS_PAAS_DEPLOY = env.BKAPP_IS_PAAS_DEPLOY
-
 
 class ConfigRedisMode(EnhanceEnum):
     """
@@ -508,7 +526,6 @@ class RedisMode(EnhanceEnum):
 
 
 if BK_BACKEND_CONFIG:
-    IS_LOCAL = False
     # 后台不需要version log
     DISABLED_APPS = ["version_log"]
 
@@ -598,34 +615,6 @@ if BK_BACKEND_CONFIG:
     }
     REDBEAT_KEY_PREFIX = "nodeman"
 
-    # 后台不基于PaaS部署的情况下，需要重定向日志
-    if not BKAPP_IS_PAAS_DEPLOY:
-        from blueapps.patch.log import get_paas_v2_logging_config_dict
-
-        # 日志
-        BK_LOG_DIR = os.getenv("BK_LOG_DIR", "./../bk_nodeman/logs")
-        LOGGING = get_paas_v2_logging_config_dict(
-            is_local=IS_LOCAL, bk_log_dir=BK_LOG_DIR, log_level=locals().get("LOG_LEVEL", "INFO")
-        )
-
-# 基于PaaS部署的后台，以及SaaS需要修改日志编码
-if not BK_BACKEND_CONFIG or BKAPP_IS_PAAS_DEPLOY:
-    LOGGING = get_logging_config_dict(locals())
-    LOGGING["handlers"]["root"]["encoding"] = "utf-8"
-    LOGGING["handlers"]["component"]["encoding"] = "utf-8"
-    LOGGING["handlers"]["mysql"]["encoding"] = "utf-8"
-    LOGGING["handlers"]["blueapps"]["encoding"] = "utf-8"
-
-ROOT_LOGGING_CONFIG = LOGGING["handlers"]["root"]
-LOG_DIR = os.path.sep.join(ROOT_LOGGING_CONFIG["filename"].split(os.path.sep)[:-1])
-LOGGING["handlers"]["iam"] = {
-    "class": ROOT_LOGGING_CONFIG["class"],
-    "formatter": ROOT_LOGGING_CONFIG["formatter"],
-    "filename": os.path.sep.join([LOG_DIR, "iam.log"]),
-    "maxBytes": ROOT_LOGGING_CONFIG["maxBytes"],
-    "backupCount": ROOT_LOGGING_CONFIG["backupCount"],
-}
-LOGGING["loggers"]["iam"] = {"handlers": ["iam"], "level": LOGGING["loggers"]["root"]["level"], "propagate": True}
 
 # TODO 目前后台使用
 # 节点管理后台 BKAPP_LAN_IP 或 BKAPP_NFS_IP 进行文件分发，是否能统一变量

@@ -1,0 +1,2 @@
+#!/bin/bash
+celery -A apps.backend worker -Q pipeline,pipeline_priority -n pipeline_worker@%h -P threads -c 100 --maxtasksperchild=50 -O fair --time-limit=1800

@@ -1,0 +1,18 @@
+{{- $fullName := printf "%s-%s" (include "bk-nodeman.fullname" .) "backend-env-configmap" -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $fullName }}
+  labels:
+    {{- include "bk-nodeman.labels" . | nindent 4 }}
+    {{- if .Values.commonLabels }}
+    {{- include "common.tplvalues.render" (dict "value" .Values.commonLabels "context" $) | nindent 4 }}
+    {{- end }}
+  {{- with .Values.commonAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+data:
+  BK_BACKEND_CONFIG: "true"
+
+  BACKEND_API_PORT: "{{ .Values.backend.api.service.port | default 10300 }}"

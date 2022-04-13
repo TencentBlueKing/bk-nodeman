@@ -1,0 +1,7 @@
+#!/bin/bash
+# -P eventlet -> threads
+# eventlet 会导致报错 -> django.db.utils.DatabaseError: DatabaseWrapper objects created in a thread can only be used in that same thread. The object with alias 'default' was created in thread id 140032074089736 and this is thread id 140031737889904.
+# 该问题目前的解决方式是不使用 eventlet
+# 参考 -> https://github.com/celery/celery/issues/5924
+# 参考 -> https://github.com/intelowlproject/IntelOwl/issues/379
+celery -A apps.backend worker -Q service_schedule,service_schedule_priority -n schedule_worker@%h -P threads -c 100 --maxtasksperchild=50 -O fair --time-limit=1800

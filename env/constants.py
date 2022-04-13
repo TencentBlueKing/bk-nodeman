@@ -23,3 +23,12 @@ class BkPaaSVersion(EnhanceEnum):
     @classmethod
     def _get_member__alias_map(cls) -> Dict[Enum, str]:
         return {cls.V2: "V2", cls.V3: "V3具备容器及二进制配置差异"}
+
+
+class LogType(EnhanceEnum):
+    STDOUT = "STDOUT"
+    DEFAULT = "DEFAULT"
+
+    @classmethod
+    def _get_member__alias_map(cls) -> Dict[Enum, str]:
+        return {cls.DEFAULT: "与开发框架保持一致", cls.STDOUT: "标准输出"}

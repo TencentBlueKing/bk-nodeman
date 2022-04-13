@@ -1,0 +1,32 @@
+{{- $fullName := printf "%s-%s" (include "bk-nodeman.fullname" .) "redis-env-configmap" -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: "{{ $fullName }}"
+  labels:
+    {{- include "bk-nodeman.labels" . | nindent 4 }}
+    {{- if .Values.commonLabels }}
+    {{- include "common.tplvalues.render" (dict "value" .Values.commonLabels "context" $) | nindent 4 }}
+    {{- end }}
+  {{- with .Values.commonAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+data:
+  {{- if .Values.redis.enabled }}
+  REDIS_MODE: "{{ .Values.redis.architecture | default "standalone" }}"
+  REDIS_HOST: "{{ .Release.Name }}-redis-master"
+  REDIS_PORT: "{{ .Values.redis.master.service.port | default 6379 }}"
+  REDIS_PASSWORD: "{{ .Values.redis.auth.password | default .Release.Name }}"
+  {{- else }}
+  REDIS_MODE: "{{ .Values.externalRedis.architecture | default "standalone" }}"
+  {{- if eq .Values.externalRedis.architecture "replication" }}
+  REDIS_MASTER_NAME: "{{ .Values.externalRedis.master_name }}"
+  REDIS_SENTINEL_HOST: "{{ .Values.externalRedis.host }}"
+  REDIS_SENTINEL_PORT: "{{ .Values.externalRedis.port | default 26379 }}"
+  {{- else }}
+  REDIS_HOST: "{{ .Values.externalRedis.host }}"
+  REDIS_PORT: "{{ .Values.externalRedis.port | default 6379 }}"
+  {{- end }}
+  REDIS_PASSWORD: "{{ .Values.externalRedis.password | default .Release.Name }}"
+  {{- end }}
