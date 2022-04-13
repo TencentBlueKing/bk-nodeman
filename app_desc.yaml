@@ -100,36 +100,31 @@ modules:
                 plan: 4C2G5R
                 replicas: 1
             celery-beat:
-                command: celery -A apps.backend beat -l info
+                command: bin/hooks/start_cmds/celery/start-beat
                 plan: 4C2G5R
                 replicas: 1
             dworker:
-                command: celery -A apps.backend worker -Q default -n default@%h -P threads -c 64 --maxtasksperchild=50 -O fair --time-limit=1800
+                command: bin/hooks/start_cmds/celery/start-dworker
                 plan: 4C2G5R
                 replicas: 1
             bworker:
-                command: celery -A apps.backend worker -Q backend -n bworker@%h -P threads -c 64 --maxtasksperchild=50 -O fair --time-limit=1800
+                command: bin/hooks/start_cmds/celery/start-bworker
                 plan: 4C2G5R
                 replicas: 1
             baworker:
-                command: celery -A apps.backend worker -Q backend_additional_task -n baworker@%h -P threads -c 64 -O fair --time-limit=1800 --maxtasksperchild=50
+                command: bin/hooks/start_cmds/celery/start-bworker
                 plan: 4C2G5R
                 replicas: 1
             pworker:
-                command: celery -A apps.backend worker -Q pipeline,pipeline_priority -n pipeline_worker@%h -P threads -c 100 --maxtasksperchild=50 -O fair --time-limit=1800
+                command: bin/hooks/start_cmds/celery/start-pworker
                 plan: 4C2G5R
                 replicas: 1
             psworker:
-                # -P eventlet -> threads
-                # eventlet 会导致报错 -> django.db.utils.DatabaseError: DatabaseWrapper objects created in a thread can only be used in that same thread. The object with alias 'default' was created in thread id 140032074089736 and this is thread id 140031737889904.
-                # 该问题目前的解决方式是不使用 eventlet
-                # 参考 -> https://github.com/celery/celery/issues/5924
-                # 参考 -> https://github.com/intelowlproject/IntelOwl/issues/379
-                command: celery -A apps.backend worker -Q service_schedule,service_schedule_priority -n schedule_worker@%h -P threads -c 100 --maxtasksperchild=50 -O fair --time-limit=1800
+                command: bin/hooks/start_cmds/celery/start-psworker
                 plan: 4C2G5R
                 replicas: 1
             paworker:
-                command: celery -A apps.backend worker -Q pipeline_additional_task,pipeline_additional_task_priority -n common_worker@%h -l info -P threads -c 32 --maxtasksperchild=50 -O fair --time-limit=1800
+                command: bin/hooks/start_cmds/celery/start-pworker
                 plan: 4C2G5R
                 replicas: 1
             sync-host:

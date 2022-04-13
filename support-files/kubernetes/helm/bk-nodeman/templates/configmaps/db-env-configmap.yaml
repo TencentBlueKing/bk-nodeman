@@ -1,0 +1,32 @@
+{{- $fullName := printf "%s-%s" (include "bk-nodeman.fullname" .) "db-env-configmap" -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: "{{ $fullName }}"
+  labels:
+    {{- include "bk-nodeman.labels" . | nindent 4 }}
+    {{- if .Values.commonLabels }}
+    {{- include "common.tplvalues.render" (dict "value" .Values.commonLabels "context" $) | nindent 4 }}
+    {{- end }}
+  {{- with .Values.commonAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+data:
+  {{- if .Values.mysql.enabled }}
+    {{- if eq .Values.mysql.architecture "replication" }}
+    MYSQL_HOST: "{{ .Release.Name }}-mysql-primary"
+    {{- else }}
+    MYSQL_HOST: "{{ .Release.Name }}-mysql"
+    {{- end }}
+    MYSQL_PORT: "{{ .Values.mysql.primary.service.port | default 3306 }}"
+    MYSQL_USER: "{{ .Values.mysql.auth.username | default .Release.Name }}"
+    MYSQL_PASSWORD: "{{ .Values.mysql.auth.password | default .Release.Name }}"
+    MYSQL_NAME: "{{ .Values.mysql.auth.database | default .Release.Name }}"
+  {{- else }}
+    MYSQL_HOST: "{{ .Values.externalMySQL.host }}"
+    MYSQL_PORT: "{{ .Values.externalMySQL.port | default 3306 }}"
+    MYSQL_USER: "{{ .Values.externalMySQL.username | default .Release.Name }}"
+    MYSQL_PASSWORD: "{{ .Values.externalMySQL.password | default .Release.Name }}"
+    MYSQL_NAME: "{{ .Values.externalMySQL.database | default .Release.Name }}"
+  {{- end }}

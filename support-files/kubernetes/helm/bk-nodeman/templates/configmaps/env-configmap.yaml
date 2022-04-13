@@ -1,0 +1,84 @@
+{{- $fullName := printf "%s-%s" (include "bk-nodeman.fullname" .) "env-configmap" -}}
+{{- $bkNodemanApiOuterUrl := printf "%s://%s" .Values.global.bkDomainScheme .Values.ingress.hostname }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: "{{ $fullName }}"
+  labels:
+    {{- include "bk-nodeman.labels" . | nindent 4 }}
+    {{- if .Values.commonLabels }}
+    {{- include "common.tplvalues.render" (dict "value" .Values.commonLabels "context" $) | nindent 4 }}
+    {{- end }}
+  {{- with .Values.commonAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+data:
+  APP_ID: "{{ .Values.config.appCode }}"
+  APP_TOKEN: "{{ .Values.config.appSecret }}"
+  BKPAAS_APP_ID: "{{ .Values.config.appCode }}"
+  BKPAAS_APP_CODE: "{{ .Values.config.appCode }}"
+  BKPAAS_APP_SECRET: "{{ .Values.config.appSecret }}"
+
+  BKAPP_RUN_ENV: "{{ .Values.config.bkAppRunEnv }}"
+  BKPAAS_MAJOR_VERSION: "{{ .Values.config.bkPaasMajorVersion }}"
+  BKPAAS_ENVIRONMENT: "{{ .Values.config.bkPaaSEnvironment }}"
+
+  LOG_TYPE: "{{ .Values.config.logType }}"
+  LOG_LEVEL: "{{ .Values.config.logLevel }}"
+  BK_LOG_DIR: "{{ .Values.config.bkLogDir}}"
+
+  BK_CMDB_RESOURCE_POOL_BIZ_ID: "{{ .Values.config.bkCmdbResourcePoolBizId }}"
+  DEFAULT_SUPPLIER_ACCOUNT: "{{ .Values.config.defaultSupplierAccount }}"
+
+  JOB_VERSION: "{{ .Values.config.jobVersion }}"
+  BLUEKING_BIZ_ID: "{{ .Values.config.bluekingBizId }}"
+  BK_JOB_HOST: "{{ .Values.config.bkJobUrl | default .Values.bkJobUrl }}"
+
+  BKAPP_USE_IAM: "{{ .Values.config.bkAppUseIam }}"
+  BK_IAM_V3_APP_CODE: "{{ .Values.config.bkIamV3AppCode }}"
+  BK_IAM_V3_SAAS_HOST: "{{ .Values.bkIamUrl }}"
+  BK_IAM_V3_INNER_HOST: "{{ .Values.bkIamApiUrl }}"
+  BKAPP_IAM_RESOURCE_API_HOST: "{{ .Values.config.bkAppIamResourceApiHost | default .Values.bkNodemanUrl }}"
+
+  BK_PAAS_HOST: "{{ .Values.bkPaasUrl }}"
+  BK_PAAS2_URL: "{{ default .Values.bkPaasUrl }}"
+  BK_LOGIN_URL: "{{ .Values.bkLoginUrl }}"
+
+  BK_PAAS_INNER_HOST: "{{ .Values.bkComponentApiUrl }}"
+  {{- if .Values.config.bkAppBkNodeApiGateway }}
+  BKAPP_BK_NODE_APIGATEWAY: "{{ .Values.config.bkAppBkNodeApiGateway }}/"
+  {{- end }}
+
+  BKAPP_BACKEND_HOST: "{{ .Values.config.bkAppBackendHost | default .Values.bkNodemanApiUrl }}"
+  BKAPP_NODEMAN_CALLBACK_URL: "{{ .Values.config.bkAppNodemanCallbackUrl | default ( printf "%s/%s" $bkNodemanApiOuterUrl "backend" ) }}"
+  BKAPP_NODEMAN_OUTER_CALLBACK_URL: "{{ .Values.config.bkAppNodemanOuterCallbackUrl | default ( printf "%s/%s" $bkNodemanApiOuterUrl "backend" ) }}"
+
+  GSE_ENABLE_SVR_DISCOVERY: "{{ .Values.config.gseEnableSvrDisCovery }}"
+  BKAPP_GSE_ZK_HOST: "{{ .Values.config.bkAppGseZkHost }}"
+  BKAPP_GSE_ZK_AUTH: "{{ .Values.config.bkAppGseZkAuth }}"
+  BKAPP_GSE_AGENT_HOME: "{{ .Values.config.bkAppGseAgentHome }}"
+  BKAPP_GSE_AGENT_LOG_DIR: "{{ .Values.config.bkAppGseAgentLogDir }}"
+  BKAPP_GSE_AGENT_RUN_DIR: "{{ .Values.config.bkAppGseAgentRunDir}}"
+  BKAPP_GSE_AGENT_DATA_DIR: "{{ .Values.config.bkAppGseAgentDataDir }}"
+  BKAPP_GSE_WIN_AGENT_HOME: "{{ .Values.config.bkAppGseWinAgentHome }}"
+  BKAPP_GSE_WIN_AGENT_LOG_DIR: "{{ .Values.config.bkAppGseWinAgentLogDir }}"
+  BKAPP_GSE_WIN_AGENT_RUN_DIR: "{{ .Values.config.bkAppGseWinAgentRunDir }}"
+  BKAPP_GSE_WIN_AGENT_DATA_DIR: "{{ .Values.config.bkAppGseWinAgentDataDir }}"
+
+  STORAGE_TYPE: "{{ .Values.config.storageType }}"
+  {{- if .Values.config.lanIp }}
+  LAN_IP: "{{ .Values.config.lanIp }}"
+  {{- end }}
+  BKAPP_PUBLIC_PATH: "{{ .Values.config.bkAppPublicPath }}"
+  BKREPO_PROJECT: "{{ .Values.config.bkRepoProject }}"
+  BKREPO_PASSWORD: "{{ .Values.config.bkRepoPassword }}"
+  BKREPO_USERNAME: "{{ .Values.config.bkRepoUsername }}"
+  BKREPO_BUCKET: "{{ .Values.config.bkRepoBucket }}"
+  BKREPO_PUBLIC_BUCKET: "{{ .Values.config.bkRepoPublicBucket }}"
+  BKREPO_PRIVATE_BUCKET: "{{ .Values.config.bkRepoPrivateBucket }}"
+  BKREPO_ENDPOINT_URL: "{{ .Values.bkRepoUrl }}"
+
+  CONCURRENT_NUMBER: "{{ .Values.config.concurrentNumber }}"
+
+  SAAS_API_PORT: "{{ .Values.saas.api.service.port }}"
