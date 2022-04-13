@@ -1,0 +1,21 @@
+{{- if .Values.bkLogConfig.enabled }}
+apiVersion: bk.tencent.com/v1alpha1
+kind: BkLogConfig
+metadata:
+  name: "{{ include "bk-nodeman.fullname" }}-bklogconfig"
+  labels:
+    {{- include "bk-nodeman.labels" . | nindent 4 }}
+    {{- if .Values.commonLabels }}
+    {{- include "common.tplvalues.render" (dict "value" .Values.commonLabels "context" $) | nindent 4 }}
+    {{- end }}
+  {{- with .Values.commonAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  dataId: {{ .Values.bkLogConfig.dataId }}
+  logConfigType: "std_log_config"
+  namespace: {{ .Release.Namespace | quote }}
+  labelSelector:
+    matchLabels: {{- include "bk-nodeman.labels" . | nindent 6 }}
+{{- end }}

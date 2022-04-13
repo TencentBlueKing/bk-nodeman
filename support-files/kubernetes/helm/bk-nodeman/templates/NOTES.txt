@@ -1,0 +1,21 @@
+Thank you for installing {{ .Chart.Name }}.
+
+Your release is named {{ .Release.Name }}.
+
+如果集群中已经安装了 IngressController，那么可以通过以下地址访问节点管理 SaaS: {{ .Values.global.bkDomainScheme }}://bknodeman.{{ .Values.global.bkDomain }}
+
+验证节点管理后台可访问：
+{{- if eq .Values.backend.api.service.type "NodePort" }}
+    export NODE_PORT=$(kubectl get --namespace {{ .Release.Namespace }} -o jsonpath="{.spec.ports[0].nodePort}" services {{ include "bk-nodeman.backend-api.fullname" . }})
+    export NODE_IP=$(kubectl get nodes --namespace {{ .Release.Namespace }} -o jsonpath="{.items[0].status.addresses[0].address}")
+    curl $NODE_IP:$NODE_PORT/backend/version/
+
+{{- else if eq .Values.backend.api.service.type "ClusterIP" }}
+- 通过 port-forward 暴露 {{ include "bk-nodeman.backend-api.fullname" . }}
+    kubectl port-forward --namespace {{ .Release.Namespace }} service/{{ include "bk-nodeman.backend-api.fullname" . }} {{ .Values.backend.api.service.port }}:{{ .Values.backend.api.service.port }}
+{{- end }}
+
+查看更多信息:
+  $ kubectl get pod -n {{ .Release.Namespace }} -o wide
+  $ kubectl get svc -n {{ .Release.Namespace }} -o wide
+

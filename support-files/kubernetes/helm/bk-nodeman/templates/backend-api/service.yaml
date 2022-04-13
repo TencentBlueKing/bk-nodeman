@@ -1,0 +1,33 @@
+{{- if and .Values.backend.enabled .Values.backend.api.enabled -}}
+{{- $moduleConf := .Values.backend.api -}}
+{{- $svcType := $moduleConf.service.type | default "NodePort" -}}
+{{- $svcPort := $moduleConf.service.port | default 10300 -}}
+{{- $fullName := ( include "bk-nodeman.backend-api.fullname" .) -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: "{{ $fullName }}"
+  labels:
+    {{- include "bk-nodeman.labels" . | nindent 4 }}
+    {{- include "bk-nodeman.labels.serviceMonitor" . | nindent 4 }}
+    {{- if .Values.commonLabels }}
+    {{- include "common.tplvalues.render" (dict "value" .Values.commonLabels "context" $) | nindent 4 }}
+    {{- end }}
+  {{- with .Values.commonAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: "{{ $svcType }}"
+  ports:
+    - port: {{ $svcPort }}
+      targetPort: {{ $svcPort }}
+      {{- if and $moduleConf.service.nodePort (or (eq $svcType "NodePort") (eq $svcType "LoadBalancer")) }}
+      nodePort: {{ $moduleConf.service.nodePort | default 30300 }}
+      {{- end }}
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "bk-nodeman.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: "{{ $fullName }}"
+{{- end -}}

@@ -1,0 +1,2 @@
+#!/bin/bash
+celery -A apps.backend beat -l info

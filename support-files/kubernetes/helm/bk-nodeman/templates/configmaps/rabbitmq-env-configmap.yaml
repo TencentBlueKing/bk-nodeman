@@ -1,0 +1,28 @@
+{{- $fullName := printf "%s-%s" (include "bk-nodeman.fullname" .) "rabbitmq-env-configmap" -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: "{{ $fullName }}"
+  labels:
+    {{- include "bk-nodeman.labels" . | nindent 4 }}
+    {{- if .Values.commonLabels }}
+    {{- include "common.tplvalues.render" (dict "value" .Values.commonLabels "context" $) | nindent 4 }}
+    {{- end }}
+  {{- with .Values.commonAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+data:
+  {{- if .Values.rabbitmq.enabled }}
+  RABBITMQ_HOST: "{{ .Release.Name }}-rabbitmq"
+  RABBITMQ_VHOST: "{{ .Release.Name }}"
+  RABBITMQ_PORT: "{{ .Values.rabbitmq.service.port | default 5672 }}"
+  RABBITMQ_USER: "{{ .Values.rabbitmq.auth.username | default .Release.Name }}"
+  RABBITMQ_PASSWORD: "{{ .Values.rabbitmq.auth.password | default .Release.Name }}"
+  {{- else }}
+  RABBITMQ_HOST: "{{ .Values.externalRabbitMQ.host }}"
+  RABBITMQ_VHOST: "{{ .Values.externalRabbitMQ.vhost | default .Release.Name }}"
+  RABBITMQ_PORT: "{{ .Values.externalRabbitMQ.port | default 5672 }}"
+  RABBITMQ_USER: "{{ .Values.externalRabbitMQ.username | default .Release.Name }}"
+  RABBITMQ_PASSWORD: "{{ .Values.externalRabbitMQ.password | default .Release.Name }}"
+  {{- end }}

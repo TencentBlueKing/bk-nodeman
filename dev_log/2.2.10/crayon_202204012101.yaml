@@ -1,0 +1,3 @@
+---
+feature:
+  - "支持通过 Helm Chart 部署节点管理到 Kubernetes (closed #584)"
