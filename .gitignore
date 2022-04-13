@@ -182,3 +182,9 @@ tests/postman/bkman
 
 # frontend
 vetur.config.js
+
+
+## Helm
+support-files/**/private_values.yaml
+support-files/**/*.tgz
+.codecc

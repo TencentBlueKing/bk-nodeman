@@ -1,0 +1,109 @@
+{{- if and .Values.saas.enabled .Values.saas.web.enabled -}}
+{{- $moduleConf := .Values.saas.web -}}
+{{- $svcPort := $moduleConf.service.port | default 80 -}}
+{{- $fullName := ( include "bk-nodeman.saas-web.fullname" .) -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: "{{ $fullName }}"
+  labels:
+    {{- include "bk-nodeman.labels" . | nindent 4 }}
+    {{- if .Values.commonLabels }}
+    {{- include "common.tplvalues.render" (dict "value" .Values.commonLabels "context" $) | nindent 4 }}
+    {{- end }}
+  {{- with .Values.commonAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ $moduleConf.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "bk-nodeman.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "bk-nodeman.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: "{{ $fullName }}"
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "bk-nodeman.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      initContainers:
+        - name: "{{ include "bk-nodeman.migrate-job.db" . }}"
+          image: "{{ .Values.global.imageRegistry | default .Values.images.k8sWaitFor.registry }}/{{ .Values.images.k8sWaitFor.repository }}:{{ .Values.images.k8sWaitFor.tag }}"
+          imagePullPolicy: "{{ .Values.images.k8sWaitFor.pullPolicy }}"
+          args: ["job", "{{ include "bk-nodeman.migrate-job.db" . }}"]
+        - name: "{{ $fullName }}-collectstatic"
+          image: "{{ .Values.global.imageRegistry | default .Values.images.saas.registry }}/{{ .Values.images.saas.repository }}:{{ .Values.images.saas.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: "{{ .Values.images.saas.pullPolicy }}"
+          command: ["bash", "-c"]
+          args:
+            - "python manage.py collectstatic --noinput"
+          volumeMounts:
+            - name: "static"
+              mountPath: "/app/staticfiles/"
+            {{- if .Values.volumeMounts }}
+            {{- include "common.tplvalues.render" (dict "value" .Values.volumeMounts "context" $) | nindent 12 }}
+            {{- end }}
+          {{- include "bk-nodeman.saas.env" . | nindent 10 }}
+      containers:
+        - name: "{{ $fullName }}"
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.global.imageRegistry | default .Values.images.nginx.registry }}/{{ .Values.images.nginx.repository }}:{{ .Values.images.nginx.tag }}"
+          imagePullPolicy: "{{ .Values.images.nginx.pullPolicy }}"
+          volumeMounts:
+            - name: "nginx-conf"
+              mountPath: "/etc/nginx/conf.d/"
+            - name: "static"
+              mountPath: "/app/staticfiles/"
+            {{- if .Values.volumeMounts }}
+            {{- include "common.tplvalues.render" (dict "value" .Values.volumeMounts "context" $) | nindent 12 }}
+            {{- end }}
+          ports:
+            - name: http
+              containerPort: {{ $svcPort }}
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /static/index.html
+              port: {{ $svcPort }}
+          readinessProbe:
+            httpGet:
+              path: /static/index.html
+              port: {{ $svcPort }}
+          resources:
+            {{- toYaml $moduleConf.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      volumes:
+        - name: static
+          emptyDir: {}
+        - name: nginx-conf
+          configMap:
+            name: "{{ include "bk-nodeman.saas-web.fullname" . }}-nginx-configmap"
+        {{- if .Values.volumes }}
+        {{- include "common.tplvalues.render" (dict "value" .Values.volumes "context" $) | nindent 8 }}
+        {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end -}}

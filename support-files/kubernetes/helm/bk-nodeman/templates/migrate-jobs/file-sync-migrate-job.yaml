@@ -1,0 +1,59 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: "{{ include "bk-nodeman.migrate-job.file-sync" . }}"
+  labels:
+    {{- include "bk-nodeman.labels" . | nindent 4 }}
+    {{- if .Values.commonLabels }}
+    {{- include "common.tplvalues.render" (dict "value" .Values.commonLabels "context" $) | nindent 4 }}
+    {{- end }}
+  {{- with .Values.commonAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  backoffLimit: 10
+  template:
+    metadata:
+      labels:
+        {{- include "bk-nodeman.labels" . | nindent 8 }}
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "bk-nodeman.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      restartPolicy: "OnFailure"
+      initContainers:
+        - name: check-database-ready
+          image: "{{ .Values.global.imageRegistry | default .Values.images.busybox.registry }}/{{ .Values.images.busybox.repository }}:{{ .Values.images.busybox.tag }}"
+          imagePullPolicy: "{{ .Values.images.busybox.pullPolicy }}"
+          command: ["sh", "-c"]
+          args:
+            - |
+              echo Start check database: $(MYSQL_HOST):$(MYSQL_PORT); until telnet $(MYSQL_HOST) $(MYSQL_PORT); do echo waiting for db $(MYSQL_HOST):$(MYSQL_PORT); sleep 2; done;
+              echo Start check redis: $(REDIS_HOST):$(REDIS_PORT); until telnet $(REDIS_HOST) $(REDIS_PORT); do echo waiting for redis $(REDIS_HOST):$(REDIS_PORT); sleep 2; done;
+              echo Start check rabbitmq: $(RABBITMQ_HOST):$(RABBITMQ_PORT); until telnet $(RABBITMQ_HOST) $(RABBITMQ_PORT); do echo waiting for rabbitmq $(RABBITMQ_HOST):$(RABBITMQ_PORT); sleep 2; done;
+          {{- include "bk-nodeman.backend.env" . | nindent 10 }}
+        - name: "{{ include "bk-nodeman.migrate-job.db" . }}"
+          image: "{{ .Values.global.imageRegistry | default .Values.images.k8sWaitFor.registry }}/{{ .Values.images.k8sWaitFor.repository }}:{{ .Values.images.k8sWaitFor.tag }}"
+          imagePullPolicy: "{{ .Values.images.k8sWaitFor.pullPolicy }}"
+          args: ["job", "{{ include "bk-nodeman.migrate-job.db" . }}"]
+      containers:
+        - name: "{{ include "bk-nodeman.migrate-job.file-sync" . }}"
+          image: "{{ .Values.global.imageRegistry | default .Values.images.backend.registry }}/{{ .Values.images.backend.repository }}:{{ .Values.images.backend.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: "{{ .Values.images.backend.pullPolicy }}"
+          command: ["/bin/bash", "-c"]
+          args:
+            - "bin/hooks/file-sync"
+          {{- include "bk-nodeman.backend.env" . | nindent 10 }}
+          {{- with .Values.volumeMounts }}
+          volumeMounts:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      {{- with .Values.volumes }}
+      volumes:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
