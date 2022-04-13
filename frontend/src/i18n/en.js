@@ -448,6 +448,7 @@ export default {
 
   // 自监控
   自监控: 'Self-monitoring',
+  后台服务器: 'Background server',
   节点管理后台服务状态: 'Node management background service status',
   节点管理SaaS依赖周边组件状态: 'Node management SaaS depends on the status of surrounding components',
   可能原因: 'Possible Causes',
@@ -985,6 +986,25 @@ export default {
   更改状态: 'Change status',
   测试版本要主动选择才能安装: 'Test version, you must actively choose to install',
   停用版本不可以被部署到新的主机上: 'Disabled version, cannot be deployed to new hosts',
+
+  // 资源配额
+  资源配额: 'Resource quota',
+  限制最高CPU使用率: 'Limit maximum CPU usage',
+  限制最高内存使用率: 'Limit maximum memory usage',
+  '业务：': 'Biz：',
+  请输入关键词: '请输入关键词',
+  总数运行中异常: 'Total / running / abnormal',
+  CPU配额: 'CPU quota',
+  内存配额: 'Memory quota',
+  编辑资源配额: 'Edit resource quota',
+  还原默认: 'Reset',
+  CPU配额及单位: 'CPU quota(%)',
+  内存配额及单位: 'Memory quota(m%)',
+  业: 'B',
+  集: 'S',
+  模: 'M',
+  '已手动调整资源配额（非默认配置）': 'Manually adjusted resource quota (not default configuration)',
+  请选择服务模板: 'Please select a service template',
 
   // 任务历史 - 新
   创建云区域权限: 'Create cloud area permissions',
