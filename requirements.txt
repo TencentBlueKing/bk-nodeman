@@ -4,7 +4,7 @@
 # 运行时依赖安装
 wheel==0.37.0
 
-blueapps-open==4.0.3rc0
+blueapps==4.2.3
 
 Django==3.2.4
 
