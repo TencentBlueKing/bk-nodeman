@@ -114,12 +114,6 @@ class AgentAction(Action, abc.ABC):
     def _generate_activities(self, agent_manager):
         pass
 
-    def inject_vars_to_global_data(self, global_pipeline_data: builder.Data):
-        global_pipeline_data.inputs["${blueking_language}"] = builder.Var(
-            type=builder.Var.PLAIN, value=self.step.subscription_step.params.get("blueking_language")
-        )
-        super().inject_vars_to_global_data(global_pipeline_data)
-
     def generate_activities(
         self,
         subscription_instances: List[models.SubscriptionInstanceRecord],

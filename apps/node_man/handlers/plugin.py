@@ -12,6 +12,7 @@ from collections import defaultdict
 from typing import Any, Dict
 
 from django.db.models import Q
+from django.utils.translation import get_language
 
 from apps.node_man import constants as const
 from apps.node_man import tools
@@ -405,7 +406,11 @@ class PluginHandler(APIModel):
                     },
                     "type": "PLUGIN",
                     "id": name,
-                    "params": {"keep_config": keep_config, "no_restart": no_restart},
+                    "params": {
+                        "keep_config": keep_config,
+                        "no_restart": no_restart,
+                        "blueking_language": get_language(),
+                    },
                 }
             ],
         }

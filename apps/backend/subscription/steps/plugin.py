@@ -1008,9 +1008,6 @@ class BasePluginAction(six.with_metaclass(abc.ABCMeta, Action)):
 
         # 注入公共参数
         self.inject_vars_to_global_data(global_pipeline_data)
-        for act in activities:
-            act.component.inputs.plugin_name = Var(type=Var.PLAIN, value=self.step.plugin_name)
-            act.component.inputs.subscription_step_id = Var(type=Var.PLAIN, value=self.step.subscription_step.id)
         return activities, pipeline_data
 
     @abc.abstractmethod

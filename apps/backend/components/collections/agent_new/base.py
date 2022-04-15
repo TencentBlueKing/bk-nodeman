@@ -30,7 +30,6 @@ from django.utils.translation import ugettext_lazy as _
 
 from apps.backend.agent.tools import InstallationTools, batch_gen_commands
 from apps.node_man import constants, models
-from pipeline.core.flow import Service
 
 from .. import job
 from ..base import BaseService, CommonData
@@ -40,11 +39,6 @@ class AgentBaseService(BaseService, metaclass=abc.ABCMeta):
     """
     AGENT安装基类
     """
-
-    def inputs_format(self):
-        return super().inputs_format() + [
-            Service.InputItem(name="blueking_language", key="blueking_language", type="str", required=True),
-        ]
 
     def sub_inst_failed_handler(self, sub_inst_ids: Union[List[int], Set[int]]):
         """

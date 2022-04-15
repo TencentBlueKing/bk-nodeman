@@ -36,7 +36,7 @@ from django.db.models import QuerySet
 from django.utils import timezone
 from django.utils.encoding import force_text
 from django.utils.functional import Promise
-from django.utils.translation import ugettext
+from django.utils.translation import get_language
 from django.utils.translation import ugettext_lazy as _
 from django_mysql.models import JSONField
 from jinja2 import Template
@@ -57,7 +57,7 @@ from apps.node_man.exceptions import (
     UrlNotReachableError,
 )
 from apps.prometheus.models import export_job_prometheus_mixin
-from apps.utils import files, orm
+from apps.utils import files, orm, translation
 from common.log import logger
 from pipeline.parser import PipelineParser
 from pipeline.service import task_service
@@ -713,16 +713,16 @@ class AccessPoint(models.Model):
         :return:
         """
 
+        @translation.RespectsLanguage(language=get_language())
         def _check_ip(ip: str, _logs: list):
             try:
                 subprocess.check_output(["ping", "-c", "1", ip, "-i", "1"])
             except subprocess.CalledProcessError as e:
-                _logs.append(
-                    {"log_level": "ERROR", "log": ugettext("Ping {ip} 失败, {output}").format(ip=ip, output=e.output)}
-                )
+                _logs.append({"log_level": "ERROR", "log": _("Ping {ip} 失败, {output}").format(ip=ip, output=e.output)})
             else:
-                _logs.append({"log_level": "INFO", "log": ugettext("Ping {ip} 正常").format(ip=ip)})
+                _logs.append({"log_level": "INFO", "log": _("Ping {ip} 正常").format(ip=ip)})
 
+        @translation.RespectsLanguage(language=get_language())
         def _check_package_url(url: str, _logs: list):
             # TODO 检测方案待讨论确认
             download_url = f"{url}/setup_agent.sh"
@@ -732,9 +732,7 @@ class AccessPoint(models.Model):
                 _logs.append(
                     {
                         "log_level": "ERROR",
-                        "log": ugettext("{download_url} 检测下载失败，目标地址没有 setup_agent.sh 文件").format(
-                            download_url=download_url
-                        ),
+                        "log": _("{download_url} 检测下载失败，目标地址没有 setup_agent.sh 文件").format(download_url=download_url),
                     }
                 )
             else:
@@ -742,26 +740,27 @@ class AccessPoint(models.Model):
                     _logs.append(
                         {
                             "log_level": "ERROR",
-                            "log": ugettext("{download_url} 检测下载失败").format(download_url=download_url),
+                            "log": _("{download_url} 检测下载失败").format(download_url=download_url),
                         }
                     )
                 else:
                     _logs.append(
                         {
                             "log_level": "INFO",
-                            "log": ugettext("{download_url} 检测下载成功").format(download_url=download_url),
+                            "log": _("{download_url} 检测下载成功").format(download_url=download_url),
                         }
                     )
 
+        @translation.RespectsLanguage(language=get_language())
         def _check_callback_url(url: str, _logs: list):
             _check_callback_url_return = cls.check_callback_url_reachable(url, raise_exception=False)
             if _check_callback_url_return["result"]:
-                _logs.append({"log_level": "INFO", "log": ugettext("回调地址 -> {url} 验证可达").format(url=url)})
+                _logs.append({"log_level": "INFO", "log": _("回调地址 -> {url} 验证可达").format(url=url)})
             else:
                 _logs.append(
                     {
                         "log_level": "ERROR",
-                        "log": ugettext("回调地址 -> {url} 不正确：{err_msg}").format(
+                        "log": _("回调地址 -> {url} 不正确：{err_msg}").format(
                             url=url, err_msg=_check_callback_url_return["err_msg"]
                         ),
                     }

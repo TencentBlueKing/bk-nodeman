@@ -31,6 +31,7 @@ from apps.backend.subscription.steps.agent import InstallAgent, InstallProxy
 from apps.node_man import constants, models
 from apps.node_man import tools as node_man_tools
 from apps.node_man.handlers.cmdb import CmdbHandler
+from apps.utils import translation
 from pipeline import builder
 from pipeline.builder import Data, NodeOutput, ServiceActivity, Var
 from pipeline.core.pipeline import Pipeline
@@ -231,6 +232,7 @@ def create_task_transaction(create_task_func):
 
 
 @app.task(queue="backend")
+@translation.RespectsLanguage()
 @create_task_transaction
 def create_task(
     subscription: models.Subscription,
@@ -437,6 +439,7 @@ def run_subscription_task_and_create_instance_transaction(func):
 
 
 @app.task(queue="backend")
+@translation.RespectsLanguage()
 @run_subscription_task_and_create_instance_transaction
 def run_subscription_task_and_create_instance(
     subscription: models.Subscription,
@@ -566,6 +569,7 @@ def run_subscription_task_and_create_instance(
 
 
 @app.task(queue="backend")
+@translation.RespectsLanguage()
 def run_subscription_task(subscription_task: models.SubscriptionTask):
     logger.info(f"debug update_subscription enter run_subscription_task[{subscription_task.id}]")
     pipeline_ids = {}
