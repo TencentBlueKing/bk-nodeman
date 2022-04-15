@@ -124,10 +124,6 @@ class Action(object, metaclass=abc.ABCMeta):
         :param global_pipeline_data: 全局pipeline公共变量
         :return:
         """
-        global_pipeline_data.inputs["${subscription_step_id}"] = builder.Var(
-            type=builder.Var.PLAIN, value=self.step.subscription_step.id
-        )
-
         # locale
         blueking_language: str = self.step.subscription_step.params.get("blueking_language")
         if blueking_language not in settings.SUPPORT_LANGUAGE:
