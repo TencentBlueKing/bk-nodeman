@@ -43,7 +43,7 @@ from apps.node_man.views.host_v2 import HostV2ViewSet
 from apps.node_man.views.plugin import GsePluginViewSet
 from apps.node_man.views.plugin_v2 import PluginV2ViewSet
 
-iam = IAM(settings.APP_CODE, settings.SECRET_KEY, settings.BK_IAM_INNER_HOST, settings.BK_COMPONENT_API_URL)
+iam = IAM(settings.APP_CODE, settings.SECRET_KEY, settings.BK_IAM_INNER_HOST, settings.BK_COMPONENT_API_OVERWRITE_URL)
 
 router = routers.DefaultRouter(trailing_slash=True)
 
