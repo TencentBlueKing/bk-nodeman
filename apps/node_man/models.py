@@ -1661,8 +1661,8 @@ class PluginConfigInstance(models.Model):
 
     plugin_config_template = models.IntegerField(_("对应实例记录ID"), db_index=True)
     render_data = models.TextField(_("渲染参数"))
-    data_md5 = models.CharField(_("渲染参数MD5"), max_length=50, default="")
-    creator = models.CharField(_("创建者"), max_length=64)
+    data_md5 = models.CharField(_("渲染参数MD5"), max_length=50, default="", db_index=True)
+    creator = models.CharField(_("创建者"), max_length=64, db_index=True)
     create_time = models.DateTimeField(_("创建时间"), auto_now_add=True, db_index=True)
     source_app_code = models.CharField(_("来源系统app code"), max_length=64, db_index=True)
 
