@@ -21,7 +21,7 @@ def gen_api_root(api_gw_env_key: str, suffix: str) -> str:
     if api_gw_env_val:
         return api_gw_env_val
 
-    api_root = f"{settings.BK_COMPONENT_API_URL}/{ESB_PREFIX_V2}/{suffix}/"
+    api_root = f"{settings.BK_COMPONENT_API_OVERWRITE_URL}/{ESB_PREFIX_V2}/{suffix}/"
     if api_root.startswith("http://"):
         api_root = api_root[:7] + api_root[7:].replace("//", "/")
     elif api_root.startswith("https://"):

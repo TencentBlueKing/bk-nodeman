@@ -576,7 +576,7 @@ class IamRegister(object):
 
     def __init__(self):
         self._iam = IAM(
-            settings.APP_CODE, settings.SECRET_KEY, settings.BK_IAM_INNER_HOST, settings.BK_COMPONENT_API_URL
+            settings.APP_CODE, settings.SECRET_KEY, settings.BK_IAM_INNER_HOST, settings.BK_COMPONENT_API_OVERWRITE_URL
         )
 
     def register_system(self):
