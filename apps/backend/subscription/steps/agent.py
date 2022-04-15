@@ -20,6 +20,7 @@ from apps.backend.agent.manager import AgentManager
 from apps.node_man import constants, models
 from apps.node_man.models import GsePluginDesc, SubscriptionStep
 from pipeline import builder
+from pipeline.builder import Var
 from pipeline.builder.flow.base import Element
 
 # 需分发到 PROXY 的文件（由于放到一次任务中会给用户等待过久的体验，因此拆分成多次任务）
@@ -121,8 +122,11 @@ class AgentAction(Action, abc.ABC):
         current_activities=None,
     ) -> Tuple[List[Union[builder.ServiceActivity, Element]], Optional[builder.Data]]:
         agent_manager = self.get_agent_manager(subscription_instances)
+        activities, pipeline_data = self._generate_activities(agent_manager)
+        for act in activities:
+            act.component.inputs.subscription_step_id = Var(type=Var.PLAIN, value=self.step.subscription_step.id)
         self.inject_vars_to_global_data(global_pipeline_data)
-        return self._generate_activities(agent_manager)
+        return activities, pipeline_data
 
     def append_delegate_activities(self, agent_manager, activities):
         for plugin in self.step.auto_launch_plugins:

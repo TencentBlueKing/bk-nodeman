@@ -23,7 +23,6 @@ class AgentServiceActivity(ServiceActivity):
         super().__init__(*args, **kwargs)
         self.component.inputs.description = Var(type=Var.SPLICE, value="${description}")
         self.component.inputs.blueking_language = Var(type=Var.SPLICE, value="${blueking_language}")
-        self.component.inputs.subscription_step_id = Var(type=Var.SPLICE, value="${subscription_step_id}")
         self.component.inputs.act_name = Var(type=Var.PLAIN, value=kwargs.get("name"))
 
 
@@ -154,7 +153,7 @@ class AgentManager(object):
 
     @classmethod
     def push_files_to_proxy(cls, file: Dict[str, Any]):
-        """下发文件到 Proxy """
+        """下发文件到 Proxy"""
         act = AgentServiceActivity(component_code=components.PushFilesToProxyComponent.code, name=file["name"])
         act.component.inputs.file_list = Var(type=Var.PLAIN, value=file["files"])
         act.component.inputs.from_type = Var(type=Var.PLAIN, value=file.get("from_type"))
