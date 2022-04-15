@@ -1014,7 +1014,7 @@ export default {
   编辑云区域权限: 'Edit cloud zone permissions',
   查看云区域权限: 'View cloud zone permissions',
   选择日期范围: 'Select date range',
-  搜索任务ID执行者任务类型执行状态: 'Search task ID, performer, task type, execution status',
+  搜索任务ID执行者任务类型操作类型部署策略执行状态: 'Search task ID, performer, task type, policy ,execution status',
   开始时间: 'Start time',
   执行账号: 'Execute account',
   失败重试: 'Retry',

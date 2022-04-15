@@ -145,11 +145,13 @@ class JobV3BaseService(six.with_metaclass(abc.ABCMeta, BaseService)):
             # 节点管理仅使用 push_config_file 下发 content，不涉及从文件源读取文件
             elif job_func == JobApi.push_config_file:
                 file_names = ",".join([file["file_name"] for file in job_params.get("file_list", [])])
-                log = f"下发配置文件 [{file_names}] 到目标机器路径 [{file_target_path}]，若下发失败，请检查作业平台所部署的机器是否已安装AGENT"
+                log = _("下发配置文件 [{file_names}] 到目标机器路径 [{file_target_path}]，若下发失败，请检查作业平台所部署的机器是否已安装AGENT").format(
+                    file_names=file_names, file_target_path=file_target_path
+                )
             elif job_func == JobApi.fast_execute_script:
-                log = f"快速执行脚本 {getattr(self, 'script_name', '')}"
+                log = _("快速执行脚本 {script_name}").format(script_name=getattr(self, "script_name", ""))
             else:
-                log = "调用作业平台"
+                log = _("调用作业平台")
 
             # 采用拼接上文的方式添加接口请求日志，减少DB操作
             if self.PRINT_PARAMS_TO_LOG:
@@ -231,7 +233,7 @@ class JobV3BaseService(six.with_metaclass(abc.ABCMeta, BaseService)):
             else:
                 ip_status = ip_result["status"]
                 err_code = ip_result["error_code"]
-            err_msg = "作业执行状态 -> {status}「{ip_status_msg}」, 主机任务状态码 -> {error_code}「{err_msg}」".format(
+            err_msg = _("作业执行状态 -> {status}「{ip_status_msg}」, 主机任务状态码 -> {error_code}「{err_msg}」").format(
                 status=ip_status,
                 ip_status_msg=(
                     constants.BkJobIpStatus.BK_JOB_IP_STATUS_MAP.get(ip_status)

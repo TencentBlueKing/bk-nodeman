@@ -16,6 +16,7 @@ from copy import deepcopy
 from typing import Any, Dict, List, Set
 
 from django.db.models import Max, Q, QuerySet
+from django.utils.translation import get_language
 from django.utils.translation import ugettext as _
 
 from apps.backend.subscription import errors, task_tools, tasks, tools
@@ -342,7 +343,7 @@ class SubscriptionHandler(object):
         subscription_task = models.SubscriptionTask.objects.create(
             subscription_id=subscription.id, scope=subscription.scope, actions={}
         )
-        tasks.create_task.delay(subscription, subscription_task, instances, instance_actions)
+        tasks.create_task.delay(subscription, subscription_task, instances, instance_actions, language=get_language())
         return {"task_id": subscription_task.id}
 
     def task_result_detail(self, instance_id: str, task_id_list: List[int] = None) -> Dict:
@@ -387,13 +388,15 @@ class SubscriptionHandler(object):
         )
         if not scope and not actions:
             # 如果不传范围和动作，则自动判断变更
-            tasks.run_subscription_task_and_create_instance.delay(subscription, subscription_task)
+            tasks.run_subscription_task_and_create_instance.delay(
+                subscription, subscription_task, language=get_language()
+            )
         else:
             # 如果传了scope，那么必须有action
             if not actions:
                 raise errors.ActionCanNotBeNone()
             tasks.run_subscription_task_and_create_instance.delay(
-                subscription, subscription_task, scope=scope, actions=actions
+                subscription, subscription_task, scope=scope, actions=actions, language=get_language()
             )
 
         return {"task_id": subscription_task.id, "subscription_id": subscription.id}

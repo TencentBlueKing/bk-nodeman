@@ -38,7 +38,7 @@
           v-test="'searchSelect'"
           ref="searchSelectRef"
           :show-condition="false"
-          :placeholder="$t('搜索任务ID、执行者、任务类型、操作类型、部署策略、执行状态')"
+          :placeholder="$t('搜索任务ID执行者任务类型操作类型部署策略执行状态')"
           :data="searchSelectData"
           v-model="searchSelectValue"
           @change="handleSearchSelectChange">

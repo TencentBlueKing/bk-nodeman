@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import traceback
+import typing
 from typing import (
     Any,
     Callable,
@@ -28,9 +29,8 @@ from django.utils import timezone
 from django.utils.translation import ugettext as _
 
 from apps.node_man import constants, models
-from apps.utils.cache import class_member_cache
+from apps.utils import cache, time_handler, translation
 from apps.utils.exc import ExceptionHandler
-from apps.utils.time_handler import strftime_local
 from common.log import logger
 from pipeline.core.flow import Service
 
@@ -54,7 +54,7 @@ class LogMaker:
     @staticmethod
     def get_log_content(level: int, content: str) -> str:
         return (
-            f"[{strftime_local(timezone.now())} "
+            f"[{time_handler.strftime_local(timezone.now())} "
             f"{LogLevel.LEVEL_PREFIX_MAP.get(level, LogLevel.LEVEL_PREFIX_MAP[LogLevel.INFO])}] {content}"
         )
 
@@ -97,6 +97,16 @@ def service_run_exc_handler(
     if instance.schedule == wrapped:
         instance.finish_schedule()
     return False
+
+
+def get_language_func(
+    wrapped: Callable, instance: "BaseService", args: Tuple[Any], kwargs: Dict[str, Any]
+) -> typing.Optional[str]:
+    if args:
+        data = args[0]
+    else:
+        data = kwargs["data"]
+    return data.get_one_of_inputs("blueking_language")
 
 
 class LogMixin:
@@ -154,7 +164,7 @@ class LogMixin:
 
 class DBHelperMixin:
     @property
-    @class_member_cache()
+    @cache.class_member_cache()
     def batch_size(self) -> int:
         """
         获取 update / create 每批次操作数
@@ -397,6 +407,7 @@ class BaseService(Service, LogMixin, DBHelperMixin):
 
         return bool(succeeded_subscription_instance_ids)
 
+    @translation.RespectsLanguage(get_language_func=get_language_func)
     @ExceptionHandler(exc_handler=service_run_exc_handler)
     def execute(self, data, parent_data):
         common_data = self.get_common_data(data)
@@ -416,6 +427,7 @@ class BaseService(Service, LogMixin, DBHelperMixin):
         self.set_current_id(subscription_instance_ids)
         return self.run(self._execute, data, parent_data, common_data=common_data)
 
+    @translation.RespectsLanguage(get_language_func=get_language_func)
     @ExceptionHandler(exc_handler=service_run_exc_handler)
     def schedule(self, data, parent_data, callback_data=None):
         return self.run(self._schedule, data, parent_data, callback_data=callback_data)
@@ -426,6 +438,7 @@ class BaseService(Service, LogMixin, DBHelperMixin):
                 name="subscription_instance_ids", key="subscription_instance_ids", type="list", required=True
             ),
             Service.InputItem(name="subscription_step_id", key="subscription_step_id", type="int", required=True),
+            Service.InputItem(name="blueking_language", key="blueking_language", type="str", required=True),
         ]
 
     def outputs_format(self):

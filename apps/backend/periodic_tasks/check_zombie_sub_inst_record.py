@@ -16,6 +16,7 @@ from celery.task import periodic_task
 from django.db.models import Value
 from django.db.models.functions import Concat
 from django.utils import timezone
+from django.utils.translation import ugettext_lazy as _
 
 from apps.backend.subscription.constants import CHECK_ZOMBIE_SUB_INST_RECORD_INTERVAL
 from apps.node_man import constants, models
@@ -53,7 +54,10 @@ def check_zombie_sub_inst_record():
     )
 
     forced_failed_status_detail_num = models.SubscriptionInstanceStatusDetail.objects.filter(**query_kwargs).update(
-        **base_update_kwargs, log=Concat("log", Value(f"\n[{strftime_local(timezone.now())} ERROR] 任务长时间处在执行状态，已强制失败"))
+        **base_update_kwargs,
+        log=Concat(
+            "log", Value(_("\n[{time_str} ERROR] 任务长时间处在执行状态，已强制失败").format(time_str=strftime_local(timezone.now())))
+        ),
     )
 
     logger.info(

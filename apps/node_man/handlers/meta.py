@@ -152,7 +152,7 @@ class MetaHandler(APIModel):
             {"name": constants.PROC_STATUS_CHN.get(status, status), "id": status} for status in statuses if status != ""
         ]
         versions_children = [{"name": version, "id": version} for version in versions if version != ""]
-        is_manual_children = [{"name": "手动" if is_manual else "远程", "id": is_manual} for is_manual in is_manuals]
+        is_manual_children = [{"name": _("手动") if is_manual else _("远程"), "id": is_manual} for is_manual in is_manuals]
         bk_cloud_names = CloudHandler().list_cloud_info(bk_cloud_ids)
         bk_cloud_ids_children = [
             {"name": bk_cloud_names.get(bk_cloud_id, {}).get("bk_cloud_name", bk_cloud_id), "id": bk_cloud_id}
@@ -164,13 +164,13 @@ class MetaHandler(APIModel):
         ]
         return self.filter_empty_children(
             [
-                {"name": "操作系统", "id": "os_type", "children": os_types_children + [{"name": _("其它"), "id": "none"}]},
-                {"name": "Agent状态", "id": "status", "children": statuses_children},
-                {"name": "安装方式", "id": "is_manual", "children": is_manual_children},
-                {"name": "Agent版本", "id": "version", "children": versions_children},
-                {"name": "云区域", "id": "bk_cloud_id", "children": bk_cloud_ids_children},
-                {"name": "安装通道", "id": "install_channel_id", "children": install_channel_children},
-                {"name": "IP", "id": "inner_ip"},
+                {"name": _("操作系统"), "id": "os_type", "children": os_types_children + [{"name": _("其它"), "id": "none"}]},
+                {"name": _("Agent状态"), "id": "status", "children": statuses_children},
+                {"name": _("安装方式"), "id": "is_manual", "children": is_manual_children},
+                {"name": _("Agent版本"), "id": "version", "children": versions_children},
+                {"name": _("云区域"), "id": "bk_cloud_id", "children": bk_cloud_ids_children},
+                {"name": _("安装通道"), "id": "install_channel_id", "children": install_channel_children},
+                {"name": _("IP"), "id": "inner_ip"},
             ]
         )
 
@@ -247,11 +247,11 @@ class MetaHandler(APIModel):
 
         return self.filter_empty_children(
             [
-                {"name": "任务ID", "id": "job_id"},
-                {"name": "执行者", "id": "created_by", "children": created_bys_children},
-                {"name": "执行状态", "id": "status", "children": statuses_children},
-                {"name": "任务类型", "id": "step_type", "children": step_types_children},
-                {"name": "操作类型", "id": "op_type", "children": op_types_children},
+                {"name": _("任务ID"), "id": "job_id"},
+                {"name": _("执行者"), "id": "created_by", "children": created_bys_children},
+                {"name": _("执行状态"), "id": "status", "children": statuses_children},
+                {"name": _("任务类型"), "id": "step_type", "children": step_types_children},
+                {"name": _("操作类型"), "id": "op_type", "children": op_types_children},
                 {"name": _("策略名称"), "id": "policy_name", "children": policy_name_children},
             ]
         )
@@ -275,7 +275,7 @@ class MetaHandler(APIModel):
         bk_cloud_ids = [bk_cloud[0] for bk_cloud in bk_cloud_tuple]
         bk_cloud_names = CloudHandler().list_cloud_info(bk_cloud_ids)
         plugin_result["bk_cloud_id"] = {
-            "name": "云区域",
+            "name": _("云区域"),
             "value": [
                 {"name": bk_cloud_names.get(bk_cloud_id, {}).get("bk_cloud_name", bk_cloud_id), "id": bk_cloud_id}
                 for bk_cloud_id in bk_cloud_ids
@@ -285,21 +285,21 @@ class MetaHandler(APIModel):
         os_type_tuple = self.fetch_host_process_unique_col(biz_permission, ["os_type"], ["AGENT", "PAGENT"])
         os_types = [os_type[0] for os_type in os_type_tuple]
         plugin_result["os_type"] = {
-            "name": "操作系统",
+            "name": _("操作系统"),
             "value": [{"name": constants.OS_CHN.get(os, os), "id": os} for os in os_types if os != ""],
         }
 
         agent_version_tuple = self.fetch_host_process_unique_col(biz_permission, ["version"], ["AGENT", "PAGENT"])
         versions = self.regular_agent_version([version[0] for version in agent_version_tuple])
         plugin_result[models.ProcessStatus.GSE_AGENT_PROCESS_NAME] = {
-            "name": "Agent版本",
+            "name": _("Agent版本"),
             "value": [{"name": version, "id": version} for version in versions if version != ""],
         }
 
         status_tuple = self.fetch_host_process_unique_col(biz_permission, ["status"], ["AGENT", "PAGENT"])
         statuses = [statuse[0] for statuse in status_tuple]
         plugin_result["status"] = {
-            "name": "Agent状态",
+            "name": _("Agent状态"),
             "value": [
                 {"name": constants.PROC_STATUS_CHN.get(status, status), "id": status}
                 for status in statuses
@@ -429,7 +429,7 @@ class MetaHandler(APIModel):
         for name in plugin_names:
             plugin_result.append(
                 {
-                    "name": f"{name}版本",
+                    "name": _("{name}版本").format(name=name),
                     "id": name,
                     "children": [{"name": _("无版本"), "id": -1}]
                     + sorted(plugin_version.get(name, []), key=lambda keys: keys["name"], reverse=True),
