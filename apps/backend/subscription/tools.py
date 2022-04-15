@@ -593,14 +593,16 @@ def set_template_scope_nodes(scope):
         scope["nodes"] = [
             {"bk_inst_id": node["bk_module_id"], "bk_obj_id": "module"}
             for node in modules_info
-            if node["service_template_id"] in template_ids
+            # 兼容 service_template_id 不存在的场景
+            if "service_template_id" in node and node["service_template_id"] in template_ids
         ]
     else:
         # 转化集群模板为node
         scope["nodes"] = [
             {"bk_inst_id": node["bk_module_id"], "bk_obj_id": "module"}
             for node in modules_info
-            if node["set_template_id"] in template_ids
+            # 兼容 set_template_id 不存在的场景
+            if "set_template_id" in node and node["set_template_id"] in template_ids
         ]
     return scope["nodes"]
 
