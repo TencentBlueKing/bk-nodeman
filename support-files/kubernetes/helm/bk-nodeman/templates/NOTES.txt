@@ -2,7 +2,12 @@ Thank you for installing {{ .Chart.Name }}.
 
 Your release is named {{ .Release.Name }}.
 
-如果集群中已经安装了 IngressController，那么可以通过以下地址访问节点管理 SaaS: {{ .Values.global.bkDomainScheme }}://bknodeman.{{ .Values.global.bkDomain }}
+如果集群中已经安装了 IngressController，那么可以通过以下地址访问节点管理：
+{{- if .Values.ingress.hostname }}
+SaaS: {{ .Values.global.bkDomainScheme }}://{{ .Values.ingress.hostname }}
+{{- else }}
+SaaS: {{ .Values.global.bkDomainScheme }}://bknodeman.{{ .Values.global.bkDomain }}
+{{- end }}
 
 验证节点管理后台可访问：
 {{- if eq .Values.backend.api.service.type "NodePort" }}

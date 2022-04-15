@@ -397,7 +397,6 @@ bkRepoUrl: "http://bkrepo.example.com"
 config:
   appCode: "bk_nodeman"
   appSecret: "xxxxx"
-  bkAppRunEnv: "ce"
   bkNodemanApiUrl: "http://bk-nodeman-backend-api:10300"
   bkRepoProject: "xxxx"
   bkRepoPassword: "xxxx"
