@@ -1,0 +1,3 @@
+---
+optimization:
+  - "修复下发服务模板采集报错：keyError 'service_template_id' 的问题 (fixed #679)"
