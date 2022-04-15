@@ -28,6 +28,7 @@ from django.core.paginator import EmptyPage, Paginator
 from django.db import transaction
 from django.db.models import Q
 from django.http import HttpResponseForbidden, JsonResponse
+from django.utils.translation import get_language
 from django.utils.translation import ugettext as _
 from django.views.decorators.csrf import csrf_exempt
 from packaging import version
@@ -578,7 +579,7 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
 
             if subscription.is_running():
                 raise InstanceTaskIsRunning()
-            run_subscription_task_and_create_instance.delay(subscription, subscription_task)
+            run_subscription_task_and_create_instance.delay(subscription, subscription_task, language=get_language())
             if subscription_task.err_msg:
                 raise CreateSubscriptionTaskError(err_msg=subscription_task.err_msg)
 
@@ -620,7 +621,7 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
             config["job_type"] = backend_const.ActionNameType.STOP_DEBUG_PLUGIN
             step.config = config
             step.save()
-            run_subscription_task_and_create_instance.delay(subscription, task)
+            run_subscription_task_and_create_instance.delay(subscription, task, language=get_language())
         return Response()
 
     @action(detail=False, methods=["GET"])

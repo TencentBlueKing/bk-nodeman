@@ -13,10 +13,13 @@ from copy import deepcopy
 from multiprocessing.pool import ThreadPool
 
 from django.conf import settings
+from django.utils.translation import get_language
 
 from apps.exceptions import AppBaseException
 from apps.node_man import constants
 from apps.utils.local import get_request
+
+from . import translation
 
 
 def format_params(params, get_count, func):
@@ -145,7 +148,9 @@ def request_multi_thread(func, params_list, get_data=lambda x: []):
 
     result = []
     with ThreadPoolExecutor(max_workers=settings.CONCURRENT_NUMBER) as ex:
-        tasks = [ex.submit(func, **params) for params in params_list]
+        tasks = [
+            ex.submit(translation.RespectsLanguage(language=get_language())(func), **params) for params in params_list
+        ]
     for future in as_completed(tasks):
         result.extend(get_data(future.result()))
     return result

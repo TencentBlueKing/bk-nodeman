@@ -13,6 +13,7 @@ from collections import Counter, defaultdict
 from typing import Any, Dict, List, Optional, Set, Union
 
 from django.utils import timezone
+from django.utils.translation import get_language
 from django.utils.translation import ugettext_lazy as _
 
 from apps.node_man import exceptions, models
@@ -116,6 +117,9 @@ class PolicyTools:
             return
         if simple_key in policy_info["steps"][0]:
             policy_info["steps"][0][settings_key] = {"details": policy_info["steps"][0][simple_key]}
+            # locale
+            if settings_key == "params":
+                policy_info["steps"][0][settings_key]["blueking_language"] = get_language()
             # 属性同级同名无需删除
             if settings_key != simple_key:
                 policy_info["steps"][0].pop(simple_key, None)

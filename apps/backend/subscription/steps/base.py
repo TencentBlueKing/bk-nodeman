@@ -13,6 +13,9 @@ specific language governing permissions and limitations under the License.
 import abc
 from typing import Any, Dict, List, Optional, Tuple, Union
 
+from django.conf import settings
+from django.utils.translation import get_language
+
 from apps.node_man import models
 from pipeline import builder
 from pipeline.builder.flow.base import Element
@@ -123,6 +126,14 @@ class Action(object, metaclass=abc.ABCMeta):
         """
         global_pipeline_data.inputs["${subscription_step_id}"] = builder.Var(
             type=builder.Var.PLAIN, value=self.step.subscription_step.id
+        )
+
+        # locale
+        blueking_language: str = self.step.subscription_step.params.get("blueking_language")
+        if blueking_language not in settings.SUPPORT_LANGUAGE:
+            blueking_language = get_language()
+        global_pipeline_data.inputs["${blueking_language}"] = builder.Var(
+            type=builder.Var.PLAIN, value=blueking_language
         )
 
     @abc.abstractmethod
