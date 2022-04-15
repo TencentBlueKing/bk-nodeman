@@ -13,6 +13,8 @@ from enum import Enum
 from typing import Dict, Optional
 
 from blueapps.conf.default_settings import *  # noqa
+from django.http import HttpResponseRedirect
+from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
 
 import env
@@ -24,6 +26,15 @@ from pipeline.celery.settings import CELERY_QUEUES as PIPELINE_CELERY_QUEUES
 from pipeline.celery.settings import CELERY_ROUTES as PIPELINE_CELERY_ROUTES
 
 from .patchers import logging
+
+
+def redirect_func(request):
+    login_page_url = reverse("account:login_page")
+    next_url = "{}?refer_url={}".format(login_page_url, request.path)
+    return HttpResponseRedirect(next_url)
+
+
+BLUEAPPS_PAGE_401_RESPONSE_FUNC = redirect_func
 
 # ===============================================================================
 # 运行时，用于区分环境差异
@@ -266,7 +277,8 @@ PYTHON_BIN = os.path.dirname(sys.executable)
 BK_PAAS_HOST = os.getenv("BK_PAAS_HOST", "")
 BK_PAAS_INNER_HOST = os.getenv("BK_PAAS_INNER_HOST") or BK_PAAS_HOST
 # ESB、APIGW 的域名，新增于PaaSV3，如果取不到该值，则使用 BK_PAAS_INNER_HOST
-BK_COMPONENT_API_URL = env.BK_COMPONENT_API_URL
+# OVERWRITE 区分，BK_COMPONENT_API_URL 会被开发框架覆盖导致 PaaSV2 环境下为 None
+BK_COMPONENT_API_OVERWRITE_URL = env.BK_COMPONENT_API_URL
 
 BK_NODEMAN_HOST = env.BK_NODEMAN_HOST
 # 节点管理后台外网域名，用于构造文件导入导出的API URL
