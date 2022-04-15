@@ -19,9 +19,12 @@ from typing import Callable, Coroutine, Dict, List
 
 from asgiref.sync import async_to_sync
 from django.conf import settings
+from django.utils.translation import get_language
 
 from apps.exceptions import AppBaseException
 from apps.utils import local
+
+from . import translation
 
 
 def inject_request(func: Callable):
@@ -72,7 +75,9 @@ def batch_call(
         for idx, params in enumerate(params_list):
             if idx != 0:
                 time.sleep(interval)
-            tasks.append(ex.submit(inject_request(func), **params))
+            tasks.append(
+                ex.submit(translation.RespectsLanguage(language=get_language())(inject_request(func)), **params)
+            )
 
     for future in as_completed(tasks):
         if extend_result:

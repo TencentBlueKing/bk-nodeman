@@ -21,6 +21,7 @@ import ujson as json
 from django.core.cache import caches
 from django.db import transaction
 from django.db.models import Q
+from django.utils.translation import get_language
 from rest_framework.decorators import action
 from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
@@ -276,7 +277,9 @@ class SubscriptionViewSet(APIViewSet):
             subscription_task = models.SubscriptionTask.objects.create(
                 subscription_id=subscription.id, scope=subscription.scope, actions={}
             )
-            tasks.run_subscription_task_and_create_instance.delay(subscription, subscription_task)
+            tasks.run_subscription_task_and_create_instance.delay(
+                subscription, subscription_task, language=get_language()
+            )
             result["task_id"] = subscription_task.id
 
         return Response(result)
@@ -363,7 +366,9 @@ class SubscriptionViewSet(APIViewSet):
             subscription_task = models.SubscriptionTask.objects.create(
                 subscription_id=subscription.id, scope=subscription.scope, actions={}
             )
-            tasks.run_subscription_task_and_create_instance.delay(subscription, subscription_task)
+            tasks.run_subscription_task_and_create_instance.delay(
+                subscription, subscription_task, language=get_language()
+            )
             result["task_id"] = subscription_task.id
 
         return Response(result)
