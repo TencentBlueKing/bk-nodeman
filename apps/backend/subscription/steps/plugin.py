@@ -18,7 +18,7 @@ from collections import ChainMap, defaultdict
 from typing import Any, Callable, Dict, List, Tuple, Union
 
 import six
-from django.db.models import Q, QuerySet
+from django.db.models import Q, QuerySet, Max
 
 from apps.backend import constants as backend_const
 from apps.backend.plugin.manager import PluginManager, PluginServiceActivity
@@ -585,6 +585,24 @@ class PluginStep(Step):
                 "push_config": backend_const.ActionNameType.PUSH_CONFIG,
             }
 
+    def get_plugin_alive_host_list(self, bk_host_ids):
+        plugin_id = self.subscription_step.step_id
+
+        process_infos = models.ProcessStatus.objects.filter(
+            bk_host_id__in=bk_host_ids,
+            name=plugin_id,
+            proc_type=constants.ProcType.PLUGIN,
+        ).values("name", "bk_host_id").annotate(id=Max("id"))
+
+        ids_list = [process_info["id"] for process_info in process_infos]
+
+        status_info = models.ProcessStatus.objects.filter(id__in=ids_list).values("bk_host_id", "status")
+
+        alive_list = [
+            process["bk_host_id"] for process in status_info if process["status"] == constants.ProcStateType.RUNNING
+        ]
+        return alive_list
+
     def make_instances_migrate_actions(
         self,
         instances: Dict[str, Dict[str, Union[Dict, Any]]],
@@ -763,6 +781,18 @@ class PluginStep(Step):
         self.handle_not_change_instances(instances, migrate_reasons, _push_migrate_reason)
 
         # TODO 实际执行安装数量 < 策略部署范围，未及时同步CC主机（拓扑下主机数量减少），暂不处理该问题
+
+        need_check_and_skip = self.subscription_step.params.get("check_and_skip")
+        if need_check_and_skip:
+            alive_list = self.get_plugin_alive_host_list(bk_host_ids)
+            rid_instance_id_list = [id_to_instance_id[bk_host_id] for bk_host_id in alive_list]
+
+            instance_actions = {
+                key: instance_actions[key] for key in instance_actions.keys() if key not in rid_instance_id_list
+            }
+            migrate_reasons = {
+                key: migrate_reasons[key] for key in migrate_reasons.keys() if key not in rid_instance_id_list
+            }
 
         return {"instance_actions": instance_actions, "migrate_reasons": migrate_reasons}
 
