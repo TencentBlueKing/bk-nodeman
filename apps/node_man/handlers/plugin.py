@@ -369,7 +369,8 @@ class PluginHandler(APIModel):
 
         # 使用v2.0.x参数进行插件操作时，使用旧返回结构
         if params.get("plugin_params"):
-            return {"job_id": list(plugin_name__job_id__map.values())[0]}
+            job_id = list(plugin_name__job_id__map.values())[0]
+            return {"job_id": job_id, "job_url": tools.JobTools.get_job_url(job_id)}
         return plugin_name__job_id__map
 
     @staticmethod

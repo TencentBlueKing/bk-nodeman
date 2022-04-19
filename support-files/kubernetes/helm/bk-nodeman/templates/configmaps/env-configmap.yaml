@@ -1,5 +1,4 @@
 {{- $fullName := printf "%s-%s" (include "bk-nodeman.fullname" .) "env-configmap" -}}
-{{- $bkNodemanApiOuterUrl := printf "%s://%s" .Values.global.bkDomainScheme .Values.ingress.hostname }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -50,9 +49,10 @@ data:
   BKAPP_BK_NODE_APIGATEWAY: "{{ .Values.config.bkAppBkNodeApiGateway }}/"
   {{- end }}
 
+  BK_NODEMAN_URL: "{{ .Values.bkNodemanUrl }}"
   BKAPP_BACKEND_HOST: "{{ .Values.config.bkAppBackendHost | default .Values.bkNodemanApiUrl }}"
-  BKAPP_NODEMAN_CALLBACK_URL: "{{ .Values.config.bkAppNodemanCallbackUrl | default ( printf "%s/%s" $bkNodemanApiOuterUrl "backend" ) }}"
-  BKAPP_NODEMAN_OUTER_CALLBACK_URL: "{{ .Values.config.bkAppNodemanOuterCallbackUrl | default ( printf "%s/%s" $bkNodemanApiOuterUrl "backend" ) }}"
+  BKAPP_NODEMAN_CALLBACK_URL: "{{ .Values.config.bkAppNodemanCallbackUrl | default ( printf "%s/%s" .Values.bkNodemanUrl "backend" ) }}"
+  BKAPP_NODEMAN_OUTER_CALLBACK_URL: "{{ .Values.config.bkAppNodemanOuterCallbackUrl | default ( printf "%s/%s" .Values.bkNodemanUrl "backend" ) }}"
 
   GSE_ENABLE_SVR_DISCOVERY: "{{ .Values.config.gseEnableSvrDisCovery }}"
   BKAPP_GSE_ZK_HOST: "{{ .Values.config.bkAppGseZkHost }}"

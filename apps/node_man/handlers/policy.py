@@ -518,7 +518,7 @@ class PolicyHandler:
         create_result = NodeApi.create_subscription(create_data)
 
         create_result.update(
-            tools.PolicyTools.create_job(
+            tools.JobTools.create_job(
                 job_type=constants.JobType.MAIN_INSTALL_PLUGIN,
                 subscription_id=create_result["subscription_id"],
                 task_id=create_result["task_id"],
@@ -560,7 +560,7 @@ class PolicyHandler:
         update_result = NodeApi.subscription_update(update_data)
 
         update_result.update(
-            tools.PolicyTools.create_job(
+            tools.JobTools.create_job(
                 job_type=constants.JobType.MAIN_INSTALL_PLUGIN,
                 subscription_id=update_result["subscription_id"],
                 task_id=update_result["task_id"],
@@ -709,7 +709,7 @@ class PolicyHandler:
                         "object_type": models.Subscription.ObjectType.HOST,
                         "nodes": host_nodes,
                     }
-                    run_sub_task_result = tools.PolicyTools.run_sub_task(
+                    run_sub_task_result = tools.JobTools.run_sub_task(
                         policy_id=second_policy_id,
                         bk_biz_scope=policy["bk_biz_scope"],
                         scope=scope,
@@ -759,7 +759,7 @@ class PolicyHandler:
                 "nodes": host_nodes,
             }
 
-        run_sub_task_result = tools.PolicyTools.run_sub_task(
+        run_sub_task_result = tools.JobTools.run_sub_task(
             policy_id=policy_id,
             bk_biz_scope=policy["bk_biz_scope"],
             scope=scope,
