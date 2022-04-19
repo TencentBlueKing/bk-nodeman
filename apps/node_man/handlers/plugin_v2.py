@@ -286,7 +286,7 @@ class PluginV2Handler:
 
         create_result = NodeApi.create_subscription(create_data)
         create_result.update(
-            tools.PolicyTools.create_job(
+            tools.JobTools.create_job(
                 job_type=job_type,
                 subscription_id=create_result["subscription_id"],
                 task_id=create_result["task_id"],

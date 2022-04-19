@@ -12,13 +12,16 @@ import itertools
 import operator
 from collections import Counter
 from functools import reduce
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, Iterable, List, Optional, Union
 
+from django.conf import settings
 from django.db.models import Q
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
 from apps.node_man import constants, models
+from apps.utils.local import get_request_username
+from common.api import NodeApi
 
 
 class JobTools:
@@ -292,3 +295,64 @@ class JobTools:
                 values.append(condition["value"])
 
         return list(set(values))
+
+    @classmethod
+    def run_sub_task(
+        cls, policy_id: int, bk_biz_scope: List[int], scope: Dict[str, Any], actions: Dict[str, str], job_type: str
+    ) -> Dict[str, Any]:
+        """
+        执行任务
+        :param policy_id: 策略ID
+        :param bk_biz_scope:
+        :param scope: 执行范围
+        :param actions: 执行动作
+        :param job_type: 任务类型
+        :return:
+        """
+        run_subscription_task_result = NodeApi.run_subscription_task(
+            {"subscription_id": policy_id, "scope": scope, "actions": actions}
+        )
+
+        run_subscription_task_result.update(
+            cls.create_job(
+                job_type=job_type,
+                subscription_id=run_subscription_task_result["subscription_id"],
+                task_id=run_subscription_task_result["task_id"],
+                bk_biz_scope=bk_biz_scope,
+            )
+        )
+
+        return run_subscription_task_result
+
+    @classmethod
+    def create_job(
+        cls,
+        job_type: str,
+        subscription_id: int,
+        task_id: int,
+        bk_biz_scope: Iterable[int],
+        statistics: Optional[Dict[str, int]] = None,
+        error_hosts: Optional[List[Dict[str, Any]]] = None,
+    ) -> Dict[str, Any]:
+
+        job = models.Job.objects.create(
+            job_type=job_type,
+            bk_biz_scope=list(set(bk_biz_scope)),
+            subscription_id=subscription_id,
+            task_id_list=[task_id],
+            # 状态统计交由定时任务calculate_statistics，减少无意义的DB内主机查询
+            statistics=statistics or {},
+            error_hosts=error_hosts or [],
+            created_by=get_request_username(),
+        )
+
+        return {"job_id": job.id, "job_url": cls.get_job_url(job.id)}
+
+    @classmethod
+    def get_job_url(cls, job_id: int) -> str:
+        """
+        获取任务跳转链接
+        :param job_id: 任务 ID
+        :return:
+        """
+        return f"{settings.BK_NODEMAN_HOST}/#/task-list/detail/{job_id}"

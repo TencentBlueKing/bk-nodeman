@@ -450,15 +450,14 @@ class JobHandler(APIModel):
                 )
             subscription = self.create_subscription(job_type, subscription_nodes)
 
-        # ugettext_lazy需要转为unicode才可进行序列化
+        # ugettext_lazy 需要转为 unicode 才可进行序列化
         ip_filter_list = self.ugettext_to_unicode(ip_filter_list)
 
-        # 创建Job
-        job = models.Job.objects.create(
+        create_job_result: Dict[str, Any] = tools.JobTools.create_job(
             job_type=job_type,
-            bk_biz_scope=bk_biz_scope,
             subscription_id=subscription["subscription_id"],
-            task_id_list=[subscription["task_id"]],
+            task_id=subscription["task_id"],
+            bk_biz_scope=bk_biz_scope,
             statistics={
                 "success_count": 0,
                 "failed_count": len(ip_filter_list),
@@ -467,11 +466,9 @@ class JobHandler(APIModel):
                 "total_count": len(ip_filter_list) + len(subscription_nodes),
             },
             error_hosts=ip_filter_list,
-            created_by=get_request_username(),
         )
 
-        # 返回被过滤的ip列表
-        return {"job_id": job.id, "ip_filter": ip_filter_list}
+        return {**create_job_result, "ip_filter": ip_filter_list}
 
     def subscription_install(self, accept_list: list, node_type: str, cloud_info: dict, biz_info: dict):
         """
@@ -692,11 +689,11 @@ class JobHandler(APIModel):
 
         subscription = self.create_subscription(job_type, bk_host_ids)
 
-        # 创建Job
-        job = models.Job.objects.create(
+        return tools.JobTools.create_job(
             job_type=job_type,
             subscription_id=subscription["subscription_id"],
-            task_id_list=[subscription["task_id"]],
+            task_id=subscription["task_id"],
+            bk_biz_scope=bk_biz_scope,
             statistics={
                 "success_count": 0,
                 "failed_count": 0,
@@ -704,12 +701,7 @@ class JobHandler(APIModel):
                 "running_count": 0,
                 "total_count": len(bk_host_ids),
             },
-            error_hosts=[],
-            created_by=get_request_username(),
-            bk_biz_scope=bk_biz_scope,
         )
-
-        return {"job_id": job.id}
 
     def create_subscription(self, job_type, nodes: list):
         """

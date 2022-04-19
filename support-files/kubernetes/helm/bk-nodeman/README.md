@@ -276,7 +276,7 @@ externalRabbitMQ:
 | ------------------------------------- | ------------------------------------------------------------ | ------------------------------ |
 | `config.appCode`                      | app code                                                     | `bk_nodeman`                   |
 | `config.appSecret`                    | app secret                                                   | `""`                           |
-| `config.bkAppRunEnv`                  | 运行环境，ce / ee / ieod，影响 gse 端口等配置                | `ee`                           |
+| `config.bkAppRunEnv`                  | 运行环境，ce / ee / ieod，影响 gse 端口等配置                | `ce`                           |
 | `config.bkPaasMajorVersion`           | 开发框架 PaaS 版本适配，目前仅支持 `3`                       | `3`                            |
 | `config.bkPaaSEnvironment`            | 开发框架 PaaS 环境适配，目前仅支持 `prod`                    | `prod`                         |
 | `config.logType`                      | 日志类别，`DEFAULT`-   `STDOUT`                              | `STDOUT`                       |
@@ -291,8 +291,8 @@ externalRabbitMQ:
 | `config.bkAppIamResourceApiHost`      | 蓝鲸权限中心相关配置，权限中心拉取权限相关资源的访问地址，默认取 `{{ .Values.bkNodemanUrl }}` | `""`                           |
 | `config.bkAppBkNodeApiGateway`        | 组件 API 接入地址，节点管理网关地址，用于覆盖  `bkComponentApiUrl` 访问节点管理<br />⚠️ 配置为 `{{ .Values.bkNodemanApiUrl }`} 由于 JWT 校验问题，会导致 Agent 安装步骤中「安装预制插件」失败 | `""`                           |
 | `config.bkAppBackendHost`             | 节点管理自身模块依赖，后台访问地址，渲染时为空默认取 `{{ .Values.bkNodemanApiUrl }}` | `""`                           |
-| `config.bkAppNodemanCallbackUrl`      | 节点管理自身模块依赖，后台内网回调地址，默认取 `{{ .Values.bkNodemanApiUrl }}` | `""`                           |
-| `config.bkAppNodemanOuterCallbackUrl` | 节点管理自身模块依赖，后台外网回调地址，默认取 `{{ .Values.bkNodemanApiUrl }}` | `""`                           |
+| `config.bkAppNodemanCallbackUrl`      | 节点管理自身模块依赖，后台内网回调地址，渲染时为空取 `{{ .Values.bkNodemanUrl }}/backend` | `""`                           |
+| `config.bkAppNodemanOuterCallbackUrl` | 节点管理自身模块依赖，后台外网回调地址，渲染时为空取 `{{ .Values.bkNodemanUrl }}/backend` | `""`                           |
 | `config.gseEnableSvrDisCovery`        | 蓝鲸管控平台 Agent，AgentXXDir 仅在初次部署有效，后续可以在页面「全局配置」维护。是否启用 GSE 服务探测，为 `true` | `""`                           |
 | `config.bkAppGseZkHost`               | 蓝鲸管控平台 Agent，ZK hosts 信息，host:port，多个 hosts 以 `,` 分隔 | `127.0.0.1:2181`               |
 | `config.bkAppGseZkAuth`               | 蓝鲸管控平台 Agent，ZK 认证信息，用户名:密码                 | `bkzk:zkpass`                  |
