@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import logging
 import time
+from collections import defaultdict
 from typing import Dict, List, Optional, Tuple
 
 import ujson as json
@@ -27,7 +28,12 @@ from apps.backend.utils.encrypted import GseEncrypted
 from apps.backend.utils.redis import REDIS_INST
 from apps.node_man import constants, models
 from apps.node_man.handlers import base_info
-from apps.node_man.models import Host, JobSubscriptionInstanceMap, aes_cipher
+from apps.node_man.models import (
+    AgentConfigTemplate,
+    Host,
+    JobSubscriptionInstanceMap,
+    aes_cipher,
+)
 from pipeline.service import task_service
 
 logger = logging.getLogger("app")
@@ -479,10 +485,62 @@ def is_designated_upstream_servers(host: models.Host):
     return False
 
 
+def get_client_config_map():
+    proxy_config_map = defaultdict(lambda: defaultdict(dict))
+    agent_config_map = defaultdict(lambda: defaultdict(dict))
+    template_configs = AgentConfigTemplate.objects.all()
+    for template in template_configs:
+        content = {f"{template.os_type}_{template.cpu_arch}": template.content}
+        if template.is_proxy_config:
+            content_version_map = proxy_config_map[template.name][template.version]
+            proxy_config_map[template.name][template.version] = {**content, **content_version_map}
+        else:
+            content_version_map = agent_config_map[template.name][template.version]
+            agent_config_map[template.name][template.version] = {**content, **content_version_map}
+    return agent_config_map, proxy_config_map
+
+
+def fetch_host_config_template(host: Host, version: str, filename: str):
+    def fetch_encode_config_template(config_file: str):
+        proxy_encode_template = {
+            "btsvr.conf": BTSVR_TEMPLATE,
+            "opts.conf": OPTS_TEMPLATE,
+            "agent.conf": PROXY_TEMPLATE,
+            "transit.conf": TRANSIT_TEMPLATE,
+            "plugin_info.json": PLUGIN_INFO_TEMPLATE,
+            "data.conf": DATA_TMPLATE,
+        }
+        agent_encode_template = {"agent.conf": AGENT_TEMPLATE, "plugin_info.json": PLUGIN_INFO_TEMPLATE}
+        encode_template = proxy_encode_template if is_proxy_node else agent_encode_template
+        content = encode_template[config_file]
+        return content
+
+    agent_config_map, proxy_config_map = get_client_config_map()
+    is_proxy_node = bool(host.node_type == constants.NodeType.PROXY)
+    if any([agent_config_map and not is_proxy_node, proxy_config_map and is_proxy_node]):
+        tag = f"{host.os_type.lower()}_{host.cpu_arch}"
+        try:
+            if is_proxy_node:
+                template_content = proxy_config_map[filename][version][tag]
+            else:
+                template_content = agent_config_map[filename][version][tag]
+        except KeyError as err:
+            logger.warning(f"fetch gse config can not found target version -> {version} err -> {err}")
+            template_content = fetch_encode_config_template(filename)
+        if not template_content:
+            logger.warning(f"fetch gse config can not found target version -> {version}")
+            template_content = fetch_encode_config_template(filename)
+        return template_content
+    else:
+        template_content = fetch_encode_config_template(filename)
+    return template_content
+
+
 def generate_gse_config(
     host: models.Host,
     filename: str,
     node_type: str,
+    version: str = None,
     ap: Optional[models.AccessPoint] = None,
     proxies: Optional[List[models.Host]] = None,
     install_channel: Tuple[Optional[models.Host], Dict[str, List]] = None,
@@ -491,6 +549,7 @@ def generate_gse_config(
     生成 GSE 相关配置
     :param host: 主机对象
     :param filename: 文件名
+    :param version: 版本号
     :param node_type: 节点类型（lower）
     :param ap: 接入点对象
     :param proxies: Proxy 主机列表
@@ -515,6 +574,9 @@ def generate_gse_config(
     btfileserver_inner_ips = [server for server in upstream_nodes["btfileserver"]]
     dataserver_inner_ips = [server for server in upstream_nodes["dataserver"]]
 
+    if version is None:
+        version = AgentConfigTemplate.fetch_last_version(node_type=node_type)
+
     if host.os_type == constants.OsType.WINDOWS:
         path_sep = constants.WINDOWS_SEP
         dataipc = agent_config.get("dataipc", 47000)
@@ -526,11 +588,9 @@ def generate_gse_config(
         pluginipc = path_sep.join([setup_path, "agent", "data", "ipc.plugin.manage"])
         dbgipc = agent_config.get("dbgipc", f"{settings.GSE_AGENT_HOME}/agent/data/ipc.dbg.agent")
 
-    template = {}
     context = {}
     port_config = ap.port_config
     if node_type in ["agent", "pagent"]:
-        template = {"agent.conf": AGENT_TEMPLATE, "plugin_info.json": PLUGIN_INFO_TEMPLATE}[filename]
         # 路径使用json.dumps 主要是为了解决Windows路径，如 C:\gse —> C:\\gse
 
         password_keyfile = path_sep.join([setup_path, "agent", "cert", "cert_encrypt.key"])
@@ -624,7 +684,6 @@ def generate_gse_config(
             "agent.conf": PROXY_TEMPLATE,
             "transit.conf": TRANSIT_TEMPLATE,
             "plugin_info.json": PLUGIN_INFO_TEMPLATE,
-            "dataflow.conf": DATAFLOW_TMPLATE,
             "data.conf": DATA_TMPLATE,
         }[filename]
 
@@ -664,6 +723,7 @@ def generate_gse_config(
             "process_event_dataid": settings.GSE_PROCESS_EVENT_DATAID,
         }
     )
+    template = fetch_host_config_template(host, version=version, filename=filename)
     return nested_render_data(template, context)
 
 

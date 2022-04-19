@@ -22,6 +22,7 @@ import uuid
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from distutils.dir_util import copy_tree
+from distutils.version import StrictVersion
 from enum import Enum
 from functools import cmp_to_key
 from typing import Any, Dict, List, Optional, Set, Union
@@ -31,7 +32,7 @@ import six
 from Cryptodome.Cipher import AES
 from django.conf import settings
 from django.core.cache import cache
-from django.db import models
+from django.db import models, transaction
 from django.db.models import QuerySet
 from django.utils import timezone
 from django.utils.encoding import force_text
@@ -41,6 +42,8 @@ from django.utils.translation import ugettext_lazy as _
 from django_mysql.models import JSONField
 from jinja2 import Template
 
+from apps.backend import exceptions
+from apps.backend.exceptions import AgentNotExistError
 from apps.backend.subscription.errors import PipelineExecuteFailed, SubscriptionNotExist
 from apps.backend.subscription.render_functions import get_hosts_by_node
 from apps.backend.utils.data_renderer import nested_render_data
@@ -137,8 +140,8 @@ class GlobalSettings(models.Model):
         cls.objects.filter(key=key).update(v_json=value)
 
     class Meta:
-        verbose_name = _("配置表（GlobalSettings）")
-        verbose_name_plural = _("配置表（GlobalSettings）")
+        verbose_name = _("配置表")
+        verbose_name_plural = _("配置表")
 
 
 class AESCipher(object):
@@ -302,8 +305,8 @@ class IdentityData(models.Model):
     updated_at = models.DateTimeField(_("更新时间"), null=True, auto_now=False)
 
     class Meta:
-        verbose_name = _("临时认证数据（IdentityData）")
-        verbose_name_plural = _("临时认证数据（IdentityData）")
+        verbose_name = _("主机认证信息")
+        verbose_name_plural = _("主机认证信息")
 
 
 class Host(models.Model):
@@ -920,8 +923,8 @@ class GsePluginDesc(models.Model):
     node_manage_control = JSONField(_("节点管理管控插件信息"), null=True, blank=True)
 
     class Meta:
-        verbose_name = _("插件信息（GsePluginDesc）")
-        verbose_name_plural = _("插件信息（GsePluginDesc）")
+        verbose_name = _("插件信息表")
+        verbose_name_plural = _("插件信息表")
 
     def __unicode__(self):
         return self.name
@@ -1340,7 +1343,17 @@ class UploadPackage(models.Model):
         return "{}-{}".format(self.module, self.file_name)
 
     @classmethod
-    def create_record(cls, module, file_path, md5, operator, source_app_code, file_name, is_file_copy=False):
+    def create_record(
+        cls,
+        module,
+        file_path,
+        md5,
+        operator,
+        source_app_code,
+        file_name,
+        action_type: str = constants.ProcType.PLUGIN.lower(),
+        is_file_copy=False,
+    ):
         """
         创建一个新的上传记录
         :param module: 文件模块
@@ -2101,10 +2114,6 @@ class Subscription(orm.SoftDeleteModel):
             )
         return _construct_return_data(False, sub_inst_bk_obj_id, _ordered_bk_obj_subs=ordered_bk_obj_subs)
 
-    class Meta:
-        verbose_name = _("订阅（Subscription）")
-        verbose_name_plural = _("订阅（Subscription）")
-
 
 class SubscriptionTask(models.Model):
     """订阅执行任务"""
@@ -2374,3 +2383,222 @@ class ResourceWatchEvent(models.Model):
     class Meta:
         verbose_name = _("CMDB资源监听事件")
         verbose_name_plural = _("CMDB资源监听事件")
+
+
+class GseAgentDesc(models.Model):
+    """
+    Gse Agent 安装包信息表
+    """
+
+    package_name = models.CharField(_("Agent包"), primary_key=True, max_length=128)
+    cert_name = models.CharField(_("证书包名"), max_length=128)
+    client_name = models.CharField(_("client 完整包名"), max_length=128)
+    version = models.CharField(_("Agent版本号"), max_length=32)
+    source = models.CharField(
+        _("来源"),
+        choices=constants.AGENT_PACKAGE_SOURCE_CHOICES,
+        default=constants.AgentSourceType.BACKEND,
+        max_length=32,
+    )
+    is_upgrade_package = models.BooleanField(_("是否属于升级包"), default=False)
+    is_proxy_package = models.BooleanField(_("是否为Proxy包"), default=False)
+    is_support_config_template = models.BooleanField(_("是否支持配置文件引用"), default=False)
+    md5 = models.CharField(_("Agent升级包md5"), max_length=128)
+    medium = models.CharField(_("安装介质"), max_length=32, default=constants.AgentPackageMap.AGENT_DEFAULT_MEDIUM["name"])
+    description = models.TextField(_("安装包描述"), default=constants.AgentPackageMap.AGENT_DEFAULT_MEDIUM["desc"])
+    os_type = models.CharField(
+        _("操作系统"), max_length=16, choices=constants.OS_CHOICES, default=constants.OsType.LINUX, db_index=True
+    )
+    cpu_arch = models.CharField(
+        _("CPU架构"), max_length=16, choices=constants.CPU_CHOICES, default=constants.CpuType.x86_64, db_index=True
+    )
+    releasing_type = models.CharField(
+        _("上线状态"), choices=constants.RELEASING_TYPE_CHOICES, default=constants.AgentReleasingType.OFFLINE, max_length=32
+    )
+
+    class Meta:
+        verbose_name = _("Agent配置文件模板")
+        verbose_name_plural = _("Agent配置文件模板表")
+        # 唯一性限制
+        unique_together = (
+            # 同一个版本， 不可同时处于上线和灰度的状态
+            (
+                "version",
+                "releasing_type",
+                "package_name",
+                "os_type",
+                "cpu_arch",
+                "medium",
+                "md5",
+                "is_upgrade_package",
+                "is_proxy_package",
+            ),
+        )
+
+    @classmethod
+    def fetch_push_to_proxy_files(cls):
+        package_record = cls.objects.filter(
+            releasing_type__in=["release", "grayscale"], is_upgrade_package=False, is_proxy_package=False
+        ).values("package_name")
+        file_list = [obj["package_name"] for obj in package_record]
+        client_to_push_to_proxy = {
+            "name": _("下发安装包"),
+            "from_type": constants.ProxyFileFromType.AP_CONFIG.value,
+            "files": file_list,
+        }
+        return client_to_push_to_proxy
+
+    @classmethod
+    def switch_to_release_version(cls, version: str):
+        """
+        切换某版本到发布版本，只能从灰度到发布
+        """
+        check_result = cls.objects.filter(version=version, releasing_type="grayscale")
+        if not check_result:
+            raise exceptions.SwitchReleasingVersionError(message=_("非灰度版本不可切换到发布状态"))
+        reserve_release_version = cls.objects.filter(releasing_type="release")
+        switch_record = cls.objects.filter(version=version)
+        with transaction.atomic():
+            reserve_release_version.update(releasing_type="offline")
+            switch_record.update(releasing_type="release")
+            logger.info(_(f"Switch version -> {version} to release type"))
+
+    @classmethod
+    def switch_to_grayscale_version(cls, version: str):
+        """
+        将指定版本切换到灰度，不可切换发布版本到灰度
+        """
+        check_result = cls.objects.filter(version=version, releasing_type="release")
+        if check_result:
+            raise exceptions.SwitchReleasingVersionError(_("发布版本不可切换到灰度状态"))
+        reserve_grayscale_version = cls.objects.filter(releasing_type="grayscale")
+        switch_record = cls.objects.filter(version=version)
+        with transaction.atomic():
+            reserve_grayscale_version.update(releasing_type="offline")
+            switch_record.update(releasing_type="grayscale")
+            logger.info(_(f"Switch version -> {version} to grayscale type"))
+
+    @classmethod
+    def create_or_update_record(cls, **kwargs):
+        obj, created = cls.objects.update_or_create(package_name=kwargs["package_name"], defaults=kwargs)
+        if created:
+            logger.info(_(f"create gse agent package record -> {kwargs['package_name']}"))
+
+    @classmethod
+    def fetch_client_release_version(
+        cls, version: str = None, is_upgrade_package: bool = False, is_proxy_package: bool = False
+    ):
+        if version:
+            fetch_version = version
+        else:
+            versions = [
+                obj["version"]
+                for obj in cls.objects.filter(
+                    is_upgrade_package=is_upgrade_package, is_proxy_package=is_proxy_package, releasing_type="release"
+                ).values("version")
+            ]
+            if not versions:
+                raise ApIDNotExistsError(_("没有Agent版本记录"))
+            list(set(versions)).sort(key=StrictVersion)
+            fetch_version = versions[-1]
+        return fetch_version
+
+    @classmethod
+    def fetch_package(
+        cls, os_type: str, arch_type: str, is_upgrade_package: bool = False, version: str = None, is_proxy_package=False
+    ) -> str:
+        fetch_version = cls.fetch_client_release_version(
+            version=version, is_upgrade_package=is_upgrade_package, is_proxy_package=is_proxy_package
+        )
+        package_name = cls.assemble_package_name(
+            os_type=os_type,
+            version=version,
+            arch_type=arch_type,
+            is_upgrade_package=is_upgrade_package,
+            is_proxy_package=is_proxy_package,
+        )
+        record = cls.objects.filter(package_name=package_name, version=fetch_version)
+        if not record:
+            raise AgentNotExistError(package_name=package_name)
+        return package_name
+
+    @classmethod
+    def assemble_package_name(
+        cls,
+        os_type: str,
+        arch_type: str,
+        version: str,
+        suffix: str = "tgz",
+        is_upgrade_package: bool = False,
+        is_proxy_package: bool = False,
+    ):
+        if is_proxy_package:
+            if is_upgrade_package:
+                package_name = f"gse_proxy-{os_type}-{arch_type}_upgrade-{version}.{suffix}"
+            else:
+                package_name = f"gse_proxy-{os_type}-{arch_type}-{version}.{suffix}"
+            return package_name
+        if is_upgrade_package:
+            package_name = f"gse_client-{os_type}-{arch_type}_upgrade-{version}.{suffix}"
+        else:
+            package_name = f"gse_client-{os_type}-{arch_type}-{version}.{suffix}"
+        return package_name
+
+    @classmethod
+    def statistics_versions(
+        cls, releasing_type: str = None, medium: str = None, version: str = None
+    ) -> Dict[str, Dict[str, List[str]]]:
+        from apps.utils.basic import filter_values
+
+        releasing_version_map: Dict[str, Dict[str, List[str]]] = defaultdict(lambda: defaultdict(list))
+        releasing_query_kwargs = filter_values({"medium": medium, "releasing_type": releasing_type, "version": version})
+        releasing_version_queryset = GseAgentDesc.objects.filter(**releasing_query_kwargs)
+
+        for obj in releasing_version_queryset:
+            releasing_version_map[obj.medium][obj.releasing_type].append(obj.version)
+
+        # 去重
+        for medium_name, medium_infos in releasing_version_map.items():
+            for releasing_type, versions in medium_infos.items():
+                releasing_version_map[medium_name][releasing_type] = list(set(versions))
+        return releasing_version_map
+
+
+class AgentConfigTemplate(models.Model):
+    name = models.CharField(_("配置模板名"), max_length=128, db_index=True)
+    version = models.CharField(_("gse client 版本"), max_length=128, db_index=True)
+    os_type = models.CharField(
+        _("操作系统"), max_length=16, choices=constants.OS_CHOICES, default=constants.OsType.LINUX, db_index=True
+    )
+    cpu_arch = models.CharField(
+        _("CPU架构"), max_length=16, choices=constants.CPU_CHOICES, default=constants.CpuType.x86_64, db_index=True
+    )
+    medium = models.CharField(_("安装介质"), max_length=32, default=constants.AgentPackageMap.AGENT_DEFAULT_MEDIUM["name"])
+    is_proxy_config = models.BooleanField(_("是否为proxy配置项"), default=False)
+
+    format = models.CharField(_("文件格式"), max_length=16)
+    content = models.TextField(_("配置内容"))
+    is_release_version = models.BooleanField(_("是否已经发布版本"), db_index=True)
+
+    creator = models.CharField(_("创建者"), max_length=64)
+    create_time = models.DateTimeField(_("创建时间"), auto_now_add=True)
+    source_app_code = models.CharField(_("来源系统app code"), max_length=64)
+
+    class Meta:
+        verbose_name = _("Agent配置文件模板")
+        verbose_name_plural = _("Agent配置文件模板表")
+        # 唯一性限制
+        unique_together = (
+            # 对于同一个插件的同一个版本，同名配置文件只能存在一个
+            ("name", "version", "os_type", "cpu_arch"),
+        )
+
+    @classmethod
+    def fetch_last_version(cls, node_type):
+        is_proxy_config = bool(node_type == constants.NodeType.PROXY)
+        versions = [obj["version"] for obj in cls.objects.filter(is_proxy_config=is_proxy_config).values("version")]
+        if not versions:
+            raise ApIDNotExistsError(_("没有插件版本记录"))
+        list(set(versions)).sort(key=StrictVersion)
+        last_version = versions[-1]
+        return last_version

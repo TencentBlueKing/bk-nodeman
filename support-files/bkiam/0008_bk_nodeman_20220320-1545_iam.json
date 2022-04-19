@@ -1,0 +1,167 @@
+{
+  "system_id": "bk_nodeman",
+  "operations": [
+    {
+      "operation": "upsert_action",
+      "data": {
+        "id": "grayscale_manage",
+        "name": "灰度管理",
+        "name_en": "Grayscale Management",
+        "description": "",
+        "description_en": "",
+        "type": "manage",
+        "version": 1
+      }
+    },
+    {
+      "operation": "upsert_action",
+      "data": {
+        "id": "grayscale_pkg_operate",
+        "name": "灰度包操作",
+        "name_en": "Grayscale Pkg Management",
+        "description": "",
+        "description_en": "",
+        "type": "use",
+        "version": 1
+      }
+    },
+    {
+        "operation": "upsert_action_groups",
+        "data": [
+            {
+                "name": "常规功能",
+                "name_en": "Normal",
+                "sub_groups": [
+                    {
+                        "name": "Agent管理",
+                        "name_en": "Agent",
+                        "actions": [
+                            {
+                                "id": "agent_view"
+                            },
+                            {
+                                "id": "agent_operate"
+                            }
+                        ]
+                    },
+                    {
+                        "name": "云区域管理",
+                        "name_en": "Cloud Area",
+                        "actions": [
+                            {
+                                "id": "cloud_create"
+                            },
+                            {
+                                "id": "cloud_edit"
+                            },
+                            {
+                                "id": "cloud_delete"
+                            },
+                            {
+                                "id": "cloud_view"
+                            },
+                            {
+                                "id": "proxy_operate"
+                            }
+                        ]
+                    },
+                    {
+                        "name": "插件管理",
+                        "name_en": "Plugin",
+                        "actions": [
+                            {
+                                "id": "plugin_pkg_import"
+                            },
+                            {
+                                "id": "plugin_pkg_operate"
+                            },
+                            {
+                                "id": "plugin_view"
+                            },
+                            {
+                                "id": "plugin_operate"
+                            },
+                            {
+                                "id": "strategy_create"
+                            },
+                            {
+                                "id": "strategy_view"
+                            },
+                            {
+                                "id": "strategy_operate"
+                            }
+                        ]
+                    },
+                    {
+                        "name": "任务历史",
+                        "name_en": "Task History",
+                        "actions": [
+                            {
+                                "id": "task_history_view"
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Agent包管理",
+                        "name_en": "Agent Pkg Manage",
+                        "actions": [
+                            {
+                                "id": "grayscale_manage"
+                            },
+                            {
+                                "id": "grayscale_pkg_operate"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "name": "全局配置",
+                "name_en": "Globle Configuration",
+                "sub_groups": [
+                    {
+                        "name": "接入点管理",
+                        "name_en": "Access Point",
+                        "actions": [{"id": "ap_create"}, {"id": "ap_delete"}, {"id": "ap_edit"}, {"id": "ap_view"}]
+                    },
+                    {
+                        "name": "任务配置",
+                        "name_en": "Task Configuration",
+                        "actions": [{"id": "globe_task_config"}]
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "operation": "upsert_resource_creator_actions",
+        "data": {
+            "config": [
+                {
+                    "id": "ap",
+                    "actions": [
+                        {"id": "ap_edit", "required": false},
+                        {"id": "ap_view", "required": false},
+                        {"id": "ap_delete", "required": false}
+                    ]
+                },
+                {
+                    "id": "cloud",
+                    "actions": [
+                        {"id": "cloud_edit", "required": false},
+                        {"id": "cloud_view", "required": false},
+                        {"id": "cloud_delete", "required": false}
+                    ]
+                },
+                {
+                    "id": "strategy",
+                    "actions": [
+                        {"id": "strategy_operate", "required": false}
+                    ]
+                }
+            ]
+        }
+    }
+
+  ]
+}

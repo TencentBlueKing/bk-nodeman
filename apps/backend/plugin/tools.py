@@ -24,6 +24,7 @@ from django.utils.translation import ugettext_lazy as _
 from packaging import version
 
 from apps.backend import exceptions
+from apps.backend.utils.package.tools import pre_check
 from apps.core.files.storage import get_storage
 from apps.node_man import constants, models
 from apps.utils import env, files
@@ -59,23 +60,9 @@ def list_package_infos(file_path: str) -> List[Dict[str, Any]]:
 
     # 解压压缩文件
     tmp_dir = files.mk_and_return_tmpdir()
-    with storage.open(name=file_path, mode="rb") as tf_from_storage:
-        with tarfile.open(fileobj=tf_from_storage) as tf:
-            # 检查是否存在可疑内容
-            for file_info in tf.getmembers():
-                if file_info.name.startswith("/") or "../" in file_info.name:
-                    logger.error(
-                        "file-> {file_path} contains member-> {name} try to escape!".format(
-                            file_path=file_path, name=file_info.name
-                        )
-                    )
-                    raise exceptions.PluginParseError(_("文件包含非法路径成员 -> {name}，请检查").format(name=file_info.name))
-            logger.info(
-                "file-> {file_path} extract to path -> {tmp_dir} success.".format(file_path=file_path, tmp_dir=tmp_dir)
-            )
-            tf.extractall(path=tmp_dir)
+    pre_check(file_path=file_path, tmp_dir=tmp_dir)
 
-    package_infos = []
+    package_infos: List[Dict[str, str]] = []
 
     # 遍历第一层的内容，获取操作系统和cpu架构信息，eg：external(可无，有表示自定义插件)_plugins_linux_x86_64
     for first_plugin_dir_name in os.listdir(tmp_dir):

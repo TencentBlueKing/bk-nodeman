@@ -8,18 +8,30 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import logging
 import os
 import time
+import traceback
+from collections import defaultdict
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
 
+import yaml
 from django.conf import settings
+from django.db import DatabaseError, IntegrityError, transaction
+from django.utils.translation import ugettext_lazy as _
 
+from apps.backend import exceptions
 from apps.backend.api import constants as const
+from apps.backend.utils.package.tools import pre_check
+from apps.core.files.storage import get_storage
 from apps.node_man import constants, models
 from apps.node_man.models import aes_cipher
+from apps.utils import files
 from apps.utils.basic import suffix_slash
 from apps.utils.encrypt import rsa
+
+logger = logging.getLogger("app")
 
 
 class InstallationTools:
@@ -213,6 +225,7 @@ def gen_commands(
     pipeline_id: str,
     is_uninstall: bool,
     sub_inst_id: int,
+    version: str = None,
     identity_data: Optional[models.IdentityData] = None,
     host_ap: Optional[models.AccessPoint] = None,
     proxies: Optional[List[models.Host]] = None,
@@ -223,6 +236,7 @@ def gen_commands(
     :param host: 主机信息
     :param pipeline_id: Node ID
     :param is_uninstall: 是否卸载
+    :param version: 版本号
     :param sub_inst_id: 订阅实例 ID
     :param identity_data: 主机认证数据对象
     :param host_ap: 主机接入点对象
@@ -247,6 +261,13 @@ def gen_commands(
         callback_url,
     ) = fetch_gse_servers(host, host_ap, proxies, install_channel)
     upstream_nodes = task_servers
+
+    # 匹配版本
+    from apps.node_man.models import GseAgentDesc
+
+    is_proxy_package = True if host.node_type == constants.NodeType.PROXY else False
+    version = GseAgentDesc.fetch_client_release_version(version=version, is_proxy_package=is_proxy_package)
+
     agent_config = host_ap.get_agent_config(host.os_type)
     # 安装操作
     install_path = agent_config["setup_path"]
@@ -268,6 +289,7 @@ def gen_commands(
         f'-e "{bt_file_servers}"',
         f'-a "{data_servers}"',
         f'-k "{task_servers}"',
+        f"-G {version}",
     ]
 
     # 系统开启使用密码注册windows服务时，需额外传入用户名和加密密码参数，用于注册windows服务，详见setup_agent.bat脚本
@@ -473,3 +495,271 @@ def batch_gen_commands(
         )
 
     return host_id__installation_tool_map
+
+
+def yaml_file_parse(file_path: str):
+
+    try:
+        with open(file_path, "r", encoding="utf-8") as project_file:
+            yaml_config = yaml.safe_load(project_file)
+            if not isinstance(yaml_config, dict):
+                raise yaml.YAMLError
+            return yaml_config
+    except (IOError, yaml.YAMLError):
+        raise exceptions.PluginParseError(
+            "failed to parse or read project_yaml -> {project_yaml_file_path}, for -> {err_msg}".format(
+                project_yaml_file_path=file_path, err_msg=traceback.format_exc()
+            )
+        )
+
+
+def parse_client_package(file_path: str) -> Dict[str, Union[bool, Union[str, Dict[str, List[str]]]]]:
+    """
+    解析file_path下gse client 完整安装包，获取包信息字典列表
+    :param file_path: agent包所在路径
+    :return:
+        {
+            "result": True,
+            "version": "1.7.17",
+            "agent": { "windows_x86": [ "gse_agent", "gsectl"] },
+            "proxy": { "linux_x86_64": [ "gse_btsvr", "gse_data"] }",
+            "config_templates": {
+                "agent": [ {"linux_x86": [ "agent.conf", "iagent.conf"]} ] ,
+                "proxy": [ {"linux_x86_64": [ "btsvr.conf", "data.conf"]} ]
+            }
+        },
+        ...
+    """
+    storage = get_storage()
+    if not storage.exists(name=file_path):
+        raise exceptions.AgentParseError(_(f"Agent包不存在: file_path -> {file_path}"))
+    # 解压压缩文件
+    tmp_dir = files.mk_and_return_tmpdir()
+    pre_check(tmp_dir=tmp_dir, file_path=file_path, action_type=constants.ProcType.AGENT)
+
+    package_infos: Dict[Optional[str, Dict[str, Dict[str, Any]]]] = defaultdict(lambda: defaultdict(list))
+    # 遍历第一层的内容，获取agent和proxy信息
+    sub_abs_path = os.path.join(tmp_dir, constants.AgentPackageMap.GSE)
+    if not os.path.isdir(sub_abs_path):
+        raise exceptions.AgentParseError(_(f"Agent包不符合路径规则，缺失 -> {constants.AgentPackageMap.GSE} 层级"))
+
+    for platform_dir_name in os.listdir(sub_abs_path):
+        if constants.AgentPackageMap.AGENT_DIR_SUB_RE.match(platform_dir_name):
+            agent_info_map = list_agent__dir_info(
+                path_name=platform_dir_name, parent_path=sub_abs_path, pkg_path=file_path
+            )
+            package_infos[constants.NodeType.AGENT.lower()][agent_info_map["platform"]] = agent_info_map["file_list"]
+        elif constants.AgentPackageMap.PROXY_DIR_SUB_RE.match(platform_dir_name):
+            proxy_info_map = list_proxy__dir_info(
+                path_name=platform_dir_name, parent_path=sub_abs_path, pkg_path=file_path
+            )
+            package_infos[constants.NodeType.PROXY.lower()][proxy_info_map["platform"]] = proxy_info_map["file_list"]
+        elif constants.AgentPackageMap.SUPPORT_DIR_SUB_RE.match(platform_dir_name):
+            template_info_map = list_config_template__info(
+                path_name=platform_dir_name, parent_path=sub_abs_path, pkg_path=file_path
+            )
+            package_infos[constants.AgentPackageMap.CONFIG_TEMPLATE][constants.NodeType.AGENT.lower()].append(
+                template_info_map[constants.NodeType.AGENT.lower()]
+            )
+            package_infos[constants.AgentPackageMap.CONFIG_TEMPLATE][constants.NodeType.PROXY.lower()].append(
+                template_info_map[constants.NodeType.PROXY.lower()]
+            )
+    package_infos["package_tmp_path"] = tmp_dir
+
+    project_yaml_file_path = os.path.join(sub_abs_path, constants.AgentPackageMap.PROJECTS_YAML)
+    if not os.path.exists(project_yaml_file_path):
+        logger.warning(
+            "try to pack path-> {pkg_absolute_path} but not [project.yaml] file under file path".format(
+                pkg_absolute_path=sub_abs_path
+            )
+        )
+        package_infos["result"] = False
+        package_infos["message"] = _(f"缺少 {constants.AgentPackageMap.PROJECTS_YAML}文件")
+        return package_infos
+
+    yaml_config = yaml_file_parse(file_path=project_yaml_file_path)
+
+    try:
+        yaml_config["version"] = str(yaml_config["version"])
+        package_medium = yaml_config.get("medium", constants.AgentPackageMap.AGENT_DEFAULT_MEDIUM["name"])
+        package_desc = yaml_config.get("desc", constants.AgentPackageMap.AGENT_DEFAULT_MEDIUM["desc"])
+
+        package_infos.update(
+            {
+                "version": yaml_config["version"],
+                "medium": package_medium,
+                "desc": package_desc,
+            }
+        )
+    except (KeyError, TypeError):
+        logger.warning(
+            "failed to get key info from project.yaml -> {project_yaml_file_path}, for -> {err_msg}".format(
+                project_yaml_file_path=project_yaml_file_path, err_msg=traceback.format_exc()
+            )
+        )
+        package_infos["result"] = False
+        package_infos["message"] = _(f" {constants.AgentPackageMap.PROJECTS_YAML} 文件信息缺失")
+        return package_infos
+
+    package_infos["result"] = True
+    return package_infos
+
+
+def list_agent__dir_info(path_name: str, parent_path: str, pkg_path: str) -> Dict[str, Any]:
+    file_list: List[str] = []
+
+    # 将文件名解析为插件信息字典
+    re_match = constants.AgentPackageMap.AGENT_DIR_SUB_RE.match(path_name)
+    client_info_dict = re_match.groupdict()
+    node_type = constants.NodeType.AGENT.lower()
+    os_type = client_info_dict["os_type"]
+    cpu_arch = client_info_dict["cpu_arch"]
+    logger.info(f"pkg_name -> {pkg_path} is match for node type -> {node_type} os -> {os_type}, cpu -> {cpu_arch}")
+
+    platform_bin_path = os.path.join(parent_path, path_name, constants.AgentPackageMap.BIN)
+    # 遍历第二层的内容, 获取文件列表
+    for executable_file in os.listdir(platform_bin_path):
+        if not executable_file_check(file_name=executable_file, parent_path=platform_bin_path, pkg_name=pkg_path):
+            continue
+        file_list.append(executable_file)
+
+    return {"platform": f"{os_type}_{cpu_arch}", "file_list": file_list}
+
+
+def list_proxy__dir_info(path_name: str, parent_path: str, pkg_path: str) -> Dict[str, List[str]]:
+    file_list: List[str] = []
+    bin_abs_path = os.path.join(parent_path, path_name, constants.AgentPackageMap.BIN)
+    for executable_file in os.listdir(bin_abs_path):
+        if not executable_file_check(file_name=executable_file, parent_path=bin_abs_path, pkg_name=pkg_path):
+            continue
+        file_list.append(executable_file)
+    return {"platform": f"{constants.OsType.LINUX.lower()}_{constants.CpuType.x86_64.lower()}", "file_list": file_list}
+
+
+def executable_file_check(file_name: str, parent_path: str, pkg_name: str) -> bool:
+    file_path = os.path.join(parent_path, file_name)
+    if not os.path.isfile(file_path):
+        logger.error(_(f"pkg_name -> {pkg_name} sub path -> {parent_path} include non-file structure  -> {file_name}"))
+        return False
+    return True
+
+
+def list_config_template__info(path_name: str, parent_path: str, pkg_path: str) -> Dict[str, Dict[str, List[str]]]:
+    config_file_map: Dict[str, Dict[str, List[str]]] = defaultdict(lambda: defaultdict(list))
+    template_abs_path = os.path.join(parent_path, path_name, constants.AgentPackageMap.TEMPLATE)
+
+    def get_agent_template_map(file_name: str) -> Dict[str, Any]:
+        re_match = constants.AgentPackageMap.AGENT_CONFIG_TEMPLATE_RE.match(file_name)
+        platform_info_dict = re_match.groupdict()
+        os_type = platform_info_dict["os_type"]
+        cpu_arch = platform_info_dict["cpu_arch"]
+        config_name = platform_info_dict["config_name"]
+        return {"platform": f"{os_type}_{cpu_arch}", "config": config_name}
+
+    def get_proxy_template_map(file_name: str) -> Dict[str, Any]:
+        re_match = constants.AgentPackageMap.PROXY_CONFIG_TEMPLATE_RE.match(file_name)
+        platform_info_dict = re_match.groupdict()
+        config_name = platform_info_dict["config_name"]
+        return {"platform": f"{constants.OsType.LINUX.lower()}_{constants.CpuType.x86_64}", "config": config_name}
+
+    if os.path.isdir(template_abs_path):
+        for config_file in os.listdir(template_abs_path):
+            if constants.AgentPackageMap.AGENT_CONFIG_TEMPLATE_RE.match(config_file):
+                agent_single_template = get_agent_template_map(config_file)
+                config_file_map[constants.NodeType.AGENT.lower()][agent_single_template["platform"]].append(
+                    agent_single_template["config"]
+                )
+            elif constants.AgentPackageMap.PROXY_CONFIG_TEMPLATE_RE.match(config_file):
+                proxy_single_template = get_proxy_template_map(config_file)
+                config_file_map[constants.NodeType.PROXY.lower()][proxy_single_template["platform"]].append(
+                    proxy_single_template["config"]
+                )
+            else:
+                logger.error(
+                    _(
+                        f"pkg_name -> {pkg_path} sub path -> {parent_path}  "
+                        f"with irregular  config template file -> {config_file}"
+                    )
+                )
+        return config_file_map
+    else:
+        logger.error(
+            _(
+                f"pkg_name -> {pkg_path} sub path -> {parent_path}/{path_name} "
+                f"without {constants.AgentPackageMap.TEMPLATE} directory"
+            )
+        )
+        return {}
+
+
+def switch_releasing_version(medium: str, version: str, switch_releasing: str, releasing: str = None):
+    releasing_version_map = models.GseAgentDesc.statistics_versions(medium=medium)
+    if not releasing_version_map:
+        raise exceptions.SwitchReleasingVersionError(message=f"安装介质 -> {medium} 不存在")
+
+    # 数据校验
+    medium_version_map: Dict[str, Dict[str, List[str]]] = releasing_version_map
+
+    if releasing is None:
+        medium_versions = []
+        for __, version_list in medium_version_map[medium].items():
+            medium_versions.extend(version_list)
+    else:
+        medium_versions = medium_version_map[medium][releasing]
+
+    if version not in medium_versions:
+        raise exceptions.SwitchReleasingVersionError(message=f"安装介质 -> {medium} 当前不存在版本号: -> {version}")
+
+    for releasing_type, version_list in medium_version_map[medium].items():
+        if version in version_list:
+            base_releasing = releasing_type
+            break
+    else:
+        raise exceptions.SwitchReleasingVersionError(message=_(f"未找到当前版本号 -> {version}对应迭代版本"))
+
+    if releasing == base_releasing:
+        raise exceptions.SwitchReleasingVersionError(message=f"版本号 -> {version} 当前为 -> {base_releasing} 版本")
+
+    if base_releasing == switch_releasing:
+        raise exceptions.SwitchReleasingVersionError(message=f"版本号 -> {version} 已经属于 -> {switch_releasing} 版本")
+
+    if base_releasing == constants.AgentReleasingType.RELEASE:
+        raise exceptions.SwitchReleasingVersionError(message=f"{base_releasing} 版本不可主动下线")
+
+    if (
+        switch_releasing == constants.AgentReleasingType.RELEASE
+        and base_releasing != constants.AgentReleasingType.GRAYSCALE
+    ):
+        raise exceptions.SwitchReleasingVersionError(message="非灰度版本不可直接上线")
+
+    try:
+        with transaction.atomic():
+            # 切换发布版本
+            if switch_releasing == constants.AgentReleasingType.RELEASE:
+                models.GseAgentDesc.objects.filter(
+                    releasing_type=constants.AgentReleasingType.GRAYSCALE, medium=medium
+                ).update(releasing_type=constants.AgentReleasingType.OFFLINE)
+
+            # 取消灰度版本
+            if switch_releasing == constants.AgentReleasingType.OFFLINE:
+                models.GseAgentDesc.objects.filter(
+                    releasing_type=constants.AgentReleasingType.GRAYSCALE, medium=medium
+                ).update(releasing_type=constants.AgentReleasingType.RELEASE)
+
+            # 下线版本切换灰度
+            base_grayscale_version = medium_version_map[medium].get(constants.AgentReleasingType.GRAYSCALE)
+            if switch_releasing == constants.AgentReleasingType.GRAYSCALE and base_grayscale_version:
+                models.GseAgentDesc.objects.filter(releasing_type=switch_releasing).update(
+                    releasing_type=constants.AgentReleasingType.OFFLINE
+                )
+                models.GseAgentDesc.objects.filter(
+                    releasing_type=constants.AgentReleasingType.OFFLINE, version=version, medium=medium
+                ).update(releasing_type=switch_releasing)
+            else:
+                models.GseAgentDesc.objects.filter(
+                    medium=medium,
+                    version=version,
+                ).update(releasing_type=switch_releasing)
+            return {"result": True}
+    except (DatabaseError, IntegrityError) as e:
+        return {"result": False, "data": e}

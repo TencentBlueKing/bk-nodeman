@@ -396,6 +396,12 @@ class MetaHandler(APIModel):
 
         return ret_value
 
+    def fetch_client_version_condition(self, params):
+        """
+        查询client当前不同上线状态版本
+        """
+        return
+
     @staticmethod
     def fetch_plugin_version_condition():
         plugin_names = settings.HEAD_PLUGINS
@@ -466,6 +472,8 @@ class MetaHandler(APIModel):
 
         if category == "host":
             return self.fetch_host_condition()
+        elif category == "client_version":
+            return self.fetch_client_version_condition()
         elif category == "job":
             return self.fetch_job_list_condition("job")
         elif category == "agent_job":

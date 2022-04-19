@@ -41,8 +41,6 @@ get_cpu_arch () {
 
 get_cpu_arch "uname -p" || get_cpu_arch "uname -m"  || arch || fail get_cpu_arch "Failed to get CPU arch, please contact the developer."
 
-PKG_NAME=gse_client-linux-${CPU_ARCH}.tgz
-
 get_os_info () {
     if [ -f "/proc/version" ]; then
         OS_INFO="$OS_INFO $(cat /proc/version)"
@@ -544,22 +542,6 @@ setup_agent () {
     log setup_agent DONE "gse agent is setup successfully."
 }
 
-start_basic_gse_plugin () {
-    log start_plugin START "start gse plugin: basereport, processbeat"
-    cd "$AGENT_SETUP_PATH/../plugins/bin" || fail start_plugin FAILED "change directory to $AGENT_SETUP_PATH/../plugins/bin failed"
-
-    if [[ -x ./basereport ]]; then
-        ./stop.sh basereport
-        ./start.sh basereport || fail start_plugin FAILED "basereport start failed."
-    fi
-    if [[ -x ./processbeat ]]; then
-        ./stop.sh processbeat
-        ./start.sh processbeat || fail start_plugin FAILED "processbeat start failed."
-    fi
-
-    log start_plugin DONE "gse plugin 'basereport,processbeat start done."
-}
-
 download_pkg () {
     local f http_status path
     local tmp_stdout tmp_stderr curl_pid
@@ -856,7 +838,7 @@ LOG_RPT_CNT=0
 BULK_LOG_SIZE=3
 
 # main program
-while getopts I:i:l:s:uc:r:x:p:e:a:k:N:v:oT:RDO:E:A:V:B:S:Z:K: arg; do
+while getopts I:i:l:s:uc:r:x:p:e:a:k:N:v:oT:RDO:E:A:V:B:S:Z:K:G: arg; do
     case $arg in
         I) LAN_ETH_IP=$OPTARG ;;
         i) CLOUD_ID=$OPTARG ;;
@@ -884,10 +866,12 @@ while getopts I:i:l:s:uc:r:x:p:e:a:k:N:v:oT:RDO:E:A:V:B:S:Z:K: arg; do
         S) BT_PORT_START=$OPTARG ;;
         Z) BT_PORT_END=$OPTARG ;;
         K) TRACKER_PORT=$OPTARG ;;
-
+        G) GSE_AGENT_VERSION=$OPTARG ;;
         *)  _help ;;
     esac
 done
+
+PKG_NAME=gse_client-linux-${CPU_ARCH}-${GSE_AGENT_VERSION}.tgz
 
 ## 检查自定义环境变量
 for var_name in ${VARS_LIST//;/ /}; do
@@ -915,7 +899,6 @@ for step in check_env \
             remove_agent \
             remove_proxy_if_exists \
             setup_agent \
-            start_basic_gse_plugin \
             setup_startup_scripts \
             check_deploy_result; do
     $step

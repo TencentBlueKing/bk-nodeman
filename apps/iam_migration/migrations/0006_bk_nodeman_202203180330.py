@@ -10,6 +10,19 @@ specific language governing permissions and limitations under the License.
 """
 
 
-from . import agent, gse, host, job, plugin, subscription
+from django.db import migrations
+from iam.contrib.iam_migration.migrator import IAMMigrator
 
-__all__ = ["host", "job", "plugin", "subscription", "gse", "agent"]
+
+def forward_func(apps, schema_editor):
+
+    migrator = IAMMigrator(Migration.migration_json)
+    migrator.migrate()
+
+
+class Migration(migrations.Migration):
+    migration_json = "0008_bk_nodeman_20220320-1545_iam.json"
+
+    dependencies = [("iam_migration", "0005_bk_nodeman_202106231514")]
+
+    operations = [migrations.RunPython(forward_func)]

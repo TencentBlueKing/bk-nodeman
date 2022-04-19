@@ -13,6 +13,7 @@ import json
 import os
 import time
 from collections import defaultdict
+from copy import deepcopy
 from json import JSONDecodeError
 from typing import Any, Dict, List
 
@@ -25,7 +26,7 @@ from apps.backend.api.errors import JobPollTimeout
 from apps.component.esbclient import client_v2
 from apps.core.files.storage import get_storage
 from apps.node_man import constants
-from apps.node_man.models import AccessPoint, Host, InstallChannel
+from apps.node_man.models import AccessPoint, GseAgentDesc, Host, InstallChannel
 from apps.node_man.periodic_tasks.utils import JobDemand
 from common.api import JobApi
 from common.log import logger
@@ -93,7 +94,10 @@ def update_proxy_files():
 def correct_file_action(download_path: str, hosts: List[Dict[str, str]], storage):
     local_file__md5_map: Dict[str, str] = {}
     lookup_update_host_list: List[Dict[str, str]] = []
-    file_names = [file_name for file_set in constants.FILES_TO_PUSH_TO_PROXY for file_name in file_set["files"]]
+    client_packages = GseAgentDesc.fetch_push_to_proxy_files()
+    files_to_push_to_proxy = deepcopy(constants.FILES_TO_PUSH_TO_PROXY)
+    files_to_push_to_proxy.append(client_packages)
+    file_names = [file_name for file_set in files_to_push_to_proxy for file_name in file_set["files"]]
     for file_name in file_names:
         file_path = os.path.join(download_path, file_name)
         try:

@@ -66,3 +66,30 @@ class PluginParseError(BackendBaseException):
 class CreatePackageRecordError(BackendBaseException):
     MESSAGE = _("归档插件包信息错误")
     ERROR_CODE = 10
+
+
+class CertFileNotFoundError(BackendBaseException):
+    MESSAGE = _("全局证书文件未找到")
+    ERROR_CODE = 11
+
+
+class AgentNotExistError(BackendBaseException):
+    MESSAGE = _("Agent包不存在")
+    MESSAGE_TPL = _("Agent[{package_name}]不存在")
+    ERROR_CODE = 12
+
+
+class SwitchReleasingVersionError(BackendBaseException):
+    MESSAGE = _("版本切换失败")
+    MESSAGE_TPL = _("失败原因: {message}")
+    ERROR_CODE = 13
+
+
+class AgentParseError(BackendBaseException):
+    MESSAGE = _("Agent包解析错误")
+    ERROR_CODE = 14
+
+
+class SwitchVersionNotExistError(BackendBaseException):
+    MESSAGE = _("Agent 版本不存在")
+    ERROR_CODE = 15

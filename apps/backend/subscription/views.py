@@ -152,6 +152,12 @@ class SubscriptionViewSet(APIViewSet):
             }],
             "steps": [
                 {
+                    "id": "agent",
+                    "type": "AGENT",
+                    "config": {"job_type": job_type},
+                    "params": {"context": {}, "blueking_language": get_language(), "version": 1.7.15 },
+                }
+                {
                     "id": "mysql_exporter",  // 步骤标识符，在一个列表中不允许重复
                     "type": "PLUGIN",   // 步骤类型
                     "config": {
@@ -824,6 +830,7 @@ class SubscriptionViewSet(APIViewSet):
             pipeline_id=params["host_install_pipeline_id"],
             is_uninstall=params["is_uninstall"],
             sub_inst_id=params["sub_inst_id"],
+            version=params.get("version", None),
         )
 
         return Response(

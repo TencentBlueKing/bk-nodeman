@@ -16,14 +16,10 @@ import hashlib
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
+from apps.backend.utils.package.serilizers import GatewaySerializer
 from apps.exceptions import BackendValidationError, ValidationError
 from apps.node_man import constants
 from apps.node_man.models import DownloadRecord, GsePluginDesc, Packages
-
-
-class GatewaySerializer(serializers.Serializer):
-    bk_username = serializers.CharField()
-    bk_app_code = serializers.CharField()
 
 
 class PlatformSerializer(serializers.Serializer):
@@ -31,10 +27,11 @@ class PlatformSerializer(serializers.Serializer):
     os = serializers.CharField(max_length=32, required=False)
 
 
-class PluginInfoSerializer(GatewaySerializer):
+class AgentInfoSerializer(GatewaySerializer):
     """插件信息接口序列化器"""
 
     name = serializers.CharField(max_length=32)
+    medium = serializers.CharField(max_length=32, required=False)
     version = serializers.CharField(max_length=128, required=False)
     cpu_arch = serializers.CharField(max_length=32, allow_null=True, required=False)
     os = serializers.CharField(max_length=32, allow_null=True, required=False)
@@ -44,7 +41,7 @@ class PluginInfoSerializer(GatewaySerializer):
         try:
             GsePluginDesc.objects.get(name=attrs["name"])
         except GsePluginDesc.DoesNotExist:
-            raise BackendValidationError("plugin {name} is not exist".format(name=attrs["name"]))
+            raise BackendValidationError("Agent package -> {name} is not exist".format(name=attrs["name"]))
         return attrs
 
 
@@ -202,32 +199,6 @@ class PluginConfigInstanceInfoSerializer(GatewaySerializer, PlatformSerializer):
         if not ("id" in attrs or len(list(attrs.keys())) > 2):
             raise ValidationError("at least has 'id' or query params")
 
-        return attrs
-
-
-class UploadBaseSerializer(GatewaySerializer):
-    md5 = serializers.CharField(help_text=_("上传端计算的文件md5"), max_length=32)
-    file_name = serializers.CharField(help_text=_("上传端提供的文件名"), min_length=1)
-    module = serializers.CharField(max_length=32, required=False, default="gse_plugin")
-
-
-class NginxUploadSerializer(UploadBaseSerializer):
-    """上传插件包接口序列化器"""
-
-    file_local_path = serializers.CharField(help_text=_("本地文件路径"), max_length=512)
-    file_local_md5 = serializers.CharField(help_text=_("Nginx所计算的文件md5"), max_length=32)
-
-
-class CosUploadSerializer(UploadBaseSerializer):
-    """对象存储上传文件接口序列号器"""
-
-    download_url = serializers.URLField(help_text=_("文件下载url"), required=False)
-    file_path = serializers.CharField(help_text=_("文件保存路径"), min_length=1, required=False)
-
-    def validate(self, attrs):
-        # 两种参数模式少要有一种满足
-        if not ("download_url" in attrs or "file_path" in attrs):
-            raise ValidationError("at least has download_url or file_path")
         return attrs
 
 

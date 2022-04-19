@@ -18,15 +18,57 @@ from django.utils.translation import ugettext as _
 
 from apps.core.files.storage import get_storage
 from apps.exceptions import ValidationError
-from apps.node_man import models
+from apps.node_man import constants, models
 from apps.utils import basic, files
 
 logger = logging.getLogger("app")
 
 
-class PluginHandler:
+class PackageHandler:
     @classmethod
-    def package_infos(cls, name: str, version: str = None, os_type: str = None, cpu_arch: str = None):
+    def agent_package_infos(
+        cls,
+        package_name: str,
+        version: str = None,
+        os_type: str = None,
+        cpu_arch: str = None,
+    ):
+        """
+        获取Agent包信息
+        :param package_name: 安装包名称
+        :param version: 版本号
+        :param os_type: 操作系统
+        :param cpu_arch: cpu架构
+        :return:
+        """
+        filter_params = basic.filter_values(
+            {"version": version, "os_type": os_type, "cpu_arch": cpu_arch, "package_name": package_name}
+        )
+        packages: List[models.GseAgentDesc] = models.GseAgentDesc.objects.filter(**filter_params)
+
+        package_infos: List[Dict] = []
+        for package in packages:
+            package_infos.append(
+                {
+                    "name": package.package_name,
+                    "source": package.source,
+                    "version": package.version,
+                    "client_name": package.client_name,
+                    "cert_name": package.cert_name,
+                    "releasing_type": package.releasing_type,
+                    "md5": package.md5,
+                    "is_upgrade": package.is_upgrade_package,
+                    "medium": package.medium,
+                    "is_proxy": package.is_proxy_package,
+                    "os_type": package.os_type,
+                    "cpu_arch": package.cpu_arch,
+                    "description": package.description,
+                }
+            )
+        return package_infos
+
+    @classmethod
+    def plugin_package_infos(cls, name: str, version: str = None, os_type: str = None, cpu_arch: str = None):
         """
         获取插件包信息
         :param name: 插件名称
@@ -67,6 +109,7 @@ class PluginHandler:
         app_code: str,
         file_path: str = None,
         download_url: str = None,
+        action_type: str = constants.ProcType.PLUGIN,
     ) -> Dict[str, Any]:
         """
         上传文件
@@ -77,15 +120,17 @@ class PluginHandler:
         :param app_code: 所属应用
         :param file_path: 文件保存路径，download_url & file_path 其中一个必填
         :param download_url: 文件下载url，download_url & file_path 其中一个必填
+        :param action_type: 目标操作类型，plugin or agent
         :return:
         """
         storage = get_storage()
+        action_type = action_type.lower()
         # file_path 不为空表示文件已在项目管理的对象存储上，此时仅需校验md5，减少文件IO
         if file_path:
             if not storage.exists(name=file_path):
                 raise ValidationError(_("文件不存在：file_path -> {file_path}").format(file_path=file_path))
             if files.md5sum(file_obj=storage.open(name=file_path)) != md5:
-                raise ValidationError(_("上传文件MD5校验失败，请确认重试"))
+                raise ValidationError(_(f"上传{action_type}文件MD5校验失败，请确认重试"))
         else:
             # 创建临时存放下载插件的目录
             tmp_dir = files.mk_and_return_tmpdir()

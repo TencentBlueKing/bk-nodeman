@@ -63,6 +63,7 @@ class HostSerializer(serializers.Serializer):
     peer_exchange_switch_for_agent = serializers.IntegerField(label=_("加速设置"), required=False, default=1)
     bt_speed_limit = serializers.IntegerField(label=_("传输限速"), required=False)
     data_path = serializers.CharField(label=_("数据文件路径"), required=False, allow_blank=True)
+    version = serializers.CharField(label=_("版本号"), required=False, allow_blank=True)
 
     def validate(self, attrs):
         # 获取任务类型，如果是除安装以外的操作，则密码和秘钥可以为空

@@ -37,13 +37,14 @@ if "%1" EQU "-Z" (set BT_PORT_END=%~2) && shift && shift && goto CheckOpts
 if "%1" EQU "-K" (set TRACKER_PORT=%~2) && shift && shift && goto CheckOpts
 if "%1" EQU "-U" (set INSTALL_USER=%~2) && shift && shift && goto CheckOpts
 if "%1" EQU "-P" (set INSTALL_PASSWORD=%~2) && shift && shift && goto CheckOpts
+if "%1" EQU "-G" (set GSE_AGENT_VERSION=%~2) && shift && shift && goto CheckOpts
 if "%1" NEQ "" echo Invalid option: "%1" && goto :EOF && exit /B 1
 
 if not defined UPSTREAM_TYPE (set UPSTREAM_TYPE=SERVER) else (set UPSTREAM_TYPE=%UPSTREAM_TYPE%)
 if not defined HTTP_PROXY (set HTTP_PROXY=) else (set HTTP_PROXY=%HTTP_PROXY%)
 if not defined INSTALL_USER (set INSTALL_USER=) else (set INSTALL_USER=%INSTALL_USER%)
 if not defined INSTALL_PASSWORD (set INSTALL_PASSWORD=) else (set INSTALL_PASSWORD=%INSTALL_PASSWORD%)
-if "%PROCESSOR_ARCHITECTURE%" == "x86" (set PKG_NAME=gse_client-windows-x86.tgz) else (set PKG_NAME=gse_client-windows-x86_64.tgz)
+if "%PROCESSOR_ARCHITECTURE%" == "x86" (set PKG_NAME=gse_client-windows-x86-%GSE_AGENT_VERSION%.tgz) else (set PKG_NAME=gse_client-windows-x86_64-%GSE_AGENT_VERSION%.tgz)
 if "%PROCESSOR_ARCHITECTURE%" == "x86" (set CPU_ARCH=x86) else (set CPU_ARCH=x86_64)
 if "%CLOUD_ID%" == "0" (set NODE_TYPE=agent) else (set NODE_TYPE=pagent)
 set gse_winagent_home=%AGENT_SETUP_PATH%
@@ -73,7 +74,7 @@ if exist %tmp_check_deploy_result_files% (DEL /F /S /Q %tmp_check_deploy_result_
 
 set /a nsttret=0
 rem for %%p in (check_env,download_pkg,remove_crontab,remove_agent_tmp,setup_agent,start_basic_gse_plugin,setup_startup_scripts,setup_crontab,check_deploy_result) do (
-for %%p in (check_env,add_user_right,download_pkg,remove_crontab,remove_agent_tmp,setup_agent,start_basic_gse_plugin,setup_startup_scripts,check_deploy_result) do (
+for %%p in (check_env,add_user_right,download_pkg,remove_crontab,remove_agent_tmp,setup_agent,setup_startup_scripts,check_deploy_result) do (
     call :%%p
     call :multi_report_step_status
 )
@@ -862,14 +863,6 @@ goto :EOF
     sc delete gseDaemon 1>nul 2>&1
     cd C:
     RD /S /Q  C:\gse\gseagentw 1>nul 2>&1
-goto :EOF
-
-:add_user_right
-    rem 使用 ntrights 给用户添加权限
-    if not "%INSTALL_USER%" == "" (
-        %TMP_DIR%\ntrights.exe -u %INSTALL_USER% +r SeServiceLogonRight
-        %TMP_DIR%\ntrights.exe -u %INSTALL_USER% +r SeAssignPrimaryTokenPrivilege
-    )
 goto :EOF
 
 :help

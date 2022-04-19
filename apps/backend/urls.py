@@ -12,6 +12,7 @@ from django.conf.urls import include, url
 from rest_framework import routers as drf_routers
 
 from apps.backend import views
+from apps.backend.agent.views import AgentViewSet
 from apps.backend.healthz.views import HealthzViewSet
 from apps.backend.plugin.views import (
     PluginViewSet,
@@ -25,6 +26,7 @@ routers = drf_routers.DefaultRouter(trailing_slash=True)
 routers.register("plugin", PluginViewSet, basename="plugin")
 routers.register("subscription", SubscriptionViewSet, basename="subscription")
 routers.register("healthz", HealthzViewSet, basename="healthz")
+routers.register("agent", AgentViewSet, basename="agent")
 export_routers = drf_routers.DefaultRouter(trailing_slash=True)
 
 urlpatterns = [

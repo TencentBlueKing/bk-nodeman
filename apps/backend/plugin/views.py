@@ -39,18 +39,23 @@ from rest_framework.response import Response
 from apps.backend import constants as backend_const
 from apps.backend import exceptions
 from apps.backend.plugin import serializers, tasks, tools
-from apps.backend.plugin.handler import PluginHandler
 from apps.backend.subscription.errors import (
     CreateSubscriptionTaskError,
     InstanceTaskIsRunning,
 )
 from apps.backend.subscription.handler import SubscriptionHandler
 from apps.backend.subscription.tasks import run_subscription_task_and_create_instance
+from apps.backend.utils.package.handler import PackageHandler
+from apps.backend.utils.package.serilizers import (
+    CosUploadSerializer,
+    NginxUploadSerializer,
+)
 from apps.core.files import core_files_constants
 from apps.core.files.storage import get_storage
 from apps.exceptions import AppBaseException, ValidationError
 from apps.generic import APIViewSet
 from apps.node_man import constants, models
+from apps.node_man.serializers.plugin import PluginInfoSerializer
 from pipeline.engine.exceptions import InvalidOperationException
 from pipeline.service import task_service
 from pipeline.service.pipeline_engine_adapter.adapter_api import STATE_MAP
@@ -161,14 +166,14 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
             }
         )
 
-    @action(detail=False, methods=["GET"], serializer_class=serializers.PluginInfoSerializer)
+    @action(detail=False, methods=["GET"], serializer_class=PluginInfoSerializer)
     def info(self, request):
         """
         @api {GET} /plugin/info/ 查询插件信息
         @apiName query_plugin_info
         @apiGroup backend_plugin
         """
-        package_infos = PluginHandler.package_infos(
+        package_infos = PackageHandler.plugin_package_infos(
             name=self.validated_data["name"],
             version=self.validated_data.get("version"),
             os_type=self.validated_data.get("os"),
@@ -1141,7 +1146,7 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         tools.fill_latest_config_tmpls_to_packages(packages)
         return Response(sorted(packages, key=lambda x: version.parse(x["version"]), reverse=True))
 
-    @action(detail=False, methods=["POST"], serializer_class=serializers.CosUploadSerializer)
+    @action(detail=False, methods=["POST"], serializer_class=CosUploadSerializer)
     def upload(self, request, *args, **kwargs):
         """
         @api {POST} /plugin/upload/ 上传文件接口
@@ -1170,7 +1175,7 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         """
         params = self.validated_data
 
-        upload_result = PluginHandler.upload(
+        upload_result = PackageHandler.upload(
             md5=params["md5"],
             origin_file_name=params["file_name"],
             module=params["module"],
@@ -1215,7 +1220,7 @@ def upload_package(request):
     }
     """
     # 1. 获取上传的参数 & nginx的上传信息
-    ser = serializers.NginxUploadSerializer(data=request.POST)
+    ser = NginxUploadSerializer(data=request.POST)
     if not ser.is_valid():
         logger.error("failed to valid request data for->[%s] maybe something go wrong?" % ser.errors)
         raise ValidationError(_("请求参数异常 [{err}]，请确认后重试").format(err=ser.errors))
@@ -1259,12 +1264,12 @@ def upload_package(request):
 @csrf_exempt
 @login_exempt
 def upload_package_by_cos(request):
-    ser = serializers.CosUploadSerializer(data=request.POST)
+    ser = CosUploadSerializer(data=request.POST)
     if not ser.is_valid():
         logger.error("failed to valid request data for->[%s] maybe something go wrong?" % ser.errors)
         raise ValidationError(_("请求参数异常 [{err}]，请确认后重试").format(err=ser.errors))
 
-    upload_result = PluginHandler.upload(
+    upload_result = PackageHandler.upload(
         md5=ser.data["md5"],
         origin_file_name=ser.data["file_name"],
         module=ser.data["module"],

@@ -55,25 +55,6 @@ warn () { local L=WARN D;  D="$(date +%F\ %T)"; echo "$D $L $*" | tee -a "$LOG_F
 err ()  { local L=ERROR D; D="$(date +%F\ %T)"; echo "$D $L $*" | tee -a "$LOG_FILE"; report_step_status "$D" "$L" "$@"; return 1; }
 fail () { local L=ERROR D; D="$(date +%F\ %T)"; echo "$D $L $*" | tee -a "$LOG_FILE"; report_step_status "$D" "$L" "$@"; exit 1; }
 
-get_cpu_arch () {
-    local cmd=$1
-    CPU_ARCH=$($cmd)
-    CPU_ARCH=$(echo ${CPU_ARCH} | tr 'A-Z' 'a-z')
-    if [[ "$CPU_ARCH" == *x86_64* ]]; then
-        return 0
-    elif [[ "$CPU_ARCH" == *x86* ]]; then
-        return 0
-    elif [[ "$CPU_ARCH" == *aarch* ]]; then
-        return 0
-    elif [[ "$CPU_ARCH" == *powerpc* ]]; then
-        return 0
-    else
-        return 1
-    fi
-}
-
-get_cpu_arch "uname -p" || get_cpu_arch "uname -m" || fail get_cpu_arch FAILED "Failed to get CPU arch, please contact the developer."
-
 # 清理逻辑：保留本次的LOG_FILE,下次运行时会删除历史的LOG_FILE。
 # 保留安装脚本本身
 cleanup () {
@@ -113,7 +94,6 @@ is_port_listen () {
     local BT_PORT_START=$1
     local BT_PORT_END=$2
     sleep 1
-
     while (("$BT_PORT_START" <= "$BT_PORT_END"))
     do
         netstat -aon |grep "${BT_PORT_START}" |grep LISTEN  2>/dev/null && return 0
@@ -302,7 +282,7 @@ setup_startup_scripts () {
 
     if [ -f $rcfile ];then
         # 先删后加，避免重复
-        #sed -i "\|${AGENT_SETUP_PATH}/bin/gsectl|d" $rcfile
+        # sed -i "\|${AGENT_SETUP_PATH}/bin/gsectl|d" $rcfile
         tmp_rcfile=$(grep -v "${AGENT_SETUP_PATH}/bin/gsectl")
         echo "$tmp_rcfile" >$rcfile
     else
@@ -351,7 +331,7 @@ stop_agent () {
     ! [[ -d $AGENT_SETUP_PATH ]] && return 0
     "$AGENT_SETUP_PATH/bin/gsectl" stop
 
-    for i in 1 2 3 4 5 6 7 8 9 10; do
+    for i in {1..10}; do
 	    set -A pids $(ps -eo pid,comm | grep gse_agent |awk '{print$1}')
         #read -r -a pids <<< "$(pidof "$AGENT_SETUP_PATH"/bin/gse_agent)"
         if [[ ${#pids[@]} -eq 0 ]]; then
@@ -415,7 +395,7 @@ _OO_
 
 
 get_aix_version () {
-    oslevel |awk -F "." '{print$1}'
+    oslevel |awk -F "." '{print$1,$2}' |sed 's/ //g'
 }
 
 setup_agent () {
@@ -433,8 +413,8 @@ setup_agent () {
     fi
 
     # update gsecmdline under /bin
-    cp -fp plugins/bin/gsecmdline /bin/
-    chmod 775 /bin/gsecmdline
+#    cp -fp plugins/bin/gsecmdline /bin/
+#    chmod 775 /bin/gsecmdline
 
     # setup config file
     get_config
@@ -456,21 +436,6 @@ setup_agent () {
     log setup_agent DONE "agent setup succeded"
 }
 
-start_basic_gse_plugin () {
-    log start_plugin START "start gse plugin: aixbeat, "
-    cd "$AGENT_SETUP_PATH/../plugins/bin" || fail start_plugin FAILED "change directory to $AGENT_SETUP_PATH/../plugins/bin failed"
-    version=$(get_aix_version)
-    if [ "$version" -eq 7 ];then
-
-        if [[ -x ./aixbeat ]]; then
-            ./stop.sh aixbeat
-            ./start.sh aixbeat || fail start_plugin FAILED "aixbeat start failed."
-        fi
-    fi
-
-    log start_plugin DONE "gse plugin 'aixbeat start done."
-}
-
 download_pkg () {
     local f http_status
 
@@ -487,7 +452,6 @@ download_pkg () {
     done
 
     log download_pkg DONE "gse_agent package download succeded"
-    log report_cpu_arch DONE "${CPU_ARCH}"
 }
 
 check_deploy_result () {
@@ -632,7 +596,7 @@ check_env () {
 
     [ "$CLOUD_ID" != "0" ] && node_type=pagent
     validate_setup_path
-    check_polices_${node_type}_to_upstream
+ #   check_polices_${node_type}_to_upstream
     check_disk_space
     check_dir_permission
     check_pkgtool
@@ -711,7 +675,6 @@ for step in check_env \
             remove_agent \
             remove_proxy_if_exists \
             setup_agent \
-            start_basic_gse_plugin \
             setup_startup_scripts \
             setup_crontab \
             check_deploy_result; do
