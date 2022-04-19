@@ -18,8 +18,6 @@ from django.utils.translation import ugettext_lazy as _
 
 from apps.node_man import exceptions, models
 from apps.node_man.handlers.cmdb import CmdbHandler
-from apps.utils.local import get_request_username
-from common.api import NodeApi
 
 
 class PolicyTools:
@@ -141,28 +139,6 @@ class PolicyTools:
         for policy_config in cls.get_policy_configs(policy_info):
             os_cpu_config_map[f"{policy_config['os']}_{policy_config['cpu_arch']}"] = policy_config
         return os_cpu_config_map
-
-    @classmethod
-    def create_job(
-        cls,
-        job_type: str,
-        subscription_id: int,
-        task_id: int,
-        bk_biz_scope: Union[List[int], Set[int]],
-    ) -> Dict[str, int]:
-
-        job = models.Job.objects.create(
-            job_type=job_type,
-            bk_biz_scope=list(bk_biz_scope),
-            subscription_id=subscription_id,
-            task_id_list=[task_id],
-            # 状态统计交由定时任务calculate_statistics，减少无意义的DB内主机查询
-            statistics={},
-            error_hosts=[],
-            created_by=get_request_username(),
-        )
-
-        return {"job_id": job.id}
 
     @classmethod
     def set_policy_enable(cls, policy_ids: List[int], enable: bool) -> int:
@@ -299,31 +275,3 @@ class PolicyTools:
                 )
 
         return host_nodes_gby_2th_policy_id
-
-    @classmethod
-    def run_sub_task(
-        cls, policy_id: int, bk_biz_scope: List[int], scope: Dict[str, Any], actions: Dict[str, str], job_type: str
-    ) -> Dict[str, Any]:
-        """
-        执行任务
-        :param policy_id: 策略ID
-        :param bk_biz_scope:
-        :param scope: 执行范围
-        :param actions: 执行动作
-        :param job_type: 任务类型
-        :return:
-        """
-        run_subscription_task_result = NodeApi.run_subscription_task(
-            {"subscription_id": policy_id, "scope": scope, "actions": actions}
-        )
-
-        run_subscription_task_result.update(
-            cls.create_job(
-                job_type=job_type,
-                subscription_id=run_subscription_task_result["subscription_id"],
-                task_id=run_subscription_task_result["task_id"],
-                bk_biz_scope=bk_biz_scope,
-            )
-        )
-
-        return run_subscription_task_result
