@@ -93,7 +93,7 @@ class Command(BaseCommand):
         copy_dir_files_to_storage(
             source_dir_path=settings.BK_SCRIPTS_PATH,
             target_dir_paths=target_dir_paths,
-            ignored_dir_names=["__pycache__"],
+            ignored_dir_names=["__pycache__", "gsectl"],
         )
 
         log_and_print("success.")

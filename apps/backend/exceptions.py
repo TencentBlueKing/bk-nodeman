@@ -72,3 +72,19 @@ class OsVersionPackageValidationError(BackendBaseException):
     MESSAGE = _("操作系统版本安装包校验错误")
     MESSAGE_TPL = _("操作系统[{os_type}]不支持 对应版本[{os_version}]的安装包")
     ERROR_CODE = 11
+
+
+class CertFileNotFoundError(BackendBaseException):
+    MESSAGE = _("全局证书文件未找到")
+    ERROR_CODE = 12
+
+
+class GsePackageNotFound(BackendBaseException):
+    MESSAGE = _("文件包不存在")
+    MESSAGE_TPL = _("Gse [{package_type}] 文件包 [{package_name}]不存在")
+    ERROR_CODE = 13
+
+
+class AgentParseError(BackendBaseException):
+    MESSAGE = _("Agent包解析错误")
+    ERROR_CODE = 14

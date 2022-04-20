@@ -1,0 +1,188 @@
+#!/bin/bash
+# vim:ft=sh sts=4 ts=4 expandtab
+
+cd ${BASH_SOURCE%/*} 2>/dev/null
+WORK_HOME=${PWD%/bin}
+
+MODULES=(data btsvr agent)
+
+ulimit -n 409600 2>/dev/null
+
+usage () {
+    echo "useage: gsectl ACTION [MODULE_NAME ... ]"
+    echo ""
+    echo "ACTION list: start, stop, restart, watch"
+    echo " start    start one or more module"
+    echo " stop     stop one or more module"
+    echo " restart  restart one or more module"
+    echo ""
+    echo "MODULE_NAME can be one of ${MODULES[@]}"
+    echo 
+    echo "all gse process name would be: gse_\$MODULE_NAME , for example:"
+    echo "gse_transit, gse_btsvr, gse_agent"
+}
+
+stop () {
+    local module=$1
+    local ret=0
+
+    if [ -z "$module" -o "$module" = "all" ]; then
+        # 如果stop不带参数，或者第一个参数为all，那么目标模块继承全局的变量MODULES
+        target="${MODULES[@]}"
+    else
+        # 否则使用命令行参数传递的模块名列表
+        target="$@"
+    fi
+
+    for m in $target; do
+        echo -n "stop gse_$m ..."
+        _stop $m && echo "Done" || { echo "Failed"; let ret+=1; }
+    done
+
+    # 返回码代表失败了几个模块
+    return $ret
+}
+
+_stop () {
+    local module="$1"
+
+    if [ -f gse_$module ]; then
+        ( ./gse_$module --quit ) >/dev/null 2>&1 ; sleep 3
+    else
+        echo -n "no such file: gse_$module. "
+        return 1
+    fi
+    _status
+    if [[ $? -eq 2 ]]; then
+        echo "stop gse_${module} successful"
+    else
+        echo "stop gse_${module} failed"
+    fi
+}
+
+_start () {
+    local module="$1"
+
+    if [ -f gse_$module ]; then
+        ( ./gse_$module -f $WORK_HOME/etc/$module.conf ) >/dev/null 2>&1 ; sleep 3
+    else
+        echo -n "gse_$module: no such module. "
+        return 1
+    fi
+}
+
+start () {
+    local module=$1
+    local ret=0
+
+    if [ -z "$module" -o "$module" = "all" ]; then
+        # 如果stop不带参数，或者第一个参数为all，那么目标模块继承全局的变量MODULES
+        target="${MODULES[@]}"
+    else
+        # 否则使用命令行参数传递的模块名列表
+        target="$@"
+    fi
+
+    for m in $target; do
+        echo -n "start gse_$m..."
+        _start $m
+        ( 
+            for i in {0..20}; do
+                if _status $m; then
+                    exit 0
+                elif [ $i -eq 20 ]; then
+                    exit 1
+                else
+                    sleep 1
+                fi
+            done
+        ) && echo "DONE" || { echo "FAILED"; let ret+=1; }
+    done
+
+    return $ret
+}
+
+restart () {
+    local module="$@"
+
+    stop $module && start $module
+}
+
+status () {
+    local module="$@"
+    local ret=0
+    local -a info
+
+    if [ -z "$module" -o "$module" = "all" ]; then
+        module="${MODULES[@]}"
+    fi
+
+    for m in $module; do
+        info=( $(_status $m) )
+        rt=$?
+        case $rt in
+            0) status="pid:${info[0]} etime:${info[1]} RUNNING" ;;
+            1) status="ERROR STATUS" ;;
+            2) status="EXIT" ;;
+        esac
+        (( ret += rt ))
+        printf "%s: %s\n" "gse_$m" "$status"
+    done
+    return $ret
+}
+
+# 返回码：
+# 0: 正常，且成对出现
+# 1：异常，存在master进程但是worker不存在
+# 2: 异常，没有master进程存在
+_status () {
+   local module="$1"
+   local gse_master_info _pid pid abs_path
+   local gse_master_pids=()
+    
+    # 初筛，考虑到gse各组件的父进程都是名为gseMaster的，且它的父进程应该是等于1
+    gse_master_info=$(ps --no-header -C gseMaster -o '%P|%p|%a' | awk -F'|' '$1 == 1 && $3 ~ /gse_'$module'/')
+    if [[ -z "$gse_master_info" ]]; then
+        # 连master都没有，那不用做更深入的判断，直接返回false
+        return 2
+    else
+        # master既然存在，先判断路径是否包含WORK_HOME
+        gse_master_pids=( $(echo "$gse_master_info" | awk -F'|' '{print $2}') )
+        for _pid in ${gse_master_pids[@]}; do
+            abs_path=$(readlink -f /proc/$_pid/exe)
+            abs_path=$(echo "${abs_path}" | sed 's/ (deleted)$//')  # 防止异常情况下二进制更新但是还没重启进程
+            # 两个路径都用readlink -f 防止有软链接目录
+            if [ "$abs_path" == "$(readlink -f ${WORK_HOME}/bin/gse_${module})" ]; then
+                pid=$_pid
+                break
+            fi
+        done
+        if [[ -z "$pid" ]]; then
+            # 没有匹配WORK_HOME的master，返回fasle
+            return 2
+        else
+            # 查看该gse_master进程是否有Worker(>=1)
+            if [[ $(pgrep -P $pid | wc -l) -eq 0 ]]; then
+                return 1
+            fi
+        fi
+    fi
+    # 运行到这里时就可以获取进程状态详细信息输出到STDOUT，并返回0了
+    ps --no-header -p $pid -o pid,etime
+    return 0
+}
+
+
+# main
+action="$1"; shift
+modules="$@"
+ 
+case $action in
+    start) start "$modules" ;;
+    stop) stop "$modules" ;;
+    restart) restart "$modules" ;;
+    status) status "$modules" ;;
+    -h|*) usage ; exit 255;;
+esac
+
+exit $?

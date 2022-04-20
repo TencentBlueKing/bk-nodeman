@@ -8,14 +8,20 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import logging
+import traceback
 from typing import Any, Dict, List, Optional, Tuple, Type
 
+import yaml
 from django.conf import settings
 
+from apps.backend import exceptions
 from apps.node_man import constants, models
 
 from ...utils import basic
 from . import solution_maker
+
+logger = logging.getLogger("app")
 
 
 class InstallationTools:
@@ -249,3 +255,19 @@ def batch_gen_commands(
         )
 
     return host_id__installation_tool_map
+
+
+def yaml_file_parse(file_path: str):
+
+    try:
+        with open(file_path, "r", encoding="utf-8") as project_file:
+            yaml_config = yaml.safe_load(project_file)
+            if not isinstance(yaml_config, dict):
+                raise yaml.YAMLError
+            return yaml_config
+    except (IOError, yaml.YAMLError):
+        raise exceptions.PluginParseError(
+            "failed to parse or read project_yaml -> {project_yaml_file_path}, for -> {err_msg}".format(
+                project_yaml_file_path=file_path, err_msg=traceback.format_exc()
+            )
+        )

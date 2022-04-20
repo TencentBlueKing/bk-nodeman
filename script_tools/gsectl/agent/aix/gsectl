@@ -1,0 +1,297 @@
+#!/usr/bin/env ksh
+# vim:ft=sh sts=4 ts=4 expandtab
+
+export LC_ALL=C
+cd ${0%/*} 2>/dev/null
+WORK_HOME=${PWD%/bin}
+
+set -A PROG_ON_SERVER dba data task api btsvr ops alarm proc opts
+set -A PROG_ON_PROXY opts transit btsvr agent
+set -A PROG_ON_AGENT agent
+
+get_lan_ip  () {
+   #
+   ifconfig -a | \
+       awk -F'[ /\t]+' '/inet/{
+               split($3, N, ".")
+               if ($3 ~ /^192.168/) {
+                   print $3
+               }
+               if (($3 ~ /^172/) && (N[2] >= 16)) {
+                   print $3
+               }
+               if ($3 ~ /^10\./) {
+                   print $3
+               }
+          }'
+    return $?
+}
+export LAN_IP=$(get_lan_ip | head -1)
+
+log () {
+     # 打印消息, 并记录到日志, 日志文件由 LOG_FILE 变量定义
+     local retval=$?
+     local timestamp=$(date +%Y%m%d-%H%M%S)
+     local level=INFO
+     local func_seq=$(echo ${FUNCNAME[@]} | sed 's/ /-/g')
+     local logfile=${LOG_FILE:=/tmp/bkc.log}
+
+     local opt=
+     case $1 in
+        -*) opt="$1"; shift 1 ;;
+     esac
+
+   
+     echo $opt "[$LAN_IP]$timestamp\t$@"
+     echo "[$LAN_IP]$timestamp $level|BASH_LINENO|${func_seq} $@" >>$logfile
+
+     return $retval
+}
+
+usage () {
+    echo "useage: gsectl ACTION [MODULE_NAME ... ]"
+    echo ""
+    echo "ACTION list: start, stop, restart, watch"
+    echo " start    start one or more module"
+    echo " stop     stop one or more module"
+    echo " restart  restart one or more module"
+    echo " watch    watch gse modules processes, start it when it's not running properly"
+    echo ""
+    echo "MODULES list: dba, data, task, api, btsvr, ops, opts, alarm, transit"
+    echo "when gse running in deferent mode, deferent programs is combined:"
+    echo ""
+    echo "SERVER MODE: dba, data, task, api, btsvr, ops, [alarm], *agent*"
+    echo "PROXY MODE:  opts, btsvr, transit, *agent*"
+    echo "CLIENT MODE: agent"
+    echo 
+    echo "all gse process name would be: gse_\$MODULE_NAME , for example:"
+    echo "gse_dba, gse_task"
+}
+
+_stop () {
+    local module="$@"
+    local ret=0
+
+    if [ -z "$module" -o "$module" == "all" ""]; then
+        for module in ${PROGS[@]}; do
+            if __stop $module; then
+                log "stop gse_$module Done"
+            else
+                log "stop gse_$module Failed"
+                let ret+=1
+            fi
+        done
+    else
+        for m in "$@"; do
+            if __stop $m; then
+		 log "stop gse_$m Done"
+	    else
+		 log "stop gse_$m Failed"
+		 let ret+=1
+	    fi
+        done
+    fi
+}
+
+__stop () {
+    local module=""$1""
+
+    if ! process_is_running "gse_$module .*$module.conf" >/dev/null; then
+        return 0
+    fi
+
+    if [ -f gse_$module ]; then
+        ( ./gse_$module --quit ) >/dev/null 2>&1; sleep 3
+    else
+        return 1
+    fi
+
+    ps -ef | awk -v PROG="./gse_$module" '$8 == PROG { print $2 }' | xargs kill -9
+}
+
+__start () {
+    local module="$1"
+
+    if [ -f gse_$module ]; then
+        ( ./gse_$module -f $CONF_DIR/$module.conf ) >/dev/null 2>&1; sleep 3
+    elif [ -f gse_win_$module.exe ]; then
+        ( ./gse_win_daemon.exe --install ) >/dev/null 2>&1
+    else
+        return 1
+    fi
+}
+
+_start () {
+    local module="$@"
+    local ret=0
+
+    if [ -z "$module" -o "$module" == "all" ""]; then
+        for module in ${PROGS[@]}; do
+            __start $module
+            if _status $module; then
+                log "start gse_$module Done";
+            else
+                log  "start gse_$module Failed"
+                let ret+=1
+            fi
+        done
+    else
+        for m in $module; do
+            __start $m
+            if _status $module; then
+                log "start gse_$module Done";
+            else
+                log "start gse_$module Failed"
+                let ret+=1
+            fi
+        done
+    fi
+
+    return $ret
+}
+
+_restart () {
+    local module="$@"
+
+    _stop $module && _start $module
+}
+
+
+_status () {
+    local module="$1"
+    local ret=0
+    local info
+
+    if [ -z "$module" -o "$module" == "all" ""]; then
+	module="${PROGS[@]}"
+    fi
+    for m in $module; do
+        info=$(__status $m)
+        rt=$?
+	case $rt in
+            0) status="etime:${info[1]} RUNNING" ;;
+            1) status="ERROR STATUS" ;;
+            2) status="EXIT" ;;
+        esac
+        (( ret += rt ))
+        printf "%s %s: %s\n" "$LAN_IP" "gse_$m" "$status"
+    done
+    return $ret
+}
+__status () {
+    local module="$1"
+    local gse_master_info
+    local gse_master_pid gse_run_pid
+	
+
+    #判断是否存在父进程等1
+    gse_master_info=$(ps -efo pid,ppid,command | awk -v PROG="gse_$module" '$3 == PROG { print $1,$2}' | grep -w 1 |wc -l)
+	
+    gse_master_pid=$(ps -efo pid,ppid,command | awk -v PROG="gse_$module" '$3 == PROG { print $1,$2}' | grep -w 1 | awk -F " " '{print$1}')
+    gse_run_pid=$(cat $WORK_HOME/bin/run/agent.pid)
+	
+    if [[ "$gse_master_info" -eq 0 ]];then
+        return 2
+    #master存在，判断是有worker存在
+    elif [[ "$gse_master_pid" -ne "$gse_run_pid" ]];then
+        return 1
+    fi
+    return 0
+}
+
+_watch () {
+    local module="$1"
+
+    if [ -z "$module" -o "$module" == "all" ]; then
+        for module in ${PROGS[@]}; do
+            if ! _status $module; then
+                __stop $module
+                _start $module
+            fi
+        done
+    else
+        if ! _status $module; then
+            __stop $module
+            _start $module
+        fi
+    fi
+}
+
+process_is_running () {
+    # 模糊匹配, 检测时输入更精确匹配进程的模式表达式
+    local pattern="$1"
+    
+    ps -ef | grep "$pattern" \
+           | grep -vE '(grep |bash -l)' \
+           | awk '{print $2;a++}END{if (a>0) {exit 0} else {exit 1}}'
+}
+
+process_paired () {
+    local pids
+    set -A pids $@
+
+    [ "${#pids[@]}" -eq 0 ] && return 1
+    [ "${#pids[@]}" -gt 2 ] && return 1
+
+    local pattern1="${pids[0]} *${pids[1]}"
+    local pattern2="${pids[1]} *${pids[0]}"
+
+    if process_is_running "$pattern1" >/dev/null 2>&1 || \
+        process_is_running "$pattern2" >/dev/null 2>&1; then
+        if ps -efo pid,ppid | grep -w ${pids[0]} >/dev/null 2>&1 || \
+            ps -efo pid,ppid | grep -w ${pids[1]} >/dev/null 2>&1; then
+            return 0
+        fi
+    fi
+
+    return 1
+}
+
+detect_node_type () {
+    case $WORK_HOME in
+        *gse/proxy) node_type=proxy ;;
+        *gse/agentw) node_type=agentw ;;
+        *gse/agent) node_type=agent ;;
+        *gse/gse) node_type=server ;;
+        *gse/server) node_type=server ;;
+        *) node_type=unkown ;;
+    esac
+
+    echo $node_type >$WORK_HOME/.gse_node_type
+    log "$LAN_IP  -- gse node on $WORK_HOME: $node_type"
+}
+
+# main
+
+action="$1"; shift
+modules="$@"
+
+if [ -s $WORK_HOME/.gse_node_type ]; then
+    read node_type ignore <$WORK_HOME/.gse_node_type
+else
+    detect_node_type
+fi
+
+case ${node_type} in
+    server) CONF_DIR=${WORK_HOME%%/gse*}/etc/gse ;;
+    proxy) CONF_DIR=${WORK_HOME}/etc ;;
+    agent) CONF_DIR=${WORK_HOME}/etc ;;
+    agentw) CONF_DIR=${WORK_HOME}/conf ;;
+    *) usage; exit 255;;
+esac
+
+#source ./funclib >/dev/null 2>&1 || { echo "error: file funclib not found."; exit 1; }
+UPPER_MODULE_NAME=$(echo $node_type | tr '[:lower:]' '[:upper:]')
+set -A PROGS $(eval echo \${PROG_ON_${UPPER_MODULE_NAME}[@]})
+ 
+case $action in
+    watch) _watch "$modules" ;;
+    start) _start "$modules" ;;
+    stop) _stop "$modules" ;;
+    restart) _restart "$modules" ;;
+    status) _status "$modules" ;;
+    -h) usage ; exit 255;;
+esac
+
+exit $?
+

@@ -956,3 +956,62 @@ class CommonExecutionSolutionStepType(EnhanceEnum):
     @classmethod
     def _get_member__alias_map(cls) -> Dict[Enum, str]:
         return {cls.DEPENDENCIES: _("依赖文件"), cls.COMMANDS: _("命令")}
+
+
+class AgentPackageMap:
+
+    BIN = "bin"
+
+    ETC = "etc"
+
+    GSE = "gse"
+
+    CERT = "cert"
+
+    TEMPLATE = "templates"
+
+    # GSE_TUPLES = ("bin", "etc", "gse", "cert", "templates", "BLUEKING_CERT_PACKAGE", PROJECTS_YAML)
+    #
+    # GSE_TAG_CHOICES = tuple_choices(GSE_TUPLES)
+    #
+    # GseTagType = choices_to_namedtuple(GSE_TAG_CHOICES)
+
+    BLUEKING_CERT_PACKAGE = "BLUEKING_CERT_PACKAGE"
+
+    CERT_SPECIAL_RULE_FILES = ["cert_encrypt.key"]
+
+    CONFIG_TEMPLATE = "config_templates"
+
+    PROJECTS_YAML = "projects.yaml"
+
+    SUPPORT_FILES = "support-files"
+
+    SUPPORT_DIR_SUB_RE = re.compile(SUPPORT_FILES)
+
+    PROXY_DIR_SUB_RE = re.compile(f"{NodeType.PROXY.lower()}")
+
+    AGENT_DIR_SUB_RE = re.compile(
+        f"{NodeType.AGENT.lower()}_(?P<os_type>({'|'.join(map(str, PLUGIN_OS_TUPLE))}))_"
+        f"(?P<cpu_arch>({'|'.join(map(str, CPU_TUPLE))})?$)"
+    )
+
+    CERT_PKG_RE = re.compile(f"{CERT}.*(?P<suffix>(tar|tar.gz|tgz))$")
+
+    AGENT_CONFIG_TEMPLATE_RE = re.compile(
+        f"{NodeType.AGENT.lower()}_"
+        f"(?P<os_type>({'|'.join(map(str, PLUGIN_OS_TUPLE))}))_"
+        f"(?P<cpu_arch>({'|'.join(map(str, CPU_TUPLE))}))"
+        f"#{ETC}#(?P<config_name>(.*))"
+    )
+
+    PROXY_CONFIG_TEMPLATE_RE = re.compile(f"{NodeType.PROXY.lower()}#{ETC}#(?P<config_name>(.*))")
+
+    GSE_AGENT_PACKAGE_RE = re.compile(
+        f"{GSE}_{ProcType.AGENT.lower()}_(?P<firm>(ee|ce))-(?P<version>.*).(?P<suffix>(tar|tar.gz|tgz))$"
+    )
+
+    CERT_RULE_MAP = {
+        NodeType.AGENT: ["gseca.crt", "gse_agent.crt", "gse_agent.key"],
+        NodeType.PROXY: re.compile(r"^(gse_agent|gse_server|gse_api_client).*"),
+        "special": ["cert_encrypt.key"],
+    }

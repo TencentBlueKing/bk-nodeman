@@ -1359,13 +1359,24 @@ class UploadPackage(models.Model):
         return "{}-{}".format(self.module, self.file_name)
 
     @classmethod
-    def create_record(cls, module, file_path, md5, operator, source_app_code, file_name, is_file_copy=False):
+    def create_record(
+        cls,
+        module,
+        file_path,
+        md5,
+        operator,
+        source_app_code,
+        file_name,
+        proc_type: str = constants.ProcType.PLUGIN,
+        is_file_copy=False,
+    ):
         """
         创建一个新的上传记录
         :param module: 文件模块
         :param file_path: 文件源路径
         :param md5: 文件MD5
         :param operator: 操作者
+        :param proc_type: 操作类型，默认为插件
         :param source_app_code: 上传来源APP_CODE
         :param file_name: 期望的文件保存名，在非文件覆盖的情况下，该名称不是文件最终的保存名
         :param is_file_copy: 是否复制而非剪切文件，适应初始化内置插件需要使用
@@ -1405,6 +1416,7 @@ class UploadPackage(models.Model):
                 md5=md5,
                 upload_time=timezone.now(),
                 creator=operator,
+                proc_type=proc_type,
                 source_app_code=source_app_code,
             )
 
@@ -2429,3 +2441,78 @@ class ResourceWatchEvent(models.Model):
             f"<{self.__class__.__name__}({self.pk}) "
             f"info -> [{self.bk_event_type}|{self.bk_resource}|{self.bk_detail.get('bk_biz_id')}]>"
         )
+
+
+class GseAgentDesc(models.Model):
+    """
+    Gse Agent 安装包信息表
+    """
+
+    package_name = models.CharField(_("Agent包"), primary_key=True, max_length=128)
+    cert_name = models.CharField(_("证书包名"), max_length=128)
+    client_name = models.CharField(_("client 完整包名"), max_length=128)
+    version = models.CharField(_("Agent版本号"), max_length=32)
+    source = models.CharField(
+        _("来源"),
+        max_length=32,
+    )
+    is_upgrade_package = models.BooleanField(_("是否属于升级包"), default=False)
+    is_proxy_package = models.BooleanField(_("是否为Proxy包"), default=False)
+    is_support_config_template = models.BooleanField(_("是否支持配置文件引用"), default=False)
+    md5 = models.CharField(_("Agent升级包md5"), max_length=128)
+    description = models.TextField(_("安装包描述"))
+    os_type = models.CharField(
+        _("操作系统"), max_length=16, choices=constants.OS_CHOICES, default=constants.OsType.LINUX, db_index=True
+    )
+    cpu_arch = models.CharField(
+        _("CPU架构"), max_length=16, choices=constants.CPU_CHOICES, default=constants.CpuType.x86_64, db_index=True
+    )
+
+    class Meta:
+        # 唯一性限制
+        unique_together = (
+            # 同一个版本， 不可同时处于上线和灰度的状态
+            (
+                "version",
+                "package_name",
+                "os_type",
+                "cpu_arch",
+                "md5",
+                "is_upgrade_package",
+                "is_proxy_package",
+            ),
+        )
+
+    @classmethod
+    def fetch_push_to_proxy_files(cls):
+        package_record = cls.objects.filter(
+            releasing_type__in=["release", "grayscale"], is_upgrade_package=False, is_proxy_package=False
+        ).values("package_name")
+        file_list = [obj["package_name"] for obj in package_record]
+        client_to_push_to_proxy = {
+            "name": _("下发安装包"),
+            "from_type": constants.ProxyFileFromType.AP_CONFIG.value,
+            "files": file_list,
+        }
+        return client_to_push_to_proxy
+
+    @classmethod
+    def assemble_package_name(
+        cls,
+        os_type: str,
+        arch_type: str,
+        suffix: str = "tgz",
+        is_upgrade_package: bool = False,
+        is_proxy_package: bool = False,
+    ):
+        if is_proxy_package:
+            if is_upgrade_package:
+                package_name = f"gse_proxy-{os_type}-{arch_type}_upgrade.{suffix}"
+            else:
+                package_name = f"gse_proxy-{os_type}-{arch_type}.{suffix}"
+            return package_name
+        if is_upgrade_package:
+            package_name = f"gse_client-{os_type}-{arch_type}_upgrade.{suffix}"
+        else:
+            package_name = f"gse_client-{os_type}-{arch_type}.{suffix}"
+        return package_name
