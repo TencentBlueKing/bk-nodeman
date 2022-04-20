@@ -96,12 +96,16 @@ class AgentAction(Action, abc.ABC):
     # 动作描述
     ACTION_DESCRIPTION = ""
 
+    step: AgentStep = None
+    is_install_latest_plugins: bool = None
+
     def __init__(self, action_name, step: AgentStep, instance_record_ids: List[int]):
         """
         :param Step step: 步骤实例
         :param models.SubscriptionInstanceRecord instance_record_ids: 订阅实例执行记录
         """
         self.step = step
+        self.is_install_latest_plugins = self.step.subscription_step.params.get("is_install_latest_plugins", True)
         super().__init__(action_name, step, instance_record_ids)
 
     def get_agent_manager(self, subscription_instances: List[models.SubscriptionInstanceRecord]):
@@ -155,7 +159,7 @@ class InstallAgent(AgentAction):
             agent_manager.choose_ap(),
             agent_manager.install(),
             agent_manager.get_agent_status(expect_status=constants.ProcStateType.RUNNING),
-            agent_manager.install_plugins(),
+            agent_manager.install_plugins() if self.is_install_latest_plugins else None,
         ]
 
         return list(filter(None, activities)), None
@@ -176,7 +180,7 @@ class ReinstallAgent(AgentAction):
             agent_manager.choose_ap(),
             agent_manager.install(),
             agent_manager.get_agent_status(expect_status=constants.ProcStateType.RUNNING),
-            agent_manager.install_plugins(),
+            agent_manager.install_plugins() if self.is_install_latest_plugins else None,
         ]
 
         return list(filter(None, activities)), None
@@ -256,7 +260,8 @@ class InstallProxy(AgentAction):
 
         activities = self.append_push_file_activities(agent_manager, activities)
         activities.append(agent_manager.start_nginx())
-        activities.append(agent_manager.install_plugins())
+        if self.is_install_latest_plugins:
+            activities.append(agent_manager.install_plugins())
 
         return list(filter(None, activities)), None
 
@@ -285,7 +290,8 @@ class ReinstallProxy(AgentAction):
         # 推送文件到proxy
         activities = self.append_push_file_activities(agent_manager, activities)
         activities.append(agent_manager.start_nginx())
-        activities.append(agent_manager.install_plugins())
+        if self.is_install_latest_plugins:
+            activities.append(agent_manager.install_plugins())
 
         return list(filter(None, activities)), None
 
