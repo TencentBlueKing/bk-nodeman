@@ -2,7 +2,7 @@
 apiVersion: bk.tencent.com/v1alpha1
 kind: BkLogConfig
 metadata:
-  name: "{{ include "bk-nodeman.fullname" }}-bklogconfig"
+  name: "{{ include "bk-nodeman.fullname" . }}-bklogconfig"
   labels:
     {{- include "bk-nodeman.labels" . | nindent 4 }}
     {{- if .Values.commonLabels }}
@@ -17,5 +17,5 @@ spec:
   logConfigType: "std_log_config"
   namespace: {{ .Release.Namespace | quote }}
   labelSelector:
-    matchLabels: {{- include "bk-nodeman.labels" . | nindent 6 }}
+    matchLabels: {{- include "bk-nodeman.selectorLabels" . | nindent 6 }}
 {{- end }}

@@ -1,0 +1,3 @@
+---
+bugfix:
+  - "Helm ServiceMonitor 渲染错误 (fixed #701)"
