@@ -183,7 +183,7 @@ def create_host(
 
 
 class Subscription:
-    def create_subscription(self, job_type, nodes):
+    def create_subscription(self, job_type, nodes, *args, **kwargs):
 
         rsa_util = tools.HostTools.get_rsa_util()
         subscription_id = random.randint(100, 1000)

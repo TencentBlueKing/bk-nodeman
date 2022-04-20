@@ -174,15 +174,8 @@ class JobViewSet(ModelViewSet):
         node_type = validated_data["node_type"]
         job_type = validated_data["job_type"]
         ticket = request.COOKIES.get("TCOA_TICKET") or validated_data.get("tcoa_ticket")
-        return Response(
-            JobHandler().install(
-                hosts,
-                op_type,
-                node_type,
-                job_type,
-                ticket,
-            )
-        )
+        extra_params = {"is_install_latest_plugins": validated_data["is_install_latest_plugins"]}
+        return Response(JobHandler().install(hosts, op_type, node_type, job_type, ticket, extra_params))
 
     @action(detail=False, methods=["POST"], serializer_class=OperateSerializer)
     def operate(self, request):
@@ -211,7 +204,8 @@ class JobViewSet(ModelViewSet):
         job_type = validated_data["job_type"]
         bk_host_ids = validated_data["bk_host_ids"]
         bk_biz_scope = validated_data["bk_biz_scope"]
-        return Response(JobHandler().operate(job_type, bk_host_ids, bk_biz_scope))
+        extra_params = {"is_install_latest_plugins": validated_data["is_install_latest_plugins"]}
+        return Response(JobHandler().operate(job_type, bk_host_ids, bk_biz_scope, extra_params))
 
     @action(detail=True, methods=["POST"], serializer_class=JobInstancesOperateSerializer)
     def retry(self, request, *args, **kwargs):

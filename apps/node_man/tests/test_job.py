@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from typing import List
 from unittest.mock import patch
 
 from django.test import TestCase
@@ -44,6 +45,12 @@ class TestJob(TestCase):
         # 生成公私钥并存储到DB
         tools.HostTools.get_rsa_util()
         super().setUpTestData()
+
+    @classmethod
+    def job_install(cls, hosts: List, op_type: str, node_type: str, job_type: str, ticket: str):
+        return JobHandler().install(
+            hosts, op_type, node_type, job_type, ticket, extra_params={"is_install_latest_plugins": True}
+        )
 
     @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)
     def test_job_list(self):
@@ -172,7 +179,7 @@ class TestJob(TestCase):
         for job_type in job_types:
             node_filter_type = job_type.split("_")[1]
             bk_host_ids = proxies_ids if node_filter_type == const.NodeType.PROXY else agent_or_pagent_ids
-            JobHandler().operate(job_type, bk_host_ids, bk_biz_scope)
+            JobHandler().operate(job_type, bk_host_ids, bk_biz_scope, {})
 
     # 以下测试Job安装接口
 
@@ -185,7 +192,7 @@ class TestJob(TestCase):
 
         # 安装代理
         data = gen_job_data("INSTALL_PROXY", number, ap_id=-1)
-        JobHandler().install(data["hosts"], data["op_type"], data["node_type"], data["job_type"], "ticket")
+        self.job_install(data["hosts"], data["op_type"], data["node_type"], data["job_type"], "ticket")
 
     @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)
     @patch("apps.node_man.handlers.job.JobHandler.create_subscription", Subscription.create_subscription)
@@ -200,7 +207,7 @@ class TestJob(TestCase):
         data["hosts"][1]["is_manual"] = False
         self.assertRaises(
             MixedOperationError,
-            JobHandler().install,
+            self.job_install,
             data["hosts"],
             data["op_type"],
             data["node_type"],
@@ -217,7 +224,7 @@ class TestJob(TestCase):
 
         # 执行任务
         data = gen_job_data("INSTALL_AGENT", number)
-        JobHandler().install(data["hosts"], data["op_type"], data["node_type"], data["job_type"], "ticket")
+        self.job_install(data["hosts"], data["op_type"], data["node_type"], data["job_type"], "ticket")
 
     # 测试不存在可用代理异常分支
     @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)
@@ -231,7 +238,7 @@ class TestJob(TestCase):
         data = gen_job_data("INSTALL_PAGENT", number, bk_cloud_id=2)
         self.assertRaises(
             AliveProxyNotExistsError,
-            JobHandler().install,
+            self.job_install,
             data["hosts"],
             data["op_type"],
             data["node_type"],
@@ -246,7 +253,7 @@ class TestJob(TestCase):
         bk_cloud_ids = create_cloud_area(1)
         # 执行任务
         data = gen_job_data("REPLACE_PROXY", 1, bk_cloud_id=bk_cloud_ids[0], ap_id=const.DEFAULT_AP_ID)
-        JobHandler().install(data["hosts"], data["op_type"], data["node_type"], data["job_type"], "ticket")
+        self.job_install(data["hosts"], data["op_type"], data["node_type"], data["job_type"], "ticket")
 
     @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)
     @patch("apps.node_man.handlers.job.JobHandler.create_subscription", Subscription.create_subscription)
@@ -258,12 +265,12 @@ class TestJob(TestCase):
         # 测试【全部被过滤】
         ip = "255.255.255.254"
         data = gen_job_data("INSTALL_AGENT", 1, ip=ip)
-        JobHandler().install(data["hosts"], data["op_type"], data["node_type"], data["job_type"], "ticket")
+        self.job_install(data["hosts"], data["op_type"], data["node_type"], data["job_type"], "ticket")
         host = Host.objects.get(inner_ip=ip)
         self.assertEqual(host.inner_ip, ip)
         self.assertRaises(
             AllIpFiltered,
-            JobHandler().install,
+            self.job_install,
             data["hosts"],
             data["op_type"],
             data["node_type"],
@@ -283,21 +290,21 @@ class TestJob(TestCase):
         data = gen_job_data(
             "INSTALL_AGENT", number, host_to_create, identity_to_create, bk_cloud_id=const.DEFAULT_CLOUD
         )
-        JobHandler().install(data["hosts"], data["op_type"], data["node_type"], data["job_type"], "ticket")
+        self.job_install(data["hosts"], data["op_type"], data["node_type"], data["job_type"], "ticket")
 
         # 执行任务
         data = gen_job_data(
             "REINSTALL_AGENT", number, host_to_create, identity_to_create, bk_cloud_id=const.DEFAULT_CLOUD
         )
-        JobHandler().install(data["hosts"], data["op_type"], data["node_type"], data["job_type"], "ticket")
+        self.job_install(data["hosts"], data["op_type"], data["node_type"], data["job_type"], "ticket")
 
         # 执行任务
         data = gen_job_data("INSTALL_PROXY", number, host_to_create, identity_to_create, ap_id=const.DEFAULT_AP_ID)
-        JobHandler().install(data["hosts"], data["op_type"], data["node_type"], data["job_type"], "ticket")
+        self.job_install(data["hosts"], data["op_type"], data["node_type"], data["job_type"], "ticket")
 
         # 执行任务
         data = gen_job_data("REINSTALL_PROXY", number, host_to_create, identity_to_create, ap_id=const.DEFAULT_AP_ID)
-        JobHandler().install(data["hosts"], data["op_type"], data["node_type"], data["job_type"], "ticket")
+        self.job_install(data["hosts"], data["op_type"], data["node_type"], data["job_type"], "ticket")
 
         # 全部被过滤
         host_to_create, process_to_create, identity_to_create = create_host(
@@ -310,7 +317,7 @@ class TestJob(TestCase):
         data["hosts"][0]["auth_type"] = "KEY"
         self.assertRaises(
             AllIpFiltered,
-            JobHandler().install,
+            self.job_install,
             data["hosts"],
             data["op_type"],
             data["node_type"],
@@ -318,8 +325,8 @@ class TestJob(TestCase):
             "ticket",
         )
 
-    @staticmethod
-    def init_job():
+    @classmethod
+    def init_job(cls):
         # 初始化一个任务
         number = 1
         host_to_create, process_to_create, identity_to_create = create_host(number)
@@ -327,7 +334,7 @@ class TestJob(TestCase):
         data = gen_job_data(
             "INSTALL_AGENT", number, host_to_create, identity_to_create, bk_cloud_id=const.DEFAULT_CLOUD
         )
-        job_id = JobHandler().install(data["hosts"], data["op_type"], data["node_type"], data["job_type"], "ticket")[
+        job_id = cls.job_install(data["hosts"], data["op_type"], data["node_type"], data["job_type"], "ticket")[
             "job_id"
         ]
         return job_id
@@ -420,7 +427,7 @@ class TestJob(TestCase):
         data = gen_job_data(
             "INSTALL_AGENT", number, host_to_create, identity_to_create, bk_cloud_id=const.DEFAULT_CLOUD
         )
-        result = JobHandler().install(data["hosts"], data["op_type"], data["node_type"], data["job_type"], "ticket")
+        result = self.job_install(data["hosts"], data["op_type"], data["node_type"], data["job_type"], "ticket")
         job_id = result["job_id"]
         self.assertEqual(JobHandler(job_id=job_id).collect_log(1), "SUCCESS")
 
@@ -448,7 +455,7 @@ class TestJob(TestCase):
         data = gen_job_data(
             "INSTALL_AGENT", number, host_to_create, identity_to_create, bk_cloud_id=const.DEFAULT_CLOUD
         )
-        result = JobHandler().install(data["hosts"], data["op_type"], data["node_type"], data["job_type"], "ticket")
+        result = self.job_install(data["hosts"], data["op_type"], data["node_type"], data["job_type"], "ticket")
 
         job_id = result["job_id"]
         job = Job.objects.get(id=job_id)
