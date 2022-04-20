@@ -112,6 +112,7 @@ class InstallSerializer(serializers.Serializer):
     job_type = serializers.ChoiceField(label=_("任务类型"), choices=list(constants.JOB_TYPE_DICT))
     hosts = HostSerializer(label=_("主机信息"), many=True)
     replace_host_id = serializers.IntegerField(label=_("被替换的Proxy主机ID"), required=False)
+    is_install_latest_plugins = serializers.IntegerField(label=_("是否安装最新版本插件"), required=False, default=True)
 
     # 以下非参数传值
     op_type = serializers.CharField(label=_("操作类型"), required=False)
@@ -148,6 +149,7 @@ class OperateSerializer(serializers.Serializer):
     conditions = serializers.ListField(label=_("搜索条件"), required=False)
     bk_host_id = serializers.ListField(label=_("主机ID"), required=False)
     exclude_hosts = serializers.ListField(label=_("跨页全选排除主机"), required=False)
+    is_install_latest_plugins = serializers.IntegerField(label=_("是否安装最新版本插件"), required=False, default=True)
 
     # 以下非参数传值，通过validate方法计算转化得到
     op_type = serializers.CharField(label=_("操作类型,"), required=False)
