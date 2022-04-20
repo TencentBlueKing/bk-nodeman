@@ -136,7 +136,7 @@ class AgentAction(Action, abc.ABC):
     @staticmethod
     def append_push_file_activities(agent_manager, activities):
         for file in constants.FILES_TO_PUSH_TO_PROXY:
-            activities.append(agent_manager.push_files_to_proxy(file))
+            activities.append(agent_manager.push_files_to_proxy(models.GseAgentDesc.fetch_push_to_proxy_files()))
         return activities
 
 

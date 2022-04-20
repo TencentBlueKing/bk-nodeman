@@ -8,18 +8,29 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import logging
 import os
 import time
+import traceback
+from collections import defaultdict
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
 
+import yaml
 from django.conf import settings
+from django.utils.translation import ugettext_lazy as _
 
+from apps.backend import exceptions
 from apps.backend.api import constants as const
+from apps.backend.utils.tools import pre_check
+from apps.core.files.storage import get_storage
 from apps.node_man import constants, models
 from apps.node_man.models import aes_cipher
+from apps.utils import files
 from apps.utils.basic import suffix_slash
 from apps.utils.encrypt import rsa
+
+logger = logging.getLogger("app")
 
 
 class InstallationTools:
@@ -473,3 +484,196 @@ def batch_gen_commands(
         )
 
     return host_id__installation_tool_map
+
+
+def yaml_file_parse(file_path: str):
+
+    try:
+        with open(file_path, "r", encoding="utf-8") as project_file:
+            yaml_config = yaml.safe_load(project_file)
+            if not isinstance(yaml_config, dict):
+                raise yaml.YAMLError
+            return yaml_config
+    except (IOError, yaml.YAMLError):
+        raise exceptions.PluginParseError(
+            "failed to parse or read project_yaml -> {project_yaml_file_path}, for -> {err_msg}".format(
+                project_yaml_file_path=file_path, err_msg=traceback.format_exc()
+            )
+        )
+
+
+def parse_client_package(file_path: str) -> Dict[str, Union[bool, Union[str, Dict[str, List[str]]]]]:
+    """
+    解析file_path下gse client 完整安装包，获取包信息字典列表
+    :param file_path: agent包所在路径
+    :return:
+        {
+            "result": True,
+            "version": "1.7.17",
+            "agent": { "windows_x86": [ "gse_agent", "gsectl"] },
+            "proxy": { "linux_x86_64": [ "gse_btsvr", "gse_data"] }",
+            "config_templates": {
+                "agent": [ {"linux_x86": [ "agent.conf", "iagent.conf"]} ] ,
+                "proxy": [ {"linux_x86_64": [ "btsvr.conf", "data.conf"]} ]
+            }
+        },
+        ...
+    """
+    storage = get_storage()
+    if not storage.exists(name=file_path):
+        raise exceptions.AgentParseError(_(f"Agent包不存在: file_path -> {file_path}"))
+    # 解压压缩文件
+    tmp_dir = files.mk_and_return_tmpdir()
+    pre_check(tmp_dir=tmp_dir, file_path=file_path, action_type=constants.ProcType.AGENT)
+
+    package_infos: Dict[Optional[str, Dict[str, Dict[str, Any]]]] = defaultdict(lambda: defaultdict(list))
+    # 遍历第一层的内容，获取agent和proxy信息
+    sub_abs_path = os.path.join(tmp_dir, constants.AgentPackageMap.GSE)
+    if not os.path.isdir(sub_abs_path):
+        raise exceptions.AgentParseError(_(f"Agent包不符合路径规则，缺失 -> {constants.AgentPackageMap.GSE} 层级"))
+
+    for platform_dir_name in os.listdir(sub_abs_path):
+        if constants.AgentPackageMap.AGENT_DIR_SUB_RE.match(platform_dir_name):
+            agent_info_map = list_agent__dir_info(
+                path_name=platform_dir_name, parent_path=sub_abs_path, pkg_path=file_path
+            )
+            package_infos[constants.NodeType.AGENT.lower()][agent_info_map["platform"]] = agent_info_map["file_list"]
+        elif constants.AgentPackageMap.PROXY_DIR_SUB_RE.match(platform_dir_name):
+            proxy_info_map = list_proxy__dir_info(
+                path_name=platform_dir_name, parent_path=sub_abs_path, pkg_path=file_path
+            )
+            package_infos[constants.NodeType.PROXY.lower()][proxy_info_map["platform"]] = proxy_info_map["file_list"]
+        elif constants.AgentPackageMap.SUPPORT_DIR_SUB_RE.match(platform_dir_name):
+            template_info_map = list_config_template__info(
+                path_name=platform_dir_name, parent_path=sub_abs_path, pkg_path=file_path
+            )
+            package_infos[constants.AgentPackageMap.CONFIG_TEMPLATE][constants.NodeType.AGENT.lower()].append(
+                template_info_map[constants.NodeType.AGENT.lower()]
+            )
+            package_infos[constants.AgentPackageMap.CONFIG_TEMPLATE][constants.NodeType.PROXY.lower()].append(
+                template_info_map[constants.NodeType.PROXY.lower()]
+            )
+    package_infos["package_tmp_path"] = tmp_dir
+
+    project_yaml_file_path = os.path.join(sub_abs_path, constants.AgentPackageMap.PROJECTS_YAML)
+    if not os.path.exists(project_yaml_file_path):
+        logger.warning(
+            "try to pack path-> {pkg_absolute_path} but not [project.yaml] file under file path".format(
+                pkg_absolute_path=sub_abs_path
+            )
+        )
+        package_infos["result"] = False
+        package_infos["message"] = _(f"缺少 {constants.AgentPackageMap.PROJECTS_YAML}文件")
+        return package_infos
+
+    yaml_config = yaml_file_parse(file_path=project_yaml_file_path)
+
+    try:
+        yaml_config["version"] = str(yaml_config["version"])
+        package_desc = yaml_config.get("desc", constants.AgentPackageMap.AGENT_DEFAULT_MEDIUM["desc"])
+
+        package_infos.update(
+            {
+                "version": yaml_config["version"],
+                "desc": package_desc,
+            }
+        )
+    except (KeyError, TypeError):
+        logger.warning(
+            "failed to get key info from project.yaml -> {project_yaml_file_path}, for -> {err_msg}".format(
+                project_yaml_file_path=project_yaml_file_path, err_msg=traceback.format_exc()
+            )
+        )
+        package_infos["result"] = False
+        package_infos["message"] = _(f" {constants.AgentPackageMap.PROJECTS_YAML} 文件信息缺失")
+        return package_infos
+
+    package_infos["result"] = True
+    return package_infos
+
+
+def list_agent__dir_info(path_name: str, parent_path: str, pkg_path: str) -> Dict[str, Any]:
+    file_list: List[str] = []
+
+    # 将文件名解析为插件信息字典
+    re_match = constants.AgentPackageMap.AGENT_DIR_SUB_RE.match(path_name)
+    client_info_dict = re_match.groupdict()
+    node_type = constants.NodeType.AGENT.lower()
+    os_type = client_info_dict["os_type"]
+    cpu_arch = client_info_dict["cpu_arch"]
+    logger.info(f"pkg_name -> {pkg_path} is match for node type -> {node_type} os -> {os_type}, cpu -> {cpu_arch}")
+
+    platform_bin_path = os.path.join(parent_path, path_name, constants.AgentPackageMap.BIN)
+    # 遍历第二层的内容, 获取文件列表
+    for executable_file in os.listdir(platform_bin_path):
+        if not executable_file_check(file_name=executable_file, parent_path=platform_bin_path, pkg_name=pkg_path):
+            continue
+        file_list.append(executable_file)
+
+    return {"platform": f"{os_type}_{cpu_arch}", "file_list": file_list}
+
+
+def list_proxy__dir_info(path_name: str, parent_path: str, pkg_path: str) -> Dict[str, List[str]]:
+    file_list: List[str] = []
+    bin_abs_path = os.path.join(parent_path, path_name, constants.AgentPackageMap.BIN)
+    for executable_file in os.listdir(bin_abs_path):
+        if not executable_file_check(file_name=executable_file, parent_path=bin_abs_path, pkg_name=pkg_path):
+            continue
+        file_list.append(executable_file)
+    return {"platform": f"{constants.OsType.LINUX.lower()}_{constants.CpuType.x86_64.lower()}", "file_list": file_list}
+
+
+def executable_file_check(file_name: str, parent_path: str, pkg_name: str) -> bool:
+    file_path = os.path.join(parent_path, file_name)
+    if not os.path.isfile(file_path):
+        logger.error(_(f"pkg_name -> {pkg_name} sub path -> {parent_path} include non-file structure  -> {file_name}"))
+        return False
+    return True
+
+
+def list_config_template__info(path_name: str, parent_path: str, pkg_path: str) -> Dict[str, Dict[str, List[str]]]:
+    config_file_map: Dict[str, Dict[str, List[str]]] = defaultdict(lambda: defaultdict(list))
+    template_abs_path = os.path.join(parent_path, path_name, constants.AgentPackageMap.TEMPLATE)
+
+    def get_agent_template_map(file_name: str) -> Dict[str, Any]:
+        re_match = constants.AgentPackageMap.AGENT_CONFIG_TEMPLATE_RE.match(file_name)
+        platform_info_dict = re_match.groupdict()
+        os_type = platform_info_dict["os_type"]
+        cpu_arch = platform_info_dict["cpu_arch"]
+        config_name = platform_info_dict["config_name"]
+        return {"platform": f"{os_type}_{cpu_arch}", "config": config_name}
+
+    def get_proxy_template_map(file_name: str) -> Dict[str, Any]:
+        re_match = constants.AgentPackageMap.PROXY_CONFIG_TEMPLATE_RE.match(file_name)
+        platform_info_dict = re_match.groupdict()
+        config_name = platform_info_dict["config_name"]
+        return {"platform": f"{constants.OsType.LINUX.lower()}_{constants.CpuType.x86_64}", "config": config_name}
+
+    if os.path.isdir(template_abs_path):
+        for config_file in os.listdir(template_abs_path):
+            if constants.AgentPackageMap.AGENT_CONFIG_TEMPLATE_RE.match(config_file):
+                agent_single_template = get_agent_template_map(config_file)
+                config_file_map[constants.NodeType.AGENT.lower()][agent_single_template["platform"]].append(
+                    agent_single_template["config"]
+                )
+            elif constants.AgentPackageMap.PROXY_CONFIG_TEMPLATE_RE.match(config_file):
+                proxy_single_template = get_proxy_template_map(config_file)
+                config_file_map[constants.NodeType.PROXY.lower()][proxy_single_template["platform"]].append(
+                    proxy_single_template["config"]
+                )
+            else:
+                logger.error(
+                    _(
+                        f"pkg_name -> {pkg_path} sub path -> {parent_path}  "
+                        f"with irregular  config template file -> {config_file}"
+                    )
+                )
+        return config_file_map
+    else:
+        logger.error(
+            _(
+                f"pkg_name -> {pkg_path} sub path -> {parent_path}/{path_name} "
+                f"without {constants.AgentPackageMap.TEMPLATE} directory"
+            )
+        )
+        return {}
