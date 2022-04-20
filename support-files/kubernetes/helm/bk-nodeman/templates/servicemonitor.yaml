@@ -2,7 +2,7 @@
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
-  name: "{{ include "bk-nodeman.fullname" }}-servicemonitor"
+  name: "{{ include "bk-nodeman.fullname" . }}-servicemonitor"
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "bk-nodeman.labels" . | nindent 4 }}
@@ -18,8 +18,9 @@ spec:
   jobLabel: {{ .Values.serviceMonitor.jobLabel }}
   {{- end }}
   selector:
-    {{- include "bk-nodeman.selectorLabels" . | nindent 4 }}
-    {{- include "bk-nodeman.labels.serviceMonitor" . | nindent 4 }}
+    matchLabels:
+    {{- include "bk-nodeman.selectorLabels" . | nindent 6 }}
+    {{- include "bk-nodeman.labels.serviceMonitor" . | nindent 6 }}
   endpoints:
     - port: http
       path: "/metrics"
