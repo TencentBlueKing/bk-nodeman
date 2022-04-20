@@ -81,7 +81,7 @@ serviceMonitor:
   ## e.g:
   ## interval: 10s
   ##
-  interval: 300s
+  interval: 60s
   ## @param serviceMonitor.scrapeTimeout Timeout after which the scrape is ended
   ## ref: https://github.com/coreos/prometheus-operator/blob/master/Documentation/api.md#endpoint
   ## e.g:
@@ -137,7 +137,7 @@ images:
 
   nginx:
     registry: "docker.io"
-    repository: "nginx"
+    repository: "library/nginx"
     pullPolicy: "IfNotPresent"
     tag: "1.20.2"
 
