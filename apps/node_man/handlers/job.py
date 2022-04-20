@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import logging
 import re
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from django.conf import settings
 from django.core.paginator import Paginator
@@ -359,7 +359,9 @@ class JobHandler(APIModel):
 
         return {"total": len(job_list), "list": job_page}
 
-    def install(self, hosts: List, op_type: str, node_type: str, job_type: str, ticket: str):
+    def install(
+        self, hosts: List, op_type: str, node_type: str, job_type: str, ticket: str, extra_params: Dict[str, Any]
+    ):
         """
         Job 任务处理器
         :param hosts: 主机列表
@@ -367,6 +369,7 @@ class JobHandler(APIModel):
         :param node_type: 节点类型
         :param job_type: 任务作业类型
         :param ticket: 请求参数的字典
+        :param extra_params: 额外的订阅参数
         """
 
         # 获取Hosts中的cloud_id列表、ap_id列表、内网、外网、登录IP列表、bk_biz_scope列表
@@ -439,7 +442,7 @@ class JobHandler(APIModel):
         if op_type in [constants.OpType.INSTALL, constants.OpType.REPLACE, constants.OpType.RELOAD]:
             # 安装、替换Proxy操作
             subscription_nodes = self.subscription_install(accept_list, node_type, cloud_info, biz_info)
-            subscription = self.create_subscription(job_type, subscription_nodes)
+            subscription = self.create_subscription(job_type, subscription_nodes, extra_params=extra_params)
         else:
             # 重装、卸载等操作
             # 此步骤需要校验密码、秘钥
@@ -448,7 +451,7 @@ class JobHandler(APIModel):
                 raise exceptions.AllIpFiltered(
                     data={"job_id": "", "ip_filter": self.ugettext_to_unicode(ip_filter_list)}
                 )
-            subscription = self.create_subscription(job_type, subscription_nodes)
+            subscription = self.create_subscription(job_type, subscription_nodes, extra_params=extra_params)
 
         # ugettext_lazy 需要转为 unicode 才可进行序列化
         ip_filter_list = self.ugettext_to_unicode(ip_filter_list)
@@ -681,13 +684,13 @@ class JobHandler(APIModel):
 
         return update_data_info["subscription_host_ids"], ip_filter_list
 
-    def operate(self, job_type, bk_host_ids, bk_biz_scope):
+    def operate(self, job_type, bk_host_ids, bk_biz_scope, extra_params):
         """
         用于只有bk_host_id参数的下线、重启等操作
         """
         # 校验器进行校验
 
-        subscription = self.create_subscription(job_type, bk_host_ids)
+        subscription = self.create_subscription(job_type, bk_host_ids, extra_params=extra_params)
 
         return tools.JobTools.create_job(
             job_type=job_type,
@@ -703,11 +706,12 @@ class JobHandler(APIModel):
             },
         )
 
-    def create_subscription(self, job_type, nodes: list):
+    def create_subscription(self, job_type, nodes: list, extra_params: Optional[Dict[str, Any]] = None):
         """
         创建订阅任务
         :param job_type: INSTALL_AGENT
         :param nodes: 任务范围
+        :param extra_params: 额外的配置
 
         1.重装、卸载等操作
         [{"bk_host_id": 1}, {"bk_host_id": 2}]
@@ -740,6 +744,7 @@ class JobHandler(APIModel):
         ]
         :return:
         """
+        extra_params = extra_params or {}
         params = {
             "run_immediately": True,
             "bk_app_code": "nodeman",
@@ -750,7 +755,7 @@ class JobHandler(APIModel):
                     "id": "agent",
                     "type": "AGENT",
                     "config": {"job_type": job_type},
-                    "params": {"context": {}, "blueking_language": get_language()},
+                    "params": {"context": {}, "blueking_language": get_language(), **extra_params},
                 }
             ],
         }
