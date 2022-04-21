@@ -86,3 +86,7 @@ class RemoveSerializer(serializers.Serializer):
             raise ValidationError(_("必须选择一种模式(【是否跨页全选】)"))
 
         return attrs
+
+
+class SyncCmdbHostSerializer(serializers.Serializer):
+    bk_biz_id = serializers.IntegerField(label=_("业务ID"), required=True)

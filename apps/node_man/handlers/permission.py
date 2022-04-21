@@ -411,6 +411,9 @@ class HostPermission(permissions.BasePermission):
 
             has_biz_scope_node_type_operate_permission(request, constants.NodeType.PROXY, {host.bk_biz_id})
             return True
+        elif view.action == "sync_cmdb_host":
+            CmdbHandler().check_biz_permission([validated_data["bk_biz_id"]], ActionEnum.AGENT_OPERATE.id)
+            return True
         elif view.action in ["search"]:
             # 此类接口不鉴权或在接口中插入是否有权限的字段，以便前端进行展示并申请
             return True
