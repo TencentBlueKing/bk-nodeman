@@ -17,12 +17,14 @@ from apps.node_man.handlers.cmdb import CmdbHandler
 from apps.node_man.handlers.host import HostHandler
 from apps.node_man.handlers.permission import HostPermission
 from apps.node_man.models import Host
+from apps.node_man.periodic_tasks import sync_cmdb_host_periodic_task
 from apps.node_man.serializers.host import (
     BizProxySerializer,
     HostSerializer,
     HostUpdateSerializer,
     ProxySerializer,
     RemoveSerializer,
+    SyncCmdbHostSerializer,
 )
 from apps.utils.local import get_request_username
 
@@ -182,3 +184,8 @@ class HostViewSet(ModelViewSet):
         @apiParam {String} [password] 密码
         """
         return Response(HostHandler().update_proxy_info(self.validated_data))
+
+    @action(detail=False, methods=["GET"], serializer_class=SyncCmdbHostSerializer)
+    def sync_cmdb_host(self, request):
+        sync_cmdb_host_periodic_task(self.validated_data["bk_biz_id"])
+        return Response()
