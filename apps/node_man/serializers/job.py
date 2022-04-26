@@ -8,6 +8,9 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import typing
+from collections import defaultdict
+
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
@@ -16,6 +19,7 @@ from apps.node_man import constants, models, tools
 from apps.node_man.handlers import validator
 from apps.node_man.handlers.cmdb import CmdbHandler
 from apps.node_man.handlers.host import HostHandler
+from apps.node_man.periodic_tasks.sync_cmdb_host import bulk_differential_sync_biz_hosts
 
 
 class SortSerializer(serializers.Serializer):
@@ -129,16 +133,29 @@ class InstallSerializer(serializers.Serializer):
         if attrs["job_type"] == constants.JobType.REPLACE_PROXY and not attrs.get("replace_host_id"):
             raise ValidationError(_("替换PROXY必须填写replace_host_id."))
 
+        expected_bk_host_ids_gby_bk_biz_id: typing.Dict[int, typing.List[int]] = defaultdict(list)
         rsa_util = tools.HostTools.get_rsa_util()
         fields_need_decrypt = ["password", "key"]
         # 密码解密
         for host in attrs["hosts"]:
+            # 解密
             for field_need_decrypt in fields_need_decrypt:
                 if not isinstance(host.get(field_need_decrypt), str):
                     continue
                 host[field_need_decrypt] = tools.HostTools.decrypt_with_friendly_exc_handle(
                     rsa_util=rsa_util, encrypt_message=host[field_need_decrypt], raise_exec=ValidationError
                 )
+
+            if attrs["op_type"] not in [constants.OpType.INSTALL, constants.OpType.REPLACE]:
+                if "bk_host_id" not in host:
+                    raise ValidationError(_("主机信息缺少主机ID（bk_host_id）"))
+                if "bk_biz_id" not in host:
+                    raise ValidationError(_("主机信息缺少业务ID（bk_biz_id）"))
+                expected_bk_host_ids_gby_bk_biz_id[host["bk_biz_id"]].append(host["bk_host_id"])
+
+        if attrs["op_type"] not in [constants.OpType.INSTALL, constants.OpType.REPLACE]:
+            # 差量同步主机
+            bulk_differential_sync_biz_hosts(expected_bk_host_ids_gby_bk_biz_id)
         return attrs
 
 
