@@ -1,0 +1,3 @@
+---
+bugfix:
+  - "init_official_plugins 命令支持第三方存储(close #708)"
