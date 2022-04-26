@@ -281,20 +281,7 @@ class FileSystemTestCase(utils.PluginBaseTestCase):
 
 class BkRepoTestCase(FileSystemTestCase):
     FILE_OVERWRITE = True
-    OVERWRITE_OBJ__KV_MAP = {
-        settings: {
-            "FILE_OVERWRITE": FILE_OVERWRITE,
-            "STORAGE_TYPE": core_files_constants.StorageType.BLUEKING_ARTIFACTORY.value,
-            "BKREPO_USERNAME": "username",
-            "BKREPO_PASSWORD": "blueking",
-            "BKREPO_PROJECT": "project",
-            "BKREPO_BUCKET": "private",
-            "BKREPO_PUBLIC_BUCKET": "public",
-            "BKREPO_ENDPOINT_URL": "http://127.0.0.1",
-        },
-        utils.CustomBKRepoMockStorage: {"file_overwrite": FILE_OVERWRITE},
-        base.StorageFileOverwriteMixin: {"file_overwrite": FILE_OVERWRITE},
-    }
+    OVERWRITE_OBJ__KV_MAP = utils.OVERWRITE_OBJ__KV_MAP
 
     @classmethod
     def setUpClass(cls):
