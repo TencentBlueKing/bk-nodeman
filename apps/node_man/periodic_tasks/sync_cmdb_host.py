@@ -9,16 +9,46 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import math
+import typing
 
 from celery.schedules import crontab
 from celery.task import periodic_task
 from django.conf import settings
+from django.db import transaction
 
 from apps.component.esbclient import client_v2
 from apps.exceptions import ComponentCallError
+from apps.node_man import constants
 from apps.node_man import constants as const
 from apps.node_man import models, tools
+from apps.utils.batch_request import batch_request
+from apps.utils.concurrent import batch_call
 from common.log import logger
+
+
+def query_biz_hosts(bk_biz_id: int, bk_host_ids: typing.List[int]) -> typing.List[typing.Dict]:
+    """
+    获取业务下主机
+    :param bk_biz_id: 业务ID
+    :param bk_host_ids: 主机ID 列表
+    :return: 主机列表
+    """
+    query_params = {
+        "fields": constants.LIST_BIZ_HOSTS_KWARGS,
+        "host_property_filter": {
+            "condition": "AND",
+            "rules": [{"field": "bk_host_id", "operator": "in", "value": bk_host_ids}],
+        },
+    }
+    if bk_biz_id == settings.BK_CMDB_RESOURCE_POOL_BIZ_ID:
+        query_hosts_api = client_v2.cc.list_resource_pool_hosts
+    else:
+        query_params["bk_biz_id"] = bk_biz_id
+        query_hosts_api = client_v2.cc.list_biz_hosts
+
+    hosts = batch_request(query_hosts_api, query_params)
+
+    return hosts
 
 
 def query_bk_biz_ids(task_id):
@@ -89,12 +119,16 @@ def _generate_host(biz_id, host, bk_host_innerip, bk_host_outerip, ap_id):
 
     identify_data = models.IdentityData(
         bk_host_id=host["bk_host_id"],
-        auth_type="PASSWORD",
+        auth_type=constants.AuthType.PASSWORD,
         account=const.WINDOWS_ACCOUNT if os_type == const.OsType.WINDOWS else const.LINUX_ACCOUNT,
         port=const.WINDOWS_PORT if os_type == const.OsType.WINDOWS else settings.BKAPP_DEFAULT_SSH_PORT,
     )
 
-    process_status_data = models.ProcessStatus(bk_host_id=host["bk_host_id"], name="gseagent")
+    process_status_data = models.ProcessStatus(
+        bk_host_id=host["bk_host_id"],
+        source_type=models.ProcessStatus.SourceType.DEFAULT,
+        name=models.ProcessStatus.GSE_AGENT_PROCESS_NAME,
+    )
 
     return host_data, identify_data, process_status_data
 
@@ -115,24 +149,35 @@ def update_or_create_host_base(biz_id, task_id, cmdb_host_data):
     bk_host_ids = [_host["bk_host_id"] for _host in cmdb_host_data]
 
     # 查询节点管理已存在的主机
-    exist_proxy_host_ids = models.Host.objects.filter(bk_host_id__in=bk_host_ids, node_type="PROXY").values_list(
-        "bk_host_id", flat=True
+    exist_proxy_host_ids: typing.Set[int] = set(
+        models.Host.objects.filter(bk_host_id__in=bk_host_ids, node_type="PROXY").values_list("bk_host_id", flat=True)
     )
-    exist_agent_host_ids = (
+    exist_agent_host_ids: typing.Set[int] = set(
         models.Host.objects.filter(bk_host_id__in=bk_host_ids)
-        .exclude(node_type="PROXY")
+        .exclude(node_type=constants.NodeType.PROXY)
         .values_list("bk_host_id", flat=True)
     )
+    host_ids_in_exist_identity_data: typing.Set[int] = set(
+        models.IdentityData.objects.filter(bk_host_id__in=bk_host_ids).values_list("bk_host_id", flat=True)
+    )
+    host_ids_in_exist_proc_statuses: typing.Set[int] = set(
+        models.ProcessStatus.objects.filter(
+            bk_host_id__in=bk_host_ids,
+            name=models.ProcessStatus.GSE_AGENT_PROCESS_NAME,
+            source_type=models.ProcessStatus.SourceType.DEFAULT,
+        ).values_list("bk_host_id", flat=True)
+    )
 
-    need_update_hosts = []
-    need_update_hosts_without_biz = []
-    need_update_hosts_without_os = []
-    need_update_hosts_without_biz_os = []
-    need_create_hosts = []
-    host_identity_objs = []
-    process_status_objs = []
-    need_create_host_without_biz = []
-    need_delete_host_ids = []
+    need_delete_host_ids: typing.Set[int] = set()
+    need_create_host_without_biz: typing.List[typing.Dict] = []
+    need_update_hosts: typing.List[models.Host] = []
+    need_update_hosts_without_biz: typing.List[models.Host] = []
+    need_update_hosts_without_os: typing.List[models.Host] = []
+    need_update_hosts_without_biz_os: typing.List[models.Host] = []
+    need_create_hosts: typing.List[models.Host] = []
+    need_update_host_identity_objs: typing.List[models.IdentityData] = []
+    need_create_host_identity_objs: typing.List[models.IdentityData] = []
+    need_create_process_status_objs: typing.List[models.ProcessStatus] = []
 
     ap_id = const.DEFAULT_AP_ID if models.AccessPoint.objects.count() > 1 else models.AccessPoint.objects.first().id
 
@@ -201,8 +246,12 @@ def update_or_create_host_base(biz_id, task_id, cmdb_host_data):
                     biz_id, host, bk_host_innerip, bk_host_outerip, ap_id
                 )
                 need_create_hosts.append(host_data)
-                host_identity_objs.append(identify_data)
-                process_status_objs.append(process_status_data)
+                if identify_data.bk_host_id not in host_ids_in_exist_identity_data:
+                    need_create_host_identity_objs.append(identify_data)
+                else:
+                    need_update_host_identity_objs.append(identify_data)
+                if process_status_data.bk_host_id not in host_ids_in_exist_proc_statuses:
+                    need_create_process_status_objs.append(process_status_data)
 
     if need_create_host_without_biz:
         # 查询业务主机数据进行创建
@@ -221,20 +270,66 @@ def update_or_create_host_base(biz_id, task_id, cmdb_host_data):
                     ap_id,
                 )
                 need_create_hosts.append(host_data)
-                host_identity_objs.append(identify_data)
-                process_status_objs.append(process_status_data)
+                if identify_data.bk_host_id not in host_ids_in_exist_identity_data:
+                    need_create_host_identity_objs.append(identify_data)
+                else:
+                    need_update_host_identity_objs.append(identify_data)
+                if process_status_data.bk_host_id not in host_ids_in_exist_proc_statuses:
+                    need_create_process_status_objs.append(process_status_data)
 
-    _bulk_update_host(need_update_hosts, ["bk_biz_id", "bk_cloud_id", "inner_ip", "outer_ip", "os_type"])
-    _bulk_update_host(need_update_hosts_without_biz, ["bk_cloud_id", "inner_ip", "outer_ip", "os_type"])
-    _bulk_update_host(need_update_hosts_without_os, ["bk_biz_id", "bk_cloud_id", "inner_ip", "outer_ip"])
-    _bulk_update_host(need_update_hosts_without_biz_os, ["bk_cloud_id", "inner_ip", "outer_ip"])
+    with transaction.atomic():
+        _bulk_update_host(need_update_hosts, ["bk_biz_id", "bk_cloud_id", "inner_ip", "outer_ip", "os_type"])
+        _bulk_update_host(need_update_hosts_without_biz, ["bk_cloud_id", "inner_ip", "outer_ip", "os_type"])
+        _bulk_update_host(need_update_hosts_without_os, ["bk_biz_id", "bk_cloud_id", "inner_ip", "outer_ip"])
+        _bulk_update_host(need_update_hosts_without_biz_os, ["bk_cloud_id", "inner_ip", "outer_ip"])
 
-    if need_create_hosts:
-        models.Host.objects.bulk_create(need_create_hosts)
-        models.IdentityData.objects.bulk_create(host_identity_objs)
-        models.ProcessStatus.objects.bulk_create(process_status_objs)
+        if need_create_hosts:
+            models.Host.objects.bulk_create(need_create_hosts, batch_size=500)
+        if need_create_host_identity_objs:
+            models.IdentityData.objects.bulk_create(need_create_host_identity_objs, batch_size=500)
+        if need_update_host_identity_objs:
+            models.IdentityData.objects.bulk_update(
+                need_update_host_identity_objs, fields=["auth_type", "account", "port"], batch_size=500
+            )
+        if need_create_process_status_objs:
+            models.ProcessStatus.objects.bulk_create(need_create_process_status_objs, batch_size=500)
 
     return bk_host_ids, list(need_delete_host_ids)
+
+
+def sync_biz_incremental_hosts(bk_biz_id: int, expected_bk_host_ids: typing.Iterable[int]):
+    """
+    同步业务增量主机
+    :param bk_biz_id: 业务ID
+    :param expected_bk_host_ids: 期望得到的主机ID列表
+    :return:
+    """
+    expected_bk_host_ids: typing.Set[int] = set(expected_bk_host_ids)
+    exists_host_ids: typing.Set[int] = set(
+        models.Host.objects.filter(bk_biz_id=bk_biz_id, bk_host_id__in=expected_bk_host_ids).values_list(
+            "bk_host_id", flat=True
+        )
+    )
+    # 计算出对比本地主机缓存，增量的主机 ID
+    incremental_host_ids: typing.List[int] = list(expected_bk_host_ids - exists_host_ids)
+    # 尝试获取增量主机信息
+    hosts: typing.List[typing.Dict] = query_biz_hosts(bk_biz_id=bk_biz_id, bk_host_ids=incremental_host_ids)
+    # 更新本地缓存
+    update_or_create_host_base(
+        biz_id=bk_biz_id, task_id=f"differential_sync_biz_hosts_{bk_biz_id}", cmdb_host_data=hosts
+    )
+
+
+def bulk_differential_sync_biz_hosts(expected_bk_host_ids_gby_bk_biz_id: typing.Dict[int, typing.Iterable[int]]):
+    """
+    并发同步增量主机
+    :param expected_bk_host_ids_gby_bk_biz_id: 按业务ID聚合主机ID列表
+    :return:
+    """
+    params_list: typing.List[typing.Dict] = []
+    for bk_biz_id, bk_host_ids in expected_bk_host_ids_gby_bk_biz_id.items():
+        params_list.append({"bk_biz_id": bk_biz_id, "expected_bk_host_ids": bk_host_ids})
+    batch_call(func=sync_biz_incremental_hosts, params_list=params_list)
 
 
 def _update_or_create_host(biz_id, start=0, task_id=None):
