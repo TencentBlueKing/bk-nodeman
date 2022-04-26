@@ -21,7 +21,7 @@ import mock
 from django.conf import settings
 
 from apps.backend.plugin import tasks
-from apps.core.files import storage
+from apps.core.files import base, core_files_constants, storage
 from apps.mock_data import common_unit
 from apps.node_man import constants, models
 from apps.utils import files
@@ -312,3 +312,19 @@ class CustomBKRepoMockStorage(storage.CustomBKRepoStorage):
 
     def delete(self, name):
         return self.mock_storage.delete(name)
+
+
+OVERWRITE_OBJ__KV_MAP = {
+    settings: {
+        "FILE_OVERWRITE": True,
+        "STORAGE_TYPE": core_files_constants.StorageType.BLUEKING_ARTIFACTORY.value,
+        "BKREPO_USERNAME": "username",
+        "BKREPO_PASSWORD": "blueking",
+        "BKREPO_PROJECT": "project",
+        "BKREPO_BUCKET": "private",
+        "BKREPO_PUBLIC_BUCKET": "public",
+        "BKREPO_ENDPOINT_URL": "http://127.0.0.1",
+    },
+    CustomBKRepoMockStorage: {"file_overwrite": True},
+    base.StorageFileOverwriteMixin: {"file_overwrite": True},
+}
