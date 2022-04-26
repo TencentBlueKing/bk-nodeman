@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+import mock
 from django.conf import settings
 from django.core.management import call_command
 
@@ -28,3 +29,12 @@ class ImportCommandTestCase(utils.PluginBaseTestCase):
         self.assertTrue(models.Packages.objects.all().exists())
         self.assertTrue(models.UploadPackage.objects.all().exists())
         self.assertTrue(models.PluginConfigTemplate.objects.all().exists())
+
+
+class ImportCommandBkRepoTestCase(ImportCommandTestCase):
+    OVERWRITE_OBJ__KV_MAP = utils.OVERWRITE_OBJ__KV_MAP
+
+    @classmethod
+    def setUpClass(cls):
+        mock.patch("apps.core.files.storage.CustomBKRepoStorage", utils.CustomBKRepoMockStorage).start()
+        super().setUpClass()

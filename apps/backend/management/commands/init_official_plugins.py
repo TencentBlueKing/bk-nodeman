@@ -20,6 +20,7 @@ from django.core.management.base import BaseCommand
 from django.db.transaction import atomic
 
 from apps.backend.plugin import tools
+from apps.core.files.storage import get_storage
 from apps.node_man import models
 from apps.utils.files import md5sum
 from common.log import logger
@@ -38,6 +39,8 @@ class Command(BaseCommand):
         # 成功导入插件包的技术
         package_count = 0
 
+        storage = get_storage()
+
         # 1. 遍历寻找所有符合条件的插件文件
         # 此处使用walk的原因，主要是考虑后续需要使用文件夹来隔离不同类型的插件，所以使用walk而非listdir
         for dir_path, _, file_list in os.walk(settings.BK_OFFICIAL_PLUGINS_INIT_PATH):
@@ -54,6 +57,8 @@ class Command(BaseCommand):
                     logger.warning("file->[%s] is not tar file, will not try to import it." % file_abs_path)
                     continue
 
+                with open(file=file_abs_path, mode="rb") as fs:
+                    file_path = storage.save(name=os.path.join(settings.UPLOAD_PATH, file_name), content=fs)
                 # 2. 尝试导入这个文件
                 with atomic():
                     upload_record = models.UploadPackage.create_record(
@@ -63,7 +68,7 @@ class Command(BaseCommand):
                         md5=md5sum(name=file_abs_path),
                         operator="system",
                         source_app_code="bk_nodeman",
-                        file_name=file_name,
+                        file_name=os.path.basename(file_path),
                         is_file_copy=True,
                     )
 
