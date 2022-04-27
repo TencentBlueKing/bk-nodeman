@@ -263,11 +263,12 @@ class TestJob(TestCase):
         create_cloud_area(number)
 
         # 测试【全部被过滤】
-        ip = "255.255.255.254"
+        ip = "127.0.0.1"
         data = gen_job_data("INSTALL_AGENT", 1, ip=ip)
         self.job_install(data["hosts"], data["op_type"], data["node_type"], data["job_type"], "ticket")
         host = Host.objects.get(inner_ip=ip)
-        self.assertEqual(host.inner_ip, ip)
+        host.bk_biz_id = host.bk_biz_id + 1
+        host.save()
         self.assertRaises(
             AllIpFiltered,
             self.job_install,
