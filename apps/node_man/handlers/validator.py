@@ -350,6 +350,15 @@ def install_validate(
             and cloud_inner_ip in inner_ip_info
             and job_type != const.JobType.INSTALL_PROXY  # 这里允许把Agent安装为proxy，因此不做IP冲突检查
         ):
+            # 业务 / 内网IP / 云区域 一致时，视为重装，而不是占用
+            if all(
+                [
+                    inner_ip_info[cloud_inner_ip]["bk_biz_id"] == bk_biz_id,
+                    inner_ip_info[cloud_inner_ip]["inner_ip"] == ip,
+                ]
+            ):
+                accept_list.append(dict(host))
+                continue
             # 已被占用则跳过并记录
             error_host["msg"] = _(
                 """
