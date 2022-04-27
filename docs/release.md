@@ -1,5 +1,22 @@
 # Release
 
+## 2.2.12 - 2022-04-27 
+
+
+### bugfix: 
+  * 二进制部署后台状态展示异常(close #741)
+  * Helm ServiceMonitor 渲染错误 (fixed #701)
+  * init_official_plugins 命令支持第三方存储(close #708)
+
+### feature: 
+  * Agent 安装接口提供 是否安装最新版本插件 选项 (closed #692)
+  * 同步业务主机接口 (closed #694)
+  * SaaS 相关任务创建接口返回任务链接 (closed #691)
+  * Agent 操作前同步增量主机 (closed #706)
+
+### optimization: 
+  * Agent 安装操作若主机存在于同业务下，视为重装 (closed #707)
+
 ## 2.2.11 - 2022-04-15 
 
 
