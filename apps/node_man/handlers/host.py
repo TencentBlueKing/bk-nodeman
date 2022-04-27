@@ -768,6 +768,7 @@ class HostHandler(APIModel):
         """
         inner_ip_info = {
             f"{host['bk_cloud_id']}-{host['inner_ip']}": {
+                "inner_ip": host["inner_ip"],
                 "outer_ip": host["outer_ip"],
                 "login_ip": host["login_ip"],
                 "bk_cloud_id": host["bk_cloud_id"],

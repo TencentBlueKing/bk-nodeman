@@ -1,0 +1,3 @@
+---
+optimization:
+  - "Agent 安装操作若主机存在于同业务下，视为重装 (closed #707)"
