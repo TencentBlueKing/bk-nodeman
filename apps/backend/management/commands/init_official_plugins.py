@@ -64,7 +64,7 @@ class Command(BaseCommand):
                     upload_record = models.UploadPackage.create_record(
                         # 后续可以考虑通过路径来判断
                         module="gse_plugin",
-                        file_path=file_abs_path,
+                        file_path=file_path,
                         md5=md5sum(name=file_abs_path),
                         operator="system",
                         source_app_code="bk_nodeman",

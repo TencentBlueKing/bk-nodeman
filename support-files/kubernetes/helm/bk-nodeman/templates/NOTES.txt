@@ -24,3 +24,18 @@ SaaS: {{ .Values.global.bkDomainScheme }}://bknodeman.{{ .Values.global.bkDomain
   $ kubectl get pod -n {{ .Release.Namespace }} -o wide
   $ kubectl get svc -n {{ .Release.Namespace }} -o wide
 
+
+更多实用性操作:
+
+- 导入插件包
+
+# 获取第一个存活 POD NAME
+export FIRST_RUNNING_POD=$(kubectl get pods \
+  --selector=app.kubernetes.io/instance={{ .Release.Name }} --field-selector=status.phase=Running \
+  -o custom-columns=":metadata.name" | sed '/^$/d' | head -n 1 )
+
+# 将插件包上传到容器指定目录，可以重复该步骤，导入多个插件包
+kubectl cp <插件包本地路径> -n {{ .Release.Namespace }} ${FIRST_RUNNING_POD}:/app/official_plugin/
+
+# 解析并导入插件包
+kubectl exec -n {{ .Release.Namespace }} ${FIRST_RUNNING_POD} -- python manage.py init_official_plugins

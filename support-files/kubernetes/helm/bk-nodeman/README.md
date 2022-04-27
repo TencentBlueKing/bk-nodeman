@@ -293,7 +293,7 @@ externalRabbitMQ:
 | `config.bkAppBackendHost`             | 节点管理自身模块依赖，后台访问地址，渲染时为空默认取 `{{ .Values.bkNodemanApiUrl }}` | `""`                           |
 | `config.bkAppNodemanCallbackUrl`      | 节点管理自身模块依赖，后台内网回调地址，渲染时为空取 `{{ .Values.bkNodemanUrl }}/backend` | `""`                           |
 | `config.bkAppNodemanOuterCallbackUrl` | 节点管理自身模块依赖，后台外网回调地址，渲染时为空取 `{{ .Values.bkNodemanUrl }}/backend` | `""`                           |
-| `config.gseEnableSvrDisCovery`        | 蓝鲸管控平台 Agent，AgentXXDir 仅在初次部署有效，后续可以在页面「全局配置」维护。是否启用 GSE 服务探测，为 `true` | `""`                           |
+| `config.gseEnableSvrDisCovery`        | 蓝鲸管控平台 Agent，AgentXXDir 仅在初次部署有效，后续可以在页面「全局配置」维护。是否启用 GSE 服务探测，默认为 `true` | `true`                         |
 | `config.bkAppGseZkHost`               | 蓝鲸管控平台 Agent，ZK hosts 信息，host:port，多个 hosts 以 `,` 分隔 | `127.0.0.1:2181`               |
 | `config.bkAppGseZkAuth`               | 蓝鲸管控平台 Agent，ZK 认证信息，用户名:密码                 | `bkzk:zkpass`                  |
 | `config.bkAppGseAgentHome`            | 蓝鲸管控平台 Agent，AgentXXDir 仅在初次部署有效，后续可以在页面「全局配置」维护。Linux Agent 安装目录 | `/usr/local/gse`               |
