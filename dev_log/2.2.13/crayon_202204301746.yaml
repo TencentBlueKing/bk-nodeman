@@ -1,0 +1,3 @@
+---
+optimization:
+  - "统计订阅任务数据接口优化 (closed #695)"
