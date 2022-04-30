@@ -11,10 +11,13 @@ specific language governing permissions and limitations under the License.
 from __future__ import absolute_import, unicode_literals
 
 import logging
-from collections import Counter
+import random
+from collections import Counter, defaultdict
 from copy import deepcopy
 from typing import Any, Dict, List, Set
 
+from django.conf import settings
+from django.core.cache import cache
 from django.db.models import Max, Q, QuerySet
 from django.utils.translation import get_language
 from django.utils.translation import ugettext as _
@@ -400,3 +403,108 @@ class SubscriptionHandler(object):
             )
 
         return {"task_id": subscription_task.id, "subscription_id": subscription.id}
+
+    @staticmethod
+    def statistic(subscription_id_list: List[int]) -> List[Dict]:
+        """
+        订阅任务状态统计
+        :param subscription_id_list:
+        :return:
+        """
+
+        cache_keys: List[str] = []
+        cache_key_tmpl = settings.CACHE_KEY_TMPL.format(scope="subscription:statistic", body="sub_id:{sub_id}")
+        for subscription_id in subscription_id_list:
+            cache_keys.append(cache_key_tmpl.format(sub_id=subscription_id))
+
+        # 尝试从缓存中获取统计结果
+        hit_sub_statistic_list: List[Dict] = list(cache.get_many(cache_keys).values())
+        hit_sub_ids: Set[int] = {hit_sub_statistic["subscription_id"] for hit_sub_statistic in hit_sub_statistic_list}
+
+        logger.info(f"cache_keys -> {cache_keys}, hit_sub_ids -> {hit_sub_ids}")
+
+        miss_sub_ids: Set[int] = set(subscription_id_list) - hit_sub_ids
+        if not miss_sub_ids:
+            logger.info("All cache hits, return the result directly")
+            return hit_sub_statistic_list
+
+        logger.info(f"miss_sub_ids -> {miss_sub_ids}")
+        subscriptions = models.Subscription.objects.filter(id__in=miss_sub_ids)
+
+        host_statuses = models.ProcessStatus.objects.filter(
+            source_id__in=subscription_id_list, source_type=models.ProcessStatus.SourceType.DEFAULT
+        ).values("version", "group_id", "name", "id")
+
+        instance_host_statuses = defaultdict(dict)
+        for host_status in host_statuses:
+            instance_host_statuses[host_status["group_id"]][host_status["id"]] = host_status
+
+        subscription_instances = list(
+            models.SubscriptionInstanceRecord.objects.filter(
+                subscription_id__in=subscription_id_list, is_latest=True
+            ).values("subscription_id", "instance_id", "status")
+        )
+        subscription_instance_status_map = defaultdict(dict)
+        for sub_inst in subscription_instances:
+            subscription_instance_status_map[sub_inst["subscription_id"]][sub_inst["instance_id"]] = {
+                "status": sub_inst["status"]
+            }
+
+        sub_statistic_list: List[Dict] = []
+        for subscription in subscriptions:
+            sub_statistic = {"subscription_id": subscription.id, "status": []}
+            current_instances = tools.get_instances_by_scope(subscription.scope, get_cache=True)
+
+            status_statistic = {"SUCCESS": 0, "PENDING": 0, "FAILED": 0, "RUNNING": 0}
+            plugin_versions = defaultdict(lambda: defaultdict(int))
+            for instance_id, instance_info in current_instances.items():
+                try:
+                    group_id = tools.create_group_id(subscription, instance_info)
+                except KeyError:
+                    # 在订阅变更 node_type & 缓存不一致时可能会发生，极小概率事件，记录堆栈并忽略
+                    logger.exception(
+                        f"create group id failed: subscription -> {subscription.id}, instance_info -> {instance_info}"
+                    )
+                    continue
+
+                if group_id not in instance_host_statuses:
+                    continue
+
+                if instance_id not in subscription_instance_status_map.get(subscription.id, {}):
+                    continue
+
+                sub_instance_status = subscription_instance_status_map[subscription.id][instance_id]
+
+                # 订阅实例任务状态统计
+                status_statistic[sub_instance_status["status"]] += 1
+                # 版本统计
+                host_statuses = instance_host_statuses.get(group_id, {}).values()
+                for host_status in host_statuses:
+                    plugin_versions[host_status["name"]][host_status["version"]] += 1
+
+            sub_statistic["versions"] = [
+                {"version": version, "count": count, "name": name}
+                for name, versions in plugin_versions.items()
+                for version, count in versions.items()
+            ]
+            sub_statistic["instances"] = sum(status_statistic.values())
+            for status, count in status_statistic.items():
+                sub_statistic["status"].append({"status": status, "count": count})
+
+            cache_key = cache_key_tmpl.format(sub_id=subscription.id)
+            # 缓存时间范围： 16s ~ 35s
+            # 根据数据规模，每增加 1k 缓存增加 1s，最多 15s
+            cache_expires: int = 15 * constants.TimeUnit.SECOND + random.randint(
+                constants.TimeUnit.SECOND,
+                5 * constants.TimeUnit.SECOND
+                + min(15 * constants.TimeUnit.SECOND, int(sub_statistic["instances"] / 1000)),
+            )
+            logger.info(
+                f"sub_statistic will be cached: cache_key -> {cache_key}, sub_statistic -> {sub_statistic}, "
+                f"instances -> {sub_statistic['instances']}, expires -> {cache_expires}s"
+            )
+            cache.set(cache_key, sub_statistic, cache_expires)
+
+            sub_statistic_list.append(sub_statistic)
+
+        return sub_statistic_list + hit_sub_statistic_list

@@ -175,7 +175,7 @@ class CreateRecordError(NodeManBaseException):
 
 class ApNotSupportOsError(NodeManBaseException):
     MESSAGE = _("接入点不支持此机器的操作系统.")
-    MESSAGE_TPL = _("接入点不[{ap_id}]支持此机器的操作系统[{os_type}]")
+    MESSAGE_TPL = _("接入点[{ap_id}]不支持此机器的操作系统[{os_type}]")
     ERROR_CODE = 35
 
 

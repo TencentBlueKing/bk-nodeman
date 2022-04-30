@@ -10,7 +10,6 @@ specific language governing permissions and limitations under the License.
 """
 import copy
 import hashlib
-import json
 import logging
 import math
 import os
@@ -21,7 +20,6 @@ from itertools import groupby
 from typing import Any, Dict, List, Union
 
 from django.conf import settings
-from django.core.cache import cache
 from django.db.models import Q
 from django.utils import timezone
 
@@ -41,7 +39,6 @@ from apps.node_man import tools as node_man_tools
 from apps.utils.basic import chunk_lists, distinct_dict_list, order_dict
 from apps.utils.batch_request import batch_request, request_multi_thread
 from apps.utils.cache import func_cache_decorator
-from apps.utils.md5 import count_md5
 from apps.utils.time_handler import strftime_local
 
 logger = logging.getLogger("app")
@@ -789,13 +786,6 @@ def get_instances_by_scope(scope: Dict[str, Union[Dict, int, Any]]) -> Dict[str,
             data.update(instance["service"])
         instances_dict[create_node_id(data)] = instance
 
-    # 进行缓存，提高部分接口查询效率，避免重复请求
-    scope_md5 = count_md5(scope)
-    cache.set(
-        "bknodeman:subscription_scope_cache_{}".format(scope_md5),
-        json.dumps(instances_dict),
-        SUBSCRIPTION_SCOPE_CACHE_TIME,
-    )
     return instances_dict
 
 
