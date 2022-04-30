@@ -207,6 +207,10 @@ class FetchCommandsSerializer(serializers.Serializer):
 class SubscriptionStatisticSerializer(serializers.Serializer):
     subscription_id_list = serializers.ListField()
 
+    def validate(self, attrs):
+        attrs["subscription_id_list"] = list(set(attrs["subscription_id_list"]))
+        return attrs
+
 
 class SearchDeployPolicySerializer(GatewaySerializer):
     class SortSerializer(serializers.Serializer):

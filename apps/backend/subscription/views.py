@@ -478,68 +478,8 @@ class SubscriptionViewSet(APIViewSet):
         @apiGroup subscription
         """
         params = self.get_validated_data()
-
         subscription_id_list = params["subscription_id_list"]
-
-        subscriptions = models.Subscription.objects.filter(id__in=params["subscription_id_list"], is_deleted=False)
-
-        # 插件version 统计
-        host_statuses = models.ProcessStatus.objects.filter(
-            source_id__in=subscription_id_list,
-            source_type=models.ProcessStatus.SourceType.SUBSCRIPTION,
-        ).only("version", "group_id", "name", "id")
-
-        instance_host_statuses = defaultdict(dict)
-        for host_status in host_statuses:
-            instance_host_statuses[host_status.group_id][host_status.id] = host_status
-
-        # 实例状态统计
-        subscription_instances = list(
-            models.SubscriptionInstanceRecord.objects.filter(
-                subscription_id__in=subscription_id_list, is_latest=True
-            ).values("subscription_id", "instance_id", "status", "instance_info")
-        )
-        subscription_instance_status_map = defaultdict(dict)
-        for sub_inst in subscription_instances:
-            subscription_instance_status_map[sub_inst["subscription_id"]][sub_inst["instance_id"]] = {
-                "status": sub_inst["status"],
-                "instance_info": sub_inst["instance_info"],
-            }
-
-        result = []
-        for subscription in subscriptions:
-            data = {"subscription_id": subscription.id, "status": []}
-            current_instances = tools.get_instances_by_scope(subscription.scope, get_cache=True)
-
-            status_statistic = {"SUCCESS": 0, "PENDING": 0, "FAILED": 0, "RUNNING": 0}
-            plugin_versions = defaultdict(lambda: defaultdict(int))
-            for instance_id, __ in current_instances.items():
-                if instance_id not in subscription_instance_status_map.get(subscription.id, {}):
-                    continue
-                subscription_instance_info = subscription_instance_status_map[subscription.id][instance_id]
-                group_id = tools.create_group_id(subscription, subscription_instance_info["instance_info"])
-                if group_id not in instance_host_statuses:
-                    continue
-
-                status_statistic[subscription_instance_info["status"]] += 1
-                instance_status_list = instance_host_statuses.get(group_id).values()
-                for instance in instance_status_list:
-                    amount = plugin_versions[instance.name][instance.version] or 0
-                    amount += 1
-                    plugin_versions[instance.name][instance.version] = amount
-
-            data["versions"] = [
-                {"version": version, "count": count, "name": name}
-                for name, versions in plugin_versions.items()
-                for version, count in versions.items()
-            ]
-            data["instances"] = sum(status_statistic.values())
-            for status, count in status_statistic.items():
-                data["status"].append({"status": status, "count": count})
-
-            result.append(data)
-
-        return Response(result)
+        return Response(SubscriptionHandler.statistic(subscription_id_list))
 
     @action(detail=False, methods=["GET", "POST"], url_path="instance_status")
     def instance_status(self, request):
@@ -592,7 +532,7 @@ class SubscriptionViewSet(APIViewSet):
         """
         params = self.get_validated_data()
 
-        subscriptions = models.Subscription.objects.filter(id__in=params["subscription_id_list"], is_deleted=False)
+        subscriptions = models.Subscription.objects.filter(id__in=params["subscription_id_list"])
 
         # 查出所有HostStatus
         instance_host_statuses = defaultdict(list)
@@ -602,7 +542,7 @@ class SubscriptionViewSet(APIViewSet):
             instance_host_statuses[host_status.group_id].append(host_status)
 
         # 查出所有InstanceRecord
-        subscription_instance_record: Dict[int, Dict[int, models.SubscriptionInstanceRecord]] = defaultdict(dict)
+        subscription_instance_record: Dict[int, Dict[str, models.SubscriptionInstanceRecord]] = defaultdict(dict)
         instance_records = []
         for instance_record in models.SubscriptionInstanceRecord.objects.filter(
             subscription_id__in=params["subscription_id_list"], is_latest=True
