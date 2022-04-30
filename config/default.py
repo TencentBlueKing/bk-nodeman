@@ -401,6 +401,7 @@ CACHES.update(
 
 CACHES["default"] = CACHES["db"]
 
+CACHE_KEY_TMPL = APP_CODE + ":scope:{scope}:body:{body}"
 
 # ==============================================================================
 # 文件存储
