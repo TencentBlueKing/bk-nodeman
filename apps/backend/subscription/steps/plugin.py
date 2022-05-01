@@ -15,7 +15,7 @@ import os
 import posixpath
 from abc import ABC
 from collections import ChainMap, defaultdict
-from typing import Any, Callable, Dict, List, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
 
 import six
 from django.db.models import Q, QuerySet
@@ -28,6 +28,7 @@ from apps.backend.subscription.steps import adapter
 from apps.backend.subscription.steps.base import Action, Step
 from apps.node_man import constants, models
 from apps.node_man.exceptions import ApIDNotExistsError
+from apps.node_man.periodic_tasks import sync_proc_status_task
 from apps.utils import concurrent
 from common.log import logger
 from pipeline.builder import Data, Var
@@ -51,23 +52,30 @@ class PluginStep(Step):
         # 获取插件配置模板信息
 
         # TODO 待修改，此处port_range需要os_cpu_arch
-        self.port_range = validated_params.get("port_range")
+        self.port_range: Optional[str] = validated_params.get("port_range")
+
+        self.check_and_skip: bool = policy_step_adapter.config["check_and_skip"]
+        self.is_version_sensitive: bool = policy_step_adapter.config["is_version_sensitive"]
 
         # 更新插件包时的可选项  -- TODO
-        self.keep_config = ""
-        self.no_restart = ""
+        self.keep_config: str = ""
+        self.no_restart: str = ""
 
-        self.plugin_name = policy_step_adapter.plugin_name
-        self.plugin_desc = policy_step_adapter.plugin_desc
-        self.os_key_pkg_map = policy_step_adapter.os_key_pkg_map
-        self.config_inst_gby_os_key = policy_step_adapter.config_inst_gby_os_key
-        self.config_tmpl_gby_os_key = policy_step_adapter.config_tmpl_obj_gby_os_key
+        self.plugin_name: str = policy_step_adapter.plugin_name
+        self.plugin_desc: models.GsePluginDesc = policy_step_adapter.plugin_desc
+        self.os_key_pkg_map: Dict[str, models.Packages] = policy_step_adapter.os_key_pkg_map
+        self.config_inst_gby_os_key: Dict[
+            str, List[models.PluginConfigInstance]
+        ] = policy_step_adapter.config_inst_gby_os_key
+        self.config_tmpl_gby_os_key: Dict[
+            str, List[models.PluginConfigTemplate]
+        ] = policy_step_adapter.config_tmpl_obj_gby_os_key
 
-        self.target_hosts = subscription_step.subscription.target_hosts
+        self.target_hosts: List[Dict[str, any()]] = subscription_step.subscription.target_hosts
 
         self.process_cache = defaultdict(dict)
 
-        self.group_id_host_id__last_proc_status_map = {}
+        self.group_id_host_id__last_proc_status_map: Dict[str, Dict[str, Any]] = {}
         # 初次部署预览时订阅 ID 为空 或 -1，此时不会执行配置对比，无需进行查询
         if self.subscription.id not in [-1, None]:
             # 1. 原逻辑是查询 source_id & bk_host_id 最后一个 proc_status
@@ -544,6 +552,83 @@ class PluginStep(Step):
                 _instance_id=check_result["instance_id"], migrate_type=backend_const.PluginMigrateType.CONFIG_CHANGE
             )
 
+    def handle_check_and_skip_instances(
+        self,
+        install_action: str,
+        instance_actions: Dict[str, str],
+        push_migrate_reason_func: Callable,
+        bk_host_id__host_map: Dict[int, models.Host],
+        instances: Dict[str, Dict[str, Union[Dict, Any]]],
+    ):
+        """
+        插件状态及版本检查，确定是否执行安装
+        :param install_action:
+        :param instance_actions:
+        :param push_migrate_reason_func:
+        :param bk_host_id__host_map:
+        :param instances:
+        :return:
+        """
+        host_list: List[Dict[str, Any]] = []
+        host_id__instance_id_map: Dict[int, str] = {}
+        for instance_id, instance in instances.items():
+            bk_host_id = instance["host"].get("bk_host_id")
+            # dict in 是近似 O(1) 的操作复杂度：https://stackoverflow.com/questions/17539367/
+            if bk_host_id not in bk_host_id__host_map:
+                # 忽略未同步主机
+                continue
+            host_obj = bk_host_id__host_map[bk_host_id]
+            host_list.append({"ip": host_obj.inner_ip, "bk_cloud_id": host_obj.bk_cloud_id})
+            host_id__instance_id_map[bk_host_id] = instance_id
+
+        # TODO 后续该功能覆盖范围广的情况下，可以考虑通过延时任务回写 DB 的进程状态信息，提高时效性
+        proc_statues: List[Dict[str, Any]] = sync_proc_status_task.query_proc_status(
+            proc_name=self.plugin_name, host_list=host_list
+        )
+        host_key__readable_proc_status_map: Dict[
+            str, Dict[str, Any]
+        ] = sync_proc_status_task.proc_statues2host_key__readable_proc_status_map(proc_statues)
+
+        logger.info(f"host_key__readable_proc_status_map -> {host_key__readable_proc_status_map}")
+
+        for bk_host_id, host_obj in bk_host_id__host_map.items():
+            instance_id: str = host_id__instance_id_map[bk_host_id]
+            host_key: str = f"{host_obj.inner_ip}:{host_obj.bk_cloud_id}"
+            proc_status: Optional[Dict[str, Any]] = host_key__readable_proc_status_map.get(host_key)
+            if not proc_status:
+                # 查询不到进程状态信息视为插件状态异常
+                instance_actions[host_id__instance_id_map[bk_host_id]] = install_action
+                push_migrate_reason_func(
+                    _instance_id=instance_id, migrate_type=backend_const.PluginMigrateType.ABNORMAL_PROC_STATUS
+                )
+                continue
+
+            # 记录必要信息，便于溯源
+            base_reason_info = {
+                "status": proc_status["status"],
+                "current_version": proc_status["version"],
+                "target_version": self.get_matching_package(host_obj.os_type, host_obj.cpu_arch).version,
+            }
+
+            if base_reason_info["status"] != constants.ProcStateType.RUNNING:
+                # 插件状态异常时进行重装
+                instance_actions[host_id__instance_id_map[bk_host_id]] = install_action
+                push_migrate_reason_func(
+                    _instance_id=instance_id,
+                    migrate_type=backend_const.PluginMigrateType.ABNORMAL_PROC_STATUS,
+                    **base_reason_info,
+                )
+
+            elif self.is_version_sensitive:
+                # 版本不一致时进行重装
+                if base_reason_info["current_version"] != base_reason_info["target_version"]:
+                    instance_actions[host_id__instance_id_map[bk_host_id]] = install_action
+                    push_migrate_reason_func(
+                        _instance_id=instance_id,
+                        migrate_type=backend_const.PluginMigrateType.VERSION_CHANGE,
+                        **base_reason_info,
+                    )
+
     def filter_related_process_statuses(self, auto_trigger: bool) -> QuerySet:
         """
         查询此步骤相关联的进程状态
@@ -609,11 +694,28 @@ class PluginStep(Step):
         instance_actions = {}
         action = self.subscription_step.config.get("job_type")
         if action:
-            # 一次性任务，如指定了action，则对这些实例都执行action动作
-            return {
-                "instance_actions": {instance_id: action for instance_id in instances.keys()},
-                "migrate_reasons": migrate_reasons,
-            }
+            if self.check_and_skip and action == backend_const.ActionNameType.MAIN_INSTALL_PLUGIN:
+                bk_host_ids: Set[int] = {instance["host"].get("bk_host_id") for instance in instances.values()}
+                bk_host_id__host_map: Dict[int, models.Host] = {
+                    host.bk_host_id: host
+                    for host in models.Host.objects.filter(bk_host_id__in=bk_host_ids).only(
+                        "bk_host_id", "inner_ip", "bk_cloud_id", "os_type", "cpu_arch"
+                    )
+                }
+                self.handle_check_and_skip_instances(
+                    install_action=action,
+                    instance_actions=instance_actions,
+                    push_migrate_reason_func=_push_migrate_reason,
+                    bk_host_id__host_map=bk_host_id__host_map,
+                    instances=instances,
+                )
+                self.handle_not_change_instances(
+                    instances=instances, migrate_reasons=migrate_reasons, push_migrate_reason_func=_push_migrate_reason
+                )
+            else:
+                # 一次性任务，如指定了action，则对这些实例都执行action动作
+                instance_actions = {instance_id: action for instance_id in instances.keys()}
+            return {"instance_actions": instance_actions, "migrate_reasons": migrate_reasons}
 
         bk_host_ids = set()
         instance_ids = set()

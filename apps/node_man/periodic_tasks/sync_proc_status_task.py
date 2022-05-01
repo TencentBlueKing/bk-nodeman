@@ -9,13 +9,16 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import time
+import typing
 
 from celery.task import periodic_task, task
 from django.conf import settings
 
 from apps.component.esbclient import client_v2
+from apps.core.concurrent import controller
 from apps.node_man import constants
 from apps.node_man.models import Host, ProcessStatus
+from apps.utils import concurrent
 from apps.utils.periodic_task import calculate_countdown
 from common.log import logger
 
@@ -25,6 +28,11 @@ def get_version(version_str):
     return version.group() if version else ""
 
 
+@controller.ConcurrentController(
+    data_list_name="host_list",
+    batch_call_func=concurrent.batch_call,
+    get_config_dict_func=lambda: {"limit": constants.QUERY_PROC_STATUS_HOST_LENS},
+)
 def query_proc_status(proc_name, host_list):
     """
     上云接口测试
@@ -43,6 +51,25 @@ def query_proc_status(proc_name, host_list):
     return data.get("proc_infos") or []
 
 
+def proc_statues2host_key__readable_proc_status_map(
+    proc_statuses: typing.List[typing.Dict[str, typing.Any]]
+) -> typing.Dict[str, typing.Dict[str, typing.Any]]:
+    """
+    将原始的进程状态信息格式化为 主机唯一标识 - 可读的进程状态信息 映射关系
+    :param proc_statuses: 进程状态信息
+    :return: 主机唯一标识 - 可读的进程状态信息 映射关系
+    """
+    host_key__readable_proc_status_map: typing.Dict[str, typing.Dict[str, typing.Any]] = {}
+    for proc_status in proc_statuses:
+        host_key__readable_proc_status_map[f'{proc_status["host"]["ip"]}:{proc_status["host"]["bk_cloud_id"]}'] = {
+            "version": get_version(proc_status["version"]),
+            "status": constants.PLUGIN_STATUS_DICT[proc_status["status"]],
+            "is_auto": constants.AutoStateType.AUTO if proc_status["isauto"] else constants.AutoStateType.UNAUTO,
+            "name": proc_status["meta"]["name"],
+        }
+    return host_key__readable_proc_status_map
+
+
 @task(queue="default", ignore_result=True)
 def update_or_create_proc_status(task_id, hosts, sync_proc_list, start):
     host_ip_cloud_list = []
@@ -53,17 +80,12 @@ def update_or_create_proc_status(task_id, hosts, sync_proc_list, start):
 
     for proc_name in sync_proc_list:
         past = time.time()
-        proc_infos = query_proc_status(proc_name, host_ip_cloud_list)
+        proc_statues = query_proc_status(proc_name=proc_name, host_list=host_ip_cloud_list)
         logger.info(f"this get_proc_status cost {time.time() - past}s")
 
-        host_proc_status_map = {}
-        for info in proc_infos:
-            host_proc_status_map[f'{info["host"]["ip"]}:{info["host"]["bk_cloud_id"]}'] = {
-                "version": get_version(info["version"]),
-                "status": constants.PLUGIN_STATUS_DICT[info["status"]],
-                "is_auto": constants.AutoStateType.AUTO if info["isauto"] else constants.AutoStateType.UNAUTO,
-                "name": info["meta"]["name"],
-            }
+        host_key__readable_proc_status_map: typing.Dict[
+            str, typing.Dict[str, typing.Any]
+        ] = proc_statues2host_key__readable_proc_status_map(proc_statues)
 
         process_status_objs = ProcessStatus.objects.filter(
             name=proc_name,
@@ -73,54 +95,56 @@ def update_or_create_proc_status(task_id, hosts, sync_proc_list, start):
             is_latest=True,
         ).values("bk_host_id", "id", "name", "status")
 
-        host_proc_key__proc_map = {}
+        host_proc_key__proc_status_map = {}
         for item in process_status_objs:
-            host_proc_key__proc_map[f"{item['name']}:{item['bk_host_id']}"] = item
+            host_proc_key__proc_status_map[f"{item['name']}:{item['bk_host_id']}"] = item
 
         need_update_status = []
         need_create_status = []
 
-        for host_cloud_key, host_proc_info in host_proc_status_map.items():
-            if host_cloud_key not in bk_host_id_map:
+        for host_key, readable_proc_status in host_key__readable_proc_status_map.items():
+            if host_key not in bk_host_id_map:
                 continue
-            db_proc_info = host_proc_key__proc_map.get(f'{host_proc_info["name"]}:{bk_host_id_map[host_cloud_key]}')
+            db_proc_status = host_proc_key__proc_status_map.get(
+                f'{readable_proc_status["name"]}:{bk_host_id_map[host_key]}'
+            )
 
             # 如果DB中进程状态为手动停止，并且同步回来的进程状态为终止，此时保持手动停止的标记，用于订阅的豁免操作
             if (
-                db_proc_info
-                and db_proc_info["status"] == constants.ProcStateType.MANUAL_STOP
-                and host_proc_info["status"] == constants.ProcStateType.TERMINATED
+                db_proc_status
+                and db_proc_status["status"] == constants.ProcStateType.MANUAL_STOP
+                and readable_proc_status["status"] == constants.ProcStateType.TERMINATED
             ):
-                host_proc_info["status"] = db_proc_info["status"]
+                readable_proc_status["status"] = db_proc_status["status"]
 
-            if db_proc_info:
+            if db_proc_status:
                 # need update
                 obj = ProcessStatus(
-                    pk=db_proc_info["id"],
-                    status=host_proc_info["status"],
-                    version=host_proc_info["version"],
-                    is_auto=host_proc_info["is_auto"],
+                    pk=db_proc_status["id"],
+                    status=readable_proc_status["status"],
+                    version=readable_proc_status["version"],
+                    is_auto=readable_proc_status["is_auto"],
                 )
                 need_update_status.append(obj)
             else:
                 # need create
                 obj = ProcessStatus(
-                    status=host_proc_info["status"],
-                    version=host_proc_info["version"],
-                    is_auto=host_proc_info["is_auto"],
-                    name=host_proc_info["name"],
+                    status=readable_proc_status["status"],
+                    version=readable_proc_status["version"],
+                    is_auto=readable_proc_status["is_auto"],
+                    name=readable_proc_status["name"],
                     source_type=ProcessStatus.SourceType.DEFAULT,
                     proc_type=constants.ProcType.PLUGIN,
-                    bk_host_id=bk_host_id_map[host_cloud_key],
+                    bk_host_id=bk_host_id_map[host_key],
                     is_latest=True,
                 )
                 # 忽略无用的进程信息
-                if obj.status != "UNREGISTER":
+                if obj.status != constants.ProcStateType.UNREGISTER:
                     need_create_status.append(obj)
 
         ProcessStatus.objects.bulk_update(need_update_status, fields=["status", "version", "is_auto"])
         ProcessStatus.objects.bulk_create(need_create_status)
-        logger.info(f"{task_id} | Sync process status start flag: {start} complate")
+        logger.info(f"{task_id} | Sync process status start flag: {start} complete")
 
 
 @periodic_task(

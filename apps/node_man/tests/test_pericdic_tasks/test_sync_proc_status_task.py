@@ -10,23 +10,33 @@ specific language governing permissions and limitations under the License.
 """
 
 import contextlib
-from unittest.mock import patch
+import importlib
+
+import mock
 
 from apps.node_man import constants
 from apps.node_man.models import Host, ProcessStatus
-from apps.node_man.periodic_tasks.sync_proc_status_task import (
-    update_or_create_proc_status,
-)
+from apps.node_man.periodic_tasks import sync_proc_status_task
 from apps.node_man.tests.test_pericdic_tasks.mock_data import (
     MOCK_HOST,
     MOCK_PROC_NAME,
     MOCK_PROC_STATUS,
 )
 from apps.node_man.tests.test_pericdic_tasks.utils import MockClient
+from apps.utils import concurrent
 from apps.utils.unittest.testcase import CustomBaseTestCase
 
 
 class TestSyncProcStatus(CustomBaseTestCase):
+    @classmethod
+    def setUpClass(cls):
+        mock.patch("apps.utils.concurrent.batch_call", concurrent.batch_call_serial).start()
+        super().setUpClass()
+
+    def setUp(self) -> None:
+        importlib.reload(sync_proc_status_task)
+        super().setUp()
+
     @contextlib.contextmanager
     def init_db(self):
         # 创造一个虚拟主机和虚拟进程信息
@@ -39,12 +49,12 @@ class TestSyncProcStatus(CustomBaseTestCase):
         Host.objects.get(bk_host_id=MOCK_HOST["bk_host_id"]).delete()
         ProcessStatus.objects.get(bk_host_id=MOCK_HOST["bk_host_id"], name=MOCK_PROC_STATUS["name"]).delete()
 
-    @patch("apps.node_man.periodic_tasks.sync_proc_status_task.client_v2", MockClient)
+    @mock.patch("apps.node_man.periodic_tasks.sync_proc_status_task.client_v2", MockClient)
     def test_update_or_create_proc_status(self, *args, **kwargs):
         with self.init_db() as mock_host:
             # 测试update_proc_status
             # result = query_proc_status("test_proc", [{"ip": "127.0.0.1", "bk_cloud_id": 0}])
-            update_or_create_proc_status(None, [mock_host], [MOCK_PROC_NAME], 0)
+            sync_proc_status_task.update_or_create_proc_status(None, [mock_host], [MOCK_PROC_NAME], 0)
             mock_proc = ProcessStatus.objects.get(bk_host_id=MOCK_HOST["bk_host_id"], name=MOCK_PROC_NAME)
             self.assertEqual(
                 [mock_proc.status, mock_proc.bk_host_id, mock_proc.name],
@@ -53,7 +63,7 @@ class TestSyncProcStatus(CustomBaseTestCase):
 
             # 测试create_proc_status 先删掉存在的proc_status
             ProcessStatus.objects.get(bk_host_id=MOCK_HOST["bk_host_id"], name=MOCK_PROC_NAME).delete()
-            update_or_create_proc_status(None, [mock_host], [MOCK_PROC_NAME], 0)
+            sync_proc_status_task.update_or_create_proc_status(None, [mock_host], [MOCK_PROC_NAME], 0)
             mock_proc = ProcessStatus.objects.get(bk_host_id=MOCK_HOST["bk_host_id"], name=MOCK_PROC_NAME)
             self.assertEqual(
                 [mock_proc.status, mock_proc.bk_host_id, mock_proc.name],
