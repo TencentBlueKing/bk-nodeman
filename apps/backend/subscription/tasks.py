@@ -13,7 +13,6 @@ from __future__ import absolute_import, unicode_literals
 import json
 import logging
 import time
-import traceback
 from collections import OrderedDict, defaultdict
 from copy import deepcopy
 from functools import wraps
@@ -222,7 +221,7 @@ def create_task_transaction(create_task_func):
                 # 仅预览，不执行动作
                 return func_return
             subscription_task.is_ready = True
-            logger.info(f"subscription_task[{subscription_task.id}] is ready, actions:{subscription_task.actions}")
+            logger.info(f"task is ready: sub_task -> {subscription_task}, actions: {subscription_task.actions}")
             subscription_task.save(update_fields=["is_ready"])
             # 创建好实例后立刻执行
             run_subscription_task(subscription_task)
@@ -367,11 +366,10 @@ def create_task(
         )
 
     if not to_be_created_records_map:
-        logger.warning(
-            "subscription_task[{subscription_task_id}] 没有需要执行的主机".format(subscription_task_id=subscription_task.id)
-        )
+        logger.warning(f"[create task] skipped: no instances to execute, subscription_task -> {subscription_task}")
         if subscription_task.is_auto_trigger:
             # 如果是自动触发，且没有任何实例，那么直接抛出异常，回滚数据库
+            logger.info("[create task] auto trigger task will rollback")
             raise SubscriptionInstanceEmpty()
 
         # 非自动触发的直接退出即可
@@ -401,9 +399,8 @@ def create_task(
     subscription_task.pipeline_id = pipeline.id
     subscription_task.save(update_fields=["actions", "pipeline_id"])
     logger.info(
-        "subscription({}),subscription_task({})  execute actions: {}".format(
-            subscription.id, subscription_task.id, instance_actions
-        )
+        f"[create task] succeed: subscription -> {subscription}, "
+        f"subscription_task -> {subscription_task}, instance_actions -> {instance_actions}"
     )
     return {
         "to_be_created_records_map": to_be_created_records_map,
@@ -517,8 +514,10 @@ def run_subscription_task_and_create_instance(
             instance_migrate_reasons[instance_id][step.step_id] = migrate_reason
 
     logger.info(
-        f"subscription_task -> {subscription_task.id}, execute result -> make_instances_migrate_actions: \n"
-        f"instance_actions -> {instance_actions} \n migrate_reasons -> {instance_migrate_reasons}"
+        f"make_instances_migrate_actions: \n"
+        f"subscription_task -> {subscription_task} \n"
+        f"instance_actions -> {instance_actions} \n"
+        f"migrate_reasons -> {instance_migrate_reasons}"
     )
 
     # 查询被从范围内移除的实例
@@ -608,14 +607,12 @@ def update_subscription_instances_chunk(subscription_ids: List[int]):
     """
     分片更新订阅状态
     """
-    subscriptions = models.Subscription.objects.filter(id__in=subscription_ids, enable=True, is_deleted=False)
+    subscriptions = models.Subscription.objects.filter(id__in=subscription_ids, enable=True)
     for subscription in subscriptions:
+        logger.info(f"[update_subscription_instances] start: {subscription}")
         try:
             if subscription.is_running():
-                logger.info(
-                    "[update_subscription_instances] subscription({subscription_id}) "
-                    "task created failed, some instances is running".format(subscription_id=subscription.id)
-                )
+                logger.info("[update_subscription_instances] skipped: subscription is running")
                 continue
 
             # 创建订阅任务记录
@@ -626,19 +623,8 @@ def update_subscription_instances_chunk(subscription_ids: List[int]):
                 is_auto_trigger=True,
             )
             run_subscription_task_and_create_instance(subscription, subscription_task)
-            logger.info(
-                "[update_subscription_instances] subscription({subscription_id}) "
-                "task created successful, task_id({task_id})".format(
-                    subscription_id=subscription.id, task_id=subscription_task.id
-                )
-            )
+            logger.info(f"[update_subscription_instances] succeed: subscription_task -> {subscription_task}")
         except SubscriptionInstanceEmpty:
-            logger.info(
-                "[update_subscription_instances] subscription({subscription_id}) "
-                "has no change, do nothing.".format(subscription_id=subscription.id)
-            )
+            logger.info("[update_subscription_instances] skipped: no change, do nothing")
         except Exception as e:
-            logger.exception(
-                "[update_subscription_instances] subscription({subscription_id}) task created failed, "
-                "exception: {message}, {e}".format(subscription_id=subscription.id, message=traceback.format_exc(), e=e)
-            )
+            logger.exception(f"[update_subscription_instances] failed: subscription -> {subscription}, error -> {e}")

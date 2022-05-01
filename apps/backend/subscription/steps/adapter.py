@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import copy
+import logging
 from collections import ChainMap, OrderedDict, defaultdict
 from typing import Any, Dict, List, Union
 
@@ -20,6 +21,14 @@ from apps.backend.plugin.tools import fetch_latest_config_templates
 from apps.backend.subscription import errors
 from apps.node_man import constants, models
 
+logger = logging.getLogger("app")
+
+
+class StepConfigCheckAndSkipSer(serializers.Serializer):
+    check_and_skip = serializers.BooleanField(required=False, default=False, label="安装主插件支持检查是否存在并跳过")
+    # check_and_skip=True 时生效：True - 版本不一致时进行安装 / False - 忽略版本不一致的情况，只要保证存活即可
+    is_version_sensitive = serializers.BooleanField(required=False, default=False, label="是否强校验安装版本")
+
 
 class ConfigTemplateSerializer(serializers.Serializer):
     name = serializers.CharField(required=True, label="配置文件名")
@@ -29,7 +38,7 @@ class ConfigTemplateSerializer(serializers.Serializer):
     cpu_arch = serializers.CharField(required=False, label="CPU类型")
 
 
-class PluginStepConfigSerializer(serializers.Serializer):
+class PluginStepConfigSerializer(StepConfigCheckAndSkipSer):
     plugin_name = serializers.CharField(required=True, label="插件名称")
     plugin_version = serializers.CharField(required=True, label="插件版本")
     config_templates = ConfigTemplateSerializer(default=[], many=True, label="配置模板列表", allow_empty=True)
@@ -41,7 +50,7 @@ class PolicyConfigTemplateSerializer(ConfigTemplateSerializer):
     id = serializers.IntegerField(required=True, label="配置模板id")
 
 
-class PolicyStepConfigSerializer(serializers.Serializer):
+class PolicyStepConfigSerializer(StepConfigCheckAndSkipSer):
     class PolicyPackageSerializer(serializers.Serializer):
         project = serializers.CharField(required=True, label="插件名称")  # TODO 策略传参优化后移除
 
@@ -85,8 +94,12 @@ class PolicyStepParamsSerializer(serializers.Serializer):
 
 class PolicyStepAdapter:
     def __init__(self, subscription_step: models.SubscriptionStep):
-        self.subscription_step = subscription_step
-        self.subscription = subscription_step.subscription
+        self.subscription_step: models.SubscriptionStep = subscription_step
+        self.subscription: models.Subscription = subscription_step.subscription
+        self.log_prefix: str = (
+            f"[{self.__class__.__name__}({self.subscription_step.step_id})] "
+            f"{self.subscription} | {self.subscription_step} |"
+        )
 
         self.plugin_name = self.config["plugin_name"]
         self.selected_pkg_infos: List[Dict] = self.config["details"]
@@ -167,6 +180,7 @@ class PolicyStepAdapter:
             for os_key in os_key_gby_config_tmpl_id[config_template.id]:
                 config_tmpl_obj_gby_os_key[os_key].append(config_template)
 
+        logger.info(f"{self.log_prefix} config_tmpl_obj_gby_os_key -> {config_tmpl_obj_gby_os_key}")
         setattr(self, "_config_tmpl_obj_gby_os_key", config_tmpl_obj_gby_os_key)
         return self._config_tmpl_obj_gby_os_key
 
@@ -184,6 +198,8 @@ class PolicyStepAdapter:
                     name=self.plugin_name, versions=set([pkg["version"] for pkg in self.selected_pkg_infos])
                 )
             )
+
+        logger.info(f"{self.log_prefix} os_key_pkg_map -> {os_cpu_pkg_map}")
         setattr(self, "_os_key_pkg_map", os_cpu_pkg_map)
         return self._os_key_pkg_map
 

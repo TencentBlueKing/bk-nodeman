@@ -1207,6 +1207,13 @@ class Packages(models.Model):
     def __unicode__(self):
         return "{}-{}".format(self.module, self.project)
 
+    def __str__(self):
+        return (
+            f"<{self.__class__.__name__}({self.pk}) "
+            f"info -> [{self.pkg_name}|{self.version}], "
+            f"selector -> [{self.project}|{self.os}|{self.cpu_arch}]>"
+        )
+
 
 class ProcControl(models.Model):
     """
@@ -1605,6 +1612,13 @@ class PluginConfigTemplate(models.Model):
             ("plugin_name", "plugin_version", "name", "version", "is_main", "os", "cpu_arch"),
         )
 
+    def __str__(self):
+        return (
+            f"<{self.__class__.__name__}({self.pk}) "
+            f"info -> [{self.name}|{self.version}], "
+            f"selector -> [{self.plugin_name}|{self.plugin_version}|{self.os}|{self.cpu_arch}]>"
+        )
+
     def create_instance(self, data, creator=None, source_app_code=None):
         """
         返回 PluginConfigInstance 实例
@@ -1755,6 +1769,13 @@ class SubscriptionStep(models.Model):
         verbose_name_plural = _("订阅步骤")
         ordering = ["index"]
         unique_together = (("subscription_id", "index"), ("subscription_id", "step_id"))
+
+    def __str__(self):
+        return (
+            f"<{self.__class__.__name__}({self.pk}) "
+            f"info -> [{self.type}|{self.step_id}], "
+            f"selector -> [sub_id:{self.subscription_id}]>"
+        )
 
 
 class Subscription(orm.SoftDeleteModel):
@@ -2105,6 +2126,13 @@ class Subscription(orm.SoftDeleteModel):
         verbose_name = _("订阅（Subscription）")
         verbose_name_plural = _("订阅（Subscription）")
 
+    def __str__(self):
+        return (
+            f"<{self.__class__.__name__}({self.pk}) "
+            f"info -> [enable:{self.enable}|category:{self.category}], "
+            f"selector -> [{self.object_type}|{self.node_type}|{self.from_system}]>"
+        )
+
 
 class SubscriptionTask(models.Model):
     """订阅执行任务"""
@@ -2139,6 +2167,13 @@ class SubscriptionTask(models.Model):
         verbose_name = _("订阅任务")
         verbose_name_plural = _("订阅任务")
         ordering = ["-create_time"]
+
+    def __str__(self):
+        return (
+            f"<{self.__class__.__name__}({self.pk}) "
+            f"info -> [is_ready:{self.is_ready}|is_auto_trigger:{self.is_auto_trigger}], "
+            f"selector -> [sub_id:{self.subscription_id}|pipeline_id:{self.pipeline_id}]>"
+        )
 
 
 class SubscriptionInstanceRecord(models.Model):
