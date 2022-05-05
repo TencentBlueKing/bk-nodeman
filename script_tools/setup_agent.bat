@@ -72,8 +72,8 @@ if exist %tmp_json_resp_report_log% (DEL /F /S /Q %tmp_json_resp_report_log%)
 if exist %tmp_check_deploy_result_files% (DEL /F /S /Q %tmp_check_deploy_result_files%)
 
 set /a nsttret=0
-rem for %%p in (check_env,download_pkg,remove_crontab,remove_agent_tmp,setup_agent,start_basic_gse_plugin,setup_startup_scripts,setup_crontab,check_deploy_result) do (
-for %%p in (check_env,add_user_right,download_pkg,remove_crontab,remove_agent_tmp,setup_agent,start_basic_gse_plugin,setup_startup_scripts,check_deploy_result) do (
+rem for %%p in (check_env,download_pkg,remove_crontab,remove_agent_tmp,setup_agent,setup_startup_scripts,setup_crontab,check_deploy_result) do (
+for %%p in (check_env,add_user_right,download_pkg,remove_crontab,remove_agent_tmp,setup_agent,setup_startup_scripts,check_deploy_result) do (
     call :%%p
     call :multi_report_step_status
 )
@@ -458,36 +458,6 @@ goto :EOF
     ping -n 3 127.0.0.1 >nul 2>&1
 
     call :print INFO setup_agent DONE "agent setup successfully"
-goto :EOF
-
-:start_basic_gse_plugin
-    call :print INFO start_plugin - "start gse plugin: basereport, processbeat"
-    call :multi_report_step_status
-
-    cd /d %AGENT_SETUP_PATH%\plugins\bin
-    @cmd /C "start.bat" basereport 1>nul 2>&1
-    ping -n 3 127.0.0.1 >nul 2>&1
-
-    if %errorlevel% neq 0 (
-        call :print FAIL start_plugin FAILED "Process basereport.exe start failed"
-        call :multi_report_step_status
-    ) else (
-        call :print INFO start_plugin - "Process basereport.exe start success"
-        call :multi_report_step_status
-    )
-
-    @cmd /C "start.bat" processbeat 1>nul 2>&1
-    ping -n 3 127.0.0.1 >nul 2>&1
-
-    if %errorlevel% neq 0 (
-        call :print FAIL start_plugin FAILED "Process processbeat.exe start failed"
-        call :multi_report_step_status
-    ) else (
-        call :print INFO start_plugin - "Process processbeat.exe start success"
-        call :multi_report_step_status
-    )
-
-    call :print INFO start_plugin - "gse plugin basereport,processbeat start DONE"
 goto :EOF
 
 :stop_basic_gse_plugin
