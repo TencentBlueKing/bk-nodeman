@@ -192,11 +192,20 @@ class SubscriptionHandler(object):
             "status_counter": status_counter,
         }
 
-    def check_task_ready(self, task_id_list) -> bool:
+    def check_task_ready(self, task_id_list: List[int]) -> bool:
         """检查任务是否已经准备好"""
-        for task in models.SubscriptionTask.objects.filter(
-            subscription_id=self.subscription_id, id__in=task_id_list
-        ).only("is_ready", "err_msg"):
+        if not task_id_list:
+            task_id_objs: List[models.SubscriptionTask] = [
+                models.SubscriptionTask.objects.filter(subscription_id=self.subscription_id)
+                .only("id", "is_ready", "err_msg")
+                .latest("id")
+            ]
+        else:
+            task_id_objs: List[models.SubscriptionTask] = models.SubscriptionTask.objects.filter(
+                subscription_id=self.subscription_id, id__in=task_id_list
+            ).only("is_ready", "err_msg")
+
+        for task in task_id_objs:
             if not task.is_ready:
                 # 任务未就绪且已写入错误日志，认为任务已创建失败，需抛出异常
                 if task.err_msg:
