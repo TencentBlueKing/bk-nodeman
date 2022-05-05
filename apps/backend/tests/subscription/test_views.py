@@ -9,12 +9,15 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from collections import defaultdict
+from typing import List
 
 import mock
 import ujson as json
 from django.test import Client, TestCase
 
 from apps.backend.plugin.manager import PluginManager
+from apps.backend.subscription import errors
+from apps.backend.subscription.handler import SubscriptionHandler
 from apps.backend.subscription.tasks import run_subscription_task_and_create_instance
 from apps.backend.tests.subscription.utils import (
     DEFAULT_AP_ID,
@@ -427,6 +430,8 @@ class TestSubscription(TestCase):
         subscription_id, task_id = self._test_run_subscription()
         self._test_task_result(subscription_id, task_id)
         self._test_instance_status(subscription_id)
+        self._test_check_task_ready(subscription_id=subscription_id, task_id_list=[task_id])
+        self._test_check_task_not_exist(subscription_id=subscription_id, task_id_list=[task_id])
 
     def test_delete_subscription(self):
         subscription_id = self._test_create_subscription()
@@ -445,3 +450,29 @@ class TestSubscription(TestCase):
 
         subscription = Subscription.objects.get(id=subscription_id, is_deleted=True)
         self.assertEqual(subscription.is_deleted, True)
+
+    def _test_check_task_ready(self, task_id_list: List[int], subscription_id: int):
+        task_id_list_map: List[List[int]] = [[], task_id_list]
+
+        for task_id_list in task_id_list_map:
+            r = self.client.post(
+                path="/backend/api/subscription/check_task_ready/",
+                content_type="application/json",
+                data=json.dumps(
+                    {
+                        "bk_username": "admin",
+                        "bk_app_code": "blueking",
+                        "subscription_id": subscription_id,
+                        "task_id_list": task_id_list,
+                    }
+                ),
+            )
+            self.assertEqual(r.data["result"], True)
+
+    def _test_check_task_not_exist(self, task_id_list: List[int], subscription_id: int):
+        fack_task_id_list: List[int] = []
+        for task_id in task_id_list:
+            fack_task_id_list.append(task_id + 100)
+        self.assertRaises(
+            errors.SubscriptionTaskNotExist, SubscriptionHandler(subscription_id).check_task_ready, fack_task_id_list
+        )
