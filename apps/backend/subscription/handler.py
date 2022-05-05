@@ -14,7 +14,7 @@ import logging
 import random
 from collections import Counter, defaultdict
 from copy import deepcopy
-from typing import Any, Dict, List, Set
+from typing import Any, Dict, List, Optional, Set
 
 from django.conf import settings
 from django.core.cache import cache
@@ -192,11 +192,34 @@ class SubscriptionHandler(object):
             "status_counter": status_counter,
         }
 
-    def check_task_ready(self, task_id_list) -> bool:
+    def check_task_ready(self, task_id_list: List[int]) -> bool:
         """检查任务是否已经准备好"""
-        for task in models.SubscriptionTask.objects.filter(
-            subscription_id=self.subscription_id, id__in=task_id_list
-        ).only("is_ready", "err_msg"):
+        if not task_id_list:
+            latest_task_obj: Optional[models.SubscriptionTask] = (
+                models.SubscriptionTask.objects.filter(subscription_id=self.subscription_id)
+                .only("id", "is_ready", "err_msg")
+                .order_by("-id")
+                .first()
+            )
+            if latest_task_obj:
+                task_objs: List[models.SubscriptionTask] = [latest_task_obj]
+            else:
+                task_objs: List[models.SubscriptionTask] = []
+        else:
+            task_objs: List[models.SubscriptionTask] = models.SubscriptionTask.objects.filter(
+                subscription_id=self.subscription_id, id__in=task_id_list
+            ).only("is_ready", "err_msg")
+
+        if not task_objs:
+            raise errors.SubscriptionTaskNotExist(
+                _(
+                    "订阅 -> [{subscription_id}] 对应的订阅任务 -> [{task_id_list}] 不存在".format(
+                        subscription_id=self.subscription_id, task_id_list=task_id_list
+                    )
+                )
+            )
+
+        for task in task_objs:
             if not task.is_ready:
                 # 任务未就绪且已写入错误日志，认为任务已创建失败，需抛出异常
                 if task.err_msg:
