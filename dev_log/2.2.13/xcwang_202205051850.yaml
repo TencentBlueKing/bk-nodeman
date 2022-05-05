@@ -1,0 +1,3 @@
+---
+optimization:
+  - "Windows Agent 安装脚本移除启动插件相关逻辑(close #726)"
