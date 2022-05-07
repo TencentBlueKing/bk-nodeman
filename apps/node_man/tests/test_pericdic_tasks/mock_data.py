@@ -120,8 +120,11 @@ MOCK_SEARCH_CLOUD_AREA = {"count": 1, "info": [{"bk_cloud_id": MOCK_BK_CLOUD_ID,
 # test gse_svr_discovery 相关数据
 
 MOCK_KAZOOCLIENT_CHILDREN_DATA = {
+    "/gse/config/server/dataserver/test/test": ["127.0.0.1", "127.0.0.2", "127.0.0.3"],
+    "/gse/config/server/task/test/test": ["127.0.0.1", "127.0.0.2", "127.0.0.3"],
+    "/gse/config/server/btfiles/test/test": ["127.0.0.1", "127.0.0.2", "127.0.0.3"],
     "/gse/config/server/dataserver/all": ["127.0.0.1", "127.0.0.2", "127.0.0.3"],
-    "/gse/config/server/taskserver/all": ["127.0.0.1", "127.0.0.2", "127.0.0.3"],
+    "/gse/config/server/task/all": ["127.0.0.1", "127.0.0.2", "127.0.0.3"],
     "/gse/config/server/btfiles/all": ["127.0.0.1", "127.0.0.2", "127.0.0.3"],
 }
 MOCK_AP_FIELD_MAP = [
