@@ -20,7 +20,7 @@ from apps.node_man import constants, models
 from common.log import logger
 
 
-def check_ip_ports_reachable(host: str, ports: List[str]) -> bool:
+def check_ip_ports_reachable(host: str, ports: List[int]) -> bool:
 
     for port in ports:
         try:
@@ -63,15 +63,22 @@ def gse_svr_discovery_periodic_task():
 
     logger.info(f"gse_svr_discovery: access_point -> {ap.name}")
 
-    zk_node_path__ap_field_map = {
-        "/gse/config/server/dataserver/all": "dataserver",
-        "/gse/config/server/taskserver/all": "taskserver",
-        "/gse/config/server/btfiles/all": "btfileserver",
+    gse_zk_root: str = "/gse/config/server"
+    # 优先通过区域和城市进行服务发现，如果配置缺失则使用 all 获取全部
+    if ap.region_id and ap.city_id:
+        gse_zk_suffix: str = f"{ap.region_id}/{ap.city_id}"
+    else:
+        gse_zk_suffix: str = "all"
+
+    zk_node_path__ap_field_map: Dict[str, str] = {
+        f"{gse_zk_root}/dataserver/{gse_zk_suffix}": "dataserver",
+        f"{gse_zk_root}/task/{gse_zk_suffix}": "taskserver",
+        f"{gse_zk_root}/btfiles/{gse_zk_suffix}": "btfileserver",
     }
-    zk_node_path__check_ports_map = {
-        "/gse/config/server/dataserver/all": [ap.port_config["data_port"]],
-        "/gse/config/server/taskserver/all": [ap.port_config["io_port"]],
-        "/gse/config/server/btfiles/all": [ap.port_config["file_svr_port"]],
+    zk_node_path__check_ports_map: Dict[str, List[int]] = {
+        f"{gse_zk_root}/dataserver/{gse_zk_suffix}": [ap.port_config["data_port"]],
+        f"{gse_zk_root}/task/{gse_zk_suffix}": [ap.port_config["io_port"]],
+        f"{gse_zk_root}/btfiles/{gse_zk_suffix}": [ap.port_config["file_svr_port"]],
     }
 
     is_change = False
