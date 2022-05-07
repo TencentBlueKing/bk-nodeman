@@ -1,0 +1,3 @@
+---
+optimization:
+  - "提供更准确的 GSE 服务发现规则 (closed #733)"
