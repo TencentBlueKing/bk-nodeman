@@ -18,8 +18,7 @@ from django.utils import timezone
 
 from apps.exceptions import ComponentCallError
 from apps.mock_data import common_unit
-from apps.node_man import constants as const
-from apps.node_man import tools
+from apps.node_man import constants, tools
 from apps.node_man.handlers.ap import APHandler
 from apps.node_man.handlers.cloud import CloudHandler
 from apps.node_man.handlers.cmdb import CmdbHandler
@@ -91,7 +90,7 @@ def create_host_from_a_to_b(
                         login_ip or f"{random.randint(1, 250)}.{random.randint(1, 250)}." f"{random.randint(1, 250)}.1"
                     ),
                     "node_type": node_type or ["AGENT", "PAGENT", "PROXY"][random.randint(0, 2)],
-                    "os_type": const.OS_TUPLE[random.randint(0, 1)],
+                    "os_type": constants.OS_TUPLE[random.randint(0, 1)],
                     "ap_id": 1,
                     "upstream_nodes": upstream_nodes if upstream_nodes else [i for i in range(100)],
                     "extra_data": {"bt_speed_limit": None, "peer_exchange_switch_for_agent": 1},
@@ -101,7 +100,7 @@ def create_host_from_a_to_b(
         # ProcessStatus创建，准备bulk_create
         process_to_create.append(
             ProcessStatus(
-                bk_host_id=bk_host_id or i, proc_type=const.ProcType.AGENT, version=i, status=proc_type or "RUNNING"
+                bk_host_id=bk_host_id or i, proc_type=constants.ProcType.AGENT, version=i, status=proc_type or "RUNNING"
             )
         )
         # Identity Data创建，准备bulk_create
@@ -109,7 +108,7 @@ def create_host_from_a_to_b(
             IdentityData(
                 **{
                     "bk_host_id": bk_host_id or i,
-                    "auth_type": auth_type or const.AUTH_TUPLE[random.randint(0, 2)],
+                    "auth_type": auth_type or constants.AUTH_TUPLE[random.randint(0, 2)],
                     "account": "".join(random.choice(DIGITS) for i in range(8)),
                     "password": "".join(random.choice(DIGITS) for i in range(8)),
                     "port": random.randint(0, 10000),
@@ -519,7 +518,7 @@ def create_cloud_area(number, creator="admin", begin=1):
         cloud = Cloud(
             bk_cloud_id=i,
             isp=["腾讯云", "阿里云", "AWS"][random.randint(0, 2)],
-            ap_id=const.DEFAULT_AP_ID,
+            ap_id=constants.DEFAULT_AP_ID,
             bk_cloud_name="".join(random.choice(DIGITS) for x in range(8)),
             is_visible=1,
             is_deleted=0,
@@ -634,7 +633,7 @@ def create_ap(number):
 
 
 def create_job(number, id=None, end_time=None, bk_biz_scope=None):
-    job_types = list(chain(*list(const.JOB_TYPE_MAP.values())))
+    job_types = list(chain(*list(constants.JOB_TYPE_MAP.values())))
 
     jobs = []
     for i in range(1, number + 1):
@@ -642,8 +641,8 @@ def create_job(number, id=None, end_time=None, bk_biz_scope=None):
             id=id or i,
             job_type=random.choice(job_types),
             start_time=time.strftime("%a %b %d %H:%M:%S", time.localtime()),
-            status=list(dict(const.JobStatusType.get_choices()).keys())[
-                random.randint(0, len(const.JobStatusType.get_choices()) - 1)
+            status=list(dict(constants.JobStatusType.get_choices()).keys())[
+                random.randint(0, len(constants.JobStatusType.get_choices()) - 1)
             ],
             statistics={"success_count": 0, "failed_count": 0, "running_count": 0, "total_count": 0},
             bk_biz_scope=bk_biz_scope
@@ -668,7 +667,7 @@ def multiple_cond_sql(data):
     """
     wheres = [
         f"{Host._meta.db_table}.bk_host_id={ProcessStatus._meta.db_table}.bk_host_id",
-        f'{ProcessStatus._meta.db_table}.proc_type="{const.ProcType.AGENT}"',
+        f'{ProcessStatus._meta.db_table}.proc_type="{constants.ProcType.AGENT}"',
     ]
 
     # 如果有status请求参数
@@ -683,7 +682,7 @@ def multiple_cond_sql(data):
         versions = '"' + '","'.join(version) + '"'
         wheres.append(f"{ProcessStatus._meta.db_table}.version in ({versions})")
 
-    sql = Host.objects.filter(node_type__in=[const.NodeType.AGENT, const.NodeType.PAGENT]).extra(
+    sql = Host.objects.filter(node_type__in=[constants.NodeType.AGENT, constants.NodeType.PAGENT]).extra(
         select={
             "status": f"{ProcessStatus._meta.db_table}.status",
             "version": f"{ProcessStatus._meta.db_table}.version",
@@ -785,7 +784,7 @@ def gen_update_accept_list(host_to_create, identity_to_create, no_change=False):
             "bk_cloud_id": host_to_create[i].bk_cloud_id,
             "ap_id": host_to_create[i].ap_id if no_change else -host_to_create[i].ap_id,
             "bk_biz_id": host_to_create[i].bk_biz_id if no_change else random.randint(1, 10),
-            "os_type": host_to_create[i].os_type if no_change else const.OS_TUPLE[random.randint(0, 2)],
+            "os_type": host_to_create[i].os_type if no_change else constants.OS_TUPLE[random.randint(0, 2)],
             "inner_ip": host_to_create[i].inner_ip,
             "login_ip": host_to_create[i].login_ip,
             "account": identity_to_create[i].account if no_change else "".join(random.choice(DIGITS) for i in range(8)),
@@ -865,7 +864,7 @@ def gen_job_data(
                     "ap_id": ap_id or [-1, 1][random.randint(0, 1)],
                     "bk_biz_id": random.randint(27, 39),
                     "is_manual": is_manual,
-                    "os_type": const.OS_TUPLE[random.randint(0, 2)],
+                    "os_type": constants.OS_TUPLE[random.randint(0, 2)],
                     "inner_ip": ip or host_to_create[i].inner_ip,
                     "outer_ip": outer_ip or host_to_create[i].outer_ip,
                     "login_ip": login_ip or host_to_create[i].login_ip,

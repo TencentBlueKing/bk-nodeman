@@ -15,10 +15,11 @@ from itertools import groupby
 from typing import Dict, List, Set, Union
 
 import jinja2schema
+from django.conf import settings
 from jinja2 import Environment, meta
 from packaging import version
 
-from apps.node_man import models
+from apps.node_man import constants, models
 from common.log import logger
 
 
@@ -146,3 +147,18 @@ class PluginV2Tools:
                 proj_os_cpu__latest_version_map[proj_os_cpu_key] = pkg["version"]
 
         return proj_os_cpu__latest_version_map
+
+    @staticmethod
+    def fetch_head_plugins() -> List[str]:
+        """
+        获取与现有插件过滤后的插件列表
+        """
+        official_plugin_names = models.GsePluginDesc.objects.filter(
+            category=constants.CategoryType.official
+        ).values_list("name", flat=True)
+
+        head_plugins: List[str] = list(set(settings.HEAD_PLUGINS) & set(official_plugin_names))
+
+        if not head_plugins:
+            return constants.HEAD_PLUGINS
+        return head_plugins

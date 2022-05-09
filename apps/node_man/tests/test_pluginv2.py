@@ -15,7 +15,7 @@ import mock
 from django.core.cache import cache
 
 from apps.mock_data import api_mkd, common_unit, utils
-from apps.node_man import constants, models
+from apps.node_man import constants, models, tools
 from apps.node_man.handlers.plugin_v2 import PluginV2Handler
 from apps.node_man.tests.utils import (
     MockClient,
@@ -285,3 +285,19 @@ class TestPluginV2(CustomBaseTestCase):
         )
         template_num = models.PluginConfigTemplate.objects.filter(plugin_name=pkg_obj.project).count()
         self.assertEqual(template_num, len(constants.CPU_CHOICES) * len(constants.OS_CHOICES))
+
+    def test_head_plugins_change_case(self):
+        mock_plugins_name = "gsecmdline"
+        models.GsePluginDesc.objects.update_or_create(
+            name=mock_plugins_name,
+            description="description",
+            source_app_code="nodeman",
+            category=constants.CategoryType.official,
+            auto_launch=True,
+        )
+
+        self.assertEqual(tools.PluginV2Tools.fetch_head_plugins(), [mock_plugins_name])
+
+        models.GsePluginDesc.objects.filter(name=mock_plugins_name).delete()
+        # 没有可用插件时，返回全部
+        self.assertEqual(tools.PluginV2Tools.fetch_head_plugins(), constants.HEAD_PLUGINS)
