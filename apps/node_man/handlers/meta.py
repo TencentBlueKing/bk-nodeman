@@ -267,7 +267,7 @@ class MetaHandler(APIModel):
         biz_permission = list(biz_id_name.keys())
 
         # 初始化各个条件集合
-        plugin_names = settings.HEAD_PLUGINS
+        plugin_names = tools.PluginV2Tools.fetch_head_plugins()
         plugin_result = {}
 
         # 获得数据
@@ -390,7 +390,7 @@ class MetaHandler(APIModel):
                     # 数据量较大的情况下，children获取较慢，此处插件的children设置为空，由前端异步请求获取
                     "children": [],
                 }
-                for plugin_name in settings.HEAD_PLUGINS
+                for plugin_name in tools.PluginV2Tools.fetch_head_plugins()
             ]
         )
 
@@ -398,7 +398,7 @@ class MetaHandler(APIModel):
 
     @staticmethod
     def fetch_plugin_version_condition():
-        plugin_names = settings.HEAD_PLUGINS
+        plugin_names = tools.PluginV2Tools.fetch_head_plugins()
         versions = (
             models.ProcessStatus.objects.filter(
                 source_type=models.ProcessStatus.SourceType.DEFAULT,
