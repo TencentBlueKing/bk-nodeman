@@ -366,8 +366,9 @@ class PluginV2Handler:
         """
         查询资源策略
         """
+        head_plugins: List[str] = tools.PluginV2Tools.fetch_head_plugins()
         resource_policy_qs = models.PluginResourcePolicy.objects.filter(
-            bk_biz_id=bk_biz_id, bk_obj_id=bk_obj_id, bk_inst_id=bk_inst_id, plugin_name__in=settings.HEAD_PLUGINS
+            bk_biz_id=bk_biz_id, bk_obj_id=bk_obj_id, bk_inst_id=bk_inst_id, plugin_name__in=head_plugins
         )
         # 暂时只支持服务模板，需扩展时可通过bk_obj_id进一步区分
         if bk_obj_id == constants.CmdbObjectId.SERVICE_TEMPLATE:
@@ -386,7 +387,7 @@ class PluginV2Handler:
                 "mem": constants.PLUGIN_DEFAULT_MEM_LIMIT,
                 "statistics": {"total_count": 0, "running_count": 0, "terminated_count": 0},
             }
-            for plugin_name in settings.HEAD_PLUGINS
+            for plugin_name in head_plugins
         }
 
         for policy in resource_policy_qs:
@@ -398,9 +399,7 @@ class PluginV2Handler:
             }
 
         statistics = (
-            models.ProcessStatus.objects.filter(
-                bk_host_id__in=bk_host_ids, name__in=settings.HEAD_PLUGINS, is_latest=True
-            )
+            models.ProcessStatus.objects.filter(bk_host_id__in=bk_host_ids, name__in=head_plugins, is_latest=True)
             .values("name", "status")
             .annotate(count=Count("status"))
         )

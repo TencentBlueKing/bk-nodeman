@@ -12,11 +12,10 @@ import time
 import typing
 
 from celery.task import periodic_task, task
-from django.conf import settings
 
 from apps.component.esbclient import client_v2
 from apps.core.concurrent import controller
-from apps.node_man import constants
+from apps.node_man import constants, tools
 from apps.node_man.models import Host, ProcessStatus
 from apps.utils import concurrent
 from apps.utils.periodic_task import calculate_countdown
@@ -153,7 +152,7 @@ def update_or_create_proc_status(task_id, hosts, sync_proc_list, start):
     run_every=constants.SYNC_PROC_STATUS_TASK_INTERVAL,
 )
 def sync_proc_status_periodic_task():
-    sync_proc_list = settings.HEAD_PLUGINS
+    sync_proc_list = tools.PluginV2Tools.fetch_head_plugins()
     task_id = sync_proc_status_periodic_task.request.id
     hosts = Host.objects.all()
     count = hosts.count()
