@@ -668,7 +668,10 @@ class AccessPoint(models.Model):
         :return:
         """
         os_type = os_type.lower()
-        if os_type in [constants.OsType.AIX, constants.OsType.SOLARIS]:
+        if os_type in [
+            constants.OsType.AIX.lower(),
+            constants.OsType.SOLARIS.lower(),
+        ]:
             os_type = constants.OsType.LINUX.lower()
         return self.agent_config[os_type]
 
