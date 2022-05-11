@@ -1,0 +1,3 @@
+---
+feature:
+  - "bkunifylogbeat cpu limit 调整为 30% (closed #745)"
