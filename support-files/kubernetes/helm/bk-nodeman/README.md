@@ -294,7 +294,7 @@ externalRabbitMQ:
 | `config.bkAppNodemanCallbackUrl`      | 节点管理自身模块依赖，后台内网回调地址，渲染时为空取 `{{ .Values.bkNodemanUrl }}/backend` | `""`                           |
 | `config.bkAppNodemanOuterCallbackUrl` | 节点管理自身模块依赖，后台外网回调地址，渲染时为空取 `{{ .Values.bkNodemanUrl }}/backend` | `""`                           |
 | `config.gseEnableSvrDisCovery`        | 蓝鲸管控平台 Agent，AgentXXDir 仅在初次部署有效，后续可以在页面「全局配置」维护。是否启用 GSE 服务探测，默认为 `true` | `true`                         |
-| `config.bkAppGseZkHost`               | 蓝鲸管控平台 Agent，ZK hosts 信息，host:port，多个 hosts 以 `,` 分隔 | `127.0.0.1:2181`               |
+| `config.bkAppGseZkHost`               | 蓝鲸管控平台 Agent，zk hosts 信息，host:port，多个 hosts 以 `,` 分隔<br />⚠️ ZK hosts 将作为 Agent 配置，需要保证 Agent 可访问，所以不能使用 k8s service 信息 进行配置<br />如果 zk 通过 k8s 部署，建议通过 NodePort 等方式暴露服务，使用 NodeIP:NodePort 进行配置 | `127.0.0.1:2181`               |
 | `config.bkAppGseZkAuth`               | 蓝鲸管控平台 Agent，ZK 认证信息，用户名:密码                 | `bkzk:zkpass`                  |
 | `config.bkAppGseAgentHome`            | 蓝鲸管控平台 Agent，AgentXXDir 仅在初次部署有效，后续可以在页面「全局配置」维护。Linux Agent 安装目录 | `/usr/local/gse`               |
 | `config.bkAppGseAgentLogDir`          | 蓝鲸管控平台 Agent，AgentXXDir 仅在初次部署有效，后续可以在页面「全局配置」维护。Linux Agent 日志目录 | `/usr/log/gse`                 |
