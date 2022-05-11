@@ -969,7 +969,22 @@ def get_all_subscription_steps_context(
     plugin_path = get_plugin_path(plugin_name, target_host, agent_config)
     # 当前step_id的数据单独拎出来，作为 shortcut
     context.update(all_step_data[subscription_step.step_id])
-    context.update(cmdb_instance=instance_info, step_data=all_step_data, target=instance_info, plugin_path=plugin_path)
+    context.update(
+        cmdb_instance=instance_info,
+        step_data=all_step_data,
+        target=instance_info,
+        plugin_path=plugin_path,
+        nodeman={
+            "host": {
+                "bk_host_id": target_host.bk_host_id,
+                "os_type": target_host.os_type,
+                "cpu_arch": target_host.cpu_arch,
+                "inner_ip": target_host.inner_ip,
+                "outer_ip": target_host.outer_ip,
+                "login_ip": target_host.login_ip,
+            }
+        },
+    )
 
     # 深拷贝一份，避免原数据后续被污染
     context = copy.deepcopy(context)
