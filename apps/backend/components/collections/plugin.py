@@ -1052,7 +1052,11 @@ class GseOperateProcService(PluginBaseService):
         host_id__resource_policy_map = {
             bk_host_id: {
                 "updated_at": timezone.datetime(1970, 1, 1, tzinfo=timezone.get_current_timezone()),
-                "resource": {"cpu": constants.PLUGIN_DEFAULT_CPU_LIMIT, "mem": constants.PLUGIN_DEFAULT_MEM_LIMIT},
+                "resource": {
+                    # bkunifylogbeat cpu_limit=30, others cpu_limit=constants.PLUGIN_DEFAULT_CPU_LIMIT
+                    "cpu": (constants.PLUGIN_DEFAULT_CPU_LIMIT, 30)[plugin_name == "bkunifylogbeat"],
+                    "mem": constants.PLUGIN_DEFAULT_MEM_LIMIT,
+                },
             }
             for bk_host_id in bk_host_ids
         }
