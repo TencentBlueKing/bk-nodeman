@@ -212,10 +212,7 @@ class PolicyStepAdapter:
         plugin_version = validated_config["plugin_version"]
 
         if plugin_version != "latest":
-            packages = models.Packages.objects.filter(
-                project=plugin_name,
-                version=plugin_version,
-            )
+            packages = models.Packages.objects.filter(project=plugin_name, version=plugin_version)
         else:
             newest = (
                 models.Packages.objects.filter(project=plugin_name).values("os", "cpu_arch").annotate(max_id=Max("id"))
@@ -227,7 +224,11 @@ class PolicyStepAdapter:
                 msg=_("插件包 [{name}-{version}] 不存在").format(name=plugin_name, version=plugin_version)
             )
 
-        latest_packages_version_set = set(packages.values_list("version", flat=True))
+        ready_packages = packages.filter(is_ready=True)
+        if not ready_packages:
+            raise errors.PluginValidationError(msg=_("插件 [{name}] 相关插件包已被全部停用").format(name=plugin_name))
+
+        latest_packages_version_set = set(ready_packages.values_list("version", flat=True))
         os_cpu__config_templates_map = defaultdict(list)
         for template in validated_config["config_templates"]:
             is_main_template = template["is_main"]
