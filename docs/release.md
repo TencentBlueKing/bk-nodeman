@@ -1,5 +1,24 @@
 # Release
 
+## 2.2.13 - 2022-05-12 
+
+
+### feature: 
+  * 安装主插件支持检查是否存在并跳过 (closed #509)
+  * 插件配置模板新增节点管理侧上下文 (closed #741)
+  * bkunifylogbeat cpu limit 调整为 30% (closed #745)
+
+### bugfix: 
+  * AIX 服务器接入点信息获取失败 (closed #737)
+
+### optimization: 
+  * celery 启动命令优化 (closed #743)
+  * 提供更准确的 GSE 服务发现规则 (closed #733)
+  * 检查订阅任务是否就绪接口 任务ID列表为空时取最新任务ID进行判断 (close #713)
+  * 节点列表仅展示存在插件的状态 (closed #705)
+  * 统计订阅任务数据接口优化 (closed #695)
+  * Windows Agent 安装脚本移除启动插件相关逻辑(close #726)
+
 ## 2.2.12 - 2022-04-27 
 
 
