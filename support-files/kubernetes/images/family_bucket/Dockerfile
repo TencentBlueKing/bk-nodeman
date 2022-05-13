@@ -1,4 +1,7 @@
-FROM node:12.13.1-stretch-slim AS staticBuilder
+ARG BKAPP_RUN_ENV=ee
+
+
+FROM node:12.13.1-stretch-slim AS static-builder
 
 ENV NPM_VERSION 6.14.4
 
@@ -51,7 +54,7 @@ COPY requirements.txt /
 RUN set -ex && python -m venv /venv && pip install --upgrade pip && pip install --no-cache-dir -r requirements.txt
 
 
-FROM base AS app
+FROM base AS base-app
 
 # 安装运行时依赖
 RUN set -ex &&  \
@@ -66,14 +69,36 @@ USER root
 ADD ./ ./
 
 # 换行符兼容转换
-RUN awk 'sub("$","\r")' script_tools/setup_agent.bat > script_tools/setup_agent.bat_w && mv -f script_tools/setup_agent.bat_w script_tools/setup_agent.bat && \
-    awk 'sub("$","\r")' script_tools/gsectl.bat > script_tools/gsectl.bat_w && mv -f script_tools/gsectl.bat_w script_tools/gsectl.bat && \
-    awk 'sub("$","\r")' script_tools/plugin_scripts/start.bat > script_tools/plugin_scripts/start.bat_w && mv -f script_tools/plugin_scripts/start.bat_w script_tools/plugin_scripts/start.bat && \
-    awk 'sub("$","\r")' script_tools/plugin_scripts/stop.bat > script_tools/plugin_scripts/stop.bat_w && mv -f script_tools/plugin_scripts/stop.bat_w script_tools/plugin_scripts/stop.bat && \
-    awk 'sub("$","\r")' script_tools/plugin_scripts/restart.bat > script_tools/plugin_scripts/restart.bat_w && mv -f script_tools/plugin_scripts/restart.bat_w script_tools/plugin_scripts/restart.bat
+RUN awk 'sub("$","\r")' script_tools/setup_agent.bat > script_tools/setup_agent.bat_w &&  \
+    mv -f script_tools/setup_agent.bat_w script_tools/setup_agent.bat && \
+    awk 'sub("$","\r")' script_tools/gsectl.bat > script_tools/gsectl.bat_w &&  \
+    mv -f script_tools/gsectl.bat_w script_tools/gsectl.bat && \
+    awk 'sub("$","\r")' script_tools/plugin_scripts/start.bat > script_tools/plugin_scripts/start.bat_w &&  \
+    mv -f script_tools/plugin_scripts/start.bat_w script_tools/plugin_scripts/start.bat && \
+    awk 'sub("$","\r")' script_tools/plugin_scripts/stop.bat > script_tools/plugin_scripts/stop.bat_w &&  \
+    mv -f script_tools/plugin_scripts/stop.bat_w script_tools/plugin_scripts/stop.bat && \
+    awk 'sub("$","\r")' script_tools/plugin_scripts/restart.bat > script_tools/plugin_scripts/restart.bat_w &&  \
+    mv -f script_tools/plugin_scripts/restart.bat_w script_tools/plugin_scripts/restart.bat
 
 # 拷贝构件
 COPY --from=builder /venv /venv
-COPY --from=staticBuilder /static/ /app/static/
+COPY --from=static-builder /static/ /app/static/
 
+
+FROM base-app AS ieod-app
+
+RUN set -ex && \
+    rm -rf blueking && \
+    rm -rf bkoauth && \
+    pip install --no-cache-dir blueking-component-ieod==0.1.12 && \
+    pip install --no-cache-dir bkoauth==0.0.22
+
+
+FROM base-app AS ee-app
+
+
+FROM base-app AS ce-app
+
+
+FROM ${BKAPP_RUN_ENV}-app AS app
 ENTRYPOINT ["support-files/kubernetes/images/family_bucket/entrypoint.sh"]
