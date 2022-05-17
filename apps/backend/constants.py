@@ -107,3 +107,7 @@ REDIS_INSTALL_CALLBACK_KEY_TPL = f"{settings.APP_CODE}:backend:agent:log:list:" 
 
 # redis Gse Agent 配置缓存
 REDIS_AGENT_CONF_KEY_TPL = f"{settings.APP_CODE}:backend:agent:config:" + "{file_name}:str:{sub_inst_id}"
+
+
+# redis agent install 键名模板
+REDIS_AGENT_INSTALL_KEY_TPL = f"{settings.APP_CODE}:backend:agent:install:token:" + "{sub_inst_id}"

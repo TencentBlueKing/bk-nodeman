@@ -214,6 +214,7 @@ class AgentBaseService(BaseService, metaclass=abc.ABCMeta):
             ap_id_obj_map=common_data.ap_id_obj_map,
             cloud_id__proxies_map=cloud_id__proxies_map,
             host_id__install_channel_map=host_id__install_channel_map,
+            subscription_id=common_data.subscription.id,
         )
         return host_id__installation_tool_map
 

@@ -657,7 +657,9 @@ bulk_report_step_status () {
 {
     "task_id": "$TASK_ID",
     "token": "$TOKEN",
-    "logs": [ $json_log ]
+    "logs": [ $json_log ],
+    "bk_cloud_id": ${CLOUD_ID},
+    "inner_ip": "${LAN_ETH_IP}",
 }
 _OO_
 

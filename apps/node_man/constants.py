@@ -844,3 +844,5 @@ FILES_TO_PUSH_TO_PROXY = [
         "name": _("下发安装工具"),
     },
 ]
+
+REDIS_INSTALL_TOKEN_EXPIRATION_TIME = 3600

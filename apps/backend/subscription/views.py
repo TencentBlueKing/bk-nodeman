@@ -27,7 +27,7 @@ from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 
 from apps.backend.agent.tasks import collect_log
-from apps.backend.agent.tools import gen_commands
+from apps.backend.agent.tools import gen_batch_encrypt_token, gen_commands
 from apps.backend.subscription import errors, serializers, task_tools, tasks, tools
 from apps.backend.subscription.errors import InstanceTaskIsRunning
 from apps.backend.subscription.handler import SubscriptionHandler
@@ -759,11 +759,20 @@ class SubscriptionViewSet(APIViewSet):
 
         params = self.get_validated_data()
         host = models.Host.objects.get(bk_host_id=params["bk_host_id"])
+        subscription_id = models.SubscriptionInstanceRecord.objects.get(id=params["sub_inst_id"]).subscription_id
+        pipeline_id = params["host_install_pipeline_id"]
+        host_id_sub_inst_id = {host.bk_host_id: params["sub_inst_id"]}
+
         installation_tool = gen_commands(
             host=host,
-            pipeline_id=params["host_install_pipeline_id"],
+            token=gen_batch_encrypt_token(
+                hosts=[host],
+                sub_id=subscription_id,
+                pipeline_id=pipeline_id,
+                host_id_sub_inst_id_map=host_id_sub_inst_id,
+            ),
+            pipeline_id=pipeline_id,
             is_uninstall=params["is_uninstall"],
-            sub_inst_id=params["sub_inst_id"],
         )
 
         return Response(

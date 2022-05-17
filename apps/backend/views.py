@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import logging
 import time
+from collections import defaultdict
 from typing import Dict, List, Optional, Tuple
 
 import ujson as json
@@ -717,7 +718,7 @@ def get_gse_config(request):
     inner_ip = data.get("inner_ip")
     token = data.get("token")
 
-    decrypted_token = _decrypt_token(token)
+    decrypted_token = _decrypt_token(token=token, inner_ip=inner_ip, bk_cloud_id=bk_cloud_id)
     if inner_ip != decrypted_token["inner_ip"] or bk_cloud_id != decrypted_token["bk_cloud_id"]:
         logger.error(
             "token[{token}] 非法, 请求参数为: {data}, token解析为: {decrypted_token}".format(
@@ -753,6 +754,8 @@ def report_log(request):
     @apiParamExample {Json} 请求参数
     {
         "task_id": "node_id",
+        "inner_ip": "127.0.0.1"
+        "bk_cloud_id": 1,
         "token": "",
         "logs": [
             {
@@ -769,14 +772,18 @@ def report_log(request):
     data = json.loads(str(request.body, encoding="utf8").replace('\\"', "'").replace("\\", "/"))
 
     token = data.get("token")
-    decrypted_token = _decrypt_token(token)
+    inner_ip = data.get("inner_ip")
+    bk_cloud_id = data.get("bk_cloud_id")
+
+    decrypted_token = _decrypt_token(token=token, inner_ip=inner_ip, bk_cloud_id=bk_cloud_id)
+    sub_inst_id = decrypted_token["inst_id"]
 
     if decrypted_token.get("task_id") != data["task_id"]:
         logger.error(f"token[{token}] 非法, task_id为:{data['task_id']}, token解析为: {decrypted_token}")
         raise PermissionError("what are you doing?")
 
     # 把日志写入redis中，由install service中的schedule方法统一读取，避免频繁callback
-    name = REDIS_INSTALL_CALLBACK_KEY_TPL.format(sub_inst_id=decrypted_token["inst_id"])
+    name = REDIS_INSTALL_CALLBACK_KEY_TPL.format(sub_inst_id=sub_inst_id)
     json_dumps_logs = [json.dumps(log) for log in data["logs"]]
     # 日志会被 Service 消费并持久化，在 Redis 保留一段时间便于排查「主机 -api-> Redis -log-> DB」 上的问题
     LPUSH_AND_EXPIRE_FUNC(keys=[name], args=[constants.TimeUnit.DAY] + json_dumps_logs)
@@ -810,7 +817,7 @@ def job_callback(request):
     return JsonResponse({})
 
 
-def _decrypt_token(token: str) -> dict:
+def _decrypt_token(token: str, inner_ip: str, bk_cloud_id: int) -> dict:
     """
     解析token
     """
@@ -820,16 +827,49 @@ def _decrypt_token(token: str) -> dict:
         logger.error(f"{token}解析失败")
         raise err
 
-    inner_ip, bk_cloud_id, task_id, timestamp, inst_id = token_decrypt.split("|")
+    decrypt_data = REDIS_INST.get(token_decrypt)
+
+    if not decrypt_data:
+        logger.error(f"token[{token}] 已过期")
+        raise PermissionError("what are you doing?")
+    else:
+        decrypt_data = str(decrypt_data, encoding="utf8")
+
+    __, task_id, timestamp, sub_id = token_decrypt.split("|")
+
+    host_info_key = f"{inner_ip}-{bk_cloud_id}"
+
+    cache_host_info = REDIS_INST.get(f"{token_decrypt}-agent-info")
+
+    host_info_sub_inst_id_map = defaultdict()
+    if not cache_host_info:
+        host_ids_keys: List[str] = decrypt_data.split("_")
+        for host_info__inst_id_key in host_ids_keys:
+            host_info, inst_id = host_info__inst_id_key.split(":")
+            host_info_sub_inst_id_map[host_info] = inst_id
+        REDIS_INST.setex(
+            f"{token_decrypt}-agent-info",
+            constants.REDIS_INSTALL_TOKEN_EXPIRATION_TIME,
+            json.dumps(host_info_sub_inst_id_map),
+        )
+    else:
+        host_info_sub_inst_id_map = json.loads(str(cache_host_info, encoding="utf8"))
+
+    try:
+        sub_inst_id = host_info_sub_inst_id_map[host_info_key]
+    except KeyError:
+        logger.error(f"主机: {inner_ip}:{bk_cloud_id}并不存在于当前安装任务: {task_id}中")
+        raise PermissionError("what are you doing?")
+
     return_value = {
         "inner_ip": inner_ip,
         "bk_cloud_id": int(bk_cloud_id),
         "task_id": task_id,
         "timestamp": timestamp,
-        "inst_id": inst_id,
+        "inst_id": sub_inst_id,
     }
     # timestamp 超过1小时，认为是非法请求
-    if time.time() - float(timestamp) > 3600:
+    if time.time() - float(timestamp) > constants.REDIS_INSTALL_TOKEN_EXPIRATION_TIME:
         logger.error(f"token[{token}] 非法, timestamp超时不符合预期, {return_value}")
         raise PermissionError("what are you doing?")
 

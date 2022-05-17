@@ -40,7 +40,9 @@ report_step_status () {
             "level": "$log_level",
             "step": "$step",
             "log": "$message",
-            "status": "$status"
+            "status": "$status",
+            "inner_ip": "$LAN_ETH_IP",
+            "bk_cloud_id": "$CLOUD_ID",
         }
     ]
 }

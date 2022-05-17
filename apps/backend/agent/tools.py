@@ -16,6 +16,8 @@ from typing import Dict, List, Optional, Tuple
 from django.conf import settings
 
 from apps.backend.api import constants as const
+from apps.backend.constants import REDIS_AGENT_INSTALL_KEY_TPL
+from apps.backend.utils.redis import REDIS_INST
 from apps.node_man import constants, models
 from apps.node_man.models import aes_cipher
 from apps.utils.basic import suffix_slash
@@ -212,7 +214,7 @@ def gen_commands(
     host: models.Host,
     pipeline_id: str,
     is_uninstall: bool,
-    sub_inst_id: int,
+    token: str,
     identity_data: Optional[models.IdentityData] = None,
     host_ap: Optional[models.AccessPoint] = None,
     proxies: Optional[List[models.Host]] = None,
@@ -223,7 +225,7 @@ def gen_commands(
     :param host: 主机信息
     :param pipeline_id: Node ID
     :param is_uninstall: 是否卸载
-    :param sub_inst_id: 订阅实例 ID
+    :param token: 同批次安装秘钥
     :param identity_data: 主机认证数据对象
     :param host_ap: 主机接入点对象
     :param proxies: 主机代理列表
@@ -250,7 +252,6 @@ def gen_commands(
     agent_config = host_ap.get_agent_config(host.os_type)
     # 安装操作
     install_path = agent_config["setup_path"]
-    token = aes_cipher.encrypt(f"{host.inner_ip}|{host.bk_cloud_id}|{pipeline_id}|{time.time()}|{sub_inst_id}")
     port_config = host_ap.port_config
     run_cmd_params = [
         f"-s {pipeline_id}",
@@ -440,6 +441,7 @@ def check_run_commands(run_commands):
 
 def batch_gen_commands(
     hosts: List[models.Host],
+    subscription_id: int,
     pipeline_id: str,
     is_uninstall: bool,
     host_id__sub_inst_id: Dict[int, int],
@@ -456,6 +458,9 @@ def batch_gen_commands(
         identity.bk_host_id: identity for identity in models.IdentityData.objects.filter(bk_host_id__in=bk_host_ids)
     }
 
+    token = gen_batch_encrypt_token(
+        hosts=hosts, pipeline_id=pipeline_id, sub_id=subscription_id, host_id_sub_inst_id_map=host_id__sub_inst_id
+    )
     for host in hosts:
         host_ap = ap_id_obj_map[host.ap_id]
         # 避免部分主机认证信息丢失的情况下，通过host.identity重新创建来兜底保证不会异常
@@ -463,9 +468,9 @@ def batch_gen_commands(
 
         host_id__installation_tool_map[host.bk_host_id] = gen_commands(
             host=host,
+            token=token,
             pipeline_id=pipeline_id,
             is_uninstall=is_uninstall,
-            sub_inst_id=host_id__sub_inst_id[host.bk_host_id],
             identity_data=identity_data,
             host_ap=host_ap,
             proxies=cloud_id__proxies_map.get(host.bk_cloud_id),
@@ -473,3 +478,16 @@ def batch_gen_commands(
         )
 
     return host_id__installation_tool_map
+
+
+def gen_batch_encrypt_token(
+    hosts: List[models.Host], pipeline_id: str, sub_id: int, host_id_sub_inst_id_map: Dict[int, int]
+) -> str:
+    time_now = time.time()
+    host_ids_key = "_".join(
+        [f"{host.inner_ip}-{host.bk_cloud_id}:{host_id_sub_inst_id_map[host.bk_host_id]}" for host in hosts]
+    )
+    encrypt_key = f"{REDIS_AGENT_INSTALL_KEY_TPL.format(sub_inst_id=sub_id)}|{pipeline_id}|{time_now}|{sub_id}"
+    REDIS_INST.setex(encrypt_key, constants.REDIS_INSTALL_TOKEN_EXPIRATION_TIME, host_ids_key)
+    token = aes_cipher.encrypt(encrypt_key)
+    return token

@@ -136,6 +136,8 @@ except ImportError as err:
         {
             "task_id": args.task_id,
             "token": args.token,
+            "inner_ip": args.host_inner_ip,
+            "bk_cloud_id": args.host_cloud,
             "logs": [
                 {
                     "timestamp": round(time.time()),
@@ -332,6 +334,8 @@ def report_log(step, text, status="-"):
     data = {
         "task_id": args.task_id,
         "token": args.token,
+        "inner_ip": args.host_inner_ip,
+        "bk_cloud_id": args.host_cloud,
         "logs": [
             {
                 "timestamp": round(time.time()),

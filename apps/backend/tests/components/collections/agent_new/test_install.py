@@ -17,7 +17,7 @@ import mock
 from django.conf import settings
 from django.test import override_settings
 
-from apps.backend.agent.tools import gen_commands
+from apps.backend.agent.tools import gen_batch_encrypt_token, gen_commands
 from apps.backend.components.collections.agent_new import install
 from apps.backend.components.collections.agent_new.components import InstallComponent
 from apps.backend.constants import REDIS_INSTALL_CALLBACK_KEY_TPL
@@ -25,7 +25,7 @@ from apps.backend.utils.redis import REDIS_INST
 from apps.core.remote import exceptions
 from apps.core.remote.tests import base
 from apps.core.remote.tests.base import AsyncMockConn
-from apps.mock_data import api_mkd
+from apps.mock_data import api_mkd, common_unit
 from apps.mock_data import utils as mock_data_utils
 from apps.node_man import constants, models
 from pipeline.component_framework.test import (
@@ -148,12 +148,23 @@ class InstallBaseTestCase(utils.AgentServiceBaseTestCase):
         mock.patch.stopall()
         super().tearDownClass()
 
+    def gen_install_info(self, is_uninstall=False):
+        host = models.Host.objects.get(bk_host_id=self.obj_factory.bk_host_ids[0])
+        token = gen_batch_encrypt_token(
+            hosts=[host],
+            pipeline_id=mock_data_utils.JOB_TASK_PIPELINE_ID,
+            sub_id=common_unit.subscription.DEFAULT_SUBSCRIPTION_ID,
+            host_id_sub_inst_id_map={host.bk_host_id: 1},
+        )
+        installation_tool = gen_commands(
+            host, mock_data_utils.JOB_TASK_PIPELINE_ID, is_uninstall=is_uninstall, token=token
+        )
+        return token, installation_tool
+
 
 class LinuxInstallTestCase(InstallBaseTestCase):
     def test_gen_agent_command(self):
-        host = models.Host.objects.get(bk_host_id=self.obj_factory.bk_host_ids[0])
-        installation_tool = gen_commands(host, mock_data_utils.JOB_TASK_PIPELINE_ID, is_uninstall=False, sub_inst_id=0)
-        token = re.match(r"(.*) -c (.*?) -O", installation_tool.run_cmd).group(2)
+        token, installation_tool = self.gen_install_info()
         run_cmd = (
             f"nohup bash /tmp/setup_agent.sh -s {mock_data_utils.JOB_TASK_PIPELINE_ID}"
             f" -r http://127.0.0.1/backend -l http://127.0.0.1/download"
@@ -168,9 +179,7 @@ class InstallWindowsSSHTestCase(InstallBaseTestCase):
     OS_TYPE = constants.OsType.WINDOWS
 
     def test_gen_win_command(self):
-        host = models.Host.objects.get(bk_host_id=self.obj_factory.bk_host_ids[0])
-        installation_tool = gen_commands(host, mock_data_utils.JOB_TASK_PIPELINE_ID, is_uninstall=False, sub_inst_id=0)
-        token = re.match(r"(.*) -c (.*?) -O", installation_tool.run_cmd).group(2)
+        token, installation_tool = self.gen_install_info()
         run_cmd = (
             f"nohup C:/tmp/setup_agent.bat -s {mock_data_utils.JOB_TASK_PIPELINE_ID}"
             f" -r http://127.0.0.1/backend -l http://127.0.0.1/download -c {token}"
@@ -181,9 +190,7 @@ class InstallWindowsSSHTestCase(InstallBaseTestCase):
 
     @override_settings(REGISTER_WIN_SERVICE_WITH_PASS=True)
     def test_gen_agent_command(self):
-        host = models.Host.objects.get(bk_host_id=self.obj_factory.bk_host_ids[0])
-        installation_tool = gen_commands(host, mock_data_utils.JOB_TASK_PIPELINE_ID, is_uninstall=False, sub_inst_id=0)
-        token = re.match(r"(.*) -c (.*?) -O", installation_tool.run_cmd).group(2)
+        token, installation_tool = self.gen_install_info()
         encrypted_password = re.match(r"(.*) -P (.*?) &", installation_tool.run_cmd).group(2)
         self.assertTrue(encrypted_password.endswith(' "'))
         run_cmd = (
@@ -200,9 +207,7 @@ class InstallWindowsTestCase(InstallBaseTestCase):
     OS_TYPE = constants.OsType.WINDOWS
 
     def test_gen_win_command(self):
-        host = models.Host.objects.get(bk_host_id=self.obj_factory.bk_host_ids[0])
-        installation_tool = gen_commands(host, mock_data_utils.JOB_TASK_PIPELINE_ID, is_uninstall=False, sub_inst_id=0)
-        token = re.match(r"(.*) -c (.*?) -O", installation_tool.run_cmd).group(2)
+        token, installation_tool = self.gen_install_info()
         windows_run_cmd = (
             f"C:\\tmp\\setup_agent.bat -s {mock_data_utils.JOB_TASK_PIPELINE_ID}"
             f" -r http://127.0.0.1/backend -l http://127.0.0.1/download -c {token}"
@@ -232,9 +237,7 @@ class InstallLinuxPagentTestCase(InstallBaseTestCase):
         )
 
     def test_gen_pagent_command(self):
-        host = models.Host.objects.get(bk_host_id=self.obj_factory.bk_host_ids[0])
-        installation_tool = gen_commands(host, mock_data_utils.JOB_TASK_PIPELINE_ID, is_uninstall=False, sub_inst_id=0)
-        token = re.match(r"(.*) -c (.*?) -O", installation_tool.run_cmd).group(2)
+        token, installation_tool = self.gen_install_info()
         run_cmd = (
             f"-s {mock_data_utils.JOB_TASK_PIPELINE_ID} -r http://127.0.0.1/backend -l http://127.0.0.1/download"
             f" -c {token}"
@@ -305,9 +308,7 @@ class InstallAgentWithInstallChannelSuccessTest(InstallBaseTestCase):
         )
 
     def test_gen_install_channel_agent_command(self):
-        host = models.Host.objects.get(bk_host_id=self.obj_factory.bk_host_ids[0])
-        installation_tool = gen_commands(host, mock_data_utils.JOB_TASK_PIPELINE_ID, is_uninstall=False, sub_inst_id=0)
-        token = re.match(r"(.*) -c (.*?) -O", installation_tool.run_cmd).group(2)
+        token, installation_tool = self.gen_install_info()
         run_cmd = (
             f"-s {mock_data_utils.JOB_TASK_PIPELINE_ID} -r http://127.0.0.1/backend"
             f" -l http://1.1.1.1:{settings.BK_NODEMAN_NGINX_DOWNLOAD_PORT}/ -c {token}"
@@ -340,7 +341,13 @@ class UninstallSuccessTest(InstallBaseTestCase):
         host = models.Host.objects.get(bk_host_id=self.obj_factory.bk_host_ids[0])
         # 验证非 root 添加 sudo
         host.identity.account = "test"
-        installation_tool = gen_commands(host, mock_data_utils.JOB_TASK_PIPELINE_ID, is_uninstall=True, sub_inst_id=0)
+        token = gen_batch_encrypt_token(
+            hosts=[host],
+            pipeline_id=mock_data_utils.JOB_TASK_PIPELINE_ID,
+            sub_id=common_unit.subscription.DEFAULT_SUBSCRIPTION_ID,
+            host_id_sub_inst_id_map={host.bk_host_id: 1},
+        )
+        installation_tool = gen_commands(host, mock_data_utils.JOB_TASK_PIPELINE_ID, is_uninstall=True, token=token)
         token = re.match(r"(.*) -c (.*?) -O", installation_tool.run_cmd).group(2)
         run_cmd = (
             f"sudo nohup bash /tmp/setup_agent.sh -s {mock_data_utils.JOB_TASK_PIPELINE_ID}"

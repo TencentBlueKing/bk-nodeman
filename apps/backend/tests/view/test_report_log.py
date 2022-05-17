@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import copy
 import random
 import time
 from typing import Any, Dict
@@ -16,7 +17,8 @@ import ujson as json
 
 from apps.backend.constants import REDIS_INSTALL_CALLBACK_KEY_TPL
 from apps.backend.utils.redis import REDIS_INST
-from apps.node_man import constants
+from apps.mock_data import common_unit
+from apps.node_man import constants, models
 
 from .base import ViewBaseTestCase
 
@@ -26,6 +28,13 @@ class ReportLogTestCase(ViewBaseTestCase):
         super().setUp()
         # 每个 case 执行前移除 redis 日志列表
         REDIS_INST.delete(self.gen_redis_list_key())
+
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
+        host_model_data = copy.deepcopy(common_unit.host.HOST_MODEL_DATA)
+        host, __ = models.Host.objects.update_or_create(**host_model_data)
+        cls.host = host
 
     def tearDown(self) -> None:
         super().tearDown()
@@ -51,7 +60,13 @@ class ReportLogTestCase(ViewBaseTestCase):
 
     def query_report_log(self) -> Dict[str, Any]:
         logs = [self.gen_log() for _ in range(random.randint(1, 5))]
-        query_params = {"task_id": self.PIPELINE_ID, "token": self.gen_token(), "logs": logs}
+        query_params = {
+            "task_id": self.PIPELINE_ID,
+            "token": self.gen_token(host=self.host),
+            "logs": logs,
+            "inner_ip": self.host.inner_ip,
+            "bk_cloud_id": self.host.bk_cloud_id,
+        }
         self.client.post(
             path="/backend/report_log/",
             data=query_params,

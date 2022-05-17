@@ -656,7 +656,7 @@ goto :EOF
     )
 
     for /f %%i in ('%TMP_DIR%\unixdate.exe +%%s') do (set unixtimestamp=%%i)
-    set tmp_json_body="{\"task_id\":\"%TASK_ID%\",\"token\":\"%TOKEN%\",\"logs\":[%tmp_json_body_temp%]}"
+    set tmp_json_body="{\"task_id\":\"%TASK_ID%\",\"token\":\"%TOKEN%\",\"logs\":[%tmp_json_body_temp%], \"inner_ip\":\"%LAN_ETH_IP%\", \"bk_cloud_id\":\"%CLOUD_ID%\"}"
 
     rem set tmp_json_body_fail="{\"task_id\":\"%TASK_ID%\",\"token\":\"%TOKEN%\",\"logs\":[{\"timestamp\":\"%unixtimestamp%\",\"level\":\"FAIL\",\"step\":\"check_deploy_result\",\"log\":\"gse agent has bean deployed unsuccessfully\",\"status\":\"FAILED\"}]}"
 
