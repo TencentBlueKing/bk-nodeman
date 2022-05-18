@@ -1,0 +1,3 @@
+---
+optimization:
+  - "主机存在性校验兼容 CMDB 注册延迟 (closed #765)"
