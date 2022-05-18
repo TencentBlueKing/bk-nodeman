@@ -42,6 +42,7 @@ from apps.backend.subscription.tools import (
 from apps.exceptions import AppBaseException, ComponentCallError
 from apps.node_man import constants, exceptions, models
 from apps.node_man.handlers.cmdb import CmdbHandler
+from apps.utils import md5
 from apps.utils.batch_request import request_multi_thread
 from apps.utils.files import PathHandler
 from common.api import GseApi, JobApi
@@ -242,6 +243,7 @@ class InitProcessStatusService(PluginBaseService):
 
         to_be_created_process_status = []
         to_be_updated_process_status = []
+        process_status_property_md5_set = set()
 
         # 提前查询拓扑顺序，用于策略抑制计算，得到当期策略所属层级
         topo_order = CmdbHandler.get_topo_order()
@@ -300,6 +302,13 @@ class InitProcessStatusService(PluginBaseService):
                         pid_path=pid_path,
                         version=getattr(package, "version", ""),
                     )
+                    # 唯一性校验
+                    process_status_property_md5 = md5.count_md5(process_status_property)
+                    if process_status_property_md5 in process_status_property_md5_set:
+                        continue
+                    else:
+                        process_status_property_md5_set.add(process_status_property_md5)
+
                     self.append_process_status(
                         group_id,
                         group_id_status_map,

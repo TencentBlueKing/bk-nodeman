@@ -455,7 +455,7 @@ class SubscriptionHandler(object):
         subscriptions = models.Subscription.objects.filter(id__in=miss_sub_ids)
 
         host_statuses = models.ProcessStatus.objects.filter(
-            source_id__in=subscription_id_list, source_type=models.ProcessStatus.SourceType.DEFAULT
+            source_id__in=subscription_id_list, source_type=models.ProcessStatus.SourceType.SUBSCRIPTION
         ).values("version", "group_id", "name", "id")
 
         instance_host_statuses = defaultdict(dict)
