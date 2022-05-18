@@ -2412,3 +2412,9 @@ class ResourceWatchEvent(models.Model):
     class Meta:
         verbose_name = _("CMDB资源监听事件")
         verbose_name_plural = _("CMDB资源监听事件")
+
+    def __str__(self):
+        return (
+            f"<{self.__class__.__name__}({self.pk}) "
+            f"info -> [{self.bk_event_type}|{self.bk_resource}|{self.bk_detail.get('bk_biz_id')}]>"
+        )

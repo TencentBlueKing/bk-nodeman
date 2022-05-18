@@ -65,7 +65,7 @@ def query_bk_biz_ids(task_id):
         )
     )
 
-    logger.info(f"{task_id} | sync_cmdb_host biz count {len(bk_biz_ids)}")
+    logger.info(f"[sync_cmdb_host] synchronize full business: task_id -> {task_id}, count -> {len(bk_biz_ids)}")
 
     return bk_biz_ids
 
@@ -186,15 +186,16 @@ def update_or_create_host_base(biz_id, task_id, cmdb_host_data):
         # 兼容内网IP为空的情况
         if not host["bk_host_innerip"]:
             logger.info(
-                f"{task_id} | sync_cmdb_host error: biz[{biz_id}] | bk_host_id[{host['bk_host_id']}]] "
-                f"bk_host_innerip is empty"
+                f"[sync_cmdb_host] update_or_create_host: task_id -> {task_id}, bk_biz_id -> {biz_id}, "
+                f"bk_host_id -> {host['bk_host_id']} bk_host_innerip is empty"
             )
             continue
 
         if any(["," in host["bk_host_innerip"], "," in host["bk_host_outerip"]]):
             logger.info(
-                f"{task_id} | sync_cmdb_host error: biz[{biz_id}] | bk_host_id[{host['bk_host_id']}]] | "
-                f"inner_ip [{host['bk_host_innerip']}]"
+                f"[sync_cmdb_host] update_or_create_host: task_id -> {task_id}, bk_biz_id -> {biz_id}, "
+                f"bk_host_id -> {host['bk_host_id']}, inner_ip -> {host['bk_host_innerip']}, "
+                f"outer_ip -> {host['bk_host_innerip']} contains multiple ips, get first"
             )
             bk_host_innerip = host["bk_host_innerip"].split(",")[0]
             bk_host_outerip = host["bk_host_outerip"].split(",")[0]
@@ -304,6 +305,10 @@ def sync_biz_incremental_hosts(bk_biz_id: int, expected_bk_host_ids: typing.Iter
     :param expected_bk_host_ids: 期望得到的主机ID列表
     :return:
     """
+    logger.info(
+        f"[sync_cmdb_host] sync_biz_incremental_hosts: "
+        f"bk_biz_id -> {bk_biz_id}, expected_bk_host_ids -> {expected_bk_host_ids}"
+    )
     expected_bk_host_ids: typing.Set[int] = set(expected_bk_host_ids)
     exists_host_ids: typing.Set[int] = set(
         models.Host.objects.filter(bk_biz_id=bk_biz_id, bk_host_id__in=expected_bk_host_ids).values_list(
@@ -342,8 +347,8 @@ def _update_or_create_host(biz_id, start=0, task_id=None):
     host_count = cc_result.get("count", 0)
 
     logger.info(
-        f"{task_id} | sync_cmdb_host biz:[{biz_id}] "
-        f"host count: [{host_count}] current sync[{start}-{start + const.QUERY_CMDB_LIMIT}]"
+        f"[sync_cmdb_host] update_or_create_host: task_id -> {task_id}, bk_biz_id -> {biz_id}, "
+        f"host_count -> {host_count}, range -> {start}-{start + const.QUERY_CMDB_LIMIT}"
     )
 
     bk_host_ids, _ = update_or_create_host_base(biz_id, task_id, host_data)
@@ -365,7 +370,7 @@ def sync_cmdb_host_periodic_task(bk_biz_id=None):
     同步cmdb主机
     """
     task_id = sync_cmdb_host_periodic_task.request.id
-    logger.info(f"{task_id} | sync cmdb host start.")
+    logger.info(f"[sync_cmdb_host] start: task_id -> {task_id}, bk_biz_id -> {bk_biz_id}")
 
     # 记录CC所有host id
     cc_bk_host_ids = []
@@ -390,6 +395,6 @@ def sync_cmdb_host_periodic_task(bk_biz_id=None):
         models.Host.objects.filter(bk_host_id__in=need_delete_host_ids).delete()
         models.IdentityData.objects.filter(bk_host_id__in=need_delete_host_ids).delete()
         models.ProcessStatus.objects.filter(bk_host_id__in=need_delete_host_ids).delete()
-        logger.info(f"{task_id} | Delete host ids {need_delete_host_ids}")
+        logger.info(f"[sync_cmdb_host] task_id -> {task_id}, need_delete_host_ids -> {need_delete_host_ids}")
 
-    logger.info(f"{task_id} | Sync cmdb host complete.")
+    logger.info(f"[sync_cmdb_host] complete: task_id -> {task_id}, bk_biz_ids -> {bk_biz_ids}")
