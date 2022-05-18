@@ -86,9 +86,14 @@ def is_lock(config_key, id_key):
 def _resource_watch(cursor_key, kwargs):
     # 用于标识自己
     id_key = random_key()
+
+    logger.info(f"[{cursor_key}] start: id_key -> {id_key}")
+
     while True:
         if not is_lock(cursor_key, id_key):
+            logger.error(f"[{cursor_key}] failed to get lock: id_key -> {id_key}")
             time.sleep(60)
+            logger.info(f"[{cursor_key}] will try to acquire the lock, if there is no error output, it means listening")
             continue
 
         bk_cursor = cache.get(cursor_key)
@@ -112,6 +117,8 @@ def _resource_watch(cursor_key, kwargs):
         ]
         ResourceWatchEvent.objects.bulk_create(objs)
 
+        logger.info(f"[{cursor_key}] receive new resource watch event: count -> {len(objs)}")
+
         # 记录最新cursor
         set_cursor(data, cursor_key)
 
@@ -122,7 +129,7 @@ def sync_resource_watch_host_event():
     """
     kwargs = {
         "bk_resource": const.ResourceType.host,
-        "bk_fields": ["bk_host_innerip", "bk_os_type", "bk_host_id", "bk_cloud_id", "bk_host_outerip"],
+        "bk_fields": ["bk_host_innerip", "bk_os_type", "bk_host_id", "bk_cloud_id", "bk_host_outerip", "bk_biz_id"],
     }
 
     _resource_watch(RESOURCE_WATCH_HOST_CURSOR_KEY, kwargs)
@@ -149,10 +156,14 @@ def apply_resource_watched_events():
     id_key = random_key()
     config_key = APPLY_RESOURCE_WATCHED_EVENTS_KEY
 
+    logger.info(f"[{config_key}] start: id_key -> {id_key}")
+
     while True:
 
         if not is_lock(config_key, id_key):
+            logger.error(f"[{config_key}] failed to get lock: id_key -> {id_key}")
             time.sleep(60)
+            logger.info(f"[{config_key}] will try to acquire the lock, if there is no error output, it means listening")
             continue
         event = ResourceWatchEvent.objects.order_by("create_time").first()
         if not event:
@@ -160,6 +171,7 @@ def apply_resource_watched_events():
             continue
 
         event_bk_biz_id = event.bk_detail.get("bk_biz_id")
+        logger.info(f"[{config_key}] event being consumed -> {event}")
         try:
             if event_bk_biz_id:
                 # 触发同步CMDB
@@ -171,13 +183,12 @@ def apply_resource_watched_events():
                     trigger_nodeman_subscription(event_bk_biz_id)
                 except Exception as e:
                     logger.exception(
-                        "[trigger_nodeman_subscription] bk_biz_id->({}) handler error: {}".format(
-                            event.bk_detail["bk_biz_id"], e
-                        )
+                        f"[trigger_nodeman_subscription] failed: bk_biz_id -> {event.bk_detail['bk_biz_id']}, "
+                        f"error -> {e}"
                     )
 
         except Exception as err:
-            logger.exception("apply_resource_watched_events events: {} error: {}".format(event.bk_detail, err))
+            logger.exception(f"[{config_key}] failed: event -> {event}, error -> {err}")
 
         # 删除事件记录
         event.delete()
@@ -256,6 +267,8 @@ def trigger_sync_cmdb_host(bk_biz_id, debounce_time=0):
 
     sync_cmdb_host_periodic_task.apply_async(kwargs={"bk_biz_id": bk_biz_id}, countdown=debounce_time)
 
+    logger.info(f"[trigger_sync_cmdb_host] bk_biz_id -> {bk_biz_id} will be run after {debounce_time} s")
+
 
 @func_debounce_decorator
 def trigger_nodeman_subscription(bk_biz_id, debounce_time=0):
@@ -288,4 +301,7 @@ def trigger_nodeman_subscription(bk_biz_id, debounce_time=0):
         kwargs={"subscription_ids": subscription_ids}, countdown=debounce_time
     )
 
-    logger.info(f"[trigger_nodeman_subscription] following subscriptions will be run->({subscription_ids})")
+    logger.info(
+        f"[trigger_nodeman_subscription] following subscriptions "
+        f"will be run -> ({subscription_ids}) after {debounce_time} s"
+    )
