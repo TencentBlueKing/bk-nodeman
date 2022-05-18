@@ -241,6 +241,7 @@ class RegisterHostService(AgentBaseService):
             # 业务相同，视为导入成功，这种情况一般出现在配置平台主机未及时导入的场景
             if bk_biz_id == host_biz_relation["bk_biz_id"]:
                 host_keys_not_in_except_biz.remove(host_key)
+                continue
 
             log = _("主机期望注册到「{bk_biz_id}」[{bk_biz_name}]，但实际存在于业务「ID: {actual_biz_id}」，请前往该业务进行安装").format(
                 host_key=host_key,
