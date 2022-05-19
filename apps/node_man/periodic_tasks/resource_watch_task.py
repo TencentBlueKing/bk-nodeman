@@ -129,7 +129,7 @@ def sync_resource_watch_host_event():
     """
     kwargs = {
         "bk_resource": const.ResourceType.host,
-        "bk_fields": ["bk_host_innerip", "bk_os_type", "bk_host_id", "bk_cloud_id", "bk_host_outerip", "bk_biz_id"],
+        "bk_fields": ["bk_host_innerip", "bk_os_type", "bk_host_id", "bk_cloud_id", "bk_host_outerip"],
     }
 
     _resource_watch(RESOURCE_WATCH_HOST_CURSOR_KEY, kwargs)
