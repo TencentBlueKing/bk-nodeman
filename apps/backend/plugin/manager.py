@@ -75,6 +75,11 @@ class PluginManager(object):
         act = PluginServiceActivity(component_code=plugin.TransferPackageComponent.code, name=_("下发安装包"))
         return act
 
+    def transfer_script(self, op_types: List[str]):
+        act = PluginServiceActivity(component_code=plugin.TransferScriptComponent.code, name=_("下发脚本"))
+        act.component.inputs.op_types = Var(type=Var.PLAIN, value=op_types)
+        return act
+
     def install_package(self):
         act = PluginServiceActivity(component_code=plugin.InstallPackageComponent.code, name=_("安装插件包"))
         return act
