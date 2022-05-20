@@ -11,11 +11,13 @@ specific language governing permissions and limitations under the License.
 from __future__ import absolute_import, unicode_literals
 
 import os
+import stat
 from typing import Iterable, List, Optional
 
 from django.conf import settings
 from django.core.management.base import BaseCommand
 
+from apps.core.files.storage import AdminFileSystemStorage
 from apps.core.files.storage import constants as core_files_constants
 from apps.core.files.storage import get_storage
 from apps.node_man.models import AccessPoint
@@ -53,6 +55,10 @@ def copy_dir_files_to_storage(
                 target_file_path = os.path.join(target_dir_path, file_relative_path)
                 storage.save(name=target_file_path, content=target_file_fs)
                 target_file_fs.seek(0)
+        if storage.__class__ is AdminFileSystemStorage:
+            source_file_st = os.stat(source_file_path)
+            if os.access(source_file_path, os.X_OK):
+                os.chmod(target_file_path, source_file_st.st_mode | stat.S_IEXEC)
 
     # 如果使用了蓝鲸制品库，更新默认接入点的下载地址
     if storage.storage_type == core_files_constants.StorageType.BLUEKING_ARTIFACTORY.value:

@@ -16,34 +16,8 @@ from django.utils.translation import ugettext_lazy as _
 from apps.node_man import constants, models
 
 from ..base import CommonData
+from ..common.script_content import REACHABLE_SCRIPT_TEMPLATE
 from .base import AgentCommonData, AgentExecuteScriptService
-
-REACHABLE_SCRIPT_TEMPLATE = """
-is_target_reachable () {
-    local ip=${1}
-    local target_port=$2
-    local _port err ret
-
-    if [[ $target_port =~ [0-9]+-[0-9]+ ]]; then
-        target_port=$(seq ${target_port//-/ })
-    fi
-    for _port in $target_port; do
-        timeout 5 bash -c ">/dev/tcp/$ip/$_port" 2>/dev/null
-        case $? in
-            0) return 0 ;;
-            1) ret=1 && echo "GSE server connect to proxy($ip:$_port) connection refused" ;;
-            ## 超时的情况，只有要一个端口是超时的情况，认定为网络不通，不继续监测
-            124) echo "GSE server connect to proxy($ip:$target_port) failed: NETWORK TIMEOUT %(msg)s" && return 124;;
-        esac
-    done
-
-    return $ret;
-}
-ret=0
-is_target_reachable %(proxy_ip)s %(btsvr_thrift_port)s || ret=$?
-is_target_reachable %(proxy_ip)s %(bt_port)s-%(tracker_port)s || ret=$?
-exit $ret
-"""
 
 
 class CheckPolicyGseToProxyService(AgentExecuteScriptService):
