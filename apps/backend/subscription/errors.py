@@ -153,3 +153,11 @@ class SubscriptionUpdateError(AppBaseException):
     ERROR_CODE = 17
     MESSAGE = _("订阅更新错误")
     MESSAGE_TPL = _("订阅[id:{subscription_id}]更新错误: {msg}")
+
+
+class PluginScriptValidationError(AppBaseException):
+    """插件操作脚本校验错误"""
+
+    ERROR_CODE = 18
+    MESSAGE = _("插件操作脚本校验错误")
+    MESSAGE_TPL = _("{msg}")
