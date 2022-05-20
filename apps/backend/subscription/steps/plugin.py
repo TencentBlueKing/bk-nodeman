@@ -1205,6 +1205,7 @@ class UninstallPlugin(PluginAction):
     def _generate_activities(self, plugin_manager):
         # 停用插件 -> 卸载插件
         activities = [
+            plugin_manager.transfer_script(op_types=[constants.GseOpType.STOP]),
             plugin_manager.operate_proc(constants.GseOpType.STOP),
             # TODO 卸载时需要在GSE注销进程
             plugin_manager.uninstall_package(),
@@ -1226,6 +1227,7 @@ class PushConfig(PluginAction):
         activities = [
             plugin_manager.set_process_status(constants.ProcStateType.UNKNOWN),
             plugin_manager.render_and_push_config_by_subscription(self.step.subscription_step.id),
+            plugin_manager.transfer_script(op_types=[constants.GseOpType.START, constants.GseOpType.RELOAD]),
             plugin_manager.operate_proc(op_type=constants.GseOpType.DELEGATE),
             plugin_manager.operate_proc(op_type=constants.GseOpType.RELOAD),
             plugin_manager.set_process_status(constants.ProcStateType.RUNNING),
@@ -1245,6 +1247,7 @@ class RemoveConfig(PluginAction):
         # 移除配置 -> 重启插件
         activities = [
             plugin_manager.remove_config(),
+            plugin_manager.transfer_script(op_types=[constants.GseOpType.RELOAD]),
             plugin_manager.operate_proc(constants.GseOpType.RELOAD),
             plugin_manager.set_process_status(constants.ProcStateType.REMOVED),
         ]
@@ -1264,6 +1267,7 @@ class StartPlugin(PluginAction):
         activities = [
             plugin_manager.switch_subscription_enable(enable=True),
             plugin_manager.set_process_status(constants.ProcStateType.UNKNOWN),
+            plugin_manager.transfer_script(op_types=[constants.GseOpType.START]),
             plugin_manager.operate_proc(constants.GseOpType.START),
             plugin_manager.set_process_status(constants.ProcStateType.RUNNING),
         ]
@@ -1282,6 +1286,7 @@ class MainReStartPlugin(MainPluginAction, StartPlugin):
         # 重启插件
         activities = [
             plugin_manager.set_process_status(constants.ProcStateType.UNKNOWN),
+            plugin_manager.transfer_script(op_types=[constants.GseOpType.RESTART]),
             plugin_manager.operate_proc(constants.GseOpType.RESTART),
             plugin_manager.set_process_status(constants.ProcStateType.RUNNING),
         ]
@@ -1307,6 +1312,7 @@ class StopPlugin(PluginAction):
 
         activities = [
             plugin_manager.set_process_status(constants.ProcStateType.UNKNOWN),
+            plugin_manager.transfer_script(op_types=[constants.GseOpType.STOP]),
             plugin_manager.operate_proc(constants.GseOpType.STOP),
             plugin_manager.set_process_status(final_status),
         ]
@@ -1329,6 +1335,7 @@ class ReloadPlugin(PluginAction):
         # 重载插件
         activities = [
             plugin_manager.set_process_status(constants.ProcStateType.UNKNOWN),
+            plugin_manager.transfer_script(op_types=[constants.GseOpType.RELOAD]),
             plugin_manager.operate_proc(constants.GseOpType.RELOAD),
             plugin_manager.set_process_status(constants.ProcStateType.RUNNING),
         ]
@@ -1351,6 +1358,7 @@ class DelegatePlugin(PluginAction):
         # 重启插件
         activities = [
             plugin_manager.set_process_status(constants.ProcStateType.UNKNOWN),
+            plugin_manager.transfer_script(op_types=[constants.GseOpType.START]),
             plugin_manager.operate_proc(constants.GseOpType.DELEGATE),
             plugin_manager.set_process_status(constants.ProcStateType.RUNNING),
         ]
@@ -1421,6 +1429,7 @@ class StopAndDeletePlugin(PluginAction):
             # 停用时变更启用状态为False，关闭巡检
             plugin_manager.switch_subscription_enable(enable=False),
             plugin_manager.set_process_status(constants.ProcStateType.UNKNOWN),
+            plugin_manager.transfer_script(op_types=[constants.GseOpType.STOP]),
             plugin_manager.operate_proc(constants.GseOpType.STOP),
             plugin_manager.set_process_status(constants.ProcStateType.REMOVED),
             plugin_manager.delete_subscription(),
