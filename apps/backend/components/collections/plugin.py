@@ -29,11 +29,16 @@ from apps.backend.api.constants import (
     GSE_RUNNING_TASK_CODE,
     POLLING_INTERVAL,
     POLLING_TIMEOUT,
+    SUFFIX_MAP,
     GseDataErrCode,
 )
 from apps.backend.api.job import process_parms
 from apps.backend.components.collections.base import BaseService, CommonData
-from apps.backend.components.collections.job import JobV3BaseService
+from apps.backend.components.collections.common.script_content import INITIALIZE_SCRIPT
+from apps.backend.components.collections.job import (
+    JobExecuteScriptService,
+    JobV3BaseService,
+)
 from apps.backend.subscription import errors
 from apps.backend.subscription.steps.adapter import PolicyStepAdapter
 from apps.backend.subscription.tools import (
@@ -41,17 +46,20 @@ from apps.backend.subscription.tools import (
     get_all_subscription_steps_context,
     render_config_files_by_config_templates,
 )
+from apps.core.files.storage import CustomBKRepoStorage, get_storage
 from apps.core.tag import targets
 from apps.core.tag.models import Tag
 from apps.exceptions import AppBaseException, ComponentCallError
 from apps.node_man import constants, exceptions, models
 from apps.node_man.handlers.cmdb import CmdbHandler
-from apps.utils import md5
+from apps.utils import cache, md5
 from apps.utils.batch_request import request_multi_thread
 from apps.utils.files import PathHandler
 from common.api import JobApi
 from pipeline.component_framework.component import Component
 from pipeline.core.flow import Service, StaticIntervalGenerator
+
+from .job import JobTransferFileService
 
 logger = logging.getLogger("app")
 
@@ -1470,6 +1478,70 @@ class SwitchSubscriptionEnableService(PluginBaseService):
         )
 
 
+class PluginTransferFileService(JobTransferFileService, PluginBaseService):
+    pass
+
+
+class TransferScriptService(PluginTransferFileService, JobExecuteScriptService):
+    def _execute(self, data, parent_data, common_data: PluginCommonData):
+        super(TransferScriptService, self)._execute(data, parent_data, common_data)
+        storage = get_storage()
+        if storage.__class__ is CustomBKRepoStorage:
+            super(JobTransferFileService, self)._execute(data, parent_data, common_data)
+
+    def script_name(self):
+        return "initialize_script"
+
+    def get_script_param(self, data, common_data: PluginCommonData, host: models.Host):
+        return self.get_file_target_path
+
+    def get_script_content(self, data, common_data: PluginCommonData, host: models.Host):
+        return INITIALIZE_SCRIPT
+
+    def get_target_servers(self, data, common_data: PluginCommonData, host: models.Host):
+        if host.os_type == constants.OsType.WINDOWS:
+            return
+        return {"ip_list": [{"bk_cloud_id": host.bk_cloud_id, "ip": host.inner_ip}], "host_id_list": [host.bk_host_id]}
+
+    def get_file_list(self, data, common_data: PluginCommonData, host: models.Host) -> List[str]:
+        op_types = data.get_one_of_inputs("op_types")
+        script_files: List[str] = []
+        for op_type in op_types:
+            if op_type not in constants.GseOpType.GSE_OP_TYPE_MAP:
+                raise errors.PluginScriptValidationError()
+            os_type = host.os_type.lower() or constants.OsType.LINUX.lower()
+            script_file = os.path.join(
+                settings.DOWNLOAD_PATH, "plugin_scripts", self.match_script_file_name(op_type=op_type, os_type=os_type)
+            )
+            script_files.append(script_file)
+        return script_files
+
+    @cache.class_member_cache()
+    def host_id__proc_status_map(self, process_statuses: List[models.ProcessStatus]) -> Dict[int, models.ProcessStatus]:
+        host_id__proc_status_map: Dict[int, models.ProcessStatus] = {}
+        for process_status in process_statuses:
+            host_id__proc_status_map[process_status.bk_host_id] = process_status
+        return host_id__proc_status_map
+
+    def get_file_target_path(self, data, common_data: PluginCommonData, host: models.Host) -> str:
+        host_id__proc_status_map = self.host_id__proc_status_map(common_data.process_statuses)
+        process_status = host_id__proc_status_map[host.bk_host_id]
+        return process_status.setup_path
+
+    @classmethod
+    def match_script_file_name(cls, op_type: str, os_type: str) -> str:
+        op_type_action_map = {
+            constants.GseOpType.RESTART: "restart",
+            constants.GseOpType.START: "start",
+            constants.GseOpType.RELOAD: "reload",
+            constants.GseOpType.STOP: "stop",
+        }
+        if op_type not in op_type_action_map:
+            raise errors.PluginScriptValidationError()
+        script_file_name = f"{op_type_action_map[op_type]}.{SUFFIX_MAP[os_type]}"
+        return script_file_name
+
+
 class InitProcessStatusComponent(Component):
     name = "InitProcessStatus"
     code = "init_process_status"
@@ -1480,6 +1552,12 @@ class TransferPackageComponent(Component):
     name = "TransferPackage"
     code = "transfer_package"
     bound_service = TransferPackageService
+
+
+class TransferScriptComponent(Component):
+    name = "TransferScript"
+    code = "transfer_script"
+    bound_service = TransferScriptService
 
 
 class InstallPackageComponent(Component):
