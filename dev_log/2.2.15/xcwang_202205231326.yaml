@@ -1,0 +1,3 @@
+---
+bugfix:
+  - "非直连 Windows 机器安装 Agent, gsecmdline 报错 (closed #664)"
