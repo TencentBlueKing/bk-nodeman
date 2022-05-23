@@ -871,6 +871,7 @@ FILES_TO_PUSH_TO_PROXY = [
     },
     {
         "files": [
+            "ntrights.exe",
             "curl-ca-bundle.crt",
             "curl.exe",
             "libcurl-x64.dll",
