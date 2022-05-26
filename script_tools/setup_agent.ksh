@@ -5,11 +5,13 @@
 # DEFAULT DEFINITION
 NODE_TYPE=agent
 PKG_NAME=gse_client-aix-powerpc.tgz
+GSEV2_COMPARE_VERSION="2.0.0"
 
 GSE_AGENT_RUN_DIR=/var/run/gse
 GSE_AGENT_DATA_DIR=/var/lib/gse
 GSE_AGENT_LOG_DIR=/var/log/gse
 BACKUP_CONFIG_FILES=("procinfo.json")
+WITH_AGENT_ID_ACTION=0
 
 # 收到如下信号或者exit退出时，执行清理逻辑
 #trap quit 1 2 3 4 5 6 7 8 10 11 12 13 14 15
@@ -395,6 +397,11 @@ recovery_config_file () {
 remove_agent () {
     log remove_agent - 'trying to stop old agent'
     stop_agent
+
+    check_agent_id_action
+    if [[ "${WITH_AGENT_ID_ACTION}" -eq 1 ]]; then
+        unregister_agent_id
+    fi
     backup_config_file
     log remove_agent - "trying to remove old agent diretory(${AGENT_SETUP_PATH})"
     rm -rf "${AGENT_SETUP_PATH}"
@@ -407,6 +414,46 @@ remove_agent () {
     fi
 }
 
+register_agent_id () {
+    if [ ! -f "$AGENT_SETUP_PATH/bin/gse_agent" ]; then
+        fail register_agent_id FAILED "gse_agent file not exists in $AGENT_SETUP_PATH/bin"
+    fi
+
+    log register_agent_id  "register agent id: $agent_id"
+    if [ ! -z "$GSE_AGENT_ID" ]; then
+        if return_agent_id=$($AGENT_SETUP_PATH/bin/gse_agent --register "$agent_id") == "$agent_id"; then
+            log report_agent_id DONE "$return_agent_id"
+        else
+            fail register_agent_id FAILED "register agent id failed, return_id: $return_agent_id, excepted: $agent_id"
+        fi
+    else
+        if return_agent_id=$($AGENT_SETUP_PATH/bin/gse_agent --register); then
+            log report_agent_id DONE "$return_agent_id"
+        else
+            fail register_agent_id FAILED "register agent id failed"
+        fi
+    fi
+}
+
+unregister_agent_id () {
+    if [ -f "$AGENT_SETUP_PATH/bin/gse_agent" ]; then
+        if [ -z "$GSE_AGENT_ID" ]; then
+            if $AGENT_SETUP_PATH/bin/gse_agent --unregister; then
+                log unregister_agent_id SUCCESS "unregister agent id succeed"
+            else
+                fail unregister_agent_id FAILED "unregister agent id failed"
+            fi
+        else
+            if $AGENT_SETUP_PATH/bin/gse_agent --unregister "${GSE_AGENT_ID}"; then
+                log unregister_agent_id SUCCESS "unregister agent id succeed"
+            else
+                fail unregister_agent_id FAILED "unregister agent id failed"
+            fi
+        fi
+    else
+        log unregister_agent_id FAILED "gse_agent file not exists in $AGENT_SETUP_PATH/bin"
+    fi
+}
 
 get_config () {
     local filename http_status
@@ -427,6 +474,7 @@ get_config () {
     "filename": "${filename}",
     "node_type": "${NODE_TYPE}",
     "inner_ip": "${LAN_ETH_IP}",
+    "inner_ipv6": "${LAN_ETH_IPV6}",
     "token": "${TOKEN}"
 }
 _OO_
@@ -481,6 +529,10 @@ setup_agent () {
     mkdir -p "$GSE_AGENT_RUN_DIR" "$GSE_AGENT_DATA_DIR" "$GSE_AGENT_LOG_DIR"
 
     start_agent
+    check_agent_id_action
+    if [[ "${WITH_AGENT_ID_ACTION}" -eq 1 ]]; then
+        register_agent_id
+    fi
 
     log setup_agent DONE "agent setup succeded"
 }
@@ -529,6 +581,19 @@ check_deploy_result () {
     is_connected   "$IO_PORT"          || { fail check_deploy_result FAILED "agent(PID:$gse_Master) is not connect to gse server"; ((ret++)); }
 
     [ $ret -eq 0 ] && log check_deploy_result DONE "gse agent has bean deployed successfully"
+}
+
+check_agent_id_action () {
+    gse_agent_path="$AGENT_SETUP_PATH/bin/gse_agent"
+    [[ -f "${gse_agent_path}" ]] || return 0
+    local version=$($gse_agent_path --version)
+    if ! which test > /dev/null 2>&1; then
+        fail setup_proxy FAILED "command test not found"
+    fi
+    # version -ge GSEV2_COMPARE_VERSION
+    if test "$(echo "$version" "$GSEV2_COMPARE_VERSION" | tr " " "\n" | sort -rV | head -n 1)" == "$version"; then
+        WITH_AGENT_ID_ACTION=1
+    fi
 }
 
 validate_vars_string () {

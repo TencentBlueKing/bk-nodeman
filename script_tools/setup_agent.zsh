@@ -4,6 +4,7 @@
 
 # DEFAULT DEFINITION
 NODE_TYPE=agent
+GSEV2_COMPARE_VERSION="2.0.0"
 
 GSE_AGENT_RUN_DIR=/var/run/gse
 GSE_AGENT_DATA_DIR=/var/lib/gse
@@ -12,6 +13,7 @@ BACKUP_CONFIG_FILES=("procinfo.json")
 OS_INFO=""
 OS_TYPE=""
 CURL_PATH=""
+WITH_AGENT_ID_ACTION=0
 
 # 收到如下信号或者exit退出时，执行清理逻辑
 #trap quit 1 2 3 4 5 6 7 8 10 11 12 13 14 15
@@ -499,6 +501,11 @@ remove_agent () {
     log remove_agent - 'trying to stop old agent'
     stop_agent
 
+    check_agent_id_action
+    if [[ "${WITH_AGENT_ID_ACTION}" -eq 1 ]]; then
+        unregister_agent_id
+    fi
+
     backup_config_file
     log remove_agent - "trying to remove old agent directory(${AGENT_SETUP_PATH})"
 
@@ -569,6 +576,10 @@ setup_agent () {
     mkdir -p "$GSE_AGENT_RUN_DIR" "$GSE_AGENT_DATA_DIR" "$GSE_AGENT_LOG_DIR"
 
     start_agent
+    check_agent_id_action
+    if [[ "${WITH_AGENT_ID_ACTION}" -eq 1 ]]; then
+        register_agent_id
+    fi
 
     log setup_agent DONE "gse agent is setup successfully."
 }
@@ -703,6 +714,19 @@ check_target_clean () {
     fi
 }
 
+check_agent_id_action () {
+    gse_agent_path="$AGENT_SETUP_PA/TH/bin/gse_agent"
+    [[ -f "${gse_agent_path}" ]] || return 0
+    local version=$($gse_agent_path --version)
+    if ! which test > /dev/null 2>&1; then
+        fail setup_proxy FAILED "command test not found"
+    fi
+    # version -ge GSEV2_COMPARE_VERSION
+    if test "$(echo "$version" "$GSEV2_COMPARE_VERSION" | tr " " "\n" | sort -rV | head -n 1)" == "$version"; then
+        WITH_AGENT_ID_ACTION=1
+    fi
+}
+
 backup_for_upgrade () {
     local T
     cd "$AGENT_SETUP_PATH/.." || fail backup_config FAILED "change directory to $AGENT_SETUP_PATH/../ failed"
@@ -772,6 +796,7 @@ check_env () {
     check_dir_permission
     check_download_url
     check_target_clean
+    check_agent_id_action
 
     log check_env DONE "checking prerequisite done, result: SUCCESS"
 }
