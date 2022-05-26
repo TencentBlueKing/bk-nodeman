@@ -7,6 +7,8 @@ set timeinfo=%date% %time%
 rem DEFAULT DEFINITION
 set PKG_NAME=
 set CLOUD_ID=
+set GSEV2_COMPARE_VERSION="2.0.0"
+set WITH_AGENT_ID_ACTION=0
 
 :CheckOpts
 if "%1" EQU "-h" goto help
@@ -37,6 +39,8 @@ if "%1" EQU "-Z" (set BT_PORT_END=%~2) && shift && shift && goto CheckOpts
 if "%1" EQU "-K" (set TRACKER_PORT=%~2) && shift && shift && goto CheckOpts
 if "%1" EQU "-U" (set INSTALL_USER=%~2) && shift && shift && goto CheckOpts
 if "%1" EQU "-P" (set INSTALL_PASSWORD=%~2) && shift && shift && goto CheckOpts
+if "%1" EQU "-I6" (set LAN_ETH_IPV6=%~2) && shift && shift && goto CheckOpts
+if "%1" EQU "-AI" (set GSE_AGENT_ID=%~2) && shift && shift && goto CheckOpts
 if "%1" NEQ "" echo Invalid option: "%1" && goto :EOF && exit /B 1
 
 if not defined UPSTREAM_TYPE (set UPSTREAM_TYPE=SERVER) else (set UPSTREAM_TYPE=%UPSTREAM_TYPE%)
@@ -369,6 +373,36 @@ goto :EOF
     )
 goto :EOF
 
+:unregister_agent_id
+    if exist %AGENT_SETUP_PATH%\bin\gse_agent.exe (
+        if %GSE_AGENT_ID% equ "" (
+            for /F %%i in ('%AGENT_SETUP_PATH%\agent\bin\gse_agent.exe --unregister %GSE_AGENT_ID%') do (set GSE_AGENT_ID=%%i)
+        )else (
+            cd /d %AGENT_SETUP_PATH%\agent\bin && .\gse_agnet.exe --unregister  %GSE_AGENT_ID%
+            call: print INFO unregister_agent_id - "unregister agent id success"
+        )
+    ) else (
+        call :print FAIL unregister_agent_id FAILED "%AGENT_SETUP_PATH%\bin\gse_agnet.exe not exist"
+        call :multi_report_step_status
+    )
+
+goto :EOF
+
+:register_agent_id
+    if exist %AGENT_SETUP_PATH%\bin\gse_agent.exe (
+        if %GSE_AGENT_ID% equ "" (
+            for /F %%i in ('%AGENT_SETUP_PATH%\agent\bin\gse_agent.exe --register') do (set REPORT_GSE_AGENT_ID=%%i)
+            call:print INFO report_register_agent_id DONE %REPORT_GSE_AGENT_ID%
+        )else (
+            for /F %%i in ('%AGENT_SETUP_PATH%\agent\bin\gse_agent.exe --register %GSE_AGENT_ID%') do (set REPORT_GSE_AGENT_ID= %i)
+            call:print INFO report_register_agent_id DONE %REPORT_GSE_AGENT_ID%
+        )
+    ) else (
+        call :print FAIL register_agent_id FAILED "%AGENT_SETUP_PATH%\bin\gse_agent.exe not exist"
+        call :multi_report_step_status
+    )
+goto :EOF
+
 :remove_agent_tmp
     call :print INFO remove_agent START "trying to remove old agent"
     call :multi_report_step_status
@@ -456,6 +490,11 @@ goto :EOF
     call :quit_legacy_agent
     call :install_gse_agent_service_with_user_special
     ping -n 3 127.0.0.1 >nul 2>&1
+
+    call :check_agent_id_action
+    if %WITH_AGENT_ID_ACTION% EQU 1 (
+        call :register_agent_id
+    )
 
     call :print INFO setup_agent DONE "agent setup successfully"
 goto :EOF
@@ -587,7 +626,7 @@ goto :EOF
 :check_env
     cd /d %TMP_DIR%
 
-    call :print INFO check_env - "Args are: -s %TASK_ID% -r %CALLBACK_URL% -l %DOWNLOAD_URL% -c %NEW_TOKEN% -n %UPSTREAM_IP% -i %CLOUD_ID% -I %LAN_ETH_IP% -N %UPSTREAM_TYPE% -p %AGENT_SETUP_PATH% -T %TMP_DIR%  %AGENT_SETUP_PATH% "
+    call :print INFO check_env - "Args are: -s %TASK_ID% -r %CALLBACK_URL% -l %DOWNLOAD_URL% -c %NEW_TOKEN% -n %UPSTREAM_IP% -i %CLOUD_ID% -I %LAN_ETH_IP% -N %UPSTREAM_TYPE% -p %AGENT_SETUP_PATH% -T %TMP_DIR%  %AGENT_SETUP_PATH% -AI %AGENT_ID% -I6 %LAN_ETH_IPV6%"
     call :multi_report_step_status
 
     call :download_exe
@@ -771,6 +810,13 @@ goto :EOF
         echo=
         call :stop_agent
         echo=
+        call :check_agent_id_action
+        echo=
+        call :check_agent_id_action
+        if %WITH_AGENT_ID_ACTION% EQU 1 (
+            call: print INFO unregister_agent_id START "trying to unregister agent id"
+            call :unregister_agent_id
+        )
     )
 
     if exist %AGENT_SETUP_PATH% (
@@ -840,6 +886,41 @@ goto :EOF
         %TMP_DIR%\ntrights.exe -u %INSTALL_USER% +r SeServiceLogonRight
         %TMP_DIR%\ntrights.exe -u %INSTALL_USER% +r SeAssignPrimaryTokenPrivilege
     )
+goto :EOF
+
+:check_agent_id_action
+    for /F %%i in ('%AGENT_SETUP_PATH%\agent\bin\gse_agent.exe --version') do (set GSE_AGENT_VERSION=%%i)
+    call :compareVersions %GSE_AGENT_VERSION%  %GSEV2_COMPARE_VERSION%
+    @REM v1 ge v2
+    if %errorlevel% == 1 set "WITH_AGENT_ID_ACTION=1"
+    if %errorlevel% == 0 set "WITH_AGENT_ID_ACTION=1"
+goto :EOF
+
+:compareVersions  version1  version2
+    setlocal enableDelayedExpansion
+    set "v1=%~1"
+    set "v2=%~2"
+    call :divideLetters v1
+    call :divideLetters v2
+    :loop
+    call :parseNode "%v1%" n1 v1
+    call :parseNode "%v2%" n2 v2
+    if %n1% gtr %n2% exit /b 1
+    if %n1% lss %n2% exit /b -1
+    if not defined v1 if not defined v2 exit /b 0
+    if not defined v1 exit /b -1
+    if not defined v2 exit /b 1
+goto :loop
+
+:parseNode  version  nodeVar  remainderVar
+    for /f "tokens=1* delims=.,-" %%A in ("%~1") do (
+      set "%~2=%%A"
+      set "%~3=%%B"
+    )
+goto :EOF
+
+:divideLetters  versionVar
+    for %%C in (a b c d e f g h i j k l m n o p q r s t u v w x y z) do set "%~1=!%~1:%%C=.%%C!"
 goto :EOF
 
 :help

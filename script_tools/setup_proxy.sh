@@ -4,6 +4,7 @@
 
 # DEFAULT DEFINITION
 GSE_COMPARE_VERSION="1.7.2"
+GSEV2_COMPARE_VERSION="2.0.0"
 NODE_TYPE=proxy
 PKG_NAME=gse_${NODE_TYPE}-linux-x86_64.tgz
 
@@ -14,6 +15,7 @@ GSE_AGENT_LOG_DIR=/var/log/gse
 OS_INFO=""
 OS_TYPE=""
 PROC_LIST=""
+WITH_AGENT_ID_ACTION=0
 RC_LOCAL_FILE=/etc/rc.d/rc.local
 
 # 收到如下信号或者exit退出时，执行清理逻辑
@@ -411,6 +413,11 @@ remove_proxy () {
     log remove_proxy - "trying to remove proxy if exists"
     stop_proxy
 
+    check_agent_id_action
+    if [[ "${WITH_AGENT_ID_ACTION}" -eq 1 ]]; then
+        unregister_agent_id
+    fi
+
     log remove_proxy - "trying to remove old proxy directory(${AGENT_SETUP_PATH})"
     rm -rf "${AGENT_SETUP_PATH}"
 
@@ -495,6 +502,10 @@ setup_proxy () {
     get_gse_proc_list
 
     start_proxy
+    check_agent_id_action
+    if [[ "${WITH_AGENT_ID_ACTION}" -eq 1 ]]; then
+        register_agent_id
+    fi
 
     log setup_proxy DONE "gse proxy setup successfully"
 }
@@ -664,6 +675,19 @@ check_target_clean () {
     fi
 }
 
+check_agent_id_action () {
+    gse_agent_path="$AGENT_SETUP_PATH/bin/gse_agent"
+    [[ -f "${gse_agent_path}" ]] || return 0
+    local version=$($gse_agent_path --version)
+    if ! which test > /dev/null 2>&1; then
+        fail setup_proxy FAILED "command test not found"
+    fi
+    # version -ge GSEV2_COMPARE_VERSION
+    if test "$(echo "$version" "$GSEV2_COMPARE_VERSION" | tr " " "\n" | sort -rV | head -n 1)" == "$version"; then
+        WITH_AGENT_ID_ACTION=1
+    fi
+}
+
 backup_for_upgrade () {
     local T
     cd "$AGENT_SETUP_PATH/.." || fail backup_config FAILED "change directory to $AGENT_SETUP_PATH/../ failed"
@@ -676,6 +700,48 @@ backup_for_upgrade () {
         [ -d plugins/etc ] && cp -vrf plugins/etc "etc.plugins.${TASK_ID}.$T"
     fi
 }
+
+register_agent_id () {
+    if [ ! -f "$AGENT_SETUP_PATH/bin/gse_agent" ]; then
+        fail register_agent_id FAILED "gse_agent file not exists in $AGENT_SETUP_PATH/bin"
+    fi
+
+    log register_agent_id  "register agent id: $agent_id"
+    if [ ! -z "$GSE_AGENT_ID" ]; then
+        if return_agent_id=$($AGENT_SETUP_PATH/bin/gse_agent --register "$agent_id") == "$agent_id"; then
+            log report_register_agent_id DONE "$return_agent_id"
+        else
+            fail register_agent_id FAILED "register agent id failed, return_id: $return_agent_id, excepted: $agent_id"
+        fi
+    else
+        if return_agent_id=$($AGENT_SETUP_PATH/bin/gse_agent --register); then
+            log report_register_agent_id DONE "$return_agent_id"
+        else
+            fail register_agent_id FAILED "register agent id failed"
+        fi
+    fi
+}
+
+unregister_agent_id () {
+    if [ -f "$AGENT_SETUP_PATH/bin/gse_agent" ]; then
+        if [ -z "$GSE_AGENT_ID" ]; then
+            if $AGENT_SETUP_PATH/bin/gse_agent --unregister; then
+                log unregister_agent_id SUCCESS "unregister agent id succeed"
+            else
+                fail unregister_agent_id FAILED "unregister agent id failed"
+            fi
+        else
+            if $AGENT_SETUP_PATH/bin/gse_agent --unregister "${GSE_AGENT_ID}"; then
+                log unregister_agent_id SUCCESS "unregister agent id succeed"
+            else
+                fail unregister_agent_id FAILED "unregister agent id failed"
+            fi
+        fi
+    else
+        log unregister_agent_id FAILED "gse_agent file not exists in $AGENT_SETUP_PATH/bin"
+    fi
+}
+
 
 _help () {
 
@@ -722,6 +788,7 @@ check_env () {
     check_pkgtool
     check_download_url
     check_target_clean
+    check_agent_id_action
 
     log check_env DONE "checking prerequisite done, result: SUCCESS"
 }

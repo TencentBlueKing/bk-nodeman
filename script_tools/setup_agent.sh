@@ -4,6 +4,7 @@
 
 # DEFAULT DEFINITION
 NODE_TYPE=agent
+GSEV2_COMPARE_VERSION="2.0.0"
 
 GSE_AGENT_RUN_DIR=/var/run/gse
 GSE_AGENT_DATA_DIR=/var/lib/gse
@@ -11,6 +12,7 @@ GSE_AGENT_LOG_DIR=/var/log/gse
 
 OS_INFO=""
 OS_TYPE=""
+WITH_AGENT_ID_ACTION=0
 RC_LOCAL_FILE=/etc/rc.d/rc.local
 
 # 收到如下信号或者exit退出时，执行清理逻辑
@@ -471,6 +473,11 @@ remove_agent () {
     log remove_agent - 'trying to stop old agent'
     stop_agent
 
+    check_agent_id_action
+    if [[ "${WITH_AGENT_ID_ACTION}" -eq 1 ]]; then
+        unregister_agent_id
+    fi
+
     log remove_agent - "trying to remove old agent directory(${AGENT_SETUP_PATH})"
     cd "${AGENT_SETUP_PATH}"
     for file in `lsattr -R |egrep "i-" |awk '{print $NF}'`;do echo "--- $file" && chattr -i $file ;done
@@ -541,6 +548,11 @@ setup_agent () {
 
     start_agent
 
+    check_agent_id_action
+    if [[ "${WITH_AGENT_ID_ACTION}" -eq 1 ]]; then
+        register_agent_id
+    fi
+
     log setup_agent DONE "gse agent is setup successfully."
 }
 
@@ -602,6 +614,19 @@ check_deploy_result () {
     is_port_connected_by_pid "$AGENT_PID"  "$IO_PORT"      || { fail check_deploy_result FAILED "agent(PID:$AGENT_PID) is not connect to gse server"; ((ret++)); }
 
     [ $ret -eq 0 ] && log check_deploy_result DONE "gse agent has been deployed successfully"
+}
+
+check_agent_id_action () {
+    gse_agent_path="$AGENT_SETUP_PATH/bin/gse_agent"
+    [[ -f "${gse_agent_path}" ]] || return 0
+    local version=$($gse_agent_path --version)
+    if ! which test > /dev/null 2>&1; then
+        fail setup_proxy FAILED "command test not found"
+    fi
+    # version -ge GSEV2_COMPARE_VERSION
+    if test "$(echo "$version" "$GSEV2_COMPARE_VERSION" | tr " " "\n" | sort -rV | head -n 1)" == "$version"; then
+        WITH_AGENT_ID_ACTION=1
+    fi
 }
 
 # 日志行转为json格式函数
@@ -786,6 +811,47 @@ backup_for_upgrade () {
     fi
 }
 
+register_agent_id () {
+    if [ ! -f "$AGENT_SETUP_PATH/bin/gse_agent" ]; then
+        fail register_agent_id FAILED "gse_agent file not exists in $AGENT_SETUP_PATH/bin"
+    fi
+
+    log register_agent_id  "register agent id: $agent_id"
+    if [ ! -z "$GSE_AGENT_ID" ]; then
+        if return_agent_id=$($AGENT_SETUP_PATH/bin/gse_agent --register "$agent_id") == "$agent_id"; then
+            log report_register_agent_id DONE "$return_agent_id"
+        else
+            fail register_agent_id FAILED "register agent id failed, return_id: $return_agent_id, excepted: $agent_id"
+        fi
+    else
+        if return_agent_id=$($AGENT_SETUP_PATH/bin/gse_agent --register); then
+            log report_register_agent_id DONE "$return_agent_id"
+        else
+            fail register_agent_id FAILED "register agent id failed"
+        fi
+    fi
+}
+
+unregister_agent_id () {
+    if [ -f "$AGENT_SETUP_PATH/bin/gse_agent" ]; then
+        if [ -z "$GSE_AGENT_ID" ]; then
+            if $AGENT_SETUP_PATH/bin/gse_agent --unregister; then
+                log unregister_agent_id SUCCESS "unregister agent id succeed"
+            else
+                fail unregister_agent_id FAILED "unregister agent id failed"
+            fi
+        else
+            if $AGENT_SETUP_PATH/bin/gse_agent --unregister "${GSE_AGENT_ID}"; then
+                log unregister_agent_id SUCCESS "unregister agent id succeed"
+            else
+                fail unregister_agent_id FAILED "unregister agent id failed"
+            fi
+        fi
+    else
+        log unregister_agent_id FAILED "gse_agent file not exists in $AGENT_SETUP_PATH/bin"
+    fi
+}
+
 _help () {
 
     echo "${0%*/} -i CLOUD_ID -l URL -I LAN_IP [OPTIONS]"
@@ -856,7 +922,7 @@ LOG_RPT_CNT=0
 BULK_LOG_SIZE=3
 
 # main program
-while getopts I:i:l:s:uc:r:x:p:e:a:k:N:v:oT:RDO:E:A:V:B:S:Z:K: arg; do
+while getopts I:i:l:s:uc:r:x:p:e:a:k:N:v:oT:RDO:E:A:V:B:S:Z:K:I6:AI: arg; do
     case $arg in
         I) LAN_ETH_IP=$OPTARG ;;
         i) CLOUD_ID=$OPTARG ;;
@@ -884,7 +950,8 @@ while getopts I:i:l:s:uc:r:x:p:e:a:k:N:v:oT:RDO:E:A:V:B:S:Z:K: arg; do
         S) BT_PORT_START=$OPTARG ;;
         Z) BT_PORT_END=$OPTARG ;;
         K) TRACKER_PORT=$OPTARG ;;
-
+        I6) LAN_ETH_IPV6=$OPTARG ;;
+        AI) GSE_AGENT_ID=$OPTARG ;;
         *)  _help ;;
     esac
 done
