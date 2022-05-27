@@ -1144,10 +1144,6 @@ class GseOperateProcService(PluginBaseService):
             gse_op_params = {
                 "meta": {"namespace": constants.GSE_NAMESPACE, "name": meta_name},
                 "op_type": op_type,
-                # GSE 1.0 目标对象
-                "hosts": [{"ip": host.inner_ip, "bk_cloud_id": host.bk_cloud_id}],
-                # GSE 2.0 目标对象
-                "agent_id_list": [host.bk_agent_id],
                 # 此字段是节点管理自用，仅用于标识，不会被GSE使用
                 "nodeman_spec": {
                     "process_status_id": process_status.id,
@@ -1171,6 +1167,10 @@ class GseOperateProcService(PluginBaseService):
                     },
                 },
             }
+            if settings.GSE_VERSION == "V1":
+                gse_op_params["hosts"] = [{"ip": host.inner_ip, "bk_cloud_id": host.bk_cloud_id}]
+            else:
+                gse_op_params["agent_id_list"] = [host.bk_agent_id]
             self.log_info(subscription_instance.id, json.dumps(gse_op_params, indent=2))
             proc_operate_req.append(gse_op_params)
 
