@@ -52,6 +52,13 @@ class InstallPluginsTestCase(utils.AgentServiceBaseTestCase):
             def create_subscription(params):
                 return {"subscription_id": self.SUBSCRIPTION_ID}
 
+            @staticmethod
+            def get_subscription_task_status(params):
+                task_results = NodeApi.get_subscription_task_status(params)
+                for task_result in task_results:
+                    task_result["instance_info"]["host"]["bk_host_id"] = self.obj_factory.bk_host_ids[0]
+                return task_results
+
         for nodeman_api_mock_path in self.NODEMAN_API_MOCK_PATHS:
             mock.patch(nodeman_api_mock_path, CustomNodeApi).start()
 
@@ -76,6 +83,7 @@ class InstallPluginsTestCase(utils.AgentServiceBaseTestCase):
                     success=self.EXECUTE_RESULT,
                     outputs={
                         "subscription_ids": [self.SUBSCRIPTION_ID],
+                        "all_subscription_ids": [self.SUBSCRIPTION_ID],
                         "succeeded_subscription_instance_ids": self.fetch_succeeded_sub_inst_ids(),
                     },
                 ),
@@ -84,6 +92,7 @@ class InstallPluginsTestCase(utils.AgentServiceBaseTestCase):
                     schedule_finished=self.IS_FINISHED,
                     outputs={
                         "subscription_ids": [self.SUBSCRIPTION_ID],
+                        "all_subscription_ids": [self.SUBSCRIPTION_ID],
                         "succeeded_subscription_instance_ids": self.fetch_succeeded_sub_inst_ids(),
                         **self.EXTRA_OUTPUT,
                     },
@@ -98,9 +107,44 @@ class InstallPluginsTestCase(utils.AgentServiceBaseTestCase):
         super().tearDownClass()
 
 
+class InstallPluginsNoSubTestCase(InstallPluginsTestCase):
+    CASE_NAME = "测试无需创建子订阅"
+
+    @staticmethod
+    def init_plugins():
+        pass
+
+    def cases(self):
+        return [
+            ComponentTestCase(
+                name=self.CASE_NAME,
+                inputs=self.common_inputs,
+                parent_data={},
+                execute_assertion=ExecuteAssertion(
+                    success=self.EXECUTE_RESULT,
+                    outputs={
+                        "subscription_ids": [],
+                        "all_subscription_ids": [],
+                        "succeeded_subscription_instance_ids": self.fetch_succeeded_sub_inst_ids(),
+                    },
+                ),
+                schedule_assertion=[],
+            )
+        ]
+
+
 class InstallPluginsFailedTestCase(InstallPluginsTestCase):
     CASE_NAME = "测试子订阅安装插件失败"
     SUBSCRIPTION_ID = common_unit.subscription.FAILED_SUBSCRIPTION_ID
+    SCHEDULE_RESULT = False
+    EXTRA_OUTPUT = {"succeeded_subscription_instance_ids": []}
+
+
+class InstallPluginsCreateSubTaskFailedTestCase(InstallPluginsTestCase):
+    CASE_NAME = "测试子订阅任务创建失败"
+    SUBSCRIPTION_ID = common_unit.subscription.CREATE_TASK_FAILED_SUBSCRIPTION_ID
+    SCHEDULE_RESULT = False
+    EXTRA_OUTPUT = {"succeeded_subscription_instance_ids": [], "subscription_ids": []}
 
 
 class InstallPluginsRunningTestCase(InstallPluginsTestCase):
