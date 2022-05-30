@@ -16,7 +16,7 @@ from unittest.mock import patch
 
 from django.utils import timezone
 
-from apps.exceptions import ComponentCallError
+from apps.exceptions import ApiResultError, ComponentCallError
 from apps.mock_data import common_unit
 from apps.node_man import constants, tools
 from apps.node_man.handlers.ap import APHandler
@@ -276,6 +276,12 @@ class NodeApi:
             "subscription_id": common_unit.subscription.DEFAULT_SUBSCRIPTION_ID,
             "task_id": common_unit.subscription.DEFAULT_SUB_TASK_ID,
         }
+
+    @staticmethod
+    def check_subscription_task_ready(params):
+        if params["subscription_id"] == common_unit.subscription.CREATE_TASK_FAILED_SUBSCRIPTION_ID:
+            raise ApiResultError("Failed due to CREATE_TASK_FAILED_SUBSCRIPTION_ID")
+        return True
 
     @staticmethod
     def get_subscription_task_status(params):
