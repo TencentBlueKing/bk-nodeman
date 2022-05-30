@@ -56,6 +56,13 @@ class _BKNodeApi(object):
             description="查询订阅任务中实例的详细状态",
             before_request=add_esb_info_before_request,
         )
+        self.check_subscription_task_ready = DataAPI(
+            method="POST",
+            url=BK_NODE_APIGATEWAY_ROOT + "backend/api/subscription/check_task_ready/",
+            module=self.MODULE,
+            description="查询任务是否已准备完成",
+            before_request=add_esb_info_before_request,
+        )
         self.run_subscription_task = DataAPI(
             method="POST",
             url=BK_NODE_APIGATEWAY_ROOT + "backend/api/subscription/run/",
