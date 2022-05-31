@@ -98,6 +98,7 @@ DATAFLOW_TMPLATE = """
 
 AGENT_TEMPLATE = """
 {
+    "processeventdataid": {{ process_event_dataid }},
     "log": {{ log_path }},
     "logfilesize": 10,
     "logfilenum": 10,
