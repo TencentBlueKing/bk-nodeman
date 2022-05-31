@@ -1,0 +1,3 @@
+---
+bugfix:
+  - "打包部署报错：Package 'protobuf' requires a different Python: 3.6.X not in '>=3.7' (fixed #796)"
