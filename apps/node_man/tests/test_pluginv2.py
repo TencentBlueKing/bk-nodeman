@@ -127,16 +127,7 @@ class TestPluginV2(CustomBaseTestCase):
         result = PluginV2Handler().fetch_config_variables(config_tpl_ids=[1])
         self.assertEqual(
             result,
-            [
-                {
-                    "id": 1,
-                    "name": "test",
-                    "version": "1.0",
-                    "is_main": False,
-                    "creator": "admin",
-                    "variables": {"type": "object", "properties": {}},
-                }
-            ],
+            [{"id": 1, "name": "test", "version": "1.0", "is_main": False, "creator": "admin"}],
         )
 
     @patch("common.api.NodeApi.plugin_history", NodeApi.plugin_history)
