@@ -206,11 +206,8 @@ class PluginV2Handler:
             raise exceptions.PluginConfigTplNotExistError(_("插件配置模板{ids}不存在或已下线").format(ids=diff))
 
         for config_tpl in config_tpls:
-            if config_tpl["is_main"]:
-                # 主配置暂不支持用户自定义
-                config_tpl["variables"] = {}
-            else:
-
+            # 必然不成立条件，用于暂时关闭配置选择入口
+            if "is_main" not in config_tpl:
                 shield_content = tools.PluginV2Tools.shield_tpl_unparse_content(config_tpl["content"])
                 config_tpl["variables"] = tools.PluginV2Tools.simplify_var_json(
                     tools.PluginV2Tools.parse_tpl2var_json(shield_content)
