@@ -29,3 +29,4 @@ apps/backend/
 - clean_script_files_beginhour   # 每天开始执行清理的时间点
 - clean_script_files_maxhours    # 从文件创建时间开始计算文件最多保留小时数
 - clean_script_files_stepcount   # 每次清理一百个文件时，强制 sleep 30ms 避免cpu负载过高
+- processeventdataid             # 进程告警事件
