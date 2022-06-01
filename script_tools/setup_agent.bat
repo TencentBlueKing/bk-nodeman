@@ -7,6 +7,7 @@ set timeinfo=%date% %time%
 rem DEFAULT DEFINITION
 set PKG_NAME=
 set CLOUD_ID=
+set BACKUP_CONFIG_FILE=procinfo.json
 
 :CheckOpts
 if "%1" EQU "-h" goto help
@@ -61,6 +62,7 @@ set tmp_check_deploy_result_files=%TMP_DIR%\nm.setup_agent.bat.check_deploy_resu
 set GSE_AGENT_RUN_DIR=%AGENT_SETUP_PATH%\agent\run
 set GSE_AGENT_DATA_DIR=%AGENT_SETUP_PATH%\agent\data
 set GSE_AGENT_LOG_DIR=%AGENT_SETUP_PATH%\agent\logs
+set GSE_AGENT_ETC_DIR=%AGENT_SETUP_PATH%\agent\etc
 set NEW_AGENT_SETUP_PATH=%AGENT_SETUP_PATH:\=/%
 set special_AGENT_SETUP_PATH=%AGENT_SETUP_PATH:\=\\%
 
@@ -377,6 +379,7 @@ goto :EOF
         echo=
         call :remove_crontab
         echo=
+        call :backup_config_file_action
         call :stop_basic_gse_plugin
         call :stop_agent
     )
@@ -439,6 +442,7 @@ goto :EOF
     %TMP_DIR%\7z.exe x %TMP_DIR%\%TEMP_PKG_NAME%.tar -o%AGENT_SETUP_PATH% -y 1>nul 2>&1
 
     if exist %AGENT_SETUP_PATH%\plugins\bin\gsecmdline.exe (copy /Y %AGENT_SETUP_PATH%\plugins\bin\gsecmdline.exe C:\Windows\System32\ 1>nul 2>&1)
+    call :recovery_config_file_action
     call :get_config
     for %%p in (agent.conf) do (
         if exist %TMP_DIR%\%%p (
@@ -767,6 +771,8 @@ goto :EOF
         echo=
         call :remove_crontab
         echo=
+        call :backup_config_file_action
+        echo=
         call :stop_basic_gse_plugin
         echo=
         call :stop_agent
@@ -839,6 +845,30 @@ goto :EOF
     if not "%INSTALL_USER%" == "" (
         %TMP_DIR%\ntrights.exe -u %INSTALL_USER% +r SeServiceLogonRight
         %TMP_DIR%\ntrights.exe -u %INSTALL_USER% +r SeAssignPrimaryTokenPrivilege
+    )
+goto :EOF
+
+:backup_config_file_action
+    if exist %GSE_AGENT_ETC_DIR%\%BACKUP_CONFIG_FILE%  (
+        copy /Y  %GSE_AGENT_LOG_DIR%\%BACKUP_CONFIG_FILE% %TMP_DIR%\%BACKUP_CONFIG_FILE%
+        call :print INFO backup_config_file DONE "backup config file %BACKUP_CONFIG_FILE% to %TMP_DIR%\%BACKUP_CONFIG_FILE%"
+        call :multi_report_step_status
+    ) else (
+       call :print INFO backup_config_file DONE "backup config file not found"
+       call :multi_report_step_status
+    )
+goto :EOF
+
+:recovery_config_file_action
+    forfiles /P %TMP_DIR% /s /d +0 |findstr /i %BACKUP_CONFIG_FILE%  1>nul 2>&1
+    if !errorlevel! neq 0 (
+        call :print INFO backup_config_file DONE "not found config file %BACKUP_CONFIG_FILE% where modefied in one day in %TMP_DIR%"
+        call :multi_report_step_status
+    ) else (
+        copy /Y %TMP_DIR%\%BACKUP_CONFIG_FILE% %GSE_AGENT_ETC_DIR%\%BACKUP_CONFIG_FILE%
+        call :print INFO backup_config_file DONE "recovery config file %BACKUP_CONFIG_FILE% from %TMP_DIR%"
+        call :multi_report_step_status
+        DEL /F /S /Q %TMP_DIR%\%BACKUP_CONFIG_FILE%
     )
 goto :EOF
 

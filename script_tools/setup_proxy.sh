@@ -6,6 +6,7 @@
 GSE_COMPARE_VERSION="1.7.2"
 NODE_TYPE=proxy
 PKG_NAME=gse_${NODE_TYPE}-linux-x86_64.tgz
+BACKUP_CONFIG_FILES=("procinfo.json")
 
 GSE_AGENT_RUN_DIR=/var/run/gse
 GSE_AGENT_DATA_DIR=/var/lib/gse
@@ -411,6 +412,7 @@ remove_proxy () {
     log remove_proxy - "trying to remove proxy if exists"
     stop_proxy
 
+    backup_config_file
     log remove_proxy - "trying to remove old proxy directory(${AGENT_SETUP_PATH})"
     rm -rf "${AGENT_SETUP_PATH}"
 
@@ -476,6 +478,8 @@ setup_proxy () {
 
     # setup config file
     get_config
+
+    recovery_config_file
 
     local config=(agent.conf btsvr.conf transit.conf opts.conf plugin_info.json data.conf dataflow.conf)
     for f in "${config[@]}"; do
@@ -675,6 +679,32 @@ backup_for_upgrade () {
         log backup_config - "backup configs for plugins (if exists)"
         [ -d plugins/etc ] && cp -vrf plugins/etc "etc.plugins.${TASK_ID}.$T"
     fi
+}
+
+backup_config_file () {
+    local file
+    for file in "${BACKUP_CONFIG_FILES[@]}"; do
+        local tmp_backup_file
+        if [ -f "${AGENT_SETUP_PATH}/etc/${file}" ]; then
+            tmp_backup_file=$(mktemp "${TMP_DIR}"/nodeman_${file}_config.XXXXXXX)
+            log backup_config_file - "backup $file to $tmp_backup_file"
+            cp -rf "${AGENT_SETUP_PATH}"/etc/"${file}" "${tmp_backup_file}"
+            chattr +i "${tmp_backup_file}"
+        fi
+    done
+}
+
+recovery_config_file () {
+    for file in "${BACKUP_CONFIG_FILES[@]}"; do
+        local latest_config_file tmp_config_file_abs_path
+        time_filter_config_file=$(find "${TMP_DIR}" -ctime -1 -name "nodeman_${file}_config*")
+        [ -z "${time_filter_config_file}" ] && return 0
+        latest_config_file=$(find "${TMP_DIR}" -ctime -1 -name "nodeman_${file}_config*" | xargs ls -rth | tail -n 1)
+        chattr -i "${latest_config_file}"
+        cp -rf "${latest_config_file}" "${AGENT_SETUP_PATH}"/etc/"${file}"
+        rm -f "${latest_config_file}"
+        log recovery_config_file - "recovery ${AGENT_SETUP_PATH}/etc/${file} from $latest_config_file"
+    done
 }
 
 _help () {
