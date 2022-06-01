@@ -15,7 +15,7 @@ import operator
 import os
 from collections import defaultdict
 from functools import reduce
-from typing import Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
 from django.conf import settings
 from django.db import IntegrityError
@@ -510,6 +510,79 @@ class CheckAgentStatusService(PluginBaseService):
                     ),
                 )
         return True
+
+
+class TransferScriptService(JobV3BaseService, PluginBaseService):
+    """调用作业平台传输脚本文件"""
+
+    def _execute(self, data, parent_data, common_data: PluginCommonData):
+        process_statuses = common_data.process_statuses
+        group_id_instance_map = common_data.group_id_instance_map
+        host_id_obj_map = common_data.host_id_obj_map
+        op_type = data.get_one_of_inputs("op_type")
+
+        # 按操作系统进行分组分发文件
+        # 把多个IP合并为一个任务，可以利用GSE文件管道的BT能力，提高传输效率
+        jobs: Dict[str, Dict[str, Union[list, str]]] = defaultdict(lambda: defaultdict(list))
+        for process_status in process_statuses:
+            bk_host_id = process_status.bk_host_id
+            subscription_instance = group_id_instance_map.get(process_status.group_id)
+            host = host_id_obj_map.get(bk_host_id)
+            agent_config = self.get_agent_config_by_process_status(process_status, common_data)
+            os_type = host.os_type.lower() or constants.OsType.LINUX.lower()
+            script_files = os.path.join(
+                settings.DOWNLOAD_PATH, "plugin_scripts", self.match_script_file_name(op_type=op_type, os_type=os_type)
+            )
+            platform = "-".join((os_type, host.cpu_arch))
+            jobs[platform]["ip_list"].append({"bk_cloud_id": host.bk_cloud_id, "ip": host.inner_ip})
+            jobs[platform]["subscription_instance_ids"].append(subscription_instance.id)
+            jobs[platform]["setup_path"] = agent_config["setup_path"]
+            jobs[platform]["os_type"] = host.os_type
+            jobs[platform]["file_list"] = [script_files]
+
+        # 组装作业平台请求参数
+        multi_job_params: List[Dict[str, Any]] = []
+        for __, job in jobs.items():
+            multi_job_params.append(
+                {
+                    "job_func": JobApi.fast_transfer_file,
+                    "subscription_instance_id": job["subscription_instance_ids"],
+                    "subscription_id": common_data.subscription.id,
+                    "job_params": {
+                        "file_target_path": job["setup_path"],
+                        "file_source_list": [{"file_list": job["file_list"]}],
+                        "os_type": job["os_type"],
+                        "target_server": {"ip_list": job["ip_list"]},
+                    },
+                }
+            )
+        # 对上面组装好的作业平台参数进行并发请求
+        request_multi_thread(self.request_single_job_and_create_map, multi_job_params)
+        return True
+
+    @classmethod
+    def match_script_file_name(cls, op_type: str, os_type: str) -> str:
+        if os_type == constants.OsType.WINDOWS:
+            script_file_map = {
+                constants.GseOpType.RESTART: "restart.bat",
+                constants.GseOpType.START: "start.bat",
+                constants.GseOpType.STOP: "stop.bat",
+            }
+        elif os_type == constants.OsType.AIX:
+            script_file_map = {
+                constants.GseOpType.RESTART: "restart.ksh",
+                constants.GseOpType.START: "start.ksh",
+                constants.GseOpType.STOP: "stop.ksh",
+                constants.GseOpType.RELOAD: "reload.ksh",
+            }
+        else:
+            script_file_map = {
+                constants.GseOpType.RESTART: "restart.sh",
+                constants.GseOpType.START: "start.sh",
+                constants.GseOpType.STOP: "stop.sh",
+                constants.GseOpType.RELOAD: "reload.sh",
+            }
+        return script_file_map[op_type]
 
 
 class TransferPackageService(JobV3BaseService, PluginBaseService):
@@ -1472,6 +1545,12 @@ class TransferPackageComponent(Component):
     name = "TransferPackage"
     code = "transfer_package"
     bound_service = TransferPackageService
+
+
+class TransferScriptComponent(Component):
+    name = "TransferScript"
+    code = "transfer_script"
+    bound_service = TransferScriptService
 
 
 class InstallPackageComponent(Component):
