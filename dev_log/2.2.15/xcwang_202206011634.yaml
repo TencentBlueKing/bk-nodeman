@@ -1,0 +1,3 @@
+---
+optimization:
+  - "重装 Agent 保留procinfo.json文件 (closed #791)"
