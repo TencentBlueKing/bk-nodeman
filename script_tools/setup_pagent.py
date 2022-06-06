@@ -176,9 +176,9 @@ def windows_cmd(
         return False
 
     push_win_curl_cmds = ["put {} {}".format(str(Path(args.download_path) / name), tmp_dir) for name in WIN_CURL_FILES]
-    execute_win_commands(["mkdir {}".format(tmp_dir)], login_ip, user, identity, download_url)
+    execute_win_commands(["mkdir {}".format(tmp_dir)], login_ip, user, identity, download_url, port)
     try:
-        execute_win_commands(push_win_curl_cmds, login_ip, user, identity, download_url)
+        execute_win_commands(push_win_curl_cmds, login_ip, user, identity, download_url, port)
     except Exception as e:
         report_log("push_curl_exe", f"not found in proxy's miniweb, download from nginx, {e}")
         for name in WIN_CURL_FILES + ("wmiexec.py",):
@@ -186,15 +186,15 @@ def windows_cmd(
             download_file(download_url + f"/{name}")
         push_win_curl_cmds = ["put {} {}".format(str(Path(__file__).parent / name), tmp_dir) for name in WIN_CURL_FILES]
         commands = push_win_curl_cmds + commands
-    execute_win_commands(commands, login_ip, user, identity, download_url)
+    execute_win_commands(commands, login_ip, user, identity, download_url, port)
 
 
-def execute_win_commands(commands, login_ip, user, identity, download_url):
+def execute_win_commands(commands, login_ip, user, identity, download_url, port):
     try:
         for cmd in commands:
             noOutput = True if "setup_agent.bat -T" in cmd else False
             report_log("send_install_cmd" if noOutput else "send_cmd", cmd)
-            res = execute_cmd(cmd, login_ip, user, identity, download_url, noOutput=noOutput)
+            res = execute_cmd(cmd, login_ip, user, identity, download_url, port, noOutput=noOutput)
             print(res)
     except KeyboardInterrupt as e:
         print("execute {} failed. {}".format(cmd, e))
@@ -310,6 +310,7 @@ def execute_cmd(
     username,
     password,
     download_url,
+    port,
     domain="",
     share="ADMIN$",
     noOutput=False,
@@ -322,7 +323,7 @@ def execute_cmd(
         from wmiexec import WMIEXEC
 
     executor = WMIEXEC(cmd_str, username, password, domain, share=share, noOutput=noOutput)
-    result_data = executor.run(ipaddr)
+    result_data = executor.run(ipaddr, sess_port=port)
     return {"result": True, "data": result_data}
 
 

@@ -1,0 +1,3 @@
+---
+bugfix:
+  - "Windows WMI 探测未更改认证端口信息 (closed #805)"

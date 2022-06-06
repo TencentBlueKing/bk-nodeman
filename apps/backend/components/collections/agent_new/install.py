@@ -308,12 +308,13 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
                         ip,
                         identity_data.account,
                         identity_data.password,
+                        identity_data.port,
                         no_output=True,
                     )
                 else:
                     # Other commands is quick and depends on previous ones, using synchronous
                     self.log_info(sub_inst_ids=sub_inst_id, log_content=f"Sending cmd: {cmd}")
-                    execute_cmd(cmd, ip, identity_data.account, identity_data.password)
+                    execute_cmd(cmd, ip, identity_data.account, identity_data.password, identity_data.port)
             except socket.error:
                 self.move_insts_to_failed(
                     [sub_inst_id],
@@ -356,6 +357,7 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
                     ip,
                     identity_data.account,
                     identity_data.password,
+                    identity_data.port,
                 )
             except ConnectionResetError as e:
                 # 高并发模式下可能导致连接重置，记录报错信息并抛出异常，等待上层处理逻辑重试或抛出异常

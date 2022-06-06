@@ -83,7 +83,7 @@ from setup_pagent import SshMan, execute_cmd
 
 
 if "{os_type}" == "WINDOWS":
-    res = execute_cmd(r"{cmd_str}", args.login_ip, args.account, args.identity, args.download_url, noOutput=False)
+    res = execute_cmd(r"{cmd_str}", args.login_ip, args.account, args.identity, args.download_url, port, noOutput=False)
     print(res["data"])
 else:
     ssh_man = SshMan(args.login_ip, args.port, args.account, args.identity)
@@ -162,6 +162,7 @@ else:
                 host.login_ip or host.inner_ip,
                 host.identity.account,
                 host.identity.password,
+                host.identity.port,
             )["data"]
     if ssh_man:
         ssh_man.safe_close(ssh_man.ssh)

@@ -74,9 +74,9 @@ class WMIEXEC:
         if hashes is not None:
             self.__lmhash, self.__nthash = hashes.split(":")
 
-    def run(self, addr):
+    def run(self, addr, sess_port):
         if self.__noOutput is False:
-            smbConnection = SMBConnection(addr, addr)
+            smbConnection = SMBConnection(addr, addr, sess_port=sess_port)
             if self.__doKerberos is False:
                 smbConnection.login(self.__username, self.__password, self.__domain, self.__lmhash, self.__nthash)
             else:

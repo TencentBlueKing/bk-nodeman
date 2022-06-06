@@ -11,19 +11,19 @@ specific language governing permissions and limitations under the License.
 from script_tools.wmiexec import WMIEXEC
 
 
-def put_file(src_file, des_path, des_ip, username, password, domain="", share="ADMIN$"):
+def put_file(src_file, des_path, des_ip, username, password, sess_port, domain="", share="ADMIN$"):
     """upload file"""
     cmd_str = "put " + str(src_file) + " " + str(des_path)
     executor = WMIEXEC(cmd_str, username, password, domain, share=share)
-    executor.run(des_ip)
+    executor.run(des_ip, sess_port=sess_port)
     return {
         "result": True,
         "data": "upload {} success to {}:{}".format(src_file, des_ip, des_path),
     }
 
 
-def execute_cmd(cmd_str, ipaddr, username, password, domain="", share="ADMIN$", no_output=False):
+def execute_cmd(cmd_str, ipaddr, username, password, sess_port, domain="", share="ADMIN$", no_output=False):
     """execute command"""
     executor = WMIEXEC(cmd_str, username, password, domain, share=share, noOutput=no_output)
-    result_data = executor.run(ipaddr)
+    result_data = executor.run(ipaddr, sess_port=sess_port)
     return {"result": True, "data": result_data}

@@ -202,6 +202,7 @@ class ChooseAccessPointService(AgentBaseService, remote.RemoteServiceMixin):
                     remote_conn_helper.host.login_ip or remote_conn_helper.host.inner_ip,
                     remote_conn_helper.host.identity.account,
                     remote_conn_helper.host.identity.password,
+                    remote_conn_helper.host.identity.port or constants.WINDOWS_PORT,
                 )["data"]
                 ping_times_gby_ap_id[ap_id].append(self.parse_ping_time(remote_conn_helper.host.os_type, stdout))
         return self.handle_single_detect_result(remote_conn_helper, ping_times_gby_ap_id)
