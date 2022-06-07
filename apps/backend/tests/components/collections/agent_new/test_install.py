@@ -60,6 +60,7 @@ class InstallBaseTestCase(utils.AgentServiceBaseTestCase):
         # 初始化redis数据，用于schedule时读取解析
         for sub_inst_id in self.common_inputs["subscription_instance_ids"]:
             name = REDIS_INSTALL_CALLBACK_KEY_TPL.format(sub_inst_id=sub_inst_id)
+            report_agent_obj: models.Host = models.Host.objects.get(bk_host_id=self.obj_factory.bk_host_ids[0])
             json_dumps_logs = [
                 json.dumps(log)
                 for log in [
@@ -68,6 +69,13 @@ class InstallBaseTestCase(utils.AgentServiceBaseTestCase):
                         "level": "INFO",
                         "step": "report_cpu_arch",
                         "log": "aarch64",
+                        "status": "DONE",
+                    },
+                    {
+                        "timestamp": "1580870937",
+                        "level": "INFO",
+                        "step": "report_agent_id",
+                        "log": f"{report_agent_obj.bk_cloud_id}:{report_agent_obj.inner_ip}",
                         "status": "DONE",
                     },
                     {
