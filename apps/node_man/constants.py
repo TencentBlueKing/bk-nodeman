@@ -816,16 +816,18 @@ class PolicyRollBackType:
     ROLLBACK_TYPE__ALIAS_MAP = {SUPPRESSED: "已被其他策略管控", LOSE_CONTROL: "脱离策略管控", TRANSFER_TO_ANOTHER: "转移到优先级最高的策略"}
 
 
+GSE_CLIENT_PACKAGES: List[str] = [
+    "gse_client-windows-x86.tgz",
+    "gse_client-windows-x86_64.tgz",
+    "gse_client-aix-powerpc.tgz",
+    "gse_client-linux-x86.tgz",
+    "gse_client-linux-x86_64.tgz",
+]
+
 FILES_TO_PUSH_TO_PROXY = [
     {"files": ["py36.tgz"], "name": _("检测 BT 分发策略（下发Py36包）")},
     {
-        "files": [
-            "gse_client-windows-x86.tgz",
-            "gse_client-windows-x86_64.tgz",
-            "gse_client-aix-powerpc.tgz",
-            "gse_client-linux-x86.tgz",
-            "gse_client-linux-x86_64.tgz",
-        ],
+        "files": GSE_CLIENT_PACKAGES,
         "name": _("下发安装包"),
         "from_type": ProxyFileFromType.AP_CONFIG.value,
     },
