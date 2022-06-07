@@ -516,6 +516,7 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
         report_data.reverse()
         cpu_arch = None
         os_version = None
+        agent_id = None
         is_finished = False
         error_log = ""
         logs = []
@@ -533,8 +534,9 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
                 logs.append(log)
             if step == "report_cpu_arch":
                 cpu_arch = data["log"]
-
-            if step == "report_os_version":
+            elif step == "report_agent_id":
+                agent_id = data["log"]
+            elif step == "report_os_version":
                 os_version = data["log"]
             # 只要匹配到成功返回步骤完成，则认为是执行完成了
             if step == success_callback_step and status == "DONE":
@@ -544,7 +546,13 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
             self.log_info(sub_inst_ids=sub_inst_id, log_content="\n".join(logs))
         if error_log:
             self.move_insts_to_failed([sub_inst_id], log_content=error_log)
-        return {"sub_inst_id": sub_inst_id, "is_finished": is_finished, "cpu_arch": cpu_arch, "os_version": os_version}
+        return {
+            "sub_inst_id": sub_inst_id,
+            "is_finished": is_finished,
+            "cpu_arch": cpu_arch,
+            "os_version": os_version,
+            "agent_id": agent_id
+        }
 
     def _schedule(self, data, parent_data, callback_data=None):
         """通过轮询redis的方式来处理，避免使用callback的方式频繁调用schedule"""
@@ -566,13 +574,18 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
         left_scheduling_sub_inst_ids = []
         cpu_arch__host_id_map = defaultdict(list)
         os_version__host_id_map = defaultdict(list)
+        host_id__agent_id_map: Dict[int, str] = {}
         for result in results:
             # 对于未完成的实例，记录下来到下一次schedule中继续检查
             if not result["is_finished"]:
                 left_scheduling_sub_inst_ids.append(result["sub_inst_id"])
-            # 按CPU架构对主机进行分组
+            # 按 CPU 架构对主机进行分组
             bk_host_id = common_data.sub_inst_id__host_id_map.get(result["sub_inst_id"])
             cpu_arch__host_id_map[result["cpu_arch"]].append(bk_host_id)
+            # 记录不为空的 agent_id 和 bk_host_id 的对应关系
+            agent_id = result.get("agent_id", "")
+            if agent_id:
+                host_id__agent_id_map[bk_host_id] = agent_id
             # 按操作系统版本对主机进行分组
             os_version = result.get("os_version", "")
             if os_version is not None:
@@ -586,6 +599,14 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
         for os_version, bk_host_ids in os_version__host_id_map.items():
             if os_version:
                 models.Host.objects.filter(bk_host_id__in=bk_host_ids).update(os_version=os_version)
+
+        # 批量更新主机 Agent ID
+        if host_id__agent_id_map:
+            report_agent_id_hosts: List[models.Host] = [
+                models.Host(bk_host_id=bk_host_id, bk_agent_id=bk_agent_id)
+                for bk_host_id, bk_agent_id in host_id__agent_id_map.items()
+            ]
+            models.Host.objects.bulk_update(report_agent_id_hosts, fields=["bk_agent_id"])
 
         data.outputs.scheduling_sub_inst_ids = left_scheduling_sub_inst_ids
         if not left_scheduling_sub_inst_ids:
