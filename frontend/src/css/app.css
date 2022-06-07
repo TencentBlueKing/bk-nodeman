@@ -378,6 +378,14 @@ body {
     &.permission-dialog {
         z-index: 110000 !important;
     }
+    &.log-version-dialog {
+        .bk-dialog {
+            top: 50%;
+        }
+        .bk-dialog-content {
+            transform: translateY(-50%);
+        }
+    }
 }
 .tippy-popper {
     z-index: 99999 !important;
