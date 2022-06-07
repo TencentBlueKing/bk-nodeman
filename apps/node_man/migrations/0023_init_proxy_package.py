@@ -30,11 +30,9 @@ def init_proxy_package(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("node_man", "0022_accesspoint_proxy_package"),
     ]
-
     operations = [
         migrations.RunPython(init_proxy_package),
     ]
