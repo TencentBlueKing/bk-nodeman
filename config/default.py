@@ -18,7 +18,6 @@ from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
 
 import env
-from apps.node_man import constants
 from apps.utils.enum import EnhanceEnum
 from apps.utils.env import get_type_env
 
@@ -599,7 +598,7 @@ if BK_BACKEND_CONFIG:
         REDBEAT_REDIS_URL = "redis-sentinel://redis-sentinel:{port}/0".format(port=REDIS_PORT or 26379)
 
         # 临时兼容社区版单例配置
-        if BKAPP_RUN_ENV == constants.BkappRunEnvType.CE:
+        if BKAPP_RUN_ENV == "ce":
             REDBEAT_REDIS_URL = "redis://:{passwd}@{host}:{port}/0".format(
                 passwd=REDIS_PASSWORD, host=REDIS_HOST, port=REDIS_PORT or 6379
             )
