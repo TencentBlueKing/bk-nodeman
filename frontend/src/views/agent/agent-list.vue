@@ -378,14 +378,15 @@
           prop="topology"
           min-width="100"
           v-if="filter['topology'].mockChecked"
-          :resizable="false">
+          :resizable="true">
           <template #default="{ row }">
             <div v-bk-tooltips="{
                    content: row.topology.join('<br>'),
-                   theme: 'light',
+                   theme: 'topology-list',
                    delay: [300, 0],
                    placements: 'bottom',
-                   disabled: row.topology.length === 1
+                   disabled: row.topology.length === 1,
+                   boundary: 'window'
                  }"
                  v-if="row.topology.length">
               <span :class="{ 'col-topo': row.topology.length > 1 }"
