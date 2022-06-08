@@ -40,7 +40,11 @@
           <span v-else>--</span>
         </template>
       </bk-table-column>
-      <bk-table-column :label="$t('支持系统')" prop="cpu_arch" :resizable="false" />
+      <bk-table-column :label="$t('支持系统')" prop="cpu_arch" :resizable="false">
+        <template #default="{ row }">
+          <span>{{ `${osMap[row.os]} ${row.cpu_arch}` || '--' }}</span>
+        </template>
+      </bk-table-column>
       <bk-table-column :label="$t('插件描述')" prop="description" :resizable="false" />
       <bk-table-column :label="$t('解析结果')" prop="message" min-width="200" show-overflow-tooltip>
         <template #default="{ row }">
@@ -120,6 +124,9 @@ export default class PluginPackage extends Mixins(pollMixin) {
   }
   private get windowHeight() {
     return MainStore.windowHeight;
+  }
+  private get osMap() {
+    return MainStore.osMap;
   }
   private get authority() {
     return PluginStore.authorityMap;

@@ -281,7 +281,12 @@ export default class Main extends VuexModule {
   public updateOsList(list = []) {
     this.osList = list;
     this.osMap = list.reduce((map, item) => {
-      map[item.id] = item.name;
+      const { id = '', name = '' } = item;
+      const osLower = id.toLowerCase();
+      const osUpper = id.toUpperCase();
+      map[id] = name;
+      map[osLower] = name;
+      map[osUpper] = name;
       return map;
     }, {});
   }
