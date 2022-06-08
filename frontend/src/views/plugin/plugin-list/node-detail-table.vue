@@ -99,7 +99,7 @@
   </section>
 </template>
 <script lang="ts">
-import { Vue, Component, Prop } from 'vue-property-decorator';
+import { Vue, Component, Prop, Emit  } from 'vue-property-decorator';
 import { MainStore } from '@/store';
 import { IBkColumn } from '@/types';
 import ColumnSetting from '@/components/common/column-setting.vue';
@@ -296,10 +296,16 @@ export default class PluginRuleTable extends Vue {
     this.operateRow = row;
   }
   private async handleMenuSelect() {
+    this.handleHidden();
     this.$router.push({
       name: 'taskDetail',
       params: { taskId: this.jobId },
     });
+  }
+
+  @Emit('close')
+  public handleHidden() {
+    return false;
   }
 }
 </script>
