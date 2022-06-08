@@ -7,7 +7,7 @@
     :before-close="handleHidden">
     <template #header>{{ ip }}</template>
     <div class="content-box" slot="content" v-bkloading="{ isLoading: loading }">
-      <node-detail-table v-if="!loading" :data="detailData" />
+      <node-detail-table v-if="!loading" :data="detailData" @close="handleHidden" />
     </div>
     <!-- <div slot="content" v-else>
       <bk-exception class="exception-agent" type="500">
