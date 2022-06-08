@@ -3,6 +3,7 @@
     width="1105"
     v-model="show"
     :show-footer="false"
+    ext-cls="log-version-dialog"
     @value-change="handleValueChange">
     <div class="log-version" v-bkloading="{ isLoading: loading }">
       <div class="log-version-left">
