@@ -253,6 +253,9 @@ body {
     .bk-table-fixed-right {
         bottom: 0!important;
     }
+    .cell .cell {
+        padding-left: 0;
+    }
 }
 
 /* table 做出展开角标 */
@@ -507,6 +510,11 @@ body {
         border: 1px solid #DCDEE5;
         transform: translateY(2px) !important;
         background: #ffffff !important;
+    }
+    .topology-list-theme {
+        /* padding: 0 !important; */
+        max-height: 400px;
+        overflow: auto;
     }
     .batch-edit-theme {
         padding: 0 !important;
