@@ -772,7 +772,7 @@ _help () {
 check_env () {
     log check_env START "checking prerequisite. NETWORK_POLICY,DISK_SPACE,PERMISSION,RESOURCE etc.[PID:$CURR_PID]"
 
-    check_policies_${NODE_TYPE}_to_upstream
+    check_polices_${NODE_TYPE}_to_upstream
     check_disk_space "$TMP_DIR"
     check_dir_permission
     check_pkgtool
