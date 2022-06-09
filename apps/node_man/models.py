@@ -322,6 +322,7 @@ class Host(models.Model):
     cpu_arch = models.CharField(
         _("操作系统"), max_length=16, choices=constants.CPU_CHOICES, default=constants.CpuType.x86_64, db_index=True
     )
+    os_version = models.CharField(_("操作系统版本"), max_length=32, blank=True, null=True, db_index=True, default="")
     node_type = models.CharField(_("节点类型"), max_length=16, choices=constants.NODE_CHOICES, db_index=True)
     node_from = models.CharField(_("节点来源"), max_length=45, choices=constants.NODE_FROM_CHOICES, default="NODE_MAN")
     is_manual = models.BooleanField(_("是否手动安装"), default=False)

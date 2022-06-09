@@ -515,6 +515,7 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
         REDIS_INST.ltrim(name, 0, -report_data_len - 1)
         report_data.reverse()
         cpu_arch = None
+        os_version = None
         is_finished = False
         error_log = ""
         logs = []
@@ -532,6 +533,9 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
                 logs.append(log)
             if step == "report_cpu_arch":
                 cpu_arch = data["log"]
+
+            if step == "report_os_version":
+                os_version = data["log"]
             # 只要匹配到成功返回步骤完成，则认为是执行完成了
             if step == success_callback_step and status == "DONE":
                 is_finished = True
@@ -540,7 +544,7 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
             self.log_info(sub_inst_ids=sub_inst_id, log_content="\n".join(logs))
         if error_log:
             self.move_insts_to_failed([sub_inst_id], log_content=error_log)
-        return {"sub_inst_id": sub_inst_id, "is_finished": is_finished, "cpu_arch": cpu_arch}
+        return {"sub_inst_id": sub_inst_id, "is_finished": is_finished, "cpu_arch": cpu_arch, "os_version": os_version}
 
     def _schedule(self, data, parent_data, callback_data=None):
         """通过轮询redis的方式来处理，避免使用callback的方式频繁调用schedule"""
@@ -561,6 +565,7 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
         results = concurrent.batch_call(func=self.handle_report_data, params_list=params_list)
         left_scheduling_sub_inst_ids = []
         cpu_arch__host_id_map = defaultdict(list)
+        os_version__host_id_map = defaultdict(list)
         for result in results:
             # 对于未完成的实例，记录下来到下一次schedule中继续检查
             if not result["is_finished"]:
@@ -568,10 +573,19 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
             # 按CPU架构对主机进行分组
             bk_host_id = common_data.sub_inst_id__host_id_map.get(result["sub_inst_id"])
             cpu_arch__host_id_map[result["cpu_arch"]].append(bk_host_id)
+            # 按操作系统版本对主机进行分组
+            os_version = result.get("os_version", "")
+            if os_version is not None:
+                os_version__host_id_map[os_version].append(bk_host_id)
         # 批量更新CPU架构
         for cpu_arch, bk_host_ids in cpu_arch__host_id_map.items():
             if cpu_arch:
                 models.Host.objects.filter(bk_host_id__in=bk_host_ids).update(cpu_arch=cpu_arch)
+
+        # 批量更新主机操作系统版本号
+        for os_version, bk_host_ids in os_version__host_id_map.items():
+            if os_version:
+                models.Host.objects.filter(bk_host_id__in=bk_host_ids).update(os_version=os_version)
 
         data.outputs.scheduling_sub_inst_ids = left_scheduling_sub_inst_ids
         if not left_scheduling_sub_inst_ids:

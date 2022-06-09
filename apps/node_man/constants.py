@@ -819,9 +819,10 @@ class PolicyRollBackType:
 GSE_CLIENT_PACKAGES: List[str] = [
     "gse_client-windows-x86.tgz",
     "gse_client-windows-x86_64.tgz",
-    "gse_client-aix-powerpc.tgz",
     "gse_client-linux-x86.tgz",
     "gse_client-linux-x86_64.tgz",
+    "gse_client-aix6-powerpc.tgz",
+    "gse_client-aix7-powerpc.tgz",
 ]
 
 FILES_TO_PUSH_TO_PROXY = [
