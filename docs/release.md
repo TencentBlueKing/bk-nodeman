@@ -1,5 +1,19 @@
 # Release
 
+## 2.2.16 - 2022-06-09 
+
+
+### optimization: 
+  * 消除运行环境差异 (closed #779)
+  * Agent 管理列表「业务拓扑」支持拖动改变宽度 (closed #470)
+  * 重装 Agent 保留procinfo.json文件 (closed #791)
+  * Linux 相关 Agent 安装服务探测优化 (closed #774)
+  * 插件包解析页面 '支持系统' 列展示操作系统类型 (closed #711)
+
+### bugfix: 
+  * 节点列表-操作流水跳转到部署策略后 Drawer 未关闭 (close #689)
+  * 版本日志展示位置调整 (closed #756)
+
 ## 2.2.15 - 2022-06-01 
 
 
