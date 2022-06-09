@@ -23,6 +23,7 @@ from django.db.models import F, Q
 from django.utils import timezone
 from django.utils.translation import ugettext as _
 
+from apps.adapters.api.gse import GseApiHelper
 from apps.backend.api.constants import (
     GSE_RUNNING_TASK_CODE,
     POLLING_INTERVAL,
@@ -45,7 +46,7 @@ from apps.node_man.handlers.cmdb import CmdbHandler
 from apps.utils import md5
 from apps.utils.batch_request import request_multi_thread
 from apps.utils.files import PathHandler
-from common.api import GseApi, JobApi
+from common.api import JobApi
 from pipeline.component_framework.component import Component
 from pipeline.core.flow import Service, StaticIntervalGenerator
 
@@ -1112,7 +1113,7 @@ class GseOperateProcService(PluginBaseService):
         """批量请求GSE接口"""
         # 当请求参数为空时，代表无需请求，直接 finish_schedule 跳过即可
         if proc_operate_req:
-            task_id = GseApi.operate_proc_multi({"proc_operate_req": proc_operate_req})["task_id"]
+            task_id = GseApiHelper.operate_proc_multi(proc_operate_req=proc_operate_req)
             self.log_info(log_content=f"GSE TASK ID: [{task_id}]")
             data.outputs.task_id = task_id
         else:
@@ -1149,6 +1150,7 @@ class GseOperateProcService(PluginBaseService):
                     "process_status_id": process_status.id,
                     "subscription_instance_id": subscription_instance.id,
                 },
+                "hosts": [{"ip": host.inner_ip, "bk_agent_id": host.bk_agent_id, "bk_cloud_id": host.bk_cloud_id}],
                 "spec": {
                     "identity": {
                         "index_key": "",
@@ -1167,10 +1169,6 @@ class GseOperateProcService(PluginBaseService):
                     },
                 },
             }
-            if settings.GSE_VERSION == "V1":
-                gse_op_params["hosts"] = [{"ip": host.inner_ip, "bk_cloud_id": host.bk_cloud_id}]
-            else:
-                gse_op_params["agent_id_list"] = [host.bk_agent_id]
             self.log_info(subscription_instance.id, json.dumps(gse_op_params, indent=2))
             proc_operate_req.append(gse_op_params)
 
@@ -1229,7 +1227,7 @@ class GseOperateProcService(PluginBaseService):
         plugin = policy_step_adapter.plugin_desc
         group_id_instance_map = common_data.group_id_instance_map
 
-        result = GseApi.get_proc_operate_result({"task_id": task_id}, raw=True)
+        result = GseApiHelper.get_proc_operate_result(task_id)
         api_code = result.get("code")
         if api_code == GSE_RUNNING_TASK_CODE:
             # GSE_RUNNING_TASK_CODE(1000115) 表示查询的任务等待执行中，还未入到 redis（需继续轮询进行查询）
@@ -1243,10 +1241,7 @@ class GseOperateProcService(PluginBaseService):
             subscription_instance = group_id_instance_map.get(process_status.group_id)
 
             proc_name = self.get_plugin_meta_name(plugin, process_status)
-            if host.bk_agent_id:
-                gse_proc_key = f"{host.bk_agent_id}:{constants.GSE_NAMESPACE}:{proc_name}"
-            else:
-                gse_proc_key = f"{host.bk_cloud_id}:{host.inner_ip}:{constants.GSE_NAMESPACE}:{proc_name}"
+            gse_proc_key = GseApiHelper.get_gse_proc_key(host, constants.GSE_NAMESPACE, proc_name)
             proc_operate_result = result["data"].get(gse_proc_key)
             if not proc_operate_result:
                 self.move_insts_to_failed(

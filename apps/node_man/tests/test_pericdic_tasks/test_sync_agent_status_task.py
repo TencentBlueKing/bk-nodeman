@@ -10,8 +10,10 @@ specific language governing permissions and limitations under the License.
 """
 from unittest.mock import patch
 
+from django.conf import settings
 from django.test import override_settings
 
+from apps.adapters.api import gse
 from apps.mock_data.api_mkd.gse.unit import GSE_PROCESS_VERSION
 from apps.mock_data.api_mkd.gse.utils import GseApiMockClient
 from apps.mock_data.common_unit.host import (
@@ -25,6 +27,7 @@ from apps.node_man.periodic_tasks.sync_agent_status_task import (
     update_or_create_host_agent_status,
 )
 from apps.utils.unittest.testcase import CustomBaseTestCase
+from env.constants import GseVersion
 
 
 class TestSyncAgentStatus(CustomBaseTestCase):
@@ -36,7 +39,10 @@ class TestSyncAgentStatus(CustomBaseTestCase):
         update_or_create_host_agent_status(None, 0, 1)
         self.assertEqual(ProcessStatus.objects.count(), 0)
 
-    @patch("apps.node_man.periodic_tasks.sync_agent_status_task.GseApi", GseApiMockClient())
+    @patch(
+        "apps.node_man.periodic_tasks.sync_agent_status_task.GseApiHelper",
+        gse.get_gse_api_helper(settings.GSE_VERSION)(settings.GSE_VERSION, GseApiMockClient()),
+    )
     def test_update_or_create_host_agent_status_alive(self):
         host = Host.objects.create(**HOST_MODEL_DATA)
         # 测试创建ProcessStatus对象
@@ -48,8 +54,11 @@ class TestSyncAgentStatus(CustomBaseTestCase):
         self.assertEqual(host.node_from, constants.NodeFrom.NODE_MAN)
 
     @patch(
-        "apps.node_man.periodic_tasks.sync_agent_status_task.GseApi",
-        GseApiMockClient(get_agent_status_return=GseApiMockClient.GET_AGENT_NOT_ALIVE_STATUS_RETURN),
+        "apps.node_man.periodic_tasks.sync_agent_status_task.GseApiHelper",
+        gse.get_gse_api_helper(settings.GSE_VERSION)(
+            settings.GSE_VERSION,
+            GseApiMockClient(get_agent_status_return=GseApiMockClient.GET_AGENT_NOT_ALIVE_STATUS_RETURN),
+        ),
     )
     def test_update_or_create_host_agent_status_not_alive(self):
         host = Host.objects.create(**HOST_MODEL_DATA)
@@ -65,19 +74,25 @@ class TestSyncAgentStatus(CustomBaseTestCase):
         process_status = ProcessStatus.objects.get(bk_host_id=host.bk_host_id)
         self.assertEqual(process_status.status, constants.ProcStateType.TERMINATED)
 
-    @override_settings(GSE_VERSION="V2")
-    @patch("apps.node_man.periodic_tasks.sync_agent_status_task.GseApi", GseApiMockClient())
+    @override_settings(GSE_VERSION=GseVersion.V2.value)
+    @patch(
+        "apps.node_man.periodic_tasks.sync_agent_status_task.GseApiHelper",
+        gse.get_gse_api_helper(GseVersion.V2.value)(GseVersion.V2.value, GseApiMockClient()),
+    )
     def test_update_or_create_host_agent_status_alive_gse_v2(self):
         host = Host.objects.create(**HOST_MODEL_DATA_WITH_AGENT_ID)
         # 测试创建ProcessStatus对象
-        update_or_create_host_agent_status(None, 0, 1, has_agent_id=True)
+        update_or_create_host_agent_status(None, 0, 1)
         process_status = ProcessStatus.objects.get(bk_host_id=host.bk_host_id)
         self.assertEqual(process_status.status, constants.ProcStateType.RUNNING)
 
-    @override_settings(GSE_VERSION="V2")
+    @override_settings(GSE_VERSION=GseVersion.V2.value)
     @patch(
-        "apps.node_man.periodic_tasks.sync_agent_status_task.GseApi",
-        GseApiMockClient(get_agent_state_list_return=GseApiMockClient.GET_AGENT_NOT_ALIVE_STATE_LIST_RETURN),
+        "apps.node_man.periodic_tasks.sync_agent_status_task.GseApiHelper",
+        gse.get_gse_api_helper(GseVersion.V2.value)(
+            GseVersion.V2.value,
+            GseApiMockClient(v2_cluster_list_agent_state_return=GseApiMockClient.GET_AGENT_NOT_ALIVE_STATE_LIST_RETURN),
+        ),
     )
     def test_update_or_create_host_agent_status_not_alive_gse_v2(self):
         host = Host.objects.create(**HOST_MODEL_DATA)

@@ -12,110 +12,60 @@ import time
 import typing
 
 from celery.task import periodic_task, task
-from django.db.models import Q
 
-from apps.core.concurrent import controller
+from apps.adapters.api.gse import GseApiHelper
 from apps.node_man import constants, tools
 from apps.node_man.models import Host, ProcessStatus
-from apps.utils import concurrent
 from apps.utils.periodic_task import calculate_countdown
-from common.api import GseApi
 from common.log import logger
 
 
-def get_version(version_str):
-    version = constants.VERSION_PATTERN.search(version_str)
-    return version.group() if version else ""
-
-
-@controller.ConcurrentController(
-    data_list_name="host_list",
-    batch_call_func=concurrent.batch_call,
-    get_config_dict_func=lambda: {"limit": constants.QUERY_PROC_STATUS_HOST_LENS},
-)
-def query_proc_status(proc_name, host_list):
-    """
-    上云接口测试
-    200: 0.3s-0.4s (0.41s 0.29s 0.33s)
-    500: 0.35s-0.5s (0.34s 0.42s 0.51s)
-    1000: 0.5s-0.6s (0.53s 0.56s 0.61s)
-    2000: 0.9s (0.91s, 0.93s)
-    5000: 2s-4s (2.3s 2.2s 4.1s 4.3s)
-    """
-    kwargs = {
-        "meta": {"namespace": constants.GSE_NAMESPACE, "name": proc_name, "labels": {"proc_name": proc_name}},
-        "hosts": host_list,
-        "agent_id_list": [host["agent_id"] for host in host_list],
-    }
-    data = GseApi.get_proc_status(kwargs)
-
-    return data.get("proc_infos") or []
-
-
-def proc_statues2host_key__readable_proc_status_map(
-    proc_statuses: typing.List[typing.Dict[str, typing.Any]]
-) -> typing.Dict[str, typing.Dict[str, typing.Any]]:
-    """
-    将原始的进程状态信息格式化为 主机唯一标识 - 可读的进程状态信息 映射关系
-    :param proc_statuses: 进程状态信息
-    :return: 主机唯一标识 - 可读的进程状态信息 映射关系
-    """
-    host_key__readable_proc_status_map: typing.Dict[str, typing.Dict[str, typing.Any]] = {}
-    for proc_status in proc_statuses:
-        if "bk_agent_id" in proc_status:
-            host_key = proc_status["bk_agent_id"]
-        else:
-            host_key = f"{proc_status['host']['bk_cloud_id']}:{proc_status['host']['ip']}"
-        host_key__readable_proc_status_map[host_key] = {
-            "version": get_version(proc_status["version"]),
-            "status": constants.PLUGIN_STATUS_DICT[proc_status["status"]],
-            "is_auto": constants.AutoStateType.AUTO if proc_status["isauto"] else constants.AutoStateType.UNAUTO,
-            "name": proc_status["meta"]["name"],
-        }
-    return host_key__readable_proc_status_map
-
-
 @task(queue="default", ignore_result=True)
-def update_or_create_proc_status(task_id, hosts, sync_proc_list, start):
-    host_ip_cloud_list = []
-    bk_host_id_map = {}
-    for host in hosts:
-        if host.bk_agent_id:
-            agent_id = host.bk_agent_id
-        else:
-            agent_id = f"{host.bk_cloud_id}:{host.inner_ip}"
-        host_ip_cloud_list.append({"ip": host.inner_ip, "bk_cloud_id": host.bk_cloud_id, "agent_id": agent_id})
-        bk_host_id_map[agent_id] = host.bk_host_id
+def update_or_create_proc_status(task_id, host_objs, sync_proc_list, start):
+    host_info_list = []
+    agent_id__host_id_map = {}
+    for host_obj in host_objs:
+        host_info = {"ip": host_obj.inner_ip, "bk_cloud_id": host_obj.bk_cloud_id, "bk_agent_id": host_obj.bk_agent_id}
+        host_info_list.append(host_info)
+        agent_id__host_id_map[GseApiHelper.get_agent_id(host_info)] = host_obj.bk_host_id
 
     for proc_name in sync_proc_list:
         past = time.time()
-        proc_statuses = query_proc_status(proc_name=proc_name, host_list=host_ip_cloud_list)
-        logger.info(f"this get_proc_status cost {time.time() - past}s")
 
-        host_key__readable_proc_status_map: typing.Dict[
+        agent_id__readable_proc_status_map: typing.Dict[
             str, typing.Dict[str, typing.Any]
-        ] = proc_statues2host_key__readable_proc_status_map(proc_statuses)
+        ] = GseApiHelper.list_proc_state(
+            namespace=constants.GSE_NAMESPACE,
+            proc_name=proc_name,
+            labels={"proc_name": proc_name},
+            host_info_list=host_info_list,
+            extra_meta_data={},
+        )
+
+        logger.info(f"this get_proc_status cost {time.time() - past}s")
 
         process_status_objs = ProcessStatus.objects.filter(
             name=proc_name,
-            bk_host_id__in=bk_host_id_map.values(),
+            bk_host_id__in=agent_id__host_id_map.values(),
             source_type=ProcessStatus.SourceType.DEFAULT,
             proc_type=constants.ProcType.PLUGIN,
             is_latest=True,
         ).values("bk_host_id", "id", "name", "status")
 
         host_proc_key__proc_status_map = {}
-        for item in process_status_objs:
-            host_proc_key__proc_status_map[f"{item['name']}:{item['bk_host_id']}"] = item
+        for process_status_obj in process_status_objs:
+            host_proc_key__proc_status_map[
+                f"{process_status_obj['name']}:{process_status_obj['bk_host_id']}"
+            ] = process_status_obj
 
         need_update_status = []
         need_create_status = []
 
-        for host_key, readable_proc_status in host_key__readable_proc_status_map.items():
-            if host_key not in bk_host_id_map:
+        for agent_id, readable_proc_status in agent_id__readable_proc_status_map.items():
+            if agent_id not in agent_id__host_id_map:
                 continue
             db_proc_status = host_proc_key__proc_status_map.get(
-                f'{readable_proc_status["name"]}:{bk_host_id_map[host_key]}'
+                f'{readable_proc_status["name"]}:{agent_id__host_id_map[agent_id]}'
             )
 
             # 如果DB中进程状态为手动停止，并且同步回来的进程状态为终止，此时保持手动停止的标记，用于订阅的豁免操作
@@ -144,7 +94,7 @@ def update_or_create_proc_status(task_id, hosts, sync_proc_list, start):
                     name=readable_proc_status["name"],
                     source_type=ProcessStatus.SourceType.DEFAULT,
                     proc_type=constants.ProcType.PLUGIN,
-                    bk_host_id=bk_host_id_map[host_key],
+                    bk_host_id=agent_id__host_id_map[agent_id],
                     is_latest=True,
                 )
                 # 忽略无用的进程信息
@@ -164,26 +114,22 @@ def update_or_create_proc_status(task_id, hosts, sync_proc_list, start):
 def sync_proc_status_periodic_task():
     sync_proc_list = tools.PluginV2Tools.fetch_head_plugins()
     task_id = sync_proc_status_periodic_task.request.id
-    host_queryset_list = [
-        Host.objects.exclude(bk_agent_id__isnull=True).exclude(bk_agent_id__exact=""),
-        Host.objects.filter(Q(bk_agent_id__isnull=True) | Q(bk_agent_id__exact="")),
-    ]
-    for host_queryset in host_queryset_list:
-        count = host_queryset.count()
-        logger.info(f"{task_id} | sync host proc status... host_count={count}.")
+    host_queryset = Host.objects.all()
+    count = host_queryset.count()
+    logger.info(f"{task_id} | sync host proc status... host_count={count}.")
 
-        for start in range(0, count, constants.QUERY_PROC_STATUS_HOST_LENS):
-            countdown = calculate_countdown(
-                count=count / constants.QUERY_PROC_STATUS_HOST_LENS,
-                index=start / constants.QUERY_PROC_STATUS_HOST_LENS,
-                duration=constants.SYNC_PROC_STATUS_TASK_INTERVAL,
-            )
-            logger.info(f"{task_id} | sync host proc status after {countdown} seconds")
+    for start in range(0, count, constants.QUERY_PROC_STATUS_HOST_LENS):
+        countdown = calculate_countdown(
+            count=count / constants.QUERY_PROC_STATUS_HOST_LENS,
+            index=start / constants.QUERY_PROC_STATUS_HOST_LENS,
+            duration=constants.SYNC_PROC_STATUS_TASK_INTERVAL,
+        )
+        logger.info(f"{task_id} | sync host proc status after {countdown} seconds")
 
-            # (task_id, hosts[start: start + constants.QUERY_PROC_STATUS_HOST_LENS], sync_proc_list, start)
-            update_or_create_proc_status.apply_async(
-                (task_id, host_queryset[start : start + constants.QUERY_PROC_STATUS_HOST_LENS], sync_proc_list, start),
-                countdown=countdown,
-            )
+        # (task_id, hosts[start: start + constants.QUERY_PROC_STATUS_HOST_LENS], sync_proc_list, start)
+        update_or_create_proc_status.apply_async(
+            (task_id, host_queryset[start : start + constants.QUERY_PROC_STATUS_HOST_LENS], sync_proc_list, start),
+            countdown=countdown,
+        )
 
-        logger.info(f"{task_id} | sync host proc status complete.")
+    logger.info(f"{task_id} | sync host proc status complete.")

@@ -18,7 +18,6 @@ from .check_agent_status import CheckAgentStatusService
 from .check_policy_gse_to_proxy import CheckPolicyGseToProxyService
 from .choose_access_point import ChooseAccessPointService
 from .configure_policy import ConfigurePolicyService
-from .delegate_plugin_proc import DelegatePluginProcService
 from .get_agent_id import GetAgentIDService
 from .get_agent_status import GetAgentStatusService
 from .install import InstallService
@@ -70,12 +69,6 @@ class ConfigurePolicyComponent(Component):
     name = _("配置策略")
     code = "configure_policy"
     bound_service = ConfigurePolicyService
-
-
-class DelegatePluginProcComponent(Component):
-    name = _("托管插件进程")
-    code = "delegate_plugin_proc"
-    bound_service = DelegatePluginProcService
 
 
 class GetAgentStatusComponent(Component):
