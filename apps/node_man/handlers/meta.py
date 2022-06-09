@@ -353,8 +353,7 @@ class MetaHandler(APIModel):
         os_dict = {"name": _("操作系统"), "id": "os_type", "children": []}
 
         for os_type in constants.OS_TUPLE:
-            special_os_type = [constants.OsType.AIX, constants.OsType.SOLARIS]
-            if os_type in special_os_type and settings.BKAPP_RUN_ENV == constants.BkappRunEnvType.CE.value:
+            if os_type == constants.OsType.SOLARIS and settings.BKAPP_RUN_ENV == constants.BkappRunEnvType.CE.value:
                 continue
             os_dict["children"].append({"id": os_type, "name": constants.OS_CHN.get(os_type, os_type)})
 

@@ -15,18 +15,9 @@ from apps.node_man import constants
 
 
 def init_proxy_package(apps, schema_editor):
-    packages = [
-        "gse_client-windows-x86.tgz",
-        "gse_client-windows-x86_64.tgz",
-        "gse_client-linux-x86.tgz",
-        "gse_client-linux-x86_64.tgz",
-    ]
-
-    if settings.BKAPP_RUN_ENV != constants.BkappRunEnvType.CE.value:
-        packages.append("gse_client-aix-powerpc.tgz")
 
     AccessPoint = apps.get_model("node_man", "AccessPoint")
-    AccessPoint.objects.update(proxy_package=packages)
+    AccessPoint.objects.update(proxy_package=constants.GSE_CLIENT_PACKAGES)
 
 
 class Migration(migrations.Migration):
