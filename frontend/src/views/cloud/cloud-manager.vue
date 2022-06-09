@@ -7,7 +7,7 @@
     <!--内容区域-->
     <section class="cloud-content">
       <div class="content-header mb15">
-        <div>
+        <div class="h32">
           <!--创建云区域-->
           <auth-component
             tag="div"
@@ -150,7 +150,7 @@
               <section v-if="!row.isChannel">
                 <auth-component
                   v-if="row.proxyCount"
-                  class="auth-inline"
+                  class="auth-inline pr20"
                   tag="div"
                   :authorized="row.view"
                   :apply-info="[{
@@ -178,7 +178,7 @@
                 </auth-component>
                 <auth-component
                   v-else
-                  class="auth-inline"
+                  class="auth-inline pr20"
                   :authorized="!!proxyOperateList.length"
                   :apply-info="[{ action: 'proxy_operate' }]">
                   <template slot-scope="{ disabled }">
@@ -193,13 +193,15 @@
           </bk-table-column>
           <bk-table-column :label="$t('Agent数量')" prop="nodeCount" align="right" :resizable="false" sortable>
             <template #default="{ row }">
-              <span v-if="row.nodeCount" class="text-btn" v-test="'filterAgent'" @click.stop="handleGotoAgent(row)">
-                {{ row.nodeCount }}
-              </span>
-              <span v-else>0</span>
+              <div class="pr20">
+                <span v-if="row.nodeCount" class="text-btn" v-test="'filterAgent'" @click.stop="handleGotoAgent(row)">
+                  {{ row.nodeCount }}
+                </span>
+                <span v-else>0</span>
+              </div>
             </template>
           </bk-table-column>
-          <bk-table-column align="right" min-width="40"></bk-table-column>
+          <bk-table-column align="right" width="40"></bk-table-column>
           <bk-table-column :label="$t('接入点')" prop="apName" show-overflow-tooltip></bk-table-column>
           <bk-table-column
             prop="colspaOpera"
@@ -669,10 +671,6 @@ export default class CloudManager extends Vue {
 @import "@/css/mixins/nodeman.css";
 @import "@/css/variable.css";
 
->>> .bk-table-header th.is-right.is-sortable .cell {
-  position: relative;
-  left: 20px;
-}
 .cloud-manager {
   padding-bottom: 20px;
 }
