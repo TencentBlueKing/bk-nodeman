@@ -20,6 +20,7 @@ from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
 import six
 from django.db.models import Q, QuerySet
 
+from apps.adapters.api.gse import GseApiHelper
 from apps.backend import constants as backend_const
 from apps.backend.plugin.manager import PluginManager, PluginServiceActivity
 from apps.backend.subscription import errors, tools
@@ -28,7 +29,6 @@ from apps.backend.subscription.steps import adapter
 from apps.backend.subscription.steps.base import Action, Step
 from apps.node_man import constants, models
 from apps.node_man.exceptions import ApIDNotExistsError
-from apps.node_man.periodic_tasks import sync_proc_status_task
 from apps.utils import concurrent
 from common.log import logger
 from pipeline.builder import Data, Var
@@ -569,7 +569,7 @@ class PluginStep(Step):
         :param instances:
         :return:
         """
-        host_list: List[Dict[str, Any]] = []
+        host_info_list: List[Dict[str, Any]] = []
         host_id__instance_id_map: Dict[int, str] = {}
         for instance_id, instance in instances.items():
             bk_host_id = instance["host"].get("bk_host_id")
@@ -578,23 +578,25 @@ class PluginStep(Step):
                 # 忽略未同步主机
                 continue
             host_obj = bk_host_id__host_map[bk_host_id]
-            host_list.append({"ip": host_obj.inner_ip, "bk_cloud_id": host_obj.bk_cloud_id})
+            host_info_list.append(
+                {"ip": host_obj.inner_ip, "bk_cloud_id": host_obj.bk_cloud_id, "bk_agent_id": host_obj.bk_agent_id}
+            )
             host_id__instance_id_map[bk_host_id] = instance_id
 
-        # TODO 后续该功能覆盖范围广的情况下，可以考虑通过延时任务回写 DB 的进程状态信息，提高时效性
-        proc_statues: List[Dict[str, Any]] = sync_proc_status_task.query_proc_status(
-            proc_name=self.plugin_name, host_list=host_list
+        agent_id__readable_proc_status_map: Dict[str, Dict[str, Any]] = GseApiHelper.list_proc_state(
+            namespace=constants.GSE_NAMESPACE,
+            proc_name=self.plugin_name,
+            labels={"proc_name": self.plugin_name},
+            host_info_list=host_info_list,
+            extra_meta_data={},
         )
-        host_key__readable_proc_status_map: Dict[
-            str, Dict[str, Any]
-        ] = sync_proc_status_task.proc_statues2host_key__readable_proc_status_map(proc_statues)
 
-        logger.info(f"host_key__readable_proc_status_map -> {host_key__readable_proc_status_map}")
+        logger.info(f"agent_id__readable_proc_status_map -> {agent_id__readable_proc_status_map}")
 
         for bk_host_id, host_obj in bk_host_id__host_map.items():
+            agent_id: str = GseApiHelper.get_agent_id(host_obj)
             instance_id: str = host_id__instance_id_map[bk_host_id]
-            host_key: str = f"{host_obj.inner_ip}:{host_obj.bk_cloud_id}"
-            proc_status: Optional[Dict[str, Any]] = host_key__readable_proc_status_map.get(host_key)
+            proc_status: Optional[Dict[str, Any]] = agent_id__readable_proc_status_map.get(agent_id)
             if not proc_status:
                 # 查询不到进程状态信息视为插件状态异常
                 instance_actions[host_id__instance_id_map[bk_host_id]] = install_action
@@ -699,7 +701,7 @@ class PluginStep(Step):
                 bk_host_id__host_map: Dict[int, models.Host] = {
                     host.bk_host_id: host
                     for host in models.Host.objects.filter(bk_host_id__in=bk_host_ids).only(
-                        "bk_host_id", "inner_ip", "bk_cloud_id", "os_type", "cpu_arch"
+                        "bk_host_id", "bk_agent_id", "inner_ip", "bk_cloud_id", "os_type", "cpu_arch"
                     )
                 }
                 self.handle_check_and_skip_instances(
