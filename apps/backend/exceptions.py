@@ -66,3 +66,9 @@ class PluginParseError(BackendBaseException):
 class CreatePackageRecordError(BackendBaseException):
     MESSAGE = _("归档插件包信息错误")
     ERROR_CODE = 10
+
+
+class OsVersionPackageValidationError(BackendBaseException):
+    MESSAGE = _("操作系统版本安装包校验错误")
+    MESSAGE_TPL = _("操作系统[{os_type}]不支持 对应版本[{os_version}]的安装包")
+    ERROR_CODE = 11

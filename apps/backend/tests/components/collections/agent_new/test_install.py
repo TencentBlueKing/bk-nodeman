@@ -73,6 +73,13 @@ class InstallBaseTestCase(utils.AgentServiceBaseTestCase):
                     {
                         "timestamp": "1580870937",
                         "level": "INFO",
+                        "step": "report_os_version",
+                        "status": "DONE",
+                        "log": "6.1.1.1",
+                    },
+                    {
+                        "timestamp": "1580870937",
+                        "level": "INFO",
                         "step": "check_deploy_result",
                         "log": "gse agent has been deployed successfully",
                         "status": "DONE",
