@@ -21,6 +21,7 @@ __all__ = [
     "LOG_TYPE",
     "LOG_LEVEL",
     "BK_LOG_DIR",
+    "GSE_VERSION",
     "ENVIRONMENT",
     # esb 访问地址
     "BK_COMPONENT_API_URL",
@@ -53,3 +54,10 @@ LOG_TYPE = get_type_env(key="LOG_TYPE", default=constants.LogType.DEFAULT, _type
 LOG_LEVEL = get_type_env(key="LOG_LEVEL", default="INFO", _type=str)
 # 日志所在目录
 BK_LOG_DIR = get_type_env(key="BK_LOG_DIR", default="./../bk_nodeman/logs", _type=str)
+
+
+# ===============================================================================
+# 蓝鲸管控平台
+# ===============================================================================
+# 平台版本
+GSE_VERSION = get_type_env(key="GSE_VERSION", default=constants.GseVersion.V1.value)

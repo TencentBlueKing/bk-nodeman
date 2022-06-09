@@ -8,36 +8,3 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-
-
-from enum import Enum
-from typing import Dict
-
-from apps.utils.enum import EnhanceEnum
-
-
-class BkPaaSVersion(EnhanceEnum):
-    V2 = 2
-    V3 = 3
-
-    @classmethod
-    def _get_member__alias_map(cls) -> Dict[Enum, str]:
-        return {cls.V2: "V2", cls.V3: "V3具备容器及二进制配置差异"}
-
-
-class LogType(EnhanceEnum):
-    STDOUT = "STDOUT"
-    DEFAULT = "DEFAULT"
-
-    @classmethod
-    def _get_member__alias_map(cls) -> Dict[Enum, str]:
-        return {cls.DEFAULT: "与开发框架保持一致", cls.STDOUT: "标准输出"}
-
-
-class GseVersion(EnhanceEnum):
-    V1 = "V1"
-    V2 = "V2"
-
-    @classmethod
-    def _get_member__alias_map(cls) -> Dict[Enum, str]:
-        return {cls.V1: "V1", cls.V2: "V2"}
