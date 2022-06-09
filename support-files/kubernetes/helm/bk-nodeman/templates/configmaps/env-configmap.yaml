@@ -48,12 +48,16 @@ data:
   {{- if .Values.config.bkAppBkNodeApiGateway }}
   BKAPP_BK_NODE_APIGATEWAY: "{{ .Values.config.bkAppBkNodeApiGateway }}/"
   {{- end }}
+  {{- if .Values.config.bkAppBkGseApiGateway }}
+  BKAPP_BK_GSE_APIGATEWAY: "{{ .Values.config.bkAppBkGseApiGateway }}/"
+  {{- end }}
 
   BK_NODEMAN_URL: "{{ .Values.bkNodemanUrl }}"
   BKAPP_BACKEND_HOST: "{{ .Values.config.bkAppBackendHost | default .Values.bkNodemanApiUrl }}"
   BKAPP_NODEMAN_CALLBACK_URL: "{{ .Values.config.bkAppNodemanCallbackUrl | default ( printf "%s/%s" .Values.bkNodemanUrl "backend" ) }}"
   BKAPP_NODEMAN_OUTER_CALLBACK_URL: "{{ .Values.config.bkAppNodemanOuterCallbackUrl | default ( printf "%s/%s" .Values.bkNodemanUrl "backend" ) }}"
 
+  GSE_VERSION: "{{ .Values.config.gseVersion }}"
   GSE_ENABLE_SVR_DISCOVERY: "{{ .Values.config.gseEnableSvrDisCovery }}"
   BKAPP_GSE_ZK_HOST: "{{ .Values.config.bkAppGseZkHost }}"
   BKAPP_GSE_ZK_AUTH: "{{ .Values.config.bkAppGseZkAuth }}"

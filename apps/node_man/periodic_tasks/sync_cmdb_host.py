@@ -32,7 +32,7 @@ def query_biz_hosts(bk_biz_id: int, bk_host_ids: typing.List[int]) -> typing.Lis
     :return: 主机列表
     """
     query_params = {
-        "fields": constants.LIST_BIZ_HOSTS_KWARGS,
+        "fields": constants.CC_HOST_FIELDS,
         "host_property_filter": {
             "condition": "AND",
             "rules": [{"field": "bk_host_id", "operator": "in", "value": bk_host_ids}],
@@ -158,9 +158,9 @@ def update_or_create_host_base(biz_id, task_id, cmdb_host_data):
 
     # 查询节点管理已存在的主机
     exist_proxy_host_ids: typing.Set[int] = set(
-        models.Host.objects.filter(
-            bk_host_id__in=bk_host_ids, node_type=constants.NodeType.PROXY
-        ).values_list("bk_host_id", flat=True)
+        models.Host.objects.filter(bk_host_id__in=bk_host_ids, node_type=constants.NodeType.PROXY).values_list(
+            "bk_host_id", flat=True
+        )
     )
     exist_agent_host_ids: typing.Set[int] = set(
         models.Host.objects.filter(bk_host_id__in=bk_host_ids)

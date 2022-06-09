@@ -10,8 +10,10 @@ specific language governing permissions and limitations under the License.
 """
 from unittest.mock import patch
 
+from django.conf import settings
 from django.test import TestCase
 
+from apps.adapters.api import gse
 from apps.backend.components.collections.plugin import (
     GseOperateProcComponent,
     GseOperateProcService,
@@ -45,7 +47,10 @@ class GseOperateProcTest(TestCase, ComponentTestMixin):
         self.plugin_multi_thread = patch(utils.PLUGIN_MULTI_THREAD_PATH, utils.request_multi_thread_client)
         self.job_jobapi = patch(utils.JOB_JOBAPI, utils.JobMockClient)
         self.job_multi_thread = patch(utils.JOB_MULTI_THREAD_PATH, utils.request_multi_thread_client)
-        self.plugin_gseapi = patch(utils.PLUGIN_GSEAPI, utils.GseMockClient)
+        self.plugin_gseapi = patch(
+            utils.PLUGIN_GSEAPI,
+            gse.get_gse_api_helper(settings.GSE_VERSION)(settings.GSE_VERSION, utils.GseMockClient()),
+        )
 
         self.plugin_gseapi.start()
         self.cmdb_client.start()

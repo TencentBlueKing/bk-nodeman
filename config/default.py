@@ -136,8 +136,6 @@ except (TypeError, ValueError):
     BLUEKING_BIZ_ID = 9991001
 # 作业平台版本
 JOB_VERSION = os.getenv("JOB_VERSION") or "V3"
-# 管控平台平台版本
-GSE_VERSION = os.getenv("GSE_VERSION") or "V1"
 # 资源池业务ID
 BK_CMDB_RESOURCE_POOL_BIZ_ID = int(os.getenv("BK_CMDB_RESOURCE_POOL_BIZ_ID", 1)) or 1
 BK_CMDB_RESOURCE_POOL_BIZ_NAME = "资源池"
@@ -653,6 +651,9 @@ BKAPP_REQUEST_EE_SOPS_OPERATOR = os.getenv("BKAPP_REQUEST_EE_SOPS_OPERATOR", "ad
 BKAPP_EE_SOPS_TEMPLATE_ID = os.getenv("BKAPP_EE_SOPS_TEMPLATE_ID")
 BKAPP_REQUEST_EE_SOPS_BK_BIZ_ID = os.getenv("BKAPP_REQUEST_EE_SOPS_BK_BIZ_ID")
 
+
+# 管控平台平台版本
+GSE_VERSION = env.GSE_VERSION
 # agent 安装路径配置
 GSE_AGENT_HOME = os.getenv("BKAPP_GSE_AGENT_HOME") or "/usr/local/gse"
 GSE_AGENT_LOG_DIR = os.getenv("BKAPP_GSE_AGENT_LOG_DIR") or "/var/log/gse"
