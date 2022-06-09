@@ -67,15 +67,33 @@ class _GseApi(BaseApi):
             module=self.MODULE,
             description="获取Agent状态",
         )
-        self.get_agent_info_list = DataAPI(
+        self.v2_cluster_list_agent_state = DataAPI(
             method="POST",
-            url=GSE_APIGATEWAY_ROOT_V2 + "get_agent_info_list/",
+            url=GSE_APIGATEWAY_ROOT_V2 + "api/v2/cluster/list_agent_state/",
             module=self.MODULE,
-            description="获取Agent版本信息",
+            description="GSE2.0-获取Agent状态",
         )
-        self.get_agent_state_list = DataAPI(
+        self.v2_cluster_list_agent_info = DataAPI(
             method="POST",
-            url=GSE_APIGATEWAY_ROOT_V2 + "get_agent_state_list/",
+            url=GSE_APIGATEWAY_ROOT_V2 + "api/v2/cluster/list_agent_info/",
             module=self.MODULE,
-            description="GSE2.0 获取Agent状态",
+            description="GSE2.0-查询Agent详情列表信息",
+        )
+        self.v2_proc_get_proc_status_v2 = DataAPI(
+            method="POST",
+            url=GSE_APIGATEWAY_ROOT_V2 + "api/v2/proc/get_proc_status_v2/",
+            module=self.MODULE,
+            description="GSE2.0-查询进程状态信息",
+        )
+        self.v2_proc_operate_proc_multi = DataAPI(
+            method="POST",
+            url=GSE_APIGATEWAY_ROOT_V2 + "api/v2/proc/operate_proc_multi/",
+            module=self.MODULE,
+            description="GSE2.0-批量进程操作",
+        )
+        self.v2_proc_get_proc_operate_result_v2 = DataAPI(
+            method="POST",
+            url=GSE_APIGATEWAY_ROOT_V2 + "api/v2/proc/get_proc_operate_result_v2/",
+            module=self.MODULE,
+            description="GSE2.0-查询进程操作结果",
         )
