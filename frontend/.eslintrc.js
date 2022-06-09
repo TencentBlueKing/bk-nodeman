@@ -6,7 +6,7 @@ module.exports = {
     tsconfigRootDir: __dirname,
     sourceType: 'module',
   },
-  extends: ['plugin:vue/recommended', '@bkui/eslint-config-bk/tsvue'],
+  extends: ['plugin:vue/recommended', '@bkui/eslint-config-bk/tsvue', 'plugin:vue/base'],
   globals: {
     // value 为 true 允许被重写，为 false 不允许被重写
     NODE_ENV: false,

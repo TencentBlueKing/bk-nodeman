@@ -7,6 +7,7 @@
       :check-type="checkType"
       :running-count="runningCount"
       :strategy-value="strategyValue"
+      :operate-more="pluginOperateMore"
       v-model="searchSelectValue"
       @filter-change="handleFilterChange"
       @plugin-operate="handlePluginOperate">
@@ -52,39 +53,6 @@
               </i18n>
             </div>
           </div>
-          <bk-form-item :label="$t('插件操作')" required>
-            <div :class="['bk-button-group', { 'is-zh': isZh }]">
-              <bk-button
-                v-for="item in pluginOperateList"
-                :key="item.id"
-                v-test="item.id"
-                :class="['btn-item', { 'is-selected': dialogInfo.operate === item.id }]"
-                @click="dialogInfo.operate = item.id">
-                {{ item.name }}
-              </bk-button>
-              <bk-dropdown-menu
-                ref="moreRef"
-                :ext-cls="['btn-item bk-button p0', isMoreSelected ? 'is-selected' : '']"
-                position-fixed
-                @show="showMore = true"
-                @hide="showMore = false">
-                <div class="flex-center dropdown-icon-absolute" slot="dropdown-trigger">
-                  <span>{{ isMoreSelected ? isMoreSelected.name : $t('更多') }}</span>
-                  <i :class="['bk-icon icon-angle-down',{ 'icon-flip': showMore }]"></i>
-                </div>
-                <ul class="bk-dropdown-list" style="white-space: pre-wrap;" slot="dropdown-content">
-                  <li v-for="item in pluginOperateMore" :key="item.id" v-bk-tooltips="{
-                    content: item.tips,
-                    placements: ['left'],
-                    width: 300,
-                    boundary: 'window'
-                  }">
-                    <a href="javascript:;" @click="handleDropdownClick(item.id)">{{ item.name }}</a>
-                  </li>
-                </ul>
-              </bk-dropdown-menu>
-            </div>
-          </bk-form-item>
           <bk-form-item :label="$t('选择插件')" required style="z-index: 0;">
             <bk-select
               v-test="'pluginName'"
@@ -118,7 +86,7 @@
   </article>
 </template>
 <script lang="ts">
-import { Component, Watch, Mixins, Prop, Ref } from 'vue-property-decorator';
+import { Component, Watch, Mixins, Prop } from 'vue-property-decorator';
 import { PluginStore, MainStore } from '@/store';
 import PluginListOperate from './plugin-list-operate.vue';
 import PluginListTable from './plugin-list-table.vue';
@@ -145,8 +113,6 @@ export default class PluginList extends Mixins(HeaderFilterMixins) {
   @Prop({ type: String, default: '' }) private readonly  cloudId!: string;
   @Prop({ type: String, default: '' }) private readonly  osType!: string;
   @Prop({ type: String, default: '' }) private readonly  pluginName!: string;
-
-  @Ref('moreRef') private readonly moreRef!: any;
 
   private loading = false;
   private tableLoading = false;
@@ -176,14 +142,11 @@ export default class PluginList extends Mixins(HeaderFilterMixins) {
     operate: '',
     plugin: '',
   };
-  private pluginOperateList = [
-    { id: 'MAIN_INSTALL_PLUGIN', name: window.i18n.t('安装或更新') },
+  private pluginOperateMore = [
     { id: 'MAIN_START_PLUGIN', name: window.i18n.t('启动') },
     { id: 'MAIN_STOP_PLUGIN', name: window.i18n.t('停止') },
     { id: 'MAIN_RESTART_PLUGIN', name: window.i18n.t('重启') },
     { id: 'MAIN_RELOAD_PLUGIN', name: window.i18n.t('重载') },
-  ];
-  private pluginOperateMore = [
     {
       id: 'MAIN_DELEGATE_PLUGIN',
       name: window.i18n.t('托管'),
@@ -516,9 +479,9 @@ export default class PluginList extends Mixins(HeaderFilterMixins) {
     this.checkValue = 0;
   }
 
-  private async handlePluginOperate() {
+  private async handlePluginOperate(operate: string) {
     this.dialogInfo.show = true;
-    this.dialogInfo.operate = 'MAIN_INSTALL_PLUGIN';
+    this.dialogInfo.operate = operate;
   }
 
   // 安装/更新 走手动流程
@@ -603,10 +566,6 @@ export default class PluginList extends Mixins(HeaderFilterMixins) {
     }
     return false;
   }
-  public handleDropdownClick(id: string) {
-    this.dialogInfo.operate = id;
-    this.moreRef?.hide();
-  }
 }
 
 </script>
@@ -631,22 +590,6 @@ export default class PluginList extends Mixins(HeaderFilterMixins) {
   .operate-dialog {
     .num {
       color: #3a84ff;
-    }
-    .bk-button-group {
-      margin-bottom: 10px;
-      .btn-item {
-        width: 114px;
-        margin-bottom: 10px;
-        span {
-          display: inline-block;
-          overflow: hidden;
-          white-space: nowrap;
-          text-overflow: ellipsis;
-        }
-      }
-      &.is-zh .btn-item {
-        width: 96px;
-      }
     }
     .bk-form-item:last-child {
       margin-top: 0;

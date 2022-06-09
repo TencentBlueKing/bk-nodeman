@@ -1,8 +1,8 @@
 <template>
   <section class="list-operate">
-    <div class="list-operate-left">
+    <div class="list-operate-left h32">
       <!--插件操作-->
-      <auth-component :authorized="!notOperatePermissonBiz.length" :apply-info="applyInfo">
+      <!-- <auth-component :authorized="!notOperatePermissonBiz.length" :apply-info="applyInfo">
         <template slot-scope="{ disabled }">
           <bk-button
             v-test="'operate'"
@@ -12,17 +12,56 @@
             {{ $t('批量插件操作') }}
           </bk-button>
         </template>
+      </auth-component> -->
+      <auth-component :authorized="!notOperatePermissonBiz.length" :apply-info="applyInfo">
+        <template slot-scope="{ disabled }">
+          <div style="display: flex">
+            <bk-button
+              v-test="'operate'"
+              theme="primary"
+              :disabled="selectionCount || disabled"
+              @click="handleOperate('MAIN_INSTALL_PLUGIN')">
+              {{ $t('安装或更新') }}
+            </bk-button>
+            <bk-dropdown-menu
+              class="ml10"
+              trigger="click"
+              ref="dropDownMenu"
+              :disabled="selectionCount || disabled"
+              @show="moreDropdownShow = true"
+              @hide="moreDropdownShow = false">
+              <bk-button class="dropdown-btn" slot="dropdown-trigger" :disabled="selectionCount || disabled">
+                <div class="dropdown-trigger-btn" v-test="'copy'">
+                  <div>{{ $t('更多') }}</div>
+                  <i :class="['bk-icon icon-angle-down',{ 'icon-flip': moreDropdownShow }]"></i>
+                </div>
+              </bk-button>
+              <ul class="bk-dropdown-list" slot="dropdown-content">
+                <li v-for="item in operateMore" :key="item.id" v-bk-tooltips="{
+                  content: item.tips,
+                  disabled: !item.tips,
+                  placements: ['left'],
+                  width: 300,
+                  boundary: 'window'
+                }">
+                  <a href="javascript:;" @click="handleOperate(item.id)">{{ item.name }}</a>
+                </li>
+              </ul>
+            </bk-dropdown-menu>
+          </div>
+        </template>
       </auth-component>
       <bk-dropdown-menu
-        class="ml10" trigger="click"
+        class="ml10"
+        trigger="click"
         ref="dropDownMenu"
         :disabled="copyLoading"
-        @show="isDropdownShow = true"
-        @hide="isDropdownShow = false">
+        @show="copyDropdownShow = true"
+        @hide="copyDropdownShow = false">
         <bk-button class="dropdown-btn" slot="dropdown-trigger" :loading="copyLoading">
           <div class="dropdown-trigger-btn" v-test="'copy'">
             <div>{{ $t('复制') }}</div>
-            <i :class="['bk-icon icon-angle-down',{ 'icon-flip': isDropdownShow }]"></i>
+            <i :class="['bk-icon icon-angle-down',{ 'icon-flip': copyDropdownShow }]"></i>
           </div>
         </bk-button>
         <ul class="bk-dropdown-list" slot="dropdown-content">
@@ -104,6 +143,7 @@ export default class PluginListOperate extends Mixins(HeaderFilterMixins) {
   @Prop({ default: 0, type: Number }) private readonly runningCount!: number;
   @Prop({ default: () => [], type: Array }) private readonly selections!: IPluginList[];
   @Prop({ default: () => [], type: Array }) private readonly excludeData!: IPluginList[];
+  @Prop({ default: () => [], type: Array }) private readonly operateMore!: IMenu[];
 
   @Ref('searchSelect') private readonly searchSelect: any;
   @Ref('tree') private readonly tree: any;
@@ -113,7 +153,8 @@ export default class PluginListOperate extends Mixins(HeaderFilterMixins) {
   private topoLoading = false;
   private ipRegx = new RegExp('^((25[0-5]|2[0-4]\\d|[01]?\\d\\d?)\\.){3}(25[0-5]|2[0-4]\\d|[01]?\\d\\d?)$');
   private strategyList: IPluginTopo[] = [];
-  private isDropdownShow = false;
+  private moreDropdownShow = false;
+  private copyDropdownShow = false;
   private copyLoading = false;
   private topoFliterTimer: any = null;
   private topoFliterValue = '';
@@ -255,8 +296,8 @@ export default class PluginListOperate extends Mixins(HeaderFilterMixins) {
   }
 
   @Emit('plugin-operate')
-  public handleOperate() {
-    return true;
+  public handleOperate(operate: string) {
+    return operate;
   }
 
   @Emit('filter-change')
