@@ -186,20 +186,6 @@ class AgentManager(object):
         return act
 
     @classmethod
-    def delegate_plugin(cls, plugin_name: str):
-        """
-        托管插件
-        :param plugin_name: 插件名称
-        :return:
-        """
-        act = AgentServiceActivity(
-            component_code=components.DelegatePluginProcComponent.code,
-            name=_("托管 {plugin_name} 插件进程").format(plugin_name=plugin_name),
-        )
-        act.component.inputs.plugin_name = Var(type=Var.PLAIN, value=plugin_name)
-        return act
-
-    @classmethod
     def render_and_push_gse_config(cls, name=components.RenderAndPushGseConfigComponent.name):
         """渲染并下载 agent 配置"""
         act = AgentServiceActivity(component_code=components.RenderAndPushGseConfigComponent.code, name=name)

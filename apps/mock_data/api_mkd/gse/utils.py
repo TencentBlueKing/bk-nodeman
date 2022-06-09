@@ -29,14 +29,11 @@ class GseApiMockClient(utils.BaseMockClient):
     GET_AGENT_NOT_ALIVE_STATUS_RETURN = utils.MockReturn(
         return_type=utils.MockReturnType.RETURN_VALUE.value, return_obj=unit.GET_AGENT_NOT_ALIVE_STATUS_DATA
     )
-    DEFAULT_GET_AGENT_INFO_LIST_RETURN = utils.MockReturn(
-        return_type=utils.MockReturnType.SIDE_EFFECT.value, return_obj=unit.mock_get_agent_info_list
-    )
-    DEFAULT_GET_AGENT_STATE_LIST_RETURN = utils.MockReturn(
-        return_type=utils.MockReturnType.SIDE_EFFECT.value, return_obj=unit.mock_get_agent_state_list
+    DEFAULT_V2_CLUSTER_LIST_AGENT_STATE_RETURN = utils.MockReturn(
+        return_type=utils.MockReturnType.SIDE_EFFECT.value, return_obj=unit.mock_v2_cluster_list_agent_state_return
     )
     GET_AGENT_NOT_ALIVE_STATE_LIST_RETURN = utils.MockReturn(
-        return_type=utils.MockReturnType.RETURN_VALUE.value, return_obj=unit.GET_AGENT_NOT_ALIVE_STATE_LIST_DATA
+        return_type=utils.MockReturnType.RETURN_VALUE.value, return_obj=unit.GET_V2_AGENT_NOT_ALIVE_STATE_LIST
     )
     DEFAULT_GET_PROC_STATUS_RETURN = utils.MockReturn(
         return_type=utils.MockReturnType.SIDE_EFFECT.value, return_obj=unit.mock_get_proc_status
@@ -52,8 +49,7 @@ class GseApiMockClient(utils.BaseMockClient):
         update_proc_info_return=None,
         get_agent_info_return=DEFAULT_GET_AGENT_INFO_RETURN,
         get_agent_status_return=DEFAULT_GET_AGENT_STATUS_RETURN,
-        get_agent_info_list_return=DEFAULT_GET_AGENT_INFO_LIST_RETURN,
-        get_agent_state_list_return=DEFAULT_GET_AGENT_STATE_LIST_RETURN,
+        v2_cluster_list_agent_state_return=DEFAULT_V2_CLUSTER_LIST_AGENT_STATE_RETURN,
     ):
         super().__init__()
         self.operate_proc = self.generate_magic_mock(mock_return_obj=operate_proc_return)
@@ -64,5 +60,4 @@ class GseApiMockClient(utils.BaseMockClient):
         self.update_proc_info = self.generate_magic_mock(mock_return_obj=update_proc_info_return)
         self.get_agent_info = self.generate_magic_mock(mock_return_obj=get_agent_info_return)
         self.get_agent_status = self.generate_magic_mock(mock_return_obj=get_agent_status_return)
-        self.get_agent_info_list = self.generate_magic_mock(mock_return_obj=get_agent_info_list_return)
-        self.get_agent_state_list = self.generate_magic_mock(mock_return_obj=get_agent_state_list_return)
+        self.v2_cluster_list_agent_state = self.generate_magic_mock(mock_return_obj=v2_cluster_list_agent_state_return)

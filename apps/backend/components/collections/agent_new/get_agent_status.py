@@ -13,9 +13,9 @@ from typing import Dict, List, Set, Union
 
 from django.utils.translation import ugettext_lazy as _
 
+from apps.adapters.api.gse import GseApiHelper
 from apps.backend.api.constants import POLLING_INTERVAL, POLLING_TIMEOUT
 from apps.node_man import constants, models
-from common.api import GseApi
 from pipeline.core.flow import Service, StaticIntervalGenerator
 
 from .base import AgentBaseService, AgentCommonData
@@ -70,13 +70,11 @@ class GetAgentStatusService(AgentBaseService):
         hosts: List[Dict[str, Union[int, str]]] = []
         for host_id in host_ids_need_to_query:
             host_obj = common_data.host_id_obj_map[host_id]
-            hosts.append({"ip": host_obj.inner_ip, "bk_cloud_id": host_obj.bk_cloud_id})
+            hosts.append(
+                {"ip": host_obj.inner_ip, "bk_cloud_id": host_obj.bk_cloud_id, "bk_agent_id": host_obj.bk_agent_id}
+            )
 
-        # 请求 gse
-        host_key__agent_info_map: Dict[str, Dict[str, Union[int, str]]] = GseApi.get_agent_info({"hosts": hosts})
-        host_key__agent_status_info_map: Dict[str, Dict[str, Union[int, str]]] = GseApi.get_agent_status(
-            {"hosts": hosts}
-        )
+        agent_id__agent_state_info_map: Dict[str, Dict] = GseApiHelper.list_agent_state(hosts)
 
         # 分隔符，用于构造 bk_cloud_id - ip，status - version 等键
         sep = ":"
@@ -92,20 +90,18 @@ class GetAgentStatusService(AgentBaseService):
         }
         for host_id in host_ids_need_to_query:
             host_obj = common_data.host_id_obj_map[host_id]
-            host_key = f"{host_obj.bk_cloud_id}{sep}{host_obj.inner_ip}"
-            # 根据 host_key，取得 agent 版本及状态信息
-            agent_info = host_key__agent_info_map.get(host_key, {"version": ""})
-            # 默认值为 None 的背景：expect_status 是可传入的，不能设定一个明确状态作为默认值，不然可能与 expect_status 一致
+            agent_id = GseApiHelper.get_agent_id(host_obj)
+            # bk_agent_alive 默认值为 None 的背景：expect_status 是可传入的，不能设定一个明确状态作为默认值，不然可能与 expect_status 一致
             # 误判为当前 Agent 状态已符合预期
-            agent_status_info = host_key__agent_status_info_map.get(host_key, {"bk_agent_alive": None})
+            agent_state_info = agent_id__agent_state_info_map.get(agent_id, {"version": "", "bk_agent_alive": None})
             # 获取 agent 版本号及状态
-            agent_status = constants.PROC_STATUS_DICT.get(agent_status_info["bk_agent_alive"], None)
-            agent_version = agent_info["version"]
+            agent_status = constants.PROC_STATUS_DICT.get(agent_state_info["bk_agent_alive"], None)
+            agent_version = agent_state_info["version"]
 
             self.log_info(
                 host_id__sub_inst_id_map[host_id],
                 log_content=_("查询 GSE 得到主机 [{host_key}] Agent 状态 -> {status_alias}「{status}」, 版本 -> {version}").format(
-                    host_key=host_key,
+                    host_key=agent_id,
                     status_alias=constants.PROC_STATUS_CHN.get(agent_status, agent_status),
                     status=agent_status,
                     version=agent_version or _("无"),
