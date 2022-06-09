@@ -37,7 +37,6 @@ class TransferPackageTest(CustomBaseTestCase, ComponentTestMixin):
         patch(utils.CMDB_CLIENT_MOCK_PATH, utils.CmdbClient).start()
         patch(utils.PLUGIN_MULTI_THREAD_PATH, utils.request_multi_thread_client).start()
         patch(utils.JOB_MULTI_THREAD_PATH, utils.request_multi_thread_client).start()
-        patch(utils.PLUGIN_GSEAPI, utils.GseMockClient).start()
 
         patch(utils.JOB_JOBAPI, utils.JobMockClient).start()
         patch(utils.PLUGIN_CLIENT_MOCK_PATH, utils.JobMockClient).start()
