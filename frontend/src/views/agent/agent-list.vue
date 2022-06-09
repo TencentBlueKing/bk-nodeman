@@ -3,7 +3,7 @@
     <!--agent操作-->
     <section class="agent-operate mb15">
       <!--agent操作-->
-      <div class="agent-operate-left">
+      <div class="agent-operate-left h32">
         <!--安装Agent-->
         <auth-component
           tag="div"

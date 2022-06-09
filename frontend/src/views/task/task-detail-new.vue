@@ -16,7 +16,7 @@
         style="flex: 1;">
       </div>
       <template v-else>
-        <section class="detail-option">
+        <section class="detail-option h32">
           <bk-dropdown-menu
             trigger="click"
             ref="dropdownCopy"
