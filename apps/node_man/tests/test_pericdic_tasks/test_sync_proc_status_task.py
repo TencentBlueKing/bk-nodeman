@@ -12,7 +12,9 @@ specific language governing permissions and limitations under the License.
 import importlib
 
 import mock
+from django.conf import settings
 
+from apps.adapters.api import gse
 from apps.mock_data.api_mkd.gse.unit import GSE_PROCESS_NAME
 from apps.mock_data.api_mkd.gse.utils import GseApiMockClient
 from apps.mock_data.common_unit.host import (
@@ -27,7 +29,6 @@ from apps.utils.unittest.testcase import CustomBaseTestCase
 
 
 class TestSyncProcStatus(CustomBaseTestCase):
-
     @classmethod
     def setUpClass(cls):
         mock.patch("apps.utils.concurrent.batch_call", concurrent.batch_call_serial).start()
@@ -41,7 +42,10 @@ class TestSyncProcStatus(CustomBaseTestCase):
         Host.objects.create(**HOST_MODEL_DATA)
         sync_proc_status_task.sync_proc_status_periodic_task()
 
-    @mock.patch("apps.node_man.periodic_tasks.sync_proc_status_task.GseApi", GseApiMockClient())
+    @mock.patch(
+        "apps.node_man.periodic_tasks.sync_proc_status_task.GseApiHelper",
+        gse.get_gse_api_helper(settings.GSE_VERSION)(settings.GSE_VERSION, GseApiMockClient()),
+    )
     def test_update_or_create_proc_status(self, *args, **kwargs):
         host = Host.objects.create(**HOST_MODEL_DATA)
         # 测试新建proc_status
@@ -62,7 +66,10 @@ class TestSyncProcStatus(CustomBaseTestCase):
             [constants.ProcStateType.MANUAL_STOP, host.bk_host_id, GSE_PROCESS_NAME],
         )
 
-    @mock.patch("apps.node_man.periodic_tasks.sync_proc_status_task.GseApi", GseApiMockClient())
+    @mock.patch(
+        "apps.node_man.periodic_tasks.sync_proc_status_task.GseApiHelper",
+        gse.get_gse_api_helper(settings.GSE_VERSION)(settings.GSE_VERSION, GseApiMockClient()),
+    )
     def test_update_or_create_proc_status_with_agent_id(self, *args, **kwargs):
         host = Host.objects.create(**HOST_MODEL_DATA_WITH_AGENT_ID)
         sync_proc_status_task.update_or_create_proc_status(None, [host], [GSE_PROCESS_NAME], 0)

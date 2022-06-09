@@ -290,9 +290,11 @@ externalRabbitMQ:
 | `config.bkIamV3AppCode`               | 蓝鲸权限中心相关配置，权限中心 AppCode                       | `"bk_iam"`                     |
 | `config.bkAppIamResourceApiHost`      | 蓝鲸权限中心相关配置，权限中心拉取权限相关资源的访问地址，默认取 `{{ .Values.bkNodemanUrl }}` | `""`                           |
 | `config.bkAppBkNodeApiGateway`        | 组件 API 接入地址，节点管理网关地址，用于覆盖  `bkComponentApiUrl` 访问节点管理<br />⚠️ 配置为 `{{ .Values.bkNodemanApiUrl }`} 由于 JWT 校验问题，会导致 Agent 安装步骤中「安装预制插件」失败 | `""`                           |
+| `config.bkAppBkGseApiGateway`         | 管控平台 API 访问地址，用于覆盖 `bkComponentApiUrl` 访问管控平台 API | `""`                           |
 | `config.bkAppBackendHost`             | 节点管理自身模块依赖，后台访问地址，渲染时为空默认取 `{{ .Values.bkNodemanApiUrl }}` | `""`                           |
 | `config.bkAppNodemanCallbackUrl`      | 节点管理自身模块依赖，后台内网回调地址，渲染时为空取 `{{ .Values.bkNodemanUrl }}/backend` | `""`                           |
 | `config.bkAppNodemanOuterCallbackUrl` | 节点管理自身模块依赖，后台外网回调地址，渲染时为空取 `{{ .Values.bkNodemanUrl }}/backend` | `""`                           |
+| `config.gseVersion`                   | 蓝鲸管控平台版本，默认为 `V1`,可选：`V1` `V2`                | `V1`                           |
 | `config.gseEnableSvrDisCovery`        | 蓝鲸管控平台 Agent，AgentXXDir 仅在初次部署有效，后续可以在页面「全局配置」维护。是否启用 GSE 服务探测，默认为 `true` | `true`                         |
 | `config.bkAppGseZkHost`               | 蓝鲸管控平台 Agent，zk hosts 信息，host:port，多个 hosts 以 `,` 分隔<br />⚠️ ZK hosts 将作为 Agent 配置，需要保证 Agent 可访问，所以不能使用 k8s service 信息 进行配置<br />如果 zk 通过 k8s 部署，建议通过 NodePort 等方式暴露服务，使用 NodeIP:NodePort 进行配置 | `127.0.0.1:2181`               |
 | `config.bkAppGseZkAuth`               | 蓝鲸管控平台 Agent，ZK 认证信息，用户名:密码                 | `bkzk:zkpass`                  |
