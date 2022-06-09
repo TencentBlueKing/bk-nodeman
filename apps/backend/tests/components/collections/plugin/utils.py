@@ -80,7 +80,7 @@ PLUGIN_MULTI_THREAD_PATH = "apps.backend.components.collections.plugin.request_m
 
 JOB_MULTI_THREAD_PATH = "apps.backend.components.collections.job.request_multi_thread"
 
-PLUGIN_GSEAPI = "apps.backend.components.collections.plugin.GseApi"
+PLUGIN_GSEAPI = "apps.backend.components.collections.plugin.GseApiHelper"
 # 目标主机信息
 INSTANCE_INFO = {
     "key": "",

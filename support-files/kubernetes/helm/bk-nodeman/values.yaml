@@ -308,6 +308,8 @@ config:
   ##
   ## 节点管理 API 访问地址，用于覆盖 bkComponentApiUrl 访问节点管理
   bkAppBkNodeApiGateway: ""
+  ## 管控平台 API 访问地址，用于覆盖 bkComponentApiUrl 访问管控平台 API
+  bkAppBkGseApiGateway: ""
 
   ## 节点管理自身模块依赖
   ##
@@ -320,6 +322,8 @@ config:
 
   ## 蓝鲸管控平台 Agent，AgentXXDir 仅在初次部署有效，后续可以在页面「全局配置」维护
   ##
+  ## 平台版本，默认为 `V1`,可选：`V1` `V2`
+  gseVersion: "V1"
   ## 是否启用 GSE 服务探测，为 `true` 将定期更新默认接入点的 gse svr 信息
   gseEnableSvrDisCovery: true
   ## ZK hosts 信息，host:port，多个 hosts 以 `,` 分隔
