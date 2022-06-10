@@ -55,6 +55,42 @@
             </bk-dropdown-menu>
           </template>
         </auth-component>
+
+        <!--批量操作-->
+        <bk-dropdown-menu
+          trigger="click"
+          ref="batch"
+          font-size="medium"
+          class="ml10"
+          :disabled="!isSingleHosts || !(indeterminate || isAllChecked)"
+          @show="handleDropdownShow('isbatchDropdownShow')"
+          @hide="handleDropdownHide('isbatchDropdownShow')">
+          <bk-button
+            slot="dropdown-trigger"
+            :disabled="!isSingleHosts || !(indeterminate || isAllChecked)"
+            v-test="'operate'">
+            <bk-popover
+              placement="bottom"
+              :delay="400"
+              :disabled="!(!isSingleHosts && (indeterminate || isAllChecked))"
+              :content="$t('不同安装方式的Agent不能统一批量操作')">
+              <span class="icon-down-wrapper">
+                <span>{{ $t('批量') }}</span>
+                <i :class="['bk-icon icon-angle-down', { 'icon-flip': isbatchDropdownShow }]"></i>
+              </span>
+            </bk-popover>
+          </bk-button>
+          <ul class="bk-dropdown-list" slot="dropdown-content">
+            <template v-for="item in operate">
+              <li v-if="!item.single" :key="item.id" :class="{ 'disabled': getBatchMenuStaus(item) }">
+                <a @click.prevent="!getBatchMenuStaus(item) && triggerHandler({ type: item.id })"
+                   v-test.common="`moreItem.${item.id}`">
+                  {{ item.name }}
+                </a>
+              </li>
+            </template>
+          </ul>
+        </bk-dropdown-menu>
         <!--复制IP-->
         <bk-dropdown-menu
           trigger="click"
@@ -93,46 +129,11 @@
             </li>
           </ul>
         </bk-dropdown-menu>
-        <!--批量操作-->
-        <bk-dropdown-menu
-          trigger="click"
-          ref="batch"
-          font-size="medium"
-          class="ml10"
-          :disabled="!isSingleHosts || !(indeterminate || isAllChecked)"
-          @show="handleDropdownShow('isbatchDropdownShow')"
-          @hide="handleDropdownHide('isbatchDropdownShow')">
-          <bk-button
-            slot="dropdown-trigger"
-            :disabled="!isSingleHosts || !(indeterminate || isAllChecked)"
-            v-test="'operate'">
-            <bk-popover
-              placement="bottom"
-              :delay="400"
-              :disabled="!(!isSingleHosts && (indeterminate || isAllChecked))"
-              :content="$t('不同安装方式的Agent不能统一批量操作')">
-              <span class="icon-down-wrapper">
-                <span>{{ $t('批量') }}</span>
-                <i :class="['bk-icon icon-angle-down', { 'icon-flip': isbatchDropdownShow }]"></i>
-              </span>
-            </bk-popover>
-          </bk-button>
-          <ul class="bk-dropdown-list" slot="dropdown-content">
-            <template v-for="item in operate">
-              <li v-if="!item.single" :key="item.id" :class="{ 'disabled': getBatchMenuStaus(item) }">
-                <a @click.prevent="!getBatchMenuStaus(item) && triggerHandler({ type: item.id })"
-                   v-test.common="`moreItem.${item.id}`">
-                  {{ item.name }}
-                </a>
-              </li>
-            </template>
-          </ul>
-        </bk-dropdown-menu>
         <!--选择业务-->
         <bk-biz-select
           v-model="search.biz"
           class="ml10"
-          min-width="200"
+          min-width="240"
           ext-cls="left-select"
           :auto-request="autoRequest"
           :placeholder="$t('全部业务')"
@@ -1875,11 +1876,11 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
         }
       }
       .left-select {
-        width: 200px;
+        width: 240px;
         background: #fff;
       }
       .topo-cascade {
-        min-width: 200px;
+        width: 240px;
         height: 32px;
         background: #fff;
         >>> .bk-tooltip-ref {
