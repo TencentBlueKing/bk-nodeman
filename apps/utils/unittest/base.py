@@ -115,6 +115,7 @@ class CallRecorder:
                 except Exception as ex:
                     record.exec = ex
                     record.is_success = False
+                    raise
                 else:
                     return record.result
 
