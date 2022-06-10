@@ -32,7 +32,7 @@
               @hide="moreDropdownShow = false">
               <bk-button class="dropdown-btn" slot="dropdown-trigger" :disabled="selectionCount || disabled">
                 <div class="dropdown-trigger-btn" v-test="'copy'">
-                  <div>{{ $t('更多') }}</div>
+                  <div>{{ $t('批量') }}</div>
                   <i :class="['bk-icon icon-angle-down',{ 'icon-flip': moreDropdownShow }]"></i>
                 </div>
               </bk-button>
