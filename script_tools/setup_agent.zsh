@@ -504,10 +504,7 @@ remove_agent () {
 
     rm -rf "${AGENT_SETUP_PATH}"
 
-    if [[ "$REMOVE" == "TRUE" ]]; then
-        log remove_agent DONE "agent removed"
-        exit 0
-    fi
+    log remove_agent DONE "agent removed"
 }
 
 get_config () {
@@ -846,12 +843,18 @@ DEBUG_LOG_FILE=${TMP_DIR}/nm.${0##*/}.${TASK_ID}.debug
 # exec &> >(tee "$DEBUG_LOG_FILE")
 
 log check_env - "Args are: $*"
-for step in check_env \
-            download_pkg \
-            remove_agent \
-            remove_proxy_if_exists \
-            setup_agent \
-            setup_startup_scripts \
-            check_deploy_result; do
-    $step
-done
+
+if [[ "$REMOVE" == "TRUE" ]]; then
+    validate_setup_path
+    remove_agent
+else
+    for step in check_env \
+                download_pkg \
+                remove_agent \
+                remove_proxy_if_exists \
+                setup_agent \
+                setup_startup_scripts \
+                check_deploy_result; do
+        $step
+    done
+fi
