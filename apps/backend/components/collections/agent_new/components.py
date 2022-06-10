@@ -14,6 +14,7 @@ from django.utils.translation import ugettext_lazy as _
 from pipeline.component_framework.component import Component
 
 from . import base
+from .bind_host_agent import BindHostAgentService
 from .check_agent_status import CheckAgentStatusService
 from .check_policy_gse_to_proxy import CheckPolicyGseToProxyService
 from .choose_access_point import ChooseAccessPointService
@@ -30,6 +31,7 @@ from .reload_agent_config import ReloadAgentConfigService
 from .render_and_push_gse_config import RenderAndPushGseConfigService
 from .restart import RestartService
 from .run_upgrade_command import RunUpgradeCommandService
+from .unbind_host_agent import UnBindHostAgentService
 from .update_install_info import UpdateInstallInfoService
 from .update_process_status import UpdateProcessStatusService
 from .wait import WaitService
@@ -165,3 +167,15 @@ class UpdateInstallInfoComponent(Component):
     name = _("更新安装信息")
     code = "update_install_info"
     bound_service = UpdateInstallInfoService
+
+
+class BindHostAgentComponent(Component):
+    name = _("绑定主机 Agent 信息")
+    code = "bind_host_agent"
+    bound_service = BindHostAgentService
+
+
+class UnBindHostAgentComponent(Component):
+    name = _("主机解绑 Agent 信息")
+    code = "unbind_host_agent"
+    bound_service = UnBindHostAgentService
