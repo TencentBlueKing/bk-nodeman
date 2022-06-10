@@ -28,6 +28,7 @@ def new_api_module(module_name, api_name, module_dir="modules"):
 # 对请求模块设置懒加载机制，避免项目启动出现循环引用，或者 model 提前加载
 
 # 蓝鲸平台模块域名
+CCApi = SimpleLazyObject(lambda: new_api_module("cc", "_CCApi"))
 JobApi = SimpleLazyObject(lambda: new_api_module("job", "_JobApi"))
 GseApi = SimpleLazyObject(lambda: new_api_module("gse", "_GseApi"))
 SopsApi = SimpleLazyObject(lambda: new_api_module("sops", "_SopsApi"))
@@ -41,6 +42,7 @@ NodeApi = SimpleLazyObject(lambda: new_api_module("bk_node", "_BKNodeApi"))
 EsbApi = SimpleLazyObject(lambda: new_api_module("esb", "_ESBApi"))
 
 __all__ = [
+    "CCApi",
     "JobApi",
     "GseApi",
     "SopsApi",
