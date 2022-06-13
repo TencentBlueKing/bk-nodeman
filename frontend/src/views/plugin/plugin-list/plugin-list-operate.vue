@@ -16,34 +16,44 @@
       <auth-component :authorized="!notOperatePermissonBiz.length" :apply-info="applyInfo">
         <template slot-scope="{ disabled }">
           <div style="display: flex">
-            <bk-button
-              v-test="'operate'"
-              theme="primary"
-              :disabled="selectionCount || disabled"
-              @click="handleOperate('MAIN_INSTALL_PLUGIN')">
-              {{ $t('安装或更新') }}
-            </bk-button>
+            <bk-popover
+              placement="bottom"
+              :delay="400"
+              :disabled="!(selectionCount || disabled)"
+              :content="$t('请先选择主机')">
+              <bk-button
+                v-test="'MAIN_INSTALL_PLUGIN'"
+                theme="primary"
+                :disabled="selectionCount || disabled"
+                @click="handleOperate('MAIN_INSTALL_PLUGIN')">
+                {{ $t('安装或更新') }}
+              </bk-button>
+            </bk-popover>
             <bk-dropdown-menu
               class="ml10"
               trigger="click"
-              ref="dropDownMenu"
+              font-size="medium"
               :disabled="selectionCount || disabled"
               @show="moreDropdownShow = true"
               @hide="moreDropdownShow = false">
               <bk-button class="dropdown-btn" slot="dropdown-trigger" :disabled="selectionCount || disabled">
-                <div class="dropdown-trigger-btn" v-test="'copy'">
+                <div class="dropdown-trigger-btn" v-test="'operate'">
                   <div>{{ $t('批量') }}</div>
                   <i :class="['bk-icon icon-angle-down',{ 'icon-flip': moreDropdownShow }]"></i>
                 </div>
               </bk-button>
               <ul class="bk-dropdown-list" slot="dropdown-content">
-                <li v-for="item in operateMore" :key="item.id" v-bk-tooltips="{
-                  content: item.tips,
-                  disabled: !item.tips,
-                  placements: ['left'],
-                  width: 300,
-                  boundary: 'window'
-                }">
+                <li
+                  v-for="item in operateMore"
+                  :key="item.id"
+                  v-test="item.id"
+                  v-bk-tooltips="{
+                    content: item.tips,
+                    disabled: !item.tips,
+                    placements: ['left'],
+                    width: 300,
+                    boundary: 'window'
+                  }">
                   <a href="javascript:;" @click="handleOperate(item.id)">{{ item.name }}</a>
                 </li>
               </ul>
