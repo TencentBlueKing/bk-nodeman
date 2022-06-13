@@ -677,6 +677,7 @@ export default {
   第三方插件: 'external',
   脚本插件: 'scripts',
   无可操作的主机: 'No host in operation',
+  请先选择主机: 'Please select a host first',
 
   // exception组件
   没有数据: 'No data',
