@@ -15,7 +15,7 @@ import random
 import socket
 import time
 from collections import defaultdict
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
 from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
@@ -386,10 +386,22 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
 
         # 使用全业务执行作业
         bk_biz_id = settings.BLUEKING_BIZ_ID
+        target_server: Dict[str, List[Union[int, Dict[str, Union[int, str]]]]] = (
+            {"host_id_list": [jump_server.bk_host_id]}
+            if settings.ENABLE_DBCP
+            else {
+                "ip_list": [
+                    {
+                        "ip": jump_server.inner_ip,
+                        "bk_cloud_id": jump_server.bk_cloud_id,
+                    }
+                ]
+            }
+        )
         kwargs = {
             "bk_biz_id": bk_biz_id,
             "task_name": f"NODEMAN_{sub_inst_id}_{self.__class__.__name__}",
-            "target_server": {"ip_list": [{"ip": jump_server.inner_ip, "bk_cloud_id": jump_server.bk_cloud_id}]},
+            "target_server": target_server,
             "timeout": constants.JOB_TIMEOUT,
             "account_alias": settings.BACKEND_UNIX_ACCOUNT,
             "script_language": constants.ScriptLanguageType.PYTHON.value,
