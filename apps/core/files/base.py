@@ -182,8 +182,8 @@ class BkJobMixin:
             target_server 示例
             {
                 "ip_list": [
-                    {"bk_cloud_id": 0, "ip": "127.0.0.1"},
-                    {"bk_cloud_id": 0, "ip": "127.0.0.2"}
+                    {"bk_cloud_id": 0, "ip": "127.0.0.1", "host_id"：1},
+                    {"bk_cloud_id": 0, "ip": "127.0.0.2", "host_id"：2},
                 ]
             }
         :return: 作业实例ID

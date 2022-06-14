@@ -67,6 +67,7 @@ class JobBaseTestCase(utils.AgentServiceBaseTestCase, ABC):
             info_to_be_updated = {
                 "ip": host_obj.inner_ip,
                 "bk_cloud_id": host_obj.bk_cloud_id,
+                "bk_host_id": host_obj.bk_host_id,
                 "status": constants.BkJobStatus.SUCCEEDED,
             }
             step_ip_result_list.append(dict(ChainMap(info_to_be_updated, step_ip_result)))
