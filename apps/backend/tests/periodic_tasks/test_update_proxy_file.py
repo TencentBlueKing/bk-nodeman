@@ -18,23 +18,20 @@ from typing import Dict
 import mock
 from django.conf import settings
 from django.core.management import call_command
+from django.test import override_settings
 from mock import patch
 
+from apps.adapters.api import gse
 from apps.core.files import constants as core_const
 from apps.mock_data import api_mkd, utils
+from apps.mock_data.api_mkd.gse.utils import GseApiMockClient
 from apps.node_man import constants
 from apps.node_man.models import AccessPoint, InstallChannel
 from apps.node_man.tests.utils import create_ap, create_cloud_area, create_host
 from apps.utils import files
 from apps.utils.files import md5sum
 from apps.utils.unittest.testcase import CustomBaseTestCase
-
-
-class GseMockClient:
-    def __init__(self, get_agent_status_return=None, get_agent_info_return=None):
-        self.gse = mock.MagicMock()
-        self.gse.get_agent_status = mock.MagicMock(return_value=get_agent_status_return)
-        self.gse.get_agent_info = mock.MagicMock(return_value=get_agent_info_return)
+from env.constants import GseVersion
 
 
 class JobDemandMock:
@@ -72,7 +69,9 @@ GET_AGENT_STATUS = {
 POLL_RESULT = {
     "is_finished": True,
     "task_result": {
-        "success": [{"ip": utils.DEFAULT_IP, "bk_cloud_id": constants.DEFAULT_CLOUD, "log_content": ""}],
+        "success": [
+            {"ip": utils.DEFAULT_IP, "bk_cloud_id": constants.DEFAULT_CLOUD, "log_content": "", "bk_host_id": 1}
+        ],
         "pending": [],
         "failed": [],
     },
@@ -147,15 +146,17 @@ class TestUpdateProxyFile(CustomBaseTestCase):
         cls.JOB_MOCK_CLIENT = api_mkd.job.utils.JobApiMockClient(
             utils.MockReturn(return_type=utils.MockReturnType.RETURN_VALUE.value, return_obj=FAST_EXECUTE_SCRIPT)
         )
-        cls.GSE_MOCK_CLIENT = GseMockClient(
-            get_agent_status_return=GET_AGENT_STATUS,
-        )
+
         cls.JOB_DEMAND_MOCK_CLIENT = JobDemandMock(poll_task_result_return=POLL_RESULT)
 
     def setUp(self) -> None:
         create_cloud_area(number=5, creator="admin")
         patch("apps.node_man.periodic_tasks.update_proxy_file.JobApi", self.JOB_MOCK_CLIENT).start()
 
+    @patch(
+        "apps.node_man.periodic_tasks.update_proxy_file.GseApiHelper",
+        gse.get_gse_api_helper(GseVersion.V2.value)(GseVersion.V2.value, GseApiMockClient()),
+    )
     def test_file_system_update(self):
         # 不存在proxy
         self.assertIsNone(call_command("update_proxy_file"))
@@ -164,20 +165,20 @@ class TestUpdateProxyFile(CustomBaseTestCase):
         GET_AGENT_STATUS[f"{constants.DEFAULT_CLOUD}:{utils.DEFAULT_IP}"][
             "bk_agent_alive"
         ] = constants.BkAgentStatus.NOT_ALIVE.value
-        patch("apps.node_man.periodic_tasks.update_proxy_file.client_v2", self.GSE_MOCK_CLIENT).start()
         self.init_proxy_host(alive_number=0, unknown_number=1)
         self.assertIsNone(call_command("update_proxy_file"))
 
         OVERWRITE_OBJ__KV_MAP["settings"]["DOWNLOAD_PATH"] = files.mk_and_return_tmpdir()
         with self.settings(
             DOWNLOAD_PATH=OVERWRITE_OBJ__KV_MAP["settings"]["DOWNLOAD_PATH"],
+            GSE_VERSION=GseVersion.V2.value,
+            BKAPP_ENABLE_DHCP=True,
             STORAGE_TYPE=core_const.StorageType.FILE_SYSTEM.value,
         ):
             local_files_md5_map: Dict[str, str] = {}
             GET_AGENT_STATUS[f"{constants.DEFAULT_CLOUD}:{utils.DEFAULT_IP}"][
                 "bk_agent_alive"
             ] = constants.BkAgentStatus.ALIVE.value
-            patch("apps.node_man.periodic_tasks.update_proxy_file.client_v2", self.GSE_MOCK_CLIENT).start()
 
             # 创建接入点
             self.init_ap_db()
@@ -220,6 +221,11 @@ class TestUpdateProxyFile(CustomBaseTestCase):
             self.assertIsNone(call_command("update_proxy_file"))
             shutil.rmtree(settings.DOWNLOAD_PATH)
 
+    @override_settings(GSE_VERSION=GseVersion.V1.value)
+    @patch(
+        "apps.node_man.periodic_tasks.update_proxy_file.GseApiHelper",
+        gse.get_gse_api_helper(GseVersion.V1.value)(GseVersion.V1.value, GseApiMockClient()),
+    )
     def test_blueking_artifactory_update(self):
         with self.settings(
             DOWNLOAD_PATH=OVERWRITE_OBJ__KV_MAP["settings"]["DOWNLOAD_PATH"],
