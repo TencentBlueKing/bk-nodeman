@@ -111,7 +111,9 @@ else:
             "account": "root",
             "is_param_sensitive": 1,
             "script_type": 4,
-            "target_server": {"ip_list": [{"bk_cloud_id": proxy.bk_cloud_id, "ip": proxy.inner_ip}]},
+            "target_server": {
+                "ip_list": [{"bk_cloud_id": proxy.bk_cloud_id, "ip": proxy.inner_ip, "host_id": proxy.bk_host_id}]
+            },
         }
         data = client_v2.job.fast_execute_script(kwargs)
         job_instance_id = data["job_instance_id"]
