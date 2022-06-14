@@ -153,6 +153,7 @@ class TestJob(TestCase):
                             {
                                 "total_time": 0.001,
                                 "ip": "127.0.0.1",
+                                "host_id": 1,
                                 "start_time": "2019-08-12 19:04:07 +0800",
                                 "log_content": "\u30102019-08-12 19:04:07.757\u3011 FileName\uff1a/data/dev_"
                                 "pipeline_unit_test  FileSize\uff1a9.0 Byte  State\uff1adownload"
@@ -212,6 +213,7 @@ class TestJob(TestCase):
         assert len(task_result["success"]) == 1
         assert set(task_result["success"][0].keys()) == {
             "ip",
+            "host_id",
             "log_content",
             "bk_cloud_id",
             "error_code",
@@ -236,6 +238,7 @@ class TestJob(TestCase):
         assert len(task_result["success"]) == 1
         assert set(task_result["success"][0].keys()) == {
             "ip",
+            "host_id",
             "log_content",
             "bk_cloud_id",
             "error_code",
