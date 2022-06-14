@@ -87,13 +87,22 @@ export default class App extends Vue {
       if (process.env.NODE_ENV === 'development') {
         window.location.href = LOGIN_DEV_URL + window.location.href;
       } else {
-        const res = data?.data || {};
-        if (res.has_plain) {
-          MainStore.setLoginUrl(res.login_url);
-          window.LoginModal && window.LoginModal.show();
+        // 目前仅ieod取消登录弹框
+        if (window.PROJECT_CONFIG.RUN_VER === 'ieod') {
+          let loginUrl = window.PROJECT_CONFIG.LOGIN_URL;
+          if (!loginUrl.includes('?')) {
+            loginUrl += '?';
+          }
+          window.location.href = `${loginUrl}&c_url=${encodeURIComponent(window.location.href)}`;
         } else {
-          const href = res.login_url ? res.login_url : (LOGIN_DEV_URL + window.location.href);
-          window.location.href = href;
+          const res = data?.data || {};
+          if (res.has_plain) {
+            MainStore.setLoginUrl(res.login_url);
+            window.LoginModal && window.LoginModal.show();
+          } else {
+            const href = res.login_url ? res.login_url : (LOGIN_DEV_URL + window.location.href);
+            window.location.href = href;
+          }
         }
       }
     });
