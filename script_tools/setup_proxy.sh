@@ -442,12 +442,7 @@ remove_proxy () {
     log remove_proxy - "trying to remove old proxy directory(${AGENT_SETUP_PATH})"
     rm -rf "${AGENT_SETUP_PATH}"
 
-    if [[ "$REMOVE" = "TRUE" ]]; then
-        log remove_proxy DONE "proxy removed"
-        exit 0
-    else
-        [[ -d $AGENT_SETUP_PATH ]] && return 0 || return 1
-    fi
+    log remove_proxy DONE "proxy removed"
 }
 
 get_config () {
@@ -848,6 +843,11 @@ exec &> >(tee "$DEBUG_LOG_FILE")
 log check_env - "$@"
 # 整体安装流程:
 #pre_view
+
+if [[ "$REMOVE" = "TRUE" ]]; then
+    validate_setup_path
+    remove_crontab
+    remove_proxy
 for step in check_env \
             download_pkg \
             remove_crontab \

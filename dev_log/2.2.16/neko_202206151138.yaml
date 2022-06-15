@@ -1,0 +1,3 @@
+---
+optimization:
+  - "减少卸载 Agent 非必要操作(close #389)"
