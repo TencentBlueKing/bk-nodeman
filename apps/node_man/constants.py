@@ -121,6 +121,13 @@ OsType = choices_to_namedtuple(OS_CHOICES)
 OS_CHN = {os_type: os_type if os_type == OsType.AIX else os_type.capitalize() for os_type in OS_TUPLE}
 BK_OS_TYPE = {"LINUX": "1", "WINDOWS": "2", "AIX": "3", "SOLARIS": "5"}
 
+AGENT_PACKAGE_SOURCE_TUPLE = ("BACKEND", "FRONTEND")
+AGENT_PACKAGE_SOURCE_CHOICES = tuple_choices(AGENT_PACKAGE_SOURCE_TUPLE)
+AgentSourceType = choices_to_namedtuple(AGENT_PACKAGE_SOURCE_CHOICES)
+RELEASING_TYPE_TUPLE = ("OFFLINE", "RELEASE", "GRAYSCALE")
+RELEASING_TYPE_CHOICES = tuple_choices(RELEASING_TYPE_TUPLE)
+AgentReleasingType = choices_to_namedtuple(RELEASING_TYPE_CHOICES)
+
 # 操作系统->系统账户映射表
 ACCOUNT_MAP = {
     OsType.WINDOWS: settings.BACKEND_WINDOWS_ACCOUNT,
@@ -844,3 +851,68 @@ FILES_TO_PUSH_TO_PROXY = [
         "name": _("下发安装工具"),
     },
 ]
+
+
+PACKAGE_PATH_RE = re.compile(
+    f"(?P<is_external>external_)?plugins_(?P<os>({'|'.join(map(str, PLUGIN_OS_TUPLE))}))"
+    f"_(?P<cpu_arch>({'|'.join(map(str, CPU_TUPLE))})?$)"
+)
+
+
+class AgentPackageMap:
+
+    BIN = "bin"
+
+    ETC = "etc"
+
+    GSE = "gse"
+
+    CERT = "cert"
+
+    TEMPLATE = "templates"
+
+    BLUEKING_CERT_PACKAGE = "BLUEKING_CERT_PACKAGE"
+
+    CERT_SPECIAL_RULE_FILES = ["cert_encrypt.key"]
+
+    CONFIG_TEMPLATE = "config_templates"
+
+    PROJECTS_YAML = "projects.yaml"
+
+    SUPPORT_DIR_SUB_RE = re.compile("support-files")
+
+    SUPPORT_FILES = "support-files"
+
+    AGENT_DEFAULT_MEDIUM = {"name": _("default"), "desc": _("通用Agent安装包，无定制化需求")}
+
+    CERT_PROXY_RE = re.compile("(?P<begin_name>(gse_agent|gse_server|gse_api_client))")
+
+    CERT_AGENT_RULE_FILES = ["gseca.crt", "gse_agent.crt", "gse_agent.key"]
+
+    PROXY_DIR_SUB_RE = re.compile(f"{NodeType.PROXY.lower()}")
+
+    AGENT_DIR_SUB_RE = re.compile(
+        f"{NodeType.AGENT.lower()}_(?P<os_type>({'|'.join(map(str, PLUGIN_OS_TUPLE))}))_"
+        f"(?P<cpu_arch>({'|'.join(map(str, CPU_TUPLE))})?$)"
+    )
+
+    CERT_PKG_RE = re.compile(f"{CERT}.*(?P<suffix>(tar|tar.gz|tgz))$")
+
+    AGENT_CONFIG_TEMPLATE_RE = re.compile(
+        f"{NodeType.AGENT.lower()}_"
+        f"(?P<os_type>({'|'.join(map(str, PLUGIN_OS_TUPLE))}))_"
+        f"(?P<cpu_arch>({'|'.join(map(str, CPU_TUPLE))}))"
+        f"#{ETC}#(?P<config_name>(.*))"
+    )
+
+    PROXY_CONFIG_TEMPLATE_RE = re.compile(f"{NodeType.PROXY.lower()}#{ETC}#(?P<config_name>(.*))")
+
+    GSE_AGENT_PACKAGE_RE = re.compile(
+        f"{GSE}_{ProcType.AGENT.lower()}_(?P<firm>(ee|ce))-(?P<version>.*).(?P<suffix>(tar|tar.gz|tgz))$"
+    )
+
+    CERT_RULE_MAP = {
+        NodeType.AGENT: ["gseca.crt", "gse_agent.crt", "gse_agent.key"],
+        NodeType.PROXY: re.compile(r"^(gse_agent|gse_server|gse_api_client).*"),
+        "special": ["cert_encrypt.key"],
+    }
