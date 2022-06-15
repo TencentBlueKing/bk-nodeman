@@ -18,7 +18,7 @@ import NodemanNavigation from '@/components/common/navigation.vue';
 import PermissionModal from '@/components/auth/PermissionModal.vue';
 import { STORAGE_KEY_BIZ, STORAGE_KEY_FONT } from '@/config/storage-key';
 import { Vue, Component, Ref, Watch } from 'vue-property-decorator';
-import { IAuthApply, IBkBiz, ILoginRes } from '@/types/index';
+import { IAuthApply, IBkBiz } from '@/types/index';
 import BkPaasLogin from '@blueking/paas-login/dist/paas-login.umd';
 
 @Component({
@@ -83,18 +83,30 @@ export default class App extends Vue {
   }
   private mounted() {
     window.LoginModal = this.$refs.login;
-    bus.$on('show-login-modal', (data: ILoginRes) => {
+    bus.$on('show-login-modal', () => {
+      const { href, protocol } = window.location;
       if (process.env.NODE_ENV === 'development') {
-        window.location.href = LOGIN_DEV_URL + window.location.href;
+        window.location.href = LOGIN_DEV_URL + href;
       } else {
-        const res = data?.data || {};
-        if (res.has_plain) {
-          MainStore.setLoginUrl(res.login_url);
-          window.LoginModal && window.LoginModal.show();
-        } else {
-          const href = res.login_url ? res.login_url : (LOGIN_DEV_URL + window.location.href);
-          window.location.href = href;
+        // 目前仅ieod取消登录弹框
+        // if (window.PROJECT_CONFIG.RUN_VER === 'ieod') {
+        let loginUrl = window.PROJECT_CONFIG.LOGIN_URL;
+        if (!/http(s)?:\/\//.test(loginUrl)) {
+          loginUrl = `${protocol}//${loginUrl}`;
         }
+        if (!loginUrl.includes('?')) {
+          loginUrl += '?';
+        }
+        window.location.href = `${loginUrl}&c_url=${encodeURIComponent(href)}`;
+        // } else {
+        //   const res = data?.data || {};
+        //   if (res.has_plain) {
+        //     MainStore.setLoginUrl(res.login_url);
+        //     window.LoginModal && window.LoginModal.show();
+        //   } else {
+        //     window.location.href = res.login_url ? res.login_url : (LOGIN_DEV_URL + href);
+        //   }
+        // }
       }
     });
     bus.$on('show-permission-modal', (data: { trigger: 'request' | 'click', params: IAuthApply }) => {
