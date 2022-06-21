@@ -32,6 +32,7 @@ from .patchers import logging
 # ===============================================================================
 BKAPP_RUN_ENV = env.BKAPP_RUN_ENV
 BKAPP_IS_PAAS_DEPLOY = env.BKAPP_IS_PAAS_DEPLOY
+BKAPP_ENABLE_DHCP = env.BKAPP_ENABLE_DHCP
 BK_BACKEND_CONFIG = env.BK_BACKEND_CONFIG
 
 

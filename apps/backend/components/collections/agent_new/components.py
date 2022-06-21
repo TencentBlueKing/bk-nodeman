@@ -14,12 +14,12 @@ from django.utils.translation import ugettext_lazy as _
 from pipeline.component_framework.component import Component
 
 from . import base
+from .add_or_update_hosts import AddOrUpdateHostsService
 from .bind_host_agent import BindHostAgentService
 from .check_agent_status import CheckAgentStatusService
 from .check_policy_gse_to_proxy import CheckPolicyGseToProxyService
 from .choose_access_point import ChooseAccessPointService
 from .configure_policy import ConfigurePolicyService
-from .get_agent_id import GetAgentIDService
 from .get_agent_status import GetAgentStatusService
 from .install import InstallService
 from .install_plugins import InstallPluginsService
@@ -77,12 +77,6 @@ class GetAgentStatusComponent(Component):
     name = _("查询Agent状态")
     code = "get_agent_status"
     bound_service = GetAgentStatusService
-
-
-class GetAgentIDComponent(Component):
-    name = _("查询AgentID")
-    code = "get_agent_id"
-    bound_service = GetAgentIDService
 
 
 class ReloadAgentConfigComponent(Component):
@@ -179,3 +173,9 @@ class UnBindHostAgentComponent(Component):
     name = _("主机解绑 Agent 信息")
     code = "unbind_host_agent"
     bound_service = UnBindHostAgentService
+
+
+class AddOrUpdateHostsComponent(Component):
+    name = _("新增或更新主机信息")
+    code = "add_or_update_hosts"
+    bound_service = AddOrUpdateHostsService
