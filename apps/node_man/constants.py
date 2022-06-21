@@ -520,6 +520,7 @@ QUERY_EXPIRED_INFO_LENS = 2000
 QUERY_AGENT_STATUS_HOST_LENS = 500
 QUERY_PROC_STATUS_HOST_LENS = 2000
 QUERY_CMDB_LIMIT = 500
+WRITE_CMDB_LIMIT = 500
 QUERY_CMDB_MODULE_LIMIT = 500
 QUERY_CLOUD_LIMIT = 200
 QUERY_HOST_SERVICE_TEMPLATE_LIMIT = 200
@@ -589,6 +590,7 @@ CC_HOST_FIELDS = [
     "bk_host_id",
     "bk_agent_id",
     "bk_cloud_id",
+    "bk_addressing",
     "bk_host_innerip",
     "bk_host_outerip",
     "bk_host_innerip_v6",
@@ -757,6 +759,11 @@ class ScriptLanguageType(EnhanceEnum):
         }
 
 
+########################################################################################################
+# GSE
+########################################################################################################
+
+
 class GseOpType(object):
     """
     GSE进程操作类型
@@ -835,6 +842,11 @@ class GseProcessAutoCode(EnhanceEnum):
         }
 
 
+########################################################################################################
+# CMDB
+########################################################################################################
+
+
 class CmdbObjectId:
     BIZ = "biz"
     SET = "set"
@@ -846,6 +858,17 @@ class CmdbObjectId:
     SET_TEMPLATE = "set_template"
 
     OBJ_ID_ALIAS_MAP = {BIZ: _("业务"), SET: _("集群"), MODULE: _("模块"), HOST: _("主机"), CUSTOM: _("自定义")}
+
+
+class CmdbAddressingType(EnhanceEnum):
+    """寻址方式"""
+
+    STATIC = "0"
+    DYNAMIC = "1"
+
+    @classmethod
+    def _get_member__alias_map(cls) -> Dict[Enum, str]:
+        return {cls.STATIC: _("静态"), cls.DYNAMIC: _("动态")}
 
 
 class PolicyRollBackType:
