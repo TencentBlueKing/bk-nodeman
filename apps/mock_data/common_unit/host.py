@@ -20,7 +20,7 @@ DEFAULT_HOST_ID = 1
 
 DEFAULT_IP = "127.0.0.1"
 
-DEFAULT_IPv6 = "ABCD:EF01:2345:6789:ABCD:EF01:2345:6789"
+DEFAULT_IPV6 = "ABCD:EF01:2345:6789:ABCD:EF01:2345:6789"
 
 PROXY_INNER_IP = "1.1.1.1"
 
@@ -102,8 +102,8 @@ HOST_MODEL_DATA_WITH_AGENT_ID = copy.deepcopy(HOST_MODEL_DATA)
 HOST_MODEL_DATA_WITH_AGENT_ID.update(
     **{
         "bk_agent_id": BK_AGENT_ID,
-        "inner_ipv6": DEFAULT_IPv6,
-        "outer_ipv6": DEFAULT_IPv6,
+        "inner_ipv6": DEFAULT_IPV6,
+        "outer_ipv6": DEFAULT_IPV6,
     }
 )
 

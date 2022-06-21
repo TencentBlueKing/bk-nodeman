@@ -8,7 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import base64
 import json
 from collections import ChainMap, defaultdict
 from typing import Any, Callable, Dict, Iterable, List, Optional, Set
@@ -263,35 +262,6 @@ class RegisterHostService(AgentBaseService):
             for success_host_key in success_host_keys
         }
 
-    def handle_empty_auth_info_case(
-        self, subscription_instances: List[models.SubscriptionInstanceRecord]
-    ) -> Dict[str, models.SubscriptionInstanceRecord]:
-        """
-        处理不存在认证信息的情况
-        :param subscription_instances: 订阅实例对象列表
-        :return: host_key__sub_inst_map 校验通过的「host_key - 订阅实例映射」
-        """
-        empty_auth_info_sub_inst_ids: List[int] = []
-        host_key__sub_inst_map: Dict[str, models.SubscriptionInstanceRecord] = {}
-        for subscription_instance in subscription_instances:
-            host_info = subscription_instance.instance_info["host"]
-            is_manual = host_info.get("is_manual", False)
-
-            # 「第三方拉取密码」或者「手动安装」的场景下无需校验是否存在认证信息
-            if not (host_info.get("auth_type") == constants.AuthType.TJJ_PASSWORD or is_manual):
-                # 记录不存在认证信息的订阅实例ID，跳过记录
-                if not (host_info.get("password") or host_info.get("key")):
-                    empty_auth_info_sub_inst_ids.append(subscription_instance.id)
-                    continue
-            # 通过校验的订阅实例构建host_key - 订阅实例 映射
-            host_key__sub_inst_map[f"{host_info['bk_cloud_id']}-{host_info['bk_host_innerip']}"] = subscription_instance
-
-        # 移除不存在认证信息的实例
-        self.move_insts_to_failed(
-            sub_inst_ids=empty_auth_info_sub_inst_ids, log_content=_("该主机的登录认证信息已被清空，无法重试，请重新发起安装任务")
-        )
-        return host_key__sub_inst_map
-
     def handle_add_hosts_to_cmdb_case(
         self, host_key__sub_inst_map: Dict[str, models.SubscriptionInstanceRecord]
     ) -> Dict[str, int]:
@@ -340,9 +310,6 @@ class RegisterHostService(AgentBaseService):
         host_ids_in_exist_hosts: Set[int] = set(
             models.Host.objects.filter(bk_host_id__in=bk_host_ids).values_list("bk_host_id", flat=True)
         )
-        host_ids_in_exist_identity_data: Set[int] = set(
-            models.IdentityData.objects.filter(bk_host_id__in=bk_host_ids).values_list("bk_host_id", flat=True)
-        )
         host_ids_in_exist_proc_statuses: Set[int] = set(
             models.ProcessStatus.objects.filter(
                 bk_host_id__in=bk_host_ids,
@@ -353,8 +320,6 @@ class RegisterHostService(AgentBaseService):
         host_objs_to_be_created: List[models.Host] = []
         host_objs_to_be_updated: List[models.Host] = []
         proc_status_objs_to_be_created: List[models.ProcessStatus] = []
-        identity_data_objs_to_be_created: List[models.IdentityData] = []
-        identity_data_objs_to_be_updated: List[models.IdentityData] = []
         sub_inst_objs_to_be_updated: List[models.SubscriptionInstanceRecord] = []
         for host_key, bk_host_id in host_key__bk_host_id_map.items():
 
@@ -402,22 +367,6 @@ class RegisterHostService(AgentBaseService):
                 ]
                 host_objs_to_be_created.append(host_obj)
 
-            identity_data_obj = models.IdentityData(
-                bk_host_id=bk_host_id,
-                auth_type=host_info.get("auth_type"),
-                account=host_info.get("account"),
-                password=base64.b64decode(host_info.get("password", "")).decode(),
-                port=host_info.get("port"),
-                key=base64.b64decode(host_info.get("key", "")).decode(),
-                retention=host_info.get("retention", 1),
-                extra_data=host_info.get("extra_data", {}),
-                updated_at=timezone.now(),
-            )
-            if bk_host_id in host_ids_in_exist_identity_data:
-                identity_data_objs_to_be_updated.append(identity_data_obj)
-            else:
-                identity_data_objs_to_be_created.append(identity_data_obj)
-
             if bk_host_id not in host_ids_in_exist_proc_statuses:
                 proc_status_obj = models.ProcessStatus(
                     bk_host_id=bk_host_id,
@@ -439,12 +388,6 @@ class RegisterHostService(AgentBaseService):
             batch_size=self.batch_size,
         )
         models.ProcessStatus.objects.bulk_create(proc_status_objs_to_be_created, batch_size=self.batch_size)
-        models.IdentityData.objects.bulk_create(identity_data_objs_to_be_created, batch_size=self.batch_size)
-        models.IdentityData.objects.bulk_update(
-            identity_data_objs_to_be_updated,
-            fields=["auth_type", "account", "password", "port", "key", "retention", "extra_data", "updated_at"],
-            batch_size=self.batch_size,
-        )
         models.SubscriptionInstanceRecord.objects.bulk_update(
             sub_inst_objs_to_be_updated, fields=["instance_info"], batch_size=self.batch_size
         )
@@ -458,8 +401,11 @@ class RegisterHostService(AgentBaseService):
 
         subscription_instances: List[models.SubscriptionInstanceRecord] = common_data.subscription_instances
 
-        # key / password expired, failed
-        host_key__sub_inst_map = self.handle_empty_auth_info_case(subscription_instances)
+        host_key__sub_inst_map: Dict[str, models.SubscriptionInstanceRecord] = {}
+        for subscription_instance in subscription_instances:
+            host_info = subscription_instance.instance_info["host"]
+            # 通过校验的订阅实例构建host_key - 订阅实例 映射
+            host_key__sub_inst_map[f"{host_info['bk_cloud_id']}-{host_info['bk_host_innerip']}"] = subscription_instance
 
         # host infos group by bk_biz_id and register add_host_to_resource
         host_key__bk_host_id_map = self.handle_add_hosts_to_cmdb_case(host_key__sub_inst_map)
