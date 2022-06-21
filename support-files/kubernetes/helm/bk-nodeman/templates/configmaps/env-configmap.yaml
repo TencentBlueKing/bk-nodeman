@@ -20,6 +20,7 @@ data:
   BKPAAS_APP_SECRET: "{{ .Values.config.appSecret }}"
 
   BKAPP_RUN_ENV: "{{ .Values.config.bkAppRunEnv }}"
+  BKAPP_ENABLE_DHCP: "{{ .Values.config.bkAppEnableDHCP }}"
   BKPAAS_MAJOR_VERSION: "{{ .Values.config.bkPaasMajorVersion }}"
   BKPAAS_ENVIRONMENT: "{{ .Values.config.bkPaaSEnvironment }}"
 

@@ -9,9 +9,10 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import copy
+import functools
 import traceback
 from enum import Enum
-from typing import Any, Callable, Dict, Tuple
+from typing import Any, Callable, Dict, Iterable, List, Optional, Set, Tuple, Union
 
 from django.utils.translation import ugettext_lazy as _
 
@@ -28,6 +29,7 @@ class ServiceCCConfigName(enum.EnhanceEnum):
     WMIEXE = "SERVICE_WMIEXE"
     JOB_CMD = "SERVICE_JOB_CMD"
     QUERY_PASSWORD = "SERVICE_QUERY_PASSWORD"
+    HOST_WRITE = "HOST_WRITE"
 
     @classmethod
     def _get_member__alias_map(cls) -> Dict[Enum, str]:
@@ -36,6 +38,7 @@ class ServiceCCConfigName(enum.EnhanceEnum):
             cls.WMIEXE: _("使用 wmiexe 会话执行命令"),
             cls.JOB_CMD: _("使用 job 执行命令"),
             cls.QUERY_PASSWORD: _("查询密码"),
+            cls.HOST_WRITE: _("主机写入操作"),
         }
 
 
@@ -50,6 +53,9 @@ def get_config_dict(config_name: str) -> Dict[str, Any]:
     elif config_name == ServiceCCConfigName.JOB_CMD.value:
         # 通过作业平台执行时，批次间串行防止触发接口限频
         default_concurrent_control_config.update(is_concurrent_between_batches=False, interval=2)
+    elif config_name == ServiceCCConfigName.HOST_WRITE:
+        # 每一批的数量不能过多，不然可能会出现单台主机校验失败导致整个安装任务失败
+        default_concurrent_control_config.update(limit=100)
 
     current_controller_settings = models.GlobalSettings.get_config(
         key=models.GlobalSettings.KeyEnum.CONCURRENT_CONTROLLER_SETTINGS.value, default={}
@@ -70,11 +76,33 @@ def default_sub_inst_id_extractor(args: Tuple[Any], kwargs: Dict[str, Any]):
         return kwargs["sub_inst_id"]
 
 
-def default_sub_inst_task_exc_handler(
-    wrapped: Callable, instance: base.BaseService, args: Tuple[Any], kwargs: Dict[str, Any], exc: Exception
-) -> Any:
+def default_sub_inst_ids_extractor(args: Tuple[Any], kwargs: Dict[str, Any]) -> List[int]:
+    """
+    默认订阅实例ID列表提取器
+    :param args: 位置参数
+    :param kwargs: 关键字参数
+    :return: 订阅实例ID列表
+    """
+    if "sub_inst_ids" in kwargs:
+        return kwargs["sub_inst_ids"]
+    if "sub_insts" in kwargs:
+        sub_insts: List[models.SubscriptionInstanceRecord] = kwargs["sub_insts"]
+    else:
+        sub_insts: List[models.SubscriptionInstanceRecord] = args[0]
+    return [sub_inst.id for sub_inst in sub_insts]
+
+
+def default_task_exc_handler(
+    sub_inst_id_extractor: Callable[[Tuple, Dict], Union[int, Set[int], List[int]]],
+    wrapped: Callable,
+    instance: base.BaseService,
+    args: Tuple[Any],
+    kwargs: Dict[str, Any],
+    exc: Exception,
+) -> Optional[List]:
     """
     默认的单订阅实例任务异常处理，用于批量调用时规避单任务异常导致整体执行失败的情况
+    :param sub_inst_id_extractor: 订阅实例ID提取器
     :param wrapped: 被装饰的函数或类方法
     :param instance: 基础Pipeline服务
     :param exc: 捕获到异常
@@ -82,8 +110,13 @@ def default_sub_inst_task_exc_handler(
     :param kwargs: 关键字参数
     :return:
     """
-    sub_inst_id = default_sub_inst_id_extractor(args, kwargs)
-    instance.move_insts_to_failed([sub_inst_id], str(exc))
+    sub_inst_id = sub_inst_id_extractor(args, kwargs)
+    instance.move_insts_to_failed(sub_inst_id if isinstance(sub_inst_id, Iterable) else [sub_inst_id], str(exc))
     # 打印 DEBUG 日志
     instance.log_debug(sub_inst_id, log_content=traceback.format_exc(), fold=True)
-    return None
+    return [] if isinstance(sub_inst_id, Iterable) else None
+
+
+default_sub_inst_task_exc_handler = functools.partial(default_task_exc_handler, default_sub_inst_id_extractor)
+
+default_sub_insts_task_exc_handler = functools.partial(default_task_exc_handler, default_sub_inst_ids_extractor)

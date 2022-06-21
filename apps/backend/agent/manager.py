@@ -44,7 +44,15 @@ class AgentManager(object):
         )
         return act
 
-    def query_tjj_password(self):
+    @classmethod
+    def add_or_update_hosts(cls):
+        """新增或更新主机"""
+        act = AgentServiceActivity(
+            component_code=components.AddOrUpdateHostsComponent.code, name=components.AddOrUpdateHostsComponent.name
+        )
+        return act
+
+    def query_password(self):
         """查询铁将军密码"""
         act = AgentServiceActivity(
             component_code=components.QueryPasswordComponent.code, name=components.QueryPasswordComponent.name
@@ -136,14 +144,6 @@ class AgentManager(object):
         """查询Agent状态"""
         act = AgentServiceActivity(component_code=components.GetAgentStatusComponent.code, name=name)
         act.component.inputs.expect_status = Var(type=Var.PLAIN, value=expect_status)
-        return act
-
-    @classmethod
-    def get_agent_id(cls, name=components.GetAgentIDComponent.name):
-        """查询 Agent ID"""
-        if settings.GSE_VERSION == "V1":
-            return None
-        act = AgentServiceActivity(component_code=components.GetAgentIDComponent.code, name=name)
         return act
 
     @classmethod

@@ -508,6 +508,11 @@ class JobHandler(APIModel):
                     "bk_biz_name": biz_info.get(host["bk_biz_id"]),
                     "bk_cloud_id": host["bk_cloud_id"],
                     "bk_cloud_name": str(cloud_info.get(host["bk_cloud_id"], {}).get("bk_cloud_name")),
+                    # 开启动态主机配置协议适配后，增量主机走动态IP方案
+                    "bk_addressing": (
+                        constants.CmdbAddressingType.STATIC.value,
+                        constants.CmdbAddressingType.DYNAMIC.value,
+                    )[settings.BKAPP_ENABLE_DHCP],
                     "bk_supplier_account": settings.DEFAULT_SUPPLIER_ACCOUNT,
                     "host_node_type": host_node_type,
                     "os_type": host["os_type"],

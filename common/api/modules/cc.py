@@ -48,6 +48,13 @@ class _CCApi(BaseApi):
             description="批量获取模块详情",
             before_request=add_esb_info_before_request,
         )
+        self.list_hosts_without_biz = DataAPI(
+            method="POST",
+            url=CC_APIGATEWAY_ROOT_V2 + "list_hosts_without_biz/",
+            module=self.MODULE,
+            description="没有业务ID的主机查询",
+            before_request=add_esb_info_before_request,
+        )
         self.list_service_template = DataAPI(
             method="POST",
             url=CC_APIGATEWAY_ROOT_V2 + "list_service_template/",
@@ -109,6 +116,20 @@ class _CCApi(BaseApi):
             url=CC_APIGATEWAY_ROOT_V2 + "find_host_topo_relation/",
             module=self.MODULE,
             description="获取主机与拓扑的关系",
+            before_request=add_esb_info_before_request,
+        )
+        self.find_host_biz_relations = DataAPI(
+            method="POST",
+            url=CC_APIGATEWAY_ROOT_V2 + "find_host_biz_relations/",
+            module=self.MODULE,
+            description="查询主机业务关系信息",
+            before_request=add_esb_info_before_request,
+        )
+        self.batch_update_host = DataAPI(
+            method="POST",
+            url=CC_APIGATEWAY_ROOT_V2 + "batch_update_host/",
+            module=self.MODULE,
+            description="批量更新主机属性",
             before_request=add_esb_info_before_request,
         )
         self.resource_watch = DataAPI(

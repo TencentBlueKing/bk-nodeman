@@ -95,7 +95,15 @@ def _list_resource_pool_hosts(start):
 
 
 def _bulk_update_host(hosts, extra_fields):
-    update_fields = ["bk_cloud_id", "inner_ip", "outer_ip", "inner_ipv6", "outer_ipv6", "bk_agent_id"] + extra_fields
+    update_fields = [
+        "bk_cloud_id",
+        "bk_addressing",
+        "inner_ip",
+        "outer_ip",
+        "inner_ipv6",
+        "outer_ipv6",
+        "bk_agent_id",
+    ] + extra_fields
     if hosts:
         models.Host.objects.bulk_update(hosts, fields=update_fields)
 
@@ -108,10 +116,11 @@ def _generate_host(biz_id, host, ap_id):
         bk_agent_id=host.get("bk_agent_id"),
         bk_biz_id=biz_id,
         bk_cloud_id=host["bk_cloud_id"],
-        inner_ip=host["bk_host_innerip"].split(",")[0],
-        outer_ip=host["bk_host_outerip"].split(",")[0],
-        inner_ipv6=host.get("bk_host_innerip_v6"),
-        outer_ipv6=host.get("bk_host_outerip_v6"),
+        bk_addressing=host.get("bk_addressing") or constants.CmdbAddressingType.STATIC.value,
+        inner_ip=(host.get("bk_host_innerip") or "").split(",")[0],
+        outer_ip=(host.get("bk_host_outerip") or "").split(",")[0],
+        inner_ipv6=(host.get("bk_host_innerip_v6") or "").split(",")[0],
+        outer_ipv6=(host.get("bk_host_outerip_v6") or "").split(",")[0],
         node_from=constants.NodeFrom.CMDB,
         os_type=os_type,
         cpu_arch=cpu_arch,
@@ -205,10 +214,11 @@ def update_or_create_host_base(biz_id, task_id, cmdb_host_data):
             "bk_host_id": host["bk_host_id"],
             "bk_agent_id": host.get("bk_agent_id"),
             "bk_cloud_id": host["bk_cloud_id"],
-            "inner_ip": host["bk_host_innerip"].split(",")[0],
-            "outer_ip": host["bk_host_outerip"].split(",")[0],
-            "inner_ipv6": host.get("bk_host_innerip_v6"),
-            "outer_ipv6": host.get("bk_host_outerip_v6"),
+            "bk_addressing": host.get("bk_addressing") or constants.CmdbAddressingType.STATIC.value,
+            "inner_ip": (host.get("bk_host_innerip") or "").split(",")[0],
+            "outer_ip": (host.get("bk_host_outerip") or "").split(",")[0],
+            "inner_ipv6": (host.get("bk_host_innerip_v6") or "").split(",")[0],
+            "outer_ipv6": (host.get("bk_host_outerip_v6") or "").split(",")[0],
         }
         if host["bk_host_id"] in exist_agent_host_ids:
 

@@ -8,7 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import base64
 import random
 from typing import Dict, List, Optional
 
@@ -78,7 +77,6 @@ class RegisterHostTestCase(utils.AgentServiceBaseTestCase):
         :return:
         """
         models.Host.objects.filter(bk_host_id__in=cls.obj_factory.bk_host_ids).delete()
-        models.IdentityData.objects.filter(bk_host_id__in=cls.obj_factory.bk_host_ids).delete()
 
         for sub_inst_obj in cls.obj_factory.sub_inst_record_objs:
             sub_inst_obj.instance_info["host"].pop("bk_host_id")
@@ -150,7 +148,6 @@ class RegisterHostTestCase(utils.AgentServiceBaseTestCase):
     def assert_in_teardown(self):
         bk_host_ids = self.obj_factory.bk_host_ids
         host_objs = models.Host.objects.filter(bk_host_id__in=bk_host_ids)
-        identity_data_objs = models.IdentityData.objects.filter(bk_host_id__in=bk_host_ids)
 
         self.assertEqual(
             models.ProcessStatus.objects.filter(
@@ -161,28 +158,19 @@ class RegisterHostTestCase(utils.AgentServiceBaseTestCase):
             len(bk_host_ids),
         )
         self.assertEqual(len(host_objs), len(bk_host_ids))
-        self.assertEqual(len(identity_data_objs), len(bk_host_ids))
 
-        host_id__identity_data_obj_map: Dict[int, models.IdentityData] = {
-            identity_data_obj.bk_host_id: identity_data_obj for identity_data_obj in identity_data_objs
-        }
         host_key__host_obj_map: Dict[str, models.Host] = {
             f"{host_obj.bk_cloud_id}-{host_obj.inner_ip}": host_obj for host_obj in host_objs
         }
         for sub_inst in models.SubscriptionInstanceRecord.objects.filter(id__in=self.obj_factory.sub_inst_record_ids):
             host_info = sub_inst.instance_info["host"]
-            identity_data_obj = host_id__identity_data_obj_map[host_info["bk_host_id"]]
             host_obj = host_key__host_obj_map[f"{host_info['bk_cloud_id']}-{host_info['bk_host_innerip']}"]
             self.assertEqual(host_info["bk_biz_id"], host_obj.bk_biz_id)
             self.assertEqual(host_info["bk_host_id"], host_obj.bk_host_id)
-            self.assertEqual(identity_data_obj.port, host_info["port"])
-            self.assertEqual(identity_data_obj.auth_type, host_info["auth_type"])
-            self.assertEqual(identity_data_obj.password, base64.b64decode(host_info.get("password", "")).decode())
 
     def assert_in_teardown__empty_db(self):
         bk_host_ids = self.obj_factory.bk_host_ids
         self.assertFalse(models.Host.objects.filter(bk_host_id__in=bk_host_ids).exists())
-        self.assertFalse(models.IdentityData.objects.filter(bk_host_id__in=bk_host_ids).exists())
         self.assertFalse(
             models.ProcessStatus.objects.filter(
                 bk_host_id__in=bk_host_ids,
@@ -241,17 +229,10 @@ class UpdateDBTestCase(RegisterHostTestCase):
             host_obj.inner_ip = ""
             # 数据库中的host为AGENT，重装为PROXY，OBJ_FACTORY_CLASS设为PROXY
             host_obj.node_type = constants.NodeType.AGENT
-        for identity_data_obj in cls.obj_factory.identity_data_objs:
-            identity_data_obj.auth_type = random.choice(constants.AUTH_TUPLE)
-            identity_data_obj.port = random.randint(3306, 65535)
-            identity_data_obj.password = "test"
         for sub_inst_obj in cls.obj_factory.sub_inst_record_objs:
             sub_inst_obj.instance_info["host"].pop("bk_host_id")
         models.Host.objects.bulk_update(
             cls.obj_factory.host_objs, fields=["bk_biz_id", "bk_cloud_id", "inner_ip", "node_type"]
-        )
-        models.IdentityData.objects.bulk_update(
-            cls.obj_factory.identity_data_objs, fields=["auth_type", "port", "password"]
         )
         models.SubscriptionInstanceRecord.objects.bulk_update(
             cls.obj_factory.sub_inst_record_objs, fields=["instance_info"]
@@ -264,31 +245,6 @@ class UpdateDBTestCase(RegisterHostTestCase):
     def assert_in_teardown(self):
         for host in models.Host.objects.all():
             self.assertEqual(host.node_type, constants.NodeType.PROXY)
-
-
-class EmptyAuthInfoTestCase(RegisterHostTestCase):
-    @classmethod
-    def get_default_case_name(cls) -> str:
-        return "主机登录认证信息被清空"
-
-    def fetch_succeeded_sub_inst_ids(self) -> List[int]:
-        return []
-
-    @classmethod
-    def adjust_test_data_in_db(cls):
-        """
-        调整DB中的测试数据
-        :return:
-        """
-        super().adjust_test_data_in_db()
-        for sub_inst_obj in cls.obj_factory.sub_inst_record_objs:
-            sub_inst_obj.instance_info["auth_type"] = constants.AuthType.PASSWORD
-            sub_inst_obj.instance_info["host"].pop("password")
-            sub_inst_obj.instance_info["host"].pop("key")
-            sub_inst_obj.save()
-
-    def assert_in_teardown(self):
-        self.assert_in_teardown__empty_db()
 
 
 class CannotFindInCMDB(RegisterHostTestCase):

@@ -69,7 +69,9 @@ def batch_request(
         return sync_batch_request(func, params, get_data, limit)
 
     if not split_params:
-        final_request_params = [{"count": get_count(func(page={"start": 0, "limit": 1}, **params)), "params": params}]
+        final_request_params = [
+            {"count": get_count(func(dict(page={"start": 0, "limit": 1}, **params))), "params": params}
+        ]
     else:
         final_request_params = format_params(params, get_count, func)
 
@@ -86,7 +88,7 @@ def batch_request(
             if sort:
                 request_params["page"]["sort"] = sort
             request_params.update(req["params"])
-            futures.append(pool.apply_async(func, kwds=request_params))
+            futures.append(pool.apply_async(func, args=(request_params,)))
 
             start += limit
 
