@@ -311,11 +311,12 @@ class Host(models.Model):
     bk_agent_id = models.CharField(_("AgentID"), max_length=64, db_index=True, blank=True, null=True)
     bk_biz_id = models.IntegerField(_("业务ID"), db_index=True)
     bk_cloud_id = models.IntegerField(_("云区域ID"), db_index=True)
+    bk_addressing = models.CharField(_("寻地方式"), max_length=16, default=constants.CmdbAddressingType.STATIC.value)
 
     inner_ip = models.CharField(_("内网IP"), max_length=15, db_index=True)
     outer_ip = models.CharField(_("外网IP"), max_length=15, blank=True, null=True, default="")
-    login_ip = models.CharField(_("登录IP"), max_length=15, blank=True, null=True, default="")
-    data_ip = models.CharField(_("数据IP"), max_length=15, blank=True, null=True, default="")
+    login_ip = models.CharField(_("登录IP"), max_length=45, blank=True, null=True, default="")
+    data_ip = models.CharField(_("数据IP"), max_length=45, blank=True, null=True, default="")
 
     inner_ipv6 = models.CharField(_("内网IPv6"), max_length=45, blank=True, null=True, default="")
     outer_ipv6 = models.CharField(_("外网IPv6"), max_length=45, blank=True, null=True, default="")

@@ -9,8 +9,10 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from typing import Any, Dict, List, Union
+import base64
+from typing import Any, Dict, List, Optional, Union
 
+from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
 from apps.core.concurrent import controller
@@ -59,15 +61,111 @@ class QueryPasswordService(AgentBaseService):
 
         return {"is_ok": is_ok, "success_ips": success_ips, "failed_ips": failed_ips, "err_msg": err_msg}
 
+    def check_and_update_identity_data(
+        self, sub_insts: List[models.SubscriptionInstanceRecord]
+    ) -> List[models.SubscriptionInstanceRecord]:
+
+        bk_host_ids: List[int] = [sub_inst.instance_info["host"]["bk_host_id"] for sub_inst in sub_insts]
+        exist_identity_data_objs: List[models.IdentityData] = models.IdentityData.objects.filter(
+            bk_host_id__in=bk_host_ids
+        )
+        host_id__identity_data_obj_map: Dict[int, models.IdentityData] = {
+            identity_data_obj.bk_host_id: identity_data_obj for identity_data_obj in exist_identity_data_objs
+        }
+
+        def _is_auth_info_empty(_sub_inst: models.SubscriptionInstanceRecord, _host_info: Dict[str, Any]) -> bool:
+            # 「第三方拉取密码」或者「手动安装」场景下无需校验是否存在认证信息
+            if not (_host_info.get("auth_type") == constants.AuthType.TJJ_PASSWORD or is_manual):
+                # 记录不存在认证信息的订阅实例ID，跳过记录
+                if not (_host_info.get("password") or _host_info.get("key")):
+                    return True
+            return False
+
+        empty_auth_info_sub_inst_ids: List[int] = []
+        identity_data_objs_to_be_created: List[models.IdentityData] = []
+        identity_data_objs_to_be_updated: List[models.IdentityData] = []
+        sub_insts_with_auth_info: List[models.SubscriptionInstanceRecord] = []
+        for sub_inst in sub_insts:
+            host_info: Dict[str, Any] = sub_inst.instance_info["host"]
+            bk_host_id: int = host_info["bk_host_id"]
+            is_manual: bool = host_info.get("is_manual", False)
+            sub_insts_with_auth_info.append(sub_inst)
+
+            # 先校验再更新，防止存量历史任务重试（认证信息已失效）的情况下，重置最新的认证信息快照
+            identity_data_obj: Optional[models.IdentityData] = host_id__identity_data_obj_map.get(bk_host_id)
+
+            if not identity_data_obj:
+                if _is_auth_info_empty(sub_inst, host_info):
+                    empty_auth_info_sub_inst_ids.append(sub_inst.id)
+                    continue
+
+                # 新建认证信息对象
+                identity_data_obj: models.IdentityData = models.IdentityData(
+                    bk_host_id=bk_host_id,
+                    auth_type=host_info.get("auth_type"),
+                    account=host_info.get("account"),
+                    password=base64.b64decode(host_info.get("password", "")).decode(),
+                    port=host_info.get("port"),
+                    key=base64.b64decode(host_info.get("key", "")).decode(),
+                    retention=host_info.get("retention", 1),
+                    extra_data=host_info.get("extra_data", {}),
+                    updated_at=timezone.now(),
+                )
+                identity_data_objs_to_be_created.append(identity_data_obj)
+                continue
+
+            # 更新场景下，传入 `auth_type` 需要提供完整认证信息用于更新，否则使用快照
+            auth_type: Optional[str] = host_info.get("auth_type")
+            if not auth_type:
+                identity_data_objs_to_be_updated.append(identity_data_obj)
+                continue
+
+            # 处理认证信息不完整的情况
+            if _is_auth_info_empty(sub_inst, host_info):
+                empty_auth_info_sub_inst_ids.append(sub_inst.id)
+                continue
+
+            # 允许缺省时使用快照
+            identity_data_obj.port = host_info.get("port") or identity_data_obj.port
+            identity_data_obj.account = host_info.get("account") or identity_data_obj.account
+
+            # 更新认证信息
+            identity_data_obj.auth_type = auth_type
+            identity_data_obj.password = base64.b64decode(host_info.get("password", "")).decode()
+            identity_data_obj.key = base64.b64decode(host_info.get("key", "")).decode()
+            identity_data_obj.retention = host_info.get("retention", 1)
+            identity_data_obj.extra_data = host_info.get("extra_data", {})
+            identity_data_obj.updated_at = timezone.now()
+
+            identity_data_objs_to_be_updated.append(identity_data_obj)
+
+        models.IdentityData.objects.bulk_create(identity_data_objs_to_be_created, batch_size=self.batch_size)
+        models.IdentityData.objects.bulk_update(
+            identity_data_objs_to_be_updated,
+            fields=["auth_type", "account", "password", "port", "key", "retention", "extra_data", "updated_at"],
+            batch_size=self.batch_size,
+        )
+
+        # 移除不存在认证信息的实例
+        self.move_insts_to_failed(
+            sub_inst_ids=empty_auth_info_sub_inst_ids, log_content=_("登录认证信息已被清空\n" "- 若为重试操作，请新建任务重新发起")
+        )
+
+        return sub_insts_with_auth_info
+
     def _execute(self, data, parent_data, common_data: AgentCommonData):
         creator = data.get_one_of_inputs("creator")
         host_id_obj_map = common_data.host_id_obj_map
+
+        subscription_instances: List[models.SubscriptionInstanceRecord] = self.check_and_update_identity_data(
+            common_data.subscription_instances
+        )
 
         no_need_query_inst_ids = []
         # 这里暂不支持多
         cloud_ip_map = {}
         oa_ticket = ""
-        for sub_inst in common_data.subscription_instances:
+        for sub_inst in subscription_instances:
             bk_host_id = sub_inst.instance_info["host"]["bk_host_id"]
             host = host_id_obj_map[bk_host_id]
 

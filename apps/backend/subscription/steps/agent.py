@@ -154,12 +154,11 @@ class InstallAgent(AgentAction):
 
     def _generate_activities(self, agent_manager: AgentManager):
         activities = [
-            agent_manager.register_host(),
-            agent_manager.query_tjj_password() if settings.USE_TJJ else None,
+            agent_manager.add_or_update_hosts() if settings.BKAPP_ENABLE_DHCP else agent_manager.register_host(),
+            agent_manager.query_password(),
             agent_manager.choose_ap(),
             agent_manager.install(),
             agent_manager.get_agent_status(expect_status=constants.ProcStateType.RUNNING),
-            agent_manager.get_agent_id(),
             agent_manager.install_plugins() if self.is_install_latest_plugins else None,
         ]
 
@@ -177,11 +176,10 @@ class ReinstallAgent(AgentAction):
     def _generate_activities(self, agent_manager: AgentManager):
 
         activities = [
-            agent_manager.query_tjj_password() if settings.USE_TJJ else None,
+            agent_manager.query_password(),
             agent_manager.choose_ap(),
             agent_manager.install(),
             agent_manager.get_agent_status(expect_status=constants.ProcStateType.RUNNING),
-            agent_manager.get_agent_id(),
             agent_manager.install_plugins() if self.is_install_latest_plugins else None,
         ]
 
@@ -201,7 +199,6 @@ class UpgradeAgent(ReinstallAgent):
             agent_manager.push_upgrade_package(),
             agent_manager.run_upgrade_command(),
             agent_manager.get_agent_status(expect_status=constants.ProcStateType.RUNNING),
-            agent_manager.get_agent_id(),
         ]
         return activities, None
 
@@ -219,7 +216,6 @@ class RestartAgent(AgentAction):
             agent_manager.restart(skip_polling_result=True),
             agent_manager.wait(5),
             agent_manager.get_agent_status(expect_status=constants.ProcStateType.RUNNING),
-            agent_manager.get_agent_id(),
         ]
 
         return activities, None
@@ -254,7 +250,7 @@ class InstallProxy(AgentAction):
         register_host = agent_manager.register_host()
         activities = [
             register_host,
-            agent_manager.query_tjj_password() if settings.USE_TJJ else None,
+            agent_manager.query_password(),
             agent_manager.configure_policy(),
             agent_manager.choose_ap(),
             agent_manager.install(),
@@ -281,7 +277,7 @@ class ReinstallProxy(AgentAction):
     def _generate_activities(self, agent_manager: AgentManager):
 
         activities = [
-            agent_manager.query_tjj_password() if settings.USE_TJJ else None,
+            agent_manager.query_password(),
             agent_manager.configure_policy(),
             agent_manager.choose_ap(),
             agent_manager.install(),
@@ -314,7 +310,6 @@ class UpgradeProxy(ReinstallProxy):
             agent_manager.run_upgrade_command(),
             agent_manager.wait(30),
             agent_manager.get_agent_status(expect_status=constants.ProcStateType.RUNNING),
-            agent_manager.get_agent_id(),
         ]
 
         # 推送文件到proxy
@@ -343,7 +338,7 @@ class UninstallAgent(AgentAction):
 
     def _generate_activities(self, agent_manager: AgentManager):
         activities = [
-            agent_manager.query_tjj_password() if settings.USE_TJJ else None,
+            agent_manager.query_password(),
             agent_manager.uninstall_agent(),
             agent_manager.get_agent_status(expect_status=constants.ProcStateType.UNKNOWN),
             agent_manager.update_process_status(status=constants.ProcStateType.NOT_INSTALLED),
@@ -386,7 +381,6 @@ class ReloadAgent(AgentAction):
             agent_manager.reload_agent(skip_polling_result=True),
             agent_manager.wait(5),
             agent_manager.get_agent_status(expect_status=constants.ProcStateType.RUNNING),
-            agent_manager.get_agent_id(),
         ]
         return activities, None
 
