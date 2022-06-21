@@ -365,6 +365,7 @@ config:
   ##
   ## 线程最大并发数
   concurrentNumber: 50
+  bkAppEnableDHCP: false
 
 ## --------------------------------------
 ## 节点管理后台环境变量配置

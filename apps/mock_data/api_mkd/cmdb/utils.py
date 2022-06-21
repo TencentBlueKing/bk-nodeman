@@ -39,10 +39,24 @@ class CMDBMockClient(utils.BaseMockClient):
 
 
 class CCApiMockClient(utils.BaseMockClient):
-    def __init__(self, bind_host_agent_return=None, unbind_host_agent_return=None):
+    def __init__(
+        self,
+        search_business_return=None,
+        bind_host_agent_return=None,
+        unbind_host_agent_return=None,
+        list_hosts_without_biz_return=None,
+        batch_update_host=None,
+        add_host_to_business_idle_return=None,
+        find_host_biz_relations_return=None,
+    ):
         super(CCApiMockClient, self).__init__()
+        self.search_business = self.generate_magic_mock(mock_return_obj=search_business_return)
         self.bind_host_agent = self.generate_magic_mock(mock_return_obj=bind_host_agent_return)
         self.unbind_host_agent = self.generate_magic_mock(mock_return_obj=unbind_host_agent_return)
+        self.list_hosts_without_biz = self.generate_magic_mock(mock_return_obj=list_hosts_without_biz_return)
+        self.batch_update_host = self.generate_magic_mock(mock_return_obj=batch_update_host)
+        self.add_host_to_business_idle = self.generate_magic_mock(mock_return_obj=add_host_to_business_idle_return)
+        self.find_host_biz_relations = self.generate_magic_mock(mock_return_obj=find_host_biz_relations_return)
 
         # 记录接口调用
         self.bind_host_agent = self.call_recorder.start(self.bind_host_agent, key=CCApi.bind_host_agent)
