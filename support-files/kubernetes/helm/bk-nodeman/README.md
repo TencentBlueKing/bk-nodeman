@@ -277,6 +277,7 @@ externalRabbitMQ:
 | `config.appCode`                      | app code                                                     | `bk_nodeman`                   |
 | `config.appSecret`                    | app secret                                                   | `""`                           |
 | `config.bkAppRunEnv`                  | 运行环境，ce / ee / ieod，影响 gse 端口等配置                | `ce`                           |
+| `config.bkAppEnableDHCP`              | 是否开启动态主机配置协议适配                                 | `false`                        |
 | `config.bkPaasMajorVersion`           | 开发框架 PaaS 版本适配，目前仅支持 `3`                       | `3`                            |
 | `config.bkPaaSEnvironment`            | 开发框架 PaaS 环境适配，目前仅支持 `prod`                    | `prod`                         |
 | `config.logType`                      | 日志类别，`DEFAULT`-   `STDOUT`                              | `STDOUT`                       |

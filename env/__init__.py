@@ -16,6 +16,7 @@ from .paas_version_diff import *  # noqa
 
 __all__ = [
     "BKAPP_RUN_ENV",
+    "BKAPP_ENABLE_DHCP",
     "BKAPP_IS_PAAS_DEPLOY",
     "BK_BACKEND_CONFIG",
     "LOG_TYPE",
@@ -42,6 +43,8 @@ __all__ = [
 BKAPP_RUN_ENV = get_type_env(key="BKAPP_RUN_ENV", default="ee", _type=str)
 # 后台是否为 PaaS 部署
 BKAPP_IS_PAAS_DEPLOY = BKAPP_IS_PAAS_DEPLOY
+# 是否开启动态主机配置协议适配
+BKAPP_ENABLE_DHCP = get_type_env(key="BKAPP_ENABLE_DHCP", default=False, _type=bool)
 # # 是否为后台配置
 BK_BACKEND_CONFIG = BK_BACKEND_CONFIG
 
