@@ -8,14 +8,17 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-
+import logging
 import typing
 from collections import Mapping
 
+from apps.exceptions import ApiResultError
 from apps.node_man import constants, models
 
 from . import base
 from .v1 import GseV1ApiHelper
+
+logger = logging.getLogger("app")
 
 
 class GseV2ApiHelper(GseV1ApiHelper):
@@ -37,7 +40,7 @@ class GseV2ApiHelper(GseV1ApiHelper):
         labels: base.InfoDict,
         host_info_list: base.InfoDictList,
         extra_meta_data: base.InfoDict,
-        **options
+        **options,
     ) -> base.AgentIdInfoMap:
         agent_id_list: typing.List[str] = [self.get_agent_id(host_info) for host_info in host_info_list]
         query_params: base.InfoDict = {
@@ -60,17 +63,42 @@ class GseV2ApiHelper(GseV1ApiHelper):
 
     def _list_agent_state(self, host_info_list: base.InfoDictList) -> base.AgentIdInfoMap:
         agent_id_list: typing.List[str] = [self.get_agent_id(host_info) for host_info in host_info_list]
-        agent_state_list: base.InfoDictList = self.gse_api_obj.v2_cluster_list_agent_state(
-            {"agent_id_list": agent_id_list}
-        )
+
+        try:
+            agent_state_list: base.InfoDictList = self.gse_api_obj.v2_cluster_list_agent_state(
+                {"agent_id_list": agent_id_list}
+            )
+        except ApiResultError as err:
+            if err.code == 1011003:
+                # 1011003 表示传入 agent_id_list 均查询不到 Agent 信息，这种情况下取 Agent 默认状态
+                logging.warning(
+                    f"Call GSE API v2_cluster_list_agent_state failed: "
+                    f"err -> {err}, ignored -> all agents not found, set agent_state_list =  []"
+                )
+                agent_state_list = []
+            else:
+                logging.exception(f"Call GSE API v2_cluster_list_agent_state failed: agent_id_list -> {agent_id_list}")
+                raise
+
         agent_id__state_map: base.AgentIdInfoMap = {}
-        for agent_state in agent_state_list:
-            status_code: typing.Optional[int] = agent_state.pop("status_code", None)
+        agent_id__state_partial_map: base.AgentIdInfoMap = {
+            agent_state["bk_agent_id"]: agent_state for agent_state in agent_state_list
+        }
+        for agent_id in agent_id_list:
+            # 若查询不到状态信息，填充默认值
+            agent_state: base.InfoDict = agent_id__state_partial_map.get(
+                agent_id,
+                {"bk_agent_id": agent_id, "version": "", "status_code": constants.GseAgentStatusCode.NOT_FOUND.value},
+            )
+            status_code: typing.Optional[int] = (
+                agent_state.pop("status_code", None) or constants.GseAgentStatusCode.NOT_FOUND.value
+            )
             if status_code == constants.GseAgentStatusCode.RUNNING.value:
                 agent_state["bk_agent_alive"] = constants.BkAgentStatus.ALIVE.value
             else:
                 agent_state["bk_agent_alive"] = constants.BkAgentStatus.NOT_ALIVE.value
-            agent_id__state_map[agent_state["bk_agent_id"]] = agent_state
+            agent_id__state_map[agent_id] = agent_state
+
         return agent_id__state_map
 
     def preprocessing_proc_operate_info(
