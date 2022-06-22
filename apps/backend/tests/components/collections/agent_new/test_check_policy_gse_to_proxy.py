@@ -11,7 +11,6 @@ specific language governing permissions and limitations under the License.
 import base64
 from typing import Dict
 
-from django.test import override_settings
 from django.utils.translation import ugettext_lazy as _
 
 from apps.backend.components.collections.agent_new import (
@@ -32,7 +31,6 @@ class CheckPolicyGseToProxyTestCase(base.JobBaseTestCase):
     def component_cls(self):
         return components.CheckPolicyGseToProxyComponent
 
-    @override_settings(BKAPP_ENABLE_DHCP=False)
     def tearDown(self) -> None:
         record = self.job_api_mock_client.call_recorder.record
         host_key__script_content_map: Dict[str, str] = {}
