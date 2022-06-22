@@ -388,7 +388,7 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
         bk_biz_id = settings.BLUEKING_BIZ_ID
         target_server: Dict[str, List[Union[int, Dict[str, Union[int, str]]]]] = (
             {"host_id_list": [jump_server.bk_host_id]}
-            if settings.ENABLE_DBCP
+            if settings.BKAPP_ENABLE_DHCP
             else {
                 "ip_list": [
                     {
