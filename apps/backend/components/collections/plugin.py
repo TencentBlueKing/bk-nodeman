@@ -1357,7 +1357,6 @@ class DebugService(PluginExecuteScriptService):
             "bk_scope_id": settings.BLUEKING_BIZ_ID,
             "bk_username": settings.BACKEND_JOB_OPERATOR,
             "step_instance_id": step_instance_id,
-            "bk_host_id": bk_host_id,
         }
         host_interaction_params: Dict[str, Union[str, int]] = (
             {"bk_host_id": bk_host_id} if settings.BKAPP_ENABLE_DHCP else {"ip": ip, "bk_cloud_id": bk_cloud_id}
