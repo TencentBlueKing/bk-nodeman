@@ -432,6 +432,7 @@ class JobMockClient:
                     "step_ip_result_list": [
                         {
                             "ip": TEST_IP,
+                            "bk_host_id": BK_HOST_ID,
                             "bk_cloud_id": const.DEFAULT_CLOUD,
                             "status": const.BkJobIpStatus.SUCCEEDED,
                             "error_code": 0,

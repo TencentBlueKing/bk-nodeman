@@ -8,7 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Union
 
 from django.utils.translation import ugettext_lazy as _
 
@@ -50,17 +50,26 @@ class CheckPolicyGseToProxyService(AgentExecuteScriptService):
     def script_name(self):
         return "is_target_reachable"
 
-    def get_target_servers(self, data, common_data: CommonData, host: models.Host) -> List[Dict[str, Any]]:
+    def get_target_servers(
+        self, data, common_data: CommonData, host: models.Host
+    ) -> Dict[str, Union[List[Dict[str, Any]], List[int]]]:
         # 取接入点
         ap = common_data.ap_id_obj_map[host.ap_id]
-        return [
-            {
-                "bk_cloud_id": constants.DEFAULT_CLOUD,
-                "ip": bt_server["inner_ip"],
-                "bk_host_id": bt_server.get("bk_host_id", ""),
-            }
-            for bt_server in ap.btfileserver
-        ]
+        bt_file_server_queryset = models.Host.objects.filter(
+            inner_ip__in=[bt_server["inner_ip"] for bt_server in ap.btfileserver], bk_cloud_id=constants.DEFAULT_CLOUD
+        ).values_list("bk_host_id", flat=True)
+        bt_file_server_ids: List[int] = [bk_host_id for bk_host_id in bt_file_server_queryset]
+
+        return {
+            "ip_list": [
+                {
+                    "bk_cloud_id": constants.DEFAULT_CLOUD,
+                    "ip": bt_server["inner_ip"],
+                }
+                for bt_server in ap.btfileserver
+            ],
+            "host_id_list": bt_file_server_ids,
+        }
 
     def get_script_content(self, data, common_data: AgentCommonData, host: models.Host) -> str:
         port_config = common_data.host_id__ap_map[host.bk_host_id].port_config
