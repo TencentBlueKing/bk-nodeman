@@ -247,7 +247,7 @@
             </template>
           </bk-popover>
         </p>
-        <Tips class="mb20" v-if="slider.hostSys !== 'WINDOWS'">
+        <!-- <Tips class="mb20" v-if="slider.hostSys !== 'WINDOWS'">
           <template #default>
             <p>
               {{ $t('请将指令中的') }}
@@ -259,7 +259,7 @@
               {{ $t('再执行') }}
             </p>
           </template>
-        </Tips>
+        </Tips> -->
         <template v-if="!commandError">
           <ul class="commands-list" v-if="commandData.length">
             <li class="commands-item"
