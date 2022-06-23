@@ -109,6 +109,7 @@ import { debounce, deepClone, isEmpty } from '@/common/util';
 import { IAgent, IAgentHost, IAgentSearch } from '@/types/agent/agent-type';
 import { IApExpand } from '@/types/config/config';
 import { ISetupHead, ISetupRow } from '@/types';
+import { regIPv6 } from '@/common/form-check';
 
 @Component({
   name: 'agent-import',
@@ -393,6 +394,10 @@ export default class AgentImport extends Mixins(mixin) {
         const authType = item.auth_type?.toLowerCase() as ('key' | 'password');
         if (item[authType]) {
           item[authType] = this.$RSA.getNameMixinEncrypt(item[authType] as string);
+        }
+        if (regIPv6.test(item.inner_ip as string)) {
+          item.inner_ipv6 = item.inner_ip;
+          delete item.inner_ip;
         }
       });
       // 安装agent或pagent时，需要设置初始的安装类型
