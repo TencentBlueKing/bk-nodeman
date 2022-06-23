@@ -12,10 +12,12 @@ export interface IAgentHost {
   bk_host_id: number
   os_type: string
   port: number
-  inner_ip: string
+  inner_ip?: string
   data_ip: string
   login_ip: string
   outer_ip: string
+  inner_ipv6?: string
+  outer_ipv6?: string
   status: string
   version: string
   ap_id: number
@@ -49,6 +51,8 @@ export interface IAgentHost {
     status: string
   }
   install_channel_id: number | string | null
+  bk_addressing_display?: string // 静态 / 动态
+  addressing?: string // 寻址方式，值（字符串） => "0" "1"
 }
 
 export interface IPagination {
