@@ -4,6 +4,7 @@
 
 # DEFAULT DEFINITION
 GSE_COMPARE_VERSION="1.7.2"
+GSEV2_COMPARE_VERSION="2.0.0"
 NODE_TYPE=proxy
 PKG_NAME=gse_${NODE_TYPE}-linux-x86_64.tgz
 BACKUP_CONFIG_FILES=("procinfo.json")
@@ -15,6 +16,7 @@ GSE_AGENT_LOG_DIR=/var/log/gse
 OS_INFO=""
 OS_TYPE=""
 PROC_LIST=""
+WITH_AGENT_ID_ACTION=0
 RC_LOCAL_FILE=/etc/rc.d/rc.local
 
 # 收到如下信号或者exit退出时，执行清理逻辑
@@ -239,102 +241,76 @@ is_process_ok () {
 }
 
 is_target_reachable () {
-    local ip="$1"
-    local target_port="$2"
-    local ports=()
-    local _port err timeout_exist
+    local ip=${1}
+    local target_port=$2
+    local _port err
 
     if [[ $target_port =~ [0-9]+-[0-9]+ ]]; then
-        ports=( $(seq ${target_port//-/ }) )
-    else
-        ports=( "$target_port" )
+        target_port=$(seq ${target_port//-/ })
     fi
-
-    # 判断timeout命令是否存在
-    hash timeout 2>/dev/null
-    case $? in
-        0) timeout_exist=0 ;;
-        1) timeout_exist=1 ;;
-    esac
-
-    if [[ "${#ports[@]}" -gt 1 ]]; then
-        local result=0
-        for _port in "${ports[@]}"; do
-            if [ "$timeout_exist" -eq 0 ]; then
-                timeout 5 bash -c ">/dev/tcp/$ip/$_port"
-            else
-                bash -c ">/dev/tcp/$ip/$_port"
-            fi
-            case $? in
-                0) return 0 ;;
-                1) warn check_env -  "connect to upstream server($ip:$target_port) failed: connection refused" && result+=1;;
-               ## 超时的情况，只要有一个端口是超时的情况，认定为网络不通，不继续监测
-                124) warn check_env "connect to upstream server($ip:$target_port) failed: NETWORK TIMEOUT"  && return 1;;
-            esac
-        done
-        if [[ "$result" -eq "${#ports[@]}" ]]; then
-            return 1
-        fi
-    else
-       for _port in "${ports[@]}"; do
-           if [ "$timeout_exist" -eq 0 ]; then
-               timeout 5 bash -c ">/dev/tcp/$ip/$_port"
-           else
-               bash -c ">/dev/tcp/$ip/$_port"
-           fi
-           case $? in
-               0) return 0 ;;
-               1) warn check_env -  "connect to upstream server($ip:$target_port) failed: connection refused" && return 1 ;;
-               ## 超时的情况，只要有一个端口是超时的情况，认定为网络不通，不继续监测
-               124) warn check_env "connect to upstream server($ip:$target_port) failed: NETWORK TIMEOUT" && return 1 ;;
-           esac
-       done
-    fi
-}
-
-multi_reachable_ip_check () {
-    local target_port="$1"
-    shift 1
-    local ips=($@)
-    local result=0
-    for ip in "${ips[@]}"; do
-        log check_env - "check if it is reachable to port $target_port of $ip)"
-        if ! is_target_reachable "${ip}" "${target_port}"; then
-          result+=1
-        fi
+    for _port in $target_port; do
+        timeout 5 bash -c ">/dev/tcp/$ip/$_port" 2>/dev/null
+        case $? in
+            0) return 0 ;;
+            1) err="connection refused" ;;
+            ## 超时的情况，只有要一个端口是超时的情况，认定为网络不通，不继续监测
+            124) fail check_env FAILED "connect to upstream server($ip:$target_port) failed: NETWORK TIMEOUT" ;;
+        esac
     done
-    if [[ "${result}" -ge "${#ips[@]}" ]]; then
-      fail check_env FAILED "connect to upstream server(${ips[@]})-(${target_port[@]}) failed"
-    fi
+
+    fail check_env FAILED "connect to upstream server($ip:$target_port) failed: $err" ;
 }
 
 ## network policy check
 check_polices_agent_to_upstream () {
     #local pagent_to_proxy_port_policies=(gse_task:48668 gse_data:58625 gse_btsvr:58925 gse_btsvr:10020-10030)
     #local pagent_listen_ports=(gse_agent:60020-60030)
+    local ip
 
     # 非直连Agent的上级节点是所属云区域的proxy
-    multi_reachable_ip_check "$IO_PORT" "${TASK_SERVER_IP[@]}"
-    multi_reachable_ip_check "$DATA_PORT" "${DATA_SERVER_IP[@]}"
-    multi_reachable_ip_check "$FILE_SVR_PORT" "${BT_FILE_SERVER_IP[@]}"
-    multi_reachable_ip_check "$BT_PORT"-"$TRACKER_PORT" "${BT_FILE_SERVER_IP[@]}"
+    for ip in "${TASK_SERVER_IP[@]}"; do
+        log check_env - "check if it is reachable to port $IO_PORT of $ip($UPSTREAM_TYPE)"
+        is_target_reachable "$ip" "$IO_PORT"
+    done
+
+    for ip in "${DATA_SERVER_IP[@]}"; do
+        log check_env - "check if it is reachable to port $DATA_PORT of $ip($UPSTREAM_TYPE)"
+        is_target_reachable "$ip" "$DATA_PORT"
+    done
+
+    for ip in "${BT_FILE_SERVER_IP[@]}"; do
+        log check_env - "check if it is reachable to port $FILE_SVR_PORT,$BT_PORT-$TRACKER_PORT of $ip($UPSTREAM_TYPE)"
+        is_target_reachable "$ip" "$FILE_SVR_PORT"
+        is_target_reachable "$ip" "$BT_PORT"-"$TRACKER_PORT"
+    done
 }
 
 check_polices_pagent_to_upstream () {
     check_polices_agent_to_upstream
 }
 
-check_polices_proxy_to_upstream () {
+check_policies_proxy_to_upstream () {
     #local proxy_to_server_policies=(gse_task:48668 gse_data:58625 gse_btsvr:58930 gse_btsvr:10020-10030 gse_ops:58725)
     #local proxy_listen_ports=(gse_agent:48668 gse_transit:58625 gse_btsvr:58930 gse_btsvr:58925 gse_btsvr:10020-10030 gse_opts:58725)
+    local ip
 
     # GSE Proxy 的上级节点可能是 GSE Server(不同的接入点), 也可能是一级Proxy节点
-    multi_reachable_ip_check "$IO_PORT" "${TASK_SERVER_IP[@]}"
-    multi_reachable_ip_check "$DATA_PORT" "${DATA_SERVER_IP[@]}"
-    multi_reachable_ip_check "$BTSVR_THRIFT_PORT" "${BT_FILE_SERVER_IP[@]}"
-    multi_reachable_ip_check "$BT_PORT" "${BT_FILE_SERVER_IP[@]}"
-}
+    for ip in "${TASK_SERVER_IP[@]}"; do
+        log check_env - "check if it is reachable to port $IO_PORT of $ip(${UPSTREAM_TYPE:-GSE_TASK_SERVER})"
+        is_target_reachable "$ip" "$IO_PORT"
+    done
 
+    for ip in "${DATA_SERVER_IP[@]}"; do
+        log check_env - "check if it is reachable to port $DATA_PORT of $ip(${UPSTREAM_TYPE:-GSE_DATA_SERVER})"
+        is_target_reachable "$ip" "$DATA_PORT"
+    done
+
+    for ip in "${BT_FILE_SERVER_IP[@]}"; do
+        log check_env - "check if it is reachable to port $BTSVR_THRIFT_PORT of $ip(${UPSTREAM_TYPE:-GSE_BTFILE_SERVER})"
+        is_target_reachable "$ip" "$BTSVR_THRIFT_PORT"
+        is_target_reachable "$ip" "$BT_PORT"
+    done
+}
 
 pre_view () {
    log PREVIEW - "---- precheck current deployed agent info ----"
@@ -438,6 +414,11 @@ remove_proxy () {
     log remove_proxy - "trying to remove proxy if exists"
     stop_proxy
 
+    check_agent_id_action
+    if [[ "${WITH_AGENT_ID_ACTION}" -eq 1 ]]; then
+        unregister_agent_id
+    fi
+
     backup_config_file
     log remove_proxy - "trying to remove old proxy directory(${AGENT_SETUP_PATH})"
     rm -rf "${AGENT_SETUP_PATH}"
@@ -525,6 +506,10 @@ setup_proxy () {
     get_gse_proc_list
 
     start_proxy
+    check_agent_id_action
+    if [[ "${WITH_AGENT_ID_ACTION}" -eq 1 ]]; then
+        register_agent_id
+    fi
 
     log setup_proxy DONE "gse proxy setup successfully"
 }
@@ -694,6 +679,19 @@ check_target_clean () {
     fi
 }
 
+check_agent_id_action () {
+    gse_agent_path="$AGENT_SETUP_PATH/bin/gse_agent"
+    [[ -f "${gse_agent_path}" ]] || return 0
+    local version=$($gse_agent_path --version)
+    if ! which test > /dev/null 2>&1; then
+        fail setup_proxy FAILED "command test not found"
+    fi
+    # version -ge GSEV2_COMPARE_VERSION
+    if test "$(echo "$version" "$GSEV2_COMPARE_VERSION" | tr " " "\n" | sort -rV | head -n 1)" == "$version"; then
+        WITH_AGENT_ID_ACTION=1
+    fi
+}
+
 backup_for_upgrade () {
     local T
     cd "$AGENT_SETUP_PATH/.." || fail backup_config FAILED "change directory to $AGENT_SETUP_PATH/../ failed"
@@ -706,6 +704,48 @@ backup_for_upgrade () {
         [ -d plugins/etc ] && cp -vrf plugins/etc "etc.plugins.${TASK_ID}.$T"
     fi
 }
+
+register_agent_id () {
+    if [ ! -f "$AGENT_SETUP_PATH/bin/gse_agent" ]; then
+        fail register_agent_id FAILED "gse_agent file not exists in $AGENT_SETUP_PATH/bin"
+    fi
+
+    log register_agent_id  "register agent id: $agent_id"
+    if [ ! -z "$GSE_AGENT_ID" ]; then
+        if return_agent_id=$($AGENT_SETUP_PATH/bin/gse_agent --register "$agent_id") == "$agent_id"; then
+            log report_agent_id DONE "$return_agent_id"
+        else
+            fail register_agent_id FAILED "register agent id failed, return_id: $return_agent_id, excepted: $agent_id"
+        fi
+    else
+        if return_agent_id=$($AGENT_SETUP_PATH/bin/gse_agent --register); then
+            log report_agent_id DONE "$return_agent_id"
+        else
+            fail register_agent_id FAILED "register agent id failed"
+        fi
+    fi
+}
+
+unregister_agent_id () {
+    if [ -f "$AGENT_SETUP_PATH/bin/gse_agent" ]; then
+        if [ -z "$GSE_AGENT_ID" ]; then
+            if $AGENT_SETUP_PATH/bin/gse_agent --unregister; then
+                log unregister_agent_id SUCCESS "unregister agent id succeed"
+            else
+                fail unregister_agent_id FAILED "unregister agent id failed"
+            fi
+        else
+            if $AGENT_SETUP_PATH/bin/gse_agent --unregister "${GSE_AGENT_ID}"; then
+                log unregister_agent_id SUCCESS "unregister agent id succeed"
+            else
+                fail unregister_agent_id FAILED "unregister agent id failed"
+            fi
+        fi
+    else
+        log unregister_agent_id FAILED "gse_agent file not exists in $AGENT_SETUP_PATH/bin"
+    fi
+}
+
 
 backup_config_file () {
     local file
@@ -778,6 +818,7 @@ check_env () {
     check_pkgtool
     check_download_url
     check_target_clean
+    check_agent_id_action
 
     log check_env DONE "checking prerequisite done, result: SUCCESS"
 }

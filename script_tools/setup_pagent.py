@@ -114,6 +114,12 @@ def arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("-HS", "--host-shell", type=str, help="Host Shell")
     parser.add_argument("-CPA", "--channel-proxy-address", type=str, help="Channel Proxy Address", default=None)
     parser.add_argument("-ADP", "--agent-download-proxy", type=bool, help="Agent Download Proxy", default=True)
+
+    # IPv6
+    parser.add_argument("-AI", "--agent-id", type=str, help="Host Agent ID", default=None)
+    parser.add_argument("-I6", "--lan-eth-ipv6", type=str, help="Lan Eth Ipv6", default=None)
+    parser.add_argument("-HIIP6", "--host-inner-ipv6", type=str, help="Host Inner Ipv6", default=None)
+
     return parser
 
 
@@ -214,6 +220,8 @@ def rcmd(
     ssh_man.get_and_set_prompt()
     if os_type == "aix":
         cmd = "ksh"
+    elif os_type == "macos":
+        cmd = "zsh"
     else:
         cmd = "bash"
     ssh_man.send_cmd("{} -c 'exec 2>&1 && {} '\n".format(cmd, " && ".join(command)), wait_console_ready=False)
@@ -226,8 +234,19 @@ def rcmd_aix(login_ip: str, command: List[str], account: str, port: int, identit
     rcmd(login_ip, command, account, port, identity, download_url, os_type="aix")
 
 
+def is_ipv6_address(ip: str) -> bool:
+    try:
+        socket.inet_pton(socket.AF_INET6, ip)
+    except socket.error:
+        return False
+    return True
+
+
 def is_port_listen(ip: str, port: int) -> bool:
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    if is_ipv6_address(ip):
+        s = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
+    else:
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     r = s.connect_ex((ip, port))
 
     if r == 0:
@@ -357,7 +376,7 @@ def report_log(step, text, status="-"):
 def main() -> None:
     REMOVE = "-R" if args.remove else ""
 
-    login_ip = args.host_login_ip
+    login_ip = args.host_inner_ip if not args.host_inner_ip_v6 else args.host_inner_ipv6
     lan_eth_ip = args.host_inner_ip
     user = args.host_account
     port = args.host_port
@@ -385,7 +404,8 @@ def main() -> None:
         cmd.append(download_cmd)
         cmd.append(
             "nohup {} {dest_dir}{script_name} -T {dest_dir} -i {} -I {} -s {} -c {} -l {} -r {} -p {} -e {} "
-            "-a {} -k {} -x {} -N PROXY {} -O {} -E {} -A {} -V {} -B {} -S {} -Z {} -K {} 2>&1 &".format(
+            "-a {} -k {} -x {} -N PROXY {} -O {} -E {} -A {} -V {} -B {} -S {} -Z {} -K {} -AI {}"
+            "-I6 {} 2>&1 &".format(
                 shell,
                 cloud_id,
                 lan_eth_ip,
@@ -407,6 +427,8 @@ def main() -> None:
                 args.bt_port_start,
                 args.bt_port_end,
                 args.tracker_port,
+                args.agent_id,
+                args.host_inner_ipv6,
                 script_name=script_name,
                 dest_dir=tmp_dir,
             )
@@ -423,7 +445,8 @@ def main() -> None:
 
         cmd.append(
             "{dest_dir}{script_name} -T {dest_dir} -i {} -I {} -s {} -c {} -l {} -r {} -p {} "
-            '-e "{}" -a "{}" -k "{}" -x {} -N PROXY {} -O {} -E {} -A {} -V {} -B {} -S {} -Z {} -K {} {}'.format(
+            '-e "{}" -a "{}" -k "{}" -x {} -N PROXY {} -O {} -E {} '
+            "-A {} -V {} -B {} -S {} -Z {} -K {} {} -AI {} -I6 {}".format(
                 cloud_id,
                 lan_eth_ip,
                 args.task_id,
@@ -447,12 +470,14 @@ def main() -> None:
                 # 需要加密时，传入-U -P参数，用于windows服务注册
                 # 注意-P参数是base64，其中的 等号(=) 会被吃掉，需要添加 双引号("") 来规避此问题
                 '-U {} -P "{}"'.format(user, host_encrypted_password) if host_encrypted_password else "",
+                args.agent_id,
+                args.host_inner_ipv6,
                 script_name=script_name,
                 dest_dir=tmp_dir,
             )
         )
 
-    _function = {"aix": rcmd_aix, "linux": rcmd, "windows": windows_cmd, "solaris": rcmd}
+    _function = {"aix": rcmd_aix, "linux": rcmd, "windows": windows_cmd, "solaris": rcmd, "macos": rcmd}
 
     # # 当CPU或内存消耗较高时，
     # cpu_percent = psutil.cpu_percent()
