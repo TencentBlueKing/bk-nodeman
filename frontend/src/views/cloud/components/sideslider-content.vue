@@ -54,7 +54,7 @@ import { MainStore, CloudStore } from '@/store/index';
 import { detailConfig } from '../config/proxy-detail-config';
 import { authentication } from '@/config/config';
 import { IProxyDetail } from '@/types/cloud/cloud';
-import { IAuth } from '@/types';
+import { IAuth, IProxyIpKeys } from '@/types';
 
 interface IItem {
   label: string
@@ -90,10 +90,13 @@ export default class SidesliderCcontent extends Vue {
 
   @Watch('basic', { immediate: true })
   public async handlebasicChange(data: Dictionary) {
+    const ipKeys: IProxyIpKeys[] = ['inner_ip', 'outer_ip', 'login_ip'];
     const basicInfo = detailConfig.map((config: Dictionary) => {
       if (config.prop === 'auth_type') {
         config.authType = data.auth_type || 'PASSWORD';
         config.value = config.authType === 'TJJ_PASSWORD' ? this.$t('自动拉取') : '';
+      } else if (ipKeys.includes(config.prop)) {
+        config.value = data[`${config.prop}v6`] || data[config.prop] || '';
       } else {
         config.value = data[config.prop] || '';
       }

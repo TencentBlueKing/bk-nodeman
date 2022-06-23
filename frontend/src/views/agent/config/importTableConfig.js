@@ -1,5 +1,5 @@
 import { authentication, defaultPort, sysOptions, defaultOsType, getDefaultConfig } from '@/config/config';
-import { reguFnMinInteger, reguPort, reguIp } from '@/common/form-check';
+import { reguFnMinInteger, reguPort, reguIp, reguIPMixins } from '@/common/form-check';
 
 export const tableConfig = [
   {
@@ -12,7 +12,7 @@ export const tableConfig = [
     unique: true,
     errTag: true,
     placeholder: window.i18n.t('请输入'),
-    rules: [reguIp,
+    rules: [reguIPMixins,
       {
         trigger: 'blur',
         message: window.i18n.t('冲突校验', { prop: 'IP' }),
@@ -246,7 +246,7 @@ export const tableManualConfig = [
     unique: true,
     errTag: true,
     placeholder: window.i18n.t('请输入'),
-    rules: [reguIp,
+    rules: [reguIPMixins,
       {
         trigger: 'blur',
         message: window.i18n.t('冲突校验', { prop: 'IP' }),

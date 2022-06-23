@@ -56,7 +56,24 @@
         :label="$t('内网IP')"
         fixed>
         <template #default="{ row }">
-          <bk-button v-test="'showDetail'" text @click="handleRowClick(row)">{{ row.inner_ip }}</bk-button>
+          <bk-button v-if="row.inner_ip" v-test="'showDetail'" text @click="handleRowClick(row)">
+            {{ row.inner_ip }}
+          </bk-button>
+          <span v-else>{{ row.inner_ipv6 | filterEmpty }}</span>
+        </template>
+      </bk-table-column>
+      <bk-table-column
+        min-width="130"
+        prop="inner_ipv6"
+        class-name="ip-row"
+        sortable
+        :label="$t('内网IPv6')"
+        fixed>
+        <template #default="{ row }">
+          <bk-button v-if="row.inner_ipv6" v-test="'showDetail'" text @click="handleRowClick(row)">
+            {{ row.inner_ipv6 }}
+          </bk-button>
+          <span v-else>{{ row.inner_ipv6 | filterEmpty }}</span>
         </template>
       </bk-table-column>
       <bk-table-column
@@ -98,6 +115,17 @@
         :render-header="renderFilterHeader">
         <template #default="{ row }">
           {{ osMap[row.os_type] | filterEmpty }}
+        </template>
+      </bk-table-column>
+      <bk-table-column
+        v-if="getColumnShowStatus('bk_addressing')"
+        prop="bk_addressing"
+        :label="$t('寻址方式')">
+        <template #default="{ row }">
+          <span v-if="row.inner_ipv6">
+            {{ `${row.bk_addressing}` === '1' ? $t('动态') : $t('静态') }}
+          </span>
+          <span v-else>{{ '' | filterEmpty }}</span>
         </template>
       </bk-table-column>
       <template v-for="(plugin, index) in pluginNames">
@@ -244,6 +272,12 @@ export default class PluginRuleTable extends Mixins(FormLabelMixin, HeaderRender
       disabled: false,
       name: window.i18n.t('操作系统'),
       id: 'os_type',
+    },
+    {
+      checked: false,
+      disabled: false,
+      name: window.i18n.t('寻址方式'),
+      id: 'bk_addressing',
     },
     // {
     //   checked: true,
