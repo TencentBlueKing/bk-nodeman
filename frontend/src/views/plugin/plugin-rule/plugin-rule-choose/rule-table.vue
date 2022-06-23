@@ -48,7 +48,7 @@
       width="1000"
       ext-cls="target-preview-dialog"
       v-model="showPreview"
-      :mask-close="false"
+      :mask-close="true"
       :draggable="false"
       :header-position="'left'"
       :title="$t('关联主机预览')"
