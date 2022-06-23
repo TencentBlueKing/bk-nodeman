@@ -47,7 +47,7 @@
           </template>
         </bk-popover>
       </p>
-      <Tips class="mb20" v-if="hostSys !== 'WINDOWS'">
+      <!-- <Tips class="mb20" v-if="hostSys !== 'WINDOWS'">
         <template #default>
           <i18n tag="p" path="请将操作指令中的数据替换再执行">
             <span class="tips-text-decs">{{ $t('账号') }}</span>
@@ -56,7 +56,7 @@
             <span class="tips-text-decs">{{ $t('真实数据') }}</span>
           </i18n>
         </template>
-      </Tips>
+      </Tips> -->
       <template v-if="!commandError">
         <ul class="commands-list" v-if="commandData.length">
           <li class="commands-item"
