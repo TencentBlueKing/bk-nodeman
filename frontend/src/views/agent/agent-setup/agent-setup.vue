@@ -156,7 +156,7 @@ import { debounce, isEmpty, deepClone } from '@/common/util';
 import { IApExpand } from '@/types/config/config';
 import { IAgent } from '@/types/agent/agent-type';
 import { ISetupHead, ISetupRow } from '@/types';
-import { reguRequired } from '@/common/form-check';
+import { reguRequired, regIPv6 } from '@/common/form-check';
 import { getDefaultConfig } from '@/config/config';
 
 @Component({
@@ -377,6 +377,10 @@ export default class AgentSetup extends Mixins(mixin, formLabelMixin) {
               item[authType] = this.$RSA.getNameMixinEncrypt(item[authType] as string);
             }
             item.peer_exchange_switch_for_agent = Number(item.peer_exchange_switch_for_agent);
+            if (regIPv6.test(item.inner_ip as string)) {
+              item.inner_ipv6 = item.inner_ip;
+              delete item.inner_ip;
+            }
             return item;
           }),
         };

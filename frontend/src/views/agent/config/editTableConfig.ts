@@ -1,7 +1,7 @@
 import { ISetupHead, ISetupRow } from '@/types';
 import { authentication, defaultPort, sysOptions, defaultOsType, getDefaultConfig } from '@/config/config';
 import { ICloudSource } from '@/types/cloud/cloud';
-import { reguFnMinInteger, reguPort, reguIp } from '@/common/form-check';
+import { reguFnMinInteger, reguPort, reguIPMixins, reguIp } from '@/common/form-check';
 
 export const editConfig: ISetupHead[] = [
   {
@@ -10,7 +10,7 @@ export const editConfig: ISetupHead[] = [
     type: 'text',
     required: true,
     noRequiredMark: false,
-    rules: [reguIp],
+    rules: [reguIPMixins],
     readonly: true,
   },
   {
@@ -207,7 +207,7 @@ export const editManualConfig = [
     type: 'text',
     required: true,
     noRequiredMark: false,
-    rules: [reguIp],
+    rules: [reguIPMixins],
     readonly: true,
   },
   {

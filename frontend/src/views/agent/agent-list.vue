@@ -243,6 +243,20 @@
           prop="inner_ip"
           width="110"
           show-overflow-tooltip>
+          <template #default="{ row }">
+            {{ row.inner_ip | filterEmpty }}
+          </template>
+        </bk-table-column>
+        <bk-table-column
+          key="inner_ipv6"
+          :label="$t('内网IPv6')"
+          prop="inner_ipv6"
+          width="110"
+          v-if="filter['inner_ipv6'].mockChecked"
+          show-overflow-tooltip>
+          <template #default="{ row }">
+            {{ row.inner_ipv6 | filterEmpty }}
+          </template>
         </bk-table-column>
         <bk-table-column
           key="login_ip"
@@ -253,6 +267,17 @@
           show-overflow-tooltip>
           <template #default="{ row }">
             {{ row.login_ip | filterEmpty }}
+          </template>
+        </bk-table-column>
+        <bk-table-column
+          key="outer_ipv6"
+          :label="$t('外网IPv6')"
+          prop="outer_ipv6"
+          width="110"
+          v-if="filter['outer_ipv6'].mockChecked"
+          show-overflow-tooltip>
+          <template #default="{ row }">
+            {{ row.outer_ipv6 | filterEmpty }}
           </template>
         </bk-table-column>
         <bk-table-column
@@ -350,6 +375,18 @@
           </template>
         </bk-table-column>
         <bk-table-column v-if="filter['speedLimit'].mockChecked" min-width="30" :resizable="false">
+        </bk-table-column>
+        <bk-table-column
+          key="addressing"
+          prop="bk_addressing"
+          :label="$t('寻址方式')"
+          v-if="filter['bk_addressing'].mockChecked">
+          <template #default="{ row }">
+            <span v-if="row.inner_ipv6">
+              {{ `${row.bk_addressing}` === '1' ? $t('动态') : $t('静态') }}
+            </span>
+            <span v-else>{{ '' | filterEmpty }}</span>
+          </template>
         </bk-table-column>
         <bk-table-column
           key="created_at"
@@ -609,6 +646,20 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
       name: window.i18n.t('登录IP'),
       id: 'login_ip',
     },
+    inner_ipv6: {
+      checked: true,
+      disabled: true,
+      mockChecked: true,
+      name: window.i18n.t('内网IPv6'),
+      id: 'inner_ipv6',
+    },
+    outer_ipv6: {
+      checked: false,
+      disabled: false,
+      mockChecked: false,
+      name: window.i18n.t('外网IPv6'),
+      id: 'outer_ipv6',
+    },
     agent_version: {
       checked: true,
       disabled: false,
@@ -692,6 +743,13 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
       mockChecked: false,
       name: window.i18n.t('传输限速'),
       id: 'bt_speed_limit',
+    },
+    bk_addressing: {
+      checked: false,
+      disabled: false,
+      mockChecked: false,
+      name: window.i18n.t('寻址方式'),
+      id: 'bk_addressing',
     },
   };
   // 是否显示复制按钮下拉菜单
@@ -961,8 +1019,10 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
     const data = this.handleGetStorage();
     if (data && Object.keys(data).length) {
       Object.keys(this.filter).forEach((key) => {
-        this.filter[key].mockChecked = !!data[key];
-        this.filter[key].checked = !!data[key];
+        if (Object.prototype.hasOwnProperty.call(data, key)) {
+          this.filter[key].mockChecked = !!data[key];
+          this.filter[key].checked = !!data[key];
+        }
       });
     }
   }
@@ -1543,9 +1603,10 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
     this.$router.push({
       name: 'agentEdit',
       params: {
-        tableData: data.map(({ identity_info = {}, ...item }) => ({
+        tableData: data.map(({ identity_info = {}, inner_ip, inner_ipv6, ...item }) => ({
           ...item,
           ...identity_info,
+          inner_ip: inner_ip || inner_ipv6,
           install_channel_id: item.install_channel_id ? item.install_channel_id : 'default',
           port: item.os_type === 'WINDOWS' && (!identity_info.port || item.bk_cloud_id !== window.PROJECT_CONFIG.DEFAULT_CLOUD)
             ? getDefaultConfig(item.os_type, 'port', 445)  : identity_info.port,
