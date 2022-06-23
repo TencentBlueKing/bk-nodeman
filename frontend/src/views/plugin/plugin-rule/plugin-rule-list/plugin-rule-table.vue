@@ -411,6 +411,7 @@ export default class PluginRuleTable extends Mixins(HeaderRenderMixin) {
     if (!(!this.data[rowIndex + 1] || !this.data[rowIndex + 1].isGrayRule)) {
       className = `${className} not-bottom-row`;
     }
+    className += row.expand ? ' row-expand' : '';
     return  row.enable ? className : `${className} row-disabled`;
   }
   public handleCellClass({ column, row }: { column: IBkColumn, row: IPolicyRow }) {
@@ -447,7 +448,7 @@ export default class PluginRuleTable extends Mixins(HeaderRenderMixin) {
     const refs = this.$refs;
     Object.keys(refs).forEach((key) => {
       if (/flexibleTagRef/.test(key)) {
-        (this.$refs[key] as any).reCalcOverflow();
+        (this.$refs[key] as any).reCalcOverflow?.();
       }
     });
   }
@@ -502,11 +503,17 @@ export default class PluginRuleTable extends Mixins(HeaderRenderMixin) {
 .td-sys-icon {
   color: #979ba5;
 }
+>>> .row-expand {
+  background: #f0f1f5;
+}
 >>> .row-disabled {
   color: #c4c6cc;
   .td-sys-icon {
     color: rgba(151, 155, 165, .4);
   }
+}
+>>> .bk-table-enable-row-transition .bk-table-body td {
+  transition: none;
 }
 .policy-tip-content {
   line-height: 20px;
