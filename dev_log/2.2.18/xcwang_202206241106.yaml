@@ -1,0 +1,3 @@
+---
+bugfix:
+  - "Windows 拼接注册服务名称错误 (closed #870)"
