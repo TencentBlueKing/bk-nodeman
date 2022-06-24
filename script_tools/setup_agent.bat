@@ -48,7 +48,7 @@ if "%PROCESSOR_ARCHITECTURE%" == "x86" (set PKG_NAME=gse_client-windows-x86.tgz)
 if "%PROCESSOR_ARCHITECTURE%" == "x86" (set CPU_ARCH=x86) else (set CPU_ARCH=x86_64)
 if "%CLOUD_ID%" == "0" (set NODE_TYPE=agent) else (set NODE_TYPE=pagent)
 set gse_winagent_home=%AGENT_SETUP_PATH%
-set service_id=%gse_winagent_home:~3,20%
+for %%a in ("%gse_winagent_home%") do ( set service_id=%%~nxa)
 if %service_id%=="gse" (set _service_id=) else (set _service_id=_%service_id%)
 set gse_winagent_home=%gse_winagent_home:\=\\%
 
