@@ -81,7 +81,7 @@ spec:
               serviceName: "{{ $backendApiFullName }}"
               servicePort: {{ $backendApiSvcPort }}
               {{- else if eq "/static/" .path }}
-              serviceName: "{{ $saasApiFullName }}"
+              serviceName: "{{ $saasWebFullName }}"
               servicePort: {{ $saasWebSvcPort }}
               {{- else }}
               serviceName: "{{ $saasApiFullName }}"
