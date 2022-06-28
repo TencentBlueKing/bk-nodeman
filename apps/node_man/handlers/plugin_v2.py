@@ -364,6 +364,12 @@ class PluginV2Handler:
         查询资源策略
         """
         head_plugins: List[str] = tools.PluginV2Tools.fetch_head_plugins()
+        # 部分插件仅面向 proxy，放入 head_plugins 会导致冗余的插件进程状态同步
+        # 此处临时添加，继续通过 https://github.com/TencentBlueKing/bk-nodeman/issues/878 优化
+        extra_plugins: List[str] = list(
+            models.GsePluginDesc.objects.filter(name__in=["bkmonitorproxy"]).values_list("name", flat=True)
+        )
+        head_plugins = list(set(head_plugins + extra_plugins))
         resource_policy_qs = models.PluginResourcePolicy.objects.filter(
             bk_biz_id=bk_biz_id, bk_obj_id=bk_obj_id, bk_inst_id=bk_inst_id, plugin_name__in=head_plugins
         )
