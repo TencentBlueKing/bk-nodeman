@@ -1,0 +1,3 @@
+---
+bugfix:
+  - "修复 KubeVersion < 1.18-0 ingress 渲染错误：Service(nodeman/bk-nodeman-saas-api) do not have port 80. 的问题 (fixed #876)"
