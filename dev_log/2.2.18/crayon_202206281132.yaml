@@ -1,0 +1,3 @@
+---
+feature:
+  - "支持 bkmonitorproxy 的资源配额设置 (closed #868)"
