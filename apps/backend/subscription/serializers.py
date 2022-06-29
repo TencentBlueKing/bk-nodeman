@@ -16,6 +16,7 @@ from rest_framework import serializers
 from apps.exceptions import ValidationError
 from apps.node_man import constants, models, tools
 from apps.node_man.models import ProcessStatus
+from apps.node_man.serializers import policy
 
 
 class GatewaySerializer(serializers.Serializer):
@@ -212,17 +213,8 @@ class SubscriptionStatisticSerializer(serializers.Serializer):
         return attrs
 
 
-class SearchDeployPolicySerializer(GatewaySerializer):
-    class SortSerializer(serializers.Serializer):
-        head = serializers.ChoiceField(choices=list(constants.POLICY_HEAD_TUPLE))
-        sort_type = serializers.ChoiceField(choices=list(constants.SORT_TUPLE))
-
-    bk_biz_ids = serializers.ListField(child=serializers.IntegerField(min_value=0), min_length=1, required=False)
-    conditions = serializers.ListField(required=False)
-    page = serializers.IntegerField(required=False, min_value=1, default=1)
-    pagesize = serializers.IntegerField(required=False, default=10)
-    sort = SortSerializer(required=False)
-    only_root = serializers.BooleanField(label="仅搜索父策略", required=False, default=True)
+class SearchDeployPolicySerializer(GatewaySerializer, policy.SearchDeployPolicySerializer):
+    pass
 
 
 class QueryHostPolicySerializer(serializers.Serializer):

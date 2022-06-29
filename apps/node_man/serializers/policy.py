@@ -8,6 +8,8 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import typing
+
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
@@ -23,11 +25,35 @@ class SearchDeployPolicySerializer(serializers.Serializer):
         sort_type = serializers.ChoiceField(label=_("排序类型"), choices=list(constants.SORT_TUPLE))
 
     bk_biz_ids = serializers.ListField(child=serializers.IntegerField(min_value=0), min_length=1, required=False)
-    only_root = serializers.BooleanField(label="仅搜索父策略", required=False, default=True)
+    only_root = serializers.BooleanField(label=_("仅搜索父策略"), required=False, default=True)
     conditions = serializers.ListField(required=False)
     page = serializers.IntegerField(required=False, min_value=1, default=1)
     pagesize = serializers.IntegerField(required=False, default=10)
-    sort = SortSerializer(label=_("排序"), required=False)
+    ordering = serializers.CharField(label=_("排序方式"), required=False)
+
+    def validate(self, data):
+        ordering: str = data.get("ordering")
+        if not ordering:
+            return data
+        order_by_fields: typing.List[str] = ordering.split(",")
+        preprocessed_order_by_fields: typing.List[str] = []
+        for order_by_field in order_by_fields:
+            order_by_field = order_by_field.strip()
+            if order_by_field not in constants.POLICY_HEAD_TUPLE and (
+                order_by_field.startswith("-") and order_by_field[1:] not in constants.POLICY_HEAD_TUPLE
+            ):
+                raise ValidationError(
+                    _("不支持的排序字段 -> {order_by_field}, 全部可排序字段 -> {policy_head_tuple}").format(
+                        order_by_field=order_by_field, policy_head_tuple=constants.POLICY_HEAD_TUPLE
+                    )
+                )
+            if order_by_field == constants.PolicyHeadType.bk_biz_scope or (
+                order_by_field.startswith("-") and order_by_field[1:] == constants.PolicyHeadType.bk_biz_scope
+            ):
+                order_by_field = f"{order_by_field}_len"
+            preprocessed_order_by_fields.append(order_by_field)
+        data["ordering"] = ",".join(preprocessed_order_by_fields)
+        return data
 
 
 class FetchPolicyTopoSerializer(serializers.Serializer):

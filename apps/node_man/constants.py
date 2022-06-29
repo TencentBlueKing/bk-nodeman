@@ -158,7 +158,7 @@ HEAD_TUPLE = ("total_count", "failed_count", "success_count")
 HEAD_CHOICES = tuple_choices(HEAD_TUPLE)
 HeadType = choices_to_namedtuple(HEAD_CHOICES)
 
-POLICY_HEAD_TUPLE = ("name", "plugin_name", "creator", "update_time", "nodes_scope", "bk_biz_scope")
+POLICY_HEAD_TUPLE = ("name", "plugin_name", "creator", "update_time", "nodes_scope", "bk_biz_scope", "enable")
 POLICY_HEAD_CHOICES = tuple_choices(POLICY_HEAD_TUPLE)
 PolicyHeadType = choices_to_namedtuple(POLICY_HEAD_CHOICES)
 

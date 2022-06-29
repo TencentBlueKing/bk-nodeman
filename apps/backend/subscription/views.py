@@ -866,14 +866,10 @@ class SubscriptionViewSet(APIViewSet):
             subscription_qs = models.Subscription.objects.all().filter(and_query & or_query)
         # 增加部署节点数量字段
         subscription_qs = subscription_qs.extra(select={"bk_biz_scope_len": "JSON_LENGTH(bk_biz_scope)"})
-        if params.get("sort"):
-            sort_head = (
-                params["sort"]["head"] if params["sort"]["head"] != "bk_biz_scope" else f"{params['sort']['head']}_len"
-            )
-            if params["sort"]["sort_type"] == constants.SortType.DEC:
-                subscription_qs = subscription_qs.order_by(f"-{sort_head}")
-            else:
-                subscription_qs = subscription_qs.order_by(sort_head)
+
+        ordering: str = params.get("ordering")
+        if ordering:
+            subscription_qs = subscription_qs.order_by(*ordering.split(","))
 
         all_subscription = list(
             subscription_qs.values("id", "name", "plugin_name", "bk_biz_scope", "update_time", "creator", "enable")
