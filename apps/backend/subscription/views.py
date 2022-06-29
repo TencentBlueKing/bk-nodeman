@@ -829,18 +829,26 @@ class SubscriptionViewSet(APIViewSet):
             begin = (params["page"] - 1) * params["pagesize"]
             end = (params["page"]) * params["pagesize"]
 
-        and_query = Q(category=models.Subscription.CategoryType.POLICY)
         or_query = Q()
+        root_query = Q()
+        and_query = Q(category=models.Subscription.CategoryType.POLICY)
         # 构造查询条件
         for condition in params.get("conditions", []):
             # 1. 精确查找
-            if condition["key"] in ["plugin_name", "id", "enable"]:
+            if condition["key"] in ["plugin_name", "id"]:
                 if isinstance(condition["value"], list):
                     and_query = and_query & Q(**{condition["key"] + "__in": condition["value"]})
                 else:
                     and_query = and_query & Q(**{condition["key"]: condition["value"]})
 
-            # 2. 多字段模糊查询
+            # 2. 仅在父策略生效的查询条件
+            elif condition["key"] in ["enable"]:
+                if isinstance(condition["value"], list):
+                    root_query = root_query & Q(**{condition["key"] + "__in": condition["value"]})
+                else:
+                    root_query = root_query & Q(**{condition["key"]: condition["value"]})
+
+            # 3. 多字段模糊查询
             elif condition["key"] == "query":
                 support_filter_fields = ["name", "plugin_name"]
                 values = condition["value"] if isinstance(condition["value"], list) else [condition["value"]]
@@ -859,21 +867,21 @@ class SubscriptionViewSet(APIViewSet):
                     ).values_list("pid", flat=True)
                 )
                 ids_need_expend = ids_need_expend | pids
-                subscription_qs = models.Subscription.filter_parent_qs().filter((and_query & or_query) | Q(id__in=pids))
+                subscription_qs = (
+                    models.Subscription.filter_parent_qs()
+                    .filter((and_query & or_query) | Q(id__in=pids))
+                    .filter(root_query)
+                )
             else:
                 subscription_qs = models.Subscription.filter_parent_qs().filter(and_query & or_query)
         else:
             subscription_qs = models.Subscription.objects.all().filter(and_query & or_query)
         # 增加部署节点数量字段
         subscription_qs = subscription_qs.extra(select={"bk_biz_scope_len": "JSON_LENGTH(bk_biz_scope)"})
-        if params.get("sort"):
-            sort_head = (
-                params["sort"]["head"] if params["sort"]["head"] != "bk_biz_scope" else f"{params['sort']['head']}_len"
-            )
-            if params["sort"]["sort_type"] == constants.SortType.DEC:
-                subscription_qs = subscription_qs.order_by(f"-{sort_head}")
-            else:
-                subscription_qs = subscription_qs.order_by(sort_head)
+
+        ordering: str = params.get("ordering")
+        if ordering:
+            subscription_qs = subscription_qs.order_by(*ordering.split(","))
 
         all_subscription = list(
             subscription_qs.values("id", "name", "plugin_name", "bk_biz_scope", "update_time", "creator", "enable")
