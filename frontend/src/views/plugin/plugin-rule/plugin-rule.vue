@@ -257,6 +257,7 @@ export default class PluginRule extends Mixins(authorityMixin(), pollMixin) {
     const params: IPluginRuleParams = {
       page: current,
       pagesize: limit,
+      ordering: '-enable,-update_time',
     };
     if (this.searchSelectValue) {
       params.conditions = [{ key: 'query', value: this.searchSelectValue }];
