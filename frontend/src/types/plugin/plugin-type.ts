@@ -272,7 +272,8 @@ export interface IPluginRuleParams {
   pagesize: number
   bk_biz_ids?: number[]
   conditions?: any[]
-  only_root?: boolean
+  only_root?: boolean,
+  ordering?: string
 }
 
 // 升级版本 - 待定
