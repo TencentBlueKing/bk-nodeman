@@ -118,6 +118,14 @@ class PluginBaseService(BaseService, metaclass=abc.ABCMeta):
                 ],
             )
             target_host_objs = models.Host.objects.filter(query_conditions)
+            if not target_host_objs:
+                raise exceptions.RemoteHostNotExistsError()
+            for host_obj in target_host_objs:
+                common_data.bk_host_ids.add(host_obj.bk_host_id)
+            target_host_id_obj_map: Dict[int, models.Host] = {
+                host_obj.bk_host_id: host_obj for host_obj in target_host_objs
+            }
+            common_data.host_id_obj_map.update(target_host_id_obj_map)
 
         policy_step_adapter = PolicyStepAdapter(common_data.subscription_step)
 
