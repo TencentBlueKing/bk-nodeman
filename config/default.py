@@ -27,15 +27,6 @@ from pipeline.celery.settings import CELERY_ROUTES as PIPELINE_CELERY_ROUTES
 
 from .patchers import logging
 
-
-def redirect_func(request):
-    login_page_url = reverse("account:login_page")
-    next_url = "{}?refer_url={}".format(login_page_url, request.path)
-    return HttpResponseRedirect(next_url)
-
-
-BLUEAPPS_PAGE_401_RESPONSE_FUNC = redirect_func
-
 # ===============================================================================
 # 运行时，用于区分环境差异
 # ===============================================================================
