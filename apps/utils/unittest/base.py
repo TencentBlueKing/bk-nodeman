@@ -31,12 +31,15 @@ class CustomAPIClient(APIClient):
         super().__init__(enforce_csrf_checks=enforce_csrf_checks, **defaults)
 
     @staticmethod
-    def assert_response(response) -> Dict[str, Any]:
+    def assert_response(response, stream=False) -> Dict[str, Any]:
         if response.status_code != status.HTTP_200_OK:
             print(json.dumps(json.loads(response.content)))
             assert False
         else:
-            return json.loads(response.content)
+            if stream:
+                return response
+            else:
+                return json.loads(response.content)
 
     def process_request_data(self, data: Optional[Dict[str, Any]]) -> Dict[str, Any]:
         """
@@ -49,10 +52,10 @@ class CustomAPIClient(APIClient):
 
         return dict(ChainMap(data, self.common_request_data))
 
-    def get(self, path, data=None, follow=False, **extra):
+    def get(self, path, data=None, follow=False, stream=False, **extra):
         data = self.process_request_data(data)
         response = super().get(path=path, data=data, follow=follow, **extra)
-        return self.assert_response(response)
+        return self.assert_response(response, stream=stream)
 
     def post(self, path, data=None, format=DEFAULT_FORMAT, content_type=DEFAULT_CONTENT_TYPE, follow=False, **extra):
         data = self.process_request_data(data)
