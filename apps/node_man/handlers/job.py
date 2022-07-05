@@ -10,8 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import copy
 import logging
-import re
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional, Set, Union
 
 from django.conf import settings
 from django.core.paginator import Paginator
@@ -29,7 +28,7 @@ from apps.node_man.handlers.cloud import CloudHandler
 from apps.node_man.handlers.cmdb import CmdbHandler
 from apps.node_man.handlers.host import HostHandler
 from apps.utils import APIModel
-from apps.utils.basic import filter_values, suffix_slash, to_int_or_default
+from apps.utils.basic import filter_values, to_int_or_default
 from apps.utils.local import get_request_username
 from apps.utils.time_tools import local_dt_str2utc_dt
 from common.api import NodeApi
@@ -93,150 +92,49 @@ class JobHandler(APIModel):
         获取命令
         :param request_bk_host_id: 主机ID
         :param is_uninstall: 是否为卸载
-        :return: ips_commands 每个ip的安装命令， total_commands：
+        :return: 主机ID，命令列表, 提示信息
         """
-
         job = self.data
+        try:
+            host: models.Host = models.Host.objects.get(bk_host_id=request_bk_host_id)
+        except models.Host.DoesNotExist:
+            raise exceptions.HostNotExists()
 
-        def gen_pre_manual_command(host, host_install_pipeline_id, batch_install, sub_inst_id):
-            result = NodeApi.fetch_commands(
-                {
-                    "bk_host_id": host.bk_host_id,
-                    "host_install_pipeline_id": host_install_pipeline_id[host.bk_host_id],
-                    "is_uninstall": is_uninstall,
-                    "batch_install": batch_install,
-                    "sub_inst_id": sub_inst_id,
-                }
-            )
-            win_commands = result["win_commands"]
-            pre_commands = result["pre_commands"]
-            run_cmd = result["run_cmd"]
-
-            if isinstance(win_commands, list):
-                win_commands = " & ".join(win_commands)
-            if isinstance(pre_commands, list):
-                pre_commands = " && ".join(pre_commands)
-
-            manual_pre_command = (win_commands or pre_commands) + (" && " if pre_commands else " & ")
-            return run_cmd, manual_pre_command
-
-        # 云区域下的主机
-        cloud_host_id = {}
-        # 所有主机对应的安装步骤node_id
-        host_install_pipeline_id = {}
+        host_id__pipeline_id_map: Dict[int, str] = {}
         # 主机ID - 订阅实例ID映射
-        host_id__sub_inst_id_map = {}
+        host_id__sub_inst_id_map: Dict[int, int] = {}
         # 获取任务状态
         task_result = NodeApi.get_subscription_task_status(
             {"subscription_id": job.subscription_id, "task_id_list": job.task_id_list, "return_all": True}
         )
         for result in task_result["list"]:
-            bk_cloud_id = result["instance_info"]["host"]["bk_cloud_id"]
             bk_host_id = result["instance_info"]["host"].get("bk_host_id")
             if not bk_host_id:
-                # 还有主机没注册成功
-                return {"status": "PENDING"}
+                # 主机没注册成功
+                continue
             host_id__sub_inst_id_map[bk_host_id] = result["record_id"]
             # 获取每台主机安装任务的pipeline_id
             sub_steps = result["steps"][0]["target_hosts"][0]["sub_steps"]
             for step in sub_steps:
-                if step["node_name"] in ["安装", "卸载"] and (step["status"] == "RUNNING" or step["status"] == "SUCCESS"):
+                if step["node_name"] in ["安装", "卸载"] and (
+                    step["status"] in [constants.JobStatusType.RUNNING, constants.JobStatusType.SUCCESS]
+                ):
                     pipeline_id = step["pipeline_id"]
-                    if bk_cloud_id not in cloud_host_id:
-                        cloud_host_id[bk_cloud_id] = [bk_host_id]
-                    else:
-                        cloud_host_id[bk_cloud_id].append(bk_host_id)
-                    host_install_pipeline_id[bk_host_id] = pipeline_id
+                    host_id__pipeline_id_map[bk_host_id] = pipeline_id
 
-        # 每个云区域下只选一个主机
-        bk_host_ids = [cloud_host_id[cloud][0] for cloud in cloud_host_id]
-        hosts = {host.bk_host_id: host for host in models.Host.objects.filter(bk_host_id__in=bk_host_ids)}
+        if request_bk_host_id not in host_id__pipeline_id_map.keys():
+            return {"status": constants.JobStatusType.PENDING}
 
-        # 所有需要安装的主机信息
-        bk_host_ids = []
-        for cloud in cloud_host_id:
-            for host_id in cloud_host_id[cloud]:
-                bk_host_ids.append(host_id)
-        all_hosts = {host.bk_host_id: host for host in models.Host.objects.filter(bk_host_id__in=bk_host_ids)}
-
-        commands = {}
-        if request_bk_host_id == -1:
-            host_to_gen = list(hosts.values())
-        elif all_hosts.get(request_bk_host_id):
-            host_to_gen = [all_hosts[request_bk_host_id]]
-        else:
-            host_to_gen = []
-
-        for host in host_to_gen:
-            # 生成命令
-            batch_install = False
-            # 是否为批量安装
-            if len(cloud_host_id[host.bk_cloud_id]) > 1:
-                batch_install = True
-
-            run_cmd, manual_pre_command = gen_pre_manual_command(
-                host, host_install_pipeline_id, batch_install, host_id__sub_inst_id_map[host.bk_host_id]
-            )
-
-            # 每个IP的单独执行命令
-            ips_commands = []
-            # 用于生成每个Cloud下的批量安装命令
-            host_commands = []
-            # 该云区域下的所有主机
-            host_ids = cloud_host_id[host.bk_cloud_id]
-            for host_id in host_ids:
-                batch_install = False
-                single_run_cmd, single_manual_pre_command = gen_pre_manual_command(
-                    host, host_install_pipeline_id, batch_install, host_id__sub_inst_id_map[host.bk_host_id]
-                )
-                login_ip = all_hosts[host_id].login_ip
-                inner_ip = all_hosts[host_id].inner_ip
-                bk_cloud_id = all_hosts[host_id].bk_cloud_id
-                os_type = all_hosts[host_id].os_type.lower()
-
-                # 获得安装目标目录
-                dest_dir = host.agent_config["temp_path"]
-                dest_dir = suffix_slash(host.os_type.lower(), dest_dir).replace("\\", "\\\\\\\\")
-
-                echo_pattern = (
-                    '["'
-                    + '","'.join(
-                        [
-                            login_ip or inner_ip,
-                            inner_ip,
-                            "<span>账号</span>",
-                            "<span>端口号</span>",
-                            "<span>密码/密钥</span>",
-                            str(bk_cloud_id),
-                            all_hosts[host_id].node_type,
-                            os_type,
-                            dest_dir,
-                        ]
-                    )
-                    + '"]'
-                )
-                # 批量安装命令
-                host_commands.append(echo_pattern)
-                single_run_cmd = re.sub(r"'\[\[.*\]\]'", "'[" + echo_pattern + "]'", single_run_cmd)
-
-                # 每个IP的单独安装命令
-                ips_commands.append(
-                    {
-                        "ip": inner_ip,
-                        "command": single_run_cmd,
-                        "os_type": all_hosts[host_id].os_type,
-                    }
-                )
-
-            host_commands = "'[" + ",".join(host_commands) + "]'"
-            host_commands = re.sub(r"'\[\[.*\]\]'", host_commands, run_cmd)
-
-            commands[host.bk_cloud_id] = {
-                "ips_commands": ips_commands,
-                "total_commands": (manual_pre_command + host_commands),
+        command_solutions: Dict[str, Union[List[str], str]] = NodeApi.fetch_commands(
+            {
+                "bk_host_id": host.bk_host_id,
+                "host_install_pipeline_id": host_id__pipeline_id_map[host.bk_host_id],
+                "is_uninstall": is_uninstall,
+                "sub_inst_id": host_id__sub_inst_id_map[host.bk_host_id],
             }
+        )
 
-        return commands
+        return command_solutions
 
     def list(self, params: dict, username: str):
         """
