@@ -212,7 +212,6 @@ class FetchCommandsSerializer(serializers.Serializer):
     sub_inst_id = serializers.IntegerField()
     host_install_pipeline_id = serializers.CharField()
     is_uninstall = serializers.BooleanField()
-    batch_install = serializers.BooleanField()
 
 
 class SubscriptionStatisticSerializer(serializers.Serializer):

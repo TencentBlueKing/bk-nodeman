@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 import copy
 import logging
 import re
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional, Set, Union
 
 from django.conf import settings
 from django.core.paginator import Paginator
@@ -93,150 +93,145 @@ class JobHandler(APIModel):
         获取命令
         :param request_bk_host_id: 主机ID
         :param is_uninstall: 是否为卸载
-        :return: ips_commands 每个ip的安装命令， total_commands：
+        :return: 主机ID，命令列表, 提示信息
         """
-
         job = self.data
+        try:
+            host: models.Host = models.Host.objects.get(bk_host_id=request_bk_host_id)
+        except models.Host.DoesNotExist:
+            raise exceptions.HostNotExists()
 
-        def gen_pre_manual_command(host, host_install_pipeline_id, batch_install, sub_inst_id):
-            result = NodeApi.fetch_commands(
-                {
-                    "bk_host_id": host.bk_host_id,
-                    "host_install_pipeline_id": host_install_pipeline_id[host.bk_host_id],
-                    "is_uninstall": is_uninstall,
-                    "batch_install": batch_install,
-                    "sub_inst_id": sub_inst_id,
-                }
-            )
-            win_commands = result["win_commands"]
-            pre_commands = result["pre_commands"]
-            run_cmd = result["run_cmd"]
-
-            if isinstance(win_commands, list):
-                win_commands = " & ".join(win_commands)
-            if isinstance(pre_commands, list):
-                pre_commands = " && ".join(pre_commands)
-
-            manual_pre_command = (win_commands or pre_commands) + (" && " if pre_commands else " & ")
-            return run_cmd, manual_pre_command
-
-        # 云区域下的主机
-        cloud_host_id = {}
-        # 所有主机对应的安装步骤node_id
-        host_install_pipeline_id = {}
+        host_id__pipeline_id_map: Dict[int, str] = {}
         # 主机ID - 订阅实例ID映射
-        host_id__sub_inst_id_map = {}
+        host_id__sub_inst_id_map: Dict[int, int] = {}
         # 获取任务状态
         task_result = NodeApi.get_subscription_task_status(
             {"subscription_id": job.subscription_id, "task_id_list": job.task_id_list, "return_all": True}
         )
         for result in task_result["list"]:
-            bk_cloud_id = result["instance_info"]["host"]["bk_cloud_id"]
             bk_host_id = result["instance_info"]["host"].get("bk_host_id")
             if not bk_host_id:
-                # 还有主机没注册成功
-                return {"status": "PENDING"}
+                # 主机没注册成功
+                continue
             host_id__sub_inst_id_map[bk_host_id] = result["record_id"]
             # 获取每台主机安装任务的pipeline_id
             sub_steps = result["steps"][0]["target_hosts"][0]["sub_steps"]
             for step in sub_steps:
-                if step["node_name"] in ["安装", "卸载"] and (step["status"] == "RUNNING" or step["status"] == "SUCCESS"):
+                if step["node_name"] in ["安装", "卸载"] and (
+                    step["status"] in [constants.JobStatusType.RUNNING, constants.JobStatusType.SUCCESS]
+                ):
                     pipeline_id = step["pipeline_id"]
-                    if bk_cloud_id not in cloud_host_id:
-                        cloud_host_id[bk_cloud_id] = [bk_host_id]
-                    else:
-                        cloud_host_id[bk_cloud_id].append(bk_host_id)
-                    host_install_pipeline_id[bk_host_id] = pipeline_id
+                    host_id__pipeline_id_map[bk_host_id] = pipeline_id
 
-        # 每个云区域下只选一个主机
-        bk_host_ids = [cloud_host_id[cloud][0] for cloud in cloud_host_id]
-        hosts = {host.bk_host_id: host for host in models.Host.objects.filter(bk_host_id__in=bk_host_ids)}
+        if request_bk_host_id not in host_id__pipeline_id_map.keys():
+            return {"status": constants.JobStatusType.PENDING}
 
-        # 所有需要安装的主机信息
-        bk_host_ids = []
-        for cloud in cloud_host_id:
-            for host_id in cloud_host_id[cloud]:
-                bk_host_ids.append(host_id)
-        all_hosts = {host.bk_host_id: host for host in models.Host.objects.filter(bk_host_id__in=bk_host_ids)}
+        commands_result: Dict[str, Union[List[str], str]] = NodeApi.fetch_commands(
+            {
+                "bk_host_id": host.bk_host_id,
+                "host_install_pipeline_id": host_id__pipeline_id_map[host.bk_host_id],
+                "is_uninstall": is_uninstall,
+                "sub_inst_id": host_id__sub_inst_id_map[host.bk_host_id],
+            }
+        )
+        win_commands: Optional[List[str]] = commands_result["win_commands"]
+        pre_commands: List[str] = commands_result["pre_commands"]
+        run_cmd: str = commands_result["run_cmd"]
+        script_file_name: str = commands_result["script_file_name"]
+        jump_server_ip: Optional[str] = commands_result["jump_server_ip"]
 
-        commands = {}
-        if request_bk_host_id == -1:
-            host_to_gen = list(hosts.values())
-        elif all_hosts.get(request_bk_host_id):
-            host_to_gen = [all_hosts[request_bk_host_id]]
-        else:
-            host_to_gen = []
+        manual_install_host_map: Dict[str, Union[int, List[Dict[str, Any]]]] = {
+            "bk_host_id": host.bk_host_id,
+            "bk_cloud_id": host.bk_cloud_id,
+            "solutions": [],
+        }
+        shell_solution: Dict[str, Union[str, List[Dict[str, Union[str, List[Dict[str, str]]]]]]] = {
+            "name": constants.ScriptLanguageType.SHELL.name,
+            "description": _("除直连区域下 Windows 服务器使用 CMD 的安装场景外，都可以通过以下步骤进行手动安装"),
+            "steps": [],
+        }
+        bat_solution: Dict[str, Union[str, List[Dict[str, Union[str, List[Dict[str, str]]]]]]] = {
+            "name": constants.ScriptLanguageType.BAT.name,
+            "description": _("用于直连区域下未带有 Cygwin 的Windows 服务器使用 Windows CMD 进行手动安装"),
+            "steps": [],
+        }
 
-        for host in host_to_gen:
-            # 生成命令
-            batch_install = False
-            # 是否为批量安装
-            if len(cloud_host_id[host.bk_cloud_id]) > 1:
-                batch_install = True
-
-            run_cmd, manual_pre_command = gen_pre_manual_command(
-                host, host_install_pipeline_id, batch_install, host_id__sub_inst_id_map[host.bk_host_id]
-            )
-
-            # 每个IP的单独执行命令
-            ips_commands = []
-            # 用于生成每个Cloud下的批量安装命令
-            host_commands = []
-            # 该云区域下的所有主机
-            host_ids = cloud_host_id[host.bk_cloud_id]
-            for host_id in host_ids:
-                batch_install = False
-                single_run_cmd, single_manual_pre_command = gen_pre_manual_command(
-                    host, host_install_pipeline_id, batch_install, host_id__sub_inst_id_map[host.bk_host_id]
-                )
-                login_ip = all_hosts[host_id].login_ip
-                inner_ip = all_hosts[host_id].inner_ip
-                bk_cloud_id = all_hosts[host_id].bk_cloud_id
-                os_type = all_hosts[host_id].os_type.lower()
-
-                # 获得安装目标目录
-                dest_dir = host.agent_config["temp_path"]
-                dest_dir = suffix_slash(host.os_type.lower(), dest_dir).replace("\\", "\\\\\\\\")
-
-                echo_pattern = (
-                    '["'
-                    + '","'.join(
-                        [
-                            login_ip or inner_ip,
-                            inner_ip,
-                            "<span>账号</span>",
-                            "<span>端口号</span>",
-                            "<span>密码/密钥</span>",
-                            str(bk_cloud_id),
-                            all_hosts[host_id].node_type,
-                            os_type,
-                            dest_dir,
-                        ]
-                    )
-                    + '"]'
-                )
-                # 批量安装命令
-                host_commands.append(echo_pattern)
-                single_run_cmd = re.sub(r"'\[\[.*\]\]'", "'[" + echo_pattern + "]'", single_run_cmd)
-
-                # 每个IP的单独安装命令
-                ips_commands.append(
+        if host.bk_cloud_id != constants.DEFAULT_CLOUD:
+            if host.node_type != constants.NodeType.PROXY:
+                if not jump_server_ip and host.install_channel_id:
+                    # 只提示不报错，正常返回安装命令
+                    description = _(f"主机 -> {host.inner_ip} 对应云区域 -> {host.bk_cloud_id} 下无正常的通道主机")
+                elif not jump_server_ip and host.install_channel_id:
+                    description = _(f"主机 -> {host.inner_ip} 对应云区域 -> {host.bk_cloud_id} 下无存活的 Proxy 主机")
+                else:
+                    description = _(f"在目标主机: {jump_server_ip} 上执行以下命令")
+            else:
+                description = _(f"在目标主机: {host.inner_ip} 上执行以下命令")
+            step: Dict[str, Any] = {
+                "contents": [
                     {
-                        "ip": inner_ip,
-                        "command": single_run_cmd,
-                        "os_type": all_hosts[host_id].os_type,
+                        "name": script_file_name,
+                        "text": " && ".join(pre_commands + [run_cmd]),
+                        "show_description": False,
+                        "description": _("执行安装命令"),
                     }
-                )
-
-            host_commands = "'[" + ",".join(host_commands) + "]'"
-            host_commands = re.sub(r"'\[\[.*\]\]'", host_commands, run_cmd)
-
-            commands[host.bk_cloud_id] = {
-                "ips_commands": ips_commands,
-                "total_commands": (manual_pre_command + host_commands),
+                ],
+                "description": description,
+                "type": constants.ManualInstallDisplayType.COMMANDS,
             }
 
-        return commands
+            shell_solution["steps"].append(step)
+        else:
+            package_outer_url = host.ap.package_outer_url or host.ap.package_inner_url
+            dependencies_step: Dict[str, Union[str, List[Dict[str, str]]]] = {}
+            dependencies_step_contents: List[Dict[str, str]] = []
+            if host.os_type == constants.OsType.WINDOWS:
+                for file_name, description in constants.WinInstallTools.get_member_value__alias_map().items():
+                    content = {
+                        "text": f"{package_outer_url}/{file_name}",
+                        "name": file_name,
+                        "description": description,
+                    }
+                    dependencies_step_contents.append(content)
+                dependencies_step["contents"] = dependencies_step_contents
+                dependencies_step["description"] = _("下载依赖文件到机器 C:/tmp/ 下")
+                dependencies_step["type"] = constants.ManualInstallDisplayType.DEPENDENCIES
+
+                step: Dict[str, Union[str, List[Dict[str, Union[str, bool]]]]] = {
+                    "contents": [
+                        {
+                            "type": constants.ManualInstallDisplayType.COMMANDS,
+                            "name": script_file_name,
+                            "text": " & ".join(win_commands),
+                            "show_description": False,
+                            "description": _("执行安装命令"),
+                        }
+                    ],
+                    "description": _(f"在目标机器 {host.inner_ip} 上输入：cmd 切换到控制台命令行, 执行 bat 安装命令"),
+                    "type": constants.ManualInstallDisplayType.COMMANDS,
+                }
+                bat_solution["steps"] = [dependencies_step, step]
+                shell_solution["steps"].append(dependencies_step)
+                manual_install_host_map["solutions"].append(bat_solution)
+
+            shell_step: Dict[str, Any] = {
+                "contents": [
+                    {
+                        "name": script_file_name,
+                        "text": " && ".join(pre_commands + [run_cmd]),
+                        "show_description": False,
+                        "description": _("执行安装命令"),
+                    }
+                ],
+                "description": _(f"在目标机器 {host.inner_ip} 上执行以下 shell 安装命令， 如果是带有 Cygwin 的 Windows 服务器也可以执行以下命令"),
+                "type": constants.ManualInstallDisplayType.COMMANDS,
+            }
+
+            shell_solution["steps"].append(shell_step)
+
+        manual_install_host_map["solutions"].append(shell_solution)
+
+        return manual_install_host_map
 
     def list(self, params: dict, username: str):
         """

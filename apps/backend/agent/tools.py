@@ -392,32 +392,31 @@ def gen_commands(
             host.os_type, host_tmp_path, f"{dest_dir}{script_file_name} {' '.join(list(filter(None, run_cmd_params)))}"
         )
 
-    pre_commands = [
-        download_cmd,
-        chmod_cmd,
-    ]
     if Path(dest_dir) != Path("/tmp") and host.os_type != constants.OsType.WINDOWS:
-        pre_commands.insert(0, f"mkdir -p {dest_dir}")
+        download_cmd = " && ".join([download_cmd, f"mkdir -p {dest_dir}"])
 
     install_tools = InstallationTools(
-        script_file_name,
-        dest_dir,
-        [
+        script_file_name=script_file_name,
+        dest_dir=dest_dir,
+        win_commands=[
             f"{dest_dir}curl.exe {package_url}/{script_file_name} -o {dest_dir}{script_file_name} -sSf",
             # 如果是 Windows 机器，run_cmd_os_based 为 bat 命令
             run_cmd_os_based,
         ],
-        upstream_nodes,
-        jump_server,
-        pre_commands,
+        upstream_nodes=upstream_nodes,
+        jump_server=jump_server,
+        pre_commands=[
+            download_cmd,
+            chmod_cmd,
+        ],
         # 背景：直连 Windows 支持 Cygwin
         # 对于直连机器，会优先取 run_cmd（shell），非直连 run_cmd 为空，取 run_cmd_os_based
-        run_cmd or run_cmd_os_based,
-        host,
-        host_ap,
-        identity_data,
-        proxies,
-        package_url,
+        run_cmd=run_cmd or run_cmd_os_based,
+        host=host,
+        ap=host_ap,
+        identity_data=identity_data,
+        proxies=proxies,
+        package_url=package_url,
     )
 
     # 非 Windows 机器使用 sudo 权限执行命令
