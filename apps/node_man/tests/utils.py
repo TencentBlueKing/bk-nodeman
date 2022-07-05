@@ -410,11 +410,11 @@ class NodeApi:
     @staticmethod
     def fetch_commands(param):
         return {
-            "ips_commands": [{"ip": "127.0.0.1", "command": "test", "os_type": "LINUX"}],
-            "win_commands": "test",
-            "pre_commands": "test",
-            "run_cmd": "test",
-            "total_commands": "test",
+            "win_commands": ["curl.exe script", "exec bat command"],
+            "pre_commands": ["curl script", "chmod"],
+            "run_cmd": "exec shell command",
+            "script_file_name": "setup_agent.bat",
+            "jump_server_ip": "127.0.0.1",
         }
 
     @staticmethod

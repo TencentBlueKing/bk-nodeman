@@ -9,22 +9,27 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import logging
+import os
 import time
 from typing import Dict, List, Optional, Tuple
 
 import ujson as json
 from blueapps.account.decorators import login_exempt
 from django.conf import settings
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse, JsonResponse, StreamingHttpResponse
+from django.utils.translation import ugettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
 
 from apps.backend.constants import (
     REDIS_AGENT_CONF_KEY_TPL,
     REDIS_INSTALL_CALLBACK_KEY_TPL,
 )
+from apps.backend.serializers.views import PackageDownloadSerializer
 from apps.backend.utils.data_renderer import nested_render_data
 from apps.backend.utils.encrypted import GseEncrypted
 from apps.backend.utils.redis import REDIS_INST
+from apps.core.files.storage import get_storage
+from apps.exceptions import ValidationError
 from apps.node_man import constants, models
 from apps.node_man.handlers import base_info
 from apps.node_man.models import Host, JobSubscriptionInstanceMap, aes_cipher
@@ -836,3 +841,23 @@ def _decrypt_token(token: str) -> dict:
 @login_exempt
 def version(request):
     return JsonResponse(base_info.BaseInfoHandler.version())
+
+
+def tools_download(request):
+    """
+    用于script tools目录下的小文件下载
+    :param request:
+    :return:
+    """
+    ser = PackageDownloadSerializer(data=request.GET)
+    if not ser.is_valid():
+        logger.error("failed to valid request data for->[%s] maybe something go wrong?" % ser.errors)
+        raise ValidationError(_("请求参数异常 [{err}]，请确认后重试").format(err=ser.errors))
+    filename = ser.data["file_name"]
+    file_path = os.path.join(settings.DOWNLOAD_PATH, filename)
+    storage = get_storage()
+    if not storage.exists(file_path):
+        raise ValidationError(_("文件不存在：file_path -> {file_path}").format(file_path=file_path))
+    storage = get_storage()
+    response = StreamingHttpResponse(streaming_content=storage.open(file_path, mode="rb"))
+    return response

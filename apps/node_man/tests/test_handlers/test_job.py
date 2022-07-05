@@ -15,8 +15,7 @@ from django.test import TestCase
 from django.utils import timezone
 
 from apps.mock_data import common_unit
-from apps.node_man import constants as const
-from apps.node_man import tools
+from apps.node_man import constants, tools
 from apps.node_man.exceptions import (
     AliveProxyNotExistsError,
     AllIpFiltered,
@@ -58,7 +57,7 @@ class TestJob(TestCase):
         create_job(number)
 
         # 正常查询
-        JobHandler().list({"page": 1, "pagesize": 10, "job_type": const.JOB_TUPLE}, "admin")
+        JobHandler().list({"page": 1, "pagesize": 10, "job_type": constants.JOB_TUPLE}, "admin")
 
         # 带业务参数查询
         JobHandler().list(
@@ -171,14 +170,14 @@ class TestJob(TestCase):
         create_cloud_area(3)
         host_to_create, process_to_create, identity_to_create = create_host(number)
 
-        proxies_ids = [host.bk_host_id for host in host_to_create if host.node_type == const.NodeType.PROXY]
-        agent_or_pagent_ids = [host.bk_host_id for host in host_to_create if host.node_type != const.NodeType.PROXY]
+        proxies_ids = [host.bk_host_id for host in host_to_create if host.node_type == constants.NodeType.PROXY]
+        agent_or_pagent_ids = [host.bk_host_id for host in host_to_create if host.node_type != constants.NodeType.PROXY]
         bk_biz_scope = [host.bk_biz_id for host in host_to_create]
         # 执行任务
         job_types = ["RESTART_PROXY", "RESTART_AGENT"]
         for job_type in job_types:
             node_filter_type = job_type.split("_")[1]
-            bk_host_ids = proxies_ids if node_filter_type == const.NodeType.PROXY else agent_or_pagent_ids
+            bk_host_ids = proxies_ids if node_filter_type == constants.NodeType.PROXY else agent_or_pagent_ids
             JobHandler().operate(job_type, bk_host_ids, bk_biz_scope, {})
 
     # 以下测试Job安装接口
@@ -252,7 +251,7 @@ class TestJob(TestCase):
         # 创建云区域
         bk_cloud_ids = create_cloud_area(1)
         # 执行任务
-        data = gen_job_data("REPLACE_PROXY", 1, bk_cloud_id=bk_cloud_ids[0], ap_id=const.DEFAULT_AP_ID)
+        data = gen_job_data("REPLACE_PROXY", 1, bk_cloud_id=bk_cloud_ids[0], ap_id=constants.DEFAULT_AP_ID)
         self.job_install(data["hosts"], data["op_type"], data["node_type"], data["job_type"], "ticket")
 
     @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)
@@ -289,22 +288,24 @@ class TestJob(TestCase):
 
         # 安装
         data = gen_job_data(
-            "INSTALL_AGENT", number, host_to_create, identity_to_create, bk_cloud_id=const.DEFAULT_CLOUD
+            "INSTALL_AGENT", number, host_to_create, identity_to_create, bk_cloud_id=constants.DEFAULT_CLOUD
         )
         self.job_install(data["hosts"], data["op_type"], data["node_type"], data["job_type"], "ticket")
 
         # 执行任务
         data = gen_job_data(
-            "REINSTALL_AGENT", number, host_to_create, identity_to_create, bk_cloud_id=const.DEFAULT_CLOUD
+            "REINSTALL_AGENT", number, host_to_create, identity_to_create, bk_cloud_id=constants.DEFAULT_CLOUD
         )
         self.job_install(data["hosts"], data["op_type"], data["node_type"], data["job_type"], "ticket")
 
         # 执行任务
-        data = gen_job_data("INSTALL_PROXY", number, host_to_create, identity_to_create, ap_id=const.DEFAULT_AP_ID)
+        data = gen_job_data("INSTALL_PROXY", number, host_to_create, identity_to_create, ap_id=constants.DEFAULT_AP_ID)
         self.job_install(data["hosts"], data["op_type"], data["node_type"], data["job_type"], "ticket")
 
         # 执行任务
-        data = gen_job_data("REINSTALL_PROXY", number, host_to_create, identity_to_create, ap_id=const.DEFAULT_AP_ID)
+        data = gen_job_data(
+            "REINSTALL_PROXY", number, host_to_create, identity_to_create, ap_id=constants.DEFAULT_AP_ID
+        )
         self.job_install(data["hosts"], data["op_type"], data["node_type"], data["job_type"], "ticket")
 
         # 全部被过滤
@@ -312,7 +313,7 @@ class TestJob(TestCase):
             1, bk_host_id=9999, auth_type="PASSWORD", ip="1.1.1.1"
         )
         data = gen_job_data(
-            "REINSTALL_AGENT", 1, host_to_create, identity_to_create, ap_id=const.DEFAULT_AP_ID, ip="1.1.1.1"
+            "REINSTALL_AGENT", 1, host_to_create, identity_to_create, ap_id=constants.DEFAULT_AP_ID, ip="1.1.1.1"
         )
         data["hosts"][0].pop("password")
         data["hosts"][0]["auth_type"] = "KEY"
@@ -333,7 +334,7 @@ class TestJob(TestCase):
         host_to_create, process_to_create, identity_to_create = create_host(number)
         create_cloud_area(number)
         data = gen_job_data(
-            "INSTALL_AGENT", number, host_to_create, identity_to_create, bk_cloud_id=const.DEFAULT_CLOUD
+            "INSTALL_AGENT", number, host_to_create, identity_to_create, bk_cloud_id=constants.DEFAULT_CLOUD
         )
         job_id = cls.job_install(data["hosts"], data["op_type"], data["node_type"], data["job_type"], "ticket")[
             "job_id"
@@ -426,7 +427,7 @@ class TestJob(TestCase):
         host_to_create, process_to_create, identity_to_create = create_host(number)
         create_cloud_area(number)
         data = gen_job_data(
-            "INSTALL_AGENT", number, host_to_create, identity_to_create, bk_cloud_id=const.DEFAULT_CLOUD
+            "INSTALL_AGENT", number, host_to_create, identity_to_create, bk_cloud_id=constants.DEFAULT_CLOUD
         )
         result = self.job_install(data["hosts"], data["op_type"], data["node_type"], data["job_type"], "ticket")
         job_id = result["job_id"]
@@ -446,15 +447,14 @@ class TestJob(TestCase):
 
     @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)
     @patch("apps.node_man.handlers.job.JobHandler.create_subscription", Subscription.create_subscription)
-    @patch("common.api.NodeApi.fetch_commands", NodeApi.fetch_commands)
     @patch("common.api.NodeApi.get_subscription_task_status", NodeApi.get_subscription_task_status)
-    def test_gen_commands(self):
-        # 测试gen_commands接口
+    def mock_host_and_job_with_proxy(self, bk_cloud_id: int, bk_host_id: int):
         number = 1
-        host_to_create, process_to_create, identity_to_create = create_host(number, bk_cloud_id=0, bk_host_id=1)
-        create_cloud_area(number)
+        host_to_create, __, identity_to_create = create_host(number, bk_cloud_id=bk_cloud_id, bk_host_id=bk_host_id)
+        bk_cloud_id = create_cloud_area(number)[0]
+        create_host(number, bk_cloud_id=bk_cloud_id, bk_host_id=(bk_host_id + 1), node_type=constants.NodeType.PROXY)
         data = gen_job_data(
-            "INSTALL_AGENT", number, host_to_create, identity_to_create, bk_cloud_id=const.DEFAULT_CLOUD
+            "INSTALL_AGENT", number, host_to_create, identity_to_create, bk_cloud_id=constants.DEFAULT_CLOUD
         )
         result = self.job_install(data["hosts"], data["op_type"], data["node_type"], data["job_type"], "ticket")
 
@@ -462,9 +462,58 @@ class TestJob(TestCase):
         job = Job.objects.get(id=job_id)
         job.subscription_id = common_unit.subscription.POINT_HOST_RUNNING_SUBSCRIPTION_ID
         job.save()
+        return job_id, bk_host_id
 
-        commands = JobHandler(job_id=job_id).get_commands(-1, False)
+    @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)
+    @patch("apps.node_man.handlers.job.JobHandler.create_subscription", Subscription.create_subscription)
+    @patch("common.api.NodeApi.fetch_commands", NodeApi.fetch_commands)
+    @patch("common.api.NodeApi.get_subscription_task_status", NodeApi.get_subscription_task_status)
+    def test_lan_gen_commands(self):
+        # 测试直连区域下的手动安装命令生成
+        lan_host_id = 1
+        lan_job_id, lan_bk_host_id = self.mock_host_and_job_with_proxy(
+            bk_cloud_id=constants.DEFAULT_CLOUD, bk_host_id=lan_host_id
+        )
 
-        # 测试
-        self.assertEqual(len(commands[0]["ips_commands"]), 1)
-        self.assertEqual(commands[0]["ips_commands"][0]["command"], "test")
+        lan_commands = JobHandler(job_id=lan_job_id).get_commands(lan_host_id, False)
+        lan_host = Host.objects.get(bk_host_id=lan_host_id)
+        if lan_host.os_type == constants.OsType.WINDOWS:
+            self.assertEqual(len(lan_commands["solutions"]), 2)
+            self.assertEqual(
+                lan_commands["solutions"][0]["steps"][0]["type"], constants.ManualInstallDisplayType.DEPENDENCIES
+            )
+            self.assertEqual(
+                lan_commands["solutions"][0]["steps"][1]["type"], constants.ManualInstallDisplayType.COMMANDS
+            )
+            self.assertEqual(
+                lan_commands["solutions"][0]["steps"][1]["contents"][0]["text"], "curl.exe script & exec bat command"
+            )
+        else:
+            self.assertEqual(len(lan_commands["solutions"]), 1)
+            self.assertEqual(lan_commands["solutions"][0]["name"], constants.ScriptLanguageType.SHELL.name)
+            self.assertEqual(
+                lan_commands["solutions"][0]["steps"][0]["type"], constants.ManualInstallDisplayType.COMMANDS
+            )
+            self.assertEqual(
+                lan_commands["solutions"][0]["steps"][0]["contents"][0]["text"],
+                "curl script && chmod && exec shell command",
+            )
+
+        self.assertEqual(lan_commands["bk_host_id"], lan_host_id)
+        self.assertEqual(lan_commands["bk_cloud_id"], constants.DEFAULT_CLOUD)
+
+    @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)
+    @patch("apps.node_man.handlers.job.JobHandler.create_subscription", Subscription.create_subscription)
+    @patch("common.api.NodeApi.fetch_commands", NodeApi.fetch_commands)
+    @patch("common.api.NodeApi.get_subscription_task_status", NodeApi.get_subscription_task_status)
+    def test_non_lan_gen_commands(self):
+        # 测试云区域下的手动安装命令生成
+        non_host_cloud_id = 1
+        non_lan_job_id, non_lan_host_id = self.mock_host_and_job_with_proxy(bk_cloud_id=non_host_cloud_id, bk_host_id=1)
+        non_lan_commands = JobHandler(job_id=non_lan_job_id).get_commands(non_lan_host_id, False)
+        self.assertEqual(len(non_lan_commands["solutions"]), 1)
+        self.assertEqual(
+            non_lan_commands["solutions"][0]["steps"][0]["contents"][0]["text"],
+            "curl script && chmod && exec shell command",
+        )
+        self.assertEqual(non_lan_commands["bk_cloud_id"], non_host_cloud_id)
