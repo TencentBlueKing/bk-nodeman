@@ -318,6 +318,13 @@ export default {
   供proxy文件分发临时使用后台定期进行清理建议预留至少磁盘空间: '供 proxy 文件分发临时使用，后台定期进行清理。建议预留至少 1G 磁盘空间',
   编辑成功如需加载最新配置请执行proxy重载: '编辑成功，如需加载最新配置请执行 proxy 重载',
 
+  // agent安装
+  agentSetupLoginInfo: '用于登录到目标主机上进行 Agent 操作：\nLinux 仅支持 SSH 方式；\nWindows 支持 WMI / SSH（仅直连）。',
+  agentSetupInnerIp: '目标主机的 IP 地址，数据将同步至 CMDB，支持 IPv4、IPv6\n\n注：若主机有多网卡，用于登录的 IP 地址与 CMDB 中记录的 IP 不一致时，需要单独指定该主机的{0}用于进行 Agent 安装另行设置',
+  agentSetupLoginIp: '目标主机的用于登录进行 Agent 安装的 IP 地址，区别于记录在 CMDB 中的 IP；\n支持 IPv4、IPv6。',
+  agentSetupPort: 'ssh root@10.0.0.1 -p {0}\n当前环境推荐：{1}，{2}\n\n补充说明：\n{3}',
+  agentSetupKey: '登录到目标主机的凭据，例：\nssh root@10.0.0.1 -p 22\n> {0}\n或\nssh root@10.0.0.1 -p 22 -i {1}',
+
   安装方式: '安装方式',
   远程安装: '远程安装',
   远程安装提示: '需要提供登录信息，远程完成安装',
