@@ -549,7 +549,6 @@ import { copyText, debounce, getFilterChildBySelected, isEmpty } from '@/common/
 import { bus } from '@/common/bus';
 import { STORAGE_KEY_COL } from '@/config/storage-key';
 import { getDefaultConfig } from '@/config/config';
-import iSec_js_sdk from './iSec_js_sdk.min.js';
 
 @Component({
   name: 'agent-list',
@@ -897,8 +896,6 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
   }
   private mounted() {
     this.handleInit();
-    // const iSec_js_sdk = require('./iSec_js_sdk.min.js');
-    console.log(iSec_js_sdk);
     this.initAgentListDebounce = debounce(300, this.initAgentList);
   }
 
