@@ -24,15 +24,26 @@
   }
   &.table-has-scroll {
     .table-header {
-      width: calc(100% - 14px);
+      width: calc(100% - 15px);
     }
-    .column-setting {
+    /* .column-setting {
       margin-left: -1px;
+    } */
+    .install-table-header::before {
+      display: block;
+      position: absolute;
+      content: '';
+      width: 14px;
+      height: 100%;
+      right: 0;
+      top: 0;
+      border-top: 1px solid #dcdee5;
+      border-right: 1px solid #dcdee5;
     }
   }
   .table-empty {
     border: 1px solid #dcdee5;
-    border-top: 0;
+    /* border-top: 0; */
     min-height: 200px;
     background: #fff;
 
@@ -48,28 +59,52 @@
   }
 }
 .install-table-header {
-  border: 1px solid #dcdee5;
-  border-bottom: 0;
+  position: relative;
+  /* border: 1px solid #dcdee5; */
+  /* border-bottom: 0; */
   background: #f0f1f5;
   tr {
     height: 44px;
+    border-top: 1px solid #dcdee5;
     color: #313238;
   }
   .column-setting {
     position: relative;
     justify-content: flex-start;
     .bk-tooltip-ref {
-      border-left: 1px solid #dcdee5;
+      width: 100%;
+      /* border-left: 1px solid #dcdee5; */
       &:hover {
         background-color: #f0f1f5;
       }
     }
+    .col-setting {
+      justify-content: flex-start;
+      padding-left: 8px;
+    }
   }
-  th:last-child {
+  th {
+    border-left: 1px solid #dcdee5;
+    border-right: 1px solid #dcdee5;
+    &:last-child {
+      /* display: flex;
+      justify-content: flex-start; */
+      padding: 0;
+    }
+  }
+  /* th {
+    & + th {
+      border-left: 1px solid #dcdee5;
+    }
+  }
+  tr + tr th {
+    border-top: 1px solid #dcdee5;
+  } */
+  /* th:last-child {
     display: flex;
     justify-content: flex-start;
     padding: 0;
-  }
+  } */
 }
 .install-table-body {
   border: 1px solid #dcdee5;
@@ -177,7 +212,7 @@
   border-collapse: collapse;
   th {
     height: 44px;
-    padding: 0 12px
+    padding: 0 8px
   }
   .table-header {
     th {
@@ -264,7 +299,7 @@
     background: transparent;
   }
   .fixed-form-el {
-    padding: 0 12px
+    padding: 0 8px
   }
 }
 
