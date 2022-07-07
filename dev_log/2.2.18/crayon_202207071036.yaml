@@ -1,0 +1,3 @@
+---
+optimization:
+  - "添加主机到 CMDB 兼容接口数据延迟的情况 (close #920)"
