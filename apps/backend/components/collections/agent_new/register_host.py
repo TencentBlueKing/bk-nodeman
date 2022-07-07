@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import base64
 import json
+import time
 from collections import ChainMap, defaultdict
 from typing import Any, Callable, Dict, Iterable, List, Optional, Set
 
@@ -209,6 +210,9 @@ class RegisterHostService(AgentBaseService):
         )
         host_keys_try_to_add: Set[str] = set(host_keys_try_to_add)
 
+        # CMDB 主从同步存在延迟，等待一会再查询 bk_host_id
+        time.sleep(1)
+
         hosts_struct_in_except_cmdb_biz = self.query_cmdb_hosts_and_structure(
             bk_biz_id=bk_biz_id,
             host_keys=host_keys_try_to_add,
@@ -234,12 +238,15 @@ class RegisterHostService(AgentBaseService):
         )
 
         sub_inst_ids_gby_log: Dict[str, List[int]] = defaultdict(list)
+        host_key__bk_host_id_map: Dict[str, int] = hosts_struct_in_except_cmdb_biz["host_key__bk_host_id_map"]
         host_biz_relations = tools.find_host_biz_relations(bk_host_ids=hosts_struct_in_other_biz["bk_host_ids"])
         for host_biz_relation in host_biz_relations:
             bk_host_id = host_biz_relation["bk_host_id"]
             host_key = hosts_struct_in_other_biz["bk_host_id__host_key_map"][host_biz_relation["bk_host_id"]]
             # 业务相同，视为导入成功，这种情况一般出现在配置平台主机未及时导入的场景
             if bk_biz_id == host_biz_relation["bk_biz_id"]:
+                # 补充 bk_host_id 映射关系
+                host_key__bk_host_id_map[host_key] = bk_host_id
                 host_keys_not_in_except_biz.remove(host_key)
                 continue
 

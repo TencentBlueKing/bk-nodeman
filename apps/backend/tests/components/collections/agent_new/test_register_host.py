@@ -196,6 +196,35 @@ class RegisterHostTestCase(utils.AgentServiceBaseTestCase):
         super().tearDown()
 
 
+class CmdbAddDelayTestCase(RegisterHostTestCase):
+    @classmethod
+    def get_default_case_name(cls) -> str:
+        return "注册主机到配置平台成功"
+
+    @classmethod
+    def structure_cmdb_mock_data(cls):
+        """
+        构造CMDB接口返回数据
+        :return:
+        """
+        super().structure_cmdb_mock_data()
+        # 数据是通过 list_hosts_without_biz_result 兜底查出来的
+        cls.list_cmdb_hosts_result, cls.list_hosts_without_biz_result = (
+            cls.list_hosts_without_biz_result,
+            cls.list_cmdb_hosts_result,
+        )
+        cls.find_host_biz_relations_result = [
+            {
+                "bk_biz_id": host_obj.bk_biz_id,
+                "bk_module_id": random.randint(100, 200),
+                "bk_supplier_account": "0",
+                "bk_host_id": host_obj.bk_host_id,
+                "bk_set_id": random.randint(100, 200),
+            }
+            for host_obj in cls.obj_factory.host_objs
+        ]
+
+
 class UpdateDBTestCase(RegisterHostTestCase):
     OBJ_FACTORY_CLASS = utils.ProxyTestObjFactory
 
