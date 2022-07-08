@@ -774,7 +774,6 @@ export default class SetupTable extends Vue {
           const splitCode = col.splitCode.find((splitCode: string) => (data[prop] as string).indexOf(splitCode) > 0);
           const values = this.handleTrimArray((data[prop] as string).split(splitCode as string)) || [];
           if (col.prop === 'login_ip') {
-            console.log(splitCode, (data[prop] as string).split(splitCode as string));
             loginIpValues.splice(0, 0, ...values);
           } else {
             split.values = values;
