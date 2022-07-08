@@ -6,8 +6,11 @@
     <i18n tag="pre" :path="tips" v-else-if="tips === 'agentSetupPort'">
       <span class="danger">22</span>
       <span>{{ port }}</span>
-      <span class="primary pointer" @click.stop="handleBatch">{{ $t('批量应用') }}</span>
-      <span>{{ otherInfo }}</span>
+      <span class="primary pointer" @mousedown.prevent @click="handleBatch">{{ $t('批量应用') }}</span>
+      <template v-if="otherInfo">
+        <br />
+        <span>{{ $t('补充说明tips', [otherInfo]) }}</span>
+      </template>
     </i18n>
     <i18n tag="pre" :path="tips" v-else-if="tips === 'agentSetupKey'">
       <span class="danger">password</span>
