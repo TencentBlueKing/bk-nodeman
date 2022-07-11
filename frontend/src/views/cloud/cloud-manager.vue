@@ -302,7 +302,7 @@ import { ICloud } from '@/types/cloud/cloud';
 import Tips from '@/components/common/tips.vue';
 import ColumnSetting from '@/components/common/column-setting.vue';
 import ColumnCheck from '@/views/agent/components/column-check.vue';
-import { copyText, debounce } from '@/common/util';
+import { copyText, debounce, sort } from '@/common/util';
 import { CreateElement } from 'vue';
 
 interface ICloudRow extends ICloud {
@@ -421,11 +421,24 @@ export default class CloudManager extends Vue {
     this.loading = true;
     const promiseAll = [CloudStore.getCloudList(), CloudStore.getChannelList()];
     const [data, channelList] = await Promise.all(promiseAll);
+    let sortPrev: any[] = [];
+    let sortNext: any[] = [];
+    let sortData: any[] = [];
+    // 第一优先：未安装 proxy， 第二优先：字母顺序
     if (this.permissionSwitch) {
       data.sort((a: any, b: any) => Number(b.view) - Number(a.view));
+      sortPrev = data.filter((item: any) => item.view);
+      sortNext = data.filter((item: any) => !item.view);
+      sortData = [...sortPrev, ...sortData];
     }
+    sortPrev = sortData.filter(item => !item.proxyCount);
+    sortNext = sortData.filter(item => item.proxyCount);
+
+    sort(sortPrev, 'bkCloudName');
+    sort(sortNext, 'bkCloudName');
+    sortData = [...sortPrev, ...sortNext];
     // 利用组件自带的排序给云区域名称做一个不区分大小写的排序优化
-    this.table.list = data.map((item: ICloud) => {
+    this.table.list = sortData.map((item: ICloud) => {
       const children: Dictionary[] = [
         { id: 'default', name: this.$t('默认通道'), nodeCount: 0, isChannel: true, bk_cloud_id: item.bkCloudId },
       ];
