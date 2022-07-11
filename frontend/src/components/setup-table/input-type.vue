@@ -57,6 +57,7 @@
       :permission="permission"
       :ref="type"
       :clearable="false"
+      :searchable="searchable"
       :value="inputValue"
       :popover-options="{ 'boundary': 'window' }"
       :placeholder="placeholder"
@@ -184,6 +185,7 @@ export default class InputType extends Mixins(emitter) {
   @Prop({ type: Boolean, default: false }) private readonly disabled!: boolean;
   @Prop({ type: String, default: window.i18n.t('请输入') }) private placeholder!: string;
   @Prop({ type: Boolean, default: true }) private readonly multiple!: boolean; // biz select 框是否支持多选
+  @Prop({ type: Boolean, default: false }) private readonly searchable!: boolean;
   @Prop({ type: Array, default: () => ([]) }) private options!: Dictionary[]; // 下拉框数据源
   @Prop({ type: Number, default: 0 }) private popoverMinWidth!: number;
   @Prop({ type: Boolean, default: true }) private readonly autoRequest!: boolean;
