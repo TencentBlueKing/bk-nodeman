@@ -60,7 +60,7 @@
           :disabled="atomLoading || retryLoading"
           @click="handleRetry()">
           <loading-icon v-if="retryLoading"></loading-icon>
-          <span v-else>{{ $t('整体重试') }}</span>
+          <span v-else>{{ $t('重试') }}</span>
         </bk-button>
         <Tips class="tips mb20" show-close storage-key="__task_log_tips__">
           <template #default>
