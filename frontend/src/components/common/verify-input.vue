@@ -266,6 +266,9 @@ export default class StepVerifyInput extends Vue {
       .tooltips-icon {
         top: 13px;
       }
+      .proxy {
+        top: -12px;
+      }
     }
   }
 </style>
