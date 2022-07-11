@@ -4,16 +4,16 @@
     <bk-navigation
       ref="navigation"
       :hover-enter-delay="300"
-      :side-title="nav.headerTitle"
       :navigation-type="nav.navigationType"
       :need-menu="needMenu"
       :default-open="navToggle"
       :class="mainContentClassObj"
       @toggle-click="handleNavToggle">
       <!--icon-->
-      <template slot="side-icon">
+      <div slot="side-header" class="nav-header" @click="$router.push('/')">
         <img src="../../images/logoIcon.png" class="nodeman-logo-icon" />
-      </template>
+        <span class="title-desc">{{ nav.headerTitle }}</span>
+      </div>
       <!--顶部导航-->
       <template #header>
         <div class="nodeman-navigation-header">
@@ -344,6 +344,12 @@ export default class NodemanNavigation extends Mixins(routerBackMixin) {
   .nodeman-logo-icon {
     width: 28px;
     height: 28px;
+  }
+  .nav-header {
+    display: flex;
+    align-items: center;
+    height: 100%;
+    cursor: pointer;
   }
   .nodeman-navigation {
     &-header {
