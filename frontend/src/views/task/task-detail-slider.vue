@@ -35,7 +35,12 @@
                 <div class="bk-step-title"><p>{{ step.description }}</p></div>
 
                 <section v-if="step.type === 'dependencies'" class="bk-step-body">
-                  <bk-link theme="primary">{{ $t('下载全部') }}</bk-link>
+                  <P class="mb10">
+                    {{ '文件列表：' }}
+                    <template v-if="step.contents.length > 1">
+                      <bk-link theme="primary" @click="downloadAll(step.contents)">{{ $t('下载全部') }}</bk-link>
+                    </template>
+                  </P>
                   <p v-for="(file, idx) in step.contents" :key="idx">
                     <bk-link theme="primary" target="_blank" :href="file.text">
                       {{ file.name }}
@@ -44,7 +49,7 @@
                   </p>
                 </section>
 
-                <section v-else-if="!commandError" class="bk-step-body">
+                <section v-if="step.type === 'commands'" class="bk-step-body">
                   <ul class="commands-list" v-if="step.contents.length">
                     <li class="commands-item" v-for="(item, idx) in step.contents" :key="idx">
                       <p class="command-title mb10" v-if="item.show_description">{{ item.description }}</p>
@@ -62,9 +67,8 @@
                       </div>
                     </li>
                   </ul>
+                  <ExceptionCard v-else type="dataAbnormal"></ExceptionCard>
                 </section>
-
-                <ExceptionCard v-else type="dataAbnormal"></ExceptionCard>
               </section>
             </div>
           </div>
@@ -82,7 +86,7 @@ import StrategyTemplate from '@/components/common/strategy-template.vue';
 import ExceptionCard from '@/components/exception/exception-card.vue';
 import { copyText } from '@/common/util';
 import { AgentStore, TaskStore } from '@/store';
-import { ITaskHost } from '@/types/task/task';
+import { ITaskHost, ITaskSolutions, ITaskSolutionsFile } from '@/types/task/task';
 
 @Component({
   name: 'TaskDetailSlider',
@@ -102,8 +106,7 @@ export default class TaskDetailSlider extends Vue {
 
   private commandLoading = false;
   private commandType = '';
-  private commandData: any[] = [];
-  private commandError = false;
+  private commandData: ITaskSolutions[] = [];
   private hostSys = '';
 
   private get hostList() {
@@ -130,9 +133,9 @@ export default class TaskDetailSlider extends Vue {
   @Watch('show')
   public handleShowChange(isShow: boolean) {
     if (isShow) {
-      this.commandError = false;
       this.requestCommandData(this.slider.row);
     } else {
+      this.commandData = [];
       this.commandLoading = false;
     }
   }
@@ -141,19 +144,14 @@ export default class TaskDetailSlider extends Vue {
   public async requestCommandData(row: any) {
     if (!this.commandLoading) {
       this.commandLoading = true;
-      const res = await TaskStore.requestCommands({
+      const { solutions } = await TaskStore.requestCommands({
         jobId: this.taskId as number,
         params: { bk_host_id: row.bkHostId },
       });
-      if (res) {
-        this.commandData = res.solutions || [];
-        this.commandType = this.commandData.length ? this.commandData[0].name : '';
-      }
-      this.commandError = !res;
+      this.commandData = solutions || [];
+      this.commandType = this.commandData.length ? this.commandData[0].name : '';
       this.commandLoading = false;
-      return !res;
     }
-    return false;
   }
   public async copyCommand(commandStr: string) {
     if (commandStr) {
@@ -164,6 +162,19 @@ export default class TaskDetailSlider extends Vue {
         });
       });
     }
+  }
+  public handleDown(url: string, fileName: string) {
+    const element = document.createElement('a');
+    element.setAttribute('href', url);
+    element.setAttribute('download', fileName);
+    element.setAttribute('target', '_blank');
+    element.style.display = 'none';
+    document.body.appendChild(element);
+    element.click();
+    document.body.removeChild(element);
+  }
+  public downloadAll(list: ITaskSolutionsFile[]) {
+    list.forEach(({ text, name }) => this.handleDown(text, name));
   }
 
   @Emit('update')
@@ -198,6 +209,7 @@ export default class TaskDetailSlider extends Vue {
     }
     .bk-step-body {
       margin-top: 12px;
+      font-size: 14px;
     }
   }
 
