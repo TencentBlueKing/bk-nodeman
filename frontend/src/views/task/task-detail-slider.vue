@@ -8,13 +8,6 @@
     :title="$t('手动操作sliderTitle', [slider.opType, slider.row.innerIp])"
     :before-close="handleHidden">
     <div slot="content" class="commands-wrapper" v-bkloading="{ isLoading: commandLoading }">
-      <!--
-        Agent/PAgent/Proxy * Windows/Linux 6种情况
-        直连linux：在机器上执行命令
-        云区域linux、windows、proxy：在proxy上执行命令
-        直连windows: 三个步骤
-      -->
-      <!-- 仅window agent（直连云区域0）有前两部 -->
       <p class="guide-title">
         {{ $t('手动操作指引', [slider.hostType === 'Agent' ? $t('主机') : 'Proxy', slider.opType, slider.hostType]) }}
       </p>
@@ -27,60 +20,57 @@
         <p class="guide-title">2. {{ $t('windowsStrategy2') }}</p>
       </template>
 
-      <!-- 共有的 -->
-      <p class="guide-title">
-        <template v-if="hostSys === 'WINDOWS'">3.</template>
-        {{ $t('执行以下操作命令') }}
-        <bk-popover
-          ref="popover"
-          trigger="click"
-          theme="light silder-guide"
-          placement="bottom-start">
-          <span class="guide-link pointer">{{ $t('网络策略开通指引') }}</span>
-          <template #content>
-            <StrategyTemplate
-              v-if="slider.show"
-              class="operation-tips"
-              :host-type="slider.hostType"
-              :host-list="hostList">
-            </StrategyTemplate>
-          </template>
-        </bk-popover>
-      </p>
-      <!-- <Tips class="mb20" v-if="hostSys !== 'WINDOWS'">
-        <template #default>
-          <i18n tag="p" path="请将操作指令中的数据替换再执行">
-            <span class="tips-text-decs">{{ $t('账号') }}</span>
-            <span class="tips-text-decs">{{ $t('端口') }}</span>
-            <span class="tips-text-decs">{{ $t('密码密钥') }}</span>
-            <span class="tips-text-decs">{{ $t('真实数据') }}</span>
-          </i18n>
-        </template>
-      </Tips> -->
-      <template v-if="!commandError">
-        <ul class="commands-list" v-if="commandData.length">
-          <li class="commands-item"
-              v-for="(item, index) in commandData"
-              :key="item.cloudId">
-            <p class="commands-title mb10" v-if="!slider.isSingle">{{ item.cloudName }}</p>
-            <div :class="['command-conatainer', { 'fold': item.isFold, 'single': slider.isSingle }]">
-              <!-- eslint-disable-next-line vue/no-v-html -->
-              <div v-html="slider.isSingle ? item.command : item.totalCommands"
-                   class="commands-left" :ref="`commanad${ item.cloudId }`">
-              </div>
-              <div class="commands-right">
-                <p>
-                  <i class="nodeman-icon nc-copy command-icon" v-bk-tooltips="{
-                    delay: [300, 0],
-                    content: $t('复制命令')
-                  }" @click="copyCommand(item, index)"></i>
-                </p>
-              </div>
+      <bk-tab :active.sync="commandType" type="unborder-card">
+        <bk-tab-panel v-for="(command, index) in commandData" :name="command.name" :label="command.name" :key="index">
+
+          <p class="commands-title mb20">{{ command.description }}</p>
+
+          <div class="bk-steps bk-steps-vertical bk-steps-dashed bk-steps-primary custom-icon">
+            <div class="bk-step current" v-for="(step, stepIndex) in command.steps" :key="stepIndex">
+              <span class="bk-step-indicator bk-step-number">
+                <span class="number">{{ stepIndex + 1 }}</span>
+              </span>
+
+              <section class="bk-step-content">
+                <div class="bk-step-title"><p>{{ step.description }}</p></div>
+
+                <section v-if="step.type === 'dependencies'" class="bk-step-body">
+                  <bk-link theme="primary">{{ $t('下载全部') }}</bk-link>
+                  <p v-for="(file, idx) in step.contents" :key="idx">
+                    <bk-link theme="primary" target="_blank" :href="file.text">
+                      {{ file.name }}
+                      <template v-if="file.description"> ({{ file.description }})</template>
+                    </bk-link>
+                  </p>
+                </section>
+
+                <section v-else-if="!commandError" class="bk-step-body">
+                  <ul class="commands-list" v-if="step.contents.length">
+                    <li class="commands-item" v-for="(item, idx) in step.contents" :key="idx">
+                      <p class="command-title mb10" v-if="item.show_description">{{ item.description }}</p>
+                      <div class="command-conatainer single">
+                        <!-- eslint-disable-next-line vue/no-v-html -->
+                        <div v-html="item.text" class="commands-left"></div>
+                        <div class="commands-right">
+                          <p>
+                            <i class="nodeman-icon nc-copy command-icon" v-bk-tooltips="{
+                              delay: [300, 0],
+                              content: $t('复制命令')
+                            }" @click="copyCommand(item.text)"></i>
+                          </p>
+                        </div>
+                      </div>
+                    </li>
+                  </ul>
+                </section>
+
+                <ExceptionCard v-else type="dataAbnormal"></ExceptionCard>
+              </section>
             </div>
-          </li>
-        </ul>
-        <ExceptionCard v-else type="dataAbnormal"></ExceptionCard>
-      </template>
+          </div>
+
+        </bk-tab-panel>
+      </bk-tab>
     </div>
   </bk-sideslider>
 </template>
@@ -111,6 +101,7 @@ export default class TaskDetailSlider extends Vue {
   @Prop({ type: Array, default: () => [] }) private readonly tableList!: ITaskHost[];
 
   private commandLoading = false;
+  private commandType = '';
   private commandData: any[] = [];
   private commandError = false;
   private hostSys = '';
@@ -152,40 +143,11 @@ export default class TaskDetailSlider extends Vue {
       this.commandLoading = true;
       const res = await TaskStore.requestCommands({
         jobId: this.taskId as number,
-        params: { bk_host_id: row ? row.bkHostId : -1 },
+        params: { bk_host_id: row.bkHostId },
       });
       if (res) {
-        const data = [];
-        if (row) {
-          const cloudCommand = res[row.bkCloudId];
-          const curCommand = cloudCommand
-            ? cloudCommand.ipsCommands.find((item: any) => item.ip === row.innerIp) : null;
-          this.hostSys = curCommand ? curCommand.osType : '';
-          if (curCommand) {
-            data.push(Object.assign({
-              isFold: false,
-              cloudId: row.cloudId,
-            }, curCommand));
-          }
-        // 批量查看命令 - 目前用不到了
-        } else {
-          Object.keys(res).forEach((key) => {
-            const commandItem = {
-              isFold: false,
-              cloudId: parseInt(key, 10),
-              cloudName: '',
-            };
-            if (parseInt(key, 10) === window.PROJECT_CONFIG.DEFAULT_CLOUD) {
-              commandItem.cloudName = window.i18n.t('直连区域');
-            } else {
-              const cloud = AgentStore.cloudList.find(item => `${item.bk_cloud_id}` === key
-                              || item.bk_cloud_id === window.PROJECT_CONFIG.DEFAULT_CLOUD);
-              commandItem.cloudName = cloud ? cloud.bk_cloud_name : key;
-            }
-            data.push(Object.assign(commandItem, res[key]));
-          });
-        }
-        this.commandData = data;
+        this.commandData = res.solutions || [];
+        this.commandType = this.commandData.length ? this.commandData[0].name : '';
       }
       this.commandError = !res;
       this.commandLoading = false;
@@ -193,26 +155,8 @@ export default class TaskDetailSlider extends Vue {
     }
     return false;
   }
-  public async copyCommand(row: any, index: number) {
-    if (!row || this.commandLoading) {
-      return false;
-    }
-    const hasCommand = Object.prototype.hasOwnProperty.call(row, 'isFold'); // dialog里的复制不需要重新加载数据
-    let res = true;
-    if (!hasCommand) {
-      res = await this.requestCommandData(row);
-    }
-    let commandStr = '';
-    if (hasCommand) {
-      const ref = this.$refs[`commanad${row.cloudId}`] as any[];
-      commandStr = ref ? ref[index].textContent : '';
-    } else {
-      const cloud = this.commandData.find(item => item.cloudId === row.bkCloudId);
-      const commandList = cloud ? cloud.ipsCommands : [];
-      const commandItem = commandList.find((item: any) => item.ip === row.innerIp);
-      commandStr = commandItem ? commandItem.command.replace(/<[^>]+>/gi, '') : '';
-    }
-    if (res && commandStr) {
+  public async copyCommand(commandStr: string) {
+    if (commandStr) {
       copyText(commandStr, () => {
         this.$bkMessage({
           theme: 'success',
@@ -230,6 +174,33 @@ export default class TaskDetailSlider extends Vue {
 </script>
 
 <style lang="postcss" scoped>
+  .bk-steps-vertical {
+    .bk-step {
+      display: flex;
+      white-space: normal;
+      &:last-child::after {
+        display: none;
+      }
+    }
+    .bk-step-number {
+      flex-shrink: 0;
+    }
+    .bk-step-content {
+      margin-left: 6px;
+      display: flex;
+      flex-direction: column;
+      padding-bottom: 24px;
+    }
+    .bk-step-title {
+      line-height: 24px;
+      font-size: 16px;
+      color: #000!important;
+    }
+    .bk-step-body {
+      margin-top: 12px;
+    }
+  }
+
   .task-detail-wrapper {
     .tips-text-decs {
       color: #313238;
@@ -269,13 +240,17 @@ export default class TaskDetailSlider extends Vue {
       min-height: calc(100vh - 52px);
       overflow: auto;
     }
+    .commands-step-title {
+      color: #000;
+      font-size: 14px;
+    }
     .commands-item {
       margin-bottom: 20px;
       &:last-child {
         margin-bottom: 0;
       }
     }
-    .commands-title {
+    .command-title {
       font-size: 14px;
       color: #63656e;
     }
