@@ -8,19 +8,28 @@
     :title="$t('手动操作sliderTitle', [slider.opType, slider.row.innerIp])"
     :before-close="handleHidden">
     <div slot="content" class="commands-wrapper" v-bkloading="{ isLoading: commandLoading }">
+      <!-- 共有的 -->
       <p class="guide-title">
-        {{ $t('手动操作指引', [slider.hostType === 'Agent' ? $t('主机') : 'Proxy', slider.opType, slider.hostType]) }}
+        <bk-popover
+          ref="popover"
+          trigger="click"
+          theme="light silder-guide"
+          placement="bottom-start">
+          <span class="guide-link pointer">{{ $t('网络策略开通指引') }}</span>
+          <template #content>
+            <StrategyTemplate
+              v-if="slider.show"
+              class="operation-tips"
+              :host-type="slider.hostType"
+              :host-list="hostList">
+            </StrategyTemplate>
+          </template>
+        </bk-popover>
       </p>
-      <template v-if="slider.hostType === 'Agent' && hostSys === 'WINDOWS'">
-        <p class="guide-title">
-          1. {{ $t('windowsStrategy1Before') }}
-          <a class="guide-link" :href="curlUrl" target="_blank"> curl.exe </a>
-          {{ $t('windowsStrategy1After') }}
-        </p>
-        <p class="guide-title">2. {{ $t('windowsStrategy2') }}</p>
-      </template>
-
-      <bk-tab :active.sync="commandType" type="unborder-card">
+      <p class="guide-title">
+        {{ $t('手动操作指引', [$t('目标主机lower'), slider.opType, slider.hostType]) }}
+      </p>
+      <bk-tab v-if="!commandError" :active.sync="commandType" type="unborder-card">
         <bk-tab-panel v-for="(command, index) in commandData" :name="command.name" :label="command.name" :key="index">
 
           <p class="commands-title mb20">{{ command.description }}</p>
@@ -75,6 +84,7 @@
 
         </bk-tab-panel>
       </bk-tab>
+      <ExceptionCard v-else type="dataAbnormal"></ExceptionCard>
     </div>
   </bk-sideslider>
 </template>
@@ -85,7 +95,7 @@ import Tips from '@/components/common/tips.vue';
 import StrategyTemplate from '@/components/common/strategy-template.vue';
 import ExceptionCard from '@/components/exception/exception-card.vue';
 import { copyText } from '@/common/util';
-import { AgentStore, TaskStore } from '@/store';
+import { TaskStore } from '@/store';
 import { ITaskHost, ITaskSolutions, ITaskSolutionsFile } from '@/types/task/task';
 
 @Component({
@@ -107,7 +117,7 @@ export default class TaskDetailSlider extends Vue {
   private commandLoading = false;
   private commandType = '';
   private commandData: ITaskSolutions[] = [];
-  private hostSys = '';
+  private commandError = false;
 
   private get hostList() {
     const list = this.tableList.map(item => ({
@@ -120,19 +130,10 @@ export default class TaskDetailSlider extends Vue {
     return list;
   }
 
-  private get curlUrl() {
-    const ap = AgentStore.apList.find(item => item.id === this.slider.row.apId);
-    if (ap) {
-      const { bkCloudId } = this.slider.row;
-      const packageUrl = bkCloudId === 0 ? ap.package_inner_url : ap.package_outer_url;
-      return packageUrl.endsWith('/') ? `${packageUrl}curl.exe ` : `${packageUrl}/curl.exe `;
-    }
-    return '';
-  }
-
   @Watch('show')
   public handleShowChange(isShow: boolean) {
     if (isShow) {
+      this.commandError = false;
       this.requestCommandData(this.slider.row);
     } else {
       this.commandData = [];
@@ -144,12 +145,15 @@ export default class TaskDetailSlider extends Vue {
   public async requestCommandData(row: any) {
     if (!this.commandLoading) {
       this.commandLoading = true;
-      const { solutions } = await TaskStore.requestCommands({
+      const res = await TaskStore.requestCommands({
         jobId: this.taskId as number,
         params: { bk_host_id: row.bkHostId },
       });
-      this.commandData = solutions || [];
-      this.commandType = this.commandData.length ? this.commandData[0].name : '';
+      if (res) {
+        this.commandData = res.solutions || [];
+        this.commandType = this.commandData.length ? this.commandData[0].name : '';
+      }
+      this.commandError = !res;
       this.commandLoading = false;
     }
   }

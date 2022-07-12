@@ -1032,6 +1032,7 @@ export default {
   近30天: 'Nearly 30 days',
   近1年: 'Nearly 1 year',
   总数成功失败忽略: 'Total/Success/Failure/Ignore',
+  目标主机lower: 'target host',
 
   // form-check
   正常输入内容校验: 'Chinese and English, numbers, hyphens and underscores with a length not exceeding {0}',
