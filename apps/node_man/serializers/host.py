@@ -13,6 +13,7 @@ from rest_framework import serializers
 
 from apps.exceptions import ValidationError
 from apps.node_man import constants, tools
+from apps.utils import basic
 
 
 class HostSerializer(serializers.Serializer):
@@ -40,10 +41,13 @@ class BizProxySerializer(serializers.Serializer):
 class HostUpdateSerializer(serializers.Serializer):
     bk_host_id = serializers.IntegerField(label=_("主机ID"))
     bk_cloud_id = serializers.IntegerField(label=_("云区域ID"), required=False)
-    inner_ip = serializers.IPAddressField(label=_("内网IP"), required=False)
-    outer_ip = serializers.IPAddressField(label=_("外网IP"), required=False)
-    login_ip = serializers.IPAddressField(label=_("登录IP"), required=False)
-    data_ip = serializers.IPAddressField(label=_("数据IP"), required=False)
+    inner_ip = serializers.IPAddressField(label=_("内网IP"), required=False, protocol="ipv4")
+    inner_ipv6 = serializers.IPAddressField(label=_("内网IPv6"), required=False, protocol="ipv6")
+    outer_ip = serializers.IPAddressField(label=_("外网IP"), required=False, protocol="ipv4")
+    outer_ipv6 = serializers.IPAddressField(label=_("外网IPv6"), required=False, protocol="ipv6")
+    # 登录 IP & 数据 IP 支持多 IP 协议
+    login_ip = serializers.IPAddressField(label=_("登录IP"), required=False, protocol="both")
+    data_ip = serializers.IPAddressField(label=_("数据IP"), required=False, protocol="both")
     account = serializers.CharField(label=_("账号"), required=False)
     port = serializers.IntegerField(label=_("端口号"), required=False)
     ap_id = serializers.IntegerField(label=_("接入点ID"), required=False)
@@ -63,6 +67,7 @@ class HostUpdateSerializer(serializers.Serializer):
             attrs[field_need_encrypt] = tools.HostTools.decrypt_with_friendly_exc_handle(
                 rsa_util=rsa_util, encrypt_message=attrs[field_need_encrypt], raise_exec=ValidationError
             )
+        basic.ipv6_formatter(data=attrs, ipv6_field_names=["inner_ipv6", "outer_ipv6", "login_ip", "data_ip"])
         return attrs
 
 
