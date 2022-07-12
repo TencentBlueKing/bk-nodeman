@@ -352,6 +352,6 @@ class TestHost(TestCase):
         host_to_create, identity_to_create, _ = create_host(number)
 
         # 测试
-        result = HostHandler().ip_list([host.inner_ip for host in host_to_create])
+        result = HostHandler().ip_list([host.inner_ip for host in host_to_create], const.CmdbIpVersion.V4.value)
 
         self.assertEqual(len(result), number)

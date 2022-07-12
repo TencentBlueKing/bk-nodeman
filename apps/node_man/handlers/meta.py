@@ -162,6 +162,10 @@ class MetaHandler(APIModel):
             {"name": install_channel["name"], "id": install_channel["id"]}
             for install_channel in InstallChannelHandler.list()
         ]
+        bk_addressing_children = [
+            {"name": alias, "id": val}
+            for val, alias in constants.CmdbAddressingType.get_member_value__alias_map().items()
+        ]
         return self.filter_empty_children(
             [
                 {"name": _("操作系统"), "id": "os_type", "children": os_types_children + [{"name": _("其它"), "id": "none"}]},
@@ -169,6 +173,7 @@ class MetaHandler(APIModel):
                 {"name": _("安装方式"), "id": "is_manual", "children": is_manual_children},
                 {"name": _("Agent版本"), "id": "version", "children": versions_children},
                 {"name": _("云区域"), "id": "bk_cloud_id", "children": bk_cloud_ids_children},
+                {"name": _("寻址方式"), "id": "bk_addressing", "children": bk_addressing_children},
                 {"name": _("安装通道"), "id": "install_channel_id", "children": install_channel_children},
                 {"name": _("IP"), "id": "inner_ip"},
             ]

@@ -767,6 +767,7 @@ def gen_install_accept_list(count, nodetype, ip=None, bk_cloud_id=None, ticket=N
             "bk_cloud_id": bk_cloud_id or 97 if nodetype == "PROXY" or nodetype == "PAGENT" else 0,
             "ap_id": [-1, 1][random.randint(0, 1)],
             "bk_biz_id": random.randint(1, 10),
+            "bk_addressing": constants.CmdbAddressingType.STATIC.value,
             "os_type": "LINUX",
             "inner_ip": ip
             or f"{random.randint(1, 255)}.{random.randint(1, 255)}."
@@ -841,6 +842,7 @@ def gen_job_data(
                     "bk_cloud_id": bk_cloud_id,
                     "ap_id": ap_id or [-1, 1][random.randint(0, 1)],
                     "bk_biz_id": bk_biz_id or random.randint(27, 39),
+                    "bk_addressing": constants.CmdbAddressingType.STATIC.value,
                     "os_type": "LINUX",
                     "inner_ip": ip
                     or f"{random.randint(1, 255)}.{random.randint(1, 255)}." f"{random.randint(1, 254)}.1",
@@ -865,6 +867,7 @@ def gen_job_data(
         for i in range(count):
             accept_list["hosts"].append(
                 {
+                    "bk_addressing": constants.CmdbAddressingType.STATIC.value,
                     "bk_host_id": bk_host_id or host_to_create[i].bk_host_id,
                     "bk_cloud_id": bk_cloud_id,
                     "ap_id": ap_id or [-1, 1][random.randint(0, 1)],
@@ -1181,8 +1184,8 @@ def ret_to_validate_data(data):
 
     # 获得请求里所有在数据库中的IP的相关信息
     # 格式 { inner_ip: {'bk_biz_id': bk_biz_id, 'node_type': node_type, 'bk_cloud_id': bk_cloud_id}, ...}
-    inner_ip_info = HostHandler().ip_list(inner_ips)
-    outer_ip_info = HostHandler().ip_list(outer_ips)
-    login_ip_info = HostHandler().ip_list(login_ips)
+    inner_ip_info = HostHandler().ip_list(inner_ips, constants.CmdbIpVersion.V4.value)
+    outer_ip_info = HostHandler().ip_list(outer_ips, constants.CmdbIpVersion.V4.value)
+    login_ip_info = HostHandler().ip_list(login_ips, constants.CmdbIpVersion.V4.value)
 
     return biz_info, data, cloud_info, ap_id_name, inner_ip_info, outer_ip_info, login_ip_info, bk_biz_scope

@@ -8,7 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from typing import List
+from typing import Iterable, List, Optional
 
 from django.db import transaction
 from django.db.models import Count
@@ -364,9 +364,12 @@ class HostHandler(APIModel):
                     "bk_cloud_id",
                     "bk_biz_id",
                     "bk_host_id",
+                    "bk_addressing",
                     "os_type",
                     "inner_ip",
+                    "inner_ipv6",
                     "outer_ip",
+                    "outer_ipv6",
                     "ap_id",
                     "install_channel_id",
                     "login_ip",
@@ -478,7 +481,9 @@ class HostHandler(APIModel):
                 "bk_cloud_id",
                 "bk_host_id",
                 "inner_ip",
+                "inner_ipv6",
                 "outer_ip",
+                "outer_ipv6",
                 "login_ip",
                 "data_ip",
                 "bk_biz_id",
@@ -576,7 +581,15 @@ class HostHandler(APIModel):
         # 获得proxy相应数据
         proxies = list(
             Host.objects.filter(bk_cloud_id__in=bk_cloud_ids, node_type=const.NodeType.PROXY).values(
-                "bk_cloud_id", "bk_host_id", "inner_ip", "outer_ip", "login_ip", "data_ip", "bk_biz_id"
+                "bk_cloud_id",
+                "bk_addressing",
+                "inner_ip",
+                "inner_ipv6",
+                "outer_ip",
+                "outer_ipv6",
+                "login_ip",
+                "data_ip",
+                "bk_biz_id",
             )
         )
 
@@ -751,10 +764,13 @@ class HostHandler(APIModel):
 
         return {}
 
-    def ip_list(self, ips):
+    @staticmethod
+    def ip_list(ips: Iterable[str], ip_version: int, bk_addressing: Optional[str] = None):
         """
-        返回存在ips的所有云区域-IP的列表
-        :param ips: IP列表
+        返回存在
+        :param ips:
+        :param ip_version:
+        :param bk_addressing: 寻址方式
         :return:
         {
             bk_cloud_id+ip: {
@@ -765,47 +781,51 @@ class HostHandler(APIModel):
             }
         },
         """
+        ips = set(ips)
+
+        if bk_addressing is None:
+            bk_addressing = const.CmdbAddressingType.STATIC.value
+
+        login_ip_field_name = "login_ip"
+        login_ip_filter_k = "login_ip__in"
+
+        # 根据 IP 版本筛选不同的 IP 字段
+        if ip_version == const.CmdbIpVersion.V6.value:
+            inner_ip_field_name = "inner_ipv6"
+            outer_ip_field_name = "outer_ipv6"
+            inner_ip_filter_k = "inner_ipv6__in"
+            outer_ip_filter_k = "outer_ipv6__in"
+        else:
+            inner_ip_field_name = "inner_ip"
+            outer_ip_field_name = "outer_ip"
+            inner_ip_filter_k = "inner_ip__in"
+            outer_ip_filter_k = "outer_ip__in"
+
+        fields: List[str] = [
+            "inner_ip",
+            "inner_ipv6",
+            "outer_ip",
+            "outer_ipv6",
+            "login_ip",
+            "bk_cloud_id",
+            "bk_biz_id",
+            "node_type",
+            "bk_host_id",
+        ]
+
         inner_ip_info = {
-            f"{host['bk_cloud_id']}-{host['inner_ip']}": {
-                "inner_ip": host["inner_ip"],
-                "outer_ip": host["outer_ip"],
-                "login_ip": host["login_ip"],
-                "bk_cloud_id": host["bk_cloud_id"],
-                "bk_biz_id": host["bk_biz_id"],
-                "node_type": host["node_type"],
-                "bk_host_id": host["bk_host_id"],
-            }
-            for host in Host.objects.filter(inner_ip__in=ips).values(
-                "inner_ip", "outer_ip", "login_ip", "bk_cloud_id", "bk_biz_id", "node_type", "bk_host_id"
-            )
+            f"{host['bk_cloud_id']}-{host[inner_ip_field_name]}": host
+            for host in Host.objects.filter(bk_addressing=bk_addressing, **{inner_ip_filter_k: ips}).values(*fields)
         }
 
         outer_ip_info = {
-            f"{host['bk_cloud_id']}-{host['outer_ip']}": {
-                "inner_ip": host["inner_ip"],
-                "login_ip": host["login_ip"],
-                "bk_cloud_id": host["bk_cloud_id"],
-                "bk_biz_id": host["bk_biz_id"],
-                "node_type": host["node_type"],
-                "bk_host_id": host["bk_host_id"],
-            }
-            for host in Host.objects.filter(outer_ip__in=ips).values(
-                "inner_ip", "outer_ip", "login_ip", "bk_cloud_id", "bk_biz_id", "node_type", "bk_host_id"
-            )
+            f"{host['bk_cloud_id']}-{host[outer_ip_field_name]}": host
+            for host in Host.objects.filter(bk_addressing=bk_addressing, **{outer_ip_filter_k: ips}).values(*fields)
         }
 
         login_ip_info = {
-            f"{host['bk_cloud_id']}-{host['login_ip']}": {
-                "inner_ip": host["inner_ip"],
-                "outer_ip": host["outer_ip"],
-                "bk_cloud_id": host["bk_cloud_id"],
-                "bk_biz_id": host["bk_biz_id"],
-                "node_type": host["node_type"],
-                "bk_host_id": host["bk_host_id"],
-            }
-            for host in Host.objects.filter(login_ip__in=ips).values(
-                "inner_ip", "outer_ip", "login_ip", "bk_cloud_id", "bk_biz_id", "node_type", "bk_host_id"
-            )
+            f"{host['bk_cloud_id']}-{host[login_ip_field_name]}": host
+            for host in Host.objects.filter(bk_addressing=bk_addressing, **{login_ip_filter_k: ips}).values(*fields)
         }
 
         exists_ip_info = {}

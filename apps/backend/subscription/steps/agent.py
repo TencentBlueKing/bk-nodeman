@@ -176,6 +176,7 @@ class ReinstallAgent(AgentAction):
     def _generate_activities(self, agent_manager: AgentManager):
 
         activities = [
+            agent_manager.add_or_update_hosts() if settings.BKAPP_ENABLE_DHCP else None,
             agent_manager.query_password(),
             agent_manager.choose_ap(),
             agent_manager.install(),
