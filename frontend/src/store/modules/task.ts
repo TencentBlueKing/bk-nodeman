@@ -143,7 +143,7 @@ export default class TaskStore extends VuexModule {
   }
   @Action
   public async requestCommands({ jobId, params }: { jobId: number, params: { 'bk_host_id': number } }) {
-    const data = await getJobCommands(jobId, params).catch(() => {});
+    const data = await getJobCommands(jobId, params).catch(() => ({ solutions: [] }));
     return transformDataKey(data);
   }
 }
