@@ -114,27 +114,16 @@ class QueryPasswordService(AgentBaseService):
                 identity_data_objs_to_be_created.append(identity_data_obj)
                 continue
 
-            # 更新场景下，传入 `auth_type` 需要提供完整认证信息用于更新，否则使用快照
-            auth_type: Optional[str] = host_info.get("auth_type")
-            if not auth_type:
-                identity_data_objs_to_be_updated.append(identity_data_obj)
-                continue
-
-            # 处理认证信息不完整的情况
-            if _is_auth_info_empty(sub_inst, host_info):
-                empty_auth_info_sub_inst_ids.append(sub_inst.id)
-                continue
-
-            # 允许缺省时使用快照
+            # 更新策略：优先使用传入数据，否则使用历史快照
             identity_data_obj.port = host_info.get("port") or identity_data_obj.port
             identity_data_obj.account = host_info.get("account") or identity_data_obj.account
-
-            # 更新认证信息
-            identity_data_obj.auth_type = auth_type
-            identity_data_obj.password = base64.b64decode(host_info.get("password", "")).decode()
-            identity_data_obj.key = base64.b64decode(host_info.get("key", "")).decode()
-            identity_data_obj.retention = host_info.get("retention", 1)
-            identity_data_obj.extra_data = host_info.get("extra_data", {})
+            identity_data_obj.auth_type = host_info.get("auth_type") or identity_data_obj.auth_type
+            identity_data_obj.password = (
+                base64.b64decode(host_info.get("password", "")).decode() or identity_data_obj.password
+            )
+            identity_data_obj.key = base64.b64decode(host_info.get("key", "")).decode() or identity_data_obj.key
+            identity_data_obj.retention = host_info.get("retention", 1) or identity_data_obj.retention
+            identity_data_obj.extra_data = host_info.get("extra_data", {}) or identity_data_obj.extra_data
             identity_data_obj.updated_at = timezone.now()
 
             identity_data_objs_to_be_updated.append(identity_data_obj)
