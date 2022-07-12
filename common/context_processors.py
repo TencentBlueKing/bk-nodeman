@@ -89,6 +89,7 @@ def mysetting(request):
         "USE_TJJ": getattr(settings, "USE_TJJ", False),
         "BK_DOCS_CENTER_URL": get_docs_center_url(),
         "BKAPP_RUN_ENV": settings.BKAPP_RUN_ENV,
+        "BKAPP_ENABLE_DHCP": settings.BKAPP_ENABLE_DHCP,
         # TAM前端监控
         "TAM_ID": os.getenv("BKAPP_TAM_ID"),
         "TAM_URL": os.getenv("BKAPP_TAM_URL"),

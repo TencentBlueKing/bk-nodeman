@@ -871,6 +871,17 @@ class CmdbAddressingType(EnhanceEnum):
         return {cls.STATIC: _("静态"), cls.DYNAMIC: _("动态")}
 
 
+class CmdbIpVersion(EnhanceEnum):
+    """IP 版本"""
+
+    V4 = 4
+    V6 = 6
+
+    @classmethod
+    def _get_member__alias_map(cls) -> Dict[Enum, str]:
+        return {cls.V4: _("IPv4"), cls.V6: _("IPv6")}
+
+
 class PolicyRollBackType:
     SUPPRESSED = "SUPPRESSED"
     LOSE_CONTROL = "LOSE_CONTROL"

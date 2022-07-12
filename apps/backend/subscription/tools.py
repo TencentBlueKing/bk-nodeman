@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import copy
 import hashlib
+import ipaddress
 import logging
 import math
 import os
@@ -476,16 +477,32 @@ def get_host_detail(host_info_list: list, bk_biz_id: int = None):
             host_infos_gby_bk_cloud_id[host_info["bk_cloud_id"]].append(host_info)
         rules = []
         for bk_cloud_id, host_infos in host_infos_gby_bk_cloud_id.items():
-            ips = [host_info["ip"] for host_info in host_infos]
-            rules.append(
-                {
-                    "condition": "AND",
-                    "rules": [
-                        {"field": "bk_host_innerip", "operator": "in", "value": ips},
-                        {"field": "bk_cloud_id", "operator": "equal", "value": bk_cloud_id},
-                    ],
-                }
-            )
+            ipv4s = set()
+            ipv6s = set()
+            for host_info in host_infos:
+                if ipaddress.ip_address(host_info["ip"]).version == constants.CmdbIpVersion.V6.value:
+                    ipv6s.add(host_info["ip"])
+                else:
+                    ipv4s.add(host_info["ip"])
+            for ip_field_name, ips in [("bk_host_innerip", ipv4s), ("bk_host_innerip_v6", ipv6s)]:
+                # 如果为空，
+                if not ips:
+                    continue
+                rules.append(
+                    {
+                        "condition": "AND",
+                        "rules": [
+                            # 仅允许静态 IP 通过 ip + 云区域 方式下发订阅
+                            {
+                                "field": "bk_addressing",
+                                "operator": "equal",
+                                "value": constants.CmdbAddressingType.STATIC.value,
+                            },
+                            {"field": ip_field_name, "operator": "in", "value": ips},
+                            {"field": "bk_cloud_id", "operator": "equal", "value": bk_cloud_id},
+                        ],
+                    }
+                )
         cond = {"host_property_filter": {"condition": "OR", "rules": rules}}
     else:
         # 如果不满足 bk_host_id / ip & bk_cloud_id 的传入格式，此时直接返回空列表，表示查询不到任何主机

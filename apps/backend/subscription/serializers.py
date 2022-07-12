@@ -16,6 +16,7 @@ from rest_framework import serializers
 from apps.exceptions import ValidationError
 from apps.node_man import constants, models, tools
 from apps.node_man.models import ProcessStatus
+from apps.utils import basic
 
 
 class GatewaySerializer(serializers.Serializer):
@@ -30,6 +31,15 @@ class ScopeSerializer(serializers.Serializer):
     node_type = serializers.ChoiceField(choices=models.Subscription.NODE_TYPE_CHOICES)
     need_register = serializers.BooleanField(required=False, default=False)
     nodes = serializers.ListField()
+
+    def validate(self, attrs):
+        for node in attrs["nodes"]:
+            basic.ipv6_formatter(data=node, ipv6_field_names=["ip"])
+            basic.ipv6_formatter(
+                data=node.get("instance_info", {}),
+                ipv6_field_names=["bk_host_innerip_v6", "bk_host_outerip_v6", "login_ip", "data_ip"],
+            )
+        return attrs
 
 
 class TargetHostSerializer(serializers.Serializer):
