@@ -480,10 +480,10 @@ class TestJob(TestCase):
         if lan_host.os_type == constants.OsType.WINDOWS:
             self.assertEqual(len(lan_commands["solutions"]), 2)
             self.assertEqual(
-                lan_commands["solutions"][0]["steps"][0]["type"], constants.ManualInstallDisplayType.DEPENDENCIES
+                lan_commands["solutions"][0]["steps"][0]["type"], constants.ManualInstallDisplayType.DEPENDENCIES.value
             )
             self.assertEqual(
-                lan_commands["solutions"][0]["steps"][1]["type"], constants.ManualInstallDisplayType.COMMANDS
+                lan_commands["solutions"][0]["steps"][1]["type"], constants.ManualInstallDisplayType.COMMANDS.value
             )
             self.assertEqual(
                 lan_commands["solutions"][0]["steps"][1]["contents"][0]["text"], "curl.exe script & exec bat command"
@@ -492,7 +492,7 @@ class TestJob(TestCase):
             self.assertEqual(len(lan_commands["solutions"]), 1)
             self.assertEqual(lan_commands["solutions"][0]["name"], constants.ScriptLanguageType.SHELL.name)
             self.assertEqual(
-                lan_commands["solutions"][0]["steps"][0]["type"], constants.ManualInstallDisplayType.COMMANDS
+                lan_commands["solutions"][0]["steps"][0]["type"], constants.ManualInstallDisplayType.COMMANDS.value
             )
             self.assertEqual(
                 lan_commands["solutions"][0]["steps"][0]["contents"][0]["text"],

@@ -118,6 +118,7 @@ export default class TaskDetailSlider extends Vue {
   private commandType = '';
   private commandData: ITaskSolutions[] = [];
   private commandError = false;
+  private iframeId = 1;
 
   private get hostList() {
     const list = this.tableList.map(item => ({
@@ -167,18 +168,22 @@ export default class TaskDetailSlider extends Vue {
       });
     }
   }
-  public handleDown(url: string, fileName: string) {
-    const element = document.createElement('a');
-    element.setAttribute('href', url);
-    element.setAttribute('download', fileName);
-    element.setAttribute('target', '_blank');
-    element.style.display = 'none';
-    document.body.appendChild(element);
-    element.click();
-    document.body.removeChild(element);
+  public handleDown(url: string) {
+    const { iframeId } = this;
+    this.iframeId += 1;
+    const iframeName = `iframe_${iframeId}`;
+    const frame = document.createElement('iframe'); // 创建a对象
+    frame.setAttribute('style', 'display: none');
+    frame.setAttribute('src', url);
+    frame.setAttribute('id', iframeName);
+    document.body.appendChild(frame);
+    setTimeout(() => {
+      const node = document.getElementById(iframeName) as HTMLElement;
+      node.parentNode?.removeChild(node);
+    }, 5000);
   }
   public downloadAll(list: ITaskSolutionsFile[]) {
-    list.forEach(({ text, name }) => this.handleDown(text, name));
+    list.forEach(({ text }) => this.handleDown(text));
   }
 
   @Emit('update')
