@@ -20,6 +20,7 @@ from apps.node_man.handlers import validator
 from apps.node_man.handlers.cmdb import CmdbHandler
 from apps.node_man.handlers.host import HostHandler
 from apps.node_man.periodic_tasks.sync_cmdb_host import bulk_differential_sync_biz_hosts
+from apps.utils import basic
 
 
 class SortSerializer(serializers.Serializer):
@@ -50,14 +51,21 @@ class HostSerializer(serializers.Serializer):
     bk_biz_id = serializers.IntegerField(label=_("业务ID"))
     bk_cloud_id = serializers.IntegerField(label=_("云区域ID"))
     bk_host_id = serializers.IntegerField(label=_("主机ID"), required=False)
+    bk_addressing = serializers.ChoiceField(
+        label=_("寻址方式"),
+        choices=constants.CmdbAddressingType.list_member_values(),
+        required=False,
+        default=constants.CmdbAddressingType.STATIC.value,
+    )
     ap_id = serializers.IntegerField(label=_("接入点ID"), required=False)
     install_channel_id = serializers.IntegerField(label=_("安装通道ID"), required=False, allow_null=True)
-    inner_ip = serializers.IPAddressField(label=_("内网IP"), required=False, allow_blank=True)
-    outer_ip = serializers.IPAddressField(label=_("外网IP"), required=False, allow_blank=True)
-    login_ip = serializers.IPAddressField(label=_("登录IP"), required=False, allow_blank=True)
-    data_ip = serializers.IPAddressField(label=_("数据IP"), required=False, allow_blank=True)
-    inner_ipv6 = serializers.IPAddressField(label=_("内网IPv6"), required=False, allow_blank=True)
-    outer_ipv6 = serializers.IPAddressField(label=_("外网IPv6"), required=False, allow_blank=True)
+    inner_ip = serializers.IPAddressField(label=_("内网IP"), required=False, allow_blank=True, protocol="ipv4")
+    outer_ip = serializers.IPAddressField(label=_("外网IP"), required=False, allow_blank=True, protocol="ipv4")
+    login_ip = serializers.IPAddressField(label=_("登录IP"), required=False, allow_blank=True, protocol="both")
+    data_ip = serializers.IPAddressField(label=_("数据IP"), required=False, allow_blank=True, protocol="both")
+    inner_ipv6 = serializers.IPAddressField(label=_("内网IPv6"), required=False, allow_blank=True, protocol="ipv6")
+    outer_ipv6 = serializers.IPAddressField(label=_("外网IPv6"), required=False, allow_blank=True, protocol="ipv6")
+
     os_type = serializers.ChoiceField(label=_("操作系统"), choices=list(constants.OS_TUPLE))
     auth_type = serializers.ChoiceField(label=_("认证类型"), choices=list(constants.AUTH_TUPLE), required=False)
     account = serializers.CharField(label=_("账户"), required=False, allow_blank=True)
@@ -80,6 +88,8 @@ class HostSerializer(serializers.Serializer):
             raise ValidationError(_("请求参数 inner_ip 和 inner_ipv6 不能同时为空"))
         if node_type == constants.NodeType.PROXY and not (attrs.get("outer_ip") or attrs.get("outer_ipv6")):
             raise ValidationError(_("Proxy 操作的请求参数 outer_ip 和 outer_ipv6 不能同时为空"))
+
+        basic.ipv6_formatter(data=attrs, ipv6_field_names=["inner_ipv6", "outer_ipv6", "login_ip", "data_ip"])
 
         op_not_need_identity = [
             constants.OpType.REINSTALL,

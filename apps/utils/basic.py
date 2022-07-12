@@ -8,9 +8,10 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import ipaddress
 from collections import Counter, namedtuple
 from copy import deepcopy
-from typing import Any, Dict, Iterable, List, Set, Union
+from typing import Any, Dict, Iterable, List, Optional, Set, Union
 
 
 def tuple_choices(tupl):
@@ -178,3 +179,14 @@ def get_chr_seq(begin_chr: str, end_chr: str) -> List[str]:
     :return:
     """
     return [chr(ascii_int) for ascii_int in range(ord(begin_chr), ord(end_chr) + 1)]
+
+
+def ipv6_formatter(data: Dict[str, Any], ipv6_field_names: List[str]):
+    for ipv6_field_name in ipv6_field_names:
+        ipv6_val: Optional[str] = data.get(ipv6_field_name)
+        if not ipv6_val:
+            continue
+        ip_address = ipaddress.ip_address(ipv6_val)
+        # 将 v6 转为标准格式
+        if ip_address.version == 6:
+            data[ipv6_field_name] = ip_address.exploded
