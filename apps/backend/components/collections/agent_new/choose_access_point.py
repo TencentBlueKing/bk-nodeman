@@ -82,7 +82,8 @@ class ChooseAccessPointService(AgentBaseService, remote.RemoteServiceMixin):
             host.bk_cloud_id == constants.DEFAULT_CLOUD
         ]
         if host.os_type == constants.OsType.WINDOWS:
-            return f"ping {detect_host} -w 1000"
+            # 增加探测次数上限，防止无默认次数上限场景
+            return f"ping {detect_host} -w 1000 -n 5"
         else:
             # awk -F '/' '{{printf $5}}'：提取 ping 平均时长 avg 「rtt min/avg/max/mdev = 28.080/28.112/28.143/0.170 ms」
             # 使用 printf 输出 avg，避免解析到换行符

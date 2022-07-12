@@ -1,0 +1,3 @@
+---
+optimization:
+  - "自动选择接入点 ping 命令增加次数上限(closed #751)"
