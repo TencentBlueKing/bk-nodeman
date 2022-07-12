@@ -139,6 +139,8 @@ class JobHandler(APIModel):
         run_cmd: str = commands_result["run_cmd"]
         script_file_name: str = commands_result["script_file_name"]
         jump_server_ip: Optional[str] = commands_result["jump_server_ip"]
+        package_url: str = commands_result["package_url"]
+        dest_dir: str = commands_result["dest_dir"]
 
         manual_install_host_map: Dict[str, Union[int, List[Dict[str, Any]]]] = {
             "bk_host_id": host.bk_host_id,
@@ -158,13 +160,13 @@ class JobHandler(APIModel):
 
         if host.bk_cloud_id != constants.DEFAULT_CLOUD:
             if host.node_type != constants.NodeType.PROXY:
+                # 只提示不报错，正常返回安装命令
                 if not jump_server_ip and host.install_channel_id:
-                    # 只提示不报错，正常返回安装命令
                     description = _(f"主机 -> {host.inner_ip} 对应云区域 -> {host.bk_cloud_id} 下无正常的通道主机")
                 elif not jump_server_ip and host.install_channel_id:
                     description = _(f"主机 -> {host.inner_ip} 对应云区域 -> {host.bk_cloud_id} 下无存活的 Proxy 主机")
                 else:
-                    description = _(f"在目标主机: {jump_server_ip} 上执行以下命令")
+                    description = _(f"请将操作指令中的参数: -HA(账号) -HP(端口) -HI(密码/密钥) 替换成真实数据后在目标主机: {jump_server_ip} 上执行")
             else:
                 description = _(f"在目标主机: {host.inner_ip} 上执行以下命令")
             step: Dict[str, Any] = {
@@ -177,30 +179,51 @@ class JobHandler(APIModel):
                     }
                 ],
                 "description": description,
-                "type": constants.ManualInstallDisplayType.COMMANDS,
+                "type": constants.ManualInstallDisplayType.COMMANDS.value,
             }
 
             shell_solution["steps"].append(step)
         else:
             package_outer_url = host.ap.package_outer_url or host.ap.package_inner_url
-            dependencies_step: Dict[str, Union[str, List[Dict[str, str]]]] = {}
-            dependencies_step_contents: List[Dict[str, str]] = []
+            bat_dependencies_step: Dict[str, Union[str, List[Dict[str, str]]]] = {}
+            bat_dependencies_step_contents: List[Dict[str, str]] = []
+            shell_dependencies_step: Dict[str, Union[str, List[Dict[str, str]]]] = {}
+            shell_dependencies_step_texts: List[str] = []
+
             if host.os_type == constants.OsType.WINDOWS:
+                dependencies_description = _("下载依赖文件到机器 C:/tmp/ 下")
                 for file_name, description in constants.WinInstallTools.get_member_value__alias_map().items():
-                    content = {
+                    bat_content = {
                         "text": f"{package_outer_url}/{file_name}",
                         "name": file_name,
                         "description": description,
                     }
-                    dependencies_step_contents.append(content)
-                dependencies_step["contents"] = dependencies_step_contents
-                dependencies_step["description"] = _("下载依赖文件到机器 C:/tmp/ 下")
-                dependencies_step["type"] = constants.ManualInstallDisplayType.DEPENDENCIES
+                    bat_dependencies_step_contents.append(bat_content)
+
+                    shell_dependencies_step_texts.append(
+                        f"{constants.WinInstallTools.CURL.value.split('.')[0]} {package_url}/"
+                        f"{file_name} -o {dest_dir}{file_name} -sSf"
+                    )
+
+                shell_content = {
+                    "text": " && ".join(shell_dependencies_step_texts),
+                    "name": script_file_name,
+                    "description": dependencies_description,
+                    "show_description": False,
+                }
+
+                bat_dependencies_step["contents"] = bat_dependencies_step_contents
+                bat_dependencies_step["description"] = dependencies_description
+                bat_dependencies_step["type"] = constants.ManualInstallDisplayType.DEPENDENCIES.value
+
+                shell_dependencies_step["contents"] = [shell_content]
+                shell_dependencies_step["description"] = dependencies_description
+                shell_dependencies_step["type"] = constants.ManualInstallDisplayType.COMMANDS.value
 
                 step: Dict[str, Union[str, List[Dict[str, Union[str, bool]]]]] = {
                     "contents": [
                         {
-                            "type": constants.ManualInstallDisplayType.COMMANDS,
+                            "type": constants.ManualInstallDisplayType.COMMANDS.value,
                             "name": script_file_name,
                             "text": " & ".join(win_commands),
                             "show_description": False,
@@ -208,10 +231,10 @@ class JobHandler(APIModel):
                         }
                     ],
                     "description": _(f"在目标机器 {host.inner_ip} 上输入：cmd 切换到控制台命令行, 执行 bat 安装命令"),
-                    "type": constants.ManualInstallDisplayType.COMMANDS,
+                    "type": constants.ManualInstallDisplayType.COMMANDS.value,
                 }
-                bat_solution["steps"] = [dependencies_step, step]
-                shell_solution["steps"].append(dependencies_step)
+                bat_solution["steps"] = [bat_dependencies_step, step]
+                shell_solution["steps"].append(shell_dependencies_step)
                 manual_install_host_map["solutions"].append(bat_solution)
 
             shell_step: Dict[str, Any] = {
@@ -224,7 +247,7 @@ class JobHandler(APIModel):
                     }
                 ],
                 "description": _(f"在目标机器 {host.inner_ip} 上执行以下 shell 安装命令， 如果是带有 Cygwin 的 Windows 服务器也可以执行以下命令"),
-                "type": constants.ManualInstallDisplayType.COMMANDS,
+                "type": constants.ManualInstallDisplayType.COMMANDS.value,
             }
 
             shell_solution["steps"].append(shell_step)

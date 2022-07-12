@@ -907,9 +907,13 @@ class PolicyRollBackType:
     ROLLBACK_TYPE__ALIAS_MAP = {SUPPRESSED: "已被其他策略管控", LOSE_CONTROL: "脱离策略管控", TRANSFER_TO_ANOTHER: "转移到优先级最高的策略"}
 
 
-class ManualInstallDisplayType:
+class ManualInstallDisplayType(EnhanceEnum):
     DEPENDENCIES = "dependencies"
     COMMANDS = "commands"
+
+    @classmethod
+    def _get_member__alias_map(cls) -> Dict[Enum, str]:
+        return {cls.DEPENDENCIES: _("依赖, 前端以下载方式展示"), cls.COMMANDS: _("命令, 前端以内容方式展示")}
 
 
 GSE_CLIENT_PACKAGES: List[str] = [

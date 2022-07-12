@@ -393,7 +393,7 @@ def gen_commands(
         )
 
     if Path(dest_dir) != Path("/tmp") and host.os_type != constants.OsType.WINDOWS:
-        download_cmd = " && ".join([download_cmd, f"mkdir -p {dest_dir}"])
+        download_cmd = " && ".join([f"mkdir -p {dest_dir}", download_cmd])
 
     install_tools = InstallationTools(
         script_file_name=script_file_name,

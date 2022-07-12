@@ -414,6 +414,8 @@ class NodeApi:
             "pre_commands": ["curl script", "chmod"],
             "run_cmd": "exec shell command",
             "script_file_name": "setup_agent.bat",
+            "package_url": "http://127.0.0.1/download",
+            "dest_dir": "C:\\tmp",
             "jump_server_ip": "127.0.0.1",
         }
 
