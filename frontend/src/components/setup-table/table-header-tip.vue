@@ -16,6 +16,8 @@
       <span class="danger">password</span>
       <span class="danger">mykeypair.pem</span>
     </i18n>
+    <!-- eslint-disable-next-line vue/no-v-html -->
+    <p v-else-if="['登录IP提示', '出口IP提示'].includes(tips)" v-html="$t(tips)"></p>
     <i18n tag="pre" :path="tips" v-else></i18n>
   </section>
 </template>

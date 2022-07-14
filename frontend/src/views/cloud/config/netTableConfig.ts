@@ -7,7 +7,7 @@ export const setupInfo: ISetupHead[] = [
   {
     label: '内网IP',
     prop: 'inner_ip',
-    tips: window.i18n.t('内网IP提示'),
+    tips: '内网IP提示',
     required: true,
     type: 'text',
     unique: true,
@@ -32,7 +32,7 @@ export const setupInfo: ISetupHead[] = [
   {
     label: '出口IP',
     prop: 'outer_ip',
-    tips: window.i18n.t('出口IP提示'),
+    tips: '出口IP提示',
     type: 'text',
     unique: true,
     errTag: true,
@@ -57,7 +57,7 @@ export const setupInfo: ISetupHead[] = [
   {
     label: '登录IP',
     prop: 'login_ip',
-    tips: window.i18n.t('登录IP提示'),
+    tips: '登录IP提示',
     type: 'text',
     required: true,
     unique: true,
@@ -112,7 +112,7 @@ export const setupInfo: ISetupHead[] = [
   {
     label: '临时文件目录',
     prop: 'data_path',
-    tips: window.i18n.t('供proxy文件分发临时使用后台定期进行清理建议预留至少磁盘空间'),
+    tips: '供proxy文件分发临时使用后台定期进行清理建议预留至少磁盘空间',
     type: 'text',
     required: true,
     show: true,
@@ -123,7 +123,7 @@ export const setupInfo: ISetupHead[] = [
   {
     label: 'BT节点探测',
     prop: 'peer_exchange_switch_for_agent',
-    tips: window.i18n.t('BT节点探测提示'),
+    tips: 'BT节点探测提示',
     type: 'switcher',
     default: getDefaultConfig(defaultOsType, 'peer_exchange_switch_for_agent', true),
     required: false,
@@ -153,7 +153,7 @@ export const setupManualInfo: ISetupHead[] = [
   {
     label: '内网IP',
     prop: 'inner_ip',
-    tips: window.i18n.t('内网IP提示'),
+    tips: '内网IP提示',
     required: true,
     type: 'text',
     unique: true,
@@ -178,7 +178,7 @@ export const setupManualInfo: ISetupHead[] = [
   {
     label: '出口IP',
     prop: 'outer_ip',
-    tips: window.i18n.t('出口IP提示'),
+    tips: '出口IP提示',
     type: 'text',
     unique: true,
     errTag: true,
@@ -203,7 +203,7 @@ export const setupManualInfo: ISetupHead[] = [
   {
     label: '临时文件目录',
     prop: 'data_path',
-    tips: window.i18n.t('供proxy文件分发临时使用后台定期进行清理建议预留至少磁盘空间'),
+    tips: '供proxy文件分发临时使用后台定期进行清理建议预留至少磁盘空间',
     type: 'text',
     required: true,
     show: true,
@@ -214,7 +214,7 @@ export const setupManualInfo: ISetupHead[] = [
   {
     label: 'BT节点探测',
     prop: 'peer_exchange_switch_for_agent',
-    tips: window.i18n.t('BT节点探测提示'),
+    tips: 'BT节点探测提示',
     type: 'switcher',
     default: getDefaultConfig(defaultOsType, 'peer_exchange_switch_for_agent', true),
     required: false,

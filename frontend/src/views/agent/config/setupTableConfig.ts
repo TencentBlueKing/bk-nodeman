@@ -5,31 +5,10 @@ import { reguFnMinInteger, reguPort, reguIpBatch, reguIpInLineRepeat, splitCodeA
 const useTjj = window.PROJECT_CONFIG.USE_TJJ === 'True';
 
 export const parentHead = [
-  {
-    label: '主机属性',
-    prop: 'host_attr',
-    type: 'text',
-    colspan: 0,
-
-  },
-  {
-    label: '登录信息',
-    prop: 'login_info',
-    type: 'text',
-    tips: 'agentSetupLoginInfo',
-    colspan: 0,
-  },
-  {
-    label: '传输信息',
-    prop: 'trans_info',
-    type: 'text',
-    colspan: 0,
-  },
-  {
-    label: '',
-    prop: '',
-    type: 'operate',
-  },
+  { label: '主机属性', prop: 'host_attr', type: 'text', colspan: 0 },
+  { label: '登录信息', prop: 'login_info', type: 'text', tips: 'agentSetupLoginInfo', colspan: 0 },
+  { label: '传输信息', prop: 'trans_info', type: 'text', colspan: 0 },
+  { label: '', prop: '', type: 'operate' },
 ];
 
 export const setupTableConfig: ISetupHead[] = [

@@ -332,7 +332,7 @@ export default class SetupTable extends Vue {
     if (this.localMark) {
       this.initCustomColStatus();
     } else {
-      this.initTableHead();
+      this.tableHead = this.table.config;
     }
   }
   /**
@@ -932,13 +932,13 @@ export default class SetupTable extends Vue {
     this.initTableHead();
   }
   public initTableHead() {
-    const tableHead = this.table.config.filter(item => item.type === 'operate' || this.filter[item.prop].mockChecked);
+    const tableHead = this.table.config.filter(item => item.type === 'operate' || this.filter[item.prop]?.mockChecked);
     if (this.setupInfo.header?.length) {
       const tableParentHead = this.setupInfo.parentHead?.map(item => ({
         ...item,
         colspan: tableHead.filter(head => head.parentProp === item.prop).length,
       })) || [];
-      this.tableParentHead = tableParentHead.filter(item => !!item.colspan);
+      this.tableParentHead = tableParentHead.filter(item => !!item.colspan || !item.prop);
     }
     this.tableHead = tableHead.map(item => ({
       ...item,

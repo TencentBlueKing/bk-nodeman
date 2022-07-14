@@ -102,13 +102,13 @@ import mixin from '@/components/common/filter-ip-mixin';
 import FilterDialog from '@/components/common/filter-dialog.vue';
 import ParserExcel from '../components/parser-excel.vue';
 // import getTipsTemplate from '../config/tips-template'
-import { tableConfig, tableManualConfig } from '../config/importTableConfig';
+import { tableConfig, tableManualConfig, parentHead } from '../config/importTableConfig';
 import { editConfig, editManualConfig } from '../config/editTableConfig';
 import { addListener, removeListener } from 'resize-detector';
 import { debounce, deepClone, isEmpty } from '@/common/util';
 import { IAgent, IAgentHost, IAgentSearch } from '@/types/agent/agent-type';
 import { IApExpand } from '@/types/config/config';
-import { ISetupHead, ISetupRow } from '@/types';
+import { ISetupHead, ISetupRow, ISetupParent } from '@/types';
 
 @Component({
   name: 'agent-import',
@@ -150,8 +150,9 @@ export default class AgentImport extends Mixins(mixin) {
   // 总的数据备份，包括Excel导入数据
   private tableDataBackup: ISetupRow[] = [];
   // agent安装信息表格
-  private setupInfo: { header: ISetupHead[], data: ISetupRow[] } = {
+  private setupInfo: { header: ISetupHead[], data: ISetupRow[], parentHead: ISetupParent[] } = {
     header: tableConfig,
+    parentHead,
     data: [],
   };
   // 监听界面滚动
