@@ -1601,10 +1601,11 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
     this.$router.push({
       name: 'agentEdit',
       params: {
-        tableData: data.map(({ identity_info = {}, inner_ip, inner_ipv6, ...item }) => ({
+        tableData: data.map(({ identity_info = {}, ...item }) => ({
+        // tableData: data.map(({ identity_info = {}, inner_ip, inner_ipv6, ...item }) => ({
           ...item,
           ...identity_info,
-          inner_ip: inner_ip || inner_ipv6,
+          // inner_ip: inner_ip || inner_ipv6,
           install_channel_id: item.install_channel_id ? item.install_channel_id : 'default',
           port: item.os_type === 'WINDOWS' && (!identity_info.port || item.bk_cloud_id !== window.PROJECT_CONFIG.DEFAULT_CLOUD)
             ? getDefaultConfig(item.os_type, 'port', 445)  : identity_info.port,
