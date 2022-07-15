@@ -329,6 +329,7 @@ export default {
 
   内网IPv6: 'LAN IPv6',
   寻址方式: 'Addressing mode',
+  动态寻址: 'Dynamic Addressing',
   动态: 'Dynamic',
   静态: 'Static',
 
