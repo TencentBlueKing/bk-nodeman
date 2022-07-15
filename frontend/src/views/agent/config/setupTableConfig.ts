@@ -174,6 +174,16 @@ export const setupTableConfig: ISetupHead[] = [
     rules: [reguFnMinInteger(1)],
   },
   {
+    label: '动态寻址',
+    prop: 'bk_addressing',
+    type: 'switcher',
+    default: false,
+    batch: true,
+    required: false,
+    noRequiredMark: false,
+    width: 115,
+  },
+  {
     label: '',
     prop: '',
     type: 'operate',
