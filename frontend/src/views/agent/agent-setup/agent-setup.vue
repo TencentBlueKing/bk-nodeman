@@ -377,6 +377,7 @@ export default class AgentSetup extends Mixins(mixin, formLabelMixin) {
               item[authType] = this.$RSA.getNameMixinEncrypt(item[authType] as string);
             }
             item.peer_exchange_switch_for_agent = Number(item.peer_exchange_switch_for_agent);
+            item.bk_addressing =  item.bk_addressing ? '1' : '0';
             if (regIPv6.test(item.inner_ip as string)) {
               item.inner_ipv6 = item.inner_ip;
               delete item.inner_ip;

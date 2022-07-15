@@ -109,6 +109,7 @@ export default class ParserExcel extends Vue {
     'login_ip',
     'peer_exchange_switch_for_agent',
     'bt_speed_limit',
+    'bk_addressing',
   ];
   private isHover = false;
   // 额外参数
@@ -249,6 +250,7 @@ export default class ParserExcel extends Vue {
       this.$tc('登录IP'),
       this.$tc('BT节点探测'),
       this.$tc('传输限速Unit'),
+      this.$tc('动态寻址'),
     ];
     try {
       jsonData.forEach((item) => {
