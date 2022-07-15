@@ -65,6 +65,7 @@ export default class AgentStore extends VuexModule {
       item.topology = item.topology && item.topology.length ? item.topology : [];
       item.bt_speed_limit = btSpeedLimit || '';
       item.peer_exchange_switch_for_agent = !!peerExchangeSwitchForAgent || false;
+      item.bk_addressing = item.bk_addressing === '1';
       return item;
     });
     return data;

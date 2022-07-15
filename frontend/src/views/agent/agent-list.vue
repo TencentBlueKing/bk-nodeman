@@ -380,12 +380,10 @@
           key="addressing"
           prop="bk_addressing"
           :label="$t('寻址方式')"
+          :render-header="renderFilterHeader"
           v-if="filter['bk_addressing'].mockChecked">
           <template #default="{ row }">
-            <span v-if="row.inner_ipv6">
-              {{ `${row.bk_addressing}` === '1' ? $t('动态') : $t('静态') }}
-            </span>
-            <span v-else>{{ '' | filterEmpty }}</span>
+            {{ row.bk_addressing ? $t('动态') : $t('静态') }}
           </template>
         </bk-table-column>
         <bk-table-column
