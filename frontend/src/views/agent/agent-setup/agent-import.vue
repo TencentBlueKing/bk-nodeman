@@ -400,7 +400,6 @@ export default class AgentImport extends Mixins(mixin) {
           item.bt_speed_limit = Number(item.bt_speed_limit);
         }
         item.peer_exchange_switch_for_agent = Number(item.peer_exchange_switch_for_agent);
-        item.bk_addressing =  item.bk_addressing ? '1' : '0';
         if (item.install_channel_id === 'default') {
           item.install_channel_id = null;
         }

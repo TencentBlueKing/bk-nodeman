@@ -1,4 +1,4 @@
-import { authentication, defaultPort, sysOptions, defaultOsType, getDefaultConfig } from '@/config/config';
+import { authentication, defaultPort, sysOptions, defaultOsType, getDefaultConfig, addressingMode } from '@/config/config';
 import { reguFnMinInteger, reguPort, reguIp, reguIPMixins } from '@/common/form-check';
 
 export const tableConfig = [
@@ -227,13 +227,16 @@ export const tableConfig = [
     rules: [reguFnMinInteger(1)],
   },
   {
-    label: '动态寻址',
+    label: '寻址方式',
     prop: 'bk_addressing',
-    type: 'switcher',
-    default: false,
+    type: 'select',
+    default: '0',
     batch: true,
     required: false,
     noRequiredMark: false,
+    getOptions() {
+      return addressingMode;
+    },
     width: 115,
   },
   {
@@ -416,13 +419,16 @@ export const tableManualConfig = [
     rules: [reguFnMinInteger(1)],
   },
   {
-    label: '动态寻址',
+    label: '寻址方式',
     prop: 'bk_addressing',
-    type: 'switcher',
-    default: false,
+    type: 'select',
+    default: '0',
     batch: true,
     required: false,
     noRequiredMark: false,
+    getOptions() {
+      return addressingMode;
+    },
     width: 115,
   },
   {
