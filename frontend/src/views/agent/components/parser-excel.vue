@@ -250,7 +250,6 @@ export default class ParserExcel extends Vue {
       this.$tc('登录IP'),
       this.$tc('BT节点探测'),
       this.$tc('传输限速Unit'),
-      this.$tc('动态寻址'),
     ];
     try {
       jsonData.forEach((item) => {
@@ -268,6 +267,8 @@ export default class ParserExcel extends Vue {
           } else if (key === this.$tc('接入点')) {
             const data = AgentStore.apList.find(data => data.name === item[`${key}${this.$tc('可选')}`]);
             info[header.prop] = data && !isEmpty(data.id) ? data.id : -1;
+          } else if (key === this.$tc('寻址方式')) {
+            info[header.prop] = item[`${key}${this.$tc('可选')}`] === this.$tc('动态') ? '1' : '0';
           } else if (optional.includes(key)) {
             info[header.prop] = !isEmpty(item[`${key}${this.$tc('可选')}`]) ? item[`${key}${this.$tc('可选')}`] : '';
           } else if (key === this.$tc('认证方式')) { // 密钥 || 铁将军 需覆盖填写值
