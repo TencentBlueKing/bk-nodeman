@@ -383,7 +383,7 @@
           :render-header="renderFilterHeader"
           v-if="filter['bk_addressing'].mockChecked">
           <template #default="{ row }">
-            {{ row.bk_addressing ? $t('动态') : $t('静态') }}
+            {{ row.bk_addressing === '1' ? $t('动态') : $t('静态') }}
           </template>
         </bk-table-column>
         <bk-table-column
