@@ -771,6 +771,10 @@ class SubscriptionViewSet(APIViewSet):
                 "win_commands": installation_tool.win_commands,
                 "pre_commands": installation_tool.pre_commands,
                 "run_cmd": installation_tool.run_cmd,
+                "script_file_name": installation_tool.script_file_name,
+                "package_url": installation_tool.package_url,
+                "dest_dir": installation_tool.dest_dir,
+                "jump_server_ip": installation_tool.jump_server.inner_ip if installation_tool.jump_server else None,
             }
         )
 

@@ -308,7 +308,7 @@ class JobViewSet(ModelViewSet):
         @apiName get_job_commands
         @apiGroup Job
         @apiParam {Number} job_id 任务ID
-        @apiParam {Number} bk_host_id 主机ID，-1时返回每个云区域的安装命令
+        @apiParam {Number} bk_host_id 主机ID
         @apiSuccessExample {json} 成功返回:
         {
             bk_cloud_id: {
