@@ -68,7 +68,8 @@
               :title="filteredTitle(row)"
               @click.stop="handleRowView('filterrd', row)">
               {{ `${titleStatusMap[row.status]} ` }}
-              ({{ row.statusDisplay | filterEmpty }}
+              <!-- eslint-disable-next-line vue/no-v-html -->
+              (<span v-html="row.statusDisplay || '--'"></span>
               <i
                 v-if="row.exception && row.exception === 'is_running'"
                 class="nodeman-icon nc-icon-audit filtered-icon">
