@@ -313,6 +313,8 @@ def create_task(
             is_suppressed = result["is_suppressed"]
             if is_suppressed:
                 # 策略被抑制，跳过部署，记为已忽略
+                suppressed_by_id: int = result["suppressed_by"]["subscription_id"]
+                suppressed_by_name: str = result["suppressed_by"]["name"]
                 error_hosts.append(
                     {
                         "ip": host_info.get("bk_host_innerip") or host_info.get("bk_host_innerip_v6"),
@@ -321,14 +323,13 @@ def create_task(
                         "bk_host_id": host_info.get("bk_host_id"),
                         "bk_biz_id": host_info.get("bk_biz_id"),
                         "bk_cloud_id": host_info.get("bk_cloud_id"),
-                        "suppressed_by_id": result["suppressed_by"]["subscription_id"],
-                        "suppressed_by_name": result["suppressed_by"]["name"],
+                        "suppressed_by_id": suppressed_by_id,
+                        "suppressed_by_name": suppressed_by_name,
                         "os_type": node_man_tools.HostV2Tools.get_os_type(host_info),
                         "status": constants.JobStatusType.IGNORED,
                         "msg": _(
                             "当前{category_alias}（{bk_obj_name} 级）"
                             "已被优先级更高的{suppressed_by_category_alias}【{suppressed_by_name}(ID: {suppressed_by_id})】"
-                            "（{suppressed_by_obj_name} 级）抑制"
                         ).format(
                             category_alias=models.Subscription.CATEGORY_ALIAS_MAP[result["category"]],
                             bk_obj_name=constants.CmdbObjectId.OBJ_ID_ALIAS_MAP.get(
@@ -338,8 +339,8 @@ def create_task(
                             suppressed_by_category_alias=models.Subscription.CATEGORY_ALIAS_MAP[
                                 result["suppressed_by"]["category"]
                             ],
-                            suppressed_by_name=result["suppressed_by"]["name"],
-                            suppressed_by_id=result["suppressed_by"]["subscription_id"],
+                            suppressed_by_name=suppressed_by_name,
+                            suppressed_by_id=suppressed_by_id,
                             suppressed_by_obj_name=constants.CmdbObjectId.OBJ_ID_ALIAS_MAP.get(
                                 result["suppressed_by"]["bk_obj_id"],
                                 constants.CmdbObjectId.OBJ_ID_ALIAS_MAP[constants.CmdbObjectId.CUSTOM],
