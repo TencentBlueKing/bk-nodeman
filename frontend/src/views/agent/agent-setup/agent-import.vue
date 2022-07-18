@@ -331,7 +331,7 @@ export default class AgentImport extends Mixins(mixin) {
         if (!item.install_channel_id) {
           item.install_channel_id = 'default';
         }
-        if (item.inner_ipv6 && regIPv6.test(item.inner_ipv6)) {
+        if (!item.inner_ip) { // 优先展示IPv4
           item.inner_ip = item.inner_ipv6;
         }
         return Object.assign({}, item, item.identity_info, ap);
@@ -341,7 +341,7 @@ export default class AgentImport extends Mixins(mixin) {
       const formatData = this.tableData.map((item) => {
         const row = {
           ...item,
-          inner_ip: item.inner_ipv6 && regIPv6.test(item.inner_ipv6) ? item.inner_ipv6 : item.inner_ip, // ipv6 属性处理
+          inner_ip: item.inner_ip || item.inner_ipv6, // 优先展示IPv4
         };
         if (this.isNotAutoSelect && item.ap_id === -1) {
           Object.assign(row, defaultAp);
