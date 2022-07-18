@@ -786,23 +786,26 @@ class JobHandler(APIModel):
             # conditions中无status或者筛选条件为空列表 视为全选，过滤不在筛选条件中的排除主机
             if statuses_in_conditions and status not in statuses_in_conditions:
                 continue
-            filter_hosts.append(
-                {
-                    "filter_host": True,
-                    "bk_host_id": host.get("bk_host_id"),
-                    "ip": host["ip"],
-                    "inner_ip": host.get("inner_ip"),
-                    "inner_ipv6": host.get("inner_ipv6"),
-                    "bk_cloud_id": host.get("bk_cloud_id"),
-                    "bk_cloud_name": host.get("bk_cloud_name"),
-                    "bk_biz_id": host.get("bk_biz_id"),
-                    "bk_biz_name": host.get("bk_biz_name"),
-                    "job_id": host.get("job_id"),
-                    "status": host.get("status") or constants.JobStatusType.FAILED,
-                    "status_display": host.get("msg"),
-                    "step": "",
-                }
-            )
+
+            filter_host_info: Dict[str, Union[bool, str, int]] = {
+                "filter_host": True,
+                "bk_host_id": host.get("bk_host_id"),
+                "ip": host["ip"],
+                "inner_ip": host.get("inner_ip"),
+                "inner_ipv6": host.get("inner_ipv6"),
+                "bk_cloud_id": host.get("bk_cloud_id"),
+                "bk_cloud_name": host.get("bk_cloud_name"),
+                "bk_biz_id": host.get("bk_biz_id"),
+                "bk_biz_name": host.get("bk_biz_name"),
+                "job_id": host.get("job_id"),
+                "status": host.get("status") or constants.JobStatusType.FAILED,
+                "status_display": host.get("msg"),
+                "step": "",
+            }
+            host_suppressed_by_id = host.get("suppressed_by_id", None)
+            if host_suppressed_by_id is not None:
+                filter_host_info.update({"suppressed_by_id": host_suppressed_by_id})
+            filter_hosts.append(filter_host_info)
         host_execute_status_list.extend(filter_hosts)
 
         # 补充业务名、云区域名称
