@@ -204,8 +204,8 @@ class HostHandler(APIModel):
         all_query_biz = []
 
         for condition in params.get("conditions", []):
-            if condition["key"] in ["inner_ip", "node_from", "node_type"]:
-                # Host表的精确搜索(现主要为 os_type, inner_ip, bk_cloud_id)
+            if condition["key"] in ["inner_ip", "node_from", "node_type", "bk_addressing"]:
+                # Host 表的精确搜索(现主要为 os_type, inner_ip, bk_cloud_id)
                 kwargs[condition["key"] + "__in"] = condition["value"]
             elif condition["key"] in ["os_type"]:
                 # 如果传的是none，替换成""
