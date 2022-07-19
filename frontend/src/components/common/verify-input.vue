@@ -196,7 +196,7 @@ export default class StepVerifyInput extends Vue {
     .proxy {
       top: -12px;
     }
-    /deep/ .bk-select {
+    >>> .bk-select {
       width: 100%;
     }
   }
@@ -221,7 +221,7 @@ export default class StepVerifyInput extends Vue {
       cursor: pointer;
     }
     &.normal-error {
-      /deep/ {
+      >>> {
         input[type=text],
         .bk-select,
         input[type=password],

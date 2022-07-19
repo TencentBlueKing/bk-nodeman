@@ -1251,7 +1251,7 @@ $headerColor: #313238;
     }
   }
 }
-/deep/ .bk-dialog-body {
+>>> .bk-dialog-body {
   padding: 0;
 }
 .dot {

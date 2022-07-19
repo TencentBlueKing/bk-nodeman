@@ -208,7 +208,7 @@ export default class ResourceQuotaEdit extends Vue {
     .bk-form-item:nth-child(2) {
       margin: 0;
       width: 216px;
-      /deep/ .bk-form-content {
+      >>> .bk-form-content {
         margin: 0px;
       }
     }
