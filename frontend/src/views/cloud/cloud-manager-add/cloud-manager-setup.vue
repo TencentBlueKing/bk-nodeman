@@ -340,7 +340,7 @@ export default class CloudManagerSetup extends Mixins(formLabelMixin, FilterIpMi
         ...other,
       };
       ipKeys.forEach((key) => {
-        if (regIPv6.test(item[key] as string)) {
+        if (regIPv6(item[key] as string)) {
           host[`${key}v6`] = item[key];
         } else {
           host[key] = item[key];
