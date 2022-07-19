@@ -221,7 +221,7 @@ export default class CustomInput extends Vue {
 }
 </script>
 <style lang="scss" scoped>
-::v-deep .bk-textarea-wrapper {
+>>> .bk-textarea-wrapper {
   height: 100%;
   .bk-form-textarea {
     height: 100%;

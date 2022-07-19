@@ -213,7 +213,7 @@ export default class SelectorPreview extends Vue {
 }
 </style>
 <style lang="scss" scoped>
-::v-deep .bk-collapse-item {
+>>> .bk-collapse-item {
   margin-bottom: 10px;
   .bk-collapse-item-header {
     padding: 0;

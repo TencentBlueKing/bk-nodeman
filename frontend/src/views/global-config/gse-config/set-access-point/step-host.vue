@@ -489,7 +489,7 @@ export default class StepHost extends formLabelMixin {
   .bg-white {
     background: $whiteColor;
   }
-  /deep/ .textarea-description .bk-limit-box {
+  >>> .textarea-description .bk-limit-box {
     line-height: 1;
   }
   .check-result {
@@ -554,10 +554,10 @@ export default class StepHost extends formLabelMixin {
     }
   }
   .ip-input-outer {
-    /deep/ .bk-label {
+    >>> .bk-label {
       display: none;
     }
-    /deep/ .bk-form-content {
+    >>> .bk-form-content {
       /* stylelint-disable-next-line declaration-no-important */
       margin: 0 !important;
     }

@@ -152,7 +152,7 @@ export default class RightPanel extends Vue {
       }
     }
     .right-panel-content {
-      /deep/ .bk-table {
+      >>> .bk-table {
         border: 0;
         .bk-table-header {
           th {
