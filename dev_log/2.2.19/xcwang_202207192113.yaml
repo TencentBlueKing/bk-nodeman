@@ -1,0 +1,3 @@
+---
+feature:
+  - "Nginx 重新编译，修复 DNS 漏洞 (closed #918)"
