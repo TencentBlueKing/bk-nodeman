@@ -407,7 +407,7 @@ export default class AgentImport extends Mixins(mixin) {
         if (item[authType]) {
           item[authType] = this.$RSA.getNameMixinEncrypt(item[authType] as string);
         }
-        if (regIPv6.test(item.inner_ip as string)) {
+        if (regIPv6(item.inner_ip as string)) {
           item.inner_ipv6 = item.inner_ip;
           delete item.inner_ip;
         }

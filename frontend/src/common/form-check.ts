@@ -16,7 +16,13 @@ export const regsIPv6 = '^([\\da-f]{1,4}:){7}[\\da-f]{1,4}$'; // 不支持压缩
  * reg: regexp instance
  */
 export const regIp = new RegExp(regsIp);
-export const regIPv6 = new RegExp(regsIPv6);
+export function regIPv6(str: string) {
+  const blockArr = str.match(/:/g);
+  if (!blockArr || blockArr.length > 7) return false;
+  return Boolean(/::/.test(str)
+    ? /^([\da-f]{1,4}(:|::)){1,6}[\da-f]{1,4}$/i.test(str)
+    : /^([\da-f]{1,4}:){7}[\da-f]{1,4}$/i.test(str));
+};
 export const regUrl = /^(?:http(s)?:\/\/)?[\w.-]+(?:\.[\w.-]+)+[\w\-._~:/?#[\]@!$&'*+,;=.]+$/;
 export const regNormalText = /^[\u4e00-\u9fa5A-Za-z0-9-_]+$/;
 export const regNaturalNumber = /^(0|[1-9][0-9]*)$/; // 自然数 | 非负整数
@@ -47,13 +53,12 @@ export const reguIp = {
   trigger: 'blur',
 };
 export const reguIPv6 = {
-  regex: regIPv6,
-  validator: (val: string) => regIPv6.test(val),
+  validator: regIPv6,
   message: window.i18n.t('IP格式不正确'),
   trigger: 'blur',
 };
 export const reguIPMixins = {
-  validator: val => regIp.test(val) || regIPv6.test(val),
+  validator: val => regIp.test(val) || regIPv6(val),
   message: window.i18n.t('IP格式不正确'),
   trigger: 'blur',
 };
@@ -65,7 +70,7 @@ export const reguIpBatch = {
     const valSplit = val.split(splitCode).filter(text => !!text)
       .map(text => text.trim());
     // IP校验
-    return valSplit.every(item => regIp.test(item) || regIPv6.test(item));
+    return valSplit.every(item => regIp.test(item) || regIPv6(item));
   },
   message: window.i18n.t('IP格式不正确'),
 };
