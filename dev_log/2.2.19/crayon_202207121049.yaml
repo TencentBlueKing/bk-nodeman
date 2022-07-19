@@ -1,0 +1,3 @@
+---
+feature:
+  - "aaS 适配动态 IP 安装校验，统一业务逻辑 IPv6 表示法 (closed #926 closed #927 #787)"
