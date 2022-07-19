@@ -241,7 +241,7 @@ export default class StepInfo extends Vue {
 <style lang="postcss" scoped>
 
 .access-point-info {
-  /deep/ form {
+  >>> form {
     width: 740px;
   }
   .block-title {
