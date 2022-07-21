@@ -18,7 +18,7 @@ from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
 from apps.core.concurrent import controller
-from apps.node_man import constants, models
+from apps.node_man import constants, models, tools
 from apps.node_man.models import ProcessStatus
 from apps.utils import batch_request, concurrent, exc
 from common.api import CCApi
@@ -40,23 +40,6 @@ class SelectorResult:
 
 
 class AddOrUpdateHostsService(AgentBaseService):
-    @staticmethod
-    def host_infos_deduplication(host_infos: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """
-        根据 bk_host_id 对主机信息列表进行取重
-        :param host_infos: 主机信息列表
-        :return:
-        """
-        recorded_host_ids: Set[int] = set()
-        host_infos_after_deduplication: List[Dict[str, Any]] = []
-        for host_info in host_infos:
-            bk_host_id: int = host_info["bk_host_id"]
-            if bk_host_id in recorded_host_ids:
-                continue
-            recorded_host_ids.add(bk_host_id)
-            host_infos_after_deduplication.append(host_info)
-        return host_infos_after_deduplication
-
     @staticmethod
     def get_host_infos_gby_ip_key(host_infos: List[Dict[str, Any]]) -> Dict[str, List[Dict[str, Any]]]:
         """
@@ -97,20 +80,20 @@ class AddOrUpdateHostsService(AgentBaseService):
         return CCApi.search_business(search_business_params)["info"][0]
 
     def static_ip_selector(
-        self, sub_inst: models.SubscriptionInstanceRecord, cmdb_hosts_with_the_same_ip_key: List[Dict[str, Any]]
+        self, sub_inst: models.SubscriptionInstanceRecord, cmdb_hosts: List[Dict[str, Any]]
     ) -> SelectorResult:
         """
         静态 IP 处理器
         :param sub_inst:
-        :param cmdb_hosts_with_the_same_ip_key:
+        :param cmdb_hosts:
         :return:
         """
         # 不存在则新增
-        if not cmdb_hosts_with_the_same_ip_key:
+        if not cmdb_hosts:
             return SelectorResult(is_add=True, is_skip=False, sub_inst=sub_inst)
 
         # 静态IP情况下，只会存在一台机器
-        cmdb_host: Dict[str, Any] = cmdb_hosts_with_the_same_ip_key[0]
+        cmdb_host: Dict[str, Any] = cmdb_hosts[0]
         except_bk_biz_id: int = sub_inst.instance_info["host"]["bk_biz_id"]
         if except_bk_biz_id != cmdb_host["bk_biz_id"]:
             self.move_insts_to_failed(
@@ -126,12 +109,12 @@ class AddOrUpdateHostsService(AgentBaseService):
             return SelectorResult(is_add=False, is_skip=False, sub_inst=sub_inst)
 
     def dynamic_ip_selector(
-        self, sub_inst: models.SubscriptionInstanceRecord, cmdb_hosts_with_the_same_ip_key: List[Dict[str, Any]]
+        self, sub_inst: models.SubscriptionInstanceRecord, cmdb_hosts: List[Dict[str, Any]]
     ) -> SelectorResult:
         """
         动态 IP 处理器
         :param sub_inst:
-        :param cmdb_hosts_with_the_same_ip_key:
+        :param cmdb_hosts:
         :return:
         """
         bk_host_id: Optional[int] = sub_inst.instance_info["host"].get("bk_host_id")
@@ -142,7 +125,7 @@ class AddOrUpdateHostsService(AgentBaseService):
         # 查找 bk_host_id 及 所在业务均匹配的主机信息
         cmdb_host_with_the_same_id: Optional[Dict[str, Any]] = None
         except_bk_biz_id: int = sub_inst.instance_info["host"]["bk_biz_id"]
-        for cmdb_host in cmdb_hosts_with_the_same_ip_key:
+        for cmdb_host in cmdb_hosts:
             if bk_host_id == cmdb_host["bk_host_id"]:
                 if except_bk_biz_id == cmdb_host["bk_biz_id"]:
                     cmdb_host_with_the_same_id = cmdb_host
@@ -229,7 +212,7 @@ class AddOrUpdateHostsService(AgentBaseService):
                 continue
             processed_cmdb_host_infos.extend(partial_cmdb_host_infos)
         # 数据按 IP 协议版本进行再聚合，同时存在 v4/v6 的情况下会生成重复项，需要按 主机ID 去重
-        processed_cmdb_host_infos = self.host_infos_deduplication(processed_cmdb_host_infos)
+        processed_cmdb_host_infos = tools.HostV2Tools.host_infos_deduplication(processed_cmdb_host_infos)
         return processed_cmdb_host_infos
 
     def query_hosts(self, sub_insts: List[models.SubscriptionInstanceRecord]) -> List[Dict[str, Any]]:
@@ -490,26 +473,20 @@ class AddOrUpdateHostsService(AgentBaseService):
         for sub_inst in subscription_instances:
             id__sub_inst_obj_map[sub_inst.id] = sub_inst
             host_info: Dict[str, Any] = sub_inst.instance_info["host"]
-            bk_cloud_id: int = host_info["bk_cloud_id"]
             bk_addressing: str = host_info.get("bk_addressing", constants.CmdbAddressingType.STATIC.value)
-            # 构造 IpKey 的 ip 字段支持 v4 或 v6
-            optional_ips: List[Optional[str]] = [host_info.get("bk_host_innerip"), host_info.get("bk_host_innerip_v6")]
 
-            # 获取已存在于 CMDB，且 IpKey 相同的主机信息
-            cmdb_hosts_with_the_same_ip_key: List[Dict[str, Any]] = []
-            for ip in optional_ips:
-                if not ip:
-                    continue
-                ip_key: str = f"{bk_addressing}:{bk_cloud_id}:{ip}"
-                cmdb_hosts_with_the_same_ip_key.extend(cmdb_host_infos_gby_ip_key.get(ip_key, []))
+            # 获取已存在于 CMDB，且 ip_field_names 对应值所构建的 IpKey 相同的主机信息
+            cmdb_hosts_with_the_same_ips: List[Dict[str, Any]] = tools.HostV2Tools.get_host_infos_with_the_same_ips(
+                host_infos_gby_ip_key=cmdb_host_infos_gby_ip_key,
+                host_info=host_info,
+                ip_field_names=["bk_host_innerip", "bk_host_innerip_v6"],
+            )
 
-            # 若 v4 / v6 字段同时存在，聚合再合并会产生重复信息，需要去重
-            cmdb_hosts_with_the_same_ip_key = self.host_infos_deduplication(cmdb_hosts_with_the_same_ip_key)
             # 按照寻址方式通过不同的选择器，选择更新或新增主机到 CMDB
             if bk_addressing == constants.CmdbAddressingType.DYNAMIC.value:
-                selector_result: SelectorResult = self.dynamic_ip_selector(sub_inst, cmdb_hosts_with_the_same_ip_key)
+                selector_result: SelectorResult = self.dynamic_ip_selector(sub_inst, cmdb_hosts_with_the_same_ips)
             else:
-                selector_result: SelectorResult = self.static_ip_selector(sub_inst, cmdb_hosts_with_the_same_ip_key)
+                selector_result: SelectorResult = self.static_ip_selector(sub_inst, cmdb_hosts_with_the_same_ips)
 
             if selector_result.is_skip:
                 # 选择器已处理，跳过
