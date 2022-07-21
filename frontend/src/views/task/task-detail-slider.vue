@@ -5,7 +5,7 @@
     quick-close
     :width="620"
     :is-show="show"
-    :title="$t('手动操作sliderTitle', [slider.opType, slider.row.innerIp])"
+    :title="$t('手动操作sliderTitle', [slider.opType, slider.row.ip])"
     :before-close="handleHidden">
     <div slot="content" class="commands-wrapper" v-bkloading="{ isLoading: commandLoading }">
       <!--
@@ -120,7 +120,7 @@ export default class TaskDetailSlider extends Vue {
       bk_cloud_id: item.bkCloudId,
       bk_cloud_name: item.bkCloudName,
       ap_id: item.apId,
-      inner_ip: item.innerIp,
+      ip: item.ip,
     }));
     list.sort((a, b) => a.bk_cloud_id - b.bk_cloud_id);
     return list;
@@ -159,7 +159,7 @@ export default class TaskDetailSlider extends Vue {
         if (row) {
           const cloudCommand = res[row.bkCloudId];
           const curCommand = cloudCommand
-            ? cloudCommand.ipsCommands.find((item: any) => item.ip === row.innerIp) : null;
+            ? cloudCommand.ipsCommands.find((item: any) => item.ip === row.ip) : null;
           this.hostSys = curCommand ? curCommand.osType : '';
           if (curCommand) {
             data.push(Object.assign({
@@ -209,7 +209,7 @@ export default class TaskDetailSlider extends Vue {
     } else {
       const cloud = this.commandData.find(item => item.cloudId === row.bkCloudId);
       const commandList = cloud ? cloud.ipsCommands : [];
-      const commandItem = commandList.find((item: any) => item.ip === row.innerIp);
+      const commandItem = commandList.find((item: any) => item.ip === row.ip);
       commandStr = commandItem ? commandItem.command.replace(/<[^>]+>/gi, '') : '';
     }
     if (res && commandStr) {
