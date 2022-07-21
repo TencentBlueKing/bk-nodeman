@@ -311,6 +311,7 @@ class Host(models.Model):
     bk_agent_id = models.CharField(_("AgentID"), max_length=64, db_index=True, blank=True, null=True)
     bk_biz_id = models.IntegerField(_("业务ID"), db_index=True)
     bk_cloud_id = models.IntegerField(_("云区域ID"), db_index=True)
+    bk_host_name = models.CharField(_("主机名称"), max_length=128, db_index=True, blank=True, null=True, default="")
     bk_addressing = models.CharField(_("寻地方式"), max_length=16, default=constants.CmdbAddressingType.STATIC.value)
 
     inner_ip = models.CharField(_("内网IP"), max_length=15, db_index=True)
@@ -2190,7 +2191,7 @@ class SubscriptionInstanceRecord(models.Model):
     id = models.BigAutoField(primary_key=True)
     task_id = models.IntegerField(_("任务ID"), db_index=True)
     subscription_id = models.IntegerField(_("订阅ID"), db_index=True)
-    instance_id = models.CharField(_("实例ID"), max_length=50, db_index=True)
+    instance_id = models.CharField(_("实例ID"), max_length=128, db_index=True)
     instance_info = JSONField(_("实例信息"))
     steps = JSONField(_("步骤信息"))
     pipeline_id = models.CharField(_("Pipeline ID"), max_length=50, default="", blank=True, db_index=True)

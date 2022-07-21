@@ -84,7 +84,18 @@ class HostV2Handler:
         if only_queryset:
             return hosts_sql
 
-        fetch_fields = ["bk_cloud_id", "bk_biz_id", "bk_host_id", "os_type", "inner_ip", "status", "cpu_arch"]
+        fetch_fields = [
+            "bk_biz_id",
+            "bk_host_id",
+            "bk_cloud_id",
+            "bk_host_name",
+            "bk_addressing",
+            "os_type",
+            "inner_ip",
+            "inner_ipv6",
+            "status",
+            "cpu_arch",
+        ]
 
         hosts = list(hosts_sql.values(*fetch_fields)[begin:end])
 
