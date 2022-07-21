@@ -48,10 +48,12 @@
                     {{ '文件列表：' }}
                     <template v-if="step.contents.length > 1">
                       <bk-link theme="primary" @click="downloadAll(step.contents)">{{ $t('下载全部') }}</bk-link>
+                      <bk-link theme="primary" @click="downloadAll2(step.contents)">{{ $t('下载全部') }}top iframe</bk-link>
+                      <bk-link theme="primary" @click="downloadAll3(step.contents)">{{ $t('下载全部') }}top a</bk-link>
                     </template>
                   </P>
                   <p v-for="(file, idx) in step.contents" :key="idx">
-                    <bk-link theme="primary" target="_blank" :href="file.text">
+                    <bk-link theme="primary" target="_blank" @click="handleDown(file.text)">
                       {{ file.name }}
                       <template v-if="file.description"> ({{ file.description }})</template>
                     </bk-link>
@@ -226,6 +228,18 @@ export default class TaskDetailSlider extends Vue {
       });
     }
   }
+  public getWindow() {
+    let glob: Window = window;
+    try {
+      while (glob.top && glob.top.document) {
+        glob = glob.top;
+      }
+    } catch (err) {
+      console.log(err);
+    }
+    console.log('topWindow-----', glob);
+    return glob;
+  }
   public handleDown(url: string) {
     const { iframeId } = this;
     this.iframeId += 1;
@@ -242,6 +256,40 @@ export default class TaskDetailSlider extends Vue {
   }
   public downloadAll(list: ITaskSolutionsFile[]) {
     list.forEach(({ text }) => this.handleDown(text));
+  }
+  // 顶层 iframe
+  public handleDown2(url: string) {
+    const topWindow = this.getWindow();
+    const { iframeId } = this;
+    this.iframeId += 1;
+    const iframeName = `iframe_${iframeId}`;
+    const frame = topWindow.document.createElement('iframe'); // 创建a对象
+    frame.setAttribute('style', 'display: none');
+    frame.setAttribute('src', url);
+    frame.setAttribute('id', iframeName);
+    topWindow.document.body.appendChild(frame);
+    setTimeout(() => {
+      const node = topWindow.document.getElementById(iframeName) as HTMLElement;
+      node.parentNode?.removeChild(node);
+    }, 5000);
+  }
+  public downloadAll2(list: ITaskSolutionsFile[]) {
+    list.forEach(({ text }) => this.handleDown2(text));
+  }
+  // 顶层 a target
+  public handleDown3(url: string, fileName: string) {
+    const topWindow = this.getWindow();
+    const element = topWindow.document.createElement('a');
+    element.setAttribute('href', url);
+    element.setAttribute('download', fileName);
+    element.setAttribute('target', '_blank');
+    element.style.display = 'none';
+    topWindow.document.body.appendChild(element);
+    element.click();
+    topWindow.document.body.removeChild(element);
+  }
+  public downloadAll3(list: ITaskSolutionsFile[]) {
+    list.forEach(({ text, name }) => this.handleDown3(text, name));
   }
 
   @Emit('update')
