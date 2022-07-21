@@ -97,6 +97,7 @@ def _list_resource_pool_hosts(start):
 def _bulk_update_host(hosts, extra_fields):
     update_fields = [
         "bk_cloud_id",
+        "bk_host_name",
         "bk_addressing",
         "inner_ip",
         "outer_ip",
@@ -116,6 +117,7 @@ def _generate_host(biz_id, host, ap_id):
         bk_agent_id=host.get("bk_agent_id"),
         bk_biz_id=biz_id,
         bk_cloud_id=host["bk_cloud_id"],
+        bk_host_name=host.get("bk_host_name"),
         bk_addressing=host.get("bk_addressing") or constants.CmdbAddressingType.STATIC.value,
         inner_ip=(host.get("bk_host_innerip") or "").split(",")[0],
         outer_ip=(host.get("bk_host_outerip") or "").split(",")[0],
@@ -214,6 +216,7 @@ def update_or_create_host_base(biz_id, task_id, cmdb_host_data):
             "bk_host_id": host["bk_host_id"],
             "bk_agent_id": host.get("bk_agent_id"),
             "bk_cloud_id": host["bk_cloud_id"],
+            "bk_host_name": host.get("bk_host_name"),
             "bk_addressing": host.get("bk_addressing") or constants.CmdbAddressingType.STATIC.value,
             "inner_ip": (host.get("bk_host_innerip") or "").split(",")[0],
             "outer_ip": (host.get("bk_host_outerip") or "").split(",")[0],

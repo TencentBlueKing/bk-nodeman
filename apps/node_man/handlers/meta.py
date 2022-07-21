@@ -175,6 +175,7 @@ class MetaHandler(APIModel):
                 {"name": _("云区域"), "id": "bk_cloud_id", "children": bk_cloud_ids_children},
                 {"name": _("寻址方式"), "id": "bk_addressing", "children": bk_addressing_children},
                 {"name": _("安装通道"), "id": "install_channel_id", "children": install_channel_children},
+                {"name": _("主机名称"), "id": "bk_host_name"},
                 {"name": _("IP"), "id": "inner_ip"},
             ]
         )
@@ -347,7 +348,16 @@ class MetaHandler(APIModel):
         return self.filter_empty_children(ret_value)
 
     def fetch_plugin_host_condition(self):
-        ret_value = [{"name": "IP", "id": "inner_ip"}]
+        ret_value = [
+            {"name": "IP", "id": "inner_ip"},
+            {"name": _("主机名称"), "id": "bk_host_name"},
+        ]
+
+        bk_addressing_children = [
+            {"name": alias, "id": val}
+            for val, alias in constants.CmdbAddressingType.get_member_value__alias_map().items()
+        ]
+        ret_value.append({"name": _("寻址方式"), "id": "bk_addressing", "children": bk_addressing_children})
 
         clouds = dict(models.Cloud.objects.values_list("bk_cloud_id", "bk_cloud_name"))
         cloud_children = [{"id": cloud_id, "name": cloud_name} for cloud_id, cloud_name in clouds.items()]

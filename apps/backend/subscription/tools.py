@@ -232,7 +232,11 @@ def create_host_key(data: Dict) -> str:
     else:
         bk_cloud_id = data["bk_cloud_id"]
 
-    return "{}-{}-{}".format(data.get("bk_host_innerip") or data.get("ip"), bk_cloud_id, constants.DEFAULT_SUPPLIER_ID)
+    return "{ip}-{bk_cloud_id}-{bk_supplier_id}".format(
+        ip=data.get("bk_host_innerip") or data.get("ip") or data.get("bk_host_innerip_v6"),
+        bk_cloud_id=bk_cloud_id,
+        bk_supplier_id=constants.DEFAULT_SUPPLIER_ID,
+    )
 
 
 def find_host_biz_relations(bk_host_ids: List[int]) -> List[Dict]:
@@ -488,21 +492,28 @@ def get_host_detail(host_info_list: list, bk_biz_id: int = None):
                 # 如果为空，
                 if not ips:
                     continue
-                rules.append(
-                    {
-                        "condition": "AND",
-                        "rules": [
-                            # 仅允许静态 IP 通过 ip + 云区域 方式下发订阅
-                            {
-                                "field": "bk_addressing",
-                                "operator": "equal",
-                                "value": constants.CmdbAddressingType.STATIC.value,
-                            },
-                            {"field": ip_field_name, "operator": "in", "value": ips},
-                            {"field": "bk_cloud_id", "operator": "equal", "value": bk_cloud_id},
-                        ],
-                    }
-                )
+
+                rule = {
+                    "condition": "AND",
+                    # 仅允许静态 IP 通过 ip + 云区域 方式下发订阅
+                    "rules": [
+                        {"field": ip_field_name, "operator": "in", "value": list(ips)},
+                        {"field": "bk_cloud_id", "operator": "equal", "value": bk_cloud_id},
+                    ],
+                }
+                # 如果启用动态 IP 适配，ip + bk_cloud_id 的方式仅允许静态 IP 使用
+                if settings.BKAPP_ENABLE_DHCP:
+                    rule["rules"].insert(
+                        0,
+                        {
+                            "field": "bk_addressing",
+                            "operator": "equal",
+                            "value": constants.CmdbAddressingType.STATIC.value,
+                        },
+                    )
+
+                rules.append(rule)
+
         cond = {"host_property_filter": {"condition": "OR", "rules": rules}}
     else:
         # 如果不满足 bk_host_id / ip & bk_cloud_id 的传入格式，此时直接返回空列表，表示查询不到任何主机
