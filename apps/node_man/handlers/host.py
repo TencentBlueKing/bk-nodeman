@@ -8,10 +8,11 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from typing import Iterable, List, Optional
+from collections import defaultdict
+from typing import Any, Dict, Iterable, List, Set
 
 from django.db import transaction
-from django.db.models import Count
+from django.db.models import Count, Q
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
@@ -765,29 +766,17 @@ class HostHandler(APIModel):
         return {}
 
     @staticmethod
-    def ip_list(ips: Iterable[str], ip_version: int, bk_addressing: Optional[str] = None):
+    def get_host_infos_gby_ip_key(ips: Iterable[str], ip_version: int):
         """
-        返回存在
+        获取 主机信息根据 IP 等关键信息聚合的结果
         :param ips:
         :param ip_version:
-        :param bk_addressing: 寻址方式
         :return:
-        {
-            bk_cloud_id+ip: {
-                'bk_host_id': ...,
-                'bk_biz_id': ...,
-                'node_type': ...,
-                'ip_type': ...
-            }
-        },
         """
-        ips = set(ips)
 
-        if bk_addressing is None:
-            bk_addressing = const.CmdbAddressingType.STATIC.value
-
-        login_ip_field_name = "login_ip"
-        login_ip_filter_k = "login_ip__in"
+        ips: Set[str] = set(ips)
+        login_ip_field_name: str = "login_ip"
+        login_ip_filter_k: str = "login_ip__in"
 
         # 根据 IP 版本筛选不同的 IP 字段
         if ip_version == const.CmdbIpVersion.V6.value:
@@ -811,26 +800,17 @@ class HostHandler(APIModel):
             "bk_biz_id",
             "node_type",
             "bk_host_id",
+            "bk_addressing",
         ]
-
-        inner_ip_info = {
-            f"{host['bk_cloud_id']}-{host[inner_ip_field_name]}": host
-            for host in Host.objects.filter(bk_addressing=bk_addressing, **{inner_ip_filter_k: ips}).values(*fields)
-        }
-
-        outer_ip_info = {
-            f"{host['bk_cloud_id']}-{host[outer_ip_field_name]}": host
-            for host in Host.objects.filter(bk_addressing=bk_addressing, **{outer_ip_filter_k: ips}).values(*fields)
-        }
-
-        login_ip_info = {
-            f"{host['bk_cloud_id']}-{host[login_ip_field_name]}": host
-            for host in Host.objects.filter(bk_addressing=bk_addressing, **{login_ip_filter_k: ips}).values(*fields)
-        }
-
-        exists_ip_info = {}
-        exists_ip_info.update(inner_ip_info)
-        exists_ip_info.update(outer_ip_info)
-        exists_ip_info.update(login_ip_info)
-
-        return exists_ip_info
+        host_infos_gby_ip_key: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
+        for host_info in Host.objects.filter(
+            Q(**{inner_ip_filter_k: ips}) | Q(**{outer_ip_filter_k: ips}) | Q(**{login_ip_filter_k: ips})
+        ).values(*fields):
+            ip_filed_names: List[str] = [inner_ip_field_name, login_ip_field_name, outer_ip_field_name]
+            for ip_filed_name in ip_filed_names:
+                # 不满足 < IP 不为空 且 IP 存在于 IP 列表 > 时，提前结束处理逻辑
+                if not (host_info[ip_filed_name] and host_info[ip_filed_name] in ips):
+                    continue
+                ip_key: str = f"{host_info['bk_addressing']}:{host_info['bk_cloud_id']}:{host_info[ip_filed_name]}"
+                host_infos_gby_ip_key[ip_key].append(host_info)
+        return host_infos_gby_ip_key

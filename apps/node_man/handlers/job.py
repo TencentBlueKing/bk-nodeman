@@ -367,19 +367,18 @@ class JobHandler(APIModel):
         is_manual = set()
         bk_biz_scope = set()
         bk_cloud_ids = set()
-        static_inner_ips: Dict[str, Set[str]] = {"inner_ips": set(), "inner_ipv6s": set()}
+        inner_ips_info: Dict[str, Set[str]] = {"inner_ips": set(), "inner_ipv6s": set()}
 
         for host in hosts:
             bk_cloud_ids.add(host["bk_cloud_id"])
             bk_biz_scope.add(host["bk_biz_id"])
             is_manual.add(host["is_manual"])
 
-            if host["bk_addressing"] == constants.CmdbAddressingType.STATIC.value:
-                # 遍历需要支持的 IP 字段，汇总安装信息中存在该 IP 字段的值
-                if host.get("inner_ip"):
-                    static_inner_ips["inner_ips"].add(host["inner_ip"])
-                if host.get("inner_ipv6"):
-                    static_inner_ips["inner_ipv6s"].add(host["inner_ipv6"])
+            # 遍历需要支持的 IP 字段，汇总安装信息中存在该 IP 字段的值
+            if host.get("inner_ip"):
+                inner_ips_info["inner_ips"].add(host["inner_ip"])
+            if host.get("inner_ipv6"):
+                inner_ips_info["inner_ipv6s"].add(host["inner_ipv6"])
 
             # 用户ticket，用于后台异步执行时调用第三方接口使用
             host["ticket"] = ticket
@@ -406,22 +405,19 @@ class JobHandler(APIModel):
 
         # 获得用户输入的ip是否存在于数据库中
         # 格式 { bk_cloud_id+ip: { 'bk_host_id': ..., 'bk_biz_id': ..., 'node_type': ...}}
-        inner_ip_info = HostHandler().ip_list(
-            ips=static_inner_ips["inner_ips"],
-            ip_version=constants.CmdbIpVersion.V4.value,
-            bk_addressing=constants.CmdbAddressingType.STATIC.value,
+        host_infos_gby_ip_key: Dict[str, List[Dict[str, Any]]] = HostHandler.get_host_infos_gby_ip_key(
+            ips=inner_ips_info["inner_ips"], ip_version=constants.CmdbIpVersion.V4.value
         )
-        inner_ipv6_info = HostHandler().ip_list(
-            ips=static_inner_ips["inner_ipv6s"],
-            ip_version=constants.CmdbIpVersion.V6.value,
-            bk_addressing=constants.CmdbAddressingType.STATIC.value,
+        host_infos_gby_ip_key.update(
+            HostHandler.get_host_infos_gby_ip_key(
+                ips=inner_ips_info["inner_ipv6s"], ip_version=constants.CmdbIpVersion.V6.value
+            )
         )
-        inner_ip_info.update(inner_ipv6_info)
 
         # 对数据进行校验
         # 重装则校验IP是否存在，存在才可重装
         ip_filter_list, accept_list, proxy_not_alive = validator.install_validate(
-            hosts, op_type, node_type, job_type, biz_info, cloud_info, ap_id_name, inner_ip_info
+            hosts, op_type, node_type, job_type, biz_info, cloud_info, ap_id_name, host_infos_gby_ip_key
         )
 
         if proxy_not_alive:
@@ -844,9 +840,13 @@ class JobHandler(APIModel):
             job_type_info = tools.JobTools.unzip_job_type(
                 tools.JobTools.get_job_type_in_inst_status(instance_status, self.data.job_type)
             )
+            inner_ip = host_info.get("bk_host_innerip")
+            inner_ipv6 = host_info.get("bk_host_innerip_v6")
             host_execute_status = {
                 "instance_id": instance_status["instance_id"],
-                "inner_ip": host_info["bk_host_innerip"],
+                "ip": inner_ip or inner_ipv6,
+                "inner_ip": inner_ip,
+                "inner_ipv6": inner_ipv6,
                 "bk_host_id": host_info.get("bk_host_id"),
                 "bk_cloud_id": host_info["bk_cloud_id"],
                 "bk_cloud_name": host_info.get("bk_cloud_name"),
@@ -892,7 +892,9 @@ class JobHandler(APIModel):
                 {
                     "filter_host": True,
                     "bk_host_id": host.get("bk_host_id"),
-                    "inner_ip": host["ip"],
+                    "ip": host["ip"],
+                    "inner_ip": host.get("inner_ip"),
+                    "inner_ipv6": host.get("inner_ipv6"),
                     "bk_cloud_id": host.get("bk_cloud_id"),
                     "bk_cloud_name": host.get("bk_cloud_name"),
                     "bk_biz_id": host.get("bk_biz_id"),

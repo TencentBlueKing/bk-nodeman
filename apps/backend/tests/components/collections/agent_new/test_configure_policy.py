@@ -147,7 +147,7 @@ class MockVpcClient(mock_data_utils.BaseMockClient):
         def __init__(self, *args, **kwargs):
             resp = DescribeAddressTemplatesResponse()
             resp.TotalCount = 1
-            resp.AddressTemplateSet = [{"AddressSet": ["127.0.0.1"]}]
+            resp.AddressTemplateSet = [{"AddressSet": ["0.0.0.1"]}]
             self.DescribeAddressTemplates = self.generate_magic_mock(
                 mock_data_utils.MockReturn(
                     return_type=mock_data_utils.MockReturnType.RETURN_VALUE.value, return_obj=resp
@@ -176,6 +176,7 @@ class TencentVpcConfigurePolicyComponentBaseTest(ConfigurePolicyComponentBaseTes
         super().setUp()
 
     def cases(self):
+        ip = self.obj_factory.host_objs[0].inner_ip
         return [
             ComponentTestCase(
                 name="通过腾讯云配置策略",
@@ -184,7 +185,7 @@ class TencentVpcConfigurePolicyComponentBaseTest(ConfigurePolicyComponentBaseTes
                 execute_assertion=ExecuteAssertion(
                     success=bool(self.common_inputs["subscription_instance_ids"]),
                     outputs={
-                        "add_ip_output": {"ip_list": ["127.0.0.1", "127.0.0.1"]},
+                        "add_ip_output": {"ip_list": [ip, ip]},
                         "polling_time": 0,
                         "succeeded_subscription_instance_ids": self.common_inputs["subscription_instance_ids"],
                     },
@@ -194,7 +195,7 @@ class TencentVpcConfigurePolicyComponentBaseTest(ConfigurePolicyComponentBaseTes
                         success=True,
                         schedule_finished=True,
                         outputs={
-                            "add_ip_output": {"ip_list": ["127.0.0.1", "127.0.0.1"]},
+                            "add_ip_output": {"ip_list": [ip, ip]},
                             "polling_time": 0,
                             "succeeded_subscription_instance_ids": self.common_inputs["subscription_instance_ids"],
                         },

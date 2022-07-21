@@ -315,7 +315,9 @@ def create_task(
                 # 策略被抑制，跳过部署，记为已忽略
                 error_hosts.append(
                     {
-                        "ip": host_info["bk_host_innerip"],
+                        "ip": host_info.get("bk_host_innerip") or host_info.get("bk_host_innerip_v6"),
+                        "inner_ip": host_info.get("bk_host_innerip"),
+                        "inner_ipv6": host_info.get("bk_host_innerip_v6"),
                         "bk_host_id": host_info.get("bk_host_id"),
                         "bk_biz_id": host_info.get("bk_biz_id"),
                         "bk_cloud_id": host_info.get("bk_cloud_id"),

@@ -2295,6 +2295,7 @@ class SubscriptionInstanceRecord(models.Model):
                 for key in instance_info["host"]
                 if key
                 in [
+                    "bk_host_innerip_v6",
                     "bk_host_innerip",
                     "bk_cloud_id",
                     "bk_supplier_account",

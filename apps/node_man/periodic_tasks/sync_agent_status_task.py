@@ -21,7 +21,9 @@ from common.log import logger
 
 @task(queue="default", ignore_result=True)
 def update_or_create_host_agent_status(task_id, start, end):
-    hosts = Host.objects.values("bk_host_id", "bk_agent_id", "bk_cloud_id", "inner_ip", "node_from")[start:end]
+    hosts = Host.objects.values("bk_host_id", "bk_agent_id", "bk_cloud_id", "inner_ip", "inner_ipv6", "node_from")[
+        start:end
+    ]
     if not hosts:
         # 结束递归
         return
@@ -39,7 +41,11 @@ def update_or_create_host_agent_status(task_id, start, end):
         bk_host_id_map[agent_id] = host["bk_host_id"]
         node_from_map[agent_id] = host["node_from"]
         query_hosts.append(
-            {"ip": host["inner_ip"], "bk_cloud_id": host["bk_cloud_id"], "bk_agent_id": host["bk_agent_id"]}
+            {
+                "ip": host["inner_ip"] or host["inner_ipv6"],
+                "bk_cloud_id": host["bk_cloud_id"],
+                "bk_agent_id": host["bk_agent_id"],
+            }
         )
 
     agent_id__agent_state_info_map: Dict[str, Dict] = GseApiHelper.list_agent_state(query_hosts)

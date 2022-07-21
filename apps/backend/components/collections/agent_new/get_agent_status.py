@@ -71,7 +71,11 @@ class GetAgentStatusService(AgentBaseService):
         for host_id in host_ids_need_to_query:
             host_obj = common_data.host_id_obj_map[host_id]
             hosts.append(
-                {"ip": host_obj.inner_ip, "bk_cloud_id": host_obj.bk_cloud_id, "bk_agent_id": host_obj.bk_agent_id}
+                {
+                    "ip": host_obj.inner_ip or host_obj.inner_ipv6,
+                    "bk_cloud_id": host_obj.bk_cloud_id,
+                    "bk_agent_id": host_obj.bk_agent_id,
+                }
             )
 
         agent_id__agent_state_info_map: Dict[str, Dict] = GseApiHelper.list_agent_state(hosts)
