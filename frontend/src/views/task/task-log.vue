@@ -20,13 +20,13 @@
             <template v-for="item in renderNavData">
               <li
                 :key="item.instanceId"
-                :class="['nav-item', { 'item-active': curIp === item.innerIp + '' && item.instanceId === curId }]"
-                :id="`${item.innerIp}-${item.instanceId}`"
+                :class="['nav-item', { 'item-active': curIp === item.ip + '' && item.instanceId === curId }]"
+                :id="`${item.ip}-${item.instanceId}`"
                 @click.stop="navHandle(item)">
                 <div class="col-execution">
                   <loading-icon v-if="item.status === 'running'"></loading-icon>
                   <span v-else :class="`execut-mark execut-${ item.status }`"></span>
-                  <span class="execut-text">{{ item.innerIp }}</span>
+                  <span class="execut-text">{{ item.ip }}</span>
                 </div>
               </li>
             </template>
@@ -446,11 +446,11 @@ export default {
         this.navList = list;
         this.hostRuningQueue = /running/ig.test(status) ? [1] : [];
         // 判断实例是否存在当前列表中，不存在则重新查询
-        const propHost = list.find(item => (this.hostInnerIp && item.innerIp === this.hostInnerIp)
+        const propHost = list.find(item => (this.hostInnerIp && item.ip === this.hostInnerIp)
           || (`${item.instanceId}` === this.instanceId)) || (type === 'init' && await this.getCurrentHost());
 
         if (propHost) {
-          this.curIp = propHost.innerIp || '';
+          this.curIp = propHost.ip || '';
           this.cloudArea = propHost.bkCloudName || '';
         } else {
           this.navHandle(res.list[0]);
@@ -461,7 +461,7 @@ export default {
     },
     // 获取当前主机信息（由于分页原因，调转过来的主机可能不在当前页）
     async getCurrentHost() {
-      // 忽略的主机没有instance_id，只有innerIp
+      // 忽略的主机没有instance_id，只有ip
       const params = {
         jobId: this.taskId,
         params: {
@@ -494,7 +494,7 @@ export default {
         return false;
       }
       this.needReport = true;
-      this.curIp = item.innerIp || '';
+      this.curIp = item.ip || '';
       this.cloudArea = item.bkCloudName || '';
       this.$router.replace({
         name: 'taskLog',
@@ -515,7 +515,7 @@ export default {
           .split(',');
         ipArr = [...new Set(ipArr.filter(item => !!item))];
         const navList = this.navList.reduce((arr, item) => {
-          if (ipArr.some(ip => item.innerIp.indexOf(ip) !== -1)) {
+          if (ipArr.some(ip => item.ip.indexOf(ip) !== -1)) {
             arr.push(item);
           }
           return arr;
