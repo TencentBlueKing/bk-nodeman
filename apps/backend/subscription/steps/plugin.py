@@ -579,7 +579,11 @@ class PluginStep(Step):
                 continue
             host_obj = bk_host_id__host_map[bk_host_id]
             host_info_list.append(
-                {"ip": host_obj.inner_ip, "bk_cloud_id": host_obj.bk_cloud_id, "bk_agent_id": host_obj.bk_agent_id}
+                {
+                    "ip": host_obj.inner_ip or host_obj.inner_ipv6,
+                    "bk_cloud_id": host_obj.bk_cloud_id,
+                    "bk_agent_id": host_obj.bk_agent_id,
+                }
             )
             host_id__instance_id_map[bk_host_id] = instance_id
 

@@ -22,12 +22,13 @@ class GseV1ApiHelper(base.GseApiBaseHelper):
             if "host" in mixed_types_of_host_info:
                 return self.get_agent_id(mixed_types_of_host_info["host"])
             bk_cloud_id: int = mixed_types_of_host_info["bk_cloud_id"]
-            for attr_name in ["ip", "inner_ip", "bk_host_innerip"]:
+            # v6 优先级最低
+            for attr_name in ["ip", "inner_ip", "bk_host_innerip", "inner_ipv6", "bk_host_innerip_v6"]:
                 ip = mixed_types_of_host_info.get(attr_name, "")
                 if ip:
                     break
             if not ip:
-                raise ValueError("can not get ip in dict type host info")
+                raise ValueError(f"can not get ip in dict type host info: {mixed_types_of_host_info}")
         else:
             bk_cloud_id: typing.Optional[int] = getattr(mixed_types_of_host_info, "bk_cloud_id")
             if bk_cloud_id is None:

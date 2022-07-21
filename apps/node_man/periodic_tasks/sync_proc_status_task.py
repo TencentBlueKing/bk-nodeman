@@ -25,7 +25,11 @@ def update_or_create_proc_status(task_id, host_objs, sync_proc_list, start):
     host_info_list = []
     agent_id__host_id_map = {}
     for host_obj in host_objs:
-        host_info = {"ip": host_obj.inner_ip, "bk_cloud_id": host_obj.bk_cloud_id, "bk_agent_id": host_obj.bk_agent_id}
+        host_info = {
+            "ip": host_obj.inner_ip or host_obj.inner_ipv6,
+            "bk_cloud_id": host_obj.bk_cloud_id,
+            "bk_agent_id": host_obj.bk_agent_id,
+        }
         host_info_list.append(host_info)
         agent_id__host_id_map[GseApiHelper.get_agent_id(host_info)] = host_obj.bk_host_id
 

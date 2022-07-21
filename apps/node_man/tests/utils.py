@@ -1184,8 +1184,8 @@ def ret_to_validate_data(data):
 
     # 获得请求里所有在数据库中的IP的相关信息
     # 格式 { inner_ip: {'bk_biz_id': bk_biz_id, 'node_type': node_type, 'bk_cloud_id': bk_cloud_id}, ...}
-    inner_ip_info = HostHandler().ip_list(inner_ips, constants.CmdbIpVersion.V4.value)
-    outer_ip_info = HostHandler().ip_list(outer_ips, constants.CmdbIpVersion.V4.value)
-    login_ip_info = HostHandler().ip_list(login_ips, constants.CmdbIpVersion.V4.value)
+    inner_ip_info = HostHandler.get_host_infos_gby_ip_key(inner_ips, constants.CmdbIpVersion.V4.value)
+    outer_ip_info = HostHandler.get_host_infos_gby_ip_key(outer_ips, constants.CmdbIpVersion.V4.value)
+    login_ip_info = HostHandler.get_host_infos_gby_ip_key(login_ips, constants.CmdbIpVersion.V4.value)
 
     return biz_info, data, cloud_info, ap_id_name, inner_ip_info, outer_ip_info, login_ip_info, bk_biz_scope

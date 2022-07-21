@@ -182,6 +182,12 @@ def get_chr_seq(begin_chr: str, end_chr: str) -> List[str]:
 
 
 def ipv6_formatter(data: Dict[str, Any], ipv6_field_names: List[str]):
+    """
+    将 data 中 ipv6_field_names 转为 IPv6 标准格式
+    :param data: 可能包含 v6 的字典数据
+    :param ipv6_field_names:IPv6 字段
+    :return:
+    """
     for ipv6_field_name in ipv6_field_names:
         ipv6_val: Optional[str] = data.get(ipv6_field_name)
         if not ipv6_val:
@@ -190,3 +196,15 @@ def ipv6_formatter(data: Dict[str, Any], ipv6_field_names: List[str]):
         # 将 v6 转为标准格式
         if ip_address.version == 6:
             data[ipv6_field_name] = ip_address.exploded
+
+
+def ipv4_to_v6(ipv4: str) -> str:
+    """
+    IPv4 转为 IPv6
+    :param ipv4: IPv4
+    :return: IPv6 标准形式
+    """
+    ipv4_address: ipaddress.IPv4Address = ipaddress.IPv4Address(ipv4)
+    prefix6to4: int = int(ipaddress.IPv6Address("2002::"))
+    ipv6_address: ipaddress.IPv6Address = ipaddress.IPv6Address(prefix6to4 | (int(ipv4_address) << 80))
+    return ipv6_address.exploded

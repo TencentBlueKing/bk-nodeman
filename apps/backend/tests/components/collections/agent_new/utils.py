@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 
 import base64
 import copy
+import ipaddress
 import os
 import random
 import textwrap
@@ -121,16 +122,15 @@ class AgentTestObjFactory:
             "bk_host_innerip",
             "bk_host_outerip",
         ] + ipv6_fields_names
-        default_ip_tmpl = "127.0.0.{index}"
-        default_ipv6_tmpl = "::{index_hex}"
         for index, host_data in enumerate(host_related_data_list, 1):
             for ip_field_name in ip_field_names:
                 if ip_field_name not in host_data:
                     continue
+                ipv4: str = ipaddress.IPv4Address(index).exploded
                 if ip_field_name in ipv6_fields_names:
-                    ip = default_ipv6_tmpl.format(index_hex=hex(index)[2:])
+                    ip = basic.ipv4_to_v6(ipv4)
                 else:
-                    ip = default_ip_tmpl.format(index=index)
+                    ip = ipv4
                 host_data[ip_field_name] = ip
         return host_related_data_list
 

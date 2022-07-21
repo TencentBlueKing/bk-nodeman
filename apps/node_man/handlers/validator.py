@@ -14,6 +14,7 @@ from django.db.models.aggregates import Count
 from django.utils.translation import ugettext_lazy as _
 
 from apps.node_man import constants as const
+from apps.node_man import tools
 from apps.node_man.exceptions import (
     ApIDNotExistsError,
     CloudNotExistError,
@@ -259,83 +260,103 @@ def update_pwd_validate(accept_list: list, identity_info: dict, ip_filter_list: 
 
 
 def new_install_ip_checker(
-    inner_ip_info: typing.Dict[str, typing.Dict[str, typing.Any]],
+    host_infos_gby_ip_key: typing.Dict[str, typing.List[typing.Dict[str, typing.Any]]],
+    host_info: typing.Dict[str, typing.Dict],
     error_host: typing.Dict[str, typing.Dict],
-    ip: str,
     biz_info: typing.Dict[str, typing.Any],
-    bk_cloud_name: str,
-    bk_cloud_id: int,
-    bk_biz_id: int,
-    ip_version: int,
+    bk_cloud_info: typing.Dict[str, typing.Any],
 ) -> bool:
-    cloud_inner_ip: str = f"{bk_cloud_id}-{ip}"
-    ip_field_name: str = ("inner_ip", "inner_ipv6")[ip_version == const.CmdbIpVersion.V6.value]
-
-    # ipv4 & ipv6 支持仅填一个，这种场景下 ip 为空视为校验成功，由非空 ip 决定校验最终结果
-    if not ip:
-        return True
-
-    # 内网主机信息不存在，符合新装场景
-    if cloud_inner_ip not in inner_ip_info:
-        return True
-
-    # 业务 / 内网IP / 云区域 一致时，视为重装，而不是占用
-    if all(
-        [
-            inner_ip_info[cloud_inner_ip]["bk_biz_id"] == bk_biz_id,
-            inner_ip_info[cloud_inner_ip].get(ip_field_name) == ip,
-        ]
-    ):
-        return True
-
-    # 已被占用则跳过并记录
-    error_host["msg"] = _(
-        """
-        该主机内网IP已存在于所选云区域：{cloud_name} 下,
-        业务：{bk_biz_id},
-        节点类型：{node_type}
-        """
-    ).format(
-        cloud_name=bk_cloud_name,
-        bk_biz_id=biz_info.get(inner_ip_info[cloud_inner_ip]["bk_biz_id"], inner_ip_info[cloud_inner_ip]["bk_biz_id"]),
-        node_type=inner_ip_info[cloud_inner_ip]["node_type"],
+    """
+    新装校验
+    :param host_infos_gby_ip_key: 主机信息根据 IP 等关键信息聚合的结果
+    :param host_info: 主机信息
+    :param error_host: 错误信息
+    :param biz_info:
+    :param bk_cloud_info:
+    :return:
+    """
+    host_infos_with_the_same_ips: typing.List[
+        typing.Dict[str, typing.Any]
+    ] = tools.HostV2Tools.get_host_infos_with_the_same_ips(
+        host_infos_gby_ip_key=host_infos_gby_ip_key, host_info=host_info, ip_field_names=["inner_ip", "inner_ipv6"]
     )
 
-    return False
+    # 动态 IP 或者 IP 不存在的情况下允许新增
+    if host_info["bk_addressing"] == const.CmdbAddressingType.DYNAMIC.value or not host_infos_with_the_same_ips:
+        return True
+
+    # 静态 IP 信息已存在，有且仅存在一个
+    exist_host_info: typing.Dict[str, typing.Any] = host_infos_with_the_same_ips[0]
+
+    # 当业务一致时，视为重装
+    # 当业务不一致时，校验失败，提示该主机已安装到其他业务下
+    if exist_host_info["bk_biz_id"] != host_info["bk_biz_id"]:
+        # 已被占用则跳过并记录
+        error_host["msg"] = _(
+            """
+            该主机内网IP已存在于所选云区域：{bk_cloud_name} 下,
+            业务：{bk_biz_id},
+            节点类型：{node_type}
+            """
+        ).format(
+            bk_cloud_name=bk_cloud_info.get("bk_cloud_name") or "",
+            bk_biz_id=biz_info.get(exist_host_info["bk_biz_id"], exist_host_info["bk_biz_id"]),
+            node_type=exist_host_info["node_type"],
+        )
+        return False
+
+    inner_ipv4: typing.Optional[str] = host_info.get("inner_ip")
+    inner_ipv6: typing.Optional[str] = host_info.get("inner_ipv6")
+    # 如果 ipv4 / ipv6 同时存在，也必须是绑定关系
+    if inner_ipv4 and inner_ipv6 and exist_host_info["inner_ipv6"] and exist_host_info["inner_ipv6"] != inner_ipv6:
+        error_host["msg"] = _(
+            "该主机(bk_host_id:{bk_host_id}) 已存在且 IP 信息为：IPv4({ipv4}), IPv6({ipv6})，"
+            "不允许修改为 IPv4({ipv4}), IPv6({to_be_add_ipv6})"
+        ).format(
+            bk_host_id=exist_host_info["bk_host_id"],
+            ipv4=inner_ipv4,
+            ipv6=exist_host_info["inner_ipv6"],
+            to_be_add_ipv6=inner_ipv6,
+        )
+        return False
+    return True
 
 
 def operate_ip_checker(
-    inner_ip_info: typing.Dict[str, typing.Dict[str, typing.Any]],
-    host: typing.Dict[str, typing.Dict],
+    host_infos_gby_ip_key: typing.Dict[str, typing.List[typing.Dict[str, typing.Any]]],
+    host_info: typing.Dict[str, typing.Any],
     error_host: typing.Dict[str, typing.Dict],
-    ip: str,
     op_type: str,
     node_type: str,
-    bk_cloud_id: int,
 ):
-    cloud_inner_ip: str = f"{bk_cloud_id}-{ip}"
 
-    # ipv4 & ipv6 支持仅填一个，这种场景下 ip 为空视为校验成功，由非空 ip 决定校验最终结果
-    if not ip:
-        return True
+    host_infos_with_the_same_ips: typing.List[
+        typing.Dict[str, typing.Any]
+    ] = tools.HostV2Tools.get_host_infos_with_the_same_ips(
+        host_infos_gby_ip_key=host_infos_gby_ip_key, host_info=host_info, ip_field_names=["inner_ip", "inner_ipv6"]
+    )
 
-    # 检查：除安装操作外，其他操作时内网IP是否存在
-    if cloud_inner_ip not in inner_ip_info:
+    if not host_infos_with_the_same_ips:
         error_host["msg"] = _("尚未被安装，无法执行 {op_type} 操作").format(op_type=const.JOB_TYPE_DICT[op_type + "_" + node_type])
         return False
 
-    # 检查：检查 bk_host_id 是否准确
-    if host["bk_host_id"] != inner_ip_info[cloud_inner_ip]["bk_host_id"]:
+    host_info_with_the_same_host_id: typing.Optional[typing.Dict[str, typing.Any]] = None
+    for host_info_with_the_same_ips in host_infos_with_the_same_ips:
+        if host_info_with_the_same_ips["bk_host_id"] == host_info["bk_host_id"]:
+            host_info_with_the_same_host_id = host_info_with_the_same_ips
+            break
+
+    if host_info_with_the_same_host_id is None:
         error_host["msg"] = _("Host ID 不正确，无法执行 {op_type} 操作").format(
             op_type=const.JOB_TYPE_DICT[op_type + "_" + node_type]
         )
         return False
 
-    # 检查：节点类型是否与操作类型一致, 如本身为PROXY，重装却为AGENT
-    # 此处不区分P-AGENT和AGENT
-    if node_type not in inner_ip_info[cloud_inner_ip]["node_type"]:
+    # 检查：节点类型是否与操作类型一致, 如本身为 PROXY，重装却为 AGENT
+    # 此处不区分 P-AGENT 和 AGENT
+    if node_type not in host_info_with_the_same_host_id["node_type"]:
         error_host["msg"] = _("节点类型不正确，该主机是 {host_node_type}, 而请求的操作类型是 {node_type}").format(
-            host_node_type=inner_ip_info[cloud_inner_ip]["node_type"], node_type=node_type
+            host_node_type=host_info_with_the_same_host_id["node_type"], node_type=node_type
         )
         return False
 
@@ -347,10 +368,10 @@ def install_validate(
     op_type: str,
     node_type: str,
     job_type: str,
-    biz_info: dict,
+    biz_id__biz_name_map: dict,
     cloud_info: dict,
     ap_id_name: dict,
-    inner_ip_info: dict,
+    host_infos_gby_ip_key: dict,
 ):
     """
     用于job任务的校验
@@ -358,34 +379,34 @@ def install_validate(
     :param op_type: 操作类型
     :param node_type: 节点类型
     :param job_type: 任务作业类型
-    :param biz_info: 用户的业务列表
+    :param biz_id__biz_name_map: 用户的业务列表
     :param cloud_info: 获得相应云区域 id, name, ap_id, bk_biz_scope
     :param ap_id_name: 获得接入点列表
-    :param inner_ip_info: DB中内网IP信息
+    :param host_infos_gby_ip_key: DB中内网IP信息
     :return: 列表，ip被占用及其原因
     """
-    ip_filter_list = []
     accept_list = []
+    ip_filter_list = []
     proxy_not_alive = []
 
     # 获得有可用代理的云区域
     available_clouds, proxies_count = check_available_proxy()
 
     for host in hosts:
-        ip = host.get("inner_ip")
-        ipv6 = host.get("inner_ipv6")
-        bk_cloud_id = host["bk_cloud_id"]
-        bk_biz_id = host["bk_biz_id"]
         ap_id = host.get("ap_id")
+        bk_biz_id = host["bk_biz_id"]
+        bk_cloud_id = host["bk_cloud_id"]
+        ip = host.get("inner_ip") or host.get("inner_ipv6")
 
-        # 云区域名称
-        cloud_name = cloud_info.get(bk_cloud_id, {}).get("bk_cloud_name", "")
-        biz_name = biz_info.get(bk_biz_id)
+        bk_cloud_info = cloud_info.get(bk_cloud_id, {})
+        biz_info = {"bk_biz_id": bk_biz_id, "bk_biz_name": biz_id__biz_name_map.get(bk_biz_id)}
         error_host = {
+            **biz_info,
             "ip": ip,
+            "inner_ip": host.get("inner_ip"),
+            "inner_ipv6": host.get("inner_ipv6"),
             "bk_host_id": host.get("bk_host_id"),
-            "bk_cloud_name": cloud_name,
-            "bk_biz_name": biz_name,
+            "bk_cloud_name": bk_cloud_info.get("bk_cloud_name") or "",
             "bk_cloud_id": bk_cloud_id,
             "status": const.JobStatusType.IGNORED,
             "job_id": "",
@@ -401,11 +422,13 @@ def install_validate(
         if bk_cloud_id != const.DEFAULT_CLOUD and bk_cloud_id not in cloud_info:
             raise CloudNotExistError(_("云区域(ID:{bk_cloud_id}) 不存在").format(bk_cloud_id=bk_cloud_id))
 
-        # 检查：直连区域不允许安装PROXY
+        # 检查：直连区域不允许安装 PROXY
         if bk_cloud_id == const.DEFAULT_CLOUD and node_type == const.NodeType.PROXY:
-            raise ProxyNotAvaliableError(_("{cloud_name} 是直连区域，不可以安装PROXY").format(cloud_name=cloud_name))
+            raise ProxyNotAvaliableError(
+                _("{bk_cloud_name} 是直连区域，不可以安装PROXY").format(bk_cloud_name=bk_cloud_info.get("bk_cloud_name") or "")
+            )
 
-        # 检查：判断P-Agent情况下代理是否可用
+        # 检查：判断 P-Agent 情况下代理是否可用
         if (
             bk_cloud_id != const.DEFAULT_CLOUD
             and node_type != const.NodeType.PROXY
@@ -426,74 +449,29 @@ def install_validate(
         if ap_id != const.DEFAULT_AP_ID and ap_id not in ap_id_name:
             raise ApIDNotExistsError(_("接入点(id:{ap_id})不存在").format(ap_id=ap_id))
 
-        # # 允许 Agent 重装为 Proxy，无需进行校验o
+        is_check_pass = True
         if op_type in [const.OpType.INSTALL, const.OpType.REPLACE] and job_type != const.JobType.INSTALL_PROXY:
-            if new_install_ip_checker(
-                inner_ip_info=inner_ip_info,
+            is_check_pass = new_install_ip_checker(
+                host_infos_gby_ip_key=host_infos_gby_ip_key,
+                host_info=host,
                 error_host=error_host,
-                ip=ip,
                 biz_info=biz_info,
-                bk_cloud_name=cloud_name,
-                bk_cloud_id=bk_cloud_id,
-                bk_biz_id=bk_biz_id,
-                ip_version=const.CmdbIpVersion.V4.value,
-            ) and new_install_ip_checker(
-                inner_ip_info=inner_ip_info,
+                bk_cloud_info=bk_cloud_info,
+            )
+
+        elif op_type not in [const.OpType.INSTALL, const.OpType.REPLACE]:
+            is_check_pass = operate_ip_checker(
+                host_infos_gby_ip_key=host_infos_gby_ip_key,
+                host_info=host,
                 error_host=error_host,
-                ip=ipv6,
-                biz_info=biz_info,
-                bk_cloud_name=cloud_name,
-                bk_cloud_id=bk_cloud_id,
-                bk_biz_id=bk_biz_id,
-                ip_version=const.CmdbIpVersion.V6.value,
-            ):
-                inner_ipv4_info: typing.Dict[str, typing.Any] = inner_ip_info.get(f"{bk_cloud_id}-{ip}")
-                # 如果 ipv4 / ipv6 同时存在，也必须是绑定关系
-                if inner_ipv4_info and ipv6 and inner_ipv4_info["inner_ipv6"] and inner_ipv4_info["inner_ipv6"] != ipv6:
-                    error_host["msg"] = _(
-                        "该主机(bk_host_id:{bk_host_id}) 已存在且 IP 信息为：IPv4({ipv4}), IPv6({ipv6})，"
-                        "不允许修改为 IPv4({ipv4}), IPv6({to_be_add_ipv6})"
-                    ).format(
-                        bk_host_id=inner_ipv4_info["bk_host_id"],
-                        ipv4=ip,
-                        ipv6=inner_ipv4_info["inner_ipv6"],
-                        to_be_add_ipv6=ipv6,
-                    )
-                    ip_filter_list.append(error_host)
-                    continue
-                accept_list.append(dict(host))
-                continue
-            else:
-                ip_filter_list.append(error_host)
-                continue
+                op_type=op_type,
+                node_type=node_type,
+            )
 
-        # 非新装任务校验
-        if op_type not in [const.OpType.INSTALL, const.OpType.REPLACE]:
-            if not (
-                operate_ip_checker(
-                    inner_ip_info=inner_ip_info,
-                    host=host,
-                    error_host=error_host,
-                    ip=ip,
-                    op_type=op_type,
-                    node_type=node_type,
-                    bk_cloud_id=bk_cloud_id,
-                )
-                and operate_ip_checker(
-                    inner_ip_info=inner_ip_info,
-                    host=host,
-                    error_host=error_host,
-                    ip=ipv6,
-                    op_type=op_type,
-                    node_type=node_type,
-                    bk_cloud_id=bk_cloud_id,
-                )
-            ):
-                ip_filter_list.append(error_host)
-                continue
-
-        # 完全没问题，可进行下一步
-        accept_list.append(dict(host))
+        if is_check_pass:
+            accept_list.append(dict(host))
+        else:
+            ip_filter_list.append(error_host)
 
     return ip_filter_list, accept_list, proxy_not_alive
 
