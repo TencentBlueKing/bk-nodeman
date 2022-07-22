@@ -127,8 +127,12 @@
           prop="msg"
           key="msg"
           show-overflow-tooltip
-          min-width="400"
-        />
+          min-width="400">
+          <template #default="{ row }">
+            <!-- eslint-disable-next-line vue/no-v-html -->
+            <span v-html="row.msg"></span>
+          </template>
+        </bk-table-column>
         <bk-table-column
           v-else-if="isIgnoredTab && isManualType"
           :label="$t('部署策略')"

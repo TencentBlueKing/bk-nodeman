@@ -18,6 +18,7 @@ from copy import deepcopy
 from functools import wraps
 from typing import Any, Dict, List, Optional, Union
 
+from django.conf import settings
 from django.utils.translation import ugettext as _
 
 from apps.backend.celery import app
@@ -328,7 +329,7 @@ def create_task(
                         "msg": _(
                             "当前{category_alias}（{bk_obj_name} 级）"
                             "已被优先级更高的{suppressed_by_category_alias}【{suppressed_by_name}(ID: {suppressed_by_id})】"
-                            "（{suppressed_by_obj_name} 级）抑制"
+                            '（{suppressed_by_obj_name} 级）抑制, 点击跳转到 <a href="{link}" target="_blank">[策略页面]</a>'
                         ).format(
                             category_alias=models.Subscription.CATEGORY_ALIAS_MAP[result["category"]],
                             bk_obj_name=constants.CmdbObjectId.OBJ_ID_ALIAS_MAP.get(
@@ -344,6 +345,8 @@ def create_task(
                                 result["suppressed_by"]["bk_obj_id"],
                                 constants.CmdbObjectId.OBJ_ID_ALIAS_MAP[constants.CmdbObjectId.CUSTOM],
                             ),
+                            link=f"{settings.BK_NODEMAN_HOST}/#/plugin-manager/rule?name"
+                            f"={result['suppressed_by']['name']}",
                         ),
                     }
                 )
