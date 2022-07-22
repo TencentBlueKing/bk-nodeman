@@ -212,7 +212,7 @@
         </template>
         <bk-table-column
           key="selection"
-          width="70"
+          width="65"
           align="center"
           fixed
           :resizable="false"
@@ -241,7 +241,7 @@
           key="IP"
           label="IP"
           prop="inner_ip"
-          width="110"
+          width="125"
           show-overflow-tooltip>
           <template #default="{ row }">
             {{ row.inner_ip | filterEmpty }}
@@ -251,11 +251,22 @@
           key="inner_ipv6"
           :label="$t('内网IPv6')"
           prop="inner_ipv6"
-          width="110"
+          :width="innerIpv6Width"
           v-if="filter['inner_ipv6'].mockChecked"
           show-overflow-tooltip>
           <template #default="{ row }">
             {{ row.inner_ipv6 | filterEmpty }}
+          </template>
+        </bk-table-column>
+        <bk-table-column
+          key="bk_host_name"
+          :label="$t('主机名')"
+          prop="bk_host_name"
+          width="110"
+          v-if="filter['bk_host_name'].mockChecked"
+          show-overflow-tooltip>
+          <template #default="{ row }">
+            {{ row.bk_host_name | filterEmpty }}
           </template>
         </bk-table-column>
         <bk-table-column
@@ -658,6 +669,13 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
       name: window.i18n.t('外网IPv6'),
       id: 'outer_ipv6',
     },
+    bk_host_name: {
+      checked: false,
+      disabled: false,
+      mockChecked: false,
+      name: window.i18n.t('主机名'),
+      id: 'bk_host_name',
+    },
     agent_version: {
       checked: true,
       disabled: false,
@@ -854,6 +872,13 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
   }
   private get selectedBiz() {
     return MainStore.selectedBiz;
+  }
+  private get innerIpv6Width() {
+    const ipv6SortRows: number[] = this.table.data
+      .filter(row => !!row.inner_ipv6)
+      .map(row => (row.inner_ipv6 as string).length)
+      .sort((a, b) => b - a);
+    return ipv6SortRows.length ? Math.ceil(ipv6SortRows[0] * 6.9) : 80;
   }
   // 可操作的数据
   private get datasheets() {
