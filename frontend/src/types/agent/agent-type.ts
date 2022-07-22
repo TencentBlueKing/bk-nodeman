@@ -25,6 +25,7 @@ export interface IAgentHost {
   bk_biz_name: string
   bk_cloud_id: number
   bk_cloud_name: string
+  bk_host_name: string
   is_manual: boolean
   bt_speed_limit: string
   peer_exchange_switch_for_agent: boolean

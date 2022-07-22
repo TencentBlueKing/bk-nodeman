@@ -177,7 +177,7 @@ export const setupTableConfig: ISetupHead[] = [
     label: '寻址方式',
     prop: 'bk_addressing',
     type: 'select',
-    default: '1',
+    default: '0',
     batch: true,
     required: false,
     noRequiredMark: false,

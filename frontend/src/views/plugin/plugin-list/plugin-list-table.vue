@@ -63,7 +63,7 @@
         </template>
       </bk-table-column>
       <bk-table-column
-        min-width="130"
+        :width="innerIpv6Width"
         prop="inner_ipv6"
         class-name="ip-row"
         sortable
@@ -76,6 +76,17 @@
           <span v-else>{{ row.inner_ipv6 | filterEmpty }}</span>
         </template>
       </bk-table-column>
+      <!-- <bk-table-column
+        v-if="getColumnShowStatus('bk_host_name')"
+        min-width="110"
+        prop="bk_host_name"
+        sortable
+        :label="$t('主机名')"
+        :render-header="renderFilterHeader">
+        <template #default="{ row }">
+          {{ row.bk_host_name | filterEmpty }}
+        </template>
+      </bk-table-column> -->
       <bk-table-column
         v-if="getColumnShowStatus('node_type')"
         min-width="120"
@@ -150,6 +161,7 @@
         prop="colspaSetting"
         :render-header="renderSettingHeader"
         width="42"
+        fixed="right"
         :resizable="false">
       </bk-table-column>
     </bk-table>
@@ -251,6 +263,18 @@ export default class PluginRuleTable extends Mixins(FormLabelMixin, HeaderRender
     },
     {
       checked: true,
+      disabled: true,
+      name: window.i18n.t('内网IPv6'),
+      id: 'inner_ipv6',
+    },
+    // {
+    //   checked: false,
+    //   disabled: false,
+    //   name: window.i18n.t('主机名'),
+    //   id: 'bk_host_name',
+    // },
+    {
+      checked: true,
       disabled: false,
       name: window.i18n.t('节点类型'),
       id: 'node_type',
@@ -304,6 +328,13 @@ export default class PluginRuleTable extends Mixins(FormLabelMixin, HeaderRender
       return this.selections.length;
     }
     return this.runningCount - this.excludeData.length;
+  }
+  private get innerIpv6Width() {
+    const ipv6SortRows: number[] = this.tableList
+      .filter(row => !!row.inner_ipv6)
+      .map(row => row.inner_ipv6.length)
+      .sort((a, b) => b - a);
+    return ipv6SortRows.length ? Math.ceil(ipv6SortRows[0] * 6.9) : 80;
   }
 
   private getColumnShowStatus(id: string) {
@@ -377,7 +408,7 @@ export default class PluginRuleTable extends Mixins(FormLabelMixin, HeaderRender
 
   // 查看主机任务
   public handleRowClick(row: IPluginList) {
-    this.currentIp = row.inner_ip;
+    this.currentIp = row.inner_ip || row.inner_ipv6;
     this.currentHostId = row.bk_host_id;
     this.currentHostStatus = row.status;
     this.handleLoadDetaitl();
