@@ -76,7 +76,7 @@
           <span v-else>{{ row.inner_ipv6 | filterEmpty }}</span>
         </template>
       </bk-table-column>
-      <!-- <bk-table-column
+      <bk-table-column
         v-if="getColumnShowStatus('bk_host_name')"
         min-width="110"
         prop="bk_host_name"
@@ -86,7 +86,7 @@
         <template #default="{ row }">
           {{ row.bk_host_name | filterEmpty }}
         </template>
-      </bk-table-column> -->
+      </bk-table-column>
       <bk-table-column
         v-if="getColumnShowStatus('node_type')"
         min-width="120"
@@ -267,12 +267,12 @@ export default class PluginRuleTable extends Mixins(FormLabelMixin, HeaderRender
       name: window.i18n.t('内网IPv6'),
       id: 'inner_ipv6',
     },
-    // {
-    //   checked: false,
-    //   disabled: false,
-    //   name: window.i18n.t('主机名'),
-    //   id: 'bk_host_name',
-    // },
+    {
+      checked: false,
+      disabled: false,
+      name: window.i18n.t('主机名'),
+      id: 'bk_host_name',
+    },
     {
       checked: true,
       disabled: false,
