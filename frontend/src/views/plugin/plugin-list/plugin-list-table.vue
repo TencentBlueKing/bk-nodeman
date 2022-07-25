@@ -66,7 +66,6 @@
         :width="innerIpv6Width"
         prop="inner_ipv6"
         class-name="ip-row"
-        sortable
         :label="$t('内网IPv6')"
         fixed>
         <template #default="{ row }">
@@ -78,7 +77,7 @@
       </bk-table-column>
       <bk-table-column
         v-if="getColumnShowStatus('bk_host_name')"
-        min-width="110"
+        min-width="120"
         prop="bk_host_name"
         sortable
         :label="$t('主机名')"
@@ -133,10 +132,7 @@
         prop="bk_addressing"
         :label="$t('寻址方式')">
         <template #default="{ row }">
-          <span v-if="row.inner_ipv6">
-            {{ `${row.bk_addressing}` === '1' ? $t('动态') : $t('静态') }}
-          </span>
-          <span v-else>{{ '' | filterEmpty }}</span>
+          {{ `${row.bk_addressing}` === '1' ? $t('动态') : $t('静态') }}
         </template>
       </bk-table-column>
       <template v-for="(plugin, index) in pluginNames">
@@ -268,7 +264,7 @@ export default class PluginRuleTable extends Mixins(FormLabelMixin, HeaderRender
       id: 'inner_ipv6',
     },
     {
-      checked: false,
+      checked: true,
       disabled: false,
       name: window.i18n.t('主机名'),
       id: 'bk_host_name',
