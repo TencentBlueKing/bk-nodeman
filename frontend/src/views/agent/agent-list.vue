@@ -262,7 +262,7 @@
           key="bk_host_name"
           :label="$t('主机名')"
           prop="bk_host_name"
-          width="110"
+          width="120"
           v-if="filter['bk_host_name'].mockChecked"
           show-overflow-tooltip>
           <template #default="{ row }">
@@ -670,9 +670,9 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
       id: 'outer_ipv6',
     },
     bk_host_name: {
-      checked: false,
+      checked: true,
       disabled: false,
-      mockChecked: false,
+      mockChecked: true,
       name: window.i18n.t('主机名'),
       id: 'bk_host_name',
     },
@@ -878,7 +878,7 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
       .filter(row => !!row.inner_ipv6)
       .map(row => (row.inner_ipv6 as string).length)
       .sort((a, b) => b - a);
-    return ipv6SortRows.length ? Math.ceil(ipv6SortRows[0] * 6.9) : 80;
+    return ipv6SortRows.length ? Math.ceil(ipv6SortRows[0] * 6.9) : 90;
   }
   // 可操作的数据
   private get datasheets() {
