@@ -30,3 +30,5 @@ apps/backend/
 - clean_script_files_maxhours    # 从文件创建时间开始计算文件最多保留小时数
 - clean_script_files_stepcount   # 每次清理一百个文件时，强制 sleep 30ms 避免cpu负载过高
 - processeventdataid             # 进程告警事件
+- btServerOuterIP                # ``PROXY``服务器外网地址
+- btfilesvrscfg                  # ``BTSERVER``配置项, 对应服务器监听地址应为蓝鲸``GSE``服务器的外网地址
