@@ -284,10 +284,7 @@ BTSVR_TEMPLATE = """
     "btzkflag": 0,
     "filesvrthriftip": "0.0.0.0",
     "btServerInnerIP": [{"ip": "{{ inner_ip }}", "port": {{ btsvr_thrift_port }}}],
-    // 该处填写 PROXY 所在的外网 ip
     "btServerOuterIP": [{"ip": "{{ outer_ip }}", "port": {{ btsvr_thrift_port }}}],
-
-    // 以下填写 gse 所在的外网 ip
     "btfilesvrscfg": [
         {% for gse_outer_ip in btfileserver_outer_ips%}
             {
