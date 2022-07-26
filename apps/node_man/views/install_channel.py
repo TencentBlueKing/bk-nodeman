@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from drf_yasg.utils import swagger_auto_schema
 from rest_framework.response import Response
 
 from apps.generic import ModelViewSet
@@ -16,12 +17,18 @@ from apps.node_man.handlers.permission import InstallChannelPermission
 from apps.node_man.models import InstallChannel
 from apps.node_man.serializers.install_channel import BaseSerializer, UpdateSerializer
 
+INSTALL_CHANNEL_VIEW_TAGS = ["channel"]
+
 
 class InstallChannelViewSet(ModelViewSet):
     model = InstallChannel
     lookup_value_regex = "[0-9.]+"
     permission_classes = (InstallChannelPermission,)
 
+    @swagger_auto_schema(
+        operation_summary="查询安装通道列表",
+        tags=INSTALL_CHANNEL_VIEW_TAGS,
+    )
     def list(self, request, *args, **kwargs):
         """
         @api {GET} /install_channel/ 查询安装通道列表
@@ -45,6 +52,10 @@ class InstallChannelViewSet(ModelViewSet):
         install_channels = InstallChannelHandler.list()
         return Response(install_channels)
 
+    @swagger_auto_schema(
+        operation_summary="创建安装通道",
+        tags=INSTALL_CHANNEL_VIEW_TAGS,
+    )
     def create(self, request, *args, **kwargs):
         """
         @api {POST} /install_channel/  创建安装通道
@@ -78,6 +89,10 @@ class InstallChannelViewSet(ModelViewSet):
         result = InstallChannelHandler(bk_cloud_id=bk_cloud_id).create(name, jump_servers, upstream_servers)
         return Response(result)
 
+    @swagger_auto_schema(
+        operation_summary="编辑安装通道",
+        tags=INSTALL_CHANNEL_VIEW_TAGS,
+    )
     def update(self, request, *args, **kwargs):
         """
         @api {PUT} /install_channel/{{pk}}/  编辑安装通道
@@ -109,6 +124,10 @@ class InstallChannelViewSet(ModelViewSet):
         InstallChannelHandler(bk_cloud_id=bk_cloud_id).update(install_channel_id, name, jump_servers, upstream_servers)
         return Response({})
 
+    @swagger_auto_schema(
+        operation_summary="删除安装通道",
+        tags=INSTALL_CHANNEL_VIEW_TAGS,
+    )
     def destroy(self, request, *args, **kwargs):
         """
         @api {DELETE} /install_channel/{{pk}}/  删除安装通道

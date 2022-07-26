@@ -12,13 +12,20 @@ from blueapps.account.conf import ConfFixture
 from blueapps.account.handlers.response import ResponseHandler
 from django.conf import settings
 from django.http import JsonResponse
+from drf_yasg.utils import swagger_auto_schema
 from rest_framework.decorators import action
 
 from apps.generic import APIViewSet
 from apps.node_man.handlers import password
 
+PASSWORD_VIEW_TAGS = ["password"]
+
 
 class PasswordViews(APIViewSet):
+    @swagger_auto_schema(
+        operation_summary="查询订阅任务详情",
+        tags=PASSWORD_VIEW_TAGS,
+    )
     @action(methods=["post"], detail=False)
     def fetch_pwd(self, request, *args, **kwargs):
         """

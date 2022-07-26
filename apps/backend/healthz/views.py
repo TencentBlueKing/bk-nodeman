@@ -8,17 +8,23 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-
+from drf_yasg.utils import swagger_auto_schema
 from rest_framework import mixins
 from rest_framework.response import Response
 
 from apps.backend.healthz.processor import get_backend_healthz
 from apps.generic import APIViewSet
 
+HEALTHZ_VIEW_TAGS = ["healthz"]
+
 
 class HealthzViewSet(APIViewSet, mixins.ListModelMixin):
     queryset = ""
 
+    @swagger_auto_schema(
+        operation_summary="健康统计指标",
+        tags=HEALTHZ_VIEW_TAGS,
+    )
     def list(self, request, *args, **kwargs):
         # 统计指标
         return Response(get_backend_healthz())
