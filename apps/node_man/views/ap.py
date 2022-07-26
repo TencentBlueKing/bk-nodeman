@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 from django.conf import settings
 from django.db.transaction import atomic
 from django.utils.translation import ugettext as _
+from drf_yasg.utils import swagger_auto_schema
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
@@ -23,12 +24,18 @@ from apps.node_man.models import AccessPoint, Cloud
 from apps.node_man.serializers.ap import ListSerializer, UpdateOrCreateSerializer
 from apps.utils.local import get_request_username
 
+AP_VIEW_TAGS = ["ap"]
+
 
 class ApViewSet(ModelViewSet):
     model = AccessPoint
     serializer_class = UpdateOrCreateSerializer
     permission_classes = (GlobalSettingPermission,)
 
+    @swagger_auto_schema(
+        operation_summary="查询任务列表",
+        tags=AP_VIEW_TAGS,
+    )
     def list(self, request, *args, **kwargs):
         """
         @api {GET} /ap/ 查询接入点列表
@@ -79,6 +86,10 @@ class ApViewSet(ModelViewSet):
         serializer = ListSerializer(queryset, many=True)
         return Response(serializer.data)
 
+    @swagger_auto_schema(
+        operation_summary="返回正在被使用的接入点",
+        tags=AP_VIEW_TAGS,
+    )
     @action(detail=False, methods=["GET"])
     def ap_is_using(self, request):
         """
@@ -89,6 +100,10 @@ class ApViewSet(ModelViewSet):
         using_ap_ids = list(Cloud.objects.values_list("ap_id", flat=True).distinct())
         return Response(using_ap_ids)
 
+    @swagger_auto_schema(
+        operation_summary="查询接入点详情",
+        tags=AP_VIEW_TAGS,
+    )
     def retrieve(self, request, *args, **kwargs):
         """
         @api {GET} /ap/{{pk}}/ 查询接入点详情
@@ -139,6 +154,10 @@ class ApViewSet(ModelViewSet):
         serializer = ListSerializer(queryset)
         return Response(serializer.data)
 
+    @swagger_auto_schema(
+        operation_summary="新增接入点",
+        tags=AP_VIEW_TAGS,
+    )
     def create(self, request, *args, **kwargs):
         """
         @api {POST} /ap/ 新增接入点
@@ -248,6 +267,10 @@ class ApViewSet(ModelViewSet):
 
             return ap
 
+    @swagger_auto_schema(
+        operation_summary="编辑接入点",
+        tags=AP_VIEW_TAGS,
+    )
     def update(self, request, *args, **kwargs):
         """
         @api {PUT} /ap/{{pk}}/ 编辑接入点
@@ -329,6 +352,10 @@ class ApViewSet(ModelViewSet):
 
         return Response({})
 
+    @swagger_auto_schema(
+        operation_summary="删除接入点",
+        tags=AP_VIEW_TAGS,
+    )
     def destroy(self, request, *args, **kwargs):
         """
         @api {DELETE} /ap/{{pk}}/ 删除接入点
@@ -345,6 +372,10 @@ class ApViewSet(ModelViewSet):
             raise ApIdIsUsing(_(f"该接入点正在被云区域 {cloud_names} 使用"))
         return super().destroy(request, *args, **kwargs)
 
+    @swagger_auto_schema(
+        operation_summary="初始化插件信息",
+        tags=AP_VIEW_TAGS,
+    )
     @action(detail=False, methods=["POST"])
     def init_plugin(self, request):
         """
@@ -356,6 +387,10 @@ class ApViewSet(ModelViewSet):
 
         return Response(APHandler().init_plugin_data(get_request_username()))
 
+    @swagger_auto_schema(
+        operation_summary="接入点可用性测试",
+        tags=AP_VIEW_TAGS,
+    )
     @action(detail=False, methods=["POST"])
     def test(self, request, *args, **kwargs):
         """

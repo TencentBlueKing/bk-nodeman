@@ -13,22 +13,21 @@ from __future__ import absolute_import, unicode_literals
 import logging
 import operator
 from collections import defaultdict
-from copy import deepcopy
 from functools import cmp_to_key, reduce
-from typing import Dict, List, Set
+from typing import Dict
 
-import ujson as json
 from django.core.cache import caches
 from django.db import transaction
 from django.db.models import Q
 from django.utils.translation import get_language
-from django.utils.translation import gettext_lazy as _
+from drf_yasg.utils import swagger_auto_schema
+from rest_framework import status
 from rest_framework.decorators import action
-from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 
 from apps.backend.agent.tasks import collect_log
 from apps.backend.agent.tools import gen_commands
+from apps.backend.serializers import response
 from apps.backend.subscription import errors, serializers, task_tools, tasks, tools
 from apps.backend.subscription.errors import InstanceTaskIsRunning
 from apps.backend.subscription.handler import SubscriptionHandler
@@ -40,194 +39,28 @@ from apps.utils import basic
 logger = logging.getLogger("app")
 cache = caches["db"]
 
+SUBSCRIPTION_VIEW_TAGS = ["subscription"]
+
 
 class SubscriptionViewSet(APIViewSet):
     queryset = ""
     # permission_classes = (BackendBasePermission,)
 
-    serializer_classes = dict(
-        create_subscription=serializers.CreateSubscriptionSerializer,
-        info=serializers.GetSubscriptionSerializer,
-        update_subscription=serializers.UpdateSubscriptionSerializer,
-        delete_subscription=serializers.DeleteSubscriptionSerializer,
-        run=serializers.RunSubscriptionSerializer,
-        revoke=serializers.RevokeSubscriptionSerializer,
-        retry=serializers.RetrySubscriptionSerializer,
-        check_task_ready=serializers.CheckTaskReadySerializer,
-        task_result=serializers.TaskResultSerializer,
-        switch=serializers.SwitchSubscriptionSerializer,
-        cmdb_subscription=serializers.CMDBSubscriptionSerializer,
-        fetch_commands=serializers.FetchCommandsSerializer,
-        instance_status=serializers.InstanceHostStatusSerializer,
-        task_result_detail=serializers.TaskResultDetailSerializer,
-        retry_node=serializers.RetryNodeSerializer,
-        statistic=serializers.SubscriptionStatisticSerializer,
-        search_deploy_policy=serializers.SearchDeployPolicySerializer,
-        query_host_policy=serializers.QueryHostPolicySerializer,
-        query_host_subscriptions=serializers.QueryHostSubscriptionsSerializer,
+    @swagger_auto_schema(
+        operation_summary="创建订阅",
+        responses={status.HTTP_200_OK: response.CreateResponseSerializer()},
+        tags=SUBSCRIPTION_VIEW_TAGS,
     )
-
-    def get_validated_data(self):
-        """
-        使用serializer校验参数，并返回校验后参数
-        :return: dict
-        """
-        data = None
-        try:
-            if self.request.method == "GET":
-                data = self.request.query_params
-            else:
-                data = self.request.data
-        except Exception as e:
-            logger.info(e)
-
-        try:
-            if not data:
-                data = json.loads(self.request.body)
-        except Exception as e:
-            raise ParseError(e)
-
-        bk_username = self.request.META.get("HTTP_BK_USERNAME")
-        bk_app_code = self.request.META.get("HTTP_BK_APP_CODE")
-
-        data = data.copy()
-        data.setdefault("bk_username", bk_username)
-        data.setdefault("bk_app_code", bk_app_code)
-
-        serializer = self.get_serializer(data=data)
-        serializer.is_valid(raise_exception=True)
-        return deepcopy(serializer.validated_data)
-
-    def get_serializer_class(self):
-        """
-        根据方法名返回合适的序列化器
-        """
-        return self.serializer_classes.get(self.action)
-
-    @action(detail=False, methods=["POST"], url_path="create")
+    @action(
+        detail=False, methods=["POST"], url_path="create", serializer_class=serializers.CreateSubscriptionSerializer
+    )
     def create_subscription(self, request):
         """
         @api {POST} /subscription/create/ 创建订阅
         @apiName create_subscription
         @apiGroup subscription
-        @apiParam {Object} scope 事件订阅监听的范围
-        @apiParam {Int} scope.bk_biz_id 业务ID
-        @apiParam {String} scope.object_type CMDB对象类型，可选 `SERVICE`, `HOST`
-        @apiParam {String} scope.node_type CMDB节点类型，可选 `TOPO`, `INSTANCE`
-        @apiParam {Object[]} scope.nodes 节点列表，根据 `object_type` 和 `node_type` 的不同，其数据结构也有所差异
-        @apiParam {Object[]} steps 事件订阅触发的动作列表
-        @apiParam {String} steps.id 步骤标识符，在一个列表中不允许重复
-        @apiParam {String} steps.type 步骤类型，可选 `AGENT`, `PLUGIN`
-        @apiParam {String} steps.config 步骤配置
-        @apiParam {String} steps.params 步骤参数
-        @apiParam {Object[]} [target_hosts] 需要下发的目标机器列表
-        @apiParamExample {Json} 请求例子:
-        {
-            // 订阅节点，根据 object_type 和 node_type 的不同组合，数据结构有所差异
-            "scope": {
-                "bk_biz_id": 2,
-                "object_type": "SERVICE",  // 可选 SERVICE - 服务，HOST - 主机
-                "node_type": "TOPO",  // 可选 TOPO - 拓扑，INSTANCE - 实例
-                "nodes": [
-                    // SERVICE-INSTANCE
-                    {
-                       "id": 12
-                    },
-                    // HOST-TOPO
-                    {
-                        "bk_inst_id": 33,   // 节点实例ID
-                        "bk_obj_id": "module",  // 节点对象ID
-                    },
-                    // HOST-INSTANCE
-                    {
-                        "ip": "127.0.0.1",
-                        "bk_cloud_id": 0,
-                        "bk_supplier_id": 0,
-                    }
-                ]
-            },
-            // 下发的目标机器，可以不传，默认取cmdb_instance.host下面的机器信息
-            "target_hosts": [{
-                "ip": "127.0.0.1",
-                "bk_cloud_id": 0,
-                "bk_supplier_id": 0
-            }],
-            "steps": [
-                {
-                    "id": "mysql_exporter",  // 步骤标识符，在一个列表中不允许重复
-                    "type": "PLUGIN",   // 步骤类型
-                    "config": {
-                        "plugin_name": "mysql_exporter",
-                        "plugin_version": "2.3",
-                        "config_templates": [
-                            {
-                                "name": "config.yaml",
-                                "version": "2",
-                                "os": "windows",
-                                "cpu_arch": "x86_64",
-                            },
-                            {
-                                "name": "env.yaml",
-                                "version": "2",
-                                "os": "windows",
-                                "cpu_arch": "x86_64",
-                            }
-                        ]
-                    },
-                    "params": {
-                        "port_range": "9102,10000-10005,20103,30000-30100",
-                        "context": {
-                          // 输入常量
-                          "--web.listen-host": "127.0.0.1",
-                          // 使用 {{ }} 的方式引用节点管理内置变量
-                          "--web.listen-port": "{{ control_info.port }}"
-                        }
-                    }
-                },
-                {
-                    "id": "bkmonitorbeat",  // 步骤标识符，在一个列表中不允许重复
-                    "type": "PLUGIN",   // 步骤类型
-                    "config": {
-                        "plugin_name": "bkmonitorbeat",
-                        "plugin_version": "1.7.0",
-                        "config_templates": [
-                            {
-                                "name": "bkmonitorbeat_exporter.yaml",
-                                "version": "1",
-                            },
-                        ]
-                    },
-                    "params": {
-                        "context": {
-                            "metrics_url": "XXX",
-                            // 以下为动态数组用法，用于渲染需要做循环的节点管理内置变量
-                            "labels": {
-                                "$for": "cmdb_instance.scopes",
-                                "$item": "scope",
-                                "$body": {
-                                    "bk_target_ip": "{{ cmdb_instance.host.bk_host_innerip }}",
-                                    "bk_target_cloud_id": "{{ cmdb_instance.host.bk_cloud_id }}",
-                                    "bk_target_topo_level": "{{ scope.bk_obj_id }}",
-                                    "bk_target_topo_id": "{{ scope.bk_inst_id }}",
-                                    "bk_target_service_category_id": "{{ cmdb_instance.service.service_category_id }}",
-                                    "bk_target_service_instance_id": "{{ cmdb_instance.service.id }}",
-                                    "bk_collect_config_id": 1
-                                }
-                            }
-                        }
-                    }
-                }
-            ]
-        }
-        @apiSuccessExample {json} 成功返回:
-        {
-            "result": true,
-            "data": {
-                "subscription_id": 1
-            }
-        }
         """
-        params = self.get_validated_data()
+        params = self.validated_data
         scope = params["scope"]
         run_immediately = params["run_immediately"]
 
@@ -286,14 +119,19 @@ class SubscriptionViewSet(APIViewSet):
 
         return Response(result)
 
-    @action(detail=False, methods=["POST"], url_path="info")
+    @swagger_auto_schema(
+        operation_summary="订阅详情",
+        responses={status.HTTP_200_OK: response.InfoResponseSerializer()},
+        tags=SUBSCRIPTION_VIEW_TAGS,
+    )
+    @action(detail=False, methods=["POST"], serializer_class=serializers.GetSubscriptionSerializer)
     def info(self, request):
         """
         @api {POST} /subscription/info/ 订阅详情
         @apiName subscription_info
         @apiGroup subscription
         """
-        params = self.get_validated_data()
+        params = self.validated_data
         ids = params["subscription_id_list"]
         subscriptions = models.Subscription.get_subscriptions(ids, show_deleted=params["show_deleted"])
 
@@ -326,14 +164,21 @@ class SubscriptionViewSet(APIViewSet):
 
         return Response(result)
 
-    @action(detail=False, methods=["POST"], url_path="update")
+    @swagger_auto_schema(
+        operation_summary="更新订阅",
+        responses={status.HTTP_200_OK: response.UpdateResponseSerializer()},
+        tags=SUBSCRIPTION_VIEW_TAGS,
+    )
+    @action(
+        detail=False, methods=["POST"], url_path="update", serializer_class=serializers.UpdateSubscriptionSerializer
+    )
     def update_subscription(self, request):
         """
         @api {POST} /subscription/update/ 更新订阅
         @apiName update_subscription
         @apiGroup subscription
         """
-        params = self.get_validated_data()
+        params = self.validated_data
         scope = params["scope"]
         run_immediately = params["run_immediately"]
         with transaction.atomic():
@@ -350,60 +195,17 @@ class SubscriptionViewSet(APIViewSet):
             subscription.bk_biz_scope = params.get("bk_biz_scope")
             subscription.save()
 
-            step_ids: Set[str] = set()
-            step_id__obj_map: Dict[str, models.SubscriptionStep] = {
-                step_obj.step_id: step_obj for step_obj in subscription.steps
+            steps_group_by_id = {step["id"]: step for step in params["steps"]}
+
+            for step in subscription.steps:
+                step.params = steps_group_by_id[step.step_id]["params"]
+                if "config" in steps_group_by_id[step.step_id]:
+                    step.config = steps_group_by_id[step.step_id]["config"]
+                step.save()
+
+            result = {
+                "subscription_id": subscription.id,
             }
-            step_objs_to_be_created: List[models.SubscriptionStep] = []
-            step_objs_to_be_updated: List[models.SubscriptionStep] = []
-
-            for index, step_info in enumerate(params["steps"]):
-                if step_info["id"] in step_id__obj_map:
-                    # 存在则更新
-                    step_obj: models.SubscriptionStep = step_id__obj_map[step_info["id"]]
-                    step_obj.params = step_info["params"]
-                    if "config" in step_info:
-                        step_obj.config = step_info["config"]
-                    step_obj.index = index
-                    step_objs_to_be_updated.append(step_obj)
-                else:
-                    # 新增场景
-                    try:
-                        step_obj_to_be_created: models.SubscriptionStep = models.SubscriptionStep(
-                            subscription_id=subscription.id,
-                            index=index,
-                            step_id=step_info["id"],
-                            type=step_info["type"],
-                            config=step_info["config"],
-                            params=step_info["params"],
-                        )
-                    except KeyError as e:
-                        logger.warning(
-                            f"update subscription[{subscription.id}] to add step[{step_info['id']}] error: "
-                            f"err_msg -> {e}"
-                        )
-                        raise errors.SubscriptionUpdateError(
-                            {
-                                "subscription_id": subscription.id,
-                                "msg": _("新增订阅步骤[{step_id}] 需要提供 type & config，错误信息 -> {err_msg}").format(
-                                    step_id=step_info["id"], err_msg=e
-                                ),
-                            }
-                        )
-                    step_objs_to_be_created.append(step_obj_to_be_created)
-                step_ids.add(step_info["id"])
-
-            # 删除更新后不存在的 step
-            models.SubscriptionStep.objects.filter(
-                subscription_id=subscription.id, step_id__in=set(step_id__obj_map.keys()) - step_ids
-            ).delete()
-            models.SubscriptionStep.objects.bulk_update(step_objs_to_be_updated, fields=["config", "params", "index"])
-            models.SubscriptionStep.objects.bulk_create(step_objs_to_be_created)
-            # 更新 steps 需要移除缓存
-            if hasattr(subscription, "_steps"):
-                delattr(subscription, "_steps")
-
-        result = {"subscription_id": subscription.id}
 
         if run_immediately:
             if subscription.is_running():
@@ -418,14 +220,21 @@ class SubscriptionViewSet(APIViewSet):
 
         return Response(result)
 
-    @action(detail=False, methods=["POST"], url_path="delete")
+    @swagger_auto_schema(
+        operation_summary="删除订阅",
+        responses={status.HTTP_200_OK: response.DeleteResponseSerializer()},
+        tags=SUBSCRIPTION_VIEW_TAGS,
+    )
+    @action(
+        detail=False, methods=["POST"], url_path="delete", serializer_class=serializers.DeleteSubscriptionSerializer
+    )
     def delete_subscription(self, request):
         """
         @api {POST} /subscription/delete/ 删除订阅
         @apiName delete_subscription
         @apiGroup subscription
         """
-        params = self.get_validated_data()
+        params = self.validated_data
         try:
             subscription = models.Subscription.objects.get(id=params["subscription_id"], is_deleted=False)
         except models.Subscription.DoesNotExist:
@@ -434,41 +243,53 @@ class SubscriptionViewSet(APIViewSet):
         subscription.save()
         return Response()
 
-    @action(detail=False, methods=["POST"], url_path="run")
+    @swagger_auto_schema(
+        operation_summary="执行订阅",
+        responses={status.HTTP_200_OK: response.RunResponseSerializer()},
+        tags=SUBSCRIPTION_VIEW_TAGS,
+    )
+    @action(detail=False, methods=["POST"], serializer_class=serializers.RunSubscriptionSerializer)
     def run(self, request):
         """
         @api {POST} /subscription/run/ 执行订阅
         @apiName run_subscription
         @apiGroup subscription
         """
-        params = self.get_validated_data()
+        params = self.validated_data
 
         return Response(
             SubscriptionHandler(params["subscription_id"]).run(scope=params.get("scope"), actions=params.get("actions"))
         )
 
-    @action(detail=False, methods=["GET", "POST"], url_path="check_task_ready")
+    @swagger_auto_schema(operation_summary="查询任务是否已准备完成", tags=SUBSCRIPTION_VIEW_TAGS, methods=["GET", "POST"])
+    @action(detail=False, methods=["GET", "POST"], serializer_class=serializers.CheckTaskReadySerializer)
     def check_task_ready(self, request):
         """
         @api {POST} /subscription/check_task_ready/ 查询任务是否已准备完成
         @apiName subscription_check_task_ready
         @apiGroup subscription
         """
-        params = self.get_validated_data()
+        params = self.validated_data
         subscription_id = params["subscription_id"]
         task_result = SubscriptionHandler(subscription_id=subscription_id).check_task_ready(
             task_id_list=params.get("task_id_list", [])
         )
         return Response(task_result)
 
-    @action(detail=False, methods=["GET", "POST"], url_path="task_result")
+    @swagger_auto_schema(
+        operation_summary="任务执行结果",
+        responses={status.HTTP_200_OK: response.TaskResultResponseSerializer()},
+        tags=SUBSCRIPTION_VIEW_TAGS,
+        methods=["GET", "POST"],
+    )
+    @action(detail=False, methods=["GET", "POST"], serializer_class=serializers.TaskResultSerializer)
     def task_result(self, request):
         """
         @api {POST} /subscription/task_result/ 任务执行结果
         @apiName subscription_task_result
         @apiGroup subscription
         """
-        params = self.get_validated_data()
+        params = self.validated_data
         subscription_id = params["subscription_id"]
         task_result = SubscriptionHandler(subscription_id=subscription_id).task_result(
             task_id_list=params.get("task_id_list"),
@@ -481,14 +302,19 @@ class SubscriptionViewSet(APIViewSet):
         )
         return Response(task_result)
 
-    @action(detail=False, methods=["GET", "POST"], url_path="task_result_detail")
+    @swagger_auto_schema(
+        operation_summary="任务执行详细结果",
+        tags=SUBSCRIPTION_VIEW_TAGS,
+        methods=["GET", "POST"],
+    )
+    @action(detail=False, methods=["GET", "POST"], serializer_class=serializers.TaskResultDetailSerializer)
     def task_result_detail(self, request):
         """
         @api {POST} /subscription/task_result_detail/ 任务执行详细结果
         @apiName subscription_task_result_detail
         @apiGroup subscription
         """
-        params = self.get_validated_data()
+        params = self.validated_data
 
         task_id_list = params.get("task_id_list", [])
         task_id = params.get("task_id")
@@ -499,7 +325,8 @@ class SubscriptionViewSet(APIViewSet):
             SubscriptionHandler(params["subscription_id"]).task_result_detail(params["instance_id"], task_id_list)
         )
 
-    @action(detail=False, methods=["POST"], url_path="collect_task_result_detail")
+    @swagger_auto_schema(operation_summary="采集任务执行详细结果", tags=SUBSCRIPTION_VIEW_TAGS)
+    @action(detail=False, methods=["POST"])
     def collect_task_result_detail(self, request):
         """
         @api {POST} /subscription/collect_task_result_detail/ 采集任务执行详细结果
@@ -515,67 +342,32 @@ class SubscriptionViewSet(APIViewSet):
         res = collect_log.delay(job_task.bk_host_id, job_task.pipeline_id)
         return Response({"celery_id": res.id})
 
-    @action(detail=False, methods=["POST"], url_path="statistic")
+    @swagger_auto_schema(operation_summary="统计订阅任务数据", tags=SUBSCRIPTION_VIEW_TAGS)
+    @action(detail=False, methods=["POST"], serializer_class=serializers.SubscriptionStatisticSerializer)
     def statistic(self, request):
         """
         @api {POST} /subscription/statistic/ 统计订阅任务数据
         @apiName statistic
         @apiGroup subscription
         """
-        params = self.get_validated_data()
+        params = self.validated_data
         subscription_id_list = params["subscription_id_list"]
         return Response(SubscriptionHandler.statistic(subscription_id_list))
 
-    @action(detail=False, methods=["GET", "POST"], url_path="instance_status")
+    @swagger_auto_schema(
+        operation_summary="查询订阅运行状态",
+        responses={status.HTTP_200_OK: response.InstanceStatusResponseSerializer()},
+        tags=SUBSCRIPTION_VIEW_TAGS,
+        methods=["GET", "POST"],
+    )
+    @action(detail=False, methods=["GET", "POST"], serializer_class=serializers.InstanceHostStatusSerializer)
     def instance_status(self, request):
         """
         @api {POST} /subscription/instance_status/ 查询订阅运行状态
         @apiName query_instance_status
         @apiGroup subscription
-        @apiSuccessExample {json} 成功返回:
-        [
-          {
-            "subscription_id": 7057,
-            "instances": [
-              {
-                "instance_id": "host|instance|host|617672",
-                "status": "SUCCESS",
-                "create_time": "2021-01-03 23:04:31+0800",
-                "host_statuses": [
-                  {
-                    "name": "bkmonitorbeat",
-                    "status": "RUNNING",
-                    "version": "1.10.67"
-                  }
-                ],
-                "instance_info": {
-                      "host": {
-                    "bk_biz_id": 100700,
-                    "bk_host_id": 617672,
-                    "bk_biz_name": "GameMatrix",
-                    "bk_cloud_id": 0,
-                    "bk_host_name": "",
-                    "bk_cloud_name": "云区域ID",
-                    "bk_host_innerip": "127.0.0.1",
-                    "bk_supplier_account": "tencent"
-                  },
-                  "service": {
-
-                  }
-                },
-                "running_task": {
-                  "id": 1623916,
-                  "is_auto_trigger": true,
-                },
-                "last_task": {
-                  "id": 1623916
-                }
-              }
-            ]
-          }
-        ]
         """
-        params = self.get_validated_data()
+        params = self.validated_data
 
         subscriptions = models.Subscription.objects.filter(id__in=params["subscription_id_list"])
 
@@ -667,14 +459,15 @@ class SubscriptionViewSet(APIViewSet):
             result.append({"subscription_id": subscription.id, "instances": subscription_result})
         return Response(result)
 
-    @action(detail=False, methods=["POST"], url_path="switch")
+    @swagger_auto_schema(operation_summary="订阅启停", tags=SUBSCRIPTION_VIEW_TAGS)
+    @action(detail=False, methods=["POST"], serializer_class=serializers.SwitchSubscriptionSerializer)
     def switch(self, request):
         """
         @api {POST} /subscription/switch/ 订阅启停
         @apiName subscription_switch
         @apiGroup subscription
         """
-        params = self.get_validated_data()
+        params = self.validated_data
         try:
             subscription = models.Subscription.objects.get(id=params["subscription_id"], is_deleted=False)
         except models.Subscription.DoesNotExist:
@@ -689,27 +482,33 @@ class SubscriptionViewSet(APIViewSet):
 
         return Response()
 
-    @action(detail=False, methods=["POST"], url_path="revoke")
+    @swagger_auto_schema(operation_summary="终止正在执行的任务", tags=SUBSCRIPTION_VIEW_TAGS)
+    @action(detail=False, methods=["POST"], serializer_class=serializers.RevokeSubscriptionSerializer)
     def revoke(self, request):
         """
         @api {POST} /subscription/revoke/ 终止正在执行的任务
         @apiName revoke_subscription
         @apiGroup subscription
         """
-        params = self.get_validated_data()
+        params = self.validated_data
         instance_id_list = params.get("instance_id_list", [])
         subscription_id = params["subscription_id"]
         SubscriptionHandler(subscription_id=subscription_id).revoke(instance_id_list)
         return Response()
 
-    @action(detail=False, methods=["POST"], url_path="retry")
+    @swagger_auto_schema(
+        operation_summary="重试失败的任务",
+        responses={status.HTTP_200_OK: response.RetryResponseSerializer()},
+        tags=SUBSCRIPTION_VIEW_TAGS,
+    )
+    @action(detail=False, methods=["POST"], serializer_class=serializers.RetrySubscriptionSerializer)
     def retry(self, request):
         """
         @api {POST} /subscription/retry/ 重试失败的任务
         @apiName retry_subscription
         @apiGroup subscription
         """
-        params = self.get_validated_data()
+        params = self.validated_data
 
         retry_result = SubscriptionHandler(subscription_id=params["subscription_id"]).retry(
             task_id_list=params.get("task_id_list"),
@@ -718,7 +517,8 @@ class SubscriptionViewSet(APIViewSet):
         )
         return Response(retry_result)
 
-    @action(detail=False, methods=["POST"], url_path="retry_node")
+    @swagger_auto_schema(operation_summary="重试原子", tags=SUBSCRIPTION_VIEW_TAGS)
+    @action(detail=False, methods=["POST"], serializer_class=serializers.RetryNodeSerializer)
     def retry_node(self, request):
         """
         @api {POST} /subscription/retry_node/ 重试原子
@@ -737,7 +537,7 @@ class SubscriptionViewSet(APIViewSet):
             "retry_node_name": "安装"
         }
         """
-        params = self.get_validated_data()
+        params = self.validated_data
         subscription_id = params["subscription_id"]
         instance_id = params["instance_id"]
 
@@ -771,14 +571,15 @@ class SubscriptionViewSet(APIViewSet):
         tasks.retry_node.delay(failed_node["pipeline_id"])
         return Response({"retry_node_id": failed_node["pipeline_id"], "retry_node_name": failed_node["node_name"]})
 
-    @action(detail=False, methods=["GET", "POST"], url_path="cmdb_subscription")
+    @swagger_auto_schema(operation_summary="接收cmdb事件回调", tags=SUBSCRIPTION_VIEW_TAGS, methods=["GET", "POST"])
+    @action(detail=False, methods=["GET", "POST"], serializer_class=serializers.CMDBSubscriptionSerializer)
     def cmdb_subscription(self, request):
         """
         @api {POST} /subscription/cmdb_subscription/ 接收cmdb事件回调
         @apiName cmdb_subscription
         @apiGroup subscription
         """
-        params = self.get_validated_data()
+        params = self.validated_data
 
         cmdb_events = []
         for data in params["data"]:
@@ -794,7 +595,8 @@ class SubscriptionViewSet(APIViewSet):
         models.CmdbEventRecord.objects.bulk_create(cmdb_events)
         return Response("ok")
 
-    @action(detail=False, methods=["POST"], url_path="fetch_commands")
+    @swagger_auto_schema(operation_summary="返回安装命令", tags=SUBSCRIPTION_VIEW_TAGS)
+    @action(detail=False, methods=["POST"], serializer_class=serializers.FetchCommandsSerializer)
     def fetch_commands(self, request):
         """
         @api {POST} /subscription/fetch_commands/ 返回安装命令
@@ -802,7 +604,7 @@ class SubscriptionViewSet(APIViewSet):
         @apiGroup subscription
         """
 
-        params = self.get_validated_data()
+        params = self.validated_data
         host = models.Host.objects.get(bk_host_id=params["bk_host_id"])
         installation_tool = gen_commands(
             host=host,
@@ -822,7 +624,8 @@ class SubscriptionViewSet(APIViewSet):
 
         return Response({"solutions": solutions})
 
-    @action(detail=False, methods=["POST"], url_path="search_deploy_policy")
+    @swagger_auto_schema(operation_summary="查询策略列表", tags=SUBSCRIPTION_VIEW_TAGS)
+    @action(detail=False, methods=["POST"], serializer_class=serializers.SearchDeployPolicySerializer)
     def search_deploy_policy(self, *args, **kwargs):
         """
         @api {POST} /subscription/search_deploy_policy/ 查询策略列表
@@ -871,7 +674,7 @@ class SubscriptionViewSet(APIViewSet):
         }
         """
 
-        params = self.get_validated_data()
+        params = self.validated_data
         begin, end = None, None
         if params["pagesize"] != -1:
             begin = (params["page"] - 1) * params["pagesize"]
@@ -954,14 +757,15 @@ class SubscriptionViewSet(APIViewSet):
 
         return Response({"total": len(all_subscriptions), "list": subscriptions})
 
-    @action(detail=False, methods=["GET"])
+    @swagger_auto_schema(operation_summary="获取主机策略列表", tags=SUBSCRIPTION_VIEW_TAGS)
+    @action(detail=False, methods=["GET"], serializer_class=serializers.QueryHostPolicySerializer)
     def query_host_policy(self, request):
         """
         @api {GET} /subscription/query_host_policy/ 获取主机策略列表
         @apiName query_host_policy
         @apiGroup subscription
         """
-        params = self.get_validated_data()
+        params = self.validated_data
         bk_host_id = params["bk_host_id"]
         host = models.Host.objects.get(bk_host_id=bk_host_id)
 
@@ -1078,7 +882,8 @@ class SubscriptionViewSet(APIViewSet):
         operate_records.sort(key=cmp_to_key(_op_record_comparator))
         return Response(operate_records)
 
-    @action(detail=False, methods=["GET"])
+    @swagger_auto_schema(operation_summary="获取主机订阅列表", tags=SUBSCRIPTION_VIEW_TAGS)
+    @action(detail=False, methods=["GET"], serializer_class=serializers.QueryHostSubscriptionsSerializer)
     def query_host_subscriptions(self, request):
         """
         @api {GET} /subscription/query_host_subscriptions/ 获取主机订阅列表
@@ -1100,24 +905,9 @@ class SubscriptionViewSet(APIViewSet):
             }
         ]
         """
-        params = self.get_validated_data()
+        params = self.validated_data
         source_type = params.get("source_type")
         bk_host_id = models.Host.get_by_host_info(params).bk_host_id
         return Response(
             models.ProcessStatus.fetch_process_statuses_by_host_id(bk_host_id=bk_host_id, source_type=source_type)
         )
-
-    @action(methods=["POST"], detail=False, url_path="search_plugin_policy")
-    def search_plugin_policy(self, request, *args, **kwargs):
-        """
-        @api {GET} /subscription/search_plugin_policy/ 获取插件策略信息
-        @apiName search_plugin_policy
-        @apiGroup subscription
-        """
-        params = self.get_validated_data()
-
-        subscription_qs = models.Subscription.objects.filter(
-            plugin_name=params["plugin_name"], category=constants.SubscriptionType.POLICY, is_deleted=False
-        ).values("plugin_name", "id")
-
-        return Response(list(subscription_qs))

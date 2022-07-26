@@ -8,12 +8,15 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from drf_yasg.utils import swagger_auto_schema
+from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from apps.generic import ModelViewSet
 from apps.node_man.handlers.plugin import PluginHandler
 from apps.node_man.models import GsePluginDesc, Host, Packages, ProcessStatus
+from apps.node_man.serializers import response
 from apps.node_man.serializers.plugin import (
     GsePluginSerializer,
     OperateSerializer,
@@ -22,6 +25,14 @@ from apps.node_man.serializers.plugin import (
     ProcessStatusSerializer,
 )
 from apps.utils.local import get_request_username
+
+PLUGIN_VIEW_TAGS = ["api_plugin"]
+
+GSE_PLUGIN_VIEW_TAGS = ["gse_plugin"]
+
+PROCESS_STATUS_VIEW_TAGS = ["process_status"]
+
+PACKAGE_VIEW_TAGS = ["package"]
 
 
 class GsePluginViewSet(ModelViewSet):
@@ -40,6 +51,10 @@ class GsePluginViewSet(ModelViewSet):
             self.queryset = self.queryset.filter(category=category)
         return self.queryset
 
+    @swagger_auto_schema(
+        operation_summary="查询插件列表",
+        tags=GSE_PLUGIN_VIEW_TAGS,
+    )
     def list(self, *args, **kwargs):
         """
         @api {GET} /plugin/{{pk}}/process/ 查询插件列表,pk为official, external 或 scripts
@@ -67,178 +82,26 @@ class GsePluginViewSet(ModelViewSet):
 class PluginViewSet(ModelViewSet):
     model = Host
 
+    @swagger_auto_schema(
+        operation_summary="查询插件列表",
+        responses={status.HTTP_200_OK: response.PluginSearchResponseSerializer()},
+        tags=PLUGIN_VIEW_TAGS,
+    )
     @action(detail=False, methods=["POST"], serializer_class=PluginListSerializer)
     def search(self, request):
         """
         @api {POST} /plugin/search/ 查询插件列表
         @apiName list_host
         @apiGroup plugin
-        @apiParam {Int[]} [bk_biz_id] 业务ID
-        @apiParam {Int[]} [bk_host_id] 主机ID
-        @apiParam {List} [conditions] 搜索条件，支持os_type, ip, status <br>
-        version, bk_cloud_id, node_from 和 模糊搜索query
-        @apiParam {Int[]} [exclude_hosts] 跨页全选排除主机
-        @apiParam {Int} [page] 当前页数
-        @apiParam {Int} [pagesize] 分页大小
-        @apiParam {Boolean} [only_ip] 只返回IP
-        @apiParam {Boolean} [detail] 是否为详情,为True显示主进程信息
-        @apiSuccessExample {json} 成功返回:
-        {
-            "total": 2,
-            "list": [
-                {
-                    "status": "RUNNING",
-                    "version": "1.6.2",
-                    "bk_cloud_id": 0,
-                    "bk_biz_id": 2,
-                    "bk_host_id": 15302,
-                    "node_type": "AGENT",
-                    "os_type": "LINUX",
-                    "inner_ip": "127.0.0.1",
-                    "node_from": "NODE_MAN",
-                    "status_display": "正常",
-                    "bk_cloud_name": "直连区域",
-                    "bk_biz_name": "蓝鲸",
-                    "job_result": {},
-                    "plugin_status": [
-                        [
-                            {
-                                "name": "basereport",
-                                "subscription_statistics": {
-                                    "running": 1,
-                                    "unknown": 0,
-                                    "terminated": 1,
-                                    "not_installed": 0
-                                },
-                                "subscription_tasks": [
-                                    {
-                                        "id": 8236,
-                                        "plugin_name": "basereport",
-                                        "name": "--",
-                                        "status": "RUNNING",
-                                        "version": "1.2.3",
-                                        "update_time": "2020-07-21 14:39:41+0800",
-                                        "is_auto_trigger": true,
-                                        "deploy_type": "自动",
-                                        "config_template": "aa.conf",
-                                        "config_template_version": "5.6.6",
-                                        "install_path": "/a/b"
-                                    },
-                                    {
-                                        "id": 8237,
-                                        "plugin_name": "basereport",
-                                        "name": "--",
-                                        "status": "TERMINATED",
-                                        "version": "1.2.4",
-                                        "update_time": "2020-07-21 14:39:41+0800",
-                                        "is_auto_trigger": true,
-                                        "deploy_type": "手动",
-                                        "config_template": "bb.conf",
-                                        "config_template_version": "6.7.8",
-                                        "install_path": "/data/inst/"
-                                    }
-                                ],
-                                "status": "RUNNING",
-                                "deploy_type": "远程",
-                                "config_template": "ff.conf",
-                                "config_template_version": "9.9.9.",
-                                "install_path": "/f/",
-                                "version": "10.2.1",
-                                "host_id": 15302,
-                                "job_result": {}
-                            },
-                            {
-                                "name": "processbeat",
-                                "subscription_statistics": {
-                                    "running": 0,
-                                    "unknown": 1,
-                                    "terminated": 0,
-                                    "not_installed": 0
-                                },
-                                "subscription_tasks": [
-                                    {
-                                        "id": 8291,
-                                        "plugin_name": "processbeat",
-                                        "name": "--",
-                                        "status": "UNKNOWN",
-                                        "version": "1.0.1",
-                                        "update_time": "2020-07-21 14:39:41+0800",
-                                        "is_auto_trigger": true,
-                                        "deploy_type": "自动",
-                                        "config_template": "cc.conf",
-                                        "config_template_version": "8.8.8",
-                                        "install_path": "/c/d/"
-                                    }
-                                ],
-                                "status": "RUNNING",
-                                "deploy_type": "自动",
-                                "config_template": "ffff.conf",
-                                "config_template_version": "0.2.3",
-                                "install_path": "/b/f",
-                                "version": "1.4.0",
-                                "host_id": 15302,
-                                "job_result": {}
-                            }
-                        ]
-                    ],
-                    "operate_permission": true,
-                    "update_time": "--"
-                },
-                {
-                    "status": "RUNNING",
-                    "version": "1.6.2",
-                    "bk_cloud_id": 0,
-                    "bk_biz_id": 13,
-                    "bk_host_id": 15272,
-                    "node_type": "AGENT",
-                    "os_type": "LINUX",
-                    "inner_ip": "127.0.0.2",
-                    "node_from": "NODE_MAN",
-                    "status_display": "正常",
-                    "bk_cloud_name": "直连区域",
-                    "bk_biz_name": "bcs测试",
-                    "job_result": {},
-                    "plugin_status": [
-                        [
-                            {
-                                "name": "basereport",
-                                "subscription_statistics": {},
-                                "subscription_tasks": {},
-                                "status": "RUNNING",
-                                "deploy_type": "远程",
-                                "config_template": "ff.conf",
-                                "config_template_version": "9.9.9.",
-                                "install_path": "/f/",
-                                "version": "10.2.1",
-                                "host_id": 15272,
-                                "job_result": {}
-                            },
-                            {
-                                "name": "processbeat",
-                                "subscription_statistics": {},
-                                "subscription_tasks": {},
-                                "status": "RUNNING",
-                                "deploy_type": "自动",
-                                "config_template": "ffff.conf",
-                                "config_template_version": "0.2.3",
-                                "install_path": "/b/f",
-                                "version": "1.4.0",
-                                "host_id": 15272,
-                                "job_result": {}
-                            }
-                        ]
-                    ],
-                    "operate_permission": true,
-                    "update_time": "--"
-                }
-            ]
-        }
         """
-
         # 处理
         hosts = PluginHandler.list(self.validated_data)
         return Response(hosts)
 
+    @swagger_auto_schema(
+        operation_summary="插件操作类任务",
+        tags=PLUGIN_VIEW_TAGS,
+    )
     @action(detail=False, methods=["POST"], serializer_class=OperateSerializer)
     def operate(self, request):
         """
@@ -280,6 +143,10 @@ class PluginViewSet(ModelViewSet):
         """
         return Response(PluginHandler.operate(self.validated_data, get_request_username()))
 
+    @swagger_auto_schema(
+        operation_summary="获取插件统计数据",
+        tags=PLUGIN_VIEW_TAGS,
+    )
     @action(detail=False, methods=["GET"])
     def statistics(self, request):
         """
@@ -310,6 +177,10 @@ class PackagesViews(ModelViewSet):
     model = Packages
     serializer_class = ProcessPackageSerializer
 
+    @swagger_auto_schema(
+        operation_summary="查询进程包列表",
+        tags=PACKAGE_VIEW_TAGS,
+    )
     def list(self, request, *args, **kwargs):
         """
         @api {GET} /plugin/{{pk}}/package/ 查询进程包列表,pk为具体进程名
@@ -359,6 +230,10 @@ class ProcessStatusViewSet(ModelViewSet):
     model = ProcessStatus
     serializer_class = ProcessStatusSerializer
 
+    @swagger_auto_schema(
+        operation_summary="查询主机进程状态信息",
+        tags=PROCESS_STATUS_VIEW_TAGS,
+    )
     @action(methods=["POST"], detail=False, url_path="status")
     def process_status(self, request, *args, **kwargs):
         """

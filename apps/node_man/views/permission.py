@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from django.utils.translation import ugettext_lazy as _
+from drf_yasg.utils import swagger_auto_schema
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
@@ -18,8 +19,14 @@ from apps.node_man.handlers.iam import IamHandler
 from apps.node_man.serializers.iam import ApplyPermissionSerializer
 from apps.utils.local import get_request_username
 
+PERMISSION_VIEW_TAGS = ["permission"]
+
 
 class PermissionViewSet(APIViewSet):
+    @swagger_auto_schema(
+        operation_summary="根据条件返回用户权限",
+        tags=PERMISSION_VIEW_TAGS,
+    )
     @action(detail=False, methods=["POST"], serializer_class=ApplyPermissionSerializer)
     def fetch(self, request, *args, **kwargs):
         """
@@ -58,6 +65,10 @@ class PermissionViewSet(APIViewSet):
             }
         )
 
+    @swagger_auto_schema(
+        operation_summary="返回用户云区域的权限",
+        tags=PERMISSION_VIEW_TAGS,
+    )
     @action(detail=False, methods=["GET"])
     def cloud(self, request, *args, **kwargs):
         """
@@ -89,6 +100,10 @@ class PermissionViewSet(APIViewSet):
             }
         )
 
+    @swagger_auto_schema(
+        operation_summary="返回用户接入点权限",
+        tags=PERMISSION_VIEW_TAGS,
+    )
     @action(detail=False, methods=["GET"])
     def ap(self, request, *args, **kwargs):
         """
@@ -114,6 +129,10 @@ class PermissionViewSet(APIViewSet):
             }
         )
 
+    @swagger_auto_schema(
+        operation_summary="返回用户部署策略权限",
+        tags=PERMISSION_VIEW_TAGS,
+    )
     @action(detail=False, methods=["GET"])
     def startegy(self, request, *args, **kwargs):
         """
@@ -142,6 +161,10 @@ class PermissionViewSet(APIViewSet):
             }
         )
 
+    @swagger_auto_schema(
+        operation_summary="返回用户插件包权限",
+        tags=PERMISSION_VIEW_TAGS,
+    )
     @action(detail=False, methods=["GET"])
     def package(self, request, *args, **kwargs):
         """
@@ -165,6 +188,10 @@ class PermissionViewSet(APIViewSet):
             }
         )
 
+    @swagger_auto_schema(
+        operation_summary="返回用户插件实例权限",
+        tags=PERMISSION_VIEW_TAGS,
+    )
     @action(detail=False, methods=["GET"])
     def plugin(self, request, *args, **kwargs):
         """

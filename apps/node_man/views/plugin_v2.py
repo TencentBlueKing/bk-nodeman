@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 from django.http import JsonResponse
 from django.utils.translation import ugettext_lazy as _
+from drf_yasg.utils import swagger_auto_schema
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
@@ -24,12 +25,18 @@ from apps.node_man.serializers import plugin_v2
 from apps.utils.local import get_request_username
 from common.api import NodeApi
 
+PLUGIN_V2_VIEW_TAGS = ["plugin_v2"]
+
 
 class PluginV2ViewSet(ModelViewSet):
     model = GsePluginDesc
     queryset = None
     permission_classes = (PackagePermission,)
 
+    @swagger_auto_schema(
+        operation_summary="插件列表",
+        tags=PLUGIN_V2_VIEW_TAGS,
+    )
     def list(self, request, *args, **kwargs):
         """
         @api {GET} /v2/plugin/ 插件列表
@@ -75,6 +82,10 @@ class PluginV2ViewSet(ModelViewSet):
         self.serializer_class = plugin_v2.PluginListSerializer
         return Response(PluginV2Handler.list_plugin(self.validated_data))
 
+    @swagger_auto_schema(
+        operation_summary="插件详情",
+        tags=PLUGIN_V2_VIEW_TAGS,
+    )
     def retrieve(self, request, *args, **kwargs):
         """
         @api {GET} /v2/plugin/{{pk}}/ 插件详情
@@ -140,6 +151,10 @@ class PluginV2ViewSet(ModelViewSet):
         data["permissions"] = {"operate": int(kwargs["pk"]) in perms_ids if not is_superuser else True}
         return Response(data)
 
+    @swagger_auto_schema(
+        operation_summary="编辑插件",
+        tags=PLUGIN_V2_VIEW_TAGS,
+    )
     def update(self, request, *args, **kwargs):
         """
         @api {PUT} /v2/plugin/{{pk}}/  编辑插件
@@ -160,6 +175,10 @@ class PluginV2ViewSet(ModelViewSet):
         gse_plugin_desc.save(update_fields=["description"])
         return Response({})
 
+    @swagger_auto_schema(
+        operation_summary="查询插件下主机",
+        tags=PLUGIN_V2_VIEW_TAGS,
+    )
     @action(detail=False, methods=["POST"], serializer_class=plugin_v2.PluginListHostSerializer)
     def list_plugin_host(self, request):
         """
@@ -205,6 +224,10 @@ class PluginV2ViewSet(ModelViewSet):
         """
         return Response(PluginV2Handler.list_plugin_host(params=self.validated_data))
 
+    @swagger_auto_schema(
+        operation_summary="创建注册任务",
+        tags=PLUGIN_V2_VIEW_TAGS,
+    )
     @action(detail=False, methods=["POST"], serializer_class=plugin_v2.PluginRegisterSerializer)
     def create_register_task(self, request):
         """
@@ -229,6 +252,10 @@ class PluginV2ViewSet(ModelViewSet):
         """
         return Response(NodeApi.create_register_task(self.validated_data))
 
+    @swagger_auto_schema(
+        operation_summary="查询插件注册任务",
+        tags=PLUGIN_V2_VIEW_TAGS,
+    )
     @action(detail=False, methods=["GET"], serializer_class=plugin_v2.PluginRegisterTaskSerializer)
     def query_register_task(self, request):
         """
@@ -249,6 +276,10 @@ class PluginV2ViewSet(ModelViewSet):
         """
         return Response(NodeApi.query_register_task(self.validated_data))
 
+    @swagger_auto_schema(
+        operation_summary="插件包状态类操作",
+        tags=PLUGIN_V2_VIEW_TAGS,
+    )
     @action(detail=False, methods=["POST"], serializer_class=plugin_v2.PkgStatusOperationSerializer)
     def package_status_operation(self, request):
         """
@@ -270,6 +301,10 @@ class PluginV2ViewSet(ModelViewSet):
         """
         return Response(NodeApi.package_status_operation(self.validated_data))
 
+    @swagger_auto_schema(
+        operation_summary="触发插件打包导出",
+        tags=PLUGIN_V2_VIEW_TAGS,
+    )
     @action(detail=False, methods=["POST"], serializer_class=plugin_v2.ExportSerializer)
     def create_export_task(self, request):
         """
@@ -295,6 +330,10 @@ class PluginV2ViewSet(ModelViewSet):
         params["creator"] = get_request_username()
         return Response(NodeApi.create_export_task(params))
 
+    @swagger_auto_schema(
+        operation_summary="获取一个导出任务结果",
+        tags=PLUGIN_V2_VIEW_TAGS,
+    )
     @action(detail=False, methods=["GET"], serializer_class=plugin_v2.QueryExportTaskSerializer)
     def query_export_task(self, request):
         """
@@ -316,6 +355,10 @@ class PluginV2ViewSet(ModelViewSet):
         """
         return Response(NodeApi.query_export_task(self.validated_data))
 
+    @swagger_auto_schema(
+        operation_summary="解析插件包",
+        tags=PLUGIN_V2_VIEW_TAGS,
+    )
     @action(detail=False, methods=["POST"], serializer_class=plugin_v2.PluginParseSerializer)
     def parse(self, request):
         """
@@ -363,6 +406,10 @@ class PluginV2ViewSet(ModelViewSet):
         """
         return Response(NodeApi.parse(self.validated_data))
 
+    @swagger_auto_schema(
+        operation_summary="插件状态类操作",
+        tags=PLUGIN_V2_VIEW_TAGS,
+    )
     @action(detail=False, methods=["POST"], serializer_class=plugin_v2.PluginStatusOperationSerializer)
     def plugin_status_operation(self, request):
         """
@@ -381,6 +428,10 @@ class PluginV2ViewSet(ModelViewSet):
         """
         return Response(NodeApi.plugin_status_operation(self.validated_data))
 
+    @swagger_auto_schema(
+        operation_summary="插件包历史",
+        tags=PLUGIN_V2_VIEW_TAGS,
+    )
     @action(detail=True, methods=["GET"], serializer_class=plugin_v2.PluginQueryHistorySerializer)
     def history(self, request, pk):
         """
@@ -437,6 +488,10 @@ class PluginV2ViewSet(ModelViewSet):
         params["plugin_id"] = pk
         return Response(PluginV2Handler.history(params))
 
+    @swagger_auto_schema(
+        operation_summary="插件上传",
+        tags=PLUGIN_V2_VIEW_TAGS,
+    )
     @action(detail=False, methods=["POST"], serializer_class=plugin_v2.PluginUploadSerializer)
     def upload(self, request):
         """
@@ -460,6 +515,10 @@ class PluginV2ViewSet(ModelViewSet):
         data = ser.validated_data
         return JsonResponse(PluginV2Handler.upload(package_file=data["package_file"], module=data["module"]))
 
+    @swagger_auto_schema(
+        operation_summary="获取配置模板参数",
+        tags=PLUGIN_V2_VIEW_TAGS,
+    )
     @action(detail=False, methods=["POST"], serializer_class=plugin_v2.PluginFetchConfigVarsSerializer)
     def fetch_config_variables(self, request):
         """
@@ -638,6 +697,10 @@ class PluginV2ViewSet(ModelViewSet):
         """
         return Response(PluginV2Handler.fetch_config_variables(self.validated_data["config_tpl_ids"]))
 
+    @swagger_auto_schema(
+        operation_summary="插件操作",
+        tags=PLUGIN_V2_VIEW_TAGS,
+    )
     @action(detail=False, methods=["POST"], serializer_class=plugin_v2.PluginOperateSerializer)
     def operate(self, request):
         """
@@ -732,6 +795,10 @@ class PluginV2ViewSet(ModelViewSet):
             )
         )
 
+    @swagger_auto_schema(
+        operation_summary="获取插件包部署信息",
+        tags=PLUGIN_V2_VIEW_TAGS,
+    )
     @action(detail=False, methods=["POST"], serializer_class=plugin_v2.FetchPackageDeployInfoSerializer)
     def fetch_package_deploy_info(self, request):
         """
@@ -759,6 +826,10 @@ class PluginV2ViewSet(ModelViewSet):
             )
         )
 
+    @swagger_auto_schema(
+        operation_summary="查询资源策略状态",
+        tags=PLUGIN_V2_VIEW_TAGS,
+    )
     @action(detail=False, methods=["GET"], serializer_class=plugin_v2.FetchResourcePolicyStatusSerializer)
     def fetch_resource_policy_status(self, request):
         """
@@ -789,6 +860,10 @@ class PluginV2ViewSet(ModelViewSet):
         bk_obj_id = data["bk_obj_id"]
         return Response(PluginV2Handler.fetch_resource_policy_status(bk_biz_id, bk_obj_id))
 
+    @swagger_auto_schema(
+        operation_summary="查询资源策略",
+        tags=PLUGIN_V2_VIEW_TAGS,
+    )
     @action(detail=False, methods=["GET"], serializer_class=plugin_v2.FetchResourcePolicySerializer)
     def fetch_resource_policy(self, request):
         """
@@ -835,6 +910,10 @@ class PluginV2ViewSet(ModelViewSet):
         bk_inst_id = data["bk_inst_id"]
         return Response(PluginV2Handler.fetch_resource_policy(bk_biz_id, bk_obj_id, bk_inst_id))
 
+    @swagger_auto_schema(
+        operation_summary="设置资源策略",
+        tags=PLUGIN_V2_VIEW_TAGS,
+    )
     @action(detail=False, methods=["POST"], serializer_class=plugin_v2.SetResourcePolicySerializer)
     def set_resource_policy(self, request):
         """

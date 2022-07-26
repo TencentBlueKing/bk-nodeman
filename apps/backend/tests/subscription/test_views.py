@@ -236,7 +236,7 @@ class TestSubscription(TestCase):
             is_ready=True,
         )
         pac.save()
-        for os_type in [constants.OsType.LINUX, constants.OsType.WINDOWS]:
+        for os_type in [constants.PluginOsType.windows, constants.PluginOsType.linux]:
             for config_file in ["config.yaml", "env.yaml"]:
                 PluginConfigTemplate.objects.create(
                     plugin_name="mysql_exporter",

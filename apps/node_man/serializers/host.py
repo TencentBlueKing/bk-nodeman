@@ -16,14 +16,14 @@ from apps.node_man import constants, tools
 from apps.utils import basic
 
 
-class HostSerializer(serializers.Serializer):
-    bk_biz_id = serializers.ListField(label=_("业务ID"), required=False)
-    bk_host_id = serializers.ListField(label=_("主机ID"), required=False)
-    bk_cloud_id = serializers.ListField(label=_("云区域ID"), required=False)
-    version = serializers.ListField(label=_("Agent版本"), required=False)
-    exclude_hosts = serializers.ListField(label=_("跨页全选排除主机"), required=False)
-    conditions = serializers.ListField(label=_("搜索条件"), required=False)
-    extra_data = serializers.ListField(label=_("额外信息"), required=False)
+class HostSearchSerializer(serializers.Serializer):
+    bk_biz_id = serializers.ListField(label=_("业务ID"), required=False, child=serializers.IntegerField())
+    bk_host_id = serializers.ListField(label=_("主机ID"), required=False, child=serializers.IntegerField())
+    bk_cloud_id = serializers.ListField(label=_("云区域ID"), required=False, child=serializers.IntegerField())
+    version = serializers.ListField(label=_("Agent版本"), required=False, child=serializers.CharField())
+    exclude_hosts = serializers.ListField(label=_("跨页全选排除主机"), required=False, child=serializers.IntegerField())
+    conditions = serializers.ListField(label=_("搜索条件"), required=False, child=serializers.DictField())
+    extra_data = serializers.ListField(label=_("额外信息"), required=False, child=serializers.CharField())
     page = serializers.IntegerField(label=_("当前页数"), required=False, default=1)
     pagesize = serializers.IntegerField(label=_("分页大小"), required=False, default=10)
     only_ip = serializers.BooleanField(label=_("只返回IP"), required=False, default=False)
