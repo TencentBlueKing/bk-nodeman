@@ -158,6 +158,7 @@ class GeneralSerializer(ModelSerializer):
 
     class Meta:
         model = None
+        ref_name = "model"
 
 
 class DataPageNumberPagination(PageNumberPagination):

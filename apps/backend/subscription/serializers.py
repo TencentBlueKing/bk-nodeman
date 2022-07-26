@@ -16,7 +16,6 @@ from rest_framework import serializers
 from apps.exceptions import ValidationError
 from apps.node_man import constants, models, tools
 from apps.node_man.models import ProcessStatus
-from apps.node_man.serializers import policy
 from apps.utils import basic
 
 
@@ -27,11 +26,12 @@ class GatewaySerializer(serializers.Serializer):
 
 class ScopeSerializer(serializers.Serializer):
     bk_biz_id = serializers.IntegerField(required=False, default=None)
+    # TODO: 是否取消掉这个范围内的scope
     bk_biz_scope = serializers.ListField(required=False)
-    object_type = serializers.ChoiceField(choices=models.Subscription.OBJECT_TYPE_CHOICES)
-    node_type = serializers.ChoiceField(choices=models.Subscription.NODE_TYPE_CHOICES)
-    need_register = serializers.BooleanField(required=False, default=False)
-    nodes = serializers.ListField()
+    object_type = serializers.ChoiceField(choices=models.Subscription.OBJECT_TYPE_CHOICES, label="对象类型")
+    node_type = serializers.ChoiceField(choices=models.Subscription.NODE_TYPE_CHOICES, label="节点类别")
+    need_register = serializers.BooleanField(required=False, default=False, label="是否需要注册到CMDB")
+    nodes = serializers.ListField(child=serializers.DictField())
 
     def validate(self, attrs):
         for node in attrs["nodes"]:
@@ -41,6 +41,9 @@ class ScopeSerializer(serializers.Serializer):
                 ipv6_field_names=["bk_host_innerip_v6", "bk_host_outerip_v6", "login_ip", "data_ip"],
             )
         return attrs
+
+    class Meta:
+        ref_name = "scope"
 
 
 class TargetHostSerializer(serializers.Serializer):
@@ -63,25 +66,29 @@ class TargetHostSerializer(serializers.Serializer):
 
 class CreateSubscriptionSerializer(GatewaySerializer):
     class StepSerializer(serializers.Serializer):
-        id = serializers.CharField()
-        type = serializers.CharField()
-        config = serializers.DictField()
-        params = serializers.DictField()
+        id = serializers.CharField(label="步骤标识符", validators=[])
+        type = serializers.ChoiceField(label="步骤类型", choices=constants.SUB_STEP_TUPLE)
+        config = serializers.DictField(label="步骤配置")
+        params = serializers.DictField(label="步骤参数")
 
-    name = serializers.CharField(required=False)
-    scope = ScopeSerializer(many=False)
-    steps = serializers.ListField(child=StepSerializer(), min_length=1)
+    name = serializers.CharField(required=False, label="订阅名称")
+    scope = ScopeSerializer(many=False, label="事件订阅监听的范围")
+    steps = serializers.ListField(child=StepSerializer(), min_length=1, label="事件订阅触发的动作列表")
     target_hosts = TargetHostSerializer(many=True, label="下发的目标机器列表", required=False, allow_empty=False)
-    run_immediately = serializers.BooleanField(required=False, default=False)
-    is_main = serializers.BooleanField(required=False, default=False)
+    run_immediately = serializers.BooleanField(required=False, default=False, label="是否立即执行")
+    is_main = serializers.BooleanField(required=False, default=False, label="是否为主配置")
 
     # 策略新参数
-    plugin_name = serializers.CharField(required=False)
-    bk_biz_scope = serializers.ListField(child=serializers.IntegerField(), required=False, default=[])
-    category = serializers.CharField(required=False)
+    plugin_name = serializers.CharField(required=False, label="插件名")
+    bk_biz_scope = serializers.ListField(child=serializers.IntegerField(), required=False, default=[], label="订阅监听业务范围")
+    category = serializers.ChoiceField(
+        required=False,
+        choices=[category_type for category_type in models.Subscription.CATEGORY_ALIAS_MAP],
+        label="订阅类型",
+    )
 
     # 灰度策略指定父策略
-    pid = serializers.IntegerField(required=False)
+    pid = serializers.IntegerField(required=False, label="父策略ID")
 
     def validate(self, attrs):
         step_types = {step["type"] for step in attrs["steps"]}
@@ -104,10 +111,13 @@ class CreateSubscriptionSerializer(GatewaySerializer):
                 ).decode()
         return attrs
 
+    class Meta:
+        refer_name = "create"
+
 
 class GetSubscriptionSerializer(GatewaySerializer):
-    subscription_id_list = serializers.ListField(child=serializers.IntegerField())
-    show_deleted = serializers.BooleanField(default=False)
+    subscription_id_list = serializers.ListField(child=serializers.IntegerField(), label="订阅ID列表")
+    show_deleted = serializers.BooleanField(default=False, label="显示已删除的订阅")
 
 
 class UpdateSubscriptionSerializer(GatewaySerializer):
@@ -116,10 +126,16 @@ class UpdateSubscriptionSerializer(GatewaySerializer):
         nodes = serializers.ListField()
         bk_biz_id = serializers.IntegerField(required=False, default=None)
 
+        class Meta:
+            ref_name = "update"
+
     class StepSerializer(serializers.Serializer):
         id = serializers.CharField()
         params = serializers.DictField()
         config = serializers.DictField(required=False)
+
+        class Meta:
+            ref_name = "update"
 
     subscription_id = serializers.IntegerField()
     name = serializers.CharField(required=False)
@@ -132,9 +148,12 @@ class UpdateSubscriptionSerializer(GatewaySerializer):
     bk_biz_scope = serializers.ListField(child=serializers.IntegerField(), required=False, default=[])
     category = serializers.CharField(required=False)
 
+    class Meta:
+        ref_name = "update"
+
 
 class DeleteSubscriptionSerializer(GatewaySerializer):
-    subscription_id = serializers.IntegerField()
+    subscription_id = serializers.IntegerField(label="订阅ID")
 
 
 class SwitchSubscriptionSerializer(GatewaySerializer):
@@ -147,8 +166,11 @@ class RunSubscriptionSerializer(GatewaySerializer):
         node_type = serializers.ChoiceField(choices=models.Subscription.NODE_TYPE_CHOICES)
         nodes = serializers.ListField()
 
-    subscription_id = serializers.IntegerField()
-    scope = ScopeSerializer(required=False)
+        class Meta:
+            ref_name = "run"
+
+    subscription_id = serializers.IntegerField(label="订阅ID")
+    scope = ScopeSerializer(required=False, label="订阅监听的范围")
     actions = serializers.DictField(child=serializers.CharField(), required=False)
 
 
@@ -223,7 +245,7 @@ class SubscriptionStatisticSerializer(serializers.Serializer):
         return attrs
 
 
-class SearchDeployPolicySerializer(GatewaySerializer, policy.SearchDeployPolicySerializer):
+class SearchDeployPolicySerializer(GatewaySerializer):
     pass
 
 

@@ -51,6 +51,9 @@ class PkgStatusOperationSerializer(ReleasePluginSerializer):
             raise ValidationError("[operation] must be one of: %s" % str(constants.PKG_STATUS_OP_TUPLE))
         return attrs
 
+    class Meta:
+        ref_name = "pkgstatusop"
+
 
 class PluginStatusOperationSerializer(serializers.Serializer):
     operation = serializers.CharField()
@@ -73,6 +76,9 @@ class PluginRegisterSerializer(serializers.Serializer):
     is_template_overwrite = serializers.BooleanField(required=False, default=False)
 
     select_pkg_abs_paths = serializers.ListField(required=False, min_length=1, child=serializers.CharField())
+
+    class Meta:
+        ref_name = "plugin_regeister"
 
 
 class PluginRegisterTaskSerializer(serializers.Serializer):
@@ -114,6 +120,9 @@ class ExportSerializer(serializers.Serializer):
     category = serializers.CharField()
     query_params = GsePluginParamsSerializer()
 
+    class Meta:
+        ref_name = "export_v2"
+
 
 class PluginQueryHistorySerializer(serializers.Serializer):
     os = serializers.CharField(required=False)
@@ -142,6 +151,9 @@ class PluginParseSerializer(serializers.Serializer):
         if "project" not in data or models.GsePluginDesc.objects.filter(name=data["project"]).first():
             return data
         raise ValidationError("plugin {name} is not exist".format(name=data["project"]))
+
+    class Meta:
+        ref_name = "plugin_parse"
 
 
 class PluginListSerializer(serializers.Serializer):

@@ -9,13 +9,16 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+from drf_yasg.utils import swagger_auto_schema
+from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from apps.generic import ModelViewSet
+from apps.generic import ModelSwaggerViewSet
 from apps.node_man.handlers.job import JobHandler
 from apps.node_man.handlers.permission import JobPermission
 from apps.node_man.models import Job
+from apps.node_man.serializers import response
 from apps.node_man.serializers.job import (
     FetchCommandSerializer,
     InstallSerializer,
@@ -27,8 +30,10 @@ from apps.node_man.serializers.job import (
 )
 from apps.utils.local import get_request_username
 
+JOB_VIEW_TAGS = ["job"]
 
-class JobViewSet(ModelViewSet):
+
+class JobViewSet(ModelSwaggerViewSet):
     model = Job
     permission_classes = (JobPermission,)
 
@@ -114,6 +119,7 @@ class JobViewSet(ModelViewSet):
         """
         return Response(JobHandler(job_id=kwargs["pk"]).retrieve(self.validated_data))
 
+    @swagger_auto_schema(responses={status.HTTP_200_OK: response.JobInstallSerializer()}, tags=JOB_VIEW_TAGS)
     @action(detail=False, methods=["POST"], serializer_class=InstallSerializer)
     def install(self, request):
         """

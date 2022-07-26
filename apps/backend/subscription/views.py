@@ -22,12 +22,15 @@ from django.core.cache import caches
 from django.db import transaction
 from django.db.models import Q
 from django.utils.translation import get_language
+from drf_yasg.utils import swagger_auto_schema
+from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 
 from apps.backend.agent.tasks import collect_log
 from apps.backend.agent.tools import gen_commands
+from apps.backend.serializers import response
 from apps.backend.subscription import errors, serializers, task_tools, tasks, tools
 from apps.backend.subscription.errors import InstanceTaskIsRunning
 from apps.backend.subscription.handler import SubscriptionHandler
@@ -37,6 +40,8 @@ from apps.node_man import constants, models
 
 logger = logging.getLogger("app")
 cache = caches["db"]
+
+SUBSCRIPTION_VIEW_TAGS = ["subscription"]
 
 
 class SubscriptionViewSet(APIViewSet):
@@ -102,129 +107,11 @@ class SubscriptionViewSet(APIViewSet):
         """
         return self.serializer_classes.get(self.action)
 
+    @swagger_auto_schema(
+        responses={status.HTTP_200_OK: response.CreateResponseSerializer()}, tags=SUBSCRIPTION_VIEW_TAGS
+    )
     @action(detail=False, methods=["POST"], url_path="create")
     def create_subscription(self, request):
-        """
-        @api {POST} /subscription/create/ 创建订阅
-        @apiName create_subscription
-        @apiGroup subscription
-        @apiParam {Object} scope 事件订阅监听的范围
-        @apiParam {Int} scope.bk_biz_id 业务ID
-        @apiParam {String} scope.object_type CMDB对象类型，可选 `SERVICE`, `HOST`
-        @apiParam {String} scope.node_type CMDB节点类型，可选 `TOPO`, `INSTANCE`
-        @apiParam {Object[]} scope.nodes 节点列表，根据 `object_type` 和 `node_type` 的不同，其数据结构也有所差异
-        @apiParam {Object[]} steps 事件订阅触发的动作列表
-        @apiParam {String} steps.id 步骤标识符，在一个列表中不允许重复
-        @apiParam {String} steps.type 步骤类型，可选 `AGENT`, `PLUGIN`
-        @apiParam {String} steps.config 步骤配置
-        @apiParam {String} steps.params 步骤参数
-        @apiParam {Object[]} [target_hosts] 需要下发的目标机器列表
-        @apiParamExample {Json} 请求例子:
-        {
-            // 订阅节点，根据 object_type 和 node_type 的不同组合，数据结构有所差异
-            "scope": {
-                "bk_biz_id": 2,
-                "object_type": "SERVICE",  // 可选 SERVICE - 服务，HOST - 主机
-                "node_type": "TOPO",  // 可选 TOPO - 拓扑，INSTANCE - 实例
-                "nodes": [
-                    // SERVICE-INSTANCE
-                    {
-                       "id": 12
-                    },
-                    // HOST-TOPO
-                    {
-                        "bk_inst_id": 33,   // 节点实例ID
-                        "bk_obj_id": "module",  // 节点对象ID
-                    },
-                    // HOST-INSTANCE
-                    {
-                        "ip": "127.0.0.1",
-                        "bk_cloud_id": 0,
-                        "bk_supplier_id": 0,
-                    }
-                ]
-            },
-            // 下发的目标机器，可以不传，默认取cmdb_instance.host下面的机器信息
-            "target_hosts": [{
-                "ip": "127.0.0.1",
-                "bk_cloud_id": 0,
-                "bk_supplier_id": 0
-            }],
-            "steps": [
-                {
-                    "id": "mysql_exporter",  // 步骤标识符，在一个列表中不允许重复
-                    "type": "PLUGIN",   // 步骤类型
-                    "config": {
-                        "plugin_name": "mysql_exporter",
-                        "plugin_version": "2.3",
-                        "config_templates": [
-                            {
-                                "name": "config.yaml",
-                                "version": "2",
-                                "os": "windows",
-                                "cpu_arch": "x86_64",
-                            },
-                            {
-                                "name": "env.yaml",
-                                "version": "2",
-                                "os": "windows",
-                                "cpu_arch": "x86_64",
-                            }
-                        ]
-                    },
-                    "params": {
-                        "port_range": "9102,10000-10005,20103,30000-30100",
-                        "context": {
-                          // 输入常量
-                          "--web.listen-host": "127.0.0.1",
-                          // 使用 {{ }} 的方式引用节点管理内置变量
-                          "--web.listen-port": "{{ control_info.port }}"
-                        }
-                    }
-                },
-                {
-                    "id": "bkmonitorbeat",  // 步骤标识符，在一个列表中不允许重复
-                    "type": "PLUGIN",   // 步骤类型
-                    "config": {
-                        "plugin_name": "bkmonitorbeat",
-                        "plugin_version": "1.7.0",
-                        "config_templates": [
-                            {
-                                "name": "bkmonitorbeat_exporter.yaml",
-                                "version": "1",
-                            },
-                        ]
-                    },
-                    "params": {
-                        "context": {
-                            "metrics_url": "XXX",
-                            // 以下为动态数组用法，用于渲染需要做循环的节点管理内置变量
-                            "labels": {
-                                "$for": "cmdb_instance.scopes",
-                                "$item": "scope",
-                                "$body": {
-                                    "bk_target_ip": "{{ cmdb_instance.host.bk_host_innerip }}",
-                                    "bk_target_cloud_id": "{{ cmdb_instance.host.bk_cloud_id }}",
-                                    "bk_target_topo_level": "{{ scope.bk_obj_id }}",
-                                    "bk_target_topo_id": "{{ scope.bk_inst_id }}",
-                                    "bk_target_service_category_id": "{{ cmdb_instance.service.service_category_id }}",
-                                    "bk_target_service_instance_id": "{{ cmdb_instance.service.id }}",
-                                    "bk_collect_config_id": 1
-                                }
-                            }
-                        }
-                    }
-                }
-            ]
-        }
-        @apiSuccessExample {json} 成功返回:
-        {
-            "result": true,
-            "data": {
-                "subscription_id": 1
-            }
-        }
-        """
         params = self.get_validated_data()
         scope = params["scope"]
         run_immediately = params["run_immediately"]
@@ -284,13 +171,9 @@ class SubscriptionViewSet(APIViewSet):
 
         return Response(result)
 
+    @swagger_auto_schema(responses={status.HTTP_200_OK: response.InfoResponseSerializer()}, tags=SUBSCRIPTION_VIEW_TAGS)
     @action(detail=False, methods=["POST"], url_path="info")
     def info(self, request):
-        """
-        @api {POST} /subscription/info/ 订阅详情
-        @apiName subscription_info
-        @apiGroup subscription
-        """
         params = self.get_validated_data()
         ids = params["subscription_id_list"]
         subscriptions = models.Subscription.get_subscriptions(ids, show_deleted=params["show_deleted"])
@@ -324,13 +207,11 @@ class SubscriptionViewSet(APIViewSet):
 
         return Response(result)
 
+    @swagger_auto_schema(
+        responses={status.HTTP_200_OK: response.UpdateResponseSerializer()}, tags=SUBSCRIPTION_VIEW_TAGS
+    )
     @action(detail=False, methods=["POST"], url_path="update")
     def update_subscription(self, request):
-        """
-        @api {POST} /subscription/update/ 更新订阅
-        @apiName update_subscription
-        @apiGroup subscription
-        """
         params = self.get_validated_data()
         scope = params["scope"]
         run_immediately = params["run_immediately"]
@@ -373,6 +254,9 @@ class SubscriptionViewSet(APIViewSet):
 
         return Response(result)
 
+    @swagger_auto_schema(
+        responses={status.HTTP_200_OK: response.DeleteResponseSerializer()}, tags=SUBSCRIPTION_VIEW_TAGS
+    )
     @action(detail=False, methods=["POST"], url_path="delete")
     def delete_subscription(self, request):
         """
@@ -389,6 +273,7 @@ class SubscriptionViewSet(APIViewSet):
         subscription.save()
         return Response()
 
+    @swagger_auto_schema(responses={status.HTTP_200_OK: response.RunResponseSerializer()}, tags=SUBSCRIPTION_VIEW_TAGS)
     @action(detail=False, methods=["POST"], url_path="run")
     def run(self, request):
         """
