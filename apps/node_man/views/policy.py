@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from drf_yasg.utils import swagger_auto_schema
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
@@ -18,12 +19,18 @@ from apps.node_man.handlers.policy import PolicyHandler
 from apps.node_man.serializers import policy
 from common.api import NodeApi
 
+POLICY_VIEW_TAGS = ["policy"]
+
 
 class PolicyViewSet(ModelViewSet):
     model = models.Subscription
     queryset = None
     permission_classes = (PolicyPermission,)
 
+    @swagger_auto_schema(
+        operation_summary="策略详细",
+        tags=POLICY_VIEW_TAGS,
+    )
     def retrieve(self, request, *args, **kwargs):
         """
         @api {GET} /policy/{{pk}}/ 策略详细
@@ -99,6 +106,10 @@ class PolicyViewSet(ModelViewSet):
         """
         return Response(PolicyHandler.policy_info(kwargs["pk"]))
 
+    @swagger_auto_schema(
+        operation_summary="编辑策略概要信息",
+        tags=POLICY_VIEW_TAGS,
+    )
     def update(self, request, *args, **kwargs):
         """
         @api {PUT} /policy/{{pk}}/  编辑策略概要信息
@@ -116,6 +127,10 @@ class PolicyViewSet(ModelViewSet):
         )
         return Response({})
 
+    @swagger_auto_schema(
+        operation_summary="查询策略列表",
+        tags=POLICY_VIEW_TAGS,
+    )
     @action(detail=False, methods=["POST"], serializer_class=policy.SearchDeployPolicySerializer)
     def search(self, request):
         """
@@ -198,6 +213,10 @@ class PolicyViewSet(ModelViewSet):
         """
         return Response(PolicyHandler.search_deploy_policy(query_params=self.validated_data))
 
+    @swagger_auto_schema(
+        operation_summary="获取公共变量",
+        tags=POLICY_VIEW_TAGS,
+    )
     @action(detail=False, methods=["GET"])
     def fetch_common_variable(self, request):
         """
@@ -249,6 +268,10 @@ class PolicyViewSet(ModelViewSet):
             }
         )
 
+    @swagger_auto_schema(
+        operation_summary="插件策略拓扑",
+        tags=POLICY_VIEW_TAGS,
+    )
     @action(detail=False, methods=["POST"], serializer_class=policy.FetchPolicyTopoSerializer)
     def fetch_policy_topo(self, request):
         """
@@ -284,6 +307,10 @@ class PolicyViewSet(ModelViewSet):
             )
         )
 
+    @swagger_auto_schema(
+        operation_summary="策略执行预览（预览所选范围）",
+        tags=POLICY_VIEW_TAGS,
+    )
     @action(detail=False, methods=["POST"], serializer_class=policy.SelectReviewSerializer)
     def selected_preview(self, request):
         """
@@ -364,6 +391,10 @@ class PolicyViewSet(ModelViewSet):
         """
         return Response(PolicyHandler.selected_preview(query_params=self.validated_data))
 
+    @swagger_auto_schema(
+        operation_summary="策略执行预览（计算变更详情）",
+        tags=POLICY_VIEW_TAGS,
+    )
     @action(detail=False, methods=["POST"], serializer_class=policy.MigratePreviewSerializer)
     def migrate_preview(self, request):
         """
@@ -438,6 +469,10 @@ class PolicyViewSet(ModelViewSet):
         """
         return Response(PolicyHandler.migrate_preview(query_params=self.validated_data))
 
+    @swagger_auto_schema(
+        operation_summary="创建策略",
+        tags=POLICY_VIEW_TAGS,
+    )
     @action(detail=False, methods=["POST"], serializer_class=policy.CreatePolicySerializer)
     def create_policy(self, request):
         """
@@ -524,6 +559,10 @@ class PolicyViewSet(ModelViewSet):
         """
         return Response(PolicyHandler.create_deploy_policy(self.validated_data))
 
+    @swagger_auto_schema(
+        operation_summary="更新策略",
+        tags=POLICY_VIEW_TAGS,
+    )
     @action(detail=True, methods=["POST"], serializer_class=policy.CreatePolicySerializer)
     def update_policy(self, request, pk):
         """
@@ -608,6 +647,10 @@ class PolicyViewSet(ModelViewSet):
         """
         return Response(PolicyHandler.update_policy(update_data=self.validated_data, policy_id=pk))
 
+    @swagger_auto_schema(
+        operation_summary="升级预览",
+        tags=POLICY_VIEW_TAGS,
+    )
     @action(detail=True, methods=["GET"])
     def upgrade_preview(self, request, pk):
         """
@@ -655,6 +698,10 @@ class PolicyViewSet(ModelViewSet):
         """
         return Response(PolicyHandler.upgrade_preview(policy_id=pk))
 
+    @swagger_auto_schema(
+        operation_summary="插件策略预选",
+        tags=POLICY_VIEW_TAGS,
+    )
     @action(detail=False, methods=["POST"], serializer_class=policy.PluginPreSelectionSerializer)
     def plugin_preselection(self, request):
         """
@@ -668,6 +715,10 @@ class PolicyViewSet(ModelViewSet):
             )
         )
 
+    @swagger_auto_schema(
+        operation_summary="主机策略列表",
+        tags=POLICY_VIEW_TAGS,
+    )
     @action(detail=False, methods=["GET"], serializer_class=policy.HostPolicySerializer)
     def host_policy(self, request):
         """
@@ -692,6 +743,10 @@ class PolicyViewSet(ModelViewSet):
         result = NodeApi.query_host_policy({"bk_host_id": bk_host_id})
         return Response(result)
 
+    @swagger_auto_schema(
+        operation_summary="策略操作",
+        tags=POLICY_VIEW_TAGS,
+    )
     @action(detail=False, methods=["POST"], serializer_class=policy.PolicyOperateSerializer)
     def operate(self, request):
         """
@@ -715,6 +770,10 @@ class PolicyViewSet(ModelViewSet):
             )
         )
 
+    @swagger_auto_schema(
+        operation_summary="策略回滚预览",
+        tags=POLICY_VIEW_TAGS,
+    )
     @action(detail=False, methods=["POST"], serializer_class=policy.RollbackPreview)
     def rollback_preview(self, request):
         """
@@ -753,6 +812,10 @@ class PolicyViewSet(ModelViewSet):
         """
         return Response(PolicyHandler.rollback_preview(self.validated_data["policy_id"], self.validated_data))
 
+    @swagger_auto_schema(
+        operation_summary="获取策略异常信息",
+        tags=POLICY_VIEW_TAGS,
+    )
     @action(detail=False, methods=["POST"], serializer_class=policy.FetchPolicyAbnormalInfoSerializer)
     def fetch_policy_abnormal_info(self, request):
         """

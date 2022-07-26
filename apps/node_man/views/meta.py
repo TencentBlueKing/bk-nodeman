@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from django.utils.translation import ugettext as _
+from drf_yasg.utils import swagger_auto_schema
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
@@ -19,8 +20,14 @@ from apps.node_man.handlers.meta import MetaHandler
 from apps.node_man.serializers.meta import JobSettingSerializer
 from apps.utils.local import get_request_username
 
+META_VIEW_TAGS = ["meta"]
+
 
 class MetaViews(APIViewSet):
+    @swagger_auto_schema(
+        operation_summary="获取过滤条件",
+        tags=META_VIEW_TAGS,
+    )
     @action(detail=False)
     def filter_condition(self, request):
         """
@@ -64,6 +71,10 @@ class MetaViews(APIViewSet):
         result = MetaHandler().filter_condition(category)
         return Response(result)
 
+    @swagger_auto_schema(
+        operation_summary="查询全局配置",
+        tags=META_VIEW_TAGS,
+    )
     @action(detail=False)
     def global_settings(self, request, *args, **kwargs):
         """
@@ -85,6 +96,10 @@ class MetaViews(APIViewSet):
         settings = MetaHandler().search(key)
         return Response(settings)
 
+    @swagger_auto_schema(
+        operation_summary="任务配置接口",
+        tags=META_VIEW_TAGS,
+    )
     @action(detail=False, methods=["POST"], serializer_class=JobSettingSerializer)
     def job_settings(self, request, *args, **kwargs):
         """

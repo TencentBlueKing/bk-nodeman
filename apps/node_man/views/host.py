@@ -8,6 +8,8 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from drf_yasg.utils import swagger_auto_schema
+from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
@@ -18,9 +20,10 @@ from apps.node_man.handlers.host import HostHandler
 from apps.node_man.handlers.permission import HostPermission
 from apps.node_man.models import Host
 from apps.node_man.periodic_tasks import sync_cmdb_host_periodic_task
+from apps.node_man.serializers import response
 from apps.node_man.serializers.host import (
     BizProxySerializer,
-    HostSerializer,
+    HostSearchSerializer,
     HostUpdateSerializer,
     ProxySerializer,
     RemoveSerializer,
@@ -28,82 +31,39 @@ from apps.node_man.serializers.host import (
 )
 from apps.utils.local import get_request_username
 
+HOST_VIEW_TAGS = ["host"]
+
 
 class HostViewSet(ModelViewSet):
     model = Host
     permission_classes = (HostPermission,)
 
-    @action(detail=False, methods=["POST"], serializer_class=HostSerializer)
+    @swagger_auto_schema(
+        operation_summary="查询主机列表",
+        responses={status.HTTP_200_OK: response.HostSearchResponseSerializer()},
+        tags=HOST_VIEW_TAGS,
+    )
+    @action(detail=False, methods=["POST"], serializer_class=HostSearchSerializer)
     def search(self, request):
         """
         @api {POST} /host/search/ 查询主机列表
         @apiName list_host
         @apiGroup Host
-        @apiParam {Int[]} [bk_biz_id] 业务ID
-        @apiParam {Int[]} [bk_host_id] 主机ID
-        @apiParam {List} [condition] 搜索条件，支持os_type, ip, status <br>
-        version, bk_cloud_id, node_from 和 模糊搜索query
-        @apiParam {Int[]} [exclude_hosts] 跨页全选排除主机
-        @apiParam {String[]} [extra_data] 额外信息, 如 ['identity_info', 'job_result', 'topology']
-        @apiParam {Int} [page] 当前页数
-        @apiParam {Int} [pagesize] 分页大小
-        @apiParam {Boolean} [only_ip] 只返回IP
-        @apiParam {Boolean} [running_count] 返回正在运行机器数量
-        @apiSuccessExample {json} 成功返回:
-        {
-            "total": 188,
-            "list": [
-                {
-                    "bk_cloud_id": 1,
-                    "bk_cloud_name": "云区域名称",
-                    "bk_biz_id": 2,
-                    "bk_biz_name": "业务名称",
-                    "bk_host_id": 1,
-                    "os_type": "linux",
-                    "inner_ip": "127.0.0.1",
-                    "outer_ip": "127.0.0.2",
-                    "login_ip": "127.0.0.3",
-                    "data_ip": "127.0.0.4",
-                    "status": "RUNNING",
-                    "version": "1.1.0",
-                    "ap_id": -1,
-                    "identity_info": {},
-                    "job_result": {
-                        "job_id": 1,
-                        "status": "FAILED",
-                        "current_step": "下载安装包",
-                    }
-                }
-            ]
-        }
         """
         return Response(HostHandler().list(self.validated_data, get_request_username()))
 
+    @swagger_auto_schema(
+        operation_summary="查询云区域下有操作权限的proxy列表",
+        query_serializer=ProxySerializer(),
+        responses={status.HTTP_200_OK: response.HostBizProxyResponseSerializer()},
+        tags=HOST_VIEW_TAGS,
+    )
     @action(detail=False, serializer_class=ProxySerializer)
     def proxies(self, request, *args, **kwargs):
         """
-        @api {GET} /host/proxies/ 查询云区域的proxy列表
+        @api {GET} /host/proxies/ 查询有proxy操作权限的云区域proxy列表
         @apiName retrieve_cloud_proxies
         @apiGroup Host
-        @apiParam {Int} bk_cloud_id 云区域ID
-        @apiSuccessExample {json} 成功返回:
-        [{
-            "bk_cloud_id": 1,
-            "bk_host_id": 1,
-            "inner_ip": "127.0.0.1",
-            "outer_ip": "127.0.0.2",
-            "login_ip": "127.0.0.3",
-            "data_ip": "127.0.0.4",
-            "status": "RUNNING",
-            "version": "1.1.0",
-
-            "account": "root",
-            "auth_type": "PASSWORD",
-            "port": 22,
-
-            "ap_id": 1,
-            "ap_name": "接入点名称"
-        }]
         """
         proxies = HostHandler().proxies(self.validated_data["bk_cloud_id"])
         # 用户有proxy操作权限的业务
@@ -113,26 +73,25 @@ class HostViewSet(ModelViewSet):
 
         return Response(proxies)
 
+    @swagger_auto_schema(
+        operation_summary="查询业务下云区域的proxy集合",
+        query_serializer=BizProxySerializer(),
+        responses={status.HTTP_200_OK: response.HostBizProxyResponseSerializer()},
+        tags=HOST_VIEW_TAGS,
+    )
     @action(detail=False, serializer_class=BizProxySerializer)
     def biz_proxies(self, request, *args, **kwargs):
         """
         @api {GET} /host/biz_proxies/ 查询业务下云区域的proxy集合
         @apiName retrieve_biz_proxies
         @apiGroup Host
-        @apiParam {Int} bk_biz_id 业务ID
-        @apiSuccessExample {json} 成功返回:
-        [{
-            "bk_cloud_id": 1,
-            "bk_host_id": 1,
-            "inner_ip": "127.0.0.1",
-            "outer_ip": "",
-            "login_ip": null,
-            "data_ip": null,
-            "bk_biz_id": 1
-        }]
         """
         return Response(HostHandler().biz_proxies(self.validated_data["bk_biz_id"]))
 
+    @swagger_auto_schema(
+        operation_summary="移除主机",
+        tags=HOST_VIEW_TAGS,
+    )
     @action(detail=False, methods=["POST"], serializer_class=RemoveSerializer)
     def remove_host(self, request, *args, **kwargs):
         """
@@ -165,6 +124,10 @@ class HostViewSet(ModelViewSet):
         """
         return Response(HostHandler().remove_host(self.validated_data))
 
+    @swagger_auto_schema(
+        operation_summary="更新Proxy主机信息",
+        tags=HOST_VIEW_TAGS,
+    )
     @action(detail=False, methods=["POST"], serializer_class=HostUpdateSerializer)
     def update_single(self, request):
         """
@@ -185,6 +148,10 @@ class HostViewSet(ModelViewSet):
         """
         return Response(HostHandler().update_proxy_info(self.validated_data))
 
+    @swagger_auto_schema(
+        operation_summary="同步cmdb主机",
+        tags=HOST_VIEW_TAGS,
+    )
     @action(detail=False, methods=["GET"], serializer_class=SyncCmdbHostSerializer)
     def sync_cmdb_host(self, request):
         sync_cmdb_host_periodic_task(self.validated_data["bk_biz_id"])

@@ -192,12 +192,12 @@ class ProcessControlInfoSerializer(serializers.ModelSerializer):
 
 
 class PluginListSerializer(serializers.Serializer):
-    bk_biz_id = serializers.ListField(label=_("业务ID"), required=False)
-    bk_host_id = serializers.ListField(label=_("主机ID"), required=False)
-    bk_cloud_id = serializers.ListField(label=_("云区域ID"), required=False)
-    conditions = serializers.ListField(label=_("搜索条件"), required=False)
-    version = serializers.ListField(label=_("Agent版本"), required=False)
-    exclude_hosts = serializers.ListField(label=_("跨页全选排除主机"), required=False)
+    bk_biz_id = serializers.ListField(help_text=_("业务ID"), required=False, child=serializers.IntegerField())
+    bk_host_id = serializers.ListField(help_text=_("主机ID"), required=False, child=serializers.IntegerField())
+    bk_cloud_id = serializers.ListField(help_text=_("云区域ID"), required=False, child=serializers.IntegerField())
+    conditions = serializers.ListField(help_text=_("搜索条件"), required=False)
+    version = serializers.ListField(help_text=_("Agent版本"), required=False)
+    exclude_hosts = serializers.ListField(help_text=_("跨页全选排除主机"), required=False)
     page = serializers.IntegerField(label=_("当前页数"), required=False, default=1)
     pagesize = serializers.IntegerField(label=_("分页大小"), required=False, default=10)
     only_ip = serializers.BooleanField(label=_("只返回IP"), required=False, default=False)
@@ -221,6 +221,10 @@ class PluginInfoSerializer(serializers.Serializer):
             raise ValidationError("更新插件必须传配置参数")
 
         return attrs
+
+    class Meta:
+        # swagger 特殊启动标注，有更优解可去除
+        ref_name = "PluginInfoSerializer"
 
 
 class OperateSerializer(serializers.Serializer):

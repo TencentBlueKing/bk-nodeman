@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 
 from django.db.models import Q
 from django_filters.rest_framework import DjangoFilterBackend
+from drf_yasg.utils import swagger_auto_schema
 from rest_framework.filters import OrderingFilter
 from rest_framework.response import Response
 
@@ -18,6 +19,8 @@ from apps.generic import ModelViewSet
 from apps.utils import orm
 
 from . import constants, handlers, models, permission, serializers
+
+TAG_VIEW_TAGS = ["tag"]
 
 
 class TagViewSet(ModelViewSet):
@@ -37,6 +40,10 @@ class TagViewSet(ModelViewSet):
             serializer_class = super().get_serializer_class(*args, **kwargs)
         return serializer_class
 
+    @swagger_auto_schema(
+        operation_summary="将标签视为版本，发布到对应目标",
+        tags=TAG_VIEW_TAGS,
+    )
     def create(self, request, *args, **kwargs):
         tag: models.Tag = handlers.TagHandler.publish_tag_version(
             name=self.validated_data["name"],
@@ -62,6 +69,10 @@ class TagViewSet(ModelViewSet):
         )
         serializer.save()
 
+    @swagger_auto_schema(
+        operation_summary="去除对应标签",
+        tags=TAG_VIEW_TAGS,
+    )
     def perform_destroy(self, instance: models.Tag):
         handlers.TagHandler.delete_tag_version(
             name=instance.name,

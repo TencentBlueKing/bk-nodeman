@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from drf_yasg.utils import swagger_auto_schema
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
@@ -20,6 +21,8 @@ from apps.node_man.serializers.debug import (
     TaskDebugSerializer,
 )
 
+DEBUG_VIEW_TAGS = ["debug"]
+
 
 class DebugViews(APIViewSet):
     """
@@ -28,6 +31,10 @@ class DebugViews(APIViewSet):
 
     permission_classes = (DebugPermission,)
 
+    @swagger_auto_schema(
+        operation_summary="查询订阅任务详情",
+        tags=DEBUG_VIEW_TAGS,
+    )
     @action(detail=False, methods=["GET"], serializer_class=SubscriptionDebugSerializer)
     def fetch_subscription_details(self, request, *args, **kwargs):
         """
@@ -66,6 +73,10 @@ class DebugViews(APIViewSet):
         data_list = DebugHandler().subscription_details(self.validated_data["subscription_id"])
         return Response(data_list)
 
+    @swagger_auto_schema(
+        operation_summary="查询订阅任务详情",
+        tags=DEBUG_VIEW_TAGS,
+    )
     @action(detail=False, methods=["GET"], serializer_class=TaskDebugSerializer)
     def fetch_task_details(self, request, *args, **kwargs):
         """
@@ -119,6 +130,10 @@ class DebugViews(APIViewSet):
         data_list = DebugHandler().task_details(self.validated_data["subscription_id"], self.validated_data["task_id"])
         return Response(data_list)
 
+    @swagger_auto_schema(
+        operation_summary="查询订阅任务下的主机",
+        tags=DEBUG_VIEW_TAGS,
+    )
     @action(detail=False, methods=["GET"], serializer_class=SubscriptionDebugSerializer)
     def fetch_hosts_by_subscription(self, request, *args, **kwargs):
         """
@@ -163,6 +178,10 @@ class DebugViews(APIViewSet):
         data_list = DebugHandler().fetch_hosts_by_subscription(self.validated_data["subscription_id"])
         return Response(data_list)
 
+    @swagger_auto_schema(
+        operation_summary="查询主机涉及到的所有订阅任务",
+        tags=DEBUG_VIEW_TAGS,
+    )
     @action(detail=False, methods=["GET"], serializer_class=HostDebugSerializer)
     def fetch_subscriptions_by_host(self, request, *args, **kwargs):
         """

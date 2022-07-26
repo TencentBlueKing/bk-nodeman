@@ -9,6 +9,8 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+from drf_yasg.utils import swagger_auto_schema
+from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
@@ -16,6 +18,7 @@ from apps.generic import ModelViewSet
 from apps.node_man.handlers.job import JobHandler
 from apps.node_man.handlers.permission import JobPermission
 from apps.node_man.models import Job
+from apps.node_man.serializers import response
 from apps.node_man.serializers.job import (
     FetchCommandSerializer,
     InstallSerializer,
@@ -27,11 +30,17 @@ from apps.node_man.serializers.job import (
 )
 from apps.utils.local import get_request_username
 
+JOB_VIEW_TAGS = ["job"]
+
 
 class JobViewSet(ModelViewSet):
     model = Job
     permission_classes = (JobPermission,)
 
+    @swagger_auto_schema(
+        operation_summary="查询任务列表",
+        tags=JOB_VIEW_TAGS,
+    )
     @action(detail=False, methods=["POST"], serializer_class=ListSerializer)
     def job_list(self, request, *args, **kwargs):
         """
@@ -79,41 +88,26 @@ class JobViewSet(ModelViewSet):
         """
         return Response(JobHandler().list(self.validated_data, get_request_username()))
 
+    @swagger_auto_schema(
+        operation_summary="查询任务详情",
+        responses={status.HTTP_200_OK: response.JobLogResponseSerializer()},
+        tags=JOB_VIEW_TAGS,
+    )
     @action(detail=True, methods=["POST"], serializer_class=RetrieveSerializer)
     def details(self, request, *args, **kwargs):
         """
         @api {POST} /job/{{pk}}/details/ 查询任务详情
         @apiName retrieve_job
         @apiGroup Job
-        @apiParam {List} [conditions] 条件
-        @apiParam {Int} page 当前页数
-        @apiParam {Int} pagesize 分页大小
-        @apiSuccessExample {json} 成功返回:
-        {
-            "total": 100,
-            "list": [
-                {
-                    "bk_host_id": 1,
-                    "inner_ip": "127.0.0.1",
-                    "bk_cloud_id": 1,
-                    "bk_cloud_name": "云区域名称",
-                    "bk_biz_id": 2,
-                    "bk_biz_name": "业务名称",
-                    "status": "RUNNING",
-                    "status_display": "正在执行"
-                }
-            ],
-            "statistics": {
-                "success_count": 200,
-                "failed_count": 100,
-                "running_count": 100,
-                "total_count": 100
-            },
-            "status": "RUNNING"
-        }
         """
         return Response(JobHandler(job_id=kwargs["pk"]).retrieve(self.validated_data))
 
+    @swagger_auto_schema(
+        operation_summary="安装类任务",
+        operation_description="安装作业任务, 新安装Agent、新安装Proxy、重装、替换等操作",
+        responses={status.HTTP_200_OK: response.JobInstallSerializer()},
+        tags=JOB_VIEW_TAGS,
+    )
     @action(detail=False, methods=["POST"], serializer_class=InstallSerializer)
     def install(self, request):
         """
@@ -121,50 +115,6 @@ class JobViewSet(ModelViewSet):
         @apiDescription 新安装Agent、新安装Proxy、重装、替换等操作
         @apiName install_job
         @apiGroup Job
-        @apiParam {String} job_type 任务类型
-        @apiParam {Object[]} hosts 主机信息
-        @apiParam {Number} host.bk_cloud_id 云区域ID
-        @apiParam {Number} [host.ap_id] 接入点ID
-        @apiParam {Number} [hosts.bk_host_id] 主机ID, 创建时可选, 更改时必选
-        @apiParam {String="Windows","Linux","AIX"} hosts.os_type 操作系统类型
-        @apiParam {Number} hosts.bk_biz_id 业务ID
-        @apiParam {String} hosts.inner_ip 内网IP
-        @apiParam {String} [hosts.outer_ip] 外网IP
-        @apiParam {String} [hosts.login_ip] 登录IP
-        @apiParam {String} [hosts.data_ip] 数据IP
-        @apiParam {String} hosts.account 账户名
-        @apiParam {Number} hosts.port 端口
-        @apiParam {String} hosts.auth_type 认证类型
-        @apiParam {String} [hosts.password] 密码
-        @apiParam {String} [hosts.key] 密钥
-        @apiParam {Number} [hosts.retention] 密码保留天数，默认只保留1天
-        @apiParamExample {Json} 安装请求参数
-        {
-            "job_type": "INSTALL_AGENT",
-            "hosts": [
-                {
-                    "bk_cloud_id": 1,
-                    "ap_id": 1,
-                    "bk_biz_id": 2,
-                    "os_type": "Linux",
-                    "inner_ip": "127.0.0.1",
-                    "outer_ip": "127.0.0.2",
-                    "login_ip": "127.0.0.3",
-                    "data_ip": "127.0.0.4",
-                    "account": "root",
-                    "port": 22,
-                    "auth_type": "PASSWORD",
-                    "password": "password",
-                    "key": "key"
-                }
-            ],
-            "retention": 1,
-        }
-        @apiSuccessExample {json} 成功返回:
-        {
-            "job_id": 35,
-            "ip_filter": []
-        }
         """
         validated_data = self.validated_data
         hosts = validated_data["hosts"]
@@ -175,6 +125,12 @@ class JobViewSet(ModelViewSet):
         extra_params = {"is_install_latest_plugins": validated_data["is_install_latest_plugins"]}
         return Response(JobHandler().install(hosts, op_type, node_type, job_type, ticket, extra_params))
 
+    @swagger_auto_schema(
+        operation_summary="操作类任务",
+        operation_description="用于只有bk_host_id参数的主机下线、重启等操作",
+        responses={status.HTTP_200_OK: response.JobOperateSerializer()},
+        tags=JOB_VIEW_TAGS,
+    )
     @action(detail=False, methods=["POST"], serializer_class=OperateSerializer)
     def operate(self, request):
         """
@@ -185,18 +141,6 @@ class JobViewSet(ModelViewSet):
         注意, 云区域ID、业务ID等筛选条件，仅在跨页全选模式下有效。<br>
         @apiName operate_job
         @apiGroup Job
-        @apiParam {String} job_type 任务类型
-        @apiParam {String} [bk_biz_id] 业务ID
-        @apiParam {List} [conditions] 搜索条件，支持os_type, ip, status <br>
-        version, bk_cloud_id, node_from 和 模糊搜索query
-        @apiParam {Int[]} [exclude_hosts] 跨页全选排除主机
-        @apiParam {Int[]} [bk_host_id] 主机ID
-        主机ID和跨页全选排除主机必选一个
-        @apiParamExample {Json} 安装请求参数
-        {
-            "job_type": "RESTART_PROXY",
-            "bk_host_id": [7731, 7732]
-        }
         """
         validated_data = self.validated_data
         job_type = validated_data["job_type"]
@@ -205,6 +149,10 @@ class JobViewSet(ModelViewSet):
         extra_params = {"is_install_latest_plugins": validated_data["is_install_latest_plugins"]}
         return Response(JobHandler().operate(job_type, bk_host_ids, bk_biz_scope, extra_params))
 
+    @swagger_auto_schema(
+        operation_summary="重试任务",
+        tags=JOB_VIEW_TAGS,
+    )
     @action(detail=True, methods=["POST"], serializer_class=JobInstancesOperateSerializer)
     def retry(self, request, *args, **kwargs):
         """
@@ -219,6 +167,10 @@ class JobViewSet(ModelViewSet):
         """
         return Response(JobHandler(job_id=kwargs["pk"]).retry(request.data.get("instance_id_list")))
 
+    @swagger_auto_schema(
+        operation_summary="终止任务",
+        tags=JOB_VIEW_TAGS,
+    )
     @action(detail=True, methods=["POST"], serializer_class=JobInstancesOperateSerializer)
     def revoke(self, request, *args, **kwargs):
         """
@@ -233,6 +185,10 @@ class JobViewSet(ModelViewSet):
         """
         return Response(JobHandler(job_id=kwargs["pk"]).revoke(request.data.get("instance_id_list", [])))
 
+    @swagger_auto_schema(
+        operation_summary="原子粒度重试任务",
+        tags=JOB_VIEW_TAGS,
+    )
     @action(detail=True, methods=["POST"], serializer_class=JobInstanceOperateSerializer)
     def retry_node(self, request, *args, **kwargs):
         """
@@ -257,6 +213,12 @@ class JobViewSet(ModelViewSet):
         """
         return Response(JobHandler(job_id=kwargs["pk"]).retry_node(request.data.get("instance_id", None)))
 
+    @swagger_auto_schema(
+        operation_summary="查询日志",
+        query_serializer=JobInstanceOperateSerializer(),
+        responses={status.HTTP_200_OK: response.JobLogResponseSerializer()},
+        tags=JOB_VIEW_TAGS,
+    )
     @action(detail=True, serializer_class=JobInstanceOperateSerializer)
     def log(self, request, *args, **kwargs):
         """
@@ -285,6 +247,10 @@ class JobViewSet(ModelViewSet):
         """
         return Response(JobHandler(job_id=kwargs["pk"]).get_log(request.query_params["instance_id"]))
 
+    @swagger_auto_schema(
+        operation_summary="查询日志",
+        tags=JOB_VIEW_TAGS,
+    )
     @action(detail=True, methods=["POST"], serializer_class=JobInstanceOperateSerializer)
     def collect_log(self, request, *args, **kwargs):
         """
@@ -299,6 +265,10 @@ class JobViewSet(ModelViewSet):
         """
         return Response(JobHandler(job_id=kwargs["pk"]).collect_log(request.data.get("instance_id")))
 
+    @swagger_auto_schema(
+        operation_summary="获取安装命令",
+        tags=JOB_VIEW_TAGS,
+    )
     @action(detail=True, methods=["GET"], serializer_class=FetchCommandSerializer)
     def get_job_commands(self, request, *args, **kwargs):
         """

@@ -8,7 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-
+from drf_yasg.utils import swagger_auto_schema
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
@@ -16,10 +16,16 @@ from apps.generic import APIViewSet
 
 from . import handlers, serializers
 
+RSA_VIEW_TAGS = ["rsa"]
+
 
 class RSAViewSet(APIViewSet):
     URL_BASE_NAME = "encrypt_rsa"
 
+    @swagger_auto_schema(
+        operation_summary="获取公钥列表",
+        tags=RSA_VIEW_TAGS,
+    )
     @action(detail=False, methods=["POST"], serializer_class=serializers.RSAFetchKeysSerializer)
     def fetch_public_keys(self, request):
         """

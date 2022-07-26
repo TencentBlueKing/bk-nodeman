@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 from typing import Any, Dict, List
 
+from drf_yasg.utils import swagger_auto_schema
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
@@ -19,10 +20,16 @@ from apps.node_man.handlers.host_v2 import HostV2Handler
 from apps.node_man.serializers import host_v2
 from apps.utils import concurrent
 
+HOST_V2_VIEW_TAGS = ["host_v2"]
+
 
 class HostV2ViewSet(ModelViewSet):
     model = models.Host
 
+    @swagger_auto_schema(
+        operation_summary="查询主机列表",
+        tags=HOST_V2_VIEW_TAGS,
+    )
     @action(detail=False, methods=["POST"], serializer_class=host_v2.HostSearchSerializer)
     def search(self, request):
         """
@@ -70,6 +77,10 @@ class HostV2ViewSet(ModelViewSet):
             HostV2Handler.list(params=query_params, return_all_node_type=query_params["return_all_node_type"])
         )
 
+    @swagger_auto_schema(
+        operation_summary="统计给定拓扑节点的agent状态统计",
+        tags=HOST_V2_VIEW_TAGS,
+    )
     @action(detail=False, methods=["POST"], serializer_class=host_v2.HostAgentStatusSerializer)
     def agent_status(self, request):
         """
@@ -97,6 +108,10 @@ class HostV2ViewSet(ModelViewSet):
             HostV2Handler.agent_status(nodes=self.validated_data["nodes"], action=self.validated_data["action"])
         )
 
+    @swagger_auto_schema(
+        operation_summary="统计给定拓扑节点的主机数量",
+        tags=HOST_V2_VIEW_TAGS,
+    )
     @action(detail=False, methods=["POST"], serializer_class=host_v2.NodeCountSerializer)
     def node_statistic(self, request):
         """

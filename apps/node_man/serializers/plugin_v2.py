@@ -88,7 +88,7 @@ class ExportSerializer(serializers.Serializer):
     导出包序列化器
     """
 
-    class GsePluginParamsSerializer(serializers.Serializer):
+    class GsePluginV2ParamsSerializer(serializers.Serializer):
         """
         Gse 采集器序列化器
         """
@@ -112,7 +112,7 @@ class ExportSerializer(serializers.Serializer):
             return data
 
     category = serializers.CharField()
-    query_params = GsePluginParamsSerializer()
+    query_params = GsePluginV2ParamsSerializer()
 
 
 class PluginQueryHistorySerializer(serializers.Serializer):

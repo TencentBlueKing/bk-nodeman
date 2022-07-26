@@ -27,11 +27,12 @@ class GatewaySerializer(serializers.Serializer):
 
 class ScopeSerializer(serializers.Serializer):
     bk_biz_id = serializers.IntegerField(required=False, default=None)
+    # TODO: 是否取消掉这个范围内的scope
     bk_biz_scope = serializers.ListField(required=False)
-    object_type = serializers.ChoiceField(choices=models.Subscription.OBJECT_TYPE_CHOICES)
-    node_type = serializers.ChoiceField(choices=models.Subscription.NODE_TYPE_CHOICES)
-    need_register = serializers.BooleanField(required=False, default=False)
-    nodes = serializers.ListField()
+    object_type = serializers.ChoiceField(choices=models.Subscription.OBJECT_TYPE_CHOICES, label="对象类型")
+    node_type = serializers.ChoiceField(choices=models.Subscription.NODE_TYPE_CHOICES, label="节点类别")
+    need_register = serializers.BooleanField(required=False, default=False, label="是否需要注册到CMDB")
+    nodes = serializers.ListField(child=serializers.DictField())
 
     def validate(self, attrs):
         for node in attrs["nodes"]:
@@ -62,26 +63,30 @@ class TargetHostSerializer(serializers.Serializer):
 
 
 class CreateSubscriptionSerializer(GatewaySerializer):
-    class StepSerializer(serializers.Serializer):
-        id = serializers.CharField()
-        type = serializers.CharField()
-        config = serializers.DictField()
-        params = serializers.DictField()
+    class CreateStepSerializer(serializers.Serializer):
+        id = serializers.CharField(label="步骤标识符", validators=[])
+        type = serializers.ChoiceField(label="步骤类型", choices=constants.SUB_STEP_TUPLE)
+        config = serializers.DictField(label="步骤配置")
+        params = serializers.DictField(label="步骤参数")
 
-    name = serializers.CharField(required=False)
-    scope = ScopeSerializer(many=False)
-    steps = serializers.ListField(child=StepSerializer(), min_length=1)
+    name = serializers.CharField(required=False, label="订阅名称")
+    scope = ScopeSerializer(many=False, label="事件订阅监听的范围")
+    steps = serializers.ListField(child=CreateStepSerializer(), min_length=1, label="事件订阅触发的动作列表")
     target_hosts = TargetHostSerializer(many=True, label="下发的目标机器列表", required=False, allow_empty=False)
-    run_immediately = serializers.BooleanField(required=False, default=False)
-    is_main = serializers.BooleanField(required=False, default=False)
+    run_immediately = serializers.BooleanField(required=False, default=False, label="是否立即执行")
+    is_main = serializers.BooleanField(required=False, default=False, label="是否为主配置")
 
     # 策略新参数
-    plugin_name = serializers.CharField(required=False)
-    bk_biz_scope = serializers.ListField(child=serializers.IntegerField(), required=False, default=[])
-    category = serializers.CharField(required=False)
+    plugin_name = serializers.CharField(required=False, label="插件名")
+    bk_biz_scope = serializers.ListField(child=serializers.IntegerField(), required=False, default=[], label="订阅监听业务范围")
+    category = serializers.ChoiceField(
+        required=False,
+        choices=list(models.Subscription.CATEGORY_ALIAS_MAP.items()),
+        label="订阅类型",
+    )
 
     # 灰度策略指定父策略
-    pid = serializers.IntegerField(required=False)
+    pid = serializers.IntegerField(required=False, label="父策略ID")
 
     def validate(self, attrs):
         step_types = {step["type"] for step in attrs["steps"]}
@@ -104,19 +109,22 @@ class CreateSubscriptionSerializer(GatewaySerializer):
                 ).decode()
         return attrs
 
+    class Meta:
+        refer_name = "create"
+
 
 class GetSubscriptionSerializer(GatewaySerializer):
-    subscription_id_list = serializers.ListField(child=serializers.IntegerField())
-    show_deleted = serializers.BooleanField(default=False)
+    subscription_id_list = serializers.ListField(child=serializers.IntegerField(), label="订阅ID列表")
+    show_deleted = serializers.BooleanField(default=False, label="显示已删除的订阅")
 
 
 class UpdateSubscriptionSerializer(GatewaySerializer):
-    class ScopeSerializer(serializers.Serializer):
+    class UpdateScopeSerializer(serializers.Serializer):
         node_type = serializers.ChoiceField(choices=models.Subscription.NODE_TYPE_CHOICES)
         nodes = serializers.ListField()
         bk_biz_id = serializers.IntegerField(required=False, default=None)
 
-    class StepSerializer(serializers.Serializer):
+    class UpdateStepSerializer(serializers.Serializer):
         id = serializers.CharField()
         type = serializers.CharField(required=False)
         params = serializers.DictField()
@@ -124,8 +132,8 @@ class UpdateSubscriptionSerializer(GatewaySerializer):
 
     subscription_id = serializers.IntegerField()
     name = serializers.CharField(required=False)
-    scope = ScopeSerializer()
-    steps = serializers.ListField(child=StepSerializer())
+    scope = UpdateScopeSerializer()
+    steps = serializers.ListField(child=UpdateStepSerializer())
     run_immediately = serializers.BooleanField(required=False, default=False)
 
     # 策略新参数
@@ -135,21 +143,21 @@ class UpdateSubscriptionSerializer(GatewaySerializer):
 
 
 class DeleteSubscriptionSerializer(GatewaySerializer):
-    subscription_id = serializers.IntegerField()
+    subscription_id = serializers.IntegerField(label="订阅ID")
 
 
 class SwitchSubscriptionSerializer(GatewaySerializer):
-    subscription_id = serializers.IntegerField()
-    action = serializers.ChoiceField(choices=["enable", "disable"])
+    subscription_id = serializers.IntegerField(label="订阅ID")
+    action = serializers.ChoiceField(choices=["enable", "disable"], label="启停动作")
 
 
 class RunSubscriptionSerializer(GatewaySerializer):
-    class ScopeSerializer(serializers.Serializer):
-        node_type = serializers.ChoiceField(choices=models.Subscription.NODE_TYPE_CHOICES)
-        nodes = serializers.ListField()
+    class RunScopeSerializer(serializers.Serializer):
+        node_type = serializers.ChoiceField(choices=models.Subscription.NODE_TYPE_CHOICES, label="节点类型")
+        nodes = serializers.ListField(child=serializers.DictField(), label="拓扑节点列表")
 
-    subscription_id = serializers.IntegerField()
-    scope = ScopeSerializer(required=False)
+    subscription_id = serializers.IntegerField(label="订阅ID")
+    scope = RunScopeSerializer(required=False, label="订阅监听的范围")
     actions = serializers.DictField(child=serializers.CharField(), required=False)
 
 
@@ -172,15 +180,15 @@ class CheckTaskReadySerializer(GatewaySerializer):
 
 
 class TaskResultSerializer(GatewaySerializer):
-    page = serializers.IntegerField(required=False, min_value=1, default=1)
-    pagesize = serializers.IntegerField(required=False, default=-1)
+    page = serializers.IntegerField(required=False, min_value=1, default=1, label="当前页面")
+    pagesize = serializers.IntegerField(required=False, default=-1, label="页面大小")
     # 放开对status的可选项校验
-    statuses = serializers.ListField(required=False, child=serializers.CharField())
-    return_all = serializers.BooleanField(required=False, default=False)
-    instance_id_list = serializers.ListField(required=False, child=serializers.CharField())
-    subscription_id = serializers.IntegerField()
-    task_id_list = serializers.ListField(child=serializers.IntegerField(), required=False)
-    need_detail = serializers.BooleanField(default=False)
+    statuses = serializers.ListField(required=False, child=serializers.CharField(), label="过滤的状态列表")
+    return_all = serializers.BooleanField(required=False, default=False, label="是否返回全量")
+    instance_id_list = serializers.ListField(required=False, child=serializers.CharField(), label="需过滤的实例ID列表")
+    subscription_id = serializers.IntegerField(label="订阅任务ID")
+    task_id_list = serializers.ListField(child=serializers.IntegerField(), required=False, label="任务ID列表")
+    need_detail = serializers.BooleanField(default=False, label="是否需要详情")
 
 
 class TaskResultDetailSerializer(GatewaySerializer):
@@ -191,9 +199,9 @@ class TaskResultDetailSerializer(GatewaySerializer):
 
 
 class InstanceHostStatusSerializer(GatewaySerializer):
-    subscription_id_list = serializers.ListField(child=serializers.IntegerField())
-    show_task_detail = serializers.BooleanField(default=False)
-    need_detail = serializers.BooleanField(default=False)
+    subscription_id_list = serializers.ListField(child=serializers.IntegerField(), label="订阅ID列表")
+    show_task_detail = serializers.BooleanField(default=False, label="展示任务详细信息")
+    need_detail = serializers.BooleanField(default=False, label="展示实例主机详细信息")
 
 
 class RetryNodeSerializer(GatewaySerializer):

@@ -180,9 +180,9 @@ class OperateSerializer(serializers.Serializer):
     job_type = serializers.ChoiceField(label=_("任务类型"), choices=list(constants.JOB_TYPE_DICT))
     bk_biz_id = serializers.ListField(label=_("业务ID"), required=False)
     version = serializers.ListField(label=_("Agent版本"), required=False)
-    conditions = serializers.ListField(label=_("搜索条件"), required=False)
-    bk_host_id = serializers.ListField(label=_("主机ID"), required=False)
-    exclude_hosts = serializers.ListField(label=_("跨页全选排除主机"), required=False)
+    conditions = serializers.ListField(label=_("搜索条件"), required=False, child=serializers.DictField())
+    bk_host_id = serializers.ListField(label=_("主机ID"), required=False, child=serializers.IntegerField())
+    exclude_hosts = serializers.ListField(label=_("跨页全选排除主机"), required=False, child=serializers.IntegerField())
     is_install_latest_plugins = serializers.BooleanField(label=_("是否安装最新版本插件"), required=False, default=True)
 
     # 以下非参数传值，通过validate方法计算转化得到
@@ -240,7 +240,7 @@ class OperateSerializer(serializers.Serializer):
 
 
 class RetrieveSerializer(serializers.Serializer):
-    conditions = serializers.ListField(label=_("搜索条件"), required=False)
+    conditions = serializers.ListField(label=_("搜索条件"), required=False, child=serializers.DictField())
     page = serializers.IntegerField(label=_("当前页数"), required=False, default=1)
     pagesize = serializers.IntegerField(label=_("分页大小"), required=False, default=10)
 
@@ -255,4 +255,4 @@ class JobInstancesOperateSerializer(serializers.Serializer):
 
 
 class JobInstanceOperateSerializer(serializers.Serializer):
-    instance_id = serializers.CharField(label=_("任务实例ID"), required=False)
+    instance_id = serializers.CharField(label=_("任务实例ID"))

@@ -96,12 +96,25 @@ class ValidationMixin(GenericViewSet):
         return self.params_valid(serializer, data)
 
 
-class APIViewSet(ApiMixin, ValidationMixin, GenericViewSet):
-    pass
-
-
 class Meta(object):
     pass
+
+
+class APIViewSet(ApiMixin, ValidationMixin, GenericViewSet):
+    def get_serializer_class(self, *args, **kwargs):
+        if self.serializer_class is None:
+            return super().get_serializer_class()
+        return type(
+            self.serializer_class.__name__,
+            (self.serializer_class,),
+            {
+                "Meta": type(
+                    "Meta",
+                    (Meta,),
+                    {"ref_name": f"{self.serializer_class.__module__}.{self.serializer_class.__name__}"},
+                )
+            },
+        )
 
 
 class ModelViewSet(ApiMixin, ValidationMixin, _ModelViewSet):
@@ -137,9 +150,15 @@ class ModelViewSet(ApiMixin, ValidationMixin, _ModelViewSet):
         self.serializer_meta.model = self.model
         self.serializer_meta.fields = "__all__"
         if isinstance(self.serializer_class, GeneralSerializer) or self.serializer_class is None:
-            return type("GeneralSerializer", (GeneralSerializer,), {"Meta": self.serializer_meta})
+            self.serializer_meta.ref_name = "GeneralSerializer{}".format(self.model.__name__)
+            return type(
+                "GeneralSerializer{}".format(self.model.__name__),
+                (GeneralSerializer,),
+                {"Meta": self.serializer_meta},
+            )
         else:
-            return self.serializer_class
+            self.serializer_meta.ref_name = f"{self.serializer_class.__module__}.{self.serializer_class.__name__}"
+            return type(self.serializer_class.__name__, (self.serializer_class,), {"Meta": self.serializer_meta})
 
 
 def custom_exception_handler(exc, context):

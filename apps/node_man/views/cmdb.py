@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from drf_yasg.utils import swagger_auto_schema
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
@@ -18,8 +19,14 @@ from apps.iam.handlers import resources
 from apps.node_man.handlers.cmdb import CmdbHandler
 from apps.node_man.serializers import cmdb
 
+CMDB_VIEW_TAGS = ["cmdb"]
+
 
 class CmdbViews(APIViewSet):
+    @swagger_auto_schema(
+        operation_summary="查询用户所有业务",
+        tags=CMDB_VIEW_TAGS,
+    )
     @action(detail=False, serializer_class=cmdb.BizSerializer)
     def biz(self, request, *args, **kwargs):
         """
@@ -38,6 +45,10 @@ class CmdbViews(APIViewSet):
         data_list = CmdbHandler().biz(self.validated_data)
         return Response(data_list)
 
+    @swagger_auto_schema(
+        operation_summary="获得拓扑信息",
+        tags=CMDB_VIEW_TAGS,
+    )
     @action(detail=False, methods=["GET"], serializer_class=cmdb.FetchTopoSerializer)
     def fetch_topo(self, request, *args, **kwargs):
         """
@@ -98,6 +109,10 @@ class CmdbViews(APIViewSet):
 
         return Response(CmdbHandler().fetch_topo(bk_biz_id))
 
+    @swagger_auto_schema(
+        operation_summary="查询拓扑",
+        tags=CMDB_VIEW_TAGS,
+    )
     @action(detail=False, methods=["GET"], serializer_class=cmdb.CmdbSearchTopoSerializer)
     def search_topo(self, request):
         """
@@ -125,6 +140,10 @@ class CmdbViews(APIViewSet):
         """
         return Response(CmdbHandler().search_topo_nodes(self.validated_data))
 
+    @swagger_auto_schema(
+        operation_summary="查询IP",
+        tags=CMDB_VIEW_TAGS,
+    )
     @action(detail=False, methods=["GET"], serializer_class=cmdb.CmdbSearchTopoSerializer)
     def search_ip(self, request):
         """
@@ -166,6 +185,10 @@ class CmdbViews(APIViewSet):
         """
         return Response(CmdbHandler().search_ip(self.validated_data))
 
+    @swagger_auto_schema(
+        operation_summary="查询服务模板列表",
+        tags=CMDB_VIEW_TAGS,
+    )
     @action(detail=False, methods=["GET"], serializer_class=cmdb.FetchBizServiceTemplateSerializer)
     def service_template(self, request, *args, **kwargs):
         """
