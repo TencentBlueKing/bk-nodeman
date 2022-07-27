@@ -248,6 +248,7 @@
           </template>
         </bk-table-column>
         <bk-table-column
+          fixed
           key="inner_ipv6"
           :label="$t('内网IPv6')"
           prop="inner_ipv6"
@@ -262,7 +263,7 @@
           key="bk_host_name"
           :label="$t('主机名')"
           prop="bk_host_name"
-          width="120"
+          width="140"
           v-if="filter['bk_host_name'].mockChecked"
           show-overflow-tooltip>
           <template #default="{ row }">

@@ -76,8 +76,8 @@
         </template>
       </bk-table-column>
       <bk-table-column
-        v-if="getColumnShowStatus('bk_host_name')"
-        min-width="120"
+        v-if="filterField['bk_host_name'].mockChecked"
+        min-width="140"
         prop="bk_host_name"
         sortable
         :label="$t('主机名')"
@@ -87,7 +87,7 @@
         </template>
       </bk-table-column>
       <bk-table-column
-        v-if="getColumnShowStatus('node_type')"
+        v-if="filterField['node_type'].mockChecked"
         min-width="120"
         prop="node_type"
         sortable
@@ -102,7 +102,7 @@
         prop="bk_cloud_id"
         sortable
         :label="$t('云区域')"
-        v-if="getColumnShowStatus('bk_cloud_id')"
+        v-if="filterField['bk_cloud_id'].mockChecked"
         :render-header="renderFilterHeader">
         <template #default="{ row }">
           <span>{{ row.bk_cloud_name | filterEmpty }}</span>
@@ -113,10 +113,10 @@
         prop="bk_biz_name"
         :label="$t('归属业务')"
         sortable
-        v-if="getColumnShowStatus('bk_biz_name')">
+        v-if="filterField['bk_biz_name'].mockChecked">
       </bk-table-column>
       <bk-table-column
-        v-if="getColumnShowStatus('os_type')"
+        v-if="filterField['os_type'].mockChecked"
         min-width="115"
         prop="os_type"
         :label="$t('操作系统')"
@@ -128,7 +128,8 @@
         </template>
       </bk-table-column>
       <bk-table-column
-        v-if="getColumnShowStatus('bk_addressing')"
+        v-if="filterField['bk_addressing'].mockChecked"
+        min-width="100"
         prop="bk_addressing"
         :label="$t('寻址方式')">
         <template #default="{ row }">
@@ -142,7 +143,7 @@
           :label="plugin"
           :prop="plugin"
           :render-header="renderFilterHeader"
-          v-if="getColumnShowStatus(plugin)">
+          v-if="filterField[plugin] && filterField[plugin].mockChecked">
           <template #default="{ row }">
             <div class="col-status">
               <span :class="`status-mark status-${getRowPluginInfo(plugin, row)}`"></span>
@@ -180,7 +181,6 @@ import HeaderRenderMixin from '@/components/common/header-render-mixins';
 import ColumnSetting from '@/components/common/column-setting.vue';
 import ColumnCheck from '@/components/common/column-check.vue';
 import NodeDetailSlider from './node-detail-slider.vue';
-import FormLabelMixin from '@/common/form-label-mixin';
 import SelectionTips from '@/components/common/selection-tips.vue';
 import PluginStatusBox from './plugin-status-box.vue';
 import { CreateElement } from 'vue';
@@ -193,7 +193,7 @@ import { CreateElement } from 'vue';
     PluginStatusBox,
   },
 })
-export default class PluginRuleTable extends Mixins(FormLabelMixin, HeaderRenderMixin) {
+export default class PluginRuleTable extends Mixins(HeaderRenderMixin) {
   @Prop({ default: () => ({
     limit: 50,
     current: 1,
@@ -233,16 +233,6 @@ export default class PluginRuleTable extends Mixins(FormLabelMixin, HeaderRender
       this.nodeListTable.doLayout();
     });
   }
-  @Watch('pluginNames')
-  private handleResetFilterField(val: string[]) {
-    const plugin = val.map(name => ({
-      name,
-      id: name,
-      checked: true,
-      disabled: false,
-    }));
-    this.filterField.splice(this.filterField.length, 0, ...plugin);
-  }
 
   private currentIp = '';
   private currentHostId = -1;
@@ -250,54 +240,62 @@ export default class PluginRuleTable extends Mixins(FormLabelMixin, HeaderRender
   private showSlider = false;
   // 本地存储Key
   private localMark = 'plugin_list_table';
-  private filterField: ITabelFliter[] = [
-    {
+  private filterField: { [key: string]: ITabelFliter } = {
+    inner_ip: {
       checked: true,
       disabled: true,
       name: 'IP',
       id: 'inner_ip',
+      mockChecked: true,
     },
-    {
+    inner_ipv6: {
       checked: true,
       disabled: true,
       name: window.i18n.t('内网IPv6'),
       id: 'inner_ipv6',
+      mockChecked: true,
     },
-    {
+    bk_host_name: {
       checked: true,
       disabled: false,
       name: window.i18n.t('主机名'),
       id: 'bk_host_name',
+      mockChecked: true,
     },
-    {
+    node_type: {
       checked: true,
       disabled: false,
       name: window.i18n.t('节点类型'),
       id: 'node_type',
+      mockChecked: true,
     },
-    {
+    bk_cloud_id: {
       checked: true,
       disabled: false,
       name: window.i18n.t('云区域'),
       id: 'bk_cloud_id',
+      mockChecked: true,
     },
-    {
+    bk_biz_name: {
       checked: true,
       disabled: false,
       name: window.i18n.t('归属业务'),
       id: 'bk_biz_name',
+      mockChecked: true,
     },
-    {
+    os_type: {
       checked: true,
       disabled: false,
       name: window.i18n.t('操作系统'),
       id: 'os_type',
+      mockChecked: true,
     },
-    {
+    bk_addressing: {
       checked: false,
       disabled: false,
       name: window.i18n.t('寻址方式'),
       id: 'bk_addressing',
+      mockChecked: false,
     },
     // {
     //   checked: true,
@@ -305,7 +303,7 @@ export default class PluginRuleTable extends Mixins(FormLabelMixin, HeaderRender
     //   name: window.i18n.t('Agent状态'),
     //   id: 'agent_status'
     // },
-  ];
+  };
   private popoverIns: any = null;
   private loading = false;
   private detailData: IPluginStatus[] = [];
@@ -333,9 +331,10 @@ export default class PluginRuleTable extends Mixins(FormLabelMixin, HeaderRender
     return ipv6SortRows.length ? Math.ceil(ipv6SortRows[0] * 6.9) : 80;
   }
 
-  private getColumnShowStatus(id: string) {
-    const item = this.filterField.find(item => item.id === id);
-    return !!item?.checked;
+  private created() {
+    this.pluginNames.forEach((name) => {
+      this.$set(this.filterField, name, { name, id: name, checked: true, disabled: false, mockChecked: true });
+    });
   }
 
   private renderSelectionHeader(h: CreateElement) {
@@ -364,8 +363,9 @@ export default class PluginRuleTable extends Mixins(FormLabelMixin, HeaderRender
       },
     });
   }
-  private handleFieldCheckChange(filter: ITabelFliter[]) {
-    this.filterField = JSON.parse(JSON.stringify(filter));
+  private handleFieldCheckChange(filter: { [key: string]: ITabelFliter }) {
+    this.$set(this, 'filterField', JSON.parse(JSON.stringify(filter)));
+    this.$forceUpdate();
   }
   private handleClearSelections() {
     this.handleSelectionChange({ value: CheckValueEnum.uncheck, type: 'current' });
