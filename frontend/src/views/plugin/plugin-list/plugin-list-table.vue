@@ -59,7 +59,7 @@
           <bk-button v-if="row.inner_ip" v-test="'showDetail'" text @click="handleRowClick(row)">
             {{ row.inner_ip }}
           </bk-button>
-          <span v-else>{{ row.inner_ipv6 | filterEmpty }}</span>
+          <span v-else>{{ row.inner_ip | filterEmpty }}</span>
         </template>
       </bk-table-column>
       <bk-table-column

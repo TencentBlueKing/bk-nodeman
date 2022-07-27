@@ -10,19 +10,13 @@ export const splitCodeArr = ['\n', '，', ' ', '、', ','];
  * regs: regexp.source
  */
 export const regsIp = '^((25[0-5]|2[0-4]\\d|[01]?\\d\\d?)\\.){3}(25[0-5]|2[0-4]\\d|[01]?\\d\\d?)$';
-export const regsIPv6 = '^([\\da-f]{1,4}:){7}[\\da-f]{1,4}$'; // 不支持压缩格式
+export const regsIPv6 = '^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]).){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))(,(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])))*$';
 
 /**
  * reg: regexp instance
  */
 export const regIp = new RegExp(regsIp);
-export function regIPv6(str: string) {
-  const blockArr = str.match(/:/g);
-  if (!blockArr || blockArr.length > 7) return false;
-  return Boolean(/::/.test(str)
-    ? /^([\da-f]{1,4}(:|::)){1,6}[\da-f]{1,4}$/i.test(str)
-    : /^([\da-f]{1,4}:){7}[\da-f]{1,4}$/i.test(str));
-};
+export const regIPv6 = new RegExp(regsIPv6);
 export const regUrl = /^(?:http(s)?:\/\/)?[\w.-]+(?:\.[\w.-]+)+[\w\-._~:/?#[\]@!$&'*+,;=.]+$/;
 export const regNormalText = /^[\u4e00-\u9fa5A-Za-z0-9-_]+$/;
 export const regNaturalNumber = /^(0|[1-9][0-9]*)$/; // 自然数 | 非负整数
@@ -53,12 +47,13 @@ export const reguIp = {
   trigger: 'blur',
 };
 export const reguIPv6 = {
-  validator: regIPv6,
+  regex: regIPv6,
+  validator: (val: string) => regIPv6.test(val),
   message: window.i18n.t('IP格式不正确'),
   trigger: 'blur',
 };
 export const reguIPMixins = {
-  validator: val => regIp.test(val) || regIPv6(val),
+  validator: val => regIp.test(val) || regIPv6.test(val),
   message: window.i18n.t('IP格式不正确'),
   trigger: 'blur',
 };
@@ -70,7 +65,7 @@ export const reguIpBatch = {
     const valSplit = val.split(splitCode).filter(text => !!text)
       .map(text => text.trim());
     // IP校验
-    return valSplit.every(item => regIp.test(item) || regIPv6(item));
+    return valSplit.every(item => regIp.test(item) || regIPv6.test(item));
   },
   message: window.i18n.t('IP格式不正确'),
 };
