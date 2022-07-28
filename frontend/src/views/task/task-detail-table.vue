@@ -19,7 +19,7 @@
         :reserve-selection="true"
         :selectable="getSelectAbled">
       </bk-table-column> -->
-      <bk-table-column class-name="row-ip" label="IP" prop="innerIp" :resizable="false"></bk-table-column>
+      <bk-table-column class-name="row-ip" label="IP" prop="ip" :resizable="false"></bk-table-column>
       <bk-table-column :label="$t('云区域')" prop="bkCloudName" :resizable="false"></bk-table-column>
       <bk-table-column min-width="100" :label="$t('业务')" prop="bkBizName" :resizable="false"></bk-table-column>
       <bk-table-column min-width="100" :label="$t('操作类型')" prop="opTypeDisplay" :resizable="false"></bk-table-column>
@@ -242,7 +242,7 @@ export default class TaskDeatailTable extends Mixins(HeaderRenderMixin) {
           name: 'taskLog',
           params: {
             taskId: `${row.jobId}`,
-            hostInnerIp: row.innerIp,
+            hostInnerIp: row.ip,
           },
           query: {
             page: String(this.pagination.current),

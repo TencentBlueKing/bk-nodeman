@@ -76,6 +76,8 @@ export interface IPluginTopo {
 export interface IPluginList {
   bk_host_id: number
   inner_ip: string
+  inner_ipv6: string
+  bk_host_name: string
   plugin_status: IPluginStatus[]
   selection: boolean
   status: 'RUNNING' | 'TERMINATED' | 'UNKNOWN' | 'UNREGISTER'
