@@ -1,6 +1,6 @@
 import { authentication, getDefaultConfig } from '@/config/config';
 import { ISetupHead, ISetupRow } from '@/types';
-import { reguFnMinInteger, reguFnSysPath, reguIp } from '@/common/form-check';
+import { reguFnMinInteger, reguFnSysPath, reguIPMixins } from '@/common/form-check';
 
 const defaultOsType = 'LINUX'; // proxy 一定为 LINUX
 export const setupInfo: ISetupHead[] = [
@@ -13,7 +13,7 @@ export const setupInfo: ISetupHead[] = [
     unique: true,
     errTag: true,
     iconOffset: 10,
-    rules: [reguIp,
+    rules: [reguIPMixins,
       {
         trigger: 'blur',
         message: window.i18n.t('冲突校验', { prop: 'IP' }),
@@ -38,7 +38,7 @@ export const setupInfo: ISetupHead[] = [
     errTag: true,
     required: true,
     iconOffset: 10,
-    rules: [reguIp,
+    rules: [reguIPMixins,
       {
         trigger: 'blur',
         message: window.i18n.t('冲突校验', { prop: 'IP' }),
@@ -63,7 +63,7 @@ export const setupInfo: ISetupHead[] = [
     unique: true,
     errTag: true,
     iconOffset: 10,
-    rules: [reguIp,
+    rules: [reguIPMixins,
       {
         trigger: 'blur',
         message: window.i18n.t('冲突校验', { prop: 'IP' }),
@@ -159,7 +159,7 @@ export const setupManualInfo: ISetupHead[] = [
     unique: true,
     errTag: true,
     iconOffset: 10,
-    rules: [reguIp,
+    rules: [reguIPMixins,
       {
         trigger: 'blur',
         message: window.i18n.t('冲突校验', { prop: 'IP' }),
@@ -184,7 +184,7 @@ export const setupManualInfo: ISetupHead[] = [
     errTag: true,
     required: true,
     iconOffset: 10,
-    rules: [reguIp,
+    rules: [reguIPMixins,
       {
         trigger: 'blur',
         message: window.i18n.t('冲突校验', { prop: 'IP' }),
