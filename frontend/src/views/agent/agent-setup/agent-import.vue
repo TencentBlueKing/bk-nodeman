@@ -109,6 +109,7 @@ import { debounce, deepClone, isEmpty } from '@/common/util';
 import { IAgent, IAgentHost, IAgentSearch } from '@/types/agent/agent-type';
 import { IApExpand } from '@/types/config/config';
 import { ISetupHead, ISetupRow } from '@/types';
+import { regIPv6 } from '@/common/form-check';
 
 @Component({
   name: 'agent-import',
@@ -330,12 +331,24 @@ export default class AgentImport extends Mixins(mixin) {
         if (!item.install_channel_id) {
           item.install_channel_id = 'default';
         }
+        if (!item.inner_ip) { // 优先展示IPv4
+          item.inner_ip = item.inner_ipv6;
+        }
         return Object.assign({}, item, item.identity_info, ap);
       });
     } else {
-      data = JSON.parse(JSON.stringify(this.isNotAutoSelect
-        ? this.tableData.map(item => (item.ap_id === -1 ? Object.assign(item, { ap_id: apDefault }) : item))
-        : this.tableData));
+      const defaultAp = { ap_id: apDefault };
+      const formatData = this.tableData.map((item) => {
+        const row = {
+          ...item,
+          inner_ip: item.inner_ip || item.inner_ipv6, // 优先展示IPv4
+        };
+        if (this.isNotAutoSelect && item.ap_id === -1) {
+          Object.assign(row, defaultAp);
+        }
+        return row;
+      });
+      data = JSON.parse(JSON.stringify(formatData));
     }
     // 将原始的数据备份；切换安装方式时，接入点的数据变更后的回退操作时需要用到
     this.tableDataBackup = data;
@@ -393,6 +406,10 @@ export default class AgentImport extends Mixins(mixin) {
         const authType = item.auth_type?.toLowerCase() as ('key' | 'password');
         if (item[authType]) {
           item[authType] = this.$RSA.getNameMixinEncrypt(item[authType] as string);
+        }
+        if (regIPv6.test(item.inner_ip as string)) {
+          item.inner_ipv6 = item.inner_ip;
+          delete item.inner_ip;
         }
       });
       // 安装agent或pagent时，需要设置初始的安装类型

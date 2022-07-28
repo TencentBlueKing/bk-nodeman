@@ -1,5 +1,5 @@
-import { authentication, defaultPort, sysOptions, defaultOsType, getDefaultConfig } from '@/config/config';
-import { reguFnMinInteger, reguPort, reguIp } from '@/common/form-check';
+import { authentication, defaultPort, sysOptions, defaultOsType, getDefaultConfig, addressingMode } from '@/config/config';
+import { reguFnMinInteger, reguPort, reguIp, reguIPMixins } from '@/common/form-check';
 
 export const tableConfig = [
   {
@@ -12,7 +12,7 @@ export const tableConfig = [
     unique: true,
     errTag: true,
     placeholder: window.i18n.t('请输入'),
-    rules: [reguIp,
+    rules: [reguIPMixins,
       {
         trigger: 'blur',
         message: window.i18n.t('冲突校验', { prop: 'IP' }),
@@ -228,6 +228,19 @@ export const tableConfig = [
     rules: [reguFnMinInteger(1)],
   },
   {
+    label: '寻址方式',
+    prop: 'bk_addressing',
+    type: 'select',
+    default: '0',
+    batch: true,
+    required: false,
+    noRequiredMark: false,
+    getOptions() {
+      return addressingMode;
+    },
+    width: 115,
+  },
+  {
     label: '',
     prop: '',
     type: 'operate',
@@ -246,7 +259,7 @@ export const tableManualConfig = [
     unique: true,
     errTag: true,
     placeholder: window.i18n.t('请输入'),
-    rules: [reguIp,
+    rules: [reguIPMixins,
       {
         trigger: 'blur',
         message: window.i18n.t('冲突校验', { prop: 'IP' }),
@@ -406,6 +419,19 @@ export const tableManualConfig = [
     width: 120,
     placeholder: window.i18n.t('请输入'),
     rules: [reguFnMinInteger(1)],
+  },
+  {
+    label: '寻址方式',
+    prop: 'bk_addressing',
+    type: 'select',
+    default: '0',
+    batch: true,
+    required: false,
+    noRequiredMark: false,
+    getOptions() {
+      return addressingMode;
+    },
+    width: 115,
   },
   {
     label: '',
