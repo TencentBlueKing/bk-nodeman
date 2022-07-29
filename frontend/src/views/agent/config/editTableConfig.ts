@@ -98,9 +98,9 @@ export const editConfig: ISetupHead[] = [
     batch: true,
     default: getDefaultConfig(defaultOsType, 'port', defaultPort),
     rules: [reguPort],
-    getReadonly(row: ISetupRow) {
-      return row && row.os_type === 'WINDOWS' && row.bk_cloud_id !== window.PROJECT_CONFIG.DEFAULT_CLOUD;
-    },
+    // getReadonly(row: ISetupRow) {
+    //   return row && row.os_type === 'WINDOWS' && row.bk_cloud_id !== window.PROJECT_CONFIG.DEFAULT_CLOUD;
+    // },
   },
   {
     label: '登录账号',
