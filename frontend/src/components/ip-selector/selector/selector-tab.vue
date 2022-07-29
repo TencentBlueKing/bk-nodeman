@@ -156,7 +156,7 @@ export default class SelectorTab extends Vue {
   }
 }
 </script>
-<style lang="scss" scoped>
+<style lang="postcss" scoped>
 .selector-tab {
   display: flex;
   flex-direction: column;

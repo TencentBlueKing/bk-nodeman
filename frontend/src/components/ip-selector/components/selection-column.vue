@@ -151,7 +151,7 @@ export default class SelectionColumn extends Vue {
   }
 }
 </script>
-<style lang="scss" scoped>
+<style lang="postcss" scoped>
 .selection-header {
   .all-check {
     >>> .bk-checkbox {

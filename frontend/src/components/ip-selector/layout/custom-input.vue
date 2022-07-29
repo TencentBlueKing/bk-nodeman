@@ -220,7 +220,7 @@ export default class CustomInput extends Vue {
   }
 }
 </script>
-<style lang="scss" scoped>
+<style lang="postcss" scoped>
 >>> .bk-textarea-wrapper {
   height: 100%;
   .bk-form-textarea {
@@ -231,7 +231,7 @@ export default class CustomInput extends Vue {
   display: flex;
   color: #63656e;
   &-left {
-    // flex-basis: 240px;
+    /* flex-basis: 240px; */
     display: flex;
     flex-direction: column;
     padding-bottom: 26px;
