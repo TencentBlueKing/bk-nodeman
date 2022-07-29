@@ -150,12 +150,12 @@ import formLabelMixin from '@/common/form-label-mixin';
 import FilterDialog from '@/components/common/filter-dialog.vue';
 import PermissionSelect from '@/components/common/permission-select.vue';
 import getTipsTemplate from '../config/tips-template';
-import { setupTableConfig, setupTableManualConfig } from '../config/setupTableConfig';
+import { setupTableConfig, setupTableManualConfig, parentHead } from '../config/setupTableConfig';
 import { addListener, removeListener } from 'resize-detector';
 import { debounce, isEmpty, deepClone } from '@/common/util';
 import { IApExpand } from '@/types/config/config';
 import { IAgent } from '@/types/agent/agent-type';
-import { ISetupHead, ISetupRow } from '@/types';
+import { ISetupHead, ISetupRow, ISetupParent } from '@/types';
 import { reguRequired, regIPv6 } from '@/common/form-check';
 import { getDefaultConfig } from '@/config/config';
 
@@ -194,8 +194,9 @@ export default class AgentSetup extends Mixins(mixin, formLabelMixin) {
   // 右侧提示面板是否显示
   private showRightPanel = false;
   // agent安装信息表格
-  private setupInfo: { header: ISetupHead[], data: ISetupRow[] } = {
+  private setupInfo: { header: ISetupHead[], data: ISetupRow[], parentHead: ISetupParent[] } = {
     header: setupTableConfig,
+    parentHead,
     data: [],
   };
   // 监听界面滚动

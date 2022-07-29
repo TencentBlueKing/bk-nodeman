@@ -5,21 +5,13 @@ import { reguFnMinInteger, reguPort, reguIPMixins, reguIp } from '@/common/form-
 
 export const editConfig: ISetupHead[] = [
   {
-    label: 'IP地址',
-    prop: 'inner_ip',
-    type: 'text',
-    required: true,
-    noRequiredMark: false,
-    rules: [reguIPMixins],
-    readonly: true,
-  },
-  {
     label: '业务',
     prop: 'bk_biz_id',
     type: 'biz',
     required: true,
     multiple: false,
     noRequiredMark: false,
+    parentProp: 'biz_attr',
     readonly: true,
     placeholder: window.i18n.t('选择业务'),
   },
@@ -30,6 +22,7 @@ export const editConfig: ISetupHead[] = [
     required: true,
     popoverMinWidth: 160,
     noRequiredMark: false,
+    parentProp: 'cloud_attr',
     placeholder: window.i18n.t('请选择'),
     getOptions() {
       return this.cloudList.map((item: ICloudSource) => ({
@@ -50,6 +43,7 @@ export const editConfig: ISetupHead[] = [
     batch: true,
     popoverMinWidth: 160,
     noRequiredMark: false,
+    parentProp: 'cloud_attr',
     placeholder: window.i18n.t('请选择'),
     getOptions(row) {
       return row.bk_cloud_id || row.bk_cloud_id === 0
@@ -67,10 +61,22 @@ export const editConfig: ISetupHead[] = [
     options: [],
     popoverMinWidth: 160,
     noRequiredMark: false,
+    parentProp: 'cloud_attr',
     placeholder: window.i18n.t('请选择'),
     getOptions() {
       return this.apList;
     },
+  },
+  {
+    label: 'IP地址',
+    prop: 'inner_ip',
+    type: 'text',
+    required: true,
+    noRequiredMark: false,
+    rules: [reguIPMixins],
+    parentProp: 'host_attr',
+    sync: 'login_ip',
+    readonly: true,
   },
   {
     label: '操作系统',
@@ -79,6 +85,7 @@ export const editConfig: ISetupHead[] = [
     required: true,
     batch: true,
     noRequiredMark: false,
+    parentProp: 'host_attr',
     placeholder: window.i18n.t('请选择'),
     options: sysOptions,
     getReadonly(row: ISetupRow) {
@@ -97,6 +104,7 @@ export const editConfig: ISetupHead[] = [
     required: true,
     batch: true,
     default: getDefaultConfig(defaultOsType, 'port', defaultPort),
+    parentProp: 'login_info',
     rules: [reguPort],
     // getReadonly(row: ISetupRow) {
     //   return row && row.os_type === 'WINDOWS' && row.bk_cloud_id !== window.PROJECT_CONFIG.DEFAULT_CLOUD;
@@ -108,6 +116,7 @@ export const editConfig: ISetupHead[] = [
     type: 'text',
     required: true,
     batch: true,
+    parentProp: 'login_info',
     placeholder: window.i18n.t('请输入'),
   },
   {
@@ -117,6 +126,7 @@ export const editConfig: ISetupHead[] = [
     required: true,
     batch: true,
     subTitle: window.i18n.t('密钥方式仅对Linux/AIX系统生效'),
+    parentProp: 'login_info',
     default: getDefaultConfig(defaultOsType, 'auth_type', 'PASSWORD'),
     getOptions(row: ISetupRow) {
       return row.os_type === 'WINDOWS' ? authentication.filter(auth => auth.id !== 'KEY') : authentication;
@@ -134,6 +144,7 @@ export const editConfig: ISetupHead[] = [
     show: true, // 常显项
     batch: true,
     noRequiredMark: false,
+    parentProp: 'login_info',
     subTitle: window.i18n.t('仅对密码认证生效'),
     placeholder: window.i18n.t('请输入'),
     rules: [
@@ -166,19 +177,21 @@ export const editConfig: ISetupHead[] = [
     type: 'text',
     required: false,
     noRequiredMark: false,
+    parentProp: 'login_info',
     placeholder: window.i18n.t('请输入'),
     rules: [reguIp],
   },
   {
     label: 'BT节点探测',
     prop: 'peer_exchange_switch_for_agent',
-    tips: window.i18n.t('BT节点探测提示'),
+    tips: 'BT节点探测提示',
     type: 'switcher',
     default: getDefaultConfig(defaultOsType, 'peer_exchange_switch_for_agent', true),
     batch: true,
     required: false,
     noRequiredMark: false,
     width: 115,
+    parentProp: 'trans_info',
   },
   {
     label: '传输限速Unit',
@@ -191,6 +204,7 @@ export const editConfig: ISetupHead[] = [
     // iconOffset: 40,
     placeholder: window.i18n.t('请输入'),
     rules: [reguFnMinInteger(1)],
+    parentProp: 'trans_info',
   },
   {
     label: '寻址方式',
@@ -215,15 +229,6 @@ export const editConfig: ISetupHead[] = [
 
 export const editManualConfig = [
   {
-    label: 'IP地址',
-    prop: 'inner_ip',
-    type: 'text',
-    required: true,
-    noRequiredMark: false,
-    rules: [reguIPMixins],
-    readonly: true,
-  },
-  {
     label: '业务',
     prop: 'bk_biz_id',
     type: 'biz',
@@ -231,6 +236,7 @@ export const editManualConfig = [
     multiple: false,
     noRequiredMark: false,
     readonly: true,
+    parentProp: 'biz_attr',
   },
   {
     label: '云区域',
@@ -240,6 +246,7 @@ export const editManualConfig = [
     popoverMinWidth: 160,
     noRequiredMark: false,
     placeholder: window.i18n.t('请选择'),
+    parentProp: 'cloud_attr',
     getOptions() {
       return this.cloudList.map((item: ICloudSource) => ({
         name: item.bk_cloud_name,
@@ -260,6 +267,7 @@ export const editManualConfig = [
     popoverMinWidth: 160,
     noRequiredMark: false,
     placeholder: window.i18n.t('请选择'),
+    parentProp: 'cloud_attr',
     getOptions(row) {
       return row.bk_cloud_id || row.bk_cloud_id === 0
         ? this.channelList.filter(item => item.bk_cloud_id === row.bk_cloud_id || item.id === 'default')
@@ -277,9 +285,20 @@ export const editManualConfig = [
     popoverMinWidth: 160,
     noRequiredMark: false,
     placeholder: window.i18n.t('请选择'),
+    parentProp: 'cloud_attr',
     getOptions() {
       return this.apList;
     },
+  },
+  {
+    label: 'IP地址',
+    prop: 'inner_ip',
+    type: 'text',
+    required: true,
+    noRequiredMark: false,
+    rules: [reguIPMixins],
+    readonly: true,
+    parentProp: 'host_attr',
   },
   {
     label: '操作系统',
@@ -289,6 +308,7 @@ export const editManualConfig = [
     batch: true,
     noRequiredMark: false,
     placeholder: window.i18n.t('请选择'),
+    parentProp: 'host_attr',
     options: sysOptions,
     handleValueChange(row: ISetupRow) {
       const osType = row.os_type || defaultOsType;
@@ -303,17 +323,19 @@ export const editManualConfig = [
     required: false,
     noRequiredMark: false,
     placeholder: window.i18n.t('请输入'),
+    parentProp: 'login_info',
     rules: [reguIp],
   },
   {
     label: 'BT节点探测',
     prop: 'peer_exchange_switch_for_agent',
-    tips: window.i18n.t('BT节点探测提示'),
+    tips: 'BT节点探测提示',
     type: 'switcher',
     default: getDefaultConfig(defaultOsType, 'peer_exchange_switch_for_agent', true),
     batch: true,
     required: false,
     noRequiredMark: false,
+    parentProp: 'trans_info',
     width: 115,
   },
   {
@@ -327,6 +349,7 @@ export const editManualConfig = [
     // iconOffset: 40,
     placeholder: window.i18n.t('请输入'),
     rules: [reguFnMinInteger(1)],
+    parentProp: 'trans_info',
   },
   {
     label: '寻址方式',
