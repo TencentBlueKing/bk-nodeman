@@ -239,7 +239,7 @@ export default class IpSelectorTable extends Vue {
   }
 }
 </script>
-<style lang="scss" scoped>
+<style lang="postcss" scoped>
 .topo-table {
   &::before {
     height: 0;
