@@ -1,14 +1,12 @@
 <template>
-  <div class="setup-header">
+  <div :class="['setup-header', { 'is-center': !parentProp }]">
     <span
       ref="tipSpan"
       :class="{
         'header-label': true,
         'header-label-required': required,
         'header-label-tips': Boolean(tips)
-      }"
-      @mouseenter="tipsShow"
-      @mouseleave="tipsHide">
+      }">
       {{ $t(label) }}
     </span>
     <bk-popover
@@ -82,24 +80,34 @@
         </div>
       </template>
     </bk-popover>
+    <div class="aaaa" v-show="false">
+      <section ref="tipRef">
+        <TableHeaderTip v-if="parentTip" joint-tip :tips="parentTip"></TableHeaderTip>
+        <TableHeaderTip :tips="tips" :row="focusRow" @batch="handleBatch"></TableHeaderTip>
+      </section>
+    </div>
   </div>
 </template>
 <script lang="ts">
 import { Vue, Component, Prop, Emit, Ref } from 'vue-property-decorator';
 import { bus } from '@/common/bus';
 import InputType from './input-type.vue';
-import { IFileInfo } from '@/types';
+import { IFileInfo, ISetupRow } from '@/types';
+import TableHeaderTip from './table-header-tip.vue';
 
 @Component({
   name: 'table-header',
   components: {
     InputType,
+    TableHeaderTip,
   },
 })
 
 export default class TableHeader extends Vue {
   @Prop({ type: String, default: '' }) private readonly tips!: string; // 是否有悬浮提示
   @Prop({ type: String, default: '' }) private readonly label!: string; // 表头label
+  @Prop({ type: String, default: '' }) private readonly parentProp!: string;
+  @Prop({ type: String, default: '' }) private readonly parentTip!: string;
   @Prop({ type: Boolean, default: false }) private readonly required!: boolean; // 是否显示必填标识
   @Prop({ type: Boolean, default: false }) private readonly batch!: boolean; // 是否有批量编辑框
   @Prop({ type: Boolean, default: true }) private readonly isBatchIconShow!: boolean; // 是否显示批量编辑图标
@@ -110,9 +118,11 @@ export default class TableHeader extends Vue {
   @Prop({ type: Boolean, default: false }) private readonly searchable!: boolean;
   @Prop({ type: String, default: '' }) private readonly placeholder!: string;
   @Prop({ type: String, default: '' }) private readonly appendSlot!: string;
+  @Prop({ type: Object, default: () => ({}) }) private readonly focusRow!: ISetupRow;
 
   @Ref('batch') private readonly batchRef!: any;
   @Ref('tipSpan') private readonly tipSpan!: any;
+  @Ref('tipRef') private readonly tipRef!: any;
 
   private isActive = false; // 当前批量编辑icon是否激活
   private value = '';
@@ -122,6 +132,27 @@ export default class TableHeader extends Vue {
 
   private created() {
     bus.$on('batch-btn-click', this.hidePopover); // 只出现一个弹框
+  }
+  private mounted() {
+    if (this.tips) {
+      this.popoverInstance = this.$bkPopover(this.tipSpan, {
+        content: this.tipRef,
+        allowHTML: true,
+        trigger: 'mouseenter',
+        arrow: true,
+        theme: 'light setup-tips',
+        maxWidth: 274,
+        sticky: true,
+        duration: [275, 0],
+        interactive: true,
+        boundary: 'window',
+        placement: 'top',
+        hideOnClick: false,
+      });
+    }
+  }
+  private beforeDestroy() {
+    this.popoverInstance && this.popoverInstance.destroy();
   }
 
   public handleBatchClick() {
@@ -137,6 +168,10 @@ export default class TableHeader extends Vue {
   public handleBatchConfirm() {
     this.handleBatchCancel();
     return { value: this.value, fileInfo: this.fileInfo };
+  }
+  public handleBatch(value: any) {
+    this.value = value;
+    this.handleBatchConfirm();
   }
   public handleBatchCancel() {
     this.isActive = false;
@@ -157,30 +192,13 @@ export default class TableHeader extends Vue {
     this.fileInfo = fileInfo;
   }
   public tipsShow() {
-    if (this.tips && !this.popoverInstance) {
-      const ref = this.tipSpan;
-      this.popoverInstance = this.$bkPopover(ref, {
-        content: this.tips,
-        trigger: 'manual',
-        arrow: true,
-        theme: 'light default',
-        maxWidth: 200,
-        sticky: true,
-        duration: [275, 0],
-        interactive: true,
-        boundary: 'window',
-        placement: 'top',
-        hideOnClick: false,
-        onHidden: () => {
-          this.popoverInstance && this.popoverInstance.destroy();
-        },
-      });
-      this.popoverInstance && this.popoverInstance.show();
+    if (this.tips && this.popoverInstance) {
+      this.popoverInstance.show();
     }
   }
   public tipsHide() {
     this.popoverInstance && this.popoverInstance.hide();
-    this.popoverInstance = null;
+    // this.popoverInstance = null;
   }
 }
 </script>
@@ -190,6 +208,9 @@ export default class TableHeader extends Vue {
   .setup-header {
     font-weight: normal;
     text-align: left;
+    &.is-center {
+      justify-content: center;
+    }
 
     @mixin layout-flex row, center;
     .header-label {

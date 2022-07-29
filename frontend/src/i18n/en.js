@@ -318,6 +318,14 @@ export default {
   供proxy文件分发临时使用后台定期进行清理建议预留至少磁盘空间: 'It is used temporarily for the distribution of proxy files, and is cleaned up regularly in the background. It is recommended to reserve at least 1G disk space',
   编辑成功如需加载最新配置请执行proxy重载: 'Editing is successful, if you need to load the latest configuration, please execute proxy reload',
 
+  // agent安装
+  agentSetupLoginInfo: 'Used to log in to the target host for proxy operations:\nLinux only supports SSH;\nWindows only supports WMI/SSH (only direct connection).',
+  agentSetupInnerIp: 'The IP address of the target host, the data will be synchronized to the CMDB, IPv4, IPv6 are supported\n\nNote: If the host has multiple network cards and the IP address used for logging in is inconsistent with the IP recorded in the CMDB, you need to specify the {0} of the host separately for Agent installation.',
+  agentSetupLoginIp: 'The IP address of the target host for logging in for Agent installation, which is different from the IP recorded in the CMDB;\nSupports IPv4 and IPv6.',
+  agentSetupPort: 'ssh root@10.0.0.1 -p {0}\nCurrent environment recommended: {1}，{2}',
+  agentSetupKey: 'Credentials to log in to the target host, for example: \nssh root@10.0.0.1 -p 22\n> {0}\n or \nssh root@10.0.0.1 -p 22 -i {1}',
+  补充说明tips: 'Additional instructions: \n{0}',
+
   安装方式: 'Install method',
   远程安装: 'Remote install',
   远程安装提示: 'Need to provide login information to complete the installation remotely',

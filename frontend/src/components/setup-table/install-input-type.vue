@@ -10,6 +10,7 @@
       :placeholder="placeholder"
       :readonly="readonly"
       :disabled="disabled"
+      @input="handleInput"
       @change="handleChange"
       @blur="handleBlur"
       @focus="handleFocus"
@@ -27,6 +28,7 @@
         :readonly="readonly"
         :disabled="disabled"
         :rows="currentRows"
+        @input="handleInput"
         @change="handleChange"
         @blur="handleBlur"
         @focus="handleFocus"
@@ -284,6 +286,9 @@ export default class InputType extends Mixins(emitter) {
   @Emit('upload-change')
   public handleEmitUpload(value: IFileInfo) {
     return value;
+  }
+  public handleInput(newValue: IValue, oldValue: IValue) {
+    this.$emit('input', newValue, oldValue);
   }
   /**
    * input change时触发
