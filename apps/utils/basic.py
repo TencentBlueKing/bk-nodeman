@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import ipaddress
+import json
 from collections import Counter, namedtuple
 from copy import deepcopy
 from typing import Any, Dict, Iterable, List, Optional, Set, Union
@@ -98,6 +99,15 @@ def order_dict(dictionary: dict):
     return {k: order_dict(v) if isinstance(v, dict) else v for k, v in sorted(dictionary.items())}
 
 
+def obj_to_dict(obj) -> Dict[str, Any]:
+    """
+    对象转字典
+    :param obj:
+    :return:
+    """
+    return json.loads(json.dumps(obj, default=lambda o: getattr(o, "__dict__", str(o))))
+
+
 def list_equal(
     left: Union[List[Union[str, int]], Set[Union[str, int]]],
     right: Union[List[Union[str, int]], Set[Union[str, int]]],
@@ -139,7 +149,7 @@ def to_int_or_default(val: Any, default: Any = None) -> Union[int, Any, None]:
 def remove_keys_from_dict(
     origin_data: Union[Dict, List], keys: Iterable[Any], return_deep_copy: bool = True, recursive: bool = False
 ) -> Dict[str, Any]:
-    """
+    """)
     从字典或列表结构中，移除结构中存在的字典所指定的key
     :param origin_data: 原始数据
     :param keys: 待移除的键

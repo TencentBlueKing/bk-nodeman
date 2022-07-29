@@ -80,9 +80,9 @@ export const setupTableConfig: ISetupHead[] = [
     batch: true,
     default: getDefaultConfig(defaultOsType, 'port', defaultPort),
     rules: [reguPort],
-    getReadonly(row: ISetupRow, isDefaultCloud: Boolean) {
-      return row && row.os_type === 'WINDOWS' && !isDefaultCloud;
-    },
+    // getReadonly(row: ISetupRow, isDefaultCloud: Boolean) {
+    //   return row && row.os_type === 'WINDOWS' && !isDefaultCloud;
+    // },
   },
   {
     label: '登录账号',
