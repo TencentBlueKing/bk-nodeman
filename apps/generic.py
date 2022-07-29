@@ -106,6 +106,7 @@ class Meta(object):
 
 class ModelViewSet(ApiMixin, ValidationMixin, _ModelViewSet):
     model = None
+    swagger_schema = None
     pagination_class = DataPageNumberPagination
     filter_backends = (
         filters.OrderingFilter,
@@ -136,6 +137,46 @@ class ModelViewSet(ApiMixin, ValidationMixin, _ModelViewSet):
     def get_serializer_class(self, *args, **kwargs):
         self.serializer_meta.model = self.model
         self.serializer_meta.fields = "__all__"
+        self.serializer_meta.ref_name = self.serializer_meta.__name__
+        if isinstance(self.serializer_class, GeneralSerializer) or self.serializer_class is None:
+            return type("GeneralSerializer", (GeneralSerializer,), {"Meta": self.serializer_meta})
+        else:
+            return self.serializer_class
+
+
+class ModelSwaggerViewSet(ApiMixin, ValidationMixin, _ModelViewSet):
+    model = None
+    pagination_class = DataPageNumberPagination
+    filter_backends = (
+        filters.OrderingFilter,
+        filters.SearchFilter,
+    )
+    serializer_meta = type("Meta", (Meta,), {"model": None})
+
+    def __init__(self, *args, **kwargs):
+        super(ModelSwaggerViewSet, self).__init__(**kwargs)
+        self.filter_fields = [f.name for f in self.model._meta.get_fields()]
+        self.view_set_name = self.get_view_object_name(*args, **kwargs)
+
+    def get_view_name(self, *args, **kwargs):
+        return self.model._meta.db_table
+
+    def get_view_description(self, *args, **kwargs):
+        return self.model._meta.verbose_name
+
+    def get_view_module(self, *args, **kwargs):
+        return getattr(self.model._meta, "module", None)
+
+    def get_view_object_name(self, *args, **kwargs):
+        return getattr(self.model._meta, "object_name", None)
+
+    def get_queryset(self):
+        return self.model.objects.all()
+
+    def get_serializer_class(self, *args, **kwargs):
+        self.serializer_meta.model = self.model
+        self.serializer_meta.fields = "__all__"
+        self.serializer_meta.ref_name = self.serializer_meta.__name__
         if isinstance(self.serializer_class, GeneralSerializer) or self.serializer_class is None:
             return type("GeneralSerializer", (GeneralSerializer,), {"Meta": self.serializer_meta})
         else:

@@ -47,6 +47,9 @@ class PluginInfoSerializer(GatewaySerializer):
             raise BackendValidationError("plugin {name} is not exist".format(name=attrs["name"]))
         return attrs
 
+    class Meta:
+        ref_name = "plugininfo"
+
 
 class ReleasePluginSerializer(GatewaySerializer):
     """发布插件序列化器"""
@@ -310,10 +313,16 @@ class ExportSerializer(GatewaySerializer):
                 )
             return data
 
+        class Meta:
+            ref_name = "gse_plugin_params"
+
     category = serializers.ChoiceField(choices=DownloadRecord.CATEGORY_CHOICES)
     query_params = GsePluginParamsSerializer()
     creator = serializers.CharField()
     bk_app_code = serializers.CharField()
+
+    class Meta:
+        ref_name = "export"
 
 
 class DeletePluginSerializer(GatewaySerializer):

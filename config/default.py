@@ -49,6 +49,7 @@ IS_AJAX_PLAIN_MODE = True
 # 请在这里加入你的自定义 APP
 INSTALLED_APPS += (
     "django_mysql",
+    "drf_yasg",
     "rest_framework",
     "common.api",
     "version_log",

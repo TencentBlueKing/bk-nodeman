@@ -11,8 +11,25 @@ specific language governing permissions and limitations under the License.
 
 from django.conf.urls import include, url
 from django.contrib import admin
+from django.urls import re_path
+from drf_yasg import openapi
+from drf_yasg.views import get_schema_view
+from rest_framework import permissions
 
 from version_log import config
+
+schema_view = get_schema_view(
+    openapi.Info(
+        title="Bk Nodeman API",
+        default_version="v1",
+        description="节点管理",
+        terms_of_service="https://bk.tencent.com/info/#laws",
+        contact=openapi.Contact(email="contactus_bk@tencent.com"),
+        license=openapi.License(name="MIT License"),
+    ),
+    public=True,
+    permission_classes=(permissions.AllowAny,),
+)
 
 urlpatterns = [
     url(r"^admin_nodeman/", admin.site.urls),
@@ -21,6 +38,9 @@ urlpatterns = [
     url(r"^core/", include("apps.core.urls")),
     url(r"^", include("apps.node_man.urls")),
     url(r"^{}".format(config.ENTRANCE_URL), include("version_log.urls")),
+    re_path(r"^swagger(?P<format>\.json|\.yaml)$", schema_view.without_ui(cache_timeout=0), name="schema-json"),
+    re_path(r"^swagger/$", schema_view.with_ui("swagger", cache_timeout=0), name="schema-swagger-ui"),
+    re_path(r"^redoc/$", schema_view.with_ui("redoc", cache_timeout=0), name="schema-redoc"),
 ]
 
 # handler404 = 'common.error_views.error_404'

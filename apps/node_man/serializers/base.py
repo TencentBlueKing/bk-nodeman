@@ -15,6 +15,20 @@ from apps.exceptions import ValidationError
 from apps.node_man import constants, exceptions, models
 
 
+class NodeSerializer(serializers.Serializer):
+    bk_biz_id = serializers.IntegerField(label="业务ID")
+    bk_inst_id = serializers.IntegerField(required=False, label="实例ID")
+    bk_obj_id = serializers.CharField(required=False, label="模型ID")
+    bk_host_id = serializers.IntegerField(required=False, label="主机ID")
+
+    def validate(self, data):
+        if "bk_inst_id" in data and "bk_obj_id" in data and "bk_host_id" not in data:
+            return data
+        if "bk_host_id" in data and not ("bk_inst_id" in data and "bk_obj_id" in data):
+            return data
+        raise ValidationError(_("部署节点属性组合必须是 (bk_biz_id, bk_host_id) 或者 (bk_biz_id, bk_obj_id, bk_inst_id)"))
+
+
 # 安装插件配置
 class StepSerializer(serializers.Serializer):
     class SettingSerializer(serializers.Serializer):
@@ -46,19 +60,7 @@ class StepSerializer(serializers.Serializer):
 
 
 # 策略范围
-class ScopeSerializer(serializers.Serializer):
-    class NodeSerializer(serializers.Serializer):
-        bk_biz_id = serializers.IntegerField()
-        bk_inst_id = serializers.IntegerField(required=False)
-        bk_obj_id = serializers.CharField(required=False)
-        bk_host_id = serializers.IntegerField(required=False)
-
-        def validate(self, data):
-            if "bk_inst_id" in data and "bk_obj_id" in data and "bk_host_id" not in data:
-                return data
-            if "bk_host_id" in data and not ("bk_inst_id" in data and "bk_obj_id" in data):
-                return data
-            raise ValidationError(_("部署节点属性组合必须是 (bk_biz_id, bk_host_id) 或者 (bk_biz_id, bk_obj_id, bk_inst_id)"))
+class ScopeSerializer(NodeSerializer):
 
     object_type = serializers.ChoiceField(choices=[models.Subscription.ObjectType.HOST])
     node_type = serializers.ChoiceField(

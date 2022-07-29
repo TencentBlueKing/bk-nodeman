@@ -27,6 +27,9 @@ class SortSerializer(serializers.Serializer):
     head = serializers.ChoiceField(label=_("排序字段"), choices=list(constants.HEAD_TUPLE))
     sort_type = serializers.ChoiceField(label=_("排序类型"), choices=list(constants.SORT_TUPLE))
 
+    class Meta:
+        ref_name = "Sort"
+
 
 class ListSerializer(serializers.Serializer):
     job_id = serializers.ListField(label=_("任务ID"), required=False)
@@ -45,6 +48,9 @@ class ListSerializer(serializers.Serializer):
     # 时间范围
     start_time = serializers.DateTimeField(label=_("起始时间"), required=False)
     end_time = serializers.DateTimeField(label=_("终止时间"), required=False)
+
+    class Meta:
+        ref_name = "Lisr"
 
 
 class HostSerializer(serializers.Serializer):
@@ -129,6 +135,9 @@ class HostSerializer(serializers.Serializer):
 
         return attrs
 
+    class Meta:
+        ref_name = "HostSer"
+
 
 class InstallSerializer(serializers.Serializer):
     job_type = serializers.ChoiceField(label=_("任务类型"), choices=list(constants.JOB_TYPE_DICT))
@@ -174,6 +183,9 @@ class InstallSerializer(serializers.Serializer):
             # 差量同步主机
             bulk_differential_sync_biz_hosts(expected_bk_host_ids_gby_bk_biz_id)
         return attrs
+
+    class Meta:
+        ref_name = "InstallSerializer"
 
 
 class OperateSerializer(serializers.Serializer):
@@ -238,21 +250,36 @@ class OperateSerializer(serializers.Serializer):
         attrs["bk_biz_scope"] = bk_biz_scope
         return attrs
 
+    class Meta:
+        ref_name = "OperateSerializer"
+
 
 class RetrieveSerializer(serializers.Serializer):
     conditions = serializers.ListField(label=_("搜索条件"), required=False)
     page = serializers.IntegerField(label=_("当前页数"), required=False, default=1)
     pagesize = serializers.IntegerField(label=_("分页大小"), required=False, default=10)
 
+    class Meta:
+        ref_name = "RetrieveSerializer"
+
 
 class FetchCommandSerializer(serializers.Serializer):
     bk_host_id = serializers.IntegerField(label=_("主机ID"), required=True)
     is_uninstall = serializers.BooleanField(required=False, default=False)
 
+    class Meta:
+        ref_name = "FetchCommandSerializer"
+
 
 class JobInstancesOperateSerializer(serializers.Serializer):
     instance_id_list = serializers.ListField(label=_("任务实例ID列表"), required=False)
 
+    class Meta:
+        ref_name = "JobInstancesOperateSerializer"
+
 
 class JobInstanceOperateSerializer(serializers.Serializer):
     instance_id = serializers.CharField(label=_("任务实例ID"), required=False)
+
+    class Meta:
+        ref_name = "JobInstanceOperateSerializer"

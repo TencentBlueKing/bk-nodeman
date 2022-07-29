@@ -34,8 +34,8 @@ class ConfigTemplateSerializer(serializers.Serializer):
     name = serializers.CharField(required=True, label="配置文件名")
     version = serializers.CharField(required=True, label="配置文件版本号")
     is_main = serializers.BooleanField(default=False, label="是否主配置")
-    os = serializers.CharField(required=False, label="操作系统")
-    cpu_arch = serializers.CharField(required=False, label="CPU类型")
+    os = serializers.ChoiceField(required=False, label="操作系统", choices=constants.OS_TUPLE)
+    cpu_arch = serializers.ChoiceField(required=False, label="CPU类型", choices=constants.CPU_TUPLE)
 
 
 class PluginStepConfigSerializer(StepConfigCheckAndSkipSer):
@@ -62,7 +62,9 @@ class PolicyStepConfigSerializer(StepConfigCheckAndSkipSer):
             required=False, label="配置模板列表", child=PolicyConfigTemplateSerializer(), default=[]
         )
 
-    job_type = serializers.ChoiceField(required=False, allow_null=True, allow_blank=True, choices=constants.JOB_TUPLE)
+    job_type = serializers.ChoiceField(
+        required=False, allow_null=True, allow_blank=True, choices=constants.PLUGIN_JOB_TUPLE
+    )
 
     plugin_name = serializers.CharField(required=False, label="插件名称", default="")
     details = serializers.ListField(required=True, min_length=1, child=PolicyPackageSerializer())
