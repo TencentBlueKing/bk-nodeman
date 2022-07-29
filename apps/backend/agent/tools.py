@@ -8,74 +8,75 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import os
-import time
-from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Type
 
 from django.conf import settings
 
-from apps.backend.api import constants as const
 from apps.node_man import constants, models
-from apps.node_man.models import aes_cipher
-from apps.utils.basic import suffix_slash
-from apps.utils.encrypt import rsa
+
+from ...utils import basic
+from . import solution_maker
 
 
 class InstallationTools:
     def __init__(
         self,
-        script_file_name: str,
-        dest_dir: str,
-        win_commands: List[str],
+        execution_solutions: List[solution_maker.ExecutionSolution],
         upstream_nodes: str,
         jump_server: models.Host,
-        pre_commands: List[str],
-        run_cmd: str,
+        proxies: List[models.Host],
+        is_need_jump_server: bool,
         host: models.Host,
         ap: models.AccessPoint,
         identity_data: models.IdentityData,
-        proxies: List[models.Host],
+        dest_dir: str,
         package_url: str,
     ):
         """
-        :param script_file_name: 脚本名称，如 setup_agent.sh
-        :param dest_dir: 目标目录，通常为 /tmp 通过接入点配置获取
-        :param win_commands: Windows执行命令
-        :param upstream_nodes: 上游节点，通常为proxy或者安装通道指定的商用
-        :param jump_server: 跳板服务器，通常为proxy或者安装通道的跳板机
-        :param pre_commands: 预执行命令，目前仅 Windows 需要，提前推送 curl.exe 等工具
-        :param run_cmd: shell 运行命令，通过 format_run_cmd_by_os_type 方法生成
+        :param execution_solutions: 执行方案
+        :param upstream_nodes: 上游节点，通常为 proxy 或者安装通道指定的上游
+        :param jump_server: 跳板服务器，通常为 proxy 或者安装通道的跳板机
+        :param is_need_jump_server: 是否需要跳板执行
         :param host: 主机对象
         :param ap: 接入点对象
         :param identity_data: 认证数据对象
         :param proxies: 代理列表
         :param package_url 文件下载链接
         """
-        self.script_file_name = script_file_name
-        self.dest_dir = dest_dir
-        self.win_commands = win_commands
+        # 跳板执行相关配置
+        self.proxies = proxies
         self.upstream_nodes = upstream_nodes
         self.jump_server = jump_server
-        self.pre_commands = pre_commands
-        self.run_cmd = run_cmd
+        self.proxies = proxies
+        self.is_need_jump_server = is_need_jump_server
+
+        # 主机信息
         self.host = host
         self.ap = ap
         self.identity_data = identity_data
-        self.proxies = proxies
+
+        # 包下载路径
         self.package_url = package_url
+
+        # 临时目录
+        self.dest_dir = dest_dir
+
+        # 执行方案
+        self.type__execution_solution_map: Dict[str, solution_maker.ExecutionSolution] = {
+            execution_solution.type: execution_solution for execution_solution in execution_solutions
+        }
 
 
 def gen_nginx_download_url(nginx_ip: str) -> str:
     return f"http://{nginx_ip}:{settings.BK_NODEMAN_NGINX_DOWNLOAD_PORT}/"
 
 
-def fetch_gse_servers(
+def fetch_gse_servers_info(
     host: models.Host,
     host_ap: models.AccessPoint,
     proxies: List[models.Host],
     install_channel: Tuple[models.Host, Dict[str, List]],
-) -> Tuple:
+) -> Dict[str, Any]:
     jump_server = None
     if host.install_channel_id:
         # 指定安装通道时，由安装通道生成相关配置
@@ -90,9 +91,8 @@ def fetch_gse_servers(
             else settings.BKAPP_NODEMAN_OUTER_CALLBACK_URL
         )
         callback_url = host_ap.outer_callback_url or default_callback_url
-        return jump_server, bt_file_servers, data_servers, data_servers, task_servers, package_url, callback_url
 
-    if host.node_type == constants.NodeType.AGENT:
+    elif host.node_type == constants.NodeType.AGENT:
         bt_file_servers = ",".join(server["inner_ip"] for server in host_ap.btfileserver)
         data_servers = ",".join(server["inner_ip"] for server in host_ap.dataserver)
         task_servers = ",".join(server["inner_ip"] for server in host_ap.taskserver)
@@ -117,95 +117,14 @@ def fetch_gse_servers(
         # 不同接入点使用不同的callback_url默认情况下接入点callback_url为空，先取接入点，为空的情况下使用原来的配置
         callback_url = host_ap.outer_callback_url or settings.BKAPP_NODEMAN_OUTER_CALLBACK_URL
 
-    return jump_server, bt_file_servers, data_servers, data_servers, task_servers, package_url, callback_url
-
-
-def choose_script_file(host: models.Host) -> str:
-    """选择脚本文件"""
-    if host.node_type == constants.NodeType.PROXY:
-        # proxy 安装
-        return "setup_proxy.sh"
-
-    if host.install_channel_id or host.node_type == constants.NodeType.PAGENT:
-        # 远程安装 P-AGENT 或者指定安装通道时，用 setup_pagent 脚本
-        return constants.SetupScriptFileName.SETUP_PAGENT_PY.value
-
-    # 其它场景，按操作系统来区分
-    script_file_name = constants.SCRIPT_FILE_NAME_MAP[host.os_type]
-    return script_file_name
-
-
-def format_run_cmd_by_os_type(os_type: str, dest_dir: str, run_cmd=None) -> str:
-    os_type = os_type.lower()
-    if os_type == const.OS.WINDOWS and run_cmd:
-        return run_cmd
-    suffix = const.SUFFIX_MAP[os_type]
-    if suffix != const.SUFFIX_MAP[const.OS.AIX]:
-        shell = "bash"
-    else:
-        shell = suffix
-    run_cmd = f"nohup {shell} {run_cmd} &> {dest_dir}nm.nohup.out &" if run_cmd else shell
-    return run_cmd
-
-
-def lan_node_shell_cmds_generator(
-    os_type: str,
-    dest_dir: str,
-    script_file_name: str,
-    package_url: str,
-    run_cmd_params: List[str],
-    options_path: List[str],
-    options_value_inside_quotes: List[str],
-):
-    """
-    直连区域 shell 命令生产器
-    :param os_type: 操作系统类型
-    :param dest_dir: 工作目录
-    :param script_file_name: 安装脚本名称
-    :param package_url: 安装包下载地址
-    :param run_cmd_params: 执行参数
-    :param options_path: 待转义的路径参数项，适配 Cygwin
-    :param options_value_inside_quotes: 值包含 , 或 ; 的参数项
-    :return:
-    """
-    curl_cmd = "curl"
-    if os_type == constants.OsType.WINDOWS:
-        dest_dir = dest_dir.replace("\\", "/")
-        curl_cmd = f"{dest_dir}curl.exe"
-        run_cmd_params_treated = []
-        for run_cmd_param in run_cmd_params:
-            if not run_cmd_param:
-                continue
-            try:
-                option, value = run_cmd_param.split(" ", 1)
-            except ValueError:
-                # 适配无值参数
-                run_cmd_params_treated.append(run_cmd_param)
-                continue
-            if option in options_path:
-                value = value.replace("\\", "\\\\")
-            elif option in options_value_inside_quotes:
-                # Invalid option 处理 cygwin 执行 .bat 报错：Invalid option
-                # Including space anywhere inside quotes will ensure that
-                # parameter with semicolon or comma is passed correctly.
-                # 参考：https://stackoverflow.com/questions/17747961/
-                value = f'{value[:-1]} "'
-            run_cmd_params_treated.append(f"{option} {value}")
-    else:
-        run_cmd_params_treated = list(filter(None, run_cmd_params))
-
-    chmod_cmd = f"chmod +x {dest_dir}{script_file_name}"
-    download_cmd = (
-        f"{curl_cmd} {package_url}/{script_file_name} " f"-o {dest_dir}{script_file_name} --connect-timeout 5 -sSf"
-    )
-    run_cmd = format_run_cmd_by_os_type(
-        os_type, dest_dir, f"{dest_dir}{script_file_name} {' '.join(run_cmd_params_treated)}"
-    )
-
-    if os_type == constants.OsType.WINDOWS:
-        run_cmd = f"nohup {run_cmd} &> {dest_dir}nm.nohup.out &"
-
-    return {"chmod_cmd": chmod_cmd, "download_cmd": download_cmd, "run_cmd": run_cmd}
+    return {
+        "jump_server": jump_server,
+        "bt_file_servers": bt_file_servers,
+        "data_servers": data_servers,
+        "task_servers": task_servers,
+        "package_url": package_url,
+        "callback_url": callback_url,
+    }
 
 
 def gen_commands(
@@ -236,202 +155,49 @@ def gen_commands(
     identity_data = identity_data or host.identity
     install_channel = install_channel or host.install_channel
     proxies = proxies if proxies is not None else host.proxies
-    encrypted_password = ""
-    (
-        jump_server,
-        bt_file_servers,
-        data_servers,
-        data_servers,
-        task_servers,
-        package_url,
-        callback_url,
-    ) = fetch_gse_servers(host, host_ap, proxies, install_channel)
-    upstream_nodes = task_servers
-    agent_config = host_ap.get_agent_config(host.os_type)
-    # 安装操作
-    install_path = agent_config["setup_path"]
-    token = aes_cipher.encrypt(
-        f"{host.bk_host_id}|{host.inner_ip}|{host.bk_cloud_id}|{pipeline_id}|{time.time()}|{sub_inst_id}"
+    gse_servers_info: Dict[str, Any] = fetch_gse_servers_info(
+        host=host, host_ap=host_ap, proxies=proxies, install_channel=install_channel
     )
-    port_config = host_ap.port_config
-    run_cmd_params = [
-        f"-s {pipeline_id}",
-        f"-r {callback_url}",
-        f"-l {package_url}",
-        f"-c {token}",
-        f'-O {port_config.get("io_port")}',
-        f'-E {port_config.get("file_svr_port")}',
-        f'-A {port_config.get("data_port")}',
-        f'-V {port_config.get("btsvr_thrift_port")}',
-        f'-B {port_config.get("bt_port")}',
-        f'-S {port_config.get("bt_port_start")}',
-        f'-Z {port_config.get("bt_port_end")}',
-        f'-K {port_config.get("tracker_port")}',
-        f'-e "{bt_file_servers}"',
-        f'-a "{data_servers}"',
-        f'-k "{task_servers}"',
-    ]
+    dest_dir: str = basic.suffix_slash(host.os_type, host_ap.get_agent_config(host.os_type)["temp_path"])
 
-    # 系统开启使用密码注册windows服务时，需额外传入用户名和加密密码参数，用于注册windows服务，详见setup_agent.bat脚本
-    need_encrypted_password = all(
-        [
-            settings.REGISTER_WIN_SERVICE_WITH_PASS,
-            host.os_type == constants.OsType.WINDOWS,
-            # 背景：过期密码会重置为 None，导致加密失败
-            # 仅在密码非空的情况下加密，防止密码过期 / 手动安装的情况下报错
-            identity_data.password is not None,
-        ]
-    )
-    if need_encrypted_password:
-        # 系统开启使用密码注册windows服务时，需额外传入 -U -P参数，用于注册windows服务，详见setup_agent.bat脚本
-        encrypted_password = rsa.RSAUtil(
-            public_extern_key_file=os.path.join(settings.BK_SCRIPTS_PATH, "gse_public_key"),
-            padding=rsa.CipherPadding.PKCS1_OAEP.value,
-        ).encrypt(identity_data.password)
-
-    check_run_commands(run_cmd_params)
-    script_file_name = choose_script_file(host)
-
-    # run_cmd: shell 运行命令，Windows 会生成兼容 cygwin 的运行命令
-    # run_cmd_os_based: 根据操作系统类型所生成运行命令 Windows - bat | 其他 - shell
-    run_cmd = ""
-    host_tmp_path = suffix_slash(host.os_type.lower(), agent_config["temp_path"])
-    dest_dir = host_tmp_path
-    chmod_cmd = f"chmod +x {dest_dir}{script_file_name}"
-    if script_file_name == constants.SetupScriptFileName.SETUP_PAGENT_PY.value:
-        run_cmd_params.append(f"-L {settings.DOWNLOAD_PATH}")
-        # P-Agent在proxy上执行，proxy都是Linux机器
-        dest_dir = host_ap.get_agent_config(constants.OsType.LINUX)["temp_path"]
-        dest_dir = suffix_slash(constants.OsType.LINUX, dest_dir)
-        if host.is_manual:
-            run_cmd_params.insert(0, f"{dest_dir}{script_file_name} ")
-        host_identity = (
-            identity_data.key if identity_data.auth_type == constants.AuthType.KEY else identity_data.password
-        )
-        host_shell = format_run_cmd_by_os_type(host.os_type, host_tmp_path)
-        run_cmd_params.extend(
-            [
-                f"-HLIP {host.login_ip or host.inner_ip or host.inner_ipv6}",
-                f"-HIIP {host.inner_ip}",
-                f"-HIIP6 {host.inner_ipv6}" if host.inner_ipv6 else "",
-                f"-HA {identity_data.account}",
-                f"-HP {identity_data.port}",
-                f"-HI '{host_identity}'",
-                f"-HC {host.bk_cloud_id}",
-                f"-HNT {host.node_type}",
-                f"-HOT {host.os_type.lower()}",
-                f"-HDD '{host_tmp_path}'",
-                f"-HPP '{settings.BK_NODEMAN_NGINX_PROXY_PASS_PORT}'",
-                f"-HSN '{constants.SCRIPT_FILE_NAME_MAP[host.os_type]}'",
-                f"-HS '{host_shell}'",
-                f"-p '{install_path}'",
-                f"-I {jump_server.inner_ip}",
-                f"-I6 {jump_server.inner_ipv6}" if jump_server.inner_ipv6 else "",
-                f"-AI {host.bk_agent_id}" if host.bk_agent_id else "",
-                f"-o {gen_nginx_download_url(jump_server.inner_ip)}",
-                f"-HEP '{encrypted_password}'" if need_encrypted_password else "",
-                "-R" if is_uninstall else "",
-            ]
-        )
-
-        # 通道特殊配置
-        if host.install_channel_id:
-            __, upstream_servers = install_channel
-            agent_download_proxy = upstream_servers.get("agent_download_proxy", True)
-            if not agent_download_proxy:
-                # 关闭agent下载代理选项时传入
-                run_cmd_params.extend([f"-ADP '{agent_download_proxy}'"])
-            channel_proxy_address = upstream_servers.get("channel_proxy_address", None)
-            if channel_proxy_address:
-                run_cmd_params.extend([f"-CPA '{channel_proxy_address}'"])
-
-        run_cmd_os_based = " ".join(list(filter(None, run_cmd_params)))
-
-        download_cmd = (
-            f"if [ ! -e {dest_dir}{script_file_name} ] || "
-            f"[ `curl {package_url}/{script_file_name} -s | md5sum | awk '{{print $1}}'` "
-            f"!= `md5sum {dest_dir}{script_file_name} | awk '{{print $1}}'` ]; then "
-            f"curl {package_url}/{script_file_name} -o {dest_dir}{script_file_name} --connect-timeout 5 -sSf "
-            f"&& chmod +x {dest_dir}{script_file_name}; fi"
-        )
+    execution_solutions: List[solution_maker.ExecutionSolution] = []
+    solution_classes: List[Type[solution_maker.BaseExecutionSolutionMaker]] = []
+    is_need_jump_server: bool = solution_maker.ExecutionSolutionTools.need_jump_server(host)
+    if is_need_jump_server:
+        solution_classes.append(solution_maker.ProxyExecutionSolutionMaker)
     else:
-        run_cmd_params.extend(
-            [
-                f"-i {host.bk_cloud_id}",
-                f"-I {host.inner_ip}",
-                f"-I6 {host.inner_ipv6}" if host.inner_ipv6 else "",
-                f"-AI {host.bk_agent_id}" if host.bk_agent_id else "",
-                "-N SERVER",
-                f"-p {install_path}",
-                f"-T {dest_dir}",
-                "-R" if is_uninstall else "",
-            ]
-        )
-        if need_encrypted_password:
-            run_cmd_params.extend(
-                [
-                    f"-U {identity_data.account}",
-                    f'-P "{encrypted_password}"',
-                ]
-            )
+        # shell 是直连主机的通用执行方案
+        solution_classes.append(solution_maker.ShellExecutionSolutionMaker)
+        # Windows 需要提供 batch 执行方案
+        if host.os_type == constants.OsType.WINDOWS:
+            solution_classes.append(solution_maker.BatchExecutionSolutionMaker)
 
-        name__cmd_map = lan_node_shell_cmds_generator(
-            os_type=host.os_type,
-            dest_dir=dest_dir,
-            script_file_name=script_file_name,
-            package_url=package_url,
-            run_cmd_params=run_cmd_params,
-            options_path=["-T", "-p"],
-            options_value_inside_quotes=["-e", "-a", "-k", "-P"],
-        )
-        chmod_cmd = name__cmd_map["chmod_cmd"]
-        download_cmd = name__cmd_map["download_cmd"]
-        run_cmd = name__cmd_map["run_cmd"]
-
-        run_cmd_os_based = format_run_cmd_by_os_type(
-            host.os_type, host_tmp_path, f"{dest_dir}{script_file_name} {' '.join(list(filter(None, run_cmd_params)))}"
+    for solution_class in solution_classes:
+        execution_solutions.append(
+            solution_class(
+                host=host,
+                host_ap=host_ap,
+                identity_data=identity_data,
+                install_channel=install_channel,
+                gse_servers_info=gse_servers_info,
+                sub_inst_id=sub_inst_id,
+                pipeline_id=pipeline_id,
+                is_uninstall=is_uninstall,
+            ).make()
         )
 
-    pre_commands = [
-        download_cmd,
-        chmod_cmd,
-    ]
-    if Path(dest_dir) != Path("/tmp") and host.os_type != constants.OsType.WINDOWS:
-        pre_commands.insert(0, f"mkdir -p {dest_dir}")
-
-    install_tools = InstallationTools(
-        script_file_name,
-        dest_dir,
-        [
-            f"{dest_dir}curl.exe {package_url}/{script_file_name} -o {dest_dir}{script_file_name} -sSf",
-            # 如果是 Windows 机器，run_cmd_os_based 为 bat 命令
-            run_cmd_os_based,
-        ],
-        upstream_nodes,
-        jump_server,
-        pre_commands,
-        # 背景：直连 Windows 支持 Cygwin
-        # 对于直连机器，会优先取 run_cmd（shell），非直连 run_cmd 为空，取 run_cmd_os_based
-        run_cmd or run_cmd_os_based,
-        host,
-        host_ap,
-        identity_data,
-        proxies,
-        package_url,
+    return InstallationTools(
+        execution_solutions=execution_solutions,
+        upstream_nodes=gse_servers_info["task_servers"],
+        jump_server=gse_servers_info["jump_server"],
+        proxies=proxies,
+        is_need_jump_server=is_need_jump_server,
+        host=host,
+        ap=host_ap,
+        identity_data=identity_data,
+        dest_dir=dest_dir,
+        package_url=gse_servers_info["package_url"],
     )
-
-    # 非 Windows 机器使用 sudo 权限执行命令
-    # PAgent 依赖 setup_pagent.py 添加 sudo
-    # Windows Cygwin sudo command not found：Cygwin 本身通过 administrator 启动，无需 sudo
-    if not (
-        host.os_type == constants.OsType.WINDOWS
-        or install_tools.identity_data.account in [constants.LINUX_ACCOUNT]
-        or script_file_name == constants.SetupScriptFileName.SETUP_PAGENT_PY.value
-    ):
-        install_tools.run_cmd = f"sudo {install_tools.run_cmd}"
-        install_tools.pre_commands = [f"sudo {pre_command}" for pre_command in install_tools.pre_commands]
-
-    return install_tools
 
 
 def check_run_commands(run_commands):

@@ -21,6 +21,7 @@ from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
 from redis.client import Pipeline
 
+from apps.backend.agent import solution_maker
 from apps.backend.agent.tools import InstallationTools
 from apps.backend.api.constants import POLLING_INTERVAL, POLLING_TIMEOUT
 from apps.backend.constants import (
@@ -55,7 +56,6 @@ class InstallSubInstObj(remote.RemoteConnHelper):
 class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
     __need_schedule__ = True
     interval = StaticIntervalGenerator(5)
-    win_install_tools = ["curl.exe", "ntrights.exe", "curl-ca-bundle.crt", "libcurl-x64.dll"]
 
     def inputs_format(self):
         return super().inputs_format() + [
@@ -92,18 +92,22 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
         get_config_dict_kwargs={"config_name": core.ServiceCCConfigName.WMIEXE.value},
     )
     def handle_lan_windows_sub_inst(self, install_sub_inst_objs: List[InstallSubInstObj]):
-        """处理直连windows机器，通过wmiexe连接windows机器"""
+        """处理直连windows机器，通过 wmiexe 连接windows机器"""
         pre_commands_params_list = []
         push_curl_exe_params_list = []
         run_install_params_list = []
         for install_sub_inst_obj in install_sub_inst_objs:
             installation_tool = install_sub_inst_obj.installation_tool
+            execution_solution: solution_maker.ExecutionSolution = installation_tool.type__execution_solution_map[
+                constants.CommonExecutionSolutionType.BATCH.value
+            ]
             dest_dir = installation_tool.dest_dir
+            # TODO 快速兼容方式，后续优化
             pre_commands_params_list.append(
                 {
                     "sub_inst_id": install_sub_inst_obj.sub_inst_id,
                     "host": installation_tool.host,
-                    "commands": [f'if not exist "{dest_dir}" mkdir {dest_dir}'],
+                    "commands": [content.text for content in execution_solution.steps[0].contents],
                     "identity_data": installation_tool.identity_data,
                 }
             )
@@ -113,13 +117,14 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
                     "host": installation_tool.host,
                     "dest_dir": dest_dir,
                     "identity_data": installation_tool.identity_data,
+                    "dependencies": [content.name for content in execution_solution.steps[1].contents],
                 }
             )
             run_install_params_list.append(
                 {
                     "sub_inst_id": install_sub_inst_obj.sub_inst_id,
                     "host": installation_tool.host,
-                    "commands": installation_tool.win_commands,
+                    "commands": [content.text for content in execution_solution.steps[2].contents],
                     "identity_data": installation_tool.identity_data,
                 }
             )
@@ -155,27 +160,13 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
         get_config_dict_func=core.get_config_dict,
         get_config_dict_kwargs={"config_name": core.ServiceCCConfigName.SSH.value},
     )
-    def handle_lan_cygwin_sub_inst(self, install_sub_inst_objs: List[InstallSubInstObj]):
-        """处理直连 Cygwin 的情况"""
+    def handle_lan_shell_sub_inst(self, install_sub_inst_objs: List[InstallSubInstObj]):
+        """处理直连且通过 Shell 执行的机器"""
         params_list = [
             {"sub_inst_id": install_sub_inst_obj.sub_inst_id, "install_sub_inst_obj": install_sub_inst_obj}
             for install_sub_inst_obj in install_sub_inst_objs
         ]
-        return concurrent.batch_call_coroutine(func=self.execute_cygwin_commands_async, params_list=params_list)
-
-    @controller.ConcurrentController(
-        data_list_name="install_sub_inst_objs",
-        batch_call_func=concurrent.batch_call,
-        get_config_dict_func=core.get_config_dict,
-        get_config_dict_kwargs={"config_name": core.ServiceCCConfigName.SSH.value},
-    )
-    def handle_lan_linux_sub_inst(self, install_sub_inst_objs: List[InstallSubInstObj]):
-        """处理直连 Linux 机器"""
-        params_list = [
-            {"sub_inst_id": install_sub_inst_obj.sub_inst_id, "install_sub_inst_obj": install_sub_inst_obj}
-            for install_sub_inst_obj in install_sub_inst_objs
-        ]
-        return concurrent.batch_call_coroutine(func=self.execute_linux_commands_async, params_list=params_list)
+        return concurrent.batch_call_coroutine(func=self.execute_shell_solution_async, params_list=params_list)
 
     def _execute(self, data, parent_data, common_data: base.AgentCommonData):
 
@@ -226,10 +217,11 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
                 sub_inst_id=sub_inst.id, host=host, installation_tool=installation_tool
             )
 
-            if installation_tool.script_file_name == constants.SetupScriptFileName.SETUP_PAGENT_PY.value:
+            if installation_tool.is_need_jump_server:
+                # 需要跳板执行时，通过 JOB 下发命令到跳板机
                 non_lan_sub_inst.append(install_sub_inst_obj)
             else:
-                # AGENT 或 PROXY安装走 ssh或wmi 连接
+                # AGENT 或 PROXY 安装走 ssh 或 wmi 连接
                 if host.os_type == constants.OsType.WINDOWS:
                     lan_windows_sub_inst.append(install_sub_inst_obj)
                 else:
@@ -259,10 +251,10 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
                 remote.SshCheckResultType.UNAVAILABLE.value, []
             )
         )
-        succeed_lan_cygwin_sub_inst_ids = self.handle_lan_cygwin_sub_inst(
-            install_sub_inst_objs=remote_conn_helpers_gby_result_type.get(remote.SshCheckResultType.AVAILABLE.value, [])
+        succeed_lan_shell_sub_inst_ids = self.handle_lan_shell_sub_inst(
+            install_sub_inst_objs=lan_linux_sub_inst
+            + remote_conn_helpers_gby_result_type.get(remote.SshCheckResultType.AVAILABLE.value, [])
         )
-        succeed_lan_linux_sub_inst_ids = self.handle_lan_linux_sub_inst(install_sub_inst_objs=lan_linux_sub_inst)
         # 使用 filter 移除并发过程中抛出异常的实例
         data.outputs.scheduling_sub_inst_ids = list(
             filter(
@@ -270,8 +262,7 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
                 (
                     succeed_non_lan_inst_ids
                     + succeed_lan_windows_sub_inst_ids
-                    + succeed_lan_cygwin_sub_inst_ids
-                    + succeed_lan_linux_sub_inst_ids
+                    + succeed_lan_shell_sub_inst_ids
                     + manual_install_sub_inst_ids
                 ),
             )
@@ -302,7 +293,7 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
             try:
                 if i == len(commands):
                     # Executing scripts is the last command and takes time, using asynchronous
-                    self.log_info(sub_inst_ids=sub_inst_id, log_content=f"Sending install cmd: {cmd}")
+                    self.log_info(sub_inst_ids=sub_inst_id, log_content=_("执行命令: {cmd}").format(cmd=cmd))
                     execute_cmd(
                         cmd,
                         ip,
@@ -312,7 +303,7 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
                     )
                 else:
                     # Other commands is quick and depends on previous ones, using synchronous
-                    self.log_info(sub_inst_ids=sub_inst_id, log_content=f"Sending cmd: {cmd}")
+                    self.log_info(sub_inst_ids=sub_inst_id, log_content=_("执行命令: {cmd}").format(cmd=cmd))
                     execute_cmd(cmd, ip, identity_data.account, identity_data.password)
             except socket.error:
                 self.move_insts_to_failed(
@@ -344,14 +335,24 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
 
     @exc.ExceptionHandler(exc_handler=core.default_sub_inst_task_exc_handler)
     @base.RetryHandler(interval=0, retry_times=2, exception_types=[ConnectionResetError])
-    def push_curl_exe(self, sub_inst_id: int, host: models.Host, dest_dir: str, identity_data: models.IdentityData):
+    def push_curl_exe(
+        self,
+        sub_inst_id: int,
+        host: models.Host,
+        dest_dir: str,
+        identity_data: models.IdentityData,
+        dependencies: List[str],
+    ):
         ip = host.login_ip or host.inner_ip or host.outer_ip
-        for name in self.win_install_tools:
+        for dependence in dependencies:
             try:
-                curl_file = os.path.join(settings.BK_SCRIPTS_PATH, name)
-                self.log_info(sub_inst_ids=sub_inst_id, log_content=f"pushing file {curl_file} to {dest_dir}")
+                localpath = os.path.join(settings.BK_SCRIPTS_PATH, dependence)
+                self.log_info(
+                    sub_inst_ids=sub_inst_id,
+                    log_content=_("推送文件 {localpath} 到目标机器路径 {dest_dir}").format(localpath=localpath, dest_dir=dest_dir),
+                )
                 put_file(
-                    curl_file,
+                    localpath,
                     dest_dir,
                     ip,
                     identity_data.account,
@@ -398,6 +399,9 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
                 ]
             }
         )
+        execution_solution = installation_tool.type__execution_solution_map[
+            constants.CommonExecutionSolutionType.SHELL.value
+        ]
         kwargs = {
             "bk_biz_id": bk_biz_id,
             "task_name": f"NODEMAN_{sub_inst_id}_{self.__class__.__name__}",
@@ -406,7 +410,7 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
             "account_alias": settings.BACKEND_UNIX_ACCOUNT,
             "script_language": constants.ScriptLanguageType.PYTHON.value,
             "script_content": base64.b64encode(script.encode()).decode(),
-            "script_param": base64.b64encode(installation_tool.run_cmd.encode()).decode(),
+            "script_param": base64.b64encode(execution_solution.steps[0].contents[0].text.encode()).decode(),
             "is_param_sensitive": constants.BkJobParamSensitiveType.YES.value,
         }
         data = JobApi.fast_execute_script(kwargs)
@@ -450,9 +454,9 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
         return sub_inst_id
 
     @exc.ExceptionHandler(exc_handler=core.default_sub_inst_task_exc_handler)
-    async def execute_linux_commands_async(self, sub_inst_id, install_sub_inst_obj: InstallSubInstObj) -> int:
+    async def execute_shell_solution_async(self, sub_inst_id, install_sub_inst_obj: InstallSubInstObj) -> int:
         """
-        执行 Linux 命令
+        执行 Shell 方案
         :param sub_inst_id:
         :param install_sub_inst_obj:
         :return:
@@ -466,55 +470,39 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
         # 参考：https://docs.djangoproject.com/en/3.2/topics/async/
         log_info = sync.sync_to_async(self.log_info)
         installation_tool = install_sub_inst_obj.installation_tool
+        execution_solution = installation_tool.type__execution_solution_map[
+            constants.CommonExecutionSolutionType.SHELL.value
+        ]
         async with conns.AsyncsshConn(**install_sub_inst_obj.conns_init_params) as conn:
-            run_cmd = installation_tool.run_cmd
-            pre_commands = installation_tool.pre_commands or []
-            for cmd in pre_commands:
-                await log_info(sub_inst_ids=sub_inst_id, log_content=f"Sending cmd: {cmd}")
-                await conn.run(command=cmd, check=True, timeout=SSH_RUN_TIMEOUT)
-            await log_info(sub_inst_ids=sub_inst_id, log_content=f"Sending install cmd: {run_cmd}")
-            await conn.run(command=run_cmd, check=True, timeout=SSH_RUN_TIMEOUT)
+
+            for execution_solution_step in execution_solution.steps:
+                if execution_solution_step.type == constants.CommonExecutionSolutionStepType.DEPENDENCIES.value:
+                    localpaths = [
+                        os.path.join(settings.BK_SCRIPTS_PATH, content.name)
+                        for content in execution_solution_step.contents
+                    ]
+                    if installation_tool.host.os_type == constants.OsType.WINDOWS:
+                        dest_dir = installation_tool.dest_dir.replace("\\", "/")
+                    else:
+                        dest_dir = installation_tool.dest_dir
+
+                    async with await conn.file_client() as file_client:
+                        await file_client.makedirs(path=installation_tool.dest_dir)
+                        await log_info(
+                            sub_inst_ids=install_sub_inst_obj.sub_inst_id,
+                            log_content=_("推送下列文件到「{dest_dir}」\n{filenames_str}").format(
+                                dest_dir=dest_dir, filenames_str="\n".join(localpaths)
+                            ),
+                        )
+                        await file_client.put(localpaths=localpaths, remotepath=installation_tool.dest_dir)
+
+                elif execution_solution_step.type == constants.CommonExecutionSolutionStepType.COMMANDS.value:
+                    for content in execution_solution_step.contents:
+                        cmd = content.text
+                        await log_info(sub_inst_ids=sub_inst_id, log_content=_("执行命令: {cmd}").format(cmd=cmd))
+                        await conn.run(command=cmd, check=True, timeout=SSH_RUN_TIMEOUT)
 
         return sub_inst_id
-
-    @exc.ExceptionHandler(exc_handler=core.default_sub_inst_task_exc_handler)
-    async def execute_cygwin_commands_async(self, sub_inst_id, install_sub_inst_obj: InstallSubInstObj) -> int:
-        """
-        通过 Cygwin 执行命令
-        :param sub_inst_id:
-        :param install_sub_inst_obj:
-        :return:
-        """
-        log_info = sync.sync_to_async(self.log_info)
-        installation_tool = install_sub_inst_obj.installation_tool
-        localpaths = [os.path.join(settings.BK_SCRIPTS_PATH, filename) for filename in self.win_install_tools]
-        async with conns.AsyncsshConn(**install_sub_inst_obj.conns_init_params) as conn:
-            check_curl_output = await conn.run("command -v curl", check=False, timeout=SSH_RUN_TIMEOUT)
-            if not check_curl_output.exit_status:
-                await log_info(
-                    install_sub_inst_obj.sub_inst_id,
-                    log_content=_("检测到目标机器已安装 curl -> {curl_path}，将通过 curl 下载依赖文件").format(
-                        curl_path=check_curl_output.stdout
-                    ),
-                )
-                dest_dir = installation_tool.dest_dir.replace("\\", "/")
-                download_cmds = [f"mkdir -p {dest_dir}"]
-                for filename in self.win_install_tools:
-                    download_cmds.append(
-                        f"curl -o {dest_dir}/{filename} -sSf {installation_tool.package_url}/{filename}"
-                    )
-                installation_tool.pre_commands = download_cmds + installation_tool.pre_commands
-            else:
-                async with await conn.file_client() as file_client:
-                    await file_client.makedirs(path=installation_tool.dest_dir)
-                    await log_info(
-                        sub_inst_ids=install_sub_inst_obj.sub_inst_id,
-                        log_content=_("推送下列文件到「{dest_dir}」\n{filenames_str}").format(
-                            filenames_str="\n".join(localpaths), dest_dir=installation_tool.dest_dir
-                        ),
-                    )
-                    await file_client.put(localpaths=localpaths, remotepath=installation_tool.dest_dir)
-        return await self.execute_linux_commands_async(sub_inst_id, install_sub_inst_obj)
 
     def handle_report_data(self, sub_inst_id: int, success_callback_step: str) -> Dict:
         """处理上报数据"""
@@ -563,7 +551,7 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
             "is_finished": is_finished,
             "cpu_arch": cpu_arch,
             "os_version": os_version,
-            "agent_id": agent_id
+            "agent_id": agent_id,
         }
 
     def _schedule(self, data, parent_data, callback_data=None):
