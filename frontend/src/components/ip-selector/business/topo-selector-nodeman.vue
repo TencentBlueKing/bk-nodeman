@@ -704,7 +704,7 @@ export default class TopoSelector extends Vue {
   }
 }
 </script>
-<style lang="scss" scoped>
+<style lang="postcss" scoped>
 .ip-selector {
   width: 100%;
   flex: 1;
