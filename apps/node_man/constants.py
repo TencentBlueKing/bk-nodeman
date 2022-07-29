@@ -922,3 +922,37 @@ FILES_TO_PUSH_TO_PROXY = [
         "name": _("下发安装工具"),
     },
 ]
+
+
+class AgentWindowsDependencies(EnhanceEnum):
+    CURL = "curl.exe"
+    NTRIGHTS = "ntrights.exe"
+    CURL_CA_BUNDLE = "curl-ca-bundle.crt"
+    LIBCURL = "libcurl-x64.dll"
+
+    @classmethod
+    def _get_member__alias_map(cls) -> Dict[Enum, str]:
+        return {
+            cls.CURL: _("数据传输工具, 用于下载文件依赖"),
+            cls.NTRIGHTS: _("用户赋权工具"),
+            cls.CURL_CA_BUNDLE: "TLS Certificate Verification",
+            cls.LIBCURL: _("libcurl 共享库, 补丁文件"),
+        }
+
+
+class CommonExecutionSolutionType(EnhanceEnum):
+    BATCH = "batch"
+    SHELL = "shell"
+
+    @classmethod
+    def _get_member__alias_map(cls) -> Dict[Enum, str]:
+        return {cls.BATCH: _("Windows 批处理脚本"), cls.SHELL: _("Unix-like shell")}
+
+
+class CommonExecutionSolutionStepType(EnhanceEnum):
+    DEPENDENCIES = "dependencies"
+    COMMANDS = "commands"
+
+    @classmethod
+    def _get_member__alias_map(cls) -> Dict[Enum, str]:
+        return {cls.DEPENDENCIES: _("依赖文件"), cls.COMMANDS: _("命令")}
