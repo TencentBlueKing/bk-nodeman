@@ -1,5 +1,5 @@
 import { ISetupHead, ISetupRow } from '@/types';
-import { authentication, defaultPort, sysOptions, defaultOsType, getDefaultConfig } from '@/config/config';
+import { authentication, defaultPort, sysOptions, defaultOsType, getDefaultConfig, addressingMode } from '@/config/config';
 import { reguFnMinInteger, reguPort, reguIp, reguIpBatch, reguIpInLineRepeat, splitCodeArr } from '@/common/form-check';
 
 const useTjj = window.PROJECT_CONFIG.USE_TJJ === 'True';
@@ -174,6 +174,19 @@ export const setupTableConfig: ISetupHead[] = [
     rules: [reguFnMinInteger(1)],
   },
   {
+    label: '寻址方式',
+    prop: 'bk_addressing',
+    type: 'select',
+    default: '0',
+    batch: true,
+    required: false,
+    noRequiredMark: false,
+    getOptions() {
+      return addressingMode;
+    },
+    width: 115,
+  },
+  {
     label: '',
     prop: '',
     type: 'operate',
@@ -299,6 +312,19 @@ export const setupTableManualConfig = [
     // iconOffset: 40,
     width: 180,
     rules: [reguFnMinInteger(1)],
+  },
+  {
+    label: '寻址方式',
+    prop: 'bk_addressing',
+    type: 'select',
+    default: '0',
+    batch: true,
+    required: false,
+    noRequiredMark: false,
+    getOptions() {
+      return addressingMode;
+    },
+    width: 115,
   },
   {
     label: '',

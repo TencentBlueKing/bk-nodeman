@@ -32,3 +32,12 @@ class LogType(EnhanceEnum):
     @classmethod
     def _get_member__alias_map(cls) -> Dict[Enum, str]:
         return {cls.DEFAULT: "与开发框架保持一致", cls.STDOUT: "标准输出"}
+
+
+class GseVersion(EnhanceEnum):
+    V1 = "V1"
+    V2 = "V2"
+
+    @classmethod
+    def _get_member__alias_map(cls) -> Dict[Enum, str]:
+        return {cls.V1: "V1", cls.V2: "V2"}

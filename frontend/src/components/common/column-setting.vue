@@ -193,8 +193,10 @@ export default class ColumnSetting extends Vue {
     const data = this.handleGetStorage();
     if (data && Object.keys(data).length) {
       Object.keys(this.filter).forEach((key) => {
-        this.filter[key].mockChecked = !!data[key];
-        this.filter[key].checked = !!data[key];
+        if (Object.prototype.hasOwnProperty.call(data, key)) {
+          this.filter[key].mockChecked = !!data[key];
+          this.filter[key].checked = !!data[key];
+        }
       });
     }
     this.$emit('update', this.filter);

@@ -327,6 +327,12 @@ export default {
   所有云区域的ProxyIP: 'All Proxy IP',
   重装Proxy: 'Reinstall Proxy',
 
+  内网IPv6: 'LAN IPv6',
+  寻址方式: 'Addressing mode',
+  动态寻址: 'Dynamic Addressing',
+  动态: 'Dynamic',
+  静态: 'Static',
+
   // 安装通道
   安装通道: 'Install channel',
   默认通道: 'Default channel',

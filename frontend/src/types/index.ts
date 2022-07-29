@@ -35,6 +35,7 @@ export interface IAuthApply {
 
 export type RequestMethods = 'delete' | 'get' | 'head' | 'post' | 'put' | 'patch';
 export type IOs = 'LINUX' | 'WINDOWS' | 'AIX' | 'SOLARIS';
+export type IProxyIpKeys = 'inner_ip' | 'outer_ip' | 'login_ip';
 
 export interface IUserConfig {
   // http 请求默认 id
@@ -225,9 +226,12 @@ export interface ISetupValidator {
 export interface ISetupRow {
   id: number
   is_manual?: boolean
-  inner_ip: string
+  inner_ip?: string
   outer_ip?: string
   login_ip?: string
+  inner_ipv6?: string
+  outer_ipv6?: string
+  login_ipv6?: string
   ap_id?: number
   bk_biz_id?: number
   bk_cloud_id?: number
@@ -248,6 +252,7 @@ export interface ISetupRow {
   errType?: string
   validator?: { [key: string]: ISetupValidator }
   install_channel_id: string | number | null
+  bk_addressing: '0' | '1'
 }
 // table 表头配置
 export interface ISetupHead {

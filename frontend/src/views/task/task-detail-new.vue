@@ -539,7 +539,7 @@ export default class TaskDeatail extends Mixins(PollMixin, HeaderFilterMixins) {
     });
     if (res) {
       if (res.list ? res.list.length : false) {
-        const ipStr = res.list.map((item: ITaskHost) => item.innerIp).join('\n');
+        const ipStr = res.list.map((item: ITaskHost) => item.ip).join('\n');
         copyText(ipStr, () => {
           this.$bkMessage({
             theme: 'success',

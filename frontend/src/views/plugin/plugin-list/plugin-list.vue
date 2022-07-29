@@ -13,6 +13,7 @@
       @plugin-operate="handlePluginOperate">
     </PluginListOperate>
     <PluginListTable
+      v-if="!loading"
       v-bkloading="{ isLoading: tableLoading }"
       class="plugin-node-table"
       :table-list="tableList"

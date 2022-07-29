@@ -8,9 +8,10 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import copy
 import logging
 import re
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Set
 
 from django.conf import settings
 from django.core.paginator import Paginator
@@ -57,23 +58,6 @@ class JobHandler(APIModel):
         for filter_info in ip_filter_list:
             filter_info["msg"] = str(filter_info["msg"])
         return ip_filter_list
-
-    def task_status_list(self):
-        """
-        返回任务执行的状态
-        :return: 以Host ID为键，返回任务执行状态
-        {
-            bk_host_id: {
-                'job_id': job_id,
-                'status': status
-            }
-        }
-        """
-        task_info = {
-            task["bk_host_id"]: {"status": task["status"]}
-            for task in models.JobTask.objects.values("bk_host_id", "instance_id", "job_id", "status")
-        }
-        return task_info
 
     def check_ap_and_biz_scope(self, node_type: str, host: dict, cloud_info: dict):
         """
@@ -360,7 +344,13 @@ class JobHandler(APIModel):
         return {"total": len(job_list), "list": job_page}
 
     def install(
-        self, hosts: List, op_type: str, node_type: str, job_type: str, ticket: str, extra_params: Dict[str, Any]
+        self,
+        hosts: List[Dict[str, Any]],
+        op_type: str,
+        node_type: str,
+        job_type: str,
+        ticket: str,
+        extra_params: Dict[str, Any],
     ):
         """
         Job 任务处理器
@@ -373,30 +363,34 @@ class JobHandler(APIModel):
         """
 
         # 获取Hosts中的cloud_id列表、ap_id列表、内网、外网、登录IP列表、bk_biz_scope列表
-        bk_cloud_ids = set()
         ap_ids = set()
-        bk_biz_scope = set()
-        inner_ips = set()
         is_manual = set()
+        bk_biz_scope = set()
+        bk_cloud_ids = set()
+        inner_ips_info: Dict[str, Set[str]] = {"inner_ips": set(), "inner_ipv6s": set()}
 
         for host in hosts:
             bk_cloud_ids.add(host["bk_cloud_id"])
             bk_biz_scope.add(host["bk_biz_id"])
-            inner_ips.add(host["inner_ip"])
             is_manual.add(host["is_manual"])
+
+            # 遍历需要支持的 IP 字段，汇总安装信息中存在该 IP 字段的值
+            if host.get("inner_ip"):
+                inner_ips_info["inner_ips"].add(host["inner_ip"])
+            if host.get("inner_ipv6"):
+                inner_ips_info["inner_ipv6s"].add(host["inner_ipv6"])
+
             # 用户ticket，用于后台异步执行时调用第三方接口使用
             host["ticket"] = ticket
             if host.get("ap_id"):
                 ap_ids.add(host["ap_id"])
 
         # 如果混合了【手动安装】，【自动安装】则不允许通过
-        # 此处暂不和入job validator.
+        # 此处暂不合入 job validator.
         if len(is_manual) > 1:
             raise exceptions.MixedOperationError
         else:
             is_manual = list(is_manual)[0]
-
-        bk_biz_scope = list(bk_biz_scope)
 
         # 获得所有的业务列表
         # 格式 { bk_biz_id: bk_biz_name , ...}
@@ -411,23 +405,19 @@ class JobHandler(APIModel):
 
         # 获得用户输入的ip是否存在于数据库中
         # 格式 { bk_cloud_id+ip: { 'bk_host_id': ..., 'bk_biz_id': ..., 'node_type': ...}}
-        inner_ip_info = HostHandler().ip_list(inner_ips)
-
-        # 获得正在执行的任务状态
-        task_info = self.task_status_list()
+        host_infos_gby_ip_key: Dict[str, List[Dict[str, Any]]] = HostHandler.get_host_infos_gby_ip_key(
+            ips=inner_ips_info["inner_ips"], ip_version=constants.CmdbIpVersion.V4.value
+        )
+        host_infos_gby_ip_key.update(
+            HostHandler.get_host_infos_gby_ip_key(
+                ips=inner_ips_info["inner_ipv6s"], ip_version=constants.CmdbIpVersion.V6.value
+            )
+        )
 
         # 对数据进行校验
         # 重装则校验IP是否存在，存在才可重装
         ip_filter_list, accept_list, proxy_not_alive = validator.install_validate(
-            hosts,
-            op_type,
-            node_type,
-            job_type,
-            biz_info,
-            cloud_info,
-            ap_id_name,
-            inner_ip_info,
-            task_info,
+            hosts, op_type, node_type, job_type, biz_info, cloud_info, ap_id_name, host_infos_gby_ip_key
         )
 
         if proxy_not_alive:
@@ -439,14 +429,20 @@ class JobHandler(APIModel):
             # 如果都被过滤了
             raise exceptions.AllIpFiltered(data={"job_id": "", "ip_filter": self.ugettext_to_unicode(ip_filter_list)})
 
-        if op_type in [constants.OpType.INSTALL, constants.OpType.REPLACE, constants.OpType.RELOAD]:
+        if any(
+            [
+                op_type in [constants.OpType.INSTALL, constants.OpType.REPLACE, constants.OpType.RELOAD],
+                # 开启动态主机配置协议适配时，通过基础信息进行重装
+                settings.BKAPP_ENABLE_DHCP and op_type in [constants.OpType.REINSTALL],
+            ]
+        ):
             # 安装、替换Proxy操作
             subscription_nodes = self.subscription_install(accept_list, node_type, cloud_info, biz_info)
             subscription = self.create_subscription(job_type, subscription_nodes, extra_params=extra_params)
         else:
             # 重装、卸载等操作
             # 此步骤需要校验密码、秘钥
-            subscription_nodes, ip_filter_list = self.update(accept_list, ip_filter_list, is_manual)
+            subscription_nodes, ip_filter_list = self.update_host(accept_list, ip_filter_list, is_manual)
             if not subscription_nodes:
                 raise exceptions.AllIpFiltered(
                     data={"job_id": "", "ip_filter": self.ugettext_to_unicode(ip_filter_list)}
@@ -487,37 +483,38 @@ class JobHandler(APIModel):
         subscription_nodes = []
         rsa_util = tools.HostTools.get_rsa_util()
         for host in accept_list:
-            inner_ip = host["inner_ip"]
-            outer_ip = host.get("outer_ip", "")
-            login_ip = host.get("login_ip", "")
-
             host_ap_id, host_node_type = self.check_ap_and_biz_scope(node_type, host, cloud_info)
-
-            instance_info = {
-                "is_manual": host["is_manual"],
-                "ap_id": host_ap_id,
-                "install_channel_id": host.get("install_channel_id"),
-                "bk_os_type": constants.BK_OS_TYPE[host["os_type"]],
-                "bk_host_innerip": inner_ip,
-                "bk_host_outerip": outer_ip,
-                "login_ip": login_ip,
-                "username": get_request_username(),
-                "bk_biz_id": host["bk_biz_id"],
-                "bk_biz_name": biz_info.get(host["bk_biz_id"]),
-                "bk_cloud_id": host["bk_cloud_id"],
-                "bk_cloud_name": str(cloud_info.get(host["bk_cloud_id"], {}).get("bk_cloud_name")),
-                "bk_supplier_account": settings.DEFAULT_SUPPLIER_ACCOUNT,
-                "host_node_type": host_node_type,
-                "os_type": host["os_type"],
-                "auth_type": host.get("auth_type", "MANUAL"),
-                "account": host.get("account", "MANUAL"),
-                "port": host.get("port"),
-                "password": tools.HostTools.USE_RSA_PREFIX + rsa_util.encrypt(host.get("password", "")),
-                "key": tools.HostTools.USE_RSA_PREFIX + rsa_util.encrypt(host.get("key", "")),
-                "retention": host.get("retention", 1),
-                "peer_exchange_switch_for_agent": host.get("peer_exchange_switch_for_agent"),
-                "bt_speed_limit": host.get("bt_speed_limit"),
-            }
+            instance_info = copy.deepcopy(host)
+            instance_info.update(
+                {
+                    "is_manual": host["is_manual"],
+                    "ap_id": host_ap_id,
+                    "install_channel_id": host.get("install_channel_id"),
+                    "bk_os_type": constants.BK_OS_TYPE[host["os_type"]],
+                    "bk_host_innerip": host.get("inner_ip", ""),
+                    "bk_host_innerip_v6": host.get("inner_ipv6", ""),
+                    "bk_host_outerip": host.get("outer_ip", ""),
+                    "bk_host_outerip_v6": host.get("outer_ipv6", ""),
+                    "login_ip": host.get("login_ip", ""),
+                    "username": get_request_username(),
+                    "bk_biz_id": host["bk_biz_id"],
+                    "bk_biz_name": biz_info.get(host["bk_biz_id"]),
+                    "bk_cloud_id": host["bk_cloud_id"],
+                    "bk_cloud_name": str(cloud_info.get(host["bk_cloud_id"], {}).get("bk_cloud_name")),
+                    "bk_addressing": host["bk_addressing"],
+                    "bk_supplier_account": settings.DEFAULT_SUPPLIER_ACCOUNT,
+                    "host_node_type": host_node_type,
+                    "os_type": host["os_type"],
+                    "auth_type": host.get("auth_type", "MANUAL"),
+                    "account": host.get("account", "MANUAL"),
+                    "port": host.get("port"),
+                    "password": tools.HostTools.USE_RSA_PREFIX + rsa_util.encrypt(host.get("password", "")),
+                    "key": tools.HostTools.USE_RSA_PREFIX + rsa_util.encrypt(host.get("key", "")),
+                    "retention": host.get("retention", 1),
+                    "peer_exchange_switch_for_agent": host.get("peer_exchange_switch_for_agent"),
+                    "bt_speed_limit": host.get("bt_speed_limit"),
+                }
+            )
 
             if host_node_type == constants.NodeType.PROXY and host.get("data_path"):
                 # proxy增加数据文件路径
@@ -535,7 +532,7 @@ class JobHandler(APIModel):
                 {
                     "bk_supplier_account": settings.DEFAULT_SUPPLIER_ACCOUNT,
                     "bk_cloud_id": host["bk_cloud_id"],
-                    "ip": inner_ip,
+                    "ip": host.get("inner_ip", "") or host.get("inner_ipv6", ""),
                     "instance_info": instance_info,
                 }
             )
@@ -543,11 +540,12 @@ class JobHandler(APIModel):
         return subscription_nodes
 
     @staticmethod
-    def update(accept_list: list, ip_filter_list: list, is_manual: bool = False):
+    def update_host(accept_list: list, ip_filter_list: list, is_manual: bool = False):
         """
         用于更新identity认证信息
         :param accept_list: 所有需要修改的数据
         :param ip_filter_list: 过滤数据
+        :param is_manual: 是否手动安装
         """
 
         identity_to_create = []
@@ -583,7 +581,9 @@ class JobHandler(APIModel):
                 "bk_biz_id": host["bk_biz_id"],
                 "bk_cloud_id": host["bk_cloud_id"],
                 "inner_ip": host["inner_ip"],
+                "inner_ipv6": host["inner_ipv6"],
                 "outer_ip": host["outer_ip"],
+                "outer_ipv6": host["outer_ipv6"],
                 "login_ip": host["login_ip"],
                 "data_ip": host["data_ip"],
                 "os_type": host["os_type"],
@@ -655,6 +655,8 @@ class JobHandler(APIModel):
                         "bk_cloud_id": origin_host["bk_cloud_id"],
                         "inner_ip": origin_host["inner_ip"],
                         "outer_ip": origin_host["outer_ip"],
+                        "inner_ipv6": origin_host["inner_ipv6"],
+                        "outer_ipv6": origin_host["outer_ipv6"],
                         "login_ip": host.get("login_ip", origin_host["login_ip"]),
                         "data_ip": origin_host["data_ip"],
                         "os_type": host.get("os_type", origin_host["os_type"]),
@@ -838,9 +840,13 @@ class JobHandler(APIModel):
             job_type_info = tools.JobTools.unzip_job_type(
                 tools.JobTools.get_job_type_in_inst_status(instance_status, self.data.job_type)
             )
+            inner_ip = host_info.get("bk_host_innerip")
+            inner_ipv6 = host_info.get("bk_host_innerip_v6")
             host_execute_status = {
                 "instance_id": instance_status["instance_id"],
-                "inner_ip": host_info["bk_host_innerip"],
+                "ip": inner_ip or inner_ipv6,
+                "inner_ip": inner_ip,
+                "inner_ipv6": inner_ipv6,
                 "bk_host_id": host_info.get("bk_host_id"),
                 "bk_cloud_id": host_info["bk_cloud_id"],
                 "bk_cloud_name": host_info.get("bk_cloud_name"),
@@ -886,7 +892,9 @@ class JobHandler(APIModel):
                 {
                     "filter_host": True,
                     "bk_host_id": host.get("bk_host_id"),
-                    "inner_ip": host["ip"],
+                    "ip": host["ip"],
+                    "inner_ip": host.get("inner_ip"),
+                    "inner_ipv6": host.get("inner_ipv6"),
                     "bk_cloud_id": host.get("bk_cloud_id"),
                     "bk_cloud_name": host.get("bk_cloud_name"),
                     "bk_biz_id": host.get("bk_biz_id"),

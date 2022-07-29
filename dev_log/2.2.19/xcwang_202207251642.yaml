@@ -1,0 +1,3 @@
+---
+optimization:
+  - "GSE 配置文件去掉相关注释，保证json格式合法 (closed #955)"

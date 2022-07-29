@@ -36,6 +36,10 @@ const getAuthentication = () => {
   }
   return auths;
 };
+export const addressingMode = [
+  { id: '0', name: window.i18n.t('静态') },
+  { id: '1', name: window.i18n.t('动态') },
+];
 
 export const authentication = getAuthentication();
 export const defaultPort = window.PROJECT_CONFIG.DEFAULT_SSH_PORT ? Number(window.PROJECT_CONFIG.DEFAULT_SSH_PORT) : 22;

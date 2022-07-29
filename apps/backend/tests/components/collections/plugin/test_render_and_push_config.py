@@ -40,7 +40,6 @@ class RenderAndPushConfigTest(TestCase, ComponentTestMixin):
         self.plugin_multi_thread = patch(utils.PLUGIN_MULTI_THREAD_PATH, utils.request_multi_thread_client)
         self.job_jobapi = patch(utils.JOB_JOBAPI, utils.JobMockClient)
         self.job_multi_thread = patch(utils.JOB_MULTI_THREAD_PATH, utils.request_multi_thread_client)
-        self.plugin_gseapi = patch(utils.PLUGIN_GSEAPI, utils.GseMockClient)
 
         self.cmdb_client.start()
         self.plugin_client.start()

@@ -32,6 +32,7 @@ from .patchers import logging
 # ===============================================================================
 BKAPP_RUN_ENV = env.BKAPP_RUN_ENV
 BKAPP_IS_PAAS_DEPLOY = env.BKAPP_IS_PAAS_DEPLOY
+BKAPP_ENABLE_DHCP = env.BKAPP_ENABLE_DHCP
 BK_BACKEND_CONFIG = env.BK_BACKEND_CONFIG
 
 
@@ -580,6 +581,7 @@ if BK_BACKEND_CONFIG:
 
     REDIS_PASSWORD = os.getenv("REDIS_PASSWORD")
     REDIS_MASTER_NAME = os.getenv("REDIS_MASTER_NAME")
+    REDIS_SENTINEL_PASSWORD = os.getenv("REDIS_SENTINEL_PASSWORD")
 
     if REDIS_MODE == "replication":
         # redis 集群sentinel模式
@@ -587,13 +589,14 @@ if BK_BACKEND_CONFIG:
         REDIS_PORT = os.getenv("REDIS_SENTINEL_PORT")
         # # celery redbeat config
         REDBEAT_REDIS_URL = "redis-sentinel://redis-sentinel:{port}/0".format(port=REDIS_PORT or 26379)
-
-        # 临时兼容社区版单例配置
-        if BKAPP_RUN_ENV == "ce":
-            REDBEAT_REDIS_URL = "redis://:{passwd}@{host}:{port}/0".format(
-                passwd=REDIS_PASSWORD, host=REDIS_HOST, port=REDIS_PORT or 6379
-            )
-            REDIS_MODE = "single"
+        REDBEAT_REDIS_OPTIONS = {
+            "sentinels": [(REDIS_HOST, REDIS_PORT)],
+            "password": REDIS_PASSWORD,
+            "service_name": REDIS_MASTER_NAME or "mymaster",
+            "socket_timeout": 0.1,
+            "retry_period": 60,
+            "sentinel_kwargs": {"password": REDIS_SENTINEL_PASSWORD},
+        }
     else:
         REDIS_HOST = os.getenv("REDIS_HOST")
         REDIS_PORT = os.getenv("REDIS_PORT")
@@ -607,16 +610,10 @@ if BK_BACKEND_CONFIG:
         "port": REDIS_PORT,
         "password": REDIS_PASSWORD,
         "service_name": REDIS_MASTER_NAME,
+        "sentinel_password": REDIS_SENTINEL_PASSWORD,
         "mode": REDIS_MODE,  # 哨兵模式，可选 single, cluster, replication
     }
 
-    REDBEAT_REDIS_OPTIONS = {
-        "sentinels": [(REDIS_HOST, REDIS_PORT)],
-        "password": REDIS_PASSWORD,
-        "service_name": REDIS_MASTER_NAME or "mymaster",
-        "socket_timeout": 0.1,
-        "retry_period": 60,
-    }
     REDBEAT_KEY_PREFIX = "nodeman"
 
 
@@ -642,6 +639,9 @@ BKAPP_REQUEST_EE_SOPS_OPERATOR = os.getenv("BKAPP_REQUEST_EE_SOPS_OPERATOR", "ad
 BKAPP_EE_SOPS_TEMPLATE_ID = os.getenv("BKAPP_EE_SOPS_TEMPLATE_ID")
 BKAPP_REQUEST_EE_SOPS_BK_BIZ_ID = os.getenv("BKAPP_REQUEST_EE_SOPS_BK_BIZ_ID")
 
+
+# 管控平台平台版本
+GSE_VERSION = env.GSE_VERSION
 # agent 安装路径配置
 GSE_AGENT_HOME = os.getenv("BKAPP_GSE_AGENT_HOME") or "/usr/local/gse"
 GSE_AGENT_LOG_DIR = os.getenv("BKAPP_GSE_AGENT_LOG_DIR") or "/var/log/gse"

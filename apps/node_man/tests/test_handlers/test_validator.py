@@ -39,9 +39,7 @@ from apps.node_man.tests.utils import (
 
 class TestValidator(TestCase):
     @staticmethod
-    def wrap_job_validate(data, task_info=None):
-        if task_info is None:
-            task_info = {}
+    def wrap_job_validate(data):
         # 封装数据生成和job_validate，减少重复代码
         (
             biz_info,
@@ -63,18 +61,16 @@ class TestValidator(TestCase):
             cloud_info,
             ap_id_name,
             all_inner_ip_info,
-            task_info,
         )
         return ip_filter_list, accept_list
 
-    def wrap_job_validate_raise(self, data, username, is_superuser, error, task_info=None):
+    def wrap_job_validate_raise(self, data, username, is_superuser, error):
         """
         封装job_validate测试异常抛出通用逻辑
         :param data:
         :param username:
         :param is_superuser:
         :param error:
-        :param task_info:
         :return:
         data:
         {
@@ -100,8 +96,6 @@ class TestValidator(TestCase):
           ]
         }
         """
-        if task_info is None:
-            task_info = {}
         (
             biz_info,
             data,
@@ -124,7 +118,6 @@ class TestValidator(TestCase):
             cloud_info,
             ap_id_name,
             all_inner_ip_info,
-            task_info,
         )
 
     @staticmethod
@@ -216,7 +209,6 @@ class TestValidator(TestCase):
             cloud_info,
             ap_id_name,
             all_inner_ip_info,
-            {},
         )
 
     def _test_job_validate_proxy_not_available(self):
@@ -249,7 +241,6 @@ class TestValidator(TestCase):
             cloud_info,
             ap_id_name,
             all_inner_ip_info,
-            {},
         )
         self.assertEqual(len(proxy_not_alive), 1)
 
@@ -326,22 +317,6 @@ class TestValidator(TestCase):
             bk_host_id=999999,
         )
         ip_filter_list, accept_list = self.wrap_job_validate(data)
-        self.assertEquals(number, len(ip_filter_list))
-
-        # 除安装操作外，该Host是否正在执行任务
-        number = 1
-        data = gen_job_data(
-            job_type=const.JobType.RESTART_AGENT,
-            count=number,
-            bk_cloud_id=1,
-            ap_id=const.DEFAULT_AP_ID,
-            ip=inner_ip,
-            host_to_create=host_to_create,
-            identity_to_create=identity_to_create,
-        )
-
-        ip_filter_list, accept_list = self.wrap_job_validate(data, task_info={bk_host_id: {"status": "RUNNING"}})
-
         self.assertEquals(number, len(ip_filter_list))
 
     def _test_job_validate_install_type_not_consistent(self):

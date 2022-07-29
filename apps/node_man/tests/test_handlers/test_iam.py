@@ -15,7 +15,7 @@ from apps.node_man.constants import IamActionType
 from apps.node_man.handlers.iam import IamHandler
 from apps.utils.unittest.testcase import CustomBaseTestCase
 
-from .utils import MockIAM, create_cloud_area
+from ..utils import MockIAM, create_cloud_area
 
 
 class TestIAM(CustomBaseTestCase):

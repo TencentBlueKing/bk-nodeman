@@ -190,9 +190,9 @@ class TestMeta(testcase.CustomAPITestCase):
 
         result = MetaHandler().filter_condition("plugin_host")
         self.assertEqual(result[0], {"name": "IP", "id": "inner_ip"})
-        self.assertEqual(len(result[1]["children"]), total_cloud_num)
+        self.assertEqual(len(result[3]["children"]), total_cloud_num)
         self.assertEqual(
-            result[2],
+            result[4],
             {
                 "name": "操作系统",
                 "id": "os_type",
@@ -200,7 +200,7 @@ class TestMeta(testcase.CustomAPITestCase):
             },
         )
         self.assertEqual(
-            result[3],
+            result[5],
             {
                 "id": "status",
                 "name": "Agent状态",

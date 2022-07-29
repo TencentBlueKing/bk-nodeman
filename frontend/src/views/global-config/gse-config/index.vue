@@ -230,12 +230,12 @@ export default class GseConfig extends Vue {
     margin-top: 24px;
   }
   .access-point-collapse {
-    /deep/ .right-panel-title {
+    >>> .right-panel-title {
       padding-right: 14px;
       border: 1px solid #dcdee5;
       border-bottom: 0;
     }
-    /deep/ .title-desc {
+    >>> .title-desc {
       width: 100%;
     }
   }

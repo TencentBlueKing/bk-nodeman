@@ -117,7 +117,7 @@ export interface ITaskHost {
   bk_cloud_id?: number
   bk_cloud_name?: string
   bkHostId: number
-  innerIp: string
+  ip: string
   instanceId: string
   isManual: false
   nodeId?: number

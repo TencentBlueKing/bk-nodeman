@@ -32,6 +32,7 @@
                     subTitle: config.subTitle,
                     options: getCellInputOptions({}, config),
                     multiple: !!config.multiple,
+                    searchable: !!config.searchable,
                     placeholder: config.placeholder,
                     appendSlot: config.appendSlot
                   }"

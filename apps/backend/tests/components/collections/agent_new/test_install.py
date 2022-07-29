@@ -60,6 +60,7 @@ class InstallBaseTestCase(utils.AgentServiceBaseTestCase):
         # 初始化redis数据，用于schedule时读取解析
         for sub_inst_id in self.common_inputs["subscription_instance_ids"]:
             name = REDIS_INSTALL_CALLBACK_KEY_TPL.format(sub_inst_id=sub_inst_id)
+            report_agent_obj: models.Host = models.Host.objects.get(bk_host_id=self.obj_factory.bk_host_ids[0])
             json_dumps_logs = [
                 json.dumps(log)
                 for log in [
@@ -69,6 +70,20 @@ class InstallBaseTestCase(utils.AgentServiceBaseTestCase):
                         "step": "report_cpu_arch",
                         "log": "aarch64",
                         "status": "DONE",
+                    },
+                    {
+                        "timestamp": "1580870937",
+                        "level": "INFO",
+                        "step": "report_agent_id",
+                        "log": f"{report_agent_obj.bk_cloud_id}:{report_agent_obj.inner_ip}",
+                        "status": "DONE",
+                    },
+                    {
+                        "timestamp": "1580870937",
+                        "level": "INFO",
+                        "step": "report_os_version",
+                        "status": "DONE",
+                        "log": "6.1.1.1",
                     },
                     {
                         "timestamp": "1580870937",
@@ -159,7 +174,7 @@ class LinuxInstallTestCase(InstallBaseTestCase):
             f" -r http://127.0.0.1/backend -l http://127.0.0.1/download"
             f" -c {token}"
             f' -O 48668 -E 58925 -A 58625 -V 58930 -B 10020 -S 60020 -Z 60030 -K 10030 -e "" -a "" -k ""'
-            f" -i 0 -I 127.0.0.1 -N SERVER -p /usr/local/gse -T /tmp/ &> /tmp/nm.nohup.out &"
+            f" -i 0 -I {host.inner_ip} -N SERVER -p /usr/local/gse -T /tmp/ &> /tmp/nm.nohup.out &"
         )
         self.assertEqual(installation_tool.run_cmd, run_cmd)
 
@@ -175,7 +190,7 @@ class InstallWindowsSSHTestCase(InstallBaseTestCase):
             f"nohup C:/tmp/setup_agent.bat -s {mock_data_utils.JOB_TASK_PIPELINE_ID}"
             f" -r http://127.0.0.1/backend -l http://127.0.0.1/download -c {token}"
             f' -O 48668 -E 58925 -A 58625 -V 58930 -B 10020 -S 60020 -Z 60030 -K 10030 -e " " -a " " -k " "'
-            f" -i 0 -I 127.0.0.1 -N SERVER -p c:\\\\gse -T C:\\\\tmp\\\\ &> C:/tmp/nm.nohup.out &"
+            f" -i 0 -I {host.inner_ip} -N SERVER -p c:\\\\gse -T C:\\\\tmp\\\\ &> C:/tmp/nm.nohup.out &"
         )
         self.assertEqual(installation_tool.run_cmd, run_cmd)
 
@@ -190,7 +205,7 @@ class InstallWindowsSSHTestCase(InstallBaseTestCase):
             f"nohup C:/tmp/setup_agent.bat -s {mock_data_utils.JOB_TASK_PIPELINE_ID}"
             f" -r http://127.0.0.1/backend -l http://127.0.0.1/download -c {token}"
             f' -O 48668 -E 58925 -A 58625 -V 58930 -B 10020 -S 60020 -Z 60030 -K 10030 -e " " -a " " -k " "'
-            f" -i 0 -I 127.0.0.1 -N SERVER -p c:\\\\gse -T C:\\\\tmp\\\\ -U root -P {encrypted_password} "
+            f" -i 0 -I {host.inner_ip} -N SERVER -p c:\\\\gse -T C:\\\\tmp\\\\ -U root -P {encrypted_password} "
             f"&> C:/tmp/nm.nohup.out &"
         )
         self.assertEqual(installation_tool.run_cmd, run_cmd)
@@ -207,7 +222,7 @@ class InstallWindowsTestCase(InstallBaseTestCase):
             f"C:\\tmp\\setup_agent.bat -s {mock_data_utils.JOB_TASK_PIPELINE_ID}"
             f" -r http://127.0.0.1/backend -l http://127.0.0.1/download -c {token}"
             f' -O 48668 -E 58925 -A 58625 -V 58930 -B 10020 -S 60020 -Z 60030 -K 10030 -e "" -a "" -k ""'
-            f" -i 0 -I 127.0.0.1 -N SERVER -p c:\\gse -T C:\\tmp\\"
+            f" -i 0 -I {host.inner_ip} -N SERVER -p c:\\gse -T C:\\tmp\\"
         )
         self.assertEqual(installation_tool.win_commands[-1], windows_run_cmd)
 
@@ -240,7 +255,8 @@ class InstallLinuxPagentTestCase(InstallBaseTestCase):
             f" -c {token}"
             f" -O 48668 -E 58925 -A 58625 -V 58930 -B 10020 -S 60020 -Z 60030 -K 10030"
             f' -e "1.1.1.1" -a "1.1.1.1" -k "1.1.1.1" -L /data/bkee/public/bknodeman/download'
-            f" -HLIP 127.0.0.1 -HIIP 127.0.0.1 -HA root -HP 22 -HI 'password' -HC {self.CLOUD_ID} -HNT PAGENT"
+            f" -HLIP {host.inner_ip} -HIIP {host.inner_ip} -HA root -HP 22 -HI 'password' "
+            f"-HC {self.CLOUD_ID} -HNT PAGENT"
             f" -HOT linux -HDD '/tmp/'"
             f" -HPP '17981' -HSN 'setup_agent.sh' -HS 'bash'"
             f" -p '/usr/local/gse' -I 1.1.1.1"
@@ -313,7 +329,7 @@ class InstallAgentWithInstallChannelSuccessTest(InstallBaseTestCase):
             f" -l http://1.1.1.1:{settings.BK_NODEMAN_NGINX_DOWNLOAD_PORT}/ -c {token}"
             f" -O 48668 -E 58925 -A 58625 -V 58930 -B 10020 -S 60020 -Z 60030 -K 10030"
             f' -e "127.0.0.1" -a "127.0.0.1" -k "127.0.0.1" -L /data/bkee/public/bknodeman/download'
-            f" -HLIP 127.0.0.1 -HIIP 127.0.0.1 -HA root -HP 22 -HI 'password' -HC 0 -HNT AGENT"
+            f" -HLIP {host.inner_ip} -HIIP {host.inner_ip} -HA root -HP 22 -HI 'password' -HC 0 -HNT AGENT"
             f" -HOT linux -HDD '/tmp/'"
             f" -HPP '17981' -HSN 'setup_agent.sh' -HS 'bash'"
             f" -p '/usr/local/gse' -I 1.1.1.1"
@@ -347,6 +363,6 @@ class UninstallSuccessTest(InstallBaseTestCase):
             f" -r http://127.0.0.1/backend -l http://127.0.0.1/download"
             f" -c {token}"
             f' -O 48668 -E 58925 -A 58625 -V 58930 -B 10020 -S 60020 -Z 60030 -K 10030 -e "" -a "" -k ""'
-            f" -i 0 -I 127.0.0.1 -N SERVER -p /usr/local/gse -T /tmp/ -R &> /tmp/nm.nohup.out &"
+            f" -i 0 -I {host.inner_ip} -N SERVER -p /usr/local/gse -T /tmp/ -R &> /tmp/nm.nohup.out &"
         )
         self.assertEqual(installation_tool.run_cmd, run_cmd)

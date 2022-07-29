@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 import logging
 import time
 from collections import defaultdict
+from typing import Dict, Union
 
 import ujson as json
 from django.conf import settings
@@ -60,6 +61,7 @@ class JobDemand(object):
                         {
                             'ip': 127.0.0.1,
                             'bk_cloud_id': 0,
+                            'host_id': 1,
                             'log_content': 'xx',
                         }
                     ],
@@ -80,7 +82,10 @@ class JobDemand(object):
         host_infos__gby_job_status = defaultdict(list)
         step_instance_id = job_status["step_instance_list"][0]["step_instance_id"]
         for instance in job_status["step_instance_list"][0]["step_ip_result_list"]:
-            host_info = {"ip": instance["ip"], "bk_cloud_id": instance["bk_cloud_id"]}
+            if settings.BKAPP_ENABLE_DHCP:
+                host_info = {"ip": instance["ip"], "bk_cloud_id": instance["bk_cloud_id"]}
+            else:
+                host_info = {"bk_host_id": instance["bk_host_id"]}
             host_infos__gby_job_status[instance["status"]].append(host_info)
         logger.info(
             "user->[{}] called api->[{}] and got response->[{}].".format(
@@ -105,22 +110,31 @@ class JobDemand(object):
                 key = "failed"
 
             for host in hosts:
-                log_params = {
+                base_log_params = {
                     "job_instance_id": job_instance_id,
                     "bk_biz_id": settings.BLUEKING_BIZ_ID,
                     "bk_scope_type": constants.BkJobScopeType.BIZ_SET.value,
                     "bk_scope_id": settings.BLUEKING_BIZ_ID,
                     "bk_username": settings.BACKEND_JOB_OPERATOR,
                     "step_instance_id": step_instance_id,
-                    "ip": host["ip"],
-                    "bk_cloud_id": host["bk_cloud_id"],
                 }
-                log_result = JobApi.get_job_instance_ip_log(log_params)
-                task_result[key].append(
-                    {
-                        "ip": host["ip"],
-                        "bk_cloud_id": host["bk_cloud_id"],
-                        "log_content": log_result["log_content"],
-                    }
+                host_interaction_params: Dict[str, Union[str, int]] = (
+                    {"bk_host_id": host["bk_host_id"]}
+                    if settings.BKAPP_ENABLE_DHCP
+                    else {"ip": host["ip"], "bk_cloud_id": host["bk_cloud_id"]}
                 )
+                log_result = JobApi.get_job_instance_ip_log({**base_log_params, **host_interaction_params})
+                if settings.BKAPP_ENABLE_DHCP:
+                    task_result[key].append(
+                        {
+                            "ip": host["ip"],
+                            "bk_cloud_id": host["bk_cloud_id"],
+                            "log_content": log_result["log_content"],
+                        }
+                    )
+                else:
+                    task_result[key].append(
+                        {"bk_host_id": host["bk_host_id"], "log_content": log_result["log_content"]}
+                    )
+
         return {"is_finished": is_finished, "task_result": task_result}

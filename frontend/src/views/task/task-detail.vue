@@ -1063,14 +1063,14 @@ export default {
       }
     }
   }
-  /deep/ .row-select .cell {
+  >>> .row-select .cell {
     padding-left: 24px;
     padding-right: 0;
   }
-  /deep/ .row-ip .cell {
+  >>> .row-ip .cell {
     padding-left: 24px;
   }
-  /deep/ .row-select .cell {
+  >>> .row-select .cell {
     padding-left: 24px;
     padding-right: 0;
   }

@@ -34,7 +34,7 @@ For more features, please refer to [BlueKing NodeMan White Paper](http://docs.bk
 - [wiki](https://github.com/TencentBlueKing/bk-nodeman/wiki)
 - [whitepaper](http://docs.bk.tencent.com/product_white_paper/bk_nodeman/)
 - [BlueKing Forum](https://bk.tencent.com/s-mart/community)
-- [BlueKing DevOps Online Video Tutorial](https://cloud.tencent.com/developer/edu/major-100008)
+- [BlueKing DevOps Online Video Tutorial](https://bk.tencent.com/s-mart/video/)
 - Contact us, technical exchange QQ group:.
 
   Community Edition QQ exchange group: 495299374
@@ -46,7 +46,6 @@ For more features, please refer to [BlueKing NodeMan White Paper](http://docs.bk
 ## BlueKing Community
 - [BK-CI](https://github.com/Tencent/bk-ci): BlueKing Continuous Integration is a continuous integration and continuous delivery system that can easily present your R & D process to you.
 - [BK-BCS](https://github.com/Tencent/bk-bcs): BlueKing Container Service is an orchestration platform for microservices based on container technology.
-- [BK-BCS-SaaS](https://github.com/Tencent/bk-bcs-saas): SaaS of BlueKing Container Service is based on two modes, the native Kubernetes mode and the Mesos self-developed mode. It provides highly scalable, flexible and easy-to-use container management service for users.
 - [BK-CMDB](https://github.com/Tencent/bk-cmdb): BlueKing Configuration Management DataBase (BlueKing CMDB) is an enterprise level configuration management platform for assets and applications.
 - [BK-PaaS](https://github.com/Tencent/bk-PaaS): BlueKing PaaS is an open development platform that allows developers to create, develop, deploy and manage SaaS applications quickly and easily.
 - [BK-SOPS](https://github.com/Tencent/bk-sops): BlueKing Standard OPS (SOPS) is a light-weighted SaaS product in the Tencent BlueKing product system designed for the orchestration and execution of tasks through a graphical interface.

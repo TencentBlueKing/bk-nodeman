@@ -212,7 +212,7 @@
         </template>
         <bk-table-column
           key="selection"
-          width="70"
+          width="65"
           align="center"
           fixed
           :resizable="false"
@@ -241,8 +241,34 @@
           key="IP"
           label="IP"
           prop="inner_ip"
-          width="110"
+          width="125"
           show-overflow-tooltip>
+          <template #default="{ row }">
+            {{ row.inner_ip | filterEmpty }}
+          </template>
+        </bk-table-column>
+        <bk-table-column
+          fixed
+          key="inner_ipv6"
+          :label="$t('内网IPv6')"
+          prop="inner_ipv6"
+          :width="innerIpv6Width"
+          v-if="filter['inner_ipv6'].mockChecked"
+          show-overflow-tooltip>
+          <template #default="{ row }">
+            {{ row.inner_ipv6 | filterEmpty }}
+          </template>
+        </bk-table-column>
+        <bk-table-column
+          key="bk_host_name"
+          :label="$t('主机名')"
+          prop="bk_host_name"
+          width="140"
+          v-if="filter['bk_host_name'].mockChecked"
+          show-overflow-tooltip>
+          <template #default="{ row }">
+            {{ row.bk_host_name | filterEmpty }}
+          </template>
         </bk-table-column>
         <bk-table-column
           key="login_ip"
@@ -253,6 +279,17 @@
           show-overflow-tooltip>
           <template #default="{ row }">
             {{ row.login_ip | filterEmpty }}
+          </template>
+        </bk-table-column>
+        <bk-table-column
+          key="outer_ipv6"
+          :label="$t('外网IPv6')"
+          prop="outer_ipv6"
+          width="110"
+          v-if="filter['outer_ipv6'].mockChecked"
+          show-overflow-tooltip>
+          <template #default="{ row }">
+            {{ row.outer_ipv6 | filterEmpty }}
           </template>
         </bk-table-column>
         <bk-table-column
@@ -350,6 +387,16 @@
           </template>
         </bk-table-column>
         <bk-table-column v-if="filter['speedLimit'].mockChecked" min-width="30" :resizable="false">
+        </bk-table-column>
+        <bk-table-column
+          key="addressing"
+          prop="bk_addressing"
+          :label="$t('寻址方式')"
+          :render-header="renderFilterHeader"
+          v-if="filter['bk_addressing'].mockChecked">
+          <template #default="{ row }">
+            {{ row.bk_addressing === '1' ? $t('动态') : $t('静态') }}
+          </template>
         </bk-table-column>
         <bk-table-column
           key="created_at"
@@ -609,6 +656,27 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
       name: window.i18n.t('登录IP'),
       id: 'login_ip',
     },
+    inner_ipv6: {
+      checked: true,
+      disabled: true,
+      mockChecked: true,
+      name: window.i18n.t('内网IPv6'),
+      id: 'inner_ipv6',
+    },
+    outer_ipv6: {
+      checked: false,
+      disabled: false,
+      mockChecked: false,
+      name: window.i18n.t('外网IPv6'),
+      id: 'outer_ipv6',
+    },
+    bk_host_name: {
+      checked: true,
+      disabled: false,
+      mockChecked: true,
+      name: window.i18n.t('主机名'),
+      id: 'bk_host_name',
+    },
     agent_version: {
       checked: true,
       disabled: false,
@@ -692,6 +760,13 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
       mockChecked: false,
       name: window.i18n.t('传输限速'),
       id: 'bt_speed_limit',
+    },
+    bk_addressing: {
+      checked: false,
+      disabled: false,
+      mockChecked: false,
+      name: window.i18n.t('寻址方式'),
+      id: 'bk_addressing',
     },
   };
   // 是否显示复制按钮下拉菜单
@@ -798,6 +873,13 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
   }
   private get selectedBiz() {
     return MainStore.selectedBiz;
+  }
+  private get innerIpv6Width() {
+    const ipv6SortRows: number[] = this.table.data
+      .filter(row => !!row.inner_ipv6)
+      .map(row => (row.inner_ipv6 as string).length)
+      .sort((a, b) => b - a);
+    return ipv6SortRows.length ? Math.ceil(ipv6SortRows[0] * 6.9) : 90;
   }
   // 可操作的数据
   private get datasheets() {
@@ -961,8 +1043,10 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
     const data = this.handleGetStorage();
     if (data && Object.keys(data).length) {
       Object.keys(this.filter).forEach((key) => {
-        this.filter[key].mockChecked = !!data[key];
-        this.filter[key].checked = !!data[key];
+        if (Object.prototype.hasOwnProperty.call(data, key)) {
+          this.filter[key].mockChecked = !!data[key];
+          this.filter[key].checked = !!data[key];
+        }
       });
     }
   }
@@ -1544,8 +1628,10 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
       name: 'agentEdit',
       params: {
         tableData: data.map(({ identity_info = {}, ...item }) => ({
+        // tableData: data.map(({ identity_info = {}, inner_ip, inner_ipv6, ...item }) => ({
           ...item,
           ...identity_info,
+          // inner_ip: inner_ip || inner_ipv6,
           install_channel_id: item.install_channel_id ? item.install_channel_id : 'default',
           port: item.os_type === 'WINDOWS' && (!identity_info.port || item.bk_cloud_id !== window.PROJECT_CONFIG.DEFAULT_CLOUD)
             ? getDefaultConfig(item.os_type, 'port', 445)  : identity_info.port,

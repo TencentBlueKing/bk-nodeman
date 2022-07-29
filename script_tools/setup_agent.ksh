@@ -4,12 +4,14 @@
 
 # DEFAULT DEFINITION
 NODE_TYPE=agent
-PKG_NAME=gse_client-aix-powerpc.tgz
+# PKG_NAME=gse_client-aix{version}-powerpc.tgz
+PKG_NAME=""
+OS_VERSION=""
 
 GSE_AGENT_RUN_DIR=/var/run/gse
 GSE_AGENT_DATA_DIR=/var/lib/gse
 GSE_AGENT_LOG_DIR=/var/log/gse
-BACKUP_CONFIG_FILES=("procinfo.json")
+set -A BACKUP_CONFIG_FILES "procinfo.json"
 
 # 收到如下信号或者exit退出时，执行清理逻辑
 #trap quit 1 2 3 4 5 6 7 8 10 11 12 13 14 15
@@ -55,6 +57,20 @@ log ()  { local L=INFO D;  D="$(date +%F\ %T)"; echo "$D $L $*" | tee -a "$LOG_F
 warn () { local L=WARN D;  D="$(date +%F\ %T)"; echo "$D $L $*" | tee -a "$LOG_FILE"; report_step_status "$D" "$L" "$@"; return 0; }
 err ()  { local L=ERROR D; D="$(date +%F\ %T)"; echo "$D $L $*" | tee -a "$LOG_FILE"; report_step_status "$D" "$L" "$@"; return 1; }
 fail () { local L=ERROR D; D="$(date +%F\ %T)"; echo "$D $L $*" | tee -a "$LOG_FILE"; report_step_status "$D" "$L" "$@"; exit 1; }
+
+divide_version () {
+    result=$(oslevel)
+    log report_os_version DONE "${result}"
+
+    if echo "${result}" | egrep -q  '^6.*' ; then
+        OS_VERSION=6
+    elif  echo "${result}" | egrep -q  '^7.*' ; then
+        OS_VERSION=7
+    else
+        fail check_env FAILED "unsupported OS version: ${result}"
+    fi
+    PKG_NAME=gse_client-aix"${OS_VERSION}"-powerpc.tgz
+}
 
 get_cpu_arch () {
     local cmd=$1
@@ -272,8 +288,9 @@ pre_view () {
        log PREVIEW - "normalized agent:"
        log PREVIEW - "   setup path: "${AGENT_SETUP_PATH}"/bin/gse_agent"
        log PREVIEW - "   process:"
-           #lsof -a -d txt -c agentWorker -c gseMaster -a -n "$AGENT_SETUP_PATH"/bin/gse_agent
-       log PREVIEW - "   gsecmdline: $(is_gsecmdline_ok && echo OK || echo NO)"
+       #lsof -a -d txt -c agentWorker -c gseMaster -a -n "$AGENT_SETUP_PATH"/bin/gse_agent
+       # Aix 操作系统当前没有提供 gsecmdline 工具，暂不检查
+       # log PREVIEW - "   gsecmdline: $(is_gsecmdline_ok && echo OK || echo NO)"
     fi
 }
 
@@ -410,7 +427,7 @@ remove_agent () {
 
 get_config () {
     local filename http_status
-    set -A config agent.conf bscp.yaml plugin_info.json
+    set -A config agent.conf
 
     log get_config - "request $NODE_TYPE config file(s)"
 
@@ -452,7 +469,7 @@ setup_agent () {
 
     cd "$AGENT_SETUP_PATH/.."
     gunzip -dc "$TMP_DIR/$PKG_NAME" | tar xf -
-    agent_name=gse_agent-aix`get_aix_version`
+    agent_name=gse_agent
 
     if [ -f agent/bin/"$agent_name" ]; then
         cp -f agent/bin/"$agent_name" agent/bin/gse_agent
@@ -461,14 +478,14 @@ setup_agent () {
     fi
 
     # update gsecmdline under /bin
-    cp -fp plugins/bin/gsecmdline /bin/
-    chmod 775 /bin/gsecmdline
+    # cp -fp plugins/bin/gsecmdline /bin/
+    # chmod 775 /bin/gsecmdline
 
     # setup config file
     get_config
 
     recovery_config_file
-    set -A config agent.conf bscp.yaml plugin_info.json
+    set -A config agent.conf
     for f in "${config[@]}"; do
         if [[ -f $TMP_DIR/$f ]]; then
             cp -fp "$TMP_DIR/${f}" agent/etc/${f}
@@ -485,23 +502,11 @@ setup_agent () {
     log setup_agent DONE "agent setup succeded"
 }
 
-start_basic_gse_plugin () {
-    log start_plugin START "start gse plugin: aixbeat, "
-    cd "$AGENT_SETUP_PATH/../plugins/bin" || fail start_plugin FAILED "change directory to $AGENT_SETUP_PATH/../plugins/bin failed"
-    version=$(get_aix_version)
-    if [ "$version" -eq 7 ];then
-
-        if [[ -x ./aixbeat ]]; then
-            ./stop.sh aixbeat
-            ./start.sh aixbeat || fail start_plugin FAILED "aixbeat start failed."
-        fi
-    fi
-
-    log start_plugin DONE "gse plugin 'aixbeat start done."
-}
-
 download_pkg () {
     local f http_status
+
+    # 区分下载版本
+    divide_version
 
     log download_pkg START "download gse agent package from $DOWNLOAD_URL/$PKG_NAME)."
     cd "$TMP_DIR" && rm -f "$PKG_NAME" "agent.conf.$LAN_ETH_IP"
@@ -661,7 +666,18 @@ check_env () {
 
     [ "$CLOUD_ID" != "0" ] && node_type=pagent
     validate_setup_path
-    check_polices_${node_type}_to_upstream
+    # check_polices_${node_type}_to_upstream
+    # 目前Linux端口探测有三种方式
+
+        # /proc 系统发送socket
+        # telnet
+        # python -c "import socket;client_socket=socket.socket();client_socket.connect(('$ip', $_port))"
+
+   # 但是目前这几种方式在aix系统上都有问题, 所以暂时关闭探测逻辑
+       # AIX 没有 /proc文件系统
+       # AIX在telnet时出现长链接无断开，无返回
+       # AIX系统本身无python解释器
+
     check_disk_space
     check_dir_permission
     check_pkgtool
@@ -740,7 +756,6 @@ for step in check_env \
             remove_agent \
             remove_proxy_if_exists \
             setup_agent \
-            start_basic_gse_plugin \
             setup_startup_scripts \
             setup_crontab \
             check_deploy_result; do

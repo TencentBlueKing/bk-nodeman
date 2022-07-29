@@ -70,6 +70,9 @@ export interface IProxyDetail {
   inner_ip: string
   login_ip: string
   outer_ip: string
+  inner_ipv6?: string
+  login_ipv6?: string
+  outer_ipv6?: string
 
   is_manual?: boolean
   port?: number

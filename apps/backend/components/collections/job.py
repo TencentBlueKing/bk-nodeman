@@ -14,7 +14,8 @@ import copy
 import hashlib
 import json
 import logging
-from typing import Any, Callable, Dict, List, Optional, Set
+from collections import defaultdict
+from typing import Any, Callable, Dict, List, Optional, Set, Union
 
 import six
 from django.conf import settings
@@ -81,10 +82,12 @@ class JobV3BaseService(six.with_metaclass(abc.ABCMeta, BaseService)):
         self, job_func, subscription_instance_id: [int, list], subscription_id, job_params: dict
     ):
         """请求作业平台并创建与订阅实例的映射"""
-        if not job_params["target_server"]["ip_list"]:
-            # 没有IP列表时，不发起请求
-            return []
+        host_interaction_from = ("ip_list", "host_id_list")[settings.BKAPP_ENABLE_DHCP]
+        host_interaction_data_list = job_params["target_server"].get(host_interaction_from, [])
 
+        if not host_interaction_data_list:
+            return []
+        job_params["target_server"] = {host_interaction_from: host_interaction_data_list}
         # 补充作业平台通用参数
         if not job_params.get("os_type"):
             job_params["os_type"] = self.DEFAULT_OS_TYPE
@@ -204,7 +207,12 @@ class JobV3BaseService(six.with_metaclass(abc.ABCMeta, BaseService)):
         # 构造主机作业状态映射表
         cloud_ip_status_map: Dict[str, Dict] = {}
         for ip_result in ip_results["step_instance_list"][0].get("step_ip_result_list") or []:
-            cloud_ip_status_map[f'{ip_result["bk_cloud_id"]}-{ip_result["ip"]}'] = ip_result
+            if settings.BKAPP_ENABLE_DHCP:
+                cloud_ip_status_map[
+                    f'{ip_result["bk_cloud_id"]}-{ip_result["ip"]}-{ip_result["bk_host_id"]}'
+                ] = ip_result
+            else:
+                cloud_ip_status_map[f'{ip_result["bk_cloud_id"]}-{ip_result["ip"]}'] = ip_result
 
         succeed_sub_inst_ids: List[int] = []
         subscription_instances = models.SubscriptionInstanceRecord.objects.filter(
@@ -212,12 +220,20 @@ class JobV3BaseService(six.with_metaclass(abc.ABCMeta, BaseService)):
         )
 
         bk_host_ids = [sub_inst.instance_info["host"]["bk_host_id"] for sub_inst in subscription_instances]
-        host_id__cloud_ip_map = {
-            host_info["bk_host_id"]: f"{host_info['bk_cloud_id']}-{host_info['inner_ip']}"
-            for host_info in models.Host.objects.filter(bk_host_id__in=bk_host_ids).values(
-                "bk_host_id", "inner_ip", "bk_cloud_id"
-            )
-        }
+        if settings.BKAPP_ENABLE_DHCP:
+            host_id__cloud_ip_map = {
+                host_info["bk_host_id"]: f"{host_info['bk_cloud_id']}-{host_info['inner_ip']}-{host_info['bk_host_id']}"
+                for host_info in models.Host.objects.filter(bk_host_id__in=bk_host_ids).values(
+                    "bk_host_id", "inner_ip", "bk_cloud_id"
+                )
+            }
+        else:
+            host_id__cloud_ip_map = {
+                host_info["bk_host_id"]: f"{host_info['bk_cloud_id']}-{host_info['inner_ip']}"
+                for host_info in models.Host.objects.filter(bk_host_id__in=bk_host_ids).values(
+                    "bk_host_id", "inner_ip", "bk_cloud_id"
+                )
+            }
 
         for sub_inst in subscription_instances:
             ip = sub_inst.instance_info["host"]["bk_host_innerip"]
@@ -376,7 +392,7 @@ class JobExecuteScriptService(JobV3BaseService, metaclass=abc.ABCMeta):
 
         timeout = data.get_one_of_inputs("timeout")
         # 批量请求作业平台的参数
-        multi_job_params_map: Dict[str, Dict[str, Any]] = {}
+        multi_job_params_map: Dict[str, Dict[str, Any]] = defaultdict(lambda: defaultdict(list))
         for sub_inst in common_data.subscription_instances:
             bk_host_id = sub_inst.instance_info["host"]["bk_host_id"]
             host_obj = common_data.host_id_obj_map[bk_host_id]
@@ -392,13 +408,17 @@ class JobExecuteScriptService(JobV3BaseService, metaclass=abc.ABCMeta):
             if md5_key in multi_job_params_map:
                 multi_job_params_map[md5_key]["subscription_instance_id"].append(sub_inst.id)
                 multi_job_params_map[md5_key]["job_params"]["target_server"]["ip_list"].extend(target_servers)
+                multi_job_params_map[md5_key]["job_params"]["target_server"]["ip_list"].append(
+                    {"bk_cloud_id": host_obj.bk_cloud_id, "ip": host_obj.inner_ip}
+                )
+                multi_job_params_map[md5_key]["job_params"]["target_server"]["host_id_list"].append(host_obj.bk_host_id)
             else:
                 multi_job_params_map[md5_key] = {
                     "job_func": JobApi.fast_execute_script,
                     "subscription_instance_id": [sub_inst.id],
                     "subscription_id": common_data.subscription.id,
                     "job_params": {
-                        "target_server": {"ip_list": target_servers},
+                        "target_server": target_servers,
                         "script_content": script_content,
                         "script_param": script_param,
                         "timeout": timeout,
@@ -428,7 +448,9 @@ class JobExecuteScriptService(JobV3BaseService, metaclass=abc.ABCMeta):
         """
         return data.get_one_of_inputs("script_param", default="")
 
-    def get_target_servers(self, data, common_data: CommonData, host: models.Host) -> List[Dict[str, Any]]:
+    def get_target_servers(
+        self, data, common_data: CommonData, host: models.Host
+    ) -> Dict[str, Union[List[Dict[str, Union[int, str]]], List[int]]]:
         """
         获取目标服务器
         :param data:
@@ -436,7 +458,7 @@ class JobExecuteScriptService(JobV3BaseService, metaclass=abc.ABCMeta):
         :param host: 主机类型
         :return: 目标服务器
         """
-        return [{"bk_cloud_id": host.bk_cloud_id, "ip": host.inner_ip}]
+        return {"ip_list": [{"bk_cloud_id": host.bk_cloud_id, "ip": host.inner_ip}], "host_id_list": [host.bk_host_id]}
 
 
 class JobTransferFileService(JobV3BaseService, metaclass=abc.ABCMeta):
@@ -464,13 +486,22 @@ class JobTransferFileService(JobV3BaseService, metaclass=abc.ABCMeta):
                 multi_job_params_map[md5_key]["job_params"]["target_server"]["ip_list"].append(
                     {"bk_cloud_id": host_obj.bk_cloud_id, "ip": host_obj.inner_ip}
                 )
+                multi_job_params_map[md5_key]["job_params"]["target_server"]["host_id_list"].append(host_obj.bk_host_id)
             else:
                 multi_job_params_map[md5_key] = {
                     "job_func": JobApi.fast_transfer_file,
                     "subscription_instance_id": [sub_inst.id],
                     "subscription_id": common_data.subscription.id,
                     "job_params": {
-                        "target_server": {"ip_list": [{"bk_cloud_id": host_obj.bk_cloud_id, "ip": host_obj.inner_ip}]},
+                        "target_server": {
+                            "ip_list": [
+                                {
+                                    "bk_cloud_id": host_obj.bk_cloud_id,
+                                    "ip": host_obj.inner_ip,
+                                }
+                            ],
+                            "host_id_list": [host_obj.bk_host_id],
+                        },
                         "file_target_path": file_target_path,
                         "file_source_list": [{"file_list": file_list}],
                         "timeout": timeout,
@@ -538,6 +569,9 @@ class JobPushConfigService(JobV3BaseService, metaclass=abc.ABCMeta):
                 multi_job_params_map[job_unique_key]["job_params"]["target_server"]["ip_list"].append(
                     {"bk_cloud_id": host_obj.bk_cloud_id, "ip": host_obj.inner_ip}
                 )
+                multi_job_params_map[job_unique_key]["job_params"]["target_server"]["host_id_list"].append(
+                    host_obj.bk_host_id
+                )
             else:
                 file_source_list = []
                 for config_info in config_info_list:
@@ -549,7 +583,15 @@ class JobPushConfigService(JobV3BaseService, metaclass=abc.ABCMeta):
                     "subscription_instance_id": [sub_inst.id],
                     "subscription_id": common_data.subscription.id,
                     "job_params": {
-                        "target_server": {"ip_list": [{"bk_cloud_id": host_obj.bk_cloud_id, "ip": host_obj.inner_ip}]},
+                        "target_server": {
+                            "ip_list": [
+                                {
+                                    "bk_cloud_id": host_obj.bk_cloud_id,
+                                    "ip": host_obj.inner_ip,
+                                }
+                            ],
+                            "host_id_list": [host_obj.bk_host_id],
+                        },
                         "file_target_path": file_target_path,
                         "file_list": file_source_list,
                         "timeout": timeout,

@@ -8,10 +8,11 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from typing import List
+from collections import defaultdict
+from typing import Any, Dict, Iterable, List, Set
 
 from django.db import transaction
-from django.db.models import Count
+from django.db.models import Count, Q
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
@@ -204,8 +205,8 @@ class HostHandler(APIModel):
         all_query_biz = []
 
         for condition in params.get("conditions", []):
-            if condition["key"] in ["inner_ip", "node_from", "node_type"]:
-                # Host表的精确搜索(现主要为 os_type, inner_ip, bk_cloud_id)
+            if condition["key"] in ["inner_ip", "node_from", "node_type", "bk_addressing", "bk_host_name"]:
+                # Host 表的精确搜索(现主要为 os_type, inner_ip, bk_cloud_id)
                 kwargs[condition["key"] + "__in"] = condition["value"]
             elif condition["key"] in ["os_type"]:
                 # 如果传的是none，替换成""
@@ -364,9 +365,13 @@ class HostHandler(APIModel):
                     "bk_cloud_id",
                     "bk_biz_id",
                     "bk_host_id",
+                    "bk_host_name",
+                    "bk_addressing",
                     "os_type",
                     "inner_ip",
+                    "inner_ipv6",
                     "outer_ip",
+                    "outer_ipv6",
                     "ap_id",
                     "install_channel_id",
                     "login_ip",
@@ -478,7 +483,9 @@ class HostHandler(APIModel):
                 "bk_cloud_id",
                 "bk_host_id",
                 "inner_ip",
+                "inner_ipv6",
                 "outer_ip",
+                "outer_ipv6",
                 "login_ip",
                 "data_ip",
                 "bk_biz_id",
@@ -576,7 +583,15 @@ class HostHandler(APIModel):
         # 获得proxy相应数据
         proxies = list(
             Host.objects.filter(bk_cloud_id__in=bk_cloud_ids, node_type=const.NodeType.PROXY).values(
-                "bk_cloud_id", "bk_host_id", "inner_ip", "outer_ip", "login_ip", "data_ip", "bk_biz_id"
+                "bk_cloud_id",
+                "bk_addressing",
+                "inner_ip",
+                "inner_ipv6",
+                "outer_ip",
+                "outer_ipv6",
+                "login_ip",
+                "data_ip",
+                "bk_biz_id",
             )
         )
 
@@ -751,66 +766,52 @@ class HostHandler(APIModel):
 
         return {}
 
-    def ip_list(self, ips):
+    @staticmethod
+    def get_host_infos_gby_ip_key(ips: Iterable[str], ip_version: int):
         """
-        返回存在ips的所有云区域-IP的列表
-        :param ips: IP列表
+        获取 主机信息根据 IP 等关键信息聚合的结果
+        :param ips:
+        :param ip_version:
         :return:
-        {
-            bk_cloud_id+ip: {
-                'bk_host_id': ...,
-                'bk_biz_id': ...,
-                'node_type': ...,
-                'ip_type': ...
-            }
-        },
         """
-        inner_ip_info = {
-            f"{host['bk_cloud_id']}-{host['inner_ip']}": {
-                "inner_ip": host["inner_ip"],
-                "outer_ip": host["outer_ip"],
-                "login_ip": host["login_ip"],
-                "bk_cloud_id": host["bk_cloud_id"],
-                "bk_biz_id": host["bk_biz_id"],
-                "node_type": host["node_type"],
-                "bk_host_id": host["bk_host_id"],
-            }
-            for host in Host.objects.filter(inner_ip__in=ips).values(
-                "inner_ip", "outer_ip", "login_ip", "bk_cloud_id", "bk_biz_id", "node_type", "bk_host_id"
-            )
-        }
 
-        outer_ip_info = {
-            f"{host['bk_cloud_id']}-{host['outer_ip']}": {
-                "inner_ip": host["inner_ip"],
-                "login_ip": host["login_ip"],
-                "bk_cloud_id": host["bk_cloud_id"],
-                "bk_biz_id": host["bk_biz_id"],
-                "node_type": host["node_type"],
-                "bk_host_id": host["bk_host_id"],
-            }
-            for host in Host.objects.filter(outer_ip__in=ips).values(
-                "inner_ip", "outer_ip", "login_ip", "bk_cloud_id", "bk_biz_id", "node_type", "bk_host_id"
-            )
-        }
+        ips: Set[str] = set(ips)
+        login_ip_field_name: str = "login_ip"
+        login_ip_filter_k: str = "login_ip__in"
 
-        login_ip_info = {
-            f"{host['bk_cloud_id']}-{host['login_ip']}": {
-                "inner_ip": host["inner_ip"],
-                "outer_ip": host["outer_ip"],
-                "bk_cloud_id": host["bk_cloud_id"],
-                "bk_biz_id": host["bk_biz_id"],
-                "node_type": host["node_type"],
-                "bk_host_id": host["bk_host_id"],
-            }
-            for host in Host.objects.filter(login_ip__in=ips).values(
-                "inner_ip", "outer_ip", "login_ip", "bk_cloud_id", "bk_biz_id", "node_type", "bk_host_id"
-            )
-        }
+        # 根据 IP 版本筛选不同的 IP 字段
+        if ip_version == const.CmdbIpVersion.V6.value:
+            inner_ip_field_name = "inner_ipv6"
+            outer_ip_field_name = "outer_ipv6"
+            inner_ip_filter_k = "inner_ipv6__in"
+            outer_ip_filter_k = "outer_ipv6__in"
+        else:
+            inner_ip_field_name = "inner_ip"
+            outer_ip_field_name = "outer_ip"
+            inner_ip_filter_k = "inner_ip__in"
+            outer_ip_filter_k = "outer_ip__in"
 
-        exists_ip_info = {}
-        exists_ip_info.update(inner_ip_info)
-        exists_ip_info.update(outer_ip_info)
-        exists_ip_info.update(login_ip_info)
-
-        return exists_ip_info
+        fields: List[str] = [
+            "inner_ip",
+            "inner_ipv6",
+            "outer_ip",
+            "outer_ipv6",
+            "login_ip",
+            "bk_cloud_id",
+            "bk_biz_id",
+            "node_type",
+            "bk_host_id",
+            "bk_addressing",
+        ]
+        host_infos_gby_ip_key: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
+        for host_info in Host.objects.filter(
+            Q(**{inner_ip_filter_k: ips}) | Q(**{outer_ip_filter_k: ips}) | Q(**{login_ip_filter_k: ips})
+        ).values(*fields):
+            ip_filed_names: List[str] = [inner_ip_field_name, login_ip_field_name, outer_ip_field_name]
+            for ip_filed_name in ip_filed_names:
+                # 不满足 < IP 不为空 且 IP 存在于 IP 列表 > 时，提前结束处理逻辑
+                if not (host_info[ip_filed_name] and host_info[ip_filed_name] in ips):
+                    continue
+                ip_key: str = f"{host_info['bk_addressing']}:{host_info['bk_cloud_id']}:{host_info[ip_filed_name]}"
+                host_infos_gby_ip_key[ip_key].append(host_info)
+        return host_infos_gby_ip_key

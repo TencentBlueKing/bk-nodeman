@@ -704,12 +704,12 @@ export default class TopoSelector extends Vue {
   }
 }
 </script>
-<style lang="scss" scoped>
+<style lang="postcss" scoped>
 .ip-selector {
   width: 100%;
   flex: 1;
   min-height: 300px;
-  /deep/ .topo-tree {
+  >>> .topo-tree {
     /* stylelint-disable-next-line declaration-no-important */
     height: 100% !important;
   }

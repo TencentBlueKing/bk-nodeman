@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 
 import base64
 import copy
+import ipaddress
 import os
 import random
 import textwrap
@@ -45,7 +46,9 @@ AGENT_INSTANCE_HOST_INFO = {
     "host_node_type": constants.NodeType.AGENT,
     "login_ip": utils.DEFAULT_IP,
     "bk_host_innerip": utils.DEFAULT_IP,
+    "bk_host_innerip_v6": common_unit.host.DEFAULT_IP,
     "bk_host_outerip": utils.DEFAULT_IP,
+    "bk_host_outerip_v6": common_unit.host.DEFAULT_IPV6,
     "port": 22,
     "password": base64.b64encode("password".encode()).decode(),
     "key": base64.b64encode("password:::key".encode()).decode(),
@@ -110,13 +113,24 @@ class AgentTestObjFactory:
 
     @classmethod
     def fill_mock_ip(cls, host_related_data_list: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        ip_field_names = ["inner_ip", "outer_ip", "login_ip", "data_ip", "bk_host_innerip", "bk_host_outerip"]
-        default_ip_tmpl = "127.0.0.{index}"
+        ipv6_fields_names = ["inner_ipv6", "outer_ipv6", "bk_host_innerip_v6", "bk_host_outerip_v6"]
+        ip_field_names = [
+            "inner_ip",
+            "outer_ip",
+            "login_ip",
+            "data_ip",
+            "bk_host_innerip",
+            "bk_host_outerip",
+        ] + ipv6_fields_names
         for index, host_data in enumerate(host_related_data_list, 1):
-            ip = default_ip_tmpl.format(index=index)
             for ip_field_name in ip_field_names:
                 if ip_field_name not in host_data:
                     continue
+                ipv4: str = ipaddress.IPv4Address(index).exploded
+                if ip_field_name in ipv6_fields_names:
+                    ip = basic.ipv4_to_v6(ipv4)
+                else:
+                    ip = ipv4
                 host_data[ip_field_name] = ip
         return host_related_data_list
 

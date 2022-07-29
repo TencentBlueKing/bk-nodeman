@@ -1,7 +1,7 @@
 import { ISetupHead, ISetupRow } from '@/types';
-import { authentication, defaultPort, sysOptions, defaultOsType, getDefaultConfig } from '@/config/config';
+import { authentication, defaultPort, sysOptions, defaultOsType, getDefaultConfig, addressingMode } from '@/config/config';
 import { ICloudSource } from '@/types/cloud/cloud';
-import { reguFnMinInteger, reguPort, reguIp } from '@/common/form-check';
+import { reguFnMinInteger, reguPort, reguIPMixins, reguIp } from '@/common/form-check';
 
 export const editConfig: ISetupHead[] = [
   {
@@ -10,7 +10,7 @@ export const editConfig: ISetupHead[] = [
     type: 'text',
     required: true,
     noRequiredMark: false,
-    rules: [reguIp],
+    rules: [reguIPMixins],
     readonly: true,
   },
   {
@@ -193,6 +193,19 @@ export const editConfig: ISetupHead[] = [
     rules: [reguFnMinInteger(1)],
   },
   {
+    label: '寻址方式',
+    prop: 'bk_addressing',
+    type: 'select',
+    default: '0',
+    batch: true,
+    required: false,
+    noRequiredMark: false,
+    getOptions() {
+      return addressingMode;
+    },
+    width: 115,
+  },
+  {
     label: '',
     prop: '',
     type: 'operate',
@@ -207,7 +220,7 @@ export const editManualConfig = [
     type: 'text',
     required: true,
     noRequiredMark: false,
-    rules: [reguIp],
+    rules: [reguIPMixins],
     readonly: true,
   },
   {
@@ -314,6 +327,19 @@ export const editManualConfig = [
     // iconOffset: 40,
     placeholder: window.i18n.t('请输入'),
     rules: [reguFnMinInteger(1)],
+  },
+  {
+    label: '寻址方式',
+    prop: 'bk_addressing',
+    type: 'select',
+    default: '0',
+    batch: true,
+    required: false,
+    noRequiredMark: false,
+    getOptions() {
+      return addressingMode;
+    },
+    width: 115,
   },
   {
     label: '',

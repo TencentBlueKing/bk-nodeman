@@ -47,6 +47,7 @@ class MockClient(object):
             for index in range(count):
                 MOCK_HOST_TMP["bk_host_id"] = index
                 MOCK_HOST_TMP["bk_cloud_id"] = index
+                MOCK_HOST_TMP["bk_agent_id"] = index
                 MOCK_HOST_TMP["bk_host_innerip"] = MOCK_HOST_TMP["inner_ip"]
                 MOCK_HOST_TMP["bk_host_outerip"] = MOCK_HOST_TMP["outer_ip"]
                 host_list.append(copy.deepcopy(MOCK_HOST_TMP))

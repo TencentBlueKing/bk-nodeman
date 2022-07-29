@@ -10,7 +10,6 @@ specific language governing permissions and limitations under the License.
 """
 
 import copy
-import random
 
 from apps.backend.constants import REDIS_AGENT_CONF_KEY_TPL
 from apps.backend.utils.redis import REDIS_INST
@@ -31,7 +30,6 @@ class GetGseConfigTestCase(ViewBaseTestCase):
 
         super().setUpTestData()
         host_model_data = copy.deepcopy(common_unit.host.HOST_MODEL_DATA)
-        host_model_data.update(bk_host_id=random.randint(1000, 10000))
         cls.host = models.Host.objects.create(**host_model_data)
         # 此类查询在单元测试中会有如下报错， 因此将数据预先查询缓存
         # TransactionManagementError "You can't execute queries until the end of the 'atomic' block" while using signals

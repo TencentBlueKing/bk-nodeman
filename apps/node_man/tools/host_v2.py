@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 
 from collections import Counter
 from itertools import groupby
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Set, Union
 
 from django.db.models import QuerySet
 
@@ -220,3 +220,43 @@ class HostV2Tools:
             cmdb_field = field__cmdb_field__map.get(field, field)
             host_info[field] = cmdb_host_info.get(cmdb_field)
         return host_info
+
+    @classmethod
+    def host_infos_deduplication(cls, host_infos: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """
+        根据 bk_host_id 对主机信息列表进行去重
+        :param host_infos: 主机信息列表
+        :return:
+        """
+        recorded_host_ids: Set[int] = set()
+        host_infos_after_deduplication: List[Dict[str, Any]] = []
+        for host_info in host_infos:
+            bk_host_id: int = host_info["bk_host_id"]
+            if bk_host_id in recorded_host_ids:
+                continue
+            recorded_host_ids.add(bk_host_id)
+            host_infos_after_deduplication.append(host_info)
+        return host_infos_after_deduplication
+
+    @classmethod
+    def get_host_infos_with_the_same_ips(
+        cls,
+        host_infos_gby_ip_key: Dict[str, List[Dict[str, Any]]],
+        host_info: Dict[str, Any],
+        ip_field_names: List[str],
+    ) -> List[Dict[str, Any]]:
+        """
+        按 IP 信息聚合主机信息
+        :param host_infos_gby_ip_key:
+        :param host_info: 主机信息
+        :param ip_field_names: host_info 中的 IP 字段名
+        :return: 聚合并去重的主机信息列表
+        """
+        host_infos_with_the_same_ips: List[Dict[str, Any]] = []
+        for ip_field_name in ip_field_names:
+            ip: Optional[str] = host_info.get(ip_field_name)
+            bk_addressing: str = host_info.get("bk_addressing") or constants.CmdbAddressingType.STATIC.value
+            ip_key: str = f"{bk_addressing}:{host_info['bk_cloud_id']}:{ip}"
+            host_infos_with_the_same_ips.extend(host_infos_gby_ip_key.get(ip_key, []))
+
+        return cls.host_infos_deduplication(host_infos_with_the_same_ips)

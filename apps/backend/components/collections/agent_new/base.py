@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import abc
 import random
+import re
 import time
 from collections import defaultdict
 from typing import (
@@ -18,6 +19,7 @@ from typing import (
     Dict,
     Iterable,
     List,
+    Match,
     Optional,
     Set,
     Tuple,
@@ -29,6 +31,7 @@ import wrapt
 from django.utils.translation import ugettext_lazy as _
 
 from apps.backend.agent.tools import InstallationTools, batch_gen_commands
+from apps.backend.exceptions import OsVersionPackageValidationError
 from apps.node_man import constants, models
 
 from .. import job
@@ -102,7 +105,23 @@ class AgentBaseService(BaseService, metaclass=abc.ABCMeta):
         :return:
         """
         package_type = ("client", "proxy")[host.node_type == constants.NodeType.PROXY]
-        agent_upgrade_package_name = f"gse_{package_type}-{host.os_type.lower()}-{host.cpu_arch}_upgrade.tgz"
+        if host.os_version:
+            major_version_number = None
+            if host.os_type == constants.OsType.AIX:
+                major_version_match: Optional[Match] = re.compile(r"^(?P<version>\d+).\d+.*$").search(
+                    host.os_version or ""
+                )
+                major_version_number: Optional[str] = (
+                    major_version_match.group("version") if major_version_match else ""
+                )
+            if not major_version_number:
+                raise OsVersionPackageValidationError(os_version=host.os_version, os_type=host.os_type)
+            agent_upgrade_package_name = (
+                f"gse_{package_type}-{host.os_type.lower()}{major_version_number}-{host.cpu_arch}_upgrade.tgz"
+            )
+        else:
+            agent_upgrade_package_name = f"gse_{package_type}-{host.os_type.lower()}-{host.cpu_arch}_upgrade.tgz"
+
         return agent_upgrade_package_name
 
     @staticmethod

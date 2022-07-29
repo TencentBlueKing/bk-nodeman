@@ -32,6 +32,7 @@ class ViewBaseTestCase(CustomAPITestCase):
         self,
     ) -> str:
         return models.aes_cipher.encrypt(
-            f"{common_unit.host.DEFAULT_IP}|{constants.DEFAULT_CLOUD}|{self.PIPELINE_ID}|"
+            f"{common_unit.host.DEFAULT_HOST_ID}|{common_unit.host.DEFAULT_IP}|{constants.DEFAULT_CLOUD}|"
+            f"{self.PIPELINE_ID}|"
             f"{time.time()}|{self.SUB_INST_ID}"
         )

@@ -239,7 +239,7 @@ export default class IpSelectorTable extends Vue {
   }
 }
 </script>
-<style lang="scss" scoped>
+<style lang="postcss" scoped>
 .topo-table {
   &::before {
     height: 0;
@@ -247,7 +247,7 @@ export default class IpSelectorTable extends Vue {
   >>> th {
     background-color: #f5f6fa;
   }
-  ::v-deep .selection-cell .cell {
+  >>> .selection-cell .cell {
     padding-right: 0;
     padding-left: 10px;
   }

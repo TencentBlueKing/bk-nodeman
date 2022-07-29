@@ -137,8 +137,7 @@ class JobViewSet(ModelViewSet):
         @apiParam {String} hosts.auth_type 认证类型
         @apiParam {String} [hosts.password] 密码
         @apiParam {String} [hosts.key] 密钥
-        @apiParam {Number} [hosts.retention] 密码保留天数
-        @apiParam {Number} [replace_host_id] 要替换的ProxyID，替换proxy时使用
+        @apiParam {Number} [hosts.retention] 密码保留天数，默认只保留1天
         @apiParamExample {Json} 安装请求参数
         {
             "job_type": "INSTALL_AGENT",
@@ -160,7 +159,6 @@ class JobViewSet(ModelViewSet):
                 }
             ],
             "retention": 1,
-            "replace_host_id": 1
         }
         @apiSuccessExample {json} 成功返回:
         {

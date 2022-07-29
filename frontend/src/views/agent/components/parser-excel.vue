@@ -109,6 +109,7 @@ export default class ParserExcel extends Vue {
     'login_ip',
     'peer_exchange_switch_for_agent',
     'bt_speed_limit',
+    'bk_addressing',
   ];
   private isHover = false;
   // 额外参数
@@ -266,6 +267,8 @@ export default class ParserExcel extends Vue {
           } else if (key === this.$tc('接入点')) {
             const data = AgentStore.apList.find(data => data.name === item[`${key}${this.$tc('可选')}`]);
             info[header.prop] = data && !isEmpty(data.id) ? data.id : -1;
+          } else if (key === this.$tc('寻址方式')) {
+            info[header.prop] = item[`${key}${this.$tc('可选')}`] === this.$tc('动态') ? '1' : '0';
           } else if (optional.includes(key)) {
             info[header.prop] = !isEmpty(item[`${key}${this.$tc('可选')}`]) ? item[`${key}${this.$tc('可选')}`] : '';
           } else if (key === this.$tc('认证方式')) { // 密钥 || 铁将军 需覆盖填写值

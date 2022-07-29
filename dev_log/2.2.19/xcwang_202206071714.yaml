@@ -1,0 +1,3 @@
+---
+feature:
+  - "安装上报 bk_agent_id 持久化 (closed #781)"

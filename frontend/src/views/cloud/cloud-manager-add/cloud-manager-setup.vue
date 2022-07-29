@@ -112,8 +112,8 @@ import FilterDialog from '@/components/common/filter-dialog.vue';
 import { setupInfo, setupManualInfo } from '../config/netTableConfig';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { defaultPort, getDefaultConfig } from '@/config/config';
-import { ISetupHead, ISetupRow } from '@/types';
-import { reguPort, reguRequired } from '@/common/form-check';
+import { ISetupHead, ISetupRow, IProxyIpKeys } from '@/types';
+import { regIPv6, reguPort, reguRequired } from '@/common/form-check';
 
 @Component({
   name: 'cloud-manager-setup',
@@ -139,7 +139,7 @@ export default class CloudManagerSetup extends Mixins(formLabelMixin, FilterIpMi
     },
   }) private readonly type!: string;
   // type 为 replace 时的主机ID
-  @Prop({ type: Number, default: 0 }) private readonly  replaceHostId!: number;
+  @Prop({ type: Number, default: 0 }) private readonly replaceHostId!: number;
   @Ref('setupTable') private readonly setupTable!: any;
   @Ref('form') private readonly formRef!: any;
 
@@ -172,10 +172,7 @@ export default class CloudManagerSetup extends Mixins(formLabelMixin, FilterIpMi
   // 右侧面板提示
   private tips = this.$t('安装要求提示');
   // 顶部提示
-  private topTips = [
-    this.$t('替换Proxy提示一'),
-    this.$t('替换Proxy提示二'),
-  ];
+  private topTips = [this.$t('替换Proxy提示一'), this.$t('替换Proxy提示二')];
   // 安装proxy加载状态
   private loadingSetup = false;
   // 接入点
@@ -324,7 +321,7 @@ export default class CloudManagerSetup extends Mixins(formLabelMixin, FilterIpMi
         data.bt_speed_limit = Number(data.bt_speed_limit);
       }
       data.peer_exchange_switch_for_agent += 0;
-      const authType = item.auth_type?.toLowerCase() as ('key' | 'password');
+      const authType = item.auth_type?.toLowerCase() as 'key' | 'password';
       if (item[authType]) {
         data[authType] = this.$RSA.getNameMixinEncrypt(item[authType] as string);
       }
@@ -336,10 +333,22 @@ export default class CloudManagerSetup extends Mixins(formLabelMixin, FilterIpMi
    */
   private async handleCreateOrReplace(data: ISetupRow[], type = 'INSTALL_PROXY') {
     this.loadingSetup = true;
-    const params: Dictionary = {
-      job_type: type,
-      hosts: data,
-    };
+    const ipKeys: IProxyIpKeys[] = ['inner_ip', 'outer_ip', 'login_ip'];
+    const hosts = data.map((item: ISetupRow) => {
+      const { inner_ip, outer_ip, login_ip, ...other } = item;
+      const host: ISetupRow = {
+        ...other,
+      };
+      ipKeys.forEach((key) => {
+        if (regIPv6.test(item[key] as string)) {
+          host[`${key}v6`] = item[key];
+        } else {
+          host[key] = item[key];
+        }
+      });
+      return host;
+    });
+    const params: Dictionary = { job_type: type, hosts };
     if (type === 'REPLACE_PROXY') {
       params.replace_host_id = this.replaceHostId;
     }

@@ -211,15 +211,16 @@ class PluginHandler(APIModel):
             # sql分页查询获得数据
             hosts_status = list(
                 hosts_status_sql[begin:end].values(
-                    "bk_cloud_id",
                     "bk_biz_id",
                     "bk_host_id",
-                    "node_type",
-                    "os_type",
+                    "bk_cloud_id",
+                    "bk_host_name",
+                    "bk_addressing",
                     "inner_ip",
+                    "inner_ipv6",
+                    "os_type",
                     "cpu_arch",
-                    # "status",
-                    # "version",
+                    "node_type",
                     "node_from",
                 )
             )

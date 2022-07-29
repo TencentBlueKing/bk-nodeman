@@ -910,7 +910,7 @@ export default class PerformPreview extends Mixins(HeaderRenderMixin, HeaderFilt
         color: #63656e;
         background: #dcdee5;
       }
-      /deep/ .bk-tab-header>.bk-tab-label-wrapper>.bk-tab-label-list>.bk-tab-label-item {
+      >>> .bk-tab-header>.bk-tab-label-wrapper>.bk-tab-label-list>.bk-tab-label-item {
         &.active .panel-content {
           background: #fafbfd;
         }
@@ -935,7 +935,7 @@ export default class PerformPreview extends Mixins(HeaderRenderMixin, HeaderFilt
           }
         }
       }
-      /deep/ .bk-tab-section {
+      >>> .bk-tab-section {
         display: none;
       }
       .bk-tab-label .bk-button {
@@ -945,7 +945,7 @@ export default class PerformPreview extends Mixins(HeaderRenderMixin, HeaderFilt
         background: transparent;
         cursor: not-allowed;
       }
-      /deep/ .bk-button-loading div {
+      >>> .bk-button-loading div {
         background-color: #63656e;
       }
     }

@@ -48,7 +48,13 @@ store.dispatch = function (_type: string, _payload: any, config = {}) {
     return;
   }
 
-  store._actionSubscribers.forEach((sub: Function) => sub(action, store.state));
+  store._actionSubscribers.forEach((sub: Function) => {
+    if (typeof sub === 'function') {
+      sub(action, store.state);
+    } else if (sub.after && typeof sub.after === 'function') {
+      sub.after && sub.after(action, store.state);
+    }
+  });
 
   return entry.length > 1
     ? Promise.all(entry.map((handler: Function) => handler(payload, config)))

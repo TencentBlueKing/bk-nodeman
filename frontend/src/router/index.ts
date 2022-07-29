@@ -79,7 +79,7 @@ const beforeRouterMethod = async (to: Route, next: any) => {
     // const list = await MainStore.getOsList();
     // MainStore.updateOsList(list);
     // } else {
-    MainStore.getOsList().then(list => MainStore.updateOsList(list));
+    await MainStore.getOsList().then(list => MainStore.updateOsList(list));
     // }
   }
 

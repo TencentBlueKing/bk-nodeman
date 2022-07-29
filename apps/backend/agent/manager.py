@@ -44,7 +44,15 @@ class AgentManager(object):
         )
         return act
 
-    def query_tjj_password(self):
+    @classmethod
+    def add_or_update_hosts(cls):
+        """新增或更新主机"""
+        act = AgentServiceActivity(
+            component_code=components.AddOrUpdateHostsComponent.code, name=components.AddOrUpdateHostsComponent.name
+        )
+        return act
+
+    def query_password(self):
         """查询铁将军密码"""
         act = AgentServiceActivity(
             component_code=components.QueryPasswordComponent.code, name=components.QueryPasswordComponent.name
@@ -175,20 +183,6 @@ class AgentManager(object):
         }
         act.component.inputs.script_content = Var(type=Var.PLAIN, value=script_content)
         act.component.inputs.script_param = Var(type=Var.PLAIN, value="")
-        return act
-
-    @classmethod
-    def delegate_plugin(cls, plugin_name: str):
-        """
-        托管插件
-        :param plugin_name: 插件名称
-        :return:
-        """
-        act = AgentServiceActivity(
-            component_code=components.DelegatePluginProcComponent.code,
-            name=_("托管 {plugin_name} 插件进程").format(plugin_name=plugin_name),
-        )
-        act.component.inputs.plugin_name = Var(type=Var.PLAIN, value=plugin_name)
         return act
 
     @classmethod

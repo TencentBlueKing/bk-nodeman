@@ -165,11 +165,11 @@ export default class ResourceTreeItem extends Vue {
           width: 100%;
           height: 100%;
 
-          /deep/ .bk-checkbox {
+          >>> .bk-checkbox {
             flex-shrink: 0;
           }
 
-          /deep/ .bk-checkbox-text {
+          >>> .bk-checkbox-text {
             margin-left: 8px;
             width: calc(100% - 24px);
           }

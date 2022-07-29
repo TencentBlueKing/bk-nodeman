@@ -15,7 +15,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from apps.exceptions import ValidationError
 from apps.node_man import constants as const
-from apps.node_man.constants import DEFAULT_CLOUD_NAME, IamActionType
+from apps.node_man.constants import DEFAULT_CLOUD, DEFAULT_CLOUD_NAME, IamActionType
 from apps.node_man.exceptions import CloudNotExistError, CloudUpdateHostError
 from apps.node_man.handlers.cmdb import CmdbHandler
 from apps.node_man.handlers.iam import IamHandler
@@ -270,13 +270,15 @@ class CloudHandler(APIModel):
         )
         cloud_info = {
             cloud["bk_cloud_id"]: {
-                "bk_cloud_name": cloud["bk_cloud_name"],
                 "ap_id": cloud["ap_id"],
                 "creator": cloud["creator"],
+                "bk_cloud_id": cloud["bk_cloud_id"],
+                "bk_cloud_name": cloud["bk_cloud_name"],
             }
             for cloud in clouds
         }
         cloud_info[0] = {
+            "bk_cloud_id": DEFAULT_CLOUD,
             "bk_cloud_name": DEFAULT_CLOUD_NAME,
             "ap_id": const.DEFAULT_AP_ID,
             "creator": [get_request_username()],

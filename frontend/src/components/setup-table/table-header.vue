@@ -66,6 +66,7 @@
                   options: options,
                   multiple: multiple,
                   appendSlot: appendSlot,
+                  searchable: searchable,
                   placeholder
                 }"
                 v-model="value"
@@ -106,6 +107,7 @@ export default class TableHeader extends Vue {
   @Prop({ type: String, default: '' }) private readonly subTitle!: string; // 批量编辑提示信息
   @Prop({ type: Array, default: () => ([]) }) private options!: Dictionary[]; // 下拉框数据源
   @Prop({ type: Boolean, default: false }) private readonly multiple!: boolean; // 是否支持多选
+  @Prop({ type: Boolean, default: false }) private readonly searchable!: boolean;
   @Prop({ type: String, default: '' }) private readonly placeholder!: string;
   @Prop({ type: String, default: '' }) private readonly appendSlot!: string;
 

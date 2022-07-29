@@ -60,9 +60,9 @@ class RemoteConnHelper:
         :return:
         """
         if self.host.node_type == constants.NodeType.PROXY:
-            ip = self.host.login_ip or self.host.outer_ip
+            ip = self.host.login_ip or self.host.outer_ip or self.host.outer_ipv6
         else:
-            ip = self.host.login_ip or self.host.inner_ip
+            ip = self.host.login_ip or self.host.inner_ip or self.host.inner_ipv6
 
         client_key_strings = []
         if self.identity_data.auth_type == constants.AuthType.KEY:

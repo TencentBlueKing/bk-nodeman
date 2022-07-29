@@ -19,7 +19,7 @@ from django.db.models import Q
 from django.db.utils import IntegrityError
 
 from apps.component.esbclient import client_v2
-from apps.node_man import constants as const
+from apps.node_man import constants
 from apps.node_man.models import GlobalSettings, ResourceWatchEvent, Subscription
 from apps.utils.cache import format_cache_key
 
@@ -128,7 +128,7 @@ def sync_resource_watch_host_event():
     拉取主机事件
     """
     kwargs = {
-        "bk_resource": const.ResourceType.host,
+        "bk_resource": constants.ResourceType.host,
         "bk_fields": ["bk_host_innerip", "bk_os_type", "bk_host_id", "bk_cloud_id", "bk_host_outerip"],
     }
 
@@ -139,7 +139,7 @@ def sync_resource_watch_host_relation_event():
     """
     拉取主机关系事件
     """
-    kwargs = {"bk_resource": const.ResourceType.host_relation}
+    kwargs = {"bk_resource": constants.ResourceType.host_relation}
 
     _resource_watch(RESOURCE_WATCH_HOST_RELATION_CURSOR_KEY, kwargs)
 
@@ -148,7 +148,7 @@ def sync_resource_watch_process_event():
     """
     拉取进程
     """
-    kwargs = {"bk_resource": const.ResourceType.process}
+    kwargs = {"bk_resource": constants.ResourceType.process}
     _resource_watch(RESOURCE_WATCH_PROCESS_CURSOR_KEY, kwargs)
 
 
@@ -219,7 +219,7 @@ def func_debounce_decorator(func):
             """
             计算出下一次的防抖窗口
             """
-            windows = const.CMDB_SUBSCRIPTION_DEBOUNCE_WINDOWS
+            windows = constants.CMDB_SUBSCRIPTION_DEBOUNCE_WINDOWS
 
             if current_time < windows[0][0]:
                 # 防抖时间下限

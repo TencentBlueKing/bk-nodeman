@@ -308,20 +308,27 @@ class IdentityData(models.Model):
 
 class Host(models.Model):
     bk_host_id = models.IntegerField(_("CMDB主机ID"), primary_key=True)
+    bk_agent_id = models.CharField(_("AgentID"), max_length=64, db_index=True, blank=True, null=True)
     bk_biz_id = models.IntegerField(_("业务ID"), db_index=True)
     bk_cloud_id = models.IntegerField(_("云区域ID"), db_index=True)
+    bk_host_name = models.CharField(_("主机名称"), max_length=128, db_index=True, blank=True, null=True, default="")
+    bk_addressing = models.CharField(_("寻地方式"), max_length=16, default=constants.CmdbAddressingType.STATIC.value)
 
-    inner_ip = models.CharField(_("内网IP"), max_length=45, db_index=True)
-    outer_ip = models.CharField(_("外网IP"), max_length=45, blank=True, null=True, default="")
+    inner_ip = models.CharField(_("内网IP"), max_length=15, db_index=True)
+    outer_ip = models.CharField(_("外网IP"), max_length=15, blank=True, null=True, default="")
     login_ip = models.CharField(_("登录IP"), max_length=45, blank=True, null=True, default="")
     data_ip = models.CharField(_("数据IP"), max_length=45, blank=True, null=True, default="")
+
+    inner_ipv6 = models.CharField(_("内网IPv6"), max_length=45, blank=True, null=True, default="")
+    outer_ipv6 = models.CharField(_("外网IPv6"), max_length=45, blank=True, null=True, default="")
 
     os_type = models.CharField(
         _("操作系统"), max_length=16, choices=constants.OS_CHOICES, default=constants.OsType.LINUX, db_index=True
     )
     cpu_arch = models.CharField(
-        _("操作系统"), max_length=16, choices=constants.CPU_CHOICES, default=constants.CpuType.x86_64, db_index=True
+        _("CPU架构"), max_length=16, choices=constants.CPU_CHOICES, default=constants.CpuType.x86_64, db_index=True
     )
+    os_version = models.CharField(_("操作系统版本"), max_length=32, blank=True, null=True, db_index=True, default="")
     node_type = models.CharField(_("节点类型"), max_length=16, choices=constants.NODE_CHOICES, db_index=True)
     node_from = models.CharField(_("节点来源"), max_length=45, choices=constants.NODE_FROM_CHOICES, default="NODE_MAN")
     is_manual = models.BooleanField(_("是否手动安装"), default=False)
@@ -359,18 +366,17 @@ class Host(models.Model):
             try:
                 return Host.objects.get(bk_host_id=bk_host_id)
             except Host.DoesNotExist:
-                exception = _("{bk_host_id}| 主机信息不存在").format(bk_host_id=bk_host_id)
+                exception = _("bk_host_id={bk_host_id} 主机信息不存在").format(bk_host_id=bk_host_id)
         else:
             ip = host_info.get("bk_host_innerip") or host_info.get("ip")
             # 兼容IP为逗号分割的多IP情况，取第一个IP
             ip = ip.split(",")[0]
             bk_cloud_id = host_info["bk_cloud_id"]
-
-            try:
-                return Host.objects.get(inner_ip=ip, bk_cloud_id=bk_cloud_id)
-            except Host.DoesNotExist:
-                exception = _("{ip}|{bk_cloud_id} 主机信息不存在").format(ip=ip, bk_cloud_id=bk_cloud_id)
-
+            host = Host.objects.get(inner_ip=ip, bk_cloud_id=bk_cloud_id).first()
+            if host:
+                return host
+            else:
+                exception = _("{bk_cloud_id}:{ip} 主机信息不存在").format(ip=ip, bk_cloud_id=bk_cloud_id)
         raise HostNotExists(exception)
 
     @classmethod
@@ -2185,7 +2191,7 @@ class SubscriptionInstanceRecord(models.Model):
     id = models.BigAutoField(primary_key=True)
     task_id = models.IntegerField(_("任务ID"), db_index=True)
     subscription_id = models.IntegerField(_("订阅ID"), db_index=True)
-    instance_id = models.CharField(_("实例ID"), max_length=50, db_index=True)
+    instance_id = models.CharField(_("实例ID"), max_length=128, db_index=True)
     instance_info = JSONField(_("实例信息"))
     steps = JSONField(_("步骤信息"))
     pipeline_id = models.CharField(_("Pipeline ID"), max_length=50, default="", blank=True, db_index=True)
@@ -2290,6 +2296,7 @@ class SubscriptionInstanceRecord(models.Model):
                 for key in instance_info["host"]
                 if key
                 in [
+                    "bk_host_innerip_v6",
                     "bk_host_innerip",
                     "bk_cloud_id",
                     "bk_supplier_account",

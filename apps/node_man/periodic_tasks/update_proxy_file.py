@@ -14,15 +14,15 @@ import os
 import time
 from collections import defaultdict
 from json import JSONDecodeError
-from typing import Any, Dict, List
+from typing import Dict, List, Union
 
 from celery.schedules import crontab
 from celery.task import periodic_task
 from django.conf import settings
 from django.db.models import Q
 
+from apps.adapters.api.gse import GseApiHelper
 from apps.backend.api.errors import JobPollTimeout
-from apps.component.esbclient import client_v2
 from apps.core.files.storage import get_storage
 from apps.node_man import constants
 from apps.node_man.models import AccessPoint, Host, InstallChannel
@@ -38,30 +38,46 @@ from common.log import logger
 )
 def update_proxy_files():
     alive_hosts: List[Dict[str, str]] = []
-    channel_hosts: List[Dict[str, Any]] = []
-    ap_nginx_path_map: Dict[Dict[str, int]] = defaultdict(list)
+    ap_nginx_path_map: Dict[str, List[int]] = defaultdict(list)
     host_gby_ap_id: Dict[int, List[Dict[str, str]]] = defaultdict(list)
 
-    proxy_hosts = [
-        {"ip": host_info["inner_ip"], "bk_cloud_id": host_info["bk_cloud_id"]}
-        for host_info in Host.objects.filter(node_type=constants.NodeType.PROXY).values("inner_ip", "bk_cloud_id")
-    ]
+    total_update_host_conditions = Q()
+    total_update_host_conditions.connector = "OR"
 
+    # TODO 通道主机数据需要迁移为 Host-ID
     channel_host_queryset = InstallChannel.objects.all().values("bk_cloud_id", "jump_servers")
     for channel_info in channel_host_queryset:
         for jump_server in channel_info["jump_servers"]:
-            channel_hosts.append({"bk_cloud_id": channel_info["bk_cloud_id"], "ip": jump_server})
+            total_update_host_conditions.children.append(
+                Q(bk_cloud_id=channel_info["bk_cloud_id"], inner_ip=jump_server)
+            )
+    total_update_host_conditions.children.append(Q(node_type=constants.NodeType.PROXY))
 
-    total_update_hosts = proxy_hosts + channel_hosts
+    total_update_hosts_queryset = Host.objects.filter(total_update_host_conditions)
+    total_update_hosts: List[Dict[str, Union[str, int]]] = [
+        {"ip": host_info["inner_ip"], "bk_cloud_id": host_info["bk_cloud_id"], "bk_agent_id": host_info["bk_agent_id"]}
+        for host_info in total_update_hosts_queryset.values("inner_ip", "bk_cloud_id", "bk_agent_id")
+    ]
 
     if not total_update_hosts:
         return
 
     # 实时查询主机状态
-    agent_statuses = client_v2.gse.get_agent_status({"hosts": total_update_hosts})
-    for __, host_info in agent_statuses.items():
-        if host_info["bk_agent_alive"] == constants.BkAgentStatus.ALIVE.value:
-            alive_hosts.append({"ip": host_info["ip"], "bk_cloud_id": host_info["bk_cloud_id"]})
+    agent_statuses: Dict[str, Dict] = GseApiHelper.list_agent_state(total_update_hosts)
+
+    for update_host_obj in total_update_hosts_queryset:
+        agent_id = GseApiHelper.get_agent_id(update_host_obj)
+        agent_state_info = agent_statuses.get(agent_id, {"version": "", "bk_agent_alive": None})
+        agent_status = constants.PROC_STATUS_DICT.get(agent_state_info["bk_agent_alive"], None)
+        if agent_status == constants.ProcStateType.RUNNING:
+            alive_hosts.append(
+                {
+                    "ip": update_host_obj.inner_ip,
+                    "bk_cloud_id": update_host_obj.bk_cloud_id,
+                    "bk_host_id": update_host_obj.bk_host_id,
+                }
+            )
+
     if not alive_hosts:
         return
 
@@ -78,11 +94,21 @@ def update_proxy_files():
     else:
         host_query_conditions = Q()
         host_query_conditions.connector = "OR"
-        for host in alive_hosts:
-            host_query_conditions.children.append((Q(bk_cloud_id=host["bk_cloud_id"], inner_ip=host["ip"])))
+        for update_host_obj in alive_hosts:
+            host_query_conditions.children.append(
+                (
+                    Q(
+                        bk_cloud_id=update_host_obj["bk_cloud_id"],
+                        inner_ip=update_host_obj["ip"],
+                        bk_host_id=update_host_obj["bk_host_id"],
+                    )
+                )
+            )
         host_queryset = Host.objects.filter(host_query_conditions)
         for host_obj in host_queryset:
-            host_gby_ap_id[host_obj.ap_id].append({"bk_cloud_id": host_obj.bk_cloud_id, "ip": host_obj.inner_ip})
+            host_gby_ap_id[host_obj.ap_id].append(
+                {"bk_cloud_id": host_obj.bk_cloud_id, "ip": host_obj.inner_ip, "bk_host_id": host_obj.bk_host_id}
+            )
         # 以nginx_path为维度，分批处理
         for nginx_path, ap_ids in ap_nginx_path_map.items():
             same_path_hosts = [host_info for ap_id in ap_ids for host_info in host_gby_ap_id[ap_id]]
@@ -90,7 +116,7 @@ def update_proxy_files():
                 correct_file_action(nginx_path, same_path_hosts, storage)
 
 
-def correct_file_action(download_path: str, hosts: List[Dict[str, str]], storage):
+def correct_file_action(download_path: str, hosts: List[Dict[str, Union[str, int]]], storage):
     local_file__md5_map: Dict[str, str] = {}
     lookup_update_host_list: List[Dict[str, str]] = []
     file_names = [file_name for file_set in constants.FILES_TO_PUSH_TO_PROXY for file_name in file_set["files"]]
@@ -153,7 +179,7 @@ print(json.dumps(proxy_md5))
         "account_alias": constants.LINUX_ACCOUNT,
         "is_param_sensitive": 1,
         "script_language": 4,
-        "target_server": {"ip_list": hosts},
+        "target_server": target_server_generator(hosts),
     }
 
     job_instance_id = JobApi.fast_execute_script(kwargs)["job_instance_id"]
@@ -178,9 +204,12 @@ print(json.dumps(proxy_md5))
             continue
         for name, file_md5 in local_file__md5_map.items():
             if name not in proxy_file_md5_map or proxy_file_md5_map[name] != file_md5:
-                lookup_update_host_list.append(
-                    {"ip": proxy_task_result["ip"], "bk_cloud_id": proxy_task_result["bk_cloud_id"]}
-                )
+                if settings.BKAPP_ENABLE_DHCP:
+                    lookup_update_host_list.append({"bk_host_id": proxy_task_result["bk_host_id"]})
+                else:
+                    lookup_update_host_list.append(
+                        {"ip": proxy_task_result["ip"], "bk_cloud_id": proxy_task_result["bk_cloud_id"]}
+                    )
 
     if not lookup_update_host_list:
         logger.info("There are no files with local differences on proxy or channel servers that need to be updated")
@@ -193,7 +222,7 @@ print(json.dumps(proxy_md5))
         account_alias=constants.LINUX_ACCOUNT,
         file_target_path=download_path,
         file_source_list=[{"file_list": [os.path.join(download_path, file) for file in files]}],
-        target_server={"ip_list": lookup_update_host_list},
+        target_server=target_server_generator(lookup_update_host_list),
     )
     time.sleep(5)
     transfer_result = {"task_result": {"pending": lookup_update_host_list, "failed": []}}
@@ -210,3 +239,15 @@ print(json.dumps(proxy_md5))
             f"{transfer_result['task_result']['pending']}, failed hosts: {transfer_result['task_result']['failed']}"
             f"job_instance_id:{job_transfer_id}"
         )
+
+
+def target_server_generator(host_info_list: List[Dict[str, Union[str, int]]]):
+    if settings.BKAPP_ENABLE_DHCP:
+        host_interaction_params: Dict[str, List[Dict[str, int]]] = {
+            "host_id_list": [{"bk_host_id": host["bk_host_id"]} for host in host_info_list]
+        }
+    else:
+        host_interaction_params: Dict[str, List[Dict[str, Union[int, str]]]] = {
+            "ip_list": [{"ip": host["ip"], "bk_cloud_id": host["bk_cloud_id"]} for host in host_info_list]
+        }
+    return host_interaction_params

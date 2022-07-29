@@ -250,7 +250,7 @@ export default class TaskConfig extends formLabelMixin {
     .task-config-form {
       width: 525px;
     }
-    /deep/ .bk-form-control {
+    >>> .bk-form-control {
       width: 315px;
     }
     .bk-form-info-item {

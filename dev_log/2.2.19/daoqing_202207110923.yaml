@@ -1,0 +1,3 @@
+---
+bugfix:
+  - "Agent 安装校验提示信息错位 (closed #669)"

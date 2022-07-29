@@ -16,11 +16,13 @@ from .paas_version_diff import *  # noqa
 
 __all__ = [
     "BKAPP_RUN_ENV",
+    "BKAPP_ENABLE_DHCP",
     "BKAPP_IS_PAAS_DEPLOY",
     "BK_BACKEND_CONFIG",
     "LOG_TYPE",
     "LOG_LEVEL",
     "BK_LOG_DIR",
+    "GSE_VERSION",
     "ENVIRONMENT",
     # esb 访问地址
     "BK_COMPONENT_API_URL",
@@ -41,6 +43,8 @@ __all__ = [
 BKAPP_RUN_ENV = get_type_env(key="BKAPP_RUN_ENV", default="ee", _type=str)
 # 后台是否为 PaaS 部署
 BKAPP_IS_PAAS_DEPLOY = BKAPP_IS_PAAS_DEPLOY
+# 是否开启动态主机配置协议适配
+BKAPP_ENABLE_DHCP = get_type_env(key="BKAPP_ENABLE_DHCP", default=False, _type=bool)
 # # 是否为后台配置
 BK_BACKEND_CONFIG = BK_BACKEND_CONFIG
 
@@ -53,3 +57,10 @@ LOG_TYPE = get_type_env(key="LOG_TYPE", default=constants.LogType.DEFAULT, _type
 LOG_LEVEL = get_type_env(key="LOG_LEVEL", default="INFO", _type=str)
 # 日志所在目录
 BK_LOG_DIR = get_type_env(key="BK_LOG_DIR", default="./../bk_nodeman/logs", _type=str)
+
+
+# ===============================================================================
+# 蓝鲸管控平台
+# ===============================================================================
+# 平台版本
+GSE_VERSION = get_type_env(key="GSE_VERSION", default=constants.GseVersion.V1.value)

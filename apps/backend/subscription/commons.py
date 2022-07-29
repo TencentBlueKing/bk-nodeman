@@ -38,7 +38,7 @@ def get_host_object_attribute(bk_biz_id):
 def list_biz_hosts(bk_biz_id, condition, func, split_params=False):
     biz_custom_property = []
     kwargs = {
-        "fields": constants.LIST_BIZ_HOSTS_KWARGS,
+        "fields": constants.CC_HOST_FIELDS,
     }
     if bk_biz_id:
         biz_custom_property = get_host_object_attribute(bk_biz_id)

@@ -15,7 +15,7 @@ import operator
 import os
 from collections import defaultdict
 from functools import reduce
-from typing import Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
 from django.conf import settings
 from django.db import IntegrityError
@@ -23,6 +23,7 @@ from django.db.models import F, Q
 from django.utils import timezone
 from django.utils.translation import ugettext as _
 
+from apps.adapters.api.gse import GseApiHelper
 from apps.backend.api.constants import (
     GSE_RUNNING_TASK_CODE,
     POLLING_INTERVAL,
@@ -45,7 +46,7 @@ from apps.node_man.handlers.cmdb import CmdbHandler
 from apps.utils import md5
 from apps.utils.batch_request import request_multi_thread
 from apps.utils.files import PathHandler
-from common.api import GseApi, JobApi
+from common.api import JobApi
 from pipeline.component_framework.component import Component
 from pipeline.core.flow import Service, StaticIntervalGenerator
 
@@ -534,6 +535,7 @@ class TransferPackageService(JobV3BaseService, PluginBaseService):
             os_type = host.os_type.lower() or constants.OsType.LINUX.lower()
             package_path = "/".join((nginx_path, os_type, host.cpu_arch, package.pkg_name))
             jobs[package_path]["ip_list"].append({"bk_cloud_id": host.bk_cloud_id, "ip": host.inner_ip})
+            jobs[package_path]["host_id_list"].append(host.bk_host_id)
             jobs[package_path]["subscription_instance_ids"].append(subscription_instance.id)
             jobs[package_path]["temp_path"] = agent_config["temp_path"]
             jobs[package_path]["os_type"] = host.os_type
@@ -543,7 +545,6 @@ class TransferPackageService(JobV3BaseService, PluginBaseService):
         for package_path, job in jobs.items():
             file_list = [package_path]
             file_list = self.append_extra_files(job["os_type"], file_list, nginx_path)
-
             multi_job_params.append(
                 {
                     "job_func": JobApi.fast_transfer_file,
@@ -553,7 +554,7 @@ class TransferPackageService(JobV3BaseService, PluginBaseService):
                         "file_target_path": job["temp_path"],
                         "file_source_list": [{"file_list": file_list}],
                         "os_type": job["os_type"],
-                        "target_server": {"ip_list": job["ip_list"]},
+                        "target_server": {"ip_list": job["ip_list"], "host_id_list": job["host_id_list"]},
                     },
                 }
             )
@@ -613,7 +614,7 @@ class PluginExecuteScriptService(PluginBaseService, JobV3BaseService, metaclass=
         group_id_instance_map = common_data.group_id_instance_map
 
         # 批量请求作业平台的参数
-        multi_job_params_map = {}
+        multi_job_params_map: Dict[str, Dict[str, Any]] = {}
         for process_status in process_statuses:
             if self.need_skipped(process_status, common_data):
                 continue
@@ -638,13 +639,17 @@ class PluginExecuteScriptService(PluginBaseService, JobV3BaseService, metaclass=
                 multi_job_params_map[key]["job_params"]["target_server"]["ip_list"].append(
                     {"bk_cloud_id": host.bk_cloud_id, "ip": host.inner_ip}
                 )
+                multi_job_params_map[key]["job_params"]["target_server"]["host_id_list"].append(host.bk_host_id)
             else:
                 multi_job_params_map[key] = {
                     "job_func": JobApi.fast_execute_script,
                     "subscription_instance_id": [subscription_instance_id],
                     "subscription_id": common_data.subscription.id,
                     "job_params": {
-                        "target_server": {"ip_list": [{"bk_cloud_id": host.bk_cloud_id, "ip": host.inner_ip}]},
+                        "target_server": {
+                            "ip_list": [{"bk_cloud_id": host.bk_cloud_id, "ip": host.inner_ip}],
+                            "host_id_list": [host.bk_host_id],
+                        },
                         "script_content": script_content,
                         "script_param": script_param,
                         "timeout": timeout,
@@ -815,17 +820,19 @@ class JobAllocatePortService(PluginExecuteScriptService):
         bk_host_id = process_status.bk_host_id
 
         # 查询并解析该主机已被占用的端口号
-        result = JobApi.get_job_instance_ip_log(
-            {
-                "bk_biz_id": settings.BLUEKING_BIZ_ID,
-                "bk_scope_type": constants.BkJobScopeType.BIZ_SET.value,
-                "bk_scope_id": settings.BLUEKING_BIZ_ID,
-                "job_instance_id": job_instance_id,
-                "step_instance_id": step_instance_id,
-                "bk_cloud_id": host.bk_cloud_id,
-                "ip": host.inner_ip,
-            }
+        instance_log_base_params: Dict[str, Union[str, int]] = {
+            "bk_biz_id": settings.BLUEKING_BIZ_ID,
+            "bk_scope_type": constants.BkJobScopeType.BIZ_SET.value,
+            "bk_scope_id": settings.BLUEKING_BIZ_ID,
+            "job_instance_id": job_instance_id,
+            "step_instance_id": step_instance_id,
+        }
+        host_interaction_params: Dict[str, Union[str, int]] = (
+            {"bk_host_id": host.bk_host_id}
+            if settings.BKAPP_ENABLE_DHCP
+            else {"bk_cloud_id": host.bk_cloud_id, "ip": host.inner_ip}
         )
+        result = JobApi.get_job_instance_ip_log({**instance_log_base_params, **host_interaction_params})
         used_ports = self.parse_used_port(result.get("log_content", ""))
         port_range_list = models.ProcControl.parse_port_range(plugin_control.port_range)
         queryset = models.ProcessStatus.objects.filter(bk_host_id=bk_host_id)
@@ -930,7 +937,7 @@ class RenderAndPushConfigService(PluginBaseService, JobV3BaseService):
         subscription_step = models.SubscriptionStep.objects.get(id=subscription_step_id)
 
         # 组装调用作业平台的参数
-        multi_job_params_map = {}
+        multi_job_params_map: Dict[str, Dict[str, Any]] = {}
         for process_status in process_statuses:
             target_bk_host_id = process_status.bk_host_id
             subscription_instance = group_id_instance_map.get(process_status.group_id)
@@ -966,6 +973,9 @@ class RenderAndPushConfigService(PluginBaseService, JobV3BaseService):
                     multi_job_params_map[key]["job_params"]["target_server"]["ip_list"].append(
                         {"bk_cloud_id": target_host.bk_cloud_id, "ip": target_host.inner_ip}
                     )
+                    multi_job_params_map[key]["job_params"]["target_server"]["host_id_list"].append(
+                        target_host.bk_host_id
+                    )
                 else:
                     multi_job_params_map[key] = {
                         "job_func": JobApi.push_config_file,
@@ -974,7 +984,13 @@ class RenderAndPushConfigService(PluginBaseService, JobV3BaseService):
                         "job_params": {
                             "os_type": target_host.os_type,
                             "target_server": {
-                                "ip_list": [{"bk_cloud_id": target_host.bk_cloud_id, "ip": target_host.inner_ip}]
+                                "ip_list": [
+                                    {
+                                        "bk_cloud_id": target_host.bk_cloud_id,
+                                        "ip": target_host.inner_ip,
+                                    }
+                                ],
+                                "host_id_list": [target_host.bk_host_id],
                             },
                             "file_target_path": file_target_path,
                             "file_list": [{"file_name": file_name, "content": process_parms(file_content)}],
@@ -1112,7 +1128,7 @@ class GseOperateProcService(PluginBaseService):
         """批量请求GSE接口"""
         # 当请求参数为空时，代表无需请求，直接 finish_schedule 跳过即可
         if proc_operate_req:
-            task_id = GseApi.operate_proc_multi({"proc_operate_req": proc_operate_req})["task_id"]
+            task_id = GseApiHelper.operate_proc_multi(proc_operate_req=proc_operate_req)
             self.log_info(log_content=f"GSE TASK ID: [{task_id}]")
             data.outputs.task_id = task_id
         else:
@@ -1144,12 +1160,12 @@ class GseOperateProcService(PluginBaseService):
             gse_op_params = {
                 "meta": {"namespace": constants.GSE_NAMESPACE, "name": meta_name},
                 "op_type": op_type,
-                "hosts": [{"ip": host.inner_ip, "bk_cloud_id": host.bk_cloud_id}],
                 # 此字段是节点管理自用，仅用于标识，不会被GSE使用
                 "nodeman_spec": {
                     "process_status_id": process_status.id,
                     "subscription_instance_id": subscription_instance.id,
                 },
+                "hosts": [{"ip": host.inner_ip, "bk_agent_id": host.bk_agent_id, "bk_cloud_id": host.bk_cloud_id}],
                 "spec": {
                     "identity": {
                         "index_key": "",
@@ -1226,7 +1242,7 @@ class GseOperateProcService(PluginBaseService):
         plugin = policy_step_adapter.plugin_desc
         group_id_instance_map = common_data.group_id_instance_map
 
-        result = GseApi.get_proc_operate_result({"task_id": task_id}, raw=True)
+        result = GseApiHelper.get_proc_operate_result(task_id)
         api_code = result.get("code")
         if api_code == GSE_RUNNING_TASK_CODE:
             # GSE_RUNNING_TASK_CODE(1000115) 表示查询的任务等待执行中，还未入到 redis（需继续轮询进行查询）
@@ -1240,7 +1256,7 @@ class GseOperateProcService(PluginBaseService):
             subscription_instance = group_id_instance_map.get(process_status.group_id)
 
             proc_name = self.get_plugin_meta_name(plugin, process_status)
-            gse_proc_key = f"{host.bk_cloud_id}:{host.inner_ip}:{constants.GSE_NAMESPACE}:{proc_name}"
+            gse_proc_key = GseApiHelper.get_gse_proc_key(host, constants.GSE_NAMESPACE, proc_name)
             proc_operate_result = result["data"].get(gse_proc_key)
             if not proc_operate_result:
                 self.move_insts_to_failed(
@@ -1330,20 +1346,22 @@ class DebugService(PluginExecuteScriptService):
         )
         # 调试插件时仅有一个IP，以下取值方式与作业平台API文档一致，不会抛出 IndexError/KeyError 的异常
         step_instance_id = result["step_instance_list"][0]["step_instance_id"]
+        bk_host_id = result["step_instance_list"][0]["step_ip_result_list"][0]["bk_host_id"]
         ip = result["step_instance_list"][0]["step_ip_result_list"][0]["ip"]
         bk_cloud_id = result["step_instance_list"][0]["step_ip_result_list"][0]["bk_cloud_id"]
 
-        params = {
+        instance_log_base_params: Dict[str, Union[str, int]] = {
             "job_instance_id": job_instance_id,
             "bk_biz_id": settings.BLUEKING_BIZ_ID,
             "bk_scope_type": constants.BkJobScopeType.BIZ_SET.value,
             "bk_scope_id": settings.BLUEKING_BIZ_ID,
             "bk_username": settings.BACKEND_JOB_OPERATOR,
             "step_instance_id": step_instance_id,
-            "ip": ip,
-            "bk_cloud_id": bk_cloud_id,
         }
-        task_result = JobApi.get_job_instance_ip_log(params)
+        host_interaction_params: Dict[str, Union[str, int]] = (
+            {"bk_host_id": bk_host_id} if settings.BKAPP_ENABLE_DHCP else {"ip": ip, "bk_cloud_id": bk_cloud_id}
+        )
+        task_result = JobApi.get_job_instance_ip_log({**instance_log_base_params, **host_interaction_params})
 
         # 只写入新的日志，保证轮询过程中不会重复写入job的日志
         last_logs = data.get_one_of_outputs("last_logs", "")

@@ -13,7 +13,9 @@ from collections import ChainMap
 from typing import Any, Callable, Dict, List, Optional
 
 import mock
+from django.conf import settings
 
+from apps.adapters.api import gse
 from apps.backend.api.constants import POLLING_INTERVAL
 from apps.backend.components.collections.agent_new import components
 from apps.mock_data import api_mkd, common_unit
@@ -30,7 +32,7 @@ from . import utils
 
 class GetAgentStatusTestCaseMixin:
     EXPECT_STATUS = constants.ProcStateType.RUNNING
-    GSE_API_MOCK_PATHS: List[str] = ["apps.backend.components.collections.agent_new.get_agent_status.GseApi"]
+    GSE_API_MOCK_PATHS: List[str] = ["apps.backend.components.collections.agent_new.get_agent_status.GseApiHelper"]
 
     host_ids_need_to_next_query: List[int] = None
     get_agent_info_func: Callable[[Dict], Dict] = None
@@ -87,7 +89,12 @@ class GetAgentStatusTestCaseMixin:
     def setUp(self) -> None:
         self.init_mock_clients()
         for gse_api_mock_path in self.GSE_API_MOCK_PATHS:
-            mock.patch(gse_api_mock_path, self.gse_api_mock_client).start()
+            mock.patch(
+                gse_api_mock_path,
+                gse.get_gse_api_helper(settings.GSE_VERSION)(
+                    version=settings.GSE_VERSION, gse_api_obj=self.gse_api_mock_client
+                ),
+            ).start()
         super().setUp()
 
 
