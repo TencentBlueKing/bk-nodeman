@@ -522,7 +522,7 @@ def generate_gse_config(
         path_sep = constants.LINUX_SEP
         dataipc = agent_config.get("dataipc", "/var/run/ipc.state.report")
         pluginipc = path_sep.join([setup_path, "agent", "data", "ipc.plugin.manage"])
-        dbgipc = agent_config.get("dbgipc", f"{settings.GSE_AGENT_HOME}/agent/data/ipc.dbg.agent")
+        dbgipc = agent_config.get("dbgipc", path_sep.join([setup_path, "agent", "data", "ipc.dbg.agent"]))
 
     template = {}
     context = {}
