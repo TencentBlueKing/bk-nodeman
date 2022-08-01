@@ -1,0 +1,3 @@
+---
+bugfix:
+  - "Linux Agent dbgipc 配置渲染值有误 (fixed #973)"
