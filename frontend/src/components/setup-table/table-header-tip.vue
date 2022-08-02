@@ -12,9 +12,20 @@
         <span>{{ $t('补充说明tips', [otherInfo]) }}</span>
       </template>
     </i18n>
-    <i18n tag="pre" :path="tips" v-else-if="tips === 'agentSetupKey'">
-      <span class="danger">password</span>
-      <span class="danger">mykeypair.pem</span>
+    <template v-else-if="tips === 'agentSetupKey'">
+      <i18n tag="pre" :path="tips" v-if="!row.auth_type">
+        <span class="danger">password</span>
+        <span class="danger">mykeypair.pem</span>
+      </i18n>
+      <i18n tag="pre" :path="'agentSetupPwd'" v-else-if="row.auth_type === 'PASSWORD'">
+        <span class="danger">password</span>
+      </i18n>
+      <i18n tag="pre" :path="'agentSetupFile'" v-else>
+        <span class="danger">mykeypair.pem</span>
+      </i18n>
+    </template>
+    <i18n tag="pre" :path="tips" v-else-if="tips === 'agentSetupLoginAccount'">
+      <span class="danger">root</span>
     </i18n>
     <!-- eslint-disable-next-line vue/no-v-html -->
     <p v-else-if="['登录IP提示', '出口IP提示'].includes(tips)" v-html="$t(tips)"></p>
