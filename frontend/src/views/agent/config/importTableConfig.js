@@ -105,6 +105,7 @@ export const tableConfig = [
     type: 'text',
     required: true,
     noRequiredMark: false,
+    tips: 'agentSetupInnerIp',
     parentProp: 'host_attr',
     sync: 'login_ip',
     union: 'bk_cloud_id',
@@ -141,6 +142,20 @@ export const tableConfig = [
     },
   },
   {
+    label: '寻址方式',
+    prop: 'bk_addressing',
+    type: 'select',
+    default: '0',
+    batch: true,
+    required: false,
+    noRequiredMark: false,
+    parentProp: 'host_attr',
+    getOptions() {
+      return addressingMode;
+    },
+    width: 115,
+  },
+  {
     label: '登录端口',
     prop: 'port',
     type: 'text',
@@ -148,6 +163,7 @@ export const tableConfig = [
     noRequiredMark: false,
     batch: true,
     default: getDefaultConfig(defaultOsType, 'port', defaultPort),
+    tips: 'agentSetupPort',
     parentProp: 'login_info',
     rules: [reguPort],
     // getReadonly(row) {
@@ -161,6 +177,7 @@ export const tableConfig = [
     required: true,
     noRequiredMark: false,
     batch: true,
+    tips: 'agentSetupLoginAccount',
     parentProp: 'login_info',
     default: getDefaultConfig(defaultOsType, 'account', 'root'),
   },
@@ -189,6 +206,7 @@ export const tableConfig = [
     prop: 'prove',
     type: 'password',
     batch: true,
+    tips: 'agentSetupKey',
     parentProp: 'login_info',
     subTitle: window.i18n.t('仅对密码认证生效'),
     placeholder: window.i18n.t('请输入'),
@@ -206,6 +224,7 @@ export const tableConfig = [
     type: 'text',
     required: false,
     noRequiredMark: false,
+    tips: 'agentSetupLoginIp',
     parentProp: 'login_info',
     placeholder: window.i18n.t('请输入'),
     unique: true,
@@ -249,19 +268,6 @@ export const tableConfig = [
     placeholder: window.i18n.t('请输入'),
     rules: [reguFnMinInteger(1)],
     parentProp: 'trans_info',
-  },
-  {
-    label: '寻址方式',
-    prop: 'bk_addressing',
-    type: 'select',
-    default: '0',
-    batch: true,
-    required: false,
-    noRequiredMark: false,
-    getOptions() {
-      return addressingMode;
-    },
-    width: 115,
   },
   {
     label: '',
@@ -369,6 +375,7 @@ export const tableManualConfig = [
     type: 'text',
     required: true,
     noRequiredMark: false,
+    tips: 'agentSetupInnerIp',
     parentProp: 'host_attr',
     sync: 'login_ip',
     union: 'bk_cloud_id',
@@ -405,12 +412,27 @@ export const tableManualConfig = [
     },
   },
   {
+    label: '寻址方式',
+    prop: 'bk_addressing',
+    type: 'select',
+    default: '0',
+    batch: true,
+    required: false,
+    noRequiredMark: false,
+    parentProp: 'host_attr',
+    getOptions() {
+      return addressingMode;
+    },
+    width: 115,
+  },
+  {
     label: '登录IP',
     prop: 'login_ip',
     type: 'text',
     required: false,
     noRequiredMark: false,
     placeholder: window.i18n.t('请输入'),
+    tips: 'agentSetupLoginIp',
     parentProp: 'login_info',
     unique: true,
     errTag: true,
@@ -453,19 +475,6 @@ export const tableManualConfig = [
     placeholder: window.i18n.t('请输入'),
     rules: [reguFnMinInteger(1)],
     parentProp: 'trans_info',
-  },
-  {
-    label: '寻址方式',
-    prop: 'bk_addressing',
-    type: 'select',
-    default: '0',
-    batch: true,
-    required: false,
-    noRequiredMark: false,
-    getOptions() {
-      return addressingMode;
-    },
-    width: 115,
   },
   {
     label: '',
