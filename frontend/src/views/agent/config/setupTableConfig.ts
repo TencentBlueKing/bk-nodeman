@@ -84,6 +84,20 @@ export const setupTableConfig: ISetupHead[] = [
     },
   },
   {
+    label: '寻址方式',
+    prop: 'bk_addressing',
+    type: 'select',
+    default: '0',
+    batch: true,
+    required: false,
+    noRequiredMark: false,
+    parentProp: 'host_attr',
+    getOptions() {
+      return addressingMode;
+    },
+    width: 115,
+  },
+  {
     label: '登录IP',
     prop: 'login_ip',
     type: 'text',
@@ -132,6 +146,7 @@ export const setupTableConfig: ISetupHead[] = [
     type: 'text',
     required: true,
     batch: true,
+    tips: 'agentSetupLoginAccount',
     parentProp: 'login_info',
     default: getDefaultConfig(defaultOsType, 'account', 'root'),
   },
@@ -172,7 +187,7 @@ export const setupTableConfig: ISetupHead[] = [
   {
     label: 'BT节点探测',
     prop: 'peer_exchange_switch_for_agent',
-    tips: window.i18n.t('BT节点探测提示'),
+    tips: 'BT节点探测提示',
     type: 'switcher',
     default: getDefaultConfig(defaultOsType, 'peer_exchange_switch_for_agent', true),
     batch: true,
@@ -195,19 +210,6 @@ export const setupTableConfig: ISetupHead[] = [
     width: 180,
     parentProp: 'trans_info',
     rules: [reguFnMinInteger(1)],
-  },
-  {
-    label: '寻址方式',
-    prop: 'bk_addressing',
-    type: 'select',
-    default: '0',
-    batch: true,
-    required: false,
-    noRequiredMark: false,
-    getOptions() {
-      return addressingMode;
-    },
-    width: 115,
   },
   {
     label: '',
@@ -290,6 +292,20 @@ export const setupTableManualConfig = [
     },
   },
   {
+    label: '寻址方式',
+    prop: 'bk_addressing',
+    type: 'select',
+    default: '0',
+    batch: true,
+    required: false,
+    noRequiredMark: false,
+    parentProp: 'host_attr',
+    getOptions() {
+      return addressingMode;
+    },
+    width: 115,
+  },
+  {
     label: '登录IP',
     prop: 'login_ip',
     type: 'text',
@@ -320,7 +336,7 @@ export const setupTableManualConfig = [
   {
     label: 'BT节点探测',
     prop: 'peer_exchange_switch_for_agent',
-    tips: window.i18n.t('BT节点探测提示'),
+    tips: 'BT节点探测提示',
     type: 'switcher',
     default: getDefaultConfig(defaultOsType, 'peer_exchange_switch_for_agent', true),
     batch: true,
@@ -343,19 +359,6 @@ export const setupTableManualConfig = [
     width: 180,
     parentProp: 'trans_info',
     rules: [reguFnMinInteger(1)],
-  },
-  {
-    label: '寻址方式',
-    prop: 'bk_addressing',
-    type: 'select',
-    default: '0',
-    batch: true,
-    required: false,
-    noRequiredMark: false,
-    getOptions() {
-      return addressingMode;
-    },
-    width: 115,
   },
   {
     label: '',

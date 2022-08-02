@@ -999,10 +999,12 @@ export default class SetupTable extends Vue {
     this.$set(this, 'focusRow', row);
     const { prop } = config;
     const [refs] = this.$refs[`header_${prop}`] as any[];
-    if (refs?.tipsShow) {
-      this.popoverEl = refs;
-      this.popoverEl.tipsShow();
-    }
+    setTimeout(() => {
+      if (refs?.tipsShow) {
+        this.popoverEl = refs;
+        this.popoverEl.tipsShow();
+      }
+    }, 200);
   }
   private handleCellBlur() {
     this.$set(this, 'focusRow', {});

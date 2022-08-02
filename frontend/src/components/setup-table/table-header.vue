@@ -6,7 +6,9 @@
         'header-label': true,
         'header-label-required': required,
         'header-label-tips': Boolean(tips)
-      }">
+      }"
+      @mouseenter="tipsShow"
+      @mouseleave="tipsHide">
       {{ $t(label) }}
     </span>
     <bk-popover
@@ -80,7 +82,7 @@
         </div>
       </template>
     </bk-popover>
-    <div class="aaaa" v-show="false">
+    <div v-show="false">
       <section ref="tipRef">
         <TableHeaderTip v-if="parentTip" joint-tip :tips="parentTip"></TableHeaderTip>
         <TableHeaderTip :tips="tips" :row="focusRow" @batch="handleBatch"></TableHeaderTip>
@@ -138,7 +140,7 @@ export default class TableHeader extends Vue {
       this.popoverInstance = this.$bkPopover(this.tipSpan, {
         content: this.tipRef,
         allowHTML: true,
-        trigger: 'mouseenter',
+        trigger: 'manual',
         arrow: true,
         theme: 'light setup-tips',
         maxWidth: 274,

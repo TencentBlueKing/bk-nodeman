@@ -74,6 +74,7 @@ export const editConfig: ISetupHead[] = [
     required: true,
     noRequiredMark: false,
     rules: [reguIPMixins],
+    tips: 'agentSetupInnerIp',
     parentProp: 'host_attr',
     sync: 'login_ip',
     readonly: true,
@@ -98,12 +99,27 @@ export const editConfig: ISetupHead[] = [
     },
   },
   {
+    label: '寻址方式',
+    prop: 'bk_addressing',
+    type: 'select',
+    default: '0',
+    batch: true,
+    required: false,
+    noRequiredMark: false,
+    parentProp: 'host_attr',
+    getOptions() {
+      return addressingMode;
+    },
+    width: 115,
+  },
+  {
     label: '登录端口',
     prop: 'port',
     type: 'text',
     required: true,
     batch: true,
     default: getDefaultConfig(defaultOsType, 'port', defaultPort),
+    tips: 'agentSetupPort',
     parentProp: 'login_info',
     rules: [reguPort],
     // getReadonly(row: ISetupRow) {
@@ -116,6 +132,7 @@ export const editConfig: ISetupHead[] = [
     type: 'text',
     required: true,
     batch: true,
+    tips: 'agentSetupLoginAccount',
     parentProp: 'login_info',
     placeholder: window.i18n.t('请输入'),
   },
@@ -144,6 +161,7 @@ export const editConfig: ISetupHead[] = [
     show: true, // 常显项
     batch: true,
     noRequiredMark: false,
+    tips: 'agentSetupKey',
     parentProp: 'login_info',
     subTitle: window.i18n.t('仅对密码认证生效'),
     placeholder: window.i18n.t('请输入'),
@@ -177,6 +195,7 @@ export const editConfig: ISetupHead[] = [
     type: 'text',
     required: false,
     noRequiredMark: false,
+    tips: 'agentSetupLoginIp',
     parentProp: 'login_info',
     placeholder: window.i18n.t('请输入'),
     rules: [reguIp],
@@ -205,19 +224,6 @@ export const editConfig: ISetupHead[] = [
     placeholder: window.i18n.t('请输入'),
     rules: [reguFnMinInteger(1)],
     parentProp: 'trans_info',
-  },
-  {
-    label: '寻址方式',
-    prop: 'bk_addressing',
-    type: 'select',
-    default: '0',
-    batch: true,
-    required: false,
-    noRequiredMark: false,
-    getOptions() {
-      return addressingMode;
-    },
-    width: 115,
   },
   {
     label: '',
@@ -298,6 +304,7 @@ export const editManualConfig = [
     noRequiredMark: false,
     rules: [reguIPMixins],
     readonly: true,
+    tips: 'agentSetupInnerIp',
     parentProp: 'host_attr',
   },
   {
@@ -317,12 +324,27 @@ export const editManualConfig = [
     },
   },
   {
+    label: '寻址方式',
+    prop: 'bk_addressing',
+    type: 'select',
+    default: '0',
+    batch: true,
+    required: false,
+    noRequiredMark: false,
+    parentProp: 'host_attr',
+    getOptions() {
+      return addressingMode;
+    },
+    width: 115,
+  },
+  {
     label: '登录IP',
     prop: 'login_ip',
     type: 'text',
     required: false,
     noRequiredMark: false,
     placeholder: window.i18n.t('请输入'),
+    tips: 'agentSetupLoginIp',
     parentProp: 'login_info',
     rules: [reguIp],
   },
@@ -350,19 +372,6 @@ export const editManualConfig = [
     placeholder: window.i18n.t('请输入'),
     rules: [reguFnMinInteger(1)],
     parentProp: 'trans_info',
-  },
-  {
-    label: '寻址方式',
-    prop: 'bk_addressing',
-    type: 'select',
-    default: '0',
-    batch: true,
-    required: false,
-    noRequiredMark: false,
-    getOptions() {
-      return addressingMode;
-    },
-    width: 115,
   },
   {
     label: '',
