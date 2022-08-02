@@ -1,5 +1,40 @@
 # Release
 
+## 2.2.19 - 2022-08-02 
+
+
+### feature: 
+  * 支持 AIX 操作系统区分版本 (closed #815)
+  * 历史任务-执行日志整体重试改为重试 (closed #899)
+  * JOB API 适配 (closed #785)
+  * Agent 安装 DHCP 场景适配 (closed #787)
+  * GSE 多版本 API 适配 (closed #780)
+  * Redis 单节点与哨兵模式支持不同密码 (closed #844)
+  * 产品页面支持 IPV6 主机导入 (closed #776)
+  * 产品 logo 增加加跳转至首页的超链 (closed #915)
+  * Agent 导入表头支持云区域搜索 (closed #913)
+  * 主机 Agent 信息绑定关系维护 (closed #782 closed #783)
+  * 支持多个node版本开发、打包 (closed #938)
+  * 支持主机名展示及过滤 (closed #936)
+  * 安装上报 bk_agent_id 持久化 (closed #781)
+  * 云区域排序规则  (closed #897)
+  * aaS 适配动态 IP 安装校验，统一业务逻辑 IPv6 表示法 (closed #926 closed #927 #787)
+  * IPv4/IPv6 双栈 k8s 部署适配 (closed #970)
+  * 支持 bk_agent_id (closed #562)
+  * Nginx 重新编译，修复 DNS 漏洞 (closed #918)
+
+### bugfix: 
+  * Agent 安装校验提示信息错位 (closed #669)
+  * Linux Agent dbgipc 配置渲染值有误 (fixed #973)
+
+### docs: 
+  * 开源信息更新 (closed #953)
+
+### optimization: 
+  * Agent 状态查询兼容 NOT FOUND 场景 (closed #863)
+  * IPv6 校验及展示优化 (closed #942)
+  * GSE 配置文件去掉相关注释，保证json格式合法 (closed #955)
+
 ## 2.2.18 - 2022-07-07 
 
 
