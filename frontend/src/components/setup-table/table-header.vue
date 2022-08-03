@@ -6,9 +6,7 @@
         'header-label': true,
         'header-label-required': required,
         'header-label-tips': Boolean(tips)
-      }"
-      @mouseenter="tipsShow"
-      @mouseleave="tipsHide">
+      }">
       {{ $t(label) }}
     </span>
     <bk-popover
@@ -85,7 +83,7 @@
     <div v-show="false">
       <section ref="tipRef">
         <TableHeaderTip v-if="parentTip" joint-tip :tips="parentTip"></TableHeaderTip>
-        <TableHeaderTip :tips="tips" :row="focusRow" @batch="handleBatch"></TableHeaderTip>
+        <TableHeaderTip :tips="tips" :row="focusRow" @batch="handleTipsBatch"></TableHeaderTip>
       </section>
     </div>
   </div>
@@ -131,6 +129,8 @@ export default class TableHeader extends Vue {
   private isShow = false;
   private fileInfo: null | IFileInfo = null; // 密钥信息
   private popoverInstance: any = null;
+  // 切换Popover的触发方式, 规避无法切换导致的问题 (setProps函数的替代方案, 低版tippy本无此方法)
+  private tipsTrigger: 'mouseenter' | 'manual' = 'mouseenter';
 
   private created() {
     bus.$on('batch-btn-click', this.hidePopover); // 只出现一个弹框
@@ -140,7 +140,7 @@ export default class TableHeader extends Vue {
       this.popoverInstance = this.$bkPopover(this.tipSpan, {
         content: this.tipRef,
         allowHTML: true,
-        trigger: 'manual',
+        trigger: 'mouseenter',
         arrow: true,
         theme: 'light setup-tips',
         maxWidth: 274,
@@ -149,7 +149,8 @@ export default class TableHeader extends Vue {
         interactive: true,
         boundary: 'window',
         placement: 'top',
-        hideOnClick: false,
+        hideOnClick: true,
+        onHide: () => this.tipsTrigger === 'mouseenter',
       });
     }
   }
@@ -170,6 +171,10 @@ export default class TableHeader extends Vue {
   public handleBatchConfirm() {
     this.handleBatchCancel();
     return { value: this.value, fileInfo: this.fileInfo };
+  }
+  @Emit('confirm')
+  public handleTipsBatch() {
+    return { focusRow: this.focusRow };
   }
   public handleBatch(value: any) {
     this.value = value;
@@ -195,12 +200,13 @@ export default class TableHeader extends Vue {
   }
   public tipsShow() {
     if (this.tips && this.popoverInstance) {
+      this.tipsTrigger = 'manual';
       this.popoverInstance.show();
     }
   }
   public tipsHide() {
+    this.tipsTrigger = 'mouseenter';
     this.popoverInstance && this.popoverInstance.hide();
-    // this.popoverInstance = null;
   }
 }
 </script>

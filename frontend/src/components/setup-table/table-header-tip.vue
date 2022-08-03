@@ -3,7 +3,7 @@
     <i18n tag="pre" :path="tips" v-if="tips === 'agentSetupInnerIp'">
       <span class="primary">{{ $t('「登录 IP」') }}</span>
     </i18n>
-    <i18n tag="pre" :path="tips" v-else-if="tips === 'agentSetupPort'">
+    <i18n style="line-height: 22px" tag="pre" :path="tips" v-else-if="tips === 'agentSetupPort'">
       <span class="danger">22</span>
       <span>{{ port }}</span>
       <span class="primary pointer" @mousedown.prevent @click="handleBatch">{{ $t('批量应用') }}</span>
@@ -34,9 +34,9 @@
 </template>
 <script lang="ts">
 import { Vue, Component, Prop, Emit } from 'vue-property-decorator';
-import { defaultPort } from '@/config/config';
+import { defaultPort, getDefaultConfig } from '@/config/config';
 import { ISetupRow } from '@/types';
-// import { MainStore } from '@/store';
+import { MainStore } from '@/store';
 
 @Component({
   name: 'table-header-tip',
@@ -47,19 +47,30 @@ export default class TableHeader extends Vue {
   @Prop({ type: String, default: '前端测试的补充说明' }) private readonly otherInfo!: string; // 其它数据
   @Prop({ type: Object, default: () => ({}) }) private readonly row!: ISetupRow;
 
-  private linuxPort = defaultPort;
+  private linuxPort = defaultPort || 22;
+
+  private get osNameList() {
+    return MainStore.osNameList;
+  }
 
   private get port() {
     if (this.row.os_type) {
-      return this.row.os_type === 'WINDOWS' ? 445 : defaultPort || 22;
+      return `${getDefaultConfig(this.row.os_type, 'port')}  `;
     }
-    return `${defaultPort}/445`;
-    // return MainStore.installDefaultValues;
+    let portText = '\n';
+    this.osNameList.map((item) => {
+      const name = item.toUpperCase();
+      return  {
+        name: item,
+        port: getDefaultConfig(name, 'port'),
+      };
+    }).forEach((item) => {
+      portText += `${item.name}: ${item.port}\n`;
+    });
+    return portText;
   }
   @Emit('batch')
-  public handleBatch() {
-    return this.row.os_type ? this.port : this.linuxPort;
-  }
+  public handleBatch() {}
 }
 </script>
 
