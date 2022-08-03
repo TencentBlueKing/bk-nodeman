@@ -184,6 +184,7 @@ import TableHeader from './table-header.vue';
 import { STORAGE_KEY_COL } from '@/config/storage-key';
 import { Context } from 'vm';
 import { IFileInfo, IKeysMatch, ISetupHead, ISetupRow, ITabelFliter, ISetupParent } from '@/types';
+import { getDefaultConfig } from '@/config/config';
 
 interface IFilterRow {
   [key: string]: ITabelFliter
@@ -820,38 +821,46 @@ export default class SetupTable extends Vue {
    */
   private handleBatchConfirm(arg: any[], config: ISetupHead) {
     if (!arg || !arg.length) return;
-    const [{ value, fileInfo }] = arg;
-    const { type } = config;
-    if ((isEmpty(value) && type !== 'switcher') && (isEmpty(fileInfo) || !fileInfo.value)) return;
-    this.table.data.forEach((row, index) => {
-      const isReadOnly = (config.getReadonly && config.getReadonly(row)) || config.readonly;
-      const isFileType = config.getCurrentType && config.getCurrentType(row) === 'file';
-      const isWindowsKey = config.prop === 'auth_type'
-                          && value === 'KEY'
-                          && row.os_type === 'WINDOWS'; // Windows不支持密钥
-      if (isReadOnly || isWindowsKey) return;
-
-      if (fileInfo && isFileType) {
-        this.$set(this.table.data[index], config.prop, fileInfo.value);
-        this.$set(this.table.data[index], 'fileInfo', fileInfo);
-      } else if (!isEmpty(value)) {
-        if (type === 'select') {
-          const option = this.getCellInputOptions(this.table.data[index], config);
-          this.$set(this.table.data[index], config.prop, option.find(item => item.id === value) ? value : '');
-        } else {
-          this.$set(this.table.data[index], config.prop, value);
+    const [{ value, fileInfo, focusRow = {} }] = arg;
+    const { type, prop } = config;
+    if (prop === 'port' && isEmpty(value)) {
+      this.table.data.forEach((row, index) => {
+        if (!focusRow.os_type || (focusRow.os_type && row.os_type === focusRow.os_type)) {
+          this.$set(this.table.data[index], prop, getDefaultConfig(row.os_type as string, prop));
         }
-      } else if (isEmpty(value) && type === 'switcher') {
-        this.$set(this.table.data[index], config.prop, !!value);
-      }
-      if (typeof config.handleValueChange === 'function') {
-        // 触发联动属性（如：Windows操作系统变更后，端口默认变更）
-        config.handleValueChange.call(this, row);
-      }
-      // if (config.prop === 'os_type' && value === 'WINDOWS') {
-      //     this.$set(this.table.data[index], 'port', 445)
-      // }
-    });
+      });
+    } else {
+      if ((isEmpty(value) && type !== 'switcher') && (isEmpty(fileInfo) || !fileInfo.value)) return;
+      this.table.data.forEach((row, index) => {
+        const isReadOnly = (config.getReadonly && config.getReadonly(row)) || config.readonly;
+        const isFileType = config.getCurrentType && config.getCurrentType(row) === 'file';
+        const isWindowsKey = config.prop === 'auth_type'
+                            && value === 'KEY'
+                            && row.os_type === 'WINDOWS'; // Windows不支持密钥
+        if (isReadOnly || isWindowsKey) return;
+
+        if (fileInfo && isFileType) {
+          this.$set(this.table.data[index], config.prop, fileInfo.value);
+          this.$set(this.table.data[index], 'fileInfo', fileInfo);
+        } else if (!isEmpty(value)) {
+          if (type === 'select') {
+            const option = this.getCellInputOptions(this.table.data[index], config);
+            this.$set(this.table.data[index], config.prop, option.find(item => item.id === value) ? value : '');
+          } else {
+            this.$set(this.table.data[index], config.prop, value);
+          }
+        } else if (isEmpty(value) && type === 'switcher') {
+          this.$set(this.table.data[index], config.prop, !!value);
+        }
+        if (typeof config.handleValueChange === 'function') {
+          // 触发联动属性（如：Windows操作系统变更后，端口默认变更）
+          config.handleValueChange.call(this, row);
+        }
+        // if (config.prop === 'os_type' && value === 'WINDOWS') {
+        //     this.$set(this.table.data[index], 'port', 445)
+        // }
+      });
+    }
     this.$forceUpdate(); // 强制重新渲染提前，防止 inputInstance 为null的情况出现
     this.$nextTick(() => {
       this.verify.forEach((instance) => {
