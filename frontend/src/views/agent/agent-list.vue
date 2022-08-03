@@ -657,9 +657,9 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
       id: 'login_ip',
     },
     inner_ipv6: {
-      checked: true,
-      disabled: true,
-      mockChecked: true,
+      checked: false,
+      disabled: false,
+      mockChecked: false,
       name: window.i18n.t('内网IPv6'),
       id: 'inner_ipv6',
     },

@@ -63,6 +63,7 @@
         </template>
       </bk-table-column>
       <bk-table-column
+        v-if="filterField['inner_ipv6'].mockChecked"
         :width="innerIpv6Width"
         prop="inner_ipv6"
         class-name="ip-row"
@@ -249,11 +250,11 @@ export default class PluginRuleTable extends Mixins(HeaderRenderMixin) {
       mockChecked: true,
     },
     inner_ipv6: {
-      checked: true,
-      disabled: true,
+      checked: false,
+      disabled: false,
       name: window.i18n.t('内网IPv6'),
       id: 'inner_ipv6',
-      mockChecked: true,
+      mockChecked: false,
     },
     bk_host_name: {
       checked: true,
