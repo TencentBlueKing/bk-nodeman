@@ -7,13 +7,15 @@ get_cpu_arch () {{
     local cmd=$1
     CPU_ARCH=$($cmd)
     CPU_ARCH=$(echo $CPU_ARCH | tr 'A-Z' 'a-z')
-    # compatible ksh regex syntax
-    if [[ echo "$CPU_ARCH" | egrep -q "x86_64" ]]; then
+    # compatible ksh regex syntax, watch out bash syntax
+    if echo "$CPU_ARCH" | egrep -q "x86_64"; then
         return 0
-    elif [[ echo "$CPU_ARCH" | egrep -q "x86" || echo "$CPU_ARCH" | egrep -q '^i[3456]86' ]]; then
+    elif $(echo "$CPU_ARCH" | egrep -q "x86") || $(echo "$CPU_ARCH" | egrep -q '^i[3456]86'); then
         CPU_ARCH="x86"
         return 0
-    elif [[ echo "$CPU_ARCH" | egrep -q "aarch" ]]; then
+    elif echo "$CPU_ARCH" | egrep -q "aarch"; then
+        return 0
+    elif echo "$CPU_ARCH" | egrep -q "powerpc"; then
         return 0
     else
         return 1
