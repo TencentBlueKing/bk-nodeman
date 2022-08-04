@@ -375,6 +375,30 @@ class JobV3BaseService(six.with_metaclass(abc.ABCMeta, BaseService)):
             self.finish_schedule()
         data.outputs.polling_time = polling_time + POLLING_INTERVAL
 
+    @classmethod
+    def append_unique_key_params_info(
+        cls,
+        multi_job_params_map: Dict[str, Dict[str, Any]],
+        unique_key: str,
+        sub_inst: models.SubscriptionInstanceRecord,
+        host_obj: Optional[models.Host] = None,
+        host_infos: Optional[Dict[str, Union[List[Dict[str, Any]], List[int]]]] = None,
+    ):
+        if host_obj:
+            multi_job_params_map[unique_key]["subscription_instance_id"].append(sub_inst.id)
+            multi_job_params_map[unique_key]["job_params"]["target_server"]["ip_list"].append(
+                {"bk_cloud_id": host_obj.bk_cloud_id, "ip": host_obj.inner_ip}
+            )
+            multi_job_params_map[unique_key]["job_params"]["target_server"]["host_id_list"].append(host_obj.bk_host_id)
+        elif host_infos:
+            multi_job_params_map[unique_key]["subscription_instance_id"].append(sub_inst.id)
+            for ip_info in host_infos["ip_list"]:
+                multi_job_params_map[unique_key]["job_params"]["target_server"]["ip_list"].append(ip_info)
+            for bk_host_id in host_infos["host_id_list"]:
+                multi_job_params_map[unique_key]["job_params"]["target_server"]["host_id_list"].append(bk_host_id)
+
+        return multi_job_params_map
+
 
 class JobExecuteScriptService(JobV3BaseService, metaclass=abc.ABCMeta):
     def inputs_format(self):
@@ -406,12 +430,12 @@ class JobExecuteScriptService(JobV3BaseService, metaclass=abc.ABCMeta):
             md5_key = f"{script_content_md5}-{script_param_md5}"
 
             if md5_key in multi_job_params_map:
-                multi_job_params_map[md5_key]["subscription_instance_id"].append(sub_inst.id)
-                multi_job_params_map[md5_key]["job_params"]["target_server"]["ip_list"].extend(target_servers)
-                multi_job_params_map[md5_key]["job_params"]["target_server"]["ip_list"].append(
-                    {"bk_cloud_id": host_obj.bk_cloud_id, "ip": host_obj.inner_ip}
+                multi_job_params_map = self.append_unique_key_params_info(
+                    multi_job_params_map=multi_job_params_map,
+                    unique_key=md5_key,
+                    sub_inst=sub_inst,
+                    host_infos=target_servers,
                 )
-                multi_job_params_map[md5_key]["job_params"]["target_server"]["host_id_list"].append(host_obj.bk_host_id)
             else:
                 multi_job_params_map[md5_key] = {
                     "job_func": JobApi.fast_execute_script,
@@ -482,11 +506,9 @@ class JobTransferFileService(JobV3BaseService, metaclass=abc.ABCMeta):
             md5_key = f"{self.get_md5('|'.join(sorted(file_list)))}-{file_target_path}"
 
             if md5_key in multi_job_params_map:
-                multi_job_params_map[md5_key]["subscription_instance_id"].append(sub_inst.id)
-                multi_job_params_map[md5_key]["job_params"]["target_server"]["ip_list"].append(
-                    {"bk_cloud_id": host_obj.bk_cloud_id, "ip": host_obj.inner_ip}
+                multi_job_params_map = self.append_unique_key_params_info(
+                    multi_job_params_map=multi_job_params_map, unique_key=md5_key, host_obj=host_obj, sub_inst=sub_inst
                 )
-                multi_job_params_map[md5_key]["job_params"]["target_server"]["host_id_list"].append(host_obj.bk_host_id)
             else:
                 multi_job_params_map[md5_key] = {
                     "job_func": JobApi.fast_transfer_file,
@@ -565,12 +587,11 @@ class JobPushConfigService(JobV3BaseService, metaclass=abc.ABCMeta):
 
             job_unique_key = self.cal_job_unique_key(config_info_list, file_target_path)
             if job_unique_key in multi_job_params_map:
-                multi_job_params_map[job_unique_key]["subscription_instance_id"].append(sub_inst.id)
-                multi_job_params_map[job_unique_key]["job_params"]["target_server"]["ip_list"].append(
-                    {"bk_cloud_id": host_obj.bk_cloud_id, "ip": host_obj.inner_ip}
-                )
-                multi_job_params_map[job_unique_key]["job_params"]["target_server"]["host_id_list"].append(
-                    host_obj.bk_host_id
+                multi_job_params_map = self.append_unique_key_params_info(
+                    multi_job_params_map=multi_job_params_map,
+                    unique_key=job_unique_key,
+                    host_obj=host_obj,
+                    sub_inst=sub_inst,
                 )
             else:
                 file_source_list = []
