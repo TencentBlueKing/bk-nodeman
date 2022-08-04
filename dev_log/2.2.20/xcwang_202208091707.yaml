@@ -1,0 +1,3 @@
+---
+bugfix:
+  - "JOB API适配接口错误 (closed #988)"

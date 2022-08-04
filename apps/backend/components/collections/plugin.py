@@ -969,12 +969,11 @@ class RenderAndPushConfigService(PluginBaseService, JobV3BaseService):
                 key = f"{file_target_path}-{file_name}-{file_md5}"
                 # 路径、文件名、文件内容一致，则认为是同一个文件，合并到一个作业中，提高执行效率
                 if key in multi_job_params_map:
-                    multi_job_params_map[key]["subscription_instance_id"].append(subscription_instance.id)
-                    multi_job_params_map[key]["job_params"]["target_server"]["ip_list"].append(
-                        {"bk_cloud_id": target_host.bk_cloud_id, "ip": target_host.inner_ip}
-                    )
-                    multi_job_params_map[key]["job_params"]["target_server"]["host_id_list"].append(
-                        target_host.bk_host_id
+                    multi_job_params_map = self.append_unique_key_params_info(
+                        multi_job_params_map=multi_job_params_map,
+                        unique_key=key,
+                        host_obj=target_host,
+                        sub_inst=subscription_instance,
                     )
                 else:
                     multi_job_params_map[key] = {

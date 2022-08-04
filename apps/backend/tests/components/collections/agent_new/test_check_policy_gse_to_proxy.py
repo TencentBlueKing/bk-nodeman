@@ -17,7 +17,7 @@ from apps.backend.components.collections.agent_new import (
     check_policy_gse_to_proxy,
     components,
 )
-from apps.node_man import constants
+from apps.node_man import constants, models
 from common.api import JobApi
 
 from . import base
@@ -27,6 +27,12 @@ class CheckPolicyGseToProxyTestCase(base.JobBaseTestCase):
     @classmethod
     def get_default_case_name(cls) -> str:
         return "检测 GSE Server 到 Proxy 策略成功"
+
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
+        host = models.Host.objects.all()[0]
+        models.AccessPoint.objects.all().update(btfileserver=[{"inner_ip": host.inner_ip, "outer_ip": host.outer_ip}])
 
     def component_cls(self):
         return components.CheckPolicyGseToProxyComponent
