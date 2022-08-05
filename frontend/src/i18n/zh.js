@@ -330,11 +330,11 @@ export default {
   agentSetupInnerIp: '目标主机的 IP 地址，数据将同步至 CMDB，支持 IPv4、IPv6\n\n注：若主机有多网卡，用于登录的 IP 地址与 CMDB 中记录的 IP 不一致时，需要单独指定该主机的{0}用于进行 Agent 安装另行设置',
   agentSetupLoginAccount: '登录到目标主机上所使用的用户\nssh {0}@10.0.0.1 -p 22',
   agentSetupLoginIp: '目标主机的用于登录进行 Agent 安装的 IP 地址，区别于记录在 CMDB 中的 IP；\n支持 IPv4、IPv6。',
-  agentSetupPort: 'ssh root@10.0.0.1 -p {0}\n当前环境推荐：{1}{2}',
+  agentSetupPort: 'ssh root@10.0.0.1 -p {0}\n当前环境推荐：{1}{2}{3}',
   agentSetupKey: '用于登录到目标主机的凭据，例：\nssh root@10.0.0.1 -p 22\n> {0}\n或\nssh root@10.0.0.1 -p 22 -i {1}',
   agentSetupPwd: '用于登录到目标机器的密码\nssh root@10.0.0.1 -p 22\n> {0}',
   agentSetupFile: '用于登录到目标机器的密钥ssh root@10.0.0.1 -i {0}',
-  补充说明tips: '补充说明：\n{0}',
+  补充说明tips: '补充说明：{0}',
 
   安装方式: '安装方式',
   远程安装: '远程安装',
