@@ -7,10 +7,10 @@
       <span class="danger">22</span>
       <span>{{ port }}</span>
       <span class="primary pointer" @mousedown.prevent @click="handleBatch">{{ $t('批量应用') }}</span>
-      <template v-if="otherInfo">
+      <p v-if="portDescription">
         <br />
-        <span>{{ $t('补充说明tips', [otherInfo]) }}</span>
-      </template>
+        <span>{{ $t('补充说明tips', [portDescription]) }}</span>
+      </p>
     </i18n>
     <template v-else-if="tips === 'agentSetupKey'">
       <i18n tag="pre" :path="tips" v-if="!row.auth_type">
@@ -34,7 +34,7 @@
 </template>
 <script lang="ts">
 import { Vue, Component, Prop, Emit } from 'vue-property-decorator';
-import { defaultPort, getDefaultConfig } from '@/config/config';
+import { getDefaultConfig } from '@/config/config';
 import { ISetupRow } from '@/types';
 import { MainStore } from '@/store';
 
@@ -44,10 +44,7 @@ import { MainStore } from '@/store';
 export default class TableHeader extends Vue {
   @Prop({ type: Boolean, default: false }) private readonly jointTip!: boolean;
   @Prop({ type: String, default: '' }) private readonly tips!: string; // 是否有悬浮提示
-  @Prop({ type: String, default: '前端测试的补充说明' }) private readonly otherInfo!: string; // 其它数据
   @Prop({ type: Object, default: () => ({}) }) private readonly row!: ISetupRow;
-
-  private linuxPort = defaultPort || 22;
 
   private get osNameList() {
     return MainStore.osNameList;
@@ -69,6 +66,10 @@ export default class TableHeader extends Vue {
     });
     return portText;
   }
+  private get portDescription() {
+    return this.row.os_type ? getDefaultConfig(this.row.os_type, 'port__description') : '';
+  }
+
   @Emit('batch')
   public handleBatch() {}
 }

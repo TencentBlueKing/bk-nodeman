@@ -330,7 +330,7 @@ export default {
   agentSetupInnerIp: 'The IP address of the target host, the data will be synchronized to the CMDB, IPv4, IPv6 are supported\n\nNote: If the host has multiple network cards and the IP address used for logging in is inconsistent with the IP recorded in the CMDB, you need to specify the {0} of the host separately for Agent installation.',
   agentSetupLoginIp: 'The IP address of the target host for logging in for Agent installation, which is different from the IP recorded in the CMDB;\nSupports IPv4 and IPv6.',
   agentSetupLoginAccount: 'Log in as user on the target host\nssh {0}@10.0.0.1 -p 22',
-  agentSetupPort: 'ssh root@10.0.0.1 -p {0}\nCurrent environment recommended: {1}{2}',
+  agentSetupPort: 'ssh root@10.0.0.1 -p {0}\nCurrent environment recommended: {1}{2}{3}',
   agentSetupKey: 'Credentials to log in to the target host, for example: \nssh root@10.0.0.1 -p 22\n> {0}\n or \nssh root@10.0.0.1 -p 22 -i {1}',
   agentSetupPwd: 'Password to log in to the target machine\nssh root@10.0.0.1 -p 22\n> {0} ',
   agentSetupFile: 'The key used to log into the target machine ssh root@10.0.0.1 -i {0}',
