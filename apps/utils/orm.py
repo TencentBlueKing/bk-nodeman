@@ -9,11 +9,39 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+from datetime import datetime
+
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
-from apps.utils.local import get_request_username
+from apps.utils.local import (
+    get_request_username,
+    get_request_username_or_local_app_code,
+)
+
+
+def model_to_dict(instance, fields=None, exclude=None):
+    """Return django model Dict, Override django model_to_dict: <foreignkey use column as key>"""
+    opts = instance._meta
+    data = {}
+    from itertools import chain
+
+    for field in chain(opts.concrete_fields, opts.private_fields, opts.many_to_many):
+        if fields and field.name not in fields:
+            continue
+        if exclude and field.name in exclude:
+            continue
+        if field.get_internal_type() == "ForeignKey":
+            field.name = field.column
+        # if f.choices:
+        #     data[f'{f.name}_display'] = getattr(instance, f'get_{f.name}_display')()
+
+        data[field.name] = field.value_from_object(instance)
+        if isinstance(data[field.name], datetime):
+            data[field.name] = str(data[field.name])
+
+    return data
 
 
 class SoftDeleteQuerySet(models.query.QuerySet):
@@ -87,6 +115,76 @@ class SoftDeleteModel(models.Model):
             setattr(self, extra_update_field, value)
 
         self.save()
+
+    class Meta:
+        abstract = True
+
+
+class OperateRecordQuerySet(models.query.QuerySet):
+    """
+    批量更新时写入更新时间和更新者
+    """
+
+    def update(self, **kwargs):
+        # 是否跳过更新时间或更新人，某些特殊场景下使用
+        skip_update_time = kwargs.pop("skip_update_time", False)
+        skip_update_user = kwargs.pop("skip_update_user", False)
+        kwargs.update({"updated_time": timezone.now(), "updated_by": get_request_username_or_local_app_code()})
+        if skip_update_time:
+            kwargs.pop("updated_time", "")
+        if skip_update_user:
+            kwargs.pop("updated_by", "")
+        super().update(**kwargs)
+
+
+class OperateRecordModelManager(models.Manager):
+    def get_queryset(self):
+        return OperateRecordQuerySet(self.model, using=self._db)
+
+    def create(self, *args, **kwargs):
+        username: str = get_request_username_or_local_app_code()
+        kwargs.update(
+            {
+                "created_time": kwargs.get("created_time", timezone.now()),
+                "created_by": kwargs.get("created_by", username),
+                "updated_time": kwargs.get("updated_time", timezone.now()),
+                "updated_by": kwargs.get("updated_by", username),
+            }
+        )
+        return super().create(*args, **kwargs)
+
+    def bulk_create(self, objs, *args, **kwargs):
+        username: str = get_request_username_or_local_app_code()
+        for obj in objs:
+            obj.created_time = obj.created_time or timezone.now()
+            obj.created_by = obj.created_by or username
+            obj.updated_time = obj.updated_time or timezone.now()
+            obj.updated_by = obj.updated_by or username
+        return super().bulk_create(objs, *args, **kwargs)
+
+
+class OperateRecordModel(models.Model):
+    """
+    需要记录操作的model父类
+    自动记录创建时间/修改时间与操作者
+    """
+
+    objects = OperateRecordModelManager()
+
+    created_time = models.DateTimeField(_("创建时间"), auto_now_add=True)
+    created_by = models.CharField(_("创建者"), max_length=32, default="")
+    updated_time = models.DateTimeField(_("更新时间"), blank=True, null=True, auto_now=True)
+    updated_by = models.CharField(_("修改者"), max_length=32, blank=True, default="")
+
+    def save(self, *args, **kwargs):
+        username: str = get_request_username_or_local_app_code()
+        if self._state.adding:
+            self.created_time = timezone.now()
+            self.created_by = username
+
+        self.updated_time = timezone.now()
+        self.updated_by = username
+        super().save(*args, **kwargs)
 
     class Meta:
         abstract = True

@@ -14,6 +14,8 @@ from typing import Any, Dict
 from django.db.models import Q
 from django.utils.translation import get_language
 
+from apps.core.tag import targets
+from apps.core.tag.models import Tag
 from apps.node_man import constants as const
 from apps.node_man import tools
 from apps.node_man.constants import IamActionType
@@ -22,6 +24,7 @@ from apps.node_man.handlers.host import HostHandler
 from apps.node_man.handlers.validator import operate_validator
 from apps.node_man.models import (
     Cloud,
+    GsePluginDesc,
     Host,
     Job,
     JobTask,
@@ -424,9 +427,18 @@ class PluginHandler(APIModel):
         """
         获取某个插件包列表
         """
-        return Packages.objects.filter(
-            cpu_arch__in=[const.CpuType.x86_64, const.CpuType.powerpc], project=project, os=os_type.lower()
-        ).order_by("-id")
+        plugin_obj = GsePluginDesc.objects.get(name=project)
+
+        # 查找置顶版本
+        top_tag: Tag = targets.PluginTargetHelper.get_top_tag_or_none(plugin_obj.id)
+        top_versions = []
+        if top_tag is not None:
+            top_versions = [top_tag.name]
+
+        package_infos = tools.PluginV2Tools.fetch_package_infos(
+            project=project, os_type=os_type.lower(), cpu_arch=const.CpuType.x86_64
+        )
+        return tools.PluginV2Tools.get_sorted_package_infos(package_infos, top_versions=top_versions)
 
     @staticmethod
     def get_process_status(bk_host_ids: list):

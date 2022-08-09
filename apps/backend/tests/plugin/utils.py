@@ -15,7 +15,7 @@ import tarfile
 import uuid
 from collections import ChainMap
 from enum import Enum
-from typing import Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import mock
 from django.conf import settings
@@ -171,6 +171,16 @@ class PluginBaseTestCase(CustomAPITestCase):
         IS_EXTERNAL
     ]
 
+    FILE_OVERWRITE = True
+
+    OVERWRITE_OBJ__KV_MAP = {
+        settings: {
+            "FILE_OVERWRITE": FILE_OVERWRITE,
+            "STORAGE_TYPE": core_files_constants.StorageType.FILE_SYSTEM.value,
+        },
+        base.StorageFileOverwriteMixin: {"file_overwrite": FILE_OVERWRITE},
+    }
+
     @classmethod
     def setUpClass(cls):
 
@@ -266,6 +276,41 @@ class PluginBaseTestCase(CustomAPITestCase):
             shutil.rmtree(cls.TMP_DIR)
 
         super().tearDownClass()
+
+    def upload_plugin(self, file_local_path: Optional[str] = None) -> Dict[str, Any]:
+        file_local_path = file_local_path or self.PLUGIN_ARCHIVE_PATH
+        md5 = files.md5sum(file_local_path)
+        upload_result = self.client.post(
+            path="/backend/package/upload/",
+            data={
+                "module": "gse_plugin",
+                "md5": md5,
+                # nginx 计算并回调的额外参数
+                "file_name": self.PLUGIN_ARCHIVE_NAME,
+                "file_local_md5": md5,
+                "file_local_path": file_local_path,
+            },
+            format=None,
+        )["data"]
+        file_name = upload_result["name"]
+        # 插件会保存到 UPLOAD_PATH
+        self.assertTrue(
+            models.UploadPackage.objects.filter(
+                file_name=file_name, file_path=os.path.join(settings.UPLOAD_PATH, file_name)
+            ).exists()
+        )
+        return upload_result
+
+    def register_plugin(self, file_name: str, select_pkg_relative_paths: Optional[List[str]] = None):
+        base_query_params = {
+            "file_name": file_name,
+            "is_release": True,
+            "is_template_load": True,
+        }
+        if select_pkg_relative_paths is not None:
+            base_query_params["select_pkg_relative_paths"]: select_pkg_relative_paths
+
+        self.client.post(path="/backend/api/plugin/create_register_task/", data=base_query_params)
 
 
 class CustomBKRepoMockStorage(storage.CustomBKRepoStorage):
