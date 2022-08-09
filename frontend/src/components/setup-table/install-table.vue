@@ -35,6 +35,7 @@
                   :ref="`header_${config.prop}`"
                   v-else
                   v-bind="{
+                    prop: config.prop,
                     tips: config.tips,
                     label: config.label,
                     required: !config.noRequiredMark && config.required,

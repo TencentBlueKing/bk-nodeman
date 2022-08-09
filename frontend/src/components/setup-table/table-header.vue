@@ -82,8 +82,8 @@
     </bk-popover>
     <div v-show="false">
       <section ref="tipRef">
-        <TableHeaderTip v-if="parentTip" joint-tip :tips="parentTip"></TableHeaderTip>
-        <TableHeaderTip :tips="tips" :row="focusRow" @batch="handleTipsBatch"></TableHeaderTip>
+        <TableHeaderTip v-if="parentTip" joint-tip :tips="parentTip" />
+        <TableHeaderTip :tips="tips" :row="focusRow" :remark="remark" @batch="handleTipsBatch" />
       </section>
     </div>
   </div>
@@ -94,6 +94,7 @@ import { bus } from '@/common/bus';
 import InputType from './input-type.vue';
 import { IFileInfo, ISetupRow } from '@/types';
 import TableHeaderTip from './table-header-tip.vue';
+import { getConfigRemark } from '@/config/config';
 
 @Component({
   name: 'table-header',
@@ -104,6 +105,7 @@ import TableHeaderTip from './table-header-tip.vue';
 })
 
 export default class TableHeader extends Vue {
+  @Prop({ type: String, default: '' }) private readonly prop!: string;
   @Prop({ type: String, default: '' }) private readonly tips!: string; // 是否有悬浮提示
   @Prop({ type: String, default: '' }) private readonly label!: string; // 表头label
   @Prop({ type: String, default: '' }) private readonly parentProp!: string;
@@ -131,6 +133,10 @@ export default class TableHeader extends Vue {
   private popoverInstance: any = null;
   // 切换Popover的触发方式, 规避无法切换导致的问题 (setProps函数的替代方案, 低版tippy本无此方法)
   private tipsTrigger: 'mouseenter' | 'manual' = 'mouseenter';
+
+  private get remark() {
+    return getConfigRemark(`${this.prop}__description`, this.focusRow.os_type);
+  }
 
   private created() {
     bus.$on('batch-btn-click', this.hidePopover); // 只出现一个弹框

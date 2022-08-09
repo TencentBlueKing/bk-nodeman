@@ -334,7 +334,7 @@ export default {
   agentSetupKey: 'Credentials to log in to the target host, for example: \nssh root@10.0.0.1 -p 22\n> {0}\n or \nssh root@10.0.0.1 -p 22 -i {1}',
   agentSetupPwd: 'Password to log in to the target machine\nssh root@10.0.0.1 -p 22\n> {0} ',
   agentSetupFile: 'The key used to log into the target machine ssh root@10.0.0.1 -i {0}',
-  补充说明tips: 'Additional instructions: \n{0}',
+  补充说明tips: '\nAdditional instructions: \n{0}',
 
   安装方式: 'Install method',
   远程安装: 'Remote install',
