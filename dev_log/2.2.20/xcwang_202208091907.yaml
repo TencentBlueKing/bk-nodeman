@@ -1,0 +1,3 @@
+---
+optimization:
+  - "Agent 安装脚本移除启动插件逻辑 (closed #727)"

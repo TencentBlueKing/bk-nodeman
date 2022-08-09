@@ -376,7 +376,7 @@ remove_proxy_if_exists () {
 
     for p in agent transit btsvr; do
         for i in {0..10}; do
-            read -r -a pids <<< "`ps -eo pid,comm| grep gse_agent |awk '{print$1}`"
+            read -r -a pids <<< "`ps -eo pid,comm| grep gse_agent |awk '{print$1}'`"
             if [ ${#pids[@]} -eq 0 ]; then
                 # 进程已退，继续检查下一个进程
                 break
@@ -512,22 +512,6 @@ setup_agent () {
     start_agent
 
     log setup_agent DONE "gse agent is setup successfully."
-}
-
-start_basic_gse_plugin () {
-    log start_plugin START "start gse plugin: basereport, processbeat"
-    cd "$AGENT_SETUP_PATH/../plugins/bin" || fail start_plugin FAILED "change directory to $AGENT_SETUP_PATH/../plugins/bin failed"
-
-    if [[ -x ./basereport ]]; then
-        ./stop.sh basereport
-        ./start.sh basereport || fail start_plugin FAILED "basereport start failed."
-    fi
-    if [[ -x ./processbeat ]]; then
-        ./stop.sh processbeat
-        ./start.sh processbeat || fail start_plugin FAILED "processbeat start failed."
-    fi
-
-    log start_plugin DONE "gse plugin 'basereport,processbeat start done."
 }
 
 download_pkg () {
@@ -884,7 +868,6 @@ for step in check_env \
             remove_agent \
             remove_proxy_if_exists \
             setup_agent \
-            start_basic_gse_plugin \
             setup_startup_scripts \
             check_deploy_result; do
     $step
