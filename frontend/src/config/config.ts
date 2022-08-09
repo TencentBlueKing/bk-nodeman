@@ -50,4 +50,11 @@ export const getDefaultConfig = (type: string, key: string, value?: any) => {
   const osConfig: Dictionary = MainStore.installDefaultValues[type];
   return osConfig && Object.prototype.hasOwnProperty.call(osConfig, key) ? osConfig[key] : value;
 };
+export const getConfigRemark = (key: string, os?: string) => {
+  if (os) {
+    const osConfig: Dictionary = MainStore.installDefaultValues[os];
+    return osConfig[key] || MainStore.installDefaultValues[key] || '';
+  }
+  return MainStore.installDefaultValues[key] || '';
+};
 export default authentication;

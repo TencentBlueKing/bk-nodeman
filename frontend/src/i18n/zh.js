@@ -334,7 +334,7 @@ export default {
   agentSetupKey: '用于登录到目标主机的凭据，例：\nssh root@10.0.0.1 -p 22\n> {0}\n或\nssh root@10.0.0.1 -p 22 -i {1}',
   agentSetupPwd: '用于登录到目标机器的密码\nssh root@10.0.0.1 -p 22\n> {0}',
   agentSetupFile: '用于登录到目标机器的密钥ssh root@10.0.0.1 -i {0}',
-  补充说明tips: '补充说明：{0}',
+  补充说明tips: '\n补充说明：\n{0}',
 
   安装方式: '安装方式',
   远程安装: '远程安装',

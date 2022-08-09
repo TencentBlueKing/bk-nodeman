@@ -7,10 +7,6 @@
       <span class="danger">22</span>
       <span>{{ port }}</span>
       <span class="primary pointer" @mousedown.prevent @click="handleBatch">{{ $t('批量应用') }}</span>
-      <p v-if="portDescription">
-        <br />
-        <span>{{ $t('补充说明tips', [portDescription]) }}</span>
-      </p>
     </i18n>
     <template v-else-if="tips === 'agentSetupKey'">
       <i18n tag="pre" :path="tips" v-if="!row.auth_type">
@@ -30,6 +26,10 @@
     <!-- eslint-disable-next-line vue/no-v-html -->
     <p v-else-if="['登录IP提示', '出口IP提示'].includes(tips)" v-html="$t(tips)"></p>
     <i18n tag="pre" :path="tips" v-else></i18n>
+
+    <i18n v-if="remark" tag="pre" path="补充说明tips">
+      <span>{{ remark }}</span>
+    </i18n>
   </section>
 </template>
 <script lang="ts">
@@ -45,6 +45,7 @@ export default class TableHeader extends Vue {
   @Prop({ type: Boolean, default: false }) private readonly jointTip!: boolean;
   @Prop({ type: String, default: '' }) private readonly tips!: string; // 是否有悬浮提示
   @Prop({ type: Object, default: () => ({}) }) private readonly row!: ISetupRow;
+  @Prop({ type: String, default: '' }) private readonly remark!: string;
 
   private get osNameList() {
     return MainStore.osNameList;
@@ -65,9 +66,6 @@ export default class TableHeader extends Vue {
       portText += `${item.name}: ${item.port}\n`;
     });
     return portText;
-  }
-  private get portDescription() {
-    return this.row.os_type ? getDefaultConfig(this.row.os_type, 'port__description') : '';
   }
 
   @Emit('batch')
