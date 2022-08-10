@@ -254,14 +254,26 @@ export interface ISetupRow {
   install_channel_id: string | number | null
   bk_addressing: '0' | '1'
 }
+
+export interface ISetupParent {
+  label: string
+  prop: string
+  type?: string
+  tips?: string
+  colspan?: number
+}
+
 // table 表头配置
 export interface ISetupHead {
   label: string
   prop: string
   reprop?: string
+  parentProp?: string
+  parentTip?: string
   subTitle?: string
   show?: boolean
   batch?: boolean
+  sync?: string
   multiple?: boolean
   default?: any
   readonly?: boolean

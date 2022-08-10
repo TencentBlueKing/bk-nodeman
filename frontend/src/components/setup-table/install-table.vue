@@ -8,6 +8,18 @@
             <col v-for="(item, index) in tableHead" :key="index" :width="item.width ? item.width : 'auto'">
           </colgroup>
           <thead>
+            <tr v-if="tableParentHead.length">
+              <th v-for="config in tableParentHead" :key="config.prop" :colspan="config.colspan">
+                <TableHeader
+                  :ref="`header_${config.prop}`"
+                  v-bind="{
+                    tips: config.tips,
+                    label: config.label,
+                    colspan: config.colspan
+                  }">
+                </TableHeader>
+              </th>
+            </tr>
             <tr>
               <th v-for="(config, index) in tableHead" :key="config.prop">
                 <ColumnSetting
@@ -23,6 +35,7 @@
                   :ref="`header_${config.prop}`"
                   v-else
                   v-bind="{
+                    prop: config.prop,
                     tips: config.tips,
                     label: config.label,
                     required: !config.noRequiredMark && config.required,
@@ -34,7 +47,10 @@
                     multiple: !!config.multiple,
                     searchable: !!config.searchable,
                     placeholder: config.placeholder,
-                    appendSlot: config.appendSlot
+                    appendSlot: config.appendSlot,
+                    parentProp: config.parentProp,
+                    parentTip: config.parentTip,
+                    focusRow: focusRow
                   }"
                   @confirm="handleBatchConfirm(arguments, config)">
                 </TableHeader>
@@ -135,8 +151,9 @@
                       autofocus: virtualScroll,
                       fileInfo: getCellFileInfo(row, config)
                     }"
-                    @focus="handleCellFocus(arguments, config)"
+                    @focus="handleCellFocus(row, config)"
                     @blur="handleCellBlur"
+                    @input="handleCellValueInput(arguments, row, config)"
                     @change="handleCellValueChange(row, config)"
                     @upload-change="handleCellUploadChange($event, row)">
                   </InstallInputType>
@@ -167,7 +184,8 @@ import { throttle, isEmpty } from '@/common/util';
 import TableHeader from './table-header.vue';
 import { STORAGE_KEY_COL } from '@/config/storage-key';
 import { Context } from 'vm';
-import { IFileInfo, IKeysMatch, ISetupHead, ISetupRow, ITabelFliter } from '@/types';
+import { IFileInfo, IKeysMatch, ISetupHead, ISetupRow, ITabelFliter, ISetupParent } from '@/types';
+import { getDefaultConfig } from '@/config/config';
 
 interface IFilterRow {
   [key: string]: ITabelFliter
@@ -191,7 +209,7 @@ export default class SetupTable extends Vue {
     validator(v) {
       return v && Array.isArray(v.header);
     },
-  }) private readonly setupInfo!: { header: ISetupHead[], data: ISetupRow[] };
+  }) private readonly setupInfo!: { header: ISetupHead[], data: ISetupRow[], parentHead?: ISetupParent[] };
 
   // 是否启用校验错误时自动排序
   @Prop({ type: Boolean, default: false }) private readonly autoSort!: boolean;
@@ -222,6 +240,7 @@ export default class SetupTable extends Vue {
     data: [],
     config: [],
   };
+  private tableParentHead: ISetupParent[] = [];
   private tableHead: ISetupHead[] = [];
   private filter: IFilterRow = {};
   private startIndex = 0;
@@ -235,6 +254,7 @@ export default class SetupTable extends Vue {
   private editData: {  id: number, prop: string }[] = [];
   private hasScroll= false;
   private listenResize!: Function;
+  private focusRow: any = {};
 
   private get fetchPwd() {
     return AgentStore.fetchPwd;
@@ -414,6 +434,16 @@ export default class SetupTable extends Vue {
       return row.fileInfo;
     }
     return null;
+  }
+  private handleCellValueInput(arg: any[], row: ISetupRow, config: ISetupHead) {
+    const [newValue] = arg;
+    const prop = config.prop as IKeysMatch<ISetupRow, string>;
+    const sync = config.sync as IKeysMatch<ISetupRow, string>;
+    const syncSource = typeof row[prop] === 'undefined' ? '' : row[prop];
+    const syncTarget = typeof row[sync] === 'undefined' ? '' : row[sync];
+    if (sync && syncSource === syncTarget) {
+      row[sync] = newValue;
+    }
   }
   /**
    * 当前cell change事件
@@ -739,7 +769,7 @@ export default class SetupTable extends Vue {
         values: [],
         prop: '',
       };
-      const loginIpValus: string[] = []; // login_ip无 或者 与inner_Ip数量对应
+      const loginIpValues: string[] = []; // login_ip无 或者 与inner_Ip数量对应
       this.table.config.filter(col => col.prop && col.prop !== 'prove').forEach((col) => {
         const prop = col.prop as keyof ISetupRow;
         // 一个输入框支持多条 IP 时，需要拆分成多条
@@ -747,7 +777,7 @@ export default class SetupTable extends Vue {
           const splitCode = col.splitCode.find((splitCode: string) => (data[prop] as string).indexOf(splitCode) > 0);
           const values = this.handleTrimArray((data[prop] as string).split(splitCode as string)) || [];
           if (col.prop === 'login_ip') {
-            loginIpValus.splice(0, 0, ...values);
+            loginIpValues.splice(0, 0, ...values);
           } else {
             split.values = values;
             split.length = split.values.length;
@@ -771,11 +801,11 @@ export default class SetupTable extends Vue {
       });
 
       if (split.length && split.prop) {
-        const isEqual = split.length === loginIpValus.length;
+        const isEqual = split.length === loginIpValues.length;
         split.values.forEach((value, index) => {
           const prop = { [split.prop]: value };
           if (isEqual) {
-            prop.login_ip = loginIpValus[index];
+            prop.login_ip = loginIpValues[index];
           }
           const newItem = JSON.parse(JSON.stringify(Object.assign(item, prop)));
           arr.push(newItem);
@@ -792,38 +822,46 @@ export default class SetupTable extends Vue {
    */
   private handleBatchConfirm(arg: any[], config: ISetupHead) {
     if (!arg || !arg.length) return;
-    const [{ value, fileInfo }] = arg;
-    const { type } = config;
-    if ((isEmpty(value) && type !== 'switcher') && (isEmpty(fileInfo) || !fileInfo.value)) return;
-    this.table.data.forEach((row, index) => {
-      const isReadOnly = (config.getReadonly && config.getReadonly(row)) || config.readonly;
-      const isFileType = config.getCurrentType && config.getCurrentType(row) === 'file';
-      const isWindowsKey = config.prop === 'auth_type'
-                          && value === 'KEY'
-                          && row.os_type === 'WINDOWS'; // Windows不支持密钥
-      if (isReadOnly || isWindowsKey) return;
-
-      if (fileInfo && isFileType) {
-        this.$set(this.table.data[index], config.prop, fileInfo.value);
-        this.$set(this.table.data[index], 'fileInfo', fileInfo);
-      } else if (!isEmpty(value)) {
-        if (type === 'select') {
-          const option = this.getCellInputOptions(this.table.data[index], config);
-          this.$set(this.table.data[index], config.prop, option.find(item => item.id === value) ? value : '');
-        } else {
-          this.$set(this.table.data[index], config.prop, value);
+    const [{ value, fileInfo, focusRow = {} }] = arg;
+    const { type, prop } = config;
+    if (prop === 'port' && isEmpty(value)) {
+      this.table.data.forEach((row, index) => {
+        if (!focusRow.os_type || (focusRow.os_type && row.os_type === focusRow.os_type)) {
+          this.$set(this.table.data[index], prop, getDefaultConfig(row.os_type as string, prop));
         }
-      } else if (isEmpty(value) && type === 'switcher') {
-        this.$set(this.table.data[index], config.prop, !!value);
-      }
-      if (typeof config.handleValueChange === 'function') {
-        // 触发联动属性（如：Windows操作系统变更后，端口默认变更）
-        config.handleValueChange.call(this, row);
-      }
-      // if (config.prop === 'os_type' && value === 'WINDOWS') {
-      //     this.$set(this.table.data[index], 'port', 445)
-      // }
-    });
+      });
+    } else {
+      if ((isEmpty(value) && type !== 'switcher') && (isEmpty(fileInfo) || !fileInfo.value)) return;
+      this.table.data.forEach((row, index) => {
+        const isReadOnly = (config.getReadonly && config.getReadonly(row)) || config.readonly;
+        const isFileType = config.getCurrentType && config.getCurrentType(row) === 'file';
+        const isWindowsKey = config.prop === 'auth_type'
+                            && value === 'KEY'
+                            && row.os_type === 'WINDOWS'; // Windows不支持密钥
+        if (isReadOnly || isWindowsKey) return;
+
+        if (fileInfo && isFileType) {
+          this.$set(this.table.data[index], config.prop, fileInfo.value);
+          this.$set(this.table.data[index], 'fileInfo', fileInfo);
+        } else if (!isEmpty(value)) {
+          if (type === 'select') {
+            const option = this.getCellInputOptions(this.table.data[index], config);
+            this.$set(this.table.data[index], config.prop, option.find(item => item.id === value) ? value : '');
+          } else {
+            this.$set(this.table.data[index], config.prop, value);
+          }
+        } else if (isEmpty(value) && type === 'switcher') {
+          this.$set(this.table.data[index], config.prop, !!value);
+        }
+        if (typeof config.handleValueChange === 'function') {
+          // 触发联动属性（如：Windows操作系统变更后，端口默认变更）
+          config.handleValueChange.call(this, row);
+        }
+        // if (config.prop === 'os_type' && value === 'WINDOWS') {
+        //     this.$set(this.table.data[index], 'port', 445)
+        // }
+      });
+    }
     this.$forceUpdate(); // 强制重新渲染提前，防止 inputInstance 为null的情况出现
     this.$nextTick(() => {
       this.verify.forEach((instance) => {
@@ -902,14 +940,28 @@ export default class SetupTable extends Vue {
         }
       });
     }
-    this.tableHead = this.table.config.filter(item => item.type === 'operate' || this.filter[item.prop].mockChecked);
+    this.initTableHead();
+  }
+  public initTableHead() {
+    const tableHead = this.table.config.filter(item => item.type === 'operate' || this.filter[item.prop]?.mockChecked);
+    if (this.setupInfo.header?.length) {
+      const tableParentHead = this.setupInfo.parentHead?.map(item => ({
+        ...item,
+        colspan: tableHead.filter(head => head.parentProp === item.prop).length,
+      })) || [];
+      this.tableParentHead = tableParentHead.filter(item => !!item.colspan || !item.prop);
+    }
+    this.tableHead = tableHead.map(item => ({
+      ...item,
+      parentTip: this.tableParentHead.find(parent => item.parentProp === parent.prop)?.tips || '',
+    }));
   }
   /**
    * 字段显示列确认事件
    */
   private handleColumnUpdate(data: IFilterRow) {
     this.filter = data;
-    this.tableHead = this.table.config.filter(item => item.type === 'operate' || this.filter[item.prop].mockChecked);
+    this.initTableHead();
     this.$forceUpdate();
   }
   /**
@@ -953,15 +1005,19 @@ export default class SetupTable extends Vue {
     return new Array(len).fill('*')
       .join('');
   }
-  private handleCellFocus(arg: any[], config: ISetupHead) {
+  private handleCellFocus(row: ISetupRow, config: ISetupHead) {
+    this.$set(this, 'focusRow', row);
     const { prop } = config;
     const [refs] = this.$refs[`header_${prop}`] as any[];
-    if (refs?.tipsShow) {
-      this.popoverEl = refs;
-      this.popoverEl.tipsShow();
-    }
+    setTimeout(() => {
+      if (refs?.tipsShow) {
+        this.popoverEl = refs;
+        this.popoverEl.tipsShow();
+      }
+    }, 200);
   }
   private handleCellBlur() {
+    this.$set(this, 'focusRow', {});
     this.popoverEl && this.popoverEl.tipsHide();
     this.popoverEl = null;
   }

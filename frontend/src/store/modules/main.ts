@@ -66,6 +66,7 @@ export default class Main extends VuexModule {
   public cacheViews: string[] = [];
   public routerBackName = '';
   public osList: any = null;
+  public osNameList: string[] = [];
   public osMap: Dictionary = null;
   public installDefaultValues: Dictionary = {};
 
@@ -280,6 +281,7 @@ export default class Main extends VuexModule {
   @Mutation
   public updateOsList(list = []) {
     this.osList = list;
+    this.osNameList = list.map(item => item.name);
     this.osMap = list.reduce((map, item) => {
       const { id = '', name = '' } = item;
       const osLower = id.toLowerCase();
@@ -414,7 +416,18 @@ export default class Main extends VuexModule {
    */
   @Action
   public async getDefaultConfig() {
-    const data = await retrieveGlobalSettings({ key: 'INSTALL_DEFAULT_VALUES' }).catch(() => ({ }));
-    this.updateInstallDefaultValues(data.INSTALL_DEFAULT_VALUES ? data.INSTALL_DEFAULT_VALUES : {});
+    const data = await retrieveGlobalSettings({ key: 'INSTALL_DEFAULT_VALUES' }).catch(() => ({}));
+    const defaultPort = window.PROJECT_CONFIG.DEFAULT_SSH_PORT ? Number(window.PROJECT_CONFIG.DEFAULT_SSH_PORT) : 22;
+    const defaultWinPort = 445;
+    const config = data?.INSTALL_DEFAULT_VALUES || {};
+    this.osNameList.map(name => name.toUpperCase()).forEach((name) => {
+      const portConfig = { port: name === 'WINDOWS' ? defaultWinPort : defaultPort };
+      if (config[name]) {
+        config[name] = Object.assign(portConfig, config[name]);
+      } else {
+        config[name] = portConfig;
+      }
+    });
+    this.updateInstallDefaultValues(config);
   }
 }
