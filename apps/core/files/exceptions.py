@@ -18,21 +18,21 @@ class FilesBaseException(CoreBaseException):
     MODULE_CODE = 3001
 
 
-class FilesRegisterCredentialError(CoreBaseException):
+class FilesRegisterCredentialError(FilesBaseException):
     MESSAGE = _("注册凭证失败")
     ERROR_CODE = 1
 
 
-class FilesStorageTypeError(CoreBaseException):
+class FilesStorageTypeError(FilesBaseException):
     MESSAGE = _("文件源类型错误")
     ERROR_CODE = 2
 
 
-class FilesRegisterFileSourceError(CoreBaseException):
+class FilesRegisterFileSourceError(FilesBaseException):
     MESSAGE = _("注册文件失败")
     ERROR_CODE = 3
 
 
-class FilesTransferError(CoreBaseException):
+class FilesTransferError(FilesBaseException):
     MESSAGE = _("文件传输失败")
     ERROR_CODE = 4

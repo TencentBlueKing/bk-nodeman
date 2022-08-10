@@ -18,7 +18,6 @@ import logging
 import os
 import re
 import shutil
-from collections import defaultdict
 
 import six
 from blueapps.account.decorators import login_exempt
@@ -31,7 +30,6 @@ from django.http import HttpResponseForbidden, JsonResponse
 from django.utils.translation import get_language
 from django.utils.translation import ugettext as _
 from django.views.decorators.csrf import csrf_exempt
-from packaging import version
 from rest_framework import mixins
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -169,9 +167,9 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         @apiName query_plugin_info
         @apiGroup backend_plugin
         """
-        package_infos = PluginHandler.package_infos(
-            name=self.validated_data["name"],
-            version=self.validated_data.get("version"),
+        package_infos = PluginHandler.fetch_package_infos(
+            project=self.validated_data["name"],
+            pkg_version=self.validated_data.get("version"),
             os_type=self.validated_data.get("os"),
             cpu_arch=self.validated_data.get("cpu_arch"),
         )
@@ -971,57 +969,7 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
             ]
         }
         """
-        gse_plugin_desc = (
-            models.GsePluginDesc.objects.filter(id=kwargs["pk"])
-            .values(
-                "id",
-                "description",
-                "name",
-                "category",
-                "source_app_code",
-                "scenario",
-                "deploy_type",
-                "node_manage_control",
-                "is_ready",
-            )
-            .first()
-        )
-        if gse_plugin_desc is None:
-            raise exceptions.PluginNotExistError(_("不存在ID为: {id} 的插件").format(id=kwargs["pk"]))
-        # 字段翻译
-        gse_plugin_desc.update(
-            {
-                "category": constants.CATEGORY_DICT[gse_plugin_desc["category"]],
-                "deploy_type": constants.DEPLOY_TYPE_DICT[gse_plugin_desc["deploy_type"]]
-                if gse_plugin_desc["deploy_type"]
-                else gse_plugin_desc["deploy_type"],
-            }
-        )
-        # 筛选可用包，规则：启用，版本降序
-        packages = models.Packages.objects.filter(project=gse_plugin_desc["name"]).values(
-            "id", "pkg_name", "module", "project", "version", "os", "cpu_arch", "pkg_mtime", "creator", "is_ready"
-        )
-        plugin_packages = []
-        # 按支持的cpu, os对包进行分类
-        packages_group_by_os_cpu = defaultdict(list)
-        for package in packages:
-            os_cpu = "{os}_{cpu}".format(os=package["os"], cpu=package["cpu_arch"])
-            packages_group_by_os_cpu[os_cpu].append(package)
-        # 取每个支持系统的最新版本插件包
-        for os_cpu, package_group in packages_group_by_os_cpu.items():
-            # 取启用版本的最新插件包，如无启用，取未启用的最新版本插件包
-            package_group = sorted(package_group, key=lambda pkg: version.parse(pkg["version"]), reverse=True)
-            release_package = package_group[0]
-            for package in package_group:
-                if package["is_ready"]:
-                    release_package = package
-                    break
-            release_package["support_os_cpu"] = os_cpu
-            plugin_packages.append(release_package)
-
-        tools.fill_latest_config_tmpls_to_packages(packages)
-        gse_plugin_desc["plugin_packages"] = plugin_packages
-        return Response(dict(gse_plugin_desc))
+        return Response(PluginHandler.retrieve(kwargs["pk"]))
 
     @action(detail=False, methods=["POST"], serializer_class=serializers.PluginStatusOperationSerializer)
     def plugin_status_operation(self, request):
@@ -1107,40 +1055,14 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         params.pop("bk_username")
         params.pop("bk_app_code")
 
-        if "pkg_ids" in params:
-            params["id__in"] = params.pop("pkg_ids")
-
-        gse_plugin_desc_obj = models.GsePluginDesc.objects.filter(id=pk).first()
-        if gse_plugin_desc_obj is None:
-            raise exceptions.PluginNotExistError(_("不存在ID为: {id} 的插件").format(id=pk))
-        plugin_name = gse_plugin_desc_obj.name
-
-        packages = list(
-            models.Packages.objects.filter(project=plugin_name, **params)
-            .order_by("-pkg_ctime")
-            .values(
-                "id",
-                "pkg_name",
-                "module",
-                "project",
-                "version",
-                "os",
-                "cpu_arch",
-                "pkg_size",
-                "md5",
-                "pkg_mtime",
-                "creator",
-                "is_ready",
-                "is_release_version",
+        return Response(
+            PluginHandler.history(
+                plugin_id=pk,
+                pkg_ids=self.validated_data.get("pkg_ids"),
+                os_type=self.validated_data.get("os"),
+                cpu_arch=self.validated_data.get("cpu_arch"),
             )
         )
-        # 找出启用且发布的最新上传包
-        newest_pkg = next((pkg for pkg in packages if pkg["is_ready"] and pkg["is_release_version"]), None)
-        if newest_pkg:
-            newest_pkg["is_newest"] = True
-
-        tools.fill_latest_config_tmpls_to_packages(packages)
-        return Response(sorted(packages, key=lambda x: version.parse(x["version"]), reverse=True))
 
     @action(detail=False, methods=["POST"], serializer_class=serializers.CosUploadSerializer)
     def upload(self, request, *args, **kwargs):
