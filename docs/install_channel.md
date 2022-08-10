@@ -99,9 +99,9 @@
 
 4. 执行 `/opt/nginx-portable/nginx-portable start` 启动 nginx 进程
 
-5. 创建文件存放目录 `mkdir -p /data/bkee/public/bknodeman/download`
+5. 创建文件存放目录 `mkdir -p /data/bkce/public/bknodeman/download`
 
-6. 登录蓝鲸节点管理后台所在的机器 ，将 nginx 下载目录（/data/bkee/public/bknodeman/download）下的文件拷贝到安装节点服务器的 `/data/bkee/public/bknodeman/download` 目录下（主要包括以下文件）
+6. 登录蓝鲸节点管理后台所在的机器 ，将 nginx 下载目录（/data/bkce/public/bknodeman/download）下的文件拷贝到安装节点服务器的 `/data/bkce/public/bknodeman/download` 目录下（主要包括以下文件）
 
    ```
    -rw-r--r-- 1 blueking blueking 40323665 Aug 25 18:08 gse_client-windows-x86_64.tgz
