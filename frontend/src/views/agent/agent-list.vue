@@ -595,7 +595,7 @@ import authorityMixin from '@/common/authority-mixin';
 import { copyText, debounce, getFilterChildBySelected, isEmpty } from '@/common/util';
 import { bus } from '@/common/bus';
 import { STORAGE_KEY_COL } from '@/config/storage-key';
-import { getDefaultConfig } from '@/config/config';
+import { getDefaultConfig, enableDHCP } from '@/config/config';
 
 @Component({
   name: 'agent-list',
@@ -657,9 +657,9 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
       id: 'login_ip',
     },
     inner_ipv6: {
-      checked: true,
-      disabled: true,
-      mockChecked: true,
+      checked: enableDHCP,
+      disabled: enableDHCP,
+      mockChecked: enableDHCP,
       name: window.i18n.t('内网IPv6'),
       id: 'inner_ipv6',
     },

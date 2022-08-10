@@ -63,6 +63,7 @@
         </template>
       </bk-table-column>
       <bk-table-column
+        v-if="filterField['inner_ipv6'].mockChecked"
         :width="innerIpv6Width"
         prop="inner_ipv6"
         class-name="ip-row"
@@ -184,6 +185,7 @@ import NodeDetailSlider from './node-detail-slider.vue';
 import SelectionTips from '@/components/common/selection-tips.vue';
 import PluginStatusBox from './plugin-status-box.vue';
 import { CreateElement } from 'vue';
+import { enableDHCP } from '@/config/config';
 
 @Component({
   name: 'plugin-list-table',
@@ -249,11 +251,11 @@ export default class PluginRuleTable extends Mixins(HeaderRenderMixin) {
       mockChecked: true,
     },
     inner_ipv6: {
-      checked: true,
-      disabled: true,
+      checked: enableDHCP,
+      disabled: enableDHCP,
       name: window.i18n.t('内网IPv6'),
       id: 'inner_ipv6',
-      mockChecked: true,
+      mockChecked: enableDHCP,
     },
     bk_host_name: {
       checked: true,
