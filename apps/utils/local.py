@@ -11,6 +11,8 @@ specific language governing permissions and limitations under the License.
 import uuid
 from threading import local
 
+from django.conf import settings
+
 from apps.exceptions import AppBaseException
 
 """
@@ -58,6 +60,10 @@ def get_request_username():
         return get_request().user.username
     except Exception:
         return ""
+
+
+def get_request_username_or_local_app_code():
+    return get_request_username() or settings.APP_CODE
 
 
 def get_request_app_code():

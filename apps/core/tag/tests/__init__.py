@@ -8,25 +8,3 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.conf.urls import include, url
-from rest_framework import routers
-
-from .encrypt import views as encrypt_views
-from .tag import views as tag_views
-
-router = routers.DefaultRouter(trailing_slash=True)
-router.register(
-    encrypt_views.RSAViewSet.URL_BASE_NAME, encrypt_views.RSAViewSet, basename=encrypt_views.RSAViewSet.URL_BASE_NAME
-)
-router.register(
-    tag_views.TagViewSet.URL_BASE_NAME, tag_views.TagViewSet, basename=encrypt_views.RSAViewSet.URL_BASE_NAME
-)
-router.register(
-    tag_views.TagChangeRecordViewSet.URL_BASE_NAME,
-    tag_views.TagChangeRecordViewSet,
-    basename=tag_views.TagChangeRecordViewSet,
-)
-
-urlpatterns = [
-    url(r"api/", include(router.urls)),
-]

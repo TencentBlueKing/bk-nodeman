@@ -25,6 +25,8 @@ from packaging import version
 from apps.backend.constants import PluginMigrateType
 from apps.backend.subscription import tasks
 from apps.backend.subscription.constants import MAX_RETRY_TIME
+from apps.core.tag import targets
+from apps.core.tag.models import Tag
 from apps.node_man import constants, exceptions, models, tools
 from apps.node_man.constants import IamActionType
 from apps.node_man.handlers.cmdb import CmdbHandler
@@ -335,12 +337,18 @@ class PolicyHandler:
             project=query_params["steps"][0]["id"],
         )
 
+        plugin_obj: models.GsePluginDesc = models.GsePluginDesc.objects.get(name=query_params["steps"][0]["id"])
+        tag_name__obj_map: Dict[str, Tag] = targets.PluginTargetHelper.get_tag_name__obj_map(target_id=plugin_obj.id)
         # 匹配插件版本
         for host_info in result["list"]:
             os_cpu_key = f"{host_info['os_type'].lower()}_{host_info['cpu_arch']}"
 
             host_info["current_version"] = bk_host_id_plugin_version_map.get(host_info["bk_host_id"])
-            host_info["target_version"] = os_cpu__config_map.get(os_cpu_key, {}).get("version")
+
+            target_version: Optional[str] = os_cpu__config_map.get(os_cpu_key, {}).get("version")
+            if target_version in tag_name__obj_map:
+                target_version = tag_name__obj_map[target_version].target_version
+            host_info["target_version"] = target_version
 
         return result
 
@@ -580,9 +588,15 @@ class PolicyHandler:
         policy_info = PolicyHandler.policy_info(policy_id)
         plugin_info = NodeApi.plugin_retrieve({"plugin_id": policy_info["plugin_info"]["id"]})
 
+        tag_name__obj_map: Dict[str, Tag] = targets.PluginTargetHelper.get_tag_name__obj_map(
+            target_id=policy_info["plugin_info"]["id"]
+        )
+
         # 拉取最新版本的包
         os_cpu_latest_pkg_map = {}
         for pkg in plugin_info.get("plugin_packages", []):
+            if pkg["version"] in tag_name__obj_map:
+                pkg["version"] = tag_name__obj_map[pkg["version"]].target_version
             os_cpu_latest_pkg_map[f"{pkg['os']}_{pkg['cpu_arch']}"] = pkg
 
         host_infos = tools.HostV2Tools.list_scope_hosts(policy_info["scope"])

@@ -40,6 +40,8 @@ from apps.backend.subscription.tools import (
     get_all_subscription_steps_context,
     render_config_files_by_config_templates,
 )
+from apps.core.tag import targets
+from apps.core.tag.models import Tag
 from apps.exceptions import AppBaseException, ComponentCallError
 from apps.node_man import constants, exceptions, models
 from apps.node_man.handlers.cmdb import CmdbHandler
@@ -277,6 +279,10 @@ class InitProcessStatusService(PluginBaseService):
                     host_id_obj_map,
                     common_data.target_host_objs,
                 )
+
+                tag_name__obj_map: Dict[str, Tag] = targets.PluginTargetHelper.get_tag_name__obj_map(
+                    target_id=policy_step_adapter.plugin_desc.id,
+                )
                 # target_host_objs 的长度通常为1或2，此处也不必担心时间复杂度问题
                 # 指定 target_host 主要用于远程采集的场景，常见于第三方插件，如拨测
                 for host in target_host_objs:
@@ -289,6 +295,10 @@ class InitProcessStatusService(PluginBaseService):
                     setup_path, pid_path, log_path, data_path = self.get_plugins_paths(
                         package, plugin_name, ap_config, group_id, subscription
                     )
+                    # 如果版本号匹配到标签名称，取对应标签下的真实版本号
+                    version_str = getattr(package, "version", "")
+                    if version_str in tag_name__obj_map:
+                        version_str = tag_name__obj_map[package.version].target_version
                     process_status_property = dict(
                         bk_host_id=bk_host_id,
                         name=plugin_name,
@@ -301,7 +311,7 @@ class InitProcessStatusService(PluginBaseService):
                         log_path=log_path,
                         data_path=data_path,
                         pid_path=pid_path,
-                        version=getattr(package, "version", ""),
+                        version=version_str,
                     )
                     # 唯一性校验
                     process_status_property_md5 = md5.count_md5(process_status_property)

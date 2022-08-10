@@ -27,6 +27,8 @@ from apps.backend.subscription import errors, tools
 from apps.backend.subscription.constants import MAX_RETRY_TIME
 from apps.backend.subscription.steps import adapter
 from apps.backend.subscription.steps.base import Action, Step
+from apps.core.tag import targets
+from apps.core.tag.models import Tag
 from apps.node_man import constants, models
 from apps.node_man.exceptions import ApIDNotExistsError
 from apps.utils import concurrent
@@ -71,7 +73,7 @@ class PluginStep(Step):
             str, List[models.PluginConfigTemplate]
         ] = policy_step_adapter.config_tmpl_obj_gby_os_key
 
-        self.target_hosts: List[Dict[str, any()]] = subscription_step.subscription.target_hosts
+        self.target_hosts: List[Dict[str, Any]] = subscription_step.subscription.target_hosts
 
         self.process_cache = defaultdict(dict)
 
@@ -94,6 +96,10 @@ class PluginStep(Step):
                     f"{proc_status_info['group_id']}-{proc_status_info['bk_host_id']}"
                 ] = proc_status_info
 
+        self.tag_name__obj_map: Dict[str, Tag] = targets.PluginTargetHelper.get_tag_name__obj_map(
+            target_id=self.plugin_desc.id
+        )
+
     def get_matching_package(self, os_type: str, cpu_arch: str) -> models.Packages:
         try:
             return self.os_key_pkg_map[adapter.PolicyStepAdapter.get_os_key(os_type, cpu_arch)]
@@ -102,6 +108,13 @@ class PluginStep(Step):
             if self.os_key_pkg_map:
                 return list(self.os_key_pkg_map.values())[0]
             raise errors.PluginValidationError(msg="插件 [{name}] 没有可供选择的插件包")
+
+    def get_matching_pkg_real_version(self, os_type: str, cpu_arch: str) -> str:
+        package: models.Packages = self.get_matching_package(os_type, cpu_arch)
+        if package.version in self.tag_name__obj_map:
+            return self.tag_name__obj_map[package.version].target_version
+        else:
+            return package.version
 
     def get_matching_config_instances(self, os_type: str, cpu_arch: str) -> List[models.PluginConfigInstance]:
         return self.config_inst_gby_os_key.get(adapter.PolicyStepAdapter.get_os_key(os_type, cpu_arch), [])
@@ -283,10 +296,9 @@ class PluginStep(Step):
         target_version = None
         for status in statuses:
             host = host_map[status["bk_host_id"]]
-            package = self.get_matching_package(host.os_type, host.cpu_arch)
+            target_version = self.get_matching_pkg_real_version(host.os_type, host.cpu_arch)
             current_version = status["version"]
-            target_version = package.version
-            if package.version != status["version"]:
+            if target_version != status["version"]:
                 return {"has_change": True, "current_version": current_version, "target_version": target_version}
         return {"has_change": False, "current_version": current_version, "target_version": target_version}
 
@@ -376,11 +388,10 @@ class PluginStep(Step):
             instance_actions[instance_id] = install_action
             # 新安装主机需要填充目标版本
             host = bk_host_id__host_map[instance["host"]["bk_host_id"]]
-            package = self.get_matching_package(host.os_type, host.cpu_arch)
             push_migrate_reason_func(
                 _instance_id=instance_id,
                 migrate_type=backend_const.PluginMigrateType.NEW_INSTALL,
-                target_version=package.version,
+                target_version=self.get_matching_pkg_real_version(host.os_type, host.cpu_arch),
             )
 
         # 记录未同步主机
@@ -613,7 +624,7 @@ class PluginStep(Step):
             base_reason_info = {
                 "status": proc_status["status"],
                 "current_version": proc_status["version"],
-                "target_version": self.get_matching_package(host_obj.os_type, host_obj.cpu_arch).version,
+                "target_version": self.get_matching_pkg_real_version(host_obj.os_type, host_obj.cpu_arch),
             }
 
             if base_reason_info["status"] != constants.ProcStateType.RUNNING:

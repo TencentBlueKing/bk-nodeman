@@ -13,8 +13,7 @@ import os
 import shutil
 import tarfile
 import traceback
-from collections import defaultdict
-from typing import Any, Dict, KeysView, List, Optional, Set
+from typing import Any, Dict, List, Optional
 
 import yaml
 from django.conf import settings
@@ -308,93 +307,6 @@ def parse_package(
     return pkg_parse_info
 
 
-def fetch_latest_config_templates(config_templates: List[Dict[str, Any]], plugin_version: str) -> List[Dict[str, Any]]:
-    """
-    过滤最新的配置模板
-    优先取和插件版本一致的配置模板，否则取最新版本的配置模板
-    :param config_templates: 配置模板列表
-    :param plugin_version: 指定插件版本号
-    """
-    config_tmpls_gby_name: Dict[str, List] = defaultdict(list)
-
-    for config_tmpl in config_templates:
-        config_tmpls_gby_name[config_tmpl["name"]].append(config_tmpl)
-
-    latest_config_templates: List[Dict[str, Any]] = []
-    for config_tmpl_name, config_tmpls_with_the_same_name in config_tmpls_gby_name.items():
-        same_name_tmpl_map: Dict[str, Dict[str, str]] = {}
-        for tmpl in config_tmpls_with_the_same_name:
-            same_name_tmpl_map[tmpl["version"]] = tmpl
-
-        #  选取对应平台模板名中的指定版本号或者是最大版本号
-        same_name_tmp_versions: KeysView[str] = same_name_tmpl_map.keys()
-        if same_name_tmp_versions:
-            if plugin_version in same_name_tmp_versions:
-                # 优先取和插件版本一致的配置模板
-                latest_config_template = same_name_tmpl_map[plugin_version]
-            else:
-                # 否则，取最新版本的配置模板
-                latest_config_template = same_name_tmpl_map[
-                    sorted(same_name_tmp_versions, key=lambda v: version.parse(v))[-1]
-                ]
-
-            latest_config_templates.append(latest_config_template)
-
-    return latest_config_templates
-
-
-def fill_latest_config_tmpls_to_packages(packages: List[Dict[str, Any]]) -> None:
-    """
-    填充最新配置文件到插件包信息列表
-    :param packages: 插件包列表
-    :return:
-    """
-    plugin_names: Set[str] = set()
-    os_types: Set[str] = set()
-    cpu_arches: Set[str] = set()
-
-    for package in packages:
-        plugin_names.add(package["project"])
-        os_types.add(package["os"])
-        cpu_arches.add(package["cpu_arch"])
-
-    # 获取插件包关联的配置模板
-    config_tmpls = list(
-        models.PluginConfigTemplate.objects.filter(
-            plugin_name__in=plugin_names, os__in=os_types, cpu_arch__in=cpu_arches
-        ).values("id", "name", "version", "is_main", "plugin_version", "cpu_arch", "os", "plugin_name")
-    )
-
-    # 以 plugin_name & os & cpu_arch & plugin_version 作为唯一标识，聚合配置模板
-    config_tmpls_gby_pkg_key: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
-    for config_tmpl in config_tmpls:
-        pkg_key = "_".join(
-            [config_tmpl["plugin_name"], config_tmpl["os"], config_tmpl["cpu_arch"], config_tmpl["plugin_version"]]
-        )
-        config_tmpls_gby_pkg_key[pkg_key].append(
-            {
-                "id": config_tmpl["id"],
-                "version": config_tmpl["version"],
-                "os": config_tmpl["os"],
-                "cpu_arch": config_tmpl["cpu_arch"],
-                "name": config_tmpl["name"],
-                "is_main": config_tmpl["is_main"],
-            }
-        )
-
-    for package in packages:
-        # 配置模板 = 通用版本配置模板 + 该版本的配置模板
-        pkg_key_prefix = f"{package['project']}_{package['os']}_{package['cpu_arch']}_"
-        config_templates = (
-            config_tmpls_gby_pkg_key[f"{pkg_key_prefix}{package['version']}"]
-            + config_tmpls_gby_pkg_key[f"{pkg_key_prefix}*"]
-        )
-        # 筛选最新配置
-        package["config_templates"] = fetch_latest_config_templates(
-            config_templates=config_templates, plugin_version=package["version"]
-        )
-
-
 def create_package_records(
     file_path: str,
     file_name: str,
@@ -424,6 +336,7 @@ def create_package_records(
             ):
                 logger.info("path -> {path} not selected, jump it".format(path=package_info["pkg_relative_path"]))
                 continue
+            # TODO 这里可以并行处理，提高
             pkg_record_obj = create_pkg_record(
                 pkg_absolute_path=package_info["pkg_absolute_path"],
                 package_os=package_info["package_os"],

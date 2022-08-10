@@ -56,6 +56,7 @@ INSTALLED_APPS += (
     "apps.backend",
     "apps.core.files",
     "apps.core.encrypt",
+    "apps.core.tag",
     # pipeline
     "pipeline",
     "pipeline.log",

@@ -17,8 +17,9 @@ from django.db.models import Max, Subquery
 from django.utils.translation import ugettext as _
 from rest_framework import exceptions, serializers
 
-from apps.backend.plugin.tools import fetch_latest_config_templates
 from apps.backend.subscription import errors
+from apps.core.tag.models import Tag
+from apps.core.tag.targets.plugin import PluginTargetHelper
 from apps.node_man import constants, models
 
 logger = logging.getLogger("app")
@@ -116,7 +117,7 @@ class PolicyStepAdapter:
 
         # 处理同名配置模板，取最新版本
         for selected_pkg_info in policy_config["details"]:
-            selected_pkg_info["config_templates"] = fetch_latest_config_templates(
+            selected_pkg_info["config_templates"] = PluginTargetHelper.fetch_latest_config_templates(
                 config_templates=selected_pkg_info["config_templates"], plugin_version=selected_pkg_info["version"]
             )
 
@@ -227,11 +228,17 @@ class PolicyStepAdapter:
         plugin_name = validated_config["plugin_name"]
         plugin_version = validated_config["plugin_version"]
 
-        if plugin_version != "latest":
-            packages = models.Packages.objects.filter(
-                project=plugin_name,
-                version=plugin_version,
-            )
+        try:
+            plugin_desc = models.GsePluginDesc.objects.get(name=plugin_name)
+        except models.GsePluginDesc.DoesNotExist:
+            raise errors.PluginValidationError(msg="插件 [{name}] 信息不存在".format(name=self.plugin_name))
+
+        latest_flag: str = "latest"
+        is_tag: bool = Tag.objects.filter(target_id=plugin_desc.id, name=latest_flag).exists()
+
+        if plugin_version != latest_flag or is_tag:
+            # 如果 latest 是 tag，走取指定版本的逻辑
+            packages = models.Packages.objects.filter(project=plugin_name, version=plugin_version)
         else:
             newest = (
                 models.Packages.objects.filter(project=plugin_name).values("os", "cpu_arch").annotate(max_id=Max("id"))
@@ -247,7 +254,7 @@ class PolicyStepAdapter:
         os_cpu__config_templates_map = defaultdict(list)
         for template in validated_config["config_templates"]:
             is_main_template = template["is_main"]
-            if template["version"] != "latest":
+            if template["version"] != latest_flag or is_tag:
                 plugin_version_set = {plugin_version, "*"}
             else:
                 plugin_version_set = latest_packages_version_set | {"*"}

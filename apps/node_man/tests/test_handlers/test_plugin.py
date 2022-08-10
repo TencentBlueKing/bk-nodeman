@@ -16,6 +16,7 @@ from django.test import TestCase
 from apps.node_man import constants as const
 from apps.node_man.handlers.plugin import PluginHandler
 from apps.node_man.models import (
+    GsePluginDesc,
     Packages,
     PluginConfigTemplate,
     ProcControl,
@@ -239,6 +240,7 @@ class TestPlugin(TestCase):
                 "cpu_arch": "x86_64",
             }
         ).save()
+        GsePluginDesc(name="basereport").save()
         self.assertEqual(len(PluginHandler.get_packages("basereport", "linux")), 1)
 
     # 测试主机状态获取
