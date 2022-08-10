@@ -46,8 +46,15 @@ export const authentication = getAuthentication();
 export const defaultPort = window.PROJECT_CONFIG.DEFAULT_SSH_PORT ? Number(window.PROJECT_CONFIG.DEFAULT_SSH_PORT) : 22;
 export const sysOptions = MainStore.osList;
 export const defaultOsType = 'LINUX';
-export const getDefaultConfig = (type: string, key: string, value: any) => {
+export const getDefaultConfig = (type: string, key: string, value?: any) => {
   const osConfig: Dictionary = MainStore.installDefaultValues[type];
   return osConfig && Object.prototype.hasOwnProperty.call(osConfig, key) ? osConfig[key] : value;
+};
+export const getConfigRemark = (key: string, os?: string) => {
+  if (os) {
+    const osConfig: Dictionary = MainStore.installDefaultValues[os];
+    return osConfig[key] || MainStore.installDefaultValues[key] || '';
+  }
+  return MainStore.installDefaultValues[key] || '';
 };
 export default authentication;

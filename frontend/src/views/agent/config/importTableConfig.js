@@ -1,31 +1,16 @@
 import { authentication, defaultPort, sysOptions, defaultOsType, getDefaultConfig, addressingMode } from '@/config/config';
 import { reguFnMinInteger, reguPort, reguIp, reguIPMixins } from '@/common/form-check';
 
+export const parentHead = [
+  { label: '业务属性', prop: 'biz_attr', type: 'text', colspan: 0 },
+  { label: '云区域属性', prop: 'cloud_attr', type: 'text', colspan: 0 },
+  { label: '主机属性', prop: 'host_attr', type: 'text', colspan: 0 },
+  { label: '登录信息', prop: 'login_info', type: 'text', tips: 'agentSetupLoginInfo', colspan: 0 },
+  { label: '传输信息', prop: 'trans_info', type: 'text', colspan: 0 },
+  { label: '', prop: '', type: 'operate' },
+];
+
 export const tableConfig = [
-  {
-    label: 'IP地址',
-    prop: 'inner_ip',
-    type: 'text',
-    required: true,
-    noRequiredMark: false,
-    union: 'bk_cloud_id',
-    unique: true,
-    errTag: true,
-    placeholder: window.i18n.t('请输入'),
-    rules: [reguIPMixins,
-      {
-        trigger: 'blur',
-        message: window.i18n.t('冲突校验', { prop: 'IP' }),
-        validator(v, id) {
-          // 与其他输入框的值不能重复
-          if (!v) return true;
-          const row = this.table.data.find(item => item.id === id);
-          if (!row) return;
-          return this.handleValidateUnique(row, { prop: 'inner_ip' });
-        },
-      },
-    ],
-  },
   {
     label: '业务',
     prop: 'bk_biz_id',
@@ -34,6 +19,7 @@ export const tableConfig = [
     required: true,
     noRequiredMark: false,
     multiple: false,
+    parentProp: 'biz_attr',
     placeholder: window.i18n.t('选择业务'),
   },
   {
@@ -44,6 +30,7 @@ export const tableConfig = [
     searchable: true,
     required: true,
     noRequiredMark: false,
+    parentProp: 'cloud_attr',
     popoverMinWidth: 160,
     placeholder: window.i18n.t('请选择'),
     permission: true,
@@ -86,6 +73,7 @@ export const tableConfig = [
     batch: true,
     popoverMinWidth: 160,
     noRequiredMark: false,
+    parentProp: 'cloud_attr',
     placeholder: window.i18n.t('请选择'),
     getOptions(row) {
       return row.bk_cloud_id || row.bk_cloud_id === 0
@@ -103,6 +91,7 @@ export const tableConfig = [
     default: getDefaultConfig(defaultOsType, 'ap_id', -1),
     options: [],
     popoverMinWidth: 160,
+    parentProp: 'cloud_attr',
     getOptions() {
       return this.apList;
     },
@@ -111,18 +100,60 @@ export const tableConfig = [
     },
   },
   {
+    label: 'IP地址',
+    prop: 'inner_ip',
+    type: 'text',
+    required: true,
+    noRequiredMark: false,
+    tips: 'agentSetupInnerIp',
+    parentProp: 'host_attr',
+    sync: 'login_ip',
+    union: 'bk_cloud_id',
+    unique: true,
+    errTag: true,
+    placeholder: window.i18n.t('请输入'),
+    rules: [reguIPMixins,
+      {
+        trigger: 'blur',
+        message: window.i18n.t('冲突校验', { prop: 'IP' }),
+        validator(v, id) {
+          // 与其他输入框的值不能重复
+          if (!v) return true;
+          const row = this.table.data.find(item => item.id === id);
+          if (!row) return;
+          return this.handleValidateUnique(row, { prop: 'inner_ip' });
+        },
+      },
+    ],
+  },
+  {
     label: '操作系统',
     prop: 'os_type',
     type: 'select',
     batch: true,
     required: true,
     noRequiredMark: false,
+    parentProp: 'host_attr',
     placeholder: window.i18n.t('请选择'),
     options: sysOptions,
     handleValueChange(row) {
       row.port = getDefaultConfig(row.os_type, 'port', row.os_type === 'WINDOWS' ? 445 : defaultPort);
       row.account = getDefaultConfig(row.os_type, 'account', row.os_type === 'WINDOWS' ? 'Administrator' : 'root');
     },
+  },
+  {
+    label: '寻址方式',
+    prop: 'bk_addressing',
+    type: 'select',
+    default: '0',
+    batch: true,
+    required: false,
+    noRequiredMark: false,
+    parentProp: 'host_attr',
+    getOptions() {
+      return addressingMode;
+    },
+    width: 115,
   },
   {
     label: '登录端口',
@@ -132,6 +163,8 @@ export const tableConfig = [
     noRequiredMark: false,
     batch: true,
     default: getDefaultConfig(defaultOsType, 'port', defaultPort),
+    tips: 'agentSetupPort',
+    parentProp: 'login_info',
     rules: [reguPort],
     getReadonly(row) {
       return row && row.os_type === 'WINDOWS' && row.bk_cloud_id !== window.PROJECT_CONFIG.DEFAULT_CLOUD;
@@ -144,6 +177,8 @@ export const tableConfig = [
     required: true,
     noRequiredMark: false,
     batch: true,
+    tips: 'agentSetupLoginAccount',
+    parentProp: 'login_info',
     default: getDefaultConfig(defaultOsType, 'account', 'root'),
   },
   {
@@ -154,6 +189,7 @@ export const tableConfig = [
     noRequiredMark: false,
     batch: true,
     subTitle: window.i18n.t('密钥方式仅对Linux/AIX系统生效'),
+    parentProp: 'login_info',
     default: getDefaultConfig(defaultOsType, 'auth_type', 'PASSWORD'),
     getOptions(row) {
       return row.os_type === 'WINDOWS' ? authentication.filter(auth => auth.id !== 'KEY') : authentication;
@@ -170,6 +206,8 @@ export const tableConfig = [
     prop: 'prove',
     type: 'password',
     batch: true,
+    tips: 'agentSetupKey',
+    parentProp: 'login_info',
     subTitle: window.i18n.t('仅对密码认证生效'),
     placeholder: window.i18n.t('请输入'),
     getReadonly(row) {
@@ -186,6 +224,8 @@ export const tableConfig = [
     type: 'text',
     required: false,
     noRequiredMark: false,
+    tips: 'agentSetupLoginIp',
+    parentProp: 'login_info',
     placeholder: window.i18n.t('请输入'),
     unique: true,
     errTag: true,
@@ -206,13 +246,14 @@ export const tableConfig = [
   {
     label: 'BT节点探测',
     prop: 'peer_exchange_switch_for_agent',
-    tips: window.i18n.t('BT节点探测提示'),
+    tips: 'BT节点探测提示',
     type: 'switcher',
     default: getDefaultConfig(defaultOsType, 'peer_exchange_switch_for_agent', true),
     batch: true,
     required: false,
     noRequiredMark: false,
     width: 115,
+    parentProp: 'trans_info',
   },
   {
     label: '传输限速Unit',
@@ -226,19 +267,7 @@ export const tableConfig = [
     width: 120,
     placeholder: window.i18n.t('请输入'),
     rules: [reguFnMinInteger(1)],
-  },
-  {
-    label: '寻址方式',
-    prop: 'bk_addressing',
-    type: 'select',
-    default: '0',
-    batch: true,
-    required: false,
-    noRequiredMark: false,
-    getOptions() {
-      return addressingMode;
-    },
-    width: 115,
+    parentProp: 'trans_info',
   },
   {
     label: '',
@@ -250,30 +279,6 @@ export const tableConfig = [
 
 export const tableManualConfig = [
   {
-    label: 'IP地址',
-    prop: 'inner_ip',
-    type: 'text',
-    required: true,
-    noRequiredMark: false,
-    union: 'bk_cloud_id',
-    unique: true,
-    errTag: true,
-    placeholder: window.i18n.t('请输入'),
-    rules: [reguIPMixins,
-      {
-        trigger: 'blur',
-        message: window.i18n.t('冲突校验', { prop: 'IP' }),
-        validator(v, id) {
-          // 与其他输入框的值不能重复
-          if (!v) return true;
-          const row = this.table.data.find(item => item.id === id);
-          if (!row) return;
-          return this.handleValidateUnique(row, { prop: 'inner_ip' });
-        },
-      },
-    ],
-  },
-  {
     label: '业务',
     prop: 'bk_biz_id',
     type: 'biz',
@@ -281,6 +286,7 @@ export const tableManualConfig = [
     required: true,
     noRequiredMark: false,
     multiple: false,
+    parentProp: 'biz_attr',
   },
   {
     label: '云区域',
@@ -292,6 +298,7 @@ export const tableManualConfig = [
     noRequiredMark: false,
     popoverMinWidth: 160,
     placeholder: window.i18n.t('请选择'),
+    parentProp: 'cloud_attr',
     permission: true,
     getOptions() {
       return this.cloudList.map(item => ({
@@ -335,6 +342,7 @@ export const tableManualConfig = [
     popoverMinWidth: 160,
     noRequiredMark: false,
     placeholder: window.i18n.t('请选择'),
+    parentProp: 'cloud_attr',
     getOptions(row) {
       return row.bk_cloud_id || row.bk_cloud_id === 0
         ? this.channelList.filter(item => item.bk_cloud_id === row.bk_cloud_id || item.id === 'default')
@@ -351,6 +359,8 @@ export const tableManualConfig = [
     default: getDefaultConfig(defaultOsType, 'ap_id', -1),
     options: [],
     popoverMinWidth: 160,
+    placeholder: window.i18n.t('请选择'),
+    parentProp: 'cloud_attr',
     getOptions() {
       return this.apList;
     },
@@ -360,6 +370,33 @@ export const tableManualConfig = [
     },
   },
   {
+    label: 'IP地址',
+    prop: 'inner_ip',
+    type: 'text',
+    required: true,
+    noRequiredMark: false,
+    tips: 'agentSetupInnerIp',
+    parentProp: 'host_attr',
+    sync: 'login_ip',
+    union: 'bk_cloud_id',
+    unique: true,
+    errTag: true,
+    placeholder: window.i18n.t('请输入'),
+    rules: [reguIPMixins,
+      {
+        trigger: 'blur',
+        message: window.i18n.t('冲突校验', { prop: 'IP' }),
+        validator(v, id) {
+          // 与其他输入框的值不能重复
+          if (!v) return true;
+          const row = this.table.data.find(item => item.id === id);
+          if (!row) return;
+          return this.handleValidateUnique(row, { prop: 'inner_ip' });
+        },
+      },
+    ],
+  },
+  {
     label: '操作系统',
     prop: 'os_type',
     type: 'select',
@@ -367,11 +404,26 @@ export const tableManualConfig = [
     required: true,
     noRequiredMark: false,
     placeholder: window.i18n.t('请选择'),
+    parentProp: 'host_attr',
     options: sysOptions,
     handleValueChange(row) {
       row.port = getDefaultConfig(row.os_type, 'port', row.os_type === 'WINDOWS' ? 445 : defaultPort);
       row.account = getDefaultConfig(row.os_type, 'account', row.os_type === 'WINDOWS' ? 'Administrator' : 'root');
     },
+  },
+  {
+    label: '寻址方式',
+    prop: 'bk_addressing',
+    type: 'select',
+    default: '0',
+    batch: true,
+    required: false,
+    noRequiredMark: false,
+    parentProp: 'host_attr',
+    getOptions() {
+      return addressingMode;
+    },
+    width: 115,
   },
   {
     label: '登录IP',
@@ -380,6 +432,8 @@ export const tableManualConfig = [
     required: false,
     noRequiredMark: false,
     placeholder: window.i18n.t('请输入'),
+    tips: 'agentSetupLoginIp',
+    parentProp: 'login_info',
     unique: true,
     errTag: true,
     rules: [reguIp,
@@ -399,12 +453,13 @@ export const tableManualConfig = [
   {
     label: 'BT节点探测',
     prop: 'peer_exchange_switch_for_agent',
-    tips: window.i18n.t('BT节点探测提示'),
+    tips: 'BT节点探测提示',
     type: 'switcher',
     default: getDefaultConfig(defaultOsType, 'peer_exchange_switch_for_agent', true),
     batch: true,
     required: false,
     noRequiredMark: false,
+    parentProp: 'trans_info',
     width: 115,
   },
   {
@@ -419,19 +474,7 @@ export const tableManualConfig = [
     width: 120,
     placeholder: window.i18n.t('请输入'),
     rules: [reguFnMinInteger(1)],
-  },
-  {
-    label: '寻址方式',
-    prop: 'bk_addressing',
-    type: 'select',
-    default: '0',
-    batch: true,
-    required: false,
-    noRequiredMark: false,
-    getOptions() {
-      return addressingMode;
-    },
-    width: 115,
+    parentProp: 'trans_info',
   },
   {
     label: '',

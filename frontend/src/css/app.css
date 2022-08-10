@@ -620,6 +620,19 @@ body {
             font-size: 12px;
         }
     }
+    .setup-tips-theme {
+        padding: 8px 12px;
+        font-size: 12px;
+        min-width: 274px;
+        .joint-tip {
+            margin-bottom: 16px;
+            color: #979ba5;
+        }
+        pre {
+            margin: 0;
+            white-space: pre-wrap;
+        }
+    }
 }
 .v-cursor {
     background-repeat: no-repeat;
