@@ -11,50 +11,35 @@ specific language governing permissions and limitations under the License.
 import logging
 import os
 import shutil
-from typing import Any, Dict, List
+from collections import defaultdict
+from typing import Any, Dict, List, Optional
 
 from django.conf import settings
 from django.utils.translation import ugettext as _
 
+from apps.backend import exceptions
 from apps.core.files.storage import get_storage
+from apps.core.tag import targets
+from apps.core.tag.models import Tag
 from apps.exceptions import ValidationError
-from apps.node_man import models
-from apps.utils import basic, files
+from apps.node_man import constants, models
+from apps.node_man import tools as node_man_tools
+from apps.utils import files
 
 logger = logging.getLogger("app")
 
 
 class PluginHandler:
     @classmethod
-    def package_infos(cls, name: str, version: str = None, os_type: str = None, cpu_arch: str = None):
-        """
-        获取插件包信息
-        :param name: 插件名称
-        :param version: 版本
-        :param os_type: 操作系统
-        :param cpu_arch: cpu 架构
-        :return:
-        """
-        # 构造DB查询参数，filter_values -> 过滤 None值
-        filter_params = basic.filter_values({"project": name, "os": os_type, "version": version, "cpu_arch": cpu_arch})
-        packages: List[models.Packages] = models.Packages.objects.filter(**filter_params)
-
-        package_infos: List[Dict] = []
-        for package in packages:
-            package_infos.append(
-                {
-                    "id": package.id,
-                    "name": package.project,
-                    "os": package.os,
-                    "cpu_arch": package.cpu_arch,
-                    "version": package.version,
-                    "is_release_version": package.is_release_version,
-                    "is_ready": package.is_ready,
-                    "pkg_size": package.pkg_size,
-                    "md5": package.md5,
-                    "location": package.location,
-                }
-            )
+    def fetch_package_infos(
+        cls, project: str, pkg_version: Optional[str], os_type: Optional[str], cpu_arch: Optional[str]
+    ) -> List[Dict[str, Any]]:
+        package_infos: List[Dict[str, Any]] = node_man_tools.PluginV2Tools.fetch_package_infos(
+            project=project, pkg_version=pkg_version, os_type=os_type, cpu_arch=cpu_arch
+        )
+        for package_info in package_infos:
+            # 历史字段兼容
+            package_info["name"] = package_info["project"]
         return package_infos
 
     @classmethod
@@ -120,3 +105,93 @@ class PluginHandler:
         )
 
         return {"id": record.id, "name": record.file_name, "pkg_size": record.file_size}
+
+    @classmethod
+    def retrieve(cls, plugin_id: int):
+        gse_plugin_desc = (
+            models.GsePluginDesc.objects.filter(id=plugin_id)
+            .values(
+                "id",
+                "description",
+                "name",
+                "category",
+                "source_app_code",
+                "scenario",
+                "deploy_type",
+                "node_manage_control",
+                "is_ready",
+            )
+            .first()
+        )
+        if gse_plugin_desc is None:
+            raise exceptions.PluginNotExistError(_("不存在ID为: {id} 的插件").format(id=plugin_id))
+        # 字段翻译
+        gse_plugin_desc.update(
+            {
+                "category": constants.CATEGORY_DICT[gse_plugin_desc["category"]],
+                "deploy_type": constants.DEPLOY_TYPE_DICT[gse_plugin_desc["deploy_type"]]
+                if gse_plugin_desc["deploy_type"]
+                else gse_plugin_desc["deploy_type"],
+            }
+        )
+        # 筛选可用包，规则：启用，版本降序
+        packages = models.Packages.objects.filter(project=gse_plugin_desc["name"]).values(
+            *["id", "pkg_name", "module", "project", "version", "os", "cpu_arch"]
+            + ["pkg_mtime", "creator", "is_ready", "is_release_version"]
+        )
+        plugin_packages = []
+        # 按支持的cpu, os对包进行分类
+        packages_group_by_os_cpu = defaultdict(list)
+        for package in packages:
+            os_cpu = "{os}_{cpu}".format(os=package["os"], cpu=package["cpu_arch"])
+            packages_group_by_os_cpu[os_cpu].append(package)
+
+        top_tag: Tag = targets.PluginTargetHelper.get_top_tag_or_none(plugin_id)
+        top_versions: List[str] = []
+        if top_tag is not None:
+            top_versions = [top_tag.name]
+        # 取每个支持系统的最新版本插件包
+        for os_cpu, package_group in packages_group_by_os_cpu.items():
+            # 取启用版本的最新插件包，如无启用，取未启用的最新版本插件包
+            package_group = node_man_tools.PluginV2Tools.get_sorted_package_infos(
+                package_group, top_versions=top_versions
+            )
+            release_package = package_group[0]
+            release_package["support_os_cpu"] = os_cpu
+            plugin_packages.append(release_package)
+
+        targets.PluginTargetHelper.fill_latest_config_tmpls_to_packages(packages)
+        gse_plugin_desc["plugin_packages"] = plugin_packages
+        return gse_plugin_desc
+
+    @classmethod
+    def history(
+        cls, plugin_id: int, pkg_ids: Optional[List[int]] = None, os_type: str = None, cpu_arch: str = None
+    ) -> List[Dict[str, Any]]:
+
+        gse_plugin_desc_obj = models.GsePluginDesc.objects.filter(id=plugin_id).first()
+        if gse_plugin_desc_obj is None:
+            raise exceptions.PluginNotExistError(_("不存在ID为: {id} 的插件").format(id=plugin_id))
+        plugin_name = gse_plugin_desc_obj.name
+
+        package_infos: List[Dict[str, Any]] = node_man_tools.PluginV2Tools.fetch_package_infos(
+            project=plugin_name, pkg_ids=pkg_ids, os_type=os_type, cpu_arch=cpu_arch
+        )
+
+        # 查找置顶版本
+        top_tag: Tag = targets.PluginTargetHelper.get_top_tag_or_none(plugin_id)
+        top_versions: List[str] = []
+        if top_tag is not None:
+            top_versions = [top_tag.name]
+
+        # 获取排序后的插件包列表
+        package_infos = node_man_tools.PluginV2Tools.get_sorted_package_infos(package_infos, top_versions=top_versions)
+
+        # 标记最新版本包
+        if package_infos:
+            package_infos[0]["is_newest"] = True
+
+        # 填充配置模板信息
+        targets.PluginTargetHelper.fill_latest_config_tmpls_to_packages(package_infos)
+
+        return package_infos

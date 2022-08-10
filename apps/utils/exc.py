@@ -71,7 +71,6 @@ class ExceptionHandler:
         try:
             return wrapped(*args, **kwargs)
         except Exception as exc:
-            print(self.exc_handler)
             return self.exc_handler(wrapped, instance, args, kwargs, exc)
 
     def __init__(

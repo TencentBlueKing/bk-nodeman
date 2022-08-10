@@ -11,8 +11,9 @@ specific language governing permissions and limitations under the License.
 
 import re
 import traceback
+from functools import cmp_to_key
 from itertools import groupby
-from typing import Dict, List, Set, Union
+from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
 import jinja2schema
 from django.conf import settings
@@ -20,6 +21,7 @@ from jinja2 import Environment, meta
 from packaging import version
 
 from apps.node_man import constants, models
+from apps.utils import basic
 from common.log import logger
 
 
@@ -162,3 +164,87 @@ class PluginV2Tools:
         if not head_plugins:
             return constants.HEAD_PLUGINS
         return head_plugins
+
+    @classmethod
+    def fetch_package_infos(
+        cls,
+        project: str,
+        pkg_ids: Optional[List[int]] = None,
+        pkg_version: str = None,
+        os_type: str = None,
+        cpu_arch: str = None,
+    ) -> List[Dict[str, Any]]:
+        """
+        获取插件包信息
+        :param pkg_ids: 插件包 ID 列表
+        :param project: 插件名称
+        :param pkg_version: 版本
+        :param os_type: 操作系统
+        :param cpu_arch: cpu 架构
+        :return:
+        """
+        # 构造DB查询参数，filter_values -> 过滤 None值
+        filter_params = basic.filter_values(
+            {"id__in": pkg_ids, "project": project, "os": os_type, "version": pkg_version, "cpu_arch": cpu_arch}
+        )
+        package_infos: List[Dict[str, Any]] = models.Packages.objects.filter(**filter_params).values(
+            "id",
+            "module",
+            "project",
+            "version",
+            "os",
+            "cpu_arch",
+            "pkg_name",
+            "pkg_size",
+            "pkg_mtime",
+            "md5",
+            "creator",
+            "location",
+            "is_ready",
+            "is_release_version",
+        )
+
+        return list(package_infos)
+
+    @staticmethod
+    def get_sorted_package_infos(
+        package_infos: List[Dict[str, Any]], top_versions: List[Optional[str]], reverse: bool = True
+    ):
+        """
+        获取已排序的插件包列表
+        :param package_infos: 插件包列表
+        :param top_versions: 置顶版本
+        :param reverse: 是否反转
+        :return:
+        """
+
+        def _comparator(_left: Dict[str, Any], _right: Dict[str, Any]):
+            reverse_t: Tuple[int, int] = (-1, 1)
+            if reverse:
+                reverse_t = reverse_t[::-1]
+            if not (_left["is_ready"] or _right["is_ready"]):
+                # 都是未启用状态，按版本号排序
+                return reverse_t[version.parse(_left["version"]) > version.parse(_right["version"])]
+            elif not (_left["is_ready"] and _right["is_ready"]):
+                # 其中一个未启用，按已启用排序
+                return reverse_t[_left["is_ready"]]
+            else:
+                # 都是启用状态，按是否已全量发布排序
+                if not (_left["is_release_version"] or _right["is_release_version"]):
+                    return reverse_t[version.parse(_left["version"]) > version.parse(_right["version"])]
+                elif not (_left["is_release_version"] and _right["is_release_version"]):
+                    return reverse_t[_left["is_release_version"]]
+                else:
+                    # 已启用且发布的情况
+                    if _left["version"] in top_versions or _right["version"] in top_versions:
+                        if _left["version"] in top_versions and _right["version"] in top_versions:
+                            # 都属于置顶版本，按版本排序
+                            return reverse_t[version.parse(_left["version"]) > version.parse(_right["version"])]
+                        else:
+                            # 按置顶版本排序
+                            return reverse_t[_left["version"] in top_versions]
+                    else:
+                        # 都是非置顶版本，按版本号排序
+                        return reverse_t[version.parse(_left["version"]) > version.parse(_right["version"])]
+
+        return sorted(package_infos, key=cmp_to_key(_comparator))

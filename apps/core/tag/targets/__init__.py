@@ -8,25 +8,25 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.conf.urls import include, url
-from rest_framework import routers
 
-from .encrypt import views as encrypt_views
-from .tag import views as tag_views
+import logging
+import typing
 
-router = routers.DefaultRouter(trailing_slash=True)
-router.register(
-    encrypt_views.RSAViewSet.URL_BASE_NAME, encrypt_views.RSAViewSet, basename=encrypt_views.RSAViewSet.URL_BASE_NAME
-)
-router.register(
-    tag_views.TagViewSet.URL_BASE_NAME, tag_views.TagViewSet, basename=encrypt_views.RSAViewSet.URL_BASE_NAME
-)
-router.register(
-    tag_views.TagChangeRecordViewSet.URL_BASE_NAME,
-    tag_views.TagChangeRecordViewSet,
-    basename=tag_views.TagChangeRecordViewSet,
-)
+from .. import constants, exceptions
+from .base import BaseTargetHelper
+from .plugin import PluginTargetHelper
 
-urlpatterns = [
-    url(r"api/", include(router.urls)),
-]
+logger = logging.getLogger("app")
+
+
+TARGET_TYPE__HELPER_MAP: typing.Dict[typing.Any, typing.Type[BaseTargetHelper]] = {
+    constants.TargetType.PLUGIN.value: PluginTargetHelper
+}
+
+
+def get_target_helper(target_type: str) -> typing.Type[BaseTargetHelper]:
+    try:
+        return TARGET_TYPE__HELPER_MAP[target_type]
+    except KeyError:
+        logger.error(f"target helper not exist: target_type -> {target_type}")
+        raise exceptions.TargetHelperNotExistError({"target_type": target_type})
