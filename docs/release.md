@@ -1,5 +1,16 @@
 # Release
 
+## 2.2.20 - 2022-08-10 
+
+
+### bugfix: 
+  * AIX 适配升级脚本语法错误 (closed #987)
+  * JOB API适配接口错误 (closed #988)
+
+### feature: 
+  * Agent 安装表单优化 (closed #869)
+  * 未启用 DHCP 适配时前端关闭部分入口 (closed #978)
+
 ## 2.2.19 - 2022-08-02 
 
 
