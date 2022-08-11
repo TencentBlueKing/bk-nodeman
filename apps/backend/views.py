@@ -843,8 +843,7 @@ def version(request):
     return JsonResponse(base_info.BaseInfoHandler.version())
 
 
-@csrf_exempt
-def download_tools(request):
+def tools_download(request):
     """
     用于script tools目录下的小文件下载
     :param request:
@@ -855,12 +854,10 @@ def download_tools(request):
         logger.error("failed to valid request data for->[%s] maybe something go wrong?" % ser.errors)
         raise ValidationError(_("请求参数异常 [{err}]，请确认后重试").format(err=ser.errors))
     filename = ser.data["file_name"]
-    file_path = os.path.join(settings.DWONLOAD_PATH, filename)
+    file_path = os.path.join(settings.DOWNLOAD_PATH, filename)
     storage = get_storage()
     if not storage.exists(file_path):
         raise ValidationError(_("文件不存在：file_path -> {file_path}").format(file_path=file_path))
     storage = get_storage()
     response = StreamingHttpResponse(streaming_content=storage.open(file_path, mode="rb"))
-    response.headers["Content-Type"] = "application/octet-stream"
-    response.headers["Content-Disposition"] = 'attachment;filename="{}"'.format(filename)
     return response
