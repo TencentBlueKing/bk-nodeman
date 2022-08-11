@@ -44,7 +44,7 @@ export default [
       // noRestart: route.query.no_restart === 'true',
     }),
     meta: {
-      navId: 'pluginManagerNew',
+      navId: 'nodeManage',
       title: '节点列表',
       authority: {
         page: PLUGIN_VIEW,
@@ -59,7 +59,8 @@ export default [
     props: true,
     component: CreateRule,
     meta: {
-      navId: 'pluginManagerNew',
+      parentName: 'pluginManager',
+      navId: 'nodeManage',
       title: '手动操作插件',
       customContent: true,
       parentName: 'plugin',
@@ -79,7 +80,7 @@ export default [
     name: 'pluginRule',
     component: pluginRule,
     meta: {
-      navId: 'pluginManagerNew',
+      navId: 'nodeManage',
       title: '部署策略',
       authority: {
         page: STRATEGY_VIEW,
@@ -93,7 +94,8 @@ export default [
     props: true,
     component: ChooseRule,
     meta: {
-      navId: 'pluginManagerNew',
+      parentName: 'pluginManager',
+      navId: 'nodeManage',
       parentName: 'pluginRule',
       title: '新建部署策略',
       needBack: true,
@@ -112,7 +114,8 @@ export default [
     component: CreateRule,
     props: true,
     meta: {
-      navId: 'pluginManagerNew',
+      parentName: 'pluginManager',
+      navId: 'nodeManage',
       customContent: true,
       title: '新建部署策略',
       parentName: 'pluginRule',
@@ -156,7 +159,7 @@ export default [
     name: 'pluginPackage',
     component: PluginPackage,
     meta: {
-      navId: 'pluginManagerNew',
+      navId: 'nodeManage',
       title: '插件包',
       authority: {
         pk: 'package',
@@ -170,7 +173,8 @@ export default [
     name: 'pluginPackageParse',
     component: PackageParse,
     meta: {
-      navId: 'pluginManagerNew',
+      parentName: 'pluginManager',
+      navId: 'nodeManage',
       parentId: 'pluginPackage',
       parentName: 'pluginPackage',
       title: '插件包解析',
@@ -187,7 +191,8 @@ export default [
     props: true,
     component: PluginDetail,
     meta: {
-      navId: 'pluginManagerNew',
+      parentName: 'pluginManager',
+      navId: 'nodeManage',
       parentId: 'pluginPackage',
       parentName: 'pluginPackage',
       title: '插件详情',
@@ -204,7 +209,7 @@ export default [
     }),
     component: ResourceQuota,
     meta: {
-      navId: 'pluginManagerNew',
+      navId: 'nodeManage',
       title: '资源配额',
       customContent: true,
     },
@@ -222,7 +227,8 @@ export default [
     }),
     component: ResourceQuotaEdit,
     meta: {
-      navId: 'pluginManagerNew',
+      parentName: 'pluginManager',
+      navId: 'nodeManage',
       parentId: 'resourceQuota',
       parentName: 'resourceQuota',
       title: '编辑资源配额',

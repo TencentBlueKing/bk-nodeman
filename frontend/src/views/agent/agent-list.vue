@@ -130,7 +130,7 @@
           </ul>
         </bk-dropdown-menu>
         <!--选择业务-->
-        <bk-biz-select
+        <!-- <bk-biz-select
           v-model="search.biz"
           class="ml10"
           min-width="240"
@@ -138,24 +138,27 @@
           :auto-request="autoRequest"
           :placeholder="$t('全部业务')"
           @change="handleBizChange">
-        </bk-biz-select>
-        <bk-popover class="ml10 mr10 topo-cascade" :delay="200" :disabled="search.biz.length === 1">
-          <bk-cascade
-            clearable
-            check-any-level
-            ref="topoSelect"
-            v-model="search.topo"
-            :placeholder="$t('业务拓扑')"
-            :disabled="!bkBizList.length || search.biz.length !== 1"
-            :list="topoBizFilterList"
-            v-test="'bizTopo'"
-            @change="topoSelectchange"
-            @toggle="handleTopoChange">
-          </bk-cascade>
-          <div slot="content">
-            {{ $t('选择模块frist') }}<b>{{ $t('选择模块center') }}</b> {{ $t('选择模块last') }}
-          </div>
-        </bk-popover>
+        </bk-biz-select> -->
+        <bk-cascade
+          class="ml10 mr10 topo-cascade"
+          is-remote
+          clearable
+          check-any-level
+          ref="topoSelect"
+          v-model="search.topo"
+          :placeholder="$t('业务拓扑')"
+          :list="topoBizFilterList"
+          :remote-method="topoRemotehandler"
+          v-test="'bizTopo'"
+          @change="topoSelectchange"
+          @toggle="handleTopoChange">
+          <!-- <template slot="option" slot-scope="{ node }">
+            <div v-if="node.type" class="nm-cascade-option" @click.stop="handleLoadCascadeChild(node)">
+              {{ node.name }}
+            </div>
+            <span v-else>{{ node.name }}</span>
+          </template> -->
+        </bk-cascade>
       </div>
       <!--agent搜索-->
       <div class="agent-operate-right">
@@ -828,10 +831,8 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
   ];
   // 搜索相关
   private search: {
-    biz: number[]
     topo: string[]
   } = {
-    biz: [],
     topo: [],
   };
   // 集群/模块 topo
@@ -941,11 +942,15 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
   }
   // topo根据业务来展示
   private get topoBizFilterList() {
-    if (this.search.biz.length !== 1) {
-      return [];
+    const selectLen = this.selectedBiz.length;
+    if (selectLen > 1) {
+      return this.selectedBiz.map(item => this.topoBizFormat[item]).filter(item => item?.id);
     }
-    const bizIdKey = this.search.biz.join('');
-    return this.topoBizFormat[bizIdKey] ? this.topoBizFormat[bizIdKey].children || [] : [];
+    if (selectLen === 1) {
+      const bizIdKey = this.selectedBiz.join('');
+      return this.topoBizFormat[bizIdKey] ? this.topoBizFormat[bizIdKey].children || [] : [];
+    }
+    return this.bkBizList.map(item => this.topoBizFormat[item.bk_biz_id]).filter(item => item?.id);
   }
   private get checkAllPermission() {
     return this.table.data.length
@@ -985,7 +990,7 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
     this.initCustomColStatus();
     const { cloud, agentNum } = this.$route.params;
     if (!cloud && !this.agent_status.length) {
-      this.initAgentList();
+      this.initAgentListDebounce();
     }
     if (agentNum) {
       this.cloudAgentNum = (agentNum as any);
@@ -995,7 +1000,7 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
     }
   }
   private initRouterQuery() {
-    this.search.biz = this.bk_biz_id.length ? [...this.bk_biz_id] : this.selectedBiz;
+    // this.search.biz = this.bk_biz_id.length ? [...this.bk_biz_id] : this.selectedBiz;
     const searchParams: ISearchItem[] = [];
     const { cloud } = this.$route.params;
     AgentStore.getFilterCondition().then((data) => {
@@ -1056,14 +1061,16 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
       bizFormat[item.bk_biz_id] = {
         id: item.bk_biz_id,
         name: item.bk_biz_name,
+        path: item.bk_biz_name,
+        type: 'biz',
         disabled: item.disabled || false,
         children: [],
         needLoad: true,
       };
     });
     this.topoBizFormat = bizFormat;
-    if (this.search.biz.length === 1) {
-      const bizIdKey = this.search.biz.join('');
+    if (this.selectedBiz.length === 1) {
+      const bizIdKey = this.selectedBiz.join('');
       if (Object.prototype.hasOwnProperty.call(this.topoBizFormat, bizIdKey)
           && this.topoBizFormat[bizIdKey].needLoad) {
         this.topoRemotehandler(this.topoBizFormat[bizIdKey], null);
@@ -1150,8 +1157,8 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
     if (this.sortData.head && this.sortData.sort_type) {
       params.sort = Object.assign({}, this.sortData);
     }
-    if (this.search.biz.length && this.search.biz.length !== this.bkBizList.length) {
-      params.bk_biz_id = this.search.biz;
+    if (this.selectedBiz.length && this.selectedBiz.length !== this.bkBizList.length) {
+      params.bk_biz_id = [...this.selectedBiz];
     }
     // 其他搜索条件
     this.searchSelectValue.forEach((item) => {
@@ -1172,25 +1179,32 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
      */
     const topoLen = this.search.topo.length;
     if (topoLen) {
-      const value: IAgent = {
-        bk_biz_id: this.search.biz[0],
-      };
       const len = this.topoSelectChild.length;
       const lastSelect = this.topoSelectChild[len - 1];
-      if (lastSelect.type === 'set') {
-        value.bk_set_ids = [lastSelect.id];
-      } else if (lastSelect.type === 'module') {
-        // module的上级必定为set
-        const penultSelect = this.topoSelectChild[len - 2];
-        value.bk_set_ids = [penultSelect.id];
-        value.bk_module_ids = [lastSelect.id];
+      if (lastSelect.type !== 'biz') {
+        if (this.selectedBiz.length !== 1 && params.bk_biz_id) {
+          delete params.bk_biz_id;
+        }
+        const value: IAgent = {
+          bk_biz_id: this.selectedBiz[0],
+        };
+        if (lastSelect.type === 'set') {
+          value.bk_set_ids = [lastSelect.id];
+        } else if (lastSelect.type === 'module') {
+          // module的上级必定为set
+          const penultSelect = this.topoSelectChild[len - 2];
+          value.bk_set_ids = [penultSelect.id];
+          value.bk_module_ids = [lastSelect.id];
+        } else {
+          value.bk_set_ids = this.getTopoSetDeep(lastSelect, []);
+        }
+        params.conditions.push({
+          key: 'topology',
+          value,
+        });
       } else {
-        value.bk_set_ids = this.getTopoSetDeep(lastSelect, []);
+        params.bk_biz_id = [lastSelect.id];
       }
-      params.conditions.push({
-        key: 'topology',
-        value,
-      });
     }
     return params;
   }
@@ -1200,7 +1214,7 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
   private getTopoSetDeep(topoItem: IAgentTopo, setArr: number[]): number[] {
     if (topoItem.type === 'set') {
       setArr.push(topoItem.id);
-    } else if (topoItem.type !== 'module') {
+    } else if (topoItem.type !== 'module' && topoItem.type !== 'biz') {
       if (topoItem.children?.length) {
         topoItem.children.forEach((item) => {
           this.getTopoSetDeep(item, setArr);
@@ -1296,8 +1310,8 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
   /**
    * 业务变更
    */
+  @Watch('selectedBiz')
   private handleBizChange(newValue: number[]) {
-    console.log(newValue);
     if (newValue.length !== 1) {
       // topo未选择时 清空biz不会触发 cascade组件change事件
       if (this.search.topo.length) {
@@ -1322,6 +1336,7 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
       this.topoSelectStr = this.search.topo.join(',');
     } else {
       if (this.topoSelectStr !== this.search.topo.join(',')) {
+        this.topoSelectStr = '';
         this.table.pagination.current = 1;
         this.initAgentListDebounce();
       }
@@ -1331,7 +1346,6 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
    * 拿到最后一次选择的层级
    */
   private topoSelectchange(newValue: number[], oldValue: number[], selectList: IAgentTopo[]) {
-    console.log(newValue, oldValue, selectList);
     this.topoSelectChild = selectList;
     // 组件bug，clear事件并未派发出来
     if (!newValue.length) {
@@ -1350,7 +1364,7 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
         item.needLoad = false;
         item.children = res;
         const bizIdKey = item.id;
-        if (Object.prototype.hasOwnProperty.call(this.topoBizFormat, 'bizIdKey')) {
+        if (Object.prototype.hasOwnProperty.call(this.topoBizFormat, bizIdKey)) {
           this.topoBizFormat[bizIdKey].children = res;
           this.topoBizFormat[bizIdKey].needLoad = false;
         }
@@ -1375,12 +1389,12 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
   }
   private handlePageChange(page?: number) {
     this.table.pagination.current = page || 1;
-    this.initAgentList(true);
+    this.initAgentListDebounce(true);
   }
   private handlePageLimitChange(limit: number) {
     this.table.pagination.current = 1;
     this.table.pagination.limit = limit;
-    this.initAgentList(true);
+    this.initAgentListDebounce(true);
   }
   /**
    * 自定义字段显示列
@@ -1406,7 +1420,7 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
     const currentTopoChecked = data.topology.mockChecked;
     this.filter = data;
     if (currentTopoChecked && currentTopoChecked !== originTopoChecked) {
-      this.initAgentList();
+      this.initAgentListDebounce();
     }
     this.$forceUpdate();
   }
@@ -1731,7 +1745,7 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
           ? this.$t('删除完成提示', { success: result.success, fail: result.fail })
           : this.$t('删除成功'),
       });
-      this.initAgentList();
+      this.initAgentListDebounce();
     } else {
       this.loading = false;
     }
