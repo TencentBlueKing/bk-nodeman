@@ -1354,10 +1354,15 @@ class DebugService(PluginExecuteScriptService):
             }
         )
         # 调试插件时仅有一个IP，以下取值方式与作业平台API文档一致，不会抛出 IndexError/KeyError 的异常
-        step_instance_id = result["step_instance_list"][0]["step_instance_id"]
-        bk_host_id = result["step_instance_list"][0]["step_ip_result_list"][0]["bk_host_id"]
-        ip = result["step_instance_list"][0]["step_ip_result_list"][0]["ip"]
-        bk_cloud_id = result["step_instance_list"][0]["step_ip_result_list"][0]["bk_cloud_id"]
+        if settings.BKAPP_ENABLE_DHCP:
+            host_interaction_params: Dict[str, Union[str, int]] = {
+                "bk_host_id": result["step_instance_list"][0]["step_ip_result_list"][0]["bk_host_id"]
+            }
+        else:
+            host_interaction_params: Dict[str, Union[str, int]] = {
+                "ip": result["step_instance_list"][0]["step_ip_result_list"][0]["ip"],
+                "bk_cloud_id": result["step_instance_list"][0]["step_ip_result_list"][0]["bk_cloud_id"],
+            }
 
         instance_log_base_params: Dict[str, Union[str, int]] = {
             "job_instance_id": job_instance_id,
@@ -1365,11 +1370,9 @@ class DebugService(PluginExecuteScriptService):
             "bk_scope_type": constants.BkJobScopeType.BIZ_SET.value,
             "bk_scope_id": settings.BLUEKING_BIZ_ID,
             "bk_username": settings.BACKEND_JOB_OPERATOR,
-            "step_instance_id": step_instance_id,
+            "step_instance_id": result["step_instance_list"][0]["step_instance_id"],
         }
-        host_interaction_params: Dict[str, Union[str, int]] = (
-            {"bk_host_id": bk_host_id} if settings.BKAPP_ENABLE_DHCP else {"ip": ip, "bk_cloud_id": bk_cloud_id}
-        )
+
         task_result = JobApi.get_job_instance_ip_log({**instance_log_base_params, **host_interaction_params})
 
         # 只写入新的日志，保证轮询过程中不会重复写入job的日志
