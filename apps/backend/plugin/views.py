@@ -498,14 +498,20 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         host_info = params["host_info"]
         plugin_name = params["plugin_name"]
         plugin_version = params["version"]
-        query_host_params = dict(
-            bk_biz_id=host_info["bk_biz_id"], inner_ip=host_info["ip"], bk_cloud_id=host_info["bk_cloud_id"]
-        )
-        if params.get("bk_host_id"):
-            query_host_params.update(bk_host_id=params["bk_host_id"])
+        if host_info.get("bk_host_id"):
+            query_host_params = {"bk_biz_id": host_info["bk_biz_id"], "bk_host_id": host_info["bk_host_id"]}
+        else:
+            # 仅支持静态寻址的主机使用 云区域 + IP
+            query_host_params = {
+                "bk_biz_id": host_info["bk_biz_id"],
+                "inner_ip": host_info["ip"],
+                "bk_cloud_id": host_info["bk_cloud_id"],
+                "bk_addressing": constants.CmdbAddressingType.STATIC.value,
+            }
 
-        host = models.Host.objects.get(**query_host_params).first()
-        if not host:
+        try:
+            host = models.Host.objects.get(**query_host_params)
+        except models.Host.DoesNotExist:
             raise HostNotExists("host does not exist")
 
         plugin_id = params.get("plugin_id")

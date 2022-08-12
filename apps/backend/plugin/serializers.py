@@ -238,10 +238,17 @@ class PluginStartDebugSerializer(GatewaySerializer):
 
     class HostInfoSerializer(serializers.Serializer):
         bk_host_id = serializers.IntegerField(required=False)
-        ip = serializers.CharField(required=True)
-        bk_cloud_id = serializers.IntegerField(required=True)
+        ip = serializers.CharField(required=False)
+        bk_cloud_id = serializers.IntegerField(required=False)
         bk_supplier_id = serializers.IntegerField(default=constants.DEFAULT_SUPPLIER_ID)
         bk_biz_id = serializers.IntegerField(required=True)
+
+        def validate(self, attrs):
+            if "bk_host_id" in attrs:
+                return attrs
+            if "ip" in attrs and "bk_cloud_id" in attrs:
+                return attrs
+            raise ValidationError("`bk_host_id` or `ip + bk_cloud_id (Only valid for static host)` required")
 
     plugin_id = serializers.IntegerField(required=False)
     plugin_name = serializers.CharField(max_length=32, required=False)
