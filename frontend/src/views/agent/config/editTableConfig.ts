@@ -122,9 +122,9 @@ export const editConfig: ISetupHead[] = [
     tips: 'agentSetupPort',
     parentProp: 'login_info',
     rules: [reguPort],
-    getReadonly(row: ISetupRow) {
-      return row && row.os_type === 'WINDOWS' && row.bk_cloud_id !== window.PROJECT_CONFIG.DEFAULT_CLOUD;
-    },
+    // getReadonly(row: ISetupRow) {
+    //   return row && row.os_type === 'WINDOWS' && row.bk_cloud_id !== window.PROJECT_CONFIG.DEFAULT_CLOUD;
+    // },
   },
   {
     label: '登录账号',

@@ -34,6 +34,7 @@ from apps.backend.subscription.handler import SubscriptionHandler
 from apps.backend.utils.pipeline_parser import PipelineParser
 from apps.generic import APIViewSet
 from apps.node_man import constants, models
+from apps.utils import basic
 
 logger = logging.getLogger("app")
 cache = caches["db"]
@@ -764,15 +765,18 @@ class SubscriptionViewSet(APIViewSet):
             pipeline_id=params["host_install_pipeline_id"],
             is_uninstall=params["is_uninstall"],
             sub_inst_id=params["sub_inst_id"],
+            is_combine_cmd_step=True,
         )
+        if installation_tool.is_need_jump_server:
+            execution_solutions = installation_tool.type__execution_solution_map[
+                constants.CommonExecutionSolutionType.SHELL.value
+            ].target_host_solutions
+        else:
+            execution_solutions = installation_tool.type__execution_solution_map.values()
 
-        return Response(
-            {
-                "win_commands": installation_tool.win_commands,
-                "pre_commands": installation_tool.pre_commands,
-                "run_cmd": installation_tool.run_cmd,
-            }
-        )
+        solutions = [basic.obj_to_dict(execution_solution) for execution_solution in execution_solutions]
+
+        return Response({"solutions": solutions})
 
     @action(detail=False, methods=["POST"], url_path="search_deploy_policy")
     def search_deploy_policy(self, *args, **kwargs):
