@@ -87,6 +87,7 @@ MIDDLEWARE = (
     # Auth middleware
     # 'blueapps.account.middlewares.BkJwtLoginRequiredMiddleware',
     # 'blueapps.account.middlewares.WeixinLoginRequiredMiddleware',
+    "blueapps.account.middlewares.BkJwtLoginRequiredMiddleware",
     "blueapps.account.middlewares.LoginRequiredMiddleware",
     # exception middleware
     "blueapps.core.exceptions.middleware.AppExceptionMiddleware",
@@ -537,16 +538,6 @@ if BK_BACKEND_CONFIG:
 
     # 后台根路径与SaaS
     BASE_DIR = os.path.dirname(PROJECT_ROOT)
-
-    # 在登录中间件前面加上JWT中间件认证
-    JWT_MIDDLEWARE = "blueapps.account.middlewares.BkJwtLoginRequiredMiddleware"
-    LOGIN_MIDDLEWARE = "blueapps.account.middlewares.LoginRequiredMiddleware"
-    if LOGIN_MIDDLEWARE in MIDDLEWARE:
-        MIDDLEWARE = (
-            MIDDLEWARE[0 : MIDDLEWARE.index(LOGIN_MIDDLEWARE)]
-            + (JWT_MIDDLEWARE,)
-            + MIDDLEWARE[MIDDLEWARE.index(LOGIN_MIDDLEWARE) :]
-        )
 
     # SESSION 引擎
     SESSION_ENGINE = "django.contrib.sessions.backends.signed_cookies"
