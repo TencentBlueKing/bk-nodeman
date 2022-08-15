@@ -1,0 +1,3 @@
+---
+optimization:
+  - "安装命令生成执行方案，Windows 非直连安装 Agent 支持 Cygwin (close #740)"

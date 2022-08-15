@@ -8,16 +8,18 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import base64
 import importlib
 import json
 import re
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import mock
 from django.conf import settings
 from django.test import override_settings
 
-from apps.backend.agent.tools import gen_commands
+from apps.backend.agent.solution_maker import ExecutionSolution
+from apps.backend.agent.tools import InstallationTools, gen_commands
 from apps.backend.components.collections.agent_new import install
 from apps.backend.components.collections.agent_new.components import InstallComponent
 from apps.backend.constants import REDIS_INSTALL_CALLBACK_KEY_TPL
@@ -121,6 +123,37 @@ class InstallBaseTestCase(utils.AgentServiceBaseTestCase):
     def fetch_succeeded_sub_inst_ids(self) -> List[int]:
         return self.common_inputs["subscription_instance_ids"]
 
+    @classmethod
+    def execution_solution_parser(
+        cls,
+        run_cmd_param_extract: Dict[str, str],
+        solution_type: Optional[str] = None,
+        installation_tool: Optional[InstallationTools] = None,
+        execution_solution: Optional[ExecutionSolution] = None,
+    ) -> Dict[str, Any]:
+
+        if execution_solution is None:
+            execution_solution = installation_tool.type__execution_solution_map[solution_type]
+
+        execution_solution_steps = execution_solution.steps
+        parse_result: Dict[str, Any] = {"cmds": [], "dependencies": [], "params": {}}
+        for execution_solution_step in execution_solution_steps:
+            for content in execution_solution_step.contents:
+                if execution_solution_step.type == constants.CommonExecutionSolutionStepType.COMMANDS.value:
+                    parse_result["cmds"].append(content.text)
+                    if content.name != "run_cmd":
+                        continue
+
+                    for param_name, re_str in run_cmd_param_extract.items():
+                        try:
+                            parse_result["params"][param_name] = re.match(re_str, content.text).group(2)
+                        except Exception:
+                            pass
+
+                elif execution_solution_step.type == constants.CommonExecutionSolutionStepType.DEPENDENCIES.value:
+                    parse_result["dependencies"].append(content.name)
+        return parse_result
+
     def component_cls(self):
         # 模块 mock 装饰器，需要重新加载
         # 参考：https://stackoverflow.com/questions/7667567/can-i-patch-a-python-decorator-before-it-wraps-a-function
@@ -165,66 +198,120 @@ class InstallBaseTestCase(utils.AgentServiceBaseTestCase):
 
 
 class LinuxInstallTestCase(InstallBaseTestCase):
-    def test_gen_agent_command(self):
+    def test_shell_solution(self):
         host = models.Host.objects.get(bk_host_id=self.obj_factory.bk_host_ids[0])
         installation_tool = gen_commands(host, mock_data_utils.JOB_TASK_PIPELINE_ID, is_uninstall=False, sub_inst_id=0)
-        token = re.match(r"(.*) -c (.*?) -O", installation_tool.run_cmd).group(2)
-        run_cmd = (
-            f"nohup bash /tmp/setup_agent.sh -s {mock_data_utils.JOB_TASK_PIPELINE_ID}"
-            f" -r http://127.0.0.1/backend -l http://127.0.0.1/download"
-            f" -c {token}"
-            f' -O 48668 -E 58925 -A 58625 -V 58930 -B 10020 -S 60020 -Z 60030 -K 10030 -e "" -a "" -k ""'
-            f" -i 0 -I {host.inner_ip} -N SERVER -p /usr/local/gse -T /tmp/ &> /tmp/nm.nohup.out &"
+        solution_parse_result: Dict[str, Any] = self.execution_solution_parser(
+            installation_tool=installation_tool,
+            solution_type=constants.CommonExecutionSolutionType.SHELL.value,
+            run_cmd_param_extract={"token": r"(.*) -c (.*?) -s"},
         )
-        self.assertEqual(installation_tool.run_cmd, run_cmd)
+
+        self.assertEqual(solution_parse_result["dependencies"], [])
+        self.assertEqual(
+            solution_parse_result["cmds"],
+            [
+                f"mkdir -p {installation_tool.dest_dir}",
+                f"curl http://127.0.0.1/download/setup_agent.sh "
+                f"-o {installation_tool.dest_dir}setup_agent.sh --connect-timeout 5 -sSf",
+                f"chmod +x {installation_tool.dest_dir}setup_agent.sh",
+                f"nohup bash {installation_tool.dest_dir}setup_agent.sh"
+                f' -O 48668 -E 58925 -A 58625 -V 58930 -B 10020 -S 60020 -Z 60030 -K 10030 -e "" -a "" -k ""'
+                f" -l http://127.0.0.1/download -r http://127.0.0.1/backend"
+                f" -i 0 -I {host.inner_ip} -T {installation_tool.dest_dir} -p /usr/local/gse"
+                f" -c {solution_parse_result['params']['token']} -s {mock_data_utils.JOB_TASK_PIPELINE_ID}"
+                f" -N SERVER &> /tmp/nm.nohup.out &",
+            ],
+        )
 
 
 class InstallWindowsSSHTestCase(InstallBaseTestCase):
     OS_TYPE = constants.OsType.WINDOWS
 
-    def test_gen_win_command(self):
+    def _test_shell_solution(self, validate_encrypted_password: bool):
+
         host = models.Host.objects.get(bk_host_id=self.obj_factory.bk_host_ids[0])
         installation_tool = gen_commands(host, mock_data_utils.JOB_TASK_PIPELINE_ID, is_uninstall=False, sub_inst_id=0)
-        token = re.match(r"(.*) -c (.*?) -O", installation_tool.run_cmd).group(2)
-        run_cmd = (
-            f"nohup C:/tmp/setup_agent.bat -s {mock_data_utils.JOB_TASK_PIPELINE_ID}"
-            f" -r http://127.0.0.1/backend -l http://127.0.0.1/download -c {token}"
-            f' -O 48668 -E 58925 -A 58625 -V 58930 -B 10020 -S 60020 -Z 60030 -K 10030 -e " " -a " " -k " "'
-            f" -i 0 -I {host.inner_ip} -N SERVER -p c:\\\\gse -T C:\\\\tmp\\\\ &> C:/tmp/nm.nohup.out &"
+
+        run_cmd_param_extract = {"token": r"(.*) -c (.*?) -s"}
+        if validate_encrypted_password:
+            run_cmd_param_extract["encrypted_password"] = r"(.*) -P (.*?) -N"
+
+        solution_parse_result: Dict[str, Any] = self.execution_solution_parser(
+            installation_tool=installation_tool,
+            solution_type=constants.CommonExecutionSolutionType.SHELL.value,
+            run_cmd_param_extract=run_cmd_param_extract,
         )
-        self.assertEqual(installation_tool.run_cmd, run_cmd)
+
+        if validate_encrypted_password:
+            # 校验是否存在 Cygwin 所需的占位符
+            self.assertTrue(solution_parse_result["params"]["encrypted_password"].endswith(' "'))
+            encrypted_password_params = f" -U root -P {solution_parse_result['params']['encrypted_password']}"
+        else:
+            encrypted_password_params = ""
+
+        installation_tool.dest_dir = installation_tool.dest_dir.replace("\\", "/")
+
+        run_cmd = (
+            f"nohup {installation_tool.dest_dir}setup_agent.bat"
+            f' -O 48668 -E 58925 -A 58625 -V 58930 -B 10020 -S 60020 -Z 60030 -K 10030 -e " " -a " " -k " "'
+            f" -l http://127.0.0.1/download -r http://127.0.0.1/backend"
+            f" -i 0 -I {host.inner_ip} -T C:\\\\tmp\\\\ -p c:\\\\gse"
+            f" -c {solution_parse_result['params']['token']}"
+            f" -s {mock_data_utils.JOB_TASK_PIPELINE_ID}{encrypted_password_params}"
+            f" -N SERVER &> {installation_tool.dest_dir}nm.nohup.out &"
+        )
+
+        self.assertEqual(
+            solution_parse_result["cmds"],
+            [f"mkdir -p {installation_tool.dest_dir}"]
+            + [
+                f"curl {installation_tool.package_url}/{dependence} "
+                f"-o {installation_tool.dest_dir}{dependence} --connect-timeout 5 -sSf"
+                for dependence in constants.AgentWindowsDependencies.list_member_values()
+            ]
+            + [
+                f"{installation_tool.dest_dir}curl.exe http://127.0.0.1/download/setup_agent.bat "
+                f"-o {installation_tool.dest_dir}setup_agent.bat --connect-timeout 5 -sSf",
+                f"chmod +x {installation_tool.dest_dir}setup_agent.bat",
+                run_cmd,
+            ],
+        )
+
+    def test_shell_solution(self):
+        self._test_shell_solution(validate_encrypted_password=False)
 
     @override_settings(REGISTER_WIN_SERVICE_WITH_PASS=True)
-    def test_gen_agent_command(self):
-        host = models.Host.objects.get(bk_host_id=self.obj_factory.bk_host_ids[0])
-        installation_tool = gen_commands(host, mock_data_utils.JOB_TASK_PIPELINE_ID, is_uninstall=False, sub_inst_id=0)
-        token = re.match(r"(.*) -c (.*?) -O", installation_tool.run_cmd).group(2)
-        encrypted_password = re.match(r"(.*) -P (.*?) &", installation_tool.run_cmd).group(2)
-        self.assertTrue(encrypted_password.endswith(' "'))
-        run_cmd = (
-            f"nohup C:/tmp/setup_agent.bat -s {mock_data_utils.JOB_TASK_PIPELINE_ID}"
-            f" -r http://127.0.0.1/backend -l http://127.0.0.1/download -c {token}"
-            f' -O 48668 -E 58925 -A 58625 -V 58930 -B 10020 -S 60020 -Z 60030 -K 10030 -e " " -a " " -k " "'
-            f" -i 0 -I {host.inner_ip} -N SERVER -p c:\\\\gse -T C:\\\\tmp\\\\ -U root -P {encrypted_password} "
-            f"&> C:/tmp/nm.nohup.out &"
-        )
-        self.assertEqual(installation_tool.run_cmd, run_cmd)
+    def test_shell_solution__register_win(self):
+        self._test_shell_solution(validate_encrypted_password=True)
 
 
 class InstallWindowsTestCase(InstallBaseTestCase):
     OS_TYPE = constants.OsType.WINDOWS
 
-    def test_gen_win_command(self):
+    def test_batch_solution(self):
         host = models.Host.objects.get(bk_host_id=self.obj_factory.bk_host_ids[0])
         installation_tool = gen_commands(host, mock_data_utils.JOB_TASK_PIPELINE_ID, is_uninstall=False, sub_inst_id=0)
-        token = re.match(r"(.*) -c (.*?) -O", installation_tool.run_cmd).group(2)
-        windows_run_cmd = (
-            f"C:\\tmp\\setup_agent.bat -s {mock_data_utils.JOB_TASK_PIPELINE_ID}"
-            f" -r http://127.0.0.1/backend -l http://127.0.0.1/download -c {token}"
-            f' -O 48668 -E 58925 -A 58625 -V 58930 -B 10020 -S 60020 -Z 60030 -K 10030 -e "" -a "" -k ""'
-            f" -i 0 -I {host.inner_ip} -N SERVER -p c:\\gse -T C:\\tmp\\"
+        solution_parse_result: Dict[str, Any] = self.execution_solution_parser(
+            installation_tool=installation_tool,
+            solution_type=constants.CommonExecutionSolutionType.BATCH.value,
+            run_cmd_param_extract={"token": r"(.*) -c (.*?) -s"},
         )
-        self.assertEqual(installation_tool.win_commands[-1], windows_run_cmd)
+
+        self.assertEqual(constants.AgentWindowsDependencies.list_member_values(), solution_parse_result["dependencies"])
+        self.assertEqual(
+            solution_parse_result["cmds"],
+            [
+                f"mkdir {installation_tool.dest_dir}",
+                f"{installation_tool.dest_dir}curl.exe http://127.0.0.1/download/setup_agent.bat"
+                f" -o {installation_tool.dest_dir}setup_agent.bat -sSf",
+                f"{installation_tool.dest_dir}setup_agent.bat"
+                f' -O 48668 -E 58925 -A 58625 -V 58930 -B 10020 -S 60020 -Z 60030 -K 10030 -e "" -a "" -k ""'
+                f" -l http://127.0.0.1/download -r http://127.0.0.1/backend"
+                f" -i 0 -I {host.inner_ip} -T C:\\tmp\\ -p c:\\gse"
+                f" -c {solution_parse_result['params']['token']} -s {mock_data_utils.JOB_TASK_PIPELINE_ID} -N SERVER",
+            ],
+        )
 
     def start_patch(self):
         # 让 Windows SSH 检测失败
@@ -246,23 +333,169 @@ class InstallLinuxPagentTestCase(InstallBaseTestCase):
             os_type=self.OS_TYPE, node_type=self.NODE_TYPE, bk_cloud_id=self.CLOUD_ID, ap_id=constants.DEFAULT_AP_ID
         )
 
-    def test_gen_pagent_command(self):
+    def test_shell_solution(self):
         host = models.Host.objects.get(bk_host_id=self.obj_factory.bk_host_ids[0])
         installation_tool = gen_commands(host, mock_data_utils.JOB_TASK_PIPELINE_ID, is_uninstall=False, sub_inst_id=0)
-        token = re.match(r"(.*) -c (.*?) -O", installation_tool.run_cmd).group(2)
-        run_cmd = (
-            f"-s {mock_data_utils.JOB_TASK_PIPELINE_ID} -r http://127.0.0.1/backend -l http://127.0.0.1/download"
-            f" -c {token}"
-            f" -O 48668 -E 58925 -A 58625 -V 58930 -B 10020 -S 60020 -Z 60030 -K 10030"
-            f' -e "1.1.1.1" -a "1.1.1.1" -k "1.1.1.1" -L /data/bkee/public/bknodeman/download'
-            f" -HLIP {host.inner_ip} -HIIP {host.inner_ip} -HA root -HP 22 -HI 'password' "
-            f"-HC {self.CLOUD_ID} -HNT PAGENT"
-            f" -HOT linux -HDD '/tmp/'"
-            f" -HPP '17981' -HSN 'setup_agent.sh' -HS 'bash'"
-            f" -p '/usr/local/gse' -I 1.1.1.1"
-            f" -o http://1.1.1.1:{settings.BK_NODEMAN_NGINX_DOWNLOAD_PORT}/"
+        solution_parse_result: Dict[str, Any] = self.execution_solution_parser(
+            installation_tool=installation_tool,
+            solution_type=constants.CommonExecutionSolutionType.SHELL.value,
+            run_cmd_param_extract={"token": r"(.*) -c (.*?) -s", "host_solutions_json_b64": r"(.*) -HSJB (.*)"},
         )
-        self.assertEqual(installation_tool.run_cmd, run_cmd)
+
+        self.assertTrue(
+            type(
+                json.loads(
+                    base64.b64decode(solution_parse_result["params"]["host_solutions_json_b64"].encode()).decode()
+                )
+            ),
+            list,
+        )
+
+        self.assertEqual(
+            solution_parse_result["cmds"],
+            [
+                f"-l http://127.0.0.1/download -r http://127.0.0.1/backend -L /data/bkee/public/bknodeman/download"
+                f" -c {solution_parse_result['params']['token']} -s {mock_data_utils.JOB_TASK_PIPELINE_ID}"
+                f" -HNT PAGENT -HIIP {host.inner_ip}"
+                f" -HC {self.CLOUD_ID} -HOT {host.os_type.lower()} -HI '{host.identity.password}'"
+                f" -HP {host.identity.port} -HA {host.identity.account} -HLIP {host.inner_ip}"
+                f" -HDD '{installation_tool.dest_dir}' -HPP '17981' -I 1.1.1.1"
+                f" -HSJB {solution_parse_result['params']['host_solutions_json_b64']}"
+            ],
+        )
+
+    def test_target_host_shell_solution(self):
+        host = models.Host.objects.get(bk_host_id=self.obj_factory.bk_host_ids[0])
+        installation_tool = gen_commands(host, mock_data_utils.JOB_TASK_PIPELINE_ID, is_uninstall=False, sub_inst_id=0)
+        target_host_solutions = installation_tool.type__execution_solution_map[
+            constants.CommonExecutionSolutionType.SHELL.value
+        ].target_host_solutions
+        # Linux 主机只有 shell 一种执行方案
+        self.assertEqual(len(target_host_solutions), 1)
+
+        solution_parse_result: Dict[str, Any] = self.execution_solution_parser(
+            execution_solution=target_host_solutions[0], run_cmd_param_extract={"token": r"(.*) -c (.*?) -s"}
+        )
+
+        # 这块还不大确定参数对不对，先放着，后续删
+        # def test_gen_pagent_command(self):
+        #     host = models.Host.objects.get(bk_host_id=self.obj_factory.bk_host_ids[0])
+        #     token = re.match(r"(.*) -c (.*?) -O", installation_tool.run_cmd).group(2)
+        #     run_cmd = (
+        #         f"-s {mock_data_utils.JOB_TASK_PIPELINE_ID} -r http://127.0.0.1/backend -l http://127.0.0.1/download"
+        #         f" -c {token}"
+        #         f" -O 48668 -E 58925 -A 58625 -V 58930 -B 10020 -S 60020 -Z 60030 -K 10030"
+        #         f' -e "1.1.1.1" -a "1.1.1.1" -k "1.1.1.1" -L /data/bkee/public/bknodeman/download'
+        #         f" -HLIP {host.inner_ip} -HIIP {host.inner_ip} -HA root -HP 22 -HI 'password' "
+        #         f"-HC {self.CLOUD_ID} -HNT PAGENT"
+        #         f" -HOT linux -HDD '/tmp/'"
+        #         f" -HPP '17981' -HSN 'setup_agent.sh' -HS 'bash'"
+        #         f" -p '/usr/local/gse' -I 1.1.1.1"
+        #         f" -o http://1.1.1.1:{settings.BK_NODEMAN_NGINX_DOWNLOAD_PORT}/"
+        #     )
+        #     self.assertEqual(installation_tool.run_cmd, run_cmd)
+
+        self.assertEqual(solution_parse_result["dependencies"], [])
+        self.assertEqual(
+            solution_parse_result["cmds"],
+            [
+                f"mkdir -p {installation_tool.dest_dir}",
+                f"curl http://127.0.0.1/download/setup_agent.sh "
+                f"-o {installation_tool.dest_dir}setup_agent.sh --connect-timeout 5 -sSf"
+                f" -x http://1.1.1.1:{settings.BK_NODEMAN_NGINX_PROXY_PASS_PORT}",
+                f"chmod +x {installation_tool.dest_dir}setup_agent.sh",
+                f"nohup bash {installation_tool.dest_dir}setup_agent.sh"
+                f" -O 48668 -E 58925 -A 58625 -V 58930 -B 10020 -S 60020 -Z 60030 -K 10030"
+                f' -e "1.1.1.1" -a "1.1.1.1" -k "1.1.1.1"'
+                f" -l http://1.1.1.1:{settings.BK_NODEMAN_NGINX_DOWNLOAD_PORT} -r http://127.0.0.1/backend"
+                f" -i {host.bk_cloud_id} -I {host.inner_ip} -T {installation_tool.dest_dir} -p /usr/local/gse"
+                f" -c {solution_parse_result['params']['token']} -s {mock_data_utils.JOB_TASK_PIPELINE_ID}"
+                f" -N PROXY -x http://1.1.1.1:{settings.BK_NODEMAN_NGINX_PROXY_PASS_PORT} &> /tmp/nm.nohup.out &",
+            ],
+        )
+
+
+class InstallWindowsPagentTestCase(InstallLinuxPagentTestCase):
+    OS_TYPE = constants.OsType.WINDOWS
+
+    def test_target_host_shell_solution(self):
+        host = models.Host.objects.get(bk_host_id=self.obj_factory.bk_host_ids[0])
+        installation_tool = gen_commands(host, mock_data_utils.JOB_TASK_PIPELINE_ID, is_uninstall=False, sub_inst_id=0)
+        target_host_solutions = installation_tool.type__execution_solution_map[
+            constants.CommonExecutionSolutionType.SHELL.value
+        ].target_host_solutions
+        type__execution_solution_map = {
+            target_host_solution.type: target_host_solution for target_host_solution in target_host_solutions
+        }
+        solution_parse_result: Dict[str, Any] = self.execution_solution_parser(
+            execution_solution=type__execution_solution_map[constants.CommonExecutionSolutionType.SHELL.value],
+            run_cmd_param_extract={"token": r"(.*) -c (.*?) -s"},
+        )
+
+        installation_tool.dest_dir = installation_tool.dest_dir.replace("\\", "/")
+
+        self.assertEqual(solution_parse_result["dependencies"], [])
+
+        run_cmd = (
+            f"nohup {installation_tool.dest_dir}setup_agent.bat"
+            f" -O 48668 -E 58925 -A 58625 -V 58930 -B 10020 -S 60020 -Z 60030 -K 10030"
+            f' -e "1.1.1.1 " -a "1.1.1.1 " -k "1.1.1.1 "'
+            f" -l http://1.1.1.1:{settings.BK_NODEMAN_NGINX_DOWNLOAD_PORT} -r http://127.0.0.1/backend"
+            f" -i {host.bk_cloud_id} -I {host.inner_ip} -T C:\\\\tmp\\\\ -p c:\\\\gse"
+            f" -c {solution_parse_result['params']['token']}"
+            f" -s {mock_data_utils.JOB_TASK_PIPELINE_ID}"
+            f" -N PROXY -x http://1.1.1.1:{settings.BK_NODEMAN_NGINX_PROXY_PASS_PORT}"
+            f" &> {installation_tool.dest_dir}nm.nohup.out &"
+        )
+
+        self.assertEqual(
+            solution_parse_result["cmds"],
+            [f"mkdir -p {installation_tool.dest_dir}"]
+            + [
+                f"curl {installation_tool.package_url}/{dependence} -o {installation_tool.dest_dir}{dependence} "
+                f"--connect-timeout 5 -sSf -x http://1.1.1.1:{settings.BK_NODEMAN_NGINX_PROXY_PASS_PORT}"
+                for dependence in constants.AgentWindowsDependencies.list_member_values()
+            ]
+            + [
+                f"{installation_tool.dest_dir}curl.exe http://127.0.0.1/download/setup_agent.bat"
+                f" -o {installation_tool.dest_dir}setup_agent.bat --connect-timeout 5 -sSf"
+                f" -x http://1.1.1.1:{settings.BK_NODEMAN_NGINX_PROXY_PASS_PORT}",
+                f"chmod +x {installation_tool.dest_dir}setup_agent.bat",
+                run_cmd,
+            ],
+        )
+
+    def test_target_host_batch_solution(self):
+        host = models.Host.objects.get(bk_host_id=self.obj_factory.bk_host_ids[0])
+        installation_tool = gen_commands(host, mock_data_utils.JOB_TASK_PIPELINE_ID, is_uninstall=False, sub_inst_id=0)
+        target_host_solutions = installation_tool.type__execution_solution_map[
+            constants.CommonExecutionSolutionType.SHELL.value
+        ].target_host_solutions
+        type__execution_solution_map = {
+            target_host_solution.type: target_host_solution for target_host_solution in target_host_solutions
+        }
+        solution_parse_result: Dict[str, Any] = self.execution_solution_parser(
+            execution_solution=type__execution_solution_map[constants.CommonExecutionSolutionType.BATCH.value],
+            run_cmd_param_extract={"token": r"(.*) -c (.*?) -s"},
+        )
+
+        self.assertEqual(constants.AgentWindowsDependencies.list_member_values(), solution_parse_result["dependencies"])
+        self.assertEqual(
+            solution_parse_result["cmds"],
+            [
+                f"mkdir {installation_tool.dest_dir}",
+                f"{installation_tool.dest_dir}curl.exe http://127.0.0.1/download/setup_agent.bat"
+                f" -o {installation_tool.dest_dir}setup_agent.bat -sSf"
+                f" -x http://1.1.1.1:{settings.BK_NODEMAN_NGINX_PROXY_PASS_PORT}",
+                f"{installation_tool.dest_dir}setup_agent.bat"
+                f" -O 48668 -E 58925 -A 58625 -V 58930 -B 10020 -S 60020 -Z 60030 -K 10030"
+                f' -e "1.1.1.1" -a "1.1.1.1" -k "1.1.1.1"'
+                f" -l http://1.1.1.1:{settings.BK_NODEMAN_NGINX_DOWNLOAD_PORT} -r http://127.0.0.1/backend"
+                f" -i {host.bk_cloud_id} -I {host.inner_ip} -T C:\\tmp\\ -p c:\\gse"
+                f" -c {solution_parse_result['params']['token']} -s {mock_data_utils.JOB_TASK_PIPELINE_ID}"
+                f" -N PROXY -x http://1.1.1.1:{settings.BK_NODEMAN_NGINX_PROXY_PASS_PORT}",
+            ],
+        )
 
 
 class InstallFailedTestCase(InstallBaseTestCase):
@@ -321,22 +554,27 @@ class InstallAgentWithInstallChannelSuccessTest(InstallBaseTestCase):
         )
 
     def test_gen_install_channel_agent_command(self):
+
         host = models.Host.objects.get(bk_host_id=self.obj_factory.bk_host_ids[0])
         installation_tool = gen_commands(host, mock_data_utils.JOB_TASK_PIPELINE_ID, is_uninstall=False, sub_inst_id=0)
-        token = re.match(r"(.*) -c (.*?) -O", installation_tool.run_cmd).group(2)
-        run_cmd = (
-            f"-s {mock_data_utils.JOB_TASK_PIPELINE_ID} -r http://127.0.0.1/backend"
-            f" -l http://1.1.1.1:{settings.BK_NODEMAN_NGINX_DOWNLOAD_PORT}/ -c {token}"
-            f" -O 48668 -E 58925 -A 58625 -V 58930 -B 10020 -S 60020 -Z 60030 -K 10030"
-            f' -e "127.0.0.1" -a "127.0.0.1" -k "127.0.0.1" -L /data/bkee/public/bknodeman/download'
-            f" -HLIP {host.inner_ip} -HIIP {host.inner_ip} -HA root -HP 22 -HI 'password' -HC 0 -HNT AGENT"
-            f" -HOT linux -HDD '/tmp/'"
-            f" -HPP '17981' -HSN 'setup_agent.sh' -HS 'bash'"
-            f" -p '/usr/local/gse' -I 1.1.1.1"
-            f" -o http://1.1.1.1:{settings.BK_NODEMAN_NGINX_DOWNLOAD_PORT}/"
-            f" -CPA 'http://127.0.0.1:17981'"
+
+        solution_parse_result: Dict[str, Any] = self.execution_solution_parser(
+            installation_tool=installation_tool,
+            solution_type=constants.CommonExecutionSolutionType.SHELL.value,
+            run_cmd_param_extract={"token": r"(.*) -c (.*?) -s", "host_solutions_json_b64": r"(.*) -HSJB (.*)"},
         )
-        self.assertEqual(installation_tool.run_cmd, run_cmd)
+
+        self.assertEqual(
+            solution_parse_result["cmds"],
+            [
+                f"-l http://1.1.1.1:17980/ -r http://127.0.0.1/backend -L /data/bkee/public/bknodeman/download"
+                f" -c {solution_parse_result['params']['token']} -s {mock_data_utils.JOB_TASK_PIPELINE_ID}"
+                f" -HNT AGENT -HIIP {host.inner_ip}"
+                f" -HC 0 -HOT linux -HI 'password' -HP 22 -HA root -HLIP {host.inner_ip}"
+                f" -HDD '/tmp/' -HPP '17981' -I 1.1.1.1 -CPA 'http://127.0.0.1:17981'"
+                f" -HSJB {solution_parse_result['params']['host_solutions_json_b64']}"
+            ],
+        )
 
 
 class ManualInstallSuccessTest(InstallBaseTestCase):
@@ -352,17 +590,31 @@ class UninstallSuccessTest(InstallBaseTestCase):
         common_inputs["is_uninstall"] = True
         return common_inputs
 
-    def test_gen_agent_command(self):
+    def test_shell_solution(self):
         host = models.Host.objects.get(bk_host_id=self.obj_factory.bk_host_ids[0])
         # 验证非 root 添加 sudo
         host.identity.account = "test"
+
         installation_tool = gen_commands(host, mock_data_utils.JOB_TASK_PIPELINE_ID, is_uninstall=True, sub_inst_id=0)
-        token = re.match(r"(.*) -c (.*?) -O", installation_tool.run_cmd).group(2)
-        run_cmd = (
-            f"sudo nohup bash /tmp/setup_agent.sh -s {mock_data_utils.JOB_TASK_PIPELINE_ID}"
-            f" -r http://127.0.0.1/backend -l http://127.0.0.1/download"
-            f" -c {token}"
-            f' -O 48668 -E 58925 -A 58625 -V 58930 -B 10020 -S 60020 -Z 60030 -K 10030 -e "" -a "" -k ""'
-            f" -i 0 -I {host.inner_ip} -N SERVER -p /usr/local/gse -T /tmp/ -R &> /tmp/nm.nohup.out &"
+        solution_parse_result: Dict[str, Any] = self.execution_solution_parser(
+            installation_tool=installation_tool,
+            solution_type=constants.CommonExecutionSolutionType.SHELL.value,
+            run_cmd_param_extract={"token": r"(.*) -c (.*?) -s"},
         )
-        self.assertEqual(installation_tool.run_cmd, run_cmd)
+
+        self.assertEqual(solution_parse_result["dependencies"], [])
+        self.assertEqual(
+            solution_parse_result["cmds"],
+            [
+                f"sudo mkdir -p {installation_tool.dest_dir}",
+                f"sudo curl http://127.0.0.1/download/setup_agent.sh "
+                f"-o {installation_tool.dest_dir}setup_agent.sh --connect-timeout 5 -sSf",
+                f"sudo chmod +x {installation_tool.dest_dir}setup_agent.sh",
+                f"sudo nohup bash {installation_tool.dest_dir}setup_agent.sh"
+                f' -O 48668 -E 58925 -A 58625 -V 58930 -B 10020 -S 60020 -Z 60030 -K 10030 -e "" -a "" -k ""'
+                f" -l http://127.0.0.1/download -r http://127.0.0.1/backend"
+                f" -i 0 -I {host.inner_ip} -T {installation_tool.dest_dir} -p /usr/local/gse"
+                f" -c {solution_parse_result['params']['token']} -s {mock_data_utils.JOB_TASK_PIPELINE_ID}"
+                f" -R -N SERVER &> /tmp/nm.nohup.out &",
+            ],
+        )

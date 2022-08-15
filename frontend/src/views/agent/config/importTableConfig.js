@@ -166,9 +166,9 @@ export const tableConfig = [
     tips: 'agentSetupPort',
     parentProp: 'login_info',
     rules: [reguPort],
-    getReadonly(row) {
-      return row && row.os_type === 'WINDOWS' && row.bk_cloud_id !== window.PROJECT_CONFIG.DEFAULT_CLOUD;
-    },
+    // getReadonly(row) {
+    //   return row && row.os_type === 'WINDOWS' && row.bk_cloud_id !== window.PROJECT_CONFIG.DEFAULT_CLOUD;
+    // },
   },
   {
     label: '登录账号',

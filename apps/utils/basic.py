@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import ipaddress
+import json
 from collections import Counter, namedtuple
 from copy import deepcopy
 from typing import Any, Dict, Iterable, List, Optional, Set, Union
@@ -96,6 +97,15 @@ def order_dict(dictionary: dict):
     if not isinstance(dictionary, dict):
         return dictionary
     return {k: order_dict(v) if isinstance(v, dict) else v for k, v in sorted(dictionary.items())}
+
+
+def obj_to_dict(obj) -> Dict[str, Any]:
+    """
+    对象转字典
+    :param obj:
+    :return:
+    """
+    return json.loads(json.dumps(obj, default=lambda o: getattr(o, "__dict__", str(o))))
 
 
 def list_equal(
