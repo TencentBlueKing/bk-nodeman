@@ -115,7 +115,7 @@ router.beforeEach(async (to, from, next) => {
 // 校验普通界面权限
 const validateBizAuth = async (to: Route) => {
   const { authority } = to.meta;
-  if (window.PROJECT_CONFIG.USE_IAM === 'True' && authority) {
+  if (authority) {
     if (authority.page) {
       MainStore.setNmMainLoading(true);
       const list = await MainStore.getBkBizPermission({ action: authority.page, updateBiz: true });
@@ -140,10 +140,9 @@ const validateBizAuth = async (to: Route) => {
   MainStore.setNmMainLoading(false);
 };
 // 校验云区域界面
-const validateCloudAuth = async (to: Route) => {
+const validateCloudAuth = async (to: Route, permissionSwitch: boolean) => {
   const { authority } = to.meta;
   // const authorityMap = store.getters['cloud/authority']
-  const permissionSwitch = window.PROJECT_CONFIG.USE_IAM === 'True';
   if (permissionSwitch) {
     // 获取权限
     const promiseList = [
@@ -191,13 +190,16 @@ router.afterEach(async (to) => {
   // 设置自定义导航内容
   MainStore.setCustomNavContent(to.meta.customContent);
   // 重置界面权限
-  MainStore.updatePagePermission(true);
+  const permissionSwitch = window.PROJECT_CONFIG.USE_IAM === 'True';
   MainStore.updateScreenInfo(window.innerHeight);
-  const { navId } = to.meta;
-  if (navId === 'cloudManager') {
-    await validateCloudAuth(to);
-  } else {
-    await validateBizAuth(to);
+  MainStore.updatePagePermission(!permissionSwitch);
+  if (permissionSwitch) {
+    const { navId } = to.meta;
+    if (navId === 'cloudManager') {
+      await validateCloudAuth(to, permissionSwitch);
+    } else {
+      await validateBizAuth(to);
+    }
   }
 });
 
