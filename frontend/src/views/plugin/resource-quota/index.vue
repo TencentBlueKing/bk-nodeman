@@ -2,7 +2,7 @@
   <article class="resource-quota" v-bkloading="{ isLoading: loading }">
     <section class="page-head">
       <span class="title">{{ $t('资源配额') }}</span>
-      <span class="dividing-line"></span>
+      <!-- <span class="dividing-line"></span>
       <span>{{ $t('业务：') }}</span>
       <div class="biz-select-box">
         <div class="biz-placeholder">{{ bizNames }}</div>
@@ -16,7 +16,7 @@
           @change="handleBizChange">
         </bk-biz-select>
         <div class="biz-text">{{ bizNames }}</div>
-      </div>
+      </div> -->
     </section>
     <section class="page-body" v-if="hasBizAuth">
       <section class="side-block pb20">
@@ -146,7 +146,7 @@ export default class ResourceQuota extends Mixins(HeaderFilterMixins) {
     cpu: this.$t('限制最高CPU使用率'),
     mem: this.$t('限制最高内存使用率'),
   };
-  public biz: number[] = [];
+  // public biz: number[] = [];
   public hasBizAuth = true;
   public handleSearchChange!: Function;
   public handleBizOrModuleChange!: Function;
@@ -163,20 +163,20 @@ export default class ResourceQuota extends Mixins(HeaderFilterMixins) {
   private get bkBizList() {
     return MainStore.bkBizList;
   }
-  private get bkBizNameMap() {
-    const nameMap: any = {};
-    this.bkBizList.reduce((maps, item) => {
-      maps[item.bk_biz_id] = item.bk_biz_name;
-      return maps;
-    }, nameMap);
-    return nameMap;
-  }
-  private get bizNames() {
-    if (this.biz.length) {
-      return this.biz.map(id => this.bkBizNameMap[id]).join('、');
-    }
-    return this.$t('全部业务');
-  }
+  // private get bkBizNameMap() {
+  //   const nameMap: any = {};
+  //   this.bkBizList.reduce((maps, item) => {
+  //     maps[item.bk_biz_id] = item.bk_biz_name;
+  //     return maps;
+  //   }, nameMap);
+  //   return nameMap;
+  // }
+  // private get bizNames() {
+  //   if (this.biz.length) {
+  //     return this.biz.map(id => this.bkBizNameMap[id]).join('、');
+  //   }
+  //   return this.$t('全部业务');
+  // }
   private get selectedTemp() {
     return this.curNode && this.curNode.id;
   }
@@ -188,6 +188,12 @@ export default class ResourceQuota extends Mixins(HeaderFilterMixins) {
   @Watch('moduleId')
   public handleRouteModuleChange() {
     this.handleBizOrModuleChange();
+  }
+  @Watch('selectedBiz')
+  public handleBizChange(newVal: number[], oldVal: number[]) {
+    if (oldVal.length !== newVal.length || oldVal.some(old => !newVal.find(id => old === id))) {
+      this.replaceBizAndModule();
+    }
   }
 
   private async created() {
@@ -209,13 +215,11 @@ export default class ResourceQuota extends Mixins(HeaderFilterMixins) {
         ? this.bizId :  -1;
       // 初始化选中业务
       if (!this.init && loadBizId > -1) {
-        this.biz = Array.from(new Set([...this.selectedBiz, loadBizId]));
-      } else {
-        this.biz = this.selectedBiz;
+        MainStore.setSelectedBiz(Array.from(new Set([...this.selectedBiz, loadBizId])));
       }
       // 设置业务列表 && 树
-      const selectedBizList = this.biz.length
-        ? hasAuthBizList.filter(item => this.biz.includes(item.bk_biz_id))
+      const selectedBizList = this.selectedBiz.length
+        ? hasAuthBizList.filter(item => this.selectedBiz.includes(item.bk_biz_id))
         : hasAuthBizList;
       const curTreeData = this.treeData.reduce((obj, item) => {
         obj[item.bk_inst_id] = item;
@@ -290,14 +294,6 @@ export default class ResourceQuota extends Mixins(HeaderFilterMixins) {
     });
     this.pluginList = res.resource_policy;
     this.pluginLoading = false;
-  }
-
-  public handleBizChange(value: number[]) {
-    const oldBiz = [...this.biz];
-    this.biz = value;
-    if (oldBiz.length !== value.length || oldBiz.some(old => value.find(id => old !== id))) {
-      this.replaceBizAndModule();
-    }
   }
 
   public handleTreeSelected(node: ITreeNode) {

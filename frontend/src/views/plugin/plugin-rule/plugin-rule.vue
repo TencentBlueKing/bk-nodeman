@@ -4,8 +4,7 @@
       :search-values="searchSelectValue"
       :created-operate="authority.operate"
       @value-change="handleSearchValueChange"
-      @strategy-change="handleStrategyChange"
-      @biz-change="handleGetPluginRules">
+      @strategy-change="handleStrategyChange">
     </PluginRuleOperate>
     <PluginRuleTable
       class="mt15"
@@ -57,7 +56,7 @@
   </div>
 </template>
 <script lang="ts">
-import { Mixins, Component } from 'vue-property-decorator';
+import { Mixins, Component, Watch } from 'vue-property-decorator';
 import { MainStore, PluginStore } from '@/store';
 import PluginRuleOperate from './plugin-rule-list/plugin-rule-operate.vue';
 import PluginRuleTable from './plugin-rule-list/plugin-rule-table.vue';
@@ -114,6 +113,7 @@ export default class PluginRule extends Mixins(authorityMixin(), pollMixin) {
     this.handleGetPluginRules();
   }
 
+  @Watch('selectedBiz')
   private async handleGetPluginRules() {
     this.loading = true;
     this.runingQueue.splice(0, this.runingQueue.length);

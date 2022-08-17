@@ -26,7 +26,7 @@ export default [
     name: 'taskList',
     component: TaskList,
     meta: {
-      navId: 'taskList',
+      navId: 'nodeManage',
       title: '任务历史',
       customContent: true,
       authority: {
@@ -40,10 +40,14 @@ export default [
     props: true,
     component: TaskDetail,
     meta: {
-      navId: 'taskList',
+      parentName: 'taskList',
+      navId: 'nodeManage',
       title: '任务详情',
       needBack: true,
       customContent: true,
+      authority: {
+        page: TASK_HISTORY_VIEW,
+      },
     },
     beforeEnter: (to: Route, from: Route, next: () => void) => {
       TaskStore.setRouterParent(from.name || '');
@@ -60,10 +64,14 @@ export default [
     }),
     component: TaskLog,
     meta: {
-      navId: 'taskList',
+      parentName: 'taskList',
+      navId: 'nodeManage',
       title: '执行日志',
       needBack: true,
       customContent: true,
+      authority: {
+        page: TASK_HISTORY_VIEW,
+      },
     },
     beforeEnter: (to: Route, from: Route, next: () => void) => {
       TaskStore.setRouterParent(from.name || '');

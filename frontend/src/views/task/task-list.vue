@@ -7,7 +7,6 @@
       :date-time-range="date"
       :hide-auto-deploy="hideAutoDeploy"
       @search-change="handleSearchChange"
-      @biz-change="handleBizChange"
       @deploy-change="handleDeployChange"
       @picker-change="handlePickerChange">
     </TaskListFilter>
@@ -29,7 +28,7 @@
   </div>
 </template>
 <script lang="ts">
-import { Component, Mixins } from 'vue-property-decorator';
+import { Component, Mixins, Watch } from 'vue-property-decorator';
 import TaskListFilter from './task-list-filter.vue';
 import TaskListTable from './task-list-table.vue';
 import PollMixin from '@/common/poll-mixin';
@@ -52,7 +51,6 @@ Component.registerHooks([
   },
 })
 export default class TaskList extends Mixins(PollMixin, HeaderFilterMixins)<Dictionary> {
-  private biz: Array<number> = [];
   private loading = false;
   private hideAutoDeploy = true;
   private storageKey = 'task_filter_autoDeploy';
@@ -73,13 +71,16 @@ export default class TaskList extends Mixins(PollMixin, HeaderFilterMixins)<Dict
     limitList: [50, 100, 200],
   };
   private tableList: IHistory[] = [];
-  private readonly selectedBiz!: Array<number>;
   private sortData = { head: '', sortType: '' }; // 排序参数
   public filterData: ISearchItem[] = [];
   public searchSelectValue: ISearchItem[] = [];
   private getHistortListDebounce!: Function; // 搜索防抖
   private highlightIds: number[] = [];
   private pollStatus = ['running', 'pending']; // 需要轮询的状态
+
+  private get selectedBiz() {
+    return MainStore.selectedBiz;
+  }
 
   private created() {
     this.initPage();
@@ -113,12 +114,12 @@ export default class TaskList extends Mixins(PollMixin, HeaderFilterMixins)<Dict
       });
     }
 
-    this.biz = MainStore.selectedBiz;
     this.getHistortList();
     this.handleGetConditionData();
   }
 
   // 从第一页开始拉取数据
+  @Watch('selectedBiz')
   public reGetHistoryList() {
     this.pagination.current = 1;
     this.getHistortListDebounce();
@@ -143,10 +144,6 @@ export default class TaskList extends Mixins(PollMixin, HeaderFilterMixins)<Dict
     this.reGetHistoryList();
   }
 
-  public handleBizChange(biz: number[]) {
-    this.biz = biz;
-    this.reGetHistoryList();
-  }
   public handleDeployChange(value: boolean) {
     localStorage.setItem(this.storageKey, `${value}`);
     this.hideAutoDeploy = value;
@@ -254,8 +251,8 @@ export default class TaskList extends Mixins(PollMixin, HeaderFilterMixins)<Dict
       }
       params.start_time = start;
     }
-    if (this.biz.length) {
-      params.bk_biz_id = this.biz;
+    if (this.selectedBiz.length) {
+      params.bk_biz_id = [...this.selectedBiz];
     }
     if (this.sortData.head && this.sortData.sortType) {
       params.sort = { head: this.sortData.head, sort_type: this.sortData.sortType };
