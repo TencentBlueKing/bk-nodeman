@@ -8,14 +8,6 @@
           { action: 'strategy_create' }
         ]
       }" @click="handleAddRule">{{ $t('新建策略') }}</bk-button>
-      <bk-biz-select
-        v-model="biz"
-        class="ml10 select"
-        action="strategy_view"
-        :auto-request="autoRequest"
-        :placeholder="$t('全部业务')"
-        @change="handleBizChange">
-      </bk-biz-select>
     </div>
     <div class="rule-operate-right">
       <bk-input
@@ -31,7 +23,6 @@
 </template>
 <script lang="ts">
 import { Vue, Component, Emit, Prop } from 'vue-property-decorator';
-import { MainStore } from '@/store';
 
 @Component({ name: 'plugin-rule-operate' })
 export default class PluginRuleOperate extends Vue {
@@ -42,13 +33,6 @@ export default class PluginRuleOperate extends Vue {
   private searchValue = this.searchValues;
   private strategy = '';
 
-  private get selectedBiz() {
-    return MainStore.selectedBiz;
-  }
-  private get autoRequest() {
-    return !MainStore.permissionSwitch;
-  }
-
   @Emit('value-change')
   private handleValueChange(newVal: string) {
     return newVal;
@@ -56,15 +40,6 @@ export default class PluginRuleOperate extends Vue {
   @Emit('strategy-change')
   private handleStrategyChange() {
     return this.strategy;
-  }
-
-  @Emit('biz-change')
-  private handleBizChange(biz: number[]) {
-    return biz;
-  }
-
-  private created() {
-    this.biz = this.selectedBiz;
   }
 
   private handleAddRule() {

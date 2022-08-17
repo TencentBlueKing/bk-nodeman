@@ -81,14 +81,14 @@
         </ul>
       </bk-dropdown-menu>
       <!-- 权限中心： 仅返回可查看业务列表，同时附带操作权限 -->
-      <bk-biz-select
+      <!-- <bk-biz-select
         v-model="biz"
         class="ml10 select-biz"
         action="plugin_instance_view"
         :auto-request="autoRequest"
         :placeholder="$t('全部业务')"
         @change="handleBizChange">
-      </bk-biz-select>
+      </bk-biz-select> -->
       <!-- 高度撑高 - 待组件库优化 -->
       <div class="select-wrapper ml10">
         <bk-select
@@ -185,9 +185,9 @@ export default class PluginListOperate extends Mixins(HeaderFilterMixins) {
   private get selectedBiz() {
     return MainStore.selectedBiz;
   }
-  private get autoRequest() {
-    return !MainStore.permissionSwitch;
-  }
+  // private get autoRequest() {
+  //   return !MainStore.permissionSwitch;
+  // }
   private get viewBizList() { // 同 PluginStore.authorityMap.view_action, 否则就是后端有bug
     return MainStore.bkBizList.filter(item => item.has_permission);
   }
@@ -213,6 +213,10 @@ export default class PluginListOperate extends Mixins(HeaderFilterMixins) {
     }));
   }
 
+  @Watch('selectedBiz')
+  public handleBizSelect() {
+    this.handleBizChange();
+  }
   @Watch('searchSelectData')
   public handleSearchSelectDataChange(data: ISearchItem[]) {
     this.filterData = JSON.parse(JSON.stringify(data));
@@ -224,7 +228,6 @@ export default class PluginListOperate extends Mixins(HeaderFilterMixins) {
   }
 
   private created() {
-    this.biz = this.selectedBiz;
     this.getStrategyTopo();
   }
 

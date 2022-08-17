@@ -44,6 +44,7 @@ export default class Main extends VuexModule {
   public bkBizList: IBkBiz[] = [];
   // 当前选择的业务
   public selectedBiz: number[] = [];
+  public selectedBizName: string[] = [];
   // 云服务商列表
   public ispList: IIsp[] = [];
   // 表格字号设置
@@ -180,6 +181,7 @@ export default class Main extends VuexModule {
   @Mutation
   public setSelectedBiz(biz: number[] = []) {
     this.selectedBiz = biz;
+    this.selectedBizName = biz.map(id => this.bkBizList.find(item => item.bk_biz_id === id)?.bk_biz_name);
   }
   @Mutation
   public setFont(list: ICheckItem[] = []) {
