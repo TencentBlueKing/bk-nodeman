@@ -2,26 +2,9 @@
   <div class="task-filter">
     <section class="task-filter-cantaier mt20">
       <div class="task-filter-left mr20">
-        <!--选择业务-->
-        <bk-biz-select
-          v-model="biz"
-          ext-cls="left-select"
-          :placeholder="$t('全部业务')"
-          @change="handleBizChange">
-        </bk-biz-select>
-        <div class="filter-check ml20">
-          <bk-checkbox
-            v-test="'toggleDeploy'"
-            :value="hideAutoDeploy"
-            @change="handleCheckChange">
-            {{ $t('隐藏自动部署任务') }}
-          </bk-checkbox>
-        </div>
-      </div>
-      <div class="task-filter-right">
         <bk-date-picker
           v-test="'datePicker'"
-          ext-cls="ml10 right-picker"
+          ext-cls="left-picker"
           :clearable="false"
           :shortcuts="shortcuts"
           :type="'datetimerange'"
@@ -33,8 +16,18 @@
           @change="handlePickerChange"
           @shortcut-change="handleShortcutChange">
         </bk-date-picker>
+        <div class="filter-check">
+          <bk-checkbox
+            v-test="'toggleDeploy'"
+            :value="hideAutoDeploy"
+            @change="handleCheckChange">
+            {{ $t('隐藏自动部署任务') }}
+          </bk-checkbox>
+        </div>
+      </div>
+      <div class="task-filter-right">
         <bk-search-select
-          class="ml10 right-select"
+          class="right-select"
           v-test="'searchSelect'"
           ref="searchSelectRef"
           :show-condition="false"
@@ -52,7 +45,6 @@
 import { Vue, Component, Prop, Emit, Ref } from 'vue-property-decorator';
 import { ISearchItem } from '@/types';
 import { deepClone } from '@/common/util';
-import { MainStore } from '@/store';
 
 @Component({
   name: 'task-list-filter',
@@ -113,8 +105,6 @@ export default class PluginRule extends Vue {
 
   @Ref('searchSelectRef') private readonly searchSelectRef!: any;
 
-  private biz: Array<string|number> = MainStore.selectedBiz;
-
   // search select数据源
   private get searchSelectData() {
     const ids = this.searchSelectValue.map(item => item.id);
@@ -133,11 +123,7 @@ export default class PluginRule extends Vue {
     });
     return copyList;
   }
-  // 切换业务 biz
-  @Emit('biz-change')
-  public handleBizChange() {
-    return this.biz;
-  }
+
   // 切换隐藏自动部署
   @Emit('deploy-change')
   public handleCheckChange(value: boolean) {
@@ -174,23 +160,22 @@ export default class PluginRule extends Vue {
   .task-filter-left {
     display: flex;
     align-items: center;
-  }
-  .left-select {
-    width: 160px;
-    background: #fff;
+    .left-picker {
+      width: 280px;
+    }
+    .filter-check {
+      margin-left: 12px;
+    }
   }
   >>> .bk-form-checkbox:not(.is-checked) .bk-checkbox {
     background: #fff;
   }
   .task-filter-right {
-    display: flex;
-    flex: 1;
-    max-width: 780px;
-    .right-picker {
-      width: 280px;
-    }
+    /* display: flex; */
+    /* flex: 1; */
     .right-select {
-      flex: 1;
+      /* flex: 1; */
+      width: 480px;
       background: #fff;
     }
   }

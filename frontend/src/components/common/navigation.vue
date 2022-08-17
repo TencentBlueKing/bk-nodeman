@@ -8,6 +8,8 @@
       :need-menu="needMenu"
       :default-open="navToggle"
       :class="mainContentClassObj"
+      @hover="navHover = true"
+      @leave="() => !bizSelectFocus && (navHover = false)"
       @toggle-click="handleNavToggle">
       <!--icon-->
       <div slot="side-header" class="nav-header" @click="$router.push('/')">
@@ -64,6 +66,19 @@
       </template>
       <!--左侧菜单-->
       <template #menu>
+        <div class="nm-menu-biz" v-if="showBizSelect">
+          <div class="menu-biz-shrink-text">{{ navBizShrinkText }}</div>
+          <bk-biz-select
+            v-model="biz"
+            ext-cls="menu-biz-select"
+            :min-width="36"
+            :popover-min-width="235"
+            :auto-request="autoRequest"
+            :placeholder="$t('全部业务')"
+            @change="handleBizChange"
+            @toggle="handleBizToggle">
+          </bk-biz-select>
+        </div>
         <NavSideMenu
           :list="sideMenuList"
           v-show="!!sideMenuList.length"
@@ -101,7 +116,7 @@
 </template>
 <script lang="ts">
 import { MainStore } from '@/store/index';
-import { Component, Ref, Mixins } from 'vue-property-decorator';
+import { Component, Ref, Mixins, Watch } from 'vue-property-decorator';
 import NavSideMenu from '@/components/common/nav-side.vue';
 import LogVersion from '@/components/common/log-version.vue';
 import ExceptionPage from '@/components/exception/exception-page.vue';
@@ -128,12 +143,15 @@ export default class NodemanNavigation extends Mixins(routerBackMixin) {
   @Ref('helpListRef') private readonly helpListRef!: any;
 
   // 导航配置
+  public biz: number[] = [];
   private nav ={
     navigationType: 'top-bottom',
     headerTitle: window.i18n.t('蓝鲸节点管理'),
   };
   private currentUser = window.PROJECT_CONFIG.USERNAME;
   private navToggle = false;
+  private navHover = false;
+  private bizSelectFocus = false;
   private helpList = [
     {
       id: 'DOC',
@@ -196,8 +214,8 @@ export default class NodemanNavigation extends Mixins(routerBackMixin) {
   }
   // 子菜单默认激活项
   private get currentActive() {
-    if (this.activeIndex === -1) return 0;
-    return this.navList[this.activeIndex].currentActive || 0;
+    // if (this.activeIndex === -1) return 0;
+    return this.$route.meta.parentName || this.$route.name;
   }
   // 导航title
   private get navTitle() {
@@ -213,6 +231,8 @@ export default class NodemanNavigation extends Mixins(routerBackMixin) {
       'default-content': !this.needMenu && !this.customNavContent,
       'container-background': this.needBack && !MainStore.isDefaultContent,
       'custom-content': this.customNavContent,
+      'nav-shrink': !this.navToggle && !this.navHover,
+      'select-focus': this.bizSelectFocus,
     };
   }
   private get pagePermission() {
@@ -230,11 +250,33 @@ export default class NodemanNavigation extends Mixins(routerBackMixin) {
     }
     return this.subTitleMap[routeName];
   }
+  private get showBizSelect() {
+    return  this.activeIndex === 0;
+  }
+  private get navBizShrinkText() {
+    if (!this.selectedBiz.length) {
+      return '全';
+    }
+    return this.selectedBiz.length > 1 ? this.selectedBiz.length : MainStore.selectedBizName[0]?.[0];
+  }
+  private get autoRequest() {
+    return !MainStore.permissionSwitch;
+  }
+  private get selectedBiz() {
+    return MainStore.selectedBiz;
+  }
+
+  @Watch('selectedBiz')
+  public watchBizChange(value: number[]) {
+    this.biz = [...value];
+  }
+
   private mounted() {
     this.resetNavToggle();
     if (window.PROJECT_CONFIG.RUN_VER !== 'ieod') {
       this.userList.push({ id: 'LOGOUT', name: window.i18n.t('退出') });
     }
+    this.biz = [...this.selectedBiz];
   }
   /**
    * 切换菜单
@@ -289,13 +331,22 @@ export default class NodemanNavigation extends Mixins(routerBackMixin) {
     bus.$emit('show-permission-modal', { params: { apply_info: [{ action: MainStore.bizAction }] } });
   }
   private handleNavToggle(value: boolean) {
+    this.navToggle = value;
+    this.navHover = value;
     window.localStorage.setItem('navToggle', `${value}`);
+  }
+  private handleBizToggle(toggle: boolean) {
+    this.bizSelectFocus = toggle;
+    this.navHover = this.navToggle ? false : toggle;
   }
   private resetNavToggle() {
     const value = window.localStorage.getItem('navToggle');
     if (this.navToggle === (value === 'false')) {
       this.navigation.handleClick && this.navigation.handleClick();
     }
+  }
+  public handleBizChange(newBizIds: number[]) {
+    MainStore.setSelectedBiz(newBizIds);
   }
 }
 </script>
@@ -317,6 +368,75 @@ export default class NodemanNavigation extends Mixins(routerBackMixin) {
   }
   >>> .bk-navigation-wrapper .navigation-nav .nav-slider-list {
     overflow-x: hidden;
+  }
+  >>> .bk-navigation-wrapper .group-name-wrap {
+    padding: 12px 0;
+    color: #b0b2b8;
+  }
+
+  .menu-biz-shrink-text {
+    opacity: 0;
+    position: absolute;
+    top: 0;
+    left: 12px;
+    right: 12px;
+    height: 32px;
+    line-height: 32px;
+    text-align: center;
+    color: #63656e;
+    background: #f0f1f5;
+    z-index: 101;
+    pointer-events: none;
+    transition: all .5s ease-in;
+  }
+
+  .nav-shrink {
+    >>> .bk-select-angle,
+    >>> .bk-select-clear {
+      display: none;
+    }
+    >>> .bk-navigation-menu-group:first-child .group-name{
+      margin: 0 14px;
+    }
+    .menu-biz-select .bk-select-name {
+      color: transparent;
+    }
+    .menu-biz-shrink-text {
+      opacity: 1;
+    }
+    .menu-biz-select {
+      opacity: 0;
+    }
+  }
+  .select-focus {
+    >>> .nav-slider {
+      width: 260px!important;
+    }
+  }
+  .nm-menu-biz {
+    position: relative;
+    margin-bottom: 4px;
+    padding: 0 12px;
+    height: 32px;
+
+    .menu-biz-select {
+      opacity: 1;
+      border: 1px solid #f0f1f5;
+      background-color: #f0f1f5;
+      /* opacity: 1; */
+      /* transition: all .1s linear 88s; */
+      transition: all .5s ease-in;
+      &.is-focus {
+        border-color: #3a84ff;
+      }
+      &::before {
+        width: calc(100% - 20px);
+        overflow: hidden;
+      }
+      >>> .bk-tooltip-ref {
+        overflow: hidden;
+      }
+    }
   }
   .nodeman-main-loading {
     /* stylelint-disable-next-line declaration-no-important */
@@ -425,6 +545,15 @@ export default class NodemanNavigation extends Mixins(routerBackMixin) {
     height: calc(100% - 60px);
     &.over-full {
       height: 100%;
+    }
+  }
+
+  @keyframes delayShow {
+    form {
+      display: block;
+    }
+    to {
+      display: none;
     }
   }
 </style>
