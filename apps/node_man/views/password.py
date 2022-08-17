@@ -51,7 +51,7 @@ class PasswordViews(APIViewSet):
         }
         """
 
-        result = password.TjjPasswordHandler().fetch_pwd()
+        result = password.TjjPasswordHandler().fetch_pwd(request.user.username, request.data.get("hosts", []))
 
         # ticket过期返回401
         if not result["result"] and ("ticket is expired" in result["message"] or "OATicket" in result["message"]):
