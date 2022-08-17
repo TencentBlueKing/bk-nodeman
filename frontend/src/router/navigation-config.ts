@@ -1,67 +1,73 @@
 import { INavConfig } from '@/types/index';
-const navConfig: INavConfig[] = [
+export const navConfig: INavConfig[] = [
   {
-    title: 'Agent管理',
-    name: 'agentManager',
+    title: '节点管理',
+    name: 'nodeManage',
     currentActive: 'agentStatus',
     defaultActive: 'agentStatus',
     children: [
       {
-        title: 'Agent状态',
-        icon: 'nc-state',
-        path: '/agent-manager/status',
-        name: 'agentStatus',
-        group: true,
+        name: 'Agent管理',
+        children: [
+          {
+            title: 'Agent状态',
+            icon: 'nc-state',
+            path: '/agent-manager/status',
+            name: 'agentStatus',
+          },
+          // {
+          //   title: '普通安装',
+          //   icon: 'nc-install',
+          //   path: '/agent-manager/setup',
+          //   name: 'agentSetup',
+          // },
+          // {
+          //   title: 'Excel导入安装',
+          //   icon: 'nc-icon-excel-fill',
+          //   path: '/agent-manager/import',
+          //   name: 'agentImport',
+          // },
+        ],
       },
       {
-        title: '普通安装',
-        icon: 'nc-install',
-        path: '/agent-manager/setup',
-        name: 'agentSetup',
+        name: '插件管理',
+        children: [
+          {
+            title: '插件状态',
+            icon: 'nc-plug-in',
+            path: '/plugin-new/list', // '/plugin-manager/list',
+            name: 'plugin',
+          },
+          {
+            title: '插件部署',
+            icon: 'nc-strategy',
+            path: '/plugin-manager/rule',
+            name: 'pluginRule',
+          },
+          {
+            title: '插件包',
+            icon: 'nc-package-2',
+            path: '/plugin-manager/package',
+            name: 'pluginPackage',
+          },
+          {
+            title: '资源配额',
+            icon: 'nc-icon-control-fill',
+            path: '/plugin-manager/resource-quota',
+            name: 'resourceQuota',
+          },
+        ],
       },
       {
-        title: 'Excel导入安装',
-        icon: 'nc-icon-excel-fill',
-        path: '/agent-manager/import',
-        name: 'agentImport',
-      },
-    ],
-  },
-  // {
-  //   title: '插件管理',
-  //   path: '/plugin-manager',
-  //   name: 'pluginManager'
-  // },
-  {
-    title: '插件管理',
-    name: 'pluginManagerNew',
-    currentActive: 'plugin',
-    defaultActive: 'plugin',
-    disabled: false,
-    children: [
-      {
-        title: '节点列表',
-        icon: 'nc-state',
-        path: '/plugin-new/list', // '/plugin-manager/list',
-        name: 'plugin',
-      },
-      {
-        title: '部署策略',
-        icon: 'nc-strategy',
-        path: '/plugin-manager/rule',
-        name: 'pluginRule',
-      },
-      {
-        title: '插件包',
-        icon: 'nc-package-2',
-        path: '/plugin-manager/package',
-        name: 'pluginPackage',
-      },
-      {
-        title: '资源配额',
-        icon: 'nc-icon-control-fill',
-        path: '/plugin-manager/resource-quota',
-        name: 'resourceQuota',
+        name: '历史',
+        children: [
+          {
+            title: '任务历史',
+            icon: 'nc-history',
+            path: '/task-list',
+            name: 'taskList',
+          },
+        ],
       },
     ],
   },
@@ -69,16 +75,6 @@ const navConfig: INavConfig[] = [
     title: '云区域管理',
     path: '/cloud-manager',
     name: 'cloudManager',
-  },
-  // {
-  //   title: '任务历史',
-  //   path: '/task-history',
-  //   name: 'taskHistory'
-  // },
-  {
-    title: '任务历史',
-    path: '/task-list',
-    name: 'taskList',
   },
   {
     title: '全局配置',

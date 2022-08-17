@@ -4,17 +4,51 @@
     <bk-navigation-menu
       :default-active="currentActive"
       v-test.nav="'side'"
+      item-default-color="#63656e"
+      item-active-color="#3a84ff"
+      item-default-icon-color="#979ba5"
+      item-active-icon-color="#3a84ff"
+      item-hover-bg-color="#e1ecff"
+      item-active-bg-color="#e1ecff"
       @select="handleSelect">
-      <bk-navigation-menu-item
-        v-for="item in list"
-        :has-child="item.children && !!item.children.length"
-        :group="item.group"
-        :key="item.title"
-        :icon="item.icon"
-        :disabled="item.disabled"
-        :id="item.name">
-        <span>{{ $t(item.title) }}</span>
-      </bk-navigation-menu-item>
+      <template v-for="item in list">
+        <bk-navigation-menu-group
+          v-if="item.children && item.children.length"
+          :key="item.title"
+          :group-name="item.name">
+          <bk-navigation-menu-item
+            v-for="child in item.children"
+            :key="child.name"
+            :id="child.name"
+            :disabled="child.disabled"
+            :icon="child.icon"
+            :has-child="child.children && !!child.children.length"
+            :default-active="child.active">
+            <span>{{ child.title }}</span>
+            <!-- <div slot="child">
+              <bk-navigation-menu-item
+                v-for="set in child.children"
+                :key="set.name"
+                :id="set.name"
+                :disabled="set.disabled"
+                :href="set.href"
+                :default-active="set.active">
+                <span>{{ set.name }}</span>
+              </bk-navigation-menu-item>
+            </div> -->
+          </bk-navigation-menu-item>
+        </bk-navigation-menu-group>
+        <template v-else>
+          <bk-navigation-menu-item
+            :group="item.group"
+            :key="item.title"
+            :icon="item.icon"
+            :disabled="item.disabled"
+            :id="item.name">
+            <span>{{ $t(item.title) }}</span>
+          </bk-navigation-menu-item>
+        </template>
+      </template>
     </bk-navigation-menu>
   </section>
 </template>

@@ -21,7 +21,7 @@ export default [
     },
     component: AgentStatus,
     meta: {
-      navId: 'agentManager',
+      navId: 'nodeManage',
       title: 'Agent管理',
       authority: {
         page: AGENT_VIEW,
@@ -34,7 +34,8 @@ export default [
     name: 'agentSetup',
     component: AgentSetup,
     meta: {
-      navId: 'agentManager',
+      parentName: 'agentStatus',
+      navId: 'nodeManage',
       title: '普通安装',
       authority: {
         page: AGENT_OPERATE,
@@ -47,7 +48,8 @@ export default [
     props: true,
     component: AgentImport,
     meta: {
-      navId: 'agentManager',
+      parentName: 'agentStatus',
+      navId: 'nodeManage',
       title: 'Excel导入安装',
       authority: {
         page: AGENT_OPERATE,
@@ -60,7 +62,8 @@ export default [
     props: true,
     component: AgentImport,
     meta: {
-      navId: 'agentManager',
+      parentName: 'agentStatus',
+      navId: 'nodeManage',
       needBack: true,
       authority: {
         page: AGENT_OPERATE,
