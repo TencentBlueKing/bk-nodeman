@@ -118,6 +118,7 @@ class UpdateSubscriptionSerializer(GatewaySerializer):
 
     class StepSerializer(serializers.Serializer):
         id = serializers.CharField()
+        type = serializers.CharField(required=False)
         params = serializers.DictField()
         config = serializers.DictField(required=False)
 

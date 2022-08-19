@@ -1777,7 +1777,7 @@ class SubscriptionStep(models.Model):
         verbose_name = _("订阅步骤")
         verbose_name_plural = _("订阅步骤")
         ordering = ["index"]
-        unique_together = (("subscription_id", "index"), ("subscription_id", "step_id"))
+        unique_together = (("subscription_id", "step_id"),)
 
     def __str__(self):
         return (
@@ -1848,10 +1848,11 @@ class Subscription(orm.SoftDeleteModel):
     @property
     def steps(self):
         if not getattr(self, "_steps", None):
-            self._steps = SubscriptionStep.objects.filter(subscription_id=self.id)
+            self._steps = list(SubscriptionStep.objects.filter(subscription_id=self.id))
             for step in self._steps:
                 # 设置 subscription 属性，减少查询次数
                 step.subscription = self
+        self._steps = sorted(self._steps, key=lambda x: x.index)
         return self._steps
 
     @steps.setter
