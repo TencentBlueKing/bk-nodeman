@@ -145,3 +145,11 @@ class NoRunningInstanceRecordError(AppBaseException):
     ERROR_CODE = 16
     MESSAGE = _("不存在运行中的任务，请确认")
     MESSAGE_TPL = _("订阅[id:{subscription_id}]不存在运行中的任务，请确认")
+
+
+class SubscriptionUpdateError(AppBaseException):
+    """订阅任务不存在"""
+
+    ERROR_CODE = 17
+    MESSAGE = _("订阅更新错误")
+    MESSAGE_TPL = _("订阅[id:{subscription_id}]更新错误: {msg}")
