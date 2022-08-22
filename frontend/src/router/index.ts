@@ -115,12 +115,13 @@ router.beforeEach(async (to, from, next) => {
 // 校验普通界面权限
 const validateBizAuth = async (to: Route) => {
   const { authority } = to.meta;
+  let hasPermission = true;
   if (authority) {
     if (authority.page) {
       MainStore.setNmMainLoading(true);
       const list = await MainStore.getBkBizPermission({ action: authority.page, updateBiz: true });
       // 设置当前路由的界面权限
-      MainStore.updatePagePermission(!axios.isCancel(list) ? !!list.length : true);
+      hasPermission = !axios.isCancel(list) ? !!list.length : true;
     }
     if (authority.pk && authority.module) {
       MainStore.setNmMainLoading(true);
@@ -137,6 +138,7 @@ const validateBizAuth = async (to: Route) => {
       });
     }
   }
+  MainStore.updatePagePermission(hasPermission);
   MainStore.setNmMainLoading(false);
 };
 // 校验云区域界面
@@ -192,11 +194,13 @@ router.afterEach(async (to) => {
   // 重置界面权限
   const permissionSwitch = window.PROJECT_CONFIG.USE_IAM === 'True';
   MainStore.updateScreenInfo(window.innerHeight);
-  MainStore.updatePagePermission(!permissionSwitch);
   if (permissionSwitch) {
+    MainStore.updatePagePermission(!permissionSwitch);
     const { navId } = to.meta;
     if (navId === 'cloudManager') {
+      MainStore.setNmMainLoading(true);
       await validateCloudAuth(to, permissionSwitch);
+      MainStore.setNmMainLoading(false);
     } else {
       await validateBizAuth(to);
     }

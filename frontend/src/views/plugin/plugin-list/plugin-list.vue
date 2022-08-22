@@ -585,8 +585,11 @@ export default class PluginList extends Mixins(HeaderFilterMixins) {
       top: 7px;
     }
   }
-  .plugin-node .plugin-node-table {
-    margin-top: 14px;
+  .plugin-node {
+    min-height: calc(100vh - 132px);
+    .plugin-node-table {
+      margin-top: 14px;
+    }
   }
   .operate-dialog {
     .num {
