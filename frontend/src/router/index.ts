@@ -113,15 +113,16 @@ router.beforeEach(async (to, from, next) => {
 });
 
 // 校验普通界面权限
-const validateBizAuth = async (to: Route) => {
+const validateBizAuth = async (to: Route, from: Route, permissionSwitch: boolean) => {
   const { authority } = to.meta;
-  let hasPermission = true;
-  if (authority) {
+  if (permissionSwitch && authority) {
+    const differentRoute = to.name !== from.name;
     if (authority.page) {
-      MainStore.setNmMainLoading(true);
+      differentRoute && MainStore.updatePagePermission(false); // 防止多次请求
+      MainStore.setNmMainLoading(differentRoute); // 同路由切换闪屏问题
       const list = await MainStore.getBkBizPermission({ action: authority.page, updateBiz: true });
       // 设置当前路由的界面权限
-      hasPermission = !axios.isCancel(list) ? !!list.length : true;
+      MainStore.updatePagePermission(!axios.isCancel(list) ? !!list.length : true);
     }
     if (authority.pk && authority.module) {
       MainStore.setNmMainLoading(true);
@@ -138,14 +139,12 @@ const validateBizAuth = async (to: Route) => {
       });
     }
   }
-  MainStore.updatePagePermission(hasPermission);
   MainStore.setNmMainLoading(false);
 };
 // 校验云区域界面
-const validateCloudAuth = async (to: Route, permissionSwitch: boolean) => {
-  const { authority } = to.meta;
-  // const authorityMap = store.getters['cloud/authority']
+const validateCloudAuth = async (to: Route, from, permissionSwitch: boolean) => {
   if (permissionSwitch) {
+    const { authority } = to.meta;
     // 获取权限
     const promiseList = [
       CloudStore.getCloudPermission(),
@@ -188,22 +187,17 @@ const validateCloudAuth = async (to: Route, permissionSwitch: boolean) => {
     });
   }
 };
-router.afterEach(async (to) => {
+router.afterEach(async (to, from) => {
   // 设置自定义导航内容
   MainStore.setCustomNavContent(to.meta.customContent);
   // 重置界面权限
   const permissionSwitch = window.PROJECT_CONFIG.USE_IAM === 'True';
+  MainStore.updatePagePermission(true);
   MainStore.updateScreenInfo(window.innerHeight);
-  if (permissionSwitch) {
-    MainStore.updatePagePermission(!permissionSwitch);
-    const { navId } = to.meta;
-    if (navId === 'cloudManager') {
-      MainStore.setNmMainLoading(true);
-      await validateCloudAuth(to, permissionSwitch);
-      MainStore.setNmMainLoading(false);
-    } else {
-      await validateBizAuth(to);
-    }
+  if (to.meta?.navId === 'cloudManager') {
+    await validateCloudAuth(to, from, permissionSwitch);
+  } else {
+    await validateBizAuth(to, from, permissionSwitch);
   }
 });
 
