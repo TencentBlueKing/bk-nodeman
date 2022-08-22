@@ -18,7 +18,6 @@ from django.db.models import QuerySet
 from apps.backend.constants import InstNodeType
 from apps.node_man import constants, models
 from apps.node_man.handlers.cmdb import CmdbHandler
-from apps.utils.local import get_request
 
 
 class HostV2Tools:
@@ -66,11 +65,7 @@ class HostV2Tools:
         :param action: iam action type
         :return: 集群ID列表
         """
-        params = {"bk_biz_id": bk_biz_id, "is_superuser": get_request().user.is_superuser, "with_biz_node": True}
-        if action:
-            params.update({"action": action})
-
-        biz_topo = CmdbHandler().fetch_topo(**params)
+        biz_topo = CmdbHandler().fetch_topo(bk_biz_id=bk_biz_id, with_biz_node=True)
         stack = [biz_topo]
         target_node = None
 

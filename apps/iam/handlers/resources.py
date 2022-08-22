@@ -45,7 +45,7 @@ class ResourceMeta(metaclass=abc.ABCMeta):
         }
 
     @classmethod
-    def create_simple_instance(cls, instance_id: str, attribute=None) -> Resource:
+    def create_simple_instance(cls, instance_id: int, attribute=None) -> Resource:
         """
         创建简单资源实例
         :param instance_id: 实例ID
@@ -84,7 +84,7 @@ class Business(ResourceMeta):
     related_instance_selections = [{"system_id": system_id, "id": "business", "ignore_iam_path": True}]
 
     @classmethod
-    def create_instance(cls, instance_id: str, attribute=None) -> Resource:
+    def create_instance(cls, instance_id: int, attribute=None) -> Resource:
         resource = cls.create_simple_instance(instance_id, attribute)
 
         bk_biz_name = str(instance_id)
