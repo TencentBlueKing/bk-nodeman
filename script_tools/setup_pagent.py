@@ -679,6 +679,10 @@ class SshMan(object):
         check_output: 是否需要从output中分析异常
         """
 
+        # 根据用户名判断是否采用sudo
+        if self.account not in ["root", "Administrator", "administrator"]:
+            cmd = "sudo %s" % cmd
+
         # 增加回车符
         cmd = cmd if cmd.endswith("\n") else "%s\n" % cmd
 
