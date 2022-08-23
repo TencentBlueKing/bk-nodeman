@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 import base64
 import importlib
 import json
+import os
 import re
 from typing import Any, Dict, List, Optional
 
@@ -45,6 +46,7 @@ class InstallBaseTestCase(utils.AgentServiceBaseTestCase):
     JOB_API_MOCK_PATH = "apps.backend.components.collections.agent_new.install.JobApi"
     EXECUTE_CMD_MOCK_PATH = "apps.backend.components.collections.agent_new.install.execute_cmd"
     PUT_FILE_MOCK_PATH = "apps.backend.components.collections.agent_new.install.put_file"
+    CUSTOM_DATAIPC_DIR = "/var/run/gse_test"
 
     @staticmethod
     def update_callback_url():
@@ -103,6 +105,11 @@ class InstallBaseTestCase(utils.AgentServiceBaseTestCase):
             os_type=self.OS_TYPE, node_type=self.NODE_TYPE, ap_id=constants.DEFAULT_AP_ID
         )
 
+    def adjust_ap(self):
+        ap: models.AccessPoint = models.AccessPoint.objects.first()
+        ap.agent_config["linux"]["dataipc"] = os.path.join(self.CUSTOM_DATAIPC_DIR, "ipc.state.report")
+        ap.save()
+
     def update_common_inputs(self):
         self.common_inputs.update(success_callback_step="check_deploy_result")
 
@@ -116,6 +123,7 @@ class InstallBaseTestCase(utils.AgentServiceBaseTestCase):
         self.update_callback_url()
         self.init_mock_clients()
         self.init_hosts()
+        self.adjust_ap()
         super().setUp()
         self.update_common_inputs()
         self.start_patch()
@@ -212,6 +220,7 @@ class LinuxInstallTestCase(InstallBaseTestCase):
             solution_parse_result["cmds"],
             [
                 f"mkdir -p {installation_tool.dest_dir}",
+                f"mkdir -p {self.CUSTOM_DATAIPC_DIR}",
                 f"curl http://127.0.0.1/download/setup_agent.sh "
                 f"-o {installation_tool.dest_dir}setup_agent.sh --connect-timeout 5 -sSf",
                 f"chmod +x {installation_tool.dest_dir}setup_agent.sh",
@@ -377,29 +386,12 @@ class InstallLinuxPagentTestCase(InstallBaseTestCase):
             execution_solution=target_host_solutions[0], run_cmd_param_extract={"token": r"(.*) -c (.*?) -s"}
         )
 
-        # 这块还不大确定参数对不对，先放着，后续删
-        # def test_gen_pagent_command(self):
-        #     host = models.Host.objects.get(bk_host_id=self.obj_factory.bk_host_ids[0])
-        #     token = re.match(r"(.*) -c (.*?) -O", installation_tool.run_cmd).group(2)
-        #     run_cmd = (
-        #         f"-s {mock_data_utils.JOB_TASK_PIPELINE_ID} -r http://127.0.0.1/backend -l http://127.0.0.1/download"
-        #         f" -c {token}"
-        #         f" -O 48668 -E 58925 -A 58625 -V 58930 -B 10020 -S 60020 -Z 60030 -K 10030"
-        #         f' -e "1.1.1.1" -a "1.1.1.1" -k "1.1.1.1" -L /data/bkee/public/bknodeman/download'
-        #         f" -HLIP {host.inner_ip} -HIIP {host.inner_ip} -HA root -HP 22 -HI 'password' "
-        #         f"-HC {self.CLOUD_ID} -HNT PAGENT"
-        #         f" -HOT linux -HDD '/tmp/'"
-        #         f" -HPP '17981' -HSN 'setup_agent.sh' -HS 'bash'"
-        #         f" -p '/usr/local/gse' -I 1.1.1.1"
-        #         f" -o http://1.1.1.1:{settings.BK_NODEMAN_NGINX_DOWNLOAD_PORT}/"
-        #     )
-        #     self.assertEqual(installation_tool.run_cmd, run_cmd)
-
         self.assertEqual(solution_parse_result["dependencies"], [])
         self.assertEqual(
             solution_parse_result["cmds"],
             [
                 f"mkdir -p {installation_tool.dest_dir}",
+                f"mkdir -p {self.CUSTOM_DATAIPC_DIR}",
                 f"curl http://127.0.0.1/download/setup_agent.sh "
                 f"-o {installation_tool.dest_dir}setup_agent.sh --connect-timeout 5 -sSf"
                 f" -x http://1.1.1.1:{settings.BK_NODEMAN_NGINX_PROXY_PASS_PORT}",
@@ -607,6 +599,7 @@ class UninstallSuccessTest(InstallBaseTestCase):
             solution_parse_result["cmds"],
             [
                 f"sudo mkdir -p {installation_tool.dest_dir}",
+                f"sudo mkdir -p {self.CUSTOM_DATAIPC_DIR}",
                 f"sudo curl http://127.0.0.1/download/setup_agent.sh "
                 f"-o {installation_tool.dest_dir}setup_agent.sh --connect-timeout 5 -sSf",
                 f"sudo chmod +x {installation_tool.dest_dir}setup_agent.sh",
