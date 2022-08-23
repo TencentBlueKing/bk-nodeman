@@ -14,6 +14,7 @@ import json
 import os
 import time
 import typing
+from pathlib import Path
 
 from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
@@ -280,15 +281,63 @@ class BaseExecutionSolutionMaker(metaclass=abc.ABCMeta):
                 )
             ]
 
+    def get_create_pre_dirs_step(self, is_shell_adapter: bool = False) -> ExecutionSolutionStep:
+        """
+        获取前置依赖路径创建命令
+        :param is_shell_adapter: 是否适配 shell 命令
+        :return:
+        """
+        # 目前依赖文件路径相关配置分两类：1-文件名路径，创建上级目录，2-目录路径，暂无需求
+        filepath_config_names: typing.List[str] = []
+
+        if self.host.os_type != constants.OsType.WINDOWS:
+            filepath_config_names.extend(["dataipc"])
+
+        dirs_to_be_created: typing.Set[str] = {self.dest_dir}
+        # 获取到相应操作系统
+        agent_config: typing.Dict[str, typing.Any] = self.host_ap.get_agent_config(self.host.os_type)
+        for filepath_config_name in filepath_config_names:
+            filepath: str = agent_config.get(filepath_config_name)
+            if not filepath:
+                continue
+            filedir: str = str(Path(filepath).parent)
+            # 冗余创建检测
+            if filedir not in [".", "..", "/var/run", "/var/lib", "/var/log", "/var/run/", "/var/lib/", "/var/log/"]:
+                dirs_to_be_created.add(filedir)
+
+        create_pre_dir_step: ExecutionSolutionStep = ExecutionSolutionStep(
+            step_type=constants.CommonExecutionSolutionStepType.COMMANDS.value,
+            description=str(_("创建依赖目录")),
+            contents=[],
+        )
+        create_dir_cmd_tmpl: str = ("mkdir {dir}", "mkdir -p {dir}")[
+            is_shell_adapter or self.host.os_type != constants.OsType.WINDOWS
+        ]
+        for index, dir_to_be_created in enumerate(sorted(dirs_to_be_created)):
+            # shell 适配
+            if is_shell_adapter:
+                dir_to_be_created = dir_to_be_created.replace("\\", "/")
+
+            create_pre_dir_step.contents.append(
+                ExecutionSolutionStepContent(
+                    name=f"create_dir_cmd_{index}",
+                    text=create_dir_cmd_tmpl.format(dir=dir_to_be_created),
+                    description=str(_("创建 {dir}".format(dir=dir_to_be_created))),
+                    show_description=False,
+                )
+            )
+
+        return create_pre_dir_step
+
     @abc.abstractmethod
     def _make(self) -> ExecutionSolution:
         raise NotImplementedError
 
     def make(self) -> ExecutionSolution:
         execution_solution: ExecutionSolution = self._make()
-        self.add_sudo_to_cmds(execution_solution)
         if self.is_combine_cmd_step:
             self.combine_cmd_step(execution_solution)
+        self.add_sudo_to_cmds(execution_solution)
         return execution_solution
 
 
@@ -362,32 +411,6 @@ class ShellExecutionSolutionMaker(BaseExecutionSolutionMaker):
             options_value_inside_quotes=["-e", "-a", "-k", "-P"],
         )
 
-        create_tmp_dir_cmd_content: ExecutionSolutionStepContent = ExecutionSolutionStepContent(
-            name="create_tmp_dir_cmd",
-            text=f"mkdir -p {cmd_name__cmd_map['dest_dir']}",
-            description=str(_("创建临时目录")),
-            show_description=False,
-        )
-
-        pre_cmds_step: ExecutionSolutionStep = ExecutionSolutionStep(
-            step_type=constants.CommonExecutionSolutionStepType.COMMANDS.value,
-            description=str(_("下载安装脚本并赋予执行权限")),
-            contents=[
-                ExecutionSolutionStepContent(
-                    name="download_cmd",
-                    text=cmd_name__cmd_map["download_cmd"],
-                    description=str(_("下载安装脚本")),
-                    show_description=False,
-                ),
-                ExecutionSolutionStepContent(
-                    name="chmod_cmd",
-                    text=f"chmod +x {cmd_name__cmd_map['dest_dir']}{self.script_file_name}",
-                    description=str(_("为 {script_file_name} 添加执行权限").format(script_file_name=self.script_file_name)),
-                    show_description=False,
-                ),
-            ],
-        )
-
         solution_description: str = _("通过 {solution_type_alias} 进行安装").format(
             solution_type_alias=constants.CommonExecutionSolutionType.get_member_value__alias_map()[
                 constants.CommonExecutionSolutionType.SHELL.value
@@ -409,8 +432,7 @@ class ShellExecutionSolutionMaker(BaseExecutionSolutionMaker):
             dependence_download_cmds_step: ExecutionSolutionStep = ExecutionSolutionStep(
                 step_type=constants.CommonExecutionSolutionStepType.COMMANDS.value,
                 description=str(_("依赖文件下载")),
-                # 创建依赖文件下载目标临时目录
-                contents=[create_tmp_dir_cmd_content],
+                contents=[],
             )
             for name, description in constants.AgentWindowsDependencies.get_member_value__alias_map().items():
                 # 默认 Cygwin 自带 curl
@@ -424,13 +446,32 @@ class ShellExecutionSolutionMaker(BaseExecutionSolutionMaker):
                     ExecutionSolutionStepContent(name=name, text=dependence_download_cmd, description=str(description))
                 )
 
-            # 依赖文件下载作为 Windows Shell 的第一个步骤
-            execution_solution.steps.insert(0, dependence_download_cmds_step)
-        else:
-            # 步骤整合，非 Windows 无需下载依赖文件，将临时目录整合到 pre_cmds_step
-            pre_cmds_step.contents.insert(0, create_tmp_dir_cmd_content)
+            execution_solution.steps.append(dependence_download_cmds_step)
 
-        execution_solution.steps.append(pre_cmds_step)
+        # 依赖目录创建作为第一个步骤
+        execution_solution.steps.insert(0, self.get_create_pre_dirs_step(is_shell_adapter=True))
+        execution_solution.steps.append(
+            ExecutionSolutionStep(
+                step_type=constants.CommonExecutionSolutionStepType.COMMANDS.value,
+                description=str(_("下载安装脚本并赋予执行权限")),
+                contents=[
+                    ExecutionSolutionStepContent(
+                        name="download_cmd",
+                        text=cmd_name__cmd_map["download_cmd"],
+                        description=str(_("下载安装脚本")),
+                        show_description=False,
+                    ),
+                    ExecutionSolutionStepContent(
+                        name="chmod_cmd",
+                        text=f"chmod +x {cmd_name__cmd_map['dest_dir']}{self.script_file_name}",
+                        description=str(
+                            _("为 {script_file_name} 添加执行权限").format(script_file_name=self.script_file_name)
+                        ),
+                        show_description=False,
+                    ),
+                ],
+            )
+        )
         execution_solution.steps.append(
             ExecutionSolutionStep(
                 step_type=constants.CommonExecutionSolutionStepType.COMMANDS.value,
@@ -451,18 +492,7 @@ class ShellExecutionSolutionMaker(BaseExecutionSolutionMaker):
 class BatchExecutionSolutionMaker(BaseExecutionSolutionMaker):
     def _make(self) -> ExecutionSolution:
         # 1. 准备阶段：创建目录
-        pre_cmds_step: ExecutionSolutionStep = ExecutionSolutionStep(
-            step_type=constants.CommonExecutionSolutionStepType.COMMANDS.value,
-            description=str(_("创建临时目录")),
-            contents=[
-                ExecutionSolutionStepContent(
-                    name="pre_command",
-                    text=f"mkdir {self.dest_dir}",
-                    description=str(_("创建临时目录")),
-                    show_description=False,
-                )
-            ],
-        )
+        create_pre_dirs_step: ExecutionSolutionStep = self.get_create_pre_dirs_step()
 
         # 2. 依赖下载
         dependencies_step: ExecutionSolutionStep = ExecutionSolutionStep(
@@ -509,7 +539,7 @@ class BatchExecutionSolutionMaker(BaseExecutionSolutionMaker):
                     ]
                 )
             ),
-            steps=[pre_cmds_step, dependencies_step, run_cmds_step],
+            steps=[create_pre_dirs_step, dependencies_step, run_cmds_step],
         )
 
 
