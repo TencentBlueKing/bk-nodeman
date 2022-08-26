@@ -121,6 +121,7 @@ export default class TableHeader extends Vue {
   @Prop({ type: String, default: '' }) private readonly placeholder!: string;
   @Prop({ type: String, default: '' }) private readonly appendSlot!: string;
   @Prop({ type: Object, default: () => ({}) }) private readonly focusRow!: ISetupRow;
+  @Prop({ type: String, default: 'light setup-tips' }) private readonly tipTheme!: string;
 
   @Ref('batch') private readonly batchRef!: any;
   @Ref('tipSpan') private readonly tipSpan!: any;
@@ -148,7 +149,7 @@ export default class TableHeader extends Vue {
         allowHTML: true,
         trigger: 'mouseenter',
         arrow: true,
-        theme: 'light setup-tips',
+        theme: this.tipTheme,
         maxWidth: 274,
         sticky: true,
         duration: [275, 0],
