@@ -8,7 +8,8 @@
       item-active-color="#3a84ff"
       item-default-icon-color="#979ba5"
       item-active-icon-color="#3a84ff"
-      item-hover-bg-color="#e1ecff"
+      item-hover-icon-color="#979ba5"
+      item-hover-bg-color="#f5f7fa"
       item-active-bg-color="#e1ecff"
       @select="handleSelect">
       <template v-for="item in list">

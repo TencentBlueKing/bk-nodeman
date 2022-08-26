@@ -136,7 +136,7 @@ export default class TaskDeatail extends Mixins(RouterBackMixin) {
     }
   }
   .nodeman-nav-wrapper {
-    padding: 20px 60px 15px 60px;
+    padding: 20px 24px 15px 24px;
     background: #f5f7fa;
   }
   .manual-tips-wrapper {

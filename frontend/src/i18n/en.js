@@ -1,6 +1,7 @@
 /* eslint-disable max-len */
 export default {
   蓝鲸节点管理: 'NodeMan',
+  节点管理: 'Node',
   退出: 'Log Out',
   请求出错: 'Request error',
   请求的资源没有权限: 'Resources do not have permission request',
