@@ -147,24 +147,6 @@ class PolicyStepAdapter:
         return self._plugin_desc
 
     @property
-    def config_inst_gby_os_key(self) -> Dict[str, List[models.PluginConfigInstance]]:
-        if hasattr(self, "_config_inst_gby_os_key"):
-            return self._config_inst_gby_os_key
-
-        config_inst_gby_os_key = {}
-        for os_key, config_templates in self.config_tmpl_obj_gby_os_key.items():
-            config_inst_gby_os_key[os_key] = [
-                config_template.create_instance(
-                    data=self.get_matching_step_params(os_key=os_key).get("context", {}),
-                    source_app_code=self.subscription.from_system,
-                )
-                for config_template in config_templates
-            ]
-
-        setattr(self, "_config_inst_gby_os_key", config_inst_gby_os_key)
-        return self._config_inst_gby_os_key
-
-    @property
     def config_tmpl_obj_gby_os_key(self) -> Dict[str, List[models.PluginConfigTemplate]]:
         if hasattr(self, "_config_tmpl_obj_gby_os_key"):
             return self._config_tmpl_obj_gby_os_key
