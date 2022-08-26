@@ -10,15 +10,12 @@ specific language governing permissions and limitations under the License.
 """
 
 import abc
-import ntpath
-import os
-import posixpath
 from abc import ABC
 from collections import ChainMap, defaultdict
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
 
 import six
-from django.db.models import Q, QuerySet
+from django.db.models import QuerySet
 
 from apps.adapters.api.gse import GseApiHelper
 from apps.backend import constants as backend_const
@@ -66,9 +63,6 @@ class PluginStep(Step):
         self.plugin_name: str = policy_step_adapter.plugin_name
         self.plugin_desc: models.GsePluginDesc = policy_step_adapter.plugin_desc
         self.os_key_pkg_map: Dict[str, models.Packages] = policy_step_adapter.os_key_pkg_map
-        self.config_inst_gby_os_key: Dict[
-            str, List[models.PluginConfigInstance]
-        ] = policy_step_adapter.config_inst_gby_os_key
         self.config_tmpl_gby_os_key: Dict[
             str, List[models.PluginConfigTemplate]
         ] = policy_step_adapter.config_tmpl_obj_gby_os_key
@@ -115,9 +109,6 @@ class PluginStep(Step):
             return self.tag_name__obj_map[package.version].target_version
         else:
             return package.version
-
-    def get_matching_config_instances(self, os_type: str, cpu_arch: str) -> List[models.PluginConfigInstance]:
-        return self.config_inst_gby_os_key.get(adapter.PolicyStepAdapter.get_os_key(os_type, cpu_arch), [])
 
     def get_matching_config_templates(self, os_type: str, cpu_arch: str) -> List[models.PluginConfigTemplate]:
         return self.config_tmpl_gby_os_key.get(adapter.PolicyStepAdapter.get_os_key(os_type, cpu_arch), [])
@@ -884,185 +875,6 @@ class PluginStep(Step):
         # TODO 实际执行安装数量 < 策略部署范围，未及时同步CC主机（拓扑下主机数量减少），暂不处理该问题
 
         return {"instance_actions": instance_actions, "migrate_reasons": migrate_reasons}
-
-    def bulk_create_host_status_cache(self, instances: Dict[str, Dict]) -> Dict[str, Dict[str, models.ProcessStatus]]:
-        """
-        批量创建HostStatus，并放入内存缓存中
-        """
-        processes = defaultdict(dict)
-
-        statuses = models.ProcessStatus.objects.filter(
-            source_type=models.ProcessStatus.SourceType.SUBSCRIPTION,
-            source_id=self.subscription_step.subscription_id,
-            name=self.plugin_name,
-        )
-
-        for status in statuses:
-            status.package = self.get_matching_package(status.host.os_type, status.host.cpu_arch)
-            host_key = tools.create_host_key(
-                {
-                    "bk_supplier_id": constants.DEFAULT_SUPPLIER_ID,
-                    "bk_cloud_id": status.host.bk_cloud_id,
-                    "ip": status.host.inner_ip,
-                }
-            )
-            processes[status.group_id][host_key] = status
-
-            # 更新缓存
-            self.process_cache[status.group_id][host_key] = status
-
-        target_hosts = []
-        for instance_id, instance_info in instances.items():
-            group_id = tools.create_group_id(self.subscription, instance_info)
-            if group_id in self.process_cache:
-                continue
-            if not self.subscription_step.subscription.target_hosts:
-                target_hosts.append(
-                    {
-                        "ip": instance_info["host"]["bk_host_innerip"],
-                        # 感觉可能用get(key, None)比较ok？
-                        "bk_cloud_id": instance_info["host"]["bk_cloud_id"] or 0,
-                        "bk_supplier_id": constants.DEFAULT_SUPPLIER_ID,
-                    }
-                )
-            else:
-                target_hosts += [target_host for target_host in self.subscription_step.subscription.target_hosts]
-
-        condition = Q()
-        for target_host in target_hosts:
-            condition |= Q(
-                inner_ip=target_host["ip"],
-                bk_cloud_id=target_host["bk_cloud_id"],
-            )
-
-        hosts = models.Host.objects.filter(condition)
-        host_dict = {(host.inner_ip, int(host.bk_cloud_id), constants.DEFAULT_SUPPLIER_ID): host for host in hosts}
-
-        to_be_created_host_status = []
-        to_be_created_group_ids = []
-        for instance_id, instance_info in instances.items():
-            group_id = tools.create_group_id(self.subscription, instance_info)
-            if group_id in self.process_cache:
-                continue
-            if not self.subscription_step.subscription.target_hosts:
-                target_hosts = [
-                    {
-                        "ip": instance_info["host"]["bk_host_innerip"],
-                        "bk_cloud_id": instance_info["host"]["bk_cloud_id"] or 0,
-                        "bk_supplier_id": constants.DEFAULT_SUPPLIER_ID,
-                    }
-                ]
-            else:
-                target_hosts = [target_host for target_host in self.subscription_step.subscription.target_hosts]
-            for target_host in target_hosts:
-                host_obj = host_dict.get((target_host["ip"], int(target_host["bk_cloud_id"]), 0))
-                if not host_obj:
-                    continue
-                # 创建进程状态实例对象（未写入DB）
-                host_status = self.generate_process_status_record(host_obj, instance_info)
-                to_be_created_host_status.append(host_status)
-                to_be_created_group_ids.append(group_id)
-
-        models.ProcessStatus.objects.bulk_create(to_be_created_host_status)
-
-        # 由于批量创建是不会返回 host_status.id 的，会对后面构造任务参数造成影响，因此这里要把数据重新查出来，重新设置一遍
-        host_status_list = models.ProcessStatus.objects.filter(group_id__in=to_be_created_group_ids)
-        for host_status in host_status_list:
-            host_key = tools.create_host_key(
-                {
-                    "bk_supplier_id": constants.DEFAULT_SUPPLIER_ID,
-                    "bk_cloud_id": host_status.host.bk_cloud_id,
-                    "ip": host_status.host.inner_ip,
-                }
-            )
-            self.process_cache[host_status.group_id][host_key] = host_status
-
-        return processes
-
-    def generate_process_status_record(
-        self, host: models.Host, instance_info: Dict[str, Union[Dict, Any]]
-    ) -> models.ProcessStatus:
-        """
-        根据目标主机生成主机进程实例记录
-        :param host: Host
-        :param instance_info:
-        :return: ProcessStatus
-        """
-        group_id = tools.create_group_id(self.subscription, instance_info)
-
-        package = self.get_matching_package(host.os_type, host.cpu_arch)
-
-        # 配置插件进程实际运行路径配置信息
-        if package.os == constants.PluginOsType.windows:
-            path_handler = ntpath
-        else:
-            path_handler = posixpath
-
-        if package.plugin_desc.category == constants.CategoryType.external:
-            # 如果为 external 插件，需要补上插件组目录
-            setup_path = path_handler.join(
-                package.proc_control.install_path, constants.PluginChildDir.EXTERNAL.value, group_id, package.project
-            )
-            log_path = path_handler.join(package.proc_control.log_path, group_id)
-            data_path = path_handler.join(package.proc_control.data_path, group_id)
-            pid_path_prefix, pid_filename = path_handler.split(package.proc_control.pid_path)
-            pid_path = path_handler.join(pid_path_prefix, group_id, pid_filename)
-        else:
-            setup_path = path_handler.join(
-                package.proc_control.install_path, constants.PluginChildDir.OFFICIAL.value, "bin"
-            )
-            log_path = package.proc_control.log_path
-            data_path = package.proc_control.data_path
-            pid_path = package.proc_control.pid_path
-
-        defaults = {
-            "setup_path": setup_path,
-            "log_path": log_path,
-            "data_path": data_path,
-            "pid_path": pid_path,
-            "version": package.version,
-        }
-        proc_status_create_data = dict(
-            bk_host_id=host.bk_host_id,
-            name=self.plugin_name,
-            source_id=self.subscription.id,
-            source_type=models.ProcessStatus.SourceType.SUBSCRIPTION,
-            group_id=group_id,
-            proc_type=constants.ProcType.PLUGIN,
-        )
-        host_key = tools.create_host_key(
-            {"bk_supplier_id": constants.DEFAULT_SUPPLIER_ID, "bk_cloud_id": host.bk_cloud_id, "ip": host.inner_ip}
-        )
-
-        proc_status_create_data.update(defaults)
-
-        # 如果是第一次创建，将配置文件初始化，避免删除的时候找不到配置文件
-        rendered_configs = []
-        for config in self.get_matching_config_instances(host.os_type, host.cpu_arch):
-            rendered_config = {
-                "instance_id": config.id,
-                "content": config.template.content,
-                "file_path": config.template.file_path,
-                "md5": "",
-            }
-            if package.plugin_desc.is_official:
-                # 官方插件的部署方式为单实例多配置，在配置模板的名称上追加 group id 即可对配置文件做唯一标识
-                filename, extension = os.path.splitext(config.template.name)
-                rendered_config["name"] = "{filename}_{group_id}{extension}".format(
-                    filename=filename, group_id=group_id, extension=extension
-                )
-            else:
-                rendered_config["name"] = config.template.name
-
-            rendered_configs.append(rendered_config)
-
-        proc_status_create_data["configs"] = rendered_configs
-
-        host_status = models.ProcessStatus(**proc_status_create_data)
-
-        host_status.host = host
-        self.process_cache[group_id][host_key] = host_status
-        return host_status
 
 
 class BasePluginAction(six.with_metaclass(abc.ABCMeta, Action)):
