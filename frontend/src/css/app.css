@@ -633,6 +633,14 @@ body {
             white-space: pre-wrap;
         }
     }
+    .resource-quota-head-theme {
+        padding: 8px 12px;
+        font-size: 12px;
+        pre {
+            margin: 0;
+            white-space: pre-wrap;
+        }
+    }
 }
 .v-cursor {
     background-repeat: no-repeat;

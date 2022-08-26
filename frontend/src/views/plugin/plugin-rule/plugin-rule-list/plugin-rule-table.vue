@@ -403,7 +403,10 @@ export default class PluginRuleTable extends Mixins(HeaderRenderMixin) {
     MainStore.setSelectedBiz(bizIds);
     this.$router.push({
       name: 'plugin',
-      params: { policyId: row.id },
+      params: {
+        policyId: row.id,
+        policyName: `${row.name}-${row.plugin_name}`,
+      },
     });
   }
   public rowClassName({ row, rowIndex }: { row: IPolicyRow, rowIndex: number }) {
