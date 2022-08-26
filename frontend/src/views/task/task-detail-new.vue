@@ -601,7 +601,7 @@ export default class TaskDeatail extends Mixins(PollMixin, HeaderFilterMixins) {
     background: #fff;
     overflow: auto;
     .detail-option {
-      padding: 0 60px;
+      padding: 0 24px;
       margin: 24px 0 0 0;
       .copy-dropdown-btn {
         font-size: 14px;
@@ -617,7 +617,7 @@ export default class TaskDeatail extends Mixins(PollMixin, HeaderFilterMixins) {
     }
     .detail-table-content {
       margin-top: 14px;
-      padding: 0 60px;
+      padding: 0 24px;
       .table-header {
         padding: 0 24px;
         margin-bottom: -1px;

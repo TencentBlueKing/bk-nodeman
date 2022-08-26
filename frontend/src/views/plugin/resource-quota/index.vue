@@ -331,6 +331,7 @@ export default class ResourceQuota extends Mixins(HeaderFilterMixins) {
       props: {
         label,
         tips: this.headTipsMap[property as 'cpu' | 'mem'],
+        tipTheme: 'light resource-quota-head',
       },
     });
   }
