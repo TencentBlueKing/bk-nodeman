@@ -21,6 +21,7 @@ spec:
   selector:
     matchLabels:
       {{- include "bk-nodeman.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: "{{ $fullName }}"
   template:
     metadata:
       {{- with .Values.podAnnotations }}
@@ -29,6 +30,7 @@ spec:
       {{- end }}
       labels:
         {{- include "bk-nodeman.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: "{{ $fullName }}"
     spec:
       {{- with .Values.global.imagePullSecrets }}
       imagePullSecrets:
