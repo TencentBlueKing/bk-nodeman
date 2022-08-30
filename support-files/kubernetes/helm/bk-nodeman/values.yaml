@@ -361,6 +361,19 @@ config:
   bkRepoPublicBucket: ""
   bkRepoPrivateBucket: ""
 
+  ## 可观测
+  ##
+  ## 是否开启 Trace
+  bkAppEnableOtelTrace: false
+  ## 是否开启 DB 访问 trace（开启后 span 数量会明显增多）
+  bkAppOtelInstrumentDbApi: false
+  ## 配置采样策略，默认值为 `parentbased_always_off`，可选值 `always_on`，`always_off`, `parentbased_always_on`,
+  ## `parentbased_always_off`, `traceidratio`, `parentbased_traceidratio`
+  bkAppOtelSampler: "parentbased_always_off"
+  ## 监控上报配置项
+  bkAppOtelBkDataToken: ""
+  bkAppOtelGrpcHost: ""
+
   ## 其他
   ##
   ## 线程最大并发数

@@ -9,15 +9,23 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+import typing
+
 from django_prometheus.conf import NAMESPACE
 from prometheus_client import Counter
 
-from apps.node_man import constants
+jobs_by_op_type_operate_step = Counter(
+    "django_app_jobs_by_operate_step",
+    "Count of jobs by operate, step.",
+    ["operate", "step"],
+    namespace=NAMESPACE,
+)
 
-job_model_updates = Counter(
-    "django_job_model_updates_total",
-    "Number of update operations by model.",
-    ["job_type", "status"],
+
+subscriptions_by_object_node_category = Counter(
+    "django_app_subscriptions_by_object_node_category",
+    "Count of subscriptions by object, node, category.",
+    ["object", "node", "category"],
     namespace=NAMESPACE,
 )
 
@@ -26,18 +34,44 @@ def export_job_prometheus_mixin():
     """任务模型埋点"""
 
     class Mixin:
-        _original_status = None
-        status = None
-        job_type = None
+        job_type: str = None
+        task_id_list: typing.List[int] = None
+        _origin_task_id_list: typing.List[int] = None
 
         def __init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)
-            self._origin_status = self.status
+            self._origin_task_id_list = self.task_id_list
 
-        def _do_update(self, *args, **kwargs):
-            # 任务状态有变更，且目标状态不是处理中的，则进行埋点
-            if self._origin_status != self.status and self.status not in constants.JobStatusType.PROCESSING_STATUS:
-                job_model_updates.labels(self.job_type, self.status).inc()
-            return super()._do_update(*args, **kwargs)
+        def unpacking_job_type(self) -> typing.Tuple[str, str]:
+            if not self.job_type:
+                return "default", "default"
+            operate_untreated, step = self.job_type.rsplit("_", 1)
+            operate = operate_untreated.replace("MAIN_", "")
+            return operate, step
+
+        def inc(self):
+            operate, step = self.unpacking_job_type()
+            jobs_by_op_type_operate_step.labels(operate, step).inc()
+
+        def _do_insert(self, *args, **kwargs):
+            self.inc()
+            return super()._do_insert(*args, **kwargs)
+
+    return Mixin
+
+
+def export_subscription_prometheus_mixin():
+    """任务模型埋点"""
+
+    class Mixin:
+        object_type: typing.Optional[str] = None
+        node_type: typing.Optional[str] = None
+        category: typing.Optional[str] = None
+
+        def _do_insert(self, *args, **kwargs):
+            subscriptions_by_object_node_category.labels(
+                self.object_type, self.node_type, self.category or "subscription"
+            ).inc()
+            return super()._do_insert(*args, **kwargs)
 
     return Mixin
