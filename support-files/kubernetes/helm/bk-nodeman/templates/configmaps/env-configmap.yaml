@@ -26,7 +26,7 @@ data:
 
   LOG_TYPE: "{{ .Values.config.logType }}"
   LOG_LEVEL: "{{ .Values.config.logLevel }}"
-  BK_LOG_DIR: "{{ .Values.config.bkLogDir}}"
+  BK_LOG_DIR: "{{ .Values.config.bkLogDir }}"
 
   BK_CMDB_RESOURCE_POOL_BIZ_ID: "{{ .Values.config.bkCmdbResourcePoolBizId }}"
   DEFAULT_SUPPLIER_ACCOUNT: "{{ .Values.config.defaultSupplierAccount }}"
@@ -83,6 +83,15 @@ data:
   BKREPO_PUBLIC_BUCKET: "{{ .Values.config.bkRepoPublicBucket }}"
   BKREPO_PRIVATE_BUCKET: "{{ .Values.config.bkRepoPrivateBucket }}"
   BKREPO_ENDPOINT_URL: "{{ .Values.bkRepoUrl }}"
+
+  {{- if .Values.config.bkAppEnableOtelTrace }}
+  BKAPP_ENABLE_OTEL_TRACE: "{{ .Values.config.bkAppEnableOtelTrace }}"
+  BKAPP_OTEL_SERVICE_NAME: {{ printf "%s-%s" (include "bk-nodeman.fullname" .) "saas" }}
+  BKAPP_OTEL_INSTRUMENT_DB_API: "{{ .Values.config.bkAppOtelInstrumentDbApi }}"
+  BKAPP_OTEL_SAMPLER: "{{ .Values.config.bkAppOtelSampler }}"
+  BKAPP_OTEL_BK_DATA_TOKEN: "{{ .Values.config.bkAppOtelBkDataToken }}"
+  BKAPP_OTEL_GRPC_HOST: "{{ .Values.config.bkAppOtelGrpcHost }}"
+  {{- end }}
 
   CONCURRENT_NUMBER: "{{ .Values.config.concurrentNumber }}"
 

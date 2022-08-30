@@ -23,6 +23,11 @@ __all__ = [
     "LOG_LEVEL",
     "BK_LOG_DIR",
     "GSE_VERSION",
+    "BKAPP_ENABLE_OTEL_TRACE",
+    "BKAPP_OTEL_INSTRUMENT_DB_API",
+    "BKAPP_OTEL_SAMPLER",
+    "BKAPP_OTEL_BK_DATA_TOKEN",
+    "BKAPP_OTEL_GRPC_HOST",
     "ENVIRONMENT",
     # esb 访问地址
     "BK_COMPONENT_API_URL",
@@ -64,3 +69,19 @@ BK_LOG_DIR = get_type_env(key="BK_LOG_DIR", default="./../bk_nodeman/logs", _typ
 # ===============================================================================
 # 平台版本
 GSE_VERSION = get_type_env(key="GSE_VERSION", default=constants.GseVersion.V1.value)
+
+
+# ===============================================================================
+# 可观测
+# ===============================================================================
+# 是否开启 Trace
+BKAPP_ENABLE_OTEL_TRACE = get_type_env(key="BKAPP_ENABLE_OTEL_TRACE", default=False, _type=bool)
+# BKAPP_OTEL_SERVICE_NAME 隐藏配置，框架生成默认值，helm 部署默认生成 -saas / -backend
+# 是否开启 DB 访问 trace（开启后 span 数量会明显增多）
+BKAPP_OTEL_INSTRUMENT_DB_API = get_type_env(key="BKAPP_OTEL_INSTRUMENT_DB_API", default=False, _type=bool)
+# 配置采样策略，默认值为 `parentbased_always_off`，可选值 `always_on`，`always_off`, `parentbased_always_on`,
+# `parentbased_always_off`, `traceidratio`, `parentbased_traceidratio`
+BKAPP_OTEL_SAMPLER = get_type_env(key="BKAPP_OTEL_SAMPLER", default="parentbased_always_on", _type=str)
+# 监控上报配置项
+BKAPP_OTEL_BK_DATA_TOKEN = get_type_env(key="BKAPP_OTEL_BK_DATA_TOKEN", _type=str)
+BKAPP_OTEL_GRPC_HOST = get_type_env(key="BKAPP_OTEL_GRPC_HOST", _type=str)
