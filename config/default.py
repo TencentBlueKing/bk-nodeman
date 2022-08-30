@@ -69,6 +69,7 @@ INSTALLED_APPS += (
     "django_dbconn_retry",
     # django_prometheus
     "django_prometheus",
+    "blueapps.opentelemetry.instrument_app",
 )
 
 # 这里是默认的中间件，大部分情况下，不需要改动
@@ -86,7 +87,6 @@ MIDDLEWARE = (
     # 蓝鲸静态资源服务
     "whitenoise.middleware.WhiteNoiseMiddleware",
     # Auth middleware
-    # 'blueapps.account.middlewares.BkJwtLoginRequiredMiddleware',
     # 'blueapps.account.middlewares.WeixinLoginRequiredMiddleware',
     "blueapps.account.middlewares.BkJwtLoginRequiredMiddleware",
     "blueapps.account.middlewares.LoginRequiredMiddleware",
@@ -100,15 +100,23 @@ MIDDLEWARE = (
 
 # 添加django_prometheus中间件
 MIDDLEWARE = (
-    ("django_prometheus.middleware.PrometheusBeforeMiddleware",)
+    ("blueapps.opentelemetry.metrics.middlewares.SaaSMetricsBeforeMiddleware",)
     + MIDDLEWARE
-    + ("django_prometheus.middleware.PrometheusAfterMiddleware",)
+    + (
+        "blueapps.opentelemetry.metrics.middlewares.SaaSMetricsAfterMiddleware",
+        "apps.prometheus.middlewares.NodeManAfterMiddleware",
+    )
 )
 
-# open telemetry
-ENABLE_OTEL_TRACE = get_type_env("ENABLE_OTEL_TRACE", _type=bool, default=False)
-OTLP_GRPC_HOST = get_type_env("OTLP_GRPC_HOST", _type=str, default="")
-OTLP_BK_DATA_ID = get_type_env("OTLP_BK_DATA_ID", _type=int, default=0)
+# ===============================================================================
+# 可观测
+# ===============================================================================
+
+ENABLE_OTEL_TRACE = env.BKAPP_ENABLE_OTEL_TRACE
+BKAPP_OTEL_SAMPLER = env.BKAPP_OTEL_SAMPLER
+BK_APP_OTEL_INSTRUMENT_DB_API = env.BKAPP_OTEL_INSTRUMENT_DB_API
+BKAPP_OTEL_GRPC_HOST = env.BKAPP_OTEL_GRPC_HOST
+BKAPP_OTEL_BK_DATA_TOKEN = env.BKAPP_OTEL_BK_DATA_TOKEN
 
 # 单元测试豁免登录
 if "test" in sys.argv:

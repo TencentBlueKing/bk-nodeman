@@ -15,7 +15,6 @@ from django.apps import AppConfig
 from django.conf import settings
 from django.db import ProgrammingError, connection
 
-from apps import BluekingInstrumentor
 from common.log import logger
 
 
@@ -30,8 +29,6 @@ class ApiConfig(AppConfig):
 
         from apps.node_man.models import GlobalSettings
 
-        if settings.ENABLE_OTEL_TRACE:
-            BluekingInstrumentor().instrument()
         if GlobalSettings._meta.db_table not in connection.introspection.table_names():
             # 初次部署表不存在时跳过DB写入操作
             logger.info(f"{GlobalSettings._meta.db_table} not exists, skip fetch_esb_api_key before migrate.")

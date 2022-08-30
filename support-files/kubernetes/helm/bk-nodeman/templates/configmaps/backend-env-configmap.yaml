@@ -16,3 +16,7 @@ data:
   BK_BACKEND_CONFIG: "true"
 
   BACKEND_API_PORT: "{{ .Values.backend.api.service.port | default 10300 }}"
+
+  {{- if .Values.config.bkAppEnableOtelTrace }}
+  BKAPP_OTEL_SERVICE_NAME: {{ printf "%s-%s" (include "bk-nodeman.fullname" .) "backend" }}
+  {{- end }}
