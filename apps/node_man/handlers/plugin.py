@@ -26,7 +26,6 @@ from apps.node_man.models import (
     Cloud,
     GsePluginDesc,
     Host,
-    Job,
     JobTask,
     Packages,
     PluginConfigTemplate,
@@ -331,8 +330,7 @@ class PluginHandler(APIModel):
         # 校验器进行校验
         db_host_ids, host_biz_scope = operate_validator(list(db_host_sql))
 
-        jobs_to_be_created = []
-        subscription_id__plugin_name_map = {}
+        plugin_name__job_id__map = {}
         for plugin_params in params["plugin_params_list"]:
             plugin_name, plugin_version = plugin_params["name"], plugin_params["version"]
             subscription_create_result = PluginHandler.create_subscription(
@@ -344,32 +342,13 @@ class PluginHandler(APIModel):
                 no_restart=plugin_params.get("no_restart"),
             )
 
-            # 创建Job
-            jobs_to_be_created.append(
-                Job(
-                    job_type=params["job_type"],
-                    subscription_id=subscription_create_result["subscription_id"],
-                    task_id_list=[subscription_create_result["task_id"]],
-                    statistics={
-                        "success_count": 0,
-                        "failed_count": 0,
-                        "pending_count": len(db_host_ids),
-                        "running_count": 0,
-                        "total_count": len(db_host_ids),
-                    },
-                    error_hosts=[],
-                    created_by=username,
-                    bk_biz_scope=list(set(host_biz_scope)),
-                )
+            create_job_info = tools.JobTools.create_job(
+                job_type=params["job_type"],
+                subscription_id=subscription_create_result["subscription_id"],
+                task_id=subscription_create_result["task_id"],
+                bk_biz_scope=list(set(host_biz_scope)),
             )
-            subscription_id__plugin_name_map[subscription_create_result["subscription_id"]] = plugin_name
-        Job.objects.bulk_create(jobs_to_be_created)
-        plugin_name__job_id__map = {
-            subscription_id__plugin_name_map[job["subscription_id"]]: job["id"]
-            for job in Job.objects.filter(
-                subscription_id__in=[job_obj.subscription_id for job_obj in jobs_to_be_created]
-            ).values("subscription_id", "id")
-        }
+            plugin_name__job_id__map[plugin_name] = create_job_info["job_id"]
 
         # 使用v2.0.x参数进行插件操作时，使用旧返回结构
         if params.get("plugin_params"):

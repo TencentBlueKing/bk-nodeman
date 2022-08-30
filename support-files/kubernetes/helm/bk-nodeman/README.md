@@ -288,7 +288,7 @@ externalRabbitMQ:
 | `config.jobVersion`                   | 蓝鲸作业平台相关配置，API 版本，可选项 `V2` `V3`             | `V3`                           |
 | `config.bluekingBizId`                | 蓝鲸作业平台相关配置，调用作业平台 API 所使用的业务集 ID     | `9991001`                      |
 | `config.bkAppUseIam`                  | 蓝鲸权限中心相关配置，是否启用权限中心                       | `true`                         |
-| `config.bkIamV3AppCode`               | 蓝鲸权限中心相关配置，权限中心 AppCode                       | `"bk_iam"`                     |
+| `config.bkIamV3AppCode`               | 蓝鲸权限中心相关配置，权限中心 AppCode                       | `bk_iam`                       |
 | `config.bkAppIamResourceApiHost`      | 蓝鲸权限中心相关配置，权限中心拉取权限相关资源的访问地址，默认取 `{{ .Values.bkNodemanUrl }}` | `""`                           |
 | `config.bkAppBkNodeApiGateway`        | 组件 API 接入地址，节点管理网关地址，用于覆盖  `bkComponentApiUrl` 访问节点管理<br />⚠️ 配置为 `{{ .Values.bkNodemanApiUrl }`} 由于 JWT 校验问题，会导致 Agent 安装步骤中「安装预制插件」失败 | `""`                           |
 | `config.bkAppBkGseApiGateway`         | 管控平台 API 访问地址，用于覆盖 `bkComponentApiUrl` 访问管控平台 API | `""`                           |
@@ -316,6 +316,11 @@ externalRabbitMQ:
 | `config.bkRepoBucket`                 | 存储，蓝鲸制品库仓库                                         | `""`                           |
 | `config.bkRepoPublicBucket`           | 存储，蓝鲸制品库公共仓库                                     | `""`                           |
 | `config.bkRepoPrivateBucket`          | 存储，蓝鲸制品库私有仓库                                     | `""`                           |
+| `config.bkAppEnableOtelTrace`         | 可观测，是否开启 Trace                                       | `false`                        |
+| `config.bkAppOtelInstrumentDbApi`     | 可观测，是否开启 DB 访问 trace（开启后 span 数量会明显增多） | `false`                        |
+| `config.bkAppOtelSampler`             | 可观测，配置采样策略，可选值 `always_on`，`always_off`, `parentbased_always_on`,`parentbased_always_off`, `traceidratio`, `parentbased_traceidratio` | `parentbased_always_off`       |
+| `config.bkAppOtelBkDataToken`         | 可观测，监控上报配置项                                       | `""`                           |
+| `config.bkAppOtelGrpcHost`            | 可观测，监控上报配置项                                       | `""`                           |
 | `config.concurrentNumber`             | 线程最大并发数                                               | `50`                           |
 
 ## 额外的环境变量

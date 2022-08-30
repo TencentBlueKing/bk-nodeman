@@ -79,7 +79,7 @@ class SubscriptionViewSet(APIViewSet):
                 node_type=scope["node_type"],
                 nodes=scope["nodes"],
                 target_hosts=params.get("target_hosts"),
-                from_system="blueking",
+                from_system=params["bk_app_code"] or "blueking",
                 enable=enable,
                 is_main=params.get("is_main", False),
                 creator=params["bk_username"],

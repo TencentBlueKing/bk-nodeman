@@ -56,7 +56,10 @@ from apps.node_man.exceptions import (
     QueryGlobalSettingsException,
     UrlNotReachableError,
 )
-from apps.prometheus.models import export_job_prometheus_mixin
+from apps.prometheus.models import (
+    export_job_prometheus_mixin,
+    export_subscription_prometheus_mixin,
+)
 from apps.utils import files, orm, translation
 from common.log import logger
 from pipeline.parser import PipelineParser
@@ -1787,7 +1790,7 @@ class SubscriptionStep(models.Model):
         )
 
 
-class Subscription(orm.SoftDeleteModel):
+class Subscription(export_subscription_prometheus_mixin(), orm.SoftDeleteModel):
     """订阅"""
 
     class ObjectType(object):
