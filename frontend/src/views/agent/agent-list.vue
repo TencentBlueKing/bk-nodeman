@@ -831,7 +831,7 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
   ];
   // 搜索相关
   private search: {
-    topo: string[]
+    topo: number[]
   } = {
     topo: [],
   };
@@ -1174,26 +1174,28 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
     });
     /**
      * 非 set|module 的类型为 自定义层级
-     * 自定义层级下一定为 set | 自定义层级
+     * 自定义层级下一定为 set | 自定义层级,  module上层一定为set
      * 选中为自定义层级需要拿到其下所有的set
+     * 拿到module类型 就不需要 set类型的选中值
+     * 全选或多选业务之后顶层一定是biz
+     * 入手点还是最后一个选中的子节点
      */
-    const topoLen = this.search.topo.length;
-    if (topoLen) {
+    if (this.search.topo.length) {
       const len = this.topoSelectChild.length;
       const lastSelect = this.topoSelectChild[len - 1];
       if (lastSelect.type !== 'biz') {
-        if (this.selectedBiz.length !== 1 && params.bk_biz_id) {
+        if (params.bk_biz_id) {
           delete params.bk_biz_id;
         }
         const value: IAgent = {
-          bk_biz_id: this.selectedBiz[0],
+          bk_biz_id: this.selectedBiz.length === 1 ? this.selectedBiz[0] : this.search.topo[0],
         };
         if (lastSelect.type === 'set') {
           value.bk_set_ids = [lastSelect.id];
         } else if (lastSelect.type === 'module') {
           // module的上级必定为set
-          const penultSelect = this.topoSelectChild[len - 2];
-          value.bk_set_ids = [penultSelect.id];
+          // const penultSelect = this.topoSelectChild[len - 2];
+          // value.bk_set_ids = [penultSelect.id];
           value.bk_module_ids = [lastSelect.id];
         } else {
           value.bk_set_ids = this.getTopoSetDeep(lastSelect, []);
