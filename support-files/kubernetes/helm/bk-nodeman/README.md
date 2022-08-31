@@ -320,7 +320,7 @@ externalRabbitMQ:
 | `config.bkAppOtelInstrumentDbApi`     | 可观测，是否开启 DB 访问 trace（开启后 span 数量会明显增多） | `false`                        |
 | `config.bkAppOtelSampler`             | 可观测，配置采样策略，可选值 `always_on`，`always_off`, `parentbased_always_on`,`parentbased_always_off`, `traceidratio`, `parentbased_traceidratio` | `parentbased_always_off`       |
 | `config.bkAppOtelBkDataToken`         | 可观测，监控上报配置项                                       | `""`                           |
-| `config.bkAppOtelGrpcHost`            | 可观测，监控上报配置项                                       | `""`                           |
+| `config.bkAppOtelGrpcUrl`             | 可观测，监控上报配置项                                       | `""`                           |
 | `config.concurrentNumber`             | 线程最大并发数                                               | `50`                           |
 
 ## 额外的环境变量
