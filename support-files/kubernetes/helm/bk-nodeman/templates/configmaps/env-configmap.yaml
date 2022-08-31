@@ -90,7 +90,7 @@ data:
   BKAPP_OTEL_INSTRUMENT_DB_API: "{{ .Values.config.bkAppOtelInstrumentDbApi }}"
   BKAPP_OTEL_SAMPLER: "{{ .Values.config.bkAppOtelSampler }}"
   BKAPP_OTEL_BK_DATA_TOKEN: "{{ .Values.config.bkAppOtelBkDataToken }}"
-  BKAPP_OTEL_GRPC_HOST: "{{ .Values.config.bkAppOtelGrpcHost }}"
+  BKAPP_OTEL_GRPC_URL: "{{ .Values.config.bkAppOtelGrpcUrl }}"
   {{- end }}
 
   CONCURRENT_NUMBER: "{{ .Values.config.concurrentNumber }}"

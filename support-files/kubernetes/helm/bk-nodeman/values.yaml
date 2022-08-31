@@ -372,7 +372,7 @@ config:
   bkAppOtelSampler: "parentbased_always_off"
   ## 监控上报配置项
   bkAppOtelBkDataToken: ""
-  bkAppOtelGrpcHost: ""
+  bkAppOtelGrpcUrl: ""
 
   ## 其他
   ##
