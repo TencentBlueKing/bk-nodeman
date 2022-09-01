@@ -6,7 +6,6 @@
       :exclude-data="excludeData"
       :check-type="checkType"
       :running-count="runningCount"
-      :strategy-value="strategyValue"
       :operate-more="pluginOperateMore"
       v-model="searchSelectValue"
       @filter-change="handleFilterChange"
@@ -115,7 +114,7 @@ export default class PluginList extends Mixins(HeaderFilterMixins) {
   @Prop({ type: String, default: '' }) private readonly  osType!: string;
   @Prop({ type: String, default: '' }) private readonly  pluginName!: string;
 
-  private loading = false;
+  private loading = true;
   private tableLoading = false;
   private selectionLoading = false;
   private tableList: IPluginList[] = [];
@@ -131,7 +130,6 @@ export default class PluginList extends Mixins(HeaderFilterMixins) {
   private runningCount = 0;
   private checkValue: CheckValueEnum = 0;
   private hasOldRouteParams = false;
-  private strategyValue: Array<number | string> = []; // 插件id number， 策略名称 string
   private sortData: ISortData = {
     head: '',
     sort_type: '',
@@ -186,38 +184,61 @@ export default class PluginList extends Mixins(HeaderFilterMixins) {
     const params = this.getCommonParams();
     this.handleSearch(params);
   }
+  @Watch('selectedBiz')
+  public handleBizSelect() {
+    this.getStrategyTopo();
+  }
 
-  private created() {
-    const { policyId = '', pluginName } = this.$route.params;
+  private async created() {
+    this.loading = true;
+    const { policyId = '', policyName, pluginName } = this.$route.params;
     const pluginNameStr = this.pluginName || pluginName;
+    const initValue = [];
     if (policyId) { // 部署策略跳转过来
-      this.strategyValue.push(parseInt(policyId, 10));
+      initValue.push({
+        id: 'source_id',
+        name: window.i18n.t('部署策略'),
+        multiable: true,
+        values: [{ checked: true, id: policyId, name: policyName }],
+      });
     }
     // 适配旧的路由
-    let params: Dictionary = {};
+    let initParams: Dictionary = {};
     if ([this.ip, this.cloudId, this.osType].some(item => !isEmpty(item))) {
       this.hasOldRouteParams = true;
-      params = this.getInitFilterParams();
+      initParams = this.getInitFilterParams();
     }
     if (pluginNameStr) { // 插件包跳转过来
-      this.searchSelectValue.push({
+      initValue.push({
         id: 'plugin_name',
         multiable: true,
         name: window.i18n.t('插件名称'),
         values: [{ checked: true, id: pluginNameStr, name: pluginNameStr }],
       });
     }
-    this.handleInitData(this.hasOldRouteParams ? params as ISearchParams : undefined);
-  }
-
-  public async handleInitData(data?: ISearchParams) {
-    this.loading = true;
-    const params = data || this.getCommonParams();
+    if (initValue.length) {
+      this.searchSelectValue.push(...initValue);
+    }
+    Promise.all([this.getPluginFilter(), this.getStrategyTopo()]).then(([len, children]) => {
+      this.filterData.splice(len, 0, {
+        id: 'source_id',
+        name: window.i18n.t('部署策略'),
+        multiable: true,
+        children,
+      });
+    });
+    const params = this.hasOldRouteParams ? initParams as ISearchParams : this.getCommonParams();
+    if (this.$route.params.policyId) {
+      // 修正部署策略接口未加载完毕的错误筛选条件
+      const sourceConditions = params.conditions.find(item => item.key === 'source_id');
+      if (sourceConditions) {
+        sourceConditions.value = [this.$route.params.policyId];
+      }
+    }
     const promiseList: Promise<any>[] = [
       this.getFilterData(),
       this.getHostList(params),
     ];
-    this.getPluginFilter();
     await Promise.all(promiseList);
     this.loading = false;
   }
@@ -279,22 +300,23 @@ export default class PluginList extends Mixins(HeaderFilterMixins) {
     return Promise.resolve(true);
   }
   public async getPluginFilter() {
-    await PluginStore.getFilterList({ category: 'plugin_version' }).then((data) => {
-      const statusName: string[] = [];
-      const statusReg = /_status/;
-      data.forEach((item) => {
-        if (!statusReg.test(item.id)) {
-          const statusItem = data.find(child => child.id === `${item.id}_status`);
-          this.pluginStatusMap[item.id] = statusItem?.children?.map(item => item.id) || [];
-          if (statusItem) {
-            item.name = item.id;
-            item.children?.splice(0, 0, ...(statusItem.children || []));
-            statusName.push(item.id);
-          }
+    const data = await PluginStore.getFilterList({ category: 'plugin_version' });
+    const statusName: string[] = [];
+    const statusReg = /_status/;
+    data.forEach((item) => {
+      if (!statusReg.test(item.id)) {
+        const statusItem = data.find(child => child.id === `${item.id}_status`);
+        this.pluginStatusMap[item.id] = statusItem?.children?.map(item => item.id) || [];
+        if (statusItem) {
+          item.name = item.id;
+          item.children?.splice(0, 0, ...(statusItem.children || []));
+          statusName.push(item.id);
         }
-      });
-      this.filterData.splice(this.filterData.length, 0, ...data.filter(item => !statusReg.test(item.id)));
+      }
     });
+    const filters = data.filter(item => !statusReg.test(item.id));
+    this.filterData.splice(this.filterData.length, 0, ...filters);
+    return filters.length;
   }
 
   public async getHostList(params: ISearchParams) {
@@ -303,6 +325,30 @@ export default class PluginList extends Mixins(HeaderFilterMixins) {
     this.tableList = list;
     this.pagination.count = total;
     return Promise.resolve(true);
+  }
+  private async getStrategyTopo() {
+    const params: Dictionary = {};
+    if (this.selectedBiz.length) {
+      params.bk_biz_ids = this.selectedBiz;
+    }
+    const res = await PluginStore.fetchPolicyTopo(params);
+    const children = res.reduce((list: any[], item) => {
+      const arr = (item.children || []).map(child => ({ id: child.id, name: `${child.name}-${item.name}`, checked: false }));
+      if (arr.length) {
+        list.push(...arr);
+      }
+      return list;
+    }, []);
+    const index = this.filterData.findIndex(item => item.id === 'source_id');
+    if (index > -1) {
+      this.filterData.splice(index, 1, {
+        id: 'source_id',
+        name: window.i18n.t('部署策略'),
+        multiable: true,
+        children,
+      });
+    }
+    return children;
   }
 
   // 获取请求参数
@@ -345,8 +391,7 @@ export default class PluginList extends Mixins(HeaderFilterMixins) {
         if (Array.isArray(item.values)) {
           const value: string[] = [];
           item.values.forEach((child) => {
-            console.log(...getFilterChildBySelected(item.id, child.name, this.filterData));
-            value.push(...getFilterChildBySelected(item.id, child.name, this.filterData).map(item => item.id));
+            value.push(...getFilterChildBySelected(item.id, child.id, this.filterData).map(item => item.id));
           });
           conditions.push({ key: item.id, value });
         } else {
@@ -362,9 +407,6 @@ export default class PluginList extends Mixins(HeaderFilterMixins) {
       } else {
         conditions.push(runCondition);
       }
-    }
-    if (this.strategyValue.length) {
-      conditions.push({ key: 'source_id', value: [...this.strategyValue] });
     }
     return conditions;
   }
@@ -456,17 +498,12 @@ export default class PluginList extends Mixins(HeaderFilterMixins) {
     }
   }
 
-  private handleFilterChange({ type, value }: { type: 'biz'|'strategy'|'search', value: any }) {
+  private handleFilterChange({ type, value }: { type: 'biz'|'search', value: any }) {
     if (type === 'search') {
       this.searchSelectValue = value;
       this.handleSearchSelectChange(value);
       this.handleResetCheck();
     } else {
-      if (type === 'strategy') {
-        this.strategyValue = value;
-      } else if (type === 'biz') {
-        this.strategyValue = [];
-      }
       this.pagination.current = 1;
       const params = this.getCommonParams();
       this.handleSearch(params);
@@ -585,8 +622,11 @@ export default class PluginList extends Mixins(HeaderFilterMixins) {
       top: 7px;
     }
   }
-  .plugin-node .plugin-node-table {
-    margin-top: 14px;
+  .plugin-node {
+    min-height: calc(100vh - 132px);
+    .plugin-node-table {
+      margin-top: 14px;
+    }
   }
   .operate-dialog {
     .num {

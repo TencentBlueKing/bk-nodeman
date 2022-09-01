@@ -633,6 +633,14 @@ body {
             white-space: pre-wrap;
         }
     }
+    .resource-quota-head-theme {
+        padding: 8px 12px;
+        font-size: 12px;
+        pre {
+            margin: 0;
+            white-space: pre-wrap;
+        }
+    }
 }
 .v-cursor {
     background-repeat: no-repeat;
@@ -733,3 +741,12 @@ body {
 .h32 {
     height: 32px;
 }
+
+/* .nm-cascade-option {
+    display: flex;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    padding: 0 16px;
+} */

@@ -113,11 +113,13 @@ router.beforeEach(async (to, from, next) => {
 });
 
 // 校验普通界面权限
-const validateBizAuth = async (to: Route) => {
+const validateBizAuth = async (to: Route, from: Route, permissionSwitch: boolean) => {
   const { authority } = to.meta;
-  if (window.PROJECT_CONFIG.USE_IAM === 'True' && authority) {
+  if (permissionSwitch && authority) {
+    const differentRoute = to.name !== from.name;
     if (authority.page) {
-      MainStore.setNmMainLoading(true);
+      differentRoute && MainStore.updatePagePermission(false); // 防止多次请求
+      MainStore.setNmMainLoading(differentRoute); // 同路由切换闪屏问题
       const list = await MainStore.getBkBizPermission({ action: authority.page, updateBiz: true });
       // 设置当前路由的界面权限
       MainStore.updatePagePermission(!axios.isCancel(list) ? !!list.length : true);
@@ -140,11 +142,9 @@ const validateBizAuth = async (to: Route) => {
   MainStore.setNmMainLoading(false);
 };
 // 校验云区域界面
-const validateCloudAuth = async (to: Route) => {
-  const { authority } = to.meta;
-  // const authorityMap = store.getters['cloud/authority']
-  const permissionSwitch = window.PROJECT_CONFIG.USE_IAM === 'True';
+const validateCloudAuth = async (to: Route, from, permissionSwitch: boolean) => {
   if (permissionSwitch) {
+    const { authority } = to.meta;
     // 获取权限
     const promiseList = [
       CloudStore.getCloudPermission(),
@@ -187,17 +187,17 @@ const validateCloudAuth = async (to: Route) => {
     });
   }
 };
-router.afterEach(async (to) => {
+router.afterEach(async (to, from) => {
   // 设置自定义导航内容
   MainStore.setCustomNavContent(to.meta.customContent);
   // 重置界面权限
+  const permissionSwitch = window.PROJECT_CONFIG.USE_IAM === 'True';
   MainStore.updatePagePermission(true);
   MainStore.updateScreenInfo(window.innerHeight);
-  const { navId } = to.meta;
-  if (navId === 'cloudManager') {
-    await validateCloudAuth(to);
+  if (to.meta?.navId === 'cloudManager') {
+    await validateCloudAuth(to, from, permissionSwitch);
   } else {
-    await validateBizAuth(to);
+    await validateBizAuth(to, from, permissionSwitch);
   }
 });
 
