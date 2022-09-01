@@ -1632,7 +1632,10 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
           ...item,
           ...identity_info,
           // inner_ip: inner_ip || inner_ipv6,
-          install_channel_id: item.install_channel_id ? item.install_channel_id : 'default',
+          // eslint-disable-next-line max-len
+          install_channel_id: ((item.bk_cloud_id !== window.PROJECT_CONFIG.DEFAULT_CLOUD && item.install_channel_id === -1) || !item.install_channel_id)
+            ? 'default'
+            : item.install_channel_id,
           port: item.os_type === 'WINDOWS' && (!identity_info.port || item.bk_cloud_id !== window.PROJECT_CONFIG.DEFAULT_CLOUD)
             ? getDefaultConfig(item.os_type, 'port', 445)  : identity_info.port,
         })),
