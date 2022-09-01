@@ -19,12 +19,12 @@
           {{ nodeTypeMap[node.topoType] }}
         </span>
         <span v-bk-overflow-tips class="node-name">{{ node.name }}</span>
-        <div v-show="node.topoIcon">
+        <!-- <div v-show="node.topoIcon">
           <i class="topo-icon nodeman-icon nc-manual" v-bk-tooltips="{
             content: $t('已手动调整资源配额（非默认配置）'),
             boundary: 'window'
           }"></i>
-        </div>
+        </div> -->
       </div>
       <template v-if="node.foldable && node.child && node.child.length">
         <ResourceTreeItem

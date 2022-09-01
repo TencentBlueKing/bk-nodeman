@@ -651,17 +651,14 @@ export const debounceDecorate = (delay = 200) => (target: any, key: string, desc
 /**
  * searchSelect 组件输入的 name|id 转换成child
  */
-export const getFilterChildBySelected = (key: string, text: string, filterData: any[]) => {
+export const getFilterChildBySelected = (key: string, value: string, filterData: any[]) => {
   const category = filterData.find(item => item.id === key || item.name === key);
   const childIds: Dictionary[] = [];
   if (category && Array.isArray(category.children)) {
-    const textArr = text.replace(/\s/g, '').split('|');
-    textArr.forEach((name) => {
-      const child = category.children.find(item => item.name === name);
-      if (child) {
-        childIds.push({ ...child });
-      }
-    });
+    const child = category.children.find(item => item.id === value || item.name === value);
+    if (child) {
+      childIds.push({ ...child });
+    }
   }
-  return childIds.length ? childIds : [{ id: text }];
+  return childIds.length ? childIds : [{ id: value }];
 };

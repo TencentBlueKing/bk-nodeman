@@ -9,7 +9,7 @@ import {
   bkPopover, bkProcess, bkProgress, bkRadio, bkRadioGroup, bkRoundProgress, bkRow, bkSearchSelect, bkSelect,
   bkSideslider, bkSlider, bkSteps, bkSwitcher, bkTab, bkTabPanel, bkTable, bkTableColumn, bkTagInput, bkTimePicker,
   bkTimeline, bkTransfer, bkTree, bkBigTree, bkUpload, bkClickoutside, bkTooltips, bkSwiper, bkRate, bkLink, bkCascade,
-  bkPopconfirm, bkOverflowTips, bkVirtualScroll, bkTag,
+  bkPopconfirm, bkOverflowTips, bkVirtualScroll, bkTag, bkNavigationMenuGroup,
   // , bkAnimateNumber,
 } from 'bk-magic-vue';
 
@@ -72,6 +72,7 @@ Vue.use(bkVirtualScroll);
 // bkDiff 组件体积较大且不是很常用，因此注释了。如果需要，打开注释即可
 // Vue.use(bkDiff)
 Vue.use(bkTag);
+Vue.use(bkNavigationMenuGroup);
 
 // directives use
 Vue.use(bkClickoutside);

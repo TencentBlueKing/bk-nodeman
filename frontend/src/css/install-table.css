@@ -239,7 +239,8 @@
       vertical-align: bottom;
     }
     &:last-child td {
-      border-bottom: 0
+      border-bottom: 0;
+      vertical-align: middle;
     }
   }
   td {
