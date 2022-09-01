@@ -130,3 +130,25 @@ export interface ITaskHost {
   opType?: string
   opTypeDisplay?: string
 }
+
+export interface ITaskSolutions {
+  type: string
+  description: string
+  steps: {
+    type: 'commands' | 'dependencies'
+    description: string
+    contents: ITaskSolutionsCommand[] | ITaskSolutionsFile[]
+  }[]
+}
+export interface ITaskSolutionsCommand {
+  type?: 'commands'
+  name: string
+  text: string
+  show_description: boolean
+  description: string
+}
+export interface ITaskSolutionsFile {
+  name: string
+  text: string
+  description: string
+}
