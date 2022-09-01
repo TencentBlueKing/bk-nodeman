@@ -66,7 +66,8 @@
               v-model="formData.install_channel_id"
               :clearable="false"
               :disabled="channelDisabled"
-              :loading="loadingChannelList">
+              :loading="loadingChannelList"
+              @change="handleChannelChange">
               <bk-option v-for="item in filterChannelList" :key="item.id" :id="item.id" :name="item.name"></bk-option>
             </bk-select>
           </bk-form-item>
@@ -87,7 +88,13 @@
               :clearable="false"
               :disabled="apDisabled || isEmptyCloud"
               :loading="loadingApList">
-              <bk-option v-for="item in curApList" :key="item.id" :id="item.id" :name="item.name"></bk-option>
+              <!-- 直连区域 - 非默认通道 禁用自动选择接入点 -->
+              <bk-option
+                v-for="item in curApList"
+                :key="item.id"
+                :id="item.id"
+                :name="item.name"
+                :disabled="item.id === -1 && formData.install_channel_id !== 'default'" />
             </bk-select>
           </bk-form-item>
           <bk-form-item :label="$t('安装信息')" required>
@@ -473,6 +480,13 @@ export default class AgentSetup extends Mixins(mixin, formLabelMixin) {
   public handleCloudToggle(toggle: boolean) {
     if (toggle) {
       this.proxyStatus = '';
+    }
+  }
+  public handleChannelChange(value: number | string) {
+    MainStore.updateEdited(true);
+    // 非直连云区域存在已绑定的接入点
+    if (value !== 'default' && this.formData.bk_cloud_id === window.PROJECT_CONFIG.DEFAULT_CLOUD) {
+      this.formData.ap_id = this.curApList.find(item => item.id !== -1)?.id || '';
     }
   }
   /**
