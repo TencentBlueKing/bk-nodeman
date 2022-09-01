@@ -75,6 +75,11 @@ export const tableConfig = [
     noRequiredMark: false,
     parentProp: 'cloud_attr',
     placeholder: window.i18n.t('请选择'),
+    handleValueChange(row) {
+      if (row.install_channel_id !== 'default' && row.bk_cloud_id === window.PROJECT_CONFIG.DEFAULT_CLOUD) {
+        row.ap_id = this.apList.find(item => item.id !== -1)?.id || '';
+      }
+    },
     getOptions(row) {
       return row.bk_cloud_id || row.bk_cloud_id === 0
         ? this.channelList.filter(item => item.bk_cloud_id === row.bk_cloud_id || item.id === 'default')
@@ -92,8 +97,12 @@ export const tableConfig = [
     options: [],
     popoverMinWidth: 160,
     parentProp: 'cloud_attr',
-    getOptions() {
-      return this.apList;
+    getOptions(row) {
+      return this.apList.map(item => ({
+        ...item,
+        disabled: item.id === -1
+          && (row.bk_cloud_id !== window.PROJECT_CONFIG.DEFAULT_CLOUD || row.install_channel_id !== 'default'),
+      }));
     },
     getReadonly(row) {
       return row.bk_cloud_id && row.bk_cloud_id !== window.PROJECT_CONFIG.DEFAULT_CLOUD;
@@ -343,6 +352,11 @@ export const tableManualConfig = [
     noRequiredMark: false,
     placeholder: window.i18n.t('请选择'),
     parentProp: 'cloud_attr',
+    handleValueChange(row) {
+      if (row.install_channel_id !== 'default' && row.bk_cloud_id === window.PROJECT_CONFIG.DEFAULT_CLOUD) {
+        row.ap_id = this.apList.find(item => item.id !== -1)?.id || '';
+      }
+    },
     getOptions(row) {
       return row.bk_cloud_id || row.bk_cloud_id === 0
         ? this.channelList.filter(item => item.bk_cloud_id === row.bk_cloud_id || item.id === 'default')
@@ -361,8 +375,12 @@ export const tableManualConfig = [
     popoverMinWidth: 160,
     placeholder: window.i18n.t('请选择'),
     parentProp: 'cloud_attr',
-    getOptions() {
-      return this.apList;
+    getOptions(row) {
+      return this.apList.map(item => ({
+        ...item,
+        disabled: item.id === -1
+          && (row.bk_cloud_id !== window.PROJECT_CONFIG.DEFAULT_CLOUD || row.install_channel_id !== 'default'),
+      }));
     },
     getReadonly(row) {
       // 手动安装时可以自由选择接入点
