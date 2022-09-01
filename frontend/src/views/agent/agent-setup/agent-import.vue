@@ -325,7 +325,7 @@ export default class AgentImport extends Mixins(mixin) {
     if (this.isSelectedAllPages) {
       const res = await AgentStore.getHostList(this.condition);
       data = res.list.map((item: IAgentHost) => {
-        const ap = this.isNotAutoSelect && item.ap_id === -1
+        const ap = ((this.isNotAutoSelect || item.install_channel_id !== 'default') && item.ap_id === -1)
           ? { ap_id: apDefault }
           : {};
           // 打平数据
