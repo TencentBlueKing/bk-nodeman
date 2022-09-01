@@ -1,6 +1,6 @@
 <template>
   <bk-table show-overflow-tooltip :data="guideTable">
-    <bk-table-column width="280" prop="source" :label="$t('源地址')" show-overflow-tooltip>
+    <bk-table-column width="260" prop="source" :label="$t('源地址')" show-overflow-tooltip>
       <template #default="{ row }">
         <div v-if="row.sourceKey === 'agent'">
           <span>{{ row.source }}：</span>
@@ -42,7 +42,7 @@
         </div>
       </template>
     </bk-table-column>
-    <bk-table-column width="320" prop="targetAdress" :label="$t('目标地址')" show-overflow-tooltip>
+    <bk-table-column width="300" prop="targetAdress" :label="$t('目标地址')" show-overflow-tooltip>
       <template #default="{ row }">
         <div class="cell-wrapper">
           <div v-if="row.targetKey === 'agent'">

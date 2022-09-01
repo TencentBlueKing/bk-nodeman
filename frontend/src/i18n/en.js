@@ -600,7 +600,7 @@ export default {
   手动操作sliderTitle: 'Manual {0} {1}',
   手动操作指引: 'You can manually {1} the {2} on the {0} through the following steps:',
   执行以下操作命令: 'Execute the following operation commands,',
-  网络策略开通指引: 'Network Strategy Activation Guidelines',
+  网络开通策略: 'Network activation strategy',
   windowsStrategy1Before: 'Pass',
   windowsStrategy1After: ' to C:\\tmp\\ (if access is denied, you need to give the file executable permission)',
   windowsStrategy2: 'Enter: cmd to switch to the console command line',
@@ -1056,6 +1056,8 @@ export default {
   近30天: 'Nearly 30 days',
   近1年: 'Nearly 1 year',
   总数成功失败忽略: 'Total/Success/Failure/Ignore',
+  目标主机lower: 'target host',
+  在目标主机通过安装: 'To install from the {0} on the target host:',
 
   // form-check
   正常输入内容校验: 'Chinese and English, numbers, hyphens and underscores with a length not exceeding {0}',
