@@ -305,3 +305,12 @@ url("fonts/iconcool.eot?#iefix") format("embedded-opentype");
 .nc-manual:before {
 	content: "\e16b";
 }
+.nc-history:before {
+	content: "\e16c";
+}
+.nc-plug-in:before {
+	content: "\e16e";
+}
+.nc-template:before {
+	content: "\e16d";
+}

@@ -81,42 +81,14 @@
         </ul>
       </bk-dropdown-menu>
       <!-- 权限中心： 仅返回可查看业务列表，同时附带操作权限 -->
-      <bk-biz-select
+      <!-- <bk-biz-select
         v-model="biz"
         class="ml10 select-biz"
         action="plugin_instance_view"
         :auto-request="autoRequest"
         :placeholder="$t('全部业务')"
         @change="handleBizChange">
-      </bk-biz-select>
-      <!-- 高度撑高 - 待组件库优化 -->
-      <div class="select-wrapper ml10">
-        <bk-select
-          ref="strategySelectRef"
-          class="list-select-strategy"
-          v-test="'strategy'"
-          searchable
-          multiple
-          :value="strategyValue"
-          :remote-method="handleSelectRemote"
-          :display-tag="true"
-          :tag-fixed-height="false"
-          :show-empty="false"
-          :loading="topoLoading"
-          :placeholder="$t('全部部署策略')"
-          @tab-remove="handleValuesChange"
-          @clear="handleClear">
-          <bk-big-tree
-            :data="strategyList"
-            class="tree-select"
-            ref="tree"
-            :show-checkbox="getShowCheckbox"
-            :default-checked-nodes="strategyValue"
-            @node-click="handleNodeClick"
-            @check-change="handleStrategyChange">
-          </bk-big-tree>
-        </bk-select>
-      </div>
+      </bk-biz-select> -->
     </div>
     <!--搜索-->
     <div class="list-operate-right ml10">
@@ -136,7 +108,7 @@
 </template>
 <script lang="ts">
 import { Component, Prop, Ref, Mixins, Emit, Watch, Model } from 'vue-property-decorator';
-import { IPluginList, IPluginTopo, ICondition, IMenu } from '@/types/plugin/plugin-type';
+import { IPluginList, ICondition, IMenu } from '@/types/plugin/plugin-type';
 import { IBkBiz, ISearchItem } from '@/types';
 import { isEmpty, copyText } from '@/common/util';
 import HeaderFilterMixins from '@/components/common/header-filter-mixins';
@@ -147,7 +119,6 @@ import PluginList from './plugin-list.vue';
 export default class PluginListOperate extends Mixins(HeaderFilterMixins) {
   @Model('change', { type: Array, default: () => ([]) }) private searchValues!: ISearchItem[]; // 其它筛选
 
-  @Prop({ type: Array, default: () => ([]) }) private readonly strategyValue!: Array<number|string>; // 策略筛选
   @Prop({ default: () => ([]), type: Array }) private readonly searchSelectData!: ISearchItem[];
   @Prop({ default: 'current', type: String }) private readonly checkType!: 'current' | 'all';
   @Prop({ default: 0, type: Number }) private readonly runningCount!: number;
@@ -158,11 +129,9 @@ export default class PluginListOperate extends Mixins(HeaderFilterMixins) {
   @Ref('searchSelect') private readonly searchSelect: any;
   @Ref('tree') private readonly tree: any;
   @Ref('dropDownMenu') private readonly dropDownMenuRef: any;
-  @Ref('strategySelectRef') private readonly strategySelectRef: any;
 
   private topoLoading = false;
   private ipRegx = new RegExp('^((25[0-5]|2[0-4]\\d|[01]?\\d\\d?)\\.){3}(25[0-5]|2[0-4]\\d|[01]?\\d\\d?)$');
-  private strategyList: IPluginTopo[] = [];
   private moreDropdownShow = false;
   private copyDropdownShow = false;
   private copyLoading = false;
@@ -185,9 +154,9 @@ export default class PluginListOperate extends Mixins(HeaderFilterMixins) {
   private get selectedBiz() {
     return MainStore.selectedBiz;
   }
-  private get autoRequest() {
-    return !MainStore.permissionSwitch;
-  }
+  // private get autoRequest() {
+  //   return !MainStore.permissionSwitch;
+  // }
   private get viewBizList() { // 同 PluginStore.authorityMap.view_action, 否则就是后端有bug
     return MainStore.bkBizList.filter(item => item.has_permission);
   }
@@ -213,8 +182,13 @@ export default class PluginListOperate extends Mixins(HeaderFilterMixins) {
     }));
   }
 
+  // @Watch('selectedBiz')
+  // public handleBizSelect() {
+  //   this.handleBizChange();
+  // }
   @Watch('searchSelectData')
   public handleSearchSelectDataChange(data: ISearchItem[]) {
+    console.log('watcj', data);
     this.filterData = JSON.parse(JSON.stringify(data));
   }
 
@@ -223,20 +197,6 @@ export default class PluginListOperate extends Mixins(HeaderFilterMixins) {
     this.searchSelectValue = JSON.parse(JSON.stringify(v));
   }
 
-  private created() {
-    this.biz = this.selectedBiz;
-    this.getStrategyTopo();
-  }
-
-  private async getStrategyTopo() {
-    this.topoLoading = true;
-    const params: Dictionary = {};
-    if (this.selectedBiz.length) {
-      params.bk_biz_ids = this.selectedBiz;
-    }
-    this.strategyList = await PluginStore.fetchPolicyTopo(params);
-    this.topoLoading = false;
-  }
 
   public handlePaste(e: any): void {
     let value = '';
@@ -313,35 +273,6 @@ export default class PluginListOperate extends Mixins(HeaderFilterMixins) {
   @Emit('filter-change')
   public handleValueChange() {
     return { type: 'search',  value: JSON.parse(JSON.stringify(this.searchSelectValue)) };
-  }
-
-  public handleNodeClick(node: Dictionary) {
-    try {
-      const { level, state, data } = node;
-      if (level > 0 || data.type === 'policy') {
-        this.tree && this.tree.setChecked(node.id, { checked: !state.checked });
-        this.$nextTick(() => {
-          const value = this.tree ? this.tree.checked : [];
-          this.handleStrategyChange(value);
-        });
-      }
-    } catch (err) {
-      console.warn(err);
-    }
-  }
-  @Emit('filter-change')
-  public handleStrategyChange(value: Array<number | string>) {
-    return { type: 'strategy', value };
-  }
-  @Emit('filter-change')
-  public handleBizChange() {
-    this.getStrategyTopo();
-    return { type: 'biz' };
-  }
-
-  public handleClear() {
-    this.tree && this.tree.removeChecked({ emitEvent: false });
-    this.handleStrategyChange([]);
   }
 
   public async triggerHandler(copyType: 'checked' | 'abnormalIp' | 'allIp') {
@@ -469,24 +400,6 @@ export default class PluginListOperate extends Mixins(HeaderFilterMixins) {
     .select-wrapper {
       position: relative;
       width: 240px;
-    }
-    .list-select-strategy {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      background: #fff;
-      z-index: 50;
-      &.is-focus {
-        z-index: 2020;
-      }
-      >>> .bk-select-tag-container.is-focus {
-        max-height: 200px;
-        overflow: auto;
-        .bk-select-tag {
-          max-width: calc(100% - 6px);
-        }
-      }
     }
   }
   &-right {
