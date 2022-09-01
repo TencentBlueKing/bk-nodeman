@@ -10,11 +10,11 @@
     <div slot="content" class="commands-wrapper" v-bkloading="{ isLoading: commandLoading }">
       <div class="command-tab">
         <div class="command-tab-head">
-          <div :class="['step', { active: tabActive === 'net' }]" @click="tabActive = 'net'">
-            <div class="step-content">{{ $t('网络开通策略') }}</div>
-          </div>
           <div :class="['step', { active: tabActive === 'operate' }]" @click="tabActive = 'operate'">
             <div class="step-content">{{ $t('手动操作sliderTitle', [slider.opType, slider.hostType]) }}</div>
+          </div>
+          <div :class="['step', { active: tabActive === 'net' }]" @click="tabActive = 'net'">
+            <div class="step-content">{{ $t('网络开通策略') }}</div>
           </div>
         </div>
         <div class="command-tab-content">
@@ -132,7 +132,7 @@ export default class TaskDetailSlider extends Vue {
   @Prop({ type: Array, default: () => [] }) private readonly tableList!: ITaskHost[];
 
   private commandLoading = false;
-  private tabActive  = 'net';
+  private tabActive  = 'operate';
   private commandType = '';
   private commandData: ITaskSolutions[] = [];
   private commandError = false;
@@ -142,7 +142,7 @@ export default class TaskDetailSlider extends Vue {
       bk_cloud_id: item.bkCloudId,
       bk_cloud_name: item.bkCloudName,
       ap_id: item.apId,
-      ip: item.ip,
+      inner_ip: item.ip, // agent开通网络策略填充字段
     }));
     list.sort((a, b) => a.bk_cloud_id - b.bk_cloud_id);
     return list;
