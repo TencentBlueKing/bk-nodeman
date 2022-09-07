@@ -1,0 +1,277 @@
+<template>
+  <div class="ip-selector-dynamic-topo">
+    <template v-if="topoTreeData.length > 0">
+      <div class="tree-box">
+        <bk-input
+          v-model="filterKey"
+          placeholder="搜索拓扑节点"
+          style="margin-bottom: 12px;" />
+        <bk-big-tree
+          ref="treeRef"
+          :data="topoTreeData"
+          show-link-line
+          show-checkbox
+          selectable
+          :filter-method="filterMethod"
+          :check-strictly="false"
+          :expand-on-click="false"
+          @select-change="handleNodeSelect"
+          @check-change="handleNodeCheckChange">
+          <template #default="{ node: nodeItem, data }">
+            <div class="topo-node-box">
+              <div class="topo-node-name">{{ data.name }}</div>
+              <template v-if="nodeItem.level === 0">
+                <div
+                  v-bk-tooltips="'隐藏没有主机的节点'"
+                  class="topo-node-filter"
+                  :style="{
+                    display: isShowEmptyNode ? 'block' : 'none',
+                  }"
+                  @click.stop="handleToggleFilterWithCount">
+                  <i
+                    class="bk-ipselector-icon"
+                    :class="{
+                      'bk-ipselector-invisible1': isShowEmptyNode,
+                      'bk-ipselector-visible1': !isShowEmptyNode,
+                    }" />
+                </div>
+              </template>
+              <div
+                v-if="!nodeItem.isLeaf"
+                v-bk-tooltips="'展开所有节点'"
+                class="topo-node-expand"
+                @click.stop="handleToggleTopoTreeExpanded(nodeItem)">
+                <i class="bk-ipselector-icon bk-ipselector-shangxiachengkai" />
+              </div>
+              <div class="topo-node-count">
+                {{ data.payload.count }}
+              </div>
+            </div>
+          </template>
+        </bk-big-tree>
+      </div>
+      <div class="table-box">
+        <template v-if="selectedTopoNode.instance_name">
+          <table-tab
+            :model-value="renderTableType"
+            @change="handleTableTypeChange">
+            <table-tab-item name="node">
+              {{ selectedTopoNode.instance_name }} ({{ selectedTopoNode.child.length }})
+            </table-tab-item>
+            <table-tab-item name="host">
+              主机 ({{ selectedTopoNode.count }})
+            </table-tab-item>
+          </table-tab>
+          <div :key="`${selectedTopoNode.object_id}${selectedTopoNode.instance_id}`">
+            <keep-alive>
+              <component
+                :is="renderTableCom"
+                :node="selectedTopoNode"
+                :data="renderNodeList"
+                :checked-map="nodeCheckedMap"
+                style="min-height: 200px;"
+                @check-change="handleTableNodeCheckChange" />
+            </keep-alive>
+          </div>
+        </template>
+        <div v-else>
+          请在右侧选择节点
+        </div>
+      </div>
+    </template>
+    <div
+      v-else
+      v-bkloading="{ isLoading: isConfigLoading }"
+      class="create-static-topo">
+      <span>无数据，</span>
+      <a :href="config.bk_cmdb_static_topo_url" target="_blank">{{ $t('去创建') }}</a>
+    </div>
+  </div>
+</template>
+<script>
+</script>
+<script setup>
+import {
+  computed,
+  ref,
+  shallowRef,
+  watch,
+  nextTick,
+} from 'vue';
+import useDebounceRef from '../../../../hooks/use-debounced-ref';
+import useTreeExpanded from '../../../../hooks/use-tree-expanded';
+import useTreeFilter from '../../../../hooks/use-tree-filter';
+import useFetchConfig from '../../../../hooks/use-fetch-config';
+import { genNodeKey } from '../../../../utils';
+import TableTab from '../../table-tab';
+import TableTabItem from '../../table-tab/item.vue';
+import RenderNodeTable from './render-node-table.vue';
+import RenderHostTable from './render-host-table.vue';
+export default {
+  inheritAttrs: false,
+};
+
+const props = defineProps({
+  topoTreeData: {
+    type: Array,
+    required: true,
+  },
+  lastNodeList: {
+    type: Array,
+    default: () => [],
+  },
+});
+
+const emits = defineEmits([
+  'change',
+]);
+
+const tableComMap = {
+  node: RenderNodeTable,
+  host: RenderHostTable,
+};
+
+const treeRef = ref();
+const topoTreeSearch = useDebounceRef('');
+const renderTableType = ref('node');
+
+const nodeCheckedMap = shallowRef({});
+
+const renderNodeList = shallowRef([]);
+const selectedTopoNode = shallowRef({});
+
+let isInnerChange = false;
+
+const renderTableCom = computed(() => tableComMap[renderTableType.value]);
+
+const {
+  filterKey,
+  filterMethod,
+  filterWithCount: isShowEmptyNode,
+  toggleFilterWithCount: handleToggleFilterWithCount,
+} = useTreeFilter(treeRef);
+
+const {
+  toggleExpanded: handleToggleTopoTreeExpanded,
+} = useTreeExpanded(treeRef);
+
+const {
+  loading: isConfigLoading,
+  config,
+} = useFetchConfig();
+
+// 同步拓扑树节点的选中状态
+const syncTopoTreeNodeCheckStatus = () => {
+  treeRef.value.removeChecked({
+    emitEvent: false,
+  });
+  treeRef.value.setChecked(Object.keys(nodeCheckedMap.value), {
+    emitEvent: false,
+    checked: true,
+  });
+};
+
+// 同步拓扑树数据
+watch(() => props.topoTreeData, () => {
+  if (props.topoTreeData.legnth < 1) {
+    return;
+  }
+  nextTick(() => {
+    const [rootFirstNode] = props.topoTreeData;
+    treeRef.value.setSelected(rootFirstNode.id, {
+      emitEvent: true,
+    });
+    treeRef.value.setExpanded(rootFirstNode.id);
+  });
+}, {
+  immediate: true,
+});
+
+// 同步节点的选中值
+watch(() => props.lastNodeList, (lastNodeList) => {
+  if (isInnerChange) {
+    isInnerChange = false;
+    return;
+  }
+  nodeCheckedMap.value = lastNodeList.reduce((result, item) => {
+    result[genNodeKey(item)] = item;
+    return result;
+  }, {});
+  nextTick(() => {
+    syncTopoTreeNodeCheckStatus();
+  });
+}, {
+  immediate: true,
+});
+
+// 拓扑树搜索
+watch(topoTreeSearch, () => {
+  treeRef.value.filter(topoTreeSearch.value);
+});
+
+const triggerChange = () => {
+  isInnerChange = true;
+  emits('change', 'nodeList', Object.values(nodeCheckedMap.value));
+};
+
+// 选择节点，查看节点的子节点和主机列表
+const handleNodeSelect = (node) => {
+  renderTableType.value = 'node';
+  selectedTopoNode.value = node.data.payload;
+};
+
+// 在拓扑树中选中节点
+const handleNodeCheckChange = (allCheckNodeId, checkedNode) => {
+  const checkedMap = { ...nodeCheckedMap.value };
+  const nodeKey = genNodeKey(checkedNode.data.payload);
+  if (checkedNode.checked) {
+    checkedMap[nodeKey] = checkedNode.data.payload;
+  } else {
+    delete checkedMap[nodeKey];
+  }
+
+  nodeCheckedMap.value = checkedMap;
+  triggerChange();
+};
+
+// 切换显示列表
+const handleTableTypeChange = (type) => {
+  renderTableType.value = type;
+};
+
+// 在子节点列表中选中节点
+const handleTableNodeCheckChange = (checkedMap) => {
+  nodeCheckedMap.value = checkedMap;
+  syncTopoTreeNodeCheckStatus();
+  triggerChange();
+};
+</script>
+<style lang="postcss">
+    @import "../../../../styles/tree.mixin.css";
+
+    .ip-selector-dynamic-topo {
+        display: flex;
+        height: 100%;
+
+        .tree-box {
+            width: 265px;
+            height: 100%;
+            padding-right: 15px;
+            overflow: auto;
+            border-right: 1px solid #dcdee5;
+
+            @include tree;
+        }
+
+        .table-box {
+            flex: 1;
+            padding-left: 24px;
+        }
+
+        .create-static-topo {
+            width: 100%;
+            padding-top: 120px;
+            text-align: center;
+        }
+    }
+</style>

@@ -13,7 +13,8 @@
       :label="isGrayRule ? $t('灰度目标') : $t('部署目标')"
       class="selector-form"
       required>
-      <IpSelect
+      <IpSelectorX></IpSelectorX>
+      <!-- <IpSelect
         class="ip-selector"
         v-test.policy="'ipSelect'"
         :action="['strategy_create', 'strategy_view']"
@@ -21,7 +22,7 @@
         :checked-data="targetPreview.nodes"
         :customize-limit="isGrayRule"
         @check-change="handleTargetChange">
-      </IpSelect>
+      </IpSelect> -->
     </bk-form-item>
     <bk-form-item>
       <bk-button
@@ -43,7 +44,7 @@
 <script lang="ts">
 import { Mixins, Component, Ref, Emit, Prop } from 'vue-property-decorator';
 import FormLabelMixin from '@/common/form-label-mixin';
-import IpSelect from '@/components/ip-selector/business/topo-selector-nodeman.vue';
+import IpSelectorX from './SelectorInstance';
 import { PluginStore } from '@/store';
 import { ITarget } from '@/types/plugin/plugin-type';
 import { reguRequired, reguFnStrLength } from '@/common/form-check';
@@ -51,7 +52,7 @@ import { reguRequired, reguFnStrLength } from '@/common/form-check';
 @Component({
   name: 'deploy-target',
   components: {
-    IpSelect,
+    IpSelectorX,
   },
 })
 export default class DeployTarget extends Mixins(FormLabelMixin) {
@@ -75,6 +76,9 @@ export default class DeployTarget extends Mixins(FormLabelMixin) {
   }
   private get targetPreview() {
     return PluginStore.strategyData.scope || {};
+  }
+
+  private created() {
   }
 
   private mounted() {
