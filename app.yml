@@ -3,6 +3,7 @@ app_name: 节点管理
 app_name_en: NodeMan
 is_use_celery: false
 author: 蓝鲸智云
+language: Python
 introduction: 通过节点管理，可以对蓝鲸体系中的gse agent进行管理，包括状态查询、版本更新、配置管理、健康检查、进程管理等。
 introduction_en: NodeMan can be used to manage the gse agent in the BlueKing system.
   Its functions include agent installation, status query, version update, plugin management,
@@ -14,5 +15,6 @@ desktop:
   width: 1300
   height: 720
   is_max: true
+  open_mode: "new_tab"
 container:
   memory: 4096
