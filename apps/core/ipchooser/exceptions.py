@@ -9,8 +9,22 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from apps.utils.unittest.testcase import CustomBaseTestCase
+from django.utils.translation import ugettext_lazy as _
+
+from apps.core.exceptions import CoreBaseException
 
 
-class TestHostV2Tools(CustomBaseTestCase):
-    pass
+class IpChooserBaseException(CoreBaseException):
+    MODULE_CODE = 3004
+
+
+class SerValidationError(IpChooserBaseException):
+    MESSAGE_TPL = _("参数校验失败")
+    MESSAGE = _("参数校验失败")
+    ERROR_CODE = 1
+
+
+class TopoNotExistsError(IpChooserBaseException):
+    MESSAGE_TPL = _("业务【bk_biz_id: {bk_biz_id}】拓扑不存在")
+    MESSAGE = _("业务拓扑不存在")
+    ERROR_CODE = 2

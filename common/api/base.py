@@ -193,10 +193,10 @@ class DataAPI(object):
             params = self.before_request(params)
 
         params = add_esb_info_before_request(params)
-
+        use_admin: bool = use_admin or params.get("bk_username") == "admin"
         # 使用管理员账户请求时，设置用户名为管理员用户名，移除bk_token等认证信息
         if use_admin:
-            params["bk_username"] = settings.BK_ADMIN_USERNAME
+            params["bk_username"] = "admin"
             params = remove_auth_args(params)
 
         # 是否有默认返回，调试阶段可用

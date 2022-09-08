@@ -26,7 +26,6 @@ from apps.node_man.serializers.host import (
     HostSearchSerializer,
     HostUpdateSerializer,
     ProxySerializer,
-    RemoveSerializer,
     SyncCmdbHostSerializer,
 )
 from apps.utils.local import get_request_username
@@ -87,42 +86,6 @@ class HostViewSet(ModelViewSet):
         @apiGroup Host
         """
         return Response(HostHandler().biz_proxies(self.validated_data["bk_biz_id"]))
-
-    @swagger_auto_schema(
-        operation_summary="移除主机",
-        tags=HOST_VIEW_TAGS,
-    )
-    @action(detail=False, methods=["POST"], serializer_class=RemoveSerializer)
-    def remove_host(self, request, *args, **kwargs):
-        """
-        @api {POST} /host/remove_host/ 移除主机
-        @apiDescription
-        成功删除的host_id会在返回结果的success字段中。<br>
-        如果需要删除的host_id不存在在数据库中，则会出现在fail字段中。<br>
-        非跨页全选仅需传bk_host_id，跨页全选则不需要传bk_host_id。<br>
-        此外：<br>
-        如果is_proxy为true，则只针对Proxy做删除；<br>
-        如果is_proxy为false，则只针对AGENT和PAGENT做删除。<br>
-        bk_host_id，exclude_hosts 必填一个。<br>
-        若填写了 exclude_hosts ，则代表跨页全选模式。<br>
-        注意, 云区域ID、业务ID等筛选条件，仅在跨页全选模式下有效。<br>
-        @apiName remove_host
-        @apiGroup Host
-        @apiParam {Int[]} [bk_host_id] 主机ID列表
-        @apiParam {Boolean} is_proxy 是否针对Proxy的删除
-        @apiParam {String} [bk_biz_id] 业务ID
-        @apiParam {List} [conditions] 搜索条件，支持os_type, ip, status <br>
-        version, bk_cloud_id, node_from 和 模糊搜索query
-        @apiParam {Int[]} [exclude_hosts] 跨页全选排除主机
-        @apiSuccessExample {json} 成功返回:
-        {
-            "success": [
-                6121
-            ],
-            "fail": []
-        }
-        """
-        return Response(HostHandler().remove_host(self.validated_data))
 
     @swagger_auto_schema(
         operation_summary="更新Proxy主机信息",

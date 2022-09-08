@@ -11,10 +11,10 @@ specific language governing permissions and limitations under the License.
 from copy import deepcopy
 from typing import Any, Dict
 
+from apps.core.ipchooser.tools.base import HostQueryHelper, HostQuerySqlHelper
 from apps.node_man import models, tools
 from apps.node_man.constants import DEFAULT_CLOUD_NAME, IamActionType
 from apps.node_man.handlers.cmdb import CmdbHandler
-from apps.node_man.handlers.host import HostHandler
 
 
 class HostV2Handler:
@@ -47,9 +47,6 @@ class HostV2Handler:
         # 用户主机操作权限
         operate_bizs = CmdbHandler().biz_id_name({"action": op_action})
 
-        # TODO: HostHandler实例化与否不影响功能，后续可优化
-        host_tools = HostHandler()
-
         if params["pagesize"] != -1:
             begin = (params["page"] - 1) * params["pagesize"]
             end = (params["page"]) * params["pagesize"]
@@ -70,16 +67,18 @@ class HostV2Handler:
                 params["bk_host_id"] = bk_host_ids
 
         params["conditions"] = params.get("conditions", [])
-        params["conditions"].extend(tools.HostV2Tools.parse_nodes2conditions(params.get("nodes", []), operate_bizs))
+        nodes = [node for node in params.get("nodes", []) if node["bk_biz_id"] in operate_bizs]
+        params["conditions"].extend(HostQueryHelper.parse_nodes2conditions(node_list=nodes))
 
         # 生成sql查询主机
-        hosts_sql = host_tools.multiple_cond_sql(params, user_biz, return_all_node_type=return_all_node_type).exclude(
-            bk_host_id__in=params.get("exclude_hosts", [])
-        )
+        hosts_sql = HostQuerySqlHelper.multiple_cond_sql(
+            params=params, biz_scope=user_biz.keys(), return_all_node_type=return_all_node_type
+        ).exclude(bk_host_id__in=params.get("exclude_hosts", []))
 
         if params.get("agent_status_count"):
             # 仅统计Agent状态
-            return tools.HostV2Tools.get_agent_status_counter(hosts_sql)
+            # TODO 2022Q2 ipc-废弃逻辑移除
+            return HostQueryHelper.get_agent_statistics(hosts_sql)
 
         if only_queryset:
             return hosts_sql
@@ -115,7 +114,7 @@ class HostV2Handler:
         host_page = {"total": hosts_sql.count(), "list": hosts}
 
         if with_agent_status_counter:
-            host_page["agent_status_count"] = tools.HostV2Tools.get_agent_status_counter(hosts_sql)
+            host_page["agent_status_count"] = HostQueryHelper.get_agent_statistics(hosts_sql)
 
         return host_page
 
@@ -140,6 +139,7 @@ class HostV2Handler:
             },
         ]
         """
+        # # TODO 2022Q2 ipc-废弃逻辑移除
         # TODO 循环里sql查询并且是联表查，性能堪忧
         nodes = deepcopy(nodes)
         CmdbHandler().check_biz_permission([node["bk_biz_id"] for node in nodes], action)

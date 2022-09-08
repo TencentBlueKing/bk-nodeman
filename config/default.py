@@ -58,6 +58,7 @@ INSTALLED_APPS += (
     "apps.core.files",
     "apps.core.encrypt",
     "apps.core.tag",
+    "apps.core.ipchooser",
     # pipeline
     "pipeline",
     "pipeline.log",
