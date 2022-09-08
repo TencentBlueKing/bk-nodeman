@@ -12,6 +12,7 @@ from django.conf.urls import include, url
 from rest_framework import routers
 
 from .encrypt import views as encrypt_views
+from .ipchooser import views as ipchooser_views
 from .tag import views as tag_views
 
 router = routers.DefaultRouter(trailing_slash=True)
@@ -24,8 +25,21 @@ router.register(
 router.register(
     tag_views.TagChangeRecordViewSet.URL_BASE_NAME,
     tag_views.TagChangeRecordViewSet,
-    basename=tag_views.TagChangeRecordViewSet,
+    basename=tag_views.TagChangeRecordViewSet.URL_BASE_NAME,
 )
+
+router.register(
+    ipchooser_views.IpChooserTopoViewSet.URL_BASE_NAME,
+    ipchooser_views.IpChooserTopoViewSet,
+    basename=ipchooser_views.IpChooserTopoViewSet.URL_BASE_NAME,
+)
+
+router.register(
+    ipchooser_views.IpChooserHostViewSet.URL_BASE_NAME,
+    ipchooser_views.IpChooserHostViewSet,
+    basename=ipchooser_views.IpChooserHostViewSet.URL_BASE_NAME,
+)
+
 
 urlpatterns = [
     url(r"api/", include(router.urls)),

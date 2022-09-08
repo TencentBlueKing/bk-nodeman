@@ -163,18 +163,18 @@ class TestCmdb(TestCase):
         result = CmdbHandler().cmdb_hosts_by_biz(start=0, bk_biz_id=2, bk_set_ids=[1], bk_module_ids=[1])
         self.assertEqual(result, {"info": []})
 
-    @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)
-    def test_fetch_host_ids_by_biz(self):
-        result = CmdbHandler().fetch_host_ids_by_biz(bk_biz_id=1, bk_set_ids=[1], bk_module_ids=[1])
-        self.assertEqual(result, [14110])
-
-        # 异常
-        result = CmdbHandler().fetch_host_ids_by_biz(bk_biz_id=2, bk_set_ids=[1], bk_module_ids=[1])
-        self.assertEqual(result, [])
-
-        # 异步
-        result = CmdbHandler().fetch_host_ids_by_biz(bk_biz_id=-1, bk_set_ids=[1], bk_module_ids=[1])
-        self.assertEqual(len(result), 555)
+    # @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)
+    # def test_fetch_host_ids_by_biz(self):
+    #     result = CmdbHandler().fetch_host_ids_by_biz(bk_biz_id=1, bk_set_ids=[1], bk_module_ids=[1])
+    #     self.assertEqual(result, [14110])
+    #
+    #     # 异常
+    #     result = CmdbHandler().fetch_host_ids_by_biz(bk_biz_id=2, bk_set_ids=[1], bk_module_ids=[1])
+    #     self.assertEqual(result, [])
+    #
+    #     # 异步
+    #     result = CmdbHandler().fetch_host_ids_by_biz(bk_biz_id=-1, bk_set_ids=[1], bk_module_ids=[1])
+    #     self.assertEqual(len(result), 555)
 
     @patch("apps.node_man.handlers.cmdb.CmdbHandler.cmdb_or_cache_biz", cmdb_or_cache_biz)
     @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)

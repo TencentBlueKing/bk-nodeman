@@ -132,8 +132,8 @@ class ConcurrentController:
         :return:
         """
         config_obj = self.get_config_obj()
-        # 全量执行
-        if config_obj.execute_all:
+        # 如果指定全量执行或者待执行对象列表为空，直接执行无需分片
+        if config_obj.execute_all or not kwargs.get(self.data_list_name):
             return wrapped(*args, **kwargs)
 
         params_list: List[Dict[str, Any]] = []

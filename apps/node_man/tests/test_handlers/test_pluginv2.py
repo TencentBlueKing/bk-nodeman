@@ -17,12 +17,7 @@ from django.core.cache import cache
 from apps.mock_data import api_mkd, common_unit, utils
 from apps.node_man import constants, models, tools
 from apps.node_man.handlers.plugin_v2 import PluginV2Handler
-from apps.node_man.tests.utils import (
-    MockClient,
-    NodeApi,
-    cmdb_or_cache_biz,
-    create_host,
-)
+from apps.node_man.tests.utils import MockClient, NodeApi, create_host
 from apps.utils import basic
 from apps.utils.unittest.testcase import CustomBaseTestCase
 
@@ -110,15 +105,6 @@ class TestPluginV2(CustomBaseTestCase):
                 ],
             },
         )
-
-    @patch("apps.node_man.handlers.cmdb.CmdbHandler.cmdb_or_cache_biz", cmdb_or_cache_biz)
-    def test_list_plugin_host(self):
-        # 构造数据
-        number = 100
-        create_host(number)
-        self.init_process_statuses(number=number)
-        result = PluginV2Handler().list_plugin_host(params={"project": "basereport", "page": 1, "pagesize": -1})
-        self.assertEqual(result["total"], number)
 
     def test_fetch_config_variables(self):
         models.PluginConfigTemplate.objects.create(

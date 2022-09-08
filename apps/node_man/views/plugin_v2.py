@@ -176,55 +176,6 @@ class PluginV2ViewSet(ModelViewSet):
         return Response({})
 
     @swagger_auto_schema(
-        operation_summary="查询插件下主机",
-        tags=PLUGIN_V2_VIEW_TAGS,
-    )
-    @action(detail=False, methods=["POST"], serializer_class=plugin_v2.PluginListHostSerializer)
-    def list_plugin_host(self, request):
-        """
-        @api {POST} /v2/plugin/list_plugin_host/  查询插件下主机
-        @apiName list_plugin_host
-        @apiGroup plugin_v2
-        @apiParam {String} project 插件名称
-        @apiParam {Int[]} [bk_biz_id] 业务ID
-        @apiParam {Int[]} [bk_host_id] 主机ID
-        @apiParam {List} [conditions] 搜索条件，支持os_type, ip, status, version, bk_cloud_id, node_from <br>
-        query: IP、操作系统、Agent状态、Agent版本、云区域 单/多模糊搜索 <br>
-        topology: 拓扑搜索，传入bk_set_ids, bk_module_ids
-        @apiParam {List} [nodes] 拓扑节点, 例如：[{"bk_biz_id": 1, "bk_inst_id": 10, "bk_obj_id": "module"}, ...]
-        @apiParam {Int[]} [exclude_hosts] 跨页全选排除主机
-        @apiParam {Int} [page] 当前页数，默认为`1`
-        @apiParam {Int} [pagesize] 分页大小，默认为`10`，`-1` 表示跨页全选
-        @apiParamExample {Json} 请求参数
-        {
-            "description": "bkcloud",
-        }
-        :param request:
-        :return: {
-            "total": 1,
-            "list": [
-                {
-                    "bk_cloud_id": 1,
-                    "bk_cloud_name": "云区域名称",
-                    "bk_biz_id": 2,
-                    "bk_biz_name": "业务名称",
-                    "bk_host_id": 1,
-                    "os_type": "linux",
-                    "inner_ip": "127.0.0.1",
-                    "status": "RUNNING",
-                    "plugin_status": {
-                        "test_plugin": {
-                            "version": "1.0.0",
-                            "status": "RUNNING"
-                        }
-                    }
-                }
-            ]
-        }
-        """
-        return Response(PluginV2Handler.list_plugin_host(params=self.validated_data))
-
-    @swagger_auto_schema(
         operation_summary="创建注册任务",
         tags=PLUGIN_V2_VIEW_TAGS,
     )

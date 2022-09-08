@@ -9,8 +9,8 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from apps.utils.unittest.testcase import CustomBaseTestCase
+from django.apps import AppConfig
 
 
-class TestHostV2Tools(CustomBaseTestCase):
-    pass
+class CoreEncryptConfig(AppConfig):
+    name = "apps.core.ipchooser"

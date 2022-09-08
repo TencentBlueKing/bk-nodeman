@@ -14,13 +14,13 @@ from typing import Any, Dict
 from django.db.models import Q
 from django.utils.translation import get_language
 
+from apps.core.ipchooser.tools.base import HostQueryHelper, HostQuerySqlHelper
 from apps.core.tag import targets
 from apps.core.tag.models import Tag
 from apps.node_man import constants as const
 from apps.node_man import tools
 from apps.node_man.constants import IamActionType
 from apps.node_man.handlers.cmdb import CmdbHandler
-from apps.node_man.handlers.host import HostHandler
 from apps.node_man.handlers.validator import operate_validator
 from apps.node_man.models import (
     Cloud,
@@ -191,11 +191,18 @@ class PluginHandler(APIModel):
             user_biz = plugin_operate_bizs
 
         # 查询
-        hosts_status_sql = (
-            HostHandler()
-            .multiple_cond_sql(params, user_biz, plugin=True)
-            .exclude(bk_host_id__in=params.get("exclude_hosts", []))
+        sql: str = HostQuerySqlHelper.handle_plugin_conditions(
+            params=params, plugin_names=tools.PluginV2Tools.fetch_head_plugins(), return_sql=True
         )
+        extra_wheres = []
+        if sql:
+            extra_wheres = [f"{Host._meta.db_table}.bk_host_id in ({sql})"]
+
+        hosts_status_sql = (
+            HostQuerySqlHelper.multiple_cond_sql(
+                params=params, biz_scope=user_biz, return_all_node_type=True, extra_wheres=extra_wheres
+            ).exclude(bk_host_id__in=params.get("exclude_hosts", []))
+        ).order_by()
 
         # 计算总数
         hosts_status_count = hosts_status_sql.count()
@@ -289,13 +296,7 @@ class PluginHandler(APIModel):
 
         # 适配单个插件停用预览时的AGENT状态统计，性能不行
         if params.get("with_agent_status_counter"):
-            result["agent_status_count"] = tools.HostV2Tools.get_agent_status_counter(
-                ProcessStatus.objects.filter(
-                    proc_type=const.ProcType.AGENT,
-                    source_type=ProcessStatus.SourceType.DEFAULT,
-                    bk_host_id__in=set(hosts_status_sql.values_list("bk_host_id", flat=True)),
-                )
-            )
+            result["agent_status_count"] = HostQueryHelper.get_agent_statistics(hosts_status_sql)
 
         return result
 
@@ -313,9 +314,16 @@ class PluginHandler(APIModel):
 
         if params.get("exclude_hosts") is not None:
             # 跨页全选
+            sql: str = HostQuerySqlHelper.handle_plugin_conditions(
+                params=params, plugin_names=tools.PluginV2Tools.fetch_head_plugins(), return_sql=True
+            )
+            extra_wheres = []
+            if sql:
+                extra_wheres = [f"{Host._meta.db_table}.bk_host_id in ({sql})"]
             db_host_sql = (
-                HostHandler()
-                .multiple_cond_sql(params, user_biz, plugin=True)
+                HostQuerySqlHelper.multiple_cond_sql(
+                    params, user_biz, return_all_node_type=True, extra_wheres=extra_wheres
+                )
                 .exclude(bk_host_id__in=params.get("exclude_hosts", []))
                 .values("bk_host_id", "bk_biz_id", "bk_cloud_id", "inner_ip", "node_type", "os_type")
             )

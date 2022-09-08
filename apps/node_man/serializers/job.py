@@ -14,11 +14,11 @@ from collections import defaultdict
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
+from apps.core.ipchooser.tools.base import HostQuerySqlHelper
 from apps.exceptions import ValidationError
 from apps.node_man import constants, models, tools
 from apps.node_man.handlers import validator
 from apps.node_man.handlers.cmdb import CmdbHandler
-from apps.node_man.handlers.host import HostHandler
 from apps.node_man.periodic_tasks.sync_cmdb_host import bulk_differential_sync_biz_hosts
 from apps.utils import basic
 
@@ -222,8 +222,7 @@ class OperateSerializer(serializers.Serializer):
         if attrs.get("exclude_hosts") is not None:
             # 跨页全选
             db_host_sql = (
-                HostHandler()
-                .multiple_cond_sql(attrs, user_biz, proxy=is_proxy)
+                HostQuerySqlHelper.multiple_cond_sql(params=attrs, biz_scope=user_biz.keys(), is_proxy=is_proxy)
                 .exclude(bk_host_id__in=attrs.get("exclude_hosts", []))
                 .values("bk_host_id", "bk_biz_id", "bk_cloud_id", "inner_ip", "node_type", "os_type")
             )
