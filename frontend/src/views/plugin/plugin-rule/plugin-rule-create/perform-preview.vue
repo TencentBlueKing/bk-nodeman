@@ -127,8 +127,18 @@
           prop="msg"
           key="msg"
           show-overflow-tooltip
-          min-width="400"
-        />
+          min-width="400">
+          <template #default="{ row }">
+            <div class="col-execution">
+              <span
+                :class="['execut-text', { 'has-icon': row.suppressed_by_id }]"
+                @click.stop="$router.push({ name: 'pluginRule', query: { id: `${row.suppressed_by_id}` } })">
+                {{ row.msg | filterEmpty }}
+                <i v-if="row.suppressed_by_id" class="nodeman-icon nc-icon-audit filtered-icon" />
+              </span>
+            </div>
+          </template>
+        </bk-table-column>
         <bk-table-column
           v-else-if="isIgnoredTab && isManualType"
           :label="$t('部署策略')"
@@ -977,6 +987,14 @@ export default class PerformPreview extends Mixins(HeaderRenderMixin, HeaderFilt
     }
     &:hover .nodeman-icon {
       display: inline;
+    }
+  }
+  .col-execution {
+    &:hover .filtered-icon {
+      color: #3a84ff;
+    }
+    .has-icon {
+      cursor: pointer;
     }
   }
 }

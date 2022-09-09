@@ -64,13 +64,16 @@
             <span v-else :class="`execut-mark execut-${ row.status }`"></span>
             <span
               v-if="row.status === 'filtered' || row.status === 'ignored'"
-              :class="['execut-text', { 'has-icon': row.exception && row.exception === 'is_running' }]"
+              :class="[
+                'execut-text',
+                { 'has-icon': row.suppressedById || (row.exception && row.exception === 'is_running') }
+              ]"
               :title="filteredTitle(row)"
-              @click.stop="handleRowView('filterrd', row)">
+              @click.stop="handleRowView(row.status, row)">
               {{ `${titleStatusMap[row.status]} ` }}
               ({{ row.statusDisplay | filterEmpty }}
               <i
-                v-if="row.exception && row.exception === 'is_running'"
+                v-if="row.suppressedById || (row.exception && row.exception === 'is_running')"
                 class="nodeman-icon nc-icon-audit filtered-icon">
               </i>)
             </span>
@@ -248,6 +251,13 @@ export default class TaskDeatailTable extends Mixins(HeaderRenderMixin) {
             page: String(this.pagination.current),
             pageSize: String(this.pagination.limit),
           },
+        });
+      }
+    } else if (type === 'ignored') {
+      if (row.suppressedById) {
+        this.$router.push({
+          name: 'pluginRule',
+          query: { id: `${row.suppressedById}` },
         });
       }
     }
