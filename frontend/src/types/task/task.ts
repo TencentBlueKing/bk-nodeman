@@ -129,6 +129,7 @@ export interface ITaskHost {
   step?: string // 判断是否需要展示手动命令查看按钮
   opType?: string
   opTypeDisplay?: string
+  suppressedById?: number
 }
 
 export interface ITaskSolutions {
