@@ -102,14 +102,16 @@ export default class PluginRule extends Mixins(authorityMixin(), pollMixin) {
     ],
     multiable: false,
   }];
+  private queryIds: Array<string|number> = [];
 
   private get selectedBiz() {
     return MainStore.selectedBiz;
   }
 
   private created() {
-    const name = this.$route.params.name || this.$route.query.name as string;
-    this.searchSelectValue = name || '';
+    const { query = {}, params: { name = '', id = [] } } = this.$route;
+    this.searchSelectValue = name || query.name as string;
+    this.queryIds = (query.id ? [query.id] : id) as string[] ;
     this.handleGetPluginRules();
   }
 
@@ -259,6 +261,10 @@ export default class PluginRule extends Mixins(authorityMixin(), pollMixin) {
       pagesize: limit,
       ordering: '-enable,-update_time',
     };
+    if (this.queryIds.length) {
+      params.conditions = [{ key: 'id', value: [...this.queryIds] }];
+      this.queryIds.splice(0, this.queryIds.length);
+    }
     if (this.searchSelectValue) {
       params.conditions = [{ key: 'query', value: this.searchSelectValue }];
     }
