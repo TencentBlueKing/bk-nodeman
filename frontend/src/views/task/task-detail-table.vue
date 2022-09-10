@@ -255,10 +255,11 @@ export default class TaskDeatailTable extends Mixins(HeaderRenderMixin) {
       }
     } else if (type === 'ignored') {
       if (row.suppressedById) {
-        this.$router.push({
+        const route = this.$router.resolve({
           name: 'pluginRule',
           query: { id: `${row.suppressedById}` },
         });
+        window.open(route.href, '_blank');
       }
     }
   }

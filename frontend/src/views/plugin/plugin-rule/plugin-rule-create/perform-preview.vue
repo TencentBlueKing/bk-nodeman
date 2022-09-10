@@ -129,14 +129,13 @@
           show-overflow-tooltip
           min-width="400">
           <template #default="{ row }">
-            <div class="col-execution">
-              <span
-                :class="['execut-text', { 'has-icon': row.suppressed_by_id }]"
-                @click.stop="$router.push({ name: 'pluginRule', query: { id: `${row.suppressed_by_id}` } })">
+            <div class="col-execution" v-if="row.suppressed_by_id" @click="handleView(row)">
+              <span class="execut-text has-icon">
                 {{ row.msg | filterEmpty }}
-                <i v-if="row.suppressed_by_id" class="nodeman-icon nc-icon-audit filtered-icon" />
+                <i class="nodeman-icon nc-icon-audit filtered-icon" />
               </span>
             </div>
+            <span v-else>{{ row.msg | filterEmpty }}</span>
           </template>
         </bk-table-column>
         <bk-table-column
@@ -851,6 +850,10 @@ export default class PerformPreview extends Mixins(HeaderRenderMixin, HeaderFilt
     }
     this.executeLoading = false;
     this.deleteLoading = false;
+  }
+  public handleView(row: IPreviewHost) {
+    const route = this.$router.resolve({ name: 'pluginRule', query: { id: `${row.suppressed_by_id}` } });
+    window.open(route.href, '_blank');
   }
 }
 </script>
