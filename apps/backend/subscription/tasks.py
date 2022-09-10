@@ -330,6 +330,7 @@ def create_task(
                         "msg": _(
                             "当前{category_alias}（{bk_obj_name} 级）"
                             "已被优先级更高的{suppressed_by_category_alias}【{suppressed_by_name}(ID: {suppressed_by_id})】"
+                            "（{suppressed_by_obj_name} 级）抑制"
                         ).format(
                             category_alias=models.Subscription.CATEGORY_ALIAS_MAP[result["category"]],
                             bk_obj_name=constants.CmdbObjectId.OBJ_ID_ALIAS_MAP.get(
