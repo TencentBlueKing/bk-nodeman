@@ -309,6 +309,7 @@ export interface IPreviewHost {
   version?: string
   current_version?: string
   target_version?: string
+  suppressed_by_id?: number
 }
 
 // export interface IPreviewNode {
