@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+import logging
 import operator
 from collections import ChainMap, Counter, defaultdict
 from copy import deepcopy
@@ -36,6 +37,8 @@ from apps.utils import concurrent
 from apps.utils.basic import distinct_dict_list
 from apps.utils.local import get_request_username
 from common.api import NodeApi
+
+logger = logging.getLogger("app")
 
 
 class PolicyHandler:
@@ -353,7 +356,34 @@ class PolicyHandler:
         return result
 
     @staticmethod
-    def migrate_preview(query_params: Dict[str, Any]) -> List[Dict[str, Any]]:
+    def get_host_id__plugin_version_map(
+        step_objs: List[models.SubscriptionStep], instance_id__inst_info_map: Dict[str, Dict]
+    ) -> Dict[int, str]:
+        project = None
+        for step_obj in step_objs:
+            # 策略场景，插件至多存在一个
+            if "plugin_name" in step_obj.config:
+                project = step_obj.config["plugin_name"]
+            else:
+                try:
+                    project = step_obj.config["details"][0]["project"]
+                except (KeyError, IndexError):
+                    pass
+
+        bk_host_ids = []
+        if project:
+            for inst_info in instance_id__inst_info_map.values():
+                bk_host_id = inst_info.get("host", {}).get("bk_host_id")
+                if bk_host_id:
+                    bk_host_ids.append(bk_host_id)
+            host_id__plugin_version_map = tools.HostV2Tools.get_bk_host_id_plugin_version_map(project, bk_host_ids)
+        else:
+            logging.warning("[policy-migrate_preview] cannot get project")
+            host_id__plugin_version_map = {}
+        return host_id__plugin_version_map
+
+    @classmethod
+    def migrate_preview(cls, query_params: Dict[str, Any]) -> List[Dict[str, Any]]:
         """变更计算预览"""
 
         scope = query_params["scope"]
@@ -422,9 +452,9 @@ class PolicyHandler:
                 }
             ]
 
-        steps = []
+        step_objs = []
         for index, step in enumerate(query_params["steps"]):
-            step = models.SubscriptionStep(
+            step_obj = models.SubscriptionStep(
                 # 如果是未创建的订阅，提供假id用于减少sql扫描范围，由于ProcessStatus source_id为None时数据量大，不建议用None
                 subscription_id=subscription.id or -1,
                 index=index,
@@ -433,9 +463,9 @@ class PolicyHandler:
                 config=step["config"],
                 params=step["params"],
             )
-            steps.append(step)
-            step.subscription = subscription
-        subscription.steps = steps
+            step_objs.append(step_obj)
+            step_obj.subscription = subscription
+        subscription.steps = step_objs
         preview_result = tasks.run_subscription_task_and_create_instance(
             subscription, subscription_task, preview_only=True
         )
@@ -443,6 +473,7 @@ class PolicyHandler:
         instance_actions = preview_result["instance_actions"]
         instance_migrate_reasons = preview_result["instance_migrate_reasons"]
         instance_id__inst_info_map = preview_result["instance_id__inst_info_map"]
+        host_id__plugin_version_map = cls.get_host_id__plugin_version_map(step_objs, instance_id__inst_info_map)
         for instance_id, instance_record in preview_result["to_be_created_records_map"].items():
             host_info = instance_record.instance_info["host"]
             for step_id, action_id in instance_actions.get(instance_id, {}).items():
@@ -450,6 +481,9 @@ class PolicyHandler:
                     migrate_reason = instance_migrate_reasons[instance_id][step_id]
                 except KeyError:
                     migrate_reason = {}
+                # 优先以变更计算提供的当前版本为准
+                if not migrate_reason.get("current_version"):
+                    migrate_reason["current_version"] = host_id__plugin_version_map.get(host_info.get("bk_host_id"))
                 action_instance_map[action_id].append(
                     {**tools.HostV2Tools.retrieve_host_info(host_info), "migrate_reason": migrate_reason}
                 )
@@ -465,11 +499,12 @@ class PolicyHandler:
                     continue
                 if step_id__migrate_reason_map[step_id].get("migrate_type") != PluginMigrateType.NOT_CHANGE:
                     continue
+                migrate_reason = step_id__migrate_reason_map[step_id]
+                # 优先以变更计算提供的当前版本为准
+                if not migrate_reason.get("current_version"):
+                    migrate_reason["current_version"] = host_id__plugin_version_map.get(host_info.get("bk_host_id"))
                 action_instance_map[PluginMigrateType.NOT_CHANGE].append(
-                    {
-                        **tools.HostV2Tools.retrieve_host_info(host_info),
-                        "migrate_reason": step_id__migrate_reason_map[step_id],
-                    }
+                    {**tools.HostV2Tools.retrieve_host_info(host_info), "migrate_reason": migrate_reason}
                 )
 
         # 补充业务名、云区域名称
