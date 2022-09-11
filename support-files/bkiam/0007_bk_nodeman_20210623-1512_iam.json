@@ -2,7 +2,7 @@
     "system_id": "bk_nodeman",
     "operations": [
         {
-            "operation": "update_common_actions",
+            "operation": "upsert_common_actions",
             "data": [
                 {
                     "name": "业务运维",
@@ -15,6 +15,15 @@
                             "id": "agent_operate"
                         },
                         {
+                            "id": "cloud_view"
+                        },
+                        {
+                            "id": "cloud_create"
+                        },
+                        {
+                            "id": "proxy_operate"
+                        },
+                        {
                             "id": "plugin_view"
                         },
                         {
@@ -25,6 +34,30 @@
                         },
                         {
                             "id": "strategy_view"
+                        },
+                        {
+                            "id": "task_history_view"
+                        }
+                    ]
+                },
+                {
+                    "name": "业务只读",
+                    "name_en": "Visitor",
+                    "actions": [
+                        {
+                            "id": "agent_view"
+                        },
+                        {
+                            "id": "cloud_view"
+                        },
+                        {
+                            "id": "plugin_view"
+                        },
+                        {
+                            "id": "strategy_view"
+                        },
+                        {
+                            "id": "task_history_view"
                         }
                     ]
                 },
