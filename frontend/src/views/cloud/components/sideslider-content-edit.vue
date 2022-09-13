@@ -94,10 +94,10 @@
 import { Vue, Component, Prop, Watch, Ref, Emit } from 'vue-property-decorator';
 import { CloudStore } from '@/store';
 import { isEmpty } from '@/common/util';
-import { authentication } from '@/config/config';
+import { authentication, passwordFill } from '@/config/config';
 import Upload from '@/components/setup-table/upload.vue';
 import { IProxyDetail } from '@/types/cloud/cloud';
-import { reguFnMinInteger, reguPort, reguIp, reguRequired, reguFnSysPath } from '@/common/form-check';
+import { reguFnMinInteger, reguPort, reguIp, reguRequired, reguFnSysPath, regPasswordFill } from '@/common/form-check';
 
 @Component({
   name: 'sideslider-content-edit',
@@ -152,7 +152,11 @@ export default class SidesliderContentEdit extends Vue {
 
   @Watch('basic', { immediate: true })
   public handlebasicChange(data: IProxyDetail) {
-    this.proxyData = JSON.parse(JSON.stringify(data));
+    const copyData = JSON.parse(JSON.stringify(data));
+    const item = {
+      password: data.auth_type === 'PASSWORD' && !data.re_certification ? passwordFill : copyData.password,
+    };
+    this.proxyData = Object.assign(copyData, item);
   }
 
   private handleSave() {
@@ -177,7 +181,9 @@ export default class SidesliderContentEdit extends Vue {
         const authType = this.proxyData.auth_type.toLocaleLowerCase();
         if (this.proxyData[authType]) {
           params.auth_type = this.proxyData.auth_type;
-          params[authType] = this.$RSA.getNameMixinEncrypt(this.proxyData[authType]);
+          if (authType !== 'password' || !regPasswordFill.test(this.proxyData[authType])) {
+            params[authType] = this.$RSA.getNameMixinEncrypt(this.proxyData[authType]);
+          }
         }
       }
       if (this.proxyData.bt_speed_limit) {

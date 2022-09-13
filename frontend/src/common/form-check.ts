@@ -31,6 +31,7 @@ export function regFnSysPath(params?: { [key: string]: number | string } = {}) {
     : `^([c-zC-Z]:)(\\\\[A-Za-z0-9_]{${minText},${maxText}}){${minLevel},}$`;
   return new RegExp(regText);
 }
+export const regPasswordFill = /^\*+$/;
 
 /**
  * regu: regexp rules
