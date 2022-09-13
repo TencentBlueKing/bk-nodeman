@@ -188,7 +188,6 @@ export default class PluginListOperate extends Mixins(HeaderFilterMixins) {
   // }
   @Watch('searchSelectData')
   public handleSearchSelectDataChange(data: ISearchItem[]) {
-    console.log('watcj', data);
     this.filterData = JSON.parse(JSON.stringify(data));
   }
 

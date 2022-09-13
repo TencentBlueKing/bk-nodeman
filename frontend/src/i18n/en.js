@@ -236,7 +236,7 @@ export default {
   检测失败: 'Failure detection',
   Agent包: 'Agent package: {name}',
   已选条数: '(Selected {0})',
-  Agent管理: 'Agent',
+  Agent状态: 'Agent Status',
   自动发现: 'Automatic discovery',
   上传Agent包: 'Upload Agent package',
   云区域管理: 'Cloud Area',
@@ -734,8 +734,9 @@ export default {
   全局任务Auth: 'You don\'t have permission to configure tasks, please go to apply for permissions',
   安装proxyAuth: 'You don\'t have Proxy operation permission, please go to apply for permissions',
 
-  // 节点列表
-  节点列表: 'Node list',
+  // 插件状态
+  插件状态: 'Plugin Status',
+  插件部署: 'Plugin deployment',
   部署策略: 'Deployment policy',
   插件包: 'Plugin package',
   部署: 'Deploy',
@@ -753,7 +754,7 @@ export default {
   清除所有数据: 'Clear all data',
   操作范围: 'Operating range',
   Agent状态异常: 'Agent status is abnormal',
-  前往Agent管理查看: 'Go to Agent Management to view',
+  前往Agent状态查看: 'Go to Agent Status to view',
   未安装lower: 'not installed',
   状态异常: 'status is abnormal',
   Agent无法选择: 'Agent {0} and cannot be selected',

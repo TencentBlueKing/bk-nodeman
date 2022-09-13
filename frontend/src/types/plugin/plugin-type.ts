@@ -63,7 +63,7 @@ export interface IMenu {
 }
 
 /**
- * 节点列表
+ * 插件状态
  */
 export interface IPluginTopo {
   id: number | string
@@ -94,7 +94,7 @@ export interface IPluginList {
 }
 
 /**
- * 部署策略
+ * 插件部署
  */
 export interface IChoosePlugin {
   id: number

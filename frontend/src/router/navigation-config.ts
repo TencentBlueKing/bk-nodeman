@@ -7,7 +7,7 @@ export const navConfig: INavConfig[] = [
     defaultActive: 'agentStatus',
     children: [
       {
-        name: 'Agent管理',
+        name: 'Agent状态',
         children: [
           {
             title: 'Agent状态',
