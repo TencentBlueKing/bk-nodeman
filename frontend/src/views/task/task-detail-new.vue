@@ -101,7 +101,7 @@
             :filter-data="filterData"
             :table-list="tableList"
             :pagination="pagination"
-            :job-type="jobType"
+            :category="detail.category"
             :operate-host="operateHost"
             :show-commind-btn="showCommind"
             @row-operate="handleOperate"
@@ -287,6 +287,7 @@ export default class TaskDeatail extends Mixins(PollMixin, HeaderFilterMixins) {
         createdBy,
         jobId,
         costTime: takesTimeFormat(costTime),
+        category: '',
         ...meta,
       });
       this.jobType = toHump((jobType || '').toLowerCase());
