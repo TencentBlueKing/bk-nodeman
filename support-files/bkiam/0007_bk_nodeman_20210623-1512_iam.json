@@ -6,7 +6,7 @@
             "data": [
                 {
                     "name": "业务运维",
-                    "name_en": "Operator",
+                    "name_en": "Ops Actions",
                     "actions": [
                         {
                             "id": "agent_view"
@@ -42,7 +42,7 @@
                 },
                 {
                     "name": "业务只读",
-                    "name_en": "Visitor",
+                    "name_en": "Read-only Actions",
                     "actions": [
                         {
                             "id": "agent_view"
