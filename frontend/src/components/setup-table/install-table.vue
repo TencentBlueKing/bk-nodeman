@@ -151,7 +151,7 @@
                       autofocus: virtualScroll,
                       fileInfo: getCellFileInfo(row, config)
                     }"
-                    @focus="handleCellFocus(row, config)"
+                    @focus="handleCellFocus(arguments, row, config)"
                     @blur="handleCellBlur"
                     @input="handleCellValueInput(arguments, row, config)"
                     @change="handleCellValueChange(row, config)"
@@ -186,6 +186,7 @@ import { STORAGE_KEY_COL } from '@/config/storage-key';
 import { Context } from 'vm';
 import { IFileInfo, IKeysMatch, ISetupHead, ISetupRow, ITabelFliter, ISetupParent } from '@/types';
 import { getDefaultConfig } from '@/config/config';
+import { regPasswordFill } from '@/common/form-check';
 
 interface IFilterRow {
   [key: string]: ITabelFliter
@@ -1005,10 +1006,14 @@ export default class SetupTable extends Vue {
     return new Array(len).fill('*')
       .join('');
   }
-  private handleCellFocus(row: ISetupRow, config: ISetupHead) {
+  private handleCellFocus(arg: any[], row: ISetupRow, config: ISetupHead) {
     this.$set(this, 'focusRow', row);
     const { prop } = config;
     const [refs] = this.$refs[`header_${prop}`] as any[];
+    if (prop === 'prove' && row.auth_type === 'PASSWORD' && regPasswordFill.test(row.prove as string)) {
+      const [{ event }] = arg;
+      (event?.target as HTMLInputElement)?.setSelectionRange?.(0, 999);
+    }
     setTimeout(() => {
       if (refs?.tipsShow) {
         this.popoverEl = refs;
@@ -1016,10 +1021,11 @@ export default class SetupTable extends Vue {
       }
     }, 200);
   }
-  private handleCellBlur() {
+  private handleCellBlur({ event }: { event: Event }) {
     this.$set(this, 'focusRow', {});
     this.popoverEl && this.popoverEl.tipsHide();
     this.popoverEl = null;
+    (event?.target as HTMLInputElement)?.setSelectionRange?.(999, 999);
   }
   public handleResize() {
     const { tableBody, scrollPlace } = this;

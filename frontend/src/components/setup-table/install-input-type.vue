@@ -280,8 +280,8 @@ export default class InputType extends Mixins(emitter) {
     return { value, instance: this };
   }
   @Emit('blur')
-  public handleEmitBlur(value: IValue) {
-    return { value, instance: this };
+  public handleEmitBlur(value: IValue, event?: Event) {
+    return { value, instance: this, event };
   }
   @Emit('upload-change')
   public handleEmitUpload(value: IFileInfo) {
@@ -300,9 +300,9 @@ export default class InputType extends Mixins(emitter) {
   /**
    * 失焦
    */
-  public handleBlur(value: IValue) {
+  public handleBlur(value: IValue, event?: Event) {
     this.isFocus = false;
-    this.handleEmitBlur(value);
+    this.handleEmitBlur(value, event);
     this.dispatch('step-verify-input', 'verify-blur', this.inputValue);
   }
   /**
@@ -349,9 +349,9 @@ export default class InputType extends Mixins(emitter) {
     return { value, instance: this };
   }
   @Emit('focus')
-  public handleFocus(value: IValue) {
+  public handleFocus(value: IValue, event: Event) {
     this.isFocus = true;
-    return { value, instance: this };
+    return { value, instance: this, event };
   }
   public setRows() {
     if (this.type !== 'textarea') return;
