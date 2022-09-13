@@ -109,7 +109,8 @@ import { debounce, deepClone, isEmpty } from '@/common/util';
 import { IAgent, IAgentHost, IAgentSearch } from '@/types/agent/agent-type';
 import { IApExpand } from '@/types/config/config';
 import { ISetupHead, ISetupRow, ISetupParent } from '@/types';
-import { regIPv6 } from '@/common/form-check';
+import { regIPv6, regPasswordFill } from '@/common/form-check';
+import { passwordFill } from '@/config/config';
 
 @Component({
   name: 'agent-import',
@@ -128,7 +129,7 @@ export default class AgentImport extends Mixins(mixin) {
   @Prop({
     type: Array,
     default: () => [],
-  }) private readonly tableData!: IAgentHost[];
+  }) private readonly tableData!: ISetupRow[];
   // 是否是跨页全选（true时：tableData为标记删除的数据  false时：tableData为当前要编辑的数据）
   @Prop({ type: Boolean, default: false }) private readonly isSelectedAllPages!: boolean;
   // 标记删除法的查询条件
@@ -198,7 +199,7 @@ export default class AgentImport extends Mixins(mixin) {
   }
   // 剩余高度
   private get surplusHeight() {
-    let height = 135; // 以下条件可能并列出现
+    let height = 179; // 以下条件可能并列出现
     // tips的行高
     height += 37;
     // 全部过滤提示的行高
@@ -335,7 +336,11 @@ export default class AgentImport extends Mixins(mixin) {
         if (!item.inner_ip) { // 优先展示IPv4
           item.inner_ip = item.inner_ipv6;
         }
-        return Object.assign({}, item, item.identity_info, ap);
+        const prove: { [key: string]: string } = {};
+        if (item.identity_info.auth_type === 'PASSWORD' && !item.identity_info.re_certification) {
+          prove.prove = passwordFill;
+        }
+        return Object.assign({}, item, item.identity_info, ap, prove);
       });
     } else {
       const defaultAp = { ap_id: apDefault };
@@ -344,6 +349,9 @@ export default class AgentImport extends Mixins(mixin) {
           ...item,
           inner_ip: item.inner_ip || item.inner_ipv6, // 优先展示IPv4
         };
+        if (item.auth_type === 'PASSWORD' && !item.re_certification) {
+          row.prove = passwordFill;
+        }
         if (this.isNotAutoSelect && item.ap_id === -1) {
           Object.assign(row, defaultAp);
         }
@@ -406,7 +414,9 @@ export default class AgentImport extends Mixins(mixin) {
         }
         const authType = item.auth_type?.toLowerCase() as ('key' | 'password');
         if (item[authType]) {
-          item[authType] = this.$RSA.getNameMixinEncrypt(item[authType] as string);
+          item[authType] = regPasswordFill.test(item[authType] as string)
+            ? ''
+            : this.$RSA.getNameMixinEncrypt(item[authType] as string);
         }
         if (regIPv6.test(item.inner_ip as string)) {
           item.inner_ipv6 = item.inner_ip;

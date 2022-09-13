@@ -52,7 +52,7 @@
 import { Vue, Component, Prop, Watch } from 'vue-property-decorator';
 import { MainStore, CloudStore } from '@/store/index';
 import { detailConfig } from '../config/proxy-detail-config';
-import { authentication } from '@/config/config';
+import { authentication, passwordFill } from '@/config/config';
 import { IProxyDetail } from '@/types/cloud/cloud';
 import { IAuth, IProxyIpKeys } from '@/types';
 
@@ -130,8 +130,7 @@ export default class SidesliderCcontent extends Vue {
    */
   private getAuthValue(item: IItem) {
     if (item.authType === 'PASSWORD') {
-      return new Array(6).fill('*')
-        .join('');
+      return passwordFill;
     } if (item.authType === 'KEY') {
       return 'key';
     }
