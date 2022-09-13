@@ -355,7 +355,8 @@ export default class ParserExcel extends Vue {
    */
   public handleDownload() {
     // 待优化方案，前端传表头与数据给后端，直接产出对应的Excel，但不能包含IP等敏感信息
-    const url = `${window.PROJECT_CONFIG.STATIC_URL}download/bk_nodeman_info_${window.language}.xlsx`;
+    const suffix = window.PROJECT_CONFIG.BKAPP_ENABLE_DHCP === 'True' ? '_address' : '';
+    const url = `${window.PROJECT_CONFIG.STATIC_URL}download/bk_nodeman_info_${window.language}${suffix}.xlsx`;
     const element = document.createElement('a');
     element.setAttribute('href', url);
     element.setAttribute('download', 'bk_nodeman_info.xlsx');
