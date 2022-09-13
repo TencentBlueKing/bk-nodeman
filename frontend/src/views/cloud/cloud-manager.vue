@@ -77,7 +77,8 @@
           :row-class-name="rowClassName"
           @page-change="handlePageChange"
           @page-limit-change="handlePageLimitChange"
-          @row-click="handleExpandChange">
+          @row-click="handleExpandChange"
+          @sort-change="handleSortChange">
           <bk-table-column
             key="selection"
             width="70"
@@ -104,7 +105,7 @@
           </bk-table-column>
           <bk-table-column
             class-name="col-pl-none"
-            sortable
+            sortable="custom"
             :label="$t('云区域名称')"
             prop="cloudNameCopy"
             show-overflow-tooltip>
@@ -134,7 +135,7 @@
               <img :src="`data:image/svg+xml;base64,${row.ispIcon}`" class="col-svg" v-if="row.ispIcon">
             </template>
           </bk-table-column>
-          <bk-table-column :label="$t('云服务商')" prop="ispName" sortable show-overflow-tooltip>
+          <bk-table-column :label="$t('云服务商')" prop="ispName" sortable="custom" show-overflow-tooltip>
             <template #default="{ row }">
               <span v-if="!row.isChannel">{{ row.ispName | filterEmpty }}</span>
             </template>
@@ -145,7 +146,7 @@
             prop="proxyCount"
             align="right"
             :resizable="false"
-            sortable>
+            sortable="custom">
             <template #default="{ row }">
               <section v-if="!row.isChannel">
                 <auth-component
@@ -191,7 +192,7 @@
               </section>
             </template>
           </bk-table-column>
-          <bk-table-column :label="$t('Agent数量')" prop="nodeCount" align="right" :resizable="false" sortable>
+          <bk-table-column :label="$t('Agent数量')" prop="nodeCount" align="right" :resizable="false" sortable="custom">
             <template #default="{ row }">
               <div class="pr20">
                 <span v-if="row.nodeCount" class="text-btn" v-test="'filterAgent'" @click.stop="handleGotoAgent(row)">
@@ -312,6 +313,8 @@ interface ICloudRow extends ICloud {
   cloudNameCopy?: string
   children: ICloudRow[]
 }
+type ISortProp = null | 'cloudNameCopy' | 'ispName' | 'proxyCount' | 'nodeCount';
+type ISortOrder = null | 'ascending' | 'descending';
 
 @Component({
   name: 'cloud-manager',
@@ -354,6 +357,8 @@ export default class CloudManager extends Vue {
   ];
   // 搜索防抖
   private handleValueChange() {}
+  private sortProp: ISortProp = null;
+  private sortOrder: ISortOrder = null;
   // 表格加载
   private loading = false;
   // 删除操作禁用提示
@@ -411,7 +416,7 @@ export default class CloudManager extends Vue {
     this.handleInit();
   }
   private mounted() {
-    this.handleValueChange = debounce(300, this.handleSearch);
+    this.handleValueChange = debounce(300, () => this.handleSearch());
   }
 
   /**
@@ -437,7 +442,7 @@ export default class CloudManager extends Vue {
     sort(sortPrev, 'bkCloudName');
     sort(sortNext, 'bkCloudName');
     sortData = [...sortPrev, ...sortNext];
-    // 利用组件自带的排序给云区域名称做一个不区分大小写的排序优化
+    // 留下一份基础排序的数据, 后续优化均从此数据上二次排序
     this.table.list = sortData.map((item: ICloud) => {
       const children: Dictionary[] = [
         { id: 'default', name: this.$t('默认通道'), nodeCount: 0, isChannel: true, bk_cloud_id: item.bkCloudId },
@@ -460,17 +465,29 @@ export default class CloudManager extends Vue {
   /**
    * 前端搜索
    */
-  public handleSearch() {
-    this.table.list.forEach(item => item.selected = false);
-    this.table.data = this.searchValue.length === 0
-      ? [...this.table.list]
-      : this.table.list.filter((item: any) => this.searchParams.some((param) => {
-        const value = this.searchValue.toLocaleLowerCase();
-        return item[param] && ~(item[param]).toString().toLocaleLowerCase()
-          .indexOf(value);
-      }));
-    this.pagination.count = this.table.data.length;
-    this.handlePageChange(1);
+  public handleSearch(page = 1) {
+    const { table, sortProp, sortOrder } = this;
+    table.list.forEach(item => item.selected = false);
+    let tableData = [...this.table.list];
+    if (this.searchValue.length > 0) {
+      const value = this.searchValue.toLocaleLowerCase();
+      tableData = tableData.filter((item: any) => this.searchParams
+        .some(param => item[param] && ~(item[param]).toString().toLocaleLowerCase()
+          .indexOf(value)));
+    }
+    if (sortProp) {
+      if (['cloudNameCopy', 'ispName'].includes(sortProp)) {
+        sort(tableData, sortProp);
+      } else {
+        tableData.sort((prev, next) => prev[sortProp] - next[sortProp]);
+      }
+      if (sortOrder === 'descending') {
+        tableData.reverse();
+      }
+    }
+    this.table.data = tableData;
+    this.pagination.count = tableData.length;
+    this.handlePageChange(page);
   }
   /**
    * 编辑
@@ -677,6 +694,11 @@ export default class CloudManager extends Vue {
       this.tableData.splice(rowIndex + 1, 0, ...row.children);
       row.expand = true;
     }
+  }
+  public handleSortChange({ prop, order }: { prop: ISortProp, order: ISortOrder }) {
+    this.sortProp = prop;
+    this.sortOrder = order;
+    this.handleSearch(this.pagination.current);
   }
 }
 </script>
