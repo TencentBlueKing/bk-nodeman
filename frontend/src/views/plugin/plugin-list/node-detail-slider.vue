@@ -12,7 +12,7 @@
     <!-- <div slot="content" v-else>
       <bk-exception class="exception-agent" type="500">
         <div class="exception-agent-title">{{ $t('Agent状态异常') }}</div>
-        <bk-button text @click="handleGotoAgentList">{{ $t('前往Agent管理查看') }}</bk-button>
+        <bk-button text @click="handleGotoAgentList">{{ $t('前往Agent状态查看') }}</bk-button>
       </bk-exception>
     </div> -->
   </bk-sideslider>

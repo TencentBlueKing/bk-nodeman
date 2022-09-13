@@ -22,7 +22,7 @@ export default [
     component: AgentStatus,
     meta: {
       navId: 'nodeManage',
-      title: 'Agent管理',
+      title: 'Agent状态',
       authority: {
         page: AGENT_VIEW,
         operate: AGENT_OPERATE,
