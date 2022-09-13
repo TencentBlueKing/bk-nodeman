@@ -184,7 +184,7 @@
           <bk-table-column :key="tabActive" :label="$t('当前版本')" prop="current_version">
             <template #default="{ row }">{{ row.current_version | filterEmpty }}</template>
           </bk-table-column>
-          <bk-table-column :label="$t('目标版本')" prop="target_version">
+          <bk-table-column v-if="showTargeVersionColumn" :label="$t('目标版本')" prop="target_version">
             <template #default="{ row }">{{ row.target_version | filterEmpty }}</template>
           </bk-table-column>
         </template>
@@ -399,6 +399,10 @@ export default class PerformPreview extends Mixins(HeaderRenderMixin, HeaderFilt
   }
   private get hideVersionColumn() {
     return this.tabActive === 'abnormalHost' || this.isRetryAbnormal;
+  }
+  // 手动操作插件类型 - 仅安装/更新需要展示目标版本
+  private get showTargeVersionColumn() {
+    return !/^(MAIN_)[A-Z]+(_PLUGIN)$/.test(this.type) || this.type === 'MAIN_INSTALL_PLUGIN';
   }
   private get isGrayTips() {
     return ['deleteGray', 'releaseGray'].includes(this.type);

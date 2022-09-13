@@ -24,7 +24,7 @@
       <bk-table-column min-width="100" :label="$t('业务')" prop="bkBizName" :resizable="false"></bk-table-column>
       <bk-table-column min-width="100" :label="$t('操作类型')" prop="opTypeDisplay" :resizable="false"></bk-table-column>
       <bk-table-column
-        v-if="operateHost === 'Plugin'"
+        v-if="showTargetVersionColumn"
         min-width="100"
         :label="$t('目标版本')"
         :resizable="false">
@@ -158,7 +158,7 @@ export default class TaskDeatailTable extends Mixins(HeaderRenderMixin) {
   @Prop({ type: Boolean, default: false }) private readonly loading!: boolean;
   @Prop({ type: Array, default: () => ([]) }) public readonly filterData!: ISearchItem[];
   @Prop({ type: Array, default: () => ([]) }) private readonly selected!: Array<IRow>;
-  @Prop({ type: String, default: '' }) private readonly jobType!: string;
+  @Prop({ type: String, default: '' }) private readonly category!: string;
   @Prop({ type: String, default: '' }) private readonly operateHost!: string;
   @Prop({ type: Boolean, default: false }) private readonly showCommindBtn!: boolean;
 
@@ -188,12 +188,12 @@ export default class TaskDeatailTable extends Mixins(HeaderRenderMixin) {
   private get tableHeight() {
     return MainStore.windowHeight - 322;
   }
-  private get isUninstallType() {
-    return /UN/ig.test(this.jobType);
-  }
   private get commandStep() {
     return [this.$t('手动安装Guide'), '安装', this.$t('手动卸载Guide'), '卸载', '卸载Agent', '卸载Proxy'];
     // return this.isUninstallType ? [this.$t('手动卸载Guide'), '卸载'] : [this.$t('手动安装Guide'), '安装'];
+  }
+  private get showTargetVersionColumn() {
+    return this.category === 'policy';
   }
 
   @Emit('row-operate')
