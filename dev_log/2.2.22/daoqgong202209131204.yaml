@@ -1,0 +1,3 @@
+---
+optimization:
+  - "云区域支持全量排序 (closed #1046)"
