@@ -432,10 +432,10 @@ export default class CloudManager extends Vue {
     // 第一优先：未安装 proxy， 第二优先：字母顺序
     if (this.permissionSwitch) {
       data.sort((a: any, b: any) => Number(b.view) - Number(a.view));
-      sortPrev = data.filter((item: any) => item.view);
-      sortNext = data.filter((item: any) => !item.view);
-      sortData = [...sortPrev, ...sortData];
     }
+    sortPrev = data.filter((item: any) => item.view);
+    sortNext = data.filter((item: any) => !item.view);
+    sortData = [...sortPrev, ...sortData];
     sortPrev = sortData.filter(item => !item.proxyCount);
     sortNext = sortData.filter(item => item.proxyCount);
 
