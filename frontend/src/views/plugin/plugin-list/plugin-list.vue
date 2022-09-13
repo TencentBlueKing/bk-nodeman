@@ -187,6 +187,9 @@ export default class PluginList extends Mixins(HeaderFilterMixins) {
   @Watch('selectedBiz')
   public handleBizSelect() {
     this.getStrategyTopo();
+    this.pagination.current = 1;
+    const params = this.getCommonParams();
+    this.handleSearch(params);
   }
 
   private async created() {

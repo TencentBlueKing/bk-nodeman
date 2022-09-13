@@ -45,7 +45,7 @@ export default [
     }),
     meta: {
       navId: 'nodeManage',
-      title: '节点列表',
+      title: '插件状态',
       authority: {
         page: PLUGIN_VIEW,
         pk: 'plugin',
@@ -81,7 +81,7 @@ export default [
     component: pluginRule,
     meta: {
       navId: 'nodeManage',
-      title: '部署策略',
+      title: '插件部署',
       authority: {
         page: STRATEGY_VIEW,
         operate: STRATEGY_CREATE,
