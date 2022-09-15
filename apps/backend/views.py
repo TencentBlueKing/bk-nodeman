@@ -843,6 +843,7 @@ def version(request):
     return JsonResponse(base_info.BaseInfoHandler.version())
 
 
+@login_exempt
 def tools_download(request):
     """
     用于script tools目录下的小文件下载
