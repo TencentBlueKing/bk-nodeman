@@ -99,6 +99,9 @@ class ScopeSelectorBaseSer(PermissionSer):
 class QueryHostsBaseSer(PermissionSer, PaginationSer):
     search_condition = HostSearchConditionSer(required=False)
 
+    # k-v 查找上线前临时兼容的模糊查询字段
+    search_content = serializers.CharField(label=_("模糊搜索内容"), required=False)
+
     # 适配原代码风格
     conditions = serializers.ListField(label=_("搜索条件"), required=False, child=serializers.DictField())
 
@@ -114,8 +117,12 @@ class QueryHostsBaseSer(PermissionSer, PaginationSer):
             "content": "query",
         }
 
+        search_condition: typing.Dict[str, str] = attrs.get("search_condition", {})
+        if "search_content" in attrs:
+            search_condition["content"] = attrs["search_content"]
+
         conditions: typing.List[types.Condition] = []
-        for key, val in attrs.get("search_condition", {}).items():
+        for key, val in search_condition.items():
             cond_key: str = search_cond_map[key]
 
             if key == "cloud_name":

@@ -57,7 +57,7 @@ class TopoHandler:
                     "meta": BaseHandler.get_meta_data(bk_biz_id),
                     "count": node.get("count", 0),
                     "child": [],
-                    "expanded": True,
+                    "lazy": False,
                 }
             )
             child_nodes = node.get("child", [])
@@ -90,7 +90,7 @@ class TopoHandler:
                     "meta": BaseHandler.get_meta_data(biz_id),
                     "child": [],
                     "count": biz_id__host_count_map.get(biz_id, 0),
-                    "expanded": False,
+                    "lazy": True,
                 }
             )
 
