@@ -126,6 +126,7 @@ class TopoHandler:
             node_paths_list.append(
                 [
                     {
+                        "meta": node["meta"],
                         "object_id": path_node["bk_obj_id"],
                         "object_name": path_node["bk_obj_name"],
                         "instance_id": path_node["bk_inst_id"],
