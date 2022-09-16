@@ -45,6 +45,12 @@ export const navConfig: INavConfig[] = [
             name: 'pluginRule',
           },
           {
+            title: 'IP选择器',
+            icon: 'nc-strategy',
+            path: '/plugin-manager/ip-selector',
+            name: 'ipSelector',
+          },
+          {
             title: '插件包',
             icon: 'nc-package-2',
             path: '/plugin-manager/package',

@@ -54,6 +54,7 @@
     }
   },
   "dependencies": {
+    "@blueking/ip-selector": "latest",
     "@blueking/paas-login": "0.0.9",
     "@icon-cool/bk-icon-node-manager": "latest",
     "axios": "0.26.1",
