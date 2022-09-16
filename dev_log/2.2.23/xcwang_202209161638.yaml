@@ -1,0 +1,3 @@
+---
+bugfix:
+  - "Windows卸载命令拼接错误 (closed #1078)"
