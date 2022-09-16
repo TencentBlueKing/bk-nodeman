@@ -608,6 +608,6 @@ class UninstallSuccessTest(InstallBaseTestCase):
                 f" -l http://127.0.0.1/download -r http://127.0.0.1/backend"
                 f" -i 0 -I {host.inner_ip} -T {installation_tool.dest_dir} -p /usr/local/gse"
                 f" -c {solution_parse_result['params']['token']} -s {mock_data_utils.JOB_TASK_PIPELINE_ID}"
-                f" -R -N SERVER &> /tmp/nm.nohup.out &",
+                f" -N SERVER -R &> /tmp/nm.nohup.out &",
             ],
         )

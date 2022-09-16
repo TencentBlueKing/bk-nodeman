@@ -213,7 +213,6 @@ class BaseExecutionSolutionMaker(metaclass=abc.ABCMeta):
             f"-p {self.agent_config['setup_path']}",
             f"-c {self.token}",
             f"-s {self.pipeline_id}",
-            "-R" if self.is_uninstall else "",
         ]
 
         # 系统开启使用密码注册 Windows 服务时，需额外传入 -U -P 参数，用于注册 Windows 服务，详见 setup_agent.bat 脚本
@@ -235,6 +234,10 @@ class BaseExecutionSolutionMaker(metaclass=abc.ABCMeta):
             run_cmd_params.extend(["-N PROXY", f"-x {self.get_http_proxy_url()}"])
         else:
             run_cmd_params.extend(["-N SERVER"])
+
+        # 因bat脚本逻辑，-R 参数只能放在最后一位
+        if self.is_uninstall:
+            run_cmd_params.extend(["-R"])
 
         return list(filter(None, run_cmd_params))
 
