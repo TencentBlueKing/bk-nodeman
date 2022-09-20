@@ -1,0 +1,3 @@
+---
+optimization:
+  - "API 在线文档在生产环境隐藏 (closed #1107)"
