@@ -44,7 +44,7 @@
         </div>
         <bk-form-item :label-width="labelWidth" class="form-btn-group">
           <bk-button class="action-btn" theme="primary" :loading="submitLoading" @click="handleFormSubmit">
-            {{ $t('执行') }}
+            {{ $t('下发配额') }}
           </bk-button>
           <bk-button class="action-btn" :disabled="submitLoading" theme="default" @click="handleFormReset(10)">
             {{ $t('还原默认') }}
