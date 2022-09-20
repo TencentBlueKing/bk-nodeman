@@ -265,14 +265,16 @@ def new_install_ip_checker(
     error_host: typing.Dict[str, typing.Dict],
     biz_info: typing.Dict[str, typing.Any],
     bk_cloud_info: typing.Dict[str, typing.Any],
+    biz_id__biz_name_map: typing.Dict[int, str],
 ) -> bool:
     """
     新装校验
     :param host_infos_gby_ip_key: 主机信息根据 IP 等关键信息聚合的结果
     :param host_info: 主机信息
     :param error_host: 错误信息
-    :param biz_info:
-    :param bk_cloud_info:
+    :param biz_info: 期望安装到的目标业务信息
+    :param bk_cloud_info: 期望安装到的云区域信息
+    :param biz_id__biz_name_map: 主机 ID - 主机名称 映射
     :return:
     """
     host_infos_with_the_same_ips: typing.List[
@@ -295,12 +297,12 @@ def new_install_ip_checker(
         error_host["msg"] = _(
             """
             该主机内网IP已存在于所选云区域：{bk_cloud_name} 下,
-            业务：{bk_biz_id},
+            业务：{bk_biz_name},
             节点类型：{node_type}
             """
         ).format(
             bk_cloud_name=bk_cloud_info.get("bk_cloud_name") or "",
-            bk_biz_id=biz_info.get(exist_host_info["bk_biz_id"], exist_host_info["bk_biz_id"]),
+            bk_biz_name=biz_id__biz_name_map.get(exist_host_info["bk_biz_id"], exist_host_info["bk_biz_id"]),
             node_type=exist_host_info["node_type"],
         )
         return False
@@ -457,6 +459,7 @@ def install_validate(
                 error_host=error_host,
                 biz_info=biz_info,
                 bk_cloud_info=bk_cloud_info,
+                biz_id__biz_name_map=biz_id__biz_name_map,
             )
 
         elif op_type not in [const.OpType.INSTALL, const.OpType.REPLACE]:
