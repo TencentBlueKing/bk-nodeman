@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+from django.conf import settings
 from django.conf.urls import include, url
 from django.contrib import admin
 from django.urls import re_path
@@ -38,10 +39,14 @@ urlpatterns = [
     url(r"^core/", include("apps.core.urls")),
     url(r"^", include("apps.node_man.urls")),
     url(r"^{}".format(config.ENTRANCE_URL), include("version_log.urls")),
-    re_path(r"^swagger(?P<format>\.json|\.yaml)$", schema_view.without_ui(cache_timeout=0), name="schema-json"),
-    re_path(r"^swagger/$", schema_view.with_ui("swagger", cache_timeout=0), name="schema-swagger-ui"),
-    re_path(r"^redoc/$", schema_view.with_ui("redoc", cache_timeout=0), name="schema-redoc"),
 ]
+
+if settings.ENVIRONMENT != "production":
+    urlpatterns += [
+        re_path(r"^swagger(?P<format>\.json|\.yaml)$", schema_view.without_ui(cache_timeout=0), name="schema-json"),
+        re_path(r"^swagger/$", schema_view.with_ui("swagger", cache_timeout=0), name="schema-swagger-ui"),
+        re_path(r"^redoc/$", schema_view.with_ui("redoc", cache_timeout=0), name="schema-redoc"),
+    ]
 
 # handler404 = 'common.error_views.error_404'
 # handler500 = 'common.error_views.error_500'
