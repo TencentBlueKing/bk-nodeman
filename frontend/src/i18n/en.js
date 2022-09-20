@@ -750,7 +750,7 @@ export default {
   停用插件: 'Disable plugin',
   重启插件: 'Restart plugin',
   重载插件: 'Reload plugin',
-  执行: 'Execute',
+  下发配额: 'Issued',
   清除所有数据: 'Clear all data',
   操作范围: 'Operating range',
   Agent状态异常: 'Agent status is abnormal',
