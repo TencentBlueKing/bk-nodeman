@@ -341,7 +341,7 @@ export default {
   远程安装: 'Remote install',
   远程安装提示: 'Need to provide login information to complete the installation remotely',
   手动安装: 'Manual install',
-  手动安装提示: 'No need to provide login information, execute the given command on the Proxy server to complete the installation',
+  手动安装提示: 'No need to provide login information, execute the given command on the server to complete the installation',
   勾选云区域的ProxyIP: 'Check the Proxy IP',
   所有云区域的ProxyIP: 'All Proxy IP',
   重装Proxy: 'Reinstall Proxy',
