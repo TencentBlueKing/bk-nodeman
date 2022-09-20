@@ -193,7 +193,7 @@
                       {{ $t('编辑') }}
                     </bk-button>
                     <bk-popover
-                      ref="popoverRefList"
+                      :ref="row['bk_host_id']"
                       theme="light agent-operate"
                       trigger="click"
                       :arrow="false"
@@ -252,7 +252,7 @@
 </template>
 
 <script lang="ts">
-import { Component, Prop, Ref, Vue, Emit } from 'vue-property-decorator';
+import { Component, Prop, Vue, Emit } from 'vue-property-decorator';
 import { CloudStore, MainStore } from '@/store';
 import { copyText } from '@/common/util';
 import ColumnSetting from '@/components/common/column-setting.vue';
@@ -275,7 +275,6 @@ export default class CloudDetailTable extends Vue {
   @Prop({ type: Number, default: -1 }) private readonly id!: number;
   @Prop({ type: String, default: '' }) private readonly bkCloudName!: string;
   @Prop({ type: Array, default: () => [] }) private readonly proxyData!: IProxyDetail[];
-  @Ref('popoverRefList') private readonly popoverRefList!: any[];
 
   // slider
   private showSlider = false;
@@ -317,6 +316,7 @@ export default class CloudDetailTable extends Vue {
     { key: 'speedLimit', value: [false, false, false, 'bt_speed_limit', this.$t('传输限速')] },
   ];
   private localMark = '_proxy';
+
   private get fontSize() {
     return MainStore.fontSize;
   }
@@ -359,7 +359,7 @@ export default class CloudDetailTable extends Vue {
   public async handleTriggerClick(id: string, row: IProxyDetail) {
     const disabled = this.getDisabledStatus(id, row);
     if (disabled) return;
-    this.popoverRefList && this.popoverRefList[row.bk_host_id] && this.popoverRefList[row.bk_host_id].instance.hide();
+    (this.$refs[row.bk_host_id] as any)?.instance?.hide?.();
     switch (id) {
       case 'uninstall':
         this.handleConfirmOperate(this.$t('确定卸载该主机'), row, 'UNINSTALL_PROXY');
@@ -371,7 +371,7 @@ export default class CloudDetailTable extends Vue {
         this.handleConfirmOperate(this.$t('确定重启选择的主机'), row, 'RESTART_PROXY');
         break;
       case 'reload':
-        this.handleConfirmOperate(this.$t('确定重载选择的主机配置'), row, this.handleReload);
+        this.handleConfirmOperate(this.$t('确认重载所选主机的配置'), row, this.handleReload);
         break;
       case 'upgrade':
         this.handleConfirmOperate(this.$t('确定升级选择的主机'), row, 'UPGRADE_PROXY');
