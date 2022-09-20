@@ -27,9 +27,18 @@ export interface IFetchNode {
 }
 
 export type IStatic = 'alive_count' | 'no_alive_count' | 'total_count';
+
 export interface IStatistics {
   [key: IStatic]: number
 }
+
+export interface IQuery {
+  start?: number
+  page_size?: number
+  search_content?: string
+  node_list: INode[]
+}
+
 
 const CustomSettingsService = {
   fetchAll: () => Promise.resolve([]),
@@ -42,6 +51,28 @@ export default {
     action: {
       type: String,
       default: 'strategy_create',
+      // type: Array,
+      // default: () => [],
+    },
+    nodeType: {
+      type: String,
+      default: 'TOPO',
+    },
+    checkedData: {
+      type: Array,
+      default: () => [],
+    },
+    previewWidth: {
+      type: String,
+      default: '',
+    },
+    height: {
+      type: String,
+      default: '',
+    },
+    customizeLimit: {
+      type: Boolean,
+      default: true,
     },
   },
   data() {
@@ -52,7 +83,7 @@ export default {
   },
   created() {
     this.instance = create({
-      panelList: ['staticTopo', 'dynamicTopo', 'manualInput'],
+      panelList: ['dynamicTopo', 'staticTopo', 'manualInput'],
       unqiuePanelValue: true,
       nameStyle: 'kebabCase', // 'camelCase' | 'kebabCase'
       fetchTopologyHostCount: this.fetchTopologyHostCount, // 拉取topology
@@ -96,11 +127,11 @@ export default {
     },
 
     // 静态拓扑 - 选中节点(根据多个拓扑节点与搜索条件批量分页查询所包含的主机信息)
-    fetchTopologyHostsNodes(node = {}) {
-      console.log('fetchTopologyHostsNodes', node);
+    fetchTopologyHostsNodes(query: IQuery) {
+      if (!query.search_content) delete query.search_content;
       return IpChooserTopo.queryHosts({
         action: this.action,
-        ...node,
+        ...query,
       });
     },
 
@@ -108,17 +139,11 @@ export default {
     fetchNodesQueryPath(node: IFetchNode): Promise<Array<INode>[]> {
       console.log('fetchNodesQueryPath', node);
       return IpChooserTopo.queryPath({ action: this.action, node_list: node.node_list });
-      // return node?.node_list.length
-      //   ? IpChooserTopo.queryPath({ action: this.action, node_list: node.node_list })
-      //   : Promise.resolve([]);
     },
     // 动态拓扑 - 勾选节点(获取多个拓扑节点的主机 Agent 状态统计信息)
     fetchHostAgentStatisticsNodes(node: IFetchNode): Promise<{ agent_statistics: IStatistics, node: INode }[]> {
       console.log('fetchHostAgentStatisticsNodes', node);
       return IpChooserTopo.agentStatistics({ action: this.action, node_list: node.node_list });
-      // return node?.node_list.length
-      //   ? IpChooserTopo.agentStatistics({ action: this.action, node_list: node.node_list })
-      //   : Promise.resolve([]);
     },
     fetchHostsDetails(node) {
       console.log('fetchHostsDetails', node);
@@ -137,17 +162,23 @@ export default {
         all_scope: true,
       });
     },
+    change(value: { [key: string]: INode[] }) {
+      this.$emit('change', value);
+    },
   },
   render(h) {
-    return h('div', [h(this.instance, {
+    return h(this.instance, {
       ref: 'ipSelector',
       props: {
         mode: 'section',
+        value: this.checkedData,
         // service: {
         //   fetchNodesQueryPath() {} // 灰度
         // }
       },
-
-    })]);
+      on: {
+        change: this.change,
+      },
+    });
   },
 };
