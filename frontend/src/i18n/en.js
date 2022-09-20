@@ -31,7 +31,6 @@ export default {
   删除成功: 'Successfully deleted',
   确定删除该云区域: 'OK to delete the cloud area?',
   业务范围: 'Business scope',
-  选择接入点: 'Access point',
   自动选择非默认接入点: 'Automatically select a non-default access point',
   自动选择接入点: 'Auto select access point',
   一级云区域: 'A cloud area',

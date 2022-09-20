@@ -34,7 +34,7 @@
         <bk-form-item
           error-display-type="normal"
           :ext-cls="apList.length > 1 ? 'content-access' : ''"
-          :label="$t('选择接入点')"
+          :label="$t('接入点')"
           required>
           <div class="bk-button-group">
             <bk-button
