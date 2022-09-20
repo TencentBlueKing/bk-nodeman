@@ -1,0 +1,3 @@
+---
+optimization:
+  - "安装 Agent 被忽略主机展示完整业务名称 (closed #1102)"
