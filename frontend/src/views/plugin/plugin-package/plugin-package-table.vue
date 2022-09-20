@@ -108,12 +108,9 @@
       </bk-table-column>
       <bk-table-column prop="colspaOpera" :width="100" :label="$t('操作')" :resizable="false">
         <template #default="{ row }">
-          <bk-popover placement="top-end" :disabled="row.is_ready">
-            <bk-button v-test="'goDeploy'" text :disabled="!row.is_ready" @click="handleDeploy(row)">
-              {{ $t('去部署') }}
-            </bk-button>
-            <span slot="content">{{ $t('插件已停用无法部署') }}</span>
-          </bk-popover>
+          <bk-button v-test="'goDeploy'" text @click="handleOperate(row)">
+            {{ row.is_ready ? $t('去部署') : $t('启用插件') }}
+          </bk-button>
         </template>
       </bk-table-column>
       <bk-table-column
@@ -129,7 +126,7 @@
 
 <script lang="tsx">
 import { Mixins, Component, Prop, Ref, Emit } from 'vue-property-decorator';
-import { MainStore } from '@/store';
+import { MainStore, PluginStore } from '@/store';
 
 import { IBkColumn, IPagination, ITabelFliter } from '@/types';
 import {  IPluginRow } from '@/types/plugin/plugin-type';
@@ -164,13 +161,20 @@ export default class PackageTable extends Mixins(HeaderRenderMixin) {
     return MainStore.windowHeight;
   }
 
-  public handleDeploy(row: IPluginRow) {
-    this.$router.push({
-      name: 'chooseRule',
-      params: {
-        defaultPluginId: row.id,
-      },
-    });
+  public async handleOperate(row: IPluginRow) {
+    if (row.is_ready) {
+      this.$router.push({
+        name: 'chooseRule',
+        params: {
+          defaultPluginId: row.id,
+        },
+      });
+    } else {
+      const result = await PluginStore.pluginStatusOperation({ operation: 'ready', id: [row.id] }).catch(() => false);
+      if (result) {
+        row.is_ready = !row.is_ready;
+      }
+    }
   }
   public handleViewPlugin(row: IPluginRow) {
     this.$router.push({
