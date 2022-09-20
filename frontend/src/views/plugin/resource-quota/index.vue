@@ -143,8 +143,8 @@ export default class ResourceQuota extends Mixins(HeaderFilterMixins) {
   public pluginListMap: any = {};
   public pluginList: any[] = [];
   public headTipsMap = {
-    cpu: this.$t('限制最高CPU使用率'),
-    mem: this.$t('限制最高内存使用率'),
+    cpu: this.$t('CPU配额tip'),
+    mem: this.$t('内存配额tip'),
   };
   // public biz: number[] = [];
   public hasBizAuth = true;

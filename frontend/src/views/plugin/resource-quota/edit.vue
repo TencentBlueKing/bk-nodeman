@@ -14,10 +14,10 @@
             <span>{{ $t('插件名称') }}</span>
           </div>
           <div class="form-head-item">
-            <span class="text-underline-dashed" v-bk-tooltips="$t('限制最高CPU使用率')">{{ $t('CPU配额') }}</span>
+            <span class="text-underline-dashed" v-bk-tooltips="$t('CPU配额tip')">{{ $t('CPU配额') }}</span>
           </div>
           <div class="form-head-item">
-            <span class="text-underline-dashed" v-bk-tooltips="$t('限制最高内存使用率')">{{ $t('内存配额') }}</span>
+            <span class="text-underline-dashed" v-bk-tooltips="$t('内存配额tip')">{{ $t('内存配额') }}</span>
           </div>
         </div>
         <div class="form-horizontal-item" v-for="item in pluginList" :key="item.plugin_name">

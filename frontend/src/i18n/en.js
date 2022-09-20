@@ -1016,13 +1016,13 @@ export default {
 
   // 资源配额
   资源配额: 'Resource quota',
-  限制最高CPU使用率: 'Limit maximum CPU usage',
-  限制最高内存使用率: 'Limit maximum memory usage',
   '业务：': 'Biz：',
   请输入关键词: '请输入关键词',
   总数运行中异常: 'Total / running / abnormal',
   CPU配额: 'CPU quota',
   内存配额: 'Memory quota',
+  CPU配额tip: 'Percentage of CPU usage limit of each plugin (total percentage, non-single-core percentage)',
+  内存配额tip: 'Percentage of memory usage cap per plugin',
   编辑资源配额: 'Edit resource quota',
   还原默认: 'Reset',
   CPU配额及单位: 'CPU quota(%)',
