@@ -121,14 +121,16 @@ class CloudHandler(APIModel):
         # 获得同一云区域下的Proxy内网IP
         cloud_proxies = {}
         proxies_cloud_ip = Host.objects.filter(node_type=const.NodeType.PROXY).values(
-            "bk_cloud_id", "inner_ip", "outer_ip"
+            "bk_cloud_id", "inner_ip", "outer_ip", "bk_host_id"
         )
         for proxy in proxies_cloud_ip:
             if proxy["bk_cloud_id"] not in cloud_proxies:
-                cloud_proxies[proxy["bk_cloud_id"]] = [{"inner_ip": proxy["inner_ip"], "outer_ip": proxy["outer_ip"]}]
+                cloud_proxies[proxy["bk_cloud_id"]] = [
+                    {"inner_ip": proxy["inner_ip"], "outer_ip": proxy["outer_ip"], "bk_host_id": proxy["bk_host_id"]}
+                ]
             else:
                 cloud_proxies[proxy["bk_cloud_id"]].append(
-                    {"inner_ip": proxy["inner_ip"], "outer_ip": proxy["outer_ip"]}
+                    {"inner_ip": proxy["inner_ip"], "outer_ip": proxy["outer_ip"], "bk_host_id": proxy["bk_host_id"]}
                 )
 
         # 获得接入点名称
@@ -181,6 +183,16 @@ class CloudHandler(APIModel):
                 "edit": cloud["bk_cloud_id"] in edit_perm,
                 "delete": cloud["bk_cloud_id"] in delete_perm,
             }
+            # 统计存活的 Proxy 数量
+            alive_proxies = []
+            for proxy_info in cloud_proxies.get(cloud["bk_cloud_id"]) or []:
+                if (
+                    process_status.get(proxy_info["bk_host_id"], const.ProcStateType.UNKNOWN)
+                    == const.ProcStateType.RUNNING
+                ):
+                    alive_proxies.append(proxy_info)
+            cloud["alive_proxy_count"] = len(alive_proxies)
+
         return clouds
 
     def create(self, params: dict, username: str):
