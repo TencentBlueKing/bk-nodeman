@@ -199,7 +199,7 @@ export default {
   错误: 'Error',
   检测网络连通性: 'Using telnet <IP> <PORT> to confirm that the port on',
   确定重启选择的主机: 'OK to restart the host selected?',
-  确定重载选择的主机配置: 'OK to reload the host selected?',
+  确认重载所选主机的配置: 'OK to reload the host selected?',
   重启成功: 'Successful reload',
   蓝鲸版权: 'Copyright © 2012- {year} Tencent BlueKing. All Rights Reserved. {version}',
   确定重装选择的主机: 'Confirm to reinstall the hosts selected?',
@@ -244,7 +244,7 @@ export default {
   云区域详情: 'Cloud area details',
   升级: 'Upgrade',
   升级Agent: 'Upgrade Agent',
-  确定升级选择的主机: 'Determine upgrade selected host',
+  确定升级选择的主机: 'Determine upgrade selected host?',
   请确认是否批量重启: 'Confirm if the bulk restart',
   请确认是否重启: 'Confirm restart', // Confirm to remove the host selected
   单条确认重启提示: 'Confirm restart {ip} of Agent?',
