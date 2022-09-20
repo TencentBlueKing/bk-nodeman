@@ -1,0 +1,3 @@
+---
+optimization:
+  - "插件包 表格列展示不全时提供tooltips (closed #1086)"
