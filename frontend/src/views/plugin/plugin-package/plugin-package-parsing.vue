@@ -22,30 +22,26 @@
       <bk-table-column type="selection" width="60" :selectable="handleSelectable" />
       <bk-table-column :label="$t('包名称')" prop="pkg_name" sortable show-overflow-tooltip />
       <bk-table-column :label="$t('插件名称')" prop="project" sortable show-overflow-tooltip />
-      <bk-table-column :label="$t('开发商')" prop="category" sortable :resizable="false" />
+      <bk-table-column :label="$t('开发商')" prop="category" sortable :resizable="false" show-overflow-tooltip />
       <bk-table-column :label="$t('主程序版本')" prop="version" sortable :resizable="false" />
       <bk-table-column :label="$t('主配置版本')" prop="mainConfigVersion" :resizable="false" />
       <bk-table-column :label="$t('子配置版本')" class-name="config-cell">
         <template #default="{ row }">
           <ul class="config-list" v-if="row.childConfigTemplates && row.childConfigTemplates.length">
-            <li
-              class="config-item"
-              v-for="(config, index) in row.childConfigTemplates"
-              :key="index"
-              :title="config.name">
-              <span class="config-item-name">{{ config.name }}</span>
+            <li class="config-item" v-for="(config, index) in row.childConfigTemplates" :key="index">
+              <span class="config-item-name" v-bk-overflow-tips>{{ config.name }}</span>
               <span class="ml10 config-item-version">{{ config.version }}</span>
             </li>
           </ul>
           <span v-else>--</span>
         </template>
       </bk-table-column>
-      <bk-table-column :label="$t('支持系统')" prop="cpu_arch" :resizable="false">
+      <bk-table-column :label="$t('支持系统')" prop="cpu_arch" :resizable="false" show-overflow-tooltip>
         <template #default="{ row }">
           <span>{{ `${osMap[row.os]} ${row.cpu_arch}` || '--' }}</span>
         </template>
       </bk-table-column>
-      <bk-table-column :label="$t('插件描述')" prop="description" :resizable="false" />
+      <bk-table-column :label="$t('插件描述')" prop="description" :resizable="false" show-overflow-tooltip />
       <bk-table-column :label="$t('解析结果')" prop="message" min-width="200" show-overflow-tooltip>
         <template #default="{ row }">
           <div class="col-execution">

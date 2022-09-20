@@ -9,12 +9,11 @@
       :span-method="colspanHandle"
       @page-change="handlePageChange"
       @page-limit-change="handleLimitChange">
-      <bk-table-column :label="$t('插件别名')" sortable :resizable="false">
+      <bk-table-column :label="$t('插件别名')" sortable :resizable="false" show-overflow-tooltip>
         <template #default="{ row }">
           <auth-component
             class="alias-text-btn"
             v-test="'viewPlugin'"
-            :title="row.description"
             :authorized="row.permissions.operate"
             :apply-info="[{
               action: 'plugin_pkg_operate',
@@ -26,7 +25,7 @@
           </auth-component>
         </template>
       </bk-table-column>
-      <bk-table-column :label="$t('插件名称')" prop="name" sortable :resizable="false"></bk-table-column>
+      <bk-table-column :label="$t('插件名称')" prop="name" sortable :resizable="false" show-overflow-tooltip />
       <bk-table-column
         v-if="getColumnShowStatus('category')"
         :label="$t('开发商')"
@@ -77,12 +76,11 @@
         v-if="getColumnShowStatus('scenario')"
         :label="$t('插件描述')"
         prop="scenario"
+        show-overflow-tooltip
         min-width="120"
         :resizable="false">
         <template #default="{ row }">
-          <span :title="row.scenario">
-            {{ row.scenario | filterEmpty }}
-          </span>
+          {{ row.scenario | filterEmpty }}
         </template>
       </bk-table-column>
       <bk-table-column
