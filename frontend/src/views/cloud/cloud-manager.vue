@@ -141,9 +141,9 @@
             </template>
           </bk-table-column>
           <bk-table-column
-            :label="$t('Proxy数量')"
-            width="110"
-            prop="proxyCount"
+            :label="$t('可用Proxy数量')"
+            width="140"
+            prop="aliveProxyCount"
             align="right"
             :resizable="false"
             sortable="custom">
@@ -160,7 +160,7 @@
                     instance_name: row.bkCloudName
                   }]">
                   <template slot-scope="{ disabled }">
-                    <bk-popover width="240" placement="top" :disabled="row.proxyCount !== 1">
+                    <bk-popover width="240" placement="top" :disabled="row.aliveProxyCount > 1">
                       <bk-button
                         ext-cls="col-btn"
                         theme="primary"
@@ -168,11 +168,13 @@
                         :disabled="disabled"
                         v-test="'viewDetail'"
                         @click="handleGotoDetail(row)">
-                        {{ row.proxyCount }}
-                        <span v-if="row.proxyCount === 1" class="count-warning-text">!</span>
+                        {{ row.aliveProxyCount }}
+                        <span
+                          v-if="row.aliveProxyCount < 2"
+                          :class="`count-icon ${row.aliveProxyCount === 1 ? 'warning' : 'danger'}`">!</span>
                       </bk-button>
                       <div slot="content">
-                        {{ $t('proxy数量提示') }}
+                        {{ !row.aliveProxyCount ? $t('proxy数量提示0') : $t('proxy数量提示') }}
                       </div>
                     </bk-popover>
                   </template>
@@ -295,6 +297,7 @@
     </section>
   </article>
 </template>
+
 <script lang="ts">
 import { Vue, Component, Prop, Ref } from 'vue-property-decorator';
 import { MainStore, CloudStore } from '@/store/index';
@@ -425,23 +428,19 @@ export default class CloudManager extends Vue {
   public async handleInit() {
     this.loading = true;
     const promiseAll = [CloudStore.getCloudList(), CloudStore.getChannelList()];
-    const [data, channelList] = await Promise.all(promiseAll);
-    let sortPrev: any[] = [];
-    let sortNext: any[] = [];
-    let sortData: any[] = [];
-    // 第一优先：未安装 proxy， 第二优先：字母顺序
+    const res = await Promise.all(promiseAll);
+    const data = res[0] as ICloud[];
+    const channelList = res[1];
+    let sortData: ICloud[] = [];
+    let enableData: ICloud[] = [...data];
+    let disableData: ICloud[] = [];
+    // 一类分类
     if (this.permissionSwitch) {
-      data.sort((a: any, b: any) => Number(b.view) - Number(a.view));
+      enableData = data.filter(item => item.view);
+      disableData = this.cloudSecondSort(data.filter(item => !item.view));
     }
-    sortPrev = data.filter((item: any) => item.view);
-    sortNext = data.filter((item: any) => !item.view);
-    sortData = [...sortPrev, ...sortData];
-    sortPrev = sortData.filter(item => !item.proxyCount);
-    sortNext = sortData.filter(item => item.proxyCount);
-
-    sort(sortPrev, 'bkCloudName');
-    sort(sortNext, 'bkCloudName');
-    sortData = [...sortPrev, ...sortNext];
+    enableData = this.cloudSecondSort(enableData);
+    sortData = [...enableData, ...disableData];
     // 留下一份基础排序的数据, 后续优化均从此数据上二次排序
     this.table.list = sortData.map((item: ICloud) => {
       const children: Dictionary[] = [
@@ -461,6 +460,21 @@ export default class CloudManager extends Vue {
     });
     this.handleSearch();
     this.loading = false;
+  }
+  /**
+   * 二类分类 & 排序
+   * 分类   一类：有无权限; 二类：未安装、0个可用、1个可用、n个可用    PS: alive_proxy_count可用数量
+   * 规则   一类 > 二类 + 字母排序
+   */
+  public cloudSecondSort(data: ICloud[]) {
+    const notInstalledList = data.filter(item => !item.proxyCount);
+    const unavailableList = data.filter(item => item.proxyCount && !item.aliveProxyCount);
+    const onlyOneList = data.filter(item => item.aliveProxyCount === 1);
+    const multipleList = data.filter(item => item.aliveProxyCount > 1);
+    [notInstalledList, unavailableList, onlyOneList, multipleList].forEach((list) => {
+      sort(list, 'bkCloudName');
+    });
+    return [...notInstalledList, ...unavailableList, ...onlyOneList, ...multipleList];
   }
   /**
    * 前端搜索
@@ -734,9 +748,14 @@ export default class CloudManager extends Vue {
   }
   .col-btn {
     padding: 0;
-    .count-warning-text {
+    .count-icon {
       font-weight: 600;
-      color: #ff9c01;
+      &.warning {
+        color: #ff9c01;
+      }
+      &.danger {
+        color: #ea3636;
+      }
     }
   }
   .text-btn {
