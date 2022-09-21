@@ -946,7 +946,7 @@ class CommonExecutionSolutionType(EnhanceEnum):
 
     @classmethod
     def _get_member__alias_map(cls) -> Dict[Enum, str]:
-        return {cls.BATCH: _("Windows 批处理脚本"), cls.SHELL: _("Unix-like shell")}
+        return {cls.BATCH: _("Windows 批处理脚本"), cls.SHELL: _("bash")}
 
 
 class CommonExecutionSolutionStepType(EnhanceEnum):
