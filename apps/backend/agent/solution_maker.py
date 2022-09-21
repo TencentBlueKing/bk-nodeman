@@ -140,6 +140,9 @@ class BaseExecutionSolutionMaker(metaclass=abc.ABCMeta):
             jump_server_port=settings.BK_NODEMAN_NGINX_PROXY_PASS_PORT,
         )
 
+    def get_setup_type_alias(self):
+        return _("卸载") if self.is_uninstall else _("安装")
+
     def get_package_url(self) -> str:
         if ExecutionSolutionTools.need_jump_server(self.host):
             return "http://{jump_server_lan_ip}:{proxy_nginx_pass_port}".format(
@@ -414,13 +417,14 @@ class ShellExecutionSolutionMaker(BaseExecutionSolutionMaker):
             options_value_inside_quotes=["-e", "-a", "-k", "-P"],
         )
 
-        solution_description: str = _("通过 {solution_type_alias} 进行安装").format(
+        solution_description: str = _("通过 {solution_type_alias} 进行{setup_type_alias}").format(
             solution_type_alias=constants.CommonExecutionSolutionType.get_member_value__alias_map()[
                 constants.CommonExecutionSolutionType.SHELL.value
-            ]
+            ],
+            setup_type_alias=self.get_setup_type_alias(),
         )
         if self.host.os_type == constants.OsType.WINDOWS:
-            solution_description: str = _("{solution_description}（若目标机器已安装 Cygwin，推荐通过该方案安装，否则请使用【{batch}】方案）").format(
+            solution_description: str = _("{solution_description}（若目标机器已安装 Cygwin，推荐使用该方案，否则请使用【{batch}】方案）").format(
                 solution_description=solution_description, batch=constants.CommonExecutionSolutionType.BATCH.value
             )
 
@@ -456,12 +460,16 @@ class ShellExecutionSolutionMaker(BaseExecutionSolutionMaker):
         execution_solution.steps.append(
             ExecutionSolutionStep(
                 step_type=constants.CommonExecutionSolutionStepType.COMMANDS.value,
-                description=str(_("下载安装脚本并赋予执行权限")),
+                description=str(
+                    _("下载{setup_type_alias}脚本并赋予执行权限").format(setup_type_alias=self.get_setup_type_alias())
+                ),
                 contents=[
                     ExecutionSolutionStepContent(
                         name="download_cmd",
                         text=cmd_name__cmd_map["download_cmd"],
-                        description=str(_("下载安装脚本")),
+                        description=str(
+                            _("下载{setup_type_alias}脚本").format(setup_type_alias=self.get_setup_type_alias())
+                        ),
                         show_description=False,
                     ),
                     ExecutionSolutionStepContent(
@@ -478,12 +486,14 @@ class ShellExecutionSolutionMaker(BaseExecutionSolutionMaker):
         execution_solution.steps.append(
             ExecutionSolutionStep(
                 step_type=constants.CommonExecutionSolutionStepType.COMMANDS.value,
-                description=str(_("执行安装脚本")),
+                description=str(_("执行{setup_type_alias}脚本").format(setup_type_alias=self.get_setup_type_alias())),
                 contents=[
                     ExecutionSolutionStepContent(
                         name="run_cmd",
                         text=cmd_name__cmd_map["run_cmd"],
-                        description=str(_("执行安装脚本")),
+                        description=str(
+                            _("执行{setup_type_alias}脚本").format(setup_type_alias=self.get_setup_type_alias())
+                        ),
                         show_description=False,
                     ),
                 ],
@@ -522,13 +532,19 @@ class BatchExecutionSolutionMaker(BaseExecutionSolutionMaker):
 
         run_cmds_step: ExecutionSolutionStep = ExecutionSolutionStep(
             step_type=constants.CommonExecutionSolutionStepType.COMMANDS.value,
-            description=str(_("执行安装命令")),
+            description=str(_("执行{setup_type_alias}命令").format(setup_type_alias=self.get_setup_type_alias())),
             contents=[
                 ExecutionSolutionStepContent(
-                    name="download_cmd", text=download_cmd, description=str(_("下载安装脚本")), show_description=False
+                    name="download_cmd",
+                    text=download_cmd,
+                    description=str(_("下载{setup_type_alias}脚本").format(setup_type_alias=self.get_setup_type_alias())),
+                    show_description=False,
                 ),
                 ExecutionSolutionStepContent(
-                    name="run_cmd", text=run_cmd, description=str(_("执行安装脚本")), show_description=False
+                    name="run_cmd",
+                    text=run_cmd,
+                    description=str(_("执行{setup_type_alias}脚本").format(setup_type_alias=self.get_setup_type_alias())),
+                    show_description=False,
                 ),
             ],
         )
@@ -536,10 +552,11 @@ class BatchExecutionSolutionMaker(BaseExecutionSolutionMaker):
         return ExecutionSolution(
             solution_type=constants.CommonExecutionSolutionType.BATCH.value,
             description=str(
-                _("通过 {solution_type_alias} 进行安装").format(
+                _("通过 {solution_type_alias} 进行{setup_type_alias}").format(
                     solution_type_alias=constants.CommonExecutionSolutionType.get_member_value__alias_map()[
                         constants.CommonExecutionSolutionType.BATCH.value
-                    ]
+                    ],
+                    setup_type_alias=self.get_setup_type_alias(),
                 )
             ),
             steps=[create_pre_dirs_step, dependencies_step, run_cmds_step],
@@ -619,10 +636,15 @@ class ProxyExecutionSolutionMaker(BaseExecutionSolutionMaker):
             solution_steps.append(
                 ExecutionSolutionStep(
                     step_type=constants.CommonExecutionSolutionStepType.COMMANDS.value,
-                    description=str(_("下载安装脚本")),
+                    description=str(_("下载{setup_type_alias}脚本").format(setup_type_alias=self.get_setup_type_alias())),
                     contents=[
                         ExecutionSolutionStepContent(
-                            name="download_cmd", text=download_cmd, description=str(_("下载安装脚本")), show_description=False
+                            name="download_cmd",
+                            text=download_cmd,
+                            description=str(
+                                _("下载{setup_type_alias}脚本").format(setup_type_alias=self.get_setup_type_alias())
+                            ),
+                            show_description=False,
                         )
                     ],
                 )
@@ -659,12 +681,14 @@ class ProxyExecutionSolutionMaker(BaseExecutionSolutionMaker):
         solution_steps.append(
             ExecutionSolutionStep(
                 step_type=constants.CommonExecutionSolutionStepType.COMMANDS.value,
-                description=str(_("执行安装脚本")),
+                description=str(_("执行{setup_type_alias}脚本").format(setup_type_alias=self.get_setup_type_alias())),
                 contents=[
                     ExecutionSolutionStepContent(
                         name="run_cmd",
                         text=" ".join(run_cmd_params),
-                        description=str(_("执行安装脚本")),
+                        description=str(
+                            _("执行{setup_type_alias}脚本").format(setup_type_alias=self.get_setup_type_alias())
+                        ),
                         show_description=False,
                     )
                 ],
@@ -674,10 +698,11 @@ class ProxyExecutionSolutionMaker(BaseExecutionSolutionMaker):
         return ExecutionSolution(
             solution_type=constants.CommonExecutionSolutionType.SHELL.value,
             description=str(
-                _("通过 {solution_type_alias} 在代理上进行安装").format(
+                _("通过 {solution_type_alias} 在代理上进行{setup_type_alias}").format(
                     solution_type_alias=constants.CommonExecutionSolutionType.get_member_value__alias_map()[
                         constants.CommonExecutionSolutionType.SHELL.value
-                    ]
+                    ],
+                    setup_type_alias=self.get_setup_type_alias(),
                 )
             ),
             steps=solution_steps,
