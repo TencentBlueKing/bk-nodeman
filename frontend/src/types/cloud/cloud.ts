@@ -39,6 +39,7 @@ export interface ICloud {
   view?: boolean
   edit?: boolean
   delete?: boolean
+  aliveProxyCount: number
 }
 export interface ICloudSource {
   ap_id: number
