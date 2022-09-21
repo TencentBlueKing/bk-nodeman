@@ -846,6 +846,12 @@ class SubscriptionViewSet(APIViewSet):
                 constants.JobType.MAIN_START_PLUGIN,
             ]:
                 continue
+
+            if host.os_type == constants.OsType.WINDOWS:
+                install_path = proc_status.get("setup_path", "").replace("/", "\\")
+            else:
+                install_path = proc_status.get("setup_path")
+
             operate_records.append(
                 {
                     "name": subscription["name"],
@@ -854,7 +860,7 @@ class SubscriptionViewSet(APIViewSet):
                     "auto_trigger": subscription["enable"],
                     # 填充进程信息
                     "version": proc_status.get("version"),
-                    "install_path": proc_status.get("setup_path"),
+                    "install_path": install_path,
                     "is_latest": proc_status.get("is_latest"),
                     # 任务执行情况
                     "status": sub_record["status"],
