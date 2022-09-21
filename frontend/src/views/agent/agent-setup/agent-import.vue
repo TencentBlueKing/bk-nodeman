@@ -2,11 +2,11 @@
   <article class="agent-setup" v-bkloading="{ isLoading: loading }">
     <!--左侧表单信息-->
     <section class="agent-setup-left" ref="setupContent">
-      <tips class="mb20">
+      <tips class="mb20" v-if="!showSetupBtn || showSetupTips">
         <template #default>
           <ul>
             <li v-if="!showSetupBtn" class="tips-content-item">{{ importTips }}</li>
-            <li class="tips-content-item" v-if="showSetupBtn">
+            <li class="tips-content-item" v-if="showSetupTips">
               {{ $t('安装要求tips', { type: 'Agent' }) }}
               <bk-link class="tips-link" theme="primary" @click="handleShowPanel">{{ $t('安装要求') }}</bk-link>
               {{ $t('表格展示设置tips') }}
@@ -197,18 +197,22 @@ export default class AgentImport extends Mixins(mixin) {
   private get isInstallType() {
     return ['INSTALL_AGENT', 'REINSTALL_AGENT'].includes(this.type);
   }
+  private get showSetupTips() {
+    return this.showSetupBtn && this.isInstallType;
+  }
   // 剩余高度
   private get surplusHeight() {
-    let height = 179; // 以下条件可能并列出现
-    // tips的行高
-    height += 37;
-    // 全部过滤提示的行高
+    let height = 60; // 以下条件可能并列出现
     if (this.filterList.length && this.showFilterTips) {
       height += 52;
     }
-    // 安装类型的行高
-    if (this.showSetupBtn && this.isInstallType) {
+    // 底部btn高
+    if (this.showSetupBtn) {
       height += 94;
+    }
+    // 安装类型的行高
+    if (this.isInstallType) {
+      height += 156;
     }
     return height;
   }
