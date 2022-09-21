@@ -187,7 +187,7 @@ export default class AgentSetup extends Mixins(mixin, formLabelMixin) {
   private isManual = false;
   // 表单数据
   private formData: IAgent = {
-    bk_biz_id: '',
+    bk_biz_id: MainStore.selectedBiz.length === 1 ? MainStore.selectedBiz[0] : '',
     bk_cloud_id: '',
     install_channel_id: '',
     ap_id: '',
@@ -230,6 +230,9 @@ export default class AgentSetup extends Mixins(mixin, formLabelMixin) {
 
   private get permissionSwitch() {
     return MainStore.permissionSwitch;
+  }
+  private get selectedBiz() {
+    return MainStore.selectedBiz;
   }
   // 当前云区域列表
   private get bkCloudList() {

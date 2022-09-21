@@ -1,0 +1,3 @@
+---
+optimization:
+  - "安装agent默认为已选择的单个业务 (closed #1095)"
