@@ -199,7 +199,7 @@
             :loading="executeLoading"
             :disabled="executeBtnDisabled"
             @click="handleExec">
-            {{ $t('立即执行') }}
+            {{ isSaveType ? $t('保存并执行') : $t('立即执行') }}
           </bk-button>
           <template #content>{{ $t('当前没有可操作的主机') }}</template>
         </bk-popover>
@@ -246,7 +246,7 @@ import HeaderFilterMixins from '@/components/common/header-filter-mixins';
 import Tips from '@/components/common/tips.vue';
 import ExceptionCard from '@/components/exception/exception-card.vue';
 import {
-  pluginOperate, previewOperate, manualNotSteps, policyUpdateType, policyOperateType, notCalculate,
+  pluginOperate, previewOperate, manualNotSteps, policyUpdateType, policyOperateType, notCalculate, saveType,
 } from '@/views/plugin/operateConfig';
 
 /**
@@ -437,6 +437,9 @@ export default class PerformPreview extends Mixins(HeaderRenderMixin, HeaderFilt
       return this.showTips ? 300 : 260;
     }
     return this.showTips ? 350 : 300;
+  }
+  private get isSaveType() {
+    return saveType.includes(this.jobType);
   }
 
   @Emit('step-change')

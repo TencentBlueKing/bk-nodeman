@@ -678,6 +678,7 @@ export default {
   '增量更新(仅覆盖)': 'Incremental update (overwrite only)',
   '覆盖更新(先删除原目录后覆盖)': 'Overwrite update (delete the original directory first and then overwrite it)',
   立即执行: 'Execute immediately',
+  保存并执行: 'Save and execute',
   请联系运维: 'Please contact O & M',
   '将插件包上传到中控机的/data/src/目录并解压': 'Upload the plugin package to the / data / src / directory on the central control machine and decompress it',
   '然后执行./bkeec(或bkcec) pack gse_plugin 更新插件信息到/data/src下': 'Then execute ./bkeec (or bkcec) pack gse_plugin to update the plugin information to / data / src',
