@@ -1058,7 +1058,8 @@ export default {
   近1年: 'Nearly 1 year',
   总数成功失败忽略: 'Total/Success/Failure/Ignore',
   目标主机lower: 'target host',
-  在目标主机通过安装: 'To install from the {0} on the target host:',
+  在目标主机通过: 'To {1} from the {0} on the target host:',
+  操作方式: '{0} method',
 
   // form-check
   正常输入内容校验: 'Chinese and English, numbers, hyphens and underscores with a length not exceeding {0}',

@@ -228,7 +228,8 @@ export default class TaskDeatailTable extends Mixins(HeaderRenderMixin) {
       this.slider.isSingle = true;
       this.slider.row = row;
       this.slider.show = true;
-      this.slider.opType = row.opTypeDisplay;
+      this.slider.opType = row.opType;
+      this.slider.opTypeDisplay = row.opTypeDisplay;
       // if (row) {
       if (this.operateHost === 'Proxy') {
         this.slider.hostType = this.operateHost;
