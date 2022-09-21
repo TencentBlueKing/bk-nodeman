@@ -27,6 +27,8 @@ export const pluginOperate = [
   'MAIN_DELEGATE_PLUGIN',
   'MAIN_UNDELEGATE_PLUGIN',
 ];
+// 保存并执行(button文案)
+export const saveType = [...policyUpdateType, 'createGray', 'editGray'];
 // 全部类型
 export const allProcessType = [...policyRuleType, ...grayRuleType, ...policyOperateType];
 
