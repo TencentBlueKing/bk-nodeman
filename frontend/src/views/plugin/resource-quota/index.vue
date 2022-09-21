@@ -105,6 +105,7 @@ import { debounce } from '@/common/util';
 import ExceptionPage from '@/components/exception/exception-page.vue';
 import ExceptionCard from '@/components/exception/exception-card.vue';
 import { bus } from '@/common/bus';
+import { Route } from 'vue-router';
 
 interface ITreeNode {
   id: number
@@ -119,8 +120,12 @@ interface ITreeNode {
   parent: ITreeNode
 }
 
+Component.registerHooks([
+  'beforeRouteLeave',
+]);
+
 @Component({
-  name: 'resource-quota',
+  name: 'resourceQuota',
   components: {
     ResourceTree,
     TableHeader,
@@ -202,6 +207,15 @@ export default class ResourceQuota extends Mixins(HeaderFilterMixins) {
   }
   private async mounted() {
     this.replaceBizAndModule();
+  }
+  // 进入详情页才缓存界面
+  private beforeRouteLeave(to: Route, from: Route, next: () => void) {
+    if (to.name === 'resourceQuotaEdit') {
+      MainStore.addCachedViews(from);
+    } else {
+      MainStore.deleteCachedViews(from);
+    }
+    next();
   }
 
   /**
