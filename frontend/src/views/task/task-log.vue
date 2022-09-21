@@ -305,6 +305,7 @@ export default {
         isSingle: false,
         hostType: '',
         opType: '',
+        opTypeDisplay: '',
         row: {},
       },
     };
@@ -916,7 +917,8 @@ export default {
         } else {
           this.slider.hostType = curHost.bkCloudId === window.PROJECT_CONFIG.DEFAULT_CLOUD ? 'Agent' : 'Pagent';
         }
-        this.slider.opType = curHost.opTypeDisplay;
+        this.slider.opType = curHost.opType;
+        this.slider.opTypeDisplay = curHost.opTypeDisplay;
         this.slider.isSingle = true;
         this.slider.row = curHost;
         this.slider.show = true;

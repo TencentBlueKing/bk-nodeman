@@ -5,13 +5,13 @@
     quick-close
     :width="960"
     :is-show="show"
-    :title="$t('手动操作sliderTitle', [slider.opType, slider.row.ip])"
+    :title="$t('手动操作sliderTitle', [slider.opTypeDisplay, slider.row.ip])"
     :before-close="handleHidden">
     <div slot="content" class="commands-wrapper" v-bkloading="{ isLoading: commandLoading }">
       <div class="command-tab">
         <div class="command-tab-head">
           <div :class="['step', { active: tabActive === 'operate' }]" @click="tabActive = 'operate'">
-            <div class="step-content">{{ $t('手动操作sliderTitle', [slider.opType, slider.hostType]) }}</div>
+            <div class="step-content">{{ $t('手动操作sliderTitle', [slider.opTypeDisplay, slider.hostType]) }}</div>
           </div>
           <div :class="['step', { active: tabActive === 'net' }]" @click="tabActive = 'net'">
             <div class="step-content">{{ $t('网络开通策略') }}</div>
@@ -27,7 +27,7 @@
           </StrategyTemplate>
           <div class="operate-content" v-else>
             <div v-if="!commandError">
-              <p class="step-title">{{ $t('安装方式') }}:</p>
+              <p class="step-title">{{ $t('操作方式', [slider.opTypeDisplay]) }}:</p>
               <div class="mb30 tag-wrapper">
                 <div class="tag-group">
                   <template v-for="(command, index) in commandData">
@@ -44,7 +44,7 @@
               </div>
               <section v-for="(command, index) in commandData" :key="index">
                 <template v-if="command.type === commandType">
-                  <p class="step-title">{{ $t('在目标主机通过安装', [commandType]) }}:</p>
+                  <p class="step-title">{{ $t('在目标主机通过', [commandType, slider.opTypeDisplay]) }}</p>
                   <div class="bk-steps bk-steps-vertical bk-steps-dashed bk-steps-primary custom-icon">
                     <div class="bk-step current" v-for="(step, stepIndex) in command.steps" :key="stepIndex">
                       <span class="bk-step-indicator bk-step-number">
@@ -170,7 +170,7 @@ export default class TaskDetailSlider extends Vue {
       this.commandLoading = true;
       const res = await TaskStore.requestCommands({
         jobId: this.taskId as number,
-        params: { bk_host_id: row.bkHostId },
+        params: Object.assign({ bk_host_id: row.bkHostId }, this.slider.opType === 'UNINSTALL' ? { is_uninstall: true } : {}),
       });
       if (res) {
         this.commandData = res.solutions || [];
