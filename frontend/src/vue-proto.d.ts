@@ -61,5 +61,6 @@ interface Location {
 declare module 'vue-router' {
   export default class VueRouter {
     public push (location: RawLocation, onComplete?: Function, onAbort?: ErrorHandler): void
+    public replace(location: RawLocation, onComplete?: Function | undefined, onAbort?: ErrorHandler | undefined): void
   }
 }

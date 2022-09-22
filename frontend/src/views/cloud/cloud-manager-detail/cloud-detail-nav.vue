@@ -32,29 +32,33 @@
               class="list-item"
               :class="{ 'is-selected': item.bkCloudId === id, 'auth-disabled': disabled }"
               @click="handleAreaChange(item)">
-              <span v-bk-tooltips="{
+              <!-- <span v-bk-tooltips="{
                 content: $t('存在异常Proxy'),
                 placement: 'top',
                 delay: [200, 0]
               }" v-if="item.exception === 'abnormal'" class="col-status">
                 <span class="status-mark status-terminated"></span>
-              </span>
+              </span> -->
               <span class="list-item-name">{{ item.bkCloudName }}</span>
-              <span v-bk-tooltips="{
-                content: $t('未安装Proxy'),
-                placement: 'top',
-                delay: [200, 0]
-              }" v-if="!item.proxyCount" class="list-item-text error-text">
-                !
-              </span>
-              <span v-bk-tooltips="{
-                content: $t('proxy数量提示'),
-                placement: 'top',
-                width: 220,
-                delay: [200, 0]
-              }" v-if="item.proxyCount === 1" class="list-item-text warning-text">
-                !
-              </span>
+              <template v-if="item.proxyCount">
+                <span
+                  v-if="item.aliveProxyCount < 2"
+                  :class="`list-item-text ${item.aliveProxyCount === 1 ? 'warning-text' : 'error-text'}`"
+                  v-bk-tooltips="{
+                    content: !item.aliveProxyCount ? $t('proxy数量提示0') : $t('proxy数量提示'),
+                    placement: 'top',
+                    width: 220,
+                    delay: [200, 0]
+                  }">!</span>
+              </template>
+              <span
+                v-else
+                class="list-item-text error-text"
+                v-bk-tooltips="{
+                  content: $t('未安装Proxy'),
+                  placement: 'top',
+                  delay: [200, 0]
+                }">!</span>
             </div>
           </template>
         </auth-component>
@@ -67,11 +71,12 @@ import { Component, Prop, Vue, Ref } from 'vue-property-decorator';
 import { MainStore, CloudStore } from '@/store/index';
 import { debounce } from '@/common/util';
 import { ICloud } from '@/types/cloud/cloud';
+import { cloudSort } from '../config/cloud-common';
 
 @Component({ name: 'CloudDetailNav' })
 export default class CloudDetailSide extends Vue {
   @Prop({ type: Number, default: -1 }) private readonly id!: number; // 当前选中的云区域
-  @Prop({ type: Boolean, default: true }) private readonly isFirst!: boolean; // 是否是首次加载
+  @Prop({ type: Boolean, default: false }) private readonly loaded!: boolean; // 是否是首次加载
   @Prop({ type: String, default: '' }) private readonly search!: '';
 
   @Ref('leftList') private readonly leftList!: any;
@@ -93,8 +98,7 @@ export default class CloudDetailSide extends Vue {
     offset: 0, // 上一次滚动的位置
   };
   private loading = false;
-  // 左侧列表加载状态
-  private firstLoad =  this.isFirst;
+  private firstLoad = true;
 
   private get permissionSwitch() {
     return MainStore.permissionSwitch;
@@ -129,10 +133,11 @@ export default class CloudDetailSide extends Vue {
     this.loading = true;
     const params: Dictionary = {};
     let list = [];
-    if (!this.firstLoad) {
+    if (this.loaded) {
       list = this.cloudList;
     } else {
       list = await CloudStore.getCloudList(params);
+      list = cloudSort(list, this.permissionSwitch);
     }
     this.area.list = this.permissionSwitch ? list.filter(item => item.view) : list;
     this.area.data = this.area.list;
@@ -154,7 +159,7 @@ export default class CloudDetailSide extends Vue {
       name: 'cloudManagerDetail',
       params: {
         id: item.bkCloudId,
-        isFirst: false,
+        loaded: this.loaded,
         search: this.bkCloudName,
       },
     });
