@@ -117,7 +117,7 @@
               <auth-component
                 v-else
                 v-test="'viewDetail'"
-                :class="{ 'text-btn': row.view }"
+                :class="{ 'text-btn': permissionSwitch ? row.view : true }"
                 :authorized="row.view"
                 :apply-info="[{
                   action: 'cloud_view',
@@ -307,6 +307,7 @@ import Tips from '@/components/common/tips.vue';
 import ColumnSetting from '@/components/common/column-setting.vue';
 import ColumnCheck from '@/views/agent/components/column-check.vue';
 import { copyText, debounce, sort } from '@/common/util';
+import { cloudSort } from './config/cloud-common';
 import { CreateElement } from 'vue';
 
 interface ICloudRow extends ICloud {
@@ -431,16 +432,9 @@ export default class CloudManager extends Vue {
     const res = await Promise.all(promiseAll);
     const data = res[0] as ICloud[];
     const channelList = res[1];
-    let sortData: ICloud[] = [];
-    let enableData: ICloud[] = [...data];
-    let disableData: ICloud[] = [];
-    // 一类分类
-    if (this.permissionSwitch) {
-      enableData = data.filter(item => item.view);
-      disableData = this.cloudSecondSort(data.filter(item => !item.view));
-    }
-    enableData = this.cloudSecondSort(enableData);
-    sortData = [...enableData, ...disableData];
+    const sortData = cloudSort(data, this.permissionSwitch); // 云区域排序
+    CloudStore.SET_CLOUD_LIST([...sortData]);
+
     // 留下一份基础排序的数据, 后续优化均从此数据上二次排序
     this.table.list = sortData.map((item: ICloud) => {
       const children: Dictionary[] = [
@@ -460,21 +454,6 @@ export default class CloudManager extends Vue {
     });
     this.handleSearch();
     this.loading = false;
-  }
-  /**
-   * 二类分类 & 排序
-   * 分类   一类：有无权限; 二类：未安装、0个可用、1个可用、n个可用    PS: alive_proxy_count可用数量
-   * 规则   一类 > 二类 + 字母排序
-   */
-  public cloudSecondSort(data: ICloud[]) {
-    const notInstalledList = data.filter(item => !item.proxyCount);
-    const unavailableList = data.filter(item => item.proxyCount && !item.aliveProxyCount);
-    const onlyOneList = data.filter(item => item.aliveProxyCount === 1);
-    const multipleList = data.filter(item => item.aliveProxyCount > 1);
-    [notInstalledList, unavailableList, onlyOneList, multipleList].forEach((list) => {
-      sort(list, 'bkCloudName');
-    });
-    return [...notInstalledList, ...unavailableList, ...onlyOneList, ...multipleList];
   }
   /**
    * 前端搜索
@@ -561,6 +540,7 @@ export default class CloudManager extends Vue {
       name: 'cloudManagerDetail',
       params: {
         id: `${row.bkCloudId}`,
+        loaded: true,
       },
     });
   }

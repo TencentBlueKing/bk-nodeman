@@ -1,7 +1,7 @@
 <template>
   <article class="cloud-manager-detail">
     <!--详情左侧面板-->
-    <CloudDetailNav :is-first="isFirst" :id="navActiveId" :search="search"></CloudDetailNav>
+    <CloudDetailNav :loaded="loaded" :id="navActiveId" :search="search"></CloudDetailNav>
     <!--右侧表格-->
     <section class="detail-right pt20">
       <!--自定义三级导航-->
@@ -76,7 +76,7 @@ import { IProxyDetail } from '@/types/cloud/cloud';
 
 export default class CloudManagerDetail extends Mixins(pollMixin, routerBackMixin) {
   @Prop({ type: [Number, String], default: 0 }) private readonly id!: string | number;
-  @Prop({ type: Boolean, default: true }) private readonly isFirst!: boolean; // 是否是首次加载
+  @Prop({ type: Boolean, default: false }) private readonly loaded!: boolean; // 是否是首次加载
   @Prop({ type: String, default: '' }) private readonly search!: string;
 
   private navActiveId = parseInt(this.id as string, 10);
@@ -85,7 +85,6 @@ export default class CloudManagerDetail extends Mixins(pollMixin, routerBackMixi
   private channelLoading = false;
   // Proxy列表加载
   private loadingProxy = false;
-  private firstLoad = this.isFirst;
   private tabActive = 'default';
   private tabList: Dictionary[] = [
     { label: window.i18n.t('默认通道'), id: 'default' },
