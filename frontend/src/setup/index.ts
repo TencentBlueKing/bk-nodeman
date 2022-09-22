@@ -4,5 +4,6 @@ import './global';
 import './directives';
 import './filters';
 import './encrypt';
+import './text-tool';
 
 export default i18n;
