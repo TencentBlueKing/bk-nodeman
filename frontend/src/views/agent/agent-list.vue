@@ -305,6 +305,8 @@
         <bk-table-column
           key="cloudArea"
           :label="$t('云区域')"
+          show-overflow-tooltip
+          :min-width="columnMinWidth['bk_cloud_id']"
           :render-header="renderFilterHeader"
           prop="bk_cloud_id"
           v-if="filter['bk_cloud_id'].mockChecked">
@@ -315,6 +317,7 @@
         <bk-table-column
           key="install_channel_id"
           :label="$t('安装通道')"
+          :min-width="columnMinWidth['install_channel_id']"
           :render-header="renderFilterHeader"
           prop="install_channel_id"
           show-overflow-tooltip
@@ -327,6 +330,7 @@
           key="system"
           :label="$t('操作系统')"
           prop="os_type"
+          :min-width="columnMinWidth['os_type']"
           :render-header="renderFilterHeader"
           v-if="filter['os_type'].mockChecked">
           <template #default="{ row }">
@@ -337,7 +341,7 @@
           key="status"
           :label="$t('Agent状态')"
           prop="status"
-          min-width="100"
+          :min-width="columnMinWidth['agent_status']"
           :render-header="renderFilterHeader">
           <template #default="{ row }">
             <div class="col-status" v-if="row.status_display">
@@ -355,6 +359,7 @@
           key="version"
           :label="$t('Agent版本')"
           prop="version"
+          :min-width="columnMinWidth['agent_version']"
           :render-header="renderFilterHeader"
           v-if="filter['agent_version'].mockChecked">
         </bk-table-column>
@@ -363,6 +368,7 @@
           :label="$t('安装方式')"
           prop="is_manual"
           v-if="filter['is_manual'].mockChecked"
+          :min-width="columnMinWidth['is_manual']"
           :render-header="renderFilterHeader">
           <template #default="{ row }">
             {{ row.is_manual ? $t('手动') : $t('远程') }}
@@ -372,6 +378,7 @@
           key="bt"
           prop="peer_exchange_switch_for_agent"
           :label="$t('BT节点探测')"
+          :min-width="columnMinWidth['bt']"
           v-if="filter['bt'].mockChecked">
           <template #default="{ row }">
             <span :class="['tag-switch', { 'tag-enable': row.peer_exchange_switch_for_agent }]">
@@ -384,6 +391,7 @@
           prop="bt_speed_limit"
           align="right"
           :label="`${$t('传输限速')}(MB/s)`"
+          :min-width="columnMinWidth['speedLimit']"
           v-if="filter['speedLimit'].mockChecked">
           <template #default="{ row }">
             {{ row.bt_speed_limit | filterEmpty }}
@@ -395,6 +403,7 @@
           key="addressing"
           prop="bk_addressing"
           :label="$t('寻址方式')"
+          :min-width="columnMinWidth['bk_addressing']"
           :render-header="renderFilterHeader"
           v-if="filter['bk_addressing'].mockChecked">
           <template #default="{ row }">
@@ -686,6 +695,7 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
       mockChecked: true,
       name: window.i18n.t('Agent版本'),
       id: 'agent_version',
+      filter: true,
     },
     agent_status: {
       checked: true,
@@ -693,6 +703,7 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
       mockChecked: true,
       name: window.i18n.t('Agent状态'),
       id: 'agent_status',
+      filter: true,
     },
     bk_cloud_id: {
       checked: true,
@@ -700,6 +711,7 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
       disabled: false,
       name: window.i18n.t('云区域'),
       id: 'bk_cloud_id',
+      filter: true,
     },
     install_channel_id: {
       checked: false,
@@ -707,6 +719,7 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
       disabled: false,
       name: window.i18n.t('安装通道'),
       id: 'install_channel_id',
+      filter: true,
     },
     bk_biz_name: {
       checked: true,
@@ -728,6 +741,7 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
       mockChecked: true,
       name: window.i18n.t('操作系统'),
       id: 'os_type',
+      filter: true,
     },
     is_manual: {
       checked: true,
@@ -735,6 +749,7 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
       mockChecked: true,
       name: window.i18n.t('安装方式'),
       id: 'is_manual',
+      filter: true,
     },
     created_at: {
       checked: false,
@@ -770,6 +785,7 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
       mockChecked: false,
       name: window.i18n.t('寻址方式'),
       id: 'bk_addressing',
+      filter: true,
     },
   };
   // 是否显示复制按钮下拉菜单
@@ -856,6 +872,7 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
   private localMark = '_agent';
   private operateBiz: IBizValue[] =[]; // 有操作权限的业务
   private cloudAgentNum = 0; // 从云区域点击跳转过来的主机数量，区分是否因为权限问题看不到主机
+  private columnMinWidth: Dictionary = {};
 
   private get osMap() {
     return MainStore.osMap;
@@ -980,6 +997,7 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
 
   private created() {
     this.initRouterQuery();
+    this.computedColumnWidth();
   }
   private mounted() {
     this.initAgentListDebounce = debounce(300, this.initAgentList);
@@ -1043,6 +1061,20 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
         this.searchInputKey += 1;
       }
     });
+  }
+  public computedColumnWidth() {
+    const widthMap: { [key: string]: number } = {};
+    Object.keys(this.filter).reduce((obj, key) => {
+      const column = this.filter[key];
+      const config = { filter: column.filter };
+      let name = this.filter[key]?.name || '';
+      if (key === 'speedLimit') {
+        name = `${name}(MB/s)`;
+      }
+      obj[key] = this.$textTool.getHeadWidth(name, config);
+      return obj;
+    }, widthMap);
+    this.columnMinWidth = widthMap;
   }
   private initCustomColStatus() {
     const data = this.handleGetStorage();

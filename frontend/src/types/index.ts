@@ -209,7 +209,9 @@ export interface ITabelFliter {
   name: string
   checked: boolean
   disabled: boolean
-  mockChecked?: boolean
+  mockChecked?: boolean,
+  filter?: boolean
+  sort?: boolean
 }
 
 // export type ISetupProp = 'is_manual' | 'is_manual' | 'inner_ip' | 'outer_ip' | 'login_ip' | 'ap_id' | 'bk_biz_id' |

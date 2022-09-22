@@ -42,6 +42,10 @@ declare module 'vue/types/vue' {
       decryptChunk: (word: string) => string
       getNameMixinEncrypt: (word: string) => string
     }
+    $textTool: {
+      getTextWidth: (text: string, extraWidth?: number) => number
+      getHeadWidth: (text: string, config?: Dictionary) => number
+    }
   }
 }
 
