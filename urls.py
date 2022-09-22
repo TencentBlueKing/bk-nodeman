@@ -41,7 +41,7 @@ urlpatterns = [
     url(r"^{}".format(config.ENTRANCE_URL), include("version_log.urls")),
 ]
 
-if settings.ENVIRONMENT != "production":
+if settings.ENVIRONMENT not in ["production", "prod"]:
     urlpatterns += [
         re_path(r"^swagger(?P<format>\.json|\.yaml)$", schema_view.without_ui(cache_timeout=0), name="schema-json"),
         re_path(r"^swagger/$", schema_view.with_ui("swagger", cache_timeout=0), name="schema-swagger-ui"),
