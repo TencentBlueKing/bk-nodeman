@@ -139,7 +139,7 @@
       </bk-table-column>
       <template v-for="(plugin, index) in pluginNames">
         <bk-table-column
-          min-width="108"
+          :min-width="columnMinWidth[plugin]"
           :key="index"
           :label="plugin"
           :prop="plugin"
@@ -331,6 +331,12 @@ export default class PluginRuleTable extends Mixins(HeaderRenderMixin) {
       .map(row => row.inner_ipv6.length)
       .sort((a, b) => b - a);
     return ipv6SortRows.length ? Math.ceil(ipv6SortRows[0] * 6.9) : 80;
+  }
+  private get columnMinWidth(): Dictionary {
+    return this.pluginNames.reduce((obj, plugin) => {
+      Object.assign(obj, { [plugin]: this.$textTool.getHeadWidth(plugin, { filter: true, extra: 2 }) });
+      return obj;
+    }, {});
   }
 
   private created() {
