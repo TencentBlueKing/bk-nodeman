@@ -18,79 +18,86 @@
         <div class="biz-text">{{ bizNames }}</div>
       </div> -->
     </section>
-    <section class="page-body" v-if="hasBizAuth">
-      <section class="side-block pb20">
-        <div class="side-search">
-          <bk-input
-            :placeholder="$t('请输入关键词')"
-            :right-icon="'bk-icon icon-search'"
-            v-model="searchKey"
-            @change="handleSearchChange">
-          </bk-input>
-        </div>
-        <ResourceTree
-          class="resource-tree"
-          ref="treeRef"
-          :tree-data="treeData"
-          :active-id="moduleId"
-          :load-method="loadTreeChild"
-          @selected="handleTreeSelected">
-        </ResourceTree>
-      </section>
-      <section class="content-body" v-bkloading="{ isLoading: pluginLoading }">
-        <template v-if="selectedTemp">
-          <div class="content-body-head mb20">
-            <p class="content-body-title">{{ moduleName }}</p>
-            <bk-button theme="primary" :disabled="moduleId < 0" @click="editResourceQuota">{{ $t('编辑') }}</bk-button>
+
+    <div class="page-container">
+      <div class="page-tips-wrapper">
+        <tips :list="[$t('资源配额tip'), $t('资源配额规则tip'), $t('资源配额场景tip')]" />
+      </div>
+
+      <section class="page-body" v-if="hasBizAuth">
+        <section class="side-block pb20">
+          <div class="side-search">
+            <bk-input
+              :placeholder="$t('请输入关键词')"
+              :right-icon="'bk-icon icon-search'"
+              v-model="searchKey"
+              @change="handleSearchChange">
+            </bk-input>
           </div>
-          <section class="content-body-table">
-            <bk-table :data="pluginList" :max-height="windowHeight - 192">
-              <bk-table-column :label="$t('插件名称')" prop="plugin_name" :resizable="false"></bk-table-column>
-              <bk-table-column :label="$t('总数运行中异常')" :resizable="false">
-                <template #default="{ row }">
-                  <div>
-                    <span class="num">{{ row.total }}</span>
-                    <span>/</span>
-                    <span class="num running">{{ row.running }}</span>
-                    <span>/</span>
-                    <span class="num abort">{{ row.terminated }}</span>
-                  </div>
-                </template>
-              </bk-table-column>
-              <bk-table-column
-                :label="$t('CPU配额及单位')"
-                prop="cpu"
-                align="right"
-                :resizable="false"
-                :render-header="tipsHeadRender" />
-              <bk-table-column
-                :label="$t('内存配额及单位')"
-                prop="mem"
-                align="right"
-                :resizable="false"
-                :render-header="tipsHeadRender" />
-              <bk-table-column width="40"></bk-table-column>
-            </bk-table>
-          </section>
-        </template>
-        <exception-card
-          v-else
-          class="template-card"
-          type="notData"
-          :has-border="false"
-          :text="$t('请选择服务模板')">
-        </exception-card>
+          <ResourceTree
+            class="resource-tree"
+            ref="treeRef"
+            :tree-data="treeData"
+            :active-id="moduleId"
+            :load-method="loadTreeChild"
+            @selected="handleTreeSelected">
+          </ResourceTree>
+        </section>
+        <section class="content-body" v-bkloading="{ isLoading: pluginLoading }">
+          <template v-if="selectedTemp">
+            <div class="content-body-head mb20">
+              <p class="content-body-title">{{ moduleName }}</p>
+              <bk-button theme="primary" :disabled="moduleId < 0" @click="editResourceQuota">{{ $t('编辑') }}</bk-button>
+            </div>
+            <section class="content-body-table">
+              <bk-table :data="pluginList" :max-height="windowHeight - 192">
+                <bk-table-column :label="$t('插件名称')" prop="plugin_name" :resizable="false"></bk-table-column>
+                <bk-table-column :label="$t('总数运行中异常')" :resizable="false">
+                  <template #default="{ row }">
+                    <div>
+                      <span class="num">{{ row.total }}</span>
+                      <span>/</span>
+                      <span class="num running">{{ row.running }}</span>
+                      <span>/</span>
+                      <span class="num abort">{{ row.terminated }}</span>
+                    </div>
+                  </template>
+                </bk-table-column>
+                <bk-table-column
+                  :label="$t('CPU配额及单位')"
+                  prop="cpu"
+                  align="right"
+                  :resizable="false"
+                  :render-header="tipsHeadRender" />
+                <bk-table-column
+                  :label="$t('内存配额及单位')"
+                  prop="mem"
+                  align="right"
+                  :resizable="false"
+                  :render-header="tipsHeadRender" />
+                <bk-table-column width="40"></bk-table-column>
+              </bk-table>
+            </section>
+          </template>
+          <exception-card
+            v-else
+            class="template-card"
+            type="notData"
+            :has-border="false"
+            :text="$t('请选择服务模板')">
+          </exception-card>
+        </section>
       </section>
-    </section>
-    <exception-page
-      v-else
-      class="resource-quota-page"
-      type="notPower"
-      :title="$t('无业务权限')"
-      :btn-text="$t('申请权限')"
-      :has-border="false"
-      @click="handleApplyPermission">
-    </exception-page>
+      <exception-page
+        v-else
+        class="resource-quota-page"
+        type="notPower"
+        :title="$t('无业务权限')"
+        :btn-text="$t('申请权限')"
+        :has-border="false"
+        @click="handleApplyPermission">
+      </exception-page>
+    </div>
   </article>
 </template>
 <script lang="ts">
@@ -104,6 +111,7 @@ import TableHeader from '@/components/setup-table/table-header.vue';
 import { debounce } from '@/common/util';
 import ExceptionPage from '@/components/exception/exception-page.vue';
 import ExceptionCard from '@/components/exception/exception-card.vue';
+import Tips from '@/components/common/tips.vue';
 import { bus } from '@/common/bus';
 import { Route } from 'vue-router';
 
@@ -131,6 +139,7 @@ Component.registerHooks([
     TableHeader,
     ExceptionPage,
     ExceptionCard,
+    Tips,
   },
 })
 export default class ResourceQuota extends Mixins(HeaderFilterMixins) {
@@ -444,6 +453,15 @@ export default class ResourceQuota extends Mixins(HeaderFilterMixins) {
     width: 1px;
     height: 16px;
     background: #dcdee5;
+  }
+  .page-container {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    .page-tips-wrapper {
+      padding: 10px 16px;
+      border-bottom: 1px solid #dcdee5;
+    }
   }
 
   .page-body {
