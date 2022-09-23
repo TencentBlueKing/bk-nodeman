@@ -340,6 +340,7 @@ export default class PluginRuleTable extends Mixins(HeaderRenderMixin) {
   }
 
   private created() {
+    this.filterData.splice(0, this.filterData.length, ...JSON.parse(JSON.stringify(this.searchSelectData)));
     this.pluginNames.forEach((name) => {
       this.$set(this.filterField, name, { name, id: name, checked: true, disabled: false, mockChecked: true });
     });
