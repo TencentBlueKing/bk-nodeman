@@ -1,5 +1,14 @@
 # Release
 
+## 2.2.26 - 2022-09-26 
+
+
+### optimization: 
+  * 复制IP默认以换行符进行分隔 (closed #1140)
+
+### minor: 
+  * pyOpenSSL 版本固化 21.0.0 (closed #1144)
+
 ## 2.2.25 - 2022-09-23 
 
 
