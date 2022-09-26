@@ -17,6 +17,9 @@ declare module 'vue/types/vue' {
       interactive?: boolean
     }) => {}
     $bkMessage: (options: { [prop: string]: any }) => {}
+    messageSuccess: (message: string, delay?: number) => {}
+    messageError: (message: string, delay?: number) => {}
+    messageInfo: (message: string, delay?: number) => {}
     $bkInfo: (options: {
       title: string | TranslateResult
       subTitle?: string | TranslateResult

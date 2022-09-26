@@ -439,26 +439,19 @@ export const transformDataKey = (data: Dictionary = {}, mode = 'camel'): Diction
  * @param {String} text
  */
 export const copyText = (text: string, successFn?: Function) => {
-  window.copyContentText = text || '';
-  let result = 'failed';
-  if (!window.copyContentText) {
-    window.bus.$bkMessage({
-      theme: 'error',
-      message: window.i18n.t('复制出错，再重新复制一遍吧'),
-    });
-    return result;
+  if (!text) {
+    window.bus.messageInfo(window.i18n.t('没有需要复制的内容'));
+    return;
   }
-  result = copyListener();
-  if (result === 'success' && successFn) {
-    successFn(result);
-  }
-  if (result === 'failed') {
-    window.copyFailedMsg = window.bus.$bkMessage({
-      theme: 'error',
-      message: getCopyBtn(successFn),
-    });
-  }
-  return result;
+  window.bus.$copyText(text).then(() => {
+    if (successFn) {
+      successFn();
+    } else {
+      window.bus.messageSuccess(window.i18n.t('复制成功'));
+    }
+  }, () => {
+    window.copyFailedMsg = window.bus.messageError(getCopyBtn(successFn));
+  });
 };
 
 function copyListener() {
