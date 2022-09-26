@@ -255,7 +255,7 @@ export default class NodemanNavigation extends Mixins(routerBackMixin) {
   }
   private get navBizShrinkText() {
     if (!this.selectedBiz.length) {
-      return '全';
+      return window.i18n.t('全');
     }
     return this.selectedBiz.length > 1 ? this.selectedBiz.length : MainStore.selectedBizName[0]?.[0];
   }
