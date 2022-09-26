@@ -1,0 +1,4 @@
+---
+optimization:
+  - "复制IP默认以换行符进行分隔 (closed #1140)"
+  

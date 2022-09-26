@@ -395,6 +395,7 @@ export default {
   节点来源: 'Node from',
   请输入关键字: 'Please enter key words',
   复制成功: 'Copied successfully',
+  没有需要复制的内容: 'Nothing to copy',
   查看任务详情: 'View job details',
 
   // 全局配置 - GSE-环境管理
