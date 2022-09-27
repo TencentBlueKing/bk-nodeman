@@ -16,7 +16,7 @@
         <bk-navigation-menu-group
           v-if="item.children && item.children.length"
           :key="item.title"
-          :group-name="item.name">
+          :group-name="$t(item.name)">
           <bk-navigation-menu-item
             v-for="child in item.children"
             :key="child.name"
@@ -25,7 +25,7 @@
             :icon="child.icon"
             :has-child="child.children && !!child.children.length"
             :default-active="child.active">
-            <span>{{ child.title }}</span>
+            <span>{{ $t(child.title) }}</span>
             <!-- <div slot="child">
               <bk-navigation-menu-item
                 v-for="set in child.children"

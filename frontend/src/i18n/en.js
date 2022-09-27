@@ -86,6 +86,7 @@ export default {
   密码密钥: 'Key/Password',
   登录IP提示: 'The IP address of the target server that supports SSH login. If it is a public cloud server, it is usually an external network IP. Please fill in according to actual conditions',
   外网IP: 'WAN IP',
+  外网IPv6: 'WAN IPv6',
   内网网卡IP: 'LAN IP',
   外网网卡IP: 'Internet IP',
   登录IP: 'Login IP',
@@ -508,6 +509,7 @@ export default {
   外网回调地址: 'WAN callback address',
   请输入外网回调地址: 'Please enter the WAN callback address',
   内网回调地址: 'LAN callback address',
+  内网回调: 'LAN callback',
   请输入内网回调地址: 'Please enter the LAN callback address',
   请输入以backend结尾的URL地址: 'Please enter the URL address ending with /backend',
 
@@ -572,6 +574,7 @@ export default {
   重装AGENT: 'Reinstall Agent',
   升级PROXY: 'Upgrading Proxy',
   升级Agent: 'Upgrade Agent',
+  历史: 'History',
   任务历史: 'Task History',
   已忽略IP无日志详情: 'Ignored IP No Log Details',
   正在执行reg: '正在执行',
