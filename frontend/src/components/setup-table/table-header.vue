@@ -1,14 +1,15 @@
 <template>
   <div :class="['setup-header', { 'is-center': !parentProp }]">
-    <span
+    <div
       ref="tipSpan"
       :class="{
         'header-label': true,
         'header-label-required': required,
         'header-label-tips': Boolean(tips)
       }">
-      {{ $t(label) }}
-    </span>
+      <div><span :title="$t(label)">{{ $t(label) }}</span></div>
+      <!-- <div v-bk-overflow-tips><span>{{ $t(label) }}</span></div> -->
+    </div>
     <bk-popover
       v-if="batch"
       theme="light batch-edit"
@@ -230,17 +231,23 @@ export default class TableHeader extends Vue {
     @mixin layout-flex row, center;
     .header-label {
       position: relative;
-      display: flex;
+      display: inline-block;
       line-height: 16px;
-      white-space: nowrap;
+      max-width: 100%;
+      overflow: hidden;
+      > div {
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        overflow: hidden;
+      }
       &-required {
-        margin-right: 6px;
+        padding-right: 6px;
         &::after {
           content: "*";
           color: #ff5656;
           position: absolute;
           top: 2px;
-          right: -7px;
+          right: 0;
         }
       }
       &-tips {

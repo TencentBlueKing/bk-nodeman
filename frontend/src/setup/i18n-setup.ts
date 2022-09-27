@@ -14,7 +14,7 @@ let currentLang = cookie.parse(document.cookie).blueking_language
   ? cookie.parse(document.cookie).blueking_language
   : 'zh-cn';
 
-if (['zh-CN', 'zh-cn', 'cn', 'zhCN', 'zhcn'].indexOf(currentLang) > -1) {
+if (['zh-CN', 'zh-cn', 'cn', 'zhCN', 'zhcn', 'None', 'none'].indexOf(currentLang) > -1) {
   currentLang = 'zhCN';
   window.language = 'zh';
 } else {
