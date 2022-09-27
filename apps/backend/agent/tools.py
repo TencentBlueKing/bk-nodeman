@@ -225,7 +225,6 @@ def batch_gen_commands(
 ) -> Dict[int, InstallationTools]:
     """批量生成安装命令"""
     # 批量查出主机的属性并设置为property，避免在循环中进行ORM查询，提高效率
-    host_id__sub_inst_id = host_id__sub_inst_id or host_id__sub_inst_id
     host_id__installation_tool_map = {}
     bk_host_ids = [host.bk_host_id for host in hosts]
     host_id_identity_map = {
