@@ -850,8 +850,8 @@ goto :EOF
 
 :backup_config_file_action
     if exist %GSE_AGENT_ETC_DIR%\%BACKUP_CONFIG_FILE%  (
-        copy /Y  %GSE_AGENT_LOG_DIR%\%BACKUP_CONFIG_FILE% %TMP_DIR%\%BACKUP_CONFIG_FILE%
-        call :print INFO backup_config_file DONE "backup config file %BACKUP_CONFIG_FILE% to %TMP_DIR%\%BACKUP_CONFIG_FILE%"
+        copy /Y  %GSE_AGENT_ETC_DIR%\%BACKUP_CONFIG_FILE% %TMP_DIR%\%BACKUP_CONFIG_FILE%
+        call :print INFO backup_config_file DONE "backup config file %GSE_AGENT_ETC_DIR%\%BACKUP_CONFIG_FILE% to %TMP_DIR%\%BACKUP_CONFIG_FILE%"
         call :multi_report_step_status
     ) else (
        call :print INFO backup_config_file DONE "backup config file not found"

@@ -1,0 +1,3 @@
+---
+bugfix:
+  - "Windows 配置备份逻辑错误 (closed #1150)"
