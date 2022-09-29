@@ -557,6 +557,7 @@ export default {
   多个IP以逗号分隔: 'Multiple IPs separated by commas',
   查看日志: 'View log',
   下载日志: 'Download Log',
+  按Esc即可退出全屏模式: 'Press Esc to automatically exit full screen mode',
   步骤: 'Step',
   跳过: 'Jump over',
   全屏: 'Full screen',

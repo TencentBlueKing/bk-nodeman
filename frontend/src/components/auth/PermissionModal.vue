@@ -13,7 +13,6 @@
   <bk-dialog
     width="768"
     ext-cls="permission-dialog"
-    :z-index="2010"
     :draggable="false"
     :mask-close="false"
     :header-position="'left'"

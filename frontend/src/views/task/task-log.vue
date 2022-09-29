@@ -404,6 +404,11 @@ export default {
     this.height = this.$refs.sideContent.clientHeight;
     this.getHostList('init');
     this.scrollWatch();
+    document.onkeydown = (e) => {
+      if (e.keyCode === 27 && this.isFullScreen) {
+        this.isFullScreen = false;
+      }
+    };
     this.listenResize = debounce(300, v => this.handleResize(v));
     addListener(this.$el, this.listenResize);
   },
@@ -826,6 +831,12 @@ export default {
     handleScreen() {
       this.isFullScreen = !this.isFullScreen;
       this.$nextTick(() => {
+        if (this.isFullScreen) {
+          this.$bkMessage({
+            message: window.i18n.t('按Esc即可退出全屏模式'),
+            delay: 1500,
+          });
+        }
         this.handleResize();
       });
     },
