@@ -358,17 +358,6 @@ export default class NodemanNavigation extends Mixins(routerBackMixin) {
   $navHoverColor: #d3d9e4;
   $headerColor: #313238;
 
-  >>> .navigation-container {
-    /* stylelint-disable-next-line declaration-no-important */
-    max-width: unset !important;
-    z-index: 0;
-  }
-  >>> .bk-navigation-header {
-    z-index: 1000;
-  }
-  >>> .bk-navigation-wrapper .navigation-nav .nav-slider-list {
-    overflow-x: hidden;
-  }
   >>> .bk-navigation-wrapper .group-name-wrap {
     padding: 12px 0;
     color: #b0b2b8;
