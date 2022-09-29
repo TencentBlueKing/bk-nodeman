@@ -65,6 +65,7 @@ set GSE_AGENT_LOG_DIR=%AGENT_SETUP_PATH%\agent\logs
 set GSE_AGENT_ETC_DIR=%AGENT_SETUP_PATH%\agent\etc
 set NEW_AGENT_SETUP_PATH=%AGENT_SETUP_PATH:\=/%
 set special_AGENT_SETUP_PATH=%AGENT_SETUP_PATH:\=\\%
+set PURE_AGENT_SETNUP_PATH=%AGENT_SETUP_PATH%\agent
 
 if exist %tmp_json_resp% (DEL /F /S /Q %tmp_json_resp%)
 if exist %tmp_json_resp_debug% (DEL /F /S /Q %tmp_json_resp_debug%)
@@ -358,15 +359,15 @@ goto :EOF
 goto :EOF
 
 :stop_agent
-    if exist %AGENT_SETUP_PATH% (
-        cd /d %AGENT_SETUP_PATH%\agent\bin && .\gsectl stop 1>nul 2>&1
+    if exist %PURE_AGENT_SETNUP_PATH% (
+        cd /d %PURE_AGENT_SETNUP_PATH%\bin && .\gsectl stop 1>nul 2>&1
         ping -n 3 127.0.0.1 1>nul 2>&1
         wmic process where "name='gse_agent_daemon.exe' and ExecutablePath='%special_AGENT_SETUP_PATH%\\agent\\bin\\gse_agent_daemon.exe'" call terminate 1>nul 2>&1
         wmic process where "name='gse_agent.exe' and ExecutablePath='%special_AGENT_SETUP_PATH%\\agent\\bin\\gse_agent.exe'" call terminate 1>nul 2>&1
         cd /d %TMP_DIR%
         call :is_process_stop_ok
     ) else (
-        call :print FAIL stop_agent FAILED "%AGENT_SETUP_PATH% not exist , ERROR"
+        call :print FAIL stop_agent FAILED "%PURE_AGENT_SETNUP_PATH% not exist , ERROR"
         call :multi_report_step_status
     )
 goto :EOF
@@ -374,7 +375,7 @@ goto :EOF
 :remove_agent_tmp
     call :print INFO remove_agent START "trying to remove old agent"
     call :multi_report_step_status
-    if exist %AGENT_SETUP_PATH% (
+    if exist %PURE_AGENT_SETNUP_PATH% (
         call :remove_startup_scripts
         echo=
         call :remove_crontab
@@ -384,27 +385,29 @@ goto :EOF
         call :stop_agent
     )
 
-    if exist %AGENT_SETUP_PATH% (
+    if exist %PURE_AGENT_SETNUP_PATH% (
         wmic process where "name='gse_agent_daemon.exe' and ExecutablePath='%special_AGENT_SETUP_PATH%\\agent\\bin\\gse_agent_daemon.exe'" call terminate 1>nul 2>&1
         wmic process where "name='gse_agent.exe' and ExecutablePath='%special_AGENT_SETUP_PATH%\\agent\\bin\\gse_agent.exe'" call terminate 1>nul 2>&1
         wmic process where "name='basereport.exe' and ExecutablePath='%special_AGENT_SETUP_PATH%\\plugins\\bin\\basereport.exe'" call terminate 1>nul 2>&1
         wmic process where "name='gsecmdline.exe' and ExecutablePath='%special_AGENT_SETUP_PATH%\\plugins\\bin\\gsecmdline.exe'" call terminate 1>nul 2>&1
     )
-    RD /Q /S %AGENT_SETUP_PATH% 1>nul 2>&1
-    if not exist %AGENT_SETUP_PATH% (
-        call :print INFO setup_agent DONE "agent removed succeed"
+    RD /Q /S %PURE_AGENT_SETNUP_PATH% 1>nul 2>&1
+    if not exist %PURE_AGENT_SETNUP_PATH% (
+        call :print INFO setup_agent DONE "Directory %PURE_AGENT_SETNUP_PATH% removed, agent removed succeed"
+        call :multi_report_step_status
     ) else (
-        for /f "skip=1 delims= " %%i in ('%TMP_DIR%\handle.exe %AGENT_SETUP_PATH% -nobanner') do (
+        for /f "skip=1 delims= " %%i in ('%TMP_DIR%\handle.exe %PURE_AGENT_SETNUP_PATH% -nobanner') do (
             echo %%i
             taskkill /f /im %%i
         )
-        RD /Q /S %AGENT_SETUP_PATH% 1>nul 2>&1
+        RD /Q /S %PURE_AGENT_SETNUP_PATH% 1>nul 2>&1
         ping -n 3 127.0.0.1 >nul 2>&1
-        if not exist %AGENT_SETUP_PATH% (
-            call :print INFO setup_agent DONE "agent removed succeed"
+        if not exist %PURE_AGENT_SETNUP_PATH% (
+            call :print INFO setup_agent DONE "Directory %PURE_AGENT_SETNUP_PATH% removed, agent removed succeed"
         ) else (
-            call :print FAIL setup_agent DONE "agent removed failed"
+            call :print FAIL setup_agent DONE "Directory %PURE_AGENT_SETNUP_PATH% removed, agent removed failed"
         )
+        call :multi_report_step_status
     )
 goto :EOF
 
@@ -756,6 +759,7 @@ goto :EOF
     set GSE_AGENT_LOG_DIR=%AGENT_SETUP_PATH%\agent\logs
     set NEW_AGENT_SETUP_PATH=%AGENT_SETUP_PATH:\=/%
     set special_AGENT_SETUP_PATH=%AGENT_SETUP_PATH:\=\\%
+    set PURE_AGENT_SETNUP_PATH=%AGENT_SETUP_PATH%\agent
     if exist %tmp_json_resp% (DEL /F /S /Q %tmp_json_resp%)
     if exist %tmp_json_resp_debug% (DEL /F /S /Q %tmp_json_resp_debug%)
     if exist %tmp_json_resp_report_log_1% (DEL /F /S /Q %tmp_json_resp_report_log_1%)
@@ -766,7 +770,7 @@ goto :EOF
     call :print INFO remove_agent START "trying to remove old agent"
     call :multi_report_step_status
 
-    if exist %AGENT_SETUP_PATH% (
+    if exist %PURE_AGENT_SETNUP_PATH% (
         call :remove_startup_scripts
         echo=
         call :remove_crontab
@@ -779,27 +783,27 @@ goto :EOF
         echo=
     )
 
-    if exist %AGENT_SETUP_PATH% (
+    if exist %PURE_AGENT_SETNUP_PATH% (
         wmic process where "name='gse_agent_daemon.exe' and ExecutablePath='%special_AGENT_SETUP_PATH%\\agent\\bin\\gse_agent_daemon.exe'" call terminate 1>nul 2>&1
         wmic process where "name='gse_agent.exe' and ExecutablePath='%special_AGENT_SETUP_PATH%\\agent\\bin\\gse_agent.exe'" call terminate 1>nul 2>&1
         wmic process where "name='basereport.exe' and ExecutablePath='%special_AGENT_SETUP_PATH%\\plugins\\bin\\basereport.exe'" call terminate 1>nul 2>&1
         wmic process where "name='gsecmdline.exe' and ExecutablePath='%special_AGENT_SETUP_PATH%\\plugins\\bin\\gsecmdline.exe'" call terminate 1>nul 2>&1
     )
-    RD /Q /S %AGENT_SETUP_PATH% 1>nul 2>&1
+    RD /Q /S %PURE_AGENT_SETNUP_PATH% 1>nul 2>&1
 
-    if not exist %AGENT_SETUP_PATH% (
-        call :print INFO remove_agent DONE "agent removed succeed"
+    if not exist %PURE_AGENT_SETNUP_PATH% (
+        call :print INFO remove_agent DONE "directory %PURE_AGENT_SETNUP_PATH% removed, agent removed succeed"
         call :multi_report_step_status
         if exist %tmp_json_resp_report_log% (call :last_log_process)
     ) else (
-        for /f "skip=1 delims= " %%i in ('%TMP_DIR%\handle.exe %AGENT_SETUP_PATH% -nobanner') do (
+        for /f "skip=1 delims= " %%i in ('%TMP_DIR%\handle.exe %PURE_AGENT_SETNUP_PATH% -nobanner') do (
             echo %%i
             taskkill /f /im %%i
         )
 
-        RD /Q /S %AGENT_SETUP_PATH% 1>nul 2>&1
+        RD /Q /S %PURE_AGENT_SETNUP_PATH% 1>nul 2>&1
         ping -n 3 127.0.0.1 >nul 2>&1
-        if not exist %AGENT_SETUP_PATH% (
+        if not exist %PURE_AGENT_SETNUP_PATH% (
             call :print INFO remove_agent DONE "agent removed succeed"
             if exist %tmp_json_resp_report_log% (call :last_log_process)
             if %errorlevel% equ 0 (goto :EOF)
