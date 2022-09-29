@@ -1,0 +1,3 @@
+---
+bugfix:
+  - "Windows Agent 重装后采集丢失 (closed #1152)"
