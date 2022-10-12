@@ -13,6 +13,7 @@ import random
 import re
 import time
 from collections import defaultdict
+from dataclasses import dataclass
 from typing import (
     Any,
     Callable,
@@ -32,6 +33,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from apps.backend.agent.tools import InstallationTools, batch_gen_commands
 from apps.backend.exceptions import OsVersionPackageValidationError
+from apps.backend.subscription.steps.agent_adapter.adapter import AgentStepAdapter
 from apps.node_man import constants, models
 
 from .. import job
@@ -72,11 +74,14 @@ class AgentBaseService(BaseService, metaclass=abc.ABCMeta):
             # 2. 主机未选择接入点 ap_id = -1
             host_id__ap_map[bk_host_id] = common_data.ap_id_obj_map.get(host.ap_id, default_ap)
 
+        agent_step_adapter: AgentStepAdapter = AgentStepAdapter(common_data.subscription_step)
+
         return AgentCommonData(
             bk_host_ids=common_data.bk_host_ids,
             host_id_obj_map=common_data.host_id_obj_map,
             ap_id_obj_map=common_data.ap_id_obj_map,
             subscription=common_data.subscription,
+            subscription_step=common_data.subscription_step,
             subscription_instances=common_data.subscription_instances,
             subscription_instance_ids=common_data.subscription_instance_ids,
             sub_inst_id__host_id_map=common_data.sub_inst_id__host_id_map,
@@ -84,6 +89,7 @@ class AgentBaseService(BaseService, metaclass=abc.ABCMeta):
             # Agent 新增的公共数据
             default_ap=default_ap,
             host_id__ap_map=host_id__ap_map,
+            agent_step_adapter=agent_step_adapter,
         )
 
     @classmethod
@@ -226,6 +232,7 @@ class AgentBaseService(BaseService, metaclass=abc.ABCMeta):
             host for host in hosts_need_gen_commands if host.bk_host_id in host_id__install_channel_map
         ]
         host_id__installation_tool_map = batch_gen_commands(
+            agent_setup_info=common_data.agent_step_adapter.get_setup_info(),
             hosts=hosts_need_gen_commands,
             pipeline_id=self.id,
             is_uninstall=is_uninstall,
@@ -284,37 +291,15 @@ class AgentBaseService(BaseService, metaclass=abc.ABCMeta):
         models.ProcessStatus.objects.bulk_create(proc_statuses_to_be_created, batch_size=self.batch_size)
 
 
+@dataclass
 class AgentCommonData(CommonData):
-    def __init__(
-        self,
-        bk_host_ids: Set[int],
-        host_id_obj_map: Dict[int, models.Host],
-        ap_id_obj_map: Dict[int, models.AccessPoint],
-        subscription: models.Subscription,
-        subscription_instances: List[models.SubscriptionInstanceRecord],
-        subscription_instance_ids: Set[int],
-        sub_inst_id__host_id_map: Dict[int, int],
-        host_id__sub_inst_id_map: Dict[int, int],
-        # Agent 新增的公共数据
-        default_ap: models.AccessPoint,
-        host_id__ap_map: Dict[int, models.AccessPoint],
-    ):
 
-        # 默认接入点
-        self.default_ap = default_ap
-        # 主机ID - 接入点 映射关系
-        self.host_id__ap_map = host_id__ap_map
-
-        super().__init__(
-            bk_host_ids=bk_host_ids,
-            host_id_obj_map=host_id_obj_map,
-            ap_id_obj_map=ap_id_obj_map,
-            subscription=subscription,
-            subscription_instances=subscription_instances,
-            subscription_instance_ids=subscription_instance_ids,
-            sub_inst_id__host_id_map=sub_inst_id__host_id_map,
-            host_id__sub_inst_id_map=host_id__sub_inst_id_map,
-        )
+    # 默认接入点
+    default_ap: models.AccessPoint
+    # 主机ID - 接入点 映射关系
+    host_id__ap_map: Dict[int, models.AccessPoint]
+    # AgentStep 适配器
+    agent_step_adapter: AgentStepAdapter
 
 
 class RetryHandler:

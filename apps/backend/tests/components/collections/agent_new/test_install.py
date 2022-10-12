@@ -24,6 +24,8 @@ from apps.backend.agent.tools import InstallationTools, gen_commands
 from apps.backend.components.collections.agent_new import install
 from apps.backend.components.collections.agent_new.components import InstallComponent
 from apps.backend.constants import REDIS_INSTALL_CALLBACK_KEY_TPL
+from apps.backend.subscription.steps.agent_adapter.adapter import AgentStepAdapter
+from apps.backend.subscription.steps.agent_adapter.base import AgentSetupInfo
 from apps.backend.utils.redis import REDIS_INST
 from apps.core.remote import exceptions
 from apps.core.remote.tests import base
@@ -47,6 +49,8 @@ class InstallBaseTestCase(utils.AgentServiceBaseTestCase):
     EXECUTE_CMD_MOCK_PATH = "apps.backend.components.collections.agent_new.install.execute_cmd"
     PUT_FILE_MOCK_PATH = "apps.backend.components.collections.agent_new.install.put_file"
     CUSTOM_DATAIPC_DIR = "/var/run/gse_test"
+
+    LEGACY_SETUP_INFO: AgentSetupInfo = AgentSetupInfo(is_legacy=True)
 
     @staticmethod
     def update_callback_url():
@@ -105,6 +109,13 @@ class InstallBaseTestCase(utils.AgentServiceBaseTestCase):
             os_type=self.OS_TYPE, node_type=self.NODE_TYPE, ap_id=constants.DEFAULT_AP_ID
         )
 
+    def adjust_db(self):
+        """
+        调整测试数据
+        :return:
+        """
+        pass
+
     def adjust_ap(self):
         ap: models.AccessPoint = models.AccessPoint.objects.first()
         ap.agent_config["linux"]["dataipc"] = os.path.join(self.CUSTOM_DATAIPC_DIR, "ipc.state.report")
@@ -124,6 +135,7 @@ class InstallBaseTestCase(utils.AgentServiceBaseTestCase):
         self.init_mock_clients()
         self.init_hosts()
         self.adjust_ap()
+        self.adjust_db()
         super().setUp()
         self.update_common_inputs()
         self.start_patch()
@@ -208,7 +220,9 @@ class InstallBaseTestCase(utils.AgentServiceBaseTestCase):
 class LinuxInstallTestCase(InstallBaseTestCase):
     def test_shell_solution(self):
         host = models.Host.objects.get(bk_host_id=self.obj_factory.bk_host_ids[0])
-        installation_tool = gen_commands(host, mock_data_utils.JOB_TASK_PIPELINE_ID, is_uninstall=False, sub_inst_id=0)
+        installation_tool = gen_commands(
+            self.LEGACY_SETUP_INFO, host, mock_data_utils.JOB_TASK_PIPELINE_ID, is_uninstall=False, sub_inst_id=0
+        )
         solution_parse_result: Dict[str, Any] = self.execution_solution_parser(
             installation_tool=installation_tool,
             solution_type=constants.CommonExecutionSolutionType.SHELL.value,
@@ -240,7 +254,9 @@ class InstallWindowsSSHTestCase(InstallBaseTestCase):
     def _test_shell_solution(self, validate_encrypted_password: bool):
 
         host = models.Host.objects.get(bk_host_id=self.obj_factory.bk_host_ids[0])
-        installation_tool = gen_commands(host, mock_data_utils.JOB_TASK_PIPELINE_ID, is_uninstall=False, sub_inst_id=0)
+        installation_tool = gen_commands(
+            self.LEGACY_SETUP_INFO, host, mock_data_utils.JOB_TASK_PIPELINE_ID, is_uninstall=False, sub_inst_id=0
+        )
 
         run_cmd_param_extract = {"token": r"(.*) -c (.*?) -s"}
         if validate_encrypted_password:
@@ -300,7 +316,9 @@ class InstallWindowsTestCase(InstallBaseTestCase):
 
     def test_batch_solution(self):
         host = models.Host.objects.get(bk_host_id=self.obj_factory.bk_host_ids[0])
-        installation_tool = gen_commands(host, mock_data_utils.JOB_TASK_PIPELINE_ID, is_uninstall=False, sub_inst_id=0)
+        installation_tool = gen_commands(
+            self.LEGACY_SETUP_INFO, host, mock_data_utils.JOB_TASK_PIPELINE_ID, is_uninstall=False, sub_inst_id=0
+        )
         solution_parse_result: Dict[str, Any] = self.execution_solution_parser(
             installation_tool=installation_tool,
             solution_type=constants.CommonExecutionSolutionType.BATCH.value,
@@ -344,7 +362,9 @@ class InstallLinuxPagentTestCase(InstallBaseTestCase):
 
     def test_shell_solution(self):
         host = models.Host.objects.get(bk_host_id=self.obj_factory.bk_host_ids[0])
-        installation_tool = gen_commands(host, mock_data_utils.JOB_TASK_PIPELINE_ID, is_uninstall=False, sub_inst_id=0)
+        installation_tool = gen_commands(
+            self.LEGACY_SETUP_INFO, host, mock_data_utils.JOB_TASK_PIPELINE_ID, is_uninstall=False, sub_inst_id=0
+        )
         solution_parse_result: Dict[str, Any] = self.execution_solution_parser(
             installation_tool=installation_tool,
             solution_type=constants.CommonExecutionSolutionType.SHELL.value,
@@ -375,7 +395,9 @@ class InstallLinuxPagentTestCase(InstallBaseTestCase):
 
     def test_target_host_shell_solution(self):
         host = models.Host.objects.get(bk_host_id=self.obj_factory.bk_host_ids[0])
-        installation_tool = gen_commands(host, mock_data_utils.JOB_TASK_PIPELINE_ID, is_uninstall=False, sub_inst_id=0)
+        installation_tool = gen_commands(
+            self.LEGACY_SETUP_INFO, host, mock_data_utils.JOB_TASK_PIPELINE_ID, is_uninstall=False, sub_inst_id=0
+        )
         target_host_solutions = installation_tool.type__execution_solution_map[
             constants.CommonExecutionSolutionType.SHELL.value
         ].target_host_solutions
@@ -412,7 +434,9 @@ class InstallWindowsPagentTestCase(InstallLinuxPagentTestCase):
 
     def test_target_host_shell_solution(self):
         host = models.Host.objects.get(bk_host_id=self.obj_factory.bk_host_ids[0])
-        installation_tool = gen_commands(host, mock_data_utils.JOB_TASK_PIPELINE_ID, is_uninstall=False, sub_inst_id=0)
+        installation_tool = gen_commands(
+            self.LEGACY_SETUP_INFO, host, mock_data_utils.JOB_TASK_PIPELINE_ID, is_uninstall=False, sub_inst_id=0
+        )
         target_host_solutions = installation_tool.type__execution_solution_map[
             constants.CommonExecutionSolutionType.SHELL.value
         ].target_host_solutions
@@ -459,7 +483,9 @@ class InstallWindowsPagentTestCase(InstallLinuxPagentTestCase):
 
     def test_target_host_batch_solution(self):
         host = models.Host.objects.get(bk_host_id=self.obj_factory.bk_host_ids[0])
-        installation_tool = gen_commands(host, mock_data_utils.JOB_TASK_PIPELINE_ID, is_uninstall=False, sub_inst_id=0)
+        installation_tool = gen_commands(
+            self.LEGACY_SETUP_INFO, host, mock_data_utils.JOB_TASK_PIPELINE_ID, is_uninstall=False, sub_inst_id=0
+        )
         target_host_solutions = installation_tool.type__execution_solution_map[
             constants.CommonExecutionSolutionType.SHELL.value
         ].target_host_solutions
@@ -548,7 +574,9 @@ class InstallAgentWithInstallChannelSuccessTest(InstallBaseTestCase):
     def test_gen_install_channel_agent_command(self):
 
         host = models.Host.objects.get(bk_host_id=self.obj_factory.bk_host_ids[0])
-        installation_tool = gen_commands(host, mock_data_utils.JOB_TASK_PIPELINE_ID, is_uninstall=False, sub_inst_id=0)
+        installation_tool = gen_commands(
+            self.LEGACY_SETUP_INFO, host, mock_data_utils.JOB_TASK_PIPELINE_ID, is_uninstall=False, sub_inst_id=0
+        )
 
         solution_parse_result: Dict[str, Any] = self.execution_solution_parser(
             installation_tool=installation_tool,
@@ -587,7 +615,9 @@ class UninstallSuccessTest(InstallBaseTestCase):
         # 验证非 root 添加 sudo
         host.identity.account = "test"
 
-        installation_tool = gen_commands(host, mock_data_utils.JOB_TASK_PIPELINE_ID, is_uninstall=True, sub_inst_id=0)
+        installation_tool = gen_commands(
+            self.LEGACY_SETUP_INFO, host, mock_data_utils.JOB_TASK_PIPELINE_ID, is_uninstall=True, sub_inst_id=0
+        )
         solution_parse_result: Dict[str, Any] = self.execution_solution_parser(
             installation_tool=installation_tool,
             solution_type=constants.CommonExecutionSolutionType.SHELL.value,
@@ -609,5 +639,47 @@ class UninstallSuccessTest(InstallBaseTestCase):
                 f" -i 0 -I {host.inner_ip} -T {installation_tool.dest_dir} -p /usr/local/gse"
                 f" -c {solution_parse_result['params']['token']} -s {mock_data_utils.JOB_TASK_PIPELINE_ID}"
                 f" -N SERVER -R &> /tmp/nm.nohup.out &",
+            ],
+        )
+
+
+class LinuxAgent2InstallTestCase(InstallBaseTestCase):
+    """Agent 2.0 安装测试"""
+
+    def adjust_db(self):
+        sub_step_obj: models.SubscriptionStep = self.obj_factory.sub_step_objs[0]
+        sub_step_obj.config.update({"name": "gse_agent", "version": "2.0.0"})
+
+    def test_shell_solution(self):
+        host = models.Host.objects.get(bk_host_id=self.obj_factory.bk_host_ids[0])
+        agent_step_adapter: AgentStepAdapter = AgentStepAdapter(self.obj_factory.sub_step_objs[0])
+        installation_tool = gen_commands(
+            agent_step_adapter.get_setup_info(),
+            host,
+            mock_data_utils.JOB_TASK_PIPELINE_ID,
+            is_uninstall=False,
+            sub_inst_id=0,
+        )
+        solution_parse_result: Dict[str, Any] = self.execution_solution_parser(
+            installation_tool=installation_tool,
+            solution_type=constants.CommonExecutionSolutionType.SHELL.value,
+            run_cmd_param_extract={"token": r"(.*) -c (.*?) -s"},
+        )
+
+        self.assertEqual(solution_parse_result["dependencies"], [])
+        self.assertEqual(
+            solution_parse_result["cmds"],
+            [
+                f"mkdir -p {installation_tool.dest_dir}",
+                f"mkdir -p {self.CUSTOM_DATAIPC_DIR}",
+                f"curl http://127.0.0.1/download/agent_tools/agent2/setup_agent.sh "
+                f"-o {installation_tool.dest_dir}setup_agent.sh --connect-timeout 5 -sSf",
+                f"chmod +x {installation_tool.dest_dir}setup_agent.sh",
+                f"nohup bash {installation_tool.dest_dir}setup_agent.sh"
+                f' -O 48668 -E 58925 -A 58625 -V 58930 -B 10020 -S 60020 -Z 60030 -K 10030 -e "" -a "" -k ""'
+                f" -l http://127.0.0.1/download -r http://127.0.0.1/backend"
+                f" -i 0 -I {host.inner_ip} -T {installation_tool.dest_dir} -p /usr/local/gse"
+                f" -c {solution_parse_result['params']['token']} -s {mock_data_utils.JOB_TASK_PIPELINE_ID}"
+                f" -N SERVER -n gse_agent -t 2.0.0 &> /tmp/nm.nohup.out &",
             ],
         )

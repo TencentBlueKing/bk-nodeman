@@ -123,7 +123,8 @@ class JobViewSet(ModelViewSet):
         job_type = validated_data["job_type"]
         ticket = request.COOKIES.get("TCOA_TICKET") or validated_data.get("tcoa_ticket")
         extra_params = {"is_install_latest_plugins": validated_data["is_install_latest_plugins"]}
-        return Response(JobHandler().install(hosts, op_type, node_type, job_type, ticket, extra_params))
+        extra_config = validated_data.get("agent_setup_info") or {}
+        return Response(JobHandler().install(hosts, op_type, node_type, job_type, ticket, extra_params, extra_config))
 
     @swagger_auto_schema(
         operation_summary="操作类任务",

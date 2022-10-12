@@ -11,10 +11,13 @@ specific language governing permissions and limitations under the License.
 
 from __future__ import unicode_literals
 
+from enum import Enum
+from typing import Dict
+
 from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
 
-from apps.utils import basic
+from apps.utils import basic, enum
 
 ########################################################################################################
 # PARAMIKO 相关配置
@@ -71,6 +74,11 @@ ACTION_NAME_TUPLE = (
     "UPGRADE_PROXY",
     "REPLACE_PROXY",
     "RELOAD_PROXY",
+    # Agent2
+    "INSTALL_AGENT_2",
+    "REINSTALL_AGENT_2",
+    "INSTALL_PROXY_2",
+    "REINSTALL_PROXY_2",
 )
 ACTION_NAME_CHOICES = basic.tuple_choices(ACTION_NAME_TUPLE)
 ActionNameType = basic.choices_to_namedtuple(ACTION_NAME_CHOICES)
@@ -100,6 +108,16 @@ class PluginMigrateType:
     }
 
     MIGRATE_TYPES = list(MIGRATE_TYPE_ALIAS_MAP.keys())
+
+
+class AgentMigrateType(enum.EnhanceEnum):
+    REINSTALL = "REINSTALL"
+    NEW_INSTALL = "NEW_INSTALL"
+    CROSS_VERSION_INSTALL = "CROSS_VERSION_INSTALL"
+
+    @classmethod
+    def _get_member__alias_map(cls) -> Dict[Enum, str]:
+        return {cls.REINSTALL: _("重装"), cls.NEW_INSTALL: _("新安装"), cls.CROSS_VERSION_INSTALL: _("跨级安装")}
 
 
 # redis键名模板

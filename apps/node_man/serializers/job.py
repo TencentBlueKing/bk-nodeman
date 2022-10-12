@@ -14,6 +14,9 @@ from collections import defaultdict
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
+from apps.backend.subscription.steps.agent_adapter.adapter import LEGACY
+from apps.core.tag import core_tag_constants
+from apps.core.tag.handlers import VisibleRangeHandler
 from apps.exceptions import ValidationError
 from apps.node_man import constants, models, tools
 from apps.node_man.handlers import validator
@@ -130,7 +133,14 @@ class HostSerializer(serializers.Serializer):
         return attrs
 
 
+class AgentSetupInfoSerializer(serializers.Serializer):
+    name = serializers.CharField(required=False, label="构件名称")
+    # LEGACY 表示旧版本 Agent，仅做兼容
+    version = serializers.CharField(required=False, label="构件版本", default=LEGACY)
+
+
 class InstallSerializer(serializers.Serializer):
+    agent_setup_info = AgentSetupInfoSerializer(label=_("Agent 设置信息"), required=False)
     job_type = serializers.ChoiceField(label=_("任务类型"), choices=list(constants.JOB_TYPE_DICT))
     hosts = HostSerializer(label=_("主机信息"), many=True)
     replace_host_id = serializers.IntegerField(label=_("被替换的Proxy主机ID"), required=False)
@@ -150,11 +160,13 @@ class InstallSerializer(serializers.Serializer):
         if attrs["job_type"] == constants.JobType.REPLACE_PROXY and not attrs.get("replace_host_id"):
             raise ValidationError(_("替换PROXY必须填写replace_host_id"))
 
+        bk_biz_ids = set()
         expected_bk_host_ids_gby_bk_biz_id: typing.Dict[int, typing.List[int]] = defaultdict(list)
         rsa_util = tools.HostTools.get_rsa_util()
         fields_need_decrypt = ["password", "key"]
         # 密码解密
         for host in attrs["hosts"]:
+            bk_biz_ids.add(host.get("bk_biz_id"))
             # 解密
             for field_need_decrypt in fields_need_decrypt:
                 if not isinstance(host.get(field_need_decrypt), str):
@@ -173,6 +185,14 @@ class InstallSerializer(serializers.Serializer):
         if attrs["op_type"] not in [constants.OpType.INSTALL, constants.OpType.REPLACE]:
             # 差量同步主机
             bulk_differential_sync_biz_hosts(expected_bk_host_ids_gby_bk_biz_id)
+
+        # 如果开启业务灰度，安装新版本 Agent
+        # TODO 后续该逻辑通过前端表单填写，通过 validate 校验是否属于灰度范围（暂时只支持到业务级别）
+        visible_range_handler = VisibleRangeHandler(
+            name="gse_agent", version_str="test", target_type=core_tag_constants.TargetType.AGENT.value
+        )
+        if all([visible_range_handler.is_belong_to_biz(bk_biz_id) for bk_biz_id in bk_biz_ids]):
+            attrs["agent_setup_info"] = {"name": "gse_agent", "version": "test"}
         return attrs
 
 

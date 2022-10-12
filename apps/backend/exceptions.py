@@ -72,3 +72,9 @@ class OsVersionPackageValidationError(BackendBaseException):
     MESSAGE = _("操作系统版本安装包校验错误")
     MESSAGE_TPL = _("操作系统[{os_type}]不支持 对应版本[{os_version}]的安装包")
     ERROR_CODE = 11
+
+
+class AgentConfigTemplateNotExistError(BackendBaseException):
+    MESSAGE = _("配置模板不存在")
+    MESSAGE_TPL = _("配置模板[{name}-{filename}-{os_type}-{cpu_arch}]不存在")
+    ERROR_CODE = 12
