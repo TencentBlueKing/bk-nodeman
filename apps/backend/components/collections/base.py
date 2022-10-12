@@ -8,8 +8,10 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+
 import traceback
 import typing
+from dataclasses import dataclass
 from typing import (
     Any,
     Callable,
@@ -28,6 +30,7 @@ from django.db.models.functions import Concat
 from django.utils import timezone
 from django.utils.translation import ugettext as _
 
+from apps.backend.subscription import errors
 from apps.node_man import constants, models
 from apps.utils import cache, time_handler, translation
 from apps.utils.exc import ExceptionHandler
@@ -175,31 +178,22 @@ class DBHelperMixin:
         return batch_size
 
 
+@dataclass
 class CommonData:
     """
     抽象出通用数据结构体，同于原子执行时常用数据，避免重复编写
     同时这里对类的实例变量进行类型注解，也能避免在调用处重复定义，提高代码编写效率
     """
 
-    def __init__(
-        self,
-        bk_host_ids: Set[int],
-        host_id_obj_map: Dict[int, models.Host],
-        sub_inst_id__host_id_map: Dict[int, int],
-        host_id__sub_inst_id_map: Dict[int, int],
-        ap_id_obj_map: Dict[int, models.AccessPoint],
-        subscription: models.Subscription,
-        subscription_instances: List[models.SubscriptionInstanceRecord],
-        subscription_instance_ids: Set[int],
-    ):
-        self.bk_host_ids = bk_host_ids
-        self.host_id_obj_map = host_id_obj_map
-        self.sub_inst_id__host_id_map = sub_inst_id__host_id_map
-        self.host_id__sub_inst_id_map = host_id__sub_inst_id_map
-        self.ap_id_obj_map = ap_id_obj_map
-        self.subscription = subscription
-        self.subscription_instances = subscription_instances
-        self.subscription_instance_ids = subscription_instance_ids
+    bk_host_ids: Set[int]
+    host_id_obj_map: Dict[int, models.Host]
+    sub_inst_id__host_id_map: Dict[int, int]
+    host_id__sub_inst_id_map: Dict[int, int]
+    ap_id_obj_map: Dict[int, models.AccessPoint]
+    subscription: models.Subscription
+    subscription_step: models.SubscriptionStep
+    subscription_instances: List[models.SubscriptionInstanceRecord]
+    subscription_instance_ids: Set[int]
 
 
 class BaseService(Service, LogMixin, DBHelperMixin):
@@ -287,6 +281,12 @@ class BaseService(Service, LogMixin, DBHelperMixin):
         subscription = models.Subscription.get_subscription(
             subscription_instances[0].subscription_id, show_deleted=True
         )
+        subscription_step_id = data.get_one_of_inputs("subscription_step_id")
+        try:
+            subscription_step = models.SubscriptionStep.objects.get(id=subscription_step_id)
+        except models.SubscriptionStep.DoesNotExist:
+            raise errors.SubscriptionStepNotExist({"step_id": subscription_step_id})
+
         bk_host_ids = set()
         subscription_instance_ids = set()
         sub_inst_id__host_id_map = {}
@@ -309,6 +309,7 @@ class BaseService(Service, LogMixin, DBHelperMixin):
             host_id__sub_inst_id_map=host_id__sub_inst_id_map,
             ap_id_obj_map=ap_id_obj_map,
             subscription=subscription,
+            subscription_step=subscription_step,
             subscription_instances=subscription_instances,
             subscription_instance_ids=subscription_instance_ids,
         )

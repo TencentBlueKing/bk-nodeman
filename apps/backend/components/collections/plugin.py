@@ -14,6 +14,7 @@ import logging
 import operator
 import os
 from collections import defaultdict
+from dataclasses import dataclass, field
 from functools import reduce
 from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
@@ -58,44 +59,23 @@ logger = logging.getLogger("app")
 SCRIPT_CONTENT_CACHE = {}
 
 
+@dataclass
 class PluginCommonData(CommonData):
-    def __init__(
-        self,
-        bk_host_ids: Set[int],
-        host_id_obj_map: Dict[int, models.Host],
-        ap_id_obj_map: Dict[int, models.AccessPoint],
-        subscription: models.Subscription,
-        subscription_instances: List[models.SubscriptionInstanceRecord],
-        subscription_instance_ids: Set[int],
-        sub_inst_id__host_id_map: Dict[int, int],
-        host_id__sub_inst_id_map: Dict[int, int],
-        # 插件新增的公共数据
-        process_statuses: List[models.ProcessStatus],
-        target_host_objs: Optional[List[models.Host]],
-        policy_step_adapter: PolicyStepAdapter,
-        group_id_instance_map: Dict[str, models.SubscriptionInstanceRecord],
-    ):
-        # 进程状态列表
-        self.process_statuses = process_statuses
-        # 目标主机列表，用于远程采集场景
-        self.target_host_objs = target_host_objs
-        # PluginStep 适配器，用于屏蔽不同类型的插件操作类订阅差异
-        self.policy_step_adapter: PolicyStepAdapter = policy_step_adapter
-        # group_id - 订阅实例记录映射关系
-        self.group_id_instance_map = group_id_instance_map
-        # 插件名称
-        self.plugin_name = policy_step_adapter.plugin_name
 
-        super().__init__(
-            bk_host_ids=bk_host_ids,
-            host_id_obj_map=host_id_obj_map,
-            ap_id_obj_map=ap_id_obj_map,
-            subscription=subscription,
-            subscription_instances=subscription_instances,
-            subscription_instance_ids=subscription_instance_ids,
-            sub_inst_id__host_id_map=sub_inst_id__host_id_map,
-            host_id__sub_inst_id_map=host_id__sub_inst_id_map,
-        )
+    # 进程状态列表
+    process_statuses: List[models.ProcessStatus]
+    # 目标主机列表，用于远程采集场景
+    target_host_objs: Optional[List[models.Host]]
+    # PluginStep 适配器，用于屏蔽不同类型的插件操作类订阅差异
+    policy_step_adapter: PolicyStepAdapter
+    # group_id - 订阅实例记录映射关系
+    group_id_instance_map: Dict[str, models.SubscriptionInstanceRecord]
+
+    # 插件名称
+    plugin_name: str = field(init=False)
+
+    def __post_init__(self):
+        self.plugin_name = self.policy_step_adapter.plugin_name
 
 
 class PluginBaseService(BaseService, metaclass=abc.ABCMeta):
@@ -115,12 +95,6 @@ class PluginBaseService(BaseService, metaclass=abc.ABCMeta):
         # 同一批执行的任务都源于同一个订阅任务
         subscription = common_data.subscription
 
-        subscription_step_id = data.get_one_of_inputs("subscription_step_id")
-        try:
-            subscription_step = models.SubscriptionStep.objects.get(id=subscription_step_id)
-        except models.SubscriptionStep.DoesNotExist:
-            raise errors.SubscriptionStepNotExist({"step_id": subscription_step_id})
-
         group_id_instance_map: Dict[str, models.SubscriptionInstanceRecord] = {}
         for subscription_instance in subscription_instances:
             group_id = create_group_id(subscription, subscription_instance.instance_info)
@@ -138,7 +112,7 @@ class PluginBaseService(BaseService, metaclass=abc.ABCMeta):
             )
             target_host_objs = models.Host.objects.filter(query_conditions)
 
-        policy_step_adapter = PolicyStepAdapter(subscription_step)
+        policy_step_adapter = PolicyStepAdapter(common_data.subscription_step)
 
         process_statuses = models.ProcessStatus.objects.filter(
             name=policy_step_adapter.plugin_name, group_id__in=group_id_instance_map.keys()
@@ -148,6 +122,7 @@ class PluginBaseService(BaseService, metaclass=abc.ABCMeta):
             host_id_obj_map=common_data.host_id_obj_map,
             ap_id_obj_map=common_data.ap_id_obj_map,
             subscription=common_data.subscription,
+            subscription_step=common_data.subscription_step,
             subscription_instances=common_data.subscription_instances,
             subscription_instance_ids=common_data.subscription_instance_ids,
             sub_inst_id__host_id_map=common_data.sub_inst_id__host_id_map,

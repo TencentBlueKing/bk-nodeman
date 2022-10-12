@@ -11,7 +11,6 @@ specific language governing permissions and limitations under the License.
 
 from typing import Any, Dict, List
 
-from apps.backend.views import generate_gse_config
 from apps.node_man import models
 from apps.utils.files import PathHandler
 
@@ -20,9 +19,9 @@ from .base import AgentCommonData, AgentPushConfigService
 
 class RenderAndPushGseConfigService(AgentPushConfigService):
     def get_config_info_list(self, data, common_data: AgentCommonData, host: models.Host) -> List[Dict[str, Any]]:
-        file_name = "agent.conf"
+        file_name = common_data.agent_step_adapter.get_main_config_filename()
         general_node_type = self.get_general_node_type(host.node_type)
-        content = generate_gse_config(
+        content = common_data.agent_step_adapter.get_config(
             host=host, filename=file_name, node_type=general_node_type, ap=common_data.host_id__ap_map[host.bk_host_id]
         )
         return [{"file_name": file_name, "content": content}]

@@ -12,32 +12,57 @@ specific language governing permissions and limitations under the License.
 import copy
 
 from apps.backend.constants import REDIS_AGENT_CONF_KEY_TPL
+from apps.backend.subscription.steps.agent_adapter.adapter import AgentStepAdapter
 from apps.backend.utils.redis import REDIS_INST
-from apps.backend.views import generate_gse_config
 from apps.mock_data import common_unit
-from apps.node_man import models
+from apps.node_man import constants, models
+from apps.utils import basic
 
 from .base import ViewBaseTestCase
 
 
-class GetGseConfigTestCase(ViewBaseTestCase):
+class GetLegacyGseConfigTestCase(ViewBaseTestCase):
 
     host: models.Host = None
+    sub_step_obj: models.SubscriptionStep = None
+    sub_inst_record_obj: models.SubscriptionInstanceRecord = None
+    agent_step_adapter: AgentStepAdapter = None
     redis_agent_conf_key: str = None
 
     @classmethod
     def setUpTestData(cls):
-
         super().setUpTestData()
         host_model_data = copy.deepcopy(common_unit.host.HOST_MODEL_DATA)
         cls.host = models.Host.objects.create(**host_model_data)
+
+        # 创建订阅相关数据
+        sub_inst_data = basic.remove_keys_from_dict(
+            origin_data=common_unit.subscription.SUB_INST_RECORD_MODEL_DATA, keys=["id"]
+        )
+        sub_step_data = basic.remove_keys_from_dict(
+            origin_data=common_unit.subscription.SUB_AGENT_STEP_MODEL_DATA, keys=["id"]
+        )
+        cls.sub_inst_record_obj = models.SubscriptionInstanceRecord.objects.create(**sub_inst_data)
+        cls.sub_step_obj = models.SubscriptionStep.objects.create(
+            **{
+                **sub_step_data,
+                **{
+                    "subscription_id": cls.sub_inst_record_obj.subscription_id,
+                    "config": {"job_type": constants.JobType.INSTALL_AGENT},
+                },
+            }
+        )
+        cls.agent_step_adapter = AgentStepAdapter(subscription_step=cls.sub_step_obj)
+
         # 此类查询在单元测试中会有如下报错， 因此将数据预先查询缓存
         # TransactionManagementError "You can't execute queries until the end of the 'atomic' block" while using signals
         # 参考：https://stackoverflow.com/questions/21458387
         cls.ap = cls.host.ap
         cls.proxies = list(cls.host.proxies)
         cls.install_channel = cls.host.install_channel
-        cls.redis_agent_conf_key = REDIS_AGENT_CONF_KEY_TPL.format(file_name="agent.conf", sub_inst_id=cls.SUB_INST_ID)
+        cls.redis_agent_conf_key = REDIS_AGENT_CONF_KEY_TPL.format(
+            file_name=cls.agent_step_adapter.get_main_config_filename(), sub_inst_id=cls.sub_inst_record_obj.id
+        )
 
     def setUp(self) -> None:
         super().setUp()
@@ -47,10 +72,10 @@ class GetGseConfigTestCase(ViewBaseTestCase):
     def query_get_gse_config(self):
         query_params = {
             "bk_cloud_id": self.host.bk_cloud_id,
-            "filename": "agent.conf",
+            "filename": self.agent_step_adapter.get_main_config_filename(),
             "node_type": self.host.node_type.lower(),
             "inner_ip": self.host.inner_ip,
-            "token": self.gen_token(),
+            "token": self.gen_token(sub_inst_id=self.sub_inst_record_obj.id),
         }
         config = self.client.post(
             path="/backend/get_gse_config/",
@@ -64,9 +89,9 @@ class GetGseConfigTestCase(ViewBaseTestCase):
         config = self.query_get_gse_config()
         REDIS_INST.set(
             name=self.redis_agent_conf_key,
-            value=generate_gse_config(
+            value=self.agent_step_adapter.get_config(
                 host=self.host,
-                filename="agent.conf",
+                filename=self.agent_step_adapter.get_main_config_filename(),
                 node_type=self.host.node_type.lower(),
                 ap=self.ap,
                 proxies=self.proxies,
@@ -76,3 +101,15 @@ class GetGseConfigTestCase(ViewBaseTestCase):
         REDIS_INST.expire(name=self.redis_agent_conf_key, time=5)
         cached_config = self.query_get_gse_config()
         self.assertEqual(config, cached_config)
+
+
+class GetGseConfigTestCase(GetLegacyGseConfigTestCase):
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
+        cls.sub_step_obj.config = {"job_type": constants.JobType.INSTALL_AGENT, "name": "gse_agent", "version": "2.0.0"}
+        cls.sub_step_obj.save()
+        cls.agent_step_adapter = AgentStepAdapter(subscription_step=cls.sub_step_obj)
+        cls.redis_agent_conf_key = REDIS_AGENT_CONF_KEY_TPL.format(
+            file_name=cls.agent_step_adapter.get_main_config_filename(), sub_inst_id=cls.sub_inst_record_obj.id
+        )

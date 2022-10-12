@@ -29,9 +29,9 @@ from apps.backend.constants import (
     REDIS_INSTALL_CALLBACK_KEY_TPL,
     SSH_RUN_TIMEOUT,
 )
+from apps.backend.subscription.steps.agent_adapter.adapter import AgentStepAdapter
 from apps.backend.utils.redis import REDIS_INST
 from apps.backend.utils.wmi import execute_cmd, put_file
-from apps.backend.views import generate_gse_config
 from apps.core.concurrent import controller
 from apps.core.remote import conns
 from apps.exceptions import AuthOverdueException
@@ -209,7 +209,8 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
                         "sub_inst_id": sub_inst.id,
                         "host": host,
                         "ap": common_data.host_id__ap_map[host.bk_host_id],
-                        "file_name": "agent.conf",
+                        "agent_step_adapter": common_data.agent_step_adapter,
+                        "file_name": common_data.agent_step_adapter.get_main_config_filename(),
                     }
                 )
             installation_tool = host_id__installation_tool_map[bk_host_id]
@@ -271,10 +272,15 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
 
     @exc.ExceptionHandler(exc_handler=core.default_sub_inst_task_exc_handler)
     def get_gse_config_tuple(
-        self, sub_inst_id: int, host: models.Host, ap: models.AccessPoint, file_name: str
+        self,
+        sub_inst_id: int,
+        host: models.Host,
+        ap: models.AccessPoint,
+        agent_step_adapter: AgentStepAdapter,
+        file_name: str,
     ) -> Tuple[str, str]:
         general_node_type = self.get_general_node_type(host.node_type)
-        content = generate_gse_config(host=host, filename=file_name, node_type=general_node_type, ap=ap)
+        content = agent_step_adapter.get_config(host=host, filename=file_name, node_type=general_node_type, ap=ap)
         return REDIS_AGENT_CONF_KEY_TPL.format(file_name=file_name, sub_inst_id=sub_inst_id), content
 
     @exc.ExceptionHandler(exc_handler=core.default_sub_inst_task_exc_handler)
