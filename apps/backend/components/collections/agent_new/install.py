@@ -544,6 +544,8 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
                 agent_id = data["log"]
             elif step == "report_os_version":
                 os_version = data["log"]
+            elif step in ["report_healthz", "report_heathz"]:
+                logs.append(data.get("log"))
             # 只要匹配到成功返回步骤完成，则认为是执行完成了
             if step == success_callback_step and status == "DONE":
                 is_finished = True
@@ -589,7 +591,8 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
             bk_host_id = common_data.sub_inst_id__host_id_map.get(result["sub_inst_id"])
             cpu_arch__host_id_map[result["cpu_arch"]].append(bk_host_id)
             # 记录不为空的 agent_id 和 bk_host_id 的对应关系
-            agent_id = result.get("agent_id", "")
+            agent_id: str = result.get("agent_id") or ""
+            agent_id = agent_id.split(":")[-1].strip()
             if agent_id:
                 host_id__agent_id_map[bk_host_id] = agent_id
             # 按操作系统版本对主机进行分组
