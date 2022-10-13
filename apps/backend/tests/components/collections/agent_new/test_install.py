@@ -43,6 +43,7 @@ from . import utils
 
 
 class InstallBaseTestCase(utils.AgentServiceBaseTestCase):
+    DEBUG = True
     OS_TYPE = constants.OsType.LINUX
     NODE_TYPE = constants.NodeType.AGENT
     JOB_API_MOCK_PATH = "apps.backend.components.collections.agent_new.install.JobApi"
@@ -83,7 +84,14 @@ class InstallBaseTestCase(utils.AgentServiceBaseTestCase):
                         "timestamp": "1580870937",
                         "level": "INFO",
                         "step": "report_agent_id",
-                        "log": f"{report_agent_obj.bk_cloud_id}:{report_agent_obj.inner_ip}",
+                        "log": f"agent-id: {report_agent_obj.bk_cloud_id}:{report_agent_obj.inner_ip}",
+                        "status": "DONE",
+                    },
+                    {
+                        "timestamp": "1580870937",
+                        "level": "INFO",
+                        "step": "report_healthz",
+                        "log": '{"ok":false,"data":{"base":"ok","cluster":"ok","data":"ok","file":"ok"}}',
                         "status": "DONE",
                     },
                     {
