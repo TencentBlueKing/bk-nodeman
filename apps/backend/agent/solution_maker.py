@@ -133,7 +133,7 @@ class BaseExecutionSolutionMaker(metaclass=abc.ABCMeta):
             self.token = token
         else:
             self.token: str = models.aes_cipher.encrypt(
-                f"{self.host.bk_host_id}|{self.host.inner_ip}|{self.host.bk_cloud_id}|"
+                f"{self.host.bk_host_id}|{self.host.inner_ip or self.host.inner_ipv6}|{self.host.bk_cloud_id}|"
                 f"{self.pipeline_id}|{time.time()}|{self.sub_inst_id}"
             )
 
@@ -236,9 +236,7 @@ class BaseExecutionSolutionMaker(metaclass=abc.ABCMeta):
             f"-r {self.gse_servers_info['callback_url']}",
             # 目标主机信息
             f"-i {self.host.bk_cloud_id}",
-            f"-I {self.host.inner_ip}",
-            f"-I6 {self.host.inner_ipv6}" if self.host.inner_ipv6 else "",
-            f"-AI {self.host.bk_agent_id}" if self.host.bk_agent_id else "",
+            f"-I {self.host.inner_ip or self.host.inner_ipv6}",
             # 安装/下载配置
             f"-T {self.dest_dir}",
             f"-p {self.agent_config['setup_path']}",
@@ -613,11 +611,9 @@ class ProxyExecutionSolutionMaker(BaseExecutionSolutionMaker):
             f"-s {self.pipeline_id}",
             # 目标机器主机信息
             f"-HNT {self.host.node_type}",
-            f"-HIIP {self.host.inner_ip}",
+            f"-HIIP {self.host.inner_ip or self.host.inner_ipv6}",
             f"-HC {self.host.bk_cloud_id}",
             f"-HOT {self.host.os_type.lower()}",
-            f"-AI {self.host.bk_agent_id}" if self.host.bk_agent_id else "",
-            f"-HIIP6 {self.host.inner_ipv6}" if self.host.inner_ipv6 else "",
             # 目标机器登录信息
             f"-HI '{host_identity}'",
             f"-HP {self.identity_data.port}",
