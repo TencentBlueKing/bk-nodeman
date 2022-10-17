@@ -243,10 +243,14 @@ is_connected () {
 
 # 用法：通过ps的comm字段和二进制的绝对路径来精确获取pid
 get_pid_by_comm_path () {
-    local comm=$1 path=$2
+    local comm=$1 path=$2 worker=$3
     local _pids pids
     local pid
-    read -r -a _pids <<< "$(ps --no-header -C "$comm" -o pid | xargs)"
+    if [[ "${worker}" == "WORKER" ]]; then
+        read -r -a _pids <<< "$(ps --no-header -C $comm -o '%P|%p|%a' | awk -F'|' '$1 != 1 && $3 ~ /gse_agent/' | awk -F'|' '{print $2}' | xargs)"
+    else
+        read -r -a _pids <<< "$(ps --no-header -C "$comm" -o pid | xargs)"
+    fi
 
     # 传入了绝对路径，则进行基于二进制路径的筛选
     if [[ -e "$path" ]]; then
@@ -297,33 +301,25 @@ is_process_ok () {
     fi
 }
 
-check_agent_config_exist() {
-    if [ -f "${AGENT_SETUP_PATH}"/etc/"${GSE_AGENT_CONFIG}" ]; then
-        return 0
-    else
-        return 1
-    fi
-}
-
 check_heathz_by_gse () {
     local result
-    if check_agent_config_exist; then
-        result=$("${AGENT_SETUP_PATH}"/bin/gse_agent -f "${AGENT_SETUP_PATH}"/etc/"${GSE_AGENT_CONFIG}" --healthz)
+    if [ -f "${GSE_AGENT_CONFIG_PATH}" ]; then
+        result=$("${AGENT_SETUP_PATH}"/bin/gse_agent -f "${GSE_AGENT_CONFIG_PATH}" --healthz)
     else
         result=$("${AGENT_SETUP_PATH}"/bin/gse_agent --healthz)
     fi
     execution_code=$?
-    report_result=$(awk -F': ' '{print $2}' <<< "$result")
+    report_result=$(awk -F': ' '{print $2}' <<< "$result" | tr "\"" "\'")
     if [ "${execution_code}" -eq 0 ]; then
-        log report_heathz INFO "${report_result}"
+        log report_healthz - "${report_result}"
         log healthz_check INFO "gse_agent healthz check success"
     elif [[ "${execution_code}" -eq 5 && "${JOINT_DEBUG_SWITCH}" == "TRUE" ]]; then
-        warn reprot_heathz_code - "${execution_code}"
-        warn reprot_heathz - "${report_result}"
+        warn report_healthz_code INFO "gse_agent healthz check return code: ${execution_code}"
+        warn report_healthz - "${report_result}"
         log healthz_check WARN "gse_agent healthz check failed, skip this error because joint debug switch is on"
     else
-        warn reprot_heathz_code - "${execution_code}"
-        warn reprot_heathz - "${report_result}"
+        warn report_healthz INFO "gse_agent healthz check return code: ${execution_code}"
+        warn report_healthz - "${report_result}"
         fail healthz_check FAILED "gse healthz check failed."
     fi
 }
@@ -361,15 +357,15 @@ register_agent_id () {
         fail register_agent_id FAILED "gse_agent file not exists in $AGENT_SETUP_PATH/bin"
     fi
 
-    log register_agent_id  "trying to register agent id"
-    if check_agent_config_exist; then
-        registe_agent_id=$($AGENT_SETUP_PATH/bin/gse_agent -f "${AGENT_SETUP_PATH}/etc/${GSE_AGENT_CONFIG}" --register)
+    log register_agent_id  - "trying to register agent id"
+    if [ -f "${GSE_AGENT_CONFIG_PATH}" ]; then
+        registe_agent_id=$($AGENT_SETUP_PATH/bin/gse_agent -f "${GSE_AGENT_CONFIG_PATH}" --register)
     else
         registe_agent_id=$($AGENT_SETUP_PATH/bin/gse_agent --register)
     fi
 
     if [ $? -ne 0 ]; then
-        fail register_agent_id FAILED "register agent id failed, error: ${register_agent_id}"
+        fail register_agent_id FAILED "register agent id failed, error: ${registe_agent_id}"
     else
         log report_agent_id DONE "$registe_agent_id"
     fi
@@ -378,8 +374,8 @@ register_agent_id () {
 unregister_agent_id () {
     log unregister_agent_id - "trying to unregister agent id"
     if [ -f "$AGENT_SETUP_PATH/bin/gse_agent" ]; then
-        if check_agent_config_exist; then
-            unregister_agent_id_result=$("$AGENT_SETUP_PATH"/bin/gse_agent -f "${AGENT_SETUP_PATH}/etc/${GSE_AGENT_CONFIG}" --unregister)
+        if [ -f "${GSE_AGENT_CONFIG_PATH}" ]; then
+            unregister_agent_id_result=$("$AGENT_SETUP_PATH"/bin/gse_agent -f "${GSE_AGENT_CONFIG_PATH}" --unregister)
         else
             unregister_agent_id_result=$("$AGENT_SETUP_PATH"/bin/gse_agent --unregister)
         fi
@@ -519,6 +515,8 @@ setup_agent () {
     # create dir
     mkdir -p "$GSE_AGENT_RUN_DIR" "$GSE_AGENT_DATA_DIR" "$GSE_AGENT_LOG_DIR"
 
+    get_config
+
     check_heathz_by_gse
 
     register_agent_id
@@ -531,13 +529,17 @@ setup_agent () {
 download_pkg () {
     local f http_status path
     local tmp_stdout tmp_stderr curl_pid
+    if [[ "${REMOVE}" == "TRUE" ]]; then
+        log download_pkg - "remove proxy, no need to download package"
+        return 0
+    fi
 
     log download_pkg START "download gse agent package from $COMPLETE_DOWNLOAD_URL/$PKG_NAME)."
-    cd "$TMP_DIR" && rm -f "$PKG_NAME" "agent.conf.$LAN_ETH_IP"
+    cd "$TMP_DIR" && rm -f "$PKG_NAME"
 
     tmp_stdout=$(mktemp "${TMP_DIR}"/nm.curl.stdout_XXXXXXXX)
     tmp_stderr=$(mktemp "${TMP_DIR}"/nm.curl.stderr_XXXXXXXX)
-    curl --connect-timeout 5 -o "$TMP_DIR/$f" \
+    curl --connect-timeout 5 -o "$TMP_DIR/$PKG_NAME" \
             --progress-bar -w "%{http_code}" "${COMPLETE_DOWNLOAD_URL}/${PKG_NAME}" >"$tmp_stdout" 2>"$tmp_stderr" &
     curl_pid=$!
     # 如果curl结束，那么http_code一定会写入到stdout文件
@@ -563,11 +565,9 @@ check_deploy_result () {
     # 端口监听状态
     local ret=0
 
-    AGENT_PID=$( get_pid_by_comm_path gse_agent "$AGENT_SETUP_PATH/bin/gse_agent" )
-    is_port_connected_by_pid "$AGENT_PID"  "$IO_PORT" || { fail check_deploy_result FAILED "agent(PID:$AGENT_PID) is not connect to gse server"; ((ret++)); }
-    is_port_connected_by_pid "$AGENT_PID"  "$DATA_PORT" || { fail check_deploy_result FAILED "agent(PID:$AGENT_PID) is not connect to gse server"; ((ret++)); }
-
-    check_heathz_by_gse
+    AGENT_PID=$( get_pid_by_comm_path gse_agent "$AGENT_SETUP_PATH/bin/gse_agent" "WORKER")
+    is_port_connected_by_pid "$AGENT_PID" "$IO_PORT" || { fail check_deploy_result FAILED "agent(PID:$AGENT_PID) is not connect to gse server"; ((ret++)); }
+    is_port_connected_by_pid "$AGENT_PID" "$DATA_PORT" || { fail check_deploy_result FAILED "agent(PID:$AGENT_PID) is not connect to gse server"; ((ret++)); }
 
     [ $ret -eq 0 ] && log check_deploy_result DONE "gse agent has been deployed successfully"
 }
@@ -724,6 +724,10 @@ check_dir_permission () {
 check_download_url () {
     local http_status f
 
+    if [[ "${REMOVE}" == "TRUE" ]]; then
+        return 0
+    fi
+
     for f in $PKG_NAME; do
          log check_env - "checking resource($COMPLETE_DOWNLOAD_URL/$f) url's validality"
          http_status=$(curl -o /dev/null --silent -Iw '%{http_code}' "$COMPLETE_DOWNLOAD_URL/$f")
@@ -859,6 +863,7 @@ done
 # 获取包名
 PKG_NAME=${NAME}-${VERSION}.tgz
 COMPLETE_DOWNLOAD_URL="${DOWNLOAD_URL}/agent/linux/${CPU_ARCH}"
+GSE_AGENT_CONFIG_PATH="${AGENT_SETUP_PATH}/etc/${GSE_AGENT_CONFIG}"
 
 LOG_FILE="$TMP_DIR"/nm.${0##*/}.$TASK_ID
 DEBUG_LOG_FILE=${TMP_DIR}/nm.${0##*/}.${TASK_ID}.debug
@@ -868,7 +873,6 @@ exec &> >(tee "$DEBUG_LOG_FILE")
 
 log check_env - "Args are: $*"
 for step in check_env \
-            get_config \
             download_pkg \
             remove_crontab \
             remove_agent \
