@@ -544,8 +544,11 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
                 agent_id = data["log"]
             elif step == "report_os_version":
                 os_version = data["log"]
-            elif step in ["report_healthz", "report_heathz"]:
-                logs.append(data.get("log"))
+            elif step in "report_healthz":
+                try:
+                    logs.append(json.loads(log))
+                except Exception:
+                    continue
             # 只要匹配到成功返回步骤完成，则认为是执行完成了
             if step == success_callback_step and status == "DONE":
                 is_finished = True
