@@ -1,5 +1,16 @@
 # Release
 
+## 2.2.29 - 2022-10-21 
+
+
+### feature: 
+  * 直连 Agent2.0 安装后台适配 (closed #1158)
+  * Agent 2.0 Linux Agent 安装脚本 (closed #1166)
+  * Agent 2.0 Proxy 安装脚本 (1167 #closed)
+
+### bugfix: 
+  * Windows Agent 重装后采集丢失 (closed #1152)
+
 ## 2.2.28 - 2022-09-29 
 
 
