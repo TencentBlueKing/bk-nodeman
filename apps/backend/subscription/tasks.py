@@ -276,6 +276,7 @@ def create_task(
             continue
 
         # 新装AGENT或PROXY会保存安装信息，需要清理
+        # TODO IPv6 待修改
         need_clean = step_action.get("agent") in [InstallAgent.ACTION_NAME, InstallProxy.ACTION_NAME]
         instance_info = instances[instance_id]
         host_info = instance_info["host"]

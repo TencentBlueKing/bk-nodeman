@@ -249,6 +249,7 @@ class JobHandler(APIModel):
         job_type: str,
         ticket: str,
         extra_params: Dict[str, Any],
+        extra_config: Dict[str, Any],
     ):
         """
         Job 任务处理器
@@ -258,6 +259,7 @@ class JobHandler(APIModel):
         :param job_type: 任务作业类型
         :param ticket: 请求参数的字典
         :param extra_params: 额外的订阅参数
+        :param extra_config: 额外的订阅配置参数
         """
 
         # 获取Hosts中的cloud_id列表、ap_id列表、内网、外网、登录IP列表、bk_biz_scope列表
@@ -336,7 +338,9 @@ class JobHandler(APIModel):
         ):
             # 安装、替换Proxy操作
             subscription_nodes = self.subscription_install(accept_list, node_type, cloud_info, biz_info)
-            subscription = self.create_subscription(job_type, subscription_nodes, extra_params=extra_params)
+            subscription = self.create_subscription(
+                job_type, subscription_nodes, extra_params=extra_params, extra_config=extra_config
+            )
         else:
             # 重装、卸载等操作
             # 此步骤需要校验密码、秘钥
@@ -345,7 +349,9 @@ class JobHandler(APIModel):
                 raise exceptions.AllIpFiltered(
                     data={"job_id": "", "ip_filter": self.ugettext_to_unicode(ip_filter_list)}
                 )
-            subscription = self.create_subscription(job_type, subscription_nodes, extra_params=extra_params)
+            subscription = self.create_subscription(
+                job_type, subscription_nodes, extra_params=extra_params, extra_config=extra_config
+            )
 
         # ugettext_lazy 需要转为 unicode 才可进行序列化
         ip_filter_list = self.ugettext_to_unicode(ip_filter_list)
@@ -606,13 +612,19 @@ class JobHandler(APIModel):
             },
         )
 
-    def create_subscription(self, job_type, nodes: list, extra_params: Optional[Dict[str, Any]] = None):
+    def create_subscription(
+        self,
+        job_type,
+        nodes: list,
+        extra_params: Optional[Dict[str, Any]] = None,
+        extra_config: Optional[Dict[str, Any]] = None,
+    ):
         """
         创建订阅任务
         :param job_type: INSTALL_AGENT
         :param nodes: 任务范围
-        :param extra_params: 额外的配置
-
+        :param extra_params: 额外的参数
+        :param extra_config: 额外的配置
         1.重装、卸载等操作
         [{"bk_host_id": 1}, {"bk_host_id": 2}]
 
@@ -645,6 +657,7 @@ class JobHandler(APIModel):
         :return:
         """
         extra_params = extra_params or {}
+        extra_config = extra_config or {}
         params = {
             "run_immediately": True,
             "bk_app_code": "nodeman",
@@ -654,7 +667,7 @@ class JobHandler(APIModel):
                 {
                     "id": "agent",
                     "type": "AGENT",
-                    "config": {"job_type": job_type},
+                    "config": {"job_type": job_type, **extra_config},
                     "params": {"context": {}, "blueking_language": get_language(), **extra_params},
                 }
             ],

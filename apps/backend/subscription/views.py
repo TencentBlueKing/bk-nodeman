@@ -31,6 +31,7 @@ from apps.backend.serializers import response
 from apps.backend.subscription import errors, serializers, task_tools, tasks, tools
 from apps.backend.subscription.errors import InstanceTaskIsRunning
 from apps.backend.subscription.handler import SubscriptionHandler
+from apps.backend.subscription.steps.agent_adapter.adapter import AgentStepAdapter
 from apps.backend.utils.pipeline_parser import PipelineParser
 from apps.generic import APIViewSet
 from apps.node_man import constants, models
@@ -605,8 +606,13 @@ class SubscriptionViewSet(APIViewSet):
         """
 
         params = self.validated_data
+        subscription_id: int = models.SubscriptionInstanceRecord.objects.get(id=params["sub_inst_id"]).subscription_id
+        sub_step_obj: models.SubscriptionStep = models.SubscriptionStep.objects.filter(
+            subscription_id=subscription_id
+        ).first()
         host = models.Host.objects.get(bk_host_id=params["bk_host_id"])
         installation_tool = gen_commands(
+            agent_setup_info=AgentStepAdapter(subscription_step=sub_step_obj).get_setup_info(),
             host=host,
             pipeline_id=params["host_install_pipeline_id"],
             is_uninstall=params["is_uninstall"],

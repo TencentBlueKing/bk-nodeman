@@ -217,3 +217,19 @@ class AgentManager(object):
             name=components.UpdateInstallInfoComponent.name,
         )
         return act
+
+    @classmethod
+    def bind_host_agent(cls):
+        """绑定主机 Agent 信息"""
+        act = AgentServiceActivity(
+            component_code=components.BindHostAgentComponent.code, name=components.BindHostAgentComponent.name
+        )
+        return act
+
+    @classmethod
+    def unbind_host_agent(cls):
+        """主机解绑 Agent 信息"""
+        act = AgentServiceActivity(
+            component_code=components.UnBindHostAgentComponent.code, name=components.UnBindHostAgentComponent.name
+        )
+        return act
