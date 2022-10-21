@@ -12,6 +12,7 @@ from typing import Any, Dict, List, Optional, Tuple, Type
 
 from django.conf import settings
 
+from apps.backend.subscription.steps.agent_adapter.base import AgentSetupInfo
 from apps.node_man import constants, models
 
 from ...utils import basic
@@ -81,9 +82,9 @@ def fetch_gse_servers_info(
     if host.install_channel_id:
         # 指定安装通道时，由安装通道生成相关配置
         jump_server, upstream_servers = install_channel
-        bt_file_servers = ",".join(upstream_servers["btfileserver"])
-        data_servers = ",".join(upstream_servers["dataserver"])
-        task_servers = ",".join(upstream_servers["taskserver"])
+        bt_file_server_hosts = upstream_servers["btfileserver"]
+        data_server_hosts = upstream_servers["dataserver"]
+        task_server_hosts = upstream_servers["taskserver"]
         package_url = gen_nginx_download_url(jump_server.inner_ip)
         default_callback_url = (
             settings.BKAPP_NODEMAN_CALLBACK_URL
@@ -91,43 +92,46 @@ def fetch_gse_servers_info(
             else settings.BKAPP_NODEMAN_OUTER_CALLBACK_URL
         )
         callback_url = host_ap.outer_callback_url or default_callback_url
-
     elif host.node_type == constants.NodeType.AGENT:
-        bt_file_servers = ",".join(server["inner_ip"] for server in host_ap.btfileserver)
-        data_servers = ",".join(server["inner_ip"] for server in host_ap.dataserver)
-        task_servers = ",".join(server["inner_ip"] for server in host_ap.taskserver)
+        bt_file_server_hosts = [server["inner_ip"] for server in host_ap.btfileserver]
+        data_server_hosts = [server["inner_ip"] for server in host_ap.dataserver]
+        task_server_hosts = [server["inner_ip"] for server in host_ap.taskserver]
         package_url = host_ap.package_inner_url
         # 优先使用接入点配置的内网回调地址
         callback_url = host_ap.callback_url or settings.BKAPP_NODEMAN_CALLBACK_URL
     elif host.node_type == constants.NodeType.PROXY:
-        bt_file_servers = ",".join(server["outer_ip"] for server in host_ap.btfileserver)
-        data_servers = ",".join(server["outer_ip"] for server in host_ap.dataserver)
-        task_servers = ",".join(server["outer_ip"] for server in host_ap.taskserver)
+        bt_file_server_hosts = [server["outer_ip"] for server in host_ap.btfileserver]
+        data_server_hosts = [server["outer_ip"] for server in host_ap.dataserver]
+        task_server_hosts = [server["outer_ip"] for server in host_ap.taskserver]
         package_url = host_ap.package_outer_url
         # 不同接入点使用不同的callback_url默认情况下接入点callback_url为空，先取接入点，为空的情况下使用原来的配置
         callback_url = host_ap.outer_callback_url or settings.BKAPP_NODEMAN_OUTER_CALLBACK_URL
     else:
         # PAGENT的场景
         proxy_ips = list(set([proxy.inner_ip for proxy in proxies]))
+        bt_file_server_hosts = proxy_ips
+        data_server_hosts = proxy_ips
+        task_server_hosts = proxy_ips
         jump_server = host.get_random_alive_proxy(proxies)
-        bt_file_servers = ",".join(ip for ip in proxy_ips)
-        data_servers = ",".join(ip for ip in proxy_ips)
-        task_servers = ",".join(ip for ip in proxy_ips)
         package_url = host_ap.package_outer_url
         # 不同接入点使用不同的callback_url默认情况下接入点callback_url为空，先取接入点，为空的情况下使用原来的配置
         callback_url = host_ap.outer_callback_url or settings.BKAPP_NODEMAN_OUTER_CALLBACK_URL
 
     return {
+        "bt_file_server_hosts": bt_file_server_hosts,
+        "data_server_hosts": data_server_hosts,
+        "task_server_hosts": task_server_hosts,
+        "bt_file_servers": ",".join(bt_file_server_hosts),
+        "data_servers": ",".join(data_server_hosts),
+        "task_servers": ",".join(task_server_hosts),
         "jump_server": jump_server,
-        "bt_file_servers": bt_file_servers,
-        "data_servers": data_servers,
-        "task_servers": task_servers,
         "package_url": package_url,
         "callback_url": callback_url,
     }
 
 
 def gen_commands(
+    agent_setup_info: AgentSetupInfo,
     host: models.Host,
     pipeline_id: str,
     is_uninstall: bool,
@@ -140,7 +144,7 @@ def gen_commands(
 ) -> InstallationTools:
     """
     生成安装命令
-    :param is_combine_cmd_step:
+    :param agent_setup_info: Agent 设置信息
     :param host: 主机信息
     :param pipeline_id: Node ID
     :param is_uninstall: 是否卸载
@@ -149,6 +153,7 @@ def gen_commands(
     :param host_ap: 主机接入点对象
     :param proxies: 主机代理列表
     :param install_channel: 安装通道
+    :param is_combine_cmd_step: 是否合并命令步骤
     :return: dest_dir 目标目录, win_commands: Windows安装命令, proxies 代理列表,
              proxy 云区域所使用的代理, pre_commands 安装前命令, run_cmd 安装命令
     """
@@ -177,6 +182,7 @@ def gen_commands(
     for solution_class in solution_classes:
         execution_solutions.append(
             solution_class(
+                agent_setup_info=agent_setup_info,
                 host=host,
                 host_ap=host_ap,
                 identity_data=identity_data,
@@ -215,6 +221,7 @@ def check_run_commands(run_commands):
 
 
 def batch_gen_commands(
+    agent_setup_info: AgentSetupInfo,
     hosts: List[models.Host],
     pipeline_id: str,
     is_uninstall: bool,
@@ -237,6 +244,7 @@ def batch_gen_commands(
         identity_data = host_id_identity_map.get(host.bk_host_id) or host.identity
 
         host_id__installation_tool_map[host.bk_host_id] = gen_commands(
+            agent_setup_info=agent_setup_info,
             host=host,
             pipeline_id=pipeline_id,
             is_uninstall=is_uninstall,

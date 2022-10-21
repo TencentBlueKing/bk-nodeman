@@ -8,9 +8,9 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-
 import random
 import time
+import typing
 
 import mock
 
@@ -30,9 +30,10 @@ class ViewBaseTestCase(CustomAPITestCase):
 
     def gen_token(
         self,
+        sub_inst_id: typing.Optional[int] = None,
     ) -> str:
         return models.aes_cipher.encrypt(
             f"{common_unit.host.DEFAULT_HOST_ID}|{common_unit.host.DEFAULT_IP}|{constants.DEFAULT_CLOUD}|"
             f"{self.PIPELINE_ID}|"
-            f"{time.time()}|{self.SUB_INST_ID}"
+            f"{time.time()}|{sub_inst_id or self.SUB_INST_ID}"
         )

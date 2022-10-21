@@ -47,3 +47,19 @@ class TagChangeRecordAdmin(admin.ModelAdmin):
     ]
     list_filter = ["action"]
     search_fields = ["target_version"]
+
+
+@admin.register(models.VisibleRange)
+class VisibleRangeAdmin(admin.ModelAdmin):
+    list_display = [
+        "id",
+        "name",
+        "version",
+        "target_type",
+        "is_public",
+        "bk_biz_id",
+        "bk_obj_id",
+        "bk_inst_scope",
+    ]
+    list_filter = ["target_type", "is_public", "bk_obj_id"]
+    search_fields = ["id", "name", "version", "target_type", "bk_biz_id"]

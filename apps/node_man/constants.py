@@ -842,6 +842,17 @@ class GseProcessAutoCode(EnhanceEnum):
         }
 
 
+class GseAgentRunMode(EnhanceEnum):
+    """Agent 运行模式"""
+
+    PROXY = 0
+    AGENT = 1
+
+    @classmethod
+    def _get_member__alias_map(cls) -> Dict[Enum, str]:
+        return {cls.PROXY: "Proxy Agent 模式", cls.AGENT: "Agent 模式"}
+
+
 ########################################################################################################
 # CMDB
 ########################################################################################################

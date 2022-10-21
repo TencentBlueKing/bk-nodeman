@@ -49,7 +49,13 @@ class TestJob(TestCase):
     @classmethod
     def job_install(cls, hosts: List, op_type: str, node_type: str, job_type: str, ticket: str):
         return JobHandler().install(
-            hosts, op_type, node_type, job_type, ticket, extra_params={"is_install_latest_plugins": True}
+            hosts,
+            op_type,
+            node_type,
+            job_type,
+            ticket,
+            extra_params={"is_install_latest_plugins": True},
+            extra_config={},
         )
 
     @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)
