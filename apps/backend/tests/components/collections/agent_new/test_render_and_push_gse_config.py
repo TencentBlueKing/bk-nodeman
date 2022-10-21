@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 import base64
 
 from apps.backend.components.collections.agent_new import components
-from apps.backend.views import generate_gse_config
+from apps.backend.subscription.steps.agent_adapter import legacy
 from apps.node_man import constants
 from common.api import JobApi
 
@@ -42,6 +42,8 @@ class RenderAndPushGseConfigTestCase(base.JobBaseTestCase):
         config_content = base64.b64decode(config_info["content"]).decode()
         for host in self.obj_factory.host_objs:
             node_type = ("agent", "proxy")[host.os_type == constants.NodeType.PROXY]
-            except_content = generate_gse_config(host=host, filename=config_info["file_name"], node_type=node_type)
+            except_content = legacy.generate_gse_config(
+                host=host, filename=config_info["file_name"], node_type=node_type
+            )
             self.assertEqual(except_content, config_content)
         super().tearDown()

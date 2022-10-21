@@ -20,6 +20,7 @@ from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
 
 from apps.backend.api import constants as backend_api_constants
+from apps.backend.subscription.steps.agent_adapter.base import AgentSetupInfo
 from apps.node_man import constants, models
 from apps.utils import basic
 from apps.utils.encrypt import rsa
@@ -98,6 +99,7 @@ class BaseExecutionSolutionMaker(metaclass=abc.ABCMeta):
 
     def __init__(
         self,
+        agent_setup_info: AgentSetupInfo,
         host: models.Host,
         host_ap: models.AccessPoint,
         identity_data: models.IdentityData,
@@ -109,6 +111,7 @@ class BaseExecutionSolutionMaker(metaclass=abc.ABCMeta):
         is_combine_cmd_step: typing.Optional[bool] = False,
         token: typing.Optional[str] = None,
     ):
+        self.agent_setup_info = agent_setup_info
         self.host = host
         self.host_ap = host_ap
         self.identity_data = identity_data
@@ -130,7 +133,7 @@ class BaseExecutionSolutionMaker(metaclass=abc.ABCMeta):
             self.token = token
         else:
             self.token: str = models.aes_cipher.encrypt(
-                f"{self.host.bk_host_id}|{self.host.inner_ip}|{self.host.bk_cloud_id}|"
+                f"{self.host.bk_host_id}|{self.host.inner_ip or self.host.inner_ipv6}|{self.host.bk_cloud_id}|"
                 f"{self.pipeline_id}|{time.time()}|{self.sub_inst_id}"
             )
 
@@ -144,6 +147,10 @@ class BaseExecutionSolutionMaker(metaclass=abc.ABCMeta):
         return _("卸载") if self.is_uninstall else _("安装")
 
     def get_package_url(self) -> str:
+        """
+        获取包下载
+        :return:
+        """
         if ExecutionSolutionTools.need_jump_server(self.host):
             return "http://{jump_server_lan_ip}:{proxy_nginx_pass_port}".format(
                 jump_server_lan_ip=self.gse_servers_info["jump_server"].inner_ip,
@@ -151,6 +158,27 @@ class BaseExecutionSolutionMaker(metaclass=abc.ABCMeta):
             )
         else:
             return self.gse_servers_info["package_url"]
+
+    def get_agent_tools_url(self, file_relative_path: str) -> str:
+        """
+        获取 Agent 设置工具下载地址
+        :param file_relative_path:
+        :return:
+        """
+        agent_tools_url: str = "/".join(
+            list(
+                filter(
+                    None,
+                    [
+                        # 工具下载走的是接入点的包源，非直连挂代理
+                        self.gse_servers_info["package_url"],
+                        self.agent_setup_info.agent_tools_relative_dir,
+                        file_relative_path,
+                    ],
+                )
+            )
+        )
+        return agent_tools_url
 
     def need_encrypted_password(self) -> bool:
         return all(
@@ -208,9 +236,7 @@ class BaseExecutionSolutionMaker(metaclass=abc.ABCMeta):
             f"-r {self.gse_servers_info['callback_url']}",
             # 目标主机信息
             f"-i {self.host.bk_cloud_id}",
-            f"-I {self.host.inner_ip}",
-            f"-I6 {self.host.inner_ipv6}" if self.host.inner_ipv6 else "",
-            f"-AI {self.host.bk_agent_id}" if self.host.bk_agent_id else "",
+            f"-I {self.host.inner_ip or self.host.inner_ipv6}",
             # 安装/下载配置
             f"-T {self.dest_dir}",
             f"-p {self.agent_config['setup_path']}",
@@ -238,7 +264,11 @@ class BaseExecutionSolutionMaker(metaclass=abc.ABCMeta):
         else:
             run_cmd_params.extend(["-N SERVER"])
 
-        # 因bat脚本逻辑，-R 参数只能放在最后一位
+        # 新版本 Agent 需要补充构件信息
+        if not self.agent_setup_info.is_legacy:
+            run_cmd_params.extend([f"-n {self.agent_setup_info.name}", f"-t {self.agent_setup_info.version}"])
+
+        # 因 bat 脚本逻辑，-R 参数只能放在最后一位
         if self.is_uninstall:
             run_cmd_params.extend(["-R"])
 
@@ -401,7 +431,7 @@ class ShellExecutionSolutionMaker(BaseExecutionSolutionMaker):
 
         curl_cmd: str = ("curl", f"{dest_dir}curl.exe")[self.host.os_type == constants.OsType.WINDOWS]
         download_cmd = (
-            f"{curl_cmd} {self.gse_servers_info['package_url']}/{self.script_file_name} "
+            f"{curl_cmd} {self.get_agent_tools_url(self.script_file_name)} "
             f"-o {dest_dir}{self.script_file_name} --connect-timeout 5 -sSf"
         )
         download_cmd = self.adjust_cmd_proxy_config(download_cmd)
@@ -524,7 +554,7 @@ class BatchExecutionSolutionMaker(BaseExecutionSolutionMaker):
 
         # 3. 执行安装命令
         download_cmd: str = (
-            f"{self.dest_dir}curl.exe {self.gse_servers_info['package_url']}/{self.script_file_name} "
+            f"{self.dest_dir}curl.exe {self.get_agent_tools_url(self.script_file_name)} "
             f"-o {self.dest_dir}{self.script_file_name} -sSf"
         )
         download_cmd = self.adjust_cmd_proxy_config(download_cmd)
@@ -581,11 +611,9 @@ class ProxyExecutionSolutionMaker(BaseExecutionSolutionMaker):
             f"-s {self.pipeline_id}",
             # 目标机器主机信息
             f"-HNT {self.host.node_type}",
-            f"-HIIP {self.host.inner_ip}",
+            f"-HIIP {self.host.inner_ip or self.host.inner_ipv6}",
             f"-HC {self.host.bk_cloud_id}",
             f"-HOT {self.host.os_type.lower()}",
-            f"-AI {self.host.bk_agent_id}" if self.host.bk_agent_id else "",
-            f"-HIIP6 {self.host.inner_ipv6}" if self.host.inner_ipv6 else "",
             # 目标机器登录信息
             f"-HI '{host_identity}'",
             f"-HP {self.identity_data.port}",
@@ -626,12 +654,10 @@ class ProxyExecutionSolutionMaker(BaseExecutionSolutionMaker):
             # 手动安装情况下，需要补充安装脚本下载步骤
             download_cmd: str = (
                 f"if [ ! -e {dest_dir}{self.script_file_name} ] || "
-                f"[ `curl {self.gse_servers_info['package_url']}/{self.script_file_name} -s "
-                f"| md5sum | awk '{{print $1}}'` "
+                f"[ `curl {self.get_agent_tools_url(self.script_file_name)} -s | md5sum | awk '{{print $1}}'` "
                 f"!= `md5sum {dest_dir}{self.script_file_name} | awk '{{print $1}}'` ]; then "
-                f"curl {self.gse_servers_info['package_url']}/{self.script_file_name} "
-                f"-o {dest_dir}{self.script_file_name} --connect-timeout 5 -sSf "
-                f"&& chmod +x {dest_dir}{self.script_file_name}; fi"
+                f"curl {self.get_agent_tools_url(self.script_file_name)} -o {dest_dir}{self.script_file_name} "
+                f"--connect-timeout 5 -sSf && chmod +x {dest_dir}{self.script_file_name}; fi"
             )
             solution_steps.append(
                 ExecutionSolutionStep(
@@ -660,6 +686,7 @@ class ProxyExecutionSolutionMaker(BaseExecutionSolutionMaker):
         for target_host_solution_class in target_host_solution_classes:
             target_host_solutions.append(
                 target_host_solution_class(
+                    agent_setup_info=self.agent_setup_info,
                     host=self.host,
                     host_ap=self.host_ap,
                     identity_data=self.identity_data,
