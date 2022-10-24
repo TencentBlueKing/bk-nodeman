@@ -17,7 +17,6 @@ from apps.node_man import constants as const
 from apps.node_man.exceptions import (
     ApIDNotExistsError,
     HostIDNotExists,
-    HostNotExists,
     IpInUsedError,
     PwdCheckError,
 )
@@ -306,40 +305,6 @@ class TestHost(TestCase):
         create_host(number=1, login_ip="255.255.255.255", bk_cloud_id=5, bk_host_id=10000)
         update_data = {"bk_host_id": host_to_create[0].bk_host_id, "login_ip": "255.255.255.255", "bk_cloud_id": 5}
         self.assertRaises(IpInUsedError, HostHandler().update_proxy_info, update_data)
-
-    # 测试主机移除
-    @patch("apps.node_man.handlers.cmdb.CmdbHandler.cmdb_or_cache_biz", cmdb_or_cache_biz)
-    @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)
-    @patch("apps.node_man.handlers.cmdb.get_request_username", return_value="admin")
-    def test_host_remove(self, *args, **kwargs):
-        number = 1000
-        create_cloud_area(number, creator="admin")
-        host_to_create, identity_to_create, _ = create_host(number)
-        proxies_ids = [host.bk_host_id for host in host_to_create if host.node_type == const.NodeType.PROXY]
-        agent_or_pagent_ids = [host.bk_host_id for host in host_to_create if host.node_type != const.NodeType.PROXY]
-        # 非跨页全选模式
-        HostHandler().remove_host({"is_proxy": False, "bk_host_id": agent_or_pagent_ids})
-        HostHandler().remove_host({"is_proxy": True, "bk_host_id": proxies_ids})
-
-        # 跨页全选模式
-        HostHandler().remove_host({"is_proxy": False, "exclude_hosts": agent_or_pagent_ids})
-        HostHandler().remove_host({"is_proxy": True, "exclude_hosts": proxies_ids})
-
-    # 测试无权限删除主机的情况
-    @patch("apps.node_man.handlers.cmdb.CmdbHandler.cmdb_or_cache_biz", cmdb_or_cache_biz)
-    @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)
-    @patch("apps.node_man.handlers.cmdb.get_request_username", return_value="admin")
-    def test_host_remove_host_not_exist(self, *args, **kwargs):
-        # 通过超管账号创建一批主机
-        number = 10
-        bk_cloud_ids = create_cloud_area(number, creator="admin")
-        host_to_create, identity_to_create, _ = create_host(number)
-        # 主机不存在
-        self.assertRaises(
-            HostNotExists,
-            HostHandler().remove_host,
-            {"is_proxy": False, "bk_cloud_id": bk_cloud_ids[0], "bk_host_id": [11]},
-        )
 
     @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)
     def test_ip_list(self):

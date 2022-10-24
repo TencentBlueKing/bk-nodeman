@@ -22,7 +22,7 @@ DEFAULT_CACHE_TIME = 60 * 15
 def class_member_cache(name: Optional[str] = None):
     """
     类成员缓存
-    :param name: 缓存名称，为空则使用 class_func.__name__
+    :param name: 缓存名称，为空则使用 _{class_func.__name__}
     :return:
     """
 

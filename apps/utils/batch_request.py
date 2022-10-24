@@ -20,6 +20,7 @@ from apps.node_man import constants
 from apps.utils.local import get_request
 
 from . import translation
+from .concurrent import inject_request
 
 
 def format_params(params, get_count, func):
@@ -88,7 +89,7 @@ def batch_request(
             if sort:
                 request_params["page"]["sort"] = sort
             request_params.update(req["params"])
-            futures.append(pool.apply_async(func, args=(request_params,)))
+            futures.append(pool.apply_async(inject_request(func), args=(request_params,)))
 
             start += limit
 
