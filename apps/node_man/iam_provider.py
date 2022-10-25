@@ -431,11 +431,15 @@ class StrategyResourceProvider(ResourceProvider):
         else:
             condition.update(init_condition)
 
-        result = [
-            {"id": strategy["id"], "display_name": strategy["name"]}
-            for strategy in list(Subscription.objects.filter(**condition).values("id", "name"))
-        ]
-        # result.insert(0, {"id": DEFAULT_CLOUD, "display_name": _("直连区域")})
+        result = []
+        for strategy in list(Subscription.objects.filter(**condition).values("id", "name", "creator")):
+            result.append(
+                {
+                    "id": strategy["id"],
+                    "display_name": strategy["name"],
+                    "_bk_iam_approver_": strategy,
+                }
+            )
         return result
 
     def list_attr(self, **options):
