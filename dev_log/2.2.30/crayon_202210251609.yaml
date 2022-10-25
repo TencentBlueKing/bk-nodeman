@@ -1,0 +1,3 @@
+---
+bugfix:
+  - "前端构建报错：Module not found: Error: Can't resolve './JSEncrypt' in '/frontend/node_modules/jsencrypt/lib' (fixed #1187)"
