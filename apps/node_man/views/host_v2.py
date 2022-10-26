@@ -10,12 +10,14 @@ specific language governing permissions and limitations under the License.
 """
 from typing import Any, Dict, List
 
+from django.db.models import QuerySet
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from apps.core.ipchooser.tools.base import HostQueryHelper
 from apps.generic import ModelViewSet
-from apps.node_man import constants, models, tools
+from apps.node_man import constants, models
 from apps.node_man.handlers.host_v2 import HostV2Handler
 from apps.node_man.serializers import host_v2
 from apps.utils import concurrent
@@ -138,18 +140,21 @@ class HostV2ViewSet(ModelViewSet):
         """
 
         nodes = self.validated_data["nodes"]
-        iam_action = self.validated_data["action"]
         if not nodes:
             return Response([])
 
-        params_list = [{"topo_node": node, "only_ids": False, "action": iam_action} for node in nodes]
-        topo_node_with_host_ids_infos: List[Dict[str, Any]] = concurrent.batch_call(
-            func=tools.HostV2Tools.list_host_ids_by_topo_node, params_list=params_list, get_data=lambda x: x
+        def _get_node_statistic_info_base(_node: Dict) -> Dict:
+            """为了并发封装的一个原子函数，用于获取单节点主机统计信息"""
+            _host_queryset: QuerySet = HostQueryHelper.query_hosts_base(node_list=[_node], conditions=[])
+            return {"node": _node, "host_count": _host_queryset.count()}
+
+        node_statistic_infos: List[Dict[str, Any]] = concurrent.batch_call(
+            func=_get_node_statistic_info_base, params_list=[{"_node": node} for node in nodes], get_data=lambda x: x
         )
 
         bk_inst_id__host_count_map = {
-            host_count_info["bk_inst_id"]: len(host_count_info["bk_host_ids"])
-            for host_count_info in topo_node_with_host_ids_infos
+            node_statistic_info["node"]["bk_inst_id"]: node_statistic_info["host_count"]
+            for node_statistic_info in node_statistic_infos
         }
 
         for node in nodes:

@@ -25,9 +25,8 @@ from apps.component.esbclient import client_v2
 from apps.core.files import core_files_constants
 from apps.core.files.storage import get_storage
 from apps.node_man import constants, exceptions, models, tools
-from apps.node_man.constants import DEFAULT_CLOUD_NAME, IamActionType
+from apps.node_man.constants import IamActionType
 from apps.node_man.handlers.cmdb import CmdbHandler
-from apps.node_man.handlers.host import HostHandler
 from apps.node_man.handlers.iam import IamHandler
 from apps.utils.basic import distinct_dict_list, list_slice
 from apps.utils.batch_request import batch_request
@@ -124,75 +123,6 @@ class PluginV2Handler:
                 "operate": plugin["id"] in operate_perms if not is_superuser and settings.USE_IAM else True
             }
         return plugin_page
-
-    @staticmethod
-    def list_plugin_host(
-        params: dict,
-        view_action: str = constants.IamActionType.plugin_view,
-        op_action: str = constants.IamActionType.plugin_operate,
-    ):
-        """
-        查询插件下主机
-        :param params: 仅校验后的查询条件
-        :param view_action: 查看权限
-        :param op_action: 操作权限
-        :return: 主机列表
-        """
-        # 用户有权限的业务
-        user_biz = CmdbHandler().biz_id_name({"action": view_action})
-
-        # 用户主机操作权限
-        operate_bizs = CmdbHandler().biz_id_name({"action": op_action})
-
-        host_tools = HostHandler()
-
-        if params["pagesize"] != -1:
-            begin = (params["page"] - 1) * params["pagesize"]
-            end = (params["page"]) * params["pagesize"]
-        else:
-            begin = None
-            end = None
-            # 跨页全选模式，仅返回用户有权限操作的主机
-            user_biz = operate_bizs
-
-        params["conditions"] = params["conditions"] if "conditions" in params else []
-        # 查询指定插件
-        params["conditions"].append({"key": params["project"], "value": [-1]})
-        params["conditions"].extend(tools.HostV2Tools.parse_nodes2conditions(params.get("nodes", []), operate_bizs))
-
-        # 生成sql查询主机
-        hosts_sql = host_tools.multiple_cond_sql(params, user_biz, plugin=True).exclude(
-            bk_host_id__in=params.get("exclude_hosts", [])
-        )
-
-        fetch_fields = ["bk_cloud_id", "bk_biz_id", "bk_host_id", "os_type", "inner_ip", "status"]
-
-        hosts = list(hosts_sql[begin:end].values(*fetch_fields))
-
-        bk_cloud_ids = [host["bk_cloud_id"] for host in hosts]
-        bk_host_ids = [host["bk_host_id"] for host in hosts]
-
-        # 获得云区域名称
-        cloud_name = dict(
-            models.Cloud.objects.filter(bk_cloud_id__in=bk_cloud_ids).values_list("bk_cloud_id", "bk_cloud_name")
-        )
-        cloud_name[0] = DEFAULT_CLOUD_NAME
-
-        plugin_process_status_list = models.ProcessStatus.objects.filter(
-            bk_host_id__in=bk_host_ids, name=params["project"]
-        ).values("bk_host_id", "name", "version", "status", "id")
-
-        host_process_status = {}
-        for process_status in plugin_process_status_list:
-            host_process_status[process_status["bk_host_id"]] = process_status
-
-        # 填充云区域、业务名称、插件状态
-        for host in hosts:
-            host["bk_cloud_name"] = cloud_name.get(host["bk_cloud_id"])
-            host["bk_biz_name"] = user_biz.get(host["bk_biz_id"], "")
-            host["plugin_status"] = {params["project"]: host_process_status.get(host["bk_host_id"], {})}
-
-        return {"total": hosts_sql.count(), "list": hosts}
 
     @staticmethod
     def fetch_config_variables(config_tpl_ids):

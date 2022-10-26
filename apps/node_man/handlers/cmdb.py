@@ -193,59 +193,6 @@ class CmdbHandler(APIModel):
             logger.error("esb->call list_biz_hosts error %s" % e.message)
             return {"info": []}
 
-    @staticmethod
-    def query_host_count(bk_biz_id, bk_set_id=None, bk_module_id=None):
-        kwargs = {
-            "page": {"start": 0, "limit": 1, "sort": "bk_host_id"},
-            "bk_biz_id": bk_biz_id,
-            "fields": ["bk_host_id"],
-        }
-        try:
-            if bk_set_id:
-                kwargs["bk_set_ids"] = [bk_set_id]
-            if bk_module_id:
-                kwargs["bk_module_ids"] = [bk_module_id]
-            result = client_v2.cc.list_biz_hosts(kwargs)
-            return {"bk_set_id": bk_set_id, "bk_module_id": bk_module_id, "count": result.get("count", 0)}
-
-        except ComponentCallError as e:
-            logger.error("esb->call list_biz_hosts error %s" % e.message)
-            return {"bk_set_id": bk_set_id, "bk_module_id": bk_module_id, "count": 0}
-
-    def fetch_host_ids_by_biz(self, bk_biz_id, bk_set_ids, bk_module_ids):
-        """
-        根据集群或者模块获得所有host id.
-        :param inst: set or module
-        :return: host_id 数组
-        """
-
-        host_info = self.cmdb_hosts_by_biz(0, bk_biz_id, bk_set_ids, bk_module_ids)
-
-        def _fetch_host_data(result):
-            bk_host_ids = []
-            if not result.get("info"):
-                return bk_host_ids
-            for instance in result.get("info", []):
-                bk_host_ids.append(instance["bk_host_id"])
-            return bk_host_ids
-
-        count = host_info.get("count", 0)
-        pages = int((count + 500 - 1) / 500)
-        bk_host_ids = _fetch_host_data(host_info)
-
-        if pages > 1:
-            # 多页异步查询
-            with ThreadPoolExecutor(max_workers=settings.CONCURRENT_NUMBER) as ex:
-                tasks = [
-                    ex.submit(self.cmdb_hosts_by_biz, page, bk_biz_id, bk_set_ids, bk_module_ids)
-                    for page in range(1, pages)
-                ]
-                for future in as_completed(tasks):
-                    host_info = future.result()
-                    bk_host_ids.extend(_fetch_host_data(host_info))
-
-        return bk_host_ids
-
     def cmdb_or_cache_topo(self, username: str, user_biz: dict, biz_host_id_map: dict):
         """
         如果有缓存，则返回缓存；
