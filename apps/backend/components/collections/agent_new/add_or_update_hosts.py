@@ -155,6 +155,9 @@ class AddOrUpdateHostsService(AgentBaseService):
         :param bk_host_ids: 主机列表
         :return: 主机业务关系列表
         """
+        # 接口对于空数组的处理是报错，这里需要提前处理返回
+        if not bk_host_ids:
+            return []
         return CCApi.find_host_biz_relations({"bk_host_id": bk_host_ids})
 
     def query_hosts_by_addressing(self, host_infos: List[Dict[str, Any]], bk_addressing: str) -> List[Dict[str, Any]]:
