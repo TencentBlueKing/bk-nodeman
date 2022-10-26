@@ -1,0 +1,3 @@
+---
+bugfix:
+  - "安装 Agent 新增主机到 CMDB 报错 (fixed #1190)"
