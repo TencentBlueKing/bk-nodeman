@@ -11,7 +11,7 @@ See the License for the specific language governing permissions and limitations 
 
 import abc
 import json
-from typing import List, Set, Union
+from typing import Dict, List, Set, Union
 
 from django.conf import settings
 from django.utils.translation import ugettext as _
@@ -87,9 +87,18 @@ class Business(ResourceMeta):
     def create_instance(cls, instance_id: int, attribute=None) -> Resource:
         resource = cls.create_simple_instance(instance_id, attribute)
 
-        bk_biz_name = str(instance_id)
+        try:
+            from apps.core.ipchooser.query.resource import ResourceQueryHelper
+
+            biz_id__info_map: Dict[int, Dict] = {
+                biz_info["bk_biz_id"]: biz_info for biz_info in ResourceQueryHelper.fetch_biz_list([instance_id])
+            }
+            bk_biz_name = biz_id__info_map[instance_id]["bk_biz_name"]
+        except Exception:
+            bk_biz_name = str(instance_id)
 
         resource.attribute = {"id": str(instance_id), "name": bk_biz_name}
+
         return resource
 
 

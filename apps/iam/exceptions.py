@@ -13,6 +13,7 @@ from django.utils.translation import ugettext as _
 from django.utils.translation import ugettext_lazy as _lazy
 
 from apps.exceptions import AppBaseException, ErrorCode
+from apps.node_man import constants
 
 
 class BaseIAMError(AppBaseException):
@@ -40,6 +41,7 @@ class PermissionDeniedError(BaseIAMError):
     MESSAGE = _lazy("权限校验不通过")
 
     def __init__(self, action_name, permission, apply_url=settings.BK_IAM_SAAS_HOST):
+        action_name = constants.IAM_ACTION_DICT.get(action_name, action_name)
         message = _("当前用户无 [{action_name}] 权限").format(action_name=action_name)
         data = {
             "permission": permission,
