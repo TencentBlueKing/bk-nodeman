@@ -41,6 +41,20 @@ class _CCApi(BaseApi):
             description="查询业务实例拓扑",
             before_request=add_esb_info_before_request,
         )
+        self.get_biz_internal_module = DataAPI(
+            method="POST",
+            url=CC_APIGATEWAY_ROOT_V2 + "get_biz_internal_module/",
+            module=self.MODULE,
+            description="根据业务ID获取业务空闲机, 故障机和待回收模块",
+            before_request=add_esb_info_before_request,
+        )
+        self.find_topo_node_paths = DataAPI(
+            method="POST",
+            url=CC_APIGATEWAY_ROOT_V2 + "find_topo_node_paths/",
+            module=self.MODULE,
+            description="查询业务拓扑节点的拓扑路径",
+            before_request=add_esb_info_before_request,
+        )
         self.find_module_batch = DataAPI(
             method="POST",
             url=CC_APIGATEWAY_ROOT_V2 + "find_module_batch/",
@@ -53,6 +67,13 @@ class _CCApi(BaseApi):
             url=CC_APIGATEWAY_ROOT_V2 + "list_hosts_without_biz/",
             module=self.MODULE,
             description="没有业务ID的主机查询",
+            before_request=add_esb_info_before_request,
+        )
+        self.list_biz_hosts = DataAPI(
+            method="POST",
+            url=CC_APIGATEWAY_ROOT_V2 + "list_biz_hosts/",
+            module=self.MODULE,
+            description="带业务的主机查询",
             before_request=add_esb_info_before_request,
         )
         self.list_service_template = DataAPI(

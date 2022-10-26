@@ -11,20 +11,17 @@ specific language governing permissions and limitations under the License.
 from collections import defaultdict
 from typing import Any, Dict, Iterable, List, Set
 
-from django.db import transaction
 from django.db.models import Count, Q
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
+from apps.core.ipchooser.tools.base import HostQuerySqlHelper
 from apps.node_man import constants as const
-from apps.node_man import tools
 from apps.node_man.constants import IamActionType
 from apps.node_man.exceptions import (
     ApIDNotExistsError,
     HostIDNotExists,
-    HostNotExists,
     IpInUsedError,
-    NotHostPermission,
     PwdCheckError,
 )
 from apps.node_man.handlers.ap import APHandler
@@ -88,223 +85,6 @@ class HostHandler(APIModel):
         return wheres, sql_params
 
     @staticmethod
-    def _handle_plugin_conditions(params, plugin_names, select):
-        if not params.get("conditions"):
-            return []
-
-        bk_host_id_list = []
-        init_wheres = [
-            f"{Host._meta.db_table}.bk_host_id={ProcessStatus._meta.db_table}.bk_host_id",
-            f'{ProcessStatus._meta.db_table}.proc_type="{const.ProcType.PLUGIN}"',
-            f'{ProcessStatus._meta.db_table}.source_type="{ProcessStatus.SourceType.DEFAULT}"',
-            f"{ProcessStatus._meta.db_table}.is_latest=true",
-        ]
-        wheres = []
-        for condition in params["conditions"]:
-
-            if condition["key"] == "source_id":
-                placeholder = []
-                for cond in condition["value"]:
-                    placeholder.append('"{}"'.format(cond))
-                wheres.append(f'{ProcessStatus._meta.db_table}.source_id in ({",".join(placeholder)})')
-
-            if condition["key"] == "plugin_name":
-                placeholder = []
-                for cond in condition["value"]:
-                    placeholder.append('"{}"'.format(cond))
-                wheres.append(f'{ProcessStatus._meta.db_table}.name in ({",".join(placeholder)})')
-
-            if condition["key"] in plugin_names:
-                # 插件版本的精确搜索
-                placeholder = []
-                for cond in condition["value"]:
-                    if cond == -1:
-                        # 无版本插件筛选
-                        placeholder.append('""')
-                    else:
-                        placeholder.append('"{}"'.format(cond))
-                wheres.append(f'{ProcessStatus._meta.db_table}.version in ({",".join(placeholder)})')
-                wheres.append(f'{ProcessStatus._meta.db_table}.name="{condition["key"]}"')
-
-            elif condition["key"] in [f"{plugin}_status" for plugin in plugin_names]:
-                # 插件状态的精确搜索
-                placeholder = []
-                for cond in condition["value"]:
-                    placeholder.append('"{}"'.format(cond))
-                wheres.append(f'{ProcessStatus._meta.db_table}.status in ({",".join(placeholder)})')
-                wheres.append(f'{ProcessStatus._meta.db_table}.name="{"_".join(condition["key"].split("_")[:-1])}"')
-
-        if wheres:
-            wheres = init_wheres + wheres
-            bk_host_id_list = set(
-                Host.objects.extra(select=select, tables=[ProcessStatus._meta.db_table], where=wheres).values_list(
-                    "bk_host_id", flat=True
-                )
-            )
-            # 对于有搜索条件但搜索结果为空的情况，填充一个无效的主机ID（-1），用于兼容multiple_cond_sql将空列表当成全选的逻辑
-            return bk_host_id_list or [-1]
-        return bk_host_id_list
-
-    @classmethod
-    def multiple_cond_sql(cls, params: dict, user_biz: dict, proxy=False, plugin=False, return_all_node_type=False):
-        """
-        用于生成多条件sql查询
-        :param return_all_node_type: 是否返回所有类型
-        :param params: 条件数据
-        :param user_biz: 用户权限列表
-        :param proxy: 是否为代理
-        :param plugin: 是否为插件
-        :return: 根据条件查询的所有结果
-        """
-        select = {
-            "status": f"{ProcessStatus._meta.db_table}.status",
-            "version": f"{ProcessStatus._meta.db_table}.version",
-        }
-
-        # 插件查询条件
-        has_conditional = False
-        bk_host_id_list = []
-        plugin_names = tools.PluginV2Tools.fetch_head_plugins()
-        if plugin:
-            bk_host_id_list = cls._handle_plugin_conditions(params, plugin_names, select)
-            if bk_host_id_list:
-                has_conditional = True
-
-        # 查询参数设置，默认为Host接口搜索
-        # 如果需要搜索插件版本，wheres[1]的proc_type将变动为PLUGIN
-        sql_params = []
-        init_wheres = [
-            f"{Host._meta.db_table}.bk_host_id={ProcessStatus._meta.db_table}.bk_host_id",
-            f'{ProcessStatus._meta.db_table}.proc_type="{const.ProcType.AGENT}"',
-            f'{ProcessStatus._meta.db_table}.source_type="{ProcessStatus.SourceType.DEFAULT}"',
-        ]
-        wheres = []
-
-        # 如果有带筛选条件，则只返回筛选且有权业务的主机, 否则返回用户所有有权限的业务的主机
-        biz_permission = (
-            [bk_biz_id for bk_biz_id in params["bk_biz_id"] if bk_biz_id in user_biz]
-            if params.get("bk_biz_id")
-            else list(user_biz.keys())
-        )
-
-        kwargs = {"bk_host_id__in": params.get("bk_host_id"), "bk_biz_id__in": list(biz_permission)}
-
-        if proxy:
-            # 单独查代理
-            node_type = [const.NodeType.PROXY]
-        elif plugin or return_all_node_type:
-            # 查插件，或者返回全部类型的情况
-            node_type = [const.NodeType.AGENT, const.NodeType.PAGENT, const.NodeType.PROXY]
-        else:
-            # 查Agent
-            node_type = [const.NodeType.AGENT, const.NodeType.PAGENT]
-
-        # 条件搜索
-        where_or = []
-        cond_host_ids = None
-        all_query_biz = []
-
-        for condition in params.get("conditions", []):
-            if condition["key"] in ["inner_ip", "node_from", "node_type", "bk_addressing", "bk_host_name"]:
-                # Host 表的精确搜索(现主要为 os_type, inner_ip, bk_cloud_id)
-                kwargs[condition["key"] + "__in"] = condition["value"]
-            elif condition["key"] in ["os_type"]:
-                # 如果传的是none，替换成""
-                kwargs[condition["key"] + "__in"] = list(map(lambda x: "" if x == "none" else x, condition["value"]))
-
-            elif condition["key"] in ["status", "version"]:
-                # ProcessStatus表的精确搜索(现主要为 status, version)
-                placeholder = []
-                for cond in condition["value"]:
-                    sql_params.append(cond)
-                    placeholder.append("%s")
-                wheres.append(f'{ProcessStatus._meta.db_table}.{condition["key"]} in ({",".join(placeholder)})')
-
-            elif condition["key"] in ["is_manual", "bk_cloud_id", "install_channel_id"]:
-                # 是否手动安装
-                kwargs[condition["key"] + "__in"] = (
-                    condition["value"] if "".join([str(v) for v in condition["value"]]).isdigit() else []
-                )
-
-            elif condition["key"] == "topology":
-                # 集群与模块的精准搜索
-                biz = condition["value"].get("bk_biz_id")
-                if biz not in biz_permission:
-                    # 对于单个拓扑查询条件，没有业务权限时bk_host_id__in不叠加即可
-                    # 无需清空列表，否则之前累积的有权限的主机查询条件也会跟着被清空
-                    continue
-                sets = condition["value"].get("bk_set_ids", [])
-                modules = condition["value"].get("bk_module_ids", [])
-                # 传入拓扑是一个业务，无需请求cc，直接从数据库获取bk_host_id
-                if len(sets) == 0 and len(modules) == 0:
-                    all_query_biz.append(biz)
-                    continue
-                host_ids = CmdbHandler().fetch_host_ids_by_biz(biz, sets, modules)
-                if cond_host_ids is None:
-                    cond_host_ids = host_ids
-                else:
-                    cond_host_ids.extend(host_ids)
-
-            elif condition["key"] == "query" and isinstance(condition["value"], str):
-                # IP、操作系统、Agent状态、Agent版本、云区域 单模糊搜索
-                custom = condition["value"]
-                wheres, sql_params = cls.fuzzy_cond(custom, wheres, sql_params)
-
-            elif condition["key"] == "query" and isinstance(condition["value"], list):
-                # IP、操作系统、Agent状态、Agent版本、云区域 多模糊搜索
-                for custom in condition["value"]:
-                    where_or, sql_params = cls.fuzzy_cond(custom, where_or, sql_params)
-
-        if all([plugin, not has_conditional, not wheres, not where_or]):
-            # 此种情况说明不存在额外搜索
-            sql = Host.objects.filter(node_type__in=node_type).filter(**filter_values(kwargs))
-
-            return sql
-
-        wheres = init_wheres + wheres
-
-        if where_or:
-            # 用AND连接
-            wheres = [" AND ".join(wheres) + " AND (" + " OR ".join(where_or) + ")"]
-
-        # 业务节点直接从db获取
-        if all_query_biz:
-            cond_host_ids = [] if cond_host_ids is None else cond_host_ids
-            cond_host_ids.extend(Host.objects.filter(bk_biz_id__in=all_query_biz).values_list("bk_host_id", flat=True))
-
-        if kwargs["bk_host_id__in"] is None:
-            # 用户没有传递bk_host_id，如果同时没有传入topo，取全部(None)，否则取一个有效的id列表
-            kwargs["bk_host_id__in"] = list(set(cond_host_ids)) if cond_host_ids is not None else None
-        else:
-            # 查询条件没有启用topo，此时取用户传的bk_host_id列表
-            if cond_host_ids is not None:
-                kwargs["bk_host_id__in"] = list(set(cond_host_ids) & set(kwargs["bk_host_id__in"]))
-
-        sql = (
-            Host.objects.filter(node_type__in=node_type, bk_biz_id__in=biz_permission)
-            .extra(select=select, tables=[ProcessStatus._meta.db_table], where=wheres, params=sql_params)
-            .filter(**filter_values(kwargs))
-        )
-
-        return sql.filter(bk_host_id__in=bk_host_id_list) if plugin and has_conditional else sql
-
-    @staticmethod
-    def multiple_cond_sql_running_number(queryset):
-        """
-        返回通过multiple_cond_sql后得到的queryset的数量
-        :param queryset: queryset 表达式
-        :return: 运行机器的数量
-        """
-        return queryset.extra(
-            select={"status": f"{JobTask._meta.db_table}.status"},
-            tables=[JobTask._meta.db_table],
-            where=[
-                f"{Host._meta.db_table}.bk_host_id={JobTask._meta.db_table}.bk_host_id",
-                f'{JobTask._meta.db_table}.status="{const.StatusType.RUNNING}"',
-            ],
-        ).count()
-
-    @staticmethod
     def multiple_cond_sql_manual_statistics(queryset):
         """
         返回通过 multiple_cond_sql 后得到的安装方式统计
@@ -342,18 +122,21 @@ class HostHandler(APIModel):
             # 跨页全选模式，仅返回用户有权限操作的主机
             user_biz = agent_operate_bizs
 
+        hosts_queryset = HostQuerySqlHelper.multiple_cond_sql(params=params, biz_scope=user_biz.keys())
+
         if params.get("running_count"):
             # 运行数量统计
             return {
-                "running_count": self.multiple_cond_sql_running_number(self.multiple_cond_sql(params, user_biz)),
-                "no_permission_count": self.multiple_cond_sql(params, no_operate_permission).count(),
-                "manual_statistics": self.multiple_cond_sql_manual_statistics(self.multiple_cond_sql(params, user_biz)),
+                # TODO 2022Q2 ipc-废弃逻辑移除
+                "running_count": 0,
+                "no_permission_count": HostQuerySqlHelper.multiple_cond_sql(
+                    params=params, biz_scope=no_operate_permission
+                ).count(),
+                "manual_statistics": self.multiple_cond_sql_manual_statistics(hosts_queryset),
             }
 
         # 查询
-        hosts_status_sql = self.multiple_cond_sql(params, user_biz).exclude(
-            bk_host_id__in=params.get("exclude_hosts", [])
-        )
+        hosts_status_sql = hosts_queryset.exclude(bk_host_id__in=params.get("exclude_hosts", []))
 
         # 计算总数
         hosts_status_count = hosts_status_sql.count()
@@ -725,46 +508,6 @@ class HostHandler(APIModel):
             for kwarg in identity_kwargs:
                 setattr(identity, kwarg, identity_kwargs[kwarg])
             identity.save()
-
-    def remove_host(self, params: dict):
-        """
-        移除主机
-        :param params: 参数列表
-        """
-
-        # 用户有权限获取的业务
-        # 格式 { bk_biz_id: bk_biz_name , ...}
-        if params["is_proxy"]:
-            user_biz = CmdbHandler().biz_id_name({"action": IamActionType.proxy_operate})
-        else:
-            user_biz = CmdbHandler().biz_id_name({"action": IamActionType.agent_operate})
-
-        if params.get("exclude_hosts") is not None:
-            # 跨页全选, cond内检测权限
-            bk_host_ids = list(
-                self.multiple_cond_sql(params, user_biz, proxy=params["is_proxy"])
-                .exclude(bk_host_id__in=params.get("exclude_hosts", []))
-                .values_list("bk_host_id", flat=True)
-            )
-
-        else:
-            # 非跨页全选, 检查权限
-            permission_host_ids = self.check_hosts_permission(params["bk_host_id"], list(user_biz.keys()))
-            diff = set(params["bk_host_id"]) - set(permission_host_ids)
-            if diff != set():
-                ips = list(Host.objects.filter(bk_host_id__in=list(diff)).values_list("inner_ip", flat=True))
-                if not ips:
-                    raise HostNotExists(_("主机 {diff} 不存在").format(diff=diff))
-                raise NotHostPermission(_("您没有移除主机 {ips} 的权限").format(ips=ips))
-            # 如果不是跨页全选模式
-            bk_host_ids = permission_host_ids
-
-        with transaction.atomic():
-            Host.objects.filter(bk_host_id__in=bk_host_ids).delete()
-            IdentityData.objects.filter(bk_host_id__in=bk_host_ids).delete()
-            ProcessStatus.objects.filter(bk_host_id__in=bk_host_ids).delete()
-
-        return {}
 
     @staticmethod
     def get_host_infos_gby_ip_key(ips: Iterable[str], ip_version: int):

@@ -572,50 +572,6 @@ class ProcessStatus(models.Model):
             qs = qs.filter(source_type=source_type)
         return list(qs.values("id", "source_type", "source_id", "name", "version", "status"))
 
-    @property
-    def host(self):
-        if not getattr(self, "_host", None):
-            try:
-                self._host = Host.objects.get(bk_host_id=self.bk_host_id)
-            except Packages.DoesNotExist:
-                raise Exception(_("获取主机失败: {}").format(self.bk_host_id))
-        return self._host
-
-    @host.setter
-    def host(self, value):
-        self._host = value
-
-    @property
-    def package(self):
-        if not getattr(self, "_package", None):
-            os_type = self.host.os_type.lower()
-            cpu_arch = self.host.cpu_arch
-            try:
-                self._package = Packages.objects.get(
-                    project=self.name, version=self.version, os=os_type, cpu_arch=cpu_arch
-                )
-            except Packages.DoesNotExist:
-                raise Exception(_("获取插件信息失败: {}-{}-{}").format(self.name, self.version, self.host.os_type))
-        return self._package
-
-    @package.setter
-    def package(self, value):
-        self._package = value
-
-    @property
-    def host_info(self):
-        """
-        获取主机IP、云区域等信息
-        """
-        if not getattr(self, "_host_info", None):
-            host = Host.objects.get(bk_host_id=self.bk_host_id)
-            self._host_info = {
-                "ip": host.inner_ip,
-                "bk_cloud_id": host.bk_cloud_id,
-                "bk_supplier_id": constants.DEFAULT_SUPPLIER_ID,
-            }
-        return self._host_info
-
     class Meta:
         index_together = [
             ["source_type", "proc_type"],

@@ -68,6 +68,6 @@ def remove_auth_args(params):
     :param params:
     :return:
     """
-    for key in settings.OAUTH_COOKIES_PARAMS.keys():
+    for key in get_oath_cookies_params().items():
         params.pop(key, None)
     return params

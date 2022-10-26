@@ -20,6 +20,7 @@ from rest_framework.viewsets import GenericViewSet
 from rest_framework.viewsets import ModelViewSet as _ModelViewSet
 
 from apps.exceptions import AppBaseException, ErrorCode
+from apps.utils import cache
 from apps.utils.drf import (
     CsrfExemptSessionAuthentication,
     DataPageNumberPagination,
@@ -75,6 +76,7 @@ class ValidationMixin(GenericViewSet):
         return custom_params_valid(serializer=serializer, params=params)
 
     @property
+    @cache.class_member_cache()
     def validated_data(self):
         """
         校验的数据
