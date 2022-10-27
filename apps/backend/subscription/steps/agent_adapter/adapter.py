@@ -68,18 +68,16 @@ class AgentStepAdapter:
         获取按机型（os_type + cpu_arch）聚合的配置模板
         :return:
         """
+        agent_config_templates: typing.List[base.AgentConfigTemplate] = [
+            base.AgentConfigTemplate(name="gse_agent.conf", content=config_templates.GSE_AGENT_CONFIG_TMPL),
+            base.AgentConfigTemplate(name="gse_data_proxy.conf", content=config_templates.GSE_DATA_PROXY_CONFIG_TMPL),
+        ]
         return {
             # 向 Agent 包管理过渡：AgentConfigTemplate 后续替换为数据模型对象
-            self.get_os_key(constants.OsType.LINUX, constants.CpuType.x86_64): [
-                base.AgentConfigTemplate(
-                    name="gse_agent.conf",
-                    content=config_templates.GSE_AGENT_CONFIG_TMPL,
-                ),
-                base.AgentConfigTemplate(
-                    name="gse_data_proxy.conf",
-                    content=config_templates.GSE_DATA_PROXY_CONFIG_TMPL,
-                ),
-            ]
+            self.get_os_key(constants.OsType.LINUX, constants.CpuType.x86): agent_config_templates,
+            self.get_os_key(constants.OsType.LINUX, constants.CpuType.x86_64): agent_config_templates,
+            self.get_os_key(constants.OsType.WINDOWS, constants.CpuType.x86): agent_config_templates,
+            self.get_os_key(constants.OsType.WINDOWS, constants.CpuType.x86_64): agent_config_templates,
         }
 
     def get_main_config_filename(self) -> str:
@@ -95,7 +93,13 @@ class AgentStepAdapter:
         install_channel: typing.Tuple[typing.Optional[models.Host], typing.Dict[str, typing.List]] = None,
     ) -> str:
         config_tmpl_objs: typing.List[base.AgentConfigTemplate] = self.config_tmpl_obj_gby_os_key.get(
-            self.get_os_key(host.os_type, host.cpu_arch), []
+            self.get_os_key(host.os_type, host.cpu_arch),
+            [
+                base.AgentConfigTemplate(name="gse_agent.conf", content=config_templates.GSE_AGENT_CONFIG_TMPL),
+                base.AgentConfigTemplate(
+                    name="gse_data_proxy.conf", content=config_templates.GSE_DATA_PROXY_CONFIG_TMPL
+                ),
+            ],
         )
         # 查找机型匹配的第一个配置
         target_config_tmpl_obj: base.AgentConfigTemplate = next(
