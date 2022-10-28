@@ -21,6 +21,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from apps.backend.api import constants as backend_api_constants
 from apps.backend.subscription.steps.agent_adapter.base import AgentSetupInfo
+from apps.core.script_manage.base import ScriptHook
 from apps.node_man import constants, models
 from apps.utils import basic
 from apps.utils.encrypt import rsa
@@ -110,6 +111,7 @@ class BaseExecutionSolutionMaker(metaclass=abc.ABCMeta):
         is_uninstall: bool,
         is_combine_cmd_step: typing.Optional[bool] = False,
         token: typing.Optional[str] = None,
+        script_hook_objs: typing.Optional[typing.List[ScriptHook]] = None,
     ):
         self.agent_setup_info = agent_setup_info
         self.host = host
@@ -121,6 +123,7 @@ class BaseExecutionSolutionMaker(metaclass=abc.ABCMeta):
         self.pipeline_id = pipeline_id
         self.is_uninstall = is_uninstall
         self.is_combine_cmd_step = is_combine_cmd_step
+        self.script_hook_objs: typing.List[ScriptHook] = script_hook_objs or []
 
         self.script_file_name: str = ExecutionSolutionTools.choose_script_file(
             self.host, self.IS_EXECUTE_ON_TARGET_HOST
@@ -365,6 +368,62 @@ class BaseExecutionSolutionMaker(metaclass=abc.ABCMeta):
 
         return create_pre_dir_step
 
+    def build_script_hook_steps(self, is_shell_adapter: bool = False) -> typing.List[ExecutionSolutionStep]:
+        """
+        构造脚本钩子步骤
+        :param is_shell_adapter: 是否需要进行 shell 适配
+        :return:
+        """
+        # 是否为 batch 方案
+        is_batch: bool = self.host.os_type == constants.OsType.WINDOWS and not is_shell_adapter
+        dest_dir: str = (self.dest_dir, self.dest_dir.replace("\\", "/"))[is_shell_adapter]
+        curl_cmd: str = ("curl", f"{dest_dir}curl.exe")[is_batch]
+
+        script_hook_steps: typing.List[ExecutionSolutionStep] = []
+        for script_hook_obj in self.script_hook_objs:
+            download_cmd = (
+                f"{curl_cmd} {self.gse_servers_info['package_url']}/{script_hook_obj.script_info_obj.path} "
+                f"-o {dest_dir}{script_hook_obj.script_info_obj.filename} --connect-timeout 5 -sSf"
+            )
+            download_cmd = self.adjust_cmd_proxy_config(download_cmd)
+            script_hook_step = ExecutionSolutionStep(
+                step_type=constants.CommonExecutionSolutionStepType.COMMANDS.value,
+                description=str(script_hook_obj.script_info_obj.description),
+                contents=[
+                    ExecutionSolutionStepContent(
+                        name="download_cmd",
+                        text=download_cmd,
+                        description=str(_("下载 {filename}").format(filename=script_hook_obj.script_info_obj.filename)),
+                        show_description=False,
+                    ),
+                ],
+            )
+            # 非 batch 方案需要为脚本授权
+            if not is_batch:
+                script_hook_step.contents.append(
+                    ExecutionSolutionStepContent(
+                        name="chmod_cmd",
+                        text=f"chmod +x {dest_dir}{script_hook_obj.script_info_obj.filename}",
+                        description=str(
+                            _("为 {filename} 添加执行权限").format(filename=script_hook_obj.script_info_obj.filename)
+                        ),
+                        show_description=False,
+                    )
+                )
+
+            script_hook_step.contents.append(
+                ExecutionSolutionStepContent(
+                    name="run_cmd",
+                    text=f"{dest_dir}{script_hook_obj.script_info_obj.filename}",
+                    description=str(_("执行 {filename}").format(filename=script_hook_obj.script_info_obj.filename)),
+                    show_description=False,
+                ),
+            )
+
+            script_hook_steps.append(script_hook_step)
+
+        return script_hook_steps
+
     @abc.abstractmethod
     def _make(self) -> ExecutionSolution:
         raise NotImplementedError
@@ -461,7 +520,7 @@ class ShellExecutionSolutionMaker(BaseExecutionSolutionMaker):
         execution_solution: ExecutionSolution = ExecutionSolution(
             solution_type=constants.CommonExecutionSolutionType.SHELL.value,
             description=str(solution_description),
-            steps=[],
+            steps=self.build_script_hook_steps(is_shell_adapter=True),
         )
 
         if self.host.os_type == constants.OsType.WINDOWS:
@@ -589,7 +648,13 @@ class BatchExecutionSolutionMaker(BaseExecutionSolutionMaker):
                     setup_type_alias=self.get_setup_type_alias(),
                 )
             ),
-            steps=[create_pre_dirs_step, dependencies_step, run_cmds_step],
+            steps=[
+                create_pre_dirs_step,
+                dependencies_step,
+                # 脚本的执行可能会有依赖受限，放置到依赖下载步骤之后
+                *self.build_script_hook_steps(),
+                run_cmds_step,
+            ],
         )
 
 
@@ -698,6 +763,7 @@ class ProxyExecutionSolutionMaker(BaseExecutionSolutionMaker):
                     is_combine_cmd_step=self.is_combine_cmd_step,
                     # 复用代理的 token
                     token=self.token,
+                    script_hook_objs=self.script_hook_objs,
                 ).make()
             )
         # 将执行方案通过 json + base64 编码，作为参数传入代理执行脚本

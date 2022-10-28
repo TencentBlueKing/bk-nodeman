@@ -122,7 +122,10 @@ class JobViewSet(ModelViewSet):
         node_type = validated_data["node_type"]
         job_type = validated_data["job_type"]
         ticket = request.COOKIES.get("TCOA_TICKET") or validated_data.get("tcoa_ticket")
-        extra_params = {"is_install_latest_plugins": validated_data["is_install_latest_plugins"]}
+        extra_params = {
+            "is_install_latest_plugins": validated_data["is_install_latest_plugins"],
+            "script_hooks": validated_data.get("script_hooks", []),
+        }
         extra_config = validated_data.get("agent_setup_info") or {}
         return Response(JobHandler().install(hosts, op_type, node_type, job_type, ticket, extra_params, extra_config))
 

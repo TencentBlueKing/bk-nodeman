@@ -33,6 +33,7 @@ from apps.backend.subscription.errors import InstanceTaskIsRunning
 from apps.backend.subscription.handler import SubscriptionHandler
 from apps.backend.subscription.steps.agent_adapter.adapter import AgentStepAdapter
 from apps.backend.utils.pipeline_parser import PipelineParser
+from apps.core.script_manage.handlers import ScriptManageHandler
 from apps.generic import APIViewSet
 from apps.node_man import constants, models
 from apps.utils import basic
@@ -618,6 +619,9 @@ class SubscriptionViewSet(APIViewSet):
             is_uninstall=params["is_uninstall"],
             sub_inst_id=params["sub_inst_id"],
             is_combine_cmd_step=True,
+            script_hook_objs=ScriptManageHandler.fetch_match_script_hook_objs(
+                sub_step_obj.params.get("script_hooks") or [], host.os_type
+            ),
         )
         if installation_tool.is_need_jump_server:
             execution_solutions = installation_tool.type__execution_solution_map[

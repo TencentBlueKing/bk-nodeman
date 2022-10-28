@@ -13,6 +13,8 @@ from typing import Any, Dict, List, Optional, Tuple, Type
 from django.conf import settings
 
 from apps.backend.subscription.steps.agent_adapter.base import AgentSetupInfo
+from apps.core.script_manage.base import ScriptHook
+from apps.core.script_manage.handlers import ScriptManageHandler
 from apps.node_man import constants, models
 
 from ...utils import basic
@@ -141,6 +143,7 @@ def gen_commands(
     proxies: Optional[List[models.Host]] = None,
     install_channel: Optional[Tuple[models.Host, Dict[str, List]]] = None,
     is_combine_cmd_step: bool = False,
+    script_hook_objs: List[ScriptHook] = None,
 ) -> InstallationTools:
     """
     生成安装命令
@@ -154,6 +157,7 @@ def gen_commands(
     :param proxies: 主机代理列表
     :param install_channel: 安装通道
     :param is_combine_cmd_step: 是否合并命令步骤
+    :param script_hook_objs: 脚本钩子列表
     :return: dest_dir 目标目录, win_commands: Windows安装命令, proxies 代理列表,
              proxy 云区域所使用的代理, pre_commands 安装前命令, run_cmd 安装命令
     """
@@ -192,6 +196,7 @@ def gen_commands(
                 pipeline_id=pipeline_id,
                 is_uninstall=is_uninstall,
                 is_combine_cmd_step=is_combine_cmd_step,
+                script_hook_objs=script_hook_objs,
             ).make()
         )
 
@@ -229,6 +234,7 @@ def batch_gen_commands(
     ap_id_obj_map: Dict[int, models.AccessPoint],
     cloud_id__proxies_map: Dict[int, List[models.Host]],
     host_id__install_channel_map: Dict[int, Tuple[Optional[models.Host], Dict[str, List]]],
+    script_hooks: Optional[List[Dict[str, Any]]] = None,
 ) -> Dict[int, InstallationTools]:
     """批量生成安装命令"""
     # 批量查出主机的属性并设置为property，避免在循环中进行ORM查询，提高效率
@@ -253,6 +259,7 @@ def batch_gen_commands(
             host_ap=host_ap,
             proxies=cloud_id__proxies_map.get(host.bk_cloud_id),
             install_channel=host_id__install_channel_map.get(host.bk_host_id),
+            script_hook_objs=ScriptManageHandler.fetch_match_script_hook_objs(script_hooks or [], os_type=host.os_type),
         )
 
     return host_id__installation_tool_map
