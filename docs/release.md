@@ -1,5 +1,18 @@
 # Release
 
+## 2.2.30 - 2022-10-28 
+
+
+### bugfix: 
+  * 安装 Agent 新增主机到 CMDB 报错 (fixed #1190)
+  * 修复 Windows Agent2.0 安装获取配置文件失败的问题 (fixed #1192)
+  * 前端构建报错：Module not found: Error: Can't resolve './JSEncrypt' in '/frontend/node_modules/jsencrypt/lib' (fixed #1187)
+
+### feature: 
+  * 安装 Agent 前置脚本执行 (closed #1173)
+  * 部分资源权限审批人切换为实例所有者 (closed #1184)
+  * 新版 IP 选择器后台接入 (closed #1040)
+
 ## 2.2.29 - 2022-10-21 
 
 
