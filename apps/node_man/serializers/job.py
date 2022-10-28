@@ -139,12 +139,17 @@ class AgentSetupInfoSerializer(serializers.Serializer):
     version = serializers.CharField(required=False, label="构件版本", default=LEGACY)
 
 
+class ScriptHook(serializers.Serializer):
+    name = serializers.CharField(label=_("脚本名称"), min_length=1)
+
+
 class InstallSerializer(serializers.Serializer):
     agent_setup_info = AgentSetupInfoSerializer(label=_("Agent 设置信息"), required=False)
     job_type = serializers.ChoiceField(label=_("任务类型"), choices=list(constants.JOB_TYPE_DICT))
     hosts = HostSerializer(label=_("主机信息"), many=True)
     replace_host_id = serializers.IntegerField(label=_("被替换的Proxy主机ID"), required=False)
     is_install_latest_plugins = serializers.BooleanField(label=_("是否安装最新版本插件"), required=False, default=True)
+    script_hooks = serializers.ListField(label=_("脚本钩子列表"), required=False, child=ScriptHook(), default=[])
 
     # 以下非参数传值
     op_type = serializers.CharField(label=_("操作类型"), required=False)

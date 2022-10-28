@@ -30,6 +30,7 @@ from apps.backend.utils.redis import REDIS_INST
 from apps.core.remote import exceptions
 from apps.core.remote.tests import base
 from apps.core.remote.tests.base import AsyncMockConn
+from apps.core.script_manage.handlers import ScriptManageHandler
 from apps.mock_data import api_mkd
 from apps.mock_data import utils as mock_data_utils
 from apps.node_man import constants, models
@@ -688,5 +689,127 @@ class LinuxAgent2InstallTestCase(InstallBaseTestCase):
                 f" -i 0 -I {host.inner_ip} -T {installation_tool.dest_dir} -p /usr/local/gse"
                 f" -c {solution_parse_result['params']['token']} -s {mock_data_utils.JOB_TASK_PIPELINE_ID}"
                 f" -N SERVER -n gse_agent -t 2.0.0 &> /tmp/nm.nohup.out &",
+            ],
+        )
+
+
+class InstallWindowsWithScriptHooksTestCase(InstallWindowsTestCase):
+    OS_TYPE = constants.OsType.WINDOWS
+
+    def adjust_db(self):
+        sub_step_obj: models.SubscriptionStep = self.obj_factory.sub_step_objs[0]
+        sub_step_obj.params.update(
+            {
+                "script_hooks": [
+                    {"name": "firewall_off"},
+                    {"name": "active_firewall_policy"},
+                ]
+            }
+        )
+        sub_step_obj.save()
+
+    def test_batch_solution(self):
+        host = models.Host.objects.get(bk_host_id=self.obj_factory.bk_host_ids[0])
+        installation_tool = gen_commands(
+            self.LEGACY_SETUP_INFO,
+            host,
+            mock_data_utils.JOB_TASK_PIPELINE_ID,
+            is_uninstall=False,
+            sub_inst_id=0,
+            script_hook_objs=ScriptManageHandler.fetch_match_script_hook_objs([{"name": "firewall_off"}], host.os_type),
+        )
+        solution_parse_result: Dict[str, Any] = self.execution_solution_parser(
+            installation_tool=installation_tool,
+            solution_type=constants.CommonExecutionSolutionType.BATCH.value,
+            run_cmd_param_extract={"token": r"(.*) -c (.*?) -s"},
+        )
+
+        self.assertEqual(constants.AgentWindowsDependencies.list_member_values(), solution_parse_result["dependencies"])
+        self.assertEqual(
+            solution_parse_result["cmds"],
+            [
+                f"mkdir {installation_tool.dest_dir}",
+                f"{installation_tool.dest_dir}curl.exe http://127.0.0.1/download/script_manage_tmp/firewall_off.bat"
+                f" -o {installation_tool.dest_dir}firewall_off.bat --connect-timeout 5 -sSf",
+                f"{installation_tool.dest_dir}firewall_off.bat",
+                f"{installation_tool.dest_dir}curl.exe http://127.0.0.1/download/setup_agent.bat"
+                f" -o {installation_tool.dest_dir}setup_agent.bat -sSf",
+                f"{installation_tool.dest_dir}setup_agent.bat"
+                f' -O 48668 -E 58925 -A 58625 -V 58930 -B 10020 -S 60020 -Z 60030 -K 10030 -e "" -a "" -k ""'
+                f" -l http://127.0.0.1/download -r http://127.0.0.1/backend"
+                f" -i 0 -I {host.inner_ip} -T C:\\tmp\\ -p c:\\gse"
+                f" -c {solution_parse_result['params']['token']} -s {mock_data_utils.JOB_TASK_PIPELINE_ID} -N SERVER",
+            ],
+        )
+
+
+class InstallWindowsSSHWithScriptHooksTestCase(InstallWindowsSSHTestCase):
+    OS_TYPE = constants.OsType.WINDOWS
+
+    def adjust_db(self):
+        sub_step_obj: models.SubscriptionStep = self.obj_factory.sub_step_objs[0]
+        sub_step_obj.params.update({"script_hooks": [{"name": "firewall_off"}]})
+        sub_step_obj.save()
+
+    def _test_shell_solution(self, validate_encrypted_password: bool):
+
+        host = models.Host.objects.get(bk_host_id=self.obj_factory.bk_host_ids[0])
+        installation_tool = gen_commands(
+            self.LEGACY_SETUP_INFO,
+            host,
+            mock_data_utils.JOB_TASK_PIPELINE_ID,
+            is_uninstall=False,
+            sub_inst_id=0,
+            script_hook_objs=ScriptManageHandler.fetch_match_script_hook_objs([{"name": "firewall_off"}], host.os_type),
+        )
+
+        run_cmd_param_extract = {"token": r"(.*) -c (.*?) -s"}
+        if validate_encrypted_password:
+            run_cmd_param_extract["encrypted_password"] = r"(.*) -P (.*?) -N"
+
+        solution_parse_result: Dict[str, Any] = self.execution_solution_parser(
+            installation_tool=installation_tool,
+            solution_type=constants.CommonExecutionSolutionType.SHELL.value,
+            run_cmd_param_extract=run_cmd_param_extract,
+        )
+
+        if validate_encrypted_password:
+            # 校验是否存在 Cygwin 所需的占位符
+            self.assertTrue(solution_parse_result["params"]["encrypted_password"].endswith(' "'))
+            encrypted_password_params = f" -U root -P {solution_parse_result['params']['encrypted_password']}"
+        else:
+            encrypted_password_params = ""
+
+        installation_tool.dest_dir = installation_tool.dest_dir.replace("\\", "/")
+
+        run_cmd = (
+            f"nohup {installation_tool.dest_dir}setup_agent.bat"
+            f' -O 48668 -E 58925 -A 58625 -V 58930 -B 10020 -S 60020 -Z 60030 -K 10030 -e " " -a " " -k " "'
+            f" -l http://127.0.0.1/download -r http://127.0.0.1/backend"
+            f" -i 0 -I {host.inner_ip} -T C:\\\\tmp\\\\ -p c:\\\\gse"
+            f" -c {solution_parse_result['params']['token']}"
+            f" -s {mock_data_utils.JOB_TASK_PIPELINE_ID}{encrypted_password_params}"
+            f" -N SERVER &> {installation_tool.dest_dir}nm.nohup.out &"
+        )
+
+        self.assertEqual(
+            solution_parse_result["cmds"],
+            [f"mkdir -p {installation_tool.dest_dir}"]
+            + [
+                f"curl {installation_tool.package_url}/script_manage_tmp/firewall_off.bat "
+                f"-o {installation_tool.dest_dir}firewall_off.bat --connect-timeout 5 -sSf",
+                f"chmod +x {installation_tool.dest_dir}firewall_off.bat",
+                f"{installation_tool.dest_dir}firewall_off.bat",
+            ]
+            + [
+                f"curl {installation_tool.package_url}/{dependence} "
+                f"-o {installation_tool.dest_dir}{dependence} --connect-timeout 5 -sSf"
+                for dependence in constants.AgentWindowsDependencies.list_member_values()
+            ]
+            + [
+                f"{installation_tool.dest_dir}curl.exe http://127.0.0.1/download/setup_agent.bat "
+                f"-o {installation_tool.dest_dir}setup_agent.bat --connect-timeout 5 -sSf",
+                f"chmod +x {installation_tool.dest_dir}setup_agent.bat",
+                run_cmd,
             ],
         )

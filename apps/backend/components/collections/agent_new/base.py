@@ -240,6 +240,7 @@ class AgentBaseService(BaseService, metaclass=abc.ABCMeta):
             ap_id_obj_map=common_data.ap_id_obj_map,
             cloud_id__proxies_map=cloud_id__proxies_map,
             host_id__install_channel_map=host_id__install_channel_map,
+            script_hooks=common_data.subscription_step.params.get("script_hooks"),
         )
         return host_id__installation_tool_map
 
