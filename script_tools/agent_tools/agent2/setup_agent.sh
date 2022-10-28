@@ -249,6 +249,8 @@ get_pid_by_comm_path () {
     local pid
     if [[ "${worker}" == "WORKER" ]]; then
         read -r -a _pids <<< "$(ps --no-header -C $comm -o '%P|%p|%a' | awk -F'|' '$1 != 1 && $3 ~ /gse_agent/' | awk -F'|' '{print $2}' | xargs)"
+    elif [[ "${worker}" == "MASTER" ]]; then
+        read -r -a _pids <<< "$(ps --no-header -C $comm -o '%P|%p|%a' | awk -F'|' '$1 == 1 && $3 ~ /gse_agent/' | awk -F'|' '{print $2}' | xargs)"
     else
         read -r -a _pids <<< "$(ps --no-header -C "$comm" -o pid | xargs)"
     fi
@@ -272,8 +274,8 @@ get_pid_by_comm_path () {
 is_process_ok () {
     local proc=${1:-agent}
     local gse_master_pid gse_worker_pids gse_agent_pids
-    gse_agent_pids="$( get_pid_by_comm_path gse_agent "$AGENT_SETUP_PATH/bin/gse_${proc}" | xargs)"
-    gse_master_pid=$(ps --no-header -C gse_agent -o '%P|%p|%a' | awk -F'|' '$1 == 1 && $3 ~ /gse_agent/' |awk -F'|' '{print $2}')
+    gse_agent_pids="$(get_pid_by_comm_path gse_agent "$AGENT_SETUP_PATH/bin/gse_${proc}" | xargs)"
+    gse_master_pid=$(get_pid_by_comm_path gse_agent "$AGENT_SETUP_PATH/bin/gse_${proc}" MASTER | xargs)
 
     read -r -a gse_master <<< "$gse_master_pids"
     read -r -a gse_pids <<< "$gse_agent_pids"
