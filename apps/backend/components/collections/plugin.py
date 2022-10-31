@@ -518,25 +518,28 @@ class TransferPackageService(JobV3BaseService, PluginBaseService):
             package = self.get_package_by_process_status(process_status, common_data)
             agent_config = self.get_agent_config_by_process_status(process_status, common_data)
             os_type = host.os_type.lower() or constants.OsType.LINUX.lower()
+            file_target_path = agent_config["temp_path"]
             package_path = "/".join((nginx_path, os_type, host.cpu_arch, package.pkg_name))
-            jobs[package_path]["ip_list"].append({"bk_cloud_id": host.bk_cloud_id, "ip": host.inner_ip})
-            jobs[package_path]["host_id_list"].append(host.bk_host_id)
-            jobs[package_path]["subscription_instance_ids"].append(subscription_instance.id)
-            jobs[package_path]["temp_path"] = agent_config["temp_path"]
-            jobs[package_path]["os_type"] = host.os_type
+            # 分发文件目标路径及文件源路径一致时，可聚合为同一个分发任务
+            md5_key = self.get_md5(f"{package_path}-{file_target_path}")
+            jobs[md5_key]["ip_list"].append({"bk_cloud_id": host.bk_cloud_id, "ip": host.inner_ip})
+            jobs[md5_key]["host_id_list"].append(host.bk_host_id)
+            jobs[md5_key]["subscription_instance_ids"].append(subscription_instance.id)
+            jobs[md5_key]["file_list"] = [package_path]
+            jobs[md5_key]["file_target_path"] = file_target_path
+            jobs[md5_key]["os_type"] = host.os_type
 
         # 组装作业平台请求参数
         multi_job_params = []
-        for package_path, job in jobs.items():
-            file_list = [package_path]
-            file_list = self.append_extra_files(job["os_type"], file_list, nginx_path)
+        for __, job in jobs.items():
+            file_list = self.append_extra_files(job["os_type"], job["file_list"], nginx_path)
             multi_job_params.append(
                 {
                     "job_func": JobApi.fast_transfer_file,
                     "subscription_instance_id": job["subscription_instance_ids"],
                     "subscription_id": common_data.subscription.id,
                     "job_params": {
-                        "file_target_path": job["temp_path"],
+                        "file_target_path": job["file_target_path"],
                         "file_source_list": [{"file_list": file_list}],
                         "os_type": job["os_type"],
                         "target_server": {"ip_list": job["ip_list"], "host_id_list": job["host_id_list"]},
