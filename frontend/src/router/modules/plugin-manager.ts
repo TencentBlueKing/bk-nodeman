@@ -13,7 +13,6 @@ const ChooseRule = () => import(/* webpackChunkName: 'AddRule' */'@/views/plugin
 const CreateRule = () => import(/* webpackChunkName: 'CreateRule' */'@/views/plugin/plugin-rule/plugin-rule-create/index.vue');
 const ResourceQuota = () => import(/* webpackChunkName: 'ResourceQuota' */'@/views/plugin/resource-quota/index.vue');
 const ResourceQuotaEdit = () => import(/* webpackChunkName: 'ResourceQuotaEdit' */'@/views/plugin/resource-quota/edit.vue');
-const PluginIpSelector = () => import(/* webpackChunkName: 'PluginIpSelector' */'@/views/plugin/plugin-ip-test.vue');
 
 export default [
   // 其它saas跳转
@@ -153,19 +152,6 @@ export default [
         to.params.ruleType = 'policy';
       }
       next();
-    },
-  },
-  {
-    path: '/plugin-manager/ip-selector',
-    name: 'ipSelector',
-    component: PluginIpSelector,
-    props: true,
-    meta: {
-      parentName: 'pluginManager',
-      navId: 'nodeManage',
-      customContent: true,
-      title: 'IP选择器测试',
-      needBack: true,
     },
   },
   {

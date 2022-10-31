@@ -3,6 +3,7 @@ import '@blueking/ip-selector/dist//styles/vue2.6.x.css';
 import * as IpChooserTopo from '@/api/modules/ipchooser_topo';
 import * as IpChooserHost from '@/api/modules/ipchooser_host';
 import { INodeType } from '@/types/plugin/plugin-type';
+import { PluginStore } from '@/store';
 
 export interface IMeta {
   bk_biz_id: number
@@ -52,11 +53,22 @@ export interface IQuery {
   page_size?: number
   search_content?: string
   node_list: INode[]
+  // 以上 IP-selector标准参数
+  all_scope?: boolean
+  search_limit?: {
+    node_list?: INode[]
+    host_ids?: number[]
+  } // 灰度策略的限制范围
 }
 export interface ISelectorValue {
   dynamic_group_list: Dictionary[]
   host_list: IHost[]
   node_list: INode[]
+}
+export interface IScope {
+  // object_type?: IObjectType
+  node_type: INodeType
+  nodes: ITarget[]
 }
 
 /**
@@ -134,16 +146,21 @@ export default {
       topology: [],
     };
   },
+  computed: {
+    isGrayRule() {
+      return PluginStore.isGrayRule;
+    },
+  },
   created() {
     this.instance = create({
       panelList: this.panelList,
       unqiuePanelValue: true,
       nameStyle: 'kebabCase', // 'camelCase' | 'kebabCase'
       fetchTopologyHostCount: this.fetchTopologyHostCount, // 拉取topology
-      fetchTopologyHostsNodes: this.fetchTopologyHostsNodes, // 静态拓扑 - 选中节点
+      fetchTopologyHostsNodes: (query: IQuery) => this.fetchTopologyHostsNodes(query, 'queryHosts'), // 静态拓扑 - 选中节点
       fetchNodesQueryPath: this.fetchNodesQueryPath, // 动态拓扑 - 勾选节点
       fetchHostAgentStatisticsNodes: this.fetchHostAgentStatisticsNodes, // 动态拓扑 - 勾选节点
-      fetchTopologyHostIdsNodes: IpChooserTopo.queryHostIdInfos, // 根据多个拓扑节点与搜索条件批量分页查询所包含的主机 ID 信息(跨页全选)
+      fetchTopologyHostIdsNodes: (query: IQuery) => this.fetchTopologyHostsNodes(query, 'queryHostIdInfos'), // 根据多个拓扑节点与搜索条件批量分页查询所包含的主机
       fetchHostsDetails: this.fetchHostsDetails, // 静态 - IP选择回显(host_id查不到时显示失效)
       fetchHostCheck: this.fetchHostCheck, // 手动输入 - 根据用户手动输入的`IP`/`IPv6`/`主机名`/`host_id`等关键字信息获取真实存在的机器信息
       // fetchDynamicGroups: IpChooserTopo.fetchDynamicGroup,
@@ -153,9 +170,6 @@ export default {
       updateCustomSettings: CustomSettingsService.update,
       fetchConfig: () => CustomSettingsService.fetchConfig,
     });
-  },
-  mounted() {
-    console.log(this.$refs);
   },
   methods: {
     // 拉取topology
@@ -169,33 +183,29 @@ export default {
         params.all_scope =  true;
       }
       const list = await IpChooserTopo.trees(params);
-      if (node) {
-        return Promise.resolve(list[0].child);
+      let data = node ? list[0].child : list;
+      if (this.isGrayRule && !node) {
+        // 灰度 - 只过滤到业务; // 过滤topo子节点需要考虑只选中子级的情况,且静态topo未统计节点信息
+        data = data.filter(item => PluginStore.hostsByBizRange.includes(item.instance_id));
       }
-      // this.topology = list;
-
-      return Promise.resolve(list);
+      return Promise.resolve(data);
     },
 
-    // 静态拓扑 - 选中节点(根据多个拓扑节点与搜索条件批量分页查询所包含的主机信息)
-    fetchTopologyHostsNodes(query: IQuery) {
+    // 选中节点(根据多个拓扑节点与搜索条件批量分页查询所包含的主机信息)
+    fetchTopologyHostsNodes(query: IQuery, method: string) {
       if (!query.search_content) delete query.search_content;
-      return IpChooserTopo.queryHosts({
-        action: this.action,
-        ...query,
-      });
+      const params = this.reviseParamsByGray({ action: this.action, ...query });
+      return IpChooserTopo[method](params);
     },
 
     // 动态拓扑 - 勾选节点(查询多个节点拓扑路径)
     fetchNodesQueryPath(node: IFetchNode): Promise<Array<INode>[]> {
-      // console.log('fetchNodesQueryPath', node);
       return IpChooserTopo.queryPath({ action: this.action, node_list: node.node_list }, {
         cancelPrevious: false,
       });
     },
     // 动态拓扑 - 勾选节点(获取多个拓扑节点的主机 Agent 状态统计信息)
     async fetchHostAgentStatisticsNodes(node: IFetchNode): Promise<{ agent_statistics: IStatistics, node: INode }[]> {
-      // console.log('fetchHostAgentStatisticsNodes', node);
       const res = await IpChooserTopo.agentStatistics({ action: this.action, node_list: node.node_list });
       res.forEach((item) => {
         Object.assign(item.agent_statistics, {
@@ -207,7 +217,6 @@ export default {
       return Promise.resolve(res);
     },
     fetchHostsDetails(node) {
-      console.log('fetchHostsDetails', node);
       return IpChooserHost.details({
         actio: this.action,
         all_scope: true,
@@ -216,15 +225,27 @@ export default {
     },
     // 手动输入
     fetchHostCheck(node: IFetchNode) {
-      console.log(node);
-      return IpChooserHost.check({
-        ...node,
-        action: this.action,
-        all_scope: true,
-      });
+      const params = this.reviseParamsByGray({ ...node, action: this.action, all_scope: true, saveScope: true });
+      return IpChooserHost.check(params);
     },
     change(value: { [key: string]: INode[] }) {
       this.$emit('change', value);
+    },
+
+    // 灰度策略 - 修正相关查询接口的参数
+    reviseParamsByGray(params: IQuery): IQuery {
+      if (this.isGrayRule) {
+        if (!params.saveScope && params.all_scope) delete params.all_scope;
+        if (params.saveScope) delete params.saveScope;
+        const { nodes = [], node_type } = PluginStore.hostsByScopeRange as IScope;
+        const isTopo = node_type === 'TOPO';
+        params.search_limit = {
+          [isTopo ? 'node_list' : 'host_ids']: isTopo
+            ? toSelectorNode(nodes, node_type)
+            : nodes.map(item => item.bk_host_id),
+        };
+      }
+      return params;
     },
   },
   render(h) {

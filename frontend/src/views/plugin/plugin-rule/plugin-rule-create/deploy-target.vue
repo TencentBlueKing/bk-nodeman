@@ -28,9 +28,6 @@
         :panel-list="panelList"
         :value="selectorNodes"
         :action="'strategy_create'"
-        :node-type="isGrayRule ? 'INSTANCE' : targetPreview.node_type"
-        :checked-data="targetPreview.nodes"
-        :customize-limit="isGrayRule"
         @change="handleTargetChange">
       </IpSelector>
     </bk-form-item>
@@ -137,6 +134,7 @@ export default class DeployTarget extends Mixins(FormLabelMixin) {
       type = 'INSTANCE';
     }
     if (!type) return;
+    // 转换为旧版本的策略所需数据格式。 带meta属性的数据为新IP-selector
     PluginStore.setStateOfStrategy([
       {
         key: 'scope',
