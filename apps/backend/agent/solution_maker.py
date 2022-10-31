@@ -381,6 +381,24 @@ class BaseExecutionSolutionMaker(metaclass=abc.ABCMeta):
 
         script_hook_steps: typing.List[ExecutionSolutionStep] = []
         for script_hook_obj in self.script_hook_objs:
+            if script_hook_obj.script_info_obj.oneline:
+                # 如果可以一行命令执行，直接执行相应的命令
+                script_hook_steps.append(
+                    ExecutionSolutionStep(
+                        step_type=constants.CommonExecutionSolutionStepType.COMMANDS.value,
+                        description=str(script_hook_obj.script_info_obj.description),
+                        contents=[
+                            ExecutionSolutionStepContent(
+                                name="run_cmd",
+                                text=script_hook_obj.script_info_obj.oneline,
+                                description=str(script_hook_obj.script_info_obj.description),
+                                show_description=False,
+                            ),
+                        ],
+                    )
+                )
+                continue
+
             download_cmd = (
                 f"{curl_cmd} {self.gse_servers_info['package_url']}/{script_hook_obj.script_info_obj.path} "
                 f"-o {dest_dir}{script_hook_obj.script_info_obj.filename} --connect-timeout 5 -sSf"

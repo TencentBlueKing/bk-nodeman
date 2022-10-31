@@ -710,13 +710,14 @@ class InstallWindowsWithScriptHooksTestCase(InstallWindowsTestCase):
 
     def test_batch_solution(self):
         host = models.Host.objects.get(bk_host_id=self.obj_factory.bk_host_ids[0])
+        script_hook_objs = ScriptManageHandler.fetch_match_script_hook_objs([{"name": "firewall_off"}], host.os_type)
         installation_tool = gen_commands(
             self.LEGACY_SETUP_INFO,
             host,
             mock_data_utils.JOB_TASK_PIPELINE_ID,
             is_uninstall=False,
             sub_inst_id=0,
-            script_hook_objs=ScriptManageHandler.fetch_match_script_hook_objs([{"name": "firewall_off"}], host.os_type),
+            script_hook_objs=script_hook_objs,
         )
         solution_parse_result: Dict[str, Any] = self.execution_solution_parser(
             installation_tool=installation_tool,
@@ -729,9 +730,7 @@ class InstallWindowsWithScriptHooksTestCase(InstallWindowsTestCase):
             solution_parse_result["cmds"],
             [
                 f"mkdir {installation_tool.dest_dir}",
-                f"{installation_tool.dest_dir}curl.exe http://127.0.0.1/download/script_manage_tmp/firewall_off.bat"
-                f" -o {installation_tool.dest_dir}firewall_off.bat --connect-timeout 5 -sSf",
-                f"{installation_tool.dest_dir}firewall_off.bat",
+                script_hook_objs[0].script_info_obj.oneline,
                 f"{installation_tool.dest_dir}curl.exe http://127.0.0.1/download/setup_agent.bat"
                 f" -o {installation_tool.dest_dir}setup_agent.bat -sSf",
                 f"{installation_tool.dest_dir}setup_agent.bat"
@@ -754,13 +753,14 @@ class InstallWindowsSSHWithScriptHooksTestCase(InstallWindowsSSHTestCase):
     def _test_shell_solution(self, validate_encrypted_password: bool):
 
         host = models.Host.objects.get(bk_host_id=self.obj_factory.bk_host_ids[0])
+        script_hook_objs = ScriptManageHandler.fetch_match_script_hook_objs([{"name": "firewall_off"}], host.os_type)
         installation_tool = gen_commands(
             self.LEGACY_SETUP_INFO,
             host,
             mock_data_utils.JOB_TASK_PIPELINE_ID,
             is_uninstall=False,
             sub_inst_id=0,
-            script_hook_objs=ScriptManageHandler.fetch_match_script_hook_objs([{"name": "firewall_off"}], host.os_type),
+            script_hook_objs=script_hook_objs,
         )
 
         run_cmd_param_extract = {"token": r"(.*) -c (.*?) -s"}
@@ -795,12 +795,7 @@ class InstallWindowsSSHWithScriptHooksTestCase(InstallWindowsSSHTestCase):
         self.assertEqual(
             solution_parse_result["cmds"],
             [f"mkdir -p {installation_tool.dest_dir}"]
-            + [
-                f"curl {installation_tool.package_url}/script_manage_tmp/firewall_off.bat "
-                f"-o {installation_tool.dest_dir}firewall_off.bat --connect-timeout 5 -sSf",
-                f"chmod +x {installation_tool.dest_dir}firewall_off.bat",
-                f"{installation_tool.dest_dir}firewall_off.bat",
-            ]
+            + [script_hook_objs[0].script_info_obj.oneline]
             + [
                 f"curl {installation_tool.package_url}/{dependence} "
                 f"-o {installation_tool.dest_dir}{dependence} --connect-timeout 5 -sSf"
