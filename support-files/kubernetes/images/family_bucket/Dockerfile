@@ -27,6 +27,7 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV PATH="/venv/bin:$PATH"
 
 RUN set -ex && \
+    chmod 1777 /tmp && \
     rm /etc/apt/sources.list && \
     echo "deb https://mirrors.cloud.tencent.com/debian buster main contrib non-free" >> /etc/apt/sources.list && \
     echo "deb https://mirrors.cloud.tencent.com/debian buster-updates main contrib non-free" >> /etc/apt/sources.list && \
@@ -69,16 +70,7 @@ USER root
 ADD ./ ./
 
 # 换行符兼容转换
-RUN awk 'sub("$","\r")' script_tools/setup_agent.bat > script_tools/setup_agent.bat_w &&  \
-    mv -f script_tools/setup_agent.bat_w script_tools/setup_agent.bat && \
-    awk 'sub("$","\r")' script_tools/gsectl.bat > script_tools/gsectl.bat_w &&  \
-    mv -f script_tools/gsectl.bat_w script_tools/gsectl.bat && \
-    awk 'sub("$","\r")' script_tools/plugin_scripts/start.bat > script_tools/plugin_scripts/start.bat_w &&  \
-    mv -f script_tools/plugin_scripts/start.bat_w script_tools/plugin_scripts/start.bat && \
-    awk 'sub("$","\r")' script_tools/plugin_scripts/stop.bat > script_tools/plugin_scripts/stop.bat_w &&  \
-    mv -f script_tools/plugin_scripts/stop.bat_w script_tools/plugin_scripts/stop.bat && \
-    awk 'sub("$","\r")' script_tools/plugin_scripts/restart.bat > script_tools/plugin_scripts/restart.bat_w &&  \
-    mv -f script_tools/plugin_scripts/restart.bat_w script_tools/plugin_scripts/restart.bat
+RUN support-files/kubernetes/images/family_bucket/docs2unix.sh script_tools
 
 # 拷贝构件
 COPY --from=builder /venv /venv
