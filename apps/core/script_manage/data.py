@@ -22,6 +22,7 @@ FIREWALL_OFF_SCRIPT_INFO: base.ScriptInfo = base.ScriptInfo(
     filename="firewall_off.bat",
     path="script_manage_tmp/firewall_off.bat",
     description=_("关闭 Windows 防火墙"),
+    oneline="netsh advfirewall set allprofiles state off",
     support_os_list=[node_man_constants.OsType.WINDOWS],
 )
 
