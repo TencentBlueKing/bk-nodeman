@@ -511,6 +511,8 @@ setup_agent () {
 
     cd "$AGENT_SETUP_PATH/.." && tar xf "$TMP_DIR/$PKG_NAME"
 
+    get_config
+
     for f in "${AGENT_CONFIGS[@]}"; do
         if [[ -f $TMP_DIR/$f ]]; then
             cp -fp "$TMP_DIR/${f}" "${AGENT_SETUP_PATH}"/etc/${f}
@@ -521,8 +523,6 @@ setup_agent () {
 
     # create dir
     mkdir -p "$GSE_AGENT_RUN_DIR" "$GSE_AGENT_DATA_DIR" "$GSE_AGENT_LOG_DIR"
-
-    get_config
 
     check_heathz_by_gse
 
