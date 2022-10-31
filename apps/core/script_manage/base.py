@@ -21,6 +21,9 @@ class ScriptInfo:
     description: str
     support_os_list: typing.List[str]
 
+    # 短命令
+    oneline: typing.Optional[str] = None
+
 
 @dataclass
 class ScriptHook:
