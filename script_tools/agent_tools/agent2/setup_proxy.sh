@@ -490,7 +490,6 @@ setup_proxy () {
     # setup config file
     get_config
 
-
     for f in "${PROXY_CONFIGS[@]}"; do
         if [[ -f $TMP_DIR/$f ]]; then
             log setup_proxy - "copy config file: ${f}"
@@ -499,7 +498,6 @@ setup_proxy () {
             fail setup_proxy FAILED "config file ${f} for gse proxy lost. please check."
         fi
     done
-
 
     # create dir
     mkdir -p "$GSE_AGENT_RUN_DIR" "$GSE_AGENT_DATA_DIR" "$GSE_AGENT_LOG_DIR"
