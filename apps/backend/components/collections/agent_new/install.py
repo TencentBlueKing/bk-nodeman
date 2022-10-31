@@ -41,6 +41,7 @@ from common.api import JobApi
 from pipeline.core.flow import Service, StaticIntervalGenerator
 
 from .. import core
+from ..base import LogLevel
 from ..common import remote
 from . import base
 
@@ -537,10 +538,10 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
         for data in report_data:
             # redis取出为bytes类型，进行解码
             data = json.loads(data.decode())
-            tag = data.get("prefix") or "[script]"
-            log = f"{tag} {data['log']}"
-            status = data["status"]
             step = data["step"]
+            tag = data.get("prefix") or "[script]"
+            log = f"{tag} [{step}] {data['log']}"
+            status = data["status"]
             if status == "FAILED":
                 error_log = log
                 is_finished = True
@@ -553,12 +554,19 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
             elif step == "report_os_version":
                 os_version = data["log"]
             elif step in ["report_healthz"]:
-                logs.append(data.get("log"))
+                # 考虑解析 healthz 输出，进行友好提示
+                pass
             # 只要匹配到成功返回步骤完成，则认为是执行完成了
             if step == success_callback_step and status == "DONE":
                 is_finished = True
         # 并非每次调度都能取到日志，所以仅在非空情况下打印日志
         if logs:
+            # 多行日志批量打印时，非起始日志需要补充时间等前缀，提升美观度
+            logs = [logs[0]] + [
+                self.log_maker_class.get_log_content(level=LogLevel.INFO, content=log)
+                for log in logs[1:]
+                if len(log.strip())
+            ]
             self.log_info(sub_inst_ids=sub_inst_id, log_content="\n".join(logs))
         if error_log:
             self.move_insts_to_failed([sub_inst_id], log_content=error_log)
