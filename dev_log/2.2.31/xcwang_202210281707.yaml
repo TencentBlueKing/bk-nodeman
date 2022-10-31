@@ -1,0 +1,3 @@
+---
+bugfix:
+  - "2.0 P-Agent 安装报错：gse_agent Worker not found  (closed #1179)"

@@ -940,6 +940,8 @@ class AgentWindowsDependencies(EnhanceEnum):
     NTRIGHTS = "ntrights.exe"
     CURL_CA_BUNDLE = "curl-ca-bundle.crt"
     LIBCURL = "libcurl-x64.dll"
+    UNIXDATE = "unixdate.exe"
+    JQ_WIN = "jq.exe"
 
     @classmethod
     def _get_member__alias_map(cls) -> Dict[Enum, str]:
@@ -948,6 +950,8 @@ class AgentWindowsDependencies(EnhanceEnum):
             cls.NTRIGHTS: _("用户赋权工具"),
             cls.CURL_CA_BUNDLE: "TLS Certificate Verification",
             cls.LIBCURL: _("libcurl 共享库, 补丁文件"),
+            cls.UNIXDATE: _("UNIX 时间工具包"),
+            cls.JQ_WIN: _("命令行 JSON 处理器"),
         }
 
 

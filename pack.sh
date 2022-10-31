@@ -59,11 +59,11 @@ cp bk_nodeman/on_migrate ${NODEMAN_DIST_DIR}
 cp bk_nodeman/ignorefile ${CODE_DIST_DIR}
 
 # 1. 替换bat的换行符
-awk 'sub("$","\r")' ${NODEMAN_DIST_DIR}/script_tools/setup_agent.bat > ${NODEMAN_DIST_DIR}/script_tools/setup_agent.bat_w && mv -f ${NODEMAN_DIST_DIR}/script_tools/setup_agent.bat_w ${NODEMAN_DIST_DIR}/script_tools/setup_agent.bat
-awk 'sub("$","\r")' ${NODEMAN_DIST_DIR}/script_tools/gsectl.bat > ${NODEMAN_DIST_DIR}/script_tools/gsectl.bat_w && mv -f ${NODEMAN_DIST_DIR}/script_tools/gsectl.bat_w ${NODEMAN_DIST_DIR}/script_tools/gsectl.bat
-awk 'sub("$","\r")' ${NODEMAN_DIST_DIR}/script_tools/plugin_scripts/start.bat > ${NODEMAN_DIST_DIR}/script_tools/plugin_scripts/start.bat_w && mv -f ${NODEMAN_DIST_DIR}/script_tools/plugin_scripts/start.bat_w ${NODEMAN_DIST_DIR}/script_tools/plugin_scripts/start.bat
-awk 'sub("$","\r")' ${NODEMAN_DIST_DIR}/script_tools/plugin_scripts/stop.bat > ${NODEMAN_DIST_DIR}/script_tools/plugin_scripts/stop.bat_w && mv -f ${NODEMAN_DIST_DIR}/script_tools/plugin_scripts/stop.bat_w ${NODEMAN_DIST_DIR}/script_tools/plugin_scripts/stop.bat
-awk 'sub("$","\r")' ${NODEMAN_DIST_DIR}/script_tools/plugin_scripts/restart.bat > ${NODEMAN_DIST_DIR}/script_tools/plugin_scripts/restart.bat_w && mv -f ${NODEMAN_DIST_DIR}/script_tools/plugin_scripts/restart.bat_w ${NODEMAN_DIST_DIR}/script_tools/plugin_scripts/restart.bat
+bat_filepaths=$(find ${NODEMAN_DIST_DIR}/script_tools -type f -name "*.bat")
+while read -r bat_filepath
+do
+  awk 'sub("$","\r")' "${bat_filepath}" > "${bat_filepath}_w" && mv -f "${bat_filepath}_w" "${bat_filepath}"
+done <<< "$bat_filepaths"
 
 
 # 2. 企业版打包暂时不支持requirements.txt -r 的方式
