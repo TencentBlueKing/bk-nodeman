@@ -942,6 +942,7 @@ class AgentWindowsDependencies(EnhanceEnum):
     LIBCURL = "libcurl-x64.dll"
     UNIXDATE = "unixdate.exe"
     JQ_WIN = "jq.exe"
+    BASE64 = "base64.exe"
 
     @classmethod
     def _get_member__alias_map(cls) -> Dict[Enum, str]:
@@ -952,6 +953,7 @@ class AgentWindowsDependencies(EnhanceEnum):
             cls.LIBCURL: _("libcurl 共享库, 补丁文件"),
             cls.UNIXDATE: _("UNIX 时间工具包"),
             cls.JQ_WIN: _("命令行 JSON 处理器"),
+            cls.BASE64: _("base64 工具包"),
         }
 
 
