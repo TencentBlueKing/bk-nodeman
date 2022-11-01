@@ -12,6 +12,7 @@ import base64
 import importlib
 import json
 import os
+import random
 import re
 from typing import Any, Dict, List, Optional
 
@@ -91,7 +92,14 @@ class InstallBaseTestCase(utils.AgentServiceBaseTestCase):
                         "timestamp": "1580870937",
                         "level": "INFO",
                         "step": "report_healthz",
-                        "log": '{"ok":false,"data":{"base":"ok","cluster":"ok","data":"ok","file":"ok"}}',
+                        "log": random.choice(
+                            [
+                                '{"ok":false,"data":{"base":"ok","cluster":"ok","data":"ok","file":"ok"}}',
+                                "aGVhbHRoejogeyJvayI6dHJ1ZSwiZGF0YSI6eyJiYXNlIjoib2siLCJjbHVzdGVyIjoib2si"
+                                "LCJkYXRhIjoib2siLCJmaWxlIjoib2sifX0NCg==",
+                                "healthz: Failed",
+                            ]
+                        ),
                         "status": "DONE",
                     },
                     {
