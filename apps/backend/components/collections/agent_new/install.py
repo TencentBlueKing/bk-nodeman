@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import base64
+import binascii
 import json
 import os
 import random
@@ -555,7 +556,31 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
                 os_version = data["log"]
             elif step in ["report_healthz"]:
                 # 考虑解析 healthz 输出，进行友好提示
-                pass
+                untreated_healthz_result: str = data["log"]
+                try:
+                    # 尝试 b64 解析 healthz 日志
+                    untreated_healthz_result = base64.b64decode(untreated_healthz_result.encode()).decode()
+                except binascii.Error:
+                    pass
+
+                # 去除可能存在的前缀
+                if untreated_healthz_result.startswith("healthz:"):
+                    untreated_healthz_result = untreated_healthz_result.replace("healthz:", "", 1)
+
+                # 去除多余的空白符号
+                healthz_result = untreated_healthz_result.strip()
+
+                try:
+                    # 尝试将 healthz 输出转为字典格式
+                    healthz_result_dict = json.loads(healthz_result)
+                    if not isinstance(healthz_result_dict, dict):
+                        raise json.decoder.JSONDecodeError
+                except json.decoder.JSONDecodeError:
+                    # 如果 healthz 不可解析，记录原文并打上标记
+                    healthz_result_dict = {"is_parseable": False, "log": data["log"]}
+
+                logs.append(f"{tag} [{step}] parse healthz result: \n {json.dumps(healthz_result_dict, indent=4)}")
+
             # 只要匹配到成功返回步骤完成，则认为是执行完成了
             if step == success_callback_step and status == "DONE":
                 is_finished = True
