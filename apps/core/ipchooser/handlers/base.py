@@ -66,6 +66,7 @@ class BaseHandler:
                 {
                     "meta": BaseHandler.get_meta_data(untreated_host_info["bk_biz_id"]),
                     "host_id": untreated_host_info["bk_host_id"],
+                    "agent_id": untreated_host_info["bk_agent_id"],
                     "ip": untreated_host_info["inner_ip"],
                     "ipv6": untreated_host_info["inner_ipv6"],
                     "host_name": untreated_host_info["bk_host_name"],

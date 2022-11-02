@@ -33,20 +33,25 @@ class ResourceQueryHelper:
         :param bk_biz_ids: 业务 ID 列表
         :return: 列表 ，包含 业务ID、名字、业务运维
         """
-        search_business_params = {
-            "no_request": True,
-            "fields": ["bk_biz_id", "bk_biz_name", "bk_biz_maintainer"],
-        }
-        biz_infos: typing.List[typing.Dict] = CCApi.search_business(search_business_params)["info"]
-        biz_infos.append(
+        # 如果 bk_biz_ids 是空列表，直接返回
+        if not (bk_biz_ids is None or bk_biz_ids):
+            return []
+
+        biz_infos: typing.List[typing.Dict] = [
             {
                 "bk_biz_id": settings.BK_CMDB_RESOURCE_POOL_BIZ_ID,
                 "bk_biz_name": str(_("资源池")),
                 "bk_biz_maintainer": "admin",
             }
-        )
-        if not bk_biz_ids:
+        ]
+
+        search_business_params = {"no_request": True, "fields": ["bk_biz_id", "bk_biz_name", "bk_biz_maintainer"]}
+        biz_infos.extend(CCApi.search_business(search_business_params)["info"])
+
+        # bk_biz_ids 为 None 表示查询全部数据
+        if bk_biz_ids is None:
             return biz_infos
+
         # 转为 set，避免 n^2 查找
         bk_biz_ids: typing.Set[int] = set(bk_biz_ids)
         return [biz_info for biz_info in biz_infos if biz_info["bk_biz_id"] in bk_biz_ids]
