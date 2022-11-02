@@ -30,23 +30,26 @@ class TopoTool:
     @staticmethod
     def find_topo_node_paths(bk_biz_id: int, node_list: typing.List[types.TreeNode]):
         def _find_topo_node_paths(
-            _cur_node: types.TreeNode, _cur_path: typing.List[types.TreeNode], _hit_inst_ids: typing.Set
+            _cur_node: types.TreeNode, _cur_path: typing.List[types.TreeNode], _hit_inst_keys: typing.Set[str]
         ):
-            if _cur_node["bk_inst_id"] in inst_id__node_map:
-                inst_id__node_map[_cur_node["bk_inst_id"]]["bk_path"] = deepcopy(_cur_path)
-                _hit_inst_ids.add(_cur_node["bk_inst_id"])
+            _inst_key: str = f"{_cur_node['bk_obj_id']}-{_cur_node['bk_inst_id']}"
+            if _inst_key in inst_key__node_map:
+                inst_key__node_map[_inst_key]["bk_path"] = deepcopy(_cur_path)
+                _hit_inst_keys.add(_inst_key)
                 # 全部命中后提前返回
-                if len(_hit_inst_ids) == len(inst_id__node_map.keys()):
+                if len(_hit_inst_keys) == len(inst_key__node_map.keys()):
                     return
 
             for _child_node in _cur_node.get("child") or []:
                 _cur_path.append(_child_node)
-                _find_topo_node_paths(_child_node, _cur_path, _hit_inst_ids)
+                _find_topo_node_paths(_child_node, _cur_path, _hit_inst_keys)
                 # 以 del 代替 [:-1]，防止后者产生 list 对象导致路径重复压栈
                 del _cur_path[-1]
 
         topo_tree: types.TreeNode = resource.ResourceQueryHelper.get_topo_tree(bk_biz_id)
-        inst_id__node_map: typing.Dict[int, types.TreeNode] = {bk_node["bk_inst_id"]: bk_node for bk_node in node_list}
+        inst_key__node_map: typing.Dict[str, types.TreeNode] = {
+            f"{bk_node['bk_obj_id']}-{bk_node['bk_inst_id']}": bk_node for bk_node in node_list
+        }
         _find_topo_node_paths(topo_tree, [topo_tree], set())
         return node_list
 
