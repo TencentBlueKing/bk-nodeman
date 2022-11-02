@@ -1,7 +1,6 @@
 #!/bin/bash
 # vim:ft=sh expandtab sts=4 ts=4 sw=4 nu
 # gse agent 2.0 安装脚本, 仅在节点管理2.0中使用
-JOINT_DEBUG_SWITCH=TRUE
 
 # DEFAULT DEFINITION
 NODE_TYPE=agent
@@ -223,10 +222,6 @@ is_port_connected_by_pid () {
                 <( awk -v p="$port" 'BEGIN{ check=sprintf(":%04X01$", p)} $3$4 ~ check {print $10}' /proc/net/tcp) \
                 && return 0
     done
-    if [[ "${JOINT_DEBUG_SWITCH}" == "TRUE" ]]; then
-        warn check_deploy_result - "agent pid $pid is not connected to port $port, skip this error because joint debug switch is on"
-        return 0
-    fi
     return 1
 }
 
@@ -271,6 +266,14 @@ get_pid_by_comm_path () {
     echo ${pids[@]}
 }
 
+is_base64_command_exist() {
+    if ! command -v base64 >/dev/null 2>&1; then
+        return 1
+    else
+        return 0
+    fi
+}
+
 is_process_ok () {
     local proc=${1:-agent}
     local gse_master_pid gse_worker_pids gse_agent_pids
@@ -305,21 +308,22 @@ is_process_ok () {
 }
 
 check_heathz_by_gse () {
-    local result
+    local result report_result
     if [ -f "${GSE_AGENT_CONFIG_PATH}" ]; then
         result=$("${AGENT_SETUP_PATH}"/bin/gse_agent -f "${GSE_AGENT_CONFIG_PATH}" --healthz)
     else
         result=$("${AGENT_SETUP_PATH}"/bin/gse_agent --healthz)
     fi
     execution_code=$?
-    report_result=$(awk -F': ' '{print $2}' <<< "$result" | tr "\"" "\'")
+    report_result=$(awk -F': ' '{print $2}' <<< "$result")
+    if is_base64_command_exist; then
+        report_result=$(echo "$result" | base64 -w 0)
+    else
+        report_result=$(echo "$result" | tr "\"" "\'")
+    fi
     if [ "${execution_code}" -eq 0 ]; then
         log report_healthz - "${report_result}"
         log healthz_check INFO "gse_agent healthz check success"
-    elif [[ "${execution_code}" -eq 5 && "${JOINT_DEBUG_SWITCH}" == "TRUE" ]]; then
-        warn report_healthz_code INFO "gse_agent healthz check return code: ${execution_code}"
-        warn report_healthz - "${report_result}"
-        log healthz_check WARN "gse_agent healthz check failed, skip this error because joint debug switch is on"
     else
         warn report_healthz INFO "gse_agent healthz check return code: ${execution_code}"
         warn report_healthz - "${report_result}"
@@ -362,12 +366,12 @@ register_agent_id () {
 
     log register_agent_id  - "trying to register agent id"
     if [ -f "${GSE_AGENT_CONFIG_PATH}" ]; then
-        registe_result=$($AGENT_SETUP_PATH/bin/gse_agent -f "${GSE_AGENT_CONFIG_PATH}" --register)
+        registe_result=$($AGENT_SETUP_PATH/bin/gse_agent -f "${GSE_AGENT_CONFIG_PATH}" --register 2>&1)
     else
-        registe_result=$($AGENT_SETUP_PATH/bin/gse_agent --register)
+        registe_result=$($AGENT_SETUP_PATH/bin/gse_agent --register 2>&1)
     fi
 
-    if [ $? -ne 0 ]; then
+    if [[ $? -ne 0 ]]; then
         fail register_agent_id FAILED "register agent id failed, error: ${registe_result}"
     else
         log report_agent_id DONE "$registe_result"
@@ -378,9 +382,9 @@ unregister_agent_id () {
     log unregister_agent_id - "trying to unregister agent id"
     if [ -f "$AGENT_SETUP_PATH/bin/gse_agent" ]; then
         if [ -f "${GSE_AGENT_CONFIG_PATH}" ]; then
-            unregister_agent_id_result=$("$AGENT_SETUP_PATH"/bin/gse_agent -f "${GSE_AGENT_CONFIG_PATH}" --unregister)
+            unregister_agent_id_result=$("$AGENT_SETUP_PATH"/bin/gse_agent -f "${GSE_AGENT_CONFIG_PATH}" --unregister 2>&1)
         else
-            unregister_agent_id_result=$("$AGENT_SETUP_PATH"/bin/gse_agent --unregister)
+            unregister_agent_id_result=$("$AGENT_SETUP_PATH"/bin/gse_agent --unregister 2>&1)
         fi
 
         if [[ $? -eq 0 ]]; then
@@ -509,7 +513,7 @@ setup_agent () {
     log setup_agent START "setup agent. (extract, render config)"
     mkdir -p "$AGENT_SETUP_PATH"/etc
 
-    cd "$AGENT_SETUP_PATH/.." && tar xf "$TMP_DIR/$PKG_NAME"
+    cd "$AGENT_SETUP_PATH/.." && ( tar xf "$TMP_DIR/$PKG_NAME" || fail setup_proxy FAILED "decompress package $PKG_NAME failed" )
 
     get_config
 
