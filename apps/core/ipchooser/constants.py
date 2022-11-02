@@ -23,6 +23,7 @@ class CommonEnum(EnhanceEnum):
     DEFAULT_HOST_FIELDS = [
         "bk_biz_id",
         "bk_host_id",
+        "bk_agent_id",
         "bk_cloud_id",
         "inner_ip",
         "inner_ipv6",
