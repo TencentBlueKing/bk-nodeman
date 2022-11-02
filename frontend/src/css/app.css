@@ -750,3 +750,22 @@ body {
     right: 0;
     padding: 0 16px;
 } */
+
+/* ip-selector组件导致的样式错乱 - 2.7版本 */
+.tippy-tooltip {
+    &.bk-search-select-theme-theme,
+    &.bk-select-dropdown-theme {
+        padding: 0!important;
+        .bk-search-list {
+            margin: 0;
+        }
+    }
+    .tippy-content {
+        padding: 0;
+    }
+}
+
+.bk-ip-selector,
+.bk-ip-selector-box {
+    height: 100%;
+}
