@@ -18,15 +18,17 @@ from django.conf import settings
 from apps.backend.exceptions import GseEncryptedError
 from apps.node_man import constants
 
+ENCRYPTED_FILE_NAME = "encryptedpasswd"
+
 BACKEND_PLATFORM = f"{platform.system().lower()}_{platform.machine().lower()}"
 
 default_platform = f"{constants.OsType.LINUX.lower()}_{constants.CpuType.x86_64.lower()}"
 grabbed_platform_path = os.path.join(
-    settings.PROJECT_ROOT, "script_tools", "encrypted_tools", BACKEND_PLATFORM, "encrypted_tools"
+    settings.PROJECT_ROOT, "script_tools", "encrypted_tools", BACKEND_PLATFORM, ENCRYPTED_FILE_NAME
 )
 platform_path = default_platform if not os.path.isfile(grabbed_platform_path) else BACKEND_PLATFORM
 encrypted_tools_path = os.path.join(
-    settings.PROJECT_ROOT, "script_tools", "encrypted_tools", platform_path, "encryptedpasswd"
+    settings.PROJECT_ROOT, "script_tools", "encrypted_tools", platform_path, ENCRYPTED_FILE_NAME
 )
 
 # 增加可执行权限
