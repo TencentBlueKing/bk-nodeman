@@ -247,6 +247,10 @@ export interface IPkConfigDetail {
   params: IPkConfig[]
 }
 
+
+export type IObjectType = 'HOST' | 'SERVICE';
+export type INodeType  = 'TOPO' | 'INSTANCE';
+
 export interface IStrategy { // 与策略列表不通用
   plugin_info?: {
     id: string | number
@@ -255,8 +259,8 @@ export interface IStrategy { // 与策略列表不通用
   name?: string
   subscription_id?: number | string
   scope: {
-    object_type?: 'HOST' | 'SERVICE'
-    node_type: 'TOPO' | 'INSTANCE'
+    object_type?: IObjectType
+    node_type: INodeType
     nodes: ITarget[]
   }
   steps: IPkConfigDetail[]
