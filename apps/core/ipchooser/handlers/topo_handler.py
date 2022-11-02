@@ -105,13 +105,16 @@ class TopoHandler:
             func=topo_tool.TopoTool.find_topo_node_paths, params_list=params_list, extend_result=True
         )
 
-        inst_id__path_map: typing.Dict[int, typing.List[types.TreeNode]] = {}
+        inst_key__path_map: typing.Dict[str, typing.List[types.TreeNode]] = {}
         for node_with_path in node_with_paths:
-            inst_id__path_map[node_with_path["bk_inst_id"]] = node_with_path.get("bk_path", [])
+            inst_key__path_map[f"{node_with_path['bk_obj_id']}-{node_with_path['bk_inst_id']}"] = node_with_path.get(
+                "bk_path", []
+            )
 
         node_paths_list: typing.List[typing.List[types.TreeNode]] = []
         for node in node_list:
-            if node["instance_id"] not in inst_id__path_map:
+            inst_key: str = f"{node['object_id']}-{node['instance_id']}"
+            if inst_key not in inst_key__path_map:
                 node_paths_list.append([])
                 continue
 
@@ -124,7 +127,7 @@ class TopoHandler:
                         "instance_id": path_node["bk_inst_id"],
                         "instance_name": path_node["bk_inst_name"],
                     }
-                    for path_node in inst_id__path_map[node["instance_id"]]
+                    for path_node in inst_key__path_map[inst_key]
                 ]
             )
         return node_paths_list
@@ -250,8 +253,6 @@ class TopoHandler:
                         "total_count": agent_statistics["total"],
                         "alive_count": alive_count,
                         "not_alive_count": not_alive_count,
-                        # 废弃
-                        "no_alive_count": not_alive_count,
                     },
                     "node": readable_node,
                 }
