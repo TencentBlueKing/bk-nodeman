@@ -77,7 +77,9 @@ def _list_biz_hosts(biz_id: int, start: int) -> dict:
         }
     )
     # 去除内网IP为空的主机
-    biz_hosts["info"] = [host for host in biz_hosts["info"] if host.get("bk_host_innerip")]
+    biz_hosts["info"] = [
+        host for host in biz_hosts["info"] if host.get("bk_host_innerip") or host.get("bk_host_innerip_v6")
+    ]
     return biz_hosts
 
 
@@ -205,10 +207,10 @@ def update_or_create_host_base(biz_id, task_id, cmdb_host_data):
     # 已存在的主机批量更新,不存在的主机批量创建
     for host in cmdb_host_data:
         # 兼容内网IP为空的情况
-        if not host["bk_host_innerip"]:
+        if not (host.get("bk_host_innerip") or host.get("bk_host_innerip_v6")):
             logger.info(
                 f"[sync_cmdb_host] update_or_create_host: task_id -> {task_id}, bk_biz_id -> {biz_id}, "
-                f"bk_host_id -> {host['bk_host_id']} bk_host_innerip is empty"
+                f"bk_host_id -> {host['bk_host_id']} bk_host_innerip and bk_host_innerip_v6 is empty"
             )
             continue
 
