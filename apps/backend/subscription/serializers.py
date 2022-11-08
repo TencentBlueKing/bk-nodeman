@@ -189,6 +189,8 @@ class TaskResultSerializer(GatewaySerializer):
     subscription_id = serializers.IntegerField(label="订阅任务ID")
     task_id_list = serializers.ListField(child=serializers.IntegerField(), required=False, label="任务ID列表")
     need_detail = serializers.BooleanField(default=False, label="是否需要详情")
+    need_aggregate_all_tasks = serializers.BooleanField(default=False, label="是否需要聚合全部任务查询最后一次视图")
+    need_out_of_scope_snapshots = serializers.BooleanField(default=True, label="是否需要已不在范围内的快照信息")
 
 
 class TaskResultDetailSerializer(GatewaySerializer):

@@ -59,6 +59,8 @@ class SubscriptionHandler(object):
         statuses: List = None,
         instance_id_list: List = None,
         need_detail: bool = False,
+        need_aggregate_all_tasks: bool = False,
+        need_out_of_scope_snapshots: bool = True,
         page: int = None,
         pagesize: int = -1,
         return_all: bool = False,
@@ -69,6 +71,8 @@ class SubscriptionHandler(object):
         :param instance_id_list: 需过滤的实例ID列表
         :param statuses: 过滤的状态列表
         :param need_detail: 是否需要详情
+        :param need_aggregate_all_tasks: 是否需要聚合全部任务查询最后一次视图
+        :param need_out_of_scope_snapshots: 是否需要已不在范围内的快照信息
         :param page: 页数
         :param pagesize: 页码
         :param return_all: 是否返回全量（用于兼容老接口）
@@ -97,8 +101,6 @@ class SubscriptionHandler(object):
                 )
             task_id_list = [subscription_tasks[0]["id"]]
 
-        id__task_map = {task["id"]: task for task in subscription_tasks}
-
         # 检查任务是否已准备就绪
         is_ready = self.check_task_ready(task_id_list)
         if not is_ready:
@@ -114,6 +116,9 @@ class SubscriptionHandler(object):
             begin, end = None, None
 
         base_kwargs = {"subscription_id": self.subscription_id, "task_id__in": task_id_list}
+        if need_aggregate_all_tasks:
+            # 如果需要聚合全部业务，这里需要取消过滤任务ID列表
+            base_kwargs.pop("task_id__in")
         filter_kwargs = deepcopy(base_kwargs)
         is_query_change = False
 
@@ -123,6 +128,17 @@ class SubscriptionHandler(object):
         if statuses is not None:
             is_query_change = True
             filter_kwargs["status__in"] = statuses
+
+        if not need_out_of_scope_snapshots:
+            # 如果不需要已不在订阅范围内的执行快照，查询订阅范围过滤掉移除的实例 ID
+            subscription = models.Subscription.objects.get(id=self.subscription_id)
+            scope_instance_id_list: Set[str] = set(
+                tools.get_instances_by_scope(subscription.scope, get_cache=True).keys()
+            )
+            if filter_kwargs.get("instance_id__in"):
+                filter_kwargs["instance_id__in"] = set(filter_kwargs["instance_id__in"]) & scope_instance_id_list
+            else:
+                filter_kwargs["instance_id__in"] = scope_instance_id_list
 
         all_instance_record_ids = SubscriptionTools.fetch_latest_record_ids_in_same_inst_id(
             models.SubscriptionInstanceRecord.objects.filter(**base_kwargs)
@@ -150,7 +166,7 @@ class SubscriptionHandler(object):
             instance_status_list = []
         else:
             # 用 subscription_task 是否有pipeline_id字段作为新老记录的区别，要么是新的要么是旧的，不存在混合的情况
-            is_new_task = id__task_map[instance_records[0].task_id]["pipeline_id"]
+            is_new_task = subscription_tasks[0]["pipeline_id"]
             if is_new_task:
                 instance_status_list = task_tools.TaskResultTools.list_subscription_task_instance_status(
                     instance_records, need_detail=need_detail
