@@ -298,6 +298,8 @@ class SubscriptionViewSet(APIViewSet):
             statuses=params.get("statuses"),
             instance_id_list=params.get("instance_id_list"),
             need_detail=params["need_detail"],
+            need_aggregate_all_tasks=params["need_aggregate_all_tasks"],
+            need_out_of_scope_snapshots=params["need_out_of_scope_snapshots"],
             page=params["page"],
             pagesize=params["pagesize"],
             return_all=params["return_all"],
