@@ -1,0 +1,3 @@
+---
+optimization:
+  - "2.0 Agent 健康检查动作顺序调整 (closed #1226)"
