@@ -69,9 +69,10 @@ import { Vue, Component, Ref, Prop } from 'vue-property-decorator';
 import { MainStore, AgentStore } from '@/store/index';
 import { tableConfig } from '../config/importTableConfig';
 import { authentication } from '@/config/config';
-import { isEmpty } from '@/common/util';
+import { isEmpty, download } from '@/common/util';
 import { IAgent } from '@/types/agent/agent-type';
 import { regIp } from '@/common/form-check';
+import { headConfig, createExcel } from './create-excel';
 
 @Component({
   name: 'parser-excel',
@@ -354,16 +355,10 @@ export default class ParserExcel extends Vue {
    * 下载模板文件
    */
   public handleDownload() {
-    // 待优化方案，前端传表头与数据给后端，直接产出对应的Excel，但不能包含IP等敏感信息
-    const suffix = window.PROJECT_CONFIG.BKAPP_ENABLE_DHCP === 'True' ? '_address' : '';
-    const url = `${window.PROJECT_CONFIG.STATIC_URL}download/bk_nodeman_info_${window.language}${suffix}.xlsx`;
-    const element = document.createElement('a');
-    element.setAttribute('href', url);
-    element.setAttribute('download', 'bk_nodeman_info.xlsx');
-    element.style.display = 'none';
-    document.body.appendChild(element);
-    element.click();
-    document.body.removeChild(element);
+    const { url } = createExcel('bk_nodeman_info', window.PROJECT_CONFIG.BKAPP_ENABLE_DHCP === 'True'
+      ? headConfig
+      : headConfig.filter(item => item.prop !== 'bk_addressing'));
+    download('bk_nodeman_info.xlsx', url);
   }
 }
 </script>
