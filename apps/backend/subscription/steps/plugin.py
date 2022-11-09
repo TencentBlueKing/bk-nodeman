@@ -19,11 +19,13 @@ from django.db.models import QuerySet
 
 from apps.adapters.api.gse import GseApiHelper
 from apps.backend import constants as backend_const
+from apps.backend.components.collections import plugin
 from apps.backend.plugin.manager import PluginManager, PluginServiceActivity
 from apps.backend.subscription import errors, tools
 from apps.backend.subscription.constants import MAX_RETRY_TIME
 from apps.backend.subscription.steps import adapter
 from apps.backend.subscription.steps.base import Action, Step
+from apps.core.files.storage import CustomBKRepoStorage, get_storage
 from apps.core.tag import targets
 from apps.core.tag.models import Tag
 from apps.node_man import constants, models
@@ -922,12 +924,22 @@ class BasePluginAction(six.with_metaclass(abc.ABCMeta, Action)):
             # 初始化进程状态
             activities = [plugin_manager.init_process_status(action=self.ACTION_NAME)]
 
+        storage = get_storage()
+
         # 插入生成的流程
         _activities, pipeline_data = self._generate_activities(plugin_manager)
         for _activity in _activities:
             # 排除特殊条件下，_activity为None的场景
             if _activity:
-                activities.append(_activity)
+                if (
+                    _activity.component.code == plugin.TransferScriptComponent.code
+                    and storage.__class__ is CustomBKRepoStorage
+                ):
+                    # 只有在使用对象存储是，才下发初始化脚本的命令
+                    activities.append(_activity)
+                    activities.append(plugin_manager.init_porc_script())
+                else:
+                    activities.append(_activity)
 
         if self.NEED_RESET_RETRY_TIMES:
             # 插入重置重试次数及结束事件
