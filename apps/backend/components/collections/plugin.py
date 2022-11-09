@@ -46,7 +46,6 @@ from apps.backend.subscription.tools import (
     get_all_subscription_steps_context,
     render_config_files_by_config_templates,
 )
-from apps.core.files.storage import CustomBKRepoStorage, get_storage
 from apps.core.tag import targets
 from apps.core.tag.models import Tag
 from apps.exceptions import AppBaseException, ComponentCallError
@@ -1482,27 +1481,7 @@ class PluginTransferFileService(JobTransferFileService, PluginBaseService):
     pass
 
 
-class TransferScriptService(PluginTransferFileService, JobExecuteScriptService):
-    def _execute(self, data, parent_data, common_data: PluginCommonData):
-        super(TransferScriptService, self)._execute(data, parent_data, common_data)
-        storage = get_storage()
-        if storage.__class__ is CustomBKRepoStorage:
-            super(JobTransferFileService, self)._execute(data, parent_data, common_data)
-
-    def script_name(self):
-        return "initialize_script"
-
-    def get_script_param(self, data, common_data: PluginCommonData, host: models.Host):
-        return self.get_file_target_path
-
-    def get_script_content(self, data, common_data: PluginCommonData, host: models.Host):
-        return INITIALIZE_SCRIPT
-
-    def get_target_servers(self, data, common_data: PluginCommonData, host: models.Host):
-        if host.os_type == constants.OsType.WINDOWS:
-            return
-        return {"ip_list": [{"bk_cloud_id": host.bk_cloud_id, "ip": host.inner_ip}], "host_id_list": [host.bk_host_id]}
-
+class TransferScriptService(PluginTransferFileService):
     def get_file_list(self, data, common_data: PluginCommonData, host: models.Host) -> List[str]:
         op_types = data.get_one_of_inputs("op_types")
         script_files: List[str] = []
@@ -1515,18 +1494,6 @@ class TransferScriptService(PluginTransferFileService, JobExecuteScriptService):
             )
             script_files.append(script_file)
         return script_files
-
-    @cache.class_member_cache()
-    def host_id__proc_status_map(self, process_statuses: List[models.ProcessStatus]) -> Dict[int, models.ProcessStatus]:
-        host_id__proc_status_map: Dict[int, models.ProcessStatus] = {}
-        for process_status in process_statuses:
-            host_id__proc_status_map[process_status.bk_host_id] = process_status
-        return host_id__proc_status_map
-
-    def get_file_target_path(self, data, common_data: PluginCommonData, host: models.Host) -> str:
-        host_id__proc_status_map = self.host_id__proc_status_map(common_data.process_statuses)
-        process_status = host_id__proc_status_map[host.bk_host_id]
-        return process_status.setup_path
 
     @classmethod
     def match_script_file_name(cls, op_type: str, os_type: str) -> str:
@@ -1541,11 +1508,58 @@ class TransferScriptService(PluginTransferFileService, JobExecuteScriptService):
         script_file_name = f"{op_type_action_map[op_type]}.{SUFFIX_MAP[os_type]}"
         return script_file_name
 
+    @cache.class_member_cache()
+    def host_id__proc_status_map(self, process_statuses: List[models.ProcessStatus]) -> Dict[int, models.ProcessStatus]:
+        host_id__proc_status_map: Dict[int, models.ProcessStatus] = {}
+        for process_status in process_statuses:
+            host_id__proc_status_map[process_status.bk_host_id] = process_status
+        return host_id__proc_status_map
+
+    def get_file_target_path(self, data, common_data: PluginCommonData, host: models.Host) -> str:
+        host_id__proc_status_map = self.host_id__proc_status_map(common_data.process_statuses)
+        process_status = host_id__proc_status_map[host.bk_host_id]
+        agent_config = self.get_agent_config_by_process_status(process_status, common_data)
+        file_target_path = os.path.join(agent_config["setup_path"], "plugins", "bin")
+        return file_target_path
+
+
+class InitProcOperateScriptService(PluginBaseService, JobExecuteScriptService):
+    def get_target_servers(self, data, common_data: PluginCommonData, host: models.Host) -> Optional[Dict[str, Any]]:
+        if host.os_type == constants.OsType.WINDOWS:
+            return
+        return {"ip_list": [{"bk_cloud_id": host.bk_cloud_id, "ip": host.inner_ip}], "host_id_list": [host.bk_host_id]}
+
+    def get_script_content(self, data, common_data: PluginCommonData, host: models.Host) -> str:
+        return INITIALIZE_SCRIPT
+
+    def script_name(self) -> str:
+        return "initialize_script"
+
+    def get_script_param(self, data, common_data: PluginCommonData, host: models.Host) -> str:
+        host_id__proc_status_map = self.host_id__proc_status_map(common_data.process_statuses)
+        process_status = host_id__proc_status_map[host.bk_host_id]
+        agent_config = self.get_agent_config_by_process_status(process_status, common_data)
+        file_target_path = os.path.join(agent_config["setup_path"], "plugins", "bin")
+        return file_target_path
+
+    @cache.class_member_cache()
+    def host_id__proc_status_map(self, process_statuses: List[models.ProcessStatus]) -> Dict[int, models.ProcessStatus]:
+        host_id__proc_status_map: Dict[int, models.ProcessStatus] = {}
+        for process_status in process_statuses:
+            host_id__proc_status_map[process_status.bk_host_id] = process_status
+        return host_id__proc_status_map
+
 
 class InitProcessStatusComponent(Component):
     name = "InitProcessStatus"
     code = "init_process_status"
     bound_service = InitProcessStatusService
+
+
+class InitProcOperateScriptComponent(Component):
+    name = "InitProcOperateScript"
+    code = "init_proc_script"
+    bound_service = InitProcOperateScriptService
 
 
 class TransferPackageComponent(Component):
