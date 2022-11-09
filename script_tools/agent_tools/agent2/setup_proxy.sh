@@ -509,9 +509,9 @@ setup_proxy () {
     # create dir
     mkdir -p "$GSE_AGENT_RUN_DIR" "$GSE_AGENT_DATA_DIR" "$GSE_AGENT_LOG_DIR"
 
-    check_heathz_by_gse
-
     register_agent_id
+
+    check_heathz_by_gse
 
     start_proxy
 
