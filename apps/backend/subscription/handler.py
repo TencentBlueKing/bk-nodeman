@@ -115,19 +115,10 @@ class SubscriptionHandler(object):
         if return_all:
             begin, end = None, None
 
-        base_kwargs = {"subscription_id": self.subscription_id, "task_id__in": task_id_list}
+        base_kwargs: Dict[str, Any] = {"subscription_id": self.subscription_id, "task_id__in": task_id_list}
         if need_aggregate_all_tasks:
             # 如果需要聚合全部业务，这里需要取消过滤任务ID列表
             base_kwargs.pop("task_id__in")
-        filter_kwargs = deepcopy(base_kwargs)
-        is_query_change = False
-
-        if instance_id_list is not None:
-            is_query_change = True
-            filter_kwargs["instance_id__in"] = instance_id_list
-        if statuses is not None:
-            is_query_change = True
-            filter_kwargs["status__in"] = statuses
 
         if not need_out_of_scope_snapshots:
             # 如果不需要已不在订阅范围内的执行快照，查询订阅范围过滤掉移除的实例 ID
@@ -135,10 +126,21 @@ class SubscriptionHandler(object):
             scope_instance_id_list: Set[str] = set(
                 tools.get_instances_by_scope(subscription.scope, get_cache=True).keys()
             )
+            base_kwargs["instance_id__in"] = scope_instance_id_list
+
+        is_query_change = False
+        filter_kwargs = deepcopy(base_kwargs)
+
+        if instance_id_list is not None:
+            is_query_change = True
             if filter_kwargs.get("instance_id__in"):
-                filter_kwargs["instance_id__in"] = set(filter_kwargs["instance_id__in"]) & scope_instance_id_list
+                filter_kwargs["instance_id__in"] = set(filter_kwargs["instance_id__in"]) & set(instance_id_list)
             else:
-                filter_kwargs["instance_id__in"] = scope_instance_id_list
+                filter_kwargs["instance_id__in"] = instance_id_list
+
+        if statuses is not None:
+            is_query_change = True
+            filter_kwargs["status__in"] = statuses
 
         all_instance_record_ids = SubscriptionTools.fetch_latest_record_ids_in_same_inst_id(
             models.SubscriptionInstanceRecord.objects.filter(**base_kwargs)
