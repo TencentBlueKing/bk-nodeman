@@ -142,22 +142,6 @@ def transfer_record(execute_id: int, subscription_id: int, is_agent: bool):
         for instance_record in instance_records
     ]
 
-    # agent任务只需把状态同步到InstanceRecord，新创建的任务通过tasks.calculate_statistics进行同步
-    # TODO 后续agent支持和插件一样的流程后，去掉该分支
-    if is_agent:
-        log_and_print(f"subscription_id -> {subscription_id} 为agent任务，仅同步实例状态", execute_id=execute_id)
-
-        record_id_gby_status = defaultdict(list)
-        for instance_status in instance_status_list:
-            record_id_gby_status[instance_status["status"]].append(instance_status["record_id"])
-
-        for status, record_ids in record_id_gby_status.items():
-            models.SubscriptionInstanceRecord.objects.filter(id__in=record_ids).update(
-                status=status, update_time=timezone.now()
-            )
-            log_and_print(f"transfer_record: {status}'s num -> {len(record_ids)}", execute_id=execute_id)
-        return
-
     # 兼容订阅更新执行的情况，仅插件任务需要删除Pipeline记录
     to_be_deleted_pipelines_key = f"sub_{subscription_id}_to_be_deleted_pipeline_id"
     last_pipeline_ids_to_be_deleted = models.GlobalSettings.get_config(to_be_deleted_pipelines_key)
