@@ -167,29 +167,9 @@ class SubscriptionHandler(object):
         if not instance_records:
             instance_status_list = []
         else:
-            # 用 subscription_task 是否有pipeline_id字段作为新老记录的区别，要么是新的要么是旧的，不存在混合的情况
-            is_new_task = subscription_tasks[0]["pipeline_id"]
-            if is_new_task:
-                instance_status_list = task_tools.TaskResultTools.list_subscription_task_instance_status(
-                    instance_records, need_detail=need_detail
-                )
-            else:
-                instance_status_list = []
-                inst_infos_parse_error = []
-                pipeline_parser = PipelineParser([r.pipeline_id for r in instance_records])
-                for instance_record in instance_records:
-                    try:
-                        instance_status_list.append(
-                            tools.get_subscription_task_instance_status(instance_record, pipeline_parser, need_detail)
-                        )
-                    except errors.PipelineTreeParseError:
-                        inst_infos_parse_error.append(
-                            {"id": instance_record.id, "pipeline_id": instance_record.pipeline_id}
-                        )
-                if inst_infos_parse_error:
-                    logger.error(
-                        f"subscription_id -> {self.subscription_id}, inst_infos_parse_error -> {inst_infos_parse_error}"
-                    )
+            instance_status_list = task_tools.TaskResultTools.list_subscription_task_instance_status(
+                instance_records, need_detail=need_detail
+            )
 
         # 兼容第三方平台全部拉取，无需返回状态统计
         if pagesize == -1 and not return_all:
