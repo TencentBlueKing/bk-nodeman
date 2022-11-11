@@ -16,11 +16,11 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from apps.generic import ModelViewSet
+from apps.node_man import models
 from apps.node_man.exceptions import ApIdIsUsing, DuplicateAccessPointNameException
 from apps.node_man.handlers.ap import APHandler
 from apps.node_man.handlers.iam import IamHandler
 from apps.node_man.handlers.permission import GlobalSettingPermission
-from apps.node_man.models import AccessPoint, Cloud
 from apps.node_man.serializers.ap import ListSerializer, UpdateOrCreateSerializer
 from apps.utils.local import get_request_username
 
@@ -28,7 +28,7 @@ AP_VIEW_TAGS = ["ap"]
 
 
 class ApViewSet(ModelViewSet):
-    model = AccessPoint
+    model = models.AccessPoint
     serializer_class = UpdateOrCreateSerializer
     permission_classes = (GlobalSettingPermission,)
 
@@ -82,7 +82,7 @@ class ApViewSet(ModelViewSet):
         }]
         """
 
-        queryset = AccessPoint.objects.all()
+        queryset = models.AccessPoint.objects.all()
         serializer = ListSerializer(queryset, many=True)
         return Response(serializer.data)
 
@@ -97,7 +97,7 @@ class ApViewSet(ModelViewSet):
         @apiName ap_is_using
         @apiGroup Ap
         """
-        using_ap_ids = list(Cloud.objects.values_list("ap_id", flat=True).distinct())
+        using_ap_ids = list(models.Cloud.objects.values_list("ap_id", flat=True).distinct())
         return Response(using_ap_ids)
 
     @swagger_auto_schema(
@@ -150,7 +150,7 @@ class ApViewSet(ModelViewSet):
         }
         """
 
-        queryset = AccessPoint.objects.get(id=kwargs["pk"])
+        queryset = models.AccessPoint.objects.get(id=kwargs["pk"])
         serializer = ListSerializer(queryset)
         return Response(serializer.data)
 
@@ -251,7 +251,7 @@ class ApViewSet(ModelViewSet):
         # 判断名称是否重复
 
         name = self.validated_data["name"]
-        if AccessPoint.objects.filter(name=name):
+        if models.AccessPoint.objects.filter(name=name):
             raise DuplicateAccessPointNameException()
 
         with atomic():
@@ -339,11 +339,11 @@ class ApViewSet(ModelViewSet):
 
         # 判断名称是否重复
         name = self.validated_data["name"]
-        if AccessPoint.objects.filter(name=name).exclude(id=kwargs["pk"]):
+        if models.AccessPoint.objects.filter(name=name).exclude(id=kwargs["pk"]):
             raise DuplicateAccessPointNameException()
 
         # 保存修改
-        ap = AccessPoint.objects.get(id=kwargs["pk"])
+        ap = models.AccessPoint.objects.get(id=kwargs["pk"])
 
         for kwarg in self.validated_data:
             # 修改 ap[kwarg] 为 self.validated_data[kwarg]
@@ -366,7 +366,7 @@ class ApViewSet(ModelViewSet):
         if int(kwargs["pk"]) == -1:
             raise ApIdIsUsing("默认接入点不允许删除")
 
-        clouds = Cloud.objects.filter(ap_id=kwargs["pk"])
+        clouds = models.Cloud.objects.filter(ap_id=kwargs["pk"])
         if clouds.exists():
             cloud_names = list(clouds.values_list("bk_cloud_name", flat=True))
             raise ApIdIsUsing(_(f"该接入点正在被云区域 {cloud_names} 使用"))
@@ -428,5 +428,5 @@ class ApViewSet(ModelViewSet):
             ]
         }
         """
-        test_result, test_logs = AccessPoint.test(request.data)
+        test_result, test_logs = models.AccessPoint.test(request.data)
         return Response({"test_result": test_result, "test_logs": test_logs})
