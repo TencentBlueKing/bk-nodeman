@@ -1,6 +1,7 @@
 import { ISetupHead, ISetupRow } from '@/types';
 import { authentication, defaultPort, sysOptions, defaultOsType, getDefaultConfig, addressingMode } from '@/config/config';
-import { reguFnMinInteger, reguPort, reguIpBatch, reguIpInLineRepeat, splitCodeArr } from '@/common/form-check';
+import { reguFnMinInteger, reguPort, reguIpBatch, reguIpInLineRepeat } from '@/common/form-check';
+import { splitCodeArr } from '@/common/regexp';
 
 const useTjj = window.PROJECT_CONFIG.USE_TJJ === 'True';
 

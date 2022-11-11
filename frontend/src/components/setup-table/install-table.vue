@@ -186,7 +186,7 @@ import { STORAGE_KEY_COL } from '@/config/storage-key';
 import { Context } from 'vm';
 import { IFileInfo, IKeysMatch, ISetupHead, ISetupRow, ITabelFliter, ISetupParent } from '@/types';
 import { getDefaultConfig } from '@/config/config';
-import { regPasswordFill } from '@/common/form-check';
+import { regPasswordFill } from '@/common/regexp';
 
 interface IFilterRow {
   [key: string]: ITabelFliter

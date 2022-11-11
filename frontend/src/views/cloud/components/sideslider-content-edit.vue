@@ -13,39 +13,43 @@
         :desc="descOuterIpTip">
         <bk-input v-model="proxyData.outer_ip"></bk-input>
       </bk-form-item>
-      <bk-form-item :label="$t('登录IP')" property="login_ip" error-display-type="normal" :rules="rules.loginIp">
+      <bk-form-item required :label="$t('登录IP')" property="login_ip" error-display-type="normal" :rules="rules.loginIp">
         <bk-input v-model="proxyData.login_ip" :placeholder="$t('留空默认为内网IP')"></bk-input>
       </bk-form-item>
       <bk-form-item :label="$t('认证方式')">
         <div class="item-auth">
           <bk-select v-model="proxyData.auth_type" :clearable="false" ext-cls="auth-select">
-            <bk-option v-for="item in authentication"
-                       :key="item.id"
-                       :id="item.id"
-                       :name="item.name">
+            <bk-option
+              v-for="item in authentication"
+              :key="item.id"
+              :id="item.id"
+              :name="item.name">
             </bk-option>
           </bk-select>
           <div class="item-auth-content ml10" :class="{ 'is-error': showErrMsg }">
-            <bk-input ext-cls="auth-input"
-                      v-model="proxyData.password"
-                      :type="passwordType"
-                      :placeholder="$t('请输入')"
-                      v-if="proxyData.auth_type === 'PASSWORD'"
-                      @focus="handleFocus"
-                      @blur="handleBlur">
+            <bk-input
+              ext-cls="auth-input"
+              v-model="proxyData.password"
+              :type="passwordType"
+              :placeholder="$t('请输入')"
+              v-if="proxyData.auth_type === 'PASSWORD'"
+              @focus="handleFocus"
+              @blur="handleBlur">
             </bk-input>
-            <bk-input ext-cls="auth-input"
-                      :value="$t('自动拉取')"
-                      v-else-if="proxyData.auth_type === 'TJJ_PASSWORD'"
-                      readonly>
+            <bk-input
+              ext-cls="auth-input"
+              :value="$t('自动拉取')"
+              v-else-if="proxyData.auth_type === 'TJJ_PASSWORD'"
+              readonly>
             </bk-input>
-            <upload v-model="proxyData.key"
-                    class="auth-key"
-                    parse-text
-                    :max-size="10"
-                    unit="KB"
-                    @change="handleFileChange"
-                    v-else>
+            <upload
+              v-model="proxyData.key"
+              class="auth-key"
+              parse-text
+              :max-size="10"
+              unit="KB"
+              @change="handleFileChange"
+              v-else>
             </upload>
             <p class="error-tip" v-if="showErrMsg">{{ $t('认证资料过期') }}</p>
           </div>
@@ -97,7 +101,8 @@ import { isEmpty } from '@/common/util';
 import { authentication, passwordFill } from '@/config/config';
 import Upload from '@/components/setup-table/upload.vue';
 import { IProxyDetail } from '@/types/cloud/cloud';
-import { reguFnMinInteger, reguPort, reguIp, reguRequired, reguFnSysPath, regPasswordFill } from '@/common/form-check';
+import { regPasswordFill } from '@/common/regexp';
+import { reguFnMinInteger, reguPort, reguIPMixins, reguRequired, reguFnSysPath } from '@/common/form-check';
 
 @Component({
   name: 'sideslider-content-edit',
@@ -123,18 +128,8 @@ export default class SidesliderContentEdit extends Vue {
   };
   private proxyData: Dictionary = {};
   private rules = {
-    outerIp: [reguRequired, reguIp],
-    loginIp: [
-      {
-        message: this.$t('IP不符合规范'),
-        trigger: 'blur',
-        validator: (val: string) => {
-          if (isEmpty(val)) return true;
-          const regx = '^((25[0-5]|2[0-4]\\d|[01]?\\d\\d?)\\.){3}(25[0-5]|2[0-4]\\d|[01]?\\d\\d?)$';
-          return new RegExp(regx).test(val);
-        },
-      },
-    ],
+    outerIp: [reguRequired, reguIPMixins],
+    loginIp: [reguRequired, reguIPMixins],
     port: [reguRequired, reguPort],
     account: [reguRequired],
     speedLimit: [reguFnMinInteger(1)],
@@ -169,12 +164,12 @@ export default class SidesliderContentEdit extends Vue {
         bk_cloud_id: this.proxyData.bk_cloud_id,
         bk_host_id: this.proxyData.bk_host_id,
         account: this.proxyData.account,
-        outer_ip: this.proxyData.outer_ip,
         port: this.proxyData.port,
         data_path: this.proxyData.data_path,
       };
+      Object.assign(params, this.$setIpProp('outer_ip', this.proxyData));
       if (this.proxyData.login_ip) {
-        params.login_ip = this.proxyData.login_ip;
+        Object.assign(params, this.$setIpProp('login_ip', this.proxyData));
       }
 
       if (this.proxyData.auth_type) {

@@ -1,4 +1,3 @@
-import Vue from 'vue';
 import EncryptJS  from 'jsencrypt';
 import { b64tohex, hex2b64 }  from 'jsencrypt/lib/lib/jsbn/base64';
 
@@ -122,5 +121,3 @@ class EncryptRSA {
 }
 
 export const RSA = new EncryptRSA();
-
-Vue.prototype.$RSA = RSA;
