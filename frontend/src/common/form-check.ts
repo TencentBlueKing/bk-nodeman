@@ -1,37 +1,19 @@
 import { isEmpty } from './util';
+import {
+  regIp,
+  regIPv6,
+  regUrl,
+  regUrlMixinIp,
+  regNormalText,
+  regNaturalNumber,
+  regInteger,
+  regFnSysPath,
+} from '@/common/regexp';
 
 const i18nMap: Dictionary = {
   linux: 'Linux路径格式错误',
   windows: 'windows路径格式错误',
 };
-export const splitCodeArr = ['\n', '，', ' ', '、', ','];
-
-/**
- * regs: regexp.source
- */
-export const regsIp = '^((25[0-5]|2[0-4]\\d|[01]?\\d\\d?)\\.){3}(25[0-5]|2[0-4]\\d|[01]?\\d\\d?)$';
-export const regsIPv6 = '^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]).){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))(,(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])))*$';
-
-/**
- * reg: regexp instance
- */
-export const regIp = new RegExp(regsIp);
-export const regIPv6 = new RegExp(regsIPv6);
-export const regUrl = /^(?:http(s)?:\/\/)?[\w.-]+(?:\.[\w.-]+)+[\w\-._~:/?#[\]@!$&'*+,;=.]+$/;
-export const regNormalText = /^[\u4e00-\u9fa5A-Za-z0-9-_]+$/;
-export const regNaturalNumber = /^(0|[1-9][0-9]*)$/; // 自然数 | 非负整数
-export const regInteger = /^-?\d+$/; // 整数
-export function regFnFileType(type: string) { // 文件类型
-  return new RegExp(`^.+(.${type})$`);
-}
-export function regFnSysPath(params?: { [key: string]: number | string } = {}) {
-  const { minText = 1, maxText = 16, minLevel = 1, type = 'linux' } = params;
-  const regText = type === 'linux'
-    ? `^(/[A-Za-z0-9_]{${minText},${maxText}}){${minLevel},}$`
-    : `^([c-zC-Z]:)(\\\\[A-Za-z0-9_]{${minText},${maxText}}){${minLevel},}$`;
-  return new RegExp(regText);
-}
-export const regPasswordFill = /^\*+$/;
 
 /**
  * regu: regexp rules
@@ -75,6 +57,12 @@ export const reguUrl = {
   validator: (val: string) => regUrl.test(val),
   message: window.i18n.t('URL格式不正确'),
   trigger: 'blur',
+};
+export const reguUrlMixinIp = {
+  regex: regUrlMixinIp,
+  message: window.i18n.t('URL格式不正确'),
+  trigger: 'blur',
+  validator: (val: string) => regUrlMixinIp.test(val),
 };
 export const reguPort = {
   validator: (val: string) => regNaturalNumber.test(val) && parseInt(val, 10) <= 65535,

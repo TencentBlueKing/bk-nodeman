@@ -83,7 +83,8 @@
 <script lang="ts">
 import { Component, Prop, Vue, ModelSync, Emit, Watch, Ref } from 'vue-property-decorator';
 import { CloudStore } from '@/store';
-import { regUrl, reguIp, reguRequired } from '@/common/form-check';
+import { regUrlMixinIp } from '@/common/regexp';
+import { reguRequired, reguIPMixins } from '@/common/form-check';
 
 @Component
 export default class ChannelEdit extends Vue {
@@ -95,17 +96,12 @@ export default class ChannelEdit extends Vue {
   @Ref('channelFormRef') private readonly channelFormRef!: any;
 
   private required = reguRequired;
-  private ipRule = {
-    regex: /^((25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(25[0-5]|2[0-4]\d|[01]?\d\d?)$/,
-    message: '请输入正确IP',
-    trigger: 'blur',
-  };
   private rules = {
     name: [reguRequired],
-    jump_servers: [reguRequired, reguIp],
+    jump_servers: [reguRequired, reguIPMixins],
     channel_proxy_address: [
       {
-        validator: (val: string) => !val || regUrl.test(val),
+        validator: (val: string) => !val || regUrlMixinIp.test(val),
         message: window.i18n.t('URL格式不正确'),
         trigger: 'blur',
       },
@@ -218,7 +214,7 @@ export default class ChannelEdit extends Vue {
     return formData;
   }
   public getIpRules(key: string) {
-    return [this.required, this.ipRule, {
+    return [this.required, reguIPMixins, {
       message: this.$t('冲突校验', { prop: 'IP' }),
       trigger: 'blur',
       validator: (value: string) => this.checkRepeatIp(value, key),
