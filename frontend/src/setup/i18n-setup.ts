@@ -66,3 +66,5 @@ export function loadLanguageAsync(lang: string) {
   }
   return Promise.resolve(lang);
 }
+
+window.i18n = i18n;

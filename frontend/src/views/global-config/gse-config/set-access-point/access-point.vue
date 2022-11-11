@@ -57,7 +57,7 @@ export default class AccessPoint extends Vue {
       await ConfigStore.getGseDetail({ pointId: this.pointId });
     } else {
       this.$nextTick(() => {
-        ConfigStore.updataLoading(false);
+        ConfigStore.updateLoading(false);
       });
     }
   }
