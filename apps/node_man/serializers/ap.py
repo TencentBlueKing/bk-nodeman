@@ -11,9 +11,11 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
+from apps.exceptions import ValidationError
 from apps.node_man.constants import GSE_PORT_DEFAULT_VALUE, IamActionType
 from apps.node_man.handlers.iam import IamHandler
 from apps.node_man.models import AccessPoint
+from apps.utils import basic
 from apps.utils.local import get_request_username
 
 
@@ -65,8 +67,20 @@ class UpdateOrCreateSerializer(serializers.ModelSerializer):
     """
 
     class ServersSerializer(serializers.Serializer):
-        inner_ip = serializers.CharField(label=_("内网IP"))
-        outer_ip = serializers.CharField(label=_("外网IP"))
+        inner_ip = serializers.CharField(label=_("内网IP"), required=False)
+        inner_ipv6 = serializers.CharField(label=_("内网IPv6"), required=False)
+        outer_ip = serializers.CharField(label=_("外网IP"), required=False)
+        outer_ipv6 = serializers.CharField(label=_("外网IPv6"), required=False)
+        bk_host_id = serializers.IntegerField(label=_("主机ID"), required=False)
+
+        def validate(self, attrs):
+            basic.ipv6_formatter(data=attrs, ipv6_field_names=["inner_ipv6", "outer_ipv6"])
+
+            if not (attrs.get("inner_ip") or attrs.get("inner_ipv6")):
+                raise ValidationError(_("请求参数 inner_ip 和 inner_ipv6 不能同时为空"))
+            if not (attrs.get("outer_ip") or attrs.get("outer_ipv6")):
+                raise ValidationError(_("请求参数 outer_ip 和 outer_ipv6 不能同时为空"))
+            return attrs
 
     class ZKSerializer(serializers.Serializer):
         zk_ip = serializers.CharField(label=_("ZK IP地址"))

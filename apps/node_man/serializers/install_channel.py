@@ -11,6 +11,8 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
+from apps.utils import basic
+
 
 class BaseSerializer(serializers.Serializer):
     """
@@ -28,3 +30,16 @@ class UpdateSerializer(BaseSerializer):
     name = serializers.CharField(label=_("安装通道名称"))
     jump_servers = serializers.ListField(label=_("跳板机节点"))
     upstream_servers = serializers.DictField(label=_("上游节点"))
+
+    def validate(self, attrs):
+        attrs["jump_servers"] = [basic.exploded_ip(jump_server) for jump_server in attrs["jump_servers"]]
+        attrs["upstream_servers"]["taskserver"] = [
+            basic.exploded_ip(taskserver) for taskserver in attrs["upstream_servers"]["taskserver"]
+        ]
+        attrs["upstream_servers"]["btfileserver"] = [
+            basic.exploded_ip(taskserver) for taskserver in attrs["upstream_servers"]["btfileserver"]
+        ]
+        attrs["upstream_servers"]["dataserver"] = [
+            basic.exploded_ip(taskserver) for taskserver in attrs["upstream_servers"]["dataserver"]
+        ]
+        return attrs
