@@ -401,7 +401,7 @@ class BaseExecutionSolutionMaker(metaclass=abc.ABCMeta):
 
             download_cmd = (
                 f"{curl_cmd} {self.gse_servers_info['package_url']}/{script_hook_obj.script_info_obj.path} "
-                f"-o {dest_dir}{script_hook_obj.script_info_obj.filename} --connect-timeout 5 -sSf"
+                f"-o {dest_dir}{script_hook_obj.script_info_obj.filename} --connect-timeout 5 -sSfg"
             )
             download_cmd = self.adjust_cmd_proxy_config(download_cmd)
             script_hook_step = ExecutionSolutionStep(
@@ -509,7 +509,7 @@ class ShellExecutionSolutionMaker(BaseExecutionSolutionMaker):
         curl_cmd: str = ("curl", f"{dest_dir}curl.exe")[self.host.os_type == constants.OsType.WINDOWS]
         download_cmd = (
             f"{curl_cmd} {self.get_agent_tools_url(self.script_file_name)} "
-            f"-o {dest_dir}{self.script_file_name} --connect-timeout 5 -sSf"
+            f"-o {dest_dir}{self.script_file_name} --connect-timeout 5 -sSfg"
         )
         download_cmd = self.adjust_cmd_proxy_config(download_cmd)
 
@@ -553,7 +553,7 @@ class ShellExecutionSolutionMaker(BaseExecutionSolutionMaker):
                 # 若不存在引导安装：https://stackoverflow.com/questions/3647569/
                 dependence_download_cmd: str = (
                     f"curl {self.gse_servers_info['package_url']}/{name} "
-                    f"-o {cmd_name__cmd_map['dest_dir']}{name} --connect-timeout 5 -sSf"
+                    f"-o {cmd_name__cmd_map['dest_dir']}{name} --connect-timeout 5 -sSfg"
                 )
                 dependence_download_cmd = self.adjust_cmd_proxy_config(dependence_download_cmd)
                 dependence_download_cmds_step.contents.append(
@@ -632,7 +632,7 @@ class BatchExecutionSolutionMaker(BaseExecutionSolutionMaker):
         # 3. 执行安装命令
         download_cmd: str = (
             f"{self.dest_dir}curl.exe {self.get_agent_tools_url(self.script_file_name)} "
-            f"-o {self.dest_dir}{self.script_file_name} -sSf"
+            f"-o {self.dest_dir}{self.script_file_name} -sSfg"
         )
         download_cmd = self.adjust_cmd_proxy_config(download_cmd)
         run_cmd: str = f"{self.dest_dir}{self.script_file_name} {' '.join(self.get_run_cmd_base_params())}"
@@ -737,10 +737,10 @@ class ProxyExecutionSolutionMaker(BaseExecutionSolutionMaker):
             # 手动安装情况下，需要补充安装脚本下载步骤
             download_cmd: str = (
                 f"if [ ! -e {dest_dir}{self.script_file_name} ] || "
-                f"[ `curl {self.get_agent_tools_url(self.script_file_name)} -s | md5sum | awk '{{print $1}}'` "
+                f"[ `curl {self.get_agent_tools_url(self.script_file_name)} -sg | md5sum | awk '{{print $1}}'` "
                 f"!= `md5sum {dest_dir}{self.script_file_name} | awk '{{print $1}}'` ]; then "
                 f"curl {self.get_agent_tools_url(self.script_file_name)} -o {dest_dir}{self.script_file_name} "
-                f"--connect-timeout 5 -sSf && chmod +x {dest_dir}{self.script_file_name}; fi"
+                f"--connect-timeout 5 -sSfg && chmod +x {dest_dir}{self.script_file_name}; fi"
             )
             solution_steps.append(
                 ExecutionSolutionStep(

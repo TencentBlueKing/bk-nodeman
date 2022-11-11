@@ -472,9 +472,9 @@ def generate_gse_config(
     # 如果没有自定义则使用接入点默认配置
     data_path = host.extra_data.get("data_path") or agent_config["data_path"]
 
-    taskserver_outer_ips = [server["outer_ip"] for server in ap.taskserver]
-    btfileserver_outer_ips = [server["outer_ip"] for server in ap.btfileserver]
-    dataserver_outer_ips = [server["outer_ip"] for server in ap.dataserver]
+    taskserver_outer_ips = ap.cluster_endpoint_info.outer_hosts
+    btfileserver_outer_ips = ap.file_endpoint_info.outer_hosts
+    dataserver_outer_ips = ap.data_endpoint_info.outer_hosts
 
     install_channel = install_channel or host.install_channel
     __, upstream_nodes = install_channel

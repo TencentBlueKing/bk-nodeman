@@ -500,7 +500,7 @@ get_config () {
 _OO_
 
         http_status=$(http_proxy=$HTTP_PROXY https_proxy=$HTTP_PROXY \
-            curl -s -S -X POST --retry 5 -d@"$tmp_json_body" "$CALLBACK_URL"/get_gse_config/ -o "$TMP_DIR/$filename" --silent -w "%{http_code}")
+            curl -s -g -S -X POST --retry 5 -d@"$tmp_json_body" "$CALLBACK_URL"/get_gse_config/ -o "$TMP_DIR/$filename" --silent -w "%{http_code}")
         rm -f "$tmp_json_body" "$tmp_json_resp"
 
         if [[ "$http_status" != "200" ]]; then
@@ -550,7 +550,7 @@ download_pkg () {
 
     tmp_stdout=$(mktemp "${TMP_DIR}"/nm.curl.stdout_XXXXXXXX)
     tmp_stderr=$(mktemp "${TMP_DIR}"/nm.curl.stderr_XXXXXXXX)
-    curl --connect-timeout 5 -o "$TMP_DIR/$PKG_NAME" \
+    curl -g --connect-timeout 5 -o "$TMP_DIR/$PKG_NAME" \
             --progress-bar -w "%{http_code}" "${COMPLETE_DOWNLOAD_URL}/${PKG_NAME}" >"$tmp_stdout" 2>"$tmp_stderr" &
     curl_pid=$!
     # 如果curl结束，那么http_code一定会写入到stdout文件
@@ -641,7 +641,7 @@ bulk_report_step_status () {
 _OO_
 
     http_proxy=$HTTP_PROXY https_proxy=$HTTP_PROXY \
-        curl -s -S -X POST --retry 5 -d@"$tmp_json_body" "$CALLBACK_URL"/report_log/ -o "$tmp_json_resp"
+        curl -g -s -S -X POST --retry 5 -d@"$tmp_json_body" "$CALLBACK_URL"/report_log/ -o "$tmp_json_resp"
     rm -f "$tmp_json_body" "$tmp_json_resp"
 }
 
@@ -675,7 +675,7 @@ report_step_status () {
 _OO_
 
     http_proxy=$HTTP_PROXY https_proxy=$HTTP_PROXY \
-        curl -s -S -X POST --retry 5 -d@"$tmp_json_body" "$CALLBACK_URL"/report_log/ -o "$tmp_json_resp"
+        curl -g -s -S -X POST --retry 5 -d@"$tmp_json_body" "$CALLBACK_URL"/report_log/ -o "$tmp_json_resp"
     rm -f "$tmp_json_body" "$tmp_json_resp"
 }
 
@@ -741,7 +741,7 @@ check_download_url () {
 
     for f in $PKG_NAME; do
          log check_env - "checking resource($COMPLETE_DOWNLOAD_URL/$f) url's validality"
-         http_status=$(curl -o /dev/null --silent -Iw '%{http_code}' "$COMPLETE_DOWNLOAD_URL/$f")
+         http_status=$(curl -g -o /dev/null --silent -Iw '%{http_code}' "$COMPLETE_DOWNLOAD_URL/$f")
          if [[ "$http_status" == "200" ]] || [[ "$http_status" == "000" ]]; then
              log check_env - "check resource($COMPLETE_DOWNLOAD_URL/$f) url succeed"
          else

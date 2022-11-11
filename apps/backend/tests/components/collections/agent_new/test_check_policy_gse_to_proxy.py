@@ -51,14 +51,14 @@ class CheckPolicyGseToProxyTestCase(base.JobBaseTestCase):
         for host in self.obj_factory.host_objs:
             ap = host.ap
             port_config = ap.port_config
-            for bt_server in ap.btfileserver:
-                host_key = f"{constants.DEFAULT_CLOUD}-{bt_server['inner_ip']}"
+            for inner_host in ap.file_endpoint_info.inner_hosts:
+                host_key = f"{constants.DEFAULT_CLOUD}-{inner_host}"
 
                 self.assertEqual(
                     host_key__script_content_map[host_key],
                     check_policy_gse_to_proxy.REACHABLE_SCRIPT_TEMPLATE
                     % {
-                        "proxy_ip": host.outer_ip,
+                        "proxy_ip": host.outer_ip or host.outer_ipv6,
                         "btsvr_thrift_port": port_config.get("btsvr_thrift_port"),
                         "bt_port": port_config.get("bt_port"),
                         "tracker_port": port_config.get("tracker_port"),
