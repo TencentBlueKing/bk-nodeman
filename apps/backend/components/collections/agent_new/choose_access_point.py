@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 import random
 import re
 from collections import defaultdict
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Set
 
 from django.utils.translation import ugettext_lazy as _
 
@@ -20,7 +20,8 @@ from apps.backend.utils.wmi import execute_cmd
 from apps.core.concurrent import controller
 from apps.core.remote import conns
 from apps.node_man import constants, models
-from apps.utils import concurrent, exc, sync
+from apps.node_man.utils.endpoint import EndpointInfo
+from apps.utils import basic, concurrent, exc, sync
 
 from .. import core
 from ..common import remote
@@ -71,22 +72,38 @@ class ChooseAccessPointService(AgentBaseService, remote.RemoteServiceMixin):
         return {"bk_host_id": bk_host_id, "ap_id": ap_id, "log": log}
 
     @staticmethod
-    def get_ping_cmd(host: models.Host, detect_host_info: Dict[str, Dict]) -> str:
+    def get_ping_cmd(host: models.Host, detect_host: str) -> str:
         """
         获取 ping 命令
         :param host:
-        :param detect_host_info:
+        :param detect_host:
         :return:
         """
-        detect_host = (detect_host_info["outer_ip"], detect_host_info["inner_ip"])[
-            host.bk_cloud_id == constants.DEFAULT_CLOUD
-        ]
+        # 如果是 v6 地址，补充 -6
+        # 这里只存在 ip，无需考虑域名场景
+        ping_cmd: str = ("ping", "ping -6")[basic.is_v6(detect_host)]
         if host.os_type == constants.OsType.WINDOWS:
-            return f"ping {detect_host} -w 1000"
+            return f"{ping_cmd} {detect_host} -w 1000"
         else:
             # awk -F '/' '{{printf $5}}'：提取 ping 平均时长 avg 「rtt min/avg/max/mdev = 28.080/28.112/28.143/0.170 ms」
             # 使用 printf 输出 avg，避免解析到换行符
-            return f"ping {detect_host} -i 0.1 -c 4 -s 100 -W 1 | tail -1 | awk -F '/' '{{printf $5}}'"
+            return f"{ping_cmd} {detect_host} -i 0.1 -c 4 -s 100 -W 1 | tail -1 | awk -F '/' '{{printf $5}}'"
+
+    @staticmethod
+    def fetch_detect_hosts(host: models.Host, endpoint_infos: List[EndpointInfo]) -> Set[str]:
+        """
+        获取待探测的地址
+        :param host: 主机信息对象
+        :param endpoint_infos: 接入层信息
+        :return:
+        """
+        detect_hosts: Set[str] = set()
+        for endpoint_info in endpoint_infos:
+            if host.bk_cloud_id == constants.DEFAULT_CLOUD:
+                detect_hosts = detect_hosts | set(endpoint_info.inner_hosts)
+            else:
+                detect_hosts = detect_hosts | set(endpoint_info.outer_hosts)
+        return detect_hosts
 
     def parse_ping_time(self, os_type: str, ping_stdout: str) -> float:
         """
@@ -173,9 +190,12 @@ class ChooseAccessPointService(AgentBaseService, remote.RemoteServiceMixin):
             use_sudo = True
         ping_times_gby_ap_id: Dict[int, List[float]] = defaultdict(list)
         for ap_id, ap_info in remote_conn_helper.ap_id__info_map.items():
+            detect_hosts: Set[str] = self.fetch_detect_hosts(
+                host=remote_conn_helper.host, endpoint_infos=ap_info["endpoint_infos"]
+            )
             async with conns.AsyncsshConn(**remote_conn_helper.conns_init_params) as conn:
-                for detect_host_info in ap_info["detect_host_infos"]:
-                    ping_cmd = self.get_ping_cmd(remote_conn_helper.host, detect_host_info=detect_host_info)
+                for detect_host in detect_hosts:
+                    ping_cmd = self.get_ping_cmd(remote_conn_helper.host, detect_host=detect_host)
                     if use_sudo:
                         ping_cmd = f"sudo {ping_cmd}"
                     run_output = await conn.run(
@@ -195,8 +215,11 @@ class ChooseAccessPointService(AgentBaseService, remote.RemoteServiceMixin):
         """
         ping_times_gby_ap_id: Dict[int, List[float]] = defaultdict(list)
         for ap_id, ap_info in remote_conn_helper.ap_id__info_map.items():
-            for detect_host_info in ap_info["detect_host_infos"]:
-                ping_cmd = self.get_ping_cmd(remote_conn_helper.host, detect_host_info=detect_host_info)
+            detect_hosts: Set[str] = self.fetch_detect_hosts(
+                host=remote_conn_helper.host, endpoint_infos=ap_info["endpoint_infos"]
+            )
+            for detect_host in detect_hosts:
+                ping_cmd = self.get_ping_cmd(remote_conn_helper.host, detect_host=detect_host)
                 stdout = execute_cmd(
                     ping_cmd,
                     remote_conn_helper.host.login_ip or remote_conn_helper.host.inner_ip,
@@ -430,7 +453,7 @@ class ChooseAccessPointService(AgentBaseService, remote.RemoteServiceMixin):
             ap_id__info_map[ap_obj.id] = {
                 "ap_id": ap_obj.id,
                 "name": ap_obj.name,
-                "detect_host_infos": ap_obj.taskserver,
+                "endpoint_infos": [ap_obj.cluster_endpoint_info],
             }
 
         host_id_identity_map = {

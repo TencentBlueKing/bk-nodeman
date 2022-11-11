@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 from typing import Any, Dict, List, Union
 
+from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
 
 from apps.node_man import constants, models
@@ -55,26 +56,26 @@ class CheckPolicyGseToProxyService(AgentExecuteScriptService):
     ) -> Dict[str, Union[List[Dict[str, Any]], List[int]]]:
         # 取接入点
         ap = common_data.ap_id_obj_map[host.ap_id]
-        bt_file_server_queryset = models.Host.objects.filter(
-            inner_ip__in=[bt_server["inner_ip"] for bt_server in ap.btfileserver], bk_cloud_id=constants.DEFAULT_CLOUD
+        file_endpoint_host_ids = models.Host.objects.filter(
+            Q(bk_cloud_id=constants.DEFAULT_CLOUD, bk_addressing=constants.CmdbAddressingType.STATIC.value)
+            & (Q(inner_ip__in=ap.file_endpoint_info.inner_hosts) | Q(inner_ipv6=ap.file_endpoint_info.inner_hosts))
         ).values_list("bk_host_id", flat=True)
-        bt_file_server_ids: List[int] = [bk_host_id for bk_host_id in bt_file_server_queryset]
 
         return {
             "ip_list": [
                 {
                     "bk_cloud_id": constants.DEFAULT_CLOUD,
-                    "ip": bt_server["inner_ip"],
+                    "ip": inner_host,
                 }
-                for bt_server in ap.btfileserver
+                for inner_host in ap.file_endpoint_info.inner_hosts
             ],
-            "host_id_list": bt_file_server_ids,
+            "host_id_list": file_endpoint_host_ids,
         }
 
     def get_script_content(self, data, common_data: AgentCommonData, host: models.Host) -> str:
         port_config = common_data.host_id__ap_map[host.bk_host_id].port_config
         return REACHABLE_SCRIPT_TEMPLATE % {
-            "proxy_ip": host.outer_ip,
+            "proxy_ip": host.outer_ip or host.outer_ipv6,
             "btsvr_thrift_port": port_config.get("btsvr_thrift_port"),
             "bt_port": port_config.get("bt_port"),
             "tracker_port": port_config.get("tracker_port"),
@@ -91,15 +92,15 @@ class CheckPolicyGseToProxyService(AgentExecuteScriptService):
             self.log_info(
                 sub_inst_id,
                 _(
-                    "请确保 GSE BT File Server 公网IP（{bt_server_ips}）到 Proxy 出口IP（{proxy_outer_ip}）的 "
+                    "请确保 GSE BT File Server 公网IP（{file_endpoints}）到 Proxy 出口IP（{proxy_outer_ip}）的 "
                     "{btsvr_thrift_port}(tcp), {bt_port}-{tracker_port}(tcp/udp) 访问策略正常。\n"
                     "另外请注意：\n"
                     "1. 可执行 curl ipinfo.io 确认「出口IP」\n"
                     "2. 不支持多台 Proxy 使用同一个「出口IP」\n"
                     "3. 请保证「出口IP」固定不变"
                 ).format(
-                    bt_server_ips=",".join([bt_server["outer_ip"] for bt_server in ap.btfileserver]),
-                    proxy_outer_ip=host.outer_ip,
+                    file_endpoints=",".join(ap.file_endpoint_info.outer_hosts),
+                    proxy_outer_ip=host.outer_ip or host.outer_ipv6,
                     btsvr_thrift_port=port_config.get("btsvr_thrift_port"),
                     bt_port=port_config.get("bt_port"),
                     tracker_port=port_config.get("tracker_port"),
