@@ -334,6 +334,9 @@ class AgentTestObjFactory:
         初始化订阅相关数据，数据创建具有前后依赖关系
         :return:
         """
+        models.AccessPoint.objects.update(
+            **basic.remove_keys_from_dict(origin_data=common_unit.host.AP_MODEL_DATA, keys=["id"])
+        )
         self.sub_obj = models.Subscription.objects.create(**self.structure_sub_data())
         self.sub_task_obj = models.SubscriptionTask.objects.create(**self.structure_sub_task_data())
 

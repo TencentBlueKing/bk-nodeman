@@ -191,6 +191,24 @@ def get_chr_seq(begin_chr: str, end_chr: str) -> List[str]:
     return [chr(ascii_int) for ascii_int in range(ord(begin_chr), ord(end_chr) + 1)]
 
 
+def is_v6(ip) -> bool:
+    try:
+        ip_address = ipaddress.ip_address(ip)
+    except ValueError:
+        return False
+
+    if ip_address.version == 6:
+        return True
+
+    return False
+
+
+def exploded_ip(ip):
+    if is_v6(ip):
+        return ipaddress.ip_address(ip).exploded
+    return ip
+
+
 def ipv6_formatter(data: Dict[str, Any], ipv6_field_names: List[str]):
     """
     将 data 中 ipv6_field_names 转为 IPv6 标准格式
@@ -200,12 +218,7 @@ def ipv6_formatter(data: Dict[str, Any], ipv6_field_names: List[str]):
     """
     for ipv6_field_name in ipv6_field_names:
         ipv6_val: Optional[str] = data.get(ipv6_field_name)
-        if not ipv6_val:
-            continue
-        ip_address = ipaddress.ip_address(ipv6_val)
-        # 将 v6 转为标准格式
-        if ip_address.version == 6:
-            data[ipv6_field_name] = ip_address.exploded
+        data[ipv6_field_name] = exploded_ip(ipv6_val)
 
 
 def ipv4_to_v6(ipv4: str) -> str:
