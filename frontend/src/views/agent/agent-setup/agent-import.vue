@@ -109,7 +109,7 @@ import { debounce, deepClone, isEmpty } from '@/common/util';
 import { IAgent, IAgentHost, IAgentSearch } from '@/types/agent/agent-type';
 import { IApExpand } from '@/types/config/config';
 import { ISetupHead, ISetupRow, ISetupParent } from '@/types';
-import { regIPv6, regPasswordFill } from '@/common/form-check';
+import { regIPv6, regPasswordFill } from '@/common/regexp';
 import { passwordFill } from '@/config/config';
 
 @Component({
