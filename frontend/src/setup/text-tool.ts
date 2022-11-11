@@ -1,5 +1,3 @@
-import Vue from 'vue';
-
 interface ITextItem {
   value: string,
   font: string
@@ -79,5 +77,3 @@ class TextTool {
 }
 
 export const textTool = new TextTool();
-
-Vue.prototype.$textTool = textTool;

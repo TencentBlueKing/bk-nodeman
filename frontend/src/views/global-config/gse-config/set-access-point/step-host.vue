@@ -147,7 +147,8 @@ import formLabelMixin from '@/common/form-label-mixin';
 import SetupFormTable from './step-form-table.vue';
 import { isEmpty } from '@/common/util';
 import { stepHost } from './apFormConfig';
-import { regUrl, reguRequired, reguUrl, reguIp, reguPort, regFnSysPath, reguFnName } from '@/common/form-check';
+import { regUrlMixinIp, regFnSysPath } from '@/common/regexp';
+import {  reguRequired, reguUrlMixinIp, reguPort, reguFnName, reguIPMixins } from '@/common/form-check';
 
 type IServer = 'btfileserver' | 'dataserver' | 'taskserver';
 
@@ -227,7 +228,7 @@ export default class StepHost extends formLabelMixin {
         classExt: 'ip-input ip-input-inner',
         required: true,
         placeholder: window.i18n.t('请输入Zookeeper主机的IP'),
-        rules: [reguIp, this.ipConflictRule('zk_ip', 'zk_hosts'),
+        rules: [reguIPMixins, this.ipConflictRule('zk_ip', 'zk_hosts'),
         ],
       },
       {
@@ -243,13 +244,13 @@ export default class StepHost extends formLabelMixin {
         classExt: 'ip-input ip-input-inner',
         required: true,
         placeholder: window.i18n.t('请输入Server的内网IP', { type: 'Btfile' }),
-        rules: [reguIp, this.ipConflictRule('inner_ip', 'btfileserver')],
+        rules: [reguIPMixins, this.ipConflictRule('inner_ip', 'btfileserver')],
       },
       {
         prop: 'outer_ip',
         classExt: 'ip-input ip-input-outer',
         placeholder: window.i18n.t('请输入Server的外网IP', { type: 'Btfile' }),
-        rules: [reguIp, this.ipConflictRule('outer_ip', 'btfileserver')],
+        rules: [reguIPMixins, this.ipConflictRule('outer_ip', 'btfileserver')],
       },
     ],
     dataserver: [
@@ -258,13 +259,13 @@ export default class StepHost extends formLabelMixin {
         classExt: 'ip-input ip-input-inner',
         required: true,
         placeholder: window.i18n.t('请输入Server的内网IP', { type: 'Data' }),
-        rules: [reguIp, this.ipConflictRule('inner_ip', 'dataserver')],
+        rules: [reguIPMixins, this.ipConflictRule('inner_ip', 'dataserver')],
       },
       {
         prop: 'outer_ip',
         classExt: 'ip-input ip-input-outer',
         placeholder: window.i18n.t('请输入Server的外网IP', { type: 'Data' }),
-        rules: [reguIp, this.ipConflictRule('outer_ip', 'dataserver')],
+        rules: [reguIPMixins, this.ipConflictRule('outer_ip', 'dataserver')],
       },
     ],
     taskserver: [
@@ -273,13 +274,13 @@ export default class StepHost extends formLabelMixin {
         classExt: 'ip-input ip-input-inner',
         required: true,
         placeholder: window.i18n.t('请输入Server的内网IP', { type: 'Task' }),
-        rules: [reguIp, this.ipConflictRule('inner_ip', 'taskserver')],
+        rules: [reguIPMixins, this.ipConflictRule('inner_ip', 'taskserver')],
       },
       {
         prop: 'outer_ip',
         classExt: 'ip-input ip-input-outer',
         placeholder: window.i18n.t('请输入Server的外网IP', { type: 'Task' }),
-        rules: [reguIp, this.ipConflictRule('outer_ip', 'taskserver')],
+        rules: [reguIPMixins, this.ipConflictRule('outer_ip', 'taskserver')],
         nginxPath: [
           {
             validator(val: string) {
@@ -314,10 +315,10 @@ export default class StepHost extends formLabelMixin {
   private rules = {
     required: [reguRequired],
     name: [reguRequired, reguFnName()],
-    url: [reguRequired, reguUrl],
+    url: [reguRequired, reguUrlMixinIp],
     callback: [
       {
-        validator: (val: string) => !val || regUrl.test(val),
+        validator: (val: string) => !val || regUrlMixinIp.test(val),
         message: this.$t('URL格式不正确'),
         // validator: (val: string) => !val || (regUrl.test(val) && /(\/backend)$/.test(val)),
         // message: this.$t('请输入以backend结尾的URL地址'),
@@ -368,10 +369,19 @@ export default class StepHost extends formLabelMixin {
     this.formDataRef.validate().then(() => {
       this.validate(async () => {
         this.checkLoading = true;
-        const {
-          btfileserver, dataserver, taskserver, package_inner_url,
-          package_outer_url, callback_url, outer_callback_url,
-        } = this.formData;
+        const { package_inner_url, package_outer_url, callback_url, outer_callback_url } = this.formData;
+        const btfileserver: IIpGroup[] = this.formData.dataserver.map(item => ({
+          ...this.$setIpProp('inner_ip', item),
+          ...this.$setIpProp('outer_ip', item),
+        }));
+        const dataserver: IIpGroup[] = this.formData.dataserver.map(item => ({
+          ...this.$setIpProp('inner_ip', item),
+          ...this.$setIpProp('outer_ip', item),
+        }));
+        const taskserver: IIpGroup[] = this.formData.dataserver.map(item => ({
+          ...this.$setIpProp('inner_ip', item),
+          ...this.$setIpProp('outer_ip', item),
+        }));
         const params: IAvailable = {
           btfileserver, dataserver, taskserver, package_inner_url, package_outer_url,
         };

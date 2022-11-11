@@ -7,6 +7,7 @@ import { apIsUsing, listAp, retrieveAp, createAp, updateAp, testAp, deleteAp } f
 import { retrieveGlobalSettings, jobSettings } from '@/api/modules/meta';
 import { listApPermission } from '@/api/modules/permission';
 import { healthz } from '@/api/modules/healthz';
+import { initIpProp } from '@/setup/ipv6';
 
 // eslint-disable-next-line new-cap
 @Module({ name: 'config', namespaced: true })
@@ -65,12 +66,20 @@ export default class ConfigStore extends VuexModule {
       // if (Object.prototype.hasOwnProperty.call(this.apDetail, key)) {
       //   this.apDetail[`${key}`] = detail[key]
       // } else {
-      Vue.set(this.apDetail, key, detail[key]);
+      if (['btfileserver', 'dataserver', 'taskserver'].includes(key)) {
+        Vue.set(this.apDetail, key, detail[key].map((server) => {
+          const copyServer = { ...server };
+          initIpProp(copyServer, ['inner_ip', 'outer_ip']);
+          return copyServer;
+        }));
+      } else {
+        Vue.set(this.apDetail, key, detail[key]);
+      }
       // }
     });
   }
   @Mutation
-  public updataLoading(isLoading: boolean) {
+  public updateLoading(isLoading: boolean) {
     this.pageLoading = isLoading;
   }
   @Mutation
@@ -111,12 +120,12 @@ export default class ConfigStore extends VuexModule {
     return await apIsUsing().catch(() => ([]));
   }
   // 获取接入点详情
-  @Action
+  @Action({ rawError: true })
   public async getGseDetail({ pointId }: { pointId: number | string }) {
-    this.updataLoading(true);
+    this.updateLoading(true);
     const data = await retrieveAp(pointId).catch(() => ({}));
     this.updateDetail(data);
-    this.updataLoading(false);
+    this.updateLoading(false);
     return data;
   }
   // 创建接入点

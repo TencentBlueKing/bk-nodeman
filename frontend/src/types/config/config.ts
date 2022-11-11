@@ -2,6 +2,8 @@
 export interface IIpGroup {
   inner_ip: string
   outer_ip: string
+  inner_ipv6?: string
+  outer_ipv6?: string
 }
 export interface IZk {
   zk_ip: string

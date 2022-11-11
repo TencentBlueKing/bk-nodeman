@@ -71,7 +71,7 @@ import { tableConfig } from '../config/importTableConfig';
 import { authentication } from '@/config/config';
 import { isEmpty, download } from '@/common/util';
 import { IAgent } from '@/types/agent/agent-type';
-import { regIp } from '@/common/form-check';
+import { regIp } from '@/common/regexp';
 import { headConfig, createExcel } from './create-excel';
 
 @Component({
