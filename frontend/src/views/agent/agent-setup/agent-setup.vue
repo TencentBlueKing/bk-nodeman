@@ -163,7 +163,8 @@ import { debounce, isEmpty, deepClone } from '@/common/util';
 import { IApExpand } from '@/types/config/config';
 import { IAgent } from '@/types/agent/agent-type';
 import { ISetupHead, ISetupRow, ISetupParent } from '@/types';
-import { reguRequired, regIPv6 } from '@/common/form-check';
+import { regIPv6 } from '@/common/regexp';
+import { reguRequired } from '@/common/form-check';
 import { getDefaultConfig } from '@/config/config';
 
 @Component({

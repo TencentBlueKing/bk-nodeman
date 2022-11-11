@@ -30,7 +30,11 @@
           <tr v-for="(server, index) in formData[str]" :key="`server${idx + index}`">
             <td>{{ `${str} ${ index + 1 }` }}</td>
             <td>IP</td>
-            <td class="table-content">{{ `${ $t('内网') + server.inner_ip };  ${ $t('外网') + server.outer_ip }` }}</td>
+            <td class="table-content">
+              {{ `${ $t('内网') + (server.inner_ip || server.inner_ipv6) };  ${
+                $t('外网') + (server.outer_ip || server.outer_ipv6) }`
+              }}
+            </td>
           </tr>
         </template>
         <tr>

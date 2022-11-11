@@ -113,7 +113,7 @@ import { setupInfo, setupManualInfo } from '../config/netTableConfig';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { defaultPort, getDefaultConfig } from '@/config/config';
 import { ISetupHead, ISetupRow, IProxyIpKeys } from '@/types';
-import { regIPv6, reguPort, reguRequired } from '@/common/form-check';
+import { reguPort, reguRequired } from '@/common/form-check';
 
 @Component({
   name: 'cloud-manager-setup',
@@ -340,11 +340,7 @@ export default class CloudManagerSetup extends Mixins(formLabelMixin, FilterIpMi
         ...other,
       };
       ipKeys.forEach((key) => {
-        if (regIPv6.test(item[key] as string)) {
-          host[`${key}v6`] = item[key];
-        } else {
-          host[key] = item[key];
-        }
+        Object.assign(host, this.$setIpProp(key, item));
       });
       return host;
     });

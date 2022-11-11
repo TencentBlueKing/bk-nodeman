@@ -49,6 +49,8 @@ declare module 'vue/types/vue' {
       getTextWidth: (text: string, extraWidth?: number) => number
       getHeadWidth: (text: string, config?: Dictionary) => number
     }
+    $initIpProp: (obj: Dictionary, keys: string[]) => void
+    $setIpProp:  (key: string, val: Dictionary) => any
   }
 }
 

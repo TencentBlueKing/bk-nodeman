@@ -140,8 +140,8 @@ export default class StepInfo extends Vue {
   public submitHandle() {
     this.formDataRef.validate().then(async () => {
       const {
-        name, zk_account, zk_password, region_id, city_id, zk_hosts, btfileserver, dataserver,
-        taskserver, callback_url, outer_callback_url, package_inner_url, package_outer_url,
+        name, zk_account, zk_password, region_id, city_id, zk_hosts,
+        callback_url, outer_callback_url, package_inner_url, package_outer_url,
         nginx_path, description,
       } = this.detail;
       this.submitLoading = true;
@@ -167,9 +167,18 @@ export default class StepInfo extends Vue {
         region_id,
         city_id,
         zk_hosts,
-        btfileserver,
-        dataserver,
-        taskserver,
+        btfileserver: this.detail.dataserver.map(item => ({
+          ...this.$setIpProp('inner_ip', item),
+          ...this.$setIpProp('outer_ip', item),
+        })),
+        dataserver: this.detail.dataserver.map(item => ({
+          ...this.$setIpProp('inner_ip', item),
+          ...this.$setIpProp('outer_ip', item),
+        })),
+        taskserver: this.detail.dataserver.map(item => ({
+          ...this.$setIpProp('inner_ip', item),
+          ...this.$setIpProp('outer_ip', item),
+        })),
         callback_url,
         outer_callback_url,
         package_inner_url,
