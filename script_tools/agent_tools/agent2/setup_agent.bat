@@ -540,9 +540,9 @@ goto :EOF
     echo call :print INFO get_config - "request config files with: %PARAM%"
     for %%p in (gse_agent.conf) do (
         if "%HTTP_PROXY%" == "" (
-            %TMP_DIR%\curl.exe -o %TMP_DIR%\%%p --silent -w "%%{http_code}" -X POST %CALLBACK_URL%/get_gse_config/ -d %PARAM%  1>%TMP_DIR%\nm.test.HHHHHHH 2>&1
+            %TMP_DIR%\curl.exe -g -o %TMP_DIR%\%%p --silent -w "%%{http_code}" -X POST %CALLBACK_URL%/get_gse_config/ -d %PARAM%  1>%TMP_DIR%\nm.test.HHHHHHH 2>&1
         ) else (
-            %TMP_DIR%\curl.exe -o %TMP_DIR%\%%p --silent -w "%%{http_code}" -X POST %CALLBACK_URL%/get_gse_config/ -d %PARAM% -x %HTTP_PROXY% 1>%TMP_DIR%\nm.test.HHHHHHH 2>&1
+            %TMP_DIR%\curl.exe -g -o %TMP_DIR%\%%p --silent -w "%%{http_code}" -X POST %CALLBACK_URL%/get_gse_config/ -d %PARAM% -x %HTTP_PROXY% 1>%TMP_DIR%\nm.test.HHHHHHH 2>&1
         )
         for /f %%i in (%TMP_DIR%\nm.test.HHHHHHH) do (
             if %%i equ 200 (
@@ -692,7 +692,7 @@ goto :EOF
     set TEMP_PKG_NAME=%PKG_NAME:~0,-4%
     cd %TMP_DIR% && DEL /F /S /Q %PKG_NAME% %TEMP_PKG_NAME%.tar gse_agent.conf.%LAN_ETH_IP% 1>nul 2>&1
     for %%p in (%PKG_NAME%) do (
-        for /F %%i in ('%TMP_DIR%\curl.exe --connect-timeout 5 -o %TMP_DIR%/%%p --progress-bar -sL -w "%%{http_code}" %DOWNLOAD_URL%/agent/windows/%CPU_ARCH%/%%p') do (set http_code_res=%%i)
+        for /F %%i in ('%TMP_DIR%\curl.exe -g --connect-timeout 5 -o %TMP_DIR%/%%p --progress-bar -sL -w "%%{http_code}" %DOWNLOAD_URL%/agent/windows/%CPU_ARCH%/%%p') do (set http_code_res=%%i)
     )
         if %http_code_res% EQU 200 (
             call :print INFO download_pkg - "gse_agent package %PKG_NAME% download succeeded, http_status:%http_code_res%"
@@ -722,7 +722,7 @@ goto :EOF
     call :multi_report_step_status
     cd /d %TMP_DIR%
     for %%p in (unixdate.exe,jq.exe,7z.dll,7z.exe,handle.exe,tcping.exe,ntrights.exe) do (
-        %TMP_DIR%\curl.exe -o %TMP_DIR%\%%p --silent -w "%%{http_code}" %DOWNLOAD_URL%/%%p 1> %TMP_DIR%\nm.test.EEEEEEE 2>&1
+        %TMP_DIR%\curl.exe -g -o %TMP_DIR%\%%p --silent -w "%%{http_code}" %DOWNLOAD_URL%/%%p 1> %TMP_DIR%\nm.test.EEEEEEE 2>&1
         for /f %%i in (%TMP_DIR%\nm.test.EEEEEEE) do (
             if %%i equ 200 (
                 call :print INFO download_exe - "dependent files %%p download success, http_status:%%i"
@@ -768,7 +768,7 @@ goto :EOF
 goto :EOF
 
 :check_download_url
-    for /f "delims=" %%i in ('%TMP_DIR%\curl.exe --silent %DOWNLOAD_URL%/agent/windows/%CPU_ARCH%/%PKG_NAME% -Iw "%%{http_code}"') do (set http_status=%%i)
+    for /f "delims=" %%i in ('%TMP_DIR%\curl.exe -g --silent %DOWNLOAD_URL%/agent/windows/%CPU_ARCH%/%PKG_NAME% -Iw "%%{http_code}"') do (set http_status=%%i)
         if "%http_status%" == "200" (
             call :print INFO check_env - "check resource %DOWNLOAD_URL%/agent/windows/%CPU_ARCH%/%PKG_NAME% url succeed"
             call :multi_report_step_status
@@ -897,14 +897,14 @@ goto :EOF
     echo %tmp_json_body% >> %tmp_json_resp%
     if "%UPSTREAM_TYPE%" == "SERVER" (
         echo "check_report_log %tmp_json_body%"
-        %TMP_DIR%\curl.exe -s -S -X POST %CALLBACK_URL%/report_log/ -d %tmp_json_body% >> %tmp_json_resp%
+        %TMP_DIR%\curl.exe -g -s -S -X POST %CALLBACK_URL%/report_log/ -d %tmp_json_body% >> %tmp_json_resp%
         echo=
         echo= >> %tmp_json_resp%
         echo= >> %tmp_json_resp%
         if %status% == FAILED ( exit /B 1 )
         goto :EOF
     ) else if "%UPSTREAM_TYPE%" == "PROXY" (
-        %TMP_DIR%\curl.exe -s -S -X POST %CALLBACK_URL%/report_log/ -d %tmp_json_body% -x %HTTP_PROXY% >> %tmp_json_resp%
+        %TMP_DIR%\curl.exe -g -s -S -X POST %CALLBACK_URL%/report_log/ -d %tmp_json_body% -x %HTTP_PROXY% >> %tmp_json_resp%
         echo=
         echo= >> %tmp_json_resp%
         echo= >> %tmp_json_resp%

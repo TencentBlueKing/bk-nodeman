@@ -56,11 +56,12 @@ from apps.node_man.exceptions import (
     QueryGlobalSettingsException,
     UrlNotReachableError,
 )
+from apps.node_man.utils.endpoint import EndpointInfo
 from apps.prometheus.models import (
     export_job_prometheus_mixin,
     export_subscription_prometheus_mixin,
 )
-from apps.utils import files, orm, translation
+from apps.utils import basic, files, orm, translation
 from common.log import logger
 from pipeline.parser import PipelineParser
 from pipeline.service import task_service
@@ -430,23 +431,32 @@ class Host(models.Model):
             except InstallChannel.DoesNotExist:
                 raise InstallChannelNotExistsError
             jump_server_ip = random.choice(install_channel.jump_servers)
+            filter_kwargs = {
+                "bk_cloud_id": self.bk_cloud_id,
+                "bk_addressing": constants.CmdbAddressingType.STATIC.value,
+            }
+            if basic.is_v6(jump_server_ip):
+                filter_kwargs["inner_ipv6"] = jump_server_ip
+            else:
+                filter_kwargs["inner_ip"] = jump_server_ip
+
             try:
-                jump_server = Host.objects.get(inner_ip=jump_server_ip, bk_cloud_id=self.bk_cloud_id)
+                jump_server = Host.objects.get(**filter_kwargs)
             except Host.DoesNotExist:
                 raise HostNotExists(_("安装节点主机{inner_ip}不存在，请确认是否已安装AGENT").format(inner_ip=jump_server_ip))
             upstream_servers = install_channel.upstream_servers
         # 云区域未指定安装通道的，用proxy作为跳板和上游
         elif self.bk_cloud_id and self.node_type != constants.NodeType.PROXY:
-            proxy_ips = [proxy.inner_ip for proxy in self.proxies]
+            proxy_ips = [proxy.inner_ip or proxy.inner_ipv6 for proxy in self.proxies]
             jump_server = self.get_random_alive_proxy()
             upstream_servers = {"taskserver": proxy_ips, "btfileserver": proxy_ips, "dataserver": proxy_ips}
         # 普通直连的情况，无需跳板，使用接入点的数据
         else:
             jump_server = None
             upstream_servers = {
-                "taskserver": [server["inner_ip"] for server in self.ap.taskserver],
-                "btfileserver": [server["inner_ip"] for server in self.ap.btfileserver],
-                "dataserver": [server["inner_ip"] for server in self.ap.dataserver],
+                "taskserver": self.ap.cluster_endpoint_info.inner_hosts,
+                "btfileserver": self.ap.file_endpoint_info.inner_hosts,
+                "dataserver": self.ap.data_endpoint_info.inner_hosts,
             }
         self._install_channel = jump_server, upstream_servers
         return self._install_channel
@@ -607,6 +617,18 @@ class AccessPoint(models.Model):
     outer_callback_url = models.CharField(_("节点管理外网回调地址"), max_length=128, blank=True, null=True, default="")
     callback_url = models.CharField(_("节点管理内网回调地址"), max_length=128, blank=True, null=True, default="")
 
+    @property
+    def file_endpoint_info(self) -> EndpointInfo:
+        return EndpointInfo(inner_server_infos=self.btfileserver, outer_server_infos=self.btfileserver)
+
+    @property
+    def data_endpoint_info(self) -> EndpointInfo:
+        return EndpointInfo(inner_server_infos=self.dataserver, outer_server_infos=self.dataserver)
+
+    @property
+    def cluster_endpoint_info(self) -> EndpointInfo:
+        return EndpointInfo(inner_server_infos=self.taskserver, outer_server_infos=self.taskserver)
+
     @classmethod
     def ap_id_obj_map(cls):
         all_ap = cls.objects.all()
@@ -683,6 +705,9 @@ class AccessPoint(models.Model):
 
         @translation.RespectsLanguage(language=get_language())
         def _check_ip(ip: str, _logs: list):
+            cmd_args: List[str] = ["ping", "-c", "1", ip, "-i", "1"]
+            if basic.is_v6(ip):
+                cmd_args.append("-6")
             try:
                 subprocess.check_output(["ping", "-c", "1", ip, "-i", "1"])
             except subprocess.CalledProcessError as e:
@@ -735,11 +760,12 @@ class AccessPoint(models.Model):
                 )
 
         test_logs = []
-
-        servers = params.get("btfileserver", []) + params.get("dataserver", []) + params.get("taskserver", [])
+        detect_hosts: Set[str] = set()
+        for server in params.get("btfileserver", []) + params.get("dataserver", []) + params.get("taskserver", []):
+            detect_hosts.add(server.get("inner_ip") or server.get("inner_ipv6"))
 
         with ThreadPoolExecutor(max_workers=settings.CONCURRENT_NUMBER) as ex:
-            tasks = [ex.submit(_check_ip, server["inner_ip"], test_logs) for server in servers]
+            tasks = [ex.submit(_check_ip, detect_host, test_logs) for detect_host in detect_hosts]
             tasks.append(ex.submit(_check_package_url, params["package_inner_url"], test_logs))
             tasks.append(ex.submit(_check_package_url, params["package_outer_url"], test_logs))
             if params.get("outer_callback_url"):

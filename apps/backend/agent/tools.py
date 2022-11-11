@@ -95,16 +95,16 @@ def fetch_gse_servers_info(
         )
         callback_url = host_ap.outer_callback_url or default_callback_url
     elif host.node_type == constants.NodeType.AGENT:
-        bt_file_server_hosts = [server["inner_ip"] for server in host_ap.btfileserver]
-        data_server_hosts = [server["inner_ip"] for server in host_ap.dataserver]
-        task_server_hosts = [server["inner_ip"] for server in host_ap.taskserver]
+        bt_file_server_hosts = host_ap.file_endpoint_info.inner_hosts
+        data_server_hosts = host_ap.data_endpoint_info.inner_hosts
+        task_server_hosts = host_ap.cluster_endpoint_info.inner_hosts
         package_url = host_ap.package_inner_url
         # 优先使用接入点配置的内网回调地址
         callback_url = host_ap.callback_url or settings.BKAPP_NODEMAN_CALLBACK_URL
     elif host.node_type == constants.NodeType.PROXY:
-        bt_file_server_hosts = [server["outer_ip"] for server in host_ap.btfileserver]
-        data_server_hosts = [server["outer_ip"] for server in host_ap.dataserver]
-        task_server_hosts = [server["outer_ip"] for server in host_ap.taskserver]
+        bt_file_server_hosts = host_ap.file_endpoint_info.outer_hosts
+        data_server_hosts = host_ap.data_endpoint_info.outer_hosts
+        task_server_hosts = host_ap.cluster_endpoint_info.outer_hosts
         package_url = host_ap.package_outer_url
         # 不同接入点使用不同的callback_url默认情况下接入点callback_url为空，先取接入点，为空的情况下使用原来的配置
         callback_url = host_ap.outer_callback_url or settings.BKAPP_NODEMAN_OUTER_CALLBACK_URL

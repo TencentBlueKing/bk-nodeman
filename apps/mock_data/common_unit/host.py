@@ -36,8 +36,8 @@ AP_MODEL_DATA = {
     "zk_hosts": [{"zk_ip": DEFAULT_IP, "zk_port": "2181"}],
     "zk_account": "zk_account",
     "zk_password": "zk_password",
-    "package_inner_url": f"http://{DEFAULT_IP}:80/download",
-    "package_outer_url": f"http://{DEFAULT_IP}:80/download",
+    "package_inner_url": f"http://{DEFAULT_IP}/download",
+    "package_outer_url": f"http://{DEFAULT_IP}/download",
     "nginx_path": "",
     "agent_config": {
         "linux": {
@@ -66,7 +66,7 @@ AP_MODEL_DATA = {
     "creator": ["admin"],
     "port_config": constants.GSE_PORT_DEFAULT_VALUE,
     "proxy_package": constants.GSE_CLIENT_PACKAGES,
-    "outer_callback_url": f"http://{DEFAULT_IP}:10300/backend",
+    "outer_callback_url": f"http://{DEFAULT_IP}/backend",
 }
 
 

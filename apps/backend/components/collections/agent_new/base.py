@@ -204,9 +204,9 @@ class AgentBaseService(BaseService, metaclass=abc.ABCMeta):
                 host_ap = host_id__ap_map[host.bk_host_id]
                 jump_server = None
                 upstream_servers = {
-                    "taskserver": [server["inner_ip"] for server in host_ap.taskserver],
-                    "btfileserver": [server["inner_ip"] for server in host_ap.btfileserver],
-                    "dataserver": [server["inner_ip"] for server in host_ap.dataserver],
+                    "taskserver": host_ap.cluster_endpoint_info.inner_hosts,
+                    "btfileserver": host_ap.file_endpoint_info.inner_hosts,
+                    "dataserver": host_ap.data_endpoint_info.inner_hosts,
                 }
                 host_id__install_channel_map[host.bk_host_id] = (jump_server, upstream_servers)
 
