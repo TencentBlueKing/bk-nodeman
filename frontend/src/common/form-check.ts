@@ -1,5 +1,6 @@
 import { isEmpty } from './util';
 import {
+  splitCodeArr,
   regIp,
   regIPv6,
   regUrl,
