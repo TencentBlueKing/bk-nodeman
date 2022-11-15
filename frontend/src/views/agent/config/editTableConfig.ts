@@ -1,7 +1,7 @@
 import { ISetupHead, ISetupRow } from '@/types';
 import { authentication, defaultPort, sysOptions, defaultOsType, getDefaultConfig, addressingMode } from '@/config/config';
 import { ICloudSource } from '@/types/cloud/cloud';
-import { reguFnMinInteger, reguPort, reguIPMixins, reguIp } from '@/common/form-check';
+import { reguFnMinInteger, reguPort, reguIPMixins } from '@/common/form-check';
 
 export const editConfig: ISetupHead[] = [
   {
@@ -208,7 +208,7 @@ export const editConfig: ISetupHead[] = [
     tips: 'agentSetupLoginIp',
     parentProp: 'login_info',
     placeholder: window.i18n.t('请输入'),
-    rules: [reguIp],
+    rules: [reguIPMixins],
   },
   {
     label: 'BT节点探测',
@@ -365,7 +365,7 @@ export const editManualConfig = [
     placeholder: window.i18n.t('请输入'),
     tips: 'agentSetupLoginIp',
     parentProp: 'login_info',
-    rules: [reguIp],
+    rules: [reguIPMixins],
   },
   {
     label: 'BT节点探测',
