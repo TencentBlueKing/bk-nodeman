@@ -944,6 +944,7 @@ export default class SetupTable extends Vue {
     this.initTableHead();
   }
   public initTableHead() {
+    if (!this.localMark) return;
     const tableHead = this.table.config.filter(item => item.type === 'operate' || this.filter[item.prop]?.mockChecked);
     if (this.setupInfo.header?.length) {
       const tableParentHead = this.setupInfo.parentHead?.map(item => ({
