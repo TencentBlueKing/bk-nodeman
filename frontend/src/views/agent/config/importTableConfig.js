@@ -1,5 +1,5 @@
 import { authentication, defaultPort, sysOptions, defaultOsType, getDefaultConfig, addressingMode } from '@/config/config';
-import { reguFnMinInteger, reguPort, reguIp, reguIPMixins } from '@/common/form-check';
+import { reguFnMinInteger, reguPort, reguIPMixins } from '@/common/form-check';
 
 export const parentHead = [
   { label: '业务属性', prop: 'biz_attr', type: 'text', colspan: 0 },
@@ -238,7 +238,7 @@ export const tableConfig = [
     placeholder: window.i18n.t('请输入'),
     unique: true,
     errTag: true,
-    rules: [reguIp,
+    rules: [reguIPMixins,
       {
         trigger: 'blur',
         message: window.i18n.t('冲突校验', { prop: 'IP' }),
@@ -454,7 +454,7 @@ export const tableManualConfig = [
     parentProp: 'login_info',
     unique: true,
     errTag: true,
-    rules: [reguIp,
+    rules: [reguIPMixins,
       {
         trigger: 'blur',
         message: window.i18n.t('冲突校验', { prop: 'IP' }),
