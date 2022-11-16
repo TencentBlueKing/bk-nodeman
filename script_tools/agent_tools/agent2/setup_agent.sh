@@ -178,48 +178,15 @@ is_port_listen () {
     return 1
 }
 
-# 判断某个pid是否监听指定的端口列表
-# 利用linux内核/proc/<pid>/net/tcp文件中第四列0A表示LISTEN
-# 第二列16进制表达的ip和port
-is_port_listen_by_pid () {
-    local pid regex stime
-    pid=$1
-    shift 1
-
-    if [ `wc -l /proc/net/tcp |awk '{print $1}'` -le 5000 ];then
-        stime=1
-    else
-        stime=0
-    fi
-
-    for i in {0..10}; do
-        echo ------ $i  `date '+%c'`
-        sleep 1
-        for port in "$@"; do
-            if [ $stime -eq 1 ];then
-                echo need to sleep 1s
-                sleep 1
-            fi
-
-            echo ------ $port  `date '+%c'`
-            stat -L -c %i /proc/"$pid"/fd/* 2>/dev/null \
-                | grep -qwFf - \
-                    <( awk -v p="$port" 'BEGIN{ check=sprintf(":%04X0A$", p)} $2$4 ~ check {print $10}' /proc/net/tcp) \
-                    && return 0
-        done
-    done
-    return 1
-}
-
 is_port_connected_by_pid () {
-    local pid port regex
+    local pid port
     pid=$1 port=$2
 
     for i in {0..10}; do
         sleep 1
         stat -L -c %i /proc/"$pid"/fd/* 2>/dev/null \
             | grep -qwFf - \
-                <( awk -v p="$port" 'BEGIN{ check=sprintf(":%04X01$", p)} $3$4 ~ check {print $10}' /proc/net/tcp) \
+                <( awk -v p="$port" 'BEGIN{ check=sprintf(":%04X01$", p)} $3$4 ~ check {print $10}' /proc/net/tcp*) \
                 && return 0
     done
     return 1
