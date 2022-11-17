@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 
 import json
+import random
 import re
 import typing
 from dataclasses import asdict, dataclass, field
@@ -54,6 +55,8 @@ class ConfigContextHelper:
         proxy_tls_ca_file: str = agent_tls_ca_file
         proxy_tls_cert_file: str = path_sep.join([setup_path, self.node_type, "cert", "gse_server.crt"])
         proxy_tls_key_file: str = path_sep.join([setup_path, self.node_type, "cert", "gse_server.key"])
+        proxy_tls_cli_cert_file: str = path_sep.join([setup_path, self.node_type, "cert", "gse_api_client.crt"])
+        proxy_tls_cli_key_file: str = path_sep.join([setup_path, self.node_type, "cert", "gse_api_client.key"])
 
         if self.host.os_type == constants.OsType.WINDOWS:
             # 去除引号
@@ -64,6 +67,8 @@ class ConfigContextHelper:
             proxy_tls_ca_file: str = json.dumps(proxy_tls_ca_file)[1:-1]
             proxy_tls_cert_file: str = json.dumps(proxy_tls_cert_file)[1:-1]
             proxy_tls_key_file: str = json.dumps(proxy_tls_key_file)[1:-1]
+            proxy_tls_cli_cert_file: str = json.dumps(proxy_tls_cli_cert_file)[1:-1]
+            proxy_tls_cli_key_file: str = json.dumps(proxy_tls_cli_key_file)[1:-1]
 
         contexts: typing.List[context_dataclass.GseConfigContext] = [
             context_dataclass.AgentConfigContext(
@@ -105,6 +110,7 @@ class ConfigContextHelper:
             ),
             context_dataclass.TaskConfigContext(),
             context_dataclass.DataConfigContext(ipc=agent_config.get("dataipc", "/var/run/ipc.state.report")),
+            context_dataclass.FileConfigContext(),
             context_dataclass.LogConfigContext(path=log_path),
             context_dataclass.DataMetricConfigContext(exporter_port=self.ap.port_config["data_prometheus_port"]),
             context_dataclass.DataAgentConfigContext(
@@ -124,6 +130,42 @@ class ConfigContextHelper:
                 tls_cert_file=agent_tls_cert_file,
                 tls_key_file=agent_tls_key_file,
             ),
+            context_dataclass.FileAgentConfigContext(
+                bind_port=self.ap.port_config["file_svr_port"],
+                bind_port_v1=constants.GSE_PORT_DEFAULT_VALUE["file_svr_port"],
+                advertise_ipv4=self.host.inner_ip or "",
+                advertise_ipv6=self.host.inner_ipv6 or "",
+                tls_ca_file=proxy_tls_ca_file,
+                tls_cert_file=proxy_tls_cert_file,
+                tls_key_file=proxy_tls_key_file,
+            ),
+            context_dataclass.FileProxyConfigContext(
+                upstream_ip=random.choice(self.ap.file_endpoint_info.outer_hosts or [""]),
+                upstream_port=self.ap.port_config.get(
+                    "file_topology_bind_port", constants.GSE_PORT_DEFAULT_VALUE["file_topology_bind_port"]
+                ),
+                report_ip=self.host.outer_ip or self.host.outer_ipv6,
+                report_port=self.ap.port_config.get(
+                    "file_topology_bind_port", constants.GSE_PORT_DEFAULT_VALUE["file_topology_bind_port"]
+                ),
+            ),
+            context_dataclass.FileBittorrentConfigContext(
+                bind_port=self.ap.port_config["bt_port"], tracker_bind_port=self.ap.port_config["tracker_port"]
+            ),
+            context_dataclass.FileTopologyConfigContext(
+                bind_port=self.ap.port_config.get(
+                    "file_topology_bind_port", constants.GSE_PORT_DEFAULT_VALUE["file_topology_bind_port"]
+                ),
+                thrift_bind_port=self.ap.port_config["btsvr_thrift_port"],
+                advertise_ip=self.host.inner_ip or self.host.inner_ipv6,
+                tls_ca_file=agent_tls_ca_file,
+                tls_svr_cert_file=proxy_tls_cert_file,
+                tls_svr_key_file=proxy_tls_key_file,
+                tls_cli_cert_file=proxy_tls_cli_cert_file,
+                tls_cli_key_file=proxy_tls_cli_key_file,
+            ),
+            context_dataclass.FileCacheConfigContext(),
+            context_dataclass.FileMetricConfigContext(),
         ]
 
         self.context_dict = {}

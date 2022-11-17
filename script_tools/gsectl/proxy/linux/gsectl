@@ -4,7 +4,7 @@
 cd ${BASH_SOURCE%/*} 2>/dev/null
 WORK_HOME=${PWD%/bin}
 
-MODULES=(data agent)
+MODULES=(data agent file)
 
 ulimit -n 409600 2>/dev/null
 
@@ -89,6 +89,8 @@ start () {
         echo -n "start gse_$m..."
         if [[ "${m}" =~ "data" ]]; then
             config="data_proxy"
+        elif [[ "${m}" =~ "file" ]]; then
+            config="file_proxy"
         else 
             config="${m}"
         fi

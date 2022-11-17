@@ -573,6 +573,7 @@ GSE_PORT_DEFAULT_VALUE = {
     "bt_port": 10020,
     "tracker_port": 10030,
     "data_prometheus_port": 59402,
+    "file_topology_bind_port": 28930,
 }
 
 # 社区版GSE SERVER的端口有所不同，TODO 考虑把这些端口放到环境变量中
@@ -845,8 +846,8 @@ class GseProcessAutoCode(EnhanceEnum):
 class GseAgentRunMode(EnhanceEnum):
     """Agent 运行模式"""
 
-    PROXY = 0
-    AGENT = 1
+    PROXY = "proxy"
+    AGENT = "agent"
 
     @classmethod
     def _get_member__alias_map(cls) -> Dict[Enum, str]:

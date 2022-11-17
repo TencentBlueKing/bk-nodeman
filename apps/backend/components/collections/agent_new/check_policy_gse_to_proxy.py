@@ -69,7 +69,7 @@ class CheckPolicyGseToProxyService(AgentExecuteScriptService):
                 }
                 for inner_host in ap.file_endpoint_info.inner_hosts
             ],
-            "host_id_list": file_endpoint_host_ids,
+            "host_id_list": list(file_endpoint_host_ids),
         }
 
     def get_script_content(self, data, common_data: AgentCommonData, host: models.Host) -> str:
