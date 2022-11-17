@@ -67,12 +67,12 @@ class TlsBaseConfigContext:
     tls_cert_file: str = ""
     tls_key_file: str = ""
     # 待映射，目前看这个配置没有启用
-    tls_passwd_file: str = ""
+    tls_password_file: str = ""
 
 
 @dataclass
 class AgentConfigContext(GseConfigContext):
-    run_mode: int
+    run_mode: str
     cloud_id: int
     zone_id: str
     city_id: str
@@ -152,6 +152,14 @@ class DataConfigContext(GseConfigContext):
 
 
 @dataclass
+class FileConfigContext(GseConfigContext):
+    MODULE_ID = "FILE"
+
+    max_transfer_speed_mb_per_sec: str = 100
+    max_transfer_concurrent_num: str = 10
+
+
+@dataclass
 class LogConfigContext(GseConfigContext):
     MODULE_ID = "LOG"
 
@@ -197,3 +205,79 @@ class DataProxyConfigContext(GseConfigContext, TlsBaseConfigContext):
     MODULE_ID = "DATA_PROXY"
 
     endpoints: str = ""
+
+
+@dataclass
+class FileAgentConfigContext(GseConfigContext, TlsBaseConfigContext):
+
+    MODULE_ID = "FILE_AGENT"
+
+    bind_ip: str = "::"
+    bind_port: int = 0
+    bind_port_v1: int = 0
+    thread_num: int = 24
+
+    advertise_ipv4: str = ""
+    advertise_ipv6: str = ""
+
+
+@dataclass
+class FileProxyConfigContext(GseConfigContext):
+
+    MODULE_ID = "FILE_PROXY"
+
+    upstream_ip: str = ""
+    upstream_port: int = 0
+    report_ip: str = ""
+    report_port: int = 0
+
+
+@dataclass
+class FileBittorrentConfigContext(GseConfigContext):
+
+    MODULE_ID = "FILE_BITTORRENT"
+
+    bind_ip: str = "::"
+    bind_port: int = 0
+    tracker_bind_port: int = 0
+    speed_limit_mb_per_sec: int = 2000
+
+
+@dataclass
+class FileTopologyConfigContext(GseConfigContext):
+
+    MODULE_ID = "FILE_TOPOLOGY"
+
+    bind_ip: str = "::"
+    bind_port: int = 0
+    thrift_bind_port: int = 0
+    advertise_ip: str = ""
+    thread_num: int = 4
+
+    tls_ca_file: str = ""
+    # 待映射，目前看这个配置没有启用
+    tls_password_file: str = ""
+
+    tls_svr_cert_file: str = ""
+    tls_svr_key_file: str = ""
+    tls_cli_cert_file: str = ""
+    tls_cli_key_file: str = ""
+
+
+@dataclass
+class FileCacheConfigContext(GseConfigContext):
+
+    MODULE_ID = "FILE_CACHE"
+
+    dirs: str = "./file_cache"
+    expired_time_sec: int = 3600
+
+
+@dataclass
+class FileMetricConfigContext(GseConfigContext):
+
+    MODULE_ID = "FILE_METRIC"
+
+    exporter_bind_ip: str = "::"
+    exporter_bind_port: int = 59404
+    exporter_thread_num: int = 4

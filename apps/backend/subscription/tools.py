@@ -555,7 +555,8 @@ def get_host_detail(host_info_list: list, bk_biz_id: int = None):
             if _host["bk_cloud_id"] != constants.DEFAULT_CLOUD
             else "直连区域"
         )
-        host_key = f'{_host["bk_host_innerip"]}-{_host["bk_cloud_id"]}-{constants.DEFAULT_SUPPLIER_ID}'
+        ip = _host.get("bk_host_innerip") or _host.get("ip") or _host.get("bk_host_innerip_v6")
+        host_key = f'{ip}-{_host["bk_cloud_id"]}-{constants.DEFAULT_SUPPLIER_ID}'
         host_key_dict[host_key] = _host
         host_id_dict[_host["bk_host_id"]] = _host
 
