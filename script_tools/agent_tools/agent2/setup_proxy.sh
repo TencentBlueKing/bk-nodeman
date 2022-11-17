@@ -3,12 +3,11 @@
 # gse proxy 2.0 安装脚本, 仅在节点管理2.0中使用
 
 NODE_TYPE=proxy
-PROC_LIST=(agent data)
-ITERATE_PROXY_PROC_LIST=(agent transit btsvr data)
+PROC_LIST=(agent data file)
 GSE_AGENT_RUN_DIR=/var/run/gse
 GSE_AGENT_DATA_DIR=/var/lib/gse
 GSE_AGENT_LOG_DIR=/var/log/gse
-PROXY_CONFIGS=(gse_agent.conf gse_data_proxy.conf)
+PROXY_CONFIGS=(gse_agent.conf gse_data_proxy.conf gse_file_proxy.conf)
 GSE_AGENT_CONFIG="gse_agent.conf"
 PROXY_CLEAN_UP_DIRS=("bin")
 
@@ -235,23 +234,19 @@ get_pid_by_comm_path () {
 is_process_ok () {
     local proc=${1:-agent}
     local gse_master_pid gse_worker_pids gse_proc_pids
-    gse_proc_pids="$(get_pid_by_comm_path gse_${proc} "$AGENT_SETUP_PATH/bin/gse_${proc}" | xargs)"
-    gse_master_pid=$(get_pid_by_comm_path gse_${proc} "$AGENT_SETUP_PATH/bin/gse_${proc}" MASTER | xargs)
+    gse_proc_pids="$(get_pid_by_comm_path gse_"${proc}" "$AGENT_SETUP_PATH/bin/gse_${proc}" | xargs)"
+    gse_master_pid=$(get_pid_by_comm_path gse_"${proc}" "$AGENT_SETUP_PATH/bin/gse_${proc}" MASTER | xargs)
 
     read -r -a gse_master <<< "$gse_master_pids"
     read -r -a gse_pids <<< "$gse_proc_pids"
 
-    if [[ "${proc}" == "agent" ]]; then
-        agent_id_file="${AGENT_SETUP_PATH}"/bin/run/agent.pid
-    elif [[ "${proc}" == "data" ]]; then
-        agent_id_file="${AGENT_SETUP_PATH}"/bin/run/gse.pid
+    proc_pid_file="${AGENT_SETUP_PATH}/bin/run/${proc}.pid"
+
+    if [[ ${#gse_master} -gt 1 && -f ${proc_pid_file} ]]; then
+        gse_master_pid=$(cat "${proc_pid_file}")
     fi
 
-    if [[ ${#gse_master} -gt 1 && -f ${agent_id_file} ]]; then
-        gse_master_pid=$(cat ${agent_id_file})
-    fi
-
-    gse_worker_pids=$(pgrep -P $gse_master_pid)
+    gse_worker_pids=$(pgrep -P "$gse_master_pid")
 
     read -r -a gse_worker <<< "$gse_worker_pids"
 
@@ -422,7 +417,7 @@ stop_proxy () {
     ! [[ -d $AGENT_SETUP_PATH ]] && return 0
     "$AGENT_SETUP_PATH/bin/gsectl" stop
 
-    for p in "${ITERATE_PROXY_PROC_LIST[@]}"; do
+    for p in "${PROC_LIST[@]}"; do
         for i in {0..10}; do
             read -r -a pids <<< "$(pidof "$AGENT_SETUP_PATH/bin/gse_${p}")"
             if [ ${#pids[@]} -eq 0 ]; then
@@ -553,9 +548,9 @@ check_deploy_result () {
 
     DATA_PID=$( get_pid_by_comm_path gse_data "$AGENT_SETUP_PATH/bin/gse_data" "WORKER" )
     is_port_listen_by_pid "$DATA_PID" "$DATA_PORT"  || { fail check_deploy_result FAILED "port $DATA_PORT is not listen"; ((ret++)); }
-    is_port_connected_by_pid "$DATA_PID" "$DATA_PORT" || { fail check_deploy_result FAILED "agent(PID:$DATA_PID) is not connect to gse server"; ((ret++)); }
+    is_port_connected_by_pid "$DATA_PID" "$DATA_PORT" || { fail check_deploy_result FAILED "gse_data(PID:$DATA_PID) is not connect to gse server"; ((ret++)); }
 
-    [ $ret -eq 0 ] && log check_deploy_result DONE "gse proxy has been deployed successefully"
+    [ $ret -eq 0 ] && log check_deploy_result DONE "gse proxy has been deployed successfully"
 }
 
 report_step_status () {

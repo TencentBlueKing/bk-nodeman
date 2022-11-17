@@ -71,6 +71,7 @@ class AgentStepAdapter:
         agent_config_templates: typing.List[base.AgentConfigTemplate] = [
             base.AgentConfigTemplate(name="gse_agent.conf", content=config_templates.GSE_AGENT_CONFIG_TMPL),
             base.AgentConfigTemplate(name="gse_data_proxy.conf", content=config_templates.GSE_DATA_PROXY_CONFIG_TMPL),
+            base.AgentConfigTemplate(name="gse_file_proxy.conf", content=config_templates.GSE_FILE_PROXY_CONFIG_TEMPL),
         ]
         return {
             # 向 Agent 包管理过渡：AgentConfigTemplate 后续替换为数据模型对象
@@ -98,6 +99,9 @@ class AgentStepAdapter:
                 base.AgentConfigTemplate(name="gse_agent.conf", content=config_templates.GSE_AGENT_CONFIG_TMPL),
                 base.AgentConfigTemplate(
                     name="gse_data_proxy.conf", content=config_templates.GSE_DATA_PROXY_CONFIG_TMPL
+                ),
+                base.AgentConfigTemplate(
+                    name="gse_file_proxy.conf", content=config_templates.GSE_FILE_PROXY_CONFIG_TEMPL
                 ),
             ],
         )
