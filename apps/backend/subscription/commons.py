@@ -50,7 +50,7 @@ def list_biz_hosts(bk_biz_id, condition, func, split_params=False):
 
     hosts = batch_request(getattr(client_v2.cc, func), kwargs, split_params=split_params)
     # 排除掉CMDB中内网IP为空的主机
-    cleaned_hosts = [host for host in hosts if host.get("bk_host_innerip")]
+    cleaned_hosts = [host for host in hosts if host.get("bk_host_innerip") or host.get("bk_host_innerip_v6")]
     return cleaned_hosts
 
 
