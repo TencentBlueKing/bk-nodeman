@@ -2,21 +2,6 @@
   <article class="resource-quota" v-bkloading="{ isLoading: loading }">
     <section class="page-head">
       <span class="title">{{ $t('资源配额') }}</span>
-      <!-- <span class="dividing-line"></span>
-      <span>{{ $t('业务：') }}</span>
-      <div class="biz-select-box">
-        <div class="biz-placeholder">{{ bizNames }}</div>
-        <bk-biz-select
-          v-if="!loading"
-          class="biz-select-rimless"
-          :action="action"
-          min-width="50"
-          :popover-min-width="480"
-          :value="biz"
-          @change="handleBizChange">
-        </bk-biz-select>
-        <div class="biz-text">{{ bizNames }}</div>
-      </div> -->
     </section>
 
     <div class="page-container">
@@ -38,54 +23,54 @@
             class="resource-tree"
             ref="treeRef"
             :tree-data="treeData"
-            :active-id="moduleId"
+            :selected-node="curNode"
             :load-method="loadTreeChild"
+            :node-fold-able="(item) => item.bk_obj_id === 'biz'"
+            :node-load-able="(item) => item.bk_obj_id === 'biz'"
             @selected="handleTreeSelected">
           </ResourceTree>
         </section>
         <section class="content-body" v-bkloading="{ isLoading: pluginLoading }">
-          <template v-if="selectedTemp">
-            <div class="content-body-head mb20">
-              <p class="content-body-title">{{ moduleName }}</p>
-              <bk-button theme="primary" :disabled="moduleId < 0" @click="editResourceQuota">{{ $t('编辑') }}</bk-button>
-            </div>
-            <section class="content-body-table">
-              <bk-table :data="pluginList" :max-height="windowHeight - 192">
-                <bk-table-column :label="$t('插件名称')" prop="plugin_name" :resizable="false"></bk-table-column>
-                <bk-table-column :label="$t('总数运行中异常')" :resizable="false">
-                  <template #default="{ row }">
-                    <div>
-                      <span class="num">{{ row.total }}</span>
-                      <span>/</span>
-                      <span class="num running">{{ row.running }}</span>
-                      <span>/</span>
-                      <span class="num abort">{{ row.terminated }}</span>
-                    </div>
-                  </template>
-                </bk-table-column>
-                <bk-table-column
-                  :label="$t('CPU配额及单位')"
-                  prop="cpu"
-                  align="right"
-                  :resizable="false"
-                  :render-header="tipsHeadRender" />
-                <bk-table-column
-                  :label="$t('内存配额及单位')"
-                  prop="mem"
-                  align="right"
-                  :resizable="false"
-                  :render-header="tipsHeadRender" />
-                <bk-table-column width="40"></bk-table-column>
-              </bk-table>
-            </section>
+          <template v-if="curNode">
+            <template v-if="curNode.type === 'template'">
+              <div class="content-body-head mb20">
+                <p class="content-body-title">{{ moduleName }}</p>
+                <bk-button theme="primary" :disabled="moduleId < 0" @click="editResourceQuota">
+                  {{ $t('编辑') }}
+                </bk-button>
+              </div>
+              <section class="content-body-table">
+                <bk-table :data="pluginList" :max-height="windowHeight - 192">
+                  <bk-table-column :label="$t('插件名称')" prop="plugin_name" :resizable="false"></bk-table-column>
+                  <bk-table-column :label="$t('总数运行中异常')" :resizable="false">
+                    <template #default="{ row }">
+                      <div>
+                        <span class="num">{{ row.total }}</span>
+                        <span>/</span>
+                        <span class="num running">{{ row.running }}</span>
+                        <span>/</span>
+                        <span class="num abort">{{ row.terminated }}</span>
+                      </div>
+                    </template>
+                  </bk-table-column>
+                  <bk-table-column
+                    :label="$t('CPU配额及单位')"
+                    prop="cpu"
+                    align="right"
+                    :resizable="false"
+                    :render-header="tipsHeadRender" />
+                  <bk-table-column
+                    :label="$t('内存配额及单位')"
+                    prop="mem"
+                    align="right"
+                    :resizable="false"
+                    :render-header="tipsHeadRender" />
+                  <bk-table-column width="40"></bk-table-column>
+                </bk-table>
+              </section>
+            </template>
+            <EmptyServiceBox v-else @click-link="handleEmptyLink" />
           </template>
-          <exception-card
-            v-else
-            class="template-card"
-            type="notData"
-            :has-border="false"
-            :text="$t('请选择服务模板')">
-          </exception-card>
         </section>
       </section>
       <exception-page
@@ -103,7 +88,7 @@
 <script lang="ts">
 import { Component, Watch, Mixins, Prop, Ref } from 'vue-property-decorator';
 import { MainStore, PluginStore } from '@/store/index';
-import ResourceTree from './resource-tree.vue';
+import ResourceTree, { ITreeNode } from './resource-tree.vue';
 import HeaderFilterMixins from '@/components/common/header-filter-mixins';
 import { IBkColumn } from '@/types';
 import { CreateElement } from 'vue';
@@ -111,22 +96,10 @@ import TableHeader from '@/components/setup-table/table-header.vue';
 import { debounce } from '@/common/util';
 import ExceptionPage from '@/components/exception/exception-page.vue';
 import ExceptionCard from '@/components/exception/exception-card.vue';
+import EmptyServiceBox from '@/components/exception/EmptyServiceBox.vue';
 import Tips from '@/components/common/tips.vue';
 import { bus } from '@/common/bus';
 import { Route } from 'vue-router';
-
-interface ITreeNode {
-  id: number
-  name: string
-  loading: boolean
-  active: boolean
-  topoType: string
-  level: number
-  foldable: boolean
-  folded: boolean
-  child: ITreeNode[]
-  parent: ITreeNode
-}
 
 Component.registerHooks([
   'beforeRouteLeave',
@@ -139,12 +112,13 @@ Component.registerHooks([
     TableHeader,
     ExceptionPage,
     ExceptionCard,
+    EmptyServiceBox,
     Tips,
   },
 })
 export default class ResourceQuota extends Mixins(HeaderFilterMixins) {
-  @Prop({ type: Number, default: -1 }) private readonly bizId!: number;
-  @Prop({ type: Number, default: -1 }) private readonly moduleId!: number;
+  @Prop({ type: Number, default: null }) private readonly bizId!: number;
+  @Prop({ type: Number, default: null }) private readonly moduleId!: number;
   @Ref('treeRef') private readonly treeRef!: any;
 
   public init = false;
@@ -177,32 +151,15 @@ export default class ResourceQuota extends Mixins(HeaderFilterMixins) {
   private get bkBizList() {
     return MainStore.bkBizList;
   }
-  // private get bkBizNameMap() {
-  //   const nameMap: any = {};
-  //   this.bkBizList.reduce((maps, item) => {
-  //     maps[item.bk_biz_id] = item.bk_biz_name;
-  //     return maps;
-  //   }, nameMap);
-  //   return nameMap;
-  // }
-  // private get bizNames() {
-  //   if (this.biz.length) {
-  //     return this.biz.map(id => this.bkBizNameMap[id]).join('、');
-  //   }
-  //   return this.$t('全部业务');
-  // }
-  private get selectedTemp() {
-    return this.curNode && this.curNode.id;
-  }
 
-  @Watch('bizId')
-  public handleRouteBizChange() {
-    this.handleBizOrModuleChange();
-  }
-  @Watch('moduleId')
-  public handleRouteModuleChange() {
-    this.handleBizOrModuleChange();
-  }
+  // @Watch('bizId')
+  // public handleRouteBizChange() {
+  //   this.handleBizOrModuleChange();
+  // }
+  // @Watch('moduleId')
+  // public handleRouteModuleChange() {
+  //   this.handleBizOrModuleChange();
+  // }
   @Watch('selectedBiz')
   public handleBizChange(newVal: number[], oldVal: number[]) {
     if (oldVal.length !== newVal.length || oldVal.some(old => !newVal.find(id => old === id))) {
@@ -234,11 +191,17 @@ export default class ResourceQuota extends Mixins(HeaderFilterMixins) {
     const hasAuthBizList = this.bkBizList.filter(item => !item.disabled);
     this.hasBizAuth = !!hasAuthBizList.length;
     if (hasAuthBizList.length) {
-      const loadBizId = this.bizId > -1 && hasAuthBizList.find(item => item.bk_biz_id === this.bizId)
-        ? this.bizId :  -1;
+      let loadBizId = this.bizId;
+      if (this.bizId === -1 || !hasAuthBizList.find(item => item.bk_biz_id === this.bizId)) {
+        loadBizId = hasAuthBizList[0].bk_biz_id;
+      }
       // 初始化选中业务
       if (!this.init && loadBizId > -1) {
-        MainStore.setSelectedBiz(Array.from(new Set([...this.selectedBiz, loadBizId])));
+        this.selectedBiz.length && MainStore.setSelectedBiz(Array.from(new Set([...this.selectedBiz, loadBizId])));
+      }
+      if (loadBizId !== this.bizId) {
+        this.$router.replace({ query: { bizId: `${loadBizId}` } });
+        return;
       }
       // 设置业务列表 && 树
       const selectedBizList = this.selectedBiz.length
@@ -257,9 +220,12 @@ export default class ResourceQuota extends Mixins(HeaderFilterMixins) {
           bk_obj_id: 'biz',
           bk_inst_id: item.bk_biz_id,
           bk_inst_name: item.bk_biz_name,
+          id: item.bk_biz_id,
+          name: item.bk_biz_name,
           child: [],
         };
       });
+      let curNode = this.treeData.find(item => item.id === loadBizId);
       // 拿到moduleId进一步判断是否需要重定向路由
       let children: any[] = [];
       const loadedParent = this.treeData.find(item => item.bk_inst_id === loadBizId && item.child.length);
@@ -268,18 +234,21 @@ export default class ResourceQuota extends Mixins(HeaderFilterMixins) {
       } else {
         children = await this.getTemplatesByBiz(loadBizId);
       }
+
+      let loadModuleId = this.moduleId;
+      if (children.length) {
+        curNode = children.find(item => item.id === loadModuleId);
+        if (loadModuleId === -1 || !curNode) {
+          [curNode] = children;
+          loadModuleId = curNode.id;
+        }
+      }
+      curNode.type = curNode.bk_obj_id;
+      this.$set(this, 'curNode', curNode);
+      this.init = true;
       this.$nextTick(() => {
         this.treeRef && this.treeRef.setTreeData();
       });
-
-      let loadModuleId = -1;
-      if (children.length) {
-        loadModuleId = this.moduleId > -1 && children.find(item => item.bk_inst_id === this.moduleId)
-          ? this.moduleId
-          : children[0].bk_inst_id;
-      }
-      this.init = true;
-      // if (this.bizId !== loadBizId || (this.moduleId !== loadModuleId)) {
       if (this.moduleId !== loadModuleId && loadModuleId > -1) {
         const query: any = {
           bizId: loadBizId,
@@ -297,11 +266,14 @@ export default class ResourceQuota extends Mixins(HeaderFilterMixins) {
   public async getTemplatesByBiz(bizId?: number) {
     const id = bizId || this.bizId;
     const templates: any[] = await PluginStore.getTemplatesByBiz({ bk_biz_id: id });
-    const templatesStatus: any[] = await PluginStore.fetchResourcePolicyStatus({ bk_biz_id: id, bk_obj_id: 'service_template' });
+    // const templatesStatus: any[] = await PluginStore.fetchResourcePolicyStatus({
+    //   bk_biz_id: id, bk_obj_id: 'service_template'
+    // });
     // 是否调整过插件配置
-    templates.forEach((item) => {
-      item.topoIcon = templatesStatus.find(template => template.bk_inst_id === item.bk_inst_id && !template.is_default);
-    });
+    // templates.forEach((item) => {
+    //   item.topoIcon = templatesStatus.find(template => template.bk_inst_id === item.bk_inst_id
+    //     && !template.is_default);
+    // });
     const parent = this.treeData.find(item => item.bk_inst_id === bizId);
     parent?.child.push(...templates);
     return Promise.resolve(templates);
@@ -319,12 +291,14 @@ export default class ResourceQuota extends Mixins(HeaderFilterMixins) {
     this.pluginLoading = false;
   }
 
-  public handleTreeSelected(node: ITreeNode) {
-    if (!this.curNode || node.id !== this.curNode.id) {
-      this.curNode = node;
-      this.$router.replace({ query: { bizId: `${node.parent.id}`, moduleId: `${node.id}` } });
-      this.getPluginsConfig(node.parent.id, node.id);
+  public async handleTreeSelected(node: ITreeNode) {
+    this.curNode = node;
+    const bizId = node.type === 'biz' ? node.id : node.parent?.id as number;
+    const moduleId = node.type === 'biz' ? -1 : node.id;
+    if (moduleId > -1) {
+      await this.getPluginsConfig(bizId, moduleId);
     }
+    this.$router.replace({ query: { bizId: `${bizId}`, moduleId: `${moduleId}` } });
   }
 
   public handleSearchTree() {
@@ -368,6 +342,11 @@ export default class ResourceQuota extends Mixins(HeaderFilterMixins) {
         ],
       },
     });
+  }
+
+  public handleEmptyLink() {
+    const url = `${window.PROJECT_CONFIG.CMDB_URL}/#/business/${this.bizId}/service/template/create`;
+    window.open(url, '_blank');
   }
 }
 </script>
