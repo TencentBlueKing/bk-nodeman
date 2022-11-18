@@ -11,13 +11,10 @@
         @click="handleClickNode(node)">
         <!-- 左侧图标 -->
         <div :class="['node-flex-start', { expanded: node.folded }]">
-          <LoadingIcon v-if="node.loading"></LoadingIcon>
+          <LoadingIcon v-if="node.loadable && node.loading"></LoadingIcon>
           <!-- 节点类型 -->
           <span v-else-if="node.foldable" class="bk-icon icon-right-shape"></span>
         </div>
-        <span if="nodeTypeMap[node.topoType]" :class="`word-icon ${ node.topoType }`">
-          {{ nodeTypeMap[node.topoType] }}
-        </span>
         <span v-bk-overflow-tips class="node-name">{{ node.name }}</span>
         <!-- <div v-show="node.topoIcon">
           <i class="topo-icon nodeman-icon nc-manual" v-bk-tooltips="{
@@ -26,9 +23,8 @@
           }"></i>
         </div> -->
       </div>
-      <template v-if="node.foldable && node.child && node.child.length">
+      <template v-if="node.foldable && node.folded && node.child && node.child.length">
         <ResourceTreeItem
-          v-show="node.folded"
           :node-list="node.child"
           :load-position="loadPosition"
           @click="handleClickNode">
@@ -44,11 +40,11 @@ import { Prop, Vue, Component } from 'vue-property-decorator';
 interface ITreeNode {
   id: string | number
   name: string | number
-  loading: boolean
   active: boolean
-  topoType: 'biz' | 'module'
   show: boolean
   level: number
+  loadable: boolean
+  loading: boolean
   foldable: boolean
   folded: boolean
   child: ITreeNode[]
@@ -59,13 +55,6 @@ interface ITreeNode {
 })
 export default class ResourceTreeItem extends Vue {
   @Prop({ type: Array, default: () => [] }) private readonly nodeList!: ITreeNode[];
-  @Prop({ type: String, default: 'left' }) private readonly loadPosition!: string;
-
-  public nodeTypeMap = {
-    biz: this.$t('业'),
-    set: this.$t('集'),
-    module: this.$t('模'),
-  };
 
   public handleClickNode(node: ITreeNode) {
     this.$emit('click', node);
