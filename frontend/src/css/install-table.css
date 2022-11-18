@@ -139,6 +139,9 @@
       }
     }
   }
+  .step-verify-input {
+    height: 100%
+  }
   .step-verify-input:not(.is-error) .select:hover i {
     display: block;
   }
