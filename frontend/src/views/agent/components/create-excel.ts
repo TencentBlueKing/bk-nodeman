@@ -39,7 +39,7 @@ export const demoData = [
     bk_biz_id: '蓝鲸',
     bk_cloud_id: '直连区域',
     ap_id: '自动选择',
-    peer_exchange_switch_for_agent: 'TRUE',
+    peer_exchange_switch_for_agent: true,
     bt_speed_limit: '',
     bk_addressing: window.i18n.t('静态'),
   },
@@ -73,7 +73,7 @@ export const demoData = [
     bk_biz_id: '',
     bk_cloud_id: '直连区域',
     ap_id: '默认接入点',
-    peer_exchange_switch_for_agent: 'FALSE',
+    peer_exchange_switch_for_agent: false,
     bt_speed_limit: '',
     bk_addressing: '',
   },
@@ -92,7 +92,7 @@ export function createWorksheet(config: IHead[]) {
   try {
     const excelHead = config.map(th => (th.optional ? `${th.name}${window.i18n.t('可选')}` : th.name));
 
-    const excelBody = demoData.map(demo => config.map(item => demo[item.prop] || null));
+    const excelBody = demoData.map(demo => config.map(item => (demo[item.prop] === '' ? null : demo[item.prop])));
     const excelData = [excelHead, ...excelBody];
     const excelCols = config.map(item => ({
       wpx: item.width || 100,
