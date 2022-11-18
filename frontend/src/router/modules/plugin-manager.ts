@@ -204,8 +204,8 @@ export default [
     path: '/plugin-manager/resource-quota',
     name: 'resourceQuota',
     props: route => ({
-      bizId: route.query.bizId ? Number(route.query.bizId) : -1,
-      moduleId: route.query.moduleId ? Number(route.query.moduleId) : -1,
+      bizId: Number(route.query.bizId || -1),
+      moduleId: Number(route.query.moduleId || -1),
     }),
     component: ResourceQuota,
     meta: {
@@ -222,8 +222,8 @@ export default [
     path: '/plugin-manager/resource-quota/edit',
     name: 'resourceQuotaEdit',
     props: route => ({
-      bizId: route.query.bizId ? Number(route.query.bizId) : -1,
-      moduleId: route.query.moduleId ? Number(route.query.moduleId) : -1,
+      bizId: Number(route.query.bizId || -1),
+      moduleId: Number(route.query.moduleId || -1),
     }),
     component: ResourceQuotaEdit,
     meta: {

@@ -1,7 +1,6 @@
 <template>
   <ResourceTreeItem
     :node-list="nodeList"
-    :load-position="loadPosition"
     @click="handleClickNode">
   </ResourceTreeItem>
 </template>
@@ -10,15 +9,27 @@
 import { Prop, Vue, Component } from 'vue-property-decorator';
 import ResourceTreeItem from './resource-tree-item.vue';
 
-interface ITreeNode {
-  id: string | number
+export type INodeType = 'biz' | 'template';
+
+export interface IData {
+  bk_inst_id: number
+  bk_inst_name: string
+  bk_obj_id: INodeType
+  bk_biz_id?: number
+  topoIcon?: boolean
+  child?: IData[]
+}
+
+export interface ITreeNode {
+  id: number
   name: string
-  loaded: boolean,
-  loading: boolean
+  type: INodeType
   active: boolean
-  topoType: 'biz' | 'module'
   show: boolean
   level: number
+  loadable: boolean
+  loaded: boolean
+  loading: boolean
   foldable: boolean
   folded: boolean
   child: ITreeNode[]
@@ -39,10 +50,17 @@ interface ITreeId {
 export default class ResourceTree extends Vue {
   public nodeList: ITreeNode[] = [];
 
-  @Prop({ type: String, default: '' }) private readonly activeId!: number;
-  @Prop({ type: Array, default: () => [] }) private readonly treeData!: any[];
-  @Prop({ type: String, default: 'left' }) private readonly loadPosition!: string;
+  @Prop({ type: String, default: -1 }) private readonly activeId!: number;
+  @Prop({ type: Object }) private readonly selectedNode!: ITreeNode | null;
+  @Prop({ type: Array, default: () => [] }) private readonly treeData!: IData[];
+  // @Prop({ type: String, default: 'left' }) private readonly loadPosition!: string;
   @Prop({ type: Function }) private readonly loadMethod!: Function;
+  @Prop({ type: Function }) private readonly nodeShowAble?: (node: Dictionary) => boolean;
+  @Prop({ type: Function }) private readonly nodeLoadAble?: (node: Dictionary) => boolean;
+  @Prop({ type: Function }) private readonly nodeFoldAble?: (node: Dictionary) => boolean;
+  @Prop({ type: Function }) private readonly nodeSelectedAble?: (node: Dictionary) => boolean;
+
+  private activeNode: ITreeNode | null = null;
 
   private created() {
     this.$set(this, 'nodeList', this.getFormatTree(this.treeData));
@@ -67,34 +85,57 @@ export default class ResourceTree extends Vue {
    * 默认选中一个节点
    */
   public initActiveNode() {
-    const node = this.findNode(this.activeId);
+    const node = this.findCurrentNode();
     if (node) {
-      this.$emit('selected', node);
-      this.setActiveNode({ key: 'id', value: node.id });
       this.toggleExpandedParent(node, true);
-      this.setActiveVisible();
+      this.scrollToActiveNode();
+      this.handleSelected(node);
     }
   }
 
-  public async handleClickNode(node: ITreeNode) {
-    if (node.topoType === 'biz') {
-      if (!node.loaded && !!this.loadMethod) {
+  public async handleClickNode(node: ITreeNode) { // 1、展开/收起 2、选中 3、load&选中
+    if (node.loadable) {
+      if (!node.loaded) {
+        if (!this.loadMethod) {
+          console.error('loadMethod is required.');
+          return;
+        }
         node.loading = true;
         const children = await this.loadMethod(node);
-        this.appendChild(node, children);
         node.loaded = true;
         node.loading = false;
+        if (node.foldable) node.folded = true;
+        if (children.length) {
+          this.appendChild(node, children);
+        } else {
+          this.handleSelected(node);
+          return;
+        }
+      } else {
+        if (node.foldable) node.folded = !node.folded;
+        // nodeSelectedAble
+        if (!node.child?.length && this.activeNode?.id !== node.id) {
+          this.handleSelected(node);
+          return;
+        }
       }
-      node.folded = !node.folded;
     } else {
-      this.setActiveNode({ key: 'id', value: node.id });
-      this.$emit('click', node);
-      this.$emit('selected', node);
+      if (node.foldable) {
+        node.folded = !node.folded;
+      } else {
+        this.handleSelected(node);
+      }
     }
+  }
+
+  public handleSelected(node: ITreeNode) {
+    this.setActiveNode(node);
+    this.$set(this, 'activeNode', node);
+    this.$emit('selected', node);
   }
 
   public async appendChild(parent: ITreeNode, nodes: any[]) {
-    parent.child.splice(parent.child.length, 0, ...nodes.map(item => this.getFormatNode(item, 1, parent)));
+    parent.child.splice(parent.child.length, 0, ...nodes.map(item => this.formatTreeNode(item, 1, parent)));
   }
 
   public toggleExpandedParent(node: ITreeNode, expanded?: boolean) {
@@ -106,33 +147,36 @@ export default class ResourceTree extends Vue {
     }
   }
 
-  public getFormatTree(list: any[], level = 0, parent?: ITreeNode) {
-    return list.map(item => this.getFormatNode(item, level, parent));
+  public getFormatTree(list: IData[], level = 0, parent?: ITreeNode) {
+    return list.map(item => this.formatTreeNode(item, level, parent));
   }
 
-  public getFormatNode(item: any, level = 0, parent?: ITreeNode): ITreeNode {
+  public formatTreeNode(item: IData, level = 0, parent?: ITreeNode): ITreeNode {
     const node: ITreeNode = {
+      ...item,
       id: item.bk_inst_id,
       name: `${item.bk_inst_name}`,
-      loading: false,
-      loaded: item.bk_obj_id === 'biz' ? !!(item.child && item.child.length) : true,
-      active: false,
+      type: item.bk_obj_id,
       level,
-      topoType: item.bk_obj_id,
-      show: true,
-      foldable: item.bk_obj_id === 'biz',
+      active: false,
+      topoIcon: !!item.topoIcon,
+      show: this.nodeShowAble?.(item) || true,
+      loadable: this.nodeLoadAble?.(item) || false,
+      loaded: !!item.child?.length || false,
+      loading: false,
+      foldable: this.nodeFoldAble?.(item) || false,
       folded: false,
-      child: [],
-      topoIcon: item.topoIcon,
       parent,
+      child: [],
     };
     node.child = item.child && item.child.length ? this.getFormatTree(item.child, level + 1, node) : [];
     return node;
   }
-  public setActiveNode(params: ITreeId) {
-    const targetNode = this.findNodeAttr(params);
+
+  public setActiveNode(node: ITreeNode) {
+    const targetNode = this.findNode(node);
     if (targetNode) {
-      const curActiveNode = this.findNodeAttr({ key: 'active', value: true });
+      const curActiveNode = this.findCurrentNode();
       if (curActiveNode) {
         curActiveNode.active = false;
       }
@@ -140,31 +184,23 @@ export default class ResourceTree extends Vue {
     }
   }
 
-  public findNode(id: string | number): ITreeNode | undefined {
-    return this.findNodeAttr({ key: 'id', value: id });
+  public findCurrentNode(node?: ITreeNode): ITreeNode | undefined {
+    return this.findNode(node || this.selectedNode as ITreeNode);
   }
 
-  public findNodeAttr({ key, value, list }: ITreeId): ITreeNode | undefined {
-    let node: ITreeNode | undefined = undefined;
+  public findNode(node: { id: number, type: string }, list?: ITreeNode[]): ITreeNode | undefined {
+    let curNode: ITreeNode | undefined = undefined;
     (list || this.nodeList).forEach((item) => {
-      if (item[key] === value) {
-        node = item;
+      if (item.id === node.id && item.type === node.type) {
+        curNode = item;
       }
-      if (!node && item.child && item.child.length) {
-        node = this.findNodeAttr({ key, value, list: item.child });
+      if (!curNode && item.child && item.child.length) {
+        curNode = this.findNode(node, item.child);
       }
     });
-    return node;
+    return curNode;
   }
 
-  public setNodeAttr(params: ITreeId) {
-    if (params.id) {
-      const targetNode = this.findNode(params.id);
-      if (targetNode) {
-        this.$set(targetNode, params.key, params.value);
-      }
-    }
-  }
 
   public search(key: string) {
     const searchKey = `${key}`.toLowerCase();
@@ -181,7 +217,7 @@ export default class ResourceTree extends Vue {
     });
   }
 
-  public setActiveVisible() {
+  public scrollToActiveNode() {
     this.$nextTick(() => {
       const { top, bottom } = this.$el.getBoundingClientRect();
       const ele = document.querySelector('div[class="tree-node-item topo-active"]');

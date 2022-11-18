@@ -1042,6 +1042,10 @@ export default {
   模: 'M',
   '已手动调整资源配额（非默认配置）': 'Manually adjusted resource quota (not default configuration)',
   请选择服务模板: 'Please select a service template',
+  当前业务暂无服务模版: 'No service template for current business',
+  业务暂无服务模版path: 'The configuration can be quickly applied to the same set of services through the service template',
+  业务暂无服务模版slot: 'Go to {0} to create a service template',
+  配置平台: 'The configuration platform',
 
   // 任务历史 - 新
   创建云区域权限: 'Create cloud area permissions',
