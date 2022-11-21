@@ -1,0 +1,3 @@
+---
+feature:
+  - "新增 BK_CC_HOST 环境变量用于前端跳转逻辑 (closed #1255)"
