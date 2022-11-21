@@ -33,6 +33,7 @@ data:
 
   JOB_VERSION: "{{ .Values.config.jobVersion }}"
   BLUEKING_BIZ_ID: "{{ .Values.config.bluekingBizId }}"
+  BK_CC_HOST: "{{ .Values.bkCmdbUrl }}"
   BK_JOB_HOST: "{{ .Values.config.bkJobUrl | default .Values.bkJobUrl }}"
 
   BKAPP_USE_IAM: "{{ .Values.config.bkAppUseIam }}"

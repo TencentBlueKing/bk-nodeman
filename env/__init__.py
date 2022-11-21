@@ -28,6 +28,7 @@ __all__ = [
     "BKAPP_OTEL_SAMPLER",
     "BKAPP_OTEL_BK_DATA_TOKEN",
     "BKAPP_OTEL_GRPC_URL",
+    "BK_CC_HOST",
     "ENVIRONMENT",
     # esb 访问地址
     "BK_COMPONENT_API_URL",
@@ -85,3 +86,8 @@ BKAPP_OTEL_SAMPLER = get_type_env(key="BKAPP_OTEL_SAMPLER", default="parentbased
 # 监控上报配置项
 BKAPP_OTEL_BK_DATA_TOKEN = get_type_env(key="BKAPP_OTEL_BK_DATA_TOKEN", _type=str)
 BKAPP_OTEL_GRPC_URL = get_type_env(key="BKAPP_OTEL_GRPC_URL", _type=str)
+
+# ===============================================================================
+# 第三方依赖
+# ===============================================================================
+BK_CC_HOST = get_type_env(key="BK_CC_HOST", default="", _type=str)
