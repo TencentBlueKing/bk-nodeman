@@ -288,6 +288,7 @@ BK_NODEMAN_HOST = env.BK_NODEMAN_HOST
 # 节点管理后台外网域名，用于构造文件导入导出的API URL
 BK_NODEMAN_BACKEND_HOST = env.BK_NODEMAN_BACKEND_HOST
 BK_JOB_HOST = os.environ.get("BK_JOB_HOST", BK_PAAS_HOST.replace("paas", "job"))
+BK_CC_HOST = env.BK_CC_HOST
 
 # 是否使用权限中心
 USE_IAM = bool(os.getenv("BKAPP_USE_IAM", False))
