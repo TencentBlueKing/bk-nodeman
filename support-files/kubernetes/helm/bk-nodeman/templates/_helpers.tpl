@@ -145,6 +145,14 @@ Ref: https://cert-manager.io/docs/usage/ingress/#supported-annotations
 {{- printf "%s-%s-%d"  (include "bk-nodeman.fullname" .) "migrate-file-sync" .Release.Revision }}
 {{- end -}}
 
+{{- define "bk-nodeman.migrate-job.db.pure" -}}
+{{- printf "%s-%s"  (include "bk-nodeman.fullname" .) "migrate-db" }}
+{{- end -}}
+
+{{- define "bk-nodeman.migrate-job.file-sync.pure" -}}
+{{- printf "%s-%s"  (include "bk-nodeman.fullname" .) "migrate-file-sync" }}
+{{- end -}}
+
 {{/*用于标记或匹配需要采集 metrics 指标的 svc*/}}
 {{- define "bk-nodeman.labels.serviceMonitor" -}}
 processType: "metrics"
@@ -212,7 +220,7 @@ envFrom:
 
 {{- define "bk-nodeman.backend.initContainers" -}}
 initContainers:
-  - name: "{{ include "bk-nodeman.migrate-job.file-sync" . }}"
+  - name: "{{ include "bk-nodeman.migrate-job.file-sync.pure" . }}"
     image: "{{ .Values.global.imageRegistry | default .Values.images.k8sWaitFor.registry }}/{{ .Values.images.k8sWaitFor.repository }}:{{ .Values.images.k8sWaitFor.tag }}"
     imagePullPolicy: "{{ .Values.images.k8sWaitFor.pullPolicy }}"
     args: ["job", "{{ include "bk-nodeman.migrate-job.file-sync" . }}"]
