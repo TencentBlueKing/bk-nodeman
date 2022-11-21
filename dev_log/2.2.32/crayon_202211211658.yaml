@@ -1,0 +1,3 @@
+---
+bugfix:
+  - "Windows 通过 IPv6 远程执行命令报错：Can't find a valid stringBinding to connect (fixed #1251)"
