@@ -26,25 +26,27 @@
 
 由指定关键词key和value组成的字典 示例：{"key": "inner_ip", "value": ["127.0.0.1"]}
 
-| key                   | 类型     | value描述                                                     |
-| --------------------- | ------ | ----------------------------------------------------------- |
-| inner_ip              | string | 主机内网IPV4地址                                                  |
-| node_from             | string | 节点来源，1: CMDB,  配置平台同步 2: EXCEL, saas页面表格导入 3: NODE_MAN，节点管理 |
-| node_type             | string | 节点类型，1: AGENT, 2: PROXY, 3: PAGENT                          |
-| bk_addressing         | string | 寻址方式，1: 0，静态 2: 1，动态                                        |
-| bk_host_name          | string | 主机名称                                                        |
-| os_type               | string | 操作系统，1：LINUX 2：WINDOWS 3：AIX 4：SOLARIS                      |
-| status                | string | 进程状态，见status定义                                              |
-| version               | string | Agent版本号                                                    |
-| is_manual             | string | 手动安装                                                        |
-| bk_cloud_id           | string | 云区域ID                                                       |
-| install_channel_id    | string | 安装通道ID                                                      |
-| topology              | string | 集群与模块的精准搜索                                                  |
-| query                 | string | IP、操作系统、Agent状态、Agent版本、云区域模糊搜索,对应value为列表时为多模糊搜索           |
-| source_id             | string | 来源ID                                                        |
-| plugin_name           | string | 插件名，展开任务下所有的插件名称                                            |
-| ${plugin_name}        | string | 插件版本的精确搜索，${plugin_name}为对应的目标插件名称                          |
-| ${plugin_name}_status | string | 插件状态的精确搜索，${plugin_name}为对应的目标插件名称                          |
+| key                   | 类型     | value描述                                                    |
+|-----------------------|--------|------------------------------------------------------------|
+| ip                    | list   | 主机内网 IP，支持 v4 / v6 混合输入                                    |
+| inner_ip              | list   | 主机内网IPv4地址                                                 |
+| inner_ipv6            | list   | 主机内网IPv6地址                                                 |
+| node_from             | list   | 节点来源，1: CMDB, 配置平台同步 2: EXCEL, saas页面表格导入 3: NODE_MAN，节点管理 |
+| node_type             | list   | 节点类型，1: AGENT, 2: PROXY, 3: PAGENT                         |
+| bk_addressing         | list   | 寻址方式，1: 0，静态 2: 1，动态                                       |
+| bk_host_name          | list   | 主机名称                                                       |
+| os_type               | list   | 操作系统，1：LINUX 2：WINDOWS 3：AIX 4：SOLARIS                     |
+| status                | list   | 进程状态，见status定义                                             |
+| version               | list   | Agent版本号                                                   |
+| is_manual             | list   | 手动安装                                                       |
+| bk_cloud_id           | list   | 云区域ID                                                      |
+| install_channel_id    | list   | 安装通道ID                                                     |
+| topology              | string | 集群与模块的精准搜索                                                 |
+| query                 | string | IP、操作系统、Agent状态、Agent版本、云区域模糊搜索,对应value为列表时为多模糊搜索          |
+| source_id             | string | 来源ID                                                       |
+| plugin_name           | string | 插件名，展开任务下所有的插件名称                                           |
+| ${plugin_name}        | string | 插件版本的精确搜索，${plugin_name}为对应的目标插件名称                         |
+| ${plugin_name}_status | string | 插件状态的精确搜索，${plugin_name}为对应的目标插件名称                         |
 
 ### 请求参数示例
 

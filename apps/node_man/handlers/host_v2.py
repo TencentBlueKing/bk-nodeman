@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 from copy import deepcopy
 from typing import Any, Dict
 
+from apps.core.ipchooser import core_ipchooser_constants
 from apps.core.ipchooser.tools.base import HostQueryHelper, HostQuerySqlHelper
 from apps.node_man import models, tools
 from apps.node_man.constants import DEFAULT_CLOUD_NAME, IamActionType
@@ -83,20 +84,9 @@ class HostV2Handler:
         if only_queryset:
             return hosts_sql
 
-        fetch_fields = [
-            "bk_biz_id",
-            "bk_host_id",
-            "bk_cloud_id",
-            "bk_host_name",
-            "bk_addressing",
-            "os_type",
-            "inner_ip",
-            "inner_ipv6",
-            "status",
-            "cpu_arch",
-        ]
+        fetch_fields = core_ipchooser_constants.CommonEnum.DEFAULT_HOST_FIELDS.value + ["bk_addressing", "cpu_arch"]
 
-        hosts = list(hosts_sql.values(*fetch_fields)[begin:end])
+        hosts = list(hosts_sql.values(*set(fetch_fields))[begin:end])
 
         bk_cloud_ids = [host["bk_cloud_id"] for host in hosts]
 
