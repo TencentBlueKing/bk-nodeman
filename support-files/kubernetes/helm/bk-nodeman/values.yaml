@@ -243,6 +243,9 @@ bkNodemanUrl: "http://bknodeman.example.com"
 ## 节点管理后台访问地址
 bkNodemanApiUrl: "http://bk-nodeman-backend-api"
 
+## 蓝鲸配置平台浏览器访问地址
+bkCmdbUrl: http://cmdb.example.com
+
 ## 蓝鲸作业平台浏览器访问地址
 bkJobUrl: "http://job.example.com"
 

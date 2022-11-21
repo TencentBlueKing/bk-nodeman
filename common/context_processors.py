@@ -65,6 +65,8 @@ def mysetting(request):
         "LOGIN_SERVICE_URL": ConfFixture.LOGIN_URL,
         # PAAS域名
         "BK_PAAS_HOST": settings.BK_PAAS_HOST,
+        # CMDB 访问地址
+        "CMDB_URL": settings.BK_CC_HOST,
         # 当前页面，主要为了login_required做跳转用
         "APP_PATH": request.get_full_path(),
         "NOW": datetime.datetime.now(),
