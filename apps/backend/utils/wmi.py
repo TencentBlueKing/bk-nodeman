@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from apps.utils import basic
 from script_tools.wmiexec import WMIEXEC
 
 
@@ -15,7 +16,7 @@ def put_file(src_file, des_path, des_ip, username, password, domain="", share="A
     """upload file"""
     cmd_str = "put " + str(src_file) + " " + str(des_path)
     executor = WMIEXEC(cmd_str, username, password, domain, share=share)
-    executor.run(des_ip)
+    executor.run(basic.compressed_ip(des_ip))
     return {
         "result": True,
         "data": "upload {} success to {}:{}".format(src_file, des_ip, des_path),
@@ -25,5 +26,5 @@ def put_file(src_file, des_path, des_ip, username, password, domain="", share="A
 def execute_cmd(cmd_str, ipaddr, username, password, domain="", share="ADMIN$", no_output=False):
     """execute command"""
     executor = WMIEXEC(cmd_str, username, password, domain, share=share, noOutput=no_output)
-    result_data = executor.run(ipaddr)
+    result_data = executor.run(basic.compressed_ip(ipaddr))
     return {"result": True, "data": result_data}
