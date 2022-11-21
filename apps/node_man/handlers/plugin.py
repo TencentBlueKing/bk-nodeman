@@ -14,6 +14,7 @@ from typing import Any, Dict
 from django.db.models import Q
 from django.utils.translation import get_language
 
+from apps.core.ipchooser import core_ipchooser_constants
 from apps.core.ipchooser.tools.base import HostQueryHelper, HostQuerySqlHelper
 from apps.core.tag import targets
 from apps.core.tag.models import Tag
@@ -217,22 +218,14 @@ class PluginHandler(APIModel):
             result = {"total": hosts_status_count, "list": hosts_status}
             return result
         else:
+            host_fields = core_ipchooser_constants.CommonEnum.DEFAULT_HOST_FIELDS.value + [
+                "bk_addressing",
+                "cpu_arch",
+                "node_type",
+                "node_from",
+            ]
             # sql分页查询获得数据
-            hosts_status = list(
-                hosts_status_sql[begin:end].values(
-                    "bk_biz_id",
-                    "bk_host_id",
-                    "bk_cloud_id",
-                    "bk_host_name",
-                    "bk_addressing",
-                    "inner_ip",
-                    "inner_ipv6",
-                    "os_type",
-                    "cpu_arch",
-                    "node_type",
-                    "node_from",
-                )
-            )
+            hosts_status = list(hosts_status_sql[begin:end].values(*set(host_fields)))
 
         # 分页结果的Host_id, cloud_id集合
         bk_host_ids = [hs["bk_host_id"] for hs in hosts_status]

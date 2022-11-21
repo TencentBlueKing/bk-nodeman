@@ -12,6 +12,7 @@ import ipaddress
 import json
 from collections import Counter, namedtuple
 from copy import deepcopy
+from functools import partial
 from typing import Any, Dict, Iterable, List, Optional, Set, Union
 
 
@@ -191,22 +192,58 @@ def get_chr_seq(begin_chr: str, end_chr: str) -> List[str]:
     return [chr(ascii_int) for ascii_int in range(ord(begin_chr), ord(end_chr) + 1)]
 
 
-def is_v6(ip) -> bool:
+def is_ip(ip: str, _version: Optional[int] = None) -> bool:
+    """
+    判断是否为合法 IP
+    :param ip:
+    :param _version: 是否为合法版本，缺省表示 both
+    :return:
+    """
     try:
         ip_address = ipaddress.ip_address(ip)
     except ValueError:
         return False
-
-    if ip_address.version == 6:
+    if _version is None:
         return True
+    return ip_address.version == _version
 
-    return False
+
+# 判断是否为合法 IPv6
+is_v6 = partial(is_ip, _version=6)
+
+# 判断是否为合法 IPv4
+is_v4 = partial(is_ip, _version=4)
 
 
-def exploded_ip(ip):
+def exploded_ip(ip: str) -> str:
+    """
+    如果 ip 为合法的 IPv6，转为标准格式
+    :param ip:
+    :return:
+    """
     if is_v6(ip):
         return ipaddress.ip_address(ip).exploded
     return ip
+
+
+def compressed_ip(ip: str) -> str:
+    """
+    如果 ip 为合法的 IPv6，转为压缩格式
+    :param ip:
+    :return:
+    """
+    if is_v6(ip):
+        return ipaddress.ip_address(ip).compressed
+    return ip
+
+
+def ipv6s_formatter(ips: List[str]) -> List[str]:
+    """
+    将 IPv6 列表转为标准格式
+    :param ips:
+    :return:
+    """
+    return [exploded_ip(ip) for ip in ips]
 
 
 def ipv6_formatter(data: Dict[str, Any], ipv6_field_names: List[str]):
