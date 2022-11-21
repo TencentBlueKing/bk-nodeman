@@ -129,6 +129,22 @@ class HostQuerySqlHelper:
                 return set(host_queryset) or [-1]
         return []
 
+    @staticmethod
+    def fetch_match_node_types(is_proxy: bool, return_all_node_type: bool) -> typing.List[str]:
+        if is_proxy:
+            # 单独查代理
+            return [node_man_constants.NodeType.PROXY]
+        elif return_all_node_type:
+            # 查插件，或者返回全部类型的情况
+            return [
+                node_man_constants.NodeType.AGENT,
+                node_man_constants.NodeType.PAGENT,
+                node_man_constants.NodeType.PROXY,
+            ]
+        else:
+            # 查 Agent
+            return [node_man_constants.NodeType.AGENT, node_man_constants.NodeType.PAGENT]
+
     @classmethod
     def multiple_cond_sql(
         cls,
@@ -169,24 +185,9 @@ class HostQuerySqlHelper:
         if params.get("bk_biz_id"):
             final_biz_scope = final_biz_scope & set(params["bk_biz_id"])
 
-        filter_kwargs: typing.Dict[str, typing.Any] = {
-            "bk_host_id__in": params.get("bk_host_id"),
-            "bk_biz_id__in": final_biz_scope,
-        }
-
-        if is_proxy:
-            # 单独查代理
-            node_types = [node_man_constants.NodeType.PROXY]
-        elif return_all_node_type:
-            # 查插件，或者返回全部类型的情况
-            node_types = [
-                node_man_constants.NodeType.AGENT,
-                node_man_constants.NodeType.PAGENT,
-                node_man_constants.NodeType.PROXY,
-            ]
-        else:
-            # 查 Agent
-            node_types = [node_man_constants.NodeType.AGENT, node_man_constants.NodeType.PAGENT]
+        filter_q: Q = Q(bk_biz_id__in=final_biz_scope)
+        if params.get("bk_host_id") is not None:
+            filter_q &= Q(bk_host_id__in=params.get("bk_host_id"))
 
         # 条件搜索
         where_or = []
@@ -195,12 +196,28 @@ class HostQuerySqlHelper:
 
         for condition in params.get("conditions", []):
             if condition["key"] in ["inner_ip", "inner_ipv6" "node_from", "node_type", "bk_addressing", "bk_host_name"]:
+                if condition["key"] in ["inner_ipv6"]:
+                    condition["value"] = basic.ipv6s_formatter(condition["value"])
                 # host 精确搜索
-                filter_kwargs[condition["key"] + "__in"] = condition["value"]
+                filter_q &= Q(**{f"{condition['key']}__in": condition["value"]})
+
+            elif condition["key"] in ["ip"]:
+                ipv6s: typing.Set[str] = set()
+                ipv4s: typing.Set[str] = set()
+
+                for ip in condition["value"]:
+                    if basic.is_v6(ip):
+                        ipv6s.add(basic.exploded_ip(ip))
+                    else:
+                        ipv4s.add(ip)
+
+                filter_q &= Q(inner_ip__in=ipv4s) | Q(inner_ipv6__in=ipv6s)
 
             elif condition["key"] in ["os_type"]:
                 # 如果传的是 none，替换成 ""
-                filter_kwargs[condition["key"] + "__in"] = list(map(lambda x: (x, "")[x == "none"], condition["value"]))
+                filter_q &= Q(
+                    **{f"{condition['key']}__in": list(map(lambda x: (x, "")[x == "none"], condition["value"]))}
+                )
 
             elif condition["key"] in ["status", "version"]:
                 # process_status 精确搜索
@@ -216,7 +233,7 @@ class HostQuerySqlHelper:
                 # 对于数字类过滤条件，保证过滤值全数字再拼生成 SQL，否则该条件置空
                 is_digit_list: bool = "".join([str(cond_val) for cond_val in condition["value"]]).isdigit()
                 if is_digit_list:
-                    filter_kwargs[condition["key"] + "__in"] = condition["value"]
+                    filter_q &= Q(**{f"{condition['key']}__in": condition["value"]})
 
             elif condition["key"] == "topology":
                 # 集群与模块的精准搜索
@@ -289,11 +306,13 @@ class HostQuerySqlHelper:
             topo_query = topo_query | Q(bk_host_id__in=topo_host_ids)
 
         host_queryset: QuerySet = (
-            node_man_models.Host.objects.filter(node_type__in=node_types, bk_biz_id__in=final_biz_scope)
+            node_man_models.Host.objects.filter(
+                node_type__in=cls.fetch_match_node_types(is_proxy, return_all_node_type), bk_biz_id__in=final_biz_scope
+            )
             .extra(
                 select=select, tables=[node_man_models.ProcessStatus._meta.db_table], where=wheres, params=sql_params
             )
-            .filter(**basic.filter_values(filter_kwargs))
+            .filter(filter_q)
             .filter(topo_query)
         )
 
@@ -439,6 +458,8 @@ class HostQueryHelper:
         or_query = Q()
         for or_condition in or_conditions:
             if or_condition["key"] in ["inner_ip", "inner_ipv6", "bk_host_name", "bk_host_id"]:
+                if or_condition["key"] in ["inner_ipv6"]:
+                    or_condition["val"] = basic.ipv6s_formatter(or_condition["val"])
                 or_query = or_query | Q(**{f"{or_condition['key']}__in": or_condition["val"]})
             elif or_condition["key"] in ["cloud_inner_ip", "cloud_inner_ipv6"]:
                 __, key = or_condition["key"].split("_", 1)

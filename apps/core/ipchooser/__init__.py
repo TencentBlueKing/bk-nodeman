@@ -10,4 +10,4 @@ specific language governing permissions and limitations under the License.
 """
 from . import constants
 
-core_encrypt_constants = constants
+core_ipchooser_constants = constants
