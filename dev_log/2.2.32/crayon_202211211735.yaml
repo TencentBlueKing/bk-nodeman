@@ -1,0 +1,3 @@
+---
+optimization:
+  - "Helm Charts InitContainers 容器名称去除 revision 后缀 (closed #1253)"
