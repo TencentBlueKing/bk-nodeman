@@ -88,16 +88,15 @@ class HostV2Tools:
     @classmethod
     def retrieve_host_info(cls, cmdb_host_info: Dict, fields: List[str] = None) -> Dict:
         fields = fields or ["ip", "bk_biz_id", "bk_cloud_id", "os_type"]
-        field__cmdb_field__map = {"ip": "bk_host_innerip"}
-
         host_info = {}
         for field in fields:
             if field == "os_type":
                 host_info[field] = cls.get_os_type(cmdb_host_info)
                 continue
-
-            cmdb_field = field__cmdb_field__map.get(field, field)
-            host_info[field] = cmdb_host_info.get(cmdb_field)
+            elif field == "ip":
+                host_info[field] = cmdb_host_info.get("bk_host_innerip") or cmdb_host_info.get("bk_host_innerip_v6")
+                continue
+            host_info[field] = cmdb_host_info.get(field)
         return host_info
 
     @classmethod
