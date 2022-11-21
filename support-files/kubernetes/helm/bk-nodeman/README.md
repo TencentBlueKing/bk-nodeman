@@ -264,6 +264,7 @@ externalRabbitMQ:
 | `bkNodemanUrl`      | 节点管理浏览器访问地址                                       | `http://bknodeman.example.com`  |
 | `bkNodemanApiUrl`   | 节点管理后台访问地址                                         | `http://bk-nodeman-backend-api` |
 | `bkJobUrl`          | 蓝鲸作业平台浏览器访问地址                                   | `http://job.example.com`        |
+| `bkCmdbUrl`         | 蓝鲸配置平台浏览器访问地址 | `http://cmdb.example.com`    |
 | `bkIamUrl`          | 蓝鲸权限中心 SaaS 地址                                       | `http://bkiam.example.com`      |
 | `bkIamApiUrl`       | 蓝鲸权限中心后台 API 地址                                    | `http://bkiam-api.example.com`  |
 | `bkRepoUrl`         | 蓝鲸制品库浏览器访问域名和后台 API http://bkiam-api.example.com 域名同一个 | `http://bkrepo.example.com`     |
