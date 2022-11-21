@@ -9,9 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import itertools
-import operator
 from collections import Counter
-from functools import reduce
 from typing import Any, Dict, Iterable, List, Optional, Union
 
 from django.conf import settings
@@ -20,6 +18,7 @@ from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
 from apps.node_man import constants, models
+from apps.utils import basic
 from apps.utils.local import get_request_username
 from common.api import NodeApi
 
@@ -197,9 +196,14 @@ class JobTools:
                     filter_key_value_list_map[condition["key"]].extend(condition["value"])
 
         host_query = Q()
-        fuzzy_inner_ips = filter_key_value_list_map["ip"]
-        if fuzzy_inner_ips:
-            host_query &= reduce(operator.or_, (Q(inner_ip__contains=fuzzy_ip) for fuzzy_ip in fuzzy_inner_ips))
+        for fuzzy_inner_ip in filter_key_value_list_map["ip"]:
+            if basic.is_v6(fuzzy_inner_ip):
+                host_query |= Q(inner_ipv6=basic.exploded_ip(fuzzy_inner_ip))
+            elif basic.is_v4(fuzzy_inner_ip):
+                host_query |= Q(inner_ip=fuzzy_inner_ip)
+            else:
+                host_query |= Q(inner_ipv6__contains=fuzzy_inner_ip) | Q(inner_ip__contains=fuzzy_inner_ip)
+
         instance_ids = filter_key_value_list_map["instance_id"]
         base_fields = {
             "node_type": models.Subscription.NodeType.INSTANCE,
@@ -208,13 +212,15 @@ class JobTools:
         if host_query:
             from apps.backend.subscription.tools import create_node_id
 
-            for host in list(models.Host.objects.filter(host_query).values("inner_ip", "bk_cloud_id", "bk_host_id")):
+            for host in list(
+                models.Host.objects.filter(host_query).values("inner_ip", "inner_ipv6", "bk_cloud_id", "bk_host_id")
+            ):
                 instance_ids.extend(
                     [
                         create_node_id(
                             {
                                 **base_fields,
-                                "ip": host["inner_ip"],
+                                "ip": host.get("inner_ip") or host.get("inner_ipv6"),
                                 "bk_cloud_id": host["bk_cloud_id"],
                                 "bk_supplier_id": constants.DEFAULT_CLOUD,
                             }
