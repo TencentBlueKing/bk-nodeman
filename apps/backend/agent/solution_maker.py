@@ -684,6 +684,7 @@ class ProxyExecutionSolutionMaker(BaseExecutionSolutionMaker):
         host_identity: str = (self.identity_data.password, self.identity_data.key)[
             self.identity_data.auth_type == constants.AuthType.KEY
         ]
+        login_ip: str = basic.compressed_ip(self.host.login_ip or self.host.inner_ip or self.host.inner_ipv6)
         run_cmd_params: typing.List[str] = [
             # 文件下载 / 回调服务信息
             f"-l {self.gse_servers_info['package_url']}",
@@ -701,7 +702,7 @@ class ProxyExecutionSolutionMaker(BaseExecutionSolutionMaker):
             f"-HI '{host_identity}'",
             f"-HP {self.identity_data.port}",
             f"-HA {self.identity_data.account}",
-            f"-HLIP {self.host.login_ip or self.host.inner_ip or self.host.inner_ipv6}",
+            f"-HLIP {login_ip}",
             # 目标机器安装配置
             f"-HDD '{self.dest_dir}'",
             # 代理机器配置
