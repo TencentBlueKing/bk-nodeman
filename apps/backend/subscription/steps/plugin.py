@@ -937,7 +937,7 @@ class BasePluginAction(six.with_metaclass(abc.ABCMeta, Action)):
                 ):
                     # 只有在使用对象存储是，才下发初始化脚本的命令
                     activities.append(_activity)
-                    activities.append(plugin_manager.init_porc_script())
+                    activities.append(plugin_manager.init_proc_script())
                 else:
                     activities.append(_activity)
 
@@ -953,7 +953,7 @@ class BasePluginAction(six.with_metaclass(abc.ABCMeta, Action)):
         return activities, pipeline_data
 
     @abc.abstractmethod
-    def _generate_activities(self, plugin_manager) -> List[PluginServiceActivity]:
+    def _generate_activities(self, plugin_manager) -> Tuple[List[PluginServiceActivity], Data]:
         """
         :param PluginManager plugin_manager:
         :return list
@@ -1008,6 +1008,14 @@ class MainInstallPlugin(MainPluginAction, InstallPlugin):
         # 固定流程：下发插件 -> 安装插件
         activities = [
             plugin_manager.set_process_status(constants.ProcStateType.UNKNOWN),
+            plugin_manager.transfer_script(
+                op_types=[
+                    constants.GseOpType.START,
+                    constants.GseOpType.RESTART,
+                    constants.GseOpType.RELOAD,
+                    constants.GseOpType.STOP,
+                ]
+            ),
             plugin_manager.transfer_package(),
             plugin_manager.install_package(),
             plugin_manager.render_and_push_config_by_subscription(self.step.subscription_step.id),
@@ -1029,7 +1037,6 @@ class UninstallPlugin(PluginAction):
     def _generate_activities(self, plugin_manager):
         # 停用插件 -> 卸载插件
         activities = [
-            plugin_manager.transfer_script(op_types=[constants.GseOpType.STOP]),
             plugin_manager.operate_proc(constants.GseOpType.STOP),
             # TODO 卸载时需要在GSE注销进程
             plugin_manager.uninstall_package(),
@@ -1051,7 +1058,6 @@ class PushConfig(PluginAction):
         activities = [
             plugin_manager.set_process_status(constants.ProcStateType.UNKNOWN),
             plugin_manager.render_and_push_config_by_subscription(self.step.subscription_step.id),
-            plugin_manager.transfer_script(op_types=[constants.GseOpType.START, constants.GseOpType.RELOAD]),
             plugin_manager.operate_proc(op_type=constants.GseOpType.DELEGATE),
             plugin_manager.operate_proc(op_type=constants.GseOpType.RELOAD),
             plugin_manager.set_process_status(constants.ProcStateType.RUNNING),
@@ -1071,7 +1077,6 @@ class RemoveConfig(PluginAction):
         # 移除配置 -> 重启插件
         activities = [
             plugin_manager.remove_config(),
-            plugin_manager.transfer_script(op_types=[constants.GseOpType.RELOAD]),
             plugin_manager.operate_proc(constants.GseOpType.RELOAD),
             plugin_manager.set_process_status(constants.ProcStateType.REMOVED),
         ]
@@ -1091,7 +1096,6 @@ class StartPlugin(PluginAction):
         activities = [
             plugin_manager.switch_subscription_enable(enable=True),
             plugin_manager.set_process_status(constants.ProcStateType.UNKNOWN),
-            plugin_manager.transfer_script(op_types=[constants.GseOpType.START]),
             plugin_manager.operate_proc(constants.GseOpType.START),
             plugin_manager.set_process_status(constants.ProcStateType.RUNNING),
         ]
@@ -1100,6 +1104,11 @@ class StartPlugin(PluginAction):
 
 class MainStartPlugin(MainPluginAction, StartPlugin):
     ACTION_NAME = backend_const.ActionNameType.MAIN_START_PLUGIN
+
+    def _generate_activities(self, plugin_manager):
+        _activities, pipeline_data = super()._generate_activities(plugin_manager)
+        _activities.insert(2, plugin_manager.transfer_script(op_types=[constants.GseOpType.START]))
+        return _activities, None
 
 
 class MainReStartPlugin(MainPluginAction, StartPlugin):
@@ -1138,7 +1147,6 @@ class StopPlugin(PluginAction):
 
         activities = [
             plugin_manager.set_process_status(constants.ProcStateType.UNKNOWN),
-            plugin_manager.transfer_script(op_types=[constants.GseOpType.STOP]),
             plugin_manager.operate_proc(constants.GseOpType.STOP),
             plugin_manager.set_process_status(final_status),
         ]
@@ -1147,6 +1155,11 @@ class StopPlugin(PluginAction):
 
 class MainStopPlugin(MainPluginAction, StopPlugin):
     ACTION_NAME = backend_const.ActionNameType.MAIN_STOP_PLUGIN
+
+    def _generate_activities(self, plugin_manager):
+        _activities, pipeline_data = super()._generate_activities(plugin_manager)
+        _activities.insert(1, plugin_manager.transfer_script(op_types=[constants.GseOpType.STOP]))
+        return _activities, None
 
 
 class ReloadPlugin(PluginAction):
@@ -1161,7 +1174,6 @@ class ReloadPlugin(PluginAction):
         # 重载插件
         activities = [
             plugin_manager.set_process_status(constants.ProcStateType.UNKNOWN),
-            plugin_manager.transfer_script(op_types=[constants.GseOpType.RELOAD]),
             plugin_manager.operate_proc(constants.GseOpType.RELOAD),
             plugin_manager.set_process_status(constants.ProcStateType.RUNNING),
         ]
@@ -1170,6 +1182,11 @@ class ReloadPlugin(PluginAction):
 
 class MainReloadPlugin(MainPluginAction, ReloadPlugin):
     ACTION_NAME = backend_const.ActionNameType.MAIN_RELOAD_PLUGIN
+
+    def _generate_activities(self, plugin_manager):
+        _activities, pipeline_data = super()._generate_activities(plugin_manager)
+        _activities.insert(1, plugin_manager.transfer_script(op_types=[constants.GseOpType.RELOAD]))
+        return _activities, None
 
 
 class DelegatePlugin(PluginAction):
@@ -1193,6 +1210,11 @@ class DelegatePlugin(PluginAction):
 
 class MainDelegatePlugin(MainPluginAction, DelegatePlugin):
     ACTION_NAME = backend_const.ActionNameType.MAIN_DELEGATE_PLUGIN
+
+    def _generate_activities(self, plugin_manager):
+        _activities, pipeline_data = super()._generate_activities(plugin_manager)
+        _activities.insert(1, plugin_manager.transfer_script(op_types=[constants.GseOpType.START]))
+        return _activities, None
 
 
 class UnDelegatePlugin(PluginAction):
