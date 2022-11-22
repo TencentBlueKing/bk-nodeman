@@ -42,6 +42,9 @@ get_os_type () {{
     elif [[ "$OS_INFO" == *centos* ]]; then
         OS_TYPE="centos"
         RC_LOCAL_FILE="/etc/rc.d/rc.local"
+    elif [[ "$OS_INFO" == *tlinux* ]]; then
+        OS_TYPE="tlinux"
+        RC_LOCAL_FILE="/etc/rc.d/rc.local"
     elif [[ "$OS_INFO" == *coreos* ]]; then
         OS_TYPE="coreos"
         RC_LOCAL_FILE="/etc/rc.d/rc.local"
@@ -60,6 +63,9 @@ get_os_type () {{
     elif [[ "$OS_INFO" == *aix* ]]; then
         OS_TYPE="aix"
         RC_LOCAL_FILE="/etc/inittab"
+    else
+        OS_TYPE="centos"
+        RC_LOCAL_FILE="/etc/rc.d/rc.local"
     fi
 }}
 
