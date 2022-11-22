@@ -195,7 +195,14 @@ class HostQuerySqlHelper:
         topo_biz_scope: typing.Set[int] = set()
 
         for condition in params.get("conditions", []):
-            if condition["key"] in ["inner_ip", "inner_ipv6" "node_from", "node_type", "bk_addressing", "bk_host_name"]:
+            if condition["key"] in [
+                "inner_ip",
+                "inner_ipv6" "node_from",
+                "node_type",
+                "bk_addressing",
+                "bk_host_name",
+                "bk_agent_id",
+            ]:
                 if condition["key"] in ["inner_ipv6"]:
                     condition["value"] = basic.ipv6s_formatter(condition["value"])
                 # host 精确搜索

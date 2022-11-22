@@ -19,7 +19,7 @@ from apps.utils.enum import EnhanceEnum
 class CommonEnum(EnhanceEnum):
     SEP = ":"
     PAGE_RETURN_ALL_FLAG = -1
-    DEFAULT_HOST_FUZZY_SEARCH_FIELDS = ["bk_cloud_id", "inner_ip", "inner_ipv6", "bk_host_name"]
+    DEFAULT_HOST_FUZZY_SEARCH_FIELDS = ["bk_cloud_id", "inner_ip", "inner_ipv6", "bk_host_name", "bk_agent_id"]
     DEFAULT_HOST_FIELDS = [
         "bk_biz_id",
         "bk_host_id",
