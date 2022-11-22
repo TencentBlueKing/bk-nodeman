@@ -80,7 +80,7 @@ class PluginManager(object):
         act.component.inputs.op_types = Var(type=Var.PLAIN, value=op_types)
         return act
 
-    def init_porc_script(self):
+    def init_proc_script(self):
         act = PluginServiceActivity(component_code=plugin.InitProcOperateScriptComponent.code, name=_("初始化操作脚本"))
         return act
 
