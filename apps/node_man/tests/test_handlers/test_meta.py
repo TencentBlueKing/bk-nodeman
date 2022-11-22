@@ -189,7 +189,7 @@ class TestMeta(testcase.CustomAPITestCase):
         total_cloud_num = default_cloud_num + generated_cloud_area_num
 
         result = MetaHandler().filter_condition("plugin_host")
-        self.assertEqual(result[0], {"name": "IP", "id": "inner_ip"})
+        self.assertEqual(result[0], {"name": "IP", "id": "ip"})
         self.assertEqual(len(result[3]["children"]), total_cloud_num)
         self.assertEqual(
             result[4],

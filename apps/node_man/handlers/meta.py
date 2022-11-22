@@ -176,7 +176,7 @@ class MetaHandler(APIModel):
                 {"name": _("寻址方式"), "id": "bk_addressing", "children": bk_addressing_children},
                 {"name": _("安装通道"), "id": "install_channel_id", "children": install_channel_children},
                 {"name": _("主机名称"), "id": "bk_host_name"},
-                {"name": _("IP"), "id": "inner_ip"},
+                {"name": _("IP"), "id": "ip"},
             ]
         )
 
@@ -333,7 +333,7 @@ class MetaHandler(APIModel):
                     plugin_result[plugin_name]["value"].append({"name": plugin_version, "id": plugin_version})
 
         # 返回值
-        ret_value = [{"name": "IP", "id": "inner_ip"}]
+        ret_value = [{"name": "IP", "id": "ip"}]
         ret_value.extend(
             [
                 {
@@ -348,10 +348,7 @@ class MetaHandler(APIModel):
         return self.filter_empty_children(ret_value)
 
     def fetch_plugin_host_condition(self):
-        ret_value = [
-            {"name": "IP", "id": "inner_ip"},
-            {"name": _("主机名称"), "id": "bk_host_name"},
-        ]
+        ret_value = [{"name": "IP", "id": "ip"}, {"name": _("主机名称"), "id": "bk_host_name"}]
 
         bk_addressing_children = [
             {"name": alias, "id": val}
