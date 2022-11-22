@@ -563,14 +563,14 @@ class TransferPackageService(JobV3BaseService, PluginBaseService):
         根据不同的操作系统，添加一些额外的文件或执行脚本，避免脚本老旧有bug或者不存在的情况
         """
         if os_type == constants.OsType.WINDOWS:
-            script_files = ["start.bat", "stop.bat", "restart.bat"]
+            script_files = []
             for unzip_file in ["7z.dll", "7z.exe"]:
                 # Windows 添加 7z 用于解压
                 file_list.append(os.path.sep.join([nginx_path, unzip_file]))
         elif os_type == constants.OsType.AIX:
-            script_files = ["start.ksh", "stop.ksh", "restart.ksh", "reload.ksh"]
+            script_files = []
         else:
-            script_files = ["start.sh", "stop.sh", "restart.sh", "reload.sh"]
+            script_files = []
 
         for script_file in script_files:
             file_list.append(os.path.sep.join([nginx_path, "plugin_scripts", script_file]))
@@ -1484,7 +1484,7 @@ class PluginTransferFileService(JobTransferFileService, PluginBaseService):
 class TransferScriptService(PluginTransferFileService):
     def get_file_list(self, data, common_data: PluginCommonData, host: models.Host) -> List[str]:
         op_types = data.get_one_of_inputs("op_types")
-        script_files: List[str] = []
+        script_files: Set[str] = set()
         for op_type in op_types:
             if op_type not in constants.GseOpType.GSE_OP_TYPE_MAP:
                 raise errors.PluginScriptValidationError()
@@ -1492,8 +1492,8 @@ class TransferScriptService(PluginTransferFileService):
             script_file = os.path.join(
                 settings.DOWNLOAD_PATH, "plugin_scripts", self.match_script_file_name(op_type=op_type, os_type=os_type)
             )
-            script_files.append(script_file)
-        return script_files
+            script_files.add(script_file)
+        return list(script_files)
 
     @classmethod
     def match_script_file_name(cls, op_type: str, os_type: str) -> str:
@@ -1503,6 +1503,9 @@ class TransferScriptService(PluginTransferFileService):
             constants.GseOpType.RELOAD: "reload",
             constants.GseOpType.STOP: "stop",
         }
+        # Windows 的 reload 操作通过 restart 实现
+        if os_type == constants.OsType.WINDOWS:
+            op_type_action_map[constants.GseOpType.RELOAD] = "restart"
         if op_type not in op_type_action_map:
             raise errors.PluginScriptValidationError()
         script_file_name = f"{op_type_action_map[op_type]}.{SUFFIX_MAP[os_type]}"
