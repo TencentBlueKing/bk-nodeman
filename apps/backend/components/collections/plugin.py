@@ -1488,15 +1488,14 @@ class TransferScriptService(PluginTransferFileService):
         for op_type in op_types:
             if op_type not in constants.GseOpType.GSE_OP_TYPE_MAP:
                 raise errors.PluginScriptValidationError()
-            os_type = host.os_type.lower() or constants.OsType.LINUX.lower()
             script_file = os.path.join(
-                settings.DOWNLOAD_PATH, "plugin_scripts", self.match_script_file_name(op_type=op_type, os_type=os_type)
+                settings.DOWNLOAD_PATH, "plugin_scripts", self.match_script_file_name(host=host, op_type=op_type)
             )
             script_files.add(script_file)
         return list(script_files)
 
     @classmethod
-    def match_script_file_name(cls, op_type: str, os_type: str) -> str:
+    def match_script_file_name(cls, host: models.Host, op_type: str) -> str:
         op_type_action_map = {
             constants.GseOpType.RESTART: "restart",
             constants.GseOpType.START: "start",
@@ -1504,11 +1503,11 @@ class TransferScriptService(PluginTransferFileService):
             constants.GseOpType.STOP: "stop",
         }
         # Windows 的 reload 操作通过 restart 实现
-        if os_type == constants.OsType.WINDOWS:
+        if host.os_type == constants.OsType.WINDOWS:
             op_type_action_map[constants.GseOpType.RELOAD] = "restart"
         if op_type not in op_type_action_map:
             raise errors.PluginScriptValidationError()
-        script_file_name = f"{op_type_action_map[op_type]}.{SUFFIX_MAP[os_type]}"
+        script_file_name = f"{op_type_action_map[op_type]}.{SUFFIX_MAP.get(host.os_type.lower(), '.sh')}"
         return script_file_name
 
     @cache.class_member_cache()
@@ -1522,7 +1521,8 @@ class TransferScriptService(PluginTransferFileService):
         host_id__proc_status_map = self.host_id__proc_status_map(common_data.process_statuses)
         process_status = host_id__proc_status_map[host.bk_host_id]
         agent_config = self.get_agent_config_by_process_status(process_status, common_data)
-        file_target_path = os.path.join(agent_config["setup_path"], "plugins", "bin")
+        path_sep: str = (constants.LINUX_SEP, constants.WINDOWS_SEP)[host.os_type == constants.OsType.WINDOWS]
+        file_target_path = path_sep.join([agent_config["setup_path"], "plugins", "bin"])
         return file_target_path
 
 
