@@ -306,6 +306,7 @@ export interface IPreviewHost {
   bk_cloud_name: string
   bk_host_id: number
   inner_ip: string
+  inner_ipv6: string
   os_type: string
   osType?: string
   status: string

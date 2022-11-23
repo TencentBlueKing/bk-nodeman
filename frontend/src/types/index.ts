@@ -254,7 +254,7 @@ export interface ISetupRow {
   errType?: string
   validator?: { [key: string]: ISetupValidator }
   install_channel_id: string | number | null
-  bk_addressing: '0' | '1'
+  bk_addressing: 'static' | 'dynamic'
 }
 
 export interface ISetupParent {
