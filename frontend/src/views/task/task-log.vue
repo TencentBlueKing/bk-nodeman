@@ -26,7 +26,7 @@
                 <div class="col-execution">
                   <loading-icon v-if="item.status === 'running'"></loading-icon>
                   <span v-else :class="`execut-mark execut-${ item.status }`"></span>
-                  <span class="execut-text">{{ item.ip }}</span>
+                  <span class="execut-text" v-bk-overflow-tips>{{ item.ip }}</span>
                 </div>
               </li>
             </template>
@@ -1015,13 +1015,12 @@ $headerColor: #313238;
     display: flex;
     align-items: center;
     padding-left: 20px;
+    padding-right: 20px;
     width: 100%;
     height: 40px;
     line-height: 40px;
     font-size: 14px;
     color: #63656e;
-    white-space: nowrap;
-    text-overflow: ellipsis;
     overflow: hidden;
     cursor: pointer;
     &:hover {
@@ -1030,6 +1029,14 @@ $headerColor: #313238;
     &.item-active {
       color: #63656e;
       background: #e1ecff;
+    }
+    .col-execution {
+      width: 100%;
+    }
+    .execut-text {
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      overflow: hidden;
     }
   }
   .log-nav-select {

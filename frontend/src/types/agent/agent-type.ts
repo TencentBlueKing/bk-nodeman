@@ -53,7 +53,7 @@ export interface IAgentHost {
   }
   install_channel_id: number | string | null
   bk_addressing_display?: string // 静态 / 动态
-  addressing?: string // 寻址方式，值（字符串） => "0" "1"
+  addressing?: 'static' | 'dynamic' // 寻址方式
 }
 
 export interface IPagination {
