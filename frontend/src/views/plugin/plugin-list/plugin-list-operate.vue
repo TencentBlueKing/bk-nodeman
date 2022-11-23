@@ -110,7 +110,7 @@
 import { Component, Prop, Ref, Mixins, Emit, Watch, Model } from 'vue-property-decorator';
 import { IPluginList, ICondition, IMenu } from '@/types/plugin/plugin-type';
 import { IBkBiz, ISearchItem } from '@/types';
-import { isEmpty, copyText } from '@/common/util';
+import { copyText, searchSelectPaste } from '@/common/util';
 import HeaderFilterMixins from '@/components/common/header-filter-mixins';
 import { MainStore, PluginStore } from '@/store/index';
 import PluginList from './plugin-list.vue';
@@ -131,7 +131,6 @@ export default class PluginListOperate extends Mixins(HeaderFilterMixins) {
   @Ref('dropDownMenu') private readonly dropDownMenuRef: any;
 
   private topoLoading = false;
-  private ipRegx = new RegExp('^((25[0-5]|2[0-4]\\d|[01]?\\d\\d?)\\.){3}(25[0-5]|2[0-4]\\d|[01]?\\d\\d?)$');
   private moreDropdownShow = false;
   private copyDropdownShow = false;
   private copyLoading = false;
@@ -198,70 +197,14 @@ export default class PluginListOperate extends Mixins(HeaderFilterMixins) {
 
 
   public handlePaste(e: any): void {
-    let value = '';
-    try {
-      const clp = (e.originalEvent || e).clipboardData;
-      if (clp === undefined || clp === null) { // 兼容针对于opera ie等浏览器
-        value = window.clipboardData.getData('text') || '';
-      } else {
-        value = clp.getData('text/plain') || ''; // 兼容Chrome Firefox
-      }
-    } catch (err) {}
-
-    // 已选择特定类型的情况下 - 保持原有的粘贴行为（排除IP类型的粘贴）
-    if (value.trim() && this.searchSelect.input) {
-      let selectionText = (window.getSelection() as Dictionary).toString(); // 鼠标选中的文本
-      const regExpChar = /[\\^$.*+?()[\]{}|]/g;
-      const hasRegExpChar = new RegExp(regExpChar.source);
-      selectionText = selectionText.replace(hasRegExpChar, '');
-      const inputValue = selectionText && !isEmpty(this.searchSelect.input.value)
-        ? this.searchSelect.input.value.replace(new RegExp(selectionText), '')
-        : this.searchSelect.input.value || '';
-
-      const str = value.replace(/;+|；+|_+|\\+|，+|,+|、+|\s+/g, ',').replace(/,+/g, ' ')
-        .trim();
-      const tmpStr = str.trim().split(' ');
-      const isIp = tmpStr.every(item => this.ipRegx.test(item));
-      let backfillValue = inputValue + value;
-      if (isIp || !!inputValue) {
-        if (isIp) {
-          backfillValue = '';
-          this.handlePushValue('inner_ip', tmpStr.map(ip => ({ id: ip, name: ip, checked: false })));
-          this.handleValueChange();
-        }
-        Object.assign(e.target, { innerText: backfillValue }); // 数据清空或合并
-        this.searchSelect.handleInputChange(e); // 回填并响应数据
-        this.searchSelect.handleInputFocus(e); // contenteditable类型 - 光标移动到最后
-      } else {
-        let directFilling = true;
-        const pairArr = backfillValue.replace(/:+|：+/g, ' ').trim()
-          .split(' ');
-        if (pairArr.length > 1) {
-          const [name, ...valueText] = pairArr;
-          const category = this.filterData.find(item => item.name === name);
-          if (category) {
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            const { children, ...other } = category;
-            directFilling = false;
-            this.searchSelectValue.push({
-              ...other,
-              values: [{ id: valueText.join(''), name: valueText.join(''), checked: false }],
-            });
-            Object.assign(e.target, { innerText: '' }); // 数据清空或合并
-            this.searchSelect.handleInputChange(e); // 回填并响应数据
-            this.searchSelect.handleInputOutSide(e);
-          }
-        }
-        this.searchSelect.handleInputChange(e); // 回填并响应数据
-        if (directFilling) {
-          this.searchSelectValue.push({
-            id: str.trim().replace('\n', ''),
-            name: str.trim().replace('\n', ''),
-          });
-        }
-        this.handleValueChange();
-      }
-    }
+    searchSelectPaste({
+      e,
+      selectedValue: this.searchSelectValue,
+      filterData: this.filterData,
+      selectRef: this.searchSelect,
+      pushFn: this.handlePushValue,
+      changeFn: this.handleValueChange,
+    });
   }
 
   @Emit('plugin-operate')
@@ -279,7 +222,7 @@ export default class PluginListOperate extends Mixins(HeaderFilterMixins) {
     let ipList: string[] = [];
     let ipTotal = 0;
     if (copyType === 'checked' && this.checkType === 'current') {
-      ipList = this.selections.map(item => item.inner_ip);
+      ipList = this.selections.map(item => item.inner_ip || item.inner_ipv6);
       ipTotal = ipList.length;
     } else {
       const abnormalStatus = ['UNKNOWN', 'TERMINATED', 'NOT_INSTALLED'];
