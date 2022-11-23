@@ -875,8 +875,8 @@ class CmdbObjectId:
 class CmdbAddressingType(EnhanceEnum):
     """寻址方式"""
 
-    STATIC = "1"
-    DYNAMIC = "2"
+    STATIC = "static"
+    DYNAMIC = "dynamic"
 
     @classmethod
     def _get_member__alias_map(cls) -> Dict[Enum, str]:
