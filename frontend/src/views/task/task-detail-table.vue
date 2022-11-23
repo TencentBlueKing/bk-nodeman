@@ -19,10 +19,10 @@
         :reserve-selection="true"
         :selectable="getSelectAbled">
       </bk-table-column> -->
-      <bk-table-column class-name="row-ip" label="IP" prop="ip" :resizable="false"></bk-table-column>
-      <bk-table-column :label="$t('云区域')" prop="bkCloudName" :resizable="false"></bk-table-column>
-      <bk-table-column min-width="100" :label="$t('业务')" prop="bkBizName" :resizable="false"></bk-table-column>
-      <bk-table-column min-width="100" :label="$t('操作类型')" prop="opTypeDisplay" :resizable="false"></bk-table-column>
+      <bk-table-column min-width="140" class-name="row-ip" label="IP" prop="ip" show-overflow-tooltip />
+      <bk-table-column :label="$t('云区域')" prop="bkCloudName" :resizable="false" />
+      <bk-table-column min-width="100" :label="$t('业务')" prop="bkBizName" :resizable="false" />
+      <bk-table-column min-width="100" :label="$t('操作类型')" prop="opTypeDisplay" :resizable="false" />
       <bk-table-column
         v-if="showTargetVersionColumn"
         min-width="100"

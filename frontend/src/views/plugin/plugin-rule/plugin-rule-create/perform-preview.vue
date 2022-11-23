@@ -96,7 +96,7 @@
         @sort-change="handleSortChange"
         @page-change="handlePageChange"
         @page-limit-change="handlePageLimitChange">
-        <bk-table-column :label="$t('主机IP')" prop="inner_ip" />
+        <bk-table-column :label="$t('主机IP')" prop="inner_ip" show-overflow-tooltip />
         <bk-table-column :label="$t('云区域')" prop="bk_cloud_id" :render-header="renderFilterHeader">
           <template #default="{ row }">{{ row.bk_cloud_name }}</template>
         </bk-table-column>
@@ -615,6 +615,7 @@ export default class PerformPreview extends Mixins(HeaderRenderMixin, HeaderFilt
       if (['stop_and_delete', 'stop'].includes(this.jobType)) {
         item.target_version = item.version;
       }
+      item.inner_ip = item.inner_ip || item.inner_ipv6;
       item.os_type = this.osMap[item.os_type];
       item.status = item.status.toLocaleLowerCase();
       item.statusDisplay = this.statusMap[item.status as IAgentStatus];
