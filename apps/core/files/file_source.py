@@ -30,7 +30,7 @@ def get_valid_storage_alias(storage_type: str) -> str:
 class BkJobFileCredentialManager:
     # 文件凭证名称
     CREDENTIAL_NAME_TMPL: str = "NODEMAN_{storage_type}"
-    CREDENTIAL_DESCRIPTION_TMPL = _("节点管理[biz:{bk_biz_id}]{storage_type_alias}文件凭证")
+    CREDENTIAL_DESCRIPTION_TMPL = _("节点管理[{bk_biz_id}]{storage_type_alias}文件凭证")
 
     @classmethod
     def gen_credential_name(cls, storage_type: str) -> str:
