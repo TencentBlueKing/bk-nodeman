@@ -88,6 +88,23 @@
         </template>
       </bk-table-column>
       <bk-table-column
+        key="bk_agent_id"
+        label="Agent ID"
+        prop="bk_agent_id"
+        width="260"
+        v-if="filterField['bk_agent_id'].mockChecked"
+        show-overflow-tooltip>
+        <template #default="{ row }">
+          {{ row.bk_agent_id | filterEmpty }}
+        </template>
+      </bk-table-column>
+      <bk-table-column
+        key="bk_host_id"
+        label="Host ID"
+        prop="bk_host_id"
+        width="80"
+        v-if="filterField['bk_host_id'].mockChecked" />
+      <bk-table-column
         v-if="filterField['node_type'].mockChecked"
         min-width="120"
         prop="node_type"
@@ -134,7 +151,7 @@
         prop="bk_addressing"
         :label="$t('寻址方式')">
         <template #default="{ row }">
-          {{ `${row.bk_addressing}` === '1' ? $t('动态') : $t('静态') }}
+          {{ `${row.bk_addressing}` === 'dynamic' ? $t('动态') : $t('静态') }}
         </template>
       </bk-table-column>
       <template v-for="(plugin, index) in pluginNames">
@@ -263,6 +280,20 @@ export default class PluginRuleTable extends Mixins(HeaderRenderMixin) {
       name: window.i18n.t('主机名'),
       id: 'bk_host_name',
       mockChecked: true,
+    },
+    bk_agent_id: {
+      checked: false,
+      disabled: false,
+      mockChecked: false,
+      name: 'Agent ID',
+      id: 'bk_agent_id',
+    },
+    bk_host_id: {
+      checked: false,
+      disabled: false,
+      mockChecked: false,
+      name: 'Host ID',
+      id: 'bk_host_id',
     },
     node_type: {
       checked: true,

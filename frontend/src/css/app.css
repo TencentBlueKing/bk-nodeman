@@ -765,7 +765,12 @@ body {
     }
 }
 
-.bk-ip-selector,
+.bk-ip-selector {
+    height: 100%;
+    .clearfix::after {
+        visibility: visible;
+    }
+}
 .bk-ip-selector-box {
     height: 100%;
 }

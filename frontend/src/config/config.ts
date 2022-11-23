@@ -38,8 +38,8 @@ const getAuthentication = () => {
 };
 export const enableDHCP = window.PROJECT_CONFIG.BKAPP_ENABLE_DHCP === 'True';
 export const addressingMode = [
-  { id: '0', name: window.i18n.t('静态') },
-  { id: '1', name: window.i18n.t('动态') },
+  { id: 'static', name: window.i18n.t('静态') },
+  { id: 'dynamic', name: window.i18n.t('动态') },
 ];
 
 export const authentication = getAuthentication();
