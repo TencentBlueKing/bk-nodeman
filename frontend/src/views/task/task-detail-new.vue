@@ -57,6 +57,7 @@
             {{ $t('失败重试')}}
           </bk-button>
           <bk-search-select
+            ref="searchSelect"
             v-test="'filter'"
             class="fr task-filter-select"
             split-code=","
@@ -64,7 +65,8 @@
             :placeholder="$t('请输入')"
             :data="searchSelectData"
             v-model="searchSelectValue"
-            @change="handleSearchChange">
+            @paste.native.capture.prevent="handlePaste"
+            @change="reGetDetailList">
           </bk-search-select>
         </section>
         <section class="detail-table-content">
@@ -124,7 +126,7 @@ import HeaderFilterMixins from '@/components/common/header-filter-mixins';
 import PollMixin from '@/common/poll-mixin';
 import { ICondition, IPagination, ISearchChild, ISearchItem } from '@/types';
 import { ITaskHost, ITotalCount, ITask, ITaskParams } from '@/types/task/task';
-import { copyText, debounce, takesTimeFormat, toHump } from '@/common/util';
+import { copyText, debounce, searchSelectPaste, takesTimeFormat, toHump } from '@/common/util';
 import { Route } from 'vue-router';
 
 Component.registerHooks([
@@ -143,6 +145,7 @@ export default class TaskDeatail extends Mixins(PollMixin, HeaderFilterMixins) {
   @Prop({ type: String, default: '' }) private readonly status!: string;
 
   @Ref('dropdownCopy') private readonly dropdownCopy!: any;
+  @Ref('searchSelect') private readonly searchSelect!: any;
 
   private loading = false;
   private tableLoading = false;
@@ -385,11 +388,16 @@ export default class TaskDeatail extends Mixins(PollMixin, HeaderFilterMixins) {
       }
       return obj;
     }, {});
+    const keys = ['ip', 'status'];
     // 多IP搜索传参
     Object.entries(searchObj).forEach((item: any[]) => {
       const [key, val] = item;
       const value: string[] = Array.from(val);
-      conditions.push({ key: key === 'status' ? key : 'ip', value: key === 'status' ? value : value.join(',') });
+      if (keys.includes(key)) {
+        conditions.push({ key, value });
+      } else {
+        conditions.push({ key: 'ip', value });
+      }
     });
     if (conditions.length) {
       params.conditions = conditions;
@@ -550,6 +558,17 @@ export default class TaskDeatail extends Mixins(PollMixin, HeaderFilterMixins) {
       }
     }
     this.copyLoading = false;
+  }
+
+  public handlePaste(e: any): void {
+    searchSelectPaste({
+      e,
+      selectedValue: this.searchSelectValue,
+      filterData: this.filterData,
+      selectRef: this.searchSelect,
+      pushFn: this.handlePushValue,
+      changeFn: this.reGetDetailList,
+    });
   }
 }
 </script>

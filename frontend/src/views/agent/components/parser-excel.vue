@@ -269,7 +269,7 @@ export default class ParserExcel extends Vue {
             const data = AgentStore.apList.find(data => data.name === item[`${key}${this.$tc('可选')}`]);
             info[header.prop] = data && !isEmpty(data.id) ? data.id : -1;
           } else if (key === this.$tc('寻址方式')) {
-            info[header.prop] = item[`${key}${this.$tc('可选')}`] === this.$tc('动态') ? '1' : '0';
+            info[header.prop] = item[`${key}${this.$tc('可选')}`] === this.$tc('动态') ? 'dynamic' : 'static';
           } else if (optional.includes(key)) {
             info[header.prop] = !isEmpty(item[`${key}${this.$tc('可选')}`]) ? item[`${key}${this.$tc('可选')}`] : '';
           } else if (key === this.$tc('认证方式')) { // 密钥 || 铁将军 需覆盖填写值
