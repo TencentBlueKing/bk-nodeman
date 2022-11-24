@@ -129,9 +129,6 @@ if exist %SWWIN_PACKAGE:~0,-4%.tar (
 )
 %s7zPath%\7z.exe x -aoa %SWWIN_GSE_HOME%\%TAR_FILE_NAME% -o%SWWIN_GSE_HOME%
 rem 拷贝插件脚本到官方插件目录下,避免脚本老旧有bug或者不存在的情况
-for %%I in (%SWWIN_TMP%\start.bat %SWWIN_TMP%\stop.bat %SWWIN_TMP%\restart.bat) do (
-    copy %%I %SWWIN_GSE_HOME%\plugins\bin
-)
 
 if "%SWWIN_TARGET_DIR%"=="external" if defined GROUP_DIR (
     rem 第三方插件指定了group_id，解压后需要将插件从标准路径移动到实例路径下
