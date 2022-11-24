@@ -590,13 +590,15 @@ class JobHandler(APIModel):
 
         return update_data_info["subscription_host_ids"], ip_filter_list
 
-    def operate(self, job_type, bk_host_ids, bk_biz_scope, extra_params):
+    def operate(self, job_type, bk_host_ids, bk_biz_scope, extra_params, extra_config):
         """
         用于只有bk_host_id参数的下线、重启等操作
         """
         # 校验器进行校验
 
-        subscription = self.create_subscription(job_type, bk_host_ids, extra_params=extra_params)
+        subscription = self.create_subscription(
+            job_type, bk_host_ids, extra_params=extra_params, extra_config=extra_config
+        )
 
         return tools.JobTools.create_job(
             job_type=job_type,
