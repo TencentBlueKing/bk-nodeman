@@ -167,7 +167,7 @@ export default class StepInfo extends Vue {
         region_id,
         city_id,
         zk_hosts,
-        btfileserver: this.detail.dataserver.map(item => ({
+        btfileserver: this.detail.btfileserver.map(item => ({
           ...this.$setIpProp('inner_ip', item),
           ...this.$setIpProp('outer_ip', item),
         })),
@@ -175,7 +175,7 @@ export default class StepInfo extends Vue {
           ...this.$setIpProp('inner_ip', item),
           ...this.$setIpProp('outer_ip', item),
         })),
-        taskserver: this.detail.dataserver.map(item => ({
+        taskserver: this.detail.taskserver.map(item => ({
           ...this.$setIpProp('inner_ip', item),
           ...this.$setIpProp('outer_ip', item),
         })),
