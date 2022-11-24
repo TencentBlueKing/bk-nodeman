@@ -110,9 +110,6 @@ cd $TMP
 echo "coming into: $TMP"
 tar xvf $PACKAGE -C $GSE_HOME; ret+=$?
 
-# 拷贝插件脚本到官方插件目录下,避免脚本老旧有bug或者不存在的情况
-cp {start.sh,stop.sh,reload.sh,restart.sh} $GSE_HOME/plugins/bin
-
 if [ "${CATEGORY}" == "EXTERNAL" -a -n "$GROUP_DIR" ]; then
     # 第三方插件指定了instance_id，解压后需要将插件从标准路径移动到实例路径下
     mkdir -p $BINDIR
