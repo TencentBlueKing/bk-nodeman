@@ -370,7 +370,7 @@ export default class StepHost extends formLabelMixin {
       this.validate(async () => {
         this.checkLoading = true;
         const { package_inner_url, package_outer_url, callback_url, outer_callback_url } = this.formData;
-        const btfileserver: IIpGroup[] = this.formData.dataserver.map(item => ({
+        const btfileserver: IIpGroup[] = this.formData.btfileserver.map(item => ({
           ...this.$setIpProp('inner_ip', item),
           ...this.$setIpProp('outer_ip', item),
         }));
@@ -378,7 +378,7 @@ export default class StepHost extends formLabelMixin {
           ...this.$setIpProp('inner_ip', item),
           ...this.$setIpProp('outer_ip', item),
         }));
-        const taskserver: IIpGroup[] = this.formData.dataserver.map(item => ({
+        const taskserver: IIpGroup[] = this.formData.taskserver.map(item => ({
           ...this.$setIpProp('inner_ip', item),
           ...this.$setIpProp('outer_ip', item),
         }));
