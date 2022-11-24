@@ -185,7 +185,7 @@ class TestJob(TestCase):
         for job_type in job_types:
             node_filter_type = job_type.split("_")[1]
             bk_host_ids = proxies_ids if node_filter_type == constants.NodeType.PROXY else agent_or_pagent_ids
-            JobHandler().operate(job_type, bk_host_ids, bk_biz_scope, {})
+            JobHandler().operate(job_type, bk_host_ids, bk_biz_scope, {}, {})
 
     # 以下测试Job安装接口
 
