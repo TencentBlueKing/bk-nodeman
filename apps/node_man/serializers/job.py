@@ -203,6 +203,7 @@ class InstallSerializer(serializers.Serializer):
 
 
 class OperateSerializer(serializers.Serializer):
+    agent_setup_info = AgentSetupInfoSerializer(label=_("Agent 设置信息"), required=False)
     job_type = serializers.ChoiceField(label=_("任务类型"), choices=list(constants.JOB_TYPE_DICT))
     bk_biz_id = serializers.ListField(label=_("业务ID"), required=False)
     version = serializers.ListField(label=_("Agent版本"), required=False)
@@ -261,6 +262,18 @@ class OperateSerializer(serializers.Serializer):
         bk_host_ids, bk_biz_scope = validator.operate_validator(list(db_host_sql))
         attrs["bk_host_ids"] = bk_host_ids
         attrs["bk_biz_scope"] = bk_biz_scope
+
+        if attrs["job_type"] not in ["REINSTALL_PROXY", "UPGRADE_PROXY"]:
+            return attrs
+
+        # 如果开启业务灰度，安装新版本 Agent
+        name = ("gse_agent", "gse_proxy")[attrs["node_type"] == "PROXY"]
+        # TODO 后续该逻辑通过前端表单填写，通过 validate 校验是否属于灰度范围（暂时只支持到业务级别）
+        visible_range_handler = VisibleRangeHandler(
+            name=name, version_str="test", target_type=core_tag_constants.TargetType.AGENT.value
+        )
+        if all([visible_range_handler.is_belong_to_biz(bk_biz_id) for bk_biz_id in set(bk_biz_scope)]):
+            attrs["agent_setup_info"] = {"name": name, "version": "test"}
         return attrs
 
 
