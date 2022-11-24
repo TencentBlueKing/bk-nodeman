@@ -346,6 +346,9 @@ class ApViewSet(ModelViewSet):
         ap = models.AccessPoint.objects.get(id=kwargs["pk"])
 
         for kwarg in self.validated_data:
+            # 页面没有端口信息修改入口，暂不
+            if kwarg == "port_config":
+                continue
             # 修改 ap[kwarg] 为 self.validated_data[kwarg]
             setattr(ap, kwarg, self.validated_data[kwarg])
         ap.save()
