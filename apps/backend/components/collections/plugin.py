@@ -1527,9 +1527,9 @@ class TransferScriptService(PluginTransferFileService):
 
 
 class InitProcOperateScriptService(PluginBaseService, JobExecuteScriptService):
-    def get_target_servers(self, data, common_data: PluginCommonData, host: models.Host) -> Optional[Dict[str, Any]]:
+    def get_target_servers(self, data, common_data: PluginCommonData, host: models.Host) -> Dict[str, Any]:
         if host.os_type == constants.OsType.WINDOWS:
-            return
+            return {"ip_list": [], "host_id_list": []}
         return {"ip_list": [{"bk_cloud_id": host.bk_cloud_id, "ip": host.inner_ip}], "host_id_list": [host.bk_host_id]}
 
     def get_script_content(self, data, common_data: PluginCommonData, host: models.Host) -> str:
