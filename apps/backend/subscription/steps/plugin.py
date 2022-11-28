@@ -132,11 +132,11 @@ class PluginStep(Step):
             # 官方插件是基于多配置的管理模式，安装、卸载、启用、停用等操作仅涉及到配置的增删
             actions.update(
                 {
-                    backend_const.ActionNameType.INSTALL: PushConfig,
-                    backend_const.ActionNameType.UNINSTALL: RemoveConfig,
-                    backend_const.ActionNameType.PUSH_CONFIG: PushConfig,
-                    backend_const.ActionNameType.START: PushConfig,
-                    backend_const.ActionNameType.STOP: RemoveConfig,
+                    backend_const.ActionNameType.INSTALL: OfficialPushConfig,
+                    backend_const.ActionNameType.UNINSTALL: OfficialRemoveConfig,
+                    backend_const.ActionNameType.PUSH_CONFIG: OfficialPushConfig,
+                    backend_const.ActionNameType.START: OfficialPushConfig,
+                    backend_const.ActionNameType.STOP: OfficialRemoveConfig,
                 }
             )
         else:
@@ -1288,3 +1288,19 @@ class StopAndDeletePlugin(PluginAction):
 class MainStopAndDeletePlugin(MainPluginAction, StopAndDeletePlugin):
     ACTION_NAME = backend_const.ActionNameType.MAIN_STOP_AND_DELETE_PLUGIN
     ACTION_DESCRIPTION = "停用插件并删除订阅"
+
+
+class OfficialPushConfig(PushConfig):
+    def _generate_activities(self, plugin_manager):
+        _activities, pipeline_data = super()._generate_activities(plugin_manager)
+        _activities.insert(
+            2, plugin_manager.transfer_script(op_types=[constants.GseOpType.START, constants.GseOpType.RELOAD])
+        )
+        return _activities, None
+
+
+class OfficialRemoveConfig(RemoveConfig):
+    def _generate_activities(self, plugin_manager):
+        _activities, pipeline_data = super()._generate_activities(plugin_manager)
+        _activities.insert(1, plugin_manager.transfer_script(op_types=[constants.GseOpType.RELOAD]))
+        return _activities, None
