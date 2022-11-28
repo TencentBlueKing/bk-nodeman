@@ -373,7 +373,12 @@ class InitProcessStatusService(PluginBaseService):
         """获取接入点配置"""
         ap = ap_id_obj_map.get(host.ap_id)
         os_type = host.os_type.lower()
-        ap_config = ap.agent_config.get(os_type)
+        if os_type != constants.OsType.WINDOWS.lower():
+            ap_config: Optional[Dict[str, Any]] = ap.agent_config.get(os_type) or ap.agent_config.get(
+                constants.OsType.LINUX.lower()
+            )
+        else:
+            ap_config: Optional[Dict[str, Any]] = ap.agent_config.get(os_type)
         if not ap_config:
             raise exceptions.ApNotSupportOsError(ap_id=ap.id, os_type=os_type)
         return ap_config
