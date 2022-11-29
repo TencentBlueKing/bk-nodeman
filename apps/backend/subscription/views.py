@@ -13,8 +13,9 @@ from __future__ import absolute_import, unicode_literals
 import logging
 import operator
 from collections import defaultdict
+from dataclasses import asdict
 from functools import cmp_to_key, reduce
-from typing import Dict
+from typing import Any, Dict
 
 from django.core.cache import caches
 from django.db import transaction
@@ -32,6 +33,7 @@ from apps.backend.subscription import errors, serializers, task_tools, tasks, to
 from apps.backend.subscription.errors import InstanceTaskIsRunning
 from apps.backend.subscription.handler import SubscriptionHandler
 from apps.backend.subscription.steps.agent_adapter.adapter import AgentStepAdapter
+from apps.backend.subscription.steps.agent_adapter.base import AgentSetupInfo
 from apps.backend.utils.pipeline_parser import PipelineParser
 from apps.core.script_manage.handlers import ScriptManageHandler
 from apps.generic import APIViewSet
@@ -609,13 +611,24 @@ class SubscriptionViewSet(APIViewSet):
         """
 
         params = self.validated_data
-        subscription_id: int = models.SubscriptionInstanceRecord.objects.get(id=params["sub_inst_id"]).subscription_id
+        sub_inst: models.SubscriptionInstanceRecord = models.SubscriptionInstanceRecord.objects.get(
+            id=params["sub_inst_id"]
+        )
         sub_step_obj: models.SubscriptionStep = models.SubscriptionStep.objects.filter(
-            subscription_id=subscription_id
+            subscription_id=sub_inst.subscription_id
         ).first()
         host = models.Host.objects.get(bk_host_id=params["bk_host_id"])
+        base_agent_setup_info_dict: Dict[str, Any] = asdict(
+            AgentStepAdapter(subscription_step=sub_step_obj).get_setup_info()
+        )
+        agent_setup_extra_info_dict = sub_inst.instance_info["host"].get("agent_setup_extra_info") or {}
         installation_tool = gen_commands(
-            agent_setup_info=AgentStepAdapter(subscription_step=sub_step_obj).get_setup_info(),
+            agent_setup_info=AgentSetupInfo(
+                **{
+                    **base_agent_setup_info_dict,
+                    "force_update_agent_id": agent_setup_extra_info_dict.get("force_update_agent_id", False),
+                }
+            ),
             host=host,
             pipeline_id=params["host_install_pipeline_id"],
             is_uninstall=params["is_uninstall"],
