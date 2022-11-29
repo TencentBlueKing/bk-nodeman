@@ -8,6 +8,7 @@ rem DEFAULT DEFINITION
 set PKG_NAME=
 set CLOUD_ID=
 set UNINSTALL=1
+set UNREGISTER_AGENT_ID=1
 set BACKUP_CONFIG_FILE=procinfo.json
 
 :CheckOpts
@@ -41,6 +42,7 @@ if "%1" EQU "-K" (set TRACKER_PORT=%~2) && shift && shift && goto CheckOpts
 if "%1" EQU "-U" (set INSTALL_USER=%~2) && shift && shift && goto CheckOpts
 if "%1" EQU "-P" (set INSTALL_PASSWORD=%~2) && shift && shift && goto CheckOpts
 if "%1" EQU "-R" (set UNINSTALL=0) && shift && shift && goto CheckOpts
+if "%1" EQU "-F" (set UNREGISTER_AGENT_ID=0) && shift && goto CheckOpts
 if "%1" NEQ "" echo Invalid option: "%1" && goto :EOF && exit /B 1
 rem if "%1" EQU "-R" goto remove_agent_pro
 
@@ -228,7 +230,7 @@ goto :EOF
     if "!network_not_reachable!" == "" (
         echo "reachable"
     ) else (
-        call :print FAIL check_env FAILED "%network_not_reachable% is not reachable"    
+        call :print FAIL check_env FAILED "%network_not_reachable% is not reachable"
         call :multi_report_step_status
         exit /b 1
     )
@@ -1103,6 +1105,11 @@ goto :EOF
         call :multi_report_step_status
         exit /b 1
     )
+
+    if %UNREGISTER_AGENT_ID% EQU 0 (
+        call :unregister_agent_id SKIP
+    )
+
     %gse_winagent_home%\\agent\\bin\\gse_agent.exe --agent-id -f %GSE_AGENT_ETC_DIR%\\gse_agent.conf
     if %errorlevel% EQU 0 (
         call :re_register_agent_id
@@ -1214,6 +1221,7 @@ goto :EOF
 goto :EOF
 
 :unregister_agent_id
+    (set skip=%1)
     if NOT EXIST %gse_winagent_home%\\agent\\bin\\gse_agent.exe (
         call :print FAIL unregister_agent_id FAILED "%gse_winagent_home%\\agent\\bin\\gse_agent.exe not exists"
         call :multi_report_step_status
@@ -1232,12 +1240,17 @@ goto :EOF
         %gse_winagent_home%\\agent\\bin\\gse_agent.exe --unregister
     )
     if %errorlevel% EQU 0 (
-        call :print INFO register_agent_id - "unregister agent id success"
+        call :print INFO unregister_agent_id - "unregister agent id success"
         call :multi_report_step_status
     ) else (
-        call :print FAIL register_agent_id FAILED "unregister agent id failed"
-        call :multi_report_step_status
-        exit /b 1
+        if "%skip%" == "SKIP": (
+            call :print WARN unregister_agent_id - "unregister agent id failed, but skip it"
+            call :multi_report_step_status
+        ) else (
+            call :print FAIL unregister_agent_id FAILED "unregister agent id failed"
+            call :multi_report_step_status
+            exit /b 1
+        )
     )
 goto :EOF
 
@@ -1350,6 +1363,7 @@ goto :EOF
     echo -O CLUSTER_PORT
     echo -E FILE_SVR_PORT
     echo -R UNINSTALL_AGENT
+    echo -F UNREGISTER_AGENT_ID [optional]
 goto :EOF
 
 :EOF
