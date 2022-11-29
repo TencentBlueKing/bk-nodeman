@@ -3,7 +3,7 @@ rm -rf /opt/nginx-portable/;
 rm -rf /opt/py36/;
 tar xvf %(nginx_path)s/py36.tgz -C /opt;
 tar xvf %(nginx_path)s/nginx-portable.tgz -C /opt;
-chmod -R 755 /data
+timeout 120 chmod -R 755 /data || echo "chmod directory /data failed"
 user=root
 group=root
 #create group if not exists
@@ -23,6 +23,24 @@ DNS_LIST=$(awk 'BEGIN{ORS=" "} $1=="nameserver" {print $2}' /etc/resolv.conf)
 if ! grep -q "nameserver.*127.0.0.1" /etc/resolv.conf; then
     DNS_LIST+=(127.0.0.1)
 fi
+
+ipv6_valid_ip () {
+    local ip=$1
+    if [[ "${ip}" =~ ^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))$ ]]; then
+        return 0
+    else
+        return 1
+    fi
+}
+nginx_dns_list=()
+for dns_ip in ${DNS_LIST[@]}; do
+    if ipv6_valid_ip $dns_ip; then
+        nginx_dns_list+=(["${dns_ip}"])
+    else
+        nginx_dns_list+=("$dns_ip")
+    fi
+done
+
 echo -e "
 user $user;
 events {
@@ -34,6 +52,7 @@ http {
     sendfile        on;
     server {
         listen %(bk_nodeman_nginx_download_port)s;
+        listen [::]:%(bk_nodeman_nginx_download_port)s;
         server_name localhost;
         root %(nginx_path)s;
 
@@ -47,8 +66,9 @@ http {
     }
     server {
         listen %(bk_nodeman_nginx_proxy_pass_port)s;
+        listen [::]:%(bk_nodeman_nginx_proxy_pass_port)s;
         server_name localhost;
-        resolver ${DNS_LIST[@]};
+        resolver ${nginx_dns_list[@]};
         proxy_connect;
         proxy_connect_allow 443 563;
         location / {
