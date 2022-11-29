@@ -709,7 +709,7 @@ class PluginStep(Step):
                 bk_host_id__host_map: Dict[int, models.Host] = {
                     host.bk_host_id: host
                     for host in models.Host.objects.filter(bk_host_id__in=bk_host_ids).only(
-                        "bk_host_id", "bk_agent_id", "inner_ip", "bk_cloud_id", "os_type", "cpu_arch"
+                        "bk_host_id", "bk_agent_id", "inner_ip", "bk_cloud_id", "os_type", "cpu_arch", "inner_ipv6"
                     )
                 }
                 self.handle_check_and_skip_instances(
