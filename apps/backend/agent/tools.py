@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from dataclasses import asdict
 from typing import Any, Dict, List, Optional, Tuple, Type
 
 from django.conf import settings
@@ -226,13 +227,14 @@ def check_run_commands(run_commands):
 
 
 def batch_gen_commands(
-    agent_setup_info: AgentSetupInfo,
+    base_agent_setup_info: AgentSetupInfo,
     hosts: List[models.Host],
     pipeline_id: str,
     is_uninstall: bool,
     host_id__sub_inst_id: Dict[int, int],
     ap_id_obj_map: Dict[int, models.AccessPoint],
     cloud_id__proxies_map: Dict[int, List[models.Host]],
+    id__sub_inst_obj_map: Dict[int, models.SubscriptionInstanceRecord],
     host_id__install_channel_map: Dict[int, Tuple[Optional[models.Host], Dict[str, List]]],
     script_hooks: Optional[List[Dict[str, Any]]] = None,
 ) -> Dict[int, InstallationTools]:
@@ -240,17 +242,26 @@ def batch_gen_commands(
     # 批量查出主机的属性并设置为property，避免在循环中进行ORM查询，提高效率
     host_id__installation_tool_map = {}
     bk_host_ids = [host.bk_host_id for host in hosts]
+    base_agent_setup_info_dict: Dict[str, Any] = asdict(base_agent_setup_info)
     host_id_identity_map = {
         identity.bk_host_id: identity for identity in models.IdentityData.objects.filter(bk_host_id__in=bk_host_ids)
     }
 
     for host in hosts:
         host_ap = ap_id_obj_map[host.ap_id]
+        sub_inst_id = host_id__sub_inst_id[host.bk_host_id]
+        instance_info = id__sub_inst_obj_map[sub_inst_id].instance_info
         # 避免部分主机认证信息丢失的情况下，通过host.identity重新创建来兜底保证不会异常
         identity_data = host_id_identity_map.get(host.bk_host_id) or host.identity
 
+        agent_setup_extra_info_dict = instance_info["host"].get("agent_setup_extra_info") or {}
         host_id__installation_tool_map[host.bk_host_id] = gen_commands(
-            agent_setup_info=agent_setup_info,
+            agent_setup_info=AgentSetupInfo(
+                **{
+                    **base_agent_setup_info_dict,
+                    "force_update_agent_id": agent_setup_extra_info_dict.get("force_update_agent_id", False),
+                }
+            ),
             host=host,
             pipeline_id=pipeline_id,
             is_uninstall=is_uninstall,

@@ -545,5 +545,5 @@ class ReinstallProxy2(InstallProxy2):
 
     def _generate_activities(self, agent_manager: AgentManager):
         activities, __ = super()._generate_activities(agent_manager)
-        activities[0] = agent_manager.add_or_update_hosts() if settings.BKAPP_ENABLE_DHCP else None
+        activities[0] = None
         return list(filter(None, activities)), None
