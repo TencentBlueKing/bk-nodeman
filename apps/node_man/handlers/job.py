@@ -417,6 +417,7 @@ class JobHandler(APIModel):
                     "retention": host.get("retention", 1),
                     "peer_exchange_switch_for_agent": host.get("peer_exchange_switch_for_agent"),
                     "bt_speed_limit": host.get("bt_speed_limit"),
+                    "agent_setup_extra_info": {"force_update_agent_id": host.get("force_update_agent_id", False)},
                 }
             )
 
