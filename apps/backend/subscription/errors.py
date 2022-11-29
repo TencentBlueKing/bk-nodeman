@@ -161,3 +161,11 @@ class PluginScriptValidationError(AppBaseException):
     ERROR_CODE = 18
     MESSAGE = _("插件操作脚本校验错误")
     MESSAGE_TPL = _("{msg}")
+
+
+class ScriptRenderFailed(AppBaseException):
+    """实例有执行中任务"""
+
+    ERROR_CODE = 19
+    MESSAGE = _("作业下发脚本渲染失败")
+    MESSAGE_TPL = _("作业下发脚本[{name}]渲染失败，原因：{msg}")

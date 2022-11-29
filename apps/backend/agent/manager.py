@@ -8,7 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import os
 from typing import Any, Dict, List
 
 from django.conf import settings
@@ -171,17 +170,7 @@ class AgentManager(object):
     @classmethod
     def start_nginx(cls):
         """启动 NGINX 服务"""
-        act = AgentServiceActivity(component_code=components.AgentExecuteScriptComponent.code, name=_("启动 NGINX 服务"))
-        with open(os.path.join(settings.BK_SCRIPTS_PATH, "start_nginx.sh.tpl"), encoding="utf-8") as fh:
-            script = fh.read()
-        # 脚本模板中存在 {print $2} 等和 format 关键字冲突的片段
-        # 此处的字符串渲染采用 % 的方式
-        script_content = script % {
-            "nginx_path": settings.DOWNLOAD_PATH,
-            "bk_nodeman_nginx_download_port": settings.BK_NODEMAN_NGINX_DOWNLOAD_PORT,
-            "bk_nodeman_nginx_proxy_pass_port": settings.BK_NODEMAN_NGINX_PROXY_PASS_PORT,
-        }
-        act.component.inputs.script_content = Var(type=Var.PLAIN, value=script_content)
+        act = AgentServiceActivity(component_code=components.StartNginxComponent.code, name=_("启动 NGINX 服务"))
         act.component.inputs.script_param = Var(type=Var.PLAIN, value="")
         return act
 

@@ -31,6 +31,7 @@ from .reload_agent_config import ReloadAgentConfigService
 from .render_and_push_gse_config import RenderAndPushGseConfigService
 from .restart import RestartService
 from .run_upgrade_command import RunUpgradeCommandService
+from .start_nginx import StartNginxService
 from .unbind_host_agent import UnBindHostAgentService
 from .update_install_info import UpdateInstallInfoService
 from .update_process_status import UpdateProcessStatusService
@@ -179,3 +180,9 @@ class AddOrUpdateHostsComponent(Component):
     name = _("新增或更新主机信息")
     code = "add_or_update_hosts"
     bound_service = AddOrUpdateHostsService
+
+
+class StartNginxComponent(Component):
+    name = _("启动Nginx")
+    code = "start_nginx"
+    bound_service = StartNginxService
