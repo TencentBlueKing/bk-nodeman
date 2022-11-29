@@ -33,7 +33,7 @@ class GseV1ApiHelper(base.GseApiBaseHelper):
             bk_cloud_id: typing.Optional[int] = getattr(mixed_types_of_host_info, "bk_cloud_id")
             if bk_cloud_id is None:
                 raise ValueError("can not get bk_cloud_id in obj type host info")
-            for attr_name in ["inner_ip"]:
+            for attr_name in ["inner_ip", "inner_ipv6"]:
                 ip = getattr(mixed_types_of_host_info, attr_name, "")
                 if ip:
                     break

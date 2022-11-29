@@ -8,13 +8,15 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-
 import traceback
 from typing import Any, Callable, Dict, List, Set, Tuple, Union
 
+from django.db.models import Q
+from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
 from apps.core.concurrent import controller
+from apps.node_man import models
 from apps.utils import concurrent, exc
 from common.api import CCApi
 
@@ -66,18 +68,58 @@ class BindHostAgentService(AgentBaseService):
             )
         return succeed_host_ids
 
+    @controller.ConcurrentController(
+        data_list_name="host_agent_relations",
+        batch_call_func=concurrent.batch_call,
+        get_config_dict_func=lambda: {"limit": 200},
+    )
+    @exc.ExceptionHandler(exc_handler=exc_handler)
+    def unbind_host_agent(
+        self,
+        host_agent_relations: List[Dict[str, Union[int, str]]],
+    ) -> List[int]:
+        """
+        解除主机和 Agent 间的绑定关系
+        :param host_agent_relations: 主机 Agent 绑定关系
+        :return:
+        """
+        succeed_host_ids: List[int] = []
+        CCApi.unbind_host_agent({"list": host_agent_relations})
+        for host_agent_relation in host_agent_relations:
+            succeed_host_ids.append(host_agent_relation["bk_host_id"])
+        return succeed_host_ids
+
     def _execute(self, data, parent_data, common_data: AgentCommonData):
+        host_ids: List[int] = []
+        agent_ids: List[str] = []
         sub_inst_ids_without_agent_id: Set[int] = set()
         host_agent_relations: List[Dict[str, Union[int, str]]] = []
         # 对于绑定操作，此时应用侧 DB 的 bk_agent_id 最新，取该值进行绑定
         for bk_host_id, host in common_data.host_id_obj_map.items():
             if host.bk_agent_id:
+                host_ids.append(host.bk_host_id)
+                agent_ids.append(host.bk_agent_id)
                 host_agent_relations.append({"bk_host_id": bk_host_id, "bk_agent_id": host.bk_agent_id})
             else:
                 sub_inst_ids_without_agent_id.add(common_data.host_id__sub_inst_id_map[bk_host_id])
 
         if sub_inst_ids_without_agent_id:
             self.move_insts_to_failed(sub_inst_ids=sub_inst_ids_without_agent_id, log_content=_("bk_agent_id 不存在"))
+
+        # 找出准备注册的 AgentID 所属的其他主机
+        # 这种情况一般出现于动态主机复用 AgentID，此时需要将旧主机的 AgentID 绑定关系释放掉
+        need_release_host_agent_relations: List[Dict[str, Union[int, str]]] = list(
+            models.Host.objects.filter(Q(bk_agent_id__in=agent_ids) & ~Q(bk_host_id__in=host_ids)).values(
+                "bk_host_id", "bk_agent_id"
+            )
+        )
+        if need_release_host_agent_relations:
+            succeed_unbind_host_ids: List[int] = self.unbind_host_agent(
+                host_agent_relations=need_release_host_agent_relations
+            )
+            models.Host.objects.filter(bk_host_id__in=succeed_unbind_host_ids).update(
+                bk_agent_id=None, updated_at=timezone.now()
+            )
 
         if host_agent_relations:
             self.bind_host_agent(

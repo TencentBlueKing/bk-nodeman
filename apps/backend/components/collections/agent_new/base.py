@@ -227,18 +227,23 @@ class AgentBaseService(BaseService, metaclass=abc.ABCMeta):
             cloud_id__proxies_map=cloud_id__proxies_map,
         )
 
+        id__sub_inst_obj_map: Dict[int, models.SubscriptionInstanceRecord] = {
+            sub_inst.id: sub_inst for sub_inst in common_data.subscription_instances
+        }
+
         # get_host_id__install_channel_map 仅返回成功匹配安装通道的主机，需要过滤失败主机
         hosts_need_gen_commands = [
             host for host in hosts_need_gen_commands if host.bk_host_id in host_id__install_channel_map
         ]
         host_id__installation_tool_map = batch_gen_commands(
-            agent_setup_info=common_data.agent_step_adapter.get_setup_info(),
+            base_agent_setup_info=common_data.agent_step_adapter.get_setup_info(),
             hosts=hosts_need_gen_commands,
             pipeline_id=self.id,
             is_uninstall=is_uninstall,
             host_id__sub_inst_id=common_data.host_id__sub_inst_id_map,
             ap_id_obj_map=common_data.ap_id_obj_map,
             cloud_id__proxies_map=cloud_id__proxies_map,
+            id__sub_inst_obj_map=id__sub_inst_obj_map,
             host_id__install_channel_map=host_id__install_channel_map,
             script_hooks=common_data.subscription_step.params.get("script_hooks"),
         )
