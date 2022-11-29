@@ -261,11 +261,12 @@ def update_pwd_validate(accept_list: list, identity_info: dict, ip_filter_list: 
 
 def new_install_ip_checker(
     host_infos_gby_ip_key: typing.Dict[str, typing.List[typing.Dict[str, typing.Any]]],
-    host_info: typing.Dict[str, typing.Dict],
+    host_info: typing.Dict[str, typing.Any],
     error_host: typing.Dict[str, typing.Dict],
     biz_info: typing.Dict[str, typing.Any],
     bk_cloud_info: typing.Dict[str, typing.Any],
     biz_id__biz_name_map: typing.Dict[int, str],
+    host_id__process_status_info_map: typing.Dict[int, typing.Dict[str, typing.Any]],
 ) -> bool:
     """
     新装校验
@@ -275,6 +276,7 @@ def new_install_ip_checker(
     :param biz_info: 期望安装到的目标业务信息
     :param bk_cloud_info: 期望安装到的云区域信息
     :param biz_id__biz_name_map: 主机 ID - 主机名称 映射
+    :param host_id__process_status_info_map: 主机 ID - Agent 进程信息映射关系
     :return:
     """
     host_infos_with_the_same_ips: typing.List[
@@ -283,9 +285,40 @@ def new_install_ip_checker(
         host_infos_gby_ip_key=host_infos_gby_ip_key, host_info=host_info, ip_field_names=["inner_ip", "inner_ipv6"]
     )
 
-    # 动态 IP 或者 IP 不存在的情况下允许新增
-    if host_info["bk_addressing"] == const.CmdbAddressingType.DYNAMIC.value or not host_infos_with_the_same_ips:
+    if not host_infos_with_the_same_ips:
         return True
+
+    # 动态 IP 或者 IP 不存在的情况下允许新增
+    if host_info["bk_addressing"] == const.CmdbAddressingType.DYNAMIC.value:
+        # 动态场景下的主机存在性校验
+        # 1. Agent 状态存活，提示去重装
+        # 2. Agent 已经失联，新增
+        first_online_host: typing.Optional[typing.Dict] = None
+        for host_info_with_the_same_ip in host_infos_with_the_same_ips:
+            if (
+                host_id__process_status_info_map.get(host_info_with_the_same_ip["bk_host_id"], {}).get("status")
+                == const.ProcStateType.RUNNING
+            ):
+                first_online_host = host_info_with_the_same_ip
+                break
+
+        # Agent 已经失联，允许新增
+        if first_online_host is None:
+            # 如果存在其他同 IP + 云区域失联的 Agent，声明本次安装需要重新生成 AgentID
+            if host_infos_with_the_same_ips:
+                host_info["force_update_agent_id"] = True
+            return True
+        else:
+            error_host["msg"] = _(
+                "已有 Agent 存活的动态寻址主机【bk_host_id: {bk_host_id}】位于所选云区域：{bk_cloud_name}，业务：{bk_biz_name}"
+            ).format(
+                bk_host_id=first_online_host["bk_host_id"],
+                ipv4=first_online_host["inner_ip"],
+                ipv6=first_online_host["inner_ipv6"],
+                bk_cloud_name=bk_cloud_info.get("bk_cloud_name") or "",
+                bk_biz_name=biz_id__biz_name_map.get(first_online_host["bk_biz_id"], first_online_host["bk_biz_id"]),
+            )
+            return False
 
     # 静态 IP 信息已存在，有且仅存在一个
     exist_host_info: typing.Dict[str, typing.Any] = host_infos_with_the_same_ips[0]
@@ -453,6 +486,22 @@ def install_validate(
 
         is_check_pass = True
         if op_type in [const.OpType.INSTALL, const.OpType.REPLACE] and job_type != const.JobType.INSTALL_PROXY:
+            bk_host_ids: typing.List[int] = []
+            for host_infos in host_infos_gby_ip_key.values():
+                bk_host_ids.extend([host_info["bk_host_id"] for host_info in host_infos])
+            process_status_infos = ProcessStatus.objects.filter(
+                name=ProcessStatus.GSE_AGENT_PROCESS_NAME,
+                bk_host_id__in=bk_host_ids,
+                source_type=ProcessStatus.SourceType.DEFAULT,
+            ).values("bk_host_id", "id", "status")
+
+            host_id__process_status_info_map: typing.Dict[int, typing.Dict[str, typing.Any]] = {}
+            for process_status_info in process_status_infos:
+                host_id__process_status_info_map[process_status_info["bk_host_id"]] = {
+                    "id": process_status_info["id"],
+                    "status": process_status_info["status"],
+                }
+
             is_check_pass = new_install_ip_checker(
                 host_infos_gby_ip_key=host_infos_gby_ip_key,
                 host_info=host,
@@ -460,6 +509,7 @@ def install_validate(
                 biz_info=biz_info,
                 bk_cloud_info=bk_cloud_info,
                 biz_id__biz_name_map=biz_id__biz_name_map,
+                host_id__process_status_info_map=host_id__process_status_info_map,
             )
 
         elif op_type not in [const.OpType.INSTALL, const.OpType.REPLACE]:

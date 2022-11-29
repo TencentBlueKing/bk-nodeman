@@ -31,3 +31,7 @@ class AgentSetupInfo:
     name: typing.Optional[str] = None
     # 构件版本，is_legacy=False 不为空
     version: typing.Optional[str] = None
+
+    # extra setup info
+    # 是否强制更新 AgentID，True：注册 AgentID 前会先
+    force_update_agent_id: bool = False
