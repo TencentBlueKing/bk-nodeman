@@ -331,6 +331,12 @@ register_agent_id () {
         fail register_agent_id FAILED "gse_agent file not exists in $AGENT_SETUP_PATH/bin"
     fi
 
+
+    if [[ "${UNREGISTER_AGENT_ID}" == "TRUE" ]]; then
+        log register_agent_id - "trying to unregister agent id"
+        unregister_agent_id SKIP
+    fi
+
     log register_agent_id  - "trying to register agent id"
     if [ -f "${GSE_AGENT_CONFIG_PATH}" ]; then
         registe_result=$($AGENT_SETUP_PATH/bin/gse_agent -f "${GSE_AGENT_CONFIG_PATH}" --register 2>&1)
@@ -346,6 +352,7 @@ register_agent_id () {
 }
 
 unregister_agent_id () {
+    local skip="$1"
     log unregister_agent_id - "trying to unregister agent id"
     if [ -f "$AGENT_SETUP_PATH/bin/gse_agent" ]; then
         if [ -f "${GSE_AGENT_CONFIG_PATH}" ]; then
@@ -357,7 +364,11 @@ unregister_agent_id () {
         if [[ $? -eq 0 ]]; then
             log unregister_agent_id SUCCESS "unregister agent id succeed"
         else
-            fail unregister_agent_id FAILED "unregister agent id failed, error: ${unregister_agent_id_result}"
+            if [[ "${skip}" == "SKIP" ]]; then
+                warn unregister_agent_id - "unregister agent id failed, but skip it. error: ${unregister_agent_id_result}"
+            else
+                fail unregister_agent_id FAILED "unregister agent id failed, error: ${unregister_agent_id_result}"
+            fi
         fi
     else
         log unregister_agent_id FAILED "gse_agent file not exists in $AGENT_SETUP_PATH/bin"
@@ -756,6 +767,7 @@ _help () {
     echo "  -S BT_PORT_START"
     echo "  -Z BT_PORT_END"
     echo "  -K TRACKER_PORT"
+    echo "  -F UNREGISTER_AGENT_ID [optional]"
 
     exit 0
 }
@@ -783,6 +795,7 @@ AGENT_SETUP_PATH="/usr/local/gse/${NODE_TYPE}"
 CURR_PID=$$
 OVERIDE=false
 REMOVE=false
+UNREGISTER_AGENT_ID=false
 CALLBACK_URL=
 AGENT_PID=
 DEBUG=
@@ -792,7 +805,7 @@ LOG_RPT_CNT=0
 BULK_LOG_SIZE=3
 
 # main program
-while getopts n:t:I:i:l:s:uc:r:x:p:e:a:k:N:v:oT:RDO:E:A:V:B:S:Z:K: arg; do
+while getopts n:t:I:i:l:s:uc:r:x:p:e:a:k:N:v:oT:RDO:E:A:V:B:S:Z:K:F arg; do
     case $arg in
         n) NAME="$OPTARG" ;;
         t) VERSION="$OPTARG" ;;
@@ -821,6 +834,7 @@ while getopts n:t:I:i:l:s:uc:r:x:p:e:a:k:N:v:oT:RDO:E:A:V:B:S:Z:K: arg; do
         S) BT_PORT_START=$OPTARG ;;
         Z) BT_PORT_END=$OPTARG ;;
         K) TRACKER_PORT=$OPTARG ;;
+        F) UNREGISTER_AGENT_ID=TRUE ;;
         *)  _help ;;
     esac
 done

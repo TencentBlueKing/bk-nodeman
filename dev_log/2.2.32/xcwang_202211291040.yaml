@@ -1,0 +1,3 @@
+---
+optimization:
+  - "对动态寻址的相同IP主机安装Agent时的处理逻辑优化  (closed #1281)"
