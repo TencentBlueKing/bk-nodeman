@@ -529,6 +529,7 @@ class HostHandler(APIModel):
         fields: List[str] = [
             "inner_ip",
             "inner_ipv6",
+            "bk_agent_id",
             "outer_ip",
             "outer_ipv6",
             "login_ip",

@@ -65,9 +65,12 @@ class GseV2ApiHelper(GseV1ApiHelper):
         agent_id_list: typing.List[str] = [self.get_agent_id(host_info) for host_info in host_info_list]
 
         try:
-            agent_state_list: base.InfoDictList = self.gse_api_obj.v2_cluster_list_agent_state(
-                {"agent_id_list": agent_id_list}
-            )
+            if not agent_id_list:
+                agent_state_list = []
+            else:
+                agent_state_list: base.InfoDictList = self.gse_api_obj.v2_cluster_list_agent_state(
+                    {"agent_id_list": agent_id_list}
+                )
         except ApiResultError as err:
             if err.code == 1011003:
                 # 1011003 表示传入 agent_id_list 均查询不到 Agent 信息，这种情况下取 Agent 默认状态
