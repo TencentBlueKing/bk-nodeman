@@ -42,7 +42,7 @@ class GseV2ApiHelper(GseV1ApiHelper):
         extra_meta_data: base.InfoDict,
         **options,
     ) -> base.AgentIdInfoMap:
-        agent_id_list: typing.List[str] = [self.get_agent_id(host_info) for host_info in host_info_list]
+        agent_id_list: typing.List[str] = list({self.get_agent_id(host_info) for host_info in host_info_list})
         query_params: base.InfoDict = {
             "meta": {"namespace": constants.GSE_NAMESPACE, "name": proc_name, "labels": {"proc_name": proc_name}},
             "agent_id_list": agent_id_list,
@@ -62,7 +62,7 @@ class GseV2ApiHelper(GseV1ApiHelper):
         return agent_id__proc_info_map
 
     def _list_agent_state(self, host_info_list: base.InfoDictList) -> base.AgentIdInfoMap:
-        agent_id_list: typing.List[str] = [self.get_agent_id(host_info) for host_info in host_info_list]
+        agent_id_list: typing.List[str] = list({self.get_agent_id(host_info) for host_info in host_info_list})
 
         try:
             if not agent_id_list:
@@ -107,7 +107,7 @@ class GseV2ApiHelper(GseV1ApiHelper):
     def preprocessing_proc_operate_info(
         self, host_info_list: base.InfoDictList, proc_operate_info: base.InfoDict
     ) -> base.InfoDict:
-        proc_operate_info["agent_id_list"] = [self.get_agent_id(host_info) for host_info in host_info_list]
+        proc_operate_info["agent_id_list"] = list({self.get_agent_id(host_info) for host_info in host_info_list})
         return proc_operate_info
 
     def _operate_proc_multi(self, proc_operate_req: base.InfoDictList, **options) -> str:

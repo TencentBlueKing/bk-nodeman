@@ -42,9 +42,16 @@ class BindHostAgentTestCase(utils.AgentServiceBaseTestCase):
         调整DB中的测试数据
         :return:
         """
-        for host_obj in cls.obj_factory.host_objs:
-            host_obj.bk_agent_id = f"{host_obj.bk_cloud_id}:{host_obj.inner_ip}"
-        models.Host.objects.bulk_update(cls.obj_factory.host_objs, fields=["bk_agent_id"])
+
+        host_id__agent_id_map = {
+            host_obj.bk_host_id: f"{host_obj.bk_cloud_id}:{host_obj.inner_ip}" for host_obj in cls.obj_factory.host_objs
+        }
+        for sub_inst in cls.obj_factory.sub_inst_record_objs:
+            bk_host_id = sub_inst.instance_info["host"]["bk_host_id"]
+            sub_inst.instance_info["host"]["bk_agent_id"] = host_id__agent_id_map[bk_host_id]
+        models.SubscriptionInstanceRecord.objects.bulk_update(
+            cls.obj_factory.sub_inst_record_objs, fields=["instance_info"]
+        )
 
     @classmethod
     def get_default_case_name(cls) -> str:
@@ -132,4 +139,8 @@ class AgentIdNotExistedTestCase(BindHostAgentTestCase):
 
     @classmethod
     def adjust_test_data_in_db(cls):
-        models.Host.objects.filter(bk_host_id__in=cls.obj_factory.bk_host_ids).update(bk_agent_id=None)
+        for sub_inst in cls.obj_factory.sub_inst_record_objs:
+            sub_inst.instance_info["host"].pop("bk_agent_id", None)
+        models.SubscriptionInstanceRecord.objects.bulk_update(
+            cls.obj_factory.sub_inst_record_objs, fields=["instance_info"]
+        )
