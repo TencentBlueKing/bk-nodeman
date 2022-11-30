@@ -6,6 +6,7 @@ from __future__ import print_function
 
 import argparse
 import base64
+import ipaddress
 import json
 import os
 import re
@@ -13,10 +14,11 @@ import socket
 import sys
 import time
 import traceback
+from functools import partial
 from io import StringIO
 from pathlib import Path
 from subprocess import Popen
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 PRIVATE_KEY_MERGED_TEXT = """
 %%PRIVATE_KEY_MERGED_TEXT%%
@@ -43,6 +45,29 @@ CLEAR_MISC_RE = re.compile(r"\$.?\[\D", re.I | re.U)
 # 换行转换
 LINE_BREAK_RE = re.compile(r"\r\n|\r|\n", re.I | re.U)
 JOB_PRIVATE_KEY_RE = re.compile(r"^(-{5}BEGIN .*? PRIVATE KEY-{5})(.*?)(-{5}END .*? PRIVATE KEY-{5}.?)$")
+
+
+def is_ip(ip: str, _version: Optional[int] = None) -> bool:
+    """
+    判断是否为合法 IP
+    :param ip:
+    :param _version: 是否为合法版本，缺省表示 both
+    :return:
+    """
+    try:
+        ip_address = ipaddress.ip_address(ip)
+    except ValueError:
+        return False
+    if _version is None:
+        return True
+    return ip_address.version == _version
+
+
+# 判断是否为合法 IPv6
+is_v6 = partial(is_ip, _version=6)
+
+# 判断是否为合法 IPv4
+is_v4 = partial(is_ip, _version=4)
 
 
 def arg_parser() -> argparse.ArgumentParser:
@@ -277,7 +302,7 @@ def execute_shell_solution(
 
 
 def is_port_listen(ip: str, port: int) -> bool:
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s = socket.socket((socket.AF_INET, socket.AF_INET6)[is_v6(ip)], socket.SOCK_STREAM)
     r = s.connect_ex((ip, port))
 
     if r == 0:
