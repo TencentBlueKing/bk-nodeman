@@ -185,7 +185,7 @@ is_port_connected_by_pid () {
         sleep 1
         stat -L -c %i /proc/"$pid"/fd/* 2>/dev/null \
             | grep -qwFf - \
-                <( awk -v p="$port" 'BEGIN{ check=sprintf(":%04X01$", p)} $3$4 ~ check {print $10}' /proc/net/tcp) \
+                <( awk -v p="$port" 'BEGIN{ check=sprintf(":%04X01$", p)} $3$4 ~ check {print $10}' /proc/net/tcp*) \
                 && return 0
     done
     return 1
@@ -361,7 +361,7 @@ unregister_agent_id () {
             fi
         fi
     else
-        log unregister_agent_id FAILED "gse_agent file not exists in $AGENT_SETUP_PATH/bin"
+        warn unregister_agent_id - "gse_agent file not exists in $AGENT_SETUP_PATH/bin"
     fi
 }
 
@@ -456,9 +456,9 @@ remove_proxy () {
     log remove_proxy - "trying to remove old proxy directory(${AGENT_SETUP_PATH}/${PROXY_CLEAN_UP_DIRS[@]})"
 
     if [[ "$REMOVE" == "TRUE" ]]; then
-        unregister_agent_id
+        unregister_agent_id SKIP
         clean_up_proxy_directory
-        log remove_agent DONE "agent removed"
+        log remove_proxy DONE "proxy removed"
         exit 0
     else
         clean_up_proxy_directory
@@ -554,11 +554,11 @@ check_deploy_result () {
 
     is_port_listen_by_pid "$AGENT_PID" "$IO_PORT"  || { fail check_deploy_result FAILED "port $IO_PORT is not listen"; ((ret++)); }
     # is_port_listen_by_pid "$AGENT_PID" $(seq "$BT_PORT_START" "$BT_PORT_END") || { fail check_deploy_result FAILED "bt port is not listen"; ((ret++)); }
-    is_port_connected_by_pid "$AGENT_PID" "$IO_PORT" || { fail check_deploy_result FAILED "agent(PID:$AGENT_PID) is not connect to gse server"; ((ret++)); }
+    is_port_connected_by_pid "$AGENT_PID" "$IO_PORT" || { fail check_deploy_result FAILED "agent(PID:$AGENT_PID, PORT:$IO_PORT) is not connect to gse server"; ((ret++)); }
 
     DATA_PID=$( get_pid_by_comm_path gse_data "$AGENT_SETUP_PATH/bin/gse_data" "WORKER" )
     is_port_listen_by_pid "$DATA_PID" "$DATA_PORT"  || { fail check_deploy_result FAILED "port $DATA_PORT is not listen"; ((ret++)); }
-    is_port_connected_by_pid "$DATA_PID" "$DATA_PORT" || { fail check_deploy_result FAILED "gse_data(PID:$DATA_PID) is not connect to gse server"; ((ret++)); }
+    is_port_connected_by_pid "$DATA_PID" "$DATA_PORT" || { fail check_deploy_result FAILED "gse_data(PID:$DATA_PID, PORT:$DATA_PORT) is not connect to gse server"; ((ret++)); }
 
     [ $ret -eq 0 ] && log check_deploy_result DONE "gse proxy has been deployed successfully"
 }
