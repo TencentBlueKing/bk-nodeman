@@ -19,6 +19,7 @@ from collections import defaultdict
 from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
 from django.conf import settings
+from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 from redis.client import Pipeline
 
@@ -619,6 +620,10 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
             {"sub_inst_id": sub_inst_id, "success_callback_step": success_callback_step}
             for sub_inst_id in scheduling_sub_inst_ids
         ]
+        host_id__sub_inst_map: Dict[int, models.SubscriptionInstanceRecord] = {
+            common_data.sub_inst_id__host_id_map[sub_inst.id]: sub_inst
+            for sub_inst in common_data.subscription_instances
+        }
         results = concurrent.batch_call(func=self.handle_report_data, params_list=params_list)
         left_scheduling_sub_inst_ids = []
         cpu_arch__host_id_map = defaultdict(list)
@@ -652,11 +657,17 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
 
         # 批量更新主机 Agent ID
         if host_id__agent_id_map:
-            report_agent_id_hosts: List[models.Host] = [
-                models.Host(bk_host_id=bk_host_id, bk_agent_id=bk_agent_id)
-                for bk_host_id, bk_agent_id in host_id__agent_id_map.items()
-            ]
-            models.Host.objects.bulk_update(report_agent_id_hosts, fields=["bk_agent_id"])
+            report_agent_id_sub_insts: List[models.SubscriptionInstanceRecord] = []
+            for bk_host_id, bk_agent_id in host_id__agent_id_map.items():
+                sub_inst: models.SubscriptionInstanceRecord = host_id__sub_inst_map[bk_host_id]
+                sub_inst.update_time = timezone.now()
+                sub_inst.instance_info["host"]["bk_agent_id"] = bk_agent_id
+                report_agent_id_sub_insts.append(sub_inst)
+
+            # 更新订阅实例中的实例信息
+            models.SubscriptionInstanceRecord.objects.bulk_update(
+                report_agent_id_sub_insts, fields=["instance_info", "update_time"], batch_size=self.batch_size
+            )
 
         data.outputs.scheduling_sub_inst_ids = left_scheduling_sub_inst_ids
         if not left_scheduling_sub_inst_ids:
