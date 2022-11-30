@@ -371,7 +371,7 @@ unregister_agent_id () {
             fi
         fi
     else
-        log unregister_agent_id FAILED "gse_agent file not exists in $AGENT_SETUP_PATH/bin"
+        warn unregister_agent_id - "gse_agent file not exists in $AGENT_SETUP_PATH/bin"
     fi
 }
 
@@ -555,8 +555,8 @@ check_deploy_result () {
     local ret=0
 
     AGENT_PID=$( get_pid_by_comm_path gse_agent "$AGENT_SETUP_PATH/bin/gse_agent" "WORKER")
-    is_port_connected_by_pid "$AGENT_PID" "$IO_PORT" || { fail check_deploy_result FAILED "agent(PID:$AGENT_PID) is not connect to gse server"; ((ret++)); }
-    is_port_connected_by_pid "$AGENT_PID" "$DATA_PORT" || { fail check_deploy_result FAILED "agent(PID:$AGENT_PID) is not connect to gse server"; ((ret++)); }
+    is_port_connected_by_pid "$AGENT_PID" "$IO_PORT" || { fail check_deploy_result FAILED "agent(PID:$AGENT_PID, PORT:$IO_PORT) is not connect to gse server"; ((ret++)); }
+    is_port_connected_by_pid "$AGENT_PID" "$DATA_PORT" || { fail check_deploy_result FAILED "agent(PID:$AGENT_PID, PORT:$DATA_PORT) is not connect to gse server"; ((ret++)); }
 
     [ $ret -eq 0 ] && log check_deploy_result DONE "gse agent has been deployed successfully"
 }

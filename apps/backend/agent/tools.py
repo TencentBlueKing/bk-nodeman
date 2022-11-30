@@ -88,7 +88,7 @@ def fetch_gse_servers_info(
         bt_file_server_hosts = upstream_servers["btfileserver"]
         data_server_hosts = upstream_servers["dataserver"]
         task_server_hosts = upstream_servers["taskserver"]
-        package_url = gen_nginx_download_url(jump_server.inner_ip)
+        package_url = gen_nginx_download_url(jump_server.inner_ip or jump_server.inner_ipv6)
         default_callback_url = (
             settings.BKAPP_NODEMAN_CALLBACK_URL
             if host.node_type == constants.NodeType.AGENT
@@ -111,7 +111,7 @@ def fetch_gse_servers_info(
         callback_url = host_ap.outer_callback_url or settings.BKAPP_NODEMAN_OUTER_CALLBACK_URL
     else:
         # PAGENT的场景
-        proxy_ips = list(set([proxy.inner_ip for proxy in proxies]))
+        proxy_ips = list(set([proxy.inner_ip or proxy.inner_ipv6 for proxy in proxies]))
         bt_file_server_hosts = proxy_ips
         data_server_hosts = proxy_ips
         task_server_hosts = proxy_ips
