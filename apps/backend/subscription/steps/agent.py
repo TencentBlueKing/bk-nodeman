@@ -181,6 +181,7 @@ class AgentAction(Action, abc.ABC):
 
     step: AgentStep = None
     is_install_latest_plugins: bool = None
+    enable_push_host_identifier: bool = None
 
     def __init__(self, action_name, step: AgentStep, instance_record_ids: List[int]):
         """
@@ -189,6 +190,9 @@ class AgentAction(Action, abc.ABC):
         """
         self.step = step
         self.is_install_latest_plugins = self.step.subscription_step.params.get("is_install_latest_plugins", True)
+        self.enable_push_host_identifier = models.GlobalSettings.get_config(
+            models.GlobalSettings.KeyEnum.ENABLE_PUSH_HOST_IDENTIFIER.value, False
+        )
         super().__init__(action_name, step, instance_record_ids)
 
     def get_agent_manager(self, subscription_instances: List[models.SubscriptionInstanceRecord]):
@@ -242,6 +246,7 @@ class InstallAgent(AgentAction):
             agent_manager.choose_ap(),
             agent_manager.install(),
             agent_manager.get_agent_status(expect_status=constants.ProcStateType.RUNNING),
+            agent_manager.push_host_identifier() if self.enable_push_host_identifier else None,
             agent_manager.install_plugins() if self.is_install_latest_plugins else None,
         ]
 
@@ -264,6 +269,7 @@ class ReinstallAgent(AgentAction):
             agent_manager.choose_ap(),
             agent_manager.install(),
             agent_manager.get_agent_status(expect_status=constants.ProcStateType.RUNNING),
+            agent_manager.push_host_identifier() if self.enable_push_host_identifier else None,
             agent_manager.install_plugins() if self.is_install_latest_plugins else None,
         ]
 
@@ -343,6 +349,7 @@ class InstallProxy(AgentAction):
             agent_manager.install(),
             agent_manager.get_agent_status(expect_status=constants.ProcStateType.RUNNING, name=_("查询Proxy状态")),
             agent_manager.check_policy_gse_to_proxy(),
+            agent_manager.push_host_identifier() if self.enable_push_host_identifier else None,
         ]
 
         activities = self.append_push_file_activities(agent_manager, activities)
@@ -372,6 +379,7 @@ class ReinstallProxy(AgentAction):
             agent_manager.wait(30),
             agent_manager.get_agent_status(expect_status=constants.ProcStateType.RUNNING, name=_("查询Proxy状态")),
             agent_manager.check_policy_gse_to_proxy(),
+            agent_manager.push_host_identifier() if self.enable_push_host_identifier else None,
         ]
 
         # 推送文件到proxy
@@ -496,6 +504,7 @@ class InstallAgent2(AgentAction):
             agent_manager.bind_host_agent(),
             agent_manager.upgrade_to_agent_id(),
             agent_manager.get_agent_status(expect_status=constants.ProcStateType.RUNNING),
+            agent_manager.push_host_identifier() if self.enable_push_host_identifier else None,
             agent_manager.install_plugins() if self.is_install_latest_plugins else None,
         ]
         return list(filter(None, activities)), None
@@ -534,6 +543,8 @@ class InstallProxy2(AgentAction):
 
         activities = self.append_push_file_activities(agent_manager, activities)
         activities.append(agent_manager.start_nginx())
+        if self.enable_push_host_identifier:
+            activities.append(agent_manager.push_host_identifier())
         if self.is_install_latest_plugins:
             activities.append(agent_manager.install_plugins())
 
