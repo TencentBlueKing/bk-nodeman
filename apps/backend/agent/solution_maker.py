@@ -141,9 +141,12 @@ class BaseExecutionSolutionMaker(metaclass=abc.ABCMeta):
             )
 
     def get_http_proxy_url(self) -> str:
+        jump_server: models.Host = self.gse_servers_info["jump_server"]
+        jump_server_lan_ip: str = jump_server.inner_ip or jump_server.inner_ipv6
+        if basic.is_v6(jump_server_lan_ip):
+            jump_server_lan_ip = f"[{jump_server_lan_ip}]"
         return "http://{jump_server_lan_ip}:{jump_server_port}".format(
-            jump_server_lan_ip=self.gse_servers_info["jump_server"].inner_ip,
-            jump_server_port=settings.BK_NODEMAN_NGINX_PROXY_PASS_PORT,
+            jump_server_lan_ip=jump_server_lan_ip, jump_server_port=settings.BK_NODEMAN_NGINX_PROXY_PASS_PORT
         )
 
     def get_setup_type_alias(self):
@@ -155,9 +158,12 @@ class BaseExecutionSolutionMaker(metaclass=abc.ABCMeta):
         :return:
         """
         if ExecutionSolutionTools.need_jump_server(self.host):
+            jump_server: models.Host = self.gse_servers_info["jump_server"]
+            jump_server_lan_ip: str = jump_server.inner_ip or jump_server.inner_ipv6
+            if basic.is_v6(jump_server_lan_ip):
+                jump_server_lan_ip = f"[{jump_server_lan_ip}]"
             return "http://{jump_server_lan_ip}:{proxy_nginx_pass_port}".format(
-                jump_server_lan_ip=self.gse_servers_info["jump_server"].inner_ip,
-                proxy_nginx_pass_port=settings.BK_NODEMAN_NGINX_DOWNLOAD_PORT,
+                jump_server_lan_ip=jump_server_lan_ip, proxy_nginx_pass_port=settings.BK_NODEMAN_NGINX_DOWNLOAD_PORT
             )
         else:
             return self.gse_servers_info["package_url"]
@@ -710,10 +716,7 @@ class ProxyExecutionSolutionMaker(BaseExecutionSolutionMaker):
             # 代理机器配置
             f"-HPP '{settings.BK_NODEMAN_NGINX_PROXY_PASS_PORT}'",
             # 代理机器主机信息
-            f"-I {self.gse_servers_info['jump_server'].inner_ip}",
-            f"-I6 {self.gse_servers_info['jump_server'].inner_ipv6}"
-            if self.gse_servers_info["jump_server"].inner_ipv6
-            else "",
+            f"-I {self.gse_servers_info['jump_server'].inner_ip or self.gse_servers_info['jump_server'].inner_ipv6}",
         ]
 
         # 通道特殊配置

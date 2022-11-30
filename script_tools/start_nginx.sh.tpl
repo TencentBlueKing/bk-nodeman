@@ -26,16 +26,14 @@ fi
 
 ipv6_valid_ip () {
     local ip=$1
-    if [[ "${ip}" =~ ^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))$ ]]; then
-        return 0
-    else
-        return 1
-    fi
+    regex='^([0-9a-fA-F]{0,4}:){1,7}[0-9a-fA-F]{0,4}$'
+    awk '$0 !~ /'"$regex"'/{print "not an ipv6=>"$0;exit 1}' <<< "$1"
 }
+
 nginx_dns_list=()
 for dns_ip in ${DNS_LIST[@]}; do
     if ipv6_valid_ip $dns_ip; then
-        nginx_dns_list+=(["${dns_ip}"])
+        nginx_dns_list+=(["$dns_ip"])
     else
         nginx_dns_list+=("$dns_ip")
     fi
@@ -89,7 +87,7 @@ is_port_listen_by_pid () {
         for port in "$@"; do
             stat -L -c %%i /proc/"$pid"/fd/* 2>/dev/null | grep -qwFf - \
             <( awk -v p="$port" 'BEGIN{ check=sprintf(":%%04X0A$", p)} $2$4 ~ check {print $10}' \
-            /proc/net/tcp) || ((ret+=1))
+            /proc/net/tcp*) || ((ret+=1))
         done
     done
     return "$ret"
