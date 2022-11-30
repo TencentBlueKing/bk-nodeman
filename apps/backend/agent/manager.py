@@ -241,3 +241,12 @@ class AgentManager(object):
             component_code=components.UpgradeToAgentIDComponent.code, name=components.UpgradeToAgentIDComponent.name
         )
         return act
+
+    @classmethod
+    def push_host_identifier(cls):
+        """推送主机身份下发"""
+        act = AgentServiceActivity(
+            component_code=components.PushIdentifierHostsComponent.code,
+            name=components.PushIdentifierHostsComponent.name,
+        )
+        return act
