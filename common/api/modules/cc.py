@@ -182,3 +182,17 @@ class _CCApi(BaseApi):
             description="添加主机到业务空闲机",
             before_request=add_esb_info_before_request,
         )
+        self.push_host_identifier = DataAPI(
+            method="POST",
+            url=CC_APIGATEWAY_ROOT_V2 + "push_host_identifier/",
+            module=self.MODULE,
+            description="推送主机身份到机器上",
+            before_request=add_esb_info_before_request,
+        )
+        self.find_host_identifier_push_result = DataAPI(
+            method="POST",
+            url=CC_APIGATEWAY_ROOT_V2 + "find_host_identifier_push_result/",
+            module=self.MODULE,
+            description="获取推送主机身份到机器结果",
+            before_request=add_esb_info_before_request,
+        )
