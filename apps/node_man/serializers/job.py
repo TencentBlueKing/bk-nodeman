@@ -263,7 +263,7 @@ class OperateSerializer(serializers.Serializer):
         attrs["bk_host_ids"] = bk_host_ids
         attrs["bk_biz_scope"] = bk_biz_scope
 
-        if attrs["job_type"] not in ["REINSTALL_PROXY", "UPGRADE_PROXY"]:
+        if attrs["job_type"] not in ["REINSTALL_PROXY", "UPGRADE_PROXY", "UNINSTALL_PROXY"]:
             return attrs
 
         # 如果开启业务灰度，安装新版本 Agent
