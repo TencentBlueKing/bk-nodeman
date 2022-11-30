@@ -10,9 +10,11 @@ specific language governing permissions and limitations under the License.
 """
 import typing
 
+from django.conf import settings
 from django.db.models.aggregates import Count
 from django.utils.translation import ugettext_lazy as _
 
+from apps.adapters.api.gse import GseApiHelper
 from apps.node_man import constants as const
 from apps.node_man import tools
 from apps.node_man.exceptions import (
@@ -266,7 +268,7 @@ def new_install_ip_checker(
     biz_info: typing.Dict[str, typing.Any],
     bk_cloud_info: typing.Dict[str, typing.Any],
     biz_id__biz_name_map: typing.Dict[int, str],
-    host_id__process_status_info_map: typing.Dict[int, typing.Dict[str, typing.Any]],
+    host_id__agent_state_info_map: typing.Dict[int, typing.Dict[str, typing.Any]],
 ) -> bool:
     """
     新装校验
@@ -276,7 +278,7 @@ def new_install_ip_checker(
     :param biz_info: 期望安装到的目标业务信息
     :param bk_cloud_info: 期望安装到的云区域信息
     :param biz_id__biz_name_map: 主机 ID - 主机名称 映射
-    :param host_id__process_status_info_map: 主机 ID - Agent 进程信息映射关系
+    :param host_id__agent_state_info_map: 主机 ID - Agent 进程信息映射关系
     :return:
     """
     host_infos_with_the_same_ips: typing.List[
@@ -295,10 +297,13 @@ def new_install_ip_checker(
         # 2. Agent 已经失联，新增
         first_online_host: typing.Optional[typing.Dict] = None
         for host_info_with_the_same_ip in host_infos_with_the_same_ips:
-            if (
-                host_id__process_status_info_map.get(host_info_with_the_same_ip["bk_host_id"], {}).get("status")
-                == const.ProcStateType.RUNNING
-            ):
+            print(host_id__agent_state_info_map)
+            is_running: bool = (
+                host_id__agent_state_info_map.get(host_info_with_the_same_ip["bk_host_id"], {}).get("bk_agent_alive")
+                == const.BkAgentStatus.ALIVE.value
+            )
+
+            if is_running:
                 first_online_host = host_info_with_the_same_ip
                 break
 
@@ -427,6 +432,33 @@ def install_validate(
     # 获得有可用代理的云区域
     available_clouds, proxies_count = check_available_proxy()
 
+    if all(
+        [
+            op_type in [const.OpType.INSTALL, const.OpType.REPLACE],
+            job_type != const.JobType.INSTALL_PROXY,
+            settings.BKAPP_ENABLE_DHCP,
+        ]
+    ):
+        query_hosts: typing.List[typing.Dict[str, typing.Any]] = []
+        for host_infos in host_infos_gby_ip_key.values():
+            for host_info in host_infos:
+                query_hosts.append(
+                    {
+                        "bk_host_id": host_info["bk_host_id"],
+                        "ip": host_info["inner_ip"] or host_info["inner_ipv6"],
+                        "bk_cloud_id": host_info["bk_cloud_id"],
+                        "bk_agent_id": host_info["bk_agent_id"],
+                    }
+                )
+
+        agent_id__agent_state_info_map: typing.Dict[str, typing.Dict] = GseApiHelper.list_agent_state(query_hosts)
+        host_id__agent_state_info_map: typing.Dict[int, typing.Dict] = {}
+        for query_host in query_hosts:
+            agent_id: str = GseApiHelper.get_agent_id(query_host)
+            host_id__agent_state_info_map[query_host["bk_host_id"]] = agent_id__agent_state_info_map.get(agent_id, {})
+    else:
+        host_id__agent_state_info_map = {}
+
     for host in hosts:
         ap_id = host.get("ap_id")
         bk_biz_id = host["bk_biz_id"]
@@ -486,21 +518,6 @@ def install_validate(
 
         is_check_pass = True
         if op_type in [const.OpType.INSTALL, const.OpType.REPLACE] and job_type != const.JobType.INSTALL_PROXY:
-            bk_host_ids: typing.List[int] = []
-            for host_infos in host_infos_gby_ip_key.values():
-                bk_host_ids.extend([host_info["bk_host_id"] for host_info in host_infos])
-            process_status_infos = ProcessStatus.objects.filter(
-                name=ProcessStatus.GSE_AGENT_PROCESS_NAME,
-                bk_host_id__in=bk_host_ids,
-                source_type=ProcessStatus.SourceType.DEFAULT,
-            ).values("bk_host_id", "id", "status")
-
-            host_id__process_status_info_map: typing.Dict[int, typing.Dict[str, typing.Any]] = {}
-            for process_status_info in process_status_infos:
-                host_id__process_status_info_map[process_status_info["bk_host_id"]] = {
-                    "id": process_status_info["id"],
-                    "status": process_status_info["status"],
-                }
 
             is_check_pass = new_install_ip_checker(
                 host_infos_gby_ip_key=host_infos_gby_ip_key,
@@ -509,7 +526,7 @@ def install_validate(
                 biz_info=biz_info,
                 bk_cloud_info=bk_cloud_info,
                 biz_id__biz_name_map=biz_id__biz_name_map,
-                host_id__process_status_info_map=host_id__process_status_info_map,
+                host_id__agent_state_info_map=host_id__agent_state_info_map,
             )
 
         elif op_type not in [const.OpType.INSTALL, const.OpType.REPLACE]:
