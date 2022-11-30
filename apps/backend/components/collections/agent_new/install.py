@@ -395,7 +395,7 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
         )
         self.log_info(
             sub_inst_ids=sub_inst_id,
-            log_content=_("已选择 {inner_ip} 作为本次安装的跳板机").format(inner_ip=jump_server.inner_ip),
+            log_content=_("已选择 {inner_ip} 作为本次安装的跳板机").format(inner_ip=jump_server.inner_ip or jump_server.inner_ipv6),
         )
         path = os.path.join(settings.BK_SCRIPTS_PATH, constants.SetupScriptFileName.SETUP_PAGENT_PY.value)
         with open(path, encoding="utf-8") as fh:
@@ -453,8 +453,8 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
                         "2. Proxy是否已正确完成所有安装步骤且状态正常。 \n"
                         "3. 点击上面链接跳转到作业平台查看任务执行情况。\n"
                     ).format(
-                        host_inner_ip=host.inner_ip,
-                        jump_server_ip=jump_server.inner_ip,
+                        host_inner_ip=host.inner_ip or host.inner_ipv6,
+                        jump_server_ip=jump_server.inner_ip or host.inner_ipv6,
                         download_port=settings.BK_NODEMAN_NGINX_DOWNLOAD_PORT,
                         proxy_pass_port=settings.BK_NODEMAN_NGINX_PROXY_PASS_PORT,
                     ),
