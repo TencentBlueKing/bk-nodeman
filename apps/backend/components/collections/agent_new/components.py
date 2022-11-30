@@ -24,6 +24,7 @@ from .get_agent_status import GetAgentStatusService
 from .install import InstallService
 from .install_plugins import InstallPluginsService
 from .push_files_to_proxy import PushFilesToProxyService
+from .push_host_identifier import PushIdentifierHostsService
 from .push_upgrade_package import PushUpgradeFileService
 from .query_password import QueryPasswordService
 from .register_host import RegisterHostService
@@ -186,3 +187,9 @@ class UpgradeToAgentIDComponent(Component):
     name = _("升级为 Agent-ID 配置")
     code = "upgrade_to_agent_id"
     bound_service = UpgradeToAgentIDService
+
+
+class PushIdentifierHostsComponent(Component):
+    name = _("推送主机身份信息")
+    code = "push_host_identifier"
+    bound_service = PushIdentifierHostsService
