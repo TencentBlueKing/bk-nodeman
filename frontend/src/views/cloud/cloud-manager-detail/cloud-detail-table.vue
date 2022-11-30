@@ -30,11 +30,20 @@
       <bk-table
         v-test="'proxyTable'"
         :class="`head-customize-table ${ fontSize }`" :data="proxyData" :span-method="colspanHandle">
-        <bk-table-column label="Proxy IP" show-overflow-tooltip>
+        <bk-table-column label="Proxy IPv4" show-overflow-tooltip>
           <template #default="{ row }">
-            <bk-button v-test="'view'" text @click="handleViewProxy(row, false)" class="row-btn">
+            <bk-button v-if="row.inner_ip" v-test="'view'" text @click="handleViewProxy(row, false)" class="row-btn">
               {{ row.inner_ip }}
             </bk-button>
+            <template v-else>{{ row.inner_ip | filterEmpty }}</template>
+          </template>
+        </bk-table-column>
+        <bk-table-column label="Proxy IPv6" show-overflow-tooltip>
+          <template #default="{ row }">
+            <bk-button v-if="row.inner_ipv6" v-test="'view'" text @click="handleViewProxy(row, false)" class="row-btn">
+              {{ row.inner_ipv6 }}
+            </bk-button>
+            <template v-else>{{ row.inner_ipv6 | filterEmpty }}</template>
           </template>
         </bk-table-column>
         <bk-table-column

@@ -157,9 +157,9 @@ import formLabelMixin from '@/common/form-label-mixin';
 import FilterDialog from '@/components/common/filter-dialog.vue';
 import PermissionSelect from '@/components/common/permission-select.vue';
 import getTipsTemplate from '../config/tips-template';
-import { setupTableConfig, setupTableManualConfig, parentHead } from '../config/setupTableConfig';
+import { setupTableConfig, parentHead, setupDiffConfigs } from '../config/setupTableConfig';
 import { addListener, removeListener } from 'resize-detector';
-import { debounce, isEmpty, deepClone } from '@/common/util';
+import { debounce, isEmpty, deepClone, getManualConfig } from '@/common/util';
 import { IApExpand } from '@/types/config/config';
 import { IAgent } from '@/types/agent/agent-type';
 import { ISetupHead, ISetupRow, ISetupParent } from '@/types';
@@ -500,7 +500,7 @@ export default class AgentSetup extends Mixins(mixin, formLabelMixin) {
     this.isManual = isManual;
     const apList: IApExpand[] = deepClone(this.apList);
     if (this.isManual) {
-      this.setupInfo.header = setupTableManualConfig;
+      this.setupInfo.header = getManualConfig(setupTableConfig, setupDiffConfigs);
       // 手动安装无自动选择
       this.apList = apList.filter(item => item.id !== -1);
       if (this.formData.ap_id === -1) {

@@ -3,6 +3,7 @@ import {
   splitCodeArr,
   regIp,
   regIPv6,
+  regIpMixin,
   regUrl,
   regUrlMixinIp,
   regNormalText,
@@ -16,6 +17,29 @@ const i18nMap: Dictionary = {
   windows: 'windows路径格式错误',
 };
 
+export function createIpRegu(type: 'ipv4' | 'ipv6' | 'mixins' = 'ipv4', isBatch = false) {
+  let regex = regIp;
+  if (type !== 'ipv4') {
+    regex = type === 'ipv6' ? regIPv6 : regIpMixin;
+  }
+  const validator = isBatch
+    ? (val: string) => {
+      if (!val) return true;
+      const splitCode = splitCodeArr.find(split => val.indexOf(split) > 0);
+      const valSplit = val.split(splitCode).filter(text => !!text)
+        .map(text => text.trim());
+      // IP校验
+      return valSplit.every(item => regex.test(item));
+    }
+    : (val: string) => !val || regex.test(val);
+  return {
+    trigger: 'blur',
+    message: window.i18n.t('IP格式不正确'),
+    // regex,
+    validator,
+  };
+}
+
 /**
  * regu: regexp rules
  */
@@ -24,35 +48,12 @@ export const reguRequired = {
   message: window.i18n.t('必填项'),
   trigger: 'blur',
 };
-export const reguIp = {
-  regex: regIp,
-  validator: (val: string) => regIp.test(val),
-  message: window.i18n.t('IP格式不正确'),
-  trigger: 'blur',
-};
-export const reguIPv6 = {
-  regex: regIPv6,
-  validator: (val: string) => regIPv6.test(val),
-  message: window.i18n.t('IP格式不正确'),
-  trigger: 'blur',
-};
-export const reguIPMixins = {
-  validator: val => regIp.test(val) || regIPv6.test(val),
-  message: window.i18n.t('IP格式不正确'),
-  trigger: 'blur',
-};
-export const reguIpBatch = {
-  trigger: 'blur',
-  validator: (val: string) => {
-    if (!val) return true;
-    const splitCode = splitCodeArr.find(split => val.indexOf(split) > 0);
-    const valSplit = val.split(splitCode).filter(text => !!text)
-      .map(text => text.trim());
-    // IP校验
-    return valSplit.every(item => regIp.test(item) || regIPv6.test(item));
-  },
-  message: window.i18n.t('IP格式不正确'),
-};
+export const reguIp = createIpRegu();
+export const reguIPv6 = createIpRegu('ipv6');
+export const reguIPMixins = createIpRegu('mixins');
+export const reguIpv4Batch = createIpRegu('ipv4', true);
+export const reguIpv6Batch = createIpRegu('ipv6', true);
+export const reguIpMixinsBatch = createIpRegu('mixins', true);
 export const reguUrl = {
   regex: regUrl,
   validator: (val: string) => regUrl.test(val),

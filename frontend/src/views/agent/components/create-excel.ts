@@ -1,3 +1,4 @@
+import { DHCP_FILTER_KEYS, enableDHCP } from '@/config/config';
 import * as XLSX from 'xlsx';
 
 interface IHead {
@@ -7,8 +8,9 @@ interface IHead {
   width?: number
 }
 
-export const headConfig: IHead[] = [
-  { name: window.i18n.t('IP地址'), prop: 'inner_ip', width: 150 },
+const config: IHead[] = [
+  { name: window.i18n.t('内网IPv4'), prop: 'inner_ip', width: 150 },
+  { name: window.i18n.t('内网IPv6'), prop: 'inner_ipv6', width: 150 },
   { name: window.i18n.t('操作系统'), prop: 'os_type' },
   { name: window.i18n.t('安装通道'), prop: 'install_channel_id' },
   { name: window.i18n.t('登录端口'), prop: 'port' },
@@ -24,6 +26,9 @@ export const headConfig: IHead[] = [
   { name: window.i18n.t('传输限速Unit'), prop: 'bt_speed_limit', optional: true, width: 140 },
   { name: window.i18n.t('寻址方式'), prop: 'bk_addressing', optional: true, width: 120 },
 ];
+export const headConfig = enableDHCP
+  ? config
+  : config.filter(head => !DHCP_FILTER_KEYS.includes(head.prop));
 
 export const demoData = [
   {

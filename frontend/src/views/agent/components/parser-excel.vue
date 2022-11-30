@@ -223,7 +223,11 @@ export default class ParserExcel extends Vue {
     };
     if (sheetsData.length !== 0) {
       // excel表头
-      const sheetsHeaders = Object.keys(sheetsData[0]);
+      let sheetsHeaders = sheetsData.reduce((arr, item) => {
+        arr.push(...Object.keys(item));
+        return arr;
+      }, []);
+      sheetsHeaders = Array.from(new Set(sheetsHeaders));
       // 必有表头字段
       const configHeaders = tableConfig.filter(item => !this.optional.includes(item.prop)).map(item => item.label);
 
@@ -355,9 +359,7 @@ export default class ParserExcel extends Vue {
    * 下载模板文件
    */
   public handleDownload() {
-    const { url } = createExcel('bk_nodeman_info', window.PROJECT_CONFIG.BKAPP_ENABLE_DHCP === 'True'
-      ? headConfig
-      : headConfig.filter(item => item.prop !== 'bk_addressing'));
+    const { url } = createExcel('bk_nodeman_info', headConfig);
     download('bk_nodeman_info.xlsx', url);
   }
 }

@@ -37,6 +37,7 @@ const getAuthentication = () => {
   return auths;
 };
 export const enableDHCP = window.PROJECT_CONFIG.BKAPP_ENABLE_DHCP === 'True';
+export const DHCP_FILTER_KEYS = ['bk_addressing', 'inner_ipv6'];
 export const addressingMode = [
   { id: 'static', name: window.i18n.t('静态') },
   { id: 'dynamic', name: window.i18n.t('动态') },
