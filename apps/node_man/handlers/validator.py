@@ -297,7 +297,6 @@ def new_install_ip_checker(
         # 2. Agent 已经失联，新增
         first_online_host: typing.Optional[typing.Dict] = None
         for host_info_with_the_same_ip in host_infos_with_the_same_ips:
-            print(host_id__agent_state_info_map)
             is_running: bool = (
                 host_id__agent_state_info_map.get(host_info_with_the_same_ip["bk_host_id"], {}).get("bk_agent_alive")
                 == const.BkAgentStatus.ALIVE.value

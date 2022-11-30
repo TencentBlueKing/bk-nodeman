@@ -9,10 +9,9 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import traceback
-from typing import Any, Callable, Dict, List, Set, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
 
 from django.db.models import Q
-from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
 from apps.core.concurrent import controller
@@ -94,14 +93,16 @@ class BindHostAgentService(AgentBaseService):
         agent_ids: List[str] = []
         sub_inst_ids_without_agent_id: Set[int] = set()
         host_agent_relations: List[Dict[str, Union[int, str]]] = []
-        # 对于绑定操作，此时应用侧 DB 的 bk_agent_id 最新，取该值进行绑定
-        for bk_host_id, host in common_data.host_id_obj_map.items():
-            if host.bk_agent_id:
-                host_ids.append(host.bk_host_id)
-                agent_ids.append(host.bk_agent_id)
-                host_agent_relations.append({"bk_host_id": bk_host_id, "bk_agent_id": host.bk_agent_id})
+
+        for sub_inst in common_data.subscription_instances:
+            bk_host_id: int = common_data.sub_inst_id__host_id_map[sub_inst.id]
+            bk_agent_id: Optional[str] = sub_inst.instance_info["host"].get("bk_agent_id")
+            if bk_agent_id:
+                host_ids.append(bk_host_id)
+                agent_ids.append(bk_agent_id)
+                host_agent_relations.append({"bk_host_id": bk_host_id, "bk_agent_id": bk_agent_id})
             else:
-                sub_inst_ids_without_agent_id.add(common_data.host_id__sub_inst_id_map[bk_host_id])
+                sub_inst_ids_without_agent_id.add(sub_inst.id)
 
         if sub_inst_ids_without_agent_id:
             self.move_insts_to_failed(sub_inst_ids=sub_inst_ids_without_agent_id, log_content=_("bk_agent_id 不存在"))
@@ -117,11 +118,16 @@ class BindHostAgentService(AgentBaseService):
             succeed_unbind_host_ids: List[int] = self.unbind_host_agent(
                 host_agent_relations=need_release_host_agent_relations
             )
-            models.Host.objects.filter(bk_host_id__in=succeed_unbind_host_ids).update(
-                bk_agent_id=None, updated_at=timezone.now()
-            )
+            models.Host.objects.filter(bk_host_id__in=succeed_unbind_host_ids).update(bk_agent_id=None)
 
         if host_agent_relations:
+            report_agent_id_hosts: List[models.Host] = [
+                models.Host(
+                    bk_host_id=host_agent_relation["bk_host_id"], bk_agent_id=host_agent_relation["bk_agent_id"]
+                )
+                for host_agent_relation in host_agent_relations
+            ]
+            models.Host.objects.bulk_update(report_agent_id_hosts, fields=["bk_agent_id"])
             self.bind_host_agent(
                 host_id__sub_inst_id_map=common_data.host_id__sub_inst_id_map, host_agent_relations=host_agent_relations
             )
