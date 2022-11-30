@@ -109,6 +109,8 @@ class GlobalSettings(models.Model):
         APPLY_RESOURCE_WATCHED_EVENTS_CONTROLLER_KEY = "APPLY_RESOURCE_WATCHED_EVENTS_CONTROLLER_KEY"
         # 【临时变量】Agent 2.0 安装版本，过渡到 Agent 包管理后废除
         GSE_AGENT2_VERSION = "GSE_AGENT2_VERSION"
+        # 【临时变量】主机安装动作新增推送身份动作, cc版本稳定后废除
+        ENABLE_PUSH_HOST_IDENTIFIER = "ENABLE_PUSH_HOST_IDENTIFIER"
 
     key = models.CharField(_("键"), max_length=255, db_index=True, primary_key=True)
     v_json = JSONField(_("值"))
