@@ -1,10 +1,10 @@
-import { authentication, getDefaultConfig } from '@/config/config';
+import { authentication, DHCP_FILTER_KEYS, enableDHCP, getDefaultConfig } from '@/config/config';
 import { ISetupHead, ISetupRow } from '@/types';
 import { reguFnMinInteger, reguFnSysPath, reguIp, reguIPMixins, reguIPv6 } from '@/common/form-check';
 import { splitCodeArr } from '@/common/regexp';
 
 const defaultOsType = 'LINUX'; // proxy 一定为 LINUX
-export const setupInfo: ISetupHead[] = [
+const config: ISetupHead[] = [
   {
     label: '内网IPv4',
     prop: 'inner_ip',
@@ -183,6 +183,10 @@ export const setupInfo: ISetupHead[] = [
     manualProp: true,
   },
 ];
+
+export const setupInfo = enableDHCP
+  ? config
+  : config.filter(item => !DHCP_FILTER_KEYS.includes(item.prop));
 
 export const setupDiffConfigs = {
   data_path: {

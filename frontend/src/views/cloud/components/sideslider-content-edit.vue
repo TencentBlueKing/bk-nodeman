@@ -4,7 +4,7 @@
       <bk-form-item :label="$t('内网IPv4')" required>
         <bk-input v-model="proxyData.inner_ip" readonly></bk-input>
       </bk-form-item>
-      <bk-form-item :label="$t('内网IPv6')" required>
+      <bk-form-item v-if="showV6" :label="$t('内网IPv6')" required>
         <bk-input v-model="proxyData.inner_ipv6" readonly></bk-input>
       </bk-form-item>
       <bk-form-item
@@ -101,7 +101,7 @@
 import { Vue, Component, Prop, Watch, Ref, Emit } from 'vue-property-decorator';
 import { CloudStore } from '@/store';
 import { isEmpty } from '@/common/util';
-import { authentication, passwordFill } from '@/config/config';
+import { authentication, enableDHCP, passwordFill } from '@/config/config';
 import Upload from '@/components/setup-table/upload.vue';
 import { IProxyDetail } from '@/types/cloud/cloud';
 import { regPasswordFill } from '@/common/regexp';
@@ -140,6 +140,7 @@ export default class SidesliderContentEdit extends Vue {
   };
   private loading = false;
   private showErrMsg = false;
+  private showV6 = enableDHCP;
 
   private get passwordType(): string {
     if (!isEmpty(this.proxyData.password)) {
