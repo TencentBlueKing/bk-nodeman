@@ -445,7 +445,8 @@ export default class InputType extends Mixins(emitter) {
       top: 0;
       left: 0;
       padding: 5px 10px;
-      height: 43px;
+      height: 42px;
+      max-height: 42px;
       width: 100%;
       color: #63656e;
       background-color: #fff;

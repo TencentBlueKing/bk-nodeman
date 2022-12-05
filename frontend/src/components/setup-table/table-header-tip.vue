@@ -1,7 +1,9 @@
 <template>
   <section :class="['tips-content', { 'joint-tip': jointTip }]">
-    <i18n tag="pre" :path="tips" v-if="tips === 'agentSetupInnerIp'">
+    <i18n tag="pre" :path="tips" v-if="['agentSetupInnerIp', 'agentSetupInnerIpv6'].includes(tips)">
       <span class="primary">{{ $t('「登录 IP」') }}</span>
+      <span class="primary">{{ $t('「内网IPv4」') }}</span>
+      <span class="primary">{{ $t('「内网IPv6」') }}</span>
     </i18n>
     <i18n style="line-height: 22px" tag="pre" :path="tips" v-else-if="tips === 'agentSetupPort'">
       <span class="danger">22</span>

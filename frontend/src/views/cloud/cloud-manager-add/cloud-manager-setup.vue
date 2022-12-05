@@ -109,11 +109,12 @@ import FilterIpMixin from '@/components/common/filter-ip-mixin';
 import formLabelMixin from '@/common/form-label-mixin';
 import FilterDialog from '@/components/common/filter-dialog.vue';
 // import getTemplate from '../config/tips-template'
-import { setupInfo, setupManualInfo } from '../config/netTableConfig';
+import { setupInfo, setupDiffConfigs } from '../config/netTableConfig';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { defaultPort, getDefaultConfig } from '@/config/config';
 import { ISetupHead, ISetupRow, IProxyIpKeys } from '@/types';
 import { reguPort, reguRequired } from '@/common/form-check';
+import { getManualConfig } from '@/common/util';
 
 @Component({
   name: 'cloud-manager-setup',
@@ -394,7 +395,7 @@ export default class CloudManagerSetup extends Mixins(formLabelMixin, FilterIpMi
   private installMethodHandle(isManual = false) {
     this.isManual = isManual;
     if (this.isManual) {
-      this.setupConfig.header = setupManualInfo;
+      this.setupConfig.header = getManualConfig(setupInfo, setupDiffConfigs);
     } else {
       this.setupConfig.header = setupInfo;
     }

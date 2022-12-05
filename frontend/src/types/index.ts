@@ -269,31 +269,33 @@ export interface ISetupParent {
 export interface ISetupHead {
   label: string
   prop: string
-  reprop?: string
-  parentProp?: string
-  parentTip?: string
-  subTitle?: string
+  reprop?: string // textarea 多IP与另一字段一一对应
+  parentProp?: string // 二级表头归类到一级表头下的prop
+  parentTip?: string // 一级表头tooltips
+  subTitle?: string // 二级表头tooltips
   show?: boolean
-  batch?: boolean
-  sync?: string
-  multiple?: boolean
-  default?: any
+  batch?: boolean // 可批量修改
+  sync?: string // 当前值同步到另一字段
+  multiple?: boolean // 可多选 - 下拉框
+  default?: any // 默认值
   readonly?: boolean
-  required?: boolean
-  noRequiredMark?: boolean
+  required?: boolean // 必填校验
+  requiredPick?: string[] // 必填多选一
+  noRequiredMark?: boolean // 必填*号
   type: string
-  unique?: boolean
-  union?: string
+  unique?: boolean // IP行内和其他行的重复性校验
+  union?: string // 相同ip时联合云区域做校验（允许不同云区域时IP相同）
   width?: string | number
   popoverMinWidth?: number
-  appendSlot?: string
+  // appendSlot?: string // head单位
   iconOffset?: number
   splitCode?: string[]
   placeholder?: string
   tips?: string
-  errTag?: boolean
+  errTag?: boolean // cell右上角冲突标记
   rules?: any[]
   options?: any[]
+  manualProp?: boolean // 手动安装需要的配置
   getOptions?: Function
   getReadonly?: Function
   getProxyStatus?: Function
