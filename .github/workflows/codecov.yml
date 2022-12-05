@@ -4,7 +4,7 @@ jobs:
   run:
     runs-on: ubuntu-20.04
     env:
-      OS: ubuntu-latest
+      OS: ubuntu-20.04
       PYTHON: "3.6"
       DJANGO_SETTINGS_MODULE: "settings"
       DEBUG: true
