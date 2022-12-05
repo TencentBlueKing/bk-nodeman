@@ -1,4 +1,6 @@
-export const detailConfig = [
+import { DHCP_FILTER_KEYS, enableDHCP } from '@/config/config';
+
+const config = [
   {
     prop: 'bk_cloud_id',
     label: window.i18n.t('云区域ID'),
@@ -12,6 +14,12 @@ export const detailConfig = [
   {
     prop: 'inner_ip',
     label: window.i18n.t('内网IP'),
+    type: 'text',
+    readonly: true,
+  },
+  {
+    prop: 'inner_ipv6',
+    label: window.i18n.t('内网IPv6'),
     type: 'text',
     readonly: true,
   },
@@ -61,5 +69,6 @@ export const detailConfig = [
     readonly: true,
   },
 ];
-
-export default detailConfig;
+export const detailConfig = enableDHCP
+  ? config
+  : config.filter(item => !DHCP_FILTER_KEYS.includes(item.prop));

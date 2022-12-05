@@ -183,8 +183,10 @@ export default class ParserExcel extends Vue {
           const workbook = XLSX.read(data, { type: 'binary' });
           const sheets = Object.keys(workbook.Sheets);
           const sheetData: any[] = XLSX.utils.sheet_to_json(workbook.Sheets[sheets[0]]);
+          let sheetHead = XLSX.utils.sheet_to_csv(workbook.Sheets[sheets[0]]).split('\n');
+          sheetHead = sheetHead[0].split(',');
 
-          const validator = this.validateExcelData(sheetData);
+          const validator = this.validateExcelData(sheetData, sheetHead);
           if (validator.status === 'ok') {
             const parseData = this.getImportData(sheetData);
             this.$emit('uploading', false, parseData);
@@ -216,14 +218,12 @@ export default class ParserExcel extends Vue {
    * 验证excel数据
    * @param {Array} sheetsData excel json数据
    */
-  public validateExcelData(sheetsData: any[]) {
+  public validateExcelData(sheetsData: any[], sheetsHeaders: string[]) {
     const validator = {
       status: 'ok',
       msg: '',
     };
     if (sheetsData.length !== 0) {
-      // excel表头
-      const sheetsHeaders = Object.keys(sheetsData[0]);
       // 必有表头字段
       const configHeaders = tableConfig.filter(item => !this.optional.includes(item.prop)).map(item => item.label);
 
@@ -355,9 +355,7 @@ export default class ParserExcel extends Vue {
    * 下载模板文件
    */
   public handleDownload() {
-    const { url } = createExcel('bk_nodeman_info', window.PROJECT_CONFIG.BKAPP_ENABLE_DHCP === 'True'
-      ? headConfig
-      : headConfig.filter(item => item.prop !== 'bk_addressing'));
+    const { url } = createExcel('bk_nodeman_info', headConfig);
     download('bk_nodeman_info.xlsx', url);
   }
 }
