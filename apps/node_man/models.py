@@ -103,6 +103,10 @@ class GlobalSettings(models.Model):
         NOT_READY_TASK_INFO_MAP = "NOT_READY_TASK_INFO_MAP"  # 定时任务 collect_auto_trigger_job 记录未就绪 sub_task 信息
         HEAD_PLUGINS = "HEAD_PLUGINS"  # 插件类型名字
         INSTALL_DEFAULT_VALUES = "INSTALL_DEFAULT_VALUES"  # 安装默认值
+        # 主机资源事件监听控制器 - HASH
+        # limit - 处理事件步长，默认为 10 秒
+        # seconds_to_wait_for_no_events - 无事件守护进程等待秒数
+        APPLY_RESOURCE_WATCHED_EVENTS_CONTROLLER_KEY = "APPLY_RESOURCE_WATCHED_EVENTS_CONTROLLER_KEY"
 
     key = models.CharField(_("键"), max_length=255, db_index=True, primary_key=True)
     v_json = JSONField(_("值"))

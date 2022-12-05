@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 import logging
 import random
 import time
+import typing
 from functools import wraps
 
 from django.conf import settings
@@ -20,7 +21,7 @@ from django.db.utils import IntegrityError
 
 from apps.component.esbclient import client_v2
 from apps.node_man import constants
-from apps.node_man.models import GlobalSettings, ResourceWatchEvent, Subscription
+from apps.node_man.models import GlobalSettings, Host, ResourceWatchEvent, Subscription
 from apps.utils.cache import format_cache_key
 
 logger = logging.getLogger("app")
@@ -29,6 +30,86 @@ RESOURCE_WATCH_HOST_CURSOR_KEY = "resource_watch_host_cursor"
 RESOURCE_WATCH_HOST_RELATION_CURSOR_KEY = "resource_watch_host_relation_cursor"
 RESOURCE_WATCH_PROCESS_CURSOR_KEY = "resource_watch_process_cursor"
 APPLY_RESOURCE_WATCHED_EVENTS_KEY = "apply_resource_watched_events"
+
+
+class BaseEventPreprocessHelper:
+    @staticmethod
+    def get_scope_from_event(event: typing.Dict) -> typing.Any:
+        """
+        从事件中获取 scope，目前仅考虑业务ID，后续可按场景扩展
+        :param event:
+        :return:
+        """
+        return event["bk_detail"].get("bk_biz_id")
+
+    @staticmethod
+    def fill_scope_to_event(events: typing.List[typing.Dict]):
+        """
+        填充 scope 到事件
+        :param events:
+        :return:
+        """
+        pass
+
+    @classmethod
+    def event_convergence(cls, events: typing.List[typing.Dict]) -> typing.List[typing.Dict]:
+        """
+        事件收敛
+        :param events:
+        :return:
+        """
+        scope__event_map: typing.Dict[typing.Any, typing.Dict] = {}
+        for event in events:
+            scope: int = cls.get_scope_from_event(event)
+            if scope:
+                # 对相同的 scope 仅保留一则数据
+                scope__event_map[scope] = event
+        return list(scope__event_map.values())
+
+    @classmethod
+    def do_preprocess(cls, events: typing.List[typing.Dict]) -> typing.List[typing.Dict]:
+        cls.fill_scope_to_event(events)
+        return cls.event_convergence(events)
+
+
+class HostEventPreprocessHelper(BaseEventPreprocessHelper):
+    @staticmethod
+    def fill_scope_to_event(events: typing.List[typing.Dict]):
+        """
+        填充 scope 到事件
+        :param events:
+        :return:
+        """
+        host_ids: typing.Set[int] = {event["bk_detail"]["bk_host_id"] for event in events}
+        if not host_ids:
+            return
+
+        # 从 DB 取出主机ID对应的业务ID
+        # DB 主机属于缓存，不准确但大致有参考意义
+        # - 新增：触发的事件属于 host_relation，即使无业务ID也会被其他类型事件消费
+        # - 删除 / 更新：可以获取到更新前的业务快照
+        host_infos: typing.List[typing.Dict] = Host.objects.filter(bk_host_id__in=host_ids).values(
+            "bk_biz_id", "bk_host_id"
+        )
+        host_id__biz_id_map: typing.Dict[int, int] = {}
+        # 构建主机ID - 业务关联关系
+        for host_info in host_infos:
+            host_id__biz_id_map[host_info["bk_host_id"]] = host_info["bk_biz_id"]
+        # 没有关联关系，提前返回
+        if not host_id__biz_id_map:
+            return
+        # 填充业务ID到事件
+        for event in events:
+            bk_biz_id: typing.Optional[int] = host_id__biz_id_map.get(event["bk_detail"]["bk_host_id"])
+            if bk_biz_id:
+                event["bk_detail"]["bk_biz_id"] = bk_biz_id
+
+
+RESOURCE_TYPE__EVENT_HELPER_MAP: typing.Dict[str, typing.Type[BaseEventPreprocessHelper]] = {
+    constants.ResourceType.host: HostEventPreprocessHelper,
+    constants.ResourceType.process: BaseEventPreprocessHelper,
+    constants.ResourceType.host_relation: BaseEventPreprocessHelper,
+}
 
 
 def set_cursor(data, cursor_key):
@@ -106,6 +187,8 @@ def _resource_watch(cursor_key, kwargs):
             set_cursor(data, cursor_key)
             continue
 
+        event_helper: typing.Type[BaseEventPreprocessHelper] = RESOURCE_TYPE__EVENT_HELPER_MAP[kwargs["bk_resource"]]
+
         objs = [
             ResourceWatchEvent(
                 bk_cursor=event["bk_cursor"],
@@ -113,7 +196,7 @@ def _resource_watch(cursor_key, kwargs):
                 bk_resource=event["bk_resource"],
                 bk_detail=event["bk_detail"],
             )
-            for event in data["bk_events"]
+            for event in event_helper.do_preprocess(data["bk_events"])
         ]
         ResourceWatchEvent.objects.bulk_create(objs)
 
@@ -153,6 +236,14 @@ def sync_resource_watch_process_event():
 
 
 def apply_resource_watched_events():
+    def _get_event_str(_event):
+        return "<Event({bk_cursor}) info -> [{bk_event_type}|{bk_resource}|{bk_biz_id}]>".format(
+            bk_cursor=_event["bk_cursor"],
+            bk_event_type=event["bk_event_type"],
+            bk_resource=event["bk_resource"],
+            bk_biz_id=event["bk_detail"].get("bk_biz_id"),
+        )
+
     id_key = random_key()
     config_key = APPLY_RESOURCE_WATCHED_EVENTS_KEY
 
@@ -165,33 +256,51 @@ def apply_resource_watched_events():
             time.sleep(60)
             logger.info(f"[{config_key}] will try to acquire the lock, if there is no error output, it means listening")
             continue
-        event = ResourceWatchEvent.objects.order_by("create_time").first()
-        if not event:
-            time.sleep(10)
+
+        apply_resource_watched_events_controller = GlobalSettings.get_config(
+            GlobalSettings.KeyEnum.APPLY_RESOURCE_WATCHED_EVENTS_CONTROLLER_KEY.value
+        )
+        if not apply_resource_watched_events_controller:
+            apply_resource_watched_events_controller = {"limit": 10, "seconds_to_wait_for_no_events": 10}
+            GlobalSettings.set_config(
+                GlobalSettings.KeyEnum.APPLY_RESOURCE_WATCHED_EVENTS_CONTROLLER_KEY.value,
+                apply_resource_watched_events_controller,
+            )
+
+        logger.info(f"[{config_key}] load events_controller -> {apply_resource_watched_events_controller}")
+
+        events = ResourceWatchEvent.objects.order_by("create_time")[
+            0 : apply_resource_watched_events_controller["limit"]
+        ].values()
+        if not events:
+            time.sleep(apply_resource_watched_events_controller["seconds_to_wait_for_no_events"])
             continue
 
-        event_bk_biz_id = event.bk_detail.get("bk_biz_id")
-        logger.info(f"[{config_key}] event being consumed -> {event}")
-        try:
-            if event_bk_biz_id:
-                # 触发同步CMDB
-                trigger_sync_cmdb_host(bk_biz_id=event_bk_biz_id)
+        events_after_convergence = HostEventPreprocessHelper.event_convergence(events)
+        logger.info(f"[{config_key}] length of events_after_convergence -> {len(events_after_convergence)}")
+        for event in events_after_convergence:
+            event_str = _get_event_str(event)
+            event_bk_biz_id = event["bk_detail"].get("bk_biz_id")
+            logger.info(f"[{config_key}] event being consumed -> {event_str}")
+            try:
+                if event_bk_biz_id:
+                    # 触发同步CMDB
+                    trigger_sync_cmdb_host(bk_biz_id=event_bk_biz_id)
 
-            if event_bk_biz_id and settings.USE_CMDB_SUBSCRIPTION_TRIGGER:
-                try:
-                    # 触发订阅
-                    trigger_nodeman_subscription(event_bk_biz_id)
-                except Exception as e:
-                    logger.exception(
-                        f"[trigger_nodeman_subscription] failed: bk_biz_id -> {event.bk_detail['bk_biz_id']}, "
-                        f"error -> {e}"
-                    )
+                if event_bk_biz_id and settings.USE_CMDB_SUBSCRIPTION_TRIGGER:
+                    try:
+                        # 触发订阅
+                        trigger_nodeman_subscription(event_bk_biz_id)
+                    except Exception as e:
+                        logger.exception(
+                            f"[trigger_nodeman_subscription] failed: bk_biz_id -> {event_bk_biz_id}, " f"error -> {e}"
+                        )
 
-        except Exception as err:
-            logger.exception(f"[{config_key}] failed: event -> {event}, error -> {err}")
+            except Exception as err:
+                logger.exception(f"[{config_key}] failed: event -> {event_str}, error -> {err}")
 
         # 删除事件记录
-        event.delete()
+        ResourceWatchEvent.objects.filter(bk_cursor__in=[event["bk_cursor"] for event in events]).delete()
 
 
 def func_debounce_decorator(func):
