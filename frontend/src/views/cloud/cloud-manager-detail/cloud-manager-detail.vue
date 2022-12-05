@@ -128,7 +128,7 @@ export default class CloudManagerDetail extends Mixins(pollMixin, routerBackMixi
     this.proxyData = await CloudStore.getCloudProxyList({ bk_cloud_id: this.navActiveId });
     this.runingQueue = [];
     this.proxyData.forEach((row) => {
-      this.$initIpProp(row, ['inner_ip', 'login_ip', 'outer_ip']);
+      this.$initIpProp(row, ['login_ip', 'outer_ip']);
     });
     const isRunning = this.proxyData.some(item => item.job_result && item.job_result.status === 'RUNNING');
     if (isRunning) {
