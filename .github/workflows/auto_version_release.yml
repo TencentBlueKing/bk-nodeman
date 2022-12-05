@@ -10,7 +10,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     env:
       # 构建环境的Python版本
       PYTHON_VERSION: "3.7"
