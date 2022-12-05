@@ -73,6 +73,7 @@ export default class StepVerifyInput extends Vue {
   @Prop({ type: String, default: '' }) private readonly proxyStatus!: string; // proxy过期校验
   @Prop({ type: [Number, String], default: '' }) private readonly iconOffset!: string | number; // icon 偏移
   @Prop({ type: String, default: 'icon' }) private readonly errorMode!: string;
+  @Prop({ type: Function, default: null }) private readonly requiredHandle!: (val: IValue) => boolean; // 必填辅助函数
 
   private validator: IValidator = this.defaultValidator;
   private inputInstance: any = null;
@@ -119,7 +120,7 @@ export default class StepVerifyInput extends Vue {
     // 1. 必填项校验
     if (isEmpty(value)) {
       if (this.required) {
-        this.validator.show = true;
+        this.validator.show = this.requiredHandle ? this.requiredHandle(value) : true;
         this.validator.message = window.i18n.t('必填项');
         if (typeof cb === 'function') {
           cb(this.validator);

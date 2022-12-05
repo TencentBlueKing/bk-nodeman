@@ -1,4 +1,4 @@
-import { ISearchItem } from '@/types';
+import { ISearchItem, ISetupHead } from '@/types';
 import { regIpMixin } from './regexp';
 
 /**
@@ -736,3 +736,10 @@ export const searchSelectPaste = ({ e, selectedValue, filterData, selectRef, pus
     }
   }
 };
+
+export const getManualConfig = (
+  config: ISetupHead[],
+  diffConfig: { [key: string]: Dictionary } = {},
+): ISetupHead[] => config
+  .filter(item => item.manualProp)
+  .map(item => (Object.assign({ ...item }, diffConfig[item.prop] || {})));
