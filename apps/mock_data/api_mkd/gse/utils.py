@@ -38,6 +38,9 @@ class GseApiMockClient(utils.BaseMockClient):
     DEFAULT_GET_PROC_STATUS_RETURN = utils.MockReturn(
         return_type=utils.MockReturnType.SIDE_EFFECT.value, return_obj=unit.mock_get_proc_status
     )
+    DEFAULT_V2_PROC_UPGRADE_TO_AGENT_ID_RETURN = utils.MockReturn(
+        return_type=utils.MockReturnType.SIDE_EFFECT.value, return_obj=unit.mock_upgrade_to_agent_id
+    )
 
     def __init__(
         self,
@@ -50,6 +53,7 @@ class GseApiMockClient(utils.BaseMockClient):
         get_agent_info_return=DEFAULT_GET_AGENT_INFO_RETURN,
         get_agent_status_return=DEFAULT_GET_AGENT_STATUS_RETURN,
         v2_cluster_list_agent_state_return=DEFAULT_V2_CLUSTER_LIST_AGENT_STATE_RETURN,
+        v2_proc_upgrade_to_agent_id_return=DEFAULT_V2_PROC_UPGRADE_TO_AGENT_ID_RETURN,
     ):
         super().__init__()
         self.operate_proc = self.generate_magic_mock(mock_return_obj=operate_proc_return)
@@ -61,3 +65,4 @@ class GseApiMockClient(utils.BaseMockClient):
         self.get_agent_info = self.generate_magic_mock(mock_return_obj=get_agent_info_return)
         self.get_agent_status = self.generate_magic_mock(mock_return_obj=get_agent_status_return)
         self.v2_cluster_list_agent_state = self.generate_magic_mock(mock_return_obj=v2_cluster_list_agent_state_return)
+        self.v2_proc_upgrade_to_agent_id = self.generate_magic_mock(mock_return_obj=v2_proc_upgrade_to_agent_id_return)

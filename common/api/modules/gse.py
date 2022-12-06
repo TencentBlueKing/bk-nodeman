@@ -97,3 +97,9 @@ class _GseApi(BaseApi):
             module=self.MODULE,
             description="GSE2.0-查询进程操作结果",
         )
+        self.v2_proc_upgrade_to_agent_id = DataAPI(
+            method="POST",
+            url=GSE_APIGATEWAY_ROOT_V2 + "api/v2/proc/upgrade_to_agent_id/",
+            module=self.MODULE,
+            description="将基于Host IP的配置升级到基于Agent-ID的配置",
+        )
