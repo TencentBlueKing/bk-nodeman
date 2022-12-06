@@ -34,6 +34,7 @@ from .run_upgrade_command import RunUpgradeCommandService
 from .unbind_host_agent import UnBindHostAgentService
 from .update_install_info import UpdateInstallInfoService
 from .update_process_status import UpdateProcessStatusService
+from .upgrade_to_agent_id import UpgradeToAgentIDService
 from .wait import WaitService
 
 
@@ -179,3 +180,9 @@ class AddOrUpdateHostsComponent(Component):
     name = _("新增或更新主机信息")
     code = "add_or_update_hosts"
     bound_service = AddOrUpdateHostsService
+
+
+class UpgradeToAgentIDComponent(Component):
+    name = _("升级为 Agent-ID 配置")
+    code = "upgrade_to_agent_id"
+    bound_service = UpgradeToAgentIDService

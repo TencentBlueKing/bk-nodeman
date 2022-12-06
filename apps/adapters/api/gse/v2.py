@@ -113,5 +113,8 @@ class GseV2ApiHelper(GseV1ApiHelper):
     def _operate_proc_multi(self, proc_operate_req: base.InfoDictList, **options) -> str:
         return self.gse_api_obj.v2_proc_operate_proc_multi({"proc_operate_req": proc_operate_req})["task_id"]
 
+    def _upgrade_to_agent_id(self, hosts: base.InfoDictList) -> base.InfoDict:
+        return self.gse_api_obj.v2_proc_upgrade_to_agent_id({"hosts": hosts})
+
     def get_proc_operate_result(self, task_id: str) -> base.InfoDict:
         return self.gse_api_obj.v2_proc_get_proc_operate_result_v2({"task_id": task_id}, raw=True)
