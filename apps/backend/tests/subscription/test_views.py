@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from collections import defaultdict
+from copy import deepcopy
 from typing import List
 
 import mock
@@ -25,6 +26,10 @@ from apps.backend.tests.subscription.utils import (
     list_biz_hosts_without_info_client,
 )
 from apps.mock_data.backend_mkd.subscription.unit import GSE_PLUGIN_DESC_DATA
+from apps.mock_data.common_unit.host import (
+    HOST_MODEL_DATA_WITH_AGENT_ID,
+    PROCESS_STATUS_MODEL_DATA,
+)
 from apps.node_man import constants
 from apps.node_man.models import (
     GsePluginDesc,
@@ -476,3 +481,28 @@ class TestSubscription(TestCase):
         self.assertRaises(
             errors.SubscriptionTaskNotExist, SubscriptionHandler(subscription_id).check_task_ready, fack_task_id_list
         )
+
+    def test_query_host_subscriptions(self):
+
+        host: Host = Host.objects.update_or_create(deepcopy(HOST_MODEL_DATA_WITH_AGENT_ID))[0]
+        proc: ProcessStatus = ProcessStatus.objects.update_or_create(deepcopy(PROCESS_STATUS_MODEL_DATA))[0]
+        url = "/backend/api/subscription/query_host_subscriptions/"
+        request_params = {
+            "bk_username": "admin",
+            "bk_app_code": "blueking",
+            "bk_cloud_id": host.bk_cloud_id,
+            "source_type": PROCESS_STATUS_MODEL_DATA.get("source_type"),
+        }
+
+        host_request_params = {
+            "bk_username": "admin",
+            "bk_app_code": "blueking",
+            "bk_host_id": host.bk_host_id,
+            "source_type": PROCESS_STATUS_MODEL_DATA.get("source_type"),
+        }
+        host_id_r = self.client.get(url, host_request_params)
+        host_innerip_r = self.client.get(url, dict(request_params, **{"bk_host_innerip": host.inner_ip}))
+        v4_ip_r = self.client.get(url, dict(request_params, **{"ip": host.inner_ip + ",127.0.0.2"}))
+        v6_ip_r = self.client.get(url, dict(request_params, **{"ip": host.inner_ipv6}))
+        for resp in [host_innerip_r, v4_ip_r, v6_ip_r, host_id_r]:
+            self.assertEqual(json.loads(str(resp.content, "utf-8"))["data"][0]["id"], proc.id)
