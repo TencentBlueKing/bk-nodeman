@@ -12,6 +12,7 @@ import os.path
 from abc import ABC
 
 from django.conf import settings
+from django.utils.crypto import get_random_string
 
 from apps.backend.components.collections.agent_new import components
 from apps.node_man import constants, models
@@ -37,6 +38,35 @@ class PushUpgradePackageTestCase(base.JobBaseTestCase):
             [os.path.join(settings.DOWNLOAD_PATH, "gse_client-linux-x86_64_upgrade.tgz")],
         )
         super().tearDown()
+
+
+class PushUpgradePackageV2TestCase(base.JobBaseTestCase):
+    @classmethod
+    def get_default_case_name(cls) -> str:
+        return "下发 Linux 升级包 2.0 成功"
+
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
+        models.Host.objects.filter(bk_host_id__in=cls.obj_factory.bk_host_ids).update(bk_agent_id=get_random_string())
+        sub_step_obj: models.SubscriptionStep = cls.obj_factory.sub_step_objs[0]
+        sub_step_obj.config.update({"name": "gse_agent", "version": "2.0.0"})
+        sub_step_obj.save()
+
+    def component_cls(self):
+        return components.PushUpgradePackageComponent
+
+    def tearDown(self) -> None:
+        record = self.job_api_mock_client.call_recorder.record
+        fast_transfer_file_query_params = record[JobApi.fast_transfer_file][0].args[0]
+        self.assertEqual(
+            fast_transfer_file_query_params["file_source_list"][0]["file_list"],
+            [os.path.join(settings.DOWNLOAD_PATH, "agent/linux/x86_64/gse_agent-2.0.0.tgz")],
+        )
+        super().tearDown()
+
+    def test_component(self):
+        super().test_component()
 
 
 class PushAixUpgradePackageSuccessTestCase(base.JobBaseTestCase):
