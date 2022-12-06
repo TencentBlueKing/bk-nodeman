@@ -104,13 +104,18 @@ class AgentBaseService(BaseService, metaclass=abc.ABCMeta):
         ]
 
     @classmethod
-    def get_agent_upgrade_pkg_name(cls, host: models.Host) -> str:
+    def get_agent_upgrade_pkg_name(cls, common_data: "AgentCommonData", host: models.Host) -> str:
         """
         获取 Agent 升级包名称
+        :param common_data:
         :param host:
         :return:
         """
         package_type = ("client", "proxy")[host.node_type == constants.NodeType.PROXY]
+        agent_step_adapter = common_data.agent_step_adapter
+        if not agent_step_adapter.is_legacy:
+            setup_info = agent_step_adapter.get_setup_info()
+            return f"{setup_info.name}-{setup_info.version}.tgz"
         if host.os_version:
             major_version_number = None
             if host.os_type == constants.OsType.AIX:
@@ -299,7 +304,6 @@ class AgentBaseService(BaseService, metaclass=abc.ABCMeta):
 
 @dataclass
 class AgentCommonData(CommonData):
-
     # 默认接入点
     default_ap: models.AccessPoint
     # 主机ID - 接入点 映射关系
