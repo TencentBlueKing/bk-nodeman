@@ -57,6 +57,9 @@ class TargetHostSerializer(serializers.Serializer):
             return attrs
 
         if (attrs.get("ip") or attrs.get("bk_host_innerip")) and attrs.get("bk_cloud_id"):
+            for query_field in ["ip", "bk_host_innerip"]:
+                if attrs.get(query_field):
+                    attrs[query_field] = attrs[query_field].split(",")[0]
             return attrs
 
         raise ValidationError("目前机器参数必须要有 bk_host_id 或者 (ip/bk_host_innerip + bk_cloud_id)")

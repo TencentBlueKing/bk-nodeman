@@ -32,7 +32,7 @@ from Cryptodome.Cipher import AES
 from django.conf import settings
 from django.core.cache import cache
 from django.db import models
-from django.db.models import QuerySet
+from django.db.models import Q, QuerySet
 from django.utils import timezone
 from django.utils.encoding import force_text
 from django.utils.functional import Promise
@@ -364,27 +364,34 @@ class Host(models.Model):
         or {
                 "bk_host_id": 1
             }
-        or Host Object
         """
-        if isinstance(host_info, Host):
-            return host_info
 
-        bk_host_id = host_info.get("bk_host_id")
+        bk_host_id: Optional[int] = host_info.get("bk_host_id")
         if bk_host_id:
             try:
                 return Host.objects.get(bk_host_id=bk_host_id)
             except Host.DoesNotExist:
                 exception = _("bk_host_id={bk_host_id} 主机信息不存在").format(bk_host_id=bk_host_id)
         else:
-            ip = host_info.get("bk_host_innerip") or host_info.get("ip")
-            # 兼容IP为逗号分割的多IP情况，取第一个IP
-            ip = ip.split(",")[0]
-            bk_cloud_id = host_info["bk_cloud_id"]
-            host = Host.objects.get(inner_ip=ip, bk_cloud_id=bk_cloud_id).first()
+            bk_cloud_id: int = host_info["bk_cloud_id"]
+            host_inner_ip: Optional[str] = host_info.get("bk_host_innerip")
+
+            # 入参不做限制，优先使用参数 bk_host_innerip 作为查询条件
+            if host_inner_ip:
+                filter_q = Q(inner_ip=host_inner_ip, bk_cloud_id=bk_cloud_id)
+                exception_ip: str = host_inner_ip
+            else:
+                ip: str = host_info["ip"]
+                exception_ip: str = ip
+                if basic.is_v6(ip):
+                    filter_q = Q(inner_ipv6=basic.exploded_ip(ip), bk_cloud_id=bk_cloud_id)
+                else:
+                    filter_q = Q(inner_ip=ip, bk_cloud_id=bk_cloud_id)
+            host: Host = Host.objects.filter(filter_q).first()
             if host:
                 return host
             else:
-                exception = _("{bk_cloud_id}:{ip} 主机信息不存在").format(ip=ip, bk_cloud_id=bk_cloud_id)
+                exception = _("{bk_cloud_id}:{ip} 主机信息不存在").format(ip=exception_ip, bk_cloud_id=bk_cloud_id)
         raise HostNotExists(exception)
 
     @classmethod
