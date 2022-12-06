@@ -147,3 +147,7 @@ def mock_get_proc_status(params):
     not_exist_proc_info["bk_agent_id"] = "not_exist_proc_info_agent_id"
     pro_status_data["proc_infos"].append(not_exist_proc_info)
     return pro_status_data
+
+
+def mock_upgrade_to_agent_id(params):
+    return {"success": [f'{host_info["bk_cloud_id"]}:{host_info["ip"]}' for host_info in params["hosts"]], "failed": []}
