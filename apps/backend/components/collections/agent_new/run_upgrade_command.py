@@ -59,7 +59,7 @@ class RunUpgradeCommandService(AgentExecuteScriptService):
         return "upgrade_command"
 
     def get_script_content(self, data, common_data: AgentCommonData, host: models.Host) -> str:
-        agent_upgrade_pkg_name = self.get_agent_upgrade_pkg_name(host)
+        agent_upgrade_pkg_name = self.get_agent_upgrade_pkg_name(common_data, host)
         general_node_type = self.get_general_node_type(host.node_type)
         agent_config = common_data.host_id__ap_map[host.bk_host_id].get_agent_config(host.os_type)
 

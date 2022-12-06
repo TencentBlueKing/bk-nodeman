@@ -23,10 +23,20 @@ class PushUpgradeFileService(AgentTransferFileService):
     def get_file_target_path(self, data, common_data: AgentCommonData, host: models.Host) -> str:
         return common_data.host_id__ap_map[host.bk_host_id].get_agent_config(host.os_type)["temp_path"]
 
-    def get_file_list(self, data, common_data: AgentCommonData, host: models.Host) -> List[str]:
-
+    def get_upgrade_package_source_path(self, common_data: AgentCommonData, host: models.Host):
+        """
+        获取升级包源路径
+        """
+        # 1.x 升级到 1.x，使用老到路径，升级包直接放在 download 目录下
         download_path = common_data.host_id__ap_map[host.bk_host_id].nginx_path or settings.DOWNLOAD_PATH
-        agent_upgrade_package_name = self.get_agent_upgrade_pkg_name(host=host)
+        if not common_data.agent_step_adapter.is_legacy:
+            # 2.x 升级到 2.x，根据操作系统、CPU 架构等组合路径
+            download_path = os.path.join(download_path, "agent", host.os_type.lower(), host.cpu_arch.lower())
+        return download_path
+
+    def get_file_list(self, data, common_data: AgentCommonData, host: models.Host) -> List[str]:
+        download_path = self.get_upgrade_package_source_path(common_data, host)
+        agent_upgrade_package_name = self.get_agent_upgrade_pkg_name(common_data, host=host)
 
         file_names: List[str] = [agent_upgrade_package_name]
 
