@@ -92,6 +92,15 @@ class GseApiBaseHelper(abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
+    def _upgrade_to_agent_id(self, hosts: InfoDictList) -> InfoDict:
+        """
+        将基于Host IP的配置升级到基于Agent-ID的配置
+        :param hosts: 源 hosts 主机信息 [{"ip": "127.0.0.1", "bk_cloud_id": 0, "bk_agent_id": "xxxx"}]
+        :return: {"failed":[],"success":["0:127.0.0.1"]}
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
     def get_proc_operate_result(self, task_id: str) -> InfoDict:
         """
         获取进程操作结果
@@ -198,3 +207,6 @@ class GseApiBaseHelper(abc.ABC):
             hosts = proc_operate_info.pop("hosts")
             preprocessed_proc_operate_req.append(self.preprocessing_proc_operate_info(hosts, proc_operate_info))
         return self._operate_proc_multi(preprocessed_proc_operate_req, **options)
+
+    def upgrade_to_agent_id(self, hosts: InfoDictList) -> InfoDict:
+        return self._upgrade_to_agent_id(hosts)

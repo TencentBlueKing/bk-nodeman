@@ -233,3 +233,11 @@ class AgentManager(object):
             component_code=components.UnBindHostAgentComponent.code, name=components.UnBindHostAgentComponent.name
         )
         return act
+
+    @classmethod
+    def upgrade_to_agent_id(cls):
+        """升级为 Agent-ID 配置"""
+        act = AgentServiceActivity(
+            component_code=components.UpgradeToAgentIDComponent.code, name=components.UpgradeToAgentIDComponent.name
+        )
+        return act

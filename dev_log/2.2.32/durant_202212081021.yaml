@@ -1,0 +1,3 @@
+---
+feature:
+  - "支持 upgrade_to_agent_id 升级为 AgentID 配置 (closed #1309)"
