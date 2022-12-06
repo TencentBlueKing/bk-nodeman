@@ -272,7 +272,9 @@ class ReinstallAgent(AgentAction):
 
 class UpgradeAgent(ReinstallAgent):
     """
-    升级Agent
+    升级Agent，仅适用于 1.x 升级到 1.x 或 2.x 升级到 2.x ，不支持 1.x 升级到 2.x 的场景
+    1.x 升级到 2.x 到场景，使用 InstallAgent2 覆盖安装
+    TODO 2.x 升级到 2.x 的场景暂时沿用替换二进制后 reload 的方案，待 GSE 提供自升级方案后再调整
     """
 
     ACTION_NAME = backend_const.ActionNameType.UPGRADE_AGENT
