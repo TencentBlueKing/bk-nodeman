@@ -140,6 +140,9 @@ export const config: ISetupHead[] = [
     getOptions() {
       return addressingMode;
     },
+    getReadonly() {
+      return /REINSTALL_AGENT/ig.test(this.localMark);
+    },
     width: 115,
   },
   {
