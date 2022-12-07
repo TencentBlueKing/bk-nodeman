@@ -1,0 +1,3 @@
+---
+bugfix:
+  - "修复 Windows 2.0 Agent 无法卸载的问题 (fixed #1317)"
