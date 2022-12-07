@@ -354,12 +354,12 @@ goto :EOF
         call :multi_report_step_status
         exit /b 1
     )
-    call :print INFO check_env - "check if it is reachable to port %FILE_SVR_PORT%,%BT_PORT%-%TRACKER_PORT% of %FILE_SERVER_IP% GSE_FILE_SERVER"
+    call :print INFO check_env - "check if it is reachable to port %FILE_SVR_PORT% of %FILE_SERVER_IP% GSE_FILE_SERVER"
     call :multi_report_step_status
     set network_not_reachable=
     for %%p in (%FILE_SERVER_IP%) do (
         rem for %%a in (28668,28625,28925,10020) do (
-        for %%a in (%FILE_SVR_PORT%,%BT_PORT%) do (
+        for %%a in (%FILE_SVR_PORT%) do (
             for /f %%i in ('%TMP_DIR%\tcping.exe -i 0.01 %%p %%a ^| findstr successful') do (
                 rem echo %%i
                 for /f "tokens=1,2 delims=successful" %%s in ("%%i") do (
@@ -368,7 +368,7 @@ goto :EOF
                         call :print INFO check_env - "gse server %%p %%a is reachable"
                         call :multi_report_step_status
                     ) else (
-                        set network_not_reachable=%network_not_reachable% %%p to %%a 
+                        set network_not_reachable=%network_not_reachable% %%p to %%a
                         call :print INFO check_env - "gse server %%p %%a can not reachable"
                         call :multi_report_step_status
                     )
@@ -441,8 +441,8 @@ goto :EOF
 goto :EOF
 
 :uninstall_agent_service
-    sc query gse_agent_daemon_%service_id% | findstr /C:"does not exist" 1>nul 2>&1
-    if %errorlevel% equ 0 (
+    sc query gse_agent_daemon_%service_id% 1>nul 2>&1
+    if %errorlevel% neq 0 (
         call :print INFO uninstall_agent_service - "service gse_agent_daemon_%service_id% already uninstalled"
         call :multi_report_step_status
         goto :EOF
@@ -1014,7 +1014,7 @@ goto :EOF
             exit /b 1
         )
         echo=
-        call :unregister_agent_id
+        call :unregister_agent_id SKIP
         if !errorlevel! NEQ 0 (
             exit /b 1
         )
@@ -1073,10 +1073,10 @@ goto :EOF
 goto :EOF
 
 :check_uninstall_result
-    
+
     set service=1
-    sc query gse_agent_daemon_%service_id% | findstr /C:"does not exist" 1>nul 2>&1
-    if %errorlevel% equ 0 (
+    sc query gse_agent_daemon_%service_id% 1>nul 2>&1
+    if %errorlevel% NEQ 0 (
         set service=0
     )
     set dirs=1
@@ -1223,9 +1223,15 @@ goto :EOF
 :unregister_agent_id
     (set skip=%1)
     if NOT EXIST %gse_winagent_home%\\agent\\bin\\gse_agent.exe (
-        call :print FAIL unregister_agent_id FAILED "%gse_winagent_home%\\agent\\bin\\gse_agent.exe not exists"
-        call :multi_report_step_status
-        exit /b 1
+        if "%skip%" == "SKIP" (
+            call :print WARN unregister_agent_id - "%gse_winagent_home%\\agent\\bin\\gse_agent.exe not exists"
+            call :multi_report_step_status
+            goto :EOF
+        ) else (
+            call :print FAIL unregister_agent_id FAILED "%gse_winagent_home%\\agent\\bin\\gse_agent.exe not exists"
+            call :multi_report_step_status
+            exit /b 1
+        )
     )
     %gse_winagent_home%\\agent\\bin\\gse_agent.exe --agent-id -f %GSE_AGENT_ETC_DIR%\\gse_agent.conf
     if %errorlevel% NEQ 0 (
@@ -1243,7 +1249,7 @@ goto :EOF
         call :print INFO unregister_agent_id - "unregister agent id success"
         call :multi_report_step_status
     ) else (
-        if "%skip%" == "SKIP": (
+        if "%skip%" == "SKIP" (
             call :print WARN unregister_agent_id - "unregister agent id failed, but skip it"
             call :multi_report_step_status
         ) else (
