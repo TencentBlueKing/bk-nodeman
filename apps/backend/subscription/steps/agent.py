@@ -495,8 +495,6 @@ class InstallAgent2(AgentAction):
             agent_manager.bind_host_agent(),
             agent_manager.upgrade_to_agent_id(),
             agent_manager.get_agent_status(expect_status=constants.ProcStateType.RUNNING),
-            # 等待 JOB 完成 AgentID 同步
-            agent_manager.wait(15),
             agent_manager.install_plugins() if self.is_install_latest_plugins else None,
         ]
         return list(filter(None, activities)), None
