@@ -107,6 +107,8 @@ class GlobalSettings(models.Model):
         # limit - 处理事件步长，默认为 10 秒
         # seconds_to_wait_for_no_events - 无事件守护进程等待秒数
         APPLY_RESOURCE_WATCHED_EVENTS_CONTROLLER_KEY = "APPLY_RESOURCE_WATCHED_EVENTS_CONTROLLER_KEY"
+        # 【临时变量】Agent 2.0 安装版本，过渡到 Agent 包管理后废除
+        GSE_AGENT2_VERSION = "GSE_AGENT2_VERSION"
 
     key = models.CharField(_("键"), max_length=255, db_index=True, primary_key=True)
     v_json = JSONField(_("值"))

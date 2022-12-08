@@ -1,0 +1,3 @@
+---
+bugfix:
+  - "开启 DHCP 适配时指定 Agent 2.0 安装及 AgentID 切换 (closed #1316 fixed #1269)"
