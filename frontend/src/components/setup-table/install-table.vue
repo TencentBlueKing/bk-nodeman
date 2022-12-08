@@ -15,7 +15,8 @@
                   v-bind="{
                     tips: config.tips,
                     label: config.label,
-                    colspan: config.colspan
+                    colspan: config.colspan,
+                    required: config.required,
                   }">
                 </TableHeader>
               </th>
@@ -23,7 +24,7 @@
             <tr>
               <th v-for="(config, index) in tableHead" :key="config.prop">
                 <ColumnSetting
-                  v-if="localMark && index === tableHead.length - 1"
+                  v-if="colSetting && index === tableHead.length - 1"
                   class="column-setting"
                   filter-head
                   :local-mark="localMark"
@@ -228,6 +229,7 @@ export default class SetupTable extends Vue {
   // 是否为手动安装，校验和云区域变更时需要此变量
   @Prop({ type: Boolean, default: false }) private readonly isManual!: boolean;
   // 是否开启表头设置
+  @Prop({ type: Boolean, default: true }) private readonly colSetting!: boolean;
   @Prop({ type: String, default: '' }) private readonly localMark!: string;
   @Prop({ type: Function }) private readonly beforeDelete!: Function;
   @Prop({ type: Number }) private readonly bkCloudId!: number;
@@ -960,19 +962,20 @@ export default class SetupTable extends Vue {
     this.initTableHead();
   }
   public initTableHead() {
-    if (!this.localMark) return;
-    const tableHead = this.table.config.filter(item => item.type === 'operate' || this.filter[item.prop]?.mockChecked);
-    if (this.setupInfo.header?.length) {
-      const tableParentHead = this.setupInfo.parentHead?.map(item => ({
+    if (this.colSetting || this.localMark) {
+      const tableHead = this.table.config.filter(item => item.type === 'operate' || this.filter[item.prop]?.mockChecked);
+      if (this.setupInfo.header?.length) {
+        const tableParentHead = this.setupInfo.parentHead?.map(item => ({
+          ...item,
+          colspan: tableHead.filter(head => head.parentProp === item.prop).length,
+        })) || [];
+        this.tableParentHead = tableParentHead.filter(item => !!item.colspan || !item.prop);
+      }
+      this.tableHead = tableHead.map(item => ({
         ...item,
-        colspan: tableHead.filter(head => head.parentProp === item.prop).length,
-      })) || [];
-      this.tableParentHead = tableParentHead.filter(item => !!item.colspan || !item.prop);
+        parentTip: this.tableParentHead.find(parent => item.parentProp === parent.prop)?.tips || '',
+      }));
     }
-    this.tableHead = tableHead.map(item => ({
-      ...item,
-      parentTip: this.tableParentHead.find(parent => item.parentProp === parent.prop)?.tips || '',
-    }));
   }
   /**
    * 字段显示列确认事件
@@ -1025,18 +1028,21 @@ export default class SetupTable extends Vue {
   }
   private handleCellFocus(arg: any[], row: ISetupRow, config: ISetupHead) {
     this.$set(this, 'focusRow', row);
-    const { prop } = config;
-    const [refs] = this.$refs[`header_${prop}`] as any[];
+    const { prop, parentProp, tips } = config;
     if (prop === 'prove' && row.auth_type === 'PASSWORD' && regPasswordFill.test(row.prove as string)) {
       const [{ event }] = arg;
       (event?.target as HTMLInputElement)?.setSelectionRange?.(0, 999);
     }
-    setTimeout(() => {
+    const parentHeadCell = this.tableParentHead?.find(item => item.prop === parentProp);
+    if (tips || parentHeadCell?.tips) {
+      const [refs] = this.$refs[`header_${tips ? prop : parentProp}`] as any[];
       if (refs?.tipsShow) {
-        this.popoverEl = refs;
-        this.popoverEl.tipsShow();
+        setTimeout(() => {
+          this.popoverEl = refs;
+          this.popoverEl.tipsShow();
+        }, 200);
       }
-    }, 200);
+    }
   }
   private handleCellBlur({ event }: { event: Event }) {
     this.$set(this, 'focusRow', {});
