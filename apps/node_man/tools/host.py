@@ -44,14 +44,20 @@ class HostTools:
         :param raise_exec:
         :return:
         """
+
         # 如果不存在加密标识前缀，识别为明文密码并直接传递
         if not encrypt_message.startswith(cls.USE_RSA_PREFIX):
             return encrypt_message
 
-        encrypt_message = encrypt_message[len(cls.USE_RSA_PREFIX) :]
+        encrypt_message: str = encrypt_message[len(cls.USE_RSA_PREFIX) :]
         try:
-            return rsa_util.decrypt(encrypt_message)
+            decrypt_message: str = rsa_util.decrypt(encrypt_message)
         except ValueError as e:
             raise raise_exec(_("密文无法解密，请检查是否按规则使用密钥加密：{err_msg}").format(err_msg=e))
         except Exception as e:
             raise raise_exec(_("密文解密失败：{err_msg").format(err_msg=e))
+
+        # 递归解密
+        return cls.decrypt_with_friendly_exc_handle(
+            rsa_util=rsa_util, encrypt_message=decrypt_message, raise_exec=raise_exec
+        )
