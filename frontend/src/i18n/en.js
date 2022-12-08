@@ -85,7 +85,7 @@ export default {
   IP不符合规范: 'IP does not meet specifications',
   认证方式: 'Verification',
   密码密钥: 'Key/Password',
-  登录IP提示: 'The IP address of the target server that supports SSH login. If it is a public cloud server, it is usually an external network IP. Please fill in according to actual conditions',
+  登录IP提示: 'The IP address of the target server that supports SSH login. If it is a public cloud server, it is usually an external network IP. Please fill in according to actual conditions;<br />Support IPv4, IPv6.',
   外网IP: 'WAN IP',
   外网IPv6: 'WAN IPv6',
   内网网卡IP: 'LAN IP',
@@ -265,7 +265,7 @@ export default {
   密码过期: 'Password expired',
   最新执行日志: 'Latest log',
   业务拓扑: 'Topo',
-  出口IP提示: 'Used for data transmission with GSE Server. If it is a public cloud server, it is usually an external network IP or <b>NAT IP</b>. Please fill in according to the actual situation',
+  出口IP提示: 'Used for data transmission with GSE Server. If it is a public cloud server, it is usually an external network IP or <b>NAT IP</b>. Please fill in according to the actual situation;<br />Support IPv4, IPv6.',
   出口IP: 'WAN IP',
   Proxy未安装: 'Proxy installation area is not in the cloud, the cloud reselect region, or {0}',
   前往安装: 'Go install',
@@ -323,6 +323,7 @@ export default {
   全: 'All',
 
   // agent安装
+  主机IPTip: 'Host IP',
   主机属性: 'Host attributes',
   登录信息: 'Login information',
   批量应用: 'Batch application',
@@ -334,6 +335,7 @@ export default {
   业务属性: 'Business attributes',
   云区域属性: 'Cloud zone attributes',
   传输信息: 'Transmit information',
+  agentSetupHostIp: 'The IP address of the target host, the data will be synchronized to CMDB, and {1} and {2} cannot be empty at the same time.\n\nNote: {0} is the default {1} address as the {0}. If {1} is defaulted, {2} is used as the {0}. If the host has multiple network cards, and the IP address used for login is inconsistent with the IP recorded in the CMDB, it is necessary to specify the {0} of the host separately for Agent installation.',
   agentSetupLoginInfo: 'Used to log in to the target host for proxy operations:\nLinux only supports SSH;\nWindows only supports WMI/SSH (only direct connection).',
   agentSetupInnerIp: 'The IPv4 address of the target host, the data will be synchronized to CMDB, fill in at least one of {1}{2}\n\nNote: {0} is preferred to use {1} as {0} by default, if the host has multiple network cards, use When the logged-in IP address is inconsistent with the IP recorded in the CMDB, you need to specify {0} of the host separately for Agent installation to be set separately',
   agentSetupInnerIpv6: 'The IPv6 address of the target host, the data will be synchronized to CMDB, fill in at least one of {1}{2}\n\nNote: {1} takes {2} address as {0} by default, if the host has multiple network cards, use When the logged-in IP address is inconsistent with the IP recorded in the CMDB, it is necessary to specify {0} of the host separately for Agent installation. {0} defaults to {1}',
@@ -344,6 +346,9 @@ export default {
   agentSetupPwd: 'Password to log in to the target machine\nssh root@10.0.0.1 -p 22\n> {0} ',
   agentSetupFile: 'The key used to log into the target machine ssh root@10.0.0.1 -i {0}',
   补充说明tips: '\nAdditional instructions: \n{0}',
+  IP数量不一致: 'The number of IPs is inconsistent',
+  proxySetupHostIp: 'Intranet IP address used to communicate with the Agent in this cloud region, {1}{2} cannot be empty at the same time.',
+  proxySetupLoginInfo: 'Used for SSH to the target host for Proxy operation:\nLinux only supports SSH mode;',
 
   安装方式: 'Install method',
   远程安装: 'Remote install',

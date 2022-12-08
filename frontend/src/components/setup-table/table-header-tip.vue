@@ -1,6 +1,9 @@
 <template>
   <section :class="['tips-content', { 'joint-tip': jointTip }]">
-    <i18n tag="pre" :path="tips" v-if="['agentSetupInnerIp', 'agentSetupInnerIpv6'].includes(tips)">
+    <i18n
+      tag="pre"
+      :path="tips"
+      v-if="['agentSetupHostIp','agentSetupInnerIp', 'agentSetupInnerIpv6', 'proxySetupHostIp'].includes(tips)">
       <span class="primary">{{ $t('「登录 IP」') }}</span>
       <span class="primary">{{ $t('「内网IPv4」') }}</span>
       <span class="primary">{{ $t('「内网IPv6」') }}</span>
