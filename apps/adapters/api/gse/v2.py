@@ -12,6 +12,8 @@ import logging
 import typing
 from collections import Mapping
 
+from django.conf import settings
+
 from apps.exceptions import ApiResultError
 from apps.node_man import constants, models
 
@@ -23,6 +25,11 @@ logger = logging.getLogger("app")
 
 class GseV2ApiHelper(GseV1ApiHelper):
     def get_agent_id(self, mixed_types_of_host_info: typing.Union[base.InfoDict, models.Host]) -> str:
+
+        # 如果动态寻址配置未开启，暂不启用 AgentID
+        if not settings.BKAPP_ENABLE_DHCP:
+            return super(GseV2ApiHelper, self).get_agent_id(mixed_types_of_host_info)
+
         if isinstance(mixed_types_of_host_info, Mapping):
             if "host" in mixed_types_of_host_info:
                 return self.get_agent_id(mixed_types_of_host_info["host"])

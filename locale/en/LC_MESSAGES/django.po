@@ -1545,8 +1545,8 @@ msgstr "storage_type must be one of {choices}"
 
 #: apps/core/files/file_source.py:33
 #, python-brace-format
-msgid "节点管理[biz:{bk_biz_id}]{storage_type_alias}文件凭证"
-msgstr "Node management [biz:{bk_biz_id}]{storage_type_alias} file credential"
+msgid "节点管理[{bk_biz_id}]{storage_type_alias}文件凭证"
+msgstr "Node management [{bk_biz_id}]{storage_type_alias} file credential"
 
 #: apps/core/files/file_source.py:92
 #, python-brace-format
@@ -1557,8 +1557,8 @@ msgstr ""
 
 #: apps/core/files/file_source.py:145
 #, python-brace-format
-msgid "节点管理[biz:{bk_biz_id}]{storage_type_alias}文件源"
-msgstr "Node management [biz:{bk_biz_id}]{storage_type_alias} file source"
+msgid "节点管理[{bk_biz_id}]{storage_type_alias}文件源"
+msgstr "Node management [{bk_biz_id}]{storage_type_alias} file source"
 
 #: apps/core/files/file_source.py:200
 #, python-brace-format

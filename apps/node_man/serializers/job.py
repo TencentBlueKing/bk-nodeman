@@ -11,19 +11,47 @@ specific language governing permissions and limitations under the License.
 import typing
 from collections import defaultdict
 
+from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
 from apps.backend.subscription.steps.agent_adapter.adapter import LEGACY
 from apps.core.ipchooser.tools.base import HostQuerySqlHelper
-from apps.core.tag import core_tag_constants
-from apps.core.tag.handlers import VisibleRangeHandler
 from apps.exceptions import ValidationError
 from apps.node_man import constants, models, tools
 from apps.node_man.handlers import validator
 from apps.node_man.handlers.cmdb import CmdbHandler
 from apps.node_man.periodic_tasks.sync_cmdb_host import bulk_differential_sync_biz_hosts
 from apps.utils import basic
+
+
+def set_agent_setup_info_to_attrs(attrs):
+    """
+    注入 Agent 安装配置信息
+    :param attrs:
+    :return:
+    """
+    # # 如果开启业务灰度，安装新版本 Agent
+    # name = ("gse_agent", "gse_proxy")[attrs["node_type"] == "PROXY"]
+    # # TODO 后续该逻辑通过前端表单填写，通过 validate 校验是否属于灰度范围（暂时只支持到业务级别）
+    # visible_range_handler = VisibleRangeHandler(
+    #     name=name, version_str="test", target_type=core_tag_constants.TargetType.AGENT.value
+    # )
+    # if all([visible_range_handler.is_belong_to_biz(bk_biz_id) for bk_biz_id in bk_biz_ids]):
+    #     attrs["agent_setup_info"] = {"name": name, "version": "test"}
+
+    if not settings.BKAPP_ENABLE_DHCP:
+        return
+
+    # 如果开启 DHCP，安装 2.0 Agent，开启 AgentID 特性
+    # 由于 1.0 / 2.0 Agent 协议上的不兼容，无需考虑 1.0 / 2.0 混合安装的场景
+    name = ("gse_agent", "gse_proxy")[attrs["node_type"] == "PROXY"]
+    attrs["agent_setup_info"] = {
+        "name": name,
+        "version": models.GlobalSettings.get_config(
+            models.GlobalSettings.KeyEnum.GSE_AGENT2_VERSION.value, default="stable"
+        ),
+    }
 
 
 class SortSerializer(serializers.Serializer):
@@ -191,14 +219,8 @@ class InstallSerializer(serializers.Serializer):
             # 差量同步主机
             bulk_differential_sync_biz_hosts(expected_bk_host_ids_gby_bk_biz_id)
 
-        # 如果开启业务灰度，安装新版本 Agent
-        name = ("gse_agent", "gse_proxy")[attrs["node_type"] == "PROXY"]
-        # TODO 后续该逻辑通过前端表单填写，通过 validate 校验是否属于灰度范围（暂时只支持到业务级别）
-        visible_range_handler = VisibleRangeHandler(
-            name=name, version_str="test", target_type=core_tag_constants.TargetType.AGENT.value
-        )
-        if all([visible_range_handler.is_belong_to_biz(bk_biz_id) for bk_biz_id in bk_biz_ids]):
-            attrs["agent_setup_info"] = {"name": name, "version": "test"}
+        set_agent_setup_info_to_attrs(attrs)
+
         return attrs
 
 
@@ -263,17 +285,8 @@ class OperateSerializer(serializers.Serializer):
         attrs["bk_host_ids"] = bk_host_ids
         attrs["bk_biz_scope"] = bk_biz_scope
 
-        if attrs["job_type"] not in ["REINSTALL_PROXY", "UPGRADE_PROXY", "UNINSTALL_PROXY"]:
-            return attrs
+        set_agent_setup_info_to_attrs(attrs)
 
-        # 如果开启业务灰度，安装新版本 Agent
-        name = ("gse_agent", "gse_proxy")[attrs["node_type"] == "PROXY"]
-        # TODO 后续该逻辑通过前端表单填写，通过 validate 校验是否属于灰度范围（暂时只支持到业务级别）
-        visible_range_handler = VisibleRangeHandler(
-            name=name, version_str="test", target_type=core_tag_constants.TargetType.AGENT.value
-        )
-        if all([visible_range_handler.is_belong_to_biz(bk_biz_id) for bk_biz_id in set(bk_biz_scope)]):
-            attrs["agent_setup_info"] = {"name": name, "version": "test"}
         return attrs
 
 
