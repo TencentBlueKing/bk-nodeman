@@ -3,12 +3,21 @@ import { ISetupHead, ISetupRow } from '@/types';
 import { reguFnMinInteger, reguFnSysPath, reguIp, reguIPMixins, reguIPv6 } from '@/common/form-check';
 import { splitCodeArr } from '@/common/regexp';
 
+export const parentHead = [
+  { label: '主机IPTip', prop: 'host_ip', type: 'text', colspan: 0, required: true, tips: 'proxySetupHostIp' },
+  { label: '主机属性', prop: 'host_attr', type: 'text', colspan: 0 },
+  { label: '登录信息', prop: 'login_info', type: 'text', tips: 'proxySetupLoginInfo', colspan: 0 },
+  { label: '传输信息', prop: 'trans_info', type: 'text', colspan: 0 },
+  { label: '', prop: '', type: 'operate' },
+];
+
+
 const defaultOsType = 'LINUX'; // proxy 一定为 LINUX
 const config: ISetupHead[] = [
   {
     label: '内网IPv4',
     prop: 'inner_ip',
-    tips: '内网IP提示',
+    // tips: '内网IP提示',
     required: true,
     requiredPick: ['inner_ipv6'],
     type: 'text',
@@ -16,6 +25,8 @@ const config: ISetupHead[] = [
     errTag: true,
     iconOffset: 10,
     manualProp: true,
+    noRequiredMark: true,
+    parentProp: 'host_ip',
     rules: [reguIp,
       {
         trigger: 'blur',
@@ -35,7 +46,7 @@ const config: ISetupHead[] = [
   {
     label: '内网IPv6',
     prop: 'inner_ipv6',
-    tips: '内网IPv6提示',
+    // tips: '内网IPv6提示',
     required: true,
     requiredPick: ['inner_ip'],
     type: 'text',
@@ -43,6 +54,8 @@ const config: ISetupHead[] = [
     errTag: true,
     iconOffset: 10,
     manualProp: true,
+    noRequiredMark: true,
+    parentProp: 'host_ip',
     rules: [reguIPv6,
       {
         trigger: 'blur',
@@ -69,6 +82,7 @@ const config: ISetupHead[] = [
     required: true,
     iconOffset: 10,
     manualProp: true,
+    parentProp: 'host_attr',
     rules: [reguIPMixins,
       {
         trigger: 'blur',
@@ -94,6 +108,7 @@ const config: ISetupHead[] = [
     unique: true,
     errTag: true,
     iconOffset: 10,
+    parentProp: 'login_info',
     rules: [reguIPMixins,
       {
         trigger: 'blur',
@@ -117,6 +132,7 @@ const config: ISetupHead[] = [
     required: true,
     default: getDefaultConfig(defaultOsType, 'auth_type', 'PASSWORD'),
     iconOffset: 10,
+    parentProp: 'login_info',
     getOptions(row: ISetupRow) {
       return row.os_type === 'WINDOWS' ? authentication.filter(auth => auth.id !== 'KEY') : authentication;
     },
@@ -132,6 +148,7 @@ const config: ISetupHead[] = [
     type: 'password',
     subTitle: window.i18n.t('仅对密码认证生效'),
     iconOffset: 10,
+    parentProp: 'login_info',
     getReadonly(row: ISetupRow) {
       return row.auth_type && row.auth_type === 'TJJ_PASSWORD';
     },
@@ -150,6 +167,7 @@ const config: ISetupHead[] = [
     iconOffset: 10,
     width: 160,
     manualProp: true,
+    parentProp: 'trans_info',
     rules: [reguFnSysPath()],
   },
   {
@@ -162,6 +180,7 @@ const config: ISetupHead[] = [
     show: true,
     width: 115,
     manualProp: true,
+    parentProp: 'trans_info',
   },
   {
     label: '传输限速Unit',
@@ -173,6 +192,7 @@ const config: ISetupHead[] = [
     // iconOffset: 45,
     width: 120,
     manualProp: true,
+    parentProp: 'trans_info',
     rules: [reguFnMinInteger(1)],
   },
   {
