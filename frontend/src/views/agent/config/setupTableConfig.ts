@@ -6,6 +6,7 @@ import { splitCodeArr } from '@/common/regexp';
 const useTjj = window.PROJECT_CONFIG.USE_TJJ === 'True';
 
 export const parentHead = [
+  { label: '主机IPTip', prop: 'host_ip', type: 'text', colspan: 0, required: true, tips: 'agentSetupHostIp' },
   { label: '主机属性', prop: 'host_attr', type: 'text', colspan: 0 },
   { label: '登录信息', prop: 'login_info', type: 'text', tips: 'agentSetupLoginInfo', colspan: 0 },
   { label: '传输信息', prop: 'trans_info', type: 'text', colspan: 0 },
@@ -22,12 +23,12 @@ const config: ISetupHead[] = [
     required: true,
     splitCode: splitCodeArr,
     unique: true,
-    noRequiredMark: false,
+    noRequiredMark: true,
     placeholder: window.i18n.t('多ip输入提示'),
     width: '20%',
     errTag: true,
-    tips: 'agentSetupInnerIp',
-    parentProp: 'host_attr',
+    // tips: 'agentSetupInnerIp',
+    parentProp: 'host_ip',
     sync: 'login_ip',
     manualProp: true,
     rules: [
@@ -95,12 +96,12 @@ const config: ISetupHead[] = [
     required: true,
     splitCode: splitCodeArr,
     unique: true,
-    noRequiredMark: false,
+    noRequiredMark: true,
     placeholder: window.i18n.t('多ip输入提示'),
     width: '20%',
     errTag: true,
-    tips: 'agentSetupInnerIpv6',
-    parentProp: 'host_attr',
+    // tips: 'agentSetupInnerIpv6',
+    parentProp: 'host_ip',
     // sync: 'login_ip',
     manualProp: true,
     rules: [

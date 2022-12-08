@@ -207,7 +207,7 @@ export default class TableHeader extends Vue {
     this.fileInfo = fileInfo;
   }
   public tipsShow() {
-    if (this.tips && this.popoverInstance) {
+    if ((this.tips || this.parentTip) && this.popoverInstance) {
       this.tipsTrigger = 'manual';
       this.popoverInstance.show();
     }

@@ -85,7 +85,7 @@ export default {
   IP不符合规范: 'IP格式不正确',
   认证方式: '认证方式',
   密码密钥: '密码/密钥',
-  登录IP提示: '目标服务器支持SSH登录的IP地址， 如果是公有云服务器，一般为 <b>公网IP</b>，请根据实际情况填写',
+  登录IP提示: '目标主机的用于登录进行 Proxy 安装的 IP 地址，区别于记录在 CMDB 中的 IP；<br />支持 IPv4、IPv6。',
   外网IP: '外网IP',
   外网IPv6: '外网IPv6',
   内网网卡IP: '内网网卡IP',
@@ -265,7 +265,7 @@ export default {
   密码过期: '密码过期',
   最新执行日志: '最新执行日志',
   业务拓扑: '业务拓扑',
-  出口IP提示: '用于与GSE Server的数据传输，如果是公有云服务器，一般为 <b>公网IP</b> 或 <b>NAT IP</b>，请根据实际情况填写',
+  出口IP提示: '用于与GSE Server的数据传输，如果是公有云服务器，一般为 <b>公网IP</b> 或 <b>NAT IP</b>，请根据实际情况填写；<br />支持 IPv4、IPv6。',
   出口IP: '出口IP',
   Proxy未安装: '该云区域未安装 Proxy，请重新选择云区域，或 {0}',
   前往安装: '前往安装',
@@ -323,6 +323,7 @@ export default {
   全: '全',
 
   // agent安装
+  主机IPTip: '主机 IP',
   主机属性: '主机属性',
   登录信息: '登录信息',
   批量应用: '批量应用',
@@ -334,6 +335,7 @@ export default {
   业务属性: '业务属性',
   云区域属性: '云区域属性',
   传输信息: '传输信息',
+  agentSetupHostIp: '目标主机的IP地址，数据将同步至 CMDB，{1}{2}不能同时为空。\n\n注：{0}缺省时优先取{1}地址作为{0}，若{1}缺省，则取{2}为{0}。若主机有多网卡，用于登录的 IP 地址与 CMDB 中记录的 IP 不一致时，需要单独指定该主机的{0}用于进行 Agent 安装另行设置。',
   agentSetupLoginInfo: '用于登录到目标主机上进行 Agent 操作：\nLinux 仅支持 SSH 方式；\nWindows 支持 WMI / SSH（仅直连）。',
   agentSetupInnerIp: '目标主机的 IPv4 地址，数据将同步至 CMDB，{1}{2}至少填一个\n\n注：{0}缺省时优先取{1}作为{0}，若主机有多网卡，用于登录的 IP 地址与 CMDB 中记录的 IP 不一致时，需要单独指定该主机的{0}用于进行 Agent 安装另行设置',
   agentSetupInnerIpv6: '目标主机的 IPv6 地址，数据将同步至 CMDB，{1}{2}至少填一个\n\n注：{1}缺省时取{2}地址作为{0}，若主机有多网卡，用于登录的 IP 地址与 CMDB 中记录的 IP 不一致时，需要单独指定该主机的{0}用于进行 Agent 安装另行设置。{0}缺省时优先取{1}',
@@ -344,6 +346,9 @@ export default {
   agentSetupPwd: '用于登录到目标机器的密码\nssh root@10.0.0.1 -p 22\n> {0}',
   agentSetupFile: '用于登录到目标机器的密钥ssh root@10.0.0.1 -i {0}',
   补充说明tips: '\n补充说明：\n{0}',
+  IP数量不一致: 'IP数量不一致',
+  proxySetupHostIp: '用于与该云区域下 Agent 通信的内网IP地址， {1}{2}不能同时为空。',
+  proxySetupLoginInfo: '用于 SSH 到目标主机进行 Proxy 操作：\nLinux 仅支持 SSH 方式；',
 
   安装方式: '安装方式',
   远程安装: '远程安装',
