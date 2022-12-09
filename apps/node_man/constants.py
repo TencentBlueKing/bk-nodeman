@@ -15,7 +15,7 @@ import os
 import platform
 import re
 from enum import Enum
-from typing import Dict, List
+from typing import Any, Dict, List, Union
 
 from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
@@ -911,13 +911,8 @@ GSE_CLIENT_PACKAGES: List[str] = [
     "gse_client-aix7-powerpc.tgz",
 ]
 
-FILES_TO_PUSH_TO_PROXY = [
+TOOLS_TO_PUSH_TO_PROXY: List[Dict[str, Union[List[str], Any]]] = [
     {"files": ["py36.tgz"], "name": _("检测 BT 分发策略（下发Py36包）")},
-    {
-        "files": GSE_CLIENT_PACKAGES,
-        "name": _("下发安装包"),
-        "from_type": ProxyFileFromType.AP_CONFIG.value,
-    },
     {
         "files": [
             "ntrights.exe",
@@ -933,6 +928,14 @@ FILES_TO_PUSH_TO_PROXY = [
         ],
         "name": _("下发安装工具"),
     },
+]
+
+FILES_TO_PUSH_TO_PROXY = TOOLS_TO_PUSH_TO_PROXY + [
+    {
+        "files": GSE_CLIENT_PACKAGES,
+        "name": _("下发安装包"),
+        "from_type": ProxyFileFromType.AP_CONFIG.value,
+    }
 ]
 
 

@@ -358,6 +358,9 @@ class CustomBKRepoMockStorage(storage.CustomBKRepoStorage):
     def delete(self, name):
         return self.mock_storage.delete(name)
 
+    def listdir(self, path):
+        return self.mock_storage.listdir(path)
+
 
 OVERWRITE_OBJ__KV_MAP = {
     settings: {
