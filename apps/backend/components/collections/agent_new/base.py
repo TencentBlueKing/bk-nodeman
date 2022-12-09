@@ -104,18 +104,23 @@ class AgentBaseService(BaseService, metaclass=abc.ABCMeta):
         ]
 
     @classmethod
-    def get_agent_upgrade_pkg_name(cls, common_data: "AgentCommonData", host: models.Host) -> str:
+    def get_agent_pkg_name(cls, common_data: "AgentCommonData", host: models.Host, is_upgrade: bool = False) -> str:
         """
         获取 Agent 升级包名称
-        :param common_data:
-        :param host:
+        :param common_data: AgentCommonData
+        :param host: models.Host
+        :param is_upgrade: bool 是否升级包
         :return:
         """
+        # GSE2.0 安装包和升级包复用同一个包
         package_type = ("client", "proxy")[host.node_type == constants.NodeType.PROXY]
         agent_step_adapter = common_data.agent_step_adapter
         if not agent_step_adapter.is_legacy:
             setup_info = agent_step_adapter.get_setup_info()
             return f"{setup_info.name}-{setup_info.version}.tgz"
+
+        # GSE1.0 的升级包是独立的，添加了 _upgrade 后缀
+        pkg_suffix = "_upgrade" if is_upgrade else ""
         if host.os_version:
             major_version_number = None
             if host.os_type == constants.OsType.AIX:
@@ -128,10 +133,10 @@ class AgentBaseService(BaseService, metaclass=abc.ABCMeta):
             if not major_version_number:
                 raise OsVersionPackageValidationError(os_version=host.os_version, os_type=host.os_type)
             agent_upgrade_package_name = (
-                f"gse_{package_type}-{host.os_type.lower()}{major_version_number}-{host.cpu_arch}_upgrade.tgz"
+                f"gse_{package_type}-{host.os_type.lower()}{major_version_number}-{host.cpu_arch}{pkg_suffix}.tgz"
             )
         else:
-            agent_upgrade_package_name = f"gse_{package_type}-{host.os_type.lower()}-{host.cpu_arch}_upgrade.tgz"
+            agent_upgrade_package_name = f"gse_{package_type}-{host.os_type.lower()}-{host.cpu_arch}{pkg_suffix}.tgz"
 
         return agent_upgrade_package_name
 

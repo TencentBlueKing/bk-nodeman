@@ -162,7 +162,9 @@ class AgentManager(object):
 
     @classmethod
     def push_files_to_proxy(cls, file: Dict[str, Any]):
-        """下发文件到 Proxy"""
+        """
+        下发文件到 Proxy
+        """
         act = AgentServiceActivity(component_code=components.PushFilesToProxyComponent.code, name=file["name"])
         act.component.inputs.file_list = Var(type=Var.PLAIN, value=file["files"])
         act.component.inputs.from_type = Var(type=Var.PLAIN, value=file.get("from_type"))
@@ -249,5 +251,14 @@ class AgentManager(object):
         act = AgentServiceActivity(
             component_code=components.PushIdentifierHostsComponent.code,
             name=components.PushIdentifierHostsComponent.name,
+        )
+        return act
+
+    @classmethod
+    def push_agent_pkg_to_proxy(cls):
+        """下发 Agent 安装包到 Proxy"""
+        act = AgentServiceActivity(
+            component_code=components.PushAgentPkgToProxyComponent.code,
+            name=components.PushAgentPkgToProxyComponent.name,
         )
         return act
