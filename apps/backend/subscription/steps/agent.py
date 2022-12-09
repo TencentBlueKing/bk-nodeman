@@ -284,6 +284,7 @@ class UpgradeAgent(ReinstallAgent):
         activities = [
             agent_manager.push_upgrade_package(),
             agent_manager.run_upgrade_command(),
+            agent_manager.wait(10),
             agent_manager.get_agent_status(expect_status=constants.ProcStateType.RUNNING),
         ]
         return activities, None
