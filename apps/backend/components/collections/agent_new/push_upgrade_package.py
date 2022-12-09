@@ -36,7 +36,7 @@ class PushUpgradeFileService(AgentTransferFileService):
 
     def get_file_list(self, data, common_data: AgentCommonData, host: models.Host) -> List[str]:
         root_path, agent_path = self.get_upgrade_package_source_path(common_data, host)
-        agent_upgrade_package_name = self.get_agent_upgrade_pkg_name(common_data, host=host)
+        agent_upgrade_package_name = self.get_agent_pkg_name(common_data, host=host, is_upgrade=True)
 
         file_list: List[str] = [os.path.join(agent_path, agent_upgrade_package_name)]
 
