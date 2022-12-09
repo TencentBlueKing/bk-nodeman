@@ -585,7 +585,7 @@ class InstallFailedTestCase(InstallBaseTestCase):
 
 class InstallAgentWithInstallChannelSuccessTest(InstallBaseTestCase):
     def init_hosts(self):
-        install_channel = self.create_install_channel()
+        install_channel, jump_server_host_ids = self.create_install_channel()
         models.Host.objects.filter(bk_host_id__in=self.obj_factory.bk_host_ids).update(
             os_type=self.OS_TYPE, node_type=self.NODE_TYPE, install_channel_id=install_channel.id
         )

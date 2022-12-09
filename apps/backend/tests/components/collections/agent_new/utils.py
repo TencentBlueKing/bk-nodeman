@@ -17,7 +17,7 @@ import random
 import textwrap
 from abc import ABC
 from functools import partial
-from typing import Any, Dict, List, Optional, Type
+from typing import Any, Dict, List, Optional, Tuple, Type
 
 import mock
 from django.conf import settings
@@ -25,6 +25,7 @@ from django.db.models import Model
 from django.utils import timezone
 from django.utils.translation import get_language
 
+import env
 from apps.backend.components.collections import agent_new
 from apps.backend.subscription import tools
 from apps.core.concurrent.controller import ConcurrentController
@@ -423,7 +424,7 @@ class AgentServiceBaseTestCase(CustomAPITestCase, ComponentTestMixin, ABC):
 
     # DEBUG = True 时，会打印原子执行日志，帮助定位问题和确认执行步骤是否准确
     # ⚠️ 注意：请仅在本地开发机上使用，最后提交时，上层原子测试该值必须为 False
-    DEBUG: bool = False
+    DEBUG: bool = env.get_type_env("UNIT_TEST_DEBUG", _type=bool, default=False)
 
     OBJ_FACTORY_CLASS: Type[AgentTestObjFactory] = AgentTestObjFactory
     BATCH_CALL_MOCK_PATHS = [
@@ -478,7 +479,7 @@ class AgentServiceBaseTestCase(CustomAPITestCase, ComponentTestMixin, ABC):
         cls.obj_factory.init_db()
         super().setUpTestData()
 
-    def create_install_channel(self):
+    def create_install_channel(self, offset: int = 1) -> Tuple[models.InstallChannel, List[int]]:
         """创建安装通道"""
         install_channel = models.InstallChannel.objects.create(
             bk_cloud_id=constants.DEFAULT_CLOUD,
@@ -491,7 +492,7 @@ class AgentServiceBaseTestCase(CustomAPITestCase, ComponentTestMixin, ABC):
                 "channel_proxy_address": f"http://{utils.DEFAULT_IP}:17981",
             },
         )
-        jump_server_host_id = self.obj_factory.RANDOM_BEGIN_HOST_ID + len(self.obj_factory.bk_host_ids) + 1
+        jump_server_host_id = self.obj_factory.RANDOM_BEGIN_HOST_ID + len(self.obj_factory.bk_host_ids) + offset
         jump_server = copy.deepcopy(common_unit.host.HOST_MODEL_DATA)
         jump_server.update(
             {
@@ -510,10 +511,10 @@ class AgentServiceBaseTestCase(CustomAPITestCase, ComponentTestMixin, ABC):
         )
         self.obj_factory.bulk_create_model(model=models.Host, create_data_list=[jump_server])
         self.obj_factory.bulk_create_model(model=models.ProcessStatus, create_data_list=[proc_status_data])
-        return install_channel
+        return install_channel, [jump_server_host_id]
 
     @classmethod
-    def create_ap(cls, name: str, description: str) -> models.AccessPoint:
+    def create_ap(cls, name: str, description: str = "") -> models.AccessPoint:
         # 创建一个测试接入点
         ap_model_data = basic.remove_keys_from_dict(origin_data=common_unit.host.AP_MODEL_DATA, keys=["id"])
         ap_model_data.update({"name": name, "description": description, "is_default": False, "is_enabled": True})
@@ -521,7 +522,7 @@ class AgentServiceBaseTestCase(CustomAPITestCase, ComponentTestMixin, ABC):
         ap_obj.save()
         return ap_obj
 
-    def init_alive_proxies(self, bk_cloud_id: int):
+    def init_alive_proxies(self, bk_cloud_id: int, offset: int = 1):
 
         ap_obj = self.create_ap(name="Proxy专用接入点", description="用于测试PAgent是否正确通过存活Proxy获取到接入点")
         self.except_ap_ids = [ap_obj.id]
@@ -530,7 +531,7 @@ class AgentServiceBaseTestCase(CustomAPITestCase, ComponentTestMixin, ABC):
         proxy_data_host_list = []
         proc_status_data_list = []
         init_proxy_num = random.randint(5, 10)
-        random_begin_host_id = self.obj_factory.RANDOM_BEGIN_HOST_ID + len(self.obj_factory.bk_host_ids) + 1
+        random_begin_host_id = self.obj_factory.RANDOM_BEGIN_HOST_ID + len(self.obj_factory.bk_host_ids) + offset
 
         for index in range(init_proxy_num):
             proxy_host_id = random_begin_host_id + index
@@ -557,6 +558,7 @@ class AgentServiceBaseTestCase(CustomAPITestCase, ComponentTestMixin, ABC):
             proc_status_data_list.append(proc_status_data)
         self.obj_factory.bulk_create_model(model=models.Host, create_data_list=proxy_data_host_list)
         self.obj_factory.bulk_create_model(model=models.ProcessStatus, create_data_list=proc_status_data_list)
+        return proxy_data_host_list
 
     def structure_common_inputs(self) -> Dict[str, Any]:
         """

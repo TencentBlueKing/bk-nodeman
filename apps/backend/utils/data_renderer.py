@@ -52,7 +52,7 @@ def nested_render_data(data, context):
                 TEMPLATE_CACHE[data] = template
             return template.render(context)
         except Exception as err:
-            logger.exception(err)
+            logger.exception(f"nested_render_data error: {err}")
             return data
     elif isinstance(data, dict):
         if "$for" in data and "$item" in data and "$body" in data:
