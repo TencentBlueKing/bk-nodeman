@@ -30,17 +30,21 @@ class PushUpgradePackageTestCase(base.JobBaseTestCase):
     def component_cls(self):
         return components.PushUpgradePackageComponent
 
+    @staticmethod
+    def get_assert_file_list():
+        return [os.path.join(settings.DOWNLOAD_PATH, "gse_client-linux-x86_64_upgrade.tgz")]
+
     def tearDown(self) -> None:
         record = self.job_api_mock_client.call_recorder.record
         fast_transfer_file_query_params = record[JobApi.fast_transfer_file][0].args[0]
         self.assertEqual(
             fast_transfer_file_query_params["file_source_list"][0]["file_list"],
-            [os.path.join(settings.DOWNLOAD_PATH, "gse_client-linux-x86_64_upgrade.tgz")],
+            self.get_assert_file_list(),
         )
         super().tearDown()
 
 
-class PushUpgradePackageV2TestCase(base.JobBaseTestCase):
+class PushUpgradePackageV2TestCase(PushUpgradePackageTestCase):
     @classmethod
     def get_default_case_name(cls) -> str:
         return "下发 Linux 升级包 2.0 成功"
@@ -56,20 +60,56 @@ class PushUpgradePackageV2TestCase(base.JobBaseTestCase):
     def component_cls(self):
         return components.PushUpgradePackageComponent
 
-    def tearDown(self) -> None:
-        record = self.job_api_mock_client.call_recorder.record
-        fast_transfer_file_query_params = record[JobApi.fast_transfer_file][0].args[0]
-        self.assertEqual(
-            fast_transfer_file_query_params["file_source_list"][0]["file_list"],
-            [os.path.join(settings.DOWNLOAD_PATH, "agent/linux/x86_64/gse_agent-2.0.0.tgz")],
-        )
-        super().tearDown()
-
-    def test_component(self):
-        super().test_component()
+    @staticmethod
+    def get_assert_file_list():
+        return [os.path.join(settings.DOWNLOAD_PATH, "agent/linux/x86_64/gse_agent-2.0.0.tgz")]
 
 
-class PushAixUpgradePackageSuccessTestCase(base.JobBaseTestCase):
+class PushWindowsUpgradePackageV2TestCase(PushUpgradePackageV2TestCase):
+    @classmethod
+    def get_default_case_name(cls) -> str:
+        return "下发 Windows 升级包 2.0 成功"
+
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
+        models.Host.objects.filter(bk_host_id__in=cls.obj_factory.bk_host_ids).update(os_type=constants.OsType.WINDOWS)
+
+    def component_cls(self):
+        return components.PushUpgradePackageComponent
+
+    @staticmethod
+    def get_assert_file_list():
+        return [
+            os.path.join(settings.DOWNLOAD_PATH, "agent/windows/x86_64/gse_agent-2.0.0.tgz"),
+            os.path.join(settings.DOWNLOAD_PATH, "7z.dll"),
+            os.path.join(settings.DOWNLOAD_PATH, "7z.exe"),
+        ]
+
+
+class PushWindowsUpgradePackageTestCase(PushUpgradePackageTestCase):
+    @classmethod
+    def get_default_case_name(cls) -> str:
+        return "下发 Windows 升级包成功"
+
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
+        models.Host.objects.filter(bk_host_id__in=cls.obj_factory.bk_host_ids).update(os_type=constants.OsType.WINDOWS)
+
+    def component_cls(self):
+        return components.PushUpgradePackageComponent
+
+    @staticmethod
+    def get_assert_file_list():
+        return [
+            os.path.join(settings.DOWNLOAD_PATH, "gse_client-windows-x86_64_upgrade.tgz"),
+            os.path.join(settings.DOWNLOAD_PATH, "7z.dll"),
+            os.path.join(settings.DOWNLOAD_PATH, "7z.exe"),
+        ]
+
+
+class PushAixUpgradePackageSuccessTestCase(PushUpgradePackageTestCase):
     @classmethod
     def get_default_case_name(cls) -> str:
         return "下发 Aix 升级包成功"
@@ -88,15 +128,9 @@ class PushAixUpgradePackageSuccessTestCase(base.JobBaseTestCase):
             os_version="6.1.0.0.1", cpu_arch=constants.CpuType.powerpc
         )
 
-    def tearDown(self) -> None:
-        record = self.job_api_mock_client.call_recorder.record
-        fast_transfer_file_query_params = record[JobApi.fast_transfer_file][0].args[0]
-
-        self.assertEqual(
-            fast_transfer_file_query_params["file_source_list"][0]["file_list"],
-            [os.path.join(settings.DOWNLOAD_PATH, "gse_client-aix6-powerpc_upgrade.tgz")],
-        )
-        super().tearDown()
+    @staticmethod
+    def get_assert_file_list():
+        return [os.path.join(settings.DOWNLOAD_PATH, "gse_client-aix6-powerpc_upgrade.tgz")]
 
 
 class PushAixUpgradePackageFailTestCase(utils.AgentServiceBaseTestCase, ABC):

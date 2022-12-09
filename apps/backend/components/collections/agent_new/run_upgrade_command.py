@@ -23,9 +23,11 @@ from .base import AgentCommonData, AgentExecuteScriptService
 WINDOWS_UPGRADE_CMD_TEMPLATE = (
     'reg add "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run" '
     '/v gse_agent /t reg_sz /d "{setup_path}\\agent\\bin\\gsectl.bat start" /f 1>nul 2>&1'
-    " && start gsectl.bat stop && ping -n 20 127.0.0.1 >> c:\\ping_ip.txt && {temp_path}\\7z.exe x"
-    " {temp_path}\\{package_name} -o{temp_path} -y 1>nul 2>&1 && {temp_path}\\7z.exe x "
-    "{temp_path}\\{package_name_tar} -aot -o{setup_path} -y 1>nul 2>&1 && gsectl.bat start"
+    " && start gsectl.bat stop"
+    " && ping -n 20 127.0.0.1 >> c:\\ping_ip.txt"
+    " && {temp_path}\\7z.exe x {temp_path}\\{package_name} -o{temp_path} -y 1>nul 2>&1"
+    " && {temp_path}\\7z.exe x {temp_path}\\{package_name_tar} -aot -o{setup_path} -y 1>nul 2>&1"
+    " && gsectl.bat start"
 )
 
 # Proxy 重载配置命令模板
@@ -72,8 +74,8 @@ class RunUpgradeCommandService(AgentExecuteScriptService):
             )
             return scripts
         else:
-            path = os.path.join(settings.BK_SCRIPTS_PATH, "upgrade_agent.sh.tpl")
-            with open(path, encoding="utf-8") as fh:
+            tpl_path = os.path.join(settings.BK_SCRIPTS_PATH, "upgrade_agent.sh.tpl")
+            with open(tpl_path, encoding="utf-8") as fh:
                 scripts = fh.read()
             reload_cmd = NODE_TYPE__RELOAD_CMD_TPL_MAP[general_node_type].format(
                 setup_path=agent_config["setup_path"], node_type=general_node_type
@@ -84,9 +86,6 @@ class RunUpgradeCommandService(AgentExecuteScriptService):
                 package_name=agent_upgrade_pkg_name,
                 node_type=general_node_type,
                 reload_cmd=reload_cmd,
+                pkg_cpu_arch=host.cpu_arch,
             )
             return scripts
-
-    def _execute(self, data, parent_data, common_data: AgentCommonData):
-        super()._execute(data, parent_data, common_data)
-        self.skip_polling_result_by_os_types(os_types=[constants.OsType.WINDOWS])
