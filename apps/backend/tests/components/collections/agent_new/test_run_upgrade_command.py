@@ -20,25 +20,25 @@ from apps.backend.components.collections.agent_new.run_upgrade_command import (
     AGENT_RELOAD_CMD_TEMPLATE,
     WINDOWS_UPGRADE_CMD_TEMPLATE,
 )
-from apps.node_man import constants
+from apps.node_man import constants, models
 from common.api import JobApi
 
 from . import base
 
 
 class RunUpgradeCommandSuccessTestCase(base.JobBaseTestCase):
-
     # 获取Linux测试脚本和Windows测试脚本
     SCRIPT_PATH = os.path.join(settings.BK_SCRIPTS_PATH, "upgrade_agent.sh.tpl")
     with open(SCRIPT_PATH, encoding="utf-8") as fh:
-        LINUX_TEST_SCRIPTS = fh.read()
+        LINUX_TEST_SCRIPT_TEMPLATE = fh.read()
 
-    LINUX_TEST_SCRIPTS = LINUX_TEST_SCRIPTS.format(
+    LINUX_TEST_SCRIPTS = LINUX_TEST_SCRIPT_TEMPLATE.format(
         setup_path="/usr/local/gse",
         temp_path="/tmp",
         package_name="gse_client-linux-x86_64_upgrade.tgz",
         node_type="agent",
         reload_cmd=AGENT_RELOAD_CMD_TEMPLATE.format(setup_path="/usr/local/gse", node_type="agent"),
+        pkg_cpu_arch="x86_64",
     )
     WINDOWS_TEST_SCRIPTS = WINDOWS_UPGRADE_CMD_TEMPLATE.format(
         setup_path="c:\\gse",
@@ -69,6 +69,36 @@ class RunUpgradeCommandSuccessTestCase(base.JobBaseTestCase):
                 base64.b64decode(fast_execute_script_query_params["script_content"]).decode(),
             )
             super().tearDown()
+
+
+class LinuxAgent2UpgradeSuccessTestCase(RunUpgradeCommandSuccessTestCase):
+    @classmethod
+    def get_default_case_name(cls) -> str:
+        return "测试 Linux 机器 Agent2 升级脚本成功"
+
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
+        sub_step_obj: models.SubscriptionStep = cls.obj_factory.sub_step_objs[0]
+        sub_step_obj.config.update({"name": "gse_agent", "version": "2.0.0"})
+        sub_step_obj.save()
+
+    def tearDown(self) -> None:
+        record = self.job_api_mock_client.call_recorder.record
+        test_script_content = self.LINUX_TEST_SCRIPT_TEMPLATE.format(
+            setup_path="/usr/local/gse",
+            temp_path="/tmp",
+            package_name="gse_agent-2.0.0.tgz",
+            node_type="agent",
+            reload_cmd=AGENT_RELOAD_CMD_TEMPLATE.format(setup_path="/usr/local/gse", node_type="agent"),
+            pkg_cpu_arch="x86_64",
+        )
+        for record_result in record[JobApi.fast_execute_script]:
+            fast_execute_script_query_params = record_result.args[0]
+            self.assertEqual(
+                test_script_content,
+                base64.b64decode(fast_execute_script_query_params["script_content"]).decode(),
+            )
 
 
 class WindowsSuccessTestCase(RunUpgradeCommandSuccessTestCase):

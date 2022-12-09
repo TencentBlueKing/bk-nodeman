@@ -1,0 +1,3 @@
+---
+feature:
+  - "Agent 升级功能问题修复（Windows 压缩工具下发，Linux 脚本 CPU 架构校验等）(close #1328)"
