@@ -121,6 +121,7 @@ class AgentManager(object):
         act = AgentServiceActivity(
             component_code=components.RunUpgradeCommandComponent.code, name=components.RunUpgradeCommandComponent.name
         )
+        act.component.inputs.skip_polling_result = Var(type=Var.PLAIN, value=True)
         return act
 
     @classmethod
