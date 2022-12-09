@@ -167,11 +167,18 @@ tasks:
             "diff_metrics": [],
             "config_version": "1.0",
         }
+        control_info = {
+            "listen_port": 7000,
+            "setup_path": "/usr/local/gse",
+            "data_path": "/usr/local/gse/data",
+            "start_cmd": "start",
+        }
 
         nodeman_context = {
             "cmdb_instance": cmdb_instance,
             "target": cmdb_instance,
-            "step_data": {"redis_exporter_v1450": {"control_info": {"listen_port": 7000}}},
+            "control_info": control_info,
+            "step_data": {"redis_exporter_v1450": {"control_info": control_info}},
         }
         rendered_monitor_context = nested_render_data(monitor_context, nodeman_context)
         nodeman_context.update(rendered_monitor_context)

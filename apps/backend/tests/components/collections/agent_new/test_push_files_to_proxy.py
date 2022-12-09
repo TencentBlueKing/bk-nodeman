@@ -26,7 +26,7 @@ class PushUpgradePackageTestCase(base.JobBaseTestCase):
         common_inputs = super().structure_common_inputs()
         common_inputs.update(
             {
-                "file_list": constants.FILES_TO_PUSH_TO_PROXY[1]["files"],
+                "file_list": constants.FILES_TO_PUSH_TO_PROXY[2]["files"],
                 "file_target_path": settings.DOWNLOAD_PATH,
                 "from_type": constants.ProxyFileFromType.AP_CONFIG.value,
             }
@@ -35,7 +35,7 @@ class PushUpgradePackageTestCase(base.JobBaseTestCase):
 
     @classmethod
     def get_default_case_name(cls) -> str:
-        return "下发文件到Proxy"
+        return "下发文件到 Proxy"
 
     def component_cls(self):
         return components.PushFilesToProxyComponent
@@ -47,7 +47,7 @@ class PushUpgradePackageTestCase(base.JobBaseTestCase):
             fast_transfer_file_query_params["file_source_list"][0]["file_list"],
             [
                 os.path.join(settings.DOWNLOAD_PATH, file_name)
-                for file_name in constants.FILES_TO_PUSH_TO_PROXY[1]["files"]
+                for file_name in constants.FILES_TO_PUSH_TO_PROXY[2]["files"]
             ],
             is_sort=True,
         )
