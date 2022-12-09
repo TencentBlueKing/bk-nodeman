@@ -599,9 +599,7 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
             if config_template.plugin_name != package.project:
                 raise ValidationError("config {} does not belong to plugin {}".format(config_id, package.project))
 
-            step_config_templates.append(
-                {"version": config_template.version, "name": config_template.name}
-            )
+            step_config_templates.append({"version": config_template.version, "name": config_template.name})
             step_params_context.update(json.loads(config.render_data))
 
         with transaction.atomic():

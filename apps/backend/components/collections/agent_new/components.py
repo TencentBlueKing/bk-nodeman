@@ -23,6 +23,7 @@ from .configure_policy import ConfigurePolicyService
 from .get_agent_status import GetAgentStatusService
 from .install import InstallService
 from .install_plugins import InstallPluginsService
+from .push_agent_pkg_to_proxy import PushAgentPkgToProxyService
 from .push_files_to_proxy import PushFilesToProxyService
 from .push_host_identifier import PushIdentifierHostsService
 from .push_upgrade_package import PushUpgradeFileService
@@ -193,3 +194,9 @@ class PushIdentifierHostsComponent(Component):
     name = _("推送主机身份信息")
     code = "push_host_identifier"
     bound_service = PushIdentifierHostsService
+
+
+class PushAgentPkgToProxyComponent(Component):
+    name = _("下发 Agent 安装包到 Proxy")
+    code = "push_agent_pkg_to_proxy"
+    bound_service = PushAgentPkgToProxyService

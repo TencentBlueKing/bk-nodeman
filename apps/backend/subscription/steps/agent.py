@@ -19,6 +19,7 @@ from apps.backend import constants as backend_const
 from apps.backend.agent.manager import AgentManager
 from apps.backend.subscription.steps.agent_adapter.adapter import AgentStepAdapter
 from apps.node_man import constants, models
+from apps.node_man.constants import DEFAULT_CLOUD
 from apps.node_man.models import GsePluginDesc, SubscriptionStep
 from pipeline import builder
 from pipeline.builder import Var
@@ -162,13 +163,6 @@ class AgentStep(Step):
 
         return {"instance_actions": instance_actions, "migrate_reasons": migrate_reasons}
 
-    def bulk_create_host_status_cache(self, *args, **kwargs):
-        """
-        todo 此函数作占位用防止重试功能报错暂无具体功能
-        :return:
-        """
-        pass
-
 
 class AgentAction(Action, abc.ABC):
     """
@@ -224,9 +218,22 @@ class AgentAction(Action, abc.ABC):
             activities.append(agent_manager.delegate_plugin(plugin.name))
         return activities
 
+    def has_non_lan_host(self) -> bool:
+        """判断这批任务中是否包含非直连的主机"""
+        for node in self.step.subscription.nodes:
+            instance_info = node["instance_info"]
+            # 只要包含一台非默认云区域的机器，或者存在安装通道，则认为是非直连机器
+            if instance_info["bk_cloud_id"] != DEFAULT_CLOUD:
+                return True
+            if instance_info["install_channel_id"]:
+                return True
+        return False
+
     @staticmethod
-    def append_push_file_activities(agent_manager, activities):
-        for file in constants.FILES_TO_PUSH_TO_PROXY:
+    def append_push_file_activities(agent_manager, activities, files=None):
+        if files is None:
+            files = constants.FILES_TO_PUSH_TO_PROXY
+        for file in files:
             activities.append(agent_manager.push_files_to_proxy(file))
         return activities
 
@@ -408,7 +415,12 @@ class UpgradeProxy(ReinstallProxy):
         ]
 
         # 推送文件到proxy
-        activities = self.append_push_file_activities(agent_manager, activities)
+        if settings.BKAPP_ENABLE_DHCP:
+            activities = self.append_push_file_activities(
+                agent_manager, activities, files=constants.TOOLS_TO_PUSH_TO_PROXY
+            )
+        else:
+            activities = self.append_push_file_activities(agent_manager, activities)
         activities.append(agent_manager.start_nginx())
 
         return activities, None
@@ -500,6 +512,7 @@ class InstallAgent2(AgentAction):
             agent_manager.add_or_update_hosts() if settings.BKAPP_ENABLE_DHCP else agent_manager.register_host(),
             agent_manager.query_password(),
             agent_manager.choose_ap(),
+            agent_manager.push_agent_pkg_to_proxy() if self.has_non_lan_host() else None,
             agent_manager.install(),
             agent_manager.bind_host_agent(),
             agent_manager.upgrade_to_agent_id(),
@@ -541,7 +554,7 @@ class InstallProxy2(AgentAction):
             agent_manager.check_policy_gse_to_proxy(),
         ]
 
-        activities = self.append_push_file_activities(agent_manager, activities)
+        activities = self.append_push_file_activities(agent_manager, activities, files=constants.TOOLS_TO_PUSH_TO_PROXY)
         activities.append(agent_manager.start_nginx())
         if self.enable_push_host_identifier:
             activities.append(agent_manager.push_host_identifier())

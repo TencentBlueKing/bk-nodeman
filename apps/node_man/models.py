@@ -12,6 +12,7 @@ import base64
 import copy
 import hashlib
 import json
+import operator
 import os
 import random
 import shutil
@@ -23,7 +24,7 @@ from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from distutils.dir_util import copy_tree
 from enum import Enum
-from functools import cmp_to_key
+from functools import cmp_to_key, reduce
 from typing import Any, Dict, List, Optional, Set, Union
 
 import requests
@@ -840,6 +841,44 @@ class InstallChannel(models.Model):
     bk_cloud_id = models.IntegerField(_("云区域ID"))
     jump_servers = JSONField(_("安装通道跳板机"))
     upstream_servers = JSONField(_("上游节点"))
+
+    @classmethod
+    def install_channel_id__host_objs_map(
+        cls, install_channel_ids: Optional[List[int]] = None
+    ) -> Dict[int, List["Host"]]:
+        # 从数据库 Host 表中批量查询安装通道跳板机器的主机对象
+        if install_channel_ids:
+            install_channels = cls.objects.filter(id__in=install_channel_ids)
+        else:
+            install_channels = cls.objects.all()
+
+        result = defaultdict(list)
+
+        # 计算出跳板机器归属的安装通道
+        jump_server__install_channel_id_map: Dict[str, int] = {}
+        filter_host_conditions = []
+        for install_channel in install_channels:
+            cloud_id = install_channel.bk_cloud_id
+            for jump_server_ip in install_channel.jump_servers:
+                jump_server__install_channel_id_map[f"{cloud_id}-{jump_server_ip}"] = install_channel.id
+                filter_key = "inner_ipv6" if basic.is_v6(jump_server_ip) else "inner_ip"
+                filter_host_conditions.append(Q(**{"bk_cloud_id": cloud_id, filter_key: jump_server_ip}))
+
+        # 得出跳板机的主机对象
+        hosts = Host.objects.filter(bk_addressing=constants.CmdbAddressingType.STATIC.value).filter(
+            reduce(operator.or_, filter_host_conditions)
+        )
+        host_key_obj_map = {}
+        for host in hosts:
+            for possible_key in [f"{host.bk_cloud_id}-{host.inner_ip}", f"{host.bk_cloud_id}-{host.inner_ipv6}"]:
+                host_key_obj_map[possible_key] = host
+        # 将主机对象映射回安装通道
+        for jump_server_key, install_channel_id in jump_server__install_channel_id_map.items():
+            host = host_key_obj_map.get(jump_server_key)
+            if host:
+                result[install_channel_id].append(host)
+
+        return result
 
     class Meta:
         verbose_name = _("安装通道（InstallChannel）")
