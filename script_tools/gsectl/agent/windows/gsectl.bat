@@ -23,8 +23,8 @@ if "%1"=="restart"    goto :restart
 if "%1"=="status"    goto :status
 if "%1"=="version"    goto :version
 
-
 :start
+
     sc query gse_agent_daemon%_service_id% 2>&1 | findstr /r /i /C:"RUNNING" 1>nul 2>&1
     if %errorlevel% NEQ 0 (
         gse_agent_daemon.exe --start --name gse_agent_daemon%_service_id% 1>nul 2>&1
@@ -38,8 +38,20 @@ if "%1"=="version"    goto :version
         sc query gse_agent_daemon%_service_id% >>%gse_agent_restart_log%
         exit /b 1
     )
-    call :status
 
+    netstat -an | findstr /r /C:":28668 *ESTABLISHED"
+    if %errorlevel% EQU 0 (
+        echo [%cu_date% %cu_time%] start done -- start done/start process
+        echo [%cu_date% %cu_time%] echo "gse_agent_daemon%_service_id% Service Status: RUNNING and Network Connection: ESTABLISHED"
+        sc query gse_agent_daemon%_service_id%
+        netstat -an | findstr /r /C:":28668 *ESTABLISHED"
+    ) else (
+        echo [%cu_date% %cu_time%] start fail -- gse_agent start fail/start process
+        echo [%cu_date% %cu_time%] echo "gse_agent_daemon%_service_id% Service Status: RUNNING and Network Connection: NOT ESTABLISHED"
+        sc query gse_agent_daemon%_service_id%
+        netstat -an | findstr /r /C:":28668 *ESTABLISHED"
+        exit /b 1
+    )
 goto :EOF
 
 :stop
@@ -65,6 +77,7 @@ goto :EOF
         wmic process where name="'bkmetricbeat.exe' and ExecutablePath='%gse_winagent_home:"=%\\plugins\\bin\\bkmetricbeat.exe'" call terminate 1>nul 2>&1
         wmic process where name="'gsecmdline.exe' and ExecutablePath='%gse_winagent_home:"=%\\plugins\\bin\\gsecmdline.exe'" call terminate 1>nul 2>&1
         wmic process where name="'processbeat.exe' and ExecutablePath='%gse_winagent_home:"=%\\plugins\\bin\\processbeat.exe'" call terminate 1>nul 2>&1
+        goto :EOF
     )
 
     sc query gse_agent_daemon%_service_id% | findstr /r /i /C:" *STOPPED" 1>nul 2>&1
@@ -125,5 +138,4 @@ goto :EOF
     echo    status   status of the gse_agent
     echo    version  get the gse_agent version
 goto :EOF
-
 :EOF
