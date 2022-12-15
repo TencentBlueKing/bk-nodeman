@@ -76,6 +76,7 @@ def gen_nginx_download_url(nginx_ip: str) -> str:
 
 
 def fetch_gse_servers_info(
+    agent_setup_info: AgentSetupInfo,
     host: models.Host,
     host_ap: models.AccessPoint,
     proxies: List[models.Host],
@@ -103,9 +104,14 @@ def fetch_gse_servers_info(
         # 优先使用接入点配置的内网回调地址
         callback_url = host_ap.callback_url or settings.BKAPP_NODEMAN_CALLBACK_URL
     elif host.node_type == constants.NodeType.PROXY:
-        bt_file_server_hosts = host_ap.file_endpoint_info.outer_hosts
-        data_server_hosts = host_ap.data_endpoint_info.outer_hosts
         task_server_hosts = host_ap.cluster_endpoint_info.outer_hosts
+        if agent_setup_info.is_legacy:
+            data_server_hosts = host_ap.data_endpoint_info.outer_hosts
+            bt_file_server_hosts = host_ap.file_endpoint_info.outer_hosts
+        else:
+            # 对于新版本的 Agent，file data 的 endpoint 链接 proxy（可以是同台或同云区域内其他 proxy 的 file data）
+            data_server_hosts = [host.inner_ip or host.inner_ipv6]
+            bt_file_server_hosts = [host.inner_ip or host.inner_ipv6]
         package_url = host_ap.package_outer_url
         # 不同接入点使用不同的callback_url默认情况下接入点callback_url为空，先取接入点，为空的情况下使用原来的配置
         callback_url = host_ap.outer_callback_url or settings.BKAPP_NODEMAN_OUTER_CALLBACK_URL
@@ -168,7 +174,7 @@ def gen_commands(
     install_channel = install_channel or host.install_channel
     proxies = proxies if proxies is not None else host.proxies
     gse_servers_info: Dict[str, Any] = fetch_gse_servers_info(
-        host=host, host_ap=host_ap, proxies=proxies, install_channel=install_channel
+        agent_setup_info=agent_setup_info, host=host, host_ap=host_ap, proxies=proxies, install_channel=install_channel
     )
     dest_dir: str = basic.suffix_slash(host.os_type, host_ap.get_agent_config(host.os_type)["temp_path"])
 
