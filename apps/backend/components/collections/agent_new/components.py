@@ -16,6 +16,7 @@ from pipeline.component_framework.component import Component
 from . import base
 from .add_or_update_hosts import AddOrUpdateHostsService
 from .bind_host_agent import BindHostAgentService
+from .check_agent_ability import CheckAgentAbilityService
 from .check_agent_status import CheckAgentStatusService
 from .check_policy_gse_to_proxy import CheckPolicyGseToProxyService
 from .choose_access_point import ChooseAccessPointService
@@ -200,3 +201,9 @@ class PushAgentPkgToProxyComponent(Component):
     name = _("下发 Agent 安装包到 Proxy")
     code = "push_agent_pkg_to_proxy"
     bound_service = PushAgentPkgToProxyService
+
+
+class CheckAgentAbilityComponent(Component):
+    name = _("检查Agent功能")
+    code = "check_agent_ability"
+    bound_service = CheckAgentAbilityService

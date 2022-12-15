@@ -262,3 +262,13 @@ class AgentManager(object):
             name=components.PushAgentPkgToProxyComponent.name,
         )
         return act
+
+    @classmethod
+    def check_agent_ability(cls):
+        """检测 Agent 功能"""
+        act = AgentServiceActivity(
+            component_code=components.CheckAgentAbilityComponent.code,
+            name=components.CheckAgentAbilityComponent.name,
+        )
+        act.component.inputs.polling_time = Var(type=Var.PLAIN, value=10)
+        return act
