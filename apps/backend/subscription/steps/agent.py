@@ -299,6 +299,7 @@ class UpgradeAgent(ReinstallAgent):
             agent_manager.run_upgrade_command(),
             agent_manager.wait(10),
             agent_manager.get_agent_status(expect_status=constants.ProcStateType.RUNNING),
+            agent_manager.check_agent_ability(),
         ]
         return activities, None
 
@@ -316,6 +317,7 @@ class RestartAgent(AgentAction):
             agent_manager.restart(skip_polling_result=True),
             agent_manager.wait(5),
             agent_manager.get_agent_status(expect_status=constants.ProcStateType.RUNNING),
+            agent_manager.check_agent_ability(),
         ]
 
         return activities, None
@@ -334,6 +336,7 @@ class RestartProxy(AgentAction):
             agent_manager.restart(skip_polling_result=True),
             agent_manager.wait(5),
             agent_manager.get_agent_status(expect_status=constants.ProcStateType.RUNNING, name=_("查询Proxy状态")),
+            agent_manager.check_agent_ability(),
         ]
         return activities, None
 
@@ -412,6 +415,7 @@ class UpgradeProxy(ReinstallProxy):
             agent_manager.run_upgrade_command(),
             agent_manager.wait(30),
             agent_manager.get_agent_status(expect_status=constants.ProcStateType.RUNNING),
+            agent_manager.check_agent_ability(),
         ]
 
         # 推送文件到proxy
@@ -488,6 +492,7 @@ class ReloadAgent(AgentAction):
             agent_manager.reload_agent(skip_polling_result=True),
             agent_manager.wait(5),
             agent_manager.get_agent_status(expect_status=constants.ProcStateType.RUNNING),
+            agent_manager.check_agent_ability(),
         ]
         return activities, None
 
