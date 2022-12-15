@@ -1,0 +1,3 @@
+---
+bugfix:
+  - "2.0 Proxy data file endpoint 渲染值有误 (fixed #1340)"
