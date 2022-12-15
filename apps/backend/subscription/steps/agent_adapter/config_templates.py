@@ -82,8 +82,8 @@ GSE_DATA_PROXY_CONFIG_TMPL: str = """
         "flush_interval_ms": __BK_GSE_LOG_FLUSH_INTERVAL_MS__
     },
     "metric": {
-        "exporter_bind_ip": "__BK_GSE_DATA_METRIC_EXPORTER_IP__",
-        "exporter_bind_port": __BK_GSE_DATA_METRIC_EXPORTER_PORT__
+        "exporter_bind_ip": "__BK_GSE_DATA_METRIC_EXPORTER_BIND_IP__",
+        "exporter_bind_port": __BK_GSE_DATA_METRIC_EXPORTER_BIND_PORT__
     },
     "dataflow": {
         "receiver": [

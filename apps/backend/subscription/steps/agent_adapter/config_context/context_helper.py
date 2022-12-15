@@ -19,11 +19,13 @@ from apps.backend.agent import tools
 from apps.backend.utils.data_renderer import nested_render_data
 from apps.node_man import constants, models
 
+from ..base import AgentSetupInfo
 from . import context_dataclass
 
 
 @dataclass
 class ConfigContextHelper:
+    agent_setup_info: AgentSetupInfo
     host: models.Host
     node_type: str
     ap: typing.Optional[models.AccessPoint] = None
@@ -41,7 +43,7 @@ class ConfigContextHelper:
 
         agent_config: typing.Dict[str, typing.Any] = self.ap.get_agent_config(self.host.os_type)
         gse_servers_info: typing.Dict[str, typing.Any] = tools.fetch_gse_servers_info(
-            self.host, self.ap, self.proxies, self.install_channel
+            self.agent_setup_info, self.host, self.ap, self.proxies, self.install_channel
         )
 
         log_path: str = agent_config["log_path"]
@@ -112,7 +114,7 @@ class ConfigContextHelper:
             context_dataclass.DataConfigContext(ipc=agent_config.get("dataipc", "/var/run/ipc.state.report")),
             context_dataclass.FileConfigContext(),
             context_dataclass.LogConfigContext(path=log_path),
-            context_dataclass.DataMetricConfigContext(exporter_port=self.ap.port_config["data_prometheus_port"]),
+            context_dataclass.DataMetricConfigContext(exporter_bind_port=self.ap.port_config["data_prometheus_port"]),
             context_dataclass.DataAgentConfigContext(
                 tcp_bind_port=self.ap.port_config["data_port"],
                 tls_ca_file=proxy_tls_ca_file,
