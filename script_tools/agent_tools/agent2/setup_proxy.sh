@@ -373,7 +373,7 @@ is_base64_command_exist() {
     fi
 }
 
-check_heathz_by_gse () {
+check_healthz_by_gse () {
     local result
     if [ -f "${GSE_AGENT_CONFIG_PATH}" ]; then
         result=$("${AGENT_SETUP_PATH}"/bin/gse_agent -f "${GSE_AGENT_CONFIG_PATH}" --healthz)
@@ -516,9 +516,10 @@ setup_proxy () {
 
     register_agent_id
 
-    check_heathz_by_gse
-
     start_proxy
+
+    # 由于 proxy endpoint 部分通过自身代理，需要等待 proxy 启动后再进行健康检查
+    check_healthz_by_gse
 
     log setup_proxy DONE "gse proxy setup successfully"
 }

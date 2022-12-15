@@ -122,7 +122,12 @@ class AgentStepAdapter:
 
         # 渲染配置
         ch: context_helper.ConfigContextHelper = context_helper.ConfigContextHelper(
-            host=host, node_type=node_type, ap=ap, proxies=proxies, install_channel=install_channel
+            agent_setup_info=self.get_setup_info(),
+            host=host,
+            node_type=node_type,
+            ap=ap,
+            proxies=proxies,
+            install_channel=install_channel,
         )
         return ch.render(target_config_tmpl_obj.content)
 
