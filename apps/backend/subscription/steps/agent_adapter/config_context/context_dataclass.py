@@ -175,8 +175,8 @@ class LogConfigContext(GseConfigContext):
 class DataMetricConfigContext(GseConfigContext):
     MODULE_ID = "DATA_METRIC"
 
-    exporter_port: int
-    exporter_ip: str = "::"
+    exporter_bind_port: int
+    exporter_bind_ip: str = "::"
 
 
 @dataclass
