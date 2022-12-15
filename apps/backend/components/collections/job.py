@@ -420,6 +420,7 @@ class JobExecuteScriptService(JobV3BaseService, metaclass=abc.ABCMeta):
         return super().inputs_format() + [
             Service.InputItem(name="script_content", key="script_content", type="str", required=False),
             Service.InputItem(name="script_param", key="script_param", type="str", required=False),
+            Service.InputItem(name="polling_time", key="polling_time", type="int", required=False),
         ]
 
     @property
