@@ -527,11 +527,28 @@ goto :EOF
         if not exist %GSE_AGENT_BIN_DIR% (
             call :print INFO setup_agent - "Directory %GSE_AGENT_BIN_DIR% removed, agent\bin dir removed succeed"
             call :multi_report_step_status
-        ) else (
-            call :print FAIL setup_agent FAILED "Directory %GSE_AGENT_BIN_DIR% removed, agent\bin dir removed failed"
-            call :multi_report_step_status
-            exit /b 1
         )
+        call :agent_bin_file_check
+    )
+goto :EOF
+
+:agent_bin_file_check
+    set cnt=0
+    for %%A in (%GSE_AGENT_BIN_DIR%\*) do set /a cnt+=1
+    if %cnt% NEQ 0 (
+        call :print FAIL agent_bin_file_check FAILED "agent bin file check failed"
+        call :multi_report_step_status
+        exit /b 1
+    )
+goto :EOF
+
+:setup_path_file_check
+    set cnt=0
+    for %%A in (%AGENT_SETUP_PATH%\agent\*) do set /a cnt+=1
+    if %cnt% NEQ 0 (
+        call :print FAIL remove_agent FAILED "agent removed failed"
+        call :multi_report_step_status
+        exit /b 1
     )
 goto :EOF
 
@@ -568,6 +585,7 @@ goto :EOF
     %TMP_DIR%\7z.exe x %TMP_DIR%\%PKG_NAME% -o%TMP_DIR% -y 1>nul 2>&1
     if exist %TMP_DIR%\agent (RD /Q /S %TMP_DIR%\agent 1>nul 2>&1)
     %TMP_DIR%\7z.exe x %TMP_DIR%\%TEMP_PKG_NAME%.tar -o%TMP_DIR% -y 1>nul 2>&1
+    if not exist %AGENT_SETUP_PATH%\agent\cert (md %AGENT_SETUP_PATH%\agent\cert)
     xcopy /Y /v /e %TMP_DIR%\agent\cert %AGENT_SETUP_PATH%\agent\cert\
     if %errorlevel% EQU 0 (
         call :print INFO setup_agent - "setup agent , copy cert dir success"
@@ -577,6 +595,7 @@ goto :EOF
         call :multi_report_step_status
         exit /b 1
     )
+    if not exist %GSE_AGENT_BIN_DIR% (md %GSE_AGENT_BIN_DIR%)
     xcopy /Y /v /e %TMP_DIR%\agent\bin  %AGENT_SETUP_PATH%\agent\bin\
     if %errorlevel% EQU 0 (
         call :print INFO setup_agent - "setup agent , copy bin dir success"
@@ -1059,12 +1078,8 @@ goto :EOF
             rem if exist %tmp_json_resp_report_log% (call :last_log_process)
             call :multi_report_step_status
             if !errorlevel! equ 0 (goto :EOF)
-        ) else (
-            call :print FAIL remove_agent FAILED "agent removed failed"
-            rem if exist %tmp_json_resp_report_log% (call :last_log_process)
-            call :multi_report_step_status
-            if !errorlevel! equ 1 (exit /b 1)
         )
+        call :setup_path_file_check
     )
     call :check_uninstall_result
     if !errorlevel! NEQ 0 (
@@ -1087,11 +1102,10 @@ goto :EOF
         if %dirs% EQU 0 (
             call :print INFO remove_agent DONE "gse agent has been uninstalled successfully"
             call :multi_report_step_status
-        ) else (
-            call :print FAIL remove_agent FAILED "gse agent has been uninstalled failed"
-            call :multi_report_step_status
-            exit /b 1
         )
+        call :agent_bin_file_check
+        call :print INFO remove_agent DONE "gse agent has been uninstalled successfully"
+        call :multi_report_step_status
     ) else (
         call :print FAIL remove_agent FAILED "gse agent has been uninstalled failed"
         call :multi_report_step_status

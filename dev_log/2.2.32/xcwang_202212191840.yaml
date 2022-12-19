@@ -1,0 +1,3 @@
+---
+optimization:
+  - "Windows 卸载成功状态判断逻辑优化 (closed #1345)"
