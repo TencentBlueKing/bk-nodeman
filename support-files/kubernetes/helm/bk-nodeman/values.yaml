@@ -257,6 +257,42 @@ bkIamApiUrl: "http://bkiam-api.example.com"
 ## 蓝鲸制品库浏览器访问域名和后台 API http://bkiam-api.example.com 域名同一个
 bkRepoUrl: "http://bkrepo.example.com"
 
+
+## --------------------------------------
+## GSE 证书
+## --------------------------------------
+gseCert:
+
+  ## 证书 CA 内容配置（base64）
+  ca: ""
+
+  ## Server 侧 CERT 内容配置（base64）
+  cert: ""
+
+  ## Server 侧 KEY 内容配置（base64）
+  key: ""
+
+  ## API 侧 CERT
+  ##
+  apiClient:
+
+    ## API 侧 CERT 内容配置, 用于其他服务调用 GSE（base64）
+    cert: ""
+
+    ## API 侧 KEY 内容配置, 用于其他服务调用 GSE（base64）
+    key: ""
+
+  ## Agent 侧 CERT
+  ##
+  agent:
+
+    ## Agent 侧 CERT 内容配置, 用于 Agent 链路（base64）
+    cert: ""
+
+    ## Agent 侧 KEY 内容配置, 用于 Agent 链路（base64）
+    key: ""
+
+
 ## --------------------------------------
 ## 节点管理系统配置
 ## --------------------------------------
@@ -327,6 +363,8 @@ config:
   ##
   ## 平台版本，默认为 `V1`,可选：`V1` `V2`
   gseVersion: "V1"
+  ## GSE 本地证书路径
+  gseCertPath: "/data/bkce/cert"
   ## 是否启用 GSE 服务探测，为 `true` 将定期更新默认接入点的 gse svr 信息
   gseEnableSvrDisCovery: true
   ## ZK hosts 信息，host:port，多个 hosts 以 `,` 分隔

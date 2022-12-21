@@ -17,8 +17,8 @@ import mock
 from django.conf import settings
 from django.core.management import call_command
 
-from apps.backend.tests.plugin import utils
 from apps.core.files import core_files_constants
+from apps.mock_data import utils as mock_data_utils
 from apps.utils import files
 from apps.utils.unittest.testcase import CustomBaseTestCase
 
@@ -77,5 +77,5 @@ class BkRepoCopyFileToNginxTestCase(CopyFileToNginxTestCase):
 
     @classmethod
     def setUpClass(cls):
-        mock.patch("apps.core.files.storage.CustomBKRepoStorage", utils.CustomBKRepoMockStorage).start()
+        mock.patch("apps.core.files.storage.CustomBKRepoStorage", mock_data_utils.CustomBKRepoMockStorage).start()
         super().setUpClass()

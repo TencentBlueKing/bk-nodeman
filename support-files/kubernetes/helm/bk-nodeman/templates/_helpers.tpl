@@ -62,6 +62,31 @@ Create the name of the service account to use
 {{- end }}
 
 {{/*
+通用卷声明
+*/}}
+{{- define "bk-nodeman.volumes" -}}
+- name: gse-cert
+  configMap:
+    name: "{{ include "bk-nodeman.fullname" . }}-gse-cert-configmap"
+{{- if .Values.volumes }}
+{{ toYaml .Values.volumes }}
+{{- end }}
+{{- end }}
+
+
+{{/*
+通用卷挂载声明
+*/}}
+{{- define "bk-nodeman.volumeMounts" -}}
+- name: gse-cert
+  mountPath: {{ .Values.config.gseCertPath }}
+{{- if .Values.volumeMounts }}
+{{ toYaml .Values.volumeMounts }}
+{{- end }}
+{{- end }}
+
+
+{{/*
 Return true if cert-manager required annotations for TLS signed certificates are set in the Ingress annotations
 Ref: https://cert-manager.io/docs/usage/ingress/#supported-annotations
 */}}
@@ -224,4 +249,6 @@ initContainers:
     image: "{{ .Values.global.imageRegistry | default .Values.images.k8sWaitFor.registry }}/{{ .Values.images.k8sWaitFor.repository }}:{{ .Values.images.k8sWaitFor.tag }}"
     imagePullPolicy: "{{ .Values.images.k8sWaitFor.pullPolicy }}"
     args: ["job", "{{ include "bk-nodeman.migrate-job.file-sync" . }}"]
+    volumeMounts:
+      {{- include "bk-nodeman.volumeMounts" . | nindent 6 }}
 {{- end }}

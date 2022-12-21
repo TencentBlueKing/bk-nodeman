@@ -9,9 +9,11 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import os
+import typing
 
 from django.conf import settings
 
+from apps.backend.agent.artifact_builder.proxy import ProxyArtifactBuilder
 from apps.node_man import constants, models
 
 from .base import AgentCommonData, AgentExecuteScriptService
@@ -25,8 +27,8 @@ WINDOWS_UPGRADE_CMD_TEMPLATE = (
     '/v gse_agent /t reg_sz /d "{setup_path}\\agent\\bin\\gsectl.bat start" /f 1>nul 2>&1'
     " && start gsectl.bat stop"
     " && ping -n 20 127.0.0.1 >> c:\\ping_ip.txt"
-    " && {temp_path}\\7z.exe x {temp_path}\\{package_name} -o{temp_path} -y 1>nul 2>&1"
-    " && {temp_path}\\7z.exe x {temp_path}\\{package_name_tar} -aot -o{setup_path} -y 1>nul 2>&1"
+    " && {temp_path}\\7z.exe x {temp_path}\\{package_name} -so |"
+    " {temp_path}\\7z.exe x -aot -si -ttar -o{setup_path} 1>nul 2>&1"
     " && gsectl.bat start"
 )
 
@@ -34,7 +36,7 @@ WINDOWS_UPGRADE_CMD_TEMPLATE = (
 PROXY_RELOAD_CMD_TEMPLATE = """
 result=0
 count=0
-for proc in gse_agent gse_transit gse_btsvr gse_data; do
+for proc in {procs}; do
      [ -f {setup_path}/{node_type}/bin/$proc ] && cd {setup_path}/{node_type}/bin && ./$proc --reload && \
      count=$((count + 1))
      sleep 1
@@ -46,7 +48,7 @@ fi
 """
 
 # Agent 重载配置命令模板
-AGENT_RELOAD_CMD_TEMPLATE = "cd {setup_path}/{node_type}/bin && ./gse_agent --reload || ./gsectl restart all"
+AGENT_RELOAD_CMD_TEMPLATE = "cd {setup_path}/{node_type}/bin && ./{procs} --reload || ./gsectl restart all"
 
 # 节点类型 - 重载命令模板映射关系
 NODE_TYPE__RELOAD_CMD_TPL_MAP = {
@@ -70,15 +72,23 @@ class RunUpgradeCommandService(AgentExecuteScriptService):
                 setup_path=agent_config["setup_path"],
                 temp_path=agent_config["temp_path"],
                 package_name=agent_upgrade_pkg_name,
-                package_name_tar=agent_upgrade_pkg_name.replace("tgz", "tar"),
             )
             return scripts
         else:
             tpl_path = os.path.join(settings.BK_SCRIPTS_PATH, "upgrade_agent.sh.tpl")
             with open(tpl_path, encoding="utf-8") as fh:
                 scripts = fh.read()
+
+            if host.node_type == constants.NodeType.PROXY:
+                if common_data.agent_step_adapter.is_legacy:
+                    procs: typing.List[str] = ["gse_agent", "gse_transit", "gse_btsvr", "gse_data"]
+                else:
+                    procs: typing.List[str] = ["gse_agent"] + ProxyArtifactBuilder.PROXY_SVR_EXES
+            else:
+                procs: typing.List[str] = ["gse_agent"]
+
             reload_cmd = NODE_TYPE__RELOAD_CMD_TPL_MAP[general_node_type].format(
-                setup_path=agent_config["setup_path"], node_type=general_node_type
+                setup_path=agent_config["setup_path"], node_type=general_node_type, procs=" ".join(procs)
             )
             scripts = scripts.format(
                 setup_path=agent_config["setup_path"],

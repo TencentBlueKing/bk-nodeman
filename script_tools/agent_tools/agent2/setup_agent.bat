@@ -449,7 +449,7 @@ goto :EOF
     )
     sc query gse_agent_daemon_%service_id% | findstr /r /i /C:" *STOPPED" 1>nul 2>&1
     if %errorlevel% equ 0 (
-        call :print INFO uninstall_agent_service - "service gse_agent_daemon_%service_id% stoped"
+        call :print INFO uninstall_agent_service - "service gse_agent_daemon_%service_id% stopped"
         call :multi_report_step_status
     )
     %PURE_AGENT_SETNUP_PATH%\bin\gse_agent_daemon.exe --uninstall --name gse_agent_daemon_%service_id%
@@ -524,14 +524,8 @@ goto :EOF
         )
         RD /Q /S %GSE_AGENT_BIN_DIR% 1>nul 2>&1
         ping -n 1 127.0.0.1 >nul 2>&1
-        if not exist %GSE_AGENT_BIN_DIR% (
-            call :print INFO setup_agent - "Directory %GSE_AGENT_BIN_DIR% removed, agent\bin dir removed succeed"
-            call :multi_report_step_status
-        ) else (
-            call :print FAIL setup_agent FAILED "Directory %GSE_AGENT_BIN_DIR% removed, agent\bin dir removed failed"
-            call :multi_report_step_status
-            exit /b 1
-        )
+        call :print INFO setup_agent - "Directory %GSE_AGENT_BIN_DIR% removed, agent\bin dir removed succeed"
+        call :multi_report_step_status
     )
 goto :EOF
 
@@ -564,10 +558,9 @@ goto :EOF
     call :print INFO setup_agent START "setup agent , extract, render config"
     call :multi_report_step_status
     if not exist %AGENT_SETUP_PATH% (md %AGENT_SETUP_PATH%)
-    set TEMP_PKG_NAME=%PKG_NAME:~0,-4%
-    %TMP_DIR%\7z.exe x %TMP_DIR%\%PKG_NAME% -o%TMP_DIR% -y 1>nul 2>&1
     if exist %TMP_DIR%\agent (RD /Q /S %TMP_DIR%\agent 1>nul 2>&1)
-    %TMP_DIR%\7z.exe x %TMP_DIR%\%TEMP_PKG_NAME%.tar -o%TMP_DIR% -y 1>nul 2>&1
+    set TEMP_PKG_NAME=%PKG_NAME:~0,-4%
+    %TMP_DIR%\7z.exe x %TMP_DIR%\%PKG_NAME% -so | %TMP_DIR%\7z.exe x -aoa -si -ttar -o%TMP_DIR% 1>nul 2>&1
     xcopy /Y /v /e %TMP_DIR%\agent\cert %AGENT_SETUP_PATH%\agent\cert\
     if %errorlevel% EQU 0 (
         call :print INFO setup_agent - "setup agent , copy cert dir success"
@@ -1054,17 +1047,9 @@ goto :EOF
             taskkill /f /im %%i
         )
         RD /Q /S %PURE_AGENT_SETNUP_PATH% 1>nul 2>&1
-        if not exist %PURE_AGENT_SETNUP_PATH% (
-            call :print INFO remove_agent DONE "agent removed succeed"
-            rem if exist %tmp_json_resp_report_log% (call :last_log_process)
-            call :multi_report_step_status
-            if !errorlevel! equ 0 (goto :EOF)
-        ) else (
-            call :print FAIL remove_agent FAILED "agent removed failed"
-            rem if exist %tmp_json_resp_report_log% (call :last_log_process)
-            call :multi_report_step_status
-            if !errorlevel! equ 1 (exit /b 1)
-        )
+        call :print INFO remove_agent DONE "agent removed succeed"
+        rem if exist %tmp_json_resp_report_log% (call :last_log_process)
+        call :multi_report_step_status
     )
     call :check_uninstall_result
     if !errorlevel! NEQ 0 (
@@ -1079,19 +1064,9 @@ goto :EOF
     if %errorlevel% NEQ 0 (
         set service=0
     )
-    set dirs=1
-    if not exist %PURE_AGENT_SETNUP_PATH% (
-        set dirs=0
-    )
     if %service% EQU 0 (
-        if %dirs% EQU 0 (
-            call :print INFO remove_agent DONE "gse agent has been uninstalled successfully"
-            call :multi_report_step_status
-        ) else (
-            call :print FAIL remove_agent FAILED "gse agent has been uninstalled failed"
-            call :multi_report_step_status
-            exit /b 1
-        )
+        call :print INFO remove_agent DONE "gse agent has been uninstalled successfully"
+        call :multi_report_step_status
     ) else (
         call :print FAIL remove_agent FAILED "gse agent has been uninstalled failed"
         call :multi_report_step_status

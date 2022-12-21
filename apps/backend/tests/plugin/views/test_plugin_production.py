@@ -19,6 +19,7 @@ import mock
 from django.conf import settings
 
 from apps.backend.tests.plugin import utils
+from apps.mock_data import utils as mock_data_utils
 from apps.node_man import constants, models
 from apps.node_man.models import Packages, ProcControl
 from apps.utils import files
@@ -235,11 +236,11 @@ class FileSystemTestCase(utils.PluginBaseTestCase):
 
 class BkRepoTestCase(FileSystemTestCase):
     FILE_OVERWRITE = True
-    OVERWRITE_OBJ__KV_MAP = utils.OVERWRITE_OBJ__KV_MAP
+    OVERWRITE_OBJ__KV_MAP = mock_data_utils.OVERWRITE_OBJ__KV_MAP
 
     @classmethod
     def setUpClass(cls):
-        mock.patch("apps.core.files.storage.CustomBKRepoStorage", utils.CustomBKRepoMockStorage).start()
+        mock.patch("apps.core.files.storage.CustomBKRepoStorage", mock_data_utils.CustomBKRepoMockStorage).start()
         super().setUpClass()
 
     def upload_plugin(self, file_local_path: Optional[str] = None) -> Dict[str, Any]:
