@@ -1,0 +1,70 @@
+# This workflow will install Python dependencies, run tests and lint with a single version of Python
+# For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
+
+name: Push rc tag
+
+on:
+  push:
+    branches:
+      - "v[0-9]+.[0-9]+.x"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      # 构建环境的Python版本
+      PYTHON_VERSION: "3.7"
+      # yaml中版本的描述路径
+      VERSION_KW_P: "version"
+      # 描述app的yaml文件
+      APP_DESC_YAML: "app.yml"
+      # tag 名称前缀
+      TAG_NAME_PREFIX: "v"
+      # 临时Tag名称后缀
+      TEMP_TAG_NAME_SUFFIX: "-alpha"
+
+    steps:
+    - id: checkout
+      name: Checkout
+      uses: actions/checkout@v2
+
+    - id: set-up-python
+      name: Set up Python ${{ env.PYTHON_VERSION }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - id: install-requirements
+      name: Install requirements
+      run: |
+        pip install PyYAML
+        pip install packaging
+        pip install ruamel.yaml
+    - id: set-env
+      name: Set env
+      run: |
+        # 从yaml文件中获取待发布版本号
+        prerelease_version=$( python scripts/workflows/release/op_yaml.py -f ${{ env.APP_DESC_YAML }} --keyword-path ${{ env.VERSION_KW_P }} --op get )
+        echo "🚀 prerelease_version -> $prerelease_version"
+        # 预发布版本号
+        echo "PRERELEASE_VERSION=$prerelease_version" >> $GITHUB_ENV
+        # 临时tag名称
+        echo "TEMPORARY_TAG_NAME=${{ env.TAG_NAME_PREFIX }}$prerelease_version${{ env.TEMP_TAG_NAME_SUFFIX }}" >> $GITHUB_ENV
+    - id: create-temporary-tag
+      name: Create temporary tag
+      uses: actions/github-script@v5
+      with:
+        github-token: ${{ secrets.TOKEN_FOR_TENCENT }}
+        script: |
+          github.rest.git.createRef({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            ref: 'refs/tags/${{ env.TEMPORARY_TAG_NAME }}',
+            sha: context.sha
+          })
+    - id: celebrate
+      name: Celebrate
+      run: |
+        echo "🎉 Worth celebrating"
+        echo "🍻 All steps are successfully completed"
+        echo "👋 Goodbye!"
