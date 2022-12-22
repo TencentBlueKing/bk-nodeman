@@ -1,0 +1,169 @@
+# This workflow will install Python dependencies, run tests and lint with a single version of Python
+# For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
+
+name: Create release
+
+on:
+  push:
+    tags:
+      # 仅监听预发布tag的创建
+      - "v[0-9]+.[0-9]+.[0-9]+-*"
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+    env:
+      # 构建环境的Python版本
+      PYTHON_VERSION: "3.7"
+      # yaml中版本的描述路径
+      VERSION_KW_P: "version"
+      # 描述app的yaml文件
+      APP_DESC_YAML: "app.yml"
+      # 发布日志所在目录
+      RELEASE_LOG_ROOT: "release"
+      # 发布日志README文档所在文件
+      RELEASE_MD_PATH: "docs/release.md"
+      # tag 名称前缀
+      TAG_NAME_PREFIX: "v"
+      # 临时Tag名称后缀
+      TEMP_TAG_NAME_SUFFIX: "-alpha"
+      # 开发分支名称后缀
+      DEV_BRANCH_SUFFIX: "-dev"
+
+    steps:
+    - id: checkout
+      name: Checkout
+      uses: actions/checkout@v2
+
+    - id: set-up-python
+      name: Set up Python ${{ env.PYTHON_VERSION }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - id: install-requirements
+      name: Install requirements
+      run: |
+        pip install PyYAML
+        pip install packaging
+        pip install ruamel.yaml
+    - id: set-env
+      name: Set env
+      run: |
+        git config --global user.email "${{ secrets.GIT_EMAIL }}"
+        git config --global user.name "${{ secrets.GIT_NAME }}"
+        git fetch --all
+        # github 公共变量
+        # Github repo url
+        echo "GITHUB_REPO_URL=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" >> $GITHUB_ENV
+        # 主分支
+        echo "DEFAULT_BRANCH=${{ github.event.repository.default_branch }}" >> $GITHUB_ENV
+        # 从yaml文件中获取待发布版本号
+        prerelease_version=$( python scripts/workflows/release/op_yaml.py -f ${{ env.APP_DESC_YAML }} --keyword-path ${{ env.VERSION_KW_P }} --op get )
+        # 临时tag名称
+        echo "TEMPORARY_TAG_NAME=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+        # 预发布版本号
+        echo "PRERELEASE_VERSION=$prerelease_version" >> $GITHUB_ENV
+        # 预发布Tag名称
+        echo "TAG_NAME=${{ env.TAG_NAME_PREFIX }}$prerelease_version" >> $GITHUB_ENV
+    - id: validated-version
+      name: Validated version
+      run: |
+        if [[ "${{ env.TEMPORARY_TAG_NAME }}" == "${{ env.TAG_NAME }}${{ env.TEMP_TAG_NAME_SUFFIX }}" ]]
+        then
+          exit 0
+        else
+          echo "⚠️ ${{ env.TEMPORARY_TAG_NAME }} != ${{ env.TAG_NAME }}${{ env.TEMP_TAG_NAME_SUFFIX }}"
+          exit 1
+        fi
+    - id: build-release-log
+      name: Build release log
+      uses: mikepenz/release-changelog-builder-action@v3.5.0
+      with:
+        # 参考：https://github.com/mikepenz/release-changelog-builder-action
+        configuration: ".github/configuration.json"
+        commitMode: true
+        ignorePreReleases: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - id: delete-temporary-tag
+      name: Delete temporary tag
+      uses: actions/github-script@v5
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        # 参考 https://octokit.github.io/rest.js/v18#git-delete-ref
+        # 参考 https://github.com/actions/github-script
+        script: |
+          github.rest.git.deleteRef({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            ref: 'tags/${{ env.TEMPORARY_TAG_NAME }}'
+          })
+    - id: push-release-log
+      name: Push release log
+      run: |
+        # 获取发布日志路径并更新发布日志
+        echo "${{ steps.build-release-log.outputs.changelog }}" >> /tmp/log.md
+        # mikepenz/release-changelog-builder-action 无法使用输出变量 steps.build-release-log.outputs.fromTag，暂时采用模板渲染的方式
+        sed -i "s|__TO_TAG___|${{ env.TAG_NAME }}|g" /tmp/log.md
+        sed -i "s|__GITHUB_REPO_URL__|${{ env.GITHUB_REPO_URL }}|g" /tmp/log.md
+        release_log_path=$( python scripts/workflows/release/upgrade_release_log.py -r ${{ env.RELEASE_LOG_ROOT }} -v ${{ env.PRERELEASE_VERSION }} -p ${{ env.RELEASE_MD_PATH }} -l /tmp/log.md )
+        
+        # 输出release日志路径及内容
+        echo "🌟 release_log_path -> $release_log_path"
+        echo "📒 release_log -> 👇👇👇 $( cat "$release_log_path" )"
+        # 切换到默认分支
+        git checkout ${{ env.DEFAULT_BRANCH }}
+        # 推送发布日志
+        git add .
+        git commit -m "minor: auto push ${{ env.PRERELEASE_VERSION }} release log"
+        git push origin ${{ env.DEFAULT_BRANCH }}
+        echo "✨️ default branch -> ${{ env.DEFAULT_BRANCH }} has been updated"
+        # 设置输出
+        echo "::set-output name=release_log_path::$(echo $release_log_path)"
+    - id: create-tag
+      name: Create tag
+      run: |
+        echo "🏷️ tag -> ${{ env.TAG_NAME }} will be created"
+        release_log=$( cat ${{ steps.push-release-log.outputs.release_log_path }} )
+        # 创建并推送标签
+        # --cleanup=verbatim 修改默认的注释清理模式，保持完整的提交信息，默认的模式会将 # 开头的信息视为注释行
+        # 参考：https://stackoverflow.com/questions/2788092/start-a-git-commit-message-with-a-hashmark
+        # 参考：https://git.kernel.org/pub/scm/git/git.git/plain/Documentation/git-commit.txt
+        git tag -a "${{ env.TAG_NAME }}" -m "$release_log" --cleanup=verbatim
+        git push origin "${{ env.TAG_NAME }}"
+        echo "✨️ tag -> ${{ env.TAG_NAME }} has been created"
+    - id: start-new-version
+      name: Start new version
+      run: |
+        # 获取下一个版本
+        next_version=$( python scripts/workflows/release/version_increment.py --version ${{ env.PRERELEASE_VERSION }} )
+        echo "⬇️ next_version -> $next_version"
+        # 检出新开发分支
+        dev_branch_name=$( echo "${{ env.TAG_NAME_PREFIX }}${next_version}${{ env.DEV_BRANCH_SUFFIX }}" )
+        echo "🌿 dev_branch_name -> $dev_branch_name"
+        git checkout -b "$dev_branch_name"
+        # 开发分支写入预发布版本号
+        python scripts/workflows/release/op_yaml.py -f ${{ env.APP_DESC_YAML }} --keyword-path ${{ env.VERSION_KW_P }} --op set --value "$next_version"
+        # 推送到仓库
+        git add . && git commit -m "minor: start new version $next_version" && git push origin "$dev_branch_name"
+        echo "✨️ dev_branch -> $dev_branch_name has been created"
+    - id: create-release
+      name: Create release
+      uses: actions/create-release@latest
+      env:
+        GITHUB_TOKEN: ${{ secrets.TOKEN_FOR_TENCENT }}
+      with:
+        tag_name: ${{ env.TAG_NAME }}
+        release_name: ${{ env.TAG_NAME }}
+        body_path: ${{ steps.push-release-log.outputs.release_log_path }}
+        draft: false
+        prerelease: true
+
+    - id: celebrate
+      name: Celebrate
+      run: |
+        echo "🎉 Worth celebrating"
+        echo "🍻 All steps are successfully completed"
+        echo "👋 Goodbye!"
