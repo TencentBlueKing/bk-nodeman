@@ -87,6 +87,7 @@ class GlobalSettings(models.Model):
         SYNC_CMDB_HOST_BIZ_BLACKLIST = "SYNC_CMDB_HOST_BIZ_BLACKLIST"  # 排除掉黑名单业务的主机同步，比如 SA 业务，包含大量主机但无需同步
         LAST_SUB_TASK_ID = "LAST_SUB_TASK_ID"  # 定时任务 collect_auto_trigger_job 用于记录最后一个同步的 sub_task ID
         NOT_READY_TASK_INFO_MAP = "NOT_READY_TASK_INFO_MAP"  # 定时任务 collect_auto_trigger_job 记录未就绪 sub_task 信息
+        PROXY_COMMUNICATION_IP_FIELD = "PROXY_COMMUNICATION_IP_FIELD"  # P-agent 与 Proxy 通信IP字段
 
     key = models.CharField(_("键"), max_length=255, db_index=True, primary_key=True)
     v_json = JSONField(_("值"))
@@ -405,6 +406,12 @@ class Host(models.Model):
                     raise ApIDNotExistsError
         return self._ap
 
+    def special_proxy_communication_field(self) -> str:
+        """
+        指定 proxy 与 P-agent 通信字段
+        """
+        return getattr(self, settings.PROXY_COMMUNICATION_IP_FIELD, "") or self.inner_ip
+
     def install_channel(self):
         # 指定了安装通道，使用安装通道的信息作为跳板和上游
         if self.install_channel_id:
@@ -420,7 +427,7 @@ class Host(models.Model):
             upstream_servers = install_channel.upstream_servers
         # 云区域未指定安装通道的，用proxy作为跳板和上游
         elif self.bk_cloud_id and self.node_type != constants.NodeType.PROXY:
-            proxy_ips = [proxy.inner_ip for proxy in self.proxies]
+            proxy_ips = [proxy.special_proxy_communication_field() for proxy in self.proxies]
             jump_server = self.get_random_alive_proxy()
             upstream_servers = {"taskserver": proxy_ips, "btfileserver": proxy_ips, "dataserver": proxy_ips}
         # 普通直连的情况，无需跳板，使用接入点的数据

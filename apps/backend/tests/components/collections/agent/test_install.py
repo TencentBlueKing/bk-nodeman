@@ -12,7 +12,7 @@ import re
 import time
 
 from django.conf import settings
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from mock import patch
 
 from apps.backend.agent.tools import gen_commands
@@ -538,3 +538,101 @@ class InstallAgentWithInstallChannelSuccessTest(TestCase, ComponentTestMixin):
             models.JobTask.objects.filter(bk_host_id=utils.BK_HOST_ID, current_step__endswith=DESCRIPTION).exists()
         )
         self.job_client_v2.stop()
+
+
+class InstallPAgentWithSpecialCommunicationConfigTest(InstallPAgentSuccessTest):
+
+    NODE_MAN_BACKEND_INNER_IP = "127.0.0.2"
+    PROXY_COMMUNICATION_PAGENT_IP = "1.1.1.2"
+
+    @override_settings(PROXY_COMMUNICATION_IP_FIELD="data_ip")
+    def setUp(self):
+        utils.AgentTestObjFactory.init_db()
+        # 设置默认接入点及操作系统
+        default_ap = models.AccessPoint.objects.get(name="默认接入点")
+        models.AccessPoint.objects.filter(name="默认接入点").update(
+            package_outer_url=f"http://{self.PROXY_COMMUNICATION_PAGENT_IP}/download",
+            outer_callback_url=f"http://{self.NODE_MAN_BACKEND_INNER_IP}/backend",
+        )
+        models.Host.objects.filter(bk_host_id=utils.BK_HOST_ID).update(
+            ap_id=default_ap.id, node_type=constants.NodeType.PAGENT
+        )
+        # 创建可用Proxy
+        models.Host.objects.create(
+            **utils.AgentTestObjFactory.host_obj(
+                {
+                    "node_type": constants.NodeType.PROXY,
+                    "bk_host_id": 23535,
+                    "inner_ip": "1.1.1.0",
+                    "login_ip": "1.1.1.1",
+                    "data_ip": self.PROXY_COMMUNICATION_PAGENT_IP,
+                }
+            )
+        )
+        models.ProcessStatus.objects.create(
+            bk_host_id=23535, name=models.ProcessStatus.GSE_AGENT_PROCESS_NAME, status=constants.ProcStateType.RUNNING
+        )
+
+        patch(JOB_CLIENT_V2_PATH, self.JOB_MOCK_CLIENT).start()
+        self.job_client_v2 = patch(JOB_CLIENT_V2_PATH, self.JOB_MOCK_CLIENT)
+        self.job_client_v2.start()
+
+    def component_cls(self):
+        return InstallTestComponent
+
+    @override_settings(PROXY_COMMUNICATION_IP_FIELD="data_ip")
+    def test_gen_pagent_command(self):
+        host = models.Host.objects.get(bk_host_id=utils.BK_HOST_ID)
+        installation_tool = gen_commands(host, utils.JOB_TASK_PIPELINE_ID, is_uninstall=False)
+        token = re.match(r"(.*) -c (.*?) -O", installation_tool.run_cmd).group(2)
+        run_cmd = (
+            f"-s {utils.JOB_TASK_PIPELINE_ID} -r http://{self.NODE_MAN_BACKEND_INNER_IP}/backend"
+            f" -l http://{self.PROXY_COMMUNICATION_PAGENT_IP}/download"
+            f" -c {token}"
+            f" -O 48668 -E 58925 -A 58625 -V 58930 -B 10020 -S 60020 -Z 60030 -K 10030"
+            f' -e "{self.PROXY_COMMUNICATION_PAGENT_IP}" -a "{self.PROXY_COMMUNICATION_PAGENT_IP}" '
+            f'-k "{self.PROXY_COMMUNICATION_PAGENT_IP}" -L /data/bkee/public/bknodeman/download'
+            f" -HLIP 127.0.0.1 -HIIP 127.0.0.1 -HA root -HP 22 -HI 'aes_str:::H4MFaqax' -HC 0 -HNT PAGENT"
+            f" -HOT linux -HDD '/tmp/'"
+            f" -HPP '17981' -HSN 'setup_agent.sh' -HS 'bash'"
+            f" -p '/usr/local/gse' -I {self.PROXY_COMMUNICATION_PAGENT_IP}"
+            f" -o http://{self.PROXY_COMMUNICATION_PAGENT_IP}:{settings.BK_NODEMAN_NGINX_DOWNLOAD_PORT}/ "
+        )
+        self.assertEqual(installation_tool.run_cmd, run_cmd)
+
+    @override_settings(PROXY_COMMUNICATION_IP_FIELD="data_ip")
+    def cases(self):
+        return [
+            ComponentTestCase(
+                name="测试Proxy通信字段配置后下发安装命令成功",
+                inputs=COMMON_INPUTS,
+                parent_data={},
+                execute_assertion=ExecuteAssertion(success=True, outputs={}),
+                schedule_assertion=ScheduleAssertion(
+                    success=True,
+                    schedule_finished=True,
+                    outputs={},
+                    callback_data=[
+                        {
+                            "timestamp": time.time(),
+                            "level": "INFO",
+                            "step": "wait_for_job",
+                            "log": "waiting job result",
+                            "status": "-",
+                            "job_status_kwargs": {
+                                "bk_biz_id": utils.DEFAULT_BIZ_ID_NAME["bk_biz_id"],
+                                "job_instance_id": 10000,
+                            },
+                            "prefix": "job",
+                        }
+                    ],
+                ),
+                execute_call_assertion=None,
+                patchers=[
+                    Patcher(
+                        target="apps.backend.components.collections.agent.task_service.callback.apply_async",
+                        return_value=True,
+                    )
+                ],
+            )
+        ]
