@@ -10,8 +10,8 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
-    # 非稳定开发分支，暂时禁用自动发布 workflow
+    runs-on: ubuntu-20.04
+    # 该 workflow 已暂停使用，作为备用方案保留
     if: ${{ false }}
     env:
       # 构建环境的Python版本
