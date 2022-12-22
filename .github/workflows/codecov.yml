@@ -2,9 +2,7 @@ name: CodeCov
 on: [push, pull_request]
 jobs:
   run:
-    runs-on: ubuntu-latest
-    # 非稳定开发分支，暂时禁用自动发布workflow
-    if: ${{ false }}
+    runs-on: ubuntu-20.04
     env:
       OS: ubuntu-latest
       PYTHON: "3.6"
