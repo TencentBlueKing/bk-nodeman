@@ -8,9 +8,7 @@ on: [push, pull_request]
 jobs:
   build:
 
-    runs-on: ubuntu-latest
-    # 非稳定开发分支，暂时禁用自动发布workflow
-    if: ${{ false }}
+    runs-on: ubuntu-20.04
 
     steps:
     - uses: actions/checkout@v2
