@@ -139,7 +139,7 @@ AGENT_TEMPLATE = """
     {%- endif -%}
     {% if is_designated_upstream_servers %}
     "btfileserver": [
-        {%- for server in btfileserver_inner_ips%}
+        {%- for server in btfileserver_communication_ips%}
         {
             "ip": "{{ server }}",
             "port": {{ file_svr_port }}
@@ -147,7 +147,7 @@ AGENT_TEMPLATE = """
         {%- endfor %}
     ],
     "dataserver": [
-        {%- for server in dataserver_inner_ips%}
+        {%- for server in dataserver_communication_ips%}
         {
             "ip": "{{ server }}",
             "port": {{ data_port }}
@@ -155,7 +155,7 @@ AGENT_TEMPLATE = """
         {%- endfor %}
     ],
     "taskserver": [
-        {%- for server in taskserver_inner_ips%}
+        {%- for server in taskserver_communication_ips%}
         {
             "ip": "{{ server }}",
             "port": {{ io_port }}
@@ -462,9 +462,9 @@ def generate_gse_config(bk_cloud_id, filename, node_type, inner_ip):
     dataserver_outer_ips = [server["outer_ip"] for server in host.ap.dataserver]
 
     jump_server, upstream_nodes = host.install_channel()
-    taskserver_inner_ips = [server for server in upstream_nodes["taskserver"]]
-    btfileserver_inner_ips = [server for server in upstream_nodes["btfileserver"]]
-    dataserver_inner_ips = [server for server in upstream_nodes["dataserver"]]
+    taskserver_communication_ips = [server for server in upstream_nodes["taskserver"]]
+    btfileserver_communication_ips = [server for server in upstream_nodes["btfileserver"]]
+    dataserver_communication_ips = [server for server in upstream_nodes["dataserver"]]
 
     if host.os_type == constants.OsType.WINDOWS:
         path_sep = constants.WINDOWS_SEP
@@ -560,9 +560,9 @@ def generate_gse_config(bk_cloud_id, filename, node_type, inner_ip):
             "proc_port": port_config.get("proc_port"),
             "plugin_path": plugin_path,
             "is_aix": host.os_type == constants.OsType.AIX,
-            "taskserver_inner_ips": taskserver_inner_ips,
-            "btfileserver_inner_ips": btfileserver_inner_ips,
-            "dataserver_inner_ips": dataserver_inner_ips,
+            "taskserver_communication_ips": taskserver_communication_ips,
+            "btfileserver_communication_ips": btfileserver_communication_ips,
+            "dataserver_communication_ips": dataserver_communication_ips,
             "is_designated_upstream_servers": is_designated_upstream_servers(host),
         }
 

@@ -97,3 +97,7 @@ class ApiConfig(AppConfig):
             key=GlobalSettings.KeyEnum.CONFIG_POLICY_BY_TENCENT_VPC.value, defaults=dict(v_json=False)
         )
         settings.CONFIG_POLICY_BY_TENCENT_VPC = obj.v_json
+
+        settings.PROXY_COMMUNICATION_IP_FIELD = (
+            GlobalSettings.get_config(key=GlobalSettings.KeyEnum.PROXY_COMMUNICATION_IP_FIELD.value) or "inner_ip"
+        )

@@ -89,7 +89,7 @@ def fetch_gse_servers(host: models.Host) -> Tuple:
         callback_url = host.ap.outer_callback_url or settings.BKAPP_NODEMAN_OUTER_CALLBACK_URL
     else:
         # PAGENT的场景
-        proxy_ips = [proxy.inner_ip for proxy in host.proxies]
+        proxy_ips = [proxy.special_proxy_communication_field() for proxy in host.proxies]
         jump_server = host.get_random_alive_proxy()
         bt_file_servers = ",".join(ip for ip in proxy_ips)
         data_servers = ",".join(ip for ip in proxy_ips)
@@ -214,8 +214,8 @@ def gen_commands(host: models.Host, pipeline_id: str, is_uninstall: bool) -> Ins
         run_cmd_params.extend(
             [
                 f"-p '{install_path}'",
-                f"-I {jump_server.inner_ip}",
-                f"-o {gen_nginx_download_url(jump_server.inner_ip)}",
+                f"-I {jump_server.special_proxy_communication_field()}",
+                f"-o {gen_nginx_download_url(jump_server.special_proxy_communication_field())}",
                 "-R" if is_uninstall else "",
             ]
         )
