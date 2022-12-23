@@ -205,14 +205,13 @@ class JobV3BaseService(six.with_metaclass(abc.ABCMeta, BaseService)):
         )
 
         # 构造主机作业状态映射表
-        cloud_ip_status_map: Dict[str, Dict] = {}
+        host_key_status_map: Dict[str, Dict] = {}
         for ip_result in ip_results["step_instance_list"][0].get("step_ip_result_list") or []:
             if settings.BKAPP_ENABLE_DHCP:
-                cloud_ip_status_map[
-                    f'{ip_result["bk_cloud_id"]}-{ip_result["ip"]}-{ip_result["bk_host_id"]}'
-                ] = ip_result
+                # bk_host_id 可以单独作为主机的唯一标识
+                host_key_status_map[f"{ip_result['bk_host_id']}"] = ip_result
             else:
-                cloud_ip_status_map[f'{ip_result["bk_cloud_id"]}-{ip_result["ip"]}'] = ip_result
+                host_key_status_map[f'{ip_result["bk_cloud_id"]}-{ip_result["ip"]}'] = ip_result
 
         succeed_sub_inst_ids: List[int] = []
         subscription_instances = models.SubscriptionInstanceRecord.objects.filter(
@@ -221,14 +220,9 @@ class JobV3BaseService(six.with_metaclass(abc.ABCMeta, BaseService)):
 
         bk_host_ids = [sub_inst.instance_info["host"]["bk_host_id"] for sub_inst in subscription_instances]
         if settings.BKAPP_ENABLE_DHCP:
-            host_id__cloud_ip_map = {
-                host_info["bk_host_id"]: f"{host_info['bk_cloud_id']}-{host_info['inner_ip']}-{host_info['bk_host_id']}"
-                for host_info in models.Host.objects.filter(bk_host_id__in=bk_host_ids).values(
-                    "bk_host_id", "inner_ip", "bk_cloud_id"
-                )
-            }
+            host_id__key_map = {bk_host_id: f"{bk_host_id}" for bk_host_id in bk_host_ids}
         else:
-            host_id__cloud_ip_map = {
+            host_id__key_map = {
                 host_info["bk_host_id"]: f"{host_info['bk_cloud_id']}-{host_info['inner_ip']}"
                 for host_info in models.Host.objects.filter(bk_host_id__in=bk_host_ids).values(
                     "bk_host_id", "inner_ip", "bk_cloud_id"
@@ -236,13 +230,17 @@ class JobV3BaseService(six.with_metaclass(abc.ABCMeta, BaseService)):
             }
 
         for sub_inst in subscription_instances:
-            ip = sub_inst.instance_info["host"]["bk_host_innerip"]
-            cloud_id = sub_inst.instance_info["host"]["bk_cloud_id"]
+            if settings.BKAPP_ENABLE_DHCP:
+                default_key = f"{sub_inst.instance_info['host']['bk_host_id']}"
+            else:
+                ip = sub_inst.instance_info["host"]["bk_host_innerip"]
+                cloud_id = sub_inst.instance_info["host"]["bk_cloud_id"]
+                default_key = f"{cloud_id}-{ip}"
             # 不直接使用 bk_host_innerip，保证下发和查询作业采用的都是 models.Host.inner_ip，避免 CMDB 与本地数据不一致的情况
             # 不一致情况举例：多IP，同步主机时会截断成单一IP保存
-            cloud_ip = host_id__cloud_ip_map.get(sub_inst.instance_info["host"]["bk_host_id"], f"{cloud_id}-{ip}")
+            host_key = host_id__key_map.get(sub_inst.instance_info["host"]["bk_host_id"]) or default_key
             try:
-                ip_result = cloud_ip_status_map[cloud_ip]
+                ip_result = host_key_status_map[host_key]
             except KeyError:
                 ip_status = constants.BkJobIpStatus.NOT_EXIST_HOST
                 err_code = constants.BkJobErrorCode.NOT_EXIST_HOST
