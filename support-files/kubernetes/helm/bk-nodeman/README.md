@@ -46,39 +46,39 @@ $ helm uninstall bk-nodeman -n <bk-nodeman namespace>
 
 ### Charts 全局设置
 
-| 参数                      | 描述                                            | 默认值                                                  |
-| ------------------------- | ----------------------------------------------- | ------------------------------------------------------- |
+| 参数                        | 描述                                              | 默认值                                                     |
+|---------------------------|-------------------------------------------------|---------------------------------------------------------|
 | `global.imageRegistry`    | Global Docker image registry                    | `""`                                                    |
 | `global.imagePullSecrets` | Global Docker registry secret names as an array | `[]` (does not add image pull secrets to deployed pods) |
 | `global.storageClass`     | Global storage class for dynamic provisioning   | `""`                                                    |
-| `global.bkDomain`         | 蓝鲸主域名                                      | `example.com`                                           |
-| `global.bkDomain`         | 蓝鲸主域名访问协议                              | `http`                                                  |
+| `global.bkDomain`         | 蓝鲸主域名                                           | `example.com`                                           |
+| `global.bkDomain`         | 蓝鲸主域名访问协议                                       | `http`                                                  |
 
 ### Kubernetes 组件公共配置
 
 下列参数用于配置 Kubernetes 组件的公共属性，一份配置作用到每个组件
 
-| 参数                 | 描述                                                         | 默认值 |
-| -------------------- | ------------------------------------------------------------ | ------ |
-| `nameOverride`       | String to partially override common.names.fullname template (will maintain the release name) | `""`   |
-| `fullnameOverride`   | String to fully override common.names.fullname template      | `""`   |
-| `podAnnotations`     | Pod annotations                                              | `{}`   |
-| `commonLabels`       | Common labels to add to all bk-nodeman resources. Evaluated as a template | `{}`   |
-| `commonAnnotations`  | Common annotations to add to all bk-nodeman resources . Evaluated as a template | `{}`   |
-| `podSecurityContext` | A security context defines privilege and access control settings for a Pod or Container. | `{}`   |
-| `securityContext`    | A security context defines privilege and access control settings for a Pod or Container. | `{}`   |
-| `nodeSelector`       | Node labels for all pods assignment                          | `{}`   |
-| `tolerations`        | Tolerations for all pods assignment                          | `[]`   |
-| `volumes`            | Optionally specify extra list of additional volumes to the  bk-nodeman pod(s) | `[]`   |
-| `volumeMounts`       | Optionally specify extra list of additional volumeMounts for the bk-nodeman secondary container(s) | `[]`   |
-| `affinity`           | Affinity for pod assignment (evaluated as a template)        | `{}`   |
+| 参数                   | 描述                                                                                                 | 默认值  |
+|----------------------|----------------------------------------------------------------------------------------------------|------|
+| `nameOverride`       | String to partially override common.names.fullname template (will maintain the release name)       | `""` |
+| `fullnameOverride`   | String to fully override common.names.fullname template                                            | `""` |
+| `podAnnotations`     | Pod annotations                                                                                    | `{}` |
+| `commonLabels`       | Common labels to add to all bk-nodeman resources. Evaluated as a template                          | `{}` |
+| `commonAnnotations`  | Common annotations to add to all bk-nodeman resources . Evaluated as a template                    | `{}` |
+| `podSecurityContext` | A security context defines privilege and access control settings for a Pod or Container.           | `{}` |
+| `securityContext`    | A security context defines privilege and access control settings for a Pod or Container.           | `{}` |
+| `nodeSelector`       | Node labels for all pods assignment                                                                | `{}` |
+| `tolerations`        | Tolerations for all pods assignment                                                                | `[]` |
+| `volumes`            | Optionally specify extra list of additional volumes to the  bk-nodeman pod(s)                      | `[]` |
+| `volumeMounts`       | Optionally specify extra list of additional volumeMounts for the bk-nodeman secondary container(s) | `[]` |
+| `affinity`           | Affinity for pod assignment (evaluated as a template)                                              | `{}` |
 
 ### ServiceAccount 配置
 
-| 参数                         | 描述                                                         | 默认值 |
-| ---------------------------- | ------------------------------------------------------------ | ------ |
-| `serviceAccount.annotations` | Annotations for service account                              | `{}`   |
-| `serviceAccount.create`      | If true, create a service account                            | `true` |
+| 参数                           | 描述                                                                                                                      | 默认值    |
+|------------------------------|-------------------------------------------------------------------------------------------------------------------------|--------|
+| `serviceAccount.annotations` | Annotations for service account                                                                                         | `{}`   |
+| `serviceAccount.create`      | If true, create a service account                                                                                       | `true` |
 | `serviceAccount.name`        | The name of the service account to use. If not set and create is true, a name is generated using the fullname template. | `""`   |
 
 ### 镜像通用配置
@@ -91,45 +91,45 @@ $ helm uninstall bk-nodeman -n <bk-nodeman namespace>
 * `k8sWaitFor`
 * `nginx`
 
-| 参数                             | 描述         | 默认值                                |
-| -------------------------------- | ------------ | ------------------------------------- |
-| `images.<image name>.registry`   | 镜像仓库     | 详见 `values.yaml` 中各个镜像的默认值 |
-| `images.<image name>.repository` | 镜像名称     | 详见 `values.yaml` 中各个镜像的默认值 |
+| 参数                               | 描述     | 默认值                        |
+|----------------------------------|--------|----------------------------|
+| `images.<image name>.registry`   | 镜像仓库   | 详见 `values.yaml` 中各个镜像的默认值 |
+| `images.<image name>.repository` | 镜像名称   | 详见 `values.yaml` 中各个镜像的默认值 |
 | `images.<image name>.pullPolicy` | 镜像拉取策略 | 详见 `values.yaml` 中各个镜像的默认值 |
-| ``images.<image name>.tag``      | 镜像 tag     | 详见 `values.yaml` 中各个镜像的默认值 |
+| ``images.<image name>.tag``      | 镜像 tag | 详见 `values.yaml` 中各个镜像的默认值 |
 
 ### nginx-ingress-controller 配置
 
 相关配置请参考 [bitnami/nginx-ingress-controller](https://github.com/bitnami/charts/tree/master/bitnami/)
 
-| 参数                                              | 描述                                                         | 默认值      |
-| ------------------------------------------------- | ------------------------------------------------------------ | ----------- |
-| `nginx-ingress-controller.enabled`                | 是否部署 nginx ingress controller                            | `false`     |
-| `nginx-ingress-controller.kind`                   | Install as Deployment or DaemonSet                           | `DaemonSet` |
+| 参数                                                | 描述                                                                               | 默认值         |
+|---------------------------------------------------|----------------------------------------------------------------------------------|-------------|
+| `nginx-ingress-controller.enabled`                | 是否部署 nginx ingress controller                                                    | `false`     |
+| `nginx-ingress-controller.kind`                   | Install as Deployment or DaemonSet                                               | `DaemonSet` |
 | `nginx-ingress-controller.daemonset.useHostPort`  | If `kind` is `DaemonSet`, this will enable `hostPort` for `TCP/80` and `TCP/443` | `true`      |
-| `nginx-ingress-controller.defaultBackend.enabled` | nginx ingress controller 默认 backend                        | `false`     |
+| `nginx-ingress-controller.defaultBackend.enabled` | nginx ingress controller 默认 backend                                              | `false`     |
 
 ### ingress 配置
 
-| 参数                  | 描述                                                         | 默认值                  |
-| --------------------- | ------------------------------------------------------------ | ----------------------- |
-| `ingress.enabled`     | 是否创建 ingress                                             | `true`                  |
-| `ingress.className`   | ingress 类                                                   | `nginx`                 |
-| `ingress.annotations` | ingress 标注                                                 | 详见 `values.yaml`      |
-| `ingress.hostname`    | 访问域名                                                     | `bknodeman.example.com` |
-| `ingress.paths`       | 转发规则                                                     | 详见 `values.yaml`      |
-| `ingress.selfSigned`  | Create a TLS secret for this ingress record using self-signed certificates generated by Helm | `false`                 |
-| `ingress.tls`         | Enable TLS configuration for the host defined at `ingress.hostname` parameter | `false`                 |
+| 参数                    | 描述                                                                                                    | 默认值                     |
+|-----------------------|-------------------------------------------------------------------------------------------------------|-------------------------|
+| `ingress.enabled`     | 是否创建 ingress                                                                                          | `true`                  |
+| `ingress.className`   | ingress 类                                                                                             | `nginx`                 |
+| `ingress.annotations` | ingress 标注                                                                                            | 详见 `values.yaml`        |
+| `ingress.hostname`    | 访问域名                                                                                                  | `bknodeman.example.com` |
+| `ingress.paths`       | 转发规则                                                                                                  | 详见 `values.yaml`        |
+| `ingress.selfSigned`  | Create a TLS secret for this ingress record using self-signed certificates generated by Helm          | `false`                 |
+| `ingress.tls`         | Enable TLS configuration for the host defined at `ingress.hostname` parameter                         | `false`                 |
 | `ingress.extraPaths`  | An array with additional arbitrary paths that may need to be added to the ingress under the main host | `[]`                    |
-| `ingress.extraTls`    | TLS configuration for additional hostname(s) to be covered with this ingress record | `[]`                    |
-| `ingress.secrets`     | Custom TLS certificates as secrets                           | `[]`                    |
+| `ingress.extraTls`    | TLS configuration for additional hostname(s) to be covered with this ingress record                   | `[]`                    |
+| `ingress.secrets`     | Custom TLS certificates as secrets                                                                    | `[]`                    |
 
 ### 模块配置
 
-| 参数                 | 描述                                                         | 默认值  |
-| -------------------- | ------------------------------------------------------------ | ------- |
-| `saas.enabled`       | 是否启用 SaaS                                                | `true`  |
-| `backend.enabled`    | 是否启用后台                                                 | `true`  |
+| 参数                   | 描述                                                                                                                                                                                                                                                                                                   | 默认值     |
+|----------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------|
+| `saas.enabled`       | 是否启用 SaaS                                                                                                                                                                                                                                                                                            | `true`  |
+| `backend.enabled`    | 是否启用后台                                                                                                                                                                                                                                                                                               | `true`  |
 | `backend.miniDeploy` | 是否启用后台最小化部署<br />如果管理规模较大，建议该值为 `true`，以保证可用性<br />不同取值所启动的 worker 服务：<br />**`true`**： `backend.commonWorker` `commonPipelineWorker`<br />**`false`**:<br />`backend.dworker`<br />`backend.bworker`<br />`backend.baworker`<br />`backend.pworker`<br />`backend.psworker`<br />`backend.paworker` | `false` |
 
 ### 服务通用配置
@@ -153,20 +153,20 @@ $ helm uninstall bk-nodeman -n <bk-nodeman namespace>
 - `backend.syncProcess`
 - `backend.resourceWatch`
 
-| 参数                 | 描述                                   | 默认值             |
-| -------------------- | -------------------------------------- | ------------------ |
-| `enabled`            | 是否启用服务                           | `true`             |
-| `resources.limits`   | The resources limits for containers    | `{}`               |
-| `resources.requests` | The requested resources for containers | `{}`               |
-| `replicaCount`       | 服务实例数量                           | `1`                |
-| `command`            | 启动命令                               | 详见 `values.yaml` |
+| 参数                   | 描述                                     | 默认值              |
+|----------------------|----------------------------------------|------------------|
+| `enabled`            | 是否启用服务                                 | `true`           |
+| `resources.limits`   | The resources limits for containers    | `{}`             |
+| `resources.requests` | The requested resources for containers | `{}`             |
+| `replicaCount`       | 服务实例数量                                 | `1`              |
+| `command`            | 启动命令                                   | 详见 `values.yaml` |
 
 ### 服务配置
 
 下列参数表示 bk-nodeman 服务除去 `服务通用配置` 的其他配置
 
-| 参数                           | 描述                         | 默认值      |
-| ------------------------------ | ---------------------------- | ----------- |
+| 参数                             | 描述                           | 默认值         |
+|--------------------------------|------------------------------|-------------|
 | `saas.api.service.type`        | SaaS API Service Type        | `ClusterIP` |
 | `saas.api.service.port`        | SaaS API Service Port        | `10300`     |
 | `saas.web.service.type`        | SaaS Web Service Type        | `ClusterIP` |
@@ -179,11 +179,11 @@ $ helm uninstall bk-nodeman -n <bk-nodeman namespace>
 
 默认将部署 Redis，如果不需要可以关闭。 相关配置请参考 [bitnami/redis](https://github.com/bitnami/charts/blob/master/bitnami/redis)
 
-| 参数                  | 描述                                                         | 默认值       |
-| --------------------- | ------------------------------------------------------------ | ------------ |
+| 参数                    | 描述                                                        | 默认值          |
+|-----------------------|-----------------------------------------------------------|--------------|
 | `redis.enabled`       | 是否部署 Redis。如果需要使用外部 Redis，设置为 `false` 并配置 `externalRedis` | `true`       |
-| `redis.auth.enabled`  | 是否开启认证                                                 | `true`       |
-| `redis.auth.password` | Redis 密码                                                   | `bk-nodeman` |
+| `redis.auth.enabled`  | 是否开启认证                                                    | `true`       |
+| `redis.auth.password` | Redis 密码                                                  | `bk-nodeman` |
 
 > 如果需要持久化 redis 数据，请参考 [bitnami/redis](https://github.com/bitnami/charts/blob/master/bitnami/redis) 配置存储卷
 
@@ -203,15 +203,15 @@ externalRedis:
 
 默认将部署 MySQL，如果不需要可以关闭。 相关配置请参考 [bitnami/mysql](https://github.com/bitnami/charts/blob/master/bitnami/mysql)
 
-| 参数                                     | 描述                                                         | 默认值             |
-| ---------------------------------------- | ------------------------------------------------------------ | ------------------ |
-| `mysql.enabled`                          | 是否部署 MySQL。如果需要使用外部数据库，设置为 `false` 并配置 `externalMySQL` | `true`             |
-| `mysql.auth.rootPassword`                | `root` 密码                                                  | `bk-nodeman`       |
-| `mysql.auth.database`                    | 数据库名称                                                   | `bk-nodeman`       |
-| `mysql.auth.username`                    | 数据库用户名                                                 | `bk-nodeman`       |
-| `mysql.auth.password`                    | 数据库密码                                                   | `bk-nodeman`       |
-| `mysql.initdbScripts.grant_user_pms.sql` | 为 `mysql.auth.username` 授权                                | 详见 `values.yaml` |
-| `primary.configuration`                  | 在默认配置的基础上，调整字符集及 `max_allowed_packet`        | 详见 `values.yaml` |
+| 参数                                       | 描述                                                     | 默认值              |
+|------------------------------------------|--------------------------------------------------------|------------------|
+| `mysql.enabled`                          | 是否部署 MySQL。如果需要使用外部数据库，设置为 `false` 并配置 `externalMySQL` | `true`           |
+| `mysql.auth.rootPassword`                | `root` 密码                                              | `bk-nodeman`     |
+| `mysql.auth.database`                    | 数据库名称                                                  | `bk-nodeman`     |
+| `mysql.auth.username`                    | 数据库用户名                                                 | `bk-nodeman`     |
+| `mysql.auth.password`                    | 数据库密码                                                  | `bk-nodeman`     |
+| `mysql.initdbScripts.grant_user_pms.sql` | 为 `mysql.auth.username` 授权                             | 详见 `values.yaml` |
+| `primary.configuration`                  | 在默认配置的基础上，调整字符集及 `max_allowed_packet`                  | 详见 `values.yaml` |
 
 > 如果需要持久化数据库数据，请参考 [bitnami/mysql](https://github.com/bitnami/charts/blob/master/bitnami/mysql) 配置存储卷
 
@@ -232,12 +232,12 @@ externalMySQL:
 
 默认将部署 RabbitMQ，如果不需要可以关闭。 相关配置请参考 [bitnami/rabbitmq](https://github.com/bitnami/charts/blob/master/bitnami/rabbitmq)
 
-| 参数                          | 描述                                                         | 默认值             |
-| ----------------------------- | ------------------------------------------------------------ | ------------------ |
-| `rabbitmq.enabled`            | 是否部署 RabbitMQ。如果需要使用外部 RabbitMQ，设置为 `false` 并配置 `externalRabbitMQ` | `true`             |
-| `rabbitmq.auth.username`      | 用户名                                                       | `bk-nodeman`       |
-| `rabbitmq.auth.password`      | 密码                                                         | `bk-nodeman`       |
-| `rabbitmq.extraConfiguration` | 为 `vhost=bk-nodeman`授权                                    | 详见 `values.yaml` |
+| 参数                            | 描述                                                                 | 默认值              |
+|-------------------------------|--------------------------------------------------------------------|------------------|
+| `rabbitmq.enabled`            | 是否部署 RabbitMQ。如果需要使用外部 RabbitMQ，设置为 `false` 并配置 `externalRabbitMQ` | `true`           |
+| `rabbitmq.auth.username`      | 用户名                                                                | `bk-nodeman`     |
+| `rabbitmq.auth.password`      | 密码                                                                 | `bk-nodeman`     |
+| `rabbitmq.extraConfiguration` | 为 `vhost=bk-nodeman`授权                                             | 详见 `values.yaml` |
 
 > 如果需要持久化 RabbitMQ 数据，请参考 [bitnami/rabbitmq](https://github.com/bitnami/charts/blob/master/bitnami/rabbitmq) 配置存储卷
 
@@ -256,25 +256,40 @@ externalRabbitMQ:
 
 ### 第三方依赖配置
 
-| 参数                | 描述                                                         | 默认值                          |
-| ------------------- | ------------------------------------------------------------ | ------------------------------- |
-| `bkPaasUrl`         | 蓝鲸 PaaS url（浏览器访问蓝鲸入口）                          | `http://example.com`            |
-| `bkLoginUrl`        | 蓝鲸 Login url（浏览器跳转登录用的URL前缀）                  | `http://example.com/login`      |
-| `bkComponentApiUrl` | 蓝鲸 ESB url，注意集群内外都是统一域名。集群内可以配置域名解析到内网ip | `http://bkapi.example.com`      |
-| `bkNodemanUrl`      | 节点管理浏览器访问地址                                       | `http://bknodeman.example.com`  |
-| `bkNodemanApiUrl`   | 节点管理后台访问地址                                         | `http://bk-nodeman-backend-api` |
-| `bkJobUrl`          | 蓝鲸作业平台浏览器访问地址                                   | `http://job.example.com`        |
-| `bkCmdbUrl`         | 蓝鲸配置平台浏览器访问地址 | `http://cmdb.example.com`    |
-| `bkIamUrl`          | 蓝鲸权限中心 SaaS 地址                                       | `http://bkiam.example.com`      |
-| `bkIamApiUrl`       | 蓝鲸权限中心后台 API 地址                                    | `http://bkiam-api.example.com`  |
+| 参数                  | 描述                                                     | 默认值                             |
+|---------------------|--------------------------------------------------------|---------------------------------|
+| `bkPaasUrl`         | 蓝鲸 PaaS url（浏览器访问蓝鲸入口）                                 | `http://example.com`            |
+| `bkLoginUrl`        | 蓝鲸 Login url（浏览器跳转登录用的URL前缀）                           | `http://example.com/login`      |
+| `bkComponentApiUrl` | 蓝鲸 ESB url，注意集群内外都是统一域名。集群内可以配置域名解析到内网ip               | `http://bkapi.example.com`      |
+| `bkNodemanUrl`      | 节点管理浏览器访问地址                                            | `http://bknodeman.example.com`  |
+| `bkNodemanApiUrl`   | 节点管理后台访问地址                                             | `http://bk-nodeman-backend-api` |
+| `bkJobUrl`          | 蓝鲸作业平台浏览器访问地址                                          | `http://job.example.com`        |
+| `bkCmdbUrl`         | 蓝鲸配置平台浏览器访问地址                                          | `http://cmdb.example.com`       |
+| `bkIamUrl`          | 蓝鲸权限中心 SaaS 地址                                         | `http://bkiam.example.com`      |
+| `bkIamApiUrl`       | 蓝鲸权限中心后台 API 地址                                        | `http://bkiam-api.example.com`  |
 | `bkRepoUrl`         | 蓝鲸制品库浏览器访问域名和后台 API http://bkiam-api.example.com 域名同一个 | `http://bkrepo.example.com`     |
 
-### bk-nodman 系统配置
+
+### GSE 证书配置
+
+如需使用 `Agent 包管理` 功能，则必须配置 GSE 证书
+
+| 参数                     | 描述                                     | 默认值  |
+|------------------------|----------------------------------------|------|
+| gseCert.ca             | 证书 CA 内容配置（base64）                     | `""` |
+| gseCert.cert           | Server 侧 CERT 内容配置（base64）             | `""` |
+| gseCert.key            | Server 侧 KEY 内容配置（base64）              | `""` |
+| gseCert.apiClient.cert | API 侧 CERT 内容配置, 用于其他服务调用 GSE（base64）  | `""` |
+| gseCert.apiClient.key  | API 侧 KEY 内容配置, 用于其他服务调用 GSE（base64）   | `""` |
+| gseCert.agent.cert     | Agent 侧 CERT 内容配置, 用于 Agent 链路（base64） | `""` |
+| gseCert.agent.key      | Agent 侧 KEY 内容配置, 用于 Agent 链路（base64）  | `""` |
+
+### bk-nodeman 系统配置
 
 用于生成运行环境变量，具体参考：`support-files/kubernetes/helm/bk-nodeman/templates/configmaps/env-configmap.yaml`
 
-| 参数                                  | 描述                                                                                                                                                                                              | 默认值                         |
-| ------------------------------------- |-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------| ------------------------------ |
+| 参数                                    | 描述                                                                                                                                                                                              | 默认值                            |
+|---------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------|
 | `config.appCode`                      | app code                                                                                                                                                                                        | `bk_nodeman`                   |
 | `config.appSecret`                    | app secret                                                                                                                                                                                      | `""`                           |
 | `config.bkAppRunEnv`                  | 运行环境，ce / ee / ieod，影响 gse 端口等配置                                                                                                                                                                | `ce`                           |
@@ -297,6 +312,7 @@ externalRabbitMQ:
 | `config.bkAppNodemanCallbackUrl`      | 节点管理自身模块依赖，后台内网回调地址，渲染时为空取 `{{ .Values.bkNodemanUrl }}/backend`                                                                                                                                 | `""`                           |
 | `config.bkAppNodemanOuterCallbackUrl` | 节点管理自身模块依赖，后台外网回调地址，渲染时为空取 `{{ .Values.bkNodemanUrl }}/backend`                                                                                                                                 | `""`                           |
 | `config.gseVersion`                   | 蓝鲸管控平台版本，默认为 `V1`,可选：`V1` `V2`                                                                                                                                                                  | `V1`                           |
+| `config.gseCertPath`                  | GSE 本地证书路径，渲染时为空默认取 `/data/bk{{ .Values.config.bkAppRunEnv }}/cert`                                                                                                                             | `""`                           |
 | `config.gseEnableSvrDisCovery`        | 蓝鲸管控平台 Agent，AgentXXDir 仅在初次部署有效，后续可以在页面「全局配置」维护。是否启用 GSE 服务探测，默认为 `true`                                                                                                                       | `true`                         |
 | `config.bkAppGseZkHost`               | 蓝鲸管控平台 Agent，zk hosts 信息，host:port，多个 hosts 以 `,` 分隔<br />⚠️ ZK hosts 将作为 Agent 配置，需要保证 Agent 可访问，所以不能使用 k8s service 信息 进行配置<br />如果 zk 通过 k8s 部署，建议通过 NodePort 等方式暴露服务，使用 NodeIP:NodePort 进行配置 | `127.0.0.1:2181`               |
 | `config.bkAppGseZkAuth`               | 蓝鲸管控平台 Agent，ZK 认证信息，用户名:密码                                                                                                                                                                     | `bkzk:zkpass`                  |
@@ -332,12 +348,12 @@ externalRabbitMQ:
 >
 > 优先级：内置环境变量 < extraEnvVarsCM < extraEnvVarsSecret < extraEnvVars < backendExtraEnvVars (仅后台)
 
-| 参数                  | 描述               | 默认值 |
-| --------------------- | ------------------ | ------ |
-| `extraEnvVarsCM`      | 额外的 ConfigMap   | `""`   |
-| `extraEnvVarsSecret`  | 额外的 Secret      | `""`   |
-| `extraEnvVars`        | 额外的环境变量     | `[]`   |
-| `backendExtraEnvVars` | 额外的后台环境变量 | `[]`   |
+| 参数                    | 描述            | 默认值  |
+|-----------------------|---------------|------|
+| `extraEnvVarsCM`      | 额外的 ConfigMap | `""` |
+| `extraEnvVarsSecret`  | 额外的 Secret    | `""` |
+| `extraEnvVars`        | 额外的环境变量       | `[]` |
+| `backendExtraEnvVars` | 额外的后台环境变量     | `[]` |
 
 ## 配置案例 & 建议
 

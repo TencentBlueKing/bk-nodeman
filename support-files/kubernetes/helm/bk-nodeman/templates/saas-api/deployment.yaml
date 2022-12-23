@@ -58,10 +58,8 @@ spec:
             {{- else }}
             - "bin/hooks/start_cmds/start-saas-api"
             {{- end }}
-          {{- with .Values.volumeMounts }}
           volumeMounts:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
+            {{- include "bk-nodeman.volumeMounts" . | nindent 12 }}
           {{- include "bk-nodeman.saas.env" . | nindent 10 }}
           ports:
             - name: http
@@ -77,16 +75,14 @@ spec:
               port: {{ $svcPort }}
           resources:
             {{- toYaml $moduleConf.resources | nindent 12 }}
+      volumes:
+        {{- include "bk-nodeman.volumes" . | nindent 8 }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       {{- with .Values.affinity }}
       affinity:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.volumes }}
-      volumes:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       {{- with .Values.tolerations }}

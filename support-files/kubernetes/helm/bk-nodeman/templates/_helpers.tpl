@@ -160,6 +160,38 @@ processType: "metrics"
 
 
 {{/*
+返回证书路径
+*/}}
+{{- define "bk-nodeman.env.gseCertPath" -}}
+{{ .Values.config.gseCertPath | default ( printf "/data/bk%s/cert" .Values.config.bkAppRunEnv ) }}
+{{- end -}}
+
+{{/*
+通用卷声明
+*/}}
+{{- define "bk-nodeman.volumes" -}}
+- name: gse-cert
+  configMap:
+    name: "{{ include "bk-nodeman.fullname" . }}-gse-cert-configmap"
+{{- if .Values.volumes }}
+{{ toYaml .Values.volumes }}
+{{- end }}
+{{- end }}
+
+
+{{/*
+通用卷挂载声明
+*/}}
+{{- define "bk-nodeman.volumeMounts" -}}
+- name: gse-cert
+  mountPath: {{ include "bk-nodeman.env.gseCertPath" . }}
+{{- if .Values.volumeMounts }}
+{{ toYaml .Values.volumeMounts }}
+{{- end }}
+{{- end }}
+
+
+{{/*
 后台环境变量
 */}}
 {{- define "bk-nodeman.backend.env" -}}
@@ -224,4 +256,6 @@ initContainers:
     image: "{{ .Values.global.imageRegistry | default .Values.images.k8sWaitFor.registry }}/{{ .Values.images.k8sWaitFor.repository }}:{{ .Values.images.k8sWaitFor.tag }}"
     imagePullPolicy: "{{ .Values.images.k8sWaitFor.pullPolicy }}"
     args: ["job", "{{ include "bk-nodeman.migrate-job.file-sync" . }}"]
+    volumeMounts:
+      {{- include "bk-nodeman.volumeMounts" . | nindent 6 }}
 {{- end }}

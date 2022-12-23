@@ -4,8 +4,10 @@ Your release is named {{ .Release.Name }}.
 
 如果集群中已经安装了 IngressController，那么可以通过以下地址访问节点管理：
 {{- if .Values.ingress.hostname }}
+export BK_NODEMAN_URL="{{ .Values.global.bkDomainScheme }}://{{ .Values.ingress.hostname }}"
 SaaS: {{ .Values.global.bkDomainScheme }}://{{ .Values.ingress.hostname }}
 {{- else }}
+export BK_NODEMAN_URL="{{ .Values.global.bkDomainScheme }}://bknodeman.{{ .Values.global.bkDomain }}"
 SaaS: {{ .Values.global.bkDomainScheme }}://bknodeman.{{ .Values.global.bkDomain }}
 {{- end }}
 
@@ -30,7 +32,7 @@ SaaS: {{ .Values.global.bkDomainScheme }}://bknodeman.{{ .Values.global.bkDomain
 - 获取第一个存活 POD NAME
 
 # 后续操作依赖该变量
-export FIRST_RUNNING_POD=$(kubectl get pods \
+export FIRST_RUNNING_POD=$(kubectl get pods -n {{ .Release.Namespace }} \
   --selector=app.kubernetes.io/instance={{ .Release.Name }} --field-selector=status.phase=Running \
   -o custom-columns=":metadata.name" | sed '/^$/d' | head -n 1 )
 
@@ -42,6 +44,20 @@ kubectl cp <插件包本地路径> -n {{ .Release.Namespace }} ${FIRST_RUNNING_P
 
 # 解析并导入插件包
 kubectl exec -n {{ .Release.Namespace }} ${FIRST_RUNNING_POD} -- python manage.py init_official_plugins
+
+- 导入 2.0 Agent/Proxy 包
+
+# [Agent] 将 client 包上传到容器指定目录，可以重复该步骤，导入多个版本的 client 包，client 包一般格式为：gse_agent_ce-2.0.0.tgz
+kubectl cp <client包本地路径> -n {{ .Release.Namespace }} ${FIRST_RUNNING_POD}:/app/official_plugin/gse_agent/
+
+# [Proxy] 将 server 包上传到容器指定目录，可以重复该步骤，导入多个版本的 server 包，server 包一般格式为：gse_ce-2.0.0.tgz
+# 注意：导入 server 包依赖同版本的 client 包，请确保 client 包已上传或已导入
+kubectl cp <client包本地路径> -n {{ .Release.Namespace }} ${FIRST_RUNNING_POD}:/app/official_plugin/gse_proxy/
+
+# 解析并导入 Agent/Proxy
+# -o --overwrite_version 版本号，用于覆盖原始制品内的版本信息，`stable` 为内置版本
+# 修改内置版本：${BK_NODEMAN_URL}/admin_nodeman/node_man/globalsettings/ 新建或修改 `GSE_AGENT2_VERSION`，默认为 `"stable"`
+kubectl exec -n {{ .Release.Namespace }} ${FIRST_RUNNING_POD} -- python manage.py init_agents -o stable
 
 
 - 同步主机相关数据

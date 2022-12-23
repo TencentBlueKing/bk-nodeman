@@ -847,7 +847,7 @@ class InstallChannel(models.Model):
         cls, install_channel_ids: Optional[List[int]] = None
     ) -> Dict[int, List["Host"]]:
         # 从数据库 Host 表中批量查询安装通道跳板机器的主机对象
-        if install_channel_ids:
+        if install_channel_ids is not None:
             install_channels = cls.objects.filter(id__in=install_channel_ids)
         else:
             install_channels = cls.objects.all()
@@ -863,6 +863,10 @@ class InstallChannel(models.Model):
                 jump_server__install_channel_id_map[f"{cloud_id}-{jump_server_ip}"] = install_channel.id
                 filter_key = "inner_ipv6" if basic.is_v6(jump_server_ip) else "inner_ip"
                 filter_host_conditions.append(Q(**{"bk_cloud_id": cloud_id, filter_key: jump_server_ip}))
+
+        # 如果筛选条件为空，直接返回
+        if not filter_host_conditions:
+            return result
 
         # 得出跳板机的主机对象
         hosts = Host.objects.filter(bk_addressing=constants.CmdbAddressingType.STATIC.value).filter(

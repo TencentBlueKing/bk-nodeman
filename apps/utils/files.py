@@ -13,6 +13,7 @@ import hashlib
 import ntpath
 import os
 import posixpath
+import stat
 import uuid
 from typing import IO, Any, Callable, List, Optional
 
@@ -188,3 +189,14 @@ def fetch_file_paths_from_dir(
             file_paths.append(os.path.join(child_dir_path, file_name))
 
     return file_paths
+
+
+def make_executable(name: str):
+    """
+    为文件授予可执行权限
+    refer: https://stackoverflow.com/questions/12791997/how-do-you-do-a-simple-chmod-x-from-within-python
+    :param name:
+    :return:
+    """
+    st = os.stat(name)
+    os.chmod(name, st.st_mode | stat.S_IEXEC)

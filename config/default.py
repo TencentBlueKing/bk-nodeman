@@ -647,6 +647,7 @@ BKAPP_REQUEST_EE_SOPS_BK_BIZ_ID = os.getenv("BKAPP_REQUEST_EE_SOPS_BK_BIZ_ID")
 
 # 管控平台平台版本
 GSE_VERSION = env.GSE_VERSION
+GSE_CERT_PATH = env.GSE_CERT_PATH
 # agent 安装路径配置
 GSE_AGENT_HOME = os.getenv("BKAPP_GSE_AGENT_HOME") or "/usr/local/gse"
 GSE_AGENT_LOG_DIR = os.getenv("BKAPP_GSE_AGENT_LOG_DIR") or "/var/log/gse"
