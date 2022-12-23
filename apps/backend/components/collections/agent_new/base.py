@@ -166,17 +166,15 @@ class AgentBaseService(BaseService, metaclass=abc.ABCMeta):
         host_id__ap_map: Dict[int, models.AccessPoint],
         cloud_id__proxies_map: Dict[int, List[models.Host]],
     ) -> Dict[int, Tuple[Optional[models.Host], Dict[str, List]]]:
+        install_channel_ids: List[int] = list({host.install_channel_id for host in hosts})
+        install_channel_id__jump_servers_map: Dict[
+            int, List[models.Host]
+        ] = models.InstallChannel.install_channel_id__host_objs_map(install_channel_ids)
+
+        # 建立通道ID - 通道的映射关系
         id__install_channel_obj_map: Dict[int, models.InstallChannel] = {}
-        install_channel_id__jump_servers_map: Dict[int, List[models.Host]] = defaultdict(list)
-        install_channel_objs = models.InstallChannel.objects.filter(id__in={host.install_channel_id for host in hosts})
-        # 安装通道数量通常是个位数，兼顾可读性在循环中执行DB查询操作
-        for install_channel_obj in install_channel_objs:
+        for install_channel_obj in models.InstallChannel.objects.filter(id__in=install_channel_ids):
             id__install_channel_obj_map[install_channel_obj.id] = install_channel_obj
-            install_channel_id__jump_servers_map[install_channel_obj.id] = list(
-                models.Host.objects.filter(
-                    inner_ip__in=install_channel_obj.jump_servers, bk_cloud_id=install_channel_obj.bk_cloud_id
-                )
-            )
 
         cloud_id__alive_proxies_map: Dict[int, List[models.Host]] = defaultdict(list)
         for cloud_id, proxies in cloud_id__proxies_map.items():
@@ -193,7 +191,7 @@ class AgentBaseService(BaseService, metaclass=abc.ABCMeta):
                     jump_server = random.choice(install_channel_id__jump_servers_map[install_channel_obj.id])
                 except IndexError:
                     self.move_insts_to_failed(
-                        [sub_inst_id], log_content=_("所选安装通道「{name} 没有可用跳板机".format(name=install_channel_obj.name))
+                        [sub_inst_id], log_content=_("所选安装通道「{name}」 没有可用跳板机".format(name=install_channel_obj.name))
                     )
                 else:
                     host_id__install_channel_map[host.bk_host_id] = (jump_server, install_channel_obj.upstream_servers)

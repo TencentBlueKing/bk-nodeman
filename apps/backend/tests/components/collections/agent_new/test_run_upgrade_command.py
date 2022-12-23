@@ -37,14 +37,11 @@ class RunUpgradeCommandSuccessTestCase(base.JobBaseTestCase):
         temp_path="/tmp",
         package_name="gse_client-linux-x86_64_upgrade.tgz",
         node_type="agent",
-        reload_cmd=AGENT_RELOAD_CMD_TEMPLATE.format(setup_path="/usr/local/gse", node_type="agent"),
+        reload_cmd=AGENT_RELOAD_CMD_TEMPLATE.format(setup_path="/usr/local/gse", node_type="agent", procs="gse_agent"),
         pkg_cpu_arch="x86_64",
     )
     WINDOWS_TEST_SCRIPTS = WINDOWS_UPGRADE_CMD_TEMPLATE.format(
-        setup_path="c:\\gse",
-        temp_path="C:\\tmp",
-        package_name="gse_client-windows-x86_64_upgrade.tgz",
-        package_name_tar="gse_client-windows-x86_64_upgrade.tgz".replace("tgz", "tar"),
+        setup_path="c:\\gse", temp_path="C:\\tmp", package_name="gse_client-windows-x86_64_upgrade.tgz"
     )
     TEST_SCRIPTS_MAP = {constants.OsType.WINDOWS: WINDOWS_TEST_SCRIPTS, constants.OsType.LINUX: LINUX_TEST_SCRIPTS}
 
@@ -90,7 +87,9 @@ class LinuxAgent2UpgradeSuccessTestCase(RunUpgradeCommandSuccessTestCase):
             temp_path="/tmp",
             package_name="gse_agent-2.0.0.tgz",
             node_type="agent",
-            reload_cmd=AGENT_RELOAD_CMD_TEMPLATE.format(setup_path="/usr/local/gse", node_type="agent"),
+            reload_cmd=AGENT_RELOAD_CMD_TEMPLATE.format(
+                setup_path="/usr/local/gse", node_type="agent", procs="gse_agent"
+            ),
             pkg_cpu_arch="x86_64",
         )
         for record_result in record[JobApi.fast_execute_script]:

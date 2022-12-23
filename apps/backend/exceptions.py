@@ -17,8 +17,8 @@ class BackendBaseException(AppBaseException):
     MODULE_CODE = 2000
 
 
-class UploadPackageNotExistError(BackendBaseException):
-    MESSAGE = _("文件包不存在")
+class FileNotExistError(BackendBaseException):
+    MESSAGE = _("文件不存在")
     ERROR_CODE = 1
 
 
@@ -78,3 +78,8 @@ class AgentConfigTemplateNotExistError(BackendBaseException):
     MESSAGE = _("配置模板不存在")
     MESSAGE_TPL = _("配置模板[{name}-{filename}-{os_type}-{cpu_arch}]不存在")
     ERROR_CODE = 12
+
+
+class NotSemanticVersionError(BackendBaseException):
+    MESSAGE_TPL = _("版本号 -> {version} 不符合语义化版本规则")
+    ERROR_CODE = 13

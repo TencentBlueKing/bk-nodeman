@@ -12,7 +12,9 @@ from enum import Enum
 from typing import Any, Callable, Dict, Optional, Union
 
 import mock
+from django.conf import settings
 
+from apps.core.files import base, core_files_constants, storage
 from apps.utils.enum import EnhanceEnum
 from apps.utils.unittest.base import CallRecorder
 
@@ -62,3 +64,65 @@ class BaseMockClient:
     def generate_magic_mock(cls, mock_return_obj: Optional[MockReturn]):
         mock_return_obj = mock_return_obj or MockReturn(return_type=MockReturnType.RETURN_VALUE.value, return_obj=None)
         return mock.MagicMock(**{mock_return_obj.return_type: mock_return_obj.return_obj})
+
+
+class CustomBKRepoMockStorage(storage.CustomBKRepoStorage):
+    mock_storage: storage.AdminFileSystemStorage = None
+
+    def __init__(
+        self,
+        root_path=None,
+        username=None,
+        password=None,
+        project_id=None,
+        bucket=None,
+        endpoint_url=None,
+        file_overwrite=None,
+    ):
+        self.mock_storage = storage.AdminFileSystemStorage(file_overwrite=file_overwrite)
+        super().__init__(
+            root_path=root_path,
+            username=username,
+            password=password,
+            project_id=project_id,
+            bucket=bucket,
+            endpoint_url=endpoint_url,
+            file_overwrite=file_overwrite,
+        )
+
+    def path(self, name):
+        return self.mock_storage.path(name)
+
+    def _open(self, name, mode="rb"):
+        return self.mock_storage._open(name, mode)
+
+    def _save(self, name, content):
+        return self.mock_storage._save(name, content)
+
+    def exists(self, name):
+        return self.mock_storage.exists(name)
+
+    def size(self, name):
+        return self.mock_storage.size(name)
+
+    def url(self, name):
+        return self.mock_storage.url(name)
+
+    def delete(self, name):
+        return self.mock_storage.delete(name)
+
+
+OVERWRITE_OBJ__KV_MAP = {
+    settings: {
+        "FILE_OVERWRITE": True,
+        "STORAGE_TYPE": core_files_constants.StorageType.BLUEKING_ARTIFACTORY.value,
+        "BKREPO_USERNAME": "username",
+        "BKREPO_PASSWORD": "blueking",
+        "BKREPO_PROJECT": "project",
+        "BKREPO_BUCKET": "private",
+        "BKREPO_PUBLIC_BUCKET": "public",
+        "BKREPO_ENDPOINT_URL": "http://127.0.0.1",
+    },
+    CustomBKRepoMockStorage: {"file_overwrite": True},
+    base.StorageFileOverwriteMixin: {"file_overwrite": True},
+}

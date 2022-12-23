@@ -1,0 +1,37 @@
+{{- $fullName := printf "%s-%s" (include "bk-nodeman.fullname" .) "gse-cert-configmap" -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: "{{ $fullName }}"
+  labels:
+    {{- include "bk-nodeman.labels" . | nindent 4 }}
+    {{- if .Values.commonLabels }}
+    {{- include "common.tplvalues.render" (dict "value" .Values.commonLabels "context" $) | nindent 4 }}
+    {{- end }}
+  {{- with .Values.commonAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+data:
+  {{- if .Values.gseCert.ca }}
+  gseca.crt: {{ .Values.gseCert.ca | b64dec | quote }}
+  {{- end }}
+  {{- if .Values.gseCert.cert }}
+  gse_server.crt: {{ .Values.gseCert.cert | b64dec | quote }}
+  {{- end }}
+  {{- if .Values.gseCert.key }}
+  gse_server.key: {{ .Values.gseCert.key | b64dec | quote }}
+  {{- end }}
+  {{- if .Values.gseCert.agent.cert }}
+  gse_agent.crt: {{ .Values.gseCert.agent.cert | b64dec | quote }}
+  {{- end }}
+  {{- if .Values.gseCert.agent.key }}
+  gse_agent.key: {{ .Values.gseCert.agent.key | b64dec | quote }}
+  {{- end }}
+  {{- if .Values.gseCert.apiClient.cert }}
+  gse_api_client.crt: {{ .Values.gseCert.apiClient.cert | b64dec | quote }}
+  {{- end }}
+  {{- if .Values.gseCert.apiClient.key }}
+  gse_api_client.key: {{ .Values.gseCert.apiClient.key | b64dec | quote }}
+  {{- end }}
+  from: "{{.Values.config.appCode}}"

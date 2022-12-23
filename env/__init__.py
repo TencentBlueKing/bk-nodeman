@@ -69,7 +69,9 @@ BK_LOG_DIR = get_type_env(key="BK_LOG_DIR", default="./../bk_nodeman/logs", _typ
 # 蓝鲸管控平台
 # ===============================================================================
 # 平台版本
-GSE_VERSION = get_type_env(key="GSE_VERSION", default=constants.GseVersion.V1.value)
+GSE_VERSION = get_type_env(key="GSE_VERSION", default=constants.GseVersion.V1.value, _type=str)
+
+GSE_CERT_PATH = get_type_env(key="GSE_CERT_PATH", default="/data/bkce/cert", _type=str)
 
 
 # ===============================================================================

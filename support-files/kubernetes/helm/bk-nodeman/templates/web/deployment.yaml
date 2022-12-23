@@ -52,11 +52,9 @@ spec:
           args:
             - "python manage.py collectstatic --noinput"
           volumeMounts:
+            {{- include "bk-nodeman.volumeMounts" . | nindent 12 }}
             - name: "static"
               mountPath: "/app/staticfiles/"
-            {{- if .Values.volumeMounts }}
-            {{- include "common.tplvalues.render" (dict "value" .Values.volumeMounts "context" $) | nindent 12 }}
-            {{- end }}
           {{- include "bk-nodeman.saas.env" . | nindent 10 }}
       containers:
         - name: "{{ $fullName }}"
@@ -65,13 +63,11 @@ spec:
           image: "{{ .Values.global.imageRegistry | default .Values.images.nginx.registry }}/{{ .Values.images.nginx.repository }}:{{ .Values.images.nginx.tag }}"
           imagePullPolicy: "{{ .Values.images.nginx.pullPolicy }}"
           volumeMounts:
+            {{- include "bk-nodeman.volumeMounts" . | nindent 12 }}
             - name: "nginx-conf"
               mountPath: "/etc/nginx/conf.d/"
             - name: "static"
               mountPath: "/app/staticfiles/"
-            {{- if .Values.volumeMounts }}
-            {{- include "common.tplvalues.render" (dict "value" .Values.volumeMounts "context" $) | nindent 12 }}
-            {{- end }}
           ports:
             - name: http
               containerPort: {{ $svcPort }}
@@ -86,6 +82,13 @@ spec:
               port: {{ $svcPort }}
           resources:
             {{- toYaml $moduleConf.resources | nindent 12 }}
+      volumes:
+        {{- include "bk-nodeman.volumes" . | nindent 8 }}
+        - name: static
+          emptyDir: {}
+        - name: nginx-conf
+          configMap:
+            name: "{{ include "bk-nodeman.saas-web.fullname" . }}-nginx-configmap"
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
@@ -94,15 +97,6 @@ spec:
       affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      volumes:
-        - name: static
-          emptyDir: {}
-        - name: nginx-conf
-          configMap:
-            name: "{{ include "bk-nodeman.saas-web.fullname" . }}-nginx-configmap"
-        {{- if .Values.volumes }}
-        {{- include "common.tplvalues.render" (dict "value" .Values.volumes "context" $) | nindent 8 }}
-        {{- end }}
       {{- with .Values.tolerations }}
       tolerations:
         {{- toYaml . | nindent 8 }}

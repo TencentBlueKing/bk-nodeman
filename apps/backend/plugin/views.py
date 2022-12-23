@@ -107,7 +107,7 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         # 1. 判断是否存在需要注册的文件信息
         models_queryset = models.UploadPackage.objects.filter(file_name=file_name)
         if not models_queryset.exists():
-            raise exceptions.UploadPackageNotExistError(_("找不到请求发布的文件，请确认后重试"))
+            raise exceptions.FileNotExistError(_("找不到请求发布的文件，请确认后重试"))
 
         # 2. 创建一个新的task,返回任务ID
         job = models.Job.objects.create(
@@ -884,7 +884,7 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
             models.UploadPackage.objects.filter(file_name=params["file_name"]).order_by("-upload_time").first()
         )
         if upload_package_obj is None:
-            raise exceptions.UploadPackageNotExistError(_("找不到请求发布的文件，请确认后重试"))
+            raise exceptions.FileNotExistError(_("找不到请求发布的文件，请确认后重试"))
 
         # 获取插件中各个插件包的路径信息
         package_infos = tools.list_package_infos(file_path=upload_package_obj.file_path)
