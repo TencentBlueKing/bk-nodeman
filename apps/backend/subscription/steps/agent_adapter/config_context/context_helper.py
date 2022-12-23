@@ -49,16 +49,18 @@ class ConfigContextHelper:
         log_path: str = agent_config["log_path"]
         setup_path: str = agent_config["setup_path"]
         path_sep: str = (constants.LINUX_SEP, constants.WINDOWS_SEP)[self.host.os_type == constants.OsType.WINDOWS]
+
+        cert_dir: str = path_sep.join([setup_path, self.node_type, "cert"])
         # Agent 侧证书
-        agent_tls_ca_file: str = path_sep.join([setup_path, self.node_type, "cert", "gseca.crt"])
-        agent_tls_cert_file: str = path_sep.join([setup_path, self.node_type, "cert", "gse_agent.crt"])
-        agent_tls_key_file: str = path_sep.join([setup_path, self.node_type, "cert", "gse_agent.key"])
+        agent_tls_ca_file: str = path_sep.join([cert_dir, constants.GseCert.CA.value])
+        agent_tls_cert_file: str = path_sep.join([cert_dir, constants.GseCert.AGENT_CERT.value])
+        agent_tls_key_file: str = path_sep.join([cert_dir, constants.GseCert.AGENT_KEY.value])
         # Proxy 侧证书
         proxy_tls_ca_file: str = agent_tls_ca_file
-        proxy_tls_cert_file: str = path_sep.join([setup_path, self.node_type, "cert", "gse_server.crt"])
-        proxy_tls_key_file: str = path_sep.join([setup_path, self.node_type, "cert", "gse_server.key"])
-        proxy_tls_cli_cert_file: str = path_sep.join([setup_path, self.node_type, "cert", "gse_api_client.crt"])
-        proxy_tls_cli_key_file: str = path_sep.join([setup_path, self.node_type, "cert", "gse_api_client.key"])
+        proxy_tls_cert_file: str = path_sep.join([cert_dir, constants.GseCert.SERVER_CERT.value])
+        proxy_tls_key_file: str = path_sep.join([cert_dir, constants.GseCert.SERVER_KEY.value])
+        proxy_tls_cli_cert_file: str = path_sep.join([cert_dir, constants.GseCert.API_CLIENT_CERT.value])
+        proxy_tls_cli_key_file: str = path_sep.join([cert_dir, constants.GseCert.API_CLIENT_KEY.value])
 
         if self.host.os_type == constants.OsType.WINDOWS:
             # 去除引号

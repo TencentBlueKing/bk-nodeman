@@ -29,18 +29,18 @@ dependencies:
   version: 1.x.x
   repository: https://charts.bitnami.com/bitnami
 - name: mysql
-  version: 8.8.27
+  version: 9.x.x
   repository: https://charts.bitnami.com/bitnami
   condition: mysql.enabled
 - name: redis
-  version: 16.5.4
+  version: 16.x.x
   repository: https://charts.bitnami.com/bitnami
   condition: redis.enabled
 - name: rabbitmq
-  version: 8.30.1
+  version: 11.x.x
   repository: https://charts.bitnami.com/bitnami
   condition: rabbitmq.enabled
 - name: nginx-ingress-controller
-  version: 9.1.12
+  version: 9.x.x
   repository: https://charts.bitnami.com/bitnami
   condition: nginx-ingress-controller.enabled

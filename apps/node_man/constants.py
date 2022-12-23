@@ -483,6 +483,10 @@ PACKAGE_PATH_RE = re.compile(
     f"_(?P<cpu_arch>({'|'.join(map(str, CPU_TUPLE))})?$)"
 )
 
+AGENT_PATH_RE = re.compile(
+    f"agent_(?P<os>({'|'.join(map(str, PLUGIN_OS_TUPLE))}))" f"_(?P<cpu_arch>({'|'.join(map(str, CPU_TUPLE))})?$)"
+)
+
 # TODO: 部署方式，后续确认
 DEPLOY_TYPE_TUPLE = ("package", "config", "agent")
 DEPLOY_TYPE_CHOICES = tuple_choices(DEPLOY_TYPE_TUPLE)
@@ -525,6 +529,12 @@ QUERY_CMDB_MODULE_LIMIT = 500
 QUERY_CLOUD_LIMIT = 200
 QUERY_HOST_SERVICE_TEMPLATE_LIMIT = 200
 VERSION_PATTERN = re.compile(r"[vV]?(\d+\.){1,5}\d+(-rc\d)?$")
+# 语义化版本正则，参考：https://semver.org/#is-there-a-suggested-regular-expression-regex-to-check-a-semver-string
+SEMANTIC_VERSION_PATTERN = re.compile(
+    r"^(?P<major>0|[1-9]\d*)\.(?P<minor>0|[1-9]\d*)\.(?P<patch>0|[1-9]\d*)"
+    r"(?:-(?P<prerelease>(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?"
+    r"(?:\+(?P<buildmetadata>[0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$"
+)
 WINDOWS_PORT = 445
 WINDOWS_ACCOUNT = "Administrator"
 LINUX_ACCOUNT = "root"
@@ -852,6 +862,52 @@ class GseAgentRunMode(EnhanceEnum):
     @classmethod
     def _get_member__alias_map(cls) -> Dict[Enum, str]:
         return {cls.PROXY: "Proxy Agent 模式", cls.AGENT: "Agent 模式"}
+
+
+class GsePackageCode(EnhanceEnum):
+    """安装包代号"""
+
+    PROXY = "gse_proxy"
+    AGENT = "gse_agent"
+
+    @classmethod
+    def _get_member__alias_map(cls) -> Dict[Enum, str]:
+        return {cls.PROXY: _("2.0 Proxy Agent 安装包代号"), cls.AGENT: _("2.0 Agent 安装包代号")}
+
+
+class GsePackageDir(EnhanceEnum):
+    """安装包打包根路径"""
+
+    PROXY = "proxy"
+    AGENT = "agent"
+
+    @classmethod
+    def _get_member__alias_map(cls) -> Dict[Enum, str]:
+        return {cls.PROXY: _("2.0 Proxy 打包根路径"), cls.AGENT: _("2.0 Agent 打包根路径")}
+
+
+class GseCert(EnhanceEnum):
+    """证书"""
+
+    CA = "gseca.crt"
+    SERVER_CERT = "gse_server.crt"
+    SERVER_KEY = "gse_server.key"
+    AGENT_CERT = "gse_agent.crt"
+    AGENT_KEY = "gse_agent.key"
+    API_CLIENT_CERT = "gse_api_client.crt"
+    API_CLIENT_KEY = "gse_api_client.key"
+
+    @classmethod
+    def _get_member__alias_map(cls) -> Dict[Enum, str]:
+        return {
+            cls.CA: _("证书 CA 内容配置"),
+            cls.SERVER_CERT: _("Server 侧 CERT 内容配置"),
+            cls.SERVER_KEY: _("Server 侧 KEY 内容配置"),
+            cls.AGENT_CERT: _("API 侧 CERT 内容配置, 用于其他服务调用 GSE"),
+            cls.AGENT_KEY: _("API 侧 KEY 内容配置, 用于其他服务调用 GSE"),
+            cls.API_CLIENT_CERT: _("Agent 侧 CERT 内容配置, 用于 Agent 链路"),
+            cls.API_CLIENT_KEY: _("Agent 侧 KEY 内容配置, 用于 Agent 链路"),
+        }
 
 
 ########################################################################################################

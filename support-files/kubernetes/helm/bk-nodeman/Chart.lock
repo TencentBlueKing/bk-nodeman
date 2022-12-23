@@ -1,18 +1,18 @@
 dependencies:
 - name: common
   repository: https://charts.bitnami.com/bitnami
-  version: 1.16.0
+  version: 1.17.1
 - name: mysql
   repository: https://charts.bitnami.com/bitnami
-  version: 8.8.27
+  version: 9.4.5
 - name: redis
   repository: https://charts.bitnami.com/bitnami
-  version: 16.5.4
+  version: 16.13.2
 - name: rabbitmq
   repository: https://charts.bitnami.com/bitnami
-  version: 8.30.1
+  version: 11.2.2
 - name: nginx-ingress-controller
   repository: https://charts.bitnami.com/bitnami
-  version: 9.1.12
-digest: sha256:ed5d1bccd3c41a765697a425d281ee585080aa9cfdbe17e6e531281903d27365
-generated: "2022-06-09T16:02:09.176183862+08:00"
+  version: 9.3.24
+digest: sha256:f7eadd0f18f9a44bb22d5f3fd433b4708637c5ab6c9d9058c922c2dce8c030f8
+generated: "2022-12-20T17:05:24.797411+08:00"

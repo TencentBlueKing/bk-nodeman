@@ -72,7 +72,10 @@ class InstallationTools:
 
 
 def gen_nginx_download_url(nginx_ip: str) -> str:
-    return f"http://{nginx_ip}:{settings.BK_NODEMAN_NGINX_DOWNLOAD_PORT}/"
+    if basic.is_v6(nginx_ip):
+        return f"http://[{nginx_ip}]:{settings.BK_NODEMAN_NGINX_DOWNLOAD_PORT}/"
+    else:
+        return f"http://{nginx_ip}:{settings.BK_NODEMAN_NGINX_DOWNLOAD_PORT}/"
 
 
 def fetch_gse_servers_info(

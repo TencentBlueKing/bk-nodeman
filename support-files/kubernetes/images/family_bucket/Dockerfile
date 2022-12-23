@@ -82,6 +82,7 @@ FROM base-app AS ieod-app
 RUN set -ex && \
     rm -rf blueking && \
     rm -rf bkoauth && \
+    pip install --no-cache-dir python-crontab==2.6.0 && \
     pip install --no-cache-dir blueking-component-ieod==0.1.12 && \
     pip install --no-cache-dir bkoauth==0.0.22
 
