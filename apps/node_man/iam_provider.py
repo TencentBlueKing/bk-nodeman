@@ -143,11 +143,22 @@ class CloudResourceProvider(ResourceProvider):
         """
         if not condition:
             condition = {}
-        result = [
-            {"id": cloud["bk_cloud_id"], "display_name": cloud["bk_cloud_name"]}
-            for cloud in list(Cloud.objects.filter(**condition).values("bk_cloud_id", "bk_cloud_name"))
-        ]
-        # result.insert(0, {"id": DEFAULT_CLOUD, "display_name": _("直连区域")})
+
+        result = []
+        for cloud in list(Cloud.objects.filter(**condition).values("bk_cloud_id", "bk_cloud_name", "creator")):
+            cloud_creator = cloud["creator"]
+            try:
+                cloud_creator.remove("system")
+            except ValueError:
+                pass
+            approval_info = {
+                "id": cloud["bk_cloud_id"],
+                "display_name": cloud["bk_cloud_name"],
+            }
+            if cloud_creator:
+                approval_info.update({"_bk_iam_approver_": ",".join(cloud_creator)})
+            result.append(approval_info)
+
         return result
 
     def list_attr(self, **options):
