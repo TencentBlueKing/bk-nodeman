@@ -852,7 +852,7 @@ export default class SetupTable extends Vue {
     } else {
       if ((isEmpty(value) && type !== 'switcher') && (isEmpty(fileInfo) || !fileInfo.value)) return;
       this.table.data.forEach((row, index) => {
-        const isReadOnly = (config.getReadonly && config.getReadonly(row)) || config.readonly;
+        const isReadOnly = config.getReadonly?.call(this, row) || config.readonly;
         const isFileType = config.getCurrentType && config.getCurrentType(row) === 'file';
         const isWindowsKey = config.prop === 'auth_type'
                             && value === 'KEY'
