@@ -588,9 +588,9 @@ export default class AgentSetup extends Mixins(mixin, formLabelMixin) {
   @mixin layout-flex row;
   &-left {
     flex: 1;
-    >>> .agent-setup-table {
+    /* >>> .agent-setup-table {
       max-width: 1200px;
-    }
+    } */
     >>> .install-table-body {
       overflow: visible;
     }

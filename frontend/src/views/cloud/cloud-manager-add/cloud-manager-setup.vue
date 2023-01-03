@@ -436,9 +436,9 @@ export default class CloudManagerSetup extends Mixins(formLabelMixin, FilterIpMi
   &-left {
     flex: 1;
     .left-form {
-      .cloud-setup-table {
+      /* .cloud-setup-table {
         max-width: 822px;
-      }
+      } */
       .content-basic {
         width: 480px;
       }

@@ -54,13 +54,13 @@
                     </template>
                   </bk-table-column>
                   <bk-table-column
-                    :label="$t('CPU配额及单位')"
+                    label="CPU配额及单位"
                     prop="cpu"
                     align="right"
                     :resizable="false"
                     :render-header="tipsHeadRender" />
                   <bk-table-column
-                    :label="$t('内存配额及单位')"
+                    label="内存配额及单位"
                     prop="mem"
                     align="right"
                     :resizable="false"
@@ -131,8 +131,8 @@ export default class ResourceQuota extends Mixins(HeaderFilterMixins) {
   public pluginListMap: any = {};
   public pluginList: any[] = [];
   public headTipsMap = {
-    cpu: this.$t('CPU配额tip'),
-    mem: this.$t('内存配额tip'),
+    cpu: 'CPU配额tip',
+    mem: '内存配额tip',
   };
   // public biz: number[] = [];
   public hasBizAuth = true;
@@ -152,10 +152,10 @@ export default class ResourceQuota extends Mixins(HeaderFilterMixins) {
     return MainStore.bkBizList;
   }
 
-  // @Watch('bizId')
-  // public handleRouteBizChange() {
-  //   this.handleBizOrModuleChange();
-  // }
+  @Watch('bizId')
+  public handleRouteBizChange(newVal: number, oldVal: number) {
+    oldVal === -1 && this.handleBizOrModuleChange();
+  }
   // @Watch('moduleId')
   // public handleRouteModuleChange() {
   //   this.handleBizOrModuleChange();
