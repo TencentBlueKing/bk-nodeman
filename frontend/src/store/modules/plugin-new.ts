@@ -406,13 +406,15 @@ export default class PluginStore extends VuexModule {
   // 查询业务下的资源树结构（单业务）
   @Action
   public async getTemplatesByBiz({ bk_biz_id }: { bk_biz_id: number }) {
-    const res = await serviceTemplate({ bk_biz_id }).catch(() => []);
-    return res.map(item => ({
+    let res = await serviceTemplate({ bk_biz_id }).catch(() => []);
+    res = res.map(item => ({
       ...item,
       bk_inst_id: item.id,
       bk_inst_name: item.name,
       bk_obj_id: 'template',
     }));
+    res.sort((a, b) => a.bk_inst_id - b.bk_inst_id);
+    return res;
   }
 
   // 查询资源策略信息

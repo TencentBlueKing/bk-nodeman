@@ -36,19 +36,7 @@
 
 <script lang="ts">
 import { Prop, Vue, Component } from 'vue-property-decorator';
-
-interface ITreeNode {
-  id: string | number
-  name: string | number
-  active: boolean
-  show: boolean
-  level: number
-  loadable: boolean
-  loading: boolean
-  foldable: boolean
-  folded: boolean
-  child: ITreeNode[]
-}
+import { ITreeNode } from './tree-fn';
 
 @Component({
   name: 'ResourceTreeItem',
