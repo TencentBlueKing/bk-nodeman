@@ -40,7 +40,7 @@
                     tips: config.tips,
                     label: config.label,
                     required: !config.noRequiredMark && config.required,
-                    batch: config.batch,
+                    batch: config.getBatch ? config.getBatch.call(_self) : config.batch,
                     isBatchIconShow: !!table.data.length,
                     type: config.type,
                     subTitle: config.subTitle,
