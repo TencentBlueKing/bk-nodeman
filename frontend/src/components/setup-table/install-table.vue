@@ -40,7 +40,7 @@
                     tips: config.tips,
                     label: config.label,
                     required: !config.noRequiredMark && config.required,
-                    batch: config.batch,
+                    batch: config.getBatch ? config.getBatch.call(_self) : config.batch,
                     isBatchIconShow: !!table.data.length,
                     type: config.type,
                     subTitle: config.subTitle,
@@ -852,7 +852,7 @@ export default class SetupTable extends Vue {
     } else {
       if ((isEmpty(value) && type !== 'switcher') && (isEmpty(fileInfo) || !fileInfo.value)) return;
       this.table.data.forEach((row, index) => {
-        const isReadOnly = (config.getReadonly && config.getReadonly(row)) || config.readonly;
+        const isReadOnly = config.getReadonly?.call(this, row) || config.readonly;
         const isFileType = config.getCurrentType && config.getCurrentType(row) === 'file';
         const isWindowsKey = config.prop === 'auth_type'
                             && value === 'KEY'

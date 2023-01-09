@@ -297,6 +297,7 @@ export interface ISetupHead {
   options?: any[]
   manualProp?: boolean // 手动安装需要的配置
   getOptions?: Function
+  getBatch?: Function
   getReadonly?: Function
   getProxyStatus?: Function
   getCurrentType?: Function

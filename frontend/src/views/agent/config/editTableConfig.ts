@@ -145,6 +145,9 @@ export const config: ISetupHead[] = [
     getReadonly() {
       return /REINSTALL_AGENT/ig.test(this.localMark);
     },
+    getBatch() {
+      return !/REINSTALL_AGENT/ig.test(this.localMark);
+    },
     width: 115,
   },
   {
