@@ -12,7 +12,7 @@ msgstr ""
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
-"Language: \n"
+"Language: en\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -2785,7 +2785,7 @@ msgstr "Node type"
 #: apps/node_man/handlers/meta.py:432
 #, python-brace-format
 msgid "{name}版本"
-msgstr ""
+msgstr "{name} version"
 
 #: apps/node_man/handlers/permission.py:38
 #: apps/node_man/handlers/permission.py:89
@@ -5505,3 +5505,112 @@ msgstr "Log version file not found, please contact administrator"
 #: version_log/views.py:69
 msgid "日志详情获取成功"
 msgstr "Log details fetched successfully"
+
+msgid "操作系统版本安装包校验错误"
+msgstr "Operating system version installation package verification error"
+
+msgid "操作系统[{os_type}]不支持 对应版本[{os_version}]的安装包"
+msgstr "The operating system [{os_type}] does not support the installation package of the corresponding version [{os_version}]"
+
+msgid "创建依赖目录"
+msgstr "Create dependencies directory"
+
+msgid "创建 {dir}"
+msgstr "Create directory {dir}"
+
+msgid "为 {filename} 添加执行权限"
+msgstr "Add execution permissions for {filename}"
+
+msgid "{solution_description}（若目标机器已安装 Cygwin，推荐使用该方案，否则请使用【{batch}】方案）"
+msgstr "{solution_description} (If the target machine has Cygwin installed, this solution is recommended, otherwise, please use the [{batch}] solution)"
+
+msgid "下载{setup_type_alias}脚本并赋予执行权限"
+msgstr "Download {setup_type_alias} script and add execution permissions"
+
+msgid "下载{setup_type_alias}脚本"
+msgstr "Download {setup_type_alias} script"
+
+msgid "为 {script_file_name} 添加执行权限"
+msgstr "Add execution permissions for {script_file_name}"
+
+msgid "执行{setup_type_alias}脚本"
+msgstr "Execute {setup_type_alias} script"
+
+msgid "下载依赖文件到 {dest_dir} 下"
+msgstr "Download the dependency files to {dest_dir}"
+
+msgid "执行{setup_type_alias}命令"
+msgstr "Execute {setup_type_alias} command"
+
+msgid "通过 {solution_type_alias} 在代理上进行{setup_type_alias}"
+msgstr "Perform {solution_type_alias} on proxy {setup_type_alias}"
+
+msgid "{act_name} 已终止，可整体重试/重试。（details: {revoke_sub_inst_id_set}）"
+msgstr "{act_name} has been terminated, and the overall weight test/retry. details: {revoke_sub_inst_id_set}"
+
+msgid "{act_name} 失败，请先尝试查看日志并处理，若无法解决，请联系管理员处理。"
+msgstr "{act_name} failed, please try to view the log and handle it. If you cannot solve it, please contact the administrator to handle it."
+
+msgid "主机写入操作"
+msgstr "The host write operation"
+
+msgid "子订阅【ID：{sub_id}】任务创建失败：{err_msg}"
+msgstr "Sub subscription [ID: {sub_id}] task creation failed: {err_msg}"
+
+msgid "子订阅【ID：{no_ready_sub_ids}】任务创建超时"
+msgstr "Sub subscription [ID: {no_ready_sub_ids}] task creation timeout"
+
+msgid "部分子订阅任务创建失败"
+msgstr "Some sub subscription tasks creation failed"
+
+msgid ""
+"添加主机到业务 {bk_biz_name}[{bk_biz_id}]:\n"
+" {params}"
+msgstr "Add host to business {bk_biz_name} [{bk_biz_id}]: \n {params}"
+
+msgid "已将 Agent[bk_agent_id: {bk_agent_id}] 绑定到 主机[bk_host_id: {bk_host_id}]"
+msgstr "Agent [bk_agent_id: {bk_agent_id}] has bound to host [bk_host_id: {bk_host_id}]"
+
+msgid "绑定主机 Agent 信息"
+msgstr "Bind the host agent information"
+
+msgid "主机解绑 Agent 信息"
+msgstr "The host unbind agent information"
+
+msgid "执行命令: {cmd}"
+msgstr "Execute command: {cmd}"
+
+msgid "推送文件 {localpath} 到目标机器路径 {dest_dir}"
+msgstr "Push file {localpath} to the target machine path {dest_dir}"
+
+msgid "推送主机身份的任务为: [{task_id}]"
+msgstr "The task of pushing the host identity is: [{task_id}]"
+
+msgid "推送主机身份失败"
+msgstr "Push host identity failed"
+
+msgid "推送主机身份超时"
+msgstr "Push host identity timeout"
+
+msgid ""
+"已将 Agent[bk_agent_id: {bk_agent_id}] 和 主机[bk_host_id: {bk_host_id}] "
+"之间的绑定关系解除"
+msgstr "Between agent [bk_agent_id: {bk_agent_id}] and host [bk_host_id: {bk_host_id}] binding relationship hase been release"
+
+msgid "不存在绑定关系，无需解绑"
+msgstr "No binding relationship, not need to unbind"
+
+msgid "升级 Agent-ID 配置失败"
+msgstr "Upgrade Agent-Id configuration failed"
+
+msgid "初始化操作脚本"
+msgstr "Initialize operation script"
+
+msgid "订阅全局状态统计"
+msgstr "Subscription to global statistics"
+
+msgid "下载文件名，只能下载script_tools下的文件"
+msgstr "Download file name, you can only download the file under script_tools"
+
+msgid "订阅 -> [{subscription_id}] 对应的订阅任务 -> [{task_id_list}] 不存在"
+msgstr "Subscription task -> [{subscription_id}] the corresponding task -> [{task_id_list}]  not exist"

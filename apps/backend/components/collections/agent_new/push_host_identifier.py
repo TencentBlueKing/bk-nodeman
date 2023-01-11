@@ -47,7 +47,7 @@ class PushIdentifierHostsService(AgentBaseService):
             push_host_instance_ids.append(host_id__sub_inst_id_map[bk_host_id])
         self.log_info(
             sub_inst_ids=push_host_instance_ids,
-            log_content=_("推送主机身份的任务为: [{}]").format(push_host_identifier_result["task_id"]),
+            log_content=_("推送主机身份的任务为: [{task_id}]").format(task_id=push_host_identifier_result["task_id"]),
         )
         return push_host_identifier_result
 
