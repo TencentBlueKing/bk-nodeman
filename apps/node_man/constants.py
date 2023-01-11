@@ -580,6 +580,8 @@ GSE_PORT_DEFAULT_VALUE = {
     "btsvr_thrift_port": 58930,
     "api_server_port": 50002,
     "proc_port": 50000,
+    # Agent 2.0：这两个端口是 proxy 和 p-agent 连
+    # Legacy：这两个端口 server 和 proxy，proxy 和 p-agent 都会连
     "bt_port": 10020,
     "tracker_port": 10030,
     "data_prometheus_port": 59402,

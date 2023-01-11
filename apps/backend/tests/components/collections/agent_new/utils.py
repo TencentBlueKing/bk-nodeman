@@ -86,6 +86,8 @@ class AgentTestObjFactory:
     # 随机生成的起始主机ID
     RANDOM_BEGIN_HOST_ID: int = random.randint(int(1e2), int(1e5))
 
+    total_host_num: Optional[int] = 0
+
     # 构造的主机数
     init_host_num: Optional[int] = None
     # 操作系统可选项
@@ -107,6 +109,8 @@ class AgentTestObjFactory:
 
     @classmethod
     def bulk_create_model(cls, model: Type[Model], create_data_list: List[Dict]):
+        if model == models.Host:
+            cls.total_host_num += len(create_data_list)
         objs_to_be_created = []
         for create_data in create_data_list:
             objs_to_be_created.append(model(**create_data))
@@ -479,7 +483,7 @@ class AgentServiceBaseTestCase(CustomAPITestCase, ComponentTestMixin, ABC):
         cls.obj_factory.init_db()
         super().setUpTestData()
 
-    def create_install_channel(self, offset: int = 1) -> Tuple[models.InstallChannel, List[int]]:
+    def create_install_channel(self) -> Tuple[models.InstallChannel, List[int]]:
         """创建安装通道"""
         install_channel = models.InstallChannel.objects.create(
             bk_cloud_id=constants.DEFAULT_CLOUD,
@@ -492,7 +496,7 @@ class AgentServiceBaseTestCase(CustomAPITestCase, ComponentTestMixin, ABC):
                 "channel_proxy_address": f"http://{utils.DEFAULT_IP}:17981",
             },
         )
-        jump_server_host_id = self.obj_factory.RANDOM_BEGIN_HOST_ID + len(self.obj_factory.bk_host_ids) + offset
+        jump_server_host_id = self.obj_factory.RANDOM_BEGIN_HOST_ID + self.obj_factory.total_host_num
         jump_server = copy.deepcopy(common_unit.host.HOST_MODEL_DATA)
         jump_server.update(
             {
@@ -522,7 +526,7 @@ class AgentServiceBaseTestCase(CustomAPITestCase, ComponentTestMixin, ABC):
         ap_obj.save()
         return ap_obj
 
-    def init_alive_proxies(self, bk_cloud_id: int, offset: int = 1):
+    def init_alive_proxies(self, bk_cloud_id: int):
 
         ap_obj = self.create_ap(name="Proxy专用接入点", description="用于测试PAgent是否正确通过存活Proxy获取到接入点")
         self.except_ap_ids = [ap_obj.id]
@@ -531,7 +535,7 @@ class AgentServiceBaseTestCase(CustomAPITestCase, ComponentTestMixin, ABC):
         proxy_data_host_list = []
         proc_status_data_list = []
         init_proxy_num = random.randint(5, 10)
-        random_begin_host_id = self.obj_factory.RANDOM_BEGIN_HOST_ID + len(self.obj_factory.bk_host_ids) + offset
+        random_begin_host_id = self.obj_factory.RANDOM_BEGIN_HOST_ID + self.obj_factory.total_host_num
 
         for index in range(init_proxy_num):
             proxy_host_id = random_begin_host_id + index
