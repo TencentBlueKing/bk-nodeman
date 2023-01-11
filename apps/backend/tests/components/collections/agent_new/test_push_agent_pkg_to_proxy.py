@@ -56,8 +56,8 @@ class PushAgentPackageToProxyTestCase(base.JobBaseTestCase):
 
     def init_hosts(self):
         ap_obj = self.init_ap()
-        proxies = self.init_alive_proxies(bk_cloud_id=self.CLOUD_ID)
-        install_channel, jump_server_host_ids = self.create_install_channel(offset=len(proxies) + 1)
+        self.init_alive_proxies(bk_cloud_id=self.CLOUD_ID)
+        install_channel, jump_server_host_ids = self.create_install_channel()
         self.jump_server_host_ids = set(jump_server_host_ids)
         models.Host.objects.filter(bk_host_id__in=self.obj_factory.bk_host_ids).update(ap_id=ap_obj.id)
         models.Host.objects.filter(bk_host_id=self.obj_factory.bk_host_ids[0]).update(
