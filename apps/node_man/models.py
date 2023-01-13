@@ -325,7 +325,7 @@ class Host(models.Model):
     bk_biz_id = models.IntegerField(_("业务ID"), db_index=True)
     bk_cloud_id = models.IntegerField(_("云区域ID"), db_index=True)
     bk_host_name = models.CharField(_("主机名称"), max_length=128, db_index=True, blank=True, null=True, default="")
-    bk_addressing = models.CharField(_("寻地方式"), max_length=16, default=constants.CmdbAddressingType.STATIC.value)
+    bk_addressing = models.CharField(_("寻址方式"), max_length=16, default=constants.CmdbAddressingType.STATIC.value)
 
     inner_ip = models.CharField(_("内网IP"), max_length=15, db_index=True)
     outer_ip = models.CharField(_("外网IP"), max_length=15, blank=True, null=True, default="")
