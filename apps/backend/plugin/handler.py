@@ -18,6 +18,7 @@ from django.conf import settings
 from django.utils.translation import ugettext as _
 
 from apps.backend import exceptions
+from apps.backend.plugin import tools
 from apps.core.files.storage import get_storage
 from apps.core.tag import targets
 from apps.core.tag.models import Tag
@@ -108,15 +109,16 @@ class PluginHandler:
 
     @classmethod
     def retrieve(cls, plugin_id: int):
+        locale_fields = tools.locale_fields()
         gse_plugin_desc = (
             models.GsePluginDesc.objects.filter(id=plugin_id)
             .values(
                 "id",
-                "description",
+                locale_fields["description"],
+                locale_fields["scenario"],
                 "name",
                 "category",
                 "source_app_code",
-                "scenario",
                 "deploy_type",
                 "node_manage_control",
                 "is_ready",
@@ -132,6 +134,8 @@ class PluginHandler:
                 "deploy_type": constants.DEPLOY_TYPE_DICT[gse_plugin_desc["deploy_type"]]
                 if gse_plugin_desc["deploy_type"]
                 else gse_plugin_desc["deploy_type"],
+                "description": gse_plugin_desc[locale_fields["description"]],
+                "scenario": gse_plugin_desc[locale_fields["scenario"]],
             }
         )
         # 筛选可用包，规则：启用，版本降序

@@ -364,7 +364,10 @@ class DataAPI(object):
                 "X-Bkapi-App-Code": params.get("bk_app_code"),
                 "X-Bkapi-App-Secret": params.get("bk_app_secret"),
                 "X-Bkapi-User-Name": params.get("bk_username"),
-                "blueking-language": translation.get_language(),
+                # 通过 session 设置语言类型即将在 Django 4.0 失效
+                # The user language will no longer be stored in request.session in Django 4.0. Read it from
+                # request.COOKIES[settings.LANGUAGE_COOKIE_NAME] instead.
+                "blueking_language": translation.get_language(),
             }
         )
 
@@ -376,6 +379,8 @@ class DataAPI(object):
 
         if local_request and local_request.COOKIES and not use_admin:
             session.cookies.update(local_request.COOKIES)
+            # 用于跨服务调用透传国际化设置
+            session.cookies.set("blueking_language", translation.get_language())
 
         # headers 申明重载请求方法
         if self.method_override is not None:

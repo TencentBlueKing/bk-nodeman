@@ -14,6 +14,7 @@ from drf_yasg.utils import swagger_auto_schema
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from apps.backend.plugin import tools as backend_plugin_tools
 from apps.generic import ModelViewSet
 from apps.node_man import exceptions
 from apps.node_man.constants import IamActionType
@@ -170,9 +171,10 @@ class PluginV2ViewSet(ModelViewSet):
         gse_plugin_desc = GsePluginDesc.objects.filter(id=kwargs["pk"]).first()
         if not gse_plugin_desc:
             raise exceptions.PluginNotExistError(_("不存在ID为: {id} 的插件").format(id=kwargs["pk"]))
-
-        gse_plugin_desc.description = self.validated_data["description"]
-        gse_plugin_desc.save(update_fields=["description"])
+        setattr(
+            gse_plugin_desc, backend_plugin_tools.locale_fields()["description"], self.validated_data["description"]
+        )
+        gse_plugin_desc.save(update_fields=[backend_plugin_tools.locale_fields()["description"]])
         return Response({})
 
     @swagger_auto_schema(

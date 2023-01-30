@@ -18,7 +18,7 @@ from typing import Any, Dict, List, Optional
 import yaml
 from django.conf import settings
 from django.db import transaction
-from django.utils import timezone
+from django.utils import timezone, translation
 from django.utils.translation import ugettext_lazy as _
 from packaging import version
 
@@ -28,6 +28,13 @@ from apps.node_man import constants, models
 from apps.utils import env, files
 
 logger = logging.getLogger("app")
+
+
+def locale_fields() -> Dict[str, str]:
+    language: str = translation.get_language()
+    if language.lower().startswith("zh-"):
+        return {"description": "description", "scenario": "scenario"}
+    return {"description": "description_en", "scenario": "scenario_en"}
 
 
 def list_package_infos(file_path: str) -> List[Dict[str, Any]]:
@@ -184,7 +191,7 @@ def parse_package(
                 "project": yaml_config["name"],
                 "version": yaml_config["version"],
                 "category": yaml_config["category"],
-                "description": yaml_config.get("description", ""),
+                "description": yaml_config.get(locale_fields()["description"], ""),
             }
         )
 
