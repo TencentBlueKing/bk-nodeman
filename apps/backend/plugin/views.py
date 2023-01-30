@@ -963,7 +963,9 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         )
         if "search" in query_params:
             gse_plugin_desc_qs = gse_plugin_desc_qs.filter(
-                Q(description__contains=query_params["search"]) | Q(name__contains=query_params["search"])
+                Q(description__contains=query_params["search"])
+                | Q(name__contains=query_params["search"])
+                | Q(description_en__contains=query_params["search"])
             )
 
         if "sort" in query_params:
@@ -973,14 +975,22 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
             else:
                 gse_plugin_desc_qs = gse_plugin_desc_qs.order_by(sort_head)
 
+        locale_fields = tools.locale_fields()
         # 返回插件概要信息
         if query_params["simple_all"]:
-            ret_plugins = list(gse_plugin_desc_qs.values("id", "description", "name", "is_ready"))
+            ret_plugins = list(gse_plugin_desc_qs.values("id", locale_fields["description"], "name", "is_ready"))
             return Response({"total": len(ret_plugins), "list": ret_plugins})
 
         plugins = list(
             gse_plugin_desc_qs.values(
-                "id", "description", "name", "category", "source_app_code", "scenario", "deploy_type", "is_ready"
+                "id",
+                locale_fields["description"],
+                locale_fields["scenario"],
+                "name",
+                "category",
+                "source_app_code",
+                "deploy_type",
+                "is_ready",
             )
         )
 
@@ -988,6 +998,9 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
             # 分页
             paginator = Paginator(plugins, query_params["pagesize"])
             ret_plugins = paginator.page(query_params["page"]).object_list
+            for ret_plugin in ret_plugins:
+                ret_plugin["scenario"] = ret_plugin[locale_fields["scenario"]]
+                ret_plugin["description"] = ret_plugin[locale_fields["description"]]
         except EmptyPage:
             return Response({"total": len(plugins), "list": []})
 
