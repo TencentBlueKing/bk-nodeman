@@ -967,6 +967,9 @@ class GsePluginDesc(models.Model):
     deploy_type = models.CharField(
         _("部署方式"), choices=constants.DEPLOY_TYPE_CHOICES, max_length=64, null=True, blank=True
     )
+    auto_type = models.IntegerField(
+        _("托管类型"), choices=constants.GseAutoType.list_choices(), default=constants.GseAutoType.RESIDENT.value
+    )
     source_app_code = models.CharField(_("来源系统APP CODE"), max_length=64, null=True, blank=True)
 
     node_manage_control = JSONField(_("节点管理管控插件信息"), null=True, blank=True)
