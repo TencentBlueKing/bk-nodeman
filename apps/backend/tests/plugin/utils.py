@@ -45,6 +45,7 @@ use_db: {use_db}
 is_binary: {is_binary}
 launch_node: {launch_node}
 auto_launch: {auto_launch}
+auto_type: {auto_type}
 config_templates:
 - plugin_version: "{package_version}"
   name: test_plugin.conf

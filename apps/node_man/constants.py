@@ -912,6 +912,22 @@ class GseCert(EnhanceEnum):
         }
 
 
+class GseAutoType(EnhanceEnum):
+    """进程托管类型"""
+
+    PERIODIC = 0
+    RESIDENT = 1
+    SINGLE_EXECUTION = 2
+
+    @classmethod
+    def _get_member__alias_map(cls) -> Dict[Enum, str]:
+        return {
+            cls.PERIODIC: _("周期执行进程"),
+            cls.RESIDENT: _("常驻进程"),
+            cls.SINGLE_EXECUTION: _("单次执行进程"),
+        }
+
+
 ########################################################################################################
 # CMDB
 ########################################################################################################

@@ -1206,6 +1206,7 @@ class GseOperateProcService(PluginBaseService):
         polling_time: int,
         subscription_instance: models.SubscriptionInstanceRecord,
         is_finished: bool,
+        auto_type: int,
     ) -> bool:
         """
         处理GSE返回的错误码，针对部分操作类型，
@@ -1215,16 +1216,26 @@ class GseOperateProcService(PluginBaseService):
         :param polling_time:
         :param subscription_instance:
         :param is_finished:
+        :param auto_type: 托管类型
         :return:
         """
         success_conditions = (
-            # 停止插件时，若插件本身未运行，也认为是成功的
-            op_type == constants.GseOpType.STOP
-            and error_code == GseDataErrCode.PROC_NO_RUNNING
-        ) or (
-            # 启动插件时，若插件本身已运行，也认为是成功的
-            op_type == constants.GseOpType.START
-            and error_code == GseDataErrCode.PROC_RUNNING
+            (
+                # 停止插件时，若插件本身未运行，也认为是成功的
+                op_type == constants.GseOpType.STOP
+                and error_code == GseDataErrCode.PROC_NO_RUNNING
+            )
+            or (
+                # 启动插件时，若插件本身已运行，也认为是成功的
+                op_type == constants.GseOpType.START
+                and error_code == GseDataErrCode.PROC_RUNNING
+            )
+            or (
+                # 单次执行进程，启动后无需检查进程存活情况
+                op_type in [constants.GseOpType.RESTART, constants.GseOpType.START]
+                and auto_type == constants.GseAutoType.SINGLE_EXECUTION.value
+                and error_code == GseDataErrCode.POST_CHECK_ERROR
+            )
         )
         if error_code == GseDataErrCode.RUNNING:
             # 只要有运行中的任务，则认为未完成，标记 is_finished
@@ -1275,7 +1286,7 @@ class GseOperateProcService(PluginBaseService):
             error_code = proc_operate_result["error_code"]
             error_msg = proc_operate_result["error_msg"]
             is_finished = self.handle_error_code(
-                error_code, error_msg, op_type, polling_time, subscription_instance, is_finished
+                error_code, error_msg, op_type, polling_time, subscription_instance, is_finished, plugin.auto_type
             )
 
         if is_finished:
