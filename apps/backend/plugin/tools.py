@@ -214,6 +214,21 @@ def parse_package(
     # 插件包最新版本预先初始化为当前解析插件包的版本
     package_release_version = yaml_config["version"]
 
+    # 判断托管类型是否符合预期
+    auto_type = yaml_config.get("auto_type", constants.GseAutoType.RESIDENT.value)
+    if auto_type not in constants.GseAutoType.list_member_values():
+        logger.warning(
+            "project -> {project}, version -> {version}: update(or create) with auto_type -> {auto_type} "
+            "which is not acceptable, nothing will do.".format(
+                project=pkg_parse_info["project"],
+                version=pkg_parse_info["version"],
+                auto_type=auto_type,
+            )
+        )
+        pkg_parse_info["result"] = False
+        pkg_parse_info["message"] = _("project.yaml 中 auto_type 配置异常，请确认后重试")
+        return pkg_parse_info
+
     # 判断插件类型是否符合预取
     if pkg_parse_info["category"] not in constants.CATEGORY_TUPLE:
         logger.warning(
@@ -418,6 +433,8 @@ def create_pkg_record(
             config_format=yaml_config.get("config_format", ""),
             use_db=bool(yaml_config.get("use_db", False)),
             auto_launch=bool(yaml_config.get("auto_launch", False)),
+            # 默认是常驻进程
+            auto_type=yaml_config.get("auto_type", constants.GseAutoType.RESIDENT.value),
             is_binary=bool(yaml_config.get("is_binary", True)),
             node_manage_control=yaml_config.get("node_manage_control", ""),
         ),

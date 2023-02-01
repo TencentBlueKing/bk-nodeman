@@ -30,6 +30,7 @@ GSE_PLUGIN_DESC_MODEL_DATA = {
     "use_db": 0,
     "is_binary": 1,
     "auto_launch": 1,
+    "auto_type": constants.GseAutoType.RESIDENT.value,
 }
 
 PACKAGES_MODEL_DATA = {
