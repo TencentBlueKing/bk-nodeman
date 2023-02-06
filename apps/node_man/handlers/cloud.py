@@ -205,7 +205,7 @@ class CloudHandler(APIModel):
         bk_cloud_name = params["bk_cloud_name"]
         bk_cloud_id = CmdbHandler.get_or_create_cloud(bk_cloud_name)
 
-        if bk_cloud_name == DEFAULT_CLOUD_NAME:
+        if bk_cloud_name == str(DEFAULT_CLOUD_NAME):
             raise ValidationError(_("云区域不可名为直连区域"))
 
         created = Cloud.objects.filter(bk_cloud_name=params["bk_cloud_name"]).exists()
@@ -291,7 +291,7 @@ class CloudHandler(APIModel):
         }
         cloud_info[0] = {
             "bk_cloud_id": DEFAULT_CLOUD,
-            "bk_cloud_name": DEFAULT_CLOUD_NAME,
+            "bk_cloud_name": str(DEFAULT_CLOUD_NAME),
             "ap_id": const.DEFAULT_AP_ID,
             "creator": [get_request_username()],
         }

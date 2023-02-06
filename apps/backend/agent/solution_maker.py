@@ -369,7 +369,7 @@ class BaseExecutionSolutionMaker(metaclass=abc.ABCMeta):
                 ExecutionSolutionStepContent(
                     name=f"create_dir_cmd_{index}",
                     text=create_dir_cmd_tmpl.format(dir=dir_to_be_created),
-                    description=str(_("创建 {dir}".format(dir=dir_to_be_created))),
+                    description=str(_("创建 {dir}").format(dir=dir_to_be_created)),
                     show_description=False,
                 )
             )

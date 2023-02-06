@@ -30,6 +30,8 @@ import ujson as json
 from django.conf import settings
 from django.dispatch import Signal
 from django.http import HttpResponse, JsonResponse
+from django.middleware.locale import LocaleMiddleware as GenericLocaleMiddleware
+from django.utils import translation
 from django.utils.deprecation import MiddlewareMixin
 from django.utils.translation import ugettext as _
 
@@ -147,6 +149,24 @@ def get_x_request_id():
 
 def get_request():
     return request_accessor.send(get_ident(), from_signal=True)[0][1]
+
+
+class LocaleMiddleware(GenericLocaleMiddleware):
+    def process_request(self, request):
+        # trans_real 仅在 USE_I18N 启用时生效
+        if not settings.USE_I18N:
+            return super(LocaleMiddleware, self).process_request(request)
+
+        from django.utils.translation import trans_real as trans
+
+        # f"HTTP_{settings.LANGUAGE_COOKIE_NAME}".upper() 源于 HTTP Headers 中的 blueking-language
+        # 若上述值被设置，优先取该值
+        lang_code = request.META.get(f"HTTP_{settings.LANGUAGE_COOKIE_NAME}".upper())
+        if lang_code is not None and lang_code in trans.get_languages() and trans.check_for_language(lang_code):
+            translation.activate(lang_code)
+            request.LANGUAGE_CODE = translation.get_language()
+            return
+        return super(LocaleMiddleware, self).process_request(request)
 
 
 class CommonMid(MiddlewareMixin):

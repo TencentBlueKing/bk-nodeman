@@ -57,7 +57,7 @@ class BaseHandler:
         # 补充直连区域
         cloud_id__info_map[node_man_constants.DEFAULT_CLOUD] = {
             "bk_cloud_id": node_man_constants.DEFAULT_CLOUD,
-            "bk_cloud_name": node_man_constants.DEFAULT_CLOUD_NAME,
+            "bk_cloud_name": str(node_man_constants.DEFAULT_CLOUD_NAME),
         }
 
         treated_host_infos: typing.List[types.HostInfo] = []

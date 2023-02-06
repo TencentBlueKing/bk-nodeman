@@ -88,7 +88,7 @@ class SubSubscriptionBaseService(BaseService, metaclass=abc.ABCMeta):
                         continue
                     sub_step_node_name = sub_step.get("node_name")
                     failed_reasons.append(
-                        "{node_name}-{sub_step_node_name} 失败".format(
+                        _("{node_name}-{sub_step_node_name} 失败").format(
                             node_name=node_name, sub_step_node_name=sub_step_node_name
                         )
                     )
@@ -104,12 +104,12 @@ class SubSubscriptionBaseService(BaseService, metaclass=abc.ABCMeta):
                 node_name = task_result["steps"][0]["node_name"]
                 if task_result["status"] in [constants.JobStatusType.PENDING, constants.JobStatusType.RUNNING]:
                     is_finished = False
-                    failed_host_reason_map[bk_host_id].append("{node_name} 执行超时".format(node_name=node_name))
+                    failed_host_reason_map[bk_host_id].append(_("{node_name} 执行超时").format(node_name=node_name))
                 elif task_result["status"] == constants.JobStatusType.FAILED:
                     failed_reason = self.extract_failed_reason_from_steps(task_result["steps"])
                     failed_host_reason_map[bk_host_id].append(failed_reason)
                 elif task_result["status"] == constants.JobStatusType.SUCCESS:
-                    succeeded_host_message_map[bk_host_id].append(_("{node_name} 执行成功".format(node_name=node_name)))
+                    succeeded_host_message_map[bk_host_id].append(_("{node_name} 执行成功").format(node_name=node_name))
         for bk_host_id, failed_reasons in failed_host_reason_map.items():
             failed_host_reason_map[bk_host_id] = ", ".join(failed_reasons)
         for bk_host_id, messages in succeeded_host_message_map.items():

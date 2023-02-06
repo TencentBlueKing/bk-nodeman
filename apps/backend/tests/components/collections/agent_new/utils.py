@@ -58,7 +58,7 @@ AGENT_INSTANCE_HOST_INFO = {
     "bk_biz_id": utils.DEFAULT_BK_BIZ_ID,
     "bk_biz_name": utils.DEFAULT_BK_BIZ_NAME,
     "bk_cloud_id": constants.DEFAULT_CLOUD,
-    "bk_cloud_name": constants.DEFAULT_CLOUD_NAME,
+    "bk_cloud_name": str(constants.DEFAULT_CLOUD_NAME),
     "bk_supplier_account": constants.DEFAULT_SUPPLIER_ID,
     "peer_exchange_switch_for_agent": True,
     "data_path": "/tmp",

@@ -13,7 +13,7 @@ import abc
 from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
 from django.conf import settings
-from django.utils.translation import ugettext as _
+from django.utils.translation import ugettext_lazy as _
 
 from apps.backend import constants as backend_const
 from apps.backend.agent.manager import AgentManager
@@ -244,7 +244,7 @@ class InstallAgent(AgentAction):
     """
 
     ACTION_NAME = backend_const.ActionNameType.INSTALL_AGENT
-    ACTION_DESCRIPTION = "安装"
+    ACTION_DESCRIPTION = _("安装")
 
     def _generate_activities(self, agent_manager: AgentManager):
         activities = [
@@ -266,7 +266,7 @@ class ReinstallAgent(AgentAction):
     """
 
     ACTION_NAME = backend_const.ActionNameType.REINSTALL_AGENT
-    ACTION_DESCRIPTION = "重装"
+    ACTION_DESCRIPTION = _("重装")
 
     def _generate_activities(self, agent_manager: AgentManager):
 
@@ -291,7 +291,7 @@ class UpgradeAgent(ReinstallAgent):
     """
 
     ACTION_NAME = backend_const.ActionNameType.UPGRADE_AGENT
-    ACTION_DESCRIPTION = "升级"
+    ACTION_DESCRIPTION = _("升级")
 
     def _generate_activities(self, agent_manager: AgentManager):
         activities = [
@@ -310,7 +310,7 @@ class RestartAgent(AgentAction):
     """
 
     ACTION_NAME = backend_const.ActionNameType.RESTART_AGENT
-    ACTION_DESCRIPTION = "重启"
+    ACTION_DESCRIPTION = _("重启")
 
     def _generate_activities(self, agent_manager: AgentManager):
         activities = [
@@ -329,7 +329,7 @@ class RestartProxy(AgentAction):
     """
 
     ACTION_NAME = backend_const.ActionNameType.RESTART_PROXY
-    ACTION_DESCRIPTION = "重启"
+    ACTION_DESCRIPTION = _("重启")
 
     def _generate_activities(self, agent_manager: AgentManager):
         activities = [
@@ -347,7 +347,7 @@ class InstallProxy(AgentAction):
     """
 
     ACTION_NAME = backend_const.ActionNameType.INSTALL_PROXY
-    ACTION_DESCRIPTION = "安装"
+    ACTION_DESCRIPTION = _("安装")
 
     def _generate_activities(self, agent_manager: AgentManager):
         register_host = agent_manager.register_host()
@@ -376,7 +376,7 @@ class ReinstallProxy(AgentAction):
     """
 
     ACTION_NAME = backend_const.ActionNameType.REINSTALL_PROXY
-    ACTION_DESCRIPTION = "重装"
+    ACTION_DESCRIPTION = _("重装")
 
     def _generate_activities(self, agent_manager: AgentManager):
 
@@ -407,7 +407,7 @@ class UpgradeProxy(ReinstallProxy):
     """
 
     ACTION_NAME = backend_const.ActionNameType.UPGRADE_PROXY
-    ACTION_DESCRIPTION = "升级"
+    ACTION_DESCRIPTION = _("升级")
 
     def _generate_activities(self, agent_manager: AgentManager):
         activities = [
@@ -436,7 +436,7 @@ class ReplaceProxy(InstallProxy):
     """
 
     ACTION_NAME = backend_const.ActionNameType.REPLACE_PROXY
-    ACTION_DESCRIPTION = "替换"
+    ACTION_DESCRIPTION = _("替换")
 
 
 class UninstallAgent(AgentAction):
@@ -445,7 +445,7 @@ class UninstallAgent(AgentAction):
     """
 
     ACTION_NAME = backend_const.ActionNameType.UNINSTALL_AGENT
-    ACTION_DESCRIPTION = "卸载"
+    ACTION_DESCRIPTION = _("卸载")
 
     def _generate_activities(self, agent_manager: AgentManager):
         activities = [
@@ -464,7 +464,7 @@ class UninstallProxy(AgentAction):
     """
 
     ACTION_NAME = backend_const.ActionNameType.UNINSTALL_PROXY
-    ACTION_DESCRIPTION = "卸载"
+    ACTION_DESCRIPTION = _("卸载")
 
     def _generate_activities(self, agent_manager: AgentManager):
         activities = [
@@ -482,7 +482,7 @@ class ReloadAgent(AgentAction):
     """
 
     ACTION_NAME = backend_const.ActionNameType.RELOAD_AGENT
-    ACTION_DESCRIPTION = "重载配置"
+    ACTION_DESCRIPTION = _("重载配置")
 
     def _generate_activities(self, agent_manager: AgentManager):
         activities = [
@@ -502,8 +502,7 @@ class ReloadProxy(ReloadAgent):
     重载proxy
     """
 
-    ACTION_NAME = backend_const.ActionNameType.RELOAD_PROXY
-    ACTION_DESCRIPTION = "重载配置"
+    pass
 
 
 class InstallAgent2(AgentAction):
