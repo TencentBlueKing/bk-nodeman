@@ -173,7 +173,7 @@ class HostHandler(APIModel):
         cloud_name = dict(
             Cloud.objects.filter(bk_cloud_id__in=bk_clouds_id).values_list("bk_cloud_id", "bk_cloud_name")
         )
-        cloud_name[0] = const.DEFAULT_CLOUD_NAME
+        cloud_name[0] = str(const.DEFAULT_CLOUD_NAME)
 
         # 获得安装通道名称
         install_name_dict = dict(InstallChannel.objects.values_list("id", "name"))

@@ -16,6 +16,7 @@ from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
 
 import six
 from django.db.models import QuerySet
+from django.utils.translation import ugettext_lazy as _
 
 from apps.adapters.api.gse import GseApiHelper
 from apps.backend import constants as backend_const
@@ -979,7 +980,7 @@ class InstallPlugin(PluginAction):
     """
 
     ACTION_NAME = backend_const.ActionNameType.INSTALL
-    ACTION_DESCRIPTION = "部署插件"
+    ACTION_DESCRIPTION = _("部署插件")
 
     def _generate_activities(self, plugin_manager: PluginManager):
         # 固定流程：下发插件 -> 安装插件
@@ -1002,7 +1003,7 @@ class MainInstallPlugin(MainPluginAction, InstallPlugin):
     """
 
     ACTION_NAME = backend_const.ActionNameType.MAIN_INSTALL_PLUGIN
-    ACTION_DESCRIPTION = "部署插件程序"
+    ACTION_DESCRIPTION = _("部署插件程序")
 
     def _generate_activities(self, plugin_manager):
         # 固定流程：下发插件 -> 安装插件
@@ -1032,7 +1033,7 @@ class UninstallPlugin(PluginAction):
     """
 
     ACTION_NAME = backend_const.ActionNameType.UNINSTALL
-    ACTION_DESCRIPTION = "卸载插件"
+    ACTION_DESCRIPTION = _("卸载插件")
 
     def _generate_activities(self, plugin_manager):
         # 停用插件 -> 卸载插件
@@ -1051,7 +1052,7 @@ class PushConfig(PluginAction):
     """
 
     ACTION_NAME = backend_const.ActionNameType.PUSH_CONFIG
-    ACTION_DESCRIPTION = "下发插件配置"
+    ACTION_DESCRIPTION = _("下发插件配置")
 
     def _generate_activities(self, plugin_manager: PluginManager):
         # 下发配置 -> 重启插件
@@ -1071,7 +1072,7 @@ class RemoveConfig(PluginAction):
     """
 
     ACTION_NAME = backend_const.ActionNameType.REMOVE_PLUGIN_CONFIG
-    ACTION_DESCRIPTION = "移除插件配置"
+    ACTION_DESCRIPTION = _("移除插件配置")
 
     def _generate_activities(self, plugin_manager):
         # 移除配置 -> 重启插件
@@ -1089,7 +1090,7 @@ class StartPlugin(PluginAction):
     """
 
     ACTION_NAME = backend_const.ActionNameType.START
-    ACTION_DESCRIPTION = "启动插件进程"
+    ACTION_DESCRIPTION = _("启动插件进程")
 
     def _generate_activities(self, plugin_manager):
         # 启动插件
@@ -1113,7 +1114,7 @@ class MainStartPlugin(MainPluginAction, StartPlugin):
 
 class MainReStartPlugin(MainPluginAction, StartPlugin):
     ACTION_NAME = backend_const.ActionNameType.RESTART
-    ACTION_DESCRIPTION = "重启插件进程"
+    ACTION_DESCRIPTION = _("重启插件进程")
 
     def _generate_activities(self, plugin_manager):
         # 重启插件
@@ -1134,7 +1135,7 @@ class StopPlugin(PluginAction):
     """
 
     ACTION_NAME = backend_const.ActionNameType.STOP
-    ACTION_DESCRIPTION = "停止插件进程"
+    ACTION_DESCRIPTION = _("停止插件进程")
 
     def _generate_activities(self, plugin_manager):
         # 停止插件
@@ -1168,7 +1169,7 @@ class ReloadPlugin(PluginAction):
     """
 
     ACTION_NAME = backend_const.ActionNameType.RELOAD_PLUGIN
-    ACTION_DESCRIPTION = "重载插件"
+    ACTION_DESCRIPTION = _("重载插件")
 
     def _generate_activities(self, plugin_manager):
         # 重载插件
@@ -1195,7 +1196,7 @@ class DelegatePlugin(PluginAction):
     """
 
     ACTION_NAME = backend_const.ActionNameType.DELEGATE_PLUGIN
-    ACTION_DESCRIPTION = "托管插件"
+    ACTION_DESCRIPTION = _("托管插件")
 
     def _generate_activities(self, plugin_manager):
         # 重启插件
@@ -1223,7 +1224,7 @@ class UnDelegatePlugin(PluginAction):
     """
 
     ACTION_NAME = backend_const.ActionNameType.UNDELEGATE_PLUGIN
-    ACTION_DESCRIPTION = "取消托管插件"
+    ACTION_DESCRIPTION = _("取消托管插件")
 
     def _generate_activities(self, plugin_manager):
         # 重启插件
@@ -1241,7 +1242,7 @@ class MainUnDelegatePlugin(MainPluginAction, UnDelegatePlugin):
 
 class DebugPlugin(PluginAction):
     ACTION_NAME = backend_const.ActionNameType.DEBUG_PLUGIN
-    ACTION_DESCRIPTION = "调试插件"
+    ACTION_DESCRIPTION = _("调试插件")
 
     def _generate_activities(self, plugin_manager):
         activities = [
@@ -1257,7 +1258,7 @@ class DebugPlugin(PluginAction):
 
 class StopDebugPlugin(PluginAction):
     ACTION_NAME = backend_const.ActionNameType.STOP_DEBUG_PLUGIN
-    ACTION_DESCRIPTION = "停止调试插件"
+    ACTION_DESCRIPTION = _("停止调试插件")
 
     def _generate_activities(self, plugin_manager):
         activities = [
@@ -1269,7 +1270,7 @@ class StopDebugPlugin(PluginAction):
 
 class StopAndDeletePlugin(PluginAction):
     ACTION_NAME = backend_const.ActionNameType.STOP_AND_DELETE_PLUGIN
-    ACTION_DESCRIPTION = "停用插件并删除订阅"
+    ACTION_DESCRIPTION = _("停用插件并删除订阅")
     NEED_RESET_RETRY_TIMES = False
 
     def _generate_activities(self, plugin_manager):
@@ -1287,4 +1288,4 @@ class StopAndDeletePlugin(PluginAction):
 
 class MainStopAndDeletePlugin(MainPluginAction, StopAndDeletePlugin):
     ACTION_NAME = backend_const.ActionNameType.MAIN_STOP_AND_DELETE_PLUGIN
-    ACTION_DESCRIPTION = "停用插件并删除订阅"
+    ACTION_DESCRIPTION = _("停用插件并删除订阅")

@@ -979,6 +979,8 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         # 返回插件概要信息
         if query_params["simple_all"]:
             ret_plugins = list(gse_plugin_desc_qs.values("id", locale_fields["description"], "name", "is_ready"))
+            for ret_plugin in ret_plugins:
+                ret_plugin["description"] = ret_plugin[locale_fields["description"]]
             return Response({"total": len(ret_plugins), "list": ret_plugins})
 
         plugins = list(

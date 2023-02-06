@@ -19,7 +19,7 @@ from collections import defaultdict
 from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
 from django.conf import settings
-from django.utils import timezone
+from django.utils import timezone, translation
 from django.utils.translation import ugettext_lazy as _
 from redis.client import Pipeline
 
@@ -174,7 +174,11 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
     def handle_lan_shell_sub_inst(self, install_sub_inst_objs: List[InstallSubInstObj]):
         """处理直连且通过 Shell 执行的机器"""
         params_list = [
-            {"sub_inst_id": install_sub_inst_obj.sub_inst_id, "install_sub_inst_obj": install_sub_inst_obj}
+            {
+                "meta": {"blueking_language": translation.get_language()},
+                "sub_inst_id": install_sub_inst_obj.sub_inst_id,
+                "install_sub_inst_obj": install_sub_inst_obj,
+            }
             for install_sub_inst_obj in install_sub_inst_objs
         ]
         return concurrent.batch_call_coroutine(func=self.execute_shell_solution_async, params_list=params_list)
@@ -471,13 +475,18 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
         return sub_inst_id
 
     @exc.ExceptionHandler(exc_handler=core.default_sub_inst_task_exc_handler)
-    async def execute_shell_solution_async(self, sub_inst_id, install_sub_inst_obj: InstallSubInstObj) -> int:
+    async def execute_shell_solution_async(
+        self, meta: Dict[str, Any], sub_inst_id: int, install_sub_inst_obj: InstallSubInstObj
+    ) -> int:
         """
         执行 Shell 方案
+        :param meta:
         :param sub_inst_id:
         :param install_sub_inst_obj:
         :return:
         """
+        translation.activate(meta["blueking_language"])
+
         # sudo 权限提示
         await self.sudo_prompt(install_sub_inst_obj)
 
