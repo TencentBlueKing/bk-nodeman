@@ -367,7 +367,7 @@ class DataAPI(object):
                 # 通过 session 设置语言类型即将在 Django 4.0 失效
                 # The user language will no longer be stored in request.session in Django 4.0. Read it from
                 # request.COOKIES[settings.LANGUAGE_COOKIE_NAME] instead.
-                "blueking_language": translation.get_language(),
+                "blueking-language": translation.get_language(),
             }
         )
 

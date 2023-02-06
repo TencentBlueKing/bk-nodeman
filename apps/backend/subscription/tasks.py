@@ -88,7 +88,10 @@ def build_instances_task(
 
         # 记录每个step的起始id及步骤名称
         step_id_record_step_map[step_id].update(
-            pipeline_id=activities[0].id, node_name=f"[{step_id}] {action_manager.ACTION_DESCRIPTION}"
+            pipeline_id=activities[0].id,
+            node_name=_("[{step_id}] {action_description}").format(
+                step_id=step_id, action_description=action_manager.ACTION_DESCRIPTION
+            ),
         )
 
         current_activities.extend(activities)

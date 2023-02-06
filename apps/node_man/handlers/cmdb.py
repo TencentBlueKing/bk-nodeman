@@ -528,7 +528,7 @@ class CmdbHandler(APIModel):
 
         cloud_info = models.Cloud.objects.all().values("bk_cloud_id", "bk_cloud_name")
         cloud_info_map = {info["bk_cloud_id"]: info["bk_cloud_name"] for info in cloud_info}
-        cloud_info_map[0] = DEFAULT_CLOUD_NAME
+        cloud_info_map[0] = str(DEFAULT_CLOUD_NAME)
 
         query_host = models.Host.objects.filter(inner_ip__contains=params["kw"], bk_biz_id__in=target_biz_ids)
 

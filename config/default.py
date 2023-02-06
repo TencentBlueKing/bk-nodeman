@@ -94,7 +94,7 @@ MIDDLEWARE = (
     # exception middleware
     "blueapps.core.exceptions.middleware.AppExceptionMiddleware",
     # 自定义中间件
-    "django.middleware.locale.LocaleMiddleware",
+    "apps.middlewares.LocaleMiddleware",
     "apps.middlewares.CommonMid",
     "apps.middlewares.UserLocalMiddleware",
 )

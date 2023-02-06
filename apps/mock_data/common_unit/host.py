@@ -72,7 +72,7 @@ AP_MODEL_DATA = {
 
 CLOUD_MODEL_DATA = {
     "bk_cloud_id": constants.DEFAULT_CLOUD,
-    "bk_cloud_name": constants.DEFAULT_CLOUD_NAME,
+    "bk_cloud_name": str(constants.DEFAULT_CLOUD_NAME),
     "ap_id": constants.DEFAULT_AP_ID,
     "isp": "Tencent",
     "creator": [utils.DEFAULT_USERNAME],

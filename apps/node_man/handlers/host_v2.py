@@ -94,7 +94,7 @@ class HostV2Handler:
         cloud_name = dict(
             models.Cloud.objects.filter(bk_cloud_id__in=bk_cloud_ids).values_list("bk_cloud_id", "bk_cloud_name")
         )
-        cloud_name[0] = DEFAULT_CLOUD_NAME
+        cloud_name[0] = str(DEFAULT_CLOUD_NAME)
 
         # 填充云区域及业务名称
         for host in hosts:

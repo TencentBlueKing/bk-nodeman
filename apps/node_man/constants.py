@@ -71,7 +71,7 @@ SYNC_CMDB_HOST_INTERVAL = 1 * TimeUnit.DAY
 
 # 默认云区域ID
 DEFAULT_CLOUD = int(os.environ.get("DEFAULT_CLOUD", 0))
-DEFAULT_CLOUD_NAME = os.environ.get("DEFAULT_CLOUD_NAME", str(_("直连区域")))
+DEFAULT_CLOUD_NAME = os.environ.get("DEFAULT_CLOUD_NAME", _("直连区域"))
 # 自动选择接入点ID
 DEFAULT_AP_ID = int(os.environ.get("DEFAULT_AP_ID", -1))
 # GSE命名空间
