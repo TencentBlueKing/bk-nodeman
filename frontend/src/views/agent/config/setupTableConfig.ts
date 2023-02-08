@@ -15,7 +15,7 @@ export const parentHead = [
 
 const config: ISetupHead[] = [
   {
-    label: '内网IPv4',
+    label: '内网IP',
     prop: 'inner_ip',
     reprop: 'inner_ipv6',
     requiredPick: ['inner_ipv6'],

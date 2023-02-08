@@ -1,7 +1,7 @@
 <template>
   <section class="sideslider-content">
     <bk-form form-type="vertical" :model="proxyData" ref="form" v-test="'proxyForm'">
-      <bk-form-item :label="$t('内网IPv4')" required>
+      <bk-form-item :label="$t('内网IP')" required>
         <bk-input v-model="proxyData.inner_ip" readonly></bk-input>
       </bk-form-item>
       <bk-form-item v-if="showV6" :label="$t('内网IPv6')" required>
