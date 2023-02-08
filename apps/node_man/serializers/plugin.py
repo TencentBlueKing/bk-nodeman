@@ -23,6 +23,7 @@ from apps.node_man.constants import (
     ProcType,
 )
 from apps.node_man.models import GsePluginDesc, Packages, ProcControl, ProcessStatus
+from apps.node_man.serializers import base
 
 
 class GsePluginSerializer(serializers.ModelSerializer):
@@ -191,16 +192,9 @@ class ProcessControlInfoSerializer(serializers.ModelSerializer):
         return process_info
 
 
-class PluginListSerializer(serializers.Serializer):
-    bk_biz_id = serializers.ListField(help_text=_("业务ID"), required=False, child=serializers.IntegerField())
-    bk_host_id = serializers.ListField(help_text=_("主机ID"), required=False, child=serializers.IntegerField())
+class PluginListSerializer(base.HostSearchSerializer, base.HostFieldSelectorSerializer):
     bk_cloud_id = serializers.ListField(help_text=_("云区域ID"), required=False, child=serializers.IntegerField())
-    conditions = serializers.ListField(help_text=_("搜索条件"), required=False)
     version = serializers.ListField(help_text=_("Agent版本"), required=False)
-    exclude_hosts = serializers.ListField(help_text=_("跨页全选排除主机"), required=False)
-    page = serializers.IntegerField(label=_("当前页数"), required=False, default=1)
-    pagesize = serializers.IntegerField(label=_("分页大小"), required=False, default=10)
-    only_ip = serializers.BooleanField(label=_("只返回IP"), required=False, default=False)
     simple = serializers.BooleanField(label=_("仅返回概要信息(bk_host_id, bk_biz_id)"), required=False, default=False)
     detail = serializers.BooleanField(label=_("是否节点详情"), required=False, default=False)
 

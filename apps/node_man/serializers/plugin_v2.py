@@ -169,15 +169,9 @@ class PluginUploadSerializer(serializers.Serializer):
     package_file = PkgFileField()
 
 
-class PluginListHostSerializer(serializers.Serializer):
-    bk_biz_id = serializers.ListField(label=_("业务ID"), required=False)
-    bk_host_id = serializers.ListField(label=_("主机ID"), required=False)
+class PluginListHostSerializer(base.HostSearchSerializer):
     project = serializers.CharField(label=_("插件名称"), required=True)
-    conditions = serializers.ListField(label=_("搜索条件"), required=False)
     nodes = serializers.ListField(label=_("拓扑节点列表"), child=NodeSerializer(), required=False)
-    page = serializers.IntegerField(label=_("当前页数"), required=False, default=1)
-    pagesize = serializers.IntegerField(label=_("分页大小"), required=False, default=10)
-    exclude_hosts = serializers.ListField(label=_("跨页全选排除主机"), required=False)
 
     def validate(self, data):
         if not models.GsePluginDesc.objects.filter(name=data["project"]).exists():
