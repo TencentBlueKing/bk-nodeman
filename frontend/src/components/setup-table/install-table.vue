@@ -110,7 +110,7 @@
                     <span class="ghost-input bk-form-input select"
                           v-if="['select','biz'].includes(getCellInputType(row, config))"
                           :data-placeholder="getDisplayName(row, config) ? '' : config.placeholder">
-                      <span class="name">{{ getDisplayName(row, config) }}</span>
+                      <span class="name" v-bk-overflow-tips>{{ getDisplayName(row, config) }}</span>
                       <i class="bk-icon icon-angle-down"></i>
                     </span>
                     <!-- 密码框 -->
@@ -129,7 +129,7 @@
                     <span class="ghost-input bk-form-input"
                           :data-placeholder="row[config.prop] ? '' : config.placeholder"
                           v-else>
-                      <span class="name">{{ row[config.prop] }}</span>
+                      <span class="name" v-bk-overflow-tips>{{ row[config.prop] }}</span>
                     </span>
                   </div>
                   <!-- 编辑态 -->
