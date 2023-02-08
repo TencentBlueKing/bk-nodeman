@@ -81,7 +81,7 @@ export const config: ISetupHead[] = [
     },
   },
   {
-    label: '内网IPv4',
+    label: '内网IP',
     prop: 'inner_ip',
     type: 'text',
     required: true,
