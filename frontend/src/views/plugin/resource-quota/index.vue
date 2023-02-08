@@ -192,9 +192,16 @@ export default class ResourceQuota extends Mixins(HeaderFilterMixins) {
     this.handleSearchChange = debounce(300, this.handleSearchTree);
     this.initTreeData();
     const bizId = this.diffRouteBizId();
+    let selectedBiz = Array.from(new Set([...this.selectedBiz, bizId]));
+    if (!selectedBiz.every(id => this.bkBizList.find(item => item.bk_biz_id === id))) {
+      this.needFix = true;
+      selectedBiz = selectedBiz.filter(id => this.bkBizList.find(item => item.bk_biz_id === id));
+      MainStore.setSelectedBiz(selectedBiz);
+      return;
+    }
     if (bizId !== -1 && this.selectedBiz.length && !this.selectedBiz.includes(bizId)) {
       this.needFix = true;
-      MainStore.setSelectedBiz(Array.from(new Set([...this.selectedBiz, bizId])));
+      MainStore.setSelectedBiz(selectedBiz);
     } else {
       this.fixRouteInfo();
     }
@@ -270,7 +277,7 @@ export default class ResourceQuota extends Mixins(HeaderFilterMixins) {
     if (curRootNode && !curRootNode.loaded) {
       await this.getTemplatesByBiz(curBizId);
     }
-    if (curRootNode.child?.length) {
+    if (curRootNode?.child?.length) {
       if (curModuleId === -1 || !curRootNode.child.find(child => child.id === curModuleId)) {
         curModuleId = curRootNode.child[0].id;
       }
