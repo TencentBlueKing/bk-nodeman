@@ -95,6 +95,7 @@
 <script lang="ts">
 import { Vue, Component, Prop } from 'vue-property-decorator';
 import { IApExpand, IZk } from '@/types/config/config';
+import { regIPv6 } from '@/common/regexp';
 
 type IServer = 'BtfileServer' | 'DataServer' | 'TaskServer';
 
@@ -137,7 +138,9 @@ export default class AccessPointTable extends Vue {
   }
   private get zookeeper(): string {
     if (this.accessPoint.zk_hosts) {
-      return this.accessPoint.zk_hosts.map((host: IZk) => `${host.zk_ip}:${host.zk_port}`).join(',');
+      return this.accessPoint.zk_hosts.map((host: IZk) => (regIPv6.test(host.zk_ip)
+        ? `[${host.zk_ip}]:${host.zk_port}`
+        : `${host.zk_ip}:${host.zk_port}`)).join(',');
     }
     return '';
   }
