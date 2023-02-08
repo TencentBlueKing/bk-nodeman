@@ -30,7 +30,7 @@
       <bk-table
         v-test="'proxyTable'"
         :class="`head-customize-table ${ fontSize }`" :data="proxyData" :span-method="colspanHandle">
-        <bk-table-column :label="$t('内网IPv4')" show-overflow-tooltip>
+        <bk-table-column :label="$t('内网IP')" show-overflow-tooltip>
           <template #default="{ row }">
             <bk-button v-if="row.inner_ip" v-test="'view'" text @click="handleViewProxy(row, false)" class="row-btn">
               {{ row.inner_ip }}
@@ -317,7 +317,7 @@ export default class CloudDetailTable extends Vue {
   private filter: { [key: string]: ITabelFliter } =  {};
   // value [checked, disabled, mockChecked, id, name]
   private filterSet: Dictionary[] = [
-    { key: 'inner_ip', value: [true, true, true, 'inner_ip', this.$t('内网IPv4')] },
+    { key: 'inner_ip', value: [true, true, true, 'inner_ip', this.$t('内网IP')] },
     { key: 'inner_ipv6', value: [true, true, true, 'inner_ipv6', this.$t('内网IPv6')] },
     { key: 'proxy_version', value: [true, false, true, 'version', this.$t('Proxy版本')] },
     { key: 'outer_ip', value: [false, false, false, 'outer_ip', this.$t('出口IP')] },
