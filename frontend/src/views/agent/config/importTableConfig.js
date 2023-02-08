@@ -174,7 +174,6 @@ const config = [
           if (!v) return true;
           const row = this.table.data.find(item => item.id === id);
           if (!row) return;
-          console.log(row);
           return this.handleValidateUnique(row, { prop: 'inner_ipv6' });
         },
       },

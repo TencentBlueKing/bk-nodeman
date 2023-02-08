@@ -122,7 +122,7 @@ const validateBizAuth = async (to: Route, from: Route, permissionSwitch: boolean
       MainStore.setNmMainLoading(differentRoute); // 同路由切换闪屏问题
       const list = await MainStore.getBkBizPermission({ action: authority.page, updateBiz: true });
       // 设置当前路由的界面权限
-      MainStore.updatePagePermission(!axios.isCancel(list) ? !!list.length : true);
+      MainStore.updatePagePermission(!axios.isCancel(list) ? list.some(item => item.has_permission) : true);
     }
     if (authority.pk && authority.module) {
       MainStore.setNmMainLoading(true);
