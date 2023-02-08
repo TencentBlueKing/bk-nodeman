@@ -430,7 +430,7 @@ export default class AgentImport extends Mixins(mixin) {
         params,
         config: {
           needRes: true,
-          globalError: false,
+          // globalError: false,
         },
       });
       this.loadingSetupBtn = false;
