@@ -160,10 +160,9 @@ class HostHandler(APIModel):
             # sql分页查询获得数据
             hosts_status = list(hosts_status_sql[begin:end].values(*set(host_fields)))
         else:
-            # 如果仅需要IP数据
-            hosts_status = [host["inner_ip"] for host in list(hosts_status_sql[begin:end].values("inner_ip"))]
-            result = {"total": hosts_status_count, "list": hosts_status}
-            return result
+            # 仅需某一列的数据
+            value_list = list(filter(None, hosts_status_sql[begin:end].values_list(params["return_field"], flat=True)))
+            return {"total": len(value_list), "list": value_list}
 
         # 分页结果的Host_id, cloud_id集合
         bk_hosts_id = [hs["bk_host_id"] for hs in hosts_status]

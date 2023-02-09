@@ -213,10 +213,9 @@ class PluginHandler(APIModel):
             return {"total": len(host_simples), "list": host_simples}
 
         if params.get("only_ip"):
-            # 如果仅需要IP数据
-            hosts_status = [host["inner_ip"] for host in list(hosts_status_sql[begin:end].values("inner_ip"))]
-            result = {"total": hosts_status_count, "list": hosts_status}
-            return result
+            # 仅需某一列的数据
+            value_list = list(filter(None, hosts_status_sql[begin:end].values_list(params["return_field"], flat=True)))
+            return {"total": len(value_list), "list": value_list}
         else:
             host_fields = core_ipchooser_constants.CommonEnum.DEFAULT_HOST_FIELDS.value + [
                 "bk_addressing",
