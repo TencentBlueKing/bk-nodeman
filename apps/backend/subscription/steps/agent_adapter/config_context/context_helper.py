@@ -74,6 +74,15 @@ class ConfigContextHelper:
             proxy_tls_cli_cert_file: str = json.dumps(proxy_tls_cli_cert_file)[1:-1]
             proxy_tls_cli_key_file: str = json.dumps(proxy_tls_cli_key_file)[1:-1]
 
+        if self.host.node_type == constants.NodeType.PROXY:
+            # Agent 配置中 file data 的 endpoint 链接 proxy（可以是同台（自身）或同云区域内其他 proxy 的 file data）
+            file_hosts_for_agent: typing.List[str] = [self.host.inner_ip or self.host.inner_ipv6]
+            data_hosts_for_agent: typing.List[str] = [self.host.inner_ip or self.host.inner_ipv6]
+        else:
+            # 其他情况取实际上游
+            file_hosts_for_agent: typing.List[str] = gse_servers_info["bt_file_server_hosts"]
+            data_hosts_for_agent: typing.List[str] = gse_servers_info["data_server_hosts"]
+
         contexts: typing.List[context_dataclass.GseConfigContext] = [
             context_dataclass.AgentConfigContext(
                 run_mode=(constants.GseAgentRunMode.AGENT.value, constants.GseAgentRunMode.PROXY.value)[
@@ -91,16 +100,10 @@ class ConfigContextHelper:
                     ]
                 ),
                 data_endpoints=",".join(
-                    [
-                        f"{data_host}:{self.ap.port_config['data_port']}"
-                        for data_host in gse_servers_info["data_server_hosts"]
-                    ]
+                    [f"{data_host}:{self.ap.port_config['data_port']}" for data_host in data_hosts_for_agent]
                 ),
                 file_endpoints=",".join(
-                    [
-                        f"{file_host}:{self.ap.port_config['file_svr_port']}"
-                        for file_host in gse_servers_info["bt_file_server_hosts"]
-                    ]
+                    [f"{file_host}:{self.ap.port_config['file_svr_port']}" for file_host in file_hosts_for_agent]
                 ),
             ),
             context_dataclass.AgentBaseConfigContext(
@@ -144,7 +147,7 @@ class ConfigContextHelper:
                 tls_key_file=proxy_tls_key_file,
             ),
             context_dataclass.FileProxyConfigContext(
-                upstream_ip=random.choice(self.ap.file_endpoint_info.outer_hosts or [""]),
+                upstream_ip=random.choice(gse_servers_info["bt_file_server_hosts"] or [""]),
                 upstream_port=self.ap.port_config.get(
                     "file_topology_bind_port", constants.GSE_PORT_DEFAULT_VALUE["file_topology_bind_port"]
                 ),
