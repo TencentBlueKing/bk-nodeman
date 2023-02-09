@@ -104,6 +104,7 @@ class TestHost(TestCase):
                 "pagesize": page_size,
                 "page": 1,
                 "only_ip": True,
+                "return_field": random.choice(["inner_ip", "inner_ipv6"]),
                 "bk_cloud_id": [[0, 1][random.randint(0, 1)]],
                 "bk_biz_id": [random.randint(2, 7), random.randint(2, 7)],
             },
@@ -181,7 +182,14 @@ class TestHost(TestCase):
         host_to_create, _, _ = create_host(number)
         bk_host_ids = [host.bk_host_id for host in host_to_create]
         hosts = HostHandler().list(
-            {"exclude_hosts": bk_host_ids[:100], "only_ip": True, "page": 1, "pagesize": page_size}, "admin"
+            {
+                "exclude_hosts": bk_host_ids[:100],
+                "only_ip": True,
+                "page": 1,
+                "pagesize": page_size,
+                "return_field": random.choice(["inner_ip", "inner_ipv6"]),
+            },
+            "admin",
         )
         for host in hosts["list"]:
             self.assertRegex(host, IP_REG)

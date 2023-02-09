@@ -82,3 +82,22 @@ class ScopeSerializer(serializers.Serializer):
 
     class Meta:
         ref_name = "ScopeSerializer"
+
+
+class PaginationSerializer(serializers.Serializer):
+    page = serializers.IntegerField(label=_("当前页数"), required=False, default=1)
+    pagesize = serializers.IntegerField(label=_("拉取数据数量，不传或传 `-1` 表示拉取所有"), required=False, default=10)
+
+
+class HostFieldSelectorSerializer(serializers.Serializer):
+    only_ip = serializers.BooleanField(label=_("只返回IP"), required=False, default=False)
+    return_field = serializers.ChoiceField(
+        label=_("仅返回的字段"), required=False, default="inner_ip", choices=["inner_ip", "inner_ipv6"]
+    )
+
+
+class HostSearchSerializer(PaginationSerializer):
+    bk_biz_id = serializers.ListField(label=_("业务ID"), required=False, child=serializers.IntegerField())
+    bk_host_id = serializers.ListField(label=_("主机ID"), required=False, child=serializers.IntegerField())
+    conditions = serializers.ListField(label=_("搜索条件"), required=False, child=serializers.DictField())
+    exclude_hosts = serializers.ListField(label=_("跨页全选排除主机"), required=False, child=serializers.IntegerField())

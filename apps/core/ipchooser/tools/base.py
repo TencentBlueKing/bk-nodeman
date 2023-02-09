@@ -69,7 +69,7 @@ class HostQuerySqlHelper:
     def handle_plugin_conditions(
         params: typing.Dict, plugin_names: typing.List[str], return_sql: bool = True
     ) -> typing.Union[typing.List[int], str]:
-        print("params", params)
+
         if not params.get("conditions"):
             return []
 

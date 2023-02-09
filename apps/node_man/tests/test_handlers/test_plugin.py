@@ -135,6 +135,7 @@ class TestPlugin(TestCase):
                 "pagesize": page_size,
                 "page": 1,
                 "only_ip": True,
+                "return_field": random.choice(["inner_ip", "inner_ipv6"]),
                 "bk_cloud_id": [[0, 1][random.randint(0, 1)]],
                 "bk_biz_id": [random.randint(2, 7), random.randint(2, 7)],
             },
