@@ -108,13 +108,8 @@ def fetch_gse_servers_info(
         callback_url = host_ap.callback_url or settings.BKAPP_NODEMAN_CALLBACK_URL
     elif host.node_type == constants.NodeType.PROXY:
         task_server_hosts = host_ap.cluster_endpoint_info.outer_hosts
-        if agent_setup_info.is_legacy:
-            data_server_hosts = host_ap.data_endpoint_info.outer_hosts
-            bt_file_server_hosts = host_ap.file_endpoint_info.outer_hosts
-        else:
-            # 对于新版本的 Agent，file data 的 endpoint 链接 proxy（可以是同台或同云区域内其他 proxy 的 file data）
-            data_server_hosts = [host.inner_ip or host.inner_ipv6]
-            bt_file_server_hosts = [host.inner_ip or host.inner_ipv6]
+        bt_file_server_hosts = host_ap.file_endpoint_info.outer_hosts
+        data_server_hosts = host_ap.data_endpoint_info.outer_hosts
         package_url = host_ap.package_outer_url
         # 不同接入点使用不同的callback_url默认情况下接入点callback_url为空，先取接入点，为空的情况下使用原来的配置
         callback_url = host_ap.outer_callback_url or settings.BKAPP_NODEMAN_OUTER_CALLBACK_URL
