@@ -22,16 +22,10 @@ class NodeSerializer(serializers.Serializer):
     bk_obj_id = serializers.CharField()
 
 
-class HostSearchSerializer(serializers.Serializer):
-    bk_biz_id = serializers.ListField(label=_("业务ID"), required=False)
+class HostSearchSerializer(base.HostSearchSerializer):
     action = serializers.CharField(required=False)
-    bk_host_id = serializers.ListField(label=_("主机ID"), required=False)
-    conditions = serializers.ListField(label=_("搜索条件"), required=False)
     scope = base.ScopeSerializer(label=_("主机范围"), required=False)
     nodes = serializers.ListField(label=_("拓扑节点列表"), child=NodeSerializer(), required=False)
-    page = serializers.IntegerField(label=_("当前页数"), required=False, default=1)
-    pagesize = serializers.IntegerField(label=_("分页大小"), required=False, default=10)
-    exclude_hosts = serializers.ListField(label=_("跨页全选排除主机"), required=False)
     agent_status_count = serializers.BooleanField(label=_("仅返回Agent统计状态"), required=False, default=False)
     return_all_node_type = serializers.BooleanField(label=_("返回所有节点类型"), required=False, default=True)
 
