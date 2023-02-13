@@ -197,7 +197,8 @@ class HostQuerySqlHelper:
         for condition in params.get("conditions", []):
             if condition["key"] in [
                 "inner_ip",
-                "inner_ipv6" "node_from",
+                "inner_ipv6",
+                "node_from",
                 "node_type",
                 "bk_addressing",
                 "bk_host_name",
@@ -416,11 +417,12 @@ class HostQueryHelper:
                 # 自定义层级需要先获取集群 ID，暂存参数，后续并发获取，提高效率
                 params_list.append({"_bk_biz_id": first_node["bk_biz_id"], "_target_inst_ids": bk_inst_ids})
 
-        def _get_custom_objs_cond(
-            _bk_biz_id: int, _target_inst_ids: typing.List[int]
-        ) -> typing.Dict[str, typing.Union[int, typing.List[int]]]:
+        def _get_custom_objs_cond(_bk_biz_id: int, _target_inst_ids: typing.List[int]) -> typing.Dict[str, typing.Any]:
             """对 fetch_set_ids 做一层封装，构造 cond 结构"""
-            return {"bk_biz_id": _bk_biz_id, "bk_set_ids": cls.fetch_set_ids(_bk_biz_id, _target_inst_ids)}
+            return {
+                "key": "topology",
+                "value": {"bk_biz_id": _bk_biz_id, "bk_set_ids": cls.fetch_set_ids(_bk_biz_id, _target_inst_ids)},
+            }
 
         # 并发构造查询条件
         conditions.extend(concurrent.batch_call(func=_get_custom_objs_cond, params_list=params_list))
