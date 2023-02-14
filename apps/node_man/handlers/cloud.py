@@ -121,17 +121,13 @@ class CloudHandler(APIModel):
         # 获得同一云区域下的Proxy内网IP
         cloud_proxies = {}
         proxies_cloud_ip = Host.objects.filter(node_type=const.NodeType.PROXY).values(
-            "bk_cloud_id", "inner_ip", "outer_ip", "bk_host_id"
+            "bk_cloud_id", "inner_ip", "inner_ipv6", "outer_ip", "outer_ipv6", "bk_host_id", "bk_agent_id"
         )
         for proxy in proxies_cloud_ip:
             if proxy["bk_cloud_id"] not in cloud_proxies:
-                cloud_proxies[proxy["bk_cloud_id"]] = [
-                    {"inner_ip": proxy["inner_ip"], "outer_ip": proxy["outer_ip"], "bk_host_id": proxy["bk_host_id"]}
-                ]
+                cloud_proxies[proxy["bk_cloud_id"]] = [proxy]
             else:
-                cloud_proxies[proxy["bk_cloud_id"]].append(
-                    {"inner_ip": proxy["inner_ip"], "outer_ip": proxy["outer_ip"], "bk_host_id": proxy["bk_host_id"]}
-                )
+                cloud_proxies[proxy["bk_cloud_id"]].append(proxy)
 
         # 获得接入点名称
         ap_name = dict(AccessPoint.objects.values_list("id", "name"))
