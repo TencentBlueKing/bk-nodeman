@@ -75,8 +75,8 @@
             <col v-for="(item, index) in tableHead" :key="index" :width="item.width ? item.width : 'auto'">
           </colgroup>
           <tbody class="table-body">
-            <tr v-for="row in renderData" :key="row.id">
-              <td v-for="(config, index) in tableHead" :key="index">
+            <tr v-for="(row, rowIndex) in renderData" :key="row.id">
+              <td v-for="(config, colIndex) in tableHead" :key="colIndex">
                 <div class="cell-operate" v-if="config.type === 'operate'">
                   <i class="cell-operate-plus nodeman-icon nc-plus" @click="handleAddItem(row.id)" v-if="needPlus"></i>
                   <i
@@ -96,7 +96,7 @@
                   :icon-offset="config.iconOffset"
                   :default-validator="getDefaultValidator(row, config)"
                   :proxy-status="getCurrentPorxyStatus(row, config)"
-                  ref="verify"
+                  :ref="`verify_${rowIndex}_${config.prop}`"
                   v-else
                   @jump-proxy="handleGotoProxy(row)"
                   @validator-change="setValidator(row, config.prop, ...arguments)">
@@ -153,7 +153,7 @@
                       autofocus: virtualScroll,
                       fileInfo: getCellFileInfo(row, config)
                     }"
-                    @focus="handleCellFocus(arguments, row, config)"
+                    @focus="handleCellFocus(arguments, { row, config, rowIndex, colIndex })"
                     @blur="handleCellBlur"
                     @input="handleCellValueInput(arguments, row, config)"
                     @change="handleCellValueChange(row, config)"
@@ -237,7 +237,6 @@ export default class SetupTable extends Vue {
   @Ref('tableBody') private readonly tableBody!: any;
   @Ref('scrollPlace') private readonly scrollPlace!: any;
   @Ref('content') private readonly content!: any;
-  @Ref('verify') private readonly verify!: any[];
 
   //  表格信息
   private table: { data: ISetupRow[], config: ISetupHead[] } = {
@@ -698,7 +697,11 @@ export default class SetupTable extends Vue {
 
     this.autoSort && this.sortTableData();
     this.$nextTick().then(() => {
-      this.verify.map(instance => instance.handleUpdateDefaultValidator());
+      Object.keys(this.$refs).forEach((refKey) => {
+        if (refKey.includes('verify_')) {
+          (this.$refs[refKey] as any[]).map(instance => instance.handleUpdateDefaultValidator?.());
+        }
+      });
       if (!isValidate) {
         this.showFailedRow(Array.from(new Set(failedProp)));
       }
@@ -883,9 +886,13 @@ export default class SetupTable extends Vue {
     }
     this.$forceUpdate(); // 强制重新渲染提前，防止 inputInstance 为null的情况出现
     this.$nextTick(() => {
-      this.verify.forEach((instance) => {
-        if (instance && instance.$attrs.prop === config.prop) {
-          instance.handleValidate();
+      Object.keys(this.$refs).forEach((refKey) => {
+        if (refKey.includes('verify_')) {
+          (this.$refs[refKey] as any[]).forEach((instance) => {
+            if (instance && instance.$attrs.prop === config.prop) {
+              instance.handleValidate();
+            }
+          });
         }
       });
     });
@@ -1026,13 +1033,24 @@ export default class SetupTable extends Vue {
     return new Array(len).fill('*')
       .join('');
   }
-  private handleCellFocus(arg: any[], row: ISetupRow, config: ISetupHead) {
+  private handleCellFocus(arg: any[], cell: {
+    row: ISetupRow
+    config: ISetupHead
+    rowIndex: number
+    colIndex: number
+  }) {
+    const { row, config, rowIndex } = cell;
     this.$set(this, 'focusRow', row);
-    const { prop, parentProp, tips } = config;
+    const { prop, requiredPick = [], parentProp, tips } = config;
     if (prop === 'prove' && row.auth_type === 'PASSWORD' && regPasswordFill.test(row.prove as string)) {
       const [{ event }] = arg;
       (event?.target as HTMLInputElement)?.setSelectionRange?.(0, 999);
     }
+    requiredPick.forEach((propKey) => {
+      (this.$refs[`verify_${rowIndex}_${propKey}`] as any[])?.forEach((instance) => {
+        instance.clear?.();
+      });
+    });
     const parentHeadCell = this.tableParentHead?.find(item => item.prop === parentProp);
     if (tips || parentHeadCell?.tips) {
       const [refs] = this.$refs[`header_${tips ? prop : parentProp}`] as any[];

@@ -101,6 +101,9 @@ export default class StepVerifyInput extends Vue {
   }
   @Emit('focus')
   public handleFocus() {
+    this.clear();
+  }
+  public clear() {
     this.validator.message = '';
     this.validator.show = false;
   }
