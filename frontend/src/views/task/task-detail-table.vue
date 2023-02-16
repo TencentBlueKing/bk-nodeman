@@ -19,15 +19,34 @@
         :reserve-selection="true"
         :selectable="getSelectAbled">
       </bk-table-column> -->
-      <bk-table-column min-width="140" class-name="row-ip" label="IP" prop="ip" show-overflow-tooltip />
+      <bk-table-column
+        min-width="140"
+        label="IPv4"
+        prop="innerIp"
+        width="125"
+        show-overflow-tooltip>
+        <template #default="{ row }">
+          {{ row.innerIp | filterEmpty }}
+        </template>
+      </bk-table-column>
+      <bk-table-column
+        label="IPv6"
+        prop="innerIpv6"
+        :width="innerIPv6Width"
+        show-overflow-tooltip>
+        <template #default="{ row }">
+          {{ row.innerIpv6 | filterEmpty }}
+        </template>
+      </bk-table-column>
       <bk-table-column :label="$t('云区域')" prop="bkCloudName" :resizable="false" />
-      <bk-table-column min-width="100" :label="$t('业务')" prop="bkBizName" :resizable="false" />
+      <bk-table-column min-width="100" :label="$t('业务')" prop="bkBizName" :resizable="false" show-overflow-tooltip />
       <bk-table-column min-width="100" :label="$t('操作类型')" prop="opTypeDisplay" :resizable="false" />
       <bk-table-column
         v-if="showTargetVersionColumn"
         min-width="100"
         :label="$t('目标版本')"
-        :resizable="false">
+        :resizable="false"
+        show-overflow-tooltip>
         <template #default="{ row }">
           {{ row.targetVersion | filterEmpty }}
         </template>
@@ -194,6 +213,9 @@ export default class TaskDeatailTable extends Mixins(HeaderRenderMixin) {
   }
   private get showTargetVersionColumn() {
     return this.category === 'policy';
+  }
+  private get innerIPv6Width() {
+    return this.tableList.some(row => !!row.innerIpv6) ? 270 : 80;
   }
 
   @Emit('row-operate')

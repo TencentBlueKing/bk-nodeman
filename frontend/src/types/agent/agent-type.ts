@@ -67,7 +67,7 @@ export interface IAgentSearch {
   page?: number,
   pagesize?: number,
   extra_data?: string[]
-  bk_biz_id?: number
+  bk_biz_id?: number | number[]
   sort?: { head: string, sort_type: 'ASC' | 'DEC' }
   conditions?: { key: string, value: any }[],
   bk_host_id?: number[]
@@ -76,6 +76,7 @@ export interface IAgentSearch {
 export interface IAgentSearchIp extends IAgentSearch {
   only_ip: boolean
   exclude_hosts?: Array<number>
+  return_field: 'inner_ip' | 'inner_ipv6'
 }
 
 export interface IAgentJob {

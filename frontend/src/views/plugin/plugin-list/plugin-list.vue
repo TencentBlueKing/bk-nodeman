@@ -7,6 +7,7 @@
       :check-type="checkType"
       :running-count="runningCount"
       :operate-more="pluginOperateMore"
+      :total="pagination.count"
       v-model="searchSelectValue"
       @filter-change="handleFilterChange"
       @plugin-operate="handlePluginOperate">

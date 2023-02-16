@@ -61,25 +61,11 @@
           </div>
         </template>
       </auth-component>
-      <bk-dropdown-menu
+      <CopyDropdown
         class="ml10"
-        trigger="click"
-        ref="dropDownMenu"
-        :disabled="copyLoading"
-        @show="copyDropdownShow = true"
-        @hide="copyDropdownShow = false">
-        <bk-button class="dropdown-btn" slot="dropdown-trigger" :loading="copyLoading">
-          <div class="dropdown-trigger-btn" v-test="'copy'">
-            <div>{{ $t('复制') }}</div>
-            <i :class="['bk-icon icon-angle-down',{ 'icon-flip': copyDropdownShow }]"></i>
-          </div>
-        </bk-button>
-        <ul class="bk-dropdown-list" slot="dropdown-content">
-          <li @click="triggerHandler('checked')"><a>{{ $t('勾选IP') }}</a></li>
-          <li @click="triggerHandler('abnormalIp')"><a>{{ $t('异常IP') }}</a></li>
-          <li @click="triggerHandler('allIp')"><a>{{ $t('所有IP') }}</a></li>
-        </ul>
-      </bk-dropdown-menu>
+        :disabled="!total"
+        :not-selected="selectionCount"
+        :get-ips="handleCopyIp" />
       <!-- 权限中心： 仅返回可查看业务列表，同时附带操作权限 -->
       <!-- <bk-biz-select
         v-model="biz"
@@ -110,12 +96,16 @@
 import { Component, Prop, Ref, Mixins, Emit, Watch, Model } from 'vue-property-decorator';
 import { IPluginList, ICondition, IMenu } from '@/types/plugin/plugin-type';
 import { IBkBiz, ISearchItem } from '@/types';
-import { copyText, searchSelectPaste } from '@/common/util';
+import { searchSelectPaste } from '@/common/util';
 import HeaderFilterMixins from '@/components/common/header-filter-mixins';
 import { MainStore, PluginStore } from '@/store/index';
 import PluginList from './plugin-list.vue';
+import CopyDropdown from '@/components/common/copy-dropdown.vue';
 
-@Component({ name: 'plugin-list-operate' })
+@Component({
+  name: 'plugin-list-operate',
+  components: { CopyDropdown },
+})
 export default class PluginListOperate extends Mixins(HeaderFilterMixins) {
   @Model('change', { type: Array, default: () => ([]) }) private searchValues!: ISearchItem[]; // 其它筛选
 
@@ -125,15 +115,13 @@ export default class PluginListOperate extends Mixins(HeaderFilterMixins) {
   @Prop({ default: () => [], type: Array }) private readonly selections!: IPluginList[];
   @Prop({ default: () => [], type: Array }) private readonly excludeData!: IPluginList[];
   @Prop({ default: () => [], type: Array }) private readonly operateMore!: IMenu[];
+  @Prop({ default: 0, type: Number }) private readonly total!: number;
 
   @Ref('searchSelect') private readonly searchSelect: any;
   @Ref('tree') private readonly tree: any;
-  @Ref('dropDownMenu') private readonly dropDownMenuRef: any;
 
   private topoLoading = false;
   private moreDropdownShow = false;
-  private copyDropdownShow = false;
-  private copyLoading = false;
   private topoFliterTimer: any = null;
   private topoFliterValue = '';
   private biz: number[] = [];
@@ -217,74 +205,36 @@ export default class PluginListOperate extends Mixins(HeaderFilterMixins) {
     return { type: 'search',  value: JSON.parse(JSON.stringify(this.searchSelectValue)) };
   }
 
-  public async triggerHandler(copyType: 'checked' | 'abnormalIp' | 'allIp') {
-    this.dropDownMenuRef && this.dropDownMenuRef.hide();
-    let ipList: string[] = [];
-    let ipTotal = 0;
-    if (copyType === 'checked' && this.checkType === 'current') {
-      ipList = this.selections.map(item => item.inner_ip || item.inner_ipv6);
-      ipTotal = ipList.length;
-    } else {
-      const abnormalStatus = ['UNKNOWN', 'TERMINATED', 'NOT_INSTALLED'];
+  private async handleCopyIp(type: string) {
+    const key = type.includes('v4') ? 'inner_ip' : 'inner_ipv6';
+    let list = this.selections.filter(item => item[key]).map(item => item[key]);
+    const isAll = type.includes('all');
+    const isSelectedAllPages = this.checkType !== 'current';
+    if (isAll || isSelectedAllPages) {
       const params: {
         pagesize: number
         conditions: ICondition[]
         'exclude_hosts'?: number[]
         'only_ip': boolean
         'bk_biz_id'?: number[]
+        'return_field': string
       } = {
         pagesize: -1,
-        conditions: [],
+        conditions: (this.$parent as PluginList).getConditions(!isAll ? 'operate' : 'load'),
         only_ip: true,
+        return_field: key,
       };
-      let condition: ICondition[] = [];
-      let bkBizId: number[] = [];
-      if (this.checkType === 'all') {
-        const paramsRes = (this.$parent as PluginList).getCommonParams();
-        bkBizId = paramsRes.bk_biz_id as number[] || [];
-        condition = (this.$parent as PluginList).getConditions('operate');
-        if (this.excludeData.length) {
-          params.exclude_hosts = this.excludeData.map(item => item.bk_host_id);
-        }
-      } else {
-        const paramsRes = (this.$parent as PluginList).getCommonParams();
-        condition = paramsRes.conditions;
-        bkBizId = paramsRes.bk_biz_id as number[] || [];
+      if (!isAll && this.excludeData.length) {
+        params.exclude_hosts = this.excludeData.map(item => item.bk_host_id);
       }
-      params.conditions = condition;
-      if (bkBizId.length) {
-        params.bk_biz_id = bkBizId;
+      if (this.selectedBiz?.length) {
+        params.bk_biz_id = this.selectedBiz;
       }
-      if (copyType === 'abnormalIp') {
-        const statusCondition = params.conditions.find(item => item.key === 'status');
-        if (statusCondition) {
-          const values = (statusCondition.value as string[]).filter(status => abnormalStatus.includes(status));
-          if (values.length) {
-            statusCondition.value = values;
-          } else {
-            statusCondition.value = abnormalStatus;
-          }
-        } else {
-          params.conditions.push({
-            key: 'status',
-            value: abnormalStatus,
-          });
-        }
-      }
-      this.copyLoading = true;
-      const { list, total } = await PluginStore.getHostList(params);
-      ipList = list;
-      ipTotal = total;
-      this.copyLoading = false;
+      const data = await PluginStore.getHostList(params);
+      list = data.list;
+      console.log(list);
     }
-    if (!ipList.length) {
-      this.$bkMessage({ theme: 'error', message: this.$t('IP复制失败') });
-      return;
-    }
-    const allIpText = ipList.join('\n');
-    copyText(allIpText, () => {
-      this.$bkMessage({ theme: 'success', message: this.$t('IP复制成功', { num: ipTotal }) });
-    });
+    return Promise.resolve(list);
   }
 
   private async handleSelectRemote(keyword: string) {

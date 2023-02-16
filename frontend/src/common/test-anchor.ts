@@ -21,17 +21,29 @@ export default class TestAnchorDirective {
   public static install(Vue: VueConstructor) {
     Vue.directive('test', {
       bind(el: IElement, { value, modifiers }: DirectiveBinding, { context }: VNode) {
-        const moduleName = moduleNames.find(key => modifiers[key]) || context.$route.name;
-        const anchorModule = testAnchorMap[moduleName];
-        const [testId, testKey] = value.split('.');
+        const isObject = typeof value === 'object';
+
+        let testAnchor = moduleNames.find(key => modifiers[key]) || context.$route.name;
+        if (isObject && value.testAnchor) {
+          testAnchor = value.testAnchor;
+        }
+        const anchorModule = testAnchorMap[testAnchor];
+        let testId = '';
+        let testKey = '';
+        if (isObject) {
+          testId = value.testId;
+          testKey = value.testKey;
+        } else {
+          [testId, testKey] = value.split('.');
+        }
         if (anchorModule?.[testId]) {
-          el.setAttribute('data-test-id', `${moduleName}_${anchorModule[testId]}`);
+          el.setAttribute('data-test-id', `${testAnchor}_${anchorModule[testId]}`);
           if (testKey) {
             el.setAttribute('data-test-key', testKey);
           }
         } else {
-          window.testAnchor.moduleUnknown.push({ module: moduleName, key: testId });
-          console.warn(`not find test anchor: data-test-id="{{${moduleName}.${testId}}}"`);
+          window.testAnchor.moduleUnknown.push({ module: testAnchor, key: testId });
+          console.warn(`not find test anchor: data-test-id="{{${testAnchor}.${testId}}}"`);
         }
       },
     });

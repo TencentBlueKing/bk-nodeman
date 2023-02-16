@@ -122,7 +122,7 @@ const config = [
     },
   },
   {
-    label: '内网IP',
+    label: '内网IPv4',
     prop: 'inner_ip',
     type: 'text',
     required: true,
@@ -158,7 +158,7 @@ const config = [
     required: true,
     requiredPick: ['inner_ip'],
     noRequiredMark: true,
-    // tips: 'agentSetupInnerIpv6',
+    // tips: 'agentSetupInnerIPv6',
     parentProp: 'host_ip',
     union: 'bk_cloud_id',
     unique: true,

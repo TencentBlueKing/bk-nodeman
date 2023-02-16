@@ -1,6 +1,6 @@
 <template>
   <section>
-    <div class="fs0">
+    <div class="flex">
       <auth-component
         tag="div"
         :authorized="!!proxyOperateList.length"
@@ -17,9 +17,11 @@
         </template>
       </auth-component>
       <bk-popover>
-        <bk-button v-test="'copy'" ext-cls="ml10 content-btn" :disabled="!proxyData.length" @click="handleCopyIp">
-          {{ $t('复制IP') }}
-        </bk-button>
+        <CopyDropdown
+          class="ml10"
+          :list="copyMenu"
+          :disabled="!proxyData.length"
+          :get-ips="handleCopyIp" />
         <template #content>
           {{ $t('复制ProxyIP') }}
         </template>
@@ -30,7 +32,7 @@
       <bk-table
         v-test="'proxyTable'"
         :class="`head-customize-table ${ fontSize }`" :data="proxyData" :span-method="colspanHandle">
-        <bk-table-column :label="$t('内网IP')" show-overflow-tooltip>
+        <bk-table-column :label="$t('内网IPv4')" show-overflow-tooltip>
           <template #default="{ row }">
             <bk-button v-if="row.inner_ip" v-test="'view'" text @click="handleViewProxy(row, false)" class="row-btn">
               {{ row.inner_ip }}
@@ -268,7 +270,6 @@
 <script lang="ts">
 import { Component, Prop, Vue, Emit } from 'vue-property-decorator';
 import { CloudStore, MainStore } from '@/store';
-import { copyText } from '@/common/util';
 import ColumnSetting from '@/components/common/column-setting.vue';
 import CloudDetailSlider from './cloud-detail-slider.vue';
 import { STORAGE_KEY_COL } from '@/config/storage-key';
@@ -277,11 +278,13 @@ import { IProxyDetail } from '@/types/cloud/cloud';
 import { IBkColumn, ITabelFliter } from '@/types';
 import { TranslateResult } from 'vue-i18n';
 import { DHCP_FILTER_KEYS, enableDHCP } from '@/config/config';
+import CopyDropdown, { allChildList } from '@/components/common/copy-dropdown.vue';
 
 @Component({
   name: 'CloudDetailTable',
   components: {
     CloudDetailSlider,
+    CopyDropdown,
   },
 })
 
@@ -317,7 +320,7 @@ export default class CloudDetailTable extends Vue {
   private filter: { [key: string]: ITabelFliter } =  {};
   // value [checked, disabled, mockChecked, id, name]
   private filterSet: Dictionary[] = [
-    { key: 'inner_ip', value: [true, true, true, 'inner_ip', this.$t('内网IP')] },
+    { key: 'inner_ip', value: [true, true, true, 'inner_ip', this.$t('内网IPv4')] },
     { key: 'inner_ipv6', value: [true, true, true, 'inner_ipv6', this.$t('内网IPv6')] },
     { key: 'proxy_version', value: [true, false, true, 'version', this.$t('Proxy版本')] },
     { key: 'outer_ip', value: [false, false, false, 'outer_ip', this.$t('出口IP')] },
@@ -348,6 +351,15 @@ export default class CloudDetailTable extends Vue {
   private get proxyOperateList() {
     return (this.authority.proxy_operate || []).map(item => item.bk_biz_id);
   }
+  protected get copyMenu() {
+    return allChildList.map(item => ({
+      ...item,
+      disabled: item.id.includes('v6')
+        ? !this.proxyData.some(proxy => proxy.inner_ipv6)
+        : !this.proxyData.some(proxy => proxy.inner_ip),
+    }));
+  }
+
   private created() {
     this.initCustomColStatus();
   }
@@ -584,12 +596,9 @@ export default class CloudDetailTable extends Vue {
     }
   }
   // 复制proxyIP
-  public handleCopyIp() {
-    const checkedIpText = this.proxyData.map(item => item.inner_ip || item.inner_ipv6).join('\n');
-    if (!checkedIpText) return;
-    copyText(checkedIpText, () => {
-      this.$bkMessage({ theme: 'success', message: this.$t('IP复制成功', { num: this.proxyData.length }) });
-    });
+  public handleCopyIp(type: string) {
+    const ipKey = type.includes('v6') ? 'inner_ipv6' : 'inner_ip';
+    return Promise.resolve(this.proxyData.filter(proxy => proxy[ipKey]).map(proxy => proxy[ipKey]));
   }
 }
 </script>
