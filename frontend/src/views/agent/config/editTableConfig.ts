@@ -81,7 +81,7 @@ export const config: ISetupHead[] = [
     },
   },
   {
-    label: '内网IP',
+    label: '内网IPv4',
     prop: 'inner_ip',
     type: 'text',
     required: true,
@@ -103,7 +103,7 @@ export const config: ISetupHead[] = [
     required: true,
     noRequiredMark: true,
     rules: [reguIPv6],
-    // tips: 'agentSetupInnerIpv6',
+    // tips: 'agentSetupInnerIPv6',
     parentProp: 'host_ip',
     readonly: true,
     manualProp: true,

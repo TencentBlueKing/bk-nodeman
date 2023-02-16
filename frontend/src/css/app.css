@@ -38,6 +38,9 @@ body {
 .fs0 {
     font-size: 0;
 }
+.flex {
+    display: flex
+}
 .text-ellipsis {
     white-space: nowrap;
     text-overflow: ellipsis;
@@ -773,4 +776,12 @@ body {
 }
 .bk-ip-selector-box {
     height: 100%;
+}
+
+.bk-dropdown-menu.disabled, .bk-dropdown-menu.disabled * {
+    background-color: transparent;
+}
+
+.copy-dropdown .bk-dropdown-content {
+  overflow-x: visible;
 }

@@ -92,43 +92,11 @@
           </ul>
         </bk-dropdown-menu>
         <!--复制IP-->
-        <bk-dropdown-menu
-          trigger="click"
-          ref="copyIp"
-          font-size="medium"
+        <CopyDropdown
           class="ml10"
-          :disabled="loadingCopyBtn || table.data.length === 0"
-          @show="handleDropdownShow('isCopyDropdownShow')"
-          @hide="handleDropdownHide('isCopyDropdownShow')">
-          <bk-button
-            class="dropdown-btn"
-            slot="dropdown-trigger"
-            :loading="loadingCopyBtn"
-            :disabled="table.data.length === 0"
-            v-test="'copy'">
-            <span class="icon-down-wrapper">
-              <span>{{ $t('复制') }}</span>
-              <i :class="['bk-icon icon-angle-down', { 'icon-flip': isCopyDropdownShow }]"></i>
-            </span>
-          </bk-button>
-          <ul class="bk-dropdown-list" slot="dropdown-content">
-            <li>
-              <a :class="{ 'item-disabled': selectionCount === 0 }"
-                 v-test.common="'moreItem.checkedIp'"
-                 @click.prevent.stop="triggerHandler({
-                   type: 'checkedIp',
-                   disabled: selectionCount === 0
-                 })">
-                {{ $t('勾选IP') }}
-              </a>
-            </li>
-            <li>
-              <a @click.prevent="triggerHandler({ type: 'allIp' })" v-test.common="'moreItem.allIp'">
-                {{ $t('所有IP') }}
-              </a>
-            </li>
-          </ul>
-        </bk-dropdown-menu>
+          :disabled="table.data.length === 0"
+          :not-selected="!selectionCount"
+          :get-ips="handleCopyIp" />
         <!--选择业务-->
         <!-- <bk-biz-select
           v-model="search.biz"
@@ -242,7 +210,7 @@
         <bk-table-column
           fixed
           key="IP"
-          label="IP"
+          :label="$t('内网IPv4')"
           prop="inner_ip"
           width="125"
           show-overflow-tooltip>
@@ -255,7 +223,7 @@
           key="inner_ipv6"
           :label="$t('内网IPv6')"
           prop="inner_ipv6"
-          :width="innerIpv6Width"
+          :width="innerIPv6Width"
           v-if="filter['inner_ipv6'].mockChecked"
           show-overflow-tooltip>
           <template #default="{ row }">
@@ -620,7 +588,8 @@ import BkFooter from '@/components/common/footer.vue';
 import TableHeaderMixins from '@/components/common/table-header-mixins';
 import pollMixin from '@/common/poll-mixin';
 import authorityMixin from '@/common/authority-mixin';
-import { copyText, debounce, getFilterChildBySelected, searchSelectPaste } from '@/common/util';
+import CopyDropdown from '@/components/common/copy-dropdown.vue';
+import { debounce, getFilterChildBySelected, searchSelectPaste } from '@/common/util';
 import { bus } from '@/common/bus';
 import { STORAGE_KEY_COL } from '@/config/storage-key';
 import { getDefaultConfig, enableDHCP } from '@/config/config';
@@ -629,11 +598,11 @@ import { getDefaultConfig, enableDHCP } from '@/config/config';
   name: 'agent-list',
   components: {
     BkFooter,
+    CopyDropdown,
   },
 })
 export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, authorityMixin())<IAgent> {
   @Ref('topoSelect') private readonly topoSelect!: any;
-  @Ref('copyIp') private readonly copyIp!: any;
   @Ref('batch') private readonly batch!: any;
   @Ref('searchSelect') private readonly searchSelect!: any;
   @Ref('agentTable') private readonly agentTable!: any;
@@ -666,15 +635,13 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
   private searchInputKey = 0;
   // 跨页全选loading
   private checkLoading = false;
-  // ip复制按钮加载状态
-  private loadingCopyBtn = false;
   // 列表字段显示配置
   private filter: { [key: string]: ITabelFliter } = {
     inner_ip: {
       checked: true,
       disabled: true,
       mockChecked: true,
-      name: 'IP',
+      name: window.i18n.t('内网IPv4'),
       id: 'inner_ip',
     },
     login_ip: {
@@ -818,8 +785,6 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
       filter: true,
     },
   };
-  // 是否显示复制按钮下拉菜单
-  private isCopyDropdownShow = false;
   // 是否显示批量按钮下拉菜单
   private isbatchDropdownShow = false;
   private isSetupDropdownShow = false;
@@ -921,7 +886,7 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
   private get selectedBiz() {
     return MainStore.selectedBiz;
   }
-  private get innerIpv6Width() {
+  private get innerIPv6Width() {
     const ipv6SortRows: number[] = this.table.data
       .filter(row => !!row.inner_ipv6)
       .map(row => (row.inner_ipv6 as string).length)
@@ -1310,32 +1275,7 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
 
     return Object.assign(params, this.getCommonCondition());
   }
-  /**
-   * 获取所有勾选IP信息查询条件
-   */
-  private getCheckedIpCondition() {
-    const params: IAgent = {
-      pagesize: -1,
-      only_ip: true,
-    };
-    // 跨页全选
-    if (this.isSelectedAllPages) {
-      params.exclude_hosts = this.markDeleteArr.map(item => item.bk_host_id);
-    }
 
-    return Object.assign(params, this.getCommonCondition());
-  }
-  /**
-   * 获取所有IP信息的查询条件
-   */
-  private getAllIpCondition() {
-    const params = {
-      pagesize: -1,
-      only_ip: true,
-    };
-
-    return Object.assign(params, this.getCommonCondition());
-  }
   /**
    * 获取删除主机信息的查询条件
    */
@@ -1494,37 +1434,27 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
     this[value] = false;
   }
   /**
-   * 复制勾选 IP
+   * 复制 IP
    */
-  private async handleCopyCheckedIp() {
-    this.loadingCopyBtn = true;
-    let data = {
-      total: this.selection.length,
-      list: this.selection.map(item => item.inner_ip || item.inner_ipv6),
-    };
-    if (this.isSelectedAllPages) {
-      data = await AgentStore.getHostIp(this.getCheckedIpCondition() as IAgentSearchIp);
+  private async handleCopyIp(type: string) {
+    const key = type.includes('v4') ? 'inner_ip' : 'inner_ipv6';
+    let list = this.selection.filter(item => item[key]).map(item => item[key]);
+    const isAll = type.includes('all');
+    if (isAll || this.isSelectedAllPages) {
+      const params: IAgent = {
+        pagesize: -1,
+        only_ip: true,
+        return_field: key,
+      };
+      if (this.isSelectedAllPages && !isAll && this.markDeleteArr.length) {
+        params.exclude_hosts = this.markDeleteArr.map(item => item.bk_host_id);
+      }
+      const data = await AgentStore.getHostIp(Object.assign(params, this.getCommonCondition()) as IAgentSearchIp);
+      list = data.list;
     }
-    const checkedIpText = data.list.join('\n');
-    if (!checkedIpText) return;
-    copyText(checkedIpText, () => {
-      this.$bkMessage({ theme: 'success', message: this.$t('IP复制成功', { num: data.total }) });
-    });
-    this.loadingCopyBtn = false;
+    return Promise.resolve(list);
   }
-  /**
-   * 复制所有 IP
-   */
-  private async handleCopyAllIp() {
-    this.loadingCopyBtn = true;
-    const data = await AgentStore.getHostIp(this.getAllIpCondition() as IAgentSearchIp);
-    const allIpText = data.list.join('\n');
-    if (!allIpText) return;
-    copyText(allIpText, () => {
-      this.$bkMessage({ theme: 'success', message: this.$t('IP复制成功', { num: data.total }) });
-    });
-    this.loadingCopyBtn = false;
-  }
+
   /**
    * 操作
    * @param {Object} item
@@ -1533,15 +1463,7 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
     if (item.disabled) return;
     const data = this.isSelectedAllPages ? this.markDeleteArr : this.selection;
     switch (item.type) {
-      // 复制IP
-      case 'checkedIp':
-        this.handleCopyCheckedIp();
-        break;
-        // 复制所有IP
-      case 'allIp':
-        this.handleCopyAllIp();
-        break;
-        // 批量重启 批量重装 批量重载配置 批量卸载 批量升级
+      // 批量重启 批量重装 批量重载配置 批量卸载 批量升级
       case 'reboot':
       case 'reinstall':
       case 'reload':
@@ -1559,7 +1481,6 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
         this.handleImportAgent();
         break;
     }
-    this.copyIp.hide();
     this.batch.hide();
   }
   /**
@@ -1600,7 +1521,7 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
         isAllChecked: this.isAllChecked,
         loading: this.checkLoading,
         disabled: this.disabledCheckBox,
-        disabledCheckAl: this.disabledAllChecked,
+        disabledCheckAll: this.disabledAllChecked,
         action: 'agent_operate',
         checkAllPermission: this.checkAllPermission,
       },

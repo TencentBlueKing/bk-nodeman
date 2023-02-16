@@ -13,7 +13,7 @@ const config = [
   },
   {
     prop: 'inner_ip',
-    label: window.i18n.t('内网IP'),
+    label: window.i18n.t('内网IPv4'),
     type: 'text',
     readonly: true,
   },

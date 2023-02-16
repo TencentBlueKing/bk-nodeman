@@ -53,7 +53,7 @@
         prop="inner_ip"
         class-name="ip-row"
         sortable
-        :label="$t('内网IP')"
+        :label="$t('内网IPv4')"
         fixed>
         <template #default="{ row }">
           <bk-button v-if="row.inner_ip" v-test="'showDetail'" text @click="handleRowClick(row)">
@@ -64,7 +64,7 @@
       </bk-table-column>
       <bk-table-column
         v-if="filterField['inner_ipv6'].mockChecked"
-        :width="innerIpv6Width"
+        :width="innerIPv6Width"
         prop="inner_ipv6"
         class-name="ip-row"
         :label="$t('内网IPv6')"
@@ -263,7 +263,7 @@ export default class PluginRuleTable extends Mixins(HeaderRenderMixin) {
     inner_ip: {
       checked: true,
       disabled: true,
-      name: 'IP',
+      name: window.i18n.t('内网IPv4'),
       id: 'inner_ip',
       mockChecked: true,
     },
@@ -356,7 +356,7 @@ export default class PluginRuleTable extends Mixins(HeaderRenderMixin) {
     }
     return this.runningCount - this.excludeData.length;
   }
-  private get innerIpv6Width() {
+  private get innerIPv6Width() {
     const ipv6SortRows: number[] = this.tableList
       .filter(row => !!row.inner_ipv6)
       .map(row => row.inner_ipv6.length)
