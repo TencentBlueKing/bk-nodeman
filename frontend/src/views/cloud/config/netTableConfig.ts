@@ -15,9 +15,9 @@ export const parentHead = [
 const defaultOsType = 'LINUX'; // proxy 一定为 LINUX
 const config: ISetupHead[] = [
   {
-    label: '内网IP',
+    label: '内网IPv4',
     prop: 'inner_ip',
-    // tips: '内网IP提示',
+    // tips: '内网IPv4提示',
     required: true,
     requiredPick: ['inner_ipv6'],
     type: 'text',

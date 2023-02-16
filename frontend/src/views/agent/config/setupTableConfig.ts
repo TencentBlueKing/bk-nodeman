@@ -1,6 +1,6 @@
 import { ISetupHead, ISetupRow } from '@/types';
 import { authentication, defaultPort, sysOptions, defaultOsType, getDefaultConfig, addressingMode, enableDHCP, DHCP_FILTER_KEYS } from '@/config/config';
-import { reguFnMinInteger, reguPort, reguIpv4Batch, reguIpv6Batch, reguIpMixinsBatch, reguIpInLineRepeat } from '@/common/form-check';
+import { reguFnMinInteger, reguPort, reguIPv4Batch, reguIPv6Batch, reguIpMixinsBatch, reguIpInLineRepeat } from '@/common/form-check';
 import { splitCodeArr } from '@/common/regexp';
 
 const useTjj = window.PROJECT_CONFIG.USE_TJJ === 'True';
@@ -15,7 +15,7 @@ export const parentHead = [
 
 const config: ISetupHead[] = [
   {
-    label: '内网IP',
+    label: '内网IPv4',
     prop: 'inner_ip',
     reprop: 'inner_ipv6',
     requiredPick: ['inner_ipv6'],
@@ -32,7 +32,7 @@ const config: ISetupHead[] = [
     sync: 'login_ip',
     manualProp: true,
     rules: [
-      reguIpv4Batch,
+      reguIPv4Batch,
       reguIpInLineRepeat,
       {
         trigger: 'blur',
@@ -100,12 +100,12 @@ const config: ISetupHead[] = [
     placeholder: window.i18n.t('多ip输入提示'),
     width: '20%',
     errTag: true,
-    // tips: 'agentSetupInnerIpv6',
+    // tips: 'agentSetupInnerIPv6',
     parentProp: 'host_ip',
     // sync: 'login_ip',
     manualProp: true,
     rules: [
-      reguIpv6Batch,
+      reguIPv6Batch,
       reguIpInLineRepeat,
       {
         trigger: 'blur',

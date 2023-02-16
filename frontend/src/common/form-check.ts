@@ -17,10 +17,10 @@ const i18nMap: Dictionary = {
   windows: 'windows路径格式错误',
 };
 
-export function createIpRegu(type: 'ipv4' | 'ipv6' | 'mixins' = 'ipv4', isBatch = false) {
+export function createIpRegu(type: 'IPv4' | 'IPv6' | 'mixins' = 'IPv4', isBatch = false) {
   let regex = regIp;
-  if (type !== 'ipv4') {
-    regex = type === 'ipv6' ? regIPv6 : regIpMixin;
+  if (type !== 'IPv4') {
+    regex = type === 'IPv6' ? regIPv6 : regIpMixin;
   }
   const validator = isBatch
     ? (val: string) => {
@@ -49,10 +49,10 @@ export const reguRequired = {
   trigger: 'blur',
 };
 export const reguIp = createIpRegu();
-export const reguIPv6 = createIpRegu('ipv6');
+export const reguIPv6 = createIpRegu('IPv6');
 export const reguIPMixins = createIpRegu('mixins');
-export const reguIpv4Batch = createIpRegu('ipv4', true);
-export const reguIpv6Batch = createIpRegu('ipv6', true);
+export const reguIPv4Batch = createIpRegu('IPv4', true);
+export const reguIPv6Batch = createIpRegu('IPv6', true);
 export const reguIpMixinsBatch = createIpRegu('mixins', true);
 export const reguUrl = {
   regex: regUrl,

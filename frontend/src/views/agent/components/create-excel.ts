@@ -9,7 +9,7 @@ interface IHead {
 }
 
 const config: IHead[] = [
-  { name: window.i18n.t('内网IP'), prop: 'inner_ip', width: 150 },
+  { name: window.i18n.t('内网IPv4'), prop: 'inner_ip', width: 150 },
   { name: window.i18n.t('内网IPv6'), prop: 'inner_ipv6', width: 150 },
   { name: window.i18n.t('操作系统'), prop: 'os_type' },
   { name: window.i18n.t('安装通道'), prop: 'install_channel_id' },

@@ -6,7 +6,7 @@ export function setIpProp(key: string, obj: Dictionary): { [key: string]: string
     : { [key]: obj[key] };
 }
 
-// 双模式下优先使用 ipv4
+// 双模式下优先使用 IPv4
 export function initIpProp(obj, keys: string[]): void {
   keys.forEach((key) => {
     if (Object.prototype.hasOwnProperty.call(obj, `${key}v6`)) {

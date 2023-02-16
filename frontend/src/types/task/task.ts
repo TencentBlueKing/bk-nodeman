@@ -118,6 +118,8 @@ export interface ITaskHost {
   bk_cloud_name?: string
   bkHostId: number
   ip: string
+  innerIp: string
+  innerIpv6: string
   instanceId: string
   isManual: false
   nodeId?: number
