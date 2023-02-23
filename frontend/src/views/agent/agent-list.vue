@@ -1602,14 +1602,13 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
         // title = this.$t('重装Agent')
         jobType = 'REINSTALL_AGENT';
         break;
-        // 重装
+        // 重载
       case 'reload':
         jobType = 'RELOAD_AGENT';
         break;
         // 卸载
       case 'uninstall':
         jobType = 'UNINSTALL_AGENT';
-        // this.handleOperatetHost(data, batch, 'UNINSTALL_AGENT')
         break;
         // 升级
       case 'upgrade':
@@ -1658,7 +1657,7 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
     });
   }
   /**
-   * 重启、卸载 Host
+   * 重启Host
    * @param {Array} data
    */
   private handleOperatetHost(data: IAgentHost[], batch: boolean, operateType: string) {
@@ -1675,37 +1674,33 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
         this.$router.push({ name: 'taskDetail', params: { taskId: result.job_id, routerBackName: 'taskList' } });
       }
     };
-    let titleKey = '';
+    let type = '';
     switch (operateType) {
       // 重启
       case 'RESTART_AGENT':
-        titleKey = '重启lower';
-        break;
-        // 卸载
-      case 'UNINSTALL_AGENT':
-        titleKey = '卸载lower';
+        type = window.i18n.t('重启lower');
         break;
         // 升级
       case 'UPGRADE_AGENT':
-        titleKey = '升级lower';
+        type = window.i18n.t('升级lower');
         break;
       case 'REMOVE_AGENT':
-        titleKey = '移除lower';
+        type = window.i18n.t('移除lower');
         break;
     }
     this.$bkInfo({
       title: batch
-        ? this.$t('请确认是否批量操作', { type: this.$t(titleKey) })
-        : this.$t('请确认是否操作', { type: this.$t(titleKey) }),
+        ? this.$t('请确认是否批量操作', { type })
+        : this.$t('请确认是否操作', { type }),
       subTitle: batch
         ? this.$t('批量确认操作提示', {
           ip: titleObj.firstIp,
           num: titleObj.num,
-          type: this.$t(titleKey),
+          type,
           suffix: operateType === 'UPGRADE_AGENT' ? this.$t('到最新版本') : '' })
         : this.$t('单条确认操作提示', {
           ip: titleObj.firstIp,
-          type: this.$t(titleKey),
+          type,
           suffix: operateType === 'UPGRADE_AGENT' ? this.$t('到最新版本') : '',
         }),
       confirmFn: () => {

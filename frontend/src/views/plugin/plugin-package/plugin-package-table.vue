@@ -195,17 +195,7 @@ export default class PackageTable extends Mixins(HeaderRenderMixin) {
   public handleGotoSaaS(url: string) {
     window.open(url);
   }
-  public verificateAlias(value: string) {
-    let message;
-    const valueLength = value.replace(/[\u0391-\uFFE5]/g, 'aa').length;
-    if (valueLength > 40) {
-      message = this.$t('长度不能大于20个中文或40个英文字母');
-    }
-    if (!/^(?!_)(?!.*?_$)[a-zA-Z0-9_\u4e00-\u9fa5]+$/.test(value)) {
-      message = this.$t('格式不正确只能包含汉字英文数字和下划线');
-    }
-    return message;
-  }
+
   private handleFieldCheckChange(filter: ITabelFliter[]) {
     this.filterField = JSON.parse(JSON.stringify(filter));
   }

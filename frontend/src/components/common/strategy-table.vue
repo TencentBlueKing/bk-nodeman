@@ -2,10 +2,10 @@
   <bk-table show-overflow-tooltip :data="guideTable">
     <bk-table-column width="260" prop="source" :label="$t('源地址')" show-overflow-tooltip>
       <template #default="{ row }">
-        <div v-if="row.sourceKey === 'agent'">
+        <div class="cell-wrapper" v-if="row.sourceKey === 'agent'">
           <span>{{ row.source }}：</span>
           <template v-if="row.sourceRe">
-            <div class="bk-tooltip" v-if=" detail[row.sourceKey]">
+            <div class="cell-tooltip" v-if=" detail[row.sourceKey]">
               <div class="cell-flex">
                 <span class="cell-text" @click.stop="handleCopy(row.sourceKey)">
                   {{ detail[`${row.sourceKey}Str`] }}
@@ -45,11 +45,10 @@
     <bk-table-column width="300" prop="targetAdress" :label="$t('目标地址')" show-overflow-tooltip>
       <template #default="{ row }">
         <div class="cell-wrapper">
-          <div v-if="row.targetKey === 'agent'">
-            <span>{{ row.targetAdress }}</span>
-            <span v-if="row.targetRe">：</span>
+          <template v-if="row.targetKey === 'agent'">
+            <span class="cell-label">{{ row.targetAdress }}{{ row.targetRe ? '：' : '' }}</span>
             <template v-if="row.targetRe">
-              <div class="bk-tooltip" v-if="detail[row.sourceKey]">
+              <div class="cell-tooltip" v-if="detail[row.sourceKey]">
                 <div class="cell-flex">
                   <span class="cell-text" @click.stop="handleCopy(row.targetKey)">
                     {{ detail[`${row.targetKey}Str`] }}
@@ -61,10 +60,9 @@
               </div>
               <span v-else class="cell-placeholder">{{ hasCloud ? $t('请输入IP') : $t('请选择云区域') }}</span>
             </template>
-          </div>
-          <div class="cell-wrapper" v-else>
-            <span>{{ row.targetAdress }}</span>
-            <span v-if="row.targetRe">：</span>
+          </template>
+          <template v-else>
+            <span class="cell-label">{{ row.targetAdress }}{{ row.targetRe ? '：' : '' }}</span>
             <bk-popover
               placement="top"
               :disabled="!(row.targetKey === 'proxy' && notAvailableProxy)">
@@ -86,7 +84,7 @@
                 <bk-link v-if="notAvailableProxy" theme="primary" @click.stop="handleGotoProxy">{{$t('前往安装')}}</bk-link>
               </div>
             </bk-popover>
-          </div>
+          </template>
         </div>
       </template>
     </bk-table-column>
@@ -634,8 +632,14 @@ export default class StrategyTable extends Vue {
       }
     }
   }
+  .cell-tooltip {
+    white-space: nowrap;
+  }
   .cell-placeholder {
     color: #c4c6cc;
+  }
+  .cell-label {
+    flex-shrink: 0;
   }
   .cell-text {
     flex: 1;
