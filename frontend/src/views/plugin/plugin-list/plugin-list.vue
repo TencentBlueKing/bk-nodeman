@@ -270,7 +270,7 @@ export default class PluginList extends Mixins(HeaderFilterMixins) {
       list.push(pluginItem);
 
       this.pluginList = data2.filter(item => item.is_ready).map(item => ({
-        label: `${item.name}(${item.description})`,
+        label: item.description ? `${item.name}(${item.description})` : item.name,
         ...item,
       }));
     }

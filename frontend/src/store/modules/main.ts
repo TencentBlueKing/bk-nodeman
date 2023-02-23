@@ -68,7 +68,7 @@ export default class Main extends VuexModule {
   public routerBackName = '';
   public osList: any = null;
   public osNameList: string[] = [];
-  public osMap: Dictionary = null;
+  public osMap: Dictionary = {};
   public installDefaultValues: Dictionary = {};
 
   // 公共 mutations

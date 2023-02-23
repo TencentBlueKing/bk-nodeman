@@ -3,8 +3,24 @@
 @import './variable.css';
 
 body {
+    min-width: 1280px;
     font-size: 12px;
     color: $defaultFontColor;
+    overflow-y: hidden;
+}
+
+.bk-navigation {
+    width: 100%;
+    min-width: 100vw;
+    .navigation-container {
+        max-width: none!important;
+    }
+    .bk-navigation-wrapper {
+        .group-name-wrap {
+            padding: 12px 0;
+            color: #b0b2b8;
+        }
+    }
 }
 
 .nodeman-primary-btn {
@@ -13,6 +29,7 @@ body {
 .nodeman-cancel-btn {
     min-width: 86px !important;
 }
+
 /* bk-tag */
 .nm-tag {
     box-sizing: border-box;
@@ -254,7 +271,8 @@ body {
     }
     .bk-table-fixed,
     .bk-table-fixed-right {
-        bottom: 0!important;
+        bottom: 13px!important;
+        border-bottom: 0;
     }
     .cell .cell {
         padding-left: 0;
@@ -784,4 +802,8 @@ body {
 
 .copy-dropdown .bk-dropdown-content {
   overflow-x: visible;
+}
+
+.rule-create .ip-selector .ip-selector-table-page-check {
+    z-index: 999
 }
