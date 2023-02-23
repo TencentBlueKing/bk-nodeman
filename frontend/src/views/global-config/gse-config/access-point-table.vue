@@ -67,7 +67,7 @@
           <tr v-for="(path, index) in formData.linux" :key="index + 100">
             <td v-if="index === 0" :rowspan="rowspanNum.agent">{{ $t('Agent信息') }}</td>
             <td v-if="index === 0" :rowspan="rowspanNum.linux">Linux</td>
-            <td>{{ path.name }}</td>
+            <td class="label-td">{{ path.name }}</td>
             <td class="table-content">{{ path.value }}</td>
           </tr>
         </template>
@@ -75,7 +75,7 @@
         <template v-if="rowspanNum.windows">
           <tr v-for="(path, index) in formData.windows" :key="index + 200">
             <td v-if="index === 0" :rowspan="rowspanNum.windows">Windows</td>
-            <td>{{ path.name }}</td>
+            <td class="label-td">{{ path.name }}</td>
             <td class="table-content">{{ path.value }}</td>
           </tr>
         </template>
@@ -180,6 +180,9 @@ export default class AccessPointTable extends Vue {
   }
   .table-content {
     color: #63656e;
+  }
+  .label-td {
+    white-space: nowrap;
   }
 }
 </style>

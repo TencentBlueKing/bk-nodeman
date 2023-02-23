@@ -405,5 +405,6 @@ export interface IPluginInfoConfig {
 
 export interface IPkParseRow extends IPk {
   pkg_abs_path: string
+  sys?: string
   result?: boolean
 }

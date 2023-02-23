@@ -15,18 +15,6 @@ export const navConfig: INavConfig[] = [
             path: '/agent-manager/status',
             name: 'agentStatus',
           },
-          // {
-          //   title: '普通安装',
-          //   icon: 'nc-install',
-          //   path: '/agent-manager/setup',
-          //   name: 'agentSetup',
-          // },
-          // {
-          //   title: 'Excel导入安装',
-          //   icon: 'nc-icon-excel-fill',
-          //   path: '/agent-manager/import',
-          //   name: 'agentImport',
-          // },
         ],
       },
       {

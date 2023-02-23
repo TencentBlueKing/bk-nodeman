@@ -141,7 +141,7 @@ export default class RuleAdd extends Mixins(FormLabelMixin, routerBackMixin) {
     this.isLoading = true;
     const res = await PluginStore.pluginPkgList({ simple_all: true });
     const list = res.list.filter(item => item.is_ready).map(item => ({
-      label: `${item.name}(${item.description})`,
+      label: item.description ? `${item.name}(${item.description})` : item.name,
       ...item,
     }));
     sort(list, 'name');

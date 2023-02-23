@@ -330,8 +330,8 @@ export default class PluginPackage extends Mixins(pollMixin, RouterBackMixin) {
     if (valueLength > 40) {
       message = this.$t('长度不能大于20个中文或40个英文字母');
     }
-    if (!/^(?!_)(?!.*?_$)[a-zA-Z0-9_\u4e00-\u9fa5]+$/.test(value)) {
-      message = this.$t('格式不正确只能包含汉字英文数字和下划线');
+    if (!/^(?!_)(?!.*?_$)[a-zA-Z0-9_\s\u4e00-\u9fa5]+$/.test(value)) {
+      message = this.$t('插件别名格式不正确');
     }
     return message;
   }

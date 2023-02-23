@@ -36,11 +36,7 @@
           <span v-else>--</span>
         </template>
       </bk-table-column>
-      <bk-table-column :label="$t('支持系统')" prop="cpu_arch" :resizable="false" show-overflow-tooltip>
-        <template #default="{ row }">
-          <span>{{ `${osMap[row.os]} ${row.cpu_arch}` || '--' }}</span>
-        </template>
-      </bk-table-column>
+      <bk-table-column :label="$t('支持系统')" prop="sys" :resizable="false" show-overflow-tooltip />
       <bk-table-column :label="$t('插件描述')" prop="description" :resizable="false" show-overflow-tooltip />
       <bk-table-column :label="$t('解析结果')" prop="message" min-width="200" show-overflow-tooltip>
         <template #default="{ row }">
@@ -151,6 +147,8 @@ export default class PluginPackage extends Mixins(pollMixin) {
       const mainConfig = row.config_templates?.find(item => item.is_main);
       row.mainConfigVersion = mainConfig?.version;
       row.childConfigTemplates = row.config_templates?.filter(item => !item.is_main);
+      const os = row.os ? this.osMap[row.os.toLowerCase()] || row.os : '';
+      row.sys = this.$filters('filterEmpty', [os, row.cpu_arch].filter(item => !!item).join(' '));
       // 统计成功和失败状态
       if (row.result) {
         this.statusConut.success += 1;

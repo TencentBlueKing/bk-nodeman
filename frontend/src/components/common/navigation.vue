@@ -358,11 +358,6 @@ export default class NodemanNavigation extends Mixins(routerBackMixin) {
   $navHoverColor: #d3d9e4;
   $headerColor: #313238;
 
-  >>> .bk-navigation-wrapper .group-name-wrap {
-    padding: 12px 0;
-    color: #b0b2b8;
-  }
-
   .menu-biz-shrink-text {
     opacity: 0;
     position: absolute;
@@ -384,9 +379,10 @@ export default class NodemanNavigation extends Mixins(routerBackMixin) {
     >>> .bk-select-clear {
       display: none;
     }
-    >>> .bk-navigation-menu-group:first-child .group-name{
+    /* >>> .bk-navigation-menu-group:first-child .group-name{
       margin: 0 14px;
-    }
+      transition: all .5s ease-in;
+    } */
     .menu-biz-select .bk-select-name {
       color: transparent;
     }

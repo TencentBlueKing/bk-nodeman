@@ -176,6 +176,7 @@ export default class AgentImport extends Mixins(mixin) {
     editConfig: [],
     editManualConfig: [],
   };
+  private isInstallType = ['INSTALL_AGENT', 'REINSTALL_AGENT'].includes(this.type);
 
   // 导入按钮禁用状态
   private get disabledImport() {
@@ -193,9 +194,6 @@ export default class AgentImport extends Mixins(mixin) {
   private get scrollHeight() {
     // 135： footer、表头和tips的高度
     return this.virtualScroll && this.height ? `${this.height - this.surplusHeight}px` : 'auto';
-  }
-  private get isInstallType() {
-    return ['INSTALL_AGENT', 'REINSTALL_AGENT'].includes(this.type);
   }
   private get showSetupTips() {
     return this.showSetupBtn && this.isInstallType;
@@ -284,6 +282,9 @@ export default class AgentImport extends Mixins(mixin) {
         break;
       case 'RELOAD_AGENT':
         MainStore.setNavTitle(window.i18n.t('重载Agent配置'));
+        break;
+      case 'UNINSTALL_AGENT':
+        MainStore.setNavTitle(window.i18n.t('卸载Agent'));
         break;
     }
     this.resetTableHead();
