@@ -29,7 +29,9 @@ __all__ = [
     "BKAPP_OTEL_BK_DATA_TOKEN",
     "BKAPP_OTEL_GRPC_URL",
     "BK_CC_HOST",
+    "BK_API_URL_TMPL",
     "ENVIRONMENT",
+    "BKPAAS_MAJOR_VERSION",
     # esb 访问地址
     "BK_COMPONENT_API_URL",
     # 节点管理SaaS访问地址
@@ -93,3 +95,6 @@ BKAPP_OTEL_GRPC_URL = get_type_env(key="BKAPP_OTEL_GRPC_URL", _type=str)
 # 第三方依赖
 # ===============================================================================
 BK_CC_HOST = get_type_env(key="BK_CC_HOST", default="", _type=str)
+
+# APIGW API 地址模板，在 PaaS 3.0 部署的应用，可从环境变量中获取 BK_API_URL_TMPL
+BK_API_URL_TMPL = get_type_env(key="BK_API_URL_TMPL", default=BK_COMPONENT_API_URL + "/api/{api_name}", _type=str)

@@ -16,6 +16,8 @@ from .. import constants
 __all__ = [
     # PaaS 部署环境，标准化为 stag / dev
     "ENVIRONMENT",
+    # PaaS 版本
+    "BKPAAS_MAJOR_VERSION",
     # 是否为后台配置
     "BK_BACKEND_CONFIG",
     # 后台是否为PaaS部署
