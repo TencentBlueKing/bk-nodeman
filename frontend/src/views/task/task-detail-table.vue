@@ -208,8 +208,19 @@ export default class TaskDeatailTable extends Mixins(HeaderRenderMixin) {
     return MainStore.windowHeight - 322;
   }
   private get commandStep() {
-    return [this.$t('手动安装Guide'), '安装', this.$t('手动卸载Guide'), '卸载', '卸载Agent', '卸载Proxy'];
-    // return this.isUninstallType ? [this.$t('手动卸载Guide'), '卸载'] : [this.$t('手动安装Guide'), '安装'];
+    return [
+      // => proxy安装、agent安装、agent重装
+      '安装', 'Install', this.$t('安装'),
+      'Installation', this.$t('手动安装Guide'),
+      // Agent卸载
+      '卸载Agent', 'Uninstall Agent', this.$t('手动卸载Agent'),
+      // Proxy卸载
+      '卸载Proxy', 'Uninstall Proxy', this.$t('手动卸载Proxy'),
+      // 卸载
+      '卸载', 'Uninstall', 'Uninstallation', this.$t('手动卸载Guide'),
+      // other
+      this.$t('Proxy安装'),
+    ];
   }
   private get showTargetVersionColumn() {
     return this.category === 'policy';
