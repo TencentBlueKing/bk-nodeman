@@ -71,8 +71,8 @@ def get_request_app_code():
     获取线程请求中的 APP_CODE，非线程请求返回空字符串
     """
     try:
-        return _local.bk_app_code
-    except AttributeError:
+        return _local.request.META["HTTP_BK_APP_CODE"]
+    except (AttributeError, KeyError):
         return ""
 
 

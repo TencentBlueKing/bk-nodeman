@@ -15,6 +15,7 @@ import logging
 import os
 import traceback
 
+from apigw_manager.apigw.authentication import ApiGatewayJWTUserMiddleware
 from blueapps.account.models import User
 from blueapps.core.exceptions.base import BlueException
 
@@ -227,3 +228,20 @@ class CommonMid(MiddlewareMixin):
         response.status_code = 500
 
         return response
+
+
+class ApiGatewayJWTUserInjectAppMiddleware(ApiGatewayJWTUserMiddleware):
+    def __call__(self, request):
+        # jwt_app 依赖于 ApiGatewayJWTAppMiddleware 注入
+        jwt_app = getattr(request, "app", None)
+        if not jwt_app:
+            return super().__call__(request)
+
+        # 和开发框架保持一致行为，如果通过应用认证并且开启 ESB 白名单，此时认为用户认证也通过
+        use_esb_white_list = getattr(settings, "USE_ESB_WHITE_LIST", True)
+        if use_esb_white_list and jwt_app.verified:
+            # 如果 user 信息不存在，默认填充 bk_app_code 作为用户名
+            request.jwt.payload["user"] = request.jwt.payload.get("user") or {"bk_username": jwt_app.bk_app_code}
+            request.jwt.payload["user"]["verified"] = True
+
+        return super().__call__(request)
