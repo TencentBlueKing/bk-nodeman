@@ -658,6 +658,8 @@ export default {
   操作指引: '操作指引',
   手动安装Guide: '安装',
   手动卸载Guide: '卸载',
+  手动卸载Agent: '卸载Agent',
+  手动卸载Proxy: '卸载Proxy',
 
   插件管理: '插件管理',
   全局配置: '全局配置',

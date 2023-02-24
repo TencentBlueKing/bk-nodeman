@@ -658,6 +658,8 @@ export default {
   操作指引: 'Operation guide',
   手动安装Guide: 'Installation',
   手动卸载Guide: 'Uninstall',
+  手动卸载Agent: 'Uninstall Agent',
+  手动卸载Proxy: 'Uninstall Proxy',
 
   插件管理: 'Plugin',
   全局配置: 'Global Configuration',
