@@ -12,8 +12,8 @@
         <template #default="{ row }">
           <ul class="config-list" v-if="row.childConfigTemplates && row.childConfigTemplates.length">
             <li class="config-item" v-for="(template, index) in row.childConfigTemplates" :key="index">
-              <span class="config-item-name" :title="template.name">{{ template.name }}</span>
-              <span class="ml10 config-item-version">{{ template.version }}</span>
+              <span class="config-item-name" v-bk-overflow-tips>{{ template.name }}</span>
+              <span class="ml10 config-item-version" v-bk-overflow-tips>{{ template.version }}</span>
             </li>
           </ul>
           <span v-else>--</span>

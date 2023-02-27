@@ -232,6 +232,12 @@
           </div>
         </template>
       </bk-table-column>
+
+      <NmException
+        slot="empty"
+        :type="tableEmptyType"
+        @empty-clear="emptySearchClear"
+        @empty-refresh="emptyRefresh" />
     </bk-table>
   </section>
 </template>
@@ -267,6 +273,7 @@ export default class PluginRuleTable extends Mixins(HeaderRenderMixin) {
     limit: 20,
   }) }) private readonly pagination!: IPagination;
   @Prop({ default: () => ([]), type: Array }) public readonly filterList!: ISearchItem[];
+  @Prop({ default: '', type: String }) public readonly searchSelectValue!: string;
 
   private editId: number | string = '';
   private editName = '';
@@ -295,6 +302,9 @@ export default class PluginRuleTable extends Mixins(HeaderRenderMixin) {
   }
   private get fontSize() {
     return MainStore.fontSize;
+  }
+  private get tableEmptyType() {
+    return this.searchSelectValue.length ? 'search-empty' : 'empty';
   }
 
   private mounted() {

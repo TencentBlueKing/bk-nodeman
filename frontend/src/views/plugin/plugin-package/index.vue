@@ -31,9 +31,12 @@
       :table-list="tableList"
       :pagination="pagination"
       :num-loading="numLoading"
+      :search-value="searchValue"
       v-bkloading="{ isLoading }"
       @page-change="handlePageChange"
-      @limit-change="handleLimitChange">
+      @limit-change="handleLimitChange"
+      @empty-clear="searchClear"
+      @empty-refresh="handleValueChange">
     </PluginPackageTable>
     <bk-dialog
       width="480"
@@ -196,6 +199,10 @@ export default class PluginPackage extends Vue {
   }
   public handleUploadProgress() {
     this.uploadLoading = true;
+  }
+  public searchClear() {
+    this.searchValue = '';
+    this.handleValueChange();
   }
 }
 </script>

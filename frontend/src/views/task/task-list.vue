@@ -23,7 +23,9 @@
       @filter-confirm="handleFilterHeaderChange"
       @filter-reset="handleFilterHeaderChange"
       @pagination-change="handlePaginationChange"
-      @sort-change="handleSortHandle">
+      @sort-change="handleSortHandle"
+      @empty-clear="() => handleSearchChange([])"
+      @empty-refresh="getHistortListDebounce">
     </TaskListTable>
   </div>
 </template>

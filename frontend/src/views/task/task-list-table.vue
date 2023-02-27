@@ -38,7 +38,7 @@
         </bk-table-column>
         <bk-table-column
           prop="op_type"
-          min-width="100"
+          min-width="110"
           :label="$t('操作类型')"
           :render-header="renderFilterHeader">
           <template #default="{ row }">
@@ -68,7 +68,7 @@
             {{ row.startTime | filterTimezone }}
           </template>
         </bk-table-column>
-        <bk-table-column align="right" :label="$t('总耗时')" prop="costTime">
+        <bk-table-column align="right" :label="$t('总耗时')" prop="costTime" min-width="90">
           <template #default="{ row }">{{ takesTimeFormat(row.costTime) }} </template>
         </bk-table-column>
         <bk-table-column min-width="20" :resizable="false"></bk-table-column>
@@ -86,7 +86,7 @@
             </div>
           </template>
         </bk-table-column>
-        <bk-table-column :label="$t('总数成功失败忽略')" min-width="140">
+        <bk-table-column :label="$t('总数成功失败忽略')" min-width="190">
           <template #default="{ row }">
             <template v-if="row.statistics">
               <span class="num">{{ row.statistics.totalCount || 0 }}</span>/
@@ -100,6 +100,12 @@
             <span v-else>--</span>
           </template>
         </bk-table-column>
+
+        <NmException
+          slot="empty"
+          :type="tableEmptyType"
+          @empty-clear="emptySearchClear"
+          @empty-refresh="emptyRefresh" />
       </bk-table>
     </section></div>
 </template>
@@ -124,6 +130,7 @@ export default class TaskListTable extends Mixins(HeaderRenderMixin) {
   @Prop({ type: Boolean, default: false }) private readonly loading!: boolean;
   @Prop({ type: Array, default: () => ([]) }) private readonly highlight!: number[];
   @Prop({ type: Array, default: () => ([]) }) public readonly filterData!: ISearchItem[];
+  @Prop({ type: Array, default: () => ([]) }) public readonly searchSelectValue!: ISearchItem[];
 
   private titleStatusMap = {
     pending: window.i18n.t('等待执行'),
@@ -137,6 +144,9 @@ export default class TaskListTable extends Mixins(HeaderRenderMixin) {
 
   private get windowHeight() {
     return MainStore.windowHeight;
+  }
+  private get tableEmptyType() {
+    return this.searchSelectValue.length ? 'search-empty' : 'empty';
   }
 
   @Emit('pagination-change')

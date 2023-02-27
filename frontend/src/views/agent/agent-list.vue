@@ -284,6 +284,7 @@
           key="biz"
           :label="$t('归属业务')"
           prop="bk_biz_name"
+          :min-width="columnMinWidth['bk_biz_name']"
           v-if="filter['bk_biz_name'].mockChecked"
           show-overflow-tooltip>
         </bk-table-column>
@@ -344,6 +345,7 @@
           key="version"
           :label="$t('Agent版本')"
           prop="version"
+          show-overflow-tooltip
           :min-width="columnMinWidth['agent_version']"
           :render-header="renderFilterHeader"
           v-if="filter['agent_version'].mockChecked">
@@ -435,6 +437,7 @@
                  }"
                  v-if="row.topology.length">
               <span :class="{ 'col-topo': row.topology.length > 1 }"
+                    v-bk-overflow-tips
                     :title="row.topology.length === 1 ? row.topology.join('') : ''">
                 {{ row.topology.join(', ') }}
               </span>
@@ -554,6 +557,11 @@
           :resizable="false"
           fixed="right">
         </bk-table-column>
+        <NmException
+          slot="empty"
+          :type="tableEmptyType"
+          @empty-clear="searchClear"
+          @empty-refresh="initAgentListDebounce" />
       </bk-table>
       <bk-pagination
         ext-cls="pagination"
@@ -971,6 +979,9 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
   private get windowHeight() {
     return MainStore.windowHeight;
   }
+  private get tableEmptyType() {
+    return (this.search.topo.length || this.searchSelectValue.length) ? 'search-empty' : 'empty';
+  }
 
   @Watch('searchSelectValue', { deep: true })
   private handleValueChange() {
@@ -1102,6 +1113,10 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
         this.topoRemotehandler(this.topoBizFormat[bizIdKey], null);
       }
     }
+  }
+  public searchClear() {
+    this.topoSelect.clearData();
+    this.searchSelectValue = [];
   }
   /**
    * 初始化agent列表
