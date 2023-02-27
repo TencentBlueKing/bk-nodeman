@@ -19,6 +19,7 @@
       :table-list="tableList"
       :pagination="pagination"
       :search-select-data="filterData"
+      :search-select-value="searchSelectValue"
       :selection-loading="selectionLoading"
       :selections="selections"
       :exclude-data="excludeData"
@@ -32,7 +33,9 @@
       @filter-confirm="tableHeaderConfirm"
       @filter-reset="tableHeaderReset"
       @sort="handleTableSort"
-      @pagination-change="handlePaginationChange">
+      @pagination-change="handlePaginationChange"
+      @empty-clear="() => searchSelectValue = []"
+      @empty-refresh="getHostList">
     </PluginListTable>
     <bk-dialog
       :width="isZh ? 620 : 728"

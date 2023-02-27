@@ -15,8 +15,8 @@
         :placeholder="$t('搜索策略插件')"
         clearable
         :right-icon="'bk-icon icon-search'"
-        v-model.trim="searchValue"
-        @change="handleValueInput">
+        :value="searchValues"
+        @input="handleValueInput">
       </bk-input>
     </div>
   </div>
@@ -30,7 +30,6 @@ export default class PluginRuleOperate extends Vue {
   @Prop({ type: Boolean, default: false }) private readonly createdOperate!: boolean; // 创建权限
 
   private biz: number[] = [];
-  private searchValue = this.searchValues;
   private strategy = '';
 
   @Emit('value-change')
@@ -47,6 +46,7 @@ export default class PluginRuleOperate extends Vue {
   }
   private handleValueInput(newVal: string) {
     if (newVal.trim() !== this.searchValues.trim()) {
+      this.$emit('update:value', newVal.trim());
       this.handleValueChange(newVal.trim());
     }
   }

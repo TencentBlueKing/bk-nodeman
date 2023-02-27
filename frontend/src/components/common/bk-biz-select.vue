@@ -43,7 +43,7 @@
         @click="close">
       </auth-component>
       <div class="select-item">
-        <span class="select-item-name">
+        <span class="select-item-name" v-bk-overflow-tips>
           {{ `[${option.bk_biz_id}] ${option.bk_biz_name}` }}
         </span>
         <!-- <span class="select-item-id" v-show="searchValue">{{ `(#${option.bk_biz_id})` }}</span> -->

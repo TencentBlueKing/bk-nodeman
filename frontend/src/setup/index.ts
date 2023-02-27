@@ -7,6 +7,7 @@ import './filters';
 import { RSA } from './encrypt';
 import { textTool } from './text-tool';
 import { setIpProp, initIpProp } from './ipv6';
+import './mixins';
 
 Vue.prototype.$filters = function (filterName: string, value: any) {
   return this._f(filterName)(value);

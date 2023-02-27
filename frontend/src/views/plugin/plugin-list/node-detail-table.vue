@@ -88,6 +88,12 @@
           </div>
         </template>
       </bk-table-column>
+
+      <NmException
+        slot="empty"
+        :type="tableEmptyType"
+        @empty-clear="() => handleValueChange('')"
+        @empty-refresh="emptyRefresh" />
     </bk-table>
     <SelectMenu
       :show="showSelectMenu"
@@ -138,6 +144,9 @@ export default class PluginRuleTable extends Vue {
       }
     });
     return lastKey;
+  }
+  private get tableEmptyType() {
+    return this.searchValue.length ? 'search-empty' : 'empty';
   }
 
   private created() {
@@ -259,6 +268,7 @@ export default class PluginRuleTable extends Vue {
     }
   }
   public handleValueChange(v: string) {
+    this.searchValue = v;
     if (!v.trim()) {
       this.filterData = this.data;
     } else {

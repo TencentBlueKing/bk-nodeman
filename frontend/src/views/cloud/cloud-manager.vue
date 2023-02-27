@@ -268,6 +268,12 @@
             width="42"
             :resizable="false">
           </bk-table-column>
+
+          <NmException
+            slot="empty"
+            :type="tableEmptyType"
+            @empty-clear="searchClear"
+            @empty-refresh="handleValueChange" />
         </bk-table>
       </div>
     </section>
@@ -404,6 +410,9 @@ export default class CloudManager extends Vue {
         child: allChildList,
       },
     ];
+  }
+  private get tableEmptyType() {
+    return this.searchValue.length ? 'search-empty' : 'empty';
   }
 
   private created() {
@@ -681,6 +690,10 @@ export default class CloudManager extends Vue {
     this.sortProp = prop;
     this.sortOrder = order;
     this.handleSearch(this.pagination.current);
+  }
+  public searchClear() {
+    this.searchValue = '';
+    this.handleValueChange();
   }
 }
 </script>
