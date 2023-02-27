@@ -9,7 +9,12 @@
       :span-method="colspanHandle"
       @page-change="handlePageChange"
       @page-limit-change="handleLimitChange">
-      <bk-table-column :label="$t('插件别名')" sortable :resizable="false" show-overflow-tooltip>
+      <bk-table-column
+        :label="$t('插件别名')"
+        sortable
+        :resizable="false"
+        show-overflow-tooltip
+        min-width="115">
         <template #default="{ row }">
           <auth-component
             class="alias-text-btn"
@@ -25,13 +30,20 @@
           </auth-component>
         </template>
       </bk-table-column>
-      <bk-table-column :label="$t('插件名称')" prop="name" sortable :resizable="false" show-overflow-tooltip />
+      <bk-table-column
+        :label="$t('插件名称')"
+        prop="name"
+        sortable
+        :resizable="false"
+        show-overflow-tooltip
+        min-width="120" />
       <bk-table-column
         v-if="getColumnShowStatus('category')"
         :label="$t('开发商')"
         prop="category"
         sortable
-        :resizable="false">
+        :resizable="false"
+        min-width="100">
         <template #default="{ row }">
           {{ row.category | filterEmpty }}
         </template>
@@ -42,7 +54,7 @@
         prop="nodes_number"
         sortable
         align="right"
-        width="150"
+        min-width="110"
         :resizable="false">
         <template #default="{ row }">
           <loading-icon v-if="numLoading"></loading-icon>
@@ -61,7 +73,8 @@
         v-if="getColumnShowStatus('source_app_code')"
         :label="$t('数据对接SaaS')"
         prop="source_app_code"
-        :resizable="false">
+        :resizable="false"
+        min-width="130">
         <template #default="{ row }">
           <bk-button
             text
@@ -87,7 +100,8 @@
         v-if="getColumnShowStatus('deploy_type')"
         :label="$t('部署方式')"
         prop="deploy_type"
-        :resizable="false">
+        :resizable="false"
+        min-width="130">
         <template #default="{ row }">
           {{ row.deploy_type | filterEmpty }}
         </template>
@@ -96,7 +110,7 @@
         v-if="getColumnShowStatus('is_ready')"
         :label="$t('插件状态')"
         prop="is_ready"
-        min-width="70"
+        min-width="100"
         :resizable="false">
         <template #default="{ row }">
           <span :class="['tag-switch', { 'tag-enable': row.is_ready }]">
@@ -118,6 +132,12 @@
         width="42"
         :resizable="false">
       </bk-table-column>
+
+      <NmException
+        slot="empty"
+        :type="tableEmptyType"
+        @empty-clear="emptySearchClear"
+        @empty-refresh="emptyRefresh" />
     </bk-table>
   </section>
 </template>
@@ -135,6 +155,7 @@ import HeaderRenderMixin from '@/components/common/header-render-mixins';
 @Component({ name: 'plugin-package-table' })
 export default class PackageTable extends Mixins(HeaderRenderMixin) {
   @Ref('aliasInput') private readonly aliasInput!: any;
+  @Prop({ default: '', type: String }) private readonly searchValue!: string;
   @Prop({ default: () => ([]), type: Array }) private readonly tableList!: IPluginRow[];
   @Prop({ default: () => ({}), type: Object }) private readonly pagination!: IPagination;
   @Prop({ default: true, type: Boolean }) private readonly numLoading!: boolean;
@@ -157,6 +178,9 @@ export default class PackageTable extends Mixins(HeaderRenderMixin) {
   }
   private get windowHeight() {
     return MainStore.windowHeight;
+  }
+  private get tableEmptyType() {
+    return this.searchValue.length ? 'search-empty' : 'empty';
   }
 
   public async handleOperate(row: IPluginRow) {

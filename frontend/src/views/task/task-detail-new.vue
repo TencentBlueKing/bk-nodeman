@@ -83,6 +83,7 @@
             :status="status"
             :loading="tableLoading"
             :filter-data="filterData"
+            :search-select-value="searchSelectValue"
             :table-list="tableList"
             :pagination="pagination"
             :category="detail.category"
@@ -91,7 +92,9 @@
             @row-operate="handleOperate"
             @filter-confirm="handleFilterHeaderChange"
             @filter-reset="handleFilterHeaderChange"
-            @pagination-change="handlePaginationChange">
+            @pagination-change="handlePaginationChange"
+            @empty-clear="() => handleSearchChange([])"
+            @empty-refresh="getDetailListDebounce">
           </TaskDetailTable>
         </section>
       </template>

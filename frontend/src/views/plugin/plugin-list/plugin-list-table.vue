@@ -82,7 +82,8 @@
         prop="bk_host_name"
         sortable
         :label="$t('主机名')"
-        :render-header="renderFilterHeader">
+        :render-header="renderFilterHeader"
+        show-overflow-tooltip>
         <template #default="{ row }">
           {{ row.bk_host_name | filterEmpty }}
         </template>
@@ -116,7 +117,7 @@
         </template>
       </bk-table-column>
       <bk-table-column
-        min-width="120"
+        min-width="130"
         prop="bk_cloud_id"
         sortable
         :label="$t('云区域')"
@@ -127,7 +128,7 @@
         </template>
       </bk-table-column>
       <bk-table-column
-        min-width="120"
+        min-width="155"
         prop="bk_biz_name"
         :label="$t('归属业务')"
         sortable
@@ -135,7 +136,7 @@
       </bk-table-column>
       <bk-table-column
         v-if="filterField['os_type'].mockChecked"
-        min-width="115"
+        min-width="145"
         prop="os_type"
         :label="$t('操作系统')"
         sortable
@@ -147,7 +148,7 @@
       </bk-table-column>
       <bk-table-column
         v-if="filterField['bk_addressing'].mockChecked"
-        min-width="100"
+        min-width="130"
         prop="bk_addressing"
         :label="$t('寻址方式')">
         <template #default="{ row }">
@@ -179,6 +180,11 @@
         fixed="right"
         :resizable="false">
       </bk-table-column>
+      <NmException
+        slot="empty"
+        :type="tableEmptyType"
+        @empty-clear="emptySearchClear"
+        @empty-refresh="emptyRefresh" />
     </bk-table>
     <node-detail-slider
       :loading="loading"
@@ -222,6 +228,7 @@ export default class PluginRuleTable extends Mixins(HeaderRenderMixin) {
   }) private readonly pagination!: IPagination;
   @Prop({ default: () => ([]), type: Array }) private readonly tableList!: IPluginList[];
   @Prop({ default: () => ([]), type: Array }) private readonly searchSelectData!: ISearchItem[];
+  @Prop({ default: () => ([]), type: Array }) private readonly searchSelectValue!: ISearchItem[];
   @Prop({ default: false, type: Boolean }) private readonly selectionLoading!: boolean;
   // 0 未选 1 半选 2 全选
   @Prop({ default: 0, type: Number }) private readonly checkValue!: CheckValueEnum;
@@ -368,6 +375,9 @@ export default class PluginRuleTable extends Mixins(HeaderRenderMixin) {
       Object.assign(obj, { [plugin]: this.$textTool.getHeadWidth(plugin, { filter: true, extra: 2 }) });
       return obj;
     }, {});
+  }
+  private get tableEmptyType() {
+    return this.searchSelectValue.length ? 'search-empty' : 'empty';
   }
 
   private created() {

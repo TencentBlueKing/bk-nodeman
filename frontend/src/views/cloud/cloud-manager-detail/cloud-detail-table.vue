@@ -32,7 +32,7 @@
       <bk-table
         v-test="'proxyTable'"
         :class="`head-customize-table ${ fontSize }`" :data="proxyData" :span-method="colspanHandle">
-        <bk-table-column :label="$t('内网IPv4')" show-overflow-tooltip>
+        <bk-table-column :label="$t('内网IPv4')" show-overflow-tooltip width="125">
           <template #default="{ row }">
             <bk-button v-if="row.inner_ip" v-test="'view'" text @click="handleViewProxy(row, false)" class="row-btn">
               {{ row.inner_ip }}
@@ -42,6 +42,7 @@
         </bk-table-column>
         <bk-table-column
           v-if="filter['inner_ipv6'] && filter['inner_ipv6'].mockChecked"
+          :width="innerIPv6Width"
           :label="$t('内网IPv6')"
           show-overflow-tooltip>
           <template #default="{ row }">
@@ -55,7 +56,8 @@
           :label="$t('出口IP')"
           v-if="filter['outer_ip'].mockChecked"
           show-overflow-tooltip
-          :render-header="renderTipHeader">
+          :render-header="renderTipHeader"
+          width="125">
           <template #default="{ row }">
             <span>{{ row.outer_ip | filterEmpty }}</span>
           </template>
@@ -65,7 +67,8 @@
           :label="$t('登录IP')"
           prop="login_ip"
           show-overflow-tooltip
-          v-if="filter['login_ip'].mockChecked">
+          v-if="filter['login_ip'].mockChecked"
+          width="125">
           <template #default="{ row }">
             {{ row.login_ip | filterEmpty }}
           </template>
@@ -73,12 +76,17 @@
         <bk-table-column
           :label="$t('归属业务')"
           prop="bk_biz_name"
+          min-width="130"
           v-if="filter['bk_biz_name'].mockChecked" show-overflow-tooltip>
           <template #default="{ row }">
             <span>{{ row.bk_biz_name | filterEmpty }}</span>
           </template>
         </bk-table-column>
-        <bk-table-column :label="$t('Proxy状态')" prop="status" v-if="filter['proxy_status'].mockChecked">
+        <bk-table-column
+          :label="$t('Proxy状态')"
+          prop="status"
+          v-if="filter['proxy_status'].mockChecked"
+          :min-width="columnMinWidth['proxy_status']">
           <template #default="{ row }">
             <div class="col-status" v-if="statusMap[row.status]">
               <span :class="'status-mark status-' + row.status"></span>
@@ -90,19 +98,31 @@
             </div>
           </template>
         </bk-table-column>
-        <bk-table-column :label="$t('密码密钥')" prop="re_certification" v-if="filter['re_certification'].mockChecked">
+        <bk-table-column
+          :label="$t('密码密钥')"
+          prop="re_certification"
+          v-if="filter['re_certification'].mockChecked"
+          :min-width="columnMinWidth['re_certification']">
           <template #default="{ row }">
             <span :class="['tag-switch', { 'tag-enable': !row.re_certification }]">
               {{ row.re_certification ? $t('过期') : $t('有效') }}
             </span>
           </template>
         </bk-table-column>
-        <bk-table-column :label="$t('Proxy版本')" prop="version" v-if="filter['proxy_version'].mockChecked">
+        <bk-table-column
+          :label="$t('Proxy版本')"
+          prop="version"
+          v-if="filter['proxy_version'].mockChecked"
+          :min-width="columnMinWidth['proxy_version']">
           <template #default="{ row }">
             <span>{{ row.version | filterEmpty }}</span>
           </template>
         </bk-table-column>
-        <bk-table-column :label="$t('Agent数量')" prop="pagent_count" v-if="filter['pagent_count'].mockChecked">
+        <bk-table-column
+          :label="$t('Agent数量')"
+          prop="pagent_count"
+          v-if="filter['pagent_count'].mockChecked"
+          :min-width="columnMinWidth['pagent_count']">
           <template #default="{ row }">
             <span
               class="link-pointer"
@@ -113,7 +133,7 @@
             <span v-else>0</span>
           </template>
         </bk-table-column>
-        <bk-table-column :label="$t('安装方式')" prop="is_manual" v-if="filter['is_manual'].mockChecked">
+        <bk-table-column :label="$t('安装方式')" prop="is_manual" v-if="filter['is_manual'].mockChecked" min-width="105">
           <template #default="{ row }">
             {{ row.is_manual ? $t('手动') : $t('远程') }}
           </template>
@@ -335,6 +355,7 @@ export default class CloudDetailTable extends Vue {
     { key: 'speedLimit', value: [false, false, false, 'bt_speed_limit', this.$t('传输限速')] },
   ];
   private localMark = '_proxy';
+  private columnMinWidth: Dictionary = {};
 
   private get fontSize() {
     return MainStore.fontSize;
@@ -359,11 +380,30 @@ export default class CloudDetailTable extends Vue {
         : !this.proxyData.some(proxy => proxy.inner_ip),
     }));
   }
+  private get innerIPv6Width() {
+    return this.proxyData.some(row => !!row.inner_ipv6) ? 270 : 100;
+  }
 
   private created() {
     this.initCustomColStatus();
+    this.computedColumnWidth();
   }
   // ...mapActions('cloud', ['setupProxy', 'operateJob', 'removeHost']),
+
+  public computedColumnWidth() {
+    const widthMap: { [key: string]: number } = {};
+    Object.keys(this.filter).reduce((obj, key) => {
+      const column = this.filter[key];
+      const config = { filter: column.filter };
+      let name = this.filter[key]?.name || '';
+      if (key === 'speedLimit') {
+        name = `${name}(MB/s)`;
+      }
+      obj[key] = this.$textTool.getHeadWidth(name, config);
+      return obj;
+    }, widthMap);
+    this.columnMinWidth = widthMap;
+  }
 
   // 设置表格展示column的配置 filter
   public initCustomColStatus() {

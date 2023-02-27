@@ -29,7 +29,7 @@
             </bk-radio>
           </template>
         </bk-table-column>
-        <bk-table-column :label="$t('插件包版本')" sortable prop="version">
+        <bk-table-column :label="$t('插件包版本')" :min-width="isEnLanguage ? 175 : 122" sortable prop="version">
           <template #default="{ row, $index }">
             <span>{{ row.version | filterEmpty }}</span>
             <!-- 测试用例 -->
@@ -42,12 +42,13 @@
             </bk-popover>
           </template>
         </bk-table-column>
-        <bk-table-column :label="$t('已部署数')" prop="nodes_number" align="right" sortable>
+        <bk-table-column
+          :label="$t('已部署数')" :min-width="isEnLanguage ? 130 : 122" prop="nodes_number" align="right" sortable>
           <template #default="{ row }">
             <span class="num-link">{{ row.nodes_number || 0 }}</span>
           </template>
         </bk-table-column>
-        <bk-table-column width="40" resizable>
+        <bk-table-column width="20" resizable>
           <template #default="{ row }">
             <i class="bk-icon icon-right-shape active-arrow" v-show="selectedVersion === row.version"></i>
           </template>
@@ -68,6 +69,7 @@
 <script lang="ts">
 import { Vue, Component, Prop, Emit, Model, Watch, Ref } from 'vue-property-decorator';
 import { IPkVersionRow } from '@/types/plugin/plugin-type';
+import { MainStore } from '@/store';
 
 @Component({
   name: 'version-detail-table',
@@ -83,6 +85,10 @@ export default class VersionDetailTable extends Vue {
   private selectedVersion = '';
   private selectedRow: IPkVersionRow | null = null;
   private markdown = '';
+
+  private get isEnLanguage() {
+    return MainStore.language === 'en';
+  }
 
   @Watch('loading')
   public handleShow(val: boolean) {

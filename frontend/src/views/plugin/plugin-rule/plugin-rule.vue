@@ -13,12 +13,15 @@
       :pagination="pagination"
       :delete-id="deleteId"
       :filter-list="filterData"
+      :search-select-value="searchSelectValue"
       @more-operate="handleMoreOperate"
       @page-change="handlePageChange"
       @limit-change="handleLimitChange"
       @filter-confirm="handleFilterChange"
       @filter-reset="handleFilterChange"
-      @expand-change="handleExpandChange">
+      @expand-change="handleExpandChange"
+      @empty-clear="() => handleSearchValueChange('')"
+      @empty-refresh="handleGetPluginRules">
     </PluginRuleTable>
     <bk-dialog
       header-position="left"

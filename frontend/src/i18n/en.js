@@ -735,6 +735,12 @@ export default {
   页面找不到了: 'The page cannot be found!',
   服务器维护中: 'Server maintenance, please try again later',
   功能正在建设中: 'Function under construction ...',
+  可以尝试调整关键词或清空筛选条件: 'You can try to adjust keywords or {0}',
+  清空筛选条件: 'Clear filter',
+  搜索结果为空: 'Search result is empty',
+  获取数据异常: 'Get data exception',
+  获取数据异常: 'Get data exception',
+  刷新: 'To refresh',
 
   // auth
   申请业务权限: 'Apply authority',

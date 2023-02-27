@@ -38,12 +38,12 @@
           {{ row.innerIpv6 | filterEmpty }}
         </template>
       </bk-table-column>
-      <bk-table-column :label="$t('云区域')" prop="bkCloudName" :resizable="false" />
+      <bk-table-column :label="$t('云区域')" prop="bkCloudName" min-width="90" :resizable="false" />
       <bk-table-column min-width="100" :label="$t('业务')" prop="bkBizName" :resizable="false" show-overflow-tooltip />
-      <bk-table-column min-width="100" :label="$t('操作类型')" prop="opTypeDisplay" :resizable="false" />
+      <bk-table-column min-width="110" :label="$t('操作类型')" prop="opTypeDisplay" :resizable="false" />
       <bk-table-column
         v-if="showTargetVersionColumn"
-        min-width="100"
+        min-width="110"
         :label="$t('目标版本')"
         :resizable="false"
         show-overflow-tooltip>
@@ -51,7 +51,7 @@
           {{ row.targetVersion | filterEmpty }}
         </template>
       </bk-table-column>
-      <bk-table-column v-else min-width="100" :label="$t('安装方式')" prop="isManual" :resizable="false">
+      <bk-table-column v-else min-width="120" :label="$t('安装方式')" prop="isManual" :resizable="false">
         <template #default="{ row }">
           {{ installTypeCell(row.isManual) }}
         </template>
@@ -138,6 +138,12 @@
           </div>
         </template>
       </bk-table-column>
+
+      <NmException
+        slot="empty"
+        :type="tableEmptyType"
+        @empty-clear="emptySearchClear"
+        @empty-refresh="emptyRefresh" />
     </bk-table>
     <TaskDetailSlider
       :task-id="taskId"
@@ -176,6 +182,7 @@ export default class TaskDeatailTable extends Mixins(HeaderRenderMixin) {
   @Prop({ type: Array, default: () => ([]) }) private readonly tableList!: Array<ITaskHost>;
   @Prop({ type: Boolean, default: false }) private readonly loading!: boolean;
   @Prop({ type: Array, default: () => ([]) }) public readonly filterData!: ISearchItem[];
+  @Prop({ type: Array, default: () => ([]) }) public readonly searchSelectValue!: ISearchItem[];
   @Prop({ type: Array, default: () => ([]) }) private readonly selected!: Array<IRow>;
   @Prop({ type: String, default: '' }) private readonly category!: string;
   @Prop({ type: String, default: '' }) private readonly operateHost!: string;
@@ -227,6 +234,9 @@ export default class TaskDeatailTable extends Mixins(HeaderRenderMixin) {
   }
   private get innerIPv6Width() {
     return this.tableList.some(row => !!row.innerIpv6) ? 270 : 80;
+  }
+  private get tableEmptyType() {
+    return this.searchSelectValue.length ? 'search-empty' : 'empty';
   }
 
   @Emit('row-operate')
