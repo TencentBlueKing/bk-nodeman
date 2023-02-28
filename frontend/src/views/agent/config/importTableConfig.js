@@ -1,4 +1,4 @@
-import { authentication, defaultPort, sysOptions, defaultOsType, getDefaultConfig, addressingMode, enableDHCP, DHCP_FILTER_KEYS } from '@/config/config';
+import { authentication, defaultPort, sysOptions, defaultOsType, getDefaultConfig, addressingMode, DHCP_FILTER_KEYS } from '@/config/config';
 import { reguFnMinInteger, reguPort, reguIPMixins, reguIp, reguIPv6 } from '@/common/form-check';
 
 export const parentHead = [
@@ -336,7 +336,7 @@ const config = [
   },
 ];
 
-export const tableConfig = enableDHCP
+export const tableConfig = $DHCP
   ? config
   : config.filter(item => !DHCP_FILTER_KEYS.includes(item.prop));
 

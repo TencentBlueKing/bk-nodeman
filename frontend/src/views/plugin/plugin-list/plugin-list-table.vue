@@ -63,7 +63,7 @@
         </template>
       </bk-table-column>
       <bk-table-column
-        v-if="filterField['inner_ipv6'].mockChecked"
+        v-if="filterField['inner_ipv6'] && filterField['inner_ipv6'].mockChecked"
         :width="innerIPv6Width"
         prop="inner_ipv6"
         class-name="ip-row"
@@ -147,7 +147,7 @@
         </template>
       </bk-table-column>
       <bk-table-column
-        v-if="filterField['bk_addressing'].mockChecked"
+        v-if="filterField['bk_addressing'] && filterField['bk_addressing'].mockChecked"
         min-width="130"
         prop="bk_addressing"
         :label="$t('寻址方式')">
@@ -208,7 +208,7 @@ import NodeDetailSlider from './node-detail-slider.vue';
 import SelectionTips from '@/components/common/selection-tips.vue';
 import PluginStatusBox from './plugin-status-box.vue';
 import { CreateElement } from 'vue';
-import { enableDHCP } from '@/config/config';
+import { DHCP_FILTER_KEYS } from '@/config/config';
 
 @Component({
   name: 'plugin-list-table',
@@ -275,11 +275,11 @@ export default class PluginRuleTable extends Mixins(HeaderRenderMixin) {
       mockChecked: true,
     },
     inner_ipv6: {
-      checked: enableDHCP,
-      disabled: enableDHCP,
+      checked: this.$DHCP,
+      disabled: this.$DHCP,
       name: window.i18n.t('内网IPv6'),
       id: 'inner_ipv6',
-      mockChecked: enableDHCP,
+      mockChecked: this.$DHCP,
     },
     bk_host_name: {
       checked: true,
@@ -414,7 +414,18 @@ export default class PluginRuleTable extends Mixins(HeaderRenderMixin) {
     });
   }
   private handleFieldCheckChange(filter: { [key: string]: ITabelFliter }) {
-    this.$set(this, 'filterField', JSON.parse(JSON.stringify(filter)));
+    const localFilter = JSON.parse(JSON.stringify(filter));
+    if (!this.$DHCP) {
+      const columnsFilter: Dictionary = {};
+      Object.keys(localFilter).forEach((key) => {
+        if (!DHCP_FILTER_KEYS.includes(key)) {
+          columnsFilter[key] = localFilter[key];
+        }
+      });
+      this.$set(this, 'filterField', columnsFilter);
+    } else {
+      this.$set(this, 'filterField', localFilter);
+    }
     this.$forceUpdate();
   }
   private handleClearSelections() {

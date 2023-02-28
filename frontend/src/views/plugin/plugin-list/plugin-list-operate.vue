@@ -206,7 +206,7 @@ export default class PluginListOperate extends Mixins(HeaderFilterMixins) {
   }
 
   private async handleCopyIp(type: string) {
-    const key = type.includes('v4') ? 'inner_ip' : 'inner_ipv6';
+    const key = this.$DHCP && type.includes('v6') ? 'inner_ipv6' : 'inner_ip';
     let list = this.selections.filter(item => item[key]).map(item => item[key]);
     const isAll = type.includes('all');
     const isSelectedAllPages = this.checkType !== 'current';
@@ -232,7 +232,6 @@ export default class PluginListOperate extends Mixins(HeaderFilterMixins) {
       }
       const data = await PluginStore.getHostList(params);
       list = data.list;
-      console.log(list);
     }
     return Promise.resolve(list);
   }

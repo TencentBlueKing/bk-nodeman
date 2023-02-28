@@ -33,7 +33,8 @@
         label="IPv6"
         prop="innerIpv6"
         :width="innerIPv6Width"
-        show-overflow-tooltip>
+        show-overflow-tooltip
+        v-if="$DHCP">
         <template #default="{ row }">
           {{ row.innerIpv6 | filterEmpty }}
         </template>

@@ -1,4 +1,4 @@
-import { DHCP_FILTER_KEYS, enableDHCP } from '@/config/config';
+import { DHCP_FILTER_KEYS } from '@/config/config';
 import * as XLSX from 'xlsx';
 
 interface IHead {
@@ -26,7 +26,7 @@ const config: IHead[] = [
   { name: window.i18n.t('传输限速Unit'), prop: 'bt_speed_limit', optional: true, width: 140 },
   { name: window.i18n.t('寻址方式'), prop: 'bk_addressing', optional: true, width: 120 },
 ];
-export const headConfig = enableDHCP
+export const headConfig = $DHCP
   ? config
   : config.filter(head => !DHCP_FILTER_KEYS.includes(head.prop));
 
