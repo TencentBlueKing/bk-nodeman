@@ -297,7 +297,7 @@ import { CreateElement } from 'vue/types/umd';
 import { IProxyDetail } from '@/types/cloud/cloud';
 import { IBkColumn, ITabelFliter } from '@/types';
 import { TranslateResult } from 'vue-i18n';
-import { DHCP_FILTER_KEYS, enableDHCP } from '@/config/config';
+import { DHCP_FILTER_KEYS } from '@/config/config';
 import CopyDropdown, { allChildList } from '@/components/common/copy-dropdown.vue';
 
 @Component({
@@ -408,7 +408,7 @@ export default class CloudDetailTable extends Vue {
   // 设置表格展示column的配置 filter
   public initCustomColStatus() {
     const columnsFilter = {};
-    const list = enableDHCP
+    const list = this.$DHCP
       ? this.filterSet
       : this.filterSet.filter(item => !DHCP_FILTER_KEYS.includes(item.key));
     list.reduce((obj, item) => {
@@ -514,7 +514,7 @@ export default class CloudDetailTable extends Vue {
       'ap_id', 'bk_biz_id', 'bk_cloud_id', 'inner_ip', 'inner_ipv6',
       'is_manual', 'peer_exchange_switch_for_agent', 'bk_host_id',
     ];
-    if (!enableDHCP) {
+    if (!this.$DHCP) {
       paramKey = paramKey.filter(key => !DHCP_FILTER_KEYS.includes(key));
     }
     const ipKeys = ['outer_ip']; // 没做区分展示的ip
@@ -529,7 +529,7 @@ export default class CloudDetailTable extends Vue {
       return obj;
     }, { os_type: 'LINUX' });
     ipKeys.forEach((key) => {
-      if (enableDHCP) {
+      if (this.$DHCP) {
         Object.assign(copyRow, this.$setIpProp(key, row));
       } else {
         copyRow[key] = row[key];
@@ -637,7 +637,7 @@ export default class CloudDetailTable extends Vue {
   }
   // 复制proxyIP
   public handleCopyIp(type: string) {
-    const ipKey = type.includes('v6') ? 'inner_ipv6' : 'inner_ip';
+    const ipKey = this.$DHCP && type.includes('v6') ? 'inner_ipv6' : 'inner_ip';
     return Promise.resolve(this.proxyData.filter(proxy => proxy[ipKey]).map(proxy => proxy[ipKey]));
   }
 }

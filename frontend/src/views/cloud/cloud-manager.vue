@@ -402,12 +402,12 @@ export default class CloudManager extends Vue {
         name: this.$t('勾选云区域的ProxyIP'),
         id: 'selected',
         disabled: !this.hasSelectedRows,
-        child: checkedChildList,
+        child: this.$DHCP ? checkedChildList : [],
       },
       {
         name: this.$t('所有云区域的ProxyIP'),
         id: 'all',
-        child: allChildList,
+        child: this.$DHCP ? allChildList : [],
       },
     ];
   }
@@ -651,7 +651,7 @@ export default class CloudManager extends Vue {
     }
   }
   public async handleCopyIp(type: string) {
-    const ipKey = type.includes('v6') ? 'innerIpv6' : 'innerIp';
+    const ipKey = this.$DHCP && type.includes('v6') ? 'innerIpv6' : 'innerIp';
     const isAll = type.includes('all');
     if (!isAll && !this.hasSelectedRows) return;
     if (isAll && !this.checkableRowsAll) return;

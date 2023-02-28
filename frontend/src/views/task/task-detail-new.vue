@@ -18,8 +18,8 @@
       <template v-else>
         <section class="detail-option h32">
           <CopyDropdown
+            :list="copyTypeList"
             :disabled="!tableList.length"
-            disable-check
             :get-ips="handleCopyIp" />
           <bk-button
             v-test="'stop'"
@@ -182,6 +182,12 @@ export default class TaskDeatail extends Mixins(PollMixin, HeaderFilterMixins) {
         { id: 'IGNORED', name: window.i18n.t('已忽略'), checked: false },
       ],
     },
+  ];
+  private copyTypeList = [
+    { name: this.$t('所有IP'), id: '' },
+    { name: this.$t('被忽略IP'), id: 'ignored' },
+    { name: this.$t('失败IP'), id: 'failed' },
+    { name: this.$t('成功IP'), id: 'success' },
   ];
   private getDetailListDebounce = function () {};
 
@@ -510,13 +516,15 @@ export default class TaskDeatail extends Mixins(PollMixin, HeaderFilterMixins) {
     });
   }
   public async handleCopyIp(type: string) {
-    const ipKey = type.includes('v6') ? 'innerIpv6' : 'innerIp';
-    const { conditions = [] } = this.getParams();
+    const ipKey = this.$DHCP && type.includes('v6') ? 'innerIpv6' : 'innerIp';
     const params: ITaskParams = {
       pagesize: -1,
     };
-    if (conditions.length) {
-      params.conditions = conditions;
+    const status = type.split('_')?.[0];
+    if (status) {
+      params.conditions = [
+        { key: 'status', value: [status.toUpperCase()] },
+      ];
     }
     const res = await TaskStore.requestHistoryTaskDetail({ jobId: this.taskId as number, params });
     if (res) {

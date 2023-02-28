@@ -1,4 +1,4 @@
-import { authentication, DHCP_FILTER_KEYS, enableDHCP, getDefaultConfig } from '@/config/config';
+import { authentication, DHCP_FILTER_KEYS, getDefaultConfig } from '@/config/config';
 import { ISetupHead, ISetupRow } from '@/types';
 import { reguFnMinInteger, reguFnSysPath, reguIp, reguIPMixins, reguIPv6 } from '@/common/form-check';
 import { splitCodeArr } from '@/common/regexp';
@@ -46,7 +46,6 @@ const config: ISetupHead[] = [
   {
     label: '内网IPv6',
     prop: 'inner_ipv6',
-    // tips: '内网IPv6提示',
     required: true,
     requiredPick: ['inner_ip'],
     type: 'text',
@@ -204,7 +203,7 @@ const config: ISetupHead[] = [
   },
 ];
 
-export const setupInfo = enableDHCP
+export const setupInfo = $DHCP
   ? config
   : config.filter(item => !DHCP_FILTER_KEYS.includes(item.prop));
 

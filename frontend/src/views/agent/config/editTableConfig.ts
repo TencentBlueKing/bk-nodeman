@@ -1,5 +1,5 @@
 import { ISetupHead, ISetupRow } from '@/types';
-import { authentication, defaultPort, sysOptions, defaultOsType, getDefaultConfig, addressingMode, enableDHCP, DHCP_FILTER_KEYS } from '@/config/config';
+import { authentication, defaultPort, sysOptions, defaultOsType, getDefaultConfig, addressingMode, DHCP_FILTER_KEYS } from '@/config/config';
 import { ICloudSource } from '@/types/cloud/cloud';
 import { reguFnMinInteger, reguPort, reguIPMixins, reguIp, reguIPv6 } from '@/common/form-check';
 
@@ -276,6 +276,6 @@ export const config: ISetupHead[] = [
   },
 ];
 
-export const editConfig = enableDHCP
+export const editConfig = $DHCP
   ? config
   : config.filter(item => !DHCP_FILTER_KEYS.includes(item.prop));
