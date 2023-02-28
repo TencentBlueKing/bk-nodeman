@@ -138,7 +138,7 @@ export default class AccessPointTable extends Vue {
   }
   private get zookeeper(): string {
     if (this.accessPoint.zk_hosts) {
-      return this.accessPoint.zk_hosts.map((host: IZk) => (regIPv6.test(host.zk_ip)
+      return this.accessPoint.zk_hosts.map((host: IZk) => (this.$DHCP && regIPv6.test(host.zk_ip)
         ? `[${host.zk_ip}]:${host.zk_port}`
         : `${host.zk_ip}:${host.zk_port}`)).join(',');
     }

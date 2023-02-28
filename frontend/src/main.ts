@@ -18,6 +18,7 @@ if (process.env.NODE_ENV === 'development') {
 
 Vue.component('LoadingIcon', LoadingIcon);
 Vue.component('NmException', NmException);
+Vue.prototype.$DHCP = window.$DHCP;
 
 global.bus = bus;
 global.mainComponent = new Vue({

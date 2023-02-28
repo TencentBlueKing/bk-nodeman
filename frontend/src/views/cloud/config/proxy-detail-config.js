@@ -1,4 +1,4 @@
-import { DHCP_FILTER_KEYS, enableDHCP } from '@/config/config';
+import { DHCP_FILTER_KEYS } from '@/config/config';
 
 const config = [
   {
@@ -69,6 +69,6 @@ const config = [
     readonly: true,
   },
 ];
-export const detailConfig = enableDHCP
+export const detailConfig = $DHCP
   ? config
   : config.filter(item => !DHCP_FILTER_KEYS.includes(item.prop));

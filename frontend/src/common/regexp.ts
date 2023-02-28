@@ -16,7 +16,7 @@ export const pathnameStr = '(?:/\\S*)?'; // 按需调整
  */
 export const regIp = new RegExp(`^${IpStr}$`);
 export const regIPv6 = new RegExp(`^${IPv6Str}$`);
-export const regIpMixin = new RegExp(`^${IpStr}|${IPv6Str}$`);
+export const regIpMixin = window.$DHCP ? new RegExp(`^${IpStr}|${IPv6Str}$`) : regIp; // 区分环境可用的IP类型
 export const regUrl = /^(?:http(s)?:\/\/)?[\w.-]+(?:\.[\w.-]+)+[\w\-._~:/?#[\]@!$&'*+,;=.]+$/;
 export const regUrlMixinIp = new RegExp(`^${protocolStr}${hostnameStr}${portStr}${pathnameStr}$`);
 export const regNormalText = /^[\u4e00-\u9fa5A-Za-z0-9-_]+$/;

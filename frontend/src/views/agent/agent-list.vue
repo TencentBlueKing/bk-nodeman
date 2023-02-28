@@ -224,7 +224,7 @@
           :label="$t('内网IPv6')"
           prop="inner_ipv6"
           :width="innerIPv6Width"
-          v-if="filter['inner_ipv6'].mockChecked"
+          v-if="filter['inner_ipv6'] && filter['inner_ipv6'].mockChecked"
           show-overflow-tooltip>
           <template #default="{ row }">
             {{ row.inner_ipv6 | filterEmpty }}
@@ -274,7 +274,7 @@
           :label="$t('外网IPv6')"
           prop="outer_ipv6"
           width="110"
-          v-if="filter['outer_ipv6'].mockChecked"
+          v-if="filter['outer_ipv6'] && filter['outer_ipv6'].mockChecked"
           show-overflow-tooltip>
           <template #default="{ row }">
             {{ row.outer_ipv6 | filterEmpty }}
@@ -392,7 +392,7 @@
           :label="$t('寻址方式')"
           :min-width="columnMinWidth['bk_addressing']"
           :render-header="renderFilterHeader"
-          v-if="filter['bk_addressing'].mockChecked">
+          v-if="filter['bk_addressing'] && filter['bk_addressing'].mockChecked">
           <template #default="{ row }">
             {{ row.bk_addressing === 'dynamic' ? $t('动态') : $t('静态') }}
           </template>
@@ -600,7 +600,7 @@ import CopyDropdown from '@/components/common/copy-dropdown.vue';
 import { debounce, getFilterChildBySelected, searchSelectPaste } from '@/common/util';
 import { bus } from '@/common/bus';
 import { STORAGE_KEY_COL } from '@/config/storage-key';
-import { getDefaultConfig, enableDHCP } from '@/config/config';
+import { getDefaultConfig, DHCP_FILTER_KEYS } from '@/config/config';
 
 @Component({
   name: 'agent-list',
@@ -660,9 +660,9 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
       id: 'login_ip',
     },
     inner_ipv6: {
-      checked: enableDHCP,
-      disabled: enableDHCP,
-      mockChecked: enableDHCP,
+      checked: this.$DHCP,
+      disabled: this.$DHCP,
+      mockChecked: this.$DHCP,
       name: window.i18n.t('内网IPv6'),
       id: 'inner_ipv6',
     },
@@ -1067,6 +1067,7 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
       }
     });
   }
+
   public computedColumnWidth() {
     const widthMap: { [key: string]: number } = {};
     Object.keys(this.filter).reduce((obj, key) => {
@@ -1082,6 +1083,15 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
     this.columnMinWidth = widthMap;
   }
   private initCustomColStatus() {
+    if (!this.$DHCP) {
+      const columnsFilter: Dictionary = {};
+      Object.keys(this.filter).forEach((key) => {
+        if (!DHCP_FILTER_KEYS.includes(key)) {
+          columnsFilter[key] = this.filter[key];
+        }
+      });
+      this.$set(this, 'filter', columnsFilter);
+    }
     const data = this.handleGetStorage();
     if (data && Object.keys(data).length) {
       Object.keys(this.filter).forEach((key) => {
@@ -1452,7 +1462,7 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
    * 复制 IP
    */
   private async handleCopyIp(type: string) {
-    const key = type.includes('v4') ? 'inner_ip' : 'inner_ipv6';
+    const key = this.$DHCP && type.includes('v6') ? 'inner_ipv6' : 'inner_ip';
     let list = this.selection.filter(item => item[key]).map(item => item[key]);
     const isAll = type.includes('all');
     if (isAll || this.isSelectedAllPages) {

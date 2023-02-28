@@ -26,18 +26,22 @@ import { Component, Vue, Prop, Ref } from 'vue-property-decorator';
 import AssociateList, { IAssociateItem } from '@/components/common/associate-list.vue';
 import { copyText } from '@/common/util';
 
-export const defaultList = [
-  { id: 'all_IPv4', name: window.i18n.t('复制IPv4'), testId: 'moreItem' },
-  { id: 'all_IPv6', name: window.i18n.t('复制IPv6'), testId: 'moreItem' },
-];
-export const checkedChildList = [
-  { id: 'checked_IPv4', name: 'IPv4', testId: 'moreItem' },
-  { id: 'checked_IPv6', name: 'IPv6', testId: 'moreItem' },
-];
-export const allChildList = [
-  { id: 'all_IPv4', name: 'IPv4', testId: 'moreItem' },
-  { id: 'all_IPv6', name: 'IPv6', testId: 'moreItem' },
-];
+export const checkedChildList = window.$DHCP
+  ? [
+    { id: 'checked_IPv4', name: 'IPv4', testId: 'moreItem' },
+    { id: 'checked_IPv6', name: 'IPv6', testId: 'moreItem' },
+  ]
+  : [
+    { id: 'checked_IPv4', name: 'IPv4', testId: 'moreItem' },
+  ];
+export const allChildList = window.$DHCP
+  ? [
+    { id: 'all_IPv4', name: 'IPv4', testId: 'moreItem' },
+    { id: 'all_IPv6', name: 'IPv6', testId: 'moreItem' },
+  ]
+  : [
+    { id: 'all_IPv4', name: 'IPv4', testId: 'moreItem' },
+  ];
 
 @Component({
   name: 'CopyDropdown',
@@ -45,10 +49,8 @@ export const allChildList = [
 })
 
 export default class CopyDropdown extends Vue {
-  // @Prop({ type: Boolean, default: false }) protected readonly loading!: boolean;
   @Prop({ type: Boolean, default: false }) protected readonly disabled!: boolean;
   @Prop({ type: Boolean, default: false }) protected readonly notSelected!: boolean;
-  @Prop({ type: Boolean, default: false }) protected readonly disableCheck!: boolean;
   @Prop({ type: Array, default: () => [] }) protected readonly list!: IAssociateItem[];
   @Prop({ type: Function, required: true }) protected readonly getIps!: (type: string) => Promise<string[]>;
 
@@ -59,27 +61,32 @@ export default class CopyDropdown extends Vue {
 
   protected get menuList() {
     if (this.list?.length) {
-      return this.list;
+      return this.$DHCP
+        ? this.list.map((item => ({
+          ...item,
+          child: allChildList.map(child => ({
+            ...child,
+            id: `${item.id}_${child.id}`,
+          })),
+        }))) : this.list;
     }
-    return  this.disableCheck
-      ? defaultList
-      : [
-        {
-          id: 'select_IP',
-          name: this.$t('勾选IP'),
-          disabled: this.notSelected,
-          testId: 'moreItem',
-          testKey: 'checkedIp',
-          child: checkedChildList,
-        },
-        {
-          id: 'all_IP',
-          name: this.$t('所有IP'),
-          testId: 'moreItem',
-          testKey: 'allIp',
-          child: allChildList,
-        },
-      ];
+    return  [
+      {
+        id: 'select_IP',
+        name: this.$t('勾选IP'),
+        disabled: this.notSelected,
+        testId: 'moreItem',
+        testKey: 'checkedIp',
+        child: this.$DHCP ? checkedChildList : [],
+      },
+      {
+        id: 'all_IP',
+        name: this.$t('所有IP'),
+        testId: 'moreItem',
+        testKey: 'allIp',
+        child: this.$DHCP ? allChildList : [],
+      },
+    ];
   }
 
   public async handleClick(type: string, item: IAssociateItem) {

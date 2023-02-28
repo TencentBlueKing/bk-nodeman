@@ -1,5 +1,5 @@
 import { ISetupHead, ISetupRow } from '@/types';
-import { authentication, defaultPort, sysOptions, defaultOsType, getDefaultConfig, addressingMode, enableDHCP, DHCP_FILTER_KEYS } from '@/config/config';
+import { authentication, defaultPort, sysOptions, defaultOsType, getDefaultConfig, addressingMode, DHCP_FILTER_KEYS } from '@/config/config';
 import { reguFnMinInteger, reguPort, reguIPv4Batch, reguIPv6Batch, reguIpMixinsBatch, reguIpInLineRepeat } from '@/common/form-check';
 import { splitCodeArr } from '@/common/regexp';
 
@@ -295,7 +295,7 @@ const config: ISetupHead[] = [
   },
 ];
 
-export const setupTableConfig = enableDHCP
+export const setupTableConfig = $DHCP
   ? config
   : config.filter(item => !DHCP_FILTER_KEYS.includes(item.prop));
 
