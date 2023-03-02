@@ -167,14 +167,20 @@ def bulk_update_validate(
         else:
             not_modified_host.append(host)
 
-    # 用于订阅任务的bk_host_id，此处要去除密码校验器过滤掉的host
-    subscription_host_ids = list(
-        {host["bk_host_id"] for host in modified_host + not_modified_host}
-        - {host["bk_host_id"] for host in ip_filter_list}
-    )
+    subscription_host_ids = []
+    filter_host_ids = {host["bk_host_id"] for host in ip_filter_list}
 
-    # 改为用于订阅安装任务的格式
-    subscription_host_ids = [{"bk_host_id": host_id} for host_id in subscription_host_ids]
+    for host in modified_host + not_modified_host:
+        if host["bk_host_id"] in filter_host_ids:
+            continue
+        # bk_cloud_id & install_channel_id 用于快速识别一台机器是否为跨云机器
+        subscription_host_ids.append(
+            {
+                "bk_host_id": host["bk_host_id"],
+                "bk_cloud_id": host["bk_cloud_id"],
+                "install_channel_id": host.get("install_channel_id"),
+            }
+        )
 
     return (
         {
