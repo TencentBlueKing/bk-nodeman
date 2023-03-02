@@ -221,11 +221,16 @@ class AgentAction(Action, abc.ABC):
     def has_non_lan_host(self) -> bool:
         """判断这批任务中是否包含非直连的主机"""
         for node in self.step.subscription.nodes:
-            instance_info = node["instance_info"]
+            try:
+                instance_info = node["instance_info"]
+            except KeyError:
+                # Agent 重装场景下不存在 instance_info
+                # refer：apps/node_man/handlers/validator.py bulk_update_validate
+                instance_info = node
             # 只要包含一台非默认云区域的机器，或者存在安装通道，则认为是非直连机器
-            if instance_info["bk_cloud_id"] != DEFAULT_CLOUD:
+            if instance_info.get("bk_cloud_id") != DEFAULT_CLOUD:
                 return True
-            if instance_info["install_channel_id"]:
+            if instance_info.get("install_channel_id"):
                 return True
         return False
 
@@ -251,6 +256,7 @@ class InstallAgent(AgentAction):
             agent_manager.add_or_update_hosts() if settings.BKAPP_ENABLE_DHCP else agent_manager.register_host(),
             agent_manager.query_password(),
             agent_manager.choose_ap(),
+            agent_manager.push_agent_pkg_to_proxy() if self.has_non_lan_host() else None,
             agent_manager.install(),
             agent_manager.get_agent_status(expect_status=constants.ProcStateType.RUNNING),
             agent_manager.push_host_identifier() if self.enable_push_host_identifier else None,
@@ -274,6 +280,7 @@ class ReinstallAgent(AgentAction):
             agent_manager.add_or_update_hosts() if settings.BKAPP_ENABLE_DHCP else None,
             agent_manager.query_password(),
             agent_manager.choose_ap(),
+            agent_manager.push_agent_pkg_to_proxy() if self.has_non_lan_host() else None,
             agent_manager.install(),
             agent_manager.get_agent_status(expect_status=constants.ProcStateType.RUNNING),
             agent_manager.push_host_identifier() if self.enable_push_host_identifier else None,
