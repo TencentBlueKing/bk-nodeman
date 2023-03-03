@@ -61,6 +61,7 @@ import GapTab from './GapTab.vue';
 import pollMixin from '@/common/poll-mixin';
 import routerBackMixin from '@/common/router-back-mixin';
 import { IProxyDetail } from '@/types/cloud/cloud';
+import { regIPv6 } from '@/common/regexp';
 
 @Component({
   name: 'CloudManagerDetail',
@@ -159,7 +160,7 @@ export default class CloudManagerDetail extends Mixins(pollMixin, routerBackMixi
       pagesize: 50,
       page: 1,
       conditions: [
-        { key: 'inner_ip', value: Array.from(new Set(ips)) },
+        { key: 'ip', value: Array.from(new Set(ips)) },
         { key: 'bk_cloud_id', value: [this.navActiveId] },
       ],
       extra_data: ['job_result', 'identity_info'],
@@ -168,7 +169,8 @@ export default class CloudManagerDetail extends Mixins(pollMixin, routerBackMixi
     if (list.length) {
       this.channelList.forEach((item) => {
         const { bk_cloud_id: cloudId, jump_servers: [jumpServers] = [''] } = item;
-        const host = list.find((host: Dictionary) => host.bk_cloud_id === cloudId && host.inner_ip === jumpServers);
+        const key = this.$DHCP && regIPv6.test(jumpServers) ? 'inner_ipv6' : 'inner_ip';
+        const host = list.find((host: Dictionary) => host.bk_cloud_id === cloudId && host[key] === jumpServers);
         if (host) {
           item.status = host.status;
         }
