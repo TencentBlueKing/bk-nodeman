@@ -29,6 +29,7 @@ from typing import (
 )
 
 import wrapt
+from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
 
 from apps.backend.agent.tools import InstallationTools, batch_gen_commands
@@ -104,12 +105,19 @@ class AgentBaseService(BaseService, metaclass=abc.ABCMeta):
         ]
 
     @classmethod
-    def get_agent_pkg_name(cls, common_data: "AgentCommonData", host: models.Host, is_upgrade: bool = False) -> str:
+    def get_agent_pkg_name(
+        cls,
+        common_data: "AgentCommonData",
+        host: models.Host,
+        is_upgrade: bool = False,
+        return_name_with_cpu_tmpl: bool = False,
+    ) -> str:
         """
         获取 Agent 升级包名称
         :param common_data: AgentCommonData
         :param host: models.Host
         :param is_upgrade: bool 是否升级包
+        :param return_name_with_cpu_tmpl: 是否返回带 cpu 模板的名称
         :return:
         """
         # GSE2.0 安装包和升级包复用同一个包
@@ -132,13 +140,32 @@ class AgentBaseService(BaseService, metaclass=abc.ABCMeta):
                 )
             if not major_version_number:
                 raise OsVersionPackageValidationError(os_version=host.os_version, os_type=host.os_type)
-            agent_upgrade_package_name = (
-                f"gse_{package_type}-{host.os_type.lower()}{major_version_number}-{host.cpu_arch}{pkg_suffix}.tgz"
+            agent_pkg_name = (
+                f"gse_{package_type}-{host.os_type.lower()}{major_version_number}-" + "{cpu_arch}" + f"{pkg_suffix}.tgz"
             )
         else:
-            agent_upgrade_package_name = f"gse_{package_type}-{host.os_type.lower()}-{host.cpu_arch}{pkg_suffix}.tgz"
+            agent_pkg_name = f"gse_{package_type}-{host.os_type.lower()}-" + "{cpu_arch}" + f"{pkg_suffix}.tgz"
 
-        return agent_upgrade_package_name
+        return (agent_pkg_name.format(cpu_arch=host.cpu_arch), agent_pkg_name)[return_name_with_cpu_tmpl]
+
+    @classmethod
+    def get_agent_pkg_dir(cls, common_data: "AgentCommonData", host: models.Host) -> str:
+        """
+        获取 Agent 安装包目录
+        :param common_data: AgentCommonData
+        :param host: models.Host
+        :return:
+        """
+        host_ap = common_data.host_id__ap_map[host.bk_host_id]
+        download_path = host_ap.nginx_path or settings.DOWNLOAD_PATH
+        if common_data.agent_step_adapter.is_legacy:
+            # 旧版本 Agent 安装包位于下载目录
+            agent_path = download_path
+        else:
+            # 新版本 Agent 目录规则为 agent/{os}/{cpu_arch}/
+            # 具体参考：apps/backend/agent/artifact_builder/base.py make_and_upload_package
+            agent_path = constants.LINUX_SEP.join([download_path, "agent", host.os_type.lower()])
+        return agent_path
 
     @staticmethod
     def get_cloud_id__proxies_map(bk_cloud_ids: Iterable[int]) -> Dict[int, List[models.Host]]:

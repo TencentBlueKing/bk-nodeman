@@ -11,8 +11,6 @@ specific language governing permissions and limitations under the License.
 from dataclasses import dataclass, fields
 from typing import Dict, List
 
-from django.conf import settings
-
 from apps.core.files.storage import get_storage
 from apps.node_man import constants, models
 
@@ -60,36 +58,36 @@ class PushAgentPkgToProxyService(AgentTransferFileService):
                 target_servers["host_id_list"].append(install_channel_host.bk_host_id)
         else:
             for proxy in common_data.cloud_id__proxies_map[host.bk_cloud_id]:
-                target_servers["ip_list"].append({"bk_cloud_id": proxy.bk_cloud_id, "ip": host.inner_ip})
+                # 只对存活的 Proxy 分发文件，提高任务成功率
+                if proxy.status != constants.ProcStateType.RUNNING:
+                    continue
+                target_servers["ip_list"].append({"bk_cloud_id": proxy.bk_cloud_id, "ip": proxy.inner_ip})
                 target_servers["host_id_list"].append(proxy.bk_host_id)
         return target_servers
 
     def get_job_file_params(self, data, common_data: AgentCommonData, host: models.Host):
-        """
-        GSE2.0 Agent 包目录按以下进行约束
-        ├── agent
-        │   ├── linux
-        │   │   ├── x86_64
-        │   │   │   └── gse_agent-2.0.0.tgz
-        │   │   └── aarch64
-        │   │       └── gse_agent-2.0.0.tgz
-        │   └── windows
-        │       └── x86_64
-        │           └── gse_agent-2.0.0.tgz
-        """
-        pkg_name = self.get_agent_pkg_name(common_data, host)
-        host_ap = common_data.host_id__ap_map[host.bk_host_id]
-        download_path = host_ap.nginx_path or settings.DOWNLOAD_PATH
-        agent_path = constants.LINUX_SEP.join([download_path, "agent", host.os_type.lower()])
         storage = get_storage()
-        cpu_arch_list, _ = storage.listdir(agent_path)
-        return [
-            {
-                "file_list": ["/".join([agent_path, cpu_arch, pkg_name])],
-                "file_target_path": "/".join([agent_path, cpu_arch]),
-            }
-            for cpu_arch in cpu_arch_list
-        ]
+        agent_dir = self.get_agent_pkg_dir(common_data, host)
+        pkg_name = self.get_agent_pkg_name(common_data, host, return_name_with_cpu_tmpl=True)
+
+        if common_data.agent_step_adapter.is_legacy:
+            file_list = []
+            # 由于实际安装前 CPU 架构未知，此处对同操作系统的各类架构包进行一并下发
+            for cpu_arch in constants.CPU_TUPLE:
+                pkg_path = "/".join([agent_dir, pkg_name.format(cpu_arch=cpu_arch)])
+                if storage.exists(pkg_path):
+                    file_list.append(pkg_path)
+            job_file_params = [{"file_list": file_list, "file_target_path": agent_dir}]
+        else:
+            cpu_arch_list, _ = storage.listdir(agent_dir)
+            job_file_params = [
+                {
+                    "file_list": ["/".join([agent_dir, cpu_arch, pkg_name])],
+                    "file_target_path": "/".join([agent_dir, cpu_arch]),
+                }
+                for cpu_arch in cpu_arch_list
+            ]
+        return job_file_params
 
     def get_job_param_os_type(self, host: models.Host) -> str:
         # Proxy 或者安装通道跳板机 要求是 Linux 机器
