@@ -11,7 +11,6 @@ specific language governing permissions and limitations under the License.
 from blueapps.utils.esbclient import get_client_by_user
 from django.apps import AppConfig
 from django.conf import settings
-from django.core.management import call_command
 from django.db import ProgrammingError, connection
 
 from common.log import logger
@@ -27,65 +26,55 @@ class ApiConfig(AppConfig):
         初始化部分配置，主要目的是为了SaaS和后台共用部分配置
         """
 
-        # 判断 APIGW 的表是否存在，不存在先跳过
-        from apigw_manager.apigw.models import Context
-
-        if Context._meta.db_table not in connection.introspection.table_names():
-            # 初次部署表不存在时跳过 DB 写入操作
-            logger.info(f"[ESB][JWT] {Context._meta.db_table} not exists, skip fetch_esb_api_key before migrate.")
-        else:
-            logger.info(f"[ESB][JWT] {Context._meta.db_table} exist, start to fetch_esb_api_key.")
-            self.fetch_esb_api_key()
-
         try:
+            self.fetch_component_api_public_key()
             self.init_settings()
         except ProgrammingError as e:
             logger.info(f"init settings failed, err_msg -> {e}.")
         return True
 
-    def fetch_esb_api_key(self):
+    @classmethod
+    def fetch_component_api_public_key(cls):
         """
         获取JWT公钥并存储到全局配置中
         """
 
-        # 当环境整体使用 APIGW 时，尝试通过 apigw-manager 获取 esb & apigw 公钥
-        if settings.BKPAAS_MAJOR_VERSION == env_constants.BkPaaSVersion.V3.value:
-            try:
-                call_command("fetch_apigw_public_key")
-            except Exception:
-                logger.info("[ESB][JWT] fetch apigw public key error")
-            else:
-                logger.info("[ESB][JWT] fetch apigw public key success")
+        # 以下几种情况任一成立则不同步
+        # 1.PaaSV3 情况下通过 manage.py 执行同步
+        # 2.后台情况下，交由 SaaS 执行同步
+        if any(
+            [
+                settings.BKPAAS_MAJOR_VERSION == env_constants.BkPaaSVersion.V3.value,
+                settings.BK_BACKEND_CONFIG,
+            ]
+        ):
+            logger.info("[JWT] skip fetch component api public key")
+            return
 
-            try:
-                call_command("fetch_esb_public_key")
-            except Exception:
-                logger.info("[ESB][JWT] fetch esb public key error")
-            else:
-                logger.info("[ESB][JWT] fetch esb public key success")
+        from apigw_manager.apigw.models import Context
+
+        # 当依赖表暂未创建时，视为 migrate 尚未执行的阶段, 暂不同步
+        # 后置这个检查，减少 DB IO
+        if Context._meta.db_table not in connection.introspection.table_names():
+            logger.info("[JWT] skip fetch component api public key")
+            return
 
         client = get_client_by_user(user_or_username=settings.SYSTEM_USE_API_ACCOUNT)
         esb_result = client.esb.get_api_public_key()
         if not esb_result["result"]:
-            logger.error(f'[ESB][JWT] get esb api public key error:{esb_result["message"]}')
+            logger.error(f'[JWT][ESB] get esb api public key error:{esb_result["message"]}')
             return
 
         from apigw_manager.apigw.helper import PublicKeyManager
 
         api_public_key = esb_result["data"]["public_key"]
-        # esb-ieod-clouds / bk-esb / apigw 为各个环境的约定值，由 ESB 调用时解析 jwt header 的 kid 属性获取
-        # Refer：site-packages/apigw_manager/apigw/providers.py
-        if settings.RUN_VER == "ieod":
-            # ieod 环境需要额外注入 esb 公钥，从而支持 ESB & APIGW
-            PublicKeyManager().set("esb-ieod-clouds", api_public_key)
-            logger.info("[ESB][JWT] get esb api public key and save to esb-ieod-clouds")
-        elif settings.BKPAAS_MAJOR_VERSION != env_constants.BkPaaSVersion.V3.value:
-            # V2 环境没有 APIGW，手动注入
-            PublicKeyManager().set("bk-esb", api_public_key)
-            PublicKeyManager().set("apigw", api_public_key)
-            logger.info("[ESB][JWT] get esb api public key and save to bk-esb & apigw")
+        # V2 环境没有 APIGW，手动注入
+        PublicKeyManager().set("bk-esb", api_public_key)
+        PublicKeyManager().set("apigw", api_public_key)
+        logger.info("[JWT][ESB] get api public key and save to bk-esb & apigw")
 
-    def init_settings(self):
+    @classmethod
+    def init_settings(cls):
         """
         初始化配置，读取DB后写入settings内存中，避免多次查表
         """
