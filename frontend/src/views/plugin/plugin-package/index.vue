@@ -31,8 +31,8 @@
       :table-list="tableList"
       :pagination="pagination"
       :num-loading="numLoading"
+      :is-loading="isLoading"
       :search-value="searchValue"
-      v-bkloading="{ isLoading }"
       @page-change="handlePageChange"
       @limit-change="handleLimitChange"
       @empty-clear="searchClear"
@@ -143,7 +143,7 @@ export default class PluginPackage extends Vue {
     this.isLoading = false;
     this.getTableNodeNum();
   }
-  @debounceDecorate(700)
+  @debounceDecorate(300)
   public handleValueChange() {
     this.getPkgList();
   }
@@ -201,6 +201,7 @@ export default class PluginPackage extends Vue {
     this.uploadLoading = true;
   }
   public searchClear() {
+    this.isLoading = true;
     this.searchValue = '';
     this.handleValueChange();
   }

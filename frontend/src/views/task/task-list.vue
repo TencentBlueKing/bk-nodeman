@@ -20,11 +20,12 @@
       :table-list="tableList"
       :pagination="pagination"
       :highlight="highlightIds"
+      :hide-auto-deploy="hideAutoDeploy"
       @filter-confirm="handleFilterHeaderChange"
       @filter-reset="handleFilterHeaderChange"
       @pagination-change="handlePaginationChange"
       @sort-change="handleSortHandle"
-      @empty-clear="() => handleSearchChange([])"
+      @empty-clear="searchClear"
       @empty-refresh="getHistortListDebounce">
     </TaskListTable>
   </div>
@@ -53,7 +54,7 @@ Component.registerHooks([
   },
 })
 export default class TaskList extends Mixins(PollMixin, HeaderFilterMixins)<Dictionary> {
-  private loading = false;
+  private loading = true;
   private hideAutoDeploy = true;
   private storageKey = 'task_filter_autoDeploy';
   private date: Date[] = [];
@@ -265,6 +266,12 @@ export default class TaskList extends Mixins(PollMixin, HeaderFilterMixins)<Dict
       }
     });
     return params;
+  }
+  public searchClear() {
+    this.loading = true;
+    this.hideAutoDeploy = false;
+    this.handleSearchChange([]);
+    this.handleSearchChange([]);
   }
 }
 </script>

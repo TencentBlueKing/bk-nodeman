@@ -1,7 +1,7 @@
 <template>
-  <bk-exception :scene="scene" :type="type">
-    <template v-if="['search-empty', '500'].includes(type)" #default>
-      <template v-if="type === 'search-empty'">
+  <bk-exception :scene="scene" :type="typeDisplay">
+    <template v-if="['search-empty', '500'].includes(typeDisplay)" #default>
+      <template v-if="typeDisplay === 'search-empty'">
         <p class="empty-title">{{ $t('搜索结果为空') }}</p>
         <i18n tag="p" class="empty-desc" path="可以尝试调整关键词或清空筛选条件">
           <bk-link theme="primary" class="empty-btn" @click="() => handleClick('clear')">
@@ -9,7 +9,7 @@
           </bk-link>
         </i18n>
       </template>
-      <template v-if="type === '500'">
+      <template v-if="typeDisplay === '500'">
         <div class="empty">
           <p class="empty-title">{{ $t('获取数据异常') }}</p>
           <p class="empty-desc">
@@ -23,12 +23,26 @@
   </bk-exception>
 </template>
 <script lang="ts">
-import { Component, Vue, Prop } from 'vue-property-decorator';
+import { Component, Vue, Prop, Watch } from 'vue-property-decorator';
 
 @Component({ name: 'NmException' })
 export default class CopyDropdown extends Vue {
+  @Prop({ type: Boolean, default: false }) protected readonly delay!: false;
   @Prop({ type: String, default: 'empty' }) protected readonly type!: string;
   @Prop({ type: String, default: 'part' }) protected readonly scene!: string;
+
+  private oldType = this.type;
+
+  private get typeDisplay() {
+    return this.delay ? this.oldType : this.type;
+  }
+
+  @Watch('delay', { immediate: true })
+  private changeDelay(value: boolean) {
+    if (!value) {
+      this.oldType = this.type;
+    }
+  }
 
   public handleClick(clickType: string) {
     this.$emit(`empty-${clickType}`);
@@ -53,7 +67,7 @@ export default class CopyDropdown extends Vue {
   }
   .empty-btn {
     margin-left: 4px;
-    .bk-link-text {
+    /deep/ .bk-link-text {
       font-size: 12px;
     }
   }

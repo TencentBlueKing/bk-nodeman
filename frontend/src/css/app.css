@@ -45,6 +45,23 @@ body {
     cursor: default;
 }
 
+.bk-table-empty-text {
+    padding: 25px 0 19px 0
+}
+
+.nm-exception {
+    .bk-exception-img {
+        overflow: hidden;
+        .exception-image {
+            width: 324px;
+            height: 162px;
+        }
+    }
+    .bk-exception-text  {
+        margin-top: 14px;
+    }
+}
+
 .clearfix::after {
     display: block;
     clear: both;
