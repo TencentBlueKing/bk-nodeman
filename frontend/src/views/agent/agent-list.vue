@@ -559,6 +559,7 @@
         </bk-table-column>
         <NmException
           slot="empty"
+          :delay="loading"
           :type="tableEmptyType"
           @empty-clear="searchClear"
           @empty-refresh="initAgentListDebounce" />
@@ -1125,8 +1126,10 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
     }
   }
   public searchClear() {
+    this.loading = true;
     this.topoSelect.clearData();
     this.searchSelectValue = [];
+    this.handleSearchSelectChange([]);
   }
   /**
    * 初始化agent列表

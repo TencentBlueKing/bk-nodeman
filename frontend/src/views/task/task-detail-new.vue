@@ -93,7 +93,7 @@
             @filter-confirm="handleFilterHeaderChange"
             @filter-reset="handleFilterHeaderChange"
             @pagination-change="handlePaginationChange"
-            @empty-clear="() => handleSearchChange([])"
+            @empty-clear="emptySearchClear"
             @empty-refresh="getDetailListDebounce">
           </TaskDetailTable>
         </section>
@@ -545,6 +545,10 @@ export default class TaskDeatail extends Mixins(PollMixin, HeaderFilterMixins) {
       pushFn: this.handlePushValue,
       changeFn: this.reGetDetailList,
     });
+  }
+  public emptySearchClear() {
+    this.tableLoading = true;
+    this.handleSearchChange([]);
   }
 }
 </script>
