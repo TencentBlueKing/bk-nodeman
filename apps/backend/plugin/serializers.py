@@ -17,7 +17,7 @@ from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
 from apps.exceptions import BackendValidationError, ValidationError
-from apps.node_man import constants
+from apps.node_man import constants, models
 from apps.node_man.models import DownloadRecord, GsePluginDesc, Packages
 
 
@@ -250,17 +250,35 @@ class PluginStartDebugSerializer(GatewaySerializer):
                 return attrs
             raise ValidationError("`bk_host_id` or `ip + bk_cloud_id (Only valid for static host)` required")
 
+    class InstanceInfoSerializer(serializers.Serializer):
+        bk_biz_id = serializers.IntegerField(required=True)
+        id = serializers.IntegerField(required=False)
+        bk_inst_id = serializers.CharField(required=False)
+        bk_obj_id = serializers.CharField(required=False)
+
     plugin_id = serializers.IntegerField(required=False)
     plugin_name = serializers.CharField(max_length=32, required=False)
     version = serializers.CharField(max_length=32, required=False)
     config_ids = serializers.ListField(default=[], allow_empty=True, child=serializers.IntegerField())
-    host_info = HostInfoSerializer(required=True)
+    object_type = serializers.ChoiceField(
+        choices=models.Subscription.OBJECT_TYPE_CHOICES, label="对象类型", default=models.Subscription.ObjectType.HOST
+    )
+    node_type = serializers.ChoiceField(
+        choices=models.Subscription.NODE_TYPE_CHOICES, label="节点类别", default=models.Subscription.NodeType.INSTANCE
+    )
+    host_info = HostInfoSerializer(required=False)
+    instance_info = InstanceInfoSerializer(required=False)
 
     def validate(self, attrs):
         # 两种参数模式少要有一种满足
-        if "id" not in attrs and not ("plugin_name" in attrs and "version") in attrs:
+        if "plugin_id" not in attrs and not ("plugin_name" in attrs and "version") in attrs:
             raise ValidationError("`plugin_id` or `plugin_name + version` required")
 
+        if "host_info" in attrs and "instance_info" in attrs:
+            raise ValidationError("`host_info` and `instance_info` cannot be use at the same time")
+
+        if "host_info" not in attrs and "instance_info" not in attrs:
+            raise ValidationError("`host_info` and `instance_info` must choose one")
         return attrs
 
 

@@ -208,3 +208,9 @@ class PluginResourcePolicyNoDiff(NodeManBaseException):
 class RemoteHostNotExistsError(NodeManBaseException):
     MESSAGE = _("远程采集主机不存在")
     ERROR_CODE = 41
+
+
+class ServiceInstanceNotFoundError(NodeManBaseException):
+    MESSAGE = _("服务实例不存在")
+    MESSAGE_TPL = _("服务实例 -> [{id}] 不存在")
+    ERROR_CODE = 42
