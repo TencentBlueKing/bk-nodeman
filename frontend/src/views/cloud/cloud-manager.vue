@@ -271,6 +271,7 @@
 
           <NmException
             slot="empty"
+            :delay="loading"
             :type="tableEmptyType"
             @empty-clear="searchClear"
             @empty-refresh="handleValueChange" />
@@ -692,6 +693,7 @@ export default class CloudManager extends Vue {
     this.handleSearch(this.pagination.current);
   }
   public searchClear() {
+    this.loading = true;
     this.searchValue = '';
     this.handleValueChange();
   }

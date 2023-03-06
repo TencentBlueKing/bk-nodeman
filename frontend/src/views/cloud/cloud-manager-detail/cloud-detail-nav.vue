@@ -19,7 +19,6 @@
           v-for="(item, index) in area.data"
           :key="index"
           tag="li"
-          :title="item.bkCloudName"
           :authorized="item.view"
           :apply-info="[{
             action: 'cloud_view',
@@ -39,7 +38,7 @@
               }" v-if="item.exception === 'abnormal'" class="col-status">
                 <span class="status-mark status-terminated"></span>
               </span> -->
-              <span class="list-item-name">{{ item.bkCloudName }}</span>
+              <span class="list-item-name" v-bk-overflow-tips>{{ item.bkCloudName }}</span>
               <template v-if="item.proxyCount">
                 <span
                   v-if="item.aliveProxyCount < 2"

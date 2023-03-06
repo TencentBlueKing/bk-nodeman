@@ -182,6 +182,7 @@
       </bk-table-column>
       <NmException
         slot="empty"
+        :delay="tableLoading"
         :type="tableEmptyType"
         @empty-clear="emptySearchClear"
         @empty-refresh="emptyRefresh" />
@@ -228,6 +229,7 @@ export default class PluginRuleTable extends Mixins(HeaderRenderMixin) {
   }) private readonly pagination!: IPagination;
   @Prop({ default: () => ([]), type: Array }) private readonly tableList!: IPluginList[];
   @Prop({ default: () => ([]), type: Array }) private readonly searchSelectData!: ISearchItem[];
+  @Prop({ default: false, type: Boolean }) private readonly tableLoading!: boolean;
   @Prop({ default: () => ([]), type: Array }) private readonly searchSelectValue!: ISearchItem[];
   @Prop({ default: false, type: Boolean }) private readonly selectionLoading!: boolean;
   // 0 未选 1 半选 2 全选

@@ -236,6 +236,7 @@
       <NmException
         slot="empty"
         :type="tableEmptyType"
+        :delay="tableLoading"
         @empty-clear="emptySearchClear"
         @empty-refresh="emptyRefresh" />
     </bk-table>
@@ -265,6 +266,7 @@ type PolicyType = 'edit' | 'start' | 'stop' | 'delete' | 'stop_and_delete' | 'RE
 export default class PluginRuleTable extends Mixins(HeaderRenderMixin) {
   @Ref('nameInput') private readonly nameInput: any;
 
+  @Prop({ type: Boolean, default: false }) private readonly tableLoading!: boolean;
   @Prop({ type: Array, default: () => ({}) }) private readonly data!: IPolicyRow[];
   @Prop({ type: Number, default: -1 }) private readonly deleteId!: number;
   @Prop({ type: Object, default: () => ({

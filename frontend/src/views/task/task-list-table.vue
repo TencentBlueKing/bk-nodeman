@@ -13,7 +13,7 @@
         @row-click="detailHandle"
         @page-change="pageChange"
         @page-limit-change="limitChange">
-        <bk-table-column :label="$t('任务ID')" prop="job_id" :resizable="false">
+        <bk-table-column :label="$t('任务ID')" prop="job_id" :resizable="false" :min-width="columnMinWidth['job_id']">
           <template #default="{ row }">
             <a href="javascript: " class="primary">{{ row.id }}</a>
           </template>
@@ -22,14 +22,15 @@
           class-name="biz-column"
           prop="bkBizScopeDisplay"
           show-overflow-tooltip
-          :label="$t('业务')">
+          :label="$t('业务')"
+          :min-width="columnMinWidth['bkBizScopeDisplay']">
           <template #default="{ row }">
             {{ row.bkBizScopeDisplay && row.bkBizScopeDisplay.length ? row.bkBizScopeDisplay.join(',') : '--' }}
           </template>
         </bk-table-column>
         <bk-table-column
           prop="step_type"
-          min-width="80"
+          :min-width="columnMinWidth['step_type']"
           :label="$t('任务类型')"
           :render-header="renderFilterHeader">
           <template #default="{ row }">
@@ -38,7 +39,7 @@
         </bk-table-column>
         <bk-table-column
           prop="op_type"
-          min-width="110"
+          :min-width="columnMinWidth['op_type']"
           :label="$t('操作类型')"
           :render-header="renderFilterHeader">
           <template #default="{ row }">
@@ -47,7 +48,7 @@
         </bk-table-column>
         <bk-table-column
           prop="policy_name"
-          min-width="140"
+          :min-width="columnMinWidth['policy_name']"
           show-overflow-tooltip
           :label="$t('部署策略')"
           :render-header="renderFilterHeader">
@@ -58,23 +59,24 @@
         <bk-table-column
           prop="created_by"
           :label="$t('执行者')"
+          :min-width="columnMinWidth['created_by']"
           :render-header="renderFilterHeader">
           <template #default="{ row }">
             {{ row.createdBy ? row.createdBy : '--' }}
           </template>
         </bk-table-column>
-        <bk-table-column width="185" :label="$t('执行时间')" prop="startTime">
+        <bk-table-column min-width="150" :label="$t('执行时间')" prop="startTime">
           <template #default="{ row }">
             {{ row.startTime | filterTimezone }}
           </template>
         </bk-table-column>
-        <bk-table-column align="right" :label="$t('总耗时')" prop="costTime" min-width="90">
+        <bk-table-column align="right" :label="$t('总耗时')" prop="costTime" :min-width="columnMinWidth['costTime']">
           <template #default="{ row }">{{ takesTimeFormat(row.costTime) }} </template>
         </bk-table-column>
         <bk-table-column min-width="20" :resizable="false"></bk-table-column>
         <bk-table-column
           prop="status"
-          min-width="115"
+          :min-width="columnMinWidth['status']"
           :label="$t('执行状态')"
           :resizable="false"
           :render-header="renderFilterHeader">
@@ -86,7 +88,7 @@
             </div>
           </template>
         </bk-table-column>
-        <bk-table-column :label="$t('总数成功失败忽略')" min-width="190">
+        <bk-table-column prop="static" :label="$t('总数成功失败忽略')" :min-width="columnMinWidth['static']">
           <template #default="{ row }">
             <template v-if="row.statistics">
               <span class="num">{{ row.statistics.totalCount || 0 }}</span>/
@@ -104,6 +106,7 @@
         <NmException
           slot="empty"
           :type="tableEmptyType"
+          :delay="loading"
           @empty-clear="emptySearchClear"
           @empty-refresh="emptyRefresh" />
       </bk-table>
@@ -126,6 +129,7 @@ export default class TaskListTable extends Mixins(HeaderRenderMixin) {
     count: 0,
     limitList: [50, 100, 200],
   }) }) private readonly pagination!: IPagination;
+  @Prop({ default: true, type: Boolean }) private readonly hideAutoDeploy!: boolean;
   @Prop({ type: Array, default: () => ([]) }) private readonly tableList!: Array<IHistory>;
   @Prop({ type: Boolean, default: false }) private readonly loading!: boolean;
   @Prop({ type: Array, default: () => ([]) }) private readonly highlight!: number[];
@@ -141,12 +145,30 @@ export default class TaskListTable extends Mixins(HeaderRenderMixin) {
     stop: window.i18n.t('已终止'),
     terminated: window.i18n.t('已终止'),
   };
+  private columnList = [
+
+    { id: 'job_id', label: this.$t('任务ID'), sort: false, filter: false },
+    { id: 'bkBizScopeDisplay', label: this.$t('业务'), sort: false, filter: true },
+    { id: 'step_type', label: this.$t('任务类型'), sort: false, filter: true },
+    { id: 'op_type', label: this.$t('操作类型'), sort: false, filter: true },
+    { id: 'policy_name', label: this.$t('部署策略'), sort: false, filter: true },
+    { id: 'created_by', label: this.$t('执行者'), sort: false, filter: true },
+    // { id: 'startTime', label: this.$t('执行时间'), sort: false, filter: true },
+    { id: 'costTime', label: this.$t('总耗时'), sort: false, filter: true },
+    { id: 'status', label: this.$t('执行状态'), sort: false, filter: true },
+    { id: 'static', label: this.$t('总数成功失败忽略'), sort: false, filter: false },
+  ];
+  private columnMinWidth: Dictionary = {};
 
   private get windowHeight() {
     return MainStore.windowHeight;
   }
   private get tableEmptyType() {
-    return this.searchSelectValue.length ? 'search-empty' : 'empty';
+    return (this.hideAutoDeploy || this.searchSelectValue.length) ? 'search-empty' : 'empty';
+  }
+
+  private created() {
+    this.computedColumnWidth();
   }
 
   @Emit('pagination-change')
@@ -188,6 +210,15 @@ export default class TaskListTable extends Mixins(HeaderRenderMixin) {
   }
   public handlerRowClassName({ row }: { row: IHistory }) {
     return this.highlight.length && this.highlight.includes(row.id) ? 'highlight-row' : '';
+  }
+  public computedColumnWidth() {
+    const widthMap: Dictionary = {};
+    this.columnList.reduce((obj, item) => {
+      console.log(item.label);
+      obj[item.id] = this.$textTool.getHeadWidth(item.label as string, item);
+      return obj;
+    }, widthMap);
+    this.columnMinWidth = widthMap;
   }
 }
 </script>

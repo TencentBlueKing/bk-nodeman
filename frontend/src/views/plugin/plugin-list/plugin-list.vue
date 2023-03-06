@@ -18,6 +18,7 @@
       class="plugin-node-table"
       :table-list="tableList"
       :pagination="pagination"
+      :table-loading="tableLoading"
       :search-select-data="filterData"
       :search-select-value="searchSelectValue"
       :selection-loading="selectionLoading"
@@ -34,7 +35,7 @@
       @filter-reset="tableHeaderReset"
       @sort="handleTableSort"
       @pagination-change="handlePaginationChange"
-      @empty-clear="() => searchSelectValue = []"
+      @empty-clear="searchClear"
       @empty-refresh="getHostList">
     </PluginListTable>
     <bk-dialog
@@ -610,6 +611,11 @@ export default class PluginList extends Mixins(HeaderFilterMixins) {
       }
     }
     return false;
+  }
+  public searchClear() {
+    this.tableLoading = true;
+    this.searchSelectValue = [];
+    this.handleSearchSelectChange([]);
   }
 }
 
