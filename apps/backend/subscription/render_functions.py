@@ -65,8 +65,19 @@ def get_hosts_by_node(config_hosts):
     :return: [{'ip': '127.0.0.1'}, {'ip': '127.0.0.1'}, {'ip': '127.0.0.1'}]
     """
     instances = []
-    if len(config_hosts) and config_hosts[0].get("ip"):
-        # 针对静态类型，传过来的都是IP，直接返回即可
+    if not config_hosts:
+        return instances
+
+    if config_hosts[0].get("bk_host_id"):
+        from apps.backend.subscription.tools import get_host_detail
+
+        host_infos = get_host_detail(config_hosts)
+        for host_info in host_infos:
+            host_info["ip"] = host_info["bk_host_innerip"] or host_info["bk_host_innerip_v6"]
+            instances.append(host_info)
+        return sorted(instances, key=lambda _inst: _inst["ip"])
+
+    if config_hosts[0].get("ip"):
         instances = config_hosts
         return sorted(instances, key=lambda _inst: _inst["ip"])
 
