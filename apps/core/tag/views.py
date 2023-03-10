@@ -65,7 +65,7 @@ class TagViewSet(ModelViewSet):
             name=tag_before_update.name,
             target_type=tag_before_update.target_type,
             target_id=tag_before_update.target_id,
-            target_version=tag_before_update.target_version,
+            target_version=serializer.validated_data["target_version"],
         )
         serializer.save()
 
