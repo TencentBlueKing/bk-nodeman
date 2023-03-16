@@ -19,7 +19,7 @@ from django.utils.translation import ugettext as _
 from apps.backend.components.collections import plugin
 from apps.backend.utils.pipeline_parser import PipelineParser as CustomPipelineParser
 from apps.backend.utils.pipeline_parser import parse_pipeline
-from apps.node_man import constants
+from apps.node_man import constants, models
 from pipeline.builder import ServiceActivity, Var
 
 logger = logging.getLogger("app")
@@ -141,10 +141,13 @@ class PluginManager(object):
         )
         return act
 
-    def operate_proc(self, op_type):
+    def operate_proc(self, op_type, plugin_desc: models.GsePluginDesc):
         """调用GSE操作插件进程"""
-        if self.step.plugin_name in ["gsecmdline", "pluginscripts"]:
-            # gsecmdline, pluginscripts 不是严格意义的插件，不能执行常规的启停操作
+        if plugin_desc.auto_type != constants.GseAutoType.SINGLE_EXECUTION.value and self.step.plugin_name in [
+            "gsecmdline",
+            "pluginscripts",
+        ]:
+            # gsecmdline, pluginscripts 不是严格意义的插件，不能执行常规的启停操作（除非声明为非常驻进程）
             return None
         op_type_name = constants.GseOpType.GSE_OP_TYPE_MAP.get(op_type, _("操作进程"))
         act = PluginServiceActivity(component_code=plugin.GseOperateProcComponent.code, name=op_type_name)
