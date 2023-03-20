@@ -12,7 +12,6 @@ from typing import Callable, Dict, List
 
 import mock
 
-from apps.adapters.api import gse
 from apps.backend.components.collections.agent_new.components import (
     UpgradeToAgentIDComponent,
 )
@@ -26,7 +25,7 @@ from . import utils
 
 
 class UpgradeToAgentIDTestCaseMixin:
-    GSE_API_MOCK_PATHS: List[str] = ["apps.backend.components.collections.agent_new.upgrade_to_agent_id.GseApiHelper"]
+    GSE_API_MOCK_PATHS: List[str] = ["apps.backend.components.collections.base.get_gse_api_helper"]
     GSE_VERSION = GseVersion.V2.value
     upgrade_to_agent_id_func: Callable[[Dict], Dict] = lambda: {"success": [], "failed": []}
 
@@ -60,9 +59,14 @@ class UpgradeToAgentIDTestCaseMixin:
     def component_cls(self):
         return UpgradeToAgentIDComponent
 
+    def structure_common_inputs(self):
+        inputs = super().structure_common_inputs()
+        inputs["meta"] = {"GSE_VERSION": GseVersion.V2.value}
+        return inputs
+
     def init_mock_clients(self):
         self.gse_api_mock_client = api_mkd.gse.utils.GseApiMockClient(
-            v2_proc_upgrade_to_agent_id_return=mock_data_utils.MockReturn(
+            upgrade_to_agent_id_return=mock_data_utils.MockReturn(
                 return_type=mock_data_utils.MockReturnType.SIDE_EFFECT.value, return_obj=self.upgrade_to_agent_id_func
             )
         )
@@ -71,10 +75,7 @@ class UpgradeToAgentIDTestCaseMixin:
         self.init_mock_clients()
         for gse_api_mock_path in self.GSE_API_MOCK_PATHS:
             mock.patch(
-                gse_api_mock_path,
-                gse.get_gse_api_helper_class(self.GSE_VERSION)(
-                    version=self.GSE_VERSION, gse_api_obj=self.gse_api_mock_client
-                ),
+                gse_api_mock_path, api_mkd.gse.utils.get_gse_api_helper(self.GSE_VERSION, self.gse_api_mock_client)
             ).start()
         super().setUp()
 

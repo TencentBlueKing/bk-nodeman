@@ -122,7 +122,7 @@ def mock_get_agent_info_list(params):
     return agent_info_list
 
 
-def mock_v2_cluster_list_agent_state_return(params):
+def mock_list_agent_state_return(params):
     agent_state_list = []
     for agent_id in params["agent_id_list"]:
         agent_state_list.append({**GSE_V2_AGENT_STATE_DATA, "bk_agent_id": agent_id})
