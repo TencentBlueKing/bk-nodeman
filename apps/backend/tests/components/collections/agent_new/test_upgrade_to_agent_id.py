@@ -72,7 +72,7 @@ class UpgradeToAgentIDTestCaseMixin:
         for gse_api_mock_path in self.GSE_API_MOCK_PATHS:
             mock.patch(
                 gse_api_mock_path,
-                gse.get_gse_api_helper(self.GSE_VERSION)(
+                gse.get_gse_api_helper_class(self.GSE_VERSION)(
                     version=self.GSE_VERSION, gse_api_obj=self.gse_api_mock_client
                 ),
             ).start()

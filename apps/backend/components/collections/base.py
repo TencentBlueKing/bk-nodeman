@@ -30,6 +30,7 @@ from django.db.models.functions import Concat
 from django.utils import timezone
 from django.utils.translation import ugettext as _
 
+from apps.adapters.api.gse import GseApiBaseHelper, get_gse_api_helper
 from apps.backend.subscription import errors
 from apps.node_man import constants, models
 from apps.utils import cache, time_handler, translation
@@ -190,6 +191,7 @@ class CommonData:
     sub_inst_id__host_id_map: Dict[int, int]
     host_id__sub_inst_id_map: Dict[int, int]
     ap_id_obj_map: Dict[int, models.AccessPoint]
+    gse_api_helper: GseApiBaseHelper
     subscription: models.Subscription
     subscription_step: models.SubscriptionStep
     subscription_instances: List[models.SubscriptionInstanceRecord]
@@ -308,6 +310,7 @@ class BaseService(Service, LogMixin, DBHelperMixin):
             sub_inst_id__host_id_map=sub_inst_id__host_id_map,
             host_id__sub_inst_id_map=host_id__sub_inst_id_map,
             ap_id_obj_map=ap_id_obj_map,
+            gse_api_helper=get_gse_api_helper(gse_version=data.get_one_of_inputs("meta", {}).get("GSE_VERSION")),
             subscription=subscription,
             subscription_step=subscription_step,
             subscription_instances=subscription_instances,
