@@ -10,17 +10,17 @@ specific language governing permissions and limitations under the License.
 """
 
 import abc
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
 
 from apps.backend import constants as backend_const
 from apps.backend.agent.manager import AgentManager
-from apps.backend.subscription.steps.agent_adapter.adapter import AgentStepAdapter
 from apps.node_man import constants, models
 from apps.node_man.constants import DEFAULT_CLOUD
 from apps.node_man.models import GsePluginDesc, SubscriptionStep
+from env.constants import GseVersion
 from pipeline import builder
 from pipeline.builder import Var
 from pipeline.builder.flow.base import Element
@@ -36,11 +36,7 @@ class AgentStep(Step):
     # 需要自动拉起的插件列表
     auto_launch_plugins: Optional[List[models.GsePluginDesc]] = None
 
-    # Agent Step 适配器
-    agent_step_adapter: Optional[AgentStepAdapter] = None
-
     def __init__(self, subscription_step: SubscriptionStep):
-        self.agent_step_adapter = AgentStepAdapter(subscription_step)
         self.auto_launch_plugins = GsePluginDesc.get_auto_launch_plugins()
         super(AgentStep, self).__init__(subscription_step)
 
@@ -86,46 +82,22 @@ class AgentStep(Step):
         安装Agent不需要监听CMDB变更
         若有需要按CMDB拓扑变更自动安装Agent的需求，需完善此方法
         """
-        if (
-            self.agent_step_adapter.config["job_type"]
-            not in [
-                backend_const.ActionNameType.INSTALL_AGENT,
-                backend_const.ActionNameType.REINSTALL_AGENT,
-                backend_const.ActionNameType.UPGRADE_AGENT,
-                backend_const.ActionNameType.INSTALL_PROXY,
-                backend_const.ActionNameType.REINSTALL_PROXY,
-                backend_const.ActionNameType.UPGRADE_PROXY,
-            ]
-            or self.agent_step_adapter.is_legacy
-        ):
-            # 如果非安装类操作或者操作的是旧版本的 Agent，无需计算变更
+
+        if self.subscription_step.config["job_type"] not in [
+            backend_const.ActionNameType.INSTALL_AGENT,
+            backend_const.ActionNameType.REINSTALL_AGENT,
+            backend_const.ActionNameType.UPGRADE_AGENT,
+            backend_const.ActionNameType.INSTALL_PROXY,
+            backend_const.ActionNameType.REINSTALL_PROXY,
+            backend_const.ActionNameType.UPGRADE_PROXY,
+        ]:
+            # 如果非安装类操作或者操作无需计算变更
             instance_actions = {instance_id: self.subscription_step.config["job_type"] for instance_id in instances}
             return {"instance_actions": instance_actions, "migrate_reasons": {}}
-
-        bk_host_ids: Set[int] = set()
-        for instance_id, instance in instances.items():
-            bk_host_id: Optional[int] = instance["host"].get("bk_host_id")
-            # 新装场景 Agent 不存在
-            if bk_host_id is None:
-                continue
-            bk_host_ids.add(instance["host"]["bk_host_id"])
-
-        host_id__host_map: Dict[int, models.Host] = {
-            host.bk_host_id: host for host in models.Host.objects.filter(bk_host_id__in=bk_host_ids)
-        }
-        proc_status_infos = models.ProcessStatus.objects.filter(
-            name=models.ProcessStatus.GSE_AGENT_PROCESS_NAME,
-            bk_host_id__in=bk_host_ids,
-            source_type=models.ProcessStatus.SourceType.DEFAULT,
-        ).values("bk_host_id", "id", "status")
-        host_id__proc_status_info_map: Dict[int, Dict[str, Any]] = {
-            proc_status_info["bk_host_id"]: proc_status_info for proc_status_info in proc_status_infos
-        }
 
         instance_actions: Dict[str, str] = {}
         migrate_reasons: Dict[str, Dict[str, Any]] = {}
         # 新版本 Agent 操作映射关系
-        # TODO 实际的任务类型和 migrate_type 相关，后续仍需按场景调整
         job_type_map: Dict[str, str] = {
             backend_const.ActionNameType.INSTALL_AGENT: backend_const.ActionNameType.INSTALL_AGENT_2,
             backend_const.ActionNameType.REINSTALL_AGENT: backend_const.ActionNameType.REINSTALL_AGENT_2,
@@ -137,29 +109,10 @@ class AgentStep(Step):
             backend_const.ActionNameType.UPGRADE_PROXY: backend_const.ActionNameType.UPGRADE_PROXY,
         }
         for instance_id, instance in instances.items():
-            bk_host_id: Optional[int] = instance["host"].get("bk_host_id")
-            host_obj: Optional[models.Host] = host_id__host_map.get(bk_host_id)
-            if not host_obj:
-                instance_actions[instance_id] = job_type_map[self.subscription_step.config["job_type"]]
-                migrate_reasons[instance_id] = {"migrate_type": backend_const.AgentMigrateType.NEW_INSTALL.value}
-            elif host_obj.bk_agent_id:
-                # AgentID 已存在，视为新版本 Agent 重装
-                instance_actions[instance_id] = job_type_map[self.subscription_step.config["job_type"]]
-                migrate_reasons[instance_id] = {"migrate_type": backend_const.AgentMigrateType.REINSTALL.value}
-            else:
-                proc_status_info: Dict[str, Any] = host_id__proc_status_info_map.get(bk_host_id) or {}
-                version_str_or_none: Optional[str] = proc_status_info.get("version")
-                if version_str_or_none:
-                    # AgentID 不存在并且版本存在，说明旧版本 Agent 存在，视为跨版本安装
-                    instance_actions[instance_id] = job_type_map[self.subscription_step.config["job_type"]]
-                    migrate_reasons[instance_id] = {
-                        "migrate_type": backend_const.AgentMigrateType.CROSS_VERSION_INSTALL.value,
-                        "version": version_str_or_none,
-                    }
-                else:
-                    # 版本不存在，视为新装
-                    instance_actions[instance_id] = job_type_map[self.subscription_step.config["job_type"]]
-                    migrate_reasons[instance_id] = {"migrate_type": backend_const.AgentMigrateType.NEW_INSTALL.value}
+            if instance["meta"]["GSE_VERSION"] == GseVersion.V1.value:
+                instance_actions[instance_id] = self.subscription_step.config["job_type"]
+                continue
+            instance_actions[instance_id] = job_type_map[self.subscription_step.config["job_type"]]
 
         return {"instance_actions": instance_actions, "migrate_reasons": migrate_reasons}
 
@@ -204,13 +157,14 @@ class AgentAction(Action, abc.ABC):
         self,
         subscription_instances: List[models.SubscriptionInstanceRecord],
         global_pipeline_data: builder.Data,
+        meta: Dict[str, Any],
         current_activities=None,
     ) -> Tuple[List[Union[builder.ServiceActivity, Element]], Optional[builder.Data]]:
         agent_manager = self.get_agent_manager(subscription_instances)
         activities, pipeline_data = self._generate_activities(agent_manager)
         for act in activities:
             act.component.inputs.subscription_step_id = Var(type=Var.PLAIN, value=self.step.subscription_step.id)
-        self.inject_vars_to_global_data(global_pipeline_data)
+        self.inject_vars_to_global_data(global_pipeline_data, meta)
         return activities, pipeline_data
 
     def append_delegate_activities(self, agent_manager, activities):

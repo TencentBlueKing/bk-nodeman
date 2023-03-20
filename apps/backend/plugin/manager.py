@@ -28,6 +28,7 @@ logger = logging.getLogger("app")
 class PluginServiceActivity(ServiceActivity):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.component.inputs.meta = Var(type=Var.SPLICE, value="${meta}")
         self.component.inputs.blueking_language = Var(type=Var.SPLICE, value="${blueking_language}")
         self.component.inputs.description = Var(type=Var.SPLICE, value="${description}")
         self.component.inputs.act_name = Var(type=Var.PLAIN, value=kwargs.get("name"))

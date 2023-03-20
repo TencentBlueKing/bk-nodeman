@@ -512,6 +512,7 @@ class ChooseAccessPointService(AgentBaseService, remote.RemoteServiceMixin):
         )
 
         # 处理 PAGENT 选择接入点的情况
+        # TODO 根据 P-Agent 所属的 GSE 版本（V1/V2）选 Proxy（Proxy 和 P-Agent 所指向的接入点需要一致） 及对应的接入点
         choose_ap_results.extend(
             self.handle_pagent_condition(
                 pagent_host_ids__gby_cloud_id=pagent_host_ids__gby_cloud_id, ap_id_obj_map=ap_id_obj_map
@@ -519,6 +520,7 @@ class ChooseAccessPointService(AgentBaseService, remote.RemoteServiceMixin):
         )
 
         # 处理探测接入点的情况
+        # TODO 根据安装主机所选的 GSE 版本（V1 / V2） 选择指定版本的接入点进行探测，例如目前处于 V1 的主机，只能选 V1 的接入点去探测
         choose_ap_results.extend(self.handle_detect_condition(remote_conn_helpers))
 
         self.handle_choose_ap_results(

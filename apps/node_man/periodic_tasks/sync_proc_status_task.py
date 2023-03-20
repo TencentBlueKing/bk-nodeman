@@ -131,6 +131,7 @@ def sync_proc_status_periodic_task():
         logger.info(f"{task_id} | sync host proc status after {countdown} seconds")
 
         # (task_id, hosts[start: start + constants.QUERY_PROC_STATUS_HOST_LENS], sync_proc_list, start)
+        # TODO 这里需要区分 GSE 版本，(区分方式：灰度业务 or 灰度接入点) -> 使用 V2 API，其他情况 -> 使用 V1 API
         update_or_create_proc_status.apply_async(
             (task_id, host_queryset[start : start + constants.QUERY_PROC_STATUS_HOST_LENS], sync_proc_list, start),
             countdown=countdown,
