@@ -115,6 +115,7 @@ def sync_agent_status_periodic_task():
     """
     task_id = sync_agent_status_periodic_task.request.id
     logger.info(f"{task_id} | sync_agent_status_task: Start syncing host status.")
+    # TODO 这里需要区分 GSE 版本，(区分方式：灰度业务 or 灰度接入点) -> 使用 V2 API，其他情况 -> 使用 V1 API
     count = Host.objects.count()
     for start in range(0, count, constants.QUERY_AGENT_STATUS_HOST_LENS):
         countdown = calculate_countdown(
