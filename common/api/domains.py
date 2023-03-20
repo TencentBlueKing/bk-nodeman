@@ -33,6 +33,7 @@ def gen_api_root(api_gw_env_key: str, suffix: str) -> str:
 
 # 蓝鲸平台模块域名
 CC_APIGATEWAY_ROOT_V2 = gen_api_root("BKAPP_BK_CC_APIGATEWAY", "cc")
+GSE_APIGATEWAY_ROOT = gen_api_root("BKAPP_BK_GSE_LEGACY_APIGATEWAY", "gse")
 GSE_APIGATEWAY_ROOT_V2 = gen_api_root("BKAPP_BK_GSE_APIGATEWAY", "gse")
 ESB_APIGATEWAY_ROOT_V2 = gen_api_root("BKAPP_BK_ESB_APIGATEWAY", "esb")
 JOB_APIGATEWAY_ROOT_V3 = gen_api_root("BKAPP_BK_JOB_APIGATEWAY", "jobv3")

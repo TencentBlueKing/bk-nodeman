@@ -19,6 +19,7 @@ from rest_framework import serializers
 from apps.backend import exceptions
 from apps.node_man import constants, models
 from apps.utils import cache
+from env.constants import GseVersion
 
 from . import base, config_templates, legacy
 from .config_context import context_helper
@@ -41,13 +42,17 @@ class AgentStepAdapter:
     # 订阅步骤数据对象
     subscription_step: models.SubscriptionStep
 
+    # GSE 版本
+    # From Pipeline Meta or models.Host.ap_id
+    gse_version: str = GseVersion.V1.value
+
     # 是否为旧版本 Agent，用于兼容旁路判定
     is_legacy: bool = field(init=False)
     # 日志前缀
     log_prefix: str = field(init=False)
 
     def __post_init__(self):
-        self.is_legacy = self.config["version"] == LEGACY
+        self.is_legacy = self.gse_version == GseVersion.V1.value
         self.log_prefix: str = (
             f"[{self.__class__.__name__}({self.subscription_step.step_id})] | {self.subscription_step} |"
         )

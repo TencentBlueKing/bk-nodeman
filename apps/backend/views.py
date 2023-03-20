@@ -88,10 +88,12 @@ def get_gse_config(request):
     sub_step_obj: models.SubscriptionStep = models.SubscriptionStep.objects.filter(
         subscription_id=subscription_id
     ).first()
-    agent_step_adapter: AgentStepAdapter = AgentStepAdapter(subscription_step=sub_step_obj)
 
     try:
         host = Host.objects.get(bk_host_id=decrypted_token["bk_host_id"])
+        agent_step_adapter: AgentStepAdapter = AgentStepAdapter(
+            subscription_step=sub_step_obj, gse_version=host.ap.gse_version
+        )
         if filename in ["bscp.yaml"]:
             config = legacy.generate_bscp_config(host=host)
         else:

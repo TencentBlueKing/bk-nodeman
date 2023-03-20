@@ -116,12 +116,13 @@ class Action(object, metaclass=abc.ABCMeta):
         self.step: Step = step
         self.instance_record_ids = instance_record_ids
 
-    def inject_vars_to_global_data(self, global_pipeline_data: builder.Data):
+    def inject_vars_to_global_data(self, global_pipeline_data: builder.Data, meta: Dict[str, Any]):
         """
         注入流程公共变量
         参考：https://github.com/TencentBlueKing/bamboo-engine/blob/master/docs/user_guide/flow_orchestration.md
         增加公共变量后，在相应的 manager ServiceActivity 基类添加相关的变量引用
         :param global_pipeline_data: 全局pipeline公共变量
+        :param meta: 任务元数据
         :return:
         """
         # locale
@@ -131,12 +132,14 @@ class Action(object, metaclass=abc.ABCMeta):
         global_pipeline_data.inputs["${blueking_language}"] = builder.Var(
             type=builder.Var.PLAIN, value=blueking_language
         )
+        global_pipeline_data.inputs["${meta}"] = builder.Var(type=builder.Var.PLAIN, value=meta)
 
     @abc.abstractmethod
     def generate_activities(
         self,
         subscription_instances: List[models.SubscriptionInstanceRecord],
         global_pipeline_data: builder.Data,
+        meta: Dict[str, Any],
         current_activities=None,
     ) -> Tuple[List[Union[builder.ServiceActivity, Element]], Optional[builder.Data]]:
         raise NotImplementedError

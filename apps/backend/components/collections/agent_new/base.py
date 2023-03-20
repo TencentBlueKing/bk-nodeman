@@ -75,12 +75,15 @@ class AgentBaseService(BaseService, metaclass=abc.ABCMeta):
             # 2. 主机未选择接入点 ap_id = -1
             host_id__ap_map[bk_host_id] = common_data.ap_id_obj_map.get(host.ap_id, default_ap)
 
-        agent_step_adapter: AgentStepAdapter = AgentStepAdapter(common_data.subscription_step)
+        agent_step_adapter: AgentStepAdapter = AgentStepAdapter(
+            common_data.subscription_step, gse_version=data.get_one_of_inputs("meta", {}).get("GSE_VERSION")
+        )
 
         return AgentCommonData(
             bk_host_ids=common_data.bk_host_ids,
             host_id_obj_map=common_data.host_id_obj_map,
             ap_id_obj_map=common_data.ap_id_obj_map,
+            gse_api_helper=common_data.gse_api_helper,
             subscription=common_data.subscription,
             subscription_step=common_data.subscription_step,
             subscription_instances=common_data.subscription_instances,

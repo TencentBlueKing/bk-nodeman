@@ -44,7 +44,7 @@ def set_agent_setup_info_to_attrs(attrs):
         return
 
     # 如果开启 DHCP，安装 2.0 Agent，开启 AgentID 特性
-    # 由于 1.0 / 2.0 Agent 协议上的不兼容，无需考虑 1.0 / 2.0 混合安装的场景
+    # 在执行模块根据主机接入点所属的 GSE 版本决定是否采用下列的 agent_setup_info
     name = ("gse_agent", "gse_proxy")[attrs["node_type"] == "PROXY"]
     attrs["agent_setup_info"] = {
         "name": name,
