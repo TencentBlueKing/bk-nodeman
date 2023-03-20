@@ -21,10 +21,9 @@ from django.core.management import call_command
 from django.test import override_settings
 from mock import patch
 
-from apps.adapters.api import gse
 from apps.core.files import constants as core_const
 from apps.mock_data import api_mkd, utils
-from apps.mock_data.api_mkd.gse.utils import GseApiMockClient
+from apps.mock_data.api_mkd.gse.utils import GseApiMockClient, get_gse_api_helper
 from apps.node_man import constants
 from apps.node_man.models import AccessPoint, InstallChannel
 from apps.node_man.tests.utils import create_ap, create_cloud_area, create_host
@@ -154,8 +153,8 @@ class TestUpdateProxyFile(CustomBaseTestCase):
         patch("apps.node_man.periodic_tasks.update_proxy_file.JobApi", self.JOB_MOCK_CLIENT).start()
 
     @patch(
-        "apps.node_man.periodic_tasks.update_proxy_file.GseApiHelper",
-        gse.get_gse_api_helper_class(GseVersion.V2.value)(GseVersion.V2.value, GseApiMockClient()),
+        "apps.node_man.periodic_tasks.update_proxy_file.get_gse_api_helper",
+        get_gse_api_helper(GseVersion.V2.value, GseApiMockClient()),
     )
     def test_file_system_update(self):
         # 不存在proxy
@@ -223,8 +222,8 @@ class TestUpdateProxyFile(CustomBaseTestCase):
 
     @override_settings(GSE_VERSION=GseVersion.V1.value)
     @patch(
-        "apps.node_man.periodic_tasks.update_proxy_file.GseApiHelper",
-        gse.get_gse_api_helper_class(GseVersion.V1.value)(GseVersion.V1.value, GseApiMockClient()),
+        "apps.node_man.periodic_tasks.update_proxy_file.get_gse_api_helper",
+        get_gse_api_helper(GseVersion.V1.value, GseApiMockClient()),
     )
     def test_blueking_artifactory_update(self):
         with self.settings(

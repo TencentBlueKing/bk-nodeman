@@ -526,9 +526,11 @@ class AgentServiceBaseTestCase(CustomAPITestCase, ComponentTestMixin, ABC):
         ap_obj.save()
         return ap_obj
 
-    def init_alive_proxies(self, bk_cloud_id: int):
+    def init_alive_proxies(self, bk_cloud_id: int, gse_version: str = env.constants.GseVersion.V1.value):
 
         ap_obj = self.create_ap(name="Proxy专用接入点", description="用于测试PAgent是否正确通过存活Proxy获取到接入点")
+        ap_obj.gse_version = gse_version
+        ap_obj.save()
         self.except_ap_ids = [ap_obj.id]
 
         proxy_host_ids = []
@@ -576,6 +578,7 @@ class AgentServiceBaseTestCase(CustomAPITestCase, ComponentTestMixin, ABC):
             "act_name": self.component_cls().name,
             "subscription_step_id": subscription_step_id,
             "subscription_instance_ids": subscription_instance_ids,
+            "meta": {"GSE_VERSION": env.constants.GseVersion.V1.value},
         }
 
     def setUp(self) -> None:
