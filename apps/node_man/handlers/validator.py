@@ -455,7 +455,7 @@ def install_validate(
                         "bk_agent_id": host_info["bk_agent_id"],
                     }
                 )
-
+        # TODO 根据选择的接入点，确认使用的
         agent_id__agent_state_info_map: typing.Dict[str, typing.Dict] = GseApiHelper.list_agent_state(query_hosts)
         host_id__agent_state_info_map: typing.Dict[int, typing.Dict] = {}
         for query_host in query_hosts:

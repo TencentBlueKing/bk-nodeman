@@ -49,7 +49,7 @@ class GseOperateProcTest(TestCase, ComponentTestMixin):
         self.job_multi_thread = patch(utils.JOB_MULTI_THREAD_PATH, utils.request_multi_thread_client)
         self.plugin_gseapi = patch(
             utils.PLUGIN_GSEAPI,
-            gse.get_gse_api_helper(settings.GSE_VERSION)(settings.GSE_VERSION, utils.GseMockClient()),
+            gse.get_gse_api_helper_class(settings.GSE_VERSION)(settings.GSE_VERSION, utils.GseMockClient()),
         )
 
         self.plugin_gseapi.start()

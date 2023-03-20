@@ -26,6 +26,7 @@ from apps.backend.subscription import tools
 from apps.backend.subscription.constants import TASK_HOST_LIMIT
 from apps.backend.subscription.errors import SubscriptionInstanceEmpty
 from apps.backend.subscription.steps import StepFactory, agent
+from apps.core.gray.handlers import GrayTools
 from apps.node_man import constants, models
 from apps.node_man import tools as node_man_tools
 from apps.node_man.handlers.cmdb import CmdbHandler
@@ -50,6 +51,7 @@ def mark_acts_tail_and_head(activities: List[ServiceActivity]) -> None:
 
 def build_instances_task(
     subscription_instances: List[models.SubscriptionInstanceRecord],
+    meta: Dict[str, Any],
     step_actions: Dict[str, str],
     subscription: models.Subscription,
     global_pipeline_data: Data,
@@ -57,6 +59,7 @@ def build_instances_task(
     """
     对同类step_actions任务进行任务编排
     :param subscription_instances: 订阅实例列表
+    :param meta: 流程元数据
     :param step_actions: {"basereport": "MAIN_INSTALL_PLUGIN"}
     :param subscription: 订阅对象
     :param global_pipeline_data: 全局pipeline公共变量
@@ -77,16 +80,19 @@ def build_instances_task(
     for step_id in step_id_manager_map:
         if step_id not in step_actions:
             continue
-        step_manager = step_id_manager_map[step_id]
 
+        step_manager = step_id_manager_map[step_id]
         action_name = step_actions[step_manager.step_id]
         action_manager = step_manager.create_action(action_name, subscription_instances)
 
         activities, __ = action_manager.generate_activities(
-            subscription_instances, global_pipeline_data=global_pipeline_data, current_activities=current_activities
+            subscription_instances,
+            global_pipeline_data=global_pipeline_data,
+            meta=meta,
+            current_activities=current_activities,
         )
 
-        # 记录每个step的起始id及步骤名称
+        # 记录每个 step 的起始 id 及步骤名称
         step_id_record_step_map[step_id].update(
             pipeline_id=activities[0].id,
             node_name=_("[{step_id}] {action_description}").format(
@@ -164,26 +170,41 @@ def create_pipeline(
                              |
                           EndEvent
     """
-    start_event = builder.EmptyStartEvent()
 
-    subscription_instance_map = {
+    subscription_instance_map: Dict[str, models.SubscriptionInstanceRecord] = {
         subscription_instance.instance_id: subscription_instance for subscription_instance in subscription_instances
     }
 
-    # 把同类型操作进行聚合
-    action_instances = defaultdict(list)
+    sub_insts_gby_metadata: Dict[str, List[models.SubscriptionInstanceRecord]] = {}
     for instance_id, step_actions in instances_action.items():
-        if instance_id in subscription_instance_map:
-            action_instances[json.dumps(step_actions)].append(subscription_instance_map[instance_id])
+        if instance_id not in subscription_instance_map:
+            continue
+        sub_inst = subscription_instance_map[instance_id]
+        # metadata 包含：meta-任务元数据、step_actions-操作步骤及类型
+        metadata = {"meta": sub_inst.instance_info["meta"], "step_actions": step_actions}
+        # 聚合同 metadata 的任务
+        sub_insts_gby_metadata[json.dumps(metadata)].append(sub_inst)
 
-    global_pipeline_data = Data()
+    #
+    # # 把同类型操作进行聚合
+    # action_instances = defaultdict(list)
+    # for instance_id, step_actions in instances_action.items():
+    #     if instance_id in subscription_instance_map:
+    #         action_instances[json.dumps(step_actions)].append(subscription_instance_map[instance_id])
+
     sub_processes = []
-    for step_actions, instances in action_instances.items():
-        step_actions = json.loads(step_actions)
+    global_pipeline_data = Data()
+    start_event = builder.EmptyStartEvent()
+    for metadata_json_str, sub_insts in sub_insts_gby_metadata.items():
         start = 0
-        while start < len(instances):
+        metadata = json.loads(metadata_json_str)
+        while start < len(sub_insts):
             activities_start_event = build_instances_task(
-                instances[start : start + task_host_limit], step_actions, subscription, global_pipeline_data
+                sub_insts[start : start + task_host_limit],
+                metadata["meta"],
+                metadata["step_actions"],
+                subscription,
+                global_pipeline_data,
             )
             sub_processes.append(activities_start_event)
             start = start + task_host_limit
@@ -241,9 +262,12 @@ def create_task(
     instances: Dict[str, Dict[str, Union[Dict, Any]]],
     instance_actions: Dict[str, Dict[str, str]],
     preview_only: bool = False,
+    inject_meta_to_instances: bool = True,
 ):
     """
     创建执行任务
+    :param inject_meta_to_instances: 是否需要注入 meta 到 instances
+           默认为 True，在变更计算场景下由于已注入该信息，提供此开关用于避免重复注入
     :param preview_only: 是否仅预览
     :param subscription: Subscription
     :param subscription_task: SubscriptionTask
@@ -256,22 +280,24 @@ def create_task(
     }
     :return: SubscriptionTask
     """
+    if inject_meta_to_instances:
+        GrayTools.inject_meta_to_instances(instances)
+
+    topo_order = CmdbHandler.get_topo_order()
+    batch_size = models.GlobalSettings.get_config("BATCH_SIZE", default=100)
 
     instance_id_list = list(instance_actions.keys())
-
-    batch_size = models.GlobalSettings.get_config("BATCH_SIZE", default=100)
     bk_host_ids = {
         instance_info["host"]["bk_host_id"]
         for instance_info in instances.values()
         if instance_info["host"].get("bk_host_id")
     }
-    plugin__host_id__bk_obj_sub_map = {}
 
     # 前置错误需要跳过的主机，不创建订阅任务实例
     error_hosts = []
-    topo_order = CmdbHandler.get_topo_order()
     # 批量创建订阅实例执行记录
     to_be_created_records_map = {}
+    plugin__host_id__bk_obj_sub_map = {}
     for instance_id, step_action in instance_actions.items():
         if instance_id not in instances:
             # instance_id不在instances中，则说明该实例可能已经不在该业务中，因此无法操作，故不处理。
@@ -495,6 +521,8 @@ def run_subscription_task_and_create_instance(
         create_task(subscription, subscription_task, instances, instance_actions)
         return
 
+    GrayTools.inject_meta_to_instances(instances)
+
     # 按步骤顺序计算实例变更所需的动作
     instance_actions = defaultdict(dict)
     instance_migrate_reasons = defaultdict(dict)
@@ -566,7 +594,12 @@ def run_subscription_task_and_create_instance(
         instances.update(deleted_instance_info)
 
     create_task_result = create_task(
-        subscription, subscription_task, instances, instance_actions, preview_only=preview_only
+        subscription,
+        subscription_task,
+        instances,
+        instance_actions,
+        preview_only=preview_only,
+        inject_meta_to_instances=False,
     )
 
     return {

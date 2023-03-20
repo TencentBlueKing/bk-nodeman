@@ -12,7 +12,7 @@ import typing
 
 from django.conf import settings
 
-from common.api import GseApi
+from common.api import GseApi, GseV2Api
 from common.log import logger
 from env import constants
 
@@ -26,7 +26,21 @@ GSE_HELPERS: typing.Dict[str, typing.Type[GseApiBaseHelper]] = {
 }
 
 
-def get_gse_api_helper(gse_version: str) -> typing.Type[GseApiBaseHelper]:
+def get_gse_api_helper(gse_version: str) -> GseApiBaseHelper:
+    if gse_version not in GSE_HELPERS:
+        logger.warning(
+            f"Get GseApiHelper failed: "
+            f"unsupported gse_version -> {gse_version}, options -> {GSE_HELPERS.values()}; "
+            f"use default -> {constants.GseVersion.V1.value}"
+        )
+        gse_version = constants.GseVersion.V1.value
+    return GSE_HELPERS[gse_version](
+        version=gse_version, gse_api_obj=[GseV2Api, GseApi][gse_version == constants.GseVersion.V1.value]
+    )
+
+
+def get_gse_api_helper_class(gse_version: str) -> typing.Type[GseApiBaseHelper]:
+    # TODO 该方法废弃，使用 get_gse_api_helper 显式获取具体版本的 ApiHelper
     if gse_version not in GSE_HELPERS:
         logger.warning(
             f"Get GseApiHelper failed: "
@@ -37,6 +51,6 @@ def get_gse_api_helper(gse_version: str) -> typing.Type[GseApiBaseHelper]:
     return GSE_HELPERS[gse_version]
 
 
-GseApiHelper: GseApiBaseHelper = get_gse_api_helper(settings.GSE_VERSION)(
+GseApiHelper: GseApiBaseHelper = get_gse_api_helper_class(settings.GSE_VERSION)(
     version=settings.GSE_VERSION, gse_api_obj=GseApi
 )

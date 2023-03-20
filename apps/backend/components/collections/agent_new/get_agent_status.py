@@ -13,7 +13,6 @@ from typing import Dict, List, Set, Union
 
 from django.utils.translation import ugettext_lazy as _
 
-from apps.adapters.api.gse import GseApiHelper
 from apps.backend.api.constants import POLLING_INTERVAL, POLLING_TIMEOUT
 from apps.node_man import constants, models
 from pipeline.core.flow import Service, StaticIntervalGenerator
@@ -78,7 +77,7 @@ class GetAgentStatusService(AgentBaseService):
                 }
             )
 
-        agent_id__agent_state_info_map: Dict[str, Dict] = GseApiHelper.list_agent_state(hosts)
+        agent_id__agent_state_info_map: Dict[str, Dict] = common_data.gse_api_helper.list_agent_state(hosts)
 
         # 分隔符，用于构造 bk_cloud_id - ip，status - version 等键
         sep = ":"
@@ -94,7 +93,7 @@ class GetAgentStatusService(AgentBaseService):
         }
         for host_id in host_ids_need_to_query:
             host_obj = common_data.host_id_obj_map[host_id]
-            agent_id = GseApiHelper.get_agent_id(host_obj)
+            agent_id = common_data.gse_api_helper.get_agent_id(host_obj)
             # bk_agent_alive 默认值为 None 的背景：expect_status 是可传入的，不能设定一个明确状态作为默认值，不然可能与 expect_status 一致
             # 误判为当前 Agent 状态已符合预期
             agent_state_info = agent_id__agent_state_info_map.get(agent_id, {"version": "", "bk_agent_alive": None})

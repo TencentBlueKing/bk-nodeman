@@ -63,6 +63,7 @@ def update_proxy_files():
         return
 
     # 实时查询主机状态
+    # TODO 根据 Proxy 机器的灰度情况，选择相应版本的 gse_api_helper
     agent_statuses: Dict[str, Dict] = GseApiHelper.list_agent_state(total_update_hosts)
 
     for update_host_obj in total_update_hosts_queryset:

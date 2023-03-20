@@ -31,6 +31,7 @@ def new_api_module(module_name, api_name, module_dir="modules"):
 CCApi = SimpleLazyObject(lambda: new_api_module("cc", "_CCApi"))
 JobApi = SimpleLazyObject(lambda: new_api_module("job", "_JobApi"))
 GseApi = SimpleLazyObject(lambda: new_api_module("gse", "_GseApi"))
+GseV2Api = SimpleLazyObject(lambda: new_api_module("gse_v2", "_GseV2Api"))
 SopsApi = SimpleLazyObject(lambda: new_api_module("sops", "_SopsApi"))
 # CMSI
 CmsiApi = SimpleLazyObject(lambda: new_api_module("cmsi", "_CmsiApi"))
@@ -45,6 +46,7 @@ __all__ = [
     "CCApi",
     "JobApi",
     "GseApi",
+    "GseV2Api",
     "SopsApi",
     "CmsiApi",
     "NodeApi",

@@ -44,7 +44,7 @@ class TestSyncProcStatus(CustomBaseTestCase):
 
     @mock.patch(
         "apps.node_man.periodic_tasks.sync_proc_status_task.GseApiHelper",
-        gse.get_gse_api_helper(settings.GSE_VERSION)(settings.GSE_VERSION, GseApiMockClient()),
+        gse.get_gse_api_helper_class(settings.GSE_VERSION)(settings.GSE_VERSION, GseApiMockClient()),
     )
     def test_update_or_create_proc_status(self, *args, **kwargs):
         host = Host.objects.create(**HOST_MODEL_DATA)
@@ -68,7 +68,7 @@ class TestSyncProcStatus(CustomBaseTestCase):
 
     @mock.patch(
         "apps.node_man.periodic_tasks.sync_proc_status_task.GseApiHelper",
-        gse.get_gse_api_helper(settings.GSE_VERSION)(settings.GSE_VERSION, GseApiMockClient()),
+        gse.get_gse_api_helper_class(settings.GSE_VERSION)(settings.GSE_VERSION, GseApiMockClient()),
     )
     def test_update_or_create_proc_status_with_agent_id(self, *args, **kwargs):
         host = Host.objects.create(**HOST_MODEL_DATA_WITH_AGENT_ID)

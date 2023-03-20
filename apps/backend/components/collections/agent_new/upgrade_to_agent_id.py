@@ -13,8 +13,6 @@ from typing import Dict, List, Union
 
 from django.utils.translation import ugettext_lazy as _
 
-from apps.adapters.api.gse import GseApiHelper
-
 from .base import AgentBaseService, AgentCommonData
 
 
@@ -38,7 +36,7 @@ class UpgradeToAgentIDService(AgentBaseService):
 
         if not upgrade_hosts:
             return True
-        result = GseApiHelper.upgrade_to_agent_id(hosts=upgrade_hosts)
+        result = common_data.gse_api_helper.upgrade_to_agent_id(hosts=upgrade_hosts)
         failed_cloud_ips = result.get("failed") or []
         failed_sub_inst_ids = [cloud_ip__sub_inst_id_map[cloud_ip] for cloud_ip in failed_cloud_ips]
         self.move_insts_to_failed(failed_sub_inst_ids, log_content=_("升级 Agent-ID 配置失败"))
