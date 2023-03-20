@@ -155,7 +155,7 @@ class TestUpdateProxyFile(CustomBaseTestCase):
 
     @patch(
         "apps.node_man.periodic_tasks.update_proxy_file.GseApiHelper",
-        gse.get_gse_api_helper(GseVersion.V2.value)(GseVersion.V2.value, GseApiMockClient()),
+        gse.get_gse_api_helper_class(GseVersion.V2.value)(GseVersion.V2.value, GseApiMockClient()),
     )
     def test_file_system_update(self):
         # 不存在proxy
@@ -224,7 +224,7 @@ class TestUpdateProxyFile(CustomBaseTestCase):
     @override_settings(GSE_VERSION=GseVersion.V1.value)
     @patch(
         "apps.node_man.periodic_tasks.update_proxy_file.GseApiHelper",
-        gse.get_gse_api_helper(GseVersion.V1.value)(GseVersion.V1.value, GseApiMockClient()),
+        gse.get_gse_api_helper_class(GseVersion.V1.value)(GseVersion.V1.value, GseApiMockClient()),
     )
     def test_blueking_artifactory_update(self):
         with self.settings(

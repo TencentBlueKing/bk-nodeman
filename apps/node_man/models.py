@@ -64,6 +64,7 @@ from apps.prometheus.models import (
 )
 from apps.utils import basic, files, orm, translation
 from common.log import logger
+from env.constants import GseVersion
 from pipeline.parser import PipelineParser
 from pipeline.service import task_service
 
@@ -114,6 +115,8 @@ class GlobalSettings(models.Model):
         ENABLE_PUSH_HOST_IDENTIFIER = "ENABLE_PUSH_HOST_IDENTIFIER"
         # 插件配置公共常量支持 issue: https://github.com/TencentBlueKing/bk-nodeman/issues/1500
         PLUGIN_COMMON_CONSTANTS = "PLUGIN_COMMON_CONSTANTS"
+        # GSE 2.0 灰度列表
+        GSE2_GRAY_SCOPE_LIST = "GSE2_GRAY_SCOPE_LIST"
 
     key = models.CharField(_("键"), max_length=255, db_index=True, primary_key=True)
     v_json = JSONField(_("值"))
@@ -614,6 +617,9 @@ class AccessPoint(models.Model):
     ap_type = models.CharField(_("接入点类型"), max_length=255, default="user")
     region_id = models.CharField(_("区域id"), max_length=255, default="", blank=True, null=True)
     city_id = models.CharField(_("城市id"), max_length=255, default="", blank=True, null=True)
+    gse_version = models.CharField(
+        _("GSE 版本"), max_length=32, default=GseVersion.V1.value, choices=GseVersion.list_choices()
+    )
     btfileserver = JSONField(_("GSE BT文件服务器列表"))
     dataserver = JSONField(_("GSE 数据服务器列表"))
     taskserver = JSONField(_("GSE 任务服务器列表"))

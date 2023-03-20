@@ -41,7 +41,7 @@ class TestSyncAgentStatus(CustomBaseTestCase):
 
     @patch(
         "apps.node_man.periodic_tasks.sync_agent_status_task.GseApiHelper",
-        gse.get_gse_api_helper(settings.GSE_VERSION)(settings.GSE_VERSION, GseApiMockClient()),
+        gse.get_gse_api_helper_class(settings.GSE_VERSION)(settings.GSE_VERSION, GseApiMockClient()),
     )
     def test_update_or_create_host_agent_status_alive(self):
         host = Host.objects.create(**HOST_MODEL_DATA)
@@ -55,7 +55,7 @@ class TestSyncAgentStatus(CustomBaseTestCase):
 
     @patch(
         "apps.node_man.periodic_tasks.sync_agent_status_task.GseApiHelper",
-        gse.get_gse_api_helper(settings.GSE_VERSION)(
+        gse.get_gse_api_helper_class(settings.GSE_VERSION)(
             settings.GSE_VERSION,
             GseApiMockClient(get_agent_status_return=GseApiMockClient.GET_AGENT_NOT_ALIVE_STATUS_RETURN),
         ),
@@ -77,7 +77,7 @@ class TestSyncAgentStatus(CustomBaseTestCase):
     @override_settings(GSE_VERSION=GseVersion.V2.value)
     @patch(
         "apps.node_man.periodic_tasks.sync_agent_status_task.GseApiHelper",
-        gse.get_gse_api_helper(GseVersion.V2.value)(GseVersion.V2.value, GseApiMockClient()),
+        gse.get_gse_api_helper_class(GseVersion.V2.value)(GseVersion.V2.value, GseApiMockClient()),
     )
     def test_update_or_create_host_agent_status_alive_gse_v2(self):
         host = Host.objects.create(**HOST_MODEL_DATA_WITH_AGENT_ID)
@@ -89,7 +89,7 @@ class TestSyncAgentStatus(CustomBaseTestCase):
     @override_settings(GSE_VERSION=GseVersion.V2.value)
     @patch(
         "apps.node_man.periodic_tasks.sync_agent_status_task.GseApiHelper",
-        gse.get_gse_api_helper(GseVersion.V2.value)(
+        gse.get_gse_api_helper_class(GseVersion.V2.value)(
             GseVersion.V2.value,
             GseApiMockClient(v2_cluster_list_agent_state_return=GseApiMockClient.GET_AGENT_NOT_ALIVE_STATE_LIST_RETURN),
         ),

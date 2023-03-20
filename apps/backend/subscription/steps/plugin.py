@@ -588,10 +588,12 @@ class PluginStep(Step):
                     "ip": host_obj.inner_ip or host_obj.inner_ipv6,
                     "bk_cloud_id": host_obj.bk_cloud_id,
                     "bk_agent_id": host_obj.bk_agent_id,
+                    "meta": instance["meta"],
                 }
             )
             host_id__instance_id_map[bk_host_id] = instance_id
 
+        # TODO 此时 instance 已注入 meta，可以通过 meta 选择指定版本的 GseApiHelper
         agent_id__readable_proc_status_map: Dict[str, Dict[str, Any]] = GseApiHelper.list_proc_state(
             namespace=constants.GSE_NAMESPACE,
             proc_name=self.plugin_name,
@@ -603,6 +605,7 @@ class PluginStep(Step):
         logger.info(f"agent_id__readable_proc_status_map -> {agent_id__readable_proc_status_map}")
 
         for bk_host_id, host_obj in bk_host_id__host_map.items():
+            # TODO 此时 instance 已注入 meta，可以通过 meta 选择指定版本的 GseApiHelper
             agent_id: str = GseApiHelper.get_agent_id(host_obj)
             instance_id: str = host_id__instance_id_map[bk_host_id]
             proc_status: Optional[Dict[str, Any]] = agent_id__readable_proc_status_map.get(agent_id)
@@ -917,6 +920,7 @@ class BasePluginAction(six.with_metaclass(abc.ABCMeta, Action)):
         self,
         subscription_instances: List[models.SubscriptionInstanceRecord],
         global_pipeline_data: Data,
+        meta: Dict[str, Any],
         current_activities=None,
     ) -> Tuple[List[PluginServiceActivity], Data]:
         plugin_manager = self.get_plugin_manager(subscription_instances)
@@ -947,7 +951,8 @@ class BasePluginAction(six.with_metaclass(abc.ABCMeta, Action)):
             activities.append(plugin_manager.reset_retry_times())
 
         # 注入公共参数
-        self.inject_vars_to_global_data(global_pipeline_data)
+        self.inject_vars_to_global_data(global_pipeline_data, meta)
+        # 流程由多个 step 拼接而成，对于 step 特有的属性，需要通过 activities 注入，避免多段覆盖
         for act in activities:
             act.component.inputs.plugin_name = Var(type=Var.PLAIN, value=self.step.plugin_name)
             act.component.inputs.subscription_step_id = Var(type=Var.PLAIN, value=self.step.subscription_step.id)
