@@ -54,9 +54,7 @@ def update_proxy_files():
             )
     total_update_host_conditions.children.append(Q(node_type=constants.NodeType.PROXY))
 
-    total_update_hosts_queryset = Host.objects.filter(total_update_host_conditions).values(
-        "inner_ip", "bk_cloud_id", "bk_agent_id", "bk_biz_id", "ap_id"
-    )
+    total_update_hosts_queryset = Host.objects.filter(total_update_host_conditions)
 
     if not total_update_hosts_queryset.exists():
         return
@@ -82,9 +80,7 @@ def update_proxy_files():
         agent_statuses.update(gse_api_helper.list_agent_state(total_update_hosts))
 
     for update_host_obj in total_update_hosts_queryset:
-        gse_version = GrayTools.get_host_ap_gse_version(
-            update_host_obj["bk_biz_id"], update_host_obj["ap_id"], ap_id_obj_map
-        )
+        gse_version = GrayTools.get_host_ap_gse_version(update_host_obj.bk_biz_id, update_host_obj.ap_id, ap_id_obj_map)
         agent_id = get_gse_api_helper(gse_version).get_agent_id(update_host_obj)
         agent_state_info = agent_statuses.get(agent_id, {"version": "", "bk_agent_alive": None})
         agent_status = constants.PROC_STATUS_DICT.get(agent_state_info["bk_agent_alive"], None)

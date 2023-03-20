@@ -237,7 +237,7 @@ class ProxyTestCase(ChooseAccessPointTestCase):
             os_type=self.OS_TYPE,
             node_type=self.NODE_TYPE,
             bk_cloud_id=bk_cloud_id,
-            ap_id=random.randint(constants.DEFAULT_AP_ID + 10, constants.DEFAULT_AP_ID + 100),
+            ap_id=constants.DEFAULT_AP_ID,
         )
 
     def tearDown(self) -> None:
