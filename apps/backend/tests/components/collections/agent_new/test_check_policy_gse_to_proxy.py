@@ -22,6 +22,7 @@ from apps.backend.components.collections.agent_new import (
 from apps.mock_data import common_unit
 from apps.node_man import constants, models
 from common.api import JobApi
+from env.constants import GseVersion
 
 from . import base
 
@@ -90,6 +91,11 @@ class Agent2TestCase(CheckPolicyGseToProxyTestCase):
             "BKAPP_ENABLE_DHCP": True,
         },
     }
+
+    def structure_common_inputs(self):
+        inputs = super().structure_common_inputs()
+        inputs["meta"] = {"GSE_VERSION": GseVersion.V2.value}
+        return inputs
 
     @classmethod
     def get_default_case_name(cls) -> str:

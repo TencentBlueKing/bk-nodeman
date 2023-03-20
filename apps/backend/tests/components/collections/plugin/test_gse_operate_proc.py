@@ -13,12 +13,12 @@ from unittest.mock import patch
 from django.conf import settings
 from django.test import TestCase
 
-from apps.adapters.api import gse
 from apps.backend.components.collections.plugin import (
     GseOperateProcComponent,
     GseOperateProcService,
 )
 from apps.backend.tests.components.collections.plugin import utils
+from apps.mock_data.api_mkd.gse import utils as gse_utils
 from apps.node_man import constants, models
 from pipeline.component_framework.test import (
     ComponentTestCase,
@@ -49,7 +49,7 @@ class GseOperateProcTest(TestCase, ComponentTestMixin):
         self.job_multi_thread = patch(utils.JOB_MULTI_THREAD_PATH, utils.request_multi_thread_client)
         self.plugin_gseapi = patch(
             utils.PLUGIN_GSEAPI,
-            gse.get_gse_api_helper_class(settings.GSE_VERSION)(settings.GSE_VERSION, utils.GseMockClient()),
+            gse_utils.get_gse_api_helper(settings.GSE_VERSION, utils.GseMockClient()),
         )
 
         self.plugin_gseapi.start()

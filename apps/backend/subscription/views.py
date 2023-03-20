@@ -235,7 +235,7 @@ class SubscriptionViewSet(APIViewSet):
                 if all(
                     [
                         not is_step_include_plugin,
-                        step_info["type"] == constants.SUB_STEP_CHOICES.PLUGIN,
+                        step_info.get("type") == constants.SubStepType.PLUGIN,
                     ]
                 ):
                     is_step_include_plugin = True

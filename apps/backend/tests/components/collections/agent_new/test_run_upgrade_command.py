@@ -22,6 +22,7 @@ from apps.backend.components.collections.agent_new.run_upgrade_command import (
 )
 from apps.node_man import constants, models
 from common.api import JobApi
+from env.constants import GseVersion
 
 from . import base
 
@@ -72,6 +73,11 @@ class LinuxAgent2UpgradeSuccessTestCase(RunUpgradeCommandSuccessTestCase):
     @classmethod
     def get_default_case_name(cls) -> str:
         return "测试 Linux 机器 Agent2 升级脚本成功"
+
+    def structure_common_inputs(self):
+        inputs = super().structure_common_inputs()
+        inputs["meta"] = {"GSE_VERSION": GseVersion.V2.value}
+        return inputs
 
     @classmethod
     def setUpTestData(cls):

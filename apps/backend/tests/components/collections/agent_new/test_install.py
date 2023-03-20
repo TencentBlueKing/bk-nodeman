@@ -35,6 +35,7 @@ from apps.core.script_manage.handlers import ScriptManageHandler
 from apps.mock_data import api_mkd
 from apps.mock_data import utils as mock_data_utils
 from apps.node_man import constants, models
+from env.constants import GseVersion
 from pipeline.component_framework.test import (
     ComponentTestCase,
     ExecuteAssertion,
@@ -672,7 +673,10 @@ class LinuxAgent2InstallTestCase(InstallBaseTestCase):
 
     def test_shell_solution(self):
         host = models.Host.objects.get(bk_host_id=self.obj_factory.bk_host_ids[0])
-        agent_step_adapter: AgentStepAdapter = AgentStepAdapter(self.obj_factory.sub_step_objs[0])
+        agent_step_adapter: AgentStepAdapter = AgentStepAdapter(
+            self.obj_factory.sub_step_objs[0],
+            gse_version=GseVersion.V2.value,
+        )
         installation_tool = gen_commands(
             agent_step_adapter.get_setup_info(),
             host,
