@@ -4,12 +4,11 @@
     <section class="agent-setup-left">
       <tips class="mb20">
         <template #default>
-          <p>
-            {{ $t('安装要求tips', { type: 'Agent' }) }}
+          <i18n path="Agent安装要求tips" tag="p">
+            Agent
             <bk-link class="tips-link" theme="primary" @click="handleShowPanel">{{ $t('安装要求') }}</bk-link>
-            {{ $t('表格展示设置tips') }}
             <bk-link class="tips-link" theme="primary" @click="handleShowSetting">{{ $t('表格展示设置') }}</bk-link>
-          </p>
+          </i18n>
         </template>
       </tips>
       <div class="setup-form">

@@ -7,10 +7,11 @@
           <ul>
             <li v-if="!showSetupBtn" class="tips-content-item">{{ importTips }}</li>
             <li class="tips-content-item" v-if="showSetupTips">
-              {{ $t('安装要求tips', { type: 'Agent' }) }}
-              <bk-link class="tips-link" theme="primary" @click="handleShowPanel">{{ $t('安装要求') }}</bk-link>
-              {{ $t('表格展示设置tips') }}
-              <bk-link class="tips-link" theme="primary" @click="handleShowSetting">{{ $t('表格展示设置') }}</bk-link>
+              <i18n path="Agent安装要求tips" tag="p">
+                Agent
+                <bk-link class="tips-link" theme="primary" @click="handleShowPanel">{{ $t('安装要求') }}</bk-link>
+                <bk-link class="tips-link" theme="primary" @click="handleShowSetting">{{ $t('表格展示设置') }}</bk-link>
+              </i18n>
             </li>
           </ul>
         </template>

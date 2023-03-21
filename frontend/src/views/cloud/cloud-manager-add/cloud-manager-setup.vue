@@ -12,10 +12,9 @@
                   {{ tip }}
                 </li>
               </template>
-              <li class="tips-content-item">
-                {{ $t('安装要求tips', { type: 'Proxy' }) }}
+              <i18n path="Proxy安装要求tips" tag="li" class="tips-content-item">
                 <bk-link class="tips-link" theme="primary" @click="handleToggle">{{ $t('安装要求') }}</bk-link>
-              </li>
+              </i18n>
             </ul>
           </template>
         </tips>
