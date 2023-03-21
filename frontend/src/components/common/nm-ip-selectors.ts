@@ -169,6 +169,7 @@ export default {
       fetchCustomSettings: CustomSettingsService.fetchAll,
       updateCustomSettings: CustomSettingsService.update,
       fetchConfig: () => CustomSettingsService.fetchConfig,
+      hostViewFieldRender: host => host.host_id,
     });
   },
   methods: {
