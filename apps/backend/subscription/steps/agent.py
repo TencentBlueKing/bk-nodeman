@@ -509,6 +509,8 @@ class ReloadProxy(ReloadAgent):
     重载proxy
     """
 
+    ACTION_NAME = backend_const.ActionNameType.RELOAD_PROXY
+
     pass
 
 
