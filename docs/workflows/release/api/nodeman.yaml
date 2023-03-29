@@ -1077,3 +1077,25 @@
   dest_http_method: POST
   suggest_method: POST
   is_hidden: true
+
+- api_type: operate
+  comp_codename: generic.v2.nodeman.nodeman_component
+  name: create_sync_task
+  label: 创建同步任务
+  label_en: null
+  dest_path: /backend/api/sync_task/create/
+  path: /v2/nodeman/backend/api/sync_task/create/
+  dest_http_method: POST
+  suggest_method: POST
+  is_hidden: true
+
+- api_type: query
+  comp_codename: generic.v2.nodeman.nodeman_component
+  name: sync_task_status
+  label: 查询同步任务状态
+  label_en: null
+  dest_path: /backend/api/sync_task/status/
+  path: /v2/nodeman/backend/api/sync_task/status/
+  dest_http_method: GET
+  suggest_method: GET
+  is_hidden: true

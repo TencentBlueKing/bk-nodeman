@@ -16,6 +16,7 @@ from celery.task import periodic_task
 from django.conf import settings
 from django.db import transaction
 
+from apps.backend.celery import app
 from apps.component.esbclient import client_v2
 from apps.exceptions import ComponentCallError
 from apps.node_man import constants, models, tools
@@ -371,16 +372,10 @@ def _update_or_create_host(biz_id, start=0, task_id=None):
     return bk_host_ids
 
 
-@periodic_task(
-    queue="default",
-    options={"queue": "default"},
-    run_every=crontab(hour="0", minute="0", day_of_week="*", day_of_month="*", month_of_year="*"),
-)
-def sync_cmdb_host_periodic_task(bk_biz_id=None):
+def sync_cmdb_host(bk_biz_id=None, task_id=None):
     """
     同步cmdb主机
     """
-    task_id = sync_cmdb_host_periodic_task.request.id
     logger.info(f"[sync_cmdb_host] start: task_id -> {task_id}, bk_biz_id -> {bk_biz_id}")
 
     # 记录CC所有host id
@@ -409,3 +404,25 @@ def sync_cmdb_host_periodic_task(bk_biz_id=None):
         logger.info(f"[sync_cmdb_host] task_id -> {task_id}, need_delete_host_ids -> {need_delete_host_ids}")
 
     logger.info(f"[sync_cmdb_host] complete: task_id -> {task_id}, bk_biz_ids -> {bk_biz_ids}")
+
+
+@periodic_task(
+    queue="default",
+    options={"queue": "default"},
+    run_every=crontab(hour="0", minute="0", day_of_week="*", day_of_month="*", month_of_year="*"),
+)
+def sync_cmdb_host_periodic_task(bk_biz_id=None):
+    """
+    被动周期同步cmdb主机
+    """
+    task_id = sync_cmdb_host_periodic_task.request.id
+    sync_cmdb_host(bk_biz_id, task_id)
+
+
+@app.task(queue="default")
+def sync_cmdb_host_task(bk_biz_id=None):
+    """
+    主动同步cmdb主机
+    """
+    task_id = sync_cmdb_host_task.request.id
+    sync_cmdb_host(bk_biz_id, task_id)
