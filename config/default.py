@@ -246,13 +246,21 @@ CELERY_IMPORTS = (
     "apps.node_man.periodic_tasks",
 )
 
+BK_NODEMAN_CELERY_RESULT_BACKEND_BROKER_URL = "amqp://{user}:{passwd}@{host}:{port}/{vhost}".format(
+    user=os.getenv("RABBITMQ_USER"),
+    passwd=os.getenv("RABBITMQ_PASSWORD"),
+    host=os.getenv("RABBITMQ_HOST"),
+    port=os.getenv("RABBITMQ_PORT"),
+    vhost=os.getenv("RABBITMQ_VHOST") or "bk_bknodeman",
+)
+
 # celery settings
 if IS_USE_CELERY:
     INSTALLED_APPS = locals().get("INSTALLED_APPS", [])
     INSTALLED_APPS += ("django_celery_beat", "django_celery_results")
     CELERY_ENABLE_UTC = False
     CELERYBEAT_SCHEDULER = "django_celery_beat.schedulers.DatabaseScheduler"
-    CELERY_RESULT_BACKEND = "rpc://"
+    CELERY_RESULT_BACKEND = BK_NODEMAN_CELERY_RESULT_BACKEND_BROKER_URL
     CELERY_RESULT_PERSISTENT = True
     # celery3 的配置，升级后先行注释，待确认无用后废弃
     # CELERY_TASK_RESULT_EXPIRES = 60 * 30  # 30分钟丢弃结果
@@ -582,13 +590,7 @@ if BK_BACKEND_CONFIG:
     ]
 
     # BROKER_URL
-    BROKER_URL = "amqp://{user}:{passwd}@{host}:{port}/{vhost}".format(
-        user=os.getenv("RABBITMQ_USER"),
-        passwd=os.getenv("RABBITMQ_PASSWORD"),
-        host=os.getenv("RABBITMQ_HOST"),
-        port=os.getenv("RABBITMQ_PORT"),
-        vhost=os.getenv("RABBITMQ_VHOST") or "bk_bknodeman",
-    )
+    BROKER_URL = BK_NODEMAN_CELERY_RESULT_BACKEND_BROKER_URL
 
     CONFIG_REDIS_MODE = os.getenv("REDIS_MODE", ConfigRedisMode.SENTINEL.value)
     REDIS_MODE = RedisMode.get_standard_redis_mode(CONFIG_REDIS_MODE, default=RedisMode.REPLICATION.value)
