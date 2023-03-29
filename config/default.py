@@ -238,6 +238,7 @@ CELERY_IMPORTS = (
     "apps.backend.healthz.tasks",
     "pipeline.engine.tasks",
     "apps.node_man.periodic_tasks",
+    "apps.backend.sync_task.tasks",
 )
 
 # celery settings

@@ -11,12 +11,10 @@ specific language governing permissions and limitations under the License.
 import math
 import typing
 
-from celery.schedules import crontab
-from celery.task import periodic_task
 from django.conf import settings
 from django.db import transaction
 
-from apps.backend.sync_task.handler import AsyncTaskHandler
+from apps.backend.celery import app
 from apps.component.esbclient import client_v2
 from apps.exceptions import ComponentCallError
 from apps.node_man import constants, models, tools
@@ -206,6 +204,7 @@ def update_or_create_host_base(biz_id, task_id, cmdb_host_data):
     # 已存在的主机批量更新,不存在的主机批量创建
     for host in cmdb_host_data:
         # 兼容内网IP为空的情况
+        # TODO 是否和上面 _list_biz_hosts 逻辑重复
         if not host["bk_host_innerip"]:
             logger.info(
                 f"[sync_cmdb_host] update_or_create_host: task_id -> {task_id}, bk_biz_id -> {biz_id}, "
@@ -365,13 +364,37 @@ def _update_or_create_host(biz_id, start=0, task_id=None):
     return bk_host_ids
 
 
-@periodic_task(
-    queue="default",
-    options={"queue": "default"},
-    run_every=crontab(hour="0", minute="0", day_of_week="*", day_of_month="*", month_of_year="*"),
-)
-def sync_cmdb_host_periodic_task(bk_biz_id=None):
+@app.task(queue="default")
+def sync_cmdb_host_task(bk_biz_id=None):
     """
     同步cmdb主机
     """
-    AsyncTaskHandler.sync_cmdb_host(bk_biz_id=None)
+    task_id = sync_cmdb_host_task.request.id
+    logger.info(f"[sync_cmdb_host] start: task_id -> {task_id}, bk_biz_id -> {bk_biz_id}")
+
+    # 记录CC所有host id
+    cc_bk_host_ids = []
+
+    if bk_biz_id:
+        bk_biz_ids = [bk_biz_id]
+    else:
+        # 查询所有需要同步的业务id
+        bk_biz_ids = query_bk_biz_ids(task_id)
+        # 若没有指定业务时，也同步资源池主机
+        bk_biz_ids.append(settings.BK_CMDB_RESOURCE_POOL_BIZ_ID)
+
+    for bk_biz_id in bk_biz_ids:
+        cc_bk_host_ids += _update_or_create_host(bk_biz_id, task_id=task_id)
+
+    # 查询节点管理所有主机
+    node_man_host_ids = models.Host.objects.filter(bk_biz_id__in=bk_biz_ids).values_list("bk_host_id", flat=True)
+
+    # 节点管理需要删除的host_id
+    need_delete_host_ids = set(node_man_host_ids) - set(cc_bk_host_ids)
+    if need_delete_host_ids:
+        models.Host.objects.filter(bk_host_id__in=need_delete_host_ids).delete()
+        models.IdentityData.objects.filter(bk_host_id__in=need_delete_host_ids).delete()
+        models.ProcessStatus.objects.filter(bk_host_id__in=need_delete_host_ids).delete()
+        logger.info(f"[sync_cmdb_host] task_id -> {task_id}, need_delete_host_ids -> {need_delete_host_ids}")
+
+    logger.info(f"[sync_cmdb_host] complete: task_id -> {task_id}, bk_biz_ids -> {bk_biz_ids}")

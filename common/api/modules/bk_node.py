@@ -232,3 +232,10 @@ class _BKNodeApi(object):
             description="自监控指标检查",
             before_request=add_esb_info_before_request,
         )
+        self.create_sync_task = DataAPI(
+            method="POST",
+            url=BK_NODE_APIGATEWAY_ROOT + "backend/api/sync_task/create/",
+            module=self.MODULE,
+            description="创建同步任务",
+            before_request=add_esb_info_before_request,
+        )

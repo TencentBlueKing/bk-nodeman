@@ -20,11 +20,13 @@ from apps.backend.plugin.views import (
     upload_package_by_cos,
 )
 from apps.backend.subscription.views import SubscriptionViewSet
+from apps.backend.sync_task.views import SyncTaskViewSet
 
 routers = drf_routers.DefaultRouter(trailing_slash=True)
 routers.register("plugin", PluginViewSet, basename="plugin")
 routers.register("subscription", SubscriptionViewSet, basename="subscription")
 routers.register("healthz", HealthzViewSet, basename="healthz")
+routers.register("sync_task", SyncTaskViewSet, basename="sync_task")
 export_routers = drf_routers.DefaultRouter(trailing_slash=True)
 
 urlpatterns = [
