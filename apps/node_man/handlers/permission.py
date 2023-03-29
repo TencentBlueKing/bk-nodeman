@@ -14,6 +14,7 @@ from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import permissions
 
+from apps.backend.sync_task.constants import SyncTaskType
 from apps.exceptions import PermissionError
 from apps.iam import ActionEnum, Permission
 from apps.iam.exceptions import PermissionDeniedError
@@ -419,3 +420,19 @@ class HostPermission(permissions.BasePermission):
             return True
 
         return False
+
+
+class SyncTaskPermission(permissions.BasePermission):
+    def has_permission(self, request, view):
+        validated_data = view.validated_data
+        if view.action == "create_sync_task" and validated_data["task_name"] == SyncTaskType.SYNC_CMDB_HOST.value:
+            bk_biz_scope = []
+            if validated_data.get("bk_biz_id"):
+                bk_biz_scope = [validated_data["bk_biz_id"]]
+            if not bk_biz_scope:
+                all_biz = IamHandler().fetch_biz()
+                bk_biz_scope = [biz_info["bk_biz_id"] for biz_info in all_biz]
+
+            CmdbHandler().check_biz_permission(bk_biz_scope, ActionEnum.AGENT_OPERATE.id)
+
+        return True
