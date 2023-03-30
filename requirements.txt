@@ -6,7 +6,7 @@ wheel==0.37.0
 
 blueapps[opentelemetry]==4.4.7
 
-Django==3.2.4
+Django==3.2.18
 
 requests==2.22.0
 celery==4.4.7
