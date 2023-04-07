@@ -21,9 +21,10 @@ from celery.task import periodic_task
 from django.conf import settings
 from django.db.models import Q
 
-from apps.adapters.api.gse import GseApiHelper
+from apps.adapters.api.gse import get_gse_api_helper
 from apps.backend.api.errors import JobPollTimeout
 from apps.core.files.storage import get_storage
+from apps.core.gray.handlers import GrayTools
 from apps.node_man import constants
 from apps.node_man.models import AccessPoint, Host, InstallChannel
 from apps.node_man.periodic_tasks.utils import JobDemand
@@ -53,21 +54,38 @@ def update_proxy_files():
             )
     total_update_host_conditions.children.append(Q(node_type=constants.NodeType.PROXY))
 
-    total_update_hosts_queryset = Host.objects.filter(total_update_host_conditions)
-    total_update_hosts: List[Dict[str, Union[str, int]]] = [
-        {"ip": host_info["inner_ip"], "bk_cloud_id": host_info["bk_cloud_id"], "bk_agent_id": host_info["bk_agent_id"]}
-        for host_info in total_update_hosts_queryset.values("inner_ip", "bk_cloud_id", "bk_agent_id")
-    ]
+    total_update_hosts_queryset = Host.objects.filter(total_update_host_conditions).values(
+        "inner_ip", "bk_cloud_id", "bk_agent_id", "bk_biz_id", "ap_id"
+    )
 
-    if not total_update_hosts:
+    if not total_update_hosts_queryset.exists():
         return
 
+    ap_id_obj_map: Dict[int, AccessPoint] = AccessPoint.ap_id_obj_map()
+
+    gse_version__total_update_hosts_map: Dict[str, List[Dict[str, Union[str, int]]]] = defaultdict(list)
+    for host_info in total_update_hosts_queryset.values("inner_ip", "bk_cloud_id", "bk_agent_id", "bk_biz_id", "ap_id"):
+        gse_version = GrayTools.get_host_ap_gse_version(host_info["bk_biz_id"], host_info["ap_id"], ap_id_obj_map)
+        gse_version__total_update_hosts_map[gse_version].append(
+            {
+                "ip": host_info["inner_ip"],
+                "bk_cloud_id": host_info["bk_cloud_id"],
+                "bk_agent_id": host_info["bk_agent_id"],
+            }
+        )
+
     # 实时查询主机状态
-    # TODO 根据 Proxy 机器的灰度情况，选择相应版本的 gse_api_helper
-    agent_statuses: Dict[str, Dict] = GseApiHelper.list_agent_state(total_update_hosts)
+    # 根据 Proxy 机器的灰度情况，选择相应版本的 gse_api_helper
+    agent_statuses: Dict[str, Dict] = {}
+    for gse_version, total_update_hosts in gse_version__total_update_hosts_map.items():
+        gse_api_helper = get_gse_api_helper(gse_version)
+        agent_statuses.update(gse_api_helper.list_agent_state(total_update_hosts))
 
     for update_host_obj in total_update_hosts_queryset:
-        agent_id = GseApiHelper.get_agent_id(update_host_obj)
+        gse_version = GrayTools.get_host_ap_gse_version(
+            update_host_obj["bk_biz_id"], update_host_obj["ap_id"], ap_id_obj_map
+        )
+        agent_id = get_gse_api_helper(gse_version).get_agent_id(update_host_obj)
         agent_state_info = agent_statuses.get(agent_id, {"version": "", "bk_agent_alive": None})
         agent_status = constants.PROC_STATUS_DICT.get(agent_state_info["bk_agent_alive"], None)
         if agent_status == constants.ProcStateType.RUNNING:
@@ -83,7 +101,6 @@ def update_proxy_files():
         return
 
     storage = get_storage()
-    ap_id_obj_map = {ap.id: ap for ap in AccessPoint.objects.all()}
     for ap_id, obj in ap_id_obj_map.items():
         if not obj.nginx_path:
             ap_nginx_path_map[settings.DOWNLOAD_PATH].append(ap_id)

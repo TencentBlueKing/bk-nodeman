@@ -537,6 +537,7 @@ class HostHandler(APIModel):
             "node_type",
             "bk_host_id",
             "bk_addressing",
+            "ap_id",
         ]
         host_infos_gby_ip_key: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
         for host_info in Host.objects.filter(

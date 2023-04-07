@@ -33,7 +33,8 @@ class PushAgentPkgToProxyService(AgentTransferFileService):
     def _execute(self, data, parent_data, common_data: AgentCommonData):
         # 提前批量查询安装通道、路径等数据，避免在 get_target_servers/get_job_file_params 中循环对单机进行查询
         cloud_ids = {host.bk_cloud_id for host in common_data.host_id_obj_map.values()}
-        cloud_id__proxies_map = self.get_cloud_id__proxies_map(cloud_ids)
+        gse_version = data.get_one_of_inputs("meta", {}).get("GSE_VERSION")
+        cloud_id__proxies_map = self.get_cloud_id__proxies_map(cloud_ids, common_data.ap_id_obj_map, gse_version)
         install_channel_ids = [
             host.install_channel_id for host in common_data.host_id_obj_map.values() if host.install_channel_id
         ]

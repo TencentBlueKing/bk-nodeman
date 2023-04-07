@@ -132,7 +132,6 @@ class Action(object, metaclass=abc.ABCMeta):
         global_pipeline_data.inputs["${blueking_language}"] = builder.Var(
             type=builder.Var.PLAIN, value=blueking_language
         )
-        global_pipeline_data.inputs["${meta}"] = builder.Var(type=builder.Var.PLAIN, value=meta)
 
     @abc.abstractmethod
     def generate_activities(
