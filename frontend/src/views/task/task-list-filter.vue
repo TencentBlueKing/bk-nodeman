@@ -172,10 +172,11 @@ export default class PluginRule extends Vue {
   }
   .task-filter-right {
     /* display: flex; */
-    /* flex: 1; */
+    max-width: 480px;
+    flex: 1;
     .right-select {
       /* flex: 1; */
-      width: 480px;
+      max-width: 100%;
       background: #fff;
     }
   }
