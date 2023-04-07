@@ -184,19 +184,19 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
         return concurrent.batch_call_coroutine(func=self.execute_shell_solution_async, params_list=params_list)
 
     def _execute(self, data, parent_data, common_data: base.AgentCommonData):
-
         host_id__sub_inst_id = {
             host_id: sub_inst_id for sub_inst_id, host_id in common_data.sub_inst_id__host_id_map.items()
         }
         is_uninstall = data.get_one_of_inputs("is_uninstall")
         host_id_obj_map = common_data.host_id_obj_map
+        gse_version: str = data.get_one_of_inputs("meta", {}).get("GSE_VERSION")
 
         non_lan_sub_inst = []
         lan_windows_sub_inst = []
         lan_linux_sub_inst = []
 
         manual_install_sub_inst_ids: List[int] = []
-        hosts_need_gen_commands: List[models] = []
+        hosts_need_gen_commands: List[models.Host] = []
         for host in host_id_obj_map.values():
             if not host.is_manual:
                 hosts_need_gen_commands.append(host)
@@ -205,7 +205,7 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
         self.log_info(sub_inst_ids=manual_install_sub_inst_ids, log_content=_("等待手动执行安装命令"))
 
         host_id__installation_tool_map = self.get_host_id__installation_tool_map(
-            common_data, hosts_need_gen_commands, is_uninstall
+            common_data, hosts_need_gen_commands, is_uninstall, gse_version
         )
 
         get_gse_config_tuple_params_list: List[Dict[str, Any]] = []

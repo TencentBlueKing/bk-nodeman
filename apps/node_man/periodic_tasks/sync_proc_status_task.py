@@ -10,19 +10,24 @@ specific language governing permissions and limitations under the License.
 """
 import time
 import typing
+from collections import defaultdict
 
 from celery.task import periodic_task, task
 
-from apps.adapters.api.gse import GseApiHelper
+from apps.adapters.api.gse import get_gse_api_helper
+from apps.core.gray.handlers import GrayTools
 from apps.node_man import constants, tools
-from apps.node_man.models import Host, ProcessStatus
+from apps.node_man.models import AccessPoint, Host, ProcessStatus
 from apps.utils.periodic_task import calculate_countdown
 from common.log import logger
 
 
 @task(queue="default", ignore_result=True)
-def update_or_create_proc_status(task_id, host_objs, sync_proc_list, start):
-    host_info_list = []
+def update_or_create_proc_status(
+    task_id: int, ap_id_obj_map: typing.Dict[int, AccessPoint], host_objs: typing.List[Host], sync_proc_list, start
+):
+    # 需要区分 GSE 版本，(区分方式：灰度业务 or 灰度接入点) -> 使用 V2 API，其他情况 -> 使用 V1 API
+    gse_version__host_info_list_map: typing.Dict[str, typing.List[typing.Dict]] = defaultdict(list)
     agent_id__host_id_map = {}
     for host_obj in host_objs:
         host_info = {
@@ -30,21 +35,28 @@ def update_or_create_proc_status(task_id, host_objs, sync_proc_list, start):
             "bk_cloud_id": host_obj.bk_cloud_id,
             "bk_agent_id": host_obj.bk_agent_id,
         }
-        host_info_list.append(host_info)
-        agent_id__host_id_map[GseApiHelper.get_agent_id(host_info)] = host_obj.bk_host_id
+
+        gse_version = GrayTools.get_host_ap_gse_version(host_obj.bk_biz_id, host_obj.ap_id, ap_id_obj_map)
+
+        gse_version__host_info_list_map[gse_version].append(host_info)
+        agent_id__host_id_map[get_gse_api_helper(gse_version).get_agent_id(host_info)] = host_obj.bk_host_id
 
     for proc_name in sync_proc_list:
         past = time.time()
 
-        agent_id__readable_proc_status_map: typing.Dict[
-            str, typing.Dict[str, typing.Any]
-        ] = GseApiHelper.list_proc_state(
-            namespace=constants.GSE_NAMESPACE,
-            proc_name=proc_name,
-            labels={"proc_name": proc_name},
-            host_info_list=host_info_list,
-            extra_meta_data={},
-        )
+        agent_id__readable_proc_status_map: typing.Dict[str, typing.Dict[str, typing.Any]] = {}
+
+        for gse_version, host_info_list in gse_version__host_info_list_map.items():
+            gse_api_helper = get_gse_api_helper(gse_version)
+            agent_id__readable_proc_status_map.update(
+                gse_api_helper.list_proc_state(
+                    namespace=constants.GSE_NAMESPACE,
+                    proc_name=proc_name,
+                    labels={"proc_name": proc_name},
+                    host_info_list=host_info_list,
+                    extra_meta_data={},
+                )
+            )
 
         logger.info(f"this get_proc_status cost {time.time() - past}s")
 
@@ -120,6 +132,7 @@ def sync_proc_status_periodic_task():
     task_id = sync_proc_status_periodic_task.request.id
     host_queryset = Host.objects.all()
     count = host_queryset.count()
+    ap_id_obj_map: typing.Dict[int, AccessPoint] = AccessPoint.ap_id_obj_map()
     logger.info(f"{task_id} | sync host proc status... host_count={count}.")
 
     for start in range(0, count, constants.QUERY_PROC_STATUS_HOST_LENS):
@@ -131,9 +144,14 @@ def sync_proc_status_periodic_task():
         logger.info(f"{task_id} | sync host proc status after {countdown} seconds")
 
         # (task_id, hosts[start: start + constants.QUERY_PROC_STATUS_HOST_LENS], sync_proc_list, start)
-        # TODO 这里需要区分 GSE 版本，(区分方式：灰度业务 or 灰度接入点) -> 使用 V2 API，其他情况 -> 使用 V1 API
         update_or_create_proc_status.apply_async(
-            (task_id, host_queryset[start : start + constants.QUERY_PROC_STATUS_HOST_LENS], sync_proc_list, start),
+            (
+                task_id,
+                ap_id_obj_map,
+                host_queryset[start : start + constants.QUERY_PROC_STATUS_HOST_LENS],
+                sync_proc_list,
+                start,
+            ),
             countdown=countdown,
         )
 
