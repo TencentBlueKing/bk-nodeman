@@ -10,11 +10,11 @@ specific language governing permissions and limitations under the License.
 """
 from typing import Any, Dict, List, Union
 
-from django.conf import settings
 from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
 
 from apps.node_man import constants, models
+from env.constants import GseVersion
 
 from ..base import CommonData
 from ..common.script_content import REACHABLE_SCRIPT_TEMPLATE
@@ -50,14 +50,17 @@ class CheckPolicyGseToProxyService(AgentExecuteScriptService):
     def get_script_content(self, data, common_data: AgentCommonData, host: models.Host) -> str:
         port_config = common_data.host_id__ap_map[host.bk_host_id].port_config
         btsvr_thrift_port = port_config.get("btsvr_thrift_port")
+
+        gse_version = data.get_one_of_inputs("meta", {}).get("GSE_VERSION")
+
         return REACHABLE_SCRIPT_TEMPLATE % {
             "proxy_ip": host.outer_ip or host.outer_ipv6,
             "btsvr_thrift_port": btsvr_thrift_port,
             # Agent 2.0 bt_port & tracker_port 不属于 Proxy <> Server 的策略
             # 在上述情况下冗余探测 btsvr_thrift_port
             # Refer: https://github.com/TencentBlueKing/bk-nodeman/issues/1239
-            "bt_port": (port_config.get("bt_port"), btsvr_thrift_port)[settings.BKAPP_ENABLE_DHCP],
-            "tracker_port": (port_config.get("tracker_port"), btsvr_thrift_port)[settings.BKAPP_ENABLE_DHCP],
+            "bt_port": (port_config.get("bt_port"), btsvr_thrift_port)[gse_version == GseVersion.V2.value],
+            "tracker_port": (port_config.get("tracker_port"), btsvr_thrift_port)[gse_version == GseVersion.V2.value],
             "msg": _("请检查出口IP是否正确或策略是否开通"),
         }
 
@@ -68,8 +71,9 @@ class CheckPolicyGseToProxyService(AgentExecuteScriptService):
             host = common_data.host_id_obj_map[bk_host_id]
             ap = common_data.host_id__ap_map[bk_host_id]
             port_config = ap.port_config
+            gse_version = data.get_one_of_inputs("meta", {}).get("GSE_VERSION")
 
-            if settings.BKAPP_ENABLE_DHCP:
+            if gse_version == GseVersion.V2.value:
                 port_polices: List[str] = [f"{port_config.get('btsvr_thrift_port')}(tcp)"]
             else:
                 port_polices: List[str] = [

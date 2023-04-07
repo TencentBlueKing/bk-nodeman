@@ -171,8 +171,15 @@ class AgentBaseService(BaseService, metaclass=abc.ABCMeta):
         return agent_path
 
     @staticmethod
-    def get_cloud_id__proxies_map(bk_cloud_ids: Iterable[int]) -> Dict[int, List[models.Host]]:
-        proxies = models.Host.objects.filter(bk_cloud_id__in=set(bk_cloud_ids), node_type=constants.NodeType.PROXY)
+    def get_cloud_id__proxies_map(
+        bk_cloud_ids: Iterable[int], ap_id_obj_map: Dict[int, models.AccessPoint], gse_version: str
+    ) -> Dict[int, List[models.Host]]:
+        proxies = models.Host.objects.filter(
+            bk_cloud_id__in=set(bk_cloud_ids),
+            node_type=constants.NodeType.PROXY,
+        )
+        # 按 GSE VERSION 进行过滤
+        proxies = [proxy for proxy in proxies if ap_id_obj_map[proxy.ap_id].gse_version == gse_version]
         proxy_host_ids = [proxy.bk_host_id for proxy in proxies]
         alive_proxy_host_ids = models.ProcessStatus.objects.filter(
             bk_host_id__in=proxy_host_ids,
@@ -226,7 +233,7 @@ class AgentBaseService(BaseService, metaclass=abc.ABCMeta):
                 else:
                     host_id__install_channel_map[host.bk_host_id] = (jump_server, install_channel_obj.upstream_servers)
             elif host.bk_cloud_id != constants.DEFAULT_CLOUD and host.node_type != constants.NodeType.PROXY:
-                alive_proxies = cloud_id__alive_proxies_map[host.bk_cloud_id]
+                alive_proxies = cloud_id__alive_proxies_map.get(host.bk_cloud_id, [])
                 try:
                     jump_server = random.choice(alive_proxies)
                 except IndexError:
@@ -251,11 +258,17 @@ class AgentBaseService(BaseService, metaclass=abc.ABCMeta):
         return host_id__install_channel_map
 
     def get_host_id__installation_tool_map(
-        self, common_data: "AgentCommonData", hosts_need_gen_commands: List[models.Host], is_uninstall: bool
+        self,
+        common_data: "AgentCommonData",
+        hosts_need_gen_commands: List[models.Host],
+        is_uninstall: bool,
+        gse_version: str,
     ) -> Dict[int, InstallationTools]:
 
         cloud_id__proxies_map = self.get_cloud_id__proxies_map(
-            bk_cloud_ids=[host.bk_cloud_id for host in hosts_need_gen_commands]
+            bk_cloud_ids=[host.bk_cloud_id for host in hosts_need_gen_commands],
+            ap_id_obj_map=common_data.ap_id_obj_map,
+            gse_version=gse_version,
         )
 
         host_id__install_channel_map = self.get_host_id__install_channel_map(

@@ -164,6 +164,7 @@ class AgentAction(Action, abc.ABC):
         activities, pipeline_data = self._generate_activities(agent_manager)
         for act in activities:
             act.component.inputs.subscription_step_id = Var(type=Var.PLAIN, value=self.step.subscription_step.id)
+            act.component.inputs.meta = Var(type=Var.PLAIN, value=meta)
         self.inject_vars_to_global_data(global_pipeline_data, meta)
         return activities, pipeline_data
 

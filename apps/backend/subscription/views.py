@@ -29,6 +29,7 @@ from rest_framework.response import Response
 
 from apps.backend.agent.tasks import collect_log
 from apps.backend.agent.tools import gen_commands
+from apps.backend.constants import SubscriptionSwithBizAction
 from apps.backend.serializers import response
 from apps.backend.subscription import errors, serializers, task_tools, tasks, tools
 from apps.backend.subscription.errors import InstanceTaskIsRunning
@@ -114,6 +115,7 @@ class SubscriptionViewSet(APIViewSet):
         if run_immediately:
             if subscription.is_running():
                 raise InstanceTaskIsRunning()
+
             subscription_task = models.SubscriptionTask.objects.create(
                 subscription_id=subscription.id, scope=subscription.scope, actions={}
             )
@@ -986,3 +988,26 @@ class SubscriptionViewSet(APIViewSet):
         return Response(
             models.ProcessStatus.fetch_process_statuses_by_host_id(bk_host_id=bk_host_id, source_type=source_type)
         )
+
+    @swagger_auto_schema(operation_summary="启用/禁用业务订阅巡检", tags=SUBSCRIPTION_VIEW_TAGS)
+    @action(detail=False, methods=["POST"], serializer_class=serializers.SubscriptionSwitchBizSerializer)
+    def switch_biz(self, request):
+        data = self.validated_data
+        global_config_key: str = models.GlobalSettings.KeyEnum.DISABLE_SUBSCRIPTION_SCOPE_LIST.value
+        if not models.GlobalSettings.objects.filter(key=global_config_key).exists():
+            models.GlobalSettings.set_config(key=global_config_key, value=[])
+        disable_subscription_bk_biz_ids: List[int] = models.GlobalSettings.get_config(key=global_config_key, default=[])
+        if data["action"] == SubscriptionSwithBizAction.ENABLE.value:
+            # 更新禁用业务列表
+            models.GlobalSettings.update_config(
+                key=global_config_key,
+                value=list(set(disable_subscription_bk_biz_ids) - set(data["bk_biz_ids"])),
+            )
+        else:
+
+            # 更新禁用业务列表
+            models.GlobalSettings.update_config(
+                key=global_config_key,
+                value=disable_subscription_bk_biz_ids + data["bk_biz_ids"],
+            )
+        return Response(data)

@@ -18,7 +18,7 @@ import six
 from django.db.models import QuerySet
 from django.utils.translation import ugettext_lazy as _
 
-from apps.adapters.api.gse import GseApiHelper
+from apps.adapters.api.gse import get_gse_api_helper
 from apps.backend import constants as backend_const
 from apps.backend.components.collections import plugin
 from apps.backend.plugin.manager import PluginManager, PluginServiceActivity
@@ -574,8 +574,9 @@ class PluginStep(Step):
         :param instances:
         :return:
         """
-        host_info_list: List[Dict[str, Any]] = []
-        host_id__instance_id_map: Dict[int, str] = {}
+        gse_version__host_info_list_map: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
+        host_id__instance_id_map: Dict[int, Dict] = {}
+        gse_version__bk_host_id__host_map: Dict[str, Dict[int, models.Host]] = defaultdict(dict)
         for instance_id, instance in instances.items():
             bk_host_id = instance["host"].get("bk_host_id")
             # dict in 是近似 O(1) 的操作复杂度：https://stackoverflow.com/questions/17539367/
@@ -583,7 +584,7 @@ class PluginStep(Step):
                 # 忽略未同步主机
                 continue
             host_obj = bk_host_id__host_map[bk_host_id]
-            host_info_list.append(
+            gse_version__host_info_list_map[instance["meta"]["GSE_VERSION"]].append(
                 {
                     "ip": host_obj.inner_ip or host_obj.inner_ipv6,
                     "bk_cloud_id": host_obj.bk_cloud_id,
@@ -591,57 +592,63 @@ class PluginStep(Step):
                     "meta": instance["meta"],
                 }
             )
+            gse_version__bk_host_id__host_map[instance["meta"]["GSE_VERSION"]][bk_host_id] = host_obj
             host_id__instance_id_map[bk_host_id] = instance_id
 
-        # TODO 此时 instance 已注入 meta，可以通过 meta 选择指定版本的 GseApiHelper
-        agent_id__readable_proc_status_map: Dict[str, Dict[str, Any]] = GseApiHelper.list_proc_state(
-            namespace=constants.GSE_NAMESPACE,
-            proc_name=self.plugin_name,
-            labels={"proc_name": self.plugin_name},
-            host_info_list=host_info_list,
-            extra_meta_data={},
-        )
+        agent_id__readable_proc_status_map: Dict[str, Dict[str, Any]] = {}
+        for gse_version, host_info_list in gse_version__host_info_list_map.items():
+            gse_api_helper = get_gse_api_helper(gse_version)
+            agent_id__readable_proc_status_map.update(
+                gse_api_helper.list_proc_state(
+                    namespace=constants.GSE_NAMESPACE,
+                    proc_name=self.plugin_name,
+                    labels={"proc_name": self.plugin_name},
+                    host_info_list=host_info_list,
+                    extra_meta_data={},
+                )
+            )
 
         logger.info(f"agent_id__readable_proc_status_map -> {agent_id__readable_proc_status_map}")
 
-        for bk_host_id, host_obj in bk_host_id__host_map.items():
-            # TODO 此时 instance 已注入 meta，可以通过 meta 选择指定版本的 GseApiHelper
-            agent_id: str = GseApiHelper.get_agent_id(host_obj)
-            instance_id: str = host_id__instance_id_map[bk_host_id]
-            proc_status: Optional[Dict[str, Any]] = agent_id__readable_proc_status_map.get(agent_id)
-            if not proc_status:
-                # 查询不到进程状态信息视为插件状态异常
-                instance_actions[host_id__instance_id_map[bk_host_id]] = install_action
-                push_migrate_reason_func(
-                    _instance_id=instance_id, migrate_type=backend_const.PluginMigrateType.ABNORMAL_PROC_STATUS
-                )
-                continue
+        for gse_version, _bk_host_id__host_map in gse_version__bk_host_id__host_map.items():
+            gse_api_helper = get_gse_api_helper(gse_version)
+            for bk_host_id, host_obj in _bk_host_id__host_map.items():
+                agent_id: str = gse_api_helper.get_agent_id(host_obj)
+                instance_id: str = host_id__instance_id_map[bk_host_id]
+                proc_status: Optional[Dict[str, Any]] = agent_id__readable_proc_status_map.get(agent_id)
+                if not proc_status:
+                    # 查询不到进程状态信息视为插件状态异常
+                    instance_actions[host_id__instance_id_map[bk_host_id]] = install_action
+                    push_migrate_reason_func(
+                        _instance_id=instance_id, migrate_type=backend_const.PluginMigrateType.ABNORMAL_PROC_STATUS
+                    )
+                    continue
 
-            # 记录必要信息，便于溯源
-            base_reason_info = {
-                "status": proc_status["status"],
-                "current_version": proc_status["version"],
-                "target_version": self.get_matching_pkg_real_version(host_obj.os_type, host_obj.cpu_arch),
-            }
+                # 记录必要信息，便于溯源
+                base_reason_info = {
+                    "status": proc_status["status"],
+                    "current_version": proc_status["version"],
+                    "target_version": self.get_matching_pkg_real_version(host_obj.os_type, host_obj.cpu_arch),
+                }
 
-            if base_reason_info["status"] != constants.ProcStateType.RUNNING:
-                # 插件状态异常时进行重装
-                instance_actions[host_id__instance_id_map[bk_host_id]] = install_action
-                push_migrate_reason_func(
-                    _instance_id=instance_id,
-                    migrate_type=backend_const.PluginMigrateType.ABNORMAL_PROC_STATUS,
-                    **base_reason_info,
-                )
-
-            elif self.is_version_sensitive:
-                # 版本不一致时进行重装
-                if base_reason_info["current_version"] != base_reason_info["target_version"]:
+                if base_reason_info["status"] != constants.ProcStateType.RUNNING:
+                    # 插件状态异常时进行重装
                     instance_actions[host_id__instance_id_map[bk_host_id]] = install_action
                     push_migrate_reason_func(
                         _instance_id=instance_id,
-                        migrate_type=backend_const.PluginMigrateType.VERSION_CHANGE,
+                        migrate_type=backend_const.PluginMigrateType.ABNORMAL_PROC_STATUS,
                         **base_reason_info,
                     )
+
+                elif self.is_version_sensitive:
+                    # 版本不一致时进行重装
+                    if base_reason_info["current_version"] != base_reason_info["target_version"]:
+                        instance_actions[host_id__instance_id_map[bk_host_id]] = install_action
+                        push_migrate_reason_func(
+                            _instance_id=instance_id,
+                            migrate_type=backend_const.PluginMigrateType.VERSION_CHANGE,
+                            **base_reason_info,
+                        )
 
     def filter_related_process_statuses(self, auto_trigger: bool) -> QuerySet:
         """
@@ -956,6 +963,7 @@ class BasePluginAction(six.with_metaclass(abc.ABCMeta, Action)):
         for act in activities:
             act.component.inputs.plugin_name = Var(type=Var.PLAIN, value=self.step.plugin_name)
             act.component.inputs.subscription_step_id = Var(type=Var.PLAIN, value=self.step.subscription_step.id)
+            act.component.inputs.meta = Var(type=Var.PLAIN, value=meta)
         return activities, pipeline_data
 
     @abc.abstractmethod

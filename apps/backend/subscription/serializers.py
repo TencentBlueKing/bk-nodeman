@@ -13,6 +13,7 @@ import base64
 
 from rest_framework import serializers
 
+from apps.backend.constants import SubscriptionSwithBizAction
 from apps.exceptions import ValidationError
 from apps.node_man import constants, models, tools
 from apps.node_man.models import ProcessStatus
@@ -246,3 +247,8 @@ class QueryHostPolicySerializer(serializers.Serializer):
 
 class QueryHostSubscriptionsSerializer(TargetHostSerializer):
     source_type = serializers.ChoiceField(choices=ProcessStatus.SOURCE_TYPE_CHOICES)
+
+
+class SubscriptionSwitchBizSerializer(serializers.Serializer):
+    bk_biz_ids = serializers.ListField(child=serializers.IntegerField())
+    action = serializers.ChoiceField(choices=SubscriptionSwithBizAction.list_choices())

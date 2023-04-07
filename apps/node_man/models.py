@@ -115,6 +115,9 @@ class GlobalSettings(models.Model):
         ENABLE_PUSH_HOST_IDENTIFIER = "ENABLE_PUSH_HOST_IDENTIFIER"
         # GSE 2.0 灰度列表
         GSE2_GRAY_SCOPE_LIST = "GSE2_GRAY_SCOPE_LIST"
+        # 禁用订阅业务列表
+        DISABLE_SUBSCRIPTION_SCOPE_LIST = "DISABLE_SUBSCRIPTION_SCOPE_LIST"
+        GSE2_GRAY_AP_MAP = "GSE2_GRAY_AP_MAP"
 
     key = models.CharField(_("键"), max_length=255, db_index=True, primary_key=True)
     v_json = JSONField(_("值"))

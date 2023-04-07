@@ -9,9 +9,10 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-# from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
 
-class GrayFetchKeysSerializer(serializers.Serializer):
-    pass
+class GraySerializer(serializers.Serializer):
+    bk_biz_ids = serializers.ListField(label=_("业务列表"), child=serializers.IntegerField(), required=False)
+    cloud_ips = serializers.ListField(label=_("云区域:主机列表"), required=False)
