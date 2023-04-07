@@ -549,7 +549,7 @@ export const sort = (arr: any[], key: string) => {
       }
       return pre[key].localeCompare(next[key]);
     }
-    return (`${pre}`).toString().localeCompare((`${pre}`));
+    return (`${pre}`).toString().localeCompare((`${next}`));
   });
 };
 /**

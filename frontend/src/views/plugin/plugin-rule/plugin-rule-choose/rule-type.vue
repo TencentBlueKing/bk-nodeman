@@ -78,7 +78,7 @@ export default class RuleType extends Vue {
   display: flex;
   .item {
     display: flex;
-    height: 64px;
+    min-height: 64px;
     width: 230px;
     border: 1px solid #c4c6cc;
     border-radius: 2px;

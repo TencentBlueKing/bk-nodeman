@@ -56,7 +56,7 @@
 
                         <section v-if="step.type === 'dependencies'" class="bk-step-body">
                           <P class="mb10">
-                            {{ '文件列表：' }}
+                            {{ $t('文件列表') }}:
                             <template v-if="step.contents.length > 1">
                               <bk-link theme="primary" @click="handleDownloadAll(step.contents)">
                                 {{ $t('下载全部') }}

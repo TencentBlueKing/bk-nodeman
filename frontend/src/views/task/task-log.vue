@@ -81,17 +81,27 @@
               :data="stepList"
               :row-style="getRowStyle"
               @row-click="handleStepClick">
-              <bk-table-column :label="$t('步骤')" :resizable="false" min-width="180">
+              <bk-table-column :label="$t('步骤')" :resizable="false" min-width="180" show-overflow-tooltip="">
                 <template #default="{ row, $index }">
-                  <span :class="row.status" :title="row.step">
-                    {{ `${ $index + 1 }. ${ row.step }` }}
-                  </span>
+                  <div :class="row.status"><!--  省略号的颜色 -->
+                    <span :class="row.status" :title="row.step">
+                      {{ `${ $index + 1 }. ${ row.step }` }}
+                    </span>
+                  </div>
                 </template>
               </bk-table-column>
-              <bk-table-column class-name="column-subscript" align="right" prop="spendTime" :label="$t('耗时')">
-              </bk-table-column>
-              <bk-table-column class-name="column-subscript" min-width="15"></bk-table-column>
-              <bk-table-column class-name="column-subscript" :label="$t('执行情况')" :resizable="false" min-width="105">
+              <bk-table-column
+                class-name="column-subscript"
+                width="80"
+                align="right"
+                prop="spendTime"
+                :label="$t('耗时')" />
+              <bk-table-column class-name="column-subscript" width="15"></bk-table-column>
+              <bk-table-column
+                class-name="column-subscript"
+                :label="$t('执行情况')"
+                :min-width="showCommandBtn ? 160 : 105"
+                :resizable="false">
                 <template #default="{ row }">
                   <div
                     class="command-guide col-execution"
@@ -1113,10 +1123,10 @@ $headerColor: #313238;
       }
     }
     .command-guide {
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      white-space: nowrap;
+      /* position: absolute; */
+      /* top: 10px;
+      left: 10px; */
+      /* white-space: nowrap; */
       z-index: 5;
     }
   }
