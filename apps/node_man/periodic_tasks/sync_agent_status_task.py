@@ -8,22 +8,24 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from typing import Dict
+from collections import defaultdict
+from typing import Dict, List
 
 from celery.task import periodic_task, task
 
-from apps.adapters.api.gse import GseApiHelper
+from apps.adapters.api.gse import get_gse_api_helper
+from apps.core.gray.handlers import GrayTools
 from apps.node_man import constants
-from apps.node_man.models import Host, ProcessStatus
+from apps.node_man.models import AccessPoint, Host, ProcessStatus
 from apps.utils.periodic_task import calculate_countdown
 from common.log import logger
 
 
 @task(queue="default", ignore_result=True)
-def update_or_create_host_agent_status(task_id, start, end):
-    hosts = Host.objects.values("bk_host_id", "bk_agent_id", "bk_cloud_id", "inner_ip", "inner_ipv6", "node_from")[
-        start:end
-    ]
+def update_or_create_host_agent_status(task_id: int, ap_id_obj_map: Dict[int, AccessPoint], start: int, end: int):
+    hosts = Host.objects.values(
+        "bk_host_id", "bk_agent_id", "bk_cloud_id", "inner_ip", "inner_ipv6", "node_from", "ap_id", "bk_biz_id"
+    )[start:end]
     if not hosts:
         # 结束递归
         return
@@ -35,12 +37,14 @@ def update_or_create_host_agent_status(task_id, start, end):
     node_from_map = {}
 
     # 生成查询参数host弄表
-    query_hosts = []
+    # 需要区分 GSE 版本，(区分方式：灰度业务 or 灰度接入点) -> 使用 V2 API，其他情况 -> 使用 V1 API
+    gse_version__query_hosts_map: Dict[str, List[Host]] = defaultdict(list)
     for host in hosts:
-        agent_id = GseApiHelper.get_agent_id(host)
+        gse_version = GrayTools.get_host_ap_gse_version(host["bk_biz_id"], host["ap_id"], ap_id_obj_map)
+        agent_id = get_gse_api_helper(gse_version).get_agent_id(host)
         bk_host_id_map[agent_id] = host["bk_host_id"]
         node_from_map[agent_id] = host["node_from"]
-        query_hosts.append(
+        gse_version__query_hosts_map[gse_version].append(
             {
                 "ip": host["inner_ip"] or host["inner_ipv6"],
                 "bk_cloud_id": host["bk_cloud_id"],
@@ -48,7 +52,11 @@ def update_or_create_host_agent_status(task_id, start, end):
             }
         )
 
-    agent_id__agent_state_info_map: Dict[str, Dict] = GseApiHelper.list_agent_state(query_hosts)
+    agent_id__agent_state_info_map: Dict[str, Dict] = {}
+
+    for gse_version, query_hosts in gse_version__query_hosts_map.items():
+        gse_api_helper = get_gse_api_helper(gse_version)
+        agent_id__agent_state_info_map.update(gse_api_helper.list_agent_state(query_hosts))
 
     # 查询需要更新主机的ProcessStatus对象
     process_status_objs = ProcessStatus.objects.filter(
@@ -115,8 +123,8 @@ def sync_agent_status_periodic_task():
     """
     task_id = sync_agent_status_periodic_task.request.id
     logger.info(f"{task_id} | sync_agent_status_task: Start syncing host status.")
-    # TODO 这里需要区分 GSE 版本，(区分方式：灰度业务 or 灰度接入点) -> 使用 V2 API，其他情况 -> 使用 V1 API
     count = Host.objects.count()
+    ap_id_obj_map: Dict[int, AccessPoint] = AccessPoint.ap_id_obj_map()
     for start in range(0, count, constants.QUERY_AGENT_STATUS_HOST_LENS):
         countdown = calculate_countdown(
             count=count / constants.QUERY_AGENT_STATUS_HOST_LENS,
@@ -125,5 +133,5 @@ def sync_agent_status_periodic_task():
         )
         logger.info(f"{task_id} | sync_agent_status_task after {countdown} seconds")
         update_or_create_host_agent_status.apply_async(
-            (task_id, start, start + constants.QUERY_AGENT_STATUS_HOST_LENS), countdown=countdown
+            (task_id, ap_id_obj_map, start, start + constants.QUERY_AGENT_STATUS_HOST_LENS), countdown=countdown
         )

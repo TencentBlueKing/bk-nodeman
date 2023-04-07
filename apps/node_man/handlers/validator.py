@@ -9,12 +9,13 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import typing
+from collections import defaultdict
 
 from django.conf import settings
 from django.db.models.aggregates import Count
 from django.utils.translation import ugettext_lazy as _
 
-from apps.adapters.api.gse import GseApiHelper
+from apps.adapters.api.gse import get_gse_api_helper
 from apps.node_man import constants as const
 from apps.node_man import tools
 from apps.node_man.exceptions import (
@@ -24,7 +25,7 @@ from apps.node_man.exceptions import (
     ProxyNotAvaliableError,
 )
 from apps.node_man.handlers.cloud import CloudHandler
-from apps.node_man.models import Host, IdentityData, ProcessStatus
+from apps.node_man.models import AccessPoint, Host, IdentityData, ProcessStatus
 
 
 def check_available_proxy():
@@ -444,10 +445,15 @@ def install_validate(
             settings.BKAPP_ENABLE_DHCP,
         ]
     ):
-        query_hosts: typing.List[typing.Dict[str, typing.Any]] = []
+
+        # 获取接入点映射关系
+        ap_id_obj_map = AccessPoint.ap_id_obj_map()
+
+        query_hosts__gby_gse_version: typing.Dict[str, typing.List[typing.Dict[str, typing.Any]]] = defaultdict(list)
         for host_infos in host_infos_gby_ip_key.values():
             for host_info in host_infos:
-                query_hosts.append(
+                gse_version = ap_id_obj_map[host_info["ap_id"]].gse_version
+                query_hosts__gby_gse_version[gse_version].append(
                     {
                         "bk_host_id": host_info["bk_host_id"],
                         "ip": host_info["inner_ip"] or host_info["inner_ipv6"],
@@ -455,12 +461,17 @@ def install_validate(
                         "bk_agent_id": host_info["bk_agent_id"],
                     }
                 )
-        # TODO 根据选择的接入点，确认使用的
-        agent_id__agent_state_info_map: typing.Dict[str, typing.Dict] = GseApiHelper.list_agent_state(query_hosts)
+
+        agent_id__agent_state_info_map: typing.Dict[str, typing.Dict] = defaultdict(dict)
         host_id__agent_state_info_map: typing.Dict[int, typing.Dict] = {}
-        for query_host in query_hosts:
-            agent_id: str = GseApiHelper.get_agent_id(query_host)
-            host_id__agent_state_info_map[query_host["bk_host_id"]] = agent_id__agent_state_info_map.get(agent_id, {})
+        for gse_version, query_hosts in query_hosts__gby_gse_version.items():
+            gse_api_helper = get_gse_api_helper(ap_id_obj_map[host_info["ap_id"]].gse_version)
+            agent_id__agent_state_info_map.update(gse_api_helper.list_agent_state(query_hosts))
+            for query_host in query_hosts:
+                agent_id: str = gse_api_helper.get_agent_id(query_host)
+                host_id__agent_state_info_map[query_host["bk_host_id"]] = agent_id__agent_state_info_map.get(
+                    agent_id, {}
+                )
     else:
         host_id__agent_state_info_map = {}
 

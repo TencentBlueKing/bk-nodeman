@@ -12,6 +12,7 @@ from django.conf.urls import include, url
 from rest_framework import routers
 
 from .encrypt import views as encrypt_views
+from .gray import views as gray_views
 from .ipchooser import views as ipchooser_views
 from .tag import views as tag_views
 
@@ -38,6 +39,12 @@ router.register(
     ipchooser_views.IpChooserHostViewSet.URL_BASE_NAME,
     ipchooser_views.IpChooserHostViewSet,
     basename=ipchooser_views.IpChooserHostViewSet.URL_BASE_NAME,
+)
+
+router.register(
+    gray_views.GrayViewSet.URL_BASE_NAME,
+    gray_views.GrayViewSet,
+    basename=gray_views.GrayViewSet.URL_BASE_NAME,
 )
 
 
