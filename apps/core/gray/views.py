@@ -8,13 +8,13 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-# from drf_yasg.utils import swagger_auto_schema
-# from rest_framework.decorators import action
-# from rest_framework.response import Response
+from drf_yasg.utils import swagger_auto_schema
+from rest_framework.decorators import action
+from rest_framework.response import Response
 
 from apps.generic import APIViewSet
 
-# from . import handlers, serializers
+from . import handlers, serializers
 
 GRAY_VIEW_TAGS = ["gray"]
 
@@ -22,4 +22,20 @@ GRAY_VIEW_TAGS = ["gray"]
 class GrayViewSet(APIViewSet):
     URL_BASE_NAME = "gray"
 
-    pass
+    @swagger_auto_schema(
+        operation_summary="GSE 2.0灰度",
+        tags=GRAY_VIEW_TAGS,
+    )
+    @action(detail=False, methods=["POST"], serializer_class=serializers.GraySerializer)
+    def build(self, request):
+        handlers.GrayHandler.build(self.validated_data)
+        return Response(self.validated_data)
+
+    @swagger_auto_schema(
+        operation_summary="GSE 2.0灰度回滚",
+        tags=GRAY_VIEW_TAGS,
+    )
+    @action(detail=False, methods=["POST"], serializer_class=serializers.GraySerializer)
+    def rollback(self, request):
+        handlers.GrayHandler.rollback(self.validated_data)
+        return Response(self.validated_data)

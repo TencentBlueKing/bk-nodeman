@@ -125,3 +125,12 @@ REDIS_INSTALL_CALLBACK_KEY_TPL = f"{settings.APP_CODE}:backend:agent:log:list:" 
 
 # redis Gse Agent 配置缓存
 REDIS_AGENT_CONF_KEY_TPL = f"{settings.APP_CODE}:backend:agent:config:" + "{file_name}:str:{sub_inst_id}"
+
+
+class SubscriptionSwithBizAction(enum.EnhanceEnum):
+    ENABLE = "enable"
+    DISABLE = "disable"
+
+    @classmethod
+    def _get_member__alias_map(cls) -> Dict[Enum, str]:
+        return {cls.ENABLE: _("启用"), cls.DISABLE: _("禁用")}
