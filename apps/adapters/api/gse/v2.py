@@ -54,9 +54,7 @@ class GseV2ApiHelper(GseV1ApiHelper):
             "meta": {"namespace": constants.GSE_NAMESPACE, "name": proc_name, "labels": {"proc_name": proc_name}},
             "agent_id_list": agent_id_list,
         }
-        proc_infos: base.InfoDictList = (
-            self.gse_api_obj.v2_proc_get_proc_status_v2(query_params).get("proc_infos") or []
-        )
+        proc_infos: base.InfoDictList = self.gse_api_obj.get_proc_status_v2(query_params).get("proc_infos") or []
         agent_id__proc_info_map: base.AgentIdInfoMap = {}
         for proc_info in proc_infos:
             proc_info["host"]["bk_agent_id"] = proc_info["bk_agent_id"]
@@ -75,19 +73,19 @@ class GseV2ApiHelper(GseV1ApiHelper):
             if not agent_id_list:
                 agent_state_list = []
             else:
-                agent_state_list: base.InfoDictList = self.gse_api_obj.v2_cluster_list_agent_state(
+                agent_state_list: base.InfoDictList = self.gse_api_obj.list_agent_state(
                     {"agent_id_list": agent_id_list}
                 )
         except ApiResultError as err:
             if err.code == 1011003:
                 # 1011003 表示传入 agent_id_list 均查询不到 Agent 信息，这种情况下取 Agent 默认状态
                 logging.warning(
-                    f"Call GSE API v2_cluster_list_agent_state failed: "
+                    f"Call GSE API list_agent_state failed: "
                     f"err -> {err}, ignored -> all agents not found, set agent_state_list =  []"
                 )
                 agent_state_list = []
             else:
-                logging.exception(f"Call GSE API v2_cluster_list_agent_state failed: agent_id_list -> {agent_id_list}")
+                logging.exception(f"Call GSE API list_agent_state failed: agent_id_list -> {agent_id_list}")
                 raise
 
         agent_id__state_map: base.AgentIdInfoMap = {}
@@ -118,10 +116,10 @@ class GseV2ApiHelper(GseV1ApiHelper):
         return proc_operate_info
 
     def _operate_proc_multi(self, proc_operate_req: base.InfoDictList, **options) -> str:
-        return self.gse_api_obj.v2_proc_operate_proc_multi({"proc_operate_req": proc_operate_req})["task_id"]
+        return self.gse_api_obj.operate_proc_multi({"proc_operate_req": proc_operate_req})["task_id"]
 
     def _upgrade_to_agent_id(self, hosts: base.InfoDictList) -> base.InfoDict:
-        return self.gse_api_obj.v2_proc_upgrade_to_agent_id({"hosts": hosts})
+        return self.gse_api_obj.upgrade_to_agent_id({"hosts": hosts})
 
     def get_proc_operate_result(self, task_id: str) -> base.InfoDict:
-        return self.gse_api_obj.v2_proc_get_proc_operate_result_v2({"task_id": task_id}, raw=True)
+        return self.gse_api_obj.get_proc_operate_result_v2({"task_id": task_id}, raw=True)

@@ -175,7 +175,7 @@ def create_pipeline(
         subscription_instance.instance_id: subscription_instance for subscription_instance in subscription_instances
     }
 
-    sub_insts_gby_metadata: Dict[str, List[models.SubscriptionInstanceRecord]] = {}
+    sub_insts_gby_metadata: Dict[str, List[models.SubscriptionInstanceRecord]] = defaultdict(list)
     for instance_id, step_actions in instances_action.items():
         if instance_id not in subscription_instance_map:
             continue
@@ -653,6 +653,18 @@ def update_subscription_instances_chunk(subscription_ids: List[int]):
     """
     subscriptions = models.Subscription.objects.filter(id__in=subscription_ids, enable=True)
     for subscription in subscriptions:
+        disable_subscription_biz_ids: List[int] = models.GlobalSettings.get_config(
+            key=models.GlobalSettings.KeyEnum.DISABLE_SUBSCRIPTION_SCOPE_LIST.value,
+            default=[],
+        )
+        if any(
+            [
+                subscription.bk_biz_id in disable_subscription_biz_ids,
+                set(subscription.bk_biz_scope or []) & set(disable_subscription_biz_ids),
+            ]
+        ):
+            # 跳过禁用巡检的业务, 如果业务范围中包含禁用的业务也需要禁用
+            continue
         logger.info(f"[update_subscription_instances] start: {subscription}")
         try:
             if subscription.is_running():
