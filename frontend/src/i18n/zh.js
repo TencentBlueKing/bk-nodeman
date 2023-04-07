@@ -673,6 +673,7 @@ export default {
   铁将军IEG: '铁将军（IEG专用）',
   安装策略: '安装策略',
   文件列表: '文件列表',
+  下载全部: '下载全部',
   支持的操作系统: '支持Linx/Windows/AIX操作系统',
   开通Nginx策略提示内网: '开通到 Nginx 内网 {url} 的网络策略',
   开通Nginx策略提示外网: '开通到 Nginx 外网 {url} 的网络策略',

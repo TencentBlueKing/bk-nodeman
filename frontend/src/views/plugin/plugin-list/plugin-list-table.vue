@@ -132,6 +132,7 @@
         prop="bk_biz_name"
         :label="$t('归属业务')"
         sortable
+        show-overflow-tooltip
         v-if="filterField['bk_biz_name'].mockChecked">
       </bk-table-column>
       <bk-table-column

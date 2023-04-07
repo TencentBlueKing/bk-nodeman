@@ -111,7 +111,7 @@
             {{ row.pkg_mtime | filterTimezone }}
           </template>
         </bk-table-column>
-        <bk-table-column :label="$t('操作')" :resizable="false" width="120">
+        <bk-table-column :label="$t('操作')" :resizable="false" :width="isEnLanguage ? 160 : 120">
           <template #default="{ row }">
             <auth-component
               tag="span"
@@ -221,6 +221,9 @@ export default class PluginPackage extends Mixins(pollMixin, RouterBackMixin) {
       name: this.$t('停用插件'),
       authorized: this.packageOperateAuth,
     }];
+  }
+  private get isEnLanguage() {
+    return MainStore.language === 'en';
   }
 
   private async created() {

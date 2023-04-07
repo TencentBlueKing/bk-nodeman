@@ -99,10 +99,12 @@ export default class Tips extends Vue {
         }
       }
       &-close {
+        margin-left: 6px;
         line-height: 16px;
         font-size: 12px;
         color: #699df4;
         cursor: pointer;
+        white-space: nowrap;
       }
     }
     &.danger {

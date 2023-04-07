@@ -32,13 +32,14 @@ import { Component, Emit, Prop, Vue } from 'vue-property-decorator';
 import ChannelTable from './channel-table.vue';
 import Tips from '@/components/common/tips.vue';
 import { CloudStore } from '@/store';
-import ChannelMdFile from '@static/doc/install_channel.md';
 
 @Component({
   components: {
     ChannelTable,
     Tips,
-    ChannelMdFile,
+    ChannelMdFile: () => (window.language === 'en'
+      ? import('@static/doc/install_channel_en.md')
+      : import('@static/doc/install_channel_zh.md')),
   },
 })
 export default class CloudChannel extends Vue {
