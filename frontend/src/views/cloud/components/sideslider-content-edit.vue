@@ -46,7 +46,7 @@
               readonly>
             </bk-input>
             <upload
-              v-model="proxyData.key"
+              :value="proxyData.key"
               class="auth-key"
               parse-text
               :max-size="10"
@@ -213,7 +213,8 @@ export default class SidesliderContentEdit extends Vue {
   private handleBlur() {
     this.getAuthTypeValidate();
   }
-  private handleFileChange() {
+  private handleFileChange({ value = '' }) {
+    this.proxyData.key = value;
     this.getAuthTypeValidate();
   }
   private getAuthTypeValidate() {
