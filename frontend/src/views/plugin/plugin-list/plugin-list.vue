@@ -126,7 +126,8 @@ export default class PluginList extends Mixins(HeaderFilterMixins) {
   private pagination: IPagination = {
     current: 1,
     count: 0,
-    limit: 20,
+    limit: 50,
+    limitList: [50, 100, 200],
   };
   private selections: IPluginList[] = [];
   private excludeData: IPluginList[] = [];
