@@ -157,6 +157,7 @@ export default class PluginPackage extends Vue {
           row.nodes_number = numMap[row.name].nodes_number;
         }
       });
+      this.tableList = this.tableList.splice(0, this.tableList.length);
     }
     this.numLoading = false;
   }
