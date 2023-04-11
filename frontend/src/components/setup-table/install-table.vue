@@ -378,7 +378,7 @@ export default class SetupTable extends Vue {
     if (typeof config.getDefaultValue === 'function') {
       row[prop] = config.getDefaultValue(row);
     } else {
-      row[prop] = isEmpty(row[prop]) && config.default ? config.default : row[prop];
+      row[prop] = isEmpty(row[prop]) && !isEmpty(config.default) ? config.default : row[prop];
     }
     row.validator = {};
   }
