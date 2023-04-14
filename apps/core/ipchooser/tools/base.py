@@ -16,7 +16,7 @@ from django.db.models.functions import Concat
 
 from apps.node_man import constants as node_man_constants
 from apps.node_man import models as node_man_models
-from apps.utils import basic, concurrent
+from apps.utils import basic, concurrent, string
 
 from .. import constants, types
 from ..query import resource
@@ -146,6 +146,26 @@ class HostQuerySqlHelper:
             return [node_man_constants.NodeType.AGENT, node_man_constants.NodeType.PAGENT]
 
     @classmethod
+    def extract_digits_or_empty_value(cls, values: typing.List[typing.Union[str, int]]) -> typing.List[int]:
+        digit_set: typing.Set[int] = set()
+        for val in values:
+            try:
+                digit_set.add(int(val))
+            except ValueError:
+                digit_set.add(-1)
+        return list(digit_set)
+
+    @classmethod
+    def extract_bools(cls, values: typing.List[typing.Union[str, bool, int]]) -> typing.List[bool]:
+        bool_set: typing.Set[bool] = set()
+        for cond_val in values:
+            try:
+                bool_set.add(string.str2bool(str(cond_val), strict=True))
+            except ValueError:
+                pass
+        return list(bool_set)
+
+    @classmethod
     def multiple_cond_sql(
         cls,
         params: typing.Dict,
@@ -237,11 +257,15 @@ class HostQuerySqlHelper:
                     f'{node_man_models.ProcessStatus._meta.db_table}.{condition["key"]} in ({",".join(placeholder)})'
                 )
 
-            elif condition["key"] in ["is_manual", "bk_cloud_id", "install_channel_id"]:
-                # 对于数字类过滤条件，保证过滤值全数字再拼生成 SQL，否则该条件置空
-                is_digit_list: bool = "".join([str(cond_val) for cond_val in condition["value"]]).isdigit()
-                if is_digit_list:
-                    filter_q &= Q(**{f"{condition['key']}__in": condition["value"]})
+            elif condition["key"] in ["is_manual"]:
+                # 对于布尔值的过滤条件，非法选项剔除
+                filter_q &= Q(**{f"{condition['key']}__in": cls.extract_bools(condition["value"])})
+
+            elif condition["key"] in ["bk_cloud_id", "install_channel_id"]:
+                # 对于数字类过滤条件，需要将非法值转为不存在的合法值
+                digit_list = cls.extract_digits_or_empty_value(condition["value"])
+                if digit_list:
+                    filter_q &= Q(**{f"{condition['key']}__in": digit_list})
 
             elif condition["key"] == "topology":
                 # 集群与模块的精准搜索
