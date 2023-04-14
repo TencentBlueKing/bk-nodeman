@@ -1,5 +1,5 @@
 <template>
-  <bk-form v-test.policy="'targetForm'" ref="form" :model="formData" :rules="rules">
+  <bk-form v-test.policy="'targetForm'" ref="computedForm" :model="formData" :rules="rules">
     <bk-form-item
       v-if="isCreateType"
       class="rule-name"
@@ -49,8 +49,7 @@
   </bk-form>
 </template>
 <script lang="ts">
-import { Mixins, Component, Ref, Emit, Prop } from 'vue-property-decorator';
-import FormLabelMixin from '@/common/form-label-mixin';
+import { Component, Ref, Emit, Prop, Vue } from 'vue-property-decorator';
 // import IpSelect from '@/components/ip-selector/business/topo-selector-nodeman.vue';
 import IpSelector, { ISelectorValue, toSelectorNode, toStrategyNode } from '@/components/common/nm-ip-selectors';
 import { PluginStore } from '@/store';
@@ -64,9 +63,9 @@ import { reguRequired, reguFnStrLength } from '@/common/form-check';
     IpSelector,
   },
 })
-export default class DeployTarget extends Mixins(FormLabelMixin) {
+export default class DeployTarget extends Vue {
   @Prop({ type: Number, default: 1 }) private readonly step!: number;
-  @Ref('form') private readonly form!: any;
+  @Ref('computedForm') private readonly computedForm!: any;
   @Ref('ruleNameRef') private readonly ruleNameRef!: any;
 
   private formData: Dictionary = {
@@ -100,8 +99,6 @@ export default class DeployTarget extends Mixins(FormLabelMixin) {
   }
 
   private mounted() {
-    this.minWidth = 86;
-    this.initLabelWidth(this.form);
     this.ruleNameRef && this.ruleNameRef.focus();
     if (this.step === 1) {
       this.initStep();
@@ -160,7 +157,7 @@ export default class DeployTarget extends Mixins(FormLabelMixin) {
     return Promise.resolve(!this.targetPreview.nodes.length || stepChanged);
   }
   public async handleNext() {
-    const res = await this.form.validate().catch(() => false);
+    const res = await this.computedForm.validate().catch(() => false);
     // if (!this.targetPreview.nodes.length) {
     //   this.$bkMessage({
     //     theme: 'error',

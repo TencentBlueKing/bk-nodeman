@@ -64,6 +64,7 @@ import DeployVersion from './deploy-version.vue';
 import ParamsConfig from './params-config.vue';
 import PerformPreview from './perform-preview.vue';
 import RuleStep from './rule-step.vue';
+import FormLabelMixin from '@/common/form-label-mixin';
 import { TranslateResult } from 'vue-i18n';
 import { pluginOperate, previewOperate, policyOperateType, stepOperate } from '@/views/plugin/operateConfig';
 import { IStep, IStrategy } from '@/types/plugin/plugin-type';
@@ -83,7 +84,7 @@ Object.keys(stepMap).forEach((key) => {
     RuleStep,
   },
 })
-export default class CreateRule extends Mixins(routerBackMixin) {
+export default class CreateRule extends Mixins(routerBackMixin, FormLabelMixin) {
   // 策略相关的操作 & 手动 安装/更新 插件会进入此流程路由
   @Prop({ default: 'create', type: String, required: true }) private readonly type!: string;
 
@@ -188,6 +189,9 @@ export default class CreateRule extends Mixins(routerBackMixin) {
     this.titleRemarks = `(${this.remarkPlugin}${this.remarkPolicy ? ` - ${this.remarkPolicy})` : ')'}`;
     this.loading = false;
   }
+  private mounted() {
+    this.updateLabelWidth();
+  }
 
   /**
    * 新建策略只能按顺序进行步骤切换, 编辑策略可随意切换步骤(存在选中目标)
@@ -266,8 +270,20 @@ export default class CreateRule extends Mixins(routerBackMixin) {
         if (nextChanged || hasStepChanged || !this.stepLoadedMap[stepKey] || this.stepReloadMap[stepKey]) {
           toStepRef.initStep && toStepRef.initStep();
         }
+        this.updateLabelWidth();
       });
     }
+  }
+  public updateLabelWidth() {
+    this.$nextTick(() => {
+      const activeRef = this.$refs[`${this.componentName}Ref`] as any;
+      if (activeRef) {
+        const computedForm = Array.isArray(activeRef)
+          ? activeRef[0]?.$refs.computedForm
+          : activeRef.$refs.computedForm;
+        computedForm && this.initLabelWidth(computedForm);
+      }
+    });
   }
   // 更新需要初始化的步骤
   public handleUpdateStepLoaded({ step, loaded }: { step: number, loaded?: boolean }) {

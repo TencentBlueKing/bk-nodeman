@@ -30,9 +30,15 @@
             @selected="handleTreeSelected">
           </ResourceTree> -->
           <ResourceTreeItem
+            v-show="!isEmptyTree"
+            class="resource-quota-tree"
             :node-list="nodeList"
             @click="handleClickNode">
           </ResourceTreeItem>
+          <NmException
+            v-show="isEmptyTree"
+            :type="treeEmptyType"
+            @empty-clear="emptyClear" />
         </section>
         <section class="content-body" v-bkloading="{ isLoading: pluginLoading }">
           <template v-if="curNode && curNode.id">
@@ -144,6 +150,7 @@ export default class ResourceQuota extends Mixins(HeaderFilterMixins) {
   };
   // public biz: number[] = [];
   public handleSearchChange!: Function;
+  public isEmptyTree = false;
 
   private get moduleName() {
     return this.curNode?.name || '';
@@ -159,6 +166,9 @@ export default class ResourceQuota extends Mixins(HeaderFilterMixins) {
   }
   private get hasPageAuth() {
     return !!this.bkBizList.length;
+  }
+  private get treeEmptyType() {
+    return this.nodeList.length ? 'search-empty' : 'empty';
   }
 
   @Watch('$route')
@@ -382,17 +392,28 @@ export default class ResourceQuota extends Mixins(HeaderFilterMixins) {
 
   public handleSearchTree() {
     const searchKey = `${this.searchKey}`.toLowerCase();
+    let hasTreeNode = false;
     this.treeSourceList.forEach((item) => {
       let hasShowChild = false;
       item.child.forEach((child) => {
         const show = `${child.name}`.toLowerCase().includes(searchKey);
         if (show) {
           hasShowChild = true;
+          hasTreeNode = true;
         }
         child.show = show;
       });
-      item.show = `${item.name}`.toLowerCase().includes(searchKey) || hasShowChild;
+      const parentShow =  `${item.name}`.toLowerCase().includes(searchKey) || hasShowChild;
+      item.show = parentShow;
+      if (parentShow) {
+        hasTreeNode = true;
+      }
     });
+    this.isEmptyTree = !hasTreeNode;
+  }
+  public emptyClear() {
+    this.searchKey = '';
+    this.handleSearchTree();
   }
 
   public editResourceQuota() {
@@ -520,6 +541,7 @@ export default class ResourceQuota extends Mixins(HeaderFilterMixins) {
     display: flex;
     flex-direction: column;
     flex: 1;
+    overflow: hidden;
     .page-tips-wrapper {
       padding: 10px 16px;
       border-bottom: 1px solid #dcdee5;
@@ -542,6 +564,10 @@ export default class ResourceQuota extends Mixins(HeaderFilterMixins) {
     .resource-tree {
       overflow-y: auto;
     }
+  }
+  .resource-quota-tree {
+    max-height: 100%;
+    overflow-y: auto;
   }
   .content-body {
     flex: 1;

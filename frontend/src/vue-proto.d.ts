@@ -27,6 +27,7 @@ declare module 'vue/types/vue' {
       type?: string,
       okText?: string | TranslateResult
       cancelText?: string | TranslateResult
+      extCls?: string
       confirmFn?: Function
       cancelFn?: Function
     }) => {}

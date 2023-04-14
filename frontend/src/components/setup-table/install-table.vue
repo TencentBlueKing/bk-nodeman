@@ -443,8 +443,8 @@ export default class SetupTable extends Vue {
     const [newValue] = arg;
     const prop = config.prop as IKeysMatch<ISetupRow, string>;
     const sync = config.sync as IKeysMatch<ISetupRow, string>;
-    const syncSource = typeof row[prop] === 'undefined' ? '' : row[prop];
-    const syncTarget = typeof row[sync] === 'undefined' ? '' : row[sync];
+    const syncSource = typeof row[prop] === 'undefined' ? '' : row[prop].trim();
+    const syncTarget = typeof row[sync] === 'undefined' ? '' : row[sync].trim();
     if (sync && syncSource === syncTarget) {
       row[sync] = newValue;
     }

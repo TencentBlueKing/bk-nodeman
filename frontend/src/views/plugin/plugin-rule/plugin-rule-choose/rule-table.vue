@@ -22,7 +22,8 @@
       <bk-table-column
         :label="$t('策略名称')"
         prop="name"
-        :render-header="renderHeader">
+        :render-header="renderHeader"
+        show-overflow-tooltip>
       </bk-table-column>
       <bk-table-column :label="$t('最近修改人')" prop="creator" sortable></bk-table-column>
       <bk-table-column :label="$t('最近部署时间')" prop="update_time" sortable>

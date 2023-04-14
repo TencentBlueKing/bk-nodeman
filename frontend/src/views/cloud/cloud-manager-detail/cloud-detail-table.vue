@@ -454,6 +454,7 @@ export default class CloudDetailTable extends Vue {
   public handleConfirmOperate(title: string | TranslateResult, row: IProxyDetail, type: Function | string) {
     this.$bkInfo({
       title,
+      extCls: 'wrap-title',
       confirmFn: () => {
         if (typeof type === 'function') {
           type(row);
