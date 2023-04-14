@@ -18,12 +18,12 @@ def str2bool(string: Optional[str], strict: bool = True) -> bool:
     对于bool(str) 仅在len(str) == 0 or str is None 的情况下为False，为了适配bool("False") 等环境变量取值情况，定义该函数
     参考：https://stackoverflow.com/questions/21732123/convert-true-false-value-read-from-file-to-boolean
     :param string:
-    :param strict: 严格校验，非 False / True / false / true  时抛出异常，用于环境变量的转换
+    :param strict: 严格校验，非 False / True / false / true / 0 / 1  时抛出异常，用于环境变量的转换
     :return:
     """
-    if string in ["False", "false"]:
+    if string in ["False", "false", "0"]:
         return False
-    if string in ["True", "true"]:
+    if string in ["True", "true", "1"]:
         return True
 
     if strict:
