@@ -427,6 +427,12 @@ body {
             transform: translateY(-50%);
         }
     }
+    &.wrap-title {
+        .bk-dialog-header-inner,
+        .bk-dialog-type-header .header {
+            white-space: normal!important;
+        }
+    }
 }
 .tippy-popper {
     z-index: 99999 !important;
@@ -807,6 +813,9 @@ body {
     height: 100%;
     .clearfix::after {
         visibility: visible;
+    }
+    .tree-box .big-tree-box{
+        overflow-y: auto;
     }
 }
 .bk-ip-selector-box {

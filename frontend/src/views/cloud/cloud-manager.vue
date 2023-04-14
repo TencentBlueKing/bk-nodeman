@@ -453,7 +453,6 @@ export default class CloudManager extends Vue {
       };
     });
     this.handleSearch();
-    this.loading = false;
   }
   /**
    * 前端搜索
@@ -481,6 +480,7 @@ export default class CloudManager extends Vue {
     this.table.data = tableData;
     this.pagination.count = tableData.length;
     this.handlePageChange(page);
+    this.loading = false;
   }
   /**
    * 编辑
@@ -515,6 +515,7 @@ export default class CloudManager extends Vue {
     };
     this.$bkInfo({
       title: this.$t('确定删除该云区域'),
+      extCls: 'wrap-title',
       confirmFn: () => {
         deleteCloud(row.bkCloudId);
       },

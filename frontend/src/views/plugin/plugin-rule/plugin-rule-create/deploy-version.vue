@@ -1,5 +1,5 @@
 <template>
-  <bk-form v-test.policy="'versionForm'" class="align-form" ref="form" v-bkloading="{ isLoading: loading }">
+  <bk-form v-test.policy="'versionForm'" class="align-form" ref="computedForm" v-bkloading="{ isLoading: loading }">
     <bk-form-item v-if="showTips">
       <Tips
         :list="$t('通过检测现有主机操作系统已自动选中必须部署的插件包')"
@@ -49,11 +49,10 @@
   </bk-form>
 </template>
 <script lang="ts">
-import { Component, Mixins, Prop, Ref, Emit } from 'vue-property-decorator';
+import { Component, Prop, Emit, Vue } from 'vue-property-decorator';
 import { PluginStore } from '@/store';
 import DeployVersionTable from './deploy-version-table.vue';
 import Tips from '@/components/common/tips.vue';
-import FormLabelMixin from '@/common/form-label-mixin';
 import { IPk } from '@/types/plugin/plugin-type';
 import { deepClone } from '@/common/util';
 
@@ -70,11 +69,10 @@ interface IDeployPk extends IPk {
     Tips,
   },
 })
-export default class DeployVersion extends Mixins(FormLabelMixin) {
+export default class DeployVersion extends Vue {
   @Prop({ type: String, default: '' }) private readonly type!: string;
   @Prop({ type: Boolean, default: false }) private readonly hasPreStep!: boolean;
   @Prop({ type: Number, default: 2 }) private readonly step!: number;
-  @Ref('form') private readonly form!: any;
 
   private loading = true;
   private pluginConfig: IPk[] = [];
@@ -117,8 +115,6 @@ export default class DeployVersion extends Mixins(FormLabelMixin) {
   }
 
   private mounted() {
-    this.minWidth = 86;
-    this.initLabelWidth(this.form);
     this.cloneSelected();
     if (this.step === 1) {
       this.initStep();

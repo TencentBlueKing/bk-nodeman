@@ -22,7 +22,7 @@
       </div>
       <div class="item-right">
         <span class="title">{{ item.title }}</span>
-        <span class="mt5 desc">{{ item.desc }}</span>
+        <span class="mt5 desc text-ellipsis" v-bk-overflow-tips>{{ item.desc }}</span>
       </div>
       <span class="item-check" v-if="active === item.id"></span>
     </li>
@@ -78,7 +78,7 @@ export default class RuleType extends Vue {
   display: flex;
   .item {
     display: flex;
-    min-height: 64px;
+    height: 64px;
     width: 230px;
     border: 1px solid #c4c6cc;
     border-radius: 2px;
@@ -122,6 +122,7 @@ export default class RuleType extends Vue {
       flex-direction: column;
       padding: 10px 14px;
       background: #fff;
+      overflow: hidden;
       .title {
         line-height: 19px;
         font-size: 14px;
