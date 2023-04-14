@@ -299,7 +299,7 @@ export const setupTableConfig = $DHCP
 
 export const setupDiffConfigs = {
   inner_ip: {
-    width: 'auto%',
+    width: 'auto',
   },
   os_type: {
     width: 'auto',

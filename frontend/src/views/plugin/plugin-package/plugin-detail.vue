@@ -372,6 +372,7 @@ export default class PluginPackage extends Mixins(pollMixin, RouterBackMixin) {
         title: this.$t('确认要停用此插件'),
         subTitle: this.$t('插件停用后将无法再继续进行部署已部署的节点不受影响'),
         okText: this.$t('停用'),
+        extCls: 'wrap-title',
         confirmFn: () => {
           this.handleTogglePlugin();
         },

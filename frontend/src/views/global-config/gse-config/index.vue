@@ -170,6 +170,7 @@ export default class GseConfig extends Vue {
       this.$bkInfo({
         type: 'warning',
         title: this.$t('确认删除此接入点'),
+        extCls: 'wrap-title',
         confirmFn: async (vm: any) => {
           vm.close();
           this.loading = true;

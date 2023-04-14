@@ -1731,6 +1731,7 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
           type,
           suffix: operateType === 'UPGRADE_AGENT' ? this.$t('到最新版本') : '',
         }),
+      extCls: 'wrap-title',
       confirmFn: () => {
         if (operateType === 'REMOVE_AGENT') {
           this.handleRemoveHost(data);
