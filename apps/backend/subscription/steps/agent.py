@@ -304,7 +304,7 @@ class UpgradeAgent(ReinstallAgent):
         activities = [
             agent_manager.push_upgrade_package(),
             agent_manager.run_upgrade_command(),
-            agent_manager.wait(10),
+            agent_manager.wait(30),
             agent_manager.get_agent_status(expect_status=constants.ProcStateType.RUNNING),
             agent_manager.check_agent_ability(),
         ]
@@ -341,7 +341,8 @@ class RestartProxy(AgentAction):
     def _generate_activities(self, agent_manager: AgentManager):
         activities = [
             agent_manager.restart(skip_polling_result=True),
-            agent_manager.wait(5),
+            # Proxy 重启后，需要等待一段时间才能正常工作, 需要等待 30s
+            agent_manager.wait(30),
             agent_manager.get_agent_status(expect_status=constants.ProcStateType.RUNNING, name=_("查询Proxy状态")),
             agent_manager.check_agent_ability(),
         ]
