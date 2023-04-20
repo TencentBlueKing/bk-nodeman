@@ -970,6 +970,22 @@ def get_plugin_path(plugin_name: str, target_host: models.Host, agent_config: Di
     return plugin_path
 
 
+def get_plugin_common_constants(plugin_name: str) -> Dict:
+    """
+    获取插件配置公共常量
+    https://github.com/TencentBlueKing/bk-nodeman/issues/1500
+    :param plugin_name: 插件名称
+    """
+    plugin_common_constants = models.GlobalSettings.get_config(
+        key=models.GlobalSettings.KeyEnum.PLUGIN_COMMON_CONSTANTS.value,
+        default={},
+    )
+    # 查询特定插件是否开启公共常量显示
+    if plugin_common_constants.get("plugin_name", {}).get(plugin_name, 0):
+        return plugin_common_constants["global"]
+    return {}
+
+
 def get_all_subscription_steps_context(
     subscription_step: models.SubscriptionStep,
     instance_info: Dict,
@@ -1014,6 +1030,10 @@ def get_all_subscription_steps_context(
             }
         },
     )
+    # 获取插件配置公共常量
+    plugin_common_constants: Dict = get_plugin_common_constants(plugin_name)
+    if plugin_common_constants:
+        context.update({"global": plugin_common_constants})
 
     # 深拷贝一份，避免原数据后续被污染
     context = copy.deepcopy(context)

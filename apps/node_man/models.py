@@ -112,6 +112,8 @@ class GlobalSettings(models.Model):
         GSE_AGENT2_VERSION = "GSE_AGENT2_VERSION"
         # 【临时变量】主机安装动作新增推送身份动作, cc版本稳定后废除
         ENABLE_PUSH_HOST_IDENTIFIER = "ENABLE_PUSH_HOST_IDENTIFIER"
+        # 插件配置公共常量支持 issue: https://github.com/TencentBlueKing/bk-nodeman/issues/1500
+        PLUGIN_COMMON_CONSTANTS = "PLUGIN_COMMON_CONSTANTS"
 
     key = models.CharField(_("键"), max_length=255, db_index=True, primary_key=True)
     v_json = JSONField(_("值"))
