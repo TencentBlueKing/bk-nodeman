@@ -8,11 +8,19 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-
 from django.utils.translation import ugettext_lazy as _
-from rest_framework import serializers
+from rest_framework import permissions
+
+from apps.node_man.handlers.iam import IamHandler
+from apps.utils.local import get_request_username
 
 
-class GraySerializer(serializers.Serializer):
-    bk_biz_ids = serializers.ListField(label=_("业务列表"), child=serializers.IntegerField(), required=True)
-    cloud_ips = serializers.ListField(label=_("云区域:主机列表"), required=False)
+class GrayPermission(permissions.BasePermission):
+    message = _("您没有该操作的权限")
+
+    def has_permission(self, request, view):
+
+        if IamHandler().is_superuser(get_request_username()):
+            return True
+
+        return False
