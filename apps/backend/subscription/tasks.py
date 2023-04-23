@@ -652,17 +652,12 @@ def update_subscription_instances_chunk(subscription_ids: List[int]):
     分片更新订阅状态
     """
     subscriptions = models.Subscription.objects.filter(id__in=subscription_ids, enable=True)
+    disable_subscription_biz_ids: List[int] = models.GlobalSettings.get_config(
+        key=models.GlobalSettings.KeyEnum.DISABLE_SUBSCRIPTION_SCOPE_LIST.value,
+        default=[],
+    )
     for subscription in subscriptions:
-        disable_subscription_biz_ids: List[int] = models.GlobalSettings.get_config(
-            key=models.GlobalSettings.KeyEnum.DISABLE_SUBSCRIPTION_SCOPE_LIST.value,
-            default=[],
-        )
-        if any(
-            [
-                subscription.bk_biz_id in disable_subscription_biz_ids,
-                set(subscription.bk_biz_scope or []) & set(disable_subscription_biz_ids),
-            ]
-        ):
+        if tools.check_subscription_is_disabled(subscription, disable_subscription_biz_ids):
             # 跳过禁用巡检的业务, 如果业务范围中包含禁用的业务也需要禁用
             continue
         logger.info(f"[update_subscription_instances] start: {subscription}")
