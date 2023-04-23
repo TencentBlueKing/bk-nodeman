@@ -386,53 +386,59 @@ class ChooseAccessPointService(AgentBaseService, remote.RemoteServiceMixin):
         gse_version: str,
     ) -> List[Dict[str, Any]]:
         choose_ap_results = []
-        # 获取指定云区域范围全部的Proxy
-        all_proxies = self.fetch_cloud_proxies_for_gse_version(
-            bk_cloud_ids=proxy_host_ids__gby_cloud_id.keys(),
-            ap_id_obj_map=ap_id_obj_map,
-            gse_version=gse_version,
-        )
-        all_proxy_host_ids: List[int] = [proxy["bk_host_id"] for proxy in all_proxies]
+        gray_ap_map: Dict[str, int] = {}
 
-        # 获取存活的Proxy ID 列表
-        alive_proxy_host_ids: List[int] = self.fetch_alive_proxy_host_ids(all_proxy_host_ids)
+        cloud_id__info_map: Dict[int, Dict[str, Any]] = {
+            cloud_info["bk_cloud_id"]: {"ap_id": cloud_info["ap_id"], "bk_cloud_name": cloud_info["bk_cloud_name"]}
+            for cloud_info in models.Cloud.objects.filter(bk_cloud_id__in=proxy_host_ids__gby_cloud_id.keys()).values(
+                "bk_cloud_id", "ap_id", "bk_cloud_name"
+            )
+        }
 
-        # 获取云区域与AP ID映射, 取相同版本的任意一台proxy的ap
-        cloud_id__ap_id_map: Dict[int, int] = {}
-        for proxy in all_proxies:
-            if all(
-                [
-                    proxy["bk_host_id"] in alive_proxy_host_ids,
-                    proxy["bk_cloud_id"] not in cloud_id__ap_id_map,
-                ]
-            ):
-                cloud_id__ap_id_map[proxy["bk_cloud_id"]] = proxy["ap_id"]
+        if gse_version == GseVersion.V2.value:
+            # 获取接入点映射关系
+            gray_ap_map: Dict[str, int] = models.GlobalSettings.get_config(
+                key=models.GlobalSettings.KeyEnum.GSE2_GRAY_AP_MAP.value, default={}
+            )
 
-        cloud_id__info_map: Dict[int, Dict[str, Any]] = {}
-        all_clouds = models.Cloud.objects.filter(bk_cloud_id__in=cloud_id__ap_id_map.keys()).values(
-            "bk_cloud_id", "bk_cloud_name"
-        )
-        for cloud_info in all_clouds:
-            cloud_id__info_map[cloud_info["bk_cloud_id"]] = {
-                "ap_id": cloud_id__ap_id_map[cloud_info["bk_cloud_id"]],
-                "bk_cloud_name": cloud_info["bk_cloud_name"],
-            }
-
-        for cloud_id, proxies in proxy_host_ids__gby_cloud_id.items():
+        for cloud_id, proxy_host_ids in proxy_host_ids__gby_cloud_id.items():
             cloud_info = cloud_id__info_map[cloud_id]
+            if gse_version == GseVersion.V1.value:
+                ap_id = cloud_info["ap_id"]
+            else:
+                # 如果是GSE V2版本，选择云区域接入点对应的V2接入点
+                try:
+                    ap_id = int(gray_ap_map[str(cloud_info["ap_id"])])
+                except KeyError:
+                    choose_ap_results.extend(
+                        [
+                            self.construct_return_data(
+                                bk_host_id=proxy_host_id,
+                                ap_id=self.FAILED_AP_ID,
+                                ap_name="",
+                                log=_("Proxy所在云区域 -> {bk_cloud_id} 下无 GSE版本 -> {gse_version} 的接入点").format(
+                                    bk_cloud_id=cloud_id,
+                                    gse_version=gse_version,
+                                ),
+                            )
+                            for proxy_host_id in proxy_host_ids
+                        ]
+                    )
+                    return choose_ap_results
+
             choose_ap_results.extend(
                 [
                     self.construct_return_data(
                         bk_host_id=proxy_host_id,
-                        ap_id=cloud_info["ap_id"],
-                        ap_name=ap_id_obj_map[cloud_info["ap_id"]].name,
-                        log=_("Proxy 所在云区域「{bk_cloud_name}」[{bk_cloud_id}], 已选择接入点 [{ap_name}]").format(
+                        ap_id=ap_id,
+                        ap_name=ap_id_obj_map[ap_id].name,
+                        log=_("已选择 Proxy 所在云区域「{bk_cloud_name}」[{bk_cloud_id}] 指定的接入点 [{ap_name}]").format(
                             bk_cloud_name=cloud_info["bk_cloud_name"],
                             bk_cloud_id=cloud_id,
-                            ap_name=ap_id_obj_map[cloud_info["ap_id"]].name,
+                            ap_name=ap_id_obj_map[ap_id].name,
                         ),
                     )
-                    for proxy_host_id in proxies
+                    for proxy_host_id in proxy_host_ids
                 ]
             )
         return choose_ap_results

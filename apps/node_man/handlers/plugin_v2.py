@@ -162,20 +162,12 @@ class PluginV2Handler:
     @staticmethod
     def operate(job_type: str, plugin_name: str, scope: Dict, steps: List[Dict]):
         bk_biz_scope = list(set([node["bk_biz_id"] for node in scope["nodes"]]))
-        disable_subscription_biz_ids: List[int] = models.GlobalSettings.get_config(
-            key=models.GlobalSettings.KeyEnum.DISABLE_SUBSCRIPTION_SCOPE_LIST.value,
-            default=[],
-        )
-        run_immediately: bool = True
-        if set(bk_biz_scope) & set(disable_subscription_biz_ids):
-            # 禁用订阅业务中包括任一业务则不立即执行
-            run_immediately = False
 
         CmdbHandler().check_biz_permission(bk_biz_scope, IamActionType.plugin_operate)
 
         base_create_kwargs = {
             "is_main": True,
-            "run_immediately": run_immediately,
+            "run_immediately": True,
             "plugin_name": plugin_name,
             # 非策略订阅在SaaS侧定义为一次性下发操作
             "category": models.Subscription.CategoryType.ONCE,
@@ -220,15 +212,14 @@ class PluginV2Handler:
             }
 
         create_result = NodeApi.create_subscription(create_data)
-        if run_immediately:
-            create_result.update(
-                tools.JobTools.create_job(
-                    job_type=job_type,
-                    subscription_id=create_result["subscription_id"],
-                    task_id=create_result["task_id"],
-                    bk_biz_scope=create_data["bk_biz_scope"],
-                )
+        create_result.update(
+            tools.JobTools.create_job(
+                job_type=job_type,
+                subscription_id=create_result["subscription_id"],
+                task_id=create_result["task_id"],
+                bk_biz_scope=create_data["bk_biz_scope"],
             )
+        )
         return create_result
 
     @staticmethod
