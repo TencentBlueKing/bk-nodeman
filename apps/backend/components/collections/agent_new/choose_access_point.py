@@ -381,7 +381,7 @@ class ChooseAccessPointService(AgentBaseService, remote.RemoteServiceMixin):
 
     def handle_proxy_condition(
         self,
-        proxy_host_ids__gby_cloud_id: Dict[int, List[int]],
+        proxy_hosts__gby_cloud_id: Dict[int, List[models.Host]],
         ap_id_obj_map: Dict[int, models.AccessPoint],
         gse_version: str,
     ) -> List[Dict[str, Any]]:
@@ -390,7 +390,7 @@ class ChooseAccessPointService(AgentBaseService, remote.RemoteServiceMixin):
 
         cloud_id__info_map: Dict[int, Dict[str, Any]] = {
             cloud_info["bk_cloud_id"]: {"ap_id": cloud_info["ap_id"], "bk_cloud_name": cloud_info["bk_cloud_name"]}
-            for cloud_info in models.Cloud.objects.filter(bk_cloud_id__in=proxy_host_ids__gby_cloud_id.keys()).values(
+            for cloud_info in models.Cloud.objects.filter(bk_cloud_id__in=proxy_hosts__gby_cloud_id.keys()).values(
                 "bk_cloud_id", "ap_id", "bk_cloud_name"
             )
         }
@@ -401,46 +401,72 @@ class ChooseAccessPointService(AgentBaseService, remote.RemoteServiceMixin):
                 key=models.GlobalSettings.KeyEnum.GSE2_GRAY_AP_MAP.value, default={}
             )
 
-        for cloud_id, proxy_host_ids in proxy_host_ids__gby_cloud_id.items():
+        for cloud_id, proxy_hosts in proxy_hosts__gby_cloud_id.items():
             cloud_info = cloud_id__info_map[cloud_id]
-            if gse_version == GseVersion.V1.value:
+            if any(
+                [
+                    # 云区域接入点处于V2
+                    ap_id_obj_map[cloud_info["ap_id"]].gse_version == GseVersion.V2.value,
+                    # 云区域接入点处于V1并且安装所需要的版本为V1
+                    gse_version == GseVersion.V1.value,
+                ]
+            ):
                 ap_id = cloud_info["ap_id"]
             else:
-                # 如果是GSE V2版本，选择云区域接入点对应的V2接入点
+                # 云区域接入点处于V1主机选择V2版本，选择云区域接入点对应的V2接入点
                 try:
                     ap_id = int(gray_ap_map[str(cloud_info["ap_id"])])
                 except KeyError:
+                    # 缺少映射关系, 报错处理
                     choose_ap_results.extend(
                         [
                             self.construct_return_data(
-                                bk_host_id=proxy_host_id,
+                                bk_host_id=proxy_host.bk_host_id,
                                 ap_id=self.FAILED_AP_ID,
                                 ap_name="",
-                                log=_("Proxy所在云区域 -> {bk_cloud_id} 下无 GSE版本 -> {gse_version} 的接入点").format(
+                                log=_("Proxy所在云区域 -> {bk_cloud_id} 下无 GSE版本 -> {gse_version} 的接入点，请联系管理员添加映射关系").format(
                                     bk_cloud_id=cloud_id,
                                     gse_version=gse_version,
                                 ),
                             )
-                            for proxy_host_id in proxy_host_ids
+                            for proxy_host in proxy_hosts
                         ]
                     )
                     return choose_ap_results
 
-            choose_ap_results.extend(
-                [
-                    self.construct_return_data(
-                        bk_host_id=proxy_host_id,
-                        ap_id=ap_id,
-                        ap_name=ap_id_obj_map[ap_id].name,
-                        log=_("已选择 Proxy 所在云区域「{bk_cloud_name}」[{bk_cloud_id}] 指定的接入点 [{ap_name}]").format(
-                            bk_cloud_name=cloud_info["bk_cloud_name"],
-                            bk_cloud_id=cloud_id,
-                            ap_name=ap_id_obj_map[ap_id].name,
-                        ),
+            for proxy_host in proxy_hosts:
+                if not proxy_host.ap_id == ap_id:
+                    # 非自动选择校验输入接入点与选择的是否一致
+                    choose_ap_results.append(
+                        self.construct_return_data(
+                            bk_host_id=proxy_host.bk_host_id,
+                            ap_id=self.FAILED_AP_ID,
+                            ap_name="",
+                            log=_(
+                                "Proxy 输出的接入点 -> {proxy_ap_id} 与所在云区域 -> {bk_cloud_id} "
+                                "对应该的GSE版本 -> {gse_version} 的接入点不一致"
+                            ).format(
+                                proxy_ap_id=proxy_host.ap_id,
+                                bk_cloud_id=cloud_id,
+                                gse_version=gse_version,
+                            ),
+                        )
                     )
-                    for proxy_host_id in proxy_host_ids
-                ]
-            )
+                else:
+                    # 自动选择直接使用云区域接入点或者云区域V1映射关系的V2接入点
+                    choose_ap_results.append(
+                        self.construct_return_data(
+                            bk_host_id=proxy_host.bk_host_id,
+                            ap_id=ap_id,
+                            ap_name=ap_id_obj_map[ap_id].name,
+                            log=_("已选择 Proxy 所在云区域「{bk_cloud_name}」[{bk_cloud_id}] 指定的接入点 [{ap_name}]").format(
+                                bk_cloud_name=cloud_info["bk_cloud_name"],
+                                bk_cloud_id=cloud_id,
+                                ap_name=ap_id_obj_map[ap_id].name,
+                            ),
+                        )
+                    )
+
         return choose_ap_results
 
     def handle_choose_ap_results(
@@ -529,7 +555,7 @@ class ChooseAccessPointService(AgentBaseService, remote.RemoteServiceMixin):
         remote_conn_helpers: List[ExternalRemoteConnHelper] = []
         choose_ap_results: List[Dict[str, Any]] = []
         bk_host_id__sub_inst_id_map: Dict[int, int] = {}
-        proxy_host_ids__gby_cloud_id: Dict[int, List[int]] = defaultdict(list)
+        proxy_hosts__gby_cloud_id: Dict[int, List[models.Host]] = defaultdict(list)
         # 按云区域划分PAGENT
         pagent_host_ids__gby_cloud_id: Dict[int, List[int]] = defaultdict(list)
 
@@ -541,7 +567,7 @@ class ChooseAccessPointService(AgentBaseService, remote.RemoteServiceMixin):
 
             # Proxy 设置为所在云区域的接入点，每次都需要重置，防止云区域修改后 Proxy 未同步
             if host.node_type == constants.NodeType.PROXY:
-                proxy_host_ids__gby_cloud_id[host.bk_cloud_id].append(host.bk_host_id)
+                proxy_hosts__gby_cloud_id[host.bk_cloud_id].append(host)
             # 主机已指定接入点
             elif host.ap_id != constants.DEFAULT_AP_ID:
                 choose_ap_results.append(
@@ -573,7 +599,7 @@ class ChooseAccessPointService(AgentBaseService, remote.RemoteServiceMixin):
         # 处理 Proxy 选择所在云区域接入点的情况
         choose_ap_results.extend(
             self.handle_proxy_condition(
-                proxy_host_ids__gby_cloud_id=proxy_host_ids__gby_cloud_id,
+                proxy_hosts__gby_cloud_id=proxy_hosts__gby_cloud_id,
                 ap_id_obj_map=ap_id_obj_map,
                 gse_version=gse_version,
             )

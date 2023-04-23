@@ -9,11 +9,11 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import typing
-from collections import defaultdict
 
-from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
 
+from apps.core.ipchooser.constants import CommonEnum
+from apps.core.ipchooser.handlers.host_handler import HostHandler
 from apps.exceptions import ApiError, ValidationError
 from apps.node_man import constants as node_man_constants
 from apps.node_man import models as node_man_models
@@ -110,49 +110,45 @@ class GrayTools:
 
 class GrayHandler:
     @classmethod
-    def get_cloud_host_query_params(cls, validated_data: typing.Dict[str, typing.List[typing.Any]]) -> Q:
+    def get_cloud_host_query_params(cls, validated_data: typing.Dict[str, typing.List[typing.Any]]) -> typing.List[int]:
         """
-        根据用户输入信息生成云区域主机查询参数
+        根据用户输入信息获取需要查询的主机ID列表
         """
-        query_params = Q()
+        bk_host_ids: typing.List[int] = []
+
         if validated_data.get("cloud_ips"):
-            # 用户输入云区域主机参数, 无此参数表示全业务进入灰度
-            cloud_hosts__map: typing.Dict[int, typing.Dict[str, typing.List[str]]] = defaultdict(dict)
+            cloud_inner_ip_set: typing.Set[str] = set()
+            cloud_inner_ipv6_set: typing.Set[str] = set()
 
             for cloud_ip in validated_data["cloud_ips"]:
                 if not len(cloud_ip.split(":")) == 2:
-                    raise ValidationError(_("cloud_ip {} 格式输入有误, 请修改后重试 示例: 0:127.0.0.1"))
-                bk_cloud_id = int(cloud_ip.split(":")[0])
+                    raise ValidationError(
+                        _("cloud_ip [{cloud_ip}] 格式输入有误, 请修改后重试 示例: 0:127.0.0.1".format(cloud_ip=cloud_ip))
+                    )
+
                 inner_ip = cloud_ip.split(":")[1]
                 if basic.is_v6(inner_ip):
-                    cloud_hosts__map[bk_cloud_id].setdefault("inner_ipv6", []).append(basic.exploded_ip(inner_ip))
+                    cloud_inner_ipv6_set.add(
+                        f"{cloud_ip.split(':')[0]}{CommonEnum.SEP.value}{basic.exploded_ip(inner_ip)}"
+                    )
                 else:
-                    cloud_hosts__map[bk_cloud_id].setdefault("inner_ip", []).append(inner_ip)
+                    cloud_inner_ip_set.add(cloud_ip)
 
-            # 组装参数
-            query_params.connector = "OR"
-            for cloud_id, hosts in cloud_hosts__map.items():
-                cloud_query_params = Q()
-                cloud_query_params.connector = "AND"
+            or_conditions = [
+                {"key": "cloud_inner_ip", "val": cloud_inner_ip_set},
+                {"key": "cloud_inner_ipv6", "val": cloud_inner_ipv6_set},
+            ]
+            hosts = HostHandler.details_base(
+                scope_list=[{"bk_biz_id": biz_id} for biz_id in validated_data["bk_biz_ids"]],
+                or_conditions=or_conditions,
+            )
 
-                ip_type_query_params = Q()
-                ip_type_query_params.connector = "OR"
+            bk_host_ids = [host["host_id"] for host in hosts]
 
-                for ip_type, inner_ip_list in hosts.items():
-                    ip_type_query_params.children.append((f"{ip_type}__in", inner_ip_list))
-
-                cloud_query_params.children.append(("bk_cloud_id", cloud_id))
-                cloud_query_params.children.append(ip_type_query_params)
-
-                query_params.children.append(cloud_query_params)
-
-        return query_params
+        return bk_host_ids
 
     @classmethod
-    def update_host_ap(cls, validated_data: typing.Dict[str, typing.List[typing.Any]], rollback: bool = False):
-
-        cloud_host_query_params: Q = cls.get_cloud_host_query_params(validated_data)
-
+    def get_gray_ap_map(cls) -> typing.Dict[int, int]:
         # 获取GSE2.0灰度 接入点映射关系
         gray_ap_map: typing.Dict[int, int] = node_man_models.GlobalSettings.get_config(
             key=node_man_models.GlobalSettings.KeyEnum.GSE2_GRAY_AP_MAP.value,
@@ -161,6 +157,18 @@ class GrayHandler:
 
         if not gray_ap_map:
             raise ApiError(_("请联系管理员配置GSE1.0-2.0接入点映射"))
+
+        return gray_ap_map
+
+    @classmethod
+    def update_host_ap(cls, validated_data: typing.Dict[str, typing.List[typing.Any]], rollback: bool = False):
+        if "clouds_ip" in validated_data and not validated_data["clouds_ip"]:
+            # 用户传入clouds_ip 但是为空列表，不作更新处理, 认为是灰度了0个IP
+            return
+
+        clouds_ip_host_ids: typing.List[int] = cls.get_cloud_host_query_params(validated_data)
+
+        gray_ap_map: typing.Dict[str, int] = cls.get_gray_ap_map()
 
         # 更新主机ap id
         for v1_ap_id, v2_ap_id in gray_ap_map.items():
@@ -173,16 +181,16 @@ class GrayHandler:
                 "ap_id": int(v1_ap_id),
             }
 
-            if cloud_host_query_params:
+            if clouds_ip_host_ids:
                 # 增加云区域主机查询参数
-                node_man_models.Host.objects.filter(cloud_host_query_params, **query_params).update(ap_id=int(v2_ap_id))
-            else:
-                node_man_models.Host.objects.filter(**query_params).update(ap_id=int(v2_ap_id))
+                query_params.update(bk_host_id__in=clouds_ip_host_ids)
+
+            node_man_models.Host.objects.filter(**query_params).update(ap_id=int(v2_ap_id))
 
     @classmethod
     def update_gray_scope_list(cls, validated_data: typing.Dict[str, typing.List[typing.Any]], rollback: bool = False):
         # 如果用户没有传cloud_ips参数更新灰度业务
-        if not validated_data.get("cloud_ips"):
+        if "cloud_ips" not in validated_data:
             gray_scope_list: typing.List[int] = GrayTools.get_gse2_gray_scope_list(get_cache=True)
             if rollback:
                 # 将业务从灰度列表中去除
@@ -196,12 +204,71 @@ class GrayHandler:
             )
 
     @classmethod
+    def update_cloud_ap_id(cls, validated_data: typing.Dict[str, typing.List[typing.Any]], rollback: bool = False):
+        gray_scope_list: typing.List[int] = node_man_models.GlobalSettings.get_config(
+            key=node_man_models.GlobalSettings.KeyEnum.GSE2_GRAY_SCOPE_LIST.value,
+            default=[],
+        )
+        gray_ap_map: typing.Dict[str, int] = cls.get_gray_ap_map()
+
+        clouds = (
+            node_man_models.Host.objects.filter(bk_biz_id__in=validated_data["bk_biz_ids"])
+            .values("bk_cloud_id")
+            .distinct()
+            .order_by("bk_cloud_id")
+        )
+
+        ap_id_obj_map: typing.Dict[int, node_man_models.AccessPoint] = node_man_models.AccessPoint.ap_id_obj_map()
+
+        for cloud in clouds:
+            cloud_obj = node_man_models.Cloud.objects.filter(bk_cloud_id=cloud["bk_cloud_id"]).first()
+
+            cloud_bizs = (
+                node_man_models.Host.objects.filter(bk_cloud_id=cloud["bk_cloud_id"])
+                .values("bk_biz_id")
+                .distinct()
+                .order_by("bk_biz_id")
+            )
+            cloud_bk_biz_ids: typing.List[int] = [cloud_biz["bk_biz_id"] for cloud_biz in cloud_bizs]
+
+            if ap_id_obj_map[cloud_obj.ap_id].gse_version == GseVersion.V2.value and rollback:
+                # 回滚V2到V1
+                for v1_ap_id, v2_ap_id in gray_ap_map.items():
+                    if cloud_obj.ap_id == v2_ap_id:
+                        if set(cloud_bk_biz_ids) - set(gray_scope_list):
+                            # 灰度范围已包含当前云区不包含当前云区域下的所有业务
+                            cloud_obj.ap_id = v1_ap_id
+                            cloud_obj.save()
+            elif ap_id_obj_map[cloud_obj.ap_id].gse_version == GseVersion.V1.value and rollback:
+                # 回滚情况且云区域接入点版本为V1不需处理
+                continue
+            elif ap_id_obj_map[cloud_obj.ap_id].gse_version == GseVersion.V2.value:
+                # 非rollback且云区域接入点版本为V2不需处理
+                continue
+            else:
+                # 常规灰度
+                if not set(cloud_bk_biz_ids) - set(gray_scope_list):
+                    # 灰度范围已包含当前云区域所有业务，云区域进入灰度
+                    try:
+                        cloud_obj.ap_id = gray_ap_map[str(cloud_obj.ap_id)]
+                        cloud_obj.save()
+                    except KeyError:
+                        raise ApiError(
+                            _("缺少云区域 -> {bk_cloud_name} ID -> {bk_cloud_id}, 接入点版本的映射关系，请联系管理员").format(
+                                bk_cloud_name=cloud_obj.bk_cloud_name, bk_cloud_id=cloud_obj.bk_cloud_id
+                            )
+                        )
+
+    @classmethod
     def build(cls, validated_data: typing.Dict[str, typing.List[typing.Any]]):
         # 更新主机ap
         cls.update_host_ap(validated_data)
 
         # 更新灰度业务范围
         cls.update_gray_scope_list(validated_data)
+
+        # 更新云区域接点
+        cls.update_cloud_ap_id(validated_data)
 
     @classmethod
     def rollback(cls, validated_data: typing.Dict[str, typing.List[typing.Any]]):
@@ -210,3 +277,6 @@ class GrayHandler:
 
         # 更新灰度业务范围
         cls.update_gray_scope_list(validated_data, rollback=True)
+
+        # 更新云区域接点
+        cls.update_cloud_ap_id(validated_data, rollback=True)

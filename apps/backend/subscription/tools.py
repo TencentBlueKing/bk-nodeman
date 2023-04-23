@@ -1336,3 +1336,23 @@ def update_job_status(pipeline_id, result=None):
         f"pipeline_id -> {pipeline_id}, subscription_id -> {subscription_id}, "
         f"job_id -> {job.id} update_job_status success."
     )
+
+
+def check_subscription_is_disabled(subscription: models.Subscription, disable_biz_ids: List[int] = None) -> bool:
+    """
+    检查订阅任务是否已被禁用巡检
+    """
+    if not disable_biz_ids:
+        disable_biz_ids: List[int] = models.GlobalSettings.get_config(
+            key=models.GlobalSettings.KeyEnum.DISABLE_SUBSCRIPTION_SCOPE_LIST.value,
+            default=[],
+        )
+
+    if any(
+        [
+            subscription.bk_biz_id in disable_biz_ids,
+            set(subscription.bk_biz_scope or []) & set(disable_biz_ids),
+        ]
+    ):
+        return True
+    return False
