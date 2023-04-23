@@ -112,23 +112,23 @@ class SubscriptionViewSet(APIViewSet):
                 if all(
                     [
                         not is_step_include_plugin,
-                        step["type"] == constants.SUB_STEP_CHOICES.PLUGIN,
+                        step["type"] == constants.SubStepType.PLUGIN,
                     ]
                 ):
                     is_step_include_plugin = True
 
-            # 步骤包括PLUGIN, 并包含灰度中业务不立即执行直接报错处理
-            if all(
-                [
-                    is_step_include_plugin,
-                    tools.check_subscription_is_disabled(subscription),
-                ]
-            ):
-                raise errors.SubscriptionIncludeGrayBizError()
-
             result = {
                 "subscription_id": subscription.id,
             }
+
+        # 步骤包括PLUGIN, 并包含灰度中业务不立即执行直接报错处理
+        if all(
+            [
+                is_step_include_plugin,
+                tools.check_subscription_is_disabled(subscription),
+            ]
+        ):
+            raise errors.SubscriptionIncludeGrayBizError()
 
         if run_immediately:
             if subscription.is_running():
@@ -285,16 +285,15 @@ class SubscriptionViewSet(APIViewSet):
             if hasattr(subscription, "_steps"):
                 delattr(subscription, "_steps")
 
-            # 步骤包括PLUGIN, 并包含灰度中业务不立即执行直接报错处理
-            if all(
-                [
-                    is_step_include_plugin,
-                    tools.check_subscription_is_disabled(subscription),
-                ]
-            ):
-                raise errors.SubscriptionIncludeGrayBizError()
-
         result = {"subscription_id": subscription.id}
+        # 步骤包括PLUGIN, 并包含灰度中业务不立即执行直接报错处理
+        if all(
+            [
+                is_step_include_plugin,
+                tools.check_subscription_is_disabled(subscription),
+            ]
+        ):
+            raise errors.SubscriptionIncludeGrayBizError()
 
         if run_immediately:
             if subscription.is_running():
