@@ -14,13 +14,14 @@ from rest_framework.response import Response
 
 from apps.generic import APIViewSet
 
-from . import handlers, serializers
+from . import handlers, permission, serializers
 
 GRAY_VIEW_TAGS = ["gray"]
 
 
 class GrayViewSet(APIViewSet):
     URL_BASE_NAME = "gray"
+    permission_classes = (permission.GrayPermission,)
 
     @swagger_auto_schema(
         operation_summary="GSE 2.0灰度",

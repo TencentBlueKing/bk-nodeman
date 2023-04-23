@@ -110,15 +110,13 @@ class GrayTools:
 
 class GrayHandler:
     @classmethod
-    def get_query_host_params(cls, validated_data: typing.Dict[str, typing.List[typing.Any]]) -> Q:
+    def get_cloud_host_query_params(cls, validated_data: typing.Dict[str, typing.List[typing.Any]]) -> Q:
         """
-        根据用户输入信息生成主机查询参数
+        根据用户输入信息生成云区域主机查询参数
         """
-        if validated_data.get("bk_biz_ids"):
-            # 全业务进入灰度
-            query_params = Q(bk_biz_id__in=validated_data["bk_biz_ids"])
-        elif validated_data.get("cloud_ips"):
-            # 用户输入主机忽略业务参数
+        query_params = Q()
+        if validated_data.get("cloud_ips"):
+            # 用户输入云区域主机参数, 无此参数表示全业务进入灰度
             cloud_hosts__map: typing.Dict[int, typing.Dict[str, typing.List[str]]] = defaultdict(dict)
 
             for cloud_ip in validated_data["cloud_ips"]:
@@ -132,7 +130,6 @@ class GrayHandler:
                     cloud_hosts__map[bk_cloud_id].setdefault("inner_ip", []).append(inner_ip)
 
             # 组装参数
-            query_params = Q()
             query_params.connector = "OR"
             for cloud_id, hosts in cloud_hosts__map.items():
                 cloud_query_params = Q()
@@ -148,15 +145,13 @@ class GrayHandler:
                 cloud_query_params.children.append(ip_type_query_params)
 
                 query_params.children.append(cloud_query_params)
-        else:
-            # 业务列表或者主机列表必须传其中之一
-            raise ValidationError(_("业务列表或者主机列表必选其一"))
 
         return query_params
 
     @classmethod
     def update_host_ap(cls, validated_data: typing.Dict[str, typing.List[typing.Any]], rollback: bool = False):
-        query_host_params: Q = cls.get_query_host_params(validated_data)
+
+        cloud_host_query_params: Q = cls.get_cloud_host_query_params(validated_data)
 
         # 获取GSE2.0灰度 接入点映射关系
         gray_ap_map: typing.Dict[int, int] = node_man_models.GlobalSettings.get_config(
@@ -172,12 +167,22 @@ class GrayHandler:
             if rollback:
                 # 如果是回滚将v1,v2 id进行对调
                 v1_ap_id, v2_ap_id = v2_ap_id, v1_ap_id
-            node_man_models.Host.objects.filter(query_host_params, ap_id=int(v1_ap_id)).update(ap_id=int(v2_ap_id))
+
+            query_params: typing.Dict = {
+                "bk_biz_id__in": validated_data["bk_biz_ids"],
+                "ap_id": int(v1_ap_id),
+            }
+
+            if cloud_host_query_params:
+                # 增加云区域主机查询参数
+                node_man_models.Host.objects.filter(cloud_host_query_params, **query_params).update(ap_id=int(v2_ap_id))
+            else:
+                node_man_models.Host.objects.filter(**query_params).update(ap_id=int(v2_ap_id))
 
     @classmethod
     def update_gray_scope_list(cls, validated_data: typing.Dict[str, typing.List[typing.Any]], rollback: bool = False):
-        # 记录灰度业务
-        if validated_data.get("bk_biz_ids", []):
+        # 如果用户没有传cloud_ips参数更新灰度业务
+        if not validated_data.get("cloud_ips"):
             gray_scope_list: typing.List[int] = GrayTools.get_gse2_gray_scope_list(get_cache=True)
             if rollback:
                 # 将业务从灰度列表中去除
