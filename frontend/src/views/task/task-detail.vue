@@ -297,7 +297,7 @@ import ColumnSetting from '@/components/common/column-setting';
 import StrategyTemplate from '@/components/common/strategy-template';
 import ExceptionCard from '@/components/exception/exception-card';
 import pollMixin from '@/common/poll-mixin';
-import { debounce, copyText, toHump, isEmpty } from '@/common/util';
+import { debounce, copyText, toHump, isEmpty, asyncCopyText } from '@/common/util';
 import { MainStore, TaskStore, AgentStore } from '@/store';
 import routerBackMixin from '@/common/router-back-mixin';
 
@@ -639,23 +639,22 @@ export default {
           { key: 'status', value: [type.key.toUpperCase()] },
         ];
       }
-      this.copyLoading = true;
-      const res = await TaskStore.requestHistoryTaskDetail({
-        jobId: this.taskId,
-        params,
+      let list = [];
+      asyncCopyText(async () => {
+        this.copyLoading = true;
+        const res = await TaskStore.requestHistoryTaskDetail({
+          jobId: this.taskId,
+          params,
+        });
+        list = res ? res.list : [];
+        this.copyLoading = false;
+        return list.map(item => item.innerIp).join('\n');
+      }, () => {
+        this.$bkMessage({
+          theme: 'success',
+          message: this.$t('IP复制成功', { num: list.length }),
+        });
       });
-      if (res) {
-        if (res.list ? res.list.length : false) {
-          const ipStr = res.list.map(item => item.innerIp).join('\n');
-          copyText(ipStr, () => {
-            this.$bkMessage({
-              theme: 'success',
-              message: this.$t('IP复制成功', { num: res.list.length }),
-            });
-          });
-        }
-      }
-      this.copyLoading = false;
     },
     handleViewLogDetail(row) {
       this.$router.push({

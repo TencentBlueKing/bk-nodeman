@@ -298,6 +298,8 @@ export default {
   仅支持Linux64位操作系统: 'Only supports Linux 64-bit operating system',
   查看任务详情: 'View job details',
   安装时间: 'Installation time',
+  复制超时: 'Copy timeout, ',
+  请重试: 'Please try again',
   '复制出错，再重新复制一遍吧': 'Copy failed! Recopy it again ha ^ - ^',
   '密钥方式仅对Linux/AIX系统生效': 'The Key mode is only available for Linux/AIX systems',
   请输入业务名称或业务ID: 'Please enter business name or business ID',
