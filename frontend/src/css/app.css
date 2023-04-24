@@ -495,10 +495,10 @@ body {
                         text-align: right;
                     }
                     &:nth-child(odd) {
-                        flex-basis: 60%;
+                        flex-basis: 55%;
                     }
                     &:nth-child(even) {
-                        flex-basis: 40%;
+                        flex-basis: 45%;
                     }
                 }
             }

@@ -1071,7 +1071,7 @@ export default class SetupTable extends Vue {
   public handleResize() {
     const { tableBody, scrollPlace } = this;
     if (tableBody && scrollPlace) {
-      this.hasScroll = tableBody.clientHeight < scrollPlace.clientHeight;
+      this.hasScroll = tableBody.clientHeight + 2 < scrollPlace.clientHeight;
     } else {
       this.hasScroll = false;
     }
