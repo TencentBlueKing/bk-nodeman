@@ -40,7 +40,7 @@
             :min-items="minItems"
             :height="scrollHeight"
             :need-plus="false"
-            :virtual-scroll="virtualScroll"
+            :virtual-scroll="true"
             :extra-params="extraParams"
             auto-sort
             @delete="handleItemDelete">
@@ -194,7 +194,7 @@ export default class AgentImport extends Mixins(mixin) {
   // 虚拟滚动高度
   private get scrollHeight() {
     // 135： footer、表头和tips的高度
-    return this.virtualScroll && this.height ? `${this.height - this.surplusHeight}px` : 'auto';
+    return `${Math.min(this.setupNum * 44 + 2, this.height - this.surplusHeight)}px`;
   }
   private get showSetupTips() {
     return this.showSetupBtn && this.isInstallType;
