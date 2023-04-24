@@ -437,6 +437,42 @@ export const transformDataKey = (data: Dictionary = {}, mode = 'camel'): Diction
 
   return result;
 };
+
+const copyTextListener = (): boolean => {
+  if (window.copyEnable) {
+    const curTime = new Date().getTime();
+    // 浏览器操作间隔大约是5s，此处少0.5s
+    window.copyEnable = (curTime - window.copyStart) <= 4500;
+    window.copyStart = curTime;
+  }
+  return window.copyEnable;
+};
+
+export const asyncCopyText = async (loadFn: Function, successFn?: Function) => {
+  window.copyStart = new Date().getTime();
+  window.copyEnable = true;
+  document.addEventListener('click', copyTextListener);
+  const text = await loadFn();
+  const copyEnable = copyTextListener();
+  document.removeEventListener('click', copyTextListener);
+  if (copyEnable) {
+    copyText(text, successFn);
+  } else {
+    const h = window.mainComponent.$createElement;
+    const copyBtn = h('p', [
+      window.i18n.t('复制超时'), h('bk-link', {
+        props: {
+          theme: 'primary',
+        },
+        on: {
+          click: () => copyText(text, successFn),
+        },
+      }, window.i18n.t('请重试')),
+    ]);
+    window.bus.messageError(copyBtn);
+  }
+};
+
 /**
  * 复制文本
  * @param {String} text

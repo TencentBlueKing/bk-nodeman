@@ -24,7 +24,7 @@
 <script lang="ts">
 import { Component, Vue, Prop, Ref } from 'vue-property-decorator';
 import AssociateList, { IAssociateItem } from '@/components/common/associate-list.vue';
-import { copyText } from '@/common/util';
+import { asyncCopyText } from '@/common/util';
 
 export const checkedChildList = window.$DHCP
   ? [
@@ -89,26 +89,21 @@ export default class CopyDropdown extends Vue {
     ];
   }
 
-  public async handleClick(type: string, item: IAssociateItem) {
+  public handleClick(type: string, item: IAssociateItem) {
     if (!item.disabled && !item.child?.length) {
-      this.loading = true;
-      const list = await this.getIps(type);
-      this.copyIpRef.hide();
-      this.loading = false;
-      const checkedIpText = list.join('\n');
-      if (checkedIpText) {
-        copyText(checkedIpText, () => {
-          this.$bkMessage({
-            theme: 'success',
-            message: this.$t('复制成功Object', [list.length, type.includes('v6') ? 'IPv6' : 'IPv4']),
-          });
-        });
-      } else {
+      let list = [];
+      asyncCopyText(async () => {
+        this.loading = true;
+        list = await this.getIps(type);
+        this.copyIpRef.hide();
+        this.loading = false;
+        return list.join('\n');
+      }, () => {
         this.$bkMessage({
-          theme: 'error',
-          message: this.$t('复制失败common'),
+          theme: 'success',
+          message: this.$t('复制成功Object', [list.length, type.includes('v6') ? 'IPv6' : 'IPv4']),
         });
-      }
+      });
     }
   }
 }

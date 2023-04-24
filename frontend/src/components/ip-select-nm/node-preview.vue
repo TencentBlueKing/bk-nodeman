@@ -42,7 +42,7 @@ import StaticContentTable from './static-content-table.vue';
 import NodePreviewTable from './node-preview-table.vue';
 import MoreOperate from '@/views/plugin/plugin-rule/components/more-operate.vue';
 import { VueConstructor } from 'vue';
-import { copyText } from '@/common/util';
+import { asyncCopyText } from '@/common/util';
 import { IPagination } from '@/types';
 
 interface ICollapseItem {
@@ -166,7 +166,6 @@ export default class NodePreview extends Vue {
     this.popoverInstance.show();
   }
   private async copyIP(type: string) {
-    let data = [];
     const params: { [key: string]: any } = {
       page: 1,
       pagesize: -1,
@@ -182,9 +181,12 @@ export default class NodePreview extends Vue {
         value: ['TERMINATED'],
       }];
     }
-    const { list, total } = await this.resetTableData(params);
-    data = list;
-    copyText(data.map((item: any) => item.inner_ip).join(), () => {
+    let total = 0;
+    asyncCopyText(async () => {
+      const res = await this.resetTableData(params);
+      total = res.total;
+      return res.list.map((item: any) => item.inner_ip).join('\n');
+    }, () => {
       this.$bkMessage({ message: this.$t('IP复制成功', { num: total }), theme: 'success' });
     });
   }
