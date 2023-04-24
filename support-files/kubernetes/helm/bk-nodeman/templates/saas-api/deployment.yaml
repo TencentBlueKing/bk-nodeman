@@ -69,10 +69,20 @@ spec:
             httpGet:
               path: /version
               port: {{ $svcPort }}
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 10
+            successThreshold: 1
           readinessProbe:
             httpGet:
               path: /version
               port: {{ $svcPort }}
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 15
+            successThreshold: 1
           resources:
             {{- toYaml $moduleConf.resources | nindent 12 }}
       volumes:
