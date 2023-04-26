@@ -28,7 +28,7 @@ pip install pymysql
 - 导出文件路径 ：
 	- 云区域文件路径：`node_man_export/cloud_info.csv`
 	- 主机文件路径：`node_man_export/proxy_host_info.csv`
-	-  `node_man_export` 位于脚本所在当前目录
+	- `node_man_export` 位于脚本所在当前目录
 
 #### 详细日志
 
@@ -54,7 +54,7 @@ python export_host_info.py --host 127.0.0.1 --port 3306 --password blueking --db
 
 
 ### 导入脚本使用说明
-> 导入脚本属于项目内的 `django command` ，通过链接外部数据库读取映射数据，并根据导出文件内的数据，调整节点管理导入数据
+> 导入脚本属于项目内的 `django command` ，通过链接指定数据库读取映射数据，并根据导出文件内的数据，调整节点管理当前环境内相关数据
 
 *导入脚本无第三方依赖，可以直接使用*
 
@@ -92,37 +92,43 @@ old_ap__new_ap_map:   导出环境接入点 ID 与当前环境接入点 ID 映�
 bk_biz_ids：指定的迁移当前环境业务 ID 范围，格式为: 1,2,3
 
 #### 使用示例
+> 其中 `proxy_host_info.csv` 和 `cloud_info.csv` 文件都是通过导出脚本导出的环境数据文件，详情见导出章节
 ```bash
-# 定位业务 ID 为 38 的 Proxy 主机
-python manage.py load_env_info --env_name="test_load.com" --bk_biz_ids=1,2,3  --mysql_host=127.0.0.1 --mysql_password=12345  --mysql_port=3306  --old_ap__new_ap_map='-1:-1,1:2,2:3' --cloud_file_path='/app/scripts/load_or_export_host_info/node_man_export/cloud_info.csv' --proxy_file_path='/app/scripts/load_or_export_host_info/node_man_export/proxy_host_info.csv' --is_migrate_proxy_info 
+# 复制导出文件 proxy_host_info.csv 和 cloud_info.csv 到节点管理容器目录: /app/scripts/load_or_export_host_info/node_man_export
+export FIRST_RUNNING_POD=$(kubectl get pods -n blueking --selector=app.kubernetes.io/instance=bk-nodeman --field-selector=status.phase=Running -o custom-columns=":metadata.name" | sed '/^$/d' | head -n 1)
+
+kubectl cp proxy_host_info.csv -n blueking ${FIRST_RUNNING_POD}:/app/scripts/load_or_export_host_info/node_man_export
+kubectl cp cloud_info.csv -n blueking ${FIRST_RUNNING_POD}:/app/scripts/load_or_export_host_info/node_man_export
+```
+
+```bash
+# 定位业务 ID 列表: [1,2,3] 内的 Proxy 主机
+kubectl exec -n blueking ${FIRST_RUNNING_POD} -- python manage.py load_env_info --env_name="test_load.com" --bk_biz_ids=1,2,3  --mysql_host=127.0.0.1 --mysql_password=12345  --mysql_port=3306  --old_ap__new_ap_map='-1:-1,1:2,2:3' --cloud_file_path='/app/scripts/load_or_export_host_info/node_man_export/cloud_info.csv' --proxy_file_path='/app/scripts/load_or_export_host_info/node_man_export/proxy_host_info.csv' --is_migrate_proxy_info 
 
 
-# 切换环境内的所有云区域接入点信息，并且切换业务 ID 为38的业务内并且属于相关云区域下的的所有主机接入点
-python manage.py load_env_info --env_name="test_load.com" --bk_biz_ids=1,2,3  --mysql_host=127.0.0.1 --mysql_password=12345 --mysql_port=3306  --old_ap__new_ap_map='-1:-1,1:2,2:3' --cloud_file_path='/app/scripts/load_or_export_host_info/node_man_export/cloud_info.csv' --proxy_file_path='/app/scripts/load_or_export_host_info/node_man_export/proxy_host_info.csv' --is_switch_env_ap
-
+# 切换环境内的导出云区域对应的所有云区域接入点信息，并且切换业务 ID 在 [1,2,3] 的业务内并且属于相关云区域下的的所有主机接入点
+kubectl exec -n blueking ${FIRST_RUNNING_POD} -- python manage.py load_env_info --env_name="test_load.com" --bk_biz_ids=1,2,3  --mysql_host=127.0.0.1 --mysql_password=12345 --mysql_port=3306  --old_ap__new_ap_map='-1:-1,1:2,2:3' --cloud_file_path='/app/scripts/load_or_export_host_info/node_man_export/cloud_info.csv' --proxy_file_path='/app/scripts/load_or_export_host_info/node_man_export/proxy_host_info.csv' --is_switch_env_ap
 ```
 
 
 ### 第三方插件导入
+> 将需要导入的插件包复制到节点管理容器内，然后执行导入命令即可
 
 ```bash
 
-# 1. 复制插件包到容器
-PKG_NAME="nodeman_upload_o_bk-2023-04-18.tar.gz"
+# 1. 复制插件包目录压缩文件 nodeman_upload_o_bk.tar.gz 到容器, 如迁移单个插件，跳过解压步骤即可
+PLUGINS_PKG_NAME="nodeman_upload_o_bk.tar.gz"
 
 export FIRST_RUNNING_POD=$(kubectl get pods -n blueking \
   --selector=app.kubernetes.io/instance=bk-nodeman --field-selector=status.phase=Running \
   -o custom-columns=":metadata.name" | sed '/^$/d' | head -n 1 )
 
-kubectl cp ${PKG_NAME}  -n blueking ${FIRST_RUNNING_POD}:/app/official_plugin/
+kubectl cp ${PLUGINS_PKG_NAME}  -n blueking ${FIRST_RUNNING_POD}:/app/official_plugin/
 
-# 2. 登录容器 ID 为${FIRST_RUNNING_POD}
+# 2. 解压容器的插件包目录压缩包 并且检查是否符合预期
+kubectl exec -n blueking ${FIRST_RUNNING_POD} -- cd /app/offcial_plugin && tar xvf ${PLUGINS_PKG_NAME}
+kubectl exec -n blueking ${FIRST_RUNNING_POD} -- ls -l /app/official_plugin
 
-# 3. 检查插件包是否上传并且解压
-ll /app/official_plugin/${FIRST_RUNNING_POD}
-cd /app/offical_plugin/ && tar xvf ${PKG_NAME}
-
-# 4. 执行迁移命令
-python manage.py init_official_plugins
-
+# 3. 执行迁移命令
+kubectl exec -n blueking ${FIRST_RUNNING_POD} -- python manage.py init_official_plugins
 ```
