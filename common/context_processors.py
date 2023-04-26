@@ -95,4 +95,8 @@ def mysetting(request):
         # TAM前端监控
         "TAM_ID": os.getenv("BKAPP_TAM_ID"),
         "TAM_URL": os.getenv("BKAPP_TAM_URL"),
+        # 导航栏开源社区地址
+        "BKAPP_NAV_OPEN_SOURCE_URL": settings.BKAPP_NAV_OPEN_SOURCE_URL,
+        # 导航栏技术支持地址
+        "BKAPP_NAV_HELPER_URL": settings.BKAPP_NAV_HELPER_URL,
     }
