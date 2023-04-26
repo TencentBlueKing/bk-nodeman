@@ -25,15 +25,20 @@ from ...utils.cache import func_cache_decorator
 
 class GrayTools:
     @classmethod
-    @func_cache_decorator(cache_time=10 * node_man_constants.TimeUnit.SECOND)
-    def get_gse2_gray_scope_list(cls) -> typing.List[int]:
+    @func_cache_decorator(cache_time=5 * node_man_constants.TimeUnit.SECOND)
+    def get_or_create_gse2_gray_scope_list(cls) -> typing.List[int]:
         """
         获取 GSE2.0 灰度列表
         :return:
         """
-        return node_man_models.GlobalSettings.get_config(
-            node_man_models.GlobalSettings.KeyEnum.GSE2_GRAY_SCOPE_LIST.value, default=[]
+        gray_scope_list_or_none: typing.Optional[typing.List[int]] = node_man_models.GlobalSettings.get_config(
+            node_man_models.GlobalSettings.KeyEnum.GSE2_GRAY_SCOPE_LIST.value, default=None
         )
+        if gray_scope_list_or_none is not None:
+            return gray_scope_list_or_none
+
+        node_man_models.GlobalSettings.set_config(node_man_models.GlobalSettings.KeyEnum.GSE2_GRAY_SCOPE_LIST.value, [])
+        return []
 
     @classmethod
     def is_gse2_gray(cls, bk_biz_id: typing.Any) -> bool:
@@ -42,7 +47,7 @@ class GrayTools:
         :param bk_biz_id: 业务 ID
         :return:
         """
-        return bk_biz_id in set(cls.get_gse2_gray_scope_list(get_cache=True))
+        return bk_biz_id in set(cls.get_or_create_gse2_gray_scope_list(get_cache=True))
 
     @classmethod
     def get_host_ap_gse_version(
@@ -158,7 +163,7 @@ class GrayHandler:
         if not gray_ap_map:
             raise ApiError(_("请联系管理员配置GSE1.0-2.0接入点映射"))
 
-        return gray_ap_map
+        return {int(v1_ap_id): v2_ap_id for v1_ap_id, v2_ap_id in gray_ap_map.items()}
 
     @classmethod
     def update_host_ap(cls, validated_data: typing.Dict[str, typing.List[typing.Any]], rollback: bool = False):
@@ -168,7 +173,7 @@ class GrayHandler:
 
         clouds_ip_host_ids: typing.List[int] = cls.get_cloud_host_query_params(validated_data)
 
-        gray_ap_map: typing.Dict[str, int] = cls.get_gray_ap_map()
+        gray_ap_map: typing.Dict[int, int] = cls.get_gray_ap_map()
 
         # 更新主机ap id
         for v1_ap_id, v2_ap_id in gray_ap_map.items():
@@ -190,8 +195,10 @@ class GrayHandler:
     @classmethod
     def update_gray_scope_list(cls, validated_data: typing.Dict[str, typing.List[typing.Any]], rollback: bool = False):
         # 如果用户没有传cloud_ips参数更新灰度业务
+        print(validated_data)
         if "cloud_ips" not in validated_data:
-            gray_scope_list: typing.List[int] = GrayTools.get_gse2_gray_scope_list(get_cache=True)
+            # 使用最新的灰度列表进行更新，不走缓存
+            gray_scope_list: typing.List[int] = GrayTools.get_or_create_gse2_gray_scope_list(get_cache=False)
             if rollback:
                 # 将业务从灰度列表中去除
                 gray_scope_list: typing.List[int] = list(set(gray_scope_list) - set(validated_data["bk_biz_ids"]))
@@ -209,7 +216,7 @@ class GrayHandler:
             key=node_man_models.GlobalSettings.KeyEnum.GSE2_GRAY_SCOPE_LIST.value,
             default=[],
         )
-        gray_ap_map: typing.Dict[str, int] = cls.get_gray_ap_map()
+        gray_ap_map: typing.Dict[int, int] = cls.get_gray_ap_map()
 
         clouds = (
             node_man_models.Host.objects.filter(bk_biz_id__in=validated_data["bk_biz_ids"])
@@ -222,6 +229,10 @@ class GrayHandler:
 
         for cloud in clouds:
             cloud_obj = node_man_models.Cloud.objects.filter(bk_cloud_id=cloud["bk_cloud_id"]).first()
+
+            # 跳过云区域不存在的情况
+            if not cloud_obj:
+                continue
 
             cloud_bizs = (
                 node_man_models.Host.objects.filter(bk_cloud_id=cloud["bk_cloud_id"])
@@ -250,7 +261,7 @@ class GrayHandler:
                 if not set(cloud_bk_biz_ids) - set(gray_scope_list):
                     # 灰度范围已包含当前云区域所有业务，云区域进入灰度
                     try:
-                        cloud_obj.ap_id = gray_ap_map[str(cloud_obj.ap_id)]
+                        cloud_obj.ap_id = gray_ap_map[cloud_obj.ap_id]
                         cloud_obj.save()
                     except KeyError:
                         raise ApiError(
