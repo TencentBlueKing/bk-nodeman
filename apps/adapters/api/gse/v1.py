@@ -12,6 +12,7 @@ import typing
 from collections import Mapping
 
 from apps.node_man import constants, models
+from apps.utils import basic
 
 from . import base
 
@@ -52,7 +53,9 @@ class GseV1ApiHelper(base.GseApiBaseHelper):
         **options,
     ) -> base.AgentIdInfoMap:
         hosts: base.InfoDictList = [
-            {"ip": host_info["ip"], "bk_cloud_id": host_info["bk_cloud_id"]} for host_info in host_info_list
+            {"ip": host_info["ip"], "bk_cloud_id": host_info["bk_cloud_id"]}
+            for host_info in host_info_list
+            if basic.is_v4(host_info["ip"])
         ]
         query_params: base.InfoDict = {
             "meta": {"namespace": constants.GSE_NAMESPACE, "name": proc_name, "labels": {"proc_name": proc_name}},
@@ -64,8 +67,8 @@ class GseV1ApiHelper(base.GseApiBaseHelper):
         # 1000: 0.5s-0.6s (0.53s 0.56s 0.61s)
         # 2000: 0.9s (0.91s, 0.93s)
         # 5000: 2s-4s (2.3s 2.2s 4.1s 4.3s)
-        proc_infos: base.InfoDictList = self.gse_api_obj.get_proc_status(query_params).get("proc_infos") or []
         agent_id__proc_info_map: base.AgentIdInfoMap = {}
+        proc_infos: base.InfoDictList = self.gse_api_obj.get_proc_status(query_params).get("proc_infos") or []
         for proc_info in proc_infos:
             agent_id__proc_info_map[self.get_agent_id(proc_info)] = {
                 "version": self.get_version(proc_info.get("version")),
@@ -73,16 +76,39 @@ class GseV1ApiHelper(base.GseApiBaseHelper):
                 "is_auto": constants.AutoStateType.AUTO if proc_info["isauto"] else constants.AutoStateType.UNAUTO,
                 "name": proc_info["meta"]["name"],
             }
+
+        # 查询不到进程状态时，视为进程已注销
+        agent_id_list: typing.List[str] = list({self.get_agent_id(host_info) for host_info in host_info_list})
+        for agent_id in agent_id_list:
+            if agent_id not in agent_id__proc_info_map:
+                agent_id__proc_info_map[agent_id] = {
+                    "version": "",
+                    "status": constants.ProcStateType.UNREGISTER,
+                    "is_auto": constants.AutoStateType.UNAUTO,
+                    "name": proc_name,
+                }
         return agent_id__proc_info_map
 
     def _list_agent_state(self, host_info_list: base.InfoDictList) -> base.AgentIdInfoMap:
+
         hosts: base.InfoDictList = [
-            {"ip": host_info["ip"], "bk_cloud_id": host_info["bk_cloud_id"]} for host_info in host_info_list
+            {"ip": host_info["ip"], "bk_cloud_id": host_info["bk_cloud_id"]}
+            for host_info in host_info_list
+            # GSE 1.0 接口不支持 IPv6，灰度场景下有可能部分 IPv6 进入该逻辑，此处进行屏蔽
+            if basic.is_v4(host_info["ip"])
         ]
         agent_id__info_map: base.AgentIdInfoMap = self.gse_api_obj.get_agent_info({"hosts": hosts})
         agent_id__status_map: base.AgentIdInfoMap = self.gse_api_obj.get_agent_status({"hosts": hosts})
 
-        for agent_id, agent_info in agent_id__info_map.items():
+        agent_id_list: typing.List[str] = list({self.get_agent_id(host_info) for host_info in host_info_list})
+        for agent_id in agent_id_list:
+            if agent_id not in agent_id__info_map:
+                agent_id__info_map[agent_id] = {
+                    "version": "",
+                    "bk_agent_alive": constants.BkAgentStatus.NOT_ALIVE.value,
+                }
+
+            agent_info = agent_id__info_map[agent_id]
             agent_info.update(agent_id__status_map.get(agent_id) or {})
             agent_info["version"] = self.get_version(agent_info.get("version"))
             agent_info["bk_agent_alive"] = agent_info.get("bk_agent_alive") or constants.BkAgentStatus.NOT_ALIVE.value
