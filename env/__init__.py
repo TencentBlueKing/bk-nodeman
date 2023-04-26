@@ -28,6 +28,8 @@ __all__ = [
     "BKAPP_OTEL_SAMPLER",
     "BKAPP_OTEL_BK_DATA_TOKEN",
     "BKAPP_OTEL_GRPC_URL",
+    "BKAPP_NAV_OPEN_SOURCE_URL",
+    "BKAPP_NAV_HELPER_URL",
     "BK_CC_HOST",
     "BK_API_URL_TMPL",
     "ENVIRONMENT",
@@ -108,3 +110,12 @@ BK_CC_HOST = get_type_env(key="BK_CC_HOST", default="", _type=str)
 
 # APIGW API 地址模板，在 PaaS 3.0 部署的应用，可从环境变量中获取 BK_API_URL_TMPL
 BK_API_URL_TMPL = get_type_env(key="BK_API_URL_TMPL", default=BK_COMPONENT_API_URL + "/api/{api_name}", _type=str)
+
+# 导航栏开源社区地址
+BKAPP_NAV_OPEN_SOURCE_URL = get_type_env(
+    key="BKAPP_NAV_OPEN_SOURCE_URL", default="https://bk.tencent.com/s-mart/community/question", _type=str
+)
+# 导航栏技术支持地址
+BKAPP_NAV_HELPER_URL = get_type_env(
+    key="BKAPP_NAV_HELPER_URL", default="https://wpa1.qq.com/KziXGWJs?_type=wpa&qidian=true", _type=str
+)
