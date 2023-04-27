@@ -42,9 +42,9 @@ class ReloadAgentConfigService(RestartService):
 
         return f"cd {agent_path} && ./gse_agent --reload"
 
-    def update_host_upstream_nodes(self, common_data: AgentCommonData):
+    def update_host_upstream_nodes(self, common_data: AgentCommonData, gse_version: str):
         hosts = [host for host in common_data.host_id_obj_map.values() if host.bk_cloud_id != constants.DEFAULT_CLOUD]
-        host_id__installation_tool_map = self.get_host_id__installation_tool_map(common_data, hosts, False)
+        host_id__installation_tool_map = self.get_host_id__installation_tool_map(common_data, hosts, False, gse_version)
         # 把上游节点相同的主机进行分类并更新
         upstream_nodes__host_ids_map = defaultdict(list)
         for host_id, installation_tool in host_id__installation_tool_map.items():
@@ -53,5 +53,6 @@ class ReloadAgentConfigService(RestartService):
             models.Host.objects.filter(bk_host_id__in=host_ids).update(upstream_nodes=upstream_nodes.split(","))
 
     def _execute(self, data, parent_data, common_data: AgentCommonData):
+        gse_version: str = data.get_one_of_inputs("meta", {}).get("GSE_VERSION")
         super(ReloadAgentConfigService, self)._execute(data, parent_data, common_data)
-        self.update_host_upstream_nodes(common_data)
+        self.update_host_upstream_nodes(common_data, gse_version)

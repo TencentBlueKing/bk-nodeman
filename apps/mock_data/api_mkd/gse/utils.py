@@ -9,6 +9,8 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+from apps.adapters.api.gse import GSE_HELPERS
+
 from ... import utils
 from . import unit
 
@@ -29,8 +31,8 @@ class GseApiMockClient(utils.BaseMockClient):
     GET_AGENT_NOT_ALIVE_STATUS_RETURN = utils.MockReturn(
         return_type=utils.MockReturnType.RETURN_VALUE.value, return_obj=unit.GET_AGENT_NOT_ALIVE_STATUS_DATA
     )
-    DEFAULT_V2_CLUSTER_LIST_AGENT_STATE_RETURN = utils.MockReturn(
-        return_type=utils.MockReturnType.SIDE_EFFECT.value, return_obj=unit.mock_v2_cluster_list_agent_state_return
+    DEFAULT_LIST_AGENT_STATE_RETURN = utils.MockReturn(
+        return_type=utils.MockReturnType.SIDE_EFFECT.value, return_obj=unit.mock_list_agent_state_return
     )
     GET_AGENT_NOT_ALIVE_STATE_LIST_RETURN = utils.MockReturn(
         return_type=utils.MockReturnType.RETURN_VALUE.value, return_obj=unit.GET_V2_AGENT_NOT_ALIVE_STATE_LIST
@@ -38,7 +40,7 @@ class GseApiMockClient(utils.BaseMockClient):
     DEFAULT_GET_PROC_STATUS_RETURN = utils.MockReturn(
         return_type=utils.MockReturnType.SIDE_EFFECT.value, return_obj=unit.mock_get_proc_status
     )
-    DEFAULT_V2_PROC_UPGRADE_TO_AGENT_ID_RETURN = utils.MockReturn(
+    DEFAULT_UPGRADE_TO_AGENT_ID_RETURN = utils.MockReturn(
         return_type=utils.MockReturnType.SIDE_EFFECT.value, return_obj=unit.mock_upgrade_to_agent_id
     )
 
@@ -52,8 +54,8 @@ class GseApiMockClient(utils.BaseMockClient):
         update_proc_info_return=None,
         get_agent_info_return=DEFAULT_GET_AGENT_INFO_RETURN,
         get_agent_status_return=DEFAULT_GET_AGENT_STATUS_RETURN,
-        v2_cluster_list_agent_state_return=DEFAULT_V2_CLUSTER_LIST_AGENT_STATE_RETURN,
-        v2_proc_upgrade_to_agent_id_return=DEFAULT_V2_PROC_UPGRADE_TO_AGENT_ID_RETURN,
+        list_agent_state_return=DEFAULT_LIST_AGENT_STATE_RETURN,
+        upgrade_to_agent_id_return=DEFAULT_UPGRADE_TO_AGENT_ID_RETURN,
     ):
         super().__init__()
         self.operate_proc = self.generate_magic_mock(mock_return_obj=operate_proc_return)
@@ -64,5 +66,10 @@ class GseApiMockClient(utils.BaseMockClient):
         self.update_proc_info = self.generate_magic_mock(mock_return_obj=update_proc_info_return)
         self.get_agent_info = self.generate_magic_mock(mock_return_obj=get_agent_info_return)
         self.get_agent_status = self.generate_magic_mock(mock_return_obj=get_agent_status_return)
-        self.v2_cluster_list_agent_state = self.generate_magic_mock(mock_return_obj=v2_cluster_list_agent_state_return)
-        self.v2_proc_upgrade_to_agent_id = self.generate_magic_mock(mock_return_obj=v2_proc_upgrade_to_agent_id_return)
+        self.list_agent_state = self.generate_magic_mock(mock_return_obj=list_agent_state_return)
+        self.upgrade_to_agent_id = self.generate_magic_mock(mock_return_obj=upgrade_to_agent_id_return)
+
+
+def get_gse_api_helper(_gse_version: str, gse_api_obj: GseApiMockClient):
+
+    return lambda gse_version: GSE_HELPERS[_gse_version](version=gse_version, gse_api_obj=gse_api_obj)

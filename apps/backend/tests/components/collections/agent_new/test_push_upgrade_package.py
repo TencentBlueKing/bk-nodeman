@@ -17,6 +17,7 @@ from django.utils.crypto import get_random_string
 from apps.backend.components.collections.agent_new import components
 from apps.node_man import constants, models
 from common.api import JobApi
+from env.constants import GseVersion
 from pipeline.component_framework.test import ComponentTestCase, ExecuteAssertion
 
 from . import base, utils
@@ -56,6 +57,11 @@ class PushUpgradePackageV2TestCase(PushUpgradePackageTestCase):
         sub_step_obj: models.SubscriptionStep = cls.obj_factory.sub_step_objs[0]
         sub_step_obj.config.update({"name": "gse_agent", "version": "2.0.0"})
         sub_step_obj.save()
+
+    def structure_common_inputs(self):
+        inputs = super().structure_common_inputs()
+        inputs["meta"] = {"GSE_VERSION": GseVersion.V2.value}
+        return inputs
 
     def component_cls(self):
         return components.PushUpgradePackageComponent

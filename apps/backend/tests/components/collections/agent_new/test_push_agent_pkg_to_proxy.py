@@ -27,6 +27,7 @@ from apps.mock_data import api_mkd
 from apps.mock_data import utils as mock_data_utils
 from apps.node_man import constants, models
 from common.api import JobApi
+from env.constants import GseVersion
 
 from . import base
 
@@ -43,6 +44,7 @@ class PushAgentPackageToProxyTestCase(base.JobBaseTestCase):
     def init_ap(self) -> models.AccessPoint:
         ap_obj = self.create_ap("测试接入点")
         ap_obj.nginx_path = self.DOWNLOAD_PATH
+        ap_obj.gse_version = GseVersion.V2.value
         ap_obj.save()
         os.makedirs(self.DOWNLOAD_PATH, exist_ok=True)
         mock_os_cpu = {
@@ -56,7 +58,7 @@ class PushAgentPackageToProxyTestCase(base.JobBaseTestCase):
 
     def init_hosts(self):
         ap_obj = self.init_ap()
-        self.init_alive_proxies(bk_cloud_id=self.CLOUD_ID)
+        self.init_alive_proxies(bk_cloud_id=self.CLOUD_ID, gse_version=GseVersion.V2.value)
         install_channel, jump_server_host_ids = self.create_install_channel()
         self.jump_server_host_ids = set(jump_server_host_ids)
         models.Host.objects.filter(bk_host_id__in=self.obj_factory.bk_host_ids).update(ap_id=ap_obj.id)
@@ -100,6 +102,11 @@ class PushAgentPackageToProxyTestCase(base.JobBaseTestCase):
             ),
         )
         super().init_mock_clients()
+
+    def structure_common_inputs(self):
+        inputs = super().structure_common_inputs()
+        inputs["meta"] = {"GSE_VERSION": GseVersion.V2.value}
+        return inputs
 
     @classmethod
     def get_default_case_name(cls) -> str:
