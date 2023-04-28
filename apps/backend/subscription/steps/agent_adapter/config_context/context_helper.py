@@ -141,7 +141,9 @@ class ConfigContextHelper:
             ),
             context_dataclass.FileAgentConfigContext(
                 bind_port=self.ap.port_config["file_svr_port"],
-                bind_port_v1=constants.GSE_PORT_DEFAULT_VALUE["file_svr_port"],
+                bind_port_v1=self.ap.port_config.get(
+                    "file_svr_port_v1", constants.GSE_PORT_DEFAULT_VALUE["file_svr_port_v1"]
+                ),
                 advertise_ipv4=self.host.inner_ip or "",
                 advertise_ipv6=self.host.inner_ipv6 or "",
                 tls_ca_file=proxy_tls_ca_file,
