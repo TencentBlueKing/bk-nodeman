@@ -194,21 +194,18 @@ class GrayHandler:
 
     @classmethod
     def update_gray_scope_list(cls, validated_data: typing.Dict[str, typing.List[typing.Any]], rollback: bool = False):
-        # 如果用户没有传cloud_ips参数更新灰度业务
-        print(validated_data)
-        if "cloud_ips" not in validated_data:
-            # 使用最新的灰度列表进行更新，不走缓存
-            gray_scope_list: typing.List[int] = GrayTools.get_or_create_gse2_gray_scope_list(get_cache=False)
-            if rollback:
-                # 将业务从灰度列表中去除
-                gray_scope_list: typing.List[int] = list(set(gray_scope_list) - set(validated_data["bk_biz_ids"]))
-            else:
-                # 记录灰度业务
-                gray_scope_list.extend(validated_data["bk_biz_ids"])
+        # 使用最新的灰度列表进行更新，不走缓存
+        gray_scope_list: typing.List[int] = GrayTools.get_or_create_gse2_gray_scope_list(get_cache=False)
+        if rollback:
+            # 将业务从灰度列表中去除
+            gray_scope_list: typing.List[int] = list(set(gray_scope_list) - set(validated_data["bk_biz_ids"]))
+        else:
+            # 记录灰度业务
+            gray_scope_list.extend(validated_data["bk_biz_ids"])
 
-            node_man_models.GlobalSettings.update_config(
-                node_man_models.GlobalSettings.KeyEnum.GSE2_GRAY_SCOPE_LIST.value, gray_scope_list
-            )
+        node_man_models.GlobalSettings.update_config(
+            node_man_models.GlobalSettings.KeyEnum.GSE2_GRAY_SCOPE_LIST.value, gray_scope_list
+        )
 
     @classmethod
     def update_cloud_ap_id(cls, validated_data: typing.Dict[str, typing.List[typing.Any]], rollback: bool = False):
@@ -228,7 +225,9 @@ class GrayHandler:
         ap_id_obj_map: typing.Dict[int, node_man_models.AccessPoint] = node_man_models.AccessPoint.ap_id_obj_map()
 
         for cloud in clouds:
-            cloud_obj = node_man_models.Cloud.objects.filter(bk_cloud_id=cloud["bk_cloud_id"]).first()
+            cloud_obj: typing.Optional[node_man_models.Cloud] = node_man_models.Cloud.objects.filter(
+                bk_cloud_id=cloud["bk_cloud_id"]
+            ).first()
 
             # 跳过云区域不存在的情况
             if not cloud_obj:
@@ -246,8 +245,8 @@ class GrayHandler:
                 # 回滚V2到V1
                 for v1_ap_id, v2_ap_id in gray_ap_map.items():
                     if cloud_obj.ap_id == v2_ap_id:
-                        if set(cloud_bk_biz_ids) - set(gray_scope_list):
-                            # 灰度范围已包含当前云区不包含当前云区域下的所有业务
+                        # 当云区域覆盖的业务（cloud_bk_biz_ids）完全包含于灰度业务集（gray_scope_list）时，需要操作回滚
+                        if not set(cloud_bk_biz_ids) - set(gray_scope_list):
                             cloud_obj.ap_id = v1_ap_id
                             cloud_obj.save()
             elif ap_id_obj_map[cloud_obj.ap_id].gse_version == GseVersion.V1.value and rollback:
@@ -257,9 +256,8 @@ class GrayHandler:
                 # 非rollback且云区域接入点版本为V2不需处理
                 continue
             else:
-                # 常规灰度
+                # 当云区域覆盖的业务（cloud_bk_biz_ids）完全包含于灰度业务集（gray_scope_list）时，需要操作灰度
                 if not set(cloud_bk_biz_ids) - set(gray_scope_list):
-                    # 灰度范围已包含当前云区域所有业务，云区域进入灰度
                     try:
                         cloud_obj.ap_id = gray_ap_map[cloud_obj.ap_id]
                         cloud_obj.save()
@@ -272,22 +270,31 @@ class GrayHandler:
 
     @classmethod
     def build(cls, validated_data: typing.Dict[str, typing.List[typing.Any]]):
+
         # 更新主机ap
         cls.update_host_ap(validated_data)
 
-        # 更新灰度业务范围
-        cls.update_gray_scope_list(validated_data)
+        # 不传 cloud_ips 表示按业务灰度
+        is_biz_gray: bool = "cloud_ips" not in validated_data
 
-        # 更新云区域接点
-        cls.update_cloud_ap_id(validated_data)
+        if is_biz_gray:
+            # 更新灰度业务范围
+            cls.update_gray_scope_list(validated_data)
+
+            # 更新云区域接点
+            cls.update_cloud_ap_id(validated_data)
 
     @classmethod
     def rollback(cls, validated_data: typing.Dict[str, typing.List[typing.Any]]):
         # 更新主机ap
         cls.update_host_ap(validated_data, rollback=True)
 
-        # 更新灰度业务范围
-        cls.update_gray_scope_list(validated_data, rollback=True)
+        # 不传 cloud_ips 表示按业务灰度
+        is_biz_gray: bool = "cloud_ips" not in validated_data
 
-        # 更新云区域接点
-        cls.update_cloud_ap_id(validated_data, rollback=True)
+        if is_biz_gray:
+            # 更新灰度业务范围
+            cls.update_gray_scope_list(validated_data, rollback=True)
+
+            # 更新云区域接点
+            cls.update_cloud_ap_id(validated_data, rollback=True)
