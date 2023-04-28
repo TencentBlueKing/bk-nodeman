@@ -599,6 +599,8 @@ if settings.BKAPP_RUN_ENV == BkappRunEnvType.CE.value:
         }
     )
 
+GSE_PORT_DEFAULT_VALUE["file_svr_port_v1"] = GSE_PORT_DEFAULT_VALUE["file_svr_port"]
+
 CC_HOST_FIELDS = [
     "bk_host_id",
     "bk_agent_id",
