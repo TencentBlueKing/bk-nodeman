@@ -586,6 +586,7 @@ GSE_PORT_DEFAULT_VALUE = {
     "tracker_port": 10030,
     "data_prometheus_port": 59402,
     "file_topology_bind_port": 28930,
+    "file_metric_bind_port": 59404,
 }
 
 # 社区版GSE SERVER的端口有所不同，TODO 考虑把这些端口放到环境变量中
