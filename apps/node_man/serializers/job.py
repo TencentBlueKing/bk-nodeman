@@ -16,6 +16,7 @@ from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
 from apps.backend.subscription.steps.agent_adapter.adapter import LEGACY
+from apps.core.gray.handlers import GrayHandler, GrayTools
 from apps.core.ipchooser.tools.base import HostQuerySqlHelper
 from apps.exceptions import ValidationError
 from apps.node_man import constants, models, tools
@@ -23,6 +24,7 @@ from apps.node_man.handlers import validator
 from apps.node_man.handlers.cmdb import CmdbHandler
 from apps.node_man.periodic_tasks.sync_cmdb_host import bulk_differential_sync_biz_hosts
 from apps.utils import basic
+from env.constants import GseVersion
 
 
 def set_agent_setup_info_to_attrs(attrs):
@@ -221,6 +223,36 @@ class InstallSerializer(serializers.Serializer):
 
         set_agent_setup_info_to_attrs(attrs)
 
+        gse_v2_ap_ids: typing.List[int] = list(
+            models.AccessPoint.objects.filter(gse_version=GseVersion.V2.value).values_list("id", flat=True)
+        )
+        if not gse_v2_ap_ids or len(gse_v2_ap_ids) == models.AccessPoint.objects.count():
+            # 没有 V2 接入点或者全部为 V2 接入点时，无需进行重定向处理
+            return attrs
+
+        try:
+            gray_ap_map: typing.Dict[int, int] = GrayHandler.get_gray_ap_map()
+        except Exception:
+            # 没有配置接入点映射时，直接返回
+            return attrs
+
+        gray_scope_set: typing.Set[int] = set(GrayTools.get_or_create_gse2_gray_scope_list())
+
+        # 进入灰度的云区域，所属云区域主机接入点重定向到 V2
+        gse_v2_cloud_ids: typing.Set[int] = set(
+            models.Cloud.objects.filter(ap_id__in=gse_v2_ap_ids).values_list("bk_cloud_id", flat=True)
+        )
+
+        for host in attrs["hosts"]:
+            # 忽略没有选择接入点的情况
+            if not host.get("ap_id"):
+                continue
+
+            # 1. 进入灰度的云区域，所属云区域主机需要重定向接入点到 V2
+            # 2. 业务已进入灰度，主机接入点重定向到 V2
+            if host["bk_cloud_id"] in gse_v2_cloud_ids or host["bk_biz_id"] in gray_scope_set:
+                host["ap_id"] = gray_ap_map.get(host["ap_id"], host["ap_id"])
+
         return attrs
 
 
@@ -281,12 +313,49 @@ class OperateSerializer(serializers.Serializer):
             db_host_sql = models.Host.objects.filter(
                 bk_host_id__in=attrs["bk_host_id"], node_type__in=filter_node_types
             ).values("bk_host_id", "bk_biz_id", "bk_cloud_id", "inner_ip", "node_type", "os_type")
+
         bk_host_ids, bk_biz_scope = validator.operate_validator(list(db_host_sql))
         attrs["bk_host_ids"] = bk_host_ids
         attrs["bk_biz_scope"] = bk_biz_scope
 
         set_agent_setup_info_to_attrs(attrs)
 
+        gse_v2_ap_ids: typing.List[int] = list(
+            models.AccessPoint.objects.filter(gse_version=GseVersion.V2.value).values_list("id", flat=True)
+        )
+        if not gse_v2_ap_ids or len(gse_v2_ap_ids) == models.AccessPoint.objects.count():
+            # 没有 V2 接入点或者全部为 V2 接入点时，无需进行重定向处理
+            return attrs
+
+        host_ids: typing.List[int] = [host_info["bk_host_id"] for host_info in bk_host_ids]
+
+        # 进入灰度的云区域，所属云区域主机接入点重定向到 V2
+        gse_v2_cloud_ids: typing.Set[int] = set(
+            models.Cloud.objects.filter(ap_id__in=gse_v2_ap_ids).values_list("bk_cloud_id", flat=True)
+        )
+        gse_v2_cloud_host_ids: typing.List[int] = list(
+            models.Host.objects.filter(bk_host_id__in=host_ids, bk_cloud_id__in=gse_v2_cloud_ids).values_list(
+                "bk_host_id", flat=True
+            )
+        )
+        if gse_v2_cloud_host_ids:
+            GrayHandler.update_host_ap_by_host_ids(
+                gse_v2_cloud_host_ids, bk_biz_scope, is_biz_gray=False, rollback=False
+            )
+
+        # 业务已进入灰度，主机接入点重定向到 V2
+        gray_bk_biz_scope: typing.Set[int] = set(GrayTools.get_or_create_gse2_gray_scope_list(get_cache=True)) & set(
+            bk_biz_scope
+        )
+        gse_v2_default_area_host_ids: typing.List[int] = list(
+            models.Host.objects.filter(bk_biz_id__in=gray_bk_biz_scope, bk_host_id__in=host_ids).values_list(
+                "bk_host_id", flat=True
+            )
+        )
+        if gse_v2_default_area_host_ids:
+            GrayHandler.update_host_ap_by_host_ids(
+                gse_v2_default_area_host_ids, gray_bk_biz_scope, is_biz_gray=False, rollback=False
+            )
         return attrs
 
 

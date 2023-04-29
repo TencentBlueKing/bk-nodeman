@@ -176,7 +176,11 @@ class ConfigContextHelper:
                 tls_cli_key_file=proxy_tls_cli_key_file,
             ),
             context_dataclass.FileCacheConfigContext(),
-            context_dataclass.FileMetricConfigContext(),
+            context_dataclass.FileMetricConfigContext(
+                exporter_bind_port=self.ap.port_config.get(
+                    "file_metric_bind_port", constants.GSE_PORT_DEFAULT_VALUE["file_metric_bind_port"]
+                )
+            ),
         ]
 
         self.context_dict = {}
