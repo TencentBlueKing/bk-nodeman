@@ -549,6 +549,9 @@ class ChooseAccessPointService(AgentBaseService, remote.RemoteServiceMixin):
             # Proxy 设置为所在云区域的接入点，每次都需要重置，防止云区域修改后 Proxy 未同步
             if host.node_type == constants.NodeType.PROXY:
                 proxy_hosts__gby_cloud_id[host.bk_cloud_id].append(host)
+            # PAGENT 需要从所在云区域下随机选取一台存活的Proxy
+            elif host.node_type == constants.NodeType.PAGENT:
+                pagent_host_ids__gby_cloud_id[host.bk_cloud_id].append(host.bk_host_id)
             # 主机已指定接入点
             elif host.ap_id != constants.DEFAULT_AP_ID:
                 choose_ap_results.append(
@@ -559,10 +562,6 @@ class ChooseAccessPointService(AgentBaseService, remote.RemoteServiceMixin):
                         log=_("当前主机已分配接入点 [{ap_name}]").format(ap_name=ap_id_obj_map[host.ap_id].name),
                     )
                 )
-
-            # PAGENT 需要从所在云区域下随机选取一台存活的Proxy
-            elif host.node_type == constants.NodeType.PAGENT:
-                pagent_host_ids__gby_cloud_id[host.bk_cloud_id].append(host.bk_host_id)
 
             # 其余情况，从已有接入点中选择网络情况最好（to gse task svr）的一个
             else:
