@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import typing
 
+from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
 from apps.core.ipchooser.constants import CommonEnum
@@ -25,7 +26,7 @@ from ...utils.cache import func_cache_decorator
 
 class GrayTools:
     @classmethod
-    @func_cache_decorator(cache_time=5 * node_man_constants.TimeUnit.SECOND)
+    @func_cache_decorator(cache_time=20 * node_man_constants.TimeUnit.SECOND)
     def get_or_create_gse2_gray_scope_list(cls) -> typing.List[int]:
         """
         获取 GSE2.0 灰度列表
@@ -167,11 +168,13 @@ class GrayHandler:
         return {int(v1_ap_id): int(v2_ap_id) for v1_ap_id, v2_ap_id in gray_ap_map.items()}
 
     @classmethod
-    def update_host_ap(
-        cls, validated_data: typing.Dict[str, typing.List[typing.Any]], is_biz_gray: bool, rollback: bool = False
+    def update_host_ap_by_host_ids(
+        cls,
+        host_ids: typing.Union[typing.List[int], typing.Set[int]],
+        bk_biz_ids: typing.Union[typing.List[int], typing.Set[int]],
+        is_biz_gray: bool,
+        rollback: bool = False,
     ):
-
-        clouds_ip_host_ids: typing.List[int] = cls.get_cloud_host_query_params(validated_data)
 
         gray_ap_map: typing.Dict[int, int] = cls.get_gray_ap_map()
 
@@ -181,14 +184,23 @@ class GrayHandler:
                 # 如果是回滚将v1,v2 id进行对调
                 v1_ap_id, v2_ap_id = v2_ap_id, v1_ap_id
 
-            query_params: typing.Dict = {"bk_biz_id__in": validated_data["bk_biz_ids"], "ap_id": v1_ap_id}
+            query_params: typing.Dict = {"bk_biz_id__in": bk_biz_ids, "ap_id": v1_ap_id}
 
             # 非业务整体灰度时，需要添加主机范围限制
             if not is_biz_gray:
                 # 增加云区域主机查询参数
-                query_params.update(bk_host_id__in=clouds_ip_host_ids)
+                query_params.update(bk_host_id__in=host_ids)
 
-            node_man_models.Host.objects.filter(**query_params).update(ap_id=v2_ap_id)
+            node_man_models.Host.objects.filter(**query_params).update(ap_id=v2_ap_id, updated_at=timezone.now())
+
+    @classmethod
+    def update_host_ap(
+        cls, validated_data: typing.Dict[str, typing.List[typing.Any]], is_biz_gray: bool, rollback: bool = False
+    ):
+
+        clouds_ip_host_ids: typing.List[int] = cls.get_cloud_host_query_params(validated_data)
+
+        cls.update_host_ap_by_host_ids(clouds_ip_host_ids, validated_data["bk_biz_ids"], is_biz_gray, rollback)
 
     @classmethod
     def update_gray_scope_list(cls, validated_data: typing.Dict[str, typing.List[typing.Any]], rollback: bool = False):
@@ -204,6 +216,8 @@ class GrayHandler:
         node_man_models.GlobalSettings.update_config(
             node_man_models.GlobalSettings.KeyEnum.GSE2_GRAY_SCOPE_LIST.value, gray_scope_list
         )
+        # 触发一次缓存主动更新
+        GrayTools.get_or_create_gse2_gray_scope_list(get_cache=False)
 
     @classmethod
     def update_cloud_ap_id(cls, validated_data: typing.Dict[str, typing.List[typing.Any]], rollback: bool = False):
@@ -289,8 +303,9 @@ class GrayHandler:
         cls.update_host_ap(validated_data, is_biz_gray, rollback=True)
 
         if is_biz_gray:
+            # 需要先回滚云区域，确保业务移除灰度列表前能正常判定云区域所属关系
+            # 更新云区域接入点
+            cls.update_cloud_ap_id(validated_data, rollback=True)
+
             # 更新灰度业务范围
             cls.update_gray_scope_list(validated_data, rollback=True)
-
-            # 更新云区域接点
-            cls.update_cloud_ap_id(validated_data, rollback=True)

@@ -588,7 +588,7 @@ def operate_validator(db_host_sql):
         permission_host_ids.append(host["bk_host_id"])
 
     # 获得业务ID
-    host_biz_scope = [host["bk_biz_id"] for host in db_host_sql]
+    host_biz_scope = list({host["bk_biz_id"] for host in db_host_sql})
 
     db_host_ids = [{"bk_host_id": host_id} for host_id in permission_host_ids]
 
