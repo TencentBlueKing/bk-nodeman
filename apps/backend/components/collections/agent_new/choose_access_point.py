@@ -18,6 +18,7 @@ from django.utils.translation import ugettext_lazy as _
 from apps.backend import constants as backend_constants
 from apps.backend.utils.wmi import execute_cmd
 from apps.core.concurrent import controller
+from apps.core.gray.handlers import GrayHandler
 from apps.core.remote import conns
 from apps.node_man import constants, models
 from apps.node_man.utils.endpoint import EndpointInfo
@@ -324,6 +325,7 @@ class ChooseAccessPointService(AgentBaseService, remote.RemoteServiceMixin):
         处理Pagent的情况，随机选择存活接入点
         :param pagent_host_ids__gby_cloud_id: PAgent 主机ID - 云区域ID 映射
         :param ap_id_obj_map: 接入点ID - 信息映射
+        :param gse_version:
         :return: 接入点选择结果列表
         """
         if not pagent_host_ids__gby_cloud_id:
@@ -331,7 +333,7 @@ class ChooseAccessPointService(AgentBaseService, remote.RemoteServiceMixin):
 
         # 获取指定云区域范围内全部的Proxy
         all_proxies: List[Dict[str, Any]] = self.fetch_cloud_proxies_for_gse_version(
-            bk_cloud_ids=pagent_host_ids__gby_cloud_id.keys(),
+            bk_cloud_ids=list(pagent_host_ids__gby_cloud_id.keys()),
             ap_id_obj_map=ap_id_obj_map,
             gse_version=gse_version,
         )
@@ -386,7 +388,7 @@ class ChooseAccessPointService(AgentBaseService, remote.RemoteServiceMixin):
         gse_version: str,
     ) -> List[Dict[str, Any]]:
         choose_ap_results = []
-        gray_ap_map: Dict[str, int] = {}
+        gray_ap_map: Dict[int, int] = GrayHandler.get_gray_ap_map()
 
         cloud_id__info_map: Dict[int, Dict[str, Any]] = {
             cloud_info["bk_cloud_id"]: {"ap_id": cloud_info["ap_id"], "bk_cloud_name": cloud_info["bk_cloud_name"]}
@@ -395,27 +397,21 @@ class ChooseAccessPointService(AgentBaseService, remote.RemoteServiceMixin):
             )
         }
 
-        if gse_version == GseVersion.V2.value:
-            # 获取接入点映射关系
-            gray_ap_map: Dict[str, int] = models.GlobalSettings.get_config(
-                key=models.GlobalSettings.KeyEnum.GSE2_GRAY_AP_MAP.value, default={}
-            )
-
         for cloud_id, proxy_hosts in proxy_hosts__gby_cloud_id.items():
             cloud_info = cloud_id__info_map[cloud_id]
             if any(
                 [
-                    # 云区域接入点处于V2
+                    # 云区域接入点处于 V2，属于云区域整体灰度，Proxy 需选择云区域所在的接入点
                     ap_id_obj_map[cloud_info["ap_id"]].gse_version == GseVersion.V2.value,
-                    # 云区域接入点处于V1并且安装所需要的版本为V1
+                    # 云区域接入点处于 V1，需要安装 V1 的 Proxy，Proxy 需选择云区域所在的接入点
                     gse_version == GseVersion.V1.value,
                 ]
             ):
                 ap_id = cloud_info["ap_id"]
             else:
-                # 云区域接入点处于V1主机选择V2版本，选择云区域接入点对应的V2接入点
+                # 云区域接入点处于 V1，需要安装 V2 的 Proxy，需要选择云区域所在接入点的 V2 映射接入点
                 try:
-                    ap_id = int(gray_ap_map[str(cloud_info["ap_id"])])
+                    ap_id = gray_ap_map[cloud_info["ap_id"]]
                 except KeyError:
                     # 缺少映射关系, 报错处理
                     choose_ap_results.extend(
@@ -424,7 +420,11 @@ class ChooseAccessPointService(AgentBaseService, remote.RemoteServiceMixin):
                                 bk_host_id=proxy_host.bk_host_id,
                                 ap_id=self.FAILED_AP_ID,
                                 ap_name="",
-                                log=_("Proxy所在云区域 -> {bk_cloud_id} 下无 GSE版本 -> {gse_version} 的接入点，请联系管理员添加映射关系").format(
+                                log=_(
+                                    "Proxy 所在云区域 「{bk_cloud_name}」[{bk_cloud_id}] 下无 GSE 版本 -> {gse_version} 的接入点，"
+                                    "请联系管理员添加映射关系"
+                                ).format(
+                                    bk_cloud_name=cloud_info["bk_cloud_name"],
                                     bk_cloud_id=cloud_id,
                                     gse_version=gse_version,
                                 ),
@@ -432,40 +432,21 @@ class ChooseAccessPointService(AgentBaseService, remote.RemoteServiceMixin):
                             for proxy_host in proxy_hosts
                         ]
                     )
-                    return choose_ap_results
+                    continue
 
             for proxy_host in proxy_hosts:
-                if not proxy_host.ap_id == ap_id:
-                    # 非自动选择校验输入接入点与选择的是否一致
-                    choose_ap_results.append(
-                        self.construct_return_data(
-                            bk_host_id=proxy_host.bk_host_id,
-                            ap_id=self.FAILED_AP_ID,
-                            ap_name="",
-                            log=_(
-                                "Proxy 输出的接入点 -> {proxy_ap_id} 与所在云区域 -> {bk_cloud_id} "
-                                "对应该的GSE版本 -> {gse_version} 的接入点不一致"
-                            ).format(
-                                proxy_ap_id=proxy_host.ap_id,
-                                bk_cloud_id=cloud_id,
-                                gse_version=gse_version,
-                            ),
-                        )
-                    )
-                else:
-                    # 自动选择直接使用云区域接入点或者云区域V1映射关系的V2接入点
-                    choose_ap_results.append(
-                        self.construct_return_data(
-                            bk_host_id=proxy_host.bk_host_id,
-                            ap_id=ap_id,
+                choose_ap_results.append(
+                    self.construct_return_data(
+                        bk_host_id=proxy_host.bk_host_id,
+                        ap_id=ap_id,
+                        ap_name=ap_id_obj_map[ap_id].name,
+                        log=_("已选择 Proxy 所在云区域「{bk_cloud_name}」[{bk_cloud_id}] 指定的接入点 [{ap_name}]").format(
+                            bk_cloud_name=cloud_info["bk_cloud_name"],
+                            bk_cloud_id=cloud_id,
                             ap_name=ap_id_obj_map[ap_id].name,
-                            log=_("已选择 Proxy 所在云区域「{bk_cloud_name}」[{bk_cloud_id}] 指定的接入点 [{ap_name}]").format(
-                                bk_cloud_name=cloud_info["bk_cloud_name"],
-                                bk_cloud_id=cloud_id,
-                                ap_name=ap_id_obj_map[ap_id].name,
-                            ),
-                        )
+                        ),
                     )
+                )
 
         return choose_ap_results
 
