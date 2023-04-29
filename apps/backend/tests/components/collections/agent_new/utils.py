@@ -375,6 +375,8 @@ class AgentTestObjFactory:
         初始化DB测试数据
         :return:
         """
+        if models.GlobalSettings.get_config(models.GlobalSettings.KeyEnum.GSE2_GRAY_AP_MAP.value, None) is None:
+            models.GlobalSettings.set_config(models.GlobalSettings.KeyEnum.GSE2_GRAY_AP_MAP.value, {"-1": 2, "1": 2})
         self.init_host_related_data_in_db()
         self.init_sub_related_data_in_db()
         self.check_init_db()
