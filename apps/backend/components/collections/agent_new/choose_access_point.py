@@ -388,7 +388,6 @@ class ChooseAccessPointService(AgentBaseService, remote.RemoteServiceMixin):
         gse_version: str,
     ) -> List[Dict[str, Any]]:
         choose_ap_results = []
-        gray_ap_map: Dict[int, int] = GrayHandler.get_gray_ap_map()
 
         cloud_id__info_map: Dict[int, Dict[str, Any]] = {
             cloud_info["bk_cloud_id"]: {"ap_id": cloud_info["ap_id"], "bk_cloud_name": cloud_info["bk_cloud_name"]}
@@ -410,6 +409,7 @@ class ChooseAccessPointService(AgentBaseService, remote.RemoteServiceMixin):
                 ap_id = cloud_info["ap_id"]
             else:
                 # 云区域接入点处于 V1，需要安装 V2 的 Proxy，需要选择云区域所在接入点的 V2 映射接入点
+                gray_ap_map: Dict[int, int] = GrayHandler.get_gray_ap_map()
                 try:
                     ap_id = gray_ap_map[cloud_info["ap_id"]]
                 except KeyError:
