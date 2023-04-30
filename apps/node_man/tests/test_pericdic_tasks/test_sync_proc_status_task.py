@@ -48,7 +48,7 @@ class TestSyncProcStatus(CustomBaseTestCase):
     def test_update_or_create_proc_status(self, *args, **kwargs):
         host = Host.objects.create(**HOST_MODEL_DATA)
         # 测试新建proc_status
-        sync_proc_status_task.update_or_create_proc_status(None, {}, [host], [GSE_PROCESS_NAME], 0)
+        sync_proc_status_task.update_or_create_proc_status(None, Host.objects.all(), [GSE_PROCESS_NAME])
         mock_proc = ProcessStatus.objects.get(bk_host_id=host.bk_host_id, name=GSE_PROCESS_NAME)
         self.assertEqual(
             [mock_proc.status, mock_proc.bk_host_id, mock_proc.name],
@@ -59,7 +59,7 @@ class TestSyncProcStatus(CustomBaseTestCase):
         mock_proc = ProcessStatus.objects.get(bk_host_id=host.bk_host_id, name=GSE_PROCESS_NAME)
         mock_proc.status = constants.ProcStateType.MANUAL_STOP
         mock_proc.save()
-        sync_proc_status_task.update_or_create_proc_status(None, {}, [host], [GSE_PROCESS_NAME], 0)
+        sync_proc_status_task.update_or_create_proc_status(None, Host.objects.all(), [GSE_PROCESS_NAME])
         self.assertEqual(
             [mock_proc.status, mock_proc.bk_host_id, mock_proc.name],
             [constants.ProcStateType.MANUAL_STOP, host.bk_host_id, GSE_PROCESS_NAME],
@@ -70,5 +70,5 @@ class TestSyncProcStatus(CustomBaseTestCase):
         get_gse_api_helper(settings.GSE_VERSION, GseApiMockClient()),
     )
     def test_update_or_create_proc_status_with_agent_id(self, *args, **kwargs):
-        host = Host.objects.create(**HOST_MODEL_DATA_WITH_AGENT_ID)
-        sync_proc_status_task.update_or_create_proc_status(None, {}, [host], [GSE_PROCESS_NAME], 0)
+        Host.objects.create(**HOST_MODEL_DATA_WITH_AGENT_ID)
+        sync_proc_status_task.update_or_create_proc_status(None, Host.objects.all(), [GSE_PROCESS_NAME])

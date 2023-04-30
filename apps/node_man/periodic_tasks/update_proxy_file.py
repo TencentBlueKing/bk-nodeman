@@ -24,7 +24,7 @@ from django.db.models import Q
 from apps.adapters.api.gse import get_gse_api_helper
 from apps.backend.api.errors import JobPollTimeout
 from apps.core.files.storage import get_storage
-from apps.core.gray.handlers import GrayTools
+from apps.core.gray.tools import GrayTools
 from apps.node_man import constants
 from apps.node_man.models import AccessPoint, Host, InstallChannel
 from apps.node_man.periodic_tasks.utils import JobDemand
@@ -59,11 +59,10 @@ def update_proxy_files():
     if not total_update_hosts_queryset.exists():
         return
 
-    ap_id_obj_map: Dict[int, AccessPoint] = AccessPoint.ap_id_obj_map()
-
+    gray_tools_instance: GrayTools = GrayTools()
     gse_version__total_update_hosts_map: Dict[str, List[Dict[str, Union[str, int]]]] = defaultdict(list)
     for host_info in total_update_hosts_queryset.values("inner_ip", "bk_cloud_id", "bk_agent_id", "bk_biz_id", "ap_id"):
-        gse_version = GrayTools.get_host_ap_gse_version(host_info["bk_biz_id"], host_info["ap_id"], ap_id_obj_map)
+        gse_version = gray_tools_instance.get_host_ap_gse_version(host_info["bk_biz_id"], host_info["ap_id"])
         gse_version__total_update_hosts_map[gse_version].append(
             {
                 "ip": host_info["inner_ip"],
@@ -80,7 +79,7 @@ def update_proxy_files():
         agent_statuses.update(gse_api_helper.list_agent_state(total_update_hosts))
 
     for update_host_obj in total_update_hosts_queryset:
-        gse_version = GrayTools.get_host_ap_gse_version(update_host_obj.bk_biz_id, update_host_obj.ap_id, ap_id_obj_map)
+        gse_version = gray_tools_instance.get_host_ap_gse_version(update_host_obj.bk_biz_id, update_host_obj.ap_id)
         agent_id = get_gse_api_helper(gse_version).get_agent_id(update_host_obj)
         agent_state_info = agent_statuses.get(agent_id, {"version": "", "bk_agent_alive": None})
         agent_status = constants.PROC_STATUS_DICT.get(agent_state_info["bk_agent_alive"], None)
@@ -97,6 +96,7 @@ def update_proxy_files():
         return
 
     storage = get_storage()
+    ap_id_obj_map: Dict[int, AccessPoint] = AccessPoint.ap_id_obj_map()
     for ap_id, obj in ap_id_obj_map.items():
         if not obj.nginx_path:
             ap_nginx_path_map[settings.DOWNLOAD_PATH].append(ap_id)
