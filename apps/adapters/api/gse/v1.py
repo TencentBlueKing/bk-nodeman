@@ -60,6 +60,7 @@ class GseV1ApiHelper(base.GseApiBaseHelper):
         query_params: base.InfoDict = {
             "meta": {"namespace": constants.GSE_NAMESPACE, "name": proc_name, "labels": {"proc_name": proc_name}},
             "hosts": hosts,
+            "no_request": True,
         }
         # 接口测试
         # 200: 0.3s-0.4s (0.41s 0.29s 0.33s)
@@ -97,8 +98,10 @@ class GseV1ApiHelper(base.GseApiBaseHelper):
             # GSE 1.0 接口不支持 IPv6，灰度场景下有可能部分 IPv6 进入该逻辑，此处进行屏蔽
             if basic.is_v4(host_info["ip"])
         ]
-        agent_id__info_map: base.AgentIdInfoMap = self.gse_api_obj.get_agent_info({"hosts": hosts})
-        agent_id__status_map: base.AgentIdInfoMap = self.gse_api_obj.get_agent_status({"hosts": hosts})
+        agent_id__info_map: base.AgentIdInfoMap = self.gse_api_obj.get_agent_info({"hosts": hosts, "no_request": True})
+        agent_id__status_map: base.AgentIdInfoMap = self.gse_api_obj.get_agent_status(
+            {"hosts": hosts, "no_request": True}
+        )
 
         agent_id_list: typing.List[str] = list({self.get_agent_id(host_info) for host_info in host_info_list})
         for agent_id in agent_id_list:
@@ -124,10 +127,12 @@ class GseV1ApiHelper(base.GseApiBaseHelper):
         return proc_operate_info
 
     def _operate_proc_multi(self, proc_operate_req: base.InfoDictList, **options) -> str:
-        return self.gse_api_obj.operate_proc_multi({"proc_operate_req": proc_operate_req})["task_id"]
+        return self.gse_api_obj.operate_proc_multi({"proc_operate_req": proc_operate_req, "no_request": True})[
+            "task_id"
+        ]
 
     def get_proc_operate_result(self, task_id: str) -> base.InfoDict:
-        return self.gse_api_obj.get_proc_operate_result({"task_id": task_id}, raw=True)
+        return self.gse_api_obj.get_proc_operate_result({"task_id": task_id, "no_request": True}, raw=True)
 
     def _upgrade_to_agent_id(self, hosts: base.InfoDictList) -> base.InfoDict:
         raise EnvironmentError("v1 gse api should not call upgrade_to_agent_id")

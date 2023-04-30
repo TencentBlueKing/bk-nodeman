@@ -63,7 +63,7 @@ spec:
             backend:
               {{- if semverCompare ">=1.19-0" $.Capabilities.KubeVersion.GitVersion }}
               service:
-                {{- if eq "/backend/" .path }}
+                {{- if or (eq "/backend/" .path) (eq "/core/api/gray/" .path) }}
                 name: "{{ $backendApiFullName }}"
                 port:
                   number: {{ $backendApiSvcPort }}
