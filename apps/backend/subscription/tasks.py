@@ -26,7 +26,7 @@ from apps.backend.subscription import tools
 from apps.backend.subscription.constants import TASK_HOST_LIMIT
 from apps.backend.subscription.errors import SubscriptionInstanceEmpty
 from apps.backend.subscription.steps import StepFactory, agent
-from apps.core.gray.handlers import GrayTools
+from apps.core.gray.tools import GrayTools
 from apps.node_man import constants, models
 from apps.node_man import tools as node_man_tools
 from apps.node_man.handlers.cmdb import CmdbHandler
@@ -281,7 +281,7 @@ def create_task(
     :return: SubscriptionTask
     """
     if inject_meta_to_instances:
-        GrayTools.inject_meta_to_instances(instances)
+        GrayTools().inject_meta_to_instances(instances)
 
     topo_order = CmdbHandler.get_topo_order()
     batch_size = models.GlobalSettings.get_config("BATCH_SIZE", default=100)
@@ -521,7 +521,7 @@ def run_subscription_task_and_create_instance(
         create_task(subscription, subscription_task, instances, instance_actions)
         return
 
-    GrayTools.inject_meta_to_instances(instances)
+    GrayTools().inject_meta_to_instances(instances)
 
     # 按步骤顺序计算实例变更所需的动作
     instance_actions = defaultdict(dict)

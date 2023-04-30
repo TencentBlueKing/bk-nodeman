@@ -16,7 +16,8 @@ from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
 from apps.backend.subscription.steps.agent_adapter.adapter import LEGACY
-from apps.core.gray.handlers import GrayHandler, GrayTools
+from apps.core.gray.handlers import GrayHandler
+from apps.core.gray.tools import GrayTools
 from apps.core.ipchooser.tools.base import HostQuerySqlHelper
 from apps.exceptions import ValidationError
 from apps.node_man import constants, models, tools

@@ -53,6 +53,7 @@ class GseV2ApiHelper(GseV1ApiHelper):
         query_params: base.InfoDict = {
             "meta": {"namespace": constants.GSE_NAMESPACE, "name": proc_name, "labels": {"proc_name": proc_name}},
             "agent_id_list": agent_id_list,
+            "no_request": True,
         }
         proc_infos: base.InfoDictList = self.gse_api_obj.get_proc_status_v2(query_params).get("proc_infos") or []
         agent_id__proc_info_map: base.AgentIdInfoMap = {}
@@ -74,7 +75,7 @@ class GseV2ApiHelper(GseV1ApiHelper):
                 agent_state_list = []
             else:
                 agent_state_list: base.InfoDictList = self.gse_api_obj.list_agent_state(
-                    {"agent_id_list": agent_id_list}
+                    {"agent_id_list": agent_id_list, "no_request": True}
                 )
         except ApiResultError as err:
             if err.code == 1011003:
@@ -116,10 +117,12 @@ class GseV2ApiHelper(GseV1ApiHelper):
         return proc_operate_info
 
     def _operate_proc_multi(self, proc_operate_req: base.InfoDictList, **options) -> str:
-        return self.gse_api_obj.operate_proc_multi({"proc_operate_req": proc_operate_req})["task_id"]
+        return self.gse_api_obj.operate_proc_multi({"proc_operate_req": proc_operate_req, "no_request": True})[
+            "task_id"
+        ]
 
     def _upgrade_to_agent_id(self, hosts: base.InfoDictList) -> base.InfoDict:
-        return self.gse_api_obj.upgrade_to_agent_id({"hosts": hosts})
+        return self.gse_api_obj.upgrade_to_agent_id({"hosts": hosts, "no_request": True})
 
     def get_proc_operate_result(self, task_id: str) -> base.InfoDict:
-        return self.gse_api_obj.get_proc_operate_result_v2({"task_id": task_id}, raw=True)
+        return self.gse_api_obj.get_proc_operate_result_v2({"task_id": task_id, "no_request": True}, raw=True)
