@@ -98,7 +98,6 @@ class SubscriptionViewSet(APIViewSet):
 
             # 创建订阅步骤
             steps = params["steps"]
-            is_step_include_plugin: bool = False
             for index, step in enumerate(steps):
                 models.SubscriptionStep.objects.create(
                     subscription_id=subscription.id,
@@ -108,31 +107,18 @@ class SubscriptionViewSet(APIViewSet):
                     config=step["config"],
                     params=step["params"],
                 )
-                # 判断步骤是否包括PLUGIN类型
-                if all(
-                    [
-                        not is_step_include_plugin,
-                        step["type"] == constants.SubStepType.PLUGIN,
-                    ]
-                ):
-                    is_step_include_plugin = True
 
             result = {
                 "subscription_id": subscription.id,
             }
 
-        # 步骤包括PLUGIN, 并包含灰度中业务不立即执行直接报错处理
-        if all(
-            [
-                is_step_include_plugin,
-                tools.check_subscription_is_disabled(subscription),
-            ]
-        ):
-            raise errors.SubscriptionIncludeGrayBizError()
-
         if run_immediately:
             if subscription.is_running():
                 raise InstanceTaskIsRunning()
+
+            # 立即执行场景，如果订阅被禁用，需要抛出异常
+            if tools.check_subscription_is_disabled(subscription):
+                raise errors.SubscriptionIncludeGrayBizError()
 
             subscription_task = models.SubscriptionTask.objects.create(
                 subscription_id=subscription.id, scope=subscription.scope, actions={}
@@ -228,17 +214,7 @@ class SubscriptionViewSet(APIViewSet):
             step_objs_to_be_created: List[models.SubscriptionStep] = []
             step_objs_to_be_updated: List[models.SubscriptionStep] = []
 
-            is_step_include_plugin: bool = False
-
             for index, step_info in enumerate(params["steps"]):
-                # 判断步骤是否包括PLUGIN类型
-                if all(
-                    [
-                        not is_step_include_plugin,
-                        step_info.get("type") == constants.SubStepType.PLUGIN,
-                    ]
-                ):
-                    is_step_include_plugin = True
 
                 if step_info["id"] in step_id__obj_map:
                     # 存在则更新
@@ -286,18 +262,15 @@ class SubscriptionViewSet(APIViewSet):
                 delattr(subscription, "_steps")
 
         result = {"subscription_id": subscription.id}
-        # 步骤包括PLUGIN, 并包含灰度中业务不立即执行直接报错处理
-        if all(
-            [
-                is_step_include_plugin,
-                tools.check_subscription_is_disabled(subscription),
-            ]
-        ):
-            raise errors.SubscriptionIncludeGrayBizError()
 
         if run_immediately:
             if subscription.is_running():
                 raise InstanceTaskIsRunning()
+
+            # 立即执行场景，如果订阅被禁用，需要抛出异常
+            if tools.check_subscription_is_disabled(subscription):
+                raise errors.SubscriptionIncludeGrayBizError()
+
             subscription_task = models.SubscriptionTask.objects.create(
                 subscription_id=subscription.id, scope=subscription.scope, actions={}
             )
@@ -1030,6 +1003,11 @@ class SubscriptionViewSet(APIViewSet):
     @swagger_auto_schema(operation_summary="启用/禁用业务订阅巡检", tags=SUBSCRIPTION_VIEW_TAGS)
     @action(detail=False, methods=["POST"], serializer_class=serializers.SubscriptionSwitchBizSerializer)
     def switch_biz(self, request):
+        """
+        @api {POST} /subscription/switch_biz/ 启用/禁用业务订阅巡检
+        @apiName switch_biz
+        @apiGroup subscription
+        """
         data = self.validated_data
         global_config_key: str = models.GlobalSettings.KeyEnum.DISABLE_SUBSCRIPTION_SCOPE_LIST.value
         if not models.GlobalSettings.objects.filter(key=global_config_key).exists():
