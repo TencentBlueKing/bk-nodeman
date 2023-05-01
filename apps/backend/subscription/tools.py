@@ -1365,11 +1365,26 @@ def check_subscription_is_disabled(subscription: models.Subscription, disable_bi
             default=[],
         )
 
+    is_step_include_plugin: bool = False
+    for step in subscription.steps:
+        if step.type == constants.SubStepType.PLUGIN:
+            is_step_include_plugin = True
+            break
+
+    # 非插件类任务不进行禁用
+    if not is_step_include_plugin:
+        logger.info(f"[check_subscription_is_disabled] {subscription}: not include plugin step, skipping")
+        return False
+
     if any(
         [
             subscription.bk_biz_id in disable_biz_ids,
             set(subscription.bk_biz_scope or []) & set(disable_biz_ids),
         ]
     ):
+        # 禁用规则：订阅业务范围中包含已被禁用的业务
+        logger.info(f"[check_subscription_is_disabled] {subscription}: in the disable list, will be disabled")
         return True
+
+    logger.info(f"[check_subscription_is_disabled] {subscription}: not in the disable list, skipping")
     return False
