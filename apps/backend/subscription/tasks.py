@@ -658,7 +658,7 @@ def update_subscription_instances_chunk(subscription_ids: List[int]):
     )
     for subscription in subscriptions:
         if tools.check_subscription_is_disabled(subscription, disable_subscription_biz_ids):
-            # 跳过禁用巡检的业务, 如果业务范围中包含禁用的业务也需要禁用
+            logger.info("[update_subscription_instances] skipped for subscription disabled")
             continue
         logger.info(f"[update_subscription_instances] start: {subscription}")
         try:
