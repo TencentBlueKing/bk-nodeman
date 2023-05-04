@@ -273,3 +273,12 @@ class AgentManager(object):
         )
         act.component.inputs.polling_time = Var(type=Var.PLAIN, value=10)
         return act
+
+    @classmethod
+    def push_environ_files(cls):
+        """检测 Agent 功能"""
+        act = AgentServiceActivity(
+            component_code=components.PushEnvironFilesComponent.code,
+            name=components.PushEnvironFilesComponent.name,
+        )
+        return act

@@ -75,6 +75,16 @@ GSE_VERSION = get_type_env(key="GSE_VERSION", default=constants.GseVersion.V1.va
 
 GSE_CERT_PATH = get_type_env(key="GSE_CERT_PATH", default="/data/bkce/cert", _type=str)
 
+# 是否启用推送 GSE 环境变量文件，如果启用，将在 Agent `安装`/`重装`/`重载配置`/`灰度` 操作成功后，进行如下操作：
+# Windows：推送 `environ.sh` & `environ.bat` 到目标机器的 `GSE_ENVIRON_WIN_DIR` 路径
+# Linux：推送 `environ.sh` 到目标机器的 `GSE_ENVIRON_DIR` 路径
+GSE_ENABLE_PUSH_ENVIRON_FILE = get_type_env(key="GSE_ENABLE_PUSH_ENVIRON_FILE", default=False, _type=bool)
+
+# GSE 环境变量目录
+GSE_ENVIRON_DIR = get_type_env(key="GSE_ENVIRON_DIR", default="", _type=str)
+
+# GSE 环境变量目录（Windows）
+GSE_ENVIRON_WIN_DIR = get_type_env(key="GSE_ENVIRON_WIN_DIR", default="", _type=str)
 
 # ===============================================================================
 # 可观测

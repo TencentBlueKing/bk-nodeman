@@ -29,8 +29,7 @@ class GrayViewSet(APIViewSet):
     )
     @action(detail=False, methods=["POST"], serializer_class=serializers.GraySerializer)
     def build(self, request):
-        handlers.GrayHandler.build(self.validated_data)
-        return Response(self.validated_data)
+        return Response(handlers.GrayHandler.build(self.validated_data))
 
     @swagger_auto_schema(
         operation_summary="GSE 2.0灰度回滚",
@@ -38,5 +37,4 @@ class GrayViewSet(APIViewSet):
     )
     @action(detail=False, methods=["POST"], serializer_class=serializers.GraySerializer)
     def rollback(self, request):
-        handlers.GrayHandler.rollback(self.validated_data)
-        return Response(self.validated_data)
+        return Response(handlers.GrayHandler.rollback(self.validated_data))
