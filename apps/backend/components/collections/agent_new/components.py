@@ -25,6 +25,7 @@ from .get_agent_status import GetAgentStatusService
 from .install import InstallService
 from .install_plugins import InstallPluginsService
 from .push_agent_pkg_to_proxy import PushAgentPkgToProxyService
+from .push_environ_files import PushEnvironFilesService
 from .push_files_to_proxy import PushFilesToProxyService
 from .push_host_identifier import PushIdentifierHostsService
 from .push_upgrade_package import PushUpgradeFileService
@@ -207,3 +208,9 @@ class CheckAgentAbilityComponent(Component):
     name = _("检查Agent功能")
     code = "check_agent_ability"
     bound_service = CheckAgentAbilityService
+
+
+class PushEnvironFilesComponent(Component):
+    name = _("推送环境变量文件")
+    code = "push_environ_files"
+    bound_service = PushEnvironFilesService

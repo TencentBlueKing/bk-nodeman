@@ -367,6 +367,14 @@ config:
   gseVersion: "V1"
   ## GSE 本地证书路径，渲染时为空默认取 `/data/bk{{ .Values.config.bkAppRunEnv }}/cert`
   gseCertPath: ""
+  ## 是否启用推送 GSE 环境变量文件，如果启用，将在 Agent `安装`/`重装`/`重载配置`/`灰度` 操作成功后，进行如下操作：
+  ## Windows：推送 `environ.sh` & `environ.bat` 到目标机器的 `GSE_ENVIRON_WIN_DIR` 路径
+  ## Linux：推送 `environ.sh` 到目标机器的 `GSE_ENVIRON_DIR` 路径
+  gseEnablePushEnvironFile: false
+  ## GSE 环境变量目录
+  gseEnvironDir: ""
+  ## GSE 环境变量目录（Windows）
+  gseEnvironWinDir: ""
   ## 是否启用 GSE 服务探测，为 `true` 将定期更新默认接入点的 gse svr 信息
   gseEnableSvrDisCovery: true
   ## ZK hosts 信息，host:port，多个 hosts 以 `,` 分隔

@@ -340,9 +340,10 @@ class OperateSerializer(serializers.Serializer):
             )
         )
         if gse_v2_cloud_host_ids:
-            GrayHandler.update_host_ap_by_host_ids(
+            update_result = GrayHandler.update_host_ap_by_host_ids(
                 gse_v2_cloud_host_ids, bk_biz_scope, is_biz_gray=False, rollback=False
             )
+            GrayHandler.activate(host_nodes=update_result["host_nodes"], rollback=False, only_status=True)
 
         # 业务已进入灰度，主机接入点重定向到 V2
         gray_bk_biz_scope: typing.Set[int] = set(GrayTools.get_or_create_gse2_gray_scope_list(get_cache=True)) & set(
@@ -354,9 +355,10 @@ class OperateSerializer(serializers.Serializer):
             )
         )
         if gse_v2_default_area_host_ids:
-            GrayHandler.update_host_ap_by_host_ids(
+            update_result = GrayHandler.update_host_ap_by_host_ids(
                 gse_v2_default_area_host_ids, gray_bk_biz_scope, is_biz_gray=False, rollback=False
             )
+            GrayHandler.activate(host_nodes=update_result["host_nodes"], rollback=False, only_status=True)
         return attrs
 
 
