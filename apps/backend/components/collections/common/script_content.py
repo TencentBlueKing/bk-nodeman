@@ -45,3 +45,43 @@ for file in $(ls); do
     fi
 done
 """
+
+ENVIRON_SH_TEMPLATE = """
+#!/bin/sh
+
+# What: environ.sh provides environment variables with consistent names
+# to shield the installation differences of multi-version GSE Agents
+# QuickStart:
+# 1. source environ.sh
+# 2. echo ${BK_GSE_AGENT_SETUP_PATH}
+
+# GSE Agent installation path
+export BK_GSE_AGENT_SETUP_PATH="{{ setup_path }}"
+
+# GSE Agent dataipc path
+export BK_GSE_DATA_IPC="{{ dataipc }}"
+
+# NodeMan Plugin installation path
+export BK_NODEMAN_PLUGIN_SETUP_PATH="{{ plugin_setup_path }}"
+
+"""
+
+ENVIRON_BAT_TEMPLATE = """
+@echo off
+
+rem What: environ.bat provides environment variables with consistent names
+rem to shield the installation differences of multi-version GSE Agents
+rem QuickStart:
+rem 1. call environ.bat in your terminal
+rem 2. echo %BK_GSE_AGENT_SETUP_PATH%
+
+rem GSE Agent installation path
+set BK_GSE_AGENT_SETUP_PATH={{ setup_path }}
+
+rem GSE Agent dataipc
+set BK_GSE_DATA_IPC={{ dataipc }}
+
+rem NodeMan Plugin installation path
+set BK_NODEMAN_PLUGIN_SETUP_PATH={{ plugin_setup_path }}
+
+"""

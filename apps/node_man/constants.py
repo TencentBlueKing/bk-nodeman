@@ -177,6 +177,7 @@ AGENT_JOB_TUPLE = (
     "IMPORT_AGENT",
     "RESTART_AGENT",
     "RELOAD_AGENT",
+    "ACTIVATE_AGENT",
 )
 
 PROXY_JOB_TUPLE = (
@@ -237,6 +238,7 @@ JOB_TYPE_DICT = {
     JobType.MAIN_INSTALL_PLUGIN: _("安装插件"),
     JobType.MAIN_STOP_AND_DELETE_PLUGIN: _("停止插件并删除策略"),
     JobType.RELOAD_AGENT: _("重载配置"),
+    JobType.ACTIVATE_AGENT: _("切换配置"),
     JobType.RELOAD_PROXY: _("重载配置"),
     JobType.PACKING_PLUGIN: _("打包插件"),
     JobType.PUSH_CONFIG_PLUGIN: _("下发插件配置"),
@@ -259,6 +261,7 @@ OP_TYPE_TUPLE = (
     "START",
     "STOP",
     "RELOAD",
+    "ACTIVATE",
     "RESTART",
     "DELEGATE",
     "UNDELEGATE",
@@ -288,6 +291,7 @@ OP_TYPE_ALIAS_MAP = {
     OpType.START: _("启动"),
     OpType.STOP: _("停止"),
     OpType.RELOAD: _("重载"),
+    OpType.ACTIVATE: _("切换配置"),
     OpType.DELEGATE: _("托管"),
     OpType.UNDELEGATE: _("取消托管"),
     OpType.MANUAL_INSTALL: _("手动安装"),

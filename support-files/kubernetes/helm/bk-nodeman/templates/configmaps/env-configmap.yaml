@@ -60,7 +60,10 @@ data:
   BKAPP_NODEMAN_OUTER_CALLBACK_URL: "{{ .Values.config.bkAppNodemanOuterCallbackUrl | default ( printf "%s/%s" .Values.bkNodemanUrl "backend" ) }}"
 
   GSE_VERSION: "{{ .Values.config.gseVersion }}"
-  GSE_CERT_PATH: {{ include "bk-nodeman.env.gseCertPath" . }}
+  GSE_CERT_PATH: "{{ include "bk-nodeman.env.gseCertPath" . }}"
+  GSE_ENABLE_PUSH_ENVIRON_FILE: "{{ .Values.config.gseEnablePushEnvironFile }}"
+  GSE_ENVIRON_DIR: "{{ .Values.config.gseEnvironDir }}"
+  GSE_ENVIRON_WIN_DIR: "{{ .Values.config.gseEnvironWinDir }}"
   GSE_ENABLE_SVR_DISCOVERY: "{{ .Values.config.gseEnableSvrDisCovery }}"
   BKAPP_GSE_ZK_HOST: "{{ .Values.config.bkAppGseZkHost }}"
   BKAPP_GSE_ZK_AUTH: "{{ .Values.config.bkAppGseZkAuth }}"

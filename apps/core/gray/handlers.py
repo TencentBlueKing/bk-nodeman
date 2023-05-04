@@ -22,6 +22,7 @@ from apps.core.ipchooser.handlers.host_handler import HostHandler
 from apps.exceptions import ApiError, ValidationError
 from apps.node_man import constants as node_man_constants
 from apps.node_man import models as node_man_models
+from apps.node_man.handlers.job import JobHandler
 from apps.node_man.periodic_tasks.sync_agent_status_task import (
     update_or_create_host_agent_status,
 )
@@ -90,14 +91,65 @@ class GrayHandler:
         return {int(v1_ap_id): int(v2_ap_id) for v1_ap_id, v2_ap_id in gray_ap_map.items()}
 
     @classmethod
+    def activate(
+        cls, host_nodes: typing.List[typing.Dict[str, int]], rollback: bool, only_status: bool = True
+    ) -> typing.Dict[str, typing.Any]:
+
+        if not host_nodes:
+            logger.info(f"[activate][rollback={rollback}] Empty host nodes")
+            return {}
+
+        bk_biz_ids: typing.Set[int] = set()
+        bk_host_ids: typing.Set[int] = set()
+
+        for host_node in host_nodes:
+            bk_biz_ids.add(host_node["bk_biz_id"])
+            bk_host_ids.add(host_node["bk_host_id"])
+
+        host_queryset: QuerySet = node_man_models.Host.objects.filter(
+            bk_biz_id__in=bk_biz_ids, bk_host_id__in=bk_host_ids
+        )
+
+        if settings.BK_BACKEND_CONFIG:
+            # 处在后台时，异步执行状态同步任务
+            update_or_create_host_agent_status.delay(
+                task_id=f"activate[rollback={rollback}]", host_queryset=host_queryset
+            )
+            update_or_create_proc_status.delay(task_id="update_host_ap_by_host_ids", host_queryset=host_queryset)
+            logger.info(f"[activate][rollback={rollback}] Start to sync Agent & Plugin status asynchronously")
+        else:
+            host_count: int = host_queryset.count()
+            if host_count < node_man_constants.QUERY_AGENT_STATUS_HOST_LENS:
+                # 在 SaaS 端进行操作时，小批量主机的情况下优先同步 Agent 状态（耗时短）
+                logger.info(f"[activate][rollback={rollback}][saas] Start to sync Agent status, count -> {host_count}")
+                update_or_create_host_agent_status(
+                    task_id=f"[activate][rollback={rollback}][saas]", host_queryset=host_queryset
+                )
+                logger.info(f"[activate][rollback={rollback}][saas] Sync Agent status finished")
+            else:
+                logger.info(f"[activate][rollback={rollback}][saas] Skip to sync agent status, count -> {host_count}")
+
+        if only_status:
+            logger.info(f"[activate][rollback={rollback}] Skip to create active job")
+            return {}
+
+        operate_result: typing.Dict[str, typing.Any] = JobHandler().operate(
+            node_man_constants.JobType.ACTIVATE_AGENT, host_nodes, bk_biz_ids, {}, {}
+        )
+        logger.info(f"[activate][rollback={rollback}] Start to activate -> {operate_result}")
+
+        return operate_result
+
+    @classmethod
     def update_host_ap_by_host_ids(
         cls,
         host_ids: typing.Union[typing.List[int], typing.Set[int]],
         bk_biz_ids: typing.Union[typing.List[int], typing.Set[int]],
         is_biz_gray: bool,
         rollback: bool = False,
-    ):
+    ) -> typing.Dict[str, typing.Any]:
 
+        host_nodes: typing.List[typing.Dict[str, int]] = []
         gray_ap_map: typing.Dict[int, int] = cls.get_gray_ap_map()
 
         # 更新主机ap id
@@ -114,48 +166,34 @@ class GrayHandler:
                 query_params.update(bk_host_id__in=host_ids)
 
             logger.info(f"[update_host_ap_by_host_ids][rollback={rollback}] {v1_ap_id} to {v2_ap_id}")
-            node_man_models.Host.objects.filter(**query_params).update(ap_id=v2_ap_id, updated_at=timezone.now())
 
-            # 构造反向条件，异步更新 Agent / 插件状态
-            query_params["ap_id"] = v2_ap_id
-            host_queryset: QuerySet = node_man_models.Host.objects.filter(**query_params)
+            partial_host_nodes: typing.List[typing.Dict[str, int]] = list(
+                node_man_models.Host.objects.filter(**query_params).values("bk_host_id", "bk_biz_id")
+            )
 
-            if settings.BK_BACKEND_CONFIG:
-                # 处在后台时，异步执行状态同步任务
-                update_or_create_host_agent_status.delay(
-                    task_id=f"update_host_ap_by_host_ids[rollback={rollback}]", host_queryset=host_queryset
-                )
-                update_or_create_proc_status.delay(task_id="update_host_ap_by_host_ids", host_queryset=host_queryset)
-                logger.info(
-                    f"[update_host_ap_by_host_ids][rollback={rollback}] "
-                    f"Start to sync Agent & Plugin status asynchronously"
-                )
-            else:
-                host_count: int = host_queryset.count()
-                if host_count < node_man_constants.QUERY_AGENT_STATUS_HOST_LENS:
-                    # 在 SaaS 端进行操作时，小批量主机的情况下优先同步 Agent 状态（耗时短）
-                    logger.info(
-                        f"[update_host_ap_by_host_ids][rollback={rollback}][saas] "
-                        f"Start to sync Agent status, count -> {host_count}"
-                    )
-                    update_or_create_host_agent_status(
-                        task_id=f"update_host_ap_by_host_ids[rollback={rollback}][saas]", host_queryset=host_queryset
-                    )
-                    logger.info(f"[update_host_ap_by_host_ids][rollback={rollback}][saas] Sync Agent status finished")
-                else:
-                    logger.info(
-                        f"[update_host_ap_by_host_ids][rollback={rollback}][saas] "
-                        f"Skip to sync agent status, count -> {host_count}"
-                    )
+            # 切换接入点
+            update_count: int = node_man_models.Host.objects.filter(
+                bk_biz_id__in=bk_biz_ids, bk_host_id__in=[host_node["bk_host_id"] for host_node in partial_host_nodes]
+            ).update(ap_id=v2_ap_id, updated_at=timezone.now())
+
+            logger.info(
+                f"[update_host_ap_by_host_ids][rollback={rollback}] Update count -> {update_count}, "
+                f"expect count -> {len(partial_host_nodes)}"
+            )
+
+            # 聚合需要操作的主机节点
+            host_nodes.extend(partial_host_nodes)
+
+        return {"host_nodes": host_nodes}
 
     @classmethod
     def update_host_ap(
         cls, validated_data: typing.Dict[str, typing.List[typing.Any]], is_biz_gray: bool, rollback: bool = False
-    ):
+    ) -> typing.Dict[str, typing.Any]:
 
         clouds_ip_host_ids: typing.List[int] = cls.get_cloud_host_query_params(validated_data)
 
-        cls.update_host_ap_by_host_ids(clouds_ip_host_ids, validated_data["bk_biz_ids"], is_biz_gray, rollback)
+        return cls.update_host_ap_by_host_ids(clouds_ip_host_ids, validated_data["bk_biz_ids"], is_biz_gray, rollback)
 
     @classmethod
     def update_gray_scope_list(cls, validated_data: typing.Dict[str, typing.List[typing.Any]], rollback: bool = False):
@@ -240,36 +278,40 @@ class GrayHandler:
                         )
 
     @classmethod
-    @atomic
     def build(cls, validated_data: typing.Dict[str, typing.List[typing.Any]]):
 
         # 不传 cloud_ips 表示按业务灰度
         is_biz_gray: bool = "cloud_ips" not in validated_data
 
-        if is_biz_gray:
-            # 更新灰度业务范围
-            cls.update_gray_scope_list(validated_data)
+        with atomic():
+            if is_biz_gray:
+                # 更新灰度业务范围
+                cls.update_gray_scope_list(validated_data)
 
-            # 更新云区域接点
-            cls.update_cloud_ap_id(validated_data)
+                # 更新云区域接点
+                cls.update_cloud_ap_id(validated_data)
 
-        # 更新主机ap
-        cls.update_host_ap(validated_data, is_biz_gray)
+            # 更新主机ap
+            update_result: typing.Dict[str, typing.Any] = cls.update_host_ap(validated_data, is_biz_gray)
+
+        return cls.activate(update_result["host_nodes"], rollback=False, only_status=False)
 
     @classmethod
-    @atomic
     def rollback(cls, validated_data: typing.Dict[str, typing.List[typing.Any]]):
 
         # 不传 cloud_ips 表示按业务灰度
         is_biz_gray: bool = "cloud_ips" not in validated_data
 
-        if is_biz_gray:
-            # 需要先回滚云区域，确保业务移除灰度列表前能正常判定云区域所属关系
-            # 更新云区域接入点
-            cls.update_cloud_ap_id(validated_data, rollback=True)
+        with atomic():
+            if is_biz_gray:
+                # 需要先回滚云区域，确保业务移除灰度列表前能正常判定云区域所属关系
+                # 更新云区域接入点
+                cls.update_cloud_ap_id(validated_data, rollback=True)
 
-            # 更新灰度业务范围
-            cls.update_gray_scope_list(validated_data, rollback=True)
+                # 更新灰度业务范围
+                cls.update_gray_scope_list(validated_data, rollback=True)
 
-        # 更新主机ap
-        cls.update_host_ap(validated_data, is_biz_gray, rollback=True)
+            # 更新主机ap
+            update_result: typing.Dict[str, typing.Any] = cls.update_host_ap(validated_data, is_biz_gray, rollback=True)
+
+        return cls.activate(update_result["host_nodes"], rollback=True, only_status=False)

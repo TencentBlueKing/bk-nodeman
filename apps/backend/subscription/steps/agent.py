@@ -58,6 +58,7 @@ class AgentStep(Step):
             RestartProxy,
             ReloadAgent,
             ReloadProxy,
+            ActivateAgent,
             InstallAgent2,
             ReinstallAgent2,
             InstallProxy2,
@@ -215,6 +216,7 @@ class InstallAgent(AgentAction):
             agent_manager.install(),
             agent_manager.get_agent_status(expect_status=constants.ProcStateType.RUNNING),
             agent_manager.push_host_identifier() if self.enable_push_host_identifier else None,
+            agent_manager.push_environ_files() if settings.GSE_ENABLE_PUSH_ENVIRON_FILE else None,
             agent_manager.install_plugins() if self.is_install_latest_plugins else None,
         ]
 
@@ -239,6 +241,7 @@ class ReinstallAgent(AgentAction):
             agent_manager.install(),
             agent_manager.get_agent_status(expect_status=constants.ProcStateType.RUNNING),
             agent_manager.push_host_identifier() if self.enable_push_host_identifier else None,
+            agent_manager.push_environ_files() if settings.GSE_ENABLE_PUSH_ENVIRON_FILE else None,
             agent_manager.install_plugins() if self.is_install_latest_plugins else None,
         ]
 
@@ -323,6 +326,7 @@ class InstallProxy(AgentAction):
             agent_manager.get_agent_status(expect_status=constants.ProcStateType.RUNNING, name=_("查询Proxy状态")),
             agent_manager.check_policy_gse_to_proxy(),
             agent_manager.push_host_identifier() if self.enable_push_host_identifier else None,
+            agent_manager.push_environ_files() if settings.GSE_ENABLE_PUSH_ENVIRON_FILE else None,
         ]
 
         activities = self.append_push_file_activities(agent_manager, activities)
@@ -353,6 +357,7 @@ class ReinstallProxy(AgentAction):
             agent_manager.get_agent_status(expect_status=constants.ProcStateType.RUNNING, name=_("查询Proxy状态")),
             agent_manager.check_policy_gse_to_proxy(),
             agent_manager.push_host_identifier() if self.enable_push_host_identifier else None,
+            agent_manager.push_environ_files() if settings.GSE_ENABLE_PUSH_ENVIRON_FILE else None,
         ]
 
         # 推送文件到proxy
@@ -456,8 +461,9 @@ class ReloadAgent(AgentAction):
             agent_manager.wait(5),
             agent_manager.get_agent_status(expect_status=constants.ProcStateType.RUNNING),
             agent_manager.check_agent_ability(),
+            agent_manager.push_environ_files() if settings.GSE_ENABLE_PUSH_ENVIRON_FILE else None,
         ]
-        return activities, None
+        return list(filter(None, activities)), None
 
 
 class ReloadProxy(ReloadAgent):
@@ -487,6 +493,7 @@ class InstallAgent2(AgentAction):
             agent_manager.upgrade_to_agent_id(),
             agent_manager.get_agent_status(expect_status=constants.ProcStateType.RUNNING),
             agent_manager.push_host_identifier() if self.enable_push_host_identifier else None,
+            agent_manager.push_environ_files() if settings.GSE_ENABLE_PUSH_ENVIRON_FILE else None,
             agent_manager.install_plugins() if self.is_install_latest_plugins else None,
         ]
         return list(filter(None, activities)), None
@@ -527,6 +534,8 @@ class InstallProxy2(AgentAction):
         activities.append(agent_manager.start_nginx())
         if self.enable_push_host_identifier:
             activities.append(agent_manager.push_host_identifier())
+        if settings.GSE_ENABLE_PUSH_ENVIRON_FILE:
+            activities.append(agent_manager.push_environ_files())
         if self.is_install_latest_plugins:
             activities.append(agent_manager.install_plugins())
 
@@ -543,3 +552,12 @@ class ReinstallProxy2(InstallProxy2):
         activities, __ = super()._generate_activities(agent_manager)
         activities[0] = None
         return list(filter(None, activities)), None
+
+
+class ActivateAgent(AgentAction):
+    ACTION_NAME = backend_const.ActionNameType.ACTIVATE_AGENT
+    ACTION_DESCRIPTION = _("切换配置")
+
+    def _generate_activities(self, agent_manager: AgentManager):
+        activities = [agent_manager.push_environ_files()]
+        return activities, None
