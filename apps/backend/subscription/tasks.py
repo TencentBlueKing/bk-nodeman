@@ -262,12 +262,9 @@ def create_task(
     instances: Dict[str, Dict[str, Union[Dict, Any]]],
     instance_actions: Dict[str, Dict[str, str]],
     preview_only: bool = False,
-    inject_meta_to_instances: bool = True,
 ):
     """
     创建执行任务
-    :param inject_meta_to_instances: 是否需要注入 meta 到 instances
-           默认为 True，在变更计算场景下由于已注入该信息，提供此开关用于避免重复注入
     :param preview_only: 是否仅预览
     :param subscription: Subscription
     :param subscription_task: SubscriptionTask
@@ -280,8 +277,9 @@ def create_task(
     }
     :return: SubscriptionTask
     """
-    if inject_meta_to_instances:
-        GrayTools().inject_meta_to_instances(instances)
+    # 兜底注入 Meta，此处注入是覆盖面最全的（包含历史被移除实例）
+    GrayTools().inject_meta_to_instances(instances)
+    logger.info(f"[create task] inject meta to instances[num={len(instances)}] successfully")
 
     topo_order = CmdbHandler.get_topo_order()
     batch_size = models.GlobalSettings.get_config("BATCH_SIZE", default=100)
@@ -521,7 +519,11 @@ def run_subscription_task_and_create_instance(
         create_task(subscription, subscription_task, instances, instance_actions)
         return
 
+    # 预注入 Meta，用于变更计算（仅覆盖当前订阅范围，移除场景通过 create_task 兜底注入）
     GrayTools().inject_meta_to_instances(instances)
+    logger.info(
+        f"run_subscription_task[{subscription_task.id}] pre-inject meta to instances[num={len(instances)}] successfully"
+    )
 
     # 按步骤顺序计算实例变更所需的动作
     instance_actions = defaultdict(dict)
@@ -594,12 +596,7 @@ def run_subscription_task_and_create_instance(
         instances.update(deleted_instance_info)
 
     create_task_result = create_task(
-        subscription,
-        subscription_task,
-        instances,
-        instance_actions,
-        preview_only=preview_only,
-        inject_meta_to_instances=False,
+        subscription, subscription_task, instances, instance_actions, preview_only=preview_only
     )
 
     return {
