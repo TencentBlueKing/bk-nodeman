@@ -22,6 +22,9 @@ data:
   {{- if .Values.gseCert.key }}
   gse_server.key: {{ .Values.gseCert.key | b64dec | quote }}
   {{- end }}
+  {{- if and (.Values.gseCert.certEncryptKey) (ne .Values.config.bkAppRunEnv "ce") }}
+  cert_encrypt.key: {{ .Values.gseCert.certEncryptKey | b64dec | quote }}
+  {{- end }}
   {{- if .Values.gseCert.agent.cert }}
   gse_agent.crt: {{ .Values.gseCert.agent.cert | b64dec | quote }}
   {{- end }}

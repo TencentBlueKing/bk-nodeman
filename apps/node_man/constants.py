@@ -901,6 +901,7 @@ class GseCert(EnhanceEnum):
     CA = "gseca.crt"
     SERVER_CERT = "gse_server.crt"
     SERVER_KEY = "gse_server.key"
+    CERT_ENCRYPT_KEY = "cert_encrypt.key"
     AGENT_CERT = "gse_agent.crt"
     AGENT_KEY = "gse_agent.key"
     API_CLIENT_CERT = "gse_api_client.crt"
@@ -912,6 +913,7 @@ class GseCert(EnhanceEnum):
             cls.CA: _("证书 CA 内容配置"),
             cls.SERVER_CERT: _("Server 侧 CERT 内容配置"),
             cls.SERVER_KEY: _("Server 侧 KEY 内容配置"),
+            cls.CERT_ENCRYPT_KEY: _("证书密码文件内容配置, 用于解密证书密码"),
             cls.AGENT_CERT: _("API 侧 CERT 内容配置, 用于其他服务调用 GSE"),
             cls.AGENT_KEY: _("API 侧 KEY 内容配置, 用于其他服务调用 GSE"),
             cls.API_CLIENT_CERT: _("Agent 侧 CERT 内容配置, 用于 Agent 链路"),

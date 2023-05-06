@@ -15,6 +15,8 @@ import re
 import typing
 from dataclasses import asdict, dataclass, field
 
+from django.conf import settings
+
 from apps.backend.agent import tools
 from apps.backend.utils.data_renderer import nested_render_data
 from apps.node_man import constants, models
@@ -55,8 +57,10 @@ class ConfigContextHelper:
         agent_tls_ca_file: str = path_sep.join([cert_dir, constants.GseCert.CA.value])
         agent_tls_cert_file: str = path_sep.join([cert_dir, constants.GseCert.AGENT_CERT.value])
         agent_tls_key_file: str = path_sep.join([cert_dir, constants.GseCert.AGENT_KEY.value])
+        agent_tls_password_file: str = path_sep.join([cert_dir, constants.GseCert.CERT_ENCRYPT_KEY.value])
         # Proxy 侧证书
         proxy_tls_ca_file: str = agent_tls_ca_file
+        proxy_tls_password_file: str = agent_tls_password_file
         proxy_tls_cert_file: str = path_sep.join([cert_dir, constants.GseCert.SERVER_CERT.value])
         proxy_tls_key_file: str = path_sep.join([cert_dir, constants.GseCert.SERVER_KEY.value])
         proxy_tls_cli_cert_file: str = path_sep.join([cert_dir, constants.GseCert.API_CLIENT_CERT.value])
@@ -68,11 +72,18 @@ class ConfigContextHelper:
             agent_tls_ca_file: str = json.dumps(agent_tls_ca_file)[1:-1]
             agent_tls_cert_file: str = json.dumps(agent_tls_cert_file)[1:-1]
             agent_tls_key_file: str = json.dumps(agent_tls_key_file)[1:-1]
+            agent_tls_password_file: str = json.dumps(agent_tls_password_file)[1:-1]
             proxy_tls_ca_file: str = json.dumps(proxy_tls_ca_file)[1:-1]
+            proxy_tls_password_file: str = json.dumps(proxy_tls_password_file)[1:-1]
             proxy_tls_cert_file: str = json.dumps(proxy_tls_cert_file)[1:-1]
             proxy_tls_key_file: str = json.dumps(proxy_tls_key_file)[1:-1]
             proxy_tls_cli_cert_file: str = json.dumps(proxy_tls_cli_cert_file)[1:-1]
             proxy_tls_cli_key_file: str = json.dumps(proxy_tls_cli_key_file)[1:-1]
+
+        # 社区版无需配置证书密码
+        if settings.BKAPP_RUN_ENV == constants.BkappRunEnvType.CE.value:
+            agent_tls_password_file = ""
+            proxy_tls_password_file = ""
 
         if self.host.node_type == constants.NodeType.PROXY:
             # Agent 配置中 file data 的 endpoint 链接 proxy（可以是同台（自身）或同云区域内其他 proxy 的 file data）
@@ -107,13 +118,17 @@ class ConfigContextHelper:
                 ),
             ),
             context_dataclass.AgentBaseConfigContext(
-                tls_ca_file=agent_tls_ca_file, tls_cert_file=agent_tls_cert_file, tls_key_file=agent_tls_key_file
+                tls_ca_file=agent_tls_ca_file,
+                tls_cert_file=agent_tls_cert_file,
+                tls_key_file=agent_tls_key_file,
+                tls_password_file=agent_tls_password_file,
             ),
             context_dataclass.ProxyConfigContext(
                 bind_port=self.ap.port_config["io_port"],
                 tls_ca_file=proxy_tls_ca_file,
                 tls_cert_file=proxy_tls_cert_file,
                 tls_key_file=proxy_tls_key_file,
+                tls_password_file=proxy_tls_password_file,
             ),
             context_dataclass.TaskConfigContext(),
             context_dataclass.DataConfigContext(ipc=agent_config.get("dataipc", "/var/run/ipc.state.report")),
@@ -127,6 +142,7 @@ class ConfigContextHelper:
                 tls_ca_file=proxy_tls_ca_file,
                 tls_cert_file=proxy_tls_cert_file,
                 tls_key_file=proxy_tls_key_file,
+                tls_password_file=proxy_tls_password_file,
             ),
             context_dataclass.DataProxyConfigContext(
                 endpoints=",".join(
@@ -138,6 +154,7 @@ class ConfigContextHelper:
                 tls_ca_file=agent_tls_ca_file,
                 tls_cert_file=agent_tls_cert_file,
                 tls_key_file=agent_tls_key_file,
+                tls_password_file=agent_tls_password_file,
             ),
             context_dataclass.FileAgentConfigContext(
                 bind_port=self.ap.port_config["file_svr_port"],
@@ -149,6 +166,7 @@ class ConfigContextHelper:
                 tls_ca_file=proxy_tls_ca_file,
                 tls_cert_file=proxy_tls_cert_file,
                 tls_key_file=proxy_tls_key_file,
+                tls_password_file=proxy_tls_password_file,
             ),
             context_dataclass.FileProxyConfigContext(
                 upstream_ip=random.choice(gse_servers_info["bt_file_server_hosts"] or [""]),
@@ -170,6 +188,7 @@ class ConfigContextHelper:
                 thrift_bind_port=self.ap.port_config["btsvr_thrift_port"],
                 advertise_ip=self.host.inner_ip or self.host.inner_ipv6,
                 tls_ca_file=agent_tls_ca_file,
+                tls_password_file=proxy_tls_password_file,
                 tls_svr_cert_file=proxy_tls_cert_file,
                 tls_svr_key_file=proxy_tls_key_file,
                 tls_cli_cert_file=proxy_tls_cli_cert_file,

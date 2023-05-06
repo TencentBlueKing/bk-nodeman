@@ -279,6 +279,7 @@ externalRabbitMQ:
 | gseCert.ca             | 证书 CA 内容配置（base64）                     | `""` |
 | gseCert.cert           | Server 侧 CERT 内容配置（base64）             | `""` |
 | gseCert.key            | Server 侧 KEY 内容配置（base64）              | `""` |
+| gseCert.certEncryptKey | 证书密码文件内容配置, 用于解密证书密码（base64）           | `""` |
 | gseCert.apiClient.cert | API 侧 CERT 内容配置, 用于其他服务调用 GSE（base64）  | `""` |
 | gseCert.apiClient.key  | API 侧 KEY 内容配置, 用于其他服务调用 GSE（base64）   | `""` |
 | gseCert.agent.cert     | Agent 侧 CERT 内容配置, 用于 Agent 链路（base64） | `""` |
