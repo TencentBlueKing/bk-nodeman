@@ -66,7 +66,6 @@ class TlsBaseConfigContext:
     tls_ca_file: str = ""
     tls_cert_file: str = ""
     tls_key_file: str = ""
-    # 待映射，目前看这个配置没有启用
     tls_password_file: str = ""
 
 
@@ -255,7 +254,6 @@ class FileTopologyConfigContext(GseConfigContext):
     thread_num: int = 4
 
     tls_ca_file: str = ""
-    # 待映射，目前看这个配置没有启用
     tls_password_file: str = ""
 
     tls_svr_cert_file: str = ""

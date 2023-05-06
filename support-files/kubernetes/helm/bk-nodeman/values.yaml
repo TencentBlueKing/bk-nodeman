@@ -274,6 +274,9 @@ gseCert:
   ## Server 侧 KEY 内容配置（base64）
   key: ""
 
+  ## 证书密码文件内容配置, 用于解密证书密码
+  certEncryptKey: ""
+
   ## API 侧 CERT
   ##
   apiClient:
