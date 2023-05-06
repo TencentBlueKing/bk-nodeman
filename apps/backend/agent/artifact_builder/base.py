@@ -181,6 +181,7 @@ class BaseArtifactBuilder(abc.ABC):
                 if not os.path.exists(cert_filepath):
                     # 在部分场景下可能本身就不需要证书（比如社区版无需证书密码），此处暂不抛异常
                     logger.warning(f"cert file -> {cert_filepath} not exist, jump it.")
+                    continue
                 injected_cert_filenames.append(cert_filename)
                 shutil.copyfile(cert_filepath, os.path.join(cert_dst, cert_filename))
 
