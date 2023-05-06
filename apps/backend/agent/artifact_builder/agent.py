@@ -24,7 +24,12 @@ class AgentArtifactBuilder(base.BaseArtifactBuilder):
 
     NAME = constants.GsePackageCode.AGENT.value
     PKG_DIR = constants.GsePackageDir.AGENT.value
-    CERT_FILENAMES = [constants.GseCert.CA.value, constants.GseCert.AGENT_CERT.value, constants.GseCert.AGENT_KEY.value]
+    CERT_FILENAMES = [
+        constants.GseCert.CA.value,
+        constants.GseCert.AGENT_CERT.value,
+        constants.GseCert.AGENT_KEY.value,
+        constants.GseCert.CERT_ENCRYPT_KEY.value,
+    ]
 
     def extract_initial_artifact(self, initial_artifact_local_path: str, extract_dir: str):
         with tarfile.open(name=initial_artifact_local_path) as tf:

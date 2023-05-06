@@ -179,7 +179,7 @@ class BaseArtifactBuilder(abc.ABC):
             for cert_filename in self.CERT_FILENAMES:
                 cert_filepath: str = os.path.join(self.cert_path, cert_filename)
                 if not os.path.exists(cert_filepath):
-                    # 在部分场景下可能本身就不需要证书，此处暂不抛异常
+                    # 在部分场景下可能本身就不需要证书（比如社区版无需证书密码），此处暂不抛异常
                     logger.warning(f"cert file -> {cert_filepath} not exist, jump it.")
                 injected_cert_filenames.append(cert_filename)
                 shutil.copyfile(cert_filepath, os.path.join(cert_dst, cert_filename))
