@@ -1338,11 +1338,14 @@ class DebugService(PluginExecuteScriptService):
     ) -> str:
         policy_step_adapter = common_data.policy_step_adapter
         package = self.get_package_by_process_status(process_status, common_data)
+        host: models.Host = self.get_host_by_process_status(process_status, common_data)
+        agent_config: Dict[str, Any] = common_data.ap_id_obj_map[host.ap_id].get_agent_config(host.os_type)
+        install_path: str = agent_config["setup_path"]
         plugin = policy_step_adapter.plugin_desc
         control = package.proc_control
         return "-t {category} -p {install_path} -n {name} -c {command} -g {group_id}".format(
             category=plugin.category,
-            install_path=control.install_path,
+            install_path=install_path,
             name=plugin.name,
             command=control.debug_cmd,
             group_id=process_status.group_id,
@@ -1412,11 +1415,12 @@ class StopDebugService(PluginExecuteScriptService):
         self, process_status: models.ProcessStatus, common_data: PluginCommonData
     ) -> str:
         policy_step_adapter = common_data.policy_step_adapter
-        package = self.get_package_by_process_status(process_status, common_data)
+        host: models.Host = self.get_host_by_process_status(process_status, common_data)
+        agent_config: Dict[str, Any] = common_data.ap_id_obj_map[host.ap_id].get_agent_config(host.os_type)
+        install_path: str = agent_config["setup_path"]
         plugin = policy_step_adapter.plugin_desc
-        control = package.proc_control
         return "-p {install_path} -n {name}  -g {group_id}".format(
-            install_path=control.install_path, name=plugin.name, group_id=process_status.group_id
+            install_path=install_path, name=plugin.name, group_id=process_status.group_id
         )
 
 
