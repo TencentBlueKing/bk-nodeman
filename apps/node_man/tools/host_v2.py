@@ -17,39 +17,71 @@ from apps.node_man import constants, models
 
 class HostV2Tools:
     @classmethod
-    def get_os_type(cls, host: Dict) -> str:
+    def get_os_type_by_os_type(cls, bk_os_type: str) -> Optional[str]:
+        """根据 os_type 获取主机操作系统"""
+        return constants.OS_TYPE.get(bk_os_type)
+
+    @classmethod
+    def get_os_type_by_os_name(cls, bk_os_name: str) -> Optional[str]:
+        """根据 os_name 获取主机操作系统"""
+        bk_os_name = bk_os_name.lower()
+
+        for os_type, keywords in constants.OS_KEYWORDS.items():
+            for keyword in keywords:
+                if keyword in bk_os_name:
+                    return os_type
+
+        return None
+
+    @classmethod
+    def is_os_type_priority(cls) -> bool:
+        return bool(
+            models.GlobalSettings.get_config(models.GlobalSettings.KeyEnum.SYNC_CMDB_HOST_OS_TYPE_PRIORITY.value)
+        )
+
+    @classmethod
+    def get_os_type(cls, host: Dict, is_os_type_priority: bool = False) -> str:
         """根据CC的主机属性，得到可能的操作系统"""
         bk_os_name = host.get("bk_os_name") or "unknown"
         bk_os_type = host.get("bk_os_type")
-        os_name = bk_os_name.lower()
 
-        linux_keywords = ["linux", "ubuntu", "centos", "redhat", "suse", "debian", "fedora"]
-        windows_keywords = ["windows", "xserver"]
-        aix_keywords = ["aix"]
+        os_type = cls.get_os_type_by_os_name(bk_os_name)
 
-        for linux_keyword in linux_keywords:
-            if linux_keyword in os_name:
-                return constants.OsType.LINUX
-
-        for windows_keyword in windows_keywords:
-            if windows_keyword in os_name:
-                return constants.OsType.WINDOWS
-
-        for aix_keyword in aix_keywords:
-            if aix_keyword in os_name:
-                return constants.OsType.AIX
-
-        if bk_os_type in constants.OS_TYPE:
-            return constants.OS_TYPE[bk_os_type]
+        if is_os_type_priority:
+            os_type = cls.get_os_type_by_os_type(bk_os_type) or os_type
+        else:
+            os_type = os_type or cls.get_os_type_by_os_type(bk_os_type)
 
         # 若CMDB中区分不出操作系统，则默认是LINUX
-        return constants.OsType.LINUX
+        return os_type or constants.OsType.LINUX
 
     @classmethod
-    def get_cpu_arch(cls, host: Dict) -> str:
-        os_type = cls.get_os_type(host)
-        # 暂时通过操作系统区分CPU架构，后续通过CMDB的CPU架构字段区分
-        return constants.DEFAULT_OS_CPU_MAP.get(os_type, constants.CpuType.x86_64)
+    def is_sync_cmdb_host_apply_cpu_arch(cls) -> bool:
+        sync_cmdb_host_apply_cpu_arch = models.GlobalSettings.get_config(
+            models.GlobalSettings.KeyEnum.SYNC_CMDB_HOST_APPLY_CPU_ARCH.value
+        )
+        return bool(sync_cmdb_host_apply_cpu_arch)
+
+    @classmethod
+    def get_cpu_arch(
+        cls,
+        host: Dict,
+        is_sync_cmdb_host_apply_cpu_arch: bool = False,
+        get_default: bool = True,
+        os_type: str = constants.OsType.LINUX
+    ) -> Optional[str]:
+        if is_sync_cmdb_host_apply_cpu_arch:
+            cpu_arch = constants.CMDB_CPU_MAP.get(host.get("bk_cpu_architecture"))
+            if cpu_arch == constants.CpuType.x86 and host.get("bk_os_bit"):
+                bk_os_bit = host.get("bk_os_bit")
+                bit_suffix = "" if "32" in bk_os_bit else "_64"
+                return cpu_arch + bit_suffix
+            elif cpu_arch:
+                return cpu_arch
+        if get_default:
+            return constants.DEFAULT_OS_CPU_MAP.get(os_type, constants.CpuType.x86_64)
+
+        return None
 
     @classmethod
     def list_scope_host_ids(cls, scope: Dict) -> List[int]:

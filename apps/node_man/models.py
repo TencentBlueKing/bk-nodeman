@@ -120,6 +120,10 @@ class GlobalSettings(models.Model):
         # 禁用订阅业务列表
         DISABLE_SUBSCRIPTION_SCOPE_LIST = "DISABLE_SUBSCRIPTION_SCOPE_LIST"
         GSE2_GRAY_AP_MAP = "GSE2_GRAY_AP_MAP"
+        # 是否同步 cc 的CPU架构
+        SYNC_CMDB_HOST_APPLY_CPU_ARCH = "SYNC_CMDB_HOST_APPLY_CPU_ARCH"
+        # 同步 cc 主机操作系统时，是否 bk_os_type 匹配优先与 bk_os_name
+        SYNC_CMDB_HOST_OS_TYPE_PRIORITY = "SYNC_CMDB_HOST_OS_TYPE_PRIORITY"
 
     key = models.CharField(_("键"), max_length=255, db_index=True, primary_key=True)
     v_json = JSONField(_("值"))

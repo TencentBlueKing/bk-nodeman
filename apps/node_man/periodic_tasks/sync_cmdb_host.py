@@ -100,6 +100,7 @@ def _list_resource_pool_hosts(start):
 def _bulk_update_host(hosts, extra_fields):
     update_fields = [
         "node_type",
+        "bk_biz_id",
         "bk_cloud_id",
         "bk_host_name",
         "bk_addressing",
@@ -108,14 +109,16 @@ def _bulk_update_host(hosts, extra_fields):
         "inner_ipv6",
         "outer_ipv6",
         "bk_agent_id",
+        "os_type",
     ] + extra_fields
     if hosts:
         models.Host.objects.bulk_update(hosts, fields=update_fields)
 
 
-def _generate_host(biz_id, host, ap_id):
-    os_type = tools.HostV2Tools.get_os_type(host)
-    cpu_arch = tools.HostV2Tools.get_cpu_arch(host)
+def _generate_host(biz_id, host, ap_id, is_os_type_priority=False, is_sync_cmdb_host_apply_cpu_arch=False):
+    os_type = tools.HostV2Tools.get_os_type(host, is_os_type_priority)
+    cpu_arch = tools.HostV2Tools.get_cpu_arch(host, is_sync_cmdb_host_apply_cpu_arch, os_type=os_type)
+
     host_data = models.Host(
         bk_host_id=host["bk_host_id"],
         bk_agent_id=host.get("bk_agent_id"),
@@ -193,16 +196,16 @@ def update_or_create_host_base(biz_id, task_id, cmdb_host_data):
         ).values_list("bk_host_id", flat=True)
     )
 
-    need_delete_host_ids: typing.Set[int] = set()
-    need_create_host_without_biz: typing.List[typing.Dict] = []
+    is_sync_cmdb_host_apply_cpu_arch = tools.HostV2Tools.is_sync_cmdb_host_apply_cpu_arch()
+    is_os_type_priority = tools.HostV2Tools.is_os_type_priority()
+
     need_update_hosts: typing.List[models.Host] = []
-    need_update_hosts_without_biz: typing.List[models.Host] = []
-    need_update_hosts_without_os: typing.List[models.Host] = []
-    need_update_hosts_without_biz_os: typing.List[models.Host] = []
+    need_update_hosts_with_arch: typing.List[models.Host] = []
+
     need_create_hosts: typing.List[models.Host] = []
-    need_update_host_identity_objs: typing.List[models.IdentityData] = []
     need_create_host_identity_objs: typing.List[models.IdentityData] = []
     need_create_process_status_objs: typing.List[models.ProcessStatus] = []
+    need_update_host_identity_objs: typing.List[models.IdentityData] = []
 
     ap_id = constants.DEFAULT_AP_ID if models.AccessPoint.objects.count() > 1 else models.AccessPoint.objects.first().id
 
@@ -219,6 +222,7 @@ def update_or_create_host_base(biz_id, task_id, cmdb_host_data):
         host_params = {
             "bk_host_id": host["bk_host_id"],
             "bk_agent_id": host.get("bk_agent_id"),
+            "bk_biz_id": biz_id,
             "bk_cloud_id": host["bk_cloud_id"],
             "bk_host_name": host.get("bk_host_name"),
             "bk_addressing": host.get("bk_addressing") or constants.CmdbAddressingType.STATIC.value,
@@ -227,74 +231,47 @@ def update_or_create_host_base(biz_id, task_id, cmdb_host_data):
             "inner_ipv6": (host.get("bk_host_innerip_v6") or "").split(",")[0],
             "outer_ipv6": (host.get("bk_host_outerip_v6") or "").split(",")[0],
         }
-        if host["bk_host_id"] in exist_agent_host_ids:
 
-            os_type = tools.HostV2Tools.get_os_type(host)
+        if host["bk_host_id"] in exist_agent_host_ids:
+            host_params["os_type"] = tools.HostV2Tools.get_os_type(host, is_os_type_priority)
             host_params["node_type"] = (constants.NodeType.PAGENT, constants.NodeType.AGENT)[
                 host["bk_cloud_id"] == constants.DEFAULT_CLOUD
             ]
-
-            if os_type and biz_id:
-                host_params["bk_biz_id"] = biz_id
-                host_params["os_type"] = os_type
-                need_update_hosts.append(models.Host(**host_params))
-            elif biz_id:
-                host_params["bk_biz_id"] = biz_id
-                need_update_hosts_without_os.append(models.Host(**host_params))
-            elif os_type:
-                host_params["os_type"] = os_type
-                need_update_hosts_without_biz.append(models.Host(**host_params))
-            else:
-                need_update_hosts_without_biz_os.append(models.Host(**host_params))
         elif host["bk_host_id"] in exist_proxy_host_ids:
             host_params["os_type"] = constants.OsType.LINUX
             host_params["node_type"] = constants.NodeType.PROXY
-            if biz_id:
-                host_params["bk_biz_id"] = biz_id
-                need_update_hosts.append(models.Host(**host_params))
-            else:
-                need_update_hosts_without_biz.append(models.Host(**host_params))
         else:
-            # 不是agent不是proxy的主机需要创建
-            if not biz_id:
-                need_create_host_without_biz.append(host)
+            host_data, identify_data, process_status_data = _generate_host(
+                biz_id,
+                host,
+                ap_id,
+                is_os_type_priority,
+                is_sync_cmdb_host_apply_cpu_arch,
+            )
+            need_create_hosts.append(host_data)
+            if identify_data.bk_host_id not in host_ids_in_exist_identity_data:
+                need_create_host_identity_objs.append(identify_data)
             else:
-                host_data, identify_data, process_status_data = _generate_host(biz_id, host, ap_id)
-                need_create_hosts.append(host_data)
-                if identify_data.bk_host_id not in host_ids_in_exist_identity_data:
-                    need_create_host_identity_objs.append(identify_data)
-                else:
-                    need_update_host_identity_objs.append(identify_data)
-                if process_status_data.bk_host_id not in host_ids_in_exist_proc_statuses:
-                    need_create_process_status_objs.append(process_status_data)
+                need_update_host_identity_objs.append(identify_data)
+            if process_status_data.bk_host_id not in host_ids_in_exist_proc_statuses:
+                need_create_process_status_objs.append(process_status_data)
+            continue
 
-    if need_create_host_without_biz:
-        # 查询业务主机数据进行创建
-        find_host_biz_ids = [_host["bk_host_id"] for _host in need_create_host_without_biz]
-        host_biz_relation = find_host_biz_relations(find_host_biz_ids)
-        # 查询不到业务需要删除
-        need_delete_host_ids = set(find_host_biz_ids) - set(host_biz_relation.keys())
+        cpu_arch = tools.HostV2Tools.get_cpu_arch(
+            host,
+            is_sync_cmdb_host_apply_cpu_arch,
+            get_default=False,
+        )
+        if is_sync_cmdb_host_apply_cpu_arch and cpu_arch:
+            host_params["cpu_arch"] = cpu_arch
+            need_update_hosts_with_arch.append(models.Host(**host_params))
+            continue
 
-        for need_create_host in need_create_host_without_biz:
-            if need_create_host["bk_host_id"] not in need_delete_host_ids:
-                host_data, identify_data, process_status_data = _generate_host(
-                    host_biz_relation[need_create_host["bk_host_id"]],
-                    need_create_host,
-                    ap_id,
-                )
-                need_create_hosts.append(host_data)
-                if identify_data.bk_host_id not in host_ids_in_exist_identity_data:
-                    need_create_host_identity_objs.append(identify_data)
-                else:
-                    need_update_host_identity_objs.append(identify_data)
-                if process_status_data.bk_host_id not in host_ids_in_exist_proc_statuses:
-                    need_create_process_status_objs.append(process_status_data)
+        need_update_hosts.append(models.Host(**host_params))
 
     with transaction.atomic():
-        _bulk_update_host(need_update_hosts, ["bk_biz_id", "os_type"])
-        _bulk_update_host(need_update_hosts_without_biz, ["os_type"])
-        _bulk_update_host(need_update_hosts_without_os, ["bk_biz_id"])
-        _bulk_update_host(need_update_hosts_without_biz_os, [])
+        _bulk_update_host(need_update_hosts, [])
+        _bulk_update_host(need_update_hosts_with_arch, ["cpu_arch"])
 
         if need_create_hosts:
             models.Host.objects.bulk_create(need_create_hosts, batch_size=500)
@@ -307,7 +284,7 @@ def update_or_create_host_base(biz_id, task_id, cmdb_host_data):
         if need_create_process_status_objs:
             models.ProcessStatus.objects.bulk_create(need_create_process_status_objs, batch_size=500)
 
-    return bk_host_ids, list(need_delete_host_ids)
+    return bk_host_ids
 
 
 def sync_biz_incremental_hosts(bk_biz_id: int, expected_bk_host_ids: typing.Iterable[int]):
@@ -363,7 +340,7 @@ def _update_or_create_host(biz_id, start=0, task_id=None):
         f"host_count -> {host_count}, range -> {start}-{start + constants.QUERY_CMDB_LIMIT}"
     )
 
-    bk_host_ids, _ = update_or_create_host_base(biz_id, task_id, host_data)
+    bk_host_ids = update_or_create_host_base(biz_id, task_id, host_data)
 
     # 递归
     if host_count > start + constants.QUERY_CMDB_LIMIT:

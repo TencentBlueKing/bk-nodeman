@@ -117,6 +117,12 @@ OS_CHOICES = tuple_choices(OS_TUPLE)
 OsType = choices_to_namedtuple(OS_CHOICES)
 OS_CHN = {os_type: os_type if os_type == OsType.AIX else os_type.capitalize() for os_type in OS_TUPLE}
 BK_OS_TYPE = {"LINUX": "1", "WINDOWS": "2", "AIX": "3", "SOLARIS": "5"}
+# 操作系统匹配关键词
+OS_KEYWORDS = {
+    OsType.LINUX: ["linux", "ubuntu", "centos", "redhat", "suse", "debian", "fedora"],
+    OsType.WINDOWS: ["windows", "xserver"],
+    OsType.AIX: ["aix"]
+}
 
 # 操作系统->系统账户映射表
 ACCOUNT_MAP = {
@@ -481,6 +487,10 @@ DEFAULT_OS_CPU_MAP = {
     OsType.AIX: CpuType.powerpc,
     OsType.SOLARIS: CpuType.sparc,
 }
+CMDB_CPU_MAP = {
+    "x86": CpuType.x86,
+    "arm": CpuType.aarch64
+}
 
 PACKAGE_PATH_RE = re.compile(
     f"(?P<is_external>external_)?plugins_(?P<os>({'|'.join(map(str, PLUGIN_OS_TUPLE))}))"
@@ -629,6 +639,7 @@ CC_HOST_FIELDS = [
     "bk_state",
     "bk_state_name",
     "bk_supplier_account",
+    "bk_cpu_architecture",
 ]
 
 # 限流窗口配置，用于控制CMDB订阅触发的变更频率
