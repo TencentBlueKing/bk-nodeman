@@ -212,7 +212,7 @@
                     <bk-popover
                       placement="bottom"
                       :delay="400"
-                      :width="language === 'zh' ? 160 : 370"
+                      :width="language === 'zh-cn' ? 160 : 370"
                       :disabled="!row.re_certification || disabled"
                       :content="$t('认证资料过期不可操作', { type: $t('重装') })">
                       <bk-button
@@ -248,7 +248,7 @@
                             v-test.common="`moreItem.${item.id}`"
                             v-show="getOperateShow(row, item)"
                             v-bk-tooltips="{
-                              width: language === 'zh' ? 160 : 370,
+                              width: language === 'zh-cn' ? 160 : 370,
                               disabled: (item.id !== 'uninstall' && item.id !== 'reload') || !row.re_certification,
                               content: $t('认证资料过期不可操作', { type: $t('卸载') })
                             }"
