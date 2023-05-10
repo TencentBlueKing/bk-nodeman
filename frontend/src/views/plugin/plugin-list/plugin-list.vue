@@ -178,7 +178,7 @@ export default class PluginList extends Mixins(HeaderFilterMixins) {
     return MainStore.selectedBiz;
   }
   private get isZh() {
-    return MainStore.language === 'zh';
+    return MainStore.language === 'zh-cn';
   }
   private get isMoreSelected() {
     return this.pluginOperateMore.find(item => item.id === this.dialogInfo.operate);

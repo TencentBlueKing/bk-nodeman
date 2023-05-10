@@ -218,7 +218,7 @@ export default class CloudManagerSetup extends Mixins(formLabelMixin, FilterIpMi
     this.loading = true;
     switch (this.type) {
       case 'create':
-        MainStore.setNavTitle(window.i18n.t('安装Proxy'));
+        MainStore.setNavTitle('安装Proxy');
         break;
       case 'replace':
         MainStore.setNavTitle(window.i18n.t('替换Proxy', { ip: this.innerIp || this.id }));

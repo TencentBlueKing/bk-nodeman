@@ -62,7 +62,7 @@ const beforeRouterMethod = async (to: Route, next: any) => {
   // MainStore.setCustomNavContent(customContent)
   // 设置标题
   if (!customContent) {
-    MainStore.setNavTitle(to.params.title || window.i18n.t(title));
+    MainStore.setNavTitle(to.params.title || title);
   }
   // 更新当前导航name
   MainStore.updateCurrentNavName(navId);

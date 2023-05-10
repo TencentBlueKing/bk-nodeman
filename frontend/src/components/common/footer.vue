@@ -23,11 +23,11 @@ export default class NmFooter extends Vue {
 
   private created() {
     this.version =  window.PROJECT_CONFIG.VERSION;
-    if (window.PROJECT_CONFIG.RUN_VER === 'ieod') {
+    if (window.PROJECT_CONFIG.BKAPP_RUN_ENV === 'ieod') {
       this.link = [
         {
           name: window.i18n.t('联系BK助手'),
-          href: window.PROJECT_CONFIG.WXWORK_UIN,
+          href: window.PROJECT_CONFIG.BKAPP_NAV_HELPER_URL,
           target: '_blank',
         },
         {
@@ -40,7 +40,7 @@ export default class NmFooter extends Vue {
       this.link = [
         {
           name: window.i18n.t('技术支持'),
-          href: 'https://wpa1.qq.com/KziXGWJs?_type=wpa&qidian=true',
+          href: window.PROJECT_CONFIG.BKAPP_NAV_HELPER_URL,
           target: '_blank',
         },
         {

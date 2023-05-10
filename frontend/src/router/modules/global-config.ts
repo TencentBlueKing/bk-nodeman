@@ -38,7 +38,7 @@ export default globalConfig && !globalConfig.disabled ? [
     },
     beforeEnter: (to: Route, from: Route, next: () => void) => {
       ConfigStore.resetDetail();
-      MainStore.setNavTitle(!to.params.pointId ? window.i18n.t('新增接入点') : window.i18n.t('编辑接入点'));
+      MainStore.setNavTitle(!to.params.pointId ? '新增接入点' : '编辑接入点');
       MainStore.setToggleDefaultContent(true);
       next();
     },

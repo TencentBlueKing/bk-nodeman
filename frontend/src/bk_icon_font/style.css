@@ -299,6 +299,12 @@ url("fonts/iconcool.eot?#iefix") format("embedded-opentype");
 .nc-parenet-node-line:before {
 	content: "\e169";
 }
+.nc-lang-zh-cn:before {
+	content: "\e170";
+}
+.nc-lang-en:before {
+	content: "\e171";
+}
 .nc-copy-2:before {
 	content: "\e16a";
 }
