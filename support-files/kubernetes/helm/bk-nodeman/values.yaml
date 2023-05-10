@@ -429,7 +429,7 @@ config:
   bkAppOtelGrpcUrl: ""
 
   ## 导航栏开源社区地址
-  bkAppNavOpenSourceUrl: "https://bk.tencent.com/s-mart/community/question"
+  bkAppNavOpenSourceUrl: "https://github.com/TencentBlueKing/bk-nodeman"
   ## 导航栏技术支持地址
   bkAppNavHelperUrl: "https://wpa1.qq.com/KziXGWJs?_type=wpa&qidian=true"
 
