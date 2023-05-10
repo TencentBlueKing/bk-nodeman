@@ -58,7 +58,7 @@ class TaskResultTools:
         return pipeline_processes
 
     @staticmethod
-    def collect_status(steps: List[Dict[str, Any]]) -> str:
+    def collect_status(steps: List[Dict[str, Any]], backtrace_steps=False) -> str:
         status_set = set([sub_step["status"] for sub_step in steps])
         status = constants.JobStatusType.PENDING
         if len(status_set) == 1 and list(status_set)[0] == constants.JobStatusType.SUCCESS:
@@ -67,6 +67,16 @@ class TaskResultTools:
             status = constants.JobStatusType.FAILED
         elif constants.JobStatusType.RUNNING in status_set:
             status = constants.JobStatusType.RUNNING
+
+            # 如果 steps 中都是 Pending 那返回的 status 也是 Pending
+        if not status_set == {constants.JobStatusType.PENDING} and backtrace_steps:
+            # 填充 steps 中的状态
+            for step in steps:
+                if step["status"] in [constants.JobStatusType.FAILED, constants.JobStatusType.RUNNING]:
+                    break
+                else:
+                    step["status"] = constants.JobStatusType.SUCCESS
+
         return status
 
     @classmethod
@@ -199,7 +209,8 @@ class TaskResultTools:
             if not sub_steps:
                 continue
 
-            status = cls.collect_status(sub_steps)
+            # 子步骤状态聚合 并且填充失败前的子步骤节点状态
+            status = cls.collect_status(steps=sub_steps, backtrace_steps=True)
             last_finish_sub_step = last_finish_sub_step or sub_steps[-1]
 
             finish_time = None
@@ -229,11 +240,21 @@ class TaskResultTools:
             start_node_index = next_node_index
 
         if instance_status["steps"]:
-            instance_status.update(
-                status=cls.collect_status(instance_status["steps"]),
-                start_time=instance_status["steps"][0]["start_time"],
-                finish_time=instance_status["steps"][-1]["finish_time"],
-            )
+            # 如果 instance_record_obj 的状态不是 PENDING，且聚合的状态是 PENDING 则从 instance_record 获取状态
+            instance_record_status = instance_record_obj.status
+            collect_status = cls.collect_status(instance_status["steps"])
+            if (
+                instance_record_status != constants.JobStatusType.PENDING
+                and collect_status == constants.JobStatusType.PENDING
+            ):
+                status = instance_record_status
+                start_time = strftime_local(instance_record_obj.create_time)
+                finish_time = strftime_local(instance_record_obj.update_time)
+            else:
+                status = cls.collect_status(instance_status["steps"])
+                start_time = instance_status["steps"][0]["start_time"]
+                finish_time = instance_status["steps"][-1]["finish_time"]
+            instance_status.update(status=status, start_time=start_time, finish_time=finish_time)
         else:
             # 没有执行步骤，从instance_record获取状态
             instance_status["status"] = instance_record_obj.status

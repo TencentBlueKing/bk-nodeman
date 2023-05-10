@@ -371,8 +371,8 @@ class JobStatusType(object):
     PROCESSING_STATUS = [PENDING, RUNNING]
 
     @classmethod
-    def get_choices(cls):
-        return (
+    def get_choices(cls, return_dict_choices=False):
+        choices = (
             (cls.PENDING, _("等待执行")),
             (cls.RUNNING, _("正在执行")),
             (cls.SUCCESS, _("执行成功")),
@@ -383,6 +383,9 @@ class JobStatusType(object):
             (cls.FILTERED, _("被过滤的")),
             (cls.IGNORED, _("已忽略")),
         )
+        if return_dict_choices:
+            return dict(choices)
+        return choices
 
 
 NODE_MAN_LOG_LEVEL = ("INFO", "DEBUG", "PRIMARY", "WARNING", "ERROR")
