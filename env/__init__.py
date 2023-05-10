@@ -113,7 +113,7 @@ BK_API_URL_TMPL = get_type_env(key="BK_API_URL_TMPL", default=BK_COMPONENT_API_U
 
 # 导航栏开源社区地址
 BKAPP_NAV_OPEN_SOURCE_URL = get_type_env(
-    key="BKAPP_NAV_OPEN_SOURCE_URL", default="https://bk.tencent.com/s-mart/community/question", _type=str
+    key="BKAPP_NAV_OPEN_SOURCE_URL", default="https://github.com/TencentBlueKing/bk-nodeman", _type=str
 )
 # 导航栏技术支持地址
 BKAPP_NAV_HELPER_URL = get_type_env(
