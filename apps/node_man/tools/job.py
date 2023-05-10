@@ -54,6 +54,17 @@ class JobTools:
         if last_step["status"] == constants.JobStatusType.SUCCESS:
             return {"node_id": last_step.get("index"), "status_display": _("执行成功"), "step": last_step["node_name"]}
         else:
+            status: str = instance_status["status"]
+            if (
+                set([step["status"] for step in sub_steps]) == {constants.JobStatusType.PENDING}
+                and status != constants.JobStatusType.PENDING
+            ):
+                job_status_map: Dict[str, str] = constants.JobStatusType.get_choices(return_dict_choices=True)
+                return {
+                    "node_id": -1,
+                    "status_display": _("{}").format(job_status_map[status]),
+                    "step": last_step["node_name"],
+                }
             return {"node_id": -1, "status_display": _("等待执行"), "step": last_step["node_name"]}
 
     @classmethod
