@@ -31,34 +31,48 @@
             </ol>
           </div>
           <div class="nav-right">
-            <bk-popover ref="helpListRef" class="header-help mr25" trigger="click" theme="light help-list">
-              <i class="nodeman-icon nc-help-document-fill"></i>
+            <MixinsControlDropdown ext-cls="menu-dropdown">
+              <div class="header-nav-btn header-nav-icon-btn">
+                <i :class="`nodeman-icon nc-lang-${language}`" />
+              </div>
               <template #content>
-                <ul>
-                  <li v-for="item in helpList" :key="item.id" @click="handleGotoLink(item)">
+                <ul class="bk-dropdown-list">
+                  <li class="dropdown-list-item" v-for="item in langList" :key="item.id" @click="toggleLang(item)">
+                    <i :class="`nodeman-icon nc-lang-${item.id}`" /> {{ item.name }}
+                  </li>
+                </ul>
+              </template>
+            </MixinsControlDropdown>
+            <MixinsControlDropdown ext-cls="menu-dropdown">
+              <div class="header-nav-btn header-nav-icon-btn">
+                <i class="nodeman-icon nc-help-document-fill"></i>
+              </div>
+              <template #content>
+                <ul class="bk-dropdown-list">
+                  <li class="dropdown-list-item" v-for="item in helpList" :key="item.id" @click="handleGotoLink(item)">
                     {{ item.name }}
                   </li>
                 </ul>
               </template>
-            </bk-popover>
-            <bk-popover
-              v-if="userList.length"
-              theme="light help-list"
-              trigger="click"
-              placement="bottom-end">
-              <div class="header-user">
+            </MixinsControlDropdown>
+            <MixinsControlDropdown v-if="userList.length" ext-cls="menu-dropdown">
+              <div class="header-user header-nav-btn">
                 {{ currentUser }}
                 <i class="bk-icon icon-down-shape"></i>
               </div>
-              <template slot="content">
-                <ul>
-                  <li v-for="(userItem, index) in userList" :key="index" @click="handleUser(userItem)">
+              <template #content>
+                <ul class="bk-dropdown-list">
+                  <li
+                    class="dropdown-list-item"
+                    v-for="(userItem, index) in userList"
+                    :key="index"
+                    @click="handleUser(userItem)">
                     {{ userItem.name }}
                   </li>
                 </ul>
               </template>
-            </bk-popover>
-            <div class="header-user hover-default" v-else>
+            </MixinsControlDropdown>
+            <div class="hover-default" v-else>
               {{ currentUser }}
             </div>
           </div>
@@ -119,6 +133,7 @@ import { MainStore } from '@/store/index';
 import { Component, Ref, Mixins, Watch } from 'vue-property-decorator';
 import NavSideMenu from '@/components/common/nav-side.vue';
 import LogVersion from '@/components/common/log-version.vue';
+import MixinsControlDropdown from '@/components/common/MixinsControlDropdown.vue';
 import ExceptionPage from '@/components/exception/exception-page.vue';
 import routerBackMixin from '@/common/router-back-mixin';
 import { bus } from '@/common/bus';
@@ -136,6 +151,7 @@ interface IUserItem {
     NavSideMenu, // 左侧导航组件
     LogVersion,
     ExceptionPage,
+    MixinsControlDropdown,
   },
 })
 export default class NodemanNavigation extends Mixins(routerBackMixin) {
@@ -166,6 +182,21 @@ export default class NodemanNavigation extends Mixins(routerBackMixin) {
       id: 'FAQ',
       name: this.$t('问题反馈'),
       href: 'https://bk.tencent.com/s-mart/community',
+    },
+    {
+      id: 'FAQ',
+      name: this.$t('开源社区'),
+      href: window.PROJECT_CONFIG.BKAPP_NAV_OPEN_SOURCE_URL,
+    },
+  ];
+  private langList = [
+    {
+      id: 'zh-cn', // zhCN
+      name: '中文',
+    },
+    {
+      id: 'en', // enUS
+      name: 'English',
     },
   ];
   private userList: IUserItem[] = [];
@@ -219,7 +250,7 @@ export default class NodemanNavigation extends Mixins(routerBackMixin) {
   }
   // 导航title
   private get navTitle() {
-    return MainStore.currentNavTitle || this.$route.meta.title;
+    return this.$t(MainStore.currentNavTitle || this.$route.meta.title);
   }
   // 是否需要返回
   private get needBack() {
@@ -265,6 +296,9 @@ export default class NodemanNavigation extends Mixins(routerBackMixin) {
   private get selectedBiz() {
     return MainStore.selectedBiz;
   }
+  private get language() {
+    return MainStore.language;
+  }
 
   @Watch('selectedBiz')
   public watchBizChange(value: number[]) {
@@ -274,7 +308,7 @@ export default class NodemanNavigation extends Mixins(routerBackMixin) {
   private mounted() {
     this.resetNavToggle();
     if (window.PROJECT_CONFIG.RUN_VER !== 'ieod') {
-      this.userList.push({ id: 'LOGOUT', name: window.i18n.t('退出') });
+      this.userList.push({ id: 'LOGOUT', name: window.i18n.t('退出登录') });
     }
     this.biz = [...this.selectedBiz];
   }
@@ -301,6 +335,21 @@ export default class NodemanNavigation extends Mixins(routerBackMixin) {
    */
   private handleBack() {
     this.routerBack();
+  }
+  private toggleLang(item: IUserItem) {
+    if (item.id !== this.language) {
+      const today = new Date();
+      today.setTime(today.getTime() + 1000 * 60 * 60 * 24);
+      const domainArr = document.domain.split('.');
+      if (domainArr.length > 2) {
+        domainArr.shift();
+      }
+      document.cookie = `blueking_language=0;path=/;domain=${domainArr.slice(-2).join('.')};expires=${new Date(0).toUTCString()}`;
+      document.cookie = `blueking_language=${item.id};path=/;domain=${domainArr.join('.')};expires=${today.toUTCString()}`;
+      document.cookie = `blueking_language=${item.id};path=/;domain=${domainArr.slice(-2).join('.')};expires=${today.toUTCString()}`;
+      location.reload();
+      // this.$i18n.locale = item.id;
+    }
   }
   /**
    * 系统外链
@@ -455,6 +504,11 @@ export default class NodemanNavigation extends Mixins(routerBackMixin) {
     align-items: center;
     height: 100%;
     cursor: pointer;
+    .title-desc {
+      margin-left: 10px;
+      font-weight: 400;
+      color: #eaebf0;
+    }
   }
   .nodeman-navigation {
     &-header {
@@ -468,11 +522,21 @@ export default class NodemanNavigation extends Mixins(routerBackMixin) {
         cursor: pointer;
 
         @mixin layout-flex row, center;
-        .header-help,
-        .header-user {
-          &:hover {
-            color: $navHoverColor;
-          }
+        .header-nav-btn {
+          @mixin layout-flex row, center, center;
+          min-width: 32px;
+          min-height: 32px;
+          margin-left: 12px;
+          padding: 0 7px;
+        }
+        .header-nav-icon-btn {
+          width: 32px;
+          font-size: 18px;
+        }
+        /deep/ .dropdown-active .header-nav-icon-btn {
+          background: rgba(255, 255, 255, .1);
+          border-radius: 16px;
+          color: #fff;
         }
         .hover-default:hover {
           color: $navColor;

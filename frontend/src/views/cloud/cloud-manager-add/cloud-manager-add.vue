@@ -195,7 +195,7 @@ export default class CloudManagerAdd extends formLabelMixin {
       promiseList.push(MainStore.getIspList());
     }
     if (this.id) {
-      MainStore.setNavTitle(window.i18n.t('编辑云区域'));
+      MainStore.setNavTitle('编辑云区域');
       promiseList.push(this.handleGetCloudDetail());
     }
     this.loading = true;
