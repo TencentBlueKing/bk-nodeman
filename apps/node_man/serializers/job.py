@@ -83,7 +83,7 @@ class ListSerializer(serializers.Serializer):
 
 class HostSerializer(serializers.Serializer):
     bk_biz_id = serializers.IntegerField(label=_("业务ID"))
-    bk_cloud_id = serializers.IntegerField(label=_("云区域ID"))
+    bk_cloud_id = serializers.IntegerField(label=_("管控区域ID"))
     bk_host_id = serializers.IntegerField(label=_("主机ID"), required=False)
     bk_addressing = serializers.ChoiceField(
         label=_("寻址方式"),
@@ -239,7 +239,7 @@ class InstallSerializer(serializers.Serializer):
 
         gray_scope_set: typing.Set[int] = set(GrayTools.get_or_create_gse2_gray_scope_list())
 
-        # 进入灰度的云区域，所属云区域主机接入点重定向到 V2
+        # 进入灰度的管控区域，所属管控区域主机接入点重定向到 V2
         gse_v2_cloud_ids: typing.Set[int] = set(
             models.Cloud.objects.filter(ap_id__in=gse_v2_ap_ids).values_list("bk_cloud_id", flat=True)
         )
@@ -249,7 +249,7 @@ class InstallSerializer(serializers.Serializer):
             if not host.get("ap_id"):
                 continue
 
-            # 1. 进入灰度的云区域，所属云区域主机需要重定向接入点到 V2
+            # 1. 进入灰度的管控区域，所属管控区域主机需要重定向接入点到 V2
             # 2. 业务已进入灰度，主机接入点重定向到 V2
             if host["bk_cloud_id"] in gse_v2_cloud_ids or host["bk_biz_id"] in gray_scope_set:
                 host["ap_id"] = gray_ap_map.get(host["ap_id"], host["ap_id"])
@@ -330,7 +330,7 @@ class OperateSerializer(serializers.Serializer):
 
         host_ids: typing.List[int] = [host_info["bk_host_id"] for host_info in bk_host_ids]
 
-        # 进入灰度的云区域，所属云区域主机接入点重定向到 V2
+        # 进入灰度的管控区域，所属管控区域主机接入点重定向到 V2
         gse_v2_cloud_ids: typing.Set[int] = set(
             models.Cloud.objects.filter(ap_id__in=gse_v2_ap_ids).values_list("bk_cloud_id", flat=True)
         )

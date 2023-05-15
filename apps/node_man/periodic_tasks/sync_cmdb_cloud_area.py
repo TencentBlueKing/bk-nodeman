@@ -20,7 +20,7 @@ from common.log import logger
 def update_or_create_cloud_area(task_id, start):
     logger.info(f"{task_id} | Sync cloud area task start.[{start}-{start + constants.QUERY_CLOUD_LIMIT}]")
 
-    # 查询云区域兼容低版本paas无search_cloud_area情况
+    # 查询管控区域兼容低版本paas无search_cloud_area情况
     try:
         plats = client_v2.cc.search_cloud_area({"page": {"start": start, "limit": constants.QUERY_CLOUD_LIMIT}})
     except ComponentCallError as e:
@@ -48,7 +48,7 @@ def update_or_create_cloud_area(task_id, start):
 
     # 存在的批量更新，不存在的批量创建
     for _cloud in cloud_list:
-        # 默认云区域不同步
+        # 默认管控区域不同步
         if _cloud["bk_cloud_id"] == constants.DEFAULT_CLOUD:
             continue
         elif _cloud["bk_cloud_id"] in exist_cloud_ids:
@@ -78,7 +78,7 @@ def update_or_create_cloud_area(task_id, start):
 )
 def sync_cmdb_cloud_area_periodic_task():
     """
-    同步CMDB云区域
+    同步CMDB管控区域
     """
     task_id = sync_cmdb_cloud_area_periodic_task.request.id
     logger.info(f"{task_id} | Start syncing cloud area.")

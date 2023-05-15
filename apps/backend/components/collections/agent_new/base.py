@@ -239,7 +239,7 @@ class AgentBaseService(BaseService, metaclass=abc.ABCMeta):
                 except IndexError:
                     self.move_insts_to_failed(
                         [sub_inst_id],
-                        log_content=_("云区域 -> {bk_cloud_id} 下无存活的 Proxy").format(bk_cloud_id=host.bk_cloud_id),
+                        log_content=_("管控区域 -> {bk_cloud_id} 下无存活的 Proxy").format(bk_cloud_id=host.bk_cloud_id),
                     )
                 else:
                     proxy_ips = [alive_proxy.inner_ip for alive_proxy in alive_proxies]

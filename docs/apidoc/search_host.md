@@ -12,7 +12,7 @@
 | ------------- | ------------ | --------------------------------- | ------------------ |
 | bk_biz_id     | int array    | 否                                 | 业务ID               |
 | bk_host_id    | int array    | 否                                 | 主机ID               |
-| bk_cloud_id   | int array    | 否                                 | 云区域ID              |
+| bk_cloud_id   | int array    | 否                                 | 管控区域ID              |
 | version       | string array | 否                                 | Agent版本            |
 | exclude_hosts | int array    | 否                                 | 跨页全选排除主机           |
 | conditions    | array | 否                                 | 搜索条件，见conditions定义 |
@@ -37,10 +37,10 @@
 | status                | string | 进程状态，见status定义                                              |
 | version               | string | Agent版本号                                                    |
 | is_manual             | string | 手动安装                                                        |
-| bk_cloud_id           | string | 云区域ID                                                       |
+| bk_cloud_id           | string | 管控区域ID                                                       |
 | install_channel_id    | string | 安装通道ID                                                      |
 | topology              | string | 集群与模块的精准搜索                                                  |
-| query                 | string | IP、操作系统、Agent状态、Agent版本、云区域模糊搜索,对应value为列表时为多模糊搜索           |
+| query                 | string | IP、操作系统、Agent状态、Agent版本、管控区域模糊搜索,对应value为列表时为多模糊搜索           |
 | source_id             | string | 来源ID                                                        |
 | plugin_name           | string | 插件名，展开任务下所有的插件名称                                            |
 | ${plugin_name}        | string | 插件版本的精确搜索，${plugin_name}为对应的目标插件名称                          |
@@ -161,7 +161,7 @@
 
 | 字段                   | 类型           | <div style="width: 50pt">必选</div> | 描述                                     |
 | -------------------- | ------------ | --------------------------------- | -------------------------------------- |
-| bk_cloud_id          | int          | 是                                 | 云区域ID                                  |
+| bk_cloud_id          | int          | 是                                 | 管控区域ID                                  |
 | bk_biz_id            | int          | 是                                 | 业务ID                                   |
 | bk_host_id           | int          | 是                                 | 主机ID                                   |
 | bk_host_name         | string       | 是                                 | 主机名                                    |
@@ -182,7 +182,7 @@
 | is_manual            | bool         | 是                                 | 是否手动模式                                 |
 | extra_data           | string array | 是                                 | 额外信息，见extra_data定义                     |
 | status_display       | string       | 否                                 | 运行执行状态名称，见status定义                     |
-| bk_cloud_name        | string       | 否                                 | 云区域名称                                  |
+| bk_cloud_name        | string       | 否                                 | 管控区域名称                                  |
 | install_channel_name | string       | 否                                 | 安装通道名称                                 |
 | bk_biz_name          | string       | 否                                 | 业务名称                                   |
 | identity_info        | object       | 否                                 | 鉴权信息                                   |

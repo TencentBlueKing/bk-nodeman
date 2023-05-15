@@ -196,7 +196,7 @@ class TestValidator(TestCase):
             bk_biz_scope,
         ) = ret_to_validate_data(data)
 
-        # 移除一个云区域
+        # 移除一个管控区域
         cloud_info.pop(99)
         self.assertRaises(
             CloudNotExistError,
@@ -345,11 +345,11 @@ class TestValidator(TestCase):
         self._test_job_validate_success()
         # 测试操作系统不存在
         self._test_job_validate_os_not_exists()
-        # 测试云区域不存在
+        # 测试管控区域不存在
         self._test_job_validate_cloud_not_exists()
         # 测试直连区域下不允许安装Proxy
         self._test_job_validate_proxy_not_available()
-        # PAGENT的情况下，该云区域下是否有可用PROXY
+        # PAGENT的情况下，该管控区域下是否有可用PROXY
         self._test_job_validate_proxy_not_alive()
         # 测试直连区域必须填写Ap_id
         self._test_job_validate_ap_id_not_exists()
@@ -519,7 +519,7 @@ class TestValidator(TestCase):
         create_cloud_area(1)
         create_host(number=1, bk_cloud_id=bk_cloud_id, bk_host_id=bk_host_id, ip=inner_ip, node_type=node_type)
 
-        # 云区域是否存在
+        # 管控区域是否存在
         db_host_sql = [
             {
                 "inner_ip": inner_ip,

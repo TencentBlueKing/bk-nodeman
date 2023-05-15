@@ -62,7 +62,7 @@ class InstallChannelViewSet(ModelViewSet):
         @apiName create_install_channel
         @apiGroup InstallChannel
         @apiParam {String} name 安装通道名称
-        @apiParam {Int} bk_cloud_id 云区域ID
+        @apiParam {Int} bk_cloud_id 管控区域ID
         @apiParam {List} jump_servers 跳板机节点
         @apiParam {Object} upstream_servers 上游节点
         @apiParamExample {Json} 请求参数
@@ -99,7 +99,7 @@ class InstallChannelViewSet(ModelViewSet):
         @apiName update_install_channel
         @apiGroup InstallChannel
         @apiParam {String} name 安装通道名称
-        @apiParam {Int} bk_cloud_id 云区域ID
+        @apiParam {Int} bk_cloud_id 管控区域ID
         @apiParam {List} jump_servers 跳板机节点
         @apiParam {Object} upstream_servers 上游节点
         @apiParamExample {Json} 请求参数
@@ -132,7 +132,7 @@ class InstallChannelViewSet(ModelViewSet):
         """
         @api {DELETE} /install_channel/{{pk}}/  删除安装通道
         @apiName delete_install_channel
-        @apiParam {Int} bk_cloud_id 云区域ID
+        @apiParam {Int} bk_cloud_id 管控区域ID
         @apiGroup InstallChannel
         """
         self.serializer_class = BaseSerializer

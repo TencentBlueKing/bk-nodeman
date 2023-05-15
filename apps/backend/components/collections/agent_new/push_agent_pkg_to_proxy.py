@@ -19,7 +19,7 @@ from .base import AgentCommonData, AgentTransferFileService
 
 @dataclass
 class PushAgentPkgCommonData(AgentCommonData):
-    # 云区域ID -> 存活的 Proxy 列表 映射
+    # 管控区域ID -> 存活的 Proxy 列表 映射
     cloud_id__proxies_map: Dict[int, List[models.Host]]
     # 安装通道ID -> 安装通道对象 映射
     install_channel_id__host_objs_map: Dict[int, List[models.Host]]
@@ -48,7 +48,7 @@ class PushAgentPkgToProxyService(AgentTransferFileService):
 
     def get_target_servers(self, data, common_data: PushAgentPkgCommonData, host: models.Host):
         """
-        查询主机所属云区域的 proxies，或者安装通道 jump server 的机器
+        查询主机所属管控区域的 proxies，或者安装通道 jump server 的机器
         """
         target_servers = {"ip_list": [], "host_id_list": []}
         if host.install_channel_id:

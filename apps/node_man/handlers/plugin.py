@@ -236,7 +236,7 @@ class PluginHandler(APIModel):
         bk_host_ids = [hs["bk_host_id"] for hs in hosts_status]
         bk_cloud_ids = [hs["bk_cloud_id"] for hs in hosts_status]
 
-        # 获得云区域名称
+        # 获得管控区域名称
         cloud_name = dict(
             Cloud.objects.filter(bk_cloud_id__in=bk_cloud_ids).values_list("bk_cloud_id", "bk_cloud_name")
         )

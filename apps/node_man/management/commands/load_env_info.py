@@ -50,7 +50,7 @@ class Command(BaseCommand):
         parser.add_argument("--env_offset_table", help="环境映射表", default=ENV_OFFSET_TABLE)
         parser.add_argument("--env_biz_map_table", help="业务映射表", default=ENV_BIZ_MAP_TABLE)
         parser.add_argument("--old_ap__new_ap_map", help="导出环境接入点与当前接入点映射关系, 格式: '1:2,2:3'")
-        parser.add_argument("--cloud_file_path", help="导出环境云区域信息文件路径", default="node_man_export/cloud_info.csv")
+        parser.add_argument("--cloud_file_path", help="导出环境管控区域信息文件路径", default="node_man_export/cloud_info.csv")
         parser.add_argument(
             "--proxy_file_path", help="导出环境 Proxy 主机信息文件路径", default="node_man_export/proxy_host_info.csv"
         )
@@ -132,7 +132,7 @@ class LoadEnvHandler(object):
     @classmethod
     def get_cloud_ap_map(cls, cloud_info_file_path: str) -> typing.Dict[int, int]:
         """
-        获取导出环境内的云区域与接入点映射关系
+        获取导出环境内的管控区域与接入点映射关系
         """
         cloud_reader = cls.check_and_read_csv_file(cloud_info_file_path)
         old_cloud_id__ap_id_map: typing.Dict[int, int] = {
@@ -156,7 +156,7 @@ class LoadEnvHandler(object):
     @classmethod
     def switch_cloud_ap_id(cls, ap_map: typing.Dict[int, int], cloud_info_file_path: str, offset: int):
         """
-        通过云区域名称和接入点映射 矫正当前云区域的接入点
+        通过管控区域名称和接入点映射 矫正当前管控区域的接入点
         """
         # 校验接入点映射关系的新接入点是否存在于当前环境
         current_ap_ids: typing.List[int] = models.AccessPoint.objects.values_list("id", flat=True)
@@ -184,14 +184,15 @@ class LoadEnvHandler(object):
                     f"please check whether the access point mapping relationship -> [{ap_map}] is correct"
                 )
             if new_cloud_id not in current_cloud_ids:
-                logger.error(f"云区域{new_cloud_id}不存在于当前环境, 请检查是否正确同步云区域信息")
+                logger.error(f"管控区域{new_cloud_id}不存在于当前环境, 请检查是否正确同步管控区域信息")
             else:
-                logger.info(f"开始切换云区域{new_cloud_id}的接入点为{new_ap_id}")
+                logger.info(f"开始切换管控区域{new_cloud_id}的接入点为{new_ap_id}")
                 models.Cloud.objects.filter(bk_cloud_id=new_cloud_id).update(ap_id=new_ap_id)
                 complete_switch_cloud_ids.append(new_cloud_id)
 
         logger.info(
-            f"当前环境下云区域 ID 为 -> {complete_switch_cloud_ids} 的云区域接入点切换完成, 总体切换云区域数量为 -> {len(complete_switch_cloud_ids)}"
+            f"当前环境下管控区域 ID 为 -> {complete_switch_cloud_ids} 的管控区域接入点切换完成, 总体切换管控区域数量为 -> "
+            f"{len(complete_switch_cloud_ids)}"
         )
 
     def position_proxy_host(
@@ -242,7 +243,7 @@ class LoadEnvHandler(object):
         offset: int,
     ):
         """
-        通过接入点映射关系，切换当前环境内云区域的所有主机接入点
+        通过接入点映射关系，切换当前环境内管控区域的所有主机接入点
         """
         # 直连区域 Agent 不需要处理
         old_cloud_id__ap_id_map: typing.Dict[int, int] = self.get_cloud_ap_map(
@@ -256,10 +257,10 @@ class LoadEnvHandler(object):
             new_cloud_id__ap_id_map[new_cloud_id] = new_ap_id
 
         for new_cloud_id, new_ap_id in new_cloud_id__ap_id_map.items():
-            logger.info(f"开始切换云区域 -> {new_cloud_id} & 业务 -> [{bk_biz_ids}]下的主机接入点为{new_ap_id}")
+            logger.info(f"开始切换管控区域 -> {new_cloud_id} & 业务 -> [{bk_biz_ids}]下的主机接入点为{new_ap_id}")
             models.Host.objects.filter(bk_cloud_id=new_cloud_id, bk_biz_id__in=bk_biz_ids).update(ap_id=new_ap_id)
 
-        logger.info(f"业务 -> [{bk_biz_ids}] 内并且位于云区域 ID -> [{new_cloud_id__ap_id_map.keys()}] 下的主机接入点切换完成")
+        logger.info(f"业务 -> [{bk_biz_ids}] 内并且位于管控区域 ID -> [{new_cloud_id__ap_id_map.keys()}] 下的主机接入点切换完成")
 
     @classmethod
     def check_and_read_csv_file(cls, csv_file_path: str):

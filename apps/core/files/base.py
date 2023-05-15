@@ -173,7 +173,7 @@ class BkJobMixin:
         :param target_server: 目标服务器
             可选：
             1. ip_list - 静态IP列表
-                bk_cloud_id - 云区域ID
+                bk_cloud_id - 管控区域ID
                 ip - IP地址
             2. dynamic_group_list - 动态分组ID列表
             3. topo_node_list - 动态topo节点列表

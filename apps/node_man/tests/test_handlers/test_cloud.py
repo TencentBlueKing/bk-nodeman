@@ -24,7 +24,7 @@ class TestCloud(TestCase):
     @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)
     @patch("apps.node_man.handlers.cloud.get_request_username", return_value="admin")
     def test_cloud_list(self, *args, **kwargs):
-        # 创建云区域1000个
+        # 创建管控区域1000个
         number = 1000
         bk_cloud_ids = create_cloud_area(number)
 
@@ -36,20 +36,20 @@ class TestCloud(TestCase):
         identity.key = None
         identity.save()
 
-        # 测试携带云区域
+        # 测试携带管控区域
         clouds = CloudHandler().list({"with_default_area": True})
         self.assertEqual(len(clouds), len(bk_cloud_ids) + 1)
-        # 测试查询，不包括云区域
+        # 测试查询，不包括管控区域
         clouds = CloudHandler().list({"with_default_area": False})
         self.assertEqual(len(clouds), len(bk_cloud_ids))
 
     @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)
     def test_cloud_retrieve(self):
-        # 创建云区域1000个
+        # 创建管控区域1000个
         number = 1000
         bk_cloud_ids = create_cloud_area(number)
 
-        # 测试云区域不存在
+        # 测试管控区域不存在
         self.assertRaises(CloudNotExistError, CloudHandler().retrieve, 998989898)
 
         # 测试查询接口
@@ -142,7 +142,7 @@ class TestCloud(TestCase):
         bk_cloud_id = cloud["bk_cloud_id"]
         CloudHandler().destroy(bk_cloud_id)
 
-        # 测试【删除的云区域下已有主机】的校验
+        # 测试【删除的管控区域下已有主机】的校验
         cloud = CloudHandler().create(
             {
                 "isp": ["腾讯云", "阿里云", "AWS"][random.randint(0, 2)],
@@ -162,7 +162,7 @@ class TestCloud(TestCase):
         number = 1000
         bk_cloud_ids = create_cloud_area(number)
         cloud_info = CloudHandler().list_cloud_info(bk_cloud_ids)
-        # 减去默认云区域
+        # 减去默认管控区域
         self.assertEqual(len(bk_cloud_ids), len(cloud_info) - 1)
 
     @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)

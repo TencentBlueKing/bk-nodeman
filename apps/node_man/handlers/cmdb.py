@@ -264,7 +264,7 @@ class CmdbHandler(APIModel):
 
     def cmdb_update_host_cloud(self, kwargs: dict):
         """
-        更新host的云区域属性
+        更新host的管控区域属性
         :param kwargs: 参数列表
         :return: None
         """
@@ -316,7 +316,7 @@ class CmdbHandler(APIModel):
     @staticmethod
     def add_cloud(bk_cloud_name):
         """
-        新增云区域
+        新增管控区域
         """
         # 增删改查CMDB操作以admin用户进行
         data = client_v2.cc.create_cloud_area({"bk_cloud_name": bk_cloud_name})
@@ -325,7 +325,7 @@ class CmdbHandler(APIModel):
     @staticmethod
     def delete_cloud(bk_cloud_id):
         """
-        删除云区域
+        删除管控区域
         """
         try:
             # 增删改查CMDB操作以admin用户进行
@@ -333,7 +333,7 @@ class CmdbHandler(APIModel):
         except ComponentCallError as e:
             if e.message and e.message["code"] == 1101030:
                 raise CloudUpdateAgentError(
-                    _("在CMDB中，还有主机关联到当前云区域下，无法删除"),
+                    _("在CMDB中，还有主机关联到当前「管控区域」下，无法删除"),
                 )
 
     @staticmethod

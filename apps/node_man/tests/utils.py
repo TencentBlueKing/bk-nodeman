@@ -728,7 +728,7 @@ def multiple_cond_sql(data):
 
 
 def host_search_return_value(*args, **kwargs):
-    # 会返回云区域版本和非云区域版本的bk_host_id
+    # 会返回管控区域版本和非管控区域版本的bk_host_id
     # 因此返回2倍数量的Host
     limit = args[0]["page"]["limit"]
     start = args[0]["page"]["start"]
@@ -782,7 +782,7 @@ def host_search_return_value(*args, **kwargs):
 
     total_data = []
     for i in ip_host_id:
-        # 云区域这个值在测不同类型主机时需要改
+        # 管控区域这个值在测不同类型主机时需要改
         total_data.append(gen_data(i, 0))
         # total_data.append(gen_data(i, 1))
 
@@ -1202,7 +1202,7 @@ def ret_to_validate_data(data):
     # 格式 { bk_biz_id: bk_biz_name , ...}
     biz_info = CmdbHandler().biz_id_name({})
 
-    # 获得相应云区域 id, name, ap_id, bk_biz_scope
+    # 获得相应管控区域 id, name, ap_id, bk_biz_scope
     # 格式 { cloud_id: {'bk_cloud_name': name, 'ap_id': id, 'bk_biz_scope':bk_biz_scope}, ...}
     cloud_info = CloudHandler().list_cloud_info(bk_cloud_ids)
 

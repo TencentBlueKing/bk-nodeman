@@ -89,7 +89,7 @@ class TestPermission(TestCase):
     @patch("apps.node_man.handlers.permission.IamHandler.fetch_policy", fetch_policy)
     def test_cloud_permissions(self):
         """
-        测试云区域权限控制
+        测试管控区域权限控制
         """
         # 测试鉴权成功
         result = CloudPermission().has_permission(request, view)

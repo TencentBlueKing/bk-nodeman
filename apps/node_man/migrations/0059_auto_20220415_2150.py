@@ -22,7 +22,7 @@ class Migration(migrations.Migration):
         ),
         migrations.AlterModelOptions(
             name="cloud",
-            options={"verbose_name": "云区域（Cloud）", "verbose_name_plural": "云区域（Cloud）"},
+            options={"verbose_name": "管控区域（Cloud）", "verbose_name_plural": "管控区域（BK-Net）"},
         ),
         migrations.AlterModelOptions(
             name="cmdbeventrecord",

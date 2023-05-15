@@ -86,7 +86,7 @@ class ConfigContextHelper:
             proxy_tls_password_file = ""
 
         if self.host.node_type == constants.NodeType.PROXY:
-            # Agent 配置中 file data 的 endpoint 链接 proxy（可以是同台（自身）或同云区域内其他 proxy 的 file data）
+            # Agent 配置中 file data 的 endpoint 链接 proxy（可以是同台（自身）或同管控区域内其他 proxy 的 file data）
             file_hosts_for_agent: typing.List[str] = [self.host.inner_ip or self.host.inner_ipv6]
             data_hosts_for_agent: typing.List[str] = [self.host.inner_ip or self.host.inner_ipv6]
         else:

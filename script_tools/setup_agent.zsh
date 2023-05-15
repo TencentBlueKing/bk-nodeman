@@ -312,7 +312,7 @@ check_polices_agent_to_upstream () {
     #local pagent_listen_ports=(gse_agent:60020-60030)
     local ip
 
-    # 非直连Agent的上级节点是所属云区域的proxy
+    # 非直连Agent的上级节点是所属管控区域的proxy
     for ip in $TASK_SERVER_IP; do
         log check_env - "check if it is reachable to port $IO_PORT of $ip($UPSTREAM_TYPE)"
         is_target_reachable "$ip" "$IO_PORT"

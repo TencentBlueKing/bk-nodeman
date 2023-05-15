@@ -35,7 +35,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name="host",
             name="bk_cloud_id",
-            field=models.IntegerField(db_index=True, verbose_name="云区域ID"),
+            field=models.IntegerField(db_index=True, verbose_name="管控区域ID"),
         ),
         migrations.AlterField(
             model_name="host",

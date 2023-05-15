@@ -29,7 +29,7 @@ class BasePasswordHandler(object):
         """
         查询主机密码
         :param username: 用户名
-        :param cloud_ip_list: 云区域-IP列表，如"0-127.0.0.1"
+        :param cloud_ip_list: 管控区域-IP列表，如"0-127.0.0.1"
         :return: is_ok, success_ips, failed_ips, message
         (True, {"0-127.0.0.1": "passwordSuccessExample"}, {"0-255.255.255.255": "用户没有权限"}, "success")
         (False, {}, {}, "{'10': 'ticket is expired'}")
@@ -172,7 +172,7 @@ class DefaultPasswordHandler(BasePasswordHandler):
         success_ips = {}
         failed_ips = {}
         for ip, value in response_items["IpList"].items():
-            # 目前仅支持直连区域的密码查询，填充默认云区域ID
+            # 目前仅支持直连区域的密码查询，填充默认管控区域ID
             if value["Code"] == 0:
                 success_ips.update(
                     {f"{constants.DEFAULT_CLOUD}-{ip}": str(self.decrypt(value["Password"]), encoding="utf8")}

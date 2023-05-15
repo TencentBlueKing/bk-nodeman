@@ -561,7 +561,7 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
                     "bk_host_id": host_info["bk_host_id"],
                 }
             else:
-                # 仅支持静态寻址的主机使用 云区域 + IP
+                # 仅支持静态寻址的主机使用 管控区域 + IP
                 query_host_params: Dict[str, Union[str, int]] = {
                     "bk_biz_id": host_info["bk_biz_id"],
                     "inner_ip": host_info["ip"],

@@ -18,14 +18,14 @@ from apps.utils import basic
 
 
 class HostSearchSerializer(base.HostSearchSerializer, base.HostFieldSelectorSerializer):
-    bk_cloud_id = serializers.ListField(label=_("云区域ID"), required=False, child=serializers.IntegerField())
+    bk_cloud_id = serializers.ListField(label=_("管控区域ID"), required=False, child=serializers.IntegerField())
     version = serializers.ListField(label=_("Agent版本"), required=False, child=serializers.CharField())
     extra_data = serializers.ListField(label=_("额外信息"), required=False, child=serializers.CharField())
     running_count = serializers.BooleanField(label=_("正在运行机器数"), required=False, default=False)
 
 
 class ProxySerializer(serializers.Serializer):
-    bk_cloud_id = serializers.IntegerField(label=_("云区域ID"), required=True)
+    bk_cloud_id = serializers.IntegerField(label=_("管控区域ID"), required=True)
 
 
 class BizProxySerializer(serializers.Serializer):
@@ -34,7 +34,7 @@ class BizProxySerializer(serializers.Serializer):
 
 class HostUpdateSerializer(serializers.Serializer):
     bk_host_id = serializers.IntegerField(label=_("主机ID"))
-    bk_cloud_id = serializers.IntegerField(label=_("云区域ID"), required=False)
+    bk_cloud_id = serializers.IntegerField(label=_("管控区域ID"), required=False)
     inner_ip = serializers.IPAddressField(label=_("内网IP"), required=False, protocol="ipv4")
     inner_ipv6 = serializers.IPAddressField(label=_("内网IPv6"), required=False, protocol="ipv6")
     outer_ip = serializers.IPAddressField(label=_("外网IP"), required=False, protocol="ipv4")

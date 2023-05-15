@@ -19,7 +19,7 @@ class BaseSerializer(serializers.Serializer):
     用于安装节点管理校验
     """
 
-    bk_cloud_id = serializers.IntegerField(label=_("云区域ID"))
+    bk_cloud_id = serializers.IntegerField(label=_("管控区域ID"))
 
 
 class UpdateSerializer(BaseSerializer):

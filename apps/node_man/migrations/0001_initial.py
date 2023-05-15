@@ -55,13 +55,13 @@ class Migration(migrations.Migration):
                 ("bk_cloud_name", models.CharField(max_length=45)),
                 ("isp", models.CharField(blank=True, max_length=45, null=True, verbose_name="云服务商")),
                 ("ap_id", models.IntegerField(null=True, verbose_name="接入点ID")),
-                ("creator", django_mysql.models.JSONField(default=dict, verbose_name="云区域创建者")),
+                ("creator", django_mysql.models.JSONField(default=dict, verbose_name="管控区域创建者")),
                 ("is_visible", models.BooleanField(default=True, verbose_name="是否可见")),
                 ("is_deleted", models.BooleanField(default=False, verbose_name="是否删除")),
             ],
             options={
-                "verbose_name": "云区域信息",
-                "verbose_name_plural": "云区域信息",
+                "verbose_name": "管控区域信息",
+                "verbose_name_plural": "管控区域信息",
             },
         ),
         migrations.CreateModel(
@@ -165,7 +165,7 @@ class Migration(migrations.Migration):
             fields=[
                 ("bk_host_id", models.IntegerField(primary_key=True, serialize=False, verbose_name="CMDB主机ID")),
                 ("bk_biz_id", models.IntegerField(verbose_name="业务ID")),
-                ("bk_cloud_id", models.IntegerField(verbose_name="云区域ID")),
+                ("bk_cloud_id", models.IntegerField(verbose_name="管控区域ID")),
                 ("inner_ip", models.CharField(max_length=45, verbose_name="内网IP")),
                 ("outer_ip", models.CharField(blank=True, default="", max_length=45, null=True, verbose_name="外网IP")),
                 ("login_ip", models.CharField(blank=True, default="", max_length=45, null=True, verbose_name="登录IP")),
@@ -513,7 +513,7 @@ class Migration(migrations.Migration):
             fields=[
                 ("id", models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
                 ("bk_username", models.CharField(max_length=45, verbose_name="用户名")),
-                ("favorite", django_mysql.models.JSONField(default=dict, verbose_name="用户收藏信息,比如云区域等")),
+                ("favorite", django_mysql.models.JSONField(default=dict, verbose_name="用户收藏信息,比如管控区域等")),
                 ("update_time", models.DateTimeField(auto_now_add=True)),
             ],
             options={

@@ -30,14 +30,14 @@ class CloudViewSet(ModelViewSet):
     permission_classes = (CloudPermission,)
 
     @swagger_auto_schema(
-        operation_summary="查询云区域列表",
+        operation_summary="查询管控区域列表",
         query_serializer=ListSerializer(),
         responses={status.HTTP_200_OK: response.CloudListResponseSerializer()},
         tags=CLOUD_VIEW_TAGS,
     )
     def list(self, request, *args, **kwargs):
         """
-        @api {GET} /cloud/ 查询云区域列表
+        @api {GET} /cloud/ 查询管控区域列表
         @apiName list_cloud
         @apiGroup Cloud
         """
@@ -49,18 +49,18 @@ class CloudViewSet(ModelViewSet):
         return Response(clouds)
 
     @swagger_auto_schema(
-        operation_summary="查询云区域详情",
+        operation_summary="查询管控区域详情",
         tags=CLOUD_VIEW_TAGS,
     )
     def retrieve(self, request, *args, **kwargs):
         """
-        @api {GET} /cloud/{{pk}}/  查询云区域详情
+        @api {GET} /cloud/{{pk}}/  查询管控区域详情
         @apiName retrieve_cloud
         @apiGroup Cloud
         @apiSuccessExample {json} 成功返回:
         {
             "bk_cloud_id": 1,
-            "bk_cloud_name": "云区域名称",
+            "bk_cloud_name": "管控区域名称",
             "isp": "tencent",
             "isp_name": "腾讯云",
             "isp_icon": "",
@@ -74,21 +74,21 @@ class CloudViewSet(ModelViewSet):
         return Response(cloud)
 
     @swagger_auto_schema(
-        operation_summary="创建云区域",
+        operation_summary="创建管控区域",
         tags=CLOUD_VIEW_TAGS,
     )
     def create(self, request, *args, **kwargs):
         """
-        @api {POST} /cloud/  创建云区域
+        @api {POST} /cloud/  创建管控区域
         @apiName create_cloud
         @apiGroup Cloud
         @apiDescription ap_id==-1代表自动选择
-        @apiParam {String} bk_cloud_name 云区域名称
+        @apiParam {String} bk_cloud_name 管控区域名称
         @apiParam {String} isp 云服务商
         @apiParam {Int} ap_id 接入点ID
         @apiParamExample {Json} 请求参数
         {
-            "bk_cloud_name": "云区域名称",
+            "bk_cloud_name": "管控区域名称",
             "isp": "tencent",
             "ap_id": 1,
         }
@@ -105,21 +105,21 @@ class CloudViewSet(ModelViewSet):
         return Response(result)
 
     @swagger_auto_schema(
-        operation_summary="编辑云区域",
+        operation_summary="编辑管控区域",
         tags=CLOUD_VIEW_TAGS,
     )
     def update(self, request, *args, **kwargs):
         """
-        @api {PUT} /cloud/{{pk}}/  编辑云区域
+        @api {PUT} /cloud/{{pk}}/  编辑管控区域
         @apiName update_cloud
         @apiGroup Cloud
-        @apiParam {String} bk_cloud_name 云区域名称
+        @apiParam {String} bk_cloud_name 管控区域名称
         @apiParam {String} isp 云服务商
         @apiParam {Int} ap_id 接入点ID
         @apiParam {List} bk_biz_scope 业务范围
         @apiParamExample {Json} 请求参数
         {
-            "bk_cloud_name": "云区域名称",
+            "bk_cloud_name": "管控区域名称",
             "isp": "tencent",
             "ap_id": 1,
         }
@@ -135,12 +135,12 @@ class CloudViewSet(ModelViewSet):
         return Response({})
 
     @swagger_auto_schema(
-        operation_summary="删除云区域",
+        operation_summary="删除管控区域",
         tags=CLOUD_VIEW_TAGS,
     )
     def destroy(self, request, *args, **kwargs):
         """
-        @api {DELETE} /cloud/{{pk}}/  删除云区域
+        @api {DELETE} /cloud/{{pk}}/  删除管控区域
         @apiName delete_cloud
         @apiGroup Cloud
         """

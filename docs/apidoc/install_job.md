@@ -20,7 +20,7 @@
 | 字段                             | 类型     | <div style="width: 50pt">必选</div> | 描述                                                      |
 | ------------------------------ | ------ | --------------------------------- | ------------------------------------------------------- |
 | bk_biz_id                      | int    | 是                                 | 业务ID                                                    |
-| bk_cloud_id                    | int    | 是                                 | 云区域ID                                                   |
+| bk_cloud_id                    | int    | 是                                 | 管控区域ID                                                   |
 | bk_host_id                     | int    | 否                                 | 主机ID                                                    |
 | bk_addressing                  | int    | 否                                 | 寻址方式，1: 0，静态 2: 1，动态                                    |
 | ap_id                          | int    | 否                                 | 接入点ID                                                   |
@@ -137,7 +137,7 @@ Agent
         "status": "IGNORED",
         "job_id": "",
         "exception": "no_proxy",
-        "msg": "该云区域下不存在代理"
+        "msg": "该管控区域下不存在代理"
       }
     ]
   },
@@ -174,8 +174,8 @@ Agent
 | inner_ip      | string | 内网IPV4地址       |
 | inner_ipv6    | string | 内网IPV6地址       |
 | bk_host_id    | int    | 主机ID           |
-| bk_cloud_name | string | 云区域名称          |
-| bk_cloud_id   | int    | 云区域ID          |
+| bk_cloud_name | string | 管控区域名称          |
+| bk_cloud_id   | int    | 管控区域ID          |
 | status        | string | 执行状态，见status定义 |
 | job_id        | int    | 作业ID           |
 | exception     | string | 过滤原因           |

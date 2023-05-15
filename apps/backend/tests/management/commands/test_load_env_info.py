@@ -67,12 +67,12 @@ class TestLoadEnvInfo(CustomBaseTestCase):
     @classmethod
     def init_db(cls):
         """
-        构造新环境内的数据, 包括从 CMDB 同步的主机和云区域, 接入点
+        构造新环境内的数据, 包括从 CMDB 同步的主机和管控区域, 接入点
         """
         mock_host_info = copy.deepcopy(MOCK_HOST)
         mock_host_list = []
 
-        # Mock 十台主机，五台一组，分别在两个云区域, 而且业务 ID 也分别在两个业务
+        # Mock 十台主机，五台一组，分别在两个管控区域, 而且业务 ID 也分别在两个业务
         for i in range(MOCK_HOST_NUM):
             index = 0 if i < MOCK_HOST_NUM / 2 else 1
             mock_host_info["bk_cloud_id"] = MOCK_NEW_CLOUD_IDS[index]
@@ -85,7 +85,7 @@ class TestLoadEnvInfo(CustomBaseTestCase):
 
         models.Host.objects.bulk_create(mock_host_list)
 
-        # mock 两个云区域，名字分别是 load_test_cloud_1 和 load_test_cloud_2
+        # mock 两个管控区域，名字分别是 load_test_cloud_1 和 load_test_cloud_2
         mock_cloud_info = copy.deepcopy(CLOUD_MODEL_DATA)
         mock_cloud_list = []
         for cloud_id in MOCK_NEW_CLOUD_IDS:
@@ -109,7 +109,7 @@ class TestLoadEnvInfo(CustomBaseTestCase):
     @classmethod
     def mock_cloud_csv_file(cls):
         """
-        生成云区域的 csv 文件
+        生成管控区域的 csv 文件
         """
         tmp_file_path = mk_and_return_tmpdir()
         cloud_info_csv_path = os.path.join(tmp_file_path, CLOUD_INFO_PATH)
@@ -196,7 +196,7 @@ class TestLoadEnvInfo(CustomBaseTestCase):
 
     def test_load_cloud_info(self):
         """
-        测试切换当前环境下的云区域接入点 ID
+        测试切换当前环境下的管控区域接入点 ID
         """
         cloud_info_csv_file = self.mock_cloud_csv_file()
 
@@ -208,7 +208,7 @@ class TestLoadEnvInfo(CustomBaseTestCase):
 
         old_cloud___ap_id_map = self.mock_old_cloud__ap_id_map()
         for old_cloud_id, old_ap_id in old_cloud___ap_id_map.items():
-            # 校验云区域 ap_id
+            # 校验管控区域 ap_id
             new_cloud_id = old_cloud_id + CMDB_OFFSET
             new_ap_id = self.mock_ap_map()[old_ap_id]
             cloud_names = models.Cloud.objects.filter(bk_cloud_id=new_cloud_id).values_list("ap_id", flat=True)
@@ -216,7 +216,7 @@ class TestLoadEnvInfo(CustomBaseTestCase):
 
     def test_switch_host_ap(self):
         """
-        测试切换当前环境云区域内的所有主机接入点
+        测试切换当前环境管控区域内的所有主机接入点
         """
         env_info_map = self.mock_env_map()
         cloud_info_csv_file = self.mock_cloud_csv_file()
@@ -252,7 +252,7 @@ class TestLoadEnvInfo(CustomBaseTestCase):
 
     def test_position_proxy_host(self):
         """
-        测试切换当前环境下对应的云区域下所有的主机接入点信息
+        测试切换当前环境下对应的管控区域下所有的主机接入点信息
         """
         proxy_host_info_csv_file = self.mock_proxy_host_csv_file()
 

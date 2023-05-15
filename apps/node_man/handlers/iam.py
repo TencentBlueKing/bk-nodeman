@@ -60,10 +60,10 @@ class IamHandler(APIModel):
 
     def fetch_cretor(self, instance_type, username):
         """
-        返回云区域创建者为用户的ids
+        返回管控区域创建者为用户的ids
         :param instance_type: 实例类型
         :param username: 用户名
-        :return: 列表，云区域ID集合
+        :return: 列表，管控区域ID集合
         """
 
         if instance_type == "cloud":
@@ -83,7 +83,7 @@ class IamHandler(APIModel):
         """
 
         if instance_type == "cloud":
-            # 拥有所有云区域权限
+            # 拥有所有管控区域权限
             return list(Cloud.objects.all().values_list("bk_cloud_id", flat=True))
         elif instance_type in ["biz", "agent", "plugin", "proxy", "task"]:
             # 拥有所有业务权限
@@ -172,7 +172,7 @@ class IamHandler(APIModel):
                 ):
                     ret[action] = list(AccessPoint.objects.values_list("id", flat=True))
 
-                # 云区域方面
+                # 管控区域方面
                 elif action in [
                     IamActionType.cloud_view,
                     IamActionType.cloud_edit,
@@ -351,7 +351,7 @@ class IamHandler(APIModel):
     @staticmethod
     def sync_cloud_instance(instance_id, instance_name, creator):
         """
-        迁移云区域数据时使用的接口
+        迁移管控区域数据时使用的接口
         :param instance_id: 实例ID
         :param instance_name: 实例名称
         :param creator: 创建者

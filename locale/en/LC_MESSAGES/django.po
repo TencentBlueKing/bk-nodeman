@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-05-04 17:36+0800\n"
+"POT-Creation-Date: 2023-05-16 19:45+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -24,12 +24,12 @@ msgstr ""
 msgid "文件不存在：file_path -> {file_path}"
 msgstr "File does not exist: file_path -> {file_path}"
 
-#: apps/backend/agent/artifact_builder/base.py:197
+#: apps/backend/agent/artifact_builder/base.py:198
 #, python-brace-format
 msgid "gsectl 文件不存在：file_path -> {file_path}"
 msgstr "File gsectl does not exist: file_path -> {file_path}"
 
-#: apps/backend/agent/artifact_builder/base.py:294
+#: apps/backend/agent/artifact_builder/base.py:295
 #, python-brace-format
 msgid ""
 "Agent 包保存错误，期望保存到 -> {package_target_path}, 实际保存到 -> "
@@ -38,11 +38,11 @@ msgstr ""
 "Error saving Agent package, expect to save to -> {package_target_path}, "
 "actually save to -> {storage_path}"
 
-#: apps/backend/agent/artifact_builder/base.py:334
+#: apps/backend/agent/artifact_builder/base.py:335
 msgid "版本文件不存在"
 msgstr "Version file does not exist"
 
-#: apps/backend/agent/artifact_builder/base.py:354
+#: apps/backend/agent/artifact_builder/base.py:355
 msgid "版本日志文件不存在"
 msgstr "Version log file does not exist"
 
@@ -291,8 +291,8 @@ msgstr "The selected installation channel '{name} has no jumper available"
 
 #: apps/backend/components/collections/agent_new/base.py:242
 #, python-brace-format
-msgid "云区域 -> {bk_cloud_id} 下无存活的 Proxy"
-msgstr "No live proxy under cloud area -> {bk_cloud_id}"
+msgid "管控区域 -> {bk_cloud_id} 下无存活的 Proxy"
+msgstr "No live proxy under \"BK-Net\" -> {bk_cloud_id}"
 
 #: apps/backend/components/collections/agent_new/bind_host_agent.py:64
 #, python-brace-format
@@ -322,8 +322,8 @@ msgstr "Please check whether the egress IP is correct or the policy is enabled"
 #: apps/backend/components/collections/agent_new/check_policy_gse_to_proxy.py:87
 #, python-brace-format
 msgid ""
-"请确保 GSE File Server 公网IP（{file_endpoints}）到 Proxy 出口IP"
-"（{proxy_outer_ip}）的 {port_polices} 访问策略正常。\n"
+"请确保 GSE File Server 公网IP（{file_endpoints}）到 Proxy 出口"
+"IP（{proxy_outer_ip}）的 {port_polices} 访问策略正常。\n"
 "另外请注意：\n"
 "1. 可执行 curl ipinfo.io 确认「出口IP」\n"
 "2. 不支持多台 Proxy 使用同一个「出口IP」\n"
@@ -369,27 +369,26 @@ msgstr ""
 
 #: apps/backend/components/collections/agent_new/choose_access_point.py:368
 #, fuzzy, python-brace-format
-#| msgid "云区域 -> {bk_cloud_id} 下无存活的 Proxy"
-msgid "云区域 -> {bk_cloud_id} 下无 GSE版本 -> {gse_version} 存活的 Proxy"
-msgstr "No live proxy({gse_version}) under cloud area -> {bk_cloud_id}"
+msgid "管控区域 -> {bk_cloud_id} 下无 GSE版本 -> {gse_version} 存活的 Proxy"
+msgstr "No live proxy({gse_version}) under \"BK-Net\" -> {bk_cloud_id}"
 
 #: apps/backend/components/collections/agent_new/choose_access_point.py:424
 #, python-brace-format
 msgid ""
-"Proxy 所在云区域 「{bk_cloud_name}」[{bk_cloud_id}] 下无 GSE 版本 -> "
+"Proxy 所在「管控区域」 「{bk_cloud_name}」[{bk_cloud_id}] 下无 GSE 版本 -> "
 "{gse_version} 的接入点，请联系管理员添加映射关系"
 msgstr ""
-"There is no access point of GSE version -> {gse_version} under the cloud "
-"area {bk_cloud_name} [{bk_cloud_id}] where the Proxy is located, please "
+"There is no access point of GSE version -> {gse_version} under the \"BK-Net"
+"\" {bk_cloud_name} [{bk_cloud_id}] where the Proxy is located, please "
 "contact the administrator to add the mapping relationship"
 
 #: apps/backend/components/collections/agent_new/choose_access_point.py:443
 #, python-brace-format
 msgid ""
-"已选择 Proxy 所在云区域「{bk_cloud_name}」[{bk_cloud_id}] 指定的接入点 "
+"已选择 Proxy 所在「管控区域」「{bk_cloud_name}」[{bk_cloud_id}] 指定的接入点 "
 "[{ap_name}]"
 msgstr ""
-"The access point specified by the cloud area {bk_cloud_name} [{bk_cloud_id}] "
+"The access point specified by the \"BK-Net\" {bk_cloud_name} [{bk_cloud_id}] "
 "where the Proxy is located [{ap_name}]"
 
 #: apps/backend/components/collections/agent_new/choose_access_point.py:528
@@ -629,8 +628,8 @@ msgstr "{inner_ip} has been selected as the springboard for this installation"
 #: apps/backend/components/collections/agent_new/install.py:441
 #, python-brace-format
 msgid ""
-"作业任务ID为[{job_instance_id}]，点击跳转到<a href=\"{link}\" "
-"target=\"_blank\">[作业平台]</a>"
+"作业任务ID为[{job_instance_id}]，点击跳转到<a href=\"{link}\" target=\"_blank"
+"\">[作业平台]</a>"
 msgstr ""
 "The JOB task ID is [{job_instance_id}], click to jump to <a href=\"{link}\" "
 "target=\"_blank\">[Blueking JOB]</a>"
@@ -850,8 +849,8 @@ msgstr "Call Blueking Job"
 #, python-brace-format
 msgid ""
 "{log}\n"
-"作业任务ID为 [{job_instance_id}]，点击跳转到 <a href=\"{link}\" "
-"target=\"_blank\">[作业平台]</a>"
+"作业任务ID为 [{job_instance_id}]，点击跳转到 <a href=\"{link}\" target="
+"\"_blank\">[作业平台]</a>"
 msgstr ""
 "{log}\n"
 "The JOB task ID is [{job_instance_id}], click to jump to <a href=\"{link}\" "
@@ -917,56 +916,56 @@ msgstr "GSE task polling timeout"
 msgid "GSE任务查无结果, {task_id}, {key}"
 msgstr "GSE task search no result, {task_id}, {key}"
 
-#: apps/backend/components/collections/plugin.py:1428
+#: apps/backend/components/collections/plugin.py:1432
 #: apps/node_man/models.py:1879
 msgid "策略"
 msgstr "policy"
 
-#: apps/backend/components/collections/plugin.py:1428
-#: apps/backend/components/collections/plugin.py:1477
+#: apps/backend/components/collections/plugin.py:1432
+#: apps/backend/components/collections/plugin.py:1481
 #: apps/node_man/models.py:545
 msgid "订阅"
 msgstr "subscribe"
 
-#: apps/backend/components/collections/plugin.py:1433
+#: apps/backend/components/collections/plugin.py:1437
 #, python-brace-format
 msgid "{sub_alias} -> {id}「{name}」 已启用，删除失败"
 msgstr "{sub_alias} -> {id} {name} enabled, delete failed"
 
-#: apps/backend/components/collections/plugin.py:1443
+#: apps/backend/components/collections/plugin.py:1447
 #, python-brace-format
 msgid "{sub_alias} -> {id}「{name}」，已部署节点数 -> {proc_count}"
 msgstr "{sub_alias} -> {id}{name}, number of deployed nodes -> {proc_count}"
 
-#: apps/backend/components/collections/plugin.py:1452
+#: apps/backend/components/collections/plugin.py:1456
 #, python-brace-format
 msgid "{sub_alias} -> {id}「{name}」 已部署节点数不为 0，跳过"
 msgstr "{sub_alias} -> {id}{name} The number of deployed nodes is not 0, skip"
 
-#: apps/backend/components/collections/plugin.py:1461
+#: apps/backend/components/collections/plugin.py:1465
 #, python-brace-format
 msgid "{sub_alias} -> {id}「{name}」删除成功"
 msgstr "{sub_alias} -> {id} {name} deleted successfully"
 
-#: apps/backend/components/collections/plugin.py:1481
+#: apps/backend/components/collections/plugin.py:1485
 #, python-brace-format
 msgid "{sub_alias} -> {id} 仅提供单次执行能力，保持{enable_alias}状态"
 msgstr ""
 "{sub_alias} -> {id} only provides single execution capability, keep "
 "{enable_alias} state"
 
-#: apps/backend/components/collections/plugin.py:1484
-#: apps/backend/components/collections/plugin.py:1499
+#: apps/backend/components/collections/plugin.py:1488
+#: apps/backend/components/collections/plugin.py:1503
 #: apps/backend/constants.py:137
 msgid "启用"
 msgstr "Enable"
 
-#: apps/backend/components/collections/plugin.py:1484
-#: apps/backend/components/collections/plugin.py:1499
+#: apps/backend/components/collections/plugin.py:1488
+#: apps/backend/components/collections/plugin.py:1503
 msgid "停用"
 msgstr "Deactivate"
 
-#: apps/backend/components/collections/plugin.py:1495
+#: apps/backend/components/collections/plugin.py:1499
 #, python-brace-format
 msgid "{sub_alias} -> {id}「{name}」切换为：{enable_alias}"
 msgstr "{sub_alias} -> {id} {name} switch to: {enable_alias}"
@@ -1217,7 +1216,7 @@ msgstr "Initializing process state"
 msgid "更新插件部署状态为{status}"
 msgstr "Update plugin deployment status is {status}"
 
-#: apps/backend/plugin/manager.py:76 apps/node_man/constants.py:1017
+#: apps/backend/plugin/manager.py:76 apps/node_man/constants.py:1019
 msgid "下发安装包"
 msgstr "Transfer installation package"
 
@@ -1777,7 +1776,7 @@ msgstr "Stop plugin and remove policy"
 msgid "[{step_id}] {action_description}"
 msgstr "[{step_id}] {action_description}"
 
-#: apps/backend/subscription/tasks.py:364
+#: apps/backend/subscription/tasks.py:362
 #, python-brace-format
 msgid ""
 "当前{category_alias}（{bk_obj_name} 级）已被优先级更高的"
@@ -2088,17 +2087,17 @@ msgstr ""
 #: apps/core/gray/handlers.py:275
 #, python-brace-format
 msgid ""
-"缺少云区域 -> {bk_cloud_name} ID -> {bk_cloud_id}, 接入点版本的映射关系，请联"
-"系管理员"
+"缺少「管控区域」 -> {bk_cloud_name} ID -> {bk_cloud_id}, 接入点版本的映射关"
+"系，请联系管理员"
 msgstr ""
-"The mapping relationship between cloud region -> {bk_cloud_name} ID -> "
+"The mapping relationship between \"BK-Net\" -> {bk_cloud_name} ID -> "
 "{bk_cloud_id}, access point version is missing, please contact the "
 "administrator"
 
 #: apps/core/gray/permission.py:19 apps/core/ipchooser/permission.py:57
 #: apps/core/ipchooser/permission.py:93 apps/core/tag/permission.py:23
-#: apps/node_man/handlers/permission.py:198
-#: apps/node_man/handlers/permission.py:259
+#: apps/node_man/handlers/permission.py:200
+#: apps/node_man/handlers/permission.py:261
 msgid "您没有该操作的权限"
 msgstr "You do not have permission for this operation"
 
@@ -2107,7 +2106,7 @@ msgid "业务列表"
 msgstr "Business list"
 
 #: apps/core/gray/serializers.py:18
-msgid "云区域:主机列表"
+msgid "管控区域:主机列表"
 msgstr "cloud_id:ip list"
 
 #: apps/core/ipchooser/constants.py:38
@@ -2127,15 +2126,15 @@ msgid "主机列表默认返回字段"
 msgstr "The host list defaults return field"
 
 #: apps/core/ipchooser/constants.py:52 apps/core/ipchooser/constants.py:64
-#: apps/node_man/constants.py:759 apps/node_man/constants.py:953
+#: apps/node_man/constants.py:759 apps/node_man/constants.py:955
 msgid "业务"
 msgstr "Business"
 
-#: apps/core/ipchooser/constants.py:64 apps/node_man/constants.py:953
+#: apps/core/ipchooser/constants.py:64 apps/node_man/constants.py:955
 msgid "集群"
 msgstr "Cluster"
 
-#: apps/core/ipchooser/constants.py:64 apps/node_man/constants.py:953
+#: apps/core/ipchooser/constants.py:64 apps/node_man/constants.py:955
 msgid "模块"
 msgstr "Module"
 
@@ -2224,8 +2223,8 @@ msgstr "Host name"
 
 #: apps/core/ipchooser/serializers/base.py:79
 #: apps/node_man/serializers/cloud.py:28
-msgid "云区域名称"
-msgstr "Cloud area name"
+msgid "管控区域名称"
+msgstr "BK-Net name"
 
 #: apps/core/ipchooser/serializers/base.py:81
 msgid "Agent 存活状态"
@@ -2233,10 +2232,11 @@ msgstr "Agent alive status"
 
 #: apps/core/ipchooser/serializers/base.py:84
 msgid ""
-"模糊搜索内容（支持同时对`主机IP`/`主机名`/`操作系统`/`云区域名称`进行模糊搜索"
+"模糊搜索内容（支持同时对`主机IP`/`主机名`/`操作系统`/`管控区域名称`进行模糊搜"
+"索"
 msgstr ""
 "Vague search content (support at the same time of` host ip`/`host name`/"
-"`operating system`/`` cloud area name `)"
+"`operating system`/`` BK-Net name `)"
 
 #: apps/core/ipchooser/serializers/base.py:90
 msgid "主机 ID 列表"
@@ -2278,8 +2278,8 @@ msgid "搜索条件"
 msgstr "Search Criteria"
 
 #: apps/core/ipchooser/serializers/base.py:192
-msgid "云区域 ID"
-msgstr "Cloud area ID"
+msgid "管控区域 ID"
+msgstr "BK-Net ID"
 
 #: apps/core/ipchooser/serializers/base.py:193
 msgid "IPv4 协议下的主机IP"
@@ -2698,7 +2698,7 @@ msgstr "S-mart application only supports production environment deployment!"
 #: apps/node_man/constants.py:74 apps/node_man/handlers/cloud.py:108
 #: apps/node_man/handlers/meta.py:361 apps/node_man/models.py:832
 msgid "直连区域"
-msgstr "Default area"
+msgstr "Direct Mode"
 
 #: apps/node_man/constants.py:152
 msgid "Proxy"
@@ -2858,20 +2858,20 @@ msgid "策略管控"
 msgstr "Policy control"
 
 #: apps/node_man/constants.py:330
-msgid "云区域查看"
-msgstr "Cloud area view"
+msgid "管控区域查看"
+msgstr "BK-Net view"
 
 #: apps/node_man/constants.py:331
-msgid "云区域编辑"
-msgstr "Cloud area edit"
+msgid "管控区域编辑"
+msgstr "BK-Net edit"
 
 #: apps/node_man/constants.py:332
-msgid "云区域删除"
-msgstr "Cloud area delete"
+msgid "管控区域删除"
+msgstr "BK-Net delete"
 
 #: apps/node_man/constants.py:333
-msgid "云区域创建"
-msgstr "Cloud area created"
+msgid "管控区域创建"
+msgstr "BK-Net created"
 
 #: apps/node_man/constants.py:334
 msgid "接入点编辑"
@@ -3264,142 +3264,148 @@ msgstr "2.0 Proxy package root path"
 msgid "2.0 Agent 打包根路径"
 msgstr "2.0 Agent package root path"
 
-#: apps/node_man/constants.py:912
+#: apps/node_man/constants.py:913
 msgid "证书 CA 内容配置"
 msgstr "Certificate CA content configuration"
 
-#: apps/node_man/constants.py:913
+#: apps/node_man/constants.py:914
 msgid "Server 侧 CERT 内容配置"
 msgstr "Server side CERT content configuration"
 
-#: apps/node_man/constants.py:914
+#: apps/node_man/constants.py:915
 msgid "Server 侧 KEY 内容配置"
 msgstr "Server side KEY content configuration"
 
-#: apps/node_man/constants.py:915
+#: apps/node_man/constants.py:916
+msgid "证书密码文件内容配置, 用于解密证书密码"
+msgstr ""
+"Certificate password file content configuration, used to decrypt the "
+"certificate password"
+
+#: apps/node_man/constants.py:917
 msgid "API 侧 CERT 内容配置, 用于其他服务调用 GSE"
 msgstr "API side CERT content configuration, for other services to call GSE"
 
-#: apps/node_man/constants.py:916
+#: apps/node_man/constants.py:918
 msgid "API 侧 KEY 内容配置, 用于其他服务调用 GSE"
 msgstr "API side KEY content configuration, for other services to call GSE"
 
-#: apps/node_man/constants.py:917
+#: apps/node_man/constants.py:919
 msgid "Agent 侧 CERT 内容配置, 用于 Agent 链路"
 msgstr "Agent side CERT content configuration, for the Agent link"
 
-#: apps/node_man/constants.py:918
+#: apps/node_man/constants.py:920
 msgid "Agent 侧 KEY 内容配置, 用于 Agent 链路"
 msgstr "Agent side KEY content configuration, for the Agent link"
 
-#: apps/node_man/constants.py:932
+#: apps/node_man/constants.py:934
 msgid "周期执行进程"
 msgstr "Periodic execution process"
 
-#: apps/node_man/constants.py:933
+#: apps/node_man/constants.py:935
 msgid "常驻进程"
 msgstr "Resident process"
 
-#: apps/node_man/constants.py:934
+#: apps/node_man/constants.py:936
 msgid "单次执行进程"
 msgstr "Single-execution process"
 
-#: apps/node_man/constants.py:953 apps/node_man/models.py:1855
+#: apps/node_man/constants.py:955 apps/node_man/models.py:1855
 msgid "主机"
 msgstr "Host"
 
-#: apps/node_man/constants.py:953
+#: apps/node_man/constants.py:955
 msgid "自定义"
 msgstr "Custom"
 
-#: apps/node_man/constants.py:964
+#: apps/node_man/constants.py:966
 msgid "静态"
 msgstr "Static"
 
-#: apps/node_man/constants.py:964
+#: apps/node_man/constants.py:966
 msgid "动态"
 msgstr "Dynamic"
 
-#: apps/node_man/constants.py:975
+#: apps/node_man/constants.py:977
 msgid "IPv4"
 msgstr "IPv4"
 
-#: apps/node_man/constants.py:975
+#: apps/node_man/constants.py:977
 msgid "IPv6"
 msgstr "IPv6"
 
-#: apps/node_man/constants.py:996
+#: apps/node_man/constants.py:998
 msgid "检测 BT 分发策略（下发Py36包）"
 msgstr "Detect BT distribution strategy (distribute Py36 package)"
 
-#: apps/node_man/constants.py:1010
+#: apps/node_man/constants.py:1012
 msgid "下发安装工具"
 msgstr "transfer installation tool"
 
-#: apps/node_man/constants.py:1035
+#: apps/node_man/constants.py:1037
 msgid "数据传输工具, 用于下载文件依赖"
 msgstr "Data transmission tools for download file dependencies"
 
-#: apps/node_man/constants.py:1036
+#: apps/node_man/constants.py:1038
 msgid "用户赋权工具"
 msgstr "User Empowerment Tool"
 
-#: apps/node_man/constants.py:1038
+#: apps/node_man/constants.py:1040
 msgid "libcurl 共享库, 补丁文件"
 msgstr "libcurl sharing library, patch file"
 
-#: apps/node_man/constants.py:1039
+#: apps/node_man/constants.py:1041
 msgid "UNIX 时间工具包"
 msgstr "Unix Time Tool Pack"
 
-#: apps/node_man/constants.py:1040
+#: apps/node_man/constants.py:1042
 msgid "命令行 JSON 处理器"
 msgstr "Command line JSON processor"
 
-#: apps/node_man/constants.py:1041
+#: apps/node_man/constants.py:1043
 msgid "base64 工具包"
 msgstr "base64 tools package"
 
-#: apps/node_man/constants.py:1051
+#: apps/node_man/constants.py:1053
 msgid "Windows 批处理脚本"
 msgstr "Windows batch script"
 
-#: apps/node_man/constants.py:1051
+#: apps/node_man/constants.py:1053
 msgid "bash"
 msgstr "bash"
 
-#: apps/node_man/constants.py:1060
+#: apps/node_man/constants.py:1062
 msgid "依赖文件"
 msgstr "dependent file"
 
-#: apps/node_man/constants.py:1060
+#: apps/node_man/constants.py:1062
 msgid "命令"
 msgstr "Command"
 
 #: apps/node_man/exceptions.py:21
-msgid "云区域不存在"
-msgstr "Cloud area does not exist"
+msgid "管控区域不存在"
+msgstr "BK-Net does not exist"
 
 #: apps/node_man/exceptions.py:26
-msgid "云区域业务已装Agent, 不可删除"
+msgid "管控区域业务已装Agent, 不可删除"
 msgstr ""
-"Agent has been installed in the cloud area business and cannot be deleted"
+"Agent has been installed in the \"BK-Net\" business and cannot be deleted"
 
 #: apps/node_man/exceptions.py:31
-msgid "该云区域已经存在主机, 不可删除"
-msgstr "The host already exists in this cloud area and cannot be deleted"
+msgid "该「管控区域」已经存在主机, 不可删除"
+msgstr "The host already exists in this \"BK-Net\" and cannot be deleted"
 
 #: apps/node_man/exceptions.py:36
-msgid "PAGENT只能安装在非直连区域"
-msgstr "PAGENT can only be installed in non-directly connected areas"
+msgid "PAGENT只能安装在「非直连区域」"
+msgstr "PAGENT can only be installed in \"Indirect Mode\""
 
 #: apps/node_man/exceptions.py:41
-msgid "AGENT只能安装在直连区域"
-msgstr "AGENT can only be installed in default area"
+msgid "AGENT只能安装在「直连区域」"
+msgstr "AGENT can only be installed in \"Direct Mode\""
 
 #: apps/node_man/exceptions.py:46
 msgid "直连区域不可安装Proxy"
-msgstr "A proxy cannot be installed in a default area"
+msgstr "A proxy cannot be installed in a \"Direct Mode\""
 
 #: apps/node_man/exceptions.py:51
 msgid "该接入点不存在."
@@ -3427,8 +3433,8 @@ msgid "没有可用的Proxy"
 msgstr "No Proxy available"
 
 #: apps/node_man/exceptions.py:82
-msgid "不存在某云区域的权限."
-msgstr "There is no permission for a cloud area."
+msgid "不存在某「管控区域」的权限."
+msgstr "There is no permission for a \"BK-Net\"."
 
 #: apps/node_man/exceptions.py:87
 msgid "该主机未选择接入点，请尝试重装主机自动选择接入点"
@@ -3548,7 +3554,6 @@ msgid "远程采集主机不存在"
 msgstr "Remote collect host does not exist"
 
 #: apps/node_man/exceptions.py:214
-#, fuzzy
 #| msgid "订阅任务实例不存在"
 msgid "服务实例不存在"
 msgstr "Subscription task instance does not exist"
@@ -3558,22 +3563,21 @@ msgstr "Subscription task instance does not exist"
 msgid "服务实例 -> [{id}] 不存在"
 msgstr "Service instance -> [{id}] does not exist"
 
-#: apps/node_man/handlers/cloud.py:46 apps/node_man/handlers/permission.py:110
-#, python-brace-format
-msgid "不存在ID为: {bk_cloud_id} 的云区域"
-msgstr "No cloud area with id: {bk_cloud_id}"
+#: apps/node_man/handlers/cloud.py:46
+msgid "不存在ID为: {bk_cloud_id} 的「管控区域」"
+msgstr "No \"BK-Net\" with id: {bk_cloud_id}"
 
 #: apps/node_man/handlers/cloud.py:50 apps/node_man/handlers/cloud.py:135
 msgid "自动选择接入点"
 msgstr "Auto select access point"
 
 #: apps/node_man/handlers/cloud.py:205
-msgid "云区域不可名为直连区域"
-msgstr "The cloud area cannot be named as default area"
+msgid "管控区域不可名为「直连区域」"
+msgstr "The \"BK-Net\" cannot be named as \"Direct Mode\""
 
 #: apps/node_man/handlers/cloud.py:209 apps/node_man/handlers/cloud.py:237
-msgid "云区域名称不可重复"
-msgstr "cloud area name cannot be repeated"
+msgid "管控区域名称不可重复"
+msgstr "BK-Net name cannot be repeated"
 
 #: apps/node_man/handlers/cloud.py:226 apps/node_man/handlers/policy.py:579
 #: apps/node_man/views/ap.py:266
@@ -3585,9 +3589,9 @@ msgid "该区域已存在主机"
 msgstr "Host already exists in this area"
 
 #: apps/node_man/handlers/cmdb.py:336
-msgid "在CMDB中，还有主机关联到当前云区域下，无法删除"
+msgid "在CMDB中，还有主机关联到当前「管控区域」下，无法删除"
 msgstr ""
-"In the CMDB, there are hosts associated with the current cloud area and "
+"In the CMDB, there are hosts associated with the current \"BK-Net\" and "
 "cannot be deleted"
 
 #: apps/node_man/handlers/healthz/saas_healthz.py:110
@@ -3655,7 +3659,7 @@ msgstr "Failed to find the host under the service, host query result: %s"
 msgid "job中没有此接口"
 msgstr "no such interface in job"
 
-#: apps/node_man/handlers/host.py:414 apps/node_man/handlers/permission.py:411
+#: apps/node_man/handlers/host.py:414 apps/node_man/handlers/permission.py:413
 #, python-brace-format
 msgid "Host ID:{bk_host_id} 不存在"
 msgstr "Host ID: {bk_host_id} does not exist"
@@ -3675,7 +3679,7 @@ msgstr "Login IP: {login_ip} is occupied"
 msgid "Ap_id:{ap_id} 不存在于数据库."
 msgstr "Ap_id:{ap_id} does not exist in the database."
 
-#: apps/node_man/handlers/job.py:48 apps/node_man/handlers/permission.py:391
+#: apps/node_man/handlers/job.py:48 apps/node_man/handlers/permission.py:393
 #, python-brace-format
 msgid "不存在ID为{job_id}的任务"
 msgstr "No job with id {job_id} exists"
@@ -3721,8 +3725,8 @@ msgstr "Agent version"
 
 #: apps/node_man/handlers/meta.py:175 apps/node_man/handlers/meta.py:284
 #: apps/node_man/handlers/meta.py:363
-msgid "云区域"
-msgstr "Cloud area"
+msgid "管控区域"
+msgstr "BK-Net"
 
 #: apps/node_man/handlers/meta.py:176 apps/node_man/handlers/meta.py:357
 #: apps/node_man/models.py:336 apps/node_man/serializers/job.py:89
@@ -3806,33 +3810,38 @@ msgstr "You do not have permission to delete this access point"
 msgid "您没有查看该接入点详情的权限"
 msgstr "You do not have permission to view details of this access point"
 
-#: apps/node_man/handlers/permission.py:141
-msgid "您没有创建云区域的权限"
-msgstr "You do not have permission to create cloud areas"
-
-#: apps/node_man/handlers/permission.py:142
-msgid "您没有编辑该云区域的权限"
-msgstr "You do not have permission to edit this cloud area"
+#: apps/node_man/handlers/permission.py:111
+#, fuzzy, python-brace-format
+msgid "不存在ID为: {bk_cloud_id} 的管控区域"
+msgstr "No \"BK-Net\" with id: {bk_cloud_id}"
 
 #: apps/node_man/handlers/permission.py:143
-msgid "您没有删除该云区域的权限"
-msgstr "You do not have permission to delete this cloud area"
+msgid "您没有创建「管控区域」的权限"
+msgstr "You do not have permission to create \"BK-Net\""
 
 #: apps/node_man/handlers/permission.py:144
-msgid "您没有查看该云区域详情的权限"
-msgstr "You do not have permission to view details for this cloud area"
+msgid "您没有编辑该「管控区域」的权限"
+msgstr "You do not have permission to edit this \"BK-Net\""
 
-#: apps/node_man/handlers/permission.py:156
-msgid "您没有权限执行操作，请申请云区域编辑权限"
+#: apps/node_man/handlers/permission.py:145
+msgid "您没有删除该「管控区域」的权限"
+msgstr "You do not have permission to delete this \"BK-Net\""
+
+#: apps/node_man/handlers/permission.py:146
+msgid "您没有查看该「管控区域」详情的权限"
+msgstr "You do not have permission to view details for this \"BK-Net\""
+
+#: apps/node_man/handlers/permission.py:158
+msgid "您没有权限执行操作，请申请「管控区域」编辑权限"
 msgstr ""
-"You do not have permission to perform the operation, please apply for cloud "
-"area editing permission"
+"You do not have permission to perform the operation, please apply for \"BK-"
+"Net\" editing permission"
 
-#: apps/node_man/handlers/permission.py:182
+#: apps/node_man/handlers/permission.py:184
 msgid "您没有查询Debug接口的权限"
 msgstr "You do not have permission to query the Debug interface"
 
-#: apps/node_man/handlers/permission.py:324
+#: apps/node_man/handlers/permission.py:326
 msgid "【资源池】业务暂不支持从权限中心申请，请在admin中将用户添加为superuser"
 msgstr ""
 "[Resource pool] service does not currently support application from the "
@@ -3879,24 +3888,24 @@ msgstr ""
 #: apps/node_man/handlers/validator.py:324
 #, python-brace-format
 msgid ""
-"已有 Agent 存活的动态寻址主机【bk_host_id: {bk_host_id}】位于所选云区域："
-"{bk_cloud_name}，业务：{bk_biz_name}"
+"已有 Agent 存活的动态寻址主机【bk_host_id: {bk_host_id}】位于所选「管控区"
+"域」：{bk_cloud_name}，业务：{bk_biz_name}"
 msgstr ""
 "The dynamic addressing host of Agent [bk_host_id: {bk_host_id}] is located "
-"in the selected cloud area: {bk_cloud_name}, business: {bk_biz_name}"
+"in the selected \"BK-Net\": {bk_cloud_name}, business: {bk_biz_name}"
 
 #: apps/node_man/handlers/validator.py:342
 #, python-brace-format
 msgid ""
 "\n"
-"            该主机内网IP已存在于所选云区域：{bk_cloud_name} 下,\n"
+"            该主机内网IP已存在于所选「管控区域」：{bk_cloud_name} 下,\n"
 "            业务：{bk_biz_name},\n"
 "            节点类型：{node_type}\n"
 "            "
 msgstr ""
 "\n"
-"                The host's intranet IP already exists in the selected cloud "
-"area: {bk_cloud_name},\n"
+"                The host's intranet IP already exists in the selected \"BK-"
+"Net\": {bk_cloud_name},\n"
 "                Business: {bk_biz_name},\n"
 "                Node type: {node_type}\n"
 "                "
@@ -3938,21 +3947,21 @@ msgstr ""
 
 #: apps/node_man/handlers/validator.py:506
 #, python-brace-format
-msgid "云区域(ID:{bk_cloud_id}) 不存在"
-msgstr "The cloud area (ID:{bk_cloud_id}) does not exist"
+msgid "管控区域(ID:{bk_cloud_id}) 不存在"
+msgstr "The BK-Net (ID:{bk_cloud_id}) does not exist"
 
 #: apps/node_man/handlers/validator.py:511
 #, python-brace-format
-msgid "{bk_cloud_name} 是直连区域，不可以安装PROXY"
-msgstr "{bk_cloud_name} is default area, PROXY cannot be installed"
+msgid "{bk_cloud_name} 是「直连区域」，不可以安装PROXY"
+msgstr "{bk_cloud_name} is \"Direct Mode\", PROXY cannot be installed"
 
 #: apps/node_man/handlers/validator.py:521
-msgid "该云区域下不存在代理"
-msgstr "No Proxy exists in this cloud area"
+msgid "该「管控区域」下不存在代理"
+msgstr "No Proxy exists in this \"BK-Net\""
 
 #: apps/node_man/handlers/validator.py:529
 msgid "直连区域必须选择接入点"
-msgstr "Access point must be selected for default area"
+msgstr "Access point must be selected for \"Direct Mode\""
 
 #: apps/node_man/handlers/validator.py:533
 #, python-brace-format
@@ -3967,10 +3976,9 @@ msgstr ""
 "complete the relevant information"
 
 #: apps/node_man/handlers/validator.py:586
-msgid "不允许操作【云区域不存在】的主机, 云区域id: {}"
+msgid "不允许操作【管控区域不存在】的主机,「管控区域」id: {}"
 msgstr ""
-"Not allowed to operate the host of [cloud area does not exist], cloud area "
-"id: {}"
+"Not allowed to operate the host of [BK-Net does not exist], \"BK-Net\" id: {}"
 
 #: apps/node_man/models.py:124
 msgid "键"
@@ -4052,8 +4060,8 @@ msgstr "AgentID"
 #: apps/node_man/serializers/install_channel.py:22
 #: apps/node_man/serializers/job.py:86 apps/node_man/serializers/plugin.py:196
 #: apps/node_man/serializers/plugin.py:227
-msgid "云区域ID"
-msgstr "Cloud area ID"
+msgid "管控区域ID"
+msgstr "BK-Net ID"
 
 #: apps/node_man/models.py:339 apps/node_man/serializers/ap.py:72
 #: apps/node_man/serializers/host.py:40 apps/node_man/serializers/job.py:97
@@ -4117,9 +4125,9 @@ msgid "{bk_cloud_id}:{ip} 主机信息不存在"
 msgstr "{bk_cloud_id}:{ip} host information does not exist"
 
 #: apps/node_man/models.py:423
-msgid "主机所属云区域不存在可用Proxy"
+msgid "主机所属「管控区域」不存在可用Proxy"
 msgstr ""
-"There is no available proxy in the cloud area to which the host belongs"
+"There is no available proxy in the \"BK-Net\" to which the host belongs"
 
 #: apps/node_man/models.py:470
 #, python-brace-format
@@ -4359,8 +4367,8 @@ msgid "云服务商"
 msgstr "Cloud provider"
 
 #: apps/node_man/models.py:822
-msgid "云区域创建者"
-msgstr "Cloud area creator"
+msgid "管控区域创建者"
+msgstr "BK-Net creator"
 
 #: apps/node_man/models.py:824
 msgid "是否可见"
@@ -4371,8 +4379,8 @@ msgid "是否删除"
 msgstr "Delete"
 
 #: apps/node_man/models.py:836 apps/node_man/models.py:837
-msgid "云区域（Cloud）"
-msgstr "Cloud"
+msgid "管控区域（BK-Net）"
+msgstr "BK-Net"
 
 #: apps/node_man/models.py:851
 msgid "名称"
@@ -5177,7 +5185,7 @@ msgstr "Select all exclude hosts across pages"
 
 #: apps/node_man/serializers/cloud.py:20
 msgid "是否返回直连区域"
-msgstr "Whether to return the default area"
+msgstr "Whether to return the \"Direct Mode\""
 
 #: apps/node_man/serializers/cmdb.py:23
 msgid "操作"
@@ -5374,7 +5382,7 @@ msgstr "Must upload account and port"
 
 #: apps/node_man/serializers/job.py:156
 msgid "直连区域必须填写Ap_id"
-msgstr "Ap_id must be filled in the default area."
+msgstr "Ap_id must be filled in the \"Direct Mode\"."
 
 #: apps/node_man/serializers/job.py:174
 msgid "脚本名称"
@@ -5662,8 +5670,8 @@ msgstr "{node_name} failed"
 
 #: apps/node_man/views/ap.py:375
 #, python-brace-format
-msgid "该接入点正在被云区域 {cloud_names} 使用"
-msgstr "This access point is being used by cloud area {cloud_names}"
+msgid "该接入点正在被「管控区域」 {cloud_names} 使用"
+msgstr "This access point is being used by \"BK-Net\" {cloud_names}"
 
 #: apps/node_man/views/meta.py:120
 msgid "您没有权限修改任务配置"

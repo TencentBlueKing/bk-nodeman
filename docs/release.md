@@ -103,11 +103,11 @@
 
 - optimization: IPv6 场景下通过 HostID 获取作业平台主机失败详情 (closed #1366)
 
-- optimization:  云区域权限审批人调整为实例创建者 (closed #1259)
+- optimization:  管控区域权限审批人调整为实例创建者 (closed #1259)
 
 - optimization: Agent、插件列表分页统一(closed #1164)
 
-- optimization: 通过安装通道/云区域非法值筛选返回全量场景优化 (closed #1508)
+- optimization: 通过安装通道/管控区域非法值筛选返回全量场景优化 (closed #1508)
 
 - optimization:  主机寻址方式旧值迁移 (closed #1517)
 
@@ -158,7 +158,7 @@
 
 - bugfix: 修复订阅更新接口 steps 更新不符合预期的问题 (fixed #1002)
 
-- bugfix: 修复云区域变更为直连区域后节点类型错误的问题 (fixed #1417)
+- bugfix: 修复管控区域变更为直连区域后节点类型错误的问题 (fixed #1417)
 
 - bugfix: 页面权限问题修复(fixed #1413)
 
@@ -272,7 +272,7 @@
   * 插件包 表格列展示不全时提供tooltips (closed #1086)
   * API 在线文档在生产环境隐藏 (closed #1107)
   * 资源配额 - 修改 执行文案改为下发配额 (closed #1089)
-  * 新建云区域界面 去掉'选择接入点'的'选择'二字. (closed #1097)
+  * 新建管控区域界面 去掉'选择接入点'的'选择'二字. (closed #1097)
   * 部署策略 - 编辑类型button更改为保存并执行 (closed #1094)
   * 插件停用时，应提供的是启用操作，而不是去部署 (closed #1085)
   * 安装agent默认为已选择的单个业务 (closed #1095)
@@ -290,7 +290,7 @@
   * 修复插件操作流水记录 Windows 服务器目录分隔符错误的问题 (fixed #1090)
 
 ### feature: 
-  * 云区域 - 调整列【proxy数量】为【可用Proxy数量】 (closed #1083)
+  * 管控区域 - 调整列【proxy数量】为【可用Proxy数量】 (closed #1083)
 
 ## 2.2.22 - 2022-09-14 
 
@@ -306,7 +306,7 @@
 
 ### optimization: 
   * 安装命令生成执行方案，Windows 非直连安装 Agent 支持 Cygwin (close #740)
-  * 云区域支持全量排序 (closed #1046)
+  * 管控区域支持全量排序 (closed #1046)
   * 插件任务版本提示优化 (close #1048)
   * 插件操作执行预览补充当前插件版本 (closed #1049)
   * 补充 language 到 PaaSV2 部署配置 (closed #1042)
@@ -356,13 +356,13 @@
   * Redis 单节点与哨兵模式支持不同密码 (closed #844)
   * 产品页面支持 IPV6 主机导入 (closed #776)
   * 产品 logo 增加加跳转至首页的超链 (closed #915)
-  * Agent 导入表头支持云区域搜索 (closed #913)
+  * Agent 导入表头支持管控区域搜索 (closed #913)
   * 主机 Agent 信息绑定关系维护 (closed #782 closed #783)
   * 支持多个node版本开发、打包 (closed #938)
   * 支持主机名展示及过滤 (closed #936)
   * 安装上报 bk_agent_id 持久化 (closed #781)
-  * 云区域排序规则  (closed #897)
-  * aaS 适配动态 IP 安装校验，统一业务逻辑 IPv6 表示法 (closed #926 closed #927 #787)
+  * 管控区域排序规则  (closed #897)
+  * SaaS 适配动态 IP 安装校验，统一业务逻辑 IPv6 表示法 (closed #926 closed #927 #787)
   * IPv4/IPv6 双栈 k8s 部署适配 (closed #970)
   * 支持 bk_agent_id (closed #562)
   * Nginx 重新编译，修复 DNS 漏洞 (closed #918)
@@ -635,7 +635,7 @@
   * 权限弹窗未展示完整 (fixed #501)
   * 多级目录copy_file_to_nginx报错的问题 (fixed #490)
   * 手动安装命令错误(fixed issue#496)
-  * 云区域相关接口报错修复 (fixed #499)
+  * 管控区域相关接口报错修复 (fixed #499)
   * 版本日志路由错误问题 (fixed #489)
   * 旧版本非标准路径crontab清理 (close #473)
 
