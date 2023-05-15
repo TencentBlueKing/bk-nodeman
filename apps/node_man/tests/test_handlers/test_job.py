@@ -118,7 +118,7 @@ class TestJob(TestCase):
         # 测试AGENT/P-AGENT/PROXY的job安装任务
         test_count = 1000
 
-        # 创建云区域信息
+        # 创建管控区域信息
         pagent_upstream_nodes = {0: [], 1: [1, 2, 3, 4, 5]}
 
         def get_cloud_info(_accept_list):
@@ -192,7 +192,7 @@ class TestJob(TestCase):
     @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)
     @patch("apps.node_man.handlers.job.JobHandler.create_subscription", Subscription.create_subscription)
     def test_job_install_PROXY(self):
-        # 创建云区域
+        # 创建管控区域
         number = 100
         create_cloud_area(number)
 
@@ -203,7 +203,7 @@ class TestJob(TestCase):
     @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)
     @patch("apps.node_man.handlers.job.JobHandler.create_subscription", Subscription.create_subscription)
     def test_job_install_mixed_op(self):
-        # 创建云区域
+        # 创建管控区域
         number = 100
         create_cloud_area(number)
         # 执行任务
@@ -224,7 +224,7 @@ class TestJob(TestCase):
     @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)
     @patch("apps.node_man.handlers.job.JobHandler.create_subscription", Subscription.create_subscription)
     def test_job_install_AGENT(self):
-        # 创建云区域
+        # 创建管控区域
         number = 100
         create_cloud_area(number)
 
@@ -236,7 +236,7 @@ class TestJob(TestCase):
     @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)
     @patch("apps.node_man.handlers.job.JobHandler.create_subscription", Subscription.create_subscription)
     def test_job_install_PAGENT(self):
-        # 创建云区域
+        # 创建管控区域
         number = 100
         create_cloud_area(number)
 
@@ -255,7 +255,7 @@ class TestJob(TestCase):
     @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)
     @patch("apps.node_man.handlers.job.JobHandler.create_subscription", Subscription.create_subscription)
     def test_job_replace_PROXY(self):
-        # 创建云区域
+        # 创建管控区域
         bk_cloud_ids = create_cloud_area(1)
         # 执行任务
         data = gen_job_data("REPLACE_PROXY", 1, bk_cloud_id=bk_cloud_ids[0], ap_id=constants.DEFAULT_AP_ID)
@@ -264,7 +264,7 @@ class TestJob(TestCase):
     @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)
     @patch("apps.node_man.handlers.job.JobHandler.create_subscription", Subscription.create_subscription)
     def test_job_test_filter(self):
-        # 创建云区域
+        # 创建管控区域
         number = 100
         create_cloud_area(number)
 
@@ -288,7 +288,7 @@ class TestJob(TestCase):
     @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)
     @patch("common.api.NodeApi.create_subscription", NodeApi.create_subscription)
     def test_job_reinstall(self):
-        # 创建云区域
+        # 创建管控区域
         number = 1000
         host_to_create, process_to_create, identity_to_create = create_host(number)
         create_cloud_area(number)

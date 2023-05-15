@@ -188,8 +188,8 @@ Plugin
 | ip             | string | 否                                 | 主机IP地址             |
 | inner_ip       | string | 否                                 | 主机内网IPV4地址         |
 | inner_ipv6     | string | 否                                 | 主机内网IPV6地址         |
-| bk_cloud_id    | int    | 否                                 | 云区域ID              |
-| bk_cloud_name  | string | 否                                 | 云区域名称              |
+| bk_cloud_id    | int    | 否                                 | 管控区域ID              |
+| bk_cloud_name  | string | 否                                 | 管控区域名称              |
 | bk_biz_id      | int    | 否                                 | 业务ID               |
 | bk_biz_name    | string | 否                                 | 业务名称               |
 | job_id         | int    | 否                                 | 任务ID               |

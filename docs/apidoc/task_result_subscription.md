@@ -232,12 +232,12 @@
 | bk_biz_id           | int    | 否                                 | 蓝鲸业务ID     |
 | bk_host_innerip_v6  | string | 否                                 | 主机IPV6内网地址 |
 | bk_host_innerip     | string | 否                                 | 主机IPV4内网地址 |
-| bk_cloud_id         | int    | 否                                 | 云区域ID      |
+| bk_cloud_id         | int    | 否                                 | 管控区域ID      |
 | bk_supplier_account | int    | 否                                 | 服务商ID      |
 | bk_host_name        | string | 否                                 | 主机名        |
 | bk_host_id          | int    | 否                                 | 主机ID       |
 | bk_biz_name         | string | 否                                 | 业务名称       |
-| bk_cloud_name       | string | 否                                 | 云区域名称      |
+| bk_cloud_name       | string | 否                                 | 管控区域名称      |
 
 ##### service
 

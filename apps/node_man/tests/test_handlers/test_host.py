@@ -199,7 +199,7 @@ class TestHost(TestCase):
     @patch("apps.node_man.handlers.cmdb.CmdbHandler.cmdb_or_cache_biz", cmdb_or_cache_biz)
     @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)
     def test_proxies(self):
-        # 创建云区域10个
+        # 创建管控区域10个
         number = 10
         bk_cloud_ids = create_cloud_area(number)
 
@@ -318,7 +318,7 @@ class TestHost(TestCase):
     def test_ip_list(self):
         number = 10
 
-        # 创建云区域
+        # 创建管控区域
         create_cloud_area(number)
 
         # 创建Host

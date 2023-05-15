@@ -372,7 +372,7 @@ class ApViewSet(ModelViewSet):
         clouds = models.Cloud.objects.filter(ap_id=kwargs["pk"])
         if clouds.exists():
             cloud_names = list(clouds.values_list("bk_cloud_name", flat=True))
-            raise ApIdIsUsing(_(f"该接入点正在被云区域 {cloud_names} 使用"))
+            raise ApIdIsUsing(_(f"该接入点正在被「管控区域」 {cloud_names} 使用"))
         return super().destroy(request, *args, **kwargs)
 
     @swagger_auto_schema(

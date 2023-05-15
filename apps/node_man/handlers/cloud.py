@@ -33,17 +33,17 @@ from apps.utils.local import get_request_username
 
 class CloudHandler(APIModel):
     """
-    云区域API处理器
+    管控区域API处理器
     """
 
     def retrieve(self, bk_cloud_id: int):
         """
-        查询云区域详情
-        :param bk_cloud_id: 云区域id
+        查询管控区域详情
+        :param bk_cloud_id: 管控区域id
         """
         cloud = Cloud.objects.filter(pk=bk_cloud_id).first()
         if cloud is None:
-            raise CloudNotExistError(_("不存在ID为: {bk_cloud_id} 的云区域").format(bk_cloud_id=bk_cloud_id))
+            raise CloudNotExistError(_("不存在ID为: {bk_cloud_id} 的「管控区域」").format(bk_cloud_id=bk_cloud_id))
 
         # 获得接入点名称
         ap_name = dict(AccessPoint.objects.values_list("id", "name"))
@@ -66,12 +66,12 @@ class CloudHandler(APIModel):
 
     def list(self, params):
         """
-        查询云区域列表
+        查询管控区域列表
         :param params: 参数
-        :return: 云区域列表
+        :return: 管控区域列表
         """
 
-        # 云区域查看、编辑、删除、创建权限
+        # 管控区域查看、编辑、删除、创建权限
         if settings.USE_IAM:
             clouds = list(Cloud.objects.values("bk_cloud_id", "bk_cloud_name", "isp", "ap_id", "is_visible"))
             perms = IamHandler().fetch_policy(
@@ -118,7 +118,7 @@ class CloudHandler(APIModel):
             .order_by()
         )
 
-        # 获得同一云区域下的Proxy内网IP
+        # 获得同一管控区域下的Proxy内网IP
         cloud_proxies = {}
         proxies_cloud_ip = Host.objects.filter(node_type=const.NodeType.PROXY).values(
             "bk_cloud_id", "inner_ip", "inner_ipv6", "outer_ip", "outer_ipv6", "bk_host_id", "bk_agent_id"
@@ -136,7 +136,7 @@ class CloudHandler(APIModel):
         # 获得isp信息
         isps = GlobalSettings().fetch_isp()
 
-        # 获得云区域内异常的Proxy
+        # 获得管控区域内异常的Proxy
         cloud_exception = {}
         proxies = dict(
             Host.objects.filter(
@@ -193,7 +193,7 @@ class CloudHandler(APIModel):
 
     def create(self, params: dict, username: str):
         """
-        创建云区域
+        创建管控区域
         :param params: 存有各个参数的值
         :param username: 用户名
         """
@@ -202,11 +202,11 @@ class CloudHandler(APIModel):
         bk_cloud_id = CmdbHandler.get_or_create_cloud(bk_cloud_name)
 
         if bk_cloud_name == str(DEFAULT_CLOUD_NAME):
-            raise ValidationError(_("云区域不可名为直连区域"))
+            raise ValidationError(_("管控区域不可名为「直连区域」"))
 
         created = Cloud.objects.filter(bk_cloud_name=params["bk_cloud_name"]).exists()
         if created:
-            raise ValidationError(_("云区域名称不可重复"))
+            raise ValidationError(_("管控区域名称不可重复"))
 
         with atomic():
             cloud = Cloud.objects.create(
@@ -230,13 +230,13 @@ class CloudHandler(APIModel):
     @staticmethod
     def update(bk_cloud_id: int, bk_cloud_name: str, isp: str, ap_id: int):
         """
-        编辑云区域
+        编辑管控区域
         """
         cloud = Cloud.objects.get(pk=bk_cloud_id)
         if Cloud.objects.filter(bk_cloud_name=bk_cloud_name).exclude(bk_cloud_id=bk_cloud_id).exists():
-            raise ValidationError(_("云区域名称不可重复"))
+            raise ValidationError(_("管控区域名称不可重复"))
 
-        # 向CMDB修改云区域名称
+        # 向CMDB修改管控区域名称
         CmdbHandler.rename_cloud(bk_cloud_id, bk_cloud_name)
 
         cloud.bk_cloud_name = bk_cloud_name
@@ -246,22 +246,22 @@ class CloudHandler(APIModel):
 
     def destroy(self, bk_cloud_id: int):
         """
-        删除云区域
-        :param bk_cloud_id: 云区域ID
+        删除管控区域
+        :param bk_cloud_id: 管控区域ID
         """
 
         hosted = Host.objects.filter(bk_cloud_id=bk_cloud_id).exists()
         if hosted:
             raise CloudUpdateHostError(_("该区域已存在主机"))
 
-        # 向云端删除云区域
+        # 向云端删除管控区域
         CmdbHandler.delete_cloud(bk_cloud_id)
         Cloud.objects.filter(bk_cloud_id=bk_cloud_id).delete()
 
     def list_cloud_info(self, bk_cloud_ids):
         """
-        获得相应云区域 id, name, ap_id
-        :param bk_cloud_ids: 云区域ID列表集合
+        获得相应管控区域 id, name, ap_id
+        :param bk_cloud_ids: 管控区域ID列表集合
         :return
         {
             cloud_id: {
@@ -295,8 +295,8 @@ class CloudHandler(APIModel):
 
     def list_cloud_name(self):
         """
-        返回用户有权限的云区域ID及对应名称
-        :return: 云区域ID及对应名称
+        返回用户有权限的管控区域ID及对应名称
+        :return: 管控区域ID及对应名称
         """
 
         return dict(
@@ -310,10 +310,10 @@ class CloudHandler(APIModel):
 
     def list_cloud_biz(self, bk_cloud_id):
         """
-        查询云区域下的业务ID
-        :param bk_cloud_id: 云区域ID
+        查询管控区域下的业务ID
+        :param bk_cloud_id: 管控区域ID
         """
-        # 查询云区域下的主机的全部业务
+        # 查询管控区域下的主机的全部业务
         return list(
             Host.objects.filter(bk_cloud_id=bk_cloud_id)
             .values_list("bk_biz_id", flat=True)

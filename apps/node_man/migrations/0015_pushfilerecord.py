@@ -28,7 +28,7 @@ class Migration(migrations.Migration):
                 ("task_id", models.IntegerField(db_index=True, verbose_name="订阅任务ID")),
                 ("record_id", models.IntegerField(db_index=True, verbose_name="订阅任务记录ID")),
                 ("ip", models.CharField(db_index=True, max_length=45, verbose_name="内网IP")),
-                ("bk_cloud_id", models.IntegerField(db_index=True, verbose_name="云区域ID")),
+                ("bk_cloud_id", models.IntegerField(db_index=True, verbose_name="管控区域ID")),
                 (
                     "os_type",
                     models.CharField(

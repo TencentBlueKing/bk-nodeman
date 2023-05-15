@@ -76,7 +76,7 @@
 | 字段                  | 类型     | 必选  | 描述                      |
 | ------------------- | ------ | --- | ----------------------- |
 | bk_supplier_account | int    | 否   | 开发商ID                   |
-| bk_cloud_id         | int    | 否   | 云区域ID                   |
+| bk_cloud_id         | int    | 否   | 管控区域ID                   |
 | ip                  | string | 否   | 主机IP地址                  |
 | bk_host_id          | int    | 否   | 主机ID                    |
 | bk_biz_id           | int    | 否   | 业务ID                    |
@@ -107,8 +107,8 @@ instance_info
 | retention                      | string | 否   | 密码保留天数，默认只保留1天                                          |
 | bk_os_type                     | string | 否   | 操作系统，1：LINUX 2：WINDOWS 3：AIX 4：SOLARIS                  |
 | bk_biz_name                    | string | 否   | 业务名称                                                    |
-| bk_cloud_id                    | int    | 否   | 云区域ID                                                   |
-| bk_cloud_name                  | string | 否   | 云区域名称                                                   |
+| bk_cloud_id                    | int    | 否   | 管控区域ID                                                   |
+| bk_cloud_name                  | string | 否   | 管控区域名称                                                   |
 | bt_speed_limit                 | string | 否   | 传输限速                                                    |
 | host_node_type                 | string | 否   | 主机节点类型，1: AGENT，2：PAGENT 3: PROXY                       |
 | bk_host_innerip                | string | 否   | 主机内网IP地址                                                |

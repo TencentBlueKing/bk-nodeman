@@ -208,8 +208,8 @@ class AddOrUpdateHostsService(AgentBaseService):
         processed_cmdb_host_infos: List[Dict[str, Any]] = []
         host_infos_gby_ip_key: Dict[str, List[Dict[str, Any]]] = self.get_host_infos_gby_ip_key(host_infos)
         cmdb_host_infos_gby_ip_key: Dict[str, List[Dict[str, Any]]] = self.get_host_infos_gby_ip_key(cmdb_host_infos)
-        # 模糊查询所得的主机信息列表可能出现：同 IP + 不同云区域的冗余主机
-        # 仅选择原数据中存在的 IP + 云区域组合
+        # 模糊查询所得的主机信息列表可能出现：同 IP + 不同管控区域的冗余主机
+        # 仅选择原数据中存在的 IP + 管控区域组合
         for ip_key, partial_cmdb_host_infos in cmdb_host_infos_gby_ip_key.items():
             if not host_infos_gby_ip_key.get(ip_key):
                 continue
@@ -471,7 +471,7 @@ class AddOrUpdateHostsService(AgentBaseService):
         # 获取已存在于 CMDB 的主机信息
         exist_cmdb_hosts: List[Dict[str, Any]] = self.query_hosts(subscription_instances)
         # 按 IpKey 聚合主机信息
-        # IpKey：ip（v4 or v6）+ bk_addressing（寻值方式）+ bk_cloud_id（云区域）
+        # IpKey：ip（v4 or v6）+ bk_addressing（寻值方式）+ bk_cloud_id（管控区域）
         cmdb_host_infos_gby_ip_key: Dict[str, List[Dict[str, Any]]] = self.get_host_infos_gby_ip_key(exist_cmdb_hosts)
         for sub_inst in subscription_instances:
             id__sub_inst_obj_map[sub_inst.id] = sub_inst

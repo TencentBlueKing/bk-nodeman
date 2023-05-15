@@ -15,4 +15,4 @@ from rest_framework import serializers
 
 class GraySerializer(serializers.Serializer):
     bk_biz_ids = serializers.ListField(label=_("业务列表"), child=serializers.IntegerField(), required=True)
-    cloud_ips = serializers.ListField(label=_("云区域:主机列表"), required=False)
+    cloud_ips = serializers.ListField(label=_("管控区域:主机列表"), required=False)

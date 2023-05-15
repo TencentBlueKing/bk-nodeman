@@ -109,7 +109,7 @@ class PluginViewSet(ModelViewSet):
         @apiDescription 用于插件的各类操作。<br>
         bk_host_id和exclude_hosts必填一个。<br>
         若填写了 exclude_hosts ，则代表跨页全选模式。<br>
-        注意, 云区域ID、业务ID等筛选条件，仅在跨页全选模式下有效。<br>
+        注意, 管控区域ID、业务ID等筛选条件，仅在跨页全选模式下有效。<br>
         @apiName operate_plugin
         @apiGroup plugin
         @apiParam {String} job_type 任务类型

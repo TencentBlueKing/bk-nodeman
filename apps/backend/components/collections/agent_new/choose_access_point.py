@@ -306,7 +306,7 @@ class ChooseAccessPointService(AgentBaseService, remote.RemoteServiceMixin):
         self, bk_cloud_ids: List[int], ap_id_obj_map: Dict[int, models.AccessPoint], gse_version: str
     ) -> List[Dict[str, Any]]:
         """
-        获取指定云区域所有的Proxy列表
+        获取指定管控区域所有的Proxy列表
         """
         # 获取存活的Proxy ID 列表
         all_proxies = models.Host.objects.filter(
@@ -323,7 +323,7 @@ class ChooseAccessPointService(AgentBaseService, remote.RemoteServiceMixin):
     ) -> List[Dict[str, Any]]:
         """
         处理Pagent的情况，随机选择存活接入点
-        :param pagent_host_ids__gby_cloud_id: PAgent 主机ID - 云区域ID 映射
+        :param pagent_host_ids__gby_cloud_id: PAgent 主机ID - 管控区域ID 映射
         :param ap_id_obj_map: 接入点ID - 信息映射
         :param gse_version:
         :return: 接入点选择结果列表
@@ -331,7 +331,7 @@ class ChooseAccessPointService(AgentBaseService, remote.RemoteServiceMixin):
         if not pagent_host_ids__gby_cloud_id:
             return []
 
-        # 获取指定云区域范围内全部的Proxy
+        # 获取指定管控区域范围内全部的Proxy
         all_proxies: List[Dict[str, Any]] = self.fetch_cloud_proxies_for_gse_version(
             bk_cloud_ids=list(pagent_host_ids__gby_cloud_id.keys()),
             ap_id_obj_map=ap_id_obj_map,
@@ -345,7 +345,7 @@ class ChooseAccessPointService(AgentBaseService, remote.RemoteServiceMixin):
             bk_host_id__in=all_proxy_host_ids, status=constants.ProcStateType.RUNNING
         ).values_list("bk_host_id", flat=True)
 
-        # 将存活的 Proxy 按云区域进行聚合
+        # 将存活的 Proxy 按管控区域进行聚合
         # 转为set，提高 in 的执行效率
         alive_proxy_host_ids = set(alive_proxy_host_ids)
         alive_proxy_host_ids_gby_cloud_id: Dict[int, List[int]] = defaultdict(list)
@@ -365,7 +365,7 @@ class ChooseAccessPointService(AgentBaseService, remote.RemoteServiceMixin):
                             bk_host_id=bk_host_id,
                             ap_id=self.FAILED_AP_ID,
                             ap_name="",
-                            log=_("云区域 -> {bk_cloud_id} 下无 GSE版本 -> {gse_version} 存活的 Proxy").format(
+                            log=_("管控区域 -> {bk_cloud_id} 下无 GSE版本 -> {gse_version} 存活的 Proxy").format(
                                 bk_cloud_id=bk_cloud_id,
                                 gse_version=gse_version,
                             ),
@@ -400,15 +400,15 @@ class ChooseAccessPointService(AgentBaseService, remote.RemoteServiceMixin):
             cloud_info = cloud_id__info_map[cloud_id]
             if any(
                 [
-                    # 云区域接入点处于 V2，属于云区域整体灰度，Proxy 需选择云区域所在的接入点
+                    # 管控区域接入点处于 V2，属于管控区域整体灰度，Proxy 需选择管控区域所在的接入点
                     ap_id_obj_map[cloud_info["ap_id"]].gse_version == GseVersion.V2.value,
-                    # 云区域接入点处于 V1，需要安装 V1 的 Proxy，Proxy 需选择云区域所在的接入点
+                    # 管控区域接入点处于 V1，需要安装 V1 的 Proxy，Proxy 需选择管控区域所在的接入点
                     gse_version == GseVersion.V1.value,
                 ]
             ):
                 ap_id = cloud_info["ap_id"]
             else:
-                # 云区域接入点处于 V1，需要安装 V2 的 Proxy，需要选择云区域所在接入点的 V2 映射接入点
+                # 管控区域接入点处于 V1，需要安装 V2 的 Proxy，需要选择管控区域所在接入点的 V2 映射接入点
                 gray_ap_map: Dict[int, int] = GrayHandler.get_gray_ap_map()
                 try:
                     ap_id = gray_ap_map[cloud_info["ap_id"]]
@@ -421,7 +421,7 @@ class ChooseAccessPointService(AgentBaseService, remote.RemoteServiceMixin):
                                 ap_id=self.FAILED_AP_ID,
                                 ap_name="",
                                 log=_(
-                                    "Proxy 所在云区域 「{bk_cloud_name}」[{bk_cloud_id}] 下无 GSE 版本 -> {gse_version} 的接入点，"
+                                    "Proxy 所在「管控区域」 「{bk_cloud_name}」[{bk_cloud_id}] 下无 GSE 版本 -> {gse_version} 的接入点，"
                                     "请联系管理员添加映射关系"
                                 ).format(
                                     bk_cloud_name=cloud_info["bk_cloud_name"],
@@ -440,7 +440,7 @@ class ChooseAccessPointService(AgentBaseService, remote.RemoteServiceMixin):
                         bk_host_id=proxy_host.bk_host_id,
                         ap_id=ap_id,
                         ap_name=ap_id_obj_map[ap_id].name,
-                        log=_("已选择 Proxy 所在云区域「{bk_cloud_name}」[{bk_cloud_id}] 指定的接入点 [{ap_name}]").format(
+                        log=_("已选择 Proxy 所在「管控区域」「{bk_cloud_name}」[{bk_cloud_id}] 指定的接入点 [{ap_name}]").format(
                             bk_cloud_name=cloud_info["bk_cloud_name"],
                             bk_cloud_id=cloud_id,
                             ap_name=ap_id_obj_map[ap_id].name,
@@ -537,7 +537,7 @@ class ChooseAccessPointService(AgentBaseService, remote.RemoteServiceMixin):
         choose_ap_results: List[Dict[str, Any]] = []
         bk_host_id__sub_inst_id_map: Dict[int, int] = {}
         proxy_hosts__gby_cloud_id: Dict[int, List[models.Host]] = defaultdict(list)
-        # 按云区域划分PAGENT
+        # 按管控区域划分PAGENT
         pagent_host_ids__gby_cloud_id: Dict[int, List[int]] = defaultdict(list)
 
         for sub_inst in common_data.subscription_instances:
@@ -546,10 +546,10 @@ class ChooseAccessPointService(AgentBaseService, remote.RemoteServiceMixin):
 
             bk_host_id__sub_inst_id_map[bk_host_id] = sub_inst.id
 
-            # Proxy 设置为所在云区域的接入点，每次都需要重置，防止云区域修改后 Proxy 未同步
+            # Proxy 设置为所在管控区域的接入点，每次都需要重置，防止管控区域修改后 Proxy 未同步
             if host.node_type == constants.NodeType.PROXY:
                 proxy_hosts__gby_cloud_id[host.bk_cloud_id].append(host)
-            # PAGENT 需要从所在云区域下随机选取一台存活的Proxy
+            # PAGENT 需要从所在管控区域下随机选取一台存活的Proxy
             elif host.node_type == constants.NodeType.PAGENT:
                 pagent_host_ids__gby_cloud_id[host.bk_cloud_id].append(host.bk_host_id)
             # 主机已指定接入点
@@ -576,7 +576,7 @@ class ChooseAccessPointService(AgentBaseService, remote.RemoteServiceMixin):
                 )
 
         # ap_id_obj_map 包含默认值接入点ID，用于处理 Proxy & PAgent ap_id 为 DEFAULT_AP_ID 的情况
-        # 处理 Proxy 选择所在云区域接入点的情况
+        # 处理 Proxy 选择所在管控区域接入点的情况
         choose_ap_results.extend(
             self.handle_proxy_condition(
                 proxy_hosts__gby_cloud_id=proxy_hosts__gby_cloud_id,

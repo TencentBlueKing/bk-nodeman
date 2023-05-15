@@ -978,7 +978,7 @@ class SubscriptionViewSet(APIViewSet):
         @apiName query_host_subscription_ids
         @apiGroup subscription
         @apiParam {String} [bk_host_innerip] 内网IP
-        @apiParam {Number} [bk_cloud_id] 云区域ID
+        @apiParam {Number} [bk_cloud_id] 管控区域ID
         @apiParam {Number} [bk_host_id] CMDB主机ID
         @apiParam {String} [source_type] 类型，可选[default, subscription]
         @apiSuccessExample {json} 成功返回:

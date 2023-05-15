@@ -50,7 +50,7 @@ class HostQuerySqlHelper:
 
         for fuzzy_search_field in fuzzy_search_fields:
             if fuzzy_search_field == "bk_cloud_id":
-                # 云区域的模糊搜索是通过云区域名称进行的，需要通过名称先模糊匹配
+                # 「管控区域」的模糊搜索是通过管控区域名称进行的，需要通过名称先模糊匹配
                 cloud_ids_str: str = ",".join(
                     [str(cloud_id) for cloud_id in cls.fetch_cloud_ids_by_name(name=cond_val)]
                 )

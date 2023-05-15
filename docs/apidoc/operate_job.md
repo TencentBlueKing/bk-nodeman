@@ -14,7 +14,7 @@
 | bk_biz_id                 | int array    | 是                                 | 业务ID                                                                                   |
 | conditions                | array | 否                                 | 搜索条件，支持os_type, ip, status，version, bk_cloud_id, node_from 和 模糊搜索query，见conditions定义   |
 | bk_host_id                | int array    | 否                                 | 主机ID                                                                                   |
-| exclude_hosts             | int array    | 否                                 | 跨页全选排除主机，主机ID和跨页全选排除主机ID必选一个，注意, 云区域ID、业务ID等筛选条件，仅在跨页全选模式下有效，并且跨页全选模式下不允许传bk_host_id参数 |
+| exclude_hosts             | int array    | 否                                 | 跨页全选排除主机，主机ID和跨页全选排除主机ID必选一个，注意, 管控区域ID、业务ID等筛选条件，仅在跨页全选模式下有效，并且跨页全选模式下不允许传bk_host_id参数 |
 | is_install_latest_plugins | bool         | 否                                 | 是否安装最新版本插件，默认安装最新插件                                                                    |
 
 ##### conditions
@@ -32,10 +32,10 @@
 | status                | string | 进程状态，见status定义                                              |
 | version               | string | Agent版本号                                                    |
 | is_manual             | string | 手动安装                                                        |
-| bk_cloud_id           | string | 云区域ID                                                       |
+| bk_cloud_id           | string | 管控区域ID                                                       |
 | install_channel_id    | string | 安装通道ID                                                      |
 | topology              | string | 集群与模块的精准搜索                                                  |
-| query                 | string | IP、操作系统、Agent状态、Agent版本、云区域模糊搜索,对应value为列表时为多模糊搜索           |
+| query                 | string | IP、操作系统、Agent状态、Agent版本、管控区域模糊搜索,对应value为列表时为多模糊搜索           |
 | source_id             | string | 来源ID                                                        |
 | plugin_name           | string | 插件名，展开任务下所有的插件名称                                            |
 | ${plugin_name}        | string | 插件版本的精确搜索，${plugin_name}为对应的目标插件名称                          |

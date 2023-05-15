@@ -162,7 +162,7 @@ class GrayHandler:
 
             # 非业务整体灰度时，需要添加主机范围限制
             if not is_biz_gray:
-                # 增加云区域主机查询参数
+                # 增加管控区域主机查询参数
                 query_params.update(bk_host_id__in=host_ids)
 
             logger.info(f"[update_host_ap_by_host_ids][rollback={rollback}] {v1_ap_id} to {v2_ap_id}")
@@ -238,7 +238,7 @@ class GrayHandler:
                 bk_cloud_id=cloud["bk_cloud_id"]
             ).first()
 
-            # 跳过云区域不存在的情况
+            # 跳过管控区域不存在的情况
             if not cloud_obj:
                 continue
 
@@ -254,25 +254,25 @@ class GrayHandler:
                 # 回滚V2到V1
                 for v1_ap_id, v2_ap_id in gray_ap_map.items():
                     if cloud_obj.ap_id == v2_ap_id:
-                        # 当云区域覆盖的业务（cloud_bk_biz_ids）完全包含于灰度业务集（gray_scope_list）时，需要操作回滚
+                        # 当管控区域覆盖的业务（cloud_bk_biz_ids）完全包含于灰度业务集（gray_scope_list）时，需要操作回滚
                         if not set(cloud_bk_biz_ids) - set(gray_scope_list):
                             cloud_obj.ap_id = v1_ap_id
                             cloud_obj.save()
             elif ap_id_obj_map[cloud_obj.ap_id].gse_version == GseVersion.V1.value and rollback:
-                # 回滚情况且云区域接入点版本为V1不需处理
+                # 回滚情况且管控区域接入点版本为V1不需处理
                 continue
             elif ap_id_obj_map[cloud_obj.ap_id].gse_version == GseVersion.V2.value:
-                # 非rollback且云区域接入点版本为V2不需处理
+                # 非rollback且管控区域接入点版本为V2不需处理
                 continue
             else:
-                # 当云区域覆盖的业务（cloud_bk_biz_ids）完全包含于灰度业务集（gray_scope_list）时，需要操作灰度
+                # 当管控区域覆盖的业务（cloud_bk_biz_ids）完全包含于灰度业务集（gray_scope_list）时，需要操作灰度
                 if not set(cloud_bk_biz_ids) - set(gray_scope_list):
                     try:
                         cloud_obj.ap_id = gray_ap_map[cloud_obj.ap_id]
                         cloud_obj.save()
                     except KeyError:
                         raise ApiError(
-                            _("缺少云区域 -> {bk_cloud_name} ID -> {bk_cloud_id}, 接入点版本的映射关系，请联系管理员").format(
+                            _("缺少「管控区域」 -> {bk_cloud_name} ID -> {bk_cloud_id}, 接入点版本的映射关系，请联系管理员").format(
                                 bk_cloud_name=cloud_obj.bk_cloud_name, bk_cloud_id=cloud_obj.bk_cloud_id
                             )
                         )
@@ -288,7 +288,7 @@ class GrayHandler:
                 # 更新灰度业务范围
                 cls.update_gray_scope_list(validated_data)
 
-                # 更新云区域接点
+                # 更新管控区域接点
                 cls.update_cloud_ap_id(validated_data)
 
             # 更新主机ap
@@ -304,8 +304,8 @@ class GrayHandler:
 
         with atomic():
             if is_biz_gray:
-                # 需要先回滚云区域，确保业务移除灰度列表前能正常判定云区域所属关系
-                # 更新云区域接入点
+                # 需要先回滚管控区域，确保业务移除灰度列表前能正常判定管控区域所属关系
+                # 更新管控区域接入点
                 cls.update_cloud_ap_id(validated_data, rollback=True)
 
                 # 更新灰度业务范围

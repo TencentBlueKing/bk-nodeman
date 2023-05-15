@@ -313,7 +313,7 @@ check_polices_agent_to_upstream () {
     #local pagent_to_proxy_port_policies=(gse_task:48668 gse_data:58625 gse_btsvr:58925 gse_btsvr:10020-10030)
     #local pagent_listen_ports=(gse_agent:60020-60030)
 
-    # 非直连Agent的上级节点是所属云区域的proxy
+    # 非直连Agent的上级节点是所属管控区域的proxy
     multi_reachable_ip_check "$IO_PORT" "${TASK_SERVER_IP[@]}"
     multi_reachable_ip_check "$DATA_PORT" "${DATA_SERVER_IP[@]}"
     multi_reachable_ip_check "$FILE_SVR_PORT" "${BT_FILE_SERVER_IP[@]}"

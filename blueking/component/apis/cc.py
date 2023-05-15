@@ -645,13 +645,13 @@ class CollectionsCC(object):
             client=self.client,
             method="POST",
             path="/api/c/compapi{bk_api_ver}/cc/batch_update_host/",
-            description="批量更新主机属性（不能用于更新主机属性中的云区域字段）",
+            description="批量更新主机属性（不能用于更新主机属性中的管控区域字段）",
         )
         self.update_host_cloud_area_field = ComponentAPI(
             client=self.client,
             method="POST",
             path="/api/c/compapi{bk_api_ver}/cc/update_host_cloud_area_field/",
-            description="更新主机的云区域字段",
+            description="更新主机的管控区域字段",
         )
         self.update_host_module = ComponentAPI(
             client=self.client,
@@ -699,25 +699,25 @@ class CollectionsCC(object):
             client=self.client,
             method="POST",
             path="/api/c/compapi{bk_api_ver}/cc/search_cloud_area/",
-            description="查询云区域",
+            description="查询管控区域",
         )
         self.create_cloud_area = ComponentAPI(
             client=self.client,
             method="POST",
             path="/api/c/compapi{bk_api_ver}/cc/create_cloud_area/",
-            description="创建云区域",
+            description="创建管控区域",
         )
         self.update_cloud_area = ComponentAPI(
             client=self.client,
             method="POST",
             path="/api/c/compapi{bk_api_ver}/cc/update_cloud_area/",
-            description="更新云区域",
+            description="更新管控区域",
         )
         self.delete_cloud_area = ComponentAPI(
             client=self.client,
             method="POST",
             path="/api/c/compapi{bk_api_ver}/cc/delete_cloud_area/",
-            description="删除云区域",
+            description="删除管控区域",
         )
         self.list_biz_hosts = ComponentAPI(
             client=self.client,

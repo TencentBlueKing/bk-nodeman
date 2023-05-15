@@ -69,7 +69,7 @@ SYNC_CMDB_HOST_INTERVAL = 1 * TimeUnit.DAY
 # 第三方系统相关配置
 ########################################################################################################
 
-# 默认云区域ID
+# 默认管控区域ID
 DEFAULT_CLOUD = int(os.environ.get("DEFAULT_CLOUD", 0))
 DEFAULT_CLOUD_NAME = os.environ.get("DEFAULT_CLOUD_NAME", _("直连区域"))
 # 自动选择接入点ID
@@ -327,10 +327,10 @@ PolicyOpType = choices_to_namedtuple(POLICY_OP_CHOICES)
 HEAD_PLUGINS = ["basereport", "exceptionbeat", "processbeat", "bkunifylogbeat", "bkmonitorbeat", "gsecmdline"]
 
 IAM_ACTION_DICT = {
-    "cloud_view": _("云区域查看"),
-    "cloud_edit": _("云区域编辑"),
-    "cloud_delete": _("云区域删除"),
-    "cloud_create": _("云区域创建"),
+    "cloud_view": _("管控区域查看"),
+    "cloud_edit": _("管控区域编辑"),
+    "cloud_delete": _("管控区域删除"),
+    "cloud_create": _("管控区域创建"),
     "ap_edit": _("接入点编辑"),
     "ap_delete": _("接入点删除"),
     "ap_create": _("接入点创建"),

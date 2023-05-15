@@ -134,7 +134,7 @@
 
 - path: /v2/nodeman/create_cloud/
   name: create_cloud
-  label: 新增云区域
+  label: 新增管控区域
   label_en: create cloud name
   suggest_method: POST
   api_type: operate
@@ -145,7 +145,7 @@
 
 - path: /v2/nodeman/get_clouds/
   name: get_cloud
-  label: 查询云区域
+  label: 查询管控区域
   label_en: get_clouds
   suggest_method: GET
   api_type: operate
@@ -409,7 +409,7 @@
 
 - path: /v2/nodeman/get_clouds_by_biz/
   name: get_clouds_by_biz
-  label: 查询业务下的云区域列表
+  label: 查询业务下的管控区域列表
   label_en: Query cloud area list
   suggest_method: GET
   api_type: query
@@ -795,7 +795,7 @@
 - api_type: operate
   comp_codename: generic.v2.nodeman.nodeman_component
   name: cloud_list
-  label: 查询云区域
+  label: 查询管控区域
   label_en: null
   dest_path: /api/cloud/
   path: /v2/nodeman/api/cloud/
@@ -828,7 +828,7 @@
 - api_type: query
   comp_codename: generic.v2.nodeman.nodeman_component
   name: list_biz_proxies
-  label: 查询业务下云区域下Proxy主机列表
+  label: 查询业务下管控区域下Proxy主机列表
   label_en: null
   dest_path: /api/host/biz_proxies/
   path: /v2/nodeman/api/host/biz_proxies/
@@ -839,7 +839,7 @@
 - api_type: query
   comp_codename: generic.v2.nodeman.nodeman_component
   name: list_cloud_proxies
-  label: 查询云区域下Proxy主机列表
+  label: 查询管控区域下Proxy主机列表
   label_en: null
   dest_path: /api/host/proxies/
   path: /v2/nodeman/api/host/proxies/
@@ -1048,7 +1048,7 @@
 - api_type: query
   comp_codename: generic.v2.nodeman.nodeman_component
   name: list_cloud_area
-  label: 云区域列表
+  label: 管控区域列表
   label_en: null
   dest_path: /api/cloud/
   path: /v2/nodeman/api/cloud/list_cloud_area/
@@ -1059,7 +1059,7 @@
 - api_type: operate
   comp_codename: generic.v2.nodeman.nodeman_component
   name: create_cloud_area
-  label: 创建云区域
+  label: 创建管控区域
   label_en: null
   dest_path: /api/cloud/
   path: /v2/nodeman/api/cloud/create_cloud_area/

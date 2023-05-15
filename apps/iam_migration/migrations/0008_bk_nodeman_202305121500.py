@@ -8,23 +8,19 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.utils.translation import ugettext_lazy as _
-from rest_framework import serializers
+from django.db import migrations
+from iam.contrib.iam_migration.migrator import IAMMigrator
 
 
-class ListSerializer(serializers.Serializer):
-    """
-    用于管控区域列表校验
-    """
+def forward_func(apps, schema_editor):
 
-    with_default_area = serializers.BooleanField(label=_("是否返回直连区域"), required=False, default=False)
+    migrator = IAMMigrator(Migration.migration_json)
+    migrator.migrate()
 
 
-class EditSerializer(serializers.Serializer):
-    """
-    用于创建和更新管控区域的验证
-    """
+class Migration(migrations.Migration):
+    migration_json = "0008_bk_nodeman_20230512_1500_iam.json"
 
-    bk_cloud_name = serializers.CharField(label=_("管控区域名称"))
-    isp = serializers.CharField(label=_("云服务商"))
-    ap_id = serializers.IntegerField(label=_("接入点ID"))
+    dependencies = [("iam_migration", "0007_bk_nodeman_202209131332")]
+
+    operations = [migrations.RunPython(forward_func)]
