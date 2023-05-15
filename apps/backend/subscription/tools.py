@@ -495,7 +495,7 @@ def get_host_detail(host_info_list: list, bk_biz_id: int = None):
 
                 rule = {
                     "condition": "AND",
-                    # 仅允许静态 IP 通过 ip + 云区域 方式下发订阅
+                    # 仅允许静态 IP 通过 ip + 管控区域 方式下发订阅
                     "rules": [
                         {"field": ip_field_name, "operator": "in", "value": list(ips)},
                         {"field": "bk_cloud_id", "operator": "equal", "value": bk_cloud_id},

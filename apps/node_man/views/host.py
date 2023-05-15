@@ -52,7 +52,7 @@ class HostViewSet(ModelViewSet):
         return Response(HostHandler().list(self.validated_data, get_request_username()))
 
     @swagger_auto_schema(
-        operation_summary="查询云区域下有操作权限的proxy列表",
+        operation_summary="查询管控区域下有操作权限的proxy列表",
         query_serializer=ProxySerializer(),
         responses={status.HTTP_200_OK: response.HostBizProxyResponseSerializer()},
         tags=HOST_VIEW_TAGS,
@@ -60,7 +60,7 @@ class HostViewSet(ModelViewSet):
     @action(detail=False, serializer_class=ProxySerializer)
     def proxies(self, request, *args, **kwargs):
         """
-        @api {GET} /host/proxies/ 查询有proxy操作权限的云区域proxy列表
+        @api {GET} /host/proxies/ 查询有proxy操作权限的管控区域proxy列表
         @apiName retrieve_cloud_proxies
         @apiGroup Host
         """
@@ -73,7 +73,7 @@ class HostViewSet(ModelViewSet):
         return Response(proxies)
 
     @swagger_auto_schema(
-        operation_summary="查询业务下云区域的proxy集合",
+        operation_summary="查询业务下管控区域的proxy集合",
         query_serializer=BizProxySerializer(),
         responses={status.HTTP_200_OK: response.HostBizProxyResponseSerializer()},
         tags=HOST_VIEW_TAGS,
@@ -81,7 +81,7 @@ class HostViewSet(ModelViewSet):
     @action(detail=False, serializer_class=BizProxySerializer)
     def biz_proxies(self, request, *args, **kwargs):
         """
-        @api {GET} /host/biz_proxies/ 查询业务下云区域的proxy集合
+        @api {GET} /host/biz_proxies/ 查询业务下管控区域的proxy集合
         @apiName retrieve_biz_proxies
         @apiGroup Host
         """
@@ -98,7 +98,7 @@ class HostViewSet(ModelViewSet):
         @apiName update_host
         @apiGroup Host
         @apiParam {Int} bk_host_id 主机ID
-        @apiParam {Number} [bk_cloud_id] 云区域ID
+        @apiParam {Number} [bk_cloud_id] 管控区域ID
         @apiParam {String} [inner_ip] 内网IP
         @apiParam {String} [outer_ip] 外网IP
         @apiParam {String} [login_ip] 登录IP

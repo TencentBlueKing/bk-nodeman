@@ -84,13 +84,13 @@ class GlobalSettingPermission(permissions.BasePermission):
 
 class CloudPermission(permissions.BasePermission):
     """
-    云区域权限控制
+    管控区域权限控制
     """
 
     message = _("您没有权限执行操作")
 
     def has_permission(self, request, view):
-        # 云区域查看、编辑、删除、创建权限
+        # 管控区域查看、编辑、删除、创建权限
 
         if view.action == "list":
             # List接口不需要鉴权
@@ -99,15 +99,17 @@ class CloudPermission(permissions.BasePermission):
         # **若没有使用权限中心**
         if not settings.USE_IAM:
 
-            # 任何人都有创建云区域权限
+            # 任何人都有创建管控区域权限
             if view.action == "create":
                 return True
 
-            # 只有创建者和超管才有云区域详情、编辑、删除权限
+            # 只有创建者和超管才有管控区域详情、编辑、删除权限
             try:
                 cloud = models.Cloud.objects.get(pk=int(view.kwargs.get("pk", -1)))
             except models.Cloud.DoesNotExist:
-                raise CloudNotExistError(_("不存在ID为: {bk_cloud_id} 的云区域").format(bk_cloud_id=int(view.kwargs.get("pk"))))
+                raise CloudNotExistError(
+                    _("不存在ID为: {bk_cloud_id} 的管控区域").format(bk_cloud_id=int(view.kwargs.get("pk")))
+                )
 
             if get_request_username() in cloud.creator or IamHandler.is_superuser(get_request_username()):
                 return True
@@ -138,10 +140,10 @@ class CloudPermission(permissions.BasePermission):
             return True
 
         message_dict = {
-            "create": _("您没有创建云区域的权限"),
-            "update": _("您没有编辑该云区域的权限"),
-            "destroy": _("您没有删除该云区域的权限"),
-            "retrieve": _("您没有查看该云区域详情的权限"),
+            "create": _("您没有创建「管控区域」的权限"),
+            "update": _("您没有编辑该「管控区域」的权限"),
+            "destroy": _("您没有删除该「管控区域」的权限"),
+            "retrieve": _("您没有查看该「管控区域」详情的权限"),
         }
 
         self.message = message_dict.get(view.action, "您没有相应操作的权限")
@@ -150,10 +152,10 @@ class CloudPermission(permissions.BasePermission):
 
 class InstallChannelPermission(permissions.BasePermission):
     """
-    安装通道权限控制，复用云区域的编辑权限
+    安装通道权限控制，复用管控区域的编辑权限
     """
 
-    message = _("您没有权限执行操作，请申请云区域编辑权限")
+    message = _("您没有权限执行操作，请申请「管控区域」编辑权限")
 
     def has_permission(self, request, view):
         perms = IamHandler().fetch_policy(
@@ -334,14 +336,14 @@ def has_biz_scope_node_type_operate_permission(request, node_type: str, bk_biz_s
 
 
 def has_cloud_area_view_permission(bk_cloud_ids: Set[int]) -> bool:
-    # 用户在权限中心中已有的云区域权限
+    # 用户在权限中心中已有的管控区域权限
     cloud_view_permission = IamHandler().fetch_policy(get_request_username(), [IamActionType.cloud_view])[
         IamActionType.cloud_view
     ]
     no_permission_cloud_ids = set()
     for bk_cloud_id in bk_cloud_ids:
         # 直连区域（DEFAULT_CLOUD）无需鉴权
-        # 得出用户没有权限的云区域
+        # 得出用户没有权限的管控区域
         if bk_cloud_id != constants.DEFAULT_CLOUD and bk_cloud_id not in cloud_view_permission:
             no_permission_cloud_ids.add(str(bk_cloud_id))
     action = ActionEnum.CLOUD_VIEW.id

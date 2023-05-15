@@ -30,7 +30,7 @@ from apps.node_man.models import AccessPoint, Host, IdentityData, ProcessStatus
 
 def check_available_proxy():
     """
-    获得有可用代理的云区域
+    获得有可用代理的管控区域
     :return:
     {
         bk_cloud_id: True,
@@ -85,7 +85,7 @@ def check_available_proxy():
         )
     }
 
-    # 标记云区域中是否有可用Proxy
+    # 标记管控区域中是否有可用Proxy
     for host_id in proxies_info:
         proxy_cloud_id = proxies_info[host_id]["bk_cloud_id"]
         if identity_info.get(host_id) and (proxy_cloud_id not in check_result or not check_result[proxy_cloud_id]):
@@ -96,7 +96,7 @@ def check_available_proxy():
             ):
                 check_result[proxy_cloud_id] = True
 
-    # 每个云区域下的代理数量
+    # 每个管控区域下的代理数量
     # 获得相同bk_cloud_id的Proxy个数
     proxies_count = dict(
         Host.objects.filter(node_type=const.NodeType.PROXY)
@@ -283,7 +283,7 @@ def new_install_ip_checker(
     :param host_info: 主机信息
     :param error_host: 错误信息
     :param biz_info: 期望安装到的目标业务信息
-    :param bk_cloud_info: 期望安装到的云区域信息
+    :param bk_cloud_info: 期望安装到的管控区域信息
     :param biz_id__biz_name_map: 主机 ID - 主机名称 映射
     :param host_id__agent_state_info_map: 主机 ID - Agent 进程信息映射关系
     :return:
@@ -315,13 +315,13 @@ def new_install_ip_checker(
 
         # Agent 已经失联，允许新增
         if first_online_host is None:
-            # 如果存在其他同 IP + 云区域失联的 Agent，声明本次安装需要重新生成 AgentID
+            # 如果存在其他同 IP + 管控区域失联的 Agent，声明本次安装需要重新生成 AgentID
             if host_infos_with_the_same_ips:
                 host_info["force_update_agent_id"] = True
             return True
         else:
             error_host["msg"] = _(
-                "已有 Agent 存活的动态寻址主机【bk_host_id: {bk_host_id}】位于所选云区域：{bk_cloud_name}，业务：{bk_biz_name}"
+                "已有 Agent 存活的动态寻址主机【bk_host_id: {bk_host_id}】位于所选「管控区域」：{bk_cloud_name}，业务：{bk_biz_name}"
             ).format(
                 bk_host_id=first_online_host["bk_host_id"],
                 ipv4=first_online_host["inner_ip"],
@@ -340,7 +340,7 @@ def new_install_ip_checker(
         # 已被占用则跳过并记录
         error_host["msg"] = _(
             """
-            该主机内网IP已存在于所选云区域：{bk_cloud_name} 下,
+            该主机内网IP已存在于所选「管控区域」：{bk_cloud_name} 下,
             业务：{bk_biz_name},
             节点类型：{node_type}
             """
@@ -426,7 +426,7 @@ def install_validate(
     :param node_type: 节点类型
     :param job_type: 任务作业类型
     :param biz_id__biz_name_map: 用户的业务列表
-    :param cloud_info: 获得相应云区域 id, name, ap_id, bk_biz_scope
+    :param cloud_info: 获得相应管控区域 id, name, ap_id, bk_biz_scope
     :param ap_id_name: 获得接入点列表
     :param host_infos_gby_ip_key: DB中内网IP信息
     :return: 列表，ip被占用及其原因
@@ -435,7 +435,7 @@ def install_validate(
     ip_filter_list = []
     proxy_not_alive = []
 
-    # 获得有可用代理的云区域
+    # 获得有可用代理的管控区域
     available_clouds, proxies_count = check_available_proxy()
 
     if all(
@@ -501,14 +501,14 @@ def install_validate(
         if not host.get("os_type") and node_type != const.NodeType.PROXY:
             raise NotExistsOs(_("主机(IP:{ip}) 没有操作系统, 请【重装】并补全相关信息").format(ip=ip))
 
-        # 检查：云区域是否存在
+        # 检查：管控区域是否存在
         if bk_cloud_id != const.DEFAULT_CLOUD and bk_cloud_id not in cloud_info:
-            raise CloudNotExistError(_("云区域(ID:{bk_cloud_id}) 不存在").format(bk_cloud_id=bk_cloud_id))
+            raise CloudNotExistError(_("管控区域(ID:{bk_cloud_id}) 不存在").format(bk_cloud_id=bk_cloud_id))
 
         # 检查：直连区域不允许安装 PROXY
         if bk_cloud_id == const.DEFAULT_CLOUD and node_type == const.NodeType.PROXY:
             raise ProxyNotAvaliableError(
-                _("{bk_cloud_name} 是直连区域，不可以安装PROXY").format(bk_cloud_name=bk_cloud_info.get("bk_cloud_name") or "")
+                _("{bk_cloud_name} 是「直连区域」，不可以安装PROXY").format(bk_cloud_name=bk_cloud_info.get("bk_cloud_name") or "")
             )
 
         # 检查：判断 P-Agent 情况下代理是否可用
@@ -518,7 +518,7 @@ def install_validate(
             and op_type != const.OpType.RESTART
             and proxies_count.get(host.get("bk_cloud_id"), 0) == 0
         ):
-            error_host["msg"] = _("该云区域下不存在代理")
+            error_host["msg"] = _("该「管控区域」下不存在代理")
             error_host["exception"] = "no_proxy"
             ip_filter_list.append(error_host)
             proxy_not_alive.append(error_host)
@@ -571,9 +571,9 @@ def operate_validator(db_host_sql):
 
     # 可以进入下一步的Host ID
     permission_host_ids = []
-    # 获得所有云区域ID
+    # 获得所有管控区域ID
     bk_cloud_ids = [host["bk_cloud_id"] for host in db_host_sql]
-    # 获得所有云区域信息
+    # 获得所有管控区域信息
     cloud_info = CloudHandler().list_cloud_info(bk_cloud_ids)
 
     for host in db_host_sql:
@@ -581,9 +581,9 @@ def operate_validator(db_host_sql):
         if not host.get("os_type") and host["node_type"] != const.NodeType.PROXY:
             raise NotExistsOs(_("主机(IP:{inner_ip}) 没有操作系统, 请【重装】并补全相关信息").format(inner_ip=host["inner_ip"]))
 
-        # 云区域是否存在
+        # 管控区域是否存在
         if not cloud_info.get(host["bk_cloud_id"]):
-            raise CloudNotExistError(_("不允许操作【云区域不存在】的主机, 云区域id: {}").format(host["bk_cloud_id"]))
+            raise CloudNotExistError(_("不允许操作【管控区域不存在】的主机,「管控区域」id: {}").format(host["bk_cloud_id"]))
 
         permission_host_ids.append(host["bk_host_id"])
 

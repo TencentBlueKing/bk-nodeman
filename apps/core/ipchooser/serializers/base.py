@@ -76,12 +76,12 @@ class HostSearchConditionSer(serializers.Serializer):
     ipv6 = serializers.IPAddressField(label=_("内网IPv6"), required=False, protocol="ipv6")
     os_type = serializers.ChoiceField(label=_("操作系统类型"), required=False, choices=node_man_constants.OS_CHOICES)
     host_name = serializers.CharField(label=_("主机名称"), required=False, min_length=1)
-    cloud_name = serializers.CharField(label=_("云区域名称"), required=False, min_length=1)
+    cloud_name = serializers.CharField(label=_("管控区域名称"), required=False, min_length=1)
     alive = serializers.ChoiceField(
         label=_("Agent 存活状态"), required=False, choices=constants.AgentStatusType.list_choices()
     )
     content = serializers.CharField(
-        label=_("模糊搜索内容（支持同时对`主机IP`/`主机名`/`操作系统`/`云区域名称`进行模糊搜索"), required=False, min_length=1
+        label=_("模糊搜索内容（支持同时对`主机IP`/`主机名`/`操作系统`/`管控区域名称`进行模糊搜索"), required=False, min_length=1
     )
 
 
@@ -159,7 +159,7 @@ class QueryHostsBaseSer(PermissionSer, PaginationSer):
             cond_key: str = search_cond_map[key]
 
             if key == "cloud_name":
-                # 云区域名暂时只支持模糊搜索
+                # 管控区域名暂时只支持模糊搜索
                 conditions.append({"key": cond_key, "value": val, "fuzzy_search_fields": ["bk_cloud_id"]})
             elif key == "content":
                 conditions.append(
@@ -189,7 +189,7 @@ class QueryHostsBaseSer(PermissionSer, PaginationSer):
 class HostInfoWithMetaSer(serializers.Serializer):
 
     meta = MetaSer()
-    cloud_id = serializers.IntegerField(help_text=_("云区域 ID"), required=False)
+    cloud_id = serializers.IntegerField(help_text=_("管控区域 ID"), required=False)
     ip = serializers.IPAddressField(help_text=_("IPv4 协议下的主机IP"), required=False, protocol="ipv4")
     host_id = serializers.IntegerField(help_text=_("主机 ID，优先取 `host_id`，否则取 `ip` + `cloud_id`"), required=False)
 

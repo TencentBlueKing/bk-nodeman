@@ -335,7 +335,7 @@ class Host(models.Model):
     bk_host_id = models.IntegerField(_("CMDB主机ID"), primary_key=True)
     bk_agent_id = models.CharField(_("AgentID"), max_length=64, db_index=True, blank=True, null=True)
     bk_biz_id = models.IntegerField(_("业务ID"), db_index=True)
-    bk_cloud_id = models.IntegerField(_("云区域ID"), db_index=True)
+    bk_cloud_id = models.IntegerField(_("管控区域ID"), db_index=True)
     bk_host_name = models.CharField(_("主机名称"), max_length=128, db_index=True, blank=True, null=True, default="")
     bk_addressing = models.CharField(_("寻址方式"), max_length=16, default=constants.CmdbAddressingType.STATIC.value)
 
@@ -424,7 +424,7 @@ class Host(models.Model):
         proxies = proxies or self.proxies
         alive_proxies = [proxy for proxy in proxies if proxy.status == constants.ProcStateType.RUNNING]
         if not alive_proxies:
-            raise AliveProxyNotExistsError(_("主机所属云区域不存在可用Proxy"))
+            raise AliveProxyNotExistsError(_("主机所属「管控区域」不存在可用Proxy"))
         else:
             return random.choice(alive_proxies)
 
@@ -473,7 +473,7 @@ class Host(models.Model):
             except Host.DoesNotExist:
                 raise HostNotExists(_("安装节点主机{inner_ip}不存在，请确认是否已安装AGENT").format(inner_ip=jump_server_ip))
             upstream_servers = install_channel.upstream_servers
-        # 云区域未指定安装通道的，用proxy作为跳板和上游
+        # 管控区域未指定安装通道的，用proxy作为跳板和上游
         elif self.bk_cloud_id and self.node_type != constants.NodeType.PROXY:
             proxy_ips = [proxy.inner_ip or proxy.inner_ipv6 for proxy in self.proxies]
             jump_server = self.get_random_alive_proxy()
@@ -817,13 +817,13 @@ class AccessPoint(models.Model):
 
 
 class Cloud(models.Model):
-    """云区域信息"""
+    """管控区域信息"""
 
     bk_cloud_id = models.IntegerField(primary_key=True)
     bk_cloud_name = models.CharField(max_length=45)
     isp = models.CharField(_("云服务商"), max_length=45, null=True, blank=True)
     ap_id = models.IntegerField(_("接入点ID"), null=True)
-    creator = JSONField(_("云区域创建者"))
+    creator = JSONField(_("管控区域创建者"))
 
     is_visible = models.BooleanField(_("是否可见"), default=True)
     is_deleted = models.BooleanField(_("是否删除"), default=False)
@@ -837,8 +837,8 @@ class Cloud(models.Model):
         return all_cloud_map
 
     class Meta:
-        verbose_name = _("云区域（Cloud）")
-        verbose_name_plural = _("云区域（Cloud）")
+        verbose_name = _("管控区域（BK-Net）")
+        verbose_name_plural = _("管控区域（BK-Net）")
 
 
 class InstallChannel(models.Model):
@@ -853,7 +853,7 @@ class InstallChannel(models.Model):
     """
 
     name = models.CharField(_("名称"), max_length=45)
-    bk_cloud_id = models.IntegerField(_("云区域ID"))
+    bk_cloud_id = models.IntegerField(_("管控区域ID"))
     jump_servers = JSONField(_("安装通道跳板机"))
     upstream_servers = JSONField(_("上游节点"))
 
@@ -2110,7 +2110,7 @@ class Subscription(export_subscription_prometheus_mixin(), orm.SoftDeleteModel):
 
             # 最低层级一定是主机
             for sub_scope in self.nodes:
-                # 单独处理业务层级，兼容 bk_host_id 和 IP+云区域两种模式
+                # 单独处理业务层级，兼容 bk_host_id 和 IP+管控区域两种模式
                 if ("bk_host_id" in sub_scope and sub_scope["bk_host_id"] == cmdb_host_info["bk_host_id"]) or (
                     "bk_cloud_id" in sub_scope
                     and "ip" in sub_scope

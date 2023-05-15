@@ -73,11 +73,11 @@ class HostHandler(APIModel):
 
         sql_params.extend([f"%{custom}%"])
 
-        # 云区域搜索
+        # 管控区域搜索
         bk_cloud_names = CloudHandler().list_cloud_name()
         cloud_ids = [str(cloud) for cloud in bk_cloud_names if bk_cloud_names[cloud].find(custom) != -1]
         cloud_ids = ",".join(cloud_ids)
-        # 如果存在云区域结果
+        # 如果存在管控区域结果
         if cloud_ids:
             search_sql += f" OR {Host._meta.db_table}.bk_cloud_id in (%s)"
             sql_params.append(cloud_ids)
@@ -168,7 +168,7 @@ class HostHandler(APIModel):
         bk_hosts_id = [hs["bk_host_id"] for hs in hosts_status]
         bk_clouds_id = [hs["bk_cloud_id"] for hs in hosts_status]
 
-        # 获得云区域名称
+        # 获得管控区域名称
         cloud_name = dict(
             Cloud.objects.filter(bk_cloud_id__in=bk_clouds_id).values_list("bk_cloud_id", "bk_cloud_name")
         )
@@ -246,8 +246,8 @@ class HostHandler(APIModel):
     @staticmethod
     def proxies(bk_cloud_id: int):
         """
-        查询云区域的proxy列表
-        :param bk_cloud_id: 云区域ID
+        查询管控区域的proxy列表
+        :param bk_cloud_id: 管控区域ID
         """
         all_biz = CmdbHandler().biz_id_name_without_permission()
 
@@ -344,7 +344,7 @@ class HostHandler(APIModel):
     @staticmethod
     def biz_proxies(bk_biz_id: int):
         """
-        查询业务下云区域的proxy列表
+        查询业务下管控区域的proxy列表
         :param bk_biz_id: 业务ID
         """
         bk_cloud_ids = (

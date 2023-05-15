@@ -62,11 +62,11 @@ class JobHandler(APIModel):
         """
         返回主机的接入点、业务范围、节点类型。
         兼容订阅任务版注册<br>
-        如果是非直连区域，获得该云区域下的ap_id为空<br>
+        如果是非直连区域，获得该管控区域下的ap_id为空<br>
         如果是直连区域，ap_id直接从参数拿, 如果是proxy，则ap_id为空<br>
         :param node_type: 节点类型
         :param host: 主机信息
-        :param cloud_info: 云区域信息
+        :param cloud_info: 管控区域信息
         :return:
         """
         if node_type == constants.NodeType.AGENT:
@@ -295,7 +295,7 @@ class JobHandler(APIModel):
         # 获得所有的业务列表
         # 格式 { bk_biz_id: bk_biz_name , ...}
         biz_info = CmdbHandler().biz_id_name_without_permission()
-        # 获得相应云区域 id, name, ap_id
+        # 获得相应管控区域 id, name, ap_id
         # 格式 { cloud_id: {'bk_cloud_name': name, 'ap_id': id}, ...}
         cloud_info = CloudHandler().list_cloud_info(bk_cloud_ids)
 
@@ -378,7 +378,7 @@ class JobHandler(APIModel):
         Job 订阅安装任务
         :param accept_list: 所有通过校验需要新安装的主机
         :param node_type: 节点类型
-        :param cloud_info: 云区域信息
+        :param cloud_info: 管控区域信息
         :param biz_info: 业务ID及其对应的名称
         :return
         """
@@ -824,7 +824,7 @@ class JobHandler(APIModel):
             filter_hosts.append(filter_host_info)
         host_execute_status_list.extend(filter_hosts)
 
-        # 补充业务名、云区域名称
+        # 补充业务名、管控区域名称
         cloud_id_name_map = models.Cloud.cloud_id_name_map()
         biz_name_map = CmdbHandler.biz_id_name_without_permission()
         for host_execute_status in host_execute_status_list:

@@ -24,10 +24,10 @@ from .utils import MockClient, modify_constant_data
 class TestSyncCMDBCloudArea(CustomBaseTestCase):
     @patch("apps.node_man.periodic_tasks.sync_cmdb_cloud_area.client_v2", MockClient)
     def test_update_or_create_cloud_area(self):
-        # 测试创建云区域
+        # 测试创建管控区域
         update_or_create_cloud_area(None, 0)
         self.assertEqual(Cloud.objects.count(), 1)
-        # 测试更新云区域
+        # 测试更新管控区域
         with modify_constant_data([(MOCK_SEARCH_CLOUD_AREA["info"][0], {"bk_cloud_name": "test_cloud_2"})]):
             update_or_create_cloud_area(None, 0)
             self.assertEqual(Cloud.objects.all().first().bk_cloud_name, "test_cloud_2")

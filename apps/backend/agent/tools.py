@@ -164,7 +164,7 @@ def gen_commands(
     :param is_combine_cmd_step: 是否合并命令步骤
     :param script_hook_objs: 脚本钩子列表
     :return: dest_dir 目标目录, win_commands: Windows安装命令, proxies 代理列表,
-             proxy 云区域所使用的代理, pre_commands 安装前命令, run_cmd 安装命令
+             proxy 管控区域所使用的代理, pre_commands 安装前命令, run_cmd 安装命令
     """
     # 批量场景请传入Optional所需对象，以避免 n+1 查询，提高执行效率
     host_ap = host_ap or host.ap

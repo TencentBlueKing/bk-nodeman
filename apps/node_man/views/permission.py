@@ -41,7 +41,7 @@ class PermissionViewSet(APIViewSet):
         @apiSuccessExample {Json} 成功返回:
         [{
             "system": "节点管理",
-            "action": "编辑云区域",
+            "action": "编辑管控区域",
             "instance_id": 11,
             "instance_name": cloud_one,
             "apply_url": "https://xxx.com/.../"
@@ -66,13 +66,13 @@ class PermissionViewSet(APIViewSet):
         )
 
     @swagger_auto_schema(
-        operation_summary="返回用户云区域的权限",
+        operation_summary="返回用户管控区域的权限",
         tags=PERMISSION_VIEW_TAGS,
     )
     @action(detail=False, methods=["GET"])
     def cloud(self, request, *args, **kwargs):
         """
-        @api {GET} /permission/cloud/ 返回用户云区域的权限
+        @api {GET} /permission/cloud/ 返回用户管控区域的权限
         @apiName list_cloud_permission
         @apiGroup Permission
         @apiSuccessExample {Json} 成功返回:

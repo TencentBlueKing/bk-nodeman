@@ -183,7 +183,7 @@ class AgentAction(Action, abc.ABC):
                 # Agent 重装场景下不存在 instance_info
                 # refer：apps/node_man/handlers/validator.py bulk_update_validate
                 instance_info = node
-            # 只要包含一台非默认云区域的机器，或者存在安装通道，则认为是非直连机器
+            # 只要包含一台非默认管控区域的机器，或者存在安装通道，则认为是非直连机器
             if instance_info.get("bk_cloud_id") != DEFAULT_CLOUD:
                 return True
             if instance_info.get("install_channel_id"):

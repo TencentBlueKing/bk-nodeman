@@ -90,13 +90,13 @@ class HostV2Handler:
 
         bk_cloud_ids = [host["bk_cloud_id"] for host in hosts]
 
-        # 获得云区域名称
+        # 获得管控区域名称
         cloud_name = dict(
             models.Cloud.objects.filter(bk_cloud_id__in=bk_cloud_ids).values_list("bk_cloud_id", "bk_cloud_name")
         )
         cloud_name[0] = str(DEFAULT_CLOUD_NAME)
 
-        # 填充云区域及业务名称
+        # 填充管控区域及业务名称
         for host in hosts:
             host["bk_cloud_name"] = cloud_name.get(host["bk_cloud_id"])
             host["bk_biz_name"] = user_biz.get(host["bk_biz_id"], "")

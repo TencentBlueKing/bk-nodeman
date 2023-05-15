@@ -318,7 +318,7 @@ class PolicyViewSet(ModelViewSet):
         @apiName policy_preview
         @apiGroup policy
         @apiParam {List} [conditions] 搜索条件，支持os_type, ip, status, version, bk_cloud_id, node_from <br>
-        query: IP、操作系统、Agent状态、Agent版本、云区域 单/多模糊搜索 <br>
+        query: IP、操作系统、Agent状态、Agent版本、管控区域 单/多模糊搜索 <br>
         topology: 拓扑搜索，传入bk_set_ids, bk_module_ids
         @apiParam {Int} [page] 当前页数，默认为`1`
         @apiParam {Int} [pagesize] 分页大小，默认为`10`
@@ -434,7 +434,7 @@ class PolicyViewSet(ModelViewSet):
                             "target_version": "10.7.33"
                         },
                         "bk_biz_name": "蓝鲸",
-                        "bk_cloud_name": "云区域名称"
+                        "bk_cloud_name": "管控区域名称"
                     }
                 ]
             },
@@ -783,7 +783,7 @@ class PolicyViewSet(ModelViewSet):
         @apiGroup policy
         @apiParam {Int} policy_id 策略ID
         @apiParam {List} [conditions] 搜索条件，支持os_type, ip, status, version, bk_cloud_id, node_from <br>
-        query: IP、操作系统、Agent状态、Agent版本、云区域 单/多模糊搜索 <br>
+        query: IP、操作系统、Agent状态、Agent版本、管控区域 单/多模糊搜索 <br>
         topology: 拓扑搜索，传入bk_set_ids, bk_module_ids
         @apiParam {Int} [page] 当前页数，默认为`1`
         @apiParam {Int} [pagesize] 分页大小，默认为`10`

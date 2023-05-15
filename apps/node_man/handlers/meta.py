@@ -172,7 +172,7 @@ class MetaHandler(APIModel):
                 {"name": _("Agent状态"), "id": "status", "children": statuses_children},
                 {"name": _("安装方式"), "id": "is_manual", "children": is_manual_children},
                 {"name": _("Agent版本"), "id": "version", "children": versions_children},
-                {"name": _("云区域"), "id": "bk_cloud_id", "children": bk_cloud_ids_children},
+                {"name": _("管控区域"), "id": "bk_cloud_id", "children": bk_cloud_ids_children},
                 {"name": _("寻址方式"), "id": "bk_addressing", "children": bk_addressing_children},
                 {"name": _("安装通道"), "id": "install_channel_id", "children": install_channel_children},
                 {"name": _("主机名称"), "id": "bk_host_name"},
@@ -281,7 +281,7 @@ class MetaHandler(APIModel):
         bk_cloud_ids = [bk_cloud[0] for bk_cloud in bk_cloud_tuple]
         bk_cloud_names = CloudHandler().list_cloud_info(bk_cloud_ids)
         plugin_result["bk_cloud_id"] = {
-            "name": _("云区域"),
+            "name": _("管控区域"),
             "value": [
                 {"name": bk_cloud_names.get(bk_cloud_id, {}).get("bk_cloud_name", bk_cloud_id), "id": bk_cloud_id}
                 for bk_cloud_id in bk_cloud_ids
@@ -360,7 +360,7 @@ class MetaHandler(APIModel):
         cloud_children = [{"id": cloud_id, "name": cloud_name} for cloud_id, cloud_name in clouds.items()]
         cloud_children.insert(0, {"id": constants.DEFAULT_CLOUD, "name": _("直连区域")})
 
-        ret_value.append({"name": _("云区域"), "id": "bk_cloud_id", "children": cloud_children})
+        ret_value.append({"name": _("管控区域"), "id": "bk_cloud_id", "children": cloud_children})
 
         os_dict = {"name": _("操作系统"), "id": "os_type", "children": []}
 

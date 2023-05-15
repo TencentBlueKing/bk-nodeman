@@ -193,7 +193,7 @@ class ProcessControlInfoSerializer(serializers.ModelSerializer):
 
 
 class PluginListSerializer(base.HostSearchSerializer, base.HostFieldSelectorSerializer):
-    bk_cloud_id = serializers.ListField(help_text=_("云区域ID"), required=False, child=serializers.IntegerField())
+    bk_cloud_id = serializers.ListField(help_text=_("管控区域ID"), required=False, child=serializers.IntegerField())
     version = serializers.ListField(help_text=_("Agent版本"), required=False)
     simple = serializers.BooleanField(label=_("仅返回概要信息(bk_host_id, bk_biz_id)"), required=False, default=False)
     detail = serializers.BooleanField(label=_("是否节点详情"), required=False, default=False)
@@ -224,7 +224,7 @@ class PluginInfoSerializer(serializers.Serializer):
 class OperateSerializer(serializers.Serializer):
     job_type = serializers.ChoiceField(label=_("任务类型"), choices=list(PLUGIN_JOB_TUPLE))
     bk_biz_id = serializers.ListField(label=_("业务ID"), required=False)
-    bk_cloud_id = serializers.ListField(label=_("云区域ID"), required=False)
+    bk_cloud_id = serializers.ListField(label=_("管控区域ID"), required=False)
     version = serializers.ListField(label=_("Agent版本"), required=False)
     # V2.0.x 参数
     plugin_params = PluginInfoSerializer(label=_("插件信息"), required=False)

@@ -16,7 +16,7 @@ from apps.node_man.constants import IamActionType
 
 class BizSerializer(serializers.Serializer):
     """
-    用于云区域列表校验
+    用于管控区域列表校验
     """
 
     action = serializers.ChoiceField(

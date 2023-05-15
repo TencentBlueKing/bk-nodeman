@@ -214,7 +214,7 @@ class LinuxPAgentTestCase(ChooseAccessPointTestCase):
 
 class NotAliveProxiesTestCase(LinuxPAgentTestCase):
     def get_default_case_name(self) -> str:
-        return f"{self.NODE_TYPE}-{self.OS_TYPE} 云区域下无可用Proxy"
+        return f"{self.NODE_TYPE}-{self.OS_TYPE} 管控区域下无可用Proxy"
 
     def fetch_succeeded_sub_inst_ids(self) -> List[int]:
         return []

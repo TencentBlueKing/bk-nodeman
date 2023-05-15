@@ -104,11 +104,11 @@ class Business(ResourceMeta):
 
 class Cloud(ResourceMeta):
     """
-    云区域
+    管控区域
     """
 
     id = "cloud"
-    name = _lazy("云区域")
+    name = _lazy("管控区域")
 
     @classmethod
     def create_instance(cls, instance_id: str, attribute=None) -> Resource:

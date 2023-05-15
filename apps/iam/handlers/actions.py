@@ -112,7 +112,7 @@ class ActionEnum:
 
     CLOUD_VIEW = ActionMeta(
         id="cloud_view",
-        name="云区域查看",
+        name="管控区域查看",
         name_en="Cloud View",
         type="view",
         related_resource_types=[ResourceEnum.CLOUD],

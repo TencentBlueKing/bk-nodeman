@@ -45,7 +45,7 @@ def update_or_create_host_agent_status(task_id: int, host_queryset: QuerySet):
         f"start Host ID -> {hosts[0]['bk_host_id']}, count -> {len(hosts)}"
     )
 
-    # 通过云区域：内网形式对应bk_host_id&node_from
+    # 通过管控区域：内网形式对应bk_host_id&node_from
     agent_id__host_id_map: typing.Dict[str, int] = {}
     agent_id__node_from_map: typing.Dict[str, str] = {}
 

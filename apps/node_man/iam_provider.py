@@ -129,12 +129,12 @@ class BusinessResourceProvider(ResourceProvider):
 
 class CloudResourceProvider(ResourceProvider):
     """
-    云区域资源Provider
+    管控区域资源Provider
     """
 
     def fetch_clouds(self, condition=None):
         """
-        获得所有云区域列表
+        获得所有管控区域列表
         :return:
         [{
             'id': bk_cloud_id ,
@@ -163,14 +163,14 @@ class CloudResourceProvider(ResourceProvider):
 
     def list_attr(self, **options):
         """
-        云区域资源属性
+        管控区域资源属性
         """
-        results = [{"id": "cloud", "display_name": "云区域"}]
+        results = [{"id": "cloud", "display_name": "管控区域"}]
         return ListResult(results, len(results))
 
     def list_attr_value(self, filter, page, **options):
         """
-        云区域资源属性值
+        管控区域资源属性值
         """
         if filter.get("attr") == "cloud" and (filter.get("keyword") or filter.get("ids")):
             results = resources_filter(filter, self.fetch_clouds())
@@ -187,7 +187,7 @@ class CloudResourceProvider(ResourceProvider):
 
     def list_instance(self, filter, page, **options):
         """
-        云区域属性值过滤
+        管控区域属性值过滤
         """
         if filter.get("search", {}):
             results = []
@@ -206,7 +206,7 @@ class CloudResourceProvider(ResourceProvider):
 
     def search_instance(self, filter, page, **options):
         """
-        云区域搜索
+        管控区域搜索
         """
         condition = {"bk_cloud_name__icontains": filter.get("keyword", "")}
         results = self.fetch_clouds(condition)
@@ -402,7 +402,7 @@ class PackageResourceProvider(ResourceProvider):
 
     def search_instance(self, filter, page, **options):
         """
-        云区域搜索
+        管控区域搜索
         """
         condition = {"description__icontains": filter.get("keyword", "")}
         results = self.fetch_packages(condition)
@@ -537,7 +537,7 @@ class StrategyResourceProvider(ResourceProvider):
 
 def sync_cloud_area_creator_to_iam():
     """
-    同步CMDB云区域权限给权限中心, 仅需手动运行一次
+    同步CMDB管控区域权限给权限中心, 仅需手动运行一次
     """
     clouds = Cloud.objects.all()
     for cloud in clouds:
@@ -645,7 +645,7 @@ class IamRegister(object):
         data = [
             {
                 "id": IamActionType.cloud_view,
-                "name": "云区域查看",
+                "name": "管控区域查看",
                 "name_en": "Cloud View",
                 "description": "",
                 "description_en": "",
@@ -655,7 +655,7 @@ class IamRegister(object):
             },
             {
                 "id": IamActionType.cloud_edit,
-                "name": "云区域编辑",
+                "name": "管控区域编辑",
                 "name_en": "Cloud Edit",
                 "description": "",
                 "description_en": "",
@@ -666,7 +666,7 @@ class IamRegister(object):
             },
             {
                 "id": IamActionType.cloud_delete,
-                "name": "云区域删除",
+                "name": "管控区域删除",
                 "name_en": "Cloud Delete",
                 "description": "",
                 "description_en": "",
@@ -677,7 +677,7 @@ class IamRegister(object):
             },
             {
                 "id": IamActionType.cloud_create,
-                "name": "云区域创建",
+                "name": "管控区域创建",
                 "name_en": "Cloud Create",
                 "description": "",
                 "description_en": "",
@@ -839,7 +839,7 @@ class IamRegister(object):
                 "sub_groups": [
                     {"name": "Agent管理", "name_en": "Agent", "actions": [{"id": "agent_view"}, {"id": "agent_operate"}]},
                     {
-                        "name": "云区域管理",
+                        "name": "管控区域管理",
                         "name_en": "Cloud Area",
                         "actions": [
                             {"id": "cloud_create"},

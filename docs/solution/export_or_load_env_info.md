@@ -21,12 +21,12 @@ pip install pymysql
   --password PASSWORD  MySQL password    # mysql 数据库密码
   --port PORT          MySQL port        # mysql 数据库链接端口
   --dbname DBNAME      NodeMan Database Name # 节点管理导出数据库名
-  --only-cloud         Only export cloud info # 只导出云区域数据
+  --only-cloud         Only export cloud info # 只导出管控区域数据
   --only-proxy         Only export proxy host info  # 只导出 Proxy 主机数据
   --with-v6-field      Export proxy host info with ipv6 fields # 是否导出 v6 相关字段，默认不导出
 ```
 - 导出文件路径 ：
-	- 云区域文件路径：`node_man_export/cloud_info.csv`
+	- 管控区域文件路径：`node_man_export/cloud_info.csv`
 	- 主机文件路径：`node_man_export/proxy_host_info.csv`
 	- `node_man_export` 位于脚本所在当前目录
 
@@ -43,7 +43,7 @@ python export_host_info.py --host 127.0.0.1 --port 3306 --password blueking --db
 # 只导出 Proxy 主机数据
 python export_host_info.py --host 127.0.0.1 --port 3306 --password blueking --dbname bk_nodeman --only-proxy
 
-# 只导出 Cloud 云区域数据
+# 只导出 Cloud 管控区域数据
 python export_host_info.py --host 127.0.0.1 --port 3306 --password blueking --dbname bk_nodeman --only-cloud
 
 # 只导出 Proxy 主机数据，附带 V6 主机字段
@@ -82,7 +82,7 @@ python export_host_info.py --host 127.0.0.1 --port 3306 --password blueking --db
   --old_ap__new_ap_map OLD_AP__NEW_AP_MAP
                         导出环境接入点与当前接入点映射关系, 格式: '1:2,2:3'
   --cloud_file_path CLOUD_FILE_PATH
-                        导出环境云区域信息文件路径
+                        导出环境管控区域信息文件路径
   --proxy_file_path PROXY_FILE_PATH
                         导出环境 Proxy 主机信息文件路径
 ```
@@ -106,7 +106,7 @@ kubectl cp cloud_info.csv -n blueking ${FIRST_RUNNING_POD}:/app/scripts/load_or_
 kubectl exec -n blueking ${FIRST_RUNNING_POD} -- python manage.py load_env_info --env_name="test_load.com" --bk_biz_ids=1,2,3  --mysql_host=127.0.0.1 --mysql_password=12345  --mysql_port=3306  --old_ap__new_ap_map='-1:-1,1:2,2:3' --cloud_file_path='/app/scripts/load_or_export_host_info/node_man_export/cloud_info.csv' --proxy_file_path='/app/scripts/load_or_export_host_info/node_man_export/proxy_host_info.csv' --is_migrate_proxy_info 
 
 
-# 切换环境内的导出云区域对应的所有云区域接入点信息，并且切换业务 ID 在 [1,2,3] 的业务内并且属于相关云区域下的的所有主机接入点
+# 切换环境内的导出管控区域对应的所有管控区域接入点信息，并且切换业务 ID 在 [1,2,3] 的业务内并且属于相关管控区域下的的所有主机接入点
 kubectl exec -n blueking ${FIRST_RUNNING_POD} -- python manage.py load_env_info --env_name="test_load.com" --bk_biz_ids=1,2,3  --mysql_host=127.0.0.1 --mysql_password=12345 --mysql_port=3306  --old_ap__new_ap_map='-1:-1,1:2,2:3' --cloud_file_path='/app/scripts/load_or_export_host_info/node_man_export/cloud_info.csv' --proxy_file_path='/app/scripts/load_or_export_host_info/node_man_export/proxy_host_info.csv' --is_switch_env_ap
 ```
 

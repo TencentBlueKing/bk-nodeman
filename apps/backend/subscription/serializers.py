@@ -49,7 +49,7 @@ class TargetHostSerializer(serializers.Serializer):
     bk_host_id = serializers.CharField(required=False, label="目标机器主机ID")
     ip = serializers.CharField(required=False, label="目标机器IP")
     bk_host_innerip = serializers.CharField(required=False, label="目标机器IP")
-    bk_cloud_id = serializers.CharField(required=False, label="目标机器云区域ID")
+    bk_cloud_id = serializers.CharField(required=False, label="目标机器管控区域ID")
     bk_supplier_id = serializers.CharField(default="0", label="目标机器开发商ID")
 
     def validate(self, attrs):

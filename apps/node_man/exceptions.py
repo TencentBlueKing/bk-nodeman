@@ -18,27 +18,27 @@ class NodeManBaseException(AppBaseException):
 
 
 class CloudNotExistError(NodeManBaseException):
-    MESSAGE = _("云区域不存在")
+    MESSAGE = _("管控区域不存在")
     ERROR_CODE = 1
 
 
 class CloudUpdateAgentError(NodeManBaseException):
-    MESSAGE = _("云区域业务已装Agent, 不可删除")
+    MESSAGE = _("管控区域业务已装Agent, 不可删除")
     ERROR_CODE = 2
 
 
 class CloudUpdateHostError(NodeManBaseException):
-    MESSAGE = _("该云区域已经存在主机, 不可删除")
+    MESSAGE = _("该「管控区域」已经存在主机, 不可删除")
     ERROR_CODE = 3
 
 
 class PagentDefaultCloudError(NodeManBaseException):
-    MESSAGE = _("PAGENT只能安装在非直连区域")
+    MESSAGE = _("PAGENT只能安装在「非直连区域」")
     ERROR_CODE = 4
 
 
 class AgentDefaultCloudError(NodeManBaseException):
-    MESSAGE = _("AGENT只能安装在直连区域")
+    MESSAGE = _("AGENT只能安装在「直连区域」")
     ERROR_CODE = 5
 
 
@@ -79,7 +79,7 @@ class AliveProxyNotExistsError(NodeManBaseException):
 
 
 class CloudNotPermissionError(NodeManBaseException):
-    MESSAGE = _("不存在某云区域的权限.")
+    MESSAGE = _("不存在某「管控区域」的权限.")
     ERROR_CODE = 14
 
 

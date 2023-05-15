@@ -31,7 +31,7 @@ class _CCApi(BaseApi):
             method="POST",
             url=CC_APIGATEWAY_ROOT_V2 + "search_cloud_area/",
             module=self.MODULE,
-            description="查询云区域",
+            description="查询管控区域",
             before_request=add_esb_info_before_request,
         )
         self.search_biz_inst_topo = DataAPI(

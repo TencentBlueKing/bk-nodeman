@@ -41,7 +41,7 @@ class HostV2ViewSet(ModelViewSet):
         @apiParam {Int[]} [bk_biz_id] 业务ID
         @apiParam {Int[]} [bk_host_id] 主机ID
         @apiParam {List} [conditions] 搜索条件，支持os_type, ip, status, version, bk_cloud_id, node_from <br>
-        query: IP、操作系统、Agent状态、Agent版本、云区域 单/多模糊搜索 <br>
+        query: IP、操作系统、Agent状态、Agent版本、管控区域 单/多模糊搜索 <br>
         topology: 拓扑搜索，传入bk_set_ids, bk_module_ids
         @apiParam {List} [nodes] 拓扑节点, 例如：[{"bk_biz_id": 1, "bk_inst_id": 10, "bk_obj_id": "module"}, ...]
         @apiParam {Int[]} [exclude_hosts] 跨页全选排除主机
@@ -54,7 +54,7 @@ class HostV2ViewSet(ModelViewSet):
             "list": [
                 {
                     "bk_cloud_id": 1,
-                    "bk_cloud_name": "云区域名称",
+                    "bk_cloud_name": "管控区域名称",
                     "bk_biz_id": 2,
                     "bk_biz_name": "业务名称",
                     "bk_host_id": 1,

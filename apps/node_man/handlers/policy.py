@@ -507,7 +507,7 @@ class PolicyHandler:
                     {**tools.HostV2Tools.retrieve_host_info(host_info), "migrate_reason": migrate_reason}
                 )
 
-        # 补充业务名、云区域名称
+        # 补充业务名、管控区域名称
         cloud_id_name_map = models.Cloud.cloud_id_name_map()
         biz_name_map = CmdbHandler.biz_id_name_without_permission()
 
