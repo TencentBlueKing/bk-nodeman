@@ -84,6 +84,7 @@ urlpatterns = [
     url(r"^ping/?$", views.ping),
     url(r"^version/?$", views.version),
     url(r"^metrics/?$", views.metrics),
+    url(r"^logout/?$", views.user_exit),
     url(r"^tools/download/$", views.tools_download),
     url(r"api/", include(router.urls)),
     url(r"api/iam/v1/biz", biz_dispatcher.as_view([login_exempt])),
