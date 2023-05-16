@@ -12,6 +12,7 @@ from collections import defaultdict
 from typing import Any, Dict
 
 from django.db.models import Q
+from django.db.utils import ProgrammingError
 from django.utils.translation import get_language
 
 from apps.core.ipchooser import core_ipchooser_constants
@@ -206,7 +207,12 @@ class PluginHandler(APIModel):
         ).order_by()
 
         # 计算总数
-        hosts_status_count = hosts_status_sql.count()
+
+        try:
+            hosts_status_count = hosts_status_sql.count()
+        except ProgrammingError:
+            # 非法查询返回空列表
+            return {"total": 0, "list": []}
 
         if params.get("simple"):
             host_simples = list(hosts_status_sql[begin:end].values("bk_host_id", "bk_biz_id"))
