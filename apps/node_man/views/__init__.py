@@ -9,8 +9,11 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import requests
+from blueapps.account import ConfFixture
 from blueapps.account.decorators import login_exempt
+from blueapps.account.handlers.response import ResponseHandler
 from django.conf import settings
+from django.contrib.auth import logout
 from django.http import HttpResponse, JsonResponse, StreamingHttpResponse
 from django.shortcuts import render
 from django.utils.translation import ugettext_lazy as _
@@ -52,3 +55,11 @@ def tools_download(request):
     response.headers["Content-Type"] = "application/octet-stream"
     response.headers["Content-Disposition"] = 'attachment;filename="{}"'.format(file_name)
     return response
+
+
+def user_exit(request):
+    logout(request)
+    # 验证不通过，需要跳转至统一登录平台
+    request.path = request.path.replace("logout", "")
+    handler = ResponseHandler(ConfFixture, settings)
+    return handler.build_401_response(request)
