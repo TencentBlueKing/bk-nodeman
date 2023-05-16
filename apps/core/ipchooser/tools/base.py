@@ -78,6 +78,8 @@ class HostQuerySqlHelper:
             "version": f"{node_man_models.ProcessStatus._meta.db_table}.version",
         }
         wheres: typing.List[str] = []
+        # 使用参数化 SQL 语句，强制区分数据和命令，避免产生 SQL 注入漏洞
+        sql_params: typing.List[str] = []
         init_wheres = [
             f"{node_man_models.Host._meta.db_table}.bk_host_id="
             f"{node_man_models.ProcessStatus._meta.db_table}.bk_host_id",
@@ -88,37 +90,48 @@ class HostQuerySqlHelper:
         ]
         for condition in params["conditions"]:
 
+            # 筛选值为空时，填充一定不存在的值，避免空列表生成的 in 语句不合法
+            values: typing.List[str, int] = condition.get("value") or ["-1"]
+
             if condition["key"] in ["source_id", "plugin_name"]:
                 key: str = {"source_id": "source_id", "plugin_name": "name"}[condition["key"]]
-                placeholder = [f'"{cond_val}"' for cond_val in condition["value"]]
-                wheres.append(f'{node_man_models.ProcessStatus._meta.db_table}.{key} in ({",".join(placeholder)})')
+                sql_params.extend(values)
+                wheres.append(
+                    f'{node_man_models.ProcessStatus._meta.db_table}.{key} in ({",".join(["%s"] * len(values))})'
+                )
 
             if condition["key"] in plugin_names:
                 # 插件版本的精确搜索
-                placeholder = []
-                for cond_val in condition["value"]:
+                for cond_val in values:
                     if cond_val == -1:
                         # 无版本插件筛选
-                        placeholder.append('""')
+                        sql_params.append('""')
                     else:
-                        placeholder.append('"{}"'.format(cond_val))
-                wheres.append(f'{node_man_models.ProcessStatus._meta.db_table}.version in ({",".join(placeholder)})')
+                        sql_params.append(f'"{cond_val}"')
+                wheres.append(
+                    f'{node_man_models.ProcessStatus._meta.db_table}.version in ({",".join(["%s"] * len(values))})'
+                )
+                # condition["key"] 已做范围限制，是安全的
                 wheres.append(f'{node_man_models.ProcessStatus._meta.db_table}.name="{condition["key"]}"')
 
             elif condition["key"] in [f"{plugin}_status" for plugin in plugin_names]:
                 # 插件状态的精确搜索
-                placeholder = []
-                for cond_val in condition["value"]:
-                    placeholder.append('"{}"'.format(cond_val))
+                sql_params.extend([f'"{cond_val}"' for cond_val in values])
+                wheres.append(
+                    f'{node_man_models.ProcessStatus._meta.db_table}.status in ({",".join(["%s"] * len(values))})'
+                )
+                # plugin_name 已做范围限制，是安全的
                 plugin_name: str = "_".join(condition["key"].split("_")[:-1])
-                wheres.append(f'{node_man_models.ProcessStatus._meta.db_table}.status in ({",".join(placeholder)})')
                 wheres.append(f'{node_man_models.ProcessStatus._meta.db_table}.name="{plugin_name}"')
 
         if wheres:
             wheres = init_wheres + wheres
             host_queryset: QuerySet = (
                 node_man_models.Host.objects.extra(
-                    select=select, tables=[node_man_models.ProcessStatus._meta.db_table], where=wheres
+                    select=select,
+                    tables=[node_man_models.ProcessStatus._meta.db_table],
+                    where=wheres,
+                    params=sql_params,
                 )
                 .order_by()
                 .values_list("bk_host_id", flat=True)
