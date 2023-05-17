@@ -75,7 +75,7 @@ export interface INodemanHttp {
   cancelCache: (id: string) => Promise<any>
   cancel: (id: string) => Promise<any>
   delete?: () => Promise<any>
-  get?: () => Promise<any>
+  get?: (url: string) => Promise<any>
   head?: () => Promise<any>
   post?: () => Promise<any>
   put?: () => Promise<any>

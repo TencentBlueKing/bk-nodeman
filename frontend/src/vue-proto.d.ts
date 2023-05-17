@@ -1,6 +1,7 @@
 import Vue from 'vue';
 import { TranslateResult } from 'vue-i18n';
 import 'vue-router';
+import { INodemanHttp } from './types';
 // 给vue对象添加自定义方法
 declare module 'vue/types/vue' {
   interface Vue {
@@ -53,6 +54,7 @@ declare module 'vue/types/vue' {
     $initIpProp: (obj: Dictionary, keys: string[]) => void
     $setIpProp:  (key: string, val: Dictionary) => any
     $DHCP:  boolean
+    $http: INodemanHttp
   }
 }
 
