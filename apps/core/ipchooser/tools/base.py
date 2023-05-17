@@ -95,7 +95,7 @@ class HostQuerySqlHelper:
 
             if condition["key"] in ["source_id", "plugin_name"]:
                 key: str = {"source_id": "source_id", "plugin_name": "name"}[condition["key"]]
-                sql_params.extend(values)
+                sql_params.extend([f'"{cond_val}"' for cond_val in values])
                 wheres.append(
                     f'{node_man_models.ProcessStatus._meta.db_table}.{key} in ({",".join(["%s"] * len(values))})'
                 )
