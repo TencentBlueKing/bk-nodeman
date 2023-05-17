@@ -100,46 +100,44 @@ class HostHandler(APIModel):
             f"{ProcessStatus._meta.db_table}.is_latest=true",
         ]
         wheres = []
+        # 使用参数化 SQL 语句，强制区分数据和命令，避免产生 SQL 注入漏洞
+        sql_params: List[str] = []
         for condition in params["conditions"]:
 
-            if condition["key"] == "source_id":
-                placeholder = []
-                for cond in condition["value"]:
-                    placeholder.append('"{}"'.format(cond))
-                wheres.append(f'{ProcessStatus._meta.db_table}.source_id in ({",".join(placeholder)})')
+            # 筛选值为空时，填充一定不存在的值，避免空列表生成的 in 语句不合法
+            values: List[str, int] = condition.get("value") or ["-1"]
 
-            if condition["key"] == "plugin_name":
-                placeholder = []
-                for cond in condition["value"]:
-                    placeholder.append('"{}"'.format(cond))
-                wheres.append(f'{ProcessStatus._meta.db_table}.name in ({",".join(placeholder)})')
+            if condition["key"] in ["source_id", "plugin_name"]:
+                key: str = {"source_id": "source_id", "plugin_name": "name"}[condition["key"]]
+                sql_params.extend(values)
+                wheres.append(f'{ProcessStatus._meta.db_table}.{key} in ({",".join(["%s"] * len(values))})')
 
             if condition["key"] in plugin_names:
                 # 插件版本的精确搜索
-                placeholder = []
-                for cond in condition["value"]:
-                    if cond == -1:
+                for cond_val in values:
+                    if cond_val == -1:
                         # 无版本插件筛选
-                        placeholder.append('""')
+                        sql_params.append("")
                     else:
-                        placeholder.append('"{}"'.format(cond))
-                wheres.append(f'{ProcessStatus._meta.db_table}.version in ({",".join(placeholder)})')
+                        sql_params.append(cond_val)
+                wheres.append(f'{ProcessStatus._meta.db_table}.version in ({",".join(["%s"] * len(values))})')
+                # condition["key"] 已做范围限制，是安全的
                 wheres.append(f'{ProcessStatus._meta.db_table}.name="{condition["key"]}"')
 
             elif condition["key"] in [f"{plugin}_status" for plugin in plugin_names]:
                 # 插件状态的精确搜索
-                placeholder = []
-                for cond in condition["value"]:
-                    placeholder.append('"{}"'.format(cond))
-                wheres.append(f'{ProcessStatus._meta.db_table}.status in ({",".join(placeholder)})')
-                wheres.append(f'{ProcessStatus._meta.db_table}.name="{"_".join(condition["key"].split("_")[:-1])}"')
+                sql_params.extend(values)
+                wheres.append(f'{ProcessStatus._meta.db_table}.status in ({",".join(["%s"] * len(values))})')
+                # plugin_name 已做范围限制，是安全的
+                plugin_name: str = "_".join(condition["key"].split("_")[:-1])
+                wheres.append(f'{ProcessStatus._meta.db_table}.name="{plugin_name}"')
 
         if wheres:
             wheres = init_wheres + wheres
             bk_host_id_list = set(
-                Host.objects.extra(select=select, tables=[ProcessStatus._meta.db_table], where=wheres).values_list(
-                    "bk_host_id", flat=True
-                )
+                Host.objects.extra(
+                    select=select, tables=[ProcessStatus._meta.db_table], where=wheres, params=sql_params
+                ).values_list("bk_host_id", flat=True)
             )
             # 对于有搜索条件但搜索结果为空的情况，填充一个无效的主机ID（-1），用于兼容multiple_cond_sql将空列表当成全选的逻辑
             return bk_host_id_list or [-1]
