@@ -67,11 +67,11 @@ class HostQuerySqlHelper:
 
     @staticmethod
     def handle_plugin_conditions(
-        params: typing.Dict, plugin_names: typing.List[str], return_sql: bool = True
-    ) -> typing.Union[typing.List[int], str]:
+        params: typing.Dict, plugin_names: typing.List[str]
+    ) -> typing.Tuple[bool, typing.Optional[QuerySet]]:
 
         if not params.get("conditions"):
-            return []
+            return False, None
 
         select: typing.Dict[str, str] = {
             "status": f"{node_man_models.ProcessStatus._meta.db_table}.status",
@@ -95,7 +95,7 @@ class HostQuerySqlHelper:
 
             if condition["key"] in ["source_id", "plugin_name"]:
                 key: str = {"source_id": "source_id", "plugin_name": "name"}[condition["key"]]
-                sql_params.extend([f'"{cond_val}"' for cond_val in values])
+                sql_params.extend(values)
                 wheres.append(
                     f'{node_man_models.ProcessStatus._meta.db_table}.{key} in ({",".join(["%s"] * len(values))})'
                 )
@@ -105,9 +105,9 @@ class HostQuerySqlHelper:
                 for cond_val in values:
                     if cond_val == -1:
                         # 无版本插件筛选
-                        sql_params.append('""')
+                        sql_params.append("")
                     else:
-                        sql_params.append(f'"{cond_val}"')
+                        sql_params.append(cond_val)
                 wheres.append(
                     f'{node_man_models.ProcessStatus._meta.db_table}.version in ({",".join(["%s"] * len(values))})'
                 )
@@ -116,7 +116,7 @@ class HostQuerySqlHelper:
 
             elif condition["key"] in [f"{plugin}_status" for plugin in plugin_names]:
                 # 插件状态的精确搜索
-                sql_params.extend([f'"{cond_val}"' for cond_val in values])
+                sql_params.extend(values)
                 wheres.append(
                     f'{node_man_models.ProcessStatus._meta.db_table}.status in ({",".join(["%s"] * len(values))})'
                 )
@@ -126,7 +126,7 @@ class HostQuerySqlHelper:
 
         if wheres:
             wheres = init_wheres + wheres
-            host_queryset: QuerySet = (
+            host_id_queryset: QuerySet = (
                 node_man_models.Host.objects.extra(
                     select=select,
                     tables=[node_man_models.ProcessStatus._meta.db_table],
@@ -136,11 +136,8 @@ class HostQuerySqlHelper:
                 .order_by()
                 .values_list("bk_host_id", flat=True)
             )
-            if return_sql:
-                return host_queryset.query
-            else:
-                return set(host_queryset) or [-1]
-        return []
+            return True, host_id_queryset
+        return False, None
 
     @staticmethod
     def fetch_match_node_types(is_proxy: bool, return_all_node_type: bool) -> typing.List[str]:
