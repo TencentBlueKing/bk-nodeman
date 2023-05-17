@@ -366,13 +366,14 @@ export default class NodemanNavigation extends Mixins(routerBackMixin) {
     }
     this.helpListRef && this.helpListRef.instance.hide();
   }
-  private handleUser(userItem: IUserItem) {
+  private async handleUser(userItem: IUserItem) {
     if (userItem.id === 'LOGOUT') {
       if (NODE_ENV === 'development') {
         window.location.href = LOGIN_DEV_URL + window.location.href;
       } else {
+        this.$http.get?.(`${window.PROJECT_CONFIG.SITE_URL}logout/`);
         // window.location.href = `${window.PROJECT_CONFIG.BK_PAAS_HOST}/console/accounts/logout/`;
-        window.location.href = `${window.PROJECT_CONFIG.LOGIN_URL}?&c_url=${window.location}`;
+        // window.location.href = `${window.PROJECT_CONFIG.LOGIN_URL}?&c_url=${window.location}`;
       }
     }
   }
