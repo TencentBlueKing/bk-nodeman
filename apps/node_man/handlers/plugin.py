@@ -193,18 +193,18 @@ class PluginHandler(APIModel):
             user_biz = plugin_operate_bizs
 
         # 查询
-        sql: str = HostQuerySqlHelper.handle_plugin_conditions(
-            params=params, plugin_names=tools.PluginV2Tools.fetch_head_plugins(), return_sql=True
+        need_query, host_id_queryset = HostQuerySqlHelper.handle_plugin_conditions(
+            params=params, plugin_names=tools.PluginV2Tools.fetch_head_plugins()
         )
-        extra_wheres = []
-        if sql:
-            extra_wheres = [f"{Host._meta.db_table}.bk_host_id in ({sql})"]
 
         hosts_status_sql = (
-            HostQuerySqlHelper.multiple_cond_sql(
-                params=params, biz_scope=user_biz, return_all_node_type=True, extra_wheres=extra_wheres
-            ).exclude(bk_host_id__in=params.get("exclude_hosts", []))
+            HostQuerySqlHelper.multiple_cond_sql(params=params, biz_scope=user_biz, return_all_node_type=True).exclude(
+                bk_host_id__in=params.get("exclude_hosts", [])
+            )
         ).order_by()
+
+        if need_query:
+            hosts_status_sql = hosts_status_sql.filter(bk_host_id__in=host_id_queryset)
 
         # 计算总数
 
@@ -312,19 +312,16 @@ class PluginHandler(APIModel):
 
         if params.get("exclude_hosts") is not None:
             # 跨页全选
-            sql: str = HostQuerySqlHelper.handle_plugin_conditions(
-                params=params, plugin_names=tools.PluginV2Tools.fetch_head_plugins(), return_sql=True
+            need_query, host_id_queryset = HostQuerySqlHelper.handle_plugin_conditions(
+                params=params, plugin_names=tools.PluginV2Tools.fetch_head_plugins()
             )
-            extra_wheres = []
-            if sql:
-                extra_wheres = [f"{Host._meta.db_table}.bk_host_id in ({sql})"]
             db_host_sql = (
-                HostQuerySqlHelper.multiple_cond_sql(
-                    params, user_biz, return_all_node_type=True, extra_wheres=extra_wheres
-                )
+                HostQuerySqlHelper.multiple_cond_sql(params, user_biz, return_all_node_type=True)
                 .exclude(bk_host_id__in=params.get("exclude_hosts", []))
                 .values("bk_host_id", "bk_biz_id", "bk_cloud_id", "inner_ip", "node_type", "os_type")
             )
+            if need_query:
+                db_host_sql = db_host_sql.filter(bk_host_id__in=host_id_queryset)
 
         else:
             # 不是跨页全选
