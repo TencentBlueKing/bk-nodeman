@@ -253,7 +253,7 @@ def create_task_transaction(create_task_func):
     return wrapper
 
 
-@app.task(queue="backend")
+@app.task(queue="backend", ignore_result=True)
 @translation.RespectsLanguage()
 @create_task_transaction
 def create_task(
@@ -470,7 +470,7 @@ def run_subscription_task_and_create_instance_transaction(func):
     return wrapper
 
 
-@app.task(queue="backend")
+@app.task(queue="backend", ignore_result=True)
 @translation.RespectsLanguage()
 @run_subscription_task_and_create_instance_transaction
 def run_subscription_task_and_create_instance(
@@ -608,7 +608,7 @@ def run_subscription_task_and_create_instance(
     }
 
 
-@app.task(queue="backend")
+@app.task(queue="backend", ignore_result=True)
 @translation.RespectsLanguage()
 def run_subscription_task(subscription_task: models.SubscriptionTask):
     logger.info(f"debug update_subscription enter run_subscription_task[{subscription_task.id}]")
@@ -631,12 +631,12 @@ def run_subscription_task(subscription_task: models.SubscriptionTask):
         pipeline.run(index % 255)
 
 
-@app.task(queue="backend")
+@app.task(queue="backend", ignore_result=True)
 def retry_node(node_id: str):
     task_service.retry_activity(node_id)
 
 
-@app.task(queue="backend")
+@app.task(queue="backend", ignore_result=True)
 def set_record_status(instance_record_ids: List[str], status: str, delay_seconds: float):
     # 不允许长时间占用资源
     time.sleep(delay_seconds if delay_seconds < 2 else 2)
