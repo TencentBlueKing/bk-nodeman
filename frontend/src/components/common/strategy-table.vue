@@ -15,7 +15,7 @@
                 <i class="copy-icon nodeman-icon nc-copy-2" @click.stop="handleCopy(row.sourceKey)"></i>
               </div>
             </div>
-            <span class="cell-placeholder" v-else>{{ hasCloud ? $t('请输入IP') : $t('请选择云区域') }}</span>
+            <span class="cell-placeholder" v-else>{{ hasCloud ? $t('请输入IP') : $t('请选择管控区域') }}</span>
           </template>
         </div>
         <div class="cell-wrapper" v-else>
@@ -32,7 +32,7 @@
               <i class="copy-icon nodeman-icon nc-copy-2" @click.stop="handleCopy(row.sourceKey)"></i>
             </div>
             <span v-else-if="row.sourceKey === 'proxy' && notAvailableProxy" class="cell-placeholder">
-              {{ $t('云区域未安装Proxy') }}
+              {{ $t('管控区域未安装Proxy') }}
             </span>
             <span v-else-if="row.sourceRe" class="cell-placeholder">{{ row.source ? emptyPlaceholder : '' }}</span>
             <div slot="content">
@@ -58,7 +58,7 @@
                   <i class="copy-icon nodeman-icon nc-copy-2" @click.stop="handleCopy(row.targetKey)"></i>
                 </div>
               </div>
-              <span v-else class="cell-placeholder">{{ hasCloud ? $t('请输入IP') : $t('请选择云区域') }}</span>
+              <span v-else class="cell-placeholder">{{ hasCloud ? $t('请输入IP') : $t('请选择管控区域') }}</span>
             </template>
           </template>
           <template v-else>
@@ -75,7 +75,7 @@
                 <i class="copy-icon nodeman-icon nc-copy-2" @click.stop="handleCopy(row.targetKey)"></i>
               </div>
               <span v-else-if="row.targetKey === 'proxy' && notAvailableProxy" class="cell-placeholder">
-                {{ $t('云区域未安装Proxy') }}
+                {{ $t('管控区域未安装Proxy') }}
               </span>
               <span v-else-if="row.targetRe" class="cell-placeholder">
                 {{ row.targetAdress ? emptyPlaceholder : '' }}
@@ -92,7 +92,7 @@
       <template #default="{ row }">
         <div v-if="row.portKey">
           <span v-if="row.portKey === 'bt_range'" :class="{ 'cell-placeholder': !area.bt_port_start }">
-            {{ area.bt_port_start ? `${area.bt_port_start}-${area.bt_port_end}` : $t('请选择云区域') }}
+            {{ area.bt_port_start ? `${area.bt_port_start}-${area.bt_port_end}` : $t('请选择管控区域') }}
           </span>
           <bk-popover
             v-else-if="row.portKey === 'zk'"
@@ -114,7 +114,7 @@
           <span
             v-else-if="row.portKey"
             :class="{ 'cell-placeholder': !area[row.portKey] }">
-            {{ area[row.portKey] || $t('请选择云区域') }}
+            {{ area[row.portKey] || $t('请选择管控区域') }}
           </span>
         </div>
         <span v-else-if="row.port">{{ row.port }}</span>
@@ -553,7 +553,7 @@ export default class StrategyTable extends Vue {
       zk: this.area.zk.length,
       // eslint-disable-next-line no-nested-ternary
       zkText: this.area.zk.length > 1
-        ? this.$t('详情') : (this.area.zk.length ? this.area.zkHosts[0].zk_port : this.$t('请选择云区域')),
+        ? this.$t('详情') : (this.area.zk.length ? this.area.zkHosts[0].zk_port : this.$t('请选择管控区域')),
       dataserverStr: this.area.dataserver[0],
       dataserver: this.area.dataserver.length,
       taskserverStr: this.area.dataserver[0],
@@ -564,7 +564,7 @@ export default class StrategyTable extends Vue {
       proxy: this.area.proxy.length,
     };
   }
-  // 云区域下无可用的proxy
+  // 管控区域下无可用的proxy
   private get notAvailableProxy() {
     return this.hostType === 'Pagent' && (this.area.bk_cloud_id || this.area.bk_cloud_id === 0) && !this.detail.proxy;
   }

@@ -7,7 +7,7 @@
     <!--表单-->
     <section class="add-cloud-form">
       <bk-form :label-width="116" :model="formData" :rules="rules" ref="form" v-test.cloudInfo="'cloudForm'">
-        <bk-form-item error-display-type="normal" :label="$t('云区域名称')" property="bkCloudName" required>
+        <bk-form-item error-display-type="normal" :label="$t('管控区域名称')" property="bkCloudName" required>
           <bk-input
             v-test.cloudInfo="'cloudName'"
             class="content-basic"
@@ -74,7 +74,7 @@
           <i class="bk-icon  icon-check-1"></i>
         </div>
         <div class="bk-dialog-type-header has-sub-header">
-          <div class="header">{{ $t('云区域创建成功') }}</div>
+          <div class="header">{{ $t('管控区域创建成功') }}</div>
           <div class="desc mt10">
             <p>{{ $t('仍需安装Proxy才能够正常使用') }}</p>
           </div>
@@ -123,11 +123,11 @@ export default class CloudManagerAdd extends formLabelMixin {
   @Ref('form') private readonly formRef!: any;
 
   private tipsList = [
-    this.$t('云区域管理提示一'),
+    this.$t('管控区域管理提示一'),
   ];
   private apTipsList = [
-    this.$t('变更云区域原有的接入点'),
-    this.$t('将会重装该云区域下所有Proxy'),
+    this.$t('变更管控区域原有的接入点'),
+    this.$t('将会重装该管控区域下所有Proxy'),
   ];
   // 表单数据
   private formData: {
@@ -195,7 +195,7 @@ export default class CloudManagerAdd extends formLabelMixin {
       promiseList.push(MainStore.getIspList());
     }
     if (this.id) {
-      MainStore.setNavTitle('编辑云区域');
+      MainStore.setNavTitle('编辑管控区域');
       promiseList.push(this.handleGetCloudDetail());
     }
     this.loading = true;
@@ -208,7 +208,7 @@ export default class CloudManagerAdd extends formLabelMixin {
     }
   }
   /**
-   * 获取云区域详情
+   * 获取管控区域详情
    */
   private async handleGetCloudDetail() {
     const form = await CloudStore.getCloudDetail(`${this.id}`);
@@ -286,7 +286,7 @@ export default class CloudManagerAdd extends formLabelMixin {
     this.dialog.bk_cloud_id = data.bk_cloud_id;
   }
   /**
-   * 创建云区域
+   * 创建管控区域
    */
   private async handleCreateCloud() {
     const data = await CloudStore.createCloud({
@@ -297,7 +297,7 @@ export default class CloudManagerAdd extends formLabelMixin {
     return data;
   }
   /**
-   * 编辑云区域
+   * 编辑管控区域
    */
   private async handleUpdateCloud() {
     const data = await CloudStore.updateCloud({

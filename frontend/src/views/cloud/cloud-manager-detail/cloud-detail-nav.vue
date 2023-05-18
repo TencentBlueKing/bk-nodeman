@@ -1,11 +1,11 @@
 <template>
   <!--详情左侧面板-->
   <section class="detail-left" v-test="'cloudNav'">
-    <!--搜索云区域别名-->
+    <!--搜索管控区域别名-->
     <div class="detail-left-search">
       <bk-input
         v-test="'cloudFilter'"
-        :placeholder="$t('搜索云区域名称')"
+        :placeholder="$t('搜索管控区域名称')"
         right-icon="bk-icon icon-search"
         v-model="bkCloudName"
         @change="handleValueChange">
@@ -74,7 +74,7 @@ import { cloudSort } from '../config/cloud-common';
 
 @Component({ name: 'CloudDetailNav' })
 export default class CloudDetailSide extends Vue {
-  @Prop({ type: Number, default: -1 }) private readonly id!: number; // 当前选中的云区域
+  @Prop({ type: Number, default: -1 }) private readonly id!: number; // 当前选中的管控区域
   @Prop({ type: Boolean, default: false }) private readonly loaded!: boolean; // 是否是首次加载
   @Prop({ type: String, default: '' }) private readonly search!: '';
 
@@ -114,7 +114,7 @@ export default class CloudDetailSide extends Vue {
   }
 
   /**
-   * 搜索云区域别名
+   * 搜索管控区域别名
    */
   public handleSearch() {
     this.area.data = this.bkCloudName.length === 0
@@ -126,7 +126,7 @@ export default class CloudDetailSide extends Vue {
       });
   }
   /**
-   * 获取云区域列表
+   * 获取管控区域列表
    */
   public async handleGetCloudList() {
     this.loading = true;

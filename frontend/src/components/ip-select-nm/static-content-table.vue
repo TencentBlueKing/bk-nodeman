@@ -48,7 +48,7 @@
         </div>
       </template>
     </bk-table-column>
-    <bk-table-column :label="$t('云区域')" prop="bk_cloud_name"></bk-table-column>
+    <bk-table-column :label="$t('管控区域')" prop="bk_cloud_name"></bk-table-column>
     <!-- <bk-table-column :label="$t('主机名')" prop="bk_host_name"></bk-table-column> -->
     <bk-table-column :label="$t('操作系统')" prop="os_type">
       <template #default="{ row }">

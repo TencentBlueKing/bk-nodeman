@@ -85,7 +85,7 @@
         :data="filterSearchSelectData"
         v-model="searchSelectValue"
         :show-condition="false"
-        :placeholder="$t('搜索IP云区域操作系统Agent状态')"
+        :placeholder="$t('搜索IP管控区域操作系统Agent状态')"
         @paste.native.capture.prevent="handlePaste"
         @change="handleValueChange">
       </bk-search-select>

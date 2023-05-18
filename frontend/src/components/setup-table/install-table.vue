@@ -226,7 +226,7 @@ export default class SetupTable extends Vue {
   @Prop({ type: Boolean, default: true }) private readonly needPlus!: boolean;
   // 额外参数
   @Prop({ type: Array, default: () => [] }) private readonly extraParams!: string[];
-  // 是否为手动安装，校验和云区域变更时需要此变量
+  // 是否为手动安装，校验和管控区域变更时需要此变量
   @Prop({ type: Boolean, default: false }) private readonly isManual!: boolean;
   // 是否开启表头设置
   @Prop({ type: Boolean, default: true }) private readonly colSetting!: boolean;

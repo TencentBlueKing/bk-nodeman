@@ -25,7 +25,7 @@
             </bk-button>
           </div>
           <bk-input
-            :placeholder="$t('输入主机IP/主机名/操作系统/云区域进行搜索...')"
+            :placeholder="$t('输入主机IP/主机名/操作系统/管控区域进行搜索...')"
             right-icon="bk-icon icon-search">
           </bk-input>
         </div>

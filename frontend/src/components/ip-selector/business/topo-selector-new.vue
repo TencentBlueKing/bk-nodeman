@@ -234,7 +234,7 @@ export default class TopoSelector extends Vue {
       },
       {
         prop: 'bk_cloud_name',
-        label: this.$t('云区域'),
+        label: this.$t('管控区域'),
       },
       {
         prop: 'bk_os_type',
@@ -616,7 +616,7 @@ export default class TopoSelector extends Vue {
   }
   // 判断IP是否一样
   private identityIp(pre, next) {
-    // 有云区域id时，云区域ID加IP唯一标识一个IP，没有云区域时IP作为唯一ID
+    // 有管控区域id时，管控区域ID加IP唯一标识一个IP，没有管控区域时IP作为唯一ID
     return (Object.prototype.hasOwnProperty.call(pre, 'bk_cloud_id')
       ? (pre.ip === next.ip) && (pre.bk_cloud_id === next.bk_cloud_id)
       : pre.ip === next.ip);

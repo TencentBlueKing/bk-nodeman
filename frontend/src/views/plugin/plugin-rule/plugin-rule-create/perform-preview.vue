@@ -97,7 +97,7 @@
         @page-change="handlePageChange"
         @page-limit-change="handlePageLimitChange">
         <bk-table-column :label="$t('主机IP')" prop="inner_ip" show-overflow-tooltip />
-        <bk-table-column :label="$t('云区域')" prop="bk_cloud_id" :render-header="renderFilterHeader">
+        <bk-table-column :label="$t('管控区域')" prop="bk_cloud_id" :render-header="renderFilterHeader">
           <template #default="{ row }">{{ row.bk_cloud_name }}</template>
         </bk-table-column>
         <!-- 忽略的没有这两列信息 -->
@@ -812,7 +812,7 @@ export default class PerformPreview extends Mixins(HeaderRenderMixin, HeaderFilt
       obj[item.key] = item.value;
       return obj;
     }, conditions);
-    // 业务、云区域、操作系统为大范围, agent状态为小范围
+    // 业务、管控区域、操作系统为大范围, agent状态为小范围
     const filterKeys = ['bk_biz_name', 'bk_cloud_id', 'os_type', 'status'];
     filterKeys.forEach((key) => {
       let conditionItem = conditions[key];

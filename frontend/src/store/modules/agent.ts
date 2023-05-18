@@ -129,7 +129,7 @@ export default class AgentStore extends VuexModule {
     return data;
   }
   /**
-   * 获取云区域列表
+   * 获取管控区域列表
    * @param {*} param0
    * @param {*} params
    */

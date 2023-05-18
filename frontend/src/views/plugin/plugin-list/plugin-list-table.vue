@@ -120,7 +120,7 @@
         min-width="130"
         prop="bk_cloud_id"
         sortable
-        :label="$t('云区域')"
+        :label="$t('管控区域')"
         v-if="filterField['bk_cloud_id'].mockChecked"
         :render-header="renderFilterHeader">
         <template #default="{ row }">
@@ -315,7 +315,7 @@ export default class PluginRuleTable extends Mixins(HeaderRenderMixin) {
     bk_cloud_id: {
       checked: true,
       disabled: false,
-      name: window.i18n.t('云区域'),
+      name: window.i18n.t('管控区域'),
       id: 'bk_cloud_id',
       mockChecked: true,
     },
