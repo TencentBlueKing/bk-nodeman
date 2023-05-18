@@ -156,6 +156,10 @@ export default class SidesliderContentEdit extends Vue {
     };
     this.proxyData = Object.assign(copyData, item);
   }
+  @Watch('proxyData', { deep: true })
+  public handleFormChange() {
+    this.$emit('update-edited', true);
+  }
 
   private handleSave() {
     const isValidate = this.getAuthTypeValidate();

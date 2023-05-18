@@ -1,10 +1,17 @@
 <template>
-  <bk-sideslider transfer :is-show.sync="show" :width="width" quick-close @hidden="handleToggle(false)">
+  <bk-sideslider
+    transfer
+    :is-show.sync="show"
+    :width="width"
+    quick-close
+    :before-close="sliderBeforeClose"
+    @hidden="handleToggle(false)">
     <template #header>{{ title }}</template>
     <template #content>
       <SidesliderContentEdit
         v-if="edit"
         :basic="basicInfo"
+        @update-edited="(isEdited) => edited = !!isEdited"
         @close="handleToggle(false)"
         @change="handleSave">
       </SidesliderContentEdit>
@@ -31,6 +38,7 @@ export default class CloudDetailSlider extends Vue {
   @ModelSync('value', 'change', { default: false, type: Boolean }) private show!: boolean;
 
   private basicInfo: Dictionary = {};
+  private edited = false;
 
   private get title() {
     return this.edit ? this.$t('修改登录信息') : this.row.inner_ip;
@@ -46,11 +54,28 @@ export default class CloudDetailSlider extends Vue {
 
   @Emit('change')
   public handleToggle(show: boolean) {
+    if (!show) {
+      this.edited = false;
+    }
     return show;
   }
   @Emit('save')
   public handleSave(show: boolean) {
     return show;
+  }
+
+  public sliderBeforeClose() {
+    if (!this.edited) return Promise.resolve(true);
+    return new Promise((resolve) => {
+      this.$bkInfo({
+        title: window.i18n.t('确定离开当前页'),
+        subTitle: window.i18n.t('离开将会导致未保存的信息丢失'),
+        confirmFn: () => {
+          resolve(true);
+        },
+        cancelFn: () => resolve(false),
+      });
+    });
   }
 }
 </script>
