@@ -4,6 +4,8 @@
     :is-show.sync="show"
     :width="540"
     :title="title"
+    quick-close
+    :before-close="sliderBeforeClose"
     @hidden="handleToggle(false)">
     <template #content>
       <section class="channel-edit">
@@ -115,6 +117,8 @@ export default class ChannelEdit extends Vue {
     taskserver: 'Taskserver',
   };
   private showAdvancedConfig = false;
+  private edited = false;
+  private isOpen = false;
 
   private get title() {
     return this.edit ? this.$t('编辑安装通道') : this.$t('新建安装通道');
@@ -131,10 +135,19 @@ export default class ChannelEdit extends Vue {
     this.btnLoading = false;
     this.$set(this, 'channelForm', this.getFormatForm(show && this.edit ? this.channel : undefined));
     this.showAdvancedConfig = !!this.channelForm.channel_proxy_address;
+    this.isOpen = true;
+  }
+  @Watch('channelForm', { deep: true })
+  public handleFormChange() {
+    if (!this.isOpen) {
+      this.edited = true;
+    }
+    this.isOpen = false;
   }
 
   @Emit('change')
   public handleToggle(show: boolean) {
+    this.edited = false;
     return show;
   }
   @Emit('channel-confirm')
@@ -222,6 +235,20 @@ export default class ChannelEdit extends Vue {
   }
   public checkRepeatIp(value: string, prop: string) {
     return this.channelForm[prop].filter((item: { value: string }) => item.value === value).length < 2;
+  }
+
+  public sliderBeforeClose() {
+    if (!this.edited) return Promise.resolve(true);
+    return new Promise((resolve) => {
+      this.$bkInfo({
+        title: window.i18n.t('确定离开当前页'),
+        subTitle: window.i18n.t('离开将会导致未保存的信息丢失'),
+        confirmFn: () => {
+          resolve(true);
+        },
+        cancelFn: () => resolve(false),
+      });
+    });
   }
 }
 </script>
