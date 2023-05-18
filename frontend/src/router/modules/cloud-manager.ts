@@ -14,7 +14,7 @@ export default [
     component: CloudManager,
     meta: {
       navId: 'cloudManager',
-      title: '云区域管理',
+      title: '管控区域管理',
     },
   },
   {
@@ -24,7 +24,7 @@ export default [
     component: AddCloudManager,
     meta: {
       navId: 'cloudManager',
-      title: '新建云区域',
+      title: '新建管控区域',
       needBack: true,
     },
   },
@@ -68,7 +68,7 @@ export default [
     component: CloudManagerDetail,
     meta: {
       navId: 'cloudManager',
-      title: '云区域详情',
+      title: '管控区域详情',
       customContent: true,
       needBack: true,
       authority: {

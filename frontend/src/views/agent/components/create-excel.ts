@@ -20,7 +20,7 @@ const config: IHead[] = [
   { name: window.i18n.t('外网IP'), prop: 'outer_ip', optional: true, width: 150 },
   { name: window.i18n.t('登录IP'), prop: 'login_ip', optional: true, width: 150 },
   { name: window.i18n.t('业务'), prop: 'bk_biz_id', optional: true },
-  { name: window.i18n.t('云区域'), prop: 'bk_cloud_id', optional: true },
+  { name: window.i18n.t('管控区域'), prop: 'bk_cloud_id', optional: true },
   { name: window.i18n.t('接入点'), prop: 'ap_id', optional: true },
   { name: window.i18n.t('BT节点探测'), prop: 'peer_exchange_switch_for_agent', optional: true, width: 120 },
   { name: window.i18n.t('传输限速Unit'), prop: 'bt_speed_limit', optional: true, width: 140 },

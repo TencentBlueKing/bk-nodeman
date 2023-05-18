@@ -113,7 +113,7 @@
               {{ row.innerIp | filterEmpty }}
             </template>
           </bk-table-column>
-          <bk-table-column :label="$t('云区域')" prop="bkCloudName" :resizable="false">
+          <bk-table-column :label="$t('管控区域')" prop="bkCloudName" :resizable="false">
             <template #default="{ row }">
               {{ row.bkCloudName | filterEmpty }}
             </template>

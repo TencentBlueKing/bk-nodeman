@@ -195,7 +195,7 @@ export default class TopoSelector extends Vue {
       },
       {
         prop: 'bk_cloud_name',
-        label: this.$t('云区域'),
+        label: this.$t('管控区域'),
       },
       {
         prop: 'os_type',

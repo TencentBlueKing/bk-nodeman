@@ -3,7 +3,7 @@ import { reguFnMinInteger, reguPort, reguIPMixins, reguIp, reguIPv6 } from '@/co
 
 export const parentHead = [
   { label: '业务属性', prop: 'biz_attr', type: 'text', colspan: 0 },
-  { label: '云区域属性', prop: 'cloud_attr', type: 'text', colspan: 0 },
+  { label: '管控区域属性', prop: 'cloud_attr', type: 'text', colspan: 0 },
   { label: '主机IPTip', prop: 'host_ip', type: 'text', colspan: 0, required: true, tips: 'agentSetupHostIp' },
   { label: '主机属性', prop: 'host_attr', type: 'text', colspan: 0 },
   { label: '登录信息', prop: 'login_info', type: 'text', tips: 'agentSetupLoginInfo', colspan: 0 },
@@ -25,7 +25,7 @@ const config = [
     manualProp: true,
   },
   {
-    label: '云区域',
+    label: '管控区域',
     prop: 'bk_cloud_id',
     type: 'select',
     batch: true,

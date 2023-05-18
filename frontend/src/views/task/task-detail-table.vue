@@ -39,7 +39,7 @@
           {{ row.innerIpv6 | filterEmpty }}
         </template>
       </bk-table-column>
-      <bk-table-column :label="$t('云区域')" prop="bkCloudName" min-width="90" :resizable="false" show-overflow-tooltip />
+      <bk-table-column :label="$t('管控区域')" prop="bkCloudName" min-width="90" :resizable="false" show-overflow-tooltip />
       <bk-table-column min-width="100" :label="$t('业务')" prop="bkBizName" :resizable="false" show-overflow-tooltip />
       <bk-table-column min-width="110" :label="$t('操作类型')" prop="opTypeDisplay" :resizable="false" />
       <bk-table-column

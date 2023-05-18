@@ -134,7 +134,7 @@
         </bk-table-column>
         <bk-table-column
           key="cloudArea"
-          :label="$t('云区域')"
+          :label="$t('管控区域')"
           :render-header="renderFilterHeader"
           prop="bk_cloud_id"
           resizable
@@ -311,7 +311,7 @@ export default {
           checked: true,
           mockChecked: true,
           disabled: false,
-          name: this.$t('云区域'),
+          name: this.$t('管控区域'),
           id: 'bk_cloud_id',
         },
         bk_biz_name: {
@@ -967,7 +967,7 @@ export default {
         const cloud = cloudClass ? (cloudClass.children || []).find(item => `${item.id}` === cloudId) : null;
         if (cloud) {
           values.push({
-            name: '云区域',
+            name: this.$t('管控区域'),
             id: 'bk_cloud_id',
             values: [cloud],
           });

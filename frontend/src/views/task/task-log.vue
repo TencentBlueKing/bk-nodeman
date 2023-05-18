@@ -328,7 +328,7 @@ export default {
       return this.$t('执行日志标题', { ip: this.curIp, jobType: this.jobTypeDisplay });
     },
     titleRemarks() {
-      return this.$t('所属云区域', { cloud: this.cloudArea });
+      return this.$t('所属管控区域', { cloud: this.cloudArea });
     },
     // 初始化的时候可能带着成功或错误的筛选条件
     filterType() {

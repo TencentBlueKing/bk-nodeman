@@ -209,9 +209,9 @@ export default class NodemanNavigation extends Mixins(routerBackMixin) {
     setupCloudManager: window.i18n.t('安装proxyAuth'),
     pluginOld: window.i18n.t('查看插件Auth'),
     taskList: window.i18n.t('查看任务历史Auth'),
-    addCloudManager: window.i18n.t('创建云区域权限'),
-    editCloudManager: window.i18n.t('编辑云区域权限'),
-    cloudManagerDetail: window.i18n.t('查看云区域权限'),
+    addCloudManager: window.i18n.t('创建管控区域权限'),
+    editCloudManager: window.i18n.t('编辑管控区域权限'),
+    cloudManagerDetail: window.i18n.t('查看管控区域权限'),
   };
 
   private get navList() {

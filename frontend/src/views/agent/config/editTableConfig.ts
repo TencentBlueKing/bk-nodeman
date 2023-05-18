@@ -17,7 +17,7 @@ export const config: ISetupHead[] = [
     manualProp: true,
   },
   {
-    label: '云区域',
+    label: '管控区域',
     prop: 'bk_cloud_id',
     type: 'select',
     required: true,

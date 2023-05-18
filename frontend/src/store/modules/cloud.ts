@@ -20,7 +20,7 @@ export const UPDATE_AP_URL = 'updateApUrl';
 @Module({ name: 'cloud', namespaced: true })
 export default class CloudStore extends VuexModule {
   public apData: IAp[] = []; // 接入点
-  public list: any[] = []; // 云区域列表
+  public list: any[] = []; // 管控区域列表
   public url = ''; // 接入点Url
   public authorityMap: ICloudAuth = {};
   public channelServerKeys = ['btfileserver', 'dataserver', 'taskserver'];
@@ -57,7 +57,7 @@ export default class CloudStore extends VuexModule {
   }
 
   /**
-    * 获取云区域列表
+    * 获取管控区域列表
     * @param {s} param0
     * @param {*} params
     */
@@ -86,7 +86,7 @@ export default class CloudStore extends VuexModule {
     return data;
   }
   /**
-   * 获取云区域详情
+   * 获取管控区域详情
    * @param {*} pk
    */
   @Action
@@ -95,7 +95,7 @@ export default class CloudStore extends VuexModule {
     return transformDataKey(data) as ICloud;
   }
   /**
-   * 删除云区域
+   * 删除管控区域
    * @param {*} params
    */
   @Action
@@ -104,7 +104,7 @@ export default class CloudStore extends VuexModule {
     return data;
   }
   /**
-   * 创建云区域
+   * 创建管控区域
    * @param {*} params
    */
   @Action
@@ -123,7 +123,7 @@ export default class CloudStore extends VuexModule {
     return data;
   }
   /**
-   * 更新云区域
+   * 更新管控区域
    * @param {*} commit
    * @param {*} pk
    * @param {*} params
@@ -135,7 +135,7 @@ export default class CloudStore extends VuexModule {
     return data;
   }
   /**
-   * 获取云区域Proxy列表
+   * 获取管控区域Proxy列表
    * @param {*} param0
    * @param {*} pk
    */

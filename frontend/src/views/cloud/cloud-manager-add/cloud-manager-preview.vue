@@ -148,7 +148,7 @@ export default class CloudManagerPreview extends RouterBackMixin {
     this.handleGetProxyList();
   }
   /**
-     * 获取云区域Proxy列表
+     * 获取管控区域Proxy列表
      */
   public async handleGetProxyList() {
     this.loadingProxy = true;

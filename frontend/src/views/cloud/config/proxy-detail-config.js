@@ -3,7 +3,7 @@ import { DHCP_FILTER_KEYS } from '@/config/config';
 const config = [
   {
     prop: 'bk_cloud_id',
-    label: window.i18n.t('云区域ID'),
+    label: window.i18n.t('管控区域ID'),
     readonly: true,
   },
   {
