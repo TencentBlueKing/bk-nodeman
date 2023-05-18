@@ -25,14 +25,14 @@
               @change="handleBizChange">
             </bk-biz-select>
           </bk-form-item>
-          <bk-form-item error-display-type="normal" :label="$t('云区域')" property="bk_cloud_id" required>
+          <bk-form-item error-display-type="normal" :label="$t('管控区域')" property="bk_cloud_id" required>
             <permission-select
               :class="['content-basic', { 'is-error': ['no_proxy', 'overdue'].includes(proxyStatus) }]"
               searchable
               :permission="permissionSwitch"
               :permission-type="'cloud_view'"
               :permission-key="'view'"
-              :placeholder="$t('选择云区域')"
+              :placeholder="$t('选择管控区域')"
               :loading="loadingCloudList"
               :option-list="bkCloudList"
               :option-id="'bk_cloud_id'"
@@ -80,7 +80,7 @@
               v-model="formData.ap_id"
               v-bk-tooltips="{
                 delay: [300, 0],
-                content: $t('接入点已在云区域中设定'),
+                content: $t('接入点已在管控区域中设定'),
                 disabled: !apDisabled,
                 placement: 'right'
               }"
@@ -211,7 +211,7 @@ export default class AgentSetup extends Mixins(mixin, formLabelMixin) {
   private isScroll = false;
   // 安装按钮加载中的状态
   private loadingSetupBtn = false;
-  // 云区域列表加载状态
+  // 管控区域列表加载状态
   private loadingCloudList = false;
   // 接入点列表加载状态
   private loadingApList = false;
@@ -225,7 +225,7 @@ export default class AgentSetup extends Mixins(mixin, formLabelMixin) {
   private proxyCount = 0;
   // Proxy状态
   private proxyStatus = '';
-  // Proxy所在云区域ID
+  // Proxy所在管控区域ID
   private proxyCloudId: undefined | number = undefined;
 
   private get permissionSwitch() {
@@ -234,7 +234,7 @@ export default class AgentSetup extends Mixins(mixin, formLabelMixin) {
   private get selectedBiz() {
     return MainStore.selectedBiz;
   }
-  // 当前云区域列表
+  // 当前管控区域列表
   private get bkCloudList() {
     return AgentStore.cloudList.filter(item => !item.bk_biz_scope
             || item.bk_biz_scope.includes(this.formData.bk_biz_id));
@@ -453,7 +453,7 @@ export default class AgentSetup extends Mixins(mixin, formLabelMixin) {
     MainStore.updateEdited(true);
   }
   /**
-   * 云区域变更
+   * 管控区域变更
    */
   public handleCloudChange(value: number) {
     MainStore.updateEdited(true);
@@ -487,7 +487,7 @@ export default class AgentSetup extends Mixins(mixin, formLabelMixin) {
   }
   public handleChannelChange(value: number | string) {
     MainStore.updateEdited(true);
-    // 非直连云区域存在已绑定的接入点
+    // 非直连管控区域存在已绑定的接入点
     if (value !== 'default' && this.formData.bk_cloud_id === window.PROJECT_CONFIG.DEFAULT_CLOUD) {
       this.formData.ap_id = this.curApList.find(item => item.id !== -1)?.id || '';
     }

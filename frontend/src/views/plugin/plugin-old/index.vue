@@ -50,7 +50,7 @@ export default {
       type: String,
       default: 'LINUX',
     },
-    // 云区域id
+    // 管控区域id
     cloudId: {
       type: String,
       default: '',

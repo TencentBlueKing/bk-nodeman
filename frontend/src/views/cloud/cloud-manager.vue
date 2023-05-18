@@ -8,7 +8,7 @@
     <section class="cloud-content">
       <div class="content-header mb15">
         <div class="h32">
-          <!--创建云区域-->
+          <!--创建管控区域-->
           <auth-component
             tag="div"
             :authorized="authority.create_action"
@@ -30,7 +30,7 @@
             :disabled="!checkableRowsAll"
             :get-ips="handleCopyIp" />
         </div>
-        <!--搜索云区域-->
+        <!--搜索管控区域-->
         <bk-input
           v-test="'searchCloud'"
           :placeholder="$t('搜索名称')"
@@ -41,7 +41,7 @@
         </bk-input>
       </div>
 
-      <!--云区域列表-->
+      <!--管控区域列表-->
       <div class="content-table" v-bkloading="{ isLoading: loading }">
         <bk-table
           v-test="'cloudTable'"
@@ -82,7 +82,7 @@
           <bk-table-column
             class-name="col-pl-none"
             sortable="custom"
-            :label="$t('云区域名称')"
+            :label="$t('管控区域名称')"
             prop="cloudNameCopy"
             show-overflow-tooltip>
             <template #default="{ row }">
@@ -105,7 +105,7 @@
               </auth-component>
             </template>
           </bk-table-column>
-          <bk-table-column :label="$t('云区域ID')" prop="bkCloudId" width="110"></bk-table-column>
+          <bk-table-column :label="$t('管控区域ID')" prop="bkCloudId" width="110"></bk-table-column>
           <bk-table-column align="right" width="55" :resizable="false">
             <template #default="{ row }">
               <img :src="`data:image/svg+xml;base64,${row.ispIcon}`" class="col-svg" v-if="row.ispIcon">
@@ -317,7 +317,7 @@ export default class CloudManager extends Vue {
 
   // 提示信息
   private tipsList = [
-    this.$t('云区域管理提示一'),
+    this.$t('管控区域管理提示一'),
   ];
   // 表格属性
   private table: {
@@ -400,13 +400,13 @@ export default class CloudManager extends Vue {
   protected get copyMenu() {
     return [
       {
-        name: this.$t('勾选云区域的ProxyIP'),
+        name: this.$t('勾选管控区域的ProxyIP'),
         id: 'selected',
         disabled: !this.hasSelectedRows,
         child: this.$DHCP ? checkedChildList : [],
       },
       {
-        name: this.$t('所有云区域的ProxyIP'),
+        name: this.$t('所有管控区域的ProxyIP'),
         id: 'all',
         child: this.$DHCP ? allChildList : [],
       },
@@ -432,7 +432,7 @@ export default class CloudManager extends Vue {
     const res = await Promise.all(promiseAll);
     const data = res[0] as ICloud[];
     const channelList = res[1];
-    const sortData = cloudSort(data, this.permissionSwitch); // 云区域排序
+    const sortData = cloudSort(data, this.permissionSwitch); // 管控区域排序
     CloudStore.SET_CLOUD_LIST([...sortData]);
 
     // 留下一份基础排序的数据, 后续优化均从此数据上二次排序
@@ -514,7 +514,7 @@ export default class CloudManager extends Vue {
       }
     };
     this.$bkInfo({
-      title: this.$t('确定删除该云区域'),
+      title: this.$t('确定删除该管控区域'),
       extCls: 'wrap-title',
       confirmFn: () => {
         deleteCloud(row.bkCloudId);
@@ -522,7 +522,7 @@ export default class CloudManager extends Vue {
     });
   }
   /**
-   * 添加云区域
+   * 添加管控区域
    */
   public handleAddCloud() {
     this.$router.push({
@@ -578,7 +578,7 @@ export default class CloudManager extends Vue {
     return row.isChannel ? 'row-expand-bg' : 'pointer-row';
   }
   /**
-   * 跳转agent并筛选出云区域
+   * 跳转agent并筛选出管控区域
    */
   public handleGotoAgent(row: ICloud) {
     MainStore.setSelectedBiz([]);

@@ -60,7 +60,7 @@ export const navConfig: INavConfig[] = [
     ],
   },
   {
-    title: '云区域管理',
+    title: '管控区域管理',
     path: '/cloud-manager',
     name: 'cloudManager',
   },

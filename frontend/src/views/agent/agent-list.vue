@@ -290,7 +290,7 @@
         </bk-table-column>
         <bk-table-column
           key="cloudArea"
-          :label="$t('云区域')"
+          :label="$t('管控区域')"
           show-overflow-tooltip
           :min-width="columnMinWidth['bk_cloud_id']"
           :render-header="renderFilterHeader"
@@ -715,7 +715,7 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
       checked: true,
       mockChecked: true,
       disabled: false,
-      name: window.i18n.t('云区域'),
+      name: window.i18n.t('管控区域'),
       id: 'bk_cloud_id',
       filter: true,
     },
@@ -874,7 +874,7 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
   private markDeleteArr: IAgentHost[] = [];
   private localMark = '_agent';
   private operateBiz: IBizValue[] =[]; // 有操作权限的业务
-  private cloudAgentNum = 0; // 从云区域点击跳转过来的主机数量，区分是否因为权限问题看不到主机
+  private cloudAgentNum = 0; // 从管控区域点击跳转过来的主机数量，区分是否因为权限问题看不到主机
   private columnMinWidth: Dictionary = {};
 
   private get osMap() {

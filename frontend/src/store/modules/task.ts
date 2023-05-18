@@ -48,7 +48,7 @@ export default class TaskStore extends VuexModule {
     const res: ITask = await retrieveJob(jobId, params).catch(() => {});
     if (res) {
       res.list.forEach((row: ITaskHost) => {
-        if (row.bk_cloud_id === 0 || row.bk_cloud_name === 'default area') {
+        if (row.bk_cloud_id === 0 || row.bk_cloud_name === 'Direct Mode') {
           row.bk_cloud_name = window.i18n.t('直连区域');
         }
         row.status = row.status.toLowerCase();

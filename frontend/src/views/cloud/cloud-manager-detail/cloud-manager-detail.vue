@@ -105,7 +105,7 @@ export default class CloudManagerDetail extends Mixins(pollMixin, routerBackMixi
   private get navTitle() {
     const list = this.permissionSwitch ? this.cloudList.filter(item => item.view) : this.cloudList;
     const cloudArea = list.find(item => item.bkCloudId === this.navActiveId);
-    return cloudArea ? cloudArea.bkCloudName : this.$t('未选中云区域');
+    return cloudArea ? cloudArea.bkCloudName : this.$t('未选中管控区域');
   }
 
   @Watch('id')
@@ -122,7 +122,7 @@ export default class CloudManagerDetail extends Mixins(pollMixin, routerBackMixi
     this.getChannelData();
   }
   /**
-     * 获取云区域Proxy列表
+     * 获取管控区域Proxy列表
      */
   public async handleGetProxyList(loading = true) {
     this.loadingProxy = loading;

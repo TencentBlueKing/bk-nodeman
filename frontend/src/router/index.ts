@@ -141,7 +141,7 @@ const validateBizAuth = async (to: Route, from: Route, permissionSwitch: boolean
   }
   MainStore.setNmMainLoading(false);
 };
-// 校验云区域界面
+// 校验管控区域界面
 const validateCloudAuth = async (to: Route, from, permissionSwitch: boolean) => {
   if (permissionSwitch) {
     const { authority } = to.meta;
