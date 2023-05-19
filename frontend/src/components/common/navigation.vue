@@ -55,7 +55,7 @@
                 </ul>
               </template>
             </MixinsControlDropdown>
-            <MixinsControlDropdown v-if="userList.length" ext-cls="menu-dropdown">
+            <MixinsControlDropdown ext-cls="menu-dropdown">
               <div class="header-user header-nav-btn">
                 {{ currentUser }}
                 <i class="bk-icon icon-down-shape"></i>
@@ -72,9 +72,6 @@
                 </ul>
               </template>
             </MixinsControlDropdown>
-            <div class="hover-default" v-else>
-              {{ currentUser }}
-            </div>
           </div>
         </div>
       </template>
@@ -199,7 +196,9 @@ export default class NodemanNavigation extends Mixins(routerBackMixin) {
       name: 'English',
     },
   ];
-  private userList: IUserItem[] = [];
+  private userList: IUserItem[] = [
+    { id: 'LOGOUT', name: window.i18n.t('退出登录') },
+  ];
   private showLog = false;
   private subTitleMap: { [key: string]: string } = {
     agentStatus: window.i18n.t('查看agentAuth'),
@@ -307,9 +306,6 @@ export default class NodemanNavigation extends Mixins(routerBackMixin) {
 
   private mounted() {
     this.resetNavToggle();
-    if (window.PROJECT_CONFIG.RUN_VER !== 'ieod') {
-      this.userList.push({ id: 'LOGOUT', name: window.i18n.t('退出登录') });
-    }
     this.biz = [...this.selectedBiz];
   }
   /**
