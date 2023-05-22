@@ -246,7 +246,7 @@ class BkRepoTestCase(FileSystemTestCase):
     def upload_plugin(self, file_local_path: Optional[str] = None) -> Dict[str, Any]:
         file_local_path = file_local_path or self.PLUGIN_ARCHIVE_PATH
 
-        upload_path = random.choice(["/backend/package/upload_cos/", "/backend/api/plugin/upload/"])
+        upload_path = random.choice(["/backend/api/plugin/upload/"])
         upload_result = self.client.post(
             path=upload_path,
             data={

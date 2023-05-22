@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+from apps.utils.env import get_type_env
 from config import APP_CODE, RUN_VER
 
 if RUN_VER == "open":
@@ -74,14 +75,13 @@ except ImportError:
 
 
 # 本地开发后台不启用用户校验，并默认用超级管理员作为用户
-BK_BACKEND_CONFIG = bool(os.getenv("BK_BACKEND_CONFIG", None))
+BK_BACKEND_CONFIG = get_type_env(key="BK_BACKEND_CONFIG", default=False, _type=bool)
 if BK_BACKEND_CONFIG:
 
-    # 移除登录模块，添加超级管理员中间件
-    LOGIN_MIDDLEWARE = "blueapps.account.middlewares.LoginRequiredMiddleware"
-    if LOGIN_MIDDLEWARE in MIDDLEWARE:
-        MIDDLEWARE = (
-            MIDDLEWARE[0 : MIDDLEWARE.index(LOGIN_MIDDLEWARE)]
-            + ("apps.middlewares.LocalDevSuperuserMiddleware",)
-            + MIDDLEWARE[MIDDLEWARE.index(LOGIN_MIDDLEWARE) + 1 :]
-        )
+    # 移除 JWT 强制校验并添加超管中间件
+    APIGW_MIDDLEWARE = "apps.middlewares.ApiGatewayForceVerifyMiddleware"
+    MIDDLEWARE = (
+        MIDDLEWARE[0 : MIDDLEWARE.index(APIGW_MIDDLEWARE)]
+        + ("apps.middlewares.LocalDevSuperuserMiddleware",)
+        + MIDDLEWARE[MIDDLEWARE.index(APIGW_MIDDLEWARE) + 1 :]
+    )

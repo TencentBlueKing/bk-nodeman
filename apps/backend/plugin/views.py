@@ -1315,27 +1315,6 @@ def upload_package(request):
 
 @csrf_exempt
 @login_exempt
-def upload_package_by_cos(request):
-    ser = serializers.CosUploadSerializer(data=request.POST)
-    if not ser.is_valid():
-        logger.error("failed to valid request data for->[%s] maybe something go wrong?" % ser.errors)
-        raise ValidationError(_("请求参数异常 [{err}]，请确认后重试").format(err=ser.errors))
-
-    upload_result = PluginHandler.upload(
-        md5=ser.data["md5"],
-        origin_file_name=ser.data["file_name"],
-        module=ser.data["module"],
-        operator=ser.data["bk_username"],
-        app_code=ser.data["bk_app_code"],
-        file_path=ser.data.get("file_path"),
-        download_url=ser.data.get("download_url"),
-    )
-
-    return JsonResponse({"result": True, "message": "", "code": "00", "data": upload_result})
-
-
-@csrf_exempt
-@login_exempt
 def export_download(request):
     """
     @api {GET} /export/download/ 下载导出的内容,此处不做实际的文件读取，将由nginx负责处理

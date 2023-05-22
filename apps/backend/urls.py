@@ -8,36 +8,36 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from django.conf import settings
 from django.conf.urls import include, url
 from rest_framework import routers as drf_routers
 
 from apps.backend import views
 from apps.backend.healthz.views import HealthzViewSet
-from apps.backend.plugin.views import (
-    PluginViewSet,
-    export_download,
-    upload_package,
-    upload_package_by_cos,
-)
+from apps.backend.plugin.views import PluginViewSet, export_download, upload_package
 from apps.backend.subscription.views import SubscriptionViewSet
 from apps.backend.sync_task.views import SyncTaskViewSet
 
-routers = drf_routers.DefaultRouter(trailing_slash=True)
-routers.register("plugin", PluginViewSet, basename="plugin")
-routers.register("subscription", SubscriptionViewSet, basename="subscription")
-routers.register("healthz", HealthzViewSet, basename="healthz")
-routers.register("sync_task", SyncTaskViewSet, basename="sync_task")
-export_routers = drf_routers.DefaultRouter(trailing_slash=True)
-
 urlpatterns = [
-    url(r"api/", include(routers.urls)),
-    url(r"^package/upload/$", upload_package),
-    url(r"^package/upload_cos/$", upload_package_by_cos),
-    url(r"^export/download/$", export_download, name="export_download"),
-    url(r"^export/", include(export_routers.urls)),
-    url(r"^get_gse_config/", views.get_gse_config),
-    url(r"^report_log/", views.report_log),
-    url(r"^api/job_callback/", views.job_callback),
-    url(r"tools/download/", views.tools_download),
     url(r"^version/?$", views.version),
 ]
+
+if settings.BK_BACKEND_CONFIG or settings.IN_TEST or settings.DEBUG:
+    routers = drf_routers.DefaultRouter(trailing_slash=True)
+    routers.register("plugin", PluginViewSet, basename="plugin")
+    routers.register("subscription", SubscriptionViewSet, basename="subscription")
+    routers.register("healthz", HealthzViewSet, basename="healthz")
+    routers.register("sync_task", SyncTaskViewSet, basename="sync_task")
+    export_routers = drf_routers.DefaultRouter(trailing_slash=True)
+    urlpatterns.extend(
+        [
+            url(r"api/", include(routers.urls)),
+            url(r"^package/upload/$", upload_package),
+            url(r"^export/download/$", export_download, name="export_download"),
+            url(r"^export/", include(export_routers.urls)),
+            url(r"^get_gse_config/", views.get_gse_config),
+            url(r"^report_log/", views.report_log),
+            url(r"^api/job_callback/", views.job_callback),
+            url(r"tools/download/", views.tools_download),
+        ]
+    )
