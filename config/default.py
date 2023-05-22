@@ -95,6 +95,7 @@ MIDDLEWARE = (
     # 'blueapps.account.middlewares.WeixinLoginRequiredMiddleware',
     # "blueapps.account.middlewares.BkJwtLoginRequiredMiddleware",
     "blueapps.account.middlewares.LoginRequiredMiddleware",
+    "apps.middlewares.ApiGatewayForceVerifyMiddleware",
     "apigw_manager.apigw.authentication.ApiGatewayJWTGenericMiddleware",  # JWT 认证
     "apigw_manager.apigw.authentication.ApiGatewayJWTAppMiddleware",  # JWT 透传的应用信息
     "apps.middlewares.ApiGatewayJWTUserInjectAppMiddleware",  # JWT 透传的用户信息
@@ -128,6 +129,9 @@ BKAPP_OTEL_BK_DATA_TOKEN = env.BKAPP_OTEL_BK_DATA_TOKEN
 
 # 单元测试豁免登录
 if "test" in sys.argv:
+
+    IN_TEST = True
+
     index = MIDDLEWARE.index("blueapps.account.middlewares.LoginRequiredMiddleware")
     MIDDLEWARE = MIDDLEWARE[:index] + MIDDLEWARE[index + 1 :]
 
@@ -135,6 +139,9 @@ if "test" in sys.argv:
     # 参考 -> https://github.com/jdelic/django-dbconn-retry/issues/3
     index = INSTALLED_APPS.index("django_dbconn_retry")
     INSTALLED_APPS = INSTALLED_APPS[:index] + INSTALLED_APPS[index + 1 :]
+
+else:
+    IN_TEST = False
 
 # 供应商账户，默认为0，内部为tencent
 DEFAULT_SUPPLIER_ACCOUNT = os.getenv("DEFAULT_SUPPLIER_ACCOUNT", "0")
@@ -473,7 +480,7 @@ DEFAULT_FILE_STORAGE = STORAGE_TYPE_IMPORT_PATH_MAP[STORAGE_TYPE]
 FILE_SYSTEM_UPLOAD_API = f"{BK_NODEMAN_BACKEND_HOST}/backend/package/upload/"
 
 # 对象存储上传文件后台API
-COS_UPLOAD_API = f"{BK_NODEMAN_BACKEND_HOST}/backend/package/upload_cos/"
+COS_UPLOAD_API = f"{BK_NODEMAN_BACKEND_HOST}/backend/api/plugin/upload/"
 
 # 暂时存在多个上传API的原因：原有文件上传接口被Nginx转发
 STORAGE_TYPE_UPLOAD_API_MAP = {
@@ -593,6 +600,13 @@ if BK_BACKEND_CONFIG:
     REST_FRAMEWORK["DEFAULT_AUTHENTICATION_CLASSES"] = [
         "apps.utils.drf.CsrfExemptSessionAuthentication",
     ]
+
+    # 移除用户认证中间件
+    LOGIN_MIDDLEWARE = "blueapps.account.middlewares.LoginRequiredMiddleware"
+    if LOGIN_MIDDLEWARE in MIDDLEWARE:
+        MIDDLEWARE = (
+            MIDDLEWARE[: MIDDLEWARE.index(LOGIN_MIDDLEWARE)] + MIDDLEWARE[MIDDLEWARE.index(LOGIN_MIDDLEWARE) + 1 :]
+        )
 
     # BROKER_URL
     BROKER_URL = BK_NODEMAN_CELERY_RESULT_BACKEND_BROKER_URL

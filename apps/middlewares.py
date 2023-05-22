@@ -19,6 +19,8 @@ from apigw_manager.apigw.authentication import ApiGatewayJWTUserMiddleware
 from blueapps.account.models import User
 from blueapps.core.exceptions.base import BlueException
 
+from apps.utils.env import get_type_env
+
 try:
     from greenlet import getcurrent as get_ident
 except ImportError:
@@ -36,7 +38,7 @@ from django.utils import translation
 from django.utils.deprecation import MiddlewareMixin
 from django.utils.translation import ugettext as _
 
-from apps.exceptions import AppBaseException
+from apps.exceptions import AppBaseException, BkJwtVerifyFailException
 from apps.utils.local import activate_request
 
 logger = logging.getLogger("app")
@@ -245,3 +247,30 @@ class ApiGatewayJWTUserInjectAppMiddleware(ApiGatewayJWTUserMiddleware):
             request.jwt.payload["user"]["verified"] = True
 
         return super().__call__(request)
+
+
+class ApiGatewayForceVerifyMiddleware(MiddlewareMixin):
+    def process_view(self, request, view_func, view_args, view_kwargs):
+
+        # 非后台场景下无需强制 JWT 校验
+        if (
+            not settings.BK_BACKEND_CONFIG
+            or get_type_env(key="BK_BACKEND_ALLOW_SKIP_JWT", default=False, _type=bool)
+            or settings.DEBUG
+        ):
+            return
+
+        # 放行登录豁免的接口
+        if getattr(view_func, "login_exempt", False):
+            return
+
+        # 后台接口需要强校验 JWT
+        jwt_info = getattr(request, "jwt", None)
+        if not jwt_info:
+            return JsonResponse(
+                {
+                    "code": BkJwtVerifyFailException().code,
+                    "message": "Only handle requests from the ESB or APIGW",
+                    "result": False,
+                }
+            )
