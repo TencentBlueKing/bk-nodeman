@@ -6,7 +6,7 @@
             "data":{
                 "id":"cloud_view",
                 "name":"管控区域查看",
-                "name_en":"Direct Mode View"
+                "name_en":"BK-Net View"
             }
         },
         {
@@ -14,7 +14,7 @@
             "data":{
                 "id":"cloud_edit",
                 "name":"管控区域编辑",
-                "name_en":"Direct Mode Edit"
+                "name_en":"BK-Net Edit"
             }
         },
         {
@@ -22,7 +22,7 @@
             "data":{
                 "id":"cloud_delete",
                 "name":"管控区域删除",
-                "name_en":"Direct Mode Delete"
+                "name_en":"BK-Net Delete"
             }
         },
         {
@@ -30,7 +30,7 @@
             "data":{
                 "id":"cloud_create",
                 "name":"管控区域创建",
-                "name_en":"Direct Mode Create"
+                "name_en":"BK-Net Create"
             }
         },
         {
@@ -54,7 +54,7 @@
                         },
                         {
                             "name":"管控区域管理",
-                            "name_en":"Direct Mode",
+                            "name_en":"BK-Net",
                             "actions":[
                                 {
                                     "id":"cloud_create"
