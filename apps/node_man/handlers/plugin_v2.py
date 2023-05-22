@@ -60,16 +60,7 @@ class PluginV2Handler:
             # 计算上传文件的md5
             md5 = md5sum(file_obj=tf, closed=False)
 
-            # 构造通用参数
-            upload_params = {
-                "url": settings.DEFAULT_FILE_UPLOAD_API,
-                "data": {
-                    "bk_app_code": settings.APP_CODE,
-                    "bk_username": get_request_username(),
-                    "module": module,
-                    "md5": md5,
-                },
-            }
+            base_params = {"module": module, "md5": md5}
 
             # 如果采用对象存储，文件直接上传至仓库，并将返回的目标路径传到后台，由后台进行校验并创建上传记录
             # TODO 后续应该由前端上传文件并提供md5
@@ -81,21 +72,30 @@ class PluginV2Handler:
                 except Exception as e:
                     raise exceptions.PluginUploadError(plugin_name=tf.name, error=e)
 
-                upload_params["data"].update(
+                return NodeApi.upload(
                     {
+                        **base_params,
                         # 最初文件上传的名称，后台会使用该文件名保存并覆盖同名文件
                         "file_name": tf.name,
                         "file_path": storage_path,
                         "download_url": storage.url(storage_path),
                     }
                 )
+
             else:
-                # 本地文件系统仍通过上传文件到Nginx并回调后台
-                upload_params["files"] = {"package_file": tf}
 
-            response = requests.post(**upload_params)
+                response = requests.post(
+                    url=settings.DEFAULT_FILE_UPLOAD_API,
+                    data={
+                        **base_params,
+                        "bk_app_code": settings.APP_CODE,
+                        "bk_username": get_request_username(),
+                    },
+                    # 本地文件系统仍通过上传文件到Nginx并回调后台
+                    files={"package_file": tf},
+                )
 
-        return json.loads(response.content)
+                return json.loads(response.content)
 
     @staticmethod
     def list_plugin(query_params: Dict):

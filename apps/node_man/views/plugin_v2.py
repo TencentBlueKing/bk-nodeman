@@ -466,7 +466,11 @@ class PluginV2ViewSet(ModelViewSet):
         ser = self.serializer_class(data=request.data)
         ser.is_valid(raise_exception=True)
         data = ser.validated_data
-        return JsonResponse(PluginV2Handler.upload(package_file=data["package_file"], module=data["module"]))
+        result = PluginV2Handler.upload(package_file=data["package_file"], module=data["module"])
+        if "result" in result:
+            return JsonResponse(result)
+        else:
+            return Response(result)
 
     @swagger_auto_schema(
         operation_summary="获取配置模板参数",
