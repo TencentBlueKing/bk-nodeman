@@ -186,6 +186,10 @@ class CheckTaskReadySerializer(GatewaySerializer):
 class TaskResultSerializer(GatewaySerializer):
     page = serializers.IntegerField(required=False, min_value=1, default=1, label="当前页面")
     pagesize = serializers.IntegerField(required=False, default=-1, label="页面大小")
+    start = serializers.IntegerField(required=False, label="开始位置优先于page使用", min_value=1)
+    exclude_instance_ids = serializers.ListField(
+        required=False, child=serializers.CharField(), label="排除的实例列表", default=[]
+    )
     # 放开对status的可选项校验
     statuses = serializers.ListField(required=False, child=serializers.CharField(), label="过滤的状态列表")
     return_all = serializers.BooleanField(required=False, default=False, label="是否返回全量")

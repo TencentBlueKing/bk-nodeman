@@ -194,6 +194,7 @@ class JobTools:
         """
         filter_key_value_list_map = {"instance_id": [], "ip": [], "status": []}
         conditions = query_params.get("conditions")
+        exclude_instance_ids: List = []
         if conditions is not None:
             for condition in conditions:
                 # 过滤ip
@@ -205,6 +206,9 @@ class JobTools:
                 # 过滤状态字段
                 elif condition["key"] == "status":
                     filter_key_value_list_map[condition["key"]].extend(condition["value"])
+                # 新增exclude_instance_ids参数
+                elif condition["key"] == "exclude_instance_ids":
+                    exclude_instance_ids = condition["value"]
 
         host_query = Q()
         for fuzzy_inner_ip in filter_key_value_list_map["ip"]:
@@ -220,6 +224,7 @@ class JobTools:
             "node_type": models.Subscription.NodeType.INSTANCE,
             "object_type": models.Subscription.ObjectType.HOST,
         }
+
         if host_query:
             from apps.backend.subscription.tools import create_node_id
 
@@ -246,12 +251,17 @@ class JobTools:
         task_result_query_params = {
             "page": query_params["page"],
             "pagesize": query_params["pagesize"],
+            "exclude_instance_ids": exclude_instance_ids,
             "instance_id_list": instance_ids,
             "statuses": filter_key_value_list_map["status"] or None,
             "subscription_id": job.subscription_id,
             "task_id_list": job.task_id_list,
             "return_all": query_params["pagesize"] == -1,
         }
+        # 增加start参数优先于page使用
+        if query_params.get("start"):
+            task_result_query_params.update(start=query_params["start"])
+
         # None视为全选，空列表视为查询条件
         for query_kw in ["statuses", "instance_id_list"]:
             if task_result_query_params[query_kw] is not None:
