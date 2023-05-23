@@ -361,6 +361,8 @@ class SubscriptionViewSet(APIViewSet):
             need_out_of_scope_snapshots=params["need_out_of_scope_snapshots"],
             page=params["page"],
             pagesize=params["pagesize"],
+            start=params.get("start"),
+            exclude_instance_ids=params["exclude_instance_ids"],
             return_all=params["return_all"],
         )
         return Response(task_result)

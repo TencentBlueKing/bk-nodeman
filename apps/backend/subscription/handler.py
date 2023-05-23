@@ -63,6 +63,8 @@ class SubscriptionHandler(object):
         need_out_of_scope_snapshots: bool = True,
         page: int = None,
         pagesize: int = -1,
+        start: int = None,
+        exclude_instance_ids: List = [],
         return_all: bool = False,
     ):
         """
@@ -75,6 +77,8 @@ class SubscriptionHandler(object):
         :param need_out_of_scope_snapshots: 是否需要已不在范围内的快照信息
         :param page: 页数
         :param pagesize: 页码
+        :param start: 开始位置优先于page使用
+        :param exclude_instance_ids: 排除的实例列表
         :param return_all: 是否返回全量（用于兼容老接口）
         :return:
         """
@@ -108,8 +112,9 @@ class SubscriptionHandler(object):
 
         begin, end = None, None
         if pagesize != -1:
-            begin = (page - 1) * pagesize
-            end = page * pagesize
+            # start参数优先于page作为分页参数
+            begin = start - 1 if start is not None else (page - 1) * pagesize
+            end = begin + pagesize if start is not None else page * pagesize
 
         # 先行兼容SaaS跨页全选并返回页结构
         if return_all:
@@ -142,6 +147,9 @@ class SubscriptionHandler(object):
             is_query_change = True
             filter_kwargs["status__in"] = statuses
 
+        if exclude_instance_ids:
+            is_query_change = True
+
         all_instance_record_ids = SubscriptionTools.fetch_latest_record_ids_in_same_inst_id(
             models.SubscriptionInstanceRecord.objects.filter(**base_kwargs)
         )
@@ -150,7 +158,9 @@ class SubscriptionHandler(object):
             # 附加搜索条件要在聚合之后进行搜索否则会导致搜索结果不正确，聚合之后才是实例的最新记录，需要在最新的记录之上进行搜索
             filter_kwargs["id__in"] = all_instance_record_ids
             filtered_instance_record_ids = list(
-                models.SubscriptionInstanceRecord.objects.filter(**filter_kwargs).values_list("id", flat=True)
+                models.SubscriptionInstanceRecord.objects.filter(**filter_kwargs)
+                .exclude(instance_id__in=exclude_instance_ids)
+                .values_list("id", flat=True)
             )
         else:
             filtered_instance_record_ids = all_instance_record_ids

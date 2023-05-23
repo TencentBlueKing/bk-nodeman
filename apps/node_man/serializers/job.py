@@ -366,6 +366,7 @@ class RetrieveSerializer(serializers.Serializer):
     conditions = serializers.ListField(label=_("搜索条件"), required=False, child=serializers.DictField())
     page = serializers.IntegerField(label=_("当前页数"), required=False, default=1)
     pagesize = serializers.IntegerField(label=_("分页大小"), required=False, default=10)
+    start = serializers.IntegerField(label=_("开始位置参数优先page使用"), required=False, min_value=1)
 
 
 class FetchCommandSerializer(serializers.Serializer):
