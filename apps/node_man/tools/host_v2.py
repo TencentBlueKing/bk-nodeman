@@ -68,16 +68,25 @@ class HostV2Tools:
         host: Dict,
         is_sync_cmdb_host_apply_cpu_arch: bool = False,
         get_default: bool = True,
-        os_type: str = constants.OsType.LINUX
+        os_type: str = constants.OsType.LINUX,
     ) -> Optional[str]:
         if is_sync_cmdb_host_apply_cpu_arch:
             cpu_arch = constants.CMDB_CPU_MAP.get(host.get("bk_cpu_architecture"))
-            if cpu_arch == constants.CpuType.x86 and host.get("bk_os_bit"):
+            if cpu_arch == constants.CpuType.x86:
                 bk_os_bit = host.get("bk_os_bit")
-                bit_suffix = "" if "32" in bk_os_bit else "_64"
-                return cpu_arch + bit_suffix
+                # 仅在 CMDB CPU 位数不为空的情况下进行同步，其他情况返回操作系统默认的位数
+                if bk_os_bit:
+                    bit_suffix = "" if "32" in bk_os_bit else "_64"
+                    return cpu_arch + bit_suffix
+                else:
+                    # 对于 AIX / SOLARIS 这里的情况单一
+                    # 对于 Linux / Windows，可能是 x86 / x86_64，x86 本身属于极少数情况，此处返回 x86_64 兜底
+                    # x86 等待采集器同步后，下一次同步主机时获取
+                    return constants.DEFAULT_OS_CPU_MAP.get(os_type, constants.CpuType.x86_64)
+            # aarch64
             elif cpu_arch:
                 return cpu_arch
+
         if get_default:
             return constants.DEFAULT_OS_CPU_MAP.get(os_type, constants.CpuType.x86_64)
 
