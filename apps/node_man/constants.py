@@ -14,6 +14,7 @@ from __future__ import unicode_literals
 import os
 import platform
 import re
+from copy import deepcopy
 from enum import Enum
 from typing import Any, Dict, List, Union
 
@@ -615,6 +616,22 @@ if settings.BKAPP_RUN_ENV == BkappRunEnvType.CE.value:
     )
 
 GSE_PORT_DEFAULT_VALUE["file_svr_port_v1"] = GSE_PORT_DEFAULT_VALUE["file_svr_port"]
+
+# GSE V2 端口默认值
+GSE_V2_PORT_DEFAULT_VALUE = deepcopy(GSE_PORT_DEFAULT_VALUE)
+GSE_V2_PORT_DEFAULT_VALUE.update(
+    {
+        "bt_port": 20020,
+        "io_port": 28668,
+        "data_port": 28625,
+        "tracker_port": 20030,
+        "file_svr_port": 28925,
+        "file_svr_port_v1": 58926,
+        "btsvr_thrift_port": 58931,
+        "data_prometheus_port": 29402,
+        "file_metric_bind_port": 29404,
+    }
+)
 
 CC_HOST_FIELDS = [
     "bk_host_id",
