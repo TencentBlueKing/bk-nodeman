@@ -14,6 +14,7 @@ from __future__ import unicode_literals
 import os
 import platform
 import re
+from copy import deepcopy
 from enum import Enum
 from typing import Any, Dict, List, Union
 
@@ -121,7 +122,7 @@ BK_OS_TYPE = {"LINUX": "1", "WINDOWS": "2", "AIX": "3", "SOLARIS": "5"}
 OS_KEYWORDS = {
     OsType.LINUX: ["linux", "ubuntu", "centos", "redhat", "suse", "debian", "fedora"],
     OsType.WINDOWS: ["windows", "xserver"],
-    OsType.AIX: ["aix"]
+    OsType.AIX: ["aix"],
 }
 
 # 操作系统->系统账户映射表
@@ -490,10 +491,7 @@ DEFAULT_OS_CPU_MAP = {
     OsType.AIX: CpuType.powerpc,
     OsType.SOLARIS: CpuType.sparc,
 }
-CMDB_CPU_MAP = {
-    "x86": CpuType.x86,
-    "arm": CpuType.aarch64
-}
+CMDB_CPU_MAP = {"x86": CpuType.x86, "arm": CpuType.aarch64}
 
 PACKAGE_PATH_RE = re.compile(
     f"(?P<is_external>external_)?plugins_(?P<os>({'|'.join(map(str, PLUGIN_OS_TUPLE))}))"
@@ -618,6 +616,24 @@ if settings.BKAPP_RUN_ENV == BkappRunEnvType.CE.value:
     )
 
 GSE_PORT_DEFAULT_VALUE["file_svr_port_v1"] = GSE_PORT_DEFAULT_VALUE["file_svr_port"]
+
+# GSE V2 端口默认值
+GSE_V2_PORT_DEFAULT_VALUE = deepcopy(GSE_PORT_DEFAULT_VALUE)
+GSE_V2_PORT_DEFAULT_VALUE.update(
+    {
+        "bt_port": 20020,
+        "io_port": 28668,
+        "data_port": 28625,
+        "trunk_port": 48331,
+        "tracker_port": 20030,
+        "db_proxy_port": 58817,
+        "file_svr_port": 28925,
+        "file_svr_port_v1": 58926,
+        "btsvr_thrift_port": 58931,
+        "data_prometheus_port": 29402,
+        "file_metric_bind_port": 29404,
+    }
+)
 
 CC_HOST_FIELDS = [
     "bk_host_id",
