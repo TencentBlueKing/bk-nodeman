@@ -36,6 +36,10 @@ class MockClient(object):
 
     class cc(utils.MockClient.cc):
         @classmethod
+        def search_business(cls, *args, **kwargs):
+            return {"count": 1, "info": [{"bk_biz_id": 2, "default": 0}]}
+
+        @classmethod
         def search_cloud_area(cls, *args, **kwargs):
             return mock_data.MOCK_SEARCH_CLOUD_AREA
 

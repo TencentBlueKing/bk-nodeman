@@ -57,8 +57,8 @@ CONFIGURATION_POLICY_INTERVAL = 1 * TimeUnit.MINUTE
 GSE_SVR_DISCOVERY_INTERVAL = 1 * TimeUnit.MINUTE
 COLLECT_AUTO_TRIGGER_JOB_INTERVAL = 5 * TimeUnit.MINUTE
 SYNC_CMDB_CLOUD_AREA_INTERVAL = 10 * TimeUnit.SECOND
-SYNC_AGENT_STATUS_TASK_INTERVAL = 3 * TimeUnit.MINUTE
-SYNC_PROC_STATUS_TASK_INTERVAL = 15 * TimeUnit.MINUTE
+SYNC_AGENT_STATUS_TASK_INTERVAL = 10 * TimeUnit.MINUTE
+SYNC_PROC_STATUS_TASK_INTERVAL = 20 * TimeUnit.MINUTE
 
 CLEAN_EXPIRED_INFO_INTERVAL = 6 * TimeUnit.HOUR
 
@@ -121,7 +121,7 @@ BK_OS_TYPE = {"LINUX": "1", "WINDOWS": "2", "AIX": "3", "SOLARIS": "5"}
 OS_KEYWORDS = {
     OsType.LINUX: ["linux", "ubuntu", "centos", "redhat", "suse", "debian", "fedora"],
     OsType.WINDOWS: ["windows", "xserver"],
-    OsType.AIX: ["aix"]
+    OsType.AIX: ["aix"],
 }
 
 # 操作系统->系统账户映射表
@@ -490,10 +490,7 @@ DEFAULT_OS_CPU_MAP = {
     OsType.AIX: CpuType.powerpc,
     OsType.SOLARIS: CpuType.sparc,
 }
-CMDB_CPU_MAP = {
-    "x86": CpuType.x86,
-    "arm": CpuType.aarch64
-}
+CMDB_CPU_MAP = {"x86": CpuType.x86, "arm": CpuType.aarch64}
 
 PACKAGE_PATH_RE = re.compile(
     f"(?P<is_external>external_)?plugins_(?P<os>({'|'.join(map(str, PLUGIN_OS_TUPLE))}))"

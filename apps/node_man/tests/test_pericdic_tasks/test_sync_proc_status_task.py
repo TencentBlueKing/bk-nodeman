@@ -23,6 +23,7 @@ from apps.mock_data.common_unit.host import (
 from apps.node_man import constants
 from apps.node_man.models import Host, ProcessStatus
 from apps.node_man.periodic_tasks import sync_proc_status_task
+from apps.node_man.tests.test_pericdic_tasks.utils import MockClient
 from apps.utils import concurrent
 from apps.utils.unittest.testcase import CustomBaseTestCase
 
@@ -37,6 +38,7 @@ class TestSyncProcStatus(CustomBaseTestCase):
         importlib.reload(sync_proc_status_task)
         super().setUp()
 
+    @mock.patch("apps.node_man.periodic_tasks.utils.client_v2", MockClient)
     def test_sync_proc_status_periodic_task(self):
         Host.objects.create(**HOST_MODEL_DATA)
         sync_proc_status_task.sync_proc_status_periodic_task()

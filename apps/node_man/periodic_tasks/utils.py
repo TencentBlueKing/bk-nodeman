@@ -18,10 +18,30 @@ from django.conf import settings
 
 from apps.backend.api.constants import POLLING_INTERVAL, POLLING_TIMEOUT, JobIPStatus
 from apps.backend.api.errors import JobPollTimeout
-from apps.node_man import constants
+from apps.component.esbclient import client_v2
+from apps.node_man import constants, models
 from common.api import JobApi
 
 logger = logging.getLogger("app")
+
+
+def query_bk_biz_ids(task_id):
+    biz_data = client_v2.cc.search_business({"fields": ["bk_biz_id"]})
+    bk_biz_ids = [biz["bk_biz_id"] for biz in biz_data.get("info") or [] if biz["default"] == 0]
+
+    # 排除掉黑名单业务的主机同步，比如 SA 业务，包含大量主机但无需同步
+    bk_biz_ids = list(
+        set(bk_biz_ids)
+        - set(
+            models.GlobalSettings.get_config(
+                key=models.GlobalSettings.KeyEnum.SYNC_CMDB_HOST_BIZ_BLACKLIST.value, default=[]
+            )
+        )
+    )
+
+    logger.info(f"[query_bk_biz_ids] synchronize full business: task_id -> {task_id}, count -> {len(bk_biz_ids)}")
+
+    return bk_biz_ids
 
 
 class JobDemand(object):

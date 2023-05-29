@@ -25,11 +25,13 @@ from apps.node_man.periodic_tasks.sync_agent_status_task import (
     sync_agent_status_periodic_task,
     update_or_create_host_agent_status,
 )
+from apps.node_man.tests.test_pericdic_tasks.utils import MockClient
 from apps.utils.unittest.testcase import CustomBaseTestCase
 from env.constants import GseVersion
 
 
 class TestSyncAgentStatus(CustomBaseTestCase):
+    @patch("apps.node_man.periodic_tasks.utils.client_v2", MockClient)
     def test_sync_agent_status_periodic_task(self):
         Host.objects.create(**HOST_MODEL_DATA)
         sync_agent_status_periodic_task()
