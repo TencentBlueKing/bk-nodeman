@@ -4,15 +4,15 @@ dependencies:
   version: 1.17.1
 - name: mysql
   repository: https://charts.bitnami.com/bitnami
-  version: 9.4.5
+  version: 9.10.1
 - name: redis
   repository: https://charts.bitnami.com/bitnami
   version: 16.13.2
 - name: rabbitmq
   repository: https://charts.bitnami.com/bitnami
-  version: 11.2.2
+  version: 11.15.3
 - name: nginx-ingress-controller
   repository: https://charts.bitnami.com/bitnami
-  version: 9.3.24
-digest: sha256:f7eadd0f18f9a44bb22d5f3fd433b4708637c5ab6c9d9058c922c2dce8c030f8
-generated: "2022-12-20T17:05:24.797411+08:00"
+  version: 9.7.1
+digest: sha256:d632ee95472efbf577b062477b4775c7b5f6a0cc8c2e4a3dc98ad39afd5f6221
+generated: "2023-05-29T17:41:09.775909+08:00"

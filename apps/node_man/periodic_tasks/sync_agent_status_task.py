@@ -12,6 +12,7 @@ import typing
 from collections import defaultdict
 
 from celery.task import periodic_task, task
+from django.conf import settings
 from django.db.models import QuerySet
 from django.db.transaction import atomic
 
@@ -19,6 +20,7 @@ from apps.adapters.api.gse import get_gse_api_helper
 from apps.core.gray.tools import GrayTools
 from apps.node_man import constants
 from apps.node_man.models import Host, ProcessStatus
+from apps.node_man.periodic_tasks.utils import query_bk_biz_ids
 from apps.utils.periodic_task import calculate_countdown
 from common.log import logger
 
@@ -173,15 +175,36 @@ def sync_agent_status_periodic_task():
     同步agent状态
     """
     task_id = sync_agent_status_periodic_task.request.id
-    logger.info(f"{task_id} | sync_agent_status_task: Start syncing host status.")
-    count = Host.objects.count()
-    for start in range(0, count, constants.QUERY_AGENT_STATUS_HOST_LENS):
-        countdown = calculate_countdown(
-            count=count / constants.QUERY_AGENT_STATUS_HOST_LENS,
-            index=start / constants.QUERY_AGENT_STATUS_HOST_LENS,
-            duration=constants.SYNC_AGENT_STATUS_TASK_INTERVAL,
+    logger.info(f"{task_id} | sync_agent_status_task: start to sync agent status")
+
+    # 查询所有需要同步的业务id
+    bk_biz_ids = query_bk_biz_ids(task_id)
+    # 若没有指定业务时，也同步资源池主机
+    bk_biz_ids.append(settings.BK_CMDB_RESOURCE_POOL_BIZ_ID)
+
+    for bk_biz_id in bk_biz_ids:
+
+        host_queryset = Host.objects.filter(bk_biz_id=bk_biz_id)
+        count = host_queryset.count()
+
+        if count == 0:
+            logger.info(f"{task_id} | sync_agent_status_task: bk_biz_id -> {bk_biz_id}, host_count -> {count}, skip")
+            continue
+
+        logger.info(
+            f"{task_id} | sync_agent_status_task: start to sync bk_biz_id -> {bk_biz_id}, host_count -> {count}"
         )
-        logger.info(f"{task_id} | sync_agent_status_task after {countdown} seconds")
-        update_or_create_host_agent_status.apply_async(
-            (task_id, Host.objects.all()[start : start + constants.QUERY_AGENT_STATUS_HOST_LENS]), countdown=countdown
-        )
+
+        for start in range(0, count, constants.QUERY_AGENT_STATUS_HOST_LENS):
+
+            countdown = calculate_countdown(
+                count=count / constants.QUERY_AGENT_STATUS_HOST_LENS,
+                index=start / constants.QUERY_AGENT_STATUS_HOST_LENS,
+                duration=constants.SYNC_AGENT_STATUS_TASK_INTERVAL,
+            )
+            logger.info(f"{task_id} | sync_agent_status_task: bk_biz_id -> {bk_biz_id}, sync after {countdown} seconds")
+            update_or_create_host_agent_status.apply_async(
+                (task_id, host_queryset[start : start + constants.QUERY_AGENT_STATUS_HOST_LENS]), countdown=countdown
+            )
+
+        logger.info(f"{task_id} | sync_agent_status_task: sync agent status complete")

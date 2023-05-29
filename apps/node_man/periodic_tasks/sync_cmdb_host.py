@@ -20,6 +20,7 @@ from apps.backend.celery import app
 from apps.component.esbclient import client_v2
 from apps.exceptions import ComponentCallError
 from apps.node_man import constants, models, tools
+from apps.node_man.periodic_tasks.utils import query_bk_biz_ids
 from apps.utils.batch_request import batch_request
 from apps.utils.concurrent import batch_call
 from common.log import logger
@@ -48,25 +49,6 @@ def query_biz_hosts(bk_biz_id: int, bk_host_ids: typing.List[int]) -> typing.Lis
     hosts = batch_request(query_hosts_api, query_params)
 
     return hosts
-
-
-def query_bk_biz_ids(task_id):
-    biz_data = client_v2.cc.search_business({"fields": ["bk_biz_id"]})
-    bk_biz_ids = [biz["bk_biz_id"] for biz in biz_data.get("info") or [] if biz["default"] == 0]
-
-    # 排除掉黑名单业务的主机同步，比如 SA 业务，包含大量主机但无需同步
-    bk_biz_ids = list(
-        set(bk_biz_ids)
-        - set(
-            models.GlobalSettings.get_config(
-                key=models.GlobalSettings.KeyEnum.SYNC_CMDB_HOST_BIZ_BLACKLIST.value, default=[]
-            )
-        )
-    )
-
-    logger.info(f"[sync_cmdb_host] synchronize full business: task_id -> {task_id}, count -> {len(bk_biz_ids)}")
-
-    return bk_biz_ids
 
 
 def _list_biz_hosts(biz_id: int, start: int) -> dict:
