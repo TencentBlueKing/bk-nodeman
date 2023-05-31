@@ -20,6 +20,7 @@ from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
 
 from apps.backend import exceptions
+from apps.core.files import core_files_constants
 from apps.core.files.storage import get_storage
 from apps.node_man import constants
 from apps.utils import cache, files
@@ -83,12 +84,17 @@ class BaseArtifactBuilder(abc.ABC):
 
         logger.info(f"start to download file -> {file_path} to {target_path}")
 
-        with storage.open(name=file_path, mode="rb") as fs:
-            with files.FileOpen(name=target_path, mode="wb") as local_fs:
-                for chunk in iter(lambda: fs.read(4096), b""):
-                    if not chunk:
-                        continue
-                    local_fs.write(chunk)
+        if storage.storage_type in core_files_constants.StorageType.list_cos_member_values():
+            # 如果是 COS 类型的存储，通过流式下载的方式保存文件，节约内存
+            files.download_file(url=storage.url(file_path), name=target_path)
+        else:
+            # 文件系统本身就是流式读取并且可能没有对应的下载服务
+            with storage.open(name=file_path, mode="rb") as fs:
+                with files.FileOpen(name=target_path, mode="wb") as local_fs:
+                    for chunk in iter(lambda: fs.read(4096), b""):
+                        if not chunk:
+                            continue
+                        local_fs.write(chunk)
 
         logger.info(f"download file -> {file_path} to {target_path} success.")
 

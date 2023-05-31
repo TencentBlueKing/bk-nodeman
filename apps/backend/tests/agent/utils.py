@@ -15,11 +15,14 @@ import typing
 import uuid
 from enum import Enum
 
+import mock
 from django.conf import settings
 
 from apps.backend.agent.artifact_builder import agent, proxy
 from apps.backend.subscription.steps.agent_adapter import config_templates
-from apps.core.files import base, core_files_constants, storage
+from apps.core.files import base, core_files_constants
+from apps.core.files import storage as core_files_storage
+from apps.core.files.storage import get_storage
 from apps.mock_data import common_unit
 from apps.node_man import constants
 from apps.utils import files
@@ -94,7 +97,7 @@ class AgentBaseTestCase(CustomAPITestCase):
 
     @classmethod
     def setUpTestData(cls):
-        storage._STORAGE_OBJ_CACHE = {}
+        core_files_storage._STORAGE_OBJ_CACHE = {}
         super().setUpTestData()
 
     def setUp(self):
@@ -121,6 +124,18 @@ class AgentBaseTestCase(CustomAPITestCase):
         artifact_dir = self.gen_base_artifact_files(os_cpu_choices=self.OS_CPU_CHOICES)
         self.pack_pkg(artifact_dir=artifact_dir, arcname=self.ARTIFACT_BUILDER_CLASS.BASE_PKG_DIR)
         self.ARCHIVE_MD5 = files.md5sum(name=self.ARCHIVE_PATH)
+
+        def download(url: str, name: str = None):
+            storage = get_storage()
+            with storage.open(name=url, mode="rb") as fs:
+                with files.FileOpen(name=name, mode="wb") as local_fs:
+                    for chunk in iter(lambda: fs.read(4096), b""):
+                        if not chunk:
+                            continue
+                        local_fs.write(chunk)
+
+        mock.patch("apps.backend.agent.artifact_builder.base.files.download_file", download).start()
+
         super().setUp()
 
     @classmethod
