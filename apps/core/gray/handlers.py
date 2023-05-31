@@ -17,6 +17,7 @@ from django.db.transaction import atomic
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
+from apps.adapters.api.gse import get_gse_api_helper
 from apps.core.ipchooser.constants import CommonEnum
 from apps.core.ipchooser.handlers.host_handler import HostHandler
 from apps.exceptions import ApiError, ValidationError
@@ -211,7 +212,7 @@ class GrayHandler:
             )
 
         node_man_models.GlobalSettings.update_config(
-            node_man_models.GlobalSettings.KeyEnum.GSE2_GRAY_SCOPE_LIST.value, gray_scope_list
+            node_man_models.GlobalSettings.KeyEnum.GSE2_GRAY_SCOPE_LIST.value, list(set(gray_scope_list))
         )
         logger.info(f"[update_gray_scope_list][rollback={rollback}] commit to db")
 
@@ -278,10 +279,14 @@ class GrayHandler:
                         )
 
     @classmethod
+    def is_biz_gray(cls, validated_data: typing.Dict[str, typing.List[typing.Any]]):
+        return "cloud_ips" not in validated_data
+
+    @classmethod
     def build(cls, validated_data: typing.Dict[str, typing.List[typing.Any]]):
 
         # 不传 cloud_ips 表示按业务灰度
-        is_biz_gray: bool = "cloud_ips" not in validated_data
+        is_biz_gray: bool = cls.is_biz_gray(validated_data)
 
         with atomic():
             if is_biz_gray:
@@ -300,7 +305,7 @@ class GrayHandler:
     def rollback(cls, validated_data: typing.Dict[str, typing.List[typing.Any]]):
 
         # 不传 cloud_ips 表示按业务灰度
-        is_biz_gray: bool = "cloud_ips" not in validated_data
+        is_biz_gray: bool = cls.is_biz_gray(validated_data)
 
         with atomic():
             if is_biz_gray:
@@ -315,3 +320,59 @@ class GrayHandler:
             update_result: typing.Dict[str, typing.Any] = cls.update_host_ap(validated_data, is_biz_gray, rollback=True)
 
         return cls.activate(update_result["host_nodes"], rollback=True, only_status=False)
+
+    @classmethod
+    def list_biz_ids(cls) -> typing.List[int]:
+        """
+        获取灰度业务id列表
+        """
+        return set(GrayTools.get_or_create_gse2_gray_scope_list(get_cache=False))
+
+    @classmethod
+    def upgrade_or_rollback_agent_id(
+        cls, validated_data: typing.Dict[str, typing.List[typing.Any]], rollback: bool = False
+    ) -> typing.Dict[str, typing.List[typing.List[str]]]:
+        is_biz_gray: bool = cls.is_biz_gray(validated_data)
+        if is_biz_gray:
+            host_query_params: typing.Dict[str, typing.List[int]] = {"bk_biz_id__in": validated_data["bk_biz_ids"]}
+            # 检查是否包含未进行灰度的业务
+            no_gray_biz_ids: typing.List[int] = list(
+                set(validated_data["bk_biz_ids"]) - GrayTools().gse2_gray_scope_set
+            )
+            if no_gray_biz_ids:
+                raise ValidationError(f"bk_iz_ids: {no_gray_biz_ids} not within the scope of gray biz.")
+        else:
+            clouds_ip_host_ids: typing.List[int] = cls.get_cloud_host_query_params(validated_data)
+            host_query_params: typing.Dict[str, typing.List[int]] = {"bk_host_id__in": clouds_ip_host_ids}
+
+        logger.info(f"[upgrade_or_rollback_agent_id][rollback={rollback}] host_query_params -> {host_query_params}")
+
+        # 生成更新或回滚请求参数
+        hosts: typing.List[node_man_models.Host] = node_man_models.Host.objects.filter(**host_query_params).only(
+            "inner_ip",
+            "bk_cloud_id",
+            "bk_agent_id",
+        )
+        request_hosts: typing.List[typing.Dict[str, typing.Any]] = [
+            {
+                "ip": host.inner_ip,
+                "bk_cloud_id": host.bk_cloud_id,
+                "bk_agent_id": [host.bk_agent_id, f"{host.bk_cloud_id}:{host.inner_ip}"][rollback],
+            }
+            for host in hosts
+        ]
+
+        # 请求GSE接口更新AgentID配置
+        return get_gse_api_helper(GseVersion.V2.value).upgrade_to_agent_id(request_hosts)
+
+    @classmethod
+    def upgrade_to_agent_id(
+        cls, validated_data: typing.Dict[str, typing.List[typing.Any]]
+    ) -> typing.Dict[str, typing.List[typing.List[str]]]:
+        return cls.upgrade_or_rollback_agent_id(validated_data)
+
+    @classmethod
+    def rollback_agent_id(
+        cls, validated_data: typing.Dict[str, typing.List[typing.Any]]
+    ) -> typing.Dict[str, typing.List[typing.List[str]]]:
+        return cls.upgrade_or_rollback_agent_id(validated_data, rollback=True)

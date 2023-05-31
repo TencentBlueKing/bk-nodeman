@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from drf_yasg.utils import swagger_auto_schema
+from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
@@ -38,3 +39,30 @@ class GrayViewSet(APIViewSet):
     @action(detail=False, methods=["POST"], serializer_class=serializers.GraySerializer)
     def rollback(self, request):
         return Response(handlers.GrayHandler.rollback(self.validated_data))
+
+    @swagger_auto_schema(
+        operation_summary="获取GSE 2.0灰度信息",
+        tags=GRAY_VIEW_TAGS,
+        responses={status.HTTP_200_OK: serializers.GrayBizSerializer},
+    )
+    @action(detail=False, methods=["GET"])
+    def info(self, request):
+        return Response({"bk_biz_ids": handlers.GrayHandler.list_biz_ids()})
+
+    @swagger_auto_schema(
+        operation_summary="升级到Agent ID配置",
+        tags=GRAY_VIEW_TAGS,
+        responses={status.HTTP_200_OK: serializers.UpgradeOrRollbackAgentIDSerializer},
+    )
+    @action(detail=False, methods=["POST"], serializer_class=serializers.GraySerializer)
+    def upgrade_to_agent_id(self, request):
+        return Response(handlers.GrayHandler.upgrade_to_agent_id(self.validated_data))
+
+    @swagger_auto_schema(
+        operation_summary="回滚Agent ID配置",
+        tags=GRAY_VIEW_TAGS,
+        responses={status.HTTP_200_OK: serializers.UpgradeOrRollbackAgentIDSerializer},
+    )
+    @action(detail=False, methods=["POST"], serializer_class=serializers.GraySerializer)
+    def rollback_agent_id(self, request):
+        return Response(handlers.GrayHandler.rollback_agent_id(self.validated_data))
