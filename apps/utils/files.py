@@ -16,8 +16,7 @@ import posixpath
 import stat
 import uuid
 from typing import IO, Any, Callable, List, Optional
-
-import requests
+from urllib.request import urlopen
 
 from apps.node_man import constants
 
@@ -108,12 +107,10 @@ def download_file(
     :return: None
     """
 
-    with requests.get(url=url, stream=True) as rfs:
-
-        rfs.raise_for_status()
-
+    # request 的 stream=True 没有起作用，采用 urlopen 进行流式下载，避免 OOM
+    with urlopen(url=url) as rfs:
         with FileOpen(name=name, file_obj=file_obj, mode=mode, closed=closed) as local_fs:
-            for chunk in rfs.iter_content(chunk_size=4096):
+            for chunk in iter(lambda: rfs.read(8192), b""):
                 if not chunk:
                     continue
                 local_fs.write(chunk)
