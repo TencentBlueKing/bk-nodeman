@@ -14,7 +14,7 @@
       :data="filterData"
       :cell-class-name="handleCellClass">
       <template v-for="key in Object.keys(columnFilter)">
-        <bk-table-column
+        <NmColumn
           :key="key"
           :prop="key"
           :resizable="false"
@@ -22,7 +22,6 @@
           :fixed="key === 'plugin_name'"
           sortable
           :min-width="columnFilter[key].width || 150"
-          show-overflow-tooltip
           v-if="columnFilter[key].mockChecked">
           <template #default="{ row }">
             <!-- 部署方式 -->
@@ -70,10 +69,10 @@
 
             <template v-else>{{ row[columnFilter[key].id] | filterEmpty }}</template>
           </template>
-        </bk-table-column>
+        </NmColumn>
       </template>
       <!--自定义字段显示列-->
-      <bk-table-column
+      <NmColumn
         key="setting"
         prop="colSetting"
         :render-header="renderHeader"
@@ -87,7 +86,7 @@
             </span>
           </div>
         </template>
-      </bk-table-column>
+      </NmColumn>
 
       <NmException
         slot="empty"

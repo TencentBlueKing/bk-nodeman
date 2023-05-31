@@ -44,7 +44,7 @@
           </bk-popover>
         </template>
       </bk-table-column>
-      <bk-table-column
+      <NmColumn
         :label="$t('部署策略')" min-width="200" class-name="name-column" label-class-name="name-column" fixed>
         <template #default="{ row }">
           <bk-input
@@ -72,20 +72,20 @@
             </i>
           </div>
         </template>
-      </bk-table-column>
-      <bk-table-column :label="$t('插件名称')" prop="plugin_name" min-width="140">
+      </NmColumn>
+      <NmColumn :label="$t('插件名称')" prop="plugin_name" min-width="140">
         <template #default="{ row }">
           <span>{{ row.plugin_name | filterEmpty }}</span>
         </template>
-      </bk-table-column>
-      <bk-table-column :label="$t('策略状态')" prop="enable" min-width="100" :render-header="renderFilterHeader">
+      </NmColumn>
+      <NmColumn :label="$t('策略状态')" prop="enable" min-width="100" :render-header="renderFilterHeader">
         <template #default="{ row }">
           <span v-if="!row.isGrayRule" :class="['tag-switch', { 'tag-enable': row.enable }]">
             {{ row.enable ? $t('启用') : $t('停用') }}
           </span>
         </template>
-      </bk-table-column>
-      <bk-table-column v-if="filter['host_num'].mockChecked" :label="$t('关联主机数')" align="right" width="90">
+      </NmColumn>
+      <NmColumn v-if="filter['host_num'].mockChecked" :label="$t('关联主机数')" align="right" width="90">
         <template #default="{ row }">
           <div class="num-link">
             <span class="num" v-test="'filterNode'" @click.stop="handleViewAssociatedHost(row)">
@@ -93,9 +93,13 @@
             </span>
           </div>
         </template>
-      </bk-table-column>
-      <bk-table-column v-if="filter['host_num'].mockChecked" min-width="40" :resizable="false"></bk-table-column>
-      <bk-table-column v-if="filter['biz_scope'].mockChecked" :label="$t('包含业务')" min-width="140">
+      </NmColumn>
+      <NmColumn v-if="filter['host_num'].mockChecked" min-width="40" :resizable="false"></NmColumn>
+      <NmColumn
+        v-if="filter['biz_scope'].mockChecked"
+        :label="$t('包含业务')"
+        min-width="140"
+        :show-overflow-tooltip="false">
         <template #default="{ row, $index }">
           <FlexibleTag
             :ref="`flexibleTagRef${$index}`"
@@ -105,8 +109,8 @@
           </FlexibleTag>
           <span v-else>--</span>
         </template>
-      </bk-table-column>
-      <bk-table-column :label="$t('部署版本')" key="configs" min-width="170">
+      </NmColumn>
+      <NmColumn :label="$t('部署版本')" key="configs" min-width="170">
         <div slot-scope="{ row, $index }" class="col-execution">
           <div class="execut-text" v-if="row.configs">
             <p v-for="(config, index) in row.configs" :key="`${$index}_${index}`">
@@ -121,9 +125,9 @@
           </div>
           <span v-else>--</span>
         </div>
-      </bk-table-column>
-      <bk-table-column v-if="filter['creator'].mockChecked" :label="$t('操作账号')" prop="creator" min-width="120" />
-      <bk-table-column
+      </NmColumn>
+      <NmColumn v-if="filter['creator'].mockChecked" :label="$t('操作账号')" prop="creator" min-width="120" />
+      <NmColumn
         v-if="filter['update_time'].mockChecked"
         :label="$t('最近操作时间')"
         prop="update_time"
@@ -131,8 +135,8 @@
         <template #default="{ row }">
           {{ row.update_time | filterTimezone }}
         </template>
-      </bk-table-column>
-      <bk-table-column prop="colspanOperate" :label="$t('操作')" width="150" :resizable="false" fixed="right">
+      </NmColumn>
+      <NmColumn prop="colspanOperate" :label="$t('操作')" width="150" :resizable="false" fixed="right">
         <template #default="{ row }">
           <template v-if="row.id === deleteId">
             <loading-icon class="mr5"></loading-icon>
@@ -215,9 +219,9 @@
             </template>
           </div>
         </template>
-      </bk-table-column>
+      </NmColumn>
       <!--自定义字段显示列-->
-      <bk-table-column
+      <NmColumn
         key="setting"
         prop="colspanSetting"
         :render-header="renderHeader"
@@ -231,7 +235,7 @@
             </span>
           </div>
         </template>
-      </bk-table-column>
+      </NmColumn>
 
       <NmException
         slot="empty"

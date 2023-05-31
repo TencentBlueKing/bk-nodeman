@@ -163,7 +163,7 @@ const config: ISetupHead[] = [
     getOptions() {
       return addressingMode;
     },
-    width: 115,
+    width: 90,
     manualProp: true,
   },
   {
@@ -176,7 +176,7 @@ const config: ISetupHead[] = [
     unique: true,
     noRequiredMark: true,
     placeholder: window.i18n.t('请输入'),
-    width: '15%',
+    // width: '15%',
     errTag: true,
     tips: 'agentSetupLoginIp',
     parentProp: 'login_info',
@@ -265,7 +265,7 @@ const config: ISetupHead[] = [
     required: false,
     // show: true,
     noRequiredMark: false,
-    width: 115,
+    width: 90,
     parentProp: 'trans_info',
     manualProp: true,
   },
@@ -279,7 +279,7 @@ const config: ISetupHead[] = [
     noRequiredMark: false,
     // appendSlot: 'MB/s',
     // iconOffset: 40,
-    width: 180,
+    width: 90,
     parentProp: 'trans_info',
     rules: [reguFnMinInteger(1)],
     manualProp: true,

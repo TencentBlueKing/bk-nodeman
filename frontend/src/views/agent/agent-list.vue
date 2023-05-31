@@ -207,91 +207,83 @@
             </auth-component>
           </template>
         </bk-table-column>
-        <bk-table-column
+        <NmColumn
           fixed
           key="IP"
           :label="$t('内网IPv4')"
           prop="inner_ip"
-          width="125"
-          show-overflow-tooltip>
+          width="125">
           <template #default="{ row }">
             {{ row.inner_ip | filterEmpty }}
           </template>
-        </bk-table-column>
-        <bk-table-column
+        </NmColumn>
+        <NmColumn
           fixed
           key="inner_ipv6"
           :label="$t('内网IPv6')"
           prop="inner_ipv6"
           :width="innerIPv6Width"
-          v-if="filter['inner_ipv6'] && filter['inner_ipv6'].mockChecked"
-          show-overflow-tooltip>
+          v-if="filter['inner_ipv6'] && filter['inner_ipv6'].mockChecked">
           <template #default="{ row }">
             {{ row.inner_ipv6 | filterEmpty }}
           </template>
-        </bk-table-column>
-        <bk-table-column
+        </NmColumn>
+        <NmColumn
           key="bk_host_name"
           :label="$t('主机名')"
           prop="bk_host_name"
           width="140"
-          v-if="filter['bk_host_name'].mockChecked"
-          show-overflow-tooltip>
+          v-if="filter['bk_host_name'].mockChecked">
           <template #default="{ row }">
             {{ row.bk_host_name | filterEmpty }}
           </template>
-        </bk-table-column>
-        <bk-table-column
+        </NmColumn>
+        <NmColumn
           key="bk_agent_id"
           label="Agent ID"
           prop="bk_agent_id"
           width="260"
-          v-if="filter['bk_agent_id'].mockChecked"
-          show-overflow-tooltip>
+          v-if="filter['bk_agent_id'].mockChecked">
           <template #default="{ row }">
             {{ row.bk_agent_id | filterEmpty }}
           </template>
-        </bk-table-column>
-        <bk-table-column
+        </NmColumn>
+        <NmColumn
           key="bk_host_id"
           label="Host ID"
           prop="bk_host_id"
           width="80"
           v-if="filter['bk_host_id'].mockChecked" />
-        <bk-table-column
+        <NmColumn
           key="login_ip"
           :label="$t('登录IP')"
           prop="login_ip"
           width="110"
-          v-if="filter['login_ip'].mockChecked"
-          show-overflow-tooltip>
+          v-if="filter['login_ip'].mockChecked">
           <template #default="{ row }">
             {{ row.login_ip | filterEmpty }}
           </template>
-        </bk-table-column>
-        <bk-table-column
+        </NmColumn>
+        <NmColumn
           key="outer_ipv6"
           :label="$t('外网IPv6')"
           prop="outer_ipv6"
           width="110"
-          v-if="filter['outer_ipv6'] && filter['outer_ipv6'].mockChecked"
-          show-overflow-tooltip>
+          v-if="filter['outer_ipv6'] && filter['outer_ipv6'].mockChecked">
           <template #default="{ row }">
             {{ row.outer_ipv6 | filterEmpty }}
           </template>
-        </bk-table-column>
-        <bk-table-column
+        </NmColumn>
+        <NmColumn
           key="biz"
           :label="$t('归属业务')"
           prop="bk_biz_name"
           :min-width="columnMinWidth['bk_biz_name']"
-          v-if="filter['bk_biz_name'].mockChecked"
-          show-overflow-tooltip>
-        </bk-table-column>
-        <bk-table-column
+          v-if="filter['bk_biz_name'].mockChecked">
+        </NmColumn>
+        <NmColumn
           key="cloudArea"
           :label="$t('管控区域')"
-          show-overflow-tooltip
           :min-width="columnMinWidth['bk_cloud_id']"
           :render-header="renderFilterHeader"
           prop="bk_cloud_id"
@@ -299,20 +291,19 @@
           <template #default="{ row }">
             {{ row.bk_cloud_name | filterEmpty }}
           </template>
-        </bk-table-column>
-        <bk-table-column
+        </NmColumn>
+        <NmColumn
           key="install_channel_id"
           :label="$t('安装通道')"
           :min-width="columnMinWidth['install_channel_id']"
           :render-header="renderFilterHeader"
           prop="install_channel_id"
-          show-overflow-tooltip
           v-if="filter['install_channel_id'].mockChecked">
           <template #default="{ row }">
             {{ row.install_channel_name || $t('默认通道') }}
           </template>
-        </bk-table-column>
-        <bk-table-column
+        </NmColumn>
+        <NmColumn
           key="system"
           :label="$t('操作系统')"
           prop="os_type"
@@ -322,8 +313,8 @@
           <template #default="{ row }">
             {{ osMap[row.os_type] | filterEmpty }}
           </template>
-        </bk-table-column>
-        <bk-table-column
+        </NmColumn>
+        <NmColumn
           key="status"
           :label="$t('Agent状态')"
           prop="status"
@@ -339,18 +330,17 @@
               <span>{{ row.status_display }}</span>
             </div>
           </template>
-        </bk-table-column>
+        </NmColumn>
         <!-- sortable="custom" -->
-        <bk-table-column
+        <NmColumn
           key="version"
           :label="$t('Agent版本')"
           prop="version"
-          show-overflow-tooltip
           :min-width="columnMinWidth['agent_version']"
           :render-header="renderFilterHeader"
           v-if="filter['agent_version'].mockChecked">
-        </bk-table-column>
-        <bk-table-column
+        </NmColumn>
+        <NmColumn
           key="is_manual"
           :label="$t('安装方式')"
           prop="is_manual"
@@ -360,8 +350,8 @@
           <template #default="{ row }">
             {{ row.is_manual ? $t('手动') : $t('远程') }}
           </template>
-        </bk-table-column>
-        <bk-table-column
+        </NmColumn>
+        <NmColumn
           key="bt"
           prop="peer_exchange_switch_for_agent"
           :label="$t('BT节点探测')"
@@ -372,8 +362,8 @@
               {{ row.peer_exchange_switch_for_agent ? $t('启用') : $t('停用')}}
             </span>
           </template>
-        </bk-table-column>
-        <bk-table-column
+        </NmColumn>
+        <NmColumn
           key="speedLimit"
           prop="bt_speed_limit"
           align="right"
@@ -383,10 +373,10 @@
           <template #default="{ row }">
             {{ row.bt_speed_limit | filterEmpty }}
           </template>
-        </bk-table-column>
-        <bk-table-column v-if="filter['speedLimit'].mockChecked" min-width="30" :resizable="false">
-        </bk-table-column>
-        <bk-table-column
+        </NmColumn>
+        <NmColumn v-if="filter['speedLimit'].mockChecked" min-width="30" :resizable="false">
+        </NmColumn>
+        <NmColumn
           key="addressing"
           prop="bk_addressing"
           :label="$t('寻址方式')"
@@ -396,8 +386,8 @@
           <template #default="{ row }">
             {{ row.bk_addressing === 'dynamic' ? $t('动态') : $t('静态') }}
           </template>
-        </bk-table-column>
-        <bk-table-column
+        </NmColumn>
+        <NmColumn
           key="created_at"
           :label="$t('安装时间')"
           width="200"
@@ -407,8 +397,8 @@
           <template #default="{ row }">
             {{ row.created_at | filterTimezone }}
           </template>
-        </bk-table-column>
-        <bk-table-column
+        </NmColumn>
+        <NmColumn
           key="updated_at"
           :label="$t('更新时间')"
           width="200"
@@ -418,37 +408,40 @@
           <template #default="{ row }">
             {{ row.updated_at | filterTimezone }}
           </template>
-        </bk-table-column>
-        <bk-table-column
+        </NmColumn>
+        <NmColumn
           key="topology"
           :label="$t('业务拓扑')"
           prop="topology"
           min-width="100"
+          :show-overflow-tooltip="false"
           v-if="filter['topology'].mockChecked"
           :resizable="true">
           <template #default="{ row }">
-            <div v-bk-tooltips="{
-                   content: row.topology.join('<br>'),
-                   theme: 'topology-list',
-                   delay: [300, 0],
-                   placements: 'bottom',
-                   disabled: row.topology.length === 1,
-                   boundary: 'window'
-                 }"
-                 v-if="row.topology.length">
-              <span :class="{ 'col-topo': row.topology.length > 1 }"
-                    v-bk-overflow-tips
-                    :title="row.topology.length === 1 ? row.topology.join('') : ''">
-                {{ row.topology.join(', ') }}
-              </span>
-            </div>
+            <template v-if="row.topology.length">
+              <div
+                v-if="row.topology.length > 1"
+                v-bk-tooltips="{
+                  content: row.topology.join('<br>'),
+                  theme: 'topology-list',
+                  delay: [300, 0],
+                  placements: 'bottom',
+                  boundary: 'window'
+                }">
+                <span :class="{ 'col-topo': row.topology.length > 1 }">
+                  {{ row.topology.join(', ') }}
+                </span>
+              </div>
+              <div v-else v-bk-overflow-tips>{{ row.topology[0] }}</div>
+            </template>
             <span v-else>--</span>
           </template>
-        </bk-table-column>
-        <bk-table-column
+        </NmColumn>
+        <NmColumn
           key="num"
           width="60"
           :resizable="false"
+          :show-overflow-tooltip="false"
           v-if="filter['topology'].mockChecked">
           <template #default="{ row }">
             <span
@@ -459,13 +452,12 @@
                 theme: 'light',
                 delay: [300, 0],
                 placements: 'bottom',
-                disabled: row.topology.length === 1
               }">
               {{ `+${row.topology.length}` }}
             </span>
           </template>
-        </bk-table-column>
-        <bk-table-column
+        </NmColumn>
+        <NmColumn
           key="operate"
           prop="colspaOpera"
           :label="$t('操作')"
@@ -547,16 +539,16 @@
               </auth-component>
             </div>
           </template>
-        </bk-table-column>
+        </NmColumn>
         <!--自定义字段显示列-->
-        <bk-table-column
+        <NmColumn
           key="setting"
           prop="colspaSetting"
           :render-header="renderHeader"
           width="42"
           :resizable="false"
           fixed="right">
-        </bk-table-column>
+        </NmColumn>
         <NmException
           slot="empty"
           :delay="loading"

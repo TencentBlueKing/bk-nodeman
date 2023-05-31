@@ -7,12 +7,12 @@
     @page-change="handlePagetionChage(arguments, 'page')"
     @page-limit-change="handlePagetionChage(arguments, 'limit')"
     class="preview-table">
-    <bk-table-column>
+    <NmColumn>
       <template #default="{ row }">
         {{ row.path || row.name || '--' }}
       </template>
-    </bk-table-column>
-    <bk-table-column>
+    </NmColumn>
+    <NmColumn>
       <template #default="{ row }">
         <i18n path="节点统计">
           <span class="total">{{ row.total || 0 }}</span>
@@ -21,12 +21,12 @@
           <span class="not_installed">{{ row.NOT_INSTALLED || 0 }}</span>
         </i18n>
       </template>
-    </bk-table-column>
-    <bk-table-column width="80" v-if="operate">
+    </NmColumn>
+    <NmColumn width="80" v-if="operate">
       <template #default="{ row }">
         <bk-button text @click="handleRemove(row)">{{ $t('移除') }}</bk-button>
       </template>
-    </bk-table-column>
+    </NmColumn>
   </bk-table>
 </template>
 <script lang="ts">

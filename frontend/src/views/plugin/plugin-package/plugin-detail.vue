@@ -103,14 +103,14 @@
         :max-height="windowHeight - 230"
         :data="tableList"
         :row-style="getRowStyle">
-        <bk-table-column :label="$t('包名称')" prop="pkg_name" sortable :resizable="false" min-width="140" />
-        <bk-table-column :label="$t('支持部署于')" prop="support_os_cpu" sortable :resizable="false" min-width="100" />
-        <bk-table-column :label="$t('最新程序版本')" prop="version" sortable :resizable="false" min-width="100" />
-        <bk-table-column :label="$t('更新时间')" prop="pkg_mtime" sortable :resizable="false" min-width="120">
+        <NmColumn :label="$t('包名称')" prop="pkg_name" sortable :resizable="false" min-width="140" />
+        <NmColumn :label="$t('支持部署于')" prop="support_os_cpu" sortable :resizable="false" min-width="100" />
+        <NmColumn :label="$t('最新程序版本')" prop="version" sortable :resizable="false" min-width="100" />
+        <NmColumn :label="$t('更新时间')" prop="pkg_mtime" sortable :resizable="false" min-width="120">
           <template #default="{ row }">
             {{ row.pkg_mtime | filterTimezone }}
           </template>
-        </bk-table-column>
+        </NmColumn>
         <bk-table-column :label="$t('操作')" :resizable="false" :width="isEnLanguage ? 160 : 120">
           <template #default="{ row }">
             <auth-component

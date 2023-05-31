@@ -20,29 +20,27 @@
       class="preview-table"
       :data="proxyList"
       :header-border="false">
-      <bk-table-column label="Proxy IP">
+      <NmColumn label="Proxy IP">
         <template #default="{ row }">
           <bk-button v-test="'view'" text @click="handleViewProxy(row)" class="row-btn">
             {{ row.inner_ip }}
           </bk-button>
         </template>
-      </bk-table-column>
-      <bk-table-column
+      </NmColumn>
+      <NmColumn
         key="login_ip"
         :label="$t('登录IP')"
         prop="login_ip">
         <template #default="{ row }">
           {{ row.login_ip || filterEmpty }}
         </template>
-      </bk-table-column>
-      <bk-table-column
-        :label="$t('归属业务')"
-        prop="bk_biz_name" show-overflow-tooltip>
+      </NmColumn>
+      <NmColumn :label="$t('归属业务')" prop="bk_biz_name">
         <template #default="{ row }">
           <span>{{ row.bk_biz_name | filterEmpty }}</span>
         </template>
-      </bk-table-column>
-      <bk-table-column :label="$t('Proxy状态')" prop="status">
+      </NmColumn>
+      <NmColumn :label="$t('Proxy状态')" prop="status">
         <template #default="{ row }">
           <div class="col-status" v-if="statusMap[row.status]">
             <span :class="'status-mark status-' + row.status"></span>
@@ -53,20 +51,20 @@
             <span>{{ $t('未知') }}</span>
           </div>
         </template>
-      </bk-table-column>
-      <bk-table-column :label="$t('密码密钥')" prop="re_certification">
+      </NmColumn>
+      <NmColumn :label="$t('密码密钥')" prop="re_certification">
         <template #default="{ row }">
           <span :class="['tag-switch', { 'tag-enable': !row.re_certification }]">
             {{ row.re_certification ? $t('过期') : $t('有效') }}
           </span>
         </template>
-      </bk-table-column>
-      <bk-table-column :label="$t('Proxy版本')" prop="version">
+      </NmColumn>
+      <NmColumn :label="$t('Proxy版本')" prop="version">
         <template #default="{ row }">
           <span>{{ row.version | filterEmpty }}</span>
         </template>
-      </bk-table-column>
-      <bk-table-column :label="$t('Agent数量')" prop="pagent_count">
+      </NmColumn>
+      <NmColumn :label="$t('Agent数量')" prop="pagent_count">
         <template #default="{ row }">
           <span
             class="link-pointer"
@@ -79,7 +77,7 @@
           </span>
           <span v-else>0</span>
         </template>
-      </bk-table-column>
+      </NmColumn>
     </bk-table>
     <!--操作按钮-->
     <section class="add-cloud-footer mt30">

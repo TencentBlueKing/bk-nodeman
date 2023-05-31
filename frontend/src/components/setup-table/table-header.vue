@@ -1,5 +1,11 @@
 <template>
-  <div :class="['setup-header', { 'is-center': !parentProp }]">
+  <div :class="[
+    'setup-header',
+    {
+      'is-center': !parentProp,
+      'batch-able': batch
+    }
+  ]">
     <div
       ref="tipSpan"
       :class="{
@@ -7,10 +13,11 @@
         'header-label-required': required,
         'header-label-tips': Boolean(tips)
       }">
-      <div><span :title="$t(label)">{{ $t(label) }}</span></div>
+      <span :title="$t(label)">{{ $t(label) }}</span>
       <!-- <div v-bk-overflow-tips><span>{{ $t(label) }}</span></div> -->
     </div>
     <bk-popover
+      class="batch-btn"
       v-if="batch"
       theme="light batch-edit"
       trigger="manual"
@@ -222,24 +229,22 @@ export default class TableHeader extends Vue {
   @import "@/css/mixins/nodeman.css";
 
   .setup-header {
+    display: inline-flex;
+    align-items: center;
     font-weight: normal;
     text-align: left;
+    width: 100%;
+    overflow: hidden;
     &.is-center {
       justify-content: center;
     }
-
-    @mixin layout-flex row, center;
     .header-label {
       position: relative;
       display: inline-block;
       line-height: 16px;
-      max-width: 100%;
+      white-space: nowrap;
+      text-overflow: ellipsis;
       overflow: hidden;
-      > div {
-        white-space: nowrap;
-        text-overflow: ellipsis;
-        overflow: hidden;
-      }
       &-required {
         padding-right: 6px;
         &::after {
@@ -254,6 +259,9 @@ export default class TableHeader extends Vue {
         border-bottom: 1px dashed #c4c6cc;
         cursor: default;
       }
+    }
+    .batch-btn {
+      flex-shrink: 0;
     }
     .batch-icon {
       margin-left: 6px;

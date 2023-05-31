@@ -81,7 +81,7 @@
               :data="stepList"
               :row-style="getRowStyle"
               @row-click="handleStepClick">
-              <bk-table-column :label="$t('步骤')" :resizable="false" min-width="180" show-overflow-tooltip="">
+              <NmColumn :label="$t('步骤')" :resizable="false" min-width="180">
                 <template #default="{ row, $index }">
                   <div :class="row.status"><!--  省略号的颜色 -->
                     <span :class="row.status" :title="row.step">
@@ -89,15 +89,15 @@
                     </span>
                   </div>
                 </template>
-              </bk-table-column>
-              <bk-table-column
+              </NmColumn>
+              <NmColumn
                 class-name="column-subscript"
                 width="80"
                 align="right"
                 prop="spendTime"
                 :label="$t('耗时')" />
-              <bk-table-column class-name="column-subscript" width="15"></bk-table-column>
-              <bk-table-column
+              <NmColumn class-name="column-subscript" width="15"></NmColumn>
+              <NmColumn
                 class-name="column-subscript"
                 :label="$t('执行情况')"
                 :min-width="showCommandBtn ? 160 : 105"
@@ -120,8 +120,8 @@
                     <span :class="row.status" :title="statusMap[row.status]">{{ statusMap[row.status] }}</span>
                   </div>
                 </template>
-              </bk-table-column>
-              <bk-table-column
+              </NmColumn>
+              <NmColumn
                 class-name="column-subscript"
                 prop="opera"
                 :width="hasOperaCell ? 100 : 30">
@@ -139,7 +139,7 @@
                   </bk-button>
                   <i class="bk-icon icon-right-shape" v-if="isLogOverflow && scrollStep === $index"></i>
                 </template>
-              </bk-table-column>
+              </NmColumn>
             </bk-table>
           </div>
         </div>

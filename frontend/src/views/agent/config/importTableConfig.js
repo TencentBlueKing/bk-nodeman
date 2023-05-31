@@ -206,7 +206,7 @@ const config = [
     getOptions() {
       return addressingMode;
     },
-    width: 115,
+    width: 90,
   },
   {
     label: '登录端口',
@@ -307,7 +307,7 @@ const config = [
     required: false,
     noRequiredMark: false,
     parentProp: 'trans_info',
-    width: 115,
+    width: 90,
     manualProp: true,
   },
   {
@@ -319,7 +319,7 @@ const config = [
     noRequiredMark: false,
     // appendSlot: 'MB/s',
     // iconOffset: 40,
-    width: 120,
+    width: 90,
     placeholder: window.i18n.t('请输入'),
     rules: [reguFnMinInteger(1)],
     parentProp: 'trans_info',
