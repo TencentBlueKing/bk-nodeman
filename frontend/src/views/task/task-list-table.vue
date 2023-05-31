@@ -13,22 +13,21 @@
         @row-click="detailHandle"
         @page-change="pageChange"
         @page-limit-change="limitChange">
-        <bk-table-column :label="$t('任务ID')" prop="job_id" :resizable="false" :min-width="columnMinWidth['job_id']">
+        <NmColumn :label="$t('任务ID')" prop="job_id" :resizable="false" :min-width="columnMinWidth['job_id']">
           <template #default="{ row }">
             <a href="javascript: " class="primary">{{ row.id }}</a>
           </template>
-        </bk-table-column>
-        <bk-table-column
+        </NmColumn>
+        <NmColumn
           class-name="biz-column"
           prop="bkBizScopeDisplay"
-          show-overflow-tooltip
           :label="$t('业务')"
           :min-width="columnMinWidth['bkBizScopeDisplay']">
           <template #default="{ row }">
             {{ row.bkBizScopeDisplay && row.bkBizScopeDisplay.length ? row.bkBizScopeDisplay.join(',') : '--' }}
           </template>
-        </bk-table-column>
-        <bk-table-column
+        </NmColumn>
+        <NmColumn
           prop="step_type"
           :min-width="columnMinWidth['step_type']"
           :label="$t('任务类型')"
@@ -36,8 +35,8 @@
           <template #default="{ row }">
             {{ row.stepTypeDisplay | filterEmpty }}
           </template>
-        </bk-table-column>
-        <bk-table-column
+        </NmColumn>
+        <NmColumn
           prop="op_type"
           :min-width="columnMinWidth['op_type']"
           :label="$t('操作类型')"
@@ -45,8 +44,8 @@
           <template #default="{ row }">
             {{ row.opTypeDisplay | filterEmpty }}
           </template>
-        </bk-table-column>
-        <bk-table-column
+        </NmColumn>
+        <NmColumn
           prop="policy_name"
           :min-width="columnMinWidth['policy_name']"
           show-overflow-tooltip
@@ -55,8 +54,8 @@
           <template #default="{ row }">
             {{ row.policyName | filterEmpty }}
           </template>
-        </bk-table-column>
-        <bk-table-column
+        </NmColumn>
+        <NmColumn
           prop="created_by"
           :label="$t('执行者')"
           :min-width="columnMinWidth['created_by']"
@@ -64,17 +63,17 @@
           <template #default="{ row }">
             {{ row.createdBy ? row.createdBy : '--' }}
           </template>
-        </bk-table-column>
-        <bk-table-column min-width="150" :label="$t('执行时间')" prop="startTime">
+        </NmColumn>
+        <NmColumn min-width="150" :label="$t('执行时间')" prop="startTime">
           <template #default="{ row }">
             {{ row.startTime | filterTimezone }}
           </template>
-        </bk-table-column>
-        <bk-table-column align="right" :label="$t('总耗时')" prop="costTime" :min-width="columnMinWidth['costTime']">
+        </NmColumn>
+        <NmColumn align="right" :label="$t('总耗时')" prop="costTime" :min-width="columnMinWidth['costTime']">
           <template #default="{ row }">{{ takesTimeFormat(row.costTime) }} </template>
-        </bk-table-column>
-        <bk-table-column min-width="20" :resizable="false"></bk-table-column>
-        <bk-table-column
+        </NmColumn>
+        <NmColumn min-width="20" :resizable="false"></NmColumn>
+        <NmColumn
           prop="status"
           :min-width="columnMinWidth['status']"
           :label="$t('执行状态')"
@@ -87,8 +86,8 @@
               <span class="execut-text" :title="titleStatusMap[row.status]">{{ titleStatusMap[row.status] }}</span>
             </div>
           </template>
-        </bk-table-column>
-        <bk-table-column prop="static" :label="$t('总数成功失败忽略')" :min-width="columnMinWidth['static']">
+        </NmColumn>
+        <NmColumn prop="static" :label="$t('总数成功失败忽略')" :min-width="columnMinWidth['static']">
           <template #default="{ row }">
             <template v-if="row.statistics">
               <span class="num">{{ row.statistics.totalCount || 0 }}</span>/
@@ -101,7 +100,7 @@
             </template>
             <span v-else>--</span>
           </template>
-        </bk-table-column>
+        </NmColumn>
 
         <NmException
           slot="empty"

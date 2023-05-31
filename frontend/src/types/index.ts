@@ -286,6 +286,7 @@ export interface ISetupHead {
   unique?: boolean // IP行内和其他行的重复性校验
   union?: string // 相同ip时联合管控区域做校验（允许不同管控区域时IP相同）
   width?: string | number
+  minWidth?: string | number
   popoverMinWidth?: number
   // appendSlot?: string // head单位
   iconOffset?: number

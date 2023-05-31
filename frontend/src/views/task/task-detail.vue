@@ -108,26 +108,26 @@
             :reserve-selection="true"
             :selectable="selectAbleHandle">
           </bk-table-column> -->
-          <bk-table-column class-name="row-ip" label="IP" prop="innerIp" :resizable="false">
+          <NmColumn class-name="row-ip" label="IP" prop="innerIp" :resizable="false">
             <template #default="{ row }">
               {{ row.innerIp | filterEmpty }}
             </template>
-          </bk-table-column>
-          <bk-table-column :label="$t('管控区域')" prop="bkCloudName" :resizable="false">
+          </NmColumn>
+          <NmColumn :label="$t('管控区域')" prop="bkCloudName" :resizable="false">
             <template #default="{ row }">
               {{ row.bkCloudName | filterEmpty }}
             </template>
-          </bk-table-column>
-          <bk-table-column min-width="100" :label="$t('业务')" prop="bkBizName" :resizable="false">
+          </NmColumn>
+          <NmColumn min-width="100" :label="$t('业务')" prop="bkBizName" :resizable="false">
             <template #default="{ row }">
               {{ row.bkBizName | filterEmpty }}
-            </template></bk-table-column>
-          <bk-table-column min-width="100" :label="$t('安装方式')" prop="isManual" :resizable="false">
+            </template></NmColumn>
+          <NmColumn min-width="100" :label="$t('安装方式')" prop="isManual" :resizable="false">
             <template #default="{ row }">
               {{ installTypeCell(row.isManual) }}
             </template>
-          </bk-table-column>
-          <bk-table-column
+          </NmColumn>
+          <NmColumn
             prop="status"
             :label="$t('执行状态')"
             min-width="220"
@@ -151,8 +151,8 @@
                 <span v-else>{{ row.statusDisplay | filterEmpty }}</span>
               </div>
             </template>
-          </bk-table-column>
-          <bk-table-column
+          </NmColumn>
+          <NmColumn
             prop="colspaOpera"
             :width="(hasCommandTaskType ? 158 : 93) + (fontSize === 'large' ? 20 : 0)"
             :label="$t('操作')"
@@ -196,15 +196,15 @@
                 </bk-button>
               </template>
             </template>
-          </bk-table-column>
+          </NmColumn>
           <!--自定义字段显示列-->
-          <bk-table-column
+          <NmColumn
             key="setting"
             prop="colspaSetting"
             :render-header="renderHeader"
             width="42"
             :resizable="false">
-          </bk-table-column>
+          </NmColumn>
         </bk-table>
       </section>
     </template>

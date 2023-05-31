@@ -19,50 +19,47 @@
         :reserve-selection="true"
         :selectable="getSelectAbled">
       </bk-table-column> -->
-      <bk-table-column
+      <NmColumn
         min-width="140"
         label="IPv4"
         prop="innerIp"
-        width="125"
-        show-overflow-tooltip>
+        width="125">
         <template #default="{ row }">
           {{ row.innerIp | filterEmpty }}
         </template>
-      </bk-table-column>
-      <bk-table-column
+      </NmColumn>
+      <NmColumn
         label="IPv6"
         prop="innerIpv6"
         :width="innerIPv6Width"
-        show-overflow-tooltip
         v-if="$DHCP">
         <template #default="{ row }">
           {{ row.innerIpv6 | filterEmpty }}
         </template>
-      </bk-table-column>
-      <bk-table-column :label="$t('管控区域')" prop="bkCloudName" min-width="90" :resizable="false" show-overflow-tooltip />
-      <bk-table-column min-width="100" :label="$t('业务')" prop="bkBizName" :resizable="false" show-overflow-tooltip />
-      <bk-table-column min-width="110" :label="$t('操作类型')" prop="opTypeDisplay" :resizable="false" />
-      <bk-table-column
+      </NmColumn>
+      <NmColumn :label="$t('管控区域')" prop="bkCloudName" min-width="90" :resizable="false" />
+      <NmColumn min-width="100" :label="$t('业务')" prop="bkBizName" :resizable="false" />
+      <NmColumn min-width="110" :label="$t('操作类型')" prop="opTypeDisplay" :resizable="false" />
+      <NmColumn
         v-if="showTargetVersionColumn"
         min-width="110"
         :label="$t('目标版本')"
-        :resizable="false"
-        show-overflow-tooltip>
+        :resizable="false">
         <template #default="{ row }">
           {{ row.targetVersion | filterEmpty }}
         </template>
-      </bk-table-column>
-      <bk-table-column v-else min-width="120" :label="$t('安装方式')" prop="isManual" :resizable="false">
+      </NmColumn>
+      <NmColumn v-else min-width="120" :label="$t('安装方式')" prop="isManual" :resizable="false">
         <template #default="{ row }">
           {{ installTypeCell(row.isManual) }}
         </template>
-      </bk-table-column>
-      <bk-table-column min-width="100" :label="$t('耗时')" prop="costTime" :resizable="false">
+      </NmColumn>
+      <NmColumn min-width="100" :label="$t('耗时')" prop="costTime" :resizable="false">
         <template #default="{ row }">
           {{ takesTimeFormat(row.costTime) }}
         </template>
-      </bk-table-column>
-      <bk-table-column
+      </NmColumn>
+      <NmColumn
         prop="status"
         :label="$t('执行状态')"
         min-width="220"
@@ -100,8 +97,8 @@
             <span class="execut-text" v-else>{{ row.statusDisplay | filterEmpty }}</span>
           </div>
         </template>
-      </bk-table-column>
-      <bk-table-column
+      </NmColumn>
+      <NmColumn
         prop="colspaOpera"
         :width="145 + (fontSize === 'large' ? 20 : 0)"
         :label="$t('操作')"
@@ -138,7 +135,7 @@
             </template>
           </div>
         </template>
-      </bk-table-column>
+      </NmColumn>
 
       <NmException
         slot="empty"

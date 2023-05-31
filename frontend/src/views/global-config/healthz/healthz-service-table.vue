@@ -11,8 +11,8 @@
         class="healthz-table"
         :data="tableData"
         @selection-change="handleSelectionChange">
-        <bk-table-column type="selection" width="40"></bk-table-column>
-        <bk-table-column label="IP" prop="ip"></bk-table-column>
+        <bk-table-column type="selection" width="40" />
+        <NmColumn label="IP" prop="ip" />
       </bk-table>
       <ExceptionCard v-else type="notData" :has-border="false"></ExceptionCard>
     </div>

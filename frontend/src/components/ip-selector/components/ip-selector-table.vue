@@ -11,7 +11,7 @@
       :cell-class-name="handleCellClass"
       :header-cell-class-name="handleCellClass"
       class="topo-table">
-      <bk-table-column
+      <NmColumn
         :render-header="renderHeader"
         width="50"
         :resizable="false"
@@ -27,8 +27,8 @@
             @change="handleRowCheckChange(row, $event)">
           </bk-checkbox>
         </template>
-      </bk-table-column>
-      <bk-table-column
+      </NmColumn>
+      <NmColumn
         v-for="item in config.filter(item => !item.hidden)"
         :key="item.prop"
         :label="item.label"
@@ -47,7 +47,7 @@
             {{ row[item.prop] | filterEmpty }}
           </span>
         </template>
-      </bk-table-column>
+      </NmColumn>
     </bk-table>
     <bk-pagination class="mt10" v-bind="pagination" @change="handlePageChange" @limit-change="handlePageLimitChange" />
   </div>

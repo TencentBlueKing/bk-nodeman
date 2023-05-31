@@ -96,20 +96,20 @@
         @sort-change="handleSortChange"
         @page-change="handlePageChange"
         @page-limit-change="handlePageLimitChange">
-        <bk-table-column :label="$t('主机IP')" prop="inner_ip" show-overflow-tooltip />
-        <bk-table-column :label="$t('管控区域')" prop="bk_cloud_id" :render-header="renderFilterHeader">
+        <NmColumn :label="$t('主机IP')" prop="inner_ip" />
+        <NmColumn :label="$t('管控区域')" prop="bk_cloud_id" :render-header="renderFilterHeader">
           <template #default="{ row }">{{ row.bk_cloud_name }}</template>
-        </bk-table-column>
+        </NmColumn>
         <!-- 忽略的没有这两列信息 -->
         <template v-if="!isIgnoredTab || !isManualType">
-          <bk-table-column :label="$t('所属业务')" prop="bk_biz_name" :render-header="renderFilterHeader">
+          <NmColumn :label="$t('所属业务')" prop="bk_biz_name" :render-header="renderFilterHeader">
             <template #default="{ row }">{{ row.bk_biz_name | filterEmpty }}</template>
-          </bk-table-column>
-          <bk-table-column :label="$t('操作系统')" prop="os_type" :render-header="renderFilterHeader">
+          </NmColumn>
+          <NmColumn :label="$t('操作系统')" prop="os_type" :render-header="renderFilterHeader">
             <template #default="{ row }">{{ row.os_type | filterEmpty }}</template>
-          </bk-table-column>
+          </NmColumn>
         </template>
-        <bk-table-column
+        <NmColumn
           v-if="isAllTab || isRollbackTab"
           prop="status"
           :label="$t('Agent状态')"
@@ -120,13 +120,12 @@
               <span>{{ row.statusDisplay || $t('未知') }}</span>
             </div>
           </template>
-        </bk-table-column>
-        <bk-table-column
+        </NmColumn>
+        <NmColumn
           v-if="isIgnoredTab && !isManualType"
           :label="$t('忽略原因')"
           prop="msg"
           key="msg"
-          show-overflow-tooltip
           min-width="400">
           <template #default="{ row }">
             <div class="col-execution" v-if="row.suppressed_by_id" @click="handleView(row)">
@@ -137,11 +136,10 @@
             </div>
             <span v-else>{{ row.msg | filterEmpty }}</span>
           </template>
-        </bk-table-column>
-        <bk-table-column
+        </NmColumn>
+        <NmColumn
           v-else-if="isIgnoredTab && isManualType"
           :label="$t('部署策略')"
-          show-overflow-tooltip
           key="suppressed_by_name"
           min-width="200">
           <template #default="{ row }">
@@ -157,11 +155,10 @@
               <i class="nodeman-icon nc-jump-link"></i>
             </router-link>
           </template>
-        </bk-table-column>
-        <bk-table-column
+        </NmColumn>
+        <NmColumn
           v-else-if="isRollbackTab"
           :label="$t('目标策略')"
-          show-overflow-tooltip
           key="target_policy"
           min-width="200">
           <template #default="{ row }">
@@ -179,14 +176,14 @@
             </router-link>
             <span v-else>{{ row.target_policy.msg | filterEmpty }}</span>
           </template>
-        </bk-table-column>
+        </NmColumn>
         <template v-else-if="!hideVersionColumn">
-          <bk-table-column :key="tabActive" :label="$t('当前版本')" prop="current_version">
+          <NmColumn :key="tabActive" :label="$t('当前版本')" prop="current_version">
             <template #default="{ row }">{{ row.current_version | filterEmpty }}</template>
-          </bk-table-column>
-          <bk-table-column v-if="showTargeVersionColumn" :label="$t('目标版本')" prop="target_version">
+          </NmColumn>
+          <NmColumn v-if="showTargeVersionColumn" :label="$t('目标版本')" prop="target_version">
             <template #default="{ row }">{{ row.target_version | filterEmpty }}</template>
-          </bk-table-column>
+          </NmColumn>
         </template>
       </bk-table>
 

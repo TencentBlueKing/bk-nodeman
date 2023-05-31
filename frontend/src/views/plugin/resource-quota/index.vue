@@ -51,8 +51,8 @@
               </div>
               <section class="content-body-table">
                 <bk-table :data="pluginList" :max-height="windowHeight - 192">
-                  <bk-table-column :label="$t('插件名称')" prop="plugin_name" :resizable="false"></bk-table-column>
-                  <bk-table-column :label="$t('总数运行中异常')" :resizable="false">
+                  <NmColumn :label="$t('插件名称')" prop="plugin_name" :resizable="false"></NmColumn>
+                  <NmColumn :label="$t('总数运行中异常')" :resizable="false">
                     <template #default="{ row }">
                       <div>
                         <span class="num">{{ row.total }}</span>
@@ -62,20 +62,20 @@
                         <span class="num abort">{{ row.terminated }}</span>
                       </div>
                     </template>
-                  </bk-table-column>
-                  <bk-table-column
+                  </NmColumn>
+                  <NmColumn
                     label="CPU配额及单位"
                     prop="cpu"
                     align="right"
                     :resizable="false"
                     :render-header="tipsHeadRender" />
-                  <bk-table-column
+                  <NmColumn
                     label="内存配额及单位"
                     prop="mem"
                     align="right"
                     :resizable="false"
                     :render-header="tipsHeadRender" />
-                  <bk-table-column width="40"></bk-table-column>
+                  <NmColumn width="40"></NmColumn>
                 </bk-table>
               </section>
             </template>

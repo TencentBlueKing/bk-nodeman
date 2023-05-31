@@ -9,11 +9,10 @@
       :span-method="colspanHandle"
       @page-change="handlePageChange"
       @page-limit-change="handleLimitChange">
-      <bk-table-column
+      <NmColumn
         :label="$t('插件别名')"
         sortable
         :resizable="false"
-        show-overflow-tooltip
         min-width="115">
         <template #default="{ row }">
           <auth-component
@@ -29,15 +28,14 @@
             {{ row.description | filterEmpty }}
           </auth-component>
         </template>
-      </bk-table-column>
-      <bk-table-column
+      </NmColumn>
+      <NmColumn
         :label="$t('插件名称')"
         prop="name"
         sortable
         :resizable="false"
-        show-overflow-tooltip
         min-width="120" />
-      <bk-table-column
+      <NmColumn
         v-if="getColumnShowStatus('category')"
         :label="$t('开发商')"
         prop="category"
@@ -47,8 +45,8 @@
         <template #default="{ row }">
           {{ row.category | filterEmpty }}
         </template>
-      </bk-table-column>
-      <bk-table-column
+      </NmColumn>
+      <NmColumn
         v-if="getColumnShowStatus('nodes_number')"
         :label="$t('已部署节点')"
         prop="nodes_number"
@@ -65,11 +63,11 @@
             <span v-else>0</span>
           </div>
         </template>
-      </bk-table-column>
-      <bk-table-column min-width="30" v-if="getColumnShowStatus('nodes_number')">
+      </NmColumn>
+      <NmColumn min-width="30" v-if="getColumnShowStatus('nodes_number')">
         <template #default="" />
-      </bk-table-column>
-      <bk-table-column
+      </NmColumn>
+      <NmColumn
         v-if="getColumnShowStatus('source_app_code')"
         :label="$t('数据对接SaaS')"
         prop="source_app_code"
@@ -84,19 +82,18 @@
           </bk-button>
           <span v-else>--</span>
         </template>
-      </bk-table-column>
-      <bk-table-column
+      </NmColumn>
+      <NmColumn
         v-if="getColumnShowStatus('scenario')"
         :label="$t('插件描述')"
         prop="scenario"
-        show-overflow-tooltip
         min-width="120"
         :resizable="false">
         <template #default="{ row }">
           {{ row.scenario | filterEmpty }}
         </template>
-      </bk-table-column>
-      <bk-table-column
+      </NmColumn>
+      <NmColumn
         v-if="getColumnShowStatus('deploy_type')"
         :label="$t('部署方式')"
         prop="deploy_type"
@@ -105,8 +102,8 @@
         <template #default="{ row }">
           {{ row.deploy_type | filterEmpty }}
         </template>
-      </bk-table-column>
-      <bk-table-column
+      </NmColumn>
+      <NmColumn
         v-if="getColumnShowStatus('is_ready')"
         :label="$t('插件状态')"
         prop="is_ready"
@@ -117,14 +114,14 @@
             {{ row.is_ready ? $t('启用') : $t('停用') }}
           </span>
         </template>
-      </bk-table-column>
-      <bk-table-column prop="colspaOpera" :width="100" :label="$t('操作')" :resizable="false">
+      </NmColumn>
+      <NmColumn prop="colspaOpera" :width="100" :label="$t('操作')" :resizable="false">
         <template #default="{ row }">
           <bk-button v-test="'goDeploy'" text @click="handleOperate(row)">
             {{ row.is_ready ? $t('去部署') : $t('启用插件') }}
           </bk-button>
         </template>
-      </bk-table-column>
+      </NmColumn>
       <bk-table-column
         key="setting"
         prop="colspaSetting"

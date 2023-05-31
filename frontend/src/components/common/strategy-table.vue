@@ -1,6 +1,6 @@
 <template>
-  <bk-table show-overflow-tooltip :data="guideTable">
-    <bk-table-column width="260" prop="source" :label="$t('源地址')" show-overflow-tooltip>
+  <bk-table :data="guideTable">
+    <NmColumn width="260" prop="source" :label="$t('源地址')">
       <template #default="{ row }">
         <div class="cell-wrapper" v-if="row.sourceKey === 'agent'">
           <span>{{ row.source }}：</span>
@@ -41,8 +41,8 @@
           </bk-popover>
         </div>
       </template>
-    </bk-table-column>
-    <bk-table-column width="300" prop="targetAdress" :label="$t('目标地址')" show-overflow-tooltip>
+    </NmColumn>
+    <NmColumn width="300" prop="targetAdress" :label="$t('目标地址')">
       <template #default="{ row }">
         <div class="cell-wrapper">
           <template v-if="row.targetKey === 'agent'">
@@ -87,8 +87,8 @@
           </template>
         </div>
       </template>
-    </bk-table-column>
-    <bk-table-column width="120" prop="port" :label="$t('端口')" show-overflow-tooltip>
+    </NmColumn>
+    <NmColumn width="120" prop="port" :label="$t('端口')">
       <template #default="{ row }">
         <div v-if="row.portKey">
           <span v-if="row.portKey === 'bt_range'" :class="{ 'cell-placeholder': !area.bt_port_start }">
@@ -119,9 +119,9 @@
         </div>
         <span v-else-if="row.port">{{ row.port }}</span>
       </template>
-    </bk-table-column>
-    <bk-table-column width="110" prop="protocol" :label="$t('协议')" show-overflow-tooltip></bk-table-column>
-    <bk-table-column prop="use" :label="$t('用途')" show-overflow-tooltip></bk-table-column>
+    </NmColumn>
+    <NmColumn width="110" prop="protocol" :label="$t('协议')" />
+    <NmColumn prop="use" :label="$t('用途')" />
   </bk-table>
 </template>
 
@@ -596,9 +596,12 @@ export default class StrategyTable extends Vue {
 </script>
 <style lang="scss" scoped>
   .cell-wrapper {
-    display: flex;
+    display: inline-flex;
     align-items: center;
     line-height: 16px;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
   }
   .cell-flex {
     display: flex;

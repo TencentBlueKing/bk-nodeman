@@ -48,7 +48,7 @@
           </div>
         </template>
       </bk-table-column>
-      <bk-table-column
+      <NmColumn
         min-width="130"
         prop="inner_ip"
         class-name="ip-row"
@@ -56,13 +56,13 @@
         :label="$t('内网IPv4')"
         fixed>
         <template #default="{ row }">
-          <bk-button v-if="row.inner_ip" v-test="'showDetail'" text @click="handleRowClick(row)">
+          <a class="nm-link" v-if="row.inner_ip" v-test="'showDetail'" text @click="handleRowClick(row)">
             {{ row.inner_ip }}
-          </bk-button>
+          </a>
           <span v-else>{{ row.inner_ip | filterEmpty }}</span>
         </template>
-      </bk-table-column>
-      <bk-table-column
+      </NmColumn>
+      <NmColumn
         v-if="filterField['inner_ipv6'] && filterField['inner_ipv6'].mockChecked"
         :width="innerIPv6Width"
         prop="inner_ipv6"
@@ -70,42 +70,40 @@
         :label="$t('内网IPv6')"
         fixed>
         <template #default="{ row }">
-          <bk-button v-if="row.inner_ipv6" v-test="'showDetail'" text @click="handleRowClick(row)">
+          <a class="nm-link" v-if="row.inner_ipv6" v-test="'showDetail'" text @click="handleRowClick(row)">
             {{ row.inner_ipv6 }}
-          </bk-button>
+          </a>
           <span v-else>{{ row.inner_ipv6 | filterEmpty }}</span>
         </template>
-      </bk-table-column>
-      <bk-table-column
+      </NmColumn>
+      <NmColumn
         v-if="filterField['bk_host_name'].mockChecked"
         min-width="140"
         prop="bk_host_name"
         sortable
         :label="$t('主机名')"
-        :render-header="renderFilterHeader"
-        show-overflow-tooltip>
+        :render-header="renderFilterHeader">
         <template #default="{ row }">
           {{ row.bk_host_name | filterEmpty }}
         </template>
-      </bk-table-column>
-      <bk-table-column
+      </NmColumn>
+      <NmColumn
         key="bk_agent_id"
         label="Agent ID"
         prop="bk_agent_id"
         width="260"
-        v-if="filterField['bk_agent_id'].mockChecked"
-        show-overflow-tooltip>
+        v-if="filterField['bk_agent_id'].mockChecked">
         <template #default="{ row }">
           {{ row.bk_agent_id | filterEmpty }}
         </template>
-      </bk-table-column>
-      <bk-table-column
+      </NmColumn>
+      <NmColumn
         key="bk_host_id"
         label="Host ID"
         prop="bk_host_id"
         width="80"
         v-if="filterField['bk_host_id'].mockChecked" />
-      <bk-table-column
+      <NmColumn
         v-if="filterField['node_type'].mockChecked"
         min-width="120"
         prop="node_type"
@@ -115,8 +113,8 @@
         <template #default="{ row }">
           {{ row.node_type | filterEmpty }}
         </template>
-      </bk-table-column>
-      <bk-table-column
+      </NmColumn>
+      <NmColumn
         min-width="130"
         prop="bk_cloud_id"
         sortable
@@ -126,16 +124,15 @@
         <template #default="{ row }">
           <span>{{ row.bk_cloud_name | filterEmpty }}</span>
         </template>
-      </bk-table-column>
-      <bk-table-column
+      </NmColumn>
+      <NmColumn
         min-width="155"
         prop="bk_biz_name"
         :label="$t('归属业务')"
         sortable
-        show-overflow-tooltip
         v-if="filterField['bk_biz_name'].mockChecked">
-      </bk-table-column>
-      <bk-table-column
+      </NmColumn>
+      <NmColumn
         v-if="filterField['os_type'].mockChecked"
         min-width="145"
         prop="os_type"
@@ -146,8 +143,8 @@
         <template #default="{ row }">
           {{ osMap[row.os_type] | filterEmpty }}
         </template>
-      </bk-table-column>
-      <bk-table-column
+      </NmColumn>
+      <NmColumn
         v-if="filterField['bk_addressing'] && filterField['bk_addressing'].mockChecked"
         min-width="130"
         prop="bk_addressing"
@@ -155,32 +152,33 @@
         <template #default="{ row }">
           {{ `${row.bk_addressing}` === 'dynamic' ? $t('动态') : $t('静态') }}
         </template>
-      </bk-table-column>
+      </NmColumn>
       <template v-for="(plugin, index) in pluginNames">
-        <bk-table-column
+        <NmColumn
           :min-width="columnMinWidth[plugin]"
           :key="index"
           :label="plugin"
           :prop="plugin"
           :render-header="renderFilterHeader"
+          :show-overflow-tooltip="false"
           v-if="filterField[plugin] && filterField[plugin].mockChecked">
           <template #default="{ row }">
             <div class="col-status">
               <span :class="`status-mark status-${getRowPluginInfo(plugin, row)}`"></span>
-              <span>{{ getRowPluginInfo(plugin, row, 'version') }}</span>
+              <span class="text-ellipsis" v-bk-overflow-tips>{{ getRowPluginInfo(plugin, row, 'version') }}</span>
             </div>
           </template>
-        </bk-table-column>
+        </NmColumn>
       </template>
       <!--自定义字段显示列-->
-      <bk-table-column
+      <NmColumn
         key="setting"
         prop="colspaSetting"
         :render-header="renderSettingHeader"
         width="42"
         fixed="right"
         :resizable="false">
-      </bk-table-column>
+      </NmColumn>
       <NmException
         slot="empty"
         :delay="tableLoading"

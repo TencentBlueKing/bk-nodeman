@@ -146,7 +146,7 @@ export const config: ISetupHead[] = [
     getBatch() {
       return !/REINSTALL_AGENT/ig.test(this.localMark);
     },
-    width: 115,
+    width: 90,
   },
   {
     label: '登录端口',
@@ -247,7 +247,7 @@ export const config: ISetupHead[] = [
     batch: true,
     required: false,
     noRequiredMark: false,
-    width: 115,
+    width: 90,
     parentProp: 'trans_info',
     manualProp: true,
   },
