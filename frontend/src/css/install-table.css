@@ -220,6 +220,12 @@
     height: 44px;
     padding: 0 8px
   }
+  .cell {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    word-break: break-all;
+  }
   .table-header {
     th {
       border-top: 1px solid #dcdee5;

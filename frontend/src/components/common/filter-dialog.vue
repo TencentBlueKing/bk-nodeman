@@ -9,8 +9,8 @@
     @cancel="cancel">
     <template #default>
       <bk-table :data="data" max-height="464" v-if="data.length && value" ref="table">
-        <bk-table-column label="IP" prop="ip" width="180"></bk-table-column>
-        <bk-table-column :label="$t('过滤原因')" prop="msg" show-overflow-tooltip></bk-table-column>
+        <NmColumn label="IP" prop="ip" width="180" />
+        <NmColumn :label="$t('过滤原因')" prop="msg" />
       </bk-table>
     </template>
     <template #footer>

@@ -1,7 +1,7 @@
 <template>
   <section>
     <div class="filter-header" :class="{ 'default': filterList.length === 0 }" @click.stop="handleShow($event)">
-      {{ name }}
+      <div class="text-ellipsis" v-bk-overflow-tips>{{ name }}</div>
       <i
         class="header-icon nodeman-icon nc-filter-fill"
         :class="{ 'is-selected': isSelected }"
@@ -188,13 +188,18 @@ export default class FilterHeader extends Vue {
 @import "@/css/mixins/nodeman.css";
 
 .filter-header {
+  display: inline-flex;
+  align-items: center;
+  width: 100%;
   cursor: pointer;
   outline: 0;
   &.default {
     cursor: default;
   }
   .header-icon {
+    flex-shrink: 0;
     position: relative;
+    margin-left: 4px;
     font-size: 13px;
     color: #c4c6cc;
     outline: 0;

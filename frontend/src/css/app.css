@@ -141,6 +141,7 @@ body {
     flex-flow: row nowrap;
     align-items: center;
     justify-content: flex-start;
+    white-space: nowrap;
     .status-mark {
         margin-right: 8px;
         width: 13px;
@@ -148,6 +149,7 @@ body {
         border: 3px solid #F0F1F5;
         border-radius: 6.5px;
         background: #b2b5bd;
+        flex-shrink: 0;
     }
     .status-running {
         border-color: #e5f6ea;
@@ -866,4 +868,15 @@ body {
 
 .rule-create .ip-selector .ip-selector-table-page-check {
     z-index: 999
+}
+
+.nm-link {
+    cursor: pointer;
+    color: #3a84ff;
+    &:active {
+        color: #3a84ff;
+    }
+    &[disabled] {
+      color: #dcdee5;
+    }
 }

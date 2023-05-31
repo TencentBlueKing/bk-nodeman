@@ -29,12 +29,12 @@
         @row-click="detailHandler"
         @page-change="pageChange"
         @page-limit-change="paginationChange">
-        <bk-table-column :label="$t('任务ID')" prop="job_id" :resizable="false">
+        <NmColumn :label="$t('任务ID')" prop="job_id" :resizable="false">
           <template #default="{ row }">
             <a href="javascript: " class="primary">{{ row.id }}</a>
           </template>
-        </bk-table-column>
-        <bk-table-column
+        </NmColumn>
+        <NmColumn
           class-name="biz-column"
           prop="bkBizScopeDisplay"
           :label="$t('业务')"
@@ -42,8 +42,8 @@
           <template #default="{ row }">
             {{ row.bkBizScopeDisplay && row.bkBizScopeDisplay.length ? row.bkBizScopeDisplay.join(',') : '--' }}
           </template>
-        </bk-table-column>
-        <bk-table-column
+        </NmColumn>
+        <NmColumn
           prop="job_type"
           min-width="140"
           :label="$t('任务类型')"
@@ -51,25 +51,25 @@
           <template #default="{ row }">
             {{ row.jobTypeDisplay ? row.jobTypeDisplay : '--' }}
           </template>
-        </bk-table-column>
-        <bk-table-column
+        </NmColumn>
+        <NmColumn
           prop="created_by"
           :label="$t('执行者')"
           :render-header="renderFilterHeader">
           <template #default="{ row }">
             {{ row.createdBy ? row.createdBy : '--' }}
           </template>
-        </bk-table-column>
-        <bk-table-column width="185" :label="$t('执行时间')" prop="startTime">
+        </NmColumn>
+        <NmColumn width="185" :label="$t('执行时间')" prop="startTime">
           <template #default="{ row }">
             {{ row.startTime | filterTimezone }}
           </template>
-        </bk-table-column>
-        <bk-table-column align="right" :label="$t('总耗时')" prop="costTime">
+        </NmColumn>
+        <NmColumn align="right" :label="$t('总耗时')" prop="costTime">
           <template #default="{ row }">{{ takesTimeFormat(row) }} </template>
-        </bk-table-column>
-        <bk-table-column min-width="20" :resizable="false"></bk-table-column>
-        <bk-table-column
+        </NmColumn>
+        <NmColumn min-width="20" :resizable="false"></NmColumn>
+        <NmColumn
           prop="status"
           min-width="115"
           :label="$t('执行状态')"
@@ -82,14 +82,14 @@
               <span :title="titleStatusMap[row.status]">{{ titleStatusMap[row.status] }}</span>
             </div>
           </template>
-        </bk-table-column>
-        <bk-table-column align="right" :label="$t('总数')" :resizable="false" prop="total_count" sortable="custom">
+        </NmColumn>
+        <NmColumn align="right" :label="$t('总数')" :resizable="false" prop="total_count" sortable="custom">
           <template #default="{ row }">
             <span v-if="isEmptyCell(row.statistics.totalCount)">{{ row.statistics.totalCount }}</span>
             <span v-else>--</span>
           </template>
-        </bk-table-column>
-        <bk-table-column align="right" :label="$t('成功数')" prop="success_count" sortable="custom">
+        </NmColumn>
+        <NmColumn align="right" :label="$t('成功数')" prop="success_count" sortable="custom">
           <template #default="{ row }">
             <a
               v-if="isEmptyCell(row.statistics.successCount)"
@@ -100,8 +100,8 @@
             </a>
             <span v-else>--</span>
           </template>
-        </bk-table-column>
-        <bk-table-column
+        </NmColumn>
+        <NmColumn
           min-width="80"
           align="right"
           :label="$t('失败数')"
@@ -118,15 +118,15 @@
             </a>
             <span v-else>--</span>
           </template>
-        </bk-table-column>
+        </NmColumn>
         <!--自定义字段显示列-->
-        <bk-table-column
+        <NmColumn
           key="setting"
           prop="colspaSetting"
           width="42"
           :render-header="renderHeader"
           :resizable="false">
-        </bk-table-column>
+        </NmColumn>
       </bk-table>
     </section>
   </div>

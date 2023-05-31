@@ -32,57 +32,54 @@
       <bk-table
         v-test="'proxyTable'"
         :class="`head-customize-table ${ fontSize }`" :data="proxyData" :span-method="colspanHandle">
-        <bk-table-column :label="$t('内网IPv4')" show-overflow-tooltip width="125">
+        <NmColumn :label="$t('内网IPv4')" width="125">
           <template #default="{ row }">
             <bk-button v-if="row.inner_ip" v-test="'view'" text @click="handleViewProxy(row, false)" class="row-btn">
               {{ row.inner_ip }}
             </bk-button>
             <template v-else>{{ row.inner_ip | filterEmpty }}</template>
           </template>
-        </bk-table-column>
-        <bk-table-column
+        </NmColumn>
+        <NmColumn
           v-if="filter['inner_ipv6'] && filter['inner_ipv6'].mockChecked"
           :width="innerIPv6Width"
-          :label="$t('内网IPv6')"
-          show-overflow-tooltip>
+          :label="$t('内网IPv6')">
           <template #default="{ row }">
             <bk-button v-if="row.inner_ipv6" v-test="'view'" text @click="handleViewProxy(row, false)" class="row-btn">
               {{ row.inner_ipv6 }}
             </bk-button>
             <template v-else>{{ row.inner_ipv6 | filterEmpty }}</template>
           </template>
-        </bk-table-column>
-        <bk-table-column
+        </NmColumn>
+        <NmColumn
           :label="$t('出口IP')"
           v-if="filter['outer_ip'].mockChecked"
-          show-overflow-tooltip
           :render-header="renderTipHeader"
           width="125">
           <template #default="{ row }">
             <span>{{ row.outer_ip | filterEmpty }}</span>
           </template>
-        </bk-table-column>
-        <bk-table-column
+        </NmColumn>
+        <NmColumn
           key="login_ip"
           :label="$t('登录IP')"
           prop="login_ip"
-          show-overflow-tooltip
           v-if="filter['login_ip'].mockChecked"
           width="125">
           <template #default="{ row }">
             {{ row.login_ip | filterEmpty }}
           </template>
-        </bk-table-column>
-        <bk-table-column
+        </NmColumn>
+        <NmColumn
           :label="$t('归属业务')"
           prop="bk_biz_name"
           min-width="130"
-          v-if="filter['bk_biz_name'].mockChecked" show-overflow-tooltip>
+          v-if="filter['bk_biz_name'].mockChecked">
           <template #default="{ row }">
             <span>{{ row.bk_biz_name | filterEmpty }}</span>
           </template>
-        </bk-table-column>
-        <bk-table-column
+        </NmColumn>
+        <NmColumn
           :label="$t('Proxy状态')"
           prop="status"
           v-if="filter['proxy_status'].mockChecked"
@@ -97,8 +94,8 @@
               <span>{{ $t('未知') }}</span>
             </div>
           </template>
-        </bk-table-column>
-        <bk-table-column
+        </NmColumn>
+        <NmColumn
           :label="$t('密码密钥')"
           prop="re_certification"
           v-if="filter['re_certification'].mockChecked"
@@ -108,8 +105,8 @@
               {{ row.re_certification ? $t('过期') : $t('有效') }}
             </span>
           </template>
-        </bk-table-column>
-        <bk-table-column
+        </NmColumn>
+        <NmColumn
           :label="$t('Proxy版本')"
           prop="version"
           v-if="filter['proxy_version'].mockChecked"
@@ -117,8 +114,8 @@
           <template #default="{ row }">
             <span>{{ row.version | filterEmpty }}</span>
           </template>
-        </bk-table-column>
-        <bk-table-column
+        </NmColumn>
+        <NmColumn
           :label="$t('Agent数量')"
           prop="pagent_count"
           v-if="filter['pagent_count'].mockChecked"
@@ -132,13 +129,13 @@
             </span>
             <span v-else>0</span>
           </template>
-        </bk-table-column>
-        <bk-table-column :label="$t('安装方式')" prop="is_manual" v-if="filter['is_manual'].mockChecked" min-width="105">
+        </NmColumn>
+        <NmColumn :label="$t('安装方式')" prop="is_manual" v-if="filter['is_manual'].mockChecked" min-width="105">
           <template #default="{ row }">
             {{ row.is_manual ? $t('手动') : $t('远程') }}
           </template>
-        </bk-table-column>
-        <bk-table-column
+        </NmColumn>
+        <NmColumn
           key="bt"
           prop="peer_exchange_switch_for_agent"
           width="110"
@@ -149,8 +146,8 @@
               {{ row.peer_exchange_switch_for_agent ? $t('启用') : $t('停用')}}
             </span>
           </template>
-        </bk-table-column>
-        <bk-table-column
+        </NmColumn>
+        <NmColumn
           key="speedLimit"
           prop="bt_speed_limit"
           width="130"
@@ -160,13 +157,13 @@
           <template #default="{ row }">
             {{ row.bt_speed_limit | filterEmpty }}
           </template>
-        </bk-table-column>
-        <bk-table-column
+        </NmColumn>
+        <NmColumn
           v-if="filter['speedLimit'].mockChecked"
           min-width="20"
           :resizable="false">
-        </bk-table-column>
-        <bk-table-column
+        </NmColumn>
+        <NmColumn
           :label="$t('安装时间')"
           width="200"
           prop="created_at"
@@ -175,7 +172,7 @@
           <template #default="{ row }">
             {{ row.created_at | filterTimezone }}
           </template>
-        </bk-table-column>
+        </NmColumn>
 
         <bk-table-column prop="colspanOperate" :label="$t('操作')" width="148" :resizable="false" fixed="right">
           <template #default="{ row }">

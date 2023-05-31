@@ -108,12 +108,12 @@
             </auth-component>
           </template>
         </bk-table-column>
-        <bk-table-column class-name="row-ip" min-width="50" :label="$t('节点类型')" prop="node_type" resizable>
+        <NmColumn class-name="row-ip" min-width="50" :label="$t('节点类型')" prop="node_type" resizable>
           <template #default="{ row }">
             <span>{{ row.node_type ? osType[row.node_type] : '--' }}</span>
           </template>
-        </bk-table-column>
-        <bk-table-column
+        </NmColumn>
+        <NmColumn
           key="IP"
           label="IP"
           prop="inner_ip"
@@ -121,8 +121,8 @@
           <template #default="{ row }">
             <div v-bk-overflow-tips>{{ row.inner_ip }}</div>
           </template>
-        </bk-table-column>
-        <bk-table-column
+        </NmColumn>
+        <NmColumn
           key="biz"
           :label="$t('归属业务')"
           prop="bk_biz_name"
@@ -131,8 +131,8 @@
           <template #default="{ row }">
             <div v-bk-overflow-tips>{{ row.bk_biz_name }}</div>
           </template>
-        </bk-table-column>
-        <bk-table-column
+        </NmColumn>
+        <NmColumn
           key="cloudArea"
           :label="$t('管控区域')"
           :render-header="renderFilterHeader"
@@ -143,8 +143,8 @@
             <span v-if="row.bk_cloud_name">{{ row.bk_cloud_name }}</span>
             <span v-else>--</span>
           </template>
-        </bk-table-column>
-        <bk-table-column
+        </NmColumn>
+        <NmColumn
           key="system"
           :label="$t('操作系统')"
           prop="os_type"
@@ -154,8 +154,8 @@
           <template #default="{ row }">
             {{ osMap[row.os_type] | filterEmpty }}
           </template>
-        </bk-table-column>
-        <bk-table-column
+        </NmColumn>
+        <NmColumn
           key="status"
           :label="$t('Agent状态')"
           prop="status"
@@ -172,8 +172,8 @@
               <span>{{ row.status_display }}</span>
             </div>
           </template>
-        </bk-table-column>
-        <bk-table-column
+        </NmColumn>
+        <NmColumn
           key="version"
           :label="$t('Agent版本')"
           prop="version"
@@ -183,9 +183,9 @@
           <template #default="{ row }">
             <span>{{ row.version | filterEmpty }}</span>
           </template>
-        </bk-table-column>
+        </NmColumn>
         <template v-for="(plugin, index) in pluginList">
-          <bk-table-column
+          <NmColumn
             :key="index"
             :label="plugin"
             :prop="plugin"
@@ -201,7 +201,7 @@
                 <span>{{ row[`${plugin}Version`] }}</span>
               </div>
             </template>
-          </bk-table-column>
+          </NmColumn>
         </template>
         <!--自定义字段显示列-->
         <bk-table-column

@@ -79,12 +79,12 @@
               </div>
             </template>
           </bk-table-column>
-          <bk-table-column
+          <NmColumn
             class-name="col-pl-none"
             sortable="custom"
             :label="$t('管控区域名称')"
             prop="cloudNameCopy"
-            show-overflow-tooltip>
+          >
             <template #default="{ row }">
               <div v-if="row.isChannel" class="channel-name">
                 <i class="nodeman-icon nc-parenet-node-line channel-icon"></i>
@@ -93,7 +93,7 @@
               <auth-component
                 v-else
                 v-test="'viewDetail'"
-                :class="{ 'text-btn': permissionSwitch ? row.view : true }"
+                :class="{ 'nm-link text-btn': permissionSwitch ? row.view : true }"
                 :authorized="row.view"
                 :apply-info="[{
                   action: 'cloud_view',
@@ -104,24 +104,25 @@
                 {{ row.bkCloudName }}
               </auth-component>
             </template>
-          </bk-table-column>
-          <bk-table-column :label="$t('管控区域ID')" prop="bkCloudId" width="110"></bk-table-column>
-          <bk-table-column align="right" width="55" :resizable="false">
+          </NmColumn>
+          <NmColumn :label="$t('管控区域ID')" prop="bkCloudId" width="110" />
+          <NmColumn align="right" width="55" :resizable="false">
             <template #default="{ row }">
               <img :src="`data:image/svg+xml;base64,${row.ispIcon}`" class="col-svg" v-if="row.ispIcon">
             </template>
-          </bk-table-column>
-          <bk-table-column :label="$t('云服务商')" prop="ispName" sortable="custom" show-overflow-tooltip>
+          </NmColumn>
+          <NmColumn :label="$t('云服务商')" prop="ispName" sortable="custom">
             <template #default="{ row }">
               <span v-if="!row.isChannel">{{ row.ispName | filterEmpty }}</span>
             </template>
-          </bk-table-column>
-          <bk-table-column
+          </NmColumn>
+          <NmColumn
             :label="$t('可用Proxy数量')"
             width="140"
             prop="aliveProxyCount"
             align="right"
             :resizable="false"
+            :show-overflow-tooltip="false"
             sortable="custom">
             <template #default="{ row }">
               <section v-if="!row.isChannel">
@@ -169,8 +170,8 @@
                 </auth-component>
               </section>
             </template>
-          </bk-table-column>
-          <bk-table-column :label="$t('Agent数量')" prop="nodeCount" align="right" :resizable="false" sortable="custom">
+          </NmColumn>
+          <NmColumn :label="$t('Agent数量')" prop="nodeCount" align="right" :resizable="false" sortable="custom">
             <template #default="{ row }">
               <div class="pr20">
                 <span v-if="row.nodeCount" class="text-btn" v-test="'filterAgent'" @click.stop="handleGotoAgent(row)">
@@ -179,10 +180,10 @@
                 <span v-else>0</span>
               </div>
             </template>
-          </bk-table-column>
-          <bk-table-column align="right" width="40"></bk-table-column>
-          <bk-table-column :label="$t('接入点')" prop="apName" show-overflow-tooltip></bk-table-column>
-          <bk-table-column
+          </NmColumn>
+          <NmColumn align="right" width="40" />
+          <NmColumn :label="$t('接入点')" prop="apName" />
+          <NmColumn
             prop="colspaOpera"
             :label="$t('操作')"
             :width="fontSize === 'large' ? 175 : 155"
@@ -259,15 +260,15 @@
                 </auth-component>
               </div>
             </template>
-          </bk-table-column>
+          </NmColumn>
           <!--自定义字段显示列-->
-          <bk-table-column
+          <NmColumn
             key="setting"
             prop="colspaSetting"
             :render-header="renderHeader"
             width="42"
             :resizable="false">
-          </bk-table-column>
+          </NmColumn>
 
           <NmException
             slot="empty"
@@ -743,11 +744,7 @@ export default class CloudManager extends Vue {
     }
   }
   .text-btn {
-    color: #3a84ff;
-    cursor: pointer;
-    &[disabled] {
-      color: #dcdee5;
-    }
+    display: inline;
   }
   .auth-inline {
     display: inline;

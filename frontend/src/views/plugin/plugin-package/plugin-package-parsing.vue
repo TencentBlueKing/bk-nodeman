@@ -20,13 +20,13 @@
       @select="handleSelect"
       @select-all="handleSelect">
       <bk-table-column type="selection" width="60" :selectable="handleSelectable" />
-      <bk-table-column :label="$t('包名称')" prop="pkg_name" min-width="135" sortable show-overflow-tooltip />
-      <bk-table-column :label="$t('插件名称')" prop="project" min-width="120" sortable show-overflow-tooltip />
-      <bk-table-column
-        :label="$t('开发商')" prop="category" min-width="110" sortable :resizable="false" show-overflow-tooltip />
-      <bk-table-column :label="$t('主程序版本')" prop="version" min-width="120" sortable :resizable="false" />
-      <bk-table-column :label="$t('主配置版本')" prop="mainConfigVersion" min-width="135" :resizable="false" />
-      <bk-table-column :label="$t('子配置版本')" class-name="config-cell" min-width="135">
+      <NmColumn :label="$t('包名称')" prop="pkg_name" min-width="135" sortable />
+      <NmColumn :label="$t('插件名称')" prop="project" min-width="120" sortable />
+      <NmColumn
+        :label="$t('开发商')" prop="category" min-width="110" sortable :resizable="false" />
+      <NmColumn :label="$t('主程序版本')" prop="version" min-width="120" sortable :resizable="false" />
+      <NmColumn :label="$t('主配置版本')" prop="mainConfigVersion" min-width="135" :resizable="false" />
+      <NmColumn :label="$t('子配置版本')" class-name="config-cell" min-width="135">
         <template #default="{ row }">
           <ul class="config-list" v-if="row.childConfigTemplates && row.childConfigTemplates.length">
             <li class="config-item" v-for="(config, index) in row.childConfigTemplates" :key="index">
@@ -36,18 +36,18 @@
           </ul>
           <span v-else>--</span>
         </template>
-      </bk-table-column>
-      <bk-table-column :label="$t('支持系统')" prop="sys" min-width="130" :resizable="false" show-overflow-tooltip />
-      <bk-table-column
-        :label="$t('插件描述')" prop="description" min-width="130" :resizable="false" show-overflow-tooltip />
-      <bk-table-column :label="$t('解析结果')" prop="message" min-width="200" show-overflow-tooltip>
+      </NmColumn>
+      <NmColumn :label="$t('支持系统')" prop="sys" min-width="130" :resizable="false" />
+      <NmColumn
+        :label="$t('插件描述')" prop="description" min-width="130" :resizable="false" />
+      <NmColumn :label="$t('解析结果')" prop="message" min-width="200">
         <template #default="{ row }">
           <div class="col-execution">
             <span :class="`execut-mark execut-${ row.result ? 'success' : 'failed' }`"></span>
             <span class="execut-text" :title="row.parseRes">{{ row.message | filterEmpty }}</span>
           </div>
         </template>
-      </bk-table-column>
+      </NmColumn>
     </bk-table>
     <div class="package-parsing-footer">
       <auth-component

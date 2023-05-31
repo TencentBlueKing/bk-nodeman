@@ -29,7 +29,7 @@
             </bk-radio>
           </template>
         </bk-table-column>
-        <bk-table-column :label="$t('插件包版本')" :min-width="isEnLanguage ? 175 : 122" sortable prop="version">
+        <NmColumn :label="$t('插件包版本')" :min-width="isEnLanguage ? 175 : 122" sortable prop="version">
           <template #default="{ row, $index }">
             <span>{{ row.version | filterEmpty }}</span>
             <!-- 测试用例 -->
@@ -41,18 +41,18 @@
               </div>
             </bk-popover>
           </template>
-        </bk-table-column>
-        <bk-table-column
+        </NmColumn>
+        <NmColumn
           :label="$t('已部署数')" :min-width="isEnLanguage ? 130 : 122" prop="nodes_number" align="right" sortable>
           <template #default="{ row }">
             <span class="num-link">{{ row.nodes_number || 0 }}</span>
           </template>
-        </bk-table-column>
-        <bk-table-column width="20" resizable>
+        </NmColumn>
+        <NmColumn width="20" resizable>
           <template #default="{ row }">
             <i class="bk-icon icon-right-shape active-arrow" v-show="selectedVersion === row.version"></i>
           </template>
-        </bk-table-column>
+        </NmColumn>
       </bk-table>
       <div class="detail-table-right">
         <p class="title">{{ $t('版本描述') }}</p>

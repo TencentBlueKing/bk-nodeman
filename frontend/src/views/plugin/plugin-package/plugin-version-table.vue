@@ -5,10 +5,10 @@
       class="plugin-version-table"
       :max-height="windowHeight - 112"
       :row-style="getRowStyle">
-      <bk-table-column :label="$t('程序版本')" class-name="first-cell" prop="version" sortable width="100">
-      </bk-table-column>
-      <bk-table-column :label="$t('主配置版本')" prop="mainConfigVersion" sortable></bk-table-column>
-      <bk-table-column :label="$t('子配置模板')" class-name="config-cell" min-width="150" sortable>
+      <NmColumn :label="$t('程序版本')" class-name="first-cell" prop="version" sortable width="100">
+      </NmColumn>
+      <NmColumn :label="$t('主配置版本')" prop="mainConfigVersion" sortable></NmColumn>
+      <NmColumn :label="$t('子配置模板')" class-name="config-cell" min-width="150" sortable>
         <template #default="{ row }">
           <ul class="config-list" v-if="row.childConfigTemplates && row.childConfigTemplates.length">
             <li class="config-item" v-for="(template, index) in row.childConfigTemplates" :key="index">
@@ -18,15 +18,15 @@
           </ul>
           <span v-else>--</span>
         </template>
-      </bk-table-column>
-      <bk-table-column :label="$t('包大小')" prop="pkg_size" width="80" sortable></bk-table-column>
-      <bk-table-column :label="$t('更新时间')" prop="pkg_mtime" min-width="110" sortable>
+      </NmColumn>
+      <NmColumn :label="$t('包大小')" prop="pkg_size" width="80" sortable></NmColumn>
+      <NmColumn :label="$t('更新时间')" prop="pkg_mtime" min-width="110" sortable>
         <template #default="{ row }">
           {{ row.pkg_mtime | filterTimezone }}
         </template>
-      </bk-table-column>
-      <bk-table-column :label="$t('更新人')" prop="creator" width="100" sortable></bk-table-column>
-      <bk-table-column :label="$t('状态')" sortable width="75">
+      </NmColumn>
+      <NmColumn :label="$t('更新人')" prop="creator" width="100" sortable></NmColumn>
+      <NmColumn :label="$t('状态')" sortable width="75">
         <template #default="{ row }">
           <span v-if="!row.is_ready" class="tag-switch tag-indeterminate">{{ $t('停用') }}</span>
           <span
@@ -38,8 +38,8 @@
             {{ row.is_release_version ? $t('正式') : $t('测试') }}
           </span>
         </template>
-      </bk-table-column>
-      <bk-table-column :label="$t('操作')" width="100">
+      </NmColumn>
+      <NmColumn :label="$t('操作')" width="100" :show-overflow-tooltip="false">
         <template #default="{ row }">
           <div v-if="row.operateLoading">
             <loading-icon></loading-icon>
@@ -72,7 +72,7 @@
             </template>
           </bk-popover>
         </template>
-      </bk-table-column>
+      </NmColumn>
     </bk-table>
   </div>
 </template>

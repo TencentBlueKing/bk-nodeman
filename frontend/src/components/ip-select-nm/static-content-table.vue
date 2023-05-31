@@ -32,41 +32,41 @@
         </div>
       </template>
     </bk-table-column>
-    <bk-table-column :label="$t('主机IP')" prop="inner_ip">
+    <NmColumn :label="$t('主机IP')" prop="inner_ip">
       <template #default="{ row }">
         <span v-bk-tooltips="{
           content: row.disabled_msg,
           disabled: !row.disabled
         }">{{ row.inner_ip }}</span>
       </template>
-    </bk-table-column>
-    <bk-table-column :label="$t('Agent状态')" prop="status">
+    </NmColumn>
+    <NmColumn :label="$t('Agent状态')" prop="status">
       <template #default="{ row }">
         <div class="col-status">
           <span :class="'status-mark status-' + row.status.toLocaleLowerCase()"></span>
           <span>{{ statusMap[row.status] }}</span>
         </div>
       </template>
-    </bk-table-column>
-    <bk-table-column :label="$t('管控区域')" prop="bk_cloud_name"></bk-table-column>
-    <!-- <bk-table-column :label="$t('主机名')" prop="bk_host_name"></bk-table-column> -->
-    <bk-table-column :label="$t('操作系统')" prop="os_type">
+    </NmColumn>
+    <NmColumn :label="$t('管控区域')" prop="bk_cloud_name"></NmColumn>
+    <!-- <NmColumn :label="$t('主机名')" prop="bk_host_name"></NmColumn> -->
+    <NmColumn :label="$t('操作系统')" prop="os_type">
       <template #default="{ row }">
         <span>{{ osMap[row.os_type] || '--' }}</span>
       </template>
-    </bk-table-column>
-    <bk-table-column width="80" :label="$t('操作')" v-if="operate">
+    </NmColumn>
+    <NmColumn width="80" :label="$t('操作')" v-if="operate">
       <template #default="{ row }">
         <bk-button text @click="handleRemove(row)">{{ $t('移除') }}</bk-button>
       </template>
-    </bk-table-column>
+    </NmColumn>
   </bk-table>
 </template>
 <script lang="ts">
 import { Vue, Component, Prop, Emit, Watch } from 'vue-property-decorator';
 import ColumnCheck from '@/views/agent/components/column-check.vue';
 import { CreateElement } from 'vue';
-import { IPagination } from '@/types/plugin/plugin-type';
+import { IPagination } from '@/types';
 
 @Component({ name: 'static-content-table' })
 export default class StaticContentTable extends Vue {

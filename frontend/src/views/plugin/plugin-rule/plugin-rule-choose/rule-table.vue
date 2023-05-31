@@ -8,7 +8,7 @@
       :max-height="windowHeight - 315"
       :row-class-name="rowClassName"
       @row-click="handleRowClick">
-      <bk-table-column class-name="td-radio" :width="50" prop="value" :resizable="false">
+      <NmColumn class-name="td-radio" :width="50" prop="value" :resizable="false">
         <template #default="{ row }">
           <bk-radio
             v-test.policy="'policyRadio'"
@@ -18,32 +18,27 @@
               apply_info: getRowOperateAuthInfo(row)
             }"></bk-radio>
         </template>
-      </bk-table-column>
-      <bk-table-column
-        :label="$t('策略名称')"
-        prop="name"
-        :render-header="renderHeader"
-        show-overflow-tooltip>
-      </bk-table-column>
-      <bk-table-column :label="$t('最近修改人')" prop="creator" sortable></bk-table-column>
-      <bk-table-column :label="$t('最近部署时间')" prop="update_time" sortable>
+      </NmColumn>
+      <NmColumn :label="$t('策略名称')" prop="name" :render-header="renderHeader" />
+      <NmColumn :label="$t('最近修改人')" prop="creator" sortable />
+      <NmColumn :label="$t('最近部署时间')" prop="update_time" sortable>
         <template #default="{ row }">
           {{ row.update_time | filterTimezone }}
         </template>
-      </bk-table-column>
-      <bk-table-column :label="$t('关联主机数')">
+      </NmColumn>
+      <NmColumn :label="$t('关联主机数')">
         <template #default="{ row }">
           <span :class="{ num: !!row.associated_host_num }" @click.stop="handleViewTarget(row)">
             {{ row.associated_host_num || 0 }}
           </span>
         </template>
-      </bk-table-column>
-      <bk-table-column :label="$t('包含业务')">
+      </NmColumn>
+      <NmColumn :label="$t('包含业务')">
         <template #default="{ row }">
           <span v-if="row.bk_biz_scope">{{ getRowBizText(row) }}</span>
           <span v-else>--</span>
         </template>
-      </bk-table-column>
+      </NmColumn>
     </bk-table>
     <bk-dialog
       width="1000"

@@ -23,38 +23,40 @@
             </tr>
             <tr>
               <th v-for="(config, index) in tableHead" :key="config.prop">
-                <ColumnSetting
-                  v-if="colSetting && index === tableHead.length - 1"
-                  class="column-setting"
-                  filter-head
-                  :local-mark="localMark"
-                  :font-setting="false"
-                  :value="filter"
-                  @update="handleColumnUpdate">
-                </ColumnSetting>
-                <TableHeader
-                  :ref="`header_${config.prop}`"
-                  v-else
-                  v-bind="{
-                    prop: config.prop,
-                    tips: config.tips,
-                    label: config.label,
-                    required: !config.noRequiredMark && config.required,
-                    batch: config.getBatch ? config.getBatch.call(_self) : config.batch,
-                    isBatchIconShow: !!table.data.length,
-                    type: config.type,
-                    subTitle: config.subTitle,
-                    options: getCellInputOptions({}, config),
-                    multiple: !!config.multiple,
-                    searchable: !!config.searchable,
-                    placeholder: config.placeholder,
-                    appendSlot: config.appendSlot,
-                    parentProp: config.parentProp,
-                    parentTip: config.parentTip,
-                    focusRow: focusRow
-                  }"
-                  @confirm="handleBatchConfirm(arguments, config)">
-                </TableHeader>
+                <div class="cell">
+                  <ColumnSetting
+                    v-if="colSetting && index === tableHead.length - 1"
+                    class="column-setting"
+                    filter-head
+                    :local-mark="localMark"
+                    :font-setting="false"
+                    :value="filter"
+                    @update="handleColumnUpdate">
+                  </ColumnSetting>
+                  <TableHeader
+                    :ref="`header_${config.prop}`"
+                    v-else
+                    v-bind="{
+                      prop: config.prop,
+                      tips: config.tips,
+                      label: config.label,
+                      required: !config.noRequiredMark && config.required,
+                      batch: config.getBatch ? config.getBatch.call(_self) : config.batch,
+                      isBatchIconShow: !!table.data.length,
+                      type: config.type,
+                      subTitle: config.subTitle,
+                      options: getCellInputOptions({}, config),
+                      multiple: !!config.multiple,
+                      searchable: !!config.searchable,
+                      placeholder: config.placeholder,
+                      appendSlot: config.appendSlot,
+                      parentProp: config.parentProp,
+                      parentTip: config.parentTip,
+                      focusRow: focusRow
+                    }"
+                    @confirm="handleBatchConfirm(arguments, config)">
+                  </TableHeader>
+                </div>
               </th>
             </tr>
           </thead>
@@ -72,7 +74,7 @@
       <div class="body-content" :class="{ 'virtual-scroll-content': virtualScroll }" ref="content">
         <table class="form-table" v-test.common="'installTable'">
           <colgroup>
-            <col v-for="(item, index) in tableHead" :key="index" :width="item.width ? item.width : 'auto'">
+            <col v-for="(item, index) in tableHead" :key="index" :width="item.width ? item.width : 80">
           </colgroup>
           <tbody class="table-body">
             <tr v-for="(row, rowIndex) in renderData" :key="row.id">
@@ -303,6 +305,10 @@ export default class SetupTable extends Vue {
   }
   private mounted() {
     this.handleScroll();
+    window.addEventListener('resize', this.initTableHead);
+  }
+  private beforeDestroy() {
+    window.removeEventListener('resize', this.initTableHead);
   }
 
   /**
@@ -970,13 +976,39 @@ export default class SetupTable extends Vue {
   }
   public initTableHead() {
     if (this.colSetting || this.localMark) {
-      const tableHead = this.table.config.filter(item => item.type === 'operate' || this.filter[item.prop]?.mockChecked);
+      let tableHead = this.table.config.filter(item => item.type === 'operate' || this.filter[item.prop]?.mockChecked);
       if (this.setupInfo.header?.length) {
         const tableParentHead = this.setupInfo.parentHead?.map(item => ({
           ...item,
           colspan: tableHead.filter(head => head.parentProp === item.prop).length,
         })) || [];
         this.tableParentHead = tableParentHead.filter(item => !!item.colspan || !item.prop);
+      }
+      const { clientWidth } = this.$el || {};
+      if (clientWidth) {
+        const operateCol = tableHead.find(item => item.type === 'operate');
+        const widthMap = {
+          textarea: 0,
+          operate: (operateCol?.width || operateCol?.minWidth || 70) as number, // 操作col定宽70px
+        };
+        let minWidth = 70; // 最小col 宽度
+        // 两个IP输入框需要尽可能保证宽度
+        const textareaLen = this.$DHCP ? 2 : 1;
+        const otherLen = tableHead.length - textareaLen - 1;
+        const lastWidth = clientWidth - otherLen * minWidth - widthMap.operate;
+        if (clientWidth < tableHead.length * minWidth) { // 不能保证最小宽度时，需要缩小最小宽度
+          minWidth = (clientWidth - widthMap.operate) / (tableHead.length - 1);
+          widthMap.textarea = minWidth;
+        } else if (lastWidth / textareaLen > clientWidth * 0.2) {
+          widthMap.textarea = clientWidth * 0.2;
+          minWidth = 0; // 使用默认宽度
+        } else {
+          widthMap.textarea = lastWidth / textareaLen;
+        }
+        tableHead = tableHead.map(item => ({
+          ...item,
+          width: widthMap[item.type as 'textarea'|'operate'] || minWidth || item.minWidth || item.width || 'auto',
+        }));
       }
       this.tableHead = tableHead.map(item => ({
         ...item,

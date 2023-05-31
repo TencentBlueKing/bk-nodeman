@@ -21,11 +21,11 @@
             </bk-checkbox>
           </template>
         </bk-table-column>
-        <bk-table-column min-width="160" :label="$t('操作系统')" prop="support_os_cpu"></bk-table-column>
-        <bk-table-column min-width="100" :label="$t('当前版本')" prop="current_version"></bk-table-column>
-        <bk-table-column min-width="130" :label="$t('已部署数')" align="right" prop="nodes_number"></bk-table-column>
-        <bk-table-column min-width="40"></bk-table-column>
-        <bk-table-column min-width="120" :label="$t('选择目标版本')" prop="version">
+        <NmColumn min-width="160" :label="$t('操作系统')" prop="support_os_cpu"></NmColumn>
+        <NmColumn min-width="100" :label="$t('当前版本')" prop="current_version"></NmColumn>
+        <NmColumn min-width="130" :label="$t('已部署数')" align="right" prop="nodes_number"></NmColumn>
+        <NmColumn min-width="40"></NmColumn>
+        <NmColumn min-width="120" :label="$t('选择目标版本')" prop="version">
           <template #default="{ row }">
             <div v-if="row.is_latest" class="target-text">{{ $t('已经部署最新版本') }}</div>
             <div v-else class="target-version" v-bk-tooltips.top="$t('选择版本')" @click="handleShowVersionDetail(row)">
@@ -39,17 +39,16 @@
               </bk-button>
             </div>
           </template>
-        </bk-table-column>
-        <bk-table-column
+        </NmColumn>
+        <NmColumn
           :label="$t('版本描述')"
           class-name="td-description"
           min-width="350"
-          show-overflow-tooltip
           prop="version_scenario">
           <div slot-scope="{ row }" class="cell-description" :style="{ '-webkit-line-clamp': row.rowspan }">
             {{ row.version_scenario }}
           </div>
-        </bk-table-column>
+        </NmColumn>
       </bk-table>
     </bk-form-item>
     <bk-form-item>
