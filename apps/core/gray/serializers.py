@@ -13,6 +13,15 @@ from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
 
-class GraySerializer(serializers.Serializer):
+class GrayBizSerializer(serializers.Serializer):
     bk_biz_ids = serializers.ListField(label=_("业务列表"), child=serializers.IntegerField(), required=True)
+
+
+class GraySerializer(GrayBizSerializer):
     cloud_ips = serializers.ListField(label=_("管控区域:主机列表"), required=False)
+
+
+class UpgradeOrRollbackAgentIDSerializer(serializers.Serializer):
+    failed = serializers.ListField(label=_("失败的主机"), child=serializers.CharField())
+    success = serializers.ListField(label=_("成功的主机"), child=serializers.CharField())
+    no_bk_agent_id_hosts = serializers.ListField(label=_("无bk_agent_id的主机"), child=serializers.CharField())
