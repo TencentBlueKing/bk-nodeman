@@ -2,6 +2,34 @@
     "system_id":"bk_nodeman",
     "operations":[
         {
+            "operation":"update_instance_selection",
+            "data":{
+                "id":"cloud_instance_selection",
+                "name":"管控区域",
+                "name_en":"BK-Net",
+                "resource_type_chain":[
+                    {
+                        "system_id":"bk_nodeman",
+                        "id":"cloud"
+                    }
+                ]
+            }
+        },
+        {
+            "operation":"update_resource_type",
+            "data":{
+                "id":"cloud",
+                "name":"管控区域",
+                "name_en":"BK-Net",
+                "description":"",
+                "description_en":"",
+                "provider_config":{
+                    "path":"/api/iam/v1/cloud"
+                },
+                "version":1
+            }
+        },
+        {
             "operation":"update_action",
             "data":{
                 "id":"cloud_view",
