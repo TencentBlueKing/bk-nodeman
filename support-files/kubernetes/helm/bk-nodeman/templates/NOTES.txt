@@ -47,6 +47,9 @@ kubectl exec -n {{ .Release.Namespace }} ${FIRST_RUNNING_POD} -- python manage.p
 
 - 导入 2.0 Agent/Proxy 包
 
+# 删除缓存的包
+kubectl exec -n {{ .Release.Namespace }} ${FIRST_RUNNING_POD} -- sh -c 'rm -f /app/official_plugin/gse_agent/* && rm -f /app/official_plugin/gse_proxy/*'
+
 # [Agent] 将 client 包上传到容器指定目录，可以重复该步骤，导入多个版本的 client 包，client 包一般格式为：gse_agent_ce-2.0.0.tgz
 kubectl cp <client包本地路径> -n {{ .Release.Namespace }} ${FIRST_RUNNING_POD}:/app/official_plugin/gse_agent/
 
