@@ -41,7 +41,7 @@ spec:
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       initContainers:
-        - name: "{{ include "bk-nodeman.migrate-job.db" . }}"
+        - name: "{{ include "bk-nodeman.migrate-job.db.pure" . }}"
           image: "{{ .Values.global.imageRegistry | default .Values.images.k8sWaitFor.registry }}/{{ .Values.images.k8sWaitFor.repository }}:{{ .Values.images.k8sWaitFor.tag }}"
           imagePullPolicy: "{{ .Values.images.k8sWaitFor.pullPolicy }}"
           args: ["job", "{{ include "bk-nodeman.migrate-job.db" . }}"]
