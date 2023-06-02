@@ -5,8 +5,8 @@
     :render-header="renderHeader || defaultRender"
     v-bind="$attrs"
     v-on="$listeners">
-    <template #default="{ row }">
-      <slot :row="row">{{ prop ? row[prop] : null }}</slot>
+    <template #default="{ row, column, store, $index }">
+      <slot :row="row" :column="column" :store="store" :$index="$index">{{ prop ? row[prop] : null }}</slot>
     </template>
   </bk-table-column>
 </template>
