@@ -62,6 +62,7 @@ export default class AssociateList extends Vue {
     }
 
 		.associate-item {
+      position: relative;
 			line-height: 32px;
 			cursor: pointer;
 
@@ -96,9 +97,9 @@ export default class AssociateList extends Vue {
 			display: none;
 			position: absolute;
 			left: 100%;
-			top: 0;
+			top: -5px;
       margin-top: -1px;
-			margin-left: 10px;
+			/* margin-left: 10px; */
       padding: 5px 0;
 		}
     .associate-item-content {
