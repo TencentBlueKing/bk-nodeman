@@ -74,7 +74,7 @@
       <div class="body-content" :class="{ 'virtual-scroll-content': virtualScroll }" ref="content">
         <table class="form-table" v-test.common="'installTable'">
           <colgroup>
-            <col v-for="(item, index) in tableHead" :key="index" :width="item.width ? item.width : 80">
+            <col v-for="(item, index) in tableHead" :key="index" :width="item.width ? item.width : 'auto'">
           </colgroup>
           <tbody class="table-body">
             <tr v-for="(row, rowIndex) in renderData" :key="row.id">
@@ -991,19 +991,22 @@ export default class SetupTable extends Vue {
           textarea: 0,
           operate: (operateCol?.width || operateCol?.minWidth || 70) as number, // 操作col定宽70px
         };
-        let minWidth = 70; // 最小col 宽度
         // 两个IP输入框需要尽可能保证宽度
-        const textareaLen = this.$DHCP ? 2 : 1;
-        const otherLen = tableHead.length - textareaLen - 1;
-        const lastWidth = clientWidth - otherLen * minWidth - widthMap.operate;
-        if (clientWidth < tableHead.length * minWidth) { // 不能保证最小宽度时，需要缩小最小宽度
-          minWidth = (clientWidth - widthMap.operate) / (tableHead.length - 1);
-          widthMap.textarea = minWidth;
-        } else if (lastWidth / textareaLen > clientWidth * 0.2) {
-          widthMap.textarea = clientWidth * 0.2;
-          minWidth = 0; // 使用默认宽度
-        } else {
-          widthMap.textarea = lastWidth / textareaLen;
+        const textareaLen = tableHead.filter(item => item.type === 'textarea').length;
+        let minWidth: number|string = 'auto'; // 最小col 宽度
+        if (textareaLen) {
+          minWidth = 70;
+          const otherLen = tableHead.length - textareaLen - 1;
+          const lastWidth = clientWidth - otherLen * minWidth - widthMap.operate;
+          if (clientWidth < tableHead.length * minWidth) { // 不能保证最小宽度时，需要缩小最小宽度
+            minWidth = (clientWidth - widthMap.operate) / (tableHead.length - 1);
+            widthMap.textarea = minWidth;
+          } else if (lastWidth / textareaLen > clientWidth * 0.2) {
+            widthMap.textarea = clientWidth * 0.2;
+            minWidth = 0; // 使用默认宽度
+          } else {
+            widthMap.textarea = lastWidth / textareaLen;
+          }
         }
         tableHead = tableHead.map(item => ({
           ...item,
