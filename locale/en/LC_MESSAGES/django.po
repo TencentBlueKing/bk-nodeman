@@ -195,7 +195,7 @@ msgstr "Running"
 
 #: apps/backend/api/constants.py:119
 msgid "Agent 状态异常"
-msgstr "Agent state abnormal"
+msgstr "Agent state error"
 
 #: apps/backend/api/constants.py:120
 msgid "进程正在运行中，无需启动"
@@ -397,7 +397,7 @@ msgstr ""
 msgid "自动选择接入点失败，请到全局配置新建对应版本接入点"
 msgstr ""
 "Failed to automatically select access point, please go to global "
-"configuration to create a new access point"
+"configuration to new a new access point"
 
 #: apps/backend/components/collections/agent_new/choose_access_point.py:562
 #, python-brace-format
@@ -414,7 +414,7 @@ msgstr "Select access point"
 
 #: apps/backend/components/collections/agent_new/components.py:58
 msgid "注册主机到配置平台"
-msgstr "register host to configuration platform"
+msgstr "Register host to configuration platform"
 
 #: apps/backend/components/collections/agent_new/components.py:70
 msgid "安装预设插件"
@@ -442,7 +442,7 @@ msgstr "Restart"
 
 #: apps/backend/components/collections/agent_new/components.py:100
 msgid "更新主机进程状态"
-msgstr "update host process status"
+msgstr "Update host process status"
 
 #: apps/backend/components/collections/agent_new/components.py:106
 msgid "检查Agent状态"
@@ -547,7 +547,7 @@ msgstr ""
 
 #: apps/backend/components/collections/agent_new/get_agent_status.py:110
 msgid "无"
-msgstr "none"
+msgstr "None"
 
 #: apps/backend/components/collections/agent_new/get_agent_status.py:146
 msgid "查询 GSE 超时"
@@ -555,7 +555,7 @@ msgstr "Query GSE timed out"
 
 #: apps/backend/components/collections/agent_new/install.py:205
 msgid "等待手动执行安装命令"
-msgstr "waiting for manual install command"
+msgstr "Waiting for manual install command"
 
 #: apps/backend/components/collections/agent_new/install.py:311
 #: apps/backend/utils/ssh.py:416 apps/exceptions.py:115
@@ -602,13 +602,13 @@ msgstr ""
 #: apps/backend/components/collections/agent_new/install.py:384
 msgid "远程登录失败，等待自动重试，重试失败将打印异常信息。"
 msgstr ""
-"Remote login failed, waiting for automatic retry, if retry fails, an "
+"Remote sign in failed, waiting for automatic retry, if retry fails, an "
 "exception message will be printed."
 
 #: apps/backend/components/collections/agent_new/install.py:351
 #: apps/backend/components/collections/agent_new/install.py:387
 msgid "远程登录失败"
-msgstr "remote login failed"
+msgstr "Remote sign in failed"
 
 #: apps/backend/components/collections/agent_new/install.py:373
 #, python-brace-format
@@ -660,7 +660,7 @@ msgstr "Push the following files to {dest_dir}\"n {filenames_str}"
 
 #: apps/backend/components/collections/agent_new/install.py:688
 msgid "安装超时"
-msgstr "install timed out"
+msgstr "Install timed out"
 
 #: apps/backend/components/collections/agent_new/push_host_identifier.py:50
 msgid "推送主机身份的任务为: [{}]"
@@ -679,7 +679,7 @@ msgid ""
 "若 OA TICKET 过期，请重新登录 OA 后再重试您的操作。请注意不要直接使用此任务中"
 "的重试功能~"
 msgstr ""
-"If OA TICKET expires, please log in to OA again and try your operation "
+"If OA TICKET expires, please sign in to OA again and try your operation "
 "again. Please be careful not to use the retry function in this task directly "
 "~"
 
@@ -688,8 +688,8 @@ msgid ""
 "登录认证信息已被清空\n"
 "- 若为重试操作，请新建任务重新发起"
 msgstr ""
-"Login authentication information has been cleared \n"
-"- If it is a retry operation, please create a new task and re-initiate"
+"Sign in authentication information has been cleared \n"
+"- If it is a retry operation, please new a new task and re-initiate"
 
 #: apps/backend/components/collections/agent_new/query_password.py:169
 msgid "当前主机验证类型无需查询密码"
@@ -793,7 +793,7 @@ msgstr "SSH tunnel available"
 
 #: apps/backend/components/collections/common/remote.py:38
 msgid "SSH通道可用但登录信息有误"
-msgstr "SSH channel available but wrong login information"
+msgstr "SSH channel available but wrong sign in information"
 
 #: apps/backend/components/collections/common/remote.py:39
 msgid "SSH通道不可用"
@@ -803,7 +803,7 @@ msgstr "SSH channel unavailable"
 #, python-brace-format
 msgid "当前登录用户为「{account}」，请确保该用户具有 sudo 权限"
 msgstr ""
-"The current logged-in user is {account}, please make sure this user has sudo "
+"The current sign-in user is {account}, please make sure this user has sudo "
 "privileges"
 
 #: apps/backend/components/collections/core.py:37
@@ -820,11 +820,11 @@ msgstr "Execute command using job"
 
 #: apps/backend/components/collections/core.py:40
 msgid "查询密码"
-msgstr "query password"
+msgstr "Query password"
 
 #: apps/backend/components/collections/core.py:41
 msgid "主机写入操作"
-msgstr "Host write operation"
+msgstr "Host write actions"
 
 #: apps/backend/components/collections/job.py:151
 #, python-brace-format
@@ -885,7 +885,7 @@ msgstr "Plugin deployment failed, retries +1"
 
 #: apps/backend/components/collections/plugin.py:375
 msgid "主机不存在或未同步"
-msgstr "host does not exist or is not in sync"
+msgstr "Host does not exist or is not in sync"
 
 #: apps/backend/components/collections/plugin.py:514
 #, python-brace-format
@@ -919,13 +919,13 @@ msgstr "GSE task search no result, {task_id}, {key}"
 #: apps/backend/components/collections/plugin.py:1432
 #: apps/node_man/models.py:1879
 msgid "策略"
-msgstr "policy"
+msgstr "Policy"
 
 #: apps/backend/components/collections/plugin.py:1432
 #: apps/backend/components/collections/plugin.py:1481
 #: apps/node_man/models.py:545
 msgid "订阅"
-msgstr "subscribe"
+msgstr "Subscribe"
 
 #: apps/backend/components/collections/plugin.py:1437
 #, python-brace-format
@@ -1099,7 +1099,7 @@ msgstr "Incorrect archive plugin package info"
 
 #: apps/backend/exceptions.py:72
 msgid "操作系统版本安装包校验错误"
-msgstr "Plugin package version check error"
+msgstr "Operating system package version check error"
 
 #: apps/backend/exceptions.py:73
 #, python-brace-format
@@ -1154,15 +1154,15 @@ msgstr "Rabbitmq queue length, the threshold for a single queue is %s"
 
 #: apps/backend/healthz/define.py:86
 msgid "celery beat 状态"
-msgstr "celery beat status"
+msgstr "Celery beat status"
 
 #: apps/backend/healthz/define.py:96
 msgid "celery worker 任务执行测试"
-msgstr "celery worker task execution test"
+msgstr "Celery worker task execution test"
 
 #: apps/backend/healthz/define.py:106
 msgid "celery worker 进程状态"
-msgstr "celery worker process status"
+msgstr "Celery worker process status"
 
 #: apps/backend/healthz/define.py:122
 msgid "Supervisor 自身状态"
@@ -1226,7 +1226,7 @@ msgstr "Transfer script"
 
 #: apps/backend/plugin/manager.py:85
 msgid "初始化操作脚本"
-msgstr "Init proc operate script"
+msgstr "Initialize proc operate script"
 
 #: apps/backend/plugin/manager.py:89 apps/backend/plugin/manager.py:185
 msgid "安装插件包"
@@ -1368,7 +1368,7 @@ msgstr "Failed to parse and read the project.yaml file"
 
 #: apps/backend/plugin/tools.py:209
 msgid "project.yaml 文件信息缺失"
-msgstr "project.yaml file information is missing"
+msgstr "Project.yaml file information is missing"
 
 #: apps/backend/plugin/tools.py:229
 msgid "project.yaml 中 auto_type 配置异常，请确认后重试"
@@ -1443,7 +1443,7 @@ msgstr "Debugging task in preparation"
 #: apps/backend/plugin/views.py:734
 #, python-brace-format
 msgid " 开始{name} "
-msgstr "start {name}"
+msgstr "Start {name}"
 
 #: apps/backend/plugin/views.py:830 apps/backend/plugin/views.py:1355
 msgid "请求任务不存在，请确认后重试"
@@ -1510,7 +1510,7 @@ msgstr "Actions cannot be None"
 
 #: apps/backend/subscription/errors.py:35
 msgid "当scope存在时，actions不能空"
-msgstr "actions cannot be empty when scope exists"
+msgstr "Actions cannot be empty when scope exists"
 
 #: apps/backend/subscription/errors.py:42
 msgid "订阅任务不存在"
@@ -1764,12 +1764,12 @@ msgstr "Supervised plugin"
 #: apps/backend/subscription/steps/plugin.py:1252
 #: apps/node_man/constants.py:237
 msgid "取消托管插件"
-msgstr "Unsupervised plugin"
+msgstr "Cancel supervised plugin"
 
 #: apps/backend/subscription/steps/plugin.py:1298
 #: apps/backend/subscription/steps/plugin.py:1316
 msgid "停用插件并删除订阅"
-msgstr "Stop plugin and remove policy"
+msgstr "Stop plugin and delete policy"
 
 #: apps/backend/subscription/tasks.py:98
 #, python-brace-format
@@ -1818,20 +1818,20 @@ msgstr ""
 #: apps/backend/utils/ssh.py:213
 msgid "登录认证失败，请确认账号，密码，密钥或IP是否正确。"
 msgstr ""
-"Login authentication failed, please confirm the account, password, key or IP "
+"Sign in authentication failed, please confirm the account, password, key or IP "
 "is correct."
 
 #: apps/backend/utils/ssh.py:219
 msgid "ssh登录，请确认IP是否正确或目标机器是否可被正常登录。"
 msgstr ""
-"ssh login, please confirm whether the IP is correct or whether the target "
+"Ssh sign in, please confirm whether the IP is correct or whether the target "
 "machine can be logged in normally."
 
 #: apps/backend/utils/ssh.py:225
 msgid ""
 "ssh登录连接超时，请确认IP是否正确或ssh端口号是否正确或网络策略是否正确开通。"
 msgstr ""
-"The ssh login connection timed out, please confirm whether the IP is correct "
+"The ssh sign in connection timed out, please confirm whether the IP is correct "
 "or the ssh port number is correct or the network policy is correctly enabled."
 
 #: apps/core/concurrent/controller.py:37
@@ -1854,7 +1854,7 @@ msgstr "Whether batches are executed concurrently"
 
 #: apps/core/concurrent/serializers.py:34
 msgid "任务提交间隔"
-msgstr "Task submission interval"
+msgstr "Task submit interval"
 
 #: apps/core/encrypt/constants.py:25
 msgid "公钥"
@@ -1902,7 +1902,7 @@ msgstr "Update time"
 #: apps/utils/orm.py:174 pipeline/engine/models/core.py:882
 #: pipeline/models.py:78 pipeline/models.py:275 pipeline/models.py:617
 msgid "创建时间"
-msgstr "Creation time"
+msgstr "Created at"
 
 #: apps/core/encrypt/models.py:28 apps/core/encrypt/models.py:29
 msgid "RSA密钥"
@@ -2287,11 +2287,11 @@ msgstr "Host IP under IPv4 protocol"
 
 #: apps/core/ipchooser/serializers/base.py:194
 msgid "主机 ID，优先取 `host_id`，否则取 `ip` + `cloud_id`"
-msgstr "Host ID, take ` host_id` first, otherwise take the `ip` +` cloud_id` "
+msgstr "Host ID, take ` host_id` first, otherwise take the `ip` +` cloud_id`"
 
 #: apps/core/ipchooser/serializers/base.py:198
 msgid "请传入 host_id 或者 cloud_id + ip"
-msgstr "please incoming `host_id` or `cloud_id + ip`"
+msgstr "Please incoming `host_id` or `cloud_id + ip`"
 
 #: apps/core/ipchooser/serializers/host_sers.py:20
 msgid "IPv4 列表"
@@ -2405,7 +2405,7 @@ msgstr ""
 #, python-brace-format
 msgid "连接丢失，远程系统未响应或登录超时：{err_msg}"
 msgstr ""
-"Connection lost, remote system not responding or login timed out: {err_msg}"
+"Connection lost, remote system not responding or sign in timed out: {err_msg}"
 
 #: apps/core/remote/exceptions.py:43
 #, python-brace-format
@@ -2458,11 +2458,11 @@ msgstr "Delete tag"
 
 #: apps/core/tag/constants.py:38
 msgid "新建标签"
-msgstr "Create tag"
+msgstr "New tag"
 
 #: apps/core/tag/constants.py:38
 msgid "更新版本"
-msgstr "updated version"
+msgstr "Updated version"
 
 #: apps/core/tag/constants.py:38
 msgid "同版本覆盖更新"
@@ -2584,7 +2584,7 @@ msgstr "CMDB instance ID range"
 
 #: apps/core/tag/models.py:64 apps/core/tag/models.py:65
 msgid "版本可见范围"
-msgstr "version visibility range"
+msgstr "Version visibility range"
 
 #: apps/core/tag/serializers.py:36
 #, python-brace-format
@@ -2645,7 +2645,7 @@ msgstr "JWT validation failed"
 #: apps/generic.py:202 apps/middlewares.py:194
 #, python-brace-format
 msgid "【APP 自定义异常】{message}, code={code}, args={args}"
-msgstr "[APP custom exception]{message}, code={code}, args={args}"
+msgstr "[app custom exception]{message}, code={code}, args={args}"
 
 #: apps/generic.py:220
 msgid "系统错误，请联系管理员"
@@ -2778,7 +2778,7 @@ msgstr "Install plugin"
 
 #: apps/node_man/constants.py:239
 msgid "停止插件并删除策略"
-msgstr "Stop plugin and remove policy"
+msgstr "Stop plugin and delete policy"
 
 #: apps/node_man/constants.py:243
 msgid "打包插件"
@@ -2822,7 +2822,7 @@ msgstr "Supervised"
 
 #: apps/node_man/constants.py:296 apps/node_man/constants.py:465
 msgid "取消托管"
-msgstr "Unsupervised"
+msgstr "Cancel supervised"
 
 #: apps/node_man/constants.py:297
 msgid "手动安装"
@@ -3007,23 +3007,23 @@ msgstr "In queue"
 
 #: apps/node_man/constants.py:452 apps/node_man/constants.py:457
 msgid "官方插件"
-msgstr "official plugin"
+msgstr "Official plugin"
 
 #: apps/node_man/constants.py:453 apps/node_man/constants.py:457
 msgid "第三方插件"
-msgstr "third-party plugin"
+msgstr "Third-party plugin"
 
 #: apps/node_man/constants.py:454 apps/node_man/constants.py:457
 msgid "脚本插件"
-msgstr "script plugin"
+msgstr "Script plugin"
 
 #: apps/node_man/constants.py:499 apps/node_man/constants.py:503
 msgid "整包部署"
-msgstr "full package deployment"
+msgstr "Full package deployment"
 
 #: apps/node_man/constants.py:500 apps/node_man/constants.py:503
 msgid "功能部署"
-msgstr "feature deployment"
+msgstr "Feature deployment"
 
 #: apps/node_man/constants.py:501 apps/node_man/constants.py:503
 msgid "Agent自动部署"
@@ -3150,7 +3150,7 @@ msgstr "Yes, the parameter will be hidden on the execution details page"
 
 #: apps/node_man/constants.py:748
 msgid "否，默认值"
-msgstr "no, default"
+msgstr "No, default"
 
 #: apps/node_man/constants.py:759
 msgid "业务集"
@@ -3158,19 +3158,19 @@ msgstr "Business set"
 
 #: apps/node_man/constants.py:774
 msgid "shell"
-msgstr "shell"
+msgstr "Shell"
 
 #: apps/node_man/constants.py:775
 msgid "bat"
-msgstr "bat"
+msgstr "Bat"
 
 #: apps/node_man/constants.py:776
 msgid "perl"
-msgstr "perl"
+msgstr "Perl"
 
 #: apps/node_man/constants.py:777
 msgid "python"
-msgstr "python"
+msgstr "Python"
 
 #: apps/node_man/constants.py:778
 msgid "power_shell"
@@ -3194,7 +3194,7 @@ msgstr "Supervised process"
 
 #: apps/node_man/constants.py:805
 msgid "取消托管进程"
-msgstr "Unsupervised process"
+msgstr "Cancel supervised process"
 
 #: apps/node_man/constants.py:806
 msgid "重启进程"
@@ -3340,7 +3340,7 @@ msgstr "Detect BT distribution strategy (distribute Py36 package)"
 
 #: apps/node_man/constants.py:1012
 msgid "下发安装工具"
-msgstr "transfer installation tool"
+msgstr "Transfer installation tool"
 
 #: apps/node_man/constants.py:1037
 msgid "数据传输工具, 用于下载文件依赖"
@@ -3352,7 +3352,7 @@ msgstr "User Empowerment Tool"
 
 #: apps/node_man/constants.py:1040
 msgid "libcurl 共享库, 补丁文件"
-msgstr "libcurl sharing library, patch file"
+msgstr "Libcurl sharing library, patch file"
 
 #: apps/node_man/constants.py:1041
 msgid "UNIX 时间工具包"
@@ -3364,7 +3364,7 @@ msgstr "Command line JSON processor"
 
 #: apps/node_man/constants.py:1043
 msgid "base64 工具包"
-msgstr "base64 tools package"
+msgstr "Base64 tools package"
 
 #: apps/node_man/constants.py:1053
 msgid "Windows 批处理脚本"
@@ -3372,11 +3372,11 @@ msgstr "Windows batch script"
 
 #: apps/node_man/constants.py:1053
 msgid "bash"
-msgstr "bash"
+msgstr "Bash"
 
 #: apps/node_man/constants.py:1062
 msgid "依赖文件"
-msgstr "dependent file"
+msgstr "Dependent file"
 
 #: apps/node_man/constants.py:1062
 msgid "命令"
@@ -3448,7 +3448,7 @@ msgstr "You are not a superuser and cannot access this page."
 
 #: apps/node_man/exceptions.py:97
 msgid "所有ip均被过滤"
-msgstr "all ips are filtered"
+msgstr "All ips are filtered"
 
 #: apps/node_man/exceptions.py:102
 msgid "该接入点正在被使用"
@@ -3468,7 +3468,7 @@ msgstr "You do not have permission to this host"
 
 #: apps/node_man/exceptions.py:122
 msgid "主机不存在"
-msgstr "host does not exist"
+msgstr "Host does not exist"
 
 #: apps/node_man/exceptions.py:127
 msgid "不允许混合操作【手动安装】和【自动安装】的主机"
@@ -3494,7 +3494,7 @@ msgstr "Duplicate access point name"
 
 #: apps/node_man/exceptions.py:152
 msgid "插件不存在"
-msgstr "plugin does not exist"
+msgstr "Plugin does not exist"
 
 #: apps/node_man/exceptions.py:157
 msgid "缓存过期，正在重新加载..."
@@ -3524,7 +3524,7 @@ msgstr "Access point [{ap_id}] does not support this machine's OS [{os_type}]"
 #: apps/node_man/exceptions.py:183
 #, python-brace-format
 msgid "策略 -> {policy_id}「{name}」正在执行"
-msgstr "policy->{policy_id}{name} is running"
+msgstr "Policy->{policy_id}{name} is running"
 
 #: apps/node_man/exceptions.py:189
 msgid "主机的安装通道不存在，请重新选择"
@@ -3607,7 +3607,7 @@ msgstr ""
 #: apps/node_man/handlers/healthz/saas_healthz.py:114
 #: apps/node_man/serializers/job.py:67 pipeline/engine/models/core.py:876
 msgid "状态"
-msgstr "status"
+msgstr "Status"
 
 #: apps/node_man/handlers/healthz/saas_healthz.py:177
 #: apps/node_man/handlers/healthz/saas_healthz.py:248
@@ -3627,17 +3627,17 @@ msgstr "{method_name} does not exist in cc"
 #: apps/node_man/handlers/healthz/saas_healthz.py:368
 #: apps/node_man/handlers/healthz/saas_healthz.py:490
 msgid "接口不具有依赖关系"
-msgstr "interface has no dependencies"
+msgstr "Interface has no dependencies"
 
 #: apps/node_man/handlers/healthz/saas_healthz.py:222
 #: apps/node_man/handlers/healthz/saas_healthz.py:293
 #: apps/node_man/handlers/healthz/saas_healthz.py:371
 msgid "cc中没有此接口"
-msgstr "no such interface in cc"
+msgstr "No such interface in cc"
 
 #: apps/node_man/handlers/healthz/saas_healthz.py:414
 msgid "job不存在对应的测试用例"
-msgstr "job does not have a corresponding test case"
+msgstr "Job does not have a corresponding test case"
 
 #: apps/node_man/handlers/healthz/saas_healthz.py:417
 msgid "job 中不存在接口 fast_execute_script 的相关参数"
@@ -3657,7 +3657,7 @@ msgstr "Failed to find the host under the service, host query result: %s"
 
 #: apps/node_man/handlers/healthz/saas_healthz.py:493
 msgid "job中没有此接口"
-msgstr "no such interface in job"
+msgstr "No such interface in job"
 
 #: apps/node_man/handlers/host.py:414 apps/node_man/handlers/permission.py:413
 #, python-brace-format
@@ -3672,7 +3672,7 @@ msgstr "External IP: {outer_ip} is occupied"
 #: apps/node_man/handlers/host.py:427
 #, python-brace-format
 msgid "登录IP：{login_ip} 已被占用"
-msgstr "Login IP: {login_ip} is occupied"
+msgstr "Login in IP: {login_ip} is occupied"
 
 #: apps/node_man/handlers/host.py:435
 #, python-brace-format
@@ -3704,7 +3704,7 @@ msgstr "Operating system"
 
 #: apps/node_man/handlers/meta.py:171
 msgid "其它"
-msgstr "other"
+msgstr "Other"
 
 #: apps/node_man/handlers/meta.py:172 apps/node_man/handlers/meta.py:308
 #: apps/node_man/handlers/meta.py:378
@@ -4297,7 +4297,7 @@ msgstr "GSE port configuration"
 
 #: apps/node_man/models.py:643 apps/node_man/serializers/ap.py:44
 msgid "Proxy上的安装包"
-msgstr "package on Proxy"
+msgstr "Package on Proxy"
 
 #: apps/node_man/models.py:644 apps/node_man/serializers/ap.py:101
 msgid "节点管理外网回调地址"
@@ -4569,7 +4569,7 @@ msgstr "Package path"
 
 #: apps/node_man/models.py:1090
 msgid "md5值"
-msgstr "md5 value"
+msgstr "Md5 value"
 
 #: apps/node_man/models.py:1091
 msgid "包更新时间"
@@ -4577,7 +4577,7 @@ msgstr "Package update time"
 
 #: apps/node_man/models.py:1092
 msgid "包创建时间"
-msgstr "Package creation time"
+msgstr "Package created at"
 
 #: apps/node_man/models.py:1093
 msgid "安装包链接"
@@ -4785,7 +4785,7 @@ msgstr "Task creator"
 
 #: apps/node_man/models.py:1517
 msgid "下载任务创建时间"
-msgstr "Download task creation time"
+msgstr "Download task created at"
 
 #: apps/node_man/models.py:1518
 msgid "任务完成时间"
@@ -5135,7 +5135,7 @@ msgstr "No plugin with name: {name}"
 
 #: apps/node_man/serializers/base.py:42
 msgid "configs item must be contains (os, cpu_arch, version)"
-msgstr "configs item must be contains (os, cpu_arch, version)"
+msgstr "Configs item must be contains (os, cpu_arch, version)"
 
 #: apps/node_man/serializers/base.py:44
 msgid "相同os & cpu_arch 组合至多选择一个包"
@@ -5298,15 +5298,15 @@ msgstr "Springboard node"
 
 #: apps/node_man/serializers/job.py:61 apps/node_man/serializers/policy.py:24
 msgid "排序字段"
-msgstr "Sort field"
+msgstr "Sort by field"
 
 #: apps/node_man/serializers/job.py:62 apps/node_man/serializers/policy.py:25
 msgid "排序类型"
-msgstr "Sort type"
+msgstr "Sort by type"
 
 #: apps/node_man/serializers/job.py:72
 msgid "排序"
-msgstr "Sort"
+msgstr "Sort by"
 
 #: apps/node_man/serializers/job.py:73
 msgid "隐藏自动部署任务"
@@ -5414,7 +5414,7 @@ msgstr "Replace PROXY must fill in replace_host_id"
 
 #: apps/node_man/serializers/job.py:216
 msgid "主机信息缺少主机ID（bk_host_id）"
-msgstr "Host information is missing the Host ID （bk_host_id) "
+msgstr "Host information is missing the Host ID （bk_host_id)"
 
 #: apps/node_man/serializers/job.py:218
 msgid "主机信息缺少业务ID（bk_biz_id）"
@@ -5434,7 +5434,7 @@ msgstr "The interface is not available for installation."
 
 #: apps/node_man/serializers/job.py:284
 msgid "该接口不可用于替换代理"
-msgstr "This interface is not available for proxy replacement."
+msgstr "This interface is unavailable for proxy replacement."
 
 #: apps/node_man/serializers/job.py:287
 msgid "跨页全选模式下不允许传bk_host_id参数"
@@ -5573,7 +5573,7 @@ msgstr "Sort by"
 msgid ""
 "不支持的排序字段 -> {order_by_field}, 全部可排序字段 -> {policy_head_tuple}"
 msgstr ""
-"No supporting sorting fields -> {order_by_field}, all sorted fields -> "
+"No supporting sorting fields -> {order_by_field}, all sort by fields -> "
 "{policy_head_tuple}"
 
 #: apps/node_man/serializers/policy.py:64
@@ -5692,11 +5692,11 @@ msgstr "Delete time"
 
 #: apps/utils/orm.py:100
 msgid "删除者"
-msgstr "Removed by"
+msgstr "Deleted by"
 
 #: apps/utils/orm.py:177 pipeline/models.py:278
 msgid "修改者"
-msgstr "editor"
+msgstr "Editor"
 
 #: common/api/base.py:185
 #, python-brace-format
@@ -5793,19 +5793,19 @@ msgstr "Object storage service address"
 
 #: pipeline/contrib/external_plugins/models/source.py:48
 msgid "bucket 名"
-msgstr "bucket 名"
+msgstr "Bucket name"
 
 #: pipeline/contrib/external_plugins/models/source.py:49
 msgid "access key"
-msgstr "access key"
+msgstr "Access key"
 
 #: pipeline/contrib/external_plugins/models/source.py:50
 msgid "secret key"
-msgstr "secret key"
+msgstr "Secret key"
 
 #: pipeline/contrib/external_plugins/models/source.py:78
 msgid "文件系统路径"
-msgstr "filesystem path"
+msgstr "Filesystem path"
 
 #: pipeline/contrib/periodic_task/models.py:35
 msgid "Days"
@@ -5829,63 +5829,63 @@ msgstr "Microseconds"
 
 #: pipeline/contrib/periodic_task/models.py:45
 msgid "every"
-msgstr "every"
+msgstr "Every"
 
 #: pipeline/contrib/periodic_task/models.py:46
 msgid "period"
-msgstr "period"
+msgstr "Period"
 
 #: pipeline/contrib/periodic_task/models.py:49
 #: pipeline/contrib/periodic_task/models.py:159
 msgid "interval"
-msgstr "interval"
+msgstr "Interval"
 
 #: pipeline/contrib/periodic_task/models.py:50
 msgid "intervals"
-msgstr "intervals"
+msgstr "Intervals"
 
 #: pipeline/contrib/periodic_task/models.py:70
 #, python-brace-format
 msgid "every {0.period_singular}"
-msgstr "every {0.period_singular}"
+msgstr "Every {0.period_singular}"
 
 #: pipeline/contrib/periodic_task/models.py:71
 #, python-brace-format
 msgid "every {0.every:d} {0.period}"
-msgstr "every {0.every:d} {0.period}"
+msgstr "Every {0.every:d} {0.period}"
 
 #: pipeline/contrib/periodic_task/models.py:84
 msgid "minute"
-msgstr "minute"
+msgstr "Minute"
 
 #: pipeline/contrib/periodic_task/models.py:85
 msgid "hour"
-msgstr "hour"
+msgstr "Hour"
 
 #: pipeline/contrib/periodic_task/models.py:86
 msgid "day of week"
-msgstr "day of week"
+msgstr "Day of week"
 
 #: pipeline/contrib/periodic_task/models.py:87
 msgid "day of month"
-msgstr "day of month"
+msgstr "Day of month"
 
 #: pipeline/contrib/periodic_task/models.py:88
 msgid "month of year"
-msgstr "month of year"
+msgstr "Month of year"
 
 #: pipeline/contrib/periodic_task/models.py:92
 #: pipeline/contrib/periodic_task/models.py:165
 msgid "crontab"
-msgstr "crontab"
+msgstr "Crontab"
 
 #: pipeline/contrib/periodic_task/models.py:93
 msgid "crontabs"
-msgstr "crontabs"
+msgstr "Crontabs"
 
 #: pipeline/contrib/periodic_task/models.py:156
 msgid "name"
-msgstr "name"
+msgstr "Name"
 
 #: pipeline/contrib/periodic_task/models.py:156
 msgid "Useful description"
@@ -5893,7 +5893,7 @@ msgstr "Useful description"
 
 #: pipeline/contrib/periodic_task/models.py:157
 msgid "task name"
-msgstr "task name"
+msgstr "Task name"
 
 #: pipeline/contrib/periodic_task/models.py:167
 msgid "Use one of interval/crontab"
@@ -5917,7 +5917,7 @@ msgstr "JSON encoded keyword arguments"
 
 #: pipeline/contrib/periodic_task/models.py:174
 msgid "queue"
-msgstr "queue"
+msgstr "Queue"
 
 #: pipeline/contrib/periodic_task/models.py:174
 msgid "Queue defined in CELERY_QUEUES"
@@ -5925,35 +5925,35 @@ msgstr "Queue defined in CELERY_QUEUES"
 
 #: pipeline/contrib/periodic_task/models.py:176
 msgid "exchange"
-msgstr "exchange"
+msgstr "Exchange"
 
 #: pipeline/contrib/periodic_task/models.py:177
 msgid "routing key"
-msgstr "routing key"
+msgstr "Routing key"
 
 #: pipeline/contrib/periodic_task/models.py:178
 msgid "expires"
-msgstr "expires"
+msgstr "Expires"
 
 #: pipeline/contrib/periodic_task/models.py:179
 msgid "enabled"
-msgstr "enabled"
+msgstr "Enabled"
 
 #: pipeline/contrib/periodic_task/models.py:183
 msgid "description"
-msgstr "description"
+msgstr "Description"
 
 #: pipeline/contrib/periodic_task/models.py:189
 msgid "djcelery periodic task"
-msgstr "djcelery periodic task"
+msgstr "Djcelery periodic task"
 
 #: pipeline/contrib/periodic_task/models.py:190
 msgid "djcelery periodic tasks"
-msgstr "djcelery periodic tasks"
+msgstr "Djcelery periodic tasks"
 
 #: pipeline/contrib/periodic_task/models.py:278
 msgid "周期任务名称"
-msgstr "period task name"
+msgstr "Period task name"
 
 #: pipeline/contrib/periodic_task/models.py:283
 msgid "周期任务对应的模板"
@@ -5965,11 +5965,11 @@ msgstr "Scheduling Policy"
 
 #: pipeline/contrib/periodic_task/models.py:289
 msgid "celery 周期任务实例"
-msgstr "celery periodic task instance"
+msgstr "Celery periodic task instance"
 
 #: pipeline/contrib/periodic_task/models.py:292
 msgid "用于创建流程实例的结构数据"
-msgstr "structure data used to create process instances"
+msgstr "Structure data used to create process instances"
 
 #: pipeline/contrib/periodic_task/models.py:294
 msgid "执行次数"
@@ -6036,7 +6036,7 @@ msgstr "List JSON format"
 #: pipeline/contrib/statistics/models.py:27
 #: pipeline/contrib/statistics/models.py:28
 msgid "Pipeline标准插件被引用数据"
-msgstr "referenced data of pipeline standard plugin "
+msgstr "Referenced data of pipeline standard plugin"
 
 #: pipeline/contrib/statistics/models.py:40
 msgid "标准插件执行开始时间"
@@ -6067,12 +6067,12 @@ msgstr "Whether to retry the record"
 #: pipeline/contrib/statistics/models.py:49
 #: pipeline/contrib/statistics/models.py:50
 msgid "Pipeline标准插件执行数据"
-msgstr "performs data of pipeline standard plugin "
+msgstr "Performs data of pipeline standard plugin"
 
 #: pipeline/contrib/statistics/models.py:59
 #: pipeline/contrib/statistics/models.py:73
 msgid "标准插件总数"
-msgstr "standard plug-ins"
+msgstr "Standard plug-ins"
 
 #: pipeline/contrib/statistics/models.py:60
 #: pipeline/contrib/statistics/models.py:74
@@ -6082,17 +6082,17 @@ msgstr "Total number of subprocesses"
 #: pipeline/contrib/statistics/models.py:61
 #: pipeline/contrib/statistics/models.py:75
 msgid "网关总数"
-msgstr "gateway"
+msgstr "Gateway"
 
 #: pipeline/contrib/statistics/models.py:64
 #: pipeline/contrib/statistics/models.py:65
 msgid "Pipeline模板引用数据"
-msgstr "reference data of pipeline template"
+msgstr "Reference data of pipeline template"
 
 #: pipeline/contrib/statistics/models.py:78
 #: pipeline/contrib/statistics/models.py:79
 msgid "Pipeline实例引用数据"
-msgstr "reference data of pipeline instance"
+msgstr "Reference data of pipeline instance"
 
 #: pipeline/core/flow/activity/service_activity.py:32
 msgid "执行结果"
@@ -6146,7 +6146,7 @@ msgstr "ID"
 
 #: pipeline/engine/models/core.py:54
 msgid "pipeline 运行时数据"
-msgstr "pipeline runtime data"
+msgstr "Pipeline runtime data"
 
 #: pipeline/engine/models/core.py:208
 msgid "Process ID"
@@ -6198,7 +6198,7 @@ msgstr "ID offspring"
 
 #: pipeline/engine/models/core.py:619
 msgid "距离"
-msgstr "distance"
+msgstr "Distance"
 
 #: pipeline/engine/models/core.py:875 pipeline/engine/models/core.py:923
 #: pipeline/engine/models/core.py:1047 pipeline/engine/models/core.py:1230
@@ -6224,7 +6224,7 @@ msgstr "Archive Time"
 
 #: pipeline/engine/models/core.py:885
 msgid "版本"
-msgstr "version"
+msgstr "Version"
 
 #: pipeline/engine/models/core.py:886
 msgid "上次状态更新的时间"
@@ -6240,7 +6240,7 @@ msgstr "Output Data"
 
 #: pipeline/engine/models/core.py:926 pipeline/engine/models/core.py:935
 msgid "异常数据"
-msgstr "abnormal data"
+msgstr "Abnormal data"
 
 #: pipeline/engine/models/core.py:941
 msgid "自增ID"
@@ -6288,7 +6288,7 @@ msgstr "Be-scheduled services"
 
 #: pipeline/engine/models/core.py:1054
 msgid "是否已完成"
-msgstr "completed or not"
+msgstr "Completed or not"
 
 #: pipeline/engine/models/core.py:1055
 msgid "Activity 的版本"
@@ -6308,16 +6308,16 @@ msgstr "The corresponding process ID"
 
 #: pipeline/engine/models/core.py:1173
 msgid "pipeline 进程 ID"
-msgstr "pipeline process ID"
+msgstr "Pipeline process ID"
 
 #: pipeline/engine/models/core.py:1174 pipeline/engine/models/core.py:1200
 #: pipeline/engine/models/core.py:1231
 msgid "celery 任务 ID"
-msgstr "celery task ID"
+msgstr "Celery task ID"
 
 #: pipeline/engine/models/core.py:1199
 msgid "schedule ID"
-msgstr "schedule ID"
+msgstr "Schedule ID"
 
 #: pipeline/engine/models/data.py:45
 msgid "对象唯一键"
@@ -6329,7 +6329,7 @@ msgstr "Object storage field"
 
 #: pipeline/engine/models/function.py:54
 msgid "功能名称"
-msgstr "function name"
+msgstr "Function name"
 
 #: pipeline/engine/models/function.py:55
 msgid "功能描述"
@@ -6341,7 +6341,7 @@ msgstr "Activate or not"
 
 #: pipeline/log/models.py:43
 msgid "logger 名称"
-msgstr "logger name"
+msgstr "Logger name"
 
 #: pipeline/log/models.py:47
 msgid "输出时间"
@@ -6353,7 +6353,7 @@ msgstr "Node execution history ID"
 
 #: pipeline/models.py:77
 msgid "快照字符串的md5sum"
-msgstr "md5sum string of snapshots"
+msgstr "Md5sum string of snapshots"
 
 #: pipeline/models.py:84 pipeline/models.py:85
 msgid "模板快照"
@@ -6370,7 +6370,7 @@ msgstr "Template Name"
 
 #: pipeline/models.py:277 pipeline/models.py:621
 msgid "描述"
-msgstr "description"
+msgstr "Description"
 
 #: pipeline/models.py:279 pipeline/models.py:505
 msgid "修改时间"
@@ -6406,7 +6406,7 @@ msgstr "Sub process node ID"
 
 #: pipeline/models.py:435 pipeline/models.py:459 pipeline/models.py:489
 msgid "快照字符串的md5"
-msgstr "md5 snapshot string"
+msgstr "Md5 snapshot string"
 
 #: pipeline/models.py:487
 msgid "模板 ID"
@@ -6418,7 +6418,7 @@ msgstr "Template data ID"
 
 #: pipeline/models.py:490
 msgid "添加日期"
-msgstr "Date Added"
+msgstr "Add date"
 
 #: pipeline/models.py:501
 msgid "对应模板 ID"
@@ -6442,19 +6442,19 @@ msgstr "Start Time"
 
 #: pipeline/models.py:622
 msgid "是否已经启动"
-msgstr "started or not"
+msgstr "Started or not"
 
 #: pipeline/models.py:623
 msgid "是否已经完成"
-msgstr "completed or not"
+msgstr "Completed or not"
 
 #: pipeline/models.py:624
 msgid "是否已经撤销"
-msgstr "revoked or not"
+msgstr "Revoked or not"
 
 #: pipeline/models.py:625
 msgid "是否已经删除"
-msgstr "deleted or not"
+msgstr "Deleted or not"
 
 #: pipeline/models.py:625
 msgid "表示当前实例是否删除"
@@ -6531,7 +6531,7 @@ msgstr "Variable ID"
 
 #: pipeline/variable_framework/models.py:26
 msgid "变量是否可用"
-msgstr "Available or not"
+msgstr "Variable available or not"
 
 #: pipeline/variable_framework/models.py:29
 #: pipeline/variable_framework/models.py:30
