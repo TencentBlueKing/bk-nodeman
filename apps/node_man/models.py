@@ -360,6 +360,7 @@ class Host(models.Model):
 
     install_channel_id = models.IntegerField(_("安装通道"), null=True)
     ap_id = models.IntegerField(_("接入点ID"), null=True, db_index=True)
+    gse_v1_ap_id = models.IntegerField(_("GSE1.0接入点ID"), null=True, blank=True, db_index=True)
     upstream_nodes = JSONField(_("上游节点"), default=list)
 
     created_at = models.DateTimeField(_("创建时间"), auto_now_add=True, db_index=True)
@@ -823,6 +824,7 @@ class Cloud(models.Model):
     bk_cloud_name = models.CharField(max_length=45)
     isp = models.CharField(_("云服务商"), max_length=45, null=True, blank=True)
     ap_id = models.IntegerField(_("接入点ID"), null=True)
+    gse_v1_ap_id = models.IntegerField(_("GSE1.0接入点ID"), null=True, blank=True)
     creator = JSONField(_("管控区域创建者"))
 
     is_visible = models.BooleanField(_("是否可见"), default=True)
