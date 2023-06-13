@@ -12,7 +12,7 @@ import logging
 import typing
 
 from django.conf import settings
-from django.db.models import QuerySet
+from django.db.models import F, QuerySet
 from django.db.transaction import atomic
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
@@ -155,27 +155,36 @@ class GrayHandler:
 
         # 更新主机ap id
         for v1_ap_id, v2_ap_id in gray_ap_map.items():
-            if rollback:
-                # 如果是回滚将v1,v2 id进行对调
-                v1_ap_id, v2_ap_id = v2_ap_id, v1_ap_id
 
-            query_params: typing.Dict = {"bk_biz_id__in": bk_biz_ids, "ap_id": v1_ap_id}
+            # 如果为rollback查询v2_ap_id
+            query_params: typing.Dict = {"bk_biz_id__in": bk_biz_ids, "ap_id": v2_ap_id if rollback else v1_ap_id}
 
             # 非业务整体灰度时，需要添加主机范围限制
             if not is_biz_gray:
                 # 增加管控区域主机查询参数
                 query_params.update(bk_host_id__in=host_ids)
 
-            logger.info(f"[update_host_ap_by_host_ids][rollback={rollback}] {v1_ap_id} to {v2_ap_id}")
-
             partial_host_nodes: typing.List[typing.Dict[str, int]] = list(
                 node_man_models.Host.objects.filter(**query_params).values("bk_host_id", "bk_biz_id")
             )
 
             # 切换接入点
+            update_kwargs: typing.Dict[str, typing.Any] = {"updated_at": timezone.now()}
+            # 若需要更新gse_v1_ap_id使用F方式,顺序不可以变
+            if rollback:
+                update_kwargs.update(
+                    ap_id=F("gse_v1_ap_id"),
+                    gse_v1_ap_id=None,
+                )
+            else:
+                update_kwargs.update(
+                    gse_v1_ap_id=F("ap_id"),
+                    ap_id=v2_ap_id,
+                )
+
             update_count: int = node_man_models.Host.objects.filter(
                 bk_biz_id__in=bk_biz_ids, bk_host_id__in=[host_node["bk_host_id"] for host_node in partial_host_nodes]
-            ).update(ap_id=v2_ap_id, updated_at=timezone.now())
+            ).update(**update_kwargs)
 
             logger.info(
                 f"[update_host_ap_by_host_ids][rollback={rollback}] Update count -> {update_count}, "
@@ -252,13 +261,11 @@ class GrayHandler:
             cloud_bk_biz_ids: typing.List[int] = [cloud_biz["bk_biz_id"] for cloud_biz in cloud_bizs]
 
             if ap_id_obj_map[cloud_obj.ap_id].gse_version == GseVersion.V2.value and rollback:
-                # 回滚V2到V1
-                for v1_ap_id, v2_ap_id in gray_ap_map.items():
-                    if cloud_obj.ap_id == v2_ap_id:
-                        # 当管控区域覆盖的业务（cloud_bk_biz_ids）完全包含于灰度业务集（gray_scope_list）时，需要操作回滚
-                        if not set(cloud_bk_biz_ids) - set(gray_scope_list):
-                            cloud_obj.ap_id = v1_ap_id
-                            cloud_obj.save()
+                # 当管控区域覆盖的业务（cloud_bk_biz_ids）完全包含于灰度业务集（gray_scope_list）时，需要操作回滚
+                if not set(cloud_bk_biz_ids) - set(gray_scope_list):
+                    cloud_obj.ap_id = cloud_obj.gse_v1_ap_id
+                    cloud_obj.gse_v1_ap_id = None
+                    cloud_obj.save()
             elif ap_id_obj_map[cloud_obj.ap_id].gse_version == GseVersion.V1.value and rollback:
                 # 回滚情况且管控区域接入点版本为V1不需处理
                 continue
@@ -269,6 +276,8 @@ class GrayHandler:
                 # 当管控区域覆盖的业务（cloud_bk_biz_ids）完全包含于灰度业务集（gray_scope_list）时，需要操作灰度
                 if not set(cloud_bk_biz_ids) - set(gray_scope_list):
                     try:
+                        # 记录v1 ap_id用于回滚
+                        cloud_obj.gse_v1_ap_id = cloud_obj.ap_id
                         cloud_obj.ap_id = gray_ap_map[cloud_obj.ap_id]
                         cloud_obj.save()
                     except KeyError:
