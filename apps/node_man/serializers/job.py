@@ -19,7 +19,7 @@ from apps.backend.subscription.steps.agent_adapter.adapter import LEGACY
 from apps.core.gray.handlers import GrayHandler
 from apps.core.gray.tools import GrayTools
 from apps.core.ipchooser.tools.base import HostQuerySqlHelper
-from apps.exceptions import ValidationError
+from apps.exceptions import ApiError, ValidationError
 from apps.node_man import constants, models, tools
 from apps.node_man.handlers import validator
 from apps.node_man.handlers.cmdb import CmdbHandler
@@ -340,10 +340,14 @@ class OperateSerializer(serializers.Serializer):
             )
         )
         if gse_v2_cloud_host_ids:
-            update_result = GrayHandler.update_host_ap_by_host_ids(
-                gse_v2_cloud_host_ids, bk_biz_scope, is_biz_gray=False, rollback=False
-            )
-            GrayHandler.activate(host_nodes=update_result["host_nodes"], rollback=False, only_status=True)
+            # TODO: 正式启用灰度功能后此处需要去掉try
+            try:
+                update_result = GrayHandler.update_host_ap_by_host_ids(
+                    gse_v2_cloud_host_ids, bk_biz_scope, is_biz_gray=False, rollback=False
+                )
+                GrayHandler.activate(host_nodes=update_result["host_nodes"], rollback=False, only_status=True)
+            except ApiError:
+                pass
 
         # 业务已进入灰度，主机接入点重定向到 V2
         gray_bk_biz_scope: typing.Set[int] = set(GrayTools.get_or_create_gse2_gray_scope_list(get_cache=True)) & set(
@@ -355,10 +359,14 @@ class OperateSerializer(serializers.Serializer):
             )
         )
         if gse_v2_default_area_host_ids:
-            update_result = GrayHandler.update_host_ap_by_host_ids(
-                gse_v2_default_area_host_ids, gray_bk_biz_scope, is_biz_gray=False, rollback=False
-            )
-            GrayHandler.activate(host_nodes=update_result["host_nodes"], rollback=False, only_status=True)
+            # TODO: 正式启用灰度功能后此处需要去掉try
+            try:
+                update_result = GrayHandler.update_host_ap_by_host_ids(
+                    gse_v2_default_area_host_ids, gray_bk_biz_scope, is_biz_gray=False, rollback=False
+                )
+                GrayHandler.activate(host_nodes=update_result["host_nodes"], rollback=False, only_status=True)
+            except ApiError:
+                pass
         return attrs
 
 
