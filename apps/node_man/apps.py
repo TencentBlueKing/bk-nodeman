@@ -97,9 +97,7 @@ class ApiConfig(AppConfig):
 
         obj, created = GlobalSettings.objects.get_or_create(
             key=GlobalSettings.KeyEnum.HEAD_PLUGINS.value,
-            defaults=dict(
-                v_json=["basereport", "exceptionbeat", "processbeat", "bkunifylogbeat", "bkmonitorbeat", "gsecmdline"]
-            ),
+            defaults=dict(v_json=["basereport", "exceptionbeat", "processbeat", "bkunifylogbeat", "bkmonitorbeat"]),
         )
         settings.HEAD_PLUGINS = obj.v_json
 

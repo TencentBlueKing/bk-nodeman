@@ -221,7 +221,7 @@ class TestMeta(testcase.CustomAPITestCase):
 
     def test_fetch_plugin_condition(self):
         result = MetaHandler().fetch_plugin_list_condition()
-        self.assertEqual(len(result), 13)
+        self.assertEqual(len(result), 11)
 
     def test_fetch_plugin_version_condition(self):
         host_to_create, _, _ = create_host(10)
@@ -238,7 +238,7 @@ class TestMeta(testcase.CustomAPITestCase):
             )
         result = MetaHandler().fetch_plugin_version_condition()
 
-        self.assertEqual(len(result), 13)
+        self.assertEqual(len(result), 11)
         self.assertEqual(len(result[0]["children"]), 10)
 
     @override_settings(BKAPP_DEFAULT_SSH_PORT=22)

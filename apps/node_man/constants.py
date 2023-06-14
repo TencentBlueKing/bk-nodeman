@@ -331,7 +331,7 @@ POLICY_OP_TYPE_TUPLE = ("START", "STOP", "STOP_AND_DELETE", "DELETE", "RETRY_ABN
 POLICY_OP_CHOICES = tuple_choices(POLICY_OP_TYPE_TUPLE)
 PolicyOpType = choices_to_namedtuple(POLICY_OP_CHOICES)
 
-HEAD_PLUGINS = ["basereport", "exceptionbeat", "processbeat", "bkunifylogbeat", "bkmonitorbeat", "gsecmdline"]
+HEAD_PLUGINS = ["basereport", "exceptionbeat", "processbeat", "bkunifylogbeat", "bkmonitorbeat"]
 
 IAM_ACTION_DICT = {
     "cloud_view": _("管控区域查看"),
