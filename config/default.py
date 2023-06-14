@@ -575,8 +575,7 @@ class RedisMode(EnhanceEnum):
 
 
 if BK_BACKEND_CONFIG:
-    # 后台不需要version log
-    DISABLED_APPS = ["version_log"]
+    DISABLED_APPS = []
 
     # 后台根路径与SaaS
     BASE_DIR = os.path.dirname(PROJECT_ROOT)
@@ -706,7 +705,7 @@ GSE_ENABLE_SVR_DISCOVERY = get_type_env(key="GSE_ENABLE_SVR_DISCOVERY", default=
 # 是否使用CMDB订阅机制去主动触发插件下发
 USE_CMDB_SUBSCRIPTION_TRIGGER = get_type_env(key="BKAPP_USE_CMDB_SUBSCRIPTION_TRIGGER", default=True, _type=bool)
 
-VERSION_LOG = {"MD_FILES_DIR": os.path.join(PROJECT_ROOT, "release")}
+VERSION_LOG = {"MD_FILES_DIR": os.path.join(PROJECT_ROOT, "release"), "LANGUAGE_MAPPINGS": {"en": "en"}}
 
 # remove disabled apps
 if locals().get("DISABLED_APPS"):

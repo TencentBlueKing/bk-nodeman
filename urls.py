@@ -16,7 +16,6 @@ from django.urls import re_path
 from drf_yasg import openapi
 from drf_yasg.views import get_schema_view
 from rest_framework import permissions
-
 from version_log import config
 
 schema_view = get_schema_view(
@@ -38,7 +37,7 @@ urlpatterns = [
     url(r"^backend/", include("apps.backend.urls")),
     url(r"^core/", include("apps.core.urls")),
     url(r"^", include("apps.node_man.urls")),
-    url(r"^{}".format(config.ENTRANCE_URL), include("version_log.urls")),
+    url(r"^{}".format(config.ENTRANCE_URL), include("version_log.urls", namespace="version_log")),
 ]
 
 if settings.ENVIRONMENT not in ["production", "prod"]:
