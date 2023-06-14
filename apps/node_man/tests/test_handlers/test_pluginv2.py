@@ -264,7 +264,7 @@ class TestPluginV2(CustomBaseTestCase):
         self.assertEqual(template_num, len(constants.CPU_CHOICES) * len(constants.OS_CHOICES))
 
     def test_head_plugins_change_case(self):
-        mock_plugins_name = "gsecmdline"
+        mock_plugins_name = "processbeat"
         models.GsePluginDesc.objects.update_or_create(
             name=mock_plugins_name,
             description="description",
