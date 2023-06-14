@@ -101,7 +101,7 @@ export default {
   复制ProxyIP: 'Copy Proxy IP',
   请输入IP: 'Please enter IP',
   请选择管控区域: 'Please select BK-Net',
-  勾选IP: 'Select',
+  勾选IP: 'Checked IP',
   所有IP: 'All IP',
   异常IP: 'Abnormal IP',
   批量: 'Batch',
