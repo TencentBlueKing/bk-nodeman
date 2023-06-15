@@ -15,6 +15,15 @@ from apps.exceptions import ValidationError
 from apps.node_man import constants, exceptions, models
 
 
+# 放在后台会导致循坏导入
+class SubScopeInstSelectorSerializer(serializers.Serializer):
+    instance_selector = serializers.ListField(
+        child=serializers.DictField(),
+        required=False,
+        label="实例筛选器"
+    )
+
+
 # 安装插件配置
 class StepSerializer(serializers.Serializer):
     class SettingSerializer(serializers.Serializer):
@@ -46,7 +55,7 @@ class StepSerializer(serializers.Serializer):
 
 
 # 策略范围
-class ScopeSerializer(serializers.Serializer):
+class ScopeSerializer(SubScopeInstSelectorSerializer):
     class NodeSerializer(serializers.Serializer):
         bk_biz_id = serializers.IntegerField(label="业务ID")
         bk_inst_id = serializers.IntegerField(required=False, label="实例ID")

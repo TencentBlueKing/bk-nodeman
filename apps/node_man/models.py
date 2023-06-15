@@ -1765,6 +1765,7 @@ class Subscription(export_subscription_prometheus_mixin(), orm.SoftDeleteModel):
     object_type = models.CharField(_("对象类型"), max_length=20, choices=OBJECT_TYPE_CHOICES, db_index=True)
     node_type = models.CharField(_("节点类型"), max_length=20, choices=NODE_TYPE_CHOICES, db_index=True)
     nodes = JSONField(_("节点"), default=list)
+    instance_selector = JSONField(_("订阅任务范围主机属性筛选"), null=True, blank=True)
     target_hosts = JSONField(_("下发的目标机器"), default=None, null=True)
     from_system = models.CharField(_("所属系统"), max_length=30)
     update_time = models.DateTimeField(_("更新时间"), auto_now=True, db_index=True)
@@ -1808,6 +1809,7 @@ class Subscription(export_subscription_prometheus_mixin(), orm.SoftDeleteModel):
             "node_type": self.node_type,
             "nodes": self.nodes,
             "need_register": need_register,
+            "instance_selector": self.instance_selector,
         }
 
     @classmethod

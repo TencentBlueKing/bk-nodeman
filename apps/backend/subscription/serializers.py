@@ -19,6 +19,7 @@ from apps.exceptions import ValidationError
 from apps.node_man import constants, models, tools
 from apps.node_man.models import ProcessStatus
 from apps.node_man.serializers import policy
+from apps.node_man.serializers.base import SubScopeInstSelectorSerializer
 from apps.utils import basic
 
 
@@ -27,7 +28,7 @@ class GatewaySerializer(serializers.Serializer):
     bk_app_code = serializers.CharField()
 
 
-class ScopeSerializer(serializers.Serializer):
+class ScopeSerializer(SubScopeInstSelectorSerializer):
     bk_biz_id = serializers.IntegerField(required=False, default=None)
     # TODO: 是否取消掉这个范围内的scope
     bk_biz_scope = serializers.ListField(required=False)
@@ -124,7 +125,7 @@ class GetSubscriptionSerializer(GatewaySerializer):
 
 
 class UpdateSubscriptionSerializer(GatewaySerializer):
-    class UpdateScopeSerializer(serializers.Serializer):
+    class UpdateScopeSerializer(SubScopeInstSelectorSerializer):
         node_type = serializers.ChoiceField(choices=models.Subscription.NODE_TYPE_CHOICES)
         nodes = serializers.ListField()
         bk_biz_id = serializers.IntegerField(required=False, default=None)
@@ -157,7 +158,7 @@ class SwitchSubscriptionSerializer(GatewaySerializer):
 
 
 class RunSubscriptionSerializer(GatewaySerializer):
-    class RunScopeSerializer(serializers.Serializer):
+    class RunScopeSerializer(SubScopeInstSelectorSerializer):
         node_type = serializers.ChoiceField(choices=models.Subscription.NODE_TYPE_CHOICES, label="节点类型")
         nodes = serializers.ListField(child=serializers.DictField(), label="拓扑节点列表")
 
