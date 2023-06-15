@@ -34,12 +34,13 @@
 
 | 字段            | 类型        | 必选  | 描述                                                                                  |
 | ------------- | --------- | --- | ----------------------------------------------------------------------------------- |
-| bk_biz_id     | int       | 否   | 蓝鲸业务ID                                                                              |
-| bk_biz_scope  | int array | 否   | 蓝鲸业务ID列表                                                                            |
-| node_type     | string    | 是   | 节点类别，1: TOPO，动态实例（拓扑）2: INSTANCE，静态实例 3: SERVICE_TEMPLATE，服务模板 4: SET_TEMPLATE，集群模板 |
-| object_type   | string    | 是   | 对象类型，1：HOST，主机类型  2：SERVICE，服务类型                                                    |
-| need_register | bool      | 否   | 是否需要注册到CMDB，false是不注册，true是注册。默认为不注册                                                |
-| nodes         | objects   | 是   | 节点列表，见nodes定义                                                                       |
+| bk_biz_id         | int       | 否   | 蓝鲸业务ID                                                                              |
+| bk_biz_scope      | int array | 否   | 蓝鲸业务ID列表                                                                            |
+| node_type         | string    | 是   | 节点类别，1: TOPO，动态实例（拓扑）2: INSTANCE，静态实例 3: SERVICE_TEMPLATE，服务模板 4: SET_TEMPLATE，集群模板 |
+| object_type       | string    | 是   | 对象类型，1：HOST，主机类型  2：SERVICE，服务类型                                                    |
+| need_register     | bool      | 否   | 是否需要注册到CMDB，false是不注册，true是注册。默认为不注册                                                |
+| nodes             | objects   | 是   | 节点列表，见nodes定义        
+| instance_selector | objects   | 否   | 主机属性筛选列表                                                                 |
 
 ##### config
 
@@ -119,6 +120,13 @@ instance_info
 | enable_compression             | bool   | 否   | 数据压缩开关，默认是关闭                                              |
 | data_path                      | string | 否   | 数据文件路径                                                  |
 
+###### instance_selector
+
+| 字段                  | 类型     | 必选  | 描述                      |
+| ------------------- | ------ | --- | ----------------------- |
+| key   | string    | 否   | 主机属性                   |
+| value | string    | 否   | 主机属性值列表                   |
+
 ###### job_type
 
 Agent
@@ -184,6 +192,7 @@ Plugin
     "bk_token": "xxx",
     "run_immediately": true,
     "scope": {
+        "instance_selector": [{"key": "os_type", "value": ["LINUX"]}],
         "bk_biz_id": 2,
         "object_type": "SERVICE",
         "node_type": "TOPO",

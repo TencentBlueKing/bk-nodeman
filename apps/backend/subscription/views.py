@@ -84,6 +84,7 @@ class SubscriptionViewSet(APIViewSet):
                 object_type=scope["object_type"],
                 node_type=scope["node_type"],
                 nodes=scope["nodes"],
+                instance_selector=scope.get("instance_selector"),
                 target_hosts=params.get("target_hosts"),
                 from_system=params["bk_app_code"] or "blueking",
                 enable=enable,
@@ -202,6 +203,9 @@ class SubscriptionViewSet(APIViewSet):
             subscription.node_type = scope["node_type"]
             subscription.nodes = scope["nodes"]
             subscription.bk_biz_id = scope.get("bk_biz_id")
+            # 避免空列表误判
+            if scope.get("instance_selector") is not None:
+                subscription.instance_selector = scope["instance_selector"]
             # 策略部署新增
             subscription.plugin_name = params.get("plugin_name")
             subscription.bk_biz_scope = params.get("bk_biz_scope")
