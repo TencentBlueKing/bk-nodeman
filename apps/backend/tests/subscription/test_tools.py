@@ -22,6 +22,7 @@ from apps.backend.tests.subscription.utils import (
     CmdbClient,
     list_biz_hosts_without_info_client,
 )
+from apps.node_man import models, constants
 
 # 全局使用的mock
 run_task = mock.patch("apps.backend.subscription.tasks.run_subscription_task").start()
@@ -56,6 +57,25 @@ class TestTools(TestCase):
         self.get_host_object_attribute_client.start()
         self.get_process_by_biz_id_client.start()
         self.batch_request_client.start()
+
+        models.Host.objects.create(
+            bk_host_id=1,
+            bk_biz_id=2,
+            bk_cloud_id=0,
+            inner_ip="127.0.0.1",
+            outer_ip=None,
+            login_ip="127.0.0.1",
+            data_ip="127.0.0.1",
+            os_type="LINUX",
+            node_type="AGENT",
+            ap_id=1,
+        )
+        models.ProcessStatus.objects.create(
+            bk_host_id=1,
+            name=models.ProcessStatus.GSE_AGENT_PROCESS_NAME,
+            proc_type=constants.ProcType.AGENT,
+            source_type=models.ProcessStatus.SourceType.DEFAULT,
+        )
 
     def tearDown(self):
         self.tools_client.stop()
@@ -155,3 +175,31 @@ class TestTools(TestCase):
             instance = instances[instance_id]
             self.assertEqual(instance["service"]["id"], 10)
             self.assertSetEqual({"process", "scope", "host", "service"}, set(instance.keys()))
+
+    def test_get_instance_selector_scope(self):
+        instances = get_instances_by_scope(
+            {
+                "bk_biz_id": 2,
+                "object_type": "HOST",
+                "node_type": "INSTANCE",
+                "instance_selector": [{"key": "os_type", "value": ["WINDOWS"]}],
+                "nodes": [
+                    {"ip": "127.0.0.1", "bk_cloud_id": 0, "bk_supplier_id": 0},
+                ],
+            }
+        )
+        self.assertEqual(len(list(instances.keys())), 0)
+
+    def test_get_empty_list_instance_selector_scope(self):
+        instances = get_instances_by_scope(
+            {
+                "bk_biz_id": 2,
+                "object_type": "HOST",
+                "node_type": "INSTANCE",
+                "instance_selector": [],
+                "nodes": [
+                    {"ip": "127.0.0.1", "bk_cloud_id": 0, "bk_supplier_id": 0},
+                ],
+            }
+        )
+        self.assertEqual(len(list(instances.keys())), 0)

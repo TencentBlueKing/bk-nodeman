@@ -41,6 +41,7 @@ from apps.utils.basic import chunk_lists, distinct_dict_list, order_dict
 from apps.utils.batch_request import batch_request, request_multi_thread
 from apps.utils.cache import func_cache_decorator
 from apps.utils.time_handler import strftime_local
+from apps.core.ipchooser.tools.base import HostQuerySqlHelper
 
 logger = logging.getLogger("app")
 
@@ -680,6 +681,7 @@ def support_multi_biz(get_instances_by_scope_func):
                     "object_type": scope["object_type"],
                     "node_type": scope["node_type"],
                     "nodes": list(nodes),
+                    "instance_selector": scope.get("instance_selector")
                 },
                 **kwargs,
             }
@@ -727,6 +729,11 @@ def get_instances_by_scope(scope: Dict[str, Union[Dict, int, Any]]) -> Dict[str,
         "host|instance|host|yyyy": {...},
     }
     """
+    instance_selector = scope.get("instance_selector")
+    # 不进行主机筛选时传入 None，传入空列表则识别为全部过滤
+    if instance_selector == []:
+        return {}
+
     instances = []
     bk_biz_id = scope["bk_biz_id"]
     if bk_biz_id:
@@ -808,12 +815,34 @@ def get_instances_by_scope(scope: Dict[str, Union[Dict, int, Any]]) -> Dict[str,
         "object_type": scope["object_type"],
         "node_type": models.Subscription.NodeType.INSTANCE,
     }
+
+    bk_host_ids = []
+
     for instance in instances:
-        if data["object_type"] == models.Subscription.ObjectType.HOST:
-            data.update(instance["host"])
-        else:
-            data.update(instance["service"])
+        is_host = data["object_type"] == models.Subscription.ObjectType.HOST
+        instance_data = instance["host"] if is_host else instance["service"]
+
+        data.update(instance_data)
+        bk_host_ids.append(instance_data.get("bk_host_id"))
         instances_dict[create_node_id(data)] = instance
+
+    # 对 instances 进行二次过滤
+    if instance_selector and bk_host_ids:
+        instance_selector_host_ids = HostQuerySqlHelper.multiple_cond_sql(
+            params={"bk_host_id": bk_host_ids, "conditions": instance_selector},
+            biz_scope=[bk_biz_id],
+            return_all_node_type=True
+        ).values_list("bk_host_id", flat=True)
+
+        selector_instances_dict = {}
+        for node_id, instance in instances_dict.items():
+            is_host = data["object_type"] == models.Subscription.ObjectType.HOST
+            instance_data = instance["host"] if is_host else instance["service"]
+
+            if instance_data["bk_host_id"] in instance_selector_host_ids:
+                selector_instances_dict[node_id] = instance if is_host else instance["service"]
+
+        return selector_instances_dict
 
     return instances_dict
 

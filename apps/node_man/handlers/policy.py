@@ -395,6 +395,7 @@ class PolicyHandler:
                 object_type=scope["object_type"],
                 node_type=scope["node_type"],
                 nodes=scope["nodes"],
+                instance_selector=scope.get("instance_selector"),
                 target_hosts=query_params.get("target_hosts"),
                 # SaaS侧均为主程序部署
                 is_main=True,
