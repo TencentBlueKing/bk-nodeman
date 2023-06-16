@@ -20,6 +20,7 @@ from apps.backend.utils.wmi import execute_cmd
 from apps.core.concurrent import controller
 from apps.core.gray.handlers import GrayHandler
 from apps.core.remote import conns
+from apps.exceptions import ApiError
 from apps.node_man import constants, models
 from apps.node_man.utils.endpoint import EndpointInfo
 from apps.utils import basic, concurrent, exc, sync
@@ -308,6 +309,24 @@ class ChooseAccessPointService(AgentBaseService, remote.RemoteServiceMixin):
         """
         获取指定管控区域所有的Proxy列表
         """
+        # 对管控区域内proxyr接入点为-1的情况进行对接入点进行复位，使用管控区域或者映射的接入点
+        clouds = models.Cloud.objects.filter(bk_cloud_id__in=bk_cloud_ids).only("bk_cloud_id", "ap_id")
+        try:
+            gray_ap_map: Dict[int, int] = GrayHandler.get_gray_ap_map()
+        except ApiError:
+            gray_ap_map: Dict[int, int] = {}
+        for cloud in clouds:
+            # 1.管控区域接入点版本为V2保留管控区域ap_id,其它更新为管控区域ap_id
+            # 2.管控区域接入点版本为V1保留管控区域ap_id及其映射V2管控区域ap_id,其它更新为管控区域ap_id
+            valid_ap_ids: List[int] = [cloud.ap_id]
+            if ap_id_obj_map[cloud.ap_id].gse_version == GseVersion.V1.value:
+                if gray_ap_map.get(cloud.ap_id) is not None:
+                    valid_ap_ids.append(gray_ap_map[cloud.ap_id])
+
+            models.Host.objects.filter(bk_cloud_id=cloud.bk_cloud_id, node_type=constants.NodeType.PROXY).exclude(
+                ap_id__in=valid_ap_ids
+            ).update(ap_id=cloud.ap_id)
+
         # 获取存活的Proxy ID 列表
         all_proxies = models.Host.objects.filter(
             bk_cloud_id__in=bk_cloud_ids, node_type=constants.NodeType.PROXY
