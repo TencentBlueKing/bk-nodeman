@@ -8,15 +8,22 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from typing import List
+
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
 from apps.exceptions import ValidationError
-from apps.node_man.constants import GSE_PORT_DEFAULT_VALUE, IamActionType
+from apps.node_man.constants import (
+    GSE_PORT_DEFAULT_VALUE,
+    GSE_V2_PORT_DEFAULT_VALUE,
+    IamActionType,
+)
 from apps.node_man.handlers.iam import IamHandler
 from apps.node_man.models import AccessPoint
 from apps.utils import basic
 from apps.utils.local import get_request_username
+from env.constants import GseVersion
 
 
 class ListSerializer(serializers.ModelSerializer):
@@ -100,6 +107,14 @@ class UpdateOrCreateSerializer(serializers.ModelSerializer):
     bscp_config = serializers.DictField(_("BSCP配置"), required=False)
     outer_callback_url = serializers.CharField(label=_("节点管理外网回调地址"), required=False, allow_blank=True)
     callback_url = serializers.CharField(label=_("节点管理内网回调地址"), required=False, allow_blank=True)
+
+    def validate(self, data):
+        gse_version_list: List[str] = list(set(AccessPoint.objects.values_list("gse_version", flat=True)))
+        # 存量接入点版本全部为V2新建/更新版本也为V2版本
+        if GseVersion.V1.value not in gse_version_list:
+            data["gse_version"] = GseVersion.V2.value
+            data["port_config"] = GSE_V2_PORT_DEFAULT_VALUE
+        return data
 
     class Meta:
         fields = "__all__"
