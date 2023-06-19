@@ -175,7 +175,7 @@ class AdminFileSystemStorage(BaseStorage, FileSystemStorage):
         """
 
         account = {
-            "alias": extra_transfer_file_params.get("account_alias"),
+            "alias": settings.BACKEND_UNIX_ACCOUNT,
             "id": extra_transfer_file_params.get("account_id"),
         }
 
