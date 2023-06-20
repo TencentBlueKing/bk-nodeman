@@ -15,6 +15,7 @@ GSE_AGENT_CONFIG_TMPL: str = """
     "cloud_id": __BK_GSE_CLOUD_ID__,
     "zone_id": "__BK_GSE_ZONE_ID__",
     "city_id": "__BK_GSE_CITY_ID__",
+    "enable_static_access": __BK_GSE_ENABLE_STATIC_ACCESS__,
     "access": {
         "cluster_endpoints": "__BK_GSE_ACCESS_CLUSTER_ENDPOINTS__",
         "data_endpoints": "__BK_GSE_ACCESS_DATA_ENDPOINTS__",
