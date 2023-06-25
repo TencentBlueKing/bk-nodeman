@@ -102,6 +102,17 @@ class ConfigContextHelper:
                 cloud_id=self.host.bk_cloud_id,
                 zone_id=self.ap.region_id,
                 city_id=self.ap.city_id,
+                # 管控区域为0, 且使用到Proxy场景的Agent需要设置为true
+                # 暂时不考虑当直连区域的安装通道机器并不是 Proxy 的场景
+                enable_static_access=["false", "true"][
+                    all(
+                        [
+                            self.host.bk_cloud_id == constants.DEFAULT_CLOUD,
+                            self.host.install_channel_id is not None,
+                            self.host.node_type == constants.NodeType.AGENT,
+                        ]
+                    )
+                ],
             ),
             context_dataclass.AccessConfigContext(
                 cluster_endpoints=",".join(
