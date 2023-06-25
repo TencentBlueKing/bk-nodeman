@@ -75,6 +75,7 @@ class AgentConfigContext(GseConfigContext):
     cloud_id: int
     zone_id: str
     city_id: str
+    enable_static_access: str
     extra_config_directory: str = ""
 
     def __post_init__(self):
