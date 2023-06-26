@@ -241,6 +241,7 @@ def batch_gen_commands(
     id__sub_inst_obj_map: Dict[int, models.SubscriptionInstanceRecord],
     host_id__install_channel_map: Dict[int, Tuple[Optional[models.Host], Dict[str, List]]],
     script_hooks: Optional[List[Dict[str, Any]]] = None,
+    injected_ap_id: int = None,
 ) -> Dict[int, InstallationTools]:
     """批量生成安装命令"""
     # 批量查出主机的属性并设置为property，避免在循环中进行ORM查询，提高效率
@@ -252,7 +253,9 @@ def batch_gen_commands(
     }
 
     for host in hosts:
-        host_ap = ap_id_obj_map[host.ap_id]
+        # 优先使用注入的AP_ID
+        ap_id: int = injected_ap_id or host.ap_id
+        host_ap: models.AccessPoint = ap_id_obj_map[ap_id]
         sub_inst_id = host_id__sub_inst_id[host.bk_host_id]
         instance_info = id__sub_inst_obj_map[sub_inst_id].instance_info
         # 避免部分主机认证信息丢失的情况下，通过host.identity重新创建来兜底保证不会异常

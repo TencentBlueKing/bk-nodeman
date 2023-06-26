@@ -16,6 +16,7 @@ from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
 from apps.backend.subscription.steps.agent_adapter.adapter import LEGACY
+from apps.core.gray.constants import INSTALL_OTHER_AGENT_AP_ID_OFFSET
 from apps.core.gray.handlers import GrayHandler
 from apps.core.gray.tools import GrayTools
 from apps.core.ipchooser.tools.base import HostQuerySqlHelper
@@ -111,6 +112,7 @@ class HostSerializer(serializers.Serializer):
     peer_exchange_switch_for_agent = serializers.IntegerField(label=_("加速设置"), required=False, default=1)
     bt_speed_limit = serializers.IntegerField(label=_("传输限速"), required=False)
     data_path = serializers.CharField(label=_("数据文件路径"), required=False, allow_blank=True)
+    is_need_inject_ap_id = serializers.IntegerField(label=_("是否需要注入ap_id到meta"), required=False, default=False)
 
     def validate(self, attrs):
         # 获取任务类型，如果是除安装以外的操作，则密码和秘钥可以为空
@@ -152,7 +154,8 @@ class HostSerializer(serializers.Serializer):
                 raise ValidationError(_("必须上传账号和端口"))
 
         # 直连区域必须填写Ap_id
-        if attrs["bk_cloud_id"] == int(constants.DEFAULT_CLOUD) and attrs.get("ap_id") is None:
+        ap_id = attrs.get("ap_id")
+        if attrs["bk_cloud_id"] == int(constants.DEFAULT_CLOUD) and ap_id is None:
             raise ValidationError(_("直连区域必须填写Ap_id"))
 
         # 去除空值
@@ -180,6 +183,7 @@ class InstallSerializer(serializers.Serializer):
     hosts = HostSerializer(label=_("主机信息"), many=True)
     replace_host_id = serializers.IntegerField(label=_("被替换的Proxy主机ID"), required=False)
     is_install_latest_plugins = serializers.BooleanField(label=_("是否安装最新版本插件"), required=False, default=True)
+    is_install_other_agent = serializers.BooleanField(label=_("是否为安装额外Agent"), required=False, default=False)
     script_hooks = serializers.ListField(label=_("脚本钩子列表"), required=False, child=ScriptHook(), default=[])
 
     # 以下非参数传值
@@ -249,9 +253,19 @@ class InstallSerializer(serializers.Serializer):
             if not host.get("ap_id"):
                 continue
 
+            # 适配标准运维仅安装Agent流程
+            # AP_ID 偏移规则 ap_id * 100000 + install_channel_id
+            if host["ap_id"] >= INSTALL_OTHER_AGENT_AP_ID_OFFSET:
+                offset_ap_id: int = host["ap_id"]
+                host["is_need_inject_ap_id"] = True
+                host["ap_id"] = int(offset_ap_id / INSTALL_OTHER_AGENT_AP_ID_OFFSET)
+                install_channel_id = int(offset_ap_id % INSTALL_OTHER_AGENT_AP_ID_OFFSET)
+                if install_channel_id != 0:
+                    host["install_channel_id"] = install_channel_id
+
             # 1. 进入灰度的管控区域，所属管控区域主机需要重定向接入点到 V2
             # 2. 业务已进入灰度，主机接入点重定向到 V2
-            if host["bk_cloud_id"] in gse_v2_cloud_ids or host["bk_biz_id"] in gray_scope_set:
+            elif host["bk_cloud_id"] in gse_v2_cloud_ids or host["bk_biz_id"] in gray_scope_set:
                 host["ap_id"] = gray_ap_map.get(host["ap_id"], host["ap_id"])
 
         return attrs
@@ -266,6 +280,7 @@ class OperateSerializer(serializers.Serializer):
     bk_host_id = serializers.ListField(label=_("主机ID"), required=False, child=serializers.IntegerField())
     exclude_hosts = serializers.ListField(label=_("跨页全选排除主机"), required=False, child=serializers.IntegerField())
     is_install_latest_plugins = serializers.BooleanField(label=_("是否安装最新版本插件"), required=False, default=True)
+    is_install_other_agent = serializers.BooleanField(label=_("是否为安装额外Agent"), required=False, default=False)
 
     # 以下非参数传值，通过validate方法计算转化得到
     op_type = serializers.CharField(label=_("操作类型,"), required=False)

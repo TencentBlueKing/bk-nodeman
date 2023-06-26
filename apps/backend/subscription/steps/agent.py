@@ -130,6 +130,9 @@ class AgentAction(Action, abc.ABC):
     step: AgentStep = None
     is_install_latest_plugins: bool = None
     enable_push_host_identifier: bool = None
+    is_install_other_agent: bool = None
+    is_install_other_agent_v1: bool = None
+    is_install_other_agent_v2: bool = None
 
     def __init__(self, action_name, step: AgentStep, instance_record_ids: List[int]):
         """
@@ -140,6 +143,15 @@ class AgentAction(Action, abc.ABC):
         self.is_install_latest_plugins = self.step.subscription_step.params.get("is_install_latest_plugins", True)
         self.enable_push_host_identifier = models.GlobalSettings.get_config(
             models.GlobalSettings.KeyEnum.ENABLE_PUSH_HOST_IDENTIFIER.value, False
+        )
+
+        self.is_install_other_agent = self.step.subscription_step.params.get("is_install_other_agent", False)
+
+        self.is_install_other_agent_v1 = models.GlobalSettings.get_config(
+            models.GlobalSettings.KeyEnum.IS_INSTALL_OTHER_AGENT_V1.value, False
+        )
+        self.is_install_other_agent_v2 = models.GlobalSettings.get_config(
+            models.GlobalSettings.KeyEnum.IS_INSTALL_OTHER_AGENT_V2.value, False
         )
         super().__init__(action_name, step, instance_record_ids)
 
@@ -154,6 +166,19 @@ class AgentAction(Action, abc.ABC):
     def _generate_activities(self, agent_manager):
         pass
 
+    @property
+    def install_other_agent_codes(self):
+
+        return [
+            "query_password",
+            "bind_host_agent",
+            "upgrade_to_agent_id",
+            "install",
+            "get_agent_status",
+            "check_policy_gse_to_proxy",
+            "configure_policy",
+        ]
+
     def generate_activities(
         self,
         subscription_instances: List[models.SubscriptionInstanceRecord],
@@ -167,6 +192,8 @@ class AgentAction(Action, abc.ABC):
             act.component.inputs.subscription_step_id = Var(type=Var.PLAIN, value=self.step.subscription_step.id)
             act.component.inputs.meta = Var(type=Var.PLAIN, value=meta)
         self.inject_vars_to_global_data(global_pipeline_data, meta)
+        if self.is_install_other_agent:
+            activities = list(filter(lambda x: x.component["code"] in self.install_other_agent_codes, activities))
         return activities, pipeline_data
 
     def append_delegate_activities(self, agent_manager, activities):
@@ -199,6 +226,12 @@ class AgentAction(Action, abc.ABC):
         return activities
 
 
+class InstallOtherAgentMixin(AgentAction):
+    def _generate_activities(self, agent_manager: AgentManager):
+        print(111)
+        return super(InstallOtherAgentMixin, self).generate_activities(agent_manager)
+
+
 class InstallAgent(AgentAction):
     """
     安装Agent
@@ -215,6 +248,15 @@ class InstallAgent(AgentAction):
             agent_manager.push_agent_pkg_to_proxy() if self.has_non_lan_host() else None,
             agent_manager.install(),
             agent_manager.get_agent_status(expect_status=constants.ProcStateType.RUNNING),
+            # 安装1.0完成后，安装2.0
+            agent_manager.install_other_agent(extra_agent_version=GseVersion.V2.value)
+            if all(
+                [
+                    not self.is_install_other_agent,
+                    self.is_install_other_agent_v2,
+                ]
+            )
+            else None,
             agent_manager.push_host_identifier() if self.enable_push_host_identifier else None,
             agent_manager.push_environ_files() if settings.GSE_ENABLE_PUSH_ENVIRON_FILE else None,
             agent_manager.install_plugins() if self.is_install_latest_plugins else None,
@@ -240,6 +282,15 @@ class ReinstallAgent(AgentAction):
             agent_manager.push_agent_pkg_to_proxy() if self.has_non_lan_host() else None,
             agent_manager.install(),
             agent_manager.get_agent_status(expect_status=constants.ProcStateType.RUNNING),
+            # 安装1.0完成后，安装2.0
+            agent_manager.install_other_agent(extra_agent_version=GseVersion.V2.value)
+            if all(
+                [
+                    not self.is_install_other_agent,
+                    self.is_install_other_agent_v2,
+                ]
+            )
+            else None,
             agent_manager.push_host_identifier() if self.enable_push_host_identifier else None,
             agent_manager.push_environ_files() if settings.GSE_ENABLE_PUSH_ENVIRON_FILE else None,
             agent_manager.install_plugins() if self.is_install_latest_plugins else None,
@@ -324,6 +375,17 @@ class InstallProxy(AgentAction):
             agent_manager.choose_ap(),
             agent_manager.install(),
             agent_manager.get_agent_status(expect_status=constants.ProcStateType.RUNNING, name=_("查询Proxy状态")),
+            agent_manager.install_other_agent(
+                extra_agent_version=GseVersion.V2.value,
+                node_type=constants.NodeType.PROXY,
+            )
+            if all(
+                [
+                    not self.is_install_other_agent,
+                    self.is_install_other_agent_v2,
+                ]
+            )
+            else None,
             agent_manager.check_policy_gse_to_proxy(),
             agent_manager.push_host_identifier() if self.enable_push_host_identifier else None,
             agent_manager.push_environ_files() if settings.GSE_ENABLE_PUSH_ENVIRON_FILE else None,
@@ -355,6 +417,17 @@ class ReinstallProxy(AgentAction):
             # 重装时由于初始 Proxy 的状态仍是RUNNING，这里等待30秒再重新查询
             agent_manager.wait(30),
             agent_manager.get_agent_status(expect_status=constants.ProcStateType.RUNNING, name=_("查询Proxy状态")),
+            agent_manager.install_other_agent(
+                extra_agent_version=GseVersion.V2.value,
+                node_type=constants.NodeType.PROXY,
+            )
+            if all(
+                [
+                    not self.is_install_other_agent,
+                    self.is_install_other_agent_v2,
+                ]
+            )
+            else None,
             agent_manager.check_policy_gse_to_proxy(),
             agent_manager.push_host_identifier() if self.enable_push_host_identifier else None,
             agent_manager.push_environ_files() if settings.GSE_ENABLE_PUSH_ENVIRON_FILE else None,
@@ -476,7 +549,7 @@ class ReloadProxy(ReloadAgent):
     pass
 
 
-class InstallAgent2(AgentAction):
+class InstallAgent2(InstallOtherAgentMixin, AgentAction):
     """安装新版本 Agent"""
 
     ACTION_NAME = backend_const.ActionNameType.INSTALL_AGENT_2
@@ -492,6 +565,15 @@ class InstallAgent2(AgentAction):
             agent_manager.bind_host_agent(),
             agent_manager.upgrade_to_agent_id(),
             agent_manager.get_agent_status(expect_status=constants.ProcStateType.RUNNING),
+            # 全业务文件分发依赖GSE 1.0 安装2.0时需要先安装1.0
+            agent_manager.install_other_agent(extra_agent_version=GseVersion.V1.value)
+            if all(
+                [
+                    not self.is_install_other_agent,
+                    self.is_install_other_agent_v1,
+                ]
+            )
+            else None,
             agent_manager.push_host_identifier() if self.enable_push_host_identifier else None,
             agent_manager.push_environ_files() if settings.GSE_ENABLE_PUSH_ENVIRON_FILE else None,
             agent_manager.install_plugins() if self.is_install_latest_plugins else None,
@@ -527,6 +609,12 @@ class InstallProxy2(AgentAction):
             agent_manager.bind_host_agent(),
             agent_manager.upgrade_to_agent_id(),
             agent_manager.get_agent_status(expect_status=constants.ProcStateType.RUNNING, name=_("查询Proxy状态")),
+            # 全业务文件分发依赖GSE 1.0 安装2.0时需要先安装1.0
+            agent_manager.install_other_agent(
+                extra_agent_version=GseVersion.V1.value, node_type=constants.NodeType.PROXY
+            )
+            if all([not self.is_install_other_agent, self.is_install_other_agent_v1])
+            else None,
             agent_manager.check_policy_gse_to_proxy(),
         ]
 

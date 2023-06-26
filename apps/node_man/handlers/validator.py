@@ -155,6 +155,9 @@ def bulk_update_validate(
     for host in accept_list:
         # 系统变更/接入点变更/DHT变更需要更新主机
         host_extra_data = host_info[host["bk_host_id"]]["extra_data"] or {}
+        if host.get("is_need_inject_ap_id"):
+            host["ap_id"] = host_info[host["bk_host_id"]]["ap_id"]
+
         if (
             host.get("os_type") != host_info[host["bk_host_id"]]["os_type"]
             or host.get("ap_id") != host_info[host["bk_host_id"]]["ap_id"]
@@ -180,6 +183,7 @@ def bulk_update_validate(
                 "bk_host_id": host["bk_host_id"],
                 "bk_cloud_id": host["bk_cloud_id"],
                 "install_channel_id": host.get("install_channel_id"),
+                "is_need_inject_ap_id": host.get("is_need_inject_ap_id"),
             }
         )
 

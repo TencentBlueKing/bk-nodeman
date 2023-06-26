@@ -137,7 +137,7 @@ class BaseExecutionSolutionMaker(metaclass=abc.ABCMeta):
         else:
             self.token: str = models.aes_cipher.encrypt(
                 f"{self.host.bk_host_id}|{self.host.inner_ip or self.host.inner_ipv6}|{self.host.bk_cloud_id}|"
-                f"{self.pipeline_id}|{time.time()}|{self.sub_inst_id}"
+                f"{self.pipeline_id}|{time.time()}|{self.sub_inst_id}|{self.host_ap.id}"
             )
 
     def get_http_proxy_url(self) -> str:

@@ -30,7 +30,7 @@ class CheckPolicyGseToProxyService(AgentExecuteScriptService):
         self, data, common_data: CommonData, host: models.Host
     ) -> Dict[str, Union[List[Dict[str, Any]], List[int]]]:
         # 取接入点
-        ap = common_data.ap_id_obj_map[host.ap_id]
+        ap: models.AccessPoint = common_data.ap_id_obj_map[common_data.injected_ap_id or host.ap_id]
         file_endpoint_host_ids = models.Host.objects.filter(
             Q(bk_cloud_id=constants.DEFAULT_CLOUD, bk_addressing=constants.CmdbAddressingType.STATIC.value)
             & (Q(inner_ip__in=ap.file_endpoint_info.inner_hosts) | Q(inner_ipv6=ap.file_endpoint_info.inner_hosts))
@@ -67,11 +67,15 @@ class CheckPolicyGseToProxyService(AgentExecuteScriptService):
     def _execute(self, data, parent_data, common_data: AgentCommonData):
 
         for sub_inst_id in common_data.subscription_instance_ids:
+            gse_version = data.get_one_of_inputs("meta", {}).get("GSE_VERSION")
             bk_host_id = common_data.sub_inst_id__host_id_map[sub_inst_id]
             host = common_data.host_id_obj_map[bk_host_id]
-            ap = common_data.host_id__ap_map[bk_host_id]
+            if common_data.injected_ap_id:
+                ap: models.AccessPoint = common_data.ap_id_obj_map[common_data.injected_ap_id]
+            else:
+                ap: models.AccessPoint = common_data.host_id__ap_map[bk_host_id]
+
             port_config = ap.port_config
-            gse_version = data.get_one_of_inputs("meta", {}).get("GSE_VERSION")
 
             if gse_version == GseVersion.V2.value:
                 port_polices: List[str] = [f"{port_config.get('btsvr_thrift_port')}(tcp)"]
