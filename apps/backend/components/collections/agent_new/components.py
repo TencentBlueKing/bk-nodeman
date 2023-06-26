@@ -23,6 +23,7 @@ from .choose_access_point import ChooseAccessPointService
 from .configure_policy import ConfigurePolicyService
 from .get_agent_status import GetAgentStatusService
 from .install import InstallService
+from .install_other_agent import InstallOtherAgentService
 from .install_plugins import InstallPluginsService
 from .push_agent_pkg_to_proxy import PushAgentPkgToProxyService
 from .push_environ_files import PushEnvironFilesService
@@ -214,3 +215,9 @@ class PushEnvironFilesComponent(Component):
     name = _("推送环境变量文件")
     code = "push_environ_files"
     bound_service = PushEnvironFilesService
+
+
+class InstallOtherAgentComponent(Component):
+    name = _("安装额外Agent")
+    code = "install_other_agent"
+    bound_service = InstallOtherAgentService

@@ -124,6 +124,13 @@ class GlobalSettings(models.Model):
         SYNC_CMDB_HOST_APPLY_CPU_ARCH = "SYNC_CMDB_HOST_APPLY_CPU_ARCH"
         # 同步 cc 主机操作系统时，是否 bk_os_type 匹配优先与 bk_os_name
         SYNC_CMDB_HOST_OS_TYPE_PRIORITY = "SYNC_CMDB_HOST_OS_TYPE_PRIORITY"
+        # 是否安装额外AGENT
+        IS_INSTALL_OTHER_AGENT_V1 = "IS_INSTALL_OTHER_AGENT_V1"
+        IS_INSTALL_OTHER_AGENT_V2 = "IS_INSTALL_OTHER_AGENT_V2"
+        FILE_DISTTIBUTION_DEPENDENCY_GSE_VERSION = "FILE_DISTTIBUTION_DEPENDENCY_GSE_VERSION"
+        INSTALL_OTHER_AGENT_V1_BIZ_BLACKLIST = "INSTALL_OTHER_AGENT_V1_BIZ_BLACKLIST"
+        INSTALL_OTHER_AGENT_V2_BIZ_BLACKLIST = "INSTALL_OTHER_AGENT_V2_BIZ_BLACKLIST"
+        NEED_TO_WAIT_EXTRA_INSTALL_COMPLTET = "NEED_TO_WAIT_EXTRA_INSTALL_COMPLTET"
 
     key = models.CharField(_("键"), max_length=255, db_index=True, primary_key=True)
     v_json = JSONField(_("值"))
@@ -329,6 +336,12 @@ class IdentityData(models.Model):
     class Meta:
         verbose_name = _("临时认证数据（IdentityData）")
         verbose_name_plural = _("临时认证数据（IdentityData）")
+
+    @classmethod
+    def host_id_identity_data_map(cls, **conditions):
+        if not conditions:
+            return {}
+        return {host.bk_host_id: host for host in cls.objects.filter(**conditions)}
 
 
 class Host(models.Model):

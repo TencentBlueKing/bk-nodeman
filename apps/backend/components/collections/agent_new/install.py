@@ -205,7 +205,7 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
         self.log_info(sub_inst_ids=manual_install_sub_inst_ids, log_content=_("等待手动执行安装命令"))
 
         host_id__installation_tool_map = self.get_host_id__installation_tool_map(
-            common_data, hosts_need_gen_commands, is_uninstall, gse_version
+            common_data, hosts_need_gen_commands, is_uninstall, gse_version, common_data.injected_ap_id
         )
 
         get_gse_config_tuple_params_list: List[Dict[str, Any]] = []
@@ -219,11 +219,16 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
             if not is_uninstall:
                 # 仅在安装时需要缓存配置文件
                 # 考虑手动安装也是小规模场景且依赖用户输入，暂不做缓存
+                # 优先使用注入的ap, 适配只安装Agent场景
+                ap_obj: models.AccessPoint = [
+                    common_data.host_id__ap_map[host.bk_host_id],
+                    common_data.ap_id_obj_map[common_data.injected_ap_id],
+                ][common_data.injected_ap_id is not None]
                 get_gse_config_tuple_params_list.append(
                     {
                         "sub_inst_id": sub_inst.id,
                         "host": host,
-                        "ap": common_data.host_id__ap_map[host.bk_host_id],
+                        "ap": ap_obj,
                         "agent_step_adapter": common_data.agent_step_adapter,
                         "file_name": common_data.agent_step_adapter.get_main_config_filename(),
                     }

@@ -18,3 +18,5 @@ specific language governing permissions and limitations under the License.
 
 # 全量进入灰度的标志
 ALL_IN_FLAG = -1
+
+INSTALL_OTHER_AGENT_AP_ID_OFFSET: int = 100000

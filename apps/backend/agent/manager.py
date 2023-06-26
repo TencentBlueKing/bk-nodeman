@@ -15,6 +15,7 @@ from django.conf import settings
 from django.utils.translation import ugettext as _
 
 from apps.backend.components.collections.agent_new import components
+from apps.node_man.constants import NodeType
 from pipeline.builder import ServiceActivity, Var
 
 
@@ -281,4 +282,15 @@ class AgentManager(object):
             component_code=components.PushEnvironFilesComponent.code,
             name=components.PushEnvironFilesComponent.name,
         )
+        return act
+
+    @classmethod
+    def install_other_agent(cls, extra_agent_version: str, node_type: str = NodeType.AGENT):
+        """安装额外Agent(1.0 or 2.0)"""
+        act = AgentServiceActivity(
+            component_code=components.InstallOtherAgentComponent.code,
+            name=components.InstallOtherAgentComponent.name,
+        )
+        act.component.inputs.extra_agent_version = Var(type=Var.PLAIN, value=extra_agent_version)
+        act.component.inputs.node_type = Var(type=Var.PLAIN, value=node_type)
         return act

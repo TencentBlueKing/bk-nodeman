@@ -45,11 +45,14 @@ class GrayTools:
         """
         return bk_biz_id in self.gse2_gray_scope_set
 
-    def get_host_ap_gse_version(self, bk_biz_id: typing.Any, ap_id: int) -> str:
+    def get_host_ap_gse_version(self, bk_biz_id: typing.Any, ap_id: int, is_install_other_agent: bool = False) -> str:
         """
         :return 返回当前主机应使用的 GSE VERSION
         """
-        if self.is_gse2_gray(bk_biz_id):
+        if is_install_other_agent:
+            # 注入AP ID 优先使用注入AP 的GSE 版本
+            gse_version: str = self.ap_id_obj_map[ap_id].gse_version
+        elif self.is_gse2_gray(bk_biz_id):
             # 业务整体处于 2.0 灰度
             gse_version: str = GseVersion.V2.value
         elif ap_id == node_man_constants.DEFAULT_AP_ID:
@@ -85,7 +88,15 @@ class GrayTools:
             host_info = instance_info["host"]
             # 优先取 host_info 中的 ap_id，用于 Agent 操作场景下确定 ap
             ap_id: typing.Optional[int] = host_info.get("ap_id") or host_id__ap_id_map.get(host_info.get("bk_host_id"))
+            meta: typing.Dict[str, typing.Any] = {}
+            if host_info.get("is_need_inject_ap_id"):
+                # 双如果为安装额外Agent 将ap_id 注入 meta
+                meta["AP_ID"] = ap_id
 
-            gse_version: str = self.get_host_ap_gse_version(bk_biz_id=host_info.get("bk_biz_id"), ap_id=ap_id)
-
-            instance_info["meta"] = {"GSE_VERSION": gse_version}
+            gse_version: str = self.get_host_ap_gse_version(
+                bk_biz_id=host_info.get("bk_biz_id"),
+                ap_id=ap_id,
+                is_install_other_agent=host_info.get("is_need_inject_ap_id"),
+            )
+            meta["GSE_VERSION"] = gse_version
+            instance_info["meta"] = meta
