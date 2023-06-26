@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 import logging
 import os
 import time
+from typing import Dict
 
 import ujson as json
 from blueapps.account.decorators import login_exempt
@@ -91,14 +92,17 @@ def get_gse_config(request):
 
     try:
         host = Host.objects.get(bk_host_id=decrypted_token["bk_host_id"])
+        ap_id_obj_map: Dict[int, models.AccessPoint] = models.AccessPoint.ap_id_obj_map()
+        host_ap: models.AccessPoint = ap_id_obj_map[int(decrypted_token["host_ap_id"])]
         agent_step_adapter: AgentStepAdapter = AgentStepAdapter(
-            subscription_step=sub_step_obj, gse_version=host.ap.gse_version
+            subscription_step=sub_step_obj, gse_version=host_ap.gse_version
         )
         if filename in ["bscp.yaml"]:
             config = legacy.generate_bscp_config(host=host)
         else:
-            config = agent_step_adapter.get_config(host=host, filename=filename, node_type=node_type)
-    except Exception:
+            config = agent_step_adapter.get_config(host=host, ap=host_ap, filename=filename, node_type=node_type)
+    except Exception as e:
+        logging.error(f"get_gse_config error: params:{data}, error: {e}")
         return HttpResponse(config, status=500)
 
     return HttpResponse(config)
@@ -181,8 +185,7 @@ def _decrypt_token(token: str) -> dict:
     except Exception as err:
         logger.error(f"{token} 解析失败")
         raise err
-
-    bk_host_id, inner_ip, bk_cloud_id, task_id, timestamp, inst_id = token_decrypt.split("|")
+    bk_host_id, inner_ip, bk_cloud_id, task_id, timestamp, inst_id, host_ap_id = token_decrypt.split("|")
     return_value = {
         "bk_host_id": bk_host_id,
         "inner_ip": inner_ip,
@@ -190,11 +193,11 @@ def _decrypt_token(token: str) -> dict:
         "task_id": task_id,
         "timestamp": timestamp,
         "inst_id": inst_id,
+        "host_ap_id": host_ap_id,
     }
     # timestamp 超过1小时，认为是非法请求
     if time.time() - float(timestamp) > 3600:
         raise PermissionError(f"token[{token}] 非法, timestamp超时不符合预期, {return_value}")
-
     return return_value
 
 

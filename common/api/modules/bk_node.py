@@ -246,3 +246,17 @@ class _BKNodeApi(object):
             description="查询同步任务状态",
             before_request=add_esb_info_before_request,
         )
+        self.install = DataAPI(
+            method="POST",
+            url=BK_NODE_APIGATEWAY_ROOT + "/api/job/install/",
+            module=self.MODULE,
+            description="安装类任务",
+            before_request=add_esb_info_before_request,
+        )
+        self.job_details = DataAPI(
+            method="POST",
+            url=BK_NODE_APIGATEWAY_ROOT + "/api/job/{pk}/details/",
+            module=self.MODULE,
+            description="查询任务详情",
+            before_request=add_esb_info_before_request,
+        )

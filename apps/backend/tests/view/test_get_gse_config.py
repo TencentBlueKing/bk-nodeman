@@ -75,7 +75,7 @@ class GetLegacyGseConfigTestCase(ViewBaseTestCase):
             "filename": self.agent_step_adapter.get_main_config_filename(),
             "node_type": self.host.node_type.lower(),
             "inner_ip": self.host.inner_ip,
-            "token": self.gen_token(sub_inst_id=self.sub_inst_record_obj.id),
+            "token": self.gen_token(sub_inst_id=self.sub_inst_record_obj.id, ap_id=self.host.ap_id),
         }
         config = self.client.post(
             path="/backend/get_gse_config/",

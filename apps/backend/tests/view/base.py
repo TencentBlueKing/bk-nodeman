@@ -31,9 +31,10 @@ class ViewBaseTestCase(CustomAPITestCase):
     def gen_token(
         self,
         sub_inst_id: typing.Optional[int] = None,
+        ap_id: int = None,
     ) -> str:
         return models.aes_cipher.encrypt(
             f"{common_unit.host.DEFAULT_HOST_ID}|{common_unit.host.DEFAULT_IP}|{constants.DEFAULT_CLOUD}|"
             f"{self.PIPELINE_ID}|"
-            f"{time.time()}|{sub_inst_id or self.SUB_INST_ID}"
+            f"{time.time()}|{sub_inst_id or self.SUB_INST_ID}|{ap_id}"
         )

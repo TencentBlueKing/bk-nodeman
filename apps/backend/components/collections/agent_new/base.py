@@ -84,6 +84,7 @@ class AgentBaseService(BaseService, metaclass=abc.ABCMeta):
             host_id_obj_map=common_data.host_id_obj_map,
             ap_id_obj_map=common_data.ap_id_obj_map,
             gse_api_helper=common_data.gse_api_helper,
+            injected_ap_id=data.get_one_of_inputs("meta", {}).get("AP_ID"),
             subscription=common_data.subscription,
             subscription_step=common_data.subscription_step,
             subscription_instances=common_data.subscription_instances,
@@ -263,6 +264,7 @@ class AgentBaseService(BaseService, metaclass=abc.ABCMeta):
         hosts_need_gen_commands: List[models.Host],
         is_uninstall: bool,
         gse_version: str,
+        injected_ap_id: int = None,
     ) -> Dict[int, InstallationTools]:
 
         cloud_id__proxies_map = self.get_cloud_id__proxies_map(
@@ -297,6 +299,7 @@ class AgentBaseService(BaseService, metaclass=abc.ABCMeta):
             id__sub_inst_obj_map=id__sub_inst_obj_map,
             host_id__install_channel_map=host_id__install_channel_map,
             script_hooks=common_data.subscription_step.params.get("script_hooks"),
+            injected_ap_id=injected_ap_id,
         )
         return host_id__installation_tool_map
 
@@ -356,6 +359,8 @@ class AgentCommonData(CommonData):
     host_id__ap_map: Dict[int, models.AccessPoint]
     # AgentStep 适配器
     agent_step_adapter: AgentStepAdapter
+    # 注入AP_ID
+    injected_ap_id: int
 
 
 class RetryHandler:
