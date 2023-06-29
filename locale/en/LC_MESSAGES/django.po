@@ -2219,7 +2219,7 @@ msgstr "Operating system type"
 #: apps/node_man/handlers/meta.py:178 apps/node_man/handlers/meta.py:351
 #: apps/node_man/models.py:335
 msgid "主机名称"
-msgstr "Host name"
+msgstr "Hostname"
 
 #: apps/core/ipchooser/serializers/base.py:79
 #: apps/node_man/serializers/cloud.py:28
