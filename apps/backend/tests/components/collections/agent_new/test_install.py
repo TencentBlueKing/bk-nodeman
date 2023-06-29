@@ -648,18 +648,18 @@ class UninstallSuccessTest(InstallBaseTestCase):
         self.assertEqual(
             solution_parse_result["cmds"],
             [
-                f"sudo mkdir -p {installation_tool.dest_dir}",
-                f"sudo mkdir -p {self.CUSTOM_DATAIPC_DIR}",
-                f"sudo curl http://127.0.0.1/download/setup_agent.sh "
-                f"-o {installation_tool.dest_dir}setup_agent.sh --connect-timeout 5 -sSfg",
-                f"sudo chmod +x {installation_tool.dest_dir}setup_agent.sh",
-                f"sudo nohup bash {installation_tool.dest_dir}setup_agent.sh"
+                f"sudo sh -c 'mkdir -p {installation_tool.dest_dir}'",
+                f"sudo sh -c 'mkdir -p {self.CUSTOM_DATAIPC_DIR}'",
+                f"sudo sh -c 'curl http://127.0.0.1/download/setup_agent.sh "
+                f"-o {installation_tool.dest_dir}setup_agent.sh --connect-timeout 5 -sSfg'",
+                f"sudo sh -c 'chmod +x {installation_tool.dest_dir}setup_agent.sh'",
+                f"sudo sh -c 'nohup bash {installation_tool.dest_dir}setup_agent.sh"
                 f" -O 48668 -E 58925 -A 58625 -V 58930 -B 10020 -S 60020 -Z 60030 -K 10030"
                 f' -e "127.0.0.1" -a "127.0.0.1" -k "127.0.0.1"'
                 f" -l http://127.0.0.1/download -r http://127.0.0.1/backend"
                 f" -i 0 -I {host.inner_ip} -T {installation_tool.dest_dir} -p /usr/local/gse"
                 f" -c {solution_parse_result['params']['token']} -s {mock_data_utils.JOB_TASK_PIPELINE_ID}"
-                f" -N SERVER -R &> /tmp/nm.nohup.out &",
+                f" -N SERVER -R &> /tmp/nm.nohup.out &'",
             ],
         )
 

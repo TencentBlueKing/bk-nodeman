@@ -302,7 +302,7 @@ class BaseExecutionSolutionMaker(metaclass=abc.ABCMeta):
             if execution_solution_step.type != constants.CommonExecutionSolutionStepType.COMMANDS.value:
                 continue
             for execution_solution_content in execution_solution_step.contents:
-                execution_solution_content.text = f"sudo {execution_solution_content.text}"
+                execution_solution_content.text = f"sudo sh -c '{execution_solution_content.text}'"
 
     def combine_cmd_step(self, execution_solution: ExecutionSolution):
         for execution_solution_step in execution_solution.steps:
