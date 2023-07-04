@@ -20,7 +20,10 @@ import mock
 
 from apps.mock_data.common_unit.host import AP_MODEL_DATA, CLOUD_MODEL_DATA
 from apps.node_man import constants, models
-from apps.node_man.management.commands.load_env_info import LoadEnvHandler
+from apps.node_man.management.commands.load_env_info import (
+    PROXY_EXTRA_DATA,
+    LoadEnvHandler,
+)
 from apps.node_man.tests.test_pericdic_tasks.mock_data import (
     MOCK_BK_BIZ_ID,
     MOCK_BK_CLOUD_ID,
@@ -264,6 +267,7 @@ class TestLoadEnvInfo(CustomBaseTestCase):
             proxy_info_file_path=proxy_host_info_csv_file,
             offset=CMDB_OFFSET,
             bk_biz_map=env_info_map["bk_biz_map"],
+            position_proxy_extra_data=PROXY_EXTRA_DATA,
         )
         proxy_host_id = models.Host.objects.get(inner_ip=MOCK_IP, bk_cloud_id=MOCK_NEW_CLOUD_IDS[0]).bk_host_id
 
@@ -277,3 +281,8 @@ class TestLoadEnvInfo(CustomBaseTestCase):
         ).values_list("node_type", flat=True)
         for node_type in other_host_node_type:
             self.assertEqual(node_type, constants.NodeType.PAGENT)
+
+        # 校验 Proxy 主机更新的信息
+        proxy_host_node_host = models.Host.objects.get(bk_host_id=proxy_host_id)
+        self.assertEqual(proxy_host_node_host.extra_data, PROXY_EXTRA_DATA)
+        self.assertEqual(proxy_host_node_host.login_ip, MOCK_IP)

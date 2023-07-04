@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 
 import csv
+import json
 import os
 import typing
 from collections import defaultdict
@@ -23,6 +24,7 @@ from common.log import logger
 
 ENV_OFFSET_TABLE = "cc_EnvIDOffset"
 ENV_BIZ_MAP_TABLE = "cc_EnvBizMap"
+PROXY_EXTRA_DATA = '{"data_path": "/var/lib/gse_sg", "bt_speed_limit": "", "peer_exchange_switch_for_agent": 0}'
 
 
 class Command(BaseCommand):
@@ -54,6 +56,7 @@ class Command(BaseCommand):
         parser.add_argument(
             "--proxy_file_path", help="导出环境 Proxy 主机信息文件路径", default="node_man_export/proxy_host_info.csv"
         )
+        parser.add_argument("--proxy_extra_data", help="指定导入环境 Proxy 主机 extra 矫正信息", default=PROXY_EXTRA_DATA)
 
     def handle(self, *args, **options):
         env_name: str = options["env_name"]
@@ -70,6 +73,12 @@ class Command(BaseCommand):
         bk_biz_id_string: str = options["bk_biz_ids"]
         is_migration_proxy_info: bool = options["is_migrate_proxy_info"]
         is_switch_env_ap: bool = options["is_switch_env_ap"]
+        position_proxy_extra_data: typing.Dict[str, typing.Any] = options["proxy_extra_data"]
+
+        try:
+            position_proxy_extra_data = json.loads(position_proxy_extra_data)
+        except Exception as e:
+            raise Exception(f"proxy_extra_data 格式错误: {e}")
 
         mysql_config: typing.Dict[str, typing.Union[int, str]] = {
             "host": host,
@@ -89,6 +98,7 @@ class Command(BaseCommand):
             is_switch_env_ap=is_switch_env_ap,
             proxy_info_file_path=proxy_info_file_path,
             cloud_info_file_path=cloud_file_path,
+            position_proxy_extra_data=position_proxy_extra_data,
         )
 
 
@@ -100,6 +110,7 @@ class LoadEnvHandler(object):
     def load_env_info(
         self,
         mysql_config: typing.Dict[str, str],
+        position_proxy_extra_data: typing.Dict[str, typing.Any],
         env_offset_table: str,
         env_biz_map_table: str,
         is_migrate_proxy_info: bool,
@@ -122,6 +133,7 @@ class LoadEnvHandler(object):
                     proxy_info_file_path=proxy_info_file_path,
                     offset=offset,
                     bk_biz_map=env_map["bk_biz_map"],
+                    position_proxy_extra_data=position_proxy_extra_data,
                 )
             if is_switch_env_ap:
                 self.switch_cloud_ap_id(ap_map=self.ap_map, cloud_info_file_path=cloud_info_file_path, offset=offset)
@@ -145,13 +157,15 @@ class LoadEnvHandler(object):
         """
         获取导出环境内的 Proxy 主机信息
         """
-        proxy_csv_reader = cls.check_and_read_csv_file(proxy_info_file_path)
-
+        host_id__proxy_info_map: typing.Dict[int, typing.Dict[str, str]] = defaultdict(int)
         old_biz_id__host_ids: typing.Dict[int, typing.List[int]] = defaultdict(list)
+
+        proxy_csv_reader = cls.check_and_read_csv_file(proxy_info_file_path)
         for proxy_host_info in proxy_csv_reader:
             old_biz_id__host_ids[proxy_host_info["bk_biz_id"]].append(proxy_host_info["bk_host_id"])
+            host_id__proxy_info_map[proxy_host_info["bk_host_id"]] = proxy_host_info
 
-        return old_biz_id__host_ids
+        return old_biz_id__host_ids, host_id__proxy_info_map
 
     @classmethod
     def switch_cloud_ap_id(cls, ap_map: typing.Dict[int, int], cloud_info_file_path: str, offset: int):
@@ -196,12 +210,17 @@ class LoadEnvHandler(object):
         )
 
     def position_proxy_host(
-        self, bk_biz_ids: typing.List[int], proxy_info_file_path: str, offset: int, bk_biz_map: typing.Dict[int, int]
+        self,
+        bk_biz_ids: typing.List[int],
+        proxy_info_file_path: str,
+        offset: int,
+        bk_biz_map: typing.Dict[int, int],
+        position_proxy_extra_data: typing.Dict[str, typing.Any],
     ):
         """
         通过主机 ID 偏移量，定位当前环境内的 Proxy 主机
         """
-        old_biz_id__host_ids: typing.Dict[int, typing.List[int]] = self.get_proxy_host_info(proxy_info_file_path)
+        old_biz_id__host_ids, host_id__proxy_info_map = self.get_proxy_host_info(proxy_info_file_path)
 
         without_proxy_biz_ids: typing.List[int] = [
             biz_id for biz_id in bk_biz_ids if bk_biz_map[biz_id] not in old_biz_id__host_ids.keys()
@@ -234,6 +253,21 @@ class LoadEnvHandler(object):
             node_type=constants.NodeType.PROXY
         )
         logger.info(f"业务 -> [{bk_biz_ids}] 下主机 ID 为 -> [{total_position_host_ids}] 的主机转换类型为 Proxy 完成")
+
+        logger.info(f"开始将主机 -> [{total_position_host_ids}] 数据矫正，包括 login_ip 和 extra_data")
+        for new_host_id in total_position_host_ids:
+            old_host_id: int = new_host_id - offset
+            host_info: typing.Dict[int, typing.Any] = host_id__proxy_info_map[old_host_id]
+            login_ip: typing.Optional[str] = host_info.get("login_ip") or host_info.get("outer_ip")
+            if not login_ip:
+                logger.info(f"主机 ID -> [{new_host_id}] 不存在对应的 login_ip or outer_ip, 放弃矫正 IP 数据")
+                continue
+            else:
+                models.Host.objects.filter(bk_host_id=new_host_id, bk_biz_id__in=bk_biz_ids).update(login_ip=login_ip)
+
+        models.Host.objects.filter(bk_host_id__in=total_position_host_ids, bk_biz_id__in=bk_biz_ids).update(
+            extra_data=position_proxy_extra_data
+        )
 
     def switch_host_ap(
         self,
