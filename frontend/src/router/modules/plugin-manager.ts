@@ -45,7 +45,7 @@ export default [
     }),
     meta: {
       navId: 'nodeManage',
-      title: '插件状态',
+      title: 'nav_插件状态',
       authority: {
         page: PLUGIN_VIEW,
         pk: 'plugin',
@@ -61,7 +61,7 @@ export default [
     meta: {
       parentName: 'pluginManager',
       navId: 'nodeManage',
-      title: '手动操作插件',
+      title: 'nav_手动操作插件',
       customContent: true,
       parentName: 'plugin',
       needBack: true,
@@ -81,7 +81,7 @@ export default [
     component: pluginRule,
     meta: {
       navId: 'nodeManage',
-      title: '插件部署',
+      title: 'nav_插件部署',
       authority: {
         page: STRATEGY_VIEW,
         operate: STRATEGY_CREATE,
@@ -97,7 +97,7 @@ export default [
       parentName: 'pluginManager',
       navId: 'nodeManage',
       parentName: 'pluginRule',
-      title: '新建部署策略',
+      title: 'nav_新建部署策略',
       needBack: true,
       authority: {
         page: STRATEGY_CREATE,
@@ -117,7 +117,7 @@ export default [
       parentName: 'pluginManager',
       navId: 'nodeManage',
       customContent: true,
-      title: '新建部署策略',
+      title: 'nav_新建部署策略',
       parentName: 'pluginRule',
       needBack: true,
     },
@@ -160,7 +160,7 @@ export default [
     component: PluginPackage,
     meta: {
       navId: 'nodeManage',
-      title: '插件包',
+      title: 'nav_插件包',
       authority: {
         pk: 'package',
         module: 'plugin',
@@ -177,7 +177,7 @@ export default [
       navId: 'nodeManage',
       parentId: 'pluginPackage',
       parentName: 'pluginPackage',
-      title: '插件包解析',
+      title: 'nav_插件包解析',
       needBack: true,
       authority: {
         pk: 'package',
@@ -195,7 +195,7 @@ export default [
       navId: 'nodeManage',
       parentId: 'pluginPackage',
       parentName: 'pluginPackage',
-      title: '插件详情',
+      title: 'nav_插件详情',
       customContent: true,
       needBack: true,
     },
@@ -210,7 +210,7 @@ export default [
     component: ResourceQuota,
     meta: {
       navId: 'nodeManage',
-      title: '资源配额',
+      title: 'nav_资源配额',
       customContent: true,
     },
     async beforeEnter(to: Route, from: Route, next: () => void) {
@@ -231,7 +231,6 @@ export default [
       navId: 'nodeManage',
       parentId: 'resourceQuota',
       parentName: 'resourceQuota',
-      title: '编辑资源配额',
       customContent: true,
     },
   },

@@ -4,7 +4,7 @@
       <img :src="image" alt="" class="exception-image">
     </div>
     <div :class="`bk-exception-text ${scene === 'part' ? 'part' : 'page'}-text`">
-      <template v-if="'empty' === typeDisplay">{{ '暂无数据' }}</template>
+      <template v-if="'empty' === typeDisplay">{{ $t('暂无数据') }}</template>
       <template v-if="['search-empty', '500'].includes(typeDisplay)">
         <template v-if="typeDisplay === 'search-empty'">
           <p class="empty-title">{{ $t('搜索结果为空') }}</p>

@@ -927,7 +927,7 @@ export default class SetupTable extends Vue {
           name: 'setupCloudManager',
           params: {
             type: 'create',
-            title: window.i18n.t('安装Proxy'),
+            title: window.i18n.t('nav_安装Proxy'),
             id: row.bk_cloud_id,
           },
         });

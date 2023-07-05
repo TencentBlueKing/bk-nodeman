@@ -1,6 +1,6 @@
 <template>
   <div class="task-list" v-test="'history'">
-    <p class="task-list-title">{{ $t('任务历史') }}</p>
+    <p class="task-list-title">{{ $t('nav_任务历史') }}</p>
     <TaskListFilter
       :filter-data="filterData"
       :search-select-value="searchSelectValue"

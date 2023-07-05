@@ -22,7 +22,7 @@ export default [
     component: AgentStatus,
     meta: {
       navId: 'nodeManage',
-      title: 'Agent状态',
+      title: 'nav_Agent状态',
       authority: {
         page: AGENT_VIEW,
         operate: AGENT_OPERATE,
@@ -50,7 +50,7 @@ export default [
     meta: {
       parentName: 'agentStatus',
       navId: 'nodeManage',
-      title: 'Excel导入安装',
+      title: 'nav_Excel导入安装',
       authority: {
         page: AGENT_OPERATE,
       },
