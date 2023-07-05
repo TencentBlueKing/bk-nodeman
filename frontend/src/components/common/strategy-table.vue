@@ -586,7 +586,7 @@ export default class StrategyTable extends Vue {
         name: 'setupCloudManager',
         params: {
           type: 'create',
-          title: window.i18n.t('安装Proxy'),
+          title: window.i18n.t('nav_安装Proxy'),
           id: this.area.bk_cloud_id,
         },
       });

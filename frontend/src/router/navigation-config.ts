@@ -1,16 +1,16 @@
 import { INavConfig } from '@/types/index';
 export const navConfig: INavConfig[] = [
   {
-    title: '节点管理',
+    title: 'nav_节点管理',
     name: 'nodeManage',
     currentActive: 'agentStatus',
     defaultActive: 'agentStatus',
     children: [
       {
-        name: 'Agent状态',
+        name: 'nav_Agent状态',
         children: [
           {
-            title: 'Agent状态',
+            title: 'nav_Agent状态',
             icon: 'nc-state',
             path: '/agent-manager/status',
             name: 'agentStatus',
@@ -18,28 +18,28 @@ export const navConfig: INavConfig[] = [
         ],
       },
       {
-        name: '插件管理',
+        name: 'nav_插件管理',
         children: [
           {
-            title: '插件状态',
+            title: 'nav_插件状态',
             icon: 'nc-plug-in',
             path: '/plugin-new/list', // '/plugin-manager/list',
             name: 'plugin',
           },
           {
-            title: '插件部署',
+            title: 'nav_插件部署',
             icon: 'nc-strategy',
             path: '/plugin-manager/rule',
             name: 'pluginRule',
           },
           {
-            title: '插件包',
+            title: 'nav_插件包',
             icon: 'nc-package-2',
             path: '/plugin-manager/package',
             name: 'pluginPackage',
           },
           {
-            title: '资源配额',
+            title: 'nav_资源配额',
             icon: 'nc-icon-control-fill',
             path: '/plugin-manager/resource-quota',
             name: 'resourceQuota',
@@ -47,10 +47,10 @@ export const navConfig: INavConfig[] = [
         ],
       },
       {
-        name: '历史',
+        name: 'nav_历史',
         children: [
           {
-            title: '任务历史',
+            title: 'nav_任务历史',
             icon: 'nc-history',
             path: '/task-list',
             name: 'taskList',
@@ -60,31 +60,25 @@ export const navConfig: INavConfig[] = [
     ],
   },
   {
-    title: '管控区域管理',
+    title: 'nav_管控区域管理',
     path: '/cloud-manager',
     name: 'cloudManager',
   },
   {
-    title: '全局配置',
+    title: 'nav_全局配置',
     name: 'globalConfig',
     currentActive: 'gseConfig',
     defaultActive: 'gseConfig',
     disabled: window.PROJECT_CONFIG.GLOBAL_SETTING_PERMISSION !== 'True',
     children: [
       {
-        title: 'GSE环境管理',
+        title: 'nav_GSE环境管理',
         icon: 'nc-environment',
         path: '/global-config/gse-config',
         name: 'gseConfig',
-      // },
-      // {
-      //   title: '任务配置',
-      //   icon: 'nc-icon-control-fill',
-      //   path: '/global-config/task-config',
-      //   name: 'taskConfig'
       },
       {
-        title: '自监控',
+        title: 'nav_自监控',
         icon: 'nc-monitor',
         path: '/global-config/healthz',
         name: 'healthz',

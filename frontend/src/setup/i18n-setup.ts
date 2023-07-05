@@ -1,7 +1,7 @@
 import Vue from 'vue';
 import VueI18n from 'vue-i18n';
 import zh from '@/i18n/zh.js';
-import en from '@/i18n/en.js';
+import en, { langDialog } from '@/i18n/en.js';
 import { locale, lang } from 'bk-magic-vue';
 import cookie from 'cookie';
 
@@ -21,10 +21,13 @@ if (['zh-CN', 'zh-cn', 'cn', 'zhCN', 'zhcn', 'None', 'none'].indexOf(currentLang
   currentLang = 'enUS';
   window.language = 'en';
 }
+
+Object.assign(lang.enUS?.bk?.dialog || {}, langDialog); // 合并组件库的默认翻译
 const messages = {
-  zhCN: zh,
-  enUS: en,
+  zhCN: Object.assign(lang.zhCN, zh),
+  enUS: Object.assign(lang.enUS, en),
 };
+
 export const i18n = new VueI18n({
   // 语言标识
   locale: currentLang,

@@ -279,13 +279,13 @@ export default class AgentImport extends Mixins(mixin) {
   private created() {
     switch (this.type) {
       case 'REINSTALL_AGENT':
-        MainStore.setNavTitle('重装Agent');
+        MainStore.setNavTitle('nav_重装Agent');
         break;
       case 'RELOAD_AGENT':
-        MainStore.setNavTitle('重载Agent配置');
+        MainStore.setNavTitle('nav_重载Agent配置');
         break;
       case 'UNINSTALL_AGENT':
-        MainStore.setNavTitle('卸载Agent');
+        MainStore.setNavTitle('nav_卸载Agent');
         break;
     }
     this.resetTableHead();

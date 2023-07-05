@@ -27,38 +27,45 @@
               const TAM_ID = '{{ TAM_ID }}'
               const LOGIN_URL = '{{ LOGIN_URL }}'
               const VERSION = '{{ VERSION }}'
+              const CMDB_URL = '{{ CMDB_URL }}'
+              const BKAPP_NAV_HELPER_URL = '{{ BKAPP_NAV_HELPER_URL }}'
+              const BKAPP_NAV_OPEN_SOURCE_URL = '{{ BKAPP_NAV_OPEN_SOURCE_URL }}'
 
               return {
-                  SITE_URL: SITE_URL,
-                  STATIC_URL: STATIC_URL,
-                  REMOTE_STATIC_URL: REMOTE_STATIC_URL,
-                  RUN_VER: RUN_VER,
-                  DEFAULT_CLOUD: parseInt(DEFAULT_CLOUD),
-                  NGINX_IP,
-                  NGINX_PORT,
+                  APP_CODE,
                   APPO_IP,
-                  GSE_LISTEN_PORT,
-                  PROXY_LISTEN_PORT,
-                  WEB_TITLE,
-                  USERNAME,
+                  BK_DOCS_CENTER_URL,
+                  BK_PAAS_HOST,
+                  BKAPP_ENABLE_DHCP,
+                  BKAPP_NAV_HELPER_URL,
+                  BKAPP_NAV_OPEN_SOURCE_URL,
+                  BKAPP_NODEMAN_CALLBACK_URL,
+                  BKAPP_RUN_ENV,
+                  CMDB_URL,
+                  DEFAULT_CLOUD: parseInt(DEFAULT_CLOUD),
+                  DEFAULT_SSH_PORT,
+                  DESTOP_URL,
                   GLOBAL_TASK_CONFIG_PERMISSION,
                   GLOBAL_SETTING_PERMISSION,
-                  USE_IAM,
-                  APP_CODE,
-                  WXWORK_UIN,
-                  DESTOP_URL,
-                  BKAPP_NODEMAN_CALLBACK_URL,
-                  BK_PAAS_HOST,
-                  DEFAULT_SSH_PORT,
-                  USE_TJJ,
-                  BK_DOCS_CENTER_URL,
-                  BKAPP_RUN_ENV,
-                  BKAPP_ENABLE_DHCP,
-                  TAM_ID,
+                  GSE_LISTEN_PORT,
                   LOGIN_URL,
-                  VERSION
+                  NGINX_IP,
+                  NGINX_PORT,
+                  PROXY_LISTEN_PORT,
+                  REMOTE_STATIC_URL: REMOTE_STATIC_URL,
+                  RUN_VER: RUN_VER,
+                  SITE_URL: SITE_URL,
+                  STATIC_URL: STATIC_URL,
+                  TAM_ID,
+                  USE_IAM,
+                  USE_TJJ,
+                  USERNAME,
+                  VERSION,
+                  WEB_TITLE,
+                  WXWORK_UIN,
               }
-          })()</script><script src="{{ TAM_URL }}"></script><script>if(window.PROJECT_CONFIG.TAM_ID !== 'None') {
+          })()
+          window.$DHCP = window.PROJECT_CONFIG.BKAPP_ENABLE_DHCP === 'True'</script><script src="{{ TAM_URL }}"></script><script>if(window.PROJECT_CONFIG.TAM_ID !== 'None') {
             const aegis = new Aegis({
               id: window.PROJECT_CONFIG.TAM_ID, // 项目ID
               uin: window.PROJECT_CONFIG.USERNAME ? window.PROJECT_CONFIG.USERNAME : 'dev_test', // 用户唯一 ID（可选）
@@ -72,4 +79,4 @@
               restfulApiList: [], // 当开启了接口测速，且项目中有些接口采用了 restful 规范，需要在该配置中列出，帮助 Aegis 识别哪些接口是同一条接
               spa: true
             })
-          }</script><link href={{STATIC_URL}}nodeman/css/chunk-bk-magic-vue.3bad697552c7b9cb2ca9.css rel=stylesheet><link href={{STATIC_URL}}nodeman/css/main.23733bad4dc9eeb5dd8a.css rel=stylesheet></head><body><div id=app></div><script src="{{ STATIC_URL }}nodeman/lib.bundle.js?t=1657591940619"></script><script src={{STATIC_URL}}nodeman/js/chunk-bk-magic-vue.89f762c22e3b0ae9bbde.js></script><script src={{STATIC_URL}}nodeman/js/defaultVendors-node_modules_babel_runtime_helpers_asyncToGenerator_js-node_modules_babel_runt-743d76.e2d66d1e9fca8c5103b3.js></script><script src={{STATIC_URL}}nodeman/js/main.f2f6d5c4d4656f73fc5a.js></script></body></html>
+          }</script><link href={{STATIC_URL}}nodeman/css/chunk-bk-magic-vue.62414fc2b1eb76e91665.css rel=stylesheet><link href={{STATIC_URL}}nodeman/css/main.7a135eb59850a8084f6c.css rel=stylesheet></head><body><div id=app></div><script src="{{ STATIC_URL }}nodeman/lib.bundle.js?t=1688540913741"></script><script src={{STATIC_URL}}nodeman/js/chunk-bk-magic-vue.bd08958f0510ce963791.js></script><script src={{STATIC_URL}}nodeman/js/defaultVendors-node_modules_babel_runtime_helpers_asyncToGenerator_js-node_modules_babel_runt-33af3e.a7b5bbfbfea0a42255b3.js></script><script src={{STATIC_URL}}nodeman/js/main.a5c766ce24681fec9204.js></script></body></html>

@@ -115,9 +115,10 @@ const prodConf = merge(baseConf, {
                     MiniCssExtractPlugin.loader,
                     {
                         loader: 'css-loader',
-                        options: {
-                            importLoaders: 1
-                        }
+                        // 升级vue2.7时被注释
+                        // options: {
+                        //     importLoaders: 1
+                        // }
                     },
                     {
                         loader: 'postcss-loader',
@@ -136,9 +137,9 @@ const prodConf = merge(baseConf, {
                     // Translates CSS into CommonJS
                     {
                         loader: 'css-loader',
-                        options: {
-                            importLoaders: 1
-                        }
+                        // options: {
+                        //     importLoaders: 1
+                        // }
                     },
                     // Compiles Sass to CSS
                     'sass-loader'

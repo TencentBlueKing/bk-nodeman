@@ -14,7 +14,7 @@ export default [
     component: CloudManager,
     meta: {
       navId: 'cloudManager',
-      title: '管控区域管理',
+      title: 'nav_管控区域管理',
     },
   },
   {
@@ -24,7 +24,7 @@ export default [
     component: AddCloudManager,
     meta: {
       navId: 'cloudManager',
-      title: '新建管控区域',
+      title: 'nav_新建管控区域',
       needBack: true,
     },
   },
@@ -35,7 +35,7 @@ export default [
     component: AddCloudManagerPreview,
     meta: {
       navId: 'cloudManager',
-      title: '重装Proxy',
+      title: 'nav_重装Proxy',
       needBack: true,
     },
     beforeEnter(to: Route, from: Route, next) {
@@ -54,7 +54,7 @@ export default [
     component: SetupCloudManager,
     meta: {
       navId: 'cloudManager',
-      title: '安装Proxy',
+      title: 'nav_安装Proxy',
       needBack: true,
       authority: {
         page: PROXY_OPERATE,
@@ -68,7 +68,7 @@ export default [
     component: CloudManagerDetail,
     meta: {
       navId: 'cloudManager',
-      title: '管控区域详情',
+      title: 'nav_管控区域详情',
       customContent: true,
       needBack: true,
       authority: {

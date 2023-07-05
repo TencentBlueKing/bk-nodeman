@@ -27,7 +27,7 @@ export default [
     component: TaskList,
     meta: {
       navId: 'nodeManage',
-      title: '任务历史',
+      title: 'nav_任务历史',
       customContent: true,
       authority: {
         page: TASK_HISTORY_VIEW,
@@ -42,7 +42,7 @@ export default [
     meta: {
       parentName: 'taskList',
       navId: 'nodeManage',
-      title: '任务详情',
+      title: 'nav_任务详情',
       needBack: true,
       customContent: true,
       authority: {
@@ -66,7 +66,7 @@ export default [
     meta: {
       parentName: 'taskList',
       navId: 'nodeManage',
-      title: '执行日志',
+      title: 'nav_执行日志',
       needBack: true,
       customContent: true,
       authority: {

@@ -537,7 +537,7 @@ export default class AgentSetup extends Mixins(mixin, formLabelMixin) {
           name: 'setupCloudManager',
           params: {
             type: 'create',
-            title: window.i18n.t('安装Proxy'),
+            title: window.i18n.t('nav_安装Proxy'),
             id: this.proxyCloudId,
           },
         });

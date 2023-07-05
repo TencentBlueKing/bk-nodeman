@@ -1,5 +1,5 @@
-import create from '@blueking/ip-selector/dist/vue2.6.x';
-import '@blueking/ip-selector/dist/styles/vue2.6.x.css';
+import create from '@blueking/ip-selector/dist/index';
+import '@blueking/ip-selector/dist/styles/index.css';
 import * as IpChooserTopo from '@/api/modules/ipchooser_topo';
 import * as IpChooserHost from '@/api/modules/ipchooser_host';
 import { INodeType } from '@/types/plugin/plugin-type';

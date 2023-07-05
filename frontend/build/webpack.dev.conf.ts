@@ -123,13 +123,14 @@ const webpackConfig = merge(baseConf, {
                       'style-loader',
                       {
                           loader: 'css-loader',
-                          options: {
-                              importLoaders: 1
-                          }
+                        //   options: {
+                        //       importLoaders: 2
+                        //   }
                       },
                       {
                           loader: 'postcss-loader',
                           options: {
+                            // importLoaders: 2,
                               postcssOptions: {
                                   config: path.resolve(__dirname, '..', 'postcss.config.js')
                               }
@@ -146,7 +147,7 @@ const webpackConfig = merge(baseConf, {
                       {
                           loader: 'css-loader',
                           options: {
-                              importLoaders: 1
+                            //   importLoaders: 1
                           }
                       },
                       // Compiles Sass to CSS
