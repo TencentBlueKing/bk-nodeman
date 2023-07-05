@@ -7,6 +7,7 @@ import ProgressBarPlugin from 'progress-bar-webpack-plugin'
 import VueLoaderPlugin from 'vue-loader/lib/plugin'
 import chalk from 'chalk'
 import os from 'os'
+import NodePolyfillPlugin from "node-polyfill-webpack-plugin"
 
 const isProd = process.env.NODE_ENV === 'production'
 
@@ -32,6 +33,10 @@ const baseConfig: webpack.Configuration = {
       vue$: 'vue/dist/vue.esm.js',
       '@': resolve('src'),
       '@static': resolve('static'),
+    },
+    fallback: {
+      fs: false,
+      crypto: require.resolve("crypto-browserify")
     }
   },
 
@@ -57,6 +62,10 @@ const baseConfig: webpack.Configuration = {
         use: {
           loader: 'vue-loader',
           options: {
+            loaders: {
+              ts: 'ts-loader',
+              tsx: 'babel-loader!ts-loader',
+            },
             transformAssetUrls: {
               video: 'src',
               source: 'src',
@@ -161,6 +170,7 @@ const baseConfig: webpack.Configuration = {
   },
 
   plugins: [
+    new NodePolyfillPlugin(),
     new VueLoaderPlugin(),
     // moment 优化，只提取本地包
     new webpack.ContextReplacementPlugin(/moment\/locale$/, /zh-cn/),

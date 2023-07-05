@@ -46,7 +46,9 @@
             :icon="item.icon"
             :disabled="item.disabled"
             :id="item.name">
-            <span>{{ $t(item.title) }}</span>
+            <div class="text-ellipsis" v-bk-overflow-tips>
+              <span>{{ $t(item.title) }}</span>
+            </div>
           </bk-navigation-menu-item>
         </template>
       </template>

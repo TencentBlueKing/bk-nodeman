@@ -33,7 +33,7 @@ export default [
     component: PluginOld,
     meta: {
       navId: 'pluginManager',
-      title: '插件管理',
+      title: 'nav_插件管理',
       customContent: true,
       authority: {
         page: PLUGIN_VIEW,

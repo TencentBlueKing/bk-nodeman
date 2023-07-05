@@ -4,7 +4,7 @@
       <span class="content-icon" @click="handleBack">
         <i class="nodeman-icon nc-back-left"></i>
       </span>
-      <span class="content-header">{{ $t('编辑资源配额') }}</span>
+      <span class="content-header">{{ $t('nav_编辑资源配额') }}</span>
       <span class="content-subtitle">{{ moduleName | filterEmpty }}</span>
     </div>
     <section class="page-body">

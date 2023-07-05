@@ -4,7 +4,7 @@
       tag="pre"
       :path="tips"
       v-if="['agentSetupHostIp','agentSetupInnerIp', 'agentSetupInnerIPv6', 'proxySetupHostIp'].includes(tips)">
-      <span class="primary">{{ $t('「登录 IP」') }}</span>
+      <span class="primary">{{ $t('「登录IP」') }}</span>
       <span class="primary">{{ $t('「内网IPv4」') }}</span>
       <span class="primary">{{ $t('「内网IPv6」') }}</span>
     </i18n>

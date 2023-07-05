@@ -23,7 +23,7 @@ export default globalConfig && !globalConfig.disabled ? [
     component: GseConfig,
     meta: {
       navId: 'globalConfig',
-      title: 'GSE环境管理',
+      title: 'nav_GSE环境管理',
     },
   },
   {
@@ -33,12 +33,11 @@ export default globalConfig && !globalConfig.disabled ? [
     component: AccessPoint,
     meta: {
       navId: 'globalConfig',
-      title: 'config',
       needBack: true,
     },
     beforeEnter: (to: Route, from: Route, next: () => void) => {
       ConfigStore.resetDetail();
-      MainStore.setNavTitle(!to.params.pointId ? '新增接入点' : '编辑接入点');
+      MainStore.setNavTitle(!to.params.pointId ? 'nav_新增接入点' : 'nav_编辑接入点');
       MainStore.setToggleDefaultContent(true);
       next();
     },
@@ -57,7 +56,7 @@ export default globalConfig && !globalConfig.disabled ? [
     component: Healthz,
     meta: {
       navId: 'globalConfig',
-      title: '自监控',
+      title: 'nav_自监控',
     },
   },
 ] as RouteConfig[] : [];

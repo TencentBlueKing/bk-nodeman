@@ -39,7 +39,7 @@
               @change="handleSetupTableChange">
             </InstallTable>
           </bk-form-item>
-          <bk-form-item error-display-type="normal" :label="$t('密码安全')" required>
+          <bk-form-item error-display-type="normal" :label="$t('密码密钥')" required>
             <bk-radio-group v-model="formData.retention" class="content-basic">
               <bk-radio :value="1">{{ $t('保存1天') }}</bk-radio>
               <bk-radio class="ml35" :value="-1">{{ $t('长期保存') }}</bk-radio>
@@ -53,7 +53,7 @@
               :clearable="false"
               v-bk-tooltips.right="$t('仅支持Linux64位操作系统')"
               disabled>
-              <bk-option id="LINUX" name="Linux(64位)"></bk-option>
+              <bk-option id="LINUX" :name="$t('Linux64位')"></bk-option>
             </bk-select>
           </bk-form-item>
           <template v-if="!isManual">
@@ -68,7 +68,7 @@
             <bk-biz-select
               v-model="formData.bkBizId"
               class="content-basic"
-              :placeholder="$t('待选择')"
+              :placeholder="$t('请选择业务')"
               :show-select-all="false"
               :multiple="false"
               :auto-update-storage="false">
@@ -136,9 +136,7 @@ export default class CloudManagerSetup extends Mixins(formLabelMixin, FilterIpMi
   @Prop({
     type: String,
     default: 'create',
-    validator(v) {
-      return ['create', 'replace'].includes(v);
-    },
+    validator: (v: string) => ['create', 'replace'].includes(v),
   }) private readonly type!: string;
   // type 为 replace 时的主机ID
   @Prop({ type: Number, default: 0 }) private readonly replaceHostId!: number;
@@ -218,10 +216,10 @@ export default class CloudManagerSetup extends Mixins(formLabelMixin, FilterIpMi
     this.loading = true;
     switch (this.type) {
       case 'create':
-        MainStore.setNavTitle('安装Proxy');
+        MainStore.setNavTitle('nav_安装Proxy');
         break;
       case 'replace':
-        MainStore.setNavTitle(window.i18n.t('替换Proxy', { ip: this.innerIp || this.id }));
+        MainStore.setNavTitle(window.i18n.t('nav_替换Proxy', { ip: this.innerIp || this.id }));
         break;
     }
     await this.getCloudBizList(); // 拿到apId之后才能进行下一步

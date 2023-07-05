@@ -7,6 +7,9 @@
   "exclude": [
     "node_modules"
   ],
+  "vueCompilerOptions": {
+    "target": 2.7
+  },
   "compilerOptions": {
     "outDir": "./dist",
     // 解析非相对模块名的基准目录

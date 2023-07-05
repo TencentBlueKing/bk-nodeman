@@ -67,8 +67,9 @@ export const reguUrlMixinIp = {
   validator: (val: string) => regUrlMixinIp.test(val),
 };
 export const reguPort = {
-  validator: (val: string) => regNaturalNumber.test(val) && parseInt(val, 10) <= 65535,
-  message: window.i18n.t('端口范围', { range: '0-65535' }),
+  // validator: (val: string) => regNaturalNumber.test(val) && parseInt(val, 10) <= 65535, // 端口范围不应该包括
+  validator: (val: string) => regNaturalNumber.test(val) && val && parseInt(val, 10) && parseInt(val, 10) <= 65535,
+  message: window.i18n.t('端口范围', { range: '1-65535' }),
   trigger: 'blur',
 };
 export const reguNaturalNumber = {

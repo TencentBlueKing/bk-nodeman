@@ -3,8 +3,15 @@
     "node_modules"
   ],
   "include": [
-    "./*.ts"
+    "./*.ts",
+    "src/**/*.js",  //src为本地开发目录
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "src/**/*.vue",
   ],
+  "vueCompilerOptions": {
+    "target": 2.7
+  },
   "compilerOptions": {
     "esModuleInterop": true, 
     // 启用装饰器

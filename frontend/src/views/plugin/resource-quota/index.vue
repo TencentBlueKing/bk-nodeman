@@ -1,7 +1,7 @@
 <template>
   <article class="resource-quota" v-bkloading="{ isLoading: loading }">
     <section class="page-head">
-      <span class="title">{{ $t('资源配额') }}</span>
+      <span class="title">{{ $t('nav_资源配额') }}</span>
     </section>
 
     <div class="page-container">
