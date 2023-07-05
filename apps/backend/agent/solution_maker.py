@@ -302,7 +302,11 @@ class BaseExecutionSolutionMaker(metaclass=abc.ABCMeta):
             if execution_solution_step.type != constants.CommonExecutionSolutionStepType.COMMANDS.value:
                 continue
             for execution_solution_content in execution_solution_step.contents:
-                execution_solution_content.text = f"sudo {execution_solution_content.text}"
+                if execution_solution_content.name == "run_cmd":
+                    shell_pkg: str = ("bash", "ksh")[self.host.os_type == constants.OsType.AIX]
+                    execution_solution_content.text = f'sudo {shell_pkg} -c "{execution_solution_content.text}"'
+                else:
+                    execution_solution_content.text = f"sudo {execution_solution_content.text}"
 
     def combine_cmd_step(self, execution_solution: ExecutionSolution):
         for execution_solution_step in execution_solution.steps:
