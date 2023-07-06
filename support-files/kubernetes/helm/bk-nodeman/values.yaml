@@ -432,6 +432,7 @@ config:
   bkAppNavOpenSourceUrl: "https://github.com/TencentBlueKing/bk-nodeman"
   ## 导航栏技术支持地址
   bkAppNavHelperUrl: "https://wpa1.qq.com/KziXGWJs?_type=wpa&qidian=true"
+  bkDomain: ".example.com"
 
   ## 其他
   ##

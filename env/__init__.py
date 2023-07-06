@@ -30,6 +30,7 @@ __all__ = [
     "BKAPP_OTEL_GRPC_URL",
     "BKAPP_NAV_OPEN_SOURCE_URL",
     "BKAPP_NAV_HELPER_URL",
+    "BK_DOMAIN",
     "BK_CC_HOST",
     "BK_API_URL_TMPL",
     "ENVIRONMENT",
@@ -57,6 +58,7 @@ BKAPP_IS_PAAS_DEPLOY = BKAPP_IS_PAAS_DEPLOY
 BKAPP_ENABLE_DHCP = get_type_env(key="BKAPP_ENABLE_DHCP", default=False, _type=bool)
 # # 是否为后台配置
 BK_BACKEND_CONFIG = BK_BACKEND_CONFIG
+BK_DOMAIN = get_type_env(key="BK_DOMAIN", _type=str, default=".example.com")
 
 # ===============================================================================
 # 日志
