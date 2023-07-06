@@ -857,6 +857,9 @@ body {
 .bk-ip-selector-box {
     height: 100%;
 }
+.ip-selector-result-preview  .item-text {
+    height: 30px;
+}
 
 .bk-dropdown-menu.disabled, .bk-dropdown-menu.disabled * {
     background-color: transparent;
