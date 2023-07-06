@@ -14,11 +14,11 @@ import os
 from blueapps.account.conf import ConfFixture
 from django.conf import settings
 from django.utils.translation import ugettext as _
+from version_log.utils import get_latest_version
 
 from apps.node_man import constants
 from apps.node_man.handlers.iam import IamHandler
 from apps.utils.local import get_request_username
-from version_log.utils import get_latest_version
 
 """
 context_processor for common(setting)
@@ -99,4 +99,6 @@ def mysetting(request):
         "BKAPP_NAV_OPEN_SOURCE_URL": settings.BKAPP_NAV_OPEN_SOURCE_URL,
         # 导航栏技术支持地址
         "BKAPP_NAV_HELPER_URL": settings.BKAPP_NAV_HELPER_URL,
+        "BK_DOMAIN": settings.BK_DOMAIN,
+        "BK_COMPONENT_API_URL": settings.BK_COMPONENT_API_OUTER_URL,
     }

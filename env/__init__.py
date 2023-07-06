@@ -36,6 +36,8 @@ __all__ = [
     "BKPAAS_MAJOR_VERSION",
     # esb 访问地址
     "BK_COMPONENT_API_URL",
+    # esb 访问外网地址
+    "BK_COMPONENT_API_OUTER_URL",
     # 节点管理SaaS访问地址
     "BK_NODEMAN_HOST",
     # 节点管理后台访问地址
@@ -44,6 +46,7 @@ __all__ = [
     "BK_IAM_SAAS_HOST",
     # 提供给权限中心的资源回调地址
     "BK_IAM_RESOURCE_API_HOST",
+    "BK_DOMAIN",
 ]
 
 # ===============================================================================
@@ -110,6 +113,14 @@ BK_CC_HOST = get_type_env(key="BK_CC_HOST", default="", _type=str)
 
 # APIGW API 地址模板，在 PaaS 3.0 部署的应用，可从环境变量中获取 BK_API_URL_TMPL
 BK_API_URL_TMPL = get_type_env(key="BK_API_URL_TMPL", default=BK_COMPONENT_API_URL + "/api/{api_name}", _type=str)
+
+# esb 外网域名, Helm 部署时从环境变量中获取 BK_PAAS_OUTER_HOST , 二进制部署时使用 BK_PAAS_HOST
+BK_COMPONENT_API_OUTER_URL = get_type_env(key="BK_PAAS_OUTER_HOST", default="", _type=str) or get_type_env(
+    key="BK_PAAS_HOST", default=BK_COMPONENT_API_URL, _type=str
+)
+
+# 蓝鲸根域名
+BK_DOMAIN = get_type_env(key="BK_DOMAIN", default="", _type=str)
 
 # 导航栏开源社区地址
 BKAPP_NAV_OPEN_SOURCE_URL = get_type_env(
