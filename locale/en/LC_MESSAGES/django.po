@@ -3709,7 +3709,7 @@ msgstr "Other"
 #: apps/node_man/handlers/meta.py:172 apps/node_man/handlers/meta.py:308
 #: apps/node_man/handlers/meta.py:378
 msgid "Agent状态"
-msgstr "Agent Status"
+msgstr "Agent status"
 
 #: apps/node_man/handlers/meta.py:173
 msgid "安装方式"
