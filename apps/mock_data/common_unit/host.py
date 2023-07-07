@@ -65,7 +65,7 @@ AP_MODEL_DATA = {
     "is_default": True,
     "creator": ["admin"],
     "port_config": constants.GSE_PORT_DEFAULT_VALUE,
-    "proxy_package": constants.GSE_CLIENT_PACKAGES,
+    "proxy_package": constants.LEGACY_GSE_CLIENT_PACKAGES,
     "outer_callback_url": f"http://{DEFAULT_IP}/backend",
 }
 

@@ -1013,7 +1013,7 @@ class PolicyRollBackType:
     ROLLBACK_TYPE__ALIAS_MAP = {SUPPRESSED: "已被其他策略管控", LOSE_CONTROL: "脱离策略管控", TRANSFER_TO_ANOTHER: "转移到优先级最高的策略"}
 
 
-GSE_CLIENT_PACKAGES: List[str] = [
+LEGACY_GSE_CLIENT_PACKAGES: List[str] = [
     "gse_client-windows-x86.tgz",
     "gse_client-windows-x86_64.tgz",
     "gse_client-linux-x86.tgz",
@@ -1021,6 +1021,9 @@ GSE_CLIENT_PACKAGES: List[str] = [
     "gse_client-aix6-powerpc.tgz",
     "gse_client-aix7-powerpc.tgz",
 ]
+
+# TODO: Agent 包管理优化此处逻辑
+GSE_CLIENT_PACKAGES: List[str] = ["gse_agent-stable.tgz", "gse_proxy-stable.tgz"]
 
 TOOLS_TO_PUSH_TO_PROXY: List[Dict[str, Union[List[str], Any]]] = [
     {"files": ["py36.tgz"], "name": _("检测 BT 分发策略（下发Py36包）")},
@@ -1043,7 +1046,7 @@ TOOLS_TO_PUSH_TO_PROXY: List[Dict[str, Union[List[str], Any]]] = [
 
 FILES_TO_PUSH_TO_PROXY = TOOLS_TO_PUSH_TO_PROXY + [
     {
-        "files": GSE_CLIENT_PACKAGES,
+        "files": LEGACY_GSE_CLIENT_PACKAGES,
         "name": _("下发安装包"),
         "from_type": ProxyFileFromType.AP_CONFIG.value,
     }

@@ -17,7 +17,7 @@ from apps.node_man import constants
 def init_proxy_package(apps, schema_editor):
 
     AccessPoint = apps.get_model("node_man", "AccessPoint")
-    AccessPoint.objects.update(proxy_package=constants.GSE_CLIENT_PACKAGES)
+    AccessPoint.objects.update(proxy_package=constants.LEGACY_GSE_CLIENT_PACKAGES)
 
 
 class Migration(migrations.Migration):

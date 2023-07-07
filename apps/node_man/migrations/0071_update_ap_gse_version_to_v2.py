@@ -12,7 +12,7 @@ from typing import List
 
 from django.db import migrations
 
-from apps.node_man.constants import GSE_V2_PORT_DEFAULT_VALUE
+from apps.node_man.constants import GSE_CLIENT_PACKAGES, GSE_V2_PORT_DEFAULT_VALUE
 from env.constants import GseVersion
 
 
@@ -24,6 +24,7 @@ def update_access_point_gse_version(apps, schema_editor):
     # 判断是否为全新部署
     if len(access_points) == 1 and access_point.port_config == GSE_V2_PORT_DEFAULT_VALUE:
         access_point.gse_version = GseVersion.V2.value
+        access_point.proxy_package = GSE_CLIENT_PACKAGES
         access_point.save()
 
 

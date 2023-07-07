@@ -10,14 +10,14 @@ specific language governing permissions and limitations under the License.
 """
 import json
 from copy import deepcopy
-from typing import Dict
+from typing import Dict, List
 
 from django.core.management.base import BaseCommand
 from django.db.transaction import atomic
 
 from apps.core.gray.handlers import GrayHandler
 from apps.exceptions import ValidationError
-from apps.node_man.constants import GSE_V2_PORT_DEFAULT_VALUE
+from apps.node_man.constants import GSE_CLIENT_PACKAGES, GSE_V2_PORT_DEFAULT_VALUE
 from apps.node_man.models import AccessPoint, GlobalSettings
 from env.constants import GseVersion
 
@@ -64,6 +64,7 @@ class Command(BaseCommand):
             print(f"\nGSE2 agent_config:\n{json.dumps(gse_v2_agent_config, indent=4)}")
 
             gse_v2_ap.agent_config: Dict[str, Dict[str, str]] = gse_v2_agent_config
+            gse_v2_ap.proxy_package: List[str] = GSE_CLIENT_PACKAGES
             gse_v2_ap.save()
 
             # 全局配置写入接入点映射
