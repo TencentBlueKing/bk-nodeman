@@ -21,8 +21,9 @@ from apps.node_man.exceptions import (
     PwdCheckError,
 )
 from apps.node_man.handlers.host import HostHandler
-from apps.node_man.models import Host
+from apps.node_man.models import Host, ProcessStatus
 from apps.node_man.tests.utils import (
+    DEFAULT_IP,
     IP_REG,
     SEARCH_BUSINESS,
     MockClient,
@@ -330,3 +331,33 @@ class TestHost(TestCase):
         )
 
         self.assertEqual(len(result), number)
+
+    @patch("apps.node_man.handlers.cmdb.CmdbHandler.cmdb_or_cache_biz", cmdb_or_cache_biz)
+    @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)
+    def test_agent_status_update(self):
+        bk_cloud_id = 1
+        host_to_create, process_to_create, _ = create_host(number=1, ip=DEFAULT_IP, bk_cloud_id=bk_cloud_id)
+
+        process_to_create[0].status = const.ProcStateType.UNKNOWN
+
+        patch(
+            "apps.node_man.periodic_tasks.sync_agent_status_task.get_gse_api_helper.list_agent_state",
+            {f"{bk_cloud_id}:{DEFAULT_IP}": {"bk_agent_alive": 1, "ip": DEFAULT_IP, "bk_cloud_id": bk_cloud_id}},
+        )
+
+        HostHandler().list(
+            {
+                "pagesize": 10,
+                "page": 1,
+                "conditions": [{"key": "ip", "value": [DEFAULT_IP]}],
+                "only_ip": False,
+                "bk_cloud_id": [bk_cloud_id],
+            },
+            "admin",
+        )
+        self.assertEqual(
+            ProcessStatus.objects.get(
+                bk_host_id=host_to_create[0].bk_host_id, name=ProcessStatus.GSE_AGENT_PROCESS_NAME
+            ).status,
+            const.ProcStateType.RUNNING,
+        )

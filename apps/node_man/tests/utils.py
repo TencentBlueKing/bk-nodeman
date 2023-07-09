@@ -35,6 +35,7 @@ from apps.node_man.models import (
 )
 from apps.utils.basic import filter_values, get_chr_seq
 
+DEFAULT_IP = "127.0.0.1"
 CONST_IP_LEN = 2234
 IP_REG = r"((2(5[0-5]|[0-4]\d))|[0-1]?\d{1,2})(\.((2(5[0-5]|[0-4]\d))|[0-1]?\d{1,2})){3}"
 DIGITS = get_chr_seq("0", "9") + get_chr_seq("a", "z") + get_chr_seq("A", "Z")

@@ -11,13 +11,15 @@ specific language governing permissions and limitations under the License.
 from collections import defaultdict
 from typing import Any, Dict, Iterable, List, Set
 
-from django.db.models import Count, Q
+from django.db.models import Count, Q, QuerySet
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
 from apps.core.ipchooser import core_ipchooser_constants
 from apps.core.ipchooser.tools.base import HostQuerySqlHelper
+from apps.node_man import constants
 from apps.node_man import constants as const
+from apps.node_man import models
 from apps.node_man.constants import IamActionType
 from apps.node_man.exceptions import (
     ApIDNotExistsError,
@@ -37,6 +39,9 @@ from apps.node_man.models import (
     InstallChannel,
     JobTask,
     ProcessStatus,
+)
+from apps.node_man.periodic_tasks.sync_agent_status_task import (
+    update_or_create_host_agent_status,
 )
 from apps.utils import APIModel
 from apps.utils.basic import filter_values
@@ -111,8 +116,13 @@ class HostHandler(APIModel):
         # 用户没有操作权限的业务
         no_operate_permission = {biz: user_biz[biz] for biz in user_biz if biz not in agent_operate_bizs}
 
+        totality_query: bool = True if params.get("pagesize") == -1 else False
+
+        # 只返回 IP 时，return_field 为空时返回 inner_ip
+        only_ip: bool = params.get("only_ip", False)
+
         # 页面
-        if params["pagesize"] != -1:
+        if not totality_query:
             # 如果是正常数量
             begin = (params["page"] - 1) * params["pagesize"]
             end = (params["page"]) * params["pagesize"]
@@ -138,11 +148,29 @@ class HostHandler(APIModel):
 
         # 查询
         hosts_status_sql = hosts_queryset.exclude(bk_host_id__in=params.get("exclude_hosts", []))
-
         # 计算总数
         hosts_status_count = hosts_status_sql.count()
 
-        if params["only_ip"] is False:
+        # 以下情况不更新主机状态
+        # 1. only_ip 为 True 2. pagesize 为 -1
+        if not only_ip and not totality_query:
+            select: Dict[str, str] = {
+                "status": f"{models.ProcessStatus._meta.db_table}.status",
+                "version": f"{models.ProcessStatus._meta.db_table}.version",
+            }
+            update_or_create_host_agent_status(
+                task_id=f"[api|host|search] Start sync agent status, Count -> [{hosts_status_count}]",
+                host_queryset=hosts_status_sql,
+            )
+            wheres: List[str] = [
+                f"{models.Host._meta.db_table}.bk_host_id=" f"{models.ProcessStatus._meta.db_table}.bk_host_id",
+                f'{models.ProcessStatus._meta.db_table}.proc_type="{constants.ProcType.AGENT}"',
+                f"{models.ProcessStatus._meta.db_table}.source_type=" f'"{models.ProcessStatus.SourceType.DEFAULT}"',
+            ]
+
+            hosts_status_sql: QuerySet = hosts_status_sql.extra(select=select, where=wheres)
+
+        if not only_ip:
             host_fields = core_ipchooser_constants.CommonEnum.DEFAULT_HOST_FIELDS.value + [
                 "bk_addressing",
                 "outer_ip",
@@ -160,8 +188,9 @@ class HostHandler(APIModel):
             # sql分页查询获得数据
             hosts_status = list(hosts_status_sql[begin:end].values(*set(host_fields)))
         else:
+            return_field: str = params.get("return_field", models.Host.inner_ip.field.attname)
             # 仅需某一列的数据
-            value_list = list(filter(None, hosts_status_sql[begin:end].values_list(params["return_field"], flat=True)))
+            value_list = list(filter(None, hosts_status_sql[begin:end].values_list(return_field, flat=True)))
             return {"total": len(value_list), "list": value_list}
 
         # 分页结果的Host_id, cloud_id集合
