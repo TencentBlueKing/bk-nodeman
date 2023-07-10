@@ -334,17 +334,27 @@ export default class NodemanNavigation extends Mixins(routerBackMixin) {
   }
   private toggleLang(item: IUserItem) {
     if (item.id !== this.language) {
+      const {
+        BK_COMPONENT_API_URL: overwriteUrl = '',
+        BK_DOMAIN: domain = '',
+      } = window.PROJECT_CONFIG;
+
+      const api = `${overwriteUrl}/api/c/compapi/v2/usermanage/fe_update_user_language/?language=${item.id}`;
+      const scriptId = 'jsonp-script';
+      const prevJsonpScript = document.getElementById(scriptId);
+      if (prevJsonpScript) {
+        document.body.removeChild(prevJsonpScript);
+      }
+      const scriptEl = document.createElement('script');
+      scriptEl.type = 'text/javascript';
+      scriptEl.src = api;
+      scriptEl.id = scriptId;
+      document.body.appendChild(scriptEl);
+
       const today = new Date();
       today.setTime(today.getTime() + 1000 * 60 * 60 * 24);
-      const domainArr = document.domain.split('.');
-      if (domainArr.length > 2) {
-        domainArr.shift();
-      }
-      document.cookie = `blueking_language=0;path=/;domain=${domainArr.slice(-2).join('.')};expires=${new Date(0).toUTCString()}`;
-      document.cookie = `blueking_language=${item.id};path=/;domain=${domainArr.join('.')};expires=${today.toUTCString()}`;
-      document.cookie = `blueking_language=${item.id};path=/;domain=${domainArr.slice(-2).join('.')};expires=${today.toUTCString()}`;
+      document.cookie = `blueking_language=${item.id};path=/;domain=${domain};expires=${today.toUTCString()}`;
       location.reload();
-      // this.$i18n.locale = item.id;
     }
   }
   /**
