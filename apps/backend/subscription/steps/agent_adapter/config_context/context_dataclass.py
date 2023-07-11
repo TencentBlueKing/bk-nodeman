@@ -106,7 +106,7 @@ class AgentBaseConfigContext(GseConfigContext, TlsBaseConfigContext):
     MODULE_ID = "AGENT_BASE"
 
     # 等价 recvthread
-    processor_num: int = 5
+    processor_num: int = 4
     processor_size: int = 4096
 
 
