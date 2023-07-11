@@ -15,35 +15,35 @@ from apps.node_man.tools import HostTools
 
 
 class HostToolsTestCase(TestCase):
-    RSA_UTIL = HostTools.get_rsa_util()
+    CIPHER = HostTools.get_asymmetric_cipher()
 
     def test_decrypt_without_encrypt_passwd(self):
         base_encrypt_message = random_ip()
         self.assertEqual(
             base_encrypt_message,
             HostTools.decrypt_with_friendly_exc_handle(
-                rsa_util=self.RSA_UTIL, encrypt_message=base_encrypt_message, raise_exec=Exception
+                cipher=self.CIPHER, encrypt_message=base_encrypt_message, raise_exec=Exception
             ),
         )
 
     def test_decrypt_encrypt_passwd_failed(self):
-        base_encrypt_message = HostTools.USE_RSA_PREFIX + random_ip()
+        base_encrypt_message = HostTools.USE_ASYMMETRIC_PREFIX + random_ip()
         self.assertRaises(
-            Exception, HostTools.decrypt_with_friendly_exc_handle, self.RSA_UTIL, base_encrypt_message, Exception
+            Exception, HostTools.decrypt_with_friendly_exc_handle, self.CIPHER, base_encrypt_message, Exception
         )
 
     def test_recursion_decrypt_passwd(self):
         base_encrypt_message = random_ip()
-        pre_encrypt_message = self.RSA_UTIL.encrypt(base_encrypt_message)
+        pre_encrypt_message = self.CIPHER.encrypt(base_encrypt_message)
 
         for _ in range(4):
-            encrypt_message = self.RSA_UTIL.encrypt(HostTools.USE_RSA_PREFIX + pre_encrypt_message)
+            encrypt_message = self.CIPHER.encrypt(HostTools.USE_ASYMMETRIC_PREFIX + pre_encrypt_message)
             pre_encrypt_message = encrypt_message
 
-        recursion_encrypt_message = HostTools.USE_RSA_PREFIX + pre_encrypt_message
+        recursion_encrypt_message = HostTools.USE_ASYMMETRIC_PREFIX + pre_encrypt_message
 
         decrypt_message = HostTools.decrypt_with_friendly_exc_handle(
-            rsa_util=self.RSA_UTIL, encrypt_message=recursion_encrypt_message, raise_exec=Exception
+            cipher=self.CIPHER, encrypt_message=recursion_encrypt_message, raise_exec=Exception
         )
 
         self.assertEqual(base_encrypt_message, decrypt_message)
@@ -53,11 +53,11 @@ class HostToolsTestCase(TestCase):
         pre_encrypt_message = base_encrypt_message
 
         for _ in range(10):
-            encrypt_message = self.RSA_UTIL.encrypt(HostTools.USE_RSA_PREFIX + pre_encrypt_message)
+            encrypt_message = self.CIPHER.encrypt(HostTools.USE_ASYMMETRIC_PREFIX + pre_encrypt_message)
             pre_encrypt_message = encrypt_message
 
-        recursion_encrypt_message = HostTools.USE_RSA_PREFIX + pre_encrypt_message
+        recursion_encrypt_message = HostTools.USE_ASYMMETRIC_PREFIX + pre_encrypt_message
 
         self.assertRaises(
-            Exception, HostTools.decrypt_with_friendly_exc_handle, self.RSA_UTIL, recursion_encrypt_message, Exception
+            Exception, HostTools.decrypt_with_friendly_exc_handle, self.CIPHER, recursion_encrypt_message, Exception
         )

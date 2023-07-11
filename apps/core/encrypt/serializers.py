@@ -13,7 +13,7 @@ from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
 
-class RSAFetchKeysSerializer(serializers.Serializer):
+class AsymmetricFetchKeysSerializer(serializers.Serializer):
     names = serializers.ListField(
         label=_("密钥名称列表"), required=True, min_length=1, child=serializers.CharField(label=_("密钥名称"), min_length=1)
     )

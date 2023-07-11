@@ -14,7 +14,7 @@ from django.contrib import admin
 from . import models
 
 
-@admin.register(models.RSAKey)
+@admin.register(models.AsymmetricKey)
 class RSAKeyAdmin(admin.ModelAdmin):
     list_display = ["id", "name", "type", "description", "content"]
     search_fields = ["id", "name", "type", "description"]

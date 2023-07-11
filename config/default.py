@@ -12,12 +12,20 @@ import sys
 from enum import Enum
 from typing import Dict, Optional
 
+from bkcrypto.constants import (
+    AsymmetricCipherType,
+    EncryptionMetadataCombinationMode,
+    SymmetricCipherType,
+    SymmetricMode,
+)
+from bkcrypto.symmetric.options import AESSymmetricOptions, SM4SymmetricOptions
 from blueapps.conf.default_settings import *  # noqa
 from django.http import HttpResponseRedirect
 from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
 
 import env
+from apps.utils.encrypt.crypto import Interceptor
 from apps.utils.enum import EnhanceEnum
 from apps.utils.env import get_type_env
 
@@ -35,6 +43,7 @@ BKAPP_IS_PAAS_DEPLOY = env.BKAPP_IS_PAAS_DEPLOY
 BKAPP_ENABLE_DHCP = env.BKAPP_ENABLE_DHCP
 BK_BACKEND_CONFIG = env.BK_BACKEND_CONFIG
 BKPAAS_MAJOR_VERSION = env.BKPAAS_MAJOR_VERSION
+BKAPP_CRYPTO_TYPE = env.BKAPP_CRYPTO_TYPE
 
 
 # ===============================================================================
@@ -355,6 +364,42 @@ REST_FRAMEWORK = {
     "SEARCH_PARAM": "keyword",
     "DEFAULT_RENDERER_CLASSES": ("apps.utils.drf.GeneralJSONRenderer",),
 }
+
+
+BKCRYPTO = {
+    "SYMMETRIC_CIPHERS": {
+        "default": {
+            # 可选，用于在 settings 没法直接获取 key 的情况
+            "get_key_config": "apps.utils.encrypt.key.get_key_config",
+            "cipher_options": {
+                SymmetricCipherType.AES.value: AESSymmetricOptions(
+                    key_size=24,
+                    iv=b"TencentBkNode-Iv",
+                    mode=SymmetricMode.CFB,
+                    interceptor=Interceptor,
+                    encryption_metadata_combination_mode=EncryptionMetadataCombinationMode.STRING_SEP,
+                ),
+                SymmetricCipherType.SM4.value: SM4SymmetricOptions(mode=SymmetricMode.CTR),
+            },
+        },
+    }
+}
+
+# 加密
+if BKAPP_CRYPTO_TYPE == env.constants.BkCryptoType.SHANGMI.value:
+    BKCRYPTO.update(
+        {
+            "ASYMMETRIC_CIPHER_TYPE": AsymmetricCipherType.SM2.value,
+            "SYMMETRIC_CIPHER_TYPE": SymmetricCipherType.SM4.value,
+        }
+    )
+else:
+    BKCRYPTO.update(
+        {
+            "ASYMMETRIC_CIPHER_TYPE": AsymmetricCipherType.RSA.value,
+            "SYMMETRIC_CIPHER_TYPE": SymmetricCipherType.AES.value,
+        }
+    )
 
 # ==============================================================================
 # 国际化相关配置
