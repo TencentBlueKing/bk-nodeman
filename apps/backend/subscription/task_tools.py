@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 import logging
 import traceback
 from collections import defaultdict
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from django.db import transaction
 from django.db.models import QuerySet
@@ -68,13 +68,22 @@ class TaskResultTools:
         elif constants.JobStatusType.RUNNING in status_set:
             status = constants.JobStatusType.RUNNING
 
-            # 如果 steps 中都是 Pending 那返回的 status 也是 Pending
-        if not status_set == {constants.JobStatusType.PENDING} and backtrace_steps:
+        # 如果 steps 中都是 Pending 那返回的 status 也是 Pending
+        if status_set != {constants.JobStatusType.PENDING} and backtrace_steps:
             # 填充 steps 中的状态
-            for step in steps:
-                if step["status"] in [constants.JobStatusType.FAILED, constants.JobStatusType.RUNNING]:
-                    break
-                else:
+            # 1. 找到第一个 RUNNING / FAILED 的节点索引
+            index: Optional[int] = next(
+                (
+                    i
+                    for i, step in enumerate(steps)
+                    if step["status"] in [constants.JobStatusType.FAILED, constants.JobStatusType.RUNNING]
+                ),
+                None,
+            )
+
+            # 2. 如果找到，将前面的状态都填充为成功
+            if index is not None:
+                for step in steps[:index]:
                     step["status"] = constants.JobStatusType.SUCCESS
 
         return status
