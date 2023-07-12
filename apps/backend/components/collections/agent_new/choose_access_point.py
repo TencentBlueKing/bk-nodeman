@@ -8,7 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import random
 import re
 from collections import defaultdict
 from typing import Any, Dict, List, Optional, Set
@@ -16,12 +15,14 @@ from typing import Any, Dict, List, Optional, Set
 from django.utils.translation import ugettext_lazy as _
 
 from apps.backend import constants as backend_constants
+from apps.backend.agent.tools import get_cloud_id__proxies_map
 from apps.backend.utils.wmi import execute_cmd
 from apps.core.concurrent import controller
 from apps.core.gray.handlers import GrayHandler
 from apps.core.remote import conns
 from apps.exceptions import ApiError
 from apps.node_man import constants, models
+from apps.node_man.exceptions import AliveProxyNotExistsError
 from apps.node_man.utils.endpoint import EndpointInfo
 from apps.utils import basic, concurrent, exc, sync
 from env.constants import GseVersion
@@ -293,23 +294,12 @@ class ChooseAccessPointService(AgentBaseService, remote.RemoteServiceMixin):
             remote_conn_helpers=ssh_remote_conn_helpers
         ) + self.handle_detect_condition__win(remote_conn_helpers=windows_ch_remote_conn_helpers)
 
-    def fetch_alive_proxy_host_ids(self, proxy_host_ids: List[int]) -> List[int]:
+    @classmethod
+    def reset_cloud_proxies_ap(cls, bk_cloud_ids: List[int], ap_id_obj_map: Dict[int, models.AccessPoint]):
         """
-        获取存活的Proxy ID列表
+        Proxy 接入点复位
         """
-        # 获取存活的Proxy ID 列表
-        alive_proxy_host_ids = models.ProcessStatus.objects.filter(
-            bk_host_id__in=proxy_host_ids, status=constants.ProcStateType.RUNNING
-        ).values_list("bk_host_id", flat=True)
-        alive_proxy_host_ids = set(alive_proxy_host_ids)
-
-    def fetch_cloud_proxies_for_gse_version(
-        self, bk_cloud_ids: List[int], ap_id_obj_map: Dict[int, models.AccessPoint], gse_version: str
-    ) -> List[Dict[str, Any]]:
-        """
-        获取指定管控区域所有的Proxy列表
-        """
-        # 对管控区域内proxyr接入点为-1的情况进行对接入点进行复位，使用管控区域或者映射的接入点
+        # 对管控区域内proxy接入点为-1的情况进行对接入点进行复位，使用管控区域或者映射的接入点
         clouds = models.Cloud.objects.filter(bk_cloud_id__in=bk_cloud_ids).only("bk_cloud_id", "ap_id")
         try:
             gray_ap_map: Dict[int, int] = GrayHandler.get_gray_ap_map()
@@ -327,95 +317,72 @@ class ChooseAccessPointService(AgentBaseService, remote.RemoteServiceMixin):
                 ap_id__in=valid_ap_ids
             ).update(ap_id=cloud.ap_id)
 
-        # 获取存活的Proxy ID 列表
-        all_proxies = models.Host.objects.filter(
-            bk_cloud_id__in=bk_cloud_ids, node_type=constants.NodeType.PROXY
-        ).values("bk_host_id", "bk_cloud_id", "ap_id")
-        # 过滤出指定 GSE VERSION的proxy
-        return [proxy for proxy in all_proxies if ap_id_obj_map[proxy["ap_id"]].gse_version == gse_version]
-
     def handle_pagent_condition(
         self,
-        pagent_host_ids__gby_cloud_id: Dict[int, List[int]],
+        host_ids__gby_cloud_id: Dict[int, List[int]],
         ap_id_obj_map: Dict[int, models.AccessPoint],
         gse_version: str,
     ) -> List[Dict[str, Any]]:
         """
         处理Pagent的情况，随机选择存活接入点
-        :param pagent_host_ids__gby_cloud_id: PAgent 主机ID - 管控区域ID 映射
+        :param host_ids__gby_cloud_id: PAgent 主机ID - 管控区域ID 映射
         :param ap_id_obj_map: 接入点ID - 信息映射
         :param gse_version:
         :return: 接入点选择结果列表
         """
-        if not pagent_host_ids__gby_cloud_id:
+
+        if not host_ids__gby_cloud_id:
             return []
 
-        # 获取指定管控区域范围内全部的Proxy
-        all_proxies: List[Dict[str, Any]] = self.fetch_cloud_proxies_for_gse_version(
-            bk_cloud_ids=list(pagent_host_ids__gby_cloud_id.keys()),
-            ap_id_obj_map=ap_id_obj_map,
-            gse_version=gse_version,
+        choose_ap_results = []
+        bk_cloud_ids: List[int] = list(host_ids__gby_cloud_id.keys())
+        # Proxy 复位
+        self.reset_cloud_proxies_ap(bk_cloud_ids=bk_cloud_ids, ap_id_obj_map=ap_id_obj_map)
+
+        cloud_id__proxies_map: Dict[int, List[models.Host]] = get_cloud_id__proxies_map(
+            bk_cloud_ids=bk_cloud_ids, gse_version=gse_version
         )
-        all_proxy_host_ids = [proxy["bk_host_id"] for proxy in all_proxies]
-        proxy_host_id__ap_id_map = {proxy["bk_host_id"]: proxy["ap_id"] for proxy in all_proxies}
 
-        # 获取存活的Proxy ID 列表
-        alive_proxy_host_ids = models.ProcessStatus.objects.filter(
-            bk_host_id__in=all_proxy_host_ids, status=constants.ProcStateType.RUNNING
-        ).values_list("bk_host_id", flat=True)
+        for cloud_id in bk_cloud_ids:
 
-        # 将存活的 Proxy 按管控区域进行聚合
-        # 转为set，提高 in 的执行效率
-        alive_proxy_host_ids = set(alive_proxy_host_ids)
-        alive_proxy_host_ids_gby_cloud_id: Dict[int, List[int]] = defaultdict(list)
-        for proxy in all_proxies:
-            if proxy["bk_host_id"] not in alive_proxy_host_ids:
-                continue
-            alive_proxy_host_ids_gby_cloud_id[proxy["bk_cloud_id"]].append(proxy["bk_host_id"])
-
-        # 随机选取Proxy
-        choose_ap_results: List[Dict[str, Any]] = []
-        for bk_cloud_id, bk_host_ids in pagent_host_ids__gby_cloud_id.items():
-            alive_proxy_host_ids_in_cloud = alive_proxy_host_ids_gby_cloud_id[bk_cloud_id]
-            if not alive_proxy_host_ids_in_cloud:
-                for bk_host_id in bk_host_ids:
+            # 尝试 random，如果没有存活 Proxy 时，该云区域下 PAgent 报错
+            try:
+                models.Host.get_random_alive_proxy(cloud_id__proxies_map.get(cloud_id) or [])
+            except AliveProxyNotExistsError:
+                for host_id in host_ids__gby_cloud_id.pop(cloud_id):
                     choose_ap_results.append(
                         self.construct_return_data(
-                            bk_host_id=bk_host_id,
+                            bk_host_id=host_id,
                             ap_id=self.FAILED_AP_ID,
                             ap_name="",
                             log=_("管控区域 -> {bk_cloud_id} 下无 GSE版本 -> {gse_version} 存活的 Proxy").format(
-                                bk_cloud_id=bk_cloud_id,
+                                bk_cloud_id=cloud_id,
                                 gse_version=gse_version,
                             ),
                         )
                     )
-                continue
 
-            for bk_host_id in bk_host_ids:
-                alive_proxy_host_id = random.choice(alive_proxy_host_ids_in_cloud)
-                ap_id = proxy_host_id__ap_id_map[alive_proxy_host_id]
-                choose_ap_results.append(
-                    self.construct_return_data(bk_host_id=bk_host_id, ap_id=ap_id, ap_name=ap_id_obj_map[ap_id].name)
-                )
+        choose_ap_results.extend(self.handle_no_lan_condition(host_ids__gby_cloud_id, ap_id_obj_map, gse_version))
         return choose_ap_results
 
-    def handle_proxy_condition(
+    def handle_no_lan_condition(
         self,
-        proxy_hosts__gby_cloud_id: Dict[int, List[models.Host]],
+        host_ids__gby_cloud_id: Dict[int, List[int]],
         ap_id_obj_map: Dict[int, models.AccessPoint],
         gse_version: str,
     ) -> List[Dict[str, Any]]:
-        choose_ap_results = []
 
+        if not host_ids__gby_cloud_id:
+            return []
+        choose_ap_results = []
         cloud_id__info_map: Dict[int, Dict[str, Any]] = {
             cloud_info["bk_cloud_id"]: {"ap_id": cloud_info["ap_id"], "bk_cloud_name": cloud_info["bk_cloud_name"]}
-            for cloud_info in models.Cloud.objects.filter(bk_cloud_id__in=proxy_hosts__gby_cloud_id.keys()).values(
+            for cloud_info in models.Cloud.objects.filter(bk_cloud_id__in=host_ids__gby_cloud_id.keys()).values(
                 "bk_cloud_id", "ap_id", "bk_cloud_name"
             )
         }
 
-        for cloud_id, proxy_hosts in proxy_hosts__gby_cloud_id.items():
+        for cloud_id, host_ids in host_ids__gby_cloud_id.items():
             cloud_info = cloud_id__info_map[cloud_id]
             if any(
                 [
@@ -427,7 +394,7 @@ class ChooseAccessPointService(AgentBaseService, remote.RemoteServiceMixin):
             ):
                 ap_id = cloud_info["ap_id"]
             else:
-                # 管控区域接入点处于 V1，需要安装 V2 的 Proxy，需要选择管控区域所在接入点的 V2 映射接入点
+                # 管控区域接入点处于 V1，需要安装 V2 的 Proxy / Agent，需要选择管控区域所在接入点的 V2 映射接入点
                 gray_ap_map: Dict[int, int] = GrayHandler.get_gray_ap_map()
                 try:
                     ap_id = gray_ap_map[cloud_info["ap_id"]]
@@ -436,11 +403,11 @@ class ChooseAccessPointService(AgentBaseService, remote.RemoteServiceMixin):
                     choose_ap_results.extend(
                         [
                             self.construct_return_data(
-                                bk_host_id=proxy_host.bk_host_id,
+                                bk_host_id=host_id,
                                 ap_id=self.FAILED_AP_ID,
                                 ap_name="",
                                 log=_(
-                                    "Proxy 所在「管控区域」 「{bk_cloud_name}」[{bk_cloud_id}] 下无 GSE 版本 -> {gse_version} 的接入点，"
+                                    "主机所在「管控区域」 「{bk_cloud_name}」[{bk_cloud_id}] 下无 GSE 版本 -> {gse_version} 的接入点，"
                                     "请联系管理员添加映射关系"
                                 ).format(
                                     bk_cloud_name=cloud_info["bk_cloud_name"],
@@ -448,18 +415,18 @@ class ChooseAccessPointService(AgentBaseService, remote.RemoteServiceMixin):
                                     gse_version=gse_version,
                                 ),
                             )
-                            for proxy_host in proxy_hosts
+                            for host_id in host_ids
                         ]
                     )
                     continue
 
-            for proxy_host in proxy_hosts:
+            for host_id in host_ids:
                 choose_ap_results.append(
                     self.construct_return_data(
-                        bk_host_id=proxy_host.bk_host_id,
+                        bk_host_id=host_id,
                         ap_id=ap_id,
                         ap_name=ap_id_obj_map[ap_id].name,
-                        log=_("已选择 Proxy 所在「管控区域」「{bk_cloud_name}」[{bk_cloud_id}] 指定的接入点 [{ap_name}]").format(
+                        log=_("已选择主机所在「管控区域」「{bk_cloud_name}」[{bk_cloud_id}] 指定的接入点 [{ap_name}]").format(
                             bk_cloud_name=cloud_info["bk_cloud_name"],
                             bk_cloud_id=cloud_id,
                             ap_name=ap_id_obj_map[ap_id].name,
@@ -468,6 +435,15 @@ class ChooseAccessPointService(AgentBaseService, remote.RemoteServiceMixin):
                 )
 
         return choose_ap_results
+
+    def handle_proxy_condition(
+        self,
+        host_ids__gby_cloud_id: Dict[int, List[int]],
+        ap_id_obj_map: Dict[int, models.AccessPoint],
+        gse_version: str,
+    ) -> List[Dict[str, Any]]:
+
+        return self.handle_no_lan_condition(host_ids__gby_cloud_id, ap_id_obj_map, gse_version)
 
     def handle_choose_ap_results(
         self,
@@ -555,7 +531,7 @@ class ChooseAccessPointService(AgentBaseService, remote.RemoteServiceMixin):
         remote_conn_helpers: List[ExternalRemoteConnHelper] = []
         choose_ap_results: List[Dict[str, Any]] = []
         bk_host_id__sub_inst_id_map: Dict[int, int] = {}
-        proxy_hosts__gby_cloud_id: Dict[int, List[models.Host]] = defaultdict(list)
+        proxy_host_ids__gby_cloud_id: Dict[int, List[int]] = defaultdict(list)
         # 按管控区域划分PAGENT
         pagent_host_ids__gby_cloud_id: Dict[int, List[int]] = defaultdict(list)
 
@@ -567,7 +543,7 @@ class ChooseAccessPointService(AgentBaseService, remote.RemoteServiceMixin):
 
             # Proxy 设置为所在管控区域的接入点，每次都需要重置，防止管控区域修改后 Proxy 未同步
             if host.node_type == constants.NodeType.PROXY:
-                proxy_hosts__gby_cloud_id[host.bk_cloud_id].append(host)
+                proxy_host_ids__gby_cloud_id[host.bk_cloud_id].append(host.bk_host_id)
             # PAGENT 需要从所在管控区域下随机选取一台存活的Proxy
             elif host.node_type == constants.NodeType.PAGENT:
                 pagent_host_ids__gby_cloud_id[host.bk_cloud_id].append(host.bk_host_id)
@@ -598,17 +574,16 @@ class ChooseAccessPointService(AgentBaseService, remote.RemoteServiceMixin):
         # 处理 Proxy 选择所在管控区域接入点的情况
         choose_ap_results.extend(
             self.handle_proxy_condition(
-                proxy_hosts__gby_cloud_id=proxy_hosts__gby_cloud_id,
+                host_ids__gby_cloud_id=proxy_host_ids__gby_cloud_id,
                 ap_id_obj_map=ap_id_obj_map,
                 gse_version=gse_version,
             )
         )
 
         # 处理 PAGENT 选择接入点的情况
-        # 根据 P-Agent 所属的 GSE 版本（V1/V2）选 Proxy（Proxy 和 P-Agent 所指向的接入点需要一致） 及对应的接入点
         choose_ap_results.extend(
             self.handle_pagent_condition(
-                pagent_host_ids__gby_cloud_id=pagent_host_ids__gby_cloud_id,
+                host_ids__gby_cloud_id=pagent_host_ids__gby_cloud_id,
                 ap_id_obj_map=ap_id_obj_map,
                 gse_version=gse_version,
             )

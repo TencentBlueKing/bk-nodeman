@@ -9,11 +9,13 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import ujson as json
 from django.conf import settings
 
+from apps.backend.agent.tools import fetch_gse_servers_info
+from apps.backend.subscription.steps.agent_adapter.base import AgentSetupInfo
 from apps.backend.utils.data_renderer import nested_render_data
 from apps.backend.utils.encrypted import GseEncrypted
 from apps.node_man import constants, models
@@ -450,9 +452,9 @@ def generate_gse_config(
     host: models.Host,
     filename: str,
     node_type: str,
-    ap: Optional[models.AccessPoint] = None,
-    proxies: Optional[List[models.Host]] = None,
-    install_channel: Tuple[Optional[models.Host], Dict[str, List]] = None,
+    ap: models.AccessPoint,
+    proxies: List[models.Host],
+    install_channel: Tuple[Optional[models.Host], Dict[str, List]],
 ):
     """
     生成 GSE 相关配置
@@ -464,23 +466,15 @@ def generate_gse_config(
     :param install_channel: 安装通道
     :return:
     """
-    # 批量执行时，通过指定 ap 减少DB查询次数
-    ap = ap or host.ap
     agent_config = ap.get_agent_config(host.os_type)
     setup_path = agent_config["setup_path"]
     log_path = agent_config["log_path"]
     # 如果没有自定义则使用接入点默认配置
     data_path = host.extra_data.get("data_path") or agent_config["data_path"]
 
-    taskserver_outer_ips = ap.cluster_endpoint_info.outer_hosts
-    btfileserver_outer_ips = ap.file_endpoint_info.outer_hosts
-    dataserver_outer_ips = ap.data_endpoint_info.outer_hosts
-
-    install_channel = install_channel or host.install_channel
-    __, upstream_nodes = install_channel
-    taskserver_inner_ips = [server for server in upstream_nodes["taskserver"]]
-    btfileserver_inner_ips = [server for server in upstream_nodes["btfileserver"]]
-    dataserver_inner_ips = [server for server in upstream_nodes["dataserver"]]
+    gse_servers_info: Dict[str, Any] = fetch_gse_servers_info(
+        AgentSetupInfo(is_legacy=True), host, ap, proxies, install_channel
+    )
 
     if host.os_type == constants.OsType.WINDOWS:
         path_sep = constants.WINDOWS_SEP
@@ -537,7 +531,6 @@ def generate_gse_config(
         else:
             zk_auth = f"{ap.zk_account}:{ap.zk_password}"
 
-        proxies = proxies if proxies is not None else host.proxies
         context = {
             "setup_path": setup_path,
             "log_path": log_path,
@@ -577,9 +570,9 @@ def generate_gse_config(
             "proc_port": port_config.get("proc_port"),
             "plugin_path": plugin_path,
             "is_aix": host.os_type == constants.OsType.AIX,
-            "taskserver_inner_ips": taskserver_inner_ips,
-            "btfileserver_inner_ips": btfileserver_inner_ips,
-            "dataserver_inner_ips": dataserver_inner_ips,
+            "taskserver_inner_ips": gse_servers_info["task_server_hosts"],
+            "btfileserver_inner_ips": gse_servers_info["bt_file_server_hosts"],
+            "dataserver_inner_ips": gse_servers_info["data_server_hosts"],
             "is_designated_upstream_servers": is_designated_upstream_servers(host),
         }
 
@@ -602,9 +595,9 @@ def generate_gse_config(
             "data_path": data_path,
             "bk_supplier_id": 0,
             "bk_cloud_id": host.bk_cloud_id,
-            "taskserver_outer_ips": taskserver_outer_ips,
-            "btfileserver_outer_ips": btfileserver_outer_ips,
-            "dataserver_outer_ips": dataserver_outer_ips,
+            "taskserver_outer_ips": gse_servers_info["task_server_hosts"],
+            "btfileserver_outer_ips": gse_servers_info["bt_file_server_hosts"],
+            "dataserver_outer_ips": gse_servers_info["data_server_hosts"],
             "inner_ip": host.inner_ip,
             "outer_ip": host.outer_ip,
             "proxy_servers": [host.inner_ip],

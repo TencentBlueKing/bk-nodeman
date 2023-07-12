@@ -533,6 +533,10 @@ class AgentServiceBaseTestCase(CustomAPITestCase, ComponentTestMixin, ABC):
         ap_obj.save()
         self.except_ap_ids = [ap_obj.id]
 
+        models.Cloud.objects.update_or_create(
+            bk_cloud_id=bk_cloud_id, defaults={"ap_id": ap_obj.id, "bk_cloud_name": f"测试云区域{bk_cloud_id}"}
+        )
+
         proxy_host_ids = []
         proxy_data_host_list = []
         proc_status_data_list = []
@@ -547,6 +551,7 @@ class AgentServiceBaseTestCase(CustomAPITestCase, ComponentTestMixin, ABC):
                 {
                     "ap_id": ap_obj.id,
                     "bk_cloud_id": bk_cloud_id,
+                    "bk_agent_id": f"{bk_cloud_id}:{proxy_host_id}",
                     "node_type": constants.NodeType.PROXY,
                     "bk_host_id": proxy_host_id,
                     "inner_ip": common_unit.host.PROXY_INNER_IP,

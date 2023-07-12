@@ -30,18 +30,19 @@ class ConfigContextHelper:
     agent_setup_info: AgentSetupInfo
     host: models.Host
     node_type: str
-    ap: typing.Optional[models.AccessPoint] = None
-    proxies: typing.Optional[typing.List[models.Host]] = None
-    install_channel: typing.Tuple[typing.Optional[models.Host], typing.Dict[str, typing.List]] = None
+    ap: models.AccessPoint
+    proxies: typing.List[models.Host]
+    install_channel: typing.Tuple[typing.Optional[models.Host], typing.Dict[str, typing.List]]
 
     context_dict: typing.Dict[str, typing.Any] = field(init=False)
 
     def __post_init__(self):
         # 优先使用构造数据，不存在构造数据再走 DB 查询
-        self.ap = self.ap or self.host.ap
-        if self.proxies is None:
-            self.proxies = self.host.proxies
-        self.install_channel = self.install_channel or self.host.install_channel
+        # self.ap = self.ap or self.host.ap
+        # # TODO 收敛到公共方法
+        # if self.proxies is None:
+        #     self.proxies = self.host.proxies
+        # self.install_channel = self.install_channel or self.host.install_channel
 
         agent_config: typing.Dict[str, typing.Any] = self.ap.get_agent_config(self.host.os_type)
         gse_servers_info: typing.Dict[str, typing.Any] = tools.fetch_gse_servers_info(

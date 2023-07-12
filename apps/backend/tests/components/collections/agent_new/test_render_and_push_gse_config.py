@@ -43,7 +43,12 @@ class RenderAndPushGseConfigTestCase(base.JobBaseTestCase):
         for host in self.obj_factory.host_objs:
             node_type = ("agent", "proxy")[host.os_type == constants.NodeType.PROXY]
             except_content = legacy.generate_gse_config(
-                host=host, filename=config_info["file_name"], node_type=node_type
+                host=host,
+                filename=config_info["file_name"],
+                node_type=node_type,
+                ap=host.ap,
+                proxies=host.proxies,
+                install_channel=host.install_channel,
             )
             self.assertEqual(except_content, config_content)
         super().tearDown()
