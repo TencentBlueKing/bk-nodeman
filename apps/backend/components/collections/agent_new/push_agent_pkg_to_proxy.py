@@ -8,9 +8,11 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import typing
 from dataclasses import dataclass, fields
 from typing import Dict, List
 
+from apps.backend.agent.tools import get_cloud_id__proxies_map
 from apps.core.files.storage import get_storage
 from apps.node_man import constants, models
 
@@ -34,7 +36,7 @@ class PushAgentPkgToProxyService(AgentTransferFileService):
         # 提前批量查询安装通道、路径等数据，避免在 get_target_servers/get_job_file_params 中循环对单机进行查询
         cloud_ids = {host.bk_cloud_id for host in common_data.host_id_obj_map.values()}
         gse_version = data.get_one_of_inputs("meta", {}).get("GSE_VERSION")
-        cloud_id__proxies_map = self.get_cloud_id__proxies_map(cloud_ids, common_data.ap_id_obj_map, gse_version)
+        cloud_id__proxies_map = get_cloud_id__proxies_map(cloud_ids, gse_version)
         install_channel_ids = [
             host.install_channel_id for host in common_data.host_id_obj_map.values() if host.install_channel_id
         ]
@@ -58,7 +60,8 @@ class PushAgentPkgToProxyService(AgentTransferFileService):
                 )
                 target_servers["host_id_list"].append(install_channel_host.bk_host_id)
         else:
-            for proxy in common_data.cloud_id__proxies_map[host.bk_cloud_id]:
+            proxies: typing.List[models.Host] = common_data.cloud_id__proxies_map.get(host.bk_cloud_id) or []
+            for proxy in proxies:
                 # 只对存活的 Proxy 分发文件，提高任务成功率
                 if proxy.status != constants.ProcStateType.RUNNING:
                     continue
