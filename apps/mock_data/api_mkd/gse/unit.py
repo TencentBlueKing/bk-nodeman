@@ -115,6 +115,35 @@ GET_PROC_STATUS_DATA = {
 }
 
 
+def mock_get_agent_status_return(params):
+    agent_id__agent_status_map = {}
+    for host_info in params["hosts"]:
+        agent_id__agent_status_map[f"{host_info['bk_cloud_id']}:{host_info['ip']}"] = {
+            **GET_AGENT_ALIVE_STATUS_DATA[f"{constants.DEFAULT_CLOUD}:{host.DEFAULT_IP}"],
+            "bk_cloud_id": host_info["bk_cloud_id"],
+            "ip": host_info["ip"],
+        }
+    return agent_id__agent_status_map
+
+
+def mock_get_agent_status_not_alive_return(params):
+    agent_id__agent_status_map = mock_get_agent_status_return(params)
+    for __, agent_status in agent_id__agent_status_map.items():
+        agent_status["bk_agent_alive"] = constants.BkAgentStatus.NOT_ALIVE.value
+    return agent_id__agent_status_map
+
+
+def mock_get_agent_info_return(params):
+    agent_id__agent_info_map = {}
+    for host_info in params["hosts"]:
+        agent_id__agent_info_map[f"{host_info['bk_cloud_id']}:{host_info['ip']}"] = {
+            **GET_AGENT_INFO_DATA[f"{constants.DEFAULT_CLOUD}:{host.DEFAULT_IP}"],
+            "bk_cloud_id": host_info["bk_cloud_id"],
+            "ip": host_info["ip"],
+        }
+    return agent_id__agent_info_map
+
+
 def mock_get_agent_info_list(params):
     agent_info_list = copy.deepcopy(GET_AGENT_INFO_LIST_DATA)
     for index, agent_info in enumerate(agent_info_list):

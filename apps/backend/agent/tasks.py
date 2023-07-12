@@ -51,7 +51,7 @@ def collect_log(bk_host_id, node_id=None):
     dest_dir = suffix_slash(host.os_type.lower(), dest_dir)
     ssh_man = None
     if host.node_type == constants.NodeType.PAGENT:
-        proxy = host.get_random_alive_proxy()
+        proxy = host.get_random_alive_proxy(host.proxies)
         tmp_path = proxy.ap.agent_config["linux"]["temp_path"]
         # 登录目标机器执行命令
         if host.os_type == constants.OsType.WINDOWS:
