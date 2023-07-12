@@ -17,6 +17,7 @@ from dataclasses import dataclass, field
 from rest_framework import serializers
 
 from apps.backend import exceptions
+from apps.backend.agent.tools import fetch_proxies
 from apps.node_man import constants, models
 from apps.utils import cache
 from env.constants import GseVersion
@@ -94,9 +95,9 @@ class AgentStepAdapter:
         host: models.Host,
         filename: str,
         node_type: str,
-        ap: typing.Optional[models.AccessPoint] = None,
-        proxies: typing.Optional[typing.List[models.Host]] = None,
-        install_channel: typing.Tuple[typing.Optional[models.Host], typing.Dict[str, typing.List]] = None,
+        ap: models.AccessPoint,
+        proxies: typing.List[models.Host],
+        install_channel: typing.Tuple[typing.Optional[models.Host], typing.Dict[str, typing.List]],
     ) -> str:
         config_tmpl_objs: typing.List[base.AgentConfigTemplate] = self.config_tmpl_obj_gby_os_key.get(
             self.get_os_key(host.os_type, host.cpu_arch),
@@ -155,6 +156,11 @@ class AgentStepAdapter:
         :param install_channel: 安装通道
         :return:
         """
+
+        ap = ap or host.ap
+        proxies = proxies if proxies is not None else fetch_proxies(host, ap)
+        install_channel = install_channel or host.install_channel
+
         func: typing.Callable[..., str] = (self._get_config, legacy.generate_gse_config)[self.is_legacy]
         return func(
             host=host, filename=filename, node_type=node_type, ap=ap, proxies=proxies, install_channel=install_channel

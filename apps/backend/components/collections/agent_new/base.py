@@ -14,28 +14,21 @@ import re
 import time
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Iterable,
-    List,
-    Match,
-    Optional,
-    Set,
-    Tuple,
-    Type,
-    Union,
-)
+from typing import Any, Callable, Dict, List, Match, Optional, Set, Tuple, Type, Union
 
 import wrapt
 from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
 
-from apps.backend.agent.tools import InstallationTools, batch_gen_commands
+from apps.backend.agent.tools import (
+    InstallationTools,
+    batch_gen_commands,
+    get_cloud_id__proxies_map,
+)
 from apps.backend.exceptions import OsVersionPackageValidationError
 from apps.backend.subscription.steps.agent_adapter.adapter import AgentStepAdapter
 from apps.node_man import constants, models
+from apps.node_man.exceptions import AliveProxyNotExistsError
 
 from .. import job
 from ..base import BaseService, CommonData
@@ -171,37 +164,10 @@ class AgentBaseService(BaseService, metaclass=abc.ABCMeta):
             agent_path = constants.LINUX_SEP.join([download_path, "agent", host.os_type.lower()])
         return agent_path
 
-    @staticmethod
-    def get_cloud_id__proxies_map(
-        bk_cloud_ids: Iterable[int], ap_id_obj_map: Dict[int, models.AccessPoint], gse_version: str
-    ) -> Dict[int, List[models.Host]]:
-        proxies = models.Host.objects.filter(
-            bk_cloud_id__in=set(bk_cloud_ids),
-            node_type=constants.NodeType.PROXY,
-        )
-        # 按 GSE VERSION 进行过滤
-        proxies = [proxy for proxy in proxies if ap_id_obj_map[proxy.ap_id].gse_version == gse_version]
-        proxy_host_ids = [proxy.bk_host_id for proxy in proxies]
-        alive_proxy_host_ids = models.ProcessStatus.objects.filter(
-            bk_host_id__in=proxy_host_ids,
-            name=models.ProcessStatus.GSE_AGENT_PROCESS_NAME,
-            status=constants.ProcStateType.RUNNING,
-        ).values_list("bk_host_id", flat=True)
-        alive_proxy_host_ids: Set[int] = set(alive_proxy_host_ids)
-
-        cloud_id__proxies_map: Dict[int, List[models.Host]] = defaultdict(list)
-        for proxy in proxies:
-            proxy.status = (constants.ProcStateType.TERMINATED, constants.ProcStateType.RUNNING)[
-                proxy.bk_host_id in alive_proxy_host_ids
-            ]
-            cloud_id__proxies_map[proxy.bk_cloud_id].append(proxy)
-        return cloud_id__proxies_map
-
     def get_host_id__install_channel_map(
         self,
         hosts: List[models.Host],
         host_id__sub_inst_id: Dict[int, int],
-        host_id__ap_map: Dict[int, models.AccessPoint],
         cloud_id__proxies_map: Dict[int, List[models.Host]],
     ) -> Dict[int, Tuple[Optional[models.Host], Dict[str, List]]]:
         install_channel_ids: List[int] = list({host.install_channel_id for host in hosts})
@@ -234,27 +200,19 @@ class AgentBaseService(BaseService, metaclass=abc.ABCMeta):
                 else:
                     host_id__install_channel_map[host.bk_host_id] = (jump_server, install_channel_obj.upstream_servers)
             elif host.bk_cloud_id != constants.DEFAULT_CLOUD and host.node_type != constants.NodeType.PROXY:
+                # 仅校验
                 alive_proxies = cloud_id__alive_proxies_map.get(host.bk_cloud_id, [])
                 try:
-                    jump_server = random.choice(alive_proxies)
-                except IndexError:
+                    host.get_random_alive_proxy(alive_proxies)
+                except AliveProxyNotExistsError:
                     self.move_insts_to_failed(
                         [sub_inst_id],
                         log_content=_("管控区域 -> {bk_cloud_id} 下无存活的 Proxy").format(bk_cloud_id=host.bk_cloud_id),
                     )
                 else:
-                    proxy_ips = [alive_proxy.inner_ip for alive_proxy in alive_proxies]
-                    upstream_servers = {"taskserver": proxy_ips, "btfileserver": proxy_ips, "dataserver": proxy_ips}
-                    host_id__install_channel_map[host.bk_host_id] = (jump_server, upstream_servers)
+                    host_id__install_channel_map[host.bk_host_id] = (None, {})
             else:
-                host_ap = host_id__ap_map[host.bk_host_id]
-                jump_server = None
-                upstream_servers = {
-                    "taskserver": host_ap.cluster_endpoint_info.inner_hosts,
-                    "btfileserver": host_ap.file_endpoint_info.inner_hosts,
-                    "dataserver": host_ap.data_endpoint_info.inner_hosts,
-                }
-                host_id__install_channel_map[host.bk_host_id] = (jump_server, upstream_servers)
+                host_id__install_channel_map[host.bk_host_id] = (None, {})
 
         return host_id__install_channel_map
 
@@ -267,16 +225,13 @@ class AgentBaseService(BaseService, metaclass=abc.ABCMeta):
         injected_ap_id: int = None,
     ) -> Dict[int, InstallationTools]:
 
-        cloud_id__proxies_map = self.get_cloud_id__proxies_map(
-            bk_cloud_ids=[host.bk_cloud_id for host in hosts_need_gen_commands],
-            ap_id_obj_map=common_data.ap_id_obj_map,
-            gse_version=gse_version,
+        cloud_id__proxies_map: Dict[int, List[models.Host]] = get_cloud_id__proxies_map(
+            bk_cloud_ids=[host.bk_cloud_id for host in hosts_need_gen_commands], gse_version=gse_version
         )
 
         host_id__install_channel_map = self.get_host_id__install_channel_map(
             hosts=hosts_need_gen_commands,
             host_id__sub_inst_id=common_data.host_id__sub_inst_id_map,
-            host_id__ap_map=common_data.host_id__ap_map,
             cloud_id__proxies_map=cloud_id__proxies_map,
         )
 

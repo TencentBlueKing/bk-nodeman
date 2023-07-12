@@ -8,15 +8,18 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from collections import defaultdict
 from dataclasses import asdict
-from typing import Any, Dict, List, Optional, Tuple, Type
+from typing import Any, Dict, Iterable, List, Optional, Set, Tuple, Type
 
 from django.conf import settings
 
+from apps.adapters.api.gse import get_gse_api_helper
 from apps.backend.subscription.steps.agent_adapter.base import AgentSetupInfo
 from apps.core.script_manage.base import ScriptHook
 from apps.core.script_manage.handlers import ScriptManageHandler
 from apps.node_man import constants, models
+from env.constants import GseVersion
 
 from ...utils import basic
 from . import solution_maker
@@ -137,6 +140,91 @@ def fetch_gse_servers_info(
     }
 
 
+def db_alive_proxies_host_ids(proxies: List[models.Host], gse_version: str) -> Set[int]:
+    """
+    通过 DB 获取存活 Proxy 状态列表
+    :param proxies:
+    :param gse_version:
+    :return:
+    """
+    proxy_host_ids: Set[int] = {proxy.bk_host_id for proxy in proxies}
+    alive_proxy_host_ids: List[int] = models.ProcessStatus.objects.filter(
+        bk_host_id__in=proxy_host_ids,
+        name=models.ProcessStatus.GSE_AGENT_PROCESS_NAME,
+        status=constants.ProcStateType.RUNNING,
+    ).values_list("bk_host_id", flat=True)
+
+    return set(alive_proxy_host_ids)
+
+
+def api_alive_proxies_host_ids(proxies: List[models.Host], gse_version: str) -> Set[int]:
+    """
+    通过 API 获取存活 Proxy 列表
+    :param proxies:
+    :param gse_version:
+    :return:
+    """
+    query_hosts: List[Dict[str, Optional[str]]] = []
+    agent_id__host_id_map: Dict[str, int] = {}
+    for proxy in proxies:
+        agent_id: str = get_gse_api_helper(gse_version).get_agent_id(proxy)
+        agent_id__host_id_map[agent_id] = proxy.bk_host_id
+        if not proxy.bk_agent_id and gse_version == GseVersion.V2.value:
+            # 没有 AgentID 且属于 GSE 2.0，这种情况下不需要查状态，视为异常
+            continue
+        query_hosts.append(
+            {
+                "ip": proxy.inner_ip or proxy.inner_ipv6,
+                "bk_cloud_id": proxy.bk_cloud_id,
+                "bk_agent_id": proxy.bk_agent_id,
+            }
+        )
+
+    if not query_hosts:
+        return set()
+
+    agent_id__agent_state_info_map: Dict[str, Dict] = get_gse_api_helper(gse_version).list_agent_state(query_hosts)
+
+    return {
+        agent_id__host_id_map[agent_id]
+        for agent_id, agent_state_info in agent_id__agent_state_info_map.items()
+        if agent_state_info["bk_agent_alive"] == constants.BkAgentStatus.ALIVE.value
+    }
+
+
+def get_cloud_id__proxies_map(bk_cloud_ids: Iterable[int], gse_version: str) -> Dict[int, List[models.Host]]:
+    """
+    获取
+    :param bk_cloud_ids:
+    :param gse_version:
+    :return:
+    """
+    proxies: List[models.Host] = models.Host.objects.filter(
+        bk_cloud_id__in=bk_cloud_ids, node_type=constants.NodeType.PROXY
+    )
+
+    alive_proxy_host_ids: Set[int] = {
+        GseVersion.V2.value: api_alive_proxies_host_ids,
+        GseVersion.V1.value: api_alive_proxies_host_ids,
+    }[gse_version](proxies, gse_version)
+
+    # 填充状态
+    cloud_id__proxies_map: Dict[int, List[models.Host]] = defaultdict(list)
+    for proxy in proxies:
+        proxy.status = (constants.ProcStateType.TERMINATED, constants.ProcStateType.RUNNING)[
+            proxy.bk_host_id in alive_proxy_host_ids
+        ]
+        if proxy.status != constants.ProcStateType.RUNNING:
+            continue
+        cloud_id__proxies_map[proxy.bk_cloud_id].append(proxy)
+
+    return cloud_id__proxies_map
+
+
+def fetch_proxies(host: models.Host, ap: models.AccessPoint) -> List[models.Host]:
+    return get_cloud_id__proxies_map([host.bk_cloud_id], ap.gse_version).get(host.bk_cloud_id, [])
+
+
 def gen_commands(
     agent_setup_info: AgentSetupInfo,
     host: models.Host,
@@ -170,7 +258,8 @@ def gen_commands(
     host_ap = host_ap or host.ap
     identity_data = identity_data or host.identity
     install_channel = install_channel or host.install_channel
-    proxies = proxies if proxies is not None else host.proxies
+    proxies = proxies if proxies is not None else fetch_proxies(host, host_ap)
+    # TODO 如果是额外安装场景，这里的 jumpserver 应该选取当前作业平台全业务集可用的机器
     gse_servers_info: Dict[str, Any] = fetch_gse_servers_info(
         agent_setup_info=agent_setup_info, host=host, host_ap=host_ap, proxies=proxies, install_channel=install_channel
     )

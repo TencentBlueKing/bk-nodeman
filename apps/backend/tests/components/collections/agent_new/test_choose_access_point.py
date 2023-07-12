@@ -26,8 +26,9 @@ from apps.core.remote.tests.base import (
     AsyncSSHMockClient,
     get_asyncssh_connect_mock_patch,
 )
-from apps.mock_data import common_unit
+from apps.mock_data import api_mkd, common_unit
 from apps.node_man import constants, models
+from env.constants import GseVersion
 from pipeline.component_framework.test import (
     ComponentTestCase,
     ExecuteAssertion,
@@ -86,6 +87,10 @@ class ChooseAccessPointTestCase(utils.AgentServiceBaseTestCase):
 
     def start_patch(self):
         get_asyncssh_connect_mock_patch(self.ssh_mock_client).start()
+        mock.patch(
+            "apps.backend.agent.tools.get_gse_api_helper",
+            api_mkd.gse.utils.get_gse_api_helper(GseVersion.V1.value, api_mkd.gse.utils.GseApiMockClient()),
+        ).start()
 
     def setUp(self) -> None:
         self.ssh_ping_time_selector = ping_time_selector
@@ -193,7 +198,9 @@ class WindowsAgentTestCase(ChooseAccessPointTestCase):
         return f"{self.NODE_TYPE}-{self.OS_TYPE} 通过 WMI 检测网络情况"
 
     def start_patch(self):
+        super().start_patch()
         # 让 Windows SSH 检测失败
+
         class AsyncMockErrorConn(AsyncMockConn):
             async def connect(self):
                 raise exceptions.DisconnectError
@@ -218,6 +225,19 @@ class NotAliveProxiesTestCase(LinuxPAgentTestCase):
 
     def fetch_succeeded_sub_inst_ids(self) -> List[int]:
         return []
+
+    def start_patch(self):
+        super().start_patch()
+
+        mock.patch(
+            "apps.backend.agent.tools.get_gse_api_helper",
+            api_mkd.gse.utils.get_gse_api_helper(
+                GseVersion.V1.value,
+                api_mkd.gse.utils.GseApiMockClient(
+                    get_agent_status_return=api_mkd.gse.utils.GseApiMockClient.GET_AGENT_NOT_ALIVE_STATUS_RETURN,
+                ),
+            ),
+        ).start()
 
     def setUp(self) -> None:
         super().setUp()

@@ -23,13 +23,13 @@ class GseApiMockClient(utils.BaseMockClient):
         return_type=utils.MockReturnType.RETURN_VALUE.value, return_obj=unit.GET_PROC_OPERATE_RESULT
     )
     DEFAULT_GET_AGENT_INFO_RETURN = utils.MockReturn(
-        return_type=utils.MockReturnType.RETURN_VALUE.value, return_obj=unit.GET_AGENT_INFO_DATA
+        return_type=utils.MockReturnType.SIDE_EFFECT.value, return_obj=unit.mock_get_agent_info_return
     )
     DEFAULT_GET_AGENT_STATUS_RETURN = utils.MockReturn(
-        return_type=utils.MockReturnType.RETURN_VALUE.value, return_obj=unit.GET_AGENT_ALIVE_STATUS_DATA
+        return_type=utils.MockReturnType.SIDE_EFFECT.value, return_obj=unit.mock_get_agent_status_return
     )
     GET_AGENT_NOT_ALIVE_STATUS_RETURN = utils.MockReturn(
-        return_type=utils.MockReturnType.RETURN_VALUE.value, return_obj=unit.GET_AGENT_NOT_ALIVE_STATUS_DATA
+        return_type=utils.MockReturnType.SIDE_EFFECT.value, return_obj=unit.mock_get_agent_status_not_alive_return
     )
     DEFAULT_LIST_AGENT_STATE_RETURN = utils.MockReturn(
         return_type=utils.MockReturnType.SIDE_EFFECT.value, return_obj=unit.mock_list_agent_state_return
