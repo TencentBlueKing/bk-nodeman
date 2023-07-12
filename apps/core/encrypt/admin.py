@@ -16,5 +16,5 @@ from . import models
 
 @admin.register(models.RSAKey)
 class RSAKeyAdmin(admin.ModelAdmin):
-    list_display = ["id", "name", "type", "description", "content"]
+    list_display = ["id", "name", "type", "description", "content", "cipher_type"]
     search_fields = ["id", "name", "type", "description"]

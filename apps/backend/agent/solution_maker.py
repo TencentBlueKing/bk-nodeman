@@ -16,6 +16,13 @@ import time
 import typing
 from pathlib import Path
 
+from bkcrypto.asymmetric.ciphers import BaseAsymmetricCipher
+from bkcrypto.asymmetric.options import RSAAsymmetricOptions
+from bkcrypto.constants import AsymmetricCipherType, RSACipherPadding
+from bkcrypto.contrib.django.ciphers import (
+    get_asymmetric_cipher,
+    symmetric_cipher_manager,
+)
 from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
 
@@ -24,7 +31,6 @@ from apps.backend.subscription.steps.agent_adapter.base import AgentSetupInfo
 from apps.core.script_manage.base import ScriptHook
 from apps.node_man import constants, models
 from apps.utils import basic
-from apps.utils.encrypt import rsa
 
 
 class ExecutionSolutionStepContent:
@@ -135,7 +141,7 @@ class BaseExecutionSolutionMaker(metaclass=abc.ABCMeta):
             # 允许 token 传递，以便代理（Proxy）make 目标执行方案时复用 token，保证 token 一致
             self.token = token
         else:
-            self.token: str = models.aes_cipher.encrypt(
+            self.token: str = symmetric_cipher_manager.cipher().encrypt(
                 f"{self.host.bk_host_id}|{self.host.inner_ip or self.host.inner_ipv6}|{self.host.bk_cloud_id}|"
                 f"{self.pipeline_id}|{time.time()}|{self.sub_inst_id}|{self.host_ap.id}"
             )
@@ -255,10 +261,21 @@ class BaseExecutionSolutionMaker(metaclass=abc.ABCMeta):
 
         # 系统开启使用密码注册 Windows 服务时，需额外传入 -U -P 参数，用于注册 Windows 服务，详见 setup_agent.bat 脚本
         if self.need_encrypted_password():
-            encrypted_password = rsa.RSAUtil(
-                public_extern_key_file=os.path.join(settings.BK_SCRIPTS_PATH, "gse_public_key"),
-                padding=rsa.CipherPadding.PKCS1_OAEP.value,
-            ).encrypt(self.identity_data.password)
+            # GSE 密码注册场景暂不启用国密，使用固定 RSA 的方式
+            cipher: BaseAsymmetricCipher = get_asymmetric_cipher(
+                AsymmetricCipherType.RSA.value,
+                cipher_options={
+                    AsymmetricCipherType.RSA.value: RSAAsymmetricOptions(
+                        public_key_file=os.path.join(settings.BK_SCRIPTS_PATH, "gse_public_key"),
+                        padding=RSACipherPadding.PKCS1_OAEP,
+                    )
+                },
+            )
+            encrypted_password = cipher.encrypt(self.identity_data.password)
+            # encrypted_password = rsa.RSAUtil(
+            #     public_extern_key_file=os.path.join(settings.BK_SCRIPTS_PATH, "gse_public_key"),
+            #     padding=rsa.CipherPadding.PKCS1_OAEP.value,
+            # ).encrypt(self.identity_data.password)
 
             run_cmd_params.extend(
                 [

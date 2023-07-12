@@ -11,47 +11,48 @@ specific language governing permissions and limitations under the License.
 import base64
 from typing import Type
 
+from bkcrypto.asymmetric.ciphers import BaseAsymmetricCipher
 from django.utils.translation import ugettext_lazy as _
 
 from apps.core.encrypt import constants as core_encrypt_constants
 from apps.core.encrypt import handlers as core_encrypt_handlers
-from apps.utils.encrypt import rsa
 
 
 class HostTools:
-    RSA_KEY_NAME: str = core_encrypt_constants.InternalRSAKeyNameEnum.DEFAULT.value
-    USE_RSA_PREFIX: str = base64.b64encode(RSA_KEY_NAME.encode()).decode()
+    ASYMMETRIC_KEY_NAME: str = core_encrypt_constants.InternalAsymmetricKeyNameEnum.DEFAULT.value
+    USE_ASYMMETRIC_PREFIX: str = base64.b64encode(ASYMMETRIC_KEY_NAME.encode()).decode()
 
     @classmethod
-    def get_rsa_util(cls) -> rsa.RSAUtil:
+    def get_asymmetric_cipher(cls) -> BaseAsymmetricCipher:
         """
         获取用于处理Agent、主机等敏感信息的非对称加密工具类
         此处作用主要是固定指定数据源所使用的密钥名称，减少多处加解密导致密钥使用分散
         :return:
         """
-        return core_encrypt_handlers.RSAHandler.get_or_generate_rsa_in_db(
-            name=core_encrypt_constants.InternalRSAKeyNameEnum.DEFAULT.value
-        )["rsa_util"]
+
+        return core_encrypt_handlers.AsymmetricHandler.get_or_generate_key_pair_in_db(
+            name=core_encrypt_constants.InternalAsymmetricKeyNameEnum.DEFAULT.value
+        )["cipher"]
 
     @classmethod
     def decrypt_with_friendly_exc_handle(
-        cls, rsa_util: rsa.RSAUtil, encrypt_message: str, raise_exec: Type[Exception]
+        cls, cipher: BaseAsymmetricCipher, encrypt_message: str, raise_exec: Type[Exception]
     ) -> str:
         """
         解密友好提示处理
-        :param rsa_util:
+        :param cipher: 密码器
         :param encrypt_message:
         :param raise_exec:
         :return:
         """
 
         # 如果不存在加密标识前缀，识别为明文密码并直接传递
-        if not encrypt_message.startswith(cls.USE_RSA_PREFIX):
+        if not encrypt_message.startswith(cls.USE_ASYMMETRIC_PREFIX):
             return encrypt_message
 
-        encrypt_message: str = encrypt_message[len(cls.USE_RSA_PREFIX) :]
+        encrypt_message: str = encrypt_message[len(cls.USE_ASYMMETRIC_PREFIX) :]
         try:
-            decrypt_message: str = rsa_util.decrypt(encrypt_message)
+            decrypt_message: str = cipher.decrypt(encrypt_message)
         except ValueError as e:
             raise raise_exec(_("密文无法解密，请检查是否按规则使用密钥加密：{err_msg}").format(err_msg=e))
         except Exception as e:
@@ -59,5 +60,5 @@ class HostTools:
 
         # 递归解密
         return cls.decrypt_with_friendly_exc_handle(
-            rsa_util=rsa_util, encrypt_message=decrypt_message, raise_exec=raise_exec
+            cipher=cipher, encrypt_message=decrypt_message, raise_exec=raise_exec
         )

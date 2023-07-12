@@ -53,13 +53,13 @@ class HostUpdateSerializer(serializers.Serializer):
     data_path = serializers.CharField(label=_("数据文件路径"), required=False)
 
     def validate(self, attrs):
-        rsa_util = tools.HostTools.get_rsa_util()
+        cipher = tools.HostTools.get_asymmetric_cipher()
         fields_need_encrypt = ["password", "key"]
         for field_need_encrypt in fields_need_encrypt:
             if field_need_encrypt not in attrs:
                 continue
             attrs[field_need_encrypt] = tools.HostTools.decrypt_with_friendly_exc_handle(
-                rsa_util=rsa_util, encrypt_message=attrs[field_need_encrypt], raise_exec=ValidationError
+                cipher=cipher, encrypt_message=attrs[field_need_encrypt], raise_exec=ValidationError
             )
         basic.ipv6_formatter(data=attrs, ipv6_field_names=["inner_ipv6", "outer_ipv6", "login_ip", "data_ip"])
         return attrs
