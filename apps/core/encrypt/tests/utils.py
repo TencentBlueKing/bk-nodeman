@@ -10,10 +10,10 @@ specific language governing permissions and limitations under the License.
 """
 import random
 
-from apps.utils.encrypt import rsa
+from bkcrypto.asymmetric.ciphers import BaseAsymmetricCipher
 
 
-def validate_rsa_util(rsa_util: rsa.RSAUtil):
+def validate_cipher(cipher: BaseAsymmetricCipher):
     passwords = ["测试密码1", "123A", "1" * random.randint(400, 1000), "测" * random.randint(200, 400), ""]
     for password in passwords:
-        assert rsa_util.decrypt(rsa_util.encrypt(password)) == password
+        assert cipher.decrypt(cipher.encrypt(password)) == password

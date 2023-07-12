@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+from bkcrypto.constants import AsymmetricCipherType
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
@@ -17,7 +18,8 @@ from . import constants
 
 class RSAKey(models.Model):
     name = models.CharField(_("密钥名称"), max_length=128)
-    type = models.CharField(_("密钥类型"), max_length=64, choices=constants.RSAKeyType.list_choices())
+    type = models.CharField(_("密钥类型"), max_length=64, choices=constants.AsymmetricKeyType.list_choices())
+    cipher_type = models.CharField(_("加密类型"), max_length=64, default=AsymmetricCipherType.RSA.value)
     description = models.TextField(_("密钥描述"), default="", null=True)
     content = models.TextField(_("密钥内容"))
 
@@ -25,7 +27,7 @@ class RSAKey(models.Model):
     create_time = models.DateTimeField(_("创建时间"), auto_now_add=True)
 
     class Meta:
-        verbose_name = _("RSA密钥")
-        verbose_name_plural = _("RSA密钥")
+        verbose_name = _("非对称加密密钥")
+        verbose_name_plural = _("非对称加密密钥")
         # 唯一性校验，name-type
-        unique_together = (("name", "type"),)
+        unique_together = (("name", "type", "cipher_type"),)
