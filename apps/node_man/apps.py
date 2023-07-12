@@ -8,6 +8,8 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import base64
+
 from blueapps.utils.esbclient import get_client_by_user
 from django.apps import AppConfig
 from django.conf import settings
@@ -105,3 +107,9 @@ class ApiConfig(AppConfig):
             key=GlobalSettings.KeyEnum.REGISTER_WIN_SERVICE_WITH_PASS.value, defaults=dict(v_json=False)
         )
         settings.REGISTER_WIN_SERVICE_WITH_PASS = obj.v_json
+
+        obj, created = GlobalSettings.objects.get_or_create(
+            key="null",
+            defaults={"v_json": base64.b64encode(settings.SECRET_KEY.encode()).decode()},
+        )
+        settings.BKCRYPTO_SYMMETRIC_KEY = obj.v_json

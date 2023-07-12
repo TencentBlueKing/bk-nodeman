@@ -3,9 +3,16 @@ on: [push, pull_request]
 jobs:
   run:
     runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: false
+      matrix:
+        BK_CRYPTO_TYPE:
+          - "CLASSIC"
+          - "SHANGMI"
+        PYTHON_VERSION:
+          - "3.6"
+    name: "[CodeCov][${{ matrix.BK_CRYPTO_TYPE }}] with Python ${{ matrix.PYTHON_VERSION }}"
     env:
-      OS: ubuntu-20.04
-      PYTHON: "3.6"
       DJANGO_SETTINGS_MODULE: "settings"
       DEBUG: true
       BKPAAS_ENGINE_REGION: "open"
@@ -17,12 +24,13 @@ jobs:
       BK_BACKEND_CONFIG: ""
       BK_PAAS_HOST: "http://127.0.0.1"
       BK_IAM_V3_INNER_HOST: "127.0.0.1"
+      BK_CRYPTO_TYPE: ${{ matrix.BK_CRYPTO_TYPE }}
       BKAPP_BKNODEMAN_NGINX_URL: "127.0.0.1"
       BKAPP_BACKEND_HOST: "http://127.0.0.1"
-      BROKER_URL: "redis://localhost:6379/0"
       BKAPP_BK_NODE_APIGATEWAY: "http://127.0.0.1:8000/"
       BKAPP_NODEMAN_CALLBACK_URL: "http://127.0.0.1:10300/backend"
       BKAPP_NODEMAN_OUTER_CALLBACK_URL: "http://127.0.0.1:10300/backend"
+      BROKER_URL: "redis://localhost:6379/0"
       MYSQL_NAME: "bk_nodeman"
       MYSQL_USER: "root"
       MYSQL_PASSWORD: "root"
@@ -50,9 +58,9 @@ jobs:
     - name: Checkout Repository
       uses: actions/checkout@v2
     - name: Setup Python
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v3
       with:
-        python-version: 3.6
+        python-version: ${{ matrix.PYTHON_VERSION }}
     - name: Setup Mysql
       run: |
         sudo systemctl start mysql.service

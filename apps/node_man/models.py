@@ -8,7 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import base64
 import copy
 import hashlib
 import json
@@ -29,7 +28,7 @@ from typing import Any, Dict, List, Optional, Set, Union
 
 import requests
 import six
-from Cryptodome.Cipher import AES
+from bkcrypto.contrib.django.fields import SymmetricTextField
 from django.conf import settings
 from django.core.cache import cache
 from django.db import models
@@ -54,7 +53,6 @@ from apps.node_man.exceptions import (
     CreateRecordError,
     HostNotExists,
     InstallChannelNotExistsError,
-    QueryGlobalSettingsException,
     UrlNotReachableError,
 )
 from apps.node_man.utils.endpoint import EndpointInfo
@@ -174,162 +172,15 @@ class GlobalSettings(models.Model):
         verbose_name_plural = _("配置表（GlobalSettings）")
 
 
-class AESCipher(object):
-    """
-    AES256加解密器
-    注意事项：
-    - 加密后密文长度大雨明文长度
-    - iv默认使用无需设置，设置后会固定iv进行加密
-    - 使用的实际秘钥，是对设置的key进行sha256后的结果，无论输入的key多长，实际秘钥固定为32位，使用AES256算法
-    """
-
-    def __init__(self, instance_key=settings.SECRET_KEY):
-        if settings.BK_BACKEND_CONFIG:
-            # 后台只作取操作不进行保存
-            try:
-                instance_key = GlobalSettings.objects.get(key="null").v_json
-            except Exception as e:
-                logger.error(_("后台获取密钥失败：{e}").format(e=e))
-                raise QueryGlobalSettingsException()
-        else:
-            try:
-                obj, created = GlobalSettings.objects.get_or_create(
-                    # 存储密钥，以便于后台使用同个KEY解密
-                    key="null",
-                    defaults={"v_json": base64.b64encode(instance_key.encode()).decode()},
-                )
-            except Exception as e:
-                # 初次migrate时，GlobalSettings不存在
-                logger.error(_("SaaS获取密钥失败：{e}").format(e=e))
-                instance_key = base64.b64encode(instance_key.encode()).decode()
-            else:
-                instance_key = obj.v_json
-        self.iv = b"TencentBkNode-Iv"
-        self.key = instance_key
-        self.bs = 3
-
-    def encrypt(self, plaintext):
-        """
-        加密
-        :param plaintext: 需要加密的内容
-        :return:
-        """
-        decrypt_key = self.__parse_key()
-        plaintext = self._pad(plaintext)
-        secret_txt = AES.new(decrypt_key, AES.MODE_CFB, self.iv).encrypt(plaintext.encode())
-        return base64.b64encode(secret_txt).decode("utf-8")
-
-    def decrypt(self, ciphertext):
-        """
-        解密
-        :param ciphertext: 需要解密的内容
-        :return:
-        """
-        decrypt_key = self.__parse_key()
-        # 先解base64
-        secret_txt = base64.b64decode(ciphertext)
-        # 再解对称加密
-        try:
-            plain = AES.new(decrypt_key, AES.MODE_CFB, self.iv).decrypt(secret_txt)
-        except ValueError as error:
-            logger.error(f"[decrypt error]: [decrypt_key]={decrypt_key}, secret_txt={secret_txt}, error={error}")
-            raise error
-        plain = plain.decode(encoding="utf-8")
-        return self._unpad(plain)
-
-    def __parse_key(self):
-        return self.key[:24].encode()
-
-    def _pad(self, s):
-        """
-        打包成长度为bs整数倍的字符串
-        """
-        return s + (self.bs - len(s) % self.bs) * chr(self.bs - len(s) % self.bs)
-
-    @staticmethod
-    def _unpad(s):
-        """
-        解包成原文本
-        """
-        return s[: -ord(s[len(s) - 1 :])]
-
-
-# 单例
-aes_cipher = AESCipher()
-
-
-class AESTextField(models.TextField):
-    """
-    在数据库中AES256加密的 TextField
-    - 兼容未加密数据，加密后字符串会带上
-    """
-
-    def __init__(self, *args, **kwargs):
-        """
-        初始化
-        :param prefix: 加密串前缀
-        """
-        if "prefix" in kwargs:
-            self.prefix = kwargs["prefix"]
-            del kwargs["prefix"]
-        else:
-            self.prefix = "aes_str:::"
-
-        self.cipher = aes_cipher
-        super(AESTextField, self).__init__(*args, **kwargs)
-
-    def deconstruct(self):
-        name, path, args, kwargs = super(AESTextField, self).deconstruct()
-        if self.prefix != "aes_str:::":
-            kwargs["prefix"] = self.prefix
-        return name, path, args, kwargs
-
-    def from_db_value(self, value, expression, connection, context=None):
-        """
-        出库后解密数据
-        """
-        if value is None:
-            return value
-        if value.startswith(self.prefix):
-            value = value[len(self.prefix) :]
-            value = self.cipher.decrypt(value)
-
-        return value
-
-    def to_python(self, value):
-        """
-        反序列化和Form clean()时调用，解密数据
-        """
-        if value is None:
-            return value
-        elif value.startswith(self.prefix):
-            value = value[len(self.prefix) :]
-            value = self.cipher.decrypt(value)
-
-        return value
-
-    def get_prep_value(self, value):
-        """
-        入库前加密数据
-        """
-        if isinstance(value, str) or isinstance(value, str):
-            value = self.cipher.encrypt(value)
-            value = self.prefix + value
-        elif value is not None:
-            raise TypeError(str(value) + " is not a valid value for TextCharField")
-
-        return value
-
-
 class IdentityData(models.Model):
     bk_host_id = models.IntegerField(_("主机ID"), primary_key=True)
     auth_type = models.CharField(
         _("认证类型"), max_length=45, choices=constants.AUTH_CHOICES, default=constants.AuthType.PASSWORD
     )
     account = models.CharField(_("账户名"), max_length=45, default="")
-    password = AESTextField(_("密码"), blank=True, null=True)
+    password = SymmetricTextField(_("密码"), blank=True, null=True)
     port = models.IntegerField(_("端口"), null=True, default=22)
-    key = AESTextField(_("密钥"), blank=True, null=True)
+    key = SymmetricTextField(_("密钥"), blank=True, null=True)
     extra_data = JSONField(_("额外认证资料"), blank=True, null=True)
     retention = models.IntegerField(_("保留天数"), default=1)
     updated_at = models.DateTimeField(_("更新时间"), null=True, auto_now=False)
@@ -650,7 +501,7 @@ class AccessPoint(models.Model):
     taskserver = JSONField(_("GSE 任务服务器列表"))
     zk_hosts = JSONField(_("ZK服务器列表"))
     zk_account = models.CharField(_("ZK账号"), max_length=255, default="", blank=True, null=True)
-    zk_password = AESTextField(_("密码"), blank=True, null=True)
+    zk_password = SymmetricTextField(_("密码"), blank=True, null=True)
     package_inner_url = models.TextField(_("安装包内网地址"))
     package_outer_url = models.TextField(_("安装包外网地址"))
     # 历史遗留命名，现在该路径表示存储源的存储目录路径
