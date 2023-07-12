@@ -385,7 +385,7 @@ class JobHandler(APIModel):
 
         # 节点变量，用于后续订阅任务注册主机，安装等操作
         subscription_nodes = []
-        rsa_util = tools.HostTools.get_rsa_util()
+        cipher = tools.HostTools.get_asymmetric_cipher()
         for host in accept_list:
             host_ap_id, host_node_type = self.check_ap_and_biz_scope(node_type, host, cloud_info)
             instance_info = copy.deepcopy(host)
@@ -412,8 +412,8 @@ class JobHandler(APIModel):
                     "auth_type": host.get("auth_type", "MANUAL"),
                     "account": host.get("account", "MANUAL"),
                     "port": host.get("port"),
-                    "password": tools.HostTools.USE_RSA_PREFIX + rsa_util.encrypt(host.get("password", "")),
-                    "key": tools.HostTools.USE_RSA_PREFIX + rsa_util.encrypt(host.get("key", "")),
+                    "password": tools.HostTools.USE_ASYMMETRIC_PREFIX + cipher.encrypt(host.get("password", "")),
+                    "key": tools.HostTools.USE_ASYMMETRIC_PREFIX + cipher.encrypt(host.get("key", "")),
                     "retention": host.get("retention", 1),
                     "peer_exchange_switch_for_agent": host.get("peer_exchange_switch_for_agent"),
                     "bt_speed_limit": host.get("bt_speed_limit"),

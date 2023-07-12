@@ -16,7 +16,7 @@ from django.utils.translation import ugettext_lazy as _
 from apps.utils.enum import EnhanceEnum
 
 
-class RSAKeyType(EnhanceEnum):
+class AsymmetricKeyType(EnhanceEnum):
     PUBLIC_KEY = "PUBLIC_KEY"
     PRIVATE_KEY = "PRIVATE_KEY"
 
@@ -25,9 +25,9 @@ class RSAKeyType(EnhanceEnum):
         return {cls.PUBLIC_KEY: _("公钥"), cls.PRIVATE_KEY: _("私钥")}
 
 
-class InternalRSAKeyNameEnum(EnhanceEnum):
+class InternalAsymmetricKeyNameEnum(EnhanceEnum):
     DEFAULT = "DEFAULT"
 
     @classmethod
     def _get_member__alias_map(cls) -> Dict[Enum, str]:
-        return {cls.DEFAULT: _("默认RSA密钥")}
+        return {cls.DEFAULT: _("默认密钥")}

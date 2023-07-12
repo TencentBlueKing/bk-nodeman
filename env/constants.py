@@ -41,3 +41,13 @@ class GseVersion(EnhanceEnum):
     @classmethod
     def _get_member__alias_map(cls) -> Dict[Enum, str]:
         return {cls.V1: "V1", cls.V2: "V2"}
+
+
+class BkCryptoType(EnhanceEnum):
+
+    SHANGMI = "SHANGMI"
+    CLASSIC = "CLASSIC"
+
+    @classmethod
+    def _get_member__alias_map(cls) -> Dict[Enum, str]:
+        return {cls.SHANGMI: "国密算法", cls.CLASSIC: "国密算法"}

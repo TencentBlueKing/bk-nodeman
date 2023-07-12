@@ -184,7 +184,7 @@ def create_host(
 class Subscription:
     def create_subscription(self, job_type, nodes, *args, **kwargs):
 
-        rsa_util = tools.HostTools.get_rsa_util()
+        cipher = tools.HostTools.get_asymmetric_cipher()
         subscription_id = random.randint(100, 1000)
         task_id = random.randint(10, 1000)
         if job_type in ["REINSTALL_AGENT", "REINSTALL_PROXY", "RESTART_PROXY", "RESTART_AGENT"]:
@@ -218,11 +218,11 @@ class Subscription:
                     "auth_type": host_info.get("auth_type"),
                     "account": host_info.get("account"),
                     "password": tools.HostTools.decrypt_with_friendly_exc_handle(
-                        rsa_util=rsa_util, encrypt_message=host_info["password"], raise_exec=Exception
+                        cipher=cipher, encrypt_message=host_info["password"], raise_exec=Exception
                     ),
                     "port": host_info.get("port"),
                     "key": tools.HostTools.decrypt_with_friendly_exc_handle(
-                        rsa_util=rsa_util, encrypt_message=host_info["key"], raise_exec=Exception
+                        cipher=cipher, encrypt_message=host_info["key"], raise_exec=Exception
                     ),
                     "retention": host_info.get("retention", 1),
                     "extra_data": host_info.get("extra_data"),

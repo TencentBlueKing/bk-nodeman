@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 
 import base64
 
+from bkcrypto.asymmetric.ciphers import BaseAsymmetricCipher
 from rest_framework import serializers
 
 from apps.backend.constants import SubscriptionSwithBizAction
@@ -98,7 +99,7 @@ class CreateSubscriptionSerializer(GatewaySerializer):
             return attrs
 
         fields_need_decrypt = ["password", "key"]
-        rsa_util = tools.HostTools.get_rsa_util()
+        cipher: BaseAsymmetricCipher = tools.HostTools.get_asymmetric_cipher()
         for node in attrs["scope"]["nodes"]:
             instance_info = node.get("instance_info", {})
             if not instance_info:
@@ -106,7 +107,7 @@ class CreateSubscriptionSerializer(GatewaySerializer):
             for field_need_decrypt in fields_need_decrypt:
                 if isinstance(instance_info.get(field_need_decrypt), str):
                     instance_info[field_need_decrypt] = tools.HostTools.decrypt_with_friendly_exc_handle(
-                        rsa_util=rsa_util, encrypt_message=instance_info[field_need_decrypt], raise_exec=ValidationError
+                        cipher=cipher, encrypt_message=instance_info[field_need_decrypt], raise_exec=ValidationError
                     )
                 instance_info[field_need_decrypt] = base64.b64encode(
                     instance_info.get(field_need_decrypt, "").encode()
