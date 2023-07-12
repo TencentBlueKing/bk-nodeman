@@ -26,7 +26,7 @@ class RSAViewSet(APIViewSet):
         operation_summary="获取公钥列表",
         tags=RSA_VIEW_TAGS,
     )
-    @action(detail=False, methods=["POST"], serializer_class=serializers.RSAFetchKeysSerializer)
+    @action(detail=False, methods=["POST"], serializer_class=serializers.AsymmetricFetchKeysSerializer)
     def fetch_public_keys(self, request):
         """
         @api {POST} /encrypt_rsa/fetch_public_keys/  获取公钥列表
@@ -46,4 +46,22 @@ class RSAViewSet(APIViewSet):
             }
         ]
         """
-        return Response(handlers.RSAHandler.fetch_public_keys(names=self.validated_data["names"]))
+        return Response(handlers.AsymmetricHandler.fetch_public_keys(names=self.validated_data["names"]))
+
+
+class AsymmetricViewSet(APIViewSet):
+    URL_BASE_NAME = "encrypt_asymmetric"
+
+    @swagger_auto_schema(
+        operation_summary="获取公钥列表",
+        tags=["asymmetric"],
+    )
+    @action(detail=False, methods=["POST"], serializer_class=serializers.AsymmetricFetchKeysSerializer)
+    def fetch_public_keys(self, request):
+        """
+        @api {POST} /encrypt_asymmetric/fetch_public_keys/  获取公钥列表
+        @apiName fetch_public_keys
+        @apiGroup asymmetric
+        @apiParam {String[]} names 公钥名称列表
+        """
+        return Response(handlers.AsymmetricHandler.fetch_public_keys(names=self.validated_data["names"]))

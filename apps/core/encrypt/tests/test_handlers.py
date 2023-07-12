@@ -8,6 +8,8 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from bkcrypto.constants import AsymmetricCipherType
+from bkcrypto.contrib.django.settings import crypto_settings
 
 from apps.utils.unittest import testcase
 
@@ -15,31 +17,39 @@ from .. import constants, handlers, models
 from . import utils
 
 
-class RSAHandlerTestCase(testcase.CustomBaseTestCase):
+class AsymmetricHandlerTestCase(testcase.CustomBaseTestCase):
+
+    OVERWRITE_OBJ__KV_MAP = {crypto_settings: {"ASYMMETRIC_CIPHER_TYPE": AsymmetricCipherType.RSA.value}}
+
     def test_get_or_generate_rsa_in_db__del_private(self):
         """
         验证单方面删除私钥的逻辑：会重建公私钥
         :return:
         """
-        rsa_name = constants.InternalRSAKeyNameEnum.DEFAULT.value
-        original_gen_result = handlers.RSAHandler.get_or_generate_rsa_in_db(rsa_name)
-        models.RSAKey.objects.get(name=rsa_name, type=constants.RSAKeyType.PRIVATE_KEY.value).delete()
+        key_name = constants.InternalAsymmetricKeyNameEnum.DEFAULT.value
+        original_gen_result = handlers.AsymmetricHandler.get_or_generate_key_pair_in_db(key_name)
+        models.RSAKey.objects.get(name=key_name, type=constants.AsymmetricKeyType.PRIVATE_KEY.value).delete()
 
-        current_gen_result = handlers.RSAHandler.get_or_generate_rsa_in_db(rsa_name)
-        for rsa_key_name in ["rsa_private_key", "rsa_public_key"]:
+        current_gen_result = handlers.AsymmetricHandler.get_or_generate_key_pair_in_db(key_name)
+        for rsa_key_name in ["private_key", "public_key"]:
             self.assertTrue(current_gen_result[rsa_key_name].content != original_gen_result[rsa_key_name].content)
-        utils.validate_rsa_util(current_gen_result["rsa_util"])
+        utils.validate_cipher(current_gen_result["cipher"])
 
     def test_get_or_generate_rsa_in_db__del_public(self):
         """
         验证单方面删除公钥：重建公钥
         :return:
         """
-        rsa_name = constants.InternalRSAKeyNameEnum.DEFAULT.value
-        original_gen_result = handlers.RSAHandler.get_or_generate_rsa_in_db(rsa_name)
-        models.RSAKey.objects.get(name=rsa_name, type=constants.RSAKeyType.PUBLIC_KEY.value).delete()
+        key_name = constants.InternalAsymmetricKeyNameEnum.DEFAULT.value
+        original_gen_result = handlers.AsymmetricHandler.get_or_generate_key_pair_in_db(key_name)
+        models.RSAKey.objects.get(name=key_name, type=constants.AsymmetricKeyType.PUBLIC_KEY.value).delete()
 
-        current_gen_result = handlers.RSAHandler.get_or_generate_rsa_in_db(rsa_name)
-        self.assertTrue(current_gen_result["rsa_private_key"].content == original_gen_result["rsa_private_key"].content)
-        self.assertTrue(current_gen_result["rsa_public_key"].id != original_gen_result["rsa_public_key"].id)
-        utils.validate_rsa_util(current_gen_result["rsa_util"])
+        current_gen_result = handlers.AsymmetricHandler.get_or_generate_key_pair_in_db(key_name)
+        self.assertTrue(current_gen_result["private_key"].content == original_gen_result["private_key"].content)
+        self.assertTrue(current_gen_result["public_key"].id != original_gen_result["public_key"].id)
+        utils.validate_cipher(current_gen_result["cipher"])
+
+
+class ShangMiTestCase(AsymmetricHandlerTestCase):
+
+    OVERWRITE_OBJ__KV_MAP = {crypto_settings: {"ASYMMETRIC_CIPHER_TYPE": AsymmetricCipherType.SM2.value}}

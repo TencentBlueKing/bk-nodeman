@@ -14,6 +14,7 @@ import time
 from typing import Dict
 
 import ujson as json
+from bkcrypto.contrib.django.ciphers import symmetric_cipher_manager
 from blueapps.account.decorators import login_exempt
 from django.conf import settings
 from django.http import HttpResponse, JsonResponse, StreamingHttpResponse
@@ -32,7 +33,7 @@ from apps.core.files.storage import get_storage
 from apps.exceptions import ValidationError
 from apps.node_man import constants, models
 from apps.node_man.handlers import base_info
-from apps.node_man.models import Host, JobSubscriptionInstanceMap, aes_cipher
+from apps.node_man.models import Host, JobSubscriptionInstanceMap
 from pipeline.service import task_service
 
 logger = logging.getLogger("app")
@@ -181,7 +182,7 @@ def _decrypt_token(token: str) -> dict:
     解析token
     """
     try:
-        token_decrypt = aes_cipher.decrypt(token)
+        token_decrypt = symmetric_cipher_manager.cipher().decrypt(token)
     except Exception as err:
         logger.error(f"{token} 解析失败")
         raise err

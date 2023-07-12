@@ -43,7 +43,7 @@ class TestJob(TestCase):
     @classmethod
     def setUpTestData(cls):
         # 生成公私钥并存储到DB
-        tools.HostTools.get_rsa_util()
+        tools.HostTools.get_asymmetric_cipher()
         super().setUpTestData()
 
     @classmethod
