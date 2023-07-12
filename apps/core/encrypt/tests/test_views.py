@@ -15,10 +15,10 @@ from .. import constants, handlers
 
 class RSAViewSetTestCase(testcase.CustomAPITestCase):
     def test_fetch_public_keys(self):
-        default_rsa_name = constants.InternalRSAKeyNameEnum.DEFAULT.value
+        default_rsa_name = constants.InternalAsymmetricKeyNameEnum.DEFAULT.value
         external_rsa_name = "EXTERNAL"
         fetch_names = [default_rsa_name, external_rsa_name]
-        handlers.RSAHandler.get_or_generate_rsa_in_db(external_rsa_name, description="外部密钥")
+        handlers.AsymmetricHandler.get_or_generate_key_pair_in_db(external_rsa_name, description="外部密钥")
         public_keys = self.client.post(path="/core/api/encrypt_rsa/fetch_public_keys/", data={"names": fetch_names})[
             "data"
         ]

@@ -198,7 +198,7 @@ class InstallSerializer(serializers.Serializer):
 
         bk_biz_ids = set()
         expected_bk_host_ids_gby_bk_biz_id: typing.Dict[int, typing.List[int]] = defaultdict(list)
-        rsa_util = tools.HostTools.get_rsa_util()
+        cipher = tools.HostTools.get_asymmetric_cipher()
         fields_need_decrypt = ["password", "key"]
         # 密码解密
         for host in attrs["hosts"]:
@@ -208,7 +208,7 @@ class InstallSerializer(serializers.Serializer):
                 if not isinstance(host.get(field_need_decrypt), str):
                     continue
                 host[field_need_decrypt] = tools.HostTools.decrypt_with_friendly_exc_handle(
-                    rsa_util=rsa_util, encrypt_message=host[field_need_decrypt], raise_exec=ValidationError
+                    cipher=cipher, encrypt_message=host[field_need_decrypt], raise_exec=ValidationError
                 )
 
             if attrs["op_type"] not in [constants.OpType.INSTALL, constants.OpType.REPLACE]:
