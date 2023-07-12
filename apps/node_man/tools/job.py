@@ -21,6 +21,7 @@ from apps.node_man import constants, models
 from apps.utils import basic
 from apps.utils.local import get_request_username
 from common.api import NodeApi
+from apps.backend.subscription import tools
 
 
 class JobTools:
@@ -210,40 +211,10 @@ class JobTools:
                 elif condition["key"] == "exclude_instance_ids":
                     exclude_instance_ids = condition["value"]
 
-        host_query = Q()
-        for fuzzy_inner_ip in filter_key_value_list_map["ip"]:
-            if basic.is_v6(fuzzy_inner_ip):
-                host_query |= Q(inner_ipv6=basic.exploded_ip(fuzzy_inner_ip))
-            elif basic.is_v4(fuzzy_inner_ip):
-                host_query |= Q(inner_ip=fuzzy_inner_ip)
-            else:
-                host_query |= Q(inner_ipv6__contains=fuzzy_inner_ip) | Q(inner_ip__contains=fuzzy_inner_ip)
-
         instance_ids = filter_key_value_list_map["instance_id"]
-        base_fields = {
-            "node_type": models.Subscription.NodeType.INSTANCE,
-            "object_type": models.Subscription.ObjectType.HOST,
-        }
 
-        if host_query:
-            from apps.backend.subscription.tools import create_node_id
-
-            for host in list(
-                models.Host.objects.filter(host_query).values("inner_ip", "inner_ipv6", "bk_cloud_id", "bk_host_id")
-            ):
-                instance_ids.extend(
-                    [
-                        create_node_id(
-                            {
-                                **base_fields,
-                                "ip": host.get("inner_ip") or host.get("inner_ipv6"),
-                                "bk_cloud_id": host["bk_cloud_id"],
-                                "bk_supplier_id": constants.DEFAULT_CLOUD,
-                            }
-                        ),
-                        create_node_id({**base_fields, "bk_host_id": host["bk_host_id"]}),
-                    ]
-                )
+        if filter_key_value_list_map["ip"]:
+            instance_ids.extend(cls.get_instance_ids_by_ips(filter_key_value_list_map["ip"]))
         else:
             # None表示缺省全选
             instance_ids = instance_ids or None
@@ -269,6 +240,42 @@ class JobTools:
             task_result_query_params.pop(query_kw)
 
         return task_result_query_params
+
+    @classmethod
+    def get_instance_ids_by_ips(cls, inner_ip_list: List[str]) -> List[str]:
+        base_fields = {
+            "node_type": models.Subscription.NodeType.INSTANCE,
+            "object_type": models.Subscription.ObjectType.HOST,
+        }
+
+        host_query = Q()
+        for inner_ip in inner_ip_list:
+            if basic.is_v6(inner_ip):
+                host_query |= Q(inner_ipv6=basic.exploded_ip(inner_ip))
+            elif basic.is_v4(inner_ip):
+                host_query |= Q(inner_ip=inner_ip)
+            else:
+                host_query |= Q(inner_ipv6__contains=inner_ip) | Q(inner_ip__contains=inner_ip)
+
+        instance_id_list = []
+        for host in list(
+                models.Host.objects.filter(host_query).values("inner_ip", "inner_ipv6", "bk_cloud_id", "bk_host_id")
+        ):
+            instance_id_list.extend(
+                [
+                    tools.create_node_id(
+                        {
+                            **base_fields,
+                            "ip": host.get("inner_ip") or host.get("inner_ipv6"),
+                            "bk_cloud_id": host["bk_cloud_id"],
+                            "bk_supplier_id": constants.DEFAULT_CLOUD,
+                        }
+                    ),
+                    tools.create_node_id({**base_fields, "bk_host_id": host["bk_host_id"]}),
+                ]
+            )
+
+        return instance_id_list
 
     @classmethod
     def fill_sub_info_to_job_detail(cls, job: models.Job, job_detail: Dict[str, Any]) -> None:
