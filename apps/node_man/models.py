@@ -127,10 +127,9 @@ class GlobalSettings(models.Model):
         # 是否安装额外AGENT
         IS_INSTALL_OTHER_AGENT_V1 = "IS_INSTALL_OTHER_AGENT_V1"
         IS_INSTALL_OTHER_AGENT_V2 = "IS_INSTALL_OTHER_AGENT_V2"
-        FILE_DISTTIBUTION_DEPENDENCY_GSE_VERSION = "FILE_DISTTIBUTION_DEPENDENCY_GSE_VERSION"
         INSTALL_OTHER_AGENT_V1_BIZ_BLACKLIST = "INSTALL_OTHER_AGENT_V1_BIZ_BLACKLIST"
         INSTALL_OTHER_AGENT_V2_BIZ_BLACKLIST = "INSTALL_OTHER_AGENT_V2_BIZ_BLACKLIST"
-        NEED_TO_WAIT_EXTRA_INSTALL_COMPLTET = "NEED_TO_WAIT_EXTRA_INSTALL_COMPLTET"
+        NEED_TO_WAIT_EXTRA_INSTALL_COMPLETE = "NEED_TO_WAIT_EXTRA_INSTALL_COMPLETE"
 
     key = models.CharField(_("键"), max_length=255, db_index=True, primary_key=True)
     v_json = JSONField(_("值"))
@@ -431,11 +430,11 @@ class Host(models.Model):
             return {}
         return {host.bk_host_id: host for host in cls.objects.filter(**conditions)}
 
-    def get_random_alive_proxy(self, proxies=None):
+    @classmethod
+    def get_random_alive_proxy(cls, proxies):
         """
         随机选一台可用的proxy
         """
-        proxies = proxies or self.proxies
         alive_proxies = [proxy for proxy in proxies if proxy.status == constants.ProcStateType.RUNNING]
         if not alive_proxies:
             raise AliveProxyNotExistsError(_("主机所属「管控区域」不存在可用Proxy"))
@@ -466,6 +465,9 @@ class Host(models.Model):
     def install_channel(self):
         if getattr(self, "_install_channel", None):
             return self._install_channel
+
+        jump_server = None
+        upstream_servers = {}
         # 指定了安装通道，使用安装通道的信息作为跳板和上游
         if self.install_channel_id:
             try:
@@ -487,19 +489,20 @@ class Host(models.Model):
             except Host.DoesNotExist:
                 raise HostNotExists(_("安装节点主机{inner_ip}不存在，请确认是否已安装AGENT").format(inner_ip=jump_server_ip))
             upstream_servers = install_channel.upstream_servers
+        # TODO 这两个分支并未使用到，非安装通道场景是通过 fetch_gse_servers_info 获取实际的上游
         # 管控区域未指定安装通道的，用proxy作为跳板和上游
-        elif self.bk_cloud_id and self.node_type != constants.NodeType.PROXY:
-            proxy_ips = [proxy.inner_ip or proxy.inner_ipv6 for proxy in self.proxies]
-            jump_server = self.get_random_alive_proxy()
-            upstream_servers = {"taskserver": proxy_ips, "btfileserver": proxy_ips, "dataserver": proxy_ips}
-        # 普通直连的情况，无需跳板，使用接入点的数据
-        else:
-            jump_server = None
-            upstream_servers = {
-                "taskserver": self.ap.cluster_endpoint_info.inner_hosts,
-                "btfileserver": self.ap.file_endpoint_info.inner_hosts,
-                "dataserver": self.ap.data_endpoint_info.inner_hosts,
-            }
+        # elif self.bk_cloud_id and self.node_type != constants.NodeType.PROXY:
+        #     proxy_ips = [proxy.inner_ip or proxy.inner_ipv6 for proxy in self.proxies]
+        #     jump_server = self.get_random_alive_proxy()
+        #     upstream_servers = {"taskserver": proxy_ips, "btfileserver": proxy_ips, "dataserver": proxy_ips}
+        # # 普通直连的情况，无需跳板，使用接入点的数据
+        # else:
+        #     jump_server = None
+        #     upstream_servers = {
+        #         "taskserver": self.ap.cluster_endpoint_info.inner_hosts,
+        #         "btfileserver": self.ap.file_endpoint_info.inner_hosts,
+        #         "dataserver": self.ap.data_endpoint_info.inner_hosts,
+        #     }
         self._install_channel = jump_server, upstream_servers
         return self._install_channel
 
@@ -516,11 +519,10 @@ class Host(models.Model):
     def proxies(self):
         if getattr(self, "_proxies", None):
             return self._proxies
-        proxy_objs = Host.objects.filter(
-            bk_cloud_id=self.bk_cloud_id,
-            node_type=constants.NodeType.PROXY,
-        )
+
+        proxy_objs = Host.objects.filter(bk_cloud_id=self.bk_cloud_id, node_type=constants.NodeType.PROXY)
         proxy_host_ids = [proxy.bk_host_id for proxy in proxy_objs]
+
         alive_proxies = ProcessStatus.objects.filter(
             bk_host_id__in=proxy_host_ids,
             name=ProcessStatus.GSE_AGENT_PROCESS_NAME,

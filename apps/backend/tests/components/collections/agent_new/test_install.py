@@ -46,6 +46,7 @@ from . import utils
 
 
 class InstallBaseTestCase(utils.AgentServiceBaseTestCase):
+
     OS_TYPE = constants.OsType.LINUX
     NODE_TYPE = constants.NodeType.AGENT
     JOB_API_MOCK_PATH = "apps.backend.components.collections.agent_new.install.JobApi"
@@ -146,6 +147,10 @@ class InstallBaseTestCase(utils.AgentServiceBaseTestCase):
         mock.patch(target=self.EXECUTE_CMD_MOCK_PATH, return_value="").start()
         mock.patch(target=self.PUT_FILE_MOCK_PATH, return_value="").start()
         base.get_asyncssh_connect_mock_patch().start()
+        mock.patch(
+            "apps.backend.agent.tools.get_gse_api_helper",
+            api_mkd.gse.utils.get_gse_api_helper(GseVersion.V1.value, api_mkd.gse.utils.GseApiMockClient()),
+        ).start()
 
     def setUp(self) -> None:
         self.update_callback_url()
