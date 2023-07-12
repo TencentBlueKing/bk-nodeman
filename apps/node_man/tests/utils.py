@@ -666,8 +666,13 @@ def create_ap(number):
     AccessPoint.objects.bulk_create(ap_to_create)
 
 
-def create_job(number, id=None, end_time=None, bk_biz_scope=None):
+def create_job(number, id=None, end_time=None, bk_biz_scope=None, task_id_list=None, created_by=None):
     job_types = list(chain(*list(constants.JOB_TYPE_MAP.values())))
+
+    if bk_biz_scope == {} or bk_biz_scope:
+        pass
+    else:
+        bk_biz_scope = [[biz["bk_biz_id"] for biz in SEARCH_BUSINESS][random.randint(0, 10)]]
 
     jobs = []
     for i in range(1, number + 1):
@@ -679,12 +684,10 @@ def create_job(number, id=None, end_time=None, bk_biz_scope=None):
                 random.randint(0, len(constants.JobStatusType.get_choices()) - 1)
             ],
             statistics={"success_count": 0, "failed_count": 0, "running_count": 0, "total_count": 0},
-            bk_biz_scope=bk_biz_scope
-            if bk_biz_scope == {}
-            else [[biz["bk_biz_id"] for biz in SEARCH_BUSINESS][random.randint(0, 10)]],
+            bk_biz_scope=bk_biz_scope,
             subscription_id=random.randint(1, 100),
-            task_id_list=[random.randint(1, 100)],
-            created_by="admin",
+            task_id_list=task_id_list or [random.randint(1, 100)],
+            created_by=created_by or "admin",
             end_time=end_time,
         )
         jobs.append(job)

@@ -68,6 +68,7 @@ class ListSerializer(serializers.Serializer):
     status = serializers.ListField(label=_("状态"), required=False)
     created_by = serializers.ListField(label=_("执行者"), required=False)
     bk_biz_id = serializers.ListField(label=_("业务ID"), required=False)
+    inner_ip_list = serializers.ListField(label=_("搜索IP"), required=False)
     page = serializers.IntegerField(label=_("当前页数"), required=False, default=1)
     pagesize = serializers.IntegerField(label=_("分页大小"), required=False, default=10)
     sort = SortSerializer(label=_("排序"), required=False)

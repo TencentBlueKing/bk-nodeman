@@ -8,11 +8,13 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import time
 from typing import List
 from unittest.mock import patch
 
 from django.test import TestCase
 from django.utils import timezone
+from django.utils.translation import ugettext_lazy as _
 
 from apps.mock_data import common_unit
 from apps.node_man import constants, tools
@@ -24,7 +26,7 @@ from apps.node_man.exceptions import (
     MixedOperationError,
 )
 from apps.node_man.handlers.job import JobHandler
-from apps.node_man.models import Host, Job
+from apps.node_man.models import Host, Job, SubscriptionInstanceRecord
 from apps.node_man.tests.utils import (
     SEARCH_BUSINESS,
     MockClient,
@@ -112,6 +114,107 @@ class TestJob(TestCase):
         # 查询是否不显示
         result = JobHandler().list({"page": 1, "pagesize": 10, "category": "agent"}, "admin")
         self.assertEqual(result["total"], 0)
+
+    @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)
+    def test_job_list_without_permission(self):
+        """测试 无权限/自身创建 任务"""
+        number = 1
+
+        create_job(
+            number,
+            bk_biz_scope=[SEARCH_BUSINESS[0]["bk_biz_id"]],
+            created_by="blueking"
+        )
+        create_job(
+            number,
+            id=998,
+            bk_biz_scope=[999],
+            created_by="blueking"
+        )
+        create_job(
+            number,
+            id=999,
+            bk_biz_scope=[999],
+            created_by="admin"
+        )
+
+        result = JobHandler().list({
+            "page": 1,
+            "pagesize": 10,
+            "bk_biz_id": [SEARCH_BUSINESS[0]["bk_biz_id"], 999]
+        }, "admin")
+
+        self.assertEqual(result["total"], 2)
+        self.assertEqual(result["list"][0]["id"], 999)
+
+    def test_job_list_with_ip(self):
+        """测试 单/多ip 搜索"""
+        create_host(1, bk_cloud_id=0, ip="127.0.0.1")
+        create_host(1, bk_host_id=2, bk_cloud_id=0, ip="127.0.0.2")
+
+        create_job(1, task_id_list=[1])
+        create_job(1, id=2, task_id_list=[1, 2])
+
+        sub_inst_record_objs = [
+            SubscriptionInstanceRecord(
+                task_id=1,
+                subscription_id=1,
+                instance_id="host|instance|host|127.0.0.1-0-0",
+                is_latest=True,
+            ),
+            SubscriptionInstanceRecord(
+                task_id=2,
+                subscription_id=2,
+                instance_id="host|instance|host|127.0.0.2-0-0",
+                is_latest=True,
+            )
+        ]
+        SubscriptionInstanceRecord.objects.bulk_create(sub_inst_record_objs)
+
+        single_ip_result = JobHandler().list(
+            {
+                "page": 1,
+                "pagesize": 10,
+                "inner_ip_list": ["127.0.0.1"]
+            },
+            "admin",
+        )
+        self.assertEqual(single_ip_result["total"], 2)
+
+        multiple_ip_result = JobHandler().list(
+            {
+                "page": 1,
+                "pagesize": 10,
+                "inner_ip_list": ["127.0.0.1", "127.0.0.2"]
+            },
+            "admin",
+        )
+        self.assertEqual(multiple_ip_result["total"], 2)
+
+    def test_job_list_spend_time(self):
+        """测试查询时间"""
+        create_host(1, bk_cloud_id=0, ip="127.0.0.1")
+        create_job(10000, task_id_list=[1])
+        SubscriptionInstanceRecord.objects.create(
+            task_id=1,
+            subscription_id=1,
+            instance_id="host|instance|host|127.0.0.1-0-0",
+            is_latest=True,
+        )
+
+        start_time = time.time()
+        JobHandler().list(
+            {
+                "page": 1,
+                "pagesize": 200,
+                "hide_auto_trigger_job": False,
+                "inner_ip_list": ["127.0.0.1"]
+            },
+            "admin",
+        )
+        spend_time = time.time() - start_time
+
+        self.assertLessEqual(spend_time, 1, msg=_("响应时间超过1秒"))
 
     @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)
     def test_host_install(self):
