@@ -10,10 +10,13 @@ specific language governing permissions and limitations under the License.
 """
 import copy
 import logging
+import operator
+from functools import reduce
 from typing import Any, Dict, List, Optional, Set, Union
 
 from django.conf import settings
 from django.core.paginator import Paginator
+from django.db.models import Q
 from django.db import transaction
 from django.utils import timezone
 from django.utils.translation import get_language
@@ -142,7 +145,6 @@ class JobHandler(APIModel):
         :param params: 请求参数的字典
         :param username: 用户名
         """
-
         kwargs = {
             **tools.JobTools.parse_job_list_filter_kwargs(query_params=params),
             "status__in": params.get("status"),
@@ -156,13 +158,6 @@ class JobHandler(APIModel):
         all_biz_info = CmdbHandler().biz_id_name_without_permission()
         biz_info = CmdbHandler().biz_id_name({"action": constants.IamActionType.task_history_view})
         biz_permission = list(biz_info.keys())
-
-        # 用户搜索的业务
-        search_biz = []
-        if params.get("bk_biz_id"):
-            # 如果有带筛选条件，则只返回筛选且有权业务的主机
-            search_biz = [bk_biz_id for bk_biz_id in params["bk_biz_id"] if bk_biz_id in biz_info]
-
         if params.get("job_id"):
             job_ids = set()
             for job_id_var in params["job_id"]:
@@ -173,10 +168,58 @@ class JobHandler(APIModel):
                 job_ids.add(job_id)
             kwargs["id__in"] = job_ids
 
+        # 业务权限
+        search_biz_ids = params.get("bk_biz_id")
+        all_biz_ids = set(all_biz_info.keys())
+
+        if search_biz_ids:
+            # 字典的 in 比列表性能更高
+            search_biz_ids = [bk_biz_id for bk_biz_id in search_biz_ids if bk_biz_id in biz_info]
+        else:
+            search_biz_ids = biz_permission
+
+        if set(search_biz_ids) & all_biz_ids == all_biz_ids:
+            biz_scope_query_q = Q()
+        else:
+            biz_scope_query_q = reduce(
+                operator.or_,
+                [Q(bk_biz_scope__contains=bk_biz_id) for bk_biz_id in search_biz_ids],
+                Q()
+            )
+            # 自身创建的 job 可见
+            biz_scope_query_q |= Q(created_by=username)
+
+        # ip 搜索
+        inner_ip_query_q = Q()
+        if params.get("inner_ip_list"):
+            instance_id_list = tools.JobTools.get_instance_ids_by_ips(params["inner_ip_list"])
+
+            # 处理时间范围
+            instance_record_query_kwargs = {
+                "instance_id__in": instance_id_list,
+                "create_time__gte": params.get("start_time"),
+                "create_time__lte": params.get("end_time"),
+            }
+
+            # subscription_id 查询更快，但使用 subscription_id 不够准确，subscription 的范围有变化的可能
+            task_id_list = models.SubscriptionInstanceRecord.objects.filter(
+                **filter_values(instance_record_query_kwargs)
+            ).values_list("task_id", flat=True)
+
+            # 带了 ip 查询条件，如果没有该 ip 的任务，应当返回无数据
+            if not task_id_list:
+                return {"total": 0, "list": []}
+
+            inner_ip_query_q = reduce(operator.or_, [Q(task_id_list__contains=task_id) for task_id in task_id_list])
+
         # 过滤None值并筛选Job
         # 此处不过滤空列表（filter_empty=False），job_id, job_type 存在二次解析，若全部值非法得到的是空列表，期望应是查不到数据
-        job_result = models.Job.objects.filter(**filter_values(kwargs))
+        job_result = models.Job.objects.filter(biz_scope_query_q, inner_ip_query_q, **filter_values(kwargs))
 
+        # 过滤没有业务的Job
+        job_result = job_result.filter(~Q(bk_biz_scope__isnull=True) & ~Q(bk_biz_scope={}))
+
+        # 排序
         if params.get("sort"):
             sort_head = params["sort"]["head"]
             job_result = job_result.extra(select={sort_head: f"JSON_EXTRACT(statistics, '$.{sort_head}')"})
@@ -185,44 +228,10 @@ class JobHandler(APIModel):
             else:
                 job_result = job_result.order_by(sort_head)
 
-        # TODO 全量拉取，待优化
-        job_result = job_result.values()
-
-        job_list = []
-        for job in job_result:
-            if not job["end_time"]:
-                job["cost_time"] = f'{(timezone.now() - job["start_time"]).seconds}'
-            else:
-                job["cost_time"] = f'{(job["end_time"] - job["start_time"]).seconds}'
-            job["bk_biz_scope_display"] = [all_biz_info.get(biz) for biz in job["bk_biz_scope"]]
-            job["job_type_display"] = constants.JOB_TYPE_DICT.get(job["job_type"])
-
-            # 如果任务没有业务则不显示
-            if not job["bk_biz_scope"]:
-                continue
-
-            # 判断权限
-            if set(job["bk_biz_scope"]) - set(biz_permission) == set():
-                if set(job["bk_biz_scope"]) - set(search_biz) != set(job["bk_biz_scope"]):
-                    # 此种情况说明job业务范围包括查询业务的其中一个
-                    job_list.append(job)
-                    continue
-                elif not search_biz:
-                    # 查询所有业务情况
-                    job_list.append(job)
-                    continue
-                elif search_biz == biz_permission:
-                    job_list.append(job)
-                    continue
-
-            # 创建者是自己
-            if job["created_by"] == username and not params.get("bk_biz_id"):
-                job_list.append(job)
-                continue
-
-        # 分页
-        paginator = Paginator(job_list, params["pagesize"])
-        job_page: List[Dict[str, Any]] = paginator.page(params["page"]).object_list
+        # 可以接受 queryset 作为参数
+        paginator = Paginator(job_result.values(), params["pagesize"])
+        # 分页之后再转换为列表
+        job_page: List[Dict[str, Any]] = list(paginator.page(params["page"]).object_list)
 
         # 填充策略名称
         sub_infos = models.Subscription.objects.filter(
@@ -231,15 +240,21 @@ class JobHandler(APIModel):
 
         # 建立订阅ID和订阅详细信息的映射
         sub_id__sub_info_map = {sub_info["id"]: sub_info for sub_info in sub_infos}
-
         # 预处理数据：字段填充，计算等
         for job in job_page:
             job.update(tools.JobTools.unzip_job_type(job["job_type"]))
-
             # 填充订阅相关信息
             job["policy_name"] = sub_id__sub_info_map.get(job["subscription_id"], {}).get("name")
 
-        return {"total": len(job_list), "list": job_page}
+            if not job["end_time"]:
+                job["cost_time"] = f'{(timezone.now() - job["start_time"]).seconds}'
+            else:
+                job["cost_time"] = f'{(job["end_time"] - job["start_time"]).seconds}'
+            job["bk_biz_scope_display"] = [all_biz_info.get(biz) for biz in job["bk_biz_scope"]]
+            job["job_type_display"] = constants.JOB_TYPE_DICT.get(job["job_type"])
+
+        # 使用分页器的 count，避免重复计算
+        return {"total": paginator.count, "list": job_page}
 
     def install(
         self,

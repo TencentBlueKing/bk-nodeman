@@ -254,6 +254,7 @@ class MetaHandler(APIModel):
         return self.filter_empty_children(
             [
                 {"name": _("任务ID"), "id": "job_id"},
+                {"name": _("IP"), "id": "inner_ip_list"},
                 {"name": _("执行者"), "id": "created_by", "children": created_bys_children},
                 {"name": _("执行状态"), "id": "status", "children": statuses_children},
                 {"name": _("任务类型"), "id": "step_type", "children": step_types_children},
