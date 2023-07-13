@@ -76,6 +76,7 @@ import { MainStore, ConfigStore } from '@/store/index';
 import { IApParams } from '@/types/config/config';
 import { transformDataKey, toLine } from '@/common/util';
 import { apAgentInfo, apAgentInfoRules } from './apFormConfig';
+import { regPasswordFill } from '@/common/regexp';
 
 @Component({ name: 'StepInfo' })
 
@@ -189,7 +190,7 @@ export default class StepInfo extends Vue {
         proxy_package: this.formData.packageList.map((item: { value: string }) => item.value),
       };
       if (this.isEdit) {
-        if (!(formatData.zk_password || !formatData.zk_account)) {
+        if (!zk_account || !zk_password || regPasswordFill.test(zk_password as string)) {
           delete formatData.zk_password;
         }
       }
