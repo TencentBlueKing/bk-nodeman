@@ -385,7 +385,7 @@ export default class AgentSetup extends Mixins(mixin, formLabelMixin) {
             }
             const authType = item.auth_type?.toLowerCase() as ('key' | 'password');
             if (item[authType]) {
-              item[authType] = this.$RSA.getNameMixinEncrypt(item[authType] as string);
+              item[authType] = this.$safety.encrypt(item[authType] as string);
             }
             item.peer_exchange_switch_for_agent = Number(item.peer_exchange_switch_for_agent);
             if (this.$DHCP && regIPv6.test(item.inner_ip as string)) {
