@@ -54,6 +54,7 @@
     }
   },
   "dependencies": {
+    "@blueking/crypto-js-sdk": "0.0.3",
     "@blueking/ip-selector": "0.0.1-beta.113",
     "@blueking/paas-login": "0.0.9",
     "@icon-cool/bk-icon-node-manager": "latest",
