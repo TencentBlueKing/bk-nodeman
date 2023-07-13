@@ -282,9 +282,9 @@ class HostHandler(APIModel):
                     pagent_upstream_nodes[ip] = 1
 
         # 获得进程状态
-        statuses = ProcessStatus.objects.filter(proc_type=const.ProcType.AGENT, bk_host_id__in=bk_host_id_list).values(
-            "bk_host_id", "status", "version"
-        )
+        statuses = ProcessStatus.objects.filter(
+            proc_type=const.ProcType.AGENT, name=ProcessStatus.GSE_AGENT_PROCESS_NAME, bk_host_id__in=bk_host_id_list
+        ).values("bk_host_id", "status", "version")
 
         host_id_status = {
             status["bk_host_id"]: {"status": status["status"], "version": status["version"]} for status in statuses
