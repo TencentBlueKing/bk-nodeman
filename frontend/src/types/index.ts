@@ -326,8 +326,18 @@ export interface ISortData {
   sort_type: string
 }
 
+export type ISafetyType = 'RSA'|'SM2';
+
+export interface ISafetyOption {
+  name?: string
+  type?: ISafetyType;
+  publicKey?: string;
+  privateKey?: string;
+}
+
 export interface IKeyItem {
   name: string
   description: string
+  cipher_type: ISafetyType
   content: string
 }

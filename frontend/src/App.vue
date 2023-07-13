@@ -76,9 +76,12 @@ export default class App extends Vue {
     }
     MainStore.setLanguage(window.language);
     this.handleInit();
-    MainStore.getPublicKeyRSA().then(({ name = '', content = '' }) => {
-      this.$RSA.setName(name);
-      this.$RSA.setPublicKey(content);
+    MainStore.getPublicKey().then(({ name = '', content = '', cipher_type = 'RSA' }) => {
+      this.$safety.updateInstance({
+        name,
+        publicKey: content,
+        type: cipher_type,
+      });
     });
   }
   private mounted() {
