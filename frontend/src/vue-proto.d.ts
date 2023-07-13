@@ -2,6 +2,7 @@ import Vue from 'vue';
 import { TranslateResult } from 'vue-i18n';
 import 'vue-router';
 import { INodemanHttp } from './types';
+import { NmSafety } from './setup/safety';
 // 给vue对象添加自定义方法
 declare module 'vue/types/vue' {
   interface Vue {
@@ -33,20 +34,7 @@ declare module 'vue/types/vue' {
       cancelFn?: Function
     }) => {}
     $filters: Function
-    $RSA: {
-      instance: Dictionary,
-      setPublicKey: (publicKey: string) => void
-      setName: (name: string) => void
-      setPrivateKey: (privateKey: string) => void
-      getKey: () => Dictionary
-      getKeyLength: () => number
-      getChunkLength: () => number
-      encrypt: (word: string) => string
-      decrypt: (word: string) => string
-      encryptChunk: (word: string) => string
-      decryptChunk: (word: string) => string
-      getNameMixinEncrypt: (word: string) => string
-    }
+    $safety: NmSafety,
     $textTool: {
       getTextWidth: (text: string, extraWidth?: number) => number
       getHeadWidth: (text: string, config?: Dictionary) => number

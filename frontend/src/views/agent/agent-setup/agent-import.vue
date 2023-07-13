@@ -416,7 +416,7 @@ export default class AgentImport extends Mixins(mixin) {
         if (item[authType]) {
           item[authType] = regPasswordFill.test(item[authType] as string)
             ? ''
-            : this.$RSA.getNameMixinEncrypt(item[authType] as string);
+            : this.$safety.encrypt(item[authType] as string);
         }
       });
       // 安装agent或pagent时，需要设置初始的安装类型
