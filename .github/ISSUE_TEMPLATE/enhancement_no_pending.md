@@ -1,9 +1,9 @@
 ---
-name: 功能需求（需要产品评审）
-about: 功能需求（需要产品评审）
-title: "[节点管理-评审会] "
+name: 技术需求（无需评审）
+about: 技术需求（无需评审）
+title: "[FEATURE] "
 labels: backlog, kind/feature
-assignees: Shutulee, Xmandon
+assignees: ZhuoZhuoCrayon
 
 ---
 
