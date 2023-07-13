@@ -1,16 +1,18 @@
 ---
-name: Bug反馈
-about: Bug反馈
+name: Bug 反馈
+about: Bug 反馈
 title: "[BUG]"
-labels: bug
-assignees: zhangzhw8
+labels: backlog, kind/bug
+assignees: ''
 
 ---
 
 **问题描述**
+
 简明扼要地描述bug是什么
 
 **重现方法**
+
 列出如何重现的方法或操作步骤 
 1. 转到 '....'
 2. 点击 '....'
