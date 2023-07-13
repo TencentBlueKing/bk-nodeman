@@ -86,12 +86,11 @@
           :key="itemIndex"
           :label="$t('Zookeeper密码')"
           property="zk_password">
-          <bk-input
-            :type="zkPasswordType"
+          <InstallInputType
+            type="password"
             :placeholder="$t('请输入')"
             v-model.trim="formData.zk_password"
-            @change="hadleFormChange">
-          </bk-input>
+            @change="hadleFormChange" />
         </bk-form-item>
 
         <bk-form-item
@@ -141,7 +140,6 @@ import { Component, Prop, Ref, Watch } from 'vue-property-decorator';
 import { MainStore, ConfigStore } from '@/store/index';
 import { IApBase, IAvailable, IIpGroup, IZk } from '@/types/config/config';
 import VerifyInput from '@/components/common/verify-input.vue';
-import InputType from '@/components/setup-table/input-type.vue';
 import InstallInputType from '@/components/setup-table/install-input-type.vue';
 import formLabelMixin from '@/common/form-label-mixin';
 import SetupFormTable from './step-form-table.vue';
@@ -156,7 +154,6 @@ type IServer = 'btfileserver' | 'dataserver' | 'taskserver';
   name: 'StepHost',
   components: {
     VerifyInput,
-    InputType,
     InstallInputType,
     SetupFormTable,
   },
@@ -335,12 +332,6 @@ export default class StepHost extends formLabelMixin {
   private get relatedContentWidth() {
     // 580: 两个输入框宽度
     return this.labelWidth + 580;
-  }
-  private get zkPasswordType() {
-    if (!isEmpty(this.formData.zk_password)) {
-      return 'password';
-    }
-    return 'text';
   }
 
   @Watch('formData', { deep: true })

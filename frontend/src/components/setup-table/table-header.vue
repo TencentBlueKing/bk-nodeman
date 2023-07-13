@@ -43,21 +43,19 @@
               {{ $t('批量编辑', { title: $t('密码') }) }}
             </div>
             <div class="batch-edit-content" v-if="isShow">
-              <input-type
+              <InstallInputType
                 v-bind="{ type: 'password' }"
                 v-model="value"
-                @enter="handleBatchConfirm">
-              </input-type>
+                @enter="handleBatchConfirm" />
               <div class="tip">{{ subTitle }}</div>
             </div>
             <div class="batch-edit-title">
               {{ $t('批量编辑', { title: $t('密钥') }) }}
             </div>
             <div class="batch-edit-content" v-if="isShow">
-              <input-type
+              <InstallInputType
                 v-bind="{ type: 'file' }"
-                @upload-change="handleFileChange">
-              </input-type>
+                @upload-change="handleFileChange" />
               <div class="tip">{{ $t('仅对密钥认证生效') }}</div>
             </div>
           </template>
@@ -66,7 +64,7 @@
               {{ $t('批量编辑', { title: $t(label) }) }}
             </div>
             <div class="batch-edit-content" v-if="isShow">
-              <input-type
+              <InstallInputType
                 v-bind="{
                   type: type,
                   options: options,
@@ -76,8 +74,7 @@
                   placeholder
                 }"
                 v-model="value"
-                @enter="handleBatchConfirm">
-              </input-type>
+                @enter="handleBatchConfirm" />
               <div class="tip" v-if="subTitle">{{ subTitle }}</div>
             </div>
           </template>
@@ -99,7 +96,7 @@
 <script lang="ts">
 import { Vue, Component, Prop, Emit, Ref } from 'vue-property-decorator';
 import { bus } from '@/common/bus';
-import InputType from './input-type.vue';
+import InstallInputType from './install-input-type.vue';
 import { IFileInfo, ISetupRow } from '@/types';
 import TableHeaderTip from './table-header-tip.vue';
 import { getConfigRemark } from '@/config/config';
@@ -107,7 +104,7 @@ import { getConfigRemark } from '@/config/config';
 @Component({
   name: 'table-header',
   components: {
-    InputType,
+    InstallInputType,
     TableHeaderTip,
   },
 })
