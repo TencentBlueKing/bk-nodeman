@@ -153,6 +153,7 @@
                       appendSlot: config.appendSlot,
                       permission: config.permission,
                       autofocus: virtualScroll,
+                      wrapperBorder: true,
                       fileInfo: getCellFileInfo(row, config)
                     }"
                     @focus="handleCellFocus(arguments, { row, config, rowIndex, colIndex })"
