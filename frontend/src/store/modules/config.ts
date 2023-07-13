@@ -124,7 +124,7 @@ export default class ConfigStore extends VuexModule {
   public async getGseDetail({ pointId }: { pointId: number | string }) {
     this.updateLoading(true);
     const data = await retrieveAp(pointId).catch(() => ({}));
-    this.updateDetail(data);
+    this.updateDetail(Object.assign(data, { zk_password: data?.zk_account ? '********' : '' }));
     this.updateLoading(false);
     return data;
   }
