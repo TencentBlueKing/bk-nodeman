@@ -1,6 +1,9 @@
 <template>
-  <div :class="[`input-type input-${type}`, { 'is-focus': isFocus }]" :style="{ 'z-index': zIndex }" @click.stop>
-    <div v-if="isFocus" class="input-type-border"></div>
+  <div
+    :class="[`input-type input-${type}`, { 'is-focus': isFocus && wrapperBorder }]"
+    :style="{ 'z-index': zIndex }"
+    @click.stop>
+    <div v-if="wrapperBorder" class="input-type-border"></div>
     <!--input类型-->
     <bk-input
       :ref="type"
@@ -45,6 +48,7 @@
       :placeholder="placeholder"
       :readonly="readonly"
       :disabled="disabled"
+      :password-icon="pwsIcons"
       :native-attributes="{
         autocomplete: 'off'
       }"
@@ -168,6 +172,7 @@ import PermissionSelect from '@/components/common/permission-select.vue';
 import { authentication, IAuth } from '@/config/config';
 import { isEmpty } from '@/common/util';
 import emitter from '@/common/emitter';
+import { regPasswordFill } from '@/common/regexp';
 
 // 支持的输入类型
 const basicInputType = ['text', 'number', 'email', 'url', 'date'];
@@ -199,6 +204,7 @@ export default class InputType extends Mixins(emitter) {
   @Prop({ type: Boolean, default: false }) private readonly permission!: boolean; // select 权限控制
   @Prop({ type: Object, default: () => ({}) }) private readonly fileInfo!: IFileInfo;
   @Prop({ type: Boolean, default: false }) private readonly clearable!: boolean;
+  @Prop({ type: Boolean, default: false }) private readonly wrapperBorder!: boolean;
 
   @Ref('authType') private readonly authTypeRef: any;
 
@@ -209,6 +215,7 @@ export default class InputType extends Mixins(emitter) {
   private isFocus = false;
   private maxRows = 8;
   private rows = 1;
+  private pwsIcons: string[] = [];
 
   private get authName(): string {
     const auth = this.authentication.find(auth => auth.id === this.authType) || { name: '' };
@@ -247,7 +254,13 @@ export default class InputType extends Mixins(emitter) {
   }
 
   @Watch('inputValue')
-  public handleValueChange() {
+  public handleValueChange(val: string) {
+    if (this.type === 'password') {
+      const icons = regPasswordFill.test(val)
+        ? ['', '']
+        : ['icon-eye-slash', 'icon-eye'];
+      this.pwsIcons.splice(0, 2, ...icons);
+    }
     this.$nextTick(this.setRows);
   }
 
