@@ -130,6 +130,8 @@ class GlobalSettings(models.Model):
         NEED_TO_WAIT_EXTRA_INSTALL_COMPLETE = "NEED_TO_WAIT_EXTRA_INSTALL_COMPLETE"
         # P-Agent 安装脚本名称
         SETUP_PAGENT_SCRIPT_FILENAME = "SETUP_PAGENT_SCRIPT_FILENAME"
+        # 周期删除订阅任务数据
+        CLEAN_SUBSCRIPTION_DATA_MAP = "CLEAN_SUBSCRIPTION_DATA_MAP"
 
     key = models.CharField(_("键"), max_length=255, db_index=True, primary_key=True)
     v_json = JSONField(_("值"))
