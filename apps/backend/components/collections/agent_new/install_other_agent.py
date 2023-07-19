@@ -66,6 +66,7 @@ class InstallOtherAgentService(AgentBaseService):
 
         hosts: List[Dict[str, Any]] = []
         sub_inst_ids: List[int] = []
+        manual_sub_inst_ids: List[int] = []
         for sub_inst in common_data.subscription_instances:
             bk_host_id: int = common_data.sub_inst_id__host_id_map[sub_inst.id]
             host = common_data.host_id_obj_map[bk_host_id]
@@ -85,32 +86,39 @@ class InstallOtherAgentService(AgentBaseService):
                 self.log_info(sub_inst.id, log_content=_("未配置与接入点ID:[{ap_id}]对应的映射,跳过此安装步骤".format(ap_id=host.ap_id)))
                 continue
 
-            sub_inst_ids.append(sub_inst.id)
             # AP_ID 偏移规则 ap_id * 100000 + install_channel_id
             offset_ap_id = ap_id * INSTALL_OTHER_AGENT_AP_ID_OFFSET + (host.install_channel_id or 0)
-            hosts.append(
-                {
-                    "bk_host_id": host.bk_host_id,
-                    "os_type": host.os_type,
-                    "bk_addressing": host.bk_addressing,
-                    "port": identty_data.port,
-                    "auth_type": identty_data.auth_type,
-                    "password": identty_data.password,
-                    "account": identty_data.account,
-                    "key": identty_data.key or "",
-                    "inner_ip": host.inner_ip,
-                    "inner_ipv6": host.inner_ipv6 or "",
-                    "outer_ip": host.outer_ip or "",
-                    "outer_ipv6": host.outer_ipv6 or "",
-                    "login_ip": host.login_ip,
-                    "bk_biz_id": host.bk_biz_id,
-                    "ap_id": offset_ap_id,
-                    "bk_cloud_id": host.bk_cloud_id,
-                    "is_manual": False,
-                    "install_channel_id": host.install_channel_id,
-                    "peer_exchange_switch_for_agent": host.extra_data.get("peer_exchange_switch_for_agent", 0),
-                }
-            )
+            host_info: Dict[str, Any] = {
+                "bk_host_id": host.bk_host_id,
+                "os_type": host.os_type,
+                "bk_addressing": host.bk_addressing,
+                "inner_ip": host.inner_ip,
+                "inner_ipv6": host.inner_ipv6 or "",
+                "outer_ip": host.outer_ip or "",
+                "outer_ipv6": host.outer_ipv6 or "",
+                "login_ip": host.login_ip,
+                "bk_biz_id": host.bk_biz_id,
+                "ap_id": offset_ap_id,
+                "bk_cloud_id": host.bk_cloud_id,
+                "is_manual": host.is_manual,
+                "install_channel_id": host.install_channel_id,
+                "peer_exchange_switch_for_agent": host.extra_data.get("peer_exchange_switch_for_agent", 0),
+            }
+
+            hosts.append(host_info)
+            if host.is_manual:
+                manual_sub_inst_ids.append(sub_inst.id)
+            else:
+                sub_inst_ids.append(sub_inst.id)
+                host_info.update(
+                    {
+                        "port": identty_data.port,
+                        "auth_type": identty_data.auth_type,
+                        "password": identty_data.password or "",
+                        "account": identty_data.account,
+                        "key": identty_data.key or "",
+                    }
+                )
 
         if hosts:
             install_params: Dict[str, Any] = {
@@ -124,7 +132,18 @@ class InstallOtherAgentService(AgentBaseService):
             self.log_info(
                 sub_inst_ids=sub_inst_ids,
                 log_content=_(
-                    '{log}\n作业任务ID为 [{node_man_task_id}]，点击跳转到 <a href="{link}" target="_blank">[节点管理]</a>'
+                    '{log}\n作业任务ID为 [{node_man_task_id}], 点击跳转到 <a href="{link}" target="_blank">[节点管理]</a>'
+                ).format(
+                    log=_("安装额外Agent任务已启动"),
+                    node_man_task_id=job_result["job_id"],
+                    link=job_result["job_url"],
+                ),
+            )
+            self.log_info(
+                sub_inst_ids=manual_sub_inst_ids,
+                log_content=_(
+                    '{log}\n <span style="color: #ff9c01">等待手动安装, 作业任务ID为 [{node_man_task_id}], '
+                    '请点击跳转到 <a href="{link}" target="_blank">[节点管理]</a>根据提示完成操作.</span>'
                 ).format(
                     log=_("安装额外Agent任务已启动"),
                     node_man_task_id=job_result["job_id"],
