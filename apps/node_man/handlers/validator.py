@@ -163,6 +163,7 @@ def bulk_update_validate(
             or host.get("ap_id") != host_info[host["bk_host_id"]]["ap_id"]
             or host.get("bt_speed_limit") != host_extra_data.get("bt_speed_limit")
             or host.get("peer_exchange_switch_for_agent") != host_extra_data.get("peer_exchange_switch_for_agent")
+            or host.get("enable_compression") != host_extra_data.get("enable_compression")
             or host.get("login_ip") != host_info[host["bk_host_id"]]["login_ip"]
             or host.get("data_path") != host_extra_data.get("data_path")
             or host.get("install_channel_id") != host_info[host["bk_host_id"]]["install_channel_id"]

@@ -111,6 +111,7 @@ instance_info
 | bk_supplier_account            | int    | 否   | 服务商ID                                                           |
 | peer_exchange_switch_for_agent | int    | 否   | 加速设置，默认是开启                                                      |
 | data_path                      | string | 否   | 数据文件路径                                                          |
+| enable_compression             | bool   | 否   | 数据压缩开关                                                          |
 
 ###### job_type
 
@@ -224,7 +225,8 @@ Plugin
                     "bk_host_outerip": "127.0.0.1",
                     "install_channel_id": null,
                     "bk_supplier_account": "0",
-                    "peer_exchange_switch_for_agent": 1
+                    "peer_exchange_switch_for_agent": 1,
+                    "enable_compression": false,
                 },
                 "bk_supplier_account": "0"
             }

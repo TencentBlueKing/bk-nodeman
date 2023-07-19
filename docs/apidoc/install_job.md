@@ -41,6 +41,7 @@
 | retention                      | int    | 否                                 | 密码保留天数，默认保留一天                                           |
 | peer_exchange_switch_for_agent | bool   | 否                                 | 加速设置，默认为True                                            |
 | bt_speed_limit                 | string | 否                                 | 传输限速                                                    |
+| enable_compression             | bool   | 否                                 | 数据压缩开关，默认是关闭                                              |
 | data_path                      | string | 否                                 | 数据文件路径                                                  |
 
 #### actions

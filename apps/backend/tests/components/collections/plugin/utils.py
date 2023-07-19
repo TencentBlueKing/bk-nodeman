@@ -105,6 +105,7 @@ INSTANCE_INFO = {
     "bk_host_outerip": "",
     "bk_supplier_account": "0",
     "peer_exchange_switch_for_agent": 1,
+    "enable_compression": False,
 }
 
 ACT_INPUTS = {
@@ -133,7 +134,7 @@ HOST_PARAMS = {
     "ap_id": const.DEFAULT_AP_ID,
     "upstream_nodes": [],
     "is_manual": 0,
-    "extra_data": {"bt_speed_limit": None, "peer_exchange_switch_for_agent": 1},
+    "extra_data": {"bt_speed_limit": None, "peer_exchange_switch_for_agent": 1, "enable_compression": False},
 }
 
 IDENTITY_DATA_PARAMS = {

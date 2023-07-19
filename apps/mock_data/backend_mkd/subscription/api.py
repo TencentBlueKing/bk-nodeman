@@ -53,6 +53,7 @@ SUBSCRIPTION_INFO_RESPONSE = [
                         "install_channel_id": 1,
                         "bk_supplier_account": "0",
                         "peer_exchange_switch_for_agent": 1,
+                        "enable_compression": False,
                     },
                     "bk_supplier_account": "0",
                 },

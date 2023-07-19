@@ -143,7 +143,10 @@ class ConfigContextHelper:
                 tls_password_file=proxy_tls_password_file,
             ),
             context_dataclass.TaskConfigContext(),
-            context_dataclass.DataConfigContext(ipc=agent_config.get("dataipc", "/var/run/ipc.state.report")),
+            context_dataclass.DataConfigContext(
+                ipc=agent_config.get("dataipc", "/var/run/ipc.state.report"),
+                enable_compression=["false", "true"][self.host.extra_data.get("enable_compression")],
+            ),
             context_dataclass.FileConfigContext(
                 max_transfer_speed_mb_per_sec=self.host.extra_data.get("bt_speed_limit") or 100,
             ),

@@ -24,7 +24,10 @@ from common.log import logger
 
 ENV_OFFSET_TABLE = "cc_EnvIDOffset"
 ENV_BIZ_MAP_TABLE = "cc_EnvBizMap"
-PROXY_EXTRA_DATA = '{"data_path": "/var/lib/gse_sg", "bt_speed_limit": "", "peer_exchange_switch_for_agent": 0}'
+PROXY_EXTRA_DATA = (
+    '{"data_path": "/var/lib/gse_sg", "bt_speed_limit": "", '
+    '"peer_exchange_switch_for_agent": 0, "enable_compression": false}'
+)
 
 
 class Command(BaseCommand):
