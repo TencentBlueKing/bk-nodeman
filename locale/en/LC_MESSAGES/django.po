@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-07-13 02:46+0800\n"
+"POT-Creation-Date: 2023-07-20 18:49+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -83,17 +83,17 @@ msgid "启动 NGINX 服务"
 msgstr "Start NGINX service"
 
 #: apps/backend/agent/solution_maker.py:153
-#: apps/backend/subscription/steps/agent.py:484
-#: apps/backend/subscription/steps/agent.py:503 apps/node_man/constants.py:296
+#: apps/backend/subscription/steps/agent.py:485
+#: apps/backend/subscription/steps/agent.py:504 apps/node_man/constants.py:296
 msgid "卸载"
 msgstr "Uninstall"
 
 #: apps/backend/agent/solution_maker.py:153
 #: apps/backend/components/collections/agent_new/components.py:65
 #: apps/backend/subscription/steps/agent.py:236
-#: apps/backend/subscription/steps/agent.py:362
-#: apps/backend/subscription/steps/agent.py:551
-#: apps/backend/subscription/steps/agent.py:595 apps/node_man/constants.py:289
+#: apps/backend/subscription/steps/agent.py:363
+#: apps/backend/subscription/steps/agent.py:552
+#: apps/backend/subscription/steps/agent.py:596 apps/node_man/constants.py:289
 msgid "安装"
 msgstr "Install"
 
@@ -432,8 +432,8 @@ msgid "重载Agent配置"
 msgstr "Reload Agent Configuration"
 
 #: apps/backend/components/collections/agent_new/components.py:95
-#: apps/backend/subscription/steps/agent.py:324
-#: apps/backend/subscription/steps/agent.py:343 apps/node_man/constants.py:290
+#: apps/backend/subscription/steps/agent.py:325
+#: apps/backend/subscription/steps/agent.py:344 apps/node_man/constants.py:290
 #: apps/node_man/constants.py:472
 msgid "重启"
 msgstr "Restart"
@@ -664,37 +664,51 @@ msgstr "Push the following files to {dest_dir}\"n {filenames_str}"
 msgid "安装超时"
 msgstr "Install timed out"
 
-#: apps/backend/components/collections/agent_new/install_other_agent.py:76
+#: apps/backend/components/collections/agent_new/install_other_agent.py:77
 #, python-brace-format
 msgid "当前主机所处业务[{bk_biz_id}] 无需要额外安装 GSE [{gse_version}] Agent."
 msgstr ""
 "The current host's biz [{bk_biz_id}] does not require additional "
 "installation of GSE [{gse_version}] Agent."
 
-#: apps/backend/components/collections/agent_new/install_other_agent.py:85
+#: apps/backend/components/collections/agent_new/install_other_agent.py:86
 #, python-brace-format
 msgid "未配置与接入点ID:[{ap_id}]对应的映射,跳过此安装步骤"
 msgstr ""
 "The mapping corresponding to access point ID: [{ap_id}] is not configured, "
 "skipping this installation step."
 
-#: apps/backend/components/collections/agent_new/install_other_agent.py:127
+#: apps/backend/components/collections/agent_new/install_other_agent.py:135
 #, python-brace-format
 msgid ""
 "{log}\n"
-"作业任务ID为 [{node_man_task_id}]，点击跳转到 <a href=\"{link}\" "
+"作业任务ID为 [{node_man_task_id}], 点击跳转到 <a href=\"{link}\" "
 "target=\"_blank\">[节点管理]</a>"
 msgstr ""
 "{log}\n"
 "The NODEMAN task ID is [{node_man_task_id}], click to jump to <a "
 "href=\"{link}\" target=\"_blank\">[Blueking NODEMAN]</a>"
 
-#: apps/backend/components/collections/agent_new/install_other_agent.py:129
+#: apps/backend/components/collections/agent_new/install_other_agent.py:137
+#: apps/backend/components/collections/agent_new/install_other_agent.py:148
 msgid "安装额外Agent任务已启动"
 msgstr "Install additional agent task started"
 
-#: apps/backend/components/collections/agent_new/install_other_agent.py:182
-#: apps/backend/components/collections/agent_new/install_other_agent.py:203
+#: apps/backend/components/collections/agent_new/install_other_agent.py:145
+#, python-brace-format
+msgid ""
+"{log}\n"
+" <span style=\"color: #ff9c01\">等待手动安装, 作业任务ID为 "
+"[{node_man_task_id}], 请点击跳转到 <a href=\"{link}\" target=\"_blank\">[节点"
+"管理]</a>根据提示完成操作.</span>"
+msgstr ""
+"{log}\n"
+"Waiting for manual installation. The NODEMAN task ID is [{node_man_task_id}],"
+"click to jump to <a href=\"{link}\" target=\"_blank\">[Blueking NODEMAN]</a> "
+"follow the prompts to complete the operation."
+
+#: apps/backend/components/collections/agent_new/install_other_agent.py:201
+#: apps/backend/components/collections/agent_new/install_other_agent.py:222
 #, python-brace-format
 msgid ""
 "{log}\n"
@@ -705,17 +719,17 @@ msgstr ""
 "The NODEMAN task ID is [{node_man_task_id}], click to jump to <a "
 "href=\"{link}\" target=\"_blank\">[Blueking NODEMAN]</a>"
 
-#: apps/backend/components/collections/agent_new/install_other_agent.py:184
+#: apps/backend/components/collections/agent_new/install_other_agent.py:203
 msgid "安装额外Agent失败"
 msgstr "Failed to install additional agent"
 
-#: apps/backend/components/collections/agent_new/install_other_agent.py:196
+#: apps/backend/components/collections/agent_new/install_other_agent.py:215
 msgid "安装额外Agent失败, 请点任务链接查看详情"
 msgstr ""
 "Failed to install additional agent, Please click on the task link to view "
 "details"
 
-#: apps/backend/components/collections/agent_new/install_other_agent.py:204
+#: apps/backend/components/collections/agent_new/install_other_agent.py:223
 msgid "安装额外Agent超时"
 msgstr "Install additional agent timeout"
 
@@ -1093,9 +1107,9 @@ msgid "手动操作豁免"
 msgstr "Manual Action Exemption"
 
 #: apps/backend/constants.py:121 apps/backend/subscription/steps/agent.py:269
-#: apps/backend/subscription/steps/agent.py:403
-#: apps/backend/subscription/steps/agent.py:583
-#: apps/backend/subscription/steps/agent.py:632 apps/node_man/constants.py:293
+#: apps/backend/subscription/steps/agent.py:404
+#: apps/backend/subscription/steps/agent.py:584
+#: apps/backend/subscription/steps/agent.py:633 apps/node_man/constants.py:293
 msgid "重装"
 msgstr "Reinstall"
 
@@ -1746,29 +1760,29 @@ msgstr ""
 "Plugin [{name}] system:{os_type}-arch:{cpu_arch}-version:{plugin_version} is "
 "not enabled"
 
-#: apps/backend/subscription/steps/agent.py:305
-#: apps/backend/subscription/steps/agent.py:446 apps/node_man/constants.py:292
+#: apps/backend/subscription/steps/agent.py:306
+#: apps/backend/subscription/steps/agent.py:447 apps/node_man/constants.py:292
 msgid "升级"
 msgstr "Upgrade"
 
-#: apps/backend/subscription/steps/agent.py:350
-#: apps/backend/subscription/steps/agent.py:383
-#: apps/backend/subscription/steps/agent.py:425
-#: apps/backend/subscription/steps/agent.py:508
-#: apps/backend/subscription/steps/agent.py:612
+#: apps/backend/subscription/steps/agent.py:351
+#: apps/backend/subscription/steps/agent.py:384
+#: apps/backend/subscription/steps/agent.py:426
+#: apps/backend/subscription/steps/agent.py:509
+#: apps/backend/subscription/steps/agent.py:613
 msgid "查询Proxy状态"
 msgstr "Query Proxy Status"
 
-#: apps/backend/subscription/steps/agent.py:475 apps/node_man/constants.py:291
+#: apps/backend/subscription/steps/agent.py:476 apps/node_man/constants.py:291
 msgid "替换"
 msgstr "Replace"
 
-#: apps/backend/subscription/steps/agent.py:521 apps/node_man/constants.py:247
+#: apps/backend/subscription/steps/agent.py:522 apps/node_man/constants.py:247
 #: apps/node_man/constants.py:249
 msgid "重载配置"
 msgstr "Reload configuration"
 
-#: apps/backend/subscription/steps/agent.py:642 apps/node_man/constants.py:248
+#: apps/backend/subscription/steps/agent.py:643 apps/node_man/constants.py:248
 #: apps/node_man/constants.py:301
 msgid "切换配置"
 msgstr "Activate agent"
