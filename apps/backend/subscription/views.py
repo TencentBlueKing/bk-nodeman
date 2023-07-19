@@ -677,8 +677,15 @@ class SubscriptionViewSet(APIViewSet):
             subscription_id=sub_inst.subscription_id
         ).first()
         host = models.Host.objects.get(bk_host_id=params["bk_host_id"])
+
+        # 优先使用注入的AP_ID
+        injected_ap_id = sub_inst.instance_info.get("meta", {}).get("AP_ID")
+        host_ap_id: int = injected_ap_id or host.ap_id
+        ap_id_obj_map: Dict[int, models.AccessPoint] = models.AccessPoint.ap_id_obj_map()
+        host_ap: models.AccessPoint = ap_id_obj_map[host_ap_id]
+
         base_agent_setup_info_dict: Dict[str, Any] = asdict(
-            AgentStepAdapter(subscription_step=sub_step_obj, gse_version=host.ap.gse_version).get_setup_info()
+            AgentStepAdapter(subscription_step=sub_step_obj, gse_version=host_ap.gse_version).get_setup_info()
         )
         agent_setup_extra_info_dict = sub_inst.instance_info["host"].get("agent_setup_extra_info") or {}
         installation_tool = gen_commands(
@@ -689,6 +696,7 @@ class SubscriptionViewSet(APIViewSet):
                 }
             ),
             host=host,
+            host_ap=host_ap,
             pipeline_id=params["host_install_pipeline_id"],
             is_uninstall=params["is_uninstall"],
             sub_inst_id=params["sub_inst_id"],
