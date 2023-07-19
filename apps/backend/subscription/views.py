@@ -679,7 +679,7 @@ class SubscriptionViewSet(APIViewSet):
         host = models.Host.objects.get(bk_host_id=params["bk_host_id"])
 
         # 优先使用注入的AP_ID
-        injected_ap_id = sub_inst.instance_info["host"].get("meta", {}).get("AP_ID")
+        injected_ap_id = sub_inst.instance_info.get("meta", {}).get("AP_ID")
         host_ap_id: int = injected_ap_id or host.ap_id
         ap_id_obj_map: Dict[int, models.AccessPoint] = models.AccessPoint.ap_id_obj_map()
         host_ap: models.AccessPoint = ap_id_obj_map[host_ap_id]
