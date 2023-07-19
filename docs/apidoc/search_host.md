@@ -105,7 +105,8 @@
         "is_manual": true,
         "extra_data": {
           "bt_speed_limit": null,
-          "peer_exchange_switch_for_agent": 1
+          "peer_exchange_switch_for_agent": 1,
+          "enable_compression": false,
         },
         "status_display": "正常",
         "bk_cloud_name": "直连区域",
@@ -208,6 +209,7 @@
 | ------------------------------ | --- | --------------------------------- | ------------------ |
 | bt_speed_limit                 | int | 否                                 | bt传输限制速度值，单位M/s    |
 | peer_exchange_switch_for_agent | int | 否                                 | bt传输开关，1: 开启 0: 关闭 |
+| enable_compression             | bool| 否                                 | 数据压缩开关, 默认并闭 |
 
 ##### job_result
 

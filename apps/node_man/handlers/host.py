@@ -386,6 +386,7 @@ class HostHandler(APIModel):
         extra_data = {
             "peer_exchange_switch_for_agent": params.get("peer_exchange_switch_for_agent"),
             "bt_speed_limit": params.get("bt_speed_limit"),
+            "enable_compression": params.get("enable_compression"),
         }
         if params.get("data_path"):
             extra_data.update({"data_path": params["data_path"]})

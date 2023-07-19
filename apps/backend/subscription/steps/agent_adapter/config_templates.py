@@ -52,7 +52,8 @@ GSE_AGENT_CONFIG_TMPL: str = """
     },
     "data": {
         "ipc": "__BK_GSE_DATA_IPC__",
-        "ipc_thread_num": __BK_GSE_DATA_IPC_RECV_THREAD_NUM__
+        "ipc_thread_num": __BK_GSE_DATA_IPC_RECV_THREAD_NUM__,
+        "enable_compression": __BK_GSE_DATA_ENABLE_COMPRESSION__
     },
     "file": {
         "max_transfer_speed_mb_per_sec": __BK_GSE_FILE_MAX_TRANSFER_SPEED_MB_PER_SEC__,
