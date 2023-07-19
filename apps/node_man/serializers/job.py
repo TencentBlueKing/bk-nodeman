@@ -113,6 +113,7 @@ class HostSerializer(serializers.Serializer):
     bt_speed_limit = serializers.IntegerField(label=_("传输限速"), required=False)
     data_path = serializers.CharField(label=_("数据文件路径"), required=False, allow_blank=True)
     is_need_inject_ap_id = serializers.IntegerField(label=_("是否需要注入ap_id到meta"), required=False, default=False)
+    enable_compression = serializers.BooleanField(label=_("数据压缩开关"), required=False, default=False)
 
     def validate(self, attrs):
         # 获取任务类型，如果是除安装以外的操作，则密码和秘钥可以为空

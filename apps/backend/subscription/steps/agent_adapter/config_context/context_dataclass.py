@@ -149,6 +149,7 @@ class DataConfigContext(GseConfigContext):
 
     ipc: str
     ipc_recv_thread_num: int = 4
+    enable_compression: str = "false"
 
 
 @dataclass

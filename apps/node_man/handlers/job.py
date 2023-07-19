@@ -417,6 +417,7 @@ class JobHandler(APIModel):
                     "retention": host.get("retention", 1),
                     "peer_exchange_switch_for_agent": host.get("peer_exchange_switch_for_agent"),
                     "bt_speed_limit": host.get("bt_speed_limit"),
+                    "enable_compression": host.get("enable_compression"),
                     "agent_setup_extra_info": {"force_update_agent_id": host.get("force_update_agent_id", False)},
                 }
             )
@@ -546,6 +547,9 @@ class JobHandler(APIModel):
                     origin_host["extra_data"].get("peer_exchange_switch_for_agent"),
                 ),
                 "bt_speed_limit": host.get("bt_speed_limit", origin_host["extra_data"].get("bt_speed_limit")),
+                "enable_compression": host.get(
+                    "enable_compression", origin_host["extra_data"].get("enable_compression")
+                ),
             }
             # 更新为新传入或者使用原来的数据
             if host.get("data_path") or origin_host["extra_data"].get("data_path"):
