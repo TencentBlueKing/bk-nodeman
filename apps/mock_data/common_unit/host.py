@@ -95,7 +95,7 @@ HOST_MODEL_DATA = {
     "ap_id": constants.DEFAULT_AP_ID,
     "upstream_nodes": [],
     "is_manual": False,
-    "extra_data": {"bt_speed_limit": None, "peer_exchange_switch_for_agent": 1},
+    "extra_data": {"bt_speed_limit": None, "peer_exchange_switch_for_agent": 1, "enable_compression": False},
 }
 
 HOST_MODEL_DATA_WITH_AGENT_ID = copy.deepcopy(HOST_MODEL_DATA)

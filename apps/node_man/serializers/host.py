@@ -50,6 +50,7 @@ class HostUpdateSerializer(serializers.Serializer):
     key = serializers.CharField(label=_("秘钥"), required=False)
     peer_exchange_switch_for_agent = serializers.IntegerField(label=_("加速设置"), required=False, default=1)
     bt_speed_limit = serializers.IntegerField(label=_("加速"), required=False)
+    enable_compression = serializers.IntegerField(label=_("数据压缩开关配置"), required=False, default=False)
     data_path = serializers.CharField(label=_("数据文件路径"), required=False)
 
     def validate(self, attrs):

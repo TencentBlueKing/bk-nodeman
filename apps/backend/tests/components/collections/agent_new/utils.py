@@ -173,6 +173,7 @@ class AgentTestObjFactory:
             extra_data = {
                 "peer_exchange_switch_for_agent": instance_host_info.get("peer_exchange_switch_for_agent", True),
                 "bt_speed_limit": instance_host_info.get("bt_speed_limit", 0),
+                "enable_compression": instance_host_info.get("enable_compression", False),
             }
             if instance_host_info.get("data_path"):
                 extra_data.update({"data_path": instance_host_info.get("data_path")})

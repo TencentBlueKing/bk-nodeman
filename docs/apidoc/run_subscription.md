@@ -132,7 +132,8 @@ Plugin
                     "bk_host_outerip": "127.0.0.1",
                     "install_channel_id": null,
                     "bk_supplier_account": "0",
-                    "peer_exchange_switch_for_agent": 1
+                    "peer_exchange_switch_for_agent": 1,
+                    "enable_compression": false,
                 },
                 "bk_supplier_account": "0"
             }

@@ -93,7 +93,11 @@ def create_host_from_a_to_b(
                     "os_type": constants.OS_TUPLE[random.randint(0, 1)],
                     "ap_id": 1,
                     "upstream_nodes": upstream_nodes if upstream_nodes else [i for i in range(100)],
-                    "extra_data": {"bt_speed_limit": None, "peer_exchange_switch_for_agent": 1},
+                    "extra_data": {
+                        "bt_speed_limit": None,
+                        "peer_exchange_switch_for_agent": 1,
+                        "enable_compression": False,
+                    },
                 }
             )
         )
@@ -829,6 +833,7 @@ def gen_update_accept_list(host_to_create, identity_to_create, no_change=False):
             "password": None if no_change else "".join(random.choice(DIGITS) for i in range(8)),
             "peer_exchange_switch_for_agent": host_to_create[i].extra_data["peer_exchange_switch_for_agent"],
             "bt_speed_limit": host_to_create[i].extra_data["bt_speed_limit"],
+            "enable_compression": host_to_create[i].extra_data["enable_compression"],
         }
         for i in range(len(host_to_create))
     ]

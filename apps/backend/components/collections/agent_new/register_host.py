@@ -345,6 +345,7 @@ class RegisterHostService(AgentBaseService):
             extra_data = {
                 "peer_exchange_switch_for_agent": host_info.get("peer_exchange_switch_for_agent", True),
                 "bt_speed_limit": host_info.get("bt_speed_limit", 0),
+                "enable_compression": host_info.get("enable_compression", False),
             }
             if host_info.get("data_path"):
                 extra_data.update({"data_path": host_info.get("data_path")})

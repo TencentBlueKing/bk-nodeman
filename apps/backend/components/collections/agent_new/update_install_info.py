@@ -30,6 +30,7 @@ class UpdateInstallInfoService(AgentBaseService):
                 "peer_exchange_switch_for_agent": host_info.get("peer_exchange_switch_for_agent"),
                 "bt_speed_limit": host_info.get("bt_speed_limit"),
                 "data_path": host_info.get("data_path"),
+                "enable_compression": host_info.get("enable_compression"),
             }
             # 移除 None 值
             added_extra_data = filter_values(added_extra_data)
