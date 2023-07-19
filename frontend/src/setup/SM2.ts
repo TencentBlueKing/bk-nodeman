@@ -6,8 +6,6 @@ export declare class ISM2 {
   private publicKey: string;
   private privateKey: string;
   private instance: SM2;
-  public getPublicKey(val: string): string
-  public getPrivateKey(val: string): string
   public defaultEncrypt(val: string): string
   public defaultDecrypt(val: string): string
 }
@@ -23,49 +21,8 @@ export default class NmSM2 {
   protected constructor(option: ISafetyOption) {
     const { publicKey = '', privateKey = '' } = option;
     this.instance = new cryptoJsSdk.SM2();
-    this.publicKey = publicKey ? this.getPublicKey(publicKey) : '';
-    this.privateKey = privateKey ? this.getPrivateKey(privateKey) : '';
-  }
-
-  // 蓝鲸的公钥私钥均使用了 asn1 der 编码，因此需要用此方法处理，得到实际的公私钥
-  // 后续此方法会加入到 sdk 中
-  public getPublicKey(pKey: string) {
-    const publicKeyPem = cryptoJsSdk.helper.parseBlockPEM(pKey);
-    const publicKeyJson = cryptoJsSdk.helper.asn1.parse(publicKeyPem.der);
-    function loop(source: any) {
-      const ret: any = [];
-      const dfs = (data: any) => {
-        if (data.type === 0x03) {
-          ret.push(data);
-        }
-        if (data.children) {
-          for (let i = 0; i < data.children.length; i++) {
-            dfs(data.children[i]);
-          }
-        }
-      };
-      dfs(source);
-      return ret;
-    }
-    const { value } = loop(publicKeyJson)[0];
-    return cryptoJsSdk.helper.encode.bufToHex(value.data || value);
-  }
-  // 后续此方法会加入到 sdk 中
-  public getPrivateKey(pKey: string) {
-    const privateKeyPem = cryptoJsSdk.helper.parseBlockPEM(pKey);
-    const privateKeyJson = cryptoJsSdk.helper.asn1.parse(privateKeyPem.der);
-
-    function privateKeyLoop(source: any) {
-      let ret = '';
-      for (const i of source.children) {
-        if (i.type === 0x04) {
-          ret = ret + cryptoJsSdk.helper.encode.bufToHex(i.value);
-        }
-      }
-      return ret;
-    }
-    const privateKeyHex = privateKeyLoop(privateKeyJson);
-    return privateKeyHex;
+    this.publicKey = publicKey ? cryptoJsSdk.helper.asn1.decode(publicKey) : '';
+    this.privateKey = privateKey ? cryptoJsSdk.helper.asn1.decode(privateKey) : '';
   }
 
   // SM2 加密
