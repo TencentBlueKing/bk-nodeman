@@ -120,7 +120,7 @@ BK_COMPONENT_API_OUTER_URL = get_type_env(key="BK_PAAS_OUTER_HOST", default="", 
 )
 
 # 蓝鲸根域名
-BK_DOMAIN = get_type_env(key="BK_DOMAIN", default="", _type=str)
+BK_DOMAIN = get_type_env(key="BKPAAS_BK_DOMAIN", default="", _type=str)
 
 # 导航栏开源社区地址
 BKAPP_NAV_OPEN_SOURCE_URL = get_type_env(
