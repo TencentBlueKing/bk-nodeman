@@ -46,13 +46,14 @@ $ helm uninstall bk-nodeman -n <bk-nodeman namespace>
 
 ### Charts 全局设置
 
-| 参数                        | 描述                                              | 默认值                                                     |
-|---------------------------|-------------------------------------------------|---------------------------------------------------------|
-| `global.imageRegistry`    | Global Docker image registry                    | `""`                                                    |
-| `global.imagePullSecrets` | Global Docker registry secret names as an array | `[]` (does not add image pull secrets to deployed pods) |
-| `global.storageClass`     | Global storage class for dynamic provisioning   | `""`                                                    |
-| `global.bkDomain`         | 蓝鲸主域名                                           | `example.com`                                           |
-| `global.bkDomain`         | 蓝鲸主域名访问协议                                       | `http`                                                  |
+| 参数                        | 描述                                                         | 默认值                                                     |
+|---------------------------|------------------------------------------------------------|---------------------------------------------------------|
+| `global.imageRegistry`    | Global Docker image registry                               | `""`                                                    |
+| `global.imagePullSecrets` | Global Docker registry secret names as an array            | `[]` (does not add image pull secrets to deployed pods) |
+| `global.storageClass`     | Global storage class for dynamic provisioning              | `""`                                                    |
+| `global.bkDomain`         | 蓝鲸主域名                                                      | `example.com`                                           |
+| `global.bkDomainScheme`   | 蓝鲸主域名访问协议                                                  | `http`                                                  |
+| `global.bkCryptoType`     | 加密类型，默认值为 `CLASSIC`，可选项：`CLASSIC-国际密码算法`, `SHANGMI-国际商用算法` | `CLASSIC`                                               |
 
 ### Kubernetes 组件公共配置
 

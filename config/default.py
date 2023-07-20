@@ -12,12 +12,8 @@ import sys
 from enum import Enum
 from typing import Dict, Optional
 
-from bkcrypto.constants import (
-    AsymmetricCipherType,
-    EncryptionMetadataCombinationMode,
-    SymmetricCipherType,
-    SymmetricMode,
-)
+from bkcrypto import constants as bkcrypto_constants
+from bkcrypto.asymmetric.options import RSAAsymmetricOptions
 from bkcrypto.symmetric.options import AESSymmetricOptions, SM4SymmetricOptions
 from blueapps.conf.default_settings import *  # noqa
 from django.http import HttpResponseRedirect
@@ -369,35 +365,46 @@ REST_FRAMEWORK = {
 BKCRYPTO = {
     "SYMMETRIC_CIPHERS": {
         "default": {
-            # 可选，用于在 settings 没法直接获取 key 的情况
             "get_key_config": "apps.utils.encrypt.key.get_key_config",
             "cipher_options": {
-                SymmetricCipherType.AES.value: AESSymmetricOptions(
+                bkcrypto_constants.SymmetricCipherType.AES.value: AESSymmetricOptions(
                     key_size=24,
                     iv=b"TencentBkNode-Iv",
-                    mode=SymmetricMode.CFB,
+                    mode=bkcrypto_constants.SymmetricMode.CFB,
                     interceptor=Interceptor,
-                    encryption_metadata_combination_mode=EncryptionMetadataCombinationMode.STRING_SEP,
+                    encryption_metadata_combination_mode=bkcrypto_constants.EncryptionMetadataCombinationMode.STRING_SEP,
                 ),
-                SymmetricCipherType.SM4.value: SM4SymmetricOptions(mode=SymmetricMode.CTR),
+                bkcrypto_constants.SymmetricCipherType.SM4.value: SM4SymmetricOptions(
+                    mode=bkcrypto_constants.SymmetricMode.CTR
+                ),
             },
         },
-    }
+    },
+    "ASYMMETRIC_CIPHERS": {
+        "gse": {
+            "get_key_config": "apps.utils.encrypt.key.get_gse_asymmetric_key_config",
+            "cipher_options": {
+                bkcrypto_constants.AsymmetricCipherType.RSA.value: RSAAsymmetricOptions(
+                    padding=bkcrypto_constants.RSACipherPadding.PKCS1_OAEP
+                )
+            },
+        },
+    },
 }
 
 # 加密
 if BKAPP_CRYPTO_TYPE == env.constants.BkCryptoType.SHANGMI.value:
     BKCRYPTO.update(
         {
-            "ASYMMETRIC_CIPHER_TYPE": AsymmetricCipherType.SM2.value,
-            "SYMMETRIC_CIPHER_TYPE": SymmetricCipherType.SM4.value,
+            "ASYMMETRIC_CIPHER_TYPE": bkcrypto_constants.AsymmetricCipherType.SM2.value,
+            "SYMMETRIC_CIPHER_TYPE": bkcrypto_constants.SymmetricCipherType.SM4.value,
         }
     )
 else:
     BKCRYPTO.update(
         {
-            "ASYMMETRIC_CIPHER_TYPE": AsymmetricCipherType.RSA.value,
-            "SYMMETRIC_CIPHER_TYPE": SymmetricCipherType.AES.value,
+            "ASYMMETRIC_CIPHER_TYPE": bkcrypto_constants.AsymmetricCipherType.RSA.value,
+            "SYMMETRIC_CIPHER_TYPE": bkcrypto_constants.SymmetricCipherType.AES.value,
         }
     )
 
