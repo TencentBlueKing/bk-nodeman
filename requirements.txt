@@ -20,7 +20,7 @@ django-mysql==3.3.0
 Mako==1.0.6
 MarkupSafe==1.1.1
 pyCryptodome==3.9.7
-bk-crypto-python-sdk==1.0.2
+bk-crypto-python-sdk==1.0.3
 pyOpenSSL==21.0.0
 pynacl==1.4.0
 gunicorn==19.6.0

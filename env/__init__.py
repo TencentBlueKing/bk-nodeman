@@ -61,7 +61,7 @@ BKAPP_IS_PAAS_DEPLOY = BKAPP_IS_PAAS_DEPLOY
 BKAPP_ENABLE_DHCP = get_type_env(key="BKAPP_ENABLE_DHCP", default=False, _type=bool)
 # 是否为后台配置
 BK_BACKEND_CONFIG = BK_BACKEND_CONFIG
-# 加密类型，默认值为 `DEFAULT`，可选值 `GM` `DEFAULT`
+# 加密类型，默认值为 `CLASSIC`，可选项：`CLASSIC-国际密码算法`, `SHANGMI-国际商用算法`
 BKAPP_CRYPTO_TYPE = get_type_env(key="BKAPP_CRYPTO_TYPE", default=constants.BkCryptoType.CLASSIC.value, _type=str)
 
 # ===============================================================================
