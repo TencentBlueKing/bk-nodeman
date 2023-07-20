@@ -106,4 +106,5 @@ data:
   BKAPP_NAV_OPEN_SOURCE_URL: "{{ .Values.config.bkAppNavOpenSourceUrl }}"
   BKAPP_NAV_HELPER_URL: "{{ .Values.config.bkAppNavHelperUrl }}"
   BK_DOMAIN: "{{ .Values.global.bkDomain }}"
+  BKAPP_CRYPTO_TYPE: "{{ .Values.global.bkCryptoType | default "CLASSIC" }}"
 

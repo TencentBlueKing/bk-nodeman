@@ -6,12 +6,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        BK_CRYPTO_TYPE:
+        BKAPP_CRYPTO_TYPE:
           - "CLASSIC"
           - "SHANGMI"
         PYTHON_VERSION:
           - "3.6"
-    name: "[CodeCov][${{ matrix.BK_CRYPTO_TYPE }}] with Python ${{ matrix.PYTHON_VERSION }}"
+    name: "[CodeCov][${{ matrix.BKAPP_CRYPTO_TYPE }}] with Python ${{ matrix.PYTHON_VERSION }}"
     env:
       DJANGO_SETTINGS_MODULE: "settings"
       DEBUG: true
@@ -24,7 +24,7 @@ jobs:
       BK_BACKEND_CONFIG: ""
       BK_PAAS_HOST: "http://127.0.0.1"
       BK_IAM_V3_INNER_HOST: "127.0.0.1"
-      BK_CRYPTO_TYPE: ${{ matrix.BK_CRYPTO_TYPE }}
+      BKAPP_CRYPTO_TYPE: ${{ matrix.BKAPP_CRYPTO_TYPE }}
       BKAPP_BKNODEMAN_NGINX_URL: "127.0.0.1"
       BKAPP_BACKEND_HOST: "http://127.0.0.1"
       BKAPP_BK_NODE_APIGATEWAY: "http://127.0.0.1:8000/"

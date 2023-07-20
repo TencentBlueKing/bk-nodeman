@@ -7,6 +7,8 @@ global:
   imagePullSecrets: []
   storageClass: ""
   bkDomain: "example.com"
+  ## 加密类型，默认值为 `CLASSIC`，可选项：`CLASSIC-国际密码算法`, `SHANGMI-国际商用算法`
+  bkCryptoType: "CLASSIC"
   ## 蓝鲸主域名访问协议http/https
   bkDomainScheme: http
 

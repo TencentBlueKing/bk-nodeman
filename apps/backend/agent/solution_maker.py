@@ -11,16 +11,14 @@ specific language governing permissions and limitations under the License.
 import abc
 import base64
 import json
-import os
 import time
 import typing
 from pathlib import Path
 
 from bkcrypto.asymmetric.ciphers import BaseAsymmetricCipher
-from bkcrypto.asymmetric.options import RSAAsymmetricOptions
-from bkcrypto.constants import AsymmetricCipherType, RSACipherPadding
+from bkcrypto.constants import AsymmetricCipherType
 from bkcrypto.contrib.django.ciphers import (
-    get_asymmetric_cipher,
+    asymmetric_cipher_manager,
     symmetric_cipher_manager,
 )
 from django.conf import settings
@@ -262,20 +260,10 @@ class BaseExecutionSolutionMaker(metaclass=abc.ABCMeta):
         # 系统开启使用密码注册 Windows 服务时，需额外传入 -U -P 参数，用于注册 Windows 服务，详见 setup_agent.bat 脚本
         if self.need_encrypted_password():
             # GSE 密码注册场景暂不启用国密，使用固定 RSA 的方式
-            cipher: BaseAsymmetricCipher = get_asymmetric_cipher(
-                AsymmetricCipherType.RSA.value,
-                cipher_options={
-                    AsymmetricCipherType.RSA.value: RSAAsymmetricOptions(
-                        public_key_file=os.path.join(settings.BK_SCRIPTS_PATH, "gse_public_key"),
-                        padding=RSACipherPadding.PKCS1_OAEP,
-                    )
-                },
+            cipher: BaseAsymmetricCipher = asymmetric_cipher_manager.cipher(
+                using="gse", cipher_type=AsymmetricCipherType.RSA.value
             )
-            encrypted_password = cipher.encrypt(self.identity_data.password)
-            # encrypted_password = rsa.RSAUtil(
-            #     public_extern_key_file=os.path.join(settings.BK_SCRIPTS_PATH, "gse_public_key"),
-            #     padding=rsa.CipherPadding.PKCS1_OAEP.value,
-            # ).encrypt(self.identity_data.password)
+            encrypted_password: str = cipher.encrypt(self.identity_data.password)
 
             run_cmd_params.extend(
                 [
