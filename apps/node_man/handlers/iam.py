@@ -401,16 +401,19 @@ class IamHandler(APIModel):
 
         if settings.USE_IAM:
             # 是否使用权限中心
-            permissions = IamHandler().fetch_policy(
-                username,
-                [
-                    IamActionType.ap_view,
-                    IamActionType.ap_edit,
-                    IamActionType.ap_delete,
-                    IamActionType.ap_create,
-                    IamActionType.globe_task_config,
-                ],
-            )
+            try:
+                permissions = IamHandler().fetch_policy(
+                    username,
+                    [
+                        IamActionType.ap_view,
+                        IamActionType.ap_edit,
+                        IamActionType.ap_delete,
+                        IamActionType.ap_create,
+                        IamActionType.globe_task_config,
+                    ],
+                )
+            except IamRequestException:
+                return False
         else:
             permissions = []
 
@@ -436,9 +439,12 @@ class IamHandler(APIModel):
             return True
         if settings.USE_IAM:
             # 是否使用权限中心
-            result = IamHandler().fetch_policy(username, [IamActionType.globe_task_config])[
-                IamActionType.globe_task_config
-            ]
+            try:
+                result = IamHandler().fetch_policy(username, [IamActionType.globe_task_config])[
+                    IamActionType.globe_task_config
+                ]
+            except IamRequestException:
+                return False
             if result:
                 return True
             else:
