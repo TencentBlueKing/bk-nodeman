@@ -101,8 +101,7 @@ def update_or_create_host_agent_status(task_id: int, host_queryset: QuerySet):
     to_be_updated_node_from_host_objs: typing.List[Host] = []
     to_be_updated_process_status_objs: typing.List[ProcessStatus] = []
     to_be_created_process_status_objs: typing.List[ProcessStatus] = []
-    # TODO 实时更新 Agent 状态 - 建立主机 ID - Agent 状态信息映射关系，并返回给上层使用方，用于填充 Agent 状态
-    # host_id__agent_state_info = {}
+    host_id__agent_state_info: typing.Dict[int, typing.Dict[str, int]] = {}
     for agent_id, agent_state_info in agent_id__agent_state_info_map.items():
         process_status_info: typing.Optional[typing.Dict[str, typing.Any]] = host_id__process_status_info_map.get(
             agent_id__host_id_map[agent_id]
@@ -125,6 +124,9 @@ def update_or_create_host_agent_status(task_id: int, host_queryset: QuerySet):
             else:
                 # 主机来源于自身，标记为终止
                 status = constants.ProcStateType.TERMINATED
+
+        agent_state_info["status_display"] = status
+        host_id__agent_state_info[agent_id__host_id_map[agent_id]] = agent_state_info
 
         if not process_status_info:
             # 如果不存在 ProcessStatus 对象需要创建
@@ -163,6 +165,8 @@ def update_or_create_host_agent_status(task_id: int, host_queryset: QuerySet):
         f"{task_id} | sync_agent_status_task: Complete agent status update, "
         f"start Host ID -> {hosts[0]['bk_host_id']}, count -> {len(hosts)}"
     )
+
+    return host_id__agent_state_info
 
 
 @periodic_task(
