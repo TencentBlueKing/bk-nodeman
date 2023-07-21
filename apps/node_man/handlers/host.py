@@ -17,6 +17,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from apps.core.ipchooser import core_ipchooser_constants
 from apps.core.ipchooser.tools.base import HostQuerySqlHelper
+from apps.core.ipchooser.tools.host_tool import HostTool
 from apps.node_man import constants as const
 from apps.node_man.constants import IamActionType
 from apps.node_man.exceptions import (
@@ -165,12 +166,12 @@ class HostHandler(APIModel):
             return {"total": len(value_list), "list": value_list}
 
         # 分页结果的Host_id, cloud_id集合
-        bk_hosts_id = [hs["bk_host_id"] for hs in hosts_status]
-        bk_clouds_id = [hs["bk_cloud_id"] for hs in hosts_status]
+        bk_host_ids: List[int] = [hs["bk_host_id"] for hs in hosts_status]
+        bk_cloud_ids: List[int] = [hs["bk_cloud_id"] for hs in hosts_status]
 
         # 获得管控区域名称
         cloud_name = dict(
-            Cloud.objects.filter(bk_cloud_id__in=bk_clouds_id).values_list("bk_cloud_id", "bk_cloud_name")
+            Cloud.objects.filter(bk_cloud_id__in=bk_cloud_ids).values_list("bk_cloud_id", "bk_cloud_name")
         )
         cloud_name[0] = str(const.DEFAULT_CLOUD_NAME)
 
@@ -180,7 +181,7 @@ class HostHandler(APIModel):
         # 如果需要job result数据
         host_id_job_status = {}
         if "job_result" in params.get("extra_data", []):
-            job_status = JobTask.objects.filter(bk_host_id__in=bk_hosts_id).values(
+            job_status = JobTask.objects.filter(bk_host_id__in=bk_host_ids).values(
                 "bk_host_id", "instance_id", "job_id", "status", "current_step"
             )
             host_id_job_status = {
@@ -197,7 +198,7 @@ class HostHandler(APIModel):
         host_id_identities = {}
         if "identity_info" in params.get("extra_data", []):
             # 获得主机信息
-            identities = IdentityData.objects.filter(bk_host_id__in=bk_hosts_id).values(
+            identities = IdentityData.objects.filter(bk_host_id__in=bk_host_ids).values(
                 "bk_host_id", "account", "auth_type", "port", "password", "key"
             )
 
@@ -216,6 +217,9 @@ class HostHandler(APIModel):
                 }
                 for identity in identities
             }
+
+        # 实时查询主机状态
+        HostTool.fill_agent_state_info_to_hosts(host_infos=hosts_status)
 
         # 获得{biz:[bk_host_id]}格式数据
         biz_host_id_map = {}
