@@ -8,7 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-
+import os
 import traceback
 import typing
 from dataclasses import dataclass
@@ -25,6 +25,7 @@ from typing import (
     Union,
 )
 
+from django.conf import settings
 from django.db.models import Value
 from django.db.models.functions import Concat
 from django.utils import timezone
@@ -32,6 +33,7 @@ from django.utils.translation import ugettext as _
 
 from apps.adapters.api.gse import GseApiBaseHelper, get_gse_api_helper
 from apps.backend.subscription import errors
+from apps.core.files.storage import get_storage
 from apps.node_man import constants, models
 from apps.utils import cache, time_handler, translation
 from apps.utils.exc import ExceptionHandler
@@ -177,6 +179,28 @@ class DBHelperMixin:
         """
         batch_size = models.GlobalSettings.get_config(models.GlobalSettings.KeyEnum.BATCH_SIZE.value, default=100)
         return batch_size
+
+    @property
+    @cache.class_member_cache()
+    def setup_pagent_file_content(self) -> str:
+        """
+        获取 setup_pagent 文件内容
+        :return:
+        """
+        setup_pagent_filename: str = models.GlobalSettings.get_config(
+            models.GlobalSettings.KeyEnum.SETUP_PAGENT_SCRIPT_FILENAME.value,
+            constants.SetupScriptFileName.SETUP_PAGENT_PY.value,
+        )
+
+        try:
+            # 动态从 storage 取，便于进行热修复
+            with get_storage().open(os.path.join(settings.DOWNLOAD_PATH, setup_pagent_filename)) as fs:
+                return fs.read()
+        except Exception:
+            # 兜底读取本地文件
+            path = os.path.join(settings.BK_SCRIPTS_PATH, setup_pagent_filename)
+            with open(path, encoding="utf-8") as fh:
+                return fh.read()
 
 
 @dataclass

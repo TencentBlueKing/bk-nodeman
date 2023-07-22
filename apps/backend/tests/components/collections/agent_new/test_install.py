@@ -49,12 +49,15 @@ class InstallBaseTestCase(utils.AgentServiceBaseTestCase):
 
     OS_TYPE = constants.OsType.LINUX
     NODE_TYPE = constants.NodeType.AGENT
+    DOWNLOAD_PATH = "/tmp/data/bkee/public/bknodeman/download"
     JOB_API_MOCK_PATH = "apps.backend.components.collections.agent_new.install.JobApi"
     EXECUTE_CMD_MOCK_PATH = "apps.backend.components.collections.agent_new.install.execute_cmd"
     PUT_FILE_MOCK_PATH = "apps.backend.components.collections.agent_new.install.put_file"
     CUSTOM_DATAIPC_DIR = "/var/run/gse_test"
 
     LEGACY_SETUP_INFO: AgentSetupInfo = AgentSetupInfo(is_legacy=True)
+
+    OVERWRITE_OBJ__KV_MAP = {settings: {"DOWNLOAD_PATH": DOWNLOAD_PATH}}
 
     @staticmethod
     def update_callback_url():
@@ -151,6 +154,11 @@ class InstallBaseTestCase(utils.AgentServiceBaseTestCase):
             "apps.backend.agent.tools.get_gse_api_helper",
             api_mkd.gse.utils.get_gse_api_helper(GseVersion.V1.value, api_mkd.gse.utils.GseApiMockClient()),
         ).start()
+        os.makedirs(self.DOWNLOAD_PATH, exist_ok=True)
+        with open(
+            os.path.join(self.DOWNLOAD_PATH, constants.SetupScriptFileName.SETUP_PAGENT_PY.value), mode="w+"
+        ) as fs:
+            fs.write("哈哈哈113343ddfd🐒")
 
     def setUp(self) -> None:
         self.update_callback_url()
@@ -408,11 +416,12 @@ class InstallLinuxPagentTestCase(InstallBaseTestCase):
         self.assertEqual(
             solution_parse_result["cmds"],
             [
-                f"-l http://127.0.0.1/download -r http://127.0.0.1/backend -L /data/bkee/public/bknodeman/download"
+                f"-l http://127.0.0.1/download -r http://127.0.0.1/backend -L {self.DOWNLOAD_PATH}"
                 f" -c {solution_parse_result['params']['token']} -s {mock_data_utils.JOB_TASK_PIPELINE_ID}"
                 f" -HNT PAGENT -HIIP {host.inner_ip}"
                 f" -HC {self.CLOUD_ID} -HOT {host.os_type.lower()} -HI '{host.identity.password}'"
-                f" -HP {host.identity.port} -HA {host.identity.account} -HLIP {host.inner_ip}"
+                f" -HP {host.identity.port} -HAT {host.identity.auth_type}"
+                f" -HA {host.identity.account} -HLIP {host.inner_ip}"
                 f" -HDD '{installation_tool.dest_dir}' -HPP '17981' -I 1.1.1.1"
                 f" -HSJB {solution_parse_result['params']['host_solutions_json_b64']}"
             ],
@@ -612,10 +621,10 @@ class InstallAgentWithInstallChannelSuccessTest(InstallBaseTestCase):
         self.assertEqual(
             solution_parse_result["cmds"],
             [
-                f"-l http://1.1.1.1:17980/ -r http://127.0.0.1/backend -L /data/bkee/public/bknodeman/download"
+                f"-l http://1.1.1.1:17980/ -r http://127.0.0.1/backend -L {self.DOWNLOAD_PATH}"
                 f" -c {solution_parse_result['params']['token']} -s {mock_data_utils.JOB_TASK_PIPELINE_ID}"
                 f" -HNT AGENT -HIIP {host.inner_ip}"
-                f" -HC 0 -HOT linux -HI 'password' -HP 22 -HA root -HLIP {host.inner_ip}"
+                f" -HC 0 -HOT linux -HI 'password' -HP 22 -HAT {host.identity.auth_type} -HA root -HLIP {host.inner_ip}"
                 f" -HDD '/tmp/' -HPP '17981' -I 1.1.1.1 -CPA 'http://127.0.0.1:17981'"
                 f" -HSJB {solution_parse_result['params']['host_solutions_json_b64']}"
             ],
