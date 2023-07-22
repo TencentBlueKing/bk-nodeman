@@ -50,6 +50,12 @@ fi
 # Agent 重载配置命令模板
 AGENT_RELOAD_CMD_TEMPLATE = "cd {setup_path}/{node_type}/bin && ./{procs} --reload || ./gsectl restart all"
 
+
+# 进程拉起配置命令
+PROCESS_PULL_CONFIGURATION_CMD = """setup_startup_scripts
+remove_crontab
+"""
+
 # 节点类型 - 重载命令模板映射关系
 NODE_TYPE__RELOAD_CMD_TPL_MAP = {
     constants.NodeType.PROXY.lower(): PROXY_RELOAD_CMD_TEMPLATE,
@@ -87,6 +93,12 @@ class RunUpgradeCommandService(AgentExecuteScriptService):
             else:
                 procs: typing.List[str] = ["gse_agent"]
 
+            if common_data.agent_step_adapter.is_legacy:
+                process_pull_configuration_cmd: str = PROCESS_PULL_CONFIGURATION_CMD
+            else:
+                # 新版本 Agent，通过 gsectl 配置进程拉起方式
+                process_pull_configuration_cmd: str = ""
+
             reload_cmd = NODE_TYPE__RELOAD_CMD_TPL_MAP[general_node_type].format(
                 setup_path=agent_config["setup_path"], node_type=general_node_type, procs=" ".join(procs)
             )
@@ -96,6 +108,7 @@ class RunUpgradeCommandService(AgentExecuteScriptService):
                 package_name=agent_upgrade_pkg_name,
                 node_type=general_node_type,
                 reload_cmd=reload_cmd,
+                process_pull_configuration_cmd=process_pull_configuration_cmd,
                 pkg_cpu_arch=host.cpu_arch,
             )
             return scripts

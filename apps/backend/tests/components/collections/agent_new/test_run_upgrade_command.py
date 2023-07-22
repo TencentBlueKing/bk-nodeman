@@ -18,6 +18,7 @@ from apps.backend.components.collections.agent_new.components import (
 )
 from apps.backend.components.collections.agent_new.run_upgrade_command import (
     AGENT_RELOAD_CMD_TEMPLATE,
+    PROCESS_PULL_CONFIGURATION_CMD,
     WINDOWS_UPGRADE_CMD_TEMPLATE,
 )
 from apps.node_man import constants, models
@@ -39,6 +40,7 @@ class RunUpgradeCommandSuccessTestCase(base.JobBaseTestCase):
         package_name="gse_client-linux-x86_64_upgrade.tgz",
         node_type="agent",
         reload_cmd=AGENT_RELOAD_CMD_TEMPLATE.format(setup_path="/usr/local/gse", node_type="agent", procs="gse_agent"),
+        process_pull_configuration_cmd=PROCESS_PULL_CONFIGURATION_CMD,
         pkg_cpu_arch="x86_64",
     )
     WINDOWS_TEST_SCRIPTS = WINDOWS_UPGRADE_CMD_TEMPLATE.format(
@@ -96,6 +98,7 @@ class LinuxAgent2UpgradeSuccessTestCase(RunUpgradeCommandSuccessTestCase):
             reload_cmd=AGENT_RELOAD_CMD_TEMPLATE.format(
                 setup_path="/usr/local/gse", node_type="agent", procs="gse_agent"
             ),
+            process_pull_configuration_cmd="",
             pkg_cpu_arch="x86_64",
         )
         for record_result in record[JobApi.fast_execute_script]:
