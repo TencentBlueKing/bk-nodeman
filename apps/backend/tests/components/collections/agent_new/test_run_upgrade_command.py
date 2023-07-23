@@ -96,7 +96,7 @@ class LinuxAgent2UpgradeSuccessTestCase(RunUpgradeCommandSuccessTestCase):
             temp_path="/tmp",
             package_name="gse_agent-2.0.0.tgz",
             node_type="agent",
-            reload_cmd=NODE_TYPE__RELOAD_CMD_TPL_MAP["agent"],
+            reload_cmd=NODE_TYPE__RELOAD_CMD_TPL_MAP["agent"].format(setup_path="/usr/local/gse", node_type="agent"),
             process_pull_configuration_cmd="",
             pkg_cpu_arch="x86_64",
         )
