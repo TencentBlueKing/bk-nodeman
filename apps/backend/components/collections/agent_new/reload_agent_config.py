@@ -42,6 +42,7 @@ class ReloadAgentConfigService(RestartService):
         if common_data.agent_step_adapter.is_legacy:
             return f"cd {agent_path} && ./gse_agent --reload"
         else:
+            # 趋势：gsectl 后续作为 Agent 操作的入口
             return f"cd {agent_path} && ./gsectl --reload agent"
 
     def update_host_upstream_nodes(self, common_data: AgentCommonData, gse_version: str):
