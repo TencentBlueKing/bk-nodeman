@@ -107,7 +107,9 @@ class RunUpgradeCommandService(AgentExecuteScriptService):
             else:
                 # 新版本 Agent，通过 gsectl 配置进程拉起方式
                 process_pull_configuration_cmd: str = ""
-                reload_cmd = NODE_TYPE__RELOAD_CMD_TPL_MAP[general_node_type]
+                reload_cmd = NODE_TYPE__RELOAD_CMD_TPL_MAP[general_node_type].format(
+                    setup_path=agent_config["setup_path"], node_type=general_node_type
+                )
 
             scripts = scripts.format(
                 setup_path=agent_config["setup_path"],
