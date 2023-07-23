@@ -63,7 +63,7 @@ LEGACY_NODE_TYPE__RELOAD_CMD_TPL_MAP = {
 
 
 # 新版本 Agent 具有 systemd / crontab 等多种拉起方式，systemd 模式下 reload 会导致进程拉不起来
-# 鉴于 reload 和 start 逻辑均是采取
+# 鉴于 reload 和 start 逻辑均是采取干掉进程再恢复的逻辑，统一采用 restart
 NODE_TYPE__RELOAD_CMD_TPL_MAP = {
     constants.NodeType.PROXY.lower(): "cd {setup_path}/{node_type}/bin && ./gsectl restart all",
     constants.NodeType.AGENT.lower(): "cd {setup_path}/{node_type}/bin && ./gsectl restart",
