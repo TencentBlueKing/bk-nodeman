@@ -130,6 +130,8 @@ class GlobalSettings(models.Model):
         INSTALL_OTHER_AGENT_V1_BIZ_BLACKLIST = "INSTALL_OTHER_AGENT_V1_BIZ_BLACKLIST"
         INSTALL_OTHER_AGENT_V2_BIZ_BLACKLIST = "INSTALL_OTHER_AGENT_V2_BIZ_BLACKLIST"
         NEED_TO_WAIT_EXTRA_INSTALL_COMPLETE = "NEED_TO_WAIT_EXTRA_INSTALL_COMPLETE"
+        # P-Agent 安装脚本名称
+        SETUP_PAGENT_SCRIPT_FILENAME = "SETUP_PAGENT_SCRIPT_FILENAME"
 
     key = models.CharField(_("键"), max_length=255, db_index=True, primary_key=True)
     v_json = JSONField(_("值"))

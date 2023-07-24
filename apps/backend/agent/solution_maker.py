@@ -713,6 +713,7 @@ class ProxyExecutionSolutionMaker(BaseExecutionSolutionMaker):
             # 目标机器登录信息
             f"-HI '{host_identity}'",
             f"-HP {self.identity_data.port}",
+            f"-HAT {self.identity_data.auth_type}",
             f"-HA {self.identity_data.account}",
             f"-HLIP {login_ip}",
             # 目标机器安装配置
