@@ -407,9 +407,6 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
             sub_inst_ids=sub_inst_id,
             log_content=_("已选择 {inner_ip} 作为本次安装的跳板机").format(inner_ip=jump_server.inner_ip or jump_server.inner_ipv6),
         )
-        path = os.path.join(settings.BK_SCRIPTS_PATH, constants.SetupScriptFileName.SETUP_PAGENT_PY.value)
-        with open(path, encoding="utf-8") as fh:
-            script = fh.read()
 
         # 使用全业务执行作业
         bk_biz_id = settings.BLUEKING_BIZ_ID
@@ -435,7 +432,7 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
             "timeout": constants.JOB_TIMEOUT,
             "account_alias": settings.BACKEND_UNIX_ACCOUNT,
             "script_language": constants.ScriptLanguageType.PYTHON.value,
-            "script_content": base64.b64encode(script.encode()).decode(),
+            "script_content": base64.b64encode(self.setup_pagent_file_content).decode(),
             "script_param": base64.b64encode(execution_solution.steps[0].contents[0].text.encode()).decode(),
             "is_param_sensitive": constants.BkJobParamSensitiveType.YES.value,
         }
