@@ -1,5 +1,29 @@
 # Release
 
+## 2.3.3 - 2023-07-25 
+
+### 🚀 Features
+
+- feature:  双 Agent / Proxy 安装支持 (closed #1592)
+
+- feature: 根据 Proxy 实时 Agent 状态选择上游节点 (closed #1659)
+
+- feature:  升级 blueapps 版本 (closed #1689)
+
+- feature: 提升云区域 Agent 安装效率 (closed #1699)
+
+
+### 🐛 Bugfixes
+
+- bugfix:  Proxy 状态不准确 (closed #1668)
+
+- bugfix:  手动安装 Agent 报错认证类型错误 (closed #1676)
+
+
+
+**Full Changelog**: https://github.com/TencentBlueKing/bk-nodeman/compare/v2.3.2...v2.3.3
+
+
 ## 2.3.2 - 2023-07-12 
 
 ### 🔥 Refactors
