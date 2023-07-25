@@ -105,6 +105,7 @@ def arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("-HA", "--host-account", type=str, help="Host Account")
     parser.add_argument("-HP", "--host-port", type=str, help="Host Port")
     parser.add_argument("-HI", "--host-identity", type=str, help="Host Identity")
+    parser.add_argument("-HAT", "--host-auth-type", type=str, help="Host Auth Type")
     parser.add_argument("-HC", "--host-cloud", type=str, help="Host Cloud")
     parser.add_argument("-HNT", "--host-node-type", type=str, help="Host Node Type")
     parser.add_argument("-HOT", "--host-os-type", type=str, help="Host Os Type")
