@@ -10,6 +10,8 @@ on:
 
 jobs:
   build:
+    # 更新次版本号，避免 push 后误执行
+    if: ${{ false }}
     runs-on: ubuntu-latest
     env:
       # 构建环境的Python版本
