@@ -115,6 +115,8 @@ class GlobalSettings(models.Model):
         PLUGIN_COMMON_CONSTANTS = "PLUGIN_COMMON_CONSTANTS"
         # GSE 2.0 灰度列表
         GSE2_GRAY_SCOPE_LIST = "GSE2_GRAY_SCOPE_LIST"
+        # GSE 2.0 Linux Agent/Proxy 进程托管（拉起）方式，默认为 rclocal
+        GSE2_LINUX_AUTO_TYPE = "GSE2_LINUX_AUTO_TYPE"
         # 禁用订阅业务列表
         DISABLE_SUBSCRIPTION_SCOPE_LIST = "DISABLE_SUBSCRIPTION_SCOPE_LIST"
         GSE2_GRAY_AP_MAP = "GSE2_GRAY_AP_MAP"

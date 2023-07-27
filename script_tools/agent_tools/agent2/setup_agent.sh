@@ -864,13 +864,14 @@ DEBUG_LOG_FILE=${TMP_DIR}/nm.${0##*/}.${TASK_ID}.debug
 exec &> >(tee "$DEBUG_LOG_FILE")
 
 log check_env - "Args are: $*"
+
+# removed remove_crontab、setup_startup_scripts -> 由 gsectl 判断是否添加 / 移除
+
 for step in check_env \
             download_pkg \
-            remove_crontab \
             remove_agent \
             remove_proxy_if_exists \
             setup_agent \
-            setup_startup_scripts \
             check_deploy_result; do
     $step
 done

@@ -22,7 +22,7 @@ from django.utils.translation import ugettext_lazy as _
 from apps.backend import exceptions
 from apps.core.files import core_files_constants
 from apps.core.files.storage import get_storage
-from apps.node_man import constants
+from apps.node_man import constants, models
 from apps.utils import cache, files
 
 logger = logging.getLogger("app")
@@ -211,7 +211,21 @@ class BaseArtifactBuilder(abc.ABC):
             with self.storage.open(gsectl_file_path, mode="rb") as fs:
                 # mode 指定 w，覆盖现有文件
                 with open(gsectl_target_file_path, mode="wb") as local_fs:
-                    local_fs.write(fs.read())
+                    gsectl_file_content: str = fs.read().decode()
+                    # TODO 后续如果 1.0 Agent 包也纳入管理，此处需要区分
+                    #  1.0 Agent / Proxy 的 gsectl 采用固定的 rclocal 模式
+                    if gsectl_filename == "gsectl" and "{{ AUTO_TYPE }}" in gsectl_file_content:
+                        auto_type: str = models.GlobalSettings.get_config(
+                            models.GlobalSettings.KeyEnum.GSE2_LINUX_AUTO_TYPE.value,
+                            constants.GseLinuxAutoType.RCLOCAL.value,
+                        )
+                        logger.info(f"apply auto_type -> {auto_type} to gsectl")
+                        gsectl_file_content = gsectl_file_content.replace("{{ AUTO_TYPE }}", auto_type)
+                    if "{{ AUTO_TYPE }}" in gsectl_file_content:
+                        raise exceptions.PkgMetaInfoValidationError(
+                            _("渲染 AUTO_TYPE -> {auto_type} 到 gsectl 失败").format(auto_type=auto_type)
+                        )
+                    local_fs.write(gsectl_file_content.encode(encoding="utf-8"))
             logger.info(f"copy gsectl -> {gsectl_file_path} to {gsectl_target_file_path} success.")
 
             # 为二进制文件授予可执行权限

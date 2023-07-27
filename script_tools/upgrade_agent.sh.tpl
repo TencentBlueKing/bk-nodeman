@@ -129,8 +129,8 @@ else
         exit 1
 fi
 
-setup_startup_scripts
-remove_crontab
+{process_pull_configuration_cmd}
+
 cd "{setup_path}"
 for file in `lsattr -R |egrep "i-" |awk "{{print $NF}}"`;do echo "--- $file" && chattr -i $file ;done
 tar xf "{temp_path}/{package_name}" || echo "tar xf {temp_path}/{package_name} failed"

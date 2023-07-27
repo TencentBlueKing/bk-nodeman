@@ -965,6 +965,22 @@ class GseAutoType(EnhanceEnum):
         }
 
 
+class GseLinuxAutoType(EnhanceEnum):
+    """GSE Linux 进程拉起（托管方式），该配置在 Agent 打包时，渲染到 gsectl 中"""
+
+    CRONTAB = "crontab"
+    RCLOCAL = "rclocal"
+    SYSTEMD = "systemd"
+
+    @classmethod
+    def _get_member__alias_map(cls) -> Dict[Enum, str]:
+        return {
+            cls.CRONTAB: _("crontab"),
+            cls.RCLOCAL: _("rclocal"),
+            cls.SYSTEMD: _("systemd"),
+        }
+
+
 ########################################################################################################
 # CMDB
 ########################################################################################################
