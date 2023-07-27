@@ -343,7 +343,7 @@ class RegisterHostService(AgentBaseService):
                 login_ip = login_ip or inner_ip
 
             extra_data = {
-                "peer_exchange_switch_for_agent": host_info.get("peer_exchange_switch_for_agent", True),
+                "peer_exchange_switch_for_agent": host_info.get("peer_exchange_switch_for_agent", 0),
                 "bt_speed_limit": host_info.get("bt_speed_limit", 0),
                 "enable_compression": host_info.get("enable_compression", False),
             }

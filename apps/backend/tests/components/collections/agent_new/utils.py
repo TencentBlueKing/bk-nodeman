@@ -60,7 +60,7 @@ AGENT_INSTANCE_HOST_INFO = {
     "bk_cloud_id": constants.DEFAULT_CLOUD,
     "bk_cloud_name": str(constants.DEFAULT_CLOUD_NAME),
     "bk_supplier_account": constants.DEFAULT_SUPPLIER_ID,
-    "peer_exchange_switch_for_agent": True,
+    "peer_exchange_switch_for_agent": 0,
     "data_path": "/tmp",
 }
 
@@ -171,7 +171,7 @@ class AgentTestObjFactory:
         instance_host_info_list = self.structure_instance_host_info_list()
         for instance_host_info in instance_host_info_list:
             extra_data = {
-                "peer_exchange_switch_for_agent": instance_host_info.get("peer_exchange_switch_for_agent", True),
+                "peer_exchange_switch_for_agent": instance_host_info.get("peer_exchange_switch_for_agent", 0),
                 "bt_speed_limit": instance_host_info.get("bt_speed_limit", 0),
                 "enable_compression": instance_host_info.get("enable_compression", False),
             }

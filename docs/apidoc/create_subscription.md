@@ -115,7 +115,7 @@ instance_info
 | bk_host_outerip                | string | 否   | 主机外网IP地址                                                |
 | install_channel_id             | int    | 否   | 安装通道ID                                                  |
 | bk_supplier_account            | int    | 否   | 服务商ID                                                   |
-| peer_exchange_switch_for_agent | int    | 否   | 加速设置，默认是开启                                              |
+| peer_exchange_switch_for_agent | int    | 否   | 加速设置，默认是关闭闭                                              |
 | enable_compression             | bool   | 否   | 数据压缩开关，默认是关闭                                              |
 | data_path                      | string | 否   | 数据文件路径                                                  |
 
@@ -229,7 +229,7 @@ Plugin
                     "bk_host_outerip": "127.0.0.1",
                     "install_channel_id": null,
                     "bk_supplier_account": "0",
-                    "peer_exchange_switch_for_agent": 1,
+                    "peer_exchange_switch_for_agent": 0,
                     "enable_compression": false,
                 },
                 "bk_supplier_account": "0"
