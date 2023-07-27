@@ -3,8 +3,10 @@
 
 cd ${BASH_SOURCE%/*} 2>/dev/null
 WORK_HOME=${PWD%/bin}
+WORK_HOME=`echo $WORK_HOME |sed 's/\/$//g'`
+INSTALL_ENV=`echo $WORK_HOME |awk -F/ '{print $(NF-1)}'`
 
-MODULES=(data agent file)
+MODULES=(agent file data)
 
 ulimit -n 409600 2>/dev/null
 
@@ -17,39 +19,287 @@ usage () {
     echo " restart  restart one or more module"
     echo ""
     echo "MODULE_NAME can be one of ${MODULES[@]}"
-    echo 
+    echo
     echo "all gse process name would be: gse_\$MODULE_NAME , for example:"
-    echo "gse_transit, gse_btsvr, gse_agent"
+    echo "gse_agent, gse_file, gse_data"
 }
 
-stop () {
-    local module=$1
+start_by_binary () {
+    local m=$1
+    local ret=0 config
+
+        if [[ "${m}" =~ "data" ]]; then
+            config="data_proxy"
+        elif [[ "${m}" =~ "file" ]]; then
+            config="file_proxy"
+        else
+            config="${m}"
+        fi
+
+        info=( $(_status $m) )
+        rt=$?
+        case $rt in
+            0) status="process:gse_$m pid:${info[0]} etime:${info[1]} Already RUNNING" ;;
+            1) status="ERROR STATUS" ;;
+            2) status="EXIT" ;;
+            3) status="Reload or Restart failed" ;;
+        esac
+
+        if [ $rt -eq 0 ];then
+            printf "%s: %s\n" "gse_$m" "$status"
+            return 0
+        else
+            echo "have no gse_$m Running, status: $status, then starting"
+        fi
+
+        echo "start gse_$m ..."
+
+        _start $m "${config}"
+        if [ $? -eq 1 ];then
+            echo "in bin dir gse_$m is not found"
+            exit 1
+        fi
+
+        __status $m;
+        if [ $? -ne 0 ];then
+            let ret+=1
+            if is_use_systemd $m ;then
+                systemctl status ${INSTALL_ENV}_${node_type}_${module}
+            else
+                tail /tmp/gse_${node_type}.log
+            fi
+        fi
+
+    return $ret
+}
+
+stop_by_binary () {
+    local m=$1
     local ret=0
 
-    if [ -z "$module" -o "$module" = "all" ]; then
-        # 如果stop不带参数，或者第一个参数为all，那么目标模块继承全局的变量MODULES
-        target="${MODULES[@]}"
+        echo "stop gse_$m ..."
+        _stop $m && echo "Done" || { echo "Failed"; let ret+=1; }
+
+    return $ret
+}
+
+restart_by_binary () {
+    local module="$1"
+
+    if [[ "${module}" =~ "data" ]]; then
+        config="data_proxy"
+    elif [[ "${module}" =~ "file" ]]; then
+        config="file_proxy"
     else
-        # 否则使用命令行参数传递的模块名列表
-        target="$@"
+        config="${m}"
     fi
 
-    for m in $target; do
-        echo -n "stop gse_$m ..."
-        _stop $m && echo "Done" || { echo "Failed"; let ret+=1; }
-    done
+    _stop ${module} && _start ${module} $config
 
-    # 返回码代表失败了几个模块
+    __status ${module};
+}
+
+reload_by_binary () {
+    for m in $modules; do
+        echo "reload gse_$m ..."
+        ( ./gse_$m --reload ) >/dev/null 2>&1; sleep 5
+
+        __status $m;
+    done
+}
+
+status_by_binary () {
+    local m=$1
+    local ret=0
+    local -a info
+
+    info=( $(_status $m) )
+    rt=$?
+    case $rt in
+        0) status="pid:${info[0]} etime:${info[1]} RUNNING" ;;
+        1) status="ERROR STATUS" ;;
+        2) status="EXIT" ;;
+        3) status="Reload failed" ;;
+        4) status="have more than one ppid equal 1" ;;
+    esac
+    (( ret += rt ))
+    printf "%s: %s\n" "gse_$m" "$status"
     return $ret
+}
+
+# 检测agent健康状态
+healthz_by_binary () {
+    local rt
+    local -a info
+
+    info=$(_healthz)
+    printf "%s\n" "$info"
+    return $rt
+}
+
+red_echo ()     { [ "$HASTTY" != "1" ] && echo "$@" || echo -e "\033[031;1m$@\033[0m"; }
+blue_echo ()    { [ "$HASTTY" != "1" ] && echo "$@" || echo -e "\033[034;1m$@\033[0m"; }
+green_echo ()   { [ "$HASTTY" != "1" ] && echo "$@" || echo -e "\033[032;1m$@\033[0m"; }
+
+log () {
+    # 打印消息, 并记录到日志, 日志文件由 LOG_FILE 变量定义
+    local retval=$?
+    local timestamp=$(date +%Y%m%d-%H%M%S)
+    local level=INFO
+    local func_seq=$(echo ${FUNCNAME[@]} | sed 's/ /-/g')
+    local logfile=${LOG_FILE:=/tmp/watch_${INSTALL_ENV}_${node_type}.log}
+
+    # 如果当前时间为整点时间,则重置计数,重新开始检测
+    # 获取当前时间的分钟数
+    minute=$(date +%d)
+
+    # 判断是否为整点时间
+    if [ "$minute" == "01" ]; then
+        log "The current day is first day of month, reset the log file to new one ."
+        [ -f $LOG_FILE ] && mv $LOG_FILE ${LOG_FILE}_$(date -d "last month" '+%Y%m').log
+        touch $LOG_FILE
+        if [ -f /tmp/watch_gse_agent.log ];then
+            mv /tmp/watch_gse_agent.log /tmp/watch_gse_agent_$(date -d "last month" '+%Y%m').log
+        fi
+    fi
+
+    local opt=
+
+    if [ "${1:0:1}" == "-" ]; then
+         opt=$1
+         shift 1
+    else
+         opt=""
+    fi
+
+    echo -e $opt "[$(blue_echo ${EXTERNAL_IP:-$LAN_IP})]$timestamp|$BASH_LINENO\t$@"
+    echo "[$(blue_echo ${EXTERNAL_IP}-$LAN_IP)]$timestamp $level|$BASH_LINENO|${func_seq} $@" >>$logfile
+
+    return $retval
+}
+
+watch_by_binary () {
+    log "================================="
+    log "Start detecting..."
+    local module="$1"
+
+    # 设置记录上次脚本运行的文件
+    LAST_RUN_FILE=/var/run/already_run_times_${node_type}_${module}
+
+    # 如果当前时间为整点时间,则重置计数,重新开始检测
+    # 获取当前时间的分钟数
+    minute=$(date +%M)
+
+    # 判断是否为整点时间
+    if [ "$minute" == "00" ]; then
+        log "The current time is on the hour, reset the counter, and restart the detection."
+        if [ -f $LAST_RUN_FILE ];then
+            echo 0 > $LAST_RUN_FILE
+        fi
+    fi
+
+    # 设置告警阈值
+    THRESHOLD=5
+
+    # 如果文件存在，则读取文件中记录的次数
+    if [ -f $LAST_RUN_FILE ]; then
+        run_count=$(cat $LAST_RUN_FILE)
+    else
+        run_count=0
+    fi
+
+    # 检查上一次脚本是否存在
+    if [ -f /var/run/gsectl_check_status.pid ]; then
+        pid=`cat /var/run/gsectl_check_status.pid`
+        if [ -d "/proc/$pid" ]; then
+            # 如果超过阈值，则发出告警
+            if [ $run_count -gt $THRESHOLD ]; then
+                if _status ${module}; then
+                    log "`date +'%F %T.%N'` $0 Restored to normal operation, reset the counter, waiting for the next detection..."
+                    echo 0 > $LAST_RUN_FILE
+                    return
+                else
+                    log "`date +'%F %T.%N'` Script: $0 Detection status: Stuck running for more than $run_count cycles, no longer checking the status of the module: ${module}"
+                    return
+                fi
+            fi
+
+            run_count=$((run_count + 1))
+            echo $run_count > $LAST_RUN_FILE
+            if [ $run_count -gt 0 ];then
+                log "`date +'%F %T.%N'` The previous script: $0 PID:$pid is running"
+            fi
+        else
+            # 如果超过阈值，则发出告警
+            if [ $run_count -gt $THRESHOLD ]; then
+                if _status ${module}; then
+                    log "`date +'%F %T.%N'` ${module} Restored to normal operation, reset the counter, waiting for the next detection..."
+                    echo 0 > $LAST_RUN_FILE
+                    return
+                else
+                    log "`date +'%F %T.%N'` Script: $0 Detection status: Failed to start the process, exceeded $run_count cycles, no longer checking the status of the module: $module"
+                fi
+                return
+            else
+                log "`date +'%F %T.%N'` The previous script: $0 watch has ended, starting a new detection"
+            fi
+        fi
+    fi
+
+    # 记录当前脚本的 PID
+    echo $$ > /var/run/gsectl_check_status.pid
+
+    # 检测Proxy进程是否正常存在的逻辑
+    if [ -z "${module}" ]; then
+        echo "watch: get module: ${module} failed"
+        log "watch: get module: ${module} failed"
+    else
+        if ! _status ${module}; then
+            stop_by_binary ${module}
+            start_by_binary ${module}
+            if [ $? -ne 0 ];then
+                log "`date +'%F %T.%N'` Process failed to start, increment counter"
+                run_count=$((run_count + 1))
+                echo $run_count > $LAST_RUN_FILE
+            fi
+        else
+            if [ $run_count -ne 0 ];then
+                log "`date +'%F %T.%N'` The previous script: $0 Detection status has been restored, reset the count"
+                echo 0 > $LAST_RUN_FILE
+            fi
+        fi
+    fi
+}
+
+_start () {
+    local module="$1"
+    local config="${2:-$module}"
+
+    if [ -z "${module}" ];then
+        echo "start: get module failed"
+        exit 1
+    fi
+
+    if [ -f gse_${module} ]; then
+        ( ./gse_${module} -f $WORK_HOME/etc/gse_${config}.conf ) 1>>/tmp/gse_${node_type}.log 2>&1 ; sleep 3
+    else
+        echo -n "gse_${module}: no such module. "
+        return 1
+    fi
 }
 
 _stop () {
     local module="$1"
 
-    if [ -f gse_$module ]; then
-        ( ./gse_$module --quit ) >/dev/null 2>&1 ; sleep 3
+    if [ -z "${module}" ];then
+        echo "stop: get module failed"
+        exit 1
+    fi
+
+    if [ -f gse_${module} ]; then
+        ( ./gse_${module} --quit ) >/dev/null 2>&1 ; sleep 3
     else
-        echo -n "no such file: gse_$module. "
+        echo -n "no such file: gse_${module}. "
         return 1
     fi
     _status
@@ -60,84 +310,118 @@ _stop () {
     fi
 }
 
-_start () {
-    local module="$1"
-    local config="${2:-$module}"
-
-    if [ -f gse_$module ]; then
-        ( ./gse_$module -f $WORK_HOME/etc/gse_${config}.conf ) >/dev/null 2>&1 ; sleep 3
-    else
-        echo -n "gse_$module: no such module. "
-        return 1
-    fi
-}
-
-start () {
+get_process_runtime (){
     local module=$1
-    local ret=0 config
+    local p_status tmp_gse_master_pid_info tmp_gse_agent_master_pids _pid PID
+    p_status=1
 
-    if [ -z "$module" -o "$module" = "all" ]; then
-        # 如果stop不带参数，或者第一个参数为all，那么目标模块继承全局的变量MODULES
-        target="${MODULES[@]}"
-    else
-        # 否则使用命令行参数传递的模块名列表
-        target="$@"
-    fi
+    sleep 3
 
+    for i in {1..20}
+    do
+        tmp_gse_master_pid_info=$(ps --no-header -C gse_${module} -o '%P|%p|%a' | awk -F'|' '$1 == 1 && $3 ~ /gse_'${module}'/' | awk -F'|' '{print $2}' | xargs)
+        read -r -a tmp_gse_agent_master_pids <<< "$tmp_gse_master_pid_info"
 
-    for m in $target; do
-        echo -n "start gse_$m..."
-        if [[ "${m}" =~ "data" ]]; then
-            config="data_proxy"
-        elif [[ "${m}" =~ "file" ]]; then
-            config="file_proxy"
-        else 
-            config="${m}"
-        fi
-        _start $m "${config}"
-        ( 
-            for i in {0..20}; do
-                if _status $m; then
-                    exit 0
-                elif [ $i -eq 20 ]; then
-                    exit 1
+        for _pid in "${tmp_gse_agent_master_pids[@]}"; do
+            tmp_abs_path=$(readlink -f /proc/$_pid/exe)
+            tmp_abs_path=$(echo "${tmp_abs_path}" | sed 's/ (deleted)$//')  # 防止异常情况下二进制更新但是还没重启进程
+            # 两个路径都用readlink -f 防止有软链接目录
+            # master既然存在，先判断路径是否包含WORK_HOME
+            if [ "$tmp_abs_path" == "$(readlink -f ${WORK_HOME}/bin/gse_${module})" ]; then
+                # 找到了匹配的pid
+                # 获取进程pid的启动时间
+                PID=$_pid
+                START_TIME=$(ps -eo pid,lstart --sort -start_time | grep "$PID" | awk '{ print $2 " " $3 " " $4 " " $5 " " $6 }')
+                START_TIME_S=$(date -d "$START_TIME" +%s)
+                CURRENT_TIME_S=$(date +%s)
+                TIME_DIFF=$(($CURRENT_TIME_S - $START_TIME_S))
+
+                if [ $TIME_DIFF -le 20 ]; then
+                    echo "gse_${module} -> $PID has been running for $TIME_DIFF seconds, check $i times"
+                    p_status=0
+                    break 2
                 else
+                    echo "gse_${module} -> $PID has been running for $TIME_DIFF seconds, restart not yet successful, check $i times"
                     sleep 1
                 fi
-            done
-        ) && echo "DONE" || { echo "FAILED"; let ret+=1; }
+            fi
+        done
+
+        if [ $i -eq 20 ];then
+            return $p_status
+        fi
     done
 
-    return $ret
+    return $p_status
 }
 
-restart () {
-    local module="$@"
+__status (){
+    local module=$1
 
-    stop $module && start $module
-}
+    # 最多等待20s来判断是否真正启动成功
+    for i in {0..20}; do
+        if [ "$action" == "stop" ];then
+            if [ $(ps --no-header -C gse_${module} -o '%P|%p|%a' |egrep "${WORK_HOME}" |wc -l) -eq 0 ];then
+                echo gse_${module} $action $action success
+                break
+            elif [ $i -eq 20 ];then
+                echo "gse_${module} $action $action failed"
+                return 1
+            else
+                sleep 1
+            fi
+        elif [ "$action" == "reload" ];then
+            sleep 3
+            if [ $(ps --no-header -C gse_${module} -o '%P|%p|%a' |egrep "${WORK_HOME}" |wc -l) -eq 2 ];then
+                echo gse_${module} $action $action success
+                break
+            elif [ $i -eq 20 ];then
+                echo "gse_${module} $action $action failed"
+                return 1
+            else
+                sleep 1
+            fi
+        else
+            if _status ${module} >/dev/null; then
+                # 启动正常，直接退出，返回码0
+                echo "gse gse_${module} start successful"
 
-status () {
-    local module="$@"
-    local ret=0
-    local -a info
+                if [ "$action" == "start" -o "$action" == "restart" ];then
+                    for i in {0..5}; do
+                        get_process_runtime ${module}
+                        if [ $? -eq 0 ];then
+                            break
+                        elif [ $? -ne 0 ];then
+                            sleep 2
+                        elif [ $? -eq 5 ];then
+                            echo "check: gse_${module} $action failed"
+                            return 3
+                        fi
+                    done
+                elif [ "$action" == "reload" ];then
+                    for i in {0..5}; do
+                        get_process_runtime ${module}
+                        if [ $? -eq 0 ];then
+                            break
+                        elif [ $? -ne 0 ];then
+                            sleep 2
+                        elif [ $i -eq 5 ];then
+                            echo "check: gse_${module} $action failed"
+                            return 3
+                        fi
+                    done
+                fi
 
-    if [ -z "$module" -o "$module" = "all" ]; then
-        module="${MODULES[@]}"
-    fi
-
-    for m in $module; do
-        info=( $(_status $m) )
-        rt=$?
-        case $rt in
-            0) status="pid:${info[0]} etime:${info[1]} RUNNING" ;;
-            1) status="ERROR STATUS" ;;
-            2) status="EXIT" ;;
-        esac
-        (( ret += rt ))
-        printf "%s: %s\n" "gse_$m" "$status"
+                return 0
+            elif [ $i -eq 20 ]; then
+                # i等于20，超时退出，返回码1
+                echo "check: gse_${module} $action failed"
+                return 1
+            else
+                sleep 2
+            fi
+        fi
     done
-    return $ret
 }
 
 # 返回码：
@@ -145,53 +429,650 @@ status () {
 # 1：异常，存在master进程但是worker不存在
 # 2: 异常，没有master进程存在
 _status () {
-   local module="$1"
-   local gse_master_info _pid pid abs_path
-   local gse_master_pids=()
-    
-    # 初筛，考虑到gse各组件的父进程都是名为gse_${module}的，且它的父进程应该是等于1
-    gse_master_info=$(ps --no-header -C gse_${module} -o '%P|%p|%a' | awk -F'|' '$1 == 1 && $3 ~ /gse_'$module'/')
-    if [[ -z "$gse_master_info" ]]; then
+    local module=$1
+    local gse_master_info _pid pid abs_path
+
+    if [ "$action" == "reload" ];then
+        # 如果是reload,需要新的进程启动,才能继续判断进程是否符合正常情况
+        get_process_runtime $module
+        if [ $? -ne 0 ];then
+            echo "gse_$module $action failed"
+            return 3
+        fi
+    fi
+
+    # 初筛，考虑到gse组件的父、子进程都是名为gse_${module}的，且它的父进程应该是等于1
+    # ps的-o参数指定输出字段%P(ppid)、%p(pid)、%a(args)
+    # 所以下面命令是拉出所有进程名为gse_${module}，且父进程为1，进程参数包含gse_${module}的进程信息
+    gse_master_pid_info=$(ps --no-header -C gse_${module} -o '%P|%p|%a' | awk -F'|' '$1 == 1 && $3 ~ /'gse_${module}'/' | awk -F'|' '{print $2}' | xargs)
+    read -r -a gse_agent_master_pids <<< "$gse_master_pid_info"
+
+    if [[ -z "$gse_agent_master_pids" ]]; then
         # 连master都没有，那不用做更深入的判断，直接返回false
         return 2
-    else
+    fi
+    gse_master_pids_by_exe_path=()
+
+    for _pid in "${gse_agent_master_pids[@]}"; do
+        abs_path=$(readlink -f /proc/$_pid/exe)
+        abs_path=$(echo "${abs_path}" | sed 's/ (deleted)$//')  # 防止异常情况下二进制更新但是还没重启进程
+        # 两个路径都用readlink -f 防止有软链接目录
         # master既然存在，先判断路径是否包含WORK_HOME
-        gse_master_pids=( $(echo "$gse_master_info" | awk -F'|' '{print $2}') )
-        for _pid in ${gse_master_pids[@]}; do
-            abs_path=$(readlink -f /proc/$_pid/exe)
-            abs_path=$(echo "${abs_path}" | sed 's/ (deleted)$//')  # 防止异常情况下二进制更新但是还没重启进程
-            # 两个路径都用readlink -f 防止有软链接目录
-            if [ "$abs_path" == "$(readlink -f ${WORK_HOME}/bin/gse_${module})" ]; then
-                pid=$_pid
-                break
-            fi
-        done
-        if [[ -z "$pid" ]]; then
-            # 没有匹配WORK_HOME的master，返回fasle
+        if [ "$abs_path" == "$(readlink -f ${WORK_HOME}/bin/gse_${module})" ]; then
+            # 找到了匹配的pid
+            gse_master_pids_by_exe_path+=($_pid)
+        fi
+    done
+
+    agent_id_file=${WORK_HOME}/bin/run/${module}.pid
+    if [[ ${#gse_master_pids_by_exe_path} -eq 0 ]]; then
+            # 连master都没有，那不用做更深入的判断，直接返回false
             return 2
+    elif [[ ${#gse_master_pids_by_exe_path[@]} -gt 1 && -f ${agent_id_file} ]]; then
+        # 兼容存在游离gse_${module} worker进程的场景
+        gse_master_pid=$(cat $agent_id_file)
+        return 4
+    else
+        gse_master_pid=$gse_master_pids_by_exe_path
+    fi
+
+    # 查看该gseMaster进程是否子进程Worker(>=1)
+    if [[ $(pgrep -P $gse_master_pid | wc -l) -eq 0 ]]; then
+        return 1
+    fi
+    # 运行到这里时就可以获取进程状态详细信息输出到STDOUT，并返回0了
+    ps --no-header -p $gse_master_pid -o pid,etime,command
+    return 0
+}
+
+_healthz () {
+    ./gse_agent --healthz
+}
+
+start_by_systemd () {
+    local ret=0
+
+    echo "start with systemd..."
+    for module in $modules
+    do
+        if is_systemd_supported ;then
+            add_config_to_systemd ${module}
+        fi
+
+        if is_use_systemd ${module} ;then
+            stop_by_binary ${module}
+            systemctl start ${INSTALL_ENV}_${node_type}_${module}
+            __status ${module};
         else
-            # 查看该gse_master进程是否有Worker(>=1)
-            if [[ $(pgrep -P $pid | wc -l) -eq 0 ]]; then
-                return 1
+            start_by_binary ${module}
+            if [ $? -ne 0 ];then
+                let ret+=1
+            fi
+        fi
+        sleep 2
+    done
+
+    if [ $ret -ne 0 ];then
+        echo "have $reg modules start failed"
+    fi
+}
+
+stop_by_systemd () {
+    for module in $modules
+    do
+        if is_use_systemd ${module} ;then
+            systemctl stop ${INSTALL_ENV}_${node_type}_${module}
+            __status ${module};
+        else
+            stop_by_binary ${module}
+        fi
+        sleep 2
+    done
+}
+
+restart_by_systemd () {
+    for module in $modules
+    do
+        if is_systemd_supported ;then
+            add_config_to_systemd ${module}
+        fi
+
+        if is_use_systemd ${module} ;then
+            stop_by_binary ${module}
+            systemctl restart ${INSTALL_ENV}_${node_type}_${module}
+            __status ${module};
+        else
+            stop_by_binary ${module}
+            start_by_binary ${module}
+            if [ $? -ne 0 ];then
+                echo "gse_${module} start failed"
+            fi
+        fi
+        sleep 2
+    done
+}
+
+reload_by_systemd () {
+    for module in $modules
+    do
+        if is_systemd_supported ;then
+            add_config_to_systemd ${module}
+        fi
+
+        if is_use_systemd ${module} ;then
+            systemctl reload ${INSTALL_ENV}_${node_type}_${module}
+            __status ${module};
+        else
+            reload_by_binary ${module}
+        fi
+        sleep 2
+    done
+}
+
+status_by_systemd () {
+    for module in $modules
+    do
+        if is_use_systemd ${module} ;then
+            systemctl status ${INSTALL_ENV}_${node_type}_${module}
+        else
+            status_by_binary ${module}
+        fi
+    done
+}
+
+healthz_by_systemd () {
+    healthz_by_binary
+}
+
+start_by_crontab () {
+
+    for module in $modules
+    do
+        if is_use_systemd ${module} ;then
+            remove_config_to_systemd "${module}"
+            start_by_binary ${module}
+            if [ $? -ne 0 ];then
+                echo "have $? module start failed"
+                exit 1
+            fi
+        else
+            start_by_binary ${module}
+            if [ $? -ne 0 ];then
+                echo "have $? module start failed"
+                exit 1
+            fi
+        fi
+
+        # 添加启动项到 rc.local
+        add_startup_to_boot ${module}
+        setup_crontab ${module}
+    done
+}
+
+stop_by_crontab () {
+
+    for module in $modules
+    do
+        stop_by_binary ${module}
+        if [ $? -ne 0 ];then
+            echo "have $? module start failed"
+            exit 1
+        fi
+    done
+    return
+}
+
+reload_by_crontab () {
+
+    for module in $modules
+    do
+        reload_by_binary ${module}
+        if [ $? -ne 0 ];then
+            echo "have $? module start failed"
+            exit 1
+        fi
+    done
+    return
+}
+
+restart_by_crontab () {
+    for module in $modules
+    do
+        if is_use_systemd ${module} ;then
+            remove_config_to_systemd "${module}"
+            restart_by_binary ${module}
+            if [ $? -ne 0 ];then
+                echo "have $? module start failed"
+                exit 1
+            fi
+        else
+            restart_by_binary ${module}
+            if [ $? -ne 0 ];then
+                echo "have $? module start failed"
+                exit 1
+            fi
+        fi
+
+        # 添加启动项到 rc.local
+        add_startup_to_boot ${module}
+        setup_crontab ${module}
+    done
+    return
+}
+
+status_by_crontab () {
+
+    for module in $modules
+    do
+        status_by_binary ${module}
+        if [ $? -ne 0 ];then
+            echo "have $? module start failed"
+            exit 1
+        fi
+    done
+    return
+}
+
+healthz_by_crontab () {
+    healthz_by_binary
+    return
+}
+
+watch_by_crontab () {
+    for module in $modules
+    do
+        watch_by_binary ${module}
+        if [ $? -ne 0 ];then
+            echo "module: ${module} start failed"
+        fi
+        sleep 2;
+    done
+    return
+}
+
+start_by_rclocal () {
+    remove_crontab
+    for module in $modules
+    do
+        if is_use_systemd ${module} ;then
+            remove_config_to_systemd "${module}"
+            start_by_binary "${module}"
+        else
+            start_by_binary "${module}"
+        fi
+    done
+
+    add_startup_to_boot "${module}"
+    return
+}
+
+stop_by_rclocal () {
+    for module in $modules
+    do
+        stop_by_binary "${module}"
+        if [ $? -ne 0 ];then
+            echo "have $? module start failed"
+            exit 1
+        fi
+    done
+    return
+}
+
+reload_by_rclocal () {
+    remove_crontab
+    for module in $modules
+    do
+        if is_use_systemd ${module} ;then
+            remove_config_to_systemd "${module}"
+        fi
+        reload_by_binary "${module}"
+        if [ $? -ne 0 ];then
+            echo "have $? module reload failed"
+            exit 1
+        fi
+        add_startup_to_boot "${module}"
+    done
+
+    return
+}
+
+restart_by_rclocal () {
+    remove_crontab
+    for module in $modules
+    do
+        if is_use_systemd ${module} ;then
+            remove_config_to_systemd "${module}"
+        fi
+        restart_by_binary "${module}"
+        if [ $? -ne 0 ];then
+            echo "have $? module restart failed"
+            exit 1
+        fi
+        add_startup_to_boot "${module}"
+    done
+
+    return
+}
+
+
+status_by_rclocal () {
+    status_by_binary
+    return
+}
+
+healthz_by_rclocal () {
+    healthz_by_binary
+    return
+}
+
+is_systemd_supported () {
+    if [ "`ps -p 1 -o comm=`" == "systemd" ];then
+        return 0
+    else
+        return 1
+    fi
+}
+
+
+is_use_systemd () {
+    local module="${1}"
+
+    if [ -z "${module}" ];then
+        echo "check: get module failed"
+        exit 1
+    fi
+
+    if [ -f /usr/lib/systemd/system/${INSTALL_ENV}_${node_type}_${module}.service ];then
+        return 0
+    else
+        return 1
+    fi
+}
+
+get_os_info () {
+    OS_INFO="-"
+    if [ -f "/proc/version" ]; then
+        OS_INFO="$OS_INFO $(cat /proc/version)"
+    fi
+    if [ -f "/etc/issue" ]; then
+        OS_INFO="$OS_INFO $(cat /etc/issue)"
+    fi
+    OS_INFO="$OS_INFO $(uname -a)"
+    OS_INFO=$(echo ${OS_INFO} | tr 'A-Z' 'a-z')
+}
+
+get_os_type () {
+    get_os_info
+    OS_INFO=$(echo ${OS_INFO} | tr 'A-Z' 'a-z')
+    if [[ "${OS_INFO}" =~ "ubuntu" ]]; then
+        OS_TYPE="ubuntu"
+        RC_LOCAL_FILE="/etc/rc.local"
+    elif [[ "${OS_INFO}" =~ "centos" ]]; then
+        OS_TYPE="centos"
+        RC_LOCAL_FILE="/etc/rc.d/rc.local"
+    elif [[ "${OS_INFO}" =~ "coreos" ]]; then
+        OS_TYPE="coreos"
+        RC_LOCAL_FILE="/etc/rc.d/rc.local"
+    elif [[ "${OS_INFO}" =~ "freebsd" ]]; then
+        OS_TYPE="freebsd"
+        RC_LOCAL_FILE="/etc/rc.d/rc.local"
+    elif [[ "${OS_INFO}" =~ "debian" ]]; then
+        OS_TYPE="debian"
+        RC_LOCAL_FILE="/etc/rc.local"
+    elif [[ "${OS_INFO}" =~ "suse" ]]; then
+        OS_TYPE="suse"
+        RC_LOCAL_FILE="/etc/rc.d/rc.local"
+    elif [[ "${OS_INFO,,}" =~ "hat" ]]; then
+        OS_TYPE="redhat"
+        RC_LOCAL_FILE="/etc/rc.d/rc.local"
+    fi
+}
+
+add_startup_to_boot (){
+    local module=$1
+
+    # 添加启动项到 rc.local
+    echo "Check startup items, and if not existing, add the startup item to rc.local"
+    get_os_type
+    if [ -f $RC_LOCAL_FILE ];then
+        if [ `egrep "local/${INSTALL_ENV}/${node_type}" $RC_LOCAL_FILE |egrep ${module} |wc -l` -eq 0 ];then
+            echo "[ -f /usr/local/${INSTALL_ENV}/${node_type}/bin/gsectl ] && /usr/local/${INSTALL_ENV}/${node_type}/bin/gsectl start ${module} 1>>/var/log/${INSTALL_ENV}_${node_type}.log 2>&1" >> $RC_LOCAL_FILE
+        fi
+    else
+        if [ -f /etc/rc.d/rc.local ];then
+            if [ `egrep "local/${INSTALL_ENV}/${node_type}" /etc/rc.d/rc.local |egrep ${module} |wc -l` -eq 0 ];then
+                echo "[ -f /usr/local/${INSTALL_ENV}/${node_type}/bin/gsectl ] && /usr/local/${INSTALL_ENV}/${node_type}/bin/gsectl start ${module} 1>>/var/log/${INSTALL_ENV}_${node_type}.log 2>&1" >> $RC_LOCAL_FILE
+            fi
+        elif [ -f /etc/init.d/rc.local ];then
+            if [ `egrep "local/${INSTALL_ENV}/${node_type}" /etc/init.d/rc.local |egrep ${module} |wc -l` -eq 0 ];then
+                echo "[ -f /usr/local/${INSTALL_ENV}/${node_type}/bin/gsectl ] && /usr/local/${INSTALL_ENV}/${node_type}/bin/gsectl start ${module} 1>>/var/log/${INSTALL_ENV}_${node_type}.log 2>&1" >> $RC_LOCAL_FILE
+            fi
+        elif [ -f /etc/init.d/boot.local ];then
+            if [ `egrep "local/${INSTALL_ENV}/${node_type}" /etc/init.d/boot.local |egrep ${module} |wc -l` -eq 0 ];then
+                echo "[ -f /usr/local/${INSTALL_ENV}/${node_type}/bin/gsectl ] && /usr/local/${INSTALL_ENV}/${node_type}/bin/gsectl start ${module} 1>>/var/log/${INSTALL_ENV}_${node_type}.log 2>&1" >> $RC_LOCAL_FILE
             fi
         fi
     fi
-    # 运行到这里时就可以获取进程状态详细信息输出到STDOUT，并返回0了
-    ps --no-header -p $pid -o pid,etime
-    return 0
+}
+
+add_config_to_systemd () {
+
+    local module="${1}"
+
+    if [[ "${module}" =~ "data" ]]; then
+        config="data_proxy"
+    elif [[ "${module}" =~ "file" ]]; then
+        config="file_proxy"
+    else
+        config="${module}"
+    fi
+cat > /tmp/${INSTALL_ENV}_${node_type}_${module}.service << EOF
+[Unit]
+Description=GSE2.0 Proxy Daemon
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+LimitNOFILE=512000
+LimitCORE=infinity
+WorkingDirectory=/usr/local/${INSTALL_ENV}/${node_type}/bin
+PIDFile=/usr/local/${INSTALL_ENV}/${node_type}/bin/run/${module}.pid
+ExecStart=/usr/local/${INSTALL_ENV}/${node_type}/bin/gse_${module} -f /usr/local/${INSTALL_ENV}/${node_type}/etc/gse_${config}.conf
+ExecReload=/usr/local/${INSTALL_ENV}/${node_type}/bin/gse_${module} --reload
+ExecStop=/usr/local/${INSTALL_ENV}/${node_type}/bin/gse_${module} --quit
+Type=forking
+KillMode=process
+User=root
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+    if [ -f /usr/lib/systemd/system/${INSTALL_ENV}_${node_type}_${module}.service ];then
+        if [ `md5sum /tmp/${INSTALL_ENV}_${node_type}_${module}.service |awk '{print $1}'` == `md5sum /usr/lib/systemd/system/${INSTALL_ENV}_${node_type}_${module}.service |awk '{print $1}'` ];then
+            echo "${INSTALL_ENV}_${node_type}_${module}.service have no change..."
+        else
+            echo "update ${INSTALL_ENV}_${node_type}_${module}.service"
+            cp /tmp/${INSTALL_ENV}_${node_type}_${module}.service /usr/lib/systemd/system/${INSTALL_ENV}_${node_type}_${module}.service
+            systemctl daemon-reload
+            systemctl enable ${INSTALL_ENV}_${node_type}_${module}.service
+        fi
+    else
+        echo "copy ${INSTALL_ENV}_${node_type}_${module}.service"
+        cp /tmp/${INSTALL_ENV}_${node_type}_${module}.service /usr/lib/systemd/system/${INSTALL_ENV}_${node_type}_${module}.service
+        systemctl daemon-reload
+        systemctl enable ${INSTALL_ENV}_${node_type}_${module}.service
+    fi
+
+    [ -f /tmp/${INSTALL_ENV}_${node_type}_${module}.service ] && rm /tmp/${INSTALL_ENV}_${node_type}_${module}.service
+
+    # 删除rc.local里的启动项
+    get_os_type
+    if [ -f $RC_LOCAL_FILE ];then
+        if [ `egrep "local/${INSTALL_ENV}/${node_type}" $RC_LOCAL_FILE |wc -l` -ne 0 ];then
+            sed -i "/local\/${INSTALL_ENV}\/${node_type}/d" $RC_LOCAL_FILE
+        fi
+    else
+        if [ -f /etc/rc.d/rc.local ];then
+            if [ `egrep "local/${INSTALL_ENV}/${node_type}" /etc/rc.d/rc.local |wc -l` -ne 0 ];then
+                sed -i "/local\/${INSTALL_ENV}\/${node_type}/d" /etc/rc.d/rc.local
+            fi
+        elif [ -f /etc/init.d/rc.local ];then
+            if [ `egrep "local/${INSTALL_ENV}/${node_type}" /etc/init.d/rc.local |wc -l` -ne 0 ];then
+                sed -i "/local\/${INSTALL_ENV}\/${node_type}/d" /etc/init.d/rc.local
+            fi
+        elif [ -f /etc/init.d/boot.local ];then
+            if [ `egrep "local/${INSTALL_ENV}/${node_type}" /etc/init.d/boot.local |wc -l` -ne 0 ];then
+                sed -i "/local\/${INSTALL_ENV}\/${node_type}/d" /etc/init.d/boot.local
+            fi
+        fi
+    fi
+
+    # 删除crontab里的定时任务
+    remove_crontab
+}
+
+
+remove_config_to_systemd () {
+    local module=$1
+
+    if [ -f /usr/lib/systemd/system/${INSTALL_ENV}_${node_type}_${module}.service ];then
+        systemctl stop ${INSTALL_ENV}_${node_type}_${module}.service
+        systemctl disable ${INSTALL_ENV}_${node_type}_${module}.service
+        rm /usr/lib/systemd/system/${INSTALL_ENV}_${node_type}_${module}.service
+    fi
+}
+
+
+setup_crontab () {
+    local module=$1
+    local tmpcron
+
+    if [ "${module}" != "${MODULES[-1]}" ];then
+        return 0
+    fi
+
+    if [ -n "`crontab -l | grep \"$WORK_HOME/bin/gsectl\"`" ];then
+        echo "The watch detection entry is already in the crontab..."
+        return 0
+    fi
+
+    tmpcron=/tmp/cron.XXXXXXX
+
+    (
+        crontab -l | grep -v "$WORK_HOME/bin/gsectl"
+        echo "#$WORK_HOME Agent check, add by NodeMan @ `date +'%F %T'`"
+        echo "* * * * * $WORK_HOME/bin/gsectl watch all 1>>/tmp/watch_gse_${node_type}.log 2>&1"
+    ) > "$tmpcron"
+
+    crontab "$tmpcron" && rm -f "$tmpcron"
+    crontab -l |egrep "$WORK_HOME"
+}
+
+remove_crontab (){
+    local tmpcron
+    tmpcron=/tmp/cron.XXXXXX
+
+    crontab -l |egrep -v "$WORK_HOME" >$tmpcron
+    crontab $tmpcron && rm -f $tmpcron
+
+    # 下面这段代码是为了确保修改的crontab立即生效
+    if pgrep -x crond &>/dev/null; then
+        pkill -HUP -x crond
+    fi
+}
+
+get_auto_type () {
+    # 由节点管理进行渲染，当前环境使用 {{ AUTO_TYPE }}
+    echo "{{ AUTO_TYPE }}"
+    return
+    if is_systemd_supported;then
+        echo "systemd"
+    else
+        echo "crontab"
+    fi
+}
+
+detect_node_type () {
+    case $WORK_HOME in
+        *"$INSTALL_ENV"/proxy) node_type=proxy ;;
+        *"$INSTALL_ENV"/agent) node_type=agent ;;
+        *) node_type=unknown ;;
+    esac
+
+    echo $node_type >$WORK_HOME/.gse_node_type
 }
 
 
 # main
 action="$1"; shift
+
+# 判断当前系统的LIBC的版本,低于2.17直接退出安装
+libc_version=$(echo `ldd --version |head -n1` |awk '{print $NF}')
+if [ `echo "$libc_version < 2.17" | bc -l` -eq 1 ];then
+    echo "The current system libc value: $libc_version is lower than the minimum required libc value: 2.17"
+    echo "Need the system's LIBC version higher than 2.17, use this command to check:"
+    echo "`ldd --version`"
+    exit 1
+fi
+
+# 你可以使用 $modules 获取所有从第二个位置到最后一个位置的参数
 modules="$@"
- 
-case $action in
-    start) start "$modules" ;;
-    stop) stop "$modules" ;;
-    restart) restart "$modules" ;;
-    status) status "$modules" ;;
-    -h|*) usage ; exit 255;;
-esac
+
+if [ "$modules"XXX == "XXX" ];then
+    modules="${MODULES[@]}"
+elif [ "$modules" == "all" ];then
+    modules="${MODULES[@]}"
+fi
+
+auto_type=$(get_auto_type)
+
+if [ -s $WORK_HOME/.gse_node_type ]; then
+    read node_type ignore <$WORK_HOME/.gse_node_type
+else
+    detect_node_type
+fi
+
+if [ "${node_type}" == "unknown" ];then
+    echo "wrong node type: ${node_type}"
+    exit
+fi
+
+
+if [ $auto_type == "systemd" ]; then
+  case $action in
+      start) start_by_systemd ;;
+      stop) stop_by_systemd ;;
+      restart) restart_by_systemd;;
+      status) status_by_systemd ;;
+      reload) reload_by_systemd;;
+      healthz) healthz_by_systemd;;
+      watch) watch_by_crontab;;
+      -h|*) usage ; exit 255 ;;
+  esac
+elif [ $auto_type == "crontab" ]; then
+      case $action in
+      start) start_by_crontab ;;
+      stop) stop_by_crontab ;;
+      restart) restart_by_crontab ;;
+      status) status_by_crontab ;;
+      reload) reload_by_crontab;;
+      healthz) healthz_by_crontab;;
+      watch) watch_by_crontab;;
+      -h|*) usage ; exit 255 ;;
+  esac
+elif [ $auto_type == "rclocal" ]; then
+      case $action in
+      start) start_by_rclocal ;;
+      stop) stop_by_rclocal ;;
+      restart) restart_by_rclocal ;;
+      status) status_by_rclocal ;;
+      reload) reload_by_rclocal;;
+      healthz) healthz_by_rclocal;;
+      -h|*) usage ; exit 255 ;;
+  esac
+fi
 
 exit $?

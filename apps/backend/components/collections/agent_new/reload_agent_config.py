@@ -39,8 +39,12 @@ class ReloadAgentConfigService(RestartService):
         general_node_type = self.get_general_node_type(host.node_type)
         setup_path = common_data.host_id__ap_map[host.bk_host_id].get_agent_config(host.os_type)["setup_path"]
         agent_path = path_handler.join(setup_path, general_node_type, "bin")
-
-        return f"cd {agent_path} && ./gse_agent --reload"
+        if common_data.agent_step_adapter.is_legacy:
+            return f"cd {agent_path} && ./gse_agent --reload"
+        else:
+            # 趋势：gsectl 后续作为 Agent 操作的入口
+            # || 兼容旧版本 gsectl 没有 reload 操作
+            return f"cd {agent_path} && ./gsectl reload agent || ./gse_agent --reload"
 
     def update_host_upstream_nodes(self, common_data: AgentCommonData, gse_version: str):
         hosts = [host for host in common_data.host_id_obj_map.values() if host.bk_cloud_id != constants.DEFAULT_CLOUD]
