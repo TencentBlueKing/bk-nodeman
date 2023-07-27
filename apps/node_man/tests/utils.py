@@ -95,7 +95,7 @@ def create_host_from_a_to_b(
                     "upstream_nodes": upstream_nodes if upstream_nodes else [i for i in range(100)],
                     "extra_data": {
                         "bt_speed_limit": None,
-                        "peer_exchange_switch_for_agent": 1,
+                        "peer_exchange_switch_for_agent": 0,
                         "enable_compression": False,
                     },
                 }

@@ -44,7 +44,7 @@
             "extra_data": {
                 "data_path": "/var/lib/gse",
                 "bt_speed_limit": null,
-                "peer_exchange_switch_for_agent": 1,
+                "peer_exchange_switch_for_agent": 0,
                 "enable_compression": false,
             },
             "bk_biz_name": "test",

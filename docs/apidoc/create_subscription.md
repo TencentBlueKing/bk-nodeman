@@ -115,7 +115,7 @@ instance_info
 | bk_host_outerip                | string | 否   | 主机外网IP地址                                                |
 | install_channel_id             | int    | 否   | 安装通道ID                                                  |
 | bk_supplier_account            | int    | 否   | 服务商ID                                                   |
-| peer_exchange_switch_for_agent | int    | 否   | 加速设置，默认是开启                                              |
+| peer_exchange_switch_for_agent | int    | 否   | 加速设置，默认是关闭                                              |
 | enable_compression             | bool   | 否   | 数据压缩开关，默认是关闭                                              |
 | data_path                      | string | 否   | 数据文件路径                                                  |
 
@@ -155,7 +155,7 @@ Plugin
 | MAIN_INSTALL_PLUGIN         | string | 部署插件程序，下发并安装插件 |
 | MAIN_STOP_AND_DELETE_PLUGIN | string | 停用插件并删除订阅      |
 
-官方插件，是基于多配置的管理模式，安装、卸载、启用、停用等操作仅涉及到配置的增删 
+官方插件，是基于多配置的管理模式，安装、卸载、启用、停用等操作仅涉及到配置的增删
 
 | 字段          | 类型     | 描述     |
 | ----------- | ------ | ------ |

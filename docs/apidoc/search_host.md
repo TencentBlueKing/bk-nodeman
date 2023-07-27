@@ -105,7 +105,7 @@
         "is_manual": true,
         "extra_data": {
           "bt_speed_limit": null,
-          "peer_exchange_switch_for_agent": 1,
+          "peer_exchange_switch_for_agent": 0,
           "enable_compression": false,
         },
         "status_display": "正常",
