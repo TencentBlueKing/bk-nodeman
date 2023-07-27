@@ -25,7 +25,7 @@ class UpdateInstallInfoService(AgentBaseService):
             bk_host_id = host_info["bk_host_id"]
             host_obj = common_data.host_id_obj_map[bk_host_id]
 
-            default_extra_data = {"peer_exchange_switch_for_agent": True, "bt_speed_limit": 0}
+            default_extra_data = {"peer_exchange_switch_for_agent": 0, "bt_speed_limit": 0}
             added_extra_data = {
                 "peer_exchange_switch_for_agent": host_info.get("peer_exchange_switch_for_agent"),
                 "bt_speed_limit": host_info.get("bt_speed_limit"),

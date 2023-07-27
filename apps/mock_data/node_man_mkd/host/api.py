@@ -32,7 +32,7 @@ HOST_SEARCH_RESPONSE = {
             "created_at": "2022-07-12 18:58:36+0800",
             "updated_at": "2022-07-12 18:58:36+0800",
             "is_manual": True,
-            "extra_data": {"bt_speed_limit": None, "peer_exchange_switch_for_agent": 1, "enable_compression": False},
+            "extra_data": {"bt_speed_limit": None, "peer_exchange_switch_for_agent": 0, "enable_compression": False},
             "status_display": "正常",
             "bk_cloud_name": "直连区域",
             "install_channel_name": None,
@@ -98,7 +98,7 @@ HOST_PROXY_RESPONSE = [
         "extra_data": {
             "data_path": "/var/lib/gse",
             "bt_speed_limit": None,
-            "peer_exchange_switch_for_agent": 1,
+            "peer_exchange_switch_for_agent": 0,
             "enable_compression": False,
         },
         "bk_biz_name": "test",
