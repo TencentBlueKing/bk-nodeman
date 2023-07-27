@@ -807,11 +807,9 @@ log check_env - "$@"
 #pre_view
 for step in check_env \
             download_pkg \
-            remove_crontab \
             remove_proxy \
             remove_agent_if_exists \
             setup_proxy \
-            setup_startup_scripts \
             check_deploy_result; do
     $step
 done

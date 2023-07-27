@@ -83,3 +83,8 @@ class AgentConfigTemplateNotExistError(BackendBaseException):
 class NotSemanticVersionError(BackendBaseException):
     MESSAGE_TPL = _("版本号 -> {version} 不符合语义化版本规则")
     ERROR_CODE = 13
+
+
+class PkgMetaInfoValidationError(BackendBaseException):
+    MESSAGE = _("安装包元数据校验失败")
+    ERROR_CODE = 14

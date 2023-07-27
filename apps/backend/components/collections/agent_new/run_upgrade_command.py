@@ -13,7 +13,6 @@ import typing
 
 from django.conf import settings
 
-from apps.backend.agent.artifact_builder.proxy import ProxyArtifactBuilder
 from apps.node_man import constants, models
 
 from .base import AgentCommonData, AgentExecuteScriptService
@@ -50,10 +49,24 @@ fi
 # Agent 重载配置命令模板
 AGENT_RELOAD_CMD_TEMPLATE = "cd {setup_path}/{node_type}/bin && ./{procs} --reload || ./gsectl restart all"
 
+
+# 进程拉起配置命令
+PROCESS_PULL_CONFIGURATION_CMD = """setup_startup_scripts
+remove_crontab
+"""
+
 # 节点类型 - 重载命令模板映射关系
-NODE_TYPE__RELOAD_CMD_TPL_MAP = {
+LEGACY_NODE_TYPE__RELOAD_CMD_TPL_MAP = {
     constants.NodeType.PROXY.lower(): PROXY_RELOAD_CMD_TEMPLATE,
     constants.NodeType.AGENT.lower(): AGENT_RELOAD_CMD_TEMPLATE,
+}
+
+
+# 新版本 Agent 具有 systemd / crontab 等多种拉起方式，systemd 模式下 reload 会导致进程拉不起来
+# 鉴于 reload 和 start 逻辑均是采取干掉进程再恢复的逻辑，统一采用 restart
+NODE_TYPE__RELOAD_CMD_TPL_MAP = {
+    constants.NodeType.PROXY.lower(): "cd {setup_path}/{node_type}/bin && ./gsectl restart all",
+    constants.NodeType.AGENT.lower(): "cd {setup_path}/{node_type}/bin && ./gsectl restart",
 }
 
 
@@ -79,23 +92,32 @@ class RunUpgradeCommandService(AgentExecuteScriptService):
             with open(tpl_path, encoding="utf-8") as fh:
                 scripts = fh.read()
 
-            if host.node_type == constants.NodeType.PROXY:
-                if common_data.agent_step_adapter.is_legacy:
+            if common_data.agent_step_adapter.is_legacy:
+                process_pull_configuration_cmd: str = PROCESS_PULL_CONFIGURATION_CMD
+
+                if host.node_type == constants.NodeType.PROXY:
                     procs: typing.List[str] = ["gse_agent", "gse_transit", "gse_btsvr", "gse_data"]
                 else:
-                    procs: typing.List[str] = ["gse_agent"] + ProxyArtifactBuilder.PROXY_SVR_EXES
-            else:
-                procs: typing.List[str] = ["gse_agent"]
+                    procs: typing.List[str] = ["gse_agent"]
 
-            reload_cmd = NODE_TYPE__RELOAD_CMD_TPL_MAP[general_node_type].format(
-                setup_path=agent_config["setup_path"], node_type=general_node_type, procs=" ".join(procs)
-            )
+                reload_cmd = LEGACY_NODE_TYPE__RELOAD_CMD_TPL_MAP[general_node_type].format(
+                    setup_path=agent_config["setup_path"], node_type=general_node_type, procs=" ".join(procs)
+                )
+
+            else:
+                # 新版本 Agent，通过 gsectl 配置进程拉起方式
+                process_pull_configuration_cmd: str = ""
+                reload_cmd = NODE_TYPE__RELOAD_CMD_TPL_MAP[general_node_type].format(
+                    setup_path=agent_config["setup_path"], node_type=general_node_type
+                )
+
             scripts = scripts.format(
                 setup_path=agent_config["setup_path"],
                 temp_path=agent_config["temp_path"],
                 package_name=agent_upgrade_pkg_name,
                 node_type=general_node_type,
                 reload_cmd=reload_cmd,
+                process_pull_configuration_cmd=process_pull_configuration_cmd,
                 pkg_cpu_arch=host.cpu_arch,
             )
             return scripts
