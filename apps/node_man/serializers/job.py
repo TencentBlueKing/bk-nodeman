@@ -110,7 +110,7 @@ class HostSerializer(serializers.Serializer):
     key = serializers.CharField(label=_("密钥"), required=False, allow_blank=True)
     is_manual = serializers.BooleanField(label=_("是否手动模式"), required=False, default=False)
     retention = serializers.IntegerField(label=_("密码保留天数"), required=False)
-    peer_exchange_switch_for_agent = serializers.IntegerField(label=_("加速设置"), required=False, default=1)
+    peer_exchange_switch_for_agent = serializers.IntegerField(label=_("加速设置"), required=False, default=0)
     bt_speed_limit = serializers.IntegerField(label=_("传输限速"), required=False)
     data_path = serializers.CharField(label=_("数据文件路径"), required=False, allow_blank=True)
     is_need_inject_ap_id = serializers.IntegerField(label=_("是否需要注入ap_id到meta"), required=False, default=False)

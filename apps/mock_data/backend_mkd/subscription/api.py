@@ -52,7 +52,7 @@ SUBSCRIPTION_INFO_RESPONSE = [
                         "bk_host_outerip": "127.0.0.1",
                         "install_channel_id": 1,
                         "bk_supplier_account": "0",
-                        "peer_exchange_switch_for_agent": 1,
+                        "peer_exchange_switch_for_agent": 0,
                         "enable_compression": False,
                     },
                     "bk_supplier_account": "0",
