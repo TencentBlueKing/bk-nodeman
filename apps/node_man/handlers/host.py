@@ -360,7 +360,9 @@ class HostHandler(APIModel):
 
         # 获得proxy相应数据
         proxies = list(
-            Host.objects.filter(bk_cloud_id__in=bk_cloud_ids, node_type=const.NodeType.PROXY).values(
+            Host.objects.filter(
+                bk_cloud_id__in=bk_cloud_ids, node_type=const.NodeType.PROXY, bk_biz_id=bk_biz_id
+            ).values(
                 "bk_cloud_id",
                 "bk_addressing",
                 "inner_ip",
