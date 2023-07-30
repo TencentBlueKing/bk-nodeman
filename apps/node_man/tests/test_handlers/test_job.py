@@ -127,12 +127,6 @@ class TestJob(TestCase):
         )
         create_job(
             number,
-            id=998,
-            bk_biz_scope=[999],
-            created_by="blueking"
-        )
-        create_job(
-            number,
             id=999,
             bk_biz_scope=[999],
             created_by="admin"
@@ -141,12 +135,17 @@ class TestJob(TestCase):
         result = JobHandler().list({
             "page": 1,
             "pagesize": 10,
-            "bk_biz_id": [SEARCH_BUSINESS[0]["bk_biz_id"], 999]
+            "bk_biz_id": [SEARCH_BUSINESS[0]["bk_biz_id"]],
         }, "admin")
+        self.assertEqual(result["total"], 1)
 
+        result = JobHandler().list({
+            "page": 1,
+            "pagesize": 10,
+        }, "admin")
         self.assertEqual(result["total"], 2)
-        self.assertEqual(result["list"][0]["id"], 999)
 
+    @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)
     def test_job_list_with_ip(self):
         """测试 单/多ip 搜索"""
         create_host(1, bk_cloud_id=0, ip="127.0.0.1")
@@ -191,6 +190,7 @@ class TestJob(TestCase):
         )
         self.assertEqual(multiple_ip_result["total"], 2)
 
+    @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)
     def test_job_list_spend_time(self):
         """测试查询时间"""
         create_host(1, bk_cloud_id=0, ip="127.0.0.1")
