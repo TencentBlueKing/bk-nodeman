@@ -158,6 +158,9 @@ class JobHandler(APIModel):
         all_biz_info = CmdbHandler().biz_id_name_without_permission()
         biz_info = CmdbHandler().biz_id_name({"action": constants.IamActionType.task_history_view})
         biz_permission = list(biz_info.keys())
+        if not biz_permission:
+            return {"total": 0, "list": []}
+
         if params.get("job_id"):
             job_ids = set()
             for job_id_var in params["job_id"]:
@@ -174,11 +177,11 @@ class JobHandler(APIModel):
 
         if search_biz_ids:
             # 字典的 in 比列表性能更高
-            search_biz_ids = [bk_biz_id for bk_biz_id in search_biz_ids if bk_biz_id in biz_info]
+            biz_scope = [bk_biz_id for bk_biz_id in search_biz_ids if bk_biz_id in biz_info]
         else:
-            search_biz_ids = biz_permission
+            biz_scope = biz_permission
 
-        if set(search_biz_ids) & all_biz_ids == all_biz_ids:
+        if set(biz_scope) & all_biz_ids == all_biz_ids:
             biz_scope_query_q = Q()
         else:
             biz_scope_query_q = reduce(
@@ -186,8 +189,9 @@ class JobHandler(APIModel):
                 [Q(bk_biz_scope__contains=bk_biz_id) for bk_biz_id in search_biz_ids],
                 Q()
             )
-            # 自身创建的 job 可见
-            biz_scope_query_q |= Q(created_by=username)
+            # 仅查询所有业务时，自身创建的 job 可见
+            if not search_biz_ids:
+                biz_scope_query_q |= Q(created_by=username)
 
         # ip 搜索
         inner_ip_query_q = Q()
