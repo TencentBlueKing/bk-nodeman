@@ -395,7 +395,8 @@ remove_crontab () {
     local tmpcron
     tmpcron=$(mktemp "$TMP_DIR"/cron.XXXXXXX)
 
-    crontab -l | grep -v "bin/gsectl"  >"$tmpcron"
+    # 仅删除关联到安装目录的 crontab，避免多 Agent 互相影响
+    crontab -l | grep -v "${AGENT_SETUP_PATH}"  >"$tmpcron"
     crontab "$tmpcron" && rm -f "$tmpcron"
 
     # 下面这段代码是为了确保修改的crontab能立即生效
