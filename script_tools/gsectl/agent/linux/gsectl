@@ -142,18 +142,25 @@ log () {
     local level=INFO
     local func_seq=$(echo ${FUNCNAME[@]} | sed 's/ /-/g')
     local logfile=${LOG_FILE:=/tmp/watch_${INSTALL_ENV}_${node_type}.log}
+    local minute
+    local firstday
 
-    # 如果当前时间为整点时间,则重置计数,重新开始检测
-    # 获取当前时间的分钟数
-    minute=$(date +%d)
+    # 如果当前时间为当月1号0点时间,则重命名日志文件名称
+    # 获取当前时间的分钟数及当月1号
+    minute=$(date +%M)
+    firstday=$(date +%d)
 
-    # 判断是否为整点时间
-    if [ "$minute" == "01" ]; then
-        log "The current day is first day of month, reset the log file to new one ."
-        [ -f $LOG_FILE ] && mv $LOG_FILE ${LOG_FILE}_$(date -d "last month" '+%Y%m').log
-        touch $LOG_FILE
-        if [ -f /tmp/watch_gse_agent.log ];then
-            mv /tmp/watch_gse_agent.log /tmp/watch_gse_agent_$(date -d "last month" '+%Y%m').log
+    # 判断是否为当月1号0点时间
+    if [ "$minute" == "00" -a "$firstday" == "01" ]; then
+        if [ -f ${LOG_FILE}_$(date -d "last month" '+%Y%m').log ];then
+            echo "backup log already exists"
+        else
+            echo "[$(blue_echo ${EXTERNAL_IP}-$LAN_IP)]$timestamp $level|$BASH_LINENO|${func_seq} The current day is first day of month, reset the log file to new one ." >>$logfile
+            [ -f $LOG_FILE ] && mv $LOG_FILE ${LOG_FILE}_$(date -d "last month" '+%Y%m').log
+            touch $LOG_FILE
+            if [ -f /tmp/watch_gse_agent.log ];then
+                mv /tmp/watch_gse_agent.log /tmp/watch_gse_agent_$(date -d "last month" '+%Y%m').log
+            fi
         fi
     fi
 
@@ -184,23 +191,23 @@ watch_by_binary () {
     # 获取当前时间的分钟数
     minute=$(date +%M)
 
-    # 判断是否为整点时间
-    if [ "$minute" == "00" ]; then
-        log "The current time is on the hour, reset the counter, and restart the detection."
-        if [ -f $LAST_RUN_FILE ];then
-            echo 0 > $LAST_RUN_FILE
-        fi
-    fi
-
-    # 设置告警阈值
-    THRESHOLD=5
-
     # 如果文件存在，则读取文件中记录的次数
     if [ -f $LAST_RUN_FILE ]; then
         run_count=$(cat $LAST_RUN_FILE)
     else
         run_count=0
     fi
+
+    # 判断是否为整点时间
+    if [ "$minute" == "00" ]; then
+        if [ -f $LAST_RUN_FILE -a $run_count -gt 0 ];then
+            log "The current time is on the hour, reset the counter $run_count -> 0, and restart the detection."
+            echo 0 > $LAST_RUN_FILE
+        fi
+    fi
+
+    # 设置告警阈值
+    THRESHOLD=5
 
     # 检查上一次脚本是否存在
     if [ -f /var/run/gsectl_check_status.pid ]; then
@@ -344,6 +351,7 @@ start_by_crontab () {
 }
 
 stop_by_crontab () {
+    remove_crontab
     stop_by_binary
     return
 }
@@ -502,31 +510,42 @@ get_os_type () {
     fi
 }
 
-add_startup_to_boot (){
+check_rc_file () {
+    get_os_type
+    if [ -f $RC_LOCAL_FILE ]; then
+        return 0
+    elif [ -f "/etc/rc.d/rc.local" ]; then
+        RC_LOCAL_FILE="/etc/rc.d/rc.local"
+    elif [ -f "/etc/init.d/rc.local" ]; then
+        RC_LOCAL_FILE="/etc/init.d/rc.local"
+    elif [ -f "/etc/init.d/boot.local" ]; then
+        RC_LOCAL_FILE="/etc/init.d/boot.local"
+    else
+        RC_LOCAL_FILE="`readlink -f /etc/rc.local`"
+    fi
+}
+
+add_startup_to_boot () {
+
     local module=agent
 
     # 添加启动项到 rc.local
-    echo "Check startup items, and if not existing, add the startup item to rc.local"
-    get_os_type
-    if [ -f $RC_LOCAL_FILE ];then
-        if [ `egrep "local/${INSTALL_ENV}/${node_type}" $RC_LOCAL_FILE |egrep ${module} |wc -l` -eq 0 ];then
-            echo "[ -f /usr/local/${INSTALL_ENV}/${node_type}/bin/gsectl ] && /usr/local/${INSTALL_ENV}/${node_type}/bin/gsectl start ${module} 1>>/var/log/${INSTALL_ENV}_${node_type}.log 2>&1" >> $RC_LOCAL_FILE
-        fi
-    else
-        if [ -f /etc/rc.d/rc.local ];then
-            if [ `egrep "local/${INSTALL_ENV}/${node_type}" /etc/rc.d/rc.local |egrep ${module} |wc -l` -eq 0 ];then
-                echo "[ -f /usr/local/${INSTALL_ENV}/${node_type}/bin/gsectl ] && /usr/local/${INSTALL_ENV}/${node_type}/bin/gsectl start ${module} 1>>/var/log/${INSTALL_ENV}_${node_type}.log 2>&1" >> $RC_LOCAL_FILE
-            fi
-        elif [ -f /etc/init.d/rc.local ];then
-            if [ `egrep "local/${INSTALL_ENV}/${node_type}" /etc/init.d/rc.local |egrep ${module} |wc -l` -eq 0 ];then
-                echo "[ -f /usr/local/${INSTALL_ENV}/${node_type}/bin/gsectl ] && /usr/local/${INSTALL_ENV}/${node_type}/bin/gsectl start ${module} 1>>/var/log/${INSTALL_ENV}_${node_type}.log 2>&1" >> $RC_LOCAL_FILE
-            fi
-        elif [ -f /etc/init.d/boot.local ];then
-            if [ `egrep "local/${INSTALL_ENV}/${node_type}" /etc/init.d/boot.local |egrep ${module} |wc -l` -eq 0 ];then
-                echo "[ -f /usr/local/${INSTALL_ENV}/${node_type}/bin/gsectl ] && /usr/local/${INSTALL_ENV}/${node_type}/bin/gsectl start ${module} 1>>/var/log/${INSTALL_ENV}_${node_type}.log 2>&1" >> $RC_LOCAL_FILE
-            fi
-        fi
+    echo "Check startup items, and if not existing, add the [${module}] startup item to rc.local"
+
+    check_rc_file
+    local rcfile=$RC_LOCAL_FILE
+
+    if [ $OS_TYPE == "ubuntu" ]; then
+        sed -i "\|\#\!/bin/bash|d" $rcfile
+        sed -i "1i \#\!/bin/bash" $rcfile
     fi
+
+    chmod +x $rcfile
+
+    # 先删后加，避免重复
+    sed -i "\|${WORK_HOME}/bin/gsectl start ${module}|d" $rcfile
+
+    echo "[ -f ${WORK_HOME}/bin/gsectl ] && ${WORK_HOME}/bin/gsectl start ${module} 1>>/var/log/${INSTALL_ENV}_${node_type}.log 2>&1" >>$rcfile
 }
 
 add_config_to_systemd () {
@@ -541,11 +560,11 @@ After=network-online.target
 [Service]
 LimitNOFILE=512000
 LimitCORE=infinity
-WorkingDirectory=/usr/local/${INSTALL_ENV}/${node_type}/bin
-PIDFile=/usr/local/${INSTALL_ENV}/${node_type}/bin/run/${module}.pid
-ExecStart=/usr/local/${INSTALL_ENV}/${node_type}/bin/gse_agent -f /usr/local/${INSTALL_ENV}/${node_type}/etc/gse_agent.conf
-ExecReload=/usr/local/${INSTALL_ENV}/${node_type}/bin/gse_agent --reload
-ExecStop=/usr/local/${INSTALL_ENV}/${node_type}/bin/gse_agent --quit
+WorkingDirectory=${WORK_HOME}/bin
+PIDFile=${WORK_HOME}/bin/run/${module}.pid
+ExecStart=${WORK_HOME}/bin/gse_agent -f /usr/local/${INSTALL_ENV}/${node_type}/etc/gse_agent.conf
+ExecReload=${WORK_HOME}/bin/gse_agent --reload
+ExecStop=${WORK_HOME}/bin/gse_agent --quit
 Type=forking
 KillMode=process
 User=root
@@ -573,26 +592,8 @@ EOF
     fi
 
     # 删除rc.local里的启动项
-    get_os_type
-    if [ -f $RC_LOCAL_FILE ];then
-        if [ `egrep "local/${INSTALL_ENV}/${node_type}" $RC_LOCAL_FILE |wc -l` -ne 0 ];then
-            sed -i "/local\/${INSTALL_ENV}\/${node_type}/d" $RC_LOCAL_FILE
-        fi
-    else
-        if [ -f /etc/rc.d/rc.local ];then
-            if [ `egrep "local/${INSTALL_ENV}/${node_type}" /etc/rc.d/rc.local |wc -l` -ne 0 ];then
-                sed -i "/local\/${INSTALL_ENV}\/${node_type}/d" /etc/rc.d/rc.local
-            fi
-        elif [ -f /etc/init.d/rc.local ];then
-            if [ `egrep "local/${INSTALL_ENV}/${node_type}" /etc/init.d/rc.local |wc -l` -ne 0 ];then
-                sed -i "/local\/${INSTALL_ENV}\/${node_type}/d" /etc/init.d/rc.local
-            fi
-        elif [ -f /etc/init.d/boot.local ];then
-            if [ `egrep "local/${INSTALL_ENV}/${node_type}" /etc/init.d/boot.local |wc -l` -ne 0 ];then
-                sed -i "/local\/${INSTALL_ENV}\/${node_type}/d" /etc/init.d/boot.local
-            fi
-        fi
-    fi
+    check_rc_file
+    sed -i "\|${WORK_HOME}/bin/gsectl start ${module}|d" $RC_LOCAL_FILE
 
     # 删除crontab里的watch条目
     remove_crontab
