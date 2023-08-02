@@ -5,27 +5,30 @@ interface IHead {
   name: string,
   prop: string
   optional?: boolean
+  colOptional?: boolean // excel列非必要
   width?: number
 }
 
 const config: IHead[] = [
-  { name: window.i18n.t('内网IPv4'), prop: 'inner_ip', width: 150 },
+  { name: window.i18n.t('内网IPv4'), prop: 'inner_ip', width: 100 },
   { name: window.i18n.t('内网IPv6'), prop: 'inner_ipv6', width: 150 },
-  { name: window.i18n.t('操作系统'), prop: 'os_type' },
-  { name: window.i18n.t('安装通道'), prop: 'install_channel_id' },
-  { name: window.i18n.t('登录端口'), prop: 'port' },
-  { name: window.i18n.t('登录账号'), prop: 'account' },
-  { name: window.i18n.t('认证方式'), prop: 'auth_type' },
-  { name: window.i18n.t('密码密钥'), prop: 'prove' },
-  { name: window.i18n.t('外网IP'), prop: 'outer_ip', optional: true, width: 150 },
+  { name: window.i18n.t('操作系统'), prop: 'os_type', width: 80 },
+  { name: window.i18n.t('安装通道'), prop: 'install_channel_id', width: 80 },
+  { name: window.i18n.t('登录端口'), prop: 'port', width: 80 },
+  { name: window.i18n.t('登录账号'), prop: 'account', width: 80 },
+  { name: window.i18n.t('认证方式'), prop: 'auth_type', width: 80 },
+  { name: window.i18n.t('密码/密钥'), prop: 'prove' },
+  { name: window.i18n.t('外网IP'), prop: 'outer_ip', colOptional: true, optional: true, width: 150 },
   { name: window.i18n.t('登录IP'), prop: 'login_ip', optional: true, width: 150 },
   { name: window.i18n.t('业务'), prop: 'bk_biz_id', optional: true },
   { name: window.i18n.t('管控区域'), prop: 'bk_cloud_id', optional: true },
   { name: window.i18n.t('接入点'), prop: 'ap_id', optional: true },
   { name: window.i18n.t('BT节点探测'), prop: 'peer_exchange_switch_for_agent', optional: true, width: 120 },
   { name: window.i18n.t('传输限速Unit'), prop: 'bt_speed_limit', optional: true, width: 140 },
-  { name: window.i18n.t('寻址方式'), prop: 'bk_addressing', optional: true, width: 120 },
+  { name: window.i18n.t('寻址方式'), prop: 'bk_addressing', optional: true, width: 110 },
+  { name: window.i18n.t('数据压缩'), prop: 'enable_compression', optional: true, width: 110 },
 ];
+
 export const headConfig = $DHCP
   ? config
   : config.filter(head => !DHCP_FILTER_KEYS.includes(head.prop));
@@ -81,6 +84,7 @@ export const demoData = [
     peer_exchange_switch_for_agent: false,
     bt_speed_limit: '',
     bk_addressing: '',
+    enable_compression: true,
   },
 ];
 

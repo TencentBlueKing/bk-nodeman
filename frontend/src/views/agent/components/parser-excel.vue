@@ -102,16 +102,7 @@ export default class ParserExcel extends Vue {
   private data = {};
   private showAbort = false;
   // 可选列
-  private optional = [
-    'auth_type',
-    'bk_biz_id',
-    'bk_cloud_id',
-    'ap_id',
-    'login_ip',
-    'peer_exchange_switch_for_agent',
-    'bt_speed_limit',
-    'bk_addressing',
-  ];
+  private optional = headConfig.filter(item => item.optional);
   private isHover = false;
   // 额外参数
   private extraParams = [
@@ -225,7 +216,11 @@ export default class ParserExcel extends Vue {
     };
     if (sheetsData.length !== 0) {
       // 必有表头字段
-      const configHeaders = tableConfig.filter(item => !this.optional.includes(item.prop)).map(item => item.label);
+      const requiredColProps = this.optional
+        // .filter(item => !item.colOptional)
+        .map(item => item.prop);
+      const configHeaders = tableConfig.filter(item => !requiredColProps.includes(item.prop)).map(item => item.label);
+
 
       const firstMissLabel = configHeaders.find(label => !sheetsHeaders.includes(this.$tc(label)));
       if (firstMissLabel) { // 第一个未缺失的表头
@@ -247,11 +242,9 @@ export default class ParserExcel extends Vue {
    */
   public getImportData(jsonData: IAgent[]) {
     let parseData: IAgent[] = [];
-    const optional = [
-      this.$tc('登录IP'),
-      this.$tc('BT节点探测'),
-      this.$tc('传输限速Unit'),
-    ];
+    const optionalNames = this.optional
+      .filter(item => !this.extraParams.find(col => col.prop === item.prop))
+      .map(item => item.name);
     try {
       jsonData.forEach((item) => {
         const info: IAgent = {};
@@ -270,8 +263,6 @@ export default class ParserExcel extends Vue {
             info[header.prop] = data && !isEmpty(data.id) ? data.id : -1;
           } else if (key === this.$tc('寻址方式')) {
             info[header.prop] = item[`${key}${this.$tc('可选')}`] === this.$tc('动态') ? 'dynamic' : 'static';
-          } else if (optional.includes(key)) {
-            info[header.prop] = !isEmpty(item[`${key}${this.$tc('可选')}`]) ? item[`${key}${this.$tc('可选')}`] : '';
           } else if (key === this.$tc('认证方式')) { // 密钥 || 铁将军 需覆盖填写值
             let val = '';
             if (!isEmpty(item[key])) {
@@ -285,6 +276,8 @@ export default class ParserExcel extends Vue {
               }
             }
             info[header.prop] = val;
+          } else if (optionalNames.includes(key)) {
+            info[header.prop] = !isEmpty(item[`${key}${this.$tc('可选')}`]) ? item[`${key}${this.$tc('可选')}`] : '';
           } else if (header.prop) {
             if (!isIgnoreProve || header.prop !== 'prove') {
               info[header.prop] = !isEmpty(item[key]) ? item[key] : '';

@@ -39,7 +39,7 @@
               @change="handleSetupTableChange">
             </InstallTable>
           </bk-form-item>
-          <bk-form-item error-display-type="normal" :label="$t('密码密钥')" required>
+          <bk-form-item error-display-type="normal" :label="$t('密码/密钥')" required>
             <bk-radio-group v-model="formData.retention" class="content-basic">
               <bk-radio :value="1">{{ $t('保存1天') }}</bk-radio>
               <bk-radio class="ml35" :value="-1">{{ $t('长期保存') }}</bk-radio>

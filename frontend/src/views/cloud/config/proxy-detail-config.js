@@ -68,6 +68,13 @@ const config = [
     unit: 'MB/s',
     readonly: true,
   },
+  {
+    prop: 'enable_compression',
+    label: window.i18n.t('数据压缩'),
+    tips: window.i18n.t('数据压缩tip'),
+    type: 'tag-switch',
+    readonly: true,
+  },
 ];
 export const detailConfig = $DHCP
   ? config
