@@ -110,8 +110,6 @@ import { debounce, deepClone, getManualConfig, isEmpty } from '@/common/util';
 import { IAgent, IAgentHost, IAgentSearch } from '@/types/agent/agent-type';
 import { IApExpand } from '@/types/config/config';
 import { ISetupHead, ISetupRow, ISetupParent } from '@/types';
-import { regPasswordFill } from '@/common/regexp';
-import { passwordFill } from '@/config/config';
 
 @Component({
   name: 'agent-import',
@@ -138,7 +136,7 @@ export default class AgentImport extends Mixins(mixin) {
   @Prop({
     type: String,
     default: 'INSTALL_AGENT',
-    validator(v) {
+    validator(v: string) {
       return ['INSTALL_AGENT', 'REINSTALL_AGENT', 'RELOAD_AGENT', 'UPGRADE_AGENT', 'UNINSTALL_AGENT'].includes(v);
     },
   }) private readonly type!: string;
@@ -340,18 +338,12 @@ export default class AgentImport extends Mixins(mixin) {
           item.install_channel_id = 'default';
         }
         const prove: { [key: string]: string } = {};
-        if (item.identity_info.auth_type === 'PASSWORD' && !item.identity_info.re_certification) {
-          prove.prove = passwordFill;
-        }
         return Object.assign({}, item, item.identity_info, ap, prove);
       });
     } else {
       const defaultAp = { ap_id: apDefault };
       const formatData = this.tableData.map((item) => {
         const row = { ...item };
-        if (item.auth_type === 'PASSWORD' && !item.re_certification) {
-          row.prove = passwordFill;
-        }
         if (this.isNotAutoSelect && item.ap_id === -1) {
           Object.assign(row, defaultAp);
         }
@@ -414,9 +406,7 @@ export default class AgentImport extends Mixins(mixin) {
         }
         const authType = item.auth_type?.toLowerCase() as ('key' | 'password');
         if (item[authType]) {
-          item[authType] = regPasswordFill.test(item[authType] as string)
-            ? ''
-            : this.$safety.encrypt(item[authType] as string);
+          item[authType] = this.$safety.encrypt(item[authType] as string);
         }
       });
       // 安装agent或pagent时，需要设置初始的安装类型

@@ -30,15 +30,15 @@
             </bk-option>
           </bk-select>
           <div class="item-auth-content ml10" :class="{ 'is-error': showErrMsg }">
-            <bk-input
-              ext-cls="auth-input"
-              v-model="proxyData.password"
-              :type="passwordType"
+            <InstallInputType
+              class="auth-input"
+              v-model.trim="proxyData.password"
+              type="password"
               :placeholder="$t('请输入')"
               v-if="proxyData.auth_type === 'PASSWORD'"
+              :pwd-fill="!proxyData.re_certification"
               @focus="handleFocus"
-              @blur="handleBlur">
-            </bk-input>
+              @blur="handleBlur" />
             <bk-input
               ext-cls="auth-input"
               :value="$t('自动拉取')"
@@ -108,16 +108,17 @@
 import { Vue, Component, Prop, Watch, Ref, Emit } from 'vue-property-decorator';
 import { CloudStore } from '@/store';
 import { isEmpty } from '@/common/util';
-import { authentication, passwordFill } from '@/config/config';
+import { authentication } from '@/config/config';
 import Upload from '@/components/setup-table/upload.vue';
 import { IProxyDetail } from '@/types/cloud/cloud';
-import { regPasswordFill } from '@/common/regexp';
+import InstallInputType from '@/components/setup-table/install-input-type.vue';
 import { reguFnMinInteger, reguPort, reguIPMixins, reguRequired, reguFnSysPath } from '@/common/form-check';
 
 @Component({
   name: 'sideslider-content-edit',
   components: {
     Upload,
+    InstallInputType,
   },
 })
 
@@ -157,11 +158,7 @@ export default class SidesliderContentEdit extends Vue {
 
   @Watch('basic', { immediate: true })
   public handlebasicChange(data: IProxyDetail) {
-    const copyData = JSON.parse(JSON.stringify(data));
-    const item = {
-      password: data.auth_type === 'PASSWORD' && !data.re_certification ? passwordFill : copyData.password,
-    };
-    this.proxyData = Object.assign(copyData, item);
+    this.proxyData = JSON.parse(JSON.stringify(data));
   }
   @Watch('proxyData', { deep: true })
   public handleFormChange() {
@@ -191,9 +188,7 @@ export default class SidesliderContentEdit extends Vue {
         const authType = this.proxyData.auth_type.toLocaleLowerCase();
         if (this.proxyData[authType]) {
           params.auth_type = this.proxyData.auth_type;
-          if (authType !== 'password' || !regPasswordFill.test(this.proxyData[authType])) {
-            params[authType] = this.$safety.encrypt(this.proxyData[authType]);
-          }
+          params[authType] = this.$safety.encrypt(this.proxyData[authType]);
         }
       }
       if (this.proxyData.bt_speed_limit) {

@@ -1,9 +1,15 @@
 <template>
   <div
-    :class="[`input-type input-${type}`, { 'is-focus': isFocus && wrapperBorder }]"
+    :class="[`input-type input-${type}`, {
+      'is-focus': isFocus,
+      'has-border': isFocus && wrapperBorder
+    }]"
     :style="{ 'z-index': zIndex }"
     @click.stop>
     <div v-if="wrapperBorder" class="input-type-border"></div>
+    <div v-if="passwordFill" class="input-pwd-fill">
+      <span>{{ passwordFillText }}</span>
+    </div>
     <!--input类型-->
     <bk-input
       :ref="type"
@@ -48,10 +54,7 @@
       :placeholder="placeholder"
       :readonly="readonly"
       :disabled="disabled"
-      :password-icon="pwsIcons"
-      :native-attributes="{
-        autocomplete: 'off'
-      }"
+      autocomplete="false"
       @change="handleChange"
       @blur="handleBlur"
       @focus="handleFocus"
@@ -169,10 +172,9 @@ import { Component, Prop, Emit, Model, Watch, Ref, Mixins } from 'vue-property-d
 import { IFileInfo } from '@/types';
 import Upload from './upload.vue';
 import PermissionSelect from '@/components/common/permission-select.vue';
-import { authentication, IAuth } from '@/config/config';
+import { authentication, IAuth, passwordFillText } from '@/config/config';
 import { isEmpty } from '@/common/util';
 import emitter from '@/common/emitter';
-import { regPasswordFill } from '@/common/regexp';
 
 // 支持的输入类型
 const basicInputType = ['text', 'number', 'email', 'url', 'date'];
@@ -205,6 +207,7 @@ export default class InputType extends Mixins(emitter) {
   @Prop({ type: Object, default: () => ({}) }) private readonly fileInfo!: IFileInfo;
   @Prop({ type: Boolean, default: false }) private readonly clearable!: boolean;
   @Prop({ type: Boolean, default: false }) private readonly wrapperBorder!: boolean;
+  @Prop({ type: Boolean, default: false }) private readonly pwdFill!: boolean;
 
   @Ref('authType') private readonly authTypeRef: any;
 
@@ -215,7 +218,7 @@ export default class InputType extends Mixins(emitter) {
   private isFocus = false;
   private maxRows = 8;
   private rows = 1;
-  private pwsIcons: string[] = [];
+  private passwordFillText = passwordFillText;
 
   private get authName(): string {
     const auth = this.authentication.find(auth => auth.id === this.authType) || { name: '' };
@@ -225,10 +228,13 @@ export default class InputType extends Mixins(emitter) {
     return basicInputType.includes(this.type);
   }
   private get passwordType(): string {
-    if (!isEmpty(this.inputValue)) {
+    if (this.type === 'password'  && !isEmpty(this.inputValue)) {
       return 'password';
     }
     return 'text';
+  }
+  private get passwordFill(): boolean {
+    return this.pwdFill && this.type === 'password' && isEmpty(this.inputValue);
   }
   private get zIndex(): number {
     return this.isFocus ? 99 : 0;
@@ -254,13 +260,7 @@ export default class InputType extends Mixins(emitter) {
   }
 
   @Watch('inputValue')
-  public handleValueChange(val: string) {
-    if (this.type === 'password') {
-      const icons = regPasswordFill.test(val)
-        ? ['', '']
-        : ['icon-eye-slash', 'icon-eye'];
-      this.pwsIcons.splice(0, 2, ...icons);
-    }
+  public handleValueChange() {
     this.$nextTick(this.setRows);
   }
 
@@ -390,7 +390,29 @@ export default class InputType extends Mixins(emitter) {
   .input-type {
     position: relative;
     width: 100%;
+
+    .input-pwd-fill {
+      display: flex;
+      align-items: center;
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      bottom: 2px;
+      right: 2px;
+      padding: 2px 8px 0 8px;
+      background-color: #fff;
+      pointer-events: none;
+      line-height: initial;
+      z-index: 1;
+      color: #63656e;
+    }
+
     &.is-focus {
+      .input-pwd-fill {
+        display: none;
+      }
+    }
+    &.has-border {
       z-index: 5;
       .input-type-border {
         display: block;
@@ -400,6 +422,7 @@ export default class InputType extends Mixins(emitter) {
         background: #fff;
       }
     }
+
     &.input-textarea {
       .input-type-border {
         display: none;
