@@ -57,6 +57,6 @@ export const getConfigRemark = (key: string, os?: string) => {
   }
   return MainStore.installDefaultValues[key] || '';
 };
-export const passwordFill = '********';
+export const passwordFillText = '******';
 
 export default authentication;

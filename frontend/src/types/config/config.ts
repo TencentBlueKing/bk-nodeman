@@ -50,6 +50,7 @@ export interface IApBase {
 export interface IApParams extends IApBase {
   agent_config: IConfigAgent
   proxy_package: string[]
+  pwsFill?: boolean
 }
 export interface IAp extends IApParams {
   id: number

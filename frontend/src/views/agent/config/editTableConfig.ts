@@ -217,7 +217,6 @@ export const config: ISetupHead[] = [
     getCurrentType(row: ISetupRow) {
       const auth = authentication.find(auth => auth.id === row.auth_type);
       return auth?.type || 'text';
-      // return  auth?.type !== 'file' && regPasswordFill.test(row.prove) ? 'text' : auth?.type || 'text';
     },
     getDefaultValue(row: ISetupRow) {
       if (row.auth_type === 'TJJ_PASSWORD') {

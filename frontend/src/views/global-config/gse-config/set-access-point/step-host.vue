@@ -87,9 +87,11 @@
           :label="$t('Zookeeper密码')"
           property="zk_password">
           <InstallInputType
+            class="zk-pwd-item"
             type="password"
             :placeholder="$t('请输入')"
             v-model.trim="formData.zk_password"
+            :pwd-fill="detail.pwsFill"
             @change="hadleFormChange" />
         </bk-form-item>
 
@@ -492,6 +494,9 @@ export default class StepHost extends formLabelMixin {
   }
   >>> .textarea-description .bk-limit-box {
     line-height: 1;
+  }
+  .zk-pwd-item {
+    width: 580px;
   }
   .check-result {
     position: relative;
