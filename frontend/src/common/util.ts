@@ -696,13 +696,14 @@ export const getFilterChildBySelected = (key: string, value: string, filterData:
 };
 
 // searchSelect组件 ip粘贴统一行为
-export const searchSelectPaste = ({ e, selectedValue, filterData, selectRef, pushFn, changeFn }: {
+export const searchSelectPaste = ({ e, selectedValue, filterData, selectRef, pushFn, changeFn, prop = 'ip' }: {
   e: { target: EventTarget }
   selectedValue: ISearchItem[]
   filterData: ISearchItem[]
   selectRef: HTMLDivElement
   pushFn?: Function
   changeFn?: Function
+  prop: string
 }) => {
   let value = '';
   try {
@@ -732,7 +733,7 @@ export const searchSelectPaste = ({ e, selectedValue, filterData, selectRef, pus
     if (isIp || !!inputValue) {
       if (isIp) {
         backfillValue = '';
-        pushFn?.('ip', tmpStr.map(ip => ({ id: ip, name: ip, checked: false })));
+        pushFn?.(prop, tmpStr.map(ip => ({ id: ip, name: ip, checked: false })));
         changeFn?.();
       }
       Object.assign(e.target, { innerText: backfillValue }); // 数据清空或合并
