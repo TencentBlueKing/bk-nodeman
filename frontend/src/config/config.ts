@@ -36,7 +36,7 @@ const getAuthentication = () => {
   }
   return auths;
 };
-export const DHCP_FILTER_KEYS = ['bk_addressing', 'inner_ipv6', 'outer_ipv6'];
+export const DHCP_FILTER_KEYS = ['bk_addressing', 'inner_ipv6', 'outer_ipv6', 'enable_compression'];
 export const addressingMode = [
   { id: 'static', name: window.i18n.t('静态') },
   { id: 'dynamic', name: window.i18n.t('动态') },

@@ -377,6 +377,18 @@
         <NmColumn v-if="filter['speedLimit'].mockChecked" min-width="30" :resizable="false">
         </NmColumn>
         <NmColumn
+          key="bt"
+          prop="enable_compression"
+          :label="$t('数据压缩')"
+          :min-width="columnMinWidth['enable_compression']"
+          v-if="filter['enable_compression'] && filter['enable_compression'].mockChecked">
+          <template #default="{ row }">
+            <span :class="['tag-switch', { 'tag-enable': row.enable_compression }]">
+              {{ row.enable_compression ? $t('启用') : $t('停用')}}
+            </span>
+          </template>
+        </NmColumn>
+        <NmColumn
           key="addressing"
           prop="bk_addressing"
           :label="$t('寻址方式')"
@@ -776,6 +788,13 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
       mockChecked: false,
       name: window.i18n.t('传输限速'),
       id: 'bt_speed_limit',
+    },
+    enable_compression: {
+      checked: false,
+      disabled: false,
+      mockChecked: false,
+      name: window.i18n.t('数据压缩'),
+      id: 'enable_compression',
     },
     bk_addressing: {
       checked: false,
