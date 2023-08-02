@@ -8,7 +8,8 @@
       :hide-auto-deploy="hideAutoDeploy"
       @search-change="handleSearchChange"
       @deploy-change="handleDeployChange"
-      @picker-change="handlePickerChange">
+      @picker-change="handlePickerChange"
+      @paste="(param) => handlePaste(param)">
     </TaskListFilter>
     <TaskListTable
       class="mt15"
@@ -37,7 +38,7 @@ import TaskListTable from './task-list-table.vue';
 import PollMixin from '@/common/poll-mixin';
 import { IPagination, ISearchChild, ISearchItem } from '@/types';
 import { ITaskParams, IHistory } from '@/types/task/task';
-import { debounce, filterTimeFormat } from '@/common/util';
+import { debounce, filterTimeFormat, searchSelectPaste } from '@/common/util';
 import HeaderFilterMixins from '@/components/common/header-filter-mixins';
 import { MainStore, TaskStore } from '@/store';
 import { Route } from 'vue-router';
@@ -144,6 +145,18 @@ export default class TaskList extends Mixins(PollMixin, HeaderFilterMixins)<Dict
       }
     });
     this.searchSelectValue = list;
+    this.reGetHistoryList();
+  }
+  private handlePaste({ e, ele }: { e: { target: EventTarget; }, ele: any }) {
+    searchSelectPaste({
+      e,
+      selectedValue: this.searchSelectValue,
+      filterData: this.filterData,
+      selectRef: ele,
+      pushFn: this.handlePushValue,
+      changeFn: this.handleValueChange,
+      prop: 'inner_ip_list',
+    });
     this.reGetHistoryList();
   }
 

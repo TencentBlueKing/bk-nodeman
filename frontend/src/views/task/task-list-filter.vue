@@ -34,6 +34,7 @@
           :placeholder="$t('搜索任务ID执行者任务类型操作类型部署策略执行状态')"
           :data="searchSelectData"
           v-model="searchSelectValue"
+          @paste.native.capture.prevent="handlePaste"
           @change="handleSearchSelectChange">
         </bk-search-select>
       </div>
@@ -146,6 +147,9 @@ export default class PluginRule extends Vue {
     if (value) {
       this.pickerChange({ type: 'dateType', value });
     }
+  }
+  private handlePaste(e: Event) {
+    this.$emit('paste', { e, ele: this.searchSelectRef });
   }
 }
 </script>
