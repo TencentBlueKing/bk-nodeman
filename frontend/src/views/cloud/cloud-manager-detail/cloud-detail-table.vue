@@ -96,7 +96,7 @@
           </template>
         </NmColumn>
         <NmColumn
-          :label="$t('密码密钥')"
+          :label="$t('密码/密钥')"
           prop="re_certification"
           v-if="filter['re_certification'].mockChecked"
           :min-width="columnMinWidth['re_certification']">
@@ -156,6 +156,18 @@
           v-if="filter['speedLimit'].mockChecked">
           <template #default="{ row }">
             {{ row.bt_speed_limit | filterEmpty }}
+          </template>
+        </NmColumn>
+        <NmColumn
+          key="bt"
+          prop="enable_compression"
+          :label="$t('数据压缩')"
+          :min-width="columnMinWidth['enable_compression']"
+          v-if="filter['enable_compression'] && filter['enable_compression'].mockChecked">
+          <template #default="{ row }">
+            <span :class="['tag-switch', { 'tag-enable': row.enable_compression }]">
+              {{ row.enable_compression ? $t('启用') : $t('停用')}}
+            </span>
           </template>
         </NmColumn>
         <NmColumn
@@ -347,9 +359,10 @@ export default class CloudDetailTable extends Vue {
     { key: 'is_manual', value: [false, false, false, 'is_manual', this.$t('安装方式')] },
     { key: 'proxy_status', value: [true, false, true, 'proxy_status', this.$t('Proxy状态')] },
     { key: 'created_at', value: [false, false, false, 'created_at', this.$t('安装时间')] },
-    { key: 're_certification', value: [true, false, true, 're_certification', this.$t('密码密钥')] },
+    { key: 're_certification', value: [true, false, true, 're_certification', this.$t('密码/密钥')] },
     { key: 'bt', value: [false, false, false, 'peer_exchange_switch_for_agent', this.$t('BT节点探测')] },
     { key: 'speedLimit', value: [false, false, false, 'bt_speed_limit', this.$t('传输限速')] },
+    { key: 'enable_compression', value: [false, false, false, 'enable_compression', this.$t('数据压缩')] },
   ];
   private localMark = '_proxy';
   private columnMinWidth: Dictionary = {};

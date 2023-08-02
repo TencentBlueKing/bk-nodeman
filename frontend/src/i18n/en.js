@@ -143,7 +143,7 @@ export default {
   内网IPv4提示: 'The IPv4 for communication with the Agent',
   IP不符合规范: 'IP format is invalid',
   认证方式: 'Authentication',
-  密码密钥: 'Key/Password',
+  '密码/密钥': 'Key/Password',
   登录IP提示: `The IP address of the target server that supports SSH login. If it is a public cloud server, it is usually an extranet network IP. Please fill in according to actual conditions;<br />${$DHCP ? 'Support IPv4, IPv6' : 'Only supports IPv4'}.`,
   外网IP: 'WAN IP',
   外网IPv6: 'WAN IPv6',
@@ -354,7 +354,7 @@ export default {
   高级设置: 'Advanced Settings',
   批量高级设置: 'Batch advanced settings',
   BT节点探测: 'BT accelerate',
-  BT节点探测提示: 'Enabling BT transmission can greatly improve the execution efficiency of Agent installation tasks. Cross-VPC network environment may occupy dedicated line bandwidth. It is recommended to turn off BT transmission in this scenario',
+  BT节点探测提示: 'After BT accelerate is enable, the transmission efficiency of the Agent\'s file distribution through the file pipeline can be greatly improved, and at the same time, the execution speed of the agent installation task can be correspondingly improved.\n\nNote: The cross-VPC network environment may occupy the dedicated line bandwidth, it is recommended to turn off BT transmission in this scenario',
   启用: 'Enable',
   停用: 'Disable',
   无法查看完整Agent信息: 'There are unauthorized businesses in this "BK-Net", so the Agent information cannot be viewed completely.',
@@ -362,6 +362,8 @@ export default {
   供proxy文件分发临时使用后台定期进行清理建议预留至少磁盘空间: 'It is used temporarily for the distribution of proxy files, and is cleaned up regularly in the background. It is recommended to reserve at least 1G disk space',
   编辑成功如需加载最新配置请执行proxy重载: 'Editing is successful, if you need to load the latest configuration, please execute proxy reload',
   全: 'All',
+  数据压缩: 'Data Compression',
+  数据压缩tip: 'After data compression is enabled, all log collection data traffic transmitted through the data pipeline will be compressed, which can reduce the bandwidth pressure caused by data reporting to a certain extent.\n\nNote: After data compression is enabled, it will cause a small increase in CPU usage and a slight delay in milliseconds in reporting efficiency.\nThis configuration is only available for agent 2.0, which will not take effect for agent 1.0.',
 
   // agent安装
   主机IPTip: 'Host IP',

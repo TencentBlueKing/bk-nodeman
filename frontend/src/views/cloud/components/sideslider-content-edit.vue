@@ -83,6 +83,13 @@
       <bk-form-item :label="$t('传输限速')" property="bt_speed_limit" error-display-type="normal" :rules="rules.speedLimit">
         <bk-input v-model="proxyData.bt_speed_limit"></bk-input>
       </bk-form-item>
+      <bk-form-item :label="$t('数据压缩')" property="enable_compression">
+        <bk-switcher
+          theme="primary"
+          size="small"
+          v-model="proxyData.enable_compression">
+        </bk-switcher>
+      </bk-form-item>
     </bk-form>
     <div class="mt30 mb10">
       <bk-button
@@ -173,6 +180,7 @@ export default class SidesliderContentEdit extends Vue {
         account: this.proxyData.account,
         port: this.proxyData.port,
         data_path: this.proxyData.data_path,
+        enable_compression: !!this.proxyData.enable_compression,
       };
       Object.assign(params, this.$setIpProp('outer_ip', this.proxyData));
       if (this.proxyData.login_ip) {

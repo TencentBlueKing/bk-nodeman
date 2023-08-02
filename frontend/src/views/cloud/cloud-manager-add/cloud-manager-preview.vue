@@ -52,7 +52,7 @@
           </div>
         </template>
       </NmColumn>
-      <NmColumn :label="$t('密码密钥')" prop="re_certification">
+      <NmColumn :label="$t('密码/密钥')" prop="re_certification">
         <template #default="{ row }">
           <span :class="['tag-switch', { 'tag-enable': !row.re_certification }]">
             {{ row.re_certification ? $t('过期') : $t('有效') }}
