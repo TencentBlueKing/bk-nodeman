@@ -35,6 +35,7 @@ export default class ConfigStore extends VuexModule {
       city_id: '',
       zk_account: '',
       zk_password: '',
+      pwsFill: false,
       zk_hosts: [
         { zk_ip: '', zk_port: '' },
       ],
@@ -124,7 +125,8 @@ export default class ConfigStore extends VuexModule {
   public async getGseDetail({ pointId }: { pointId: number | string }) {
     this.updateLoading(true);
     const data = await retrieveAp(pointId).catch(() => ({}));
-    this.updateDetail(Object.assign(data, { zk_password: data?.zk_account ? '********' : '' }));
+    this.updateDetail(data);
+    Vue.set(this.apDetail, 'pwsFill', !!data.zk_account);
     this.updateLoading(false);
     return data;
   }

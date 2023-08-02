@@ -239,6 +239,9 @@ export default class StepVerifyInput extends Vue {
           border-color: #ff5656;
         }
       }
+      >>> .input-pwd-fill {
+        display: none;
+      }
       .bottom-text {
         padding-top: 4px;
         color: #ea3636;
@@ -260,6 +263,9 @@ export default class StepVerifyInput extends Vue {
       }
       >>> .input-text {
         background: #fff0f0;
+      }
+      >>> .input-pwd-fill {
+        display: none;
       }
       .error-top-tag {
         position: absolute;

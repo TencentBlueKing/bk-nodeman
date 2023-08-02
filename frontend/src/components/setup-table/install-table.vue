@@ -97,7 +97,7 @@
                   :rules="config.rules"
                   :icon-offset="config.iconOffset"
                   :default-validator="getDefaultValidator(row, config)"
-                  :proxy-status="getCurrentPorxyStatus(row, config)"
+                  :proxy-status="getCurrentProxyStatus(row, config)"
                   :ref="`verify_${rowIndex}_${config.prop}`"
                   v-else
                   @jump-proxy="handleGotoProxy(row)"
@@ -117,7 +117,9 @@
                     </span>
                     <!-- 密码框 -->
                     <span class="ghost-input bk-form-input password"
-                          :data-placeholder="row[config.prop] ? '' : config.placeholder"
+                          :data-placeholder="row[config.prop] || getPwdFillEnable(row, config)
+                            ? ''
+                            : config.placeholder"
                           v-else-if="getCellInputType(row, config) === 'password'">
                       <span class="name">{{ hidePassword(row, config) }}</span>
                     </span>
@@ -154,6 +156,7 @@
                       permission: config.permission,
                       autofocus: virtualScroll,
                       wrapperBorder: true,
+                      pwdFill: getPwdFillEnable(row, config),
                       fileInfo: getCellFileInfo(row, config)
                     }"
                     @focus="handleCellFocus(arguments, { row, config, rowIndex, colIndex })"
@@ -190,8 +193,8 @@ import TableHeader from './table-header.vue';
 import { STORAGE_KEY_COL } from '@/config/storage-key';
 import { Context } from 'vm';
 import { IFileInfo, IKeysMatch, ISetupHead, ISetupRow, ITabelFliter, ISetupParent } from '@/types';
-import { getDefaultConfig } from '@/config/config';
-import { regPasswordFill, splitCodeArr } from '@/common/regexp';
+import { getDefaultConfig, passwordFillText } from '@/config/config';
+import { splitCodeArr } from '@/common/regexp';
 
 interface IFilterRow {
   [key: string]: ITabelFliter
@@ -439,6 +442,9 @@ export default class SetupTable extends Vue {
     }
     return !!config.readonly;
   }
+  private getPwdFillEnable(row: ISetupRow, config: ISetupHead) {
+    return row.bk_host_id && config.type === 'password' && !row.re_certification; // 忽略 proxy——id
+  }
   private getCellFileInfo(row: ISetupRow, config: ISetupHead) {
     if (row.fileInfo && row[config.prop as keyof ISetupRow]) {
       return row.fileInfo;
@@ -479,7 +485,7 @@ export default class SetupTable extends Vue {
       row.fileInfo = !isEmpty(fileInfo.value) ? fileInfo : undefined;
     }
   }
-  private getCurrentPorxyStatus(row: ISetupRow, config: ISetupHead) {
+  private getCurrentProxyStatus(row: ISetupRow, config: ISetupHead) {
     if (config.getProxyStatus) {
       return config.getProxyStatus.call(this, row);
     }
@@ -1065,9 +1071,10 @@ export default class SetupTable extends Vue {
     return data ? data.name : row[config.prop];
   }
   private hidePassword(row: ISetupRow | any, config: ISetupHead) {
-    const len = (`${row[config.prop]}`).length;
-    return new Array(len).fill('*')
-      .join('');
+    return this.getPwdFillEnable(row, config)
+      ? passwordFillText
+      : new Array(`${row[config.prop]}`.length).fill('*')
+        .join('');
   }
   private handleCellFocus(arg: any[], cell: {
     row: ISetupRow
@@ -1078,10 +1085,6 @@ export default class SetupTable extends Vue {
     const { row, config, rowIndex } = cell;
     this.$set(this, 'focusRow', row);
     const { prop, requiredPick = [], parentProp, tips } = config;
-    if (prop === 'prove' && row.auth_type === 'PASSWORD' && regPasswordFill.test(row.prove as string)) {
-      const [{ event }] = arg;
-      (event?.target as HTMLInputElement)?.setSelectionRange?.(0, 999);
-    }
     requiredPick.forEach((propKey) => {
       (this.$refs[`verify_${rowIndex}_${propKey}`] as any[])?.forEach((instance) => {
         instance.clear?.();
@@ -1098,11 +1101,10 @@ export default class SetupTable extends Vue {
       }
     }
   }
-  private handleCellBlur({ event }: { event: Event }) {
+  private handleCellBlur() {
     this.$set(this, 'focusRow', {});
     this.popoverEl && this.popoverEl.tipsHide();
     this.popoverEl = null;
-    (event?.target as HTMLInputElement)?.setSelectionRange?.(999, 999);
   }
   public handleResize() {
     const { tableBody, scrollPlace } = this;
