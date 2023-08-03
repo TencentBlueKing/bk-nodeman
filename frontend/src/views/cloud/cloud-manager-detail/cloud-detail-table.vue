@@ -523,7 +523,7 @@ export default class CloudDetailTable extends Vue {
     this.loadingProxy = true;
     let paramKey = [
       'ap_id', 'bk_biz_id', 'bk_cloud_id', 'inner_ip', 'inner_ipv6',
-      'is_manual', 'peer_exchange_switch_for_agent', 'bk_host_id',
+      'is_manual', 'peer_exchange_switch_for_agent', 'bk_host_id', 'enable_compression',
     ];
     if (!this.$DHCP) {
       paramKey = paramKey.filter(key => !DHCP_FILTER_KEYS.includes(key));
