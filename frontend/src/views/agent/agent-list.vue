@@ -1641,7 +1641,7 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
         // title = this.$t('重装Agent')
         jobType = 'REINSTALL_AGENT';
         break;
-        // 重载
+        // 重载 只取其中一部分数据
       case 'reload':
         jobType = 'RELOAD_AGENT';
         break;
