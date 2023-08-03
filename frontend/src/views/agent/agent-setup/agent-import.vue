@@ -551,6 +551,7 @@ export default class AgentImport extends Mixins(mixin) {
         'os_type',
         'peer_exchange_switch_for_agent',
         'bt_speed_limit',
+        'enable_compression',
       ];
       this.editTableHead.editConfig = editConfig.filter(item => reload.includes(item.prop) || item.type === 'operate')
         .map(item => Object.assign({ ...item }, { show: true }));
