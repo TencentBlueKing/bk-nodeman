@@ -144,15 +144,19 @@ export default class CloudStore extends VuexModule {
     let data = await retrieveCloudProxies(params).catch(() => []);
     data = data.map((item: IProxyDetail) => {
       const {
-        bt_speed_limit: btSpeedLimit,
-        peer_exchange_switch_for_agent: peerExchangeSwitchForAgent,
-        data_path: dataPath,
+        bt_speed_limit = '',
+        data_path = '',
+        peer_exchange_switch_for_agent = false,
+        ...extraOther
       } = item.extra_data || {};
-      item.status = item.status ? item.status.toLowerCase() : '';
-      item.bt_speed_limit = btSpeedLimit || '';
-      item.peer_exchange_switch_for_agent = !!peerExchangeSwitchForAgent || false;
-      item.data_path = dataPath || '';
-      return item;
+      return {
+        ...item,
+        status: item.status ? item.status.toLowerCase() : '',
+        bt_speed_limit,
+        data_path,
+        peer_exchange_switch_for_agent: !!peer_exchange_switch_for_agent,
+        ...extraOther,
+      };
     });
     return data;
   }
