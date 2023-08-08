@@ -31,6 +31,8 @@ from apps.utils import files
 from apps.utils.enum import EnhanceEnum
 from apps.utils.unittest.testcase import CustomAPITestCase
 
+from . import template_env
+
 VERSION = common_unit.plugin.PACKAGE_VERSION
 
 
@@ -57,6 +59,7 @@ class PathSettingOverwrite(EnhanceEnum):
 class AgentBaseTestCase(CustomAPITestCase):
     TMP_DIR: str = None
     PKG_NAME: str = None
+    NAME: str = "gse_agent"
     OVERWRITE_VERSION: str = None
     ARCHIVE_NAME: str = f"gse_agent_ce-{VERSION}.tgz"
     ARCHIVE_PATH: str = None
@@ -92,7 +95,6 @@ class AgentBaseTestCase(CustomAPITestCase):
         }
         cls.OVERWRITE_OBJ__KV_MAP = cls.OVERWRITE_OBJ__KV_MAP or {}
         cls.OVERWRITE_OBJ__KV_MAP[settings] = {**cls.OVERWRITE_OBJ__KV_MAP.get(settings, {}), **setting_name__path_map}
-
         super().setUpClass()
 
     @classmethod
@@ -179,6 +181,10 @@ class AgentBaseTestCase(CustomAPITestCase):
         with open(os.path.join(pkg_conf_tmpls_dir, "gse_agent_conf.template"), "w", encoding="utf-8") as templ_fs:
             templ_fs.write(config_templates.GSE_AGENT_CONFIG_TMPL)
 
+        # 写入环境变量
+        with open(os.path.join(pkg_conf_env_dir, "gse_agent.env"), "w", encoding="utf-8") as templ_fs:
+            templ_fs.write(template_env.DEFAULT_AGENT_TEMPLATE_ENV)
+
         return base_artifact_dir
 
     @classmethod
@@ -206,6 +212,7 @@ class AgentBaseTestCase(CustomAPITestCase):
 
 
 class ProxyBaseTestCase(AgentBaseTestCase):
+    NAME: str = "gse_proxy"
     ARCHIVE_NAME: str = f"gse_ce-{VERSION}.tgz"
     OS_CPU_CHOICES = [
         (constants.OsType.LINUX.lower(), constants.CpuType.x86_64),
@@ -246,6 +253,10 @@ class ProxyBaseTestCase(AgentBaseTestCase):
             # 写入配置模板
             with open(os.path.join(pkg_conf_tmpls_dir, templ_name), "w", encoding="utf-8") as version_fs:
                 version_fs.write(config_templates.GSE_FILE_PROXY_CONFIG_TEMPL)
+
+        # 写入环境变量
+        with open(os.path.join(pkg_conf_env_dir, "gse_proxy.env"), "w", encoding="utf-8") as templ_fs:
+            templ_fs.write(template_env.DEFAULT_PROXY_TEMPLATE_ENV)
 
         return base_artifact_dir
 

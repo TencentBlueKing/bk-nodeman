@@ -29,7 +29,8 @@ class ProxyArtifactBuilder(base.BaseArtifactBuilder):
     NAME = constants.GsePackageCode.PROXY.value
     PKG_DIR = constants.GsePackageDir.PROXY.value
     CERT_FILENAMES: typing.List[str] = constants.GseCert.list_member_values()
-
+    ENV_FILES = constants.GsePackageEnv.PROXY.value
+    TEMPLATE_PATTERN = constants.GsePackageTemplatePattern.PROXY.value
     # 服务二进制目录
     SERVER_BIN_DIR: str = "server/bin"
     # 所需的二进制文件
@@ -95,5 +96,4 @@ class ProxyArtifactBuilder(base.BaseArtifactBuilder):
         return extract_dir
 
     def _get_support_files_info(self, extract_dir: str) -> typing.Dict[str, typing.Any]:
-        # Agent 包管理实现
-        pass
+        return super()._get_support_files_info(extract_dir=extract_dir)

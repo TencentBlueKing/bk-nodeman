@@ -9,26 +9,29 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-import logging
-import typing
 
-from .. import constants, exceptions
-from .agent import AgentTargetHelper
-from .base import BaseTargetHelper
-from .plugin import PluginTargetHelper
+import logging
+
+from apps.core.tag.models import Tag
+
+from .. import constants
+from . import base
 
 logger = logging.getLogger("app")
 
 
-TARGET_TYPE__HELPER_MAP: typing.Dict[typing.Any, typing.Type[BaseTargetHelper]] = {
-    constants.TargetType.PLUGIN.value: PluginTargetHelper,
-    constants.TargetType.AGENT.value: AgentTargetHelper,
-}
+class AgentTargetHelper(base.BaseTargetHelper):
 
+    MODEL = None
+    TARGET_TYPE = constants.TargetType.AGENT.value
 
-def get_target_helper(target_type: str) -> typing.Type[BaseTargetHelper]:
-    try:
-        return TARGET_TYPE__HELPER_MAP[target_type]
-    except KeyError:
-        logger.error(f"target helper not exist: target_type -> {target_type}")
-        raise exceptions.TargetHelperNotExistError({"target_type": target_type})
+    def _publish_tag_version(self):
+        Tag.objects.update_or_create(
+            defaults={"target_version": self.target_version},
+            name=self.tag_name,
+            target_id=self.target_id,
+            target_type=self.TARGET_TYPE,
+        )
+
+    def _delete_tag_version(self):
+        return super()._delete_tag_version()

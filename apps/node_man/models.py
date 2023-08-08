@@ -134,6 +134,8 @@ class GlobalSettings(models.Model):
         SETUP_PAGENT_SCRIPT_FILENAME = "SETUP_PAGENT_SCRIPT_FILENAME"
         # 周期删除订阅任务数据
         CLEAN_SUBSCRIPTION_DATA_MAP = "CLEAN_SUBSCRIPTION_DATA_MAP"
+        # 是否开启Agent包管理
+        ENABLE_AGENT_PKG_MANAGE = "ENABLE_AGENT_PKG_MANAGE"
 
     key = models.CharField(_("键"), max_length=255, db_index=True, primary_key=True)
     v_json = JSONField(_("值"))
@@ -2361,3 +2363,58 @@ class ResourceWatchEvent(models.Model):
             f"<{self.__class__.__name__}({self.pk}) "
             f"info -> [{self.bk_event_type}|{self.bk_resource}|{self.bk_detail.get('bk_biz_id')}]>"
         )
+
+
+class GseConfigEnv(models.Model):
+    env_value = models.JSONField(_("环境变量值"))
+    agent_name = models.CharField(_("Agent名称"), max_length=32)
+    version = models.CharField(_("版本号"), max_length=128)
+    cpu_arch = models.CharField(
+        _("CPU类型"), max_length=32, choices=constants.CPU_CHOICES, default=constants.CpuType.x86_64, db_index=True
+    )
+    os = models.CharField(
+        _("系统类型"),
+        max_length=32,
+        choices=constants.PLUGIN_OS_CHOICES,
+        default=constants.PluginOsType.linux,
+        db_index=True,
+    )
+
+    class Meta:
+        verbose_name = _("安装包环境变量")
+        verbose_name_plural = _("安装包环境变量")
+
+    def __str__(self) -> str:
+        return f"{self.version}-{self.agent_name}-{self.os}-{self.cpu_arch}"
+
+
+class GseConfigTemplate(models.Model):
+    name = models.CharField(_("配置文件名称"), max_length=32)
+    content = models.TextField(_("配置内容"))
+    agent_name = models.CharField(_("Agent名称"), max_length=32)
+    version = models.CharField(_("版本号"), max_length=128)
+    cpu_arch = models.CharField(
+        _("CPU类型"), max_length=32, choices=constants.CPU_CHOICES, default=constants.CpuType.x86_64, db_index=True
+    )
+    os = models.CharField(
+        _("系统类型"),
+        max_length=32,
+        choices=constants.PLUGIN_OS_CHOICES,
+        default=constants.PluginOsType.linux,
+        db_index=True,
+    )
+
+    @property
+    def env_values(self) -> GseConfigEnv:
+        if not getattr(self, "_env_values", None):
+            self._env_values = GseConfigEnv.objects.get(
+                os=self.os, version=self.version, cpu_arch=self.cpu_arch, agent_name=self.agent_name
+            )
+        return self._env_values
+
+    class Meta:
+        verbose_name = _("安装包模板表")
+        verbose_name_plural = _("安装包模板表")
+
+    def __str__(self) -> str:
+        return f"{self.name}-{self.version}-{self.agent_name}-{self.os}-{self.cpu_arch}"
