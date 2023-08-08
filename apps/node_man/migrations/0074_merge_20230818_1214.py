@@ -9,26 +9,14 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-import logging
-import typing
-
-from .. import constants, exceptions
-from .agent import AgentTargetHelper
-from .base import BaseTargetHelper
-from .plugin import PluginTargetHelper
-
-logger = logging.getLogger("app")
+from django.db import migrations
 
 
-TARGET_TYPE__HELPER_MAP: typing.Dict[typing.Any, typing.Type[BaseTargetHelper]] = {
-    constants.TargetType.PLUGIN.value: PluginTargetHelper,
-    constants.TargetType.AGENT.value: AgentTargetHelper,
-}
+class Migration(migrations.Migration):
 
+    dependencies = [
+        ("node_man", "0072_subscription_instance_selector"),
+        ("node_man", "0073_auto_20230815_1550"),
+    ]
 
-def get_target_helper(target_type: str) -> typing.Type[BaseTargetHelper]:
-    try:
-        return TARGET_TYPE__HELPER_MAP[target_type]
-    except KeyError:
-        logger.error(f"target helper not exist: target_type -> {target_type}")
-        raise exceptions.TargetHelperNotExistError({"target_type": target_type})
+    operations = []
