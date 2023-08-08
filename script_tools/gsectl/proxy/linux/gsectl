@@ -137,16 +137,16 @@ healthz_by_binary () {
     return $rt
 }
 
-red_echo ()     { [ "$HASTTY" != "1" ] && echo "$@" || echo -e "\033[031;1m$@\033[0m"; }
-blue_echo ()    { [ "$HASTTY" != "1" ] && echo "$@" || echo -e "\033[034;1m$@\033[0m"; }
-green_echo ()   { [ "$HASTTY" != "1" ] && echo "$@" || echo -e "\033[032;1m$@\033[0m"; }
+red_echo ()     { [ "$HASTTY" != "1" ] && echo "$@" || echo -e "\033[031;1m$*\033[0m"; }
+blue_echo ()    { [ "$HASTTY" != "1" ] && echo "$@" || echo -e "\033[034;1m$*\033[0m"; }
+green_echo ()   { [ "$HASTTY" != "1" ] && echo "$@" || echo -e "\033[032;1m$*\033[0m"; }
 
 log () {
     # 打印消息, 并记录到日志, 日志文件由 LOG_FILE 变量定义
     local retval=$?
     local timestamp=$(date +%Y%m%d-%H%M%S)
     local level=INFO
-    local func_seq=$(echo ${FUNCNAME[@]} | sed 's/ /-/g')
+    local func_seq=$(echo "${FUNCNAME[@]}" | sed 's/ /-/g')
     local logfile=${LOG_FILE:=/tmp/watch_${INSTALL_ENV}_${node_type}.log}
     local minute
     local firstday
@@ -158,17 +158,14 @@ log () {
 
     # 判断是否为当月1号0点时间
     if [ "$minute" == "00" -a "$firstday" == "01" ]; then
-        if [ -f $LOG_FILE ${LOG_FILE}_$(date -d "last month" '+%Y%m').log ];then
+        if [ -f ${LOG_FILE}_$(date -d "last month" '+%Y%m').log ];then
             echo "backup log already exists"
         else
             echo "[$(blue_echo ${EXTERNAL_IP}-$LAN_IP)]$timestamp $level|$BASH_LINENO|${func_seq} The current day is first day of month, reset the log file to new one ." >>$logfile
             [ -f $LOG_FILE ] && mv $LOG_FILE ${LOG_FILE}_$(date -d "last month" '+%Y%m').log
             touch $LOG_FILE
-            if [ -f /tmp/watch_gse_agent.log ];then
-                mv /tmp/watch_gse_agent.log /tmp/watch_gse_agent_$(date -d "last month" '+%Y%m').log
-            fi
-            if [ -f /tmp/watch_gse_proxy.log ];then
-                mv /tmp/watch_gse_proxy.log /tmp/watch_gse_proxy_$(date -d "last month" '+%Y%m').log
+            if [ -f /tmp/watch_gse2_${node_type}.log ];then
+                mv /tmp/watch_gse2_${node_type}.log /tmp/watch_gse2_${node_type}_$(date -d "last month" '+%Y%m').log
             fi
         fi
     fi
@@ -182,8 +179,8 @@ log () {
          opt=""
     fi
 
-    echo -e $opt "[$(blue_echo ${EXTERNAL_IP:-$LAN_IP})]$timestamp|$BASH_LINENO\t$@"
-    echo "[$(blue_echo ${EXTERNAL_IP}-$LAN_IP)]$timestamp $level|$BASH_LINENO|${func_seq} $@" >>$logfile
+    echo -e $opt "[$(blue_echo ${EXTERNAL_IP:-$LAN_IP})]$timestamp|$BASH_LINENO\t$*"
+    echo "[$(blue_echo ${EXTERNAL_IP}-$LAN_IP)]$timestamp $level|$BASH_LINENO|${func_seq} $*" >>$logfile
 
     return $retval
 }
@@ -197,21 +194,6 @@ watch_by_binary () {
     # 设置记录上次脚本运行的文件
     LAST_RUN_FILE=/var/run/already_run_times_${node_type}_${module}
 
-    # 如果当前时间为整点时间,则重置计数,重新开始检测
-    # 获取当前时间的分钟数
-    minute=$(date +%M)
-
-    # 判断是否为整点时间
-    if [ "$minute" == "00" ]; then
-        log "The current time is on the hour, reset the counter, and restart the detection."
-        if [ -f $LAST_RUN_FILE ];then
-            echo 0 > $LAST_RUN_FILE
-        fi
-    fi
-
-    # 设置告警阈值
-    THRESHOLD=5
-
     # 如果文件存在，则读取文件中记录的次数
     if [ -f $LAST_RUN_FILE ]; then
         run_count=$(cat $LAST_RUN_FILE)
@@ -219,37 +201,33 @@ watch_by_binary () {
         run_count=0
     fi
 
-    # 检查上一次脚本是否存在
-    if [ -f /var/run/gsectl_check_status.pid ]; then
-        pid=`cat /var/run/gsectl_check_status.pid`
-        if [ -d "/proc/$pid" ]; then
-            # 如果超过阈值，则发出告警
-            if [ $run_count -gt $THRESHOLD ]; then
-                if _status ${module}; then
-                    log "`date +'%F %T.%N'` $0 Restored to normal operation, reset the counter, waiting for the next detection..."
-                    echo 0 > $LAST_RUN_FILE
-                    return
-                else
-                    log "`date +'%F %T.%N'` Script: $0 Detection status: Stuck running for more than $run_count cycles, no longer checking the status of the module: ${module}"
-                    return
-                fi
-            fi
+    # 如果当前时间为整点时间,则重置计数,重新开始检测
+    # 获取当前时间的分钟数
+    minute=$(date +%M)
 
-            run_count=$((run_count + 1))
-            echo $run_count > $LAST_RUN_FILE
-            if [ $run_count -gt 0 ];then
-                log "`date +'%F %T.%N'` The previous script: $0 PID:$pid is running"
+    # 判断是否为整点时间
+    if [ "$minute" == "00" ]; then
+        if [ -f $LAST_RUN_FILE -a $run_count -gt 0 ];then
+            log "The current time is on the hour, reset the module: ${module} counter $run_count -> 0, and restart the detection."
+            echo 0 > $LAST_RUN_FILE
+        fi
+    fi
+
+    # 设置告警阈值
+    THRESHOLD=5
+
+    # 检查上一次脚本是否存在
+    if [ -f /var/run/gsectl_check_proxy_status.pid ]; then
+        pid=`cat /var/run/gsectl_check_proxy_status.pid`
+        if [ -d "/proc/$pid" ]; then
+            if [ ${pid} -ne $$ ];then
+                log "`date +'%F %T.%N'` Last Script: $0 Detection status: PID:$pid is until running, no longer checking the status of the module: ${module}"
+                return
             fi
         else
             # 如果超过阈值，则发出告警
-            if [ $run_count -gt $THRESHOLD ]; then
-                if _status ${module}; then
-                    log "`date +'%F %T.%N'` ${module} Restored to normal operation, reset the counter, waiting for the next detection..."
-                    echo 0 > $LAST_RUN_FILE
-                    return
-                else
-                    log "`date +'%F %T.%N'` Script: $0 Detection status: Failed to start the process, exceeded $run_count cycles, no longer checking the status of the module: $module"
-                fi
+            if [ $run_count -ge $THRESHOLD ]; then
+                log "`date +'%F %T.%N'` Script: $0 Detection status: Failed to start the process, exceeded $run_count cycles, no longer checking the status of the module: $module"
                 return
             else
                 log "`date +'%F %T.%N'` The previous script: $0 watch has ended, starting a new detection"
@@ -258,7 +236,7 @@ watch_by_binary () {
     fi
 
     # 记录当前脚本的 PID
-    echo $$ > /var/run/gsectl_check_status.pid
+    echo $$ > /var/run/gsectl_check_proxy_status.pid
 
     # 检测Proxy进程是否正常存在的逻辑
     if [ -z "${module}" ]; then
@@ -275,11 +253,12 @@ watch_by_binary () {
             fi
         else
             if [ $run_count -ne 0 ];then
-                log "`date +'%F %T.%N'` The previous script: $0 Detection status has been restored, reset the count"
+                log "`date +'%F %T.%N'` The previous script: $0 Detection ${module} status is Running, then reset the count"
                 echo 0 > $LAST_RUN_FILE
             fi
         fi
     fi
+    return
 }
 
 _start () {
@@ -373,17 +352,6 @@ __status (){
     for i in {0..20}; do
         if [ "$action" == "stop" ];then
             if [ $(ps --no-header -C gse_${module} -o '%P|%p|%a' |egrep "${WORK_HOME}" |wc -l) -eq 0 ];then
-                echo gse_${module} $action $action success
-                break
-            elif [ $i -eq 20 ];then
-                echo "gse_${module} $action $action failed"
-                return 1
-            else
-                sleep 1
-            fi
-        elif [ "$action" == "reload" ];then
-            sleep 3
-            if [ $(ps --no-header -C gse_${module} -o '%P|%p|%a' |egrep "${WORK_HOME}" |wc -l) -eq 2 ];then
                 echo gse_${module} $action $action success
                 break
             elif [ $i -eq 20 ];then
@@ -600,7 +568,7 @@ start_by_crontab () {
     for module in $modules
     do
         if is_use_systemd ${module} ;then
-            remove_config_to_systemd "${module}"
+            remove_systemd_service "${module}"
             start_by_binary ${module}
             if [ $? -ne 0 ];then
                 echo "have $? module start failed"
@@ -650,7 +618,7 @@ restart_by_crontab () {
     for module in $modules
     do
         if is_use_systemd ${module} ;then
-            remove_config_to_systemd "${module}"
+            remove_systemd_service "${module}"
             restart_by_binary ${module}
             if [ $? -ne 0 ];then
                 echo "have $? module start failed"
@@ -706,7 +674,7 @@ start_by_rclocal () {
     for module in $modules
     do
         if is_use_systemd ${module} ;then
-            remove_config_to_systemd "${module}"
+            remove_systemd_service "${module}"
             start_by_binary "${module}"
         else
             start_by_binary "${module}"
@@ -734,7 +702,7 @@ reload_by_rclocal () {
     for module in $modules
     do
         if is_use_systemd ${module} ;then
-            remove_config_to_systemd "${module}"
+            remove_systemd_service "${module}"
         fi
         reload_by_binary "${module}"
         if [ $? -ne 0 ];then
@@ -752,7 +720,7 @@ restart_by_rclocal () {
     for module in $modules
     do
         if is_use_systemd ${module} ;then
-            remove_config_to_systemd "${module}"
+            remove_systemd_service "${module}"
         fi
         restart_by_binary "${module}"
         if [ $? -ne 0 ];then
@@ -940,7 +908,7 @@ EOF
 }
 
 
-remove_config_to_systemd () {
+remove_systemd_service () {
     local module=$1
 
     if [ -f /usr/lib/systemd/system/${INSTALL_ENV}_${node_type}_${module}.service ];then
@@ -955,7 +923,7 @@ setup_crontab () {
     local module=$1
     local tmpcron
 
-    if [ -n "`crontab -l | grep \"$WORK_HOME/bin/gsectl\"`" ];then
+    if [ -n "`crontab -l | grep \"$WORK_HOME/bin/gsectl\" |egrep -v \"^#|\s+#\"`" ];then
         echo "The watch detection entry is already in the crontab..."
         return 0
     fi
@@ -964,8 +932,8 @@ setup_crontab () {
 
     (
         crontab -l | grep -v "$WORK_HOME/bin/gsectl"
-        echo "#$WORK_HOME Agent check, add by NodeMan @ `date +'%F %T'`"
-        echo "* * * * * $WORK_HOME/bin/gsectl watch all 1>>/tmp/watch_gse_${node_type}.log 2>&1"
+        echo "#$WORK_HOME/bin/gsectl Agent check, add by NodeMan @ `date +'%F %T'`"
+        echo "* * * * * $WORK_HOME/bin/gsectl watch all 1>>/tmp/watch_gse2_${node_type}.log 2>&1"
     ) > "$tmpcron"
 
     crontab "$tmpcron" && rm -f "$tmpcron"
@@ -1045,37 +1013,37 @@ fi
 
 
 if [ $auto_type == "systemd" ]; then
-  case $action in
-      start) start_by_systemd ;;
-      stop) stop_by_systemd ;;
-      restart) restart_by_systemd;;
-      status) status_by_systemd ;;
-      reload) reload_by_systemd;;
-      healthz) healthz_by_systemd;;
-      watch) watch_by_crontab;;
-      -h|*) usage ; exit 255 ;;
-  esac
+    case $action in
+        start) start_by_systemd ;;
+        stop) stop_by_systemd ;;
+        restart) restart_by_systemd;;
+        status) status_by_systemd ;;
+        reload) reload_by_systemd;;
+        healthz) healthz_by_systemd;;
+        watch) watch_by_crontab;;
+        -h|*) usage ; exit 255 ;;
+    esac
 elif [ $auto_type == "crontab" ]; then
-      case $action in
-      start) start_by_crontab ;;
-      stop) stop_by_crontab ;;
-      restart) restart_by_crontab ;;
-      status) status_by_crontab ;;
-      reload) reload_by_crontab;;
-      healthz) healthz_by_crontab;;
-      watch) watch_by_crontab;;
-      -h|*) usage ; exit 255 ;;
-  esac
+    case $action in
+        start) start_by_crontab ;;
+        stop) stop_by_crontab ;;
+        restart) restart_by_crontab ;;
+        status) status_by_crontab ;;
+        reload) reload_by_crontab;;
+        healthz) healthz_by_crontab;;
+        watch) watch_by_crontab;;
+        -h|*) usage ; exit 255 ;;
+    esac
 elif [ $auto_type == "rclocal" ]; then
-      case $action in
-      start) start_by_rclocal ;;
-      stop) stop_by_rclocal ;;
-      restart) restart_by_rclocal ;;
-      status) status_by_rclocal ;;
-      reload) reload_by_rclocal;;
-      healthz) healthz_by_rclocal;;
-      -h|*) usage ; exit 255 ;;
-  esac
+    case $action in
+        start) start_by_rclocal ;;
+        stop) stop_by_rclocal ;;
+        restart) restart_by_rclocal ;;
+        status) status_by_rclocal ;;
+        reload) reload_by_rclocal;;
+        healthz) healthz_by_rclocal;;
+        -h|*) usage ; exit 255 ;;
+    esac
 fi
 
 exit $?
