@@ -9,8 +9,9 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import json
+import os
 from copy import deepcopy
-from typing import Dict
+from typing import Any, Dict
 
 from django.core.management.base import BaseCommand
 from django.db.transaction import atomic
@@ -29,10 +30,17 @@ class Command(BaseCommand):
             "-c", "--clean_old_map_id", action="store_true", default=False, help="Clean up the original mapping ID"
         )
 
-    def format_gse2_agent_config(self, agent_config):
+    def format_gse2_agent_config(self, parent_key: str = None, agent_config: Dict[str, Any] = {}):
         for key, value in agent_config.items():
             if isinstance(value, dict):
-                self.format_gse2_agent_config(value)
+                self.format_gse2_agent_config(parent_key=key, agent_config=value)
+            elif key == "dataipc":
+                if parent_key == "linux":
+                    agent_config[key] = os.path.join(
+                        agent_config["setup_path"].replace("gse", "gse2"), "agent/data/ipc.state.report"
+                    )
+                elif parent_key == "windows":
+                    agent_config[key] = 27000
             elif isinstance(value, str) and "hostid" not in value:
                 # 接入点ID路径不变
                 agent_config[key] = value.replace("gse", "gse2")
@@ -60,7 +68,7 @@ class Command(BaseCommand):
 
             # 更新agent_config
             gse_v2_agent_config: Dict[str, Dict[str, str]] = gse_v1_ap.agent_config
-            self.format_gse2_agent_config(gse_v2_agent_config)
+            self.format_gse2_agent_config(agent_config=gse_v2_agent_config)
             print(f"\nGSE2 agent_config:\n{json.dumps(gse_v2_agent_config, indent=4)}")
 
             gse_v2_ap.agent_config: Dict[str, Dict[str, str]] = gse_v2_agent_config
