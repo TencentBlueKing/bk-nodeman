@@ -3,7 +3,7 @@ rm -rf /opt/nginx-portable/;
 rm -rf /opt/py36/;
 tar xvf %(nginx_path)s/py36.tgz -C /opt;
 tar xvf %(nginx_path)s/nginx-portable.tgz -C /opt;
-chmod -R 755 /data
+timeout 120 chmod -R 755 %(nginx_path)s || echo "chmod directory %(nginx_path)s failed"
 user=root
 group=root
 #create group if not exists
