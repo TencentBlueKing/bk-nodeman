@@ -102,6 +102,19 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
                 constants.CommonExecutionSolutionType.BATCH.value
             ]
             dest_dir = installation_tool.dest_dir
+            dependencies: List[str] = []
+            run_commands: List[str] = []
+            for solution_step in execution_solution.steps[1:]:
+                if solution_step.type == constants.CommonExecutionSolutionStepType.DEPENDENCIES.value:
+                    dependencies.extend(
+                        [
+                            f"{content.child_dir}/{content.name}" if content.child_dir else content.name
+                            for content in solution_step.contents
+                        ]
+                    )
+                else:
+                    run_commands.extend([content.text for content in solution_step.contents])
+
             # TODO 快速兼容方式，后续优化
             pre_commands_params_list.append(
                 {
@@ -117,14 +130,14 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
                     "host": installation_tool.host,
                     "dest_dir": dest_dir,
                     "identity_data": installation_tool.identity_data,
-                    "dependencies": [content.name for content in execution_solution.steps[1].contents],
+                    "dependencies": dependencies,
                 }
             )
             run_install_params_list.append(
                 {
                     "sub_inst_id": install_sub_inst_obj.sub_inst_id,
                     "host": installation_tool.host,
-                    "commands": [content.text for content in execution_solution.steps[2].contents],
+                    "commands": run_commands,
                     "identity_data": installation_tool.identity_data,
                 }
             )

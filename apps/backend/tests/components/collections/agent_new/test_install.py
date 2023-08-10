@@ -307,13 +307,16 @@ class InstallWindowsTestCase(InstallBaseTestCase):
             run_cmd_param_extract={"token": r"(.*) -c (.*?) -s"},
         )
 
-        self.assertEqual(constants.AgentWindowsDependencies.list_member_values(), solution_parse_result["dependencies"])
+        self.assertEqual(
+            constants.AgentWindowsDependencies.list_member_values() + ["setup_agent.bat"],
+            solution_parse_result["dependencies"],
+        )
         self.assertEqual(
             solution_parse_result["cmds"],
             [
                 f"mkdir {installation_tool.dest_dir}",
-                f"{installation_tool.dest_dir}curl.exe http://127.0.0.1/download/setup_agent.bat"
-                f" -o {installation_tool.dest_dir}setup_agent.bat -sSf",
+                # f"{installation_tool.dest_dir}curl.exe http://127.0.0.1/download/setup_agent.bat"
+                # f" -o {installation_tool.dest_dir}setup_agent.bat -sSf",
                 f"{installation_tool.dest_dir}setup_agent.bat"
                 f' -O 48668 -E 58925 -A 58625 -V 58930 -B 10020 -S 60020 -Z 60030 -K 10030 -e "" -a "" -k ""'
                 f" -l http://127.0.0.1/download -r http://127.0.0.1/backend"
@@ -471,14 +474,17 @@ class InstallWindowsPagentTestCase(InstallLinuxPagentTestCase):
             run_cmd_param_extract={"token": r"(.*) -c (.*?) -s"},
         )
 
-        self.assertEqual(constants.AgentWindowsDependencies.list_member_values(), solution_parse_result["dependencies"])
+        self.assertEqual(
+            constants.AgentWindowsDependencies.list_member_values() + ["setup_agent.bat"],
+            solution_parse_result["dependencies"],
+        )
         self.assertEqual(
             solution_parse_result["cmds"],
             [
                 f"mkdir {installation_tool.dest_dir}",
-                f"{installation_tool.dest_dir}curl.exe http://127.0.0.1/download/setup_agent.bat"
-                f" -o {installation_tool.dest_dir}setup_agent.bat -sSf"
-                f" -x http://1.1.1.1:{settings.BK_NODEMAN_NGINX_PROXY_PASS_PORT}",
+                # f"{installation_tool.dest_dir}curl.exe http://127.0.0.1/download/setup_agent.bat"
+                # f" -o {installation_tool.dest_dir}setup_agent.bat -sSf"
+                # f" -x http://1.1.1.1:{settings.BK_NODEMAN_NGINX_PROXY_PASS_PORT}",
                 f"{installation_tool.dest_dir}setup_agent.bat"
                 f" -O 48668 -E 58925 -A 58625 -V 58930 -B 10020 -S 60020 -Z 60030 -K 10030"
                 f' -e "1.1.1.1" -a "1.1.1.1" -k "1.1.1.1"'

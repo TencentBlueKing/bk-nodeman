@@ -224,13 +224,16 @@ def execute_batch_solution(
     for step in execution_solution["steps"]:
         for content in step["contents"]:
             if step["type"] == "dependencies":
-                localpath = os.path.join(args.download_path, content["name"])
+                download_path: str = args.download_path
+                if content.get("child_dir"):
+                    download_path = os.path.join(download_path, content["child_dir"])
+                localpath = os.path.join(download_path, content["name"])
                 # 文件不存在，从下载源同步
-                if not os.path.exists(localpath):
+                if not os.path.exists(localpath) or content.get("always_download"):
                     report_log(
                         "execute_batch_solution", f"file -> {content['name']} not exists, sync from {content['text']}"
                     )
-                    download_file(content["text"], args.download_path)
+                    download_file(content["text"], download_path)
 
                 # 构造文件推送命令
                 cmd: str = "put {localpath} {tmp_dir}".format(localpath=localpath, tmp_dir=tmp_dir)
@@ -334,6 +337,8 @@ def json_parser(json_file: str) -> List:
 def download_file(url: str, dest_dir: str):
     """get files via http"""
     try:
+        # 创建下载目录
+        os.makedirs(dest_dir, exist_ok=True)
         local_filename = url.split("/")[-1]
         # NOTE the stream=True parameter below
         local_file = os.path.join(dest_dir, local_filename)

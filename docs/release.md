@@ -1,5 +1,12 @@
 # Release
 
+
+## 2.2.33 - 2023-08-10
+
+
+### bugfix: 
+  * 修复 Windows Agent 安装报错 STATUS_OBJECT_NAME_NOT_FOUND 的问题 (fixed #1732)
+
 ## 2.2.32 - 2023-06-13
 
 
