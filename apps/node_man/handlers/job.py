@@ -158,8 +158,6 @@ class JobHandler(APIModel):
         all_biz_info = CmdbHandler().biz_id_name_without_permission()
         biz_info = CmdbHandler().biz_id_name({"action": constants.IamActionType.task_history_view})
         biz_permission = list(biz_info.keys())
-        if not biz_permission:
-            return {"total": 0, "list": []}
 
         if params.get("job_id"):
             job_ids = set()
@@ -181,12 +179,16 @@ class JobHandler(APIModel):
         else:
             biz_scope = biz_permission
 
+        if not biz_scope:
+            return {"total": 0, "list": []}
+
         if set(biz_scope) & all_biz_ids == all_biz_ids:
+            # 查询全部业务且拥有全部业务权限
             biz_scope_query_q = Q()
         else:
             biz_scope_query_q = reduce(
                 operator.or_,
-                [Q(bk_biz_scope__contains=bk_biz_id) for bk_biz_id in search_biz_ids],
+                [Q(bk_biz_scope__contains=bk_biz_id) for bk_biz_id in biz_scope],
                 Q()
             )
             # 仅查询所有业务时，自身创建的 job 可见
