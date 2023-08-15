@@ -1538,6 +1538,7 @@ class PluginConfigTemplate(models.Model):
     format = models.CharField(_("文件格式"), max_length=16)
     file_path = models.CharField(_("文件在该插件目录中相对路径"), max_length=128)
     content = models.TextField(_("配置内容"))
+    variables = models.JSONField(_("配置变量"), null=True, blank=True, default=None)
     is_release_version = models.BooleanField(_("是否已经发布版本"), db_index=True)
 
     creator = models.CharField(_("创建者"), max_length=64)

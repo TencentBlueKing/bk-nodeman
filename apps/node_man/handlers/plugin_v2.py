@@ -126,24 +126,16 @@ class PluginV2Handler:
 
     @staticmethod
     def fetch_config_variables(config_tpl_ids):
-        config_tpls = list(
+        config_tmpls = list(
             models.PluginConfigTemplate.objects.filter(id__in=config_tpl_ids, is_release_version=True).values(
-                "id", "name", "version", "is_main", "creator", "content"
+                "id", "name", "version", "is_main", "creator", "content", "variables"
             )
         )
-        diff = set(config_tpl_ids) - {tpl["id"] for tpl in config_tpls}
+        diff = set(config_tpl_ids) - {tpl["id"] for tpl in config_tmpls}
         if diff:
             raise exceptions.PluginConfigTplNotExistError(_("插件配置模板{ids}不存在或已下线").format(ids=diff))
 
-        for config_tpl in config_tpls:
-            # 必然不成立条件，用于暂时关闭配置选择入口
-            if "is_main" not in config_tpl:
-                shield_content = tools.PluginV2Tools.shield_tpl_unparse_content(config_tpl["content"])
-                config_tpl["variables"] = tools.PluginV2Tools.simplify_var_json(
-                    tools.PluginV2Tools.parse_tpl2var_json(shield_content)
-                )
-            config_tpl.pop("content")
-        return config_tpls
+        return config_tmpls
 
     @staticmethod
     def history(query_params: Dict):

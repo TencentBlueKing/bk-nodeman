@@ -1021,6 +1021,7 @@ def get_all_subscription_steps_context(
     target_host: models.Host,
     plugin_name: str,
     agent_config: Dict,
+    policy_step_adapter,
 ) -> Dict:
     """
     获取订阅步骤上下文数据
@@ -1029,6 +1030,7 @@ def get_all_subscription_steps_context(
     :param dict instance_info: 实例信息
     :param dict target_host: 主机信息
     :param string plugin_name: 插件名称
+    :param PolicyStepAdapter policy_step_adapter: 策略步骤适配器
     :return:
     """
     from apps.backend.subscription.steps import StepFactory
@@ -1042,7 +1044,13 @@ def get_all_subscription_steps_context(
 
     plugin_path = get_plugin_path(plugin_name, target_host, agent_config)
     # 当前step_id的数据单独拎出来，作为 shortcut
-    context.update(all_step_data[subscription_step.step_id])
+
+    step_params = policy_step_adapter.get_matching_step_params(
+        target_host.os_type.lower(),
+        target_host.cpu_arch
+    )
+    context.update(step_params.get("context", {}))
+
     context.update(
         cmdb_instance=instance_info,
         step_data=all_step_data,

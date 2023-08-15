@@ -13,15 +13,16 @@ import random
 import shutil
 import tarfile
 import uuid
+import yaml
 from typing import Any, Dict, List, Optional
 
 import mock
 from django.conf import settings
 
+from apps.backend.plugin import tools
 from apps.backend.tests.plugin import utils
 from apps.mock_data import utils as mock_data_utils
 from apps.node_man import constants, models
-from apps.node_man.models import Packages, ProcControl
 from apps.utils import files
 
 
@@ -83,12 +84,12 @@ class FileSystemTestCase(utils.PluginBaseTestCase):
         self.register_plugin(upload_result["name"])
         plugin_obj = models.GsePluginDesc.objects.get(name=utils.PLUGIN_NAME)
         for package_os, cpu_arch in self.OS_CPU_CHOICES:
-            pkg_obj = Packages.objects.get(
+            pkg_obj = models.Packages.objects.get(
                 pkg_name=self.PLUGIN_ARCHIVE_NAME, version=utils.PACKAGE_VERSION, os=package_os, cpu_arch=cpu_arch
             )
             self.check_pkg_structure(project=plugin_obj.name, pkg_path=os.path.join(pkg_obj.pkg_path, pkg_obj.pkg_name))
 
-        self.assertEqual(ProcControl.objects.all().count(), len(self.OS_CPU_CHOICES))
+        self.assertEqual(models.ProcControl.objects.all().count(), len(self.OS_CPU_CHOICES))
 
     def test_create_register_task__select_pkgs(self):
         upload_result = self.upload_plugin()
@@ -102,7 +103,7 @@ class FileSystemTestCase(utils.PluginBaseTestCase):
         )
 
         plugin_obj = models.GsePluginDesc.objects.get(name=utils.PLUGIN_NAME)
-        pkg_obj = Packages.objects.get(
+        pkg_obj = models.Packages.objects.get(
             pkg_name=self.PLUGIN_ARCHIVE_NAME, version=utils.PACKAGE_VERSION, os=package_os, cpu_arch=cpu_arch
         )
         self.check_pkg_structure(project=plugin_obj.name, pkg_path=os.path.join(pkg_obj.pkg_path, pkg_obj.pkg_name))
@@ -192,6 +193,16 @@ class FileSystemTestCase(utils.PluginBaseTestCase):
             file_name=self.upload_plugin()["name"],
             except_message_list=["project.yaml 文件信息缺失", "project.yaml 中 category 配置异常，请确认后重试"],
         )
+
+    def test_parse__yaml_file_config_templates_variables(self):
+        """配置模板参数解析"""
+        project_yaml_content = utils.PluginTestObjFactory.get_project_yaml_content()
+        yaml_config = yaml.safe_load(project_yaml_content)
+        config_templates = yaml_config.get("config_templates", [])
+        for config_template in config_templates:
+            config_template_variables = tools.validate_config_variables(config_template.get("variables"))
+            if config_template_variables:
+                self.assertEqual(config_template_variables, utils.PROJECT_YAML_CONTENT_CONFIG_TEMPLATE_VARIABLES)
 
     def test_parse__not_template_and_version_update(self):
         os.remove(self.PLUGIN_ARCHIVE_PATH)
