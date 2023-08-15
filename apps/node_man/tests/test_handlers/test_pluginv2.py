@@ -108,12 +108,26 @@ class TestPluginV2(CustomBaseTestCase):
 
     def test_fetch_config_variables(self):
         models.PluginConfigTemplate.objects.create(
-            id=1, is_release_version=True, name="test", version="1.0", creator="admin", content="content"
+            id=1,
+            is_release_version=True,
+            name="test",
+            version="1.0",
+            creator="admin",
+            content="content",
+            variables="variables",
         )
         result = PluginV2Handler().fetch_config_variables(config_tpl_ids=[1])
         self.assertEqual(
             result,
-            [{"id": 1, "name": "test", "version": "1.0", "is_main": False, "creator": "admin"}],
+            [{
+                "id": 1,
+                "name": "test",
+                "version": "1.0",
+                "is_main": False,
+                "creator": "admin",
+                "content": "content",
+                "variables": "variables",
+            }],
         )
 
     @patch("common.api.NodeApi.plugin_history", NodeApi.plugin_history)

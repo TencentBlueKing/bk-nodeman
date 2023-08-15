@@ -54,6 +54,72 @@ config_templates:
   format: {config_format}
   source_path: etc/{plugin_name}.conf.tpl
   is_main_config: 1
+  variables:
+    title: variables
+    type: object
+    required: True
+    properties:
+      token:
+        title: token
+        type: string
+        required: True
+      logVerbosity:
+        title: logVerbosity
+        type: number
+        default: 5
+        required: False
+      tempDir:
+        title: tempDir
+        type: string
+        required: False
+      uid:
+        title: uid
+        type: string
+        required: False
+      labels:
+        title: labels
+        type: array
+        items:
+          title: label
+          type: object
+          required: False
+          properties:
+            key:
+              title: 键
+              type: string
+            value:
+              title: 值
+              type: string
+      apps:
+        title: apps
+        type: array
+        items:
+          title: named_label
+          type: object
+          properties:
+            name:
+              title: name
+              type: string
+              required: True
+            uid:
+              title: uid
+              type: string
+              required: False
+            labels:
+              title: labels
+              type: array
+              required: False
+              items:
+                title: label
+                type: object
+                required: False
+                properties:
+                  key:
+                    title: 键
+                    type: string
+                  value:
+                    title: 值
+                    type: string
 - plugin_version: "{package_version}"
   name: child.conf
   version: {package_version}
@@ -61,22 +127,110 @@ config_templates:
   format: {config_format}
   source_path: etc/child.conf.tpl
 control:
- start: "./start.sh {plugin_name}"
- stop: "./stop.sh {plugin_name}"
- restart: "./restart.sh {plugin_name}"
- version: "./{plugin_name} -v"
- reload: "./{plugin_name} -s reload"
- health_check: "./{plugin_name} -z"
+  start: "./start.sh {plugin_name}"
+  stop: "./stop.sh {plugin_name}"
+  restart: "./restart.sh {plugin_name}"
+  version: "./{plugin_name} -v"
+  reload: "./{plugin_name} -s reload"
+  health_check: "./{plugin_name} -z"
 node_manage_control:
- package_update: false
- package_remove: false
- plugin_install: false
- plugin_update: false
- plugin_uninstall: false
- plugin_upgrade: false
- plugin_remove: false
- plugin_restart: false
+  package_update: false
+  package_remove: false
+  plugin_install: false
+  plugin_update: false
+  plugin_uninstall: false
+  plugin_upgrade: false
+  plugin_remove: false
+  plugin_restart: false
 """
+
+PROJECT_YAML_CONTENT_CONFIG_TEMPLATE_VARIABLES = {
+    "title": "variables",
+    "type": "object",
+    "required": True,
+    "properties": {
+        "token": {
+            "title": "token",
+            "type": "string",
+            "required": True
+        },
+        "logVerbosity": {
+            "title": "logVerbosity",
+            "type": "number",
+            "required": False,
+            "default": 5
+        },
+        "tempDir": {
+            "title": "tempDir",
+            "type": "string",
+            "required": False
+        },
+        "uid": {
+            "title": "uid",
+            "type": "string",
+            "required": False
+        },
+        "labels": {
+            "title": "labels",
+            "type": "array",
+            "items": {
+                "title": "label",
+                "type": "object",
+                "required": False,
+                "properties": {
+                    "key": {
+                        "title": "key",
+                        "type": "string"
+                    },
+                    "value": {
+                        "title": "value",
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "apps": {
+            "title": "apps",
+            "type": "array",
+            "items": {
+                "title": "named_label",
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "title": "name",
+                        "type": "string",
+                        "required": True
+                    },
+                    "uid": {
+                        "title": "uid",
+                        "type": "string",
+                        "required": False
+                    },
+                    "labels": {
+                        "title": "labels",
+                        "type": "array",
+                        "required": False,
+                        "items": {
+                            "title": "label",
+                            "type": "object",
+                            "required": False,
+                            "properties": {
+                                "key": {
+                                    "title": "key",
+                                    "type": "string"
+                                },
+                                "value": {
+                                    "title": "value",
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
 
 # 插件名称
 PLUGIN_NAME = common_unit.plugin.PLUGIN_NAME
