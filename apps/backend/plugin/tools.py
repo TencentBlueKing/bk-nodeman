@@ -13,7 +13,8 @@ import os
 import shutil
 import tarfile
 import traceback
-from typing import Any, Dict, List, Optional
+from enum import Enum
+from typing import Any, Dict, List, Optional, Union
 
 import yaml
 from django.conf import settings
@@ -21,11 +22,13 @@ from django.db import transaction
 from django.utils import timezone, translation
 from django.utils.translation import ugettext_lazy as _
 from packaging import version
+from rest_framework import serializers
+from rest_framework.exceptions import ValidationError
 
 from apps.backend import exceptions
 from apps.core.files.storage import get_storage
 from apps.node_man import constants, models
-from apps.utils import env, files
+from apps.utils import env, files, enum
 
 logger = logging.getLogger("app")
 
@@ -35,6 +38,153 @@ def locale_fields() -> Dict[str, str]:
     if language.lower().startswith("zh-"):
         return {"description": "description", "scenario": "scenario"}
     return {"description": "description_en", "scenario": "scenario_en"}
+
+
+class VariableType(enum.EnhanceEnum):
+    OBJECT = "object"
+    ARRAY = "array"
+    NUMBER = "number"
+    STRING = "string"
+    BOOLEAN = "boolean"
+
+    @classmethod
+    def _get_member__alias_map(cls) -> Dict[Enum, str]:
+        return {
+            cls.OBJECT: _("字典"),
+            cls.ARRAY: _("列表"),
+            cls.NUMBER: _("数字"),
+            cls.STRING: _("字符串"),
+            cls.BOOLEAN: _("布尔值"),
+        }
+
+
+class LiteralField(serializers.Field):
+
+    default_error_messages = {"invalid": _("Type must be one of string, boolean, number")}
+
+    def to_internal_value(self, data):
+        if not isinstance(data, (str, int, float, bool)):
+            self.fail("invalid")
+        return data
+
+    def to_representation(self, value):
+        return value
+
+
+class VariableNodeSerializer(serializers.Serializer):
+    title = serializers.CharField(max_length=128, label=_("变量名称"))
+    type = serializers.ChoiceField(choices=VariableType.get_member_value__alias_map(), label=_("变量类型"))
+    required = serializers.BooleanField(required=False, label=_("是否为必填参数"))
+    properties = serializers.DictField(required=False, label=_("多子变量"))
+    items = serializers.DictField(required=False, label=_("子变量"))
+    default = LiteralField(required=False, label=_("默认值"))
+    depth = serializers.IntegerField(label=_("嵌套深度"), max_value=5)
+
+    @classmethod
+    def parse_default(cls, default_value: Union[str, bool, int, float], variable_type: str):
+        """
+        解析默认值
+        :param default_value: 默认值
+        :param variable_type: 变量类型
+        :return:
+        """
+        if variable_type == VariableType.BOOLEAN.value:
+            if default_value in serializers.BooleanField.TRUE_VALUES:
+                return True
+            elif default_value in serializers.BooleanField.FALSE_VALUES:
+                return False
+            else:
+                return bool(default_value)
+        elif variable_type == VariableType.STRING.value:
+            return str(variable_type)
+        elif variable_type == VariableType.NUMBER.value:
+            if isinstance(default_value, (int, float)):
+                return default_value
+            elif isinstance(default_value, bool):
+                return int(default_value)
+
+            try:
+                # 尝试将字面量转为浮点数
+                return float(default_value)
+            except ValueError:
+                raise ValidationError(
+                    _("Failed to parse '{default_value}' as number".format(default_value=default_value))
+                )
+
+        # 列表和字典不支持默认值
+        return None
+
+    def validate(self, attrs):
+        if attrs["type"] == VariableType.OBJECT.value:
+            attrs.pop("items", None)
+            attrs["properties"] = attrs.get("properties", {})
+        elif attrs["type"] == VariableType.ARRAY.value:
+            attrs.pop("properties", None)
+            attrs["items"] = attrs.get("items", {})
+            if not attrs["items"]:
+                raise ValidationError(_("items cannot be {}"))
+
+        # 列表和字典不支持默认值
+        if attrs["type"] in [VariableType.ARRAY, VariableType.OBJECT]:
+            attrs.pop("default", None)
+
+        # 根据 type 对字面量进行类型转换
+        if "default" in attrs:
+            attrs["default"] = self.parse_default(default_value=attrs["default"], variable_type=attrs["type"])
+
+        return attrs
+
+
+def validate_config_variables(variables_root: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    """
+    校验配置变量
+    :param variables_root: 配置变量根节点
+    :return: 返回通过校验的配置变量
+    """
+
+    def _validate_node(_node: Dict[str, Any]) -> Dict[str, Any]:
+        _node_serializer = VariableNodeSerializer(data=_node)
+        _node_serializer.is_valid(raise_exception=True)
+        return _node_serializer.validated_data
+
+    if not variables_root:
+        return variables_root
+
+    variables_root["depth"] = 0
+    variables_root["title"] = variables_root.get("title", "variables")
+
+    stack = [variables_root]
+    # 定义一个通过校验的配置根节点及栈结构，同步 stack 进行遍历写入
+    validated_variables_root = {}
+    validated_stack = [validated_variables_root]
+
+    # 空间换时间，迭代模拟递归
+    while stack:
+        # 校验节点
+        node = _validate_node(stack.pop())
+        # depth 仅辅助校验，最终数据不需要该值，弹出并记录当前的深度
+        depth = node.pop("depth") + 1
+        # 与 stack 保持相同的遍历顺序，保证构建变量树与给定的一致
+        validated_node = validated_stack.pop()
+        validated_node.update(node)
+
+        if node["type"] == VariableType.ARRAY.value:
+            node["items"]["depth"] = depth
+            stack.append(node["items"])
+            # 初始化 items 节点，并将初始化节点添加到 validated_stack
+            validated_node["items"] = {}
+            validated_stack.append(validated_node["items"])
+        elif node["type"] == VariableType.OBJECT.value:
+            # 初始化 properties
+            validated_node["properties"] = {}
+            for title, property_node in node["properties"].items():
+                property_node["title"] = title
+                property_node["depth"] = depth
+                stack.append(property_node)
+                # 初始化 properties 子节点
+                validated_node["properties"][title] = {}
+                validated_stack.append(validated_node["properties"][title])
+    return validated_variables_root
 
 
 def list_package_infos(file_path: str) -> List[Dict[str, Any]]:
@@ -311,12 +461,22 @@ def parse_package(
             pkg_parse_info["message"] = _("找不到需要导入的配置模板文件 -> {source_path}").format(source_path=source_path)
             return pkg_parse_info
 
+        config_template_variables: Optional[Dict[str, Any]] = None
+        try:
+            config_template_variables = validate_config_variables(config_template.get("variables"))
+        except ValidationError as err:
+            pkg_parse_info["result"] = False
+            pkg_parse_info["message"] = _("配置模板变量「{cfg_tmpl_name} -> variables」校验失败：{err_msg}").format(
+                cfg_tmpl_name=config_template["name"], err_msg=err
+            )
+
         pkg_parse_info["config_templates"].append(
             {
                 "name": config_template["name"],
                 "is_main": config_template.get("is_main_config", False),
                 "source_path": source_path,
                 "file_path": config_template["file_path"],
+                "variables": config_template_variables,
                 "format": config_template["format"],
                 # 解析版本号转为字符串，防止x.x情况被解析为浮点型，同时便于后续写入及比较
                 "version": str(config_template["version"]),
@@ -484,24 +644,27 @@ def create_pkg_record(
             template_file_path = os.path.join(pkg_absolute_path, config_template_info["source_path"])
 
             with open(template_file_path) as template_fs:
-                config_template_obj, __ = models.PluginConfigTemplate.objects.update_or_create(
-                    plugin_name=pkg_record.project,
-                    plugin_version=config_template_info["plugin_version"],
-                    name=config_template_info["name"],
-                    version=config_template_info["version"],
-                    is_main=config_template_info["is_main"],
-                    cpu_arch=cpu_arch,
-                    os=package_os,
-                    defaults=dict(
-                        format=config_template_info["format"],
-                        file_path=config_template_info["file_path"],
-                        content=template_fs.read(),
-                        is_release_version=is_release,
-                        creator="system",
-                        create_time=timezone.now(),
-                        source_app_code="bk_nodeman",
-                    ),
-                )
+                config_template_content = template_fs.read()
+
+            config_template_obj, __ = models.PluginConfigTemplate.objects.update_or_create(
+                plugin_name=pkg_record.project,
+                plugin_version=config_template_info["plugin_version"],
+                name=config_template_info["name"],
+                version=config_template_info["version"],
+                is_main=config_template_info["is_main"],
+                cpu_arch=cpu_arch,
+                os=package_os,
+                defaults=dict(
+                    format=config_template_info["format"],
+                    file_path=config_template_info["file_path"],
+                    content=config_template_content,
+                    variables=config_template_info.get("variables"),
+                    is_release_version=is_release,
+                    creator="system",
+                    create_time=timezone.now(),
+                    source_app_code="bk_nodeman",
+                ),
+            )
 
             logger.info(
                 "template -> {name} template_version -> {template_version} is create for plugin -> {project} "

@@ -47,28 +47,28 @@ class PluginStep(Step):
         super(PluginStep, self).__init__(subscription_step)
 
         # 配置数据校验
-        policy_step_adapter = adapter.PolicyStepAdapter(subscription_step)
+        self.policy_step_adapter = adapter.PolicyStepAdapter(subscription_step)
 
-        validated_params = policy_step_adapter.params
+        validated_params = self.policy_step_adapter.params
 
         # 获取插件配置模板信息
 
         # TODO 待修改，此处port_range需要os_cpu_arch
         self.port_range: Optional[str] = validated_params.get("port_range")
 
-        self.check_and_skip: bool = policy_step_adapter.config["check_and_skip"]
-        self.is_version_sensitive: bool = policy_step_adapter.config["is_version_sensitive"]
+        self.check_and_skip: bool = self.policy_step_adapter.config["check_and_skip"]
+        self.is_version_sensitive: bool = self.policy_step_adapter.config["is_version_sensitive"]
 
         # 更新插件包时的可选项  -- TODO
         self.keep_config: str = ""
         self.no_restart: str = ""
 
-        self.plugin_name: str = policy_step_adapter.plugin_name
-        self.plugin_desc: models.GsePluginDesc = policy_step_adapter.plugin_desc
-        self.os_key_pkg_map: Dict[str, models.Packages] = policy_step_adapter.os_key_pkg_map
+        self.plugin_name: str = self.policy_step_adapter.plugin_name
+        self.plugin_desc: models.GsePluginDesc = self.policy_step_adapter.plugin_desc
+        self.os_key_pkg_map: Dict[str, models.Packages] = self.policy_step_adapter.os_key_pkg_map
         self.config_tmpl_gby_os_key: Dict[
             str, List[models.PluginConfigTemplate]
-        ] = policy_step_adapter.config_tmpl_obj_gby_os_key
+        ] = self.policy_step_adapter.config_tmpl_obj_gby_os_key
 
         self.target_hosts: List[Dict[str, Any]] = subscription_step.subscription.target_hosts
 
@@ -256,7 +256,12 @@ class PluginStep(Step):
                     raise ApIDNotExistsError()
                 agent_config = ap.agent_config[target_host.os_type.lower()]
                 context = tools.get_all_subscription_steps_context(
-                    subscription_step, instance_info, target_host, process_status["name"], agent_config
+                    subscription_step,
+                    instance_info,
+                    target_host,
+                    process_status["name"],
+                    agent_config,
+                    self.policy_step_adapter,
                 )
 
                 rendered_configs = tools.render_config_files_by_config_templates(

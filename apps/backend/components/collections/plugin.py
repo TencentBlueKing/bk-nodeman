@@ -954,7 +954,12 @@ class RenderAndPushConfigService(PluginBaseService, JobV3BaseService):
             agent_config = self.get_agent_config_by_process_status(process_status, common_data)
             # 获取订阅的上下文变量
             context = get_all_subscription_steps_context(
-                subscription_step, subscription_instance.instance_info, target_host, process_status.name, agent_config
+                subscription_step,
+                subscription_instance.instance_info,
+                target_host,
+                process_status.name,
+                agent_config,
+                policy_step_adapter,
             )
 
             # 根据配置模板和上下文变量渲染配置文件
