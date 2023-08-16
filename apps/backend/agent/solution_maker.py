@@ -37,12 +37,16 @@ class ExecutionSolutionStepContent:
         name: str,
         text: str,
         description: str,
+        child_dir: str = None,
+        always_download: bool = False,
         show_description: bool = True,
     ):
         self.name = name
         self.text = text
         self.description = description
+        self.child_dir = child_dir
         self.show_description = show_description
+        self.always_download = always_download
 
 
 class ExecutionSolutionStep:
@@ -646,24 +650,36 @@ class BatchExecutionSolutionMaker(BaseExecutionSolutionMaker):
             ],
         )
 
-        # 3. 执行安装命令
-        download_cmd: str = (
-            f"{self.dest_dir}curl.exe {self.get_agent_tools_url(self.script_file_name)} "
-            f"-o {self.dest_dir}{self.script_file_name} -sSfg"
+        dependencies_step.contents.append(
+            ExecutionSolutionStepContent(
+                name="setup_agent.bat",
+                text=f"{self.get_agent_tools_url(self.script_file_name)}",
+                description="Install Scripts",
+                child_dir=self.agent_setup_info.agent_tools_relative_dir,
+                # 在云区域场景下需要实时更新
+                always_download=True,
+                show_description=False,
+            )
         )
-        download_cmd = self.adjust_cmd_proxy_config(download_cmd)
+
+        # 3. 执行安装命令
+        # download_cmd: str = (
+        #     f"{self.dest_dir}curl.exe {self.get_agent_tools_url(self.script_file_name)} "
+        #     f"-o {self.dest_dir}{self.script_file_name} -sSfg"
+        # )
+        # download_cmd = self.adjust_cmd_proxy_config(download_cmd)
         run_cmd: str = f"{self.dest_dir}{self.script_file_name} {' '.join(self.get_run_cmd_base_params())}"
 
         run_cmds_step: ExecutionSolutionStep = ExecutionSolutionStep(
             step_type=constants.CommonExecutionSolutionStepType.COMMANDS.value,
             description=str(_("执行{setup_type_alias}命令").format(setup_type_alias=self.get_setup_type_alias())),
             contents=[
-                ExecutionSolutionStepContent(
-                    name="download_cmd",
-                    text=download_cmd,
-                    description=str(_("下载{setup_type_alias}脚本").format(setup_type_alias=self.get_setup_type_alias())),
-                    show_description=False,
-                ),
+                # ExecutionSolutionStepContent(
+                #     name="download_cmd",
+                #     text=download_cmd,
+                #     description=str(_("下载{setup_type_alias}脚本").format(setup_type_alias=self.get_setup_type_alias())),
+                #     show_description=False,
+                # ),
                 ExecutionSolutionStepContent(
                     name="run_cmd",
                     text=run_cmd,
