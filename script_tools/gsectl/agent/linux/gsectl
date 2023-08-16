@@ -817,33 +817,33 @@ fi
 
 if [ $auto_type == "systemd" ]; then
       case $action in
-          start) start_by_systemd ;;
-          stop) stop_by_systemd ;;
-          restart) restart_by_systemd;;
-          status) status_by_systemd ;;
-          reload) reload_by_systemd;;
-          healthz) healthz_by_systemd;;
+          start) start_by_systemd 2>&1 | tee /tmp/nm_"${auto_type}"_"${action}".log ;;
+          stop) stop_by_systemd 2>&1 | tee /tmp/nm_"${auto_type}"_"${action}".log ;;
+          restart) restart_by_systemd 2>&1 | tee /tmp/nm_"${auto_type}"_"${action}".log ;;
+          status) status_by_systemd 2>&1 | tee /tmp/nm_"${auto_type}"_"${action}".log ;;
+          reload) reload_by_systemd 2>&1 | tee /tmp/nm_"${auto_type}"_"${action}".log ;;
+          healthz) healthz_by_systemd 2>&1 | tee /tmp/nm_"${auto_type}"_"${action}".log ;;
           -h|*) usage ; exit 255 ;;
      esac
 elif [ $auto_type == "crontab" ]; then
       case $action in
-          start) start_by_crontab ;;
-          stop) stop_by_crontab ;;
-          restart) restart_by_crontab ;;
-          status) status_by_crontab ;;
-          reload) reload_by_crontab;;
-          healthz) healthz_by_crontab;;
-          watch) watch_by_crontab;;
+          start) start_by_crontab 2>&1 | tee /tmp/nm_"${auto_type}"_"${action}".log ;;
+          stop) stop_by_crontab 2>&1 | tee /tmp/nm_"${auto_type}"_"${action}".log ;;
+          restart) restart_by_crontab 2>&1 | tee /tmp/nm_"${auto_type}"_"${action}".log ;;
+          status) status_by_crontab 2>&1 | tee /tmp/nm_"${auto_type}"_"${action}".log ;;
+          reload) reload_by_crontab 2>&1 | tee /tmp/nm_"${auto_type}"_"${action}".log ;;
+          healthz) healthz_by_crontab 2>&1 | tee /tmp/nm_"${auto_type}"_"${action}".log ;;
+          watch) watch_by_crontab 2>&1 | tee /tmp/nm_"${auto_type}"_"${action}".log ;;
           -h|*) usage ; exit 255 ;;
       esac
 elif [ $auto_type == "rclocal" ]; then
     case $action in
-        start) start_by_rclocal ;;
-        stop) stop_by_rclocal ;;
-        restart) restart_by_rclocal ;;
-        status) status_by_rclocal ;;
-        reload) reload_by_rclocal;;
-        healthz) healthz_by_rclocal;;
+        start) start_by_rclocal 2>&1 | tee /tmp/nm_"${auto_type}"_"${action}".log ;;
+        stop) stop_by_rclocal 2>&1 | tee /tmp/nm_"${auto_type}"_"${action}".log ;;
+        restart) restart_by_rclocal 2>&1 | tee /tmp/nm_"${auto_type}"_"${action}".log ;;
+        status) status_by_rclocal 2>&1 | tee /tmp/nm_"${auto_type}"_"${action}".log ;;
+        reload) reload_by_rclocal 2>&1 | tee /tmp/nm_"${auto_type}"_"${action}".log ;;
+        healthz) healthz_by_rclocal 2>&1 | tee /tmp/nm_"${auto_type}"_"${action}".log ;;
         -h|*) usage ; exit 255 ;;
     esac
 fi
