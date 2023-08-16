@@ -109,7 +109,12 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
             run_commands: List[str] = []
             for solution_step in execution_solution.steps[1:]:
                 if solution_step.type == constants.CommonExecutionSolutionStepType.DEPENDENCIES.value:
-                    dependencies.extend([content.name for content in solution_step.contents])
+                    dependencies.extend(
+                        [
+                            f"{content.child_dir}/{content.name}" if content.child_dir else content.name
+                            for content in solution_step.contents
+                        ]
+                    )
                 else:
                     run_commands.extend([content.text for content in solution_step.contents])
 

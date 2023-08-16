@@ -357,13 +357,16 @@ class InstallWindowsTestCase(InstallBaseTestCase):
             run_cmd_param_extract={"token": r"(.*) -c (.*?) -s"},
         )
 
-        self.assertEqual(constants.AgentWindowsDependencies.list_member_values(), solution_parse_result["dependencies"])
+        self.assertEqual(
+            constants.AgentWindowsDependencies.list_member_values() + ["setup_agent.bat"],
+            solution_parse_result["dependencies"],
+        )
         self.assertEqual(
             solution_parse_result["cmds"],
             [
                 f"mkdir {installation_tool.dest_dir}",
-                f"{installation_tool.dest_dir}curl.exe http://127.0.0.1/download/setup_agent.bat"
-                f" -o {installation_tool.dest_dir}setup_agent.bat -sSfg",
+                # f"{installation_tool.dest_dir}curl.exe http://127.0.0.1/download/setup_agent.bat"
+                # f" -o {installation_tool.dest_dir}setup_agent.bat -sSfg",
                 f"{installation_tool.dest_dir}setup_agent.bat"
                 f" -O 48668 -E 58925 -A 58625 -V 58930 -B 10020 -S 60020 -Z 60030 -K 10030"
                 f' -e "127.0.0.1" -a "127.0.0.1" -k "127.0.0.1"'
@@ -381,6 +384,57 @@ class InstallWindowsTestCase(InstallBaseTestCase):
 
         mock.patch("apps.backend.components.collections.common.remote.conns.AsyncsshConn", AsyncMockErrorConn).start()
         super().start_patch()
+
+
+class InstallAgent2WindowsTestCase(InstallWindowsTestCase):
+    def adjust_db(self):
+        sub_step_obj: models.SubscriptionStep = self.obj_factory.sub_step_objs[0]
+        sub_step_obj.config.update({"name": "gse_agent", "version": "2.0.0"})
+        sub_step_obj.save(update_fields=["config"])
+
+    def structure_common_inputs(self):
+        inputs = super().structure_common_inputs()
+        inputs["meta"] = {"GSE_VERSION": GseVersion.V2.value}
+        return inputs
+
+    def test_batch_solution(self):
+        host = models.Host.objects.get(bk_host_id=self.obj_factory.bk_host_ids[0])
+        agent_step_adapter: AgentStepAdapter = AgentStepAdapter(
+            self.obj_factory.sub_step_objs[0],
+            gse_version=GseVersion.V2.value,
+        )
+        installation_tool = gen_commands(
+            agent_step_adapter.get_setup_info(),
+            host,
+            mock_data_utils.JOB_TASK_PIPELINE_ID,
+            is_uninstall=False,
+            sub_inst_id=0,
+        )
+        solution_parse_result: Dict[str, Any] = self.execution_solution_parser(
+            installation_tool=installation_tool,
+            solution_type=constants.CommonExecutionSolutionType.BATCH.value,
+            run_cmd_param_extract={"token": r"(.*) -c (.*?) -s"},
+        )
+
+        self.assertEqual(
+            constants.AgentWindowsDependencies.list_member_values() + ["setup_agent.bat"],
+            solution_parse_result["dependencies"],
+        )
+        self.assertEqual(
+            solution_parse_result["cmds"],
+            [
+                f"mkdir {installation_tool.dest_dir}",
+                # f"{installation_tool.dest_dir}curl.exe http://127.0.0.1/download/setup_agent.bat"
+                # f" -o {installation_tool.dest_dir}setup_agent.bat -sSfg",
+                f"{installation_tool.dest_dir}setup_agent.bat"
+                f" -O 48668 -E 58925 -A 58625 -V 58930 -B 10020 -S 60020 -Z 60030 -K 10030"
+                f' -e "127.0.0.1" -a "127.0.0.1" -k "127.0.0.1"'
+                f" -l http://127.0.0.1/download -r http://127.0.0.1/backend"
+                f" -i 0 -I {host.inner_ip} -T C:\\tmp\\ -p c:\\gse"
+                f" -c {solution_parse_result['params']['token']} -s {mock_data_utils.JOB_TASK_PIPELINE_ID}"
+                f" -N SERVER -n gse_agent -t 2.0.0",
+            ],
+        )
 
 
 class InstallLinuxPagentTestCase(InstallBaseTestCase):
@@ -531,14 +585,17 @@ class InstallWindowsPagentTestCase(InstallLinuxPagentTestCase):
             run_cmd_param_extract={"token": r"(.*) -c (.*?) -s"},
         )
 
-        self.assertEqual(constants.AgentWindowsDependencies.list_member_values(), solution_parse_result["dependencies"])
+        self.assertEqual(
+            constants.AgentWindowsDependencies.list_member_values() + ["setup_agent.bat"],
+            solution_parse_result["dependencies"],
+        )
         self.assertEqual(
             solution_parse_result["cmds"],
             [
                 f"mkdir {installation_tool.dest_dir}",
-                f"{installation_tool.dest_dir}curl.exe http://127.0.0.1/download/setup_agent.bat"
-                f" -o {installation_tool.dest_dir}setup_agent.bat -sSfg"
-                f" -x http://1.1.1.1:{settings.BK_NODEMAN_NGINX_PROXY_PASS_PORT}",
+                # f"{installation_tool.dest_dir}curl.exe http://127.0.0.1/download/setup_agent.bat"
+                # f" -o {installation_tool.dest_dir}setup_agent.bat -sSfg"
+                # f" -x http://1.1.1.1:{settings.BK_NODEMAN_NGINX_PROXY_PASS_PORT}",
                 f"{installation_tool.dest_dir}setup_agent.bat"
                 f" -O 48668 -E 58925 -A 58625 -V 58930 -B 10020 -S 60020 -Z 60030 -K 10030"
                 f' -e "1.1.1.1" -a "1.1.1.1" -k "1.1.1.1"'
@@ -684,6 +741,12 @@ class LinuxAgent2InstallTestCase(InstallBaseTestCase):
     def adjust_db(self):
         sub_step_obj: models.SubscriptionStep = self.obj_factory.sub_step_objs[0]
         sub_step_obj.config.update({"name": "gse_agent", "version": "2.0.0"})
+        sub_step_obj.save()
+
+    def structure_common_inputs(self):
+        inputs = super().structure_common_inputs()
+        inputs["meta"] = {"GSE_VERSION": GseVersion.V2.value}
+        return inputs
 
     def test_shell_solution(self):
         host = models.Host.objects.get(bk_host_id=self.obj_factory.bk_host_ids[0])
@@ -756,14 +819,17 @@ class InstallWindowsWithScriptHooksTestCase(InstallWindowsTestCase):
             run_cmd_param_extract={"token": r"(.*) -c (.*?) -s"},
         )
 
-        self.assertEqual(constants.AgentWindowsDependencies.list_member_values(), solution_parse_result["dependencies"])
+        self.assertEqual(
+            constants.AgentWindowsDependencies.list_member_values() + ["setup_agent.bat"],
+            solution_parse_result["dependencies"],
+        )
         self.assertEqual(
             solution_parse_result["cmds"],
             [
                 f"mkdir {installation_tool.dest_dir}",
                 script_hook_objs[0].script_info_obj.oneline,
-                f"{installation_tool.dest_dir}curl.exe http://127.0.0.1/download/setup_agent.bat"
-                f" -o {installation_tool.dest_dir}setup_agent.bat -sSfg",
+                # f"{installation_tool.dest_dir}curl.exe http://127.0.0.1/download/setup_agent.bat"
+                # f" -o {installation_tool.dest_dir}setup_agent.bat -sSfg",
                 f"{installation_tool.dest_dir}setup_agent.bat"
                 f" -O 48668 -E 58925 -A 58625 -V 58930 -B 10020 -S 60020 -Z 60030 -K 10030"
                 f' -e "127.0.0.1" -a "127.0.0.1" -k "127.0.0.1"'
