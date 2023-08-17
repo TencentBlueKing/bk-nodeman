@@ -19,6 +19,7 @@ exclude =
     ./support-files/*
     ./upgrade/*
     ./iam/*
+    ./impacket/*
 
 max-line-length=120
 max-complexity=26
