@@ -39,9 +39,9 @@ class ComponentModel(models.Model):
     注册的组件
     """
 
-    code = models.CharField(_("组件编码"), max_length=255)
-    version = models.CharField(_("组件版本"), max_length=64, default=LEGACY_PLUGINS_VERSION)
-    name = models.CharField(_("组件名称"), max_length=255)
+    code = models.CharField(_("组件编码"), max_length=255, db_index=True)
+    version = models.CharField(_("组件版本"), max_length=64, default=LEGACY_PLUGINS_VERSION, db_index=True)
+    name = models.CharField(_("组件名称"), max_length=255, db_index=True)
     status = models.BooleanField(_("组件是否可用"), default=True)
 
     objects = ComponentManager()
@@ -50,6 +50,10 @@ class ComponentModel(models.Model):
         verbose_name = _("组件 Component")
         verbose_name_plural = _("组件 Component")
         ordering = ["-id"]
+
+        indexes = [
+            models.Index(fields=["code", "version"], name="idx_code_version"),
+        ]
 
     def __unicode__(self):
         return self.name
