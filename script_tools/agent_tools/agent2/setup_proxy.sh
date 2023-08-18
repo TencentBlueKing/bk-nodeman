@@ -317,6 +317,30 @@ start_proxy () {
     done
 }
 
+registe_agent_with_excepte () {
+    local SLEEP_TIME=1 RETRY_COUNT=0
+
+    for i in {0..2}; do
+        local registe_result registe_code
+        if [ -f "${GSE_AGENT_CONFIG_PATH}" ]; then
+            registe_result=$($AGENT_SETUP_PATH/bin/gse_agent -f "${GSE_AGENT_CONFIG_PATH}" --register 2>&1)
+        else
+            registe_result=$($AGENT_SETUP_PATH/bin/gse_agent --register 2>&1)
+        fi
+        registe_code=$?
+        if [[ "${registe_code}" -eq 0 ]] && [[ ! "${registe_result}" =~ "overwrite" ]]; then
+            log report_agent_id DONE "$registe_result"
+            break
+        else
+            sleep "${SLEEP_TIME}"
+            RETRY_COUNT=$((RETRY_COUNT + 1))
+            if [[ "${RETRY_COUNT}" -ge 3 ]]; then
+                fail register_agent_id FAILED "register agent id failed, error: ${registe_result}"
+            fi
+        fi
+    done
+}
+
 register_agent_id () {
     if [ ! -f "$AGENT_SETUP_PATH/bin/gse_agent" ]; then
         fail register_agent_id FAILED "gse_agent file not exists in $AGENT_SETUP_PATH/bin"
@@ -328,17 +352,7 @@ register_agent_id () {
     fi
 
     log register_agent_id  - "trying to register agent id"
-    if [ -f "${GSE_AGENT_CONFIG_PATH}" ]; then
-        registe_agent_id=$($AGENT_SETUP_PATH/bin/gse_agent -f "${GSE_AGENT_CONFIG_PATH}" --register 2>&1)
-    else
-        registe_agent_id=$($AGENT_SETUP_PATH/bin/gse_agent --register 2>&1)
-    fi
-
-    if [[ $? -ne 0 ]]; then
-        fail register_agent_id FAILED "register agent id failed, error: ${registe_agent_id}"
-    else
-        log report_agent_id DONE "$registe_agent_id"
-    fi
+    registe_agent_with_excepte
 }
 
 unregister_agent_id () {
