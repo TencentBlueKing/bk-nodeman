@@ -691,6 +691,39 @@ check_target_clean () {
     fi
 }
 
+install_depandense () {
+    depandense_pkgs=( compat-openssl10 )
+    _yum=$(command -v yum 2>/dev/null)
+    _apt=$(command -v apt 2>/dev/null)
+    _dnf=$(command -v dnf 2>/dev/null)
+
+
+    if [ -f "${_yum}" ]; then
+        _rpm=$(command -v rpm 2>/dev/null)
+        if [ -f "${_rpm}" ]; then
+            if ! "${_rpm}" -q "${depandense_pkgs[@]}" >/dev/null 2>&1; then
+                "${_yum}" -y -q install "${depandense_pkgs[@]}"
+            else
+                log check_env - "Depandense "${depandense_pkgs[@]}" already installed."
+                return 0
+            fi
+        else
+            "${_yum}" -y -q install "${depandense_pkgs[@]}"
+        fi
+    elif [ -f "${_apt}" ]; then
+        apt-get -y install "${depandense_pkgs[@]}"
+    elif [ -f "${_dnf}" ]; then
+        dnf -y -q install "${depandense_pkgs[@]}"
+    fi
+
+    if [ $? -eq 0 ]; then
+        log check_env - "Install depandense "${depandense_pkgs[@]}" successful."
+    else
+        warn check_env - "Install depandense "${depandense_pkgs[@]}" failed, but skip it"
+    fi
+}
+
+
 _help () {
 
     echo "${0%*/} -i CLOUD_ID -l URL -i CLOUD_ID -I LAN_IP [OPTIONS]"
@@ -738,6 +771,7 @@ check_env () {
     check_pkgtool
     check_download_url
     check_target_clean
+    install_depandense
 
     log check_env DONE "checking prerequisite done, result: SUCCESS"
 }
