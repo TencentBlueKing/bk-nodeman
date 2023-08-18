@@ -14,6 +14,7 @@ import random
 import re
 import typing
 from dataclasses import asdict, dataclass, field
+from typing import Any, Dict
 
 from django.conf import settings
 
@@ -221,7 +222,7 @@ class ConfigContextHelper:
         for context in contexts:
             self.context_dict.update(asdict(context, dict_factory=context.dict_factory))
 
-    def render(self, content: str) -> str:
+    def render(self, content: str, template_env: Dict[str, Any] = {}) -> str:
         """
         渲染并返回配置
         :param content: 配置模板内容
@@ -232,5 +233,8 @@ class ConfigContextHelper:
             _env_name: str = str(_matched.group())
             return "{{ " + _env_name[2:-2] + " }}"
 
+        # 先加载配置模板默认变量配置
+        context_dict = template_env
+        context_dict.update(self.context_dict)
         content = re.sub(r"(__[0-9A-Z_]+__)", _double, content)
-        return nested_render_data(content, self.context_dict)
+        return nested_render_data(content, context_dict)

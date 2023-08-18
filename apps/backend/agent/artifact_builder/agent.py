@@ -22,6 +22,8 @@ logger = logging.getLogger("app")
 
 class AgentArtifactBuilder(base.BaseArtifactBuilder):
 
+    ENV_FILES = constants.GsePackageEnv.AGENT.value
+    TEMPLATE_PATTERN = constants.GsePackageTemplatePattern.AGENT.value
     NAME = constants.GsePackageCode.AGENT.value
     PKG_DIR = constants.GsePackageDir.AGENT.value
     CERT_FILENAMES = [
@@ -39,5 +41,4 @@ class AgentArtifactBuilder(base.BaseArtifactBuilder):
         return extract_dir
 
     def _get_support_files_info(self, extract_dir: str) -> typing.Dict[str, typing.Any]:
-        # Agent 包管理实现
-        pass
+        return super()._get_support_files_info(extract_dir=extract_dir)

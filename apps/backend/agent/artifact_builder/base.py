@@ -20,8 +20,11 @@ from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
 
 from apps.backend import exceptions
+from apps.backend.agent.config_parser import GseConfigParser
 from apps.core.files import core_files_constants
 from apps.core.files.storage import get_storage
+from apps.core.tag.constants import AGENT_NAME_TARGET_ID_MAP, TargetType
+from apps.core.tag.handlers import TagHandler
 from apps.node_man import constants, models
 from apps.utils import cache, files
 
@@ -44,12 +47,23 @@ class BaseArtifactBuilder(abc.ABC):
     # 制品存储的根路径
     BASE_STORAGE_DIR: str = "agent"
 
+    VERSION_FILE_NAME: str = "VERSION"
+
+    SUPPORT_FILES_DIR: str = "support-files"
+    ENV_FILES_DIR: str = os.path.join(SUPPORT_FILES_DIR, "env")
+    TEMPLATE_FILES_DIR: str = os.path.join(SUPPORT_FILES_DIR, "templates")
+    TEMPLATE_PATTERN: str = None
+
+    ENV_FILES: typing.List[str] = []
+    TEMPLATE_FILES: typing.List[str] = []
+
     def __init__(
         self,
         initial_artifact_path: str,
         cert_path: typing.Optional[str] = None,
         download_path: typing.Optional[str] = None,
         overwrite_version: typing.Optional[str] = None,
+        enable_agent_pkg_manage: bool = False,
     ):
         """
         :param initial_artifact_path: 原始制品所在路径
@@ -68,6 +82,10 @@ class BaseArtifactBuilder(abc.ABC):
         self.applied_tmp_dirs = set()
         # 文件源
         self.storage = get_storage(file_overwrite=True)
+        self.enable_agent_pkg_manage = enable_agent_pkg_manage or models.GlobalSettings.get_config(
+            key=models.GlobalSettings.KeyEnum.ENABLE_AGENT_PKG_MANAGE.value,
+            default=False,
+        )
 
     @staticmethod
     def download_file(file_path: str, target_path: str):
@@ -145,14 +163,38 @@ class BaseArtifactBuilder(abc.ABC):
         """
         raise NotImplementedError
 
-    @abc.abstractmethod
     def _get_support_files_info(self, extract_dir: str) -> typing.Dict[str, typing.Any]:
         """
         获取部署依赖文件合集：配置 / 环境变量等
         :param extract_dir: 解压目录
         :return:
         """
-        raise NotImplementedError
+        env_file_infos: typing.List[typing.Dict] = []
+        template_file_infos: typing.List[typing.Dict] = []
+        # 获取env信息
+        for env_file in os.listdir(os.path.join(extract_dir, self.ENV_FILES_DIR)):
+            if env_file not in self.ENV_FILES:
+                continue
+            env_file_infos.append(
+                {
+                    "file_name": env_file,
+                    "file_absolute_path": os.path.join(extract_dir, self.ENV_FILES_DIR, env_file),
+                }
+            )
+
+        # 获取配置文件信息
+        for template in os.listdir(os.path.join(extract_dir, self.TEMPLATE_FILES_DIR)):
+            template_match: str = self.TEMPLATE_PATTERN.search(template)
+
+            if template_match:
+                template_file_infos.append(
+                    {
+                        "file_name": template_match.group(),
+                        "file_absolute_path": os.path.join(extract_dir, self.TEMPLATE_FILES_DIR, template),
+                    }
+                )
+
+        return {"env": env_file_infos, "templates": template_file_infos}
 
     def _inject_dependencies(self, extract_dir: str):
         """
@@ -240,7 +282,9 @@ class BaseArtifactBuilder(abc.ABC):
         :return:
         """
         package_dir_infos: typing.List[typing.Dict] = []
+
         for pkg_dir_name in os.listdir(extract_dir):
+
             # 通过正则提取出插件（plugin）目录名中的插件信息
             re_match = constants.AGENT_PATH_RE.match(pkg_dir_name)
             if re_match is None:
@@ -346,8 +390,8 @@ class BaseArtifactBuilder(abc.ABC):
         :param extract_dir: 解压目录
         :return:
         """
-        # 优先使用覆盖版本号
-        if self.overwrite_version:
+        # TODO： 适配未开启Agent包管理，优先使用覆盖版本号
+        if not self.enable_agent_pkg_manage and self.overwrite_version:
             return self.overwrite_version
 
         version_file_path: str = os.path.join(extract_dir, "VERSION")
@@ -385,7 +429,71 @@ class BaseArtifactBuilder(abc.ABC):
         """
         pass
 
-    def update_or_create_package_records(self, package_infos: typing.List[typing.Dict]):
+    def update_or_create_tag(self, artifact_meta_info: typing.Dict[str, typing.Any]):
+        """
+        创建或更新标签记录，待 Agent 包管理完善
+        :param artifact_meta_info:
+        :return:
+        """
+        if self.overwrite_version:
+            TagHandler.publish_tag_version(
+                name=self.overwrite_version,
+                target_type=TargetType.AGENT.value,
+                target_id=AGENT_NAME_TARGET_ID_MAP[self.NAME],
+                target_version=artifact_meta_info["version"],
+            )
+
+    def parset_env(self, content) -> typing.Dict[str, typing.Any]:
+        config_env = GseConfigParser()
+        config_env.read_string(f"[Default]\n{content}")
+        return dict(config_env.items("Default"))
+
+    def update_or_create_support_files(self, package_infos: typing.List[typing.Dict]):
+        """
+        创建或更新support_files记录
+        :param package_infos:
+        :return:
+        """
+        for package_info in package_infos:
+            support_files = package_info["artifact_meta_info"]["support_files_info"]
+            version = package_info["artifact_meta_info"]["version"]
+            package = package_info["package_dir_info"]
+
+            for env_file in support_files["env"]:
+                with open(env_file["file_absolute_path"], "r") as f:
+                    env_str = f.read()
+
+                logger.info(
+                    f"update_or_create_support_files: env_flie->{env_file} version->{version} raw_env->{env_str}"
+                )
+                env_value = self.parset_env(env_str)
+                logger.info(
+                    f"update_or_create_support_files: env_flie->{env_file} version->{version} env_value->{env_value}"
+                )
+                models.GseConfigEnv.objects.update_or_create(
+                    defaults={"env_value": env_value},
+                    version=version,
+                    os=package["os"],
+                    cpu_arch=package["cpu_arch"],
+                    agent_name=self.NAME,
+                )
+
+            for template in support_files["templates"]:
+                with open(template["file_absolute_path"], "r") as f:
+                    content = f.read()
+                logger.info(
+                    f"update_or_create_support_files: template->{template} version->{version} content->{content}"
+                )
+                models.GseConfigTemplate.objects.update_or_create(
+                    defaults={"content": content},
+                    name=template["file_name"],
+                    version=version,
+                    os=package["os"],
+                    cpu_arch=package["cpu_arch"],
+                    agent_name=self.NAME,
+                )
+
+    def update_or_create_package_records(self, v):
         """
         创建或更新安装包记录，待 Agent 包管理完善
         :param package_infos:
@@ -457,8 +565,11 @@ class BaseArtifactBuilder(abc.ABC):
             )
 
         artifact_meta_info["operator"] = operator
-        self.update_or_create_record(artifact_meta_info)
-        self.update_or_create_package_records(package_infos)
+        if self.enable_agent_pkg_manage:
+            self.update_or_create_support_files(package_infos)
+            self.update_or_create_tag(artifact_meta_info)
+            self.update_or_create_record(artifact_meta_info)
+            self.update_or_create_package_records(package_infos)
 
     def __enter__(self) -> "BaseArtifactBuilder":
         return self

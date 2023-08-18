@@ -29,6 +29,13 @@ class Command(BaseCommand):
         parser.add_argument("-c", "--cert_path", help=f"证书目录，默认为 {settings.GSE_CERT_PATH}", type=str)
         parser.add_argument("-d", "--download_path", help=f"归档路径，默认为 {settings.DOWNLOAD_PATH}", type=str)
         parser.add_argument("-o", "--overwrite_version", help="版本号，用于覆盖原始制品内的版本信息", type=str)
+        parser.add_argument(
+            "-e",
+            "--enable_agent_pkg_manage",
+            help="是否开启Agent包管理模式, 开启则创建Tag, Template, Evn记录",
+            action="store_true",
+            default=False,
+        )
 
     def handle(self, *args, **options):
         """
@@ -78,5 +85,6 @@ class Command(BaseCommand):
                     cert_path=options.get("cert_path"),
                     download_path=options.get("download_path"),
                     overwrite_version=options.get("overwrite_version"),
+                    enable_agent_pkg_manage=options.get("enable_agent_pkg_manage"),
                 ) as builder:
                     builder.make()

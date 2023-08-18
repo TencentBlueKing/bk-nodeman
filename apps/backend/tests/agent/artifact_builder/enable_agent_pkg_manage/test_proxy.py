@@ -8,27 +8,16 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-
-import logging
-import typing
-
-from .. import constants, exceptions
-from .agent import AgentTargetHelper
-from .base import BaseTargetHelper
-from .plugin import PluginTargetHelper
-
-logger = logging.getLogger("app")
+from .. import test_proxy
+from . import test_agent
 
 
-TARGET_TYPE__HELPER_MAP: typing.Dict[typing.Any, typing.Type[BaseTargetHelper]] = {
-    constants.TargetType.PLUGIN.value: PluginTargetHelper,
-    constants.TargetType.AGENT.value: AgentTargetHelper,
-}
+class FileSystemTestCase(
+    test_proxy.FileSystemTestCase,
+    test_agent.FileSystemTestCase,
+):
+    pass
 
 
-def get_target_helper(target_type: str) -> typing.Type[BaseTargetHelper]:
-    try:
-        return TARGET_TYPE__HELPER_MAP[target_type]
-    except KeyError:
-        logger.error(f"target helper not exist: target_type -> {target_type}")
-        raise exceptions.TargetHelperNotExistError({"target_type": target_type})
+class BkRepoTestCase(FileSystemTestCase):
+    pass
