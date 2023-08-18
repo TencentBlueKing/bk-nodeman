@@ -88,3 +88,9 @@ class NotSemanticVersionError(BackendBaseException):
 class PkgMetaInfoValidationError(BackendBaseException):
     MESSAGE = _("安装包元数据校验失败")
     ERROR_CODE = 14
+
+
+class AgentConfigTemplateEnvNotExistError(BackendBaseException):
+    MESSAGE = _("配置模板Env不存在")
+    MESSAGE_TPL = _("配置模板Env不存在[{name}-{version}-{os_type}-{cpu_arch}]不存在")
+    ERROR_CODE = 15

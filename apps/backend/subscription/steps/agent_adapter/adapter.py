@@ -18,14 +18,18 @@ from rest_framework import serializers
 
 from apps.backend import exceptions
 from apps.backend.agent.tools import fetch_proxies
+from apps.core.tag.constants import AGENT_NAME_TARGET_ID_MAP, TargetType
+from apps.core.tag.targets import get_target_helper
 from apps.node_man import constants, models
 from apps.utils import cache
 from env.constants import GseVersion
 
-from . import base, config_templates, legacy
+from . import base, legacy
 from .config_context import context_helper
+from .handlers import GseConfigHandler, get_gse_config_handler_class
 
 logger = logging.getLogger("app")
+
 
 LEGACY = "legacy"
 
@@ -67,26 +71,6 @@ class AgentStepAdapter:
         """
         return self.validated_data(data=self.subscription_step.config, serializer=AgentStepConfigSerializer)
 
-    @property
-    @cache.class_member_cache()
-    def config_tmpl_obj_gby_os_key(self) -> typing.Dict[str, typing.List[base.AgentConfigTemplate]]:
-        """
-        获取按机型（os_type + cpu_arch）聚合的配置模板
-        :return:
-        """
-        agent_config_templates: typing.List[base.AgentConfigTemplate] = [
-            base.AgentConfigTemplate(name="gse_agent.conf", content=config_templates.GSE_AGENT_CONFIG_TMPL),
-            base.AgentConfigTemplate(name="gse_data_proxy.conf", content=config_templates.GSE_DATA_PROXY_CONFIG_TMPL),
-            base.AgentConfigTemplate(name="gse_file_proxy.conf", content=config_templates.GSE_FILE_PROXY_CONFIG_TEMPL),
-        ]
-        return {
-            # 向 Agent 包管理过渡：AgentConfigTemplate 后续替换为数据模型对象
-            self.get_os_key(constants.OsType.LINUX, constants.CpuType.x86): agent_config_templates,
-            self.get_os_key(constants.OsType.LINUX, constants.CpuType.x86_64): agent_config_templates,
-            self.get_os_key(constants.OsType.WINDOWS, constants.CpuType.x86): agent_config_templates,
-            self.get_os_key(constants.OsType.WINDOWS, constants.CpuType.x86_64): agent_config_templates,
-        }
-
     def get_main_config_filename(self) -> str:
         return ("gse_agent.conf", "agent.conf")[self.is_legacy]
 
@@ -99,24 +83,19 @@ class AgentStepAdapter:
         proxies: typing.List[models.Host],
         install_channel: typing.Tuple[typing.Optional[models.Host], typing.Dict[str, typing.List]],
     ) -> str:
-        config_tmpl_objs: typing.List[base.AgentConfigTemplate] = self.config_tmpl_obj_gby_os_key.get(
-            self.get_os_key(host.os_type, host.cpu_arch),
-            [
-                base.AgentConfigTemplate(name="gse_agent.conf", content=config_templates.GSE_AGENT_CONFIG_TMPL),
-                base.AgentConfigTemplate(
-                    name="gse_data_proxy.conf", content=config_templates.GSE_DATA_PROXY_CONFIG_TMPL
-                ),
-                base.AgentConfigTemplate(
-                    name="gse_file_proxy.conf", content=config_templates.GSE_FILE_PROXY_CONFIG_TEMPL
-                ),
-            ],
-        )
-        # 查找机型匹配的第一个配置
-        target_config_tmpl_obj: base.AgentConfigTemplate = next(
-            (config_tmpl_obj for config_tmpl_obj in config_tmpl_objs if config_tmpl_obj.name == filename), None
+        agent_setup_info: base.AgentSetupInfo = self.get_setup_info()
+
+        gse_config_handler: GseConfigHandler = get_gse_config_handler_class(node_type)(
+            os_type=host.os_type,
+            cpu_arch=host.cpu_arch,
+            target_version=agent_setup_info.version,
         )
 
-        if not target_config_tmpl_obj:
+        config_tmpl_obj: base.AgentConfigTemplate = gse_config_handler.get_template_by_config_name(
+            config_name=filename,
+        )
+
+        if not config_tmpl_obj:
             logger.error(
                 f"{self.log_prefix} agent config template not exist: name -> {self.config['name']}, "
                 f"filename -> {filename}, version -> {self.config['version']}, "
@@ -128,14 +107,14 @@ class AgentStepAdapter:
 
         # 渲染配置
         ch: context_helper.ConfigContextHelper = context_helper.ConfigContextHelper(
-            agent_setup_info=self.get_setup_info(),
+            agent_setup_info=agent_setup_info,
             host=host,
             node_type=node_type,
             ap=ap,
             proxies=proxies,
             install_channel=install_channel,
         )
-        return ch.render(target_config_tmpl_obj.content)
+        return ch.render(config_tmpl_obj.content, gse_config_handler.template_env)
 
     def get_config(
         self,
@@ -171,11 +150,24 @@ class AgentStepAdapter:
         获取 Agent 设置信息
         :return:
         """
+        # 如果版本号匹配到标签名称，取对应标签下的真实版本号
+        try:
+            target_version: str = get_target_helper(TargetType.AGENT.value).get_target_version(
+                target_id=AGENT_NAME_TARGET_ID_MAP[self.config.get("name")],
+                target_version=self.config.get("version"),
+            )
+        except KeyError:
+            logger.info(
+                f"get_setup_info: get target version failed. "
+                f"agent_name: {self.config.get('name')} version: {self.config.get('version')}"
+            )
+            target_version: str = self.config.get("version")
+
         return base.AgentSetupInfo(
             is_legacy=self.is_legacy,
             agent_tools_relative_dir=("agent_tools/agent2", "")[self.is_legacy],
             name=self.config.get("name"),
-            version=self.config.get("version"),
+            version=target_version,
         )
 
     @staticmethod

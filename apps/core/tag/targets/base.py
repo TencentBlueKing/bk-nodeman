@@ -16,6 +16,8 @@ import wrapt
 from django.db import transaction
 from django.db.models import Model
 
+from apps.core.tag.models import Tag
+from apps.node_man.models import GlobalSettings
 from apps.utils import cache
 
 from .. import constants, exceptions, models
@@ -136,6 +138,11 @@ class BaseTargetHelper(abc.ABC):
     target_version: str = None
 
     @classmethod
+    @cache.class_member_cache()
+    def enable_agent_pkg_manage(cls) -> bool:
+        return GlobalSettings.get_config(key=GlobalSettings.KeyEnum.ENABLE_AGENT_PKG_MANAGE, default=False)
+
+    @classmethod
     def get_target(cls, target_id: int):
         """
         获取目标对象
@@ -156,7 +163,9 @@ class BaseTargetHelper(abc.ABC):
         :return:
         """
         try:
-            return models.Tag.objects.get(target_id=target_id, type=cls.TARGET_TYPE, target_version=target_version)
+            return models.Tag.objects.get(
+                target_id=target_id, target_type=cls.TARGET_TYPE, target_version=target_version
+            )
         except models.Tag.DoesNotExist:
             raise exceptions.TagNotExistError({"target_id": target_id, "target_type": cls.TARGET_TYPE})
 
@@ -180,6 +189,20 @@ class BaseTargetHelper(abc.ABC):
         :return:
         """
         return models.Tag.objects.filter(target_id=target_id, to_top=True).first()
+
+    @classmethod
+    def get_target_version(cls, target_id: int, target_version: str) -> str:
+        if not cls.enable_agent_pkg_manage:
+            return target_version
+
+        tag_name__obj_map: typing.Dict[str, Tag] = cls.get_tag_name__obj_map(
+            target_id=target_id,
+        )
+        # 如果版本号匹配到标签名称，取对应标签下的真实版本号
+        if target_version in tag_name__obj_map:
+            target_version: str = tag_name__obj_map[target_version].target_version
+
+        return target_version
 
     def __str__(self):
         return f"[{self.__class__.__name__}({self.tag_name}|{self.target_id}|{self.target_version})]"

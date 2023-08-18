@@ -12,14 +12,25 @@ import os
 
 import mock
 from django.conf import settings
+from django.db.utils import IntegrityError
 
 from apps.backend.tests.agent import utils
 from apps.mock_data import utils as mock_data_utils
+from apps.node_man import models
 
 
 class FileSystemTestCase(utils.AgentBaseTestCase):
 
     OVERWRITE_VERSION = "stable"
+
+    @classmethod
+    def setUpClass(cls):
+        # 关闭Agent包管理
+        try:
+            models.GlobalSettings.set_config(models.GlobalSettings.KeyEnum.ENABLE_AGENT_PKG_MANAGE.value, False)
+        except IntegrityError:
+            models.GlobalSettings.update_config(models.GlobalSettings.KeyEnum.ENABLE_AGENT_PKG_MANAGE.value, False)
+        super().setUpClass()
 
     def pkg_checker(self, version_str: str):
         """

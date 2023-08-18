@@ -546,7 +546,7 @@ QUERY_HOST_SERVICE_TEMPLATE_LIMIT = 200
 VERSION_PATTERN = re.compile(r"[vV]?(\d+\.){1,5}\d+(-rc\d)?$")
 # 语义化版本正则，参考：https://semver.org/#is-there-a-suggested-regular-expression-regex-to-check-a-semver-string
 SEMANTIC_VERSION_PATTERN = re.compile(
-    r"^(?P<major>0|[1-9]\d*)\.(?P<minor>0|[1-9]\d*)\.(?P<patch>0|[1-9]\d*)"
+    r"^v?(?P<major>0|[1-9]\d*)\.(?P<minor>0|[1-9]\d*)\.(?P<patch>0|[1-9]\d*)"
     r"(?:-(?P<prerelease>(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?"
     r"(?:\+(?P<buildmetadata>[0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$"
 )
@@ -910,6 +910,27 @@ class GsePackageCode(EnhanceEnum):
     @classmethod
     def _get_member__alias_map(cls) -> Dict[Enum, str]:
         return {cls.PROXY: _("2.0 Proxy Agent 安装包代号"), cls.AGENT: _("2.0 Agent 安装包代号")}
+
+
+class GsePackageEnv(EnhanceEnum):
+    """安装包Env文件名称"""
+
+    PROXY = ["gse_proxy.env"]
+    AGENT = ["gse_agent.env"]
+
+
+class GsePackageTemplate(EnhanceEnum):
+    """安装包Template文件名称"""
+
+    PROXY = ["gse_data_proxy.conf", "gse_file_proxy.conf"]
+    AGENT = ["gse_agent.conf"]
+
+
+class GsePackageTemplatePattern(EnhanceEnum):
+    """安装包Template Pattern"""
+
+    PROXY = re.compile("|".join(GsePackageTemplate.PROXY.value))
+    AGENT = re.compile("|".join(GsePackageTemplate.AGENT.value))
 
 
 class GsePackageDir(EnhanceEnum):
