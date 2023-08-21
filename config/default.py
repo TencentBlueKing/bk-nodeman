@@ -39,7 +39,7 @@ BKAPP_IS_PAAS_DEPLOY = env.BKAPP_IS_PAAS_DEPLOY
 BKAPP_ENABLE_DHCP = env.BKAPP_ENABLE_DHCP
 BK_BACKEND_CONFIG = env.BK_BACKEND_CONFIG
 BKPAAS_MAJOR_VERSION = env.BKPAAS_MAJOR_VERSION
-BKAPP_CRYPTO_TYPE = env.BKAPP_CRYPTO_TYPE
+BKPAAS_BK_CRYPTO_TYPE = env.BKPAAS_BK_CRYPTO_TYPE
 
 
 # ===============================================================================
@@ -393,7 +393,7 @@ BKCRYPTO = {
 }
 
 # 加密
-if BKAPP_CRYPTO_TYPE == env.constants.BkCryptoType.SHANGMI.value:
+if BKPAAS_BK_CRYPTO_TYPE == env.constants.BkCryptoType.SHANGMI.value:
     BKCRYPTO.update(
         {
             "ASYMMETRIC_CIPHER_TYPE": bkcrypto_constants.AsymmetricCipherType.SM2.value,
