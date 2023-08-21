@@ -19,7 +19,7 @@ __all__ = [
     "BKAPP_ENABLE_DHCP",
     "BKAPP_IS_PAAS_DEPLOY",
     "BK_BACKEND_CONFIG",
-    "BKAPP_CRYPTO_TYPE",
+    "BKPAAS_BK_CRYPTO_TYPE",
     "LOG_TYPE",
     "LOG_LEVEL",
     "BK_LOG_DIR",
@@ -62,7 +62,9 @@ BKAPP_ENABLE_DHCP = get_type_env(key="BKAPP_ENABLE_DHCP", default=False, _type=b
 # 是否为后台配置
 BK_BACKEND_CONFIG = BK_BACKEND_CONFIG
 # 加密类型，默认值为 `CLASSIC`，可选项：`CLASSIC-国际密码算法`, `SHANGMI-国际商用算法`
-BKAPP_CRYPTO_TYPE = get_type_env(key="BKAPP_CRYPTO_TYPE", default=constants.BkCryptoType.CLASSIC.value, _type=str)
+BKPAAS_BK_CRYPTO_TYPE = get_type_env(
+    key="BKPAAS_BK_CRYPTO_TYPE", default=constants.BkCryptoType.CLASSIC.value, _type=str
+)
 
 # ===============================================================================
 # 日志
