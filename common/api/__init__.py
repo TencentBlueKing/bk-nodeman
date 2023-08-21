@@ -41,6 +41,8 @@ NodeApi = SimpleLazyObject(lambda: new_api_module("bk_node", "_BKNodeApi"))
 
 # ESB
 EsbApi = SimpleLazyObject(lambda: new_api_module("esb", "_ESBApi"))
+# YUNTI
+YunTiApi = SimpleLazyObject(lambda: new_api_module("yunti", "_YunTiApi"))
 
 __all__ = [
     "CCApi",
@@ -50,6 +52,7 @@ __all__ = [
     "SopsApi",
     "CmsiApi",
     "NodeApi",
+    "YunTiApi",
 ]
 
 

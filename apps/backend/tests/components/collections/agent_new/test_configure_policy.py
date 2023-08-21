@@ -26,6 +26,7 @@ from apps.node_man import models
 from apps.node_man.handlers.security_group import (
     SopsSecurityGroupFactory,
     TencentVpcSecurityGroupFactory,
+    YunTiSecurityGroupFactory,
 )
 from pipeline.component_framework.test import (
     ComponentTestCase,
@@ -180,6 +181,104 @@ class TencentVpcConfigurePolicyComponentBaseTest(ConfigurePolicyComponentBaseTes
         return [
             ComponentTestCase(
                 name="通过腾讯云配置策略",
+                inputs=self.common_inputs,
+                parent_data={},
+                execute_assertion=ExecuteAssertion(
+                    success=bool(self.common_inputs["subscription_instance_ids"]),
+                    outputs={
+                        "add_ip_output": {"ip_list": [ip, ip]},
+                        "polling_time": 0,
+                        "succeeded_subscription_instance_ids": self.common_inputs["subscription_instance_ids"],
+                    },
+                ),
+                schedule_assertion=[
+                    ScheduleAssertion(
+                        success=True,
+                        schedule_finished=True,
+                        outputs={
+                            "add_ip_output": {"ip_list": [ip, ip]},
+                            "polling_time": 0,
+                            "succeeded_subscription_instance_ids": self.common_inputs["subscription_instance_ids"],
+                        },
+                    ),
+                ],
+                execute_call_assertion=None,
+            ),
+        ]
+
+
+class MockYunTiClient(mock_data_utils.BaseMockClient):
+    """mock云梯客户端"""
+
+    MOCK_RETUREN_DATA = {
+        "get_security_group_details": {
+            "pilicies": {
+                "SecurityGroupPolicySet": {
+                    "Ingress": [
+                        {
+                            "Port": "ALL",
+                            "CidrBlock": "0.0.0.1",
+                            "Ipv6CidrBlock": "",
+                            "SecurityGroupId": "",
+                            "Action": "ACCEPT",
+                            "Protocol": "ALL",
+                            "PolicyDescription": "",
+                        }
+                    ],
+                    "Version": 1,
+                }
+            },
+            "SecurityGroupId": "test_sid",
+        },
+        "operate_security_group": {},
+    }
+
+    def __init__(self, *args, **kwargs):
+
+        self.get_security_group_details = self.generate_magic_mock(
+            mock_data_utils.MockReturn(
+                return_type=mock_data_utils.MockReturnType.RETURN_VALUE.value,
+                return_obj=self.MOCK_RETUREN_DATA["get_security_group_details"],
+            )
+        )
+        self.operate_security_group = self.generate_magic_mock(
+            mock_data_utils.MockReturn(
+                return_type=mock_data_utils.MockReturnType.RETURN_VALUE.value,
+                return_obj=self.MOCK_RETUREN_DATA["operate_security_group"],
+            )
+        )
+
+
+class YunTiConfigurePolicyComponentBaseTest(ConfigurePolicyComponentBaseTest):
+    YUNTI_MOCK_CLIENT_PATH = "apps.node_man.handlers.security_group.YunTiApi"
+
+    def setUp(self):
+        models.GlobalSettings.set_config(
+            models.GlobalSettings.KeyEnum.SECURITY_GROUP_TYPE.value,
+            YunTiSecurityGroupFactory.SECURITY_GROUP_TYPE,
+        )
+        models.GlobalSettings.set_config(
+            models.GlobalSettings.KeyEnum.YUNTI_POLICY_CONFIGS.value,
+            [
+                {
+                    "dept_id": 0,
+                    "region": "ap-test",
+                    "sid": "test_sid",
+                    "group_name": "test_group_name",
+                    "port": "ALL",
+                    "action": "ACCEPT",
+                    "protocol": "ALL",
+                }
+            ],
+        )
+        mock.patch(self.YUNTI_MOCK_CLIENT_PATH, MockYunTiClient()).start()
+        super().setUp()
+
+    def cases(self):
+        ip = self.obj_factory.host_objs[0].inner_ip
+        return [
+            ComponentTestCase(
+                name="通过云梯配置策略",
                 inputs=self.common_inputs,
                 parent_data={},
                 execute_assertion=ExecuteAssertion(

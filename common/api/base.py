@@ -163,7 +163,7 @@ class DataAPI(object):
             # 统一处理返回内容，根据平台既定规则，断定成功与否
             if raise_exception and not response.is_success():
                 raise ApiResultError(
-                    self.get_error_message(response.message),
+                    self.get_error_message(response.message or response.response),
                     code=response.code,
                     errors=response.errors,
                     data=response.data,
