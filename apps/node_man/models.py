@@ -136,6 +136,8 @@ class GlobalSettings(models.Model):
         CLEAN_SUBSCRIPTION_DATA_MAP = "CLEAN_SUBSCRIPTION_DATA_MAP"
         # 是否开启Agent包管理
         ENABLE_AGENT_PKG_MANAGE = "ENABLE_AGENT_PKG_MANAGE"
+        # 云梯策略相关配置
+        YUNTI_POLICY_CONFIGS = "YUNTI_POLICY_CONFIGS"
 
     key = models.CharField(_("键"), max_length=255, db_index=True, primary_key=True)
     v_json = JSONField(_("值"))
