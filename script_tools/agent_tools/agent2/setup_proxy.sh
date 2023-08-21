@@ -702,13 +702,13 @@ install_depandense () {
         _rpm=$(command -v rpm 2>/dev/null)
         if [ -f "${_rpm}" ]; then
             if ! "${_rpm}" -q "${depandense_pkgs[@]}" >/dev/null 2>&1; then
-                "${_yum}" -y -q install "${depandense_pkgs[@]}"
+                "${_yum}" --setopt=timeout=2 --setopt=retries=1 -y -q install "${depandense_pkgs[@]}"
             else
                 log check_env - "Depandense "${depandense_pkgs[@]}" already installed."
                 return 0
             fi
         else
-            "${_yum}" -y -q install "${depandense_pkgs[@]}"
+            "${_yum}" --setopt=timeout=2 --setopt=retries=1 -y -q install "${depandense_pkgs[@]}"
         fi
     elif [ -f "${_apt}" ]; then
         apt-get -y install "${depandense_pkgs[@]}"
