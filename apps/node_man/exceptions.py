@@ -214,3 +214,9 @@ class ServiceInstanceNotFoundError(NodeManBaseException):
     MESSAGE = _("服务实例不存在")
     MESSAGE_TPL = _("服务实例 -> [{id}] 不存在")
     ERROR_CODE = 42
+
+
+class YunTiPolicyConfigNotExistsError(NodeManBaseException):
+    MESSAGE = _("云梯策略配置不存在")
+    MESSAGE_TPL = _("云梯策略配置不存在")
+    ERROR_CODE = 43

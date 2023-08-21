@@ -36,7 +36,8 @@ class ConfigurePolicyService(AgentBaseService):
         for host in host_id_obj_map.values():
             ip_list.extend([host.outer_ip, host.login_ip])
         # 不同的安全组工厂添加策略后得到的输出可能是不同的，输出到outputs中，在schedule中由工厂对应的check_result方法来校验结果
-        data.outputs.add_ip_output = security_group_factory.add_ips_to_security_group(ip_list)
+        creator: str = common_data.subscription.creator
+        data.outputs.add_ip_output = security_group_factory.add_ips_to_security_group(ip_list, creator=creator)
         data.outputs.polling_time = 0
         return True
 
