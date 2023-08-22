@@ -14,7 +14,6 @@ import shutil
 import tarfile
 import typing
 
-from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
 
 from apps.node_man import constants
@@ -48,9 +47,7 @@ class ProxyArtifactBuilder(base.BaseArtifactBuilder):
         os_str: str = constants.PluginOsType.linux
         cpu_arch: str = constants.CpuType.x86_64
         pkg_name: str = f"{constants.GsePackageCode.AGENT.value}-{self._get_version(extract_dir)}.tgz"
-        base_agent_pkg_path: str = os.path.join(
-            settings.DOWNLOAD_PATH, self.BASE_STORAGE_DIR, os_str, cpu_arch, pkg_name
-        )
+        base_agent_pkg_path: str = os.path.join(self.download_path, self.BASE_STORAGE_DIR, os_str, cpu_arch, pkg_name)
         if not self.storage.exists(base_agent_pkg_path):
             raise FileExistsError(
                 _("构建 Proxy 所需 Agent 包不存在：file_path -> {file_path}").format(file_path=base_agent_pkg_path)
