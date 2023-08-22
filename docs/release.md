@@ -5,7 +5,12 @@
 
 
 ### bugfix: 
-  * 修复 Windows Agent 安装报错 STATUS_OBJECT_NAME_NOT_FOUND 的问题 (fixed #1732)
+  * 修复 Windows Agent 安装报错 STATUS_OBJECT_NAME_NOT_FOUND 的问题 (fixed #1732) 
+
+### optimization:
+  * 配置 Nginx 时仅对 download 目录执行 chmod (closed #1738)
+
+
 
 ## 2.2.32 - 2023-06-13
 
