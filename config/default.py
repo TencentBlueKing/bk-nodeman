@@ -392,6 +392,12 @@ BKCRYPTO = {
     },
 }
 
+
+# 启用框架内置数据加密
+BLUEAPPS_ENABLE_DB_ENCRYPTION = True
+# 复用已有的 default 对称加密实例
+BKCRYPTO["SYMMETRIC_CIPHERS"]["blueapps"] = BKCRYPTO["SYMMETRIC_CIPHERS"]["default"]
+
 # 加密
 if BKPAAS_BK_CRYPTO_TYPE == env.constants.BkCryptoType.SHANGMI.value:
     BKCRYPTO.update(
