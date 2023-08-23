@@ -60,7 +60,7 @@ class GseV2ApiHelper(GseV1ApiHelper):
         for proc_info in proc_infos:
             proc_info["host"]["bk_agent_id"] = proc_info["bk_agent_id"]
             agent_id__proc_info_map[self.get_agent_id(proc_info)] = {
-                "version": proc_info.get("version") or "",
+                "version": self.get_version(proc_info.get("version")),
                 "status": constants.PLUGIN_STATUS_DICT[proc_info["status"]],
                 "is_auto": constants.AutoStateType.AUTO if proc_info["isauto"] else constants.AutoStateType.UNAUTO,
                 "name": proc_info["meta"]["name"],
