@@ -58,14 +58,18 @@ export default class AgentStore extends VuexModule {
       const {
         bt_speed_limit: btSpeedLimit,
         peer_exchange_switch_for_agent: peerExchangeSwitchForAgent = 1,
+        ...extraOther
       } = item.extra_data || {};
-      item.status = item.status ? item.status.toLowerCase() : 'unknown';
-      item.version = item.version ? item.version : '--';
-      item.job_result = item.job_result ? item.job_result : {} as any;
-      item.topology = item.topology && item.topology.length ? item.topology : [];
-      item.bt_speed_limit = btSpeedLimit || '';
-      item.peer_exchange_switch_for_agent = !!peerExchangeSwitchForAgent || false;
-      return item;
+      return {
+        ...extraOther,
+        ...item,
+        status: item.status ? item.status.toLowerCase() : 'unknown',
+        version: item.version ? item.version : '--',
+        job_result: item.job_result ? item.job_result : {} as any,
+        topology: item.topology && item.topology.length ? item.topology : [],
+        bt_speed_limit: btSpeedLimit || '',
+        peer_exchange_switch_for_agent: !!peerExchangeSwitchForAgent || false,
+      };
     });
     return data;
   }
