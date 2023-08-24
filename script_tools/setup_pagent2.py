@@ -74,9 +74,10 @@ args = arg_parser().parse_args(sys.argv[1:])
 
 try:
     # import 3rd party libraries here, in case the python interpreter does not have them
-    import impacket  # noqa
     import paramiko  # noqa
     import requests  # noqa
+
+    import impacket  # noqa
 
     # import psutil
 
@@ -415,13 +416,14 @@ def download_file(url: str, dest_dir: str):
         # NOTE the stream=True parameter below
         local_file = os.path.join(dest_dir, local_filename)
 
-        # 如果修改时间临近，跳过下载，避免多个 setup 脚本文件互相覆盖
-        mtimestamp: float = os.path.getmtime(local_file)
-        if time.time() - mtimestamp < 10:
-            logger.logging(
-                "download_file", f"File download skipped due to sync time approaching, mtimestamp -> {mtimestamp}"
-            )
-            return
+        if os.path.exists(local_file):
+            # 如果修改时间临近，跳过下载，避免多个 setup 脚本文件互相覆盖
+            mtimestamp: float = os.path.getmtime(local_file)
+            if time.time() - mtimestamp < 10:
+                logger.logging(
+                    "download_file", f"File download skipped due to sync time approaching, mtimestamp -> {mtimestamp}"
+                )
+                return
 
         r = requests.get(url, stream=True)
         r.raise_for_status()
