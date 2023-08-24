@@ -189,7 +189,7 @@ class YunTiSecurityGroupFactory(BaseSecurityGroupFactory):
                         CidrBlock=ip,
                         Port=config.port,
                         Action=config.action,
-                        PolicyDescription="",
+                        PolicyDescription=f"Add by {creator}",
                         Ipv6CidrBlock="",
                     )
                 )
