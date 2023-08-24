@@ -72,8 +72,12 @@ class HostV2Tools:
     ) -> Optional[str]:
         if is_sync_cmdb_host_apply_cpu_arch:
             cpu_arch = constants.CMDB_CPU_MAP.get(host.get("bk_cpu_architecture"))
+            bk_os_bit = host.get("bk_os_bit")
+
+            if bk_os_bit == "arm-64bit":
+                return constants.CpuType.aarch64
+
             if cpu_arch == constants.CpuType.x86:
-                bk_os_bit = host.get("bk_os_bit")
                 # 仅在 CMDB CPU 位数不为空的情况下进行同步，其他情况返回操作系统默认的位数
                 if bk_os_bit:
                     bit_suffix = "" if "32" in bk_os_bit else "_64"
