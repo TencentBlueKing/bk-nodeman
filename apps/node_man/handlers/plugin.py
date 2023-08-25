@@ -331,14 +331,14 @@ class PluginHandler(APIModel):
             ).values("bk_host_id", "bk_biz_id", "bk_cloud_id", "inner_ip", "node_type", "os_type")
 
         # 校验器进行校验
-        db_host_ids, host_biz_scope = operate_validator(list(db_host_sql))
+        db_hosts, host_biz_scope = operate_validator(list(db_host_sql))
 
         plugin_name__job_id__map = {}
         for plugin_params in params["plugin_params_list"]:
             plugin_name, plugin_version = plugin_params["name"], plugin_params["version"]
             subscription_create_result = PluginHandler.create_subscription(
                 job_type=params["job_type"],
-                nodes=db_host_ids,
+                nodes=db_hosts,
                 name=plugin_name,
                 version=plugin_version,
                 keep_config=plugin_params.get("keep_config"),

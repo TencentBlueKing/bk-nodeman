@@ -13,8 +13,11 @@ import copy
 from unittest.mock import patch
 
 from apps.exceptions import ValidationError
+from apps.mock_data import utils
+from apps.mock_data.common_unit import host
 from apps.mock_data.views_mkd import job
 from apps.node_man import constants
+from apps.node_man.models import Host
 from apps.node_man.tests.utils import Subscription
 from apps.utils.unittest.testcase import CustomAPITestCase, MockSuperUserMixin
 
@@ -29,6 +32,26 @@ class JobViewsTestCase(MockSuperUserMixin, CustomAPITestCase):
     @patch("apps.node_man.handlers.job.JobHandler.create_subscription", Subscription.create_subscription)
     def test_operate(self):
         data = copy.deepcopy(job.JOB_OPERATE_REQUEST_PARAMS)
+        result = self.client.post(path="/api/job/operate/", data=data)
+        self.assertEqual(result["result"], True)
+
+
+class JobViewsWithoutHostIdTestCase(MockSuperUserMixin, CustomAPITestCase):
+    def setUp(self) -> None:
+        Host.objects.update_or_create(
+            defaults={
+                "bk_cloud_id": constants.DEFAULT_CLOUD,
+                "node_type": constants.NodeType.AGENT,
+                "bk_biz_id": utils.DEFAULT_BK_BIZ_ID,
+                "inner_ip": host.DEFAULT_IP,
+            },
+            bk_host_id=1,
+        )
+        return super().setUp()
+
+    @patch("apps.node_man.handlers.job.JobHandler.create_subscription", Subscription.create_subscription)
+    def test_operate(self):
+        data = copy.deepcopy(job.JOB_OPERATE_REQUEST_PARAMS_WITHOUT_HOST_ID)
         result = self.client.post(path="/api/job/operate/", data=data)
         self.assertEqual(result["result"], True)
 
@@ -70,15 +93,4 @@ class TestOuterIpNotEmptyAtTheSameTimeError(TestJobValidationError):
         data["job_type"] = constants.JobType.INSTALL_PROXY
         data["hosts"][0]["outer_ip"] = ""
         data["hosts"][0]["outer_ipv6"] = ""
-        return data
-
-
-class TestBkHostIdNeededError(TestJobValidationError):
-    ERROR_MSG_KEYWORD = "操作必须传入 bk_host_id 参数"
-
-    @staticmethod
-    def generate_install_job_request_params():
-        data = copy.deepcopy(job.JOB_INSTALL_REQUEST_PARAMS)
-        data["job_type"] = constants.JobType.REINSTALL_AGENT
-        data["hosts"][0].pop("bk_host_id", "")
         return data

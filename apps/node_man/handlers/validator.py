@@ -155,12 +155,10 @@ def bulk_update_validate(
     for host in accept_list:
         # 系统变更/接入点变更/DHT变更需要更新主机
         host_extra_data = host_info[host["bk_host_id"]]["extra_data"] or {}
-        if host.get("is_need_inject_ap_id"):
-            host["ap_id"] = host_info[host["bk_host_id"]]["ap_id"]
 
         if (
             host.get("os_type") != host_info[host["bk_host_id"]]["os_type"]
-            or host.get("ap_id") != host_info[host["bk_host_id"]]["ap_id"]
+            or (host.get("ap_id") != host_info[host["bk_host_id"]]["ap_id"] and not host.get("is_need_inject_ap_id"))
             or host.get("bt_speed_limit") != host_extra_data.get("bt_speed_limit")
             or host.get("peer_exchange_switch_for_agent") != host_extra_data.get("peer_exchange_switch_for_agent")
             or host.get("enable_compression") != host_extra_data.get("enable_compression")
@@ -183,6 +181,7 @@ def bulk_update_validate(
             {
                 "bk_host_id": host["bk_host_id"],
                 "bk_cloud_id": host["bk_cloud_id"],
+                "ap_id": host["ap_id"],
                 "install_channel_id": host.get("install_channel_id"),
                 "is_need_inject_ap_id": host.get("is_need_inject_ap_id"),
             }
@@ -567,7 +566,7 @@ def install_validate(
     return ip_filter_list, accept_list, proxy_not_alive
 
 
-def operate_validator(db_host_sql):
+def operate_validator(db_host_sql, host_info: typing.Dict[int, typing.Dict[str, typing.Any]] = {}):
     """
     用于operate任务的校验
     :param db_host_sql: 用户操作主机的详细信息
@@ -595,6 +594,11 @@ def operate_validator(db_host_sql):
     # 获得业务ID
     host_biz_scope = list({host["bk_biz_id"] for host in db_host_sql})
 
-    db_host_ids = [{"bk_host_id": host_id} for host_id in permission_host_ids]
+    db_hosts: typing.List[typing.Dict[str, typing.Any]] = []
 
-    return db_host_ids, host_biz_scope
+    for host_id in permission_host_ids:
+        _host = {"bk_host_id": host_id}
+        _host.update(host_info.get(host_id, {}))
+        db_hosts.append(_host)
+
+    return db_hosts, host_biz_scope
