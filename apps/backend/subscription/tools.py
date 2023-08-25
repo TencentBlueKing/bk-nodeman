@@ -34,6 +34,7 @@ from apps.backend.subscription.errors import (
 )
 from apps.backend.utils.data_renderer import nested_render_data
 from apps.component.esbclient import client_v2
+from apps.core.ipchooser.tools.base import HostQuerySqlHelper
 from apps.exceptions import ComponentCallError
 from apps.node_man import constants, models
 from apps.node_man import tools as node_man_tools
@@ -41,7 +42,6 @@ from apps.utils.basic import chunk_lists, distinct_dict_list, order_dict
 from apps.utils.batch_request import batch_request, request_multi_thread
 from apps.utils.cache import func_cache_decorator
 from apps.utils.time_handler import strftime_local
-from apps.core.ipchooser.tools.base import HostQuerySqlHelper
 
 logger = logging.getLogger("app")
 
@@ -681,7 +681,7 @@ def support_multi_biz(get_instances_by_scope_func):
                     "object_type": scope["object_type"],
                     "node_type": scope["node_type"],
                     "nodes": list(nodes),
-                    "instance_selector": scope.get("instance_selector")
+                    "instance_selector": scope.get("instance_selector"),
                 },
                 **kwargs,
             }
@@ -806,9 +806,13 @@ def get_instances_by_scope(scope: Dict[str, Union[Dict, int, Any]]) -> Dict[str,
 
     if not need_register:
         # 补充必要的主机或实例相关信息
+
         add_host_info_to_instances(bk_biz_id, scope, instances)
         add_scope_info_to_instances(nodes, scope, instances, module_to_topo)
         add_process_info_to_instances(bk_biz_id, scope, instances)
+
+        # 回填原始参数
+        add_meta_info_to_instance(scope, instances)
 
     instances_dict = {}
     data = {
@@ -831,7 +835,7 @@ def get_instances_by_scope(scope: Dict[str, Union[Dict, int, Any]]) -> Dict[str,
         instance_selector_host_ids = HostQuerySqlHelper.multiple_cond_sql(
             params={"bk_host_id": bk_host_ids, "conditions": instance_selector},
             biz_scope=[bk_biz_id],
-            return_all_node_type=True
+            return_all_node_type=True,
         ).values_list("bk_host_id", flat=True)
 
         selector_instances_dict = {}
@@ -845,6 +849,13 @@ def get_instances_by_scope(scope: Dict[str, Union[Dict, int, Any]]) -> Dict[str,
         return selector_instances_dict
 
     return instances_dict
+
+
+def add_meta_info_to_instance(scope: Dict, instances: Dict):
+    if scope["object_type"] == models.Subscription.ObjectType.HOST:
+        host_dict = {host["bk_host_id"]: host for host in scope["nodes"] if host.get("bk_host_id") is not None}
+        for instance in instances:
+            instance["host"].update(host_dict.get(instance["host"]["bk_host_id"], {}))
 
 
 def add_host_info_to_instances(bk_biz_id: int, scope: Dict, instances: Dict):

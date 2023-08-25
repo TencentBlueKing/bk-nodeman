@@ -149,14 +149,14 @@ class JobViewSet(ModelViewSet):
         """
         validated_data = self.validated_data
         job_type = validated_data["job_type"]
-        bk_host_ids = validated_data["bk_host_ids"]
+        hosts = validated_data["hosts"]
         bk_biz_scope = validated_data["bk_biz_scope"]
         extra_params = {
             "is_install_latest_plugins": validated_data["is_install_latest_plugins"],
             "is_install_other_agent": validated_data["is_install_other_agent"],
         }
         extra_config = validated_data.get("agent_setup_info") or {}
-        return Response(JobHandler().operate(job_type, bk_host_ids, bk_biz_scope, extra_params, extra_config))
+        return Response(JobHandler().operate(job_type, hosts, bk_biz_scope, extra_params, extra_config))
 
     @swagger_auto_schema(
         operation_summary="重试任务",

@@ -31,7 +31,8 @@ class CheckAgentAbilityService(AgentExecuteScriptService):
         path_handler: PathHandler = PathHandler(host.os_type)
         ctl_exe_name: str = ("gse_agent", "gse_agent.exe")[host.os_type == constants.OsType.WINDOWS]
         general_node_type: str = self.get_general_node_type(host.node_type)
-        setup_path: str = common_data.host_id__ap_map[host.bk_host_id].get_agent_config(host.os_type)["setup_path"]
+        host_ap: models.AccessPoint = self.get_host_ap(common_data=common_data, host=host)
+        setup_path: str = host_ap.get_agent_config(host.os_type)["setup_path"]
         agent_path: str = path_handler.join(setup_path, general_node_type, "bin", ctl_exe_name)
 
         return f"{agent_path} --version"

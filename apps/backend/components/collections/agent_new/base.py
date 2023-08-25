@@ -34,6 +34,18 @@ from .. import job
 from ..base import BaseService, CommonData
 
 
+@dataclass
+class AgentCommonData(CommonData):
+    # 默认接入点
+    default_ap: models.AccessPoint
+    # 主机ID - 接入点 映射关系
+    host_id__ap_map: Dict[int, models.AccessPoint]
+    # AgentStep 适配器
+    agent_step_adapter: AgentStepAdapter
+    # 注入AP_ID
+    injected_ap_id: int
+
+
 class AgentBaseService(BaseService, metaclass=abc.ABCMeta):
     """
     AGENT安装基类
@@ -305,17 +317,13 @@ class AgentBaseService(BaseService, metaclass=abc.ABCMeta):
             proc_statuses_to_be_created.append(models.ProcessStatus(bk_host_id=host_id, **self.agent_proc_common_data))
         models.ProcessStatus.objects.bulk_create(proc_statuses_to_be_created, batch_size=self.batch_size)
 
-
-@dataclass
-class AgentCommonData(CommonData):
-    # 默认接入点
-    default_ap: models.AccessPoint
-    # 主机ID - 接入点 映射关系
-    host_id__ap_map: Dict[int, models.AccessPoint]
-    # AgentStep 适配器
-    agent_step_adapter: AgentStepAdapter
-    # 注入AP_ID
-    injected_ap_id: int
+    def get_host_ap(self, common_data: AgentCommonData, host: models.Host) -> models.AccessPoint:
+        # 优先使用注入的AP ID
+        if common_data.injected_ap_id:
+            host_ap: models.AccessPoint = common_data.ap_id_obj_map[common_data.injected_ap_id]
+        else:
+            host_ap: models.AccessPoint = common_data.host_id__ap_map[host.bk_host_id]
+        return host_ap
 
 
 class RetryHandler:
