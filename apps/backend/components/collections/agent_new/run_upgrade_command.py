@@ -78,7 +78,8 @@ class RunUpgradeCommandService(AgentExecuteScriptService):
     def get_script_content(self, data, common_data: AgentCommonData, host: models.Host) -> str:
         agent_upgrade_pkg_name = self.get_agent_pkg_name(common_data, host, is_upgrade=True)
         general_node_type = self.get_general_node_type(host.node_type)
-        agent_config = common_data.host_id__ap_map[host.bk_host_id].get_agent_config(host.os_type)
+        host_ap: models.AccessPoint = self.get_host_ap(common_data=common_data, host=host)
+        agent_config = host_ap.get_agent_config(host.os_type)
 
         if host.os_type == constants.OsType.WINDOWS:
             scripts = WINDOWS_UPGRADE_CMD_TEMPLATE.format(

@@ -33,7 +33,8 @@ class RestartService(AgentExecuteScriptService):
         ctl_exe_name = ("gsectl", "gsectl.bat")[host.os_type == constants.OsType.WINDOWS]
         cmd_suffix = ("restart >/dev/null 2>&1", "restart")[host.os_type == constants.OsType.WINDOWS]
         general_node_type = self.get_general_node_type(host.node_type)
-        setup_path = common_data.host_id__ap_map[host.bk_host_id].get_agent_config(host.os_type)["setup_path"]
+        host_ap: models.AccessPoint = self.get_host_ap(common_data=common_data, host=host)
+        setup_path = host_ap.get_agent_config(host.os_type)["setup_path"]
         agent_path = path_handler.join(setup_path, general_node_type, "bin", ctl_exe_name)
 
         return f"{agent_path} {cmd_suffix}"

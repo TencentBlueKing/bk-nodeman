@@ -16,8 +16,8 @@ from typing import Any, Dict, List, Optional, Set, Union
 
 from django.conf import settings
 from django.core.paginator import Paginator
-from django.db.models import Q
 from django.db import transaction
+from django.db.models import Q
 from django.utils import timezone
 from django.utils.translation import get_language
 from django.utils.translation import ugettext_lazy as _
@@ -187,9 +187,7 @@ class JobHandler(APIModel):
             biz_scope_query_q = Q()
         else:
             biz_scope_query_q = reduce(
-                operator.or_,
-                [Q(bk_biz_scope__contains=bk_biz_id) for bk_biz_id in biz_scope],
-                Q()
+                operator.or_, [Q(bk_biz_scope__contains=bk_biz_id) for bk_biz_id in biz_scope], Q()
             )
             # 仅查询所有业务时，自身创建的 job 可见
             if not search_biz_ids:
@@ -616,15 +614,13 @@ class JobHandler(APIModel):
 
         return update_data_info["subscription_host_ids"], ip_filter_list
 
-    def operate(self, job_type, bk_host_ids, bk_biz_scope, extra_params, extra_config):
+    def operate(self, job_type, hosts, bk_biz_scope, extra_params, extra_config):
         """
         用于只有bk_host_id参数的下线、重启等操作
         """
         # 校验器进行校验
 
-        subscription = self.create_subscription(
-            job_type, bk_host_ids, extra_params=extra_params, extra_config=extra_config
-        )
+        subscription = self.create_subscription(job_type, hosts, extra_params=extra_params, extra_config=extra_config)
 
         return tools.JobTools.create_job(
             job_type=job_type,
@@ -634,9 +630,9 @@ class JobHandler(APIModel):
             statistics={
                 "success_count": 0,
                 "failed_count": 0,
-                "pending_count": len(bk_host_ids),
+                "pending_count": len(hosts),
                 "running_count": 0,
-                "total_count": len(bk_host_ids),
+                "total_count": len(hosts),
             },
         )
 

@@ -42,3 +42,13 @@ JOB_INSTALL_REQUEST_PARAMS = {
 
 
 JOB_OPERATE_REQUEST_PARAMS = {"job_type": constants.JobType.REINSTALL_AGENT, "bk_host_id": [host.DEFAULT_HOST_ID]}
+JOB_OPERATE_REQUEST_PARAMS_WITHOUT_HOST_ID = {
+    "job_type": constants.JobType.REINSTALL_AGENT,
+    "hosts": [
+        {
+            "bk_cloud_id": constants.DEFAULT_CLOUD,
+            "ap_id": constants.DEFAULT_AP_ID,
+            "inner_ip": host.DEFAULT_IP,
+        }
+    ],
+}
