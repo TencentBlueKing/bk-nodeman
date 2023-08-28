@@ -735,7 +735,14 @@ restart_by_rclocal () {
 
 
 status_by_rclocal () {
-    status_by_binary
+    for module in $modules
+    do
+        status_by_binary ${module}
+        if [ $? -ne 0 ];then
+            echo "have $? module start failed"
+            exit 1
+        fi
+    done
     return
 }
 
