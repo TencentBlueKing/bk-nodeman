@@ -15,7 +15,10 @@ import ujson as json
 from django.conf import settings
 
 from apps.backend.agent.tools import fetch_gse_servers_info
-from apps.backend.subscription.steps.agent_adapter.base import AgentSetupInfo
+from apps.backend.subscription.steps.agent_adapter.base import (
+    AgentSetupInfo,
+    AgentSetupTools,
+)
 from apps.backend.utils.data_renderer import nested_render_data
 from apps.backend.utils.encrypted import GseEncrypted
 from apps.node_man import constants, models
@@ -470,7 +473,9 @@ def generate_gse_config(
     setup_path = agent_config["setup_path"]
     log_path = agent_config["log_path"]
     # 如果没有自定义则使用接入点默认配置
-    data_path = host.extra_data.get("data_path") or agent_config["data_path"]
+    data_path = host.extra_data.get("data_path") or AgentSetupTools.generate_gse_file_cache_dir(
+        path=setup_path, is_legacy=True
+    )
 
     gse_servers_info: Dict[str, Any] = fetch_gse_servers_info(
         AgentSetupInfo(is_legacy=True), host, ap, proxies, install_channel
