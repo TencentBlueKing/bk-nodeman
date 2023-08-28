@@ -257,7 +257,7 @@ class BaseExecutionSolutionMaker(metaclass=abc.ABCMeta):
             # 安装/下载配置
             f"-T {self.dest_dir}",
             f"-p {self.agent_config['setup_path']}",
-            f"-c {self.token}",
+            f'-c "{self.token}"',
             f"-s {self.pipeline_id}",
         ]
 
@@ -724,7 +724,7 @@ class ProxyExecutionSolutionMaker(BaseExecutionSolutionMaker):
             f"-r {self.gse_servers_info['callback_url']}",
             # 安装/下载配置
             f"-L {settings.DOWNLOAD_PATH}",
-            f"-c {self.token}",
+            f'-c "{self.token}"',
             f"-s {self.pipeline_id}",
             # 目标机器主机信息
             f"-HNT {self.host.node_type}",
