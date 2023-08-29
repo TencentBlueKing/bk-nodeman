@@ -63,19 +63,21 @@ class BaseArtifactBuilder(abc.ABC):
         cert_path: typing.Optional[str] = None,
         download_path: typing.Optional[str] = None,
         overwrite_version: typing.Optional[str] = None,
+        tags: typing.Optional[typing.List[str]] = None,
         enable_agent_pkg_manage: bool = False,
     ):
         """
         :param initial_artifact_path: 原始制品所在路径
         :param cert_path: 证书目录
         :param download_path: 归档路径
-        :param overwrite_version: 版本号，用于覆盖原始制品内的版本信息
+        :param overwrite_version: 覆盖版本号，用于覆盖原始制品内的版本信息
+        :param tags：标签列表，用于批量创建标签
         """
         self.initial_artifact_path = initial_artifact_path
         self.cert_path = cert_path or settings.GSE_CERT_PATH
         self.download_path = download_path or settings.DOWNLOAD_PATH
         self.overwrite_version = overwrite_version
-
+        self.tags = tags or []
         # 原始制品名称
         self.initial_artifact_filename = os.path.basename(initial_artifact_path)
         # 已申请的临时目录
@@ -239,7 +241,7 @@ class BaseArtifactBuilder(abc.ABC):
             package_base_info: typing.Dict[str, str] = re_match.groupdict()
             gsectl_filename: str = ("gsectl", "gsectl.bat")[package_base_info["os"] == constants.PluginOsType.windows]
             gsectl_file_path: str = os.path.join(
-                self.download_path, "gsectl", self.PKG_DIR, package_base_info["os"], gsectl_filename
+                settings.DOWNLOAD_PATH, "gsectl", self.PKG_DIR, package_base_info["os"], gsectl_filename
             )
             if not self.storage.exists(gsectl_file_path):
                 raise exceptions.FileNotExistError(
@@ -354,6 +356,19 @@ class BaseArtifactBuilder(abc.ABC):
         with open(package_tmp_path, mode="rb") as tf:
             # 采用同名覆盖策略，保证同版本 Agent 包仅保存一份
             storage_path = self.storage.save(package_target_path, tf)
+            # 如果采用覆盖版本（标签），并且真实版本号和覆盖版本号不一样，保存一份副本
+            if self.overwrite_version and version_str != self.overwrite_version:
+                package_overwrite_target_path = os.path.join(
+                    self.download_path, self.BASE_STORAGE_DIR, os_str, cpu_arch, f"{name}-{self.overwrite_version}.tgz"
+                )
+                self.storage.save(package_overwrite_target_path, tf)
+                logger.info(
+                    "[overwrite] package -> {pkg_name} upload to package_target_path"
+                    " -> {package_target_path} success".format(
+                        pkg_name=pkg_name, package_target_path=package_overwrite_target_path
+                    )
+                )
+
             if storage_path != package_target_path:
                 raise exceptions.CreatePackageRecordError(
                     _("Agent 包保存错误，期望保存到 -> {package_target_path}, 实际保存到 -> {storage_path}").format(
@@ -435,12 +450,15 @@ class BaseArtifactBuilder(abc.ABC):
         :param artifact_meta_info:
         :return:
         """
-        if self.overwrite_version:
+        for tag in self.tags:
             TagHandler.publish_tag_version(
-                name=self.overwrite_version,
+                name=tag,
                 target_type=TargetType.AGENT.value,
                 target_id=AGENT_NAME_TARGET_ID_MAP[self.NAME],
                 target_version=artifact_meta_info["version"],
+            )
+            logger.info(
+                f"[publish_tag_version] tag -> {tag}, target_version -> {artifact_meta_info['version']} success"
             )
 
     def parset_env(self, content) -> typing.Dict[str, typing.Any]:

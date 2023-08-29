@@ -47,7 +47,9 @@ class FileSystemTestCase(test_agent.FileSystemTestCase):
     def test_make__overwrite_version(self):
         """测试版本号覆盖"""
         with self.ARTIFACT_BUILDER_CLASS(
-            initial_artifact_path=self.ARCHIVE_PATH, overwrite_version=self.OVERWRITE_VERSION
+            initial_artifact_path=self.ARCHIVE_PATH,
+            overwrite_version=self.OVERWRITE_VERSION,
+            tags=[self.OVERWRITE_VERSION],
         ) as builder:
             builder.make()
 

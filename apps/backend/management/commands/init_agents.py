@@ -80,11 +80,17 @@ class Command(BaseCommand):
                 else:
                     artifact_builder_class: typing.Type[base.BaseArtifactBuilder] = proxy.ProxyArtifactBuilder
 
+                tags: typing.List[str] = []
+                overwrite_version: typing.Optional[str] = options.get("overwrite_version")
+                if overwrite_version:
+                    tags.append(overwrite_version)
                 with artifact_builder_class(
                     initial_artifact_path=upload_record.file_path,
                     cert_path=options.get("cert_path"),
                     download_path=options.get("download_path"),
-                    overwrite_version=options.get("overwrite_version"),
+                    overwrite_version=overwrite_version,
+                    # TODO Agent 包管理完善后，init 命令需要明确传入 tag 才能进行指定，中间形态仍使用 overwrite_version
+                    tags=tags,
                     enable_agent_pkg_manage=options.get("enable_agent_pkg_manage"),
                 ) as builder:
                     builder.make()
