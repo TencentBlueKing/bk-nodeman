@@ -377,9 +377,9 @@ config:
   ## Linux：推送 `environ.sh` 到目标机器的 `GSE_ENVIRON_DIR` 路径
   gseEnablePushEnvironFile: false
   ## GSE 环境变量目录
-  gseEnvironDir: ""
+  gseEnvironDir: "/etc/sysconfig/gse/bk/user_conf"
   ## GSE 环境变量目录（Windows）
-  gseEnvironWinDir: ""
+  gseEnvironWinDir: "C:\\Windows\\System32\\config\\gse\\bk\\user_conf"
   ## 是否启用 GSE 服务探测，为 `true` 将定期更新默认接入点的 gse svr 信息
   gseEnableSvrDisCovery: true
   ## ZK hosts 信息，host:port，多个 hosts 以 `,` 分隔
