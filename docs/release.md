@@ -1,5 +1,48 @@
 # Release
 
+## 2.4.1 - 2023-08-30 
+
+### 🚀 Features
+
+- feature: 订阅支持按操作系统等主机属性进行范围筛选(closed #1452)
+
+- feature:  Agent 2.0 配置模板、配置环境变量管理 (closed #1681) (#1754)
+
+- feature:  Proxy 安装适配 CentOS 8 / Ubuntu (closed #1405)
+
+- feature:  云梯安全组添加白名单功能 (closed #1760)
+
+- feature: Agent 导入支持指定标签 (closed #1787) (#1788)
+
+
+### ✨ Optimizations
+
+- optimization:  注册 agent_id 重试机制 (closed #1609) (#1750)
+
+
+### 🐛 Bugfixes
+
+- bugfix: 修复非超管查询全部业务历史任务报错(fixed #1631)
+
+- bugfix: 修复 Windows Agent 安装报错 STATUS_OBJECT_NAME_NOT_FOUND 的问题 (fixed #1732)
+
+- bugfix: 项目启动卡住的问题 (fixed #1743) (#1744)
+
+- bugfix: 修复升级 Proxy 没能成功拉起 gse_agent 进程的问题 (fixed #1745)
+
+- bugfix:  修复插件筛选版本重复显示问题 (closed #1766)
+
+- bugfix: Agent管理 - 数据压缩属性未正确展示 (closed #1771) (#1772)
+
+- bugfix: 修复部分 arm 机器同步架构不准确的问题 (fixed #1454)
+
+- bugfix:  windows上报日志token不一致问题 (closed #1781)
+
+
+
+**Full Changelog**: https://github.com/TencentBlueKing/bk-nodeman/compare/v2.4.0...v2.4.1
+
+
 ## 2.4.0 - 2023-08-10 
 
 ### 🚀 Features
