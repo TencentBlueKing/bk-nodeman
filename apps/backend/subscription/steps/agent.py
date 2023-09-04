@@ -170,14 +170,23 @@ class AgentAction(Action, abc.ABC):
     def install_other_agent_codes(self):
 
         return [
+            # 安装或重装code
             "query_password",
             "bind_host_agent",
             "upgrade_to_agent_id",
             "push_agent_pkg_to_proxy",
             "install",
-            "get_agent_status",
             "check_policy_gse_to_proxy",
             "configure_policy",
+            # 重载配置相关code
+            "agent_check_agent_status",
+            "update_install_info",
+            "render_and_push_gse_config",
+            "reload_agent_config",
+            "wait",
+            "check_agent_ability",
+            # 共用code
+            "get_agent_status",
         ]
 
     def generate_activities(
