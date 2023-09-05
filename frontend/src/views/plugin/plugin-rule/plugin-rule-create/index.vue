@@ -329,7 +329,7 @@ export default class CreateRule extends Mixins(routerBackMixin, FormLabelMixin) 
 
       // 发布 - 将灰度策略的版本和参数替换给主策略
       this.replacePolicyValue(grayRes.configs, policyRes.configs, 'os', 'cpu_arch');
-      this.replacePolicyValue(grayRes.params, policyRes.params, 'os_type', 'cpu_arch');
+      this.replacePolicyValue(grayRes.params, policyRes.params, 'os', 'cpu_arch');
 
       PluginStore.setStrategyData(policyRes);
     } else if (['createGray', 'editGray'].includes(this.type)) {

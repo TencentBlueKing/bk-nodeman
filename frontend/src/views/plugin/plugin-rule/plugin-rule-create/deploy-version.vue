@@ -184,7 +184,7 @@ export default class DeployVersion extends Vue {
       PluginStore.setStateOfStrategy({
         key: 'params',
         value: params.filter((item: Dictionary) => this.selectedVersion
-          .find(selected => `${item.os_type} ${item.cpu_arch}` === `${selected.os} ${selected.cpu_arch}`)),
+          .find(selected => `${item.os || item.os_type} ${item.cpu_arch}` === `${selected.os} ${selected.cpu_arch}`)),
       });
     }
     this.cloneSelected();

@@ -199,6 +199,7 @@ export interface IParamsChild {
   form: Dictionary
   data: IParamsData[]
   inputName?: string
+  variables?: any
 }
 
 // 参数配置 - item
@@ -214,6 +215,7 @@ export interface IParamsConfig extends IPk {
   childActive: string[]
   defaultActive: string[]
   is_main?: boolean
+  variables?: any
   // inputName?: string
 
   // config_templates:Array[1]
@@ -267,7 +269,7 @@ export interface IStrategy { // 与策略列表不通用
   configs?: IPk[] // steps-扁平化
   params?: {
     cpu_arch: string
-    os_type: string
+    os: string
     context: Dictionary
     child?: Dictionary
   }[] // steps-扁平化
