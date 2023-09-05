@@ -1,0 +1,85 @@
+.russian-dolls-form {
+  padding-right: 32px;
+
+  .bk-form-item + .bk-form-item {
+    margin-top: 16px;
+  }
+
+  .nodeman-icon {
+    font-size: 16px;
+    cursor: pointer;
+    &:hover:not(.disabled) {
+      color: #3a84ff;
+    }
+
+    &.disabled {
+      color: #c4c6cc;
+      cursor: not-allowed;
+    }
+    & + .nodeman-icon {
+      margin-left: 10px
+    }
+  }
+}
+
+.item-array {
+  & > .bk-form-content {
+    display: flex;
+    align-items: center;
+  }
+  .array-child-group {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    /* padding-top: 32px; */
+  }
+  .array-child {
+    display: flex;
+    flex: 1;
+    padding-right: 16px;
+    background: #f5f7fa;
+    
+    & + .array-content-add {
+      margin-top: 12px;
+    }
+  }
+}
+
+.array-content-add {
+  flex: 1;
+  border: 1px dashed #3a84ff;
+  border-radius: 2px;
+  color: #3a84ff;
+  cursor: pointer;
+  text-align: center;
+  .nodeman-icon {
+    font-size: 16px;
+  }
+}
+
+.array-child  {
+
+  .item-object {
+    flex: 1;
+    /* 特殊操作 */
+    position: relative;
+    padding: 16px 0;
+  }
+}
+
+.array-child + .array-child {
+  margin-top: 12px;
+}
+
+.array-content-delete {
+  position: absolute;
+  left: 100%;
+}
+.child-btns {
+  display: flex;
+  align-items: flex-start;
+  padding-top: 8px;
+  width: 50px;
+  font-size: 16px;
+  flex-shrink: 0;
+}
