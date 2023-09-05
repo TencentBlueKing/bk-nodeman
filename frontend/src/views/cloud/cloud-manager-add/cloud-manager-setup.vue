@@ -33,6 +33,9 @@
               :class="{ 'cloud-setup-table': isManual }"
               local-mark="proxy_setup`"
               :col-setting="false"
+              :aps="apList"
+              :bk-cloud-id="id"
+              :arbitrary="apId"
               :setup-info="formData.bkCloudSetupInfo"
               :key="net.active"
               :before-delete="handleBeforeDeleteRow"
@@ -246,11 +249,6 @@ export default class CloudManagerSetup extends Mixins(formLabelMixin, FilterIpMi
    */
   private initTableData() {
     const defaultAp = this.apList.find(item => item.is_default);
-    let dataPath = '';
-    if (defaultAp) {
-      const { linux = {} } = defaultAp.agent_config || {};
-      dataPath = linux.data_path;
-    }
     const table = [];
     const initRow = {
       inner_ip: '',
@@ -259,7 +257,7 @@ export default class CloudManagerSetup extends Mixins(formLabelMixin, FilterIpMi
       auth_type: '',
       prove: '',
       retention: -1,
-      data_path: dataPath,
+      data_path: defaultAp?.file_cache_dirs || '',
     };
     // 默认给两行数据
     table.push({ ...initRow });

@@ -76,6 +76,7 @@ import { MainStore, ConfigStore } from '@/store/index';
 import { IApParams } from '@/types/config/config';
 import { transformDataKey, toLine } from '@/common/util';
 import { apAgentInfo, apAgentInfoRules } from './apFormConfig';
+import { osDirReplace } from '@/common/form-check';
 
 @Component({ name: 'StepInfo' })
 
@@ -220,15 +221,13 @@ export default class StepInfo extends Vue {
   }
   // 安装路径修复 - 若路径以 / 结尾，则去掉末尾的 /
   public pathRepair(arg: string[], prop: string) {
-    const value = arg[0].trim().replace(/[/\\]+/ig, '/');
-    const pathArr = value.split('/').filter((item: string) => !!item);
     if (/linux/ig.test(prop)) {
-      this.formData[prop] = `/${pathArr.join('/')}`;
+      this.formData[prop] = `/${osDirReplace(arg[0])}`;
     } else {
       if (prop === 'windowsDataipc') {
         return;
       }
-      this.formData[prop] = pathArr.join('\\');
+      this.formData[prop] = osDirReplace(arg[0], '\\');
     }
   }
   public hadleFormChange() {

@@ -160,7 +160,7 @@
                       fileInfo: getCellFileInfo(row, config)
                     }"
                     @focus="handleCellFocus(arguments, { row, config, rowIndex, colIndex })"
-                    @blur="handleCellBlur"
+                    @blur="handleCellBlur(arguments, { row, config, rowIndex, colIndex })"
                     @input="handleCellValueInput(arguments, row, config)"
                     @change="handleCellValueChange(row, config)"
                     @upload-change="handleCellUploadChange($event, row)">
@@ -195,6 +195,8 @@ import { Context } from 'vm';
 import { IFileInfo, IKeysMatch, ISetupHead, ISetupRow, ITabelFliter, ISetupParent } from '@/types';
 import { getDefaultConfig, passwordFillText } from '@/config/config';
 import { splitCodeArr } from '@/common/regexp';
+import { IAp } from '@/types/config/config';
+import { ICloudSource } from '@/types/cloud/cloud';
 
 interface IFilterRow {
   [key: string]: ITabelFliter
@@ -239,6 +241,9 @@ export default class SetupTable extends Vue {
   @Prop({ type: String, default: '' }) private readonly localMark!: string;
   @Prop({ type: Function }) private readonly beforeDelete!: Function;
   @Prop({ type: Number }) private readonly bkCloudId!: number;
+  @Prop({ type: Array }) private readonly aps!: IAp[];
+  @Prop({ type: Array }) private readonly clouds!: ICloudSource[];
+  @Prop() private readonly arbitrary!: any; // 可以是任意值, 用来在config文件里做为必要的一些参数
 
   @Ref('tableBody') private readonly tableBody!: any;
   @Ref('scrollPlace') private readonly scrollPlace!: any;
@@ -269,10 +274,10 @@ export default class SetupTable extends Vue {
     return AgentStore.fetchPwd;
   }
   private get cloudList() {
-    return AgentStore.cloudList;
+    return this.clouds || AgentStore.cloudList;
   }
   private get apList() {
-    return AgentStore.apList;
+    return this.aps || AgentStore.apList;
   }
   private get channelList() {
     return AgentStore.channelList;
@@ -386,7 +391,7 @@ export default class SetupTable extends Vue {
   private addPropToData(row: ISetupRow | any, config: ISetupHead) {
     const prop = config.prop as keyof ISetupRow;
     if (typeof config.getDefaultValue === 'function') {
-      row[prop] = config.getDefaultValue(row);
+      row[prop] = config.getDefaultValue.call(this, row);
     } else {
       row[prop] = isEmpty(row[prop]) && !isEmpty(config.default) ? config.default : row[prop];
     }
@@ -1076,7 +1081,7 @@ export default class SetupTable extends Vue {
       : new Array(`${row[config.prop]}`.length).fill('*')
         .join('');
   }
-  private handleCellFocus(arg: any[], cell: {
+  public handleCellFocus(arg: any[], cell: {
     row: ISetupRow
     config: ISetupHead
     rowIndex: number
@@ -1101,7 +1106,16 @@ export default class SetupTable extends Vue {
       }
     }
   }
-  private handleCellBlur() {
+  public handleCellBlur(arg: any[], cell: {
+    row: ISetupRow
+    config: ISetupHead
+    rowIndex: number
+    colIndex: number
+  }) {
+    const { row, config } = cell;
+    if (config.handleBlur) {
+      config.handleBlur(row, config);
+    }
     this.$set(this, 'focusRow', {});
     this.popoverEl && this.popoverEl.tipsHide();
     this.popoverEl = null;

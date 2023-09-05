@@ -71,7 +71,7 @@
         required
         :desc="descDataPathTip"
         :rules="rules.path">
-        <bk-input v-model="proxyData.data_path"></bk-input>
+        <bk-input v-model="proxyData.data_path" @blur="(value) => pathInputBlur(value, 'data_path')" />
       </bk-form-item>
       <bk-form-item :label="$t('BT节点探测')" property="peer_exchange_switch_for_agent">
         <bk-switcher
@@ -112,7 +112,7 @@ import { authentication } from '@/config/config';
 import Upload from '@/components/setup-table/upload.vue';
 import { IProxyDetail } from '@/types/cloud/cloud';
 import InstallInputType from '@/components/setup-table/install-input-type.vue';
-import { reguFnMinInteger, reguPort, reguIPMixins, reguRequired, reguFnSysPath } from '@/common/form-check';
+import { reguFnMinInteger, reguPort, reguIPMixins, reguRequired, reguFnSysPath, osDirReplace } from '@/common/form-check';
 
 @Component({
   name: 'sideslider-content-edit',
@@ -144,7 +144,7 @@ export default class SidesliderContentEdit extends Vue {
     port: [reguRequired, reguPort],
     account: [reguRequired],
     speedLimit: [reguFnMinInteger(1)],
-    path: [reguRequired, reguFnSysPath()],
+    path: [reguRequired, reguFnSysPath({ minLevel: 2 })],
   };
   private loading = false;
   private showErrMsg = false;
@@ -230,6 +230,9 @@ export default class SidesliderContentEdit extends Vue {
     this.showErrMsg = this.basic.re_certification
                   && isEmpty(this.proxyData[this.proxyData.auth_type.toLocaleLowerCase()]);
     return !this.showErrMsg;
+  }
+  public pathInputBlur(val: string, prop: string) {
+    this.proxyData[prop] = `/${osDirReplace(val)}`;
   }
 }
 </script>

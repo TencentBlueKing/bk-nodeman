@@ -60,6 +60,7 @@ export interface IAp extends IApParams {
   ap_type: string
   is_enabled: boolean
   is_default: boolean
+  file_cache_dirs: string
   // nginx_path: null | string
 }
 
