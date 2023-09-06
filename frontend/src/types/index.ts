@@ -304,6 +304,7 @@ export interface ISetupHead {
   getCurrentType?: Function
   getDefaultValue?: Function
   handleValueChange?: Function
+  handleBlur?: Function
 }
 
 // 文件导入配置

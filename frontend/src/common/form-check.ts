@@ -137,3 +137,9 @@ export function regrLengthCheck(val, max = 32, min = 0) {
   const len = val.replace(/[\u0391-\uFFE5]/g, 'aa').length;
   return len >= min && len <= max;
 }
+
+export function osDirReplace(str: string, filler = '/'): string {
+  const value = str.trim().replace(/[/\\]+/ig, '/');
+  const pathArr = value.split('/').filter((item: string) => !!item);
+  return pathArr.join(filler);
+}

@@ -1,6 +1,6 @@
 import { authentication, DHCP_FILTER_KEYS, getDefaultConfig } from '@/config/config';
 import { ISetupHead, ISetupRow } from '@/types';
-import { reguFnMinInteger, reguFnSysPath, reguIp, reguIPMixins, reguIPv6 } from '@/common/form-check';
+import { osDirReplace, reguFnMinInteger, reguFnSysPath, reguIp, reguIPMixins, reguIPv6 } from '@/common/form-check';
 import { splitCodeArr } from '@/common/regexp';
 
 export const parentHead = [
@@ -167,7 +167,13 @@ const config: ISetupHead[] = [
     width: 160,
     manualProp: true,
     parentProp: 'trans_info',
-    rules: [reguFnSysPath()],
+    rules: [reguFnSysPath({ minLevel: 2 })],
+    getDefaultValue(): string {
+      return this.apList?.find(ap => ap.id === this.arbitrary)?.file_cache_dirs || '';
+    },
+    handleBlur: (row, config) => {
+      row[config.prop] = `/${osDirReplace(row[config.prop])}`;
+    },
   },
   {
     label: 'BT节点探测',
