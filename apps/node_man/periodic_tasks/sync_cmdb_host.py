@@ -18,9 +18,15 @@ from django.db import transaction
 
 from apps.backend.celery import app
 from apps.component.esbclient import client_v2
+from apps.core.gray.tools import GrayTools
 from apps.exceptions import ComponentCallError
 from apps.node_man import constants, models, tools
-from apps.node_man.periodic_tasks.utils import query_bk_biz_ids
+from apps.node_man.periodic_tasks.utils import (
+    SyncHostApMapConfig,
+    get_host_ap_id,
+    get_sync_host_ap_map_config,
+    query_bk_biz_ids,
+)
 from apps.utils.batch_request import batch_request
 from apps.utils.concurrent import batch_call
 from common.log import logger
@@ -153,7 +159,7 @@ def find_host_biz_relations(find_host_biz_ids):
     return host_biz_relation
 
 
-def update_or_create_host_base(biz_id, task_id, cmdb_host_data):
+def update_or_create_host_base(biz_id, ap_map_config, is_gse2_gray, task_id, cmdb_host_data):
     bk_host_ids = [_host["bk_host_id"] for _host in cmdb_host_data]
 
     # 查询节点管理已存在的主机
@@ -189,7 +195,9 @@ def update_or_create_host_base(biz_id, task_id, cmdb_host_data):
     need_create_process_status_objs: typing.List[models.ProcessStatus] = []
     need_update_host_identity_objs: typing.List[models.IdentityData] = []
 
-    ap_id = constants.DEFAULT_AP_ID if models.AccessPoint.objects.count() > 1 else models.AccessPoint.objects.first().id
+    default_ap_id = (
+        constants.DEFAULT_AP_ID if models.AccessPoint.objects.count() > 1 else models.AccessPoint.objects.first().id
+    )
 
     # 已存在的主机批量更新,不存在的主机批量创建
     for host in cmdb_host_data:
@@ -226,7 +234,12 @@ def update_or_create_host_base(biz_id, task_id, cmdb_host_data):
             host_data, identify_data, process_status_data = _generate_host(
                 biz_id,
                 host,
-                ap_id,
+                get_host_ap_id(
+                    default_ap_id=default_ap_id,
+                    bk_cloud_id=host["bk_cloud_id"],
+                    ap_map_config=ap_map_config,
+                    is_gse2_gray=is_gse2_gray,
+                ),
                 is_os_type_priority,
                 is_sync_cmdb_host_apply_cpu_arch,
             )
@@ -269,7 +282,9 @@ def update_or_create_host_base(biz_id, task_id, cmdb_host_data):
     return bk_host_ids
 
 
-def sync_biz_incremental_hosts(bk_biz_id: int, expected_bk_host_ids: typing.Iterable[int]):
+def sync_biz_incremental_hosts(
+    bk_biz_id: int, ap_map_config: SyncHostApMapConfig, expected_bk_host_ids: typing.Iterable[int], is_gse2_gray: bool
+):
     """
     同步业务增量主机
     :param bk_biz_id: 业务ID
@@ -292,7 +307,11 @@ def sync_biz_incremental_hosts(bk_biz_id: int, expected_bk_host_ids: typing.Iter
     hosts: typing.List[typing.Dict] = query_biz_hosts(bk_biz_id=bk_biz_id, bk_host_ids=incremental_host_ids)
     # 更新本地缓存
     update_or_create_host_base(
-        biz_id=bk_biz_id, task_id=f"differential_sync_biz_hosts_{bk_biz_id}", cmdb_host_data=hosts
+        biz_id=bk_biz_id,
+        ap_map_config=ap_map_config,
+        is_gse2_gray=is_gse2_gray,
+        task_id=f"differential_sync_biz_hosts_{bk_biz_id}",
+        cmdb_host_data=hosts,
     )
 
 
@@ -303,12 +322,20 @@ def bulk_differential_sync_biz_hosts(expected_bk_host_ids_gby_bk_biz_id: typing.
     :return:
     """
     params_list: typing.List[typing.Dict] = []
+    ap_map_config: SyncHostApMapConfig = get_sync_host_ap_map_config()
     for bk_biz_id, bk_host_ids in expected_bk_host_ids_gby_bk_biz_id.items():
-        params_list.append({"bk_biz_id": bk_biz_id, "expected_bk_host_ids": bk_host_ids})
+        params_list.append(
+            {
+                "bk_biz_id": bk_biz_id,
+                "ap_map_config": ap_map_config,
+                "expected_bk_host_ids": bk_host_ids,
+                "is_gse2_gray": GrayTools().is_gse2_gray(bk_biz_id=bk_biz_id),
+            }
+        )
     batch_call(func=sync_biz_incremental_hosts, params_list=params_list)
 
 
-def _update_or_create_host(biz_id, start=0, task_id=None):
+def _update_or_create_host(biz_id, ap_map_config: SyncHostApMapConfig, is_gse2_gray=False, start=0, task_id=None):
     if biz_id == settings.BK_CMDB_RESOURCE_POOL_BIZ_ID:
         cc_result = _list_resource_pool_hosts(start)
     else:
@@ -322,11 +349,13 @@ def _update_or_create_host(biz_id, start=0, task_id=None):
         f"host_count -> {host_count}, range -> {start}-{start + constants.QUERY_CMDB_LIMIT}"
     )
 
-    bk_host_ids = update_or_create_host_base(biz_id, task_id, host_data)
+    bk_host_ids = update_or_create_host_base(biz_id, ap_map_config, is_gse2_gray, task_id, host_data)
 
     # 递归
     if host_count > start + constants.QUERY_CMDB_LIMIT:
-        bk_host_ids += _update_or_create_host(biz_id, start + constants.QUERY_CMDB_LIMIT, task_id=task_id)
+        bk_host_ids += _update_or_create_host(
+            biz_id, ap_map_config, is_gse2_gray, start + constants.QUERY_CMDB_LIMIT, task_id=task_id
+        )
 
     return bk_host_ids
 
@@ -336,6 +365,8 @@ def sync_cmdb_host(bk_biz_id=None, task_id=None):
     同步cmdb主机
     """
     logger.info(f"[sync_cmdb_host] start: task_id -> {task_id}, bk_biz_id -> {bk_biz_id}")
+
+    ap_map_config: SyncHostApMapConfig = get_sync_host_ap_map_config()
 
     # 记录CC所有host id
     cc_bk_host_ids = []
@@ -349,7 +380,12 @@ def sync_cmdb_host(bk_biz_id=None, task_id=None):
         bk_biz_ids.append(settings.BK_CMDB_RESOURCE_POOL_BIZ_ID)
 
     for bk_biz_id in bk_biz_ids:
-        cc_bk_host_ids += _update_or_create_host(bk_biz_id, task_id=task_id)
+        cc_bk_host_ids += _update_or_create_host(
+            bk_biz_id,
+            ap_map_config=ap_map_config,
+            is_gse2_gray=GrayTools().is_gse2_gray(bk_biz_id=bk_biz_id),
+            task_id=task_id,
+        )
 
     # 查询节点管理所有主机
     node_man_host_ids = models.Host.objects.filter(bk_biz_id__in=bk_biz_ids).values_list("bk_host_id", flat=True)
