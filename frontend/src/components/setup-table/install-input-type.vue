@@ -316,7 +316,10 @@ export default class InputType extends Mixins(emitter) {
   public handleBlur(value: IValue, event?: Event) {
     this.isFocus = false;
     this.handleEmitBlur(value, event);
-    this.dispatch('step-verify-input', 'verify-blur', this.inputValue);
+    // 优化 - 兼容需要对值做修改之后再进行校验情况
+    this.$nextTick(() => {
+      this.dispatch('step-verify-input', 'verify-blur', this.inputValue);
+    });
   }
   /**
      * 文件变更时事件
