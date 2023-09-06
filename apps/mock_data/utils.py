@@ -28,6 +28,10 @@ DEFAULT_IP = "127.0.0.1"
 
 JOB_TASK_PIPELINE_ID = "1ae89ce9deec319bbd8727a0c4b2ca82"
 
+GSE_ENVIRON_DIR = "/etc/sysconfig/gse/bk_test/user_conf"
+
+GSE_ENVIRON_WIN_DIR = "C:\\Windows\\System32\\config\\gse\\bk_test\\user_conf"
+
 
 class MockReturnType(EnhanceEnum):
 
