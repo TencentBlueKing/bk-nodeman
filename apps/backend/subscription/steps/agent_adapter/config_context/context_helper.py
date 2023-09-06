@@ -19,6 +19,7 @@ from typing import Any, Dict
 from django.conf import settings
 
 from apps.backend.agent import tools
+from apps.backend.agent.solution_maker import ExecutionSolutionTools
 from apps.backend.utils.data_renderer import nested_render_data
 from apps.node_man import constants, models
 
@@ -115,6 +116,7 @@ class ConfigContextHelper:
                         ]
                     )
                 ],
+                extra_config_directory=ExecutionSolutionTools.get_gse_extra_config_dir(self.host.os_type),
             ),
             context_dataclass.AccessConfigContext(
                 cluster_endpoints=",".join(

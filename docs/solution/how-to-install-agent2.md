@@ -73,8 +73,8 @@ config:
   gseVersion: V2
   bkAppBkGseApiGateway: { { BKAPP_BK_GSE_APIGATEWAY } }
   gseEnablePushEnvironFile: true
-  gseEnvironDir: /etc/sysconfig/gse/{{ ENV }}
-  gseEnvironWinDir: C:\\Windows\\System32\\config\\gse\\{{ ENV }}
+  gseEnvironDir: /etc/sysconfig/gse/{{ ENV }}/user_conf
+  gseEnvironWinDir: C:\\Windows\\System32\\config\\gse\\{{ ENV }}\\user_conf
 ```  
 
 环境变量说明请参考：[bk-nodman 系统配置](https://github.com/TencentBlueKing/bk-nodeman/blob/v2.3.x/support-files/kubernetes/helm/bk-nodeman/README.md#bk-nodeman-%E7%B3%BB%E7%BB%9F%E9%85%8D%E7%BD%AE)

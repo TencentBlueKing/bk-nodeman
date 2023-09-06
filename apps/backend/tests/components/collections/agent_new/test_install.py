@@ -397,6 +397,7 @@ class InstallAgent2WindowsTestCase(InstallWindowsTestCase):
         inputs["meta"] = {"GSE_VERSION": GseVersion.V2.value}
         return inputs
 
+    @override_settings(GSE_ENVIRON_WIN_DIR=mock_data_utils.GSE_ENVIRON_WIN_DIR)
     def test_batch_solution(self):
         host = models.Host.objects.get(bk_host_id=self.obj_factory.bk_host_ids[0])
         agent_step_adapter: AgentStepAdapter = AgentStepAdapter(
@@ -423,6 +424,7 @@ class InstallAgent2WindowsTestCase(InstallWindowsTestCase):
         self.assertEqual(
             solution_parse_result["cmds"],
             [
+                f"mkdir {mock_data_utils.GSE_ENVIRON_WIN_DIR}",
                 f"mkdir {installation_tool.dest_dir}",
                 # f"{installation_tool.dest_dir}curl.exe http://127.0.0.1/download/setup_agent.bat"
                 # f" -o {installation_tool.dest_dir}setup_agent.bat -sSfg",
@@ -748,6 +750,7 @@ class LinuxAgent2InstallTestCase(InstallBaseTestCase):
         inputs["meta"] = {"GSE_VERSION": GseVersion.V2.value}
         return inputs
 
+    @override_settings(GSE_ENVIRON_DIR=mock_data_utils.GSE_ENVIRON_DIR)
     def test_shell_solution(self):
         host = models.Host.objects.get(bk_host_id=self.obj_factory.bk_host_ids[0])
         agent_step_adapter: AgentStepAdapter = AgentStepAdapter(
@@ -771,6 +774,7 @@ class LinuxAgent2InstallTestCase(InstallBaseTestCase):
         self.assertEqual(
             solution_parse_result["cmds"],
             [
+                f"mkdir -p {mock_data_utils.GSE_ENVIRON_DIR}",
                 f"mkdir -p {installation_tool.dest_dir}",
                 f"mkdir -p {self.CUSTOM_DATAIPC_DIR}",
                 f"curl http://127.0.0.1/download/agent_tools/agent2/setup_agent.sh "

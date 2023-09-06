@@ -91,10 +91,12 @@ GSE_CERT_PATH = get_type_env(key="GSE_CERT_PATH", default="/data/bkce/cert", _ty
 GSE_ENABLE_PUSH_ENVIRON_FILE = get_type_env(key="GSE_ENABLE_PUSH_ENVIRON_FILE", default=False, _type=bool)
 
 # GSE 环境变量目录
-GSE_ENVIRON_DIR = get_type_env(key="GSE_ENVIRON_DIR", default="", _type=str)
+GSE_ENVIRON_DIR = get_type_env(key="GSE_ENVIRON_DIR", default="/etc/sysconfig/gse/bk/user_conf", _type=str)
 
 # GSE 环境变量目录（Windows）
-GSE_ENVIRON_WIN_DIR = get_type_env(key="GSE_ENVIRON_WIN_DIR", default="", _type=str)
+GSE_ENVIRON_WIN_DIR = get_type_env(
+    key="GSE_ENVIRON_WIN_DIR", default="C:\\Windows\\System32\\config\\gse\\bk\\user_conf", _type=str
+)
 
 # ===============================================================================
 # 可观测

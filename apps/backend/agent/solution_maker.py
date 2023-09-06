@@ -101,6 +101,13 @@ class ExecutionSolutionTools:
         script_file_name = constants.SCRIPT_FILE_NAME_MAP[host.os_type]
         return script_file_name
 
+    @staticmethod
+    def get_gse_extra_config_dir(os_type: str):
+        if os_type.upper() == constants.OsType.WINDOWS:
+            return settings.GSE_ENVIRON_WIN_DIR
+        else:
+            return settings.GSE_ENVIRON_DIR
+
 
 class BaseExecutionSolutionMaker(metaclass=abc.ABCMeta):
     # 是否直接在目标机器上执行
@@ -349,11 +356,19 @@ class BaseExecutionSolutionMaker(metaclass=abc.ABCMeta):
         """
         # 目前依赖文件路径相关配置分两类：1-文件名路径，创建上级目录，2-目录路径，暂无需求
         filepath_config_names: typing.List[str] = []
+        filepath_necessary_names: typing.List[str] = []
 
         if self.host.os_type != constants.OsType.WINDOWS:
             filepath_config_names.extend(["dataipc"])
 
+        if not self.agent_setup_info.is_legacy:
+            # GSE 1.0 不需要创建额外配置目录
+            filepath_necessary_names.append(ExecutionSolutionTools.get_gse_extra_config_dir(self.host.os_type))
+
         dirs_to_be_created: typing.Set[str] = {self.dest_dir}
+        for filepath_necessary_name in filepath_necessary_names:
+            dirs_to_be_created.add(filepath_necessary_name)
+
         # 获取到相应操作系统
         agent_config: typing.Dict[str, typing.Any] = self.host_ap.get_agent_config(self.host.os_type)
         for filepath_config_name in filepath_config_names:
