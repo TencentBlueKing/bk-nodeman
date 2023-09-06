@@ -10,7 +10,9 @@ specific language governing permissions and limitations under the License.
 """
 import logging
 import time
+import typing
 from collections import defaultdict
+from dataclasses import dataclass
 from typing import Dict, Union
 
 import ujson as json
@@ -19,8 +21,11 @@ from django.conf import settings
 from apps.backend.api.constants import POLLING_INTERVAL, POLLING_TIMEOUT, JobIPStatus
 from apps.backend.api.errors import JobPollTimeout
 from apps.component.esbclient import client_v2
+from apps.core.gray.tools import GrayTools
+from apps.exceptions import ValidationError
 from apps.node_man import constants, models
 from common.api import JobApi
+from env.constants import GseVersion
 
 logger = logging.getLogger("app")
 
@@ -158,3 +163,80 @@ class JobDemand(object):
                     )
 
         return {"is_finished": is_finished, "task_result": task_result}
+
+
+@dataclass
+class SyncHostApMapConfig:
+    enable: bool = False
+    default_ap_id: typing.Dict[str, typing.Dict[str, int]] = None
+    gray_ap_map: typing.Dict[str, typing.Dict[str, int]] = None
+    cloud_ap_id_map: typing.Dict[str, typing.Dict[str, int]] = None
+    ap_id_obj_map: typing.Dict[str, typing.Dict[str, int]] = None
+
+    def __post_init__(self):
+        if self.enable:
+            if self.default_ap_id is None:
+                raise ValidationError(
+                    "Please check the default ap id mapping. "
+                    'Example: {"enable": true, "default_ap_id": {"V1": 1, "V2": 2}}'
+                )
+            self.gray_ap_map = GrayTools.get_gray_ap_map()
+            self.cloud_ap_id_map = models.Cloud.cloud_ap_id_map()
+            self.ap_id_obj_map = models.AccessPoint.ap_id_obj_map()
+
+
+def get_sync_host_ap_map_config() -> SyncHostApMapConfig:
+    ap_map_config: typing.Dict[str, typing.Any] = models.GlobalSettings.get_config(
+        key=models.GlobalSettings.KeyEnum.SYNC_HOST_AP_MAP_CONFIG.value, default={}
+    )
+    return SyncHostApMapConfig(**ap_map_config)
+
+
+def get_host_ap_id(
+    default_ap_id: int, bk_cloud_id: int, ap_map_config: SyncHostApMapConfig, is_gse2_gray: bool = False
+) -> int:
+    # 获取配置
+    if default_ap_id != constants.DEFAULT_AP_ID or not ap_map_config.enable:
+        # 只有一个接口的情况直接返回 或未开启配置
+        return default_ap_id
+
+    # 获取开关和映射
+    if bk_cloud_id == constants.DEFAULT_CLOUD:
+        # 直连区域, 如果灰度完成取2.0接入点
+        ap_id: int = [
+            ap_map_config.default_ap_id[GseVersion.V1.value],
+            ap_map_config.default_ap_id[GseVersion.V2.value],
+        ][is_gse2_gray]
+    else:
+        # 非直连区域, 取管控区域或者对应的映射接入点
+        gray_ap_map = ap_map_config.gray_ap_map
+        cloud_ap_id_map = ap_map_config.cloud_ap_id_map
+        ap_id_obj_map = ap_map_config.ap_id_obj_map
+        try:
+            if any(
+                [
+                    ap_id_obj_map[cloud_ap_id_map[bk_cloud_id]].gse_version == GseVersion.V2.value,
+                    ap_id_obj_map[cloud_ap_id_map[bk_cloud_id]].gse_version == GseVersion.V1.value and not is_gse2_gray,
+                ]
+            ):
+                # 1.管控区域版本为V2代表此管控区域下的所有业务均已灰度
+                # 2.管控区域版本为V1并且业务未灰度情况
+                ap_id: int = cloud_ap_id_map[bk_cloud_id]
+            else:
+                # 管控区域版本为V1业务已灰度情况取与之映射的V2 Ap_id
+                try:
+                    ap_id: int = gray_ap_map[cloud_ap_id_map[bk_cloud_id]]
+                except KeyError:
+                    logger.error(
+                        f"No mapping found corresponding to cloud area access point id. "
+                        f"bk_cloud_id->{bk_cloud_id} ap_id->{ap_id}"
+                    )
+                    ap_id: int = default_ap_id
+        except KeyError:
+            logger.error(
+                f"Access point or cloud area mismatch. "
+                f"bk_cloud_id->{bk_cloud_id} ap_id->{cloud_ap_id_map.get(bk_cloud_id)}"
+            )
+            ap_id: int = default_ap_id
+
+    return ap_id

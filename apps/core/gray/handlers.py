@@ -81,15 +81,7 @@ class GrayHandler:
     @classmethod
     def get_gray_ap_map(cls) -> typing.Dict[int, int]:
         # 获取GSE2.0灰度 接入点映射关系
-        gray_ap_map: typing.Dict[int, int] = node_man_models.GlobalSettings.get_config(
-            key=node_man_models.GlobalSettings.KeyEnum.GSE2_GRAY_AP_MAP.value,
-            default={},
-        )
-
-        if not gray_ap_map:
-            raise ApiError(_("请联系管理员配置GSE1.0-2.0接入点映射"))
-
-        return {int(v1_ap_id): int(v2_ap_id) for v1_ap_id, v2_ap_id in gray_ap_map.items()}
+        return GrayTools.get_gray_ap_map()
 
     @classmethod
     def activate(
