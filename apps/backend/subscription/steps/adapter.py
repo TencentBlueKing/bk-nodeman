@@ -18,6 +18,7 @@ from django.utils.translation import ugettext as _
 from rest_framework import exceptions, serializers
 
 from apps.backend.subscription import errors
+from apps.core.tag.constants import TargetType
 from apps.core.tag.models import Tag
 from apps.core.tag.targets.plugin import PluginTargetHelper
 from apps.node_man import constants, models
@@ -218,7 +219,9 @@ class PolicyStepAdapter:
             raise errors.PluginValidationError(msg="插件 [{name}] 信息不存在".format(name=self.plugin_name))
 
         latest_flag: str = "latest"
-        is_tag: bool = Tag.objects.filter(target_id=plugin_desc.id, name=latest_flag).exists()
+        is_tag: bool = Tag.objects.filter(
+            target_id=plugin_desc.id, name=latest_flag, target_type=TargetType.PLUGIN.value
+        ).exists()
 
         if plugin_version != latest_flag or is_tag:
             # 如果 latest 是 tag，走取指定版本的逻辑

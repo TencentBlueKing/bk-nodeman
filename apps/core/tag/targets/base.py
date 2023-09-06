@@ -177,7 +177,7 @@ class BaseTargetHelper(abc.ABC):
         :return:
         """
         tag_name__obj_map: typing.Dict[str, models.Tag] = {}
-        for tag in models.Tag.objects.filter(target_id=target_id):
+        for tag in models.Tag.objects.filter(target_id=target_id, target_type=cls.TARGET_TYPE):
             tag_name__obj_map[tag.name] = tag
         return tag_name__obj_map
 
