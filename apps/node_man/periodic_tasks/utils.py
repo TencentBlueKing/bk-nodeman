@@ -22,7 +22,7 @@ from apps.backend.api.constants import POLLING_INTERVAL, POLLING_TIMEOUT, JobIPS
 from apps.backend.api.errors import JobPollTimeout
 from apps.component.esbclient import client_v2
 from apps.core.gray.tools import GrayTools
-from apps.exceptions import ValidationError
+from apps.exceptions import ApiError, ValidationError
 from apps.node_man import constants, models
 from common.api import JobApi
 from env.constants import GseVersion
@@ -180,7 +180,11 @@ class SyncHostApMapConfig:
                     "Please check the default ap id mapping. "
                     'Example: {"enable": true, "default_ap_id": {"V1": 1, "V2": 2}}'
                 )
-            self.gray_ap_map = GrayTools.get_gray_ap_map()
+            try:
+                self.gray_ap_map = GrayTools.get_gray_ap_map()
+            except ApiError as e:
+                logger.exception(e)
+                self.gray_ap_map = {}
             self.cloud_ap_id_map = models.Cloud.cloud_ap_id_map()
             self.ap_id_obj_map = models.AccessPoint.ap_id_obj_map()
 
@@ -224,14 +228,8 @@ def get_host_ap_id(
                 ap_id: int = cloud_ap_id_map[bk_cloud_id]
             else:
                 # 管控区域版本为V1业务已灰度情况取与之映射的V2 Ap_id
-                try:
-                    ap_id: int = gray_ap_map[cloud_ap_id_map[bk_cloud_id]]
-                except KeyError:
-                    logger.error(
-                        f"No mapping found corresponding to cloud area access point id. "
-                        f"bk_cloud_id->{bk_cloud_id} ap_id->{ap_id}"
-                    )
-                    ap_id: int = default_ap_id
+                # 没有配置映射使用管控区域接入点
+                ap_id: int = gray_ap_map.get(cloud_ap_id_map[bk_cloud_id], cloud_ap_id_map[bk_cloud_id])
         except KeyError:
             logger.error(
                 f"Access point or cloud area mismatch. "
