@@ -324,11 +324,11 @@ class Host(models.Model):
                 raise ApIDNotExistsError({"ap_id": self.ap_id})
         return self._ap
 
-    @property
-    def install_channel(self):
+    def install_channel(self, ap_id: int = None):
         if getattr(self, "_install_channel", None):
             return self._install_channel
 
+        ap_id = ap_id or self.ap_id
         jump_server = None
         upstream_servers = {}
         # 指定了安装通道，使用安装通道的信息作为跳板和上游
@@ -351,7 +351,12 @@ class Host(models.Model):
                 jump_server = Host.objects.get(**filter_kwargs)
             except Host.DoesNotExist:
                 raise HostNotExists(_("安装节点主机{inner_ip}不存在，请确认是否已安装AGENT").format(inner_ip=jump_server_ip))
-            upstream_servers = install_channel.upstream_servers
+
+            # 通过AP_ID获取upstream_servers信息，如果没有返回默认
+            upstream_servers_ap_id_key: str = f"AP_ID_{ap_id}"
+            upstream_servers = install_channel.upstream_servers.get(
+                upstream_servers_ap_id_key, install_channel.upstream_servers
+            )
         # TODO 这两个分支并未使用到，非安装通道场景是通过 fetch_gse_servers_info 获取实际的上游
         # 管控区域未指定安装通道的，用proxy作为跳板和上游
         # elif self.bk_cloud_id and self.node_type != constants.NodeType.PROXY:
@@ -741,6 +746,10 @@ class InstallChannel(models.Model):
     bk_cloud_id = models.IntegerField(_("管控区域ID"))
     jump_servers = JSONField(_("安装通道跳板机"))
     upstream_servers = JSONField(_("上游节点"))
+
+    def get_upstream_servers_by_ap_id(self, ap_id):
+        upstream_servers_ap_id_key: str = f"AP_ID_{ap_id}"
+        return self.upstream_servers.get(upstream_servers_ap_id_key, self.upstream_servers)
 
     @classmethod
     def install_channel_id__host_objs_map(

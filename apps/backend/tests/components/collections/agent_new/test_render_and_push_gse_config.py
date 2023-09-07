@@ -48,7 +48,7 @@ class RenderAndPushGseConfigTestCase(base.JobBaseTestCase):
                 node_type=node_type,
                 ap=host.ap,
                 proxies=host.proxies,
-                install_channel=host.install_channel,
+                install_channel=host.install_channel(),
             )
             self.assertEqual(except_content, config_content)
         super().tearDown()
