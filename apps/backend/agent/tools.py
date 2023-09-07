@@ -257,7 +257,7 @@ def gen_commands(
     # 批量场景请传入Optional所需对象，以避免 n+1 查询，提高执行效率
     host_ap = host_ap or host.ap
     identity_data = identity_data or host.identity
-    install_channel = install_channel or host.install_channel
+    install_channel = install_channel or host.install_channel(ap_id=host_ap.id)
     proxies = proxies if proxies is not None else fetch_proxies(host, host_ap)
     # TODO 如果是额外安装场景，这里的 jumpserver 应该选取当前作业平台全业务集可用的机器
     gse_servers_info: Dict[str, Any] = fetch_gse_servers_info(

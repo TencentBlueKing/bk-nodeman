@@ -59,7 +59,7 @@ class GetLegacyGseConfigTestCase(ViewBaseTestCase):
         # 参考：https://stackoverflow.com/questions/21458387
         cls.ap = cls.host.ap
         cls.proxies = list(cls.host.proxies)
-        cls.install_channel = cls.host.install_channel
+        cls.install_channel = cls.host.install_channel()
         cls.redis_agent_conf_key = REDIS_AGENT_CONF_KEY_TPL.format(
             file_name=cls.agent_step_adapter.get_main_config_filename(), sub_inst_id=cls.sub_inst_record_obj.id
         )
