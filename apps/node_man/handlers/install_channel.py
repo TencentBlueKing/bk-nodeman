@@ -35,9 +35,11 @@ class InstallChannelHandler(APIModel):
     def update(
         self, install_channel_id: int, name: str, jump_servers: List[str], upstream_servers: Dict[str, List[str]]
     ) -> Dict:
-        models.InstallChannel.objects.filter(id=install_channel_id, bk_cloud_id=self.bk_cloud_id).update(
-            name=name, jump_servers=jump_servers, upstream_servers=upstream_servers
-        )
+        install_channel = models.InstallChannel.objects.get(id=install_channel_id, bk_cloud_id=self.bk_cloud_id)
+        install_channel.name = name
+        install_channel.jump_servers = jump_servers
+        install_channel.upstream_servers.update(**upstream_servers)
+        install_channel.save()
         return model_to_dict(models.InstallChannel.objects.get(id=install_channel_id))
 
     def destroy(self, install_channel_id: int):

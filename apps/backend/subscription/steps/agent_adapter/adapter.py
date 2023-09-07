@@ -138,7 +138,7 @@ class AgentStepAdapter:
 
         ap = ap or host.ap
         proxies = proxies if proxies is not None else fetch_proxies(host, ap)
-        install_channel = install_channel or host.install_channel
+        install_channel = install_channel or host.install_channel(ap_id=ap.id)
 
         func: typing.Callable[..., str] = (self._get_config, legacy.generate_gse_config)[self.is_legacy]
         return func(
