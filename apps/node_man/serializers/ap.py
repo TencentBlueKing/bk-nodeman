@@ -13,11 +13,13 @@ from typing import List
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
+from apps.backend.subscription.steps.agent_adapter.base import AgentSetupTools
 from apps.exceptions import ValidationError
 from apps.node_man.constants import (
     GSE_PORT_DEFAULT_VALUE,
     GSE_V2_PORT_DEFAULT_VALUE,
     IamActionType,
+    OsType,
 )
 from apps.node_man.handlers.iam import IamHandler
 from apps.node_man.models import AccessPoint
@@ -49,6 +51,7 @@ class ListSerializer(serializers.ModelSerializer):
     is_enabled = serializers.BooleanField(label=_("是否启用"))
     is_default = serializers.BooleanField(label=_("是否默认接入点，不可删除"))
     proxy_package = serializers.JSONField(label=_("Proxy上的安装包"))
+    file_cache_dirs = serializers.SerializerMethodField(label=_("文件缓存目录"))
 
     def to_representation(self, instance):
         ret = super(ListSerializer, self).to_representation(instance)
@@ -62,6 +65,13 @@ class ListSerializer(serializers.ModelSerializer):
             "view": ret["id"] in perms[IamActionType.ap_view],
         }
         return ret
+
+    def get_file_cache_dirs(self, instance):
+        is_legacy: bool = instance.gse_version == GseVersion.V1.value
+        data_path: str = AgentSetupTools.generate_gse_file_cache_dir(
+            path=instance.agent_config[OsType.LINUX.lower()]["setup_path"], is_legacy=is_legacy
+        )
+        return data_path
 
     class Meta:
         model = AccessPoint

@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import os
 import typing
 from dataclasses import dataclass
 
@@ -35,3 +36,14 @@ class AgentSetupInfo:
     # extra setup info
     # 是否强制更新 AgentID，True：注册 AgentID 前会先
     force_update_agent_id: bool = False
+
+
+class AgentSetupTools:
+    @staticmethod
+    def generate_gse_file_cache_dir(path: str, is_legacy: bool) -> str:
+        gse_file_cache_prefix: str = "/data"
+        if is_legacy:
+            file_cache_dir: str = os.path.join(gse_file_cache_prefix, os.path.basename(path))
+        else:
+            file_cache_dir: str = os.path.join(gse_file_cache_prefix, os.path.basename(path), "file_cache")
+        return file_cache_dir

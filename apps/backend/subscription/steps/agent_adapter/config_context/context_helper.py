@@ -20,6 +20,7 @@ from django.conf import settings
 
 from apps.backend.agent import tools
 from apps.backend.agent.solution_maker import ExecutionSolutionTools
+from apps.backend.subscription.steps.agent_adapter.base import AgentSetupTools
 from apps.backend.utils.data_renderer import nested_render_data
 from apps.node_man import constants, models
 
@@ -212,7 +213,11 @@ class ConfigContextHelper:
                 tls_cli_cert_file=proxy_tls_cli_cert_file,
                 tls_cli_key_file=proxy_tls_cli_key_file,
             ),
-            context_dataclass.FileCacheConfigContext(),
+            context_dataclass.FileCacheConfigContext(
+                dirs=self.host.extra_data.get(
+                    "data_path", AgentSetupTools.generate_gse_file_cache_dir(path=setup_path, is_legacy=False)
+                ),
+            ),
             context_dataclass.FileMetricConfigContext(
                 exporter_bind_port=self.ap.port_config.get(
                     "file_metric_bind_port", constants.GSE_PORT_DEFAULT_VALUE["file_metric_bind_port"]
