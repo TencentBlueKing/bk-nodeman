@@ -181,12 +181,12 @@ class AgentBaseService(BaseService, metaclass=abc.ABCMeta):
         hosts: List[models.Host],
         host_id__sub_inst_id: Dict[int, int],
         cloud_id__proxies_map: Dict[int, List[models.Host]],
+        common_data: AgentCommonData,
     ) -> Dict[int, Tuple[Optional[models.Host], Dict[str, List]]]:
         install_channel_ids: List[int] = list({host.install_channel_id for host in hosts})
         install_channel_id__jump_servers_map: Dict[
             int, List[models.Host]
         ] = models.InstallChannel.install_channel_id__host_objs_map(install_channel_ids)
-
         # 建立通道ID - 通道的映射关系
         id__install_channel_obj_map: Dict[int, models.InstallChannel] = {}
         for install_channel_obj in models.InstallChannel.objects.filter(id__in=install_channel_ids):
@@ -200,6 +200,7 @@ class AgentBaseService(BaseService, metaclass=abc.ABCMeta):
 
         host_id__install_channel_map: Dict[int, Tuple[Optional[models.Host], Dict[str, List]]] = {}
         for host in hosts:
+            host_ap: models.AccessPoint = self.get_host_ap(common_data=common_data, host=host)
             sub_inst_id = host_id__sub_inst_id[host.bk_host_id]
             install_channel_obj = id__install_channel_obj_map.get(host.install_channel_id)
             if install_channel_obj:
@@ -210,7 +211,10 @@ class AgentBaseService(BaseService, metaclass=abc.ABCMeta):
                         [sub_inst_id], log_content=_("所选安装通道「{name}」 没有可用跳板机".format(name=install_channel_obj.name))
                     )
                 else:
-                    host_id__install_channel_map[host.bk_host_id] = (jump_server, install_channel_obj.upstream_servers)
+                    host_id__install_channel_map[host.bk_host_id] = (
+                        jump_server,
+                        install_channel_obj.get_upstream_servers_by_ap_id(host_ap.id),
+                    )
             elif host.bk_cloud_id != constants.DEFAULT_CLOUD and host.node_type != constants.NodeType.PROXY:
                 # 仅校验
                 alive_proxies = cloud_id__alive_proxies_map.get(host.bk_cloud_id, [])
@@ -245,6 +249,7 @@ class AgentBaseService(BaseService, metaclass=abc.ABCMeta):
             hosts=hosts_need_gen_commands,
             host_id__sub_inst_id=common_data.host_id__sub_inst_id_map,
             cloud_id__proxies_map=cloud_id__proxies_map,
+            common_data=common_data,
         )
 
         id__sub_inst_obj_map: Dict[int, models.SubscriptionInstanceRecord] = {
