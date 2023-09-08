@@ -140,6 +140,8 @@ class GlobalSettings(models.Model):
         YUNTI_POLICY_CONFIGS = "YUNTI_POLICY_CONFIGS"
         # 同步主机默认AP配置
         SYNC_HOST_AP_MAP_CONFIG = "SYNC_HOST_AP_MAP_CONFIG"
+        # 接入点屏蔽开关
+        ENABLE_AP_VERSION_MUTEX = "ENABLE_AP_VERSION_MUTEX"
 
     key = models.CharField(_("键"), max_length=255, db_index=True, primary_key=True)
     v_json = JSONField(_("值"))
