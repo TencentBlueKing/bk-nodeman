@@ -12,6 +12,7 @@ import typing
 from collections import defaultdict
 
 from django.conf import settings
+from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
@@ -83,7 +84,75 @@ class ListSerializer(serializers.Serializer):
     end_time = serializers.DateTimeField(label=_("终止时间"), required=False)
 
 
-class HostSerializer(serializers.Serializer):
+class InstallBaseSerializer(serializers.Serializer):
+
+    op_not_need_identity = [
+        constants.OpType.REINSTALL,
+        constants.OpType.RESTART,
+        constants.OpType.UPGRADE,
+        constants.OpType.UNINSTALL,
+        constants.OpType.RELOAD,
+    ]
+
+    def backfill_bk_host_id(self, hosts):
+        query_params = Q()
+        query_params.connector = "OR"
+        cloud_ip_host_info_map = {}
+        for _host in hosts:
+            if _host.get("bk_host_id") is None:
+
+                sub_query = Q()
+                sub_query.connector = "AND"
+                sub_query.children.append(("bk_cloud_id", _host["bk_cloud_id"]))
+                if _host.get("inner_ip"):
+                    sub_query.children.append(("inner_ip", _host["inner_ip"]))
+                    ip_key = _host["inner_ip"]
+                else:
+                    sub_query.children.append(("inner_ipv6", _host["inner_ipv6"]))
+                    ip_key = _host["inner_ipv6"]
+
+                cloud_ip_host_info_map[f"{_host['bk_cloud_id']}:{ip_key}"] = _host
+                query_params.children.append(sub_query)
+
+        query_hosts: typing.List[typing.Dict] = models.Host.objects.filter(query_params).values(
+            "bk_host_id", "bk_cloud_id", "inner_ip", "inner_ipv6"
+        )
+
+        cloup_ip_host_id_map = {}
+        for _query_host in query_hosts:
+            if _query_host["inner_ip"]:
+                cloup_ip_host_id_map[f"{_query_host['bk_cloud_id']}:{_query_host['inner_ip']}"] = _query_host[
+                    "bk_host_id"
+                ]
+            if _query_host["inner_ipv6"]:
+                cloup_ip_host_id_map[f"{_query_host['bk_cloud_id']}:{_query_host['inner_ipv6']}"] = _query_host[
+                    "bk_host_id"
+                ]
+
+        for cloud_ip, host_info in cloud_ip_host_info_map.items():
+            host_info["bk_host_id"] = cloup_ip_host_id_map[cloud_ip]
+
+    def backfill_ap_id(self, hosts):
+        use_ap_map_host_ids: typing.List[int] = [host["bk_host_id"] for host in hosts if host["is_use_ap_map"]]
+        if use_ap_map_host_ids:
+            gray_ap_map: typing.Dict[int, int] = GrayHandler.get_gray_ap_map()
+            host_queryset = models.Host.objects.filter(bk_host_id__in=use_ap_map_host_ids).values("bk_host_id", "ap_id")
+            host_id_ap_map: typing.Dict[int, int] = {_host["bk_host_id"]: _host["ap_id"] for _host in host_queryset}
+            for host in hosts:
+                if not host["is_use_ap_map"]:
+                    continue
+
+                try:
+                    host["ap_id"] = gray_ap_map[host_id_ap_map[host["bk_host_id"]]]
+                except KeyError:
+                    raise ValidationError(
+                        _("缺少与主机ID: {bk_host_id} AP ID: {ap_id} 对应的接入点映射，请联系管理员配置").format(
+                            bk_host_id=host["bk_host_id"], ap_id=host_id_ap_map[host["bk_host_id"]]
+                        )
+                    )
+
+
+class HostSerializer(InstallBaseSerializer):
     bk_biz_id = serializers.IntegerField(label=_("业务ID"))
     bk_cloud_id = serializers.IntegerField(label=_("管控区域ID"))
     bk_host_id = serializers.IntegerField(label=_("主机ID"), required=False)
@@ -113,8 +182,9 @@ class HostSerializer(serializers.Serializer):
     peer_exchange_switch_for_agent = serializers.IntegerField(label=_("加速设置"), required=False, default=0)
     bt_speed_limit = serializers.IntegerField(label=_("传输限速"), required=False)
     data_path = serializers.CharField(label=_("数据文件路径"), required=False, allow_blank=True)
-    is_need_inject_ap_id = serializers.IntegerField(label=_("是否需要注入ap_id到meta"), required=False, default=False)
+    is_need_inject_ap_id = serializers.BooleanField(label=_("是否需要注入ap_id到meta"), required=False, default=False)
     enable_compression = serializers.BooleanField(label=_("数据压缩开关"), required=False, default=False)
+    is_use_ap_map = serializers.BooleanField(label=_("是否使用映射接入点"), required=False, default=False)
 
     def validate(self, attrs):
         # 获取任务类型，如果是除安装以外的操作，则密码和秘钥可以为空
@@ -129,16 +199,9 @@ class HostSerializer(serializers.Serializer):
 
         basic.ipv6_formatter(data=attrs, ipv6_field_names=["inner_ipv6", "outer_ipv6", "login_ip", "data_ip"])
 
-        op_not_need_identity = [
-            constants.OpType.REINSTALL,
-            constants.OpType.RESTART,
-            constants.OpType.UPGRADE,
-            constants.OpType.UNINSTALL,
-            constants.OpType.RELOAD,
-        ]
+        if attrs["is_use_ap_map"]:
+            attrs["is_need_inject_ap_id"] = True
 
-        if op_type in op_not_need_identity and not attrs.get("bk_host_id"):
-            raise ValidationError(_("{op_type} 操作必须传入 bk_host_id 参数").format(op_type=op_type))
         if (
             not attrs.get("is_manual")
             and not attrs.get("auth_type")
@@ -146,8 +209,22 @@ class HostSerializer(serializers.Serializer):
         ):
             raise ValidationError(_("{op_type} 操作必须填写认证类型").format(op_type=op_type))
 
+        if op_type in self.op_not_need_identity:
+            if all(
+                [
+                    attrs.get("bk_host_id") is None,
+                    all(
+                        [
+                            attrs.get("bk_cloud_id") is None,
+                            attrs.get("inner_ip") is None or attrs.get("inner_ipv6") is None,
+                        ]
+                    ),
+                ]
+            ):
+                raise ValidationError(_("bk_host_id 或者 管控区域加IP组合必须选择一种"))
+
         # identity校验
-        if op_type not in op_not_need_identity and not attrs.get("is_manual"):
+        if op_type not in self.op_not_need_identity and not attrs.get("is_manual"):
             if not attrs.get("password") and attrs["auth_type"] == constants.AuthType.PASSWORD:
                 raise ValidationError(_("密码认证方式必须填写密码"))
             if not attrs.get("key") and attrs["auth_type"] == constants.AuthType.KEY:
@@ -157,8 +234,8 @@ class HostSerializer(serializers.Serializer):
 
         # 直连区域必须填写Ap_id
         ap_id = attrs.get("ap_id")
-        if attrs["bk_cloud_id"] == int(constants.DEFAULT_CLOUD) and ap_id is None:
-            raise ValidationError(_("直连区域必须填写Ap_id"))
+        if attrs["bk_cloud_id"] == int(constants.DEFAULT_CLOUD) and ap_id is None and not attrs["is_use_ap_map"]:
+            raise ValidationError(_("直连区域必须填写Ap_id或使用映射"))
 
         # 去除空值
         if attrs.get("key") == "":
@@ -179,7 +256,7 @@ class ScriptHook(serializers.Serializer):
     name = serializers.CharField(label=_("脚本名称"), min_length=1)
 
 
-class InstallSerializer(serializers.Serializer):
+class InstallSerializer(InstallBaseSerializer):
     agent_setup_info = AgentSetupInfoSerializer(label=_("Agent 设置信息"), required=False)
     job_type = serializers.ChoiceField(label=_("任务类型"), choices=list(constants.JOB_TYPE_DICT))
     hosts = HostSerializer(label=_("主机信息"), many=True)
@@ -202,6 +279,12 @@ class InstallSerializer(serializers.Serializer):
         if attrs["job_type"] == constants.JobType.REPLACE_PROXY and not attrs.get("replace_host_id"):
             raise ValidationError(_("替换PROXY必须填写replace_host_id"))
 
+        if attrs["op_type"] in self.op_not_need_identity:
+            # 回填bk_host_id
+            self.backfill_bk_host_id(attrs["hosts"])
+            # 回填使用映射的主机的ap id
+            self.backfill_ap_id(attrs["hosts"])
+
         bk_biz_ids = set()
         expected_bk_host_ids_gby_bk_biz_id: typing.Dict[int, typing.List[int]] = defaultdict(list)
         cipher = tools.HostTools.get_asymmetric_cipher()
@@ -218,8 +301,6 @@ class InstallSerializer(serializers.Serializer):
                 )
 
             if attrs["op_type"] not in [constants.OpType.INSTALL, constants.OpType.REPLACE]:
-                if "bk_host_id" not in host:
-                    raise ValidationError(_("主机信息缺少主机ID（bk_host_id）"))
                 if "bk_biz_id" not in host:
                     raise ValidationError(_("主机信息缺少业务ID（bk_biz_id）"))
                 expected_bk_host_ids_gby_bk_biz_id[host["bk_biz_id"]].append(host["bk_host_id"])
@@ -273,7 +354,44 @@ class InstallSerializer(serializers.Serializer):
         return attrs
 
 
-class OperateSerializer(serializers.Serializer):
+class OperateHostSerializer(serializers.Serializer):
+    """
+    操作类任务主机序列化器
+    """
+
+    bk_host_id = serializers.IntegerField(label=_("主机ID"), required=False)
+    ap_id = serializers.IntegerField(label=_("接入点ID"), required=False)
+    bk_cloud_id = serializers.IntegerField(label=_("管控区域ID"), required=False)
+    inner_ip = serializers.IPAddressField(label=_("内网IP"), required=False, allow_blank=True, protocol="ipv4")
+    inner_ipv6 = serializers.IPAddressField(label=_("内网IPv6"), required=False, allow_blank=True, protocol="ipv6")
+    is_use_ap_map = serializers.BooleanField(label=_("是否使用映射接入点"), required=False, default=False)
+
+    # 以下参数不需要用户传入
+    is_need_inject_ap_id = serializers.BooleanField(label=_("是否需要注入ap_id到meta"), required=False, default=False)
+
+    def validate(self, attrs):
+        # 计算is_need_inject_ap_id参数
+        basic.ipv6_formatter(data=attrs, ipv6_field_names=["inner_ipv6"])
+
+        if attrs.get("ap_id") is not None or attrs["is_use_ap_map"]:
+            attrs["is_need_inject_ap_id"] = True
+        if all(
+            [
+                attrs.get("bk_host_id") is None,
+                all(
+                    [
+                        attrs.get("bk_cloud_id") is None,
+                        attrs.get("inner_ip") is None or attrs.get("inner_ipv6") is None,
+                    ]
+                ),
+            ]
+        ):
+            raise ValidationError(_("bk_host_id 或者 管控区域加IP组合必须选择一种"))
+
+        return attrs
+
+
+class OperateSerializer(InstallBaseSerializer):
     agent_setup_info = AgentSetupInfoSerializer(label=_("Agent 设置信息"), required=False)
     job_type = serializers.ChoiceField(label=_("任务类型"), choices=list(constants.JOB_TYPE_DICT))
     bk_biz_id = serializers.ListField(label=_("业务ID"), required=False)
@@ -281,6 +399,7 @@ class OperateSerializer(serializers.Serializer):
     conditions = serializers.ListField(label=_("搜索条件"), required=False, child=serializers.DictField())
     bk_host_id = serializers.ListField(label=_("主机ID"), required=False, child=serializers.IntegerField())
     exclude_hosts = serializers.ListField(label=_("跨页全选排除主机"), required=False, child=serializers.IntegerField())
+    hosts = OperateHostSerializer(label=_("主机信息"), required=False, many=True)
     is_install_latest_plugins = serializers.BooleanField(label=_("是否安装最新版本插件"), required=False, default=True)
     is_install_other_agent = serializers.BooleanField(label=_("是否为安装额外Agent"), required=False, default=False)
 
@@ -302,8 +421,20 @@ class OperateSerializer(serializers.Serializer):
 
         if attrs.get("exclude_hosts") is not None and attrs.get("bk_host_id") is not None:
             raise ValidationError(_("跨页全选模式下不允许传bk_host_id参数"))
-        if attrs.get("exclude_hosts") is None and attrs.get("bk_host_id") is None:
+        if all(
+            [
+                attrs.get("exclude_hosts") is None,
+                attrs.get("bk_host_id") is None,
+                attrs.get("hosts") is None,
+            ]
+        ):
             raise ValidationError(_("必须选择一种模式(【是否跨页全选】)"))
+
+        if attrs.get("hosts", []):
+            # 回填bk_host_id
+            self.backfill_bk_host_id(attrs["hosts"])
+            # 回填使用映射的主机的ap id
+            self.backfill_ap_id(attrs["hosts"])
 
         if attrs["node_type"] == constants.NodeType.PROXY:
             # 是否为针对代理的操作，用户有权限获取的业务
@@ -318,6 +449,10 @@ class OperateSerializer(serializers.Serializer):
             filter_node_types = [constants.NodeType.AGENT, constants.NodeType.PAGENT]
             is_proxy = False
 
+        host_info: typing.Dict[int, typing.Dict[str, typing.Any]] = {
+            _host["bk_host_id"]: _host for _host in attrs.get("hosts", [])
+        }
+
         if attrs.get("exclude_hosts") is not None:
             # 跨页全选
             db_host_sql = (
@@ -328,12 +463,13 @@ class OperateSerializer(serializers.Serializer):
 
         else:
             # 不是跨页全选
+            input_bk_host_ids: typing.List[int] = attrs.get("bk_host_id", []) or host_info.keys()
             db_host_sql = models.Host.objects.filter(
-                bk_host_id__in=attrs["bk_host_id"], node_type__in=filter_node_types
+                bk_host_id__in=input_bk_host_ids, node_type__in=filter_node_types
             ).values("bk_host_id", "bk_biz_id", "bk_cloud_id", "inner_ip", "node_type", "os_type")
 
-        bk_host_ids, bk_biz_scope = validator.operate_validator(list(db_host_sql))
-        attrs["bk_host_ids"] = bk_host_ids
+        db_hosts, bk_biz_scope = validator.operate_validator(list(db_host_sql), host_info=host_info)
+        attrs["hosts"] = db_hosts
         attrs["bk_biz_scope"] = bk_biz_scope
 
         set_agent_setup_info_to_attrs(attrs)
@@ -345,7 +481,7 @@ class OperateSerializer(serializers.Serializer):
             # 没有 V2 接入点或者全部为 V2 接入点时，无需进行重定向处理
             return attrs
 
-        host_ids: typing.List[int] = [host_info["bk_host_id"] for host_info in bk_host_ids]
+        host_ids: typing.List[int] = [host_info["bk_host_id"] for host_info in db_hosts]
 
         # 进入灰度的管控区域，所属管控区域主机接入点重定向到 V2
         gse_v2_cloud_ids: typing.Set[int] = set(
@@ -384,6 +520,7 @@ class OperateSerializer(serializers.Serializer):
                 GrayHandler.activate(host_nodes=update_result["host_nodes"], rollback=False, only_status=True)
             except ApiError:
                 pass
+
         return attrs
 
 

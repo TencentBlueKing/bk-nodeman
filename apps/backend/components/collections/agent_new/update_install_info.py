@@ -36,6 +36,7 @@ class UpdateInstallInfoService(AgentBaseService):
             added_extra_data = filter_values(added_extra_data)
             # 同名配置覆盖优先级：added_extra_data（新增配置）> host_obj.extra_data（已有配置）> default_extra_data（默认配置）
             host_obj.extra_data = dict(ChainMap(added_extra_data, host_obj.extra_data, default_extra_data))
-            host_obj.ap_id = host_info["ap_id"]
+            if common_data.injected_ap_id is None:
+                host_obj.ap_id = host_info["ap_id"]
             hosts_to_be_updated.append(host_obj)
         models.Host.objects.bulk_update(hosts_to_be_updated, fields=["extra_data", "ap_id"], batch_size=self.batch_size)
