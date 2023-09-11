@@ -138,6 +138,8 @@ class GlobalSettings(models.Model):
         ENABLE_AGENT_PKG_MANAGE = "ENABLE_AGENT_PKG_MANAGE"
         # 云梯策略相关配置
         YUNTI_POLICY_CONFIGS = "YUNTI_POLICY_CONFIGS"
+        # 同步主机默认AP配置
+        SYNC_HOST_AP_MAP_CONFIG = "SYNC_HOST_AP_MAP_CONFIG"
 
     key = models.CharField(_("键"), max_length=255, db_index=True, primary_key=True)
     v_json = JSONField(_("值"))
@@ -713,6 +715,11 @@ class Cloud(models.Model):
         }
         all_cloud_map[constants.DEFAULT_CLOUD] = str(_("直连区域"))
         return all_cloud_map
+
+    @classmethod
+    def cloud_ap_id_map(cls) -> Dict:
+        cloud_ap_id_map = {cloud.bk_cloud_id: cloud.ap_id for cloud in cls.objects.all().only("bk_cloud_id", "ap_id")}
+        return cloud_ap_id_map
 
     class Meta:
         verbose_name = _("管控区域（BK-Net）")
