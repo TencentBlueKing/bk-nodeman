@@ -672,6 +672,10 @@ def create_ap(number):
 
 def create_job(number, id=None, end_time=None, bk_biz_scope=None, task_id_list=None, created_by=None):
     job_types = list(chain(*list(constants.JOB_TYPE_MAP.values())))
+    job_types = [
+        job_type for job_type in job_types if
+        tools.JobTools.unzip_job_type(job_type)["op_type"] in constants.OP_TYPE_TUPLE
+    ]
 
     if bk_biz_scope == {} or bk_biz_scope:
         pass
