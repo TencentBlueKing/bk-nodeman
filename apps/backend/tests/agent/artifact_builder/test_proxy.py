@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 
 from apps.backend.tests.agent import utils
+from apps.node_man import constants, models
 
 from . import test_agent
 
@@ -20,3 +21,25 @@ class FileSystemTestCase(utils.ProxyBaseTestCase, test_agent.FileSystemTestCase)
 
 class BkRepoTestCase(FileSystemTestCase):
     pass
+
+
+class AutoTypeStrategyCrontabTestCase(utils.AutoTypeStrategyMixin, FileSystemTestCase):
+    pass
+
+
+class AutoTypeStrategyDefaultTestCase(AutoTypeStrategyCrontabTestCase):
+    AUTO_TYPE = constants.GseLinuxAutoType.RCLOCAL.value
+
+    def setUp(self):
+        super().setUp()
+        models.GlobalSettings.objects.filter(key=models.GlobalSettings.KeyEnum.GSE2_LINUX_AUTO_TYPE.value).delete()
+
+
+class AutoTypeStrategyDiffTestCase(AutoTypeStrategyCrontabTestCase):
+    AUTO_TYPE_STRATEGY = {"gse_proxy": "crontab"}
+    AUTO_TYPE = constants.GseLinuxAutoType.CRONTAB.value
+
+
+class AutoTypeStrategyNotEffectTestCase(AutoTypeStrategyCrontabTestCase):
+    AUTO_TYPE_STRATEGY = {"gse_agent": "crontab"}
+    AUTO_TYPE = constants.GseLinuxAutoType.RCLOCAL.value
