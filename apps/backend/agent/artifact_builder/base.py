@@ -259,10 +259,23 @@ class BaseArtifactBuilder(abc.ABC):
                     # TODO 后续如果 1.0 Agent 包也纳入管理，此处需要区分
                     #  1.0 Agent / Proxy 的 gsectl 采用固定的 rclocal 模式
                     if gsectl_filename == "gsectl" and "{{ AUTO_TYPE }}" in gsectl_file_content:
-                        auto_type: str = models.GlobalSettings.get_config(
+                        auto_type_strategy: typing.Union[str, typing.Dict[str, str]] = models.GlobalSettings.get_config(
                             models.GlobalSettings.KeyEnum.GSE2_LINUX_AUTO_TYPE.value,
                             constants.GseLinuxAutoType.RCLOCAL.value,
                         )
+                        logger.info(f"get auto_type_strategy -> {auto_type_strategy} from global settings")
+
+                        if isinstance(auto_type_strategy, dict):
+                            try:
+                                auto_type = auto_type_strategy[self.NAME]
+                            except KeyError:
+                                auto_type = constants.GseLinuxAutoType.RCLOCAL.value
+                        else:
+                            if auto_type_strategy not in constants.GseLinuxAutoType.list_member_values():
+                                auto_type = constants.GseLinuxAutoType.RCLOCAL.value
+                            else:
+                                auto_type = auto_type_strategy
+
                         logger.info(f"apply auto_type -> {auto_type} to gsectl")
                         gsectl_file_content = gsectl_file_content.replace("{{ AUTO_TYPE }}", auto_type)
                     if "{{ AUTO_TYPE }}" in gsectl_file_content:
