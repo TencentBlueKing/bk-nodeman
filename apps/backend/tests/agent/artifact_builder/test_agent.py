@@ -16,7 +16,7 @@ from django.db.utils import IntegrityError
 
 from apps.backend.tests.agent import utils
 from apps.mock_data import utils as mock_data_utils
-from apps.node_man import models
+from apps.node_man import constants, models
 
 
 class FileSystemTestCase(utils.AgentBaseTestCase):
@@ -68,3 +68,25 @@ class BkRepoTestCase(FileSystemTestCase):
     def setUpClass(cls):
         mock.patch("apps.core.files.storage.CustomBKRepoStorage", mock_data_utils.CustomBKRepoMockStorage).start()
         super().setUpClass()
+
+
+class AutoTypeStrategyCrontabTestCase(utils.AutoTypeStrategyMixin, FileSystemTestCase):
+    pass
+
+
+class AutoTypeStrategyDefaultTestCase(AutoTypeStrategyCrontabTestCase):
+    AUTO_TYPE = constants.GseLinuxAutoType.RCLOCAL.value
+
+    def setUp(self):
+        super().setUp()
+        models.GlobalSettings.objects.filter(key=models.GlobalSettings.KeyEnum.GSE2_LINUX_AUTO_TYPE.value).delete()
+
+
+class AutoTypeStrategyDiffTestCase(AutoTypeStrategyCrontabTestCase):
+    AUTO_TYPE_STRATEGY = {"gse_proxy": "crontab"}
+    AUTO_TYPE = constants.GseLinuxAutoType.RCLOCAL.value
+
+
+class AutoTypeStrategyNotEffectTestCase(AutoTypeStrategyCrontabTestCase):
+    AUTO_TYPE_STRATEGY = {"gse_agent": "crontab"}
+    AUTO_TYPE = constants.GseLinuxAutoType.CRONTAB.value
