@@ -24,7 +24,7 @@ from apps.core.files import base, core_files_constants
 from apps.core.files import storage as core_files_storage
 from apps.core.files.storage import get_storage
 from apps.mock_data import common_unit
-from apps.node_man import constants
+from apps.node_man import constants, models
 from apps.utils import files
 
 # 测试文件根路径
@@ -287,3 +287,54 @@ class ProxyBaseTestCase(AgentBaseTestCase):
                         f"{AgentBaseTestCase.ARTIFACT_BUILDER_CLASS.NAME}-{cls.OVERWRITE_VERSION}.tgz",
                     ),
                 )
+
+
+class AutoTypeStrategyMixin:
+
+    AUTO_TYPE = constants.GseLinuxAutoType.CRONTAB.value
+    AUTO_TYPE_STRATEGY = constants.GseLinuxAutoType.CRONTAB.value
+    GET_AUTO_TYPE_FUNC = """get_auto_type () {
+    # 由节点管理进行渲染，当前环境使用 {{ AUTO_TYPE }}
+    echo "{{ AUTO_TYPE }}"
+    return
+    if is_systemd_supported;then
+        echo "systemd"
+    else
+        echo "crontab"
+    fi
+}"""
+
+    def pkg_checker(self, version_str: str):
+
+        pkg_name: str = f"{self.ARTIFACT_BUILDER_CLASS.NAME}-{version_str}.tgz"
+        for package_os, cpu_arch in self.OS_CPU_CHOICES:
+            package_path: str = os.path.join(
+                settings.DOWNLOAD_PATH, self.ARTIFACT_BUILDER_CLASS.BASE_STORAGE_DIR, package_os, cpu_arch, pkg_name
+            )
+            self.assertTrue(os.path.exists(package_path))
+
+            if package_os == constants.OsType.WINDOWS.lower():
+                continue
+            tmp_dir: str = os.path.join(self.TMP_DIR, uuid.uuid4().hex)
+            os.makedirs(tmp_dir)
+
+            with tarfile.open(name=package_path) as tf:
+                tf.extractall(path=tmp_dir)
+
+            gsectl_filepath: str = os.path.join(tmp_dir, self.ARTIFACT_BUILDER_CLASS.PKG_DIR, "bin", "gsectl")
+            with open(gsectl_filepath, mode="r") as gsectl_fs:
+                content: str = gsectl_fs.read()
+                self.assertFalse("{{ AUTO_TYPE }}" in content)
+                self.assertTrue(self.GET_AUTO_TYPE_FUNC in content)
+
+    def setUp(self):
+        super().setUp()
+        self.GET_AUTO_TYPE_FUNC = self.GET_AUTO_TYPE_FUNC.replace("{{ AUTO_TYPE }}", self.AUTO_TYPE)
+        try:
+            models.GlobalSettings.set_config(
+                models.GlobalSettings.KeyEnum.GSE2_LINUX_AUTO_TYPE.value, self.AUTO_TYPE_STRATEGY
+            )
+        except Exception:
+            models.GlobalSettings.update_config(
+                models.GlobalSettings.KeyEnum.GSE2_LINUX_AUTO_TYPE.value, self.AUTO_TYPE_STRATEGY
+            )
