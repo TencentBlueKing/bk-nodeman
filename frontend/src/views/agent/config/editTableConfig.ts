@@ -64,7 +64,7 @@ export const config: ISetupHead[] = [
     prop: 'ap_id',
     type: 'select',
     required: true,
-    batch: true,
+    // batch: true,
     default: getDefaultConfig(defaultOsType, 'ap_id', -1),
     options: [],
     popoverMinWidth: 160,
@@ -72,7 +72,38 @@ export const config: ISetupHead[] = [
     parentProp: 'cloud_attr',
     placeholder: window.i18n.t('请选择'),
     manualProp: true,
-    getOptions(row) {
+    getBatch() {
+      return !window.PROJECT_CONFIG?.ENABLE_AP_VERSION_MUTEX
+        || window.PROJECT_CONFIG?.ENABLE_AP_VERSION_MUTEX !== 'True'
+        || this.table?.data?.every(row => row.gse_version === 'V1');
+    },
+    getOptions(oldRow) {
+      let row = oldRow;
+      if (window.PROJECT_CONFIG?.ENABLE_AP_VERSION_MUTEX === 'True') {
+        // getBatch 能确认是表格数据是否展示（同一类数据）, 如果展示, 则取第一个做操作
+        if (!row.id) {
+          row = this.table?.data?.[0] || {};
+        }
+        if (!row.id) {
+          return [];
+        }
+        const gseVersion = row.gse_version;
+        const list = this.apList.map((item) => {
+          const disabled = gseVersion !== item.gse_version
+            || (item.id === -1
+              && (row.bk_cloud_id !== window.PROJECT_CONFIG.DEFAULT_CLOUD
+                || row.install_channel_id !== 'default'));
+          return {
+            ...item,
+            tip: disabled
+              ? window.i18n.t('接入点互斥', gseVersion === 'V1' ? ['1.0', '2.0'] : ['2.0', '1.0'])
+              : '',
+            disabled,
+          };
+        });
+        list.sort(p => (p.disabled ? 1 : -1));
+        return list;
+      }
       return this.apList.map(item => ({
         ...item,
         disabled: item.id === -1

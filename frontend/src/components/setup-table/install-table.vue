@@ -42,7 +42,8 @@
                       label: config.label,
                       required: !config.noRequiredMark && config.required,
                       batch: config.getBatch ? config.getBatch.call(_self) : config.batch,
-                      isBatchIconShow: !!table.data.length,
+                      isBatchIconShow: !!table.data.length
+                        && (config.getBatch ? config.getBatch.call(_self) : config.batch),
                       type: config.type,
                       subTitle: config.subTitle,
                       options: getCellInputOptions({}, config),
