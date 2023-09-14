@@ -40,6 +40,7 @@
               const CMDB_URL = ''
               const BKAPP_NAV_OPEN_SOURCE_URL = ''
               const BKAPP_NAV_HELPER_URL = ''
+              const ENABLE_AP_VERSION_MUTEX = 'False'
 
               return {
                   SITE_URL: SITE_URL,
@@ -75,6 +76,7 @@
                   CMDB_URL,
                   BKAPP_NAV_OPEN_SOURCE_URL,
                   BKAPP_NAV_HELPER_URL,
+                  ENABLE_AP_VERSION_MUTEX,
               }
           })()
           window.$DHCP = window.PROJECT_CONFIG.BKAPP_ENABLE_DHCP === 'True'

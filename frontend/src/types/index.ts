@@ -255,6 +255,7 @@ export interface ISetupRow {
   validator?: { [key: string]: ISetupValidator }
   install_channel_id: string | number | null
   bk_addressing: 'static' | 'dynamic'
+  gse_version?: 'V1'|'V2' // 前端添加 用于操作主机仅能选择对应版本的接入点
 }
 
 export interface ISetupParent {
@@ -297,7 +298,7 @@ export interface ISetupHead {
   rules?: any[]
   options?: any[]
   manualProp?: boolean // 手动安装需要的配置
-  getOptions?: Function
+  getOptions?: Function // row 为{}时是表头
   getBatch?: Function
   getReadonly?: Function
   getProxyStatus?: Function
