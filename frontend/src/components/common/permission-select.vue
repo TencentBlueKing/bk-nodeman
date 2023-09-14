@@ -22,7 +22,9 @@
         :id="item[optionId]"
         :name="item[optionName]"
         :class="{ 'is-auth-disabled': openPermission && !(item.permission || item[permissionKey]) }"
-        :disabled="item.disabled">
+        :disabled="item.disabled"
+        @mouseenter.native="(e) => optionMouseenter(e, item)"
+        @mouseleave.native="(e) => optionMouseleave(e, item)">
         <div class="bk-option-content-default" :title="item[optionName]">
           <span class="bk-option-name">
             {{ item[optionName] }}
@@ -88,6 +90,7 @@ export default class PermissionSelect extends Vue {
   @Ref('permissionSelect') private readonly permissionSelect: any;
 
   private selectValue: IBizValue = this.value;
+  private optPop: any = null;
 
   private get openPermission(): boolean {
     return MainStore.permissionSwitch && !!this.permission;
@@ -167,6 +170,31 @@ export default class PermissionSelect extends Vue {
   @Emit('extension')
   private handleExtension() {
     return false;
+  }
+  private optionMouseenter(e: MouseEvent, option: IItem) {
+    if (option.tip && !this.optPop) {
+      this.optPop = this.$bkPopover(e.target!, {
+        content: option.tip,
+        trigger: 'manual',
+        theme: 'dark',
+        interactive: true,
+        arrow: true,
+        placement: 'right',
+        maxWidth: 300,
+        delay: 100,
+        distance: 12,
+        followCursor: false,
+        flip: true,
+        boundary: 'window',
+        zIndex: 2000,
+      });
+    }
+    this.optPop && this.optPop.show();
+  }
+  private optionMouseleave() {
+    this.optPop?.hide();
+    this.optPop?.destroy();
+    this.optPop = null;
   }
   private handleSelectClose() {
     this.permissionSelect.close();

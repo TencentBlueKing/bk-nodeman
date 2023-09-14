@@ -411,6 +411,7 @@ export default {
   动态寻址: 'Dynamic addressing',
   动态: 'Dynamic',
   静态: 'Static',
+  接入点互斥: 'The host is on a GSE{0} access point, and the {1} access point is disabled',
 
   // 安装通道
   安装通道: 'Install channel',

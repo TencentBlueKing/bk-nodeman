@@ -273,6 +273,9 @@ export default class AgentImport extends Mixins(mixin) {
   private get showTab() {
     return this.showSetupBtn && ['INSTALL_AGENT', 'REINSTALL_AGENT'].includes(this.type);
   }
+  private get apList() {
+    return AgentStore.apList;
+  }
 
   private created() {
     switch (this.type) {
@@ -327,27 +330,39 @@ export default class AgentImport extends Mixins(mixin) {
     this.showSetupBtn = true;
     let data: ISetupRow[] = [];
     const apDefault = this.isNotAutoSelect ? AgentStore.apList[0].id : '';
+    let defaultAp: any = {};
     if (this.isSelectedAllPages) {
       const res = await AgentStore.getHostList(this.condition);
       data = res.list.map((item: IAgentHost) => {
-        const ap = ((this.isNotAutoSelect || item.install_channel_id !== 'default') && item.ap_id === -1)
-          ? { ap_id: apDefault }
-          : {};
-          // 打平数据
+        if ((this.isNotAutoSelect || item.install_channel_id !== 'default') && item.ap_id === -1) {
+          defaultAp = { ap_id: apDefault };
+        }
+        // 打平数据
         if (!item.install_channel_id) {
           item.install_channel_id = 'default';
         }
         const prove: { [key: string]: string } = {};
-        return Object.assign({}, item, item.identity_info, ap, prove);
+        const copyRow = Object.assign({}, item, item.identity_info, apDefault, prove);
+        // 不同版本的GSE不能混用对应版本的接入点
+        if (window.PROJECT_CONFIG?.ENABLE_AP_VERSION_MUTEX === 'True') {
+          const ap = this.apList.find(item => item.id === copyRow.ap_id);
+          copyRow.gse_version = ap?.gse_version || 'V1';
+        }
+        return copyRow;
       });
     } else {
-      const defaultAp = { ap_id: apDefault };
+      defaultAp = { ap_id: apDefault };
       const formatData = this.tableData.map((item) => {
-        const row = { ...item };
+        const copyRow = { ...item };
         if (this.isNotAutoSelect && item.ap_id === -1) {
-          Object.assign(row, defaultAp);
+          Object.assign(copyRow, defaultAp);
         }
-        return row;
+        // 不同版本的GSE不能混用对应版本的接入点
+        if (window.PROJECT_CONFIG?.ENABLE_AP_VERSION_MUTEX === 'True') {
+          const ap = this.apList.find(item => item.id === copyRow.ap_id);
+          copyRow.gse_version = ap?.gse_version || 'V1';
+        }
+        return copyRow;
       });
       data = JSON.parse(JSON.stringify(formatData));
     }
