@@ -275,6 +275,25 @@ pre_view () {
     fi
 }
 
+report_mkdir () {
+    local dirs="$@"
+    for dir in ${dirs[@]}; do
+        local result
+        if [[ -d "${dir}" ]]; then
+            continue
+        else
+            result="$(mkdir -p ${dir} 2>&1)"
+            if [ $? -ne 0 ]; then
+                if [[ -f "${dir}" ]]; then
+                    fail check_env FAILED "create directory $dir failed. error: ${dir} exists and is a normal file"
+                else
+                    fail check_env FAILED "create directory $dir failed. error: ${result}"
+                fi
+            fi
+        fi
+    done
+}
+
 remove_crontab () {
     local tmpcron
     tmpcron=$(mktemp "$TMP_DIR"/cron.XXXXXXX)
@@ -509,7 +528,7 @@ _OO_
 
 setup_proxy () {
     log setup_proxy START "setting up gse proxy."
-    mkdir -p "$AGENT_SETUP_PATH"/etc/
+    report_mkdir "$AGENT_SETUP_PATH"/etc/
 
     cd "$AGENT_SETUP_PATH/.." && ( tar xf "$TMP_DIR/$PKG_NAME" || fail setup_proxy FAILED "decompress package $PKG_NAME failed" )
 
@@ -526,7 +545,7 @@ setup_proxy () {
     done
 
     # create dir
-    mkdir -p "$GSE_AGENT_RUN_DIR" "$GSE_AGENT_DATA_DIR" "$GSE_AGENT_LOG_DIR"
+    report_mkdir "$GSE_AGENT_RUN_DIR" "$GSE_AGENT_DATA_DIR" "$GSE_AGENT_LOG_DIR"
 
     register_agent_id
 

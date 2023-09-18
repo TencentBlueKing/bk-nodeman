@@ -502,7 +502,7 @@ _OO_
 
 setup_agent () {
     log setup_agent START "setup agent. (extract, render config)"
-    mkdir -p "$AGENT_SETUP_PATH"/etc
+    report_mkdir "$AGENT_SETUP_PATH"/etc
 
     cd "$AGENT_SETUP_PATH/.." && ( tar xf "$TMP_DIR/$PKG_NAME" || fail setup_proxy FAILED "decompress package $PKG_NAME failed" )
 
@@ -517,7 +517,7 @@ setup_agent () {
     done
 
     # create dir
-    mkdir -p "$GSE_AGENT_RUN_DIR" "$GSE_AGENT_DATA_DIR" "$GSE_AGENT_LOG_DIR"
+    report_mkdir "$GSE_AGENT_RUN_DIR" "$GSE_AGENT_DATA_DIR" "$GSE_AGENT_LOG_DIR"
 
     register_agent_id
 
@@ -710,6 +710,25 @@ check_disk_space () {
     else
         fail check_env FAILED "no enough space left on $dir"
     fi
+}
+
+report_mkdir () {
+    local dirs="$@"
+    for dir in ${dirs[@]}; do
+        local result
+        if [[ -d "${dir}" ]]; then
+            continue
+        else
+            result="$(mkdir -p ${dir} 2>&1)"
+            if [ $? -ne 0 ]; then
+                if [[ -f "${dir}" ]]; then
+                    fail check_env FAILED "create directory $dir failed. error: ${dir} exists and is a normal file"
+                else
+                    fail check_env FAILED "create directory $dir failed. error: ${result}"
+                fi
+            fi
+        fi
+    done
 }
 
 check_dir_permission () {
