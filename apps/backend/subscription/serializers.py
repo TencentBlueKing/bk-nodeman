@@ -19,7 +19,11 @@ from apps.exceptions import ValidationError
 from apps.node_man import constants, models, tools
 from apps.node_man.models import ProcessStatus
 from apps.node_man.serializers import policy
-from apps.node_man.serializers.base import SubScopeInstSelectorSerializer
+from apps.node_man.serializers.base import (
+    ScopeTypeSerializer,
+    SubScopeInstSelectorSerializer,
+    biz_set_scope_params_valid,
+)
 from apps.utils import basic
 
 
@@ -28,16 +32,15 @@ class GatewaySerializer(serializers.Serializer):
     bk_app_code = serializers.CharField()
 
 
-class ScopeSerializer(SubScopeInstSelectorSerializer):
-    bk_biz_id = serializers.IntegerField(required=False, default=None)
+class ScopeSerializer(SubScopeInstSelectorSerializer, ScopeTypeSerializer):
     # TODO: 是否取消掉这个范围内的scope
     bk_biz_scope = serializers.ListField(required=False)
     object_type = serializers.ChoiceField(choices=models.Subscription.OBJECT_TYPE_CHOICES, label="对象类型")
     node_type = serializers.ChoiceField(choices=models.Subscription.NODE_TYPE_CHOICES, label="节点类别")
     need_register = serializers.BooleanField(required=False, default=False, label="是否需要注册到CMDB")
-    nodes = serializers.ListField(child=serializers.DictField())
 
     def validate(self, attrs):
+        biz_set_scope_params_valid(attrs=attrs)
         for node in attrs["nodes"]:
             basic.ipv6_formatter(data=node, ipv6_field_names=["ip"])
             basic.ipv6_formatter(
@@ -129,6 +132,7 @@ class UpdateSubscriptionSerializer(GatewaySerializer):
         node_type = serializers.ChoiceField(choices=models.Subscription.NODE_TYPE_CHOICES)
         nodes = serializers.ListField()
         bk_biz_id = serializers.IntegerField(required=False, default=None)
+        scope_id = serializers.IntegerField(required=False, default=None)
 
     class UpdateStepSerializer(serializers.Serializer):
         id = serializers.CharField()

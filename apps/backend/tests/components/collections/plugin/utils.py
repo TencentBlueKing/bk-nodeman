@@ -67,6 +67,22 @@ JOB_INSTANCE_ID = 10000
 # 安装包ID
 PKG_ID = 163
 
+# 业务集
+
+CORRECT_BIZ_SET_ID = 10000002
+
+FAKE_BIZ_SET_ID = 10000003
+
+CORRECT_BIZ_SET_BIZ_INFO = [
+    {"bk_biz_id": 11, "bk_biz_name": "业务集 A 测试业务 1"},
+    {"bk_biz_id": 12, "bk_biz_name": "业务集 A 测试业务 2"},
+]
+
+OTHER_BIZ_SET_BIZ_INFO = [
+    {"bk_biz_id": 13, "bk_biz_name": "业务集 B 测试业务 1"},
+    {"bk_biz_id": 14, "bk_biz_name": "业务集 B 测试业务 2"},
+]
+
 # ---------mock path--------------
 PLUGIN_CLIENT_MOCK_PATH = "apps.backend.components.collections.plugin.JobApi"
 
@@ -152,6 +168,8 @@ SUBSCRIPTION_PARAMS = {
     "id": SUBSCRIPTION_ID,
     "object_type": DEFAULT_OBJ_TYPE,
     "node_type": DEFAULT_NODE_TYPE,
+    "scope_id": None,
+    "scope_type": None,
     # 对于Pipeline原子的测试都只用一台主机
     "nodes": [
         {

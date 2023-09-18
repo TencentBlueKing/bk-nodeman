@@ -590,6 +590,8 @@ def run_subscription_task_and_create_instance(
     else:
         scope["object_type"] = subscription.object_type
         scope["bk_biz_id"] = subscription.bk_biz_id
+        scope["scope_type"] = subscription.scope_type
+        scope["scope_id"] = subscription.scope_id
 
     # 获取订阅范围内全部实例
     instances = tools.get_instances_by_scope(scope, source="run_subscription_task_and_create_instance")
@@ -691,9 +693,11 @@ def run_subscription_task_and_create_instance(
             subscription_task.id,
             deleted_id_not_in_scope,
         )
+        # TODO: 计算业务集变更
         deleted_instance_info = tools.get_instances_by_scope(
             {
-                "bk_biz_id": subscription.bk_biz_id,
+                "scope_id": subscription.scope["scope_id"],
+                "scope_type": subscription.scope_type,
                 "object_type": subscription.object_type,
                 "node_type": models.Subscription.NodeType.INSTANCE,
                 "nodes": deleted_id_not_in_scope,

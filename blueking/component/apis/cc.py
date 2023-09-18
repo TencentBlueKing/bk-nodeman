@@ -779,3 +779,15 @@ class CollectionsCC(object):
             path="/api/c/compapi{bk_api_ver}/cc/list_service_template/",
             description="查询业务服务模板列表",
         )
+        self.list_business_in_business_set = ComponentAPI(
+            client=self.client,
+            method="POST",
+            path="/api/c/compapi{bk_api_ver}/cc/list_business_in_business_set/",
+            description="查询业务集中的业务列表",
+        )
+        self.list_business_set = ComponentAPI(
+            client=self.client,
+            method="POST",
+            path="/api/c/compapi{bk_api_ver}/cc/list_business_set/",
+            description="查询业务集",
+        )
