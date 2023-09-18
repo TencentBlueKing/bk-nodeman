@@ -169,3 +169,19 @@ class SubscriptionIncludeGrayBizError(AppBaseException):
     ERROR_CODE = 19
     MESSAGE = _("订阅任务包含Gse2.0灰度业务，任务将暂缓执行无需重复点击")
     MESSAGE_TPL = _("订阅任务包含Gse2.0灰度业务，任务将暂缓执行无需重复点击")
+
+
+class MultiBizSetError(AppBaseException):
+    """订阅范围不支持多业务集"""
+
+    ERROR_CODE = 20
+    MESSAGE = _("订阅范围不支持多业务集")
+    MESSAGE_TPL = _("{订阅范围不支持多业务集}")
+
+
+class BizSetNotExsitError(AppBaseException):
+    """业务集不存在"""
+
+    ERROR_CODE = 21
+    MESSAGE = _("业务集不存在")
+    MESSAGE_TPL = _("{业务集[id: {biz_set_id}] 不存在}")

@@ -23,7 +23,7 @@ from . import translation
 from .concurrent import inject_request
 
 
-def format_params(params, get_count, func):
+def format_params(params, get_count, func, get_count_params_func, limit):
     # 拆分params适配bk_module_id大于500情况
     request_params = []
 
@@ -31,12 +31,12 @@ def format_params(params, get_count, func):
 
     # 请求第一次获取总数
     if not bk_module_ids:
-        request_params.append({"count": get_count(func(page={"start": 0, "limit": 1}, **params)), "params": params})
+        request_params.append({"count": get_count(func(page=get_count_params_func(), **params)), "params": params})
 
-    for s_index in range(0, len(bk_module_ids), constants.QUERY_CMDB_MODULE_LIMIT):
+    for s_index in range(0, len(bk_module_ids), limit):
         single_params = deepcopy(params)
 
-        single_params.update({"bk_module_ids": bk_module_ids[s_index : s_index + constants.QUERY_CMDB_MODULE_LIMIT]})
+        single_params.update({"bk_module_ids": bk_module_ids[s_index : s_index + limit]})
         request_params.append(
             {"count": get_count(func(page={"start": 0, "limit": 1}, **single_params)), "params": single_params}
         )
@@ -52,6 +52,7 @@ def batch_request(
     limit=constants.QUERY_CMDB_LIMIT,
     sort=None,
     split_params=False,
+    get_count_params_func=lambda: {"start": 0, "limit": 1},
 ):
     """
     异步并发请求接口
@@ -71,10 +72,10 @@ def batch_request(
 
     if not split_params:
         final_request_params = [
-            {"count": get_count(func(dict(page={"start": 0, "limit": 1}, **params))), "params": params}
+            {"count": get_count(func(dict(page=get_count_params_func(), **params))), "params": params}
         ]
     else:
-        final_request_params = format_params(params, get_count, func)
+        final_request_params = format_params(params, get_count, func, get_count_params_func, limit)
 
     data = []
 

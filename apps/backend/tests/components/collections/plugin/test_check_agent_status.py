@@ -16,6 +16,7 @@ from apps.backend.tests.components.collections.plugin.utils import (
     BK_HOST_ID,
     PluginTestObjFactory,
 )
+from apps.node_man import models
 from pipeline.component_framework.test import (
     ComponentTestCase,
     ComponentTestMixin,
@@ -27,6 +28,9 @@ from pipeline.component_framework.test import (
 class CheckAgentStatusTest(TestCase, ComponentTestMixin):
     def setUp(self):
         self.ids = PluginTestObjFactory.init_db()
+        models.ProcessStatus.objects.filter(bk_host_id=self.ids["bk_host_id"]).update(
+            name=models.ProcessStatus.GSE_AGENT_PROCESS_NAME
+        )
         self.COMMON_INPUTS = PluginTestObjFactory.inputs(
             attr_values={
                 "description": "description",
