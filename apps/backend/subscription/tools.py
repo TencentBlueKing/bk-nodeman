@@ -664,6 +664,8 @@ def support_multi_biz(get_instances_by_scope_func):
 
     @wraps(get_instances_by_scope_func)
     def wrapper(scope: Dict[str, Union[Dict, Any]], *args, **kwargs) -> Dict[str, Dict[str, Union[Dict, Any]]]:
+        if scope.get("scope_type") == models.Subscription.ScopeType.BIZ_SET:
+            covert_biz_set_scope_to_scope(biz_set_scope=scope)
         if scope.get("bk_biz_id") is not None:
             return get_instances_by_scope_func(scope, **kwargs)
         # 兼容只传bk_host_id的情况
@@ -695,6 +697,62 @@ def support_multi_biz(get_instances_by_scope_func):
         return instance_id_info_map
 
     return wrapper
+
+
+def covert_biz_set_scope_to_scope(biz_set_scope: Dict[str, Union[Dict, int, str]]):
+    """
+     对于整个业务集范围的类型转换为多业务范围
+     对于其他类型只过滤掉所有不在当前业务集中的 node
+
+    {
+    "nodes": [
+        {
+            "bk_obj_id": "biz_set",
+            "bk_inst_id": 10
+        }
+    }
+    转换为
+    {
+     "nodes": [
+        {
+            "bk_obj_id": "biz",
+            "bk_inst_id": 2,
+            "bk_biz_id": 2
+        },
+        {
+            "bk_obj_id": "biz",
+            "bk_inst_id": 3,
+            "bk_biz_id": 3
+        }
+    ]
+    }
+
+    """
+    fields: List[str] = ["bk_biz_id", "bk_biz_name"]
+    nodes_bizs = list(set([node["bk_biz_id"] for node in biz_set_scope["nodes"]]))
+    business_set_query_rule = {"field": "bk_biz_id", "operator": "in", "value": nodes_bizs}
+    biz_set_info = client_v2.cc.list_business_in_business_set(
+        {
+            "fields": fields,
+            "bk_biz_set_id": biz_set_scope["scope_id"],
+            "filter": {"condition": "AND", "rules": business_set_query_rule},
+            "page": {"start": 0, "limit": 500, "enable_count": False, "sort": "bk_biz_id"},
+        }
+    )
+
+    bk_biz_list: List[int] = []
+    for biz in biz_set_info.get("info") or []:
+        bk_biz_list.append(int(biz["bk_biz_id"]))
+
+    # 过滤 nodes 中的混合部分，如果是混合的就报错
+    bk_obj_id_set = check_instances_object_type(biz_set_scope["nodes"])
+    if bk_obj_id_set[0] == "biz_set":
+
+        biz_set_scope["nodes"] = [
+            {"bk_obj_id": "biz", "bk_inst_id": bk_biz_id, "bk_biz_id": bk_biz_id} for bk_biz_id in bk_biz_list
+        ]
+    else:
+        biz_set_scope["nodes"] = [node for node in biz_set_scope["nodes"] if node["bk_biz_id"] in bk_biz_list]
 
 
 @support_multi_biz
@@ -1048,10 +1106,7 @@ def get_all_subscription_steps_context(
     plugin_path = get_plugin_path(plugin_name, target_host, agent_config)
     # 当前step_id的数据单独拎出来，作为 shortcut
 
-    step_params = policy_step_adapter.get_matching_step_params(
-        target_host.os_type.lower(),
-        target_host.cpu_arch
-    )
+    step_params = policy_step_adapter.get_matching_step_params(target_host.os_type.lower(), target_host.cpu_arch)
     context.update(step_params.get("context", {}))
 
     context.update(

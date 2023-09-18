@@ -1748,6 +1748,11 @@ class SubscriptionStep(models.Model):
 class Subscription(export_subscription_prometheus_mixin(), orm.SoftDeleteModel):
     """订阅"""
 
+    class ScopeType(object):
+        BIZ_SET = "BIZ_SET"
+
+    SCOPE_TYPE_CHOICES = (ScopeType.BIZ_SET, _("业务集"))
+
     class ObjectType(object):
         HOST = "HOST"
         SERVICE = "SERVICE"
@@ -1785,6 +1790,8 @@ class Subscription(export_subscription_prometheus_mixin(), orm.SoftDeleteModel):
 
     name = models.CharField(_("任务名称"), max_length=64, null=True, blank=True)
     bk_biz_id = models.IntegerField(_("业务ID"), db_index=True, null=True)
+    scope_type = models.CharField(_("订阅集合类型"), db_index=True, null=True, choices=SCOPE_TYPE_CHOICES)
+    scope_id = models.IntegerField(_("订阅集合类型ID"), db_index=True, null=True)
     object_type = models.CharField(_("对象类型"), max_length=20, choices=OBJECT_TYPE_CHOICES, db_index=True)
     node_type = models.CharField(_("节点类型"), max_length=20, choices=NODE_TYPE_CHOICES, db_index=True)
     nodes = JSONField(_("节点"), default=list)
@@ -1828,6 +1835,8 @@ class Subscription(export_subscription_prometheus_mixin(), orm.SoftDeleteModel):
                     need_register = True
         return {
             "bk_biz_id": self.bk_biz_id,
+            "scope_type": self.scope_type,
+            "scope_id": self.scope_id,
             "object_type": self.object_type,
             "node_type": self.node_type,
             "nodes": self.nodes,

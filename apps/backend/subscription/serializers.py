@@ -30,6 +30,8 @@ class GatewaySerializer(serializers.Serializer):
 
 class ScopeSerializer(SubScopeInstSelectorSerializer):
     bk_biz_id = serializers.IntegerField(required=False, default=None)
+    scope_type = serializers.CharField(required=False, default=None)
+    scope_id = serializers.IntegerField(required=False, default=None)
     # TODO: 是否取消掉这个范围内的scope
     bk_biz_scope = serializers.ListField(required=False)
     object_type = serializers.ChoiceField(choices=models.Subscription.OBJECT_TYPE_CHOICES, label="对象类型")
