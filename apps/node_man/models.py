@@ -144,6 +144,7 @@ class GlobalSettings(models.Model):
         ENABLE_AP_VERSION_MUTEX = "ENABLE_AP_VERSION_MUTEX"
         # 记录所有业务ID,用于同步新业务到灰度列表对比使用
         ALL_BIZ_IDS = "ALL_BIZ_IDS"
+        
 
     key = models.CharField(_("键"), max_length=255, db_index=True, primary_key=True)
     v_json = JSONField(_("值"))
