@@ -8,20 +8,28 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import typing
+
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
+from apps.backend.constants import InstNodeType
 from apps.exceptions import ValidationError
 from apps.node_man import constants, exceptions, models
 
 
 # 放在后台会导致循坏导入
 class SubScopeInstSelectorSerializer(serializers.Serializer):
-    instance_selector = serializers.ListField(
-        child=serializers.DictField(),
-        required=False,
-        label="实例筛选器"
+    instance_selector = serializers.ListField(child=serializers.DictField(), required=False, label="实例筛选器")
+
+
+class ScopeTypeSerializer(serializers.Serializer):
+    scope_type = serializers.ChoiceField(
+        required=False, default=models.Subscription.ScopeType.BIZ, choices=models.Subscription.SCOPE_TYPE_CHOICES
     )
+    nodes = serializers.ListField(child=serializers.DictField())
+    bk_biz_id = serializers.IntegerField(required=False, default=None)
+    scope_id = serializers.IntegerField(required=False, default=None, allow_null=True)
 
 
 # 安装插件配置
@@ -67,9 +75,14 @@ class ScopeSerializer(SubScopeInstSelectorSerializer):
         choices=[models.Subscription.NodeType.INSTANCE, models.Subscription.NodeType.TOPO]
     )
     nodes = serializers.ListField(child=serializers.DictField(), min_length=1)
+    scope_type = serializers.ChoiceField(
+        required=False, default=models.Subscription.ScopeType.BIZ, choices=models.Subscription.SCOPE_TYPE_CHOICES
+    )
+    scope_id = serializers.IntegerField(required=False, default=None, allow_null=True)
 
     def validate(self, data):
         # 校验节点数据
+        scope_type_params_valid(data)
         for node in data["nodes"]:
             if "bk_biz_id" not in node:
                 raise ValidationError(_("节点缺少 bk_biz_id 属性"))
@@ -110,3 +123,24 @@ class HostSearchSerializer(PaginationSerializer):
     bk_host_id = serializers.ListField(label=_("主机ID"), required=False, child=serializers.IntegerField())
     conditions = serializers.ListField(label=_("搜索条件"), required=False, child=serializers.DictField())
     exclude_hosts = serializers.ListField(label=_("跨页全选排除主机"), required=False, child=serializers.IntegerField())
+
+
+def scope_type_params_valid(attrs):
+    bk_obj_ids: typing.List[str] = []
+    bk_inst_ids: typing.List[int] = []
+    nodes: typing.List[typing.Dict[str, typing.Any]] = attrs["nodes"]
+
+    if attrs["scope_type"] == models.Subscription.ScopeType.BIZ_SET:
+        if attrs.get("scope_id") is None:
+            raise ValidationError(_("当订阅类型为业务集时，订阅范围 ID: [scope_id] 不能为空"))
+        for node in nodes:
+            bk_obj_ids.append(node.get("bk_obj_id"))
+            bk_inst_ids.append(node.get("bk_inst_id"))
+        if InstNodeType.BIZ_SET in bk_obj_ids:
+            if len(list(set(bk_inst_ids))) > 1:
+                raise ValidationError(_("不支持多业务集或混合业务集范围"))
+        else:
+            if any(not node.get("bk_biz_id") for node in nodes):
+                raise ValidationError(_("指定 node: [{node}] 节点必须包括 bk_biz_id").format(node=node))
+    elif attrs["scope_type"] == models.Subscription.ScopeType.BIZ:
+        attrs["scope_id"] = attrs.get("bk_biz_id")

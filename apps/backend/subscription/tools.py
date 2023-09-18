@@ -20,17 +20,19 @@ from collections import Counter, defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from functools import wraps
 from itertools import groupby
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Optional, Set, Union
 
 from django.conf import settings
 from django.db.models import Q
 from django.utils import timezone
 
+from apps.backend.constants import InstNodeType
 from apps.backend.subscription import task_tools
 from apps.backend.subscription.commons import get_host_by_inst, list_biz_hosts
 from apps.backend.subscription.constants import SUBSCRIPTION_SCOPE_CACHE_TIME
 from apps.backend.subscription.errors import (
     ConfigRenderFailed,
+    MultiBizSetError,
     MultipleObjectError,
     PipelineTreeParseError,
 )
@@ -91,7 +93,7 @@ def parse_group_id(group_id: str) -> Dict:
         "id": 1,
     }
     """
-    source_type, subscription_id, object_type, _id = group_id.split("_")
+    __, subscription_id, object_type, _id = group_id.split("_")
     return {
         "subscription_id": subscription_id,
         "object_type": object_type,
@@ -322,7 +324,7 @@ def get_modules_by_inst_list(inst_list, module_to_topo):
 
 
 def get_service_instance_by_inst(bk_biz_id, inst_list, module_to_topo):
-    module_ids, no_module_inst_list = get_modules_by_inst_list(inst_list, module_to_topo)
+    module_ids, __ = get_modules_by_inst_list(inst_list, module_to_topo)
     params = {"bk_biz_id": int(bk_biz_id), "with_name": True}
 
     service_instances = batch_request(client_v2.cc.list_service_instance_detail, params, sort="id")
@@ -373,7 +375,9 @@ def fetch_biz_info(bk_biz_ids: typing.List[int]) -> typing.Dict[int, typing.Dict
     return {bk_biz_id: biz_info_map.get(str(bk_biz_id)) or {} for bk_biz_id in bk_biz_ids}
 
 
-def get_host_detail_by_template(bk_obj_id, template_info_list: list, bk_biz_id: int = None):
+def get_host_detail_by_template(
+    bk_obj_id, template_info_list: typing.List[typing.Dict[str, Any]], bk_biz_id: int = None
+):
     """
     根据集群模板ID/服务模板ID获得主机的详细信息
     :param bk_obj_id: 模板类型
@@ -678,22 +682,37 @@ def support_multi_biz(get_instances_by_scope_func):
 
     @wraps(get_instances_by_scope_func)
     def wrapper(scope: Dict[str, Union[Dict, Any]], *args, **kwargs) -> Dict[str, Dict[str, Union[Dict, Any]]]:
-        if scope.get("bk_biz_id") is not None:
-            return get_instances_by_scope_func(scope, **kwargs)
-        # 兼容只传bk_host_id的情况
-        if (
-            scope["object_type"] == models.Subscription.ObjectType.HOST
-            and scope["node_type"] == models.Subscription.NodeType.INSTANCE
-        ):
-            if None in [node.get("bk_biz_id") for node in scope["nodes"]]:
+        scope_type: Optional[str] = scope.get("scope_type")
+        scope_id: Optional[int] = scope.get("scope_id")
+        bk_biz_id: Optional[int] = scope.get("bk_biz_id")
+        if scope_type == models.Subscription.ScopeType.BIZ_SET:
+            # 如果是业务集 转换为多业务
+            covert_biz_set_scope_to_scope(biz_set_scope=scope)
+        else:
+            # 非业务集类型的订阅自动填充为业务类型
+            scope["scope_type"] = models.Subscription.ScopeType.BIZ
+            # 指定了 scope_id 或者是 bk_biz_id 的业务类型范围，认为 scope_id 就是 bk_biz_id, 直接进入单业务范围查询
+            if scope_id:
                 return get_instances_by_scope_func(scope, **kwargs)
+            if bk_biz_id:
+                scope["scope_id"] = scope.get("bk_biz_id")
+                return get_instances_by_scope_func(scope, **kwargs)
+            if (
+                scope["object_type"] == models.Subscription.ObjectType.HOST
+                and scope["node_type"] == models.Subscription.NodeType.INSTANCE
+            ):
+                if None in [node.get("bk_biz_id") for node in scope["nodes"]]:
+                    # 兼容只传 bk_host_id 的情况
+                    return get_instances_by_scope_func(scope, **kwargs)
 
+        # 多业务或者是业务集过滤后的单业务范围
         instance_id_info_map = {}
-        nodes = sorted(scope["nodes"], key=lambda node: node["bk_biz_id"])
-        params_list = [
+        nodes: List[Dict[str, Union[str, int]]] = sorted(scope["nodes"], key=lambda node: node["bk_biz_id"])
+        params_list: List[Dict[str, Dict[str, Any]]] = [
             {
                 "scope": {
-                    "bk_biz_id": bk_biz_id,
+                    "scope_type": models.Subscription.ScopeType.BIZ,
+                    "scope_id": bk_biz_id,
                     "object_type": scope["object_type"],
                     "node_type": scope["node_type"],
                     "nodes": list(nodes),
@@ -728,6 +747,56 @@ def get_scope_labels_func(
         "node_type": scope["node_type"],
         "source": get_call_resource_labels_func(wrapped, instance, args, kwargs)["source"],
     }
+
+
+def covert_biz_set_scope_to_scope(biz_set_scope: Dict[str, Union[int, str, List[Dict[str, Union[str, int]]]]]):
+    """
+     对于整个业务集范围的类型转换为多业务范围
+     对于其他类型只过滤掉所有不在当前业务集中的 node
+
+    {
+    "nodes": [
+        {
+            "bk_obj_id": "biz_set",
+            "bk_inst_id": 10
+        }
+    }
+    转换为
+    {
+     "nodes": [
+        {
+            "bk_obj_id": "biz",
+            "bk_inst_id": 2,
+            "bk_biz_id": 2
+        },
+        {
+            "bk_obj_id": "biz",
+            "bk_inst_id": 3,
+            "bk_biz_id": 3
+        }
+    ]
+    }
+
+    """
+    from apps.node_man.handlers.cmdb import CmdbHandler
+
+    nodes: List[Dict[str, Union[int, str]]] = biz_set_scope["nodes"]
+    biz_set_id: int = biz_set_scope["scope_id"]
+
+    bk_biz_ids: List[int] = CmdbHandler.list_biz_ids_in_biz_set(biz_set_id=biz_set_id)
+    bk_obj_id_set: Set[str] = {node.get("bk_obj_id") for node in nodes}
+
+    if InstNodeType.BIZ_SET in list(bk_obj_id_set):
+        if len(nodes) > 1:
+            raise MultiBizSetError
+        else:
+            # 业务集范围转换为多业务
+            biz_set_scope["nodes"] = [
+                {"bk_obj_id": "biz", "bk_inst_id": bk_biz_id, "bk_biz_id": bk_biz_id} for bk_biz_id in bk_biz_ids
+            ]
+    else:
+        # 不包括在业务集中的业务和未指定具体业务的 node 将被剔除
+        biz_set_scope["nodes"] = [node for node in nodes if node.get("bk_biz_id") in bk_biz_ids]
 
 
 @support_multi_biz
@@ -771,7 +840,8 @@ def get_instances_by_scope(scope: Dict[str, Union[Dict, int, Any]]) -> Dict[str,
         return {}
 
     instances = []
-    bk_biz_id = scope["bk_biz_id"]
+    # 业务类型的订阅范围，认为 scope_id 就是 bk_biz_id
+    bk_biz_id = scope["scope_id"]
     if bk_biz_id:
         module_to_topo = get_module_to_topo_dict(bk_biz_id)
     else:

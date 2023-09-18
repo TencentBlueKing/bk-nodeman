@@ -83,6 +83,8 @@ class SubscriptionViewSet(APIViewSet):
                 bk_biz_id=scope["bk_biz_id"],
                 object_type=scope["object_type"],
                 node_type=scope["node_type"],
+                scope_type=scope["scope_type"],
+                scope_id=scope["scope_id"],
                 nodes=scope["nodes"],
                 instance_selector=scope.get("instance_selector"),
                 target_hosts=params.get("target_hosts"),
@@ -160,6 +162,8 @@ class SubscriptionViewSet(APIViewSet):
                     "bk_biz_id": subscription.bk_biz_id,
                     "object_type": subscription.object_type,
                     "node_type": subscription.node_type,
+                    "scope_type": subscription.scope_type,
+                    "scope_id": subscription.scope_id,
                     "nodes": subscription.nodes,
                 },
                 "pid": subscription.pid,
@@ -209,6 +213,11 @@ class SubscriptionViewSet(APIViewSet):
             # 策略部署新增
             subscription.plugin_name = params.get("plugin_name")
             subscription.bk_biz_scope = params.get("bk_biz_scope")
+            # 如果业务范围订阅只更新了 bk_biz_id 那也同步更新 scope_id
+            if subscription.scope_type == models.Subscription.ScopeType.BIZ:
+                subscription.scope_id = params.get("scope_id") or params.get("bk_biz_id")
+            elif subscription.scope == models.Subscription.ScopeType.BIZ_SET:
+                subscription.scope_id = params.get("scope_id")
             subscription.save()
 
             step_ids: Set[str] = set()
