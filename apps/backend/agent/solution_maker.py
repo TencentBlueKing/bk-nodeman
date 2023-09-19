@@ -29,6 +29,7 @@ from apps.backend.subscription.steps.agent_adapter.base import AgentSetupInfo
 from apps.core.script_manage.base import ScriptHook
 from apps.node_man import constants, models
 from apps.utils import basic
+from apps.utils.files import PathHandler
 
 
 class ExecutionSolutionStepContent:
@@ -103,10 +104,11 @@ class ExecutionSolutionTools:
 
     @staticmethod
     def get_gse_extra_config_dir(os_type: str):
+        extra_config_sub_dir: str = "user_conf"
         if os_type.upper() == constants.OsType.WINDOWS:
-            return settings.GSE_ENVIRON_WIN_DIR
+            return PathHandler(os_type).join(settings.GSE_ENVIRON_WIN_DIR, extra_config_sub_dir)
         else:
-            return settings.GSE_ENVIRON_DIR
+            return PathHandler(os_type).join(settings.GSE_ENVIRON_DIR, extra_config_sub_dir)
 
 
 class BaseExecutionSolutionMaker(metaclass=abc.ABCMeta):
