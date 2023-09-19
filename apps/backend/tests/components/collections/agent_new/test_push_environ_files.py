@@ -22,7 +22,7 @@ from . import base
 class PushEnvironFilesTestCaseMixin:
 
     GSE_ENVIRON_DIR: str = "/etc/sysconfig/gse/ce/environ.sh"
-    GSE_ENVIRON_WIN_DIR: str = "C:\\Windows\\System32\\config\\gse\\test"
+    GSE_ENVIRON_WIN_DIR: str = "C:\\\\Windows\\\\System32\\\\config\\\\gse\\\\test"
 
     OVERWRITE_OBJ__KV_MAP = {
         settings: {
