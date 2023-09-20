@@ -421,10 +421,11 @@ class InstallAgent2WindowsTestCase(InstallWindowsTestCase):
             constants.AgentWindowsDependencies.list_member_values() + ["setup_agent.bat"],
             solution_parse_result["dependencies"],
         )
+        extra_config_dir = json.dumps(mock_data_utils.GSE_ENVIRON_WIN_DIR + "\\" + "user_conf")[1:-1]
         self.assertEqual(
             solution_parse_result["cmds"],
             [
-                f"mkdir {mock_data_utils.GSE_ENVIRON_WIN_DIR}\\user_conf",
+                f"mkdir {extra_config_dir}",
                 f"mkdir {installation_tool.dest_dir}",
                 # f"{installation_tool.dest_dir}curl.exe http://127.0.0.1/download/setup_agent.bat"
                 # f" -o {installation_tool.dest_dir}setup_agent.bat -sSfg",

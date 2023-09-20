@@ -24,7 +24,7 @@ export GSE_VERSION="V2"
 export BKAPP_BK_GSE_APIGATEWAY="{{ BKAPP_BK_GSE_APIGATEWAY }}"
 export GSE_ENABLE_PUSH_ENVIRON_FILE="True"
 export GSE_ENVIRON_DIR="/etc/sysconfig/gse/{{ ENV }}"
-export GSE_ENVIRON_WIN_DIR="C:\\\\Windows\\\\System32\\\\config\\\\gse\\\\{{ ENV }}"
+export GSE_ENVIRON_WIN_DIR="C:\\Windows\\System32\\config\\gse\\{{ ENV }}"
 export GSE_CERT_PATH="{{ GSE_CERT_PATH }}"
 ```
 
