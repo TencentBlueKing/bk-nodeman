@@ -30,7 +30,7 @@ JOB_TASK_PIPELINE_ID = "1ae89ce9deec319bbd8727a0c4b2ca82"
 
 GSE_ENVIRON_DIR = "/etc/sysconfig/gse/bk_test"
 
-GSE_ENVIRON_WIN_DIR = "C:\\\\Windows\\\\System32\\\\config\\\\gse\\\\bk_test"
+GSE_ENVIRON_WIN_DIR = "C:\\Windows\\System32\\config\\gse\\bk_test"
 
 
 class MockReturnType(EnhanceEnum):

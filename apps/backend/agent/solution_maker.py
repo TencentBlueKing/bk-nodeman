@@ -106,7 +106,7 @@ class ExecutionSolutionTools:
     def get_gse_extra_config_dir(os_type: str):
         extra_config_sub_dir: str = "user_conf"
         if os_type.upper() == constants.OsType.WINDOWS:
-            return PathHandler(os_type).join(settings.GSE_ENVIRON_WIN_DIR, extra_config_sub_dir)
+            return json.dumps(PathHandler(os_type).join(settings.GSE_ENVIRON_WIN_DIR, extra_config_sub_dir))[1:-1]
         else:
             return PathHandler(os_type).join(settings.GSE_ENVIRON_DIR, extra_config_sub_dir)
 
