@@ -95,7 +95,7 @@ GSE_ENVIRON_DIR = get_type_env(key="GSE_ENVIRON_DIR", default="/etc/sysconfig/gs
 
 # GSE 环境变量目录（Windows）
 GSE_ENVIRON_WIN_DIR = get_type_env(
-    key="GSE_ENVIRON_WIN_DIR", default="C:\\\\Windows\\\\System32\\\\config\\\\gse\\\\bk", _type=str
+    key="GSE_ENVIRON_WIN_DIR", default="C:\\Windows\\System32\\config\\gse\\bk", _type=str
 )
 
 # ===============================================================================
