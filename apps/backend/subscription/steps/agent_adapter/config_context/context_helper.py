@@ -214,8 +214,10 @@ class ConfigContextHelper:
                 tls_cli_key_file=proxy_tls_cli_key_file,
             ),
             context_dataclass.FileCacheConfigContext(
-                dirs=self.host.extra_data.get(
-                    "data_path", AgentSetupTools.generate_gse_file_cache_dir(path=setup_path, is_legacy=False)
+                dirs=AgentSetupTools.full_gse_file_cache_dir(
+                    self.host.extra_data.get(
+                        "data_path", AgentSetupTools.generate_default_file_cache_dir(path=setup_path, is_legacy=False)
+                    )
                 ),
             ),
             context_dataclass.FileMetricConfigContext(
