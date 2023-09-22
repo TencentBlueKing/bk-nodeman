@@ -473,7 +473,7 @@ def generate_gse_config(
     setup_path = agent_config["setup_path"]
     log_path = agent_config["log_path"]
     # 如果没有自定义则使用接入点默认配置
-    data_path = host.extra_data.get("data_path") or AgentSetupTools.generate_gse_file_cache_dir(
+    data_path = host.extra_data.get("data_path") or AgentSetupTools.generate_default_file_cache_dir(
         path=setup_path, is_legacy=True
     )
 

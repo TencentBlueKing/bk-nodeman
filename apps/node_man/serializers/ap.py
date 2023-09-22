@@ -68,7 +68,7 @@ class ListSerializer(serializers.ModelSerializer):
 
     def get_file_cache_dirs(self, instance):
         is_legacy: bool = instance.gse_version == GseVersion.V1.value
-        data_path: str = AgentSetupTools.generate_gse_file_cache_dir(
+        data_path: str = AgentSetupTools.generate_default_file_cache_dir(
             path=instance.agent_config[OsType.LINUX.lower()]["setup_path"], is_legacy=is_legacy
         )
         return data_path
