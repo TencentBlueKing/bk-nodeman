@@ -157,15 +157,14 @@ class AgentBaseService(BaseService, metaclass=abc.ABCMeta):
 
         return (agent_pkg_name.format(cpu_arch=host.cpu_arch), agent_pkg_name)[return_name_with_cpu_tmpl]
 
-    @classmethod
-    def get_agent_pkg_dir(cls, common_data: "AgentCommonData", host: models.Host) -> str:
+    def get_agent_pkg_dir(self, common_data: "AgentCommonData", host: models.Host) -> str:
         """
         获取 Agent 安装包目录
         :param common_data: AgentCommonData
         :param host: models.Host
         :return:
         """
-        host_ap = common_data.host_id__ap_map[host.bk_host_id]
+        host_ap: models.AccessPoint = self.get_host_ap(common_data=common_data, host=host)
         download_path = host_ap.nginx_path or settings.DOWNLOAD_PATH
         if common_data.agent_step_adapter.is_legacy:
             # 旧版本 Agent 安装包位于下载目录
