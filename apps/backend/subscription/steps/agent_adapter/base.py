@@ -39,11 +39,23 @@ class AgentSetupInfo:
 
 
 class AgentSetupTools:
-    @staticmethod
-    def generate_gse_file_cache_dir(path: str, is_legacy: bool) -> str:
-        gse_file_cache_prefix: str = "/data"
+    GSE_FILE_CACHE_PREFIX: str = "/data"
+    GSE_FILE_CACHE_DIR_BASE_NAME = "file_cache"
+
+    @classmethod
+    def generate_default_file_cache_dir(cls, path: str, is_legacy: bool) -> str:
         if is_legacy:
-            file_cache_dir: str = os.path.join(gse_file_cache_prefix, os.path.basename(path))
+            file_cache_dir: str = os.path.join(cls.GSE_FILE_CACHE_PREFIX, os.path.basename(path))
         else:
-            file_cache_dir: str = os.path.join(gse_file_cache_prefix, os.path.basename(path), "file_cache")
+            file_cache_dir: str = os.path.join(
+                cls.GSE_FILE_CACHE_PREFIX, os.path.basename(path), cls.GSE_FILE_CACHE_DIR_BASE_NAME
+            )
         return file_cache_dir
+
+    @classmethod
+    def full_gse_file_cache_dir(cls, path: str):
+        last_dir = os.path.basename(path)
+        if last_dir == cls.GSE_FILE_CACHE_DIR_BASE_NAME:
+            return path
+        else:
+            return os.path.join(path, cls.GSE_FILE_CACHE_DIR_BASE_NAME)
