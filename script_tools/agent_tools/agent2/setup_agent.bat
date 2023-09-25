@@ -687,14 +687,14 @@ goto :EOF
     set TEMP_PKG_NAME=%PKG_NAME:~0,-4%
     cd %TMP_DIR% && DEL /F /S /Q %PKG_NAME% %TEMP_PKG_NAME%.tar gse_agent.conf.%LAN_ETH_IP% 1>nul 2>&1
     for %%p in (%PKG_NAME%) do (
-        for /F %%i in ('%TMP_DIR%\curl.exe -g --connect-timeout 5 -o %TMP_DIR%/%%p --progress-bar -sL -w "%%{http_code}" %DOWNLOAD_URL%/agent/windows/%CPU_ARCH%/%%p') do (set http_code_res=%%i)
+        for /F %%i in ('%TMP_DIR%\curl.exe -g --connect-timeout 5 -o %TMP_DIR%/%%p --progress-bar -sL -w "%%{http_code}" %DOWNLOAD_URL%/agent/windows/%CPU_ARCH%/%%p') do (set http_status=%%i)
     )
-        if %http_code_res% EQU 200 (
-            call :print INFO download_pkg - "gse_agent package %PKG_NAME% download succeeded, http_status:%http_code_res%"
+        if %http_status% EQU 200 (
+            call :print INFO download_pkg - "gse_agent package %PKG_NAME% download succeeded, http_status:%http_status%"
             call :print INFO report_cpu_arch - "%CPU_ARCH%"
             call :multi_report_step_status
         ) else (
-            call :print FAIL download_pkg FAILED "file %PKG_NAME% download failed. url:%DOWNLOAD_URL%/agent/windows/%CPU_ARCH%/%PKG_NAME%, http_status:%http_code_res%"
+            call :print FAIL download_pkg FAILED "file %PKG_NAME% download failed. url:%DOWNLOAD_URL%/agent/windows/%CPU_ARCH%/%PKG_NAME%, http_status:%http_status%"
             call :multi_report_step_status
             exit /b 1
         )
