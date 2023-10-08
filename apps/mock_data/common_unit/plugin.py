@@ -74,3 +74,21 @@ PROC_CONTROL_MODEL_DATA = {
     "health_cmd": f"./{PLUGIN_NAME} -z",
     "debug_cmd": f"./{PLUGIN_NAME} -d",
 }
+
+PROC_STATUS_MODEL_DATA = {
+    "name": PLUGIN_NAME,
+    "status": "RUNNING",
+    "is_auto": "AUTO",
+    "version": PACKAGE_VERSION,
+    "proc_type": "PLUGIN",
+    "configs": [],
+    "setup_path": "/usr/local/gse/plugins/bin",
+    "log_path": "/var/log/gse",
+    "data_path": "/var/lib/gse",
+    "pid_path": f"/var/run/gse/{PLUGIN_NAME}.pid",
+    "group_id": "sub_1_host_1",
+    "source_type": "subscription",
+    "source_id": 1,
+    "bk_host_id": 1,
+    "is_latest": True,
+}
