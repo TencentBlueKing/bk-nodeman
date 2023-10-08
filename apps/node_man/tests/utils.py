@@ -68,6 +68,7 @@ def create_host_from_a_to_b(
     outer_ip=None,
     login_ip=None,
     proc_type=None,
+    os_type=None,
 ):
     # 若传了bk_host_id，number必须为1
     host_to_create = []
@@ -90,7 +91,7 @@ def create_host_from_a_to_b(
                         login_ip or f"{random.randint(1, 250)}.{random.randint(1, 250)}." f"{random.randint(1, 250)}.1"
                     ),
                     "node_type": node_type or ["AGENT", "PAGENT", "PROXY"][random.randint(0, 2)],
-                    "os_type": constants.OS_TUPLE[random.randint(0, 1)],
+                    "os_type": os_type or constants.OS_TUPLE[random.randint(0, 1)],
                     "ap_id": 1,
                     "upstream_nodes": upstream_nodes if upstream_nodes else [i for i in range(100)],
                     "extra_data": {
@@ -143,6 +144,7 @@ def create_host(
     outer_ip=None,
     login_ip=None,
     proc_type=None,
+    os_type=None,
 ):
     # 若传了bk_host_id，number必须为1
     host_to_create = []
@@ -164,6 +166,7 @@ def create_host(
                 outer_ip=outer_ip,
                 login_ip=login_ip,
                 proc_type=proc_type,
+                os_type=os_type,
             )
         else:
             host, process, identity = create_host_from_a_to_b(
@@ -178,6 +181,7 @@ def create_host(
                 outer_ip=outer_ip,
                 login_ip=login_ip,
                 proc_type=proc_type,
+                os_type=os_type,
             )
         host_to_create.extend(host)
         process_to_create.extend(process)
