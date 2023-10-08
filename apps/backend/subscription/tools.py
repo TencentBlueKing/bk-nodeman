@@ -1046,9 +1046,13 @@ def get_all_subscription_steps_context(
         all_step_data[step.step_id] = step_context
 
     plugin_path = get_plugin_path(plugin_name, target_host, agent_config)
-    # 当前step_id的数据单独拎出来，作为 shortcut
 
-    step_params = policy_step_adapter.get_matching_step_params(target_host.os_type.lower(), target_host.cpu_arch)
+    # 将 step.params 中 context 提取到第一层，提供给模板渲染
+    step_params = policy_step_adapter.get_matching_step_params(
+        target_host.os_type.lower(),
+        target_host.cpu_arch
+    )
+
     context.update(step_params.get("context", {}))
     context.update(all_step_data[subscription_step.step_id])
     context.update(

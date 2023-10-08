@@ -21,6 +21,8 @@ from apps.mock_data.backend_mkd.subscription.unit import (
 )
 from apps.node_man import constants, models
 from apps.utils.unittest.testcase import CustomAPITestCase
+from apps.node_man.tests.utils import create_host
+from apps.backend.subscription.tools import get_all_subscription_steps_context
 
 PLATFORMS = ["linux_x86_64", "linux_x86", "windows_x86_64"]
 
@@ -342,6 +344,70 @@ class PackageTemplateRenderTest(CustomAPITestCase):
             match_plugin_version="1.2",
             match_config_tmpl_version="1.2",
         )
+
+    def test_get_all_subscription_steps_context(self):
+        """测试获取渲染配置模板参数"""
+        # 创建主机数据
+        host_list, _, _ = create_host(
+            1,
+            bk_host_id=1,
+            bk_cloud_id=0,
+            ip="127.0.0.1",
+            os_type=constants.OsType.LINUX,
+        )
+        target_host = host_list[0]
+
+        # 创建订阅数据
+        subscription = models.Subscription.objects.create(
+            bk_biz_id=target_host.bk_biz_id,
+            object_type=models.Subscription.ObjectType.HOST,
+            node_type=models.Subscription.NodeType.TOPO,
+            nodes=[{"bk_host_id": target_host.bk_host_id}],
+            from_system="blueking",
+            enable=False,
+            creator="admin",
+        )
+        subscription_step = models.SubscriptionStep.objects.create(
+            subscription_id=subscription.id,
+            index=0,
+            step_id=common_unit.plugin.PLUGIN_NAME,
+            type="PLUGIN",
+            config={
+                "plugin_name": common_unit.plugin.PLUGIN_NAME,
+                "plugin_version": common_unit.plugin.PACKAGE_VERSION,
+                "config_templates": [{
+                    "name": common_unit.plugin.GSE_PLUGIN_DESC_MODEL_DATA["config_file"],
+                    "version": common_unit.plugin.PACKAGE_VERSION
+                }]
+            },
+            params={"context": {"params_context": "test"}},
+        )
+
+        # 创建插件相关数据数据
+        models.GsePluginDesc.objects.create(**common_unit.plugin.GSE_PLUGIN_DESC_MODEL_DATA)
+        models.Packages.objects.create(**common_unit.plugin.PACKAGES_MODEL_DATA)
+        models.ProcControl.objects.create(**common_unit.plugin.PROC_CONTROL_MODEL_DATA)
+
+        proc_status_model_data = deepcopy(common_unit.plugin.PROC_STATUS_MODEL_DATA)
+        proc_status_model_data["group_id"] = f"sub_{subscription.id}_host_{target_host.bk_host_id}"
+        proc_status_model_data["source_id"] = subscription.id
+        models.ProcessStatus.objects.create(**proc_status_model_data)
+
+        policy_step_adapter = PolicyStepAdapter(subscription_step)
+        context = get_all_subscription_steps_context(
+            subscription_step,
+            {"host": {"bk_host_id": target_host.bk_host_id}},
+            target_host,
+            common_unit.plugin.PLUGIN_NAME,
+            target_host.agent_config,
+            policy_step_adapter,
+        )
+
+        # 验证 context 中包含 control_info
+        self.assertTrue("control_info" in context.keys())
+
+        # 验证 step.params.context 处于 context 根节点下
+        self.assertTrue("params_context" in context.keys())
 
     # 当前没有指定具体插件模板版本好的需求 有需要再打开
 
