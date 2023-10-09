@@ -186,6 +186,7 @@ AGENT_JOB_TUPLE = (
     "RESTART_AGENT",
     "RELOAD_AGENT",
     "ACTIVATE_AGENT",
+    "NEW_AGENT",
 )
 
 PROXY_JOB_TUPLE = (
@@ -360,6 +361,11 @@ IAM_ACTION_DICT = {
 IAM_ACTION_TUPLE = tuple(IAM_ACTION_DICT.keys())
 IAM_ACTION_CHOICES = tuple_choices(IAM_ACTION_TUPLE)
 IamActionType = choices_to_namedtuple(IAM_ACTION_CHOICES)
+
+GSE_PACKAGE_ENABLE_ALIAS_MAP = {
+    True: _("启用"),
+    False: _("禁用"),
+}
 
 
 class SubscriptionType:
@@ -1136,3 +1142,6 @@ class CommonExecutionSolutionStepType(EnhanceEnum):
     @classmethod
     def _get_member__alias_map(cls) -> Dict[Enum, str]:
         return {cls.DEPENDENCIES: _("依赖文件"), cls.COMMANDS: _("命令")}
+
+
+BUILT_IN_TAG_NAMES: List[str] = ["稳定版本", "最新版本", "测试版本"]

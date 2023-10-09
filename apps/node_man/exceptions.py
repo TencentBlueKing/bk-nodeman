@@ -220,3 +220,13 @@ class YunTiPolicyConfigNotExistsError(NodeManBaseException):
     MESSAGE = _("云梯策略配置不存在")
     MESSAGE_TPL = _("云梯策略配置不存在")
     ERROR_CODE = 43
+
+
+class FileDoesNotExistError(NodeManBaseException):
+    MESSAGE = _("文件不存在")
+    ERROR_CODE = 44
+
+
+class PluginParseError(NodeManBaseException):
+    MESSAGE = _("插件解析错误")
+    ERROR_CODE = 45
