@@ -36,6 +36,7 @@ class ProxyArtifactBuilder(base.BaseArtifactBuilder):
     PROXY_SVR_EXES: typing.List[str] = ["gse_data", "gse_file"]
 
     def extract_initial_artifact(self, initial_artifact_local_path: str, extract_dir: str):
+        # todo: 是否使用Archive(initial_artifact_local_path).extractall(extract_dir, auto_create_dir=True)
         with tarfile.open(name=initial_artifact_local_path) as tf:
             tf.extractall(path=extract_dir)
 

@@ -175,3 +175,11 @@ class SubscriptionNotDeletedCantOperateError(AppBaseException):
     ERROR_CODE = 20
     MESSAGE = _("订阅未被删除，无法操作")
     MESSAGE_TPL = _("订阅ID:{subscription_id}未被删除，无法进行清理操作，可增加参数is_force=true强制操作")
+
+
+class AgentPackageValidationError(AppBaseException):
+    """AgentPackage校验错误"""
+
+    ERROR_CODE = 20
+    MESSAGE = _("AgentPackage校验错误")
+    MESSAGE_TPL = _("{msg}")
