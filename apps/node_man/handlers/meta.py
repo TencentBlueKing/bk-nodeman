@@ -590,6 +590,32 @@ class MetaHandler(APIModel):
             os_type_children.append({"id": os_type, "name": constants.OS_CHN.get(os_type, os_type)})
         return os_type_children
 
+    @staticmethod
+    def fetch_agent_pkg_manager_children():
+        mock_version = [
+            {"name": "2.1.8", "id": "2.1.8"},
+            {"name": "2.1.7", "id": "2.1.7"},
+        ]
+        mock_tags = [
+            {"name": "稳定版本", "id": "stable"},
+            {"name": "最新版本", "id": "latest"},
+        ]
+        mock_creator = [
+            {"name": "user1", "id": "user1"},
+            {"name": "user2", "id": "user2"},
+        ]
+        mock_is_ready = [
+            {"name": "启用", "id": True},
+            {"name": "停用", "id": False},
+        ]
+
+        return [
+            {"name": _("版本号"), "id": "version", "children": mock_version},
+            {"name": _("标签信息"), "id": "tags", "children": mock_tags},
+            {"name": _("上传用户"), "id": "creator", "children": mock_creator},
+            {"name": _("状态"), "id": "is_ready", "children": mock_is_ready},
+        ]
+
     def filter_condition(self, category, params=None):
         """
         获取过滤条件
@@ -617,6 +643,8 @@ class MetaHandler(APIModel):
         elif category == "os_type":
             ret = self.fetch_os_type_children()
             return ret
+        elif category == "agent_pkg_manage":
+            return self.fetch_agent_pkg_manager_children()
 
     @staticmethod
     def install_default_values_formatter(install_default_values: Dict[str, Dict[str, Any]]):
