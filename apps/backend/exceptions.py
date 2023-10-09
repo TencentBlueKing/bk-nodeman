@@ -94,3 +94,9 @@ class AgentConfigTemplateEnvNotExistError(BackendBaseException):
     MESSAGE = _("配置模板Env不存在")
     MESSAGE_TPL = _("配置模板Env不存在[{name}-{version}-{os_type}-{cpu_arch}]不存在")
     ERROR_CODE = 15
+
+
+class ModelInstanceNotFoundError(BackendBaseException):
+    MESSAGE = _("模型对象不存在")
+    MESSAGE_TPL = _("模型对象 -> [{model_name}] 不存在")
+    ERROR_CODE = 16

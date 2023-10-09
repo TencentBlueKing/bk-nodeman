@@ -361,6 +361,11 @@ IAM_ACTION_TUPLE = tuple(IAM_ACTION_DICT.keys())
 IAM_ACTION_CHOICES = tuple_choices(IAM_ACTION_TUPLE)
 IamActionType = choices_to_namedtuple(IAM_ACTION_CHOICES)
 
+GSE_PACKAGE_ENABLE_ALIAS_MAP = {
+    True: _("启用"),
+    False: _("禁用"),
+}
+
 
 class SubscriptionType:
     POLICY = "policy"
@@ -944,6 +949,24 @@ class GsePackageTemplatePattern(EnhanceEnum):
     AGENT = re.compile("|".join(GsePackageTemplate.AGENT.value))
 
 
+class GsePackageCacheKey(EnhanceEnum):
+    """GsePackageHandler的缓存key"""
+
+    TAGS_PREFIX = "tags_"
+    DESCRIPTION_PREFIX = "description_"
+
+
+class GsePackageProject(EnhanceEnum):
+    """GsePackage的project"""
+
+    GSE_AGENT = "gse_agent"
+    GSE_PROXY = "gse_proxy"
+
+    @classmethod
+    def values(cls):
+        return [member.value for member in cls]
+
+
 class GsePackageDir(EnhanceEnum):
     """安装包打包根路径"""
 
@@ -1136,3 +1159,7 @@ class CommonExecutionSolutionStepType(EnhanceEnum):
     @classmethod
     def _get_member__alias_map(cls) -> Dict[Enum, str]:
         return {cls.DEPENDENCIES: _("依赖文件"), cls.COMMANDS: _("命令")}
+
+
+BUILT_IN_TAG_DESCRIPTIONS: List[str] = ["稳定版本", "最新版本", "测试版本"]
+BUILT_IN_TAG_NAMES: List[str] = ["stable", "latest", "test"]

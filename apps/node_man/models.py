@@ -1362,7 +1362,7 @@ class UploadPackage(models.Model):
                 )
                 raise CreateRecordError(_("文件{file_path}不存在，请确认后重试").format(file_path=file_path))
 
-            target_file_path = os.path.join(settings.UPLOAD_PATH, file_name)
+            target_file_path = os.path.join(settings.UPLOAD_PATH, file_name).replace("\\", "/")
 
             # 如果读写路径一致无需拷贝文件，此处 target_file_path / file_path 属于同个文件源
             if target_file_path != file_path:

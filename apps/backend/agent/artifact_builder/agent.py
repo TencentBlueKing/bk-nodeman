@@ -34,9 +34,11 @@ class AgentArtifactBuilder(base.BaseArtifactBuilder):
     ]
 
     def extract_initial_artifact(self, initial_artifact_local_path: str, extract_dir: str):
-        with tarfile.open(name=initial_artifact_local_path) as tf:
-            tf.extractall(path=extract_dir)
-        extract_dir: str = os.path.join(extract_dir, self.BASE_PKG_DIR)
+        if not self.extract_dir:
+            self.extract_dir = extract_dir
+            with tarfile.open(name=initial_artifact_local_path) as tf:
+                tf.extractall(path=extract_dir)
+        extract_dir: str = os.path.join(self.extract_dir, self.BASE_PKG_DIR)
         self._inject_dependencies(extract_dir)
         return extract_dir
 

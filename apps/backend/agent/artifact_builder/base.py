@@ -23,7 +23,7 @@ from apps.backend import exceptions
 from apps.backend.agent.config_parser import GseConfigParser
 from apps.core.files import core_files_constants
 from apps.core.files.storage import get_storage
-from apps.core.tag.constants import AGENT_NAME_TARGET_ID_MAP, TargetType
+from apps.core.tag.constants import TargetType
 from apps.core.tag.handlers import TagHandler
 from apps.node_man import constants, models
 from apps.utils import cache, files
@@ -65,6 +65,7 @@ class BaseArtifactBuilder(abc.ABC):
         overwrite_version: typing.Optional[str] = None,
         tags: typing.Optional[typing.List[str]] = None,
         enable_agent_pkg_manage: bool = False,
+        extract_dir: str = None,
     ):
         """
         :param initial_artifact_path: 原始制品所在路径
@@ -84,6 +85,7 @@ class BaseArtifactBuilder(abc.ABC):
         self.applied_tmp_dirs = set()
         # 文件源
         self.storage = get_storage(file_overwrite=True)
+        self.extract_dir = extract_dir
 
     @staticmethod
     def download_file(file_path: str, target_path: str):
@@ -441,13 +443,57 @@ class BaseArtifactBuilder(abc.ABC):
             changelog: str = changelog_fs.read()
         return changelog
 
-    def update_or_create_record(self, artifact_meta_info: typing.Dict[str, typing.Any]):
+    def generate_location_path(self, upload_path: str, pkg_name: str) -> str:
+        if settings.STORAGE_TYPE == core_files_constants.StorageType.BLUEKING_ARTIFACTORY.value:
+            location_path: str = f"{settings.BKREPO_ENDPOINT_URL}/generic/blueking/bknodeman/{upload_path}/{pkg_name}"
+        else:
+            location_path: str = f"http://{settings.BKAPP_LAN_IP}/{upload_path}/{pkg_name}"
+
+        return location_path
+
+    def update_or_create_package_records(self, package_infos: typing.List[typing.Dict[str, typing.Any]]):
         """
-        创建或更新制品记录，待 Agent 包管理完善
-        :param artifact_meta_info:
+        创建或更新制品记录
+        :param package_infos:
         :return:
         """
-        pass
+        for package_info in package_infos:
+            models.GsePackages.objects.update_or_create(
+                defaults={
+                    "pkg_size": package_info["package_upload_info"]["pkg_size"],
+                    "pkg_path": package_info["package_upload_info"]["pkg_path"],
+                    "md5": package_info["package_upload_info"]["md5"],
+                    "location": self.generate_location_path(
+                        package_info["package_upload_info"]["pkg_path"],
+                        package_info["package_upload_info"]["pkg_name"],
+                    ),
+                    "version_log": package_info["artifact_meta_info"]["changelog"],
+                },
+                pkg_name=package_info["package_upload_info"]["pkg_name"],
+                version=package_info["artifact_meta_info"]["version"],
+                project=package_info["artifact_meta_info"]["name"],
+                os=package_info["package_dir_info"]["os"],
+                cpu_arch=package_info["package_dir_info"]["cpu_arch"],
+            )
+            logger.info(
+                f"[update_or_create_package_record] "
+                f"package name -> {package_info['package_upload_info']['pkg_name']} success"
+            )
+
+        if package_infos:
+            models.GsePackageDesc.objects.update_or_create(
+                defaults={
+                    "description": package_infos[0]["artifact_meta_info"]["changelog"],
+                    "category": constants.CategoryType.official,
+                },
+                project=package_infos[0]["artifact_meta_info"]["name"],
+            )
+
+            logger.info(
+                f"[update_or_create_package_record] "
+                f"package desc -> {package_info['package_upload_info']['pkg_name']}, "
+                f"project -> {package_infos[0]['artifact_meta_info']['name']} success"
+            )
 
     def update_or_create_tag(self, artifact_meta_info: typing.Dict[str, typing.Any]):
         """
@@ -455,16 +501,19 @@ class BaseArtifactBuilder(abc.ABC):
         :param artifact_meta_info:
         :return:
         """
-        for tag in self.tags:
-            TagHandler.publish_tag_version(
-                name=tag,
-                target_type=TargetType.AGENT.value,
-                target_id=AGENT_NAME_TARGET_ID_MAP[self.NAME],
-                target_version=artifact_meta_info["version"],
-            )
-            logger.info(
-                f"[publish_tag_version] tag -> {tag}, target_version -> {artifact_meta_info['version']} success"
-            )
+        try:
+            for tag in self.tags:
+                TagHandler.publish_tag_version(
+                    name=tag,
+                    target_type=TargetType.AGENT.value,
+                    target_id=models.GsePackageDesc.objects.get(project=self.NAME).id,
+                    target_version=artifact_meta_info["version"],
+                )
+                logger.info(
+                    f"[publish_tag_version] tag -> {tag}, target_version -> {artifact_meta_info['version']} success"
+                )
+        except models.GsePackageDesc.DoesNotExist:
+            raise exceptions.ModelInstanceNotFoundError(model_name="GsePackageDesc")
 
     @classmethod
     def parse_env(cls, content) -> typing.Dict[str, typing.Any]:
@@ -517,14 +566,6 @@ class BaseArtifactBuilder(abc.ABC):
                     agent_name=self.NAME,
                 )
 
-    def update_or_create_package_records(self, v):
-        """
-        创建或更新安装包记录，待 Agent 包管理完善
-        :param package_infos:
-        :return:
-        """
-        pass
-
     def get_artifact_meta_info(self, extract_dir: str) -> typing.Dict[str, typing.Any]:
         """
         获取制品的基础信息、配置文件信息
@@ -550,7 +591,8 @@ class BaseArtifactBuilder(abc.ABC):
         initial_artifact_local_path: str = os.path.join(
             self.apply_tmp_dir(), os.path.basename(self.initial_artifact_path)
         )
-        self.download_file(self.initial_artifact_path, initial_artifact_local_path)
+        if not self.extract_dir:
+            self.download_file(self.initial_artifact_path, initial_artifact_local_path)
         # 进行解压
         extract_dir: str = self.extract_initial_artifact(initial_artifact_local_path, self.apply_tmp_dir())
         return extract_dir, self._list_package_dir_infos(extract_dir=extract_dir)
@@ -591,8 +633,6 @@ class BaseArtifactBuilder(abc.ABC):
         artifact_meta_info["operator"] = operator
         # Agent 包先导入文件源 -> 写配置文件 -> 创建包记录 -> 创建 Tag
         self.update_or_create_support_files(package_infos)
-        # TODO update_or_create_record & update_or_create_package_records 似乎是一样的功能？
-        self.update_or_create_record(artifact_meta_info)
         self.update_or_create_package_records(package_infos)
         self.update_or_create_tag(artifact_meta_info)
 
