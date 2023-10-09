@@ -13,7 +13,6 @@ from typing import Dict
 
 from django.utils.translation import ugettext_lazy as _
 
-from apps.node_man.constants import GsePackageCode
 from apps.utils.enum import EnhanceEnum
 
 
@@ -37,10 +36,3 @@ class TagChangeAction(EnhanceEnum):
     @classmethod
     def _get_member__alias_map(cls) -> Dict[Enum, str]:
         return {cls.DELETE: _("删除标签"), cls.CREATE: _("新建标签"), cls.UPDATE: _("更新版本"), cls.OVERWRITE: _("同版本覆盖更新")}
-
-
-# TODO: target_id 临时写死
-AGENT_NAME_TARGET_ID_MAP: Dict[str, int] = {
-    GsePackageCode.AGENT.value: 1,
-    GsePackageCode.PROXY.value: 2,
-}
