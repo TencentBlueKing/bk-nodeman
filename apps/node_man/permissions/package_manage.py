@@ -8,31 +8,20 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from enum import Enum
-from typing import Dict
 
 from django.utils.translation import ugettext_lazy as _
+from rest_framework import permissions
 
-from apps.utils.enum import EnhanceEnum
-
-
-class TargetType(EnhanceEnum):
-    """目标类型"""
-
-    PLUGIN = "PLUGIN"
-    AGENT = "AGENT"
-
-    @classmethod
-    def _get_member__alias_map(cls) -> Dict[Enum, str]:
-        return {cls.PLUGIN: _("插件"), cls.AGENT: _("Agent")}
+from apps.node_man.handlers.iam import IamHandler
+from apps.utils.local import get_request_username
 
 
-class TagChangeAction(EnhanceEnum):
-    DELETE = "DELETE"
-    CREATE = "CREATE"
-    UPDATE = "UPDATE"
-    OVERWRITE = "OVERWRITE"
+class PackageManagePermission(permissions.BasePermission):
+    message = _("您没有该操作的权限")
 
-    @classmethod
-    def _get_member__alias_map(cls) -> Dict[Enum, str]:
-        return {cls.DELETE: _("删除标签"), cls.CREATE: _("新建标签"), cls.UPDATE: _("更新版本"), cls.OVERWRITE: _("同版本覆盖更新")}
+    def has_permission(self, request, view):
+
+        if IamHandler().is_superuser(get_request_username()):
+            return True
+
+        return False

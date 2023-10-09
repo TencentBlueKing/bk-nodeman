@@ -17,7 +17,6 @@ from django.conf import settings
 from django.core.management import call_command
 
 from apps.backend.tests.agent import utils
-from apps.core.tag.constants import AGENT_NAME_TARGET_ID_MAP
 from apps.mock_data import utils as mock_data_utils
 from apps.node_man import models
 
@@ -44,6 +43,7 @@ class FileSystemImportAgentTestCase(test_agent.FileSystemTestCase):
         self.assertTrue(models.UploadPackage.objects.all().exists())
         self.pkg_checker(version_str=utils.VERSION)
         self.template_and_env_checker(version_str=utils.VERSION)
+        self.gse_package_and_desc_records_checker(version_str=utils.VERSION)
 
     def test_make__overwrite_version(self):
         """测试版本号覆盖"""
@@ -51,7 +51,8 @@ class FileSystemImportAgentTestCase(test_agent.FileSystemTestCase):
         self.pkg_checker(version_str=utils.VERSION)
         self.template_and_env_checker(version_str=utils.VERSION)
         self.pkg_checker(version_str=self.OVERWRITE_VERSION)
-        self.tag_checker(target_id=AGENT_NAME_TARGET_ID_MAP[self.NAME])
+        self.tag_checker()
+        self.gse_package_and_desc_records_checker(version_str=utils.VERSION)
 
 
 class BkRepoImportAgentTestCase(FileSystemImportAgentTestCase):

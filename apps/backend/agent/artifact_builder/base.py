@@ -23,8 +23,9 @@ from apps.backend import exceptions
 from apps.backend.agent.config_parser import GseConfigParser
 from apps.core.files import core_files_constants
 from apps.core.files.storage import get_storage
-from apps.core.tag.constants import AGENT_NAME_TARGET_ID_MAP, TargetType
+from apps.core.tag.constants import TargetType
 from apps.core.tag.handlers import TagHandler
+from apps.core.tag.targets import AgentTargetHelper
 from apps.node_man import constants, models
 from apps.utils import cache, files
 
@@ -428,26 +429,76 @@ class BaseArtifactBuilder(abc.ABC):
             raise exceptions.NotSemanticVersionError({"version": version_match})
 
     @cache.class_member_cache()
-    def _get_changelog(self, extract_dir: str) -> str:
+    def _get_description(self, extract_dir: str) -> typing.Tuple[str, str]:
         """
         获取版本日志
         :param extract_dir: 解压目录
         :return:
         """
-        changelog_file_path: str = os.path.join(extract_dir, "CHANGELOG.md")
-        if not os.path.exists(changelog_file_path):
-            raise exceptions.FileNotExistError(_("版本日志文件不存在"))
-        with open(changelog_file_path, "r", encoding="utf-8") as changelog_fs:
-            changelog: str = changelog_fs.read()
-        return changelog
+        description_file_path: str = os.path.join(extract_dir, "DESCRIPTION")
+        description_en_file_path: str = os.path.join(extract_dir, "DESCRIPTION_EN")
+        description, description_en = "", ""
+        if os.path.exists(description_file_path):
+            with open(description_file_path, "r", encoding="utf-8") as description_fs:
+                description: str = description_fs.read()
 
-    def update_or_create_record(self, artifact_meta_info: typing.Dict[str, typing.Any]):
+        if os.path.exists(description_en_file_path):
+            with open(description_en_file_path, "r", encoding="utf-8") as description_en_fs:
+                description_en: str = description_en_fs.read()
+        return description, description_en
+
+    def generate_location_path(self, upload_path: str, pkg_name: str) -> str:
+        if settings.STORAGE_TYPE == core_files_constants.StorageType.BLUEKING_ARTIFACTORY.value:
+            location_path: str = f"{settings.BKREPO_ENDPOINT_URL}/generic/blueking/bknodeman/{upload_path}/{pkg_name}"
+        else:
+            location_path: str = f"http://{settings.BKAPP_LAN_IP}/{upload_path}/{pkg_name}"
+
+        return location_path
+
+    def update_or_create_package_records(self, package_infos: typing.List[typing.Dict[str, typing.Any]]):
         """
-        创建或更新制品记录，待 Agent 包管理完善
-        :param artifact_meta_info:
+        创建或更新制品记录
+        :param package_infos:
         :return:
         """
-        pass
+        for package_info in package_infos:
+            models.GsePackages.objects.update_or_create(
+                defaults={
+                    "pkg_size": package_info["package_upload_info"]["pkg_size"],
+                    "pkg_path": package_info["package_upload_info"]["pkg_path"],
+                    "md5": package_info["package_upload_info"]["md5"],
+                    "location": self.generate_location_path(
+                        package_info["package_upload_info"]["pkg_path"],
+                        package_info["package_upload_info"]["pkg_name"],
+                    ),
+                    "version_log": package_info["artifact_meta_info"]["description"],
+                    "version_log_en": package_info["artifact_meta_info"]["description_en"],
+                },
+                pkg_name=package_info["package_upload_info"]["pkg_name"],
+                version=package_info["artifact_meta_info"]["version"],
+                project=package_info["artifact_meta_info"]["name"],
+                os=package_info["package_dir_info"]["os"],
+                cpu_arch=package_info["package_dir_info"]["cpu_arch"],
+            )
+            logger.info(
+                f"[update_or_create_package_record] "
+                f"package name -> {package_info['package_upload_info']['pkg_name']} success"
+            )
+
+        if package_infos:
+            models.GsePackageDesc.objects.update_or_create(
+                defaults={
+                    "description": package_infos[0]["artifact_meta_info"]["description"],
+                },
+                project=package_infos[0]["artifact_meta_info"]["name"],
+                category=constants.CategoryType.official,
+            )
+
+            logger.info(
+                f"[update_or_create_package_record] "
+                f"package desc -> {package_info['package_upload_info']['pkg_name']}, "
+                f"project -> {package_infos[0]['artifact_meta_info']['name']} success"
+            )
 
     def update_or_create_tag(self, artifact_meta_info: typing.Dict[str, typing.Any]):
         """
@@ -455,11 +506,12 @@ class BaseArtifactBuilder(abc.ABC):
         :param artifact_meta_info:
         :return:
         """
+        agent_name_target_id_map: typing.Dict[str, int] = AgentTargetHelper.get_agent_name_target_id_map()
         for tag in self.tags:
             TagHandler.publish_tag_version(
                 name=tag,
                 target_type=TargetType.AGENT.value,
-                target_id=AGENT_NAME_TARGET_ID_MAP[self.NAME],
+                target_id=agent_name_target_id_map[self.NAME],
                 target_version=artifact_meta_info["version"],
             )
             logger.info(
@@ -517,14 +569,6 @@ class BaseArtifactBuilder(abc.ABC):
                     agent_name=self.NAME,
                 )
 
-    def update_or_create_package_records(self, v):
-        """
-        创建或更新安装包记录，待 Agent 包管理完善
-        :param package_infos:
-        :return:
-        """
-        pass
-
     def get_artifact_meta_info(self, extract_dir: str) -> typing.Dict[str, typing.Any]:
         """
         获取制品的基础信息、配置文件信息
@@ -535,13 +579,14 @@ class BaseArtifactBuilder(abc.ABC):
         version_str: str = self._get_version(extract_dir)
         # 配置文件
         support_files_info = self._get_support_files_info(extract_dir)
-        # changelog
-        changelog: str = self._get_changelog(extract_dir)
+        # description
+        description, description_en = self._get_description(extract_dir)
 
         return {
             "name": self.NAME,
             "version": version_str,
-            "changelog": changelog,
+            "description": description,
+            "description_en": description_en,
             "support_files_info": support_files_info,
         }
 
@@ -591,8 +636,6 @@ class BaseArtifactBuilder(abc.ABC):
         artifact_meta_info["operator"] = operator
         # Agent 包先导入文件源 -> 写配置文件 -> 创建包记录 -> 创建 Tag
         self.update_or_create_support_files(package_infos)
-        # TODO update_or_create_record & update_or_create_package_records 似乎是一样的功能？
-        self.update_or_create_record(artifact_meta_info)
         self.update_or_create_package_records(package_infos)
         self.update_or_create_tag(artifact_meta_info)
 

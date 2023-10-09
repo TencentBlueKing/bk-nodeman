@@ -196,6 +196,7 @@ AGENT_JOB_TUPLE = (
     "UNINSTALL_AGENT",
     "REMOVE_AGENT",
     "UPGRADE_AGENT",
+    "DOWNGRADE_AGENT",
     "IMPORT_AGENT",
     "RESTART_AGENT",
     "RELOAD_AGENT",
@@ -245,7 +246,7 @@ JOB_TYPE_DICT = {
     JobType.REINSTALL_PROXY: _("重装 Proxy"),
     JobType.REINSTALL_AGENT: _("重装 Agent"),
     JobType.UPGRADE_PROXY: _("升级 Proxy"),
-    JobType.UPGRADE_AGENT: _("升级 Agent"),
+    JobType.UPGRADE_AGENT: _("升级/回退 Agent"),
     JobType.REMOVE_AGENT: _("移除 Agent"),
     JobType.UNINSTALL_AGENT: _("卸载 Agent"),
     JobType.UNINSTALL_PROXY: _("卸载 Proxy"),
@@ -277,6 +278,7 @@ OP_TYPE_TUPLE = (
     "REMOVE",
     "REPLACE",
     "UPGRADE",
+    "DOWNGRADE",
     "UPDATE",
     "IMPORT",
     "UPDATE",
@@ -305,6 +307,7 @@ OP_TYPE_ALIAS_MAP = {
     OpType.RESTART: _("重启"),
     OpType.REPLACE: _("替换"),
     OpType.UPGRADE: _("升级"),
+    OpType.DOWNGRADE: _("回退"),
     OpType.REINSTALL: _("重装"),
     OpType.UPDATE: _("更新"),
     OpType.REMOVE: _("移除"),
@@ -374,6 +377,11 @@ IAM_ACTION_DICT = {
 IAM_ACTION_TUPLE = tuple(IAM_ACTION_DICT.keys())
 IAM_ACTION_CHOICES = tuple_choices(IAM_ACTION_TUPLE)
 IamActionType = choices_to_namedtuple(IAM_ACTION_CHOICES)
+
+GSE_PACKAGE_ENABLE_ALIAS_MAP = {
+    True: _("启用"),
+    False: _("停用"),
+}
 
 
 class SubscriptionType:
@@ -983,6 +991,10 @@ class GsePackageCode(EnhanceEnum):
     def _get_member__alias_map(cls) -> Dict[Enum, str]:
         return {cls.PROXY: _("2.0 Proxy Agent 安装包代号"), cls.AGENT: _("2.0 Agent 安装包代号")}
 
+    @classmethod
+    def values(cls):
+        return [member.value for member in cls]
+
 
 class GsePackageEnv(EnhanceEnum):
     """安装包Env文件名称"""
@@ -1003,6 +1015,13 @@ class GsePackageTemplatePattern(EnhanceEnum):
 
     PROXY = re.compile("|".join(GsePackageTemplate.PROXY.value))
     AGENT = re.compile("|".join(GsePackageTemplate.AGENT.value))
+
+
+class GsePackageCacheKey(EnhanceEnum):
+    """GsePackageHandler的缓存key"""
+
+    TAGS_PREFIX = "tags_"
+    DESCRIPTION_PREFIX = "description_"
 
 
 class GsePackageDir(EnhanceEnum):
@@ -1245,3 +1264,26 @@ class OsBitType(EnhanceEnum):
     @classmethod
     def cpu_type__os_bit_map(cls):
         return {CpuType.x86: cls.BIT32.value, CpuType.x86_64: cls.BIT64.value, CpuType.aarch64: cls.ARM.value}
+
+
+class AgentVersionType(EnhanceEnum):
+    UNIFIED = "unified"
+    BY_HOST = "by_host"
+    BY_SYSTEM_ARCH = "by_system_arch"
+    BY_CLOUD_ID_AND_INNER_IP = "by_cloud_id_and_inner_ip"
+
+    @classmethod
+    def _get_member__alias_map(cls) -> Dict[Enum, str]:
+        return {
+            cls.UNIFIED: _("统一的版本"),
+            cls.BY_HOST: _("按主机的"),
+            cls.BY_SYSTEM_ARCH: _("按系统架构"),
+            cls.BY_CLOUD_ID_AND_INNER_IP: _("按云区域id + 内网ip"),
+        }
+
+
+BUILT_IN_TAG_DESCRIPTIONS: List[str] = ["稳定版本", "最新版本", "测试版本"]
+BUILT_IN_TAG_NAMES: List[str] = ["stable", "latest", "test"]
+TAG_NAME__TAG_DESCRIPTION = dict(zip(BUILT_IN_TAG_NAMES, BUILT_IN_TAG_DESCRIPTIONS))
+TAG_DESCRIPTION__TAG_NAME = dict(zip(BUILT_IN_TAG_DESCRIPTIONS, BUILT_IN_TAG_NAMES))
+STABLE_DESCRIPTION = _("稳定版本")

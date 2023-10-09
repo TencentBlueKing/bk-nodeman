@@ -10,17 +10,20 @@ specific language governing permissions and limitations under the License.
 """
 import re
 from collections import ChainMap
-from typing import Any, Callable, Dict, Tuple
+from typing import Any, Callable, Dict, List, Tuple
 
 from django.conf import settings
 from django.db import connection
 from django.utils.translation import ugettext as _
 
 from apps.core.concurrent.cache import FuncCacheDecorator
-from apps.node_man import constants, models, tools
+from apps.node_man import constants, exceptions, models, tools
 from apps.node_man.handlers.cloud import CloudHandler
 from apps.node_man.handlers.cmdb import CmdbHandler
+from apps.node_man.handlers.gse_package import gse_package_handler
 from apps.node_man.handlers.install_channel import InstallChannelHandler
+from apps.node_man.models import GsePackages
+from apps.node_man.permissions.package_manage import PackageManagePermission
 from apps.node_man.tools import JobTools
 from apps.utils import APIModel
 
@@ -602,6 +605,75 @@ class MetaHandler(APIModel):
             dept_name_children.append({"id": dept_name, "name": dept_name})
         return dept_name_children
 
+    @staticmethod
+    def fetch_agent_pkg_manager_children(params=None):
+        params: Dict[str, Any] = params or {}
+        project: str = params.get("project", "gse_agent")
+
+        if not PackageManagePermission().has_permission(None, None):
+            raise exceptions.PermissionDeniedError(_("该用户不是管理员"))
+
+        versions, tag_name__description_map, creators, is_readys = set(), dict(), set(), set()
+        gse_packages = GsePackages.objects.filter(project=project).values("version", "created_by", "is_ready")
+        for package in gse_packages:
+            tags: List[Dict[str, Any]] = gse_package_handler.get_tags(
+                version=package["version"],
+                project=project,
+                enable_tag_separation=False,
+            )
+            versions.add(package["version"])
+            creators.add(package["created_by"])
+            is_readys.add(package["is_ready"])
+            for tag in tags:
+                tag_name__description_map[tag["name"]] = tag["description"]
+
+        return [
+            {
+                "name": _("版本号"),
+                "id": "version",
+                "children": [
+                    {
+                        "id": version,
+                        "name": version,
+                    }
+                    for version in versions
+                ],
+            },
+            {
+                "name": _("标签信息"),
+                "id": "tag_names",
+                "children": [
+                    {
+                        "id": tag_name,
+                        "name": tag_description,
+                    }
+                    for tag_name, tag_description in tag_name__description_map.items()
+                ],
+            },
+            {
+                "name": _("上传用户"),
+                "id": "created_by",
+                "children": [
+                    {
+                        "id": creator,
+                        "name": creator,
+                    }
+                    for creator in creators
+                ],
+            },
+            {
+                "name": _("状态"),
+                "id": "is_ready",
+                "children": [
+                    {
+                        "id": is_ready,
+                        "name": constants.GSE_PACKAGE_ENABLE_ALIAS_MAP.get(is_ready, is_ready),
+                    }
+                    for is_ready in is_readys
+                ],
+            },
+        ]
+
     def filter_condition(self, category, params=None):
         """
         获取过滤条件
@@ -629,6 +701,8 @@ class MetaHandler(APIModel):
         elif category == "os_type":
             ret = self.fetch_os_type_children()
             return ret
+        elif category == "agent_pkg_manage":
+            return self.fetch_agent_pkg_manager_children(params=params)
 
     @staticmethod
     def install_default_values_formatter(install_default_values: Dict[str, Dict[str, Any]]):
