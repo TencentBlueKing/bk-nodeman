@@ -11,8 +11,10 @@ specific language governing permissions and limitations under the License.
 
 
 import logging
+import typing
 
 from apps.core.tag.models import Tag
+from apps.node_man.models import GsePackageDesc
 
 from .. import constants
 from . import base
@@ -35,3 +37,8 @@ class AgentTargetHelper(base.BaseTargetHelper):
 
     def _delete_tag_version(self):
         return super()._delete_tag_version()
+
+    @classmethod
+    def get_agent_name_target_id_map(cls) -> typing.Dict[str, int]:
+        package_descs = GsePackageDesc.objects.values("project", "id")
+        return {package_desc["project"]: package_desc["id"] for package_desc in package_descs}
