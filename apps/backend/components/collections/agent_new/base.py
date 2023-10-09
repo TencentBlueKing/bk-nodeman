@@ -141,7 +141,7 @@ class AgentBaseService(BaseService, metaclass=abc.ABCMeta):
         package_type = ("client", "proxy")[host.node_type == constants.NodeType.PROXY]
         agent_step_adapter = common_data.agent_step_adapter
         if not agent_step_adapter.is_legacy:
-            setup_info = agent_step_adapter.setup_info
+            setup_info = agent_step_adapter.get_host_setup_info(host)
             return f"{setup_info.name}-{setup_info.version}.tgz"
 
         # GSE1.0 的升级包是独立的，添加了 _upgrade 后缀
@@ -297,7 +297,7 @@ class AgentBaseService(BaseService, metaclass=abc.ABCMeta):
             host for host in hosts_need_gen_commands if host.bk_host_id in host_id__install_channel_map
         ]
         host_id__installation_tool_map = batch_gen_commands(
-            base_agent_setup_info=common_data.agent_step_adapter.setup_info,
+            agent_step_adapter=common_data.agent_step_adapter,
             hosts=hosts_need_gen_commands,
             pipeline_id=self.id,
             is_uninstall=is_uninstall,

@@ -38,7 +38,7 @@ class GetLegacyGseConfigTestCase(ViewBaseTestCase):
         host_model_data = copy.deepcopy(common_unit.host.HOST_MODEL_DATA)
         cls.host = models.Host.objects.create(**host_model_data)
         models.AccessPoint.objects.all().update(gse_version=cls.GSE_VERSION)
-
+        models.GsePackageDesc.objects.create(project="gse_agent", description="", category="official")
         # 创建订阅相关数据
         sub_inst_data = basic.remove_keys_from_dict(
             origin_data=common_unit.subscription.SUB_INST_RECORD_MODEL_DATA, keys=["id"]
@@ -52,7 +52,7 @@ class GetLegacyGseConfigTestCase(ViewBaseTestCase):
                 **sub_step_data,
                 **{
                     "subscription_id": cls.sub_inst_record_obj.subscription_id,
-                    "config": {"job_type": constants.JobType.INSTALL_AGENT},
+                    "config": {"job_type": constants.JobType.INSTALL_AGENT, "version_map_list": []},
                 },
             }
         )
@@ -117,13 +117,19 @@ class GetGseConfigTestCase(GetLegacyGseConfigTestCase):
     @classmethod
     def setUpTestData(cls):
         super().setUpTestData()
-        cls.sub_step_obj.config = {"job_type": constants.JobType.INSTALL_AGENT, "name": "gse_agent", "version": "2.0.0"}
+        cls.sub_step_obj.config = {
+            "job_type": constants.JobType.INSTALL_AGENT,
+            "name": "gse_agent",
+            "version": "2.0.0",
+            "version_map_list": [],
+            "choice_version_type": "unified",
+        }
         cls.sub_step_obj.save()
         cls.redis_agent_conf_key = REDIS_AGENT_CONF_KEY_TPL.format(
             file_name=cls.agent_step_adapter.get_main_config_filename(), sub_inst_id=cls.sub_inst_record_obj.id
         )
         cls.agent_step_adapter = AgentStepAdapter(subscription_step=cls.sub_step_obj, gse_version=cls.GSE_VERSION)
-        target_version = cls.agent_step_adapter.setup_info.version
+        target_version = cls.agent_step_adapter.get_host_setup_info(cls.host).version
         models.GseConfigEnv.objects.create(
             agent_name="gse_agent",
             version=target_version,
