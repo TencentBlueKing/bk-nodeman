@@ -20,6 +20,7 @@ from apps.backend.agent.manager import AgentManager
 from apps.node_man import constants, models
 from apps.node_man.constants import DEFAULT_CLOUD
 from apps.node_man.models import GsePluginDesc, SubscriptionStep
+from apps.node_man.tools.gse_package import GsePackageTools
 from env.constants import GseVersion
 from pipeline import builder
 from pipeline.builder import Var
@@ -49,6 +50,7 @@ class AgentStep(Step):
             ReinstallAgent,
             UninstallAgent,
             UpgradeAgent,
+            DowngradeAgent,
             RestartAgent,
             InstallProxy,
             ReinstallProxy,
@@ -114,6 +116,24 @@ class AgentStep(Step):
                 instance_actions[instance_id] = self.subscription_step.config["job_type"]
                 continue
             instance_actions[instance_id] = job_type_map[self.subscription_step.config["job_type"]]
+
+            if instance_actions[instance_id] == backend_const.ActionNameType.UPGRADE_AGENT:
+                version_map: Dict[int, str] = {
+                    version_map["bk_host_id"]: version_map["version"]
+                    for version_map in self.subscription_step.config.get("version_map_list", [])
+                }
+
+                bk_host_id: int = instance["host"]["bk_host_id"]
+                agent_version: str = models.ProcessStatus.objects.get(
+                    bk_host_id=bk_host_id, name=models.ProcessStatus.GSE_AGENT_PROCESS_NAME
+                ).version
+                if all(
+                    [
+                        version_map.get(bk_host_id),
+                        not GsePackageTools.compare_version(version_map[bk_host_id], agent_version),
+                    ]
+                ):
+                    instance_actions[instance_id] = backend_const.ActionNameType.DOWNGRADE_AGENT
 
         return {"instance_actions": instance_actions, "migrate_reasons": migrate_reasons}
 
@@ -323,6 +343,13 @@ class UpgradeAgent(ReinstallAgent):
             agent_manager.check_agent_ability(),
         ]
         return activities, None
+
+
+class DowngradeAgent(UpgradeAgent):
+    """回退Agent"""
+
+    ACTION_NAME = backend_const.ActionNameType.DOWNGRADE_AGENT
+    ACTION_DESCRIPTION = _("回退")
 
 
 class RestartAgent(AgentAction):

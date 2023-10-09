@@ -173,6 +173,10 @@ class ModelViewSet(ApiMixin, ValidationMixin, _ModelViewSet):
             return type(self.serializer_class.__name__, (self.serializer_class,), {"Meta": self.serializer_meta})
 
 
+class ApiMixinModelViewSet(ApiMixin, _ModelViewSet):
+    pagination_class = DataPageNumberPagination
+
+
 def custom_exception_handler(exc, context):
     """
     自定义错误处理方式

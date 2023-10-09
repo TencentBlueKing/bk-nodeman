@@ -23,6 +23,7 @@ from apps.node_man.handlers.permission import PackagePermission
 from apps.node_man.handlers.plugin_v2 import PluginV2Handler
 from apps.node_man.models import GsePluginDesc
 from apps.node_man.serializers import plugin_v2
+from apps.node_man.tools.package import PackageTools
 from apps.utils.local import get_request_username
 from common.api import NodeApi
 
@@ -466,7 +467,7 @@ class PluginV2ViewSet(ModelViewSet):
         ser = self.serializer_class(data=request.data)
         ser.is_valid(raise_exception=True)
         data = ser.validated_data
-        result = PluginV2Handler.upload(package_file=data["package_file"], module=data["module"])
+        result = PackageTools.upload(package_file=data["package_file"], module=data["module"])
         if "result" in result:
             return JsonResponse(result)
         else:

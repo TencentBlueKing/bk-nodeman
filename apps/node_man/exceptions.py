@@ -220,3 +220,41 @@ class YunTiPolicyConfigNotExistsError(NodeManBaseException):
     MESSAGE = _("云梯策略配置不存在")
     MESSAGE_TPL = _("云梯策略配置不存在")
     ERROR_CODE = 43
+
+
+class FileDoesNotExistError(NodeManBaseException):
+    MESSAGE = _("文件不存在")
+    ERROR_CODE = 44
+
+
+class PluginParseError(NodeManBaseException):
+    MESSAGE = _("插件解析错误")
+    ERROR_CODE = 45
+
+
+class GsePackageInValidError(NodeManBaseException):
+    MESSAGE = _("agent包无效")
+    ERROR_CODE = 46
+
+
+class GsePackageUploadError(NodeManBaseException):
+    MESSAGE = _("gse包上传失败")
+    MESSAGE_TPL = _("插件上传失败: agent_name -> {agent_name}, error -> {error}")
+    ERROR_CODE = 47
+
+
+class PermissionDeniedError(NodeManBaseException):
+    MESSAGE = _("权限不足")
+    ERROR_CODE = 48
+
+
+class ModelInstanceNotFoundError(NodeManBaseException):
+    MESSAGE = _("模型对象不存在")
+    MESSAGE_TPL = _("模型对象 -> [{model_name}] 不存在")
+    ERROR_CODE = 49
+
+
+class DuplicateEntryError(NodeManBaseException):
+    MESSAGE = _("存在唯一索引约束")
+    MESSAGE_TPL = _("存在唯一索引约束 -> [{entry_info}]")
+    ERROR_CODE = 50
