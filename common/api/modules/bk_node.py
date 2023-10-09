@@ -260,3 +260,10 @@ class _BKNodeApi(object):
             description="查询任务详情",
             before_request=add_esb_info_before_request,
         )
+        self.agent_parse = DataAPI(
+            method="POST",
+            url=BK_NODE_APIGATEWAY_ROOT + "backend/api/agent/parse/",
+            module=self.MODULE,
+            description="解析agent包",
+            before_request=add_esb_info_before_request,
+        )

@@ -15,6 +15,7 @@ import tarfile
 import typing
 
 from django.utils.translation import ugettext_lazy as _
+from pyunpack import Archive
 
 from apps.node_man import constants
 
@@ -36,10 +37,11 @@ class ProxyArtifactBuilder(base.BaseArtifactBuilder):
     PROXY_SVR_EXES: typing.List[str] = ["gse_data", "gse_file"]
 
     def extract_initial_artifact(self, initial_artifact_local_path: str, extract_dir: str):
-        with tarfile.open(name=initial_artifact_local_path) as tf:
-            tf.extractall(path=extract_dir)
+        if not self.extract_dir:
+            self.extract_dir = extract_dir
+            Archive(initial_artifact_local_path).extractall(extract_dir, auto_create_dir=True)
 
-        extract_dir: str = os.path.join(extract_dir, self.BASE_PKG_DIR)
+        extract_dir: str = os.path.join(self.extract_dir, self.BASE_PKG_DIR)
         if not os.path.exists(extract_dir):
             raise FileExistsError(_("Proxy 包解压后不存在 {base_pkg_dir} 目录").format(base_pkg_dir=self.BASE_PKG_DIR))
 
