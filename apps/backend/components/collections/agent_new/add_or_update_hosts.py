@@ -97,7 +97,7 @@ class AddOrUpdateHostsService(AgentBaseService):
         except_bk_biz_id: int = sub_inst.instance_info["host"]["bk_biz_id"]
         if except_bk_biz_id != cmdb_host["bk_biz_id"]:
             self.move_insts_to_failed(
-                sub_inst.id,
+                [sub_inst.id],
                 log_content=_("主机期望注册到业务【ID：{except_bk_biz_id}】，但实际存在于业务【ID: {actual_biz_id}】，请前往该业务进行安装").format(
                     except_bk_biz_id=except_bk_biz_id, actual_biz_id=cmdb_host["bk_biz_id"]
                 ),
@@ -132,7 +132,7 @@ class AddOrUpdateHostsService(AgentBaseService):
                     break
                 else:
                     self.move_insts_to_failed(
-                        sub_inst.id,
+                        [sub_inst.id],
                         log_content=_(
                             "主机期望注册到业务【ID：{except_bk_biz_id}】，但实际存在于业务【ID: {actual_biz_id}】，请前往该业务进行安装"
                         ).format(except_bk_biz_id=except_bk_biz_id, actual_biz_id=cmdb_host["bk_biz_id"]),
