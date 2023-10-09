@@ -8,31 +8,23 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from enum import Enum
-from typing import Dict
+import logging
+from typing import List
 
-from django.utils.translation import ugettext_lazy as _
+from apps.backend.celery import app
+from apps.node_man.tools.gse_package import GsePackageTools
 
-from apps.utils.enum import EnhanceEnum
-
-
-class TargetType(EnhanceEnum):
-    """目标类型"""
-
-    PLUGIN = "PLUGIN"
-    AGENT = "AGENT"
-
-    @classmethod
-    def _get_member__alias_map(cls) -> Dict[Enum, str]:
-        return {cls.PLUGIN: _("插件"), cls.AGENT: _("Agent")}
+logger = logging.getLogger("app")
 
 
-class TagChangeAction(EnhanceEnum):
-    DELETE = "DELETE"
-    CREATE = "CREATE"
-    UPDATE = "UPDATE"
-    OVERWRITE = "OVERWRITE"
+@app.task(queue="default")
+def register_gse_package_task(file_name: str, tags: List[str]):
+    upload_package_obj = GsePackageTools.get_latest_upload_record(file_name=file_name)
 
-    @classmethod
-    def _get_member__alias_map(cls) -> Dict[Enum, str]:
-        return {cls.DELETE: _("删除标签"), cls.CREATE: _("新建标签"), cls.UPDATE: _("更新版本"), cls.OVERWRITE: _("同版本覆盖更新")}
+    project, artifact_builder_class = GsePackageTools.distinguish_gse_package(file_path=upload_package_obj.file_path)
+
+    with artifact_builder_class(
+        initial_artifact_path=upload_package_obj.file_path,
+        tags=tags,
+    ) as builder:
+        builder.make()

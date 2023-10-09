@@ -17,7 +17,10 @@ from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
-from apps.backend.subscription.steps.agent_adapter.adapter import LEGACY
+from apps.backend.subscription.steps.agent_adapter.adapter import (
+    LEGACY,
+    AgentVersionSerializer,
+)
 from apps.core.gray.constants import INSTALL_OTHER_AGENT_AP_ID_OFFSET
 from apps.core.gray.handlers import GrayHandler
 from apps.core.gray.tools import GrayTools
@@ -52,11 +55,18 @@ def set_agent_setup_info_to_attrs(attrs):
     # 如果开启 DHCP，安装 2.0 Agent，开启 AgentID 特性
     # 在执行模块根据主机接入点所属的 GSE 版本决定是否采用下列的 agent_setup_info
     name = ("gse_agent", "gse_proxy")[attrs["node_type"] == "PROXY"]
+    # attrs["agent_setup_info"]["name"] = name
+    # 处理重装类型setup_info结构
+    agent_setup_info = attrs.get("agent_setup_info", {})
+    global_settings_agent_version = models.GlobalSettings.get_config(
+        models.GlobalSettings.KeyEnum.GSE_AGENT2_VERSION.value, default="stable"
+    )
+
     attrs["agent_setup_info"] = {
         "name": name,
-        "version": models.GlobalSettings.get_config(
-            models.GlobalSettings.KeyEnum.GSE_AGENT2_VERSION.value, default="stable"
-        ),
+        "version": agent_setup_info.get("version") or global_settings_agent_version,
+        "choice_version_type": agent_setup_info.get("choice_version_type") or constants.AgentVersionType.UNIFIED.value,
+        "version_map_list": agent_setup_info.get("version_map_list", []),
     }
 
 
@@ -113,7 +123,6 @@ class InstallBaseSerializer(serializers.Serializer):
                 else:
                     sub_query.children.append(("inner_ipv6", _host["inner_ipv6"]))
                     ip_key = _host["inner_ipv6"]
-
                 cloud_ip_host_info_map[f"{_host['bk_cloud_id']}:{ip_key}"] = _host
                 query_params.children.append(sub_query)
 
@@ -264,6 +273,11 @@ class AgentSetupInfoSerializer(serializers.Serializer):
     name = serializers.CharField(required=False, label="构件名称")
     # LEGACY 表示旧版本 Agent，仅做兼容
     version = serializers.CharField(required=False, label="构件版本", default=LEGACY)
+
+    choice_version_type = serializers.ChoiceField(
+        required=False, choices=constants.AgentVersionType.list_choices(), label=_("选择Agent Version类型")
+    )
+    version_map_list = AgentVersionSerializer(required=False, many=True)
 
 
 class ScriptHook(serializers.Serializer):

@@ -16,8 +16,9 @@ from django.conf import settings
 
 from apps.backend.subscription.steps.agent_adapter.handlers import GseConfigHandler
 from apps.backend.tests.agent import template_env, utils
-from apps.core.tag.constants import AGENT_NAME_TARGET_ID_MAP, TargetType
+from apps.core.tag.constants import TargetType
 from apps.core.tag.models import Tag
+from apps.core.tag.targets.agent import AgentTargetHelper
 from apps.mock_data import utils as mock_data_utils
 from apps.node_man import constants, models
 
@@ -49,10 +50,11 @@ class FileSystemTestCase(utils.AgentBaseTestCase):
             )
             self.assertTrue(os.path.exists(package_path))
 
-    def tag_checker(self, target_id: int):
+    def tag_checker(self):
+        agent_name_target_id_map: typing.Dict[str, int] = AgentTargetHelper.get_agent_name_target_id_map()
 
         agent_target_version = Tag.objects.get(
-            target_id=target_id,
+            target_id=agent_name_target_id_map[self.NAME],
             name=self.OVERWRITE_VERSION,
             target_type=TargetType.AGENT.value,
         ).target_version
@@ -106,12 +108,24 @@ class FileSystemTestCase(utils.AgentBaseTestCase):
 
             self.assertTrue(models.GseConfigTemplate.objects.filter(**filter_kwargs).exists())
 
+    def gse_package_and_desc_records_checker(self, version_str):
+        for package_os, cpu_arch in self.OS_CPU_CHOICES:
+            filter_kwargs: dict = {
+                "project": self.NAME,
+                "os": package_os,
+                "cpu_arch": cpu_arch,
+                "version": version_str,
+            }
+            self.assertTrue(models.GsePackages.objects.filter(**filter_kwargs).exists())
+            self.assertTrue(models.GsePackageDesc.objects.filter(**{"project": filter_kwargs.pop("project")}).exists())
+
     def test_make(self):
         """测试安装包制作"""
         with self.ARTIFACT_BUILDER_CLASS(initial_artifact_path=self.ARCHIVE_PATH) as builder:
             builder.make()
         self.pkg_checker(version_str=utils.VERSION)
         self.template_and_env_checker(version_str=utils.VERSION)
+        self.gse_package_and_desc_records_checker(version_str=utils.VERSION)
 
     def test_make__overwrite_version(self):
         """测试版本号覆盖"""
@@ -129,7 +143,8 @@ class FileSystemTestCase(utils.AgentBaseTestCase):
         self.pkg_checker(version_str=utils.VERSION)
         self.template_and_env_checker(version_str=utils.VERSION)
         self.pkg_checker(version_str=self.OVERWRITE_VERSION)
-        self.tag_checker(target_id=AGENT_NAME_TARGET_ID_MAP[self.NAME])
+        self.tag_checker()
+        self.gse_package_and_desc_records_checker(version_str=utils.VERSION)
 
 
 class BkRepoTestCase(FileSystemTestCase):

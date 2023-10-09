@@ -334,7 +334,7 @@ def check_run_commands(run_commands):
 
 
 def batch_gen_commands(
-    base_agent_setup_info: AgentSetupInfo,
+    agent_step_adapter,
     hosts: List[models.Host],
     pipeline_id: str,
     is_uninstall: bool,
@@ -350,7 +350,6 @@ def batch_gen_commands(
     # 批量查出主机的属性并设置为property，避免在循环中进行ORM查询，提高效率
     host_id__installation_tool_map = {}
     bk_host_ids = [host.bk_host_id for host in hosts]
-    base_agent_setup_info_dict: Dict[str, Any] = asdict(base_agent_setup_info)
     host_id_identity_map = {
         identity.bk_host_id: identity for identity in models.IdentityData.objects.filter(bk_host_id__in=bk_host_ids)
     }
@@ -368,7 +367,7 @@ def batch_gen_commands(
         host_id__installation_tool_map[host.bk_host_id] = gen_commands(
             agent_setup_info=AgentSetupInfo(
                 **{
-                    **base_agent_setup_info_dict,
+                    **asdict(agent_step_adapter.get_host_setup_info(host)),
                     "force_update_agent_id": agent_setup_extra_info_dict.get("force_update_agent_id", False),
                 }
             ),

@@ -29,7 +29,7 @@ class Tag(orm.OperateRecordModel):
         verbose_name = _("标签")
         verbose_name_plural = _("标签")
         # 唯一性校验
-        unique_together = (("target_type", "target_id", "name"),)
+        unique_together = (("target_type", "target_id", "name", "target_version"),)
         index_together = [
             ["target_id", "target_type"],
         ]
