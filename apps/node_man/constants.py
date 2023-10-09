@@ -1184,3 +1184,16 @@ class OsBitType(EnhanceEnum):
     @classmethod
     def cpu_type__os_bit_map(cls):
         return {CpuType.x86: cls.BIT32.value, CpuType.x86_64: cls.BIT64.value, CpuType.aarch64: cls.ARM.value}
+
+class AgentVersionType(EnhanceEnum):
+    UNIFIED = "unified"
+    BY_HOST = "by_host"
+    BY_SYSTEM_ARCH = "by_system_arch"
+
+    @classmethod
+    def _get_member__alias_map(cls) -> Dict[Enum, str]:
+        return {
+            cls.UNIFIED: _("统一的版本"),
+            cls.BY_HOST: _("按主机的"),
+            cls.BY_SYSTEM_ARCH: _("按系统架构"),
+        }

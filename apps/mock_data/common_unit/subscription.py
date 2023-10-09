@@ -92,7 +92,7 @@ SUB_AGENT_STEP_MODEL_DATA = {
     "subscription_id": DEFAULT_SUBSCRIPTION_ID,
     "step_id": constants.SubStepType.AGENT.lower(),
     "type": constants.SubStepType.AGENT,
-    "config": {"job_type": constants.JobType.INSTALL_AGENT},
+    "config": {"job_type": constants.JobType.INSTALL_AGENT, "version_map_list": []},
     "params": {"context": {}, "blueking_language": "zh-hans"},
 }
 
