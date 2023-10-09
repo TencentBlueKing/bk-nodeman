@@ -2499,3 +2499,55 @@ class GseConfigExtraEnv(models.Model):
         index_together = [
             ["bk_biz_id", "enable"],
         ]
+
+
+class AgentPackages(models.Model):
+    pkg_name = models.CharField(_("压缩包名"), max_length=128)
+    version = models.CharField(_("版本号"), max_length=128)
+    module = models.CharField(_("所属服务"), max_length=32)
+    project = models.CharField(_("工程名"), max_length=32, db_index=True)
+    pkg_size = models.IntegerField(_("包大小"))
+    pkg_path = models.CharField(_("包路径"), max_length=128)
+    md5 = models.CharField(_("md5值"), max_length=32)
+    pkg_mtime = models.CharField(_("包更新时间"), max_length=48)
+    pkg_ctime = models.CharField(_("包创建时间"), max_length=48)
+    location = models.CharField(_("安装包链接"), max_length=512)
+    os = models.CharField(
+        _("系统类型"),
+        max_length=32,
+        choices=constants.PLUGIN_OS_CHOICES,
+        default=constants.PluginOsType.linux,
+        db_index=True,
+    )
+    cpu_arch = models.CharField(
+        _("CPU类型"), max_length=32, choices=constants.CPU_CHOICES, default=constants.CpuType.x86_64, db_index=True
+    )
+    creator = models.CharField(_("操作人"), max_length=45, default="admin")
+
+    is_release_version = models.BooleanField(_("是否已经发布版本"), default=True, db_index=True)
+    # 由于创建记录时，文件可能仍然在传输过程中，因此需要标志位判断是否已经可用
+    is_ready = models.BooleanField(_("插件是否可用"), default=True)
+
+    version_log = models.TextField(_("版本日志"), null=True, blank=True)
+    version_log_en = models.TextField(_("英文版本日志"), null=True, blank=True)
+
+    class Meta:
+        verbose_name = _("Agent包（AgentPackages）")
+        verbose_name_plural = _("Agent包（AgentPackages）")
+
+
+class AgentPackageDesc(models.Model):
+    """
+    Agent包信息表
+    """
+
+    # 安装包名需要全局唯一，防止冲突
+    name = models.CharField(_("安装包名"), max_length=32, unique=True, db_index=True)
+    description = models.TextField(_("安装包描述"))
+    module = models.CharField(_("所属服务"), max_length=32)
+    description_en = models.TextField(_("英文插件描述"), null=True, blank=True)
+    category = models.CharField(_("所属范围"), max_length=32, choices=constants.CATEGORY_CHOICES)
+
+    class Meta:
+        verbose_name = _("Agent信息（AgentPackageDesc）")
+        verbose_name_plural = _("Agent信息（AgentPackageDesc）")
