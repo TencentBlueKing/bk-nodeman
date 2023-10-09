@@ -8,31 +8,23 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from enum import Enum
-from typing import Dict
 
-from django.utils.translation import ugettext_lazy as _
+import django_filters
+from django_filters.rest_framework import FilterSet
 
-from apps.utils.enum import EnhanceEnum
-
-
-class TargetType(EnhanceEnum):
-    """目标类型"""
-
-    PLUGIN = "PLUGIN"
-    AGENT = "AGENT"
-
-    @classmethod
-    def _get_member__alias_map(cls) -> Dict[Enum, str]:
-        return {cls.PLUGIN: _("插件"), cls.AGENT: _("Agent")}
+from apps.node_man.models import GsePackages
 
 
-class TagChangeAction(EnhanceEnum):
-    DELETE = "DELETE"
-    CREATE = "CREATE"
-    UPDATE = "UPDATE"
-    OVERWRITE = "OVERWRITE"
+class GsePackageFilter(FilterSet):
+    tags = django_filters.CharFilter(name="tags", method="filter_tags")
+    os_cpu_arch = django_filters.CharFilter(name="os_cpu_arch", method="filter_os_cpu_arch")
 
-    @classmethod
-    def _get_member__alias_map(cls) -> Dict[Enum, str]:
-        return {cls.DELETE: _("删除标签"), cls.CREATE: _("新建标签"), cls.UPDATE: _("更新版本"), cls.OVERWRITE: _("同版本覆盖更新")}
+    def filter_tags(self, queryset, name, value):
+        pass
+
+    def filter_os_cpu_arch(self, queryset, name, value):
+        pass
+
+    class Meta:
+        model = GsePackages
+        fields = ["os_cpu_arch", "tags", "project", "created_by", "is_ready", "version"]
