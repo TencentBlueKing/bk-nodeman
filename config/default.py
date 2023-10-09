@@ -820,6 +820,8 @@ VERSION_LOG = {"MD_FILES_DIR": os.path.join(PROJECT_ROOT, "release"), "LANGUAGE_
 if env.BKAPP_MONITOR_REPORTER_ENABLE:
     monitor_report_config()
 
+DRF_CROWN_DEFAULT_CONFIG = {"remain_request": True}
+
 # remove disabled apps
 if locals().get("DISABLED_APPS"):
     INSTALLED_APPS = locals().get("INSTALLED_APPS", [])
