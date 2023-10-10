@@ -1,5 +1,17 @@
 # Release
 
+## 2.3.6 - 2023-1010
+
+
+### 🐛 Bugfixes
+
+- bugfix: 修复 Windows Agent 安装报错 STATUS_OBJECT_NAME_NOT_FOUND 的问题 (fixed #1732)
+
+
+
+**Full Changelog**: https://github.com/TencentBlueKing/bk-nodeman/compare/v2.3.5...v2.3.6
+
+
 ## 2.3.5 - 2023-0915
 
 
