@@ -262,12 +262,12 @@ goto :EOF
         call :multi_report_step_status
         exit /b 1
     )
-    call :print INFO check_env - "check if it is reachable to port %FILE_SVR_PORT%,%BT_PORT%-%TRACKER_PORT% of %FILE_SERVER_IP% GSE PROXY"
+    call :print INFO check_env - "check if it is reachable to port %FILE_SVR_PORT% of %FILE_SERVER_IP% GSE PROXY"
     call :multi_report_step_status
     echo=
     set file_network_not_reachable=
     for %%p in (%FILE_SERVER_IP%) do (
-        for %%a in (%FILE_SVR_PORT%,%BT_PORT%) do (
+        for %%a in (%FILE_SVR_PORT%) do (
             rem goto is_target_reachable
             for /f %%i in ('%TMP_DIR%\tcping.exe -i 0.01 %%p %%a ^| findstr successful') do (
                 rem echo %%i
@@ -1130,9 +1130,10 @@ goto :EOF
         call :print INFO report_agent_id DONE "!agentidinfo!"
         call :multi_report_step_status
     ) else (
-        call :print FAIL re_register_agent_id FAILED "re_register agent id failed"
+        call :print INFO re_register_agent_id - "re_register agent id failed, try to register"
         call :multi_report_step_status
-        exit /b 1
+        call :unregister_agent_id SKIP
+        call :start_register_agent_id
     )
 goto :EOF
 
