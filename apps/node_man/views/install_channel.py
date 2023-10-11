@@ -25,32 +25,13 @@ class InstallChannelViewSet(ModelViewSet):
     lookup_value_regex = "[0-9.]+"
     permission_classes = (InstallChannelPermission,)
 
-    @swagger_auto_schema(
-        operation_summary="查询安装通道列表",
-        tags=INSTALL_CHANNEL_VIEW_TAGS,
-    )
-    def list(self, request, *args, **kwargs):
-        """
-        @api {GET} /install_channel/ 查询安装通道列表
-        @apiName list_install_channel
-        @apiGroup InstallChannel
-        @apiSuccessExample {json} 成功返回:
-        [
-            {
-                "id": 1,
-                "name": "安装通道名称",
-                "bk_cloud_id": 0,
-                "jump_servers": ["127.0.0.1"],
-                "upstream_servers": {
-                    "taskserver": ["127.0.0.1"],
-                    "btfileserver": ["127.0.0.1"],
-                    "dataserver": ["127.0.0.1"]
-                }
-            }
-        ]
-        """
-        install_channels = InstallChannelHandler.list()
-        return Response(install_channels)
+    def get_queryset(self):
+        hidden: str = self.request.query_params.get("hidden", True)
+        is_hidden: bool = str(hidden).lower() in ["false", "0"]
+        if not is_hidden:
+            return InstallChannel.objects.filter(hidden=False)
+        else:
+            return InstallChannel.objects.all()
 
     @swagger_auto_schema(
         operation_summary="创建安装通道",
@@ -86,7 +67,8 @@ class InstallChannelViewSet(ModelViewSet):
         bk_cloud_id = data["bk_cloud_id"]
         jump_servers = data["jump_servers"]
         upstream_servers = data["upstream_servers"]
-        result = InstallChannelHandler(bk_cloud_id=bk_cloud_id).create(name, jump_servers, upstream_servers)
+        hidden = data["hidden"]
+        result = InstallChannelHandler(bk_cloud_id=bk_cloud_id).create(name, jump_servers, upstream_servers, hidden)
         return Response(result)
 
     @swagger_auto_schema(
@@ -121,7 +103,10 @@ class InstallChannelViewSet(ModelViewSet):
         bk_cloud_id = data["bk_cloud_id"]
         jump_servers = data["jump_servers"]
         upstream_servers = data["upstream_servers"]
-        InstallChannelHandler(bk_cloud_id=bk_cloud_id).update(install_channel_id, name, jump_servers, upstream_servers)
+        hidden = data["hidden"]
+        InstallChannelHandler(bk_cloud_id=bk_cloud_id).update(
+            install_channel_id, name, jump_servers, upstream_servers, hidden
+        )
         return Response({})
 
     @swagger_auto_schema(
