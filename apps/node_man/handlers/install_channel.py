@@ -26,18 +26,28 @@ class InstallChannelHandler(APIModel):
         """安装通道数量较少，直接返回全量即可"""
         return list(models.InstallChannel.objects.all().values())
 
-    def create(self, name: str, jump_servers: List[str], upstream_servers: Dict[str, List[str]]) -> Dict:
+    def create(self, name: str, jump_servers: List[str], upstream_servers: Dict[str, List[str]], hidden=False) -> Dict:
         install_channel = models.InstallChannel.objects.create(
-            bk_cloud_id=self.bk_cloud_id, name=name, jump_servers=jump_servers, upstream_servers=upstream_servers
+            bk_cloud_id=self.bk_cloud_id,
+            name=name,
+            jump_servers=jump_servers,
+            upstream_servers=upstream_servers,
+            hidden=hidden,
         )
         return model_to_dict(install_channel)
 
     def update(
-        self, install_channel_id: int, name: str, jump_servers: List[str], upstream_servers: Dict[str, List[str]]
+        self,
+        install_channel_id: int,
+        name: str,
+        jump_servers: List[str],
+        upstream_servers: Dict[str, List[str]],
+        hidden=False,
     ) -> Dict:
         install_channel = models.InstallChannel.objects.get(id=install_channel_id, bk_cloud_id=self.bk_cloud_id)
         install_channel.name = name
         install_channel.jump_servers = jump_servers
+        install_channel.hidden = hidden
         install_channel.upstream_servers.update(**upstream_servers)
         install_channel.save()
         return model_to_dict(models.InstallChannel.objects.get(id=install_channel_id))

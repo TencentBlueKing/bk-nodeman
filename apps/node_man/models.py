@@ -758,6 +758,7 @@ class InstallChannel(models.Model):
     bk_cloud_id = models.IntegerField(_("管控区域ID"))
     jump_servers = JSONField(_("安装通道跳板机"))
     upstream_servers = JSONField(_("上游节点"))
+    hidden = models.BooleanField(_("是否隐藏"), default=False)
 
     def get_upstream_servers_by_ap_id(self, ap_id):
         upstream_servers_ap_id_key: str = f"AP_ID_{ap_id}"

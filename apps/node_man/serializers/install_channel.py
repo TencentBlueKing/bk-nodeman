@@ -30,6 +30,7 @@ class UpdateSerializer(BaseSerializer):
     name = serializers.CharField(label=_("安装通道名称"))
     jump_servers = serializers.ListField(label=_("跳板机节点"))
     upstream_servers = serializers.DictField(label=_("上游节点"))
+    hidden = serializers.BooleanField(label=_("是否隐藏"), default=False)
 
     def validate(self, attrs):
         attrs["jump_servers"] = [basic.exploded_ip(jump_server) for jump_server in attrs["jump_servers"]]
