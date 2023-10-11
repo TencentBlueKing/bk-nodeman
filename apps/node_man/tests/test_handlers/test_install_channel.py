@@ -10,8 +10,12 @@ specific language governing permissions and limitations under the License.
 """
 from django.test import TestCase
 
+from apps.mock_data import common_unit, utils
+from apps.node_man import constants
 from apps.node_man.handlers.install_channel import InstallChannelHandler
+from apps.node_man.models import InstallChannel
 from apps.node_man.tests.utils import create_install_channel
+from apps.utils.unittest.testcase import CustomAPITestCase
 
 
 class TestInstallChannel(TestCase):
@@ -60,3 +64,26 @@ class TestInstallChannel(TestCase):
                     install_channel_id=install_channel.id,
                 )
         self.assertEqual(len(InstallChannelHandler.list()), 0)
+
+
+class InstallChannelHiddenTestCase(CustomAPITestCase):
+    def test_install_channel_hidden(self):
+
+        create_install_channel(10)
+
+        InstallChannel.objects.create(
+            bk_cloud_id=constants.DEFAULT_CLOUD,
+            jump_servers=[common_unit.host.PROXY_INNER_IP],
+            upstream_servers={
+                "taskserver": [utils.DEFAULT_IP],
+                "btfileserver": [utils.DEFAULT_IP],
+                "dataserver": [utils.DEFAULT_IP],
+                "agent_download_proxy": True,
+                "channel_proxy_address": f"http://{utils.DEFAULT_IP}:17981",
+            },
+            hidden=True,
+        )
+
+        self.assertEqual(len(self.client.get("/api/install_channel/")["data"]), 10)
+        self.assertEqual(len(self.client.get("/api/install_channel/", {"hidden": True})["data"]), 10)
+        self.assertEqual(len(self.client.get("/api/install_channel/", {"hidden": False})["data"]), 11)
