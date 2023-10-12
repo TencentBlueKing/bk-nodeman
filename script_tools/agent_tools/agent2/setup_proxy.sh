@@ -407,27 +407,42 @@ is_base64_command_exist() {
 }
 
 check_healthz_by_gse () {
-    local result
-    if [ -f "${GSE_AGENT_CONFIG_PATH}" ]; then
-        result=$("${AGENT_SETUP_PATH}"/bin/gse_agent -f "${GSE_AGENT_CONFIG_PATH}" --healthz)
-    else
-        result=$("${AGENT_SETUP_PATH}"/bin/gse_agent --healthz)
-    fi
-    execution_code=$?
+    local SLEEP_TIME=1 RETRY_COUNT=0
 
+    for i in {0..2}; do
+        local result execution_code
+        if [ -f "${GSE_AGENT_CONFIG_PATH}" ]; then
+            result=$("${AGENT_SETUP_PATH}"/bin/gse_agent -f "${GSE_AGENT_CONFIG_PATH}" --healthz 1)
+        else
+            result=$("${AGENT_SETUP_PATH}"/bin/gse_agent --healthz 1)
+        fi
+        execution_code=$?
+        if [[ "${execution_code}" -eq 0 ]]; then
+            break
+        else
+            sleep "${SLEEP_TIME}"
+            RETRY_COUNT=$((RETRY_COUNT + 1))
+            if [[ "${RETRY_COUNT}" -ge 3 ]]; then
+                log healthz_check INFO "gse_agent healthz check return code: ${execution_code}"
+                report_result=$(awk -F': ' '{print $2}' <<< "$result")
+                if is_base64_command_exist; then
+                    report_result=$(echo "$result" | base64 -w 0)
+                else
+                    report_result=$(echo "$result" | tr "\"" "\'")
+                fi
+                log report_healthz INFO "${report_result}"
+                fail healthz_check FAILED "gse healthz check failed with retry count: $RETRY_COUNT"
+            fi
+        fi
+    done
     report_result=$(awk -F': ' '{print $2}' <<< "$result")
     if is_base64_command_exist; then
         report_result=$(echo "$result" | base64 -w 0)
     else
         report_result=$(echo "$result" | tr "\"" "\'")
     fi
-    if [ "${execution_code}" -eq 0 ]; then
-        log report_healthz - "${report_result}"
-        log healthz_check INFO "gse_agent healthz check success"
-    else
-        warn report_healthz INFO "gse_agent healthz check return code: ${execution_code}"
-        warn report_healthz - "${report_result}"
-        fail healthz_check FAILED "gse healthz check failed."
+    log report_healthz - "${report_result}"
+    log healthz_check INFO "gse_agent healthz check success"
     fi
 }
 
