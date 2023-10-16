@@ -27,7 +27,6 @@ from django.utils.translation import ugettext as _
 from apps.backend.api.constants import (
     GSE_RUNNING_TASK_CODE,
     POLLING_INTERVAL,
-    POLLING_TIMEOUT,
     SUFFIX_MAP,
     GseDataErrCode,
 )
@@ -1250,7 +1249,7 @@ class GseOperateProcService(PluginBaseService):
         if error_code == GseDataErrCode.RUNNING:
             # 只要有运行中的任务，则认为未完成，标记 is_finished
             is_finished = False
-            if polling_time + POLLING_INTERVAL > POLLING_TIMEOUT:
+            if polling_time + POLLING_INTERVAL > self.service_polling_timeout:
                 self.move_insts_to_failed([subscription_instance.id], _("GSE任务轮询超时"))
         elif success_conditions:
             # 状态码非 SUCCESS 的，但满足成功的特殊条件，认为是成功的，无需做任何处理
