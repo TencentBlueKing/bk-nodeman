@@ -20,6 +20,7 @@ from apps.node_man import constants, models, tools
 from apps.node_man.handlers.cloud import CloudHandler
 from apps.node_man.handlers.cmdb import CmdbHandler
 from apps.node_man.handlers.install_channel import InstallChannelHandler
+from apps.node_man.tools import JobTools
 from apps.utils import APIModel
 
 
@@ -180,23 +181,41 @@ class MetaHandler(APIModel):
             ]
         )
 
-    def fetch_job_list_condition(self, job_category):
+    def fetch_job_list_condition(self, job_category, params=None):
         """
         获取任务历史接口的条件
         :return: Host接口所有条件
         """
+        params = params or {}
+        kwargs = {
+            "start_time__gte": params.get("start_time"),
+            "start_time__lte": params.get("end_time"),
+        }
 
         # 获得业务id与名字的映射关系(用户有权限获取的业务)
-        biz_permission = list(CmdbHandler().biz_id_name({"action": constants.IamActionType.task_history_view}))
+        all_biz_info = CmdbHandler().biz_id_name_without_permission()
+        biz_info = CmdbHandler().biz_id_name({"action": constants.IamActionType.task_history_view})
+        biz_permission = list(biz_info.keys())
+
         if job_category == "job":
             job_type = constants.JOB_TUPLE
         else:
             job_type = constants.JOB_TYPE_MAP[job_category.split("_")[0]]
-        # 获得4列的所有值
-        job_condition = list(
-            models.Job.objects.filter(job_type__in=job_type)
-            .values("created_by", "job_type", "status", "bk_biz_scope", "subscription_id")
-            .distinct()
+
+        try:
+            job_result = JobTools.get_job_queryset_with_biz_scope(
+                all_biz_info, biz_info, biz_permission, params.get("bk_biz_ids"), kwargs
+            )
+        except ValueError:
+            return self.filter_empty_children(
+                [
+                    {"name": _("任务ID"), "id": "job_id"},
+                    {"name": _("IP"), "id": "inner_ip_list"},
+                ]
+            )
+
+        job_result = job_result.filter(job_type__in=job_type).values_list(
+            "created_by", "job_type", "status", "subscription_id"
         )
 
         # 初始化各个条件集合
@@ -205,13 +224,11 @@ class MetaHandler(APIModel):
         statuses = set()
         subscription_ids = set()
 
-        for job in job_condition:
-            # 判断权限
-            if set(job["bk_biz_scope"]) - set(biz_permission) == set():
-                created_bys.add(job["created_by"])
-                job_types.add(job["job_type"])
-                statuses.add(job["status"])
-                subscription_ids.add(job["subscription_id"])
+        for created_by, job_type, status, subscription_id in job_result:
+            created_bys.add(created_by)
+            job_types.add(job_type)
+            statuses.add(status)
+            subscription_ids.add(subscription_id)
 
         created_bys_children = [
             {"name": created_by, "id": created_by} for created_by in created_bys if created_by != ""
@@ -469,17 +486,18 @@ class MetaHandler(APIModel):
             os_type_children.append({"id": os_type, "name": constants.OS_CHN.get(os_type, os_type)})
         return os_type_children
 
-    def filter_condition(self, category):
+    def filter_condition(self, category, params=None):
         """
         获取过滤条件
         :param category: 接口, host, cloud, Job等
+        :param params: 请求参数的字典
         :return: 某接口所有条件
         """
 
         if category == "host":
             return self.fetch_host_condition()
         elif category == "job":
-            return self.fetch_job_list_condition("job")
+            return self.fetch_job_list_condition("job", params=params)
         elif category == "agent_job":
             return self.fetch_job_list_condition("agent_job")
         elif category == "proxy_job":
