@@ -13,7 +13,9 @@ import base64
 from apps.backend.components.collections.agent_new import components
 from apps.backend.subscription.steps.agent_adapter import legacy
 from apps.node_man import constants
+from apps.node_man.models import Host
 from common.api import JobApi
+from env.constants import GseVersion
 
 from . import base
 
@@ -52,3 +54,43 @@ class RenderAndPushGseConfigTestCase(base.JobBaseTestCase):
             )
             self.assertEqual(except_content, config_content)
         super().tearDown()
+
+
+class RenderAndPushGseV1ProxyGseConfigTestCase(RenderAndPushGseConfigTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        Host.objects.update(node_type=constants.NodeType.PROXY)
+
+    @classmethod
+    def get_default_case_name(cls) -> str:
+        return "渲染并下发1.0Proxy配置成功"
+
+    def get_push_config_file_query_params(self):
+        record = self.job_api_mock_client.call_recorder.record
+        # 该接口仅调用一次
+        self.assertEqual(len(record[JobApi.push_config_file]), 1)
+        push_config_file_query_params = record[JobApi.push_config_file][0].args[0]
+        return push_config_file_query_params
+
+    def tearDown(self) -> None:
+
+        push_config_file_query_params = self.get_push_config_file_query_params()
+        # 1.0Proxy仅下发7个配置文件
+        self.assertEqual(len(push_config_file_query_params["file_list"]), 7)
+
+
+class RenderAndPushGseV2ProxyGseConfigTestCase(RenderAndPushGseV1ProxyGseConfigTestCase):
+    @classmethod
+    def get_default_case_name(cls) -> str:
+        return "渲染并下发2.0Proxy配置成功"
+
+    def structure_common_inputs(self):
+        inputs = super().structure_common_inputs()
+        inputs["meta"] = {"GSE_VERSION": GseVersion.V2.value}
+        return inputs
+
+    def tearDown(self) -> None:
+
+        push_config_file_query_params = self.get_push_config_file_query_params()
+        # 2.0Proxy仅下发3个配置文件
+        self.assertEqual(len(push_config_file_query_params["file_list"]), 3)
