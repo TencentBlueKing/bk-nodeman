@@ -30,6 +30,7 @@ from apps.node_man.handlers.ap import APHandler
 from apps.node_man.handlers.cloud import CloudHandler
 from apps.node_man.handlers.cmdb import CmdbHandler
 from apps.node_man.handlers.host import HostHandler
+from apps.node_man.tools import JobTools
 from apps.utils import APIModel
 from apps.utils.basic import filter_values, to_int_or_default
 from apps.utils.local import get_request_username
@@ -169,30 +170,6 @@ class JobHandler(APIModel):
                 job_ids.add(job_id)
             kwargs["id__in"] = job_ids
 
-        # 业务权限
-        search_biz_ids = params.get("bk_biz_id")
-        all_biz_ids = set(all_biz_info.keys())
-
-        if search_biz_ids:
-            # 字典的 in 比列表性能更高
-            biz_scope = [bk_biz_id for bk_biz_id in search_biz_ids if bk_biz_id in biz_info]
-        else:
-            biz_scope = biz_permission
-
-        if not biz_scope:
-            return {"total": 0, "list": []}
-
-        if set(biz_scope) & all_biz_ids == all_biz_ids:
-            # 查询全部业务且拥有全部业务权限
-            biz_scope_query_q = Q()
-        else:
-            biz_scope_query_q = reduce(
-                operator.or_, [Q(bk_biz_scope__contains=bk_biz_id) for bk_biz_id in biz_scope], Q()
-            )
-            # 仅查询所有业务时，自身创建的 job 可见
-            if not search_biz_ids:
-                biz_scope_query_q |= Q(created_by=username)
-
         # ip 搜索
         inner_ip_query_q = Q()
         if params.get("inner_ip_list"):
@@ -218,10 +195,14 @@ class JobHandler(APIModel):
 
         # 过滤None值并筛选Job
         # 此处不过滤空列表（filter_empty=False），job_id, job_type 存在二次解析，若全部值非法得到的是空列表，期望应是查不到数据
-        job_result = models.Job.objects.filter(biz_scope_query_q, inner_ip_query_q, **filter_values(kwargs))
+        try:
+            job_result = JobTools.get_job_queryset_with_biz_scope(
+                all_biz_info, biz_info, biz_permission, params.get("bk_biz_id"), kwargs
+            )
+        except ValueError:
+            return {"total": 0, "list": []}
 
-        # 过滤没有业务的Job
-        job_result = job_result.filter(~Q(bk_biz_scope__isnull=True) & ~Q(bk_biz_scope={}))
+        job_result = job_result.filter(inner_ip_query_q)
 
         # 排序
         if params.get("sort"):
