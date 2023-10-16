@@ -234,7 +234,6 @@ class BaseArtifactBuilder(abc.ABC):
                     continue
                 injected_cert_filenames.append(cert_filename)
                 shutil.copyfile(cert_filepath, os.path.join(cert_dst, cert_filename))
-                logger.info("test")
 
             logger.info(f"copy ({','.join(injected_cert_filenames)}) from {self.cert_path} to {cert_dst} success.")
 
