@@ -17,7 +17,10 @@ from apps.generic import APIViewSet
 from apps.node_man.exceptions import NotSuperUserError
 from apps.node_man.handlers.iam import IamHandler
 from apps.node_man.handlers.meta import MetaHandler
-from apps.node_man.serializers.meta import JobSettingSerializer
+from apps.node_man.serializers.meta import (
+    FilterConditionSerializer,
+    JobSettingSerializer,
+)
 from apps.utils.local import get_request_username
 
 META_VIEW_TAGS = ["meta"]
@@ -27,8 +30,9 @@ class MetaViews(APIViewSet):
     @swagger_auto_schema(
         operation_summary="获取过滤条件",
         tags=META_VIEW_TAGS,
+        methods=["GET", "POST"],
     )
-    @action(detail=False)
+    @action(detail=False, methods=["GET", "POST"], serializer_class=FilterConditionSerializer)
     def filter_condition(self, request):
         """
         @api {GET} /meta/filter_condition/ 获取过滤条件
@@ -67,8 +71,8 @@ class MetaViews(APIViewSet):
             }
         ]
         """
-        category = request.query_params.get("category", default="")
-        result = MetaHandler().filter_condition(category)
+        data = self.validated_data
+        result = MetaHandler().filter_condition(data["category"], bk_biz_ids=data["bk_biz_ids"])
         return Response(result)
 
     @swagger_auto_schema(

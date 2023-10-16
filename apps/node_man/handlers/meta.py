@@ -10,10 +10,11 @@ specific language governing permissions and limitations under the License.
 """
 import re
 from collections import ChainMap
-from typing import Any, Callable, Dict, Tuple
+from typing import Any, Callable, Dict, List, Tuple
 
 from django.conf import settings
 from django.db import connection
+from django.db.models import Q
 from django.utils.translation import ugettext as _
 
 from apps.node_man import constants, models, tools
@@ -180,7 +181,16 @@ class MetaHandler(APIModel):
             ]
         )
 
-    def fetch_job_list_condition(self, job_category):
+    @staticmethod
+    def get_biz_scope_query_params(bk_biz_ids: List[int] = []):
+        query_params = Q()
+        query_params.connector = "OR"
+        for biz_id in bk_biz_ids:
+            query_params.children.append(("bk_biz_scope__contains", int(biz_id)))
+
+        return query_params
+
+    def fetch_job_list_condition(self, job_category, bk_biz_ids: List[int] = []):
         """
         获取任务历史接口的条件
         :return: Host接口所有条件
@@ -188,16 +198,28 @@ class MetaHandler(APIModel):
 
         # 获得业务id与名字的映射关系(用户有权限获取的业务)
         biz_permission = list(CmdbHandler().biz_id_name({"action": constants.IamActionType.task_history_view}))
+        if not bk_biz_ids:
+            # 未携带业务查询范围默认查询用户有权限的业务
+            bk_biz_ids = biz_permission
+
         if job_category == "job":
             job_type = constants.JOB_TUPLE
         else:
             job_type = constants.JOB_TYPE_MAP[job_category.split("_")[0]]
-        # 获得4列的所有值
-        job_condition = list(
-            models.Job.objects.filter(job_type__in=job_type)
-            .values("created_by", "job_type", "status", "bk_biz_scope", "subscription_id")
-            .distinct()
-        )
+
+        query_bk_biz_ids: List[int] = list(set(biz_permission) & set(bk_biz_ids))
+
+        if not query_bk_biz_ids:
+            job_condition: List = []
+        else:
+            # 获得4列的所有值
+            job_condition: List = list(
+                models.Job.objects.filter(
+                    self.get_biz_scope_query_params(bk_biz_ids=query_bk_biz_ids), job_type__in=job_type
+                )
+                .values("created_by", "job_type", "status", "bk_biz_scope", "subscription_id")
+                .distinct()
+            )
 
         # 初始化各个条件集合
         created_bys = set()
@@ -469,7 +491,7 @@ class MetaHandler(APIModel):
             os_type_children.append({"id": os_type, "name": constants.OS_CHN.get(os_type, os_type)})
         return os_type_children
 
-    def filter_condition(self, category):
+    def filter_condition(self, category, bk_biz_ids: List[int] = []):
         """
         获取过滤条件
         :param category: 接口, host, cloud, Job等
@@ -479,7 +501,7 @@ class MetaHandler(APIModel):
         if category == "host":
             return self.fetch_host_condition()
         elif category == "job":
-            return self.fetch_job_list_condition("job")
+            return self.fetch_job_list_condition("job", bk_biz_ids=bk_biz_ids)
         elif category == "agent_job":
             return self.fetch_job_list_condition("agent_job")
         elif category == "proxy_job":
