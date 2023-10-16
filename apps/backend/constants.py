@@ -135,3 +135,8 @@ class SubscriptionSwithBizAction(enum.EnhanceEnum):
     @classmethod
     def _get_member__alias_map(cls) -> Dict[Enum, str]:
         return {cls.ENABLE: _("启用"), cls.DISABLE: _("禁用")}
+
+
+class ProxyConfigFile(enum.EnhanceEnum):
+    V1 = ["agent.conf", "btsvr.conf", "transit.conf", "opts.conf", "plugin_info.json", "data.conf", "dataflow.conf"]
+    V2 = ["gse_agent.conf", "gse_data_proxy.conf", "gse_file_proxy.conf"]
