@@ -12,7 +12,7 @@ from typing import Any, Dict, List, Optional
 
 from django.utils.translation import ugettext_lazy as _
 
-from apps.backend.api.constants import POLLING_INTERVAL, POLLING_TIMEOUT
+from apps.backend.api.constants import POLLING_INTERVAL
 from apps.core.concurrent import controller
 from apps.utils import concurrent
 from common.api import CCApi
@@ -104,7 +104,7 @@ class PushIdentifierHostsService(AgentBaseService):
             self.finish_schedule()
             return
 
-        if polling_time + POLLING_INTERVAL > POLLING_TIMEOUT:
+        if polling_time + POLLING_INTERVAL > self.service_polling_timeout:
             self.move_insts_to_failed(sub_inst_ids=pending_push_instance_ids, log_content=_("推送主机身份超时"))
             self.finish_schedule()
             return

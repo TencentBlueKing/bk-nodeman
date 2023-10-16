@@ -26,7 +26,7 @@ from redis.client import Pipeline
 
 from apps.backend.agent import solution_maker
 from apps.backend.agent.tools import InstallationTools
-from apps.backend.api.constants import POLLING_INTERVAL, POLLING_TIMEOUT
+from apps.backend.api.constants import POLLING_INTERVAL
 from apps.backend.constants import (
     REDIS_AGENT_CONF_KEY_TPL,
     REDIS_INSTALL_CALLBACK_KEY_TPL,
@@ -365,10 +365,11 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
             # 缓存 Agent 配置
             pipeline.mset(cache_key__config_content_map)
             # 设置过期时间
+            polling_timeout = self.service_polling_timeout
             for cache_key in cache_key__config_content_map:
                 # 根据调度超时时间预估一个过期时间
                 # 由于此时还未执行「命令下发」动作，随机增量过期时长，避免缓存雪崩
-                pipeline.expire(cache_key, POLLING_TIMEOUT + random.randint(POLLING_TIMEOUT, 2 * POLLING_TIMEOUT))
+                pipeline.expire(cache_key, polling_timeout + random.randint(polling_timeout, 2 * polling_timeout))
             pipeline.execute()
 
         remote_conn_helpers_gby_result_type = self.bulk_check_ssh(remote_conn_helpers=lan_windows_sub_inst)
@@ -866,7 +867,7 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
             return True
 
         polling_time = data.get_one_of_outputs("polling_time")
-        if polling_time + POLLING_INTERVAL > POLLING_TIMEOUT:
+        if polling_time + POLLING_INTERVAL > self.service_polling_timeout:
             self.move_insts_to_failed(left_scheduling_sub_inst_ids, _("安装超时"))
             self.finish_schedule()
         data.outputs.polling_time = polling_time + POLLING_INTERVAL

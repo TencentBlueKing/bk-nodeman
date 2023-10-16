@@ -230,7 +230,7 @@ class TimeoutTestCase(GetAgentStatusTestCaseMixin, utils.AgentServiceBaseTestCas
     def setUp(self) -> None:
         super().setUp()
         mock.patch(
-            "apps.backend.components.collections.agent_new.get_agent_status.POLLING_TIMEOUT",
+            "apps.backend.components.collections.base.PollingTimeoutMixin.service_polling_timeout",
             2 * POLLING_INTERVAL - 1,
         ).start()
 

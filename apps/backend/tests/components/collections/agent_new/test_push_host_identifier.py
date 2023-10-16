@@ -193,7 +193,7 @@ class PushIdentifierPendingTestCase(PushIdentifierHostsTestCase):
     def setUp(self) -> None:
         super().setUp()
         mock.patch(
-            "apps.backend.api.constants.POLLING_TIMEOUT",
+            "apps.backend.components.collections.base.PollingTimeoutMixin.service_polling_timeout",
             2 * POLLING_INTERVAL - 1,
         ).start()
 

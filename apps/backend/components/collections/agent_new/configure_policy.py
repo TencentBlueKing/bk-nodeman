@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 
 from django.utils.translation import ugettext_lazy as _
 
-from apps.backend.api.constants import POLLING_INTERVAL, POLLING_TIMEOUT
+from apps.backend.api.constants import POLLING_INTERVAL
 from apps.backend.components.collections.agent_new.base import AgentBaseService
 from apps.node_man import models
 from apps.node_man.handlers.security_group import get_security_group_factory
@@ -56,7 +56,7 @@ class ConfigurePolicyService(AgentBaseService):
             self.finish_schedule()
             return True
 
-        elif polling_time + POLLING_INTERVAL > POLLING_TIMEOUT / 2:
+        elif polling_time + POLLING_INTERVAL > self.service_polling_timeout / 2:
             self.move_insts_to_failed(subscription_instance_ids, _("配置到Gse和Nginx的策略失败请联系节点管理维护人员"))
             self.finish_schedule()
             return False
