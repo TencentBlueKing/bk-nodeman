@@ -25,3 +25,12 @@ class JobSettingSerializer(serializers.Serializer):
     install_download_limit_speed = serializers.IntegerField(label=_("安装下载限速"), max_value=JOB_MAX_VALUE, min_value=0)
     parallel_install_number = serializers.IntegerField(label=_("并行安装数"), max_value=JOB_MAX_VALUE, min_value=0)
     node_man_log_level = serializers.ChoiceField(label=_("节点管理日志级别"), choices=list(NODE_MAN_LOG_LEVEL))
+
+
+class FilterConditionSerializer(serializers.Serializer):
+    category = serializers.CharField(label=_("分类"), required=False, default="")
+    bk_biz_ids = serializers.ListField(label=_("业务列表"), required=False, default=[], child=serializers.IntegerField())
+
+    # 时间范围
+    start_time = serializers.DateTimeField(label=_("起始时间"), required=False)
+    end_time = serializers.DateTimeField(label=_("终止时间"), required=False)
