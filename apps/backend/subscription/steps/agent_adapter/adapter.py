@@ -18,6 +18,7 @@ from rest_framework import serializers
 
 from apps.backend import exceptions
 from apps.backend.agent.tools import fetch_proxies
+from apps.backend.constants import ProxyConfigFile
 from apps.core.tag.constants import AGENT_NAME_TARGET_ID_MAP, TargetType
 from apps.core.tag.targets import get_target_helper
 from apps.node_man import constants, models
@@ -73,6 +74,11 @@ class AgentStepAdapter:
 
     def get_main_config_filename(self) -> str:
         return ("gse_agent.conf", "agent.conf")[self.is_legacy]
+
+    def get_config_filename_by_node_type(self, node_type: str) -> typing.List[str]:
+        if node_type == constants.NodeType.PROXY:
+            return (ProxyConfigFile.V2.value, ProxyConfigFile.V1.value)[self.is_legacy]
+        return [self.get_main_config_filename()]
 
     def _get_config(
         self,
