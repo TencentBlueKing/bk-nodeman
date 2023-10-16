@@ -9,7 +9,9 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import itertools
+import operator
 from collections import Counter
+from functools import reduce
 from typing import Any, Dict, Iterable, List, Optional, Union
 
 from django.conf import settings
@@ -20,10 +22,8 @@ from django.utils.translation import ugettext_lazy as _
 from apps.backend.subscription import tools
 from apps.node_man import constants, models
 from apps.utils import basic
-from apps.utils.local import (
-    get_request_app_code_or_local_app_code,
-    get_request_username,
-)
+from apps.utils.basic import filter_values
+from apps.utils.local import get_request_username
 from common.api import NodeApi
 
 
@@ -381,7 +381,6 @@ class JobTools:
             statistics=statistics or {},
             error_hosts=error_hosts or [],
             created_by=get_request_username(),
-            from_system=get_request_app_code_or_local_app_code(),
         )
 
         return {"job_id": job.id, "job_url": cls.get_job_url(job.id)}
@@ -394,3 +393,62 @@ class JobTools:
         :return:
         """
         return f"{settings.BK_NODEMAN_HOST}/#/task-list/detail/{job_id}"
+
+    @classmethod
+    def get_job_queryset_with_biz_scope(cls, all_biz_info, biz_info, biz_permission, search_biz_ids, kwargs):
+        """
+        根据用户所拥有的业务权限进行Job的筛选
+        :param all_biz_info: 所有的业务id -> 业务名字的键值对
+        :param biz_info: 用户所拥有的业务id -> 业务名字的键值对
+        :param biz_permission: 用户所拥有的业务id列表
+        :param search_biz_ids: 接口传入的业务id列表
+        :param kwargs: Job额外筛选条件
+        :return: Job queryset，如果用户没有任何权限，返回None
+        """
+        # 业务权限
+        if search_biz_ids:
+            biz_scope = list(set(biz_info) & set(search_biz_ids))
+        else:
+            biz_scope = biz_permission
+
+        if not biz_scope:
+            raise ValueError("该用户没有任何业务的权限")
+
+        if len(biz_scope) > len(biz_info) // 2:
+            need_reverse_query = True
+            biz_scope = list(set(list(all_biz_info)) - set(biz_scope))
+        else:
+            need_reverse_query = False
+
+        if need_reverse_query and not biz_scope:
+            # 查询全部业务且拥有全部业务权限
+            biz_scope_query_q = Q()
+        elif need_reverse_query:
+            job_result = models.Job.objects.raw(
+                """
+                SELECT id
+                FROM node_man_job
+                WHERE NOT JSON_CONTAINS(%s, bk_biz_scope);
+            """,
+                [str(biz_scope)],
+            )
+            job_ids = [job.id for job in job_result]
+            biz_scope_query_q = Q(id__in=job_ids)
+            # 仅查询所有业务时，自身创建的 job 可见
+            if not search_biz_ids:
+                biz_scope_query_q |= Q(created_by=get_request_username())
+
+        else:
+            biz_scope_query_q = reduce(
+                operator.or_, [Q(bk_biz_scope__contains=bk_biz_id) for bk_biz_id in biz_scope], Q()
+            )
+            # 仅查询所有业务时，自身创建的 job 可见
+            if not search_biz_ids:
+                biz_scope_query_q |= Q(created_by=get_request_username())
+
+        job_result = models.Job.objects.filter(biz_scope_query_q, **filter_values(kwargs))
+
+        # 过滤没有业务的Job
+        job_result = job_result.filter(~Q(bk_biz_scope__isnull=True) & ~Q(bk_biz_scope={}))
+
+        return job_result
