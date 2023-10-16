@@ -443,7 +443,6 @@ check_healthz_by_gse () {
     fi
     log report_healthz - "${report_result}"
     log healthz_check INFO "gse_agent healthz check success"
-    fi
 }
 
 remove_agent_if_exists () {
