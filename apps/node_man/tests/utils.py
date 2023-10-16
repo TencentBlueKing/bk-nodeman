@@ -674,20 +674,21 @@ def create_ap(number):
     AccessPoint.objects.bulk_create(ap_to_create)
 
 
-def create_job(number, id=None, end_time=None, bk_biz_scope=None, task_id_list=None, created_by=None):
+def create_job(number, id=None, end_time=None, bk_biz_scope=None, task_id_list=None,
+               created_by=None, generate_bk_biz_scope_func=None, batch_size=1000, start_id=1):
     job_types = list(chain(*list(constants.JOB_TYPE_MAP.values())))
     job_types = [
         job_type for job_type in job_types if
         tools.JobTools.unzip_job_type(job_type)["op_type"] in constants.OP_TYPE_TUPLE
     ]
 
-    if bk_biz_scope == {} or bk_biz_scope:
+    if bk_biz_scope == {} or bk_biz_scope or callable(generate_bk_biz_scope_func):
         pass
     else:
         bk_biz_scope = [[biz["bk_biz_id"] for biz in SEARCH_BUSINESS][random.randint(0, 10)]]
 
     jobs = []
-    for i in range(1, number + 1):
+    for i in range(start_id, number + start_id):
         job = Job(
             id=id or i,
             job_type=random.choice(job_types),
@@ -696,14 +697,14 @@ def create_job(number, id=None, end_time=None, bk_biz_scope=None, task_id_list=N
                 random.randint(0, len(constants.JobStatusType.get_choices()) - 1)
             ],
             statistics={"success_count": 0, "failed_count": 0, "running_count": 0, "total_count": 0},
-            bk_biz_scope=bk_biz_scope,
+            bk_biz_scope=generate_bk_biz_scope_func() if callable(generate_bk_biz_scope_func) else bk_biz_scope,
             subscription_id=random.randint(1, 100),
             task_id_list=task_id_list or [random.randint(1, 100)],
             created_by=created_by or "admin",
             end_time=end_time,
         )
         jobs.append(job)
-    jobs = Job.objects.bulk_create(jobs)
+    jobs = Job.objects.bulk_create(jobs, batch_size=batch_size)
     job_ids = [job.id for job in jobs]
     return job_ids
 

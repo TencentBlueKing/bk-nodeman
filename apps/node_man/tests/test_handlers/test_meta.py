@@ -10,9 +10,11 @@ specific language governing permissions and limitations under the License.
 """
 import random
 from unittest.mock import patch
+import os
 
 from django.conf import settings
 from django.test import override_settings
+from django.utils.translation import ugettext as _
 
 from apps.node_man import constants as const
 from apps.node_man import tools
@@ -27,6 +29,8 @@ from apps.node_man.tests.utils import (
     create_job,
 )
 from apps.utils.unittest import testcase
+
+FILTER_CONDITION_JOB_COUNT_FOR_TEST = int(os.environ.get("FILTER_CONDITION_JOB_COUNT_FOR_TEST", 100000))
 
 
 class TestMeta(testcase.CustomAPITestCase):
@@ -58,11 +62,13 @@ class TestMeta(testcase.CustomAPITestCase):
         """
         return Cloud.objects.values_list(col, flat=True).distinct().count()
 
-    def fetch_Job_unique_col_count(self):
+    def fetch_Job_unique_col_count(self, search_business=None):
         """
         返回Job中指定列的唯一值
         :return: 唯一值的数量
         """
+        search_business = search_business or SEARCH_BUSINESS
+
         # 获得4列的所有值
         job_condition = list(Job.objects.values("created_by", "job_type", "status", "bk_biz_scope").distinct())
 
@@ -73,12 +79,26 @@ class TestMeta(testcase.CustomAPITestCase):
 
         for job in job_condition:
             # 判断权限
-            if set(job["bk_biz_scope"]) - {biz["bk_biz_id"] for biz in SEARCH_BUSINESS} == set():
+            if any(biz_id in {biz["bk_biz_id"] for biz in search_business} for biz_id in set(job["bk_biz_scope"])):
                 created_bys.add(job["created_by"])
                 job_types.add(job["job_type"])
                 statuses.add(job["status"])
 
         return created_bys, job_types, statuses
+
+    @staticmethod
+    def generate_random_biz_scope(sample_biz_ids, min_biz_count=1, max_biz_count=5):
+        """
+        从业务列表中随机获取其中几个业务
+        :param sample_biz_ids: 业务列表
+        :param min_biz_count: 最少获取几个业务
+        :param max_biz_count: 最多获取几个业务
+        :return: 子业务列表
+        """
+        def wrapper():
+            return random.sample(sample_biz_ids, k=random.randint(min_biz_count, max_biz_count))
+
+        return wrapper
 
     @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)
     def test_search(self):
@@ -271,3 +291,104 @@ class TestMeta(testcase.CustomAPITestCase):
             },
         }
         self.assertDictEqual(kv, {GlobalSettings.KeyEnum.INSTALL_DEFAULT_VALUES.value: expect_install_default_values})
+
+    @patch("apps.node_man.handlers.cmdb.get_request_username", return_value="admin")
+    def test_job_filter_condition_with_large_biz_and_job(self, *args, **kwargs):
+        biz_count = 4000
+        biz_ids = list(range(1, biz_count + 1))
+        create_job(
+            FILTER_CONDITION_JOB_COUNT_FOR_TEST,
+            generate_bk_biz_scope_func=self.generate_random_biz_scope(sample_biz_ids=biz_ids)
+        )
+
+        create_job(
+            FILTER_CONDITION_JOB_COUNT_FOR_TEST // 10,
+            start_id=FILTER_CONDITION_JOB_COUNT_FOR_TEST + 1,
+            bk_biz_scope={}
+        )
+
+        kwargs = {
+            "bk_biz_ids": random.sample(list(range(1, biz_count)), k=random.randint(3000, 3900))
+        }
+        filter_condition = MetaHandler().filter_condition("job", kwargs)
+
+        id__filter_item_map = {filter_item["id"]: filter_item for filter_item in filter_condition}
+
+        api_statuses = {child["id"] for child in id__filter_item_map["status"]["children"]}
+        api_op_types = {child["id"] for child in id__filter_item_map["op_type"]["children"]}
+        api_step_types = {child["id"] for child in id__filter_item_map["step_type"]["children"]}
+        api_created_bys = {child["id"] for child in id__filter_item_map["created_by"]["children"]}
+
+        created_bys, job_types, statuses = self.fetch_Job_unique_col_count(
+            search_business=[
+                {"bk_biz_id": bk_biz_id,
+                 "bk_biz_name": ""} for bk_biz_id in set(range(1, 4001))
+            ])
+
+        job_type_infos = [tools.JobTools.unzip_job_type(job_type) for job_type in job_types]
+
+        self.assertEqual(id__filter_item_map["job_id"], {"name": "任务ID", "id": "job_id"})
+        self.assertEqual(api_op_types, {job_type_info["op_type"] for job_type_info in job_type_infos})
+        self.assertEqual(api_step_types, {job_type_info["step_type"] for job_type_info in job_type_infos})
+        self.assertEqual(api_created_bys, created_bys)
+        self.assertEqual(api_statuses, statuses)
+
+    @patch("apps.node_man.handlers.cmdb.get_request_username", return_value="admin")
+    def test_job_filter_condition_with_time_filter(self, *args, **kwargs):
+        create_job(1, created_by="test1")
+        create_job(1, created_by="test2", start_id=2)
+
+        # created_job中手动指定start_time无效，具体原因不清楚
+        Job.objects.filter(id=1).update(start_time="2023-10-01 12:00:00")
+        Job.objects.filter(id=2).update(start_time="2023-10-03 12:00:00")
+
+        kwargs_list = [
+            {
+                "start_time": "2023-10-01 12:00:00",
+                "end_time": "2023-10-02 12:00:00",
+            },
+            {
+                "start_time": "2023-10-02 12:00:00",
+                "end_time": "2023-10-03 12:00:00",
+            },
+            {
+                "start_time": "2023-10-01 12:00:00",
+                "end_time": "2023-10-03 12:00:00",
+            },
+            {
+
+            }
+        ]
+        expected_created_by_lens = [1, 1, 2, 2]
+        expected_created_by_names = ["test1", "test2", ["test1", "test2"], ["test1", "test2"]]
+
+        for kwargs, expected_created_by_len, expected_created_by_name in zip(
+                kwargs_list, expected_created_by_lens, expected_created_by_names):
+            filter_condition = MetaHandler().filter_condition("job", params=kwargs)
+            created_by_info = [single_condition for single_condition in filter_condition if single_condition["id"] == "created_by"][0]
+
+            # 检验长度
+            self.assertEqual(len(created_by_info["children"]), expected_created_by_len)
+
+            # 检验created_by
+            if expected_created_by_len > 1:
+                self.assertEqual(sorted(created_by["name"] for created_by in created_by_info["children"]), expected_created_by_name)
+            else:
+                self.assertEqual(created_by_info["children"][0]["name"], expected_created_by_name)
+
+    @patch("apps.node_man.handlers.cmdb.get_request_username", return_value="admin")
+    def test_job_filter_condition_with_nonexistent_biz(self, *args, **kwargs):
+        number = 1000
+
+        create_job(number, generate_bk_biz_scope_func=self.generate_random_biz_scope(
+            sample_biz_ids=[1, 2, 3, 4, 5], max_biz_count=3
+        ))
+        create_job(number // 10, bk_biz_scope={}, start_id=number + 1)
+
+        result = MetaHandler().filter_condition("job", params={
+            "bk_biz_ids": [-1, -2]
+        })
+        self.assertEqual(result, [
+            {"name": _("任务ID"), "id": "job_id"},
+            {"name": _("IP"), "id": "inner_ip_list"},
+        ])
