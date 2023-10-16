@@ -277,7 +277,7 @@ class AgentManager(object):
 
     @classmethod
     def push_environ_files(cls):
-        """检测 Agent 功能"""
+        """推送环境变量文件"""
         act = AgentServiceActivity(
             component_code=components.PushEnvironFilesComponent.code,
             name=components.PushEnvironFilesComponent.name,

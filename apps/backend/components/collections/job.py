@@ -21,7 +21,7 @@ import six
 from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
 
-from apps.backend.api.constants import POLLING_INTERVAL, POLLING_TIMEOUT
+from apps.backend.api.constants import POLLING_INTERVAL
 from apps.backend.api.job import process_parms
 from apps.backend.components.collections.base import BaseService, CommonData
 from apps.core.files.storage import get_storage
@@ -340,7 +340,7 @@ class JobV3BaseService(six.with_metaclass(abc.ABCMeta, BaseService)):
         ).exists()
         if is_finished:
             self.finish_schedule()
-        elif polling_time + POLLING_INTERVAL > POLLING_TIMEOUT:
+        elif polling_time + POLLING_INTERVAL > self.service_polling_timeout:
             # 由于JOB的超时机制可能会失效，因此这里节点管理自己需要有超时机制进行兜底
             pending_job_sub_maps = models.JobSubscriptionInstanceMap.objects.filter(
                 node_id=self.id, status=constants.BkJobStatus.PENDING

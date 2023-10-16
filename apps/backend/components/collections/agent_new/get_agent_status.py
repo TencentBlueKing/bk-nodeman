@@ -13,7 +13,7 @@ from typing import Dict, List, Optional, Set, Union
 
 from django.utils.translation import ugettext_lazy as _
 
-from apps.backend.api.constants import POLLING_INTERVAL, POLLING_TIMEOUT
+from apps.backend.api.constants import POLLING_INTERVAL
 from apps.node_man import constants, models
 from pipeline.core.flow import Service, StaticIntervalGenerator
 
@@ -147,7 +147,7 @@ class GetAgentStatusService(AgentBaseService):
             return
 
         polling_time = data.get_one_of_outputs("polling_time")
-        if polling_time + POLLING_INTERVAL > POLLING_TIMEOUT:
+        if polling_time + POLLING_INTERVAL > self.service_polling_timeout:
             sub_inst_ids = [host_id__sub_inst_id_map[host_id] for host_id in host_ids_need_to_query]
             self.move_insts_to_failed(sub_inst_ids=sub_inst_ids, log_content=_("查询 GSE 超时"))
             self.finish_schedule()

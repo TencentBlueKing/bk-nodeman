@@ -17,8 +17,10 @@ from collections import ChainMap
 from typing import Any, Dict, List, Optional
 
 import mock
+from django.test import TestCase
 
-from apps.backend.api.constants import POLLING_INTERVAL
+from apps.backend.api.constants import POLLING_INTERVAL, POLLING_TIMEOUT
+from apps.backend.components.collections.base import PollingTimeoutMixin
 from apps.mock_data import api_mkd
 from apps.mock_data import utils as mock_data_utils
 from apps.node_man import constants, models
@@ -29,6 +31,25 @@ from pipeline.component_framework.test import (
 )
 
 from . import utils
+
+
+class PollingTimeoutMixinTestCase(TestCase):
+    def setUp(self):
+        self.mixin = PollingTimeoutMixin()
+
+    def test_default_polling_time(self):
+        expected_timeout = POLLING_TIMEOUT
+        timeout = self.mixin.service_polling_timeout
+        self.assertEqual(timeout, expected_timeout)
+
+    def test_component_polling_time(self):
+        expected_timeout = 20
+        models.GlobalSettings.set_config(
+            models.GlobalSettings.KeyEnum.BACKEND_SERVICE_POLLING_TIMEOUT.value,
+            {"PollingTimeoutMixin": expected_timeout}
+        )
+        timeout = self.mixin.service_polling_timeout
+        self.assertEqual(timeout, expected_timeout)
 
 
 class JobBaseTestCase(utils.AgentServiceBaseTestCase, ABC):
@@ -241,7 +262,8 @@ class JobTimeOutBaseTestCase(JobBaseTestCase, ABC):
     def setUp(self) -> None:
         super().setUp()
         mock.patch(
-            "apps.backend.components.collections.job.POLLING_TIMEOUT", (self.POLLING_COUNT - 1) * POLLING_INTERVAL
+            "apps.backend.components.collections.base.PollingTimeoutMixin.service_polling_timeout",
+            (self.POLLING_COUNT - 1) * POLLING_INTERVAL
         ).start()
 
     def fetch_schedule_assertion(self) -> List[ScheduleAssertion]:
