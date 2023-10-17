@@ -505,7 +505,7 @@ goto :EOF
     cd %TMP_DIR% && DEL /F /S /Q %PKG_NAME% agent.conf.%LAN_ETH_IP% 1>nul 2>&1
 
     for %%p in (%PKG_NAME%) do (
-        for /F %%i in ('curl --connect-timeout 5 -o %TMP_DIR%/%%p --progress-bar -w "%%{http_code}" %DOWNLOAD_URL%/%%p') do (set http_status=%%i)
+        for /F %%i in ('curl --noproxy "*" --connect-timeout 5 -o %TMP_DIR%/%%p --progress-bar -w "%%{http_code}" %DOWNLOAD_URL%/%%p') do (set http_status=%%i)
         if "%http_status%" == "200" (
             call :print INFO download_pkg - "gse_agent package %%p download succeeded"
             call :print INFO report_cpu_arch DONE "%CPU_ARCH%"
@@ -573,13 +573,12 @@ goto :EOF
 goto :EOF
 
 :check_download_url
-    for /f "delims=" %%i in ('%TMP_DIR%\curl.exe --silent %DOWNLOAD_URL%/%PKG_NAME% -Iw "%%{http_code}"') do (set http_status=%%i)
-        if "%http_status%" == "200" (
-            call :print INFO check_env - "check resource %DOWNLOAD_URL%/%PKG_NAME% url succeed"
-        ) else (
-            call :print FAIL check_env FAILED "check resource %DOWNLOAD_URL%/%PKG_NAME% url failed, http_status:%http_status%"
-            goto :EOF
-        )
+    for /f "delims=" %%i in ('%TMP_DIR%\curl.exe --noproxy "*" --silent %DOWNLOAD_URL%/%PKG_NAME% -Iw "%%{http_code}"') do (set http_status=%%i)
+    if "%http_status%" == "200" (
+        call :print INFO check_env - "check resource %DOWNLOAD_URL%/%PKG_NAME% url succeed"
+    ) else (
+        call :print FAIL check_env FAILED "check resource %DOWNLOAD_URL%/%PKG_NAME% url failed, http_status:%http_status%"
+        goto :EOF
     )
 goto :EOF
 

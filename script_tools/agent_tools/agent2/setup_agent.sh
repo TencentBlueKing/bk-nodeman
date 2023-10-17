@@ -556,7 +556,7 @@ download_pkg () {
 
     tmp_stdout=$(mktemp "${TMP_DIR}"/nm.curl.stdout_XXXXXXXX)
     tmp_stderr=$(mktemp "${TMP_DIR}"/nm.curl.stderr_XXXXXXXX)
-    curl -g --connect-timeout 5 -o "$TMP_DIR/$PKG_NAME" \
+    curl --noproxy "*" -g --connect-timeout 5 -o "$TMP_DIR/$PKG_NAME" \
             --progress-bar -w "%{http_code}" "${COMPLETE_DOWNLOAD_URL}/${PKG_NAME}" >"$tmp_stdout" 2>"$tmp_stderr" &
     curl_pid=$!
     # 如果curl结束，那么http_code一定会写入到stdout文件
@@ -766,7 +766,7 @@ check_download_url () {
 
     for f in $PKG_NAME; do
          log check_env - "checking resource($COMPLETE_DOWNLOAD_URL/$f) url's validality"
-         http_status=$(curl -g -o /dev/null --silent -Iw '%{http_code}' "$COMPLETE_DOWNLOAD_URL/$f")
+         http_status=$(curl --noproxy "*" -g -o /dev/null --silent -Iw '%{http_code}' "$COMPLETE_DOWNLOAD_URL/$f")
          if [[ "$http_status" == "200" ]] || [[ "$http_status" == "000" ]]; then
              log check_env - "check resource($COMPLETE_DOWNLOAD_URL/$f) url succeed"
          else
