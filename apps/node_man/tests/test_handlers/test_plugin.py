@@ -339,3 +339,23 @@ class TestPlugin(TestCase):
         result = PluginHandler.get_host_subscription_plugins([host.bk_host_id for host in host_list])
         for host in host_list:
             self.assertTrue(result[host.bk_host_id][plugin_name]["subscription_statistics"]["running"])
+
+    @patch("apps.node_man.handlers.cmdb.CmdbHandler.cmdb_or_cache_biz", cmdb_or_cache_biz)
+    @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)
+    def test_setup_path(self):
+        number = 1000
+        page_size = 10
+
+        create_cloud_area(number, creator="admin")
+        host_to_create, _, _ = create_host(number)
+
+        # 测试正常查询
+        hosts = PluginHandler.list(
+            {
+                "pagesize": page_size,
+                "page": 1,
+            },
+        )
+
+        for host in hosts["list"]:
+            self.assertIn(host["setup_path"], ["/usr/local/gse", "c:\\gse"])
