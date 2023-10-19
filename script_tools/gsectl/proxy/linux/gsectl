@@ -321,7 +321,7 @@ get_process_runtime (){
                 # 找到了匹配的pid
                 # 获取进程pid的启动时间
                 PID=$_pid
-                START_TIME=$(ps -eo pid,lstart --sort -start_time | grep "$PID" | awk '{ print $2 " " $3 " " $4 " " $5 " " $6 }')
+                START_TIME=$(ps -p "$PID" -o lstart=)
                 START_TIME_S=$(date -d "$START_TIME" +%s)
                 CURRENT_TIME_S=$(date +%s)
                 TIME_DIFF=$(($CURRENT_TIME_S - $START_TIME_S))
