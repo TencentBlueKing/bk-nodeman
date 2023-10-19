@@ -157,6 +157,7 @@ class HostHandler(APIModel):
                 "updated_at",
                 "is_manual",
                 "extra_data",
+                "ap_id",
             ]
             # sql分页查询获得数据
             hosts_status = list(hosts_status_sql[begin:end].values(*set(host_fields)))
@@ -232,6 +233,8 @@ class HostHandler(APIModel):
         # 获得拓扑结构数据
         topology = CmdbHandler().cmdb_or_cache_topo(username, user_biz, biz_host_id_map)
 
+        ap_id_obj_map = AccessPoint.ap_id_obj_map()
+
         # 汇总
         for hs in hosts_status:
             hs["status_display"] = const.PROC_STATUS_CHN.get(hs["status"], "")
@@ -242,6 +245,7 @@ class HostHandler(APIModel):
             hs["job_result"] = host_id_job_status.get(hs["bk_host_id"], {})
             hs["topology"] = topology.get(hs["bk_host_id"], [])
             hs["operate_permission"] = hs["bk_biz_id"] in agent_operate_bizs
+            hs["setup_path"] = ap_id_obj_map[hs["ap_id"]].agent_config[hs["os_type"].lower()]["setup_path"]
 
         result = {"total": hosts_status_count, "list": hosts_status}
 
