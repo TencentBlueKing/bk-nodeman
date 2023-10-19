@@ -17,6 +17,7 @@ from apps.node_man import constants as const
 from apps.node_man.handlers.plugin import PluginHandler
 from apps.node_man.models import (
     GsePluginDesc,
+    Host,
     Packages,
     PluginConfigTemplate,
     ProcControl,
@@ -339,3 +340,45 @@ class TestPlugin(TestCase):
         result = PluginHandler.get_host_subscription_plugins([host.bk_host_id for host in host_list])
         for host in host_list:
             self.assertTrue(result[host.bk_host_id][plugin_name]["subscription_statistics"]["running"])
+
+    @patch("apps.node_man.handlers.cmdb.CmdbHandler.cmdb_or_cache_biz", cmdb_or_cache_biz)
+    @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)
+    def test_setup_path(self):
+        number = 1000
+        page_size = 10
+
+        create_cloud_area(number, creator="admin")
+        host_to_create, _, _ = create_host(number)
+
+        # 测试正常查询
+        hosts = PluginHandler.list(
+            {
+                "pagesize": page_size,
+                "page": 1,
+            },
+        )
+
+        for host in hosts["list"]:
+            self.assertIn(host["setup_path"], ["/usr/local/gse", "c:\\gse"])
+
+    @patch("apps.node_man.handlers.cmdb.CmdbHandler.cmdb_or_cache_biz", cmdb_or_cache_biz)
+    @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)
+    def test_setup_path_using_invalid_ap(self):
+        number = 1000
+        page_size = 10
+
+        create_cloud_area(number, creator="admin")
+        host_to_create, _, _ = create_host(number)
+
+        Host.objects.all().update(ap_id=-100)
+
+        # 测试正常查询
+        hosts = PluginHandler.list(
+            {
+                "pagesize": page_size,
+                "page": 1,
+            },
+        )
+
+        for host in hosts["list"]:
+            self.assertIn(host["setup_path"], ["/usr/local/gse", "c:\\gse"])
