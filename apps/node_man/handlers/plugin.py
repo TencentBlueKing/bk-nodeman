@@ -25,6 +25,7 @@ from apps.node_man.constants import IamActionType
 from apps.node_man.handlers.cmdb import CmdbHandler
 from apps.node_man.handlers.validator import operate_validator
 from apps.node_man.models import (
+    AccessPoint,
     Cloud,
     GsePluginDesc,
     Host,
@@ -228,6 +229,7 @@ class PluginHandler(APIModel):
                 "cpu_arch",
                 "node_type",
                 "node_from",
+                "ap_id",
             ]
             # sql分页查询获得数据
             hosts_status = list(hosts_status_sql[begin:end].values(*set(host_fields)))
@@ -278,6 +280,8 @@ class PluginHandler(APIModel):
                 }
             )
 
+        ap_id_obj_map = AccessPoint.ap_id_obj_map()
+
         # 汇总
         for hs in hosts_status:
             bk_host_id = hs["bk_host_id"]
@@ -289,6 +293,9 @@ class PluginHandler(APIModel):
             hs["job_result"] = host_id_job_status.get(bk_host_id, {})
             hs["plugin_status"] = host_plugin.get(bk_host_id, [])
             hs["operate_permission"] = hs["bk_biz_id"] in plugin_operate_bizs
+            hs["setup_path"] = ap_id_obj_map.get(hs["ap_id"], ap_id_obj_map[None]).get_agent_config(hs["os_type"])[
+                "setup_path"
+            ]
 
         result = {"total": hosts_status_count, "list": hosts_status}
 
