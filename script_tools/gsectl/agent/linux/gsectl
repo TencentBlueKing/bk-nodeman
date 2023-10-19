@@ -641,18 +641,18 @@ get_process_runtime (){
                 # 找到了匹配的pid
                 # 获取进程pid的启动时间
                 PID=$_pid
-                START_TIME=$(ps -eo pid,lstart --sort -start_time | grep "$PID" | awk '{ print $2 " " $3 " " $4 " " $5 " " $6 }')
+                START_TIME=$(ps -p "$PID" -o lstart=)
                 START_TIME_S=$(date -d "$START_TIME" +%s)
                 CURRENT_TIME_S=$(date +%s)
                 TIME_DIFF=$(($CURRENT_TIME_S - $START_TIME_S))
 
                 if [ $TIME_DIFF -le 20 ]; then
                     echo "gse_agent -> $PID has been running for $TIME_DIFF seconds, check $i times"
-            		p_status=0
+                    p_status=0
                     break 2
                 else
                     echo "gse_agent -> $PID has been running for $TIME_DIFF seconds, restart not yet successful, check $i times"
-            		sleep 1
+                    sleep 1
                 fi
             fi
         done
