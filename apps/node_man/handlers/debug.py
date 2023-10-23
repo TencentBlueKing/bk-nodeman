@@ -9,11 +9,14 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from collections import defaultdict
+from datetime import timedelta
 from typing import Dict, List
 
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
+from django.utils import timezone
 
+from apps.node_man import constants
 from apps.node_man.exceptions import HostNotExists
 from apps.node_man.models import (
     Host,
@@ -177,3 +180,17 @@ class DebugHandler(APIModel):
             )
 
         return result
+
+    def zombie_sub_inst_count(self, days: int):
+        days = max(days, 1)
+        days = min(days, 60)
+        query_kwargs = {
+            "update_time__range": (
+                timezone.now() - timedelta(days=1),
+                timezone.now() - timedelta(days),
+            ),
+            "status__in": [constants.JobStatusType.PENDING, constants.JobStatusType.RUNNING],
+        }
+
+        count = SubscriptionInstanceRecord.objects.filter(**query_kwargs).count()
+        return {"count": count}

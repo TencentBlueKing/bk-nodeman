@@ -23,6 +23,7 @@ class ExceptionHandler:
     """
 
     exc_handler: Callable[[Callable, Any, Tuple[Any], Dict[str, Any], Exception], Any] = None
+    success_handler: Callable[[Callable, Any, Tuple[Any], Dict[str, Any]], None] = None
 
     @staticmethod
     def default_exc_handler(
@@ -40,6 +41,18 @@ class ExceptionHandler:
         # 抛出原异常
         raise
 
+    @staticmethod
+    def default_success_handler(wrapped: Callable, instance: Any, args: Tuple[Any], kwargs: Dict[str, Any]) -> None:
+        """
+        默认无异常处理器
+        :param wrapped: 被装饰的函数或类方法
+        :param instance: 参考 __init__
+        :param args: 位置参数
+        :param kwargs: 关键字参数
+        :return:
+        """
+        pass
+
     async def wrapped_async_executor(
         self, wrapped: Callable, instance: Any, args: Tuple[Any], kwargs: Dict[str, Any]
     ) -> Any:
@@ -52,12 +65,18 @@ class ExceptionHandler:
         :return:
         """
         try:
-            return await wrapped(*args, **kwargs)
+            result = await wrapped(*args, **kwargs)
         except Exception as exc:
             if inspect.iscoroutinefunction(self.exc_handler):
                 return await self.exc_handler(wrapped, instance, args, kwargs, exc)
             else:
                 return await sync.sync_to_async(self.exc_handler)(wrapped, instance, args, kwargs, exc)
+        else:
+            if inspect.iscoroutinefunction(self.success_handler):
+                await self.success_handler(wrapped, instance, args, kwargs)
+            else:
+                await sync.sync_to_async(self.success_handler)(wrapped, instance, args, kwargs)
+            return result
 
     def wrapped_executor(self, wrapped: Callable, instance: Any, args: Tuple[Any], kwargs: Dict[str, Any]):
         """
@@ -74,12 +93,16 @@ class ExceptionHandler:
             return self.exc_handler(wrapped, instance, args, kwargs, exc)
 
     def __init__(
-        self, exc_handler: Optional[Callable[[Callable, Any, Tuple[Any], Dict[str, Any], Exception], Any]] = None
+        self,
+        exc_handler: Optional[Callable[[Callable, Any, Tuple[Any], Dict[str, Any], Exception], Any]] = None,
+        success_handler: Optional[Callable[[Callable, Any, Tuple[Any], Dict[str, Any]], None]] = None,
     ):
         """
         :param exc_handler: 异常处理器
+        :param success_handler: 无异常处理器
         """
         self.exc_handler = exc_handler or self.default_exc_handler
+        self.success_handler = success_handler or self.default_success_handler
 
     @wrapt.decorator
     def __call__(

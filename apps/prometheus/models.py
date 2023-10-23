@@ -11,23 +11,7 @@ specific language governing permissions and limitations under the License.
 
 import typing
 
-from django_prometheus.conf import NAMESPACE
-from prometheus_client import Counter
-
-jobs_by_op_type_operate_step = Counter(
-    "django_app_jobs_by_operate_step",
-    "Count of jobs by operate, step.",
-    ["operate", "step"],
-    namespace=NAMESPACE,
-)
-
-
-subscriptions_by_object_node_category = Counter(
-    "django_app_subscriptions_by_object_node_category",
-    "Count of subscriptions by object, node, category.",
-    ["object", "node", "category"],
-    namespace=NAMESPACE,
-)
+from . import metrics
 
 
 def export_job_prometheus_mixin():
@@ -35,6 +19,7 @@ def export_job_prometheus_mixin():
 
     class Mixin:
         job_type: str = None
+        from_system: str = None
         task_id_list: typing.List[int] = None
         _origin_task_id_list: typing.List[int] = None
 
@@ -51,7 +36,8 @@ def export_job_prometheus_mixin():
 
         def inc(self):
             operate, step = self.unpacking_job_type()
-            jobs_by_op_type_operate_step.labels(operate, step).inc()
+            metrics.jobs_by_op_type_operate_step.labels(operate, step).inc()
+            metrics.app_task_jobs_total.labels(operate, step, self.from_system or "default").inc()
 
         def _do_insert(self, *args, **kwargs):
             self.inc()
@@ -69,7 +55,10 @@ def export_subscription_prometheus_mixin():
         category: typing.Optional[str] = None
 
         def _do_insert(self, *args, **kwargs):
-            subscriptions_by_object_node_category.labels(
+            metrics.app_task_subscriptions_total.labels(
+                self.object_type, self.node_type, self.category or "subscription"
+            ).inc()
+            metrics.subscriptions_by_object_node_category.labels(
                 self.object_type, self.node_type, self.category or "subscription"
             ).inc()
             return super()._do_insert(*args, **kwargs)

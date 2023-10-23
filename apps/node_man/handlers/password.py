@@ -11,7 +11,9 @@ specific language governing permissions and limitations under the License.
 import base64
 import hashlib
 import hmac
+import logging
 import os
+import pprint
 import re
 import time
 from typing import Any, Dict, Tuple
@@ -21,7 +23,10 @@ import ujson as json
 from Crypto.Cipher import AES
 
 from apps.node_man import constants
+from apps.prometheus import metrics
 from apps.utils import env
+
+logger = logging.getLogger("app")
 
 
 class BasePasswordHandler(object):
@@ -35,6 +40,12 @@ class BasePasswordHandler(object):
         (False, {}, {}, "{'10': 'ticket is expired'}")
         """
         raise NotImplementedError()
+
+    def hande_get_password_result(
+        self, is_ok: bool, success_ips: Dict, failed_ips: Dict, err_msg: str
+    ) -> Tuple[bool, Dict, Dict, str]:
+        metrics.app_core_password_requests_total.labels(handler=self.__class__.__name__, is_ok=is_ok).inc()
+        return is_ok, success_ips, failed_ips, err_msg
 
 
 class DefaultPasswordHandler(BasePasswordHandler):
@@ -191,16 +202,18 @@ class DefaultPasswordHandler(BasePasswordHandler):
         try:
             result = self.post(self.TJJ_ACTION, kwargs)
         except Exception as e:
-            return False, {}, {}, str(e)
+            return self.hande_get_password_result(False, {}, {}, str(e))
 
         if not result["result"]:
-            return False, {}, {}, result["message"]
+            return self.hande_get_password_result(False, {}, {}, result["message"])
 
         if result["data"]["HasError"]:
-            return False, {}, {}, str(result["data"]["ResponseItems"])
+            return self.hande_get_password_result(False, {}, {}, str(result["data"]["ResponseItems"]))
 
         parse_response_items_result = self.parse_response_items(result["data"]["ResponseItems"])
-        return True, parse_response_items_result["success_ips"], parse_response_items_result["failed_ips"], "success"
+        return self.hande_get_password_result(
+            True, parse_response_items_result["success_ips"], parse_response_items_result["failed_ips"], "success"
+        )
 
 
 class TjjPasswordHandler(DefaultPasswordHandler):
@@ -226,10 +239,23 @@ class TjjPasswordHandler(DefaultPasswordHandler):
             )
             result = response.json()["Result"]
         except Exception as e:
-            return False, {}, {}, str(e)
+            logger.exception(
+                "[TjjPasswordHandler] failed to get_password, Username -> %s, IpList -> %s",
+                username,
+                pprint.pformat(ip_list),
+            )
+            return self.hande_get_password_result(False, {}, {}, str(e))
 
         if result["HasError"]:
-            return False, {}, {}, str(result["ResponseItems"])
+            logger.error(
+                "[TjjPasswordHandler] failed to get_password, Username -> %s, IpList -> %s, err -> %s",
+                username,
+                pprint.pformat(ip_list),
+                str(result["ResponseItems"]),
+            )
+            return self.hande_get_password_result(False, {}, {}, str(result["ResponseItems"]))
 
         parse_response_items_result = self.parse_response_items(result["ResponseItems"])
-        return True, parse_response_items_result["success_ips"], parse_response_items_result["failed_ips"], "success"
+        return self.hande_get_password_result(
+            True, parse_response_items_result["success_ips"], parse_response_items_result["failed_ips"], "success"
+        )

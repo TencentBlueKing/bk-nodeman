@@ -240,6 +240,8 @@ envFrom:
       name: "{{ printf "%s-%s" (include "bk-nodeman.fullname" .) "db-env-configmap" }}"
   - configMapRef:
       name: "{{ printf "%s-%s" (include "bk-nodeman.fullname" .) "env-configmap" }}"
+  - configMapRef:
+      name: "{{ printf "%s-%s" (include "bk-nodeman.fullname" .) "redis-env-configmap" }}"
   {{- if .Values.extraEnvVarsCM }}
   - configMapRef:
       name: "{{ .Values.extraEnvVarsCM }}"

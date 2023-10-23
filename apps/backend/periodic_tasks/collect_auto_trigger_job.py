@@ -13,6 +13,7 @@ import logging
 from collections import defaultdict
 
 from celery.task import periodic_task
+from django.conf import settings
 from django.db import transaction
 from django.db.models import Q
 
@@ -99,6 +100,7 @@ def collect_auto_trigger_job():
                 statistics={f"{k}_count": 0 for k in ["success", "failed", "pending", "running", "total"]},
                 error_hosts=[],
                 created_by="admin",
+                from_system=settings.APP_CODE,
                 # TODO 将历史多个自动触发task先行整合到一个job，后续根据实际情况考虑是否拆分
                 task_id_list=task_ids_gby_sub_id[subscription["id"]],
                 is_auto_trigger=True,

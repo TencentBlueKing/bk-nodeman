@@ -71,7 +71,7 @@ class CmdbClient(object):
 
         @classmethod
         def search_business(cls, *args, **kwargs):
-            return {"info": [{"bk_biz_id": 2, "bk_biz_name": "TEST"}]}
+            return {"info": [{"bk_biz_id": 2, "bk_biz_name": "TEST"}], "count": 1}
 
         @classmethod
         def search_biz_inst_topo(cls, *args, **kwargs):

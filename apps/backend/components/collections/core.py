@@ -19,6 +19,7 @@ from django.utils.translation import ugettext_lazy as _
 from apps.core.concurrent import core_concurrent_constants
 from apps.node_man import models
 from apps.utils import enum
+from common.log import logger
 
 from . import base
 
@@ -110,7 +111,9 @@ def default_task_exc_handler(
     :param kwargs: 关键字参数
     :return:
     """
+    code = instance.__class__.__name__
     sub_inst_id = sub_inst_id_extractor(args, kwargs)
+    logger.exception(f"[task_engine][service_task_exc_handler:{code}] sub_inst_id -> {sub_inst_id}, exc -> {str(exc)}")
     instance.move_insts_to_failed(sub_inst_id if isinstance(sub_inst_id, Iterable) else [sub_inst_id], str(exc))
     # 打印 DEBUG 日志
     instance.log_debug(sub_inst_id, log_content=traceback.format_exc(), fold=True)

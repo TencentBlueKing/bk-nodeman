@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import socket
 import uuid
 from threading import local
 
@@ -19,6 +20,38 @@ from apps.exceptions import AppBaseException
 管理线程变量
 """
 _local = local()
+
+
+_HOSTNAME = socket.gethostname()
+
+
+def get_username_from_request_or_none(request):
+    username = request.META.get("HTTP_BK_USERNAME") or request.META.get("HTTP_X_BKAPI_USER_NAME")
+    if username:
+        return username
+
+    try:
+        return request.jwt.payload["user"]["bk_username"]
+    except Exception:
+        return None
+
+
+def get_appcode_from_request_or_none(request):
+    app_code = request.META.get("HTTP_BK_APP_CODE") or request.META.get("HTTP_X_BKAPI_APP_CODE")
+    if app_code:
+        return app_code
+
+    try:
+        return request.app.bk_app_code
+    except Exception:
+        return None
+
+
+def get_hostname():
+    """
+    获取当前主机名
+    """
+    return _HOSTNAME
 
 
 def activate_request(request, request_id=None):
@@ -71,9 +104,13 @@ def get_request_app_code():
     获取线程请求中的 APP_CODE，非线程请求返回空字符串
     """
     try:
-        return _local.request.META["HTTP_BK_APP_CODE"]
+        return get_appcode_from_request_or_none(_local.request) or ""
     except (AttributeError, KeyError):
         return ""
+
+
+def get_request_app_code_or_local_app_code():
+    return get_request_app_code() or settings.APP_CODE
 
 
 def set_local_param(key, value):

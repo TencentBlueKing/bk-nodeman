@@ -145,7 +145,7 @@ def report_log(request):
     # 把日志写入redis中，由install service中的schedule方法统一读取，避免频繁callback
     name = REDIS_INSTALL_CALLBACK_KEY_TPL.format(sub_inst_id=decrypted_token["inst_id"])
     json_dumps_logs = [json.dumps(log) for log in data["logs"]]
-    # 日志会被 Service 消费并持久化，在 Redis 保留一段时间便于排查「主机 -api-> Redis -log-> DB」 上的问题
+    # 日志会被 Service 消费并持久化，在 Redis 保留一段时间便于排查「主机 -> api-> Redis -log-> DB」 上的问题
     LPUSH_AND_EXPIRE_FUNC(keys=[name], args=[constants.TimeUnit.DAY] + json_dumps_logs)
     return JsonResponse({})
 

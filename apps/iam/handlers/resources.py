@@ -119,9 +119,9 @@ class Cloud(ResourceMeta):
 
     @classmethod
     def create_instances(cls, instance_ids: Union[List[str], Set[str]], attribute=None) -> List[Resource]:
-        cloud_id_name_map = models.Cloud.cloud_id_name_map()
+        cloud_id_name_map = models.Cloud.cloud_id_name_map(get_cache=True)
         return [
-            cls.create_instance(instance_id, {"name": cloud_id_name_map.get(int(instance_id))})
+            cls.create_instance(instance_id, {"name": cloud_id_name_map.get(str(instance_id))})
             for instance_id in instance_ids
         ]
 
