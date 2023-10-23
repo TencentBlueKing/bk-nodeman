@@ -16,9 +16,9 @@ from django.conf import settings
 from django.utils.translation import ugettext as _
 from version_log.utils import get_latest_version
 
+from apps.core.concurrent.cache import FuncCacheDecorator
 from apps.node_man import constants, models
 from apps.node_man.handlers.iam import IamHandler
-from apps.utils.cache import func_cache_decorator
 from apps.utils.local import get_request_username
 
 """
@@ -45,7 +45,7 @@ def get_title():
     return _("节点管理 | 腾讯蓝鲸智云")
 
 
-@func_cache_decorator(cache_time=60 * constants.TimeUnit.SECOND)
+@FuncCacheDecorator(cache_time=60 * constants.TimeUnit.SECOND)
 def get_ap_version_mutex():
     return models.GlobalSettings.get_config(
         key=models.GlobalSettings.KeyEnum.ENABLE_AP_VERSION_MUTEX.value,

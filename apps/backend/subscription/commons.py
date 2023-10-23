@@ -15,6 +15,8 @@ from django.core.cache import cache
 from apps.component.esbclient import client_v2
 from apps.exceptions import BizNotExistError
 from apps.node_man import constants
+from apps.prometheus import metrics
+from apps.prometheus.helper import SetupObserve, get_call_resource_labels_func
 from apps.utils.batch_request import batch_request
 
 logger = logging.getLogger("app")
@@ -35,6 +37,7 @@ def get_host_object_attribute(bk_biz_id):
     return custom_fields
 
 
+@SetupObserve(counter=metrics.app_common_method_requests_total, get_labels_func=get_call_resource_labels_func)
 def list_biz_hosts(bk_biz_id, condition, func, split_params=False):
     biz_custom_property = []
     kwargs = {
@@ -84,12 +87,14 @@ def get_host_by_inst(bk_biz_id, inst_list):
         elif inst["bk_obj_id"] in bk_obj_id_list:
             # 自定义层级
             topo_cond = {"bk_obj_id": inst["bk_obj_id"], "bk_inst_id": inst["bk_inst_id"]}
-            hosts.extend(list_biz_hosts(bk_biz_id, topo_cond, "find_host_by_topo"))
+            hosts.extend(
+                list_biz_hosts(bk_biz_id, topo_cond, "find_host_by_topo", source="get_host_by_inst:find_host_by_topo")
+            )
 
     if bk_biz_ids:
         # 业务查询
         for bk_biz_id in bk_biz_ids:
-            hosts.extend(list_biz_hosts(bk_biz_id, {}, "list_biz_hosts"))
+            hosts.extend(list_biz_hosts(bk_biz_id, {}, "list_biz_hosts", source="get_host_by_inst:list_biz_hosts:biz"))
     if bk_set_ids:
         # 集群查询
         hosts.extend(
@@ -101,6 +106,14 @@ def get_host_by_inst(bk_biz_id, inst_list):
         )
     if bk_module_ids:
         # 模块查询 这里CMDB限制了bk_module_ids不能超过500, 需要拆分参数 split_params=True
-        hosts.extend(list_biz_hosts(bk_biz_id, {"bk_module_ids": bk_module_ids}, "list_biz_hosts", split_params=True))
+        hosts.extend(
+            list_biz_hosts(
+                bk_biz_id,
+                {"bk_module_ids": bk_module_ids},
+                "list_biz_hosts",
+                split_params=True,
+                source="get_host_by_inst:list_biz_hosts:module",
+            )
+        )
 
     return hosts

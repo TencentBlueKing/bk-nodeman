@@ -66,8 +66,7 @@ else:
         params["appenv"] = settings.RUN_VER
 
         if "no_request" in params and params["no_request"]:
-            params["bk_username"] = "no_user"
-            params["operator"] = "no_user"
+            params["bk_username"] = "admin"
         else:
             req = get_request()
             auth_info = build_auth_args(req)
@@ -87,4 +86,5 @@ else:
         params["uin"] = params["bk_username"]
         params["app_code"] = settings.APP_CODE
         params["app_secret"] = settings.SECRET_KEY
+        params.pop("_request", None)
         return params

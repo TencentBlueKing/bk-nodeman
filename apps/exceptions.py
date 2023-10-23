@@ -8,6 +8,8 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import typing
+
 from django.utils.translation import ugettext_lazy as _
 
 
@@ -120,3 +122,14 @@ class AuthOverdueException(AppBaseException):
 class BackendValidationError(AppBaseException):
     ERROR_CODE = 100
     MESSAGE = _("参数验证失败")
+
+
+def parse_exception(exc: Exception) -> typing.Dict[str, str]:
+    if isinstance(exc, AppBaseException):
+        exc_type = "app"
+        exc_code = str(exc.code)
+    else:
+        exc_type = "unknown"
+        exc_code = exc.__class__.__name__
+
+    return {"exc_type": exc_type, "exc_code": exc_code}

@@ -483,7 +483,9 @@ class SubscriptionViewSet(APIViewSet):
         result = []
         for subscription in subscriptions:
             subscription_result = []
-            current_instances = tools.get_instances_by_scope(subscription.scope, get_cache=True)
+            current_instances = tools.get_instances_by_scope(
+                subscription.scope, get_cache=True, source="instance_status"
+            )
 
             # 对于每个instance，通过group_id找到其对应的host_status
             for instance_id in current_instances:

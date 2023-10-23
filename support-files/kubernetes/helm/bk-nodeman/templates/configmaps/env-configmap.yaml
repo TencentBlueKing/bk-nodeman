@@ -28,6 +28,9 @@ data:
   LOG_LEVEL: "{{ .Values.config.logLevel }}"
   BK_LOG_DIR: "{{ .Values.config.bkLogDir }}"
 
+  CACHE_BACKEND: "{{ .Values.config.cacheBackend }}"
+  CACHE_ENABLE_PREHEAT: "{{ .Values.config.cacheEnablePreheat }}"
+
   BK_CMDB_RESOURCE_POOL_BIZ_ID: "{{ .Values.config.bkCmdbResourcePoolBizId }}"
   DEFAULT_SUPPLIER_ACCOUNT: "{{ .Values.config.defaultSupplierAccount }}"
 
@@ -97,6 +100,25 @@ data:
   BKAPP_OTEL_SAMPLER: "{{ .Values.config.bkAppOtelSampler }}"
   BKAPP_OTEL_BK_DATA_TOKEN: "{{ .Values.config.bkAppOtelBkDataToken }}"
   BKAPP_OTEL_GRPC_URL: "{{ .Values.config.bkAppOtelGrpcUrl }}"
+  {{- end }}
+
+  {{- if .Values.config.bkAppEnableOtelTrace }}
+  BKAPP_ENABLE_OTEL_TRACE: "{{ .Values.config.bkAppEnableOtelTrace }}"
+  BKAPP_OTEL_SERVICE_NAME: {{ printf "%s-%s" (include "bk-nodeman.fullname" .) "saas" }}
+  BKAPP_OTEL_INSTRUMENT_DB_API: "{{ .Values.config.bkAppOtelInstrumentDbApi }}"
+  BKAPP_OTEL_SAMPLER: "{{ .Values.config.bkAppOtelSampler }}"
+  BKAPP_OTEL_BK_DATA_TOKEN: "{{ .Values.config.bkAppOtelBkDataToken }}"
+  BKAPP_OTEL_GRPC_URL: "{{ .Values.config.bkAppOtelGrpcUrl }}"
+  {{- end }}
+
+  {{- if .Values.config.bkAppMonitorReporterEnable }}
+  BKAPP_MONITOR_REPORTER_ENABLE: "{{ .Values.config.bkAppMonitorReporterEnable }}"
+  BKAPP_MONITOR_REPORTER_DATA_ID: "{{ int .Values.config.bkAppMonitorReporterDataId }}"
+  BKAPP_MONITOR_REPORTER_ACCESS_TOKEN: "{{ .Values.config.bkAppMonitorReporterAccessToken }}"
+  BKAPP_MONITOR_REPORTER_TARGET: "{{ .Values.config.bkAppMonitorReporterTarget }}"
+  BKAPP_MONITOR_REPORTER_URL: "{{ .Values.config.bkAppMonitorReporterUrl }}"
+  BKAPP_MONITOR_REPORTER_REPORT_INTERVAL: "{{ .Values.config.bkAppMonitorReporterInterval }}"
+  BKAPP_MONITOR_REPORTER_CHUNK_SIZE: "{{ .Values.config.bkAppMonitorReporterChunkSize }}"
   {{- end }}
 
   CONCURRENT_NUMBER: "{{ .Values.config.concurrentNumber }}"

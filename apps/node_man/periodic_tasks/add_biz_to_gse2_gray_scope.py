@@ -13,7 +13,7 @@ from typing import Dict, List
 from celery.task import periodic_task
 from django.db import transaction
 
-from apps.backend.subscription.tools import search_business
+from apps.backend.subscription.tools import fetch_biz_info_map
 from apps.core.gray.handlers import GrayHandler
 from apps.node_man.constants import SYNC_BIZ_TO_GRAY_SCOPE_LIST_INTERVAL
 from apps.node_man.models import GlobalSettings
@@ -37,7 +37,7 @@ def sync_new_biz_to_gray_scope_list():
         logger.info(f"sync_new_biz_to_gray_scope_list: {task_id} No need to add new biz to GSE2_GRAY_SCOPE_LIST.")
         return None
 
-    cc_all_biz: List[Dict[str, int]] = search_business({})
+    cc_all_biz: List[Dict[str, int]] = list(fetch_biz_info_map().values())
     cc_all_biz_ids: List[int] = [biz["bk_biz_id"] for biz in cc_all_biz]
     new_biz_ids: List[int] = list(set(cc_all_biz_ids) - set(all_biz_ids))
 

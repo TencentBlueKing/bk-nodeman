@@ -17,11 +17,14 @@ from django.db.models import Q
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
+from apps.backend.subscription import tools
 from apps.node_man import constants, models
 from apps.utils import basic
-from apps.utils.local import get_request_username
+from apps.utils.local import (
+    get_request_app_code_or_local_app_code,
+    get_request_username,
+)
 from common.api import NodeApi
-from apps.backend.subscription import tools
 
 
 class JobTools:
@@ -259,7 +262,7 @@ class JobTools:
 
         instance_id_list = []
         for host in list(
-                models.Host.objects.filter(host_query).values("inner_ip", "inner_ipv6", "bk_cloud_id", "bk_host_id")
+            models.Host.objects.filter(host_query).values("inner_ip", "inner_ipv6", "bk_cloud_id", "bk_host_id")
         ):
             instance_id_list.extend(
                 [
@@ -378,6 +381,7 @@ class JobTools:
             statistics=statistics or {},
             error_hosts=error_hosts or [],
             created_by=get_request_username(),
+            from_system=get_request_app_code_or_local_app_code(),
         )
 
         return {"job_id": job.id, "job_url": cls.get_job_url(job.id)}

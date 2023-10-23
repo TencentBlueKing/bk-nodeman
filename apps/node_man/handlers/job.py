@@ -846,12 +846,12 @@ class JobHandler(APIModel):
         host_execute_status_list.extend(filter_hosts)
 
         # 补充业务名、管控区域名称
-        cloud_id_name_map = models.Cloud.cloud_id_name_map()
+        cloud_id_name_map = models.Cloud.cloud_id_name_map(get_cache=True)
         biz_name_map = CmdbHandler.biz_id_name_without_permission()
         for host_execute_status in host_execute_status_list:
             host_execute_status.update(
                 bk_biz_name=biz_name_map.get(host_execute_status.get("bk_biz_id")),
-                bk_cloud_name=cloud_id_name_map.get(host_execute_status["bk_cloud_id"]),
+                bk_cloud_name=cloud_id_name_map.get(str(host_execute_status["bk_cloud_id"])),
             )
 
         tools.JobTools.update_job_statistics(self.data, task_result["status_counter"])

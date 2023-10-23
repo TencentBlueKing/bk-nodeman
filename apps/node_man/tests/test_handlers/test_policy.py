@@ -34,7 +34,7 @@ from apps.node_man.tests.utils import (
 from apps.utils.unittest.testcase import CustomBaseTestCase
 
 
-def get_instances_by_scope(scope):
+def get_instances_by_scope(scope, **kwargs):
     host_id = scope["nodes"][0]["bk_host_id"]
     host = Host.objects.filter(bk_host_id=host_id)
     instance_key = f"host|instance|host|{host_id}"

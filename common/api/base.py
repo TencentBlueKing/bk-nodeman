@@ -156,6 +156,8 @@ class DataAPI(object):
         self.data = data
 
         try:
+            if "no_request" in params and params["no_request"]:
+                use_admin = True
             response = self._send_request(params, headers, use_admin=use_admin)
             if raw:
                 return response.response
@@ -196,7 +198,7 @@ class DataAPI(object):
 
         # 使用管理员账户请求时，设置用户名为管理员用户名，移除bk_token等认证信息
         if use_admin:
-            params["bk_username"] = settings.BK_ADMIN_USERNAME
+            params["bk_username"] = "admin"
             params = remove_auth_args(params)
 
         # 是否有默认返回，调试阶段可用
