@@ -20,7 +20,7 @@ from rest_framework.viewsets import GenericViewSet
 from rest_framework.viewsets import ModelViewSet as _ModelViewSet
 
 from apps.exceptions import AppBaseException, ErrorCode
-from apps.utils import cache
+from apps.utils import cache, local
 from apps.utils.drf import (
     CsrfExemptSessionAuthentication,
     DataPageNumberPagination,
@@ -42,9 +42,15 @@ class ApiMixin(GenericViewSet):
     def initialize_request(self, request, *args, **kwargs):
         # 实体是为文件时body省略
         body = "File" if "multipart/form-data" in request.headers.get("Content-Type", "") else request.body
+        bk_username = (
+            local.get_username_from_request_or_none(self.request) or local.get_request_username_or_local_app_code()
+        )
+        bk_app_code = (
+            local.get_appcode_from_request_or_none(self.request) or local.get_request_app_code_or_local_app_code()
+        )
         logger.info(
-            "[receive request], path: {}, header: {}, body: {}".format(
-                request.path, request.headers.get("X-Bkapi-App"), body
+            "[receive request], path: {}, header: {}, body: {}, bk_app_code: {}, bk_username: {}".format(
+                request.path, request.headers.get("X-Bkapi-App"), body, bk_app_code, bk_username
             )
         )
         return super(ApiMixin, self).initialize_request(request, *args, **kwargs)
@@ -87,8 +93,12 @@ class ValidationMixin(GenericViewSet):
             data = self.request.data
 
         # 从 esb 获取参数
-        bk_username = self.request.META.get("HTTP_BK_USERNAME")
-        bk_app_code = self.request.META.get("HTTP_BK_APP_CODE")
+        bk_username = (
+            local.get_username_from_request_or_none(self.request) or local.get_request_username_or_local_app_code()
+        )
+        bk_app_code = (
+            local.get_appcode_from_request_or_none(self.request) or local.get_request_app_code_or_local_app_code()
+        )
 
         data = data.copy()
         data.setdefault("bk_username", bk_username)

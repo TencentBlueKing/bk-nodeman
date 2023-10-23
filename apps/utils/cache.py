@@ -8,15 +8,59 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import json
 from functools import wraps
 from typing import Callable, Optional
 
-import ujson as json
-from django.core.cache import cache
+from django.core.serializers.json import DjangoJSONEncoder
+from django_redis.pool import ConnectionFactory as Factory
+from django_redis.pool import SentinelConnectionFactory as SentinelFactory
+from django_redis.serializers.base import BaseSerializer
 
 from apps.utils.md5 import count_md5
 
 DEFAULT_CACHE_TIME = 60 * 15
+
+
+class JSONSerializer(BaseSerializer):
+    """
+    自定义JSON序列化器用于redis序列化
+    django-redis的默认JSON序列化器假定`decode_responses`被禁用。
+    """
+
+    def dumps(self, value):
+        return json.dumps(value, cls=DjangoJSONEncoder)
+
+    def loads(self, value):
+        return json.loads(value)
+
+
+class ConnectionFactoryMixin:
+    """自定义ConnectionFactory以注入decode_responses参数"""
+
+    def make_connection_params(self, url):
+        kwargs = super().make_connection_params(url)
+        kwargs["decode_responses"] = True
+        return kwargs
+
+
+class ConnectionFactory(ConnectionFactoryMixin, Factory):
+    pass
+
+
+class SentinelConnectionFactory(ConnectionFactoryMixin, SentinelFactory):
+    pass
+
+
+def django_cache_key_maker(key: str, key_prefix: str, version: str) -> str:
+    """
+    自定义缓存键生成函数
+    :param key:
+    :param key_prefix:
+    :param version:
+    :return:
+    """
+    return f"{key_prefix}:v2:{key}"
 
 
 def class_member_cache(name: Optional[str] = None):
@@ -48,31 +92,3 @@ def format_cache_key(func: Callable, *args, **kwargs):
     """计算缓存的key，通过函数名加上参数md5值得到"""
     kwargs.update({"args": args})
     return f"{func.__name__}_{count_md5(kwargs)}"
-
-
-def func_cache_decorator(cache_time: int = DEFAULT_CACHE_TIME):
-    """
-    函数缓存装饰器
-    :param cache_time: 缓存时间
-    """
-
-    def decorate(func):
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            get_cache = kwargs.pop("get_cache", False)
-            cache_key = format_cache_key(func, *args, **kwargs)
-            func_result = None
-            if get_cache:
-                func_result = cache.get(cache_key, None)
-
-            # 若无需从缓存中获取数据或者缓存中没有数据，则执行函数得到结果，并设置缓存
-            if func_result is None:
-                func_result = func(*args, **kwargs)
-                cache.set(cache_key, json.dumps(func_result), cache_time)
-            else:
-                func_result = json.loads(func_result)
-            return func_result
-
-        return wrapper
-
-    return decorate

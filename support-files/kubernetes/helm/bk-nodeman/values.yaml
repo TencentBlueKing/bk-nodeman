@@ -326,6 +326,12 @@ config:
   ## 日志所在目录
   bkLogDir: "/data/bkee/logs/bknodeman"
 
+  ## 缓存
+  ## 缓存后端，默认值为 `db`，可选项：`db`、`redis` - 仅存在 `REDIS_HOST` 变量时生效，否则仍默认使用 `db`
+  cacheBackend: "db"
+  ## 是否预热关键缓存，一般在切换缓存前需要开启
+  cacheEnablePreheat: false
+
   ## 蓝鲸配置平台
   ##
   ## 资源池 ID
@@ -429,6 +435,21 @@ config:
   ## 监控上报配置项
   bkAppOtelBkDataToken: ""
   bkAppOtelGrpcUrl: ""
+
+  ## 是否启用自定义上报
+  bkAppMonitorReporterEnable: false
+  ## 监控 Data ID
+  bkAppMonitorReporterDataId: 0
+  ## 自定义上报 Token
+  bkAppMonitorReporterAccessToken: ""
+  ## 上报唯一标志符
+  bkAppMonitorReporterTarget: "prod"
+  ## 上报地址
+  bkAppMonitorReporterUrl: ""
+  ## 上报间隔
+  bkAppMonitorReporterInterval: 10
+  ## 块大小
+  bkAppMonitorReporterChunkSize: 200
 
   ## 导航栏开源社区地址
   bkAppNavOpenSourceUrl: "https://github.com/TencentBlueKing/bk-nodeman"

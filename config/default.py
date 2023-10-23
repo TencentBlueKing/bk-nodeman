@@ -30,6 +30,7 @@ from pipeline.celery.settings import CELERY_QUEUES as PIPELINE_CELERY_QUEUES
 from pipeline.celery.settings import CELERY_ROUTES as PIPELINE_CELERY_ROUTES
 
 from .patchers import logging
+from .patchers.monitor_reporter import monitor_report_config
 
 # ===============================================================================
 # 运行时，用于区分环境差异
@@ -483,23 +484,6 @@ TEMPLATES = [
 ]
 
 # ==============================================================================
-# Cache
-# ==============================================================================
-CACHES.update(
-    {
-        "db": {
-            "BACKEND": "django.core.cache.backends.db.DatabaseCache",
-            "LOCATION": "django_cache",
-            "OPTIONS": {"MAX_ENTRIES": 10000, "CULL_FREQUENCY": 10},
-        }
-    }
-)
-
-CACHES["default"] = CACHES["db"]
-
-CACHE_KEY_TMPL = APP_CODE + ":scope:{scope}:body:{body}"
-
-# ==============================================================================
 # 文件存储
 # ==============================================================================
 
@@ -636,6 +620,96 @@ class RedisMode(EnhanceEnum):
         return cls.get_config_mode__redis_mode_map().get(config_redis_mode, default)
 
 
+# ==============================================================================
+# Cache
+# ==============================================================================
+CACHES.update(
+    {
+        "db": {
+            "BACKEND": "django.core.cache.backends.db.DatabaseCache",
+            "LOCATION": "django_cache",
+            "OPTIONS": {"MAX_ENTRIES": 10000, "CULL_FREQUENCY": 10},
+        }
+    }
+)
+
+CACHE_KEY_TMPL = APP_CODE + ":scope:{scope}:body:{body}"
+
+CONFIG_REDIS_MODE = os.getenv("REDIS_MODE", ConfigRedisMode.SENTINEL.value)
+REDIS_MODE = RedisMode.get_standard_redis_mode(CONFIG_REDIS_MODE, default=RedisMode.REPLICATION.value)
+
+REDIS_PASSWORD = os.getenv("REDIS_PASSWORD")
+REDIS_MASTER_NAME = os.getenv("REDIS_MASTER_NAME")
+REDIS_SENTINEL_PASSWORD = os.getenv("REDIS_SENTINEL_PASSWORD")
+
+DJANGO_REDIS_COMMON_OPTIONS = {
+    "CLIENT_CLASS": "django_redis.client.DefaultClient",
+    "REDIS_CLIENT_CLASS": "redis.client.StrictRedis",
+    "SERIALIZER": "apps.utils.cache.JSONSerializer",
+}
+
+if REDIS_MODE == "replication":
+    # redis 集群sentinel模式
+    REDIS_HOST = os.getenv("REDIS_SENTINEL_HOST")
+    REDIS_PORT = os.getenv("REDIS_SENTINEL_PORT")
+    # # celery redbeat config
+    REDBEAT_REDIS_URL = "redis-sentinel://redis-sentinel:{port}/0".format(port=REDIS_PORT or 26379)
+    REDBEAT_REDIS_OPTIONS = {
+        "sentinels": [(REDIS_HOST, REDIS_PORT)],
+        "password": REDIS_PASSWORD,
+        "service_name": REDIS_MASTER_NAME or "mymaster",
+        "socket_timeout": 0.1,
+        "retry_period": 60,
+        "sentinel_kwargs": {"password": REDIS_SENTINEL_PASSWORD},
+    }
+    DJANGO_REDIS_CONNECTION_FACTORY = "apps.utils.cache.SentinelConnectionFactory"
+    CACHES["redis"] = {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": f"redis://{REDBEAT_REDIS_OPTIONS['service_name']}:{REDIS_PORT}/0",
+        "KEY_PREFIX": "nodeman",
+        "KEY_FUNCTION": "apps.utils.cache.django_cache_key_maker",
+        "OPTIONS": {
+            "PASSWORD": REDIS_PASSWORD,
+            "SENTINELS": REDBEAT_REDIS_OPTIONS["sentinels"],
+            "SENTINEL_KWARGS": REDBEAT_REDIS_OPTIONS["sentinel_kwargs"],
+            "CONNECTION_POOL_CLASS": "redis.sentinel.SentinelConnectionPool",
+            **DJANGO_REDIS_COMMON_OPTIONS,
+        },
+    }
+else:
+    REDIS_HOST = os.getenv("REDIS_HOST")
+    REDIS_PORT = os.getenv("REDIS_PORT")
+    # # celery redbeat config
+    REDBEAT_REDIS_URL = "redis://:{passwd}@{host}:{port}/0".format(
+        passwd=REDIS_PASSWORD, host=REDIS_HOST, port=REDIS_PORT or 6379
+    )
+    DJANGO_REDIS_CONNECTION_FACTORY = "apps.utils.cache.ConnectionFactory"
+    CACHES["redis"] = {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": REDBEAT_REDIS_URL,
+        "KEY_PREFIX": "nodeman",
+        "KEY_FUNCTION": "apps.utils.cache.django_cache_key_maker",
+        "OPTIONS": {**DJANGO_REDIS_COMMON_OPTIONS},
+    }
+
+REDIS = {
+    "host": REDIS_HOST,
+    "port": REDIS_PORT,
+    "password": REDIS_PASSWORD,
+    "service_name": REDIS_MASTER_NAME,
+    "sentinel_password": REDIS_SENTINEL_PASSWORD,
+    "mode": REDIS_MODE,  # 哨兵模式，可选 single, cluster, replication
+}
+
+CACHE_BACKEND = env.CACHE_BACKEND
+CACHE_ENABLE_PREHEAT = env.CACHE_ENABLE_PREHEAT
+CACHES["default"] = CACHES[CACHE_BACKEND]
+
+
+# ==============================================================================
+# 后台配置
+# ==============================================================================
+
 if BK_BACKEND_CONFIG:
     DISABLED_APPS = []
 
@@ -671,44 +745,6 @@ if BK_BACKEND_CONFIG:
 
     # BROKER_URL
     BROKER_URL = BK_NODEMAN_CELERY_RESULT_BACKEND_BROKER_URL
-
-    CONFIG_REDIS_MODE = os.getenv("REDIS_MODE", ConfigRedisMode.SENTINEL.value)
-    REDIS_MODE = RedisMode.get_standard_redis_mode(CONFIG_REDIS_MODE, default=RedisMode.REPLICATION.value)
-
-    REDIS_PASSWORD = os.getenv("REDIS_PASSWORD")
-    REDIS_MASTER_NAME = os.getenv("REDIS_MASTER_NAME")
-    REDIS_SENTINEL_PASSWORD = os.getenv("REDIS_SENTINEL_PASSWORD")
-
-    if REDIS_MODE == "replication":
-        # redis 集群sentinel模式
-        REDIS_HOST = os.getenv("REDIS_SENTINEL_HOST")
-        REDIS_PORT = os.getenv("REDIS_SENTINEL_PORT")
-        # # celery redbeat config
-        REDBEAT_REDIS_URL = "redis-sentinel://redis-sentinel:{port}/0".format(port=REDIS_PORT or 26379)
-        REDBEAT_REDIS_OPTIONS = {
-            "sentinels": [(REDIS_HOST, REDIS_PORT)],
-            "password": REDIS_PASSWORD,
-            "service_name": REDIS_MASTER_NAME or "mymaster",
-            "socket_timeout": 0.1,
-            "retry_period": 60,
-            "sentinel_kwargs": {"password": REDIS_SENTINEL_PASSWORD},
-        }
-    else:
-        REDIS_HOST = os.getenv("REDIS_HOST")
-        REDIS_PORT = os.getenv("REDIS_PORT")
-        # # celery redbeat config
-        REDBEAT_REDIS_URL = "redis://:{passwd}@{host}:{port}/0".format(
-            passwd=REDIS_PASSWORD, host=REDIS_HOST, port=REDIS_PORT or 6379
-        )
-
-    REDIS = {
-        "host": REDIS_HOST,
-        "port": REDIS_PORT,
-        "password": REDIS_PASSWORD,
-        "service_name": REDIS_MASTER_NAME,
-        "sentinel_password": REDIS_SENTINEL_PASSWORD,
-        "mode": REDIS_MODE,  # 哨兵模式，可选 single, cluster, replication
-    }
 
     REDBEAT_KEY_PREFIX = "nodeman"
 
@@ -771,6 +807,14 @@ GSE_ENABLE_SVR_DISCOVERY = get_type_env(key="GSE_ENABLE_SVR_DISCOVERY", default=
 USE_CMDB_SUBSCRIPTION_TRIGGER = get_type_env(key="BKAPP_USE_CMDB_SUBSCRIPTION_TRIGGER", default=True, _type=bool)
 
 VERSION_LOG = {"MD_FILES_DIR": os.path.join(PROJECT_ROOT, "release"), "LANGUAGE_MAPPINGS": {"en": "en"}}
+
+# ==============================================================================
+# 可观测
+# ==============================================================================
+
+# 自定义上报监控配置
+if env.BKAPP_MONITOR_REPORTER_ENABLE:
+    monitor_report_config()
 
 # remove disabled apps
 if locals().get("DISABLED_APPS"):

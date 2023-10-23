@@ -47,6 +47,8 @@ from . import utils
 
 class InstallBaseTestCase(utils.AgentServiceBaseTestCase):
 
+    DEBUG = True
+
     OS_TYPE = constants.OsType.LINUX
     NODE_TYPE = constants.NodeType.AGENT
     DOWNLOAD_PATH = "/tmp/data/bkee/public/bknodeman/download"
@@ -443,6 +445,125 @@ class InstallAgent2WindowsTestCase(InstallWindowsTestCase):
 class InstallLinuxPagentTestCase(InstallBaseTestCase):
     NODE_TYPE = constants.NodeType.PAGENT
     CLOUD_ID = 1
+
+    def init_redis_data(self):
+        # 初始化redis数据，用于schedule时读取解析
+        for sub_inst_id in self.common_inputs["subscription_instance_ids"]:
+            name = REDIS_INSTALL_CALLBACK_KEY_TPL.format(sub_inst_id=sub_inst_id)
+            report_agent_obj: models.Host = models.Host.objects.get(bk_host_id=self.obj_factory.bk_host_ids[0])
+            json_dumps_logs = [
+                json.dumps(log)
+                for log in [
+                    {
+                        "timestamp": "1580870937",
+                        "level": "INFO",
+                        "step": "metrics",
+                        "log": "metrics",
+                        "metrics": {
+                            "name": "app_core_remote_proxy_info",
+                            "labels": {
+                                "hostname": "hostname",
+                                "ip": "127.0.0.1",
+                                "bk_cloud_id": self.CLOUD_ID,
+                                "paramiko_version": "2.9.1",
+                            },
+                        },
+                        "status": "-",
+                    },
+                    {
+                        "timestamp": "1580870937",
+                        "level": "INFO",
+                        "step": "metrics",
+                        "log": "metrics",
+                        "metrics": {
+                            "name": "app_core_remote_connects_total",
+                            "labels": {
+                                "method": "proxy_ssh",
+                                "username": "root",
+                                "port": 22,
+                                "auth_type": "password",
+                                "os_type": report_agent_obj.os_type,
+                                "status": "success",
+                            },
+                        },
+                        "status": "-",
+                    },
+                    {
+                        "timestamp": "1580870937",
+                        "level": "INFO",
+                        "step": "metrics",
+                        "log": "metrics",
+                        "metrics": {
+                            "name": "app_core_remote_connect_exceptions_total",
+                            "labels": {
+                                "method": "proxy_ssh",
+                                "username": "root",
+                                "port": 22,
+                                "auth_type": "password",
+                                "os_type": report_agent_obj.os_type,
+                                "exc_type": "-",
+                                "exc_code": "0",
+                            },
+                        },
+                        "status": "-",
+                    },
+                    {
+                        "timestamp": "1580870937",
+                        "level": "INFO",
+                        "step": "metrics",
+                        "log": "metrics",
+                        "metrics": {
+                            "name": "app_core_remote_execute_duration_seconds",
+                            "labels": {"method": "proxy_ssh"},
+                            "data": {"cost_time": 1.0},
+                        },
+                        "status": "-",
+                    },
+                    {
+                        "timestamp": "1580870937",
+                        "level": "INFO",
+                        "step": "report_cpu_arch",
+                        "log": "aarch64",
+                        "status": "DONE",
+                    },
+                    {
+                        "timestamp": "1580870937",
+                        "level": "INFO",
+                        "step": "report_agent_id",
+                        "log": f"agent-id: {report_agent_obj.bk_cloud_id}:{report_agent_obj.inner_ip}",
+                        "status": "DONE",
+                    },
+                    {
+                        "timestamp": "1580870937",
+                        "level": "INFO",
+                        "step": "report_healthz",
+                        "log": random.choice(
+                            [
+                                '{"ok":false,"data":{"base":"ok","cluster":"ok","data":"ok","file":"ok"}}',
+                                "aGVhbHRoejogeyJvayI6dHJ1ZSwiZGF0YSI6eyJiYXNlIjoib2siLCJjbHVzdGVyIjoib2si"
+                                "LCJkYXRhIjoib2siLCJmaWxlIjoib2sifX0NCg==",
+                                "healthz: Failed",
+                            ]
+                        ),
+                        "status": "DONE",
+                    },
+                    {
+                        "timestamp": "1580870937",
+                        "level": "INFO",
+                        "step": "report_os_version",
+                        "status": "DONE",
+                        "log": "6.1.1.1",
+                    },
+                    {
+                        "timestamp": "1580870937",
+                        "level": "INFO",
+                        "step": "check_deploy_result",
+                        "log": "gse agent has been deployed successfully",
+                        "status": "DONE",
+                    },
+                ]
+            ]
+            REDIS_INST.lpush(name, *json_dumps_logs)
 
     def init_hosts(self):
         self.init_alive_proxies(bk_cloud_id=self.CLOUD_ID)

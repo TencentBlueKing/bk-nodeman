@@ -16,6 +16,7 @@ import socket
 import sys
 import time
 import traceback
+import typing
 from functools import partial
 from io import StringIO
 from pathlib import Path
@@ -132,6 +133,7 @@ class ReportLogHandler(logging.Handler):
                     "timestamp": round(time.time()),
                     "level": record.levelname,
                     "step": record.step,
+                    "metrics": record.metrics,
                     "log": f"({status}) {record.message}",
                     "status": status,
                     "prefix": "[proxy]",
@@ -155,13 +157,21 @@ class CustomLogger(logging.LoggerAdapter):
 
         step: str = extra.pop("step", "N/A")
         is_report: str = extra.pop("is_report", True)
-        kwargs = {"step": step, "is_report": is_report}
+        metrics: typing.Dict[str, typing.Any] = extra.pop("metrics", {})
+        kwargs = {"step": step, "is_report": is_report, "metrics": metrics}
         kwargs.update(extra)
 
         super()._log(level, msg, args, extra=kwargs)
 
-    def logging(self, step: str, msg: str, level: int = logging.INFO, is_report: bool = True):
-        self._log(level, msg, extra={"step": step, "is_report": is_report})
+    def logging(
+        self,
+        step: str,
+        msg: str,
+        metrics: typing.Optional[typing.Dict[str, typing.Any]] = None,
+        level: int = logging.INFO,
+        is_report: bool = True,
+    ):
+        self._log(level, msg, extra={"step": step, "is_report": is_report, "metrics": metrics or {}})
 
 
 console_handler = logging.StreamHandler()
@@ -291,10 +301,11 @@ def execute_batch_solution(
 
             try:
                 res = execute_cmd(cmd, login_ip, account, identity, is_no_output=content["name"] == "run_cmd")
-            except Exception as exc:
+            except Exception:
                 # 过程中只要有一条命令执行失败，视为执行方案失败
-                logger.logging("execute_batch_solution", f"execute {cmd} failed, err_msg -> {exc}", level=logging.ERROR)
-                return
+                logger.logging("execute_batch_solution", f"execute {cmd} failed", level=logging.WARNING)
+                # 把异常抛给最外层
+                raise
 
             print(res)
 
@@ -339,36 +350,6 @@ def execute_shell_solution(
                 if run_output.exit_status != 0:
                     raise ProcessError(f"Command returned non-zero: {run_output}")
                 logger.logging("send_cmd", str(run_output), is_report=False)
-
-    # cmds: List[str] = []
-    # shell_pkg: str = ("bash", "ksh")[os_type == "aix"]
-    # for step in execution_solution["steps"]:
-    #     # 暂不支持 dependencies 等其他步骤类型
-    #     if step["type"] == "commands":
-    #         for content in step["contents"]:
-    #             cmds.append(content["text"])
-    #
-    # # 串联执行
-    # command: str = "{shell_pkg} -c 'exec 2>&1 && {multi_cmds_str} '\n".format(
-    #     shell_pkg=shell_pkg, multi_cmds_str=" && ".join(cmds)
-    # )
-    # # 根据用户名判断是否采用sudo
-    # if account not in ["root", "Administrator", "administrator"]:
-    #     command = "sudo %s" % command
-    #
-    # with ParamikoConn(
-    #     host=login_ip,
-    #     port=port,
-    #     username=account,
-    #     password=identity,
-    #     client_key_strings=client_key_strings,
-    #     connect_timeout=15,
-    # ) as conn:
-    #     logger.logging("send_cmd", command, is_report=False)
-    #     run_output: RunOutput = conn.run(command, check=True, timeout=60)
-    #     if run_output.exit_status != 0:
-    #         raise ProcessError(f"Command returned non-zero: {run_output}")
-    #     logger.logging("send_cmd", str(run_output), is_report=False)
 
 
 def is_port_listen(ip: str, port: int) -> bool:
@@ -441,6 +422,26 @@ def download_file(url: str, dest_dir: str):
         raise DownloadFileError(err_msg) from exc
 
 
+def use_shell() -> bool:
+    os_type: str = args.host_os_type
+    port = int(args.host_port)
+    if os_type not in ["windows"] or (os_type in ["windows"] and port != 445):
+        return True
+    else:
+        return False
+
+
+def get_common_labels() -> typing.Dict[str, typing.Any]:
+    os_type: str = args.host_os_type or "unknown"
+    return {
+        "method": ("proxy_wmiexe", "proxy_ssh")[use_shell()],
+        "username": args.host_account,
+        "port": int(args.host_port),
+        "auth_type": args.host_auth_type,
+        "os_type": os_type.upper(),
+    }
+
+
 def main() -> None:
 
     login_ip = args.host_login_ip
@@ -479,32 +480,39 @@ def main() -> None:
             execution_solution=host_solution,
         )
 
+    app_core_remote_connects_total_labels = {**get_common_labels(), "status": "success"}
+    logger.logging(
+        "metrics",
+        f"app_core_remote_connects_total_labels -> {app_core_remote_connects_total_labels}",
+        metrics={"name": "app_core_remote_connects_total", "labels": app_core_remote_connects_total_labels},
+    )
+
 
 BytesOrStr = Union[str, bytes]
 
 
 class RemoteBaseException(Exception):
-    pass
+    code = 0
 
 
 class RunCmdError(RemoteBaseException):
-    pass
+    code = 1
 
 
 class PermissionDeniedError(RemoteBaseException):
-    pass
+    code = 2
 
 
 class DisconnectError(RemoteBaseException):
-    pass
+    code = 3
 
 
 class RemoteTimeoutError(RemoteBaseException):
-    pass
+    code = 4
 
 
 class ProcessError(RemoteBaseException):
-    pass
+    code = 5
 
 
 class RunOutput:
@@ -736,11 +744,69 @@ class ParamikoConn(BaseConn):
 
 if __name__ == "__main__":
 
+    _paramiko_version: str = "-"
+    try:
+        _paramiko_version = str(paramiko.__version__)
+    except Exception:
+        logger.logging("proxy", "Failed to get paramiko version", is_report=False, level=logging.WARNING)
+
+    _app_core_remote_proxy_info_labels = {
+        "proxy_name": socket.gethostname(),
+        "proxy_ip": args.lan_eth_ip,
+        "bk_cloud_id": args.host_cloud,
+        "paramiko_version": _paramiko_version,
+    }
+    logger.logging(
+        "metrics",
+        f"app_core_remote_proxy_info_labels -> {_app_core_remote_proxy_info_labels}",
+        metrics={"name": "app_core_remote_proxy_info", "labels": _app_core_remote_proxy_info_labels},
+    )
+
     logger.logging("proxy", "setup_pagent2 will start running now.", is_report=False)
+    _start = time.perf_counter()
+
     try:
         main()
     except Exception as _e:
+        _app_core_remote_connects_total_labels = {**get_common_labels(), "status": "failed"}
+        logger.logging(
+            "metrics",
+            f"app_core_remote_connects_total_labels -> {_app_core_remote_connects_total_labels}",
+            metrics={"name": "app_core_remote_connects_total", "labels": _app_core_remote_connects_total_labels},
+        )
+
+        if isinstance(_e, RemoteBaseException):
+            exc_type = "app"
+            exc_code = str(_e.code)
+        else:
+            exc_type = "unknown"
+            exc_code = _e.__class__.__name__
+
+        _app_core_remote_connect_exceptions_total_labels = {
+            **get_common_labels(),
+            "exc_type": exc_type,
+            "exc_code": exc_code,
+        }
+        logger.logging(
+            "metrics",
+            f"app_core_remote_connect_exceptions_total_labels -> {_app_core_remote_connect_exceptions_total_labels}",
+            metrics={
+                "name": "app_core_remote_connect_exceptions_total",
+                "labels": _app_core_remote_connect_exceptions_total_labels,
+            },
+        )
         logger.logging("proxy_fail", str(_e), level=logging.ERROR)
         logger.logging("proxy_fail", traceback.format_exc(), level=logging.ERROR, is_report=False)
     else:
-        logger.logging("proxy", "setup_pagent2 succeeded.", is_report=False)
+        _app_core_remote_execute_duration_seconds_labels = {"method": ("proxy_wmiexe", "proxy_ssh")[use_shell()]}
+        cost_time = time.perf_counter() - _start
+        logger.logging(
+            "metrics",
+            f"app_core_remote_execute_duration_seconds_labels -> {_app_core_remote_execute_duration_seconds_labels}",
+            metrics={
+                "name": "app_core_remote_execute_duration_seconds",
+                "labels": _app_core_remote_execute_duration_seconds_labels,
+                "data": {"cost_time": cost_time},
+            },
+        )
+        logger.logging("proxy", f"setup_pagent2 succeeded: cost_time -> {cost_time}", is_report=False)

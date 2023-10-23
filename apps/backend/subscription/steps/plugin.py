@@ -269,6 +269,7 @@ class PluginStep(Step):
                     process_status,
                     context,
                     package_obj=self.get_matching_package(target_host.os_type, target_host.cpu_arch),
+                    source="migrate",
                 )
 
                 old_rendered_configs = proc_status_id__configs_map[process_status["id"]]
@@ -315,40 +316,23 @@ class PluginStep(Step):
             return
 
         remove_from_scope_instance_ids = set()
-        if self.subscription.object_type == self.subscription.ObjectType.HOST:
-            # 主机类型的订阅
-            host_id_biz_map = {}
-            for host_info in models.Host.objects.filter(bk_host_id__in=uninstall_ids).values("bk_host_id", "bk_biz_id"):
-                host_id_biz_map[host_info["bk_host_id"]] = host_info["bk_biz_id"]
-            uninstall_scope = {
-                "bk_biz_id": self.subscription.bk_biz_id,
-                "object_type": self.subscription.object_type,
-                "node_type": self.subscription.NodeType.INSTANCE,
-                "nodes": [{"bk_host_id": host_id, "bk_biz_id": host_id_biz_map[host_id]} for host_id in uninstall_ids],
-            }
 
-            uninstall_instances = tools.get_instances_by_scope(uninstall_scope)
+        instance_key = "host" if self.subscription.object_type == models.Subscription.ObjectType.HOST else "service"
+        id_key = "bk_host_id" if instance_key == "host" else "id"
 
-            for instance_id in uninstall_instances:
-                remove_from_scope_instance_ids.add(instance_id)
-                instance_actions[instance_id] = uninstall_action
-                push_migrate_reason_func(
-                    _instance_id=instance_id, migrate_type=backend_const.PluginMigrateType.REMOVE_FROM_SCOPE
-                )
-        else:
-            for _id in uninstall_ids:
-                instance_id = tools.create_node_id(
-                    {
-                        "object_type": self.subscription.object_type,
-                        "node_type": self.subscription.NodeType.INSTANCE,
-                        "id": _id,
-                    }
-                )
-                remove_from_scope_instance_ids.add(instance_id)
-                instance_actions[instance_id] = uninstall_action
-                push_migrate_reason_func(
-                    _instance_id=instance_id, migrate_type=backend_const.PluginMigrateType.REMOVE_FROM_SCOPE
-                )
+        for _id in uninstall_ids:
+            instance_id = tools.create_node_id(
+                {
+                    "object_type": self.subscription.object_type,
+                    "node_type": self.subscription.NodeType.INSTANCE,
+                    id_key: _id,
+                }
+            )
+            remove_from_scope_instance_ids.add(instance_id)
+            instance_actions[instance_id] = uninstall_action
+            push_migrate_reason_func(
+                _instance_id=instance_id, migrate_type=backend_const.PluginMigrateType.REMOVE_FROM_SCOPE
+            )
 
         # 仅策略的巡检需要假移除插件
         if self.subscription.category == models.Subscription.CategoryType.POLICY and auto_trigger:
@@ -363,6 +347,38 @@ class PluginStep(Step):
                 models.ProcessStatus.objects.filter(
                     source_id=self.subscription.id, name=self.plugin_name, bk_host_id__in=uninstall_ids
                 ).update(source_id=None, group_id="", bk_obj_id=None)
+
+        elif self.subscription.object_type == self.subscription.ObjectType.HOST:
+            # 如果 Agent 状态异常，标记异常并且不执行变更，等到 Agent 状态恢复再执行卸载
+            host_ids_with_alive_agent = models.ProcessStatus.objects.filter(
+                name=models.ProcessStatus.GSE_AGENT_PROCESS_NAME,
+                source_type=models.ProcessStatus.SourceType.DEFAULT,
+                bk_host_id__in=uninstall_ids,
+                status=constants.ProcStateType.RUNNING,
+            ).values_list("bk_host_id", flat=True)
+
+            host_ids_with_no_alive_agent = set(uninstall_ids) - set(host_ids_with_alive_agent)
+            for host_id in host_ids_with_no_alive_agent:
+                instance_id = tools.create_node_id(
+                    {
+                        "object_type": self.subscription.object_type,
+                        "node_type": self.subscription.NodeType.INSTANCE,
+                        id_key: host_id,
+                    }
+                )
+                instance_actions.pop(instance_id, None)
+                push_migrate_reason_func(
+                    _instance_id=instance_id, migrate_type=backend_const.PluginMigrateType.ABNORMAL_AGENT_STATUS
+                )
+
+            if host_ids_with_no_alive_agent and not preview_only:
+                models.ProcessStatus.objects.filter(
+                    source_id=self.subscription.id, name=self.plugin_name, bk_host_id__in=host_ids_with_no_alive_agent
+                ).update(status=constants.ProcStateType.AGENT_NO_ALIVE)
+                logger.info(
+                    f"[handle_uninstall_instances] set proc to AGENT_NO_ALIVE, subscription_id -> "
+                    f"{self.subscription.id}, name -> {self.plugin_name}, host_ids -> {host_ids_with_no_alive_agent}",
+                )
 
     def handle_new_add_instances(
         self,

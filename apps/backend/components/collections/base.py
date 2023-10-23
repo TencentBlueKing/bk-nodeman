@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import logging
 import os
 import traceback
 import typing
@@ -34,11 +35,15 @@ from django.utils.translation import ugettext as _
 from apps.adapters.api.gse import GseApiBaseHelper, get_gse_api_helper
 from apps.backend.subscription import errors
 from apps.core.files.storage import get_storage
+from apps.exceptions import parse_exception
 from apps.node_man import constants, models
+from apps.prometheus import metrics
+from apps.prometheus.helper import SetupObserve
 from apps.utils import cache, time_handler, translation
 from apps.utils.exc import ExceptionHandler
-from common.log import logger
 from pipeline.core.flow import Service
+
+logger = logging.getLogger("celery")
 
 
 class ActivityType:
@@ -87,11 +92,15 @@ def service_run_exc_handler(
 
     act_name = data.get_one_of_inputs("act_name")
     sub_inst_ids = instance.get_subscription_instance_ids(data)
+    code = instance.__class__.__name__
+
+    metrics.app_task_engine_service_run_exceptions_total.labels(code=code, **parse_exception(exc)).inc()
+
+    logger.exception(f"[task_engine][service_run_exc_handler:{code}] act_name -> {act_name}, exc -> {str(exc)}")
 
     error_msg = _("{act_name} 失败: {exc}，请先尝试查看错误日志进行处理，若无法解决，请联系管理员处理").format(act_name=act_name, exc=str(exc))
-    logger.exception(error_msg)
-
     instance.bulk_set_sub_inst_act_status(
+        data=data,
         sub_inst_ids=sub_inst_ids,
         status=constants.JobStatusType.FAILED,
         common_log=instance.log_maker.error_log(error_msg),
@@ -113,6 +122,12 @@ def get_language_func(
     else:
         data = kwargs["data"]
     return data.get_one_of_inputs("blueking_language")
+
+
+def get_labels_func(
+    wrapped: Callable, instance: "BaseService", args: Tuple[Any], kwargs: Dict[str, Any]
+) -> typing.Dict[str, str]:
+    return {"code": instance.__class__.__name__}
 
 
 class LogMixin:
@@ -252,19 +267,40 @@ class BaseService(Service, LogMixin, DBHelperMixin):
         """
         raise NotImplementedError()
 
-    def bulk_set_sub_inst_status(self, status: str, sub_inst_ids: Union[List[int], Set[int]]):
+    @SetupObserve(histogram=metrics.app_task_engine_set_sub_inst_statuses_duration_seconds)
+    def bulk_set_sub_inst_status(self, data, status: str, sub_inst_ids: Union[List[int], Set[int]]):
         """批量设置实例状态，对于实例及原子的状态更新只应该在base内部使用"""
         models.SubscriptionInstanceRecord.objects.filter(id__in=sub_inst_ids).update(
             status=status, update_time=timezone.now()
         )
+        # status -> PENDING -> RUNNING -> FAILED | SUCCESS
+        metrics.app_task_engine_sub_inst_statuses_total.labels(status=status).inc(len(sub_inst_ids))
+
+        meta: Dict[str, Any] = self.get_meta(data)
+        steps: List[Dict] = meta.get("STEPS") or []
+        gse_version: str = meta.get("GSE_VERSION") or "unknown"
+        for step in steps:
+            metrics.app_task_engine_sub_inst_step_statuses_total.labels(
+                step_id=step.get("id") or "unknown",
+                step_type=step.get("type") or "unknown",
+                step_num=len(steps),
+                step_index=step.get("index") or 0,
+                gse_version=gse_version,
+                action=step.get("action") or "unknown",
+                code=self.__class__.__name__,
+                status=status,
+            ).inc(amount=len(sub_inst_ids))
+
         if status in [constants.JobStatusType.FAILED]:
             self.sub_inst_failed_handler(sub_inst_ids)
 
+    @SetupObserve(histogram=metrics.app_task_engine_set_sub_inst_act_statuses_duration_seconds)
     def bulk_set_sub_inst_act_status(
-        self, sub_inst_ids: Union[List[int], Set[int]], status: str, common_log: str = None
+        self, data, sub_inst_ids: Union[List[int], Set[int]], status: str, common_log: str = None
     ):
         """
         批量设置实例状态
+        :param data:
         :param sub_inst_ids:
         :param status:
         :param common_log: 全局日志，用于需要全局暴露的异常
@@ -281,7 +317,7 @@ class BaseService(Service, LogMixin, DBHelperMixin):
 
         # 失败的实例需要更新汇总状态
         if status in [constants.JobStatusType.FAILED]:
-            self.bulk_set_sub_inst_status(constants.JobStatusType.FAILED, sub_inst_ids)
+            self.bulk_set_sub_inst_status(data, constants.JobStatusType.FAILED, sub_inst_ids)
 
     @staticmethod
     def get_subscription_instance_ids(data):
@@ -292,6 +328,13 @@ class BaseService(Service, LogMixin, DBHelperMixin):
         if succeeded_subscription_instance_ids and "${" not in succeeded_subscription_instance_ids:
             subscription_instance_ids = succeeded_subscription_instance_ids
         return subscription_instance_ids
+
+    @staticmethod
+    def get_meta(data) -> Dict[str, Any]:
+        meta: Dict[str, Any] = data.get_one_of_inputs("meta", {})
+        if "STEPS" not in meta:
+            meta["STEPS"] = []
+        return meta
 
     @classmethod
     def get_common_data(cls, data):
@@ -334,7 +377,7 @@ class BaseService(Service, LogMixin, DBHelperMixin):
             sub_inst_id__host_id_map=sub_inst_id__host_id_map,
             host_id__sub_inst_id_map=host_id__sub_inst_id_map,
             ap_id_obj_map=ap_id_obj_map,
-            gse_api_helper=get_gse_api_helper(gse_version=data.get_one_of_inputs("meta", {}).get("GSE_VERSION")),
+            gse_api_helper=get_gse_api_helper(gse_version=cls.get_meta(data).get("GSE_VERSION")),
             subscription=subscription,
             subscription_step=subscription_step,
             subscription_instances=subscription_instances,
@@ -343,6 +386,7 @@ class BaseService(Service, LogMixin, DBHelperMixin):
 
     def set_current_id(self, subscription_instance_ids: List[int]):
         # 更新当前实例的pipeline id
+        # TODO 偶发死锁
         models.SubscriptionInstanceRecord.objects.filter(id__in=subscription_instance_ids).update(pipeline_id=self.id)
 
     def set_outputs_data(self, data, common_data: CommonData) -> bool:
@@ -367,7 +411,7 @@ class BaseService(Service, LogMixin, DBHelperMixin):
         act_type = data.get_one_of_inputs("act_type")
         # 流程起始设置RUNNING
         if service_func == self._execute and act_type in [ActivityType.HEAD, ActivityType.HEAD_TAIL]:
-            self.bulk_set_sub_inst_status(constants.JobStatusType.RUNNING, subscription_instance_ids)
+            self.bulk_set_sub_inst_status(data, constants.JobStatusType.RUNNING, subscription_instance_ids)
 
         service_func(data, parent_data, **kwargs)
 
@@ -387,6 +431,7 @@ class BaseService(Service, LogMixin, DBHelperMixin):
         )
 
         self.bulk_set_sub_inst_act_status(
+            data=data,
             sub_inst_ids=revoked_subscription_instance_ids,
             status=constants.JobStatusType.FAILED,
             common_log=self.log_maker.warning_log(
@@ -410,6 +455,7 @@ class BaseService(Service, LogMixin, DBHelperMixin):
 
         # failed_subscription_instance_id_set - sub_inst_ids_previous_failed_set 取差集，仅更新本轮失败的订阅实例详情
         self.bulk_set_sub_inst_act_status(
+            data=data,
             sub_inst_ids=failed_subscription_instance_id_set - previous_failed_subscription_instance_id_set,
             status=constants.JobStatusType.FAILED,
             common_log=self.log_maker.error_log(
@@ -422,6 +468,7 @@ class BaseService(Service, LogMixin, DBHelperMixin):
             return bool(succeeded_subscription_instance_ids)
 
         self.bulk_set_sub_inst_act_status(
+            data=data,
             sub_inst_ids=succeeded_subscription_instance_ids,
             status=constants.JobStatusType.SUCCESS,
             common_log=self.log_maker.info_log(_("{act_name} 成功").format(act_name=act_name)),
@@ -430,16 +477,29 @@ class BaseService(Service, LogMixin, DBHelperMixin):
         # 流程结束设置成功的实例
         if act_type in [ActivityType.TAIL, ActivityType.HEAD_TAIL]:
             self.bulk_set_sub_inst_status(
-                constants.JobStatusType.SUCCESS, sub_inst_ids=succeeded_subscription_instance_ids
+                data, constants.JobStatusType.SUCCESS, sub_inst_ids=succeeded_subscription_instance_ids
             )
 
         return bool(succeeded_subscription_instance_ids)
 
     @translation.RespectsLanguage(get_language_func=get_language_func)
+    @SetupObserve(
+        gauge=metrics.app_task_engine_running_executes_info,
+        histogram=metrics.app_task_engine_execute_duration_seconds,
+        get_labels_func=get_labels_func,
+    )
     @ExceptionHandler(exc_handler=service_run_exc_handler)
     def execute(self, data, parent_data):
         common_data = self.get_common_data(data)
         act_name = data.get_one_of_inputs("act_name")
+        act_type = data.get_one_of_inputs("act_type")
+        if act_type in [ActivityType.HEAD, ActivityType.HEAD_TAIL]:
+            logger.info(
+                "[sub_lifecycle<sub(%s), task(%s)>][engine] enter",
+                common_data.subscription.id,
+                common_data.subscription_instances[0].task_id,
+            )
+
         subscription_instance_ids = self.get_subscription_instance_ids(data)
         to_be_created_sub_statuses = [
             models.SubscriptionInstanceStatusDetail(
@@ -456,6 +516,11 @@ class BaseService(Service, LogMixin, DBHelperMixin):
         return self.run(self._execute, data, parent_data, common_data=common_data)
 
     @translation.RespectsLanguage(get_language_func=get_language_func)
+    @SetupObserve(
+        gauge=metrics.app_task_engine_running_schedules_info,
+        histogram=metrics.app_task_engine_schedule_duration_seconds,
+        get_labels_func=get_labels_func,
+    )
     @ExceptionHandler(exc_handler=service_run_exc_handler)
     def schedule(self, data, parent_data, callback_data=None):
         return self.run(self._schedule, data, parent_data, callback_data=callback_data)

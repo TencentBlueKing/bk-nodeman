@@ -15,6 +15,8 @@ from django_prometheus.conf import NAMESPACE
 from django_prometheus.middleware import Metrics
 from prometheus_client import Counter
 
+from apps.utils.local import get_appcode_from_request_or_none
+
 
 class NodeManMetrics(Metrics):
     def register(self):
@@ -38,7 +40,7 @@ class NodeManAfterMiddleware(MiddlewareMixin):
         return metric.labels(**labels) if labels else metric
 
     def _app_code(self, request):
-        return request.META.get("HTTP_BK_APP_CODE", settings.APP_CODE)
+        return get_appcode_from_request_or_none(request) or settings.APP_CODE
 
     def process_view(self, request, view_func, *view_args, **view_kwargs):
         if hasattr(request, "resolver_match"):

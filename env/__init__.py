@@ -22,6 +22,8 @@ __all__ = [
     "BKPAAS_BK_CRYPTO_TYPE",
     "LOG_TYPE",
     "LOG_LEVEL",
+    "CACHE_BACKEND",
+    "CACHE_ENABLE_PREHEAT",
     "BK_LOG_DIR",
     "GSE_VERSION",
     "BKAPP_ENABLE_OTEL_TRACE",
@@ -29,6 +31,13 @@ __all__ = [
     "BKAPP_OTEL_SAMPLER",
     "BKAPP_OTEL_BK_DATA_TOKEN",
     "BKAPP_OTEL_GRPC_URL",
+    "BKAPP_MONITOR_REPORTER_ENABLE",
+    "BKAPP_MONITOR_REPORTER_DATA_ID",
+    "BKAPP_MONITOR_REPORTER_ACCESS_TOKEN",
+    "BKAPP_MONITOR_REPORTER_TARGET",
+    "BKAPP_MONITOR_REPORTER_URL",
+    "BKAPP_MONITOR_REPORTER_REPORT_INTERVAL",
+    "BKAPP_MONITOR_REPORTER_CHUNK_SIZE",
     "BKAPP_NAV_OPEN_SOURCE_URL",
     "BKAPP_NAV_HELPER_URL",
     "BK_CC_HOST",
@@ -78,6 +87,14 @@ BK_LOG_DIR = get_type_env(key="BK_LOG_DIR", default="./../bk_nodeman/logs", _typ
 
 
 # ===============================================================================
+# 缓存
+# ===============================================================================
+# 缓存后端，默认值为 `db`，可选项：`db`、`redis` - 仅存在 `REDIS_HOST` 变量时生效，否则仍默认使用 `db`
+CACHE_BACKEND = get_type_env(key="CACHE_BACKEND", default=constants.CacheBackend.DB.value, _type=str)
+# 是否预热关键缓存，一般在切换缓存前需要开启，开启前请确保 SaaS 模块也配置了 Redis
+CACHE_ENABLE_PREHEAT = get_type_env(key="CACHE_ENABLE_PREHEAT", default=False, _type=bool)
+
+# ===============================================================================
 # 蓝鲸管控平台
 # ===============================================================================
 # 平台版本
@@ -112,6 +129,24 @@ BKAPP_OTEL_SAMPLER = get_type_env(key="BKAPP_OTEL_SAMPLER", default="parentbased
 # 监控上报配置项
 BKAPP_OTEL_BK_DATA_TOKEN = get_type_env(key="BKAPP_OTEL_BK_DATA_TOKEN", _type=str)
 BKAPP_OTEL_GRPC_URL = get_type_env(key="BKAPP_OTEL_GRPC_URL", _type=str)
+
+# 是否启用自定义上报
+BKAPP_MONITOR_REPORTER_ENABLE = get_type_env(key="BKAPP_MONITOR_REPORTER_ENABLE", default=False, _type=bool)
+# 监控 Data ID
+BKAPP_MONITOR_REPORTER_DATA_ID = get_type_env(key="BKAPP_MONITOR_REPORTER_DATA_ID", default=0, _type=int)
+# 自定义上报 Token
+BKAPP_MONITOR_REPORTER_ACCESS_TOKEN = get_type_env(key="BKAPP_MONITOR_REPORTER_ACCESS_TOKEN", default="", _type=str)
+# 上报唯一标志符
+BKAPP_MONITOR_REPORTER_TARGET = get_type_env(key="BKAPP_MONITOR_REPORTER_TARGET", default="prod", _type=str)
+# 上报地址
+BKAPP_MONITOR_REPORTER_URL = get_type_env(key="BKAPP_MONITOR_REPORTER_URL", default="", _type=str)
+# 上报间隔
+BKAPP_MONITOR_REPORTER_REPORT_INTERVAL = get_type_env(
+    key="BKAPP_MONITOR_REPORTER_REPORT_INTERVAL", default=10, _type=int
+)
+# 块大小
+BKAPP_MONITOR_REPORTER_CHUNK_SIZE = get_type_env(key="BKAPP_MONITOR_REPORTER_CHUNK_SIZE", default=200, _type=int)
+
 
 # ===============================================================================
 # 第三方依赖
