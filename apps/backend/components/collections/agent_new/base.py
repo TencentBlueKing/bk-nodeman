@@ -29,6 +29,8 @@ from apps.backend.exceptions import OsVersionPackageValidationError
 from apps.backend.subscription.steps.agent_adapter.adapter import AgentStepAdapter
 from apps.node_man import constants, models
 from apps.node_man.exceptions import AliveProxyNotExistsError
+from apps.prometheus import metrics
+from apps.prometheus.helper import SetupObserve
 
 from .. import job
 from ..base import BaseService, CommonData
@@ -59,6 +61,7 @@ class AgentBaseService(BaseService, metaclass=abc.ABCMeta):
         pass
 
     @classmethod
+    @SetupObserve(histogram=metrics.app_task_engine_get_common_data_duration_seconds, labels={"step_type": "AGENT"})
     def get_common_data(cls, data):
         """
         初始化常用数据，注意这些数据不能放在 self 属性里，否则会产生较大的 process snap shot，
