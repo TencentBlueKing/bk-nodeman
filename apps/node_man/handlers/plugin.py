@@ -293,7 +293,9 @@ class PluginHandler(APIModel):
             hs["job_result"] = host_id_job_status.get(bk_host_id, {})
             hs["plugin_status"] = host_plugin.get(bk_host_id, [])
             hs["operate_permission"] = hs["bk_biz_id"] in plugin_operate_bizs
-            hs["setup_path"] = ap_id_obj_map[hs["ap_id"]].agent_config[hs["os_type"].lower()]["setup_path"]
+            hs["setup_path"] = ap_id_obj_map.get(hs["ap_id"], ap_id_obj_map[None]).get_agent_config(hs["os_type"])[
+                "setup_path"
+            ]
 
         result = {"total": hosts_status_count, "list": hosts_status}
 
