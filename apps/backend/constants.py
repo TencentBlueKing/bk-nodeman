@@ -95,6 +95,7 @@ class PluginMigrateType:
     REMOVE_FROM_SCOPE = "REMOVE_FROM_SCOPE"
     NOT_SYNC_HOST = "NOT_SYNC_HOST"
     MANUAL_OP_EXEMPT = "MANUAL_OP_EXEMPT"
+    ABNORMAL_AGENT_STATUS = "ABNORMAL_AGENT_STATUS"
 
     MIGRATE_TYPE_ALIAS_MAP = {
         NEW_INSTALL: _("新安装"),
@@ -102,6 +103,7 @@ class PluginMigrateType:
         CONFIG_CHANGE: _("配置变更"),
         PROC_NUM_NOT_MATCH: _("进程数量不匹配"),
         ABNORMAL_PROC_STATUS: _("进程状态异常"),
+        ABNORMAL_AGENT_STATUS: _("Agent 状态异常"),
         NOT_CHANGE: _("无需变更"),
         REMOVE_FROM_SCOPE: _("从范围中移除"),
         NOT_SYNC_HOST: _("未同步的主机"),

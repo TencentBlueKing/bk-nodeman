@@ -71,7 +71,7 @@ def get_hosts_by_node(config_hosts):
     if config_hosts[0].get("bk_host_id"):
         from apps.backend.subscription.tools import get_host_detail
 
-        host_infos = get_host_detail(config_hosts)
+        host_infos = get_host_detail(config_hosts, source="get_hosts_by_node")
         for host_info in host_infos:
             host_info["ip"] = host_info["bk_host_innerip"] or host_info["bk_host_innerip_v6"]
             instances.append(host_info)

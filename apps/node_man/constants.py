@@ -412,7 +412,16 @@ class BkAgentStatus(EnhanceEnum):
         return {cls.NOT_ALIVE: _("未知"), cls.ALIVE: _("正常"), cls.TERMINATED: _("异常"), cls.NOT_INSTALLED: _("未安装")}
 
 
-PROC_STATE_TUPLE = ("RUNNING", "UNKNOWN", "TERMINATED", "NOT_INSTALLED", "UNREGISTER", "REMOVED", "MANUAL_STOP")
+PROC_STATE_TUPLE = (
+    "RUNNING",
+    "UNKNOWN",
+    "TERMINATED",
+    "NOT_INSTALLED",
+    "UNREGISTER",
+    "REMOVED",
+    "MANUAL_STOP",
+    "AGENT_NO_ALIVE",
+)
 PROC_STATE_CHOICES = tuple_choices(PROC_STATE_TUPLE)
 ProcStateType = choices_to_namedtuple(PROC_STATE_CHOICES)
 PROC_STATUS_DICT = {

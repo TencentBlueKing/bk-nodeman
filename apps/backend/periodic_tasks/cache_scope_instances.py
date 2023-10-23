@@ -31,7 +31,7 @@ def get_instances_by_scope_task(subscription_id):
         f" scope_md5: {scope_md5}, scope: {subscription.scope}"
     )
     # 查询后会进行缓存，详见 get_instances_by_scope 的装饰器 func_cache_decorator
-    tools.get_instances_by_scope(subscription.scope)
+    tools.get_instances_by_scope(subscription.scope, source="get_instances_by_scope_task")
     logger.info(f"[cache_subscription_scope_instances] (subscription: {subscription_id}) end.")
 
 
@@ -43,6 +43,7 @@ def get_instances_by_scope_task(subscription_id):
 def cache_scope_instances():
     """定时缓存订阅范围实例，用于提高 instance_status、statistics 等接口的速度"""
     subscriptions = models.Subscription.objects.filter(enable=True, is_deleted=False)
+    # TODO 可以再按 scope md5 聚合一次，避免重复缓存
     count = subscriptions.count()
     for index, subscription in enumerate(subscriptions):
         countdown = calculate_countdown(count=count, index=index, duration=constants.SUBSCRIPTION_UPDATE_INTERVAL)

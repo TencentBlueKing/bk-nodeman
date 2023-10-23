@@ -44,6 +44,7 @@ from jinja2 import Template
 from apps.backend.subscription.errors import PipelineExecuteFailed, SubscriptionNotExist
 from apps.backend.subscription.render_functions import get_hosts_by_node
 from apps.backend.utils.data_renderer import nested_render_data
+from apps.core.concurrent.cache import FuncCacheDecorator
 from apps.core.files.storage import get_storage
 from apps.exceptions import ValidationError
 from apps.node_man import constants
@@ -61,6 +62,7 @@ from apps.prometheus.models import (
     export_subscription_prometheus_mixin,
 )
 from apps.utils import basic, files, orm, translation
+from apps.utils.cache import class_member_cache
 from common.log import logger
 from env.constants import GseVersion
 from pipeline.parser import PipelineParser
@@ -718,11 +720,13 @@ class Cloud(models.Model):
     is_deleted = models.BooleanField(_("是否删除"), default=False)
 
     @classmethod
-    def cloud_id_name_map(cls) -> Dict:
+    @FuncCacheDecorator(cache_time=20 * constants.TimeUnit.SECOND)
+    def cloud_id_name_map(cls) -> Dict[str, str]:
         all_cloud_map = {
-            cloud.bk_cloud_id: cloud.bk_cloud_name for cloud in cls.objects.all().only("bk_cloud_id", "bk_cloud_name")
+            str(cloud.bk_cloud_id): cloud.bk_cloud_name
+            for cloud in cls.objects.all().only("bk_cloud_id", "bk_cloud_name")
         }
-        all_cloud_map[constants.DEFAULT_CLOUD] = str(_("直连区域"))
+        all_cloud_map[str(constants.DEFAULT_CLOUD)] = str(_("直连区域"))
         return all_cloud_map
 
     @classmethod
@@ -805,14 +809,19 @@ class InstallChannel(models.Model):
 class Job(export_job_prometheus_mixin(), models.Model):
     """任务信息"""
 
-    created_by = models.CharField(_("操作人"), max_length=45, default="")
+    created_by = models.CharField(_("操作人"), max_length=45, default="", db_index=True)
+    from_system = models.CharField(_("所属系统"), max_length=45, default="", db_index=True)
     job_type = models.CharField(
-        _("作业类型"), max_length=45, choices=constants.JOB_CHOICES, default=constants.JobType.INSTALL_PROXY
+        _("作业类型"),
+        max_length=45,
+        choices=constants.JOB_CHOICES,
+        default=constants.JobType.INSTALL_PROXY,
+        db_index=True,
     )
     subscription_id = models.IntegerField(_("订阅ID"), db_index=True)
     task_id_list = JSONField(_("任务ID列表"), default=list)
-    start_time = models.DateTimeField(_("创建任务时间"), auto_now_add=True)
-    end_time = models.DateTimeField(_("任务结束时间"), blank=True, null=True)
+    start_time = models.DateTimeField(_("创建任务时间"), auto_now_add=True, db_index=True)
+    end_time = models.DateTimeField(_("任务结束时间"), blank=True, null=True, db_index=True)
     status = models.CharField(
         _("任务状态"), max_length=45, choices=constants.JobStatusType.get_choices(), default=constants.JobStatusType.PENDING
     )
@@ -1587,6 +1596,14 @@ class PluginConfigTemplate(models.Model):
             f"info -> [{self.name}|{self.version}], "
             f"selector -> [{self.plugin_name}|{self.plugin_version}|{self.os}|{self.cpu_arch}]>"
         )
+
+    @property
+    @class_member_cache()
+    def md5(self) -> str:
+        md5 = hashlib.md5()
+        md5.update(self.content.encode())
+        md5sum = md5.hexdigest()
+        return md5sum
 
     def create_instance(self, data, creator=None, source_app_code=None):
         """

@@ -509,7 +509,7 @@ class PolicyHandler:
                 )
 
         # 补充业务名、管控区域名称
-        cloud_id_name_map = models.Cloud.cloud_id_name_map()
+        cloud_id_name_map = models.Cloud.cloud_id_name_map(get_cache=True)
         biz_name_map = CmdbHandler.biz_id_name_without_permission()
 
         results = []
@@ -517,7 +517,7 @@ class PolicyHandler:
             for instance in instances:
                 instance.update(
                     bk_biz_name=biz_name_map.get(instance.get("bk_biz_id")),
-                    bk_cloud_name=cloud_id_name_map.get(instance["bk_cloud_id"]),
+                    bk_cloud_name=cloud_id_name_map.get(str(instance["bk_cloud_id"])),
                 )
 
             inst_job_type = constants.ACTION_NAME_JOB_TYPE_MAP.get(action_id)

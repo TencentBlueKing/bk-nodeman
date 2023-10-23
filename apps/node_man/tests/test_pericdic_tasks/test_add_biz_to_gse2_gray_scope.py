@@ -39,8 +39,8 @@ class TestAddBizToGrayScopeList(CustomBaseTestCase):
         )
 
     @mock.patch(
-        "apps.node_man.periodic_tasks.add_biz_to_gse2_gray_scope.search_business",
-        return_value=[{"bk_biz_id": 10, "bk_biz_name": ""}],
+        "apps.node_man.periodic_tasks.add_biz_to_gse2_gray_scope.fetch_biz_info_map",
+        return_value={10: {"bk_biz_id": 10, "bk_biz_name": ""}},
     )
     def test_add_biz_to_gse2_gray_scope(self, *args, **kwargs):
         # 未开启同步

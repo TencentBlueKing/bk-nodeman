@@ -22,6 +22,7 @@ from django.db.utils import IntegrityError
 from apps.component.esbclient import client_v2
 from apps.node_man import constants
 from apps.node_man.models import GlobalSettings, Host, ResourceWatchEvent, Subscription
+from apps.prometheus import metrics
 from apps.utils.cache import format_cache_key
 
 logger = logging.getLogger("app")
@@ -200,6 +201,11 @@ def _resource_watch(cursor_key, kwargs):
         ]
         ResourceWatchEvent.objects.bulk_create(objs)
 
+        for obj in objs:
+            metrics.app_resource_watch_events_total.labels(
+                type="producer", bk_resource=obj.bk_resource, bk_event_type=obj.bk_event_type
+            ).inc()
+
         logger.info(f"[{cursor_key}] receive new resource watch event: count -> {len(objs)}")
 
         # 记录最新cursor
@@ -277,12 +283,16 @@ def apply_resource_watched_events():
             continue
 
         events_after_convergence = HostEventPreprocessHelper.event_convergence(events)
+
         logger.info(f"[{config_key}] length of events_after_convergence -> {len(events_after_convergence)}")
         for event in events_after_convergence:
             event_str = _get_event_str(event)
             event_bk_biz_id = event["bk_detail"].get("bk_biz_id")
+            metrics.app_resource_watch_events_total.labels(type="convergence", bk_resource="-", bk_event_type="-").inc()
             logger.info(f"[{config_key}] event being consumed -> {event_str}")
             try:
+                if event_bk_biz_id:
+                    metrics.app_resource_watch_biz_events_total.labels(bk_biz_id=event_bk_biz_id).inc()
                 if event_bk_biz_id:
                     # 触发同步CMDB
                     trigger_sync_cmdb_host(bk_biz_id=event_bk_biz_id)
@@ -301,6 +311,10 @@ def apply_resource_watched_events():
 
         # 删除事件记录
         ResourceWatchEvent.objects.filter(bk_cursor__in=[event["bk_cursor"] for event in events]).delete()
+        for event in events:
+            metrics.app_resource_watch_events_total.labels(
+                type="consumer", bk_resource=event["bk_resource"], bk_event_type=event["bk_event_type"]
+            ).inc()
 
 
 def func_debounce_decorator(func):
@@ -374,6 +388,9 @@ def trigger_sync_cmdb_host(bk_biz_id, debounce_time=0):
     """
     from apps.node_man.periodic_tasks.sync_cmdb_host import sync_cmdb_host_periodic_task
 
+    metrics.app_resource_watch_trigger_total.labels(
+        method="sync_cmdb_host", bk_biz_id=bk_biz_id, debounce_time=debounce_time
+    ).inc()
     sync_cmdb_host_periodic_task.apply_async(kwargs={"bk_biz_id": bk_biz_id}, countdown=debounce_time)
 
     logger.info(f"[trigger_sync_cmdb_host] bk_biz_id -> {bk_biz_id} will be run after {debounce_time} s")
@@ -405,6 +422,10 @@ def trigger_nodeman_subscription(bk_biz_id, debounce_time=0):
 
     if not subscription_ids:
         logger.info("[trigger_nodeman_subscription] bk_biz_id->({}) no subscriptions to run".format(bk_biz_id))
+
+    metrics.app_resource_watch_trigger_total.labels(
+        method="subscription", bk_biz_id=bk_biz_id, debounce_time=debounce_time
+    ).inc()
 
     update_subscription_instances_chunk.apply_async(
         kwargs={"subscription_ids": subscription_ids}, countdown=debounce_time

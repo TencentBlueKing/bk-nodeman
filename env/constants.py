@@ -51,3 +51,12 @@ class BkCryptoType(EnhanceEnum):
     @classmethod
     def _get_member__alias_map(cls) -> Dict[Enum, str]:
         return {cls.SHANGMI: "国密算法", cls.CLASSIC: "国密算法"}
+
+
+class CacheBackend(EnhanceEnum):
+    DB = "db"
+    REDIS = "redis"
+
+    @classmethod
+    def _get_member__alias_map(cls) -> Dict[Enum, str]:
+        return {cls.DB: "MySQL", cls.REDIS: "Redis（如果 Redis 未配置，使用 MySQL）"}

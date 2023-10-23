@@ -114,6 +114,7 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         # 2. 创建一个新的task,返回任务ID
         job = models.Job.objects.create(
             created_by=params["bk_username"],
+            from_system=settings.APP_CODE,
             job_type=constants.JobType.PACKING_PLUGIN,
             # TODO 打包任务是否也用一次性订阅的方式下发
             subscription_id=-1,

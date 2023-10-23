@@ -129,7 +129,7 @@ class SubscriptionHandler(object):
             # 如果不需要已不在订阅范围内的执行快照，查询订阅范围过滤掉移除的实例 ID
             subscription = models.Subscription.objects.get(id=self.subscription_id)
             scope_instance_id_list: Set[str] = set(
-                tools.get_instances_by_scope(subscription.scope, get_cache=True).keys()
+                tools.get_instances_by_scope(subscription.scope, get_cache=True, source="task_result").keys()
             )
             base_kwargs["instance_id__in"] = scope_instance_id_list
 
@@ -491,7 +491,7 @@ class SubscriptionHandler(object):
         sub_statistic_list: List[Dict] = []
         for subscription in subscriptions:
             sub_statistic = {"subscription_id": subscription.id, "status": []}
-            current_instances = tools.get_instances_by_scope(subscription.scope, get_cache=True)
+            current_instances = tools.get_instances_by_scope(subscription.scope, get_cache=True, source="statistic")
 
             status_statistic = {"SUCCESS": 0, "PENDING": 0, "FAILED": 0, "RUNNING": 0}
             plugin_versions = defaultdict(lambda: defaultdict(int))

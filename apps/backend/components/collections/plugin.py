@@ -50,6 +50,8 @@ from apps.core.tag.models import Tag
 from apps.exceptions import AppBaseException, ComponentCallError
 from apps.node_man import constants, exceptions, models
 from apps.node_man.handlers.cmdb import CmdbHandler
+from apps.prometheus import metrics
+from apps.prometheus.helper import SetupObserve
 from apps.utils import cache, md5
 from apps.utils.batch_request import request_multi_thread
 from apps.utils.files import PathHandler
@@ -90,6 +92,7 @@ class PluginBaseService(BaseService, metaclass=abc.ABCMeta):
     """
 
     @classmethod
+    @SetupObserve(histogram=metrics.app_task_engine_get_common_data_duration_seconds, labels={"step_type": "PLUGIN"})
     def get_common_data(cls, data):
         """
         初始化常用数据，注意这些数据不能放在 self 属性里，否则会产生较大的 process snap shot，
@@ -968,6 +971,7 @@ class RenderAndPushConfigService(PluginBaseService, JobV3BaseService):
                 {"group_id": process_status.group_id},
                 context,
                 package_obj=package,
+                source="engine",
             )
             process_status.configs = rendered_configs
             process_status.save()

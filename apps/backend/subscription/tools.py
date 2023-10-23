@@ -14,6 +14,8 @@ import ipaddress
 import logging
 import math
 import os
+import pprint
+import typing
 from collections import Counter, defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from functools import wraps
@@ -34,13 +36,15 @@ from apps.backend.subscription.errors import (
 )
 from apps.backend.utils.data_renderer import nested_render_data
 from apps.component.esbclient import client_v2
+from apps.core.concurrent.cache import FuncCacheDecorator
 from apps.core.ipchooser.tools.base import HostQuerySqlHelper
 from apps.exceptions import ComponentCallError
 from apps.node_man import constants, models
 from apps.node_man import tools as node_man_tools
+from apps.prometheus import metrics
+from apps.prometheus.helper import SetupObserve, get_call_resource_labels_func
 from apps.utils.basic import chunk_lists, distinct_dict_list, order_dict
 from apps.utils.batch_request import batch_request, request_multi_thread
-from apps.utils.cache import func_cache_decorator
 from apps.utils.time_handler import strftime_local
 
 logger = logging.getLogger("app")
@@ -240,6 +244,7 @@ def create_host_key(data: Dict) -> str:
     )
 
 
+@SetupObserve(counter=metrics.app_common_method_requests_total, get_labels_func=get_call_resource_labels_func)
 def find_host_biz_relations(bk_host_ids: List[int]) -> List[Dict]:
     """
     查询主机所属拓扑关系
@@ -346,27 +351,26 @@ def get_service_instance_by_ids(bk_biz_id, ids):
     return result
 
 
-def search_business(condition, start=0):
-    kwargs = {"fields": ["bk_biz_id", "bk_biz_name"], "page": {"start": start, "limit": constants.QUERY_BIZ_LENS}}
-    kwargs.update(condition)
-    biz_data = client_v2.cc.search_business(kwargs)
-    biz_count = biz_data.get("count", 0)
-    bizs = biz_data.get("info") or []
+@FuncCacheDecorator(cache_time=1 * constants.TimeUnit.MINUTE)
+def fetch_biz_info_map(fields: typing.Optional[typing.List[str]] = None) -> typing.Dict[str, typing.Dict]:
+    """
+    查询所有业务
+    :return: 主机业务关系列表
+    """
+    fields = fields or ["bk_biz_id", "bk_biz_name"]
+    biz_infos: typing.List[typing.Dict] = batch_request(client_v2.cc.search_business, {"fields": fields})
+    biz_infos.append({"bk_biz_id": str(settings.BK_CMDB_RESOURCE_POOL_BIZ_ID), "bk_biz_name": "资源池"})
 
-    if biz_count > constants.QUERY_BIZ_LENS + start:
-        bizs += search_business(condition, start + constants.QUERY_BIZ_LENS)
-
-    bizs.append({"bk_biz_id": settings.BK_CMDB_RESOURCE_POOL_BIZ_ID, "bk_biz_name": "资源池"})
-    return bizs
+    biz_info_map: typing.Dict[str, typing.Dict] = {str(biz_info["bk_biz_id"]): biz_info for biz_info in biz_infos}
+    logger.info("[fetch_biz_info_map] fields -> %s, count -> %s", pprint.pformat(fields), len(biz_infos))
+    return biz_info_map
 
 
-def fetch_biz_info(condition):
-    all_biz = search_business(condition)
-    biz_map = {}
-    for biz in all_biz:
-        biz_map[biz["bk_biz_id"]] = biz
-
-    return biz_map
+def fetch_biz_info(bk_biz_ids: typing.List[int]) -> typing.Dict[int, typing.Dict]:
+    biz_info_map: typing.Dict[str, typing.Dict] = fetch_biz_info_map(get_cache=True)
+    if not biz_info_map:
+        logger.error("[fetch_biz_info] biz_info_map is empty !")
+    return {bk_biz_id: biz_info_map.get(str(bk_biz_id)) or {} for bk_biz_id in bk_biz_ids}
 
 
 def get_host_detail_by_template(bk_obj_id, template_info_list: list, bk_biz_id: int = None):
@@ -396,12 +400,16 @@ def get_host_detail_by_template(bk_obj_id, template_info_list: list, bk_biz_id: 
         host_info_result = batch_request(
             call_func, dict(bk_set_template_ids=template_ids, bk_biz_id=bk_biz_id, fields=fields)
         )
-    biz_info = fetch_biz_info({"condition": {"bk_biz_id": bk_biz_id}})
-    cloud_id_name_map = models.Cloud.cloud_id_name_map()
+    biz_info = fetch_biz_info([bk_biz_id])
+    cloud_id_name_map = models.Cloud.cloud_id_name_map(get_cache=True)
+
+    if not biz_info[bk_biz_id]:
+        logger.warning("[get_host_detail_by_template] can not find biz_info -> %s", bk_biz_id)
+
     for host in host_info_result:
         host["bk_biz_id"] = bk_biz_id
-        host["bk_biz_name"] = host["bk_biz_name"] = biz_info[bk_biz_id]["bk_biz_name"]
-        host["bk_cloud_name"] = cloud_id_name_map.get(host["bk_cloud_id"])
+        host["bk_biz_name"] = host["bk_biz_name"] = biz_info[bk_biz_id].get("bk_biz_name")
+        host["bk_cloud_name"] = cloud_id_name_map.get(str(host["bk_cloud_id"]))
 
     return host_info_result
 
@@ -437,6 +445,7 @@ def get_service_instances_by_template(bk_obj_id, template_info_list: list, bk_bi
     return service_instances
 
 
+@SetupObserve(counter=metrics.app_common_method_requests_total, get_labels_func=get_call_resource_labels_func)
 def get_host_detail(host_info_list: list, bk_biz_id: int = None):
     """
     获取主机详情
@@ -524,23 +533,23 @@ def get_host_detail(host_info_list: list, bk_biz_id: int = None):
         #   3. 综上所述，提前返回可以减少无效执行逻辑及网络IO
         return []
 
-    hosts = list_biz_hosts(bk_biz_id, cond, "list_hosts_without_biz")
+    hosts = list_biz_hosts(bk_biz_id, cond, "list_hosts_without_biz", source="get_host_detail:list_hosts_without_biz")
     bk_host_ids = []
     bk_cloud_ids = []
     for host in hosts:
         bk_host_ids.append(host["bk_host_id"])
         bk_cloud_ids.append(host["bk_cloud_id"])
 
-    host_relations = find_host_biz_relations(list(set(bk_host_ids)))
+    host_relations = find_host_biz_relations(list(set(bk_host_ids)), source="get_host_detail")
     host_biz_map = {}
     for host in host_relations:
         host_biz_map[host["bk_host_id"]] = host["bk_biz_id"]
 
-    cloud_id_name_map = models.Cloud.cloud_id_name_map()
+    cloud_id_name_map = models.Cloud.cloud_id_name_map(get_cache=True)
 
     # 需要将资源池移除
-    all_biz_id = list(set(host_biz_map.values()) - {settings.BK_CMDB_RESOURCE_POOL_BIZ_ID})
-    all_biz_info = fetch_biz_info({"condition": {"bk_biz_id": {"$in": all_biz_id}}})
+    all_biz_ids = list(set(host_biz_map.values()) - {settings.BK_CMDB_RESOURCE_POOL_BIZ_ID})
+    all_biz_info = fetch_biz_info(all_biz_ids)
 
     host_key_dict = {}
     host_id_dict = {}
@@ -551,8 +560,11 @@ def get_host_detail(host_info_list: list, bk_biz_id: int = None):
             if _host["bk_biz_id"] != settings.BK_CMDB_RESOURCE_POOL_BIZ_ID
             else "资源池"
         )
+        if not _host["bk_biz_name"]:
+            logger.warning("[get_host_detail] can not find biz_info -> %s", _host["bk_biz_id"])
+
         _host["bk_cloud_name"] = (
-            cloud_id_name_map.get(_host["bk_cloud_id"], "")
+            cloud_id_name_map.get(str(_host["bk_cloud_id"]), "")
             if _host["bk_cloud_id"] != constants.DEFAULT_CLOUD
             else "直连区域"
         )
@@ -640,18 +652,20 @@ def get_host_relation(bk_biz_id, nodes):
     data = []
     hosts = get_host_by_inst(bk_biz_id, nodes)
 
-    host_biz_relations = find_host_biz_relations([_host["bk_host_id"] for _host in hosts])
+    host_biz_relations = find_host_biz_relations([_host["bk_host_id"] for _host in hosts], source="get_host_relation")
 
     relations = defaultdict(lambda: defaultdict(list))
     for item in host_biz_relations:
         relations[item["bk_host_id"]]["bk_module_ids"].append(item["bk_module_id"])
         relations[item["bk_host_id"]]["bk_set_ids"].append(item["bk_set_id"])
 
-    biz_info = fetch_biz_info({"condition": {"bk_biz_id": bk_biz_id}})
+    biz_info = fetch_biz_info([bk_biz_id])
+    if not biz_info[bk_biz_id]:
+        logger.warning("[set_template_scope_nodes] can not find biz_info -> %s", bk_biz_id)
 
     for host in hosts:
         host["bk_biz_id"] = bk_biz_id
-        host["bk_biz_name"] = biz_info[bk_biz_id]["bk_biz_name"]
+        host["bk_biz_name"] = biz_info[bk_biz_id].get("bk_biz_name", "")
         host["module"] = relations[host["bk_host_id"]]["bk_module_ids"]
         host["set"] = relations[host["bk_host_id"]]["bk_set_ids"]
         data.append(host)
@@ -697,8 +711,28 @@ def support_multi_biz(get_instances_by_scope_func):
     return wrapper
 
 
+def get_scope_labels_func(
+    wrapped: typing.Callable,
+    instance: typing.Any,
+    args: typing.Tuple[typing.Any],
+    kwargs: typing.Dict[str, typing.Any],
+) -> typing.Dict[str, str]:
+
+    if "scope" in kwargs:
+        scope = kwargs["scope"]
+    else:
+        scope = args[0]
+
+    return {
+        "object_type": scope["object_type"],
+        "node_type": scope["node_type"],
+        "source": get_call_resource_labels_func(wrapped, instance, args, kwargs)["source"],
+    }
+
+
 @support_multi_biz
-@func_cache_decorator(cache_time=SUBSCRIPTION_SCOPE_CACHE_TIME)
+@SetupObserve(histogram=metrics.app_task_get_instances_by_scope_duration_seconds, get_labels_func=get_scope_labels_func)
+@FuncCacheDecorator(cache_time=SUBSCRIPTION_SCOPE_CACHE_TIME)
 def get_instances_by_scope(scope: Dict[str, Union[Dict, int, Any]]) -> Dict[str, Dict[str, Union[Dict, Any]]]:
     """
     获取范围内的所有主机
@@ -762,7 +796,12 @@ def get_instances_by_scope(scope: Dict[str, Union[Dict, int, Any]]) -> Dict[str,
     # 按照实例查询
     elif scope["node_type"] == models.Subscription.NodeType.INSTANCE:
         if scope["object_type"] == models.Subscription.ObjectType.HOST:
-            instances.extend([{"host": inst} for inst in get_host_detail(nodes, bk_biz_id=bk_biz_id)])
+            instances.extend(
+                [
+                    {"host": inst}
+                    for inst in get_host_detail(nodes, bk_biz_id=bk_biz_id, source="get_instances_by_scope")
+                ]
+            )
         else:
             service_instance_ids = [int(node["id"]) for node in nodes]
             instances.extend(
@@ -863,7 +902,9 @@ def add_host_info_to_instances(bk_biz_id: int, scope: Dict, instances: Dict):
 
     host_dict = {
         host_info["bk_host_id"]: host_info
-        for host_info in get_host_detail([instance["service"] for instance in instances], bk_biz_id=bk_biz_id)
+        for host_info in get_host_detail(
+            [instance["service"] for instance in instances], bk_biz_id=bk_biz_id, source="add_host_info_to_instances"
+        )
     }
     for instance in instances:
         instance["host"] = host_dict[instance["service"]["bk_host_id"]]
@@ -1002,6 +1043,7 @@ def get_plugin_path(plugin_name: str, target_host: models.Host, agent_config: Di
     return plugin_path
 
 
+@FuncCacheDecorator(cache_time=5 * constants.TimeUnit.MINUTE)
 def get_plugin_common_constants(plugin_name: str) -> Dict:
     """
     获取插件配置公共常量
@@ -1048,10 +1090,7 @@ def get_all_subscription_steps_context(
     plugin_path = get_plugin_path(plugin_name, target_host, agent_config)
 
     # 将 step.params 中 context 提取到第一层，提供给模板渲染
-    step_params = policy_step_adapter.get_matching_step_params(
-        target_host.os_type.lower(),
-        target_host.cpu_arch
-    )
+    step_params = policy_step_adapter.get_matching_step_params(target_host.os_type.lower(), target_host.cpu_arch)
 
     context.update(step_params.get("context", {}))
     context.update(all_step_data[subscription_step.step_id])
@@ -1070,7 +1109,7 @@ def get_all_subscription_steps_context(
                 "login_ip": target_host.login_ip,
             },
             # 获取插件配置公共常量
-            "constants": get_plugin_common_constants(plugin_name),
+            "constants": get_plugin_common_constants(plugin_name, get_cache=True),
         },
     )
     # 深拷贝一份，避免原数据后续被污染
@@ -1137,6 +1176,7 @@ def render_config_files_by_config_templates(
     process_status_info: Dict[str, Any],
     context: Dict,
     package_obj: models.Packages,
+    source: typing.Optional[str] = None,
 ):
     """
     根据订阅配置及步骤信息渲染配置模板
@@ -1144,6 +1184,7 @@ def render_config_files_by_config_templates(
     :param list[PluginConfigTemplate] config_templates: 配置文件模板
     :param HostStatus process_status_info: 主机进程信息
     :param dict context: 上下文信息
+    :param source: 调用来源
     :return: example: [
         {
             "instance_id": config.id,
@@ -1160,16 +1201,13 @@ def render_config_files_by_config_templates(
             content = template.render(context)
         except Exception as e:
             raise ConfigRenderFailed({"name": template.name, "msg": e})
+
         # 计算配置文件的MD5
         md5 = hashlib.md5()
         md5.update(content.encode())
         md5sum = md5.hexdigest()
 
-        rendered_config = {
-            "md5": md5sum,
-            "content": content,
-            "file_path": template.file_path,
-        }
+        rendered_config = {"md5": md5sum, "content": content, "file_path": template.file_path}
         if package_obj and package_obj.plugin_desc.is_official and not template.is_main:
             # 官方插件的部署方式为单实例多配置，在配置模板的名称上追加 group id 即可对配置文件做唯一标识
             filename, extension = os.path.splitext(template.name)
@@ -1180,7 +1218,23 @@ def render_config_files_by_config_templates(
             # 非官方插件、官方插件中的主配置文件，无需追加 group id
             # 适配模板名可渲染的形式
             rendered_config["name"] = nested_render_data(template.name, context)
+
+        common_labels = {
+            "plugin_name": template.plugin_name,
+            "name": template.name,
+            "os": template.os,
+            "cpu_arch": template.cpu_arch,
+            "source": source or "default",
+        }
+
         if rendered_config["name"]:
+            if md5sum == template.md5:
+                metrics.app_plugin_render_configs_total.labels(**common_labels, type="equal_to_template").inc()
+                logger.warning(
+                    "[render_config_files_by_config_templates] render config equal to template -> %s", template
+                )
+            else:
+                metrics.app_plugin_render_configs_total.labels(**common_labels, type="default").inc()
             rendered_configs.append(rendered_config)
     return rendered_configs
 

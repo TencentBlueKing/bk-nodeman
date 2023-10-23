@@ -30,6 +30,7 @@ from apps.core.gray.tools import GrayTools
 from apps.node_man import constants, models
 from apps.node_man import tools as node_man_tools
 from apps.node_man.handlers.cmdb import CmdbHandler
+from apps.prometheus import metrics
 from apps.utils import translation
 from pipeline import builder
 from pipeline.builder import Data, NodeOutput, ServiceActivity, Var
@@ -70,13 +71,28 @@ def build_instances_task(
     for step in subscription.steps:
         step_id_manager_map[step.step_id] = StepFactory.get_step_manager(step)
     step_map = {step.step_id: step for step in subscription.steps}
-    step_id_record_step_map = {
-        step_id: {"id": step_id, "type": step_map[step_id].type, "pipeline_id": "", "action": action, "extra_info": {}}
-        for step_id, action in step_actions.items()
-    }
+
+    step_index = 0
+    step_id_record_step_map = {}
+    for step_id in step_id_manager_map:
+        if step_id not in step_actions:
+            continue
+        step_id_record_step_map[step_id] = {
+            "id": step_id,
+            "type": step_map[step_id].type,
+            "index": step_index,
+            "pipeline_id": "",
+            "action": step_actions[step_id],
+            "extra_info": {},
+        }
+        step_index += 1
+
+    # 将 step_actions 信息注入 meta
+    inject_meta: Dict[str, Any] = {**meta, "STEPS": list(step_id_record_step_map.values())}
 
     # 对流程步骤进行编排
     current_activities = []
+    subscription_instance_ids = [sub_inst.id for sub_inst in subscription_instances]
     for step_id in step_id_manager_map:
         if step_id not in step_actions:
             continue
@@ -88,7 +104,7 @@ def build_instances_task(
         activities, __ = action_manager.generate_activities(
             subscription_instances,
             global_pipeline_data=global_pipeline_data,
-            meta=meta,
+            meta=inject_meta,
             current_activities=current_activities,
         )
 
@@ -102,8 +118,27 @@ def build_instances_task(
 
         current_activities.extend(activities)
 
+        # 在 Update 之前写指标，便于后续统计因死锁等情况引发的任务丢失率
+        metrics.app_task_engine_sub_inst_step_statuses_total.labels(
+            step_id=step_id,
+            step_type=step_id_record_step_map[step_id]["type"],
+            step_num=len(inject_meta["STEPS"]),
+            step_index=step_id_record_step_map[step_id]["index"],
+            gse_version=meta.get("GSE_VERSION") or "unknown",
+            action=step_id_record_step_map[step_id]["action"],
+            code="CreatePipeline",
+            status=constants.JobStatusType.PENDING,
+        ).inc(amount=len(subscription_instance_ids))
+
     mark_acts_tail_and_head(current_activities)
-    subscription_instance_ids = [sub_inst.id for sub_inst in subscription_instances]
+
+    logger.info(
+        "[sub_lifecycle<sub(%s), task(%s)>][build_instances_task] inject_meta -> %s, step_id_record_step_map -> %s",
+        subscription.id,
+        subscription_instances[0].task_id,
+        inject_meta,
+        step_id_record_step_map,
+    )
 
     # 每个原子引用上个原子成功输出的 succeeded_subscription_instance_ids
     for index, act in enumerate(current_activities):
@@ -227,24 +262,45 @@ def create_task_transaction(create_task_func):
 
     @wraps(create_task_func)
     def wrapper(subscription: models.Subscription, subscription_task: models.SubscriptionTask, *args, **kwargs):
+        logger.info(
+            "[sub_lifecycle<sub(%s), task(%s)>][create_task_transaction] enter, sub -> %s, task -> %s",
+            subscription.id,
+            subscription_task.id,
+            subscription,
+            subscription_task,
+        )
         try:
             func_return = create_task_func(subscription, subscription_task, *args, **kwargs)
         except Exception as err:
-            logger.exception(err)
+            logger.exception(
+                "[sub_lifecycle<sub(%s), task(%s)>][create_task_transaction] failed",
+                subscription.id,
+                subscription_task.id,
+            )
             if subscription_task.is_auto_trigger or kwargs.get("preview_only"):
                 # 自动触发的发生异常或者仅预览的情况，记录日志后直接删除此任务即可
-                models.SubscriptionTask.objects.filter(id=subscription_task.id).delete()
+                if subscription_task.id:
+                    models.SubscriptionTask.objects.filter(id=subscription_task.id).delete()
+                    models.SubscriptionInstanceRecord.objects.filter(task_id=subscription_task.id).delete()
                 # 抛出异常用于前端展示或事务回滚
                 raise err
             # 非自动触发的，记录错误信息
             subscription_task.err_msg = str(err)
             subscription_task.save(update_fields=["err_msg"])
+            models.SubscriptionInstanceRecord.objects.filter(task_id=subscription_task.id).delete()
+
         else:
             if kwargs.get("preview_only"):
                 # 仅预览，不执行动作
                 return func_return
+
             subscription_task.is_ready = True
-            logger.info(f"task is ready: sub_task -> {subscription_task}, actions: {subscription_task.actions}")
+            logger.info(
+                "[sub_lifecycle<sub(%s), task(%s)>][create_task_transaction] task ready, actions -> %s",
+                subscription.id,
+                subscription_task.id,
+                subscription_task.actions,
+            )
             subscription_task.save(update_fields=["is_ready"])
             # 创建好实例后立刻执行
             run_subscription_task(subscription_task)
@@ -279,7 +335,12 @@ def create_task(
     """
     # 兜底注入 Meta，此处注入是覆盖面最全的（包含历史被移除实例）
     GrayTools().inject_meta_to_instances(instances)
-    logger.info(f"[create task] inject meta to instances[num={len(instances)}] successfully")
+    logger.info(
+        "[sub_lifecycle<sub(%s), task(%s)>][create_task] inject meta to instances[num=%s] successfully",
+        subscription.id,
+        subscription_task.id,
+        len(instances),
+    )
 
     topo_order = CmdbHandler.get_topo_order()
     batch_size = models.GlobalSettings.get_config("BATCH_SIZE", default=100)
@@ -401,11 +462,15 @@ def create_task(
         )
 
     if not to_be_created_records_map:
-        logger.warning(f"[create task] skipped: no instances to execute, subscription_task -> {subscription_task}")
         if subscription_task.is_auto_trigger:
             # 如果是自动触发，且没有任何实例，那么直接抛出异常，回滚数据库
-            logger.info("[create task] auto trigger task will rollback")
             raise SubscriptionInstanceEmpty()
+        else:
+            logger.warning(
+                "[sub_lifecycle<sub(%s), task(%s)>][create_task] no instances to execute",
+                subscription.id,
+                subscription_task.id,
+            )
 
         # 非自动触发的直接退出即可
         return {
@@ -414,16 +479,23 @@ def create_task(
         }
 
     # 将最新属性置为False并批量创建订阅实例
+    # TODO 偶发死锁
     models.SubscriptionInstanceRecord.objects.filter(
         subscription_id=subscription.id, instance_id__in=instance_id_list
     ).update(is_latest=False)
+    # TODO 偶发死锁
     models.SubscriptionInstanceRecord.objects.bulk_create(to_be_created_records_map.values(), batch_size=batch_size)
 
     # 批量创建订阅实例，由于bulk_create返回的objs没有主键，此处需要重新查出
+    # TODO 这里是不是可以直接通过 task_id 直接查出来，避免 instance_id 过多导致查询退化？
     created_instance_records = list(
         models.SubscriptionInstanceRecord.objects.filter(
             subscription_id=subscription.id, instance_id__in=instance_id_list, is_latest=True
         )
+    )
+
+    metrics.app_task_engine_sub_inst_statuses_total.labels(status=constants.JobStatusType.PENDING).inc(
+        amount=len(created_instance_records)
     )
 
     task_host_limit = models.GlobalSettings.get_config(
@@ -433,10 +505,14 @@ def create_task(
     # 保存pipeline id
     subscription_task.pipeline_id = pipeline.id
     subscription_task.save(update_fields=["actions", "pipeline_id"])
+
     logger.info(
-        f"[create task] succeed: subscription -> {subscription}, "
-        f"subscription_task -> {subscription_task}, instance_actions -> {instance_actions}"
+        "[sub_lifecycle<sub(%s), task(%s)>][create_task] instance_actions -> %s",
+        subscription.id,
+        subscription_task.id,
+        instance_actions,
     )
+
     return {
         "to_be_created_records_map": to_be_created_records_map,
         "error_hosts": error_hosts,
@@ -448,10 +524,22 @@ def run_subscription_task_and_create_instance_transaction(func):
 
     @wraps(func)
     def wrapper(subscription: models.Subscription, subscription_task: models.SubscriptionTask, *args, **kwargs):
+        logger.info(
+            "[sub_lifecycle<sub(%s), task(%s)>][run_subscription_task_and_create_instance_transaction] "
+            "enter, sub -> %s, task -> %s",
+            subscription.id,
+            subscription_task.id,
+            subscription,
+            subscription_task,
+        )
         try:
             func_result = func(subscription, subscription_task, *args, **kwargs)
         except Exception as err:
-            logger.exception(err)
+            logger.exception(
+                "[sub_lifecycle<sub(%s), task(%s)>][run_subscription_task_and_create_instance_transaction] failed",
+                subscription.id,
+                subscription_task.id,
+            )
             if subscription_task.is_auto_trigger or kwargs.get("preview_only"):
                 # 自动触发的发生异常或者仅预览的情况
                 # 记录日志后直接删除此任务即可
@@ -504,15 +592,27 @@ def run_subscription_task_and_create_instance(
         scope["bk_biz_id"] = subscription.bk_biz_id
 
     # 获取订阅范围内全部实例
-    instances = tools.get_instances_by_scope(scope)
-    logger.info(f"run_subscription_task[{subscription_task.id}] instances_num={len(instances)}")
+    instances = tools.get_instances_by_scope(scope, source="run_subscription_task_and_create_instance")
+    logger.info(
+        "[sub_lifecycle<sub(%s), task(%s)>][run_subscription_task_and_create_instance] get_instances_by_scope -> %s",
+        subscription.id,
+        subscription_task.id,
+        len(instances),
+    )
+
     # 创建步骤管理器实例
     step_managers = {step.step_id: StepFactory.get_step_manager(step) for step in subscription.steps}
     # 删除无用subscription缓存，否则执行延时任务时传入可能引起pickle异常
     if hasattr(subscription, "_steps"):
         delattr(subscription, "_steps")
 
-    logger.info(f"run_subscription_task[{subscription_task.id}] step_managers={step_managers}")
+    logger.info(
+        "[sub_lifecycle<sub(%s), task(%s)>][run_subscription_task_and_create_instance] step_managers -> %s",
+        subscription.id,
+        subscription_task.id,
+        step_managers,
+    )
+
     if actions is not None:
         # 指定了动作，不需要计算，直接执行即可
         instance_actions = {instance_id: actions for instance_id in instances}
@@ -522,7 +622,11 @@ def run_subscription_task_and_create_instance(
     # 预注入 Meta，用于变更计算（仅覆盖当前订阅范围，移除场景通过 create_task 兜底注入）
     GrayTools().inject_meta_to_instances(instances)
     logger.info(
-        f"run_subscription_task[{subscription_task.id}] pre-inject meta to instances[num={len(instances)}] successfully"
+        "[sub_lifecycle<sub(%s), task(%s)>][run_subscription_task_and_create_instance] "
+        "pre-inject meta to instances[num=%s] successfully",
+        subscription.id,
+        subscription_task.id,
+        len(instances),
     )
 
     # 按步骤顺序计算实例变更所需的动作
@@ -538,6 +642,7 @@ def run_subscription_task_and_create_instance(
         instance_id_action_map: Dict[str, str] = migrate_results["instance_actions"]
         for instance_id, action in instance_id_action_map.items():
             instance_actions[instance_id][step.step_id] = action
+            metrics.app_task_instances_migrate_actions_total.labels(step_id=step.step_id, action=action).inc()
 
         # 归类变更原因
         # eg:
@@ -550,15 +655,20 @@ def run_subscription_task_and_create_instance(
         #     }
         #   }
         # }
-        instance_id_action_reason_map: Dict[str, str] = migrate_results["migrate_reasons"]
+        instance_id_action_reason_map: Dict[str, Dict] = migrate_results["migrate_reasons"]
         for instance_id, migrate_reason in instance_id_action_reason_map.items():
             instance_migrate_reasons[instance_id][step.step_id] = migrate_reason
+            metrics.app_task_instances_migrate_reasons_total.labels(
+                step_id=step.step_id, reason=migrate_reason["migrate_type"]
+            ).inc()
 
     logger.info(
-        f"make_instances_migrate_actions: \n"
-        f"subscription_task -> {subscription_task} \n"
-        f"instance_actions -> {instance_actions} \n"
-        f"migrate_reasons -> {instance_migrate_reasons}"
+        "[sub_lifecycle<sub(%s), task(%s)>][run_subscription_task_and_create_instance] "
+        "make_instances_migrate_actions: instance_actions -> %s, migrate_reasons -> %s",
+        subscription.id,
+        subscription_task.id,
+        instance_actions,
+        instance_migrate_reasons,
     )
 
     # 查询被从范围内移除的实例
@@ -574,24 +684,42 @@ def run_subscription_task_and_create_instance(
                 service_instance_id = tools.parse_node_id(instance_id)["id"]
                 deleted_id_not_in_scope.append({"id": service_instance_id})
 
+        logger.info(
+            "[sub_lifecycle<sub(%s), task(%s)>][run_subscription_task_and_create_instance] "
+            "try to find deleted instances -> %s",
+            subscription.id,
+            subscription_task.id,
+            deleted_id_not_in_scope,
+        )
         deleted_instance_info = tools.get_instances_by_scope(
             {
                 "bk_biz_id": subscription.bk_biz_id,
                 "object_type": subscription.object_type,
                 "node_type": models.Subscription.NodeType.INSTANCE,
                 "nodes": deleted_id_not_in_scope,
-            }
+            },
+            source="find_deleted_instances",
         )
 
         # 如果被删掉的实例在 CMDB 找不到，那么就使用最近一次的 InstanceRecord 的快照数据
         not_exist_instance_id = set(instance_not_in_scope) - set(deleted_instance_info)
-
         if not_exist_instance_id:
-            records = models.SubscriptionInstanceRecord.objects.filter(
-                subscription_id=subscription.id, instance_id__in=not_exist_instance_id, is_latest=True
+            records = list(
+                models.SubscriptionInstanceRecord.objects.filter(
+                    subscription_id=subscription.id, instance_id__in=not_exist_instance_id, is_latest=True
+                )
             )
             for record in records:
                 deleted_instance_info[record.instance_id] = record.instance_info
+
+            logger.info(
+                "[sub_lifecycle<sub(%s), task(%s)>][run_subscription_task_and_create_instance] "
+                "deleted instances not exist in cc, find from db -> %s, find num -> %s",
+                subscription.id,
+                subscription_task.id,
+                not_exist_instance_id,
+                len(records),
+            )
 
         instances.update(deleted_instance_info)
 
@@ -611,7 +739,11 @@ def run_subscription_task_and_create_instance(
 @app.task(queue="backend", ignore_result=True)
 @translation.RespectsLanguage()
 def run_subscription_task(subscription_task: models.SubscriptionTask):
-    logger.info(f"debug update_subscription enter run_subscription_task[{subscription_task.id}]")
+    logger.info(
+        "[sub_lifecycle<sub(%s), task(%s)>][run_subscription_task] enter",
+        subscription_task.subscription_id,
+        subscription_task.id,
+    )
     pipeline_ids = {}
     if subscription_task.pipeline_id:
         pipeline_ids[subscription_task.pipeline_id] = 0
@@ -628,7 +760,22 @@ def run_subscription_task(subscription_task: models.SubscriptionTask):
     # 排序
     ordered_pipelines.sort(key=lambda item: item[0])
     for index, pipeline in ordered_pipelines:
-        pipeline.run(index % 255)
+        try:
+            pipeline.run(index % 255)
+        except Exception:
+            logger.exception(
+                "[sub_lifecycle<sub(%s), task(%s)>][run_subscription_task] failed to run pipeline -> %s",
+                subscription_task.subscription_id,
+                subscription_task.id,
+                pipeline.id,
+            )
+        else:
+            logger.info(
+                "[sub_lifecycle<sub(%s), task(%s)>][run_subscription_task] run pipeline -> %s",
+                subscription_task.subscription_id,
+                subscription_task.id,
+                pipeline.id,
+            )
 
 
 @app.task(queue="backend", ignore_result=True)

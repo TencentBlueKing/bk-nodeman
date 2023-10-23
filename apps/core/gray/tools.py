@@ -12,16 +12,16 @@ import typing
 
 from django.utils.translation import ugettext_lazy as _
 
+from apps.core.concurrent.cache import FuncCacheDecorator
 from apps.exceptions import ApiError
 from apps.node_man import constants as node_man_constants
 from apps.node_man import models as node_man_models
-from apps.utils.cache import func_cache_decorator
 from env.constants import GseVersion
 
 
 class GrayTools:
     @classmethod
-    @func_cache_decorator(cache_time=20 * node_man_constants.TimeUnit.SECOND)
+    @FuncCacheDecorator(cache_time=20 * node_man_constants.TimeUnit.SECOND)
     def get_or_create_gse2_gray_scope_list(cls) -> typing.List[int]:
         """
         获取 GSE2.0 灰度列表
