@@ -319,6 +319,7 @@ class PluginHandler(APIModel):
 
         if params.get("exclude_hosts") is not None:
             # 跨页全选
+
             need_query, host_id_queryset = HostQuerySqlHelper.handle_plugin_conditions(
                 params=params, plugin_names=tools.PluginV2Tools.fetch_head_plugins()
             )
