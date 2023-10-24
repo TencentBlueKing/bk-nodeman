@@ -687,8 +687,7 @@ goto :EOF
     set TEMP_PKG_NAME=%PKG_NAME:~0,-4%
     cd %TMP_DIR% && DEL /F /S /Q %PKG_NAME% %TEMP_PKG_NAME%.tar gse_agent.conf.%LAN_ETH_IP% 1>nul 2>&1
     for %%p in (%PKG_NAME%) do (
-        for /F %%i in ('%TMP_DIR%\curl.exe -g --connect-timeout 5 -o %TMP_DIR%/%%p --progress-bar -sL -w "%%{http_code}" %DOWNLOAD_URL%/agent/windows/%CPU_ARCH%/%%p') do (set http_status=%%i)
-    )
+        for /F %%i in ('%TMP_DIR%\curl.exe --noproxy "*" -g --connect-timeout 5 -o %TMP_DIR%/%%p --progress-bar -sL -w "%%{http_code}" %DOWNLOAD_URL%/agent/windows/%CPU_ARCH%/%%p') do (set http_status=%%i)
         if %http_status% EQU 200 (
             call :print INFO download_pkg - "gse_agent package %PKG_NAME% download succeeded, http_status:%http_status%"
             call :print INFO report_cpu_arch - "%CPU_ARCH%"
@@ -698,6 +697,7 @@ goto :EOF
             call :multi_report_step_status
             exit /b 1
         )
+    )
 goto :EOF
 
 :check_pkgtool
@@ -763,15 +763,14 @@ goto :EOF
 goto :EOF
 
 :check_download_url
-    for /f "delims=" %%i in ('%TMP_DIR%\curl.exe -g --silent %DOWNLOAD_URL%/agent/windows/%CPU_ARCH%/%PKG_NAME% -Iw "%%{http_code}"') do (set http_status=%%i)
-        if "%http_status%" == "200" (
-            call :print INFO check_env - "check resource %DOWNLOAD_URL%/agent/windows/%CPU_ARCH%/%PKG_NAME% url succeed"
-            call :multi_report_step_status
-        ) else (
-            call :print FAIL check_env FAILED "check resource %DOWNLOAD_URL%/agent/windows/%CPU_ARCH%/%PKG_NAME% url failed, http_status:%http_status%"
-            call :multi_report_step_status
-            exit /b 1
-        )
+    for /f "delims=" %%i in ('%TMP_DIR%\curl.exe --noproxy "*" -g --silent %DOWNLOAD_URL%/agent/windows/%CPU_ARCH%/%PKG_NAME% -Iw "%%{http_code}"') do (set http_status=%%i)
+    if "%http_status%" == "200" (
+        call :print INFO check_env - "check resource %DOWNLOAD_URL%/agent/windows/%CPU_ARCH%/%PKG_NAME% url succeed"
+        call :multi_report_step_status
+    ) else (
+        call :print FAIL check_env FAILED "check resource %DOWNLOAD_URL%/agent/windows/%CPU_ARCH%/%PKG_NAME% url failed, http_status:%http_status%"
+        call :multi_report_step_status
+        exit /b 1
     )
 goto :EOF
 
