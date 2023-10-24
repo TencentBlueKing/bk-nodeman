@@ -44,12 +44,12 @@ def monitor_report_config():
             n_conf_index = sys.argv.index("-n")
         except ValueError as e:
             # 没有 get 到，说明是单 workers 场景
-            instance_tmpl = "celery@%h-%i"
+            instance_tmpl = "celery@%h-%i-%P"
             sys.stdout.write("[!]can't found -n option in command: %s, use default -> celery@xxx: %s\n" % (boot_cmd, e))
         else:
             # %i 区分单 workers 多进程的情况
             # -n 区分单主机多 workers 的情况
-            instance_tmpl = sys.argv[n_conf_index + 1] + "-%i"
+            instance_tmpl = sys.argv[n_conf_index + 1] + "-%i-%P"
 
         from bk_monitor_report.contrib.celery import MonitorReportStep  # noqa
 
@@ -114,9 +114,9 @@ def monitor_report_config():
             proc_type = "web"
             instance_tmpl = str(match_proc_name) + "@%h-%P"
         else:
-            # 单进程运行，无需 pid
+            # 单进程运行
             proc_type = "sync"
-            instance_tmpl = str(match_proc_name) + "@%h"
+            instance_tmpl = str(match_proc_name) + "@%h-%P"
 
         reporter = MonitorReporter(
             data_id=env.BKAPP_MONITOR_REPORTER_DATA_ID,  # 监控 Data ID
