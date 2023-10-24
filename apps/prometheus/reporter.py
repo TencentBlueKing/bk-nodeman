@@ -37,13 +37,14 @@ class MonitorReporter(Reporter):
         self.instance_tmpl = instance_tmpl
 
     def generate_addition_labels(self) -> Dict[str, str]:
+        extra_keys: Dict[str, str] = {"P": str(os.getpid())}
         addition_labels: Dict[str, str] = {"hostname": gethostname()}
         if self.proc_type == "celery":
             # 进程可用变量：https://docs.celeryq.dev/en/stable/userguide/workers.html
             # 启动参数：https://docs.celeryq.dev/en/stable/reference/cli.html#cmdoption-celery-worker-n
-            addition_labels["nodeman_instance"] = host_format(self.instance_tmpl)
+            addition_labels["nodeman_instance"] = host_format(self.instance_tmpl, **extra_keys)
         else:
-            addition_labels["nodeman_instance"] = host_format(self.instance_tmpl, P=str(os.getpid()))
+            addition_labels["nodeman_instance"] = host_format(self.instance_tmpl, **extra_keys)
         return addition_labels
 
     def generate_chunked_report_data(self):
