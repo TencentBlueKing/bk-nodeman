@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import math
 from typing import Any, Dict, List
 
 from django.conf import settings
@@ -170,12 +171,14 @@ class InstallOtherAgentService(AgentBaseService):
         job_result: Dict[str, Any] = data.get_one_of_outputs("job_result")
 
         pagesize: int = 100
-        params_list: List[Dict[str, int]] = [
-            {
-                "params": {"page": page, "pagesize": pagesize, "pk": job_result["job_id"]},
-            }
-            for page in range(1, host_count + 1, pagesize)
-        ]
+        params_list: List[Dict[str, int]] = []
+        for page in range(1, math.ceil(host_count / pagesize) + 1):
+            params_list.append(
+                {
+                    "params": {"page": page, "pagesize": pagesize, "pk": job_result["job_id"]},
+                }
+            )
+
         # TODO: 由于apigw接口与esb接口路径存在不一致情况暂不使用接口直接使用JobHandler
         # task_results = request_multi_thread(NodeApi.job_details, params_list, lambda x: x["list"])
         task_results = request_multi_thread(JobHandler(job_result["job_id"]).retrieve, params_list, lambda x: x["list"])
