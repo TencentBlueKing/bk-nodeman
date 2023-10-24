@@ -229,6 +229,7 @@ class CommonData:
     host_id_obj_map: Dict[int, models.Host]
     sub_inst_id__host_id_map: Dict[int, int]
     host_id__sub_inst_id_map: Dict[int, int]
+    sub_inst_id__sub_inst_obj_map: Dict[int, models.SubscriptionInstanceRecord]
     ap_id_obj_map: Dict[int, models.AccessPoint]
     gse_api_helper: GseApiBaseHelper
     subscription: models.Subscription
@@ -360,6 +361,7 @@ class BaseService(Service, LogMixin, DBHelperMixin):
         subscription_instance_ids = set()
         sub_inst_id__host_id_map = {}
         host_id__sub_inst_id_map = {}
+        sub_inst_id__sub_inst_obj_map = {}
         for subscription_instance in subscription_instances:
             subscription_instance_ids.add(subscription_instance.id)
             # 兼容新安装Agent主机无bk_host_id的场景
@@ -368,6 +370,7 @@ class BaseService(Service, LogMixin, DBHelperMixin):
                 bk_host_ids.add(bk_host_id)
                 sub_inst_id__host_id_map[subscription_instance.id] = bk_host_id
                 host_id__sub_inst_id_map[bk_host_id] = subscription_instance.id
+                sub_inst_id__sub_inst_obj_map[subscription_instance.id] = subscription_instance
 
         host_id_obj_map: Dict[int, models.Host] = models.Host.host_id_obj_map(bk_host_id__in=bk_host_ids)
         ap_id_obj_map = models.AccessPoint.ap_id_obj_map()
@@ -376,6 +379,7 @@ class BaseService(Service, LogMixin, DBHelperMixin):
             host_id_obj_map=host_id_obj_map,
             sub_inst_id__host_id_map=sub_inst_id__host_id_map,
             host_id__sub_inst_id_map=host_id__sub_inst_id_map,
+            sub_inst_id__sub_inst_obj_map=sub_inst_id__sub_inst_obj_map,
             ap_id_obj_map=ap_id_obj_map,
             gse_api_helper=get_gse_api_helper(gse_version=cls.get_meta(data).get("GSE_VERSION")),
             subscription=subscription,
