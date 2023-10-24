@@ -9,7 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from collections import defaultdict
-from typing import Dict, List, Set, Union
+from typing import Dict, List, Optional, Set, Union
 
 from django.utils.translation import ugettext_lazy as _
 
@@ -68,12 +68,16 @@ class GetAgentStatusService(AgentBaseService):
         # 构造 gse 请求参数
         hosts: List[Dict[str, Union[int, str]]] = []
         for host_id in host_ids_need_to_query:
+            sub_inst_id = common_data.host_id__sub_inst_id_map["host_id"]
+            sub_inst = common_data.sub_inst_id__sub_inst_obj_map[sub_inst_id]
+            bk_agent_id: Optional[str] = sub_inst.instance_info["host"].get("bk_agent_id")
+
             host_obj = common_data.host_id_obj_map[host_id]
             hosts.append(
                 {
                     "ip": host_obj.inner_ip or host_obj.inner_ipv6,
                     "bk_cloud_id": host_obj.bk_cloud_id,
-                    "bk_agent_id": host_obj.bk_agent_id,
+                    "bk_agent_id": bk_agent_id or host_obj.bk_agent_id,
                 }
             )
 
