@@ -9,7 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from typing import Dict, List, Union
+from typing import Dict, List, Union, Any, Optional
 
 from django.utils.translation import ugettext_lazy as _
 
@@ -18,21 +18,22 @@ from .base import AgentBaseService, AgentCommonData
 
 class UpgradeToAgentIDService(AgentBaseService):
     def _execute(self, data, parent_data, common_data: AgentCommonData):
-        upgrade_hosts: List[Dict[str, Union[int, str]]] = []
         cloud_ip__sub_inst_id_map: Dict[str, int] = {}
-        # 如果主机有AgentID，则调用 upgrade_to_agent_id 将基于 Host IP 的配置升级到基于 Agent-ID 的配置
-        for host_id, sub_inst_id in common_data.host_id__sub_inst_id_map.items():
-            host = common_data.host_id_obj_map[host_id]
-            upgrade_hosts.append(
-                {"ip": host.inner_ip, "bk_cloud_id": host.bk_cloud_id, "bk_agent_id": host.bk_agent_id}
-            )
+        # 如果主机有AgentID，则调用 upgrade_to_agent_id 将基于 Host IP 的配置升级到基于 Agent-ID 的配
+        upgrade_hosts: List[Dict[str, Union[int, str]]] = []
+
+        for host in common_data.host_id_obj_map.values():
+            sub_inst_id = common_data.host_id__sub_inst_id_map[host.bk_host_id]
+            sub_inst = common_data.sub_inst_id__sub_inst_obj_map[sub_inst_id]
+            bk_agent_id: Optional[str] = sub_inst.instance_info["host"].get("bk_agent_id") or host.bk_agent_id
             cloud_ip__sub_inst_id_map[f"{host.bk_cloud_id}:{host.inner_ip}"] = sub_inst_id
 
-        upgrade_hosts = [
-            {"ip": host.inner_ip, "bk_cloud_id": host.bk_cloud_id, "bk_agent_id": host.bk_agent_id}
-            for host in common_data.host_id_obj_map.values()
-            if host.bk_agent_id
-        ]
+            if bk_agent_id:
+                upgrade_hosts.append({
+                    "ip": host.inner_ip, 
+                    "bk_cloud_id": host.bk_cloud_id, 
+                    "bk_agent_id": bk_agent_id,
+                })
 
         if not upgrade_hosts:
             return True
