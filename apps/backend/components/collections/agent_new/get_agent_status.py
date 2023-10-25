@@ -9,7 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from collections import defaultdict
-from typing import Dict, List, Set, Union
+from typing import Dict, List, Set, Union, Optional
 
 from django.utils.translation import ugettext_lazy as _
 
@@ -67,15 +67,21 @@ class GetAgentStatusService(AgentBaseService):
 
         # 构造 gse 请求参数
         hosts: List[Dict[str, Union[int, str]]] = []
+        need_to_quey_host_agent_id_map: Dict[int, int] = {}
         for host_id in host_ids_need_to_query:
+            sub_inst_id = common_data.host_id__sub_inst_id_map[host_id]
+            sub_inst = common_data.sub_inst_id__sub_inst_obj_map[sub_inst_id]
             host_obj = common_data.host_id_obj_map[host_id]
-            hosts.append(
-                {
-                    "ip": host_obj.inner_ip or host_obj.inner_ipv6,
-                    "bk_cloud_id": host_obj.bk_cloud_id,
-                    "bk_agent_id": host_obj.bk_agent_id,
-                }
-            )
+
+            bk_agent_id: Optional[str] = sub_inst.instance_info["host"].get("bk_agent_id") or host_obj.bk_agent_id
+            host: Dict[str, Union[int, str]] = {
+                "ip": host_obj.inner_ip or host_obj.inner_ipv6,
+                "bk_cloud_id": host_obj.bk_cloud_id,
+                "bk_agent_id": bk_agent_id,
+            }
+            need_to_quey_host_agent_id_map[host_id] = common_data.gse_api_helper.get_agent_id(host)
+
+            hosts.append(host)
 
         agent_id__agent_state_info_map: Dict[str, Dict] = common_data.gse_api_helper.list_agent_state(hosts)
 
@@ -93,7 +99,7 @@ class GetAgentStatusService(AgentBaseService):
         }
         for host_id in host_ids_need_to_query:
             host_obj = common_data.host_id_obj_map[host_id]
-            agent_id = common_data.gse_api_helper.get_agent_id(host_obj)
+            agent_id = need_to_quey_host_agent_id_map[host_id]
             # bk_agent_alive 默认值为 None 的背景：expect_status 是可传入的，不能设定一个明确状态作为默认值，不然可能与 expect_status 一致
             # 误判为当前 Agent 状态已符合预期
             agent_state_info = agent_id__agent_state_info_map.get(agent_id, {"version": "", "bk_agent_alive": None})
