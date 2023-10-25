@@ -145,6 +145,7 @@ class PluginBaseService(BaseService, metaclass=abc.ABCMeta):
             subscription_instance_ids=common_data.subscription_instance_ids,
             sub_inst_id__host_id_map=common_data.sub_inst_id__host_id_map,
             host_id__sub_inst_id_map=common_data.host_id__sub_inst_id_map,
+            sub_inst_id__sub_inst_obj_map=common_data.sub_inst_id__sub_inst_obj_map,
             # Plugin 新增的公共数据
             process_statuses=process_statuses,
             target_host_objs=target_host_objs,
