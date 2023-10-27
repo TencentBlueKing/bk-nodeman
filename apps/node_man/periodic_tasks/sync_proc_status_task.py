@@ -21,6 +21,7 @@ from apps.core.gray.tools import GrayTools
 from apps.node_man import constants, tools
 from apps.node_man.models import Host, ProcessStatus
 from apps.node_man.periodic_tasks.utils import query_bk_biz_ids
+from apps.utils.basic import chunk_lists
 from apps.utils.periodic_task import calculate_countdown
 from common.log import logger
 
@@ -204,16 +205,21 @@ def sync_proc_status_periodic_task():
     # 若没有指定业务时，也同步资源池主机
     bk_biz_ids.append(settings.BK_CMDB_RESOURCE_POOL_BIZ_ID)
 
-    for bk_biz_id in bk_biz_ids:
-
-        host_queryset = Host.objects.filter(bk_biz_id=bk_biz_id)
+    # 对业务id进行分片
+    for bk_biz_id_list in list(chunk_lists(bk_biz_ids, constants.QUERY_PROC_STATUS_BIZ_SHARDING_SIZE)):
+        host_queryset = Host.objects.filter(bk_biz_id__in=bk_biz_id_list)
         count = host_queryset.count()
 
         if count == 0:
-            logger.info(f"{task_id} | sync_proc_status_task: bk_biz_id -> {bk_biz_id}, host_count -> {count}, skip")
+            logger.info(
+                f"{task_id} | sync_proc_status_task: bk_biz_id_list -> {bk_biz_id_list}, host_count -> {count}, skip"
+            )
             continue
 
-        logger.info(f"{task_id} | sync_proc_status_task: start to sync bk_biz_id -> {bk_biz_id}, host_count -> {count}")
+        logger.info(
+            f"{task_id} | sync_proc_status_task: start to sync bk_biz_id_list -> {bk_biz_id_list}, "
+            f"host_count -> {count}"
+        )
 
         for start in range(0, count, constants.QUERY_PROC_STATUS_HOST_LENS):
             countdown = calculate_countdown(
@@ -221,7 +227,9 @@ def sync_proc_status_periodic_task():
                 index=start / constants.QUERY_PROC_STATUS_HOST_LENS,
                 duration=constants.SYNC_PROC_STATUS_TASK_INTERVAL,
             )
-            logger.info(f"{task_id} | sync_proc_status_task: bk_biz_id -> {bk_biz_id}, sync after {countdown} seconds")
+            logger.info(
+                f"{task_id} | sync_proc_status_task: bk_biz_id_list -> {bk_biz_id_list}, sync after {countdown} seconds"
+            )
 
             # (task_id, hosts[start: start + constants.QUERY_PROC_STATUS_HOST_LENS], sync_proc_list, start)
             update_or_create_proc_status.apply_async(
