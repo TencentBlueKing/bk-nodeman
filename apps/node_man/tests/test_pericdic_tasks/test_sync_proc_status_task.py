@@ -24,7 +24,9 @@ from apps.node_man import constants
 from apps.node_man.models import Host, ProcessStatus
 from apps.node_man.periodic_tasks import sync_proc_status_task
 from apps.node_man.tests.test_pericdic_tasks.utils import MockClient
+from apps.node_man.tests.utils import create_host
 from apps.utils import concurrent
+from apps.utils.basic import chunk_lists
 from apps.utils.unittest.testcase import CustomBaseTestCase
 
 
@@ -74,3 +76,25 @@ class TestSyncProcStatus(CustomBaseTestCase):
     def test_update_or_create_proc_status_with_agent_id(self, *args, **kwargs):
         Host.objects.create(**HOST_MODEL_DATA_WITH_AGENT_ID)
         sync_proc_status_task.update_or_create_proc_status(None, Host.objects.all(), [GSE_PROCESS_NAME])
+
+    @mock.patch(
+        "apps.node_man.periodic_tasks.sync_proc_status_task.query_bk_biz_ids",
+        mock.MagicMock(return_value=list(range(2, 41))),
+    )
+    @mock.patch("apps.node_man.constants.QUERY_PROC_STATUS_BIZ_SHARDING_SIZE", 5)
+    def test_sync_proc_status_periodic_task_by_sharding(self):
+        create_host(1000)
+
+        host_queryset = Host.objects.all()
+        host_count = host_queryset.count()
+        biz_host_count = 25
+        i = 1
+        all_host_ids = Host.objects.values_list("bk_host_id", flat=True)
+        for host_id_list in list(chunk_lists(all_host_ids, biz_host_count)):
+            host_list = Host.objects.filter(bk_host_id__in=host_id_list)
+            host_list.update(bk_biz_id=i)
+            i += 1
+
+        with mock.patch("apps.node_man.periodic_tasks.sync_proc_status_task.update_or_create_proc_status") as mock_func:
+            sync_proc_status_task.sync_proc_status_periodic_task()
+            self.assertEqual(mock_func.apply_async.call_count, host_count / biz_host_count / 5)
