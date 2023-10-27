@@ -250,6 +250,15 @@ class GseApi:
         return {"bk_host_id": 1, "agent_status": "RUNNING"}
 
 
+class CcApi:
+    @staticmethod
+    def search_business(*args, **kwargs):
+        return {
+            "count": 1,
+            "info": [{"bk_biz_id": 2, "bk_biz_maintainer": "admin", "bk_biz_name": "test", "default": 0}],
+        }
+
+
 class JobApi:
     @staticmethod
     def fast_execute_script(*args, **kwargs):
@@ -677,8 +686,9 @@ def create_ap(number):
 def create_job(number, id=None, end_time=None, bk_biz_scope=None, task_id_list=None, created_by=None):
     job_types = list(chain(*list(constants.JOB_TYPE_MAP.values())))
     job_types = [
-        job_type for job_type in job_types if
-        tools.JobTools.unzip_job_type(job_type)["op_type"] in constants.OP_TYPE_TUPLE
+        job_type
+        for job_type in job_types
+        if tools.JobTools.unzip_job_type(job_type)["op_type"] in constants.OP_TYPE_TUPLE
     ]
 
     if bk_biz_scope == {} or bk_biz_scope:
