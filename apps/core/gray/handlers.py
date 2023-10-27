@@ -162,8 +162,34 @@ class GrayHandler:
 
             # 切换接入点
             update_kwargs: typing.Dict[str, typing.Any] = {"updated_at": timezone.now()}
+            partial_host_ids: typing.List[int] = [host_node["bk_host_id"] for host_node in partial_host_nodes]
+            gse_v1_ap_id_is_none_host_count: int = 0
             # 若需要更新gse_v1_ap_id使用F方式,顺序不可以变
             if rollback:
+                # 先更新gse_v1_ap_id 为None的主机更新成映射对应的v1_ap_id(需要保证映射为一对一关系)
+                gse_v1_ap_id_is_none_host_ids: typing.List[int] = list(
+                    node_man_models.Host.objects.filter(
+                        bk_biz_id__in=bk_biz_ids,
+                        bk_host_id__in=partial_host_ids,
+                        gse_v1_ap_id=None,
+                    ).values_list("bk_host_id", flat=True)
+                )
+
+                gse_v1_ap_id_is_none_host_count: int = node_man_models.Host.objects.filter(
+                    bk_host_id__in=gse_v1_ap_id_is_none_host_ids
+                ).update(ap_id=v1_ap_id)
+
+                logger.info(
+                    f"[update_host_ap_by_host_ids][rollback={rollback}] "
+                    f"gse_v1_ap_id_is_none_host_ids -> {gse_v1_ap_id_is_none_host_ids}, "
+                    f"Replacement AP ID -> {v1_ap_id}"
+                )
+
+                need_update_host_ids: typing.List[int] = list(
+                    set(partial_host_ids) - set(gse_v1_ap_id_is_none_host_ids)
+                )
+
+                # 更新gse_v1_ap_id不为None的主机
                 update_kwargs.update(
                     ap_id=F("gse_v1_ap_id"),
                     gse_v1_ap_id=None,
@@ -173,13 +199,48 @@ class GrayHandler:
                     gse_v1_ap_id=F("ap_id"),
                     ap_id=v2_ap_id,
                 )
+                need_update_host_ids: typing.List[int] = partial_host_ids
 
             update_count: int = node_man_models.Host.objects.filter(
-                bk_biz_id__in=bk_biz_ids, bk_host_id__in=[host_node["bk_host_id"] for host_node in partial_host_nodes]
+                bk_biz_id__in=bk_biz_ids, bk_host_id__in=need_update_host_ids
             ).update(**update_kwargs)
 
+            update_count: int = update_count + gse_v1_ap_id_is_none_host_count
+            if all(
+                [
+                    update_count,
+                    not is_biz_gray,
+                    rollback,
+                ]
+            ):
+                # 如果按业务回滚在上层已进行了回滚，此处不做处理
+                # 将与回滚主机关联的业务和管控区域回滚
+                rollback_host_infos: typing.List[typing.Dict[str, int]] = list(
+                    node_man_models.Host.objects.filter(bk_host_id__in=partial_host_ids)
+                    .values("bk_biz_id", "bk_cloud_id")
+                    .distinct()
+                    .order_by("bk_biz_id")
+                )
+
+                bk_biz_ids: typing.Set[int] = set()
+                bk_cloud_ids: typing.Set[int] = set()
+                for host_info in rollback_host_infos:
+                    bk_biz_ids.add(host_info["bk_biz_id"])
+                    bk_cloud_ids.add(host_info["bk_cloud_id"])
+
+                logger.info(
+                    f"[update_host_ap_by_host_ids][rollback={rollback}] "
+                    f"bk_biz_ids -> {bk_biz_ids}, bk_cloud_ids -> {bk_cloud_ids}"
+                )
+
+                cls.update_cloud_ap_id(
+                    validated_data={"bk_biz_ids": bk_biz_ids}, cloud_ids=list(bk_cloud_ids), rollback=True
+                )
+                cls.update_gray_scope_list(validated_data={"bk_biz_ids": bk_biz_ids}, rollback=True)
+
             logger.info(
-                f"[update_host_ap_by_host_ids][rollback={rollback}] Update count -> {update_count}, "
+                f"[update_host_ap_by_host_ids][rollback={rollback}] "
+                f"Update count -> {update_count}, "
                 f"expect count -> {len(partial_host_nodes)}"
             )
 
@@ -222,39 +283,45 @@ class GrayHandler:
         logger.info("[update_gray_scope_list][rollback={rollback}] flush cache")
 
     @classmethod
-    def update_cloud_ap_id(cls, validated_data: typing.Dict[str, typing.List[typing.Any]], rollback: bool = False):
+    def update_cloud_ap_id(
+        cls,
+        validated_data: typing.Dict[str, typing.List[typing.Any]],
+        cloud_ids: typing.Optional[typing.List[int]] = None,
+        rollback: bool = False,
+    ):
         gray_ap_map: typing.Dict[int, int] = cls.get_gray_ap_map()
         gray_scope_list: typing.List[int] = GrayTools.get_or_create_gse2_gray_scope_list(get_cache=False)
 
-        clouds = (
-            node_man_models.Host.objects.filter(bk_biz_id__in=validated_data["bk_biz_ids"])
-            .values("bk_cloud_id")
-            .distinct()
-            .order_by("bk_cloud_id")
+        cloud_ids: typing.List[int] = cloud_ids or list(
+            set(
+                node_man_models.Host.objects.filter(bk_biz_id__in=validated_data["bk_biz_ids"]).values_list(
+                    "bk_cloud_id", flat=True
+                )
+            )
         )
 
         ap_id_obj_map: typing.Dict[int, node_man_models.AccessPoint] = node_man_models.AccessPoint.ap_id_obj_map()
 
-        for cloud in clouds:
+        for cloud_id in cloud_ids:
             cloud_obj: typing.Optional[node_man_models.Cloud] = node_man_models.Cloud.objects.filter(
-                bk_cloud_id=cloud["bk_cloud_id"]
+                bk_cloud_id=cloud_id
             ).first()
 
             # 跳过管控区域不存在的情况
             if not cloud_obj:
                 continue
 
-            cloud_bizs = (
-                node_man_models.Host.objects.filter(bk_cloud_id=cloud["bk_cloud_id"])
-                .values("bk_biz_id")
-                .distinct()
-                .order_by("bk_biz_id")
+            cloud_bk_biz_ids: typing.List[int] = list(
+                set(node_man_models.Host.objects.filter(bk_cloud_id=cloud_id).values_list("bk_biz_id", flat=True))
             )
-            cloud_bk_biz_ids: typing.List[int] = [cloud_biz["bk_biz_id"] for cloud_biz in cloud_bizs]
 
             if ap_id_obj_map[cloud_obj.ap_id].gse_version == GseVersion.V2.value and rollback:
                 # 当管控区域覆盖的业务（cloud_bk_biz_ids）完全包含于灰度业务集（gray_scope_list）时，需要操作回滚
                 if not set(cloud_bk_biz_ids) - set(gray_scope_list):
+                    logger.info(
+                        f"update_cloud_ap_id[rollback]: bk_cloud_id -> {cloud_obj.bk_cloud_id}",
+                        f"cloud_ap_id -> {cloud_obj.ap_id}, gse_v1_ap_id -> {cloud_obj.gse_v1_ap_id}",
+                    )
                     cloud_obj.ap_id = cloud_obj.gse_v1_ap_id
                     cloud_obj.gse_v1_ap_id = None
                     cloud_obj.save()
@@ -314,7 +381,7 @@ class GrayHandler:
                 # 更新管控区域接入点
                 cls.update_cloud_ap_id(validated_data, rollback=True)
 
-                # 更新灰度业务范围
+                # 更新灰度业务范围, 无论是按业务还是ip回滚都去掉业务灰度标记
                 cls.update_gray_scope_list(validated_data, rollback=True)
 
             # 更新主机ap
@@ -330,9 +397,10 @@ class GrayHandler:
         return set(GrayTools.get_or_create_gse2_gray_scope_list(get_cache=False))
 
     @classmethod
-    def upgrade_or_rollback_agent_id(
+    def generate_upgrade_to_agent_id_request_params(
         cls, validated_data: typing.Dict[str, typing.List[typing.Any]], rollback: bool = False
-    ) -> typing.Dict[str, typing.List[typing.List[str]]]:
+    ) -> typing.Dict[str, typing.Any]:
+
         is_biz_gray: bool = cls.is_biz_gray(validated_data)
         if is_biz_gray:
             host_query_params: typing.Dict[str, typing.List[int]] = {"bk_biz_id__in": validated_data["bk_biz_ids"]}
@@ -363,9 +431,24 @@ class GrayHandler:
                     }
                 )
 
+        return {
+            "request_hosts": request_hosts,
+            "no_bk_agent_id_hosts": no_bk_agent_id_hosts,
+        }
+
+    @classmethod
+    def upgrade_or_rollback_agent_id(
+        cls, validated_data: typing.Dict[str, typing.List[typing.Any]], rollback: bool = False
+    ) -> typing.Dict[str, typing.List[typing.List[str]]]:
+        request_params: typing.Dict[str, typing.Any] = cls.generate_upgrade_to_agent_id_request_params(
+            validated_data=validated_data, rollback=rollback
+        )
+
         # 请求GSE接口更新AgentID配置
-        result: typing.Dict[str, typing.List[typing.Any]] = {"no_bk_agent_id_hosts": no_bk_agent_id_hosts}
-        result.update(**get_gse_api_helper(GseVersion.V2.value).upgrade_to_agent_id(request_hosts))
+        result: typing.Dict[str, typing.List[typing.Any]] = {
+            "no_bk_agent_id_hosts": request_params["no_bk_agent_id_hosts"]
+        }
+        result.update(**get_gse_api_helper(GseVersion.V2.value).upgrade_to_agent_id(request_params["request_hosts"]))
         return result
 
     @classmethod
