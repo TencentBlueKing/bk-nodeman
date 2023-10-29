@@ -17,7 +17,6 @@ from django.db import transaction
 from django.db.models import Model
 
 from apps.core.tag.models import Tag
-from apps.node_man.models import GlobalSettings
 from apps.utils import cache
 
 from .. import constants, exceptions, models
@@ -138,11 +137,6 @@ class BaseTargetHelper(abc.ABC):
     target_version: str = None
 
     @classmethod
-    @cache.class_member_cache()
-    def enable_agent_pkg_manage(cls) -> bool:
-        return GlobalSettings.get_config(key=GlobalSettings.KeyEnum.ENABLE_AGENT_PKG_MANAGE, default=False)
-
-    @classmethod
     def get_target(cls, target_id: int):
         """
         获取目标对象
@@ -192,9 +186,6 @@ class BaseTargetHelper(abc.ABC):
 
     @classmethod
     def get_target_version(cls, target_id: int, target_version: str) -> str:
-        if not cls.enable_agent_pkg_manage:
-            return target_version
-
         tag_name__obj_map: typing.Dict[str, Tag] = cls.get_tag_name__obj_map(
             target_id=target_id,
         )

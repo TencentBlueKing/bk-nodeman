@@ -407,7 +407,7 @@ class InstallAgent2WindowsTestCase(InstallWindowsTestCase):
             gse_version=GseVersion.V2.value,
         )
         installation_tool = gen_commands(
-            agent_step_adapter.get_setup_info(),
+            agent_step_adapter.setup_info,
             host,
             mock_data_utils.JOB_TASK_PIPELINE_ID,
             is_uninstall=False,
@@ -880,7 +880,7 @@ class LinuxAgent2InstallTestCase(InstallBaseTestCase):
             gse_version=GseVersion.V2.value,
         )
         installation_tool = gen_commands(
-            agent_step_adapter.get_setup_info(),
+            agent_step_adapter.setup_info,
             host,
             mock_data_utils.JOB_TASK_PIPELINE_ID,
             is_uninstall=False,

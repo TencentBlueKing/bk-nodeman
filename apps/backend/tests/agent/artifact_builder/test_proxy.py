@@ -16,7 +16,12 @@ from . import test_agent
 
 
 class FileSystemTestCase(utils.ProxyBaseTestCase, test_agent.FileSystemTestCase):
-    pass
+    def test_make(self):
+        """测试安装包制作"""
+        with self.ARTIFACT_BUILDER_CLASS(initial_artifact_path=self.ARCHIVE_PATH) as builder:
+            builder.make()
+        self.pkg_checker(version_str=utils.VERSION)
+        self.template_and_env_checker(version_str=utils.VERSION)
 
 
 class BkRepoTestCase(FileSystemTestCase):

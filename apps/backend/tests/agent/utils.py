@@ -178,7 +178,7 @@ class AgentBaseTestCase(CustomAPITestCase):
         os.makedirs(pkg_conf_tmpls_dir, exist_ok=True)
 
         # 写入配置模板
-        with open(os.path.join(pkg_conf_tmpls_dir, "gse_agent_conf.template"), "w", encoding="utf-8") as templ_fs:
+        with open(os.path.join(pkg_conf_tmpls_dir, "gse_agent.conf.template"), "w", encoding="utf-8") as templ_fs:
             templ_fs.write(config_templates.GSE_AGENT_CONFIG_TMPL)
 
         # 写入环境变量
@@ -287,6 +287,15 @@ class ProxyBaseTestCase(AgentBaseTestCase):
                         f"{AgentBaseTestCase.ARTIFACT_BUILDER_CLASS.NAME}-{cls.OVERWRITE_VERSION}.tgz",
                     ),
                 )
+
+            models.GseConfigTemplate.objects.update_or_create(
+                defaults={"content": config_templates.GSE_AGENT_CONFIG_TMPL},
+                name="gse_agent.conf",
+                version=VERSION,
+                os=package_os,
+                cpu_arch=cpu_arch,
+                agent_name=AgentBaseTestCase.NAME,
+            )
 
 
 class AutoTypeStrategyMixin:

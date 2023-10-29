@@ -632,6 +632,7 @@ def run_subscription_task_and_create_instance(
     # 按步骤顺序计算实例变更所需的动作
     instance_actions = defaultdict(dict)
     instance_migrate_reasons = defaultdict(dict)
+    is_unknown_migrate_type_exists: bool = False
     for step in step_managers.values():
         # 计算变更的动作
         migrate_results = step.make_instances_migrate_actions(
@@ -658,17 +659,20 @@ def run_subscription_task_and_create_instance(
         instance_id_action_reason_map: Dict[str, Dict] = migrate_results["migrate_reasons"]
         for instance_id, migrate_reason in instance_id_action_reason_map.items():
             instance_migrate_reasons[instance_id][step.step_id] = migrate_reason
+            if "migrate_type" not in migrate_reason:
+                is_unknown_migrate_type_exists = True
             metrics.app_task_instances_migrate_reasons_total.labels(
-                step_id=step.step_id, reason=migrate_reason["migrate_type"]
+                step_id=step.step_id, reason=migrate_reason.get("migrate_type") or "UNKNOWN"
             ).inc()
 
     logger.info(
-        "[sub_lifecycle<sub(%s), task(%s)>][run_subscription_task_and_create_instance] "
-        "make_instances_migrate_actions: instance_actions -> %s, migrate_reasons -> %s",
+        "[sub_lifecycle<sub(%s), task(%s)>][run_subscription_task_and_create_instance] make_instances"
+        "_migrate_actions: instance_actions -> %s, migrate_reasons -> %s, unknown_migrate_type_exists -> %s",
         subscription.id,
         subscription_task.id,
         instance_actions,
         instance_migrate_reasons,
+        ("no", "unknown_migrate_type_exists")[is_unknown_migrate_type_exists],
     )
 
     # 查询被从范围内移除的实例

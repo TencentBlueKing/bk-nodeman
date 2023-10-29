@@ -18,18 +18,21 @@ from . import constants
 
 
 class Tag(orm.OperateRecordModel):
-    name = models.CharField(_("标签名称"), max_length=128)
+    name = models.CharField(_("标签名称"), max_length=128, db_index=True)
     to_top = models.BooleanField(_("标签是否置顶"), default=False)
     description = models.TextField(_("标签描述"), default="", null=True)
     target_type = models.CharField(_("目标类型"), max_length=20, choices=constants.TargetType.list_choices())
-    target_id = models.IntegerField(_("目标 ID"))
-    target_version = models.CharField(_("指向版本号"), max_length=128)
+    target_id = models.IntegerField(_("目标 ID"), db_index=True)
+    target_version = models.CharField(_("指向版本号"), max_length=128, db_index=True)
 
     class Meta:
         verbose_name = _("标签")
         verbose_name_plural = _("标签")
         # 唯一性校验
         unique_together = (("target_type", "target_id", "name"),)
+        index_together = [
+            ["target_id", "target_type"],
+        ]
 
 
 class TagChangeRecord(orm.OperateRecordModel):

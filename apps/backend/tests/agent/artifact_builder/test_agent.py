@@ -12,9 +12,14 @@ import os
 
 import mock
 from django.conf import settings
-from django.db.utils import IntegrityError
 
-from apps.backend.tests.agent import utils
+from apps.backend.subscription.steps.agent_adapter.handlers import (
+    GseConfigHandler,
+    get_gse_config_handler_class,
+)
+from apps.backend.tests.agent import template_env, utils
+from apps.core.tag.constants import AGENT_NAME_TARGET_ID_MAP, TargetType
+from apps.core.tag.models import Tag
 from apps.mock_data import utils as mock_data_utils
 from apps.node_man import constants, models
 
@@ -22,15 +27,6 @@ from apps.node_man import constants, models
 class FileSystemTestCase(utils.AgentBaseTestCase):
 
     OVERWRITE_VERSION = "stable"
-
-    @classmethod
-    def setUpClass(cls):
-        # 关闭Agent包管理
-        try:
-            models.GlobalSettings.set_config(models.GlobalSettings.KeyEnum.ENABLE_AGENT_PKG_MANAGE.value, False)
-        except IntegrityError:
-            models.GlobalSettings.update_config(models.GlobalSettings.KeyEnum.ENABLE_AGENT_PKG_MANAGE.value, False)
-        super().setUpClass()
 
     def pkg_checker(self, version_str: str):
         """
@@ -45,19 +41,66 @@ class FileSystemTestCase(utils.AgentBaseTestCase):
             )
             self.assertTrue(os.path.exists(package_path))
 
+    def tag_checker(self, target_id: int):
+
+        agent_target_version = Tag.objects.get(
+            target_id=target_id,
+            name=self.OVERWRITE_VERSION,
+            target_type=TargetType.AGENT.value,
+        ).target_version
+
+        self.assertTrue(agent_target_version == utils.VERSION)
+
+    def template_and_env_checker(self, version_str):
+        gse_config_handler: GseConfigHandler = get_gse_config_handler_class(
+            node_type=("proxy", "agent")[self.NAME == "gse_agent"]
+        )(version_str)
+
+        for package_os, cpu_arch in self.OS_CPU_CHOICES:
+            filter_kwargs: dict = {
+                "agent_name": self.NAME,
+                "os": package_os,
+                "cpu_arch": cpu_arch,
+                "version": version_str,
+            }
+            self.assertDictEqual(
+                gse_config_handler.get_matching_template_env(package_os, cpu_arch),
+                self.ARTIFACT_BUILDER_CLASS.parse_env(
+                    (template_env.DEFAULT_AGENT_TEMPLATE_ENV, template_env.DEFAULT_PROXY_TEMPLATE_ENV)[
+                        self.NAME == "gse_proxy"
+                    ]
+                ),
+            )
+
+            gse_config_handler.get_matching_config_tmpl(package_os, cpu_arch, config_name="gse_agent.conf")
+
+            if self.NAME == "gse_proxy":
+                gse_config_handler.get_matching_config_tmpl(package_os, cpu_arch, config_name="gse_data_proxy.conf")
+                gse_config_handler.get_matching_config_tmpl(package_os, cpu_arch, config_name="gse_file_proxy.conf")
+
+            self.assertTrue(models.GseConfigEnv.objects.filter(**filter_kwargs).exists())
+            self.assertTrue(models.GseConfigTemplate.objects.filter(**filter_kwargs).exists())
+
     def test_make(self):
         """测试安装包制作"""
         with self.ARTIFACT_BUILDER_CLASS(initial_artifact_path=self.ARCHIVE_PATH) as builder:
             builder.make()
         self.pkg_checker(version_str=utils.VERSION)
+        self.template_and_env_checker(version_str=utils.VERSION)
 
     def test_make__overwrite_version(self):
         """测试版本号覆盖"""
         with self.ARTIFACT_BUILDER_CLASS(
-            initial_artifact_path=self.ARCHIVE_PATH, overwrite_version=self.OVERWRITE_VERSION
+            initial_artifact_path=self.ARCHIVE_PATH,
+            overwrite_version=self.OVERWRITE_VERSION,
+            tags=[self.OVERWRITE_VERSION],
         ) as builder:
             builder.make()
+        # overwrite_version 会上传一个额外副本到文件源
+        self.pkg_checker(version_str=utils.VERSION)
+        self.template_and_env_checker(version_str=utils.VERSION)
         self.pkg_checker(version_str=self.OVERWRITE_VERSION)
+        self.tag_checker(target_id=AGENT_NAME_TARGET_ID_MAP[self.NAME])
 
 
 class BkRepoTestCase(FileSystemTestCase):

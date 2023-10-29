@@ -84,10 +84,6 @@ class BaseArtifactBuilder(abc.ABC):
         self.applied_tmp_dirs = set()
         # 文件源
         self.storage = get_storage(file_overwrite=True)
-        self.enable_agent_pkg_manage = enable_agent_pkg_manage or models.GlobalSettings.get_config(
-            key=models.GlobalSettings.KeyEnum.ENABLE_AGENT_PKG_MANAGE.value,
-            default=False,
-        )
 
     @staticmethod
     def download_file(file_path: str, target_path: str):
@@ -418,10 +414,6 @@ class BaseArtifactBuilder(abc.ABC):
         :param extract_dir: 解压目录
         :return:
         """
-        # TODO： 适配未开启Agent包管理，优先使用覆盖版本号
-        if not self.enable_agent_pkg_manage and self.overwrite_version:
-            return self.overwrite_version
-
         version_file_path: str = os.path.join(extract_dir, "VERSION")
         if not os.path.exists(version_file_path):
             raise exceptions.FileNotExistError(_("版本文件不存在"))
@@ -474,7 +466,8 @@ class BaseArtifactBuilder(abc.ABC):
                 f"[publish_tag_version] tag -> {tag}, target_version -> {artifact_meta_info['version']} success"
             )
 
-    def parset_env(self, content) -> typing.Dict[str, typing.Any]:
+    @classmethod
+    def parse_env(cls, content) -> typing.Dict[str, typing.Any]:
         config_env = GseConfigParser()
         config_env.read_string(f"[Default]\n{content}")
         return dict(config_env.items("Default"))
@@ -495,11 +488,11 @@ class BaseArtifactBuilder(abc.ABC):
                     env_str = f.read()
 
                 logger.info(
-                    f"update_or_create_support_files: env_flie->{env_file} version->{version} raw_env->{env_str}"
+                    f"update_or_create_support_files: env_file->{env_file} version->{version} raw_env->{env_str}"
                 )
-                env_value = self.parset_env(env_str)
+                env_value = self.parse_env(env_str)
                 logger.info(
-                    f"update_or_create_support_files: env_flie->{env_file} version->{version} env_value->{env_value}"
+                    f"update_or_create_support_files: env_file->{env_file} version->{version} env_value->{env_value}"
                 )
                 models.GseConfigEnv.objects.update_or_create(
                     defaults={"env_value": env_value},
@@ -596,11 +589,10 @@ class BaseArtifactBuilder(abc.ABC):
             )
 
         artifact_meta_info["operator"] = operator
-        if self.enable_agent_pkg_manage:
-            self.update_or_create_support_files(package_infos)
-            self.update_or_create_tag(artifact_meta_info)
-            self.update_or_create_record(artifact_meta_info)
-            self.update_or_create_package_records(package_infos)
+        self.update_or_create_support_files(package_infos)
+        self.update_or_create_tag(artifact_meta_info)
+        self.update_or_create_record(artifact_meta_info)
+        self.update_or_create_package_records(package_infos)
 
     def __enter__(self) -> "BaseArtifactBuilder":
         return self
