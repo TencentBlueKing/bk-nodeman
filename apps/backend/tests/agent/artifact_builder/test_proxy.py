@@ -9,6 +9,8 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+import typing
+
 from apps.backend.tests.agent import utils
 from apps.node_man import constants, models
 
@@ -16,7 +18,22 @@ from . import test_agent
 
 
 class FileSystemTestCase(utils.ProxyBaseTestCase, test_agent.FileSystemTestCase):
-    pass
+    def parse_env_checker(self, env_values: typing.Dict[str, typing.Any]):
+        # 字符串类型断言
+        self.assertTrue(env_values["BK_GSE_HOME_DIR"] == "/usr/local/gse/proxy")
+        # 数字类型断言
+        self.assertTrue(env_values["BK_GSE_CLOUD_ID"] == 0)
+        # 布尔类型断言, 布尔类型需要json.dumps之后的结果进行渲染
+        self.assertTrue(env_values["BK_GSE_CUSTOM_BOOL_VALUE"] == "true")
+        # 空字符串断言
+        self.assertTrue(env_values["BK_GSE_FILE_AGENT_TLS_CA_FILE"] == "")
+
+    def test_make(self):
+        """测试安装包制作"""
+        with self.ARTIFACT_BUILDER_CLASS(initial_artifact_path=self.ARCHIVE_PATH) as builder:
+            builder.make()
+        self.pkg_checker(version_str=utils.VERSION)
+        self.template_and_env_checker(version_str=utils.VERSION)
 
 
 class BkRepoTestCase(FileSystemTestCase):

@@ -691,7 +691,7 @@ class SubscriptionViewSet(APIViewSet):
         host_ap: models.AccessPoint = ap_id_obj_map[host_ap_id]
 
         base_agent_setup_info_dict: Dict[str, Any] = asdict(
-            AgentStepAdapter(subscription_step=sub_step_obj, gse_version=host_ap.gse_version).get_setup_info()
+            AgentStepAdapter(subscription_step=sub_step_obj, gse_version=host_ap.gse_version).setup_info
         )
         agent_setup_extra_info_dict = sub_inst.instance_info["host"].get("agent_setup_extra_info") or {}
         installation_tool = gen_commands(

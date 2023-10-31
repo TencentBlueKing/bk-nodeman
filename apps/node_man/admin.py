@@ -198,6 +198,19 @@ class PluginResourcePolicyAdmin(MultiSearchResultAdmin):
     search_fields = ("plugin_name",)
 
 
+@admin.register(models.GseConfigExtraEnv)
+class GseConfigExtraEnvAdmin(admin.ModelAdmin):
+    list_display = (
+        "bk_biz_id",
+        "name",
+        "enable",
+    )
+    search_fields = (
+        "bk_biz_id",
+        "name",
+    )
+
+
 # 自动导入所有未注册的model
 for name, obj in inspect.getmembers(models):
     if inspect.isclass(obj) and issubclass(obj, models.models.Model):
