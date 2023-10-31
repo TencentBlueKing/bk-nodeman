@@ -60,6 +60,7 @@ class AgentBaseTestCase(CustomAPITestCase):
     TMP_DIR: str = None
     PKG_NAME: str = None
     NAME: str = "gse_agent"
+    TEMPLATE_ENV: str = template_env.DEFAULT_AGENT_TEMPLATE_ENV
     OVERWRITE_VERSION: str = None
     ARCHIVE_NAME: str = f"gse_agent_ce-{VERSION}.tgz"
     ARCHIVE_PATH: str = None
@@ -214,6 +215,7 @@ class AgentBaseTestCase(CustomAPITestCase):
 class ProxyBaseTestCase(AgentBaseTestCase):
     NAME: str = "gse_proxy"
     ARCHIVE_NAME: str = f"gse_ce-{VERSION}.tgz"
+    TEMPLATE_ENV: str = template_env.DEFAULT_PROXY_TEMPLATE_ENV
     OS_CPU_CHOICES = [
         (constants.OsType.LINUX.lower(), constants.CpuType.x86_64),
     ]

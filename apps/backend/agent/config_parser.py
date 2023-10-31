@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import json
 from configparser import ConfigParser, NoSectionError
 
 _UNSET = object()
@@ -18,14 +19,10 @@ class GseConfigParser(ConfigParser):
         # 返回原始大小写
         return optionstr
 
-    def format_value(self, value):
-        try:
-            value = int(value)
-        except ValueError:
-            try:
-                value = float(value)
-            except ValueError:
-                pass
+    def format_value(self, raw_value):
+        value = json.loads(raw_value)
+        if isinstance(value, bool):
+            value: str = raw_value
         return value
 
     def items(self, section=_UNSET, raw=False, vars=None):
