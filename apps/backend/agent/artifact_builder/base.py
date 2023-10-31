@@ -474,7 +474,7 @@ class BaseArtifactBuilder(abc.ABC):
                 f"[publish_tag_version] tag -> {tag}, target_version -> {artifact_meta_info['version']} success"
             )
 
-    def parset_env(self, content) -> typing.Dict[str, typing.Any]:
+    def parse_env(self, content) -> typing.Dict[str, typing.Any]:
         config_env = GseConfigParser()
         config_env.read_string(f"[Default]\n{content}")
         return dict(config_env.items("Default"))
@@ -497,7 +497,7 @@ class BaseArtifactBuilder(abc.ABC):
                 logger.info(
                     f"update_or_create_support_files: env_flie->{env_file} version->{version} raw_env->{env_str}"
                 )
-                env_value = self.parset_env(env_str)
+                env_value: typing.Dict[str, typing.Any] = self.parse_env(env_str)
                 logger.info(
                     f"update_or_create_support_files: env_flie->{env_file} version->{version} env_value->{env_value}"
                 )
