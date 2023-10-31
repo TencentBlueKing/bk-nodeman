@@ -359,7 +359,7 @@ def fetch_biz_info_map(fields: typing.Optional[typing.List[str]] = None) -> typi
     """
     fields = fields or ["bk_biz_id", "bk_biz_name"]
     biz_infos: typing.List[typing.Dict] = batch_request(client_v2.cc.search_business, {"fields": fields})
-    biz_infos.append({"bk_biz_id": str(settings.BK_CMDB_RESOURCE_POOL_BIZ_ID), "bk_biz_name": "资源池"})
+    biz_infos.append({"bk_biz_id": settings.BK_CMDB_RESOURCE_POOL_BIZ_ID, "bk_biz_name": "资源池"})
 
     biz_info_map: typing.Dict[str, typing.Dict] = {str(biz_info["bk_biz_id"]): biz_info for biz_info in biz_infos}
     logger.info("[fetch_biz_info_map] fields -> %s, count -> %s", pprint.pformat(fields), len(biz_infos))

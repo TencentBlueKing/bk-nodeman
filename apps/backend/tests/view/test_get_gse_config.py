@@ -17,11 +17,14 @@ from apps.backend.utils.redis import REDIS_INST
 from apps.mock_data import common_unit
 from apps.node_man import constants, models
 from apps.utils import basic
+from env.constants import GseVersion
 
 from .base import ViewBaseTestCase
 
 
 class GetLegacyGseConfigTestCase(ViewBaseTestCase):
+
+    GSE_VERSION = GseVersion.V1.value
 
     host: models.Host = None
     sub_step_obj: models.SubscriptionStep = None
@@ -34,6 +37,7 @@ class GetLegacyGseConfigTestCase(ViewBaseTestCase):
         super().setUpTestData()
         host_model_data = copy.deepcopy(common_unit.host.HOST_MODEL_DATA)
         cls.host = models.Host.objects.create(**host_model_data)
+        models.AccessPoint.objects.all().update(gse_version=cls.GSE_VERSION)
 
         # 创建订阅相关数据
         sub_inst_data = basic.remove_keys_from_dict(
@@ -52,7 +56,23 @@ class GetLegacyGseConfigTestCase(ViewBaseTestCase):
                 },
             }
         )
-        cls.agent_step_adapter = AgentStepAdapter(subscription_step=cls.sub_step_obj)
+        cls.agent_step_adapter = AgentStepAdapter(subscription_step=cls.sub_step_obj, gse_version=cls.GSE_VERSION)
+        target_version = cls.agent_step_adapter.setup_info.version
+
+        if cls.GSE_VERSION == GseVersion.V2.value:
+            models.GseConfigEnv.objects.create(
+                agent_name="gse_agent",
+                version=target_version,
+                cpu_arch=cls.host.cpu_arch,
+                os=cls.host.os_type,
+                env_value={},
+            )
+            config_handler = cls.agent_step_adapter.get_config_handler(target_version, cls.host.node_type.lower())
+            config_handler.fetch_config_extra_envs(cls.host.bk_biz_id)
+            config_handler.get_matching_config_tmpl(
+                cls.host.os_type, cls.host.cpu_arch, cls.agent_step_adapter.get_main_config_filename()
+            )
+            config_handler.get_matching_template_env(cls.host.os_type, cls.host.cpu_arch)
 
         # 此类查询在单元测试中会有如下报错， 因此将数据预先查询缓存
         # TransactionManagementError "You can't execute queries until the end of the 'atomic' block" while using signals
@@ -104,12 +124,17 @@ class GetLegacyGseConfigTestCase(ViewBaseTestCase):
 
 
 class GetGseConfigTestCase(GetLegacyGseConfigTestCase):
+
+    GSE_VERSION = GseVersion.V2.value
+
+    def setUp(self) -> None:
+        super().setUp()
+
     @classmethod
     def setUpTestData(cls):
         super().setUpTestData()
         cls.sub_step_obj.config = {"job_type": constants.JobType.INSTALL_AGENT, "name": "gse_agent", "version": "2.0.0"}
         cls.sub_step_obj.save()
-        cls.agent_step_adapter = AgentStepAdapter(subscription_step=cls.sub_step_obj)
         cls.redis_agent_conf_key = REDIS_AGENT_CONF_KEY_TPL.format(
             file_name=cls.agent_step_adapter.get_main_config_filename(), sub_inst_id=cls.sub_inst_record_obj.id
         )
