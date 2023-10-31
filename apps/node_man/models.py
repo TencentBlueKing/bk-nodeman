@@ -2428,6 +2428,10 @@ class GseConfigEnv(models.Model):
         verbose_name = _("安装包环境变量")
         verbose_name_plural = _("安装包环境变量")
 
+        index_together = [
+            ["agent_name", "version"],
+        ]
+
     def __str__(self) -> str:
         return f"{self.version}-{self.agent_name}-{self.os}-{self.cpu_arch}"
 
@@ -2436,7 +2440,7 @@ class GseConfigTemplate(models.Model):
     name = models.CharField(_("配置文件名称"), max_length=32)
     content = models.TextField(_("配置内容"))
     agent_name = models.CharField(_("Agent名称"), max_length=32)
-    version = models.CharField(_("版本号"), max_length=128)
+    version = models.CharField(_("版本号"), max_length=128, db_index=True)
     cpu_arch = models.CharField(
         _("CPU类型"), max_length=32, choices=constants.CPU_CHOICES, default=constants.CpuType.x86_64, db_index=True
     )
@@ -2459,6 +2463,25 @@ class GseConfigTemplate(models.Model):
     class Meta:
         verbose_name = _("安装包模板表")
         verbose_name_plural = _("安装包模板表")
+        index_together = [
+            ["name", "version"],
+        ]
 
     def __str__(self) -> str:
         return f"{self.name}-{self.version}-{self.agent_name}-{self.os}-{self.cpu_arch}"
+
+
+class GseConfigExtraEnv(models.Model):
+    bk_biz_id = models.IntegerField(_("业务ID"), db_index=True)
+    name = models.CharField(_("附加配置规则名称"), max_length=128)
+    enable = models.BooleanField(_("是否启用"), default=True)
+    condition = models.JSONField(_("灰度条件"))
+    env_value = models.JSONField(_("环境变量值"))
+
+    class Meta:
+        verbose_name = _("GSE 附加配置")
+        verbose_name_plural = _("GSE 附加配置")
+
+        index_together = [
+            ["bk_biz_id", "enable"],
+        ]

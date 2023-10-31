@@ -41,11 +41,6 @@ class ConfigContextHelper:
 
     def __post_init__(self):
         # 优先使用构造数据，不存在构造数据再走 DB 查询
-        # self.ap = self.ap or self.host.ap
-        # # TODO 收敛到公共方法
-        # if self.proxies is None:
-        #     self.proxies = self.host.proxies
-        # self.install_channel = self.install_channel or self.host.install_channel
 
         agent_config: typing.Dict[str, typing.Any] = self.ap.get_agent_config(self.host.os_type)
         gse_servers_info: typing.Dict[str, typing.Any] = tools.fetch_gse_servers_info(
@@ -231,10 +226,17 @@ class ConfigContextHelper:
         for context in contexts:
             self.context_dict.update(asdict(context, dict_factory=context.dict_factory))
 
-    def render(self, content: str, template_env: Dict[str, Any] = {}) -> str:
+    def render(
+        self,
+        content: str,
+        template_env: typing.Optional[Dict[str, Any]] = None,
+        template_extra_env: typing.Optional[Dict[str, Any]] = None,
+    ) -> str:
         """
         渲染并返回配置
         :param content: 配置模板内容
+        :param template_env: 默认值变量
+        :param template_extra_env: 额外配置变量
         :return: 渲染后的配置
         """
 
@@ -242,8 +244,9 @@ class ConfigContextHelper:
             _env_name: str = str(_matched.group())
             return "{{ " + _env_name[2:-2] + " }}"
 
-        # 先加载配置模板默认变量配置
-        context_dict = template_env
-        context_dict.update(self.context_dict)
+        context_dict = {}
+        # 变量优先级：template_extra_env > self.context_dict > > template_env
+        for env_dict in [template_env, self.context_dict, template_extra_env]:
+            context_dict.update(env_dict or {})
         content = re.sub(r"(__[0-9A-Z_]+__)", _double, content)
         return nested_render_data(content, context_dict)
