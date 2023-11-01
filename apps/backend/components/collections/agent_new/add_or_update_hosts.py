@@ -90,6 +90,15 @@ class AddOrUpdateHostsService(AgentBaseService):
         """
         # 不存在则新增
         if not cmdb_hosts:
+            except_bk_cloud_id: int = sub_inst.instance_info["host"]["bk_cloud_id"]
+            if except_bk_cloud_id in self.add_host_cloud_blacklist:
+                self.move_insts_to_failed(
+                    [sub_inst.id],
+                    log_content=_("管控区域【ID：{except_bk_cloud_id}】已被管理员限制新增主机").format(
+                        except_bk_cloud_id=except_bk_cloud_id
+                    ),
+                )
+                return SelectorResult(is_add=False, is_skip=True, sub_inst=sub_inst)
             return SelectorResult(is_add=True, is_skip=False, sub_inst=sub_inst)
 
         # 静态IP情况下，只会存在一台机器
