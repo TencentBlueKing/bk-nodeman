@@ -12,7 +12,6 @@ import logging
 import os
 import traceback
 import typing
-
 from dataclasses import dataclass
 from typing import (
     Any,
@@ -196,6 +195,18 @@ class DBHelperMixin:
         """
         batch_size = models.GlobalSettings.get_config(models.GlobalSettings.KeyEnum.BATCH_SIZE.value, default=100)
         return batch_size
+
+    @property
+    @cache.class_member_cache()
+    def add_host_cloud_blacklist(self) -> typing.List[int]:
+        """
+         管控区域新增主机黑名单，用于限制指定管控区域通过安装 Agent 新增主机
+        :return:
+        """
+        add_host_cloud_blacklist: typing.List[int] = models.GlobalSettings.get_config(
+            models.GlobalSettings.KeyEnum.ADD_HOST_CLOUD_BLACKLIST.value, default=[]
+        )
+        return add_host_cloud_blacklist or []
 
     @property
     @cache.class_member_cache()

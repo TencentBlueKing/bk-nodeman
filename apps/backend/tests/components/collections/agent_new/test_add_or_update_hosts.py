@@ -12,6 +12,7 @@ specific language governing permissions and limitations under the License.
 import copy
 import importlib
 import random
+import typing
 from typing import Dict, List, Optional, Set
 
 import mock
@@ -120,6 +121,7 @@ class AddOrUpdateHostsTestCase(utils.AgentServiceBaseTestCase):
             bk_host_id = sub_inst_obj.instance_info["host"]["bk_host_id"]
             if bk_host_id in cls.to_be_added_host_ids:
                 sub_inst_obj.instance_info["host"].pop("bk_host_id")
+                sub_inst_obj.instance_info["host"]["to_be_add"] = True
             if bk_host_id in cls.host_ids_with_dynamic_ip:
                 sub_inst_obj.instance_info["host"].pop("bk_host_id")
                 sub_inst_obj.instance_info["host"]["bk_addressing"] = constants.CmdbAddressingType.DYNAMIC.value
@@ -225,3 +227,73 @@ class AddOrUpdateHostsTestCase(utils.AgentServiceBaseTestCase):
     def tearDown(self) -> None:
         self.assert_in_teardown()
         super().tearDown()
+
+
+class HostInCloudBlackListTestCase(AddOrUpdateHostsTestCase):
+
+    succeeded_sub_inst_ids: typing.List[int] = []
+
+    @classmethod
+    def get_default_case_name(cls) -> str:
+        return "指定管控区域不允许新增主机"
+
+    @classmethod
+    def adjust_test_data_in_db(cls):
+
+        super().adjust_test_data_in_db()
+
+        for sub_inst_obj in cls.obj_factory.sub_inst_record_objs:
+            if "to_be_add" in sub_inst_obj.instance_info["host"]:
+                sub_inst_obj.instance_info["host"]["bk_cloud_id"] = 0
+            else:
+                cls.succeeded_sub_inst_ids.append(sub_inst_obj.id)
+
+        models.SubscriptionInstanceRecord.objects.bulk_update(
+            cls.obj_factory.sub_inst_record_objs, fields=["instance_info"]
+        )
+        models.GlobalSettings.set_config(models.GlobalSettings.KeyEnum.ADD_HOST_CLOUD_BLACKLIST.value, [0])
+
+    def fetch_succeeded_sub_inst_ids(self) -> List[int]:
+        return self.succeeded_sub_inst_ids
+
+    def assert_in_teardown(self):
+
+        sub_insts = models.SubscriptionInstanceRecord.objects.filter(id__in=self.obj_factory.sub_inst_record_ids)
+        all_host_ids = list(
+            set(
+                [
+                    sub_inst.instance_info["host"]["bk_host_id"]
+                    for sub_inst in sub_insts
+                    if "to_be_add" not in sub_inst.instance_info["host"]
+                ]
+                + self.obj_factory.bk_host_ids
+            )
+        )
+        # 动态 IP 都采用新增策略，最后同步到节点管理的主机会增加
+        expect_host_num = (
+            len(self.obj_factory.bk_host_ids) + len(self.host_ids_with_dynamic_ip) - len(self.to_be_added_host_ids)
+        )
+        host_objs = models.Host.objects.filter(bk_host_id__in=all_host_ids)
+
+        self.assertEqual(len(host_objs), expect_host_num)
+        # 由于原先没有创建相应的进程状态，此处进程状态记录
+        self.assertEqual(
+            models.ProcessStatus.objects.filter(
+                bk_host_id__in=all_host_ids,
+                name=models.ProcessStatus.GSE_AGENT_PROCESS_NAME,
+                source_type=models.ProcessStatus.SourceType.DEFAULT,
+            ).count(),
+            self.obj_factory.init_host_num - len(self.to_be_added_host_ids),
+        )
+
+        host_id__host_obj_map: Dict[int, models.Host] = {host_obj.bk_host_id: host_obj for host_obj in host_objs}
+        for sub_inst in sub_insts:
+            host_info = sub_inst.instance_info["host"]
+            bk_host_id = host_info.get("bk_host_id")
+            if not bk_host_id:
+                continue
+            host_obj = host_id__host_obj_map[bk_host_id]
+            # 动态 IP 新增主机后，原来的 bk_host_id 会被更新
+            self.assertFalse(bk_host_id in self.host_ids_with_dynamic_ip)
+            self.assertEqual(host_info["bk_biz_id"], host_obj.bk_biz_id)
+            self.assertEqual(bk_host_id, host_obj.bk_host_id)
