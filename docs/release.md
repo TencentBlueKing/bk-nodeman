@@ -1,5 +1,36 @@
 # Release
 
+## 2.4.3 - 2023-11-02 
+
+### 🚀 Features
+
+- feature:  plugin_search 接口支持返回部分接入点信息 (closed #1858)
+
+- feature:  Agent 配置重载功能优化 (closed #1769)
+
+- feature: 后台组件服务支持配置超时时间(closed #1696)
+
+- feature: Agent 2.0 配置支持按灰度规则差异化渲染 (closed #1878)
+
+- feature: 支持可配置化指定管控区域限制新增主机 (closed #1905)
+
+
+### ✨ Optimizations
+
+- optimization:  安装Gse2.0 查询Agent状态优化  (closed #1883)
+
+
+### 🐛 Bugfixes
+
+- bugfix:  安装额外Agent查询任务状态修复 (closed #1881)
+
+- bugfix:  2.0Agent配置文件下发错误适配 (closed #1903)
+
+
+
+**Full Changelog**: https://github.com/TencentBlueKing/bk-nodeman/compare/v2.4.2...v2.4.3
+
+
 ## 2.4.2 - 2023-10-24 
 
 ### 🚀 Features
