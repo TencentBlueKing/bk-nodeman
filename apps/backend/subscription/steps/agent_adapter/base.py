@@ -17,6 +17,7 @@ from dataclasses import dataclass
 class AgentConfigTemplate:
     name: str
     content: str
+    agent_name_from: str
 
 
 @dataclass
