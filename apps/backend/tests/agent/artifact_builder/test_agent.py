@@ -14,10 +14,7 @@ import typing
 import mock
 from django.conf import settings
 
-from apps.backend.subscription.steps.agent_adapter.handlers import (
-    GseConfigHandler,
-    get_gse_config_handler_class,
-)
+from apps.backend.subscription.steps.agent_adapter.handlers import GseConfigHandler
 from apps.backend.tests.agent import template_env, utils
 from apps.core.tag.constants import AGENT_NAME_TARGET_ID_MAP, TargetType
 from apps.core.tag.models import Tag
@@ -63,9 +60,7 @@ class FileSystemTestCase(utils.AgentBaseTestCase):
         self.assertTrue(agent_target_version == utils.VERSION)
 
     def template_and_env_checker(self, version_str):
-        gse_config_handler: GseConfigHandler = get_gse_config_handler_class(
-            node_type=("proxy", "agent")[self.NAME == "gse_agent"]
-        )(version_str)
+        gse_config_handler: GseConfigHandler = GseConfigHandler(self.NAME, version_str)
 
         for package_os, cpu_arch in self.OS_CPU_CHOICES:
             filter_kwargs: dict = {
@@ -75,19 +70,36 @@ class FileSystemTestCase(utils.AgentBaseTestCase):
                 "version": version_str,
             }
             self.assertDictEqual(
-                gse_config_handler.get_matching_template_env(package_os, cpu_arch),
+                gse_config_handler.get_matching_template_env(package_os, cpu_arch, self.NAME),
                 self.ARTIFACT_BUILDER_CLASS.parse_env(
                     (template_env.DEFAULT_AGENT_TEMPLATE_ENV, template_env.DEFAULT_PROXY_TEMPLATE_ENV)[
-                        self.NAME == "gse_proxy"
+                        self.NAME == constants.GsePackageCode.PROXY.value
                     ]
                 ),
             )
 
+            # gse_agent.conf 一定是 gse_agent 的
+            self.assertEqual(
+                gse_config_handler.get_matching_config_tmpl(
+                    package_os, cpu_arch, config_name="gse_agent.conf"
+                ).agent_name_from,
+                constants.GsePackageCode.AGENT.value,
+            )
             gse_config_handler.get_matching_config_tmpl(package_os, cpu_arch, config_name="gse_agent.conf")
 
-            if self.NAME == "gse_proxy":
-                gse_config_handler.get_matching_config_tmpl(package_os, cpu_arch, config_name="gse_data_proxy.conf")
-                gse_config_handler.get_matching_config_tmpl(package_os, cpu_arch, config_name="gse_file_proxy.conf")
+            if self.NAME == constants.GsePackageCode.PROXY.value:
+                self.assertEqual(
+                    gse_config_handler.get_matching_config_tmpl(
+                        package_os, cpu_arch, config_name="gse_data_proxy.conf"
+                    ).agent_name_from,
+                    self.NAME,
+                )
+                self.assertEqual(
+                    gse_config_handler.get_matching_config_tmpl(
+                        package_os, cpu_arch, config_name="gse_file_proxy.conf"
+                    ).agent_name_from,
+                    self.NAME,
+                )
 
             config_env_obj: models.GseConfigEnv = models.GseConfigEnv.objects.filter(**filter_kwargs).first()
             self.parse_env_checker(env_values=config_env_obj.env_value)
@@ -143,10 +155,10 @@ class AutoTypeStrategyDefaultTestCase(AutoTypeStrategyCrontabTestCase):
 
 
 class AutoTypeStrategyDiffTestCase(AutoTypeStrategyCrontabTestCase):
-    AUTO_TYPE_STRATEGY = {"gse_proxy": "crontab"}
+    AUTO_TYPE_STRATEGY = {constants.GsePackageCode.PROXY.value: "crontab"}
     AUTO_TYPE = constants.GseLinuxAutoType.RCLOCAL.value
 
 
 class AutoTypeStrategyNotEffectTestCase(AutoTypeStrategyCrontabTestCase):
-    AUTO_TYPE_STRATEGY = {"gse_agent": "crontab"}
+    AUTO_TYPE_STRATEGY = {constants.GsePackageCode.AGENT.value: "crontab"}
     AUTO_TYPE = constants.GseLinuxAutoType.CRONTAB.value

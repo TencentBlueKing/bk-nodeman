@@ -16,7 +16,6 @@ from dataclasses import dataclass, field
 
 from rest_framework import serializers
 
-from apps.backend import exceptions
 from apps.backend.agent.tools import fetch_proxies
 from apps.backend.constants import ProxyConfigFile
 from apps.core.tag.constants import AGENT_NAME_TARGET_ID_MAP, TargetType
@@ -27,7 +26,7 @@ from env.constants import GseVersion
 
 from . import base, legacy
 from .config_context import context_helper
-from .handlers import GseConfigHandler, get_gse_config_handler_class
+from .handlers import GseConfigHandler
 
 logger = logging.getLogger("app")
 
@@ -66,14 +65,15 @@ class AgentStepAdapter:
         )
         self._config_handler_cache: typing.Dict[str, GseConfigHandler] = {}
 
-    def get_config_handler(self, target_version: str, node_type: str) -> GseConfigHandler:
+    def get_config_handler(self, agent_name: str, target_version: str) -> GseConfigHandler:
+
         # 预留 AgentStepAdapter 支持多 Agent 版本的场景
-        cache_key: str = f"node_type:{node_type}:version{target_version}"
+        cache_key: str = f"agent_name:{agent_name}:version:{target_version}"
         config_handler: typing.Optional[GseConfigHandler] = self._config_handler_cache.get(cache_key)
         if config_handler:
             return config_handler
 
-        config_handler: GseConfigHandler = get_gse_config_handler_class(node_type)(target_version=target_version)
+        config_handler: GseConfigHandler = GseConfigHandler(agent_name=agent_name, target_version=target_version)
         self._config_handler_cache[cache_key] = config_handler
         return config_handler
 
@@ -104,22 +104,12 @@ class AgentStepAdapter:
         install_channel: typing.Tuple[typing.Optional[models.Host], typing.Dict[str, typing.List]],
     ) -> str:
         agent_setup_info: base.AgentSetupInfo = self.setup_info
-        config_handler: GseConfigHandler = self.get_config_handler(agent_setup_info.version, node_type)
+        config_handler: GseConfigHandler = self.get_config_handler(agent_setup_info.name, agent_setup_info.version)
         config_tmpl_obj: base.AgentConfigTemplate = config_handler.get_matching_config_tmpl(
             os_type=host.os_type,
             cpu_arch=host.cpu_arch,
             config_name=filename,
         )
-
-        if not config_tmpl_obj:
-            logger.error(
-                f"{self.log_prefix} agent config template not exist: name -> {self.config['name']}, "
-                f"filename -> {filename}, version -> {self.config['version']}, "
-                f"os_type -> {host.os_type}, cpu_arch -> {host.cpu_arch}"
-            )
-            raise exceptions.AgentConfigTemplateNotExistError(
-                name=self.config["name"], filename=filename, os_type=host.os_type, cpu_arch=host.cpu_arch
-            )
 
         # 渲染配置
         ch: context_helper.ConfigContextHelper = context_helper.ConfigContextHelper(
@@ -132,7 +122,7 @@ class AgentStepAdapter:
         )
         return ch.render(
             config_tmpl_obj.content,
-            config_handler.get_matching_template_env(host.os_type, host.cpu_arch),
+            config_handler.get_matching_template_env(host.os_type, host.cpu_arch, config_tmpl_obj.agent_name_from),
             config_handler.get_matching_template_extra_env(host),
         )
 
