@@ -589,10 +589,12 @@ class BaseArtifactBuilder(abc.ABC):
             )
 
         artifact_meta_info["operator"] = operator
+        # Agent 包先导入文件源 -> 写配置文件 -> 创建包记录 -> 创建 Tag
         self.update_or_create_support_files(package_infos)
-        self.update_or_create_tag(artifact_meta_info)
+        # TODO update_or_create_record & update_or_create_package_records 似乎是一样的功能？
         self.update_or_create_record(artifact_meta_info)
         self.update_or_create_package_records(package_infos)
+        self.update_or_create_tag(artifact_meta_info)
 
     def __enter__(self) -> "BaseArtifactBuilder":
         return self

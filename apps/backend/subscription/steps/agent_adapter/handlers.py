@@ -11,11 +11,11 @@ specific language governing permissions and limitations under the License.
 
 import logging
 from collections import defaultdict
-from typing import Any, Dict, List, Optional, Type
+from typing import Any, Dict, List, Optional
 
 from apps.backend import exceptions
 from apps.node_man import constants
-from apps.node_man.constants import GsePackageCode, NodeType
+from apps.node_man.constants import GsePackageCode
 from apps.node_man.models import (
     GseConfigEnv,
     GseConfigExtraEnv,
@@ -31,10 +31,8 @@ logger = logging.getLogger("app")
 
 
 class GseConfigHandler:
-
-    AGENT_NAME = None
-
-    def __init__(self, target_version: str) -> None:
+    def __init__(self, agent_name: str, target_version: str) -> None:
+        self.agent_name = agent_name
         self.target_version = target_version
         self._config_extra_env_cache: Dict[int, List[GseConfigExtraEnv]] = {}
 
@@ -50,6 +48,16 @@ class GseConfigHandler:
         self._config_extra_env_cache[bk_biz_id] = config_extra_envs
         return config_extra_envs
 
+    def fetch_pre_dependencies(self) -> List[str]:
+        """
+        获取 Agent 的前置依赖
+        TODO 此处暂时写死，后续 Agent 包管理导包时从数据库获取
+        :return:
+        """
+        return {GsePackageCode.AGENT.value: [], GsePackageCode.PROXY.value: [GsePackageCode.AGENT.value]}.get(
+            self.agent_name
+        ) or []
+
     @staticmethod
     def get_os_key(os_type: str, cpu_arch: str) -> str:
         # 默认为 linux-x86_64，兼容CMDB同步过来的主机没有操作系统和CPU架构的场景
@@ -61,9 +69,21 @@ class GseConfigHandler:
     @cache.class_member_cache()
     def agent_config_templates(self) -> List[AgentConfigTemplate]:
         return [
-            AgentConfigTemplate(name="gse_agent.conf", content=config_templates.GSE_AGENT_CONFIG_TMPL),
-            AgentConfigTemplate(name="gse_data_proxy.conf", content=config_templates.GSE_DATA_PROXY_CONFIG_TMPL),
-            AgentConfigTemplate(name="gse_file_proxy.conf", content=config_templates.GSE_FILE_PROXY_CONFIG_TEMPL),
+            AgentConfigTemplate(
+                name="gse_agent.conf",
+                agent_name_from=GsePackageCode.AGENT.value,
+                content=config_templates.GSE_AGENT_CONFIG_TMPL,
+            ),
+            AgentConfigTemplate(
+                name="gse_data_proxy.conf",
+                agent_name_from=GsePackageCode.PROXY.value,
+                content=config_templates.GSE_DATA_PROXY_CONFIG_TMPL,
+            ),
+            AgentConfigTemplate(
+                name="gse_file_proxy.conf",
+                agent_name_from=GsePackageCode.PROXY.value,
+                content=config_templates.GSE_FILE_PROXY_CONFIG_TEMPL,
+            ),
         ]
 
     @property
@@ -74,10 +94,16 @@ class GseConfigHandler:
         :return:
         """
         config_tmpl_obj_gby_os_key: Dict[str, List[AgentConfigTemplate]] = defaultdict(list)
-        config_tmpls: List[GseConfigTemplate] = GseConfigTemplate.objects.filter(version=self.target_version)
+        dependencies: List[str] = [self.agent_name]
+        dependencies.extend(self.fetch_pre_dependencies())
+        config_tmpls: List[GseConfigTemplate] = GseConfigTemplate.objects.filter(
+            agent_name__in=dependencies, version=self.target_version
+        )
         for config_tmpl in config_tmpls:
             config_tmpl_obj_gby_os_key[self.get_os_key(config_tmpl.os, config_tmpl.cpu_arch)].append(
-                AgentConfigTemplate(name=config_tmpl.name, content=config_tmpl.content)
+                AgentConfigTemplate(
+                    name=config_tmpl.name, agent_name_from=config_tmpl.agent_name, content=config_tmpl.content
+                )
             )
 
         # 为空说明该版本的配置文件都不存在，此时直接返回默认的配置模板
@@ -91,13 +117,15 @@ class GseConfigHandler:
 
     @property
     @cache.class_member_cache()
-    def os_key__tmpl_env_map(self) -> Dict[str, Dict[str, Any]]:
-        os_key__tmpl_env_map: Dict[str, Dict[str, Any]] = {}
+    def tmpl_env_obj_obj_gby_os_key(self) -> Dict[str, List[GseConfigEnv]]:
+        dependencies: List[str] = [self.agent_name]
+        dependencies.extend(self.fetch_pre_dependencies())
+        os_key__tmpl_env_map: Dict[str, List[GseConfigEnv]] = defaultdict(list)
         config_envs: List[GseConfigEnv] = GseConfigEnv.objects.filter(
-            agent_name=self.AGENT_NAME, version=self.target_version
+            agent_name__in=dependencies, version=self.target_version
         )
         for config_env in config_envs:
-            os_key__tmpl_env_map[self.get_os_key(config_env.os, config_env.cpu_arch)] = config_env.env_value
+            os_key__tmpl_env_map[self.get_os_key(config_env.os, config_env.cpu_arch)].append(config_env)
 
         return os_key__tmpl_env_map
 
@@ -106,25 +134,52 @@ class GseConfigHandler:
             self.get_os_key(os_type, cpu_arch), self.agent_config_templates
         )
         # 查找机型匹配的第一个配置
-        target_config_tmpl_obj: AgentConfigTemplate = next(
+        target_config_tmpl_obj: Optional[AgentConfigTemplate] = next(
             (config_tmpl_obj for config_tmpl_obj in config_tmpl_objs if config_tmpl_obj.name == config_name), None
         )
         if not target_config_tmpl_obj:
             logger.error(
                 "[GseConfigHandler(get_matching_config_tmpl)] AgentConfigTemplate not exist: "
                 "name -> %s, config_name -> %s, os_type -> %s, cpu_arch -> %s",
-                self.AGENT_NAME,
+                self.agent_name,
                 config_name,
                 os_type,
                 cpu_arch,
             )
             raise exceptions.AgentConfigTemplateNotExistError(
-                name=self.AGENT_NAME, filename=config_name, os_type=os_type, cpu_arch=cpu_arch
+                name=self.agent_name, filename=config_name, os_type=os_type, cpu_arch=cpu_arch
             )
         return target_config_tmpl_obj
 
-    def get_matching_template_env(self, os_type: str, cpu_arch: str) -> Dict[str, Any]:
-        return self.os_key__tmpl_env_map.get(self.get_os_key(os_type, cpu_arch)) or {}
+    def get_matching_template_env(self, os_type: str, cpu_arch: str, agent_name_from: str) -> Dict[str, Any]:
+        tmpl_env_objs: List[GseConfigEnv] = self.tmpl_env_obj_obj_gby_os_key.get(self.get_os_key(os_type, cpu_arch), [])
+
+        if not tmpl_env_objs:
+            return {}
+
+        # 匹配机型及模板渲染环境变量 Agent 来源
+        # 背景：2.0 Proxy 依赖 2.0 Agent 的配置模板（例如 gse_agent.conf），并且需要用相应的 Env 文件完成渲染
+        # 实现：根据配置文件的 Agent 来源（agent_name_from）进行匹配
+        # eg1：gse_agent.conf（agent_name_from=gse_agent）-> gse_config_env（agent_name=gse_agent）
+        # eg2：gse_data_proxy.conf（agent_name_from=gse_proxy）-> gse_config_env（agent_name=gse_proxy）
+        target_tmpl_env_obj: Optional[GseConfigEnv] = next(
+            (tmpl_env_obj for tmpl_env_obj in tmpl_env_objs if tmpl_env_obj.agent_name == agent_name_from), None
+        )
+
+        if not target_tmpl_env_obj:
+            logger.error(
+                "[GseConfigHandler(get_matching_template_env)] GseConfigEnv not exist: "
+                "name -> %s, os_type -> %s, cpu_arch -> %s, agent_name_from -> %s",
+                self.agent_name,
+                agent_name_from,
+                os_type,
+                cpu_arch,
+            )
+            raise exceptions.AgentConfigTemplateNotExistError(
+                f"GseConfigEnv[{self.agent_name}-{os_type}-{cpu_arch}-{agent_name_from}] not exist"
+            )
+
+        return target_tmpl_env_obj.env_value
 
     def get_matching_template_extra_env(self, host: Host) -> Dict[str, Any]:
         template_extra_env: Dict[str, Any] = {}
@@ -155,21 +210,3 @@ class GseConfigHandler:
                     config_extra_env.condition,
                 )
         return template_extra_env
-
-
-class AgentGseConfigHandler(GseConfigHandler):
-    AGENT_NAME = GsePackageCode.AGENT.value
-
-
-class ProxyGseConfigHandler(GseConfigHandler):
-    AGENT_NAME = GsePackageCode.PROXY.value
-
-
-GSE_CONFIG_HANDLER_PACKAGE_CODE_MAP: Dict = {
-    NodeType.AGENT.lower(): AgentGseConfigHandler,
-    NodeType.PROXY.lower(): ProxyGseConfigHandler,
-}
-
-
-def get_gse_config_handler_class(node_type: str) -> Type[GseConfigHandler]:
-    return GSE_CONFIG_HANDLER_PACKAGE_CODE_MAP[node_type]
