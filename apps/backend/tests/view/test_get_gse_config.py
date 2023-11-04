@@ -57,22 +57,6 @@ class GetLegacyGseConfigTestCase(ViewBaseTestCase):
             }
         )
         cls.agent_step_adapter = AgentStepAdapter(subscription_step=cls.sub_step_obj, gse_version=cls.GSE_VERSION)
-        target_version = cls.agent_step_adapter.setup_info.version
-
-        if cls.GSE_VERSION == GseVersion.V2.value:
-            models.GseConfigEnv.objects.create(
-                agent_name="gse_agent",
-                version=target_version,
-                cpu_arch=cls.host.cpu_arch,
-                os=cls.host.os_type,
-                env_value={},
-            )
-            config_handler = cls.agent_step_adapter.get_config_handler(target_version, cls.host.node_type.lower())
-            config_handler.fetch_config_extra_envs(cls.host.bk_biz_id)
-            config_handler.get_matching_config_tmpl(
-                cls.host.os_type, cls.host.cpu_arch, cls.agent_step_adapter.get_main_config_filename()
-            )
-            config_handler.get_matching_template_env(cls.host.os_type, cls.host.cpu_arch)
 
         # 此类查询在单元测试中会有如下报错， 因此将数据预先查询缓存
         # TransactionManagementError "You can't execute queries until the end of the 'atomic' block" while using signals
@@ -138,3 +122,18 @@ class GetGseConfigTestCase(GetLegacyGseConfigTestCase):
         cls.redis_agent_conf_key = REDIS_AGENT_CONF_KEY_TPL.format(
             file_name=cls.agent_step_adapter.get_main_config_filename(), sub_inst_id=cls.sub_inst_record_obj.id
         )
+        cls.agent_step_adapter = AgentStepAdapter(subscription_step=cls.sub_step_obj, gse_version=cls.GSE_VERSION)
+        target_version = cls.agent_step_adapter.setup_info.version
+        models.GseConfigEnv.objects.create(
+            agent_name="gse_agent",
+            version=target_version,
+            cpu_arch=cls.host.cpu_arch,
+            os=cls.host.os_type,
+            env_value={},
+        )
+        config_handler = cls.agent_step_adapter.get_config_handler("gse_agent", target_version)
+        config_handler.fetch_config_extra_envs(cls.host.bk_biz_id)
+        config_handler.get_matching_config_tmpl(
+            cls.host.os_type, cls.host.cpu_arch, cls.agent_step_adapter.get_main_config_filename()
+        )
+        config_handler.get_matching_template_env(cls.host.os_type, cls.host.cpu_arch, "gse_agent")

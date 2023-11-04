@@ -53,10 +53,10 @@ class AutoTypeStrategyDefaultTestCase(AutoTypeStrategyCrontabTestCase):
 
 
 class AutoTypeStrategyDiffTestCase(AutoTypeStrategyCrontabTestCase):
-    AUTO_TYPE_STRATEGY = {"gse_proxy": "crontab"}
+    AUTO_TYPE_STRATEGY = {constants.GsePackageCode.PROXY.value: "crontab"}
     AUTO_TYPE = constants.GseLinuxAutoType.CRONTAB.value
 
 
 class AutoTypeStrategyNotEffectTestCase(AutoTypeStrategyCrontabTestCase):
-    AUTO_TYPE_STRATEGY = {"gse_agent": "crontab"}
+    AUTO_TYPE_STRATEGY = {constants.GsePackageCode.AGENT.value: "crontab"}
     AUTO_TYPE = constants.GseLinuxAutoType.RCLOCAL.value

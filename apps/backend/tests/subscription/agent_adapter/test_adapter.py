@@ -11,14 +11,14 @@ specific language governing permissions and limitations under the License.
 import copy
 
 from apps.backend.subscription.steps.agent_adapter.adapter import AgentStepAdapter
+from apps.backend.tests.agent.utils import VERSION, AgentBaseTestCase, ProxyBaseTestCase
 from apps.mock_data import common_unit
 from apps.node_man import constants, models
 from apps.utils import basic
-from apps.utils.unittest.testcase import CustomAPITestCase
 from env.constants import GseVersion
 
 
-class AgentStepAdapterTestCase(CustomAPITestCase):
+class AgentStepAdapterTestCase(AgentBaseTestCase):
     host: models.Host = None
     sub_step_obj: models.SubscriptionStep = None
     sub_inst_record_obj: models.SubscriptionInstanceRecord = None
@@ -71,26 +71,86 @@ class AgentStepAdapterTestCase(CustomAPITestCase):
         self.get_config(self.agent_step_adapter.get_main_config_filename())
 
 
-class Agent2StepAdapterProxyTestCase(AgentStepAdapterTestCase):
+class Proxy2StepAdapterTestCase(ProxyBaseTestCase, AgentStepAdapterTestCase):
+    @classmethod
+    def clear_agent_data(cls):
+        models.GseConfigEnv.objects.all().delete()
+        models.GseConfigTemplate.objects.all().delete()
+
     @classmethod
     def setUpTestData(cls):
         super().setUpTestData()
-        cls.sub_step_obj.config = {"job_type": constants.JobType.INSTALL_AGENT, "name": "gse_agent", "version": "2.0.0"}
+        cls.sub_step_obj.config = {
+            "job_type": constants.JobType.INSTALL_AGENT,
+            "name": constants.GsePackageCode.PROXY.value,
+            "version": VERSION,
+        }
         cls.sub_step_obj.save()
         cls.agent_step_adapter = AgentStepAdapter(subscription_step=cls.sub_step_obj, gse_version=GseVersion.V2.value)
 
     def test_get_config(self):
+        self.clear_agent_data()
         self.host.node_type = "PROXY"
         self.host.bk_cloud_id = 1
         for config_name in constants.GsePackageTemplate.PROXY.value:
             self.get_config(config_name)
+            self.assertEqual(
+                self.agent_step_adapter.get_config_handler(
+                    agent_name=self.agent_step_adapter.setup_info.name,
+                    target_version=self.agent_step_adapter.setup_info.version,
+                )
+                .get_matching_config_tmpl(self.host.os_type, self.host.cpu_arch, config_name)
+                .agent_name_from,
+                constants.GsePackageCode.PROXY.value,
+            )
+        for config_name in constants.GsePackageTemplate.AGENT.value:
+            self.get_config(config_name)
+            self.assertEqual(
+                self.agent_step_adapter.get_config_handler(
+                    agent_name=self.agent_step_adapter.setup_info.name,
+                    target_version=self.agent_step_adapter.setup_info.version,
+                )
+                .get_matching_config_tmpl(self.host.os_type, self.host.cpu_arch, config_name)
+                .agent_name_from,
+                constants.GsePackageCode.AGENT.value,
+            )
+
+
+class Proxy2StepAdapterWithManagerTestCase(Proxy2StepAdapterTestCase):
+    def setUp(self):
+        super().setUp()
+        with self.ARTIFACT_BUILDER_CLASS(initial_artifact_path=self.ARCHIVE_PATH) as builder:
+            builder.make()
+
+    @classmethod
+    def clear_agent_data(cls):
+        pass
+
+    def test_get_env(self):
+        agent_env = self.agent_step_adapter.get_config_handler(
+            agent_name=self.agent_step_adapter.setup_info.name,
+            target_version=self.agent_step_adapter.setup_info.version,
+        ).get_matching_template_env(self.host.os_type, self.host.cpu_arch, constants.GsePackageCode.AGENT.value)
+
+        self.assertEqual(agent_env["BK_GSE_HOME_DIR"], "/usr/local/gse/agent")
+
+        proxy_env = self.agent_step_adapter.get_config_handler(
+            agent_name=self.agent_step_adapter.setup_info.name,
+            target_version=self.agent_step_adapter.setup_info.version,
+        ).get_matching_template_env(self.host.os_type, self.host.cpu_arch, constants.GsePackageCode.PROXY.value)
+
+        self.assertEqual(proxy_env["BK_GSE_HOME_DIR"], "/usr/local/gse/proxy")
 
 
 class Agent2StepAdapterTestCase(AgentStepAdapterTestCase):
     @classmethod
     def setUpTestData(cls):
         super().setUpTestData()
-        cls.sub_step_obj.config = {"job_type": constants.JobType.INSTALL_AGENT, "name": "gse_agent", "version": "2.0.0"}
+        cls.sub_step_obj.config = {
+            "job_type": constants.JobType.INSTALL_AGENT,
+            "name": constants.GsePackageCode.AGENT.value,
+            "version": VERSION,
+        }
         cls.sub_step_obj.save()
         cls.agent_step_adapter = AgentStepAdapter(subscription_step=cls.sub_step_obj, gse_version=GseVersion.V2.value)
 

@@ -299,6 +299,14 @@ class ProxyBaseTestCase(AgentBaseTestCase):
                 agent_name=AgentBaseTestCase.NAME,
             )
 
+            models.GseConfigEnv.objects.update_or_create(
+                defaults={"env_value": cls.ARTIFACT_BUILDER_CLASS.parse_env(template_env.DEFAULT_AGENT_TEMPLATE_ENV)},
+                version=VERSION,
+                os=package_os,
+                cpu_arch=cpu_arch,
+                agent_name=AgentBaseTestCase.NAME,
+            )
+
 
 class AutoTypeStrategyMixin:
 
