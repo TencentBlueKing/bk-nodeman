@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import json
+import typing
 from collections import defaultdict
 from typing import Any, Dict, List, Optional, Set
 
@@ -193,6 +194,15 @@ class AddOrUpdateHostsService(AgentBaseService):
             if bk_host_innerip_v6:
                 bk_host_innerip_v6_set.add(bk_host_innerip_v6)
 
+        # 查询空列表对 cc 来说是一个非常耗时的行为，此处进行过滤
+        ip_query_rules: typing.List[typing.Dict[str, typing.Any]] = []
+        if bk_host_innerip_set:
+            ip_query_rules.append({"field": "bk_host_innerip", "operator": "in", "value": list(bk_host_innerip_set)})
+        if bk_host_innerip_v6_set:
+            ip_query_rules.append(
+                {"field": "bk_host_innerip_v6", "operator": "in", "value": list(bk_host_innerip_v6_set)}
+            )
+
         query_hosts_params: Dict[str, Any] = {
             "fields": constants.CC_HOST_FIELDS,
             "host_property_filter": {
@@ -200,16 +210,11 @@ class AddOrUpdateHostsService(AgentBaseService):
                 "rules": [
                     {"field": "bk_addressing", "operator": "equal", "value": bk_addressing},
                     {"field": "bk_cloud_id", "operator": "in", "value": list(bk_cloud_id_set)},
-                    {
-                        "condition": "OR",
-                        "rules": [
-                            {"field": "bk_host_innerip", "operator": "in", "value": list(bk_host_innerip_set)},
-                            {"field": "bk_host_innerip_v6", "operator": "in", "value": list(bk_host_innerip_v6_set)},
-                        ],
-                    },
+                    {"condition": "OR", "rules": ip_query_rules},
                 ],
             },
         }
+
         cmdb_host_infos: List[Dict[str, Any]] = batch_request.batch_request(
             func=CCApi.list_hosts_without_biz, params=query_hosts_params
         )
