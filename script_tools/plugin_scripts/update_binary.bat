@@ -119,7 +119,13 @@ rem 解压配置到目标路径
 :unzip_config
 echo "coming into %SWWIN_GSE_HOME%"
 cd %SWWIN_GSE_HOME%
-%s7zPath%\7z.exe x -aoa %SWWIN_TMP%\%SWWIN_PACKAGE% -o%SWWIN_GSE_HOME%
+if "%SWWIN_TARGET_DIR%"=="external" if defined GROUP_DIR (
+    set EXTERNAL_PLUGIN_TMPDIR=%SWWIN_TMP%\external_plugins\%GROUP_DIR%\%PLUGIN_NAME%\
+    IF NOT EXIST %EXTERNAL_PLUGIN_TMPDIR% md %EXTERNAL_PLUGIN_TMPDIR%
+    %s7zPath%\7z.exe x -aoa %SWWIN_TMP%\%SWWIN_PACKAGE% -o%EXTERNAL_PLUGIN_TMPDIR%
+) else (
+    %s7zPath%\7z.exe x -aoa %SWWIN_TMP%\%SWWIN_PACKAGE% -o%SWWIN_GSE_HOME%
+)
 if exist %SWWIN_PACKAGE:~0,-4%.tar (
     set TAR_FILE_NAME=%SWWIN_PACKAGE:~0,-4%.tar
 ) else if exist %SWWIN_PACKAGE:~0,-4%.tgz (
@@ -133,7 +139,7 @@ rem 拷贝插件脚本到官方插件目录下,避免脚本老旧有bug或者不
 if "%SWWIN_TARGET_DIR%"=="external" if defined GROUP_DIR (
     rem 第三方插件指定了group_id，解压后需要将插件从标准路径移动到实例路径下
     rd /S /Q %WIN_GSE_BINDIR%
-    move %SWWIN_GSE_HOME%\external_plugins\%SWWIN_PLUGIN_NAME% %WIN_GSE_BINDIR%\..\
+    move %EXTERNAL_PLUGIN_TMPDIR%\external_plugins\%SWWIN_PLUGIN_NAME% %WIN_GSE_BINDIR%\..\
 )
 
 :EOF
