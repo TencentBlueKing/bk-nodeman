@@ -34,6 +34,8 @@ guess_target_dir () {
                 # 如果提供了实例ID，则将插件安装到给定的ID目录下
                 export BINDIR=$GSE_HOME/external_plugins/$GROUP_DIR/$PLUGIN_NAME/
                 export ETCDIR=$GSE_HOME/external_plugins/$GROUP_DIR/$PLUGIN_NAME/etc
+                export EXTERNAL_PLUGIN_TMPDIR=${EXTERNAL_PLUGIN_DIR}/external_plugins/${GROUP_DIR}/${PLUGIN_NAME}/
+                mkdir -p ${EXTERNAL_PLUGIN_TMPDIR}
             else
                 export BINDIR=$GSE_HOME/external_plugins/$PLUGIN_NAME/
                 export ETCDIR=$GSE_HOME/external_plugins/$PLUGIN_NAME/etc
@@ -55,6 +57,7 @@ UPGRADE_TYPE=append
 RESERVE_CONF=0
 TMP=/tmp/
 BACKUP_DIR=/tmp/nodeman_backup/
+EXTERNAL_PLUGIN_DIR=/tmp/nodeman_external_plugins/
 
 while getopts rut:T:d:n:m:f:z:v:p:h:i: arg; do
     case $arg in
@@ -108,12 +111,20 @@ fi
 # 解压配置到目标路径
 cd $TMP
 echo "coming into: $TMP"
-tar xvf $PACKAGE -C $GSE_HOME; ret+=$?
 
 if [ "${CATEGORY}" == "EXTERNAL" -a -n "$GROUP_DIR" ]; then
+    # 解压文件到临时目录 然后转移到对应目录 规避同台机器并发导致的部分实例目录为空问题
     # 第三方插件指定了instance_id，解压后需要将插件从标准路径移动到实例路径下
+    echo "unzip ${PACKAGE} to dir: ${EXTERNAL_PLUGIN_TMPDIR}"
+    tar xvf ${PACKAGE} -C ${EXTERNAL_PLUGIN_TMPDIR}; ret+=$?
     mkdir -p $BINDIR
-    mv $GSE_HOME/external_plugins/$PLUGIN_NAME/ $BINDIR/../
+    mv $EXTERNAL_PLUGIN_TMPDIR/external_plugins/$PLUGIN_NAME/ $BINDIR/../
+    if [ $? -ne 0 ]; then
+        ret+=$?
+        echo "mv $EXTERNAL_PLUGIN_TMPDIR/external_plugins/$PLUGIN_NAME/ to $BINDIR/../ failed."
+    fi
+else
+    tar xvf $PACKAGE -C $GSE_HOME; ret+=$?
 fi
 
 # 恢复配置文件
