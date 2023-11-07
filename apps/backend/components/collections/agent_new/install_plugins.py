@@ -30,7 +30,8 @@ class InstallPluginsService(SubSubscriptionBaseService, AgentBaseService):
             host_ids_group_by_os[host.os_type.lower()].append(host.bk_host_id)
 
         auto_launch_plugin_names = list(
-            models.GsePluginDesc.objects.filter(auto_launch=True).values_list("name", flat=True)
+            # 对未启用的插件进行过滤
+            models.GsePluginDesc.objects.filter(auto_launch=True, is_ready=True).values_list("name", flat=True)
         )
         plugin_name__os_type_set = set(
             models.Packages.objects.filter(

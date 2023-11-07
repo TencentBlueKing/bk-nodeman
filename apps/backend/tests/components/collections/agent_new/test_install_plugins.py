@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from copy import deepcopy
 from typing import List
 
 import mock
@@ -152,3 +153,33 @@ class InstallPluginsRunningTestCase(InstallPluginsTestCase):
     SUBSCRIPTION_ID = common_unit.subscription.RUNNING_SUBSCRIPTION_ID
     IS_FINISHED = False
     EXTRA_OUTPUT = {"polling_time": POLLING_INTERVAL}
+
+
+class InstallPluginEnableFilter(InstallPluginsTestCase):
+    CASE_NAME = "测试子订阅安装插件启用过滤"
+    EXTRA_OUTPUT = {"succeeded_subscription_instance_ids": [], "subscription_ids": []}
+
+    @staticmethod
+    def init_plugins():
+        gse_plugin_desc_model_data_copy = deepcopy(common_unit.plugin.GSE_PLUGIN_DESC_MODEL_DATA)
+        gse_plugin_desc_model_data_copy.update({"is_ready": False})
+        models.GsePluginDesc.objects.create(**gse_plugin_desc_model_data_copy)
+        models.Packages.objects.create(**common_unit.plugin.PACKAGES_MODEL_DATA)
+
+    def cases(self):
+        return [
+            ComponentTestCase(
+                name=self.CASE_NAME,
+                inputs=self.common_inputs,
+                parent_data={},
+                execute_assertion=ExecuteAssertion(
+                    success=self.EXECUTE_RESULT,
+                    outputs={
+                        "subscription_ids": [],
+                        "all_subscription_ids": [],
+                        "succeeded_subscription_instance_ids": self.fetch_succeeded_sub_inst_ids(),
+                    },
+                ),
+                schedule_assertion=[],
+            )
+        ]
