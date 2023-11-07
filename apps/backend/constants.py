@@ -35,6 +35,7 @@ class InstNodeType(object):
     BIZ = "biz"
     SET = "set"
     MODULE = "module"
+    BIZ_SET = "biz_set"
 
 
 # Pipeline流程动作名称

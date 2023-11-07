@@ -22,7 +22,6 @@ from apps.node_man.serializers import policy
 from apps.node_man.serializers.base import (
     ScopeTypeSerializer,
     SubScopeInstSelectorSerializer,
-    biz_set_scope_params_valid,
 )
 from apps.utils import basic
 
@@ -40,7 +39,6 @@ class ScopeSerializer(SubScopeInstSelectorSerializer, ScopeTypeSerializer):
     need_register = serializers.BooleanField(required=False, default=False, label="是否需要注册到CMDB")
 
     def validate(self, attrs):
-        biz_set_scope_params_valid(attrs=attrs)
         for node in attrs["nodes"]:
             basic.ipv6_formatter(data=node, ipv6_field_names=["ip"])
             basic.ipv6_formatter(

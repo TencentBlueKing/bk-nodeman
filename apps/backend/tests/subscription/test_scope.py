@@ -14,6 +14,7 @@ import typing
 import mock
 from django.test import TestCase
 
+from apps.backend.constants import InstNodeType
 from apps.backend.subscription.tools import covert_biz_set_scope_to_scope
 from apps.backend.tests.subscription import utils
 from apps.exceptions import ValidationError
@@ -52,7 +53,7 @@ class TestSubscriptionByScope(TestCase):
             "object_type": Subscription.ObjectType.HOST,
             "scope_type": self.SCOPE_TYPE,
             "scope_id": utils.SCOPE_ID,
-            "nodes": [{"bk_obj_id": "biz_set", "bk_inst_id": utils.SCOPE_ID}],
+            "nodes": [{"bk_obj_id": InstNodeType.BIZ_SET, "bk_inst_id": utils.SCOPE_ID}],
         }
 
     def instance__host_scope(self, bk_biz_ids: typing.List[int]):
@@ -148,7 +149,8 @@ class TestSubscriptionByScope(TestCase):
             str, typing.Union[str, int, typing.List[typing.Dict[str, typing.Union[str, int]]]]
         ] = self.topo__host_scope_with_other_biz(bk_biz_ids=utils.BIZ_SET_COVERATE_BIZ_IDS)
         muiltple_biz_set_scope["nodes"] = [
-            {"bk_obj_id": "biz_set", "bk_inst_id": biz_set_id} for biz_set_id in utils.BIZ_SET_COVERATE_BIZ_IDS
+            {"bk_obj_id": InstNodeType.BIZ_SET, "bk_inst_id": biz_set_id}
+            for biz_set_id in utils.BIZ_SET_COVERATE_BIZ_IDS
         ]
         self.assertRaises(ValidationError, ScopeSerializer(data=muiltple_biz_set_scope).is_valid)
 

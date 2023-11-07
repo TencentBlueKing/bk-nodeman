@@ -26,6 +26,7 @@ from django.conf import settings
 from django.db.models import Q
 from django.utils import timezone
 
+from apps.backend.constants import InstNodeType
 from apps.backend.subscription import task_tools
 from apps.backend.subscription.commons import get_host_by_inst, list_biz_hosts
 from apps.backend.subscription.constants import SUBSCRIPTION_SCOPE_CACHE_TIME
@@ -785,7 +786,7 @@ def covert_biz_set_scope_to_scope(biz_set_scope: Dict[str, Union[int, str, List[
     bk_biz_ids: List[int] = CmdbHandler.list_biz_ids_in_biz_set(biz_set_id=biz_set_id)
     bk_obj_id_set: Set[str] = {node.get("bk_obj_id") for node in nodes}
 
-    if "biz_set" in list(bk_obj_id_set):
+    if InstNodeType.BIZ_SET in list(bk_obj_id_set):
         if len(nodes) > 1:
             raise MultiBizSetError
         else:

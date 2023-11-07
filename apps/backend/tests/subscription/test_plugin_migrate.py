@@ -15,7 +15,7 @@ from copy import deepcopy
 
 import mock
 
-from apps.backend.constants import ActionNameType, PluginMigrateType
+from apps.backend.constants import ActionNameType, InstNodeType, PluginMigrateType
 from apps.backend.subscription import tools
 from apps.backend.subscription.steps import StepFactory
 from apps.backend.tests.components.collections.plugin import utils
@@ -105,7 +105,7 @@ class SubMigrateBaseTestCase(utils.PluginTestObjFactory, CustomAPITestCase, Migr
     @classmethod
     def _get_subscription_params(cls):
         init_subscription_param = deepcopy(utils.SUBSCRIPTION_PARAMS)
-        init_subscription_param["nodes"] = [{"bk_obj_id": "biz_set", "bk_inst_id": utils.CORRECT_BIZ_SET_ID}]
+        init_subscription_param["nodes"] = [{"bk_obj_id": InstNodeType.BIZ_SET, "bk_inst_id": utils.CORRECT_BIZ_SET_ID}]
 
         init_subscription_param["node_type"] = models.Subscription.NodeType.TOPO
         init_subscription_param["scope_type"] = models.Subscription.ScopeType.BIZ_SET
