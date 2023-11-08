@@ -35,6 +35,7 @@ class RestartService(AgentExecuteScriptService):
         general_node_type = self.get_general_node_type(host.node_type)
         host_ap: models.AccessPoint = self.get_host_ap(common_data=common_data, host=host)
         setup_path = host_ap.get_agent_config(host.os_type)["setup_path"]
-        agent_path = path_handler.join(setup_path, general_node_type, "bin", ctl_exe_name)
+        agent_bin_path = path_handler.join(setup_path, general_node_type, "bin")
+        execute_command = f"{ctl_exe_name} {cmd_suffix}"
 
-        return f"{agent_path} {cmd_suffix}"
+        return f"cd {agent_bin_path} && {execute_command}"
