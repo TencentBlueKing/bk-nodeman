@@ -49,7 +49,7 @@ class RestartTestCase(base.JobBaseTestCase):
         record = self.job_api_mock_client.call_recorder.record
         fast_execute_script_query_params = record[JobApi.fast_execute_script][0].args[0]
         self.assertEqual(
-            "c:\\gse\\agent\\bin\\gsectl.bat restart",
+            "cd c:\\gse\\agent\\bin && gsectl.bat restart",
             base64.b64decode(fast_execute_script_query_params["script_content"]).decode(),
         )
         super().tearDown()
