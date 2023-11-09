@@ -30,7 +30,7 @@ whitenoise==5.2.0
 mysqlclient==2.0.3
 eventlet==0.25.1
 gevent==1.2.2
-paramiko==2.7.2
+paramiko==2.9.1
 jinja2==2.11.1
 jinja2schema==0.1.4
 PyYAML==6.0
