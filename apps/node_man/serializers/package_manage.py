@@ -12,32 +12,18 @@ from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
 from apps.exceptions import ValidationError
-from apps.node_man.models import AgentPackages
-
-
-class AgentPackageSerializer(serializers.ModelSerializer):
-    class meta:
-        model = AgentPackages
-        fields = "__all__"
+from apps.node_man.constants import GsePackageCode
 
 
 class TagsSerializer(serializers.Serializer):
     id = serializers.CharField()
     name = serializers.CharField()
+    children = serializers.ListField()
 
 
 class ConditionsSerializer(serializers.Serializer):
     key = serializers.ChoiceField(choices=["version", "os_cpu_arch", "tags", "is_ready"])
     values = serializers.ListField()
-
-
-class SearchSerializer(serializers.Serializer):
-    os_cpu_arch = serializers.CharField(required=False)
-    tags = serializers.ListField(required=False)
-
-
-class PackageDescSearchSerializer(serializers.Serializer):
-    os_cpu_arch = serializers.CharField(required=False)
 
 
 class PackageSerializer(serializers.Serializer):
@@ -49,7 +35,6 @@ class PackageSerializer(serializers.Serializer):
     tags = TagsSerializer(many=True)
     creator = serializers.CharField()
     pkg_ctime = serializers.DateTimeField()
-    host_count = serializers.IntegerField()
     is_ready = serializers.BooleanField()
 
 
@@ -61,7 +46,7 @@ class PackageDescSerializer(serializers.Serializer):
     is_ready = serializers.BooleanField()
 
 
-class SearchResponseSerializer(serializers.Serializer):
+class ListResponseSerializer(serializers.Serializer):
     total = serializers.IntegerField()
     list = PackageSerializer(many=True)
 
@@ -73,6 +58,10 @@ class PackageDescResponseSerialiaer(serializers.Serializer):
 
 class OperateSerializer(serializers.Serializer):
     is_ready = serializers.BooleanField()
+
+
+class QuickSearchSerializer(serializers.Serializer):
+    project = serializers.ChoiceField(choices=GsePackageCode.list_choices())
 
 
 # TODO 与plugin相同可抽取公共Serializer

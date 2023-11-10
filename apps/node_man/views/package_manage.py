@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from django_filters.rest_framework import DjangoFilterBackend
+from drf_yasg import openapi
 from rest_framework import filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -16,7 +17,9 @@ from rest_framework.status import HTTP_200_OK
 
 from apps.generic import ApiMixinModelViewSet as ModelViewSet
 from apps.node_man import models
-from apps.node_man.serializers import packager_manage as pkg_manage
+from apps.node_man.permissions import package_manage as pkg_permission
+from apps.node_man.serializers import package_manage as pkg_manage
+from apps.node_man.utils.filters import GsePackageFilter
 from common.utils.drf_utils import swagger_auto_schema
 
 PACKAGE_MANAGE_VIEW_TAGS = ["PKG_Manager"]
@@ -24,19 +27,16 @@ PACKAGE_DES_VIEW_TAGS = ["PKG_Desc"]
 
 
 class PackageManageViewSet(ModelViewSet):
-    # queryset =  models.Packages.objects.filter(module__in=["gse_proxy", "gse_agent"])
-    queryset = models.AgentPackages.objects.all()
-    # model = models.Packages
+    queryset = models.GsePackages.objects.all()
     # http_method_names = ["get", "post"]
     # ordering_fields = ("module",)
     serializer_class = pkg_manage.PackageSerializer
+    permission_classes = (pkg_permission.PackageManagePermission,)
     filter_backends = (DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter)
-
-    filter_fields = ("module", "creator", "is_ready", "version")
+    filter_class = GsePackageFilter
 
     @swagger_auto_schema(
-        query_serializer=pkg_manage.SearchSerializer,
-        responses={200: pkg_manage.SearchResponseSerializer},
+        responses={200: pkg_manage.ListResponseSerializer},
         operation_summary="安装包列表",
         tags=PACKAGE_MANAGE_VIEW_TAGS,
     )
@@ -53,7 +53,6 @@ class PackageManageViewSet(ModelViewSet):
                     "tags": [{"id": "stable", "name": "稳定版本"}],
                     "creator": "string",
                     "pkg_ctime": "2019-08-24 14:15:22",
-                    "host_count": 100,
                     "is_ready": True,
                 },
                 {
@@ -65,7 +64,6 @@ class PackageManageViewSet(ModelViewSet):
                     "tags": [{"id": "stable", "name": "稳定版本"}],
                     "creator": "string",
                     "pkg_ctime": "2019-08-24 14:15:22",
-                    "host_count": 100,
                     "is_ready": True,
                 },
             ],
@@ -76,7 +74,7 @@ class PackageManageViewSet(ModelViewSet):
     @swagger_auto_schema(
         operation_summary="操作类动作：启用/停用",
         body_in=pkg_manage.OperateSerializer,
-        responses={200: pkg_manage.SearchResponseSerializer},
+        responses={200: pkg_manage.PackageSerializer},
         tags=PACKAGE_MANAGE_VIEW_TAGS,
     )
     def update(self, request, validated_data, *args, **kwargs):
@@ -89,7 +87,6 @@ class PackageManageViewSet(ModelViewSet):
             "tags": [{"id": "stable", "name": "稳定版本"}],
             "creator": "string",
             "pkg_ctime": "2019-08-24 14:15:22",
-            "host_count": 100,
             "is_ready": True,
         }
 
@@ -105,20 +102,25 @@ class PackageManageViewSet(ModelViewSet):
 
     @swagger_auto_schema(
         operation_summary="获取快速筛选信息",
+        manual_parameters=[
+            openapi.Parameter(
+                "project", in_=openapi.TYPE_STRING, description="区分gse_agent, gse_proxy", type=openapi.TYPE_STRING
+            )
+        ],
         tags=PACKAGE_MANAGE_VIEW_TAGS,
     )
     @action(detail=False, methods=["GET"])
     def quick_search_condition(self, request, *args, **kwargs):
         mock_version = [
-            {"name": "2.1.8", "id": "2.1.8", "host_count": 10},
-            {"name": "2.1.7", "id": "2.1.7", "host_count": 10},
-            {"name": "ALL", "id": "all", "host_count": 20},
+            {"name": "2.1.8", "id": "2.1.8", "count": 10},
+            {"name": "2.1.7", "id": "2.1.7", "count": 10},
+            {"name": "ALL", "id": "all", "count": 20},
         ]
 
         mock_os_cpu_arch = [
-            {"name": "Linux_x86_64", "id": "linux_x86_64", "host_count": 10},
-            {"name": "Linux_x86", "id": "linux_x86", "host_count": 10},
-            {"name": "ALL", "id": "all", "host_count": 20},
+            {"name": "Linux_x86_64", "id": "linux_x86_64", "count": 10},
+            {"name": "Linux_x86", "id": "linux_x86", "count": 10},
+            {"name": "ALL", "id": "all", "count": 20},
         ]
 
         mock_data = [
@@ -223,31 +225,10 @@ class PackageManageViewSet(ModelViewSet):
     @swagger_auto_schema(
         operation_summary="获取Agent包版本",
         tags=PACKAGE_MANAGE_VIEW_TAGS,
-        responses={HTTP_200_OK: pkg_manage.TagsSerializer(many=True)},
+        responses={HTTP_200_OK: pkg_manage.PackageDescResponseSerialiaer},
     )
     @action(detail=False, methods=["GET"])
     def version(self, request):
-        pass
-
-
-class AgentPackageDescViewSet(ModelViewSet):
-    queryset = models.AgentPackageDesc.objects.all()
-    # model = models.Packages
-    # http_method_names = ["get", "post"]
-    # ordering_fields = ("module",)
-    # serializer_class = pkg_manage.PackageSerializer
-    # filter_backends = (DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter)
-
-    # filter_fields = ("module", "creator", "is_ready", "version")
-
-    @swagger_auto_schema(
-        query_in=pkg_manage.PackageDescSearchSerializer,
-        responses={200: pkg_manage.PackageDescResponseSerialiaer},
-        operation_summary="Agent版本列表",
-        tags=PACKAGE_DES_VIEW_TAGS,
-    )
-    def list(self, request, *args, **kwargs):
-
         mock_data = {
             "total": 10,
             "list": [
@@ -259,7 +240,7 @@ class AgentPackageDescViewSet(ModelViewSet):
                     "description": "我是描述",
                     "packages": [
                         {
-                            "" "pkg_name": "gseagent-2.1.2.tgz",
+                            "pkg_name": "gseagent-2.1.2.tgz",
                             "tags": [{"id": "stable", "name": "稳定版本"}, {"id": "latest", "name": "最新版本"}],
                         }
                     ],
@@ -267,4 +248,43 @@ class AgentPackageDescViewSet(ModelViewSet):
             ],
         }
         return Response(mock_data)
-        # return super().list(request, *args, **kwargs)
+
+
+# class AgentPackageDescViewSet(ModelViewSet):
+#     queryset = models.AgentPackageDesc.objects.all()
+#     # model = models.Packages
+#     # http_method_names = ["get", "post"]
+#     # ordering_fields = ("module",)
+#     # serializer_class = pkg_manage.PackageSerializer
+#     # filter_backends = (DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter)
+
+#     # filter_fields = ("module", "creator", "is_ready", "version")
+
+#     @swagger_auto_schema(
+#         query_in=pkg_manage.PackageDescSearchSerializer,
+# responses={200: pkg_manage.PackageDescResponseSerialiaer},
+#         operation_summary="Agent版本列表",
+#         tags=PACKAGE_DES_VIEW_TAGS,
+#     )
+#     def list(self, request, *args, **kwargs):
+
+#         mock_data = {
+#             "total": 10,
+#             "list": [
+#                 {
+#                     "id": 1,
+#                     "version": "2.1.2",
+#                     "tags": [{"id": "stable", "name": "稳定版本"}],
+#                     "is_ready": True,
+#                     "description": "我是描述",
+#                     "packages": [
+#                         {
+#                             "pkg_name": "gseagent-2.1.2.tgz",
+#                             "tags": [{"id": "stable", "name": "稳定版本"}, {"id": "latest", "name": "最新版本"}],
+#                         }
+#                     ],
+#                 }
+#             ],
+#         }
+#         return Response(mock_data)
+#         # return super().list(request, *args, **kwargs)
