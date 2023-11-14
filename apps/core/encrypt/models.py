@@ -31,3 +31,4 @@ class RSAKey(models.Model):
         verbose_name_plural = _("非对称加密密钥")
         # 唯一性校验，name-type
         unique_together = (("name", "type", "cipher_type"),)
+        index_together = [["name", "type", "cipher_type"]]
