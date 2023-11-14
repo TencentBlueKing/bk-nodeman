@@ -235,7 +235,6 @@ class PollingTimeoutMixin:
     @property
     def service_polling_timeout(self) -> int:
         service_name = self.__class__.__name__
-        print("service_name: ", service_name)
         all_service_polling_timeout: dict = models.GlobalSettings.get_config(
             key=models.GlobalSettings.KeyEnum.BACKEND_SERVICE_POLLING_TIMEOUT.value,
             default={},
