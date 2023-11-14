@@ -98,9 +98,11 @@ class InstallBaseSerializer(serializers.Serializer):
         query_params = Q()
         query_params.connector = "OR"
         cloud_ip_host_info_map = {}
+        need_backfill_host_id: bool = False
         for _host in hosts:
             if _host.get("bk_host_id") is None:
-
+                # 任一台主机没有 bk_host_id，视为需要回填
+                need_backfill_host_id = True
                 sub_query = Q()
                 sub_query.connector = "AND"
                 sub_query.children.append(("bk_cloud_id", _host["bk_cloud_id"]))
@@ -113,6 +115,10 @@ class InstallBaseSerializer(serializers.Serializer):
 
                 cloud_ip_host_info_map[f"{_host['bk_cloud_id']}:{ip_key}"] = _host
                 query_params.children.append(sub_query)
+
+        # 如果不需要回填 HostID，直接返回，减少性能损耗
+        if not need_backfill_host_id:
+            return
 
         query_hosts: typing.List[typing.Dict] = models.Host.objects.filter(query_params).values(
             "bk_host_id", "bk_cloud_id", "inner_ip", "inner_ipv6"
