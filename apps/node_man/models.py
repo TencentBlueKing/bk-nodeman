@@ -225,12 +225,12 @@ class Host(models.Model):
     bk_addressing = models.CharField(_("寻址方式"), max_length=16, default=constants.CmdbAddressingType.STATIC.value)
 
     inner_ip = models.CharField(_("内网IP"), max_length=15, db_index=True)
-    outer_ip = models.CharField(_("外网IP"), max_length=15, blank=True, null=True, default="")
-    login_ip = models.CharField(_("登录IP"), max_length=45, blank=True, null=True, default="")
-    data_ip = models.CharField(_("数据IP"), max_length=45, blank=True, null=True, default="")
+    outer_ip = models.CharField(_("外网IP"), max_length=15, db_index=True, blank=True, null=True, default="")
+    login_ip = models.CharField(_("登录IP"), max_length=45, db_index=True, blank=True, null=True, default="")
+    data_ip = models.CharField(_("数据IP"), max_length=45, db_index=True, blank=True, null=True, default="")
 
-    inner_ipv6 = models.CharField(_("内网IPv6"), max_length=45, blank=True, null=True, default="")
-    outer_ipv6 = models.CharField(_("外网IPv6"), max_length=45, blank=True, null=True, default="")
+    inner_ipv6 = models.CharField(_("内网IPv6"), max_length=45, db_index=True, blank=True, null=True, default="")
+    outer_ipv6 = models.CharField(_("外网IPv6"), max_length=45, db_index=True, blank=True, null=True, default="")
 
     os_type = models.CharField(
         _("操作系统"), max_length=16, choices=constants.OS_CHOICES, default=constants.OsType.LINUX, db_index=True
@@ -430,6 +430,10 @@ class Host(models.Model):
         verbose_name = _("主机（Host）")
         verbose_name_plural = _("主机（Host）")
         ordering = ["-updated_at", "-bk_host_id"]
+
+        index_together = [
+            ["updated_at", "bk_host_id"],
+        ]
 
 
 class ProcessStatus(models.Model):
