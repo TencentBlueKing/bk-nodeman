@@ -165,7 +165,6 @@ class LogConfigContext(GseConfigContext):
     MODULE_ID = "LOG"
 
     path: str
-    level: str = "WARN"
     filesize_mb: int = 200
     filenum: int = 10
     rotate: int = 0
