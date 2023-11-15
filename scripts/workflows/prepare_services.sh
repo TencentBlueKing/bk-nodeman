@@ -1,4 +1,4 @@
-exit 1
+exit 0
 if [ "$YUM_INSTALL_SERVICE" ]; then
   yum install mysql-devel -y
   yum install redis -y

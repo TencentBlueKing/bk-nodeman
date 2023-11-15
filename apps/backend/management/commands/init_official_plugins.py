@@ -19,14 +19,24 @@ from django.conf import settings
 from django.core.management.base import BaseCommand
 from django.db.transaction import atomic
 
+from apps.backend.management.commands import utils
 from apps.backend.plugin import tools
+from apps.backend.subscription.handler import SubscriptionHandler
 from apps.core.files.storage import get_storage
+from apps.core.tag.constants import TargetType
+from apps.core.tag.handlers import TagHandler
 from apps.node_man import constants, models
 from apps.utils import files
 from common.log import logger
 
+log_and_print = utils.get_log_and_print("init_official_plugins")
+
 
 class Command(BaseCommand):
+    def add_arguments(self, parser):
+        parser.add_argument("-t", "--tag", help="为目标版本所指定的标签", type=str)
+        parser.add_argument("-r", "--run-policy", help="触发部署策略", action="store_true", default=False)
+
     def handle(self, *args, **options):
         """
         初始化内置官方插件
@@ -38,6 +48,10 @@ class Command(BaseCommand):
         file_count = 0
         # 成功导入插件包的技术
         package_count = 0
+        tag = options.get("tag")
+        run_policy = options.get("run_policy") or False
+
+        log_and_print(f"options: tag -> {tag}, run_policy -> {run_policy}")
 
         storage = get_storage()
 
@@ -93,6 +107,36 @@ class Command(BaseCommand):
 
             file_count += 1
             package_count += len(package_list)
+
+            if tag and package_list:
+                one_of_pkg = package_list[0]
+                log_and_print(
+                    f"tag to be created: name -> {tag}, plugin_name -> {one_of_pkg.plugin_desc.name}, "
+                    f"version -> {one_of_pkg.version}"
+                )
+                TagHandler.publish_tag_version(
+                    name=tag,
+                    target_type=TargetType.PLUGIN.value,
+                    target_id=one_of_pkg.plugin_desc.id,
+                    target_version=one_of_pkg.version,
+                )
+
+            if tag and run_policy:
+                to_be_run_policies = models.Subscription.objects.filter(
+                    plugin_name=one_of_pkg.plugin_desc.name,
+                    category=models.Subscription.CategoryType.POLICY,
+                    pid=models.Subscription.ROOT,
+                    enable=True,
+                )
+                for policy in to_be_run_policies:
+                    log_and_print(f"policy to be run: name -> {policy.name}, id -> {policy.id}")
+                    try:
+                        run_result = SubscriptionHandler(policy.id).run()
+                        log_and_print(f"policy run: name -> {policy.name}, id -> {policy.id}, result -> {run_result}")
+                    except Exception as e:
+                        log_and_print(
+                            f"policy run failed but skipped: name -> {policy.name}, id -> {policy.id}, error -> {e}"
+                        )
 
         logger.info(
             "all package under path->[%s] is import success, file_count->[%s] package_count->[%s]"
