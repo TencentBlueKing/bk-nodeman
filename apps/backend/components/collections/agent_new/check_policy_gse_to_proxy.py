@@ -30,10 +30,13 @@ class CheckPolicyGseToProxyService(AgentExecuteScriptService):
         self, data, common_data: CommonData, host: models.Host
     ) -> Dict[str, Union[List[Dict[str, Any]], List[int]]]:
         # 取接入点
-        ap: models.AccessPoint = common_data.ap_id_obj_map[common_data.injected_ap_id or host.ap_id]
+        host_ap: models.AccessPoint = self.get_host_ap(common_data=common_data, host=host)
         file_endpoint_host_ids = models.Host.objects.filter(
             Q(bk_cloud_id=constants.DEFAULT_CLOUD, bk_addressing=constants.CmdbAddressingType.STATIC.value)
-            & (Q(inner_ip__in=ap.file_endpoint_info.inner_hosts) | Q(inner_ipv6=ap.file_endpoint_info.inner_hosts))
+            & (
+                Q(inner_ip__in=host_ap.file_endpoint_info.inner_hosts)
+                | Q(inner_ipv6=host_ap.file_endpoint_info.inner_hosts)
+            )
         ).values_list("bk_host_id", flat=True)
 
         return {
@@ -42,13 +45,14 @@ class CheckPolicyGseToProxyService(AgentExecuteScriptService):
                     "bk_cloud_id": constants.DEFAULT_CLOUD,
                     "ip": inner_host,
                 }
-                for inner_host in ap.file_endpoint_info.inner_hosts
+                for inner_host in host_ap.file_endpoint_info.inner_hosts
             ],
             "host_id_list": list(file_endpoint_host_ids),
         }
 
     def get_script_content(self, data, common_data: AgentCommonData, host: models.Host) -> str:
-        port_config = common_data.host_id__ap_map[host.bk_host_id].port_config
+        host_ap: models.AccessPoint = self.get_host_ap(common_data=common_data, host=host)
+        port_config = host_ap.port_config
         btsvr_thrift_port = port_config.get("btsvr_thrift_port")
 
         gse_version = data.get_one_of_inputs("meta", {}).get("GSE_VERSION")
