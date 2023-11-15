@@ -171,6 +171,7 @@ export default class TaskList extends Mixins(PollMixin, HeaderFilterMixins)<Dict
       this.date = value as Date[];
     } else {
       this.dateType = value as 'date' | Dictionary;
+      this.handleGetConditionData();
       this.reGetHistoryList();
     }
   }
@@ -242,7 +243,12 @@ export default class TaskList extends Mixins(PollMixin, HeaderFilterMixins)<Dict
 
   // 获取搜索条件
   public async handleGetConditionData() {
-    const filterData = await TaskStore.getFilterList();
+    const { start_time, end_time } = this.getCommonParams();
+    const params = { category: 'job', start_time };
+    if (end_time) {
+      Object.assign(params,  { end_time });
+    }
+    const filterData = await TaskStore.getFilterList(params);
     this.filterData.splice(0, 0, ...filterData);
   }
 
