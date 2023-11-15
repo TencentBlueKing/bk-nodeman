@@ -1,4 +1,7 @@
 #!/bin/bash
+
+set -euo pipefail
+
 # 当前脚本目录
 SCRIPT_DIR=$(dirname $(readlink -f "$0"))
 
@@ -9,6 +12,8 @@ EOF
 ${SCRIPT_DIR}/prepare_services.sh
 
 ${SCRIPT_DIR}/install.sh
+
+${SCRIPT_DIR}/migrate_checker.sh
 
 ${SCRIPT_DIR}/code_quality.sh
 

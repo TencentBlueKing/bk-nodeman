@@ -14,6 +14,8 @@ from django.conf import settings
 from django.core.management import call_command
 
 from apps.backend.tests.plugin import utils
+from apps.core.tag.targets import PluginTargetHelper
+from apps.mock_data import backend_mkd
 from apps.mock_data import utils as mock_data_utils
 from apps.node_man import models
 
@@ -30,6 +32,57 @@ class ImportCommandTestCase(utils.PluginBaseTestCase):
         self.assertTrue(models.Packages.objects.all().exists())
         self.assertTrue(models.UploadPackage.objects.all().exists())
         self.assertTrue(models.PluginConfigTemplate.objects.all().exists())
+
+
+class ImportCommandWithTagTestCase(ImportCommandTestCase):
+    def test_import_command(self):
+        """测试导入命令"""
+        call_command("init_official_plugins", tag="stable")
+        self.assertTrue(models.Packages.objects.all().exists())
+        self.assertTrue(models.UploadPackage.objects.all().exists())
+        self.assertTrue(models.PluginConfigTemplate.objects.all().exists())
+
+        plugin_desc = models.GsePluginDesc.objects.get(name=utils.PLUGIN_NAME)
+        tag = PluginTargetHelper.get_tag(plugin_desc.id, utils.PACKAGE_VERSION)
+        self.assertEqual(tag.name, "stable")
+
+
+class ImportCommandWithRunPolicyTestCase(ImportCommandTestCase):
+    def test_import_command(self):
+        """测试导入命令"""
+
+        scope = backend_mkd.subscription.unit.SUBSCRIPTION_DATA["scope"]
+        sub = models.Subscription.objects.create(
+            bk_biz_id=scope["bk_biz_id"],
+            object_type=scope["object_type"],
+            node_type=scope["node_type"],
+            nodes=scope["nodes"],
+            target_hosts=backend_mkd.subscription.unit.SUBSCRIPTION_DATA.get("target_hosts"),
+            from_system="blueking",
+            creator="admin",
+            enable=True,
+            name="test_policy",
+            pid=models.Subscription.ROOT,
+            plugin_name=utils.PLUGIN_NAME,
+            category=models.Subscription.CategoryType.POLICY,
+        )
+
+        SubscriptionHandler = mock.MagicMock()
+        SubscriptionHandler.run = mock.MagicMock(return_value={"task_id": 1, "subscription_id": sub.id})
+        with mock.patch(
+            "apps.backend.management.commands.init_official_plugins.SubscriptionHandler",
+            return_value=SubscriptionHandler,
+        ):
+            call_command("init_official_plugins", tag="stable", run_policy=True)
+
+        SubscriptionHandler.run.assert_called_once()
+        self.assertTrue(models.Packages.objects.all().exists())
+        self.assertTrue(models.UploadPackage.objects.all().exists())
+        self.assertTrue(models.PluginConfigTemplate.objects.all().exists())
+
+        plugin_desc = models.GsePluginDesc.objects.get(name=utils.PLUGIN_NAME)
+        tag = PluginTargetHelper.get_tag(plugin_desc.id, utils.PACKAGE_VERSION)
+        self.assertEqual(tag.name, "stable")
 
 
 class ImportCommandBkRepoTestCase(ImportCommandTestCase):
