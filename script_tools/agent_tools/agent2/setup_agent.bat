@@ -1101,12 +1101,14 @@ goto :EOF
     ) else (
         %gse_winagent_home%\\agent\\bin\\gse_agent.exe --register
     )
-    if %errorlevel% EQU 0 (
+
+    for /F "tokens=*" %%i in ('%GSE_AGENT_BIN_DIR%\gse_agent.exe --agent-id -f %GSE_AGENT_ETC_DIR%\gse_agent.conf') do (set agentidinfo=%%i)
+
+    echo %agentidinfo% | findstr /I /C:"agent-id:" >nul 2>&1 && (
         call :print INFO start_register_agent_id - "register agent id success"
-        for /F "tokens=*" %%i in ('%GSE_AGENT_BIN_DIR%\gse_agent.exe --agent-id -f %GSE_AGENT_ETC_DIR%\gse_agent.conf') do (set agentidinfo=%%i)
         call :print INFO report_agent_id DONE "!agentidinfo!"
         call :multi_report_step_status
-    ) else (
+    ) || (
         call :print FAIL start_register_agent_id FAILED "register agent id failed"
         call :multi_report_step_status
         exit /b 1
@@ -1124,9 +1126,11 @@ goto :EOF
     ) else (
         %gse_winagent_home%\\agent\\bin\\gse_agent.exe --register %agentid%
     )
-    if %errorlevel% EQU 0 (
+
+    for /F "tokens=2" %%i in ('%GSE_AGENT_BIN_DIR%\gse_agent.exe --agent-id -f %GSE_AGENT_ETC_DIR%\gse_agent.conf') do (set agentidinfo=%%i)
+    
+    if %agentid% == %agentidinfo% (
         call :print INFO re_register_agent_id - "re_register agent id success"
-        for /F "tokens=*" %%i in ('%GSE_AGENT_BIN_DIR%\gse_agent.exe --agent-id -f %GSE_AGENT_ETC_DIR%\gse_agent.conf') do (set agentidinfo=%%i)
         call :print INFO report_agent_id DONE "!agentidinfo!"
         call :multi_report_step_status
     ) else (
