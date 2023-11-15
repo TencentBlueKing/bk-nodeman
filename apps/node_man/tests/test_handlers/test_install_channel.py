@@ -85,5 +85,5 @@ class InstallChannelHiddenTestCase(CustomAPITestCase):
         )
 
         self.assertEqual(len(self.client.get("/api/install_channel/")["data"]), 10)
-        self.assertEqual(len(self.client.get("/api/install_channel/", {"hidden": True})["data"]), 10)
-        self.assertEqual(len(self.client.get("/api/install_channel/", {"hidden": False})["data"]), 11)
+        self.assertEqual(len(self.client.get("/api/install_channel/", {"with_hidden": False})["data"]), 10)
+        self.assertEqual(len(self.client.get("/api/install_channel/", {"with_hidden": True})["data"]), 11)
