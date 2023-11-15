@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import copy
+import json
 
 from apps.backend.subscription.steps.agent_adapter.adapter import AgentStepAdapter
 from apps.backend.tests.agent.utils import VERSION, AgentBaseTestCase, ProxyBaseTestCase
@@ -140,6 +141,10 @@ class Proxy2StepAdapterWithManagerTestCase(Proxy2StepAdapterTestCase):
         ).get_matching_template_env(self.host.os_type, self.host.cpu_arch, constants.GsePackageCode.PROXY.value)
 
         self.assertEqual(proxy_env["BK_GSE_HOME_DIR"], "/usr/local/gse/proxy")
+
+    def test_render_log_level(self):
+        config = json.loads(self.get_config(self.agent_step_adapter.get_main_config_filename()))
+        self.assertEqual(config["logger"]["level"], "INFO")
 
 
 class Agent2StepAdapterTestCase(AgentStepAdapterTestCase):
