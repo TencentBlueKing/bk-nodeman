@@ -27,12 +27,15 @@ class InstallChannelViewSet(ModelViewSet):
     permission_classes = (InstallChannelPermission,)
 
     def get_queryset(self):
-        hidden: str = self.request.query_params.get("hidden", True)
-        is_hidden: bool = str2bool(str(hidden))
-        if not is_hidden:
-            return InstallChannel.objects.filter(hidden=False)
-        else:
+        # 默认不返回隐藏的安装通道
+        with_hidden: str = self.request.query_params.get("with_hidden", False)
+        with_hidden: bool = str2bool(str(with_hidden))
+        if with_hidden:
+            #  如果 hidden 为 True, 则返回所有安装通道
             return InstallChannel.objects.all()
+        else:
+            # 如果 hidden 为 False, 则返回所有未隐藏的安装通道
+            return InstallChannel.objects.filter(hidden=False)
 
     @swagger_auto_schema(
         operation_summary="创建安装通道",
