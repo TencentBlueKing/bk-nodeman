@@ -223,6 +223,7 @@ class HostQuerySqlHelper:
         where_or = []
         topo_host_ids: typing.Optional[typing.Set[int]] = None
         topo_biz_scope: typing.Set[int] = set()
+        is_enable_cloud_area_ip_filter = 0
 
         for condition in params.get("conditions", []):
             if condition["key"] in [
@@ -240,16 +241,7 @@ class HostQuerySqlHelper:
                 filter_q &= Q(**{f"{condition['key']}__in": condition["value"]})
 
             elif condition["key"] in ["ip"]:
-                ipv6s: typing.Set[str] = set()
-                ipv4s: typing.Set[str] = set()
-
-                for ip in condition["value"]:
-                    if basic.is_v6(ip):
-                        ipv6s.add(basic.exploded_ip(ip))
-                    else:
-                        ipv4s.add(ip)
-
-                filter_q &= Q(inner_ip__in=ipv4s) | Q(inner_ipv6__in=ipv6s)
+                filter_q = handle_ip_search(condition["value"], filter_q)
 
             elif condition["key"] in ["os_type"]:
                 # 如果传的是 none，替换成 ""
@@ -259,13 +251,7 @@ class HostQuerySqlHelper:
 
             elif condition["key"] in ["status", "version"]:
                 # process_status 精确搜索
-                placeholder: typing.List[str] = []
-                for cond_val in condition["value"]:
-                    placeholder.append("%s")
-                    sql_params.append(cond_val)
-                wheres.append(
-                    f'{node_man_models.ProcessStatus._meta.db_table}.{condition["key"]} in ({",".join(placeholder)})'
-                )
+                sql_params, wheres = handle_status_version_condition(condition, sql_params, wheres)
 
             elif condition["key"] in ["is_manual"]:
                 # 对于布尔值的过滤条件，非法选项剔除
@@ -335,6 +321,18 @@ class HostQuerySqlHelper:
                         fuzzy_search_fields=fuzzy_search_fields,
                     )
 
+            elif condition["key"] in ["enable_compression"]:
+                condition_values_set: typing.Set = set(condition["value"])
+                filter_q = handle_enable_compression_condition(condition_values_set, filter_q)
+
+            elif condition["key"] in ["bt_node_detection"]:
+                condition_values_set: typing.Set = set(condition["value"])
+                filter_q = handle_bt_node_detection_condition(condition_values_set, filter_q)
+
+            elif condition["key"] in ["bk_cloud_ip"]:
+                filter_q = handle_bk_cloud_ip_search(condition, filter_q)
+                is_enable_cloud_area_ip_filter = 1
+
         wheres = init_wheres + wheres
         if where_or:
             # 用AND连接
@@ -354,9 +352,9 @@ class HostQuerySqlHelper:
             .extra(
                 select=select, tables=[node_man_models.ProcessStatus._meta.db_table], where=wheres, params=sql_params
             )
-            .filter(filter_q)
             .filter(topo_query)
         )
+        host_queryset = handle_filter_queryset_by_flag_value(is_enable_cloud_area_ip_filter, host_queryset, filter_q)
 
         return host_queryset
 
@@ -537,3 +535,114 @@ class HostQueryHelper:
             # 将 RUNNING / NOT_INSTALLED 外的状态汇总为 TERMINATED
             node_man_constants.ProcStateType.TERMINATED: total - running_count - not_install_count,
         }
+
+
+def handle_ip_search(condition_values, filter_q):
+    """
+    处理IP筛选
+    :param condition_values:筛选条件值
+    :param filter_q:初始的Q查询语句
+    :return: filter_q经过处理后拼接的Q查询语句
+    """
+    ipv6s: typing.Set[str] = set()
+    ipv4s: typing.Set[str] = set()
+
+    for ip in condition_values:
+        if basic.is_v6(ip):
+            ipv6s.add(basic.exploded_ip(ip))
+        else:
+            ipv4s.add(ip)
+
+    filter_q &= Q(inner_ip__in=ipv4s) | Q(inner_ipv6__in=ipv6s)
+    return filter_q
+
+
+def handle_status_version_condition(condition, sql_params, wheres):
+    """
+    处理status、version筛选
+    :param condition: 筛选条件键值对
+    :param sql_params:
+    :param wheres:
+    :return:
+    """
+    placeholder: typing.List[str] = []
+    for cond_val in condition["value"]:
+        placeholder.append("%s")
+        sql_params.append(cond_val)
+    wheres.append(f'{node_man_models.ProcessStatus._meta.db_table}.{condition["key"]} in ({",".join(placeholder)})')
+    return sql_params, wheres
+
+
+def handle_bt_node_detection_condition(condition_values, filter_q):
+    """
+    处理 BT节点探测筛选
+    """
+    if len(condition_values) > 1 and condition_values == set([0, 1]):
+        return filter_q
+
+    elif len(condition_values) == 1 and list(condition_values)[0] in [0, 1]:
+        condition_value = list(condition_values)[0]
+        if condition_value == constants.HostBTNodeDetectionConditionValue.ENABLE.value:
+            filter_q &= Q(extra_data__peer_exchange_switch_for_agent=condition_value)
+        if condition_value == constants.HostBTNodeDetectionConditionValue.DISABLE.value:
+            filter_q &= Q(extra_data__peer_exchange_switch_for_agent=condition_value) | Q(extra_data={})
+
+        return filter_q
+
+    else:
+        filter_q &= Q(bk_host_id=-1)
+        return filter_q
+
+
+def handle_enable_compression_condition(condition_values, filter_q):
+    """
+    处理数据压缩筛选
+    """
+    if len(condition_values) > 1 and condition_values == set(["True", "False"]):
+        return filter_q
+
+    elif len(condition_values) == 1 and list(condition_values)[0] in ["True", "False"]:
+        condition_value = list(condition_values)[0]
+        condition_value = bool(condition_value.lower() == "true")
+        if condition_value:
+            filter_q &= Q(extra_data__enable_compression=condition_value)
+        else:
+            filter_q &= Q(extra_data__enable_compression=condition_value) | Q(extra_data={})
+
+        return filter_q
+
+    else:
+        filter_q &= Q(bk_host_id=-1)
+        return filter_q
+
+
+def handle_bk_cloud_ip_search(condition, filter_q):
+    """
+    处理管控区域ID:IP筛选
+    """
+    ipv6s: typing.Set[str] = set()
+    ipv4s: typing.Set[str] = set()
+    bk_cloud_ip_set: typing.Set[str] = set()
+    for ip_or_cloud_ip in condition["value"]:
+        block_num: int = len(ip_or_cloud_ip.split(constants.CommonEnum.SEP.value, 1))
+        if block_num == 2:
+            bk_cloud_ip_set.add(ip_or_cloud_ip)
+        # 对于误传ip的情况先不做处理；如有后续需求；再做整改
+        elif block_num == 1:
+            if basic.is_v6(ip_or_cloud_ip):
+                ipv6s.add(basic.exploded_ip(ip_or_cloud_ip))
+            else:
+                ipv4s.add(ip_or_cloud_ip)
+
+    filter_q &= Q(**{"bk_cloud_ip__in": bk_cloud_ip_set})
+    return filter_q
+
+
+def handle_filter_queryset_by_flag_value(is_enable_cloud_area_ip_filter, host_queryset, filter_q):
+    if not is_enable_cloud_area_ip_filter:
+        host_queryset = host_queryset.filter(filter_q)
+    else:
+        host_queryset = host_queryset.annotate(
+            bk_cloud_ip=Concat("bk_cloud_id", Value(":"), "inner_ip", output_field=CharField())
+        ).filter(filter_q)
+    return host_queryset

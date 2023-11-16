@@ -190,9 +190,11 @@ class TestMeta(testcase.CustomAPITestCase):
 
         result = MetaHandler().filter_condition("plugin_host")
         self.assertEqual(result[0], {"name": "IP", "id": "ip"})
-        self.assertEqual(len(result[3]["children"]), total_cloud_num)
+        self.assertEqual(result[1], {"name": "管控区域ID:IP", "id": "bk_cloud_ip"})
+
+        self.assertEqual(len(result[4]["children"]), total_cloud_num)
         self.assertEqual(
-            result[4],
+            result[5],
             {
                 "name": "操作系统",
                 "id": "os_type",
@@ -200,7 +202,7 @@ class TestMeta(testcase.CustomAPITestCase):
             },
         )
         self.assertEqual(
-            result[5],
+            result[6],
             {
                 "id": "status",
                 "name": "Agent状态",
@@ -209,6 +211,31 @@ class TestMeta(testcase.CustomAPITestCase):
                 ],
             },
         )
+        plugin_bt_or_compress_condition_value = [0, 1]
+        condition_key = ["停用", "启用"]
+        self.assertEqual(
+            result[7],
+            {
+                "id": "bt_node_detection",
+                "name": "BT节点探测",
+                "children": [
+                    {"name": condition_key[condition], "id": condition}
+                    for condition in plugin_bt_or_compress_condition_value
+                ],
+            },
+        )
+        if settings.BKAPP_ENABLE_DHCP:
+            self.assertEqual(
+                result[8],
+                {
+                    "id": "enable_compression",
+                    "name": "数据压缩",
+                    "children": [
+                        {"name": condition_key[condition], "id": str(bool(condition))}
+                        for condition in plugin_bt_or_compress_condition_value
+                    ],
+                },
+            )
 
     @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)
     def test_job_setting(self):
