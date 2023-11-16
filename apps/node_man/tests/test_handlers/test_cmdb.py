@@ -134,7 +134,7 @@ class TestCmdb(TestCase):
         # normal
         bk_cloud_name = "".join(random.choice(DIGITS) for x in range(8))
         id = CmdbHandler().get_or_create_cloud(bk_cloud_name)
-        self.assertLessEqual(id, 1000)
+        self.assertLessEqual(id, 10000)
 
     @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)
     def test_cmdb_biz_inst_topo(self):

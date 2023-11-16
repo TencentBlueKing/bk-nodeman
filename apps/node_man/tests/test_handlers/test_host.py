@@ -330,3 +330,284 @@ class TestHost(TestCase):
         )
 
         self.assertEqual(len(result), number)
+
+    # 测试精准(BT节点探测,数据压缩, status)查询
+    @patch("apps.node_man.handlers.cmdb.CmdbHandler.cmdb_or_cache_biz", cmdb_or_cache_biz)
+    @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)
+    def test_accurate_conditions(self):
+        number = 1000
+        page_size = 10
+        create_cloud_area(number, creator="admin")
+        host_to_create, _, _ = create_host(number)
+        hosts = HostHandler().list(
+            {
+                "pagesize": page_size,
+                "page": 1,
+                "conditions": [
+                    {"key": "status", "value": ["RUNNING", "TERMINATED", "NOT_INSTALLED"]},
+                    {"key": "bt_node_detection", "value": [0, 1]},
+                    {"key": "enable_compression", "value": ["True", "False"]},
+                ],
+                "bk_cloud_id": [[0, 1][random.randint(0, 1)]],
+                "only_ip": False,
+                "bk_biz_id": [random.randint(27, 39), random.randint(27, 39)],
+                "extra_data": ["identity_info", "job_result"],
+            },
+            "admin",
+        )
+        for host_ip in hosts["list"]:
+            self.assertRegex(host_ip["inner_ip"], IP_REG)
+        self.assertLessEqual(len(hosts["list"]), page_size)
+
+    # 测试管控区域:IP、version、IP查询; 因创建主机的IP具有随机性，无法进行准确校验，以空数据作为校验的标准
+    @patch("apps.node_man.handlers.cmdb.CmdbHandler.cmdb_or_cache_biz", cmdb_or_cache_biz)
+    @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)
+    def test_bk_cloud_ip(self):
+        number = 1000
+        page_size = 10
+        create_cloud_area(number, creator="admin")
+        host_to_create, _, _ = create_host(number)
+        hosts = HostHandler().list(
+            {
+                "pagesize": page_size,
+                "page": 1,
+                "conditions": [
+                    {"key": "version", "value": ["1"]},
+                    {"key": "ip", "value": ["1.1.1.1"]},
+                    {"key": "bk_cloud_ip", "value": ["0:1.1.1.1"]},
+                ],
+                "bk_cloud_id": [[0, 1][random.randint(0, 1)]],
+                "only_ip": False,
+                "bk_biz_id": [random.randint(27, 39), random.randint(27, 39)],
+                "extra_data": ["identity_info", "job_result"],
+            },
+            "admin",
+        )
+        for host_ip in hosts["list"]:
+            self.assertRegex(host_ip, IP_REG)
+        self.assertLessEqual(len(hosts["list"]), page_size)
+
+    # 启用数据压缩
+    @patch("apps.node_man.handlers.cmdb.CmdbHandler.cmdb_or_cache_biz", cmdb_or_cache_biz)
+    @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)
+    def test_only_enable_compression(self):
+        number = 100
+        page_size = 10
+        create_cloud_area(number, creator="admin")
+        host_to_create, _, _ = create_host(number)
+        hosts = HostHandler().list(
+            {
+                "pagesize": page_size,
+                "page": 1,
+                "conditions": [
+                    {"key": "enable_compression", "value": ["True"]},
+                ],
+                "bk_cloud_id": [[0, 1][random.randint(0, 1)]],
+                "only_ip": False,
+                "bk_biz_id": [random.randint(27, 39), random.randint(27, 39)],
+                "extra_data": ["identity_info", "job_result"],
+            },
+            "admin",
+        )
+        for host_ip in hosts["list"]:
+            self.assertRegex(host_ip, IP_REG)
+        self.assertLessEqual(len(hosts["list"]), page_size)
+
+    # 停用数据压缩
+    @patch("apps.node_man.handlers.cmdb.CmdbHandler.cmdb_or_cache_biz", cmdb_or_cache_biz)
+    @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)
+    def test_only_disable_compression(self):
+        number = 100
+        page_size = 10
+        create_cloud_area(number, creator="admin")
+        host_to_create, _, _ = create_host(number)
+        hosts = HostHandler().list(
+            {
+                "pagesize": page_size,
+                "page": 1,
+                "conditions": [{"key": "enable_compression", "value": ["False"]}],
+                "bk_cloud_id": [[0, 1][random.randint(0, 1)]],
+                "only_ip": False,
+                "bk_biz_id": [random.randint(27, 39), random.randint(27, 39)],
+                "extra_data": ["identity_info", "job_result"],
+            },
+            "admin",
+        )
+        for host_ip in hosts["list"]:
+            self.assertRegex(host_ip["inner_ip"], IP_REG)
+        self.assertLessEqual(len(hosts["list"]), page_size)
+
+    # 启用BT节点探测
+    @patch("apps.node_man.handlers.cmdb.CmdbHandler.cmdb_or_cache_biz", cmdb_or_cache_biz)
+    @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)
+    def test_only_enable_bt_node_detection(self):
+        number = 100
+        page_size = 10
+        create_cloud_area(number, creator="admin")
+        host_to_create, _, _ = create_host(number)
+        hosts = HostHandler().list(
+            {
+                "pagesize": page_size,
+                "page": 1,
+                "conditions": [{"key": "bt_node_detection", "value": [1]}],
+                "bk_cloud_id": [[0, 1][random.randint(0, 1)]],
+                "only_ip": False,
+                "bk_biz_id": [random.randint(27, 39), random.randint(27, 39)],
+                "extra_data": ["identity_info", "job_result"],
+            },
+            "admin",
+        )
+        for host_ip in hosts["list"]:
+            self.assertRegex(host_ip, IP_REG)
+        self.assertLessEqual(len(hosts["list"]), page_size)
+
+    # 停用BT节点探测
+    @patch("apps.node_man.handlers.cmdb.CmdbHandler.cmdb_or_cache_biz", cmdb_or_cache_biz)
+    @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)
+    def test_only_disable_bt_node_detection(self):
+        number = 100
+        page_size = 10
+        create_cloud_area(number, creator="admin")
+        host_to_create, _, _ = create_host(number)
+        hosts = HostHandler().list(
+            {
+                "pagesize": page_size,
+                "page": 1,
+                "conditions": [{"key": "bt_node_detection", "value": [0]}],
+                "bk_cloud_id": [[0, 1][random.randint(0, 1)]],
+                "only_ip": False,
+                "bk_biz_id": [random.randint(27, 39), random.randint(27, 39)],
+                "extra_data": ["identity_info", "job_result"],
+            },
+            "admin",
+        )
+        for host_ip in hosts["list"]:
+            self.assertRegex(host_ip["inner_ip"], IP_REG)
+        self.assertLessEqual(len(hosts["list"]), page_size)
+
+    # 测试管控区域ID:IP 遗失管控区域id的测试
+    @patch("apps.node_man.handlers.cmdb.CmdbHandler.cmdb_or_cache_biz", cmdb_or_cache_biz)
+    @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)
+    def test_lose_bk_cloud_id(self):
+        number = 1000
+        page_size = 10
+        create_cloud_area(number, creator="admin")
+        host_to_create, _, _ = create_host(number)
+        hosts = HostHandler().list(
+            {
+                "pagesize": page_size,
+                "page": 1,
+                "conditions": [
+                    {"key": "bk_cloud_ip", "value": ["1.1.1.1"]},
+                ],
+                "bk_cloud_id": [[0, 1][random.randint(0, 1)]],
+                "only_ip": False,
+                "bk_biz_id": [random.randint(27, 39), random.randint(27, 39)],
+                "extra_data": ["identity_info", "job_result"],
+            },
+            "admin",
+        )
+        for host_ip in hosts["list"]:
+            self.assertRegex(host_ip, IP_REG)
+        self.assertLessEqual(len(hosts["list"]), page_size)
+
+    # 弥补之前未撰写的 host 精确搜索测试
+    def test_acc_search_in_keywords_list(self):
+        number = 1000
+        page_size = 10
+        create_cloud_area(number, creator="admin")
+        host_to_create, _, _ = create_host(number)
+        hosts = HostHandler().list(
+            {
+                "pagesize": page_size,
+                "page": 1,
+                "conditions": [
+                    {"key": "inner_ip", "value": ["2.2.2.2"]},
+                ],
+                "bk_cloud_id": [[0, 1][random.randint(0, 1)]],
+                "only_ip": False,
+                "bk_biz_id": [random.randint(27, 39), random.randint(27, 39)],
+                "extra_data": ["identity_info", "job_result"],
+            },
+            "admin",
+        )
+        for host_ip in hosts["list"]:
+            self.assertRegex(host_ip, IP_REG)
+        self.assertLessEqual(len(hosts["list"]), page_size)
+
+    @patch("apps.node_man.handlers.cmdb.CmdbHandler.cmdb_or_cache_biz", cmdb_or_cache_biz)
+    @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)
+    def test_acc_bk_cloud_ip(self):
+        page_size = 10
+        for i in range(1, 11):
+            create_host(1, bk_host_id=i, ip=f"1.1.1.{i}", bk_cloud_id=0)
+        for j in range(1, 11):
+            create_host(1, bk_host_id=j + 10, ip=f"1.1.1.{j}", bk_cloud_id=1)
+        hosts = HostHandler().list(
+            {
+                "pagesize": page_size,
+                "page": 1,
+                "conditions": [
+                    {"key": "bk_cloud_ip", "value": ["0:1.1.1.1", "1:1.1.1.1", "1.1.1.1"]},
+                ],
+                "bk_cloud_id": [[0, 1][random.randint(0, 1)]],
+                "only_ip": False,
+                "bk_biz_id": [k for k in range(27, 40)],
+                "extra_data": ["identity_info", "job_result"],
+            },
+            "admin",
+        )
+        for host_ip in hosts["list"]:
+            self.assertRegex(host_ip["inner_ip"], IP_REG)
+        self.assertLessEqual(len(hosts["list"]), 2)
+        self.assertLessEqual(len(hosts["list"]), page_size)
+
+    # 数据压缩传递错误参数测试
+    @patch("apps.node_man.handlers.cmdb.CmdbHandler.cmdb_or_cache_biz", cmdb_or_cache_biz)
+    @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)
+    def test_wrong_case_about_compression(self):
+        number = 100
+        page_size = 10
+        create_cloud_area(number, creator="admin")
+        host_to_create, _, _ = create_host(number)
+        hosts = HostHandler().list(
+            {
+                "pagesize": page_size,
+                "page": 1,
+                "conditions": [{"key": "enable_compression", "value": ["False", 1, "true", 2, 0]}],
+                "bk_cloud_id": [[0, 1][random.randint(0, 1)]],
+                "only_ip": False,
+                "bk_biz_id": [random.randint(27, 39), random.randint(27, 39)],
+                "extra_data": ["identity_info", "job_result"],
+            },
+            "admin",
+        )
+        for host_ip in hosts["list"]:
+            self.assertRegex(host_ip["inner_ip"], IP_REG)
+        self.assertEqual(len(hosts["list"]), 0)
+        self.assertLessEqual(len(hosts["list"]), page_size)
+
+    # BT节点探测传递错误参数测试
+    @patch("apps.node_man.handlers.cmdb.CmdbHandler.cmdb_or_cache_biz", cmdb_or_cache_biz)
+    @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)
+    def test_wrong_case_about_bt_node_detection(self):
+        number = 100
+        page_size = 10
+        create_cloud_area(number, creator="admin")
+        host_to_create, _, _ = create_host(number)
+        hosts = HostHandler().list(
+            {
+                "pagesize": page_size,
+                "page": 1,
+                "conditions": [{"key": "bt_node_detection", "value": ["False", 1, "true", 2, 0, "hello"]}],
+                "bk_cloud_id": [[0, 1][random.randint(0, 1)]],
+                "only_ip": False,
+                "bk_biz_id": [random.randint(27, 39), random.randint(27, 39)],
+                "extra_data": ["identity_info", "job_result"],
+            },
+            "admin",
+        )
+        for host_ip in hosts["list"]:
+            self.assertRegex(host_ip["inner_ip"], IP_REG)
+        self.assertEqual(len(hosts["list"]), 0)
+        self.assertLessEqual(len(hosts["list"]), page_size)
