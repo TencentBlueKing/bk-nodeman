@@ -73,3 +73,14 @@ class AgentStatusType(EnhanceEnum):
     @classmethod
     def _get_member__alias_map(cls) -> Dict[Enum, str]:
         return {cls.ALIVE: _("存活"), cls.NO_ALIVE: _("未存活")}
+
+
+class HostBTNodeDetectionConditionValue(EnhanceEnum):
+    """对于BT节点探测的筛选值"""
+
+    ENABLE = 1
+    DISABLE = 0
+
+    @classmethod
+    def _get_member__alias_map(cls) -> Dict[Enum, str]:
+        return {cls.ENABLE: _("启用"), cls.DISABLE: _("停用")}
