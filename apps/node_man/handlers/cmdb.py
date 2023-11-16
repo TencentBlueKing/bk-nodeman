@@ -91,11 +91,19 @@ class CmdbHandler(APIModel):
                 return {"info": []}
 
     @classmethod
-    def biz_id_name_without_permission(cls, username=None):
+    def biz_id_name_without_permission(cls, username=None) -> Dict[int, str]:
 
         biz_cache = cache.get("biz_id_name" + BIZ_CACHE_SUFFIX)
         if biz_cache:
-            return biz_cache
+            biz_id_name: Dict[int, str] = {}
+            for bk_biz_id_str, bk_biz_name in biz_cache.items():
+                try:
+                    biz_id_name[int(bk_biz_id_str)] = bk_biz_name
+                except Exception:
+                    logger.warning(f"[biz_id_name_without_permission] bk_biz_id -> {bk_biz_id_str} is not int")
+                    biz_id_name[bk_biz_id_str] = bk_biz_name
+            return biz_id_name
+
         username = username or get_request_username()
         all_biz = cls.cmdb_or_cache_biz(username)["info"]
         resource_pool_biz = {"bk_biz_id": settings.BK_CMDB_RESOURCE_POOL_BIZ_ID, "bk_biz_name": "资源池"}
