@@ -703,8 +703,8 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
             if status == "FAILED":
                 error_log = log
                 logger.warning(
-                    f"[app_core_remote:handle_report_data:scripts_error] install failed: "
-                    f"sub_inst_id -> {sub_inst_id}, labels -> {labels}, log -> {error_log}"
+                    f"[app_core_remote:handle_report_data:scripts_error] install failed: sub_inst_id -> {sub_inst_id}, "
+                    f"ip -> {host.inner_ip or host.inner_ipv6}, labels -> {labels}, log -> {error_log}"
                 )
                 metrics.app_core_remote_install_exceptions_total.labels(**labels).inc()
                 is_finished = True
@@ -744,7 +744,8 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
                     healthz_result_dict = {"is_parseable": False, "log": data["log"]}
                     logger.warning(
                         f"[app_core_remote:handle_report_data:scripts_error] healthz decode failed: "
-                        f"sub_inst_id -> {sub_inst_id}, labels -> {labels}, result -> {healthz_result_dict}"
+                        f"sub_inst_id -> {sub_inst_id}, ip -> {host.inner_ip or host.inner_ipv6}, labels -> {labels}, "
+                        f"result -> {healthz_result_dict}"
                     )
                     metrics.app_core_remote_install_exceptions_total.labels(**labels).inc()
 
