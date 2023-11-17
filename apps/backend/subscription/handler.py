@@ -306,7 +306,11 @@ class SubscriptionHandler(object):
         except models.Subscription.DoesNotExist:
             raise errors.SubscriptionNotExist({"subscription_id": self.subscription_id})
 
-        if tools.check_subscription_is_disabled(subscription):
+        if tools.check_subscription_is_disabled(
+            subscription_identity=f"subscription -> [{subscription.id}]",
+            scope=subscription.scope,
+            steps=subscription.steps,
+        ):
             raise errors.SubscriptionIncludeGrayBizError()
 
         base_filter_kwargs = filter_values(
@@ -421,7 +425,11 @@ class SubscriptionHandler(object):
         if subscription.is_running():
             raise InstanceTaskIsRunning()
 
-        if tools.check_subscription_is_disabled(subscription):
+        if tools.check_subscription_is_disabled(
+            subscription_identity=f"subscription -> [{subscription.id}]",
+            scope=subscription.scope,
+            steps=subscription.steps,
+        ):
             raise errors.SubscriptionIncludeGrayBizError()
 
         subscription_task = models.SubscriptionTask.objects.create(
