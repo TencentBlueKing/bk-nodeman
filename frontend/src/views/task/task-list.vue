@@ -87,11 +87,8 @@ export default class TaskList extends Mixins(PollMixin, HeaderFilterMixins)<Dict
   }
 
   private created() {
-    this.initPage();
-  }
-
-  private mounted() {
     this.getHistortListDebounce = debounce(300, this.getHistortList);
+    this.initPage();
   }
   // 进入详情页才缓存界面
   private beforeRouteLeave(to: Route, from: Route, next: () => void) {
@@ -117,13 +114,16 @@ export default class TaskList extends Mixins(PollMixin, HeaderFilterMixins)<Dict
         message: this.$t('当前操作拆分为多个子任务请关注最终执行结果'),
       });
     }
-
-    this.getHistortList();
-    this.handleGetConditionData();
+    this.handleReload();
   }
 
   // 从第一页开始拉取数据
   @Watch('selectedBiz')
+  public handleReload() {
+    this.handleGetConditionData();
+    this.reGetHistoryList();
+  }
+
   public reGetHistoryList() {
     this.pagination.current = 1;
     this.getHistortListDebounce();
@@ -171,7 +171,7 @@ export default class TaskList extends Mixins(PollMixin, HeaderFilterMixins)<Dict
       this.date = value as Date[];
     } else {
       this.dateType = value as 'date' | Dictionary;
-      this.reGetHistoryList();
+      this.handleReload();
     }
   }
 
@@ -242,8 +242,9 @@ export default class TaskList extends Mixins(PollMixin, HeaderFilterMixins)<Dict
 
   // 获取搜索条件
   public async handleGetConditionData() {
-    const filterData = await TaskStore.getFilterList();
-    this.filterData.splice(0, 0, ...filterData);
+    const params = this.getCommonParams();
+    const filterData = await TaskStore.getFilterList(Object.assign(params,  { category: 'job' }));
+    this.filterData.splice(0, this.filterData.length, ...filterData);
   }
 
   // 获取请求参数
@@ -269,6 +270,7 @@ export default class TaskList extends Mixins(PollMixin, HeaderFilterMixins)<Dict
     }
     if (this.selectedBiz.length) {
       params.bk_biz_id = [...this.selectedBiz];
+      params.bk_biz_ids = [...this.selectedBiz]; // 缩小筛选条件需要的参数
     }
     if (this.sortData.head && this.sortData.sortType) {
       params.sort = { head: this.sortData.head, sort_type: this.sortData.sortType };
