@@ -117,10 +117,6 @@ class SubscriptionViewSet(APIViewSet):
             if subscription.is_running():
                 raise InstanceTaskIsRunning()
 
-            # 立即执行场景，如果订阅被禁用，需要抛出异常
-            if tools.check_subscription_is_disabled(subscription):
-                raise errors.SubscriptionIncludeGrayBizError()
-
             subscription_task = models.SubscriptionTask.objects.create(
                 subscription_id=subscription.id, scope=subscription.scope, actions={}
             )
@@ -198,6 +194,13 @@ class SubscriptionViewSet(APIViewSet):
                 subscription = models.Subscription.objects.get(id=params["subscription_id"], is_deleted=False)
             except models.Subscription.DoesNotExist:
                 raise errors.SubscriptionNotExist({"subscription_id": params["subscription_id"]})
+            # 更新订阅不在序列化器中做校验，因为获取更新订阅的类型 step 需要查一次表
+            if tools.check_subscription_is_disabled(
+                subscription_identity=f"subscription -> [{subscription.id}]",
+                steps=subscription.steps,
+                scope=scope,
+            ):
+                raise errors.SubscriptionIncludeGrayBizError()
 
             subscription.name = params.get("name", "")
             subscription.node_type = scope["node_type"]
@@ -270,10 +273,6 @@ class SubscriptionViewSet(APIViewSet):
         if run_immediately:
             if subscription.is_running():
                 raise InstanceTaskIsRunning()
-
-            # 立即执行场景，如果订阅被禁用，需要抛出异常
-            if tools.check_subscription_is_disabled(subscription):
-                raise errors.SubscriptionIncludeGrayBizError()
 
             subscription_task = models.SubscriptionTask.objects.create(
                 subscription_id=subscription.id, scope=subscription.scope, actions={}

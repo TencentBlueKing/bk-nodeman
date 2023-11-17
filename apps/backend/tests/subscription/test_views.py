@@ -32,6 +32,7 @@ from apps.mock_data.common_unit.host import (
 )
 from apps.node_man import constants
 from apps.node_man.models import (
+    GlobalSettings,
     GsePluginDesc,
     Host,
     Packages,
@@ -48,6 +49,8 @@ class TestSubscription(TestCase):
     """
     测试订阅相关的接口
     """
+
+    TEST_BIZ_ID = 2
 
     def setUp(self):
         mock.patch.stopall()
@@ -92,7 +95,12 @@ class TestSubscription(TestCase):
                 {
                     "bk_username": "admin",
                     "bk_app_code": "blueking",
-                    "scope": {"bk_biz_id": 2, "node_type": "TOPO", "object_type": "SERVICE", "nodes": [{"id": 123}]},
+                    "scope": {
+                        "bk_biz_id": self.TEST_BIZ_ID,
+                        "node_type": "TOPO",
+                        "object_type": "SERVICE",
+                        "nodes": [{"id": 123}],
+                    },
                     "steps": [
                         {
                             "id": "my_first",
@@ -437,6 +445,10 @@ class TestSubscription(TestCase):
         self._test_instance_status(subscription_id)
         self._test_check_task_ready(subscription_id=subscription_id, task_id_list=[task_id])
         self._test_check_task_not_exist(subscription_id=subscription_id, task_id_list=[task_id])
+
+    def test_disable_biz_subscriptin(self):
+        GlobalSettings.set_config(GlobalSettings.KeyEnum.DISABLE_SUBSCRIPTION_SCOPE_LIST.value, [self.TEST_BIZ_ID])
+        self.assertRaises(AttributeError, self._test_create_subscription)
 
     def test_delete_subscription(self):
         subscription_id = self._test_create_subscription()
