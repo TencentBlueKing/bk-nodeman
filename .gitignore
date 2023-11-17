@@ -180,8 +180,9 @@ tests/postman/bkman
 .helm
 !env/
 
-# frontend
+# frontend & preCI生成文件
 vetur.config.js
+build.yml
 
 
 ## Helm
