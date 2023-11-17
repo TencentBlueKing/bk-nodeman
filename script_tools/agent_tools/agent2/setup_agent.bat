@@ -141,7 +141,7 @@ goto :EOF
 goto :EOF
 
 :is_process_start_ok
-    ping -n 1 127.0.0.1 >nul 2>&1
+    ping -n 10 127.0.0.1 >nul 2>&1
     wmic process where name='gse_agent_daemon.exe' get processid,executablepath,name 2>&1 | findstr /i ^"%AGENT_SETUP_PATH%^" 1>nul 2>&1
     if %errorlevel% neq 0 (
         call :print FAIL setup_agent FAILED "Process gse_agent_daemon.exe start failed"
