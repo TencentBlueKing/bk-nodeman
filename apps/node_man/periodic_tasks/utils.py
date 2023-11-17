@@ -168,10 +168,10 @@ class JobDemand(object):
 @dataclass
 class SyncHostApMapConfig:
     enable: bool = False
-    default_ap_id: typing.Dict[str, typing.Dict[str, int]] = None
-    gray_ap_map: typing.Dict[str, typing.Dict[str, int]] = None
-    cloud_ap_id_map: typing.Dict[str, typing.Dict[str, int]] = None
-    ap_id_obj_map: typing.Dict[str, typing.Dict[str, int]] = None
+    default_ap_id: typing.Dict[str, int] = None
+    gray_ap_map: typing.Dict[int, int] = None
+    cloud_ap_id_map: typing.Dict[int, int] = None
+    ap_id_obj_map: typing.Dict[int, models.AccessPoint] = None
 
     def __post_init__(self):
         if self.enable:
@@ -201,7 +201,7 @@ def get_host_ap_id(
 ) -> int:
     # 获取配置
     if default_ap_id != constants.DEFAULT_AP_ID or not ap_map_config.enable:
-        # 只有一个接口的情况直接返回 或未开启配置
+        # 只有一个接入点或者未开启配置的情况直接返回
         return default_ap_id
 
     # 获取开关和映射
