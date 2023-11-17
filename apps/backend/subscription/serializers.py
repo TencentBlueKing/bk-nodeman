@@ -12,9 +12,11 @@ specific language governing permissions and limitations under the License.
 import base64
 
 from bkcrypto.asymmetric.ciphers import BaseAsymmetricCipher
+from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from apps.backend.constants import SubscriptionSwithBizAction
+from apps.backend.subscription.tools import check_subscription_is_disabled
 from apps.exceptions import ValidationError
 from apps.node_man import constants, models, tools
 from apps.node_man.models import ProcessStatus
@@ -95,6 +97,10 @@ class CreateSubscriptionSerializer(GatewaySerializer):
     pid = serializers.IntegerField(required=False, label="父策略ID")
 
     def validate(self, attrs):
+        if check_subscription_is_disabled(
+            subscription_identity=attrs["scope"], scope=attrs["scope"], steps=attrs["steps"]
+        ):
+            raise ValidationError(_("订阅范围包含Gse2.0灰度业务"))
         step_types = {step["type"] for step in attrs["steps"]}
         if constants.SubStepType.AGENT not in step_types:
             return attrs
