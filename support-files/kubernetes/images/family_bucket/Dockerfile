@@ -87,7 +87,7 @@ RUN set -ex && \
     pip install --no-cache-dir bkoauth==0.0.22
 
 # 移除 upstreams 检查
-RUN set -ex && sed -i '/check_polices_${node_type}_to_upstream/s/^/#/' script_tools/setup_agent.sh
+RUN set -ex && sed -i '/check_polices_\${node_type}_to_upstream/s/^/#/' script_tools/setup_agent.sh
 
 
 FROM base-app AS ee-app

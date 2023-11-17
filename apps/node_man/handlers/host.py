@@ -514,6 +514,9 @@ class HostHandler(APIModel):
         :return:
         """
 
+        if not ips:
+            return {}
+
         ips: Set[str] = set(ips)
         login_ip_field_name: str = "login_ip"
         login_ip_filter_k: str = "login_ip__in"

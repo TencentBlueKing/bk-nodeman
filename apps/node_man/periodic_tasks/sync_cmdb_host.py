@@ -103,6 +103,51 @@ def _bulk_update_host(hosts, extra_fields):
         models.Host.objects.bulk_update(hosts, fields=update_fields)
 
 
+def apply_gray_compensation_strategy(
+    hosts: typing.List[models.Host],
+    extra_fields: typing.List[str],
+    default_ap_id: int,
+    ap_map_config: SyncHostApMapConfig,
+    host_id__ap_id_map: typing.Dict[int, int],
+    is_gse2_gray: bool = False,
+):
+    # TODO 灰度补偿策略
+    # 1. 主机从已灰度业务，转移到未灰度业务，视为按业务灰度，不做处理
+    # 【补充】场景 1. 存在主机先删，再加回未灰度业务，从而接入点最终重定向为 V1 的情况，暂不处理该情况，后续视出现概率继续补充
+    # 🌟2. 主机从未灰度业务，转移到已灰度业务，需要补偿标记灰度
+    if not hosts:
+        return
+    if not is_gse2_gray:
+        _bulk_update_host(hosts, extra_fields)
+        logger.info(f"[apply_gray_compensation_strategy] not in gse2, count -> {len(hosts)}")
+        return
+
+    need_apply_compensation_strategy_hosts: typing.List[models.Host] = []
+    not_need_apply_compensation_strategy_hosts: typing.List[models.Host] = []
+    for host in hosts:
+        ap_id: int = host_id__ap_id_map[host.bk_host_id]
+        expect_ap_id: int = get_host_ap_id(
+            default_ap_id=default_ap_id,
+            bk_cloud_id=host.bk_cloud_id,
+            ap_map_config=ap_map_config,
+            is_gse2_gray=is_gse2_gray,
+        )
+        if ap_id != expect_ap_id:
+            host.ap_id = expect_ap_id
+            need_apply_compensation_strategy_hosts.append(host)
+        else:
+            not_need_apply_compensation_strategy_hosts.append(host)
+
+    _bulk_update_host(not_need_apply_compensation_strategy_hosts, extra_fields)
+    _bulk_update_host(need_apply_compensation_strategy_hosts, extra_fields + ["ap_id"])
+
+    logger.info(
+        f"[apply_gray_compensation_strategy] "
+        f"not_need_apply_compensation_strategy_hosts -> {len(not_need_apply_compensation_strategy_hosts)}, "
+        f"need_apply_compensation_strategy_hosts -> {len(need_apply_compensation_strategy_hosts)}"
+    )
+
+
 def _generate_host(biz_id, host, ap_id, is_os_type_priority=False, is_sync_cmdb_host_apply_cpu_arch=False):
     os_type = tools.HostV2Tools.get_os_type(host, is_os_type_priority)
     cpu_arch = tools.HostV2Tools.get_cpu_arch(host, is_sync_cmdb_host_apply_cpu_arch, os_type=os_type)
@@ -163,16 +208,20 @@ def update_or_create_host_base(biz_id, ap_map_config, is_gse2_gray, task_id, cmd
     bk_host_ids = [_host["bk_host_id"] for _host in cmdb_host_data]
 
     # 查询节点管理已存在的主机
-    exist_proxy_host_ids: typing.Set[int] = set(
-        models.Host.objects.filter(bk_host_id__in=bk_host_ids, node_type=constants.NodeType.PROXY).values_list(
-            "bk_host_id", flat=True
-        )
-    )
-    exist_agent_host_ids: typing.Set[int] = set(
+    exist_proxy_host_ids: typing.Set[int] = set()
+    exist_agent_host_ids: typing.Set[int] = set()
+    host_id__ap_id_map: typing.Dict[int, int] = {}
+    for host in (
         models.Host.objects.filter(bk_host_id__in=bk_host_ids)
-        .exclude(node_type=constants.NodeType.PROXY)
-        .values_list("bk_host_id", flat=True)
-    )
+        .filter(bk_host_id__in=bk_host_ids)
+        .values("bk_host_id", "ap_id", "node_type")
+    ):
+        if host["node_type"] == constants.NodeType.PROXY:
+            exist_proxy_host_ids.add(host["bk_host_id"])
+        else:
+            exist_agent_host_ids.add(host["bk_host_id"])
+        host_id__ap_id_map[host["bk_host_id"]] = host["ap_id"]
+
     host_ids_in_exist_identity_data: typing.Set[int] = set(
         models.IdentityData.objects.filter(bk_host_id__in=bk_host_ids).values_list("bk_host_id", flat=True)
     )
@@ -265,8 +314,22 @@ def update_or_create_host_base(biz_id, ap_map_config, is_gse2_gray, task_id, cmd
         need_update_hosts.append(models.Host(**host_params))
 
     with transaction.atomic():
-        _bulk_update_host(need_update_hosts, [])
-        _bulk_update_host(need_update_hosts_with_arch, ["cpu_arch"])
+        apply_gray_compensation_strategy(
+            hosts=need_update_hosts,
+            extra_fields=[],
+            default_ap_id=default_ap_id,
+            ap_map_config=ap_map_config,
+            host_id__ap_id_map=host_id__ap_id_map,
+            is_gse2_gray=is_gse2_gray,
+        )
+        apply_gray_compensation_strategy(
+            hosts=need_update_hosts_with_arch,
+            extra_fields=["cpu_arch"],
+            default_ap_id=default_ap_id,
+            ap_map_config=ap_map_config,
+            host_id__ap_id_map=host_id__ap_id_map,
+            is_gse2_gray=is_gse2_gray,
+        )
 
         if need_create_hosts:
             models.Host.objects.bulk_create(need_create_hosts, batch_size=500)
@@ -288,7 +351,9 @@ def sync_biz_incremental_hosts(
     """
     同步业务增量主机
     :param bk_biz_id: 业务ID
+    :param ap_map_config:
     :param expected_bk_host_ids: 期望得到的主机ID列表
+    :param is_gse2_gray:
     :return:
     """
     logger.info(
@@ -324,6 +389,7 @@ def bulk_differential_sync_biz_hosts(expected_bk_host_ids_gby_bk_biz_id: typing.
     params_list: typing.List[typing.Dict] = []
     ap_map_config: SyncHostApMapConfig = get_sync_host_ap_map_config()
     gray_tools: GrayTools = GrayTools()
+    # TODO 开始跳跃
     for bk_biz_id, bk_host_ids in expected_bk_host_ids_gby_bk_biz_id.items():
         params_list.append(
             {
