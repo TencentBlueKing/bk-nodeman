@@ -1462,36 +1462,53 @@ def update_job_status(pipeline_id, result=None):
     )
 
 
-def check_subscription_is_disabled(subscription: models.Subscription, disable_biz_ids: List[int] = None) -> bool:
+def check_subscription_is_disabled(
+    subscription_identity: str,
+    scope: typing.Dict[str, typing.Any],
+    steps: typing.Union[typing.List[Dict[str, typing.Any]], typing.List[models.SubscriptionStep]],
+    disable_biz_ids: List[int] = None,
+) -> bool:
     """
     检查订阅任务是否已被禁用巡检
     """
-    if not disable_biz_ids:
-        disable_biz_ids: List[int] = models.GlobalSettings.get_config(
-            key=models.GlobalSettings.KeyEnum.DISABLE_SUBSCRIPTION_SCOPE_LIST.value,
-            default=[],
-        )
 
+    nodes = scope["nodes"]
     is_step_include_plugin: bool = False
-    for step in subscription.steps:
-        if step.type == constants.SubStepType.PLUGIN:
+    for step in steps:
+        sub_step_type = step.type if hasattr(step, "type") else step["type"]
+        if sub_step_type == constants.SubStepType.PLUGIN:
             is_step_include_plugin = True
             break
 
     # 非插件类任务不进行禁用
     if not is_step_include_plugin:
-        logger.info(f"[check_subscription_is_disabled] {subscription}: not include plugin step, skipping")
+        logger.info(f"[check_subscription_is_disabled] {subscription_identity}: not include plugin step, skipping")
         return False
+
+    disable_biz_ids: List[int] = models.GlobalSettings.get_config(
+        key=models.GlobalSettings.KeyEnum.DISABLE_SUBSCRIPTION_SCOPE_LIST.value,
+        default=[],
+    )
+    nodes_biz_ids: typing.List[int] = [node["bk_biz_id"] for node in nodes if node.get("bk_biz_id") is not None]
+
+    full_biz_scope_ids: typing.List[int] = [
+        node["bk_inst_id"]
+        for node in nodes
+        if node.get("bk_obj_id") == InstNodeType.BIZ
+        if node.get("bk_inst_id") is not None
+    ]
+
+    nodes_biz_ids = nodes_biz_ids + full_biz_scope_ids
 
     if any(
         [
-            subscription.bk_biz_id in disable_biz_ids,
-            set(subscription.bk_biz_scope or []) & set(disable_biz_ids),
+            scope.get("bk_biz_id") in disable_biz_ids,
+            set(nodes_biz_ids) & set(disable_biz_ids),
         ]
     ):
         # 禁用规则：订阅业务范围中包含已被禁用的业务
-        logger.info(f"[check_subscription_is_disabled] {subscription}: in the disable list, will be disabled")
+        logger.info(f"[check_subscription_is_disabled] {subscription_identity}: in the disable list, will be disabled")
         return True
 
-    logger.info(f"[check_subscription_is_disabled] {subscription}: not in the disable list, skipping")
+    logger.info(f"[check_subscription_is_disabled] {subscription_identity}: not in the disable list, skipping")
     return False

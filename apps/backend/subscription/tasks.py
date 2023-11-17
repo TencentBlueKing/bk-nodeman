@@ -800,12 +800,12 @@ def update_subscription_instances_chunk(subscription_ids: List[int]):
     分片更新订阅状态
     """
     subscriptions = models.Subscription.objects.filter(id__in=subscription_ids, enable=True)
-    disable_subscription_biz_ids: List[int] = models.GlobalSettings.get_config(
-        key=models.GlobalSettings.KeyEnum.DISABLE_SUBSCRIPTION_SCOPE_LIST.value,
-        default=[],
-    )
     for subscription in subscriptions:
-        if tools.check_subscription_is_disabled(subscription, disable_subscription_biz_ids):
+        if tools.check_subscription_is_disabled(
+            subscription_identity=f"subscription -> [{subscription.id}]",
+            scope=subscription.scope,
+            steps=subscription.steps,
+        ):
             logger.info("[update_subscription_instances] skipped for subscription disabled")
             continue
         logger.info(f"[update_subscription_instances] start: {subscription}")
