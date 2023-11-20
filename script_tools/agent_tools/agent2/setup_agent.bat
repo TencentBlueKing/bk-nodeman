@@ -141,27 +141,46 @@ goto :EOF
 goto :EOF
 
 :is_process_start_ok
+setlocal enabledelayedexpansion
+set gse_agent_daemon_is_started=
+set gse_agent_is_started=
+for /l %%n in (1, 1, 10) do (
     ping -n 1 127.0.0.1 >nul 2>&1
     wmic process where name='gse_agent_daemon.exe' get processid,executablepath,name 2>&1 | findstr /i ^"%AGENT_SETUP_PATH%^" 1>nul 2>&1
-    if %errorlevel% neq 0 (
-        call :print FAIL setup_agent FAILED "Process gse_agent_daemon.exe start failed"
-        call :multi_report_step_status
-        exit /b 2
-    ) else (
+    set gse_agent_daemon_is_started=%errorlevel%
+    wmic process where name='gse_agent.exe' get processid,executablepath,name 2>&1 | findstr /i ^"%AGENT_SETUP_PATH%^" 1>nul 2>&1
+    set gse_agent_is_started=%errorlevel%
+
+    if !gse_agent_daemon_is_started! equ 0 if !gse_agent_is_started! equ 0 (
         call :print_check_deploy_result INFO setup_agent - "Process gse_agent_daemon.exe start success" 1>nul 2>&1
         call :print INFO setup_agent - "Process gse_agent_daemon.exe start success"
         call :multi_report_step_status
-    )
-    wmic process where name='gse_agent.exe' get processid,executablepath,name 2>&1 | findstr /i ^"%AGENT_SETUP_PATH%^" 1>nul 2>&1
-    if %errorlevel% neq 0 (
-        call :print FAIL setup_agent FAILED "Process gse_agent.exe start failed"
-        call :multi_report_step_status
-        exit /b 2
-    ) else (
         call :print_check_deploy_result INFO setup_agent - "Process gse_agent.exe start success" 1>nul 2>&1
         call :print INFO setup_agent - "Process gse_agent.exe start success"
         call :multi_report_step_status
+        goto :EOF
     )
+)
+if %gse_agent_daemon_is_started% neq 0 (
+    call :print FAIL setup_agent FAILED "Process gse_agent_daemon.exe start failed"
+    call :multi_report_step_status
+    exit /b 2
+) else (
+    call :print_check_deploy_result INFO setup_agent - "Process gse_agent_daemon.exe start success" 1>nul 2>&1
+    call :print INFO setup_agent - "Process gse_agent_daemon.exe start success"
+    call :multi_report_step_status
+)
+    
+if %gse_agent_is_started% neq 0 (
+    call :print FAIL setup_agent FAILED "Process gse_agent.exe start failed"
+    call :multi_report_step_status
+    exit /b 2
+) else (
+    call :print_check_deploy_result INFO setup_agent - "Process gse_agent.exe start success" 1>nul 2>&1
+    call :print INFO setup_agent - "Process gse_agent.exe start success"
+    call :multi_report_step_status
+)
+endlocal  
 goto :EOF
 
 :is_process_stop_ok
