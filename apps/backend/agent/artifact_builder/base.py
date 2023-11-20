@@ -517,7 +517,7 @@ class BaseArtifactBuilder(abc.ABC):
                     agent_name=self.NAME,
                 )
 
-    def update_or_create_package_records(self, v):
+    def update_or_create_package_records(self, package_infos):
         """
         创建或更新安装包记录，待 Agent 包管理完善
         :param package_infos:

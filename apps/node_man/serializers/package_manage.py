@@ -11,14 +11,21 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
+from apps.core.tag.models import Tag
 from apps.exceptions import ValidationError
-from apps.node_man.constants import GsePackageCode
+from apps.node_man.constants import BUILT_IN_TAG_NAMES, GsePackageCode
+from apps.node_man.models import GsePackageDesc
 
 
 class TagsSerializer(serializers.Serializer):
-    id = serializers.CharField()
     name = serializers.CharField()
-    children = serializers.ListField()
+    description = serializers.CharField()
+
+
+class ParentTagSerializer(serializers.Serializer):
+    name = serializers.CharField()
+    description = serializers.CharField()
+    children = TagsSerializer(many=True)
 
 
 class ConditionsSerializer(serializers.Serializer):
@@ -26,16 +33,68 @@ class ConditionsSerializer(serializers.Serializer):
     values = serializers.ListField()
 
 
-class PackageSerializer(serializers.Serializer):
+class BasePackageSerializer(serializers.Serializer):
+    def get_tags(self, obj):
+        agent_project_ids = GsePackageDesc.objects.filter(project=obj.project).values_list("id", flat=True)
+        tags = Tag.objects.filter(target_id__in=agent_project_ids, target_version=obj.version).values_list(
+            "name", "description"
+        )
+
+        mock_built_in_tags, mock_custom_tags = self.split_builtin_tags_and_custom_tags(tags)
+        mock_data = [
+            {
+                "name": "builtin",
+                "description": "内置标签",
+                "children": mock_built_in_tags,
+            },
+            {"name": "custom", "description": "自定义标签", "children": mock_custom_tags},
+        ]
+        self.filter_no_children_parent_tag(mock_data)
+        return ParentTagSerializer(mock_data, many=True).data
+
+    @classmethod
+    def split_builtin_tags_and_custom_tags(cls, tags):
+        """将标签拆分为内置的和自定义的"""
+        built_in_tags, custom_tags = [], []
+        for name, description in tags:
+            if name in BUILT_IN_TAG_NAMES:
+                built_in_tags.append({"name": name, "description": description})
+            else:
+                custom_tags.append({"name": name, "description": description})
+
+        return built_in_tags, custom_tags
+
+    @classmethod
+    def filter_no_children_parent_tag(cls, parent_tags):
+        for i in range(len(parent_tags) - 1, -1, -1):
+            if not parent_tags[i].get("children"):
+                parent_tags.pop(i)
+
+
+class PackageSerializer(BasePackageSerializer):
     id = serializers.IntegerField()
     pkg_name = serializers.CharField()
     version = serializers.CharField()
     os = serializers.CharField()
     cpu_arch = serializers.CharField()
-    tags = TagsSerializer(many=True)
-    creator = serializers.CharField()
-    pkg_ctime = serializers.DateTimeField()
+    # tags = TagsSerializer(many=True)
+    tags = serializers.SerializerMethodField()
+    created_by = serializers.CharField()
+    created_time = serializers.DateTimeField()
     is_ready = serializers.BooleanField()
+
+
+class FilterConditionPackageSerializer(BasePackageSerializer):
+    version = serializers.CharField()
+    tags = serializers.SerializerMethodField()
+    created_by = serializers.CharField()
+    is_ready = serializers.BooleanField()
+
+
+class QuickFilterConditionPackageSerializer(BasePackageSerializer):
+    version = serializers.CharField()
+    os = serializers.CharField()
+    cpu_arch = serializers.CharField()
 
 
 class PackageDescSerializer(serializers.Serializer):
@@ -58,6 +117,13 @@ class PackageDescResponseSerialiaer(serializers.Serializer):
 
 class OperateSerializer(serializers.Serializer):
     is_ready = serializers.BooleanField()
+
+    def update(self, instance, validated_data):
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+
+        instance.save()
+        return instance
 
 
 class QuickSearchSerializer(serializers.Serializer):
@@ -90,13 +156,20 @@ class ParseSerializer(serializers.Serializer):
 
 class ParseResponseSerializer(serializers.Serializer):
     class ParsePackageSerializer(serializers.Serializer):
-        module = serializers.ChoiceField(choices=["agent", "proxy"])
-        pkg_name = serializers.CharField()
-        pkg_abs_path = serializers.CharField()
-        version = serializers.CharField()
+        project = serializers.ChoiceField(choices=["agent", "proxy"], required=False)
+        pkg_name = serializers.CharField(required=False)
+        pkg_abs_path = serializers.CharField(source="pkg_absolute_path")
+        version = serializers.CharField(required=False)
         os = serializers.CharField()
         cpu_arch = serializers.CharField()
-        config_templates = serializers.ListField()
+        config_templates = serializers.ListField(default=[])
+
+        def to_representation(self, instance):
+            data = super().to_representation(instance)
+            data["project"] = self.context.get("project", "")
+            data["pkg_name"] = self.context.get("pkg_name", "")
+            data["version"] = self.context.get("version", "")
+            return data
 
     description = serializers.CharField()
     packages = ParsePackageSerializer(many=True)
