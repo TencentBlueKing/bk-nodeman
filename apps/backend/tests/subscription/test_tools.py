@@ -22,7 +22,7 @@ from apps.backend.tests.subscription.utils import (
     CmdbClient,
     list_biz_hosts_without_info_client,
 )
-from apps.node_man import models, constants
+from apps.node_man import constants, models
 
 # 全局使用的mock
 run_task = mock.patch("apps.backend.subscription.tasks.run_subscription_task").start()
@@ -203,3 +203,57 @@ class TestTools(TestCase):
             }
         )
         self.assertEqual(len(list(instances.keys())), 0)
+
+    def test_sub_biz_priority(self):
+        # 之前订阅优先使用 scope.bk_biz_id 作为整个订阅的业务范围，后面调整为优先使用 scope.nodes 内的业务范围
+        instances = get_instances_by_scope(
+            {
+                "object_type": "HOST",
+                "node_type": "INSTANCE",
+                "bk_biz_id": 2,
+                "nodes": [
+                    {"ip": "127.0.0.1", "bk_cloud_id": 0, "bk_supplier_id": 0, "bk_biz_id": 2},
+                    {"ip": "127.0.0.2", "bk_cloud_id": 0, "bk_supplier_id": 0, "bk_biz_id": 3},
+                ],
+            }
+        )
+
+        self.assertEqual(len(list(instances.keys())), 1)
+        instances = get_instances_by_scope(
+            {
+                "object_type": "HOST",
+                "node_type": "INSTANCE",
+                "nodes": [
+                    {"ip": "127.0.0.1", "bk_cloud_id": 0, "bk_supplier_id": 0, "bk_inst_id": 2, "bk_obj_id": "biz"},
+                ],
+            }
+        )
+        self.assertEqual(len(list(instances.keys())), 1)
+
+        request_handler = mock.MagicMock(
+            return_value=[
+                {"ip": "127.0.0.1", "bk_cloud_id": 0, "bk_supplier_id": 0, "bk_inst_id": 2, "bk_obj_id": "biz"}
+            ]
+        )
+        with mock.patch("apps.backend.subscription.tools.request_multi_thread", request_handler):
+            get_instances_by_scope(
+                {
+                    "object_type": "HOST",
+                    "node_type": "INSTANCE",
+                    "nodes": [
+                        {"ip": "127.0.0.1", "bk_cloud_id": 0, "bk_supplier_id": 0, "bk_inst_id": 2, "bk_obj_id": "biz"},
+                        {"ip": "127.0.0.1", "bk_cloud_id": 0, "bk_supplier_id": 0, "bk_biz_id": 3},
+                        {"ip": "127.0.0.4", "bk_cloud_id": 0, "bk_supplier_id": 0, "bk_biz_id": 3},
+                        {"ip": "127.0.0.5", "bk_cloud_id": 0, "bk_supplier_id": 0, "bk_biz_id": 3},
+                        {"ip": "127.0.0.2", "bk_cloud_id": 0, "bk_supplier_id": 0, "bk_biz_id": 4},
+                        {"ip": "127.0.0.6", "bk_cloud_id": 0, "bk_supplier_id": 0, "bk_biz_id": 4},
+                    ],
+                }
+            )
+
+        self.assertEqual(len(request_handler.call_args[0][1]), 3)
+        for instance in request_handler.call_args[0][1]:
+            if instance["scope"]["bk_biz_id"] == 3:
+                self.assertEqual(len(instance["scope"]["nodes"]), 3)
+            if instance["scope"]["bk_biz_id"] == 4:
+                self.assertEqual(len(instance["scope"]["nodes"]), 2)
