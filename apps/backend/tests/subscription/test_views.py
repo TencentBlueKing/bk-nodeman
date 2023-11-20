@@ -22,6 +22,7 @@ from apps.backend.subscription.handler import SubscriptionHandler
 from apps.backend.subscription.tasks import run_subscription_task_and_create_instance
 from apps.backend.tests.subscription.utils import (
     DEFAULT_AP_ID,
+    SCOPE_ID,
     CmdbClient,
     list_biz_hosts_without_info_client,
 )
@@ -84,7 +85,11 @@ class TestSubscription(TestCase):
 
     client = Client()
 
-    def _test_create_subscription(self):
+    def _test_create_subscription(self, update_scope=None):
+        if update_scope is None:
+            scope = {"bk_biz_id": 2, "node_type": "TOPO", "object_type": "SERVICE", "nodes": [{"id": 123}]}
+        else:
+            scope = update_scope
         r = self.client.post(
             path="/backend/api/subscription/create/",
             content_type="application/json",
@@ -92,7 +97,8 @@ class TestSubscription(TestCase):
                 {
                     "bk_username": "admin",
                     "bk_app_code": "blueking",
-                    "scope": {"bk_biz_id": 2, "node_type": "TOPO", "object_type": "SERVICE", "nodes": [{"id": 123}]},
+                    "scope": scope,
+                    "run_immediately": True,
                     "steps": [
                         {
                             "id": "my_first",
@@ -216,11 +222,26 @@ class TestSubscription(TestCase):
 
     def test_subscription_change(self):
         subscription_id = self._test_create_subscription()
+        scope_id = Subscription.objects.get(id=subscription_id).scope_id
+        self.assertEqual(scope_id, 2)
         self._test_get_subscription(subscription_id)
         self._test_update_subscription(subscription_id)
         self._test_switch_subscription(subscription_id)
 
-    def _test_run_subscription(self):
+    def test_biz_scope_subscription_change(self):
+        biz_scope = {
+            "scope_type": Subscription.ScopeType.BIZ_SET,
+            "scope_id": SCOPE_ID,
+            "node_type": "TOPO",
+            "object_type": "HOST",
+            "nodes": [{"bk_host_id": 1, "bk_biz_id": 2}],
+        }
+        subscription_id = self._test_create_subscription(update_scope=biz_scope)
+        self._test_get_subscription(subscription_id)
+        self._test_update_subscription(subscription_id)
+        self._test_switch_subscription(subscription_id)
+
+    def _test_run_subscription(self, create_scope=None):
         self.run_task.apply_async.call_count = 0
         plugin_desc_data = dict(GSE_PLUGIN_DESC_DATA, **{"name": "mysql_exporter", "config_file": "config.yaml"})
         GsePluginDesc.objects.create(**plugin_desc_data)
@@ -294,6 +315,24 @@ class TestSubscription(TestCase):
         )
         host.save()
 
+        if create_scope is None:
+            scope = {
+                "bk_biz_id": 2,
+                "node_type": "TOPO",
+                "object_type": "HOST",
+                "nodes": [
+                    {
+                        "ip": "127.0.0.1",
+                        "bk_cloud_id": 0,
+                        "bk_supplier_id": 0,
+                        "bk_obj_id": "biz",
+                        "bk_inst_id": 2,
+                    }
+                ],
+            }
+        else:
+            scope = create_scope
+
         r = self.client.post(
             path="/backend/api/subscription/create/",
             content_type="application/json",
@@ -301,20 +340,7 @@ class TestSubscription(TestCase):
                 {
                     "bk_username": "admin",
                     "bk_app_code": "blueking",
-                    "scope": {
-                        "bk_biz_id": 2,
-                        "node_type": "TOPO",
-                        "object_type": "HOST",
-                        "nodes": [
-                            {
-                                "ip": "127.0.0.1",
-                                "bk_cloud_id": 0,
-                                "bk_supplier_id": 0,
-                                "bk_obj_id": "biz",
-                                "bk_inst_id": 32,
-                            }
-                        ],
-                    },
+                    "scope": scope,
                     "steps": [
                         {
                             "id": "my_first",
@@ -386,7 +412,7 @@ class TestSubscription(TestCase):
                                 "bk_cloud_id": "0",
                                 "bk_supplier_id": "0",
                                 "bk_obj_id": "biz",
-                                "bk_inst_id": 32,
+                                "bk_inst_id": 2,
                             }
                         ],
                     },
@@ -430,6 +456,28 @@ class TestSubscription(TestCase):
             ),
         )
         self.assertEqual(r.data["data"][0]["subscription_id"], subscription_id)
+
+    def test_run_biz_set_scope_task(self):
+        create_scope = {
+            "scope_type": Subscription.ScopeType.BIZ,
+            "scope_id": 2,
+            "node_type": "INSTANCE",
+            "object_type": "HOST",
+            "nodes": [
+                {
+                    "ip": "127.0.0.1",
+                    "bk_cloud_id": 0,
+                    "bk_supplier_id": 0,
+                    "bk_obj_id": "biz",
+                    "bk_inst_id": 2,
+                }
+            ],
+        }
+        subscription_id, task_id = self._test_run_subscription(create_scope=create_scope)
+        self._test_task_result(subscription_id, task_id)
+        self._test_instance_status(subscription_id)
+        self._test_check_task_ready(subscription_id=subscription_id, task_id_list=[task_id])
+        self._test_check_task_not_exist(subscription_id=subscription_id, task_id_list=[task_id])
 
     def test_run_task(self):
         subscription_id, task_id = self._test_run_subscription()

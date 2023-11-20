@@ -36,10 +36,12 @@
 | ------------- | --------- | --- | ----------------------------------------------------------------------------------- |
 | bk_biz_id         | int       | 否   | 蓝鲸业务ID                                                                              |
 | bk_biz_scope      | int array | 否   | 蓝鲸业务ID列表                                                                            |
+| scope_type        | string    | 否   | 订阅集合类型, 1: BIZ_SET(业务集)                                                     |
+| scope_id          | int       | 否   | 订阅集合ID, 优先级高于 bk_biz_id                                                                             |
 | node_type         | string    | 是   | 节点类别，1: TOPO，动态实例（拓扑）2: INSTANCE，静态实例 3: SERVICE_TEMPLATE，服务模板 4: SET_TEMPLATE，集群模板 |
 | object_type       | string    | 是   | 对象类型，1：HOST，主机类型  2：SERVICE，服务类型                                                    |
 | need_register     | bool      | 否   | 是否需要注册到CMDB，false是不注册，true是注册。默认为不注册                                                |
-| nodes             | objects   | 是   | 节点列表，见nodes定义        
+| nodes             | objects   | 是   | 节点列表，见nodes定义
 | instance_selector | objects   | 否   | 主机属性筛选列表                                                                 |
 
 ##### config
@@ -82,7 +84,7 @@
 | bk_host_id          | int    | 否   | 主机ID                    |
 | bk_biz_id           | int    | 否   | 业务ID                    |
 | bk_inst_id          | int    | 否   | 实例ID                    |
-| bk_obj_id           | int    | 否   | 对象ID                    |
+| bk_obj_id           | string | 否   | 对象ID, 见 bk_obj_id 定义      |
 | instance_info       | object | 否   | 主机示例信息，见instance_info定义 |
 
 instance_info
@@ -119,6 +121,16 @@ instance_info
 | peer_exchange_switch_for_agent | int    | 否   | 加速设置，默认是关闭                                              |
 | enable_compression             | bool   | 否   | 数据压缩开关，默认是关闭                                              |
 | data_path                      | string | 否   | 数据文件路径                                                  |
+
+
+###### bk_obj_id
+| 字段                  | 类型     | 必选  | 描述                      |
+| ------------------- | ------ | --- | ----------------------- |
+| host   | string    | 否   | 主机                  |
+| biz    | string    | 否   | 业务                  |
+| set    | string    | 否   | 集群                  |
+| module | string    | 否   | 模块                  |
+| biz_set | string   | 否   | 业务集                 |
 
 ###### instance_selector
 
@@ -352,6 +364,22 @@ Plugin
                     }
                 }
             }
+        }
+    ]
+}
+```
+
+#### 业务集范围 scope 请求参数示例
+```json
+{
+    "object_type": "HOST",
+    "node_type": "TOPO",
+    "scope_type": "BIZ_SET",
+    "scope_id": 10,
+    "nodes": [
+        {
+            "bk_obj_id": "biz_set",
+            "bk_inst_id": 10
         }
     ]
 }

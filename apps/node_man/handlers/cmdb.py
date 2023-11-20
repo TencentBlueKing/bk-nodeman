@@ -11,13 +11,14 @@ specific language governing permissions and limitations under the License.
 import hashlib
 import math
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Dict, List
+from typing import Dict, List, Union
 
 from blueapps.account.models import User
 from django.conf import settings
 from django.core.cache import cache
 from django.utils.translation import ugettext as _
 
+from apps.backend.subscription.errors import BizSetNotExsitError
 from apps.component.esbclient import client_v2
 from apps.exceptions import ComponentCallError
 from apps.iam import Permission
@@ -590,3 +591,29 @@ class CmdbHandler(APIModel):
     @staticmethod
     def get_biz_service_template(bk_biz_id: int) -> List[Dict]:
         return batch_request(client_v2.cc.list_service_template, {"bk_biz_id": bk_biz_id})
+
+    @staticmethod
+    def list_biz_ids_in_biz_set(biz_set_id: int):
+        # 先查询业务集是否存在
+        set_count: int = client_v2.cc.list_business_set(
+            {
+                "bk_biz_set_filter": {
+                    "condition": "AND",
+                    "rules": [{"field": "bk_biz_set_id", "operator": "equal", "value": biz_set_id}],
+                },
+                "page": {"enable_count": True},
+            }
+        ).get("count", 0)
+        if set_count <= 0:
+            raise BizSetNotExsitError(biz_set_id=biz_set_id)
+
+        set__biz_info: List[Dict[str, Union[int, str]]] = batch_request(
+            func=client_v2.cc.list_business_in_business_set,
+            params={
+                "fields": ["bk_biz_id"],
+                "bk_biz_set_id": biz_set_id,
+            },
+            get_count_params_func=lambda: {"enable_count": True},
+        )
+        bk_biz_ids: List[int] = [bk_biz_info["bk_biz_id"] for bk_biz_info in set__biz_info]
+        return bk_biz_ids

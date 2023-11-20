@@ -67,6 +67,22 @@ JOB_INSTANCE_ID = 10000
 # 安装包ID
 PKG_ID = 163
 
+# 业务集
+
+CORRECT_BIZ_SET_ID = 10000002
+
+FAKE_BIZ_SET_ID = 10000003
+
+CORRECT_BIZ_SET_BIZ_INFO = [
+    {"bk_biz_id": 11, "bk_biz_name": "业务集 A 测试业务 1"},
+    {"bk_biz_id": 12, "bk_biz_name": "业务集 A 测试业务 2"},
+]
+
+OTHER_BIZ_SET_BIZ_INFO = [
+    {"bk_biz_id": 13, "bk_biz_name": "业务集 B 测试业务 1"},
+    {"bk_biz_id": 14, "bk_biz_name": "业务集 B 测试业务 2"},
+]
+
 # ---------mock path--------------
 PLUGIN_CLIENT_MOCK_PATH = "apps.backend.components.collections.plugin.JobApi"
 
@@ -152,6 +168,8 @@ SUBSCRIPTION_PARAMS = {
     "id": SUBSCRIPTION_ID,
     "object_type": DEFAULT_OBJ_TYPE,
     "node_type": DEFAULT_NODE_TYPE,
+    "scope_id": None,
+    "scope_type": None,
     # 对于Pipeline原子的测试都只用一台主机
     "nodes": [
         {
@@ -246,21 +264,82 @@ PLUGIN_CONFIG_TEMPLATE_INFO = {
     "plugin_version": "*",
 }
 
-# basereport
-PKG_PROJECT_NAME = "gseagent"
+PKG_VERSION = "10.8.50"
+
+PKG_PROJECT_NAME = "basereport"
 PKG_INFO = {
     "id": PKG_ID,
-    "os": "linux",
+    "os": const.OsType.LINUX.lower(),
+    "cpu_arch": const.CpuType.x86_64,
     "module": "gse_plugin",
     "creator": DEFAULT_CREATOR,
     "project": PKG_PROJECT_NAME,
-    "version": "10.8.50",
-    "cpu_arch": "x86_64",
+    "version": PKG_VERSION,
     "is_ready": True,
     "pkg_size": 1,
-    "pkg_name": "basereport-10.8.50.tgz",
+    "pkg_name": f"{PKG_PROJECT_NAME}-{PKG_VERSION}.tgz",
     "pkg_ctime": "2021-05-31 03:25:16.779281+00:00",
     "pkg_mtime": "2021-05-31 03:25:16.779281+00:00",
+}
+
+PLUGIN_TEMPLATE_ID = 998
+
+PLUGIN_TEMPLATE_CONTENT = """
+ # ================================ Outputs =====================================
+ output.bkpipe:
+   synccfg: true
+   endpoint: '{{ plugin_path.endpoint }}'
+   # 地址分配方式，static：静态 dynamic：动态
+   bk_addressing: {{ cmdb_instance.host.bk_addressing|default('static', true) }}
+ {%- if nodeman is defined %}
+   hostip: {{ nodeman.host.inner_ip }}
+ {%- else %}
+   hostip: {{ cmdb_instance.host.bk_host_innerip_v6 if cmdb_instance.host.bk_host_innerip_v6 and not \
+       cmdb_instance.host.bk_host_innerip else cmdb_instance.host.bk_host_innerip }}
+ {%- endif %}
+   cloudid: {{ cmdb_instance.host.bk_cloud_id[0].id if cmdb_instance.host.bk_cloud_id is iterable and\
+       cmdb_instance.host.bk_cloud_id is not string else cmdb_instance.host.bk_cloud_id }}
+   hostid: {{ cmdb_instance.host.bk_host_id }}
+"""
+
+RENDERED_PLUGIN_TEMPLATE_CONTENT = """
+# ================================ Outputs =====================================
+output.bkpipe:
+  synccfg: true
+  endpoint: '/usr/local/gse/agent/data/ipc.state.report'
+  # 地址分配方式，static：静态 dynamic：动态
+  bk_addressing: static
+  hostip: {hostip}
+  cloudid: {cloudid}
+  hostid: {hostid}
+
+path.logs: '/var/log/gse'
+path.data: '/var/lib/gse'
+path.pid: '/var/run/gse'
+seccomp.enabled: false
+""".format(
+    hostip=TEST_IP, cloudid=const.DEFAULT_CLOUD, hostid=BK_HOST_ID
+)
+RENDERED_PLUGIN_TEMPLATE_CONFIG = {
+    "md5": "13472ddec1d39b1c7b55a0ef03c5500d",
+    "content": RENDERED_PLUGIN_TEMPLATE_CONTENT,
+    "file_path": "etc",
+    "name": f"{PKG_PROJECT_NAME}_sub_{SUBSCRIPTION_ID}_host_{BK_HOST_ID}.conf",
+}
+
+
+PLUGIN_TEMPLATE_INFO = {
+    "id": PKG_ID,
+    "plugin_name": PKG_PROJECT_NAME,
+    "plugin_version": "*",
+    "name": f"{PKG_PROJECT_NAME}.conf",
+    "format": "yaml",
+    "file_path": "etc",
+    "content": PLUGIN_TEMPLATE_CONTENT,
+    "is_release_version": True,
+    "creator": "system",
+    "create_time": "2021-05-31 03:25:16.779281+00:00",
+    "source_app_code": "bk_nodeman",
 }
 
 GSE_PLUGIN_DESC_INFO = {
@@ -292,6 +371,8 @@ PROCESS_STATUS_PARAMS = {
     "status": const.ProcStateType.RUNNING,
     "proc_type": const.ProcType.PLUGIN,
     "configs": [],
+    "source_id": SUBSCRIPTION_ID,
+    "version": PKG_VERSION,
 }
 
 PROC_CONTROL_INFO = {
@@ -584,6 +665,12 @@ class PluginTestObjFactory:
         return models.Packages(**pkg_params) if is_obj else pkg_params
 
     @classmethod
+    def plugin_template_obj(cls, obj_attr_values=None):
+        plugin_template_params = copy.deepcopy(PLUGIN_TEMPLATE_INFO)
+        cls.replace_obj_attr_values(plugin_template_params, obj_attr_values)
+        return plugin_template_params
+
+    @classmethod
     def proc_control_obj(cls, obj_attr_values=None, is_obj=False):
         proc_control_params = copy.deepcopy(PROC_CONTROL_INFO)
         cls.replace_obj_attr_values(proc_control_params, obj_attr_values)
@@ -624,9 +711,13 @@ class PluginTestObjFactory:
         return models.Host(**host_params) if is_obj else host_params
 
     @classmethod
-    def init_db(cls, init_subscription_param=None):
-        subscription_params = cls.subscription_obj(obj_attr_values=init_subscription_param)
-        subscription = models.Subscription.objects.create(**subscription_params)
+    def init_db(cls, init_subscription_param=None, is_obj=False, with_plugin_template=False):
+        subscription_params = cls.subscription_obj(obj_attr_values=init_subscription_param, is_obj=is_obj)
+        if not is_obj:
+            subscription = models.Subscription.objects.create(**subscription_params)
+        else:
+            subscription_params.save()
+            subscription = models.Subscription.objects.get(id=SUBSCRIPTION_ID)
 
         subscription_task_params = cls.subscription_task_obj(obj_attr_values={"subscription_id": subscription.id})
         subscription_task = models.SubscriptionTask.objects.create(**subscription_task_params)
@@ -637,6 +728,10 @@ class PluginTestObjFactory:
         subscription_instance_record = models.SubscriptionInstanceRecord.objects.create(
             **subscription_instance_record_params
         )
+
+        if with_plugin_template:
+            plugin_tempalte_params = cls.plugin_template_obj()
+            models.PluginConfigTemplate.objects.create(**plugin_tempalte_params)
 
         package_params = cls.package_obj()
         packages = models.Packages.objects.create(**package_params)
@@ -650,7 +745,11 @@ class PluginTestObjFactory:
         models.GsePluginDesc.objects.create(**gse_plugin_des_params)
 
         process_status_params = cls.process_status_obj(
-            obj_attr_values={"group_id": create_group_id(subscription, subscription_instance_record.instance_info)}
+            obj_attr_values={
+                "group_id": create_group_id(subscription, subscription_instance_record.instance_info),
+                "configs": [RENDERED_PLUGIN_TEMPLATE_CONFIG],
+                "source_id": subscription.id,
+            }
         )
         models.ProcessStatus.objects.create(**process_status_params)
 

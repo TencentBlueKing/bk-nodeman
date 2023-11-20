@@ -12,6 +12,7 @@ import logging
 
 from django.core.cache import cache
 
+from apps.backend.constants import InstNodeType
 from apps.component.esbclient import client_v2
 from apps.exceptions import BizNotExistError
 from apps.node_man import constants
@@ -78,11 +79,11 @@ def get_host_by_inst(bk_biz_id, inst_list):
 
     for inst in inst_list:
         # 处理各种类型的节点
-        if inst["bk_obj_id"] == "biz":
+        if inst["bk_obj_id"] == InstNodeType.BIZ:
             bk_biz_ids.append(bk_biz_id)
-        elif inst["bk_obj_id"] == "set":
+        elif inst["bk_obj_id"] == InstNodeType.SET:
             bk_set_ids.append(inst["bk_inst_id"])
-        elif inst["bk_obj_id"] == "module":
+        elif inst["bk_obj_id"] == InstNodeType.MODULE:
             bk_module_ids.append(inst["bk_inst_id"])
         elif inst["bk_obj_id"] in bk_obj_id_list:
             # 自定义层级

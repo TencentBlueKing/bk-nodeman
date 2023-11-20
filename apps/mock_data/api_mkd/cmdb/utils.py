@@ -25,6 +25,12 @@ class CMDBMockClient(utils.BaseMockClient):
         list_hosts_without_biz_return=None,
         find_host_biz_relations_return=None,
         find_host_by_service_template_return=None,
+        list_business_in_business_set_return=None,
+        list_business_set_return=None,
+        search_biz_inst_topo_return=None,
+        get_biz_internal_module_return=None,
+        find_host_by_topo_return=None,
+        get_mainline_object_topo_return=None,
     ):
         super(CMDBMockClient, self).__init__()
         self.cc = mock.MagicMock()
@@ -36,6 +42,16 @@ class CMDBMockClient(utils.BaseMockClient):
         self.cc.find_host_by_service_template = self.generate_magic_mock(
             mock_return_obj=find_host_by_service_template_return
         )
+        self.cc.list_business_in_business_set = self.generate_magic_mock(
+            mock_return_obj=list_business_in_business_set_return
+        )
+        self.cc.list_business_set = self.generate_magic_mock(mock_return_obj=list_business_set_return)
+        self.cc.search_biz_inst_topo = self.generate_magic_mock(mock_return_obj=search_biz_inst_topo_return)
+        self.cc.get_biz_internal_module_return = self.generate_magic_mock(
+            mock_return_obj=get_biz_internal_module_return
+        )
+        self.cc.find_host_by_topo = self.generate_magic_mock(mock_return_obj=find_host_by_topo_return)
+        self.cc.get_mainline_object_topo = self.generate_magic_mock(mock_return_obj=get_mainline_object_topo_return)
 
 
 class CCApiMockClient(utils.BaseMockClient):

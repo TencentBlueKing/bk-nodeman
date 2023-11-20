@@ -17,6 +17,20 @@ class CmdbClient(object):
 
     class cc(object):
         @classmethod
+        def list_business_set(cls, *args, **kwargs):
+            return {"count": 1, "info": []}
+
+        @classmethod
+        def list_business_in_business_set(cls, *args, **kwargs):
+            return {
+                "count": 2,
+                "info": [
+                    {"bk_biz_id": 2, "bk_biz_name": "TEST_BIZ", "default": 0},
+                    {"bk_biz_id": 5, "bk_biz_name": "TEST_BIZ_1", "default": 0},
+                ],
+            }
+
+        @classmethod
         def list_biz_hosts(cls, *args, **kwargs):
             return {
                 "count": 1,
@@ -3346,6 +3360,25 @@ def list_biz_hosts_without_info_client(*args, **kwargs):
     return LIST_BIZ_HOSTS_WITHOUT_INFO
 
 
+def list_biz_set_hosts_without_info_client(*args, **kwargs):
+    return [
+        {
+            "bk_os_name": "linux centos",
+            "bk_host_id": bk_biz_id,
+            "operator": "",
+            "bk_host_name": f"VM_{index}_10_centos",
+            "bk_host_innerip": "127.0.0.{index}",
+            "bk_os_bit": "64-bit",
+            "bk_cloud_id": 0,
+            "bk_host_outerip": "",
+            "bk_os_type": "1",
+            "bk_bak_operator": "",
+            "bk_cpu_module": "AMD EPYC Processor",
+        }
+        for index, bk_biz_id in enumerate(BIZ_SET_COVERATE_BIZ_IDS)
+    ]
+
+
 LIST_BIZ_HOSTS_WITHOUT_INFO = [
     {
         "bk_os_name": "linux centos",
@@ -3362,3 +3395,46 @@ LIST_BIZ_HOSTS_WITHOUT_INFO = [
     }
 ]
 LIST_BIZ_HOSTS = FIND_HOST_BY_TOPO = {"count": 4, "info": LIST_BIZ_HOSTS_WITHOUT_INFO}
+
+
+SCOPE_ID = 10000002
+
+BIZ_SET_COVERATE_BIZ_IDS = [i for i in range(1, 50)]
+BIZ_SET_NOT_COVERATE_BIZ_IDS = [i for i in range(51, 100)]
+
+
+class BizSetCmdbClient(object):
+    class cc(object):
+        @classmethod
+        def list_business_set(cls, *args, **kwargs):
+            return {"count": 1, "info": []}
+
+        @classmethod
+        def list_business_in_business_set(cls, *args, **kwargs):
+            info = [
+                {"bk_biz_id": bk_biz_id, "bk_biz_name": f"test_biz_name_{index}", "default": 0}
+                for index, bk_biz_id in enumerate(BIZ_SET_COVERATE_BIZ_IDS)
+            ]
+            return {"count": len(BIZ_SET_COVERATE_BIZ_IDS), "info": info}
+
+        @classmethod
+        def list_hosts_without_biz(cls, *args, **kwargs):
+            return {
+                "count": 1,
+                "info": [
+                    {
+                        "bk_os_name": "linux centos",
+                        "bk_host_id": 1,
+                        "bk_os_version": "7.4.1708",
+                        "operator": "",
+                        "bk_host_name": "VM_1_10_centos",
+                        "bk_host_innerip": "127.0.0.1",
+                        "bk_os_bit": "64-bit",
+                        "bk_cloud_id": 0,
+                        "bk_host_outerip": "",
+                        "bk_os_type": "1",
+                        "bk_bak_operator": "",
+                        "bk_cpu_module": "AMD EPYC Processor",
+                    }
+                ],
+            }
