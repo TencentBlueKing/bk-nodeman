@@ -26,6 +26,7 @@ from django.conf import settings
 from django.db.models import Q
 from django.utils import timezone
 
+from apps.backend.constants import InstNodeType
 from apps.backend.subscription import task_tools
 from apps.backend.subscription.commons import get_host_by_inst, list_biz_hosts
 from apps.backend.subscription.constants import SUBSCRIPTION_SCOPE_CACHE_TIME
@@ -673,13 +674,24 @@ def get_host_relation(bk_biz_id, nodes):
     return data
 
 
+def fill_nodes_biz_info(nodes: typing.List[typing.Dict[str, typing.Union[str, int]]]):
+    for node in nodes:
+        bk_biz_id: typing.Optional[int] = node.get("bk_biz_id")
+        bk_obj_id: typing.Optional[str] = node.get("bk_obj_id")
+        bk_inst_id: typing.Optional[int] = node.get("bk_inst_id")
+        if not bk_biz_id and bk_obj_id == InstNodeType.BIZ and bk_inst_id:
+            # 兜底类似 [{"ip": 127.0.0.1, "bk_inst_id": x, "bk_obj_id": biz}] 场景
+            # 填充为 [{"ip": 127.0.0.1, "bk_inst_id": x, "bk_obj_id": biz, "bk_biz_id": x}]
+            node["bk_biz_id"] = bk_inst_id
+
+
 def support_multi_biz(get_instances_by_scope_func):
     """支持scope多范围"""
 
     @wraps(get_instances_by_scope_func)
     def wrapper(scope: Dict[str, Union[Dict, Any]], *args, **kwargs) -> Dict[str, Dict[str, Union[Dict, Any]]]:
-        if scope.get("bk_biz_id") is not None:
-            return get_instances_by_scope_func(scope, **kwargs)
+        nodes: typing.List[typing.Dict[str, typing.Union[str, int]]] = scope["nodes"]
+        fill_nodes_biz_info(nodes=nodes)
         # 兼容只传bk_host_id的情况
         if (
             scope["object_type"] == models.Subscription.ObjectType.HOST
@@ -689,7 +701,7 @@ def support_multi_biz(get_instances_by_scope_func):
                 return get_instances_by_scope_func(scope, **kwargs)
 
         instance_id_info_map = {}
-        nodes = sorted(scope["nodes"], key=lambda node: node["bk_biz_id"])
+        nodes = sorted(scope["nodes"], key=lambda node: node.get("bk_biz_id") or scope.get("bk_biz_id"))
         params_list = [
             {
                 "scope": {
@@ -701,7 +713,7 @@ def support_multi_biz(get_instances_by_scope_func):
                 },
                 **kwargs,
             }
-            for bk_biz_id, nodes in groupby(nodes, key=lambda x: x["bk_biz_id"])
+            for bk_biz_id, nodes in groupby(nodes, key=lambda x: x.get("bk_biz_id") or scope.get("bk_biz_id"))
         ]
         results = request_multi_thread(get_instances_by_scope_func, params_list, get_data=lambda x: [x])
         for result in results:
