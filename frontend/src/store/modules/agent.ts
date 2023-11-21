@@ -57,7 +57,7 @@ export default class AgentStore extends VuexModule {
     data.list = data.list.map((item: IAgentHost) => {
       const {
         bt_speed_limit: btSpeedLimit,
-        peer_exchange_switch_for_agent: peerExchangeSwitchForAgent = 1,
+        peer_exchange_switch_for_agent: peerExchangeSwitchForAgent = 0,
         ...extraOther
       } = item.extra_data || {};
       return {
