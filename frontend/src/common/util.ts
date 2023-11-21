@@ -1,5 +1,5 @@
 import { ISearchItem, ISetupHead } from '@/types';
-import { regIpMixin } from './regexp';
+import { regExclusiveFilterIpMixin, regFilterIpMixin, regIpMixin } from './regexp';
 
 /**
  * 函数柯里化
@@ -696,7 +696,8 @@ export const getFilterChildBySelected = (key: string, value: string, filterData:
 };
 
 // searchSelect组件 ip粘贴统一行为
-export const searchSelectPaste = ({ e, selectedValue, filterData, selectRef, pushFn, changeFn, prop = 'ip' }: {
+// areaFilter = true 时要支持区域筛选 \w:IPv4|IPv6
+export const searchSelectPaste = ({ e, selectedValue, filterData, selectRef, pushFn, changeFn, prop = 'ip', areaFilter = false }: {
   e: { target: EventTarget }
   selectedValue: ISearchItem[]
   filterData: ISearchItem[]
@@ -728,12 +729,16 @@ export const searchSelectPaste = ({ e, selectedValue, filterData, selectRef, pus
     const str = value.replace(/;+|；+|_+|\\+|，+|,+|、+|\s+/g, ',').replace(/,+/g, ' ')
       .trim();
     const tmpStr = str.trim().split(' ');
-    const isIp = tmpStr.every(item => regIpMixin.test(item));
+    const ipReg = areaFilter ? regFilterIpMixin : regIpMixin;
+    const isIp = tmpStr.every(item => ipReg.test(item));
     let backfillValue = inputValue + value;
     if (isIp || !!inputValue) {
       if (isIp) {
         backfillValue = '';
-        pushFn?.(prop, tmpStr.map(ip => ({ id: ip, name: ip, checked: false })));
+        pushFn?.(
+          areaFilter && tmpStr.some(item => regExclusiveFilterIpMixin.test(item)) ? 'bk_cloud_ip' : prop,
+          tmpStr.map(ip => ({ id: ip, name: ip, checked: false }))
+        );
         changeFn?.();
       }
       Object.assign(e.target, { innerText: backfillValue }); // 数据清空或合并
