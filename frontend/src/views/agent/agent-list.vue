@@ -1807,6 +1807,7 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
       selectRef: this.searchSelect,
       pushFn: this.handlePushValue,
       changeFn: this.handleValueChange,
+      areaFilter: true,
     });
   }
   /**

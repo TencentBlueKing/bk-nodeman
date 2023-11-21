@@ -192,6 +192,7 @@ export default class PluginListOperate extends Mixins(HeaderFilterMixins) {
       selectRef: this.searchSelect,
       pushFn: this.handlePushValue,
       changeFn: this.handleValueChange,
+      areaFilter: true,
     });
   }
 
