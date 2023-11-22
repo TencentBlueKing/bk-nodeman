@@ -418,7 +418,7 @@ class JobTools:
         if not biz_scope:
             raise ValueError("该用户没有任何业务的权限")
 
-        if len(biz_scope) > len(biz_info) // 2:
+        if len(biz_scope) > len(all_biz_info) // 2:
             need_reverse_query = True
             biz_scope = list(set(list(all_biz_info)) - set(biz_scope))
         else:
