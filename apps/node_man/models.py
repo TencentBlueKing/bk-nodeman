@@ -832,7 +832,11 @@ class Job(export_job_prometheus_mixin(), models.Model):
     start_time = models.DateTimeField(_("创建任务时间"), auto_now_add=True, db_index=True)
     end_time = models.DateTimeField(_("任务结束时间"), blank=True, null=True, db_index=True)
     status = models.CharField(
-        _("任务状态"), max_length=45, choices=constants.JobStatusType.get_choices(), default=constants.JobStatusType.PENDING
+        _("任务状态"),
+        max_length=45,
+        db_index=True,
+        choices=constants.JobStatusType.get_choices(),
+        default=constants.JobStatusType.PENDING,
     )
     global_params = JSONField(_("全局运行参数"), blank=True, null=True)
     statistics = JSONField(_("任务统计信息"), blank=True, null=True, default=dict)
@@ -1208,7 +1212,7 @@ class ProcControl(models.Model):
 
     module = models.CharField(_("模块名"), max_length=32)
     project = models.CharField(_("工程名"), max_length=32)
-    plugin_package_id = models.IntegerField(_("记录对应的插件包ID"), default=0)
+    plugin_package_id = models.IntegerField(_("记录对应的插件包ID"), db_index=True, default=0)
 
     install_path = models.TextField(_("安装路径"))
     log_path = models.TextField(_("日志路径"))
@@ -2349,6 +2353,9 @@ class SubscriptionInstanceStatusDetail(models.Model):
     class Meta:
         verbose_name = _("订阅实例状态表")
         verbose_name_plural = _("订阅实例状态表")
+        index_together = [
+            ["status", "create_time"],
+        ]
 
 
 class CmdbEventRecord(models.Model):
