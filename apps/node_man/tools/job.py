@@ -23,7 +23,10 @@ from apps.backend.subscription import tools
 from apps.node_man import constants, models
 from apps.utils import basic
 from apps.utils.basic import filter_values
-from apps.utils.local import get_request_username
+from apps.utils.local import (
+    get_request_app_code_or_local_app_code,
+    get_request_username,
+)
 from common.api import NodeApi
 
 
@@ -381,6 +384,7 @@ class JobTools:
             statistics=statistics or {},
             error_hosts=error_hosts or [],
             created_by=get_request_username(),
+            from_system=get_request_app_code_or_local_app_code(),
         )
 
         return {"job_id": job.id, "job_url": cls.get_job_url(job.id)}
