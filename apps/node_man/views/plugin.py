@@ -13,6 +13,7 @@ from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from apps.exceptions import ValidationError
 from apps.generic import ModelViewSet
 from apps.node_man.handlers.plugin import PluginHandler
 from apps.node_man.models import GsePluginDesc, Host, Packages, ProcessStatus
@@ -221,9 +222,14 @@ class PackagesViews(ModelViewSet):
                 }
             ]
         """
+
         project = kwargs["process"]
         os_type = request.query_params.get("os", "")
-        return Response(PluginHandler.get_packages(project, os_type))
+        try:
+            packages = PluginHandler.get_packages(project, os_type)
+        except Exception as e:
+            raise ValidationError(f"{project} in os -> [{os_type}] not found, error: {e}")
+        return Response(packages)
 
 
 class ProcessStatusViewSet(ModelViewSet):
