@@ -286,17 +286,18 @@ class AddOrUpdateHostsService(AgentBaseService):
             sub_inst_ids.append(sub_inst.id)
             sub_inst.update_time = timezone.now()
             host_info: Dict[str, Any] = sub_inst.instance_info["host"]
+            properties: Dict[str, Any] = {
+                "bk_cloud_id": host_info["bk_cloud_id"],
+                "bk_addressing": host_info.get("bk_addressing", constants.CmdbAddressingType.STATIC.value),
+                "bk_host_innerip": host_info.get("bk_host_innerip", ""),
+                "bk_host_innerip_v6": host_info.get("bk_host_innerip_v6", ""),
+                "bk_host_outerip": host_info.get("bk_host_outerip", ""),
+                "bk_host_outerip_v6": host_info.get("bk_host_outerip_v6", ""),
+                "bk_os_type": constants.BK_OS_TYPE[host_info["os_type"]],
+            }
             update_params: Dict[str, Any] = {
                 "bk_host_id": host_info["bk_host_id"],
-                "properties": {
-                    "bk_cloud_id": host_info["bk_cloud_id"],
-                    "bk_addressing": host_info.get("bk_addressing", constants.CmdbAddressingType.STATIC.value),
-                    "bk_host_innerip": host_info.get("bk_host_innerip", ""),
-                    "bk_host_innerip_v6": host_info.get("bk_host_innerip_v6", ""),
-                    "bk_host_outerip": host_info.get("bk_host_outerip", ""),
-                    "bk_host_outerip_v6": host_info.get("bk_host_outerip_v6", ""),
-                    "bk_os_type": constants.BK_OS_TYPE[host_info["os_type"]],
-                },
+                "properties": {k: v for k, v in properties.items() if v is not None and v != ""},
             }
             self.log_info(
                 sub_inst_ids=sub_inst.id,
