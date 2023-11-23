@@ -142,3 +142,7 @@ class SubscriptionSwithBizAction(enum.EnhanceEnum):
 class ProxyConfigFile(enum.EnhanceEnum):
     V1 = ["agent.conf", "btsvr.conf", "transit.conf", "opts.conf", "plugin_info.json", "data.conf", "dataflow.conf"]
     V2 = ["gse_agent.conf", "gse_data_proxy.conf", "gse_file_proxy.conf"]
+
+
+DEFAULT_ALIVE_TIME = 30
+DEFAULT_CLEAN_RECORD_LIMIT = 5000

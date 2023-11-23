@@ -14,5 +14,6 @@ from .cache_scope_instances import cache_scope_instances  # noqa
 from .calculate_statistics import calculate_statistics  # noqa
 from .check_zombie_sub_inst_record import check_zombie_sub_inst_record  # noqa
 from .clean_subscription_data import clean_subscription_data  # noqa
+from .clean_subscription_instance_record_data import clean_subscription_instance_record_data  # noqa
 from .collect_auto_trigger_job import collect_auto_trigger_job  # noqa
 from .update_subscription_instances import update_subscription_instances  # noqa
