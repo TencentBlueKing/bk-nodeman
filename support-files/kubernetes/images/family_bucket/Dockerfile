@@ -90,6 +90,12 @@ RUN set -ex && \
 RUN set -ex && sed -i '/check_polices_\${node_type}_to_upstream/s/^/#/' script_tools/setup_agent.sh
 
 
+FROM base-app AS  backend-ieod-app
+
+# 移除 upstreams 检查
+RUN set -ex && sed -i '/check_polices_\${node_type}_to_upstream/s/^/#/' script_tools/setup_agent.sh
+
+
 FROM base-app AS ee-app
 
 
