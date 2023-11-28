@@ -116,9 +116,19 @@ if [ "${CATEGORY}" == "EXTERNAL" -a -n "$GROUP_DIR" ]; then
     # 解压文件到临时目录 然后转移到对应目录 规避同台机器并发导致的部分实例目录为空问题
     # 第三方插件指定了instance_id，解压后需要将插件从标准路径移动到实例路径下
     echo "unzip ${PACKAGE} to dir: ${EXTERNAL_PLUGIN_TMPDIR}"
-    tar xvf ${PACKAGE} -C ${EXTERNAL_PLUGIN_TMPDIR} || (echo "unzip ${PACKAGE} to ${EXTERNAL_PLUGIN_TMPDIR} failed!" && exit 1)
+    tar xvf ${PACKAGE} -C ${EXTERNAL_PLUGIN_TMPDIR}
+    if [ $? -ne 0 ]; then
+        echo "unzip ${PACKAGE} to ${EXTERNAL_PLUGIN_TMPDIR} failed!"
+        exit 1
+    fi
     mkdir -p $BINDIR
-    mv $EXTERNAL_PLUGIN_TMPDIR/external_plugins/$PLUGIN_NAME/ $(dirname "$BINDIR") || (echo "mv $EXTERNAL_PLUGIN_TMPDIR/external_plugins/$PLUGIN_NAME/ to $(dirname "$BINDIR") failed." && exit 1)
+    cp -rf $EXTERNAL_PLUGIN_TMPDIR/external_plugins/$PLUGIN_NAME/ $(dirname "$BINDIR")
+    if [ $? -ne 0 ]; then
+        echo "cp -rf $EXTERNAL_PLUGIN_TMPDIR/external_plugins/$PLUGIN_NAME/ to $(dirname "$BINDIR") failed."
+        exit 1
+    else
+        rm -rf $EXTERNAL_PLUGIN_TMPDIR/external_plugins/$PLUGIN_NAME/
+    fi
 else
     tar xvf $PACKAGE -C $GSE_HOME
 fi
@@ -126,7 +136,10 @@ fi
 # 恢复配置文件
 if [ "$RESERVE_CONF" == 1 ]; then
     echo "recover config file"
-    tar xPf $(ls -rt $BACKUP_DIR/${PLUGIN_NAME}-*.pz | tail -1) $ETCDIR || exit 1
+    tar xPf $(ls -rt $BACKUP_DIR/${PLUGIN_NAME}-*.pz | tail -1) $ETCDIR
+    if [ $? -ne 0 ]; then
+        exit 1
+    fi
 fi
 
 # 输出看看更新后的信息. debug 时用.
