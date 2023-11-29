@@ -183,6 +183,7 @@ class HostQuerySqlHelper:
         is_proxy: bool = False,
         return_all_node_type: bool = False,
         extra_wheres: typing.List[str] = None,
+        need_biz_scope: bool = True,
     ) -> QuerySet:
         """
         用于生成多条件sql查询
@@ -191,8 +192,10 @@ class HostQuerySqlHelper:
         :param biz_scope: 业务范围限制
         :param is_proxy: 是否为代理
         :param extra_wheres: 额外的查询条件
+        :param need_biz_scope: 是否需要业务范围限制
         :return: 根据条件查询的所有结果
         """
+        # flake8: noqa: C901
         select: typing.Dict[str, str] = {
             "status": f"{node_man_models.ProcessStatus._meta.db_table}.status",
             "version": f"{node_man_models.ProcessStatus._meta.db_table}.version",
@@ -210,14 +213,18 @@ class HostQuerySqlHelper:
         ]
         wheres: typing.List[str] = extra_wheres or []
 
-        final_biz_scope: typing.Set[int] = set(biz_scope)
-        # 带有业务筛选条件，需要确保落在指定业务范围内
-        if params.get("bk_biz_id"):
-            final_biz_scope = final_biz_scope & set(params["bk_biz_id"])
+        if need_biz_scope:
+            final_biz_scope: typing.Set[int] = set(biz_scope)
+            # 带有业务筛选条件，需要确保落在指定业务范围内
+            if params.get("bk_biz_id"):
+                final_biz_scope = final_biz_scope & set(params["bk_biz_id"])
 
-        filter_q: Q = Q(bk_biz_id__in=final_biz_scope)
-        if params.get("bk_host_id") is not None:
-            filter_q &= Q(bk_host_id__in=params.get("bk_host_id"))
+            filter_q: Q = Q(bk_biz_id__in=final_biz_scope)
+            if params.get("bk_host_id") is not None:
+                filter_q &= Q(bk_host_id__in=params.get("bk_host_id"))
+        else:
+            final_biz_scope: typing.Set[int] = set()
+            filter_q = Q()
 
         # 条件搜索
         where_or = []
@@ -345,15 +352,22 @@ class HostQuerySqlHelper:
         if topo_host_ids is not None:
             topo_query = topo_query | Q(bk_host_id__in=topo_host_ids)
 
-        host_queryset: QuerySet = (
-            node_man_models.Host.objects.filter(
+        if need_biz_scope:
+            host_queryset: QuerySet = node_man_models.Host.objects.filter(
                 node_type__in=cls.fetch_match_node_types(is_proxy, return_all_node_type), bk_biz_id__in=final_biz_scope
             )
-            .extra(
-                select=select, tables=[node_man_models.ProcessStatus._meta.db_table], where=wheres, params=sql_params
+        else:
+            host_queryset: QuerySet = node_man_models.Host.objects.filter(
+                node_type__in=cls.fetch_match_node_types(is_proxy, return_all_node_type),
             )
-            .filter(topo_query)
-        )
+
+        host_queryset = host_queryset.extra(
+            select=select, tables=[node_man_models.ProcessStatus._meta.db_table], where=wheres, params=sql_params
+        ).filter(topo_query)
+
+        if not need_biz_scope:
+            return host_queryset
+
         host_queryset = handle_filter_queryset_by_flag_value(is_enable_cloud_area_ip_filter, host_queryset, filter_q)
 
         return host_queryset

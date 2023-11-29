@@ -65,6 +65,7 @@ class BaseArtifactBuilder(abc.ABC):
         overwrite_version: typing.Optional[str] = None,
         tags: typing.Optional[typing.List[str]] = None,
         enable_agent_pkg_manage: bool = False,
+        extract_dir: str = None,
     ):
         """
         :param initial_artifact_path: 原始制品所在路径
@@ -84,6 +85,7 @@ class BaseArtifactBuilder(abc.ABC):
         self.applied_tmp_dirs = set()
         # 文件源
         self.storage = get_storage(file_overwrite=True)
+        self.extract_dir = extract_dir
 
     @staticmethod
     def download_file(file_path: str, target_path: str):
@@ -482,9 +484,12 @@ class BaseArtifactBuilder(abc.ABC):
             models.GsePackageDesc.objects.update_or_create(
                 defaults={
                     "description": package_infos[0]["artifact_meta_info"]["changelog"],
+                    "category": constants.CategoryType.official,
+                    "id": AGENT_NAME_TARGET_ID_MAP[package_infos[0]["artifact_meta_info"]["name"]],
                 },
                 project=package_infos[0]["artifact_meta_info"]["name"],
-                category=constants.CategoryType.official,
+                # category=constants.CategoryType.official,
+                # id=AGENT_NAME_TARGET_ID_MAP[package_infos[0]["artifact_meta_info"]["name"]],
             )
 
             logger.info(
@@ -586,7 +591,8 @@ class BaseArtifactBuilder(abc.ABC):
         initial_artifact_local_path: str = os.path.join(
             self.apply_tmp_dir(), os.path.basename(self.initial_artifact_path)
         )
-        self.download_file(self.initial_artifact_path, initial_artifact_local_path)
+        if not self.extract_dir:
+            self.download_file(self.initial_artifact_path, initial_artifact_local_path)
         # 进行解压
         extract_dir: str = self.extract_initial_artifact(initial_artifact_local_path, self.apply_tmp_dir())
         return extract_dir, self._list_package_dir_infos(extract_dir=extract_dir)

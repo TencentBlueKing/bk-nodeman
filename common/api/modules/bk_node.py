@@ -260,3 +260,10 @@ class _BKNodeApi(object):
             description="查询任务详情",
             before_request=add_esb_info_before_request,
         )
+        self.upload_gse_package = DataAPI(
+            method="POST",
+            url=BK_NODE_APIGATEWAY_ROOT + "/api/agent/package/upload/",
+            module=self.MODULE,
+            description="上传gse包",
+            before_request=add_esb_info_before_request,
+        )
