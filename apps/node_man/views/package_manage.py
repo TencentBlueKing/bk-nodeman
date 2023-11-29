@@ -26,7 +26,8 @@ from rest_framework.status import HTTP_200_OK
 from apps.backend.agent.artifact_builder import agent, base, proxy
 from apps.core.files.storage import get_storage
 from apps.generic import ApiMixinModelViewSet as ModelViewSet
-from apps.node_man import exceptions, models
+from apps.generic import ValidationMixin
+from apps.node_man import constants, exceptions, models
 from apps.node_man.handlers.plugin_v2 import PluginV2Handler
 from apps.node_man.permissions import package_manage as pkg_permission
 from apps.node_man.serializers import package_manage as pkg_manage
@@ -38,7 +39,7 @@ PACKAGE_DES_VIEW_TAGS = ["PKG_Desc"]
 logger = logging.getLogger("app")
 
 
-class PackageManageViewSet(ModelViewSet):
+class PackageManageViewSet(ModelViewSet, ValidationMixin):
     queryset = models.GsePackages.objects.all()
     # http_method_names = ["get", "post"]
     # ordering_fields = ("module",)
@@ -159,10 +160,8 @@ class PackageManageViewSet(ModelViewSet):
     )
     @action(detail=False, methods=["POST"], serializer_class=pkg_manage.UploadSerializer)
     def upload(self, request):
-        ser = self.serializer_class(data=request.data)
-        ser.is_valid(raise_exception=True)
-        data = ser.validated_data
-        result = PluginV2Handler.upload(package_file=data["package_file"], module=data["module"])
+        validated_data = self.validated_data
+        result = PluginV2Handler.upload(package_file=validated_data["package_file"], module=validated_data["module"])
         if "result" in result:
             return JsonResponse(result)
         else:
@@ -175,8 +174,9 @@ class PackageManageViewSet(ModelViewSet):
     )
     @action(detail=False, methods=["POST"], serializer_class=pkg_manage.ParseSerializer)
     def parse(self, request):
+        validated_data = self.validated_data
         upload_package_obj = (
-            models.UploadPackage.objects.filter(file_name=request.data["file_name"]).order_by("-upload_time").first()
+            models.UploadPackage.objects.filter(file_name=validated_data["file_name"]).order_by("-upload_time").first()
         )
         if upload_package_obj is None:
             raise exceptions.FileDoesNotExistError(_("找不到请求发布的文件，请确认后重试"))
@@ -189,14 +189,18 @@ class PackageManageViewSet(ModelViewSet):
 
         with storage.open(name=file_path, mode="rb") as tf_from_storage:
             with tarfile.open(fileobj=tf_from_storage) as tf:
+                # todo: 需要判断是否为agent
+                # if ... -> proxy
+                # elif ... -> agent
+                # else -> raise
                 if "gse/server" in tf.getnames():
-                    project = "gse_proxy"
+                    project = constants.GsePackageCode.PROXY.value
                     artifact_builder_class: typing.Type[base.BaseArtifactBuilder] = proxy.ProxyArtifactBuilder
                 else:
-                    project = "gse_agent"
+                    project = constants.GsePackageCode.AGENT.value
                     artifact_builder_class: typing.Type[base.BaseArtifactBuilder] = agent.AgentArtifactBuilder
 
-                with artifact_builder_class(initial_artifact_path=upload_package_obj.file_path) as builder:
+                with artifact_builder_class(initial_artifact_path=file_path) as builder:
                     extract_dir, package_dir_infos = builder.list_package_dir_infos()
                     artifact_meta_info: typing.Dict[str, typing.Any] = builder.get_artifact_meta_info(extract_dir)
 
@@ -278,29 +282,50 @@ class PackageManageViewSet(ModelViewSet):
     @swagger_auto_schema(
         operation_summary="获取Agent包版本",
         tags=PACKAGE_MANAGE_VIEW_TAGS,
-        responses={HTTP_200_OK: pkg_manage.PackageDescResponseSerialiaer},
+        responses={HTTP_200_OK: pkg_manage.PackageDescResponseSerializer},
     )
     @action(detail=False, methods=["GET"])
     def version(self, request):
-        mock_data = {
-            "total": 10,
-            "list": [
-                {
-                    "id": 1,
-                    "version": "2.1.2",
-                    "tags": [{"id": "stable", "name": "稳定版本"}],
-                    "is_ready": True,
-                    "description": "我是描述",
-                    "packages": [
-                        {
-                            "pkg_name": "gseagent-2.1.2.tgz",
-                            "tags": [{"id": "stable", "name": "稳定版本"}, {"id": "latest", "name": "最新版本"}],
-                        }
-                    ],
-                }
-            ],
-        }
-        return Response(mock_data)
+        # mock_data = {
+        #     "total": 10,
+        #     "list": [
+        #         {
+        #             "id": 1,
+        #             "version": "2.1.2",
+        #             "tags": [{"id": "stable", "name": "稳定版本"}],
+        #             "is_ready": True,
+        #             "description": "",
+        #             "packages": [
+        #                 {
+        #                     "pkg_name": "gseagent-2.1.2.tgz",
+        #                     "tags": [{"id": "stable", "name": "稳定版本1"}, {"id": "latest", "name": "最新版本"}],
+        #                 },
+        #                 {
+        #                     "pkg_name": "gseagent-2.1.2.tgz",
+        #                     "tags": [{"id": "stable", "name": "稳定版本2"}, {"id": "latest", "name": "最新版本"}],
+        #                 }
+        #             ],
+        #         }
+        #     ],
+        # }
+        # return Response(mock_data)
+        gse_packages = pkg_manage.VersionDescPackageSerializer(self.queryset, many=True).data
+        res, version_2_index = [], {}
+        for package in gse_packages:
+            version = package["version"]
+            sub_tags = {"pkg_name": package.pop("pkg_name"), "tags": package["tags"]}
+
+            if version not in version_2_index:
+                version_2_index[version] = len(version_2_index)
+                package["packages"] = [sub_tags]
+                res.append(package)
+            else:
+                old_package = res[version_2_index[package["version"]]]
+                if package["tags"]:
+                    old_package["packages"].append(sub_tags)
+                old_package["tags"] = list(filter(lambda x: x in package["tags"], old_package["tags"]))
+
+        return Response(res)
 
 
 # class AgentPackageDescViewSet(ModelViewSet):
