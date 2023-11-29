@@ -107,7 +107,7 @@ class JobDemand(object):
         host_infos__gby_job_status = defaultdict(list)
         step_instance_id = job_status["step_instance_list"][0]["step_instance_id"]
         for instance in job_status["step_instance_list"][0]["step_ip_result_list"]:
-            if settings.BKAPP_ENABLE_DHCP:
+            if not settings.BKAPP_ENABLE_DHCP:
                 host_info = {"ip": instance["ip"], "bk_cloud_id": instance["bk_cloud_id"]}
             else:
                 host_info = {"bk_host_id": instance["bk_host_id"]}
@@ -149,7 +149,7 @@ class JobDemand(object):
                     else {"ip": host["ip"], "bk_cloud_id": host["bk_cloud_id"]}
                 )
                 log_result = JobApi.get_job_instance_ip_log({**base_log_params, **host_interaction_params})
-                if settings.BKAPP_ENABLE_DHCP:
+                if not settings.BKAPP_ENABLE_DHCP:
                     task_result[key].append(
                         {
                             "ip": host["ip"],
