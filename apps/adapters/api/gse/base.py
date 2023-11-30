@@ -111,8 +111,8 @@ class GseApiBaseHelper(abc.ABC):
 
     @staticmethod
     def get_version(version_str: typing.Optional[str]) -> str:
-        version_match: typing.Optional[typing.Match] = constants.VERSION_PATTERN.search(version_str or "")
-        return version_match.group() if version_match else ""
+        version = version_str.strip().replace(" ", "").replace("\n", "")
+        return version
 
     def get_gse_proc_key(
         self, mixed_types_of_host_info: typing.Union[InfoDict, models.Host], namespace: str, proc_name: str, **options
