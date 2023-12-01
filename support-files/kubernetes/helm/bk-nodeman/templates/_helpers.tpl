@@ -260,4 +260,6 @@ initContainers:
     args: ["job", "{{ include "bk-nodeman.migrate-job.file-sync" . }}"]
     volumeMounts:
       {{- include "bk-nodeman.volumeMounts" . | nindent 6 }}
+    resources:
+      {{- toYaml .Values.migrateJob.fileSync.resources | nindent 6 }}
 {{- end }}

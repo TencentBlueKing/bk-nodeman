@@ -34,6 +34,8 @@ spec:
           args:
             - "echo Start check database: $(MYSQL_HOST):$(MYSQL_PORT); until telnet $(MYSQL_HOST) $(MYSQL_PORT); do echo waiting for db $(MYSQL_HOST):$(MYSQL_PORT); sleep 2; done;"
           {{- include "bk-nodeman.saas.env" . | nindent 10 }}
+          resources:
+            {{- toYaml .Values.migrateJob.db.resources | nindent 12 }}
       containers:
         - name: "{{ include "bk-nodeman.migrate-job.db" . }}"
           image: "{{ .Values.global.imageRegistry | default .Values.images.saas.registry }}/{{ .Values.images.saas.repository }}:{{ .Values.images.saas.tag | default .Chart.AppVersion }}"
