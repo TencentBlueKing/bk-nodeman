@@ -37,10 +37,14 @@ spec:
               echo Start check redis: $(REDIS_HOST):$(REDIS_PORT); until telnet $(REDIS_HOST) $(REDIS_PORT); do echo waiting for redis $(REDIS_HOST):$(REDIS_PORT); sleep 2; done;
               echo Start check rabbitmq: $(RABBITMQ_HOST):$(RABBITMQ_PORT); until telnet $(RABBITMQ_HOST) $(RABBITMQ_PORT); do echo waiting for rabbitmq $(RABBITMQ_HOST):$(RABBITMQ_PORT); sleep 2; done;
           {{- include "bk-nodeman.backend.env" . | nindent 10 }}
+          resources:
+            {{- toYaml .Values.migrateJob.fileSync.resources | nindent 12 }}
         - name: "{{ include "bk-nodeman.migrate-job.db.pure" . }}"
           image: "{{ .Values.global.imageRegistry | default .Values.images.k8sWaitFor.registry }}/{{ .Values.images.k8sWaitFor.repository }}:{{ .Values.images.k8sWaitFor.tag }}"
           imagePullPolicy: "{{ .Values.images.k8sWaitFor.pullPolicy }}"
           args: ["job", "{{ include "bk-nodeman.migrate-job.db" . }}"]
+          resources:
+            {{- toYaml .Values.migrateJob.fileSync.resources | nindent 12 }}
       containers:
         - name: "{{ include "bk-nodeman.migrate-job.file-sync" . }}"
           image: "{{ .Values.global.imageRegistry | default .Values.images.backend.registry }}/{{ .Values.images.backend.repository }}:{{ .Values.images.backend.tag | default .Chart.AppVersion }}"

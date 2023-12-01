@@ -45,6 +45,8 @@ spec:
           image: "{{ .Values.global.imageRegistry | default .Values.images.k8sWaitFor.registry }}/{{ .Values.images.k8sWaitFor.repository }}:{{ .Values.images.k8sWaitFor.tag }}"
           imagePullPolicy: "{{ .Values.images.k8sWaitFor.pullPolicy }}"
           args: ["job", "{{ include "bk-nodeman.migrate-job.db" . }}"]
+          resources:
+            {{- toYaml $moduleConf.resources | nindent 12 }}
       containers:
         - name: {{ $fullName }}
           securityContext:
