@@ -24,6 +24,7 @@ from .base import AgentCommonData, AgentExecuteScriptService
 WINDOWS_UPGRADE_CMD_TEMPLATE = (
     'reg add "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run" '
     '/v gse_agent /t reg_sz /d "{setup_path}\\agent\\bin\\gsectl.bat start" /f 1>nul 2>&1'
+    " && cd {setup_path}\\agent\\bin"
     " && start gsectl.bat stop"
     " && ping -n 20 127.0.0.1 >> c:\\ping_ip.txt"
     " && {temp_path}\\7z.exe x {temp_path}\\{package_name} -so |"
