@@ -116,7 +116,7 @@ data:
 
   SAAS_API_PORT: "{{ .Values.saas.api.service.port }}"
   GUNICORN_TIMEOUT: "{{ .Values.saas.api.timeout | default 30 }}"
-  GUNICORN_WORKER_NUM: "{{ .Values.saas.api.workerNum | default 2 }}"
+  GUNICORN_WORKER_NUM: "{{ .Values.saas.api.workerNum | default 4 }}"
   GUNICORN_THREAD_NUM: "{{ .Values.saas.api.threadNum | default 4 }}"
 
   BKAPP_NAV_OPEN_SOURCE_URL: "{{ .Values.config.bkAppNavOpenSourceUrl }}"

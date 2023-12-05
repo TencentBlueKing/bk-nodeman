@@ -5,11 +5,11 @@ if [ -z "$GUNICORN_TIMEOUT" ]; then
 fi
 
 if [ -z "$GUNICORN_WORKER_NUM" ]; then
-    GUNICORN_WORKER_NUM=2
+    GUNICORN_WORKER_NUM=4
 fi
 
 if [ -z "$GUNICORN_THREAD_NUM" ]; then
-    GUNICORN_THREAD_NUM=4
+    GUNICORN_THREAD_NUM=3
 fi
 
-gunicorn --timeout $GUNICORN_TIMEOUT -w $GUNICORN_WORKER_NUM -b "[::]:${SAAS_API_PORT}" -k gthread --threads $GUNICORN_THREAD_NUM wsgi:application --max-requests=10000 --max-requests-jitter 1000 --access-logfile - --error-logfile - --access-logformat '[%(h)s] %({request_id}i)s %(u)s %(t)s "%(r)s" %(s)s %(D)s %(b)s "%(f)s" "%(a)s"'
+gunicorn --timeout $GUNICORN_TIMEOUT -w $GUNICORN_WORKER_NUM -b "[::]:${SAAS_API_PORT}" wsgi:application --access-logfile - --error-logfile - --access-logformat '[%(h)s] %({request_id}i)s %(u)s %(t)s "%(r)s" %(s)s %(D)s %(b)s "%(f)s" "%(a)s"'
