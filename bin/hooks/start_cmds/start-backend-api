@@ -1,2 +1,14 @@
 #!/bin/bash
-gunicorn --timeout 300 -w 8 -b "[::]:${BACKEND_API_PORT}" wsgi:application --access-logfile - --error-logfile - --max-requests=10000 --max-requests-jitter 1000 -k gthread --threads 5 --access-logformat '[%(h)s] %({request_id}i)s %(u)s %(t)s "%(r)s" %(s)s %(D)s %(b)s "%(f)s" "%(a)s"'
+
+if [ -z "$GUNICORN_TIMEOUT" ]; then
+    GUNICORN_TIMEOUT=60
+fi
+
+if [ -z "$GUNICORN_WORKER_NUM" ]; then
+    GUNICORN_WORKER_NUM=2
+fi
+
+if [ -z "$GUNICORN_THREAD_NUM" ]; then
+    GUNICORN_THREAD_NUM=4
+fi
+gunicorn --timeout $GUNICORN_TIMEOUT -w $GUNICORN_WORKER_NUM -b "[::]:${BACKEND_API_PORT}" -k gthread --threads $GUNICORN_THREAD_NUM wsgi:application --max-requests=10000 --max-requests-jitter 1000 --access-logfile - --error-logfile - --access-logformat '[%(h)s] %({request_id}i)s %(u)s %(t)s "%(r)s" %(s)s %(D)s %(b)s "%(f)s" "%(a)s"'

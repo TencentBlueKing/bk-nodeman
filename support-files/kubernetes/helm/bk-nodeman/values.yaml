@@ -492,6 +492,9 @@ saas:
     resources: {}
     replicaCount: 1
     command: "bin/hooks/start_cmds/start-saas-api"
+    timeout: 30
+    workerNum: 2
+    threadNum: 4
 
   web:
     enabled: true
@@ -513,6 +516,9 @@ backend:
     resources: {}
     replicaCount: 1
     command: "bin/hooks/start_cmds/start-backend-api"
+    timeout: 60
+    workerNum: 2
+    threadNum: 4
 
   celeryBeat:
     enabled: true

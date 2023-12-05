@@ -102,15 +102,6 @@ data:
   BKAPP_OTEL_GRPC_URL: "{{ .Values.config.bkAppOtelGrpcUrl }}"
   {{- end }}
 
-  {{- if .Values.config.bkAppEnableOtelTrace }}
-  BKAPP_ENABLE_OTEL_TRACE: "{{ .Values.config.bkAppEnableOtelTrace }}"
-  BKAPP_OTEL_SERVICE_NAME: {{ printf "%s-%s" (include "bk-nodeman.fullname" .) "saas" }}
-  BKAPP_OTEL_INSTRUMENT_DB_API: "{{ .Values.config.bkAppOtelInstrumentDbApi }}"
-  BKAPP_OTEL_SAMPLER: "{{ .Values.config.bkAppOtelSampler }}"
-  BKAPP_OTEL_BK_DATA_TOKEN: "{{ .Values.config.bkAppOtelBkDataToken }}"
-  BKAPP_OTEL_GRPC_URL: "{{ .Values.config.bkAppOtelGrpcUrl }}"
-  {{- end }}
-
   {{- if .Values.config.bkAppMonitorReporterEnable }}
   BKAPP_MONITOR_REPORTER_ENABLE: "{{ .Values.config.bkAppMonitorReporterEnable }}"
   BKAPP_MONITOR_REPORTER_DATA_ID: "{{ int .Values.config.bkAppMonitorReporterDataId }}"
@@ -124,6 +115,9 @@ data:
   CONCURRENT_NUMBER: "{{ .Values.config.concurrentNumber }}"
 
   SAAS_API_PORT: "{{ .Values.saas.api.service.port }}"
+  GUNICORN_TIMEOUT: "{{ .Values.saas.api.timeout | default 30 }}"
+  GUNICORN_WORKER_NUM: "{{ .Values.saas.api.workerNum | default 2 }}"
+  GUNICORN_THREAD_NUM: "{{ .Values.saas.api.threadNum | default 4 }}"
 
   BKAPP_NAV_OPEN_SOURCE_URL: "{{ .Values.config.bkAppNavOpenSourceUrl }}"
   BKAPP_NAV_HELPER_URL: "{{ .Values.config.bkAppNavHelperUrl }}"
