@@ -20,14 +20,18 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 from django.utils import timezone
 
+from apps.core.ipchooser.query.resource import ResourceQueryHelper
+from apps.core.tag.constants import TargetType
 from apps.node_man import constants
 from apps.node_man.exceptions import HostNotExists
 from apps.node_man.models import (
+    GsePluginDesc,
     Host,
     ProcessStatus,
     Subscription,
     SubscriptionInstanceRecord,
     SubscriptionInstanceStatusDetail,
+    SubscriptionStep,
     SubscriptionTask,
 )
 from apps.node_man.periodic_tasks.utils import JobDemand
@@ -404,3 +408,116 @@ class DebugHandler(APIModel):
                     )
 
         return anomaly_status_host_info_map
+
+    def fetch_subscriptions_by_plugin(
+        self,
+        plugin_name,
+        version=None,
+        start_time=None,
+        end_time=None,
+        enable=True,
+        show_deleted=False,
+    ):
+        # 涉及到插件的订阅信息
+
+        if start_time or end_time:
+            try:
+                # 校验时间格式可以被 django 的 ORM 解析
+                start_time = timezone.datetime.strptime(start_time, "%Y-%m-%d %H:%M:%S")
+                end_time = timezone.datetime.strptime(end_time, "%Y-%m-%d %H:%M:%S")
+            except ValueError:
+                raise ValueError("时间格式错误, 格式: %Y-%m-%d %H:%M:%S")
+            subscription_objs = Subscription.objects.filter(
+                show_deleted=show_deleted,
+                create_time__range=(start_time, end_time),
+                enable=enable,
+            ).values_list("id", flat=True)
+        else:
+            subscription_objs = Subscription.objects.filter(
+                show_deleted=show_deleted,
+                enable=enable,
+            ).values_list("id", flat=True)
+        plugin_map = {
+            name: category for name, category in GsePluginDesc.objects.filter().values_list("name", "category")
+        }
+        if plugin_name not in plugin_map:
+            raise ValueError(f"插件名称[{plugin_name}]不存在")
+
+        subscription_steps_objs = SubscriptionStep.objects.filter(subscription_id__in=subscription_objs)
+        sub_id__info_map: Dict[str, List[Dict]] = defaultdict(list)
+        for subscription_step_obj in subscription_steps_objs:
+            if subscription_step_obj.type == TargetType.PLUGIN.value:
+                subscription_plugin_name = subscription_step_obj.config.get("plugin_name")
+                if version is not None and version != subscription_step_obj.config.get("plugin_version"):
+                    continue
+                if subscription_plugin_name == plugin_name:
+                    sub_id__info_map[subscription_step_obj.subscription_id].append(
+                        {
+                            "subscription_id": subscription_step_obj.subscription_id,
+                            "version": subscription_step_obj.config.get("plugin_version"),
+                            "sub_step_id": subscription_step_obj.id,
+                        }
+                    )
+        with_plugin_sub_ids = list(sub_id__info_map.keys())
+        sub__biz_ids_map = defaultdict(lambda: defaultdict(list))
+        # 通过订阅 node 获取到 bk_biz_id，如果没有 bk_biz_id，那么记录主机实例
+        sub_id__scope_map = {
+            subscription.id: subscription.scope
+            for subscription in Subscription.objects.filter(id__in=with_plugin_sub_ids)
+        }
+        for sub_id, scope in sub_id__scope_map.items():
+            # 如果 nodes 中包括了 bk_biz_id，那么就直接使用 bk_biz_id,
+            scope_bk_biz_id = scope["bk_biz_id"]
+            for node in scope["nodes"]:
+                # 如果 scope 第一层没有 bk_biz_id，那么就使用 node 中的 bk_biz_id， 如果此时有 node 不包括 bk_biz_id，那么就记录主机实例
+                node_bk_biz_id = node.get("bk_biz_id")
+                if node_bk_biz_id:
+                    # 优先使用 noded 中的 bk_biz_id
+                    sub__biz_ids_map[sub_id]["bk_biz_ids"].append(node_bk_biz_id)
+                elif not node_bk_biz_id and scope_bk_biz_id:
+                    # 如果 node 中没有 bk_biz_id 并且 scope 中有 bk_biz_id，那么就使用 scope 中的 bk_biz_id
+                    sub__biz_ids_map[sub_id]["bk_biz_ids"].append(scope_bk_biz_id)
+                else:
+                    # 如果 node 中没有 bk_biz_id 并且 scope 中也没有 bk_biz_id，那么就记录主机实例
+                    sub__biz_ids_map[sub_id]["without_biz_info_nodes"].append(node)
+
+        for sub_id in sub__biz_ids_map:
+            without_biz_info_nodes = sub__biz_ids_map[sub_id].get("without_biz_info_nodes")
+            if not without_biz_info_nodes:
+                continue
+            host_obj_query_list = []
+            for node in sub__biz_ids_map[sub_id]["without_biz_info_nodes"]:
+                bk_host_id = node.get("bk_host_id")
+                ip = node.get("ip")
+                bk_cloud_id = node.get("bk_cloud_id")
+                if bk_host_id:
+                    host_obj_query_list.append(Q(bk_host_id=bk_host_id))
+                elif basic.is_v4(ip):
+                    host_obj_query_list.append(Q(inner_ip=ip, bk_cloud_id=bk_cloud_id))
+                elif basic.is_v6(ip):
+                    host_obj_query_list.append(Q(inner_ipv6=ip, bk_cloud_id=bk_cloud_id))
+
+            sub_biz_ids = list(set(Host.objects.filter(*host_obj_query_list).values_list("bk_biz_id", flat=True)))
+            sub__biz_ids_map[sub_id]["bk_biz_ids"].append(sub_biz_ids)
+
+        # 所有的数据都准备好了，开始组装返回结果
+        total_biz_ids = []
+        for sub_id in sub__biz_ids_map:
+            flatten_list = []
+            for i in sub__biz_ids_map[sub_id]["bk_biz_ids"]:
+                # 把 [1,2, [3,4]] 这种列表转换为 [1,2,3,4]
+                if isinstance(i, list):
+                    flatten_list.extend(i)
+                else:
+                    flatten_list.append(i)
+            total_biz_ids.extend(flatten_list)
+
+        bk_biz_info = ResourceQueryHelper().fetch_biz_list(bk_biz_ids=total_biz_ids)
+
+        return {
+            "plugin_name": plugin_name,
+            "total_biz_info": bk_biz_info,
+            "total_biz_ids": list(set(total_biz_ids)),
+            "sub_id__info_map": dict(sub_id__info_map),
+            "total_sub_ids": with_plugin_sub_ids,
+        }
