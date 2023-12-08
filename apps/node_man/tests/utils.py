@@ -191,7 +191,6 @@ def create_host(
 
 class Subscription:
     def create_subscription(self, job_type, nodes, *args, **kwargs):
-
         cipher = tools.HostTools.get_asymmetric_cipher()
         subscription_id = random.randint(100, 1000)
         task_id = random.randint(10, 1000)
@@ -654,9 +653,12 @@ def create_ap(number):
                     "is_enabled": 1,
                     "zk_account": "bkzk",
                     "zk_password": "bkzk",
-                    "btfileserver": [{"inner_ip": random_ip(), "outer_ip": random_ip()}],
-                    "dataserver": [{"inner_ip": random_ip(), "outer_ip": random_ip()}],
-                    "taskserver": [{"inner_ip": random_ip(), "outer_ip": random_ip()}],
+                    "btfileserver": {
+                        "inner_ips": [{"inner_ip": random_ip()}],
+                        "outer_ips": [{"outer_ip": random_ip()}],
+                    },
+                    "dataserver": {"inner_ips": [{"inner_ip": random_ip()}], "outer_ips": [{"outer_ip": random_ip()}]},
+                    "taskserver": {"inner_ips": [{"inner_ip": random_ip()}], "outer_ips": [{"outer_ip": random_ip()}]},
                     "package_inner_url": "http://127.0.0.1:80/download",
                     "package_outer_url": "http://127.0.0.1:80/download",
                     "nginx_path": "/data/bkee/public/bknodeman/download",

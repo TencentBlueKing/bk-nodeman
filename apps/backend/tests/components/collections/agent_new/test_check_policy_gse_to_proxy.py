@@ -36,7 +36,9 @@ class CheckPolicyGseToProxyTestCase(base.JobBaseTestCase):
     def setUpTestData(cls):
         super().setUpTestData()
         host = models.Host.objects.all()[0]
-        models.AccessPoint.objects.all().update(btfileserver=[{"inner_ip": host.inner_ip, "outer_ip": host.outer_ip}])
+        models.AccessPoint.objects.all().update(
+            btfileserver={"inner_ip_infos": [{"ip": host.inner_ip}], "outer_ip_infos": [{"ip": host.outer_ip}]}
+        )
         host_data = copy.deepcopy(common_unit.host.HOST_MODEL_DATA)
         host_data.update({"bk_host_id": cls.obj_factory.RANDOM_BEGIN_HOST_ID + cls.obj_factory.total_host_num})
         cls.obj_factory.bulk_create_model(models.Host, [host_data])
