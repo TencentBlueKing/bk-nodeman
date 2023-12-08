@@ -13,9 +13,11 @@ from typing import List
 
 from django.conf import settings
 
+from apps.core.concurrent.retry import RetryHandler
 from apps.node_man import constants, models
 from apps.utils.batch_request import request_multi_thread
 from common.api import NodeApi
+from common.api.exception import DataAPIException
 
 from ..base import CommonData
 from ..subsubscription import SubSubscriptionBaseService
@@ -24,7 +26,12 @@ from .base import AgentBaseService
 
 class InstallPluginsService(SubSubscriptionBaseService, AgentBaseService):
     @staticmethod
-    def create_subscriptions(common_data: CommonData) -> List[int]:
+    @RetryHandler(interval=1, retry_times=1, exception_types=[DataAPIException])
+    def call_create_subscription_api(params):
+        return NodeApi.create_subscription(params)
+
+    @classmethod
+    def create_subscriptions(cls, common_data: CommonData) -> List[int]:
         host_ids_group_by_os = defaultdict(list)
         for host in common_data.host_id_obj_map.values():
             host_ids_group_by_os[host.os_type.lower()].append(host.bk_host_id)
@@ -69,6 +76,6 @@ class InstallPluginsService(SubSubscriptionBaseService, AgentBaseService):
                 }
             )
         subscription_ids = request_multi_thread(
-            NodeApi.create_subscription, params_list, get_data=lambda x: [x["subscription_id"]]
+            cls.call_create_subscription_api, params_list, get_data=lambda x: [x["subscription_id"]]
         )
         return subscription_ids

@@ -23,6 +23,7 @@ from django.utils.translation import get_language
 from django.utils.translation import ugettext_lazy as _
 
 from apps.backend.subscription.errors import SubscriptionTaskNotReadyError
+from apps.core.concurrent.retry import RetryHandler
 from apps.exceptions import ApiResultError
 from apps.node_man import constants, exceptions, models, tools
 from apps.node_man.handlers import validator
@@ -36,6 +37,7 @@ from apps.utils.basic import filter_values, to_int_or_default
 from apps.utils.local import get_request_username
 from apps.utils.time_tools import local_dt_str2utc_dt
 from common.api import NodeApi
+from common.api.exception import DataAPIException
 
 logger = logging.getLogger("app")
 
@@ -108,7 +110,7 @@ class JobHandler(APIModel):
         # 主机ID - 订阅实例ID映射
         host_id__sub_inst_id_map: Dict[int, int] = {}
         # 获取任务状态
-        task_result = NodeApi.get_subscription_task_status(
+        task_result = self.get_subscription_task_status(
             {"subscription_id": job.subscription_id, "task_id_list": job.task_id_list, "return_all": True}
         )
         for result in task_result["list"]:
@@ -715,6 +717,10 @@ class JobHandler(APIModel):
         self.data.save()
         return self.data.task_id_list
 
+    @RetryHandler(interval=1, retry_times=1, exception_types=[DataAPIException])
+    def get_subscription_task_status(self, query_params):
+        return NodeApi.get_subscription_task_status(query_params)
+
     def retrieve(self, params: Dict[str, Any]):
         """
         任务详情页接口
@@ -723,7 +729,7 @@ class JobHandler(APIModel):
         if self.data.task_id_list:
 
             try:
-                task_result = NodeApi.get_subscription_task_status(
+                task_result = self.get_subscription_task_status(
                     tools.JobTools.parse2task_result_query_params(job=self.data, query_params=params)
                 )
             except ApiResultError as err:
