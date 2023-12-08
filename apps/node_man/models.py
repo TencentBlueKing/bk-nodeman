@@ -552,15 +552,21 @@ class AccessPoint(models.Model):
 
     @property
     def file_endpoint_info(self) -> EndpointInfo:
-        return EndpointInfo(inner_server_infos=self.btfileserver, outer_server_infos=self.btfileserver)
+        return EndpointInfo(
+            inner_ip_infos=self.btfileserver["inner_ip_infos"], outer_ip_infos=self.btfileserver["outer_ip_infos"]
+        )
 
     @property
     def data_endpoint_info(self) -> EndpointInfo:
-        return EndpointInfo(inner_server_infos=self.dataserver, outer_server_infos=self.dataserver)
+        return EndpointInfo(
+            inner_ip_infos=self.dataserver["inner_ip_infos"], outer_ip_infos=self.dataserver["outer_ip_infos"]
+        )
 
     @property
     def cluster_endpoint_info(self) -> EndpointInfo:
-        return EndpointInfo(inner_server_infos=self.taskserver, outer_server_infos=self.taskserver)
+        return EndpointInfo(
+            inner_ip_infos=self.taskserver["inner_ip_infos"], outer_ip_infos=self.taskserver["outer_ip_infos"]
+        )
 
     @classmethod
     def ap_id_obj_map(cls):
@@ -625,12 +631,18 @@ class AccessPoint(models.Model):
         接入点可用性测试
         :param params: Dict
         {
-            "servers": [
-                {
-                    "inner_ip": "127.0.0.1",
-                    "outer_ip": "127.0.0.2"
-                }
-            ],
+            "btfileserver": {
+                "inner_ip_infos": [{"ip": "127.0.0.1"}],
+                "outer_ip_infos": [{"ip": "127.0.0.2"}]
+            },
+            "taskserver": {
+                "inner_ip_infos": [{"ip": "127.0.0.1"}],
+                "outer_ip_infos": [{"ip": "127.0.0.2"}]
+            },
+            "dataserver": {
+                "inner_ip_infos": [{"ip": "127.0.0.1"}],
+                "outer_ip_infos": [{"ip": "127.0.0.2"}]
+            },
             "package_inner_url": "http://127.0.0.1/download/",
             "package_outer_url": "http://127.0.0.2/download/"
         }
@@ -695,9 +707,10 @@ class AccessPoint(models.Model):
 
         test_logs = []
         detect_hosts: Set[str] = set()
-        for server in params.get("btfileserver", []) + params.get("dataserver", []) + params.get("taskserver", []):
-            detect_hosts.add(server.get("inner_ip") or server.get("inner_ipv6"))
 
+        for server_type in ["btfileserver", "dataserver", "taskserver"]:
+            for ip_info in params[server_type]["inner_ip_infos"]:
+                detect_hosts.add(ip_info.get("ip"))
         with ThreadPoolExecutor(max_workers=settings.CONCURRENT_NUMBER) as ex:
             tasks = [ex.submit(_check_ip, detect_host, test_logs) for detect_host in detect_hosts]
             tasks.append(ex.submit(_check_package_url, params["package_inner_url"], test_logs))
@@ -886,7 +899,10 @@ class GsePluginDesc(models.Model):
     scenario_en = models.TextField(_("英文使用场景"), null=True, blank=True)
     category = models.CharField(_("所属范围"), max_length=32, choices=constants.CATEGORY_CHOICES)
     launch_node = models.CharField(
-        _("宿主节点类型要求"), max_length=32, choices=[("agent", "agent"), ("proxy", "proxy"), ("all", "all")], default="all"
+        _("宿主节点类型要求"),
+        max_length=32,
+        choices=[("agent", "agent"), ("proxy", "proxy"), ("all", "all")],
+        default="all",
     )
 
     config_file = models.CharField(_("配置文件名称"), max_length=128, null=True, blank=True)
@@ -1449,12 +1465,10 @@ class DownloadRecord(models.Model):
 
     @property
     def is_finish(self):
-
         return self.task_status == self.TASK_STATUS_FAILED or self.task_status == self.TASK_STATUS_SUCCESS
 
     @property
     def is_failed(self):
-
         return self.task_status == self.TASK_STATUS_FAILED
 
     @property
@@ -1944,7 +1958,7 @@ class Subscription(export_subscription_prometheus_mixin(), orm.SoftDeleteModel):
             host_id__bk_obj_sub_map[proc_status["bk_host_id"]].append(
                 {
                     "bk_obj_id": proc_status["bk_obj_id"],
-                    "subscription": exist_subscription_id__obj_map.get(int(proc_status["source_id"]))
+                    "subscription": exist_subscription_id__obj_map.get(int(proc_status["source_id"])),
                     # "subscription_id": int(proc_status.source_id),
                     # "name": exist_subscription_id__obj_map.get(int(proc_status.source_id)),
                 }
@@ -2200,7 +2214,10 @@ class SubscriptionInstanceRecord(models.Model):
     is_latest = models.BooleanField(_("是否为实例最新记录"), default=True, db_index=True)
 
     status = models.CharField(
-        _("任务状态"), max_length=45, choices=constants.JobStatusType.get_choices(), default=constants.JobStatusType.PENDING
+        _("任务状态"),
+        max_length=45,
+        choices=constants.JobStatusType.get_choices(),
+        default=constants.JobStatusType.PENDING,
     )
 
     @property
@@ -2349,7 +2366,10 @@ class SubscriptionInstanceStatusDetail(models.Model):
     subscription_instance_record_id = models.BigIntegerField(_("订阅实例ID"), db_index=True)
     node_id = models.CharField(_("Pipeline原子ID"), max_length=50, default="", blank=True, db_index=True)
     status = models.CharField(
-        _("任务状态"), max_length=45, choices=constants.JobStatusType.get_choices(), default=constants.JobStatusType.RUNNING
+        _("任务状态"),
+        max_length=45,
+        choices=constants.JobStatusType.get_choices(),
+        default=constants.JobStatusType.RUNNING,
     )
     log = models.TextField(_("日志内容"))
     update_time = models.DateTimeField(_("更新时间"), null=True, blank=True, db_index=True)
