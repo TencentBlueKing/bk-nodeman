@@ -128,8 +128,11 @@ MOCK_KAZOOCLIENT_CHILDREN_DATA = {
     "/gse/config/server/task/all": ["127.0.0.1", "127.0.0.2", "127.0.0.3"],
     "/gse/config/server/btfiles/all": ["127.0.0.1", "127.0.0.2", "127.0.0.3"],
 }
-MOCK_AP_FIELD_MAP = [
-    {"inner_ip": "127.0.0.1", "outer_ip": "127.0.0.1"},
-    {"inner_ip": "127.0.0.2", "outer_ip": "127.0.0.2"},
-    {"inner_ip": "127.0.0.3", "outer_ip": "127.0.0.3"},
-]
+MOCK_AP_FIELD_MAP = {
+    "inner_ips": [
+        {"inner_ip": "127.0.0.1"},
+        {"inner_ip": "127.0.0.2"},
+        {"inner_ip": "127.0.0.3"},
+    ],
+    "outer_ips": [{"outer_ip": ""}],
+}
