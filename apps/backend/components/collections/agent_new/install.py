@@ -36,6 +36,7 @@ from apps.backend.subscription.steps.agent_adapter.adapter import AgentStepAdapt
 from apps.backend.utils.redis import REDIS_INST
 from apps.backend.utils.wmi import execute_cmd, put_file
 from apps.core.concurrent import controller
+from apps.core.concurrent.retry import RetryHandler
 from apps.core.remote import conns
 from apps.exceptions import AuthOverdueException, parse_exception
 from apps.node_man import constants, models
@@ -433,7 +434,7 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
         # 不统计异常耗时
         include_exception_histogram=False,
     )
-    @base.RetryHandler(interval=0, retry_times=2, exception_types=[ConnectionResetError])
+    @RetryHandler(interval=0, retry_times=2, exception_types=[ConnectionResetError])
     def execute_windows_commands(
         self, sub_inst_id: int, host: models.Host, commands: List[str], identity_data: models.IdentityData
     ):
@@ -489,7 +490,7 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
         return sub_inst_id
 
     @ExceptionHandler(exc_handler=core.default_sub_inst_task_exc_handler)
-    @base.RetryHandler(interval=0, retry_times=2, exception_types=[ConnectionResetError])
+    @RetryHandler(interval=0, retry_times=2, exception_types=[ConnectionResetError])
     def push_curl_exe(
         self,
         sub_inst_id: int,
