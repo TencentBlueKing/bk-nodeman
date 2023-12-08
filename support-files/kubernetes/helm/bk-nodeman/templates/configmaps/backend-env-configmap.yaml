@@ -16,6 +16,9 @@ data:
   BK_BACKEND_CONFIG: "true"
 
   BACKEND_API_PORT: "{{ .Values.backend.api.service.port | default 10300 }}"
+  GUNICORN_TIMEOUT: "{{ .Values.backend.api.timeout | default 30 }}"
+  GUNICORN_WORKER_NUM: "{{ .Values.backend.api.workerNum | default 1 }}"
+  GUNICORN_THREAD_NUM: "{{ .Values.backend.api.threadNum | default 3 }}"
 
   {{- if .Values.config.bkAppEnableOtelTrace }}
   BKAPP_OTEL_SERVICE_NAME: {{ printf "%s-%s" (include "bk-nodeman.fullname" .) "backend" }}
