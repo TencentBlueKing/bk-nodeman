@@ -20,10 +20,12 @@ from apps.backend.api.constants import (
     SUB_SUBSCRIPTION_POLLING_TIMEOUT,
 )
 from apps.backend.components.collections.base import BaseService, CommonData
+from apps.core.concurrent.retry import RetryHandler
 from apps.exceptions import ApiResultError
 from apps.node_man import constants
 from apps.utils.batch_request import request_multi_thread
 from common.api import NodeApi
+from common.api.exception import DataAPIException
 from pipeline.core.flow import Service, StaticIntervalGenerator
 
 logger = logging.getLogger("app")
@@ -43,11 +45,12 @@ class SubSubscriptionBaseService(BaseService, metaclass=abc.ABCMeta):
             Service.InputItem(name="polling_time", key="polling_time", type="int", required=True),
         ]
 
-    @staticmethod
-    def create_subscriptions(common_data: CommonData) -> List[int]:
+    @classmethod
+    def create_subscriptions(cls, common_data: CommonData) -> List[int]:
         raise NotImplementedError()
 
     @staticmethod
+    @RetryHandler(interval=1, retry_times=1, exception_types=[DataAPIException])
     def check_subscription_task_ready(subscription_id: int) -> Dict[str, Any]:
         try:
             sub_task_is_ready: bool = NodeApi.check_subscription_task_ready({"subscription_id": subscription_id})
@@ -56,14 +59,19 @@ class SubSubscriptionBaseService(BaseService, metaclass=abc.ABCMeta):
             # 异常视为订阅任务创建失败
             return {"subscription_id": subscription_id, "is_ready": True, "is_error": True, "err_msg": err}
 
+    @staticmethod
+    @RetryHandler(interval=1, retry_times=1, exception_types=[DataAPIException])
+    def get_subscription_task_status(params):
+        return NodeApi.get_subscription_task_status(params)
+
     @classmethod
     def bulk_check_subscription_task_ready(cls, subscription_ids: List[int]) -> List[Dict[str, Any]]:
         params_list = [{"subscription_id": subscription_id} for subscription_id in subscription_ids]
         task_ready_infos = request_multi_thread(cls.check_subscription_task_ready, params_list, get_data=lambda x: [x])
         return task_ready_infos
 
-    @staticmethod
-    def bulk_get_subscription_task_status(subscription_ids: List[int]) -> List[List[Dict]]:
+    @classmethod
+    def bulk_get_subscription_task_status(cls, subscription_ids: List[int]) -> List[List[Dict]]:
         params_list = [
             {
                 "params": {
@@ -72,7 +80,7 @@ class SubSubscriptionBaseService(BaseService, metaclass=abc.ABCMeta):
             }
             for subscription_id in subscription_ids
         ]
-        task_results = request_multi_thread(NodeApi.get_subscription_task_status, params_list, get_data=lambda x: [x])
+        task_results = request_multi_thread(cls.get_subscription_task_status, params_list, get_data=lambda x: [x])
         return task_results
 
     @staticmethod

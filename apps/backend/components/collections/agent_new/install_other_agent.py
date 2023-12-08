@@ -18,6 +18,7 @@ from apps.backend.api.constants import (
     INSTALL_OTHER_AGENT_POLLING_TIMEOUT,
     POLLING_INTERVAL,
 )
+from apps.core.concurrent.retry import RetryHandler
 from apps.core.gray.constants import INSTALL_OTHER_AGENT_AP_ID_OFFSET
 from apps.core.gray.handlers import GrayHandler
 from apps.exceptions import ApiError
@@ -27,6 +28,7 @@ from apps.node_man.handlers.job import JobHandler
 from apps.node_man.models import GlobalSettings
 from apps.utils.batch_request import request_multi_thread
 from common.api import NodeApi
+from common.api.exception import DataAPIException
 from env.constants import GseVersion
 from pipeline.core.flow.activity import StaticIntervalGenerator
 
@@ -40,6 +42,11 @@ class InstallOtherAgentService(AgentBaseService):
 
     __need_schedule__ = True
     interval = StaticIntervalGenerator(POLLING_INTERVAL)
+
+    @classmethod
+    @RetryHandler(interval=1, retry_times=1, exception_types=[DataAPIException])
+    def install(cls, query_params):
+        return NodeApi.install(query_params)
 
     def _execute(self, data, parent_data, common_data: AgentCommonData):
         extra_agent_version: str = data.get_one_of_inputs("extra_agent_version")
@@ -129,7 +136,7 @@ class InstallOtherAgentService(AgentBaseService):
                 "is_install_other_agent": True,
                 "hosts": hosts,
             }
-            job_result: Dict[str, Any] = NodeApi.install(install_params)
+            job_result: Dict[str, Any] = self.install(install_params)
             # 对请求的hosts输出任务连接
             self.log_info(
                 sub_inst_ids=sub_inst_ids,
