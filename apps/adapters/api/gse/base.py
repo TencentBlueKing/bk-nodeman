@@ -116,7 +116,7 @@ class GseApiBaseHelper(abc.ABC):
         version = version_str.strip().replace(" ", "").replace("\n", "")
         version_pattern = re.compile(r"^[a-zA-Z0-9.-]+$")
         version_match = version_pattern.search(version or "")
-        return version_match.group() if version_match else "special"
+        return version_match.group() if version_match else ""
 
     def get_gse_proc_key(
         self, mixed_types_of_host_info: typing.Union[InfoDict, models.Host], namespace: str, proc_name: str, **options
