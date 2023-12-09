@@ -518,6 +518,7 @@ backend:
     replicaCount: 1
     command: "bin/hooks/start_cmds/start-backend-api"
     timeout: 60
+    keepAlive: "0"
     workerNum: 1
     threadNum: 3
 
