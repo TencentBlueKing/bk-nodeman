@@ -20,6 +20,10 @@ data:
   GUNICORN_WORKER_NUM: "{{ .Values.backend.api.workerNum | default 1 }}"
   GUNICORN_THREAD_NUM: "{{ .Values.backend.api.threadNum | default 3 }}"
 
+  {{- if .Values.backend.api.keepAlive }}
+  GUNICORN_KEEP_ALIVE: "{{ .Values.backend.api.keepAlive }}"
+  {{- end }}
+
   {{- if .Values.config.bkAppEnableOtelTrace }}
   BKAPP_OTEL_SERVICE_NAME: {{ printf "%s-%s" (include "bk-nodeman.fullname" .) "backend" }}
   {{- end }}
