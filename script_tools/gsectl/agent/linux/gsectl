@@ -491,7 +491,7 @@ get_os_type () {
 
 check_rc_file () {
     get_os_type
-    if [ -f $RC_LOCAL_FILE ]; then
+    if [ -f "$RC_LOCAL_FILE" ]; then
         return 0
     elif [ -f "/etc/rc.d/rc.local" ]; then
         RC_LOCAL_FILE="/etc/rc.d/rc.local"
