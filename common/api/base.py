@@ -24,13 +24,27 @@ from django.utils.translation import ugettext as _
 
 from apps.exceptions import ApiRequestError, ApiResultError, AppBaseException
 from apps.utils import remove_auth_args
-from apps.utils.local import get_request, get_request_id
+from apps.utils.local import get_request, get_request_id, get_request_username
 from apps.utils.time_handler import timestamp_to_datetime
 
 from .exception import DataAPIException
 from .utils.params import add_esb_info_before_request
 
 logger = logging.getLogger("component")
+API_AUTH_KEYS = ["bk_app_code", "bk_app_secret", "bk_username", "bk_token", "access_token", "bk_ticket"]
+
+
+def get_request_api_headers(params):
+    """
+    获取api网关鉴权认证请求头
+    """
+    api_headers = {
+        "bk_app_code": settings.APP_CODE,
+        "bk_app_secret": settings.SECRET_KEY,
+        "bk_username": get_request_username(),
+    }
+    api_headers.update(params)
+    return json.dumps(api_headers)
 
 
 class DataResponse(object):
@@ -387,6 +401,14 @@ class DataAPI(object):
         # headers 申明重载请求方法
         if self.method_override is not None:
             session.headers.update({"X-METHOD-OVERRIDE": self.method_override})
+
+        # headers 增加api认证数据
+        api_auth_params = {}
+        for auth_key in API_AUTH_KEYS:
+            auth_value = params.get(auth_key)
+            if auth_value:
+                api_auth_params[auth_key] = auth_value
+        session.headers.update({"X-Bkapi-Authorization": get_request_api_headers(api_auth_params)})
 
         url = self.build_actual_url(params)
         # 发出请求并返回结果
