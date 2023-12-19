@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 
 from unittest.mock import patch
 
-from apps.node_man.constants import IamActionType
+from apps.node_man.constants import DEFAULT_CLOUD, IamActionType
 from apps.node_man.handlers.iam import IamHandler
 from apps.utils.unittest.testcase import CustomBaseTestCase
 
@@ -32,7 +32,7 @@ class TestIAM(CustomBaseTestCase):
 
         # 测试超级用户
         ret = IamHandler().fetch_policy("admin", [IamActionType.cloud_edit])
-        self.assertEqual(len(ret[IamActionType.cloud_edit]), self.resource_num)
+        self.assertEqual(len(ret[IamActionType.cloud_edit]), self.resource_num + len([DEFAULT_CLOUD]))
 
         # 测试创建者
         ret = IamHandler().fetch_policy("creator", [IamActionType.cloud_edit])
@@ -76,7 +76,9 @@ class TestIAM(CustomBaseTestCase):
 
         # 测试超级用户
         ret = IamHandler().fetch_policy("admin", [IamActionType.cloud_edit])
-        self.assertEqual(len(ret[IamActionType.cloud_edit]), self.resource_num)
+        self.assertEqual(
+            len(ret[IamActionType.cloud_edit]), self.resource_num + self.resource_num + len([DEFAULT_CLOUD])
+        )
 
         # 测试无权限用户
         ret = IamHandler().fetch_policy("normal", [IamActionType.ap_edit])

@@ -84,7 +84,7 @@ class IamHandler(APIModel):
 
         if instance_type == "cloud":
             # 拥有所有管控区域权限
-            return list(Cloud.objects.all().values_list("bk_cloud_id", flat=True))
+            return list(Cloud.objects.all().values_list("bk_cloud_id", flat=True) + [const.DEFAULT_CLOUD])
         elif instance_type in ["biz", "agent", "plugin", "proxy", "task"]:
             # 拥有所有业务权限
             return [business["bk_biz_id"] for business in self.fetch_biz()]
@@ -182,6 +182,7 @@ class IamHandler(APIModel):
                     if is_superuser:
                         # 超管用户拥有所有权限
                         ret[action] = list(Cloud.objects.values_list("bk_cloud_id", flat=True))
+                        ret[action].append(const.DEFAULT_CLOUD)
                     else:
                         clouds = dict(Cloud.objects.all().values_list("bk_cloud_id", "creator"))
                         ret[action] = [cloud for cloud in clouds if username in clouds[cloud]]
