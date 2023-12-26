@@ -40,6 +40,7 @@ __all__ = [
     "BKAPP_MONITOR_REPORTER_CHUNK_SIZE",
     "BKAPP_NAV_OPEN_SOURCE_URL",
     "BKAPP_NAV_HELPER_URL",
+    "BK_DOCS_CENTER_HOST",
     "BK_CC_HOST",
     "BK_API_URL_TMPL",
     "ENVIRONMENT",
@@ -172,3 +173,6 @@ BKAPP_NAV_OPEN_SOURCE_URL = get_type_env(
 BKAPP_NAV_HELPER_URL = get_type_env(
     key="BKAPP_NAV_HELPER_URL", default="https://wpa1.qq.com/KziXGWJs?_type=wpa&qidian=true", _type=str
 )
+# 文档中心跳转路由
+
+BK_DOCS_CENTER_HOST = get_type_env(key="BK_DOCS_CENTER_HOST", default="", _type=str)
