@@ -123,3 +123,4 @@ data:
   BKAPP_NAV_HELPER_URL: "{{ .Values.config.bkAppNavHelperUrl }}"
   BKPAAS_BK_DOMAIN: "{{ .Values.global.bkDomain }}"
   BKPAAS_BK_CRYPTO_TYPE: "{{ .Values.global.bkCryptoType | default "CLASSIC" }}"
+  BK_DOCS_CENTER_HOST: "{{ .Values.bkDocsCenterHost }}"

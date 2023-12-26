@@ -29,7 +29,7 @@ context_processor for common(setting)
 
 
 def get_docs_center_url():
-    docs_suffix = "markdown/节点管理/产品白皮书/Introduce/Overview.md"
+    docs_suffix: str = "markdown/NodeMan/UserGuide/Introduce/Overview.md"
     if settings.BK_DOCS_CENTER_HOST:
         docs_prefix = settings.BK_DOCS_CENTER_HOST
         return f"{docs_prefix}/{docs_suffix}"

@@ -269,6 +269,7 @@ externalRabbitMQ:
 | `bkIamUrl`          | 蓝鲸权限中心 SaaS 地址                                         | `http://bkiam.example.com`      |
 | `bkIamApiUrl`       | 蓝鲸权限中心后台 API 地址                                        | `http://bkiam-api.example.com`  |
 | `bkRepoUrl`         | 蓝鲸制品库浏览器访问域名和后台 API http://bkiam-api.example.com 域名同一个 | `http://bkrepo.example.com`     |
+| `bkDocsCenterHost`  | 蓝鲸文档中心跳转链接   | `http://apps.example.com/bk--docs--center/`     |
 
 
 ### GSE 证书配置
