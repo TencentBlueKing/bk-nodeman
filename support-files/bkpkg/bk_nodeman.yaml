@@ -1,0 +1,10 @@
+bkpkg: v1
+name: bk_nodeman
+type: smart
+description: 节点管理应用
+contains:
+relations:
+- rationale: 节点管理后台
+  requires:
+  - bk-nodeman^2.3.0
+bkimports:
