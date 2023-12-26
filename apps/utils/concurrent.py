@@ -67,13 +67,17 @@ def batch_call(
     if not params_list:
         return result
 
+    # 单个子任务，直接串行跑，减少上下文切换
+    if len(params_list) == 1:
+        return batch_call_serial(func, params_list, get_data, extend_result, interval, **kwargs)
+
     if inspect.iscoroutinefunction(func):
         func = async_to_sync(func)
 
     with ThreadPoolExecutor(max_workers=settings.CONCURRENT_NUMBER) as ex:
         tasks = []
         for idx, params in enumerate(params_list):
-            if idx != 0:
+            if idx != 0 and interval:
                 time.sleep(interval)
             tasks.append(
                 ex.submit(translation.RespectsLanguage(language=get_language())(inject_request(func)), **params)
@@ -101,7 +105,7 @@ def batch_call_serial(
 
     result = []
     for idx, params in enumerate(params_list):
-        if idx != 0:
+        if idx != 0 and interval:
             time.sleep(interval)
         if extend_result:
             result.extend(get_data(func(**params)))
