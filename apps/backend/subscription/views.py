@@ -455,7 +455,9 @@ class SubscriptionViewSet(APIViewSet):
             subscription_instance_record[instance_record.subscription_id][instance_record.instance_id] = instance_record
             instance_records.append(instance_record)
 
-        instance_status_list = task_tools.TaskResultTools.list_subscription_task_instance_status(instance_records)
+        instance_status_list = task_tools.TaskResultTools.list_subscription_task_instance_status(
+            instance_records=instance_records
+        )
         instance_status_map = {
             instance_status["instance_id"]: instance_status for instance_status in instance_status_list
         }

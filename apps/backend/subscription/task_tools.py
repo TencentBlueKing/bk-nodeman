@@ -19,7 +19,9 @@ from django.utils import timezone
 
 from apps.backend.subscription import tools
 from apps.backend.utils import pipeline_parser
+from apps.core.concurrent import controller
 from apps.node_man import constants, models
+from apps.utils import concurrent
 from apps.utils.time_handler import strftime_local
 
 logger = logging.getLogger("app")
@@ -89,7 +91,7 @@ class TaskResultTools:
         return status
 
     @classmethod
-    def list_subscription_task_instance_status(
+    def _list_subscription_task_instance_status(
         cls, instance_records: List[models.SubscriptionInstanceRecord], need_detail=False
     ) -> List[Dict[str, Any]]:
         if not instance_records:
@@ -135,6 +137,25 @@ class TaskResultTools:
                 )
             )
         return instance_status_list
+
+    @classmethod
+    def list_subscription_task_instance_status(
+        cls, instance_records: List[models.SubscriptionInstanceRecord], need_detail=False
+    ) -> List[Dict[str, Any]]:
+        @controller.ConcurrentController(
+            data_list_name="_instance_records",
+            batch_call_func=concurrent.batch_call,
+            extend_result=True,
+            get_config_dict_func=lambda: {"limit": 500},
+        )
+        def _inner(
+            _instance_records: List[models.SubscriptionInstanceRecord], _need_detail=False
+        ) -> List[Dict[str, Any]]:
+            return cls._list_subscription_task_instance_status(
+                instance_records=_instance_records, need_detail=_need_detail
+            )
+
+        return _inner(_instance_records=instance_records, _need_detail=need_detail)
 
     @classmethod
     def get_subscription_task_instance_status(
@@ -290,7 +311,7 @@ def update_inst_record_status(
         else:
             old_instance_records.append(instance_record)
 
-    instance_status_list = TaskResultTools.list_subscription_task_instance_status(new_instance_records)
+    instance_status_list = TaskResultTools.list_subscription_task_instance_status(instance_records=new_instance_records)
 
     _pipeline_parser = pipeline_parser.PipelineParser([r.pipeline_id for r in old_instance_records])
     for instance_record in old_instance_records:
