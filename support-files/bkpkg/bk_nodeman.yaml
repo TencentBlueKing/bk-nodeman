@@ -4,7 +4,7 @@ type: smart
 description: 节点管理应用
 contains:
 relations:
-- rationale: 节点管理后台
+- rationale: 节点管理API
   requires:
-  - bk-nodeman^2.3.0
+  - bknodeman=__SAME_VERSION__
 bkimports:
