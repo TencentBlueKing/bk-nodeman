@@ -10,10 +10,11 @@ specific language governing permissions and limitations under the License.
 """
 import copy
 import logging
+import typing
 from collections import ChainMap, OrderedDict, defaultdict
 from typing import Any, Dict, List, Union
 
-from django.db.models import Max, Subquery
+from django.db.models import Max, Subquery, Value
 from django.utils.translation import ugettext as _
 from rest_framework import exceptions, serializers
 
@@ -166,7 +167,7 @@ class PolicyStepAdapter:
             for os_key in os_key_gby_config_tmpl_id[config_template.id]:
                 config_tmpl_obj_gby_os_key[os_key].append(config_template)
 
-        logger.info(f"{self.log_prefix} config_tmpl_obj_gby_os_key -> {config_tmpl_obj_gby_os_key}")
+        # logger.info(f"{self.log_prefix} config_tmpl_obj_gby_os_key -> {config_tmpl_obj_gby_os_key}")
         setattr(self, "_config_tmpl_obj_gby_os_key", config_tmpl_obj_gby_os_key)
         return self._config_tmpl_obj_gby_os_key
 
@@ -185,7 +186,7 @@ class PolicyStepAdapter:
                 )
             )
 
-        logger.info(f"{self.log_prefix} os_key_pkg_map -> {os_cpu_pkg_map}")
+        # logger.info(f"{self.log_prefix} os_key_pkg_map -> {os_cpu_pkg_map}")
         setattr(self, "_os_key_pkg_map", os_cpu_pkg_map)
         return self._os_key_pkg_map
 
@@ -201,26 +202,12 @@ class PolicyStepAdapter:
         setattr(self, "_os_key_params_map", os_cpu_params_map)
         return self._os_key_params_map
 
-    def format2policy_config(self, original_config: Dict):
-        try:
-            format_result = self.validated_data(data=original_config, serializer=PolicyStepConfigSerializer)
-        except exceptions.ValidationError:
-            pass
-        else:
-            return format_result
-
-        validated_config = self.validated_data(data=original_config, serializer=PluginStepConfigSerializer)
-        plugin_name = validated_config["plugin_name"]
-        plugin_version = validated_config["plugin_version"]
-
-        try:
-            plugin_desc = models.GsePluginDesc.objects.get(name=plugin_name)
-        except models.GsePluginDesc.DoesNotExist:
-            raise errors.PluginValidationError(msg="插件 [{name}] 信息不存在".format(name=self.plugin_name))
-
+    def format2policy_packages_old(
+        self, plugin_id: int, plugin_name: str, plugin_version: str, config_templates: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
         latest_flag: str = "latest"
         is_tag: bool = Tag.objects.filter(
-            target_id=plugin_desc.id, name=latest_flag, target_type=TargetType.PLUGIN.value
+            target_id=plugin_id, name=latest_flag, target_type=TargetType.PLUGIN.value
         ).exists()
 
         if plugin_version != latest_flag or is_tag:
@@ -239,7 +226,7 @@ class PolicyStepAdapter:
 
         latest_packages_version_set = set(packages.values_list("version", flat=True))
         os_cpu__config_templates_map = defaultdict(list)
-        for template in validated_config["config_templates"]:
+        for template in config_templates:
             is_main_template = template["is_main"]
             if template["version"] != latest_flag or is_tag:
                 plugin_version_set = {plugin_version, "*"}
@@ -255,19 +242,19 @@ class PolicyStepAdapter:
                 .values("os", "cpu_arch")
                 .annotate(max_id=Max("id"))
             )
-            config_templates = models.PluginConfigTemplate.objects.filter(
+            config_tmpl_objs = models.PluginConfigTemplate.objects.filter(
                 id__in=Subquery(config_templates_group_by_os_cpu.values("max_id"))
             )
 
-            for config_template in config_templates:
-                os_cpu__config_templates_map[self.get_os_key(config_template.os, config_template.cpu_arch)].append(
+            for config_tmpl_obj in config_tmpl_objs:
+                os_cpu__config_templates_map[self.get_os_key(config_tmpl_obj.os, config_tmpl_obj.cpu_arch)].append(
                     {
-                        "id": config_template.id,
-                        "version": config_template.version,
-                        "name": config_template.name,
-                        "os": config_template.os,
-                        "cpu_arch": config_template.cpu_arch,
-                        "is_main": config_template.is_main,
+                        "id": config_tmpl_obj.id,
+                        "version": config_tmpl_obj.version,
+                        "name": config_tmpl_obj.name,
+                        "os": config_tmpl_obj.os,
+                        "cpu_arch": config_tmpl_obj.cpu_arch,
+                        "is_main": config_tmpl_obj.is_main,
                     }
                 )
 
@@ -283,6 +270,115 @@ class PolicyStepAdapter:
                     "config_templates": os_cpu__config_templates_map[self.get_os_key(package.os, package.cpu_arch)],
                 }
             )
+
+        return policy_packages
+
+    def max_ids_by_key(self, contained_os_cpu_items: List[Dict[str, Any]]) -> List[int]:
+        os_cpu__max_id_map: Dict[str, int] = {}
+        for item in contained_os_cpu_items:
+            os_key: str = self.get_os_key(item["os"], item["cpu_arch"])
+            if os_cpu__max_id_map.get(os_key, 0) < item["id"]:
+                os_cpu__max_id_map[os_key] = item["id"]
+        return list(os_cpu__max_id_map.values())
+
+    def format2policy_packages_new(
+        self, plugin_id: int, plugin_name: str, plugin_version: str, config_templates: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
+        latest_flag: str = "latest"
+        is_tag: bool = Tag.objects.filter(
+            target_id=plugin_id, name=latest_flag, target_type=TargetType.PLUGIN.value
+        ).exists()
+
+        if plugin_version != latest_flag or is_tag:
+            # 如果 latest 是 tag，走取指定版本的逻辑
+            packages = models.Packages.objects.filter(project=plugin_name, version=plugin_version)
+        else:
+            max_pkg_ids: List[int] = self.max_ids_by_key(
+                list(models.Packages.objects.filter(project=plugin_name).values("id", "os", "cpu_arch"))
+            )
+            packages = models.Packages.objects.filter(id__in=max_pkg_ids)
+
+        if not packages:
+            raise errors.PluginValidationError(
+                msg=_("插件包 [{name}-{version}] 不存在").format(name=plugin_name, version=plugin_version)
+            )
+
+        os_cpu__config_templates_map = defaultdict(list)
+        for template in config_templates:
+            is_main_template = template["is_main"]
+            if template["version"] != latest_flag or is_tag:
+                plugin_version_set = {plugin_version, "*"}
+            else:
+                latest_packages_version_set = set(packages.values_list("version", flat=True))
+                plugin_version_set = latest_packages_version_set | {"*"}
+
+            max_config_tmpl_ids: typing.List[int] = self.max_ids_by_key(
+                list(
+                    models.PluginConfigTemplate.objects.filter(
+                        name=template["name"],
+                        plugin_name=plugin_name,
+                        is_main=Value(1 if is_main_template else 0),
+                        plugin_version__in=plugin_version_set,
+                    ).values("id", "os", "cpu_arch")
+                )
+            )
+            db_config_tmpl_infos = models.PluginConfigTemplate.objects.filter(id__in=max_config_tmpl_ids).values(
+                "id", "version", "os", "cpu_arch"
+            )
+            for db_config_tmpl_info in db_config_tmpl_infos:
+                os_cpu__config_templates_map[
+                    self.get_os_key(db_config_tmpl_info["os"], db_config_tmpl_info["cpu_arch"])
+                ].append(
+                    {
+                        "id": db_config_tmpl_info["id"],
+                        "version": db_config_tmpl_info["version"],
+                        "name": template["name"],
+                        "os": db_config_tmpl_info["os"],
+                        "cpu_arch": db_config_tmpl_info["cpu_arch"],
+                        "is_main": is_main_template,
+                    }
+                )
+
+        policy_packages: List[Dict[str, Union[str, List[Dict[str, Any]]]]] = []
+        for package in packages.values("id", "version", "cpu_arch", "os"):
+            policy_packages.append(
+                {
+                    "id": package["id"],
+                    "project": plugin_name,
+                    "version": package["version"],
+                    "cpu_arch": package["cpu_arch"],
+                    "os": package["os"],
+                    "config_templates": os_cpu__config_templates_map[
+                        self.get_os_key(package["os"], package["cpu_arch"])
+                    ],
+                }
+            )
+
+        return policy_packages
+
+    def format2policy_config(self, original_config: Dict):
+        try:
+            format_result = self.validated_data(data=original_config, serializer=PolicyStepConfigSerializer)
+        except exceptions.ValidationError:
+            pass
+        else:
+            return format_result
+
+        validated_config = self.validated_data(data=original_config, serializer=PluginStepConfigSerializer)
+        plugin_name = validated_config["plugin_name"]
+        plugin_version = validated_config["plugin_version"]
+
+        try:
+            plugin_desc = models.GsePluginDesc.objects.get(name=plugin_name)
+        except models.GsePluginDesc.DoesNotExist:
+            raise errors.PluginValidationError(msg="插件 [{name}] 信息不存在".format(name=self.plugin_name))
+
+        policy_packages = self.format2policy_packages_new(
+            plugin_id=plugin_desc.id,
+            plugin_name=plugin_name,
+            plugin_version=plugin_version,
+            config_templates=validated_config["config_templates"],
+        )
 
         policy_step_config = {**copy.deepcopy(validated_config), "details": policy_packages}
 
