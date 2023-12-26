@@ -542,7 +542,8 @@ class BaseService(Service, LogMixin, DBHelperMixin, PollingTimeoutMixin):
         ]
         models.SubscriptionInstanceStatusDetail.objects.bulk_create(to_be_created_sub_statuses)
 
-        self.set_current_id(subscription_instance_ids)
+        # TODO 鸡肋逻辑，待确认干掉无影响后完全删除
+        # self.set_current_id(subscription_instance_ids)
         return self.run(self._execute, data, parent_data, common_data=common_data)
 
     @translation.RespectsLanguage(get_language_func=get_language_func)
