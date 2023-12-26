@@ -357,7 +357,7 @@ class TestMeta(testcase.CustomAPITestCase):
             FILTER_CONDITION_JOB_COUNT_FOR_TEST // 10, start_id=FILTER_CONDITION_JOB_COUNT_FOR_TEST + 1, bk_biz_scope={}
         )
 
-        kwargs = {"bk_biz_ids": random.sample(list(range(1, biz_count)), k=random.randint(3000, 3900))}
+        kwargs = {"bk_biz_ids": random.sample(biz_ids, k=random.randint(3000, 3900))}
         filter_condition = MetaHandler().filter_condition("job", kwargs)
 
         id__filter_item_map = {filter_item["id"]: filter_item for filter_item in filter_condition}

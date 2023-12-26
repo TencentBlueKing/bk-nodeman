@@ -178,7 +178,7 @@ class SubscriptionHandler(object):
             instance_status_list = []
         else:
             instance_status_list = task_tools.TaskResultTools.list_subscription_task_instance_status(
-                instance_records, need_detail=need_detail
+                instance_records=instance_records, need_detail=need_detail
             )
 
         # 兼容第三方平台全部拉取，无需返回状态统计
@@ -409,7 +409,7 @@ class SubscriptionHandler(object):
             return instance_status
 
         instance_status_list = task_tools.TaskResultTools.list_subscription_task_instance_status(
-            [instance_record], need_detail=True
+            instance_records=[instance_record], need_detail=True
         )
         if not instance_status_list:
             raise errors.SubscriptionInstanceRecordNotExist()
