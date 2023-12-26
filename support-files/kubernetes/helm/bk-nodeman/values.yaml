@@ -261,6 +261,8 @@ bkIamApiUrl: "http://bkiam-api.example.com"
 ## 蓝鲸制品库浏览器访问域名和后台 API http://bkiam-api.example.com 域名同一个
 bkRepoUrl: "http://bkrepo.example.com"
 
+# 文档中心跳转链接
+bkDocsCenterHost: ""
 
 ## --------------------------------------
 ## GSE 证书
