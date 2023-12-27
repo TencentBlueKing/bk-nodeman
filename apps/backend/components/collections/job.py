@@ -27,8 +27,12 @@ from apps.backend.components.collections.base import BaseService, CommonData
 from apps.core.files.storage import get_storage
 from apps.exceptions import AppBaseException
 from apps.node_man import constants, models
+from apps.node_man.periodic_tasks.sync_agent_status_task import (
+    update_or_create_host_agent_status,
+)
 from apps.utils.batch_request import request_multi_thread
 from common.api import JobApi
+from env import GSE_VERSION
 from pipeline.component_framework.component import Component
 from pipeline.core.flow.activity import Service, StaticIntervalGenerator
 
@@ -592,13 +596,29 @@ class JobPushConfigService(JobV3BaseService, metaclass=abc.ABCMeta):
 
     def _execute(self, data, parent_data, common_data: CommonData):
         timeout = data.get_one_of_inputs("timeout")
+        gse_version = data.get_one_of_inputs("meta", {}).get("GSE_VERSION")
+        # 2.0重载配置实时获取Agent版本
+        is_need_request_agent_version: bool = data.get_one_of_inputs("is_need_request_agent_version")
+        if not is_need_request_agent_version or gse_version == GSE_VERSION.V1.value:
+            host_id__agent_state_info: Dict = {}
+        else:
+            host_id__agent_state_info: Dict[int, Dict[str, Any]] = update_or_create_host_agent_status(
+                task_id="[reload_agent_fill_agent_state_info_to_hosts]",
+                host_queryset=models.Host.objects.filter(bk_host_id__in=common_data.bk_host_ids),
+            )
+
         # 批量请求作业平台的参数
         multi_job_params_map: Dict[str, Dict[str, Any]] = {}
         for sub_inst in common_data.subscription_instances:
             bk_host_id = sub_inst.instance_info["host"]["bk_host_id"]
             host_obj = common_data.host_id_obj_map[bk_host_id]
 
-            config_info_list = self.get_config_info_list(data=data, common_data=common_data, host=host_obj)
+            config_info_list = self.get_config_info_list(
+                data=data,
+                common_data=common_data,
+                host=host_obj,
+                host_id__agent_state_info=host_id__agent_state_info,
+            )
             file_target_path = self.get_file_target_path(data=data, common_data=common_data, host=host_obj)
 
             job_unique_key = self.cal_job_unique_key(config_info_list, file_target_path)
@@ -638,7 +658,13 @@ class JobPushConfigService(JobV3BaseService, metaclass=abc.ABCMeta):
 
         self.run_job_or_finish_schedule(multi_job_params_map)
 
-    def get_config_info_list(self, data, common_data: CommonData, host: models.Host) -> List[Dict[str, Any]]:
+    def get_config_info_list(
+        self,
+        data,
+        common_data: CommonData,
+        host: models.Host,
+        host_id__agent_state_info: Dict[int, Dict[str, Any]],
+    ) -> List[Dict[str, Any]]:
         """
         获取主机所需的配置文件信息列表
         :param data:

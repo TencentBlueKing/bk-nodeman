@@ -22,7 +22,11 @@ from .base import AgentCommonData, AgentPushConfigService
 
 class PushEnvironFilesService(AgentPushConfigService):
     def get_config_info_list(
-        self, data, common_data: AgentCommonData, host: models.Host
+        self,
+        data,
+        common_data: AgentCommonData,
+        host: models.Host,
+        host_id__agent_state_info: typing.Dict[int, typing.Dict[str, typing.Any]],
     ) -> typing.List[typing.Dict[str, typing.Any]]:
 
         if host.os_type == constants.OsType.WINDOWS:

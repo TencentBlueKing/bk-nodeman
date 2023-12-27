@@ -18,7 +18,13 @@ from .base import AgentCommonData, AgentPushConfigService
 
 
 class RenderAndPushGseConfigService(AgentPushConfigService):
-    def get_config_info_list(self, data, common_data: AgentCommonData, host: models.Host) -> List[Dict[str, Any]]:
+    def get_config_info_list(
+        self,
+        data,
+        common_data: AgentCommonData,
+        host: models.Host,
+        host_id__agent_state_info: Dict[int, Dict[str, Any]],
+    ) -> List[Dict[str, Any]]:
         file_name_list: List[str] = common_data.agent_step_adapter.get_config_filename_by_node_type(host.node_type)
         general_node_type = self.get_general_node_type(host.node_type)
         host_ap: models.AccessPoint = self.get_host_ap(common_data=common_data, host=host)
@@ -29,7 +35,11 @@ class RenderAndPushGseConfigService(AgentPushConfigService):
                 {
                     "file_name": file_name,
                     "content": common_data.agent_step_adapter.get_config(
-                        host=host, filename=file_name, node_type=general_node_type, ap=host_ap
+                        host=host,
+                        filename=file_name,
+                        node_type=general_node_type,
+                        ap=host_ap,
+                        agent_version=host_id__agent_state_info.get(host.bk_host_id, {}).get("version"),
                     ),
                 }
             )

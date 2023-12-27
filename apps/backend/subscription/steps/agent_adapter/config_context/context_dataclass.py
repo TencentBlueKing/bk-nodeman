@@ -194,6 +194,12 @@ class DataAgentConfigContext(GseConfigContext, TlsBaseConfigContext):
     tcp_server_thread_num: int = 32
     tcp_server_max_message_size: int = 10485760
 
+    # 兼容Agent 2.0 >= 2.1.5 gse_data_proxy 配置文件结构变更
+    bind_port: int = 0
+    bind_ip: str = "::"
+
+    thread_num: int = 32
+
 
 @dataclass
 class DataProxyConfigContext(GseConfigContext, TlsBaseConfigContext):
