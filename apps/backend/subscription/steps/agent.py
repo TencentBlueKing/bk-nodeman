@@ -316,6 +316,7 @@ class UpgradeAgent(ReinstallAgent):
     def _generate_activities(self, agent_manager: AgentManager):
         activities = [
             agent_manager.push_upgrade_package(),
+            agent_manager.render_and_push_gse_config(),
             agent_manager.run_upgrade_command(),
             agent_manager.wait(30),
             agent_manager.get_agent_status(expect_status=constants.ProcStateType.RUNNING),
@@ -457,6 +458,7 @@ class UpgradeProxy(ReinstallProxy):
     def _generate_activities(self, agent_manager: AgentManager):
         activities = [
             agent_manager.push_upgrade_package(),
+            agent_manager.render_and_push_gse_config(),
             agent_manager.run_upgrade_command(),
             agent_manager.wait(30),
             agent_manager.get_agent_status(expect_status=constants.ProcStateType.RUNNING),
@@ -533,7 +535,7 @@ class ReloadAgent(AgentAction):
         activities = [
             agent_manager.check_agent_status(),
             agent_manager.update_install_info(),
-            agent_manager.render_and_push_gse_config(),
+            agent_manager.render_and_push_gse_config(is_need_request_agent_version=True),
             agent_manager.reload_agent(skip_polling_result=True),
             agent_manager.wait(5),
             agent_manager.get_agent_status(expect_status=constants.ProcStateType.RUNNING),

@@ -191,9 +191,12 @@ class AgentManager(object):
         return act
 
     @classmethod
-    def render_and_push_gse_config(cls, name=components.RenderAndPushGseConfigComponent.name):
+    def render_and_push_gse_config(
+        cls, is_need_request_agent_version: bool = False, name=components.RenderAndPushGseConfigComponent.name
+    ):
         """渲染并下载 agent 配置"""
         act = AgentServiceActivity(component_code=components.RenderAndPushGseConfigComponent.code, name=name)
+        act.component.inputs.is_need_request_agent_version = Var(type=Var.PLAIN, value=is_need_request_agent_version)
         return act
 
     @classmethod
