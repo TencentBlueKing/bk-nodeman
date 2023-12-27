@@ -102,9 +102,13 @@ class AgentStepAdapter:
         ap: models.AccessPoint,
         proxies: typing.List[models.Host],
         install_channel: typing.Tuple[typing.Optional[models.Host], typing.Dict[str, typing.List]],
+        target_version: typing.Optional[typing.Dict[int, str]] = None,
     ) -> str:
         agent_setup_info: base.AgentSetupInfo = self.setup_info
-        config_handler: GseConfigHandler = self.get_config_handler(agent_setup_info.name, agent_setup_info.version)
+        # 目标版本优先使用传入版本，传入版本必不会是标签所以可直接使用
+        config_handler: GseConfigHandler = self.get_config_handler(
+            agent_setup_info.name, target_version or agent_setup_info.version
+        )
         config_tmpl_obj: base.AgentConfigTemplate = config_handler.get_matching_config_tmpl(
             os_type=host.os_type,
             cpu_arch=host.cpu_arch,
@@ -134,6 +138,7 @@ class AgentStepAdapter:
         ap: typing.Optional[models.AccessPoint] = None,
         proxies: typing.Optional[typing.List[models.Host]] = None,
         install_channel: typing.Tuple[typing.Optional[models.Host], typing.Dict[str, typing.List]] = None,
+        target_version: typing.Optional[str] = None,
     ) -> str:
         """
         获取配置
@@ -152,7 +157,13 @@ class AgentStepAdapter:
 
         func: typing.Callable[..., str] = (self._get_config, legacy.generate_gse_config)[self.is_legacy]
         return func(
-            host=host, filename=filename, node_type=node_type, ap=ap, proxies=proxies, install_channel=install_channel
+            host=host,
+            filename=filename,
+            node_type=node_type,
+            ap=ap,
+            proxies=proxies,
+            install_channel=install_channel,
+            target_version=target_version,
         )
 
     @property

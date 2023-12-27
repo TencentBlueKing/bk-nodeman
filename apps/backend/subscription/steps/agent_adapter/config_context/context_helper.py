@@ -153,6 +153,8 @@ class ConfigContextHelper:
             context_dataclass.DataMetricConfigContext(exporter_bind_port=self.ap.port_config["data_prometheus_port"]),
             context_dataclass.DataAgentConfigContext(
                 tcp_bind_port=self.ap.port_config["data_port"],
+                # 兼容Agent 2.0 >= 2.1.5 gse_data_proxy 配置文件结构变更
+                bind_port=self.ap.port_config["data_port"],
                 tls_ca_file=proxy_tls_ca_file,
                 tls_cert_file=proxy_tls_cert_file,
                 tls_key_file=proxy_tls_key_file,
