@@ -458,6 +458,7 @@ def generate_gse_config(
     ap: models.AccessPoint,
     proxies: List[models.Host],
     install_channel: Tuple[Optional[models.Host], Dict[str, List]],
+    target_version: Optional[Dict[int, str]] = None,
 ):
     """
     生成 GSE 相关配置
