@@ -23,6 +23,7 @@ from apps.node_man.models import (
     ProcessStatus,
     Subscription,
     SubscriptionStep,
+    SubscriptionTask,
 )
 from apps.node_man.tests.utils import (
     SEARCH_BUSINESS,
@@ -181,6 +182,24 @@ class TestPolicy(CustomBaseTestCase):
     @patch("apps.node_man.handlers.cmdb.CmdbHandler.cmdb_or_cache_biz", cmdb_or_cache_biz)
     @patch("common.api.NodeApi.subscription_search_policy", NodeApi.subscription_search_policy)
     def test_search_policy(self):
+        result = PolicyHandler.search_deploy_policy(
+            query_params={
+                "bk_biz_ids": self.subscription_obj.bk_biz_scope,
+                "conditions": [],
+                "only_root": True,
+                "page": 1,
+                "pagesize": 20,
+            }
+        )
+        self.assertEqual(len(result["list"]), 1)
+
+    @patch("apps.node_man.handlers.cmdb.CmdbHandler.cmdb_or_cache_biz", cmdb_or_cache_biz)
+    @patch("common.api.NodeApi.subscription_search_policy", NodeApi.subscription_search_policy)
+    def test_search_policy_modify(self):
+        for i in range(1, 11):
+            SubscriptionTask.objects.create(
+                subscription_id=1, scope={}, actions={"host|instance|host|id": {"bkmonitorbeat": "MAIN_INSTALL_PLUGIN"}}
+            )
         result = PolicyHandler.search_deploy_policy(
             query_params={
                 "bk_biz_ids": self.subscription_obj.bk_biz_scope,
