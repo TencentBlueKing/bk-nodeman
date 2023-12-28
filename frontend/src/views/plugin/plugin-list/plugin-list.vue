@@ -120,6 +120,7 @@ export default class PluginList extends Mixins(HeaderFilterMixins) {
   @Prop({ type: String, default: '' }) private readonly  pluginName!: string;
 
   private loading = true;
+  private loadingDelay = false; // 重新拉去过滤条件之后可能需要重置搜素框里的数据
   private tableLoading = false;
   private selectionLoading = false;
   private tableList: IPluginList[] = [];
@@ -191,11 +192,39 @@ export default class PluginList extends Mixins(HeaderFilterMixins) {
     this.handleSearch(params);
   }
   @Watch('selectedBiz')
-  public handleBizSelect() {
-    this.getStrategyTopo();
-    this.pagination.current = 1;
-    const params = this.getCommonParams();
-    this.handleSearch(params);
+  public async handleBizSelect() {
+    this.tableLoading = true;
+    this.loadingDelay = true;
+    this.getPluginFilter().then(async () => {
+      await this.getStrategyTopo();
+      await this.getFilterData();
+
+      const copyValue: ISearchItem[] = [];
+      this.searchSelectValue.forEach((item) => {
+        const already = this.filterData.find(opt => opt.id === item.id);
+        if (already) {
+          if (already.children?.length) {
+            copyValue.push({
+              ...item,
+              values: item.values?.filter(opt => already.children?.find(child => child.id === opt.id)),
+            });
+          } else {
+            copyValue.push(item);
+          }
+        }
+      });
+      this.handleSearchSelectChange(copyValue);
+
+      setTimeout(() => {
+        this.loadingDelay = false;
+        this.pagination.current = 1;
+        const params = this.getCommonParams();
+        this.handleSearch(params);
+      });
+    })
+      .finally(() => {
+        this.loadingDelay = false;
+      });
   }
 
   private async created() {
@@ -228,36 +257,35 @@ export default class PluginList extends Mixins(HeaderFilterMixins) {
     if (initValue.length) {
       this.searchSelectValue.push(...initValue);
     }
-    Promise.all([this.getPluginFilter(), this.getStrategyTopo()]).then(([len, children]) => {
-      this.filterData.splice(len, 0, {
-        id: 'source_id',
-        name: window.i18n.t('部署策略'),
-        multiable: true,
-        children,
-      });
-    });
-    const params = this.hasOldRouteParams ? initParams as ISearchParams : this.getCommonParams();
-    if (this.$route.params.policyId) {
-      // 修正部署策略接口未加载完毕的错误筛选条件
-      const sourceConditions = params.conditions.find(item => item.key === 'source_id');
-      if (sourceConditions) {
-        sourceConditions.value = [this.$route.params.policyId];
+    this.getPluginFilter().then(async () => {
+      await this.getStrategyTopo();
+      const params = this.hasOldRouteParams ? initParams as ISearchParams : this.getCommonParams();
+      if (this.$route.params.policyId) {
+        // 修正部署策略接口未加载完毕的错误筛选条件
+        const sourceConditions = params.conditions.find(item => item.key === 'source_id');
+        if (sourceConditions) {
+          sourceConditions.value = [this.$route.params.policyId];
+        }
       }
-    }
-    const promiseList: Promise<any>[] = [
-      this.getFilterData(),
-      this.getHostList(params),
-    ];
-    await Promise.all(promiseList);
-    this.loading = false;
+      const promiseList: Promise<any>[] = [
+        this.getFilterData(),
+        this.getHostList(params),
+      ];
+      await Promise.all(promiseList);
+      this.loading = false;
+    });
   }
 
   // 拉取筛选条件 并 插入插件名称项
   public async getFilterData() {
+    const param = { category: 'plugin_host' };
+    if (this.selectedBiz.length) {
+      Object.assign(param, { bk_biz_ids: this.selectedBiz });
+    }
     const [
       data,
       { list: data2 },
-    ] = await Promise.all([PluginStore.getFilterList(), PluginStore.pluginPkgList({ simple_all: true })]);
+    ] = await Promise.all([PluginStore.getFilterList(param), PluginStore.pluginPkgList({ simple_all: true })]);
     this.mixisPluginName = data.filter(item => item.children && !item.children.length).map(item => item.id);
     const list = data.filter(item => !item.children || item.children.length);
     if (data2.length) {
@@ -304,15 +332,22 @@ export default class PluginList extends Mixins(HeaderFilterMixins) {
       if (inputValues.length) {
         this.searchSelectValue.splice(this.searchSelectValue.length, 0, ...inputValues);
       }
+      this.hasOldRouteParams = false;
     }
     this.filterData.splice(0, 0, ...list);
     return Promise.resolve(true);
   }
   public async getPluginFilter() {
-    const data = await PluginStore.getFilterList({ category: 'plugin_version' });
+    const param = { category: 'plugin_version' };
+    if (this.selectedBiz.length) {
+      Object.assign(param, { bk_biz_ids: this.selectedBiz });
+    }
+    const data = await PluginStore.getFilterList(param);
     const statusName: string[] = [];
     const statusReg = /_status/;
     data.forEach((item) => {
+      item.showCheckAll = true;
+      item.showSearch = true;
       if (!statusReg.test(item.id)) {
         const statusItem = data.find(child => child.id === `${item.id}_status`);
         this.pluginStatusMap[item.id] = statusItem?.children?.map(item => item.id) || [];
@@ -324,11 +359,12 @@ export default class PluginList extends Mixins(HeaderFilterMixins) {
       }
     });
     const filters = data.filter(item => !statusReg.test(item.id));
-    this.filterData.splice(this.filterData.length, 0, ...filters);
+    this.filterData.splice(0, this.filterData.length, ...filters);
     return filters.length;
   }
 
   public async getHostList(params: ISearchParams) {
+    if (this.loadingDelay) return;
     const data: IHostData = await PluginStore.getHostList(params);
     const { list, total } = data;
     this.tableList = list;
@@ -348,14 +384,17 @@ export default class PluginList extends Mixins(HeaderFilterMixins) {
       }
       return list;
     }, []);
+    const sourceItem = {
+      id: 'source_id',
+      name: window.i18n.t('部署策略'),
+      multiable: true,
+      children,
+    };
     const index = this.filterData.findIndex(item => item.id === 'source_id');
     if (index > -1) {
-      this.filterData.splice(index, 1, {
-        id: 'source_id',
-        name: window.i18n.t('部署策略'),
-        multiable: true,
-        children,
-      });
+      this.filterData.splice(index, 1, sourceItem);
+    } else {
+      this.filterData.splice(0, 0, sourceItem);
     }
     return children;
   }

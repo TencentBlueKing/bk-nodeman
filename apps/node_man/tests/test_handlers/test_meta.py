@@ -280,7 +280,7 @@ class TestMeta(testcase.CustomAPITestCase):
     @patch("apps.node_man.handlers.cmdb.CmdbHandler.cmdb_or_cache_biz", cmdb_or_cache_biz)
     @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)
     def test_fetch_plugin_version_condition(self):
-        host_to_create, _, _ = create_host(10)
+        host_to_create, _, _ = create_host(100)
         process_to_create = []
         for host in host_to_create:
             process_to_create.append(
@@ -290,13 +290,14 @@ class TestMeta(testcase.CustomAPITestCase):
                     version=f"{random.randint(1, 10)}",
                     name=settings.HEAD_PLUGINS[random.randint(0, len(settings.HEAD_PLUGINS) - 1)],
                     status="RUNNING",
+                    is_latest=random.randint(0, 1),
                 )
             )
         ProcessStatus.objects.bulk_create(process_to_create)
         # 验证不传业务ID的情况；即返回用户所有权限的业务ID
         result = MetaHandler().fetch_plugin_version_condition(params={"bk_biz_ids": []})
         self.assertEqual(len(result), 11)
-        self.assertEqual(len(result[0]["children"]), 10)
+        self.assertEqual(len(result[0]["children"]), 100)
         # 验证传入部分业务ID的情况
         result = MetaHandler().fetch_plugin_version_condition(params={"bk_biz_ids": [27, 30]})
         self.assertLessEqual(len(result), 11)

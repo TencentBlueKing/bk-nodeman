@@ -187,6 +187,7 @@ export default class PluginStore extends VuexModule {
         });
       }
       if (item.id === 'bk_cloud_id') {
+        item.showCheckAll = true;
         item.showSearch = true;
         item.width = 180;
         item.align = 'right';

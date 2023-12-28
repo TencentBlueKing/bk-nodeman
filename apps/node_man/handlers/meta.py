@@ -103,7 +103,7 @@ class MetaHandler(APIModel):
         select_sql = "SELECT distinct "
         select_conditions = []
         for col in col_list:
-            if col in ["version", "status"]:
+            if col in ["version", "status", "is_latest"]:
                 select_conditions.append(f"{models.ProcessStatus._meta.db_table}.{col} AS `{col}`")
             else:
                 select_conditions.append(f"{models.Host._meta.db_table}.{col} AS `{col}`")
@@ -486,7 +486,7 @@ class MetaHandler(APIModel):
             return [{"name": name, "id": name} for name in settings.HEAD_PLUGINS]
 
         plugin_versions = []
-        col_list = ["version"]
+        col_list = ["version", "is_latest"]
         plugin_names = tools.PluginV2Tools.fetch_head_plugins()
         for name in plugin_names:
             col_data = self.fetch_host_process_unique_col(
@@ -498,8 +498,8 @@ class MetaHandler(APIModel):
             )
 
             for sublist in col_data:
-                # 过滤掉版本号为""的插件
-                if not sublist[0] == "":
+                # 过滤掉版本号为""且is_latest=0的插件
+                if not sublist[0] == "" and sublist[1] == 1:
                     plugin_versions.append({"name": name, "version": sublist[0]})
 
         agent_versions = (

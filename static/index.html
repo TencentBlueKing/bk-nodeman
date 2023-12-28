@@ -21,7 +21,9 @@
               const BK_PAAS_HOST = '{{ BK_PAAS_HOST }}'
               const DEFAULT_SSH_PORT = '{{ DEFAULT_SSH_PORT }}'
               const USE_TJJ = '{{ USE_TJJ }}'
+              const BK_COMPONENT_API_URL = '{{ BK_COMPONENT_API_URL }}'
               const BK_DOCS_CENTER_URL = '{{ BK_DOCS_CENTER_URL }}'
+              const BK_DOMAIN = '{{ BK_DOMAIN }}'
               const BKAPP_RUN_ENV = '{{ BKAPP_RUN_ENV }}'
               const BKAPP_ENABLE_DHCP = '{{ BKAPP_ENABLE_DHCP }}'
               const TAM_ID = '{{ TAM_ID }}'
@@ -30,11 +32,14 @@
               const CMDB_URL = '{{ CMDB_URL }}'
               const BKAPP_NAV_HELPER_URL = '{{ BKAPP_NAV_HELPER_URL }}'
               const BKAPP_NAV_OPEN_SOURCE_URL = '{{ BKAPP_NAV_OPEN_SOURCE_URL }}'
+              const ENABLE_AP_VERSION_MUTEX = '{{ ENABLE_AP_VERSION_MUTEX }}'
 
               return {
                   APP_CODE,
                   APPO_IP,
+                  BK_COMPONENT_API_URL,
                   BK_DOCS_CENTER_URL,
+                  BK_DOMAIN,
                   BK_PAAS_HOST,
                   BKAPP_ENABLE_DHCP,
                   BKAPP_NAV_HELPER_URL,
@@ -45,6 +50,7 @@
                   DEFAULT_CLOUD: parseInt(DEFAULT_CLOUD),
                   DEFAULT_SSH_PORT,
                   DESTOP_URL,
+                  ENABLE_AP_VERSION_MUTEX,
                   GLOBAL_TASK_CONFIG_PERMISSION,
                   GLOBAL_SETTING_PERMISSION,
                   GSE_LISTEN_PORT,
@@ -63,6 +69,7 @@
                   VERSION,
                   WEB_TITLE,
                   WXWORK_UIN,
+                  
               }
           })()
           window.$DHCP = window.PROJECT_CONFIG.BKAPP_ENABLE_DHCP === 'True'</script><script src="{{ TAM_URL }}"></script><script>if(window.PROJECT_CONFIG.TAM_ID !== 'None') {
@@ -79,4 +86,4 @@
               restfulApiList: [], // 当开启了接口测速，且项目中有些接口采用了 restful 规范，需要在该配置中列出，帮助 Aegis 识别哪些接口是同一条接
               spa: true
             })
-          }</script><link href={{STATIC_URL}}nodeman/css/chunk-bk-magic-vue.62414fc2b1eb76e91665.css rel=stylesheet><link href={{STATIC_URL}}nodeman/css/main.7a135eb59850a8084f6c.css rel=stylesheet></head><body><div id=app></div><script src="{{ STATIC_URL }}nodeman/lib.bundle.js?t=1688540913741"></script><script src={{STATIC_URL}}nodeman/js/chunk-bk-magic-vue.bd08958f0510ce963791.js></script><script src={{STATIC_URL}}nodeman/js/defaultVendors-node_modules_babel_runtime_helpers_asyncToGenerator_js-node_modules_babel_runt-33af3e.a7b5bbfbfea0a42255b3.js></script><script src={{STATIC_URL}}nodeman/js/main.a5c766ce24681fec9204.js></script></body></html>
+          }</script><link href={{STATIC_URL}}nodeman/css/chunk-bk-magic-vue.62414fc2b1eb76e91665.css rel=stylesheet><link href={{STATIC_URL}}nodeman/css/main.31747111b55b34a06fed.css rel=stylesheet></head><body><div id=app></div><script src="{{ STATIC_URL }}nodeman/lib.bundle.js?t=1705490877152"></script><script src={{STATIC_URL}}nodeman/js/chunk-bk-magic-vue.227bf2fdef8092512bbd.js></script><script src={{STATIC_URL}}nodeman/js/defaultVendors-node_modules_babel_runtime_helpers_asyncToGenerator_js-node_modules_babel_runt-d81fd8.10224c7000343e1ed66a.js></script><script src={{STATIC_URL}}nodeman/js/main.6ab66e9e54e512ce8db4.js></script></body></html>
