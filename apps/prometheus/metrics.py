@@ -269,3 +269,16 @@ app_resource_watch_biz_events_total = Counter(
     documentation="Cumulative count of resource watch biz events per bk_biz_id.",
     labelnames=["bk_biz_id"],
 )
+
+app_clean_subscription_instance_records_total = Counter(
+    name="app_clean_subscription_instance_records_total",
+    documentation="Cumulative count of clean subscription instance records delete data per table.",
+    labelnames=["table_name"],
+)
+
+app_clean_subscription_instance_records_seconds = Histogram(
+    name="app_clean_subscription_instance_records_seconds",
+    documentation="Histogram of clean subscription instance records per sql",
+    buckets=get_histogram_buckets_from_env("BKAPP_MONITOR_METRICS_CLEAN_BUCKETS"),
+    labelnames=["sql"],
+)
