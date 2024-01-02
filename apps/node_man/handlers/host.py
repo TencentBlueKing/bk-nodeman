@@ -426,9 +426,13 @@ class HostHandler(APIModel):
             if Host.objects.filter(outer_ip=kwargs["outer_ip"], bk_cloud_id=the_host.bk_cloud_id).exists():
                 raise IpInUsedError(_("外网IP：{outer_ip} 已被占用").format(outer_ip=kwargs["outer_ip"]))
 
-        # 检查：登录IP是否已被占用
+        # 检查：登录IP是否已被占用(排除自身的情况)
         if kwargs.get("login_ip") and the_host.login_ip != kwargs["login_ip"]:
-            if Host.objects.filter(outer_ip=kwargs["login_ip"], bk_cloud_id=the_host.bk_cloud_id).exists():
+            if (
+                Host.objects.filter(outer_ip=kwargs["login_ip"], bk_cloud_id=the_host.bk_cloud_id)
+                .exclude(bk_host_id=the_host.bk_host_id)
+                .exists()
+            ):
                 raise IpInUsedError(_("登录IP：{login_ip} 已被占用").format(login_ip=kwargs["login_ip"]))
 
         # 检查：判断AP_ID是否存在数据库中
