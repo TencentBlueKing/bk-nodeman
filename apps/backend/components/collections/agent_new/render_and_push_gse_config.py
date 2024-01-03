@@ -9,21 +9,44 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+from dataclasses import dataclass, fields
 from typing import Any, Dict, List
 
 from apps.node_man import models
+from apps.node_man.periodic_tasks.sync_agent_status_task import (
+    update_or_create_host_agent_status,
+)
 from apps.utils.files import PathHandler
 
 from .base import AgentCommonData, AgentPushConfigService
 
 
+@dataclass
+class RenderAndPushConfigCommonData(AgentCommonData):
+    # 主机Agent版本信息
+    host_id__agent_state_info: Dict[int, Dict[str, Any]]
+
+
 class RenderAndPushGseConfigService(AgentPushConfigService):
+    def _execute(self, data, parent_data, common_data: AgentCommonData):
+        # 2.0重载配置实时获取Agent版本
+        is_need_request_agent_version: bool = data.get_one_of_inputs("is_need_request_agent_version")
+        if not is_need_request_agent_version or common_data.agent_step_adapter.is_legacy:
+            host_id__agent_state_info: Dict = {}
+        else:
+            host_id__agent_state_info: Dict[int, Dict[str, Any]] = update_or_create_host_agent_status(
+                task_id="[reload_agent_fill_agent_state_info_to_hosts]",
+                host_queryset=models.Host.objects.filter(bk_host_id__in=common_data.bk_host_ids),
+            )
+        render_and_push_common_data = RenderAndPushConfigCommonData(
+            host_id__agent_state_info=host_id__agent_state_info,
+            **{field.name: getattr(common_data, field.name) for field in fields(common_data)}
+        )
+
+        return super()._execute(data, parent_data, render_and_push_common_data)
+
     def get_config_info_list(
-        self,
-        data,
-        common_data: AgentCommonData,
-        host: models.Host,
-        host_id__agent_state_info: Dict[int, Dict[str, Any]],
+        self, data, common_data: RenderAndPushConfigCommonData, host: models.Host
     ) -> List[Dict[str, Any]]:
         file_name_list: List[str] = common_data.agent_step_adapter.get_config_filename_by_node_type(host.node_type)
         general_node_type = self.get_general_node_type(host.node_type)
@@ -39,13 +62,13 @@ class RenderAndPushGseConfigService(AgentPushConfigService):
                         filename=file_name,
                         node_type=general_node_type,
                         ap=host_ap,
-                        agent_version=host_id__agent_state_info.get(host.bk_host_id, {}).get("version"),
+                        target_version=common_data.host_id__agent_state_info.get(host.bk_host_id, {}).get("version"),
                     ),
                 }
             )
         return config_file_list
 
-    def get_file_target_path(self, data, common_data: AgentCommonData, host: models.Host) -> str:
+    def get_file_target_path(self, data, common_data: RenderAndPushConfigCommonData, host: models.Host) -> str:
         general_node_type = self.get_general_node_type(host.node_type)
         path_handler = PathHandler(host.os_type)
         host_ap: models.AccessPoint = self.get_host_ap(common_data=common_data, host=host)
