@@ -11,7 +11,8 @@ specific language governing permissions and limitations under the License.
 from collections import defaultdict
 from typing import Any, Dict, Iterable, List, Set
 
-from django.db.models import Count, Q
+from django.db.models import CharField, Count, Q, QuerySet, Value
+from django.db.models.functions import Concat
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
@@ -142,6 +143,10 @@ class HostHandler(APIModel):
 
         # 计算总数
         hosts_status_count = hosts_status_sql.count()
+
+        if params.get("cloud_id_ip", None):
+            result = self.export_all_cloud_area_colon_ip(params["cloud_id_ip"], hosts_status_sql)
+            return {"total": len(result), "list": result}
 
         if params["only_ip"] is False:
             host_fields = core_ipchooser_constants.CommonEnum.DEFAULT_HOST_FIELDS.value + [
@@ -559,3 +564,47 @@ class HostHandler(APIModel):
                 ip_key: str = f"{host_info['bk_addressing']}:{host_info['bk_cloud_id']}:{host_info[ip_filed_name]}"
                 host_infos_gby_ip_key[ip_key].append(host_info)
         return host_infos_gby_ip_key
+
+    @staticmethod
+    def export_all_cloud_area_colon_ip(cloud_id_ip_type: Dict, hosts_status_sql: QuerySet) -> List:
+        """
+        获取管控区域+IP的组合
+        :param cloud_id_ip_type:云区域+IP参数类型
+        :param hosts_status_sql:
+        :return:
+        """
+        if cloud_id_ip_type.get("ipv4", None):
+            ipv4_exists_queryset: QuerySet = hosts_status_sql.exclude(inner_ip="")
+            result = list(
+                filter(
+                    None,
+                    ipv4_exists_queryset.all()
+                    .annotate(res=Concat("bk_cloud_id", Value(":"), "inner_ip", output_field=CharField()))
+                    .values_list("res", flat=True),
+                )
+            )
+        elif cloud_id_ip_type.get("ipv6", None):
+            ipv6_exists_queryset: QuerySet = hosts_status_sql.exclude(inner_ipv6="")
+            result = list(
+                filter(
+                    None,
+                    ipv6_exists_queryset.all()
+                    .annotate(
+                        res=Concat("bk_cloud_id", Value(":["), "inner_ipv6", Value("]"), output_field=CharField())
+                    )
+                    .values_list("res", flat=True),
+                )
+            )
+        elif cloud_id_ip_type.get("ipv4_with_brackets", None):
+            ipv4_exists_queryset: QuerySet = hosts_status_sql.exclude(inner_ip="")
+            result = list(
+                filter(
+                    None,
+                    ipv4_exists_queryset.all()
+                    .annotate(res=Concat("bk_cloud_id", Value(":["), "inner_ip", Value("]"), output_field=CharField()))
+                    .values_list("res", flat=True),
+                )
+            )
+        else:
+            result = []
+        return result

@@ -382,3 +382,51 @@ class TestPlugin(TestCase):
 
         for host in hosts["list"]:
             self.assertIn(host["setup_path"], ["/usr/local/gse", "c:\\gse"])
+
+    @patch("apps.node_man.handlers.cmdb.CmdbHandler.cmdb_or_cache_biz", cmdb_or_cache_biz)
+    @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)
+    def test_export_cloud_area_colon_ip(self):
+        number = 10
+        create_host(number)
+        params = {
+            "pagesize": -1,
+            "only_ip": False,
+            "return_field": "cloud_ipv4",
+            "conditions": [],
+            "cloud_id_ip": {"ipv4": True},
+        }
+        res = PluginHandler.list(params)
+        self.assertLessEqual(len(res["list"]), 10)
+
+        params = {
+            "pagesize": -1,
+            "only_ip": False,
+            "return_field": "cloud_ipv4_with_brackets",
+            "conditions": [],
+            "cloud_id_ip": {"ipv4_with_brackets": True},
+        }
+        res = PluginHandler.list(params)
+        self.assertLessEqual(len(res["list"]), 10)
+
+        create_host(1, bk_host_id=43420, ip="10.0.0.4")
+        Host.objects.filter(bk_host_id=43420).update(inner_ipv6="0000:0000:0000:0000:0000:ffff:0a00:0004")
+        params = {
+            "pagesize": -1,
+            "only_ip": False,
+            "return_field": "cloud_ipv6_with_brackets",
+            "conditions": [],
+            "cloud_id_ip": {"ipv6": True},
+        }
+        res = PluginHandler.list(params)
+        self.assertLessEqual(len(res["list"]), 1)
+
+        # 验证参数为False的情况
+        params = {
+            "pagesize": -1,
+            "only_ip": False,
+            "return_field": "cloud_ipv4",
+            "conditions": [],
+            "cloud_id_ip": {"ipv4": False},
+        }
+        res = PluginHandler.list(params)
+        self.assertEqual(len(res["list"]), 0)

@@ -23,6 +23,7 @@ from apps.node_man import constants as const
 from apps.node_man import tools
 from apps.node_man.constants import IamActionType
 from apps.node_man.handlers.cmdb import CmdbHandler
+from apps.node_man.handlers.host import HostHandler
 from apps.node_man.handlers.validator import operate_validator
 from apps.node_man.models import (
     AccessPoint,
@@ -214,6 +215,10 @@ class PluginHandler(APIModel):
         except ProgrammingError:
             # 非法查询返回空列表
             return {"total": 0, "list": []}
+
+        if params.get("cloud_id_ip", None):
+            result = HostHandler.export_all_cloud_area_colon_ip(params["cloud_id_ip"], hosts_status_sql)
+            return {"total": len(result), "list": result}
 
         if params.get("simple"):
             host_simples = list(hosts_status_sql[begin:end].values("bk_host_id", "bk_biz_id"))
