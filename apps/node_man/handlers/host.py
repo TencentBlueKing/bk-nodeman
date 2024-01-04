@@ -39,6 +39,7 @@ from apps.node_man.models import (
     JobTask,
     ProcessStatus,
 )
+from apps.node_man.tools.host import HostTools
 from apps.utils import APIModel
 from apps.utils.basic import filter_values
 
@@ -142,6 +143,10 @@ class HostHandler(APIModel):
 
         # 计算总数
         hosts_status_count = hosts_status_sql.count()
+
+        if params.get("cloud_id_ip"):
+            result = HostTools.export_all_cloud_area_colon_ip(params["cloud_id_ip"], hosts_status_sql)
+            return {"total": len(result), "list": result}
 
         if params["only_ip"] is False:
             host_fields = core_ipchooser_constants.CommonEnum.DEFAULT_HOST_FIELDS.value + [

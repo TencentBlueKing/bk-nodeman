@@ -9,9 +9,10 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import base64
-from typing import Type
+from typing import Dict, List, Type
 
 from bkcrypto.asymmetric.ciphers import BaseAsymmetricCipher
+from django.db.models import QuerySet
 from django.utils.translation import ugettext_lazy as _
 
 from apps.core.encrypt import constants as core_encrypt_constants
@@ -62,3 +63,35 @@ class HostTools:
         return cls.decrypt_with_friendly_exc_handle(
             cipher=cipher, encrypt_message=decrypt_message, raise_exec=raise_exec
         )
+
+    @staticmethod
+    def export_all_cloud_area_colon_ip(cloud_id_ip_type: Dict[str, bool], hosts_status_sql: QuerySet) -> List:
+        """
+        获取管控区域+IP的组合
+        :param cloud_id_ip_type:云区域+IP参数类型
+        :param hosts_status_sql:主机查询结果集
+        :return:云区域+IP组合的列表
+        """
+        cloud_id_and_inner_ip_qs: QuerySet = hosts_status_sql.values("bk_cloud_id", "inner_ip")
+        cloud_id_and_inner_ipv6_qs: QuerySet = hosts_status_sql.values("bk_cloud_id", "inner_ipv6")
+        if cloud_id_ip_type.get("ipv4", False):
+            result: List = [
+                f'{cloud_id_and_inner_ip_dict["bk_cloud_id"]}:{cloud_id_and_inner_ip_dict["inner_ip"]}'
+                for cloud_id_and_inner_ip_dict in cloud_id_and_inner_ip_qs
+                if cloud_id_and_inner_ip_dict["inner_ip"]
+            ]
+        elif cloud_id_ip_type.get("ipv6", False):
+            result: List = [
+                f'{cloud_id_and_inner_ipv6_dict["bk_cloud_id"]}:[{cloud_id_and_inner_ipv6_dict["inner_ipv6"]}]'
+                for cloud_id_and_inner_ipv6_dict in cloud_id_and_inner_ipv6_qs
+                if cloud_id_and_inner_ipv6_dict["inner_ipv6"]
+            ]
+        elif cloud_id_ip_type.get("ipv4_with_brackets", False):
+            result: List = [
+                f'{cloud_id_and_inner_ip_dict["bk_cloud_id"]}:[{cloud_id_and_inner_ip_dict["inner_ip"]}]'
+                for cloud_id_and_inner_ip_dict in cloud_id_and_inner_ip_qs
+                if cloud_id_and_inner_ip_dict["inner_ip"]
+            ]
+        else:
+            result = []
+        return result
