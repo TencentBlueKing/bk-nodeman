@@ -8,7 +8,6 @@ sed -i '/static\/nodeman/d' .gitignore
 # 调整requirements
 # sed -ie 's/blueapps-open/blueapps/g' requirements.txt
 echo -e '
-blueking-component-ieod==0.1.12
 bkoauth==0.0.22
 ' >> requirements.txt
 
@@ -16,5 +15,6 @@ bkoauth==0.0.22
 rm -rf app_desc.yaml
 
 # 删除blueking，因为内置的blueking, bkoauth只有open版
-rm -rf blueking
+# New: 节点管理对 blueking 的使用仅限于 cc 的接口，尝试对逻辑进行合并复用
+# rm -rf blueking
 rm -rf bkoauth
