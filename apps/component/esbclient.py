@@ -18,7 +18,7 @@ from apps.exceptions import ComponentCallError
 # 这里配置sdk包名和setting.RUN_VER的对应关系,需要维护
 plat_package_map = {
     # 内部版
-    "ieod": "ieod",
+    "ieod": "",
     # 腾讯云
     "qcloud": "qcloud",
     # 混合云
