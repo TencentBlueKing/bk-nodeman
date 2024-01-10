@@ -365,6 +365,8 @@ REST_FRAMEWORK = {
 }
 
 
+ESB_SDK_NAME = "blueking.component"
+
 BKCRYPTO = {
     "SYMMETRIC_CIPHERS": {
         "default": {
