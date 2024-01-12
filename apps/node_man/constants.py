@@ -1080,6 +1080,7 @@ TOOLS_TO_PUSH_TO_PROXY: List[Dict[str, Union[List[str], Any]]] = [
             "libcurl-x64.dll",
             "7z.dll",
             "7z.exe",
+            "jq.exe",
             "handle.exe",
             "unixdate.exe",
             "tcping.exe",
