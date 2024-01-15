@@ -108,3 +108,6 @@ bk-monitor-report==1.2.1
 
 apigw-manager[cryptography]==1.1.5
 cryptography==3.3.2
+
+# notice
+bk-notice-sdk==1.2.0
