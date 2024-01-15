@@ -150,6 +150,8 @@ class GlobalSettings(models.Model):
         BACKEND_SERVICE_POLLING_TIMEOUT = "BACKEND_SERVICE_POLLING_TIMEOUT"
         # 管控区域新增主机黑名单，用于限制指定管控区域通过安装 Agent 新增主机，配置样例：[1, 2]
         ADD_HOST_CLOUD_BLACKLIST = "ADD_HOST_CLOUD_BLACKLIST"
+        # 消息中心开关
+        ENABLE_NOTICE_CENTER = "ENABLE_NOTICE_CENTER"
 
     key = models.CharField(_("键"), max_length=255, db_index=True, primary_key=True)
     v_json = JSONField(_("值"))
