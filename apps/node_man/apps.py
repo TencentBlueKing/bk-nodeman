@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+from bk_notice_sdk.views import api_call
 from blueapps.utils.esbclient import get_client_by_user
 from django.apps import AppConfig
 from django.conf import settings
@@ -106,3 +107,18 @@ class ApiConfig(AppConfig):
             key=GlobalSettings.KeyEnum.REGISTER_WIN_SERVICE_WITH_PASS.value, defaults=dict(v_json=False)
         )
         settings.REGISTER_WIN_SERVICE_WITH_PASS = obj.v_json
+
+        # 注册消息中心app(适配各个环境只注册一次)
+        obj, _ = GlobalSettings.objects.get_or_create(
+            key=GlobalSettings.KeyEnum.ENABLE_NOTICE_CENTER.value, defaults=dict(v_json=False)
+        )
+        enable_notice_center: bool = obj.v_json
+        if not enable_notice_center:
+            response = api_call(
+                api_method="register_application", success_message="注册平台成功", error_message="注册平台异常", success_code=201
+            )
+            if response.get("result") is True:
+                GlobalSettings.update_config(key=GlobalSettings.KeyEnum.ENABLE_NOTICE_CENTER.value, value=True)
+                enable_notice_center: bool = True
+
+        settings.ENABLE_NOTICE_CENTER = enable_notice_center
