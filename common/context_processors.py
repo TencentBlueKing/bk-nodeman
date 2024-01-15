@@ -14,12 +14,12 @@ import os
 from blueapps.account.conf import ConfFixture
 from django.conf import settings
 from django.utils.translation import ugettext as _
-from version_log.utils import get_latest_version
 
 from apps.core.concurrent.cache import FuncCacheDecorator
 from apps.node_man import constants, models
 from apps.node_man.handlers.iam import IamHandler
 from apps.utils.local import get_request_username
+from version_log.utils import get_latest_version
 
 """
 context_processor for common(setting)
@@ -111,4 +111,6 @@ def mysetting(request):
         "BK_DOMAIN": settings.BK_DOMAIN,
         "BK_COMPONENT_API_URL": settings.BK_COMPONENT_API_OUTER_URL,
         "ENABLE_AP_VERSION_MUTEX": get_ap_version_mutex(),
+        # 是否开启消息中心
+        "ENABLE_NOTICE_CENTER": settings.ENABLE_NOTICE_CENTER,
     }
