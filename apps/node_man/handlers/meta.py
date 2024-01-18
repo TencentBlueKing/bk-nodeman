@@ -103,7 +103,7 @@ class MetaHandler(APIModel):
         select_sql = "SELECT distinct "
         select_conditions = []
         for col in col_list:
-            if col in ["version", "status"]:
+            if col in ["version", "status", "is_latest"]:
                 select_conditions.append(f"{models.ProcessStatus._meta.db_table}.{col} AS `{col}`")
             else:
                 select_conditions.append(f"{models.Host._meta.db_table}.{col} AS `{col}`")
@@ -121,16 +121,29 @@ class MetaHandler(APIModel):
 
         return cursor
 
-    def fetch_host_condition(self):
+    def fetch_host_condition(self, params):
         """
         获取Host接口的条件
-        :param username: 用户名
+        :param params: 参数
         :return: Host接口所有条件
         """
 
         # 用户有权限的业务
         biz_id_name = CmdbHandler().biz_id_name({"action": constants.IamActionType.agent_view})
         biz_permission = list(biz_id_name.keys())
+
+        params = params or {}
+        bk_biz_ids = params.get("bk_biz_ids", [])
+        # 传入业务id列表的情况
+        if bk_biz_ids:
+            biz_permission = list(set(bk_biz_ids) & set(biz_id_name.keys()))
+
+        if not biz_permission:
+            return [
+                {"name": _("IP"), "id": "ip"},
+                {"name": _("管控区域ID:IP"), "id": "bk_cloud_ip"},
+                {"name": _("主机名称"), "id": "bk_host_name"},
+            ]
 
         bk_cloud_ids = set()
         os_types = set()
@@ -378,27 +391,43 @@ class MetaHandler(APIModel):
 
         return self.filter_empty_children(ret_value)
 
-    @staticmethod
-    def fetch_plugin_host_condition():
+    def fetch_plugin_host_condition(self, params):
+        biz_permission = self.plugin_biz_permission(params)
+
+        if not biz_permission:
+            return [
+                {"name": _("IP"), "id": "ip"},
+                {"name": _("管控区域ID:IP"), "id": "bk_cloud_ip"},
+                {"name": _("主机名称"), "id": "bk_host_name"},
+            ]
+        bk_cloud_ids = set()
+        col_map = [bk_cloud_ids]
+        col_list = ["bk_cloud_id"]
+        col_data = self.fetch_host_process_unique_col(
+            biz_permission, col_list, [constants.NodeType.AGENT, constants.NodeType.PAGENT]
+        )
+        for sublist in col_data:
+            for index, item in enumerate(sublist):
+                col_map[index].add(item)
+        bk_cloud_names = CloudHandler().list_cloud_info(bk_cloud_ids)
+        bk_cloud_ids_children = [
+            {"name": bk_cloud_names.get(bk_cloud_id, {}).get("bk_cloud_name", bk_cloud_id), "id": bk_cloud_id}
+            for bk_cloud_id in bk_cloud_ids
+        ]
         ret_value = [
             {"name": "IP", "id": "ip"},
             {"name": _("管控区域ID:IP"), "id": "bk_cloud_ip"},
             {"name": _("主机名称"), "id": "bk_host_name"},
             {
-                "id": "node_type",
                 "name": _("节点类型"),
+                "id": "node_type",
                 "children": [
                     {"id": node_type, "name": constants.NODE_TYPE_ALIAS_MAP.get(node_type)}
                     for node_type in constants.NODE_TUPLE
                 ],
             },
+            {"name": _("管控区域"), "id": "bk_cloud_id", "children": bk_cloud_ids_children},
         ]
-
-        clouds = dict(models.Cloud.objects.values_list("bk_cloud_id", "bk_cloud_name"))
-        cloud_children = [{"id": cloud_id, "name": cloud_name} for cloud_id, cloud_name in clouds.items()]
-        cloud_children.insert(0, {"id": constants.DEFAULT_CLOUD, "name": _("直连区域")})
-        ret_value.append({"name": _("管控区域"), "id": "bk_cloud_id", "children": cloud_children})
-
         os_dict = {"name": _("操作系统"), "id": "os_type", "children": []}
         for os_type in constants.OS_TUPLE:
             if os_type == constants.OsType.SOLARIS and settings.BKAPP_RUN_ENV == constants.BkappRunEnvType.CE.value:
@@ -450,22 +479,45 @@ class MetaHandler(APIModel):
 
         return ret_value
 
-    @staticmethod
-    def fetch_plugin_version_condition():
+    def fetch_plugin_version_condition(self, params):
+        biz_permission = self.plugin_biz_permission(params)
+
+        if not biz_permission:
+            return [{"name": name, "id": name} for name in settings.HEAD_PLUGINS]
+
+        plugin_versions = []
+        col_list = ["version", "is_latest"]
         plugin_names = tools.PluginV2Tools.fetch_head_plugins()
-        versions = (
+        for name in plugin_names:
+            col_data = self.fetch_host_process_unique_col(
+                biz_permission,
+                col_list,
+                [constants.NodeType.AGENT, constants.NodeType.PAGENT, constants.NodeType.PROXY],
+                name=name,
+                proc_type="PLUGIN",
+            )
+
+            for sublist in col_data:
+                # 过滤掉版本号为""且is_latest=0的插件
+                if not sublist[0] == "" and sublist[1] == 1:
+                    plugin_versions.append({"name": name, "version": sublist[0]})
+
+        agent_versions = (
             models.ProcessStatus.objects.filter(
-                source_type=models.ProcessStatus.SourceType.DEFAULT,
-                name__in=plugin_names + [models.ProcessStatus.GSE_AGENT_PROCESS_NAME],
+                source_type=models.ProcessStatus.SourceType.DEFAULT, name=models.ProcessStatus.GSE_AGENT_PROCESS_NAME
             )
             .values("name", "version")
             .exclude(version="")
             .distinct()
         )
         plugin_version = {}
-        for version in versions:
+        for version in plugin_versions:
             plugin_version.setdefault(version["name"], []).append(
                 {"id": version["version"], "name": version["version"]}
+            )
+        for agent_version in agent_versions:
+            plugin_version.setdefault(agent_version["name"], []).append(
+                {"id": agent_version["version"], "name": agent_version["version"]}
             )
 
         plugin_result = [
@@ -520,7 +572,7 @@ class MetaHandler(APIModel):
         """
 
         if category == "host":
-            return self.fetch_host_condition()
+            return self.fetch_host_condition(params=params)
         elif category == "job":
             return self.fetch_job_list_condition("job", params=params)
         elif category == "agent_job":
@@ -530,10 +582,10 @@ class MetaHandler(APIModel):
         elif category == "plugin_job":
             return self.fetch_job_list_condition("plugin_job")
         elif category == "plugin_version":
-            ret = self.fetch_plugin_version_condition()
+            ret = self.fetch_plugin_version_condition(params=params)
             return ret
         elif category == "plugin_host":
-            ret = self.fetch_plugin_host_condition()
+            ret = self.fetch_plugin_host_condition(params=params)
             return ret
         elif category == "os_type":
             ret = self.fetch_os_type_children()
@@ -624,3 +676,15 @@ class MetaHandler(APIModel):
                 user_setting[setting] = params[setting]
             global_setting.v_json = user_setting
             global_setting.save()
+
+    @staticmethod
+    def plugin_biz_permission(params):
+        biz_id_name = CmdbHandler().biz_id_name({"action": constants.IamActionType.plugin_view})
+        biz_permission = list(biz_id_name.keys())
+
+        params = params or {}
+        bk_biz_ids = params.get("bk_biz_ids", [])
+        # 传入业务id列表的情况
+        if bk_biz_ids:
+            biz_permission = list(set(bk_biz_ids) & set(biz_id_name.keys()))
+        return biz_permission
