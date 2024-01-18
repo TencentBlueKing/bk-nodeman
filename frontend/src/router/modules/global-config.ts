@@ -4,7 +4,6 @@ import { RouteConfig, Route } from 'vue-router';
 import { MainStore, ConfigStore } from '@/store/index';
 const GseConfig = () => import(/* webpackChunkName: 'GseConfig' */'@/views/global-config/gse-config/index.vue');
 const AccessPoint = () => import(/* webpackChunkName: 'AccessPoint' */'@/views/global-config/gse-config/set-access-point/access-point.vue');
-// const TaskConfig = () => import(/* webpackChunkName: 'TaskConfig' */'@/views/global-config/task-config.vue')
 const Healthz = () => import(/* webpackChunkName: 'Healthz' */'@/views/global-config/healthz/index.vue');
 
 const globalConfig = navList.find(item => item.name === 'globalConfig');
@@ -42,14 +41,6 @@ export default globalConfig && !globalConfig.disabled ? [
       next();
     },
   },
-  // {
-  //   path: 'global-config/task-config',
-  //   name: 'taskConfig',
-  //   component: TaskConfig,
-  //   meta: {
-  //     navId: 'globalConfig',
-  //     title: '任务配置'
-  //   }
   {
     path: '/global-config/healthz',
     name: 'healthz',

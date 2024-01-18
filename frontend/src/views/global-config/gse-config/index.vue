@@ -225,8 +225,8 @@ export default class GseConfig extends Vue {
 }
 .gse-config-wrapper {
   padding-bottom: 20px;
-  min-height: calc(100vh - 142px);
-  overflow: auto;
+  min-height: calc(100% - 92px);
+  /* overflow: auto; */
   .gse-config-container {
     margin-top: 24px;
   }

@@ -5,7 +5,7 @@
       ref="tableRef"
       :data="sortTableData"
       :pagination="pagination"
-      :max-height="windowHeight - 315"
+      :max-height="tableMaxHeight"
       :row-class-name="rowClassName"
       @row-click="handleRowClick">
       <NmColumn class-name="td-radio" :width="50" prop="value" :resizable="false">
@@ -104,8 +104,8 @@ export default class RuleTable extends Vue {
     }).filter(item => item.name && (searchArr.length > 1
       ? searchArr.some(key => item.name.includes(key)) : item.name.indexOf(this.searchRuleName) > -1));
   }
-  private get windowHeight() {
-    return MainStore.windowHeight;
+  private get tableMaxHeight() {
+    return MainStore.windowHeight - 315 - (MainStore.noticeShow ? 40 : 0);
   }
 
   @Emit('rule-choose')

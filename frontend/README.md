@@ -18,9 +18,11 @@ module.exports = {
 cd frontend
 // 2. 安装 npm 依赖包
 npm install
-// 3. 更新 magicbox 组件库
+// 3.  @blueking/notice-component-vue2 安装不成功时请使用如下命令单独安装
+npm install @blueking/notice-component-vue2@2.0.1 --legacy-peer-deps
+// 4. 更新 magicbox 组件库
 npm run dll
-// 4. 启动服务
+// 5. 启动服务
 npm run dev 
 ```
 

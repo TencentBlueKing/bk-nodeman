@@ -2,7 +2,7 @@
   <div class="access-point-info">
     <bk-form :label-width="155" :model="formData" ref="formData">
       <template v-for="(system, index) in pathSet">
-        <h3 :class="['block-title', { mt40: !index }]" :key="index">{{ system.title }}</h3>
+        <h3 :class="['block-title', { mt20: !index }]" :key="index">{{ system.title }}</h3>
         <bk-form-item
           v-for="(path, itemIndex) in system.children"
           error-display-type="normal"
