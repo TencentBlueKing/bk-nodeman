@@ -16,7 +16,7 @@
     <bk-table
       :data="tableList"
       class="package-parsing-table mb30"
-      :max-height="windowHeight - 220"
+      :max-height="tableMaxHeight"
       @select="handleSelect"
       @select-all="handleSelect">
       <bk-table-column type="selection" width="60" :selectable="handleSelectable" />
@@ -116,8 +116,8 @@ export default class PluginPackage extends Mixins(pollMixin) {
   private get selectedNum() {
     return this.selectList.length;
   }
-  private get windowHeight() {
-    return MainStore.windowHeight;
+  private get tableMaxHeight() {
+    return MainStore.windowHeight - 220 - (MainStore.noticeShow ? 40 : 0);
   }
   private get osMap() {
     return MainStore.osMap;

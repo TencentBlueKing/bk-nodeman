@@ -8,7 +8,7 @@
          exclude: ['.content-icon', '.content-header', '.content-separator','.content-desc','.detail-operate']
        }">
     <section class="plugin-detail-header">
-      <div class="nodeman-navigation-content">
+      <div class="page-header">
         <span class="content-icon" @click="routerBack">
           <i class="nodeman-icon nc-back-left"></i>
         </span>
@@ -387,24 +387,8 @@ export default class PluginPackage extends Mixins(pollMixin, RouterBackMixin) {
   &-header {
     min-height: 126px;
     background: #f8fafd;
-    .nodeman-navigation-content {
-      line-height: 20px;
-      display: flex;
-      align-items: center;
+    .page-header {
       padding: 20px 24px;
-      .content-icon {
-        position: relative;
-        height: 20px;
-        top: -3px;
-        margin-left: -7px;
-        font-size: 28px;
-        color: #3a84ff;
-        cursor: pointer;
-      }
-      .content-header {
-        font-size: 16px;
-        color: #313238;
-      }
       .content-desc {
         font-size: 14px;
         color: #313238;

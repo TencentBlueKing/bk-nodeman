@@ -1,5 +1,9 @@
 <template>
-  <div class="task-log-wrapper" v-test="'taskLog'" v-bkloading="{ isLoading: loading }">
+  <div
+    class="task-log-wrapper"
+    :style="`height: ${pageHeight}px`"
+    v-test="'taskLog'"
+    v-bkloading="{ isLoading: loading }">
     <section class="log-side-nav" ref="sideContent">
       <div class="log-nav-select">
         <bk-input
@@ -45,7 +49,7 @@
       </div>
     </section>
     <section class="task-log-contaier" v-bkloading="{ isLoading: !loading && logLoading }">
-      <div class="nodeman-navigation-content mb20">
+      <div class="page-header mb20">
         <span class="content-icon" @click="handleBack">
           <i class="nodeman-icon nc-back-left"></i>
         </span>
@@ -219,7 +223,7 @@
 
 <script>
 import { addListener, removeListener } from 'resize-detector';
-import { TaskStore } from '@/store';
+import { MainStore, TaskStore } from '@/store';
 import pollMixin from '@/common/poll-mixin';
 import Tips from '@/components/common/tips.vue';
 import { downloadLog, debounce, isEmpty, takesTimeFormat, toHump } from '@/common/util';
@@ -398,6 +402,9 @@ export default {
         // other
         this.$t('Proxy安装'),
       ];
+    },
+    pageHeight() {
+      return MainStore.windowHeight - 52 - (MainStore.noticeShow ? 40 : 0);
     },
   },
   watch: {
@@ -965,42 +972,24 @@ export default {
 @import "@/css/variable.css";
 @import "@/css/transition.css";
 
-$headerColor: #313238;
-
 /** 组件顶部导航样式 */
-.nodeman-navigation-content {
+.page-header {
+  justify-content: baseline;
   position: relative;
   padding-left: 22px;
   height: 20px;
   line-height: 20px;
 
-  @mixin layout-flex row, baseline;
   .content-icon {
     position: absolute;
     height: 20px;
-    top: -4px;
     left: 0;
-    margin-left: -7px;
-    font-size: 28px;
-    color: $primaryFontColor;
-    cursor: pointer;
-  }
-  .content-header {
-    font-size: 16px;
-    color: $headerColor;
-  }
-  .content-subtitle {
-    margin-left: 8px;
-    font-size: 12px;
-    color: #979ba5;
   }
 }
 .task-log-wrapper {
   display: flex;
-  height: calc(100vh - 52px);
   .log-side-nav {
-    width: 240px;
-    height: 100%;
+    flex-basis: 240px;
     border-right: 1px solid #dcdee5;
     background: #fafbfd;
   }

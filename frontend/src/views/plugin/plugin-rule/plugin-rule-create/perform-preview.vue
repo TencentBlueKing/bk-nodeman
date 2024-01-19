@@ -92,7 +92,7 @@
         v-test.policy="'previewTable'"
         :data="data"
         :pagination="pagination"
-        :max-height="windowHeight - calcHeight"
+        :max-height="tableMaxHeight"
         @sort-change="handleSortChange"
         @page-change="handlePageChange"
         @page-limit-change="handlePageLimitChange">
@@ -425,15 +425,16 @@ export default class PerformPreview extends Mixins(HeaderRenderMixin, HeaderFilt
     }
     return this.$t('部分目标机器已被部署策略管控无法进行操作如需操作请调整对应的部署策略');
   }
-  private get windowHeight() {
-    return MainStore.windowHeight;
-  }
-  private get calcHeight() {
+  private get tableMaxHeight() {
     // nav & title-112, step-42, (contentPadding-50 || contentPadding-40 & tips-47), footer-62
-    if (this.isPreviewType) { // 无step
-      return this.showTips ? 300 : 260;
+    let calcHeight = this.showTips ? 350 : 300;
+    if (this.isPreviewType) {
+      calcHeight = this.showTips ? 300 : 260;
     }
-    return this.showTips ? 350 : 300;
+    if (MainStore.noticeShow) {
+      calcHeight += 40;
+    }
+    return MainStore.windowHeight - calcHeight;
   }
   private get isSaveType() {
     return saveType.includes(this.jobType);

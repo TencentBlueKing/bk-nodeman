@@ -1,5 +1,5 @@
 <template>
-  <article class="setup-cloud mt15 pb20" v-bkloading="{ isLoading: loading }">
+  <section class="setup-cloud pb20" v-bkloading="{ isLoading: loading }">
     <div class="setup-cloud-left">
       <!--安装Proxy表单-->
       <section class="left-form">
@@ -99,7 +99,7 @@
     </div>
     <!--过滤ip信息-->
     <filter-dialog v-model="showFilterDialog" :list="filterList" :title="$t('忽略详情')"></filter-dialog>
-  </article>
+  </section>
 </template>
 <script lang="ts">
 import { Component, Prop, Ref, Mixins } from 'vue-property-decorator';

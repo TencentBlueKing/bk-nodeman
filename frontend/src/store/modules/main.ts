@@ -27,7 +27,6 @@ const permissionMethodsMap: Dictionary = {
 @Module({ name: 'main', namespaced: true })
 export default class Main extends VuexModule {
   public nmMainLoading = false; // 全局可视区域加载
-  public mainContentLoading = false;
   // 系统当前登录用户
   public user = {};
   // 导航信息
@@ -70,18 +69,7 @@ export default class Main extends VuexModule {
   public osNameList: string[] = [];
   public osMap: Dictionary = {};
   public installDefaultValues: Dictionary = {};
-
-  // 公共 mutations
-  /**
-   * 设置内容区的 loading 是否显示
-   *
-   * @param {Object} state store state
-   * @param {boolean} loading 是否显示 loading
-   */
-  @Mutation
-  public setMainContentLoading(loading: boolean) {
-    this.mainContentLoading = loading;
-  }
+  public noticeShow = false;
 
   /**
    * 设置全局可视区域的 loading 是否显示
@@ -297,6 +285,10 @@ export default class Main extends VuexModule {
   @Mutation
   public updateInstallDefaultValues(config: Dictionary) {
     this.installDefaultValues = config;
+  }
+  @Mutation
+  public updateNoticeShow(isShow: boolean) {
+    this.noticeShow = isShow;
   }
 
 

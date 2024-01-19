@@ -65,7 +65,13 @@ export default {
                 changeOrigin: true,
                 secure: false,
                 toProxy: true
-            }
+            },
+            '/notice': {
+                target: `${proxyTableTarget}${targetSiteUrl}`,
+                changeOrigin: true,
+                secure: false,
+                toProxy: true
+            },
         },
         cssSourceMap: false,
         autoOpenBrowser: true
