@@ -45,6 +45,7 @@ export const nav = {
   nav_取消托管插件预览: 'Unhosted Plugin Preview',
 
   nav_插件包: 'Plugin Package',
+  nav_插件包解析: 'Plugin Package Parse',
   nav_资源配额: 'Resource Quota',
   nav_编辑资源配额: 'Edit Resource Quota',
 
@@ -1012,7 +1013,6 @@ export default {
   部署: 'Deploy',
   查看: 'View',
   更新: 'Update',
-  插件包解析: 'Plugin package parse',
   包名称: 'Package name',
   主程序版本: 'Main version',
   主配置版本: 'Main config version',

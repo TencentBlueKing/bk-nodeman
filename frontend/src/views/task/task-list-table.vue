@@ -7,7 +7,7 @@
         :pagination="pagination"
         :limit-list="pagination.limitList"
         :row-style="getRowStyle"
-        :max-height="windowHeight - 230"
+        :max-height="tableHeight"
         :row-class-name="handlerRowClassName"
         @sort-change="sortHandle"
         @row-click="detailHandle"
@@ -159,8 +159,8 @@ export default class TaskListTable extends Mixins(HeaderRenderMixin) {
   ];
   private columnMinWidth: Dictionary = {};
 
-  private get windowHeight() {
-    return MainStore.windowHeight;
+  private get tableHeight() {
+    return MainStore.windowHeight - 200 - (MainStore.noticeShow ? 40 : 0);
   }
   private get tableEmptyType() {
     return (this.hideAutoDeploy || this.searchSelectValue.length) ? 'search-empty' : 'empty';

@@ -99,18 +99,14 @@
       </template>
       <!--内容区域-->
       <template #default>
-        <div
-          v-bkloading="{ isLoading: nmMainLoading && !mainContentLoading }"
-          class="nodeman-main-loading"
-          v-show="nmMainLoading && !mainContentLoading">
-        </div>
-        <div class="nodeman-navigation-content mb20" v-if="!customNavContent">
-          <span class="content-icon" v-if="navTitle && needBack" @click="handleBack">
-            <i class="nodeman-icon nc-back-left"></i>
-          </span>
-          <span v-if="navTitle" class="content-header">{{ navTitle }}</span>
-        </div>
-        <div :style="{ opacity: nmMainLoading ? 0 : 1 }">
+        <div v-bkloading="{ isLoading: nmMainLoading }" class="nodeman-main-loading" v-show="nmMainLoading" />
+        <div class="page-wrapper" :style="{ opacity: nmMainLoading ? 0 : 1 }">
+          <div class="page-header mb20" v-if="!customNavContent">
+            <span class="content-icon" v-if="navTitle && needBack" @click="handleBack">
+              <i class="nodeman-icon nc-back-left"></i>
+            </span>
+            <span v-if="navTitle" class="content-header">{{ navTitle }}</span>
+          </div>
           <slot v-if="pagePermission"></slot>
           <exception-page
             v-else
@@ -221,9 +217,6 @@ export default class NodemanNavigation extends Mixins(routerBackMixin) {
   }
   private get nmMainLoading() {
     return MainStore.nmMainLoading;
-  }
-  private get mainContentLoading() {
-    return MainStore.mainContentLoading;
   }
   private get customNavContent() {
     return MainStore.customNavContent;
@@ -486,21 +479,6 @@ export default class NodemanNavigation extends Mixins(routerBackMixin) {
     left: 0;
     width: 100%;
     height: 100%;
-  }
-  .default-content {
-    >>> .bk-navigation-wrapper .container-content {
-      padding: 20px 60px 0 60px;
-    }
-  }
-  .custom-content {
-    >>> .bk-navigation-wrapper .container-content {
-      padding: 0;
-    }
-  }
-  .container-background {
-    >>> .bk-navigation-wrapper .container-content {
-      background: $whiteColor ;
-    }
   }
   .nodeman-logo-icon {
     width: 28px;

@@ -1,5 +1,5 @@
 <template>
-  <article class="cloud-manager-detail">
+  <section class="cloud-manager-detail">
     <!--详情左侧面板-->
     <CloudDetailNav :loaded="loaded" :id="navActiveId" :search="search"></CloudDetailNav>
     <!--右侧表格-->
@@ -47,7 +47,7 @@
         @channel-confirm="handleChannelConfirm">
       </ChannelEdit>
     </section>
-  </article>
+  </section>
 </template>
 <script lang="ts">
 import { Component, Prop, Watch, Mixins } from 'vue-property-decorator';
@@ -227,7 +227,8 @@ export default class CloudManagerDetail extends Mixins(pollMixin, routerBackMixi
 @import "@/css/mixins/nodeman.css";
 
 .cloud-manager-detail {
-  height: calc(100vh - 52px);
+  flex: 1;
+  overflow: hidden;
 
   @mixin layout-flex row;
   .detail-right {

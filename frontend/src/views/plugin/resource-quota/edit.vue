@@ -1,6 +1,6 @@
 <template>
-  <article class="resource-quota-edit" v-bkloading="{ isLoading: loading }">
-    <div class="nodeman-navigation-content mb20">
+  <section class="resource-quota-edit" v-bkloading="{ isLoading: loading }">
+    <div class="page-header mb20">
       <span class="content-icon" @click="handleBack">
         <i class="nodeman-icon nc-back-left"></i>
       </span>
@@ -55,7 +55,7 @@
         </bk-form-item>
       </bk-form>
     </section>
-  </article>
+  </section>
 </template>
 <script lang="ts">
 import { Component, Prop, Ref, Vue } from 'vue-property-decorator';
@@ -159,8 +159,8 @@ export default class ResourceQuotaEdit extends Vue {
 .resource-quota-edit {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 52px);
   padding: 20px 24px;
+  overflow: auto;
 
   .page-body {
     flex: 1;

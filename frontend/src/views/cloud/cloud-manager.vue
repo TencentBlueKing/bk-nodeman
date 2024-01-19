@@ -46,7 +46,7 @@
         <bk-table
           v-test="'cloudTable'"
           :class="`head-customize-table ${ fontSize }`"
-          :max-height="windowHeight - 240"
+          :max-height="tableMaxHeight"
           :pagination="pagination"
           :span-method="colspanHandle"
           :data="tableData"
@@ -366,8 +366,8 @@ export default class CloudManager extends Vue {
   private get proxyOperateList() {
     return this.authority.proxy_operate || [];
   }
-  private get windowHeight() {
-    return MainStore.windowHeight;
+  private get tableMaxHeight() {
+    return MainStore.windowHeight - 240 - (MainStore.noticeShow ? 40 : 0);
   }
   // 是否已选择
   private get hasSelectedRows() {
