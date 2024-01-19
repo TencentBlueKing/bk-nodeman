@@ -12,14 +12,94 @@ body {
 .bk-navigation {
     width: 100%;
     min-width: 100vw;
+    .page-wrapper {
+        padding: 20px 24px 0;
+    }
+
+    &.default-content .page-wrapper {
+        padding: 20px 60px 0 60px;
+    }
+    &.custom-content .page-wrapper {
+        padding: 0;
+        flex: 1;
+        overflow: hidden;
+
+        & > div:not(.page-header),
+        & > section {
+            flex: 1;
+        }
+    }
+    &.container-background .page-wrapper {
+      background: $whiteColor ;
+    }
+
     .navigation-container {
         max-width: none!important;
+        .container-content {
+            display: flex;
+            flex-direction: column;
+            padding: 0;
+        }
     }
     .bk-navigation-wrapper {
         .group-name-wrap {
             padding: 12px 0;
             color: #b0b2b8;
         }
+    }
+    .page-wrapper {
+        flex: 1;
+        display: flex;
+        flex-direction: column;    
+        & > div:not(.page-header),
+        & > section {
+            min-width: 100%;
+        }
+    }
+}
+
+/* 适配notice的情况 */
+.notice-show {
+    .bk-navigation {
+        height: calc(100vh - 40px);
+    }
+    .nav-slider-list {
+        height: calc(100vh - 148px)!important;
+    }
+    .container-content {
+        max-height: calc(100vh - 92px)!important;
+    }
+    /* .resource-quota {
+        height: calc(100vh - 92px);
+    } */
+}
+
+/* 页眉 */
+.page-header {
+    display: flex;
+    flex-flow: row nowrap;
+    align-items: center;
+    justify-content: flex-start;
+    line-height: 20px;
+    .content-icon {
+        position: relative;
+        height: 20px;
+        line-height: 20px;
+        top: -4px;
+        margin-left: -7px;
+        font-size: 28px;
+        color: $primaryFontColor;
+        cursor: pointer;
+    }
+    .content-header {
+        font-size: 16px;
+        color: $titleColor;
+    }
+    .content-subtitle {
+        display: flex;
+        margin-left: 10px;
+        font-size: 12px;
+        color: #979ba5;
     }
 }
 
@@ -160,33 +240,6 @@ body {
         background: #ea3636;
     }
 }
-
-.nodeman-navigation-content {
-    display: flex;
-    flex-flow: row nowrap;
-    align-items: center;
-    justify-content: flex-start;
-    .content-icon {
-      position: relative;
-      height: 20px;
-      line-height: 20px;
-      top: -4px;
-      margin-left: -7px;
-      font-size: 28px;
-      color: $primaryFontColor;
-      cursor: pointer;
-    }
-    .content-header {
-      font-size: 16px;
-      color: #313238;
-    }
-    .content-subtitle {
-      display: flex;
-      margin-left: 10px;
-      font-size: 12px;
-      color: #979ba5;
-    }
-  }
 
 
 .flexible-tag-group {

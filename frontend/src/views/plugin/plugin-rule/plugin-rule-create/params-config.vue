@@ -244,7 +244,7 @@
 </template>
 <script lang="ts">
 import { Vue, Component, Emit, Prop, Ref } from 'vue-property-decorator';
-import { PluginStore } from '@/store';
+import { MainStore, PluginStore } from '@/store';
 import { IParamsConfig, IParamsData, IPk } from '@/types/plugin/plugin-type';
 import { addListener, removeListener } from 'resize-detector';
 import { debounce, deepClone } from '@/common/util';
@@ -772,7 +772,8 @@ export default class ParamsConfig extends Vue {
   // 底部footer浮动
   public handleResize() {
     this.isScroll = this.configContent
-      ? this.configContent.scrollHeight > this.$root.$el.clientHeight - 52 - 102 : false;
+      ? this.configContent.scrollHeight > this.$root.$el.clientHeight - 52 - 102 - (MainStore.noticeShow ? 40 : 0)
+      : false;
   }
   public async handleNextStep() {
     const res = await this.handleValidateForm();

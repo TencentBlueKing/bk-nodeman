@@ -1,5 +1,5 @@
 <template>
-  <article class="agent-setup" v-bkloading="{ isLoading: loading }">
+  <section class="agent-setup" v-bkloading="{ isLoading: loading }">
     <!--左侧表单信息-->
     <section class="agent-setup-left" ref="setupContent">
       <tips class="mb20" v-if="!showSetupBtn || showSetupTips">
@@ -89,7 +89,7 @@
     </section>
     <!--过滤ip信息-->
     <FilterDialog v-model="showFilterDialog" :list="filterList" :title="$t('忽略详情')"></FilterDialog>
-  </article>
+  </section>
 </template>
 <script lang="ts">
 import { Component, Ref, Mixins, Prop } from 'vue-property-decorator';
@@ -587,10 +587,10 @@ export default class AgentImport extends Mixins(mixin) {
 @import "@/css/mixins/nodeman.css";
 
 .agent-setup {
+  flex: 1;
   @mixin layout-flex row;
-  &-left {
+  .agent-setup-left {
     flex: 1;
-    height: calc(100vh - 120px);
     .filter-tips {
       height: 32px;
     }

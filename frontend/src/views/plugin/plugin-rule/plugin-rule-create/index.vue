@@ -1,7 +1,7 @@
 <template>
   <div class="rule-create" v-test.policy="'policyProcess'">
     <div :class="[isPolicyOperate ? '' : 'header']">
-      <div class="nodeman-navigation-content">
+      <div class="page-header">
         <span class="content-icon">
           <i class="nodeman-icon nc-back-left" @click="routerBack"></i>
         </span>
@@ -398,34 +398,16 @@ $bgColor: #f5f7fa;
     }
   }
 }
-.nodeman-navigation-content {
-  line-height: 20px;
-  display: flex;
-  align-items: center;
+.page-header {
   padding: 20px 24px;
-  .content-icon {
-    position: relative;
-    height: 20px;
-    top: -4px;
-    margin-left: -7px;
-    font-size: 28px;
-    color: #3a84ff;
-    cursor: pointer;
-  }
-  .content-header {
-    font-size: 16px;
-    color: #313238;
-  }
+
   .content-subtitle {
     margin-left: 8px;
-    font-size: 12px;
-    color: #979ba5;
   }
 }
 .rule-create {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 52px);
   overflow: hidden;
   .content {
     display: flex;

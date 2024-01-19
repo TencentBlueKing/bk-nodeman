@@ -294,7 +294,6 @@ export default class TaskList extends Mixins(PollMixin, HeaderFilterMixins)<Dict
 <style lang="postcss" scoped>
 
 .task-list {
-  height: calc(100vh - 52px);
   padding: 20px 24px 0 24px;
   overflow: hidden;
   .task-list-title {

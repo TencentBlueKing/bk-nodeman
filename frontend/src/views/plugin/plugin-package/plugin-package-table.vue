@@ -2,7 +2,7 @@
   <section v-bkloading="{ isLoading }">
     <bk-table
       :class="`plugin-package-table head-customize-table ${fontSize}`"
-      :max-height="windowHeight - 180"
+      :max-height="tableMaxHeight"
       :data="tableList"
       :pagination="pagination"
       :row-class-name="rowClassName"
@@ -173,8 +173,8 @@ export default class PackageTable extends Mixins(HeaderRenderMixin) {
   private get fontSize() {
     return MainStore.fontSize;
   }
-  private get windowHeight() {
-    return MainStore.windowHeight;
+  private get tableMaxHeight() {
+    return MainStore.windowHeight - 180 - (MainStore.noticeShow ? 40 : 0);
   }
   private get tableEmptyType() {
     return this.searchValue.length ? 'search-empty' : 'empty';

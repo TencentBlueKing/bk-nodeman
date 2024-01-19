@@ -347,7 +347,7 @@ export default class AgentSetup extends Mixins(mixin, formLabelMixin) {
    */
   public handleResize() {
     // 60：三级导航的高度  52： 一级导航高度
-    this.isScroll = this.$el.scrollHeight + 60 > this.$root.$el.clientHeight - 52;
+    this.isScroll = this.$el.scrollHeight + 60 > this.$root.$el.clientHeight - 52 - (MainStore.noticeShow ? 40 : 0);
   }
   /**
    * 获取表单数据

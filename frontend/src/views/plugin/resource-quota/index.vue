@@ -1,5 +1,5 @@
 <template>
-  <article class="resource-quota" v-bkloading="{ isLoading: loading }">
+  <section class="resource-quota" v-bkloading="{ isLoading: loading }">
     <section class="page-head">
       <span class="title">{{ $t('nav_资源配额') }}</span>
     </section>
@@ -93,7 +93,7 @@
         @click="handleApplyPermission">
       </exception-page>
     </div>
-  </article>
+  </section>
 </template>
 <script lang="ts">
 import { Component, Watch, Mixins, Prop, Ref } from 'vue-property-decorator';
@@ -455,11 +455,12 @@ export default class ResourceQuota extends Mixins(HeaderFilterMixins) {
 }
 </script>
 
-<style lang="postcss" scoped>
+<style lang="postcss">
 .resource-quota {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 52px);
+  overflow: hidden;
   .page-head {
     display: flex;
     align-items: center;
