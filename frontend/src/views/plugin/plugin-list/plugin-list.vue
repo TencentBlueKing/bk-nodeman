@@ -1,5 +1,5 @@
 <template>
-  <article class="plugin-node" v-bkloading="{ isLoading: loading }" v-test="'pluginList'">
+  <section class="plugin-node" v-bkloading="{ isLoading: loading }" v-test="'pluginList'">
     <PluginListOperate
       :search-select-data="filterData"
       :selections="selections"
@@ -88,7 +88,7 @@
         </div>
       </template>
     </bk-dialog>
-  </article>
+  </section>
 </template>
 <script lang="ts">
 import { Component, Watch, Mixins, Prop } from 'vue-property-decorator';
@@ -637,7 +637,7 @@ export default class PluginList extends Mixins(HeaderFilterMixins) {
     }
   }
   .plugin-node {
-    min-height: calc(100vh - 132px);
+    flex: 1;
     .plugin-node-table {
       margin-top: 14px;
     }

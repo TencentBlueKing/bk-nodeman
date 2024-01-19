@@ -1,11 +1,13 @@
 <template>
-  <div id="app" :class="systemCls">
+  <div id="app" :class="[systemCls, { 'notice-show': noticeShow }]">
+    <notice-component
+      v-if="noticeEnable"
+      :api-url="noticeApi"
+      @show-alert-change="toggleNotice" />
     <nodeman-navigation>
-      <div v-bkloading="{ isLoading: mainContentLoading, opacity: 1 }">
-        <keep-alive :include="cacheViews">
-          <router-view v-show="!mainContentLoading" />
-        </keep-alive>
-      </div>
+      <keep-alive :include="cacheViews">
+        <router-view />
+      </keep-alive>
     </nodeman-navigation>
     <permission-modal ref="permissionModal"></permission-modal>
     <bk-paas-login ref="login" :login-url="loginUrl"></bk-paas-login>
@@ -20,6 +22,8 @@ import { STORAGE_KEY_BIZ, STORAGE_KEY_FONT } from '@/config/storage-key';
 import { Vue, Component, Ref, Watch } from 'vue-property-decorator';
 import { IAuthApply, IBkBiz } from '@/types/index';
 import BkPaasLogin from '@blueking/paas-login/dist/paas-login.umd';
+import NoticeComponent from '@blueking/notice-component-vue2';
+import '@blueking/notice-component-vue2/dist/style.css';
 
 @Component({
   name: 'app',
@@ -27,6 +31,7 @@ import BkPaasLogin from '@blueking/paas-login/dist/paas-login.umd';
     NodemanNavigation,
     PermissionModal,
     BkPaasLogin,
+    NoticeComponent,
   },
 })
 export default class App extends Vue {
@@ -46,12 +51,12 @@ export default class App extends Vue {
       checked: false,
     },
   ];
+  // 类型: 跑马灯 & dialog; 如果有跑马灯， navigation的高度可能需要减去40px， 避免页面出现滚动条
+  private noticeEnable = false;
+  private noticeApi = '/notice/announcements/';
 
   private get loginUrl() {
     return MainStore.loginUrl;
-  }
-  private get mainContentLoading() {
-    return MainStore.mainContentLoading;
   }
   private get bkBizList() {
     return MainStore.bkBizList;
@@ -61,6 +66,9 @@ export default class App extends Vue {
   }
   private get cacheViews() {
     return MainStore.cacheViews;
+  }
+  private get noticeShow() {
+    return MainStore.noticeShow;
   }
 
   @Watch('bkBizList')
@@ -75,6 +83,7 @@ export default class App extends Vue {
       this.systemCls = 'win';
     }
     MainStore.setLanguage(window.language);
+    this.noticeEnable = window.PROJECT_CONFIG?.ENABLE_NOTICE_CENTER === 'True';
     this.handleInit();
     MainStore.getPublicKey().then(({ name = '', content = '', cipher_type = 'RSA' }) => {
       this.$safety.updateInstance({
@@ -143,10 +152,13 @@ export default class App extends Vue {
     MainStore.setFont(this.fontList);
     MainStore.setSelectedBiz(selectedBiz);
   }
+  public toggleNotice(isShow: boolean) {
+    MainStore.updateNoticeShow(isShow);
+  }
 }
 </script>
 <!--全局样式-->
-<style>
+<style lang="postcss">
 @import "../src/css/reset.css";
 @import "../src/css/app.css";
 @import "../src/css/install-table.css";

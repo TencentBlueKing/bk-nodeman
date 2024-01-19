@@ -3,7 +3,7 @@
     <bk-table
       ref="nodeListTable"
       v-test="'listTable'"
-      :max-height="windowHeight - 180"
+      :max-height="tableMaxHeight"
       :class="`head-customize-table ${ fontSize }`"
       :data="tableList"
       :pagination="pagination"
@@ -246,8 +246,8 @@ export default class PluginRuleTable extends Mixins(HeaderRenderMixin) {
     return MainStore.fontSize;
   }
 
-  private get windowHeight() {
-    return MainStore.windowHeight;
+  private get tableMaxHeight() {
+    return MainStore.windowHeight - 180 - (MainStore.noticeShow ? 40 : 0);
   }
 
   @Watch('searchSelectData', { deep: true })

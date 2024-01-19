@@ -211,7 +211,7 @@ export default class TaskDeatailTable extends Mixins(HeaderRenderMixin) {
     return MainStore.fontSize;
   }
   private get tableHeight() {
-    return MainStore.windowHeight - 322;
+    return MainStore.windowHeight - 322 - (MainStore.noticeShow ? 40 : 0);
   }
   private get commandStep() {
     return [

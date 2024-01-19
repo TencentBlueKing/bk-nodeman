@@ -23,8 +23,8 @@
         @check-change="handleTargetChange">
       </IpSelect> -->
       <IpSelector
-        class="ip-selector"
         v-test.policy="'ipSelect'"
+        :style="selectorHeight"
         :panel-list="panelList"
         :value="selectorNodes"
         :action="'strategy_create'"
@@ -52,7 +52,7 @@
 import { Component, Ref, Emit, Prop, Vue } from 'vue-property-decorator';
 // import IpSelect from '@/components/ip-selector/business/topo-selector-nodeman.vue';
 import IpSelector, { ISelectorValue, toSelectorNode, toStrategyNode } from '@/components/common/nm-ip-selectors';
-import { PluginStore } from '@/store';
+import { MainStore, PluginStore } from '@/store';
 import { INodeType } from '@/types/plugin/plugin-type';
 import { reguRequired, reguFnStrLength } from '@/common/form-check';
 
@@ -96,6 +96,18 @@ export default class DeployTarget extends Vue {
     return this.isGrayRule
       ? ['staticTopo', 'manualInput']
       : ['dynamicTopo', 'staticTopo', 'manualInput'];
+  }
+  private get selectorHeight() {
+    let calcHeight = MainStore.windowHeight - 300;
+    if (MainStore.noticeShow) {
+      calcHeight -= 40;
+    }
+    if (!this.isCreateType) {
+      calcHeight += 52;
+    }
+    return {
+      height: `${calcHeight}px`,
+    };
   }
 
   private mounted() {
@@ -186,9 +198,5 @@ export default class DeployTarget extends Vue {
 }
 .selector-form {
   padding-right: 30px;
-}
-.ip-selector {
-  /* stylelint-disable-next-line declaration-no-important */
-  height: calc(100vh - 300px) !important;
 }
 </style>

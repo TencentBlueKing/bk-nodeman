@@ -1,5 +1,5 @@
 <template>
-  <article class="agent">
+  <section class="agent">
     <!--agent操作-->
     <section class="agent-operate mb15">
       <!--agent操作-->
@@ -149,7 +149,7 @@
       <bk-table
         ref="agentTable"
         :class="`head-customize-table ${ fontSize }`"
-        :max-height="windowHeight - 300"
+        :max-height="tableHeight"
         :cell-class-name="handleCellClass"
         :span-method="colspanHandle"
         :data="table.data"
@@ -583,7 +583,7 @@
       </bk-pagination>
     </section>
     <bk-footer></bk-footer>
-  </article>
+  </section>
 </template>
 <script lang="ts">
 import { Component, Watch, Ref, Mixins, Prop } from 'vue-property-decorator';
@@ -988,8 +988,8 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
       ? this.table.data.some(item => item.operate_permission)
       : true;
   }
-  private get windowHeight() {
-    return MainStore.windowHeight;
+  private get tableHeight() {
+    return MainStore.windowHeight - 300 - (MainStore.noticeShow ? 40 : 0);
   }
   private get tableEmptyType() {
     return (this.search.topo.length || this.searchSelectValue.length) ? 'search-empty' : 'empty';
@@ -1900,7 +1900,6 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
   left: 3px;
 }
 .agent {
-  min-height: calc(100vh - 112px);
   padding-bottom: 82px;
   &-operate {
     @mixin layout-flex row, center, space-between;

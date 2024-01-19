@@ -76,7 +76,7 @@ export default class AccessPoint extends Vue {
 
 <style lang="postcss">
     .gse-config-wrapper {
-      min-height: calc(100vh - 142px);
+      min-height: calc(100% - 60px);
       padding: 0 0 40px 0;
       .gse-config-container {
         margin-top: 24px;

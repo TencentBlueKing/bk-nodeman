@@ -45,6 +45,7 @@
               const BKAPP_NAV_HELPER_URL = '{{ BKAPP_NAV_HELPER_URL }}'
               const BKAPP_NAV_OPEN_SOURCE_URL = '{{ BKAPP_NAV_OPEN_SOURCE_URL }}'
               const ENABLE_AP_VERSION_MUTEX = '{{ ENABLE_AP_VERSION_MUTEX }}'
+              const ENABLE_NOTICE_CENTER = '{{ ENABLE_NOTICE_CENTER }}'
 
               return {
                   APP_CODE,
@@ -63,6 +64,7 @@
                   DEFAULT_SSH_PORT,
                   DESTOP_URL,
                   ENABLE_AP_VERSION_MUTEX,
+                  ENABLE_NOTICE_CENTER,
                   GLOBAL_TASK_CONFIG_PERMISSION,
                   GLOBAL_SETTING_PERMISSION,
                   GSE_LISTEN_PORT,
@@ -81,7 +83,6 @@
                   VERSION,
                   WEB_TITLE,
                   WXWORK_UIN,
-                  
               }
           })()
           window.$DHCP = window.PROJECT_CONFIG.BKAPP_ENABLE_DHCP === 'True'

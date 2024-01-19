@@ -1,7 +1,7 @@
 <template>
   <section>
     <section class="nodeman-nav-wrapper">
-      <div class="nodeman-navigation-content">
+      <div class="page-header">
         <span class="content-icon" @click="handleBack">
           <i class="nodeman-icon nc-back-left"></i>
         </span>
@@ -99,41 +99,17 @@ export default class TaskDeatail extends Mixins(RouterBackMixin) {
 <style lang="postcss" scoped>
   @import "@/css/mixins/nodeman.css";
   @import "@/css/variable.css";
-  $headerColor: #313238;
 
   >>> .icon-down-wrapper {
     position: relative;
     left: 3px;
   }
-  .nodeman-navigation-content {
-    @mixin layout-flex row, center;
-    .content-icon {
-      position: relative;
-      height: 20px;
-      line-height: 20px;
-      top: -4px;
-      margin-left: -7px;
-      font-size: 28px;
-      color: $primaryFontColor;
-      cursor: pointer;
-    }
-    .content-header {
-      font-size: 16px;
-      color: $headerColor;
-    }
-    .content-subtitle {
-      display: flex;
-      margin-left: 10px;
-      font-size: 12px;
-      color: #979ba5;
-    }
-    .tab-badge {
-      padding: 0 4px;
-      line-height: 16px;
-      border-radius: 2px;
-      font-weight: 600;
-      color: #fff;
-    }
+  .page-header .tab-badge {
+    padding: 0 4px;
+    line-height: 16px;
+    border-radius: 2px;
+    font-weight: 600;
+    color: #fff;
   }
   .nodeman-nav-wrapper {
     padding: 20px 24px 15px 24px;

@@ -563,43 +563,12 @@ export default class TaskDeatail extends Mixins(PollMixin, HeaderFilterMixins) {
     position: relative;
     left: 3px;
   }
-  .nodeman-navigation-content {
-    @mixin layout-flex row, center;
-    .content-icon {
-      position: relative;
-      height: 20px;
-      line-height: 20px;
-      top: -4px;
-      margin-left: -7px;
-      font-size: 28px;
-      color: $primaryFontColor;
-      cursor: pointer;
-    }
-    .content-header {
-      font-size: 16px;
-      color: $headerColor;
-    }
-    .content-subtitle {
-      display: flex;
-      margin-left: 10px;
-      font-size: 12px;
-      color: #979ba5;
-    }
-    .tab-badge {
-      padding: 0 4px;
-      line-height: 16px;
-      border-radius: 2px;
-      font-weight: 600;
-      color: #fff;
-    }
-  }
   .task-detail-wrapper {
     display: flex;
     flex-direction: column;
-    min-height: calc(100vh - 52px);
     padding: 0 0 30px 0;
     background: #fff;
-    overflow: auto;
+    overflow: hidden;
     .detail-option {
       padding: 0 24px;
       margin: 24px 0 0 0;

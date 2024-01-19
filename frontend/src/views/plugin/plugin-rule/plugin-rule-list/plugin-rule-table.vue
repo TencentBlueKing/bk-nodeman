@@ -4,7 +4,7 @@
       v-test="'policyTable'"
       :class="`head-customize-table ${ fontSize }`"
       :data="data"
-      :max-height="windowHeight - 180"
+      :max-height="tableMaxHeight"
       :pagination="pagination"
       :row-class-name="rowClassName"
       :span-method="colspanHandle"
@@ -300,8 +300,8 @@ export default class PluginRuleTable extends Mixins(HeaderRenderMixin) {
   private get bkBizList() {
     return MainStore.bkBizList;
   }
-  private get windowHeight() {
-    return MainStore.windowHeight;
+  private get tableMaxHeight() {
+    return MainStore.windowHeight - 180 - (MainStore.noticeShow ? 40 : 0);
   }
   private get language() {
     return MainStore.language;
