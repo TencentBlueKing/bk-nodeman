@@ -1194,8 +1194,8 @@ class GseOperateProcService(PluginBaseService):
                     "control": gse_control,
                     "resource": host_id__resource_policy_map[bk_host_id]["resource"],
                     "alive_monitor_policy": {
-                        # 托管类型，0为周期执行进程，1为常驻进程，2为单次执行进程，这里仅需使用常驻进程
-                        "auto_type": 1,
+                        # 托管类型，0为周期执行进程，1为常驻进程，2为单次执行进程
+                        "auto_type": plugin.auto_type,
                         "start_check_secs": 9,
                     },
                 },
