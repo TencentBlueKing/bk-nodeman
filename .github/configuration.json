@@ -6,15 +6,15 @@
       },
       {
         "title": "### 🚀 Features",
-        "labels": ["kind/feature", "feature", "feat(front)"]
+        "labels": ["kind/feature", "feature", "feat(front)", "feat"]
       },
       {
         "title": "### ✨ Optimizations",
-        "labels": ["kind/optimization", "optimization", "perf(front)", "optimize(front)", "style(front)"]
+        "labels": ["kind/optimization", "optimization", "perf(front)", "optimize(front)", "style(front)", "style", "perf"]
       },
       {
         "title": "### 🐛 Bugfixes",
-        "labels": ["kind/bugfix", "bugfix", "fix(front)"]
+        "labels": ["kind/bugfix", "bugfix", "fix(front)", "fix"]
       },
       {
         "title": "### ✏️ Docs",
@@ -26,7 +26,7 @@
       },
       {
         "title": "## 📦 Dependencies",
-        "labels": ["build(front)"]
+        "labels": ["build(front)", "chore"]
       }
     ],
     "sort": "ASC",
@@ -35,11 +35,11 @@
     "empty_template": "- no changes",
     "label_extractor": [
       {
-        "pattern": "^(feature|docs|bugfix|optimization|refactor|test):(.*)",
+        "pattern": "^(feature|docs|bugfix|optimization|refactor|test|feat|fix|style|chore):(.*)",
         "target": "$1"
       },
       {
-        "pattern": "^(refactor|feat|perf|optimize|fix|docs|test|build|style)\\(front\\):(.*)",
+        "pattern": "^(refactor|feat|perf|optimize|fix|docs|test|build|style|chore)\\(front\\):(.*)",
         "target": "$1(front)"
       }
     ],
@@ -50,11 +50,11 @@
     },
     "transformers": [
       {
-        "pattern": "^(feature|docs|bugfix|optimization|refactor|test):\\s*(.*)",
+        "pattern": "^(feature|docs|bugfix|optimization|refactor|test|feat|fix|style|chore):\\s*(.*)",
         "target": "$2"
       },
       {
-        "pattern": "^(feature|docs|bugfix|optimization|refactor|test)\\(front\\):\\s*(.*)",
+        "pattern": "^(feature|docs|bugfix|optimization|refactor|test|feat|fix|style|chore)\\(front\\):\\s*(.*)",
         "target": "$2"
       }
     ]

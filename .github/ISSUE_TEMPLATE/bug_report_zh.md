@@ -1,7 +1,7 @@
 ---
 name: Bug 反馈
 about: Bug 反馈
-title: "[BUG]"
+title: "fix: "
 labels: backlog, kind/bug
 assignees: ''
 
