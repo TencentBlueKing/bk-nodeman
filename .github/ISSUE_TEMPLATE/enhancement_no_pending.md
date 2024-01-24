@@ -1,7 +1,7 @@
 ---
 name: 技术需求（无需评审）
 about: 技术需求（无需评审）
-title: "[FEATURE] "
+title: "feat: "
 labels: backlog, kind/feature
 assignees: ZhuoZhuoCrayon
 

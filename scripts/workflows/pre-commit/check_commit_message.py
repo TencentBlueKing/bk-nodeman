@@ -24,15 +24,14 @@ except NameError:
 
 
 ALLOWED_COMMIT_MSG_PREFIX = [
-    ("feature", "新特性"),
-    ("bugfix", "线上功能bug"),
-    ("minor", "不重要的修改（换行，拼写错误等）"),
-    ("optimization", "功能优化"),
-    ("sprintfix", "未上线代码修改 （功能模块未上线部分bug）"),
-    ("refactor", "功能重构"),
-    ("test", "增加测试代码"),
-    ("docs", "编写文档"),
-    ("merge", "分支合并及冲突解决"),
+    ("feat", "新功能/特性"),
+    ("fix", "Bug修复"),
+    ("docs", "仅文档更改"),
+    ("style", "不影响代码含义的更改（空格、格式、缺少分号等）"),
+    ("refactor", "既不修复错误也不添加功能的代码更改"),
+    ("perf", "提高性能的代码更改"),
+    ("test", "添加缺失的测试或更正现有测试"),
+    ("chore", "对构建过程或辅助工具和库（如文档生成）的更改"),
 ]
 
 
@@ -54,7 +53,7 @@ def get_commit_message():
 def main():
     content = get_commit_message()
     for prefix in ALLOWED_COMMIT_MSG_PREFIX:
-        if content.startswith(prefix[0]):
+        if content.startswith(f"{prefix[0]}:"):
             return 0
 
     else:
