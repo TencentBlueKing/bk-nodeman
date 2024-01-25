@@ -100,7 +100,7 @@
       <!--内容区域-->
       <template #default>
         <div v-bkloading="{ isLoading: nmMainLoading }" class="nodeman-main-loading" v-show="nmMainLoading" />
-        <div class="page-wrapper" :style="{ opacity: nmMainLoading ? 0 : 1 }">
+        <div class="page-wrapper">
           <div class="page-header mb20" v-if="!customNavContent">
             <span class="content-icon" v-if="navTitle && needBack" @click="handleBack">
               <i class="nodeman-icon nc-back-left"></i>
@@ -111,6 +111,7 @@
           <exception-page
             v-else
             :class="['exception-page', { 'over-full': pluginViewClass }]"
+            :style="{ opacity: nmMainLoading ? 0 : 1 }"
             type="notPower"
             :sub-title="authSubTitle"
             @click="handleApplyPermission">
