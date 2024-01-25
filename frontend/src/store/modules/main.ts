@@ -26,7 +26,7 @@ const permissionMethodsMap: Dictionary = {
 // eslint-disable-next-line new-cap
 @Module({ name: 'main', namespaced: true })
 export default class Main extends VuexModule {
-  public nmMainLoading = false; // 全局可视区域加载
+  public nmMainLoading = true; // 全局可视区域加载
   // 系统当前登录用户
   public user = {};
   // 导航信息

@@ -117,15 +117,22 @@ const validateBizAuth = async (to: Route, from: Route, permissionSwitch: boolean
   const { authority } = to.meta;
   if (permissionSwitch && authority) {
     const differentRoute = to.name !== from.name;
+    let loading = false;
+    if (authority.page && differentRoute) {
+      loading = true;
+    }
+    if (authority.pk && authority.module) {
+      loading = true;
+    }
+    // 优先 loading;
+    loading && MainStore.setNmMainLoading(loading);
     if (authority.page) {
       differentRoute && MainStore.updatePagePermission(false); // 防止多次请求
-      MainStore.setNmMainLoading(differentRoute); // 同路由切换闪屏问题
       const list = await MainStore.getBkBizPermission({ action: authority.page, updateBiz: true });
       // 设置当前路由的界面权限
       MainStore.updatePagePermission(!axios.isCancel(list) ? list.some(item => item.has_permission) : true);
     }
     if (authority.pk && authority.module) {
-      MainStore.setNmMainLoading(true);
       let store: any = null;
       const list = await MainStore.getPagePermission(authority.pk);
       switch (authority.module) {
@@ -139,7 +146,6 @@ const validateBizAuth = async (to: Route, from: Route, permissionSwitch: boolean
       });
     }
   }
-  MainStore.setNmMainLoading(false);
 };
 // 校验管控区域界面
 const validateCloudAuth = async (to: Route, from, permissionSwitch: boolean) => {
@@ -199,6 +205,7 @@ router.afterEach(async (to, from) => {
   } else {
     await validateBizAuth(to, from, permissionSwitch);
   }
+  MainStore.setNmMainLoading(false);
 });
 
 export default router;
