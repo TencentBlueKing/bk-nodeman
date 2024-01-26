@@ -112,9 +112,9 @@ export default class ChannelEdit extends Vue {
   private btnLoading = false;
   private channelForm: Dictionary = {};
   private labelMap: Dictionary = {
-    btfileserver: 'Btfileserver',
-    dataserver: 'Dataserver',
-    taskserver: 'Taskserver',
+    btfileserver: this.$t('GSE File服务地址'),
+    dataserver: this.$t('GSE Data服务地址'),
+    taskserver: this.$t('GSE Cluster服务地址'),
   };
   private showAdvancedConfig = false;
   private edited = false;
