@@ -514,6 +514,10 @@ class HostHandler(APIModel):
                 setattr(identity, kwarg, identity_kwargs[kwarg])
             identity.save()
 
+        # 更新ProcessStatus中Proxy包版本信息
+        if params.get("version"):
+            ProcessStatus.objects.filter(bk_host_id=kwargs["bk_host_id"]).update(version=params["version"])
+
     @staticmethod
     def get_host_infos_gby_ip_key(ips: Iterable[str], ip_version: int):
         """

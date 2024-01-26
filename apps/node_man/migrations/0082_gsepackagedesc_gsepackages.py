@@ -15,7 +15,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("node_man", "0080_auto_20231122_1552"),
+        ("node_man", "0081_auto_20240307_1656"),
     ]
 
     operations = [

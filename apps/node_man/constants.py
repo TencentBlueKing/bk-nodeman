@@ -364,6 +364,11 @@ IAM_ACTION_TUPLE = tuple(IAM_ACTION_DICT.keys())
 IAM_ACTION_CHOICES = tuple_choices(IAM_ACTION_TUPLE)
 IamActionType = choices_to_namedtuple(IAM_ACTION_CHOICES)
 
+GSE_PACKAGE_ENABLE_ALIAS_MAP = {
+    True: _("启用"),
+    False: _("禁用"),
+}
+
 
 class SubscriptionType:
     POLICY = "policy"
@@ -941,6 +946,10 @@ class GsePackageCode(EnhanceEnum):
     def _get_member__alias_map(cls) -> Dict[Enum, str]:
         return {cls.PROXY: _("2.0 Proxy Agent 安装包代号"), cls.AGENT: _("2.0 Agent 安装包代号")}
 
+    @classmethod
+    def values(cls):
+        return [member.value for member in cls]
+
 
 class GsePackageEnv(EnhanceEnum):
     """安装包Env文件名称"""
@@ -961,6 +970,13 @@ class GsePackageTemplatePattern(EnhanceEnum):
 
     PROXY = re.compile("|".join(GsePackageTemplate.PROXY.value))
     AGENT = re.compile("|".join(GsePackageTemplate.AGENT.value))
+
+
+class GsePackageCacheKey(EnhanceEnum):
+    """GsePackageHandler的缓存key"""
+
+    TAGS_PREFIX = "tags_"
+    DESCRIPTION_PREFIX = "description_"
 
 
 class GsePackageDir(EnhanceEnum):
@@ -1197,3 +1213,18 @@ class AgentVersionType(EnhanceEnum):
             cls.BY_HOST: _("按主机的"),
             cls.BY_SYSTEM_ARCH: _("按系统架构"),
         }
+
+
+BUILT_IN_TAG_DESCRIPTIONS: List[str] = [_("稳定版本"), _("最新版本"), _("测试版本")]
+BUILT_IN_TAG_NAMES: List[str] = ["stable", "latest", "test"]
+TAG_NAME_MAP = dict(zip(BUILT_IN_TAG_DESCRIPTIONS, BUILT_IN_TAG_NAMES))
+TAG_NAME_MAP.update({name: name for name in BUILT_IN_TAG_NAMES})
+TAG_DESCRIPTION_MAP = {
+    "stable": _("稳定版本"),
+    "latest": _("最新版本"),
+    "test": _("测试版本"),
+    "稳定版本": _("稳定版本"),
+    "最新版本": _("最新版本"),
+    "测试版本": _("测试版本"),
+}
+STABLE_DESCRIPTION = _("稳定版本")

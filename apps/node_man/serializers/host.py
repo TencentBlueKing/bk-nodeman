@@ -52,6 +52,7 @@ class HostUpdateSerializer(serializers.Serializer):
     bt_speed_limit = serializers.IntegerField(label=_("加速"), required=False)
     enable_compression = serializers.BooleanField(label=_("数据压缩开关配置"), required=False, default=False)
     data_path = serializers.CharField(label=_("数据文件路径"), required=False)
+    version = serializers.CharField(label=_("Proxy包版本"), required=False)
 
     def validate(self, attrs):
         cipher = tools.HostTools.get_asymmetric_cipher()

@@ -3,7 +3,6 @@ import { AGENT_VIEW, AGENT_OPERATE } from '../action-map';
 const AgentStatus = () => import(/* webpackChunkName: 'AgentStatus' */'@/views/agent/agent-list.vue');
 const AgentSetup = () => import(/* webpackChunkName: 'AgentSetup' */'@/views/agent/agent-setup/agent-setup.vue');
 const AgentImport = () => import(/* webpackChunkName: 'AgentImport' */'@/views/agent/agent-setup/agent-import.vue');
-const AgentPackage = () => import(/* webpackChunkName: 'AgentPackage' */'@/views/agent/package/index.vue');
 
 export default [
   {
@@ -68,20 +67,6 @@ export default [
       needBack: true,
       authority: {
         page: AGENT_OPERATE,
-      },
-    },
-  },
-  {
-    path: '/agent-manager/package',
-    name: 'agentPackage',
-    component: AgentPackage,
-    meta: {
-      navId: 'nodeManage',
-      title: 'nav_Agent包管理',
-      customContent: true,
-      authority: {
-        page: AGENT_VIEW,
-        operate: AGENT_OPERATE,
       },
     },
   },

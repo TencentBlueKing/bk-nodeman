@@ -141,7 +141,7 @@
         slot="empty"
         :type="tableEmptyType"
         :delay="loading"
-        @empty-clear="emptySearchClear()"
+        @empty-clear="emptySearchClear"
         @empty-refresh="emptyRefresh" />
     </bk-table>
     <TaskDetailSlider

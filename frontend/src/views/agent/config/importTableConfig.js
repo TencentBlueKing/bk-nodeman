@@ -7,7 +7,6 @@ export const parentHead = [
   { label: '主机IPTip', prop: 'host_ip', type: 'text', colspan: 0, required: true, tips: 'agentSetupHostIp' },
   { label: '主机属性', prop: 'host_attr', type: 'text', colspan: 0 },
   { label: '登录信息', prop: 'login_info', type: 'text', tips: 'agentSetupLoginInfo', colspan: 0 },
-  { label: '安装信息', prop: 'install_info', type: 'text', colspan: 0 },
   { label: '传输信息', prop: 'trans_info', type: 'text', colspan: 0 },
   { label: '', prop: '', type: 'operate' },
 ];
@@ -297,18 +296,6 @@ const config = [
         },
       },
     ],
-  },
-  {
-    label: 'Agent 包版本',
-    prop: 'version',
-    type: 'choose',
-    required: true,
-    noRequiredMark: false,
-    placeholder: window.i18n.t('请选择'),
-    batch: false,
-    default: '',
-    width: 100,
-    parentProp: 'install_info',
   },
   {
     label: 'BT节点探测',

@@ -7,7 +7,7 @@ import './filters';
 import NmSafety from './safety';
 import { textTool } from './text-tool';
 import { setIpProp, initIpProp } from './ipv6';
-// import './mixins';
+import './mixins';
 
 Vue.prototype.$filters = function (filterName: string, value: any) {
   return this._f(filterName)(value);
@@ -16,11 +16,5 @@ Vue.prototype.$safety = new NmSafety();
 Vue.prototype.$textTool = textTool;
 Vue.prototype.$setIpProp = setIpProp;
 Vue.prototype.$initIpProp = initIpProp;
-Vue.prototype.emptySearchClear = function () {
-  this.$emit('empty-clear');
-};
-Vue.prototype.emptyRefresh = function () {
-  this.$emit('empty-refresh');
-};
 
 export default i18n;

@@ -15,12 +15,6 @@ export const navConfig: INavConfig[] = [
             path: '/agent-manager/status',
             name: 'agentStatus',
           },
-          {
-            title: 'nav_Agent包管理',
-            icon: 'nc-state',
-            path: '/agent-manager/package',
-            name: 'agentPackage',
-          },
         ],
       },
       {

@@ -1,4 +1,4 @@
-import Vue, { VNode } from 'vue';
+import Vue from 'vue';
 import { TranslateResult } from 'vue-i18n';
 import 'vue-router';
 import { INodemanHttp } from './types';
@@ -24,7 +24,6 @@ declare module 'vue/types/vue' {
     messageInfo: (message: string, delay?: number) => {}
     $bkInfo: (options: {
       title: string | TranslateResult
-      subHeader?: string | TranslateResult | VNode
       subTitle?: string | TranslateResult
       width?: number | string
       type?: string,
@@ -42,11 +41,8 @@ declare module 'vue/types/vue' {
     }
     $initIpProp: (obj: Dictionary, keys: string[]) => void
     $setIpProp:  (key: string, val: Dictionary) => any
-    $DHCP: boolean
+    $DHCP:  boolean
     $http: INodemanHttp
-    emptySearchClear: () => void
-    emptyRefresh: () => void
-    filterEmpty: (any) => string
   }
 }
 
