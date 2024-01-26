@@ -34,10 +34,22 @@ import { formatSchema } from '../create';
 
 export default defineComponent({
   props: {
-    item: () => ({}),
-    schema: () => ({}),
-    value: () => [],
-    valueProp: '',
+    item: {
+      type: Object,
+      default: () => ({}),
+    },
+    schema: {
+      type: Object,
+      default: () => ({}),
+    },
+    value: {
+      type: Array,
+      default: () => [],
+    },
+    valueProp: {
+      type: String,
+      default: '',
+    },
   },
   setup(props) {
     const updateFormData = inject('updateFormData');

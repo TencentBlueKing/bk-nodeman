@@ -45,41 +45,55 @@ export const stepHost = [
     type: 'zk',
   },
   {
-    label: window.i18n.t('外网回调地址'),
-    key: 'outer_callback_url',
-    ruleName: 'callback',
-    placeholder: window.i18n.t('请输入外网回调地址'),
-    extCls: 'mt20',
+    type: 'url',
+    items: [
+      {
+        label: window.i18n.t('回调地址'),
+        prepend: window.i18n.t('内网URL'),
+        key: 'callback_url',
+        ruleName: 'callback',
+        placeholder: window.i18n.t('请输入内网回调地址'),
+        extCls: 'mt20',
+      },
+      {
+        label: '',
+        prepend: window.i18n.t('外网URL'),
+        key: 'outer_callback_url',
+        ruleName: 'callback',
+        placeholder: window.i18n.t('请输入外网回调地址'),
+        extCls: 'mt10',
+      },
+    ],
   },
   {
-    label: window.i18n.t('内网回调地址'),
-    key: 'callback_url',
-    ruleName: 'callback',
-    placeholder: window.i18n.t('请输入内网回调地址'),
-    extCls: 'mt20',
+    type: 'url',
+    items: [
+      {
+        label: window.i18n.t('Agent安装包地址'),
+        prepend: window.i18n.t('内网URL'),
+        required: true,
+        key: 'package_inner_url',
+        ruleName: 'url',
+        placeholder: window.i18n.t('请输入内网下载URL'),
+        extCls: 'mt20',
+      },
+      {
+        label: '',
+        prepend: window.i18n.t('外网URL'),
+        required: true,
+        key: 'package_outer_url',
+        ruleName: 'url',
+        placeholder: window.i18n.t('请输入外网下载URL'),
+        extCls: 'mt10 hide-require',
+      },
+    ],
   },
   {
     label: window.i18n.t('Agent包服务器目录'),
     key: 'nginx_path',
     ruleName: 'nginxPath',
     placeholder: window.i18n.t('请输入服务器目录'),
-    extCls: 'mt40',
-  },
-  {
-    label: window.i18n.t('Agent包URL'),
-    required: true,
-    key: 'package_inner_url',
-    ruleName: 'url',
-    placeholder: window.i18n.t('请输入内网下载URL'),
     extCls: 'mt20',
-  },
-  {
-    label: '',
-    required: true,
-    key: 'package_outer_url',
-    ruleName: 'url',
-    placeholder: window.i18n.t('请输入外网下载URL'),
-    extCls: 'mt10',
   },
   // 可用性测试
   {
@@ -117,12 +131,12 @@ export const apAgentInfo = [
 ];
 
 // 目录名可以包含但不相等，所以末尾加了 /, 校验的时候给值也需要加上 /
-const linuxNotInclude = [
+export const linuxNotInclude = [
   '/etc/', '/root/', '/boot/', '/dev/', '/sys/', '/tmp/', '/var/', '/usr/lib/',
   '/usr/lib64/', '/usr/include/', '/usr/local/etc/', '/usr/local/sa/', '/usr/local/lib/',
   '/usr/local/lib64/', '/usr/local/bin/', '/usr/local/libexec/', '/usr/local/sbin/',
 ];
-const linuxNotIncludeError = [
+export const linuxNotIncludeError = [
   '/etc', '/root', '/boot', '/dev', '/sys', '/tmp', '/var', '/usr/lib',
   '/usr/lib64', '/usr/include', '/usr/local/etc', '/usr/local/sa', '/usr/local/lib',
   '/usr/local/lib64', '/usr/local/bin', '/usr/local/libexec', '/usr/local/sbin',

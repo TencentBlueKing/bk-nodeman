@@ -18,7 +18,7 @@ export const regIp = new RegExp(`^${IpStr}$`);
 export const regFilterIp = new RegExp(`^(?:\\d+:)?(${IpStr})$`);
 export const regExclusiveFilterIp = new RegExp(`^\\d+:${IpStr}$`);
 export const regIPv6 = new RegExp(`^${IPv6Str}$`);
-export const regIpMixin = window.$DHCP ? new RegExp(`^${IpStr}|${IPv6Str}$`) : regIp; // 区分环境可用的IP类型
+export const regIpMixin = window.$DHCP ? new RegExp(`^${IpStr}$|^${IPv6Str}$`) : regIp; // 区分环境可用的IP类型
 export const regFilterIpMixin = window.$DHCP ? new RegExp(`^(?:\\d+:)?(${IpStr}|${IPv6Str})$`) : regFilterIp;
 export const regExclusiveFilterIpMixin = window.$DHCP ? new RegExp(`^\\d+:(${IpStr}|${IPv6Str})$`) : regExclusiveFilterIp; // 用于区分IP还是按管控区域筛选ip
 export const regUrl = /^(?:http(s)?:\/\/)?[\w.-]+(?:\.[\w.-]+)+[\w\-._~:/?#[\]@!$&'*+,;=.]+$/;

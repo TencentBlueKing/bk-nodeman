@@ -469,7 +469,7 @@ export default {
   Server信息: 'Server information',
   Server序号: 'Server serial number ',
   Agent信息: 'Agent information',
-  安装包: 'Installation package',
+  Proxy安装包: 'Proxy installation package',
   内网: 'Intranet:',
   外网: 'Extranet:',
   hostid路径: 'Hostid path',
@@ -482,7 +482,7 @@ export default {
   用户创建的接入点: 'User-created access point',
   请输入Server的内网IP: 'Please enter the intranet IP of {type} Server',
   请输入Server的外网IP: 'Please enter the extranet IP of {type} Server',
-  Agent安装包: 'Agent package',
+  Agent安装包信息: 'Agent package',
   Agent包URL: 'Package URL',
   Agent包服务器目录: 'Package path',
   请输入服务器目录: 'Please enter the the server path',
@@ -526,6 +526,12 @@ export default {
   加载插件基础信息成功: 'Load plugin basic information successfully',
   该接入点被使用中无法删除: 'This access point is in use and cannot be deleted',
   序号: 'No.',
+  GSEFile服务地址: 'GSE File Serve',
+  GSEData服务地址: 'GSE Data Serve',
+  GSECluster服务地址: 'GSE Cluster Serve',
+  跳过检测: 'Skip Detection',
+  回调地址: 'Callback Address',
+  IPv4和IPv6不能混合使用: 'IPv4 and IPv6 cannot be mixed',
 
   // 自监控
   后台服务器: 'Servers',
@@ -564,6 +570,8 @@ export default {
   内网回调: 'LAN callback',
   请输入内网回调地址: 'Please enter the LAN callback address',
   请输入以backend结尾的URL地址: 'Please enter the URL address ending with /backend',
+  内网URL: 'LAN url',
+  外网URL: 'WAN url',
 
   // 任务历史
   机器数量: '(total {0})',

@@ -94,7 +94,6 @@
           <div class="collapse-container" slot>
             <AccessPointTable
               v-if="accessPoint.view"
-              class="access-point-table"
               :access-point="accessPoint">
             </AccessPointTable>
             <exception-card
@@ -318,9 +317,6 @@ export default class GseConfig extends Vue {
   }
   .collapse-container {
     background: #fff;
-  }
-  >>> .access-point-table tr:last-child td {
-    border-bottom: 0;
   }
 }
 </style>
