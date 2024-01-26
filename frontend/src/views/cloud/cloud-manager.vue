@@ -173,7 +173,7 @@
           </NmColumn>
           <NmColumn :label="$t('Agent数量')" prop="nodeCount" align="right" :resizable="false" sortable="custom">
             <template #default="{ row }">
-              <div class="pr20 nm-link">
+              <div class="pr20">
                 <span v-if="row.nodeCount" class="text-btn" v-test="'filterAgent'" @click.stop="handleGotoAgent(row)">
                   {{ row.nodeCount }}
                 </span>

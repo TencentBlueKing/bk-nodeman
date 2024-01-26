@@ -318,9 +318,11 @@ body {
         .tag-yellow {
             background: #ffefd6;
         }
-        .flexible-tag,
-        .flexible-tag-group .num-tag {
-            background: #DCDEE5;
+        .flexible-tag-group {
+            .flexible-tag,
+            .num-tag {
+                background: #DCDEE5;
+            }
         }
         .pointer-row {
             cursor: pointer;
@@ -628,19 +630,9 @@ body {
             flex-direction: column;
             width: 280px;
             &-title {
-                padding: 8px 15px;
-                line-height: 24px;
                 font-size: 14px;
-                color: #313238;
-                &.pb0 {
-                    padding-bottom: 0;
-                }
-            }
-            &-sub-title {
-                line-height: 20px;
-                padding: 6px 15px;
-                font-size: 12px;
                 color: #63656E;
+                padding: 10px 15px;
             }
             &-content {
                 flex: 1;

@@ -269,22 +269,6 @@ export const config: ISetupHead[] = [
     rules: [reguIPMixins],
   },
   {
-    label: 'Agent 包版本',
-    prop: 'version',
-    type: 'choose',
-    required: true,
-    noRequiredMark: false,
-    placeholder: window.i18n.t('请选择'),
-    batch: false,
-    default: '',
-    width: 100,
-    parentProp: 'install_info',
-    getReadonly() {
-      return this.type === 'UNINSTALL_AGENT';
-    },
-    // rules: [reguPort],
-  },
-  {
     label: 'BT节点探测',
     prop: 'peer_exchange_switch_for_agent',
     tips: 'BT节点探测提示',

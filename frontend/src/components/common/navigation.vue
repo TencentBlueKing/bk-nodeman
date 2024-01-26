@@ -1,5 +1,5 @@
 <template>
-  <article class="nodeman-wrapper">
+  <article>
     <!--导航-->
     <bk-navigation
       ref="navigation"
@@ -412,15 +412,13 @@ export default class NodemanNavigation extends Mixins(routerBackMixin) {
   }
 }
 </script>
-<style lang="postcss">
-@import "@/css/mixins/nodeman.css";
-@import "@/css/variable.css";
+<style lang="postcss" scoped>
+  @import "@/css/mixins/nodeman.css";
+  @import "@/css/variable.css";
 
-$navColor: #96a2b9;
-$navHoverColor: #d3d9e4;
-$headerColor: #313238;
-
-.nodeman-wrapper {
+  $navColor: #96a2b9;
+  $navHoverColor: #d3d9e4;
+  $headerColor: #313238;
 
   .menu-biz-shrink-text {
     opacity: 0;
@@ -485,12 +483,6 @@ $headerColor: #313238;
       >>> .bk-tooltip-ref {
         overflow: hidden;
       }
-    }
-  }
-  .nav-content-wrapper {
-    height: 100%;
-    & > div {
-      height: 100%;
     }
   }
   .nodeman-main-loading {
@@ -612,5 +604,4 @@ $headerColor: #313238;
       display: none;
     }
   }
-}
 </style>

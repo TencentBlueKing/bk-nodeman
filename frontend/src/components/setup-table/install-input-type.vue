@@ -164,14 +164,6 @@
       :value="inputValue"
       @change="handleChange">
     </bk-switcher>
-    <div
-      v-else-if="type === 'choose'"
-      :ref="type"
-      class="bk-form-input input-choose"
-      :data-placeholder="inputValue ? '' : placeholder"
-      @click="handleEmitChoose">
-      <slot name="choose">{{ inputValue }}</slot>
-    </div>
     <span v-else>--</span>
   </div>
 </template>
@@ -268,11 +260,7 @@ export default class InputType extends Mixins(emitter) {
   }
 
   @Watch('inputValue')
-  public handleValueChange(val: IValue) {
-    // 当类型为 choose 时是直接改变原始数据，从而出发change事件进行rules校验
-    if (this.type === 'choose') {
-      this.handleChange(val);
-    }
+  public handleValueChange() {
     this.$nextTick(this.setRows);
   }
 
@@ -289,8 +277,6 @@ export default class InputType extends Mixins(emitter) {
       } else if (['select', 'biz'].includes(this.type)) {
         // select框类型focus（展示下拉列表）
         this.inputRef && this.inputRef.show();
-      } else if (this.type === 'choose') {
-        this.inputRef?.click?.();
       }
     }
   }
@@ -313,10 +299,6 @@ export default class InputType extends Mixins(emitter) {
   @Emit('upload-change')
   public handleEmitUpload(value: IFileInfo) {
     return value;
-  }
-  @Emit('choose')
-  public handleEmitChoose(event?: Event) {
-    return { instance: this, event };
   }
   public handleInput(newValue: IValue, oldValue: IValue) {
     this.$emit('input', newValue, oldValue);
@@ -517,19 +499,6 @@ export default class InputType extends Mixins(emitter) {
     }
     .group-text {
       padding: 0 4px;
-    }
-
-    .input-choose {
-      cursor: pointer;
-      &:before {
-        display: inline-flex;
-        align-items: center;
-        position: absolute;
-        top: 0;
-        content: attr(data-placeholder);
-        font-size: 12px;
-        color: #c4c6cc;
-      }
     }
   }
 </style>

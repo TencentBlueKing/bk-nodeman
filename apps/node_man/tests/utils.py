@@ -27,6 +27,7 @@ from apps.node_man.handlers.iam import IamHandler
 from apps.node_man.models import (
     AccessPoint,
     Cloud,
+    GsePackages,
     Host,
     IdentityData,
     InstallChannel,
@@ -146,6 +147,7 @@ def create_host(
     login_ip=None,
     proc_type=None,
     os_type=None,
+    start_idx=0,
 ):
     # 若传了bk_host_id，number必须为1
     host_to_create = []
@@ -156,8 +158,8 @@ def create_host(
         if number - index * max_count > max_count:
             # 若还要分批创建
             host, process, identity = create_host_from_a_to_b(
-                index * max_count,
-                (index + 1) * max_count,
+                start_idx + index * max_count,
+                start_idx + (index + 1) * max_count,
                 bk_host_id=bk_host_id,
                 ip=ip,
                 auth_type=auth_type,
@@ -171,8 +173,8 @@ def create_host(
             )
         else:
             host, process, identity = create_host_from_a_to_b(
-                index * max_count,
-                number,
+                start_idx + index * max_count,
+                start_idx + number,
                 bk_host_id=bk_host_id,
                 ip=ip,
                 auth_type=auth_type,
@@ -1267,3 +1269,40 @@ def ret_to_validate_data(data):
     login_ip_info = HostHandler.get_host_infos_gby_ip_key(login_ips, constants.CmdbIpVersion.V4.value)
 
     return biz_info, data, cloud_info, ap_id_name, inner_ip_info, outer_ip_info, login_ip_info, bk_biz_scope
+
+
+def create_gse_package(
+    number,
+    start_id=1,
+    version=None,
+    project=None,
+    pkg_size=None,
+    is_ready=None,
+    pkg_path=None,
+    location=None,
+    created_by=None,
+    os=None,
+    cpu_arch=None,
+):
+    gse_packages = []
+    for i in range(start_id, number + start_id):
+        gse_package = GsePackages(
+            id=i,
+            pkg_name=f"pkg_name{i+1}",
+            version=version or random.choice(["version1", "version2", "version3"]),
+            project=project or random.choice(["agent", "proxy"]),
+            pkg_size=pkg_size or random.randint(1, 2000),
+            pkg_path=pkg_path or "/tmp/",
+            md5="",
+            location=location or "",
+            os=os or random.choice(constants.OS_TUPLE),
+            cpu_arch=cpu_arch or random.choice(constants.CPU_TUPLE),
+            is_ready=is_ready or random.choice(list(constants.GSE_PACKAGE_ENABLE_ALIAS_MAP.keys())),
+            created_by=created_by or "admin",
+            updated_by=created_by or "admin",
+            version_log="",
+            version_log_en="",
+        )
+        gse_packages.append(gse_package)
+    gse_packages = GsePackages.objects.bulk_create(gse_packages)
+    return [gse_package.id for gse_package in gse_packages]

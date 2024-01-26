@@ -2,8 +2,6 @@ import RequestQueue from '@/api/request-queue';
 import CachedPromise from '@/api/cached-promise';
 import { CancelToken, Canceler } from 'axios';
 
-export type Mixin<T, X> = T & X;
-
 export type IKeysMatch<T, V> = {[K in keyof T]-?: T[K] extends V ? K : never}[keyof T]; // 根据value类型找key
 
 export type IAgentStatus = 'running' | 'terminated' | 'not_installed'; // 正常 异常 未安装
@@ -153,7 +151,7 @@ export interface IIsp {
 export interface ISearchChild {
   id: string
   name: string
-  checked?: boolean
+  checked: boolean
 }
 
 // searchselect item
@@ -258,8 +256,6 @@ export interface ISetupRow {
   install_channel_id: string | number | null
   bk_addressing: 'static' | 'dynamic'
   gse_version?: 'V1'|'V2' // 前端添加 用于操作主机仅能选择对应版本的接入点
-  bk_host_id?: number;
-  version?: string;
 }
 
 export interface ISetupParent {

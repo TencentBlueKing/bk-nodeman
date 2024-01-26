@@ -176,6 +176,31 @@ class HostQuerySqlHelper:
         return list(bool_set)
 
     @classmethod
+    def _handle_topo_conditions(cls, bk_module_ids, bk_set_ids, topo_biz_id, topo_host_ids):
+        if bk_module_ids:
+            extra_kwargs = {
+                "filter_obj_id": constants.ObjectType.MODULE.value,
+                "filter_inst_ids": list(set(bk_module_ids)),
+            }
+        else:
+            extra_kwargs = {
+                "filter_obj_id": constants.ObjectType.SET.value,
+                "filter_inst_ids": list(set(bk_set_ids)),
+            }
+
+        host_infos: typing.List[types.HostInfo] = resource.ResourceQueryHelper.fetch_biz_hosts(
+            bk_biz_id=topo_biz_id, fields=["bk_host_id"], **extra_kwargs
+        )
+        host_ids: typing.Set[int] = {host_info["bk_host_id"] for host_info in host_infos}
+
+        if topo_host_ids is None:
+            topo_host_ids = host_ids
+        else:
+            topo_host_ids = topo_host_ids | host_ids
+
+        return topo_host_ids
+
+    @classmethod
     def multiple_cond_sql(
         cls,
         params: typing.Dict,
@@ -183,6 +208,7 @@ class HostQuerySqlHelper:
         is_proxy: bool = False,
         return_all_node_type: bool = False,
         extra_wheres: typing.List[str] = None,
+        need_biz_scope: bool = True,
     ) -> QuerySet:
         """
         用于生成多条件sql查询
@@ -191,6 +217,7 @@ class HostQuerySqlHelper:
         :param biz_scope: 业务范围限制
         :param is_proxy: 是否为代理
         :param extra_wheres: 额外的查询条件
+        :param need_biz_scope: 是否需要业务范围限制
         :return: 根据条件查询的所有结果
         """
         select: typing.Dict[str, str] = {
@@ -210,14 +237,17 @@ class HostQuerySqlHelper:
         ]
         wheres: typing.List[str] = extra_wheres or []
 
+        filter_q = Q()
+        if params.get("bk_host_id") is not None:
+            filter_q &= Q(bk_host_id__in=params.get("bk_host_id"))
+
         final_biz_scope: typing.Set[int] = set(biz_scope)
         # 带有业务筛选条件，需要确保落在指定业务范围内
         if params.get("bk_biz_id"):
             final_biz_scope = final_biz_scope & set(params["bk_biz_id"])
 
-        filter_q: Q = Q(bk_biz_id__in=final_biz_scope)
-        if params.get("bk_host_id") is not None:
-            filter_q &= Q(bk_host_id__in=params.get("bk_host_id"))
+        if need_biz_scope:
+            filter_q &= Q(bk_biz_id__in=final_biz_scope)
 
         # 条件搜索
         where_or = []
@@ -278,26 +308,12 @@ class HostQuerySqlHelper:
                     topo_biz_scope.add(topo_biz_id)
                     continue
 
-                if bk_module_ids:
-                    extra_kwargs = {
-                        "filter_obj_id": constants.ObjectType.MODULE.value,
-                        "filter_inst_ids": list(set(bk_module_ids)),
-                    }
-                else:
-                    extra_kwargs = {
-                        "filter_obj_id": constants.ObjectType.SET.value,
-                        "filter_inst_ids": list(set(bk_set_ids)),
-                    }
-
-                host_infos: typing.List[types.HostInfo] = resource.ResourceQueryHelper.fetch_biz_hosts(
-                    bk_biz_id=topo_biz_id, fields=["bk_host_id"], **extra_kwargs
+                topo_host_ids = cls._handle_topo_conditions(
+                    bk_module_ids=bk_module_ids,
+                    bk_set_ids=bk_set_ids,
+                    topo_biz_id=topo_biz_id,
+                    topo_host_ids=topo_host_ids,
                 )
-                host_ids: typing.Set[int] = {host_info["bk_host_id"] for host_info in host_infos}
-
-                if topo_host_ids is None:
-                    topo_host_ids = host_ids
-                else:
-                    topo_host_ids = topo_host_ids | host_ids
 
             elif condition["key"] == "query" and isinstance(condition["value"], str):
                 fuzzy_search_fields: typing.List[str] = (
@@ -346,17 +362,49 @@ class HostQuerySqlHelper:
         if topo_host_ids is not None:
             topo_query = topo_query | Q(bk_host_id__in=topo_host_ids)
 
-        host_queryset: QuerySet = (
-            node_man_models.Host.objects.filter(
+        host_queryset = cls.get_filtered_host_queryset(
+            is_proxy=is_proxy,
+            return_all_node_type=return_all_node_type,
+            final_biz_scope=final_biz_scope,
+            wheres=wheres,
+            sql_params=sql_params,
+            select=select,
+            topo_query=topo_query,
+            is_enable_cloud_area_ip_filter=is_enable_cloud_area_ip_filter,
+            filter_q=filter_q,
+            need_biz_scope=need_biz_scope,
+        )
+
+        return host_queryset
+
+    @classmethod
+    def get_filtered_host_queryset(
+        cls,
+        is_proxy,
+        return_all_node_type,
+        final_biz_scope,
+        wheres,
+        sql_params,
+        select,
+        topo_query,
+        is_enable_cloud_area_ip_filter,
+        filter_q,
+        need_biz_scope=False,
+    ):
+        if need_biz_scope:
+            host_queryset: QuerySet = node_man_models.Host.objects.filter(
                 node_type__in=cls.fetch_match_node_types(is_proxy, return_all_node_type), bk_biz_id__in=final_biz_scope
             )
-            .extra(
-                select=select, tables=[node_man_models.ProcessStatus._meta.db_table], where=wheres, params=sql_params
+        else:
+            host_queryset: QuerySet = node_man_models.Host.objects.filter(
+                node_type__in=cls.fetch_match_node_types(is_proxy, return_all_node_type),
             )
-            .filter(topo_query)
-        )
-        host_queryset = handle_filter_queryset_by_flag_value(is_enable_cloud_area_ip_filter, host_queryset, filter_q)
 
+        host_queryset = host_queryset.extra(
+            select=select, tables=[node_man_models.ProcessStatus._meta.db_table], where=wheres, params=sql_params
+        ).filter(topo_query)
+
+        host_queryset = handle_filter_queryset_by_flag_value(is_enable_cloud_area_ip_filter, host_queryset, filter_q)
         return host_queryset
 
     @classmethod

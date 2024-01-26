@@ -37,10 +37,10 @@ class TagChangeRecorder:
         """
         # 发布标签版本后，创建或更新相应的标签
         tag, created = models.Tag.objects.update_or_create(
-            name=instance.tag_name,
+            target_version=instance.target_version,
             target_id=instance.target_id,
             target_type=instance.TARGET_TYPE,
-            defaults=dict(target_version=instance.target_version),
+            name=instance.tag_name,
         )
         logger.info(
             f"[publish_tag_version] update_or_create tag -> {tag.name}({tag.id}) success, "

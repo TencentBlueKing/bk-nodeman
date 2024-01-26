@@ -43,17 +43,13 @@
               <div class="progress" v-if="file.status === 'uploading'">
                 <div class="progress-bar" :style="{ width: file.percentage }"></div>
               </div>
-              <slot name="success" v-else-if="file.status === 'success'">
-                <div class="parsing-success">
-                  <i class="nodeman-icon nc-check-small"></i>
-                  {{ $t('上传成功') }}
-                </div>
-              </slot>
-              <slot name="error" v-else-if="file.status === 'error'">
-                <div class="parsing-error">
-                  {{ file.errorMsg }}
-                </div>
-              </slot>
+              <div class="parsing-success" v-else-if="file.status === 'success'">
+                <i class="nodeman-icon nc-check-small"></i>
+                {{ $t('上传成功') }}
+              </div>
+              <div class="parsing-error" v-else-if="file.status === 'error'">
+                {{ file.errorMsg }}
+              </div>
             </div>
           </div>
           <div class="file-right" v-if="file.status === 'error'">
@@ -64,7 +60,7 @@
       </div>
     </div>
     <div class="upload-accept">
-      {{ acceptDesc }}
+      {{ $t('版本包文件类型') }}
     </div>
   </div>
 </template>

@@ -11,14 +11,46 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
+from apps.core.tag.constants import TargetType
 from apps.exceptions import ValidationError
-from apps.node_man.constants import GsePackageCode
+from apps.node_man.constants import (
+    BUILT_IN_TAG_DESCRIPTIONS,
+    BUILT_IN_TAG_NAMES,
+    GsePackageCode,
+)
+from apps.node_man.handlers.gse_package import gse_package_handler
+from apps.node_man.models import UploadPackage
+from apps.utils.local import get_request_username
 
 
-class TagsSerializer(serializers.Serializer):
-    id = serializers.CharField()
+class TagSerializer(serializers.Serializer):
     name = serializers.CharField()
-    children = serializers.ListField()
+    description = serializers.CharField()
+
+
+class TagProjectSerializer(serializers.Serializer):
+    project = serializers.CharField(default=GsePackageCode.AGENT.value)
+
+
+class TagCreateSerializer(serializers.Serializer):
+    tag_descriptions = serializers.ListField(child=serializers.CharField(), default=[])
+    project = serializers.CharField()
+
+    def validate(self, attrs):
+        project = attrs["project"]
+        if project not in GsePackageCode.values():
+            raise ValidationError(_("project可选项[ gse_agent | gse_plugin ]"))
+
+        return attrs
+
+    class Meta:
+        ref_name = "tag_create"
+
+
+class ParentTagSerializer(serializers.Serializer):
+    name = serializers.CharField()
+    description = serializers.CharField()
+    children = TagSerializer(many=True)
 
 
 class ConditionsSerializer(serializers.Serializer):
@@ -26,23 +58,79 @@ class ConditionsSerializer(serializers.Serializer):
     values = serializers.ListField()
 
 
-class PackageSerializer(serializers.Serializer):
+class BasePackageSerializer(serializers.Serializer):
+    def get_tags(self, obj, to_top=False):
+        return gse_package_handler.get_tags(
+            project=obj.project,
+            version=obj.version,
+            to_top=to_top,
+            use_cache=True,
+            unique=True,
+            get_template_tags=False,
+        )
+
+    @classmethod
+    def get_description(cls, obj):
+        return gse_package_handler.get_description(
+            project=obj.project,
+            use_cache=True,
+        )
+
+
+class PackageSerializer(BasePackageSerializer):
     id = serializers.IntegerField()
     pkg_name = serializers.CharField()
     version = serializers.CharField()
     os = serializers.CharField()
     cpu_arch = serializers.CharField()
-    tags = TagsSerializer(many=True)
-    creator = serializers.CharField()
-    pkg_ctime = serializers.DateTimeField()
+    tags = serializers.SerializerMethodField()
+    created_by = serializers.CharField()
+    created_time = serializers.DateTimeField()
     is_ready = serializers.BooleanField()
 
 
-class PackageDescSerializer(serializers.Serializer):
+class FilterConditionPackageSerializer(BasePackageSerializer):
+    version = serializers.CharField()
+    tags = serializers.SerializerMethodField()
+    created_by = serializers.CharField()
+    is_ready = serializers.BooleanField()
+
+
+class QuickFilterConditionPackageSerializer(BasePackageSerializer):
+    version = serializers.CharField()
+    os = serializers.CharField()
+    cpu_arch = serializers.CharField()
+
+
+class VersionDescPackageSerializer(BasePackageSerializer):
+    version = serializers.CharField()
+    tags = serializers.SerializerMethodField()
+    is_ready = serializers.BooleanField()
+    description = serializers.SerializerMethodField()
+    pkg_name = serializers.CharField()
+    packages = serializers.ListField(default=[])
+
+    def get_tags(self, obj, to_top=False):
+        return super().get_tags(obj, to_top=True)
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        data["packages"] = [{"pkg_name": data.pop("pkg_name"), "tags": data["tags"]}]
+        return data
+
+
+class DescPackageSerializer(BasePackageSerializer):
+    version = serializers.CharField()
+    tags = serializers.SerializerMethodField()
+    is_ready = serializers.BooleanField()
+    description = serializers.SerializerMethodField()
+
+
+class PackageDescSerializer(BasePackageSerializer):
     id = serializers.IntegerField()
     version = serializers.CharField()
-    tags = TagsSerializer(many=True)
-    packages = PackageSerializer(many=True)
+    tags = serializers.SerializerMethodField()
+    packages = serializers.SerializerMethodField()
     is_ready = serializers.BooleanField()
 
 
@@ -51,35 +139,78 @@ class ListResponseSerializer(serializers.Serializer):
     list = PackageSerializer(many=True)
 
 
-class PackageDescResponseSerialiaer(serializers.Serializer):
+class PackageDescResponseSerializer(serializers.Serializer):
     total = serializers.IntegerField()
     list = PackageDescSerializer(many=True)
 
 
 class OperateSerializer(serializers.Serializer):
     is_ready = serializers.BooleanField()
+    modify_tags = serializers.ListField(child=serializers.DictField(), default=[])
+    add_tags = serializers.ListField(child=serializers.CharField(), default=[])
+    remove_tags = serializers.ListField(child=serializers.CharField(), default=[])
+
+    def update(self, instance, validated_data):
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+
+        instance.save()
+        return instance
+
+    def validate(self, attrs):
+        for tag_dict in attrs.get("modify_tags", []):
+            if "description" not in tag_dict and "name" not in tag_dict:
+                raise ValidationError(_("description和name参数必须同时传入"))
+
+            if tag_dict["name"] in BUILT_IN_TAG_NAMES or tag_dict["description"] in BUILT_IN_TAG_DESCRIPTIONS:
+                raise ValidationError(_("内置标签不支持修改，自定义标签的名字不能与内置标签的名字冲突"))
+
+        for tag_description in attrs.get("add_tags", []):
+            if tag_description in BUILT_IN_TAG_DESCRIPTIONS:
+                raise ValidationError(_("自定义标签的名字不能与内置标签的名字冲突"))
+
+        for tag_name in attrs.get("remove_tags", []):
+            if tag_name in BUILT_IN_TAG_NAMES:
+                raise ValidationError(_("内置标签不允许删除"))
+
+        return attrs
 
 
 class QuickSearchSerializer(serializers.Serializer):
     project = serializers.ChoiceField(choices=GsePackageCode.list_choices())
 
 
-# TODO 与plugin相同可抽取公共Serializer
 class UploadSerializer(serializers.Serializer):
-    class PkgFileField(serializers.FileField):
-        def to_internal_value(self, data):
-            data = super().to_internal_value(data)
-            file_name = data.name
-            if not (file_name.endswith(".tgz") or file_name.endswith(".tar.gz")):
-                raise ValidationError(_("仅支持'tgz', 'tar.gz'拓展名的文件"))
-            return data
+    overload = serializers.BooleanField(default=False, help_text="是否覆盖上传")
+    package_file = serializers.FileField()
 
-    module = serializers.ChoiceField(choices=["gse_agent", "gse_proxy"], required=False, default="gse_agent")
-    package_file = PkgFileField()
+    def validate(self, data):
+        overload = data.get("overload")
+        package_file = data.get("package_file")
+
+        file_name = package_file.name
+
+        if not (file_name.endswith(".tgz") or file_name.endswith(".tar.gz")):
+            raise ValidationError(_("仅支持'tgz', 'tar.gz'拓展名的文件"))
+
+        if not overload:
+            upload_package: UploadPackage = UploadPackage.objects.filter(
+                file_name=file_name, creator=get_request_username(), module=TargetType.AGENT.value
+            ).first()
+            if upload_package:
+                raise ValidationError(
+                    data={
+                        "message": _("存在同名agent包"),
+                        "file_name": upload_package.file_name,
+                        "md5": upload_package.md5,
+                    },
+                    code=3800002,
+                )
+
+        return data
 
 
 class UploadResponseSerializer(serializers.Serializer):
-    id = serializers.IntegerField()
     name = serializers.CharField()
     pkg_size = serializers.IntegerField()
 
@@ -90,32 +221,53 @@ class ParseSerializer(serializers.Serializer):
 
 class ParseResponseSerializer(serializers.Serializer):
     class ParsePackageSerializer(serializers.Serializer):
-        module = serializers.ChoiceField(choices=["agent", "proxy"])
-        pkg_name = serializers.CharField()
-        pkg_abs_path = serializers.CharField()
-        version = serializers.CharField()
+        project = serializers.ChoiceField(choices=["gse_agent", "gse_proxy"], required=False)
+        pkg_name = serializers.CharField(required=False, source="pkg_relative_path")
+        version = serializers.CharField(required=False)
         os = serializers.CharField()
         cpu_arch = serializers.CharField()
-        config_templates = serializers.ListField()
+        config_templates = serializers.ListField(default=[])
+
+        def to_representation(self, instance):
+            data = super().to_representation(instance)
+            data["project"] = self.context.get("project", "")
+            data["version"] = self.context.get("version", "")
+            return data
 
     description = serializers.CharField()
     packages = ParsePackageSerializer(many=True)
 
 
 class AgentRegisterSerializer(serializers.Serializer):
-    class RegisterPackageSerializer(serializers.Serializer):
-        pkg_abs_path = serializers.CharField()
-        tags = serializers.ListField()
+    file_name = serializers.CharField()
+    tags = serializers.ListField(child=serializers.CharField(), default=[])
+    tag_descriptions = serializers.ListField(child=serializers.CharField(), default=[])
+    project = serializers.CharField(default="gse_agent")
 
-    is_release = serializers.BooleanField()
-    packages = RegisterPackageSerializer(many=True)
+    def validate(self, attrs):
+        if attrs.get("tag_descriptions") and not attrs.get("project"):
+            raise ValidationError(_("project和tag_descriptions参数必须同时传入"))
+
+        return attrs
 
 
 class AgentRegisterTaskSerializer(serializers.Serializer):
-    job_id = serializers.IntegerField()
+    task_id = serializers.CharField()
+    version = serializers.CharField()
 
 
 class AgentRegisterTaskResponseSerializer(serializers.Serializer):
     is_finish = serializers.BooleanField()
     status = serializers.ChoiceField(choices=["SUCCESS", "FAILED", "RUNNING"])
     message = serializers.CharField()
+
+
+class DeployedAgentCountSerializer(serializers.Serializer):
+    items = serializers.JSONField(default=[])
+    project = serializers.CharField(default=GsePackageCode.AGENT.value)
+
+
+class VersionQuerySerializer(serializers.Serializer):
+    project = serializers.CharField()
+    os = serializers.CharField(required=False)
+    cpu_arch = serializers.CharField(required=False)

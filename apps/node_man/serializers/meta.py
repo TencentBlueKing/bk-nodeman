@@ -30,6 +30,7 @@ class JobSettingSerializer(serializers.Serializer):
 class FilterConditionSerializer(serializers.Serializer):
     category = serializers.CharField(label=_("分类"), required=False, default="")
     bk_biz_ids = serializers.ListField(label=_("业务列表"), required=False, default=[], child=serializers.IntegerField())
+    project = serializers.CharField(label=_("工程名"), required=False)
 
     # 时间范围
     start_time = serializers.DateTimeField(label=_("起始时间"), required=False)
