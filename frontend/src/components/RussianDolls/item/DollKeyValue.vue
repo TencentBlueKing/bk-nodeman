@@ -48,11 +48,26 @@ import { formatSchema } from '../create';
 
 export default defineComponent({
   props: {
-    item: () => ({}),
-    schema: () => ({}),
-    itemIndex: -1,
-    value: () => [],
-    valueProp: '',
+    item: {
+      type: Object,
+      default: () => ({}),
+    },
+    schema: {
+      type: Object,
+      default: () => ({}),
+    },
+    itemIndex: {
+      type: Number,
+      default: -1,
+    },
+    value: {
+      type: Array,
+      default: () => [],
+    },
+    valueProp: {
+      type: String,
+      default: '',
+    },
   },
   emits: ['add', 'delete'],
   setup(props) {

@@ -168,7 +168,7 @@ export default class StrategyTable extends Vue {
       },
       {
         source: 'Agent',
-        targetAdress: 'GSE_task',
+        targetAdress: 'GSE_cluster',
         protocol: 'TCP',
         portKey: 'io_port',
         use: this.$t('任务服务端口'),
@@ -397,7 +397,7 @@ export default class StrategyTable extends Vue {
     Proxy: [
       {
         source: 'Proxy(GSE_agent)',
-        targetAdress: 'GSE_task',
+        targetAdress: 'GSE_cluster',
         protocol: 'TCP',
         portKey: 'io_port',
         use: this.$t('任务服务端口'),
