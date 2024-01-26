@@ -114,7 +114,7 @@ export default class StrategyTemplate extends Vue {
         let idKey = cloud.ap_id;
         let ap = AgentStore.apList.find(apItem => apItem.id === idKey) as IApExpand;
 
-        const serverKey = cloud.type === 'Agent' ? 'inner_ip' : 'outer_ip'; // Pagent 非必要
+        const serverKey = cloud.type === 'Agent' ? 'inner_ip_infos' : 'outer_ip_infos'; // Pagent 非必要
         const proxyKey = cloud.type === 'Proxy' ? 'outer_ip' : 'inner_ip'; // Agent 非必要
         // 先排除掉找不到接入点的主机
         if (ap) {
@@ -135,9 +135,9 @@ export default class StrategyTemplate extends Vue {
               ap_name: ap.name,
               zk: ap.zk_hosts.map(zk => zk.zk_ip), // 仅Agent
               zkHosts: ap.zk_hosts,
-              btfileserver: ap.btfileserver.map(server => server[serverKey]),
-              dataserver: ap.dataserver.map(server => server[serverKey]),
-              taskserver: ap.taskserver.map(server => server[serverKey]),
+              btfileserver: ap.btfileserver[serverKey].map(item => item.ip),
+              dataserver: ap.btfileserver[serverKey].map(item => item.ip),
+              taskserver: ap.btfileserver[serverKey].map(item => item.ip),
               proxy: cloud.proxy.map((item: any) => item[proxyKey]),
               agent: cloud[proxyKey] ? [cloud[proxyKey]] : [], // Proxy 非必要
               ...ap.port_config,
