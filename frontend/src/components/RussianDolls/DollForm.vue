@@ -17,10 +17,22 @@ import { deepClone } from '@/common/util';
 export default defineComponent({
   name: 'RussianDollsForm',
   props: {
-    data: () => [],
-    layout: () => [],
-    rules: () => ({}),
-    value: () => ({}),
+    data: {
+      type: Array,
+      default: () => [],
+    },
+    layout: {
+      type: Array,
+      default: () => [],
+    },
+    rules: {
+      type: Object,
+      default: () => ({}),
+    },
+    value: {
+      type: Object,
+      default: () => ({}),
+    },
     labelWidth: {
       type: Number,
       default: 150,

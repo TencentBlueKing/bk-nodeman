@@ -71,3 +71,5 @@ export function loadLanguageAsync(lang: string) {
 }
 
 window.i18n = i18n;
+
+export default i18n;
