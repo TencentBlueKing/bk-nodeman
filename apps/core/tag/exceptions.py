@@ -52,3 +52,8 @@ class TagInvalidNameError(TagBaseException):
     MESSAGE_TPL = _("标签名非法：{err_msg}")
     MESSAGE = _("标签名非法")
     ERROR_CODE = 6
+
+
+class ValidationError(TagBaseException):
+    MESSAGE = _("参数验证失败")
+    ERROR_CODE = 7

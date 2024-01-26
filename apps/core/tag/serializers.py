@@ -12,6 +12,8 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
+from apps.node_man.constants import BUILT_IN_TAG_DESCRIPTIONS
+
 from . import constants, exceptions, models
 
 
@@ -47,4 +49,7 @@ class TagUpdateSerializer(serializers.ModelSerializer):
         fields = ["target_version", "description", "to_top"]
 
     def validate(self, attrs):
+        if "description" in attrs and attrs["description"] in BUILT_IN_TAG_DESCRIPTIONS:
+            raise exceptions.ValidationError(_(f"不可将标签描述设置为内置标签描述{BUILT_IN_TAG_DESCRIPTIONS}"))
+
         return attrs
