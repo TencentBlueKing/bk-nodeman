@@ -13,7 +13,6 @@ from collections import defaultdict
 from typing import Any, Dict, List
 
 import django_filters
-from django.db import IntegrityError, transaction
 from django.db.models import QuerySet
 from django.http import JsonResponse
 from django.utils.translation import ugettext_lazy as _
@@ -37,6 +36,7 @@ from apps.node_man.handlers.gse_package import gse_package_handler
 from apps.node_man.models import GsePackageDesc, GsePackages, UploadPackage
 from apps.node_man.permissions import package_manage as pkg_permission
 from apps.node_man.serializers import package_manage as pkg_manage
+from apps.node_man.tools.gse_package import GsePackageTools
 from apps.node_man.tools.package import PackageTools
 from apps.utils.local import get_request_username
 from common.api import NodeApi
@@ -330,12 +330,28 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
         """
         validated_data = self.validated_data
 
+        tags: list = validated_data["tags"]
+        for description in validated_data.get("tag_descriptions", []):
+            tag_names = list(Tag.objects.filter(description=description).values_list("name", flat=True))
+            if tag_names:
+                template_tag_name = min(tag_names, key=len)
+                tags.append(template_tag_name)
+            else:
+                name = GsePackageTools.generate_name_by_description(description, return_primary=True)
+                Tag.objects.get_or_create_by_project(
+                    name=name,
+                    description=description,
+                    target_type=TargetType.AGENT.value,
+                    project=validated_data["project"],
+                )
+                tags.append(name)
+
         response = NodeApi.sync_task_create(
             {
                 "task_name": SyncTaskType.REGISTER_GSE_PACKAGE.value,
                 "task_params": {
                     "file_name": validated_data["file_name"],
-                    "tags": validated_data["tags"],
+                    "tags": tags,
                 },
             }
         )
@@ -401,8 +417,11 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
             return Response(
                 gse_package_handler.handle_tags(
                     tags=Tag.objects.filter(
-                        target_id=GsePackageDesc.objects.get(project=validated_data["project"]).id
-                    ).values("id", "name", "description"),
+                        target_id=GsePackageDesc.objects.get(project=validated_data["project"]).id,
+                        created_by=get_request_username(),
+                    )
+                    .exclude(name__startswith="__")
+                    .values("id", "name", "description"),
                     tag_description=request.query_params.get("tag_description"),
                     unique=True,
                     get_template_tags=False,
@@ -481,20 +500,24 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
             return Response()
 
         # 划分维度到主机和进程
-        dimensions = list(items[0].keys())
-        host_dimensions = [d for d in dimensions if d in [field.name for field in models.Host._meta.fields]]
-        process_dimensions = list(set(dimensions) - set(host_dimensions))
+        dimensions: List[str] = list(items[0].keys())
+        host_dimensions: List[str] = [d for d in dimensions if d in [field.name for field in models.Host._meta.fields]]
+        process_dimensions: List[str] = list(set(dimensions) - set(host_dimensions))
 
         # 主机筛选条件
-        host_kwargs = {f"{dimension}__in": [item[dimension] for item in items] for dimension in host_dimensions}
+        host_kwargs: Dict[str, list] = {
+            f"{dimension}__in": [item[dimension] for item in items] for dimension in host_dimensions
+        }
 
         # 进程筛选条件
-        process_params = {"conditions": [{"key": "status", "value": [constants.ProcStateType.RUNNING]}]}
+        process_params: Dict[str, list] = {
+            "conditions": [{"key": "status", "value": [constants.ProcStateType.RUNNING]}]
+        }
         for dimension in process_dimensions:
             process_params["conditions"].append({"key": dimension, "value": [item[dimension] for item in items]})
 
         # 主机和进程连表查询
-        host_queryset = HostQuerySqlHelper.multiple_cond_sql(
+        host_queryset: QuerySet = HostQuerySqlHelper.multiple_cond_sql(
             params=process_params,
             biz_scope=[],
             need_biz_scope=False,
@@ -502,13 +525,13 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
         ).filter(**host_kwargs)
 
         # 分组统计数量，使用values + annotate分组统计不管用，原因不详
-        dimension_2_count = defaultdict(int)
+        dimension__count_map = defaultdict(int)
         for host in host_queryset.values(*dimensions):
-            dimension_2_count["|".join(host.get(d, "").lower() for d in dimensions)] += 1
+            dimension__count_map["|".join(host.get(d, "").lower() for d in dimensions)] += 1
 
         # 填充count到item
         for item in items:
-            item["count"] = dimension_2_count.get("|".join(item.get(d, "").lower() for d in dimensions), 0)
+            item["count"] = dimension__count_map.get("|".join(item.get(d, "").lower() for d in dimensions), 0)
 
         return Response(items)
 
@@ -523,30 +546,26 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
         #  修改和删除沿用apps.core.tags.views中的接口
         validated_data = self.validated_data
 
-        with transaction.atomic():
+        success_created_tag: List[Dict[str, str]] = []
+        for tag in validated_data["tags"]:
             try:
-                for tag in validated_data["tags"]:
-                    try:
-                        target_id = GsePackageDesc.objects.get(
-                            project=validated_data["project"], category=CategoryType.official
-                        ).id
-                    except GsePackageDesc.DoesNotExist:
-                        target_id = GsePackageDesc.objects.create(
-                            project=validated_data["project"], category=CategoryType.official
-                        ).id
+                target_id = GsePackageDesc.objects.get(
+                    project=validated_data["project"], category=CategoryType.official
+                ).id
+            except GsePackageDesc.DoesNotExist:
+                target_id = GsePackageDesc.objects.create(
+                    project=validated_data["project"], category=CategoryType.official
+                ).id
 
-                    Tag.objects.create(
-                        name=tag["name"],
-                        description=tag["description"],
-                        target_id=target_id,
-                        target_type=TargetType.AGENT.value,
-                    )
-            except IntegrityError:
-                # raise exceptions.DuplicateEntryError(entry_info=e)
-                # todo: 前端那边暂时说不要返回错误，后续调整
-                pass
+            tag, _ = Tag.objects.get_or_create(
+                defaults={"name": tag["name"]},
+                description=tag["description"],
+                target_id=target_id,
+                target_type=TargetType.AGENT.value,
+            )
+            success_created_tag.append({"name": tag.name, "description": tag.description})
 
-        return Response("创建成功")
+        return Response(data=success_created_tag)
 
 
 # class AgentPackageDescViewSet(ModelViewSet):

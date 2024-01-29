@@ -8,8 +8,10 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import hashlib
 import os
 import tarfile
+import time
 
 from django.utils.translation import ugettext as _
 
@@ -57,3 +59,16 @@ class GsePackageTools:
             agent_name=os.path.basename(file_path),
             error=_("该agent包无效，" "gse_proxy的gse目录中应该包含server文件夹，" "gse_agent的gse目录中应该包含agent_(os)_(cpu_arch)的文件夹"),
         )
+
+    @classmethod
+    def generate_name_by_description(cls, description: str, return_primary: bool = False) -> str:
+        """
+        根据标签的description生成对应唯一的name
+        """
+        current_time: str = str(time.time())
+        unique_string: str = description + current_time
+        name: str = hashlib.md5(unique_string.encode("utf-8")).hexdigest()
+
+        if return_primary:
+            return "__" + name
+        return name
