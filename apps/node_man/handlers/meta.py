@@ -106,7 +106,7 @@ class MetaHandler(APIModel):
         select_sql = "SELECT distinct "
         select_conditions = []
         for col in col_list:
-            if col in ["version", "status"]:
+            if col in ["version", "status", "is_latest"]:
                 select_conditions.append(f"{models.ProcessStatus._meta.db_table}.{col} AS `{col}`")
             else:
                 select_conditions.append(f"{models.Host._meta.db_table}.{col} AS `{col}`")
