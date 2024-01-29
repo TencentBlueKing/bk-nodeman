@@ -86,6 +86,7 @@ class MetaHandler(APIModel):
         node_types: list,
         name: str = models.ProcessStatus.GSE_AGENT_PROCESS_NAME,
         proc_type: str = "AGENT",
+        is_latest: bool = False,
     ):
         """
         返回Host和process_status中指定列的唯一值
@@ -93,6 +94,8 @@ class MetaHandler(APIModel):
         :param col_list: 指定列
         :param node_types: 节点类型
         :param name: process 名
+        :param proc_type: 进程类型
+        :param is_latest: 是否是最新记录
         :return: 列的唯一值，数组
         """
 
@@ -103,21 +106,33 @@ class MetaHandler(APIModel):
         select_sql = "SELECT distinct "
         select_conditions = []
         for col in col_list:
-            if col in ["version", "status", "is_latest"]:
+            if col in ["version", "status"]:
                 select_conditions.append(f"{models.ProcessStatus._meta.db_table}.{col} AS `{col}`")
             else:
                 select_conditions.append(f"{models.Host._meta.db_table}.{col} AS `{col}`")
         select_sql += ",".join(select_conditions)
         cursor = connection.cursor()
-        cursor.execute(
-            f"{select_sql} "
-            f"FROM `{models.Host._meta.db_table}` join `{models.ProcessStatus._meta.db_table}` "
-            f"on `{models.Host._meta.db_table}`.bk_host_id = `{models.ProcessStatus._meta.db_table}`.bk_host_id "
-            f"WHERE (`{models.Host._meta.db_table}`.`node_type` IN ({node_type}) "
-            f"AND `{models.Host._meta.db_table}`.`bk_biz_id` IN ({biz_permission}) "
-            f"AND `{models.ProcessStatus._meta.db_table}`.`proc_type` = '{proc_type}' "
-            f"AND `{models.ProcessStatus._meta.db_table}`.`name` = '{name}');"
-        )
+        if is_latest:
+            cursor.execute(
+                f"{select_sql} "
+                f"FROM `{models.Host._meta.db_table}` join `{models.ProcessStatus._meta.db_table}` "
+                f"on `{models.Host._meta.db_table}`.bk_host_id = `{models.ProcessStatus._meta.db_table}`.bk_host_id "
+                f"WHERE (`{models.Host._meta.db_table}`.`node_type` IN ({node_type}) "
+                f"AND `{models.Host._meta.db_table}`.`bk_biz_id` IN ({biz_permission}) "
+                f"AND `{models.ProcessStatus._meta.db_table}`.`proc_type` = '{proc_type}' "
+                f"AND `{models.ProcessStatus._meta.db_table}`.`is_latest` = {is_latest}"
+                f"AND `{models.ProcessStatus._meta.db_table}`.`name` = '{name}');"
+            )
+        else:
+            cursor.execute(
+                f"{select_sql} "
+                f"FROM `{models.Host._meta.db_table}` join `{models.ProcessStatus._meta.db_table}` "
+                f"on `{models.Host._meta.db_table}`.bk_host_id = `{models.ProcessStatus._meta.db_table}`.bk_host_id "
+                f"WHERE (`{models.Host._meta.db_table}`.`node_type` IN ({node_type}) "
+                f"AND `{models.Host._meta.db_table}`.`bk_biz_id` IN ({biz_permission}) "
+                f"AND `{models.ProcessStatus._meta.db_table}`.`proc_type` = '{proc_type}' "
+                f"AND `{models.ProcessStatus._meta.db_table}`.`name` = '{name}');"
+            )
 
         return cursor
 
@@ -129,14 +144,8 @@ class MetaHandler(APIModel):
         """
 
         # 用户有权限的业务
-        biz_id_name = CmdbHandler().biz_id_name({"action": constants.IamActionType.agent_view})
-        biz_permission = list(biz_id_name.keys())
-
-        params = params or {}
-        bk_biz_ids = params.get("bk_biz_ids", [])
-        # 传入业务id列表的情况
-        if bk_biz_ids:
-            biz_permission = list(set(bk_biz_ids) & set(biz_id_name.keys()))
+        action = {"action": constants.IamActionType.agent_view}
+        biz_permission = self.agent_plugin_biz_permission(params, action)
 
         if not biz_permission:
             return [
@@ -392,7 +401,8 @@ class MetaHandler(APIModel):
         return self.filter_empty_children(ret_value)
 
     def fetch_plugin_host_condition(self, params):
-        biz_permission = self.plugin_biz_permission(params)
+        action = {"action": constants.IamActionType.plugin_view}
+        biz_permission = self.agent_plugin_biz_permission(params, action)
 
         if not biz_permission:
             return [
@@ -400,15 +410,8 @@ class MetaHandler(APIModel):
                 {"name": _("管控区域ID:IP"), "id": "bk_cloud_ip"},
                 {"name": _("主机名称"), "id": "bk_host_name"},
             ]
-        bk_cloud_ids = set()
-        col_map = [bk_cloud_ids]
-        col_list = ["bk_cloud_id"]
-        col_data = self.fetch_host_process_unique_col(
-            biz_permission, col_list, [constants.NodeType.AGENT, constants.NodeType.PAGENT]
-        )
-        for sublist in col_data:
-            for index, item in enumerate(sublist):
-                col_map[index].add(item)
+        bk_cloud_ids_tuple = self.fetch_host_process_unique_col(biz_permission, ["bk_cloud_id"], ["AGENT", "PAGENT"])
+        bk_cloud_ids = [bk_cloud_id[0] for bk_cloud_id in bk_cloud_ids_tuple]
         bk_cloud_names = CloudHandler().list_cloud_info(bk_cloud_ids)
         bk_cloud_ids_children = [
             {"name": bk_cloud_names.get(bk_cloud_id, {}).get("bk_cloud_name", bk_cloud_id), "id": bk_cloud_id}
@@ -480,13 +483,14 @@ class MetaHandler(APIModel):
         return ret_value
 
     def fetch_plugin_version_condition(self, params):
-        biz_permission = self.plugin_biz_permission(params)
+        action = {"action": constants.IamActionType.plugin_view}
+        biz_permission = self.agent_plugin_biz_permission(params, action)
 
         if not biz_permission:
             return [{"name": name, "id": name} for name in settings.HEAD_PLUGINS]
 
         plugin_versions = []
-        col_list = ["version", "is_latest"]
+        col_list = ["version"]
         plugin_names = tools.PluginV2Tools.fetch_head_plugins()
         for name in plugin_names:
             col_data = self.fetch_host_process_unique_col(
@@ -495,11 +499,12 @@ class MetaHandler(APIModel):
                 [constants.NodeType.AGENT, constants.NodeType.PAGENT, constants.NodeType.PROXY],
                 name=name,
                 proc_type="PLUGIN",
+                is_latest=True,
             )
 
             for sublist in col_data:
-                # 过滤掉版本号为""且is_latest=0的插件
-                if not sublist[0] == "" and sublist[1] == 1:
+                # 过滤掉版本号为""的插件
+                if not sublist[0] == "":
                     plugin_versions.append({"name": name, "version": sublist[0]})
 
         agent_versions = (
@@ -678,13 +683,13 @@ class MetaHandler(APIModel):
             global_setting.save()
 
     @staticmethod
-    def plugin_biz_permission(params):
-        biz_id_name = CmdbHandler().biz_id_name({"action": constants.IamActionType.plugin_view})
+    def agent_plugin_biz_permission(bk_biz_ids, action):
+        biz_id_name = CmdbHandler().biz_id_name(action)
         biz_permission = list(biz_id_name.keys())
 
-        params = params or {}
-        bk_biz_ids = params.get("bk_biz_ids", [])
+        bk_biz_ids = bk_biz_ids or {}
+        bk_biz_ids_list = bk_biz_ids.get("bk_biz_ids", [])
         # 传入业务id列表的情况
         if bk_biz_ids:
-            biz_permission = list(set(bk_biz_ids) & set(biz_id_name.keys()))
+            biz_permission = list(set(bk_biz_ids_list) & set(biz_id_name.keys()))
         return biz_permission
