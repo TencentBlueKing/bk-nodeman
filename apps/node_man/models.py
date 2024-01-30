@@ -589,6 +589,7 @@ class AccessPoint(models.Model):
         if os_type in [
             constants.OsType.AIX.lower(),
             constants.OsType.SOLARIS.lower(),
+            constants.OsType.DARWIN.lower(),
         ]:
             os_type = constants.OsType.LINUX.lower()
         return self.agent_config[os_type]
