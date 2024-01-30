@@ -488,7 +488,7 @@ FUNCTION_LIST = [
 CONFIG_FILE_FORMAT_TUPLE = ("json", "yaml", "", None)
 CONFIG_FILE_FORMAT_CHOICES = tuple_choices(CONFIG_FILE_FORMAT_TUPLE)
 
-PLUGIN_OS_TUPLE = ("windows", "linux", "aix", "solaris")
+PLUGIN_OS_TUPLE = ("windows", "linux", "aix", "solaris", "darwin")
 PLUGIN_OS_CHOICES = tuple_choices(PLUGIN_OS_TUPLE)
 PluginOsType = choices_to_namedtuple(PLUGIN_OS_CHOICES)
 
