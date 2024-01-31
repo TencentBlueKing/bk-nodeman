@@ -12,10 +12,12 @@ import hashlib
 import os
 import tarfile
 import time
+from typing import Type
 
 from django.utils.translation import ugettext as _
 
 from apps.backend.agent.artifact_builder import agent, proxy
+from apps.backend.agent.artifact_builder.base import BaseArtifactBuilder
 from apps.core.files.storage import get_storage
 from apps.core.tag.constants import TargetType
 from apps.node_man import constants, exceptions, models
@@ -23,12 +25,12 @@ from apps.node_man import constants, exceptions, models
 
 class GsePackageTools:
     @classmethod
-    def get_latest_upload_record(cls, file_name):
+    def get_latest_upload_record(cls, file_name: str) -> models.UploadPackage:
         """
         获取最新的agent上传包记录
         :param file_name: agent包文件名
         """
-        upload_package_obj = (
+        upload_package_obj: models.UploadPackage = (
             models.UploadPackage.objects.filter(file_name=file_name, module=TargetType.AGENT.value)
             .order_by("-upload_time")
             .first()
@@ -39,7 +41,7 @@ class GsePackageTools:
         return upload_package_obj
 
     @classmethod
-    def distinguish_gse_package(cls, file_path):
+    def distinguish_gse_package(cls, file_path: str) -> (str, Type[BaseArtifactBuilder]):
         """
         区分agent和proxy包
         :param file_path: 文件路径
@@ -70,5 +72,6 @@ class GsePackageTools:
         name: str = hashlib.md5(unique_string.encode("utf-8")).hexdigest()
 
         if return_primary:
+            # 隐式标签，在标签列表中不展示
             return "__" + name
         return name

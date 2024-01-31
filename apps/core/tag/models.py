@@ -12,23 +12,9 @@ specific language governing permissions and limitations under the License.
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
-from apps.node_man.constants import CategoryType
-from apps.node_man.models import GsePackageDesc
 from apps.utils import orm
 
 from . import constants
-
-
-class TagManager(models.Manager):
-    def get_or_create_by_project(self, *, project, **kwargs):
-        try:
-            target_id = GsePackageDesc.objects.get(project=project, category=CategoryType.official).id
-        except GsePackageDesc.DoesNotExist:
-            target_id = GsePackageDesc.objects.create(project=project, category=CategoryType.official).id
-
-        kwargs.update({"target_id": target_id})
-
-        self.get_or_create(**kwargs)
 
 
 class Tag(orm.OperateRecordModel):
@@ -38,8 +24,6 @@ class Tag(orm.OperateRecordModel):
     target_type = models.CharField(_("目标类型"), max_length=20, choices=constants.TargetType.list_choices())
     target_id = models.IntegerField(_("目标 ID"), db_index=True)
     target_version = models.CharField(_("指向版本号"), max_length=128, db_index=True)
-
-    objects = TagManager()
 
     class Meta:
         verbose_name = _("标签")

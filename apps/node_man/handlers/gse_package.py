@@ -52,7 +52,11 @@ class GsePackageHandler:
     def _init_project_version__tags_map(self):
         """初始化项目版本标签映射"""
         for project in GsePackageCode.values():
-            tags = self.get_tag_objs(project).values("name", "description", "target_version")
+            tags: QuerySet = (
+                self.get_tag_objs(project)
+                .exclude(name__startswith="__")
+                .values("name", "description", "target_version")
+            )
 
             for tag in tags:
                 cache_key = self.get_tags_cache_key(project, tag.pop("target_version"))

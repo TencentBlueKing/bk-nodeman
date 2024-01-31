@@ -33,7 +33,7 @@ class TagProjectSerializer(serializers.Serializer):
 
 
 class TagCreateInfoSerializer(serializers.Serializer):
-    name = serializers.CharField()
+    name = serializers.CharField(required=False)
     description = serializers.CharField()
 
 
@@ -45,14 +45,6 @@ class TagCreateSerializer(serializers.Serializer):
         project = attrs["project"]
         if project not in GsePackageCode.values():
             raise ValidationError(_("project可选项[ gse_agent | gse_plugin ]"))
-
-        tags = attrs["tags"]
-        for tag in tags:
-            if tag["name"] in BUILT_IN_TAG_NAMES:
-                raise ValidationError(f"name不能与内置标签冲突[{BUILT_IN_TAG_NAMES}]")
-
-            if tag["description"] in BUILT_IN_TAG_DESCRIPTIONS:
-                raise ValidationError(f"description不能与内置标签冲突[{BUILT_IN_TAG_DESCRIPTIONS}]")
 
         return attrs
 
@@ -197,10 +189,18 @@ class UploadSerializer(serializers.Serializer):
             raise ValidationError(_("仅支持'tgz', 'tar.gz'拓展名的文件"))
 
         if not overload:
-            if UploadPackage.objects.filter(
+            upload_package: UploadPackage = UploadPackage.objects.filter(
                 file_name=file_name, creator=get_request_username(), module=TargetType.AGENT.value
-            ).exists():
-                raise ValidationError(_("存在同名agent包"), code=3800002)
+            ).first()
+            if upload_package:
+                raise ValidationError(
+                    data={
+                        "message": _("存在同名agent包"),
+                        "file_name": upload_package.file_name,
+                        "md5": upload_package.md5,
+                    },
+                    code=3800002,
+                )
 
         return data
 

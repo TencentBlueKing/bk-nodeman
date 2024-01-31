@@ -13,6 +13,7 @@ from collections import defaultdict
 from typing import Any, Dict, List
 
 import django_filters
+from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.db.models import QuerySet
 from django.http import JsonResponse
 from django.utils.translation import ugettext_lazy as _
@@ -31,7 +32,13 @@ from apps.core.tag.models import Tag
 from apps.generic import ApiMixinModelViewSet as ModelViewSet
 from apps.generic import ValidationMixin
 from apps.node_man import constants, exceptions, models
-from apps.node_man.constants import CategoryType
+from apps.node_man.constants import (
+    BUILT_IN_TAG_DESCRIPTIONS,
+    BUILT_IN_TAG_NAMES,
+    TAG_DESCRIPTION_MAP,
+    TAG_NAME_MAP,
+    CategoryType,
+)
 from apps.node_man.handlers.gse_package import gse_package_handler
 from apps.node_man.models import GsePackageDesc, GsePackages, UploadPackage
 from apps.node_man.permissions import package_manage as pkg_permission
@@ -123,7 +130,7 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
         tag_name__tag_obj_map: Dict[str, Tag] = {tag.name: tag for tag in tags}
         tag_names: List[str] = list(tag_name__tag_obj_map.keys())
 
-        # 只根据name修改对应的description，不支持标签的新增
+        # 根据name修改对应的description
         for tag_dict in serializer.validated_data["tags"]:
             # 如果name不存在，无法修改对应的description
             if tag_dict["name"] not in tag_names:
@@ -167,7 +174,7 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
         tags=PACKAGE_MANAGE_VIEW_TAGS,
     )
     def destroy(self, request, *args, **kwargs):
-        # todo: 前端需求，等联调完改回来
+        # todo: 前端要求返回不为空
         super(PackageManageViewSet, self).destroy(request, *args, **kwargs)
         return Response(data=[])
 
@@ -268,9 +275,9 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
 
         if validated_data.get("overload"):
             storage = get_storage()
-            package_file = validated_data["package_file"]
+            package_file: InMemoryUploadedFile = validated_data["package_file"]
 
-            upload_package = UploadPackage.objects.filter(
+            upload_package: UploadPackage = UploadPackage.objects.filter(
                 file_name=package_file.name, creator=get_request_username(), module=TargetType.AGENT.value
             ).first()
 
@@ -330,21 +337,27 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
         """
         validated_data = self.validated_data
 
-        tags: list = validated_data["tags"]
+        tags: List[str] = validated_data["tags"]
         for description in validated_data.get("tag_descriptions", []):
-            tag_names = list(Tag.objects.filter(description=description).values_list("name", flat=True))
+            gse_package_desc_obj, _ = GsePackageDesc.objects.get_or_create(
+                project=validated_data["project"], category=CategoryType.official
+            )
+
+            # 创建一次性标签
+            tag_names: List[str] = list(Tag.objects.filter(description=description).values_list("name", flat=True))
             if tag_names:
-                template_tag_name = min(tag_names, key=len)
-                tags.append(template_tag_name)
+                template_tag_name: str = min(tag_names, key=len)
             else:
-                name = GsePackageTools.generate_name_by_description(description, return_primary=True)
-                Tag.objects.get_or_create_by_project(
-                    name=name,
+                template_tag_name: str = GsePackageTools.generate_name_by_description(description, return_primary=True)
+
+                Tag.objects.get_or_create(
+                    name=template_tag_name,
                     description=description,
                     target_type=TargetType.AGENT.value,
-                    project=validated_data["project"],
+                    target_id=gse_package_desc_obj.id,
                 )
-                tags.append(name)
+
+            tags.append(template_tag_name)
 
         response = NodeApi.sync_task_create(
             {
@@ -391,8 +404,19 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
                 "description": "内置标签",
                 "children": [
                     {
+                        "id": 95,
                         "name": "stable",
                         "description": "稳定版本"
+                    },
+                    {
+                        "id": 96,
+                        "name": "latest",
+                        "description": "最新版本"
+                    },
+                    {
+                        "id": 97,
+                        "name": "test",
+                        "description": "测试版本"
                     }
                 ]
             },
@@ -401,12 +425,19 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
                 "description": "自定义标签",
                 "children": [
                     {
-                        "name": "tag4",
-                        "description": "标签4"
+                        "id": 145,
+                        "name": "custom3",
+                        "description": "自定义标签3"
                     },
                     {
-                        "name": "tag5",
-                        "description": "标签5"
+                        "id": 146,
+                        "name": "custom4",
+                        "description": "自定义标签4"
+                    },
+                    {
+                        "id": 147,
+                        "name": "custom5",
+                        "description": "自定义标签5"
                     }
                 ]
             }
@@ -460,7 +491,7 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
             ],
         }
         """
-        gse_packages = self.filter_queryset(self.get_queryset()).values("version", "project", "pkg_name")
+        gse_packages: QuerySet = self.filter_queryset(self.get_queryset()).values("version", "project", "pkg_name")
 
         version__pkg_version_map: Dict[str, Dict[str, Any]] = {}
         for package in gse_packages:
@@ -480,7 +511,7 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
             version__pkg_version_map[version]["packages"].append({"pkg_name": pkg_name, "tags": tags})
 
             # 聚合小包之间的共同标签
-            common_tags = version__pkg_version_map[version]["tags"]
+            common_tags: List[Dict[str, Any]] = version__pkg_version_map[version]["tags"]
             if common_tags != tags:
                 version__pkg_version_map[version]["tags"] = [tag for tag in common_tags if tag in tags]
 
@@ -525,7 +556,7 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
         ).filter(**host_kwargs)
 
         # 分组统计数量，使用values + annotate分组统计不管用，原因不详
-        dimension__count_map = defaultdict(int)
+        dimension__count_map: Dict[str, int] = defaultdict(int)
         for host in host_queryset.values(*dimensions):
             dimension__count_map["|".join(host.get(d, "").lower() for d in dimensions)] += 1
 
@@ -546,26 +577,40 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
         #  修改和删除沿用apps.core.tags.views中的接口
         validated_data = self.validated_data
 
-        success_created_tag: List[Dict[str, str]] = []
+        tags: List[Dict[str, str]] = []
         for tag in validated_data["tags"]:
-            try:
-                target_id = GsePackageDesc.objects.get(
-                    project=validated_data["project"], category=CategoryType.official
-                ).id
-            except GsePackageDesc.DoesNotExist:
-                target_id = GsePackageDesc.objects.create(
-                    project=validated_data["project"], category=CategoryType.official
-                ).id
+            gse_package_desc_obj, _ = GsePackageDesc.objects.get_or_create(
+                project=validated_data["project"], category=CategoryType.official
+            )
 
-            tag, _ = Tag.objects.get_or_create(
-                defaults={"name": tag["name"]},
-                description=tag["description"],
-                target_id=target_id,
+            if tag["description"] in BUILT_IN_TAG_NAMES + BUILT_IN_TAG_DESCRIPTIONS:
+                tags.append(
+                    {"name": TAG_NAME_MAP[tag["description"]], "description": TAG_DESCRIPTION_MAP[tag["description"]]}
+                )
+                continue
+
+            description = tag.get("description")
+            if not description:
+                description: str = GsePackageTools.generate_name_by_description(description, return_primary=False)
+
+            tag_queryset: QuerySet = Tag.objects.filter(
+                description=description,
+                target_id=gse_package_desc_obj.id,
                 target_type=TargetType.AGENT.value,
             )
-            success_created_tag.append({"name": tag.name, "description": tag.description})
+            if tag_queryset.exists():
+                tag_obj: Tag = min(tag_queryset, key=lambda x: len(x.name))
+            else:
+                tag_obj: Tag = Tag.objects.create(
+                    name=tag["name"],
+                    description=description,
+                    target_id=gse_package_desc_obj.id,
+                    target_type=TargetType.AGENT.value,
+                )
 
-        return Response(data=success_created_tag)
+            tags.append({"name": tag_obj.name, "description": tag_obj.description})
+
+        return Response(data=tags)
 
 
 # class AgentPackageDescViewSet(ModelViewSet):
