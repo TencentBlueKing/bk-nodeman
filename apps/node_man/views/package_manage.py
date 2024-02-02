@@ -579,19 +579,14 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
 
         tags: List[Dict[str, str]] = []
         for tag in validated_data["tags"]:
+            name, description = tag.get("name", ""), tag["description"]
             gse_package_desc_obj, _ = GsePackageDesc.objects.get_or_create(
                 project=validated_data["project"], category=CategoryType.official
             )
 
-            if tag["description"] in BUILT_IN_TAG_NAMES + BUILT_IN_TAG_DESCRIPTIONS:
-                tags.append(
-                    {"name": TAG_NAME_MAP[tag["description"]], "description": TAG_DESCRIPTION_MAP[tag["description"]]}
-                )
+            if description in BUILT_IN_TAG_NAMES + BUILT_IN_TAG_DESCRIPTIONS:
+                tags.append({"name": TAG_NAME_MAP[description], "description": TAG_DESCRIPTION_MAP[description]})
                 continue
-
-            description = tag.get("description")
-            if not description:
-                description: str = GsePackageTools.generate_name_by_description(description, return_primary=False)
 
             tag_queryset: QuerySet = Tag.objects.filter(
                 description=description,
@@ -601,8 +596,8 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
             if tag_queryset.exists():
                 tag_obj: Tag = min(tag_queryset, key=lambda x: len(x.name))
             else:
-                tag_obj: Tag = Tag.objects.create(
-                    name=tag["name"],
+                tag_obj = Tag.objects.create(
+                    name=name + GsePackageTools.generate_name_by_description(description, return_primary=False),
                     description=description,
                     target_id=gse_package_desc_obj.id,
                     target_type=TargetType.AGENT.value,
