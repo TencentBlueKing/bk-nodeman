@@ -28,7 +28,6 @@ from apps.utils.local import get_request, get_request_id, get_request_username
 from apps.utils.time_handler import timestamp_to_datetime
 
 from .exception import DataAPIException
-from .utils.params import add_esb_info_before_request
 
 logger = logging.getLogger("component")
 API_AUTH_KEYS = ["bk_app_code", "bk_app_secret", "bk_username", "bk_token", "access_token", "bk_ticket"]
@@ -207,8 +206,6 @@ class DataAPI(object):
         # 请求前的参数清洗处理
         if self.before_request is not None:
             params = self.before_request(params)
-
-        params = add_esb_info_before_request(params)
 
         # 使用管理员账户请求时，设置用户名为管理员用户名，移除bk_token等认证信息
         if use_admin:
