@@ -337,34 +337,12 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
         """
         validated_data = self.validated_data
 
-        tags: List[str] = validated_data["tags"]
-        for description in validated_data.get("tag_descriptions", []):
-            gse_package_desc_obj, _ = GsePackageDesc.objects.get_or_create(
-                project=validated_data["project"], category=CategoryType.official
-            )
-
-            # 创建一次性标签
-            tag_names: List[str] = list(Tag.objects.filter(description=description).values_list("name", flat=True))
-            if tag_names:
-                template_tag_name: str = min(tag_names, key=len)
-            else:
-                template_tag_name: str = GsePackageTools.generate_name_by_description(description, return_primary=True)
-
-                Tag.objects.get_or_create(
-                    name=template_tag_name,
-                    description=description,
-                    target_type=TargetType.AGENT.value,
-                    target_id=gse_package_desc_obj.id,
-                )
-
-            tags.append(template_tag_name)
-
         response = NodeApi.sync_task_create(
             {
                 "task_name": SyncTaskType.REGISTER_GSE_PACKAGE.value,
                 "task_params": {
                     "file_name": validated_data["file_name"],
-                    "tags": tags,
+                    "tags": validated_data["tags"],
                 },
             }
         )
@@ -450,9 +428,7 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
                     tags=Tag.objects.filter(
                         target_id=GsePackageDesc.objects.get(project=validated_data["project"]).id,
                         created_by=get_request_username(),
-                    )
-                    .exclude(name__startswith="__")
-                    .values("id", "name", "description"),
+                    ).values("id", "name", "description"),
                     tag_description=request.query_params.get("tag_description"),
                     unique=True,
                     get_template_tags=False,
@@ -496,7 +472,14 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
         version__pkg_version_map: Dict[str, Dict[str, Any]] = {}
         for package in gse_packages:
             version, project, pkg_name = package["version"], package["project"], package.pop("pkg_name")
-            tags: List[Dict[str, Any]] = gse_package_handler.get_tags(version=version, project=project, to_top=True)
+            tags: List[Dict[str, Any]] = gse_package_handler.get_tags(
+                version=version,
+                project=project,
+                to_top=True,
+                use_cache=True,
+                unique=True,
+                get_template_tags=False,
+            )
 
             if version not in version__pkg_version_map:
                 # 初始化某个版本的包
@@ -523,6 +506,43 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
     )
     @action(detail=False, methods=["POST"], serializer_class=pkg_manage.DeployedAgentCountSerializer)
     def deployed_hosts_count(self, request):
+        """
+        input: {
+            "items": [
+                {
+                    "os_type": "linux",
+                    "version": "3.6.21"
+                },
+                {
+                    "os_type": "windows",
+                    "version": "3.6.21"
+                },
+                {
+                    "os_type": "windows",
+                    "version": "3.6.22"
+                }
+            ],
+            "project": "gse_agent"
+        }
+
+        return: [
+            {
+                "os_type": "linux",
+                "version": "3.6.21",
+                "count": 3
+            },
+            {
+                "os_type": "windows",
+                "version": "3.6.21",
+                "count": 2
+            },
+            {
+                "os_type": "windows",
+                "version": "3.6.22",
+                "count": 0
+            }
+        ]
+        """
         validated_data = self.validated_data
 
         items = validated_data["items"]
@@ -567,38 +587,59 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
         return Response(items)
 
     @swagger_auto_schema(
-        operation_summary="创建agent标签",
+        operation_summary="批量编辑agent标签",
         tags=PACKAGE_MANAGE_VIEW_TAGS,
     )
     @action(detail=False, methods=["POST"], serializer_class=pkg_manage.TagCreateSerializer)
     def create_agent_tags(self, request):
-        # todo: 是否移植到apps.core.tag.views中？原有的tag标签创建只能创建单标签，
-        #  且有些不太符合预期，在不考虑对原有标签进行修改的情况下，增加一个批量创建标签的接口，
-        #  修改和删除沿用apps.core.tags.views中的接口
+        """
+        input: {
+            "project": "gse_agent",
+            "tag_descriptions": ["stable", "恭喜", "发财"]
+        }
+
+        return: [
+            {
+                "name": "stable",
+                "description": "稳定版本"
+            },
+            {
+                "name": "43f5242cbf2181dc8818a9b8c1c48da6",
+                "description": "恭喜"
+            },
+            {
+                "name": "7d602b6a7e590b232c9c5d1f871601a4",
+                "description": "发财"
+            }
+        ]
+        """
         validated_data = self.validated_data
 
         tags: List[Dict[str, str]] = []
-        for tag in validated_data["tags"]:
-            name, description = tag.get("name", ""), tag["description"]
+        for tag_description in validated_data["tag_descriptions"]:
             gse_package_desc_obj, _ = GsePackageDesc.objects.get_or_create(
                 project=validated_data["project"], category=CategoryType.official
             )
 
-            if description in BUILT_IN_TAG_NAMES + BUILT_IN_TAG_DESCRIPTIONS:
-                tags.append({"name": TAG_NAME_MAP[description], "description": TAG_DESCRIPTION_MAP[description]})
-                continue
+            if tag_description in BUILT_IN_TAG_NAMES + BUILT_IN_TAG_DESCRIPTIONS:
+                # 内置标签，手动指定name和description
+                name: str = TAG_NAME_MAP[tag_description]
+                tag_description: str = TAG_DESCRIPTION_MAP[tag_description]
+            else:
+                # 自定义标签，自动生成name
+                name: str = GsePackageTools.generate_name_by_description(tag_description)
 
             tag_queryset: QuerySet = Tag.objects.filter(
-                description=description,
+                description=tag_description,
                 target_id=gse_package_desc_obj.id,
                 target_type=TargetType.AGENT.value,
             )
             if tag_queryset.exists():
                 tag_obj: Tag = min(tag_queryset, key=lambda x: len(x.name))
             else:
-                tag_obj = Tag.objects.create(
-                    name=name + GsePackageTools.generate_name_by_description(description, return_primary=False),
-                    description=description,
+                tag_obj, _ = Tag.objects.update_or_create(
+                    defaults={"description": tag_description},
+                    name=name,
                     target_id=gse_package_desc_obj.id,
                     target_type=TargetType.AGENT.value,
                 )

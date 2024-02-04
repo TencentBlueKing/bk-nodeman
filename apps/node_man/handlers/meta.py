@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import re
 from collections import ChainMap
-from typing import Any, Callable, Dict, Tuple
+from typing import Any, Callable, Dict, List, Tuple
 
 from django.conf import settings
 from django.db import connection
@@ -19,10 +19,10 @@ from django.utils.translation import ugettext as _
 from apps.node_man import constants, exceptions, models, tools
 from apps.node_man.handlers.cloud import CloudHandler
 from apps.node_man.handlers.cmdb import CmdbHandler
+from apps.node_man.handlers.gse_package import gse_package_handler
 from apps.node_man.handlers.install_channel import InstallChannelHandler
 from apps.node_man.models import GsePackages
 from apps.node_man.permissions.package_manage import PackageManagePermission
-from apps.node_man.serializers.package_manage import FilterConditionPackageSerializer
 from apps.node_man.tools import JobTools
 from apps.utils import APIModel
 
@@ -516,22 +516,34 @@ class MetaHandler(APIModel):
 
     @staticmethod
     def fetch_agent_pkg_manager_children(params=None):
-        params = params or {}
-        project = params.get("project", "gse_agent")
+        params: Dict[str, Any] = params or {}
+        project: str = params.get("project", "gse_agent")
 
         if not PackageManagePermission().has_permission(None, None):
             raise exceptions.PermissionDeniedError(_("该用户不是管理员"))
 
-        versions, tag_name_2_description, creators, is_readys = set(), dict(), set(), set()
-        gse_packages = FilterConditionPackageSerializer(GsePackages.objects.filter(project=project), many=True).data
+        versions, tag_description_2_name, creators, is_readys = set(), dict(), set(), set()
+        gse_packages = GsePackages.objects.filter(project=project).values("version", "created_by", "is_ready")
         for p in gse_packages:
-            versions.add(p.get("version"))
-            creators.add(p.get("created_by"))
-            is_readys.add(p.get("is_ready"))
+            tags: List[Dict[str, Any]] = gse_package_handler.get_tags(
+                version=p["version"],
+                project=project,
+                to_top=True,
+                use_cache=True,
+                unique=True,
+                get_template_tags=True,
+            )
+            versions.add(p["version"])
+            creators.add(p["created_by"])
+            is_readys.add(p["is_ready"])
 
-            for parent_tag in p.get("tags"):
-                for child_tag in parent_tag.get("children"):
-                    tag_name_2_description[child_tag.get("name")] = child_tag.get("description")
+            for t in tags:
+                description, name = t.get("description", ""), t.get("name", "")
+                if description in tag_description_2_name and len(name) > len(tag_description_2_name[description]):
+                    # 取模板标签，模板标签的name长度最小，实例标签为{{ 模板标签 }}_{{ target_version }}
+                    continue
+
+                tag_description_2_name[description] = name
 
         return [
             {
@@ -553,7 +565,7 @@ class MetaHandler(APIModel):
                         "id": tag_name,
                         "name": tag_description,
                     }
-                    for tag_name, tag_description in tag_name_2_description.items()
+                    for tag_description, tag_name in tag_description_2_name.items()
                 ],
             },
             {

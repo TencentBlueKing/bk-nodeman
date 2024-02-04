@@ -32,13 +32,8 @@ class TagProjectSerializer(serializers.Serializer):
     project = serializers.CharField(default=GsePackageCode.AGENT.value)
 
 
-class TagCreateInfoSerializer(serializers.Serializer):
-    name = serializers.CharField(required=False)
-    description = serializers.CharField()
-
-
 class TagCreateSerializer(serializers.Serializer):
-    tags = TagCreateInfoSerializer(many=True)
+    tag_descriptions = serializers.ListField(child=serializers.CharField(), default=[])
     project = serializers.CharField()
 
     def validate(self, attrs):
@@ -71,7 +66,7 @@ class BasePackageSerializer(serializers.Serializer):
             to_top=to_top,
             use_cache=True,
             unique=True,
-            get_template_tags=True,
+            get_template_tags=False,
         )
 
     @classmethod
@@ -236,8 +231,6 @@ class ParseResponseSerializer(serializers.Serializer):
 class AgentRegisterSerializer(serializers.Serializer):
     file_name = serializers.CharField()
     tags = serializers.ListField(child=serializers.CharField(), default=[])
-    tag_descriptions = serializers.ListField(child=serializers.CharField(), default=[])
-    project = serializers.CharField(required=False)
 
     def validate(self, attrs):
         if attrs.get("tag_descriptions") and not attrs.get("project"):

@@ -30,7 +30,6 @@ class AgentTargetHelper(base.BaseTargetHelper):
 
     def _publish_tag_version(self):
         if self.tag_name in BUILT_IN_TAG_NAMES:
-            print(f"builtin, tag_name={self.tag_name}")
             Tag.objects.update_or_create(
                 defaults={"target_version": self.target_version},
                 name=self.tag_name,
@@ -40,7 +39,6 @@ class AgentTargetHelper(base.BaseTargetHelper):
             return
 
         try:
-            print(f"custom, tag_name={self.tag_name}")
             tag = Tag.objects.get(
                 name=self.tag_name,
                 target_id=self.target_id,

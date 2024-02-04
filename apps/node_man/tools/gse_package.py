@@ -63,15 +63,10 @@ class GsePackageTools:
         )
 
     @classmethod
-    def generate_name_by_description(cls, description: str, return_primary: bool = False) -> str:
+    def generate_name_by_description(cls, description: str) -> str:
         """
         根据标签的description生成对应唯一的name
         """
         current_time: str = str(time.time())
         unique_string: str = description + current_time
-        name: str = hashlib.md5(unique_string.encode("utf-8")).hexdigest()
-
-        if return_primary:
-            # 隐式标签，在标签列表中不展示
-            return "__" + name
-        return name
+        return hashlib.md5(unique_string.encode("utf-8")).hexdigest()

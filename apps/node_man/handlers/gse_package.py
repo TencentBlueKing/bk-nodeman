@@ -17,13 +17,11 @@ from django.dispatch import receiver
 
 from apps.core.tag.models import Tag
 from apps.node_man.constants import (
-    BUILT_IN_TAG_DESCRIPTIONS,
     BUILT_IN_TAG_NAMES,
     GsePackageCacheKey,
     GsePackageCode,
 )
 from apps.node_man.models import GsePackageDesc
-from apps.utils.orm import OperateRecordQuerySet
 
 
 class GsePackageHandler:
@@ -52,11 +50,7 @@ class GsePackageHandler:
     def _init_project_version__tags_map(self):
         """初始化项目版本标签映射"""
         for project in GsePackageCode.values():
-            tags: QuerySet = (
-                self.get_tag_objs(project)
-                .exclude(name__startswith="__")
-                .values("name", "description", "target_version")
-            )
+            tags: QuerySet = self.get_tag_objs(project).values("name", "description", "target_version")
 
             for tag in tags:
                 cache_key = self.get_tags_cache_key(project, tag.pop("target_version"))
@@ -143,7 +137,7 @@ class GsePackageHandler:
             tags = [tag for tag in tags if tag_description in tag["description"]]
 
         if to_top:
-            return tags
+            return self.unique_tags(tags, get_template_tags=get_template_tags)
 
         built_in_tags, custom_tags = self.split_builtin_tags_and_custom_tags(tags)
 
@@ -203,7 +197,7 @@ class GsePackageHandler:
         """
         unique_custom_tags: Dict[str, Dict[str, str]] = {}
 
-        compare_func: Callable[[int, int], bool] = (lambda x, y: x > y) if get_template_tags else (lambda x, y: x < y)
+        compare_func: Callable[[int, int], bool] = (lambda x, y: x < y) if get_template_tags else (lambda x, y: x > y)
 
         for child_tag in tags:
             name, description = child_tag["name"], child_tag["description"]
@@ -216,17 +210,26 @@ class GsePackageHandler:
         return list(unique_custom_tags.values())
 
     @classmethod
-    def filter_tags(cls, queryset, project, *, tag_names=None, tag_descriptions=None) -> OperateRecordQuerySet:
+    def filter_tags(
+        cls, queryset: QuerySet, project: str, *, tag_names: List[str] = None, tag_descriptions: List[str] = None
+    ) -> QuerySet:
         """筛选标签queryset"""
         project__id_map: Dict[str, int] = dict(GsePackageDesc.objects.values_list("project", "id"))
-        filter_conditions: Q = Q(target_id=project__id_map.get(project))
+        combined_tag_names_conditions: Q = Q()
+        combined_tag_descriptions_conditions: Q = Q()
 
-        if tag_names:
-            filter_conditions &= Q(name__in=tag_names)
-        if tag_descriptions:
-            filter_conditions &= Q(description__in=tag_descriptions)
+        for tag_name in tag_names or []:
+            combined_tag_names_conditions |= Q(name__contains=tag_name)
+        for tag_description in tag_descriptions or []:
+            combined_tag_descriptions_conditions |= Q(description__contains=tag_description)
 
-        target_versions = Tag.objects.filter(filter_conditions).values_list("target_version", flat=True)
+        filter_conditions: Q = (
+            Q(target_id=project__id_map.get(project))
+            & combined_tag_names_conditions
+            & combined_tag_descriptions_conditions
+        )
+
+        target_versions: QuerySet = Tag.objects.filter(filter_conditions).values_list("target_version", flat=True)
 
         return queryset.filter(version__in=target_versions)
 
@@ -237,7 +240,7 @@ class GsePackageHandler:
         """将标签拆分为内置的和自定义的"""
         built_in_tags, custom_tags = [], []
         for tag in tags:
-            if tag["description"] in BUILT_IN_TAG_DESCRIPTIONS or tag["name"] in BUILT_IN_TAG_NAMES:
+            if tag["name"] in BUILT_IN_TAG_NAMES:
                 built_in_tags.append(tag)
             else:
                 custom_tags.append(tag)
