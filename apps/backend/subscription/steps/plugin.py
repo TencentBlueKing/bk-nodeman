@@ -1097,8 +1097,8 @@ class PushConfig(PluginAction):
         activities = [
             plugin_manager.set_process_status(constants.ProcStateType.UNKNOWN),
             plugin_manager.render_and_push_config_by_subscription(self.step.subscription_step.id),
-            plugin_manager.operate_proc(op_type=constants.GseOpType.DELEGATE, plugin_desc=self.step.plugin_desc),
             plugin_manager.operate_proc(op_type=constants.GseOpType.RELOAD, plugin_desc=self.step.plugin_desc),
+            plugin_manager.operate_proc(op_type=constants.GseOpType.DELEGATE, plugin_desc=self.step.plugin_desc),
             plugin_manager.set_process_status(constants.ProcStateType.RUNNING),
         ]
         return activities, None
