@@ -522,7 +522,7 @@ class MetaHandler(APIModel):
         if not PackageManagePermission().has_permission(None, None):
             raise exceptions.PermissionDeniedError(_("该用户不是管理员"))
 
-        versions, tag_description_2_name, creators, is_readys = set(), dict(), set(), set()
+        versions, tag_description__name_map, creators, is_readys = set(), dict(), set(), set()
         gse_packages = GsePackages.objects.filter(project=project).values("version", "created_by", "is_ready")
         for p in gse_packages:
             tags: List[Dict[str, Any]] = gse_package_handler.get_tags(
@@ -539,11 +539,11 @@ class MetaHandler(APIModel):
 
             for t in tags:
                 description, name = t.get("description", ""), t.get("name", "")
-                if description in tag_description_2_name and len(name) > len(tag_description_2_name[description]):
+                if description in tag_description__name_map and len(name) > len(tag_description__name_map[description]):
                     # 取模板标签，模板标签的name长度最小，实例标签为{{ 模板标签 }}_{{ target_version }}
                     continue
 
-                tag_description_2_name[description] = name
+                tag_description__name_map[description] = name
 
         return [
             {
@@ -565,7 +565,7 @@ class MetaHandler(APIModel):
                         "id": tag_name,
                         "name": tag_description,
                     }
-                    for tag_description, tag_name in tag_description_2_name.items()
+                    for tag_description, tag_name in tag_description__name_map.items()
                 ],
             },
             {
