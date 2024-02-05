@@ -314,6 +314,13 @@ class TestHost(TestCase):
         update_data = {"bk_host_id": host_to_create[0].bk_host_id, "login_ip": "255.255.255.255", "bk_cloud_id": 5}
         self.assertRaises(IpInUsedError, HostHandler().update_proxy_info, update_data)
 
+        # 修改登录IP(自身外网IP已存在的情况)
+        host_to_create, identity_to_create, _ = create_host(
+            number=1, outer_ip="255.255.255.256", login_ip="255.255.255.257", bk_cloud_id=5, bk_host_id=10001
+        )
+        update_data = {"bk_host_id": host_to_create[0].bk_host_id, "login_ip": "255.255.255.256", "bk_cloud_id": 5}
+        self.assertEqual(HostHandler().update_proxy_info(update_data), None)
+
     @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)
     def test_ip_list(self):
         number = 10
