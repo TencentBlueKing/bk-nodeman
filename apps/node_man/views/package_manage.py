@@ -120,6 +120,7 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
         return super().list(request, *args, **kwargs)
 
     def perform_update(self, serializer):
+        """目前标签仅支持name修改对应的description"""
         serializer.save()
 
         if not serializer.validated_data.get("tags"):
@@ -130,11 +131,9 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
         tag_name__tag_obj_map: Dict[str, Tag] = {tag.name: tag for tag in tags}
         tag_names: List[str] = list(tag_name__tag_obj_map.keys())
 
-        # 根据name修改对应的description
         for tag_dict in serializer.validated_data["tags"]:
-            # 如果name不存在，无法修改对应的description
             if tag_dict["name"] not in tag_names:
-                continue
+                Tag.objects.create()
 
             tag_obj: Tag = tag_name__tag_obj_map[tag_dict["name"]]
             tag_obj.description = tag_dict["description"]
