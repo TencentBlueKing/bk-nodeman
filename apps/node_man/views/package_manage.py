@@ -402,8 +402,7 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
                     tags=Tag.objects.filter(
                         target_id=GsePackageDesc.objects.get(project=validated_data["project"]).id,
                         created_by=get_request_username(),
-                    )
-                    .values("id", "name", "description"),
+                    ).values("id", "name", "description"),
                     tag_description=request.query_params.get("tag_description"),
                     unique=True,
                     get_template_tags=False,
