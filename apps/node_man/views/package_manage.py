@@ -36,7 +36,6 @@ from apps.node_man.handlers.gse_package import gse_package_handler
 from apps.node_man.models import GsePackageDesc, GsePackages, UploadPackage
 from apps.node_man.permissions import package_manage as pkg_permission
 from apps.node_man.serializers import package_manage as pkg_manage
-from apps.node_man.tools.gse_package import GsePackageTools
 from apps.node_man.tools.package import PackageTools
 from apps.utils.local import get_request_username
 from common.api import NodeApi
@@ -330,28 +329,12 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
         """
         validated_data = self.validated_data
 
-        tags: list = validated_data["tags"]
-        for description in validated_data.get("tag_descriptions", []):
-            tag_names = list(Tag.objects.filter(description=description).values_list("name", flat=True))
-            if tag_names:
-                template_tag_name = min(tag_names, key=len)
-                tags.append(template_tag_name)
-            else:
-                name = GsePackageTools.generate_name_by_description(description, return_primary=True)
-                Tag.objects.get_or_create_by_project(
-                    name=name,
-                    description=description,
-                    target_type=TargetType.AGENT.value,
-                    project=validated_data["project"],
-                )
-                tags.append(name)
-
         response = NodeApi.sync_task_create(
             {
                 "task_name": SyncTaskType.REGISTER_GSE_PACKAGE.value,
                 "task_params": {
                     "file_name": validated_data["file_name"],
-                    "tags": tags,
+                    "tags": validated_data["tags"],
                 },
             }
         )
@@ -420,7 +403,6 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
                         target_id=GsePackageDesc.objects.get(project=validated_data["project"]).id,
                         created_by=get_request_username(),
                     )
-                    .exclude(name__startswith="__")
                     .values("id", "name", "description"),
                     tag_description=request.query_params.get("tag_description"),
                     unique=True,
@@ -513,6 +495,7 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
         process_params: Dict[str, list] = {
             "conditions": [{"key": "status", "value": [constants.ProcStateType.RUNNING]}]
         }
+
         for dimension in process_dimensions:
             process_params["conditions"].append({"key": dimension, "value": [item[dimension] for item in items]})
 

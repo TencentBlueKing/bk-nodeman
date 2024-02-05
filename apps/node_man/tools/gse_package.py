@@ -9,9 +9,9 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import hashlib
+import time
 import os
 import tarfile
-import time
 
 from django.utils.translation import ugettext as _
 
@@ -67,8 +67,4 @@ class GsePackageTools:
         """
         current_time: str = str(time.time())
         unique_string: str = description + current_time
-        name: str = hashlib.md5(unique_string.encode("utf-8")).hexdigest()
-
-        if return_primary:
-            return "__" + name
-        return name
+        return hashlib.md5(unique_string.encode("utf-8")).hexdigest()

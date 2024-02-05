@@ -236,14 +236,6 @@ class ParseResponseSerializer(serializers.Serializer):
 class AgentRegisterSerializer(serializers.Serializer):
     file_name = serializers.CharField()
     tags = serializers.ListField(child=serializers.CharField(), default=[])
-    tag_descriptions = serializers.ListField(child=serializers.CharField(), default=[])
-    project = serializers.CharField(required=False)
-
-    def validate(self, attrs):
-        if attrs.get("tag_descriptions") and not attrs.get("project"):
-            raise ValidationError(_("project和tag_descriptions参数必须同时传入"))
-
-        return attrs
 
 
 class AgentRegisterTaskSerializer(serializers.Serializer):
