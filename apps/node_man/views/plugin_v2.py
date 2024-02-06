@@ -37,6 +37,8 @@ class PluginV2ViewSet(ModelViewSet):
     @swagger_auto_schema(
         operation_summary="插件列表",
         tags=PLUGIN_V2_VIEW_TAGS,
+        registe_apigtw=True,
+        api_name="list_plugin",
     )
     def list(self, request, *args, **kwargs):
         """
@@ -86,6 +88,8 @@ class PluginV2ViewSet(ModelViewSet):
     @swagger_auto_schema(
         operation_summary="插件详情",
         tags=PLUGIN_V2_VIEW_TAGS,
+        registe_apigtw=True,
+        api_name="retrieve_plugin",
     )
     def retrieve(self, request, *args, **kwargs):
         """
@@ -155,6 +159,8 @@ class PluginV2ViewSet(ModelViewSet):
     @swagger_auto_schema(
         operation_summary="编辑插件",
         tags=PLUGIN_V2_VIEW_TAGS,
+        registe_apigtw=True,
+        api_name="update_plugin",
     )
     def update(self, request, *args, **kwargs):
         """
@@ -180,6 +186,7 @@ class PluginV2ViewSet(ModelViewSet):
     @swagger_auto_schema(
         operation_summary="创建注册任务",
         tags=PLUGIN_V2_VIEW_TAGS,
+        registe_apigtw=True,
     )
     @action(detail=False, methods=["POST"], serializer_class=plugin_v2.PluginRegisterSerializer)
     def create_register_task(self, request):
@@ -208,6 +215,7 @@ class PluginV2ViewSet(ModelViewSet):
     @swagger_auto_schema(
         operation_summary="查询插件注册任务",
         tags=PLUGIN_V2_VIEW_TAGS,
+        registe_apigtw=True,
     )
     @action(detail=False, methods=["GET"], serializer_class=plugin_v2.PluginRegisterTaskSerializer)
     def query_register_task(self, request):
@@ -232,6 +240,7 @@ class PluginV2ViewSet(ModelViewSet):
     @swagger_auto_schema(
         operation_summary="插件包状态类操作",
         tags=PLUGIN_V2_VIEW_TAGS,
+        registe_apigtw=True,
     )
     @action(detail=False, methods=["POST"], serializer_class=plugin_v2.PkgStatusOperationSerializer)
     def package_status_operation(self, request):
@@ -286,6 +295,7 @@ class PluginV2ViewSet(ModelViewSet):
     @swagger_auto_schema(
         operation_summary="获取一个导出任务结果",
         tags=PLUGIN_V2_VIEW_TAGS,
+        registe_apigtw=True,
     )
     @action(detail=False, methods=["GET"], serializer_class=plugin_v2.QueryExportTaskSerializer)
     def query_export_task(self, request):
@@ -311,6 +321,8 @@ class PluginV2ViewSet(ModelViewSet):
     @swagger_auto_schema(
         operation_summary="解析插件包",
         tags=PLUGIN_V2_VIEW_TAGS,
+        registe_apigtw=True,
+        api_name="plugin_parse",
     )
     @action(detail=False, methods=["POST"], serializer_class=plugin_v2.PluginParseSerializer)
     def parse(self, request):
@@ -444,6 +456,8 @@ class PluginV2ViewSet(ModelViewSet):
     @swagger_auto_schema(
         operation_summary="插件上传",
         tags=PLUGIN_V2_VIEW_TAGS,
+        registe_apigtw=True,
+        api_name="plugin_upload",
     )
     @action(detail=False, methods=["POST"], serializer_class=plugin_v2.PluginUploadSerializer)
     def upload(self, request):
@@ -475,6 +489,7 @@ class PluginV2ViewSet(ModelViewSet):
     @swagger_auto_schema(
         operation_summary="获取配置模板参数",
         tags=PLUGIN_V2_VIEW_TAGS,
+        registe_apigtw=True,
     )
     @action(detail=False, methods=["POST"], serializer_class=plugin_v2.PluginFetchConfigVarsSerializer)
     def fetch_config_variables(self, request):
@@ -657,6 +672,8 @@ class PluginV2ViewSet(ModelViewSet):
     @swagger_auto_schema(
         operation_summary="插件操作",
         tags=PLUGIN_V2_VIEW_TAGS,
+        registe_apigtw=True,
+        api_name="operate_plugin",
     )
     @action(detail=False, methods=["POST"], serializer_class=plugin_v2.PluginOperateSerializer)
     def operate(self, request):

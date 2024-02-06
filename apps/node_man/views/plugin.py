@@ -100,8 +100,7 @@ class PluginViewSet(ModelViewSet):
         return Response(hosts)
 
     @swagger_auto_schema(
-        operation_summary="插件操作类任务",
-        tags=PLUGIN_VIEW_TAGS,
+        operation_summary="插件操作类任务", tags=PLUGIN_VIEW_TAGS, registe_apigtw=True, api_name="operate_plugin"
     )
     @action(detail=False, methods=["POST"], serializer_class=OperateSerializer)
     def operate(self, request):
@@ -145,8 +144,7 @@ class PluginViewSet(ModelViewSet):
         return Response(PluginHandler.operate(self.validated_data, get_request_username()))
 
     @swagger_auto_schema(
-        operation_summary="获取插件统计数据",
-        tags=PLUGIN_VIEW_TAGS,
+        operation_summary="获取插件统计数据", tags=PLUGIN_VIEW_TAGS, registe_apigtw=True, api_name="plugin_statistics"
     )
     @action(detail=False, methods=["GET"])
     def statistics(self, request):

@@ -31,6 +31,8 @@ class HostV2ViewSet(ModelViewSet):
     @swagger_auto_schema(
         operation_summary="查询主机列表",
         tags=HOST_V2_VIEW_TAGS,
+        registe_apigtw=True,
+        api_name="list_host",
     )
     @action(detail=False, methods=["POST"], serializer_class=host_v2.HostSearchSerializer)
     def search(self, request):
@@ -82,6 +84,8 @@ class HostV2ViewSet(ModelViewSet):
     @swagger_auto_schema(
         operation_summary="统计给定拓扑节点的agent状态统计",
         tags=HOST_V2_VIEW_TAGS,
+        registe_apigtw=True,
+        api_name="nodes_agent_status",
     )
     @action(detail=False, methods=["POST"], serializer_class=host_v2.HostAgentStatusSerializer)
     def agent_status(self, request):
@@ -113,6 +117,7 @@ class HostV2ViewSet(ModelViewSet):
     @swagger_auto_schema(
         operation_summary="统计给定拓扑节点的主机数量",
         tags=HOST_V2_VIEW_TAGS,
+        registe_apigtw=True,
     )
     @action(detail=False, methods=["POST"], serializer_class=host_v2.NodeCountSerializer)
     def node_statistic(self, request):

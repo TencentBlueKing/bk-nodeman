@@ -38,9 +38,11 @@ class HostViewSet(ModelViewSet):
     permission_classes = (HostPermission,)
 
     @swagger_auto_schema(
+        registe_apigtw=True,
         operation_summary="查询主机列表",
         responses={status.HTTP_200_OK: response.HostSearchResponseSerializer()},
         tags=HOST_VIEW_TAGS,
+        api_name="list_host",
     )
     @action(detail=False, methods=["POST"], serializer_class=HostSearchSerializer)
     def search(self, request):
@@ -52,10 +54,12 @@ class HostViewSet(ModelViewSet):
         return Response(HostHandler().list(self.validated_data, get_request_username()))
 
     @swagger_auto_schema(
+        registe_apigtw=True,
         operation_summary="查询管控区域下有操作权限的proxy列表",
         query_serializer=ProxySerializer(),
         responses={status.HTTP_200_OK: response.HostBizProxyResponseSerializer()},
         tags=HOST_VIEW_TAGS,
+        api_name="retrieve_cloud_proxies",
     )
     @action(detail=False, serializer_class=ProxySerializer)
     def proxies(self, request, *args, **kwargs):
@@ -73,10 +77,12 @@ class HostViewSet(ModelViewSet):
         return Response(proxies)
 
     @swagger_auto_schema(
+        registe_apigtw=True,
         operation_summary="查询业务下管控区域的proxy集合",
         query_serializer=BizProxySerializer(),
         responses={status.HTTP_200_OK: response.HostBizProxyResponseSerializer()},
         tags=HOST_VIEW_TAGS,
+        api_name="retrieve_biz_proxies",
     )
     @action(detail=False, serializer_class=BizProxySerializer)
     def biz_proxies(self, request, *args, **kwargs):
@@ -88,8 +94,7 @@ class HostViewSet(ModelViewSet):
         return Response(HostHandler().biz_proxies(self.validated_data["bk_biz_id"]))
 
     @swagger_auto_schema(
-        operation_summary="更新Proxy主机信息",
-        tags=HOST_VIEW_TAGS,
+        registe_apigtw=True, operation_summary="更新Proxy主机信息", tags=HOST_VIEW_TAGS, api_name="update_host"
     )
     @action(detail=False, methods=["POST"], serializer_class=HostUpdateSerializer)
     def update_single(self, request):
