@@ -29,16 +29,20 @@ class IpChooserTopoViewSet(APIViewSet):
     permission_classes = (permission.IpChooserTopoPermission,)
 
     @swagger_auto_schema(
+        registe_apigtw=True,
         operation_summary=_("批量获取含各节点主机数量的拓扑树"),
         tags=IP_CHOOSER_VIEW_TAGS,
         request_body=topo_sers.TreesRequestSer(),
         responses={status.HTTP_200_OK: topo_sers.TreesResponseSer()},
+        api_name="topo_trees",
     )
     @action(methods=["POST"], detail=False, serializer_class=topo_sers.TreesRequestSer)
     def trees(self, request, *args, **kwargs):
         return Response(topo_handler.TopoHandler.trees(scope_list=self.validated_data["scope_list"]))
 
     @swagger_auto_schema(
+        registe_apigtw=True,
+        api_name="topo_query_path",
         operation_summary=_("查询多个节点拓扑路径"),
         tags=IP_CHOOSER_VIEW_TAGS,
         request_body=topo_sers.QueryPathRequestSer(),
@@ -49,6 +53,8 @@ class IpChooserTopoViewSet(APIViewSet):
         return Response(topo_handler.TopoHandler.query_path(node_list=self.validated_data["node_list"]))
 
     @swagger_auto_schema(
+        registe_apigtw=True,
+        api_name="topo_query_hosts",
         operation_summary=_("根据多个拓扑节点与搜索条件批量分页查询所包含的主机信息"),
         tags=IP_CHOOSER_VIEW_TAGS,
         request_body=topo_sers.QueryHostsRequestSer(),
@@ -67,6 +73,8 @@ class IpChooserTopoViewSet(APIViewSet):
         )
 
     @swagger_auto_schema(
+        registe_apigtw=True,
+        api_name="topo_query_host_id_infos",
         operation_summary=_("根据多个拓扑节点与搜索条件批量分页查询所包含的主机 ID 信息"),
         tags=IP_CHOOSER_VIEW_TAGS,
         request_body=topo_sers.QueryHostIdInfosRequestSer(),
@@ -85,6 +93,8 @@ class IpChooserTopoViewSet(APIViewSet):
         )
 
     @swagger_auto_schema(
+        registe_apigtw=True,
+        api_name="topo_agent_statistics",
         operation_summary=_("获取多个拓扑节点的主机 Agent 状态统计信息"),
         tags=IP_CHOOSER_VIEW_TAGS,
         request_body=topo_sers.AgentStatisticsRequestSer(),
@@ -101,6 +111,8 @@ class IpChooserHostViewSet(APIViewSet):
     permission_classes = (permission.IpChooserHostPermission,)
 
     @swagger_auto_schema(
+        registe_apigtw=True,
+        api_name="host_check",
         operation_summary=_("根据用户手动输入的`IP`/`IPv6`/`主机名`/`host_id`等关键字信息获取真实存在的机器信息"),
         tags=IP_CHOOSER_VIEW_TAGS,
         request_body=host_sers.HostCheckRequestSer(),
@@ -119,6 +131,8 @@ class IpChooserHostViewSet(APIViewSet):
         )
 
     @swagger_auto_schema(
+        registe_apigtw=True,
+        api_name="host_details",
         operation_summary=_("根据主机关键信息获取机器详情信息"),
         tags=IP_CHOOSER_VIEW_TAGS,
         request_body=host_sers.HostDetailsRequestSer(),

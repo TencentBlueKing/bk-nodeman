@@ -23,6 +23,7 @@ class RSAViewSet(APIViewSet):
     URL_BASE_NAME = "encrypt_rsa"
 
     @swagger_auto_schema(
+        registe_apigtw=True,
         operation_summary="获取公钥列表",
         tags=RSA_VIEW_TAGS,
     )

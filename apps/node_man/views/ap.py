@@ -35,6 +35,7 @@ class ApViewSet(ModelViewSet):
     @swagger_auto_schema(
         operation_summary="查询任务列表",
         tags=AP_VIEW_TAGS,
+        registe_apigtw=True,
     )
     def list(self, request, *args, **kwargs):
         """
@@ -103,6 +104,7 @@ class ApViewSet(ModelViewSet):
     @swagger_auto_schema(
         operation_summary="查询接入点详情",
         tags=AP_VIEW_TAGS,
+        registe_apigtw=True,
     )
     def retrieve(self, request, *args, **kwargs):
         """

@@ -30,7 +30,9 @@ class MetaViews(APIViewSet):
     @swagger_auto_schema(
         operation_summary="获取过滤条件",
         tags=META_VIEW_TAGS,
-        methods=["GET", "POST"],
+        methods=["GET"],
+        registe_apigtw=True,
+        api_name="get_filter_condition",
     )
     @action(detail=False, methods=["GET", "POST"], serializer_class=FilterConditionSerializer)
     def filter_condition(self, request):

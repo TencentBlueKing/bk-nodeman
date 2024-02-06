@@ -10,17 +10,26 @@ specific language governing permissions and limitations under the License.
 """
 import json
 import os
+import typing
 from collections import defaultdict
 
+import ujson
 import yaml
 from django.core.management.base import BaseCommand
 
 from apps.utils.generate_api_js import main
 
 
-def esb_json2apigw_yaml(esb_json_file_path: str, apigw_yaml_save_path: str):
-    with open(file=esb_json_file_path, encoding="utf-8") as esb_json_file_stream:
-        esb_json = json.loads(esb_json_file_stream.read())
+def esb_json2apigw_yaml(
+    apigw_yaml_save_path: str,
+    esb_json_file_path: str = None,
+    json_content: typing.List[typing.Dict[str, typing.Any]] = None,
+):
+    if not json_content:
+        with open(file=esb_json_file_path, encoding="utf-8") as esb_json_file_stream:
+            esb_json = json.loads(esb_json_file_stream.read())
+    else:
+        esb_json = json.loads(ujson.dumps(json_content))
 
     # 对相同api路径进行聚合
     api_info_gby_path = defaultdict(list)
@@ -68,11 +77,14 @@ def esb_json2apigw_yaml(esb_json_file_path: str, apigw_yaml_save_path: str):
 class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument("-g", "--is_apigw", action="store_true", help="whether for api_gateway")
-        parser.add_argument("--is_apigw_yaml", action="store_true", help="convert esb json to apigw yaml")
+        parser.add_argument(
+            "--is_apigw_yaml",
+            action="store_true",
+            help="convert esb json to apigw yaml",
+        )
         parser.add_argument("-f", type=str, help="apigw yaml save path")
 
     def handle(self, **kwargs):
-
         if kwargs["is_apigw_yaml"]:
             esb_json_file_path = main(is_apigw=True)
             esb_json2apigw_yaml(esb_json_file_path=esb_json_file_path, apigw_yaml_save_path=kwargs["f"])

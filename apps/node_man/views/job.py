@@ -37,10 +37,7 @@ class JobViewSet(ModelViewSet):
     model = Job
     permission_classes = (JobPermission,)
 
-    @swagger_auto_schema(
-        operation_summary="查询任务列表",
-        tags=JOB_VIEW_TAGS,
-    )
+    @swagger_auto_schema(registe_apigtw=True, operation_summary="查询任务列表", tags=JOB_VIEW_TAGS, api_name="list_job")
     @action(detail=False, methods=["POST"], serializer_class=ListSerializer)
     def job_list(self, request, *args, **kwargs):
         """
@@ -89,9 +86,11 @@ class JobViewSet(ModelViewSet):
         return Response(JobHandler().list(self.validated_data, get_request_username()))
 
     @swagger_auto_schema(
+        registe_apigtw=True,
         operation_summary="查询任务详情",
         responses={status.HTTP_200_OK: response.JobLogResponseSerializer()},
         tags=JOB_VIEW_TAGS,
+        api_name="retrieve_job",
     )
     @action(detail=True, methods=["POST"], serializer_class=RetrieveSerializer)
     def details(self, request, *args, **kwargs):
@@ -103,10 +102,12 @@ class JobViewSet(ModelViewSet):
         return Response(JobHandler(job_id=kwargs["pk"]).retrieve(self.validated_data))
 
     @swagger_auto_schema(
+        registe_apigtw=True,
         operation_summary="安装类任务",
         operation_description="安装作业任务, 新安装Agent、新安装Proxy、重装、替换等操作",
         responses={status.HTTP_200_OK: response.JobInstallSerializer()},
         tags=JOB_VIEW_TAGS,
+        api_name="install_job",
     )
     @action(detail=False, methods=["POST"], serializer_class=InstallSerializer)
     def install(self, request):
@@ -131,6 +132,8 @@ class JobViewSet(ModelViewSet):
         return Response(JobHandler().install(hosts, op_type, node_type, job_type, ticket, extra_params, extra_config))
 
     @swagger_auto_schema(
+        registe_apigtw=True,
+        api_name="operate_job",
         operation_summary="操作类任务",
         operation_description="用于只有bk_host_id参数的主机下线、重启等操作",
         responses={status.HTTP_200_OK: response.JobOperateSerializer()},
@@ -158,10 +161,7 @@ class JobViewSet(ModelViewSet):
         extra_config = validated_data.get("agent_setup_info") or {}
         return Response(JobHandler().operate(job_type, hosts, bk_biz_scope, extra_params, extra_config))
 
-    @swagger_auto_schema(
-        operation_summary="重试任务",
-        tags=JOB_VIEW_TAGS,
-    )
+    @swagger_auto_schema(registe_apigtw=True, operation_summary="重试任务", tags=JOB_VIEW_TAGS, api_name="retry_job")
     @action(detail=True, methods=["POST"], serializer_class=JobInstancesOperateSerializer)
     def retry(self, request, *args, **kwargs):
         """
@@ -176,10 +176,7 @@ class JobViewSet(ModelViewSet):
         """
         return Response(JobHandler(job_id=kwargs["pk"]).retry(request.data.get("instance_id_list")))
 
-    @swagger_auto_schema(
-        operation_summary="终止任务",
-        tags=JOB_VIEW_TAGS,
-    )
+    @swagger_auto_schema(registe_apigtw=True, operation_summary="终止任务", tags=JOB_VIEW_TAGS, api_name="revoke_job")
     @action(detail=True, methods=["POST"], serializer_class=JobInstancesOperateSerializer)
     def revoke(self, request, *args, **kwargs):
         """
@@ -195,6 +192,7 @@ class JobViewSet(ModelViewSet):
         return Response(JobHandler(job_id=kwargs["pk"]).revoke(request.data.get("instance_id_list", [])))
 
     @swagger_auto_schema(
+        registe_apigtw=True,
         operation_summary="原子粒度重试任务",
         tags=JOB_VIEW_TAGS,
     )
@@ -223,6 +221,8 @@ class JobViewSet(ModelViewSet):
         return Response(JobHandler(job_id=kwargs["pk"]).retry_node(request.data.get("instance_id", None)))
 
     @swagger_auto_schema(
+        registe_apigtw=True,
+        api_name="get_job_log",
         operation_summary="查询日志",
         query_serializer=JobInstanceOperateSerializer(),
         responses={status.HTTP_200_OK: response.JobLogResponseSerializer()},
@@ -257,6 +257,7 @@ class JobViewSet(ModelViewSet):
         return Response(JobHandler(job_id=kwargs["pk"]).get_log(request.query_params["instance_id"]))
 
     @swagger_auto_schema(
+        registe_apigtw=True,
         operation_summary="查询日志",
         tags=JOB_VIEW_TAGS,
     )
@@ -275,6 +276,7 @@ class JobViewSet(ModelViewSet):
         return Response(JobHandler(job_id=kwargs["pk"]).collect_log(request.data.get("instance_id")))
 
     @swagger_auto_schema(
+        registe_apigtw=True,
         operation_summary="获取安装命令",
         tags=JOB_VIEW_TAGS,
     )

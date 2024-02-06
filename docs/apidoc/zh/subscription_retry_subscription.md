@@ -1,6 +1,6 @@
 ### 功能描述
 
-执行订阅
+重试失败的任务
 
 ### 请求参数
 
@@ -8,11 +8,23 @@
 
 #### 接口参数
 
-| 字段              | 类型     | <div style="width: 50pt">必选</div> | 描述                  |
-| --------------- | ------ | --------------------------------- | ------------------- |
-| subscription_id | int    | 是                                 | 订阅ID                |
-| scope           | object | 是                                 | 事件订阅监听的范围, 见scope定义 |
-| actions         | object | 否                                 | 动作范围，见actions定义, 如果没有传入actions，则以最近一次任务的action执行     |
+| 字段               | 类型     | <div style="width: 50pt">必选</div> | 描述                                              |
+| ---------------- | ------ | --------------------------------- | ----------------------------------------------- |
+| subscription_id  | int    | 是                                 | 订阅ID                                            |
+| instance_id_list | array  | 否                                 | 实例ID列表，见instance_id_list定义                      |
+| task_id_list     | array  | 否                                 | 任务ID列表                                          |
+| actions          | object | 否                                 | 订阅动作，见actions定义，如果没有传入actions，则以最近一次任务的action执行 |
+
+##### instance_id_list
+
+由scope内的主机实例信息转换而来，由以下字段拼接，，可通过接口`task_result_subscription`查询，规则：{object_type}|{node_type}|{type}|{id}，示例：1: host|instance|host|1, 2: host|instance|host|127.0.0.1-1-0
+
+| 字段          | 类型     | <div style="width: 50pt">必选</div> | 描述                                                                                  |
+| ----------- | ------ | --------------------------------- | ----------------------------------------------------------------------------------- |
+| object_type | string | 是                                 | 对象类型，1：host，主机类型  2：service，服务类型                                                    |
+| node_type   | string | 是                                 | 节点类别，1: topo，动态实例（拓扑）2: instance，静态实例 3: service_template，服务模板 4: set_template，集群模板 |
+| type        | string | 是                                 | 服务类型，1: host 主机 2: bk_obj_id 模板ID                                                   |
+| id          | string | 是                                 | 服务实例ID，1： 根据ip，bk_cloud_id，bk_supplier_id和分隔符”-“生成key 2: bk_host_id, 主机Host-ID      |
 
 #### actions
 
@@ -20,7 +32,7 @@
 
 | 字段       | 类型     | <div style="width: 50pt">必选</div> | 描述                |
 | -------- | ------ | --------------------------------- | ----------------- |
-| step_id  | string | 是                                 | 订阅步骤ID            |
+| step_id  | string | 是                                 | 订阅步骤ID，创建订阅时指定    |
 | job_type | string | 是                                 | 作业类型，见job_type 定义 |
 
 ###### job_type
@@ -87,62 +99,10 @@ Plugin
     "bk_app_secret": "xxx",
     "bk_username": "admin",
     "bk_token": "xxx",
-    "subscription_id": 1,
-    "scope": {
-        "bk_biz_id": 2,
-        "object_type": "SERVICE",
-        "node_type": "TOPO",
-        "nodes": [
-            {
-                "bk_host_id": 12
-            },
-            {
-                "bk_inst_id": 33,
-                "bk_obj_id": "module"
-            },
-            {
-                "ip": "127.0.0.1",
-                "bk_cloud_id": 0,
-                "bk_supplier_id": 0
-            },
-            {
-                "ip": "127.0.0.1",
-                "bk_cloud_id": 1,
-                "instance_info": {
-                    "key": "",
-                    "port": 22,
-                    "ap_id": 1,
-                    "account": "root",
-                    "os_type": "LINUX",
-                    "login_ip": "127.0.0.1",
-                    "password": "Qk=",
-                    "username": "admin",
-                    "auth_type": "PASSWORD",
-                    "bk_biz_id": 337,
-                    "data_path": "/var/lib/gse",
-                    "is_manual": false,
-                    "retention": -1,
-                    "bk_os_type": "1",
-                    "bk_biz_name": "xxxxxx",
-                    "bk_cloud_id": 1,
-                    "bk_cloud_name": "xxxx",
-                    "bt_speed_limit": null,
-                    "host_node_type": "PROXY",
-                    "bk_host_innerip": "127.0.0.1",
-                    "bk_host_outerip": "127.0.0.1",
-                    "install_channel_id": null,
-                    "bk_supplier_account": "0",
-                    "peer_exchange_switch_for_agent": 0,
-                    "enable_compression": false,
-                },
-                "bk_supplier_account": "0"
-            }
-        ]
-    },
-    "actions": {
-        "testscript": "UNINSTALL",
-        "bkmonitorbeat": "UNINSTALL"
-    }
+    "subscription_id": 1, 
+    "instance_id_list": ["host|instance|host|1"],
+    "task_id_list": [1],
+    "actions": {"agent": "INSTALL_AGENT"}
 }
 ```
 
@@ -154,9 +114,8 @@ Plugin
     "code": 0,
     "message": "success",
     "data": {
-        "subscription_id": 1,
-        "task_id": 1
-    }
+       "task_id": 415,
+    },
 }
 ```
 
@@ -169,11 +128,10 @@ Plugin
 | result  | bool   | 请求成功与否。true:请求成功；false请求失败 |
 | code    | int    | 错误编码。 0表示success，>0表示失败错误  |
 | message | string | 请求失败返回的错误信息                |
-| data    | object | 请求返回的数据，见data定义            |
+| data    | object | 请求返回的数据                    |
 
-#### data
+##### data
 
-| 字段              | 类型  | 描述   |
-| --------------- | --- | ---- |
-| subscription_id | int | 订阅ID |
-| task_id         | int | 任务ID |
+| 字段      | 类型  | <div style="width: 50pt">必选</div> | 描述   |
+| ------- | --- | --------------------------------- | ---- |
+| task_id | int | 是                                 | 任务ID |
