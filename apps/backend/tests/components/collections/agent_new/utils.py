@@ -295,7 +295,11 @@ class AgentTestObjFactory:
         sub_step_data.update(
             {
                 "subscription_id": self.sub_obj.id,
-                "config": {"job_type": constants.JobType.INSTALL_AGENT},
+                "config": {
+                    "job_type": constants.JobType.INSTALL_AGENT,
+                    "version_map_list": [],
+                    "choice_version_type": "unified",
+                },
             }
         )
         return [sub_step_data]
@@ -370,6 +374,15 @@ class AgentTestObjFactory:
         identity_data_list = self.structure_identity_data_list(host_objs=self.host_objs)
         self.bulk_create_model(model=models.IdentityData, create_data_list=identity_data_list)
         self.identity_data_objs = models.IdentityData.objects.filter(bk_host_id__in=self.bk_host_ids)
+
+    @classmethod
+    def init_gse_package_desc(cls):
+        models.GsePackageDesc.objects.update_or_create(
+            defaults={"description": ""}, project="gse_agent", category="official"
+        )
+        models.GsePackageDesc.objects.update_or_create(
+            defaults={"description": ""}, project="gse_proxy", category="official"
+        )
 
     def init_db(self):
         """

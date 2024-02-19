@@ -34,6 +34,7 @@ class FileSystemTestCase(utils.ProxyBaseTestCase, test_agent.FileSystemTestCase)
             builder.make()
         self.pkg_checker(version_str=utils.VERSION)
         self.template_and_env_checker(version_str=utils.VERSION)
+        self.gse_package_and_desc_records_checker(version_str=utils.VERSION)
 
 
 class BkRepoTestCase(FileSystemTestCase):

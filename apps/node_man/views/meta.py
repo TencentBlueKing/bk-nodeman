@@ -29,6 +29,7 @@ META_VIEW_TAGS = ["meta"]
 class MetaViews(APIViewSet):
     @swagger_auto_schema(
         operation_summary="获取过滤条件",
+        query_serializer=FilterConditionSerializer,
         tags=META_VIEW_TAGS,
         methods=["GET", "POST"],
     )
