@@ -15,7 +15,7 @@ import operator
 from collections import defaultdict
 from dataclasses import asdict
 from functools import cmp_to_key, reduce
-from typing import Any, Dict, List, Set
+from typing import Dict, List, Set
 
 from django.core.cache import caches
 from django.db import transaction
@@ -691,14 +691,14 @@ class SubscriptionViewSet(APIViewSet):
         ap_id_obj_map: Dict[int, models.AccessPoint] = models.AccessPoint.ap_id_obj_map()
         host_ap: models.AccessPoint = ap_id_obj_map[host_ap_id]
 
-        base_agent_setup_info_dict: Dict[str, Any] = asdict(
-            AgentStepAdapter(subscription_step=sub_step_obj, gse_version=host_ap.gse_version).setup_info
+        agent_setup_adapter: AgentStepAdapter = AgentStepAdapter(
+            subscription_step=sub_step_obj, gse_version=host_ap.gse_version
         )
         agent_setup_extra_info_dict = sub_inst.instance_info["host"].get("agent_setup_extra_info") or {}
         installation_tool = gen_commands(
             agent_setup_info=AgentSetupInfo(
                 **{
-                    **base_agent_setup_info_dict,
+                    **asdict(agent_setup_adapter.get_host_setup_info(host)),
                     "force_update_agent_id": agent_setup_extra_info_dict.get("force_update_agent_id", False),
                 }
             ),

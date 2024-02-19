@@ -16,10 +16,13 @@ from django.conf import settings
 from django.db import connection
 from django.utils.translation import ugettext as _
 
-from apps.node_man import constants, models, tools
+from apps.node_man import constants, exceptions, models, tools
 from apps.node_man.handlers.cloud import CloudHandler
 from apps.node_man.handlers.cmdb import CmdbHandler
 from apps.node_man.handlers.install_channel import InstallChannelHandler
+from apps.node_man.models import GsePackages
+from apps.node_man.permissions.package_manage import PackageManagePermission
+from apps.node_man.serializers.package_manage import FilterConditionPackageSerializer
 from apps.node_man.tools import JobTools
 from apps.utils import APIModel
 
@@ -511,6 +514,72 @@ class MetaHandler(APIModel):
             os_type_children.append({"id": os_type, "name": constants.OS_CHN.get(os_type, os_type)})
         return os_type_children
 
+    @staticmethod
+    def fetch_agent_pkg_manager_children(params=None):
+        params = params or {}
+        project = params.get("project", "gse_agent")
+
+        if not PackageManagePermission().has_permission(None, None):
+            raise exceptions.PermissionDeniedError(_("该用户不是管理员"))
+
+        versions, tag_name_2_description, creators, is_readys = set(), dict(), set(), set()
+        gse_packages = FilterConditionPackageSerializer(GsePackages.objects.filter(project=project), many=True).data
+        for p in gse_packages:
+            versions.add(p.get("version"))
+            creators.add(p.get("created_by"))
+            is_readys.add(p.get("is_ready"))
+
+            for parent_tag in p.get("tags"):
+                for child_tag in parent_tag.get("children"):
+                    tag_name_2_description[child_tag.get("name")] = child_tag.get("description")
+
+        return [
+            {
+                "name": _("版本号"),
+                "id": "version",
+                "children": [
+                    {
+                        "id": version,
+                        "name": version,
+                    }
+                    for version in versions
+                ],
+            },
+            {
+                "name": _("标签信息"),
+                "id": "tags",
+                "children": [
+                    {
+                        "id": tag_name,
+                        "name": tag_description,
+                    }
+                    for tag_name, tag_description in tag_name_2_description.items()
+                ],
+            },
+            {
+                "name": _("上传用户"),
+                "id": "creator",
+                "children": [
+                    {
+                        "id": creator,
+                        "name": creator,
+                    }
+                    for creator in creators
+                ],
+            },
+            {
+                "name": _("状态"),
+                "id": "is_ready",
+                "children": [
+                    {
+                        "id": is_ready,
+                        "name": constants.GSE_PACKAGE_ENABLE_ALIAS_MAP.get(is_ready, is_ready),
+                    }
+                    for is_ready in is_readys
+                ],
+            },
+        ]
+
     def filter_condition(self, category, params=None):
         """
         获取过滤条件
@@ -538,6 +607,8 @@ class MetaHandler(APIModel):
         elif category == "os_type":
             ret = self.fetch_os_type_children()
             return ret
+        elif category == "agent_pkg_manage":
+            return self.fetch_agent_pkg_manager_children(params=params)
 
     @staticmethod
     def install_default_values_formatter(install_default_values: Dict[str, Dict[str, Any]]):
