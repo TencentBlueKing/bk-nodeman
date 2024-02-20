@@ -146,7 +146,9 @@ class PackageDescResponseSerializer(serializers.Serializer):
 
 class OperateSerializer(serializers.Serializer):
     is_ready = serializers.BooleanField()
-    tags = serializers.ListField(child=serializers.DictField(), default=[])
+    modify_tags = serializers.ListField(child=serializers.DictField(), default=[])
+    add_tags = serializers.ListField(child=serializers.CharField(), default=[])
+    remove_tags = serializers.ListField(child=serializers.CharField(), default=[])
 
     def update(self, instance, validated_data):
         for attr, value in validated_data.items():
@@ -156,12 +158,20 @@ class OperateSerializer(serializers.Serializer):
         return instance
 
     def validate(self, attrs):
-        for tag_dict in attrs.get("tags", []):
+        for tag_dict in attrs.get("modify_tags", []):
             if "description" not in tag_dict and "name" not in tag_dict:
                 raise ValidationError(_("description和name参数必须同时传入"))
 
             if tag_dict["name"] in BUILT_IN_TAG_NAMES or tag_dict["description"] in BUILT_IN_TAG_DESCRIPTIONS:
                 raise ValidationError(_("内置标签不支持修改，自定义标签的名字不能与内置标签的名字冲突"))
+
+        for tag_description in attrs.get("add_tags", []):
+            if tag_description in BUILT_IN_TAG_DESCRIPTIONS:
+                raise ValidationError(_("自定义标签的名字不能与内置标签的名字冲突"))
+
+        for tag_name in attrs.get("remove_tags", []):
+            if tag_name in BUILT_IN_TAG_NAMES:
+                raise ValidationError(_("内置标签不允许删除"))
 
         return attrs
 

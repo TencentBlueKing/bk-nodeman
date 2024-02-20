@@ -34,7 +34,6 @@ from apps.generic import ValidationMixin
 from apps.node_man import constants, exceptions, models
 from apps.node_man.constants import (
     BUILT_IN_TAG_DESCRIPTIONS,
-    BUILT_IN_TAG_NAMES,
     TAG_DESCRIPTION_MAP,
     TAG_NAME_MAP,
     CategoryType,
@@ -120,24 +119,55 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
         return super().list(request, *args, **kwargs)
 
     def perform_update(self, serializer):
-        """目前标签仅支持name修改对应的description"""
         serializer.save()
 
-        if not serializer.validated_data.get("tags"):
+        if not any(
+            [
+                serializer.validated_data.get("tags"),
+                serializer.validated_data.get("modify_tags"),
+                serializer.validated_data.get("add_tags"),
+            ]
+        ):
             return
 
         instance: GsePackages = self.get_object()
         tags: QuerySet = gse_package_handler.get_tag_objs(instance.project, instance.version)
         tag_name__tag_obj_map: Dict[str, Tag] = {tag.name: tag for tag in tags}
-        tag_names: List[str] = list(tag_name__tag_obj_map.keys())
+        exist_tag_names: List[str] = list(tag_name__tag_obj_map.keys())
+        exist_tag_descriptions = list(tags.values_list("description", flat=True))
 
-        for tag_dict in serializer.validated_data["tags"]:
-            if tag_dict["name"] not in tag_names:
-                Tag.objects.create()
+        # 修改标签
+        for tag_dict in serializer.validated_data["modify_tags"]:
+            if tag_dict["name"] not in exist_tag_names:
+                continue
 
             tag_obj: Tag = tag_name__tag_obj_map[tag_dict["name"]]
             tag_obj.description = tag_dict["description"]
             tag_obj.save(update_fields=["description"])
+
+        # 添加标签
+        for tag_description in serializer.validated_data["add_tags"]:
+            if tag_description in exist_tag_descriptions:
+                continue
+
+            gse_package_desc_obj, _ = GsePackageDesc.objects.get_or_create(
+                project=instance.project, category=CategoryType.official
+            )
+
+            Tag.objects.create(
+                name=GsePackageTools.generate_name_by_description(tag_description),
+                description=tag_description,
+                target_type=TargetType.AGENT.value,
+                target_id=gse_package_desc_obj.id,
+                target_version=instance.version,
+            )
+
+        # 移除标签
+        for tag_name in serializer.validated_data["remove_tags"]:
+            if tag_name not in exist_tag_names:
+                continue
+
+            Tag.objects.filter(name=tag_name).delete()
 
     @swagger_auto_schema(
         operation_summary="操作类动作：启用/停用",
@@ -620,7 +650,7 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
                 project=validated_data["project"], category=CategoryType.official
             )
 
-            if tag_description in BUILT_IN_TAG_NAMES + BUILT_IN_TAG_DESCRIPTIONS:
+            if tag_description in BUILT_IN_TAG_DESCRIPTIONS:
                 # 内置标签，手动指定name和description
                 name: str = TAG_NAME_MAP[tag_description]
                 tag_description: str = TAG_DESCRIPTION_MAP[tag_description]
