@@ -20,5 +20,6 @@ module.exports = {
   rules: {
     '@typescript-eslint/member-ordering': 'off',
     'no-param-reassign': 'off',
+    'vue/camelcase': 'off',
   },
 };
