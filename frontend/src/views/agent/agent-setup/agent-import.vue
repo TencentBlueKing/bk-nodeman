@@ -34,6 +34,7 @@
         <bk-form-item class="mt0 form-item-vertical">
           <InstallTable
             ref="setupTable"
+            :type="type"
             :local-mark="`agent${isManual ? '_manual' : '' }_${type}`"
             :setup-info="setupInfo"
             :is-manual="isManual"
@@ -43,7 +44,8 @@
             :virtual-scroll="true"
             :extra-params="extraParams"
             auto-sort
-            @delete="handleItemDelete">
+            @delete="handleItemDelete"
+            @choose="handleChoose">
             <template #empty>
               <parser-excel v-model="importDialog" @uploading="handleUploading"></parser-excel>
             </template>
@@ -89,6 +91,16 @@
     </section>
     <!--过滤ip信息-->
     <FilterDialog v-model="showFilterDialog" :list="filterList" :title="$t('忽略详情')"></FilterDialog>
+    <!-- agent包版本 -->
+    <ChoosePkgDialog
+      v-model="versionsDialog.show"
+      :type="versionsDialog.type"
+      :title="versionsDialog.title"
+      :version="versionsDialog.version"
+      :os-type="versionsDialog.os_type"
+      :cpu-arch="versionsDialog.cpu_arch"
+      @confirm="versionConfirm"
+      @cancel="versionCancel" />
   </section>
 </template>
 <script lang="ts">
@@ -103,6 +115,7 @@ import mixin from '@/components/common/filter-ip-mixin';
 import FilterDialog from '@/components/common/filter-dialog.vue';
 import ParserExcel from '../components/parser-excel.vue';
 // import getTipsTemplate from '../config/tips-template'
+import ChoosePkgDialog from '../components/choose-pkg-dialog.vue';
 import { tableConfig, parentHead } from '../config/importTableConfig';
 import { editConfig } from '../config/editTableConfig';
 import { addListener, removeListener } from 'resize-detector';
@@ -121,6 +134,7 @@ import { ISetupHead, ISetupRow, ISetupParent } from '@/types';
     FilterDialog,
     Tips,
     FilterIpTips,
+    ChoosePkgDialog,
   },
 })
 
@@ -176,6 +190,16 @@ export default class AgentImport extends Mixins(mixin) {
     editManualConfig: [],
   };
   private isInstallType = ['INSTALL_AGENT', 'REINSTALL_AGENT'].includes(this.type);
+  public versionsDialog = {
+    show: false,
+    type: 'by_system_arch',
+    title: this.$t('选择 Agent 版本'),
+    version: '',
+    os_type: '',
+    cpu_arch: '',
+    row: null as any,
+    instance: null as any,
+  };
 
   // 导入按钮禁用状态
   private get disabledImport() {
@@ -215,7 +239,7 @@ export default class AgentImport extends Mixins(mixin) {
   }
   // 是否是编辑态
   private get isEdit() {
-    return !!(this.tableData && this.tableData.length) || this.isSelectedAllPages;
+    return !!(this.tableData?.length) || this.isSelectedAllPages;
   }
   private get isNotAutoSelect() {
     return AgentStore.apList.length === 1;
@@ -406,6 +430,7 @@ export default class AgentImport extends Mixins(mixin) {
       this.loadingSetupBtn = true;
       this.showFilterTips = false;
       let hosts = this.setupTable.getData();
+      const versionList: { bk_host_id: number; version: string; }[] = [];
       hosts.forEach((item: ISetupRow) => {
         if (isEmpty(item.login_ip)) {
           delete item.login_ip;
@@ -423,6 +448,10 @@ export default class AgentImport extends Mixins(mixin) {
         if (item[authType]) {
           item[authType] = this.$safety.encrypt(item[authType] as string);
         }
+        versionList.push({
+          bk_host_id: item.bk_host_id as number,
+          version: item.version as string,
+        });
       });
       // 安装agent或pagent时，需要设置初始的安装类型
       if (['INSTALL_AGENT', 'REINSTALL_AGENT'].includes(this.type)) {
@@ -433,6 +462,15 @@ export default class AgentImport extends Mixins(mixin) {
         job_type: this.type,
         hosts,
       };
+      // 重装类型因为能拿到bk_host_id,按统一版本
+      if (this.type === 'REINSTALL_AGENT') {
+        Object.assign(params, {
+          agent_setup_info: {
+            'choice_version_type':'by_host',
+            version_map_list: versionList,
+          }
+        });
+      }
       const res = await AgentStore.installAgentJob({
         params,
         config: {
@@ -520,7 +558,11 @@ export default class AgentImport extends Mixins(mixin) {
     const data: ISetupRow[] = deepClone(this.tableDataBackup);
     let apList: IApExpand[] = deepClone(AgentStore.apList);
     if (this.isManual) {
-      this.setupInfo.header = this.isEdit ? getManualConfig(editConfig) : getManualConfig(tableConfig);
+      const configData = this.isEdit ? editConfig : tableConfig;
+      //重装时表格增加agent版本信息
+      this.setupInfo.header = this.type === 'REINSTALL_AGENT' ?
+      configData.filter(item => item.manualProp || item.prop === 'version') :
+      getManualConfig(configData);
       // 手动安装无自动选择
       apList = apList.filter(item => item.id !== -1);
       // 自动接入点改默认接入点
@@ -574,12 +616,40 @@ export default class AgentImport extends Mixins(mixin) {
         .map(item => Object.assign({ ...item }, { show: true }));
     } else {
       this.editTableHead.editConfig = editConfig;
-      this.editTableHead.editManualConfig = getManualConfig(editConfig);
+      //重装时表格增加agent版本信息
+      this.editTableHead.editManualConfig = (this.type === 'REINSTALL_AGENT') ?
+      editConfig.filter(item => item.manualProp || item.prop === 'version') :
+      getManualConfig(editConfig);
     }
   }
   private handleShowPanel() {
     this.setupInfo.data = deepClone(this.setupTable.getData());
     this.showRightPanel = true;
+  }
+  private osMap = {
+    LINUX: 'linux',
+    WINDOWS: 'windows',
+    AIX: 'aix',
+  };
+  // 选择agent版本
+  public handleChoose({ row, instance }: { row: ISetupRow; instance: any; }) {
+    const { version = '', os_type = '' } = row; // , cpu_arch = ''
+    this.versionsDialog.show = true;
+    this.versionsDialog.version = version;
+    this.versionsDialog.os_type = this.osMap[os_type];
+    this.versionsDialog.row = row;
+    this.$nextTick(() => {
+      this.versionsDialog.instance = instance;
+      instance.handleFocus?.();
+    });
+    // this.versionsDialog.cpu_arch = cpu_arch;
+  }
+  public versionConfirm(info: { version: string; }) {
+    this.versionsDialog.row.version = info.version;
+    this.versionCancel();
+  }
+  public versionCancel() {
+    this.versionsDialog.instance?.handleBlur?.();
   }
 }
 </script>
