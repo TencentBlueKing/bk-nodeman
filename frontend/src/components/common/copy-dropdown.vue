@@ -25,22 +25,48 @@
 import { Component, Vue, Prop, Ref } from 'vue-property-decorator';
 import AssociateList, { IAssociateItem } from '@/components/common/associate-list.vue';
 import { asyncCopyText } from '@/common/util';
+import i18n, { TranslateResult } from '@/setup';
+
+interface ICopyItem {
+  id: string;
+  name: TranslateResult;
+  testId: string;
+}
+
+function createItem(type: 'checked' | 'all', ipType: 'IPv4' | 'IPv6', hasCloud = false) {
+  const item: ICopyItem = {
+    id: `${type}_${ipType}`,
+    name: ipType,
+    testId: 'moreItem',
+  };
+  if (hasCloud) {
+    item.id = `${item.id}_cloud`;
+    item.name = i18n.t('管控区域IP复制', [ipType]);
+  }
+  return item;
+}
 
 export const checkedChildList = window.$DHCP
   ? [
-    { id: 'checked_IPv4', name: 'IPv4', testId: 'moreItem' },
-    { id: 'checked_IPv6', name: 'IPv6', testId: 'moreItem' },
+    createItem('checked', 'IPv4'),
+    createItem('checked', 'IPv6'),
+    createItem('checked', 'IPv4', true),
+    createItem('checked', 'IPv6', true),
   ]
   : [
-    { id: 'checked_IPv4', name: 'IPv4', testId: 'moreItem' },
+    createItem('checked', 'IPv4'),
+    createItem('checked', 'IPv4', true),
   ];
 export const allChildList = window.$DHCP
   ? [
-    { id: 'all_IPv4', name: 'IPv4', testId: 'moreItem' },
-    { id: 'all_IPv6', name: 'IPv6', testId: 'moreItem' },
+    createItem('all', 'IPv4'),
+    createItem('all', 'IPv6'),
+    createItem('all', 'IPv4', true),
+    createItem('all', 'IPv6', true),
   ]
   : [
-    { id: 'all_IPv4', name: 'IPv4', testId: 'moreItem' },
+    createItem('all', 'IPv4'),
+    createItem('all', 'IPv4', true),
   ];
 
 @Component({
@@ -53,6 +79,7 @@ export default class CopyDropdown extends Vue {
   @Prop({ type: Boolean, default: false }) protected readonly notSelected!: boolean;
   @Prop({ type: Array, default: () => [] }) protected readonly list!: IAssociateItem[];
   @Prop({ type: Function, required: true }) protected readonly getIps!: (type: string) => Promise<string[]>;
+  @Prop({ type: Boolean, default: true }) protected readonly associateCloud!: boolean;
 
   @Ref('copyIpRef') private readonly copyIpRef!: any;
 
@@ -64,29 +91,37 @@ export default class CopyDropdown extends Vue {
       return this.$DHCP
         ? this.list.map((item => ({
           ...item,
-          child: allChildList.map(child => ({
-            ...child,
-            id: `${item.id}_${child.id}`,
-          })),
+          child: item.child
+            ? this.pickChildren(item.child)
+            : this.pickChildren(allChildList.map(child => ({
+              ...child,
+              id: `${item.id}_${child.id}`,
+            }))),
         }))) : this.list;
     }
     return  [
       {
         id: 'select_IP',
-        name: this.$t('勾选IP'),
+        name: i18n.t('勾选IP'),
         disabled: this.notSelected,
         testId: 'moreItem',
         testKey: 'checkedIp',
-        child: this.$DHCP ? checkedChildList : [],
+        child: this.pickChildren(checkedChildList),
       },
       {
         id: 'all_IP',
-        name: this.$t('所有IP'),
+        name: i18n.t('所有IP'),
         testId: 'moreItem',
         testKey: 'allIp',
-        child: this.$DHCP ? allChildList : [],
+        child: this.pickChildren(allChildList),
       },
     ];
+  }
+
+  public pickChildren(list: ICopyItem[]) {
+    return this.associateCloud
+      ? list
+      : list.filter(child => !child.id.includes('_cloud'));
   }
 
   public handleClick(type: string, item: IAssociateItem) {
@@ -101,7 +136,7 @@ export default class CopyDropdown extends Vue {
       }, () => {
         this.$bkMessage({
           theme: 'success',
-          message: this.$t('复制成功Object', [list.length, type.includes('v6') ? 'IPv6' : 'IPv4']),
+          message: i18n.t('复制成功Object', [list.length, type.includes('v6') ? 'IPv6' : 'IPv4']),
         });
       });
     }

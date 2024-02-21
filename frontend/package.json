@@ -43,7 +43,7 @@
   },
   "dependencies": {
     "@blueking/crypto-js-sdk": "0.0.4",
-    "@blueking/ip-selector": "0.0.1-beta.113",
+    "@blueking/ip-selector": "0.2.0-beta",
     "@blueking/notice-component-vue2": "2.0.2",
     "@blueking/paas-login": "0.0.9",
     "@icon-cool/bk-icon-node-manager": "latest",

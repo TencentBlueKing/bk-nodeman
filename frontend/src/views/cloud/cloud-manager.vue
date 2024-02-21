@@ -654,7 +654,9 @@ export default class CloudManager extends Vue {
     }
   }
   public async handleCopyIp(type: string) {
-    const ipKey = this.$DHCP && type.includes('v6') ? 'innerIpv6' : 'innerIp';
+    const isIPv4 = !this.$DHCP || !type.includes('v6');
+    const ipKey = isIPv4 ? 'innerIp' : 'innerIpv6';
+    const associateCloud = type.includes('cloud');
     const isAll = type.includes('all');
     if (!isAll && !this.hasSelectedRows) return;
     if (isAll && !this.checkableRowsAll) return;
@@ -662,11 +664,16 @@ export default class CloudManager extends Vue {
     const rows = !isAll
       ? this.table.data.filter(item => item.selected)
       : this.table.data.filter(item => !!item.proxyCount);
-    const data: Dictionary[] = [];
+    let data: Dictionary[] = [];
     rows.forEach((item) => {
       data.push(...(item.proxies || []));
     });
-    return Promise.resolve(data.filter(item => item[ipKey]).map(item => item[ipKey]));
+    data = data.filter(item => item[ipKey]);
+    return Promise.resolve(associateCloud
+      ? data.map(proxy => (isIPv4
+        ? `${proxy.bkCloudId}:${proxy[ipKey]}`
+        : `${proxy.bkCloudId}:[${proxy[ipKey]}]`))
+      : data.map(item => item[ipKey]));
   }
   // 表格折叠
   public handleExpandChange(row: ICloudRow) {

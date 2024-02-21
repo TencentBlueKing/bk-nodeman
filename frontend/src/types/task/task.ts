@@ -64,6 +64,9 @@ export interface ITaskParams {
   conditions?: ICondition[]
   instance_id?: string
   instance_id_list?: string[]
+  cloud_id_ip?: {
+    [key: 'ipv6'|'ipv4']: boolean;
+  }
 }
 
 export interface ITotalCount {
