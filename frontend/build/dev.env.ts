@@ -23,7 +23,7 @@ export const proxyTableTarget = localSettings.proxyTableTarget || ''
 // 2. 本地访问host地址 eg: https://dev.xxxxxx-xxx.xx.com
 export const devHost = localSettings.devHost || ''
 
-export const targetSiteUrl = '/o/bk_nodeman'
+export const targetSiteUrl = ''
 const NODE_ENV = JSON.stringify('development')
 
 export default merge<any>(prodEnv, {

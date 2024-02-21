@@ -104,7 +104,7 @@
           <FlexibleTag
             :ref="`flexibleTagRef${$index}`"
             v-if="row.bk_biz_scope && row.bk_biz_scope.length"
-            id-key="bk_biz_name"
+            lable-key="bk_biz_name"
             :list="row.bk_biz_scope">
           </FlexibleTag>
           <span v-else>--</span>
