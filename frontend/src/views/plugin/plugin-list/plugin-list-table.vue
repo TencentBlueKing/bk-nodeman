@@ -183,7 +183,7 @@
         slot="empty"
         :delay="tableLoading"
         :type="tableEmptyType"
-        @empty-clear="emptySearchClear"
+        @empty-clear="emptySearchClear()"
         @empty-refresh="emptyRefresh" />
     </bk-table>
     <node-detail-slider
