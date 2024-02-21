@@ -6,11 +6,17 @@ import { listAp } from '@/api/modules/ap';
 import { listCloud } from '@/api/modules/cloud';
 import { getFilterCondition } from '@/api/modules/meta';
 import { fetchPwd } from '@/api/modules/tjj';
+import {
+  createAgentRegisterTask, createAgentTags, deletePackage,
+  getDeployedHostsCount, getTags, listPackage, parsePackage,
+  queryAgentRegisterTask, quickSearchCondition, updatePackage,
+} from '@/api/modules/pkg_manage';
 import { sort } from '@/common/util';
-import { ISearchChild, ISearchItem } from '@/types';
+import { Mixin, ISearchChild, ISearchItem } from '@/types';
 import { IAgentSearch, IAgentSearchIp, IAgentJob, IAgentHost } from '@/types/agent/agent-type';
 import { IAp } from '@/types/config/config';
 import { IChannel, ICloudSource } from '@/types/cloud/cloud';
+import { IPkgDelpyNumber, IPkgDimension, IPkgInfo, IPkgTagList, IpkgParseInfo, PkgType } from '@/types/agent/pkg-manage';
 
 export const SET_AP_LIST = 'setApList';
 export const SET_CLOUD_LIST = 'setCloudList';
@@ -236,5 +242,66 @@ export default class AgentStore extends VuexModule {
       apUrl = filterAp.map((item: any) => item[urlType]).join(', ');
     }
     this[UPDATE_AP_URL](apUrl);
+  }
+
+  // agent包管理
+  @Action
+  public apiPkgList(param: IPkgParams): Promise<{ total: number; list: IPkgInfo[] }> {
+    return listPackage(param).catch(() => ({}));
+  }
+  @Action
+  public apiPkgFilterCondtion(param: { category: 'agent_pkg_manage'; project?: PkgType }): Promise<ISearchItem[]> {
+    return getFilterCondition(param).catch(() => []);
+  }
+  @Action
+  public apiPkgQuickSearch(param): Promise<IPkgDimension[]> {
+    return quickSearchCondition(param).catch(() => []);
+  }
+  @Action
+  public apiPkgUpdateStatus({ id, is_ready }: { id: string|number; is_ready: boolean; }): Promise<IPkgInfo> {
+    return updatePackage(id, { is_ready }).catch(() => {});
+  }
+  @Action
+  public apiPkgDelete(id: number): Promise<boolean> {
+    return deletePackage(`${id}`).catch(() => false);
+  }
+  @Action
+  public apiPkgParse(param: { file_name: string }): Promise<{
+    description: string;
+    packages: IpkgParseInfo[]
+  } | false> {
+    return parsePackage(param).catch(() => false);
+  }
+  @Action
+  public apiPkgRegister(param: { file_name: string; tags: string[] }): Promise<{ task_id: string }> {
+    return createAgentRegisterTask(param).catch(() => false);
+  }
+  /**
+   * 查询注册任务状态
+   */
+  @Action
+  public apiPkgRegisterQuery(param: { task_id: string }): Promise<{ status: 'PENDING'|'SUCCESS'|'FAILURE'; task_id: string }> {
+    return queryAgentRegisterTask(param).catch(() => ({ status: 'FAILURE' }));
+  }
+  @Action
+  public apiPkgHostsCount(param: {
+    project: PkgType,
+    items: IPkgDelpyNumber[]
+  }): Promise<Mixin<IPkgDelpyNumber, { count: number }>[]> {
+    return getDeployedHostsCount(param).catch(() => []);
+  }
+  @Action
+  public apiPkgGetTags(param: { project: PkgType; tag_description?: string; }): Promise<IPkgTagList[]> {
+    return getTags(param).catch(() => []);
+  }
+  @Action
+  public apiPkgCreateTags(param: {
+    project: PkgType;
+    tags: {
+      name: string;
+      description: string;
+    }[];
+  }): Promise<IPkgTag[] | false> {
+    return createAgentTags(param).catch(() => false);
   }
 }
