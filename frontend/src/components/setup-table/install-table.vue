@@ -163,6 +163,7 @@
                     @focus="handleCellFocus(arguments, { row, config, rowIndex, colIndex })"
                     @blur="handleCellBlur(arguments, { row, config, rowIndex, colIndex })"
                     @input="handleCellValueInput(arguments, row, config)"
+                    @choose="handleCellChoose(arguments, { row, config, rowIndex, colIndex })"
                     @change="handleCellValueChange(row, config)"
                     @upload-change="handleCellUploadChange($event, row)">
                   </InstallInputType>
@@ -245,6 +246,7 @@ export default class SetupTable extends Vue {
   @Prop({ type: Array }) private readonly aps!: IAp[];
   @Prop({ type: Array }) private readonly clouds!: ICloudSource[];
   @Prop() private readonly arbitrary!: any; // 可以是任意值, 用来在config文件里做为必要的一些参数
+  @Prop({ type: String, default: '' }) private readonly type!: string;
 
   @Ref('tableBody') private readonly tableBody!: any;
   @Ref('scrollPlace') private readonly scrollPlace!: any;
@@ -496,6 +498,12 @@ export default class SetupTable extends Vue {
       return config.getProxyStatus.call(this, row);
     }
     return '';
+  }
+  @Emit('choose')
+  private handleCellChoose(arg: any[], bb: { row: ISetupRow }) {
+    const [param] = arg;
+    const { row } = bb;
+    return { instance: param.instance, row };
   }
   private rootScroll() {
     if (!this.virtualScroll) return;

@@ -16,6 +16,7 @@ $defaultFontColor: #63656e;
 $primaryFontColor: #3a84ff;
 $fontColor: #7b7d8a;
 $fontWeightColor: #737987;
+$fontTitleColor: #313238;
 
 /* 主体 icon 颜色 */
 $iconPrimaryColor: #3c96ff;
@@ -47,6 +48,7 @@ $bgWarning: #ff9c01;
 $bgSuccess: #2dcb56;
 $bgFailed: #ea3636;
 $titleColor: #313238;
+$bgOptHover: #e1ecff;
 
 /* 白色 */
 $whiteColor: #fff;
