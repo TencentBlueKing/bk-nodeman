@@ -1,4 +1,4 @@
-import Vue from 'vue';
+import Vue, { VNode } from 'vue';
 import { TranslateResult } from 'vue-i18n';
 import 'vue-router';
 import { INodemanHttp } from './types';
@@ -24,6 +24,7 @@ declare module 'vue/types/vue' {
     messageInfo: (message: string, delay?: number) => {}
     $bkInfo: (options: {
       title: string | TranslateResult
+      subHeader?: string | TranslateResult | VNode
       subTitle?: string | TranslateResult
       width?: number | string
       type?: string,
