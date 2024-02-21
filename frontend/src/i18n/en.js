@@ -14,6 +14,7 @@ export const nav = {
   // Agent
   nav_节点管理: 'Node Management',
   nav_Agent状态: 'Agent Status',
+  nav_Agent包管理: 'Agent Package',
   nav_Excel导入安装: 'Excel Import',
   nav_重装Agent: 'Reinstall Agent',
   nav_重载Agent配置: 'Reload Agent Config',
