@@ -83,8 +83,9 @@
           <ul class="bk-dropdown-list" slot="dropdown-content">
             <template v-for="item in operate">
               <li v-if="!item.single" :key="item.id" :class="{ 'disabled': getBatchMenuStaus(item) }">
-                <a @click.prevent="!getBatchMenuStaus(item) && triggerHandler({ type: item.id })"
-                   v-test.common="`moreItem.${item.id}`">
+                <a
+                  @click.prevent="!getBatchMenuStaus(item) && triggerHandler({ type: item.id })"
+                  v-test.common="`moreItem.${item.id}`">
                   {{ item.name }}
                 </a>
               </li>
@@ -1476,15 +1477,27 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
    * 复制 IP
    */
   private async handleCopyIp(type: string) {
-    const key = this.$DHCP && type.includes('v6') ? 'inner_ipv6' : 'inner_ip';
-    let list = this.selection.filter(item => item[key]).map(item => item[key]);
+    const isIPv4 = !this.$DHCP || !type.includes('v6');
+    const ipKey = isIPv4 ? 'inner_ip' : 'inner_ipv6';
+    const associateCloud = type.includes('cloud');
+    const rows = this.selection.filter(item => item[ipKey]);
+    let list = associateCloud
+      ? rows.map(item => (isIPv4
+        ? `${item.bk_cloud_id}:${item[ipKey]}`
+        : `${item.bk_cloud_id}:[${item[ipKey]}]`))
+      : rows.map(item => item[ipKey]);
     const isAll = type.includes('all');
     if (isAll || this.isSelectedAllPages) {
       const params: IAgent = {
         pagesize: -1,
         only_ip: true,
-        return_field: key,
+        return_field: ipKey,
       };
+      if (associateCloud) {
+        params.cloud_id_ip = {
+          [ipKey.includes('v6') ? 'ipv6' : 'ipv4']: true,
+        };
+      }
       if (this.isSelectedAllPages && !isAll && this.markDeleteArr.length) {
         params.exclude_hosts = this.markDeleteArr.map(item => item.bk_host_id);
       }

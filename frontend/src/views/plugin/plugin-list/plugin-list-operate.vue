@@ -207,8 +207,14 @@ export default class PluginListOperate extends Mixins(HeaderFilterMixins) {
   }
 
   private async handleCopyIp(type: string) {
-    const key = this.$DHCP && type.includes('v6') ? 'inner_ipv6' : 'inner_ip';
-    let list = this.selections.filter(item => item[key]).map(item => item[key]);
+    const isIPv4 = !this.$DHCP || !type.includes('v6');
+    const ipKey = isIPv4 ? 'inner_ip' : 'inner_ipv6';
+    const associateCloud = type.includes('cloud');
+    const rows = this.selections.filter(item => item[ipKey]);
+    console.log(ipKey);
+    let list = associateCloud
+      ? rows.map(item => (isIPv4 ? `${item.bk_cloud_id}:${item[ipKey]}` : `${item.bk_cloud_id}:[${item[ipKey]}]`))
+      : rows.map(item => item[ipKey]);
     const isAll = type.includes('all');
     const isSelectedAllPages = this.checkType !== 'current';
     if (isAll || isSelectedAllPages) {
@@ -219,12 +225,18 @@ export default class PluginListOperate extends Mixins(HeaderFilterMixins) {
         'only_ip': boolean
         'bk_biz_id'?: number[]
         'return_field': string
+        'cloud_id_ip'?: { [key: string]: boolean }
       } = {
         pagesize: -1,
         conditions: (this.$parent as PluginList).getConditions(!isAll ? 'operate' : 'load'),
         only_ip: true,
-        return_field: key,
+        return_field: ipKey,
       };
+      if (associateCloud) {
+        params.cloud_id_ip = {
+          [ipKey.includes('v6') ? 'ipv6' : 'ipv4']: true,
+        };
+      }
       if (!isAll && this.excludeData.length) {
         params.exclude_hosts = this.excludeData.map(item => item.bk_host_id);
       }
