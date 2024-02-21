@@ -383,12 +383,14 @@ export default class CloudDetailTable extends Vue {
     return (this.authority.proxy_operate || []).map(item => item.bk_biz_id);
   }
   protected get copyMenu() {
-    return allChildList.map(item => ({
-      ...item,
-      disabled: item.id.includes('v6')
-        ? !this.proxyData.some(proxy => proxy.inner_ipv6)
-        : !this.proxyData.some(proxy => proxy.inner_ip),
-    }));
+    return allChildList.filter(item => !item.id.includes('cloud'))
+      .map(item => ({
+        ...item,
+        disabled: item.id.includes('v6')
+          ? !this.proxyData.some(proxy => proxy.inner_ipv6)
+          : !this.proxyData.some(proxy => proxy.inner_ip),
+        child: allChildList.filter(child => child.id.includes(item.id)),
+      }));
   }
   private get innerIPv6Width() {
     return this.proxyData.some(row => !!row.inner_ipv6) ? 270 : 100;
@@ -648,8 +650,13 @@ export default class CloudDetailTable extends Vue {
   }
   // 复制proxyIP
   public handleCopyIp(type: string) {
-    const ipKey = this.$DHCP && type.includes('v6') ? 'inner_ipv6' : 'inner_ip';
-    return Promise.resolve(this.proxyData.filter(proxy => proxy[ipKey]).map(proxy => proxy[ipKey]));
+    const isIPv4 = !this.$DHCP || !type.includes('v6');
+    const ipKey = isIPv4 ? 'inner_ip' : 'inner_ipv6';
+    const associateCloud = type.includes('cloud');
+    const rows = this.proxyData.filter(proxy => proxy[ipKey]);
+    return Promise.resolve(associateCloud
+      ? rows.map(proxy => (isIPv4 ? `${proxy.bk_cloud_id}:${proxy[ipKey]}` : `${proxy.bk_cloud_id}:[${proxy[ipKey]}]`))
+      : rows.map(proxy => proxy[ipKey]));
   }
 }
 </script>

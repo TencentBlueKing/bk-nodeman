@@ -1,4 +1,5 @@
 import Vue from 'vue';
+import type { TranslateResult } from 'vue-i18n';
 import { i18n } from './i18n-setup';
 import './global-components-setup';
 import './global';
@@ -17,4 +18,5 @@ Vue.prototype.$textTool = textTool;
 Vue.prototype.$setIpProp = setIpProp;
 Vue.prototype.$initIpProp = initIpProp;
 
+export { TranslateResult };
 export default i18n;
