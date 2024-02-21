@@ -351,6 +351,9 @@
           :min-width="columnMinWidth['agent_version']"
           :render-header="renderFilterHeader"
           v-if="filter['agent_version'].mockChecked">
+          <template #default="{ row }">
+            {{ row.version | filterEmpty }}
+          </template>
         </NmColumn>
         <NmColumn
           key="is_manual"
@@ -1112,8 +1115,9 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
   private initRouterQuery() {
     // this.search.biz = this.bk_biz_id.length ? [...this.bk_biz_id] : this.selectedBiz;
     const searchParams: ISearchItem[] = [];
-    const { cloud } = this.$route.params;
+    const { cloud, os_type, version } = this.$route.params;
     this.getFilterCondition().then((data) => {
+      this.filterData = data;
       if (cloud) {
         searchParams.push({
           name: this.filter.bk_cloud_id.name,
@@ -1144,6 +1148,26 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
             id: 'agent_status',
             name: this.filter.agent_status.name,
             values: statusArr,
+          });
+        }
+      }
+      if (os_type) {
+        const child = data.find(item => item.id === 'os_type');
+        if (child) {
+          searchParams.push({
+            id: child.id,
+            name: child.name,
+            values: [{ checked: true, id: os_type.toUpperCase(), name: os_type }],
+          });
+        }
+      }
+      if (version) {
+        const child = data.find(item => item.id === 'version');
+        if (child) {
+          searchParams.push({
+            id: child.id,
+            name: child.name,
+            values: [{ checked: true, id: version, name: version }],
           });
         }
       }
