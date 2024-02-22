@@ -34,6 +34,7 @@ from apps.generic import ValidationMixin
 from apps.node_man import constants, exceptions, models
 from apps.node_man.constants import (
     BUILT_IN_TAG_DESCRIPTIONS,
+    BUILT_IN_TAG_NAMES,
     TAG_DESCRIPTION_MAP,
     TAG_NAME_MAP,
     CategoryType,
@@ -53,12 +54,20 @@ PACKAGE_DES_VIEW_TAGS = ["PKG_Desc"]
 logger = logging.getLogger("app")
 
 
+class BooleanInFilter(django_filters.BaseInFilter):
+    def filter(self, qs, value):
+        if not value:
+            return qs
+        bool_values = [v.capitalize() for v in value]
+        return super().filter(qs, bool_values)
+
+
 class GsePackageFilter(FilterSet):
     os = django_filters.BaseInFilter(field_name="os", lookup_expr="in")
     cpu_arch = django_filters.BaseInFilter(field_name="cpu_arch", lookup_expr="in")
     tag_names = django_filters.BaseInFilter(lookup_expr="in", method="filter_tag_names")
     created_by = django_filters.BaseInFilter(field_name="created_by", lookup_expr="in")
-    is_ready = django_filters.BaseInFilter(field_name="is_ready", lookup_expr="in")
+    is_ready = BooleanInFilter(field_name="is_ready", lookup_expr="in")
     version = django_filters.BaseInFilter(field_name="version", lookup_expr="in")
     created_time = django_filters.DateTimeFromToRangeFilter()
 
@@ -204,6 +213,11 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
     )
     def destroy(self, request, *args, **kwargs):
         # todo: 前端要求返回不为空
+        gse_package_obj: GsePackages = self.get_object()
+
+        if GsePackages.objects.filter(version=gse_package_obj.version).count() == 1:
+            Tag.objects.filter(target_version=gse_package_obj.version).update(target_version=None)
+
         super(PackageManageViewSet, self).destroy(request, *args, **kwargs)
         return Response(data=[])
 
@@ -471,7 +485,7 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
         tags=PACKAGE_MANAGE_VIEW_TAGS,
         responses={HTTP_200_OK: pkg_manage.PackageDescResponseSerializer},
     )
-    @action(detail=False, methods=["GET"])
+    @action(detail=False, methods=["GET"], serializer_class=pkg_manage.VersionQuerySerializer)
     def version(self, request):
         """
         return: {
@@ -496,11 +510,19 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
             ],
         }
         """
-        gse_packages: QuerySet = self.filter_queryset(self.get_queryset()).values("version", "project", "pkg_name")
+        validated_data = self.validated_data
+
+        gse_packages: QuerySet = (
+            self.get_queryset()
+            .filter(project=validated_data["project"])
+            .values("version", "project", "pkg_name", "os", "cpu_arch")
+        )
 
         version__pkg_version_map: Dict[str, Dict[str, Any]] = {}
+        version__os_cpu_arch_list_map: Dict[str, List[str]] = defaultdict(list)
         for package in gse_packages:
             version, project, pkg_name = package["version"], package["project"], package.pop("pkg_name")
+            version__os_cpu_arch_list_map[version].append(f'{package["os"]}_{package["cpu_arch"]}')
             tags: List[Dict[str, Any]] = gse_package_handler.get_tags(
                 version=version,
                 project=project,
@@ -517,6 +539,7 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
                     "project": project,
                     "packages": [],
                     "tags": tags,
+                    "description": gse_package_handler.get_description(project=project, use_cache=True),
                 }
 
             # 添加小包包名和小包标签信息
@@ -526,6 +549,13 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
             common_tags: List[Dict[str, Any]] = version__pkg_version_map[version]["tags"]
             if common_tags != tags:
                 version__pkg_version_map[version]["tags"] = [tag for tag in common_tags if tag in tags]
+
+        if "os_cpu_arch" in validated_data:
+            version__pkg_version_map = {
+                version: pkg
+                for version, pkg in version__pkg_version_map.items()
+                if validated_data["os_cpu_arch"] in version__os_cpu_arch_list_map.get(version, [])
+            }
 
         return Response(list(version__pkg_version_map.values()))
 
@@ -650,7 +680,7 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
                 project=validated_data["project"], category=CategoryType.official
             )
 
-            if tag_description in BUILT_IN_TAG_DESCRIPTIONS:
+            if tag_description in BUILT_IN_TAG_NAMES + BUILT_IN_TAG_DESCRIPTIONS:
                 # 内置标签，手动指定name和description
                 name: str = TAG_NAME_MAP[tag_description]
                 tag_description: str = TAG_DESCRIPTION_MAP[tag_description]

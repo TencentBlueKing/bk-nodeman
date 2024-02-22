@@ -262,3 +262,8 @@ class AgentRegisterTaskResponseSerializer(serializers.Serializer):
 class DeployedAgentCountSerializer(serializers.Serializer):
     items = serializers.JSONField(default=[])
     project = serializers.CharField(default=GsePackageCode.AGENT.value)
+
+
+class VersionQuerySerializer(serializers.Serializer):
+    os_cpu_arch = serializers.CharField(required=False)
+    project = serializers.CharField()
