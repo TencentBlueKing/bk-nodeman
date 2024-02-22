@@ -36,7 +36,7 @@
    * 根据不同的网络场景，酌情选择以下对应的配置模板
      * 请注意: `nginx` 对于 ``ipv4`` 与 ``ipv6`` 的端口监听配置是不同的，配置项 `listen` 需要根据实际情况进行配置 
      * 请注意: `nginx` 对于 ``ipv4`` 与 ``ipv6`` 的上游地址配置方式是不同的，配置项 `upstream` 中的上游地址 `proxy` 需要根据上游实际地址进行配置, 
-如果上游地址为``ipv6``主机时，以下模板二中的``upstream proxy`` 配置项请调整为 `[::ip]:17981;`，其中`::ip` 代表实际的 `ipv6` 地址 
+     如果上游地址为``ipv6``主机时，以下模板二中的``upstream proxy`` 配置项请调整为 `[::ip]:17981;`，其中`::ip` 代表实际的 `ipv6` 地址 
      * 模板一: 常规通道主机`nginx`配置模板
          ```nginx
          events {
@@ -51,7 +51,7 @@
                  listen [::]:17980;
                  server_name localhost;
                  root /data/bkee/public/bknodeman/download;
-
+         
                  location / {
                      index index.html;
                  }
@@ -88,7 +88,7 @@
                listen [::]:17980;
                server_name localhost;
                root /data/bkee/public/bknodeman/download;
-
+       
                location / {
                    index index.html;
                }
@@ -163,3 +163,12 @@
     ```bash
     tar xvf /data/bkee/public/bknodeman/download/py36.tgz -C /opt
     ```
+
+### 页面填写
+
+完成上述步骤后，需要根据配置项填写安装通道信息
+
+1. 上游节点中填写对应的GSE IP
+2. 通道上游节点需要依照nginx配置文件填写
+    - 当使用模板一时，无需填写
+    - 当使用模板二时，需要与`upstream proxy`中的配置一致，填写相应的上游IP和nginx监听转发的端口，如`10.0.0.1:17981`
