@@ -1181,3 +1181,4 @@ TAG_DESCRIPTION_MAP = {
     "最新版本": _("最新版本"),
     "测试版本": _("测试版本"),
 }
+STABLE_DESCRIPTION = _("稳定版本")

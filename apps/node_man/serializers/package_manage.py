@@ -265,5 +265,6 @@ class DeployedAgentCountSerializer(serializers.Serializer):
 
 
 class VersionQuerySerializer(serializers.Serializer):
-    os_cpu_arch = serializers.CharField(required=False)
     project = serializers.CharField()
+    os = serializers.CharField(required=False)
+    cpu_arch = serializers.CharField(required=False)

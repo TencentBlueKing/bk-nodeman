@@ -35,6 +35,7 @@ from apps.node_man import constants, exceptions, models
 from apps.node_man.constants import (
     BUILT_IN_TAG_DESCRIPTIONS,
     BUILT_IN_TAG_NAMES,
+    STABLE_DESCRIPTION,
     TAG_DESCRIPTION_MAP,
     TAG_NAME_MAP,
     CategoryType,
@@ -518,11 +519,10 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
             .values("version", "project", "pkg_name", "os", "cpu_arch")
         )
 
-        version__pkg_version_map: Dict[str, Dict[str, Any]] = {}
-        version__os_cpu_arch_list_map: Dict[str, List[str]] = defaultdict(list)
+        version__pkg_version_info_map: Dict[str, Dict[str, Any]] = {}
+        default_version = ""
         for package in gse_packages:
             version, project, pkg_name = package["version"], package["project"], package.pop("pkg_name")
-            version__os_cpu_arch_list_map[version].append(f'{package["os"]}_{package["cpu_arch"]}')
             tags: List[Dict[str, Any]] = gse_package_handler.get_tags(
                 version=version,
                 project=project,
@@ -532,9 +532,12 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
                 get_template_tags=False,
             )
 
-            if version not in version__pkg_version_map:
+            if not default_version and any(tag["description"] == STABLE_DESCRIPTION for tag in tags):
+                default_version = version
+
+            if version not in version__pkg_version_info_map:
                 # 初始化某个版本的包
-                version__pkg_version_map[version] = {
+                version__pkg_version_info_map[version] = {
                     "version": version,
                     "project": project,
                     "packages": [],
@@ -543,21 +546,32 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
                 }
 
             # 添加小包包名和小包标签信息
-            version__pkg_version_map[version]["packages"].append({"pkg_name": pkg_name, "tags": tags})
+            version__pkg_version_info_map[version]["packages"].append(
+                {"pkg_name": pkg_name, "tags": tags, "os": package["os"], "cpu_arch": package["cpu_arch"]}
+            )
 
             # 聚合小包之间的共同标签
-            common_tags: List[Dict[str, Any]] = version__pkg_version_map[version]["tags"]
+            common_tags: List[Dict[str, Any]] = version__pkg_version_info_map[version]["tags"]
             if common_tags != tags:
-                version__pkg_version_map[version]["tags"] = [tag for tag in common_tags if tag in tags]
+                version__pkg_version_info_map[version]["tags"] = [tag for tag in common_tags if tag in tags]
 
-        if "os_cpu_arch" in validated_data:
-            version__pkg_version_map = {
-                version: pkg
-                for version, pkg in version__pkg_version_map.items()
-                if validated_data["os_cpu_arch"] in version__os_cpu_arch_list_map.get(version, [])
+        # 筛选
+        filter_keys = [key for key in ["os", "cpu_arch"] if key in validated_data]
+        version__pkg_version_info_map = {
+            version: pkg_version_info
+            for version, pkg_version_info in version__pkg_version_info_map.items()
+            if any(
+                all(validated_data[key] == package.get(key) for key in filter_keys)
+                for package in pkg_version_info["packages"]
+            )
+        }
+
+        return Response(
+            {
+                "default_version": default_version,
+                "pkg_info": list(version__pkg_version_info_map.values()),
             }
-
-        return Response(list(version__pkg_version_map.values()))
+        )
 
     @swagger_auto_schema(
         operation_summary="获取已部署主机数量",
