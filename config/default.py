@@ -262,6 +262,7 @@ CELERY_IMPORTS = (
     "apps.node_man.periodic_tasks",
     # 避免 subscription.tools 循环导入，故单独引入
     "apps.node_man.periodic_tasks.add_biz_to_gse2_gray_scope",
+    "apps.node_man.periodic_tasks.register_gse_package",
 )
 
 BK_NODEMAN_CELERY_RESULT_BACKEND_BROKER_URL = "amqp://{user}:{passwd}@{host}:{port}/{vhost}".format(
@@ -819,6 +820,8 @@ VERSION_LOG = {"MD_FILES_DIR": os.path.join(PROJECT_ROOT, "release"), "LANGUAGE_
 # 自定义上报监控配置
 if env.BKAPP_MONITOR_REPORTER_ENABLE:
     monitor_report_config()
+
+DRF_CROWN_DEFAULT_CONFIG = {"remain_request": True}
 
 # remove disabled apps
 if locals().get("DISABLED_APPS"):

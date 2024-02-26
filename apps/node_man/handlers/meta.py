@@ -10,16 +10,19 @@ specific language governing permissions and limitations under the License.
 """
 import re
 from collections import ChainMap
-from typing import Any, Callable, Dict, Tuple
+from typing import Any, Callable, Dict, List, Tuple
 
 from django.conf import settings
 from django.db import connection
 from django.utils.translation import ugettext as _
 
-from apps.node_man import constants, models, tools
+from apps.node_man import constants, exceptions, models, tools
 from apps.node_man.handlers.cloud import CloudHandler
 from apps.node_man.handlers.cmdb import CmdbHandler
+from apps.node_man.handlers.gse_package import gse_package_handler
 from apps.node_man.handlers.install_channel import InstallChannelHandler
+from apps.node_man.models import GsePackages
+from apps.node_man.permissions.package_manage import PackageManagePermission
 from apps.node_man.tools import JobTools
 from apps.utils import APIModel
 
@@ -511,6 +514,84 @@ class MetaHandler(APIModel):
             os_type_children.append({"id": os_type, "name": constants.OS_CHN.get(os_type, os_type)})
         return os_type_children
 
+    @staticmethod
+    def fetch_agent_pkg_manager_children(params=None):
+        params: Dict[str, Any] = params or {}
+        project: str = params.get("project", "gse_agent")
+
+        if not PackageManagePermission().has_permission(None, None):
+            raise exceptions.PermissionDeniedError(_("该用户不是管理员"))
+
+        versions, tag_description__name_map, creators, is_readys = set(), dict(), set(), set()
+        gse_packages = GsePackages.objects.filter(project=project).values("version", "created_by", "is_ready")
+        for p in gse_packages:
+            tags: List[Dict[str, Any]] = gse_package_handler.get_tags(
+                version=p["version"],
+                project=project,
+                to_top=True,
+                use_cache=True,
+                unique=True,
+                get_template_tags=True,
+            )
+            versions.add(p["version"])
+            creators.add(p["created_by"])
+            is_readys.add(p["is_ready"])
+
+            for t in tags:
+                description, name = t.get("description", ""), t.get("name", "")
+                if description in tag_description__name_map and len(name) > len(tag_description__name_map[description]):
+                    # 取模板标签，模板标签的name长度最小，实例标签为{{ 模板标签 }}_{{ target_version }}
+                    continue
+
+                tag_description__name_map[description] = name
+
+        return [
+            {
+                "name": _("版本号"),
+                "id": "version",
+                "children": [
+                    {
+                        "id": version,
+                        "name": version,
+                    }
+                    for version in versions
+                ],
+            },
+            {
+                "name": _("标签信息"),
+                "id": "tag_names",
+                "children": [
+                    {
+                        "id": tag_name,
+                        "name": tag_description,
+                    }
+                    for tag_description, tag_name in tag_description__name_map.items()
+                ],
+            },
+            {
+                "name": _("上传用户"),
+                "id": "creator",
+                "children": [
+                    {
+                        "id": creator,
+                        "name": creator,
+                    }
+                    for creator in creators
+                ],
+            },
+            {
+                "name": _("状态"),
+                "id": "is_ready",
+                "children": [
+                    {
+                        "id": is_ready,
+                        "name": constants.GSE_PACKAGE_ENABLE_ALIAS_MAP.get(is_ready, is_ready),
+                    }
+                    for is_ready in is_readys
+                ],
+            },
+        ]
+
     def filter_condition(self, category, params=None):
         """
         获取过滤条件
@@ -538,6 +619,8 @@ class MetaHandler(APIModel):
         elif category == "os_type":
             ret = self.fetch_os_type_children()
             return ret
+        elif category == "agent_pkg_manage":
+            return self.fetch_agent_pkg_manager_children(params=params)
 
     @staticmethod
     def install_default_values_formatter(install_default_values: Dict[str, Dict[str, Any]]):

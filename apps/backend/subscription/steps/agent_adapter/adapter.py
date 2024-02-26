@@ -18,7 +18,8 @@ from rest_framework import serializers
 
 from apps.backend.agent.tools import fetch_proxies
 from apps.backend.constants import ProxyConfigFile
-from apps.core.tag.constants import AGENT_NAME_TARGET_ID_MAP, TargetType
+from apps.backend.subscription import errors
+from apps.core.tag.constants import TargetType
 from apps.core.tag.targets import get_target_helper
 from apps.node_man import constants, models
 from apps.utils import cache
@@ -34,11 +35,21 @@ logger = logging.getLogger("app")
 LEGACY = "legacy"
 
 
+class AgentVersionSerializer(serializers.Serializer):
+    os_cpu_arch = serializers.CharField(label="系统CPU架构", required=False)
+    bk_host_id = serializers.IntegerField(label="主机ID", required=False)
+    version = serializers.CharField(label="Agent Version")
+
+
 class AgentStepConfigSerializer(serializers.Serializer):
     name = serializers.CharField(required=False, label="构件名称")
     # LEGACY 表示旧版本 Agent，仅做兼容
     version = serializers.CharField(required=False, label="构件版本", default=LEGACY)
     job_type = serializers.ChoiceField(required=True, choices=constants.JOB_TUPLE)
+    choice_version_type = serializers.ChoiceField(
+        required=False, choices=constants.AgentVersionType.list_choices(), label="选择Agent Version类型"
+    )
+    version_map_list = AgentVersionSerializer(many=True)
 
 
 @dataclass
@@ -57,6 +68,9 @@ class AgentStepAdapter:
     log_prefix: str = field(init=False)
     # 配置处理模块缓存
     _config_handler_cache: typing.Dict[str, GseConfigHandler] = field(init=False)
+    _setup_info_cache: typing.Dict[str, base.AgentSetupInfo] = field(init=False)
+    _target_version_cache: typing.Dict[str, str] = field(init=False)
+    agent_name: str = field(init=False)
 
     def __post_init__(self):
         self.is_legacy = self.gse_version == GseVersion.V1.value
@@ -64,6 +78,9 @@ class AgentStepAdapter:
             f"[{self.__class__.__name__}({self.subscription_step.step_id})] | {self.subscription_step} |"
         )
         self._config_handler_cache: typing.Dict[str, GseConfigHandler] = {}
+        self._setup_info_cache: typing.Dict[str, base.AgentSetupInfo] = {}
+        self._target_version_cache: typing.Dict[str, str] = {}
+        self.agent_name = self.config.get("name")
 
     def get_config_handler(self, agent_name: str, target_version: str) -> GseConfigHandler:
 
@@ -104,11 +121,12 @@ class AgentStepAdapter:
         install_channel: typing.Tuple[typing.Optional[models.Host], typing.Dict[str, typing.List]],
         target_version: typing.Optional[typing.Dict[int, str]] = None,
     ) -> str:
-        agent_setup_info: base.AgentSetupInfo = self.setup_info
+        agent_setup_info: base.AgentSetupInfo = self.get_host_setup_info(host)
         # 目标版本优先使用传入版本，传入版本必不会是标签所以可直接使用
         config_handler: GseConfigHandler = self.get_config_handler(
             agent_setup_info.name, target_version or agent_setup_info.version
         )
+
         config_tmpl_obj: base.AgentConfigTemplate = config_handler.get_matching_config_tmpl(
             os_type=host.os_type,
             cpu_arch=host.cpu_arch,
@@ -168,29 +186,65 @@ class AgentStepAdapter:
 
     @property
     @cache.class_member_cache()
-    def setup_info(self) -> base.AgentSetupInfo:
+    def bk_host_id_version_map(self) -> typing.Dict[int, str]:
+        return {versiom_map["bk_host_id"]: versiom_map["version"] for versiom_map in self.config["version_map_list"]}
+
+    def get_host_setup_info(self, host: models.Host) -> base.AgentSetupInfo:
         """
         获取 Agent 设置信息
-        TODO 后续如需支持多版本，该方法改造为 `get_host_setup_info`，根据维度进行缓存，参考 _config_handler_cache
         :return:
         """
         # 如果版本号匹配到标签名称，取对应标签下的真实版本号，否则取原来的版本号
-        agent_name: typing.Optional[str] = self.config.get("name")
-        if agent_name not in AGENT_NAME_TARGET_ID_MAP:
-            # 1.0 Install
+        if self.agent_name is None:
+            # 1.0 Install 或者 2.0统一版本
             target_version = self.config.get("version")
+            setup_info_cache_key: str = f"agent_name_is_none:version:{target_version}"
         else:
-            target_version: str = get_target_helper(TargetType.AGENT.value).get_target_version(
-                target_id=AGENT_NAME_TARGET_ID_MAP[agent_name],
-                target_version=self.config.get("version"),
-            )
+            if self.config["choice_version_type"] == constants.AgentVersionType.UNIFIED.value:
+                agent_version = self.config.get("version")
+                setup_info_cache_key: str = (
+                    f"agent_name:{self.agent_name}:"
+                    f"type:{constants.AgentVersionType.UNIFIED.value}:version:{agent_version}"
+                )
+            elif self.config["choice_version_type"] == constants.AgentVersionType.BY_SYSTEM_ARCH.value:
+                # TODO 按系统架构维度, 当前只支持按系统，后续需求完善按系统架构
+                os_cpu_arch_version_list: typing.List[str] = [
+                    versiom_map["version"]
+                    for versiom_map in self.config["version_map_list"]
+                    if host.os_type.lower() in versiom_map["os_cpu_arch"]
+                ]
+                agent_version: str = os_cpu_arch_version_list[0] if os_cpu_arch_version_list else "stable"
+                setup_info_cache_key: str = (
+                    f"agent_name:{self.agent_name}:type:{constants.AgentVersionType.BY_SYSTEM_ARCH.value}:"
+                    f"os:{host.os_type.lower()}:version:{agent_version}"
+                )
+            else:
+                # 按主机维度
+                agent_version: str = self.bk_host_id_version_map[host.bk_host_id]
 
-        return base.AgentSetupInfo(
+            target_version_cache_key: str = f"agent_desc_id:{self.agent_desc.id}:agent_version:{agent_version}"
+            target_version: str = self._target_version_cache.get(target_version_cache_key)
+            if target_version is None:
+                target_version: str = get_target_helper(TargetType.AGENT.value).get_target_version(
+                    target_id=self.agent_desc.id,
+                    target_version=agent_version,
+                )
+                self._target_version_cache[target_version_cache_key] = target_version
+
+        if self.config["choice_version_type"] != constants.AgentVersionType.BY_HOST.value:
+            agent_setup_info: typing.Optional[base.AgentSetupInfo] = self._setup_info_cache.get(setup_info_cache_key)
+            if agent_setup_info:
+                return agent_setup_info
+
+        agent_setup_info: base.AgentSetupInfo = base.AgentSetupInfo(
             is_legacy=self.is_legacy,
             agent_tools_relative_dir=("agent_tools/agent2", "")[self.is_legacy],
             name=self.config.get("name"),
             version=target_version,
         )
+        if self.config["choice_version_type"] != constants.AgentVersionType.BY_HOST.value:
+            self._setup_info_cache[setup_info_cache_key] = agent_setup_info
+        return agent_setup_info
 
     @staticmethod
     def validated_data(data, serializer) -> OrderedDict:
@@ -204,3 +258,15 @@ class AgentStepAdapter:
         os_type = os_type or constants.OsType.LINUX
         cpu_arch = cpu_arch or constants.CpuType.x86_64
         return f"{os_type.lower()}-{cpu_arch}"
+
+    @property
+    def agent_desc(self) -> models.GsePackageDesc:
+        if hasattr(self, "_agent_desc") and self._agent_desc:
+            return self._agent_desc
+        try:
+            agent_desc = models.GsePackageDesc.objects.get(project=self.agent_name)
+        except models.GsePackageDesc.DoesNotExist:
+            raise errors.AgentPackageValidationError(msg="GsePackageDesc [{name}] 不存在".format(name=self.agent_name))
+
+        setattr(self, "_agent_desc", agent_desc)
+        return self._agent_desc

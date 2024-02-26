@@ -10,15 +10,18 @@ specific language governing permissions and limitations under the License.
 """
 
 from django.db.models import Q
+from django.utils.translation import ugettext_lazy as _
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework.filters import OrderingFilter
 from rest_framework.response import Response
 
 from apps.generic import ModelViewSet
+from apps.node_man.constants import BUILT_IN_TAG_NAMES
 from apps.utils import orm
 
 from . import constants, handlers, models, permission, serializers
+from .exceptions import ValidationError
 
 TAG_VIEW_TAGS = ["tag"]
 
@@ -54,6 +57,10 @@ class TagViewSet(ModelViewSet):
         return Response(orm.model_to_dict(tag))
 
     def perform_update(self, serializer):
+        instance = serializer.instance
+        if instance.name in BUILT_IN_TAG_NAMES:
+            raise ValidationError(_("内置标签不允许修改"))
+
         # 仅需更新描述信息的情况
         if "target_version" not in serializer.validated_data:
             serializer.save()
@@ -74,6 +81,9 @@ class TagViewSet(ModelViewSet):
         tags=TAG_VIEW_TAGS,
     )
     def perform_destroy(self, instance: models.Tag):
+        if instance.name in BUILT_IN_TAG_NAMES:
+            raise ValidationError(_("内置标签不允许删除"))
+
         handlers.TagHandler.delete_tag_version(
             name=instance.name,
             target_type=instance.target_type,

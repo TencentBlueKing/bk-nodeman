@@ -39,6 +39,8 @@ packaging==21.3
 django-dbconn-retry==0.1.5
 wrapt==1.15.0
 drf-yasg==1.20.3
+pyunpack==0.3
+patool==1.12
 
 # pipeline
 ujson==1.35

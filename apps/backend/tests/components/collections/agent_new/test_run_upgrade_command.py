@@ -85,6 +85,7 @@ class LinuxAgent2UpgradeSuccessTestCase(RunUpgradeCommandSuccessTestCase):
     @classmethod
     def setUpTestData(cls):
         super().setUpTestData()
+        cls.obj_factory.init_gse_package_desc()
         sub_step_obj: models.SubscriptionStep = cls.obj_factory.sub_step_objs[0]
         sub_step_obj.config.update({"name": "gse_agent", "version": "2.0.0"})
         sub_step_obj.save()
