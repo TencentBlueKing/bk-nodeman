@@ -49,6 +49,7 @@ export default class TableHeaderRenderMixin extends Vue {
         width: item?.width,
         align: item?.align,
         filterList,
+        checkAll: !!item?.showCheckAll,
         showSearch: !!item?.showSearch,
       },
       on: {
