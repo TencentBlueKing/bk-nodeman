@@ -12,15 +12,25 @@ import hashlib
 import os
 import tarfile
 import time
-from typing import Type
+from typing import Dict, List, Type
 
+from django.db.models import QuerySet
 from django.utils.translation import ugettext as _
 
 from apps.backend.agent.artifact_builder import agent, proxy
 from apps.backend.agent.artifact_builder.base import BaseArtifactBuilder
 from apps.core.files.storage import get_storage
 from apps.core.tag.constants import TargetType
+from apps.core.tag.models import Tag
 from apps.node_man import constants, exceptions, models
+from apps.node_man.constants import (
+    BUILT_IN_TAG_DESCRIPTIONS,
+    BUILT_IN_TAG_NAMES,
+    TAG_DESCRIPTION_MAP,
+    TAG_NAME_MAP,
+    CategoryType,
+)
+from apps.node_man.models import GsePackageDesc
 
 
 class GsePackageTools:
@@ -70,3 +80,38 @@ class GsePackageTools:
         current_time: str = str(time.time())
         unique_string: str = description + current_time
         return hashlib.md5(unique_string.encode("utf-8")).hexdigest()
+
+    @classmethod
+    def create_agent_tags(cls, tag_descriptions, project):
+        tags: List[Dict[str, str]] = []
+        for tag_description in tag_descriptions:
+            gse_package_desc_obj, _ = GsePackageDesc.objects.get_or_create(
+                project=project, category=CategoryType.official
+            )
+
+            if tag_description in BUILT_IN_TAG_NAMES + BUILT_IN_TAG_DESCRIPTIONS:
+                # 内置标签，手动指定name和description
+                name: str = TAG_NAME_MAP[tag_description]
+                tag_description: str = TAG_DESCRIPTION_MAP[tag_description]
+            else:
+                # 自定义标签，自动生成name
+                name: str = GsePackageTools.generate_name_by_description(tag_description)
+
+            tag_queryset: QuerySet = Tag.objects.filter(
+                description=tag_description,
+                target_id=gse_package_desc_obj.id,
+                target_type=TargetType.AGENT.value,
+            )
+            if tag_queryset.exists():
+                tag_obj: Tag = min(tag_queryset, key=lambda x: len(x.name))
+            else:
+                tag_obj, _ = Tag.objects.update_or_create(
+                    defaults={"description": tag_description},
+                    name=name,
+                    target_id=gse_package_desc_obj.id,
+                    target_type=TargetType.AGENT.value,
+                )
+
+            tags.append({"name": tag_obj.name, "description": tag_obj.description})
+
+        return tags

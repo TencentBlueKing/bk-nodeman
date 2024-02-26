@@ -559,7 +559,7 @@ class MetaHandler(APIModel):
             },
             {
                 "name": _("标签信息"),
-                "id": "tags",
+                "id": "tag_names",
                 "children": [
                     {
                         "id": tag_name,

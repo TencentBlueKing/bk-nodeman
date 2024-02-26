@@ -32,14 +32,7 @@ from apps.core.tag.models import Tag
 from apps.generic import ApiMixinModelViewSet as ModelViewSet
 from apps.generic import ValidationMixin
 from apps.node_man import constants, exceptions, models
-from apps.node_man.constants import (
-    BUILT_IN_TAG_DESCRIPTIONS,
-    BUILT_IN_TAG_NAMES,
-    STABLE_DESCRIPTION,
-    TAG_DESCRIPTION_MAP,
-    TAG_NAME_MAP,
-    CategoryType,
-)
+from apps.node_man.constants import STABLE_DESCRIPTION, CategoryType
 from apps.node_man.handlers.gse_package import gse_package_handler
 from apps.node_man.models import GsePackageDesc, GsePackages, UploadPackage
 from apps.node_man.permissions import package_manage as pkg_permission
@@ -386,7 +379,14 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
                 "task_name": SyncTaskType.REGISTER_GSE_PACKAGE.value,
                 "task_params": {
                     "file_name": validated_data["file_name"],
-                    "tags": validated_data["tags"],
+                    "tags": validated_data["tags"]
+                    + [
+                        tag_info["name"]
+                        for tag_info in GsePackageTools.create_agent_tags(
+                            tag_descriptions=validated_data["tag_descriptions"],
+                            project=validated_data["project"],
+                        )
+                    ],
                 },
             }
         )
@@ -688,38 +688,12 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
         """
         validated_data = self.validated_data
 
-        tags: List[Dict[str, str]] = []
-        for tag_description in validated_data["tag_descriptions"]:
-            gse_package_desc_obj, _ = GsePackageDesc.objects.get_or_create(
-                project=validated_data["project"], category=CategoryType.official
+        return Response(
+            data=GsePackageTools.create_agent_tags(
+                tag_descriptions=validated_data["tag_descriptions"],
+                project=validated_data["project"],
             )
-
-            if tag_description in BUILT_IN_TAG_NAMES + BUILT_IN_TAG_DESCRIPTIONS:
-                # 内置标签，手动指定name和description
-                name: str = TAG_NAME_MAP[tag_description]
-                tag_description: str = TAG_DESCRIPTION_MAP[tag_description]
-            else:
-                # 自定义标签，自动生成name
-                name: str = GsePackageTools.generate_name_by_description(tag_description)
-
-            tag_queryset: QuerySet = Tag.objects.filter(
-                description=tag_description,
-                target_id=gse_package_desc_obj.id,
-                target_type=TargetType.AGENT.value,
-            )
-            if tag_queryset.exists():
-                tag_obj: Tag = min(tag_queryset, key=lambda x: len(x.name))
-            else:
-                tag_obj, _ = Tag.objects.update_or_create(
-                    defaults={"description": tag_description},
-                    name=name,
-                    target_id=gse_package_desc_obj.id,
-                    target_type=TargetType.AGENT.value,
-                )
-
-            tags.append({"name": tag_obj.name, "description": tag_obj.description})
-
-        return Response(data=tags)
+        )
 
 
 # class AgentPackageDescViewSet(ModelViewSet):
