@@ -28,7 +28,8 @@ export interface IPkgParams {
   page: number;
   pagesize: number;
   tags?: string; // ,分隔
-  os_cpu_arch?: string; // 操作系统/架构
+  os?: string; // 操作系统
+  cpu_arch?: string; // 架构
   created_by?: string; // ,分隔
   is_ready?: string; // true,false
   version?: string; // ,分隔
@@ -76,11 +77,22 @@ export interface IPkgDelpyNumber {
   version: string;
 }
 
-export interface IpkgParseInfo {
+export interface IPkgParseInfo {
   project: PkgType;
   os: string;
   cpu_arch: string;
   pkg_name: string;
   version: string;
   config_templates: any[];
+}
+
+export interface IPkgVersion {
+  project: PkgType;
+  version: string;
+  packages: {
+    pkg_name: string;
+    tags: IPkgTag[];
+  }[];
+  tags: IPkgTag[];
+  description: string;
 }

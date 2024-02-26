@@ -13,7 +13,7 @@
       <bk-search-select
         ref="searchSelect"
         ext-cls="package-search-select"
-        :data="searchSelectData"
+        :data="searchData"
         v-model="searchSelectValue"
         :show-condition="false"
         :placeholder="$t('版本号、操作系统/架构、标签、上传用户、状态')"
@@ -53,7 +53,7 @@
           </div>
         </div>
 
-        <div class="package-select-result">
+        <div class="package-select-result" v-bkloading="{ isLoading }">
           <PackageCols :rows="tableData" :pagetion="pagetion" @pagetion="pagetionChange" />
         </div>
       </section>
@@ -71,7 +71,6 @@ import { AgentStore } from '@/store';
 import { computed, defineComponent, provide, reactive, ref, toRefs } from 'vue';
 import PackageCols from './package-cols.vue';
 import PackageUpload from './package-upload.vue';
-import { deepClone } from '@/common/util';
 import { IPagination, ISearchItem } from '@/types';
 import {
   IPkgParams, IPkgTag, IPkgTagOpt, PkgType,
@@ -87,6 +86,7 @@ export default defineComponent({
   },
   setup() {
     const state = reactive<{
+      isLoading: boolean;
       panels: { name: PkgType; label: string; }[];
       active: PkgType;
       dimension: PkgQuickType;
@@ -94,6 +94,7 @@ export default defineComponent({
       uploadShow: boolean;
       pagetion: IPagination
     }>({
+      isLoading: true,
       panels: [
         { name: 'gse_agent', label: 'Agent' },
         { name: 'gse_proxy', label: 'Proxy' },
@@ -129,6 +130,10 @@ export default defineComponent({
       });
       return nameMap;
     }, {}));
+
+    // 升级后的组件应该是 onlyRecommendChildren属性来代替此数据
+    const searchData = computed(() => searchSelectData.value
+      .filter(item => !searchSelectValue.value.find(opt => opt.id === item.id)));
 
     provide('tagGroup', tagGroup);
     provide('tagsMap', tagsMap);
@@ -166,10 +171,8 @@ export default defineComponent({
     };
 
     // 所有pkg标签
-    const getPkgTags = async (data?: ISearchItem[]) => {
+    const getPkgTags = async () => {
       const res = await AgentStore.apiPkgGetTags({ project: state.active });
-      const list: ISearchItem[] = data || deepClone(searchSelectData.value);
-      const tagOpt = list.find(item => item.id === 'tags');
       const standardGroupData: ISearchItem[] = [];
       const opts: IPkgTagOpt[] = [];
       res.forEach((item) => {
@@ -187,13 +190,6 @@ export default defineComponent({
       });
       tagList.value.splice(0, tagList.value.length, ...opts);
       tagGroup.value.splice(0, tagGroup.value.length, ...standardGroupData);
-      if (tagOpt) {
-        tagOpt.children = opts.map(({ className, ...other }) => ({
-          ...other,
-          checked: false,
-        }));
-      }
-      searchSelectData.value.splice(0, filterData.value.length, ...list);
     };
 
     // 上传新包之后需要更新搜索条件
@@ -202,7 +198,13 @@ export default defineComponent({
         category: 'agent_pkg_manage',
         project: state.active,
       });
-      getPkgTags(list);
+      const multipleKey = ['version', 'tags', 'tag_names'];
+      searchSelectData.value.splice(0, filterData.value.length, ...list.map(item => ({
+        ...item,
+        multiable: multipleKey.includes(item.id), // multiple
+        onlyRecommendChildren: true,
+      })));
+      getPkgTags();
     };
 
     const getParams = () => {
@@ -212,7 +214,13 @@ export default defineComponent({
         pagesize: state.pagetion.limit,
       };
       if (state.dimensionOptional !== 'all') {
-        params[state.dimension] = state.dimensionOptional;
+        if (state.dimension === 'os_cpu_arch') {
+          const [os, ...cpuArch] = state.dimensionOptional.split('_');
+          params.os = os;
+          params.cpu_arch = cpuArch.join('_');
+        } else {
+          params[state.dimension] = state.dimensionOptional;
+        }
       }
       searchSelectValue.value.forEach((item) => {
         Object.assign(params, {
@@ -222,6 +230,7 @@ export default defineComponent({
       return params;
     };
     const getTableData = async () => {
+      state.isLoading = true;
       const { list = [], total = 0 } = await AgentStore.apiPkgList(getParams());
       state.pagetion.count = total;
       tableData.value.splice(0, tableData.value.length, ...list.map(row => ({
@@ -236,7 +245,10 @@ export default defineComponent({
           return arr;
         }, []),
       })));
-      getHostNumber();
+      if (total) {
+        getHostNumber();
+      }
+      state.isLoading = false;
     };
     const getHostNumber = async () => {
       const params = {
@@ -288,6 +300,7 @@ export default defineComponent({
       searchSelectData,
       searchSelectValue,
       tableData,
+      searchData,
 
       toggleUploadShow,
       updateOptionalList,

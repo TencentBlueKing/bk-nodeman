@@ -42,8 +42,11 @@ declare module 'vue/types/vue' {
     }
     $initIpProp: (obj: Dictionary, keys: string[]) => void
     $setIpProp:  (key: string, val: Dictionary) => any
-    $DHCP:  boolean
+    $DHCP: boolean
     $http: INodemanHttp
+    emptySearchClear: () => void
+    emptyRefresh: () => void
+    filterEmpty: (any) => string
   }
 }
 
