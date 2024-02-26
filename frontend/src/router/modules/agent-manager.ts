@@ -3,7 +3,7 @@ import { AGENT_VIEW, AGENT_OPERATE } from '../action-map';
 const AgentStatus = () => import(/* webpackChunkName: 'AgentStatus' */'@/views/agent/agent-list.vue');
 const AgentSetup = () => import(/* webpackChunkName: 'AgentSetup' */'@/views/agent/agent-setup/agent-setup.vue');
 const AgentImport = () => import(/* webpackChunkName: 'AgentImport' */'@/views/agent/agent-setup/agent-import.vue');
-const AgentPackage = () => import(/* webpackChunkName: 'AgentPackage' */'@/views/agent/package/Index.vue');
+const AgentPackage = () => import(/* webpackChunkName: 'AgentPackage' */'@/views/agent/package/index.vue');
 
 export default [
   {
