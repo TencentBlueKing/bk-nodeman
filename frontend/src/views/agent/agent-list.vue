@@ -339,6 +339,9 @@
           :min-width="columnMinWidth['agent_version']"
           :render-header="renderFilterHeader"
           v-if="filter['agent_version'].mockChecked">
+          <template #default="{ row }">
+            {{ row.version | filterEmpty }}
+          </template>
         </NmColumn>
         <NmColumn
           key="is_manual"
