@@ -1,6 +1,7 @@
 <template>
-  <section class="plugin-node" v-bkloading="{ isLoading: loading }" v-test="'pluginList'">
+  <section class="plugin-node" v-test="'pluginList'">
     <PluginListOperate
+      :key="cacheKey"
       :search-select-data="filterData"
       :selections="selections"
       :exclude-data="excludeData"
@@ -12,32 +13,33 @@
       @filter-change="handleFilterChange"
       @plugin-operate="handlePluginOperate">
     </PluginListOperate>
-    <PluginListTable
-      v-if="!loading"
-      v-bkloading="{ isLoading: tableLoading }"
-      class="plugin-node-table"
-      :table-list="tableList"
-      :pagination="pagination"
-      :table-loading="tableLoading"
-      :search-select-data="filterData"
-      :search-select-value="searchSelectValue"
-      :selection-loading="selectionLoading"
-      :selections="selections"
-      :exclude-data="excludeData"
-      :head-select-disabled="selectedAllDisabled"
-      :check-value="checkValue"
-      :check-type="checkType"
-      :running-count="runningCount"
-      :plugin-names="mixisPluginName"
-      @selection-change="handleSelectionChange"
-      @row-check="handleRowCheck"
-      @filter-confirm="tableHeaderConfirm"
-      @filter-reset="tableHeaderReset"
-      @sort="handleTableSort"
-      @pagination-change="handlePaginationChange"
-      @empty-clear="searchClear"
-      @empty-refresh="getHostList">
-    </PluginListTable>
+    <div v-bkloading="{ isLoading: tableLoading }">
+      <PluginListTable
+        :key="cacheKey"
+        class="plugin-node-table"
+        :table-list="tableList"
+        :pagination="pagination"
+        :table-loading="tableLoading"
+        :search-select-data="filterData"
+        :search-select-value="searchSelectValue"
+        :selection-loading="selectionLoading"
+        :selections="selections"
+        :exclude-data="excludeData"
+        :head-select-disabled="selectedAllDisabled"
+        :check-value="checkValue"
+        :check-type="checkType"
+        :running-count="runningCount"
+        :plugin-names="mixisPluginName"
+        @selection-change="handleSelectionChange"
+        @row-check="handleRowCheck"
+        @filter-confirm="tableHeaderConfirm"
+        @filter-reset="tableHeaderReset"
+        @sort="handleTableSort"
+        @pagination-change="handlePaginationChange"
+        @empty-clear="searchClear"
+        @empty-refresh="getHostList">
+      </PluginListTable>
+    </div>
     <bk-dialog
       :width="isZh ? 620 : 728"
       header-position="left"
@@ -99,6 +101,8 @@ import { IPluginList, ISearchParams, ICondition, IHostData, IPluginRow, ITarget 
 import { debounceDecorate, getFilterChildBySelected, isEmpty } from '@/common/util';
 import HeaderFilterMixins from '@/components/common/header-filter-mixins';
 import { IPagination, CheckValueEnum, ISortData, ISearchChild, ISearchItem } from '@/types';
+import { uuid } from '@/components/RussianDolls/create';
+import { deepClone } from '@/common/util';
 
 interface IPluginMap {
   name: string
@@ -119,9 +123,11 @@ export default class PluginList extends Mixins(HeaderFilterMixins) {
   @Prop({ type: String, default: '' }) private readonly  osType!: string;
   @Prop({ type: String, default: '' }) private readonly  pluginName!: string;
 
-  private loading = true;
-  private tableLoading = false;
+  private loadingDelay = false; // 重新拉去过滤条件之后可能需要重置搜素框里的数据
+  private tableLoading = true;  // 这里初始化设置为true, 防止页面刷新的时候出现table没有数据加载出来的情况
   private selectionLoading = false;
+  public cacheKey = uuid();
+  public conditionArr: Array<ISearchItem[]|false> = new Array(3); // 二维数组, 拼接搜索条件 前中后 - 通用、策略名、插件
   private tableList: IPluginList[] = [];
   private pagination: IPagination = {
     current: 1,
@@ -191,15 +197,50 @@ export default class PluginList extends Mixins(HeaderFilterMixins) {
     this.handleSearch(params);
   }
   @Watch('selectedBiz')
-  public handleBizSelect() {
-    this.getStrategyTopo();
+  public async handleBizSelect() {
+    this.tableLoading = true;
+    this.tableList.splice(0, this.tableList.length);
+
+    // 业务数据改变，搜索列表数据
     this.pagination.current = 1;
     const params = this.getCommonParams();
-    this.handleSearch(params);
+    // 此处不用有延迟的handleSearch方法，因为会被排在getPluginFilter后面执行
+    this.tableLoading = true;
+    await this.getHostList(params);
+    this.tableLoading = false;
+
+    this.loadingDelay = true;
+    // 此处暂不修改为异步加载条件
+    this.getPluginFilter().then(async () => {
+      await this.getStrategyTopo();
+      await this.getFilterData();
+
+      const copyValue: ISearchItem[] = [];
+      this.searchSelectValue.forEach((item) => {
+        const already = this.filterData.find(opt => opt.id === item.id);
+        if (already) {
+          if (already.children?.length) {
+            copyValue.push({
+              ...item,
+              values: item.values?.filter(opt => already.children?.find(child => child.id === opt.id)),
+            });
+          } else {
+            copyValue.push(item);
+          }
+        }
+      });
+      this.handleSearchSelectChange(copyValue);
+      setTimeout(() => {
+        this.loadingDelay = false;
+        this.createConditions();
+      });
+    })
+      .finally(() => {
+        this.loadingDelay = false;
+      });
   }
 
   private async created() {
-    this.loading = true;
     const { policyId = '', policyName, pluginName } = this.$route.params;
     const pluginNameStr = this.pluginName || pluginName;
     const initValue = [];
@@ -228,14 +269,7 @@ export default class PluginList extends Mixins(HeaderFilterMixins) {
     if (initValue.length) {
       this.searchSelectValue.push(...initValue);
     }
-    Promise.all([this.getPluginFilter(), this.getStrategyTopo()]).then(([len, children]) => {
-      this.filterData.splice(len, 0, {
-        id: 'source_id',
-        name: window.i18n.t('部署策略'),
-        multiable: true,
-        children,
-      });
-    });
+    // params是用来搜索列表数据的参数，其中有个condition是搜索框的值，此处为created,所以condition为空[]
     const params = this.hasOldRouteParams ? initParams as ISearchParams : this.getCommonParams();
     if (this.$route.params.policyId) {
       // 修正部署策略接口未加载完毕的错误筛选条件
@@ -244,17 +278,29 @@ export default class PluginList extends Mixins(HeaderFilterMixins) {
         sourceConditions.value = [this.$route.params.policyId];
       }
     }
-    this.getFilterData();// 修复filter condition接口慢阻塞UI问题
     await this.getHostList(params);
+    // 此处修改为异步加载条件
+    this.getPluginFilter();
+    await this.getStrategyTopo();
+    await this.getFilterData();// 修复filter condition接口慢阻塞UI问题
+    this.tableLoading = false;
     this.loading = false;
   }
 
   // 拉取筛选条件 并 插入插件名称项
   public async getFilterData() {
+    this.conditionArr[0] = false;
+    const param = { category: 'plugin_host', keepQuery: true };
+    if (this.selectedBiz.length) {
+      Object.assign(param, { bk_biz_ids: this.selectedBiz });
+    }
     const [
       data,
       { list: data2 },
-    ] = await Promise.all([PluginStore.getFilterList(), PluginStore.pluginPkgList({ simple_all: true })]);
+    ] = await Promise.all([
+      PluginStore.getFilterList(param),
+      PluginStore.pluginPkgList({ simple_all: true }),
+    ]);
     this.mixisPluginName = data.filter(item => item.children && !item.children.length).map(item => item.id);
     const list = data.filter(item => !item.children || item.children.length);
     if (data2.length) {
@@ -301,15 +347,39 @@ export default class PluginList extends Mixins(HeaderFilterMixins) {
       if (inputValues.length) {
         this.searchSelectValue.splice(this.searchSelectValue.length, 0, ...inputValues);
       }
+      this.hasOldRouteParams = false;
     }
-    this.filterData.splice(0, 0, ...list);
+    this.conditionArr[0] = list;
+    this.createConditions();
     return Promise.resolve(true);
   }
+  // 从搜索框的配置(getFilterList接口获取的数据)中获取插件状态映射
+  private getPluginStatusMap() {
+    const data = this.filterDate || [];
+    const statusReg = /_status/;
+    data.forEach((item) => {
+      if (!statusReg.test(item.id)) {
+        const statusItem = data.find(child => child.id === `${item.id}_status`);
+        this.pluginStatusMap[item.id] = statusItem?.children?.map(item => item.id) || [];
+      }
+    });
+  }
+  // 过滤数据
+  private filterDate = [];
+  // 此接口存在耗时较长的情况
   public async getPluginFilter() {
-    const data = await PluginStore.getFilterList({ category: 'plugin_version' });
+    this.conditionArr[2] = false;
+    const param = { category: 'plugin_version' };
+    if (this.selectedBiz.length) {
+      Object.assign(param, { bk_biz_ids: this.selectedBiz });
+    }
+    const data = await PluginStore.getFilterList(param);
+    this.filterDate = deepClone(data);
     const statusName: string[] = [];
     const statusReg = /_status/;
     data.forEach((item) => {
+      item.showCheckAll = true;
+      item.showSearch = true;
       if (!statusReg.test(item.id)) {
         const statusItem = data.find(child => child.id === `${item.id}_status`);
         this.pluginStatusMap[item.id] = statusItem?.children?.map(item => item.id) || [];
@@ -321,11 +391,24 @@ export default class PluginList extends Mixins(HeaderFilterMixins) {
       }
     });
     const filters = data.filter(item => !statusReg.test(item.id));
-    this.filterData.splice(this.filterData.length, 0, ...filters);
+    this.conditionArr[2] = filters;
+    this.createConditions();
     return filters.length;
   }
 
+  public createConditions() {
+    if (this.loadingDelay) return;
+    this.filterData.splice(0, this.filterData.length, ...this.conditionArr.reduce((arr: ISearchItem[], item) => {
+      if (item) {
+        arr.push(...item);
+      }
+      return arr;
+    }, []));
+    this.cacheKey = uuid();
+  }
+
   public async getHostList(params: ISearchParams) {
+    // if (this.loadingDelay) return;
     const data: IHostData = await PluginStore.getHostList(params);
     const { list, total } = data;
     this.tableList = list;
@@ -337,6 +420,7 @@ export default class PluginList extends Mixins(HeaderFilterMixins) {
     if (this.selectedBiz.length) {
       params.bk_biz_ids = this.selectedBiz;
     }
+    this.conditionArr[1] = false;
     const res = await PluginStore.fetchPolicyTopo(params);
     const children = res.reduce((list: any[], item) => {
       const arr = (item.children || []).map(child => ({ id: child.id, name: `${child.name}-${item.name}`, checked: false }));
@@ -345,15 +429,14 @@ export default class PluginList extends Mixins(HeaderFilterMixins) {
       }
       return list;
     }, []);
-    const index = this.filterData.findIndex(item => item.id === 'source_id');
-    if (index > -1) {
-      this.filterData.splice(index, 1, {
-        id: 'source_id',
-        name: window.i18n.t('部署策略'),
-        multiable: true,
-        children,
-      });
-    }
+    const sourceItem = {
+      id: 'source_id',
+      name: window.i18n.t('部署策略'),
+      multiable: true,
+      children,
+    };
+    this.conditionArr[1] = [sourceItem];
+    this.createConditions();
     return children;
   }
 
@@ -374,6 +457,8 @@ export default class PluginList extends Mixins(HeaderFilterMixins) {
   }
 
   public getConditions(type: 'load' | 'operate' = 'load') {
+    // getPluginStatusMap用于获取插件状态映射pluginStatusMap
+    this.getPluginStatusMap();
     const conditions: ICondition[] = [];
     this.searchSelectValue.forEach((item) => {
       // 从插件里区分状态和版本

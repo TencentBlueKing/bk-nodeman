@@ -173,7 +173,7 @@ export default class PluginListOperate extends Mixins(HeaderFilterMixins) {
   // public handleBizSelect() {
   //   this.handleBizChange();
   // }
-  @Watch('searchSelectData')
+  @Watch('searchSelectData', { immediate: true })
   public handleSearchSelectDataChange(data: ISearchItem[]) {
     this.filterData = JSON.parse(JSON.stringify(data));
   }
