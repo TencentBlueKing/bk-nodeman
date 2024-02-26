@@ -254,6 +254,7 @@ export default defineComponent({
       // // 注册操作- 确认不需要生成 tags 或 生成tags成功之后进行
       // if (createTagsRes) {
       const res = await AgentStore.apiPkgRegister({
+        project: props.active,
         file_name: state.pkgFileName,
         tag_descriptions: selectedTags.value, // 无需单独调用创建标签的接口
         // tags: selectedTags.value.map(tag => copyNameMap[tag]), // tag的name

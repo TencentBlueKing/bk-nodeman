@@ -273,7 +273,11 @@ export default class AgentStore extends VuexModule {
     return parsePackage(param).catch(() => false);
   }
   @Action
-  public apiPkgRegister(param: { file_name: string; tag_descriptions: string[] }): Promise<{ task_id: string }> {
+  public apiPkgRegister(param: {
+    project: PkgType;
+    file_name: string;
+    tag_descriptions: string[];
+  }): Promise<{ task_id: string }> {
     return createAgentRegisterTask(param).catch(() => false);
   }
   /**

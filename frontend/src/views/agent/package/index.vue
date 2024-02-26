@@ -116,7 +116,6 @@ export default defineComponent({
     // Sort: 默认倒序，最新的版本号在最上面
     const dimensionList = ref<IPkgDimension[]>([]);
     const dimensionOptionalList = ref<IPkgQuickOpt[]>([]);
-    const filterData = ref<ISearchItem[]>([]);
     const searchSelectData = ref<ISearchItem[]>([]);
     const searchSelectValue = ref<ISearchItem[]>([]);
     const tableData = ref<IPkgRow[]>([]);
@@ -199,7 +198,7 @@ export default defineComponent({
         project: state.active,
       });
       const multipleKey = ['version', 'tags', 'tag_names'];
-      searchSelectData.value.splice(0, filterData.value.length, ...list.map(item => ({
+      searchSelectData.value.splice(0, searchSelectData.value.length, ...list.map(item => ({
         ...item,
         multiable: multipleKey.includes(item.id), // multiple
         onlyRecommendChildren: true,
@@ -280,6 +279,9 @@ export default defineComponent({
     };
 
     const updateTabActive = async (type: PkgType = 'gse_agent') => {
+      if (type !== state.active) {
+        searchSelectValue.value.splice(0, searchSelectValue.value.length);
+      }
       state.active = type;
       updateSearchData();
       const list = await AgentStore.apiPkgQuickSearch({ project: type });
@@ -296,7 +298,6 @@ export default defineComponent({
       ...toRefs(state),
       dimensionList,
       dimensionOptionalList,
-      filterData,
       searchSelectData,
       searchSelectValue,
       tableData,
