@@ -57,7 +57,7 @@
             </template>
           </Upload>
         </div>
-        <template v-if="pckUploaded">
+        <template v-if="pkgUploaded">
           <div class="upload-result">
             <p class="upload-item-title">{{ $t('结果预览') }}</p>
             <bk-table class="pkg-manage-table pkg-parse-table" col-border :data="tableData">
@@ -85,8 +85,8 @@
         </template>
       </section>
       <div class="upload-footer mt32">
-        <bk-popover :disabled="pckUploaded" :content="$t('请先上传包文件')">
-          <bk-button :disabled="!pckUploaded" :loading="submitLoading" theme="primary" @click="registerPkg">
+        <bk-popover :disabled="pkgUploaded" :content="$t('请先上传包文件')">
+          <bk-button :disabled="!pkgParseSucc" :loading="submitLoading" theme="primary" @click="registerPkg">
             {{ $t('提交') }}
           </bk-button>
         </bk-popover>
@@ -103,8 +103,7 @@ import cookie from 'cookie';
 import Upload from '@/components/common/upload.vue';
 import FlexibleTag from '@/components/common/flexible-tag.vue';
 import PkgThead from './PkgThead.vue';
-import { IpkgParseInfo, PkgType } from '@/types/agent/pkg-manage';
-import { uuid } from '@/components/RussianDolls/create';
+import { IPkgParseInfo, PkgType } from '@/types/agent/pkg-manage';
 import { IBkColumn, ISearchItem } from '@/types';
 
 interface IUploadInfo {
@@ -148,7 +147,8 @@ export default defineComponent({
       },
       submitLoading: false,
       pkgLoading: false,
-      pckUploaded: false,
+      pkgUploaded: false,
+      pkgParseSucc: false,
       pkgFileName: '',
       pkgFileMd5: '',
       pkgDesc: '',
@@ -163,7 +163,7 @@ export default defineComponent({
     });
 
     // 小包标的签一致; 内置标签不能删除; 仅能调整自定义标签;
-    const tableData = ref<IpkgParseInfo[]>([]);
+    const tableData = ref<IPkgParseInfo[]>([]);
     const selectedTags = ref<string[]>([]);
     const tagsDisplay = ref<{ id: string; name: string; }[]>([]);
 
@@ -183,6 +183,7 @@ export default defineComponent({
         state.pckWarning =  state.pckWarning === 'before' ? 'after' : '';
         if (state.pckWarning !== 'before') {
           parsePkg();
+          state.pkgUploaded = true;
         }
       }
     };
@@ -201,7 +202,7 @@ export default defineComponent({
           packages = [],
           description = '',
         } = res;
-        state.pckUploaded = true;
+        state.pkgParseSucc = true;
         state.pkgDesc = description;
         tableData.value.splice(0, tableData.value.length, ...packages);
       }
@@ -235,36 +236,36 @@ export default defineComponent({
     const registerPkg = async () => {
       state.submitLoading = true;
       // 注册之前需要把新增的标签通过接口生成，然后拿到name给注册接口使用;
-      const copyNameMap = { ...tagsMap?.value };
-      const tags = selectedTags.value.filter(tag => !!copyNameMap[tag])
-        .map(description => ({ name: `custom_${uuid(6)}`,  description }));
-      let createTagsRes = !tags.length; // 创建标签的结果
-      // 生成新标签
-      if (tags.length) {
-        const list = await AgentStore.apiPkgCreateTags({ project: props.active, tags });
-        if (list) {
-          createTagsRes = true;
-          // 把创建好的标签合并至 copyNameMap
-          Object.assign(copyNameMap, list.reduce((obj: { [k: string]: string }, item) => {
-            Object.assign(obj, { [item.description]: item.name });
-            return obj;
-          }, {}));
-        }
-      }
-      // 注册操作- 确认不需要生成 tags 或 生成tags成功之后进行
-      if (createTagsRes) {
-        const res = await AgentStore.apiPkgRegister({
-          file_name: state.pkgFileName,
-          tags: selectedTags.value.map(tag => copyNameMap[tag]), // tag的name
-        });
+      // const copyNameMap = { ...tagsMap?.value };
+      // const tags = selectedTags.value.filter(tag => !!copyNameMap[tag]);
+      // let createTagsRes = !tags.length; // 创建标签的结果
+      // // 生成新标签
+      // if (tags.length) {
+      //   const list = await AgentStore.apiPkgCreateTags({ project: props.active, tag_descriptions: tags });
+      //   if (list) {
+      //     createTagsRes = true;
+      //     // 把创建好的标签合并至 copyNameMap
+      //     Object.assign(copyNameMap, list.reduce((obj: { [k: string]: string }, item) => {
+      //       Object.assign(obj, { [item.description]: item.name });
+      //       return obj;
+      //     }, {}));
+      //   }
+      // }
+      // // 注册操作- 确认不需要生成 tags 或 生成tags成功之后进行
+      // if (createTagsRes) {
+      const res = await AgentStore.apiPkgRegister({
+        file_name: state.pkgFileName,
+        tag_descriptions: selectedTags.value, // 无需单独调用创建标签的接口
+        // tags: selectedTags.value.map(tag => copyNameMap[tag]), // tag的name
+      });
         // 注册之后需要轮询这个任务
-        if (res.task_id) {
-          taskState.taskId = res.task_id;
-          pollRegisterTask();
-        } else {
-          state.submitLoading = true;
-        }
+      if (res.task_id) {
+        taskState.taskId = res.task_id;
+        pollRegisterTask();
+      } else {
+        state.submitLoading = true;
       }
+      // }
     };
 
     // 覆盖之前的上传 - overload
@@ -298,9 +299,10 @@ export default defineComponent({
     watch(() => props.show, (isShow) => {
       if (!isShow) {
         taskState.taskTimer && clearTimeout(taskState.taskTimer);
-        state.submitLoading = true;
+        state.submitLoading = false;
         state.pkgLoading = false;
-        state.pckUploaded = false;
+        state.pkgUploaded = false;
+        state.pkgParseSucc = false;
         state.pckWarning = '';
         taskState.taskId = '';
         selectedTags.value.splice(0, selectedTags.value.length);
@@ -310,7 +312,7 @@ export default defineComponent({
 
     // tesing;
     // state.pckWarning = '';
-    // state.pckUploaded = true;
+    // state.pkgUploaded = true;
     // parsePkg();
 
     return {

@@ -241,7 +241,7 @@
         slot="empty"
         :type="tableEmptyType"
         :delay="tableLoading"
-        @empty-clear="emptySearchClear"
+        @empty-clear="emptySearchClear()"
         @empty-refresh="emptyRefresh" />
     </bk-table>
   </section>

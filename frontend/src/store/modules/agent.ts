@@ -8,7 +8,7 @@ import { getFilterCondition } from '@/api/modules/meta';
 import { fetchPwd } from '@/api/modules/tjj';
 import {
   createAgentRegisterTask, createAgentTags, deletePackage,
-  getDeployedHostsCount, getTags, listPackage, parsePackage,
+  getDeployedHostsCount, getTags, getVersion, listPackage, parsePackage,
   queryAgentRegisterTask, quickSearchCondition, updatePackage,
 } from '@/api/modules/pkg_manage';
 import { sort } from '@/common/util';
@@ -16,7 +16,7 @@ import { Mixin, ISearchChild, ISearchItem } from '@/types';
 import { IAgentSearch, IAgentSearchIp, IAgentJob, IAgentHost } from '@/types/agent/agent-type';
 import { IAp } from '@/types/config/config';
 import { IChannel, ICloudSource } from '@/types/cloud/cloud';
-import { IPkgDelpyNumber, IPkgDimension, IPkgInfo, IPkgTagList, IpkgParseInfo, PkgType } from '@/types/agent/pkg-manage';
+import { IPkgDelpyNumber, IPkgDimension, IPkgInfo, IPkgTagList, IPkgParseInfo, PkgType, IPkgVersion } from '@/types/agent/pkg-manage';
 
 export const SET_AP_LIST = 'setApList';
 export const SET_CLOUD_LIST = 'setCloudList';
@@ -70,7 +70,7 @@ export default class AgentStore extends VuexModule {
         ...extraOther,
         ...item,
         status: item.status ? item.status.toLowerCase() : 'unknown',
-        version: item.version ? item.version : '--',
+        version: item.version ? item.version : '',
         job_result: item.job_result ? item.job_result : {} as any,
         topology: item.topology && item.topology.length ? item.topology : [],
         bt_speed_limit: btSpeedLimit || '',
@@ -268,12 +268,12 @@ export default class AgentStore extends VuexModule {
   @Action
   public apiPkgParse(param: { file_name: string }): Promise<{
     description: string;
-    packages: IpkgParseInfo[]
+    packages: IPkgParseInfo[]
   } | false> {
     return parsePackage(param).catch(() => false);
   }
   @Action
-  public apiPkgRegister(param: { file_name: string; tags: string[] }): Promise<{ task_id: string }> {
+  public apiPkgRegister(param: { file_name: string; tag_descriptions: string[] }): Promise<{ task_id: string }> {
     return createAgentRegisterTask(param).catch(() => false);
   }
   /**
@@ -297,11 +297,16 @@ export default class AgentStore extends VuexModule {
   @Action
   public apiPkgCreateTags(param: {
     project: PkgType;
-    tags: {
-      name: string;
-      description: string;
-    }[];
+    tag_descriptions: string[];
   }): Promise<IPkgTag[] | false> {
     return createAgentTags(param).catch(() => false);
+  }
+
+  @Action
+  public apiGetPkgVersion(param: { project: PkgType;os_cpu_arch: string }): Promise<{
+    default_version: string;
+    pkg_info: IPkgVersion[];
+  }> {
+    return getVersion(param).catch(() => ({ default_version: '', pkg_info: [] }));
   }
 }
