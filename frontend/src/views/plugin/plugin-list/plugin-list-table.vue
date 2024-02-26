@@ -250,7 +250,7 @@ export default class PluginRuleTable extends Mixins(HeaderRenderMixin) {
     return MainStore.windowHeight - 180 - (MainStore.noticeShow ? 40 : 0);
   }
 
-  @Watch('searchSelectData', { deep: true })
+  @Watch('searchSelectData', { deep: true, immediate: true })
   private handleSearchSelectDataChange(data: ISearchItem[]) {
     this.filterData = JSON.parse(JSON.stringify(data));
   }
