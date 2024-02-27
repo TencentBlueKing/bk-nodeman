@@ -53,6 +53,7 @@ class PushUpgradePackageV2TestCase(PushUpgradePackageTestCase):
     @classmethod
     def setUpTestData(cls):
         super().setUpTestData()
+        cls.obj_factory.init_gse_package_desc()
         models.Host.objects.filter(bk_host_id__in=cls.obj_factory.bk_host_ids).update(bk_agent_id=get_random_string())
         sub_step_obj: models.SubscriptionStep = cls.obj_factory.sub_step_objs[0]
         sub_step_obj.config.update({"name": "gse_agent", "version": "2.0.0"})

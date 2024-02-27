@@ -40,6 +40,9 @@ from apps.node_man.views import (
 )
 from apps.node_man.views.healthz import HealthzViewSet
 from apps.node_man.views.host_v2 import HostV2ViewSet
+from apps.node_man.views.package_manage import (  # AgentPackageDescViewSet,
+    PackageManageViewSet,
+)
 from apps.node_man.views.plugin import GsePluginViewSet
 from apps.node_man.views.plugin_v2 import PluginV2ViewSet
 from apps.node_man.views.sync_task import SyncTaskViewSet
@@ -67,6 +70,8 @@ router.register(r"plugin/process", plugin.ProcessStatusViewSet, basename="proces
 router.register(r"v2/plugin", PluginV2ViewSet, basename="plugin_v2")
 router.register(r"healthz", HealthzViewSet, basename="healthz")
 router.register(r"sync_task", SyncTaskViewSet, basename="sync_task")
+router.register(r"agent/package", PackageManageViewSet, basename="package_manage")
+# router.register(r"agent/package_desc", AgentPackageDescViewSet, basename="package_desc")
 
 biz_dispatcher = DjangoBasicResourceApiDispatcher(iam, settings.BK_IAM_SYSTEM_ID)
 biz_dispatcher.register("biz", BusinessResourceProvider())
