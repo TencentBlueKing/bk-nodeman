@@ -17,18 +17,6 @@
   },
   "keywords": [],
   "license": "MIT",
-  "husky": {
-    "hooks": {
-      "pre-commit": "lint-staged",
-      "pre-push": "lint-staged"
-    }
-  },
-  "lint-staged": {
-    "src/**/*.(vue|ts)": [
-      "eslint --fix",
-      "git add"
-    ]
-  },
   "betterScripts": {
     "dll": {
       "command": "ts-node --project build/tsconfig.json build/build-dll.ts"
@@ -129,7 +117,6 @@
     "file-loader": "^6.2.0",
     "fs-extra": "~8.0.1",
     "html-webpack-plugin": "^4.5.0",
-    "husky": "^4.2.3",
     "lint-staged": "^10.2.11",
     "mini-css-extract-plugin": "2.6.0",
     "moment": "~2.24.0",
