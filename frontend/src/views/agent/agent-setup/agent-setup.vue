@@ -107,17 +107,17 @@
                 style="width: 150px; height: 32px;"
                 :clearable="false"
                 v-model="formData.choice_version_type">
-                <bk-option id="by_unified" :name="$t('统一版本')" />
+                <bk-option id="unified" :name="$t('统一版本')" />
                 <bk-option id="by_system_arch" :name="$t('按操作系统选版本')" />
               </bk-select>
               <bk-form-item
-                v-if="formData.choice_version_type === 'by_unified'"
+                v-if="formData.choice_version_type === 'unified'"
                 class="version-type"
                 error-display-type="normal"
                 property="agent_version">
                 <div
                   :class="['versions-choose-btn flex', { 'versions-choose-detail': formData.agent_version }]"
-                  @click="() => chooseAgentVersion({ type: 'by_unified', version: formData.agent_version })">
+                  @click="() => chooseAgentVersion({ type: 'unified', version: formData.agent_version })">
                   <template v-if="formData.agent_version" class="versions-choose-detail">
                     <div class="prefix-area">
                       <i class="nodeman-icon nc-package-2" />
@@ -229,7 +229,7 @@ import { reguRequired } from '@/common/form-check';
 import { getDefaultConfig } from '@/config/config';
 import { IPkgTag } from '@/types/agent/pkg-manage';
 
-type VerionType = 'by_unified' | 'by_system_arch';
+type VerionType = 'unified' | 'by_system_arch';
 
 interface IForm extends IAgent {
   choice_version_type: VerionType;
@@ -272,7 +272,7 @@ export default class AgentSetup extends Mixins(mixin, formLabelMixin) {
     bk_cloud_id: '',
     install_channel_id: '',
     ap_id: '',
-    choice_version_type: 'by_unified' as VerionType,
+    choice_version_type: 'unified' as VerionType,
     agent_version: '',
     osVersions: [],
   };
@@ -314,7 +314,7 @@ export default class AgentSetup extends Mixins(mixin, formLabelMixin) {
   private proxyCloudId: undefined | number = undefined;
   public versionsDialog = {
     show: false,
-    type: 'by_unified' as VerionType,
+    type: 'unified' as VerionType,
     title: '',
     version: '',
     os_type: '',
@@ -468,7 +468,7 @@ export default class AgentSetup extends Mixins(mixin, formLabelMixin) {
         // this.loadingSetupBtn = true;
         this.showFilterTips = false;
         const { choice_version_type, agent_version, osVersions  } = this.formData;
-        const isUnified = choice_version_type === 'by_unified';
+        const isUnified = choice_version_type === 'unified';
         const params = {
           job_type: 'INSTALL_AGENT',
           agent_setup_info: {
@@ -694,18 +694,18 @@ export default class AgentSetup extends Mixins(mixin, formLabelMixin) {
     os_type?: string;
     cpu_arch?: string;
   }) {
-    const { type = 'by_unified', version = '', os_type = '', cpu_arch = '' } = info;
+    const { type = 'unified', version = '', os_type = '', cpu_arch = '' } = info;
     this.versionsDialog.show = true;
     this.versionsDialog.type = type;
     this.versionsDialog.version = version;
     this.versionsDialog.os_type = os_type;
     this.versionsDialog.cpu_arch = cpu_arch;
-    this.versionsDialog.title = type === 'by_unified' ? this.$t('选择统一的 Agent 版本') : this.$t('按操作系统选版本 ');
+    this.versionsDialog.title = type === 'unified' ? this.$t('选择统一的 Agent 版本') : this.$t('按操作系统选版本 ');
   }
 
   public updateAgentVersion(info) {
     const { type, os_type, cpu_arch } = this.versionsDialog;
-    if (type === 'by_unified') {
+    if (type === 'unified') {
       this.formData.agent_version = info.version;
     } else {
       const index = this.formData.osVersions.findIndex(v => v.os_type === os_type && v.cpu_arch === cpu_arch);
