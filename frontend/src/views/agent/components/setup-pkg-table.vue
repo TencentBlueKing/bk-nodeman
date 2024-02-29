@@ -22,8 +22,10 @@
                     algin="left"
                     is-batchicon-show
                     :label="$t('包版本')"
+                    :options="options"
+                    type="select"
                     parent-prop="xx"
-                    @confirm="handleBatchConfirm(arguments, config)">
+                    @confirm="handleBatchConfirm">
                   </TableHeader>
                 </div>
               </th>
@@ -77,6 +79,7 @@ import VerifyInput from '@/components/common/verify-input.vue';
 import TableHeader from '@/components/setup-table/table-header.vue';
 import InstallInputType from '@/components/setup-table/install-input-type.vue';
 import FlexibleTag from '@/components/common/flexible-tag.vue';
+import { AgentStore } from '@/store';
 import i18n from '@/setup';
 
 export default defineComponent({
@@ -96,9 +99,36 @@ export default defineComponent({
   emits: ['choose'],
   setup(props, { emit }) {
     const verifyRefs = ref<any[]>([]);
-
+    const options = ref<any[]>([]);
     const loaded = ref(false);
-    const handleBatchConfirm = () => {};
+    const handleBatchConfirm = payload => {
+        //包版本批量选择
+        const { value } = payload;
+        const selectVersionInfo = options.value.find(val=>val.id === value)
+        props.tableData.forEach(item=>{
+          item['version'] = selectVersionInfo.version;
+          item['tags'] = [...selectVersionInfo.tags]
+        })
+    };
+    const getPkgVersions = async () => {
+      const {
+        pkg_info,
+      } = await AgentStore.apiGetPkgVersion({
+        project: 'gse_agent',
+        os_cpu_arch: '',
+      });
+      const builtinTags = ['stable', 'latest', 'test'];
+      options.value.splice(0, options.value.length, ...pkg_info.map(item => ({
+        ...item,
+        id: item.version,
+        name: item.version,
+        tags: item.tags.filter(tag => builtinTags.includes(tag.name)).map(tag => ({
+          className: tag.name,
+          description: tag.description,
+          name: tag.description,
+        })),
+      })));
+    };
     const getDefaultValidator = row => ({
       show: loaded.value ? !row.version : false,
       message: i18n.t('必填项'),
@@ -117,15 +147,16 @@ export default defineComponent({
       });
       return isValidate;
     };
-
+    
     onMounted(() => {
       loaded.value = true;
+      getPkgVersions()
     });
 
     return {
       ...toRefs(props),
       verifyRefs,
-
+      options,
       handleBatchConfirm,
       handleChoose,
       handleChange,

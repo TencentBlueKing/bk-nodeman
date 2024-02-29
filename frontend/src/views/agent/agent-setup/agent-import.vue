@@ -465,8 +465,10 @@ export default class AgentImport extends Mixins(mixin) {
       // 重装类型因为能拿到bk_host_id,按统一版本
       if (this.type === 'REINSTALL_AGENT') {
         Object.assign(params, {
-          agent_setup_info: 'by_host',
-          version_map_list: versionList,
+          agent_setup_info: {
+            'choice_version_type':'by_host',
+            version_map_list: versionList,
+          }
         });
       }
       const res = await AgentStore.installAgentJob({

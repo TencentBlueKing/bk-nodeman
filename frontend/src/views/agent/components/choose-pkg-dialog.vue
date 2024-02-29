@@ -268,6 +268,7 @@ export default defineComponent({
   .pkg-wrapper {
     flex: 1;
     display: flex;
+    width: 714px;
     border: 1px solid #dcdee5;
     border-bottom: 0;
   }
@@ -275,7 +276,7 @@ export default defineComponent({
   /* center */
   .pkg-table-wrapper {
     flex: 1;
-    flex-basis: 370px;
+    width: 263px;
   }
   .pkg-table {
     width: 100%;
@@ -286,7 +287,7 @@ export default defineComponent({
 
   /* right */
   .pkg-desc {
-    flex-basis: 630px;
+    width: 451px;
     display: flex;
     flex-direction: column;
     border-left: 1px solid #dcdee5;

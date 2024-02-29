@@ -57,32 +57,34 @@
             </template>
           </Upload>
         </div>
-        <template v-if="pkgUploaded">
-          <div class="upload-result">
-            <p class="upload-item-title">{{ $t('结果预览') }}</p>
-            <bk-table class="pkg-manage-table pkg-parse-table" col-border :data="tableData">
-              <NmColumn :label="$t('包名')" prop="pkg_name" width="260" />
-              <NmColumn :label="$t('操作系统架构')" prop="sys" width="160">
-                <template #default="{ row }">
-                  {{ `${row.os}_${row.cpu_arch}` }}
-                </template>
-              </NmColumn>
-              <NmColumn :label="$t('包类型')" prop="project" width="120">
-                <template #default="{ row }">
-                  {{ pkgType[row.project] }}
-                </template>
-              </NmColumn>
-              <NmColumn :label="$t('标签信息')" prop="tags" :show-overflow-tooltip="false" :render-header="editTheadRender">
-                <FlexibleTag :list="tagsDisplay" />
-              </NmColumn>
-            </bk-table>
-          </div>
-          <div class="upload-table">
-            <p class="upload-item-title">{{ $t('描述') }}</p>
-            <!-- 文本和标签不要换行 -->
-            <pre class="upload-package-desc" v-bk-tooltips="$t('从包中解析的描述文本，不可修改')">{{ pkgDesc }}</pre>
-          </div>
-        </template>
+        <div class="parseLoading" v-bkloading="{ isLoading: parseLoading }">
+          <template v-if="pkgParseSucc">
+            <div class="upload-result">
+              <p class="upload-item-title">{{ $t('结果预览') }}</p>
+              <bk-table class="pkg-manage-table pkg-parse-table" col-border :data="tableData">
+                <NmColumn :label="$t('包名')" prop="pkg_name" width="260" />
+                <NmColumn :label="$t('操作系统架构')" prop="sys" width="160">
+                  <template #default="{ row }">
+                    {{ `${row.os}_${row.cpu_arch}` }}
+                  </template>
+                </NmColumn>
+                <NmColumn :label="$t('包类型')" prop="project" width="120">
+                  <template #default="{ row }">
+                    {{ pkgType[row.project] }}
+                  </template>
+                </NmColumn>
+                <NmColumn :label="$t('标签信息')" prop="tags" :show-overflow-tooltip="false" :render-header="editTheadRender">
+                  <FlexibleTag :list="tagsDisplay" />
+                </NmColumn>
+              </bk-table>
+            </div>
+            <div class="upload-table">
+              <p class="upload-item-title">{{ $t('描述') }}</p>
+              <!-- 文本和标签不要换行 -->
+              <pre class="upload-package-desc" v-bk-tooltips="$t('从包中解析的描述文本，不可修改')">{{ pkgDesc }}</pre>
+            </div>
+          </template>
+        </div>
       </section>
       <div class="upload-footer mt32">
         <bk-popover :disabled="pkgUploaded" :content="$t('请先上传包文件')">
@@ -149,6 +151,7 @@ export default defineComponent({
       pkgLoading: false,
       pkgUploaded: false,
       pkgParseSucc: false,
+      parseLoading: false,
       pkgFileName: '',
       pkgFileMd5: '',
       pkgDesc: '',
@@ -177,6 +180,7 @@ export default defineComponent({
         state.pckWarning = 'before';
         return;
       }
+      state.parseLoading = true
       if (res.result) {
         state.pkgFileName = res.data.name;
         state.pkgFileMd5 = res.data.pkg_size;
@@ -203,6 +207,7 @@ export default defineComponent({
           description = '',
         } = res;
         state.pkgParseSucc = true;
+        state.parseLoading = false;
         state.pkgDesc = description;
         tableData.value.splice(0, tableData.value.length, ...packages);
       }
@@ -213,7 +218,7 @@ export default defineComponent({
         return;
       }
       taskState.taskTimer = window.setTimeout(async () => {
-        const { status } = await AgentStore.apiPkgRegisterQuery({ task_id: taskState.taskId });
+        const { status } = await AgentStore.apiPkgRegisterQuery({ task_id: taskState.taskId, version: tableData.value[0].version});
         if (status === 'PENDING') {
           pollRegisterTask();
         } else {
@@ -347,6 +352,13 @@ export default defineComponent({
 
   .upload-result {
     margin-top: 24px;
+  }
+
+  .parseLoading {
+    height: 600px;
+    top: 40%;
+    left: 50%;
+    transform: translate(-50%, -50%)
   }
 
   .upload-conflict {
