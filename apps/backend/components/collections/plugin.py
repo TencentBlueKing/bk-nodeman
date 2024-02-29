@@ -55,6 +55,7 @@ from apps.utils import cache, md5
 from apps.utils.batch_request import request_multi_thread
 from apps.utils.files import PathHandler
 from common.api import JobApi
+from env.constants import GseVersion
 from pipeline.component_framework.component import Component
 from pipeline.core.flow import Service, StaticIntervalGenerator
 
@@ -1152,6 +1153,7 @@ class GseOperateProcService(PluginBaseService):
 
     def _execute(self, data, parent_data, common_data: PluginCommonData):
         op_type = data.get_one_of_inputs("op_type")
+        gse_version = data.get_one_of_inputs("meta", {}).get("GSE_VERSION")
         policy_step_adapter = common_data.policy_step_adapter
         process_statuses = common_data.process_statuses
         plugin = policy_step_adapter.plugin_desc
@@ -1194,8 +1196,8 @@ class GseOperateProcService(PluginBaseService):
                     "control": gse_control,
                     "resource": host_id__resource_policy_map[bk_host_id]["resource"],
                     "alive_monitor_policy": {
-                        # 托管类型，0为周期执行进程，1为常驻进程，2为单次执行进程，这里仅需使用常驻进程
-                        "auto_type": 1,
+                        # 托管类型，0为周期执行进程，1为常驻进程，2为单次执行进程, 1.0沿用1
+                        "auto_type": plugin.auto_type if gse_version == GseVersion.V2.value else 1,
                         "start_check_secs": 9,
                     },
                 },
