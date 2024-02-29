@@ -11,6 +11,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    # 暂时关闭
+    if: ${{ false }}
     env:
       # 构建环境的Python版本
       PYTHON_VERSION: "3.7"
