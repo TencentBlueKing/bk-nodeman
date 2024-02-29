@@ -284,7 +284,7 @@ export default class AgentStore extends VuexModule {
    * 查询注册任务状态
    */
   @Action
-  public apiPkgRegisterQuery(param: { task_id: string }): Promise<{ status: 'PENDING'|'SUCCESS'|'FAILURE'; task_id: string }> {
+  public apiPkgRegisterQuery(param: { task_id: string, version?: string}): Promise<{ status: 'PENDING'|'SUCCESS'|'FAILURE'; task_id: string }> {
     return queryAgentRegisterTask(param).catch(() => ({ status: 'FAILURE' }));
   }
   @Action
