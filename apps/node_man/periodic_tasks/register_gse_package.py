@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import logging
+from typing import List
 
 from apps.backend.celery import app
 from apps.node_man.tools.gse_package import GsePackageTools
@@ -17,10 +18,13 @@ logger = logging.getLogger("app")
 
 
 @app.task(queue="default")
-def register_gse_package_task(file_name, tags):
+def register_gse_package_task(file_name: str, tags: List[str]):
     upload_package_obj = GsePackageTools.get_latest_upload_record(file_name=file_name)
 
     project, artifact_builder_class = GsePackageTools.distinguish_gse_package(file_path=upload_package_obj.file_path)
 
-    with artifact_builder_class(initial_artifact_path=upload_package_obj.file_path, tags=tags) as builder:
+    with artifact_builder_class(
+        initial_artifact_path=upload_package_obj.file_path,
+        tags=tags,
+    ) as builder:
         builder.make()

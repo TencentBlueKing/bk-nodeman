@@ -12,7 +12,8 @@ import hashlib
 import os
 import tarfile
 import time
-from typing import Dict, List, Type
+from collections import defaultdict
+from typing import Any, Dict, List, Type
 
 from django.db.models import QuerySet
 from django.utils.translation import ugettext as _
@@ -115,3 +116,53 @@ class GsePackageTools:
             tags.append({"name": tag_obj.name, "description": tag_obj.description})
 
         return tags
+
+    @classmethod
+    def get_quick_search_condition(cls, gse_packages: QuerySet) -> List[Dict[str, Any]]:
+        version__count_map: Dict[str, int] = defaultdict(int)
+        os_cpu_arch__count_map: Dict[str, int] = defaultdict(int)
+        version__version_log_map: Dict[str, str] = defaultdict(str)
+        os_cpu_arch__version_log_map: Dict[str, str] = defaultdict(str)
+
+        for package in gse_packages.values("version", "os", "cpu_arch", "version_log"):
+            version, os_cpu_arch = package["version"], f"{package['os']}_{package['cpu_arch']}"
+
+            version__count_map[version] += 1
+            os_cpu_arch__count_map[os_cpu_arch] += 1
+
+            if version not in version__version_log_map:
+                version__version_log_map[version] = package["version_log"]
+
+            if os_cpu_arch not in os_cpu_arch__version_log_map:
+                os_cpu_arch__version_log_map[os_cpu_arch] = package["version_log"]
+
+        return [
+            {
+                "name": _("操作系统/架构"),
+                "id": "os_cpu_arch",
+                "children": [
+                    {
+                        "id": os_cpu_arch,
+                        "name": os_cpu_arch.capitalize(),
+                        "count": count,
+                        "description": os_cpu_arch__version_log_map[os_cpu_arch],
+                    }
+                    for os_cpu_arch, count in os_cpu_arch__count_map.items()
+                ],
+                "count": sum(os_cpu_arch__count_map.values()),
+            },
+            {
+                "name": _("版本号"),
+                "id": "version",
+                "children": [
+                    {
+                        "id": version,
+                        "name": version.capitalize(),
+                        "count": count,
+                        "description": version__version_log_map[version],
+                    }
+                    for version, count in version__count_map.items()
+                ],
+                "count": sum(version__count_map.values()),
+            },
+        ]

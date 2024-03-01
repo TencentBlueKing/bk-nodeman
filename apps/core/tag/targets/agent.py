@@ -39,19 +39,23 @@ class AgentTargetHelper(base.BaseTargetHelper):
             return
 
         try:
-            tag = Tag.objects.get(
+            tag = Tag.objects.filter(
                 name=self.tag_name,
                 target_id=self.target_id,
                 target_type=self.TARGET_TYPE,
-            )
+            ).first()
 
-            Tag.objects.update_or_create(
-                name=f"{tag.name}_{self.target_version}",
-                target_id=self.target_id,
-                target_type=self.TARGET_TYPE,
-                target_version=self.target_version,
-                description=tag.description,
-            )
+            if not tag.target_version:
+                tag.target_version = self.target_version
+                tag.save()
+            else:
+                Tag.objects.update_or_create(
+                    name=self.tag_name,
+                    target_id=self.target_id,
+                    target_type=self.TARGET_TYPE,
+                    target_version=self.target_version,
+                    description=tag.description,
+                )
 
         except Tag.DoesNotExist:
             pass

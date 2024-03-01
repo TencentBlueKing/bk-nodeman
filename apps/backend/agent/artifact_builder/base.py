@@ -66,6 +66,7 @@ class BaseArtifactBuilder(abc.ABC):
         overwrite_version: typing.Optional[str] = None,
         tags: typing.Optional[typing.List[str]] = None,
         enable_agent_pkg_manage: bool = False,
+        username: str = "",
     ):
         """
         :param initial_artifact_path: 原始制品所在路径
@@ -85,6 +86,7 @@ class BaseArtifactBuilder(abc.ABC):
         self.applied_tmp_dirs = set()
         # 文件源
         self.storage = get_storage(file_overwrite=True)
+        self.username = username
 
     @staticmethod
     def download_file(file_path: str, target_path: str):
@@ -478,6 +480,10 @@ class BaseArtifactBuilder(abc.ABC):
                 f"[update_or_create_package_record] "
                 f"package name -> {package_info['package_upload_info']['pkg_name']} success"
             )
+
+        models.GsePackages.objects.filter(version=package_infos[0]["artifact_meta_info"]["version"]).update(
+            created_by=self.username
+        )
 
         if package_infos:
             models.GsePackageDesc.objects.update_or_create(

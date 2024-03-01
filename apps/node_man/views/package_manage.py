@@ -16,7 +16,6 @@ import django_filters
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.db.models import QuerySet
 from django.http import JsonResponse
-from django.utils.translation import ugettext_lazy as _
 from django_filters.rest_framework import DjangoFilterBackend, FilterSet
 from drf_yasg import openapi
 from rest_framework import filters
@@ -240,57 +239,7 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
             ]},
         ]
         """
-        gse_packages = self.filter_queryset(self.get_queryset()).values("version", "os", "cpu_arch", "version_log")
-
-        version__count_map: Dict[str, int] = defaultdict(int)
-        os_cpu_arch__count_map: Dict[str, int] = defaultdict(int)
-        version__version_log_map: Dict[str, str] = defaultdict(str)
-        os_cpu_arch__version_log_map: Dict[str, str] = defaultdict(str)
-
-        for package in gse_packages:
-            version, os_cpu_arch = package["version"], f"{package['os']}_{package['cpu_arch']}"
-
-            version__count_map[version] += 1
-            os_cpu_arch__count_map[os_cpu_arch] += 1
-
-            if version not in version__version_log_map:
-                version__version_log_map[version] = package["version_log"]
-
-            if os_cpu_arch not in os_cpu_arch__version_log_map:
-                os_cpu_arch__version_log_map[os_cpu_arch] = package["version_log"]
-
-        return Response(
-            [
-                {
-                    "name": _("操作系统/架构"),
-                    "id": "os_cpu_arch",
-                    "children": [
-                        {
-                            "id": os_cpu_arch,
-                            "name": os_cpu_arch.capitalize(),
-                            "count": count,
-                            "description": os_cpu_arch__version_log_map[os_cpu_arch],
-                        }
-                        for os_cpu_arch, count in os_cpu_arch__count_map.items()
-                    ],
-                    "count": sum(os_cpu_arch__count_map.values()),
-                },
-                {
-                    "name": _("版本号"),
-                    "id": "version",
-                    "children": [
-                        {
-                            "id": version,
-                            "name": version.capitalize(),
-                            "count": count,
-                            "description": version__version_log_map[version],
-                        }
-                        for version, count in version__count_map.items()
-                    ],
-                    "count": sum(version__count_map.values()),
-                },
-            ]
-        )
+        return Response(GsePackageTools.get_quick_search_condition(self.filter_queryset(self.get_queryset())))
 
     @swagger_auto_schema(
         operation_summary="Agent包上传",
@@ -408,9 +357,13 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
             "message": "",
         }
         """
-        validated_data = self.validated_data
 
-        return Response(NodeApi.sync_task_status({"task_id": validated_data["task_id"]}))
+        task_result = NodeApi.sync_task_status({"task_id": validated_data["task_id"]})
+
+        # if task_result["status"] == "SUCCESS":
+        #     GsePackages.objects.update(created_by=request.user.username)
+
+        return Response(task_result)
 
     @swagger_auto_schema(
         operation_summary="获取Agent包标签",
@@ -515,7 +468,7 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
 
         gse_packages: QuerySet = (
             self.get_queryset()
-            .filter(project=validated_data["project"])
+            .filter(project=validated_data["project"], is_ready=True)
             .values("version", "project", "pkg_name", "os", "cpu_arch")
         )
 
@@ -555,16 +508,37 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
             if common_tags != tags:
                 version__pkg_version_info_map[version]["tags"] = [tag for tag in common_tags if tag in tags]
 
-        # 筛选
         filter_keys = [key for key in ["os", "cpu_arch"] if key in validated_data]
-        version__pkg_version_info_map = {
-            version: pkg_version_info
-            for version, pkg_version_info in version__pkg_version_info_map.items()
-            if any(
-                all(validated_data[key] == package.get(key) for key in filter_keys)
-                for package in pkg_version_info["packages"]
-            )
-        }
+        if filter_keys:
+            # 筛选
+            version__pkg_version_info_map = {
+                version: pkg_version_info
+                for version, pkg_version_info in version__pkg_version_info_map.items()
+                if any(
+                    all(validated_data[key] == package.get(key) for key in filter_keys)
+                    for package in pkg_version_info["packages"]
+                )
+            }
+        else:
+            # 不筛选
+            version_info_map = [
+                condition
+                for condition in GsePackageTools.get_quick_search_condition(self.get_queryset().filter(is_ready=True))
+                if condition["id"] == "version"
+            ][0]["children"]
+
+            versions_with_max_count = max(version_count_map["count"] for version_count_map in version_info_map)
+            max_count_version_list = [
+                version_count_map["id"]
+                for version_count_map in version_info_map
+                if version_count_map["count"] == versions_with_max_count
+            ]
+
+            version__pkg_version_info_map = {
+                version: pkg_version_info
+                for version, pkg_version_info in version__pkg_version_info_map.items()
+                if version in max_count_version_list
+            }
 
         return Response(
             {
