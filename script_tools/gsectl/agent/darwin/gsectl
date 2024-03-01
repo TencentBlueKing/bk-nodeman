@@ -213,7 +213,7 @@ watch_by_binary () {
     # 检查上一次脚本是否存在
     if [ -f /var/run/gsectl_check_agent_status.pid ]; then
         pid=`cat /var/run/gsectl_check_agent_status.pid`
-        if [ -d "/proc/$pid" ]; then
+        if lsof -p $pid >/dev/null; then
             log "`date +'%F %T.%N'` Last Script: $0 Detection status: PID:$pid is until running , no longer checking the status of the module: ${module}"
             return
         else
@@ -320,11 +320,11 @@ start_by_crontab () {
     if is_use_systemd ;then
         remove_systemd_config
         start_by_binary
-        # add_startup_to_boot
+        add_startup_to_boot
         setup_crontab
     else
         start_by_binary
-        # add_startup_to_boot
+        add_startup_to_boot
         setup_crontab
     fi
     return
@@ -391,7 +391,7 @@ start_by_rclocal () {
         start_by_binary
     fi
 
-    # add_startup_to_boot
+    add_startup_to_boot
     return
 }
 
@@ -508,27 +508,32 @@ check_rc_file () {
     fi
 }
 
+get_daemon_file () {
+    DAEMON_FILE_PATH="/Library/LaunchDaemons/"
+    DAEMON_FILE_NAME="com.tencent.$(echo ${WORK_HOME%*/} | tr '/' '.' | awk -F '.' '{print $(NF-1)"."$NF}').Daemon.plist"
+}
+
+
 add_startup_to_boot () {
-
-    local module=agent
-
-    # 添加启动项到 rc.local
-    echo "Check startup items, and if not existing, add the [${module}] startup item to rc.local"
-
-    check_rc_file
-    local rcfile=$RC_LOCAL_FILE
-
-    if [ $OS_TYPE == "ubuntu" ]; then
-        sed -i "\|\#\!/bin/bash|d" $rcfile
-        sed -i "1i \#\!/bin/bash" $rcfile
-    fi
-
-    chmod +x $rcfile
-
-    # 先删后加，避免重复
-    sed -i "\|${WORK_HOME}/bin/gsectl start ${module}|d" $rcfile
-
-    echo "[ -f ${WORK_HOME}/bin/gsectl ] && ${WORK_HOME}/bin/gsectl start ${module} 1>>/var/log/${INSTALL_ENV}_${node_type}.log 2>&1" >>$rcfile
+    get_daemon_file
+    bash -c "cat >$DAEMON_FILE_PATH$DAEMON_FILE_NAME" << EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "https://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.tencent.$(echo ${WORK_HOME%*/} | tr '/' '.' | awk -F '.' '{print $(NF-1)"."$NF}')</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>${WORK_HOME}/bin/gsectl</string>
+        <string>start</string>
+    </array>
+    <key>RunAtLoad</key>
+    <true/>
+</dict>
+</plist>
+EOF
+    launchctl load $DAEMON_FILE_NAME
 }
 
 add_config_to_systemd () {
@@ -778,7 +783,7 @@ _status () {
     fi
     # 运行到这里时就可以获取进程状态详细信息输出到STDOUT，并返回0了
     # ps --no-header -p $gse_master_pid -o pid,etime,command
-    ps -p $gse_master_pid -o pid,etime,command
+    ps -p $gse_master_pid -o pid,etime,command | grep gse_agent
     return 0
 }
 
@@ -787,8 +792,8 @@ _healthz () {
 }
 
 get_auto_type () {
-    # 由节点管理进行渲染，当前环境使用 crontab
-    echo "crontab"
+    # 由节点管理进行渲染，当前环境使用 {{ AUTO_TYPE }}
+    echo "{{ AUTO_TYPE }}"
     return
     if is_systemd_supported;then
         echo "systemd"

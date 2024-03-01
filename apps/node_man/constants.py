@@ -114,11 +114,11 @@ AUTH_TUPLE = ("PASSWORD", "KEY", "TJJ_PASSWORD")
 AUTH_CHOICES = tuple_choices(AUTH_TUPLE)
 AuthType = choices_to_namedtuple(AUTH_CHOICES)
 
-OS_TUPLE = ("LINUX", "WINDOWS", "AIX", "SOLARIS")
+OS_TUPLE = ("LINUX", "WINDOWS", "AIX", "SOLARIS", "DARWIN")
 OS_CHOICES = tuple_choices(OS_TUPLE)
 OsType = choices_to_namedtuple(OS_CHOICES)
 OS_CHN = {os_type: os_type if os_type == OsType.AIX else os_type.capitalize() for os_type in OS_TUPLE}
-BK_OS_TYPE = {"LINUX": "1", "WINDOWS": "2", "AIX": "3", "SOLARIS": "5"}
+BK_OS_TYPE = {"LINUX": "1", "WINDOWS": "2", "AIX": "3", "SOLARIS": "5", "DARWIN": "8"}
 # 操作系统匹配关键词
 OS_KEYWORDS = {
     OsType.LINUX: ["linux", "ubuntu", "centos", "redhat", "suse", "debian", "fedora"],
@@ -132,13 +132,15 @@ ACCOUNT_MAP = {
     OsType.LINUX: settings.BACKEND_UNIX_ACCOUNT,
     OsType.AIX: settings.BACKEND_UNIX_ACCOUNT,
     OsType.SOLARIS: settings.BACKEND_UNIX_ACCOUNT,
+    OsType.DARWIN: settings.BACKEND_UNIX_ACCOUNT,
     OsType.WINDOWS.lower(): settings.BACKEND_WINDOWS_ACCOUNT,
     OsType.LINUX.lower(): settings.BACKEND_UNIX_ACCOUNT,
     OsType.AIX.lower(): settings.BACKEND_UNIX_ACCOUNT,
     OsType.SOLARIS.lower(): settings.BACKEND_UNIX_ACCOUNT,
+    OsType.DARWIN.lower(): settings.BACKEND_UNIX_ACCOUNT,
 }
 
-OS_TYPE = {"1": "LINUX", "2": "WINDOWS", "3": "AIX", "5": "SOLARIS"}
+OS_TYPE = {"1": "LINUX", "2": "WINDOWS", "3": "AIX", "5": "SOLARIS", "8": "DARWIN"}
 
 NODE_TUPLE = ("AGENT", "PROXY", "PAGENT")
 NODE_CHOICES = tuple_choices(NODE_TUPLE)
@@ -500,6 +502,7 @@ DEFAULT_OS_CPU_MAP = {
     OsType.WINDOWS: CpuType.x86_64,
     OsType.AIX: CpuType.powerpc,
     OsType.SOLARIS: CpuType.sparc,
+    OsType.DARWIN: CpuType.x86_64,
 }
 CMDB_CPU_MAP = {"x86": CpuType.x86, "arm": CpuType.aarch64}
 
@@ -686,6 +689,7 @@ class SetupScriptFileName(Enum):
     SETUP_PROXY_SH = "setup_proxy.sh"
     SETUP_AGENT_SH = "setup_agent.sh"
     SETUP_AGENT_KSH = "setup_agent.ksh"
+    SETUP_AGENT_ZSH = "setup_agent.zsh"
     SETUP_AGENT_BAT = "setup_agent.bat"
     SETUP_PAGENT_PY = "setup_pagent.py"
     GSECTL_BAT = "gsectl.bat"
@@ -697,6 +701,7 @@ SCRIPT_FILE_NAME_MAP = {
     OsType.WINDOWS: SetupScriptFileName.SETUP_AGENT_BAT.value,
     OsType.AIX: SetupScriptFileName.SETUP_AGENT_KSH.value,
     OsType.SOLARIS: SetupScriptFileName.SETUP_AGENT_SOLARIS_SH.value,
+    OsType.DARWIN: SetupScriptFileName.SETUP_AGENT_ZSH.value,
 }
 
 
