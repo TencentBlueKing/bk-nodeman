@@ -481,10 +481,6 @@ class BaseArtifactBuilder(abc.ABC):
                 f"package name -> {package_info['package_upload_info']['pkg_name']} success"
             )
 
-        models.GsePackages.objects.filter(version=package_infos[0]["artifact_meta_info"]["version"]).update(
-            created_by=self.username
-        )
-
         if package_infos:
             models.GsePackageDesc.objects.update_or_create(
                 defaults={
