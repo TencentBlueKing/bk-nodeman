@@ -360,8 +360,8 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
 
         task_result = NodeApi.sync_task_status({"task_id": validated_data["task_id"]})
 
-        # if task_result["status"] == "SUCCESS":
-        #     GsePackages.objects.update(created_by=request.user.username)
+        if task_result["status"] == "SUCCESS":
+            GsePackages.objects.filter(version=validated_data["version"]).update(created_by=request.user.username)
 
         return Response(task_result)
 
@@ -523,7 +523,9 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
             # 不筛选
             version_info_map = [
                 condition
-                for condition in GsePackageTools.get_quick_search_condition(self.get_queryset().filter(is_ready=True))
+                for condition in GsePackageTools.get_quick_search_condition(
+                    self.get_queryset().filter(is_ready=True, project=validated_data["project"])
+                )
                 if condition["id"] == "version"
             ][0]["children"]
 

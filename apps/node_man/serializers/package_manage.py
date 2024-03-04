@@ -253,6 +253,7 @@ class AgentRegisterSerializer(serializers.Serializer):
 
 class AgentRegisterTaskSerializer(serializers.Serializer):
     task_id = serializers.CharField()
+    version = serializers.CharField()
 
 
 class AgentRegisterTaskResponseSerializer(serializers.Serializer):
