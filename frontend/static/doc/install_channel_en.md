@@ -35,7 +35,7 @@ Due to the complex network scenarios that need to be adapted to the installation
    * According to different network scenarios, select the following corresponding configuration templates as appropriate
       * Please note: `nginx` has different port monitoring configurations for ``ipv4`` and ``ipv6``, the configuration item `listen` needs to be configured according to the actual situation
       * Please note: `nginx` has different upstream address configuration methods for ``ipv4`` and ``ipv6``, the upstream address `proxy` in the configuration item `upstream` needs to be configured according to the actual upstream address,
-If the upstream address is an ``ipv6`` host, please adjust the ``upstream proxy`` configuration item in the following template 2 to `[::ip]:17981;`, where `::ip` represents the actual `ipv6 ` address
+       If the upstream address is an ``ipv6`` host, please adjust the ``upstream proxy`` configuration item in the following template 2 to `[::ip]:17981;`, where `::ip` represents the actual `ipv6 ` address
       * Template 1: General channel host `nginx` configuration template
          ```nginx
          events {
@@ -50,7 +50,7 @@ If the upstream address is an ``ipv6`` host, please adjust the ``upstream proxy`
                  listen [::]:17980;
                  server_name localhost;
                  root /data/bkee/public/bknodeman/download;
-
+          
                  location / {
                      index index.html;
                  }
@@ -87,7 +87,7 @@ If the upstream address is an ``ipv6`` host, please adjust the ``upstream proxy`
                listen [::]:17980;
                server_name localhost;
                root /data/bkee/public/bknodeman/download;
-
+       
                location / {
                    index index.html;
                }
@@ -162,3 +162,12 @@ If the upstream address is an ``ipv6`` host, please adjust the ``upstream proxy`
     ```bash
     tar xvf /data/bkee/public/bknodeman/download/py36.tgz -C /opt
     ```
+
+### Page filling
+
+After completing the above steps, you need to fill in the installation channel information according to the configuration items
+
+1. Fill in the corresponding GSE IP in the upstream node
+2. The upstream node of the channel needs to be filled in according to the nginx configuration file
+    - When using template 1, the `upstream proxy` configuration item can be left blank
+    - When using template 2, it needs to be consistent with the configuration in `upstream proxy` in the `nginx` configuration file, fill in the corresponding upstream IP and the port monitored by nginx, such as `10.0.0.1:17981`
