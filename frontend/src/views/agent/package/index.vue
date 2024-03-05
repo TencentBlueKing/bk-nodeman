@@ -54,7 +54,19 @@
         </div>
 
         <div class="package-select-result" v-bkloading="{ isLoading }">
-          <PackageCols :rows="tableData" :pagetion="pagetion" @pagetion="pagetionChange" />
+          <PackageCols :rows="tableData" :maxHeight="tableHeight" :pagetion="pagetion" @pagetion="pagetionChange" />
+          <bk-pagination
+            ext-cls="pagination"
+            size="small"
+            :limit="pagetion.limit"
+            :count="pagetion.count"
+            :current="pagetion.current"
+            :limit-list="pagetion.limitList"
+            align="right"
+            show-total-count
+            @change="handlePageChange"
+            @limit-change="handlePageLimitChange">
+          </bk-pagination>
         </div>
       </section>
     </section>
@@ -72,6 +84,7 @@ import { computed, defineComponent, provide, reactive, ref, toRefs } from 'vue';
 import PackageCols from './package-cols.vue';
 import PackageUpload from './package-upload.vue';
 import { IPagination, ISearchItem } from '@/types';
+import { MainStore } from '@/store/index';
 import {
   IPkgParams, IPkgTag, IPkgTagOpt, PkgType,
   IPkgQuickOpt, IPkgDimension, IPkgRow,
@@ -107,6 +120,7 @@ export default defineComponent({
         current: 1,
         limit: 50,
         count: 0,
+        limitList: [20, 50, 100, 200]
       },
       uploadShow: false,
     });
@@ -267,7 +281,18 @@ export default defineComponent({
         }
       });
     };
-
+    const tableHeight = computed(() =>{
+      return MainStore.windowHeight - 300 - (MainStore.noticeShow ? 40 : 0);
+    })
+    const handlePageChange = (page?: number) => {
+      state.pagetion.current = page || 1;
+      getTableData();
+    }
+    const handlePageLimitChange = (limit: number) => {
+      state.pagetion.current = 1;
+      state.pagetion.limit = limit;
+      getTableData();
+    }
     const pagetionChange = (pagetion: { page?: number; pagesize?: number } = {}) => {
       const { page, pagesize } = pagetion;
       Object.assign(state.pagetion, {
@@ -302,6 +327,7 @@ export default defineComponent({
       searchSelectValue,
       tableData,
       searchData,
+      tableHeight,
 
       toggleUploadShow,
       updateOptionalList,
@@ -309,6 +335,8 @@ export default defineComponent({
       updateTabActive,
       getTableData,
       pagetionChange,
+      handlePageChange,
+      handlePageLimitChange
     };
   },
 });
@@ -437,6 +465,19 @@ export default defineComponent({
   .package-select-result {
     flex: 1;
     overflow: hidden;
+  }
+  .pagination {
+    margin-top: -1px;
+    padding: 14px 16px;
+    height: 60px;
+    border: 1px solid #dcdee5;
+    background: #fff;
+    >>> .bk-page-total-count {
+      color: #63656e;
+    }
+    >>> .bk-page-count {
+      margin-top: -1px;
+    }
   }
 }
 </style>

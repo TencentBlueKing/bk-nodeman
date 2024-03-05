@@ -2,7 +2,8 @@
   <!-- :max-height="windowHeight - 220" -->
   <bk-table
     class="pkg-manage-table"
-    :data="rows">
+    :data="rows"
+    :max-height="maxHeight">
     <NmColumn :label="$t('包名称')" prop="pkg_name" min-width="210" fixed />
     <NmColumn :label="$t('版本号')" prop="version" min-width="120" sortable />
     <NmColumn :label="$t('操作系统/架构')" prop="sys" min-width="120">
@@ -64,6 +65,10 @@ export default defineComponent({
       type: Array as PropType<IPkgRow[]>,
       default: () => [],
     },
+    maxHeight: {
+      type: Number,
+      default: '',
+    }
   },
   emits: ['pagetion'],
   setup(props, { emit }) {

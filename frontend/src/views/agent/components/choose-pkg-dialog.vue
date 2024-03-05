@@ -129,12 +129,12 @@ export default defineComponent({
 
     const getPkgVersions = async () => {
       const {
-        // default_version,
+        default_version,
         pkg_info,
       } = await AgentStore.apiGetPkgVersion({
         project: 'gse_agent',
-        // todo 等待后端拆分为os、arch两部分
-        os_cpu_arch: props.osType ? `${props.osType}_${props.cpuArch}` : '',
+        os: props.osType || '',
+        cpu_arch: props.cpuArch || ''
       });
       const builtinTags = ['stable', 'latest', 'test'];
       tableData.value.splice(0, tableData.value.length, ...pkg_info.map(item => ({
@@ -146,6 +146,10 @@ export default defineComponent({
         })),
       })));
       loading.value = false;
+      // 默认选中default_version,已经选过有props.version的就不默认了
+      props.version === '' && default_version && tableData.value.forEach(row=>{
+        row.version === default_version && handleRowClick(row)
+      })
     };
 
     const handleConfirm = () => {

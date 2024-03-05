@@ -307,7 +307,7 @@ export default class AgentStore extends VuexModule {
   }
 
   @Action
-  public apiGetPkgVersion(param: { project: PkgType;os_cpu_arch: string }): Promise<{
+  public apiGetPkgVersion(param: { project: PkgType; os: string; cpu_arch: string }): Promise<{
     default_version: string;
     pkg_info: IPkgVersion[];
   }> {

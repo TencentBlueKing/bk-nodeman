@@ -309,10 +309,11 @@ export default defineComponent({
         state.pkgLoading = false;
         state.pkgUploaded = false;
         state.pkgParseSucc = false;
+        state.parseLoading = false;
         state.pckWarning = '';
         taskState.taskId = '';
         selectedTags.value.splice(0, selectedTags.value.length);
-        tagsDisplay.value.splice(0, selectedTags.value.length);
+        tagsDisplay.value.splice(0, tagsDisplay.value.length);
       }
     });
 
