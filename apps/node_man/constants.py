@@ -1137,3 +1137,31 @@ class CommonExecutionSolutionStepType(EnhanceEnum):
     @classmethod
     def _get_member__alias_map(cls) -> Dict[Enum, str]:
         return {cls.DEPENDENCIES: _("依赖文件"), cls.COMMANDS: _("命令")}
+
+
+class CmdbCpuArchType(EnhanceEnum):
+    X86 = "x86"
+    X86_64 = "x86"
+    ARM = "arm"
+
+    @classmethod
+    def _get_member__alias_map(cls) -> Dict[Enum, str]:
+        return {cls.X86: _("CPU架构:x86"), cls.X86_64: _("CPU架构:x86_64"), cls.ARM: _("CPU架构:arm")}
+
+    @classmethod
+    def cpu_type__arch_map(cls):
+        return {CpuType.x86: cls.X86.value, CpuType.x86_64: cls.X86_64.value, CpuType.aarch64: cls.ARM.value}
+
+
+class OsBitType(EnhanceEnum):
+    BIT32 = "32-bit"
+    BIT64 = "64-bit"
+    ARM = "arm-64bit"
+
+    @classmethod
+    def _get_member__alias_map(cls) -> Dict[Enum, str]:
+        return {cls.BIT32: _("操作系统位数:32-bit"), cls.BIT64: _("操作系统位数:64-bit"), cls.ARM: _("操作系统位数:arm-64bit")}
+
+    @classmethod
+    def cpu_type__os_bit_map(cls):
+        return {CpuType.x86: cls.BIT32.value, CpuType.x86_64: cls.BIT64.value, CpuType.aarch64: cls.ARM.value}
