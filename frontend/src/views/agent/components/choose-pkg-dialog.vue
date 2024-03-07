@@ -126,7 +126,8 @@ export default defineComponent({
     const selectedRow = ref<IPkgVersion|null>(null);
     const markdown = ref('');
     const lastOs = ref('');
-
+    const defaultVersion = ref('');
+    
     const getPkgVersions = async () => {
       const {
         default_version,
@@ -136,6 +137,7 @@ export default defineComponent({
         os: props.osType || '',
         cpu_arch: props.cpuArch || ''
       });
+      defaultVersion.value = default_version;
       const builtinTags = ['stable', 'latest', 'test'];
       tableData.value.splice(0, tableData.value.length, ...pkg_info.map(item => ({
         ...item,
@@ -146,10 +148,6 @@ export default defineComponent({
         })),
       })));
       loading.value = false;
-      // 默认选中default_version,已经选过有props.version的就不默认了
-      props.version === '' && default_version && tableData.value.forEach(row=>{
-        row.version === default_version && handleRowClick(row)
-      })
     };
 
     const handleConfirm = () => {
@@ -193,6 +191,10 @@ export default defineComponent({
         }
         const selected = props.version ? tableData.value.find(row => row.version === props.version) || null : null;
         selected && handleRowClick(selected);
+        // 默认选中default_version,已经选过有props.version的就不默认了
+        props.version === '' && defaultVersion && tableData.value.forEach(row=>{
+          row.version === defaultVersion.value && handleRowClick(row)
+        })
       } else {
         lastOs.value = `${props.osType}_${props.cpuArch}`;
         selectedVersion.value = props.version;

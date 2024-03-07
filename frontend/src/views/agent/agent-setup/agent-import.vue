@@ -558,7 +558,11 @@ export default class AgentImport extends Mixins(mixin) {
     const data: ISetupRow[] = deepClone(this.tableDataBackup);
     let apList: IApExpand[] = deepClone(AgentStore.apList);
     if (this.isManual) {
-      this.setupInfo.header = this.isEdit ? getManualConfig(editConfig) : getManualConfig(tableConfig);
+      const configData = this.isEdit ? editConfig : tableConfig;
+      //重装时表格增加agent版本信息
+      this.setupInfo.header = this.type === 'REINSTALL_AGENT' ?
+      configData.filter(item => item.manualProp || item.prop === 'version') :
+      getManualConfig(configData);
       // 手动安装无自动选择
       apList = apList.filter(item => item.id !== -1);
       // 自动接入点改默认接入点
@@ -612,19 +616,27 @@ export default class AgentImport extends Mixins(mixin) {
         .map(item => Object.assign({ ...item }, { show: true }));
     } else {
       this.editTableHead.editConfig = editConfig;
-      this.editTableHead.editManualConfig = getManualConfig(editConfig);
+      //重装时表格增加agent版本信息
+      this.editTableHead.editManualConfig = (this.type === 'REINSTALL_AGENT') ?
+      editConfig.filter(item => item.manualProp || item.prop === 'version') :
+      getManualConfig(editConfig);
     }
   }
   private handleShowPanel() {
     this.setupInfo.data = deepClone(this.setupTable.getData());
     this.showRightPanel = true;
   }
+  private osMap = {
+    LINUX: 'linux',
+    WINDOWS: 'windows',
+    AIX: 'aix',
+  };
   // 选择agent版本
   public handleChoose({ row, instance }: { row: ISetupRow; instance: any; }) {
     const { version = '', os_type = '' } = row; // , cpu_arch = ''
     this.versionsDialog.show = true;
     this.versionsDialog.version = version;
-    this.versionsDialog.os_type = os_type;
+    this.versionsDialog.os_type = this.osMap[os_type];
     this.versionsDialog.row = row;
     this.$nextTick(() => {
       this.versionsDialog.instance = instance;

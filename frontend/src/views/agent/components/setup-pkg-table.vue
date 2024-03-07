@@ -115,7 +115,8 @@ export default defineComponent({
         pkg_info,
       } = await AgentStore.apiGetPkgVersion({
         project: 'gse_agent',
-        os_cpu_arch: '',
+        os: '',
+        cpu_arch: ''
       });
       const builtinTags = ['stable', 'latest', 'test'];
       options.value.splice(0, options.value.length, ...pkg_info.map(item => ({
