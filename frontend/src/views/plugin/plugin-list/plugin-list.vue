@@ -244,11 +244,8 @@ export default class PluginList extends Mixins(HeaderFilterMixins) {
         sourceConditions.value = [this.$route.params.policyId];
       }
     }
-    const promiseList: Promise<any>[] = [
-      this.getFilterData(),
-      this.getHostList(params),
-    ];
-    await Promise.all(promiseList);
+    this.getFilterData();// 修复filter condition接口慢阻塞UI问题
+    await this.getHostList(params);
     this.loading = false;
   }
 
