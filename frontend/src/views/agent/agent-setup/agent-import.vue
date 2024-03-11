@@ -390,6 +390,8 @@ export default class AgentImport extends Mixins(mixin) {
       });
       data = JSON.parse(JSON.stringify(formatData));
     }
+    // 设置默认版本
+    data = await this.getDefaltVersion(data)
     // 将原始的数据备份；切换安装方式时，接入点的数据变更后的回退操作时需要用到
     this.tableDataBackup = data;
     this.setupInfo.data = deepClone(data);
@@ -400,6 +402,22 @@ export default class AgentImport extends Mixins(mixin) {
     this.setupTable.handleInit();
     this.setupTable.handleScroll();
   }
+  /**
+   * 获取agent默认版本数据
+   * @param {ISetupRow[]} data - 设置行数据
+   * @returns {Promise<ISetupRow[]>} - 包含默认版本的数据
+   */
+  private getDefaltVersion = async (data: ISetupRow[]):Promise<ISetupRow[]> => {
+    const { os_type = '' } = data[0];
+    const os = os_type === 'Windows' ? 'windows' : os_type === 'Linux' ? 'linux' : '';
+    const { default_version } = await AgentStore.apiGetPkgVersion({
+      project: 'gse_agent',
+      os,
+      cpu_arch: ''
+    });
+    data[0].version = default_version;
+    return data;
+  };
   /**
    * 监听界面滚动
    */
@@ -627,16 +645,16 @@ export default class AgentImport extends Mixins(mixin) {
     this.showRightPanel = true;
   }
   private osMap = {
-    LINUX: 'linux',
-    WINDOWS: 'windows',
-    AIX: 'aix',
+    'LINUX': 'linux',
+    'WINDOWS': 'windows',
+    'AIX': 'aix',
   };
   // 选择agent版本
   public handleChoose({ row, instance }: { row: ISetupRow; instance: any; }) {
     const { version = '', os_type = '' } = row; // , cpu_arch = ''
     this.versionsDialog.show = true;
     this.versionsDialog.version = version;
-    this.versionsDialog.os_type = this.osMap[os_type];
+    this.versionsDialog.os_type = this.osMap[os_type] || os_type;
     this.versionsDialog.row = row;
     this.$nextTick(() => {
       this.versionsDialog.instance = instance;
