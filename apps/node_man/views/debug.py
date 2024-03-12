@@ -19,6 +19,7 @@ from apps.node_man.serializers.debug import (
     HostDebugSerializer,
     SubscriptionDebugSerializer,
     TaskDebugSerializer,
+    TrackHostKeywordSerializer,
 )
 
 DEBUG_VIEW_TAGS = ["debug"]
@@ -32,6 +33,7 @@ class DebugViews(APIViewSet):
     permission_classes = (DebugPermission,)
 
     @swagger_auto_schema(
+        registe_apigtw=True,
         operation_summary="查询订阅任务详情",
         tags=DEBUG_VIEW_TAGS,
     )
@@ -74,6 +76,7 @@ class DebugViews(APIViewSet):
         return Response(data_list)
 
     @swagger_auto_schema(
+        registe_apigtw=True,
         operation_summary="查询订阅任务详情",
         tags=DEBUG_VIEW_TAGS,
     )
@@ -131,6 +134,7 @@ class DebugViews(APIViewSet):
         return Response(data_list)
 
     @swagger_auto_schema(
+        registe_apigtw=True,
         operation_summary="查询订阅任务下的主机",
         tags=DEBUG_VIEW_TAGS,
     )
@@ -179,6 +183,7 @@ class DebugViews(APIViewSet):
         return Response(data_list)
 
     @swagger_auto_schema(
+        registe_apigtw=True,
         operation_summary="查询主机涉及到的所有订阅任务",
         tags=DEBUG_VIEW_TAGS,
     )
@@ -198,3 +203,23 @@ class DebugViews(APIViewSet):
 
         data_list = DebugHandler().fetch_subscriptions_by_host(self.validated_data["bk_host_id"])
         return Response(data_list)
+
+    @swagger_auto_schema(
+        registe_apigtw=True,
+        operation_summary="根据日志关键字查询主机信息",
+        tags=DEBUG_VIEW_TAGS,
+    )
+    @action(detail=False, methods=["GET"], serializer_class=TrackHostKeywordSerializer)
+    def track_host_info_by_log_keywords(self, request, *args, **kwargs):
+        """
+        @api {GET} /debug/track_host_info_by_log_keywords/  根据日志关键字查询主机信息
+        @apiName track_host_info_by_log_keywords
+        @apiGroup debug
+        """
+        validated_data = self.validated_data
+        statistical_result = DebugHandler().track_host_info_by_log_keywords(
+            start_time=validated_data["start_time"],
+            end_time=validated_data["end_time"],
+            log_keywords=validated_data["log_keywords"],
+        )
+        return Response(statistical_result)

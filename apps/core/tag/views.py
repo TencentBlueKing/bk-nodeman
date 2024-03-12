@@ -41,6 +41,7 @@ class TagViewSet(ModelViewSet):
         return serializer_class
 
     @swagger_auto_schema(
+        registe_apigtw=True,
         operation_summary="将标签视为版本，发布到对应目标",
         tags=TAG_VIEW_TAGS,
     )
@@ -53,6 +54,11 @@ class TagViewSet(ModelViewSet):
         )
         return Response(orm.model_to_dict(tag))
 
+    @swagger_auto_schema(
+        registe_apigtw=True,
+        operation_summary="变更标签版本",
+        tags=TAG_VIEW_TAGS,
+    )
     def perform_update(self, serializer):
         # 仅需更新描述信息的情况
         if "target_version" not in serializer.validated_data:
@@ -70,6 +76,7 @@ class TagViewSet(ModelViewSet):
         serializer.save()
 
     @swagger_auto_schema(
+        registe_apigtw=True,
         operation_summary="去除对应标签",
         tags=TAG_VIEW_TAGS,
     )

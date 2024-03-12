@@ -73,6 +73,8 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
 
     # permission_classes = (BackendBasePermission,)
     @swagger_auto_schema(
+        registe_apigtw=True,
+        api_name="create_register_task",
         operation_summary="创建注册任务",
         tags=PLUGIN_VIEW_TAGS,
     )
@@ -129,6 +131,8 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         return Response({"job_id": job.id})
 
     @swagger_auto_schema(
+        registe_apigtw=True,
+        api_name="query_register_task",
         operation_summary="查询插件注册任务",
         tags=PLUGIN_VIEW_TAGS,
     )
@@ -175,6 +179,8 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         )
 
     @swagger_auto_schema(
+        registe_apigtw=True,
+        api_name="query_plugin_info",
         operation_summary="查询插件信息",
         tags=PLUGIN_VIEW_TAGS,
     )
@@ -202,6 +208,8 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         return Response(package_infos)
 
     @swagger_auto_schema(
+        registe_apigtw=True,
+        api_name="release_package",
         operation_summary="发布插件包",
         tags=PLUGIN_VIEW_TAGS,
     )
@@ -250,6 +258,7 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         return Response([package.id for package in plugin_packages])
 
     @swagger_auto_schema(
+        registe_apigtw=True,
         operation_summary="插件包状态类操作",
         tags=PLUGIN_VIEW_TAGS,
     )
@@ -293,10 +302,7 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         plugin_packages.update(**status_field_map[operation], creator=operator)
         return Response([package.id for package in plugin_packages])
 
-    @swagger_auto_schema(
-        operation_summary="删除插件",
-        tags=PLUGIN_VIEW_TAGS,
-    )
+    @swagger_auto_schema(registe_apigtw=True, operation_summary="删除插件", tags=PLUGIN_VIEW_TAGS, api_name="delete_plugin")
     @action(detail=False, methods=["POST"], serializer_class=serializers.DeletePluginSerializer)
     def delete(self, request):
         """
@@ -327,6 +333,8 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         return Response()
 
     @swagger_auto_schema(
+        registe_apigtw=True,
+        api_name="create_plugin_config_template",
         operation_summary="创建配置模板",
         tags=PLUGIN_VIEW_TAGS,
     )
@@ -377,6 +385,8 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         return Response(params)
 
     @swagger_auto_schema(
+        registe_apigtw=True,
+        api_name="release_plugin_config_template",
         operation_summary="发布配置模板",
         tags=PLUGIN_VIEW_TAGS,
     )
@@ -420,6 +430,8 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         return Response(result)
 
     @swagger_auto_schema(
+        registe_apigtw=True,
+        api_name="render_plugin_config_template",
         operation_summary="渲染配置模板",
         tags=PLUGIN_VIEW_TAGS,
     )
@@ -455,6 +467,8 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         )
 
     @swagger_auto_schema(
+        registe_apigtw=True,
+        api_name="query_plugin_config_template",
         operation_summary="查询配置模板",
         tags=PLUGIN_VIEW_TAGS,
     )
@@ -495,6 +509,8 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         return Response(result)
 
     @swagger_auto_schema(
+        registe_apigtw=True,
+        api_name="query_plugin_config_instance",
         operation_summary="查询配置模板实例",
         tags=PLUGIN_VIEW_TAGS,
     )
@@ -538,6 +554,7 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         return Response(result)
 
     @swagger_auto_schema(
+        registe_apigtw=True,
         operation_summary="开始调试",
         tags=PLUGIN_VIEW_TAGS,
     )
@@ -664,6 +681,7 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         return Response({"task_id": subscription_task.id})
 
     @swagger_auto_schema(
+        registe_apigtw=True,
         operation_summary="停止调试",
         tags=PLUGIN_VIEW_TAGS,
     )
@@ -707,6 +725,7 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         return Response()
 
     @swagger_auto_schema(
+        registe_apigtw=True,
         operation_summary="查询调试结果",
         tags=PLUGIN_VIEW_TAGS,
     )
@@ -746,6 +765,8 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         return Response({"status": status, "step": step_name, "message": "\n".join(log_content)})
 
     @swagger_auto_schema(
+        registe_apigtw=True,
+        api_name="create_export_plugin_task",
         operation_summary="触发插件打包导出",
         tags=PLUGIN_VIEW_TAGS,
     )
@@ -799,6 +820,8 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         return Response({"job_id": record.id})
 
     @swagger_auto_schema(
+        registe_apigtw=True,
+        api_name="query_export_plugin_task",
         operation_summary="获取一个导出任务结果",
         tags=PLUGIN_VIEW_TAGS,
     )
@@ -854,6 +877,8 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         return Response(response_data)
 
     @swagger_auto_schema(
+        registe_apigtw=True,
+        api_name="plugin_parse",
         operation_summary="解析插件包",
         tags=PLUGIN_VIEW_TAGS,
     )
@@ -937,6 +962,8 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         return Response(pkg_parse_results)
 
     @swagger_auto_schema(
+        registe_apigtw=True,
+        api_name="list_plugin",
         operation_summary="查询插件列表",
         tags=PLUGIN_VIEW_TAGS,
     )
@@ -1033,6 +1060,8 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         return Response({"total": len(plugins), "list": ret_plugins})
 
     @swagger_auto_schema(
+        registe_apigtw=True,
+        api_name="retrieve_plugin",
         operation_summary="插件详情",
         tags=PLUGIN_VIEW_TAGS,
     )
@@ -1094,6 +1123,7 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         return Response(PluginHandler.retrieve(kwargs["pk"]))
 
     @swagger_auto_schema(
+        registe_apigtw=True,
         operation_summary="插件状态类操作",
         tags=PLUGIN_VIEW_TAGS,
     )
@@ -1123,6 +1153,8 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         return Response([plugin.id for plugin in update_plugins])
 
     @swagger_auto_schema(
+        registe_apigtw=True,
+        api_name="plugin_history",
         operation_summary="查询插件包历史",
         methods=["GET"],
         tags=PLUGIN_VIEW_TAGS,
@@ -1196,6 +1228,7 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         )
 
     @swagger_auto_schema(
+        registe_apigtw=True,
         operation_summary="上传文件接口",
         tags=PLUGIN_VIEW_TAGS,
     )
@@ -1240,6 +1273,12 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         return Response(upload_result)
 
 
+@swagger_auto_schema(
+    registe_apigtw=True,
+    api_name="upload_file",
+    operation_summary="上传文件接口",
+    tags=PLUGIN_VIEW_TAGS,
+)
 @csrf_exempt
 @login_exempt
 def upload_package(request):

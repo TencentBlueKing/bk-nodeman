@@ -176,3 +176,11 @@ BKAPP_NAV_HELPER_URL = get_type_env(
 # 文档中心跳转路由
 
 BK_DOCS_CENTER_HOST = get_type_env(key="BK_DOCS_CENTER_HOST", default="", _type=str)
+
+
+# ===============================================================================
+# APIGTW
+# ===============================================================================
+BK_NODEMAN_API_URL = get_type_env(key="BK_NODEMAN_API_URL", default="http://bk-nodeman-backend-api", _type=str)
+
+BK_NDOEMAN_APIGTW_TIMEOUT = int = get_type_env(key="BK_NDOEMAN_APIGTW_TIMEOUT", default=30, _type=int)

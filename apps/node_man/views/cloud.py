@@ -34,6 +34,8 @@ class CloudViewSet(ModelViewSet):
         query_serializer=ListSerializer(),
         responses={status.HTTP_200_OK: response.CloudListResponseSerializer()},
         tags=CLOUD_VIEW_TAGS,
+        registe_apigtw=True,
+        api_name="list_cloud",
     )
     def list(self, request, *args, **kwargs):
         """
@@ -51,6 +53,8 @@ class CloudViewSet(ModelViewSet):
     @swagger_auto_schema(
         operation_summary="查询管控区域详情",
         tags=CLOUD_VIEW_TAGS,
+        registe_apigtw=True,
+        api_name="retrieve_cloud",
     )
     def retrieve(self, request, *args, **kwargs):
         """
@@ -137,6 +141,8 @@ class CloudViewSet(ModelViewSet):
     @swagger_auto_schema(
         operation_summary="删除管控区域",
         tags=CLOUD_VIEW_TAGS,
+        registe_apigtw=True,
+        api_name="delete_cloud",
     )
     def destroy(self, request, *args, **kwargs):
         """
@@ -151,6 +157,8 @@ class CloudViewSet(ModelViewSet):
     @swagger_auto_schema(
         operation_summary="查询某主机服务信息",
         tags=CLOUD_VIEW_TAGS,
+        registe_apigtw=True,
+        api_name="list_cloud_biz",
     )
     @action(detail=True, methods=["GET"], url_path="biz")
     def list_cloud_biz(self, request, pk=None):

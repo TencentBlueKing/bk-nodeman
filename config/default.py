@@ -24,6 +24,8 @@ import env
 from apps.utils.encrypt.crypto import Interceptor
 from apps.utils.enum import EnhanceEnum
 from apps.utils.env import get_type_env
+from config import APP_ID, APP_TOKEN
+from env.constants import BkPaaSVersion
 
 # pipeline 配置
 from pipeline.celery.settings import CELERY_QUEUES as PIPELINE_CELERY_QUEUES
@@ -347,6 +349,13 @@ BK_DOCS_CENTER_HOST = env.BK_DOCS_CENTER_HOST
 BKAPP_NAV_HELPER_URL = env.BKAPP_NAV_HELPER_URL
 # 导航栏开源社区地址
 BKAPP_NAV_OPEN_SOURCE_URL = env.BKAPP_NAV_OPEN_SOURCE_URL
+
+if BKPAAS_MAJOR_VERSION == BkPaaSVersion.V3.value:
+    # APIGW
+    BK_APP_CODE = APP_ID
+    BK_APP_SECRET = APP_TOKEN
+    BK_APIGW_NAME = "bk-nodeman"
+    BK_APIGW_RESOURCE_DOCS_BASE_DIR = os.path.join(PROJECT_ROOT, "docs/apidoc")
 
 INIT_SUPERUSER = ["admin"]
 DEBUG = False

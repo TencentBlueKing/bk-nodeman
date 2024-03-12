@@ -53,6 +53,7 @@ class SubscriptionViewSet(APIViewSet):
     # permission_classes = (BackendBasePermission,)
 
     @swagger_auto_schema(
+        registe_apigtw=True,
         operation_summary="创建订阅",
         responses={status.HTTP_200_OK: response.CreateResponseSerializer()},
         tags=SUBSCRIPTION_VIEW_TAGS,
@@ -128,6 +129,8 @@ class SubscriptionViewSet(APIViewSet):
         return Response(result)
 
     @swagger_auto_schema(
+        registe_apigtw=True,
+        api_name="subscription_info",
         operation_summary="订阅详情",
         responses={status.HTTP_200_OK: response.InfoResponseSerializer()},
         tags=SUBSCRIPTION_VIEW_TAGS,
@@ -173,6 +176,7 @@ class SubscriptionViewSet(APIViewSet):
         return Response(result)
 
     @swagger_auto_schema(
+        registe_apigtw=True,
         operation_summary="更新订阅",
         responses={status.HTTP_200_OK: response.UpdateResponseSerializer()},
         tags=SUBSCRIPTION_VIEW_TAGS,
@@ -222,7 +226,6 @@ class SubscriptionViewSet(APIViewSet):
             step_objs_to_be_updated: List[models.SubscriptionStep] = []
 
             for index, step_info in enumerate(params["steps"]):
-
                 if step_info["id"] in step_id__obj_map:
                     # 存在则更新
                     step_obj: models.SubscriptionStep = step_id__obj_map[step_info["id"]]
@@ -285,6 +288,7 @@ class SubscriptionViewSet(APIViewSet):
         return Response(result)
 
     @swagger_auto_schema(
+        registe_apigtw=True,
         operation_summary="删除订阅",
         responses={status.HTTP_200_OK: response.DeleteResponseSerializer()},
         tags=SUBSCRIPTION_VIEW_TAGS,
@@ -308,6 +312,8 @@ class SubscriptionViewSet(APIViewSet):
         return Response()
 
     @swagger_auto_schema(
+        registe_apigtw=True,
+        api_name="run_subscription",
         operation_summary="执行订阅",
         responses={status.HTTP_200_OK: response.RunResponseSerializer()},
         tags=SUBSCRIPTION_VIEW_TAGS,
@@ -325,7 +331,13 @@ class SubscriptionViewSet(APIViewSet):
             SubscriptionHandler(params["subscription_id"]).run(scope=params.get("scope"), actions=params.get("actions"))
         )
 
-    @swagger_auto_schema(operation_summary="查询任务是否已准备完成", tags=SUBSCRIPTION_VIEW_TAGS, methods=["GET", "POST"])
+    @swagger_auto_schema(
+        registe_apigtw=True,
+        api_name="subscription_check_task_ready",
+        operation_summary="查询任务是否已准备完成",
+        tags=SUBSCRIPTION_VIEW_TAGS,
+        methods=["POST"],
+    )
     @action(detail=False, methods=["GET", "POST"], serializer_class=serializers.CheckTaskReadySerializer)
     def check_task_ready(self, request):
         """
@@ -341,10 +353,12 @@ class SubscriptionViewSet(APIViewSet):
         return Response(task_result)
 
     @swagger_auto_schema(
+        registe_apigtw=True,
+        api_name="subscription_task_result",
         operation_summary="任务执行结果",
         responses={status.HTTP_200_OK: response.TaskResultResponseSerializer()},
         tags=SUBSCRIPTION_VIEW_TAGS,
-        methods=["GET", "POST"],
+        methods=["POST"],
     )
     @action(detail=False, methods=["GET", "POST"], serializer_class=serializers.TaskResultSerializer)
     def task_result(self, request):
@@ -371,9 +385,10 @@ class SubscriptionViewSet(APIViewSet):
         return Response(task_result)
 
     @swagger_auto_schema(
+        registe_apigtw=True,
         operation_summary="任务执行详细结果",
         tags=SUBSCRIPTION_VIEW_TAGS,
-        methods=["GET", "POST"],
+        methods=["POST"],
     )
     @action(detail=False, methods=["GET", "POST"], serializer_class=serializers.TaskResultDetailSerializer)
     def task_result_detail(self, request):
@@ -393,7 +408,7 @@ class SubscriptionViewSet(APIViewSet):
             SubscriptionHandler(params["subscription_id"]).task_result_detail(params["instance_id"], task_id_list)
         )
 
-    @swagger_auto_schema(operation_summary="采集任务执行详细结果", tags=SUBSCRIPTION_VIEW_TAGS)
+    @swagger_auto_schema(registe_apigtw=True, operation_summary="采集任务执行详细结果", tags=SUBSCRIPTION_VIEW_TAGS)
     @action(detail=False, methods=["POST"])
     def collect_task_result_detail(self, request):
         """
@@ -410,7 +425,7 @@ class SubscriptionViewSet(APIViewSet):
         res = collect_log.delay(job_task.bk_host_id, job_task.pipeline_id)
         return Response({"celery_id": res.id})
 
-    @swagger_auto_schema(operation_summary="统计订阅任务数据", tags=SUBSCRIPTION_VIEW_TAGS)
+    @swagger_auto_schema(registe_apigtw=True, operation_summary="统计订阅任务数据", tags=SUBSCRIPTION_VIEW_TAGS)
     @action(detail=False, methods=["POST"], serializer_class=serializers.SubscriptionStatisticSerializer)
     def statistic(self, request):
         """
@@ -423,10 +438,11 @@ class SubscriptionViewSet(APIViewSet):
         return Response(SubscriptionHandler.statistic(subscription_id_list))
 
     @swagger_auto_schema(
+        registe_apigtw=True,
         operation_summary="查询订阅运行状态",
         responses={status.HTTP_200_OK: response.InstanceStatusResponseSerializer()},
         tags=SUBSCRIPTION_VIEW_TAGS,
-        methods=["GET", "POST"],
+        methods=["POST"],
     )
     @action(detail=False, methods=["GET", "POST"], serializer_class=serializers.InstanceHostStatusSerializer)
     def instance_status(self, request):
@@ -531,7 +547,9 @@ class SubscriptionViewSet(APIViewSet):
             result.append({"subscription_id": subscription.id, "instances": subscription_result})
         return Response(result)
 
-    @swagger_auto_schema(operation_summary="订阅启停", tags=SUBSCRIPTION_VIEW_TAGS)
+    @swagger_auto_schema(
+        registe_apigtw=True, operation_summary="订阅启停", tags=SUBSCRIPTION_VIEW_TAGS, api_name="subscription_switch"
+    )
     @action(detail=False, methods=["POST"], serializer_class=serializers.SwitchSubscriptionSerializer)
     def switch(self, request):
         """
@@ -554,7 +572,7 @@ class SubscriptionViewSet(APIViewSet):
 
         return Response()
 
-    @swagger_auto_schema(operation_summary="终止正在执行的任务", tags=SUBSCRIPTION_VIEW_TAGS)
+    @swagger_auto_schema(registe_apigtw=True, operation_summary="终止正在执行的任务", tags=SUBSCRIPTION_VIEW_TAGS)
     @action(detail=False, methods=["POST"], serializer_class=serializers.RevokeSubscriptionSerializer)
     def revoke(self, request):
         """
@@ -569,6 +587,7 @@ class SubscriptionViewSet(APIViewSet):
         return Response()
 
     @swagger_auto_schema(
+        registe_apigtw=True,
         operation_summary="重试失败的任务",
         responses={status.HTTP_200_OK: response.RetryResponseSerializer()},
         tags=SUBSCRIPTION_VIEW_TAGS,
@@ -589,7 +608,7 @@ class SubscriptionViewSet(APIViewSet):
         )
         return Response(retry_result)
 
-    @swagger_auto_schema(operation_summary="重试原子", tags=SUBSCRIPTION_VIEW_TAGS)
+    @swagger_auto_schema(registe_apigtw=True, operation_summary="重试原子", tags=SUBSCRIPTION_VIEW_TAGS)
     @action(detail=False, methods=["POST"], serializer_class=serializers.RetryNodeSerializer)
     def retry_node(self, request):
         """
@@ -643,7 +662,9 @@ class SubscriptionViewSet(APIViewSet):
         tasks.retry_node.delay(failed_node["pipeline_id"])
         return Response({"retry_node_id": failed_node["pipeline_id"], "retry_node_name": failed_node["node_name"]})
 
-    @swagger_auto_schema(operation_summary="接收cmdb事件回调", tags=SUBSCRIPTION_VIEW_TAGS, methods=["GET", "POST"])
+    @swagger_auto_schema(
+        registe_apigtw=True, operation_summary="接收cmdb事件回调", tags=SUBSCRIPTION_VIEW_TAGS, methods=["POST"]
+    )
     @action(detail=False, methods=["GET", "POST"], serializer_class=serializers.CMDBSubscriptionSerializer)
     def cmdb_subscription(self, request):
         """
@@ -667,7 +688,7 @@ class SubscriptionViewSet(APIViewSet):
         models.CmdbEventRecord.objects.bulk_create(cmdb_events)
         return Response("ok")
 
-    @swagger_auto_schema(operation_summary="返回安装命令", tags=SUBSCRIPTION_VIEW_TAGS)
+    @swagger_auto_schema(registe_apigtw=True, operation_summary="返回安装命令", tags=SUBSCRIPTION_VIEW_TAGS)
     @action(detail=False, methods=["POST"], serializer_class=serializers.FetchCommandsSerializer)
     def fetch_commands(self, request):
         """
@@ -723,7 +744,7 @@ class SubscriptionViewSet(APIViewSet):
 
         return Response({"solutions": solutions})
 
-    @swagger_auto_schema(operation_summary="查询策略列表", tags=SUBSCRIPTION_VIEW_TAGS)
+    @swagger_auto_schema(registe_apigtw=True, operation_summary="查询策略列表", tags=SUBSCRIPTION_VIEW_TAGS)
     @action(detail=False, methods=["POST"], serializer_class=serializers.SearchDeployPolicySerializer)
     def search_deploy_policy(self, *args, **kwargs):
         """
@@ -856,7 +877,7 @@ class SubscriptionViewSet(APIViewSet):
 
         return Response({"total": len(all_subscriptions), "list": subscriptions})
 
-    @swagger_auto_schema(operation_summary="获取主机策略列表", tags=SUBSCRIPTION_VIEW_TAGS)
+    @swagger_auto_schema(registe_apigtw=True, operation_summary="获取主机策略列表", tags=SUBSCRIPTION_VIEW_TAGS)
     @action(detail=False, methods=["GET"], serializer_class=serializers.QueryHostPolicySerializer)
     def query_host_policy(self, request):
         """
@@ -987,7 +1008,7 @@ class SubscriptionViewSet(APIViewSet):
         operate_records.sort(key=cmp_to_key(_op_record_comparator))
         return Response(operate_records)
 
-    @swagger_auto_schema(operation_summary="获取主机订阅列表", tags=SUBSCRIPTION_VIEW_TAGS)
+    @swagger_auto_schema(registe_apigtw=True, operation_summary="获取主机订阅列表", tags=SUBSCRIPTION_VIEW_TAGS)
     @action(detail=False, methods=["GET"], serializer_class=serializers.QueryHostSubscriptionsSerializer)
     def query_host_subscriptions(self, request):
         """
@@ -1017,7 +1038,7 @@ class SubscriptionViewSet(APIViewSet):
             models.ProcessStatus.fetch_process_statuses_by_host_id(bk_host_id=bk_host_id, source_type=source_type)
         )
 
-    @swagger_auto_schema(operation_summary="启用/禁用业务订阅巡检", tags=SUBSCRIPTION_VIEW_TAGS)
+    @swagger_auto_schema(registe_apigtw=True, operation_summary="启用/禁用业务订阅巡检", tags=SUBSCRIPTION_VIEW_TAGS)
     @action(detail=False, methods=["POST"], serializer_class=serializers.SubscriptionSwitchBizSerializer)
     def switch_biz(self, request):
         """
@@ -1037,7 +1058,6 @@ class SubscriptionViewSet(APIViewSet):
                 value=list(set(disable_subscription_bk_biz_ids) - set(data["bk_biz_ids"])),
             )
         else:
-
             # 更新禁用业务列表
             models.GlobalSettings.update_config(
                 key=global_config_key,
