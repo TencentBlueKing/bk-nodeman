@@ -400,7 +400,7 @@ export default class AgentImport extends Mixins(mixin) {
     });
     const filterData = data.filter(item => item.bk_cloud_id === 0);
     // 设置默认版本
-    data = await this.getDefaltVersion(data)
+    data[0].version === '' &&  (data = await this.getDefaltVersion(data));
     // 将原始的数据备份；切换安装方式时，接入点的数据变更后的回退操作时需要用到
     this.tableDataBackup = data;
     this.setupInfo.data = deepClone(data);
