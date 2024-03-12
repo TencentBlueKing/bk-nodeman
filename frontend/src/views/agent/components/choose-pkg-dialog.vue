@@ -44,9 +44,9 @@
                 </bk-radio>
               </template>
             </bk-table-column>
-            <NmColumn :label="$t('Agent 版本')" sortable prop="version">
+            <NmColumn :label="$t('Agent 版本')" sortable prop="version" :show-overflow-tooltip="false">
               <template #default="{ row }">
-                <span>{{ row.version || '--' }}</span>
+                <span class="version">{{ row.version || '--' }}</span>
                 <FlexibleTag v-if="row.tags.length" :list="row.tags" />
               </template>
             </NmColumn>
@@ -282,7 +282,7 @@ export default defineComponent({
   /* center */
   .pkg-table-wrapper {
     flex: 1;
-    width: 263px;
+    width: 285px;
   }
   .pkg-table {
     width: 100%;
@@ -293,7 +293,7 @@ export default defineComponent({
 
   /* right */
   .pkg-desc {
-    width: 451px;
+    width: 425px;
     display: flex;
     flex-direction: column;
     border-left: 1px solid #dcdee5;
@@ -320,7 +320,7 @@ export default defineComponent({
     }
   }
   .flexible-tag-group {
-    display: inline-flex;
+    margin-left: 2px;
     .tag-item {
       &.stable {
         color: #14a568;
@@ -363,6 +363,11 @@ export default defineComponent({
     }
     td .cell {
       padding: 0 13px;
+      display: flex;
+      line-height: 22px;
+      .version{
+        min-width: fit-content;
+      }
     }
     td:first-child .cell {
       padding-right: 0;
