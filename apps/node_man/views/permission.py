@@ -26,6 +26,8 @@ class PermissionViewSet(APIViewSet):
     @swagger_auto_schema(
         operation_summary="根据条件返回用户权限",
         tags=PERMISSION_VIEW_TAGS,
+        registe_apigtw=True,
+        api_name="fetch_permission",
     )
     @action(detail=False, methods=["POST"], serializer_class=ApplyPermissionSerializer)
     def fetch(self, request, *args, **kwargs):

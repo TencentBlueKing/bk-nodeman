@@ -23,3 +23,9 @@ class TaskDebugSerializer(serializers.Serializer):
 
 class HostDebugSerializer(serializers.Serializer):
     bk_host_id = serializers.IntegerField(label=_("主机ID"), required=True)
+
+
+class TrackHostKeywordSerializer(serializers.Serializer):
+    start_time = serializers.CharField(label=_("开始时间"), required=True)
+    end_time = serializers.CharField(label=_("开始时间"), required=True)
+    keyword_list = serializers.ListField(label=_("关键字列表"), required=True, child=serializers.CharField())

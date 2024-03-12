@@ -2,3 +2,5 @@
 python manage.py createcachetable django_cache
 python manage.py migrate
 python manage.py fetch_component_api_public_key
+python manage.py generate_api_resources
+python manage.py register_apigtw

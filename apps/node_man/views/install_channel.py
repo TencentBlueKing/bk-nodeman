@@ -40,6 +40,8 @@ class InstallChannelViewSet(ModelViewSet):
     @swagger_auto_schema(
         operation_summary="创建安装通道",
         tags=INSTALL_CHANNEL_VIEW_TAGS,
+        registe_apigtw=True,
+        api_name="create_install_channel",
     )
     def create(self, request, *args, **kwargs):
         """
@@ -78,6 +80,8 @@ class InstallChannelViewSet(ModelViewSet):
     @swagger_auto_schema(
         operation_summary="编辑安装通道",
         tags=INSTALL_CHANNEL_VIEW_TAGS,
+        registe_apigtw=True,
+        api_name="update_install_channel",
     )
     def update(self, request, *args, **kwargs):
         """
