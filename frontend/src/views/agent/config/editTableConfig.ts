@@ -280,8 +280,8 @@ export const config: ISetupHead[] = [
     default: '',
     width: 100,
     parentProp: 'install_info',
-    getReadonly() {
-      return this.type === 'UNINSTALL_AGENT';
+    getReadonly(row: ISetupRow) {
+      return this.type === 'UNINSTALL_AGENT' || row.version === 'stable';
     },
     // rules: [reguPort],
   },

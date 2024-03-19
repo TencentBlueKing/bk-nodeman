@@ -184,6 +184,8 @@ export default class AgentImport extends Mixins(mixin) {
   private height = 0;
   // 安装信息加载状态
   private loading = false;
+  // 默认版本
+  private defaultVersion = '';
   // 编辑head
   private editTableHead: { editConfig: ISetupHead[], editManualConfig: ISetupHead[]  } = {
     editConfig: [],
@@ -394,9 +396,14 @@ export default class AgentImport extends Mixins(mixin) {
       });
       data = JSON.parse(JSON.stringify(formatData));
     }
-    // version无值时候，接入点非v2则默认为stable，v2则默认为稳定版本
-    data[0].version === '' && this.isApV2(data[0].ap_id)
-      ? (data = await this.getDefaultVersion(data)) : data[0].version = 'stable';
+    await this.getDefaultVersion();
+    // version无值时候，接入点v2则默认为稳定版本,非v2则默认为stable,表头对象中agent版本的getReadonly方法会对version为stable的返回true从而设置不可编辑状态
+    data.map((item) => {
+      if (item.version === '') {
+        item.version = this.isApV2(item.ap_id) ? this.defaultVersion : 'stable';
+      }
+      return item;
+    });
     // 将原始的数据备份；切换安装方式时，接入点的数据变更后的回退操作时需要用到
     this.tableDataBackup = data;
     this.setupInfo.data = deepClone(data);
@@ -404,11 +411,6 @@ export default class AgentImport extends Mixins(mixin) {
       ? data.every((item: ISetupRow) => item.is_manual) : data.some((item: ISetupRow) => item.is_manual);
     // 编辑态安装信息表格配置
     this.setupInfo.header = this.isManual ? this.editTableHead.editManualConfig : this.editTableHead.editConfig;
-    // 重装根据接入点v2版本设置agent可编辑，非v2不可编辑
-    if (this.type === 'REINSTALL_AGENT') {
-      this.setupInfo.header.find(item => item.prop === 'version')['readonly'] = !this.isApV2(data[0].ap_id);
-      this.setupInfo.header.find(item => item.prop === 'version').getReadonly = null;
-    }
     this.setupTable.handleInit();
     this.setupTable.handleScroll();
   }
@@ -417,16 +419,13 @@ export default class AgentImport extends Mixins(mixin) {
    * @param {ISetupRow[]} data - 设置行数据
    * @returns {Promise<ISetupRow[]>} - 包含默认版本的数据
    */
-  private getDefaultVersion = async (data: ISetupRow[]): Promise<ISetupRow[]> => {
-    const { os_type = '' } = data[0];
-    const os = this.osMap[os_type] || os_type;
+  private async getDefaultVersion() {
     const { default_version } = await AgentStore.apiGetPkgVersion({
       project: 'gse_agent',
-      os,
+      os: '',
       cpu_arch: ''
     });
-    data[0].version = default_version || '';
-    return data;
+    this.defaultVersion = default_version;
   };
   /**
    * 监听界面滚动
