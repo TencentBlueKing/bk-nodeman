@@ -90,6 +90,36 @@
           v-model="proxyData.enable_compression">
         </bk-switcher>
       </bk-form-item>
+      <bk-form-item
+        v-show="isApV2"
+        :required="isApV2"
+        :rules="rules.version"
+        error-display-type="normal"
+        property="version"
+        :label="$t('agent版本')">
+        <div style="display: flex; flex-wrap: wrap; max-width: 600px;">
+          <bk-form-item
+            class="version-type"
+            error-display-type="normal"
+            property="agent_version">
+            <div
+              :class="['versions-choose-btn flex', { 'versions-choose-detail': proxyData.version }]"
+              @click="() => chooseAgentVersion({ version: proxyData.version })">
+              <template v-if="proxyData.version" class="versions-choose-detail">
+                <div class="prefix-area">
+                  <i class="nodeman-icon nc-package-2" />
+                </div>
+                <div class="version-text">{{ proxyData.version }}</div>
+                <i class="nodeman-icon nc-icon-edit-2 versions-choose-icon" />
+              </template>
+              <template v-else>
+                <i class="nodeman-icon nc-plus-line" />
+                {{ $t('选择版本') }}
+              </template>
+            </div>
+          </bk-form-item>
+        </div>
+      </bk-form-item>
     </bk-form>
     <div class="mt30 mb10">
       <bk-button
@@ -102,6 +132,14 @@
       </bk-button>
       <bk-button class="nodeman-cancel-btn ml10" @click="handleCancel">{{ $t('取消') }}</bk-button>
     </div>
+    <!-- agent包版本 -->
+    <ChoosePkgDialog
+      v-model="versionsDialog.show"
+      :type="versionsDialog.type"
+      :title="versionsDialog.title"
+      :version="versionsDialog.version"
+      :os-type="versionsDialog.os_type"
+      @confirm="updateAgentVersion" />
   </section>
 </template>
 <script lang="ts">
@@ -113,12 +151,15 @@ import Upload from '@/components/setup-table/upload.vue';
 import { IProxyDetail } from '@/types/cloud/cloud';
 import InstallInputType from '@/components/setup-table/install-input-type.vue';
 import { reguFnMinInteger, reguPort, reguIPMixins, reguRequired, reguFnSysPath, osDirReplace } from '@/common/form-check';
+import ChoosePkgDialog from '../../agent/components/choose-pkg-dialog.vue';
+
 
 @Component({
   name: 'sideslider-content-edit',
   components: {
     Upload,
     InstallInputType,
+    ChoosePkgDialog,
   },
 })
 
@@ -137,14 +178,46 @@ export default class SidesliderContentEdit extends Vue {
     theme: 'light',
     content: this.$t('供proxy文件分发临时使用后台定期进行清理建议预留至少磁盘空间'),
   };
+  // agent包版本弹框参数
+  public versionsDialog = {
+    show: false,
+    type: 'by_system_arch',
+    title: this.$t('选择 Agent 版本'),
+    version: '',
+    os_type: 'linux'
+  };
+  // 选择agent版本
+  public chooseAgentVersion(info: {
+    version: string;
+  }) {
+    const { version = '' } = info;
+    this.versionsDialog.show = true;
+    this.versionsDialog.version = version;
+  }
+  // 回填agent版本
+  public updateAgentVersion(info: any) {
+    this.proxyData.version = info.version;
+  }
+  // 获取接入点列表
+  private get apList() {
+    return CloudStore.apList;
+  }
+  // 判断当前接入点是v2版本
+  public get isApV2(): Boolean {
+    return this.apList.find(data => data.id === this.proxyData.ap_id)?.gse_version === 'V2';
+  }
   private proxyData: Dictionary = {};
-  private rules = {
-    outerIp: [reguRequired, reguIPMixins],
-    loginIp: [reguRequired, reguIPMixins],
-    port: [reguRequired, reguPort],
-    account: [reguRequired],
-    speedLimit: [reguFnMinInteger(1)],
-    path: [reguRequired, reguFnSysPath({ minLevel: 2 })],
+  private get rules() {
+    const commonRules = {
+      outerIp: [reguRequired, reguIPMixins],
+      loginIp: [reguRequired, reguIPMixins],
+      port: [reguRequired, reguPort],
+      account: [reguRequired],
+      speedLimit: [reguFnMinInteger(1)],
+      path: [reguRequired, reguFnSysPath({ minLevel: 2 })],
+      version: this.isApV2 ? [reguRequired] : []
+    };
+    return commonRules;
   };
   private loading = false;
   private showErrMsg = false;
@@ -157,8 +230,11 @@ export default class SidesliderContentEdit extends Vue {
   }
 
   @Watch('basic', { immediate: true })
-  public handlebasicChange(data: IProxyDetail) {
+  public async handlebasicChange(data: IProxyDetail) {
     this.proxyData = JSON.parse(JSON.stringify(data));
+    if (!this.apList.length) {
+      await CloudStore.getApList();
+    }
   }
   @Watch('proxyData', { deep: true })
   public handleFormChange() {
@@ -197,6 +273,7 @@ export default class SidesliderContentEdit extends Vue {
         params.bt_speed_limit = this.proxyData.bt_speed_limit;
       }
       params.peer_exchange_switch_for_agent = Number(this.proxyData.peer_exchange_switch_for_agent || false);
+      this.proxyData.version && (params.version = this.proxyData.version);
       const result = await CloudStore.updateHost(params);
       if (result) {
         this.$bkMessage({
@@ -238,6 +315,7 @@ export default class SidesliderContentEdit extends Vue {
 </script>
 <style lang="postcss" scoped>
 @import "@/css/mixins/nodeman.css";
+@import "@/css/variable.css";
 
 >>> .bk-form.bk-form-vertical .bk-form-item+.bk-form-item {
   margin-top: 12px;
@@ -272,6 +350,71 @@ export default class SidesliderContentEdit extends Vue {
     }
     .auth-key {
       width: 100%;
+    }
+  }
+  .version-type {
+    width: 100%;
+    >>> .bk-form-content {
+      margin-left: 0!important;
+    }
+    &.is-error .versions-choose-btn:not(:hover) {
+      border-color: #ff5656;
+    }
+  }
+  .versions-choose-btn {
+    width: 100%;
+    position: relative;
+    align-items: center;
+    justify-content: center;
+    border: 1px dashed #c4c6cc;
+    border-radius: 2px;
+    background-color: #fafbfd;
+    cursor: pointer;
+    .nc-plus-line {
+      margin-right: 6px;
+    }
+    .nodeman-icon {
+      color: #979ba5;
+    }
+    &:hover {
+      color: $primaryFontColor;
+      border-color: $primaryFontColor;
+    }
+    &:hover .nodeman-icon {
+      color: $primaryFontColor;
+    }
+  }
+  .versions-choose-detail {
+    border-style: solid;
+    .prefix-area {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 30px;
+      border-right: 1px solid #c4c6cc;
+      background-color: #fafbfd;
+    }
+    .version-text {
+      padding: 0 8px;
+      flex: 1;
+      color: #63656e;
+      background-color: #fff;
+    }
+    .versions-choose-icon {
+      position: absolute;
+      right: 8px;
+      top: 8px;
+      display: none;
+    }
+    &:hover {
+      .prefix-area {
+        background-color: #e1ecff;
+        border-color: $primaryFontColor;
+      }
+      .versions-choose-icon {
+        display: inline-block;
+      }
     }
   }
 }

@@ -8,6 +8,7 @@ export const parentHead = [
   { label: '主机属性', prop: 'host_attr', type: 'text', colspan: 0 },
   { label: '登录信息', prop: 'login_info', type: 'text', tips: 'proxySetupLoginInfo', colspan: 0 },
   { label: '传输信息', prop: 'trans_info', type: 'text', colspan: 0 },
+  { label: '安装信息', prop: 'install_info', type: 'text', colspan: 0 },
   { label: '', prop: '', type: 'operate' },
 ];
 
@@ -213,6 +214,19 @@ const config: ISetupHead[] = [
     parentProp: 'trans_info',
   },
   {
+    label: 'Agent 包版本',
+    prop: 'version',
+    type: 'choose',
+    required: true,
+    noRequiredMark: false,
+    placeholder: window.i18n.t('请选择'),
+    batch: false,
+    default: '',
+    width: 100,
+    manualProp: true,
+    parentProp: 'install_info',
+  },
+  {
     label: '',
     prop: '',
     type: 'operate',
@@ -232,6 +246,7 @@ export const setupDiffConfigs = {
   bt_speed_limit: {
     width: 160,
   },
+
   operate: {
     local: true,
   },

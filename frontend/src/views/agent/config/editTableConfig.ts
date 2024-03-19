@@ -273,6 +273,7 @@ export const config: ISetupHead[] = [
     prop: 'version',
     type: 'choose',
     required: true,
+    readonly: false,
     noRequiredMark: false,
     placeholder: window.i18n.t('请选择'),
     batch: false,
