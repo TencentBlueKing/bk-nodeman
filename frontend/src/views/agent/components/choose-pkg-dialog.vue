@@ -127,7 +127,7 @@ export default defineComponent({
     const markdown = ref('');
     const lastOs = ref('');
     const defaultVersion = ref('');
-    
+
     const getPkgVersions = async () => {
       const {
         default_version,
