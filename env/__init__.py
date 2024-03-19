@@ -94,6 +94,9 @@ BK_LOG_DIR = get_type_env(key="BK_LOG_DIR", default="./../bk_nodeman/logs", _typ
 CACHE_BACKEND = get_type_env(key="CACHE_BACKEND", default=constants.CacheBackend.DB.value, _type=str)
 # 是否预热关键缓存，一般在切换缓存前需要开启，开启前请确保 SaaS 模块也配置了 Redis
 CACHE_ENABLE_PREHEAT = get_type_env(key="CACHE_ENABLE_PREHEAT", default=False, _type=bool)
+# 缓存分片长度，缓存后端为 `db` 时默认值为 3M，缓存后端为 `redis` 时默认值为 5M
+CACHE_PIECE_DB_LENGTH = get_type_env(key="CACHE_PIECE_DB_LENGTH", default=3 * 1024 * 1024, _type=int)
+CACHE_PIECE_REDIS_LENGTH = get_type_env(key="CACHE_PIECE_REDIS_LENGTH", default=5 * 1024 * 1024, _type=int)
 
 # ===============================================================================
 # 蓝鲸管控平台
