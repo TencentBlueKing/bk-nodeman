@@ -11,6 +11,7 @@
       <SidesliderContentEdit
         v-if="edit"
         :basic="basicInfo"
+        :edit-type="editType"
         @update-edited="(isEdited) => edited = !!isEdited"
         @close="handleToggle(false)"
         @change="handleSave">
@@ -35,13 +36,22 @@ import SidesliderContentEdit from '../components/sideslider-content-edit.vue';
 export default class CloudDetailSlider extends Vue {
   @Prop({ type: Object, default: () => ({}) }) private readonly row!: Dictionary;
   @Prop({ type: Boolean, default: false }) private readonly edit!: boolean;
+  @Prop({ type: String, default: '' }) private readonly editType!: string;
   @ModelSync('value', 'change', { default: false, type: Boolean }) private show!: boolean;
 
   private basicInfo: Dictionary = {};
   private edited = false;
 
   private get title() {
-    return this.edit ? this.$t('修改登录信息') : this.row.inner_ip;
+    // return this.edit ? this.$t('修改登录信息') : this.row.inner_ip;
+    return this.edit ?  this.text : this.row.inner_ip;
+  }
+  private get text() {
+    const messages: Dictionary = {
+      reinstall: '重装',
+      reload: '重载',
+    };
+    return messages[this.editType] || '修改信息';
   }
   private get width() {
     return this.edit ? 600 : 780;
