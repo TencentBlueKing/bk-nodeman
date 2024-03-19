@@ -244,6 +244,10 @@ export default class AgentImport extends Mixins(mixin) {
   private get isNotAutoSelect() {
     return AgentStore.apList.length === 1;
   }
+  // 判断当前接入点是v2版本
+  private isApV2(ap_id: number = -1): Boolean {
+    return AgentStore.apList.find(data => data.id === ap_id)?.gse_version === 'V2';
+  }
   // 最小安装信息数目
   private get minItems() {
     if (this.isEdit) return 1;
@@ -390,8 +394,9 @@ export default class AgentImport extends Mixins(mixin) {
       });
       data = JSON.parse(JSON.stringify(formatData));
     }
-    // 设置默认版本
-    data[0].version === '' &&  (data = await this.getDefaltVersion(data));
+    // version无值时候，接入点非v2则默认为stable，v2则默认为稳定版本
+    data[0].version === '' && this.isApV2(data[0].ap_id)
+      ? (data = await this.getDefaltVersion(data)) : data[0].version = 'stable';
     // 将原始的数据备份；切换安装方式时，接入点的数据变更后的回退操作时需要用到
     this.tableDataBackup = data;
     this.setupInfo.data = deepClone(data);
@@ -399,6 +404,11 @@ export default class AgentImport extends Mixins(mixin) {
       ? data.every((item: ISetupRow) => item.is_manual) : data.some((item: ISetupRow) => item.is_manual);
     // 编辑态安装信息表格配置
     this.setupInfo.header = this.isManual ? this.editTableHead.editManualConfig : this.editTableHead.editConfig;
+    // 重装根据接入点v2版本设置agent可编辑，非v2不可编辑
+    if (this.type === 'REINSTALL_AGENT') {
+      this.setupInfo.header.find(item => item.prop === 'version')['readonly'] = !this.isApV2(data[0].ap_id);
+      this.setupInfo.header.find(item => item.prop === 'version').getReadonly = null;
+    }
     this.setupTable.handleInit();
     this.setupTable.handleScroll();
   }
@@ -407,15 +417,15 @@ export default class AgentImport extends Mixins(mixin) {
    * @param {ISetupRow[]} data - 设置行数据
    * @returns {Promise<ISetupRow[]>} - 包含默认版本的数据
    */
-  private getDefaltVersion = async (data: ISetupRow[]):Promise<ISetupRow[]> => {
+  private getDefaltVersion = async (data: ISetupRow[]): Promise<ISetupRow[]> => {
     const { os_type = '' } = data[0];
-    const os = os_type === 'Windows' ? 'windows' : os_type === 'Linux' ? 'linux' : '';
+    const os = this.osMap[os_type] || os_type;
     const { default_version } = await AgentStore.apiGetPkgVersion({
       project: 'gse_agent',
       os,
       cpu_arch: ''
     });
-    data[0].version = default_version;
+    data[0].version = default_version || '';
     return data;
   };
   /**

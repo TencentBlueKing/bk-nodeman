@@ -98,7 +98,8 @@
           </bk-form-item>
 
           <bk-form-item
-            required
+            v-show="isApVersion2"
+            :required="isApVersion2"
             error-display-type="normal"
             property="choice_version_type"
             :label="$t('agent版本')">
@@ -276,12 +277,21 @@ export default class AgentSetup extends Mixins(mixin, formLabelMixin) {
     agent_version: '',
     osVersions: [],
   };
-  private rules = {
-    bk_biz_id: [reguRequired],
-    bk_cloud_id: [reguRequired],
-    install_channel_id: [reguRequired],
-    ap_id: [reguRequired],
-    agent_version: [reguRequired],
+  // 根据接入点的gse_version是不是v2版本来显示agent版本选择是否显示（必填）、隐藏（非必填）
+  private isApVersion2 = false;
+  private get rules() {
+    const commonRules = {
+      bk_biz_id: [reguRequired],
+      bk_cloud_id: [reguRequired],
+      install_channel_id: [reguRequired],
+      ap_id: [reguRequired],
+      agent_version: [{
+        required: this.isApVersion2,
+        message: window.i18n.t('必填项'),
+        trigger: 'blur',
+      }],
+    };
+    return commonRules;
   };
   // 右侧提示面板是否显示
   private showRightPanel = false;
@@ -389,6 +399,9 @@ export default class AgentSetup extends Mixins(mixin, formLabelMixin) {
   @Watch('formData.ap_id')
   public handleApIdChange(val: number) {
     let urlType = '';
+    // 根据接入点选择的ap_id是否是v2版本 来设置布尔值
+    this.isApVersion2 = this.curApList.length > 0 && !isEmpty(this.formData.ap_id)
+      && this.curApList.find(item => item.id === this.formData.ap_id)?.gse_version === 'V2';
     if (isEmpty(this.formData.bk_cloud_id)) {
       urlType = '';
     } else if (this.isDefaultCloud) {
@@ -469,17 +482,19 @@ export default class AgentSetup extends Mixins(mixin, formLabelMixin) {
         this.showFilterTips = false;
         const { choice_version_type, agent_version, osVersions  } = this.formData;
         const isUnified = choice_version_type === 'unified';
+        const agent_setup_info = {
+          choice_version_type,
+          [isUnified ? 'version' : 'version_map_list']: isUnified
+            ? agent_version
+            : osVersions.map(item => ({
+              os_cpu_arch: item.id,
+              version: item.version,
+            })),
+        };
         const params = {
           job_type: 'INSTALL_AGENT',
-          agent_setup_info: {
-            choice_version_type,
-            [isUnified ? 'version' : 'version_map_list']: isUnified
-              ? agent_version
-              : osVersions.map(item => ({
-                os_cpu_arch: item.id,
-                version: item.version,
-              })),
-          },
+          // v2版本接入点传agent_setup_info，非v2不传
+          ...(this.isApVersion2 && {agent_setup_info}),
           hosts: this.getFormData().map(({ prove, ...item }: ISetupRow) => {
             if (isEmpty(item.login_ip)) {
               delete item.login_ip;
