@@ -22,7 +22,13 @@ from apps.node_man.constants import (
     JobType,
     ProcType,
 )
-from apps.node_man.models import GsePluginDesc, Packages, ProcControl, ProcessStatus
+from apps.node_man.models import (
+    GlobalSettings,
+    GsePluginDesc,
+    Packages,
+    ProcControl,
+    ProcessStatus,
+)
 from apps.node_man.serializers import base
 
 
@@ -248,6 +254,10 @@ class OperateSerializer(serializers.Serializer):
             raise ValidationError(_("插件参数 plugin_params 和 plugin_params_list 参数不能同时为空"))
 
         if attrs.get("plugin_params"):
+            if GlobalSettings.get_config(key=GlobalSettings.KeyEnum.DISABLE_STOPPED_PLUGIN.value, default=False):
+                plugin_name = attrs["plugin_params"]["name"]
+                if GsePluginDesc.objects.filter(name=plugin_name, is_ready=False).first() is not None:
+                    raise ValidationError(_("插件{}已被禁用，不能执行相关操作").format(plugin_name))
             # 把2.0.x 的参数转为 2.1.x 的参数
             attrs["plugin_params_list"] = [attrs.get("plugin_params")]
 
