@@ -405,7 +405,7 @@ export default class AgentImport extends Mixins(mixin) {
     const filterData = data.filter(item => item.bk_cloud_id === 0);
     // version无值时候，接入点非v2则默认为stable，v2则默认为稳定版本
     data[0].version === '' && this.isApV2(data[0].ap_id)
-      ? (data = await this.getDefaltVersion(data)) : data[0].version = 'stable';
+      ? (data = await this.getDefaultVersion(data)) : data[0].version = 'stable';
     // 将原始的数据备份；切换安装方式时，接入点的数据变更后的回退操作时需要用到
     this.tableDataBackup = data;
     this.setupInfo.data = deepClone(data);
@@ -426,7 +426,7 @@ export default class AgentImport extends Mixins(mixin) {
    * @param {ISetupRow[]} data - 设置行数据
    * @returns {Promise<ISetupRow[]>} - 包含默认版本的数据
    */
-  private getDefaltVersion = async (data: ISetupRow[]): Promise<ISetupRow[]> => {
+  private getDefaultVersion = async (data: ISetupRow[]): Promise<ISetupRow[]> => {
     const { os_type = '' } = data[0];
     const os = this.osMap[os_type] || os_type;
     const { default_version } = await AgentStore.apiGetPkgVersion({
