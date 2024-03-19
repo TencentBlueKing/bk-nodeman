@@ -215,7 +215,7 @@ export default class CloudManagerSetup extends Mixins(formLabelMixin, FilterIpMi
    * @returns {Promise<ISetupRow[]>} - 包含默认版本的数据
    */
   private defaultVersion = '';
-  private async getDefaltVersion() {
+  private async getDefaultVersion() {
     const { default_version } = await AgentStore.apiGetPkgVersion({
       project: 'gse_agent',
       os: 'linux',
@@ -273,7 +273,7 @@ export default class CloudManagerSetup extends Mixins(formLabelMixin, FilterIpMi
 
   private created() {
     this.handleInit();
-    this.getDefaltVersion();
+    this.getDefaultVersion();
   }
   private mounted() {
     this.marginLeft = this.initLabelWidth(this.formRef) || 0;
