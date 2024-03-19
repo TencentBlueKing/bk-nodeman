@@ -55,3 +55,24 @@ class PluginNotFoundViewTestCase(PluginViewTestCase):
         response = self.client.get(f"/api/plugin/{self.PLUGIN_NAME}/package/", {"os": "LINUX"})
         self.assertFalse(response["result"])
         self.assertRegex(response["message"], r"bk_collector_not-found in.*")
+
+
+class PluginOperateViewTestCase(PluginViewTestCase):
+    PLUGIN_NAME = "stopped_plugin"
+
+    def setUp(self) -> None:
+        super().setUp()
+        models.GsePluginDesc.objects.filter(name=self.PLUGIN_NAME).update(is_ready=False)
+        models.GlobalSettings.set_config(key=models.GlobalSettings.KeyEnum.DISABLE_STOPPED_PLUGIN.value, value=True)
+
+    def test_stopped_plugin_operate(self):
+        response = self.client.post(
+            "/api/plugin/operate/",
+            data={
+                "job_type": "MAIN_INSTALL_PLUGIN",
+                "bk_host_id": [111],
+                "plugin_params": {"name": "stopped_plugin", "version": "latest"},
+            },
+        )
+        self.assertFalse(response["result"])
+        self.assertEqual(response["message"], f"插件{self.PLUGIN_NAME}已被禁用，不能执行相关操作（3800001）")
