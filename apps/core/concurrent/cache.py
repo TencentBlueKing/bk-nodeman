@@ -9,7 +9,9 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+import re
 import typing
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import ujson as json
 import wrapt
@@ -40,15 +42,20 @@ class FuncCacheDecorator:
         if func_result is None:
             return func_result
 
-        if using == CacheBackend.DB.value:
-            return json.loads(func_result)
-        return func_result
+        if self.check_is_split(key, func_result):
+            return self.join_splitted_cache(using, func_result)
+        return json.loads(func_result)
 
     def set_to_cache(self, using: str, key: str, value: typing.Any):
         cache = caches[using]
-        if using == CacheBackend.DB.value:
-            value = json.dumps(value)
-        cache.set(key, value, self.cache_time)
+        value = json.dumps(value)
+        if len(value) < settings.CACHE_PIECE_LENGTH:
+            return cache.set(key, value, self.cache_time)
+
+        split_cache = self.split_cache(using, key, value)
+        cache.set(key, list(split_cache.keys()), self.cache_time)
+        for split_key, split_value in split_cache.items():
+            cache.set(split_key, split_value, self.cache_time)
 
     def ttl_from_cache(self, using: str, key: str) -> int:
         ttl: int = 0
@@ -57,6 +64,33 @@ class FuncCacheDecorator:
         except Exception:
             pass
         return ttl
+
+    def split_cache(self, using: str, key: str, value: str) -> typing.Dict[str, str]:
+        piece_length = settings.CACHE_PIECE_LENGTH
+        parts = [value[i : i + piece_length] for i in range(0, len(value), piece_length)]
+        return {f"{key}|{num}": part for num, part in enumerate(parts)}
+
+    def check_is_split(self, key: str, cache_result: typing.Any) -> bool:
+        if not isinstance(cache_result, list):
+            return False
+
+        list_result = list(cache_result)
+        pattern = re.compile(rf"{key}|\d+")
+        return bool(re.search(pattern, list_result[0]))
+
+    def join_splitted_cache(self, using: str, keys: typing.List[str]) -> typing.Any:
+        cache = caches[using]
+        with ThreadPoolExecutor(max_workers=settings.CONCURRENT_NUMBER) as ex:
+            futures = {ex.submit(cache.get, key): key for key in keys}
+
+        results = {}
+        for future in as_completed(futures):
+            key = futures[future]
+            results[key] = future.result()
+
+        sorted_keys = sorted(results.keys(), key=lambda x: int(x.split("|")[-1]))
+        res = "".join(str(results[key]) for key in sorted_keys)
+        return json.loads(res)
 
     @wrapt.decorator
     def __call__(
