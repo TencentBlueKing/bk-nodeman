@@ -228,15 +228,15 @@
                         v-test="'reinstall'"
                         text
                         :disabled="row.re_certification || disabled"
-                        @click="handleConfirmOperate($t('确定重装选择的主机'), row, handleReinstall)"
+                        @click="handleViewProxy(row, true, 'reinstall')"
                         ext-cls="row-btn">
                         {{ $t('重装') }}
                       </bk-button>
                     </bk-popover>
-                    <bk-button
+                    <!-- <bk-button
                       v-test="'edit'" text ext-cls="row-btn" :disabled="disabled" @click="handleViewProxy(row, true)">
                       {{ $t('编辑') }}
-                    </bk-button>
+                    </bk-button> -->
                     <bk-popover
                       :ref="row['bk_host_id']"
                       theme="light agent-operate"
@@ -291,6 +291,7 @@
       v-model="showSlider"
       :edit="isEdit"
       :row="currentRow"
+      :edit-type="editType"
       @save="handleReloadTable">
     </CloudDetailSlider>
   </section>
@@ -327,6 +328,8 @@ export default class CloudDetailTable extends Vue {
   private showSlider = false;
   private isEdit = false;
   private currentRow: Dictionary = {};
+  // 打开编辑页面的操作类型
+  private editType = '';
   // Proxy操作
   private operate = [
     { id: 'uninstall', name: this.$t('卸载'), disabled: false, show: true },
@@ -452,7 +455,9 @@ export default class CloudDetailTable extends Vue {
         this.handleConfirmOperate(this.$t('确定重启选择的主机'), row, 'RESTART_PROXY');
         break;
       case 'reload':
-        this.handleConfirmOperate(this.$t('确认重载所选主机的配置'), row, this.handleReload);
+        // this.handleConfirmOperate(this.$t('确认重载所选主机的配置'), row, this.handleReload);
+        // 重载改为在侧边栏编辑页面操作
+        this.handleViewProxy(row, true, 'reload');
         break;
       case 'upgrade':
         this.handleConfirmOperate(this.$t('确定升级选择的主机'), row, 'UPGRADE_PROXY');
@@ -523,7 +528,7 @@ export default class CloudDetailTable extends Vue {
     this.loadingProxy = true;
     let paramKey = [
       'ap_id', 'bk_biz_id', 'bk_cloud_id', 'inner_ip', 'inner_ipv6',
-      'is_manual', 'peer_exchange_switch_for_agent', 'bk_host_id', 'enable_compression',
+      'is_manual', 'peer_exchange_switch_for_agent', 'bk_host_id', 'enable_compression','version'
     ];
     if (!this.$DHCP) {
       paramKey = paramKey.filter(key => !DHCP_FILTER_KEYS.includes(key));
@@ -584,8 +589,9 @@ export default class CloudDetailTable extends Vue {
   }
 
   // 编辑或查看proxy详细信息
-  public handleViewProxy(row: IProxyDetail, isEdit: boolean) {
+  public handleViewProxy(row: IProxyDetail, isEdit: boolean, type?: string) {
     this.isEdit = isEdit;
+    this.editType = type;
     this.showSlider = true;
     this.currentRow = row;
   }

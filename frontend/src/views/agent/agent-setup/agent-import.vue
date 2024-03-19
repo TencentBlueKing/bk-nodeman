@@ -396,11 +396,14 @@ export default class AgentImport extends Mixins(mixin) {
       });
       data = JSON.parse(JSON.stringify(formatData));
     }
+    // 获取agent默认版本
     await this.getDefaultVersion();
     // version无值时候，接入点v2则默认为稳定版本,非v2则默认为stable,表头对象中agent版本的getReadonly方法会对version为stable的返回true从而设置不可编辑状态
     data.map((item) => {
-      if (item.version === '') {
-        item.version = this.isApV2(item.ap_id) ? this.defaultVersion : 'stable';
+      if (!this.isApV2(item.ap_id)) {
+        item.version = 'stable';
+      } else {
+        item.version === '' && (item.version = this.defaultVersion);
       }
       return item;
     });
