@@ -75,6 +75,13 @@ const config = [
     type: 'tag-switch',
     readonly: true,
   },
+  // v2版本展示agent版本信息
+  {
+    prop: 'version',
+    label: window.i18n.t('agent版本'),
+    type: 'text',
+    readonly: true,
+  },
 ];
 export const detailConfig = $DHCP
   ? config

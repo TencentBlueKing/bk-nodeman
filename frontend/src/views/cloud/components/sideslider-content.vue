@@ -91,7 +91,9 @@ export default class SidesliderCcontent extends Vue {
   @Watch('basic', { immediate: true })
   public async handlebasicChange(data: Dictionary) {
     const ipKeys: IProxyIpKeys[] = ['inner_ip', 'outer_ip', 'login_ip'];
-    const basicInfo = detailConfig.map((config: Dictionary) => {
+    // 设置判断当前接入点为v2版本的布尔值
+    const isApV2 = this.apList?.find(item => item.id === data.ap_id)?.gse_version === 'V2'
+    let basicInfo = detailConfig.map((config: Dictionary) => {
       if (config.prop === 'auth_type') {
         config.authType = data.auth_type || 'PASSWORD';
         config.value = config.authType === 'TJJ_PASSWORD' ? this.$t('自动拉取') : '';
@@ -102,6 +104,10 @@ export default class SidesliderCcontent extends Vue {
       }
       return JSON.parse(JSON.stringify(config));
     });
+    // 接入点不为v2时，不显示版本信息
+    if (!isApV2) {
+      basicInfo = basicInfo.filter(item => item.prop !== 'version');
+    };
     this.basicInfo.splice(0, this.basicInfo.length, ...basicInfo);
   }
 
