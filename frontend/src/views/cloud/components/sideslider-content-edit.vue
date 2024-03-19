@@ -146,7 +146,7 @@
 import { Vue, Component, Prop, Watch, Ref, Emit } from 'vue-property-decorator';
 import { CloudStore } from '@/store';
 import { isEmpty } from '@/common/util';
-import { authentication } from '@/config/config';
+import { authentication, DHCP_FILTER_KEYS } from '@/config/config';
 import Upload from '@/components/setup-table/upload.vue';
 import { IProxyDetail } from '@/types/cloud/cloud';
 import InstallInputType from '@/components/setup-table/install-input-type.vue';
@@ -165,6 +165,7 @@ import ChoosePkgDialog from '../../agent/components/choose-pkg-dialog.vue';
 
 export default class SidesliderContentEdit extends Vue {
   @Prop({ type: Object, default: () => ({}) }) private readonly basic!: IProxyDetail;
+  @Prop({ type: String, default: '' }) private readonly editType!: string;
   @Ref('form') private readonly formRef!: any;
 
   private authentication = authentication;
@@ -276,16 +277,75 @@ export default class SidesliderContentEdit extends Vue {
       this.proxyData.version && (params.version = this.proxyData.version);
       const result = await CloudStore.updateHost(params);
       if (result) {
-        this.$bkMessage({
-          theme: 'success',
-          message: this.$t('编辑成功如需加载最新配置请执行proxy重载'),
-        });
+        if (this.editType === 'reinstall') {
+          // 重装
+          this.handleReinstall(this.basic);
+        } else if (this.editType === 'reload') {
+          // 重载
+          const basicInfo = JSON.parse(JSON.stringify(this.basic));
+          Object.assign(basicInfo, params);
+          this.handleReload(basicInfo);
+        }
+        // this.$bkMessage({
+        //   theme: 'success',
+        //   message: this.$t('编辑成功如需加载最新配置请执行proxy重载'),
+        // });
         params.re_certification = false;
         this.handleChange(params);
         this.handleCancel();
       }
       this.loading = false;
     });
+  }
+  // 跳转到代理重装和重载页面
+  public handleRouterPush(name: string, params: Dictionary, type = 'push') {
+    (this.$router as Dictionary)[type]({ name, params });
+  }
+  /**
+   * 重装主机
+  */
+  public async handleReinstall(row: IProxyDetail) {
+    const result = await CloudStore.operateJob({
+      job_type: 'REINSTALL_PROXY',
+      bk_host_id: [row.bk_host_id],
+    });
+    if (result.job_id) {
+      this.handleRouterPush('taskDetail', { taskId: result.job_id });
+    }
+  }
+  /**
+   * 重载配置
+  */
+  public async handleReload(row: Dictionary) {
+    let paramKey = [
+      'ap_id', 'bk_biz_id', 'bk_cloud_id', 'inner_ip', 'inner_ipv6',
+      'is_manual', 'peer_exchange_switch_for_agent', 'bk_host_id', 'enable_compression', 'version'
+    ];
+    if (!this.$DHCP) {
+      paramKey = paramKey.filter(key => !DHCP_FILTER_KEYS.includes(key));
+    }
+    const ipKeys = ['outer_ip']; // 没做区分展示的ip
+    const paramExtraKey = ['bt_speed_limit', 'login_ip', 'data_ip'];
+    const copyRow = Object.keys(row).reduce((obj: Dictionary, item) => {
+      if (paramKey.includes(item)) {
+        obj[item] = item === 'peer_exchange_switch_for_agent' ? row[item] + 0 : row[item];
+      }
+      if (paramExtraKey.includes(item) && row[item]) {
+        obj[item] = row[item];
+      }
+      return obj;
+    }, { os_type: 'LINUX' });
+    ipKeys.forEach((key) => {
+      if (this.$DHCP) {
+        Object.assign(copyRow, this.$setIpProp(key, row));
+      } else {
+        copyRow[key] = row[key];
+      }
+    });
+    const res = await CloudStore.setupProxy({ params: { job_type: 'RELOAD_PROXY', hosts: [copyRow] } });
+    if (res?.job_id) {
+      this.handleRouterPush('taskDetail', { taskId: res.job_id });
+    }
   }
   @Emit('change')
   private handleChange(params: any) {

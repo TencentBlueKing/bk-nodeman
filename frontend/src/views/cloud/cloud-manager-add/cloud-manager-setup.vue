@@ -223,7 +223,7 @@ export default class CloudManagerSetup extends Mixins(formLabelMixin, FilterIpMi
     });
     this.defaultVersion = default_version;
   };
-  private osMap = {
+  private osMap: Dictionary = {
     LINUX: 'linux',
     WINDOWS: 'windows',
     AIX: 'aix',
