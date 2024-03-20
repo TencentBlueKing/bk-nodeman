@@ -71,10 +71,10 @@
   </bk-dialog>
 </template>
 <script lang="ts">
-import { defineComponent, nextTick, ref, toRefs, watch } from 'vue';
+import { defineComponent, nextTick, ref, toRefs, watch, PropType } from 'vue';
 import { AgentStore } from '@/store';
 import FlexibleTag from '@/components/common/flexible-tag.vue';
-import { IPkgVersion } from '@/types/agent/pkg-manage';
+import { IPkgVersion, PkgType } from '@/types/agent/pkg-manage';
 
 export default defineComponent({
   name: 'ChoosePkgDialog',
@@ -114,6 +114,10 @@ export default defineComponent({
       type: String,
       default: '',
     },
+    project: {
+      type: String as PropType<PkgType>,
+      default: 'gse_agent',
+    },
   },
 
   emits: ['input', 'confirm', 'cancel'],
@@ -133,9 +137,10 @@ export default defineComponent({
         default_version,
         pkg_info,
       } = await AgentStore.apiGetPkgVersion({
-        project: 'gse_agent',
-        os: props.osType || '',
-        cpu_arch: props.cpuArch || ''
+        // 新增加project的传入
+        project: props.project,
+        os: props.osType,
+        cpu_arch: props.cpuArch
       });
       defaultVersion.value = default_version;
       const builtinTags = ['stable', 'latest', 'test'];

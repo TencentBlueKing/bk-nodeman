@@ -233,10 +233,10 @@
                         {{ $t('重装') }}
                       </bk-button>
                     </bk-popover>
-                    <!-- <bk-button
+                    <bk-button
                       v-test="'edit'" text ext-cls="row-btn" :disabled="disabled" @click="handleViewProxy(row, true)">
                       {{ $t('编辑') }}
-                    </bk-button> -->
+                    </bk-button>
                     <bk-popover
                       :ref="row['bk_host_id']"
                       theme="light agent-operate"

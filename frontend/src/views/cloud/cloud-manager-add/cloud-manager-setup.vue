@@ -108,6 +108,7 @@
       :version="versionsDialog.version"
       :os-type="versionsDialog.os_type"
       :cpu-arch="versionsDialog.cpu_arch"
+      :project="versionsDialog.project"
       @confirm="versionConfirm"
       @cancel="versionCancel" />
   </section>
@@ -204,8 +205,9 @@ export default class CloudManagerSetup extends Mixins(formLabelMixin, FilterIpMi
     type: 'by_system_arch',
     title: this.$t('选择 Agent 版本'),
     version: '',
-    os_type: '',
+    os_type: 'linux',
     cpu_arch: '',
+    project: 'gse_proxy',
     row: null as any,
     instance: null as any,
   };
@@ -217,23 +219,18 @@ export default class CloudManagerSetup extends Mixins(formLabelMixin, FilterIpMi
   private defaultVersion = '';
   private async getDefaultVersion() {
     const { default_version } = await AgentStore.apiGetPkgVersion({
-      project: 'gse_agent',
+      project: 'gse_proxy',
       os: 'linux',
       cpu_arch: ''
     });
     this.defaultVersion = default_version;
   };
-  private osMap: Dictionary = {
-    LINUX: 'linux',
-    WINDOWS: 'windows',
-    AIX: 'aix',
-  };
+
   // 选择agent版本
   public handleChoose({ row, instance }: { row: ISetupRow; instance: any; }) {
-    const { version = '', os_type = '' } = row; // , cpu_arch = ''
+    const { version = '' } = row;
     this.versionsDialog.show = true;
     this.versionsDialog.version = version;
-    this.versionsDialog.os_type = this.osMap[os_type] || os_type;
     this.versionsDialog.row = row;
     this.$nextTick(() => {
       this.versionsDialog.instance = instance;
