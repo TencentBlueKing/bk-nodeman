@@ -45,7 +45,8 @@
             :extra-params="extraParams"
             auto-sort
             @delete="handleItemDelete"
-            @choose="handleChoose">
+            @choose="handleChoose"
+            @change="handleValueChange">
             <template #empty>
               <parser-excel v-model="importDialog" @uploading="handleUploading"></parser-excel>
             </template>
@@ -430,6 +431,21 @@ export default class AgentImport extends Mixins(mixin) {
     });
     this.defaultVersion = default_version;
   };
+  /**
+    * 修改接入点数据时候要调整agent版本
+    * @param data - {row:ISetupRow,config: ISetupHead}
+    * @param config - row
+  */
+  private handleValueChange(data: any, config: any) {
+    // 如果是接入点的改动，则相应调整agent版本
+    if (data.config.prop === 'ap_id') {
+      this.isApV2(config.ap_id)
+        ? (config.version === 'stable' && (data.row.version = this.defaultVersion)) // 非v2变v2,把version从stable改为默认版本
+        : (config.version !== 'stable' && (data.row.version = 'stable')); // v2变非v2,把version改为stable
+      // version改为stable时，agent编辑态表格变为只读模式，所以从editData（可编辑列表数据）过滤掉当前行数据
+      data.row.version === 'stable' && (this.setupTable.editData = this.setupTable.editData?.filter(item => item.id === config.id && item.prop === config.prop));
+    }
+  }
   /**
    * 监听界面滚动
    */
