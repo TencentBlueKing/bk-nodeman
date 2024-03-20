@@ -268,7 +268,7 @@ export default class SetupTable extends Vue {
   // 滚动节流
   private handleScroll!: Function;
   // 处于编辑态的数据
-  private editData: {  id: number, prop: string }[] = [];
+  public editData: {  id: number, prop: string }[] = [];
   private hasScroll= false;
   private listenResize!: Function;
   private focusRow: any = {};
