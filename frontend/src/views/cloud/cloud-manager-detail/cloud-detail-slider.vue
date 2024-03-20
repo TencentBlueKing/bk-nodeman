@@ -51,7 +51,7 @@ export default class CloudDetailSlider extends Vue {
       reinstall: '重装',
       reload: '重载',
     };
-    return messages[this.editType] || '修改信息';
+    return messages[this.editType] || '修改登录信息';
   }
   private get width() {
     return this.edit ? 600 : 780;

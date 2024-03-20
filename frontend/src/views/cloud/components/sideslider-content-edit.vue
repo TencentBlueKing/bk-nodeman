@@ -139,6 +139,7 @@
       :title="versionsDialog.title"
       :version="versionsDialog.version"
       :os-type="versionsDialog.os_type"
+      :project="versionsDialog.project"
       @confirm="updateAgentVersion" />
   </section>
 </template>
@@ -185,7 +186,8 @@ export default class SidesliderContentEdit extends Vue {
     type: 'by_system_arch',
     title: this.$t('选择 Agent 版本'),
     version: '',
-    os_type: 'linux'
+    os_type: 'linux',
+    project: 'gse_proxy'
   };
   // 选择agent版本
   public chooseAgentVersion(info: {
@@ -285,11 +287,12 @@ export default class SidesliderContentEdit extends Vue {
           const basicInfo = JSON.parse(JSON.stringify(this.basic));
           Object.assign(basicInfo, params);
           this.handleReload(basicInfo);
+        } else {
+          this.$bkMessage({
+            theme: 'success',
+            message: this.$t('编辑成功如需加载最新配置请执行proxy重载'),
+          });
         }
-        // this.$bkMessage({
-        //   theme: 'success',
-        //   message: this.$t('编辑成功如需加载最新配置请执行proxy重载'),
-        // });
         params.re_certification = false;
         this.handleChange(params);
         this.handleCancel();
