@@ -4,7 +4,8 @@
     :required="item.required"
     :property="valueProp"
     :desc="item.description"
-    :rules="item.rules">
+    :rules="item.rules"
+    :label-width="labelWidth">
     <component
       :is="item.component"
       v-bind="item.props"
@@ -26,6 +27,7 @@ export default defineComponent({
     itemIndex: -1,
     value: '',
     valueProp: '',
+    labelWidth: 110,
   },
   setup(props) {
     const updateFormData = inject('updateFormData');
@@ -33,12 +35,12 @@ export default defineComponent({
     const inputBlur = inject('inputBlur');
 
     const baseValueChange = (val) => {
-      const value = val.trim();
+      const value = props.schema.type === 'string' ? val.trim() : val;
       const isNumber = props.schema.type === 'number';
       let formatValue = isNumber ? parseFloat(value) || 0 : value;
 
       // 调过bia 以单引号开头、结尾的值直接用作字符串
-      if (!isNumber || !/^'.*'$/.test(value)) {
+      if ((!isNumber || !/^'.*'$/.test(value)) && !['true', 'false'].includes(value) && isNaN(value)) {
         try {
           formatValue = JSON.parse(value);
         } catch (err) {}

@@ -8,7 +8,8 @@
     "node_modules"
   ],
   "vueCompilerOptions": {
-    "target": 2.7
+    "target": 2.7,
+    "experimentalUseElementAccessInTemplate": true
   },
   "compilerOptions": {
     "outDir": "./dist",
@@ -47,6 +48,6 @@
     "pretty": true,
     "strict": true,
     "noImplicitThis": false,
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
   }
 }
