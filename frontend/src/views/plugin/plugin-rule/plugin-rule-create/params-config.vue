@@ -51,7 +51,7 @@
               v-if="!isPluginType && mainItem.variables?.properties"
               :ref="`form${mainItem.name}`"
               :data="mainItem.variables"
-              :label-width="110"
+              :label-width="150"
               :value="mainItem.form"
               @change="formChange" />
               <!-- @focus="handleOperate(arguments, mainItem, 'focus')"
