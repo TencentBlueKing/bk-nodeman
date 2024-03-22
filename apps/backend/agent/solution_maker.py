@@ -298,7 +298,7 @@ class BaseExecutionSolutionMaker(metaclass=abc.ABCMeta):
         # 因 bat 脚本逻辑，-R 参数只能放在最后一位
         if self.is_uninstall:
             run_cmd_params.extend(["-R"])
-        if self.agent_setup_info.force_update_agent_id:
+        if not self.agent_setup_info.is_legacy and self.agent_setup_info.force_update_agent_id:
             run_cmd_params.extend(["-F"])
 
         return list(filter(None, run_cmd_params))

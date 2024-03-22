@@ -191,6 +191,7 @@ class HostSerializer(InstallBaseSerializer):
     is_need_inject_ap_id = serializers.BooleanField(label=_("是否需要注入ap_id到meta"), required=False, default=False)
     enable_compression = serializers.BooleanField(label=_("数据压缩开关"), required=False, default=False)
     is_use_ap_map = serializers.BooleanField(label=_("是否使用映射接入点"), required=False, default=False)
+    force_update_agent_id = serializers.BooleanField(label=_("是否更新agent_id"), required=False, default=False)
 
     def validate(self, attrs):
         # 获取任务类型，如果是除安装以外的操作，则密码和秘钥可以为空
