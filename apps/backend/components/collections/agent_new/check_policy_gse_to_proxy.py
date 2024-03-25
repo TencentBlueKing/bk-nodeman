@@ -8,7 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Optional, Union
 
 from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
@@ -30,7 +30,9 @@ class CheckPolicyGseToProxyService(AgentExecuteScriptService):
         self, data, common_data: CommonData, host: models.Host
     ) -> Dict[str, Union[List[Dict[str, Any]], List[int]]]:
         # 取接入点
-        host_ap: models.AccessPoint = self.get_host_ap(common_data=common_data, host=host)
+        host_ap: Optional[models.AccessPoint] = self.get_host_ap(common_data=common_data, host=host)
+        if not host_ap:
+            return {}
         file_endpoint_host_ids = models.Host.objects.filter(
             Q(bk_cloud_id=constants.DEFAULT_CLOUD, bk_addressing=constants.CmdbAddressingType.STATIC.value)
             & (
@@ -51,7 +53,10 @@ class CheckPolicyGseToProxyService(AgentExecuteScriptService):
         }
 
     def get_script_content(self, data, common_data: AgentCommonData, host: models.Host) -> str:
-        host_ap: models.AccessPoint = self.get_host_ap(common_data=common_data, host=host)
+        host_ap: Optional[models.AccessPoint] = self.get_host_ap(common_data=common_data, host=host)
+        if not host_ap:
+            return ""
+
         port_config = host_ap.port_config
         btsvr_thrift_port = port_config.get("btsvr_thrift_port")
 
@@ -74,12 +79,11 @@ class CheckPolicyGseToProxyService(AgentExecuteScriptService):
             gse_version = data.get_one_of_inputs("meta", {}).get("GSE_VERSION")
             bk_host_id = common_data.sub_inst_id__host_id_map[sub_inst_id]
             host = common_data.host_id_obj_map[bk_host_id]
-            if common_data.injected_ap_id:
-                ap: models.AccessPoint = common_data.ap_id_obj_map[common_data.injected_ap_id]
-            else:
-                ap: models.AccessPoint = common_data.host_id__ap_map[bk_host_id]
+            host_ap: Optional[models.AccessPoint] = self.get_host_ap(common_data, host)
+            if not host_ap:
+                continue
 
-            port_config = ap.port_config
+            port_config = host_ap.port_config
 
             if gse_version == GseVersion.V2.value:
                 port_polices: List[str] = [f"{port_config.get('btsvr_thrift_port')}(tcp)"]
@@ -99,7 +103,7 @@ class CheckPolicyGseToProxyService(AgentExecuteScriptService):
                     "2. 不支持多台 Proxy 使用同一个「出口IP」\n"
                     "3. 请保证「出口IP」固定不变"
                 ).format(
-                    file_endpoints=",".join(ap.file_endpoint_info.outer_hosts),
+                    file_endpoints=",".join(host_ap.file_endpoint_info.outer_hosts),
                     proxy_outer_ip=host.outer_ip or host.outer_ipv6,
                     port_polices=", ".join(port_polices),
                 ),

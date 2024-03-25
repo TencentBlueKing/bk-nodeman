@@ -144,7 +144,6 @@ class QueryPasswordService(AgentBaseService):
 
     def _execute(self, data, parent_data, common_data: AgentCommonData):
         creator = data.get_one_of_inputs("creator")
-        host_id_obj_map = common_data.host_id_obj_map
 
         subscription_instances: List[models.SubscriptionInstanceRecord] = self.check_and_update_identity_data(
             common_data.subscription_instances
@@ -158,7 +157,9 @@ class QueryPasswordService(AgentBaseService):
         oa_ticket = ""
         for sub_inst in subscription_instances:
             bk_host_id = sub_inst.instance_info["host"]["bk_host_id"]
-            host = host_id_obj_map[bk_host_id]
+            host = self.get_host(common_data, bk_host_id)
+            if not host:
+                continue
 
             if host.identity.auth_type != constants.AuthType.TJJ_PASSWORD:
                 no_need_query_inst_ids.append(sub_inst.id)

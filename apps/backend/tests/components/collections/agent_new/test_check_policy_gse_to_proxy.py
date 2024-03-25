@@ -10,10 +10,11 @@ specific language governing permissions and limitations under the License.
 """
 import base64
 import copy
-from typing import Dict
+from typing import Any, Dict
 
 from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
+from mock.mock import patch
 
 from apps.backend.components.collections.agent_new import (
     check_policy_gse_to_proxy,
@@ -100,3 +101,31 @@ class Agent2TestCase(CheckPolicyGseToProxyTestCase):
     @classmethod
     def get_default_case_name(cls) -> str:
         return "(Proxy 2.0) 检测 GSE Server 到 Proxy 策略成功"
+
+
+class KerErrorByGetAccessPointTestCase(CheckPolicyGseToProxyTestCase):
+    @classmethod
+    def get_default_case_name(cls) -> str:
+        return "测试host_id__ap_map获取ap过程中出现KeyError场景"
+
+    def tearDown(self) -> None:
+        # 因为get_host_ap为空，所以get_target_servers为空，不会调用JOB_API
+        record = self.job_api_mock_client.call_recorder.record
+        self.assertEqual(len(record[JobApi.fast_execute_script]), 0)
+
+    @patch("apps.node_man.models.AccessPoint.ap_id_obj_map", return_value={})
+    def structure_common_inputs(self, *args, **kwargs) -> Dict[str, Any]:
+        common_inputs = super().structure_common_inputs()
+        common_inputs["meta"] = {"AP_ID": "1"}
+        return common_inputs
+
+    def _do_case_assert(self, service, method, assertion, no, name, args=None, kwargs=None):
+        try:
+            super()._do_case_assert(service, method, assertion, no, name, args, kwargs)
+        except AssertionError:
+            failed_subscription_instance_id_reason_map = service.failed_subscription_instance_id_reason_map
+            self.assertEqual(len(failed_subscription_instance_id_reason_map), 1)
+            self.assertEqual(
+                self.obj_factory.sub_inst_record_ids[0], list(failed_subscription_instance_id_reason_map.keys())[0]
+            )
+            self.assertEqual(list(failed_subscription_instance_id_reason_map.values())[0], _("主机不存在或未同步"))

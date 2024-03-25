@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 
 import os.path
-from typing import List
+from typing import List, Optional
 
 from django.conf import settings
 
@@ -23,7 +23,9 @@ class PushFilesToProxyService(AgentTransferFileService):
     def get_file_list(self, data, common_data: AgentCommonData, host: models.Host) -> List[str]:
         file_list = data.get_one_of_inputs("file_list", default=[])
         from_type = data.get_one_of_inputs("from_type")
-        host_ap = common_data.host_id__ap_map[host.bk_host_id]
+        host_ap: Optional[models.AccessPoint] = self.get_host_ap(common_data, host)
+        if not host_ap:
+            return []
         if from_type == constants.ProxyFileFromType.AP_CONFIG.value:
             file_list = host_ap.proxy_package or file_list
         download_path = host_ap.nginx_path or settings.DOWNLOAD_PATH
