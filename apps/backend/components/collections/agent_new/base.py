@@ -58,9 +58,12 @@ class AgentBaseService(BaseService, metaclass=abc.ABCMeta):
         """
         pass
 
+    def get_common_data(self, data):
+        return self._get_common_data(data=data, move_insts_to_failed=self.move_insts_to_failed)
+
     @classmethod
     @SetupObserve(histogram=metrics.app_task_engine_get_common_data_duration_seconds, labels={"step_type": "AGENT"})
-    def get_common_data(cls, data):
+    def _get_common_data(cls, data, move_insts_to_failed):
         """
         初始化常用数据，注意这些数据不能放在 self 属性里，否则会产生较大的 process snap shot，
         另外也尽量不要在 schedule 中使用，否则多次回调可能引起性能问题
@@ -75,7 +78,11 @@ class AgentBaseService(BaseService, metaclass=abc.ABCMeta):
         host_id__ap_map: Dict[int, models.AccessPoint] = {}
 
         for bk_host_id in common_data.bk_host_ids:
-            host = common_data.host_id_obj_map[bk_host_id]
+            host = common_data.host_id_obj_map.get(bk_host_id)
+            if not host:
+                move_insts_to_failed([common_data.host_id__sub_inst_id_map[bk_host_id]], _("该主机在cmdb中不存在"))
+                continue
+
             # 有两种情况需要使用默认接入点
             # 1. 接入点已被删除
             # 2. 主机未选择接入点 ap_id = -1

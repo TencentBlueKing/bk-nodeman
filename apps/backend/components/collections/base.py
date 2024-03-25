@@ -12,6 +12,7 @@ import logging
 import os
 import traceback
 import typing
+from collections import defaultdict
 from dataclasses import dataclass
 from typing import (
     Any,
@@ -38,6 +39,7 @@ from apps.backend.subscription import errors
 from apps.core.files.storage import get_storage
 from apps.exceptions import parse_exception
 from apps.node_man import constants, models
+from apps.node_man.periodic_tasks.sync_cmdb_host import bulk_differential_sync_biz_hosts
 from apps.prometheus import metrics
 from apps.prometheus.helper import SetupObserve
 from apps.utils import cache, time_handler, translation
@@ -399,6 +401,18 @@ class BaseService(Service, LogMixin, DBHelperMixin, PollingTimeoutMixin):
                 sub_inst_id__sub_inst_obj_map[subscription_instance.id] = subscription_instance
 
         host_id_obj_map: Dict[int, models.Host] = models.Host.host_id_obj_map(bk_host_id__in=bk_host_ids)
+
+        expected_bk_host_ids_gby_bk_biz_id: typing.Dict[int, typing.List[int]] = defaultdict(list)
+        if len(host_id_obj_map) < len(bk_host_ids):
+            for deleted_host_id in set(bk_host_ids) - set(host_id_obj_map.keys()):
+                bk_biz_id = sub_inst_id__sub_inst_obj_map[host_id__sub_inst_id_map[deleted_host_id]].instance_info[
+                    "host"
+                ]["bk_biz_id"]
+                expected_bk_host_ids_gby_bk_biz_id[bk_biz_id].append(deleted_host_id)
+
+            bulk_differential_sync_biz_hosts(expected_bk_host_ids_gby_bk_biz_id=expected_bk_host_ids_gby_bk_biz_id)
+            host_id_obj_map: Dict[int, models.Host] = models.Host.host_id_obj_map(bk_host_id__in=bk_host_ids)
+
         ap_id_obj_map = models.AccessPoint.ap_id_obj_map()
         return CommonData(
             bk_host_ids=bk_host_ids,
