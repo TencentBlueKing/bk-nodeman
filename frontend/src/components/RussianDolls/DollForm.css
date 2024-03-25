@@ -35,6 +35,7 @@
   }
   .array-child {
     display: flex;
+    align-items: center;
     flex: 1;
     padding-right: 16px;
     background: #f5f7fa;

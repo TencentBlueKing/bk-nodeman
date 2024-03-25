@@ -86,7 +86,7 @@ function getDefaultComponent(params: IItem) {
       realComponent = 'bfArray';
     }
   } else {
-    realComponent = type === 'boolean' ? 'bk-radio'  : 'bk-input';
+    realComponent = type === 'boolean' ? 'bk-checkbox'  : 'bk-input';
   }
   return realComponent;
 };
