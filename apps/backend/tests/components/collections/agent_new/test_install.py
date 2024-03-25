@@ -19,6 +19,7 @@ from typing import Any, Dict, List, Optional
 import mock
 from django.conf import settings
 from django.test import override_settings
+from django.utils.translation import ugettext as _
 
 from apps.backend.agent.solution_maker import ExecutionSolution
 from apps.backend.agent.tools import InstallationTools, gen_commands
@@ -52,6 +53,7 @@ class InstallBaseTestCase(utils.AgentServiceBaseTestCase):
     DOWNLOAD_PATH = "/tmp/data/bkee/public/bknodeman/download"
     JOB_API_MOCK_PATH = "apps.backend.components.collections.agent_new.install.JobApi"
     CMDB_API_MOCK_PATH = "apps.backend.components.collections.agent_new.install.CCApi"
+    CLIENT_CC_MOCK_PATH = "apps.component.esbclient.client_v2.cc"
     EXECUTE_CMD_MOCK_PATH = "apps.backend.components.collections.agent_new.install.execute_cmd"
     PUT_FILE_MOCK_PATH = "apps.backend.components.collections.agent_new.install.put_file"
     CUSTOM_DATAIPC_DIR = "/var/run/gse_test"
@@ -65,6 +67,14 @@ class InstallBaseTestCase(utils.AgentServiceBaseTestCase):
         settings.BKAPP_NODEMAN_CALLBACK_URL = "http://127.0.0.1/backend"
         settings.BKAPP_NODEMAN_OUTER_CALLBACK_URL = "http://127.0.0.1/backend"
 
+    @property
+    def list_biz_hosts(self):
+        structure_instance_host_info_list = self.obj_factory.structure_instance_host_info_list()
+        return {
+            "count": len(structure_instance_host_info_list),
+            "info": structure_instance_host_info_list,
+        }
+
     def init_mock_clients(self):
         self.job_mock_client = api_mkd.job.utils.JobApiMockClient(
             fast_execute_script_return=mock_data_utils.MockReturn(
@@ -74,6 +84,9 @@ class InstallBaseTestCase(utils.AgentServiceBaseTestCase):
         self.cmdb_mock_client = api_mkd.cmdb.utils.CCApiMockClient(
             batch_update_host=mock_data_utils.MockReturn(
                 return_type=mock_data_utils.MockReturnType.RETURN_VALUE.value, return_obj={"message": "success"}
+            ),
+            list_biz_hosts_return=mock_data_utils.MockReturn(
+                return_type=mock_data_utils.MockReturnType.RETURN_VALUE.value, return_obj=self.list_biz_hosts
             ),
         )
 
@@ -154,6 +167,7 @@ class InstallBaseTestCase(utils.AgentServiceBaseTestCase):
     def start_patch(self):
         mock.patch(self.JOB_API_MOCK_PATH, self.job_mock_client).start()
         mock.patch(self.CMDB_API_MOCK_PATH, self.cmdb_mock_client).start()
+        mock.patch(self.CLIENT_CC_MOCK_PATH, self.cmdb_mock_client).start()
         mock.patch(target=self.EXECUTE_CMD_MOCK_PATH, return_value="").start()
         mock.patch(target=self.PUT_FILE_MOCK_PATH, return_value="").start()
         base.get_asyncssh_connect_mock_patch().start()
@@ -1049,3 +1063,50 @@ class ReportCpuArchTestCase(LinuxInstallTestCase):
             self.assertEqual(call_args["update"][0]["properties"]["bk_cpu_architecture"], "arm")
             self.assertEqual(call_args["update"][0]["properties"]["bk_os_bit"], "arm-64bit")
         super().tearDown()
+
+
+class KeyErrorWithPullAllBackTestCase(InstallBaseTestCase):
+    @classmethod
+    def get_default_case_name(cls) -> str:
+        return "测试主机误删除全部拉回来的场景"
+
+    @classmethod
+    def setup_obj_factory(cls):
+        """设置 obj_factory"""
+        cls.obj_factory.init_host_num = 20
+
+    def _do_case_assert(self, service, method, assertion, no, name, args=None, kwargs=None):
+        models.Host.objects.all().delete()
+        super()._do_case_assert(service, method, assertion, no, name, args, kwargs)
+
+
+class KeyErrorWithPullPartialBackTestCase(InstallBaseTestCase):
+    @classmethod
+    def get_default_case_name(cls) -> str:
+        return "测试主机拉回来部分，host_id_obj_map获取host_obj过程中出现KeyError场景"
+
+    @classmethod
+    def setup_obj_factory(cls):
+        """设置 obj_factory"""
+        cls.obj_factory.init_host_num = 20
+
+    def _do_case_assert(self, service, method, assertion, no, name, args=None, kwargs=None):
+        models.Host.objects.all().delete()
+        try:
+            super()._do_case_assert(service, method, assertion, no, name, args, kwargs)
+        except AssertionError:
+            failed_subscription_instance_id_reason_map = service.failed_subscription_instance_id_reason_map
+            self.assertEqual(len(failed_subscription_instance_id_reason_map), 1)
+            self.assertEqual(
+                self.obj_factory.sub_inst_record_ids[0], list(failed_subscription_instance_id_reason_map.keys())[0]
+            )
+            self.assertEqual(list(failed_subscription_instance_id_reason_map.values())[0], _("主机不存在或未同步"))
+
+    @property
+    def list_biz_hosts(self):
+        # 第一台机器让他查不到，然后丢到failed_subscription_instance_id_reason_map中
+        structure_instance_host_info_list = self.obj_factory.structure_instance_host_info_list()[1:]
+        return {
+            "count": len(structure_instance_host_info_list),
+            "info": structure_instance_host_info_list,
+        }

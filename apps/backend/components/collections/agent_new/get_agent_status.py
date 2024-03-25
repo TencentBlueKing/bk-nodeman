@@ -68,10 +68,13 @@ class GetAgentStatusService(AgentBaseService):
         # 构造 gse 请求参数
         hosts: List[Dict[str, Union[int, str]]] = []
         need_to_quey_host_agent_id_map: Dict[int, str] = {}
-        for host_id in host_ids_need_to_query:
+        for host_id in host_ids_need_to_query.copy():
             sub_inst_id = common_data.host_id__sub_inst_id_map[host_id]
             sub_inst = common_data.sub_inst_id__sub_inst_obj_map[sub_inst_id]
-            host_obj = common_data.host_id_obj_map[host_id]
+            host_obj: Optional[models.Host] = self.get_host(common_data, host_id)
+            if not host_obj:
+                host_ids_need_to_query.remove(host_id)
+                continue
 
             bk_agent_id: Optional[str] = sub_inst.instance_info["host"].get("bk_agent_id") or host_obj.bk_agent_id
             host: Dict[str, Union[int, str]] = {
@@ -98,7 +101,6 @@ class GetAgentStatusService(AgentBaseService):
             host_id: sub_inst_id for sub_inst_id, host_id in common_data.sub_inst_id__host_id_map.items()
         }
         for host_id in host_ids_need_to_query:
-            host_obj = common_data.host_id_obj_map[host_id]
             agent_id = need_to_quey_host_agent_id_map[host_id]
             # bk_agent_alive 默认值为 None 的背景：expect_status 是可传入的，不能设定一个明确状态作为默认值，不然可能与 expect_status 一致
             # 误判为当前 Agent 状态已符合预期
@@ -134,7 +136,8 @@ class GetAgentStatusService(AgentBaseService):
         # 将查询到期望状态的主机节点来源更新为 NODE_MAN
         host_ids_need_to_update_node_from = []
         for host_id in host_ids_get_expect_status:
-            if common_data.host_id_obj_map[host_id].node_from != constants.NodeFrom.NODE_MAN:
+            host: Optional[models.Host] = self.get_host(common_data, host_id)
+            if host and host.node_from != constants.NodeFrom.NODE_MAN:
                 host_ids_need_to_update_node_from.append(host_id)
         models.Host.objects.filter(bk_host_id__in=host_ids_need_to_update_node_from).update(
             node_from=constants.NodeFrom.NODE_MAN

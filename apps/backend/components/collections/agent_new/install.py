@@ -320,23 +320,25 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
         host_ids_need_gen_commands = set(host_id__installation_tool_map.keys())
         for sub_inst in common_data.subscription_instances:
             bk_host_id = sub_inst.instance_info["host"]["bk_host_id"]
+            host: Optional[models.Host] = self.get_host(common_data, bk_host_id)
+            if not host:
+                continue
+
             if bk_host_id not in host_ids_need_gen_commands:
                 continue
 
-            host = host_id_obj_map[bk_host_id]
             if not is_uninstall:
                 # 仅在安装时需要缓存配置文件
                 # 考虑手动安装也是小规模场景且依赖用户输入，暂不做缓存
                 # 优先使用注入的ap, 适配只安装Agent场景
-                ap_obj: models.AccessPoint = [
-                    common_data.host_id__ap_map[host.bk_host_id],
-                    common_data.ap_id_obj_map[common_data.injected_ap_id],
-                ][common_data.injected_ap_id is not None]
+                host_ap: Optional[models.AccessPoint] = self.get_host_ap(common_data, host)
+                if not host_ap:
+                    continue
                 get_gse_config_tuple_params_list.append(
                     {
                         "sub_inst_id": sub_inst.id,
                         "host": host,
-                        "ap": ap_obj,
+                        "ap": host_ap,
                         "agent_step_adapter": common_data.agent_step_adapter,
                         "file_name": common_data.agent_step_adapter.get_main_config_filename(),
                     }
@@ -806,14 +808,20 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
             self.finish_schedule()
             return
 
-        params_list = [
-            {
-                "host": common_data.host_id_obj_map[common_data.sub_inst_id__host_id_map[sub_inst_id]],
-                "sub_inst_id": sub_inst_id,
-                "success_callback_step": success_callback_step,
-            }
-            for sub_inst_id in scheduling_sub_inst_ids
-        ]
+        params_list = []
+        for sub_inst_id in scheduling_sub_inst_ids:
+            host: Optional[models.Host] = self.get_host(common_data, common_data.sub_inst_id__host_id_map[sub_inst_id])
+            if not host:
+                continue
+
+            params_list.append(
+                {
+                    "host": host,
+                    "sub_inst_id": sub_inst_id,
+                    "success_callback_step": success_callback_step,
+                }
+            )
+
         host_id__sub_inst_map: Dict[int, models.SubscriptionInstanceRecord] = {
             common_data.sub_inst_id__host_id_map[sub_inst.id]: sub_inst
             for sub_inst in common_data.subscription_instances
