@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import abc
+import logging
 import random
 import re
 from collections import defaultdict
@@ -27,11 +28,14 @@ from apps.backend.exceptions import OsVersionPackageValidationError
 from apps.backend.subscription.steps.agent_adapter.adapter import AgentStepAdapter
 from apps.node_man import constants, models
 from apps.node_man.exceptions import AliveProxyNotExistsError
+from apps.node_man.periodic_tasks.sync_cmdb_host import bulk_differential_sync_biz_hosts
 from apps.prometheus import metrics
 from apps.prometheus.helper import SetupObserve
 
 from .. import job
 from ..base import BaseService, CommonData
+
+logger = logging.getLogger("celery")
 
 
 @dataclass
@@ -74,8 +78,27 @@ class AgentBaseService(BaseService, metaclass=abc.ABCMeta):
         # 引入背景：在聚合流程中，类似 host.agent_config, host.ap 的逻辑会引发 n + 1 DB查询问题
         host_id__ap_map: Dict[int, models.AccessPoint] = {}
 
+        expected_bk_host_ids_gby_bk_biz_id: Dict[int, List[int]] = defaultdict(list)
+        if len(common_data.host_id_obj_map) < len(common_data.bk_host_ids):
+            deleted_host_ids = set(common_data.bk_host_ids) - set(common_data.host_id_obj_map.keys())
+            for deleted_host_id in deleted_host_ids:
+                bk_biz_id = common_data.sub_inst_id__sub_inst_obj_map[
+                    common_data.host_id__sub_inst_id_map[deleted_host_id]
+                ].instance_info["host"]["bk_biz_id"]
+                expected_bk_host_ids_gby_bk_biz_id[bk_biz_id].append(deleted_host_id)
+
+            bulk_differential_sync_biz_hosts(expected_bk_host_ids_gby_bk_biz_id=expected_bk_host_ids_gby_bk_biz_id)
+
+            host_id__ap_map_with_pullback: Dict[int, models.AccessPoint] = models.Host.host_id_obj_map(
+                bk_host_id__in=deleted_host_ids
+            )
+            common_data.host_id_obj_map.update(host_id__ap_map_with_pullback)
+
         for bk_host_id in common_data.bk_host_ids:
-            host = common_data.host_id_obj_map[bk_host_id]
+            host = common_data.host_id_obj_map.get(bk_host_id)
+            if not host:
+                continue
+
             # 有两种情况需要使用默认接入点
             # 1. 接入点已被删除
             # 2. 主机未选择接入点 ap_id = -1
@@ -201,7 +224,9 @@ class AgentBaseService(BaseService, metaclass=abc.ABCMeta):
 
         host_id__install_channel_map: Dict[int, Tuple[Optional[models.Host], Dict[str, List]]] = {}
         for host in hosts:
-            host_ap: models.AccessPoint = self.get_host_ap(common_data=common_data, host=host)
+            host_ap: Optional[models.AccessPoint] = self.get_host_ap(common_data=common_data, host=host)
+            if not host_ap:
+                continue
             sub_inst_id = host_id__sub_inst_id[host.bk_host_id]
             install_channel_obj = id__install_channel_obj_map.get(host.install_channel_id)
             if install_channel_obj:
@@ -323,13 +348,38 @@ class AgentBaseService(BaseService, metaclass=abc.ABCMeta):
             proc_statuses_to_be_created.append(models.ProcessStatus(bk_host_id=host_id, **self.agent_proc_common_data))
         models.ProcessStatus.objects.bulk_create(proc_statuses_to_be_created, batch_size=self.batch_size)
 
-    def get_host_ap(self, common_data: AgentCommonData, host: models.Host) -> models.AccessPoint:
+    def get_host_ap(self, common_data: AgentCommonData, host: models.Host) -> Optional[models.AccessPoint]:
         # 优先使用注入的AP ID
         if common_data.injected_ap_id:
-            host_ap: models.AccessPoint = common_data.ap_id_obj_map[common_data.injected_ap_id]
+            host_ap: Optional[models.AccessPoint] = common_data.ap_id_obj_map.get(common_data.injected_ap_id)
         else:
-            host_ap: models.AccessPoint = common_data.host_id__ap_map[host.bk_host_id]
+            host_ap: Optional[models.AccessPoint] = common_data.host_id__ap_map.get(host.bk_host_id)
+
+        if not host_ap:
+            code = self.__class__.__name__
+            logger.info(
+                f"[task_engine][service_run_exc_handler:{code}] exc -> GetHostApError, "
+                f"host_id -> {host.bk_host_id}, injected_ap_id -> {common_data.injected_ap_id}"
+            )
+            self.move_insts_to_failed(
+                [common_data.host_id__sub_inst_id_map[host.bk_host_id]],
+                _("主机不存在或未同步"),
+            )
+
         return host_ap
+
+    def get_host(self, common_data: AgentCommonData, host_id: int) -> Optional[models.Host]:
+        host_id_obj_map = common_data.host_id_obj_map
+        host = host_id_obj_map.get(host_id)
+        if not host:
+            code = self.__class__.__name__
+            logger.info(f"[task_engine][service_run_exc_handler:{code}] exc -> GetHostError, host_id -> {host_id}")
+            self.move_insts_to_failed(
+                [common_data.host_id__sub_inst_id_map[host_id]],
+                _("主机不存在或未同步"),
+            )
+
+        return host
 
 
 # 根据 JOB 的插件额外封装一层，保证后续基于 Agent 增加定制化功能的可扩展性

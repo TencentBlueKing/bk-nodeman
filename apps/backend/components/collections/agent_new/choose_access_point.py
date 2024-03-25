@@ -537,7 +537,9 @@ class ChooseAccessPointService(AgentBaseService, remote.RemoteServiceMixin):
 
         for sub_inst in common_data.subscription_instances:
             bk_host_id = sub_inst.instance_info["host"]["bk_host_id"]
-            host = host_id_obj_map[bk_host_id]
+            host: Optional[models.Host] = self.get_host(common_data, bk_host_id)
+            if not host:
+                continue
 
             bk_host_id__sub_inst_id_map[bk_host_id] = sub_inst.id
 

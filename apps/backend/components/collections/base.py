@@ -399,6 +399,7 @@ class BaseService(Service, LogMixin, DBHelperMixin, PollingTimeoutMixin):
                 sub_inst_id__sub_inst_obj_map[subscription_instance.id] = subscription_instance
 
         host_id_obj_map: Dict[int, models.Host] = models.Host.host_id_obj_map(bk_host_id__in=bk_host_ids)
+
         ap_id_obj_map = models.AccessPoint.ap_id_obj_map()
         return CommonData(
             bk_host_ids=bk_host_ids,

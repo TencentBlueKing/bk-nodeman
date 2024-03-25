@@ -30,9 +30,10 @@ class PushEnvironFilesService(AgentPushConfigService):
         else:
             environ_file_names: typing.List[str] = ["environ.sh"]
 
-        agent_config: typing.Dict[str, typing.Any] = common_data.host_id__ap_map[host.bk_host_id].get_agent_config(
-            host.os_type
-        )
+        host_ap: typing.Optional[models.AccessPoint] = self.get_host_ap(common_data, host)
+        if not host_ap:
+            return []
+        agent_config: typing.Dict[str, typing.Any] = host_ap.get_agent_config(host.os_type)
         path_sep: str = (constants.LINUX_SEP, constants.WINDOWS_SEP)[host.os_type == constants.OsType.WINDOWS]
 
         setup_path: str = agent_config["setup_path"]

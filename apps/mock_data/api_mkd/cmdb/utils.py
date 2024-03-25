@@ -50,6 +50,7 @@ class CCApiMockClient(utils.BaseMockClient):
         find_host_biz_relations_return=None,
         push_host_identifier_return=None,
         find_host_identifier_push_result_return=None,
+        list_biz_hosts_return=None,
     ):
         super(CCApiMockClient, self).__init__()
         self.search_business = self.generate_magic_mock(mock_return_obj=search_business_return)
@@ -63,6 +64,7 @@ class CCApiMockClient(utils.BaseMockClient):
         self.find_host_identifier_push_result = self.generate_magic_mock(
             mock_return_obj=find_host_identifier_push_result_return
         )
+        self.list_biz_hosts = self.generate_magic_mock(mock_return_obj=list_biz_hosts_return)
 
         # 记录接口调用
         self.bind_host_agent = self.call_recorder.start(self.bind_host_agent, key=CCApi.bind_host_agent)
