@@ -227,6 +227,7 @@ defineExpose({
     text-align: left;
     color: #63656e;
     background-color: #fff;
+    width: 70%;
   }
   .label-td {
     white-space: nowrap;
