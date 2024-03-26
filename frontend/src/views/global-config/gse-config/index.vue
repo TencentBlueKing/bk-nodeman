@@ -88,6 +88,7 @@
                 <span>ID:</span>
                 <span class="point-id">{{ accessPoint.id | filterEmpty }}</span>
                 <span class="point-desc" v-if="accessPoint.description">{{ accessPoint.description }}</span>
+                <span class="point-desc">{{ accessPoint.gse_version }}</span>
               </p>
             </div>
           </div>
