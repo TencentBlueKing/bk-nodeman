@@ -113,7 +113,7 @@
             class="ml30"
             theme="primary"
             v-test="'apOmitBtn'"
-            @click.stop="() => hostState.checkedResult = true">
+            @click.stop="skipCheck">
             {{ $t('跳过检测') }}
           </bk-button>
           <section class="check-result" v-if="hostState.isChecked">
@@ -455,6 +455,12 @@ const checkCommit = () => {
     }).catch(() => document.getElementsByClassName('is-error')[0]?.scrollIntoView());
   }, () => document.getElementsByClassName('is-error')[0]?.scrollIntoView());
 };
+// 跳过检测之前需要校验必填项
+const skipCheck = () => {
+  formDataRef.value?.validate?.().then(() => {
+    hostState.checkedResult = true;
+  });
+}
 const submitInfo = () => {
   ConfigStore.updateDetail(formData.value);
   emits('change', true);
