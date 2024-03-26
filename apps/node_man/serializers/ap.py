@@ -8,7 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from typing import List
+import typing
 
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
@@ -84,28 +84,51 @@ class UpdateOrCreateSerializer(serializers.ModelSerializer):
     """
 
     class ServersSerializer(serializers.Serializer):
-        inner_ip = serializers.CharField(label=_("内网IP"), required=False)
-        inner_ipv6 = serializers.CharField(label=_("内网IPv6"), required=False)
-        outer_ip = serializers.CharField(label=_("外网IP"), required=False)
-        outer_ipv6 = serializers.CharField(label=_("外网IPv6"), required=False)
-        bk_host_id = serializers.IntegerField(label=_("主机ID"), required=False)
+        class ServerInfoSerializer(serializers.Serializer):
+            ip = serializers.CharField(label=_("IP地址"), required=False)
+            bk_host_id = serializers.IntegerField(label=_("主机ID"), required=False)
+
+        inner_ip_infos = serializers.ListField(label=_("内网IP信息"), required=False, child=ServerInfoSerializer())
+        outer_ip_infos = serializers.ListField(label=_("外网IP信息"), required=False, child=ServerInfoSerializer())
 
         def validate(self, attrs):
-            basic.ipv6_formatter(data=attrs, ipv6_field_names=["inner_ipv6", "outer_ipv6"])
+            if not attrs.get("inner_ip_infos") and not attrs.get("outer_ip_infos"):
+                raise ValidationError(_("请求参数 inner_ip_info, outer_ip_infos 不可同时为空"))
 
-            if not (attrs.get("inner_ip") or attrs.get("inner_ipv6")):
-                raise ValidationError(_("请求参数 inner_ip 和 inner_ipv6 不能同时为空"))
-            if not (attrs.get("outer_ip") or attrs.get("outer_ipv6")):
-                raise ValidationError(_("请求参数 outer_ip 和 outer_ipv6 不能同时为空"))
+            for attr in attrs.keys():
+                v4_ips, abnormal_ips, format_ipv6_infos = [], [], []
+                for ip_info in attrs.get(attr, []):
+                    ip = ip_info.get("ip", None)
+                    if not ip:
+                        continue
+                    if basic.is_v4(ip):
+                        v4_ips.append(ip_info)
+                    elif basic.is_v6(ip):
+                        ip_info.update({"ip": basic.exploded_ip(ip)})
+                        format_ipv6_infos.append(ip_info)
+                    else:
+                        # 不是有效的 IP 地址
+                        abnormal_ips.append(ip_info)
+
+                if v4_ips and format_ipv6_infos:
+                    raise ValidationError(_(f"{attr} 中不能同时包括 ipv4 和 ipv6"))
+                if abnormal_ips:
+                    raise ValidationError(_(f"{attr} 中存在非法 IP 地址: {abnormal_ips}"))
+
+                if format_ipv6_infos:
+                    attrs[attr] = format_ipv6_infos
+
+            # 去重复
+            attrs[attr] = list({frozenset(d.items()): d for d in attrs[attr] if d is not None}.values())
             return attrs
 
     class ZKSerializer(serializers.Serializer):
         zk_ip = serializers.CharField(label=_("ZK IP地址"))
         zk_port = serializers.CharField(label=_("ZK 端口"))
 
-    btfileserver = serializers.ListField(child=ServersSerializer())
-    dataserver = serializers.ListField(child=ServersSerializer())
-    taskserver = serializers.ListField(child=ServersSerializer())
+    btfileserver = ServersSerializer()
+    dataserver = ServersSerializer()
+    taskserver = ServersSerializer()
     zk_hosts = serializers.ListField(child=ZKSerializer())
     zk_account = serializers.CharField(label=_("ZK账号"), required=False, allow_blank=True)
     zk_password = serializers.CharField(label=_("ZK密码"), required=False, allow_blank=True)
@@ -119,7 +142,7 @@ class UpdateOrCreateSerializer(serializers.ModelSerializer):
     callback_url = serializers.CharField(label=_("节点管理内网回调地址"), required=False, allow_blank=True)
 
     def validate(self, data):
-        gse_version_list: List[str] = list(set(AccessPoint.objects.values_list("gse_version", flat=True)))
+        gse_version_list: typing.List[str] = list(set(AccessPoint.objects.values_list("gse_version", flat=True)))
         # 存量接入点版本全部为V2新建/更新版本也为V2版本
         if GseVersion.V1.value not in gse_version_list:
             data["gse_version"] = GseVersion.V2.value

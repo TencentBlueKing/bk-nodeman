@@ -57,12 +57,18 @@ class ApViewSet(ModelViewSet):
             ]
             "zk_user": "username",
             "zk_password": "zk_password",
-            "servers": [
-                {
-                    "inner_ip": "127.0.0.1",
-                    "outer_ip": "127.0.0.2"
-                }
-            ],
+            "btfileserver": {
+                "inner_ips": [{"inner_ip": "127.0.0.1"}],
+                "outer_ips": [{"outer_ip": "127.0.0.2"}]
+            },
+            "taskserver": {
+                "inner_ips": [{"inner_ip": "127.0.0.1"}],
+                "outer_ips": [{"outer_ip": "127.0.0.2"}]
+            },
+            "dataserver": {
+                "inner_ips": [{"inner_ip": "127.0.0.1"}],
+                "outer_ips": [{"outer_ip": "127.0.0.2"}]
+            },
             "package_inner_url": "http://127.0.0.1/download/",
             "package_outer_url": "http://127.0.0.2/download/",
             "agent_config": {
@@ -125,12 +131,18 @@ class ApViewSet(ModelViewSet):
             ]
             "zk_user": "username",
             "zk_password": "zk_password",
-            "servers": [
-                {
-                    "inner_ip": "127.0.0.1",
-                    "outer_ip": "127.0.0.2"
-                }
-            ],
+            "btfileserver": {
+                "inner_ips": [{"inner_ip": "127.0.0.1"}],
+                "outer_ips": [{"outer_ip": "127.0.0.2"}]
+            },
+            "taskserver": {
+                "inner_ips": [{"inner_ip": "127.0.0.1"}],
+                "outer_ips": [{"outer_ip": "127.0.0.2"}]
+            },
+            "dataserver": {
+                "inner_ips": [{"inner_ip": "127.0.0.1"}],
+                "outer_ips": [{"outer_ip": "127.0.0.2"}]
+            },
             "package_inner_url": "http://127.0.0.1/download/",
             "package_outer_url": "http://127.0.0.2/download/",
             "agent_config": {
@@ -306,12 +318,18 @@ class ApViewSet(ModelViewSet):
         @apiParamExample {Json} 请求参数
         {
             "name": "接入点名称",
-            "servers": [
-                {
-                    "inner_ip": "127.0.0.1",
-                    "outer_ip": "127.0.0.2"
-                }
-            ],
+            "btfileserver": {
+                "inner_ip_infos": [{"ip": "127.0.0.1"}],
+                "outer_ip_infos": [{"ip": "127.0.0.2"}]
+            },
+            "taskserver": {
+                "inner_ip_infos": [{"ip": "127.0.0.1"}],
+                "outer_ip_infos": [{"ip": "127.0.0.2"}]
+            },
+            "dataserver": {
+                "inner_ip_infos": [{"ip": "127.0.0.1"}],
+                "outer_ip_infos": [{"ip": "127.0.0.2"}]
+            },
             "package_inner_url": "http://127.0.0.1/download/",
             "package_outer_url": "http://127.0.0.2/download/",
             "agent_config": {
@@ -407,12 +425,18 @@ class ApViewSet(ModelViewSet):
         @apiParam {String} package_outer_url 安装包外网地址
         @apiParamExample {Json} 请求参数
         {
-            "servers": [
-                {
-                    "inner_ip": "127.0.0.1",
-                    "outer_ip": "127.0.0.2"
-                }
-            ],
+            "btfileserver": {
+                "inner_ip_infos": [{"ip": "127.0.0.1"}],
+                "outer_ip_infos": [{"ip": "127.0.0.2"}]
+            },
+            "taskserver": {
+                "inner_ip_infos": [{"ip": "127.0.0.1"}],
+                "outer_ip_infos": [{"ip": "127.0.0.2"}]
+            },
+            "dataserver": {
+                "inner_ip_infos": [{"ip": "127.0.0.1"}],
+                "outer_ip_infos": [{"ip": "127.0.0.2"}]
+            },
             "package_inner_url": "http://127.0.0.1/download/",
             "package_outer_url": "http://127.0.0.2/download/"
         }
