@@ -111,12 +111,18 @@ class ComponentTestMixin(object):
 
     def _case_pass(self, case):
         sys.stdout.write(
-            "\n[√] <{component}> - [{case_name}]\n".format(component=self._component_cls_name, case_name=case.name,)
+            "\n[√] <{component}> - [{case_name}]\n".format(
+                component=self._component_cls_name,
+                case_name=case.name,
+            )
         )
 
     def _case_fail(self, case):
         sys.stdout.write(
-            "\n[×] <{component}> - [{case_name}]\n".format(component=self._component_cls_name, case_name=case.name,)
+            "\n[×] <{component}> - [{case_name}]\n".format(
+                component=self._component_cls_name,
+                case_name=case.name,
+            )
         )
 
         if not hasattr(self, "__failed_cases"):
@@ -138,6 +144,7 @@ class ComponentTestMixin(object):
                 with patch_context(patchers):
 
                     bound_service = component.service()
+                    setattr(self, "bound_service", bound_service)
 
                     setattr(bound_service, "id", case.service_id)
                     setattr(bound_service, "logger", MagicMock())
@@ -263,9 +270,10 @@ class CallAssertion(object):
         if not self.calls:
             func.assert_not_called()
         else:
-            assert func.call_count == len(self.calls), (
-                "Expected 'mock' have been called {expect} times. "
-                "Called {actual} times".format(expect=len(self.calls), actual=func.call_count)
+            assert func.call_count == len(
+                self.calls
+            ), "Expected 'mock' have been called {expect} times. " "Called {actual} times".format(
+                expect=len(self.calls), actual=func.call_count
             )
             func.assert_has_calls(calls=self.calls, any_order=self.any_order)
 

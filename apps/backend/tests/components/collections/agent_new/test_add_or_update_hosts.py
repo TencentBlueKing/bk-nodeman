@@ -16,6 +16,7 @@ import typing
 from typing import Dict, List, Optional, Set
 
 import mock
+from django.utils.translation import ugettext_lazy as _
 
 from apps.backend.components.collections.agent_new import add_or_update_hosts
 from apps.backend.components.collections.agent_new.components import (
@@ -30,8 +31,10 @@ from . import utils
 
 
 class AddOrUpdateHostsTestCase(utils.AgentServiceBaseTestCase):
-
-    CC_API_MOCK_PATHS: List[str] = ["apps.backend.components.collections.agent_new.add_or_update_hosts.CCApi"]
+    CC_API_MOCK_PATHS: List[str] = [
+        "apps.backend.components.collections.agent_new.add_or_update_hosts.CCApi",
+        "apps.component.esbclient.client_v2.cc",
+    ]
 
     current_host_id: Optional[int] = None
     host_ids_with_dynamic_ip: Set[int] = None
@@ -41,6 +44,7 @@ class AddOrUpdateHostsTestCase(utils.AgentServiceBaseTestCase):
     list_hosts_without_biz_result: Optional[Dict] = None
     add_host_to_business_idle_result: Optional[Dict] = None
     cmdb_mock_client: Optional[api_mkd.cmdb.utils.CCApiMockClient] = None
+    list_biz_hosts_result = None
 
     def add_host_to_business_idle_func(self, query_params):
         host_num = len(query_params["bk_host_list"])
@@ -67,6 +71,22 @@ class AddOrUpdateHostsTestCase(utils.AgentServiceBaseTestCase):
         cls.obj_factory.init_host_num = 255
 
     @classmethod
+    def get_host_info(cls, bk_host_id, host_id__obj_map, bk_addressing):
+        host_obj = host_id__obj_map[bk_host_id]
+        host_info: Dict = copy.deepcopy(api_mkd.cmdb.unit.CMDB_HOST_INFO)
+        host_info.update(
+            {
+                "bk_host_id": bk_host_id,
+                "bk_addressing": bk_addressing,
+                "bk_host_innerip": host_obj.inner_ip,
+                "bk_host_outerip": host_obj.outer_ipv6,
+                "bk_host_innerip_v6": host_obj.inner_ipv6,
+                "bk_host_outerip_v6": host_obj.outer_ipv6,
+            }
+        )
+        return host_info
+
+    @classmethod
     def structure_cmdb_mock_data(cls):
         """
         构造CMDB接口返回数据
@@ -85,18 +105,7 @@ class AddOrUpdateHostsTestCase(utils.AgentServiceBaseTestCase):
         cls.host_ids_with_dynamic_ip = set()
         for bk_host_id in cls.to_be_updated_host_ids:
             bk_addressing = random.choice(constants.CmdbAddressingType.list_member_values())
-            host_obj = host_id__obj_map[bk_host_id]
-            host_info: Dict = copy.deepcopy(api_mkd.cmdb.unit.CMDB_HOST_INFO)
-            host_info.update(
-                {
-                    "bk_host_id": bk_host_id,
-                    "bk_addressing": bk_addressing,
-                    "bk_host_innerip": host_obj.inner_ip,
-                    "bk_host_outerip": host_obj.outer_ipv6,
-                    "bk_host_innerip_v6": host_obj.inner_ipv6,
-                    "bk_host_outerip_v6": host_obj.outer_ipv6,
-                }
-            )
+            host_info = cls.get_host_info(bk_host_id, host_id__obj_map, bk_addressing)
             host_infos.append(host_info)
             # 如果是动态寻址，模拟主机不存在的情况，此时会走新增策略
             if bk_addressing == constants.CmdbAddressingType.DYNAMIC.value:
@@ -150,6 +159,10 @@ class AddOrUpdateHostsTestCase(utils.AgentServiceBaseTestCase):
             add_host_to_business_idle_return=mock_data_utils.MockReturn(
                 return_type=mock_data_utils.MockReturnType.SIDE_EFFECT.value,
                 return_obj=self.add_host_to_business_idle_func,
+            ),
+            list_biz_hosts_return=mock_data_utils.MockReturn(
+                return_type=mock_data_utils.MockReturnType.RETURN_VALUE.value,
+                return_obj=self.list_biz_hosts_result,
             ),
         )
 
@@ -325,3 +338,89 @@ class SingleIpHostsTestCase(AddOrUpdateHostsTestCase):
             )
         )
         super().assert_in_teardown()
+
+
+class KeyErrorWithPullAllTestCase(AddOrUpdateHostsTestCase):
+    subscription_host_ids: List[int] = None
+    subscription_host_infos = None
+    instance_records = None
+
+    @classmethod
+    def get_default_case_name(cls) -> str:
+        return "主机退库导致流程整体失败(从cc全部拉回来)"
+
+    @classmethod
+    def structure_cmdb_mock_data(cls):
+        """
+        构造CMDB接口返回数据
+        :return:
+        """
+        super().structure_cmdb_mock_data()
+        host_id__obj_map: Dict[int, models.Host] = {
+            host_obj.bk_host_id: host_obj for host_obj in cls.obj_factory.host_objs
+        }
+
+        cls.instance_records = [
+            instance_record
+            for instance_record in models.SubscriptionInstanceRecord.objects.all()
+            if instance_record.instance_info["host"]["bk_host_id"]
+            not in cls.to_be_added_host_ids.union(cls.host_ids_with_dynamic_ip)
+        ]
+
+        subscription_host_ids = [
+            instance_record.instance_info["host"]["bk_host_id"] for instance_record in cls.instance_records
+        ]
+        cls.subscription_host_infos: List[Dict] = []
+        for bk_host_id in subscription_host_ids:
+            bk_addressing = random.choice(constants.CmdbAddressingType.list_member_values())
+            host_info = cls.get_host_info(bk_host_id, host_id__obj_map, bk_addressing)
+            cls.subscription_host_infos.append(host_info)
+
+        cls.list_biz_hosts_result = {"count": len(cls.subscription_host_infos), "info": cls.subscription_host_infos}
+        cls.subscription_host_ids = subscription_host_ids
+
+    @classmethod
+    def adjust_test_data_in_db(cls):
+        super().adjust_test_data_in_db()
+
+        # 模拟删除主机场景
+        models.Host.objects.filter(bk_host_id__in=cls.subscription_host_ids).delete()
+
+
+class KeyErrorWithPullPartialTestCase(KeyErrorWithPullAllTestCase):
+    bound_service = None
+    failed_subscription_instance_id = None
+
+    @classmethod
+    def get_default_case_name(cls) -> str:
+        return "主机退库导致流程整体失败(从cc部分拉回来)"
+
+    @classmethod
+    def structure_cmdb_mock_data(cls):
+        """
+        构造CMDB接口返回数据
+        :return:
+        """
+        super().structure_cmdb_mock_data()
+
+        # 模拟在cc查不到主机的场景
+        cls.subscription_host_infos.pop(0)
+        cls.failed_subscription_instance_id = cls.instance_records[0].id
+        cls.list_biz_hosts_result = {"count": len(cls.subscription_host_infos), "info": cls.subscription_host_infos}
+
+    def test_component(self):
+        try:
+            super().test_component()
+        except Exception:
+            failed_subscription_instance_id_reason_map = self.bound_service.failed_subscription_instance_id_reason_map
+
+            # 是否只有一个实例失败了
+            self.assertEqual(len(failed_subscription_instance_id_reason_map), 1)
+
+            ((failed_subscription_instance_id, failed_content),) = failed_subscription_instance_id_reason_map.items()
+
+            # 校验从cc查不到的主机会不会移到这个失败的实例中
+            self.assertEqual(failed_subscription_instance_id, self.failed_subscription_instance_id)
+
+            # 校验失败的内容
+            self.assertEqual(failed_content, _("该主机在cmdb中不存在"))

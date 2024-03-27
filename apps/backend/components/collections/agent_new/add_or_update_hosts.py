@@ -544,5 +544,8 @@ class AddOrUpdateHostsService(AgentBaseService):
         # 2 - 对操作成功的实例更新本地数据
         succeed_sub_insts: List[models.SubscriptionInstanceRecord] = []
         for sub_inst_id in successfully_added_sub_inst_ids + successfully_updated_sub_inst_ids:
+            # todo: 是否加上
+            # if sub_inst_id in self.failed_subscription_instance_id_reason_map:
+            #     continue
             succeed_sub_insts.append(id__sub_inst_obj_map[sub_inst_id])
         self.handle_update_db(succeed_sub_insts)
