@@ -25,7 +25,9 @@ from django.utils.translation import ugettext as _
 from apps.backend.subscription import errors, task_tools, tasks, tools
 from apps.backend.subscription.errors import InstanceTaskIsRunning
 from apps.backend.utils.pipeline_parser import PipelineParser
+from apps.core.concurrent import controller
 from apps.node_man import constants, models
+from apps.utils import concurrent
 from apps.utils.basic import filter_values
 from pipeline.engine.models import PipelineProcess
 from pipeline.service import task_service
@@ -554,3 +556,106 @@ class SubscriptionHandler(object):
             sub_statistic_list.append(sub_statistic)
 
         return sub_statistic_list + hit_sub_statistic_list
+
+    @staticmethod
+    @controller.ConcurrentController(
+        data_list_name="subscription_id_list",
+        batch_call_func=concurrent.batch_call,
+        extend_result=True,
+        get_config_dict_func=lambda: {"limit": 5},
+    )
+    def instance_status(subscription_id_list: List[int], show_task_detail: bool) -> List[Dict[str, Any]]:
+
+        subscriptions = models.Subscription.objects.filter(id__in=subscription_id_list)
+
+        # 查出所有HostStatus
+        instance_host_statuses = defaultdict(list)
+        for host_status in models.ProcessStatus.objects.filter(source_id__in=subscription_id_list).only(
+            "name", "status", "version", "group_id"
+        ):
+            instance_host_statuses[host_status.group_id].append(host_status)
+
+        # 查出所有InstanceRecord
+        subscription_instance_record: Dict[int, Dict[str, models.SubscriptionInstanceRecord]] = defaultdict(dict)
+        instance_records = []
+        for instance_record in models.SubscriptionInstanceRecord.objects.filter(
+            subscription_id__in=subscription_id_list, is_latest=True
+        ):
+            subscription_instance_record[instance_record.subscription_id][instance_record.instance_id] = instance_record
+            instance_records.append(instance_record)
+
+        instance_status_list = task_tools.TaskResultTools.list_subscription_task_instance_status(
+            instance_records=instance_records
+        )
+        instance_status_map = {
+            instance_status["instance_id"]: instance_status for instance_status in instance_status_list
+        }
+        running_records = {}
+        # 更新每条record的status字段
+        for subscription_id, id_record_map in subscription_instance_record.items():
+            for instance_id, record in id_record_map.items():
+                # 注入 status 属性。查不到执行记录的，默认设为 PENDING
+                record.status = instance_status_map.get(instance_id, {"status": "PENDING"})["status"]
+                if record.status in ["PENDING", "RUNNING"]:
+                    # 如果实例正在执行，则记下它对应的ID
+                    running_records[record.task_id] = record
+
+        # 查出正在运行实例对应的订阅任务，并建立record到task的映射关系
+        subscription_tasks = models.SubscriptionTask.objects.filter(id__in=list(running_records.keys())).only(
+            "id", "is_auto_trigger"
+        )
+
+        record_tasks = {}
+        for task in subscription_tasks:
+            record = running_records[task.id]
+            record_tasks[record.id] = task
+
+        result = []
+        for subscription in subscriptions:
+            subscription_result = []
+            current_instances = tools.get_instances_by_scope(
+                subscription.scope, get_cache=True, source="instance_status"
+            )
+
+            # 对于每个instance，通过group_id找到其对应的host_status
+            for instance_id in current_instances:
+                if instance_id in subscription_instance_record[subscription.id]:
+                    instance_record = subscription_instance_record[subscription.id][instance_id]
+                    group_id = tools.create_group_id(subscription, instance_record.instance_info)
+
+                    # 检查该实例是否有正在执行的任务
+                    try:
+                        related_task = record_tasks[instance_record.id]
+                        running_task = {
+                            "id": related_task.id,
+                            "is_auto_trigger": related_task.is_auto_trigger,
+                        }
+                    except KeyError:
+                        running_task = None
+
+                    instance_result = {
+                        "instance_id": instance_id,
+                        "status": instance_record.status,
+                        "create_time": instance_record.create_time,
+                        "host_statuses": [],
+                        "instance_info": instance_record.simple_instance_info(),
+                        "running_task": running_task,
+                        "last_task": {"id": instance_record.task_id},
+                    }
+
+                    if show_task_detail:
+                        # 展示任务详情
+                        instance_status = instance_status_map[instance_id]
+                        instance_status.pop("instance_info", None)
+                        instance_status.pop("task_id", None)
+                        instance_status.pop("instance_id", None)
+                        instance_result["last_task"].update(instance_status)
+
+                    for host_status in instance_host_statuses[group_id]:
+                        instance_result["host_statuses"].append(
+                            {"name": host_status.name, "status": host_status.status, "version": host_status.version}
+                        )
+                    subscription_result.append(instance_result)
+            result.append({"subscription_id": subscription.id, "instances": subscription_result})
+
+        return result
