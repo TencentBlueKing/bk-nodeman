@@ -18,7 +18,7 @@ from typing import Any, Dict, List, Optional, Set
 
 from django.conf import settings
 from django.core.cache import cache
-from django.db.models import Max, Q, QuerySet
+from django.db.models import Max, Q, QuerySet, Value
 from django.utils.translation import get_language
 from django.utils.translation import ugettext as _
 
@@ -579,7 +579,7 @@ class SubscriptionHandler(object):
         subscription_instance_record: Dict[int, Dict[str, models.SubscriptionInstanceRecord]] = defaultdict(dict)
         instance_records = []
         for instance_record in models.SubscriptionInstanceRecord.objects.filter(
-            subscription_id__in=subscription_id_list, is_latest=True
+            subscription_id__in=subscription_id_list, is_latest=Value(1)
         ):
             subscription_instance_record[instance_record.subscription_id][instance_record.instance_id] = instance_record
             instance_records.append(instance_record)
