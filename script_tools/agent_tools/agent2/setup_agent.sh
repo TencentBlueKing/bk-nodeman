@@ -474,7 +474,7 @@ remove_agent () {
     stop_agent
 
     log remove_agent - "trying to remove old agent directory(${AGENT_SETUP_PATH}/${AGENT_CLEAN_UP_DIRS[@]})"
-    cd "${AGENT_SETUP_PATH}"
+    cd "${AGENT_SETUP_PATH}" || return 0
     for file in `lsattr -R |egrep "i-" |awk '{print $NF}'`;do echo "--- $file" && chattr -i $file ;done
     cd -
 
