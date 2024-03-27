@@ -176,7 +176,12 @@ export default class PluginStore extends VuexModule {
    */
   @Action
   public async getFilterList(params: any = { category: 'plugin_host' }): Promise<ISearchItem[]> {
-    let data = await getFilterCondition(params).catch(() => []);
+    const config = { cancelPrevious: true };
+    if (params.keepQuery) {
+      config.cancelPrevious = false;
+      delete params.keepQuery;
+    }
+    let data = await getFilterCondition(params, config).catch(() => []);
     data = data.map((item: any) => {
       if (item.children && item.children.length) {
         item.multiable = true;
@@ -187,6 +192,7 @@ export default class PluginStore extends VuexModule {
         });
       }
       if (item.id === 'bk_cloud_id') {
+        item.showCheckAll = true;
         item.showSearch = true;
         item.width = 180;
         item.align = 'right';

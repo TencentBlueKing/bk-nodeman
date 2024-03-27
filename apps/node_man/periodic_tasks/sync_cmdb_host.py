@@ -39,6 +39,9 @@ def query_biz_hosts(bk_biz_id: int, bk_host_ids: typing.List[int]) -> typing.Lis
     :param bk_host_ids: 主机ID 列表
     :return: 主机列表
     """
+    if not bk_host_ids:
+        return []
+
     query_params = {
         "fields": constants.CC_HOST_FIELDS,
         "host_property_filter": {

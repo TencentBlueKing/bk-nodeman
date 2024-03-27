@@ -66,6 +66,7 @@ class HostHandler:
         bk_host_id_set: typing.Set[int] = set()
         bk_host_name_set: typing.Set[str] = set()
         cloud_inner_ip_set: typing.Set[str] = set()
+        cloud_inner_ipv6_set: typing.Set[str] = set()
 
         for ip_or_cloud_ip in ip_list:
             # 按分隔符切割，获取切割后长度
@@ -74,7 +75,17 @@ class HostHandler:
             if block_num == 1:
                 inner_ip_set.add(ip_or_cloud_ip)
             else:
+                if "[" and "]" in ip_or_cloud_ip:
+                    ip_or_cloud_ip = ip_or_cloud_ip.replace("[", "").replace("]", "")
                 cloud_inner_ip_set.add(ip_or_cloud_ip)
+        for ipv6_or_cloud_ip in ipv6_list:
+            block_num: int = len(ipv6_or_cloud_ip.split(constants.CommonEnum.SEP.value, 1))
+            if block_num == 1:
+                inner_ip_set.add(ipv6_or_cloud_ip)
+            else:
+                if "[" and "]" in ipv6_or_cloud_ip:
+                    ipv6_or_cloud_ip = ipv6_or_cloud_ip.replace("[", "").replace("]", "")
+                    cloud_inner_ipv6_set.add(ipv6_or_cloud_ip)
         for key in key_list:
             # 尝试将关键字解析为主机 ID
             try:
@@ -90,6 +101,7 @@ class HostHandler:
             {"key": "bk_host_id", "val": bk_host_id_set},
             {"key": "bk_host_name", "val": bk_host_name_set},
             {"key": "cloud_inner_ip", "val": cloud_inner_ip_set},
+            {"key": "cloud_inner_ipv6", "val": cloud_inner_ipv6_set},
         ]
         return cls.details_base(scope_list, or_conditions, limit_host_ids=limit_host_ids)
 

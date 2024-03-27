@@ -51,6 +51,7 @@ class InstallBaseTestCase(utils.AgentServiceBaseTestCase):
     NODE_TYPE = constants.NodeType.AGENT
     DOWNLOAD_PATH = "/tmp/data/bkee/public/bknodeman/download"
     JOB_API_MOCK_PATH = "apps.backend.components.collections.agent_new.install.JobApi"
+    CMDB_API_MOCK_PATH = "apps.backend.components.collections.agent_new.install.CCApi"
     EXECUTE_CMD_MOCK_PATH = "apps.backend.components.collections.agent_new.install.execute_cmd"
     PUT_FILE_MOCK_PATH = "apps.backend.components.collections.agent_new.install.put_file"
     CUSTOM_DATAIPC_DIR = "/var/run/gse_test"
@@ -68,6 +69,11 @@ class InstallBaseTestCase(utils.AgentServiceBaseTestCase):
         self.job_mock_client = api_mkd.job.utils.JobApiMockClient(
             fast_execute_script_return=mock_data_utils.MockReturn(
                 return_type=mock_data_utils.MockReturnType.RETURN_VALUE.value, return_obj={"job_instance_id": 1}
+            ),
+        )
+        self.cmdb_mock_client = api_mkd.cmdb.utils.CCApiMockClient(
+            batch_update_host=mock_data_utils.MockReturn(
+                return_type=mock_data_utils.MockReturnType.RETURN_VALUE.value, return_obj={"message": "success"}
             ),
         )
 
@@ -147,6 +153,7 @@ class InstallBaseTestCase(utils.AgentServiceBaseTestCase):
 
     def start_patch(self):
         mock.patch(self.JOB_API_MOCK_PATH, self.job_mock_client).start()
+        mock.patch(self.CMDB_API_MOCK_PATH, self.cmdb_mock_client).start()
         mock.patch(target=self.EXECUTE_CMD_MOCK_PATH, return_value="").start()
         mock.patch(target=self.PUT_FILE_MOCK_PATH, return_value="").start()
         base.get_asyncssh_connect_mock_patch().start()
@@ -1031,3 +1038,14 @@ class InstallWindowsSSHWithScriptHooksTestCase(InstallWindowsSSHTestCase):
                 run_cmd,
             ],
         )
+
+
+class ReportCpuArchTestCase(LinuxInstallTestCase):
+    def tearDown(self) -> None:
+        mock_call_obj = self.cmdb_mock_client.batch_update_host.call_args
+        if mock_call_obj:
+            call_args = mock_call_obj[0][0]
+            self.assertEqual(call_args["update"][0]["bk_host_id"], self.obj_factory.bk_host_ids[0])
+            self.assertEqual(call_args["update"][0]["properties"]["bk_cpu_architecture"], "arm")
+            self.assertEqual(call_args["update"][0]["properties"]["bk_os_bit"], "arm-64bit")
+        super().tearDown()

@@ -20,6 +20,7 @@
           <CopyDropdown
             :list="copyTypeList"
             :disabled="!tableList.length"
+            :associate-cloud="false"
             :get-ips="handleCopyIp" />
           <bk-button
             v-test="'stop'"
@@ -517,10 +518,16 @@ export default class TaskDeatail extends Mixins(PollMixin, HeaderFilterMixins) {
   }
   public async handleCopyIp(type: string) {
     const ipKey = this.$DHCP && type.includes('v6') ? 'innerIpv6' : 'innerIp';
+    // const associateCloud = type.includes('cloud');
     const params: ITaskParams = {
       pagesize: -1,
     };
     const status = type.split('_')?.[0];
+    // if (associateCloud) {
+    //   params.cloud_id_ip = {
+    //     [ipKey.includes('v6') ? 'ipv6' : 'ipv4']: true,
+    //   };
+    // }
     if (status) {
       params.conditions = [
         { key: 'status', value: [status.toUpperCase()] },

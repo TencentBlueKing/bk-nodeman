@@ -83,8 +83,9 @@
           <ul class="bk-dropdown-list" slot="dropdown-content">
             <template v-for="item in operate">
               <li v-if="!item.single" :key="item.id" :class="{ 'disabled': getBatchMenuStaus(item) }">
-                <a @click.prevent="!getBatchMenuStaus(item) && triggerHandler({ type: item.id })"
-                   v-test.common="`moreItem.${item.id}`">
+                <a
+                  @click.prevent="!getBatchMenuStaus(item) && triggerHandler({ type: item.id })"
+                  v-test.common="`moreItem.${item.id}`">
                   {{ item.name }}
                 </a>
               </li>
@@ -645,6 +646,7 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
     sort_type: '',
   };
   private loading = true;
+  private loadingDelay = false; // 重新拉去过虑条件之后可能需要重置搜素框里的数据
   private searchInputKey = 0;
   // 跨页全选loading
   private checkLoading = false;
@@ -1011,6 +1013,47 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
       this.agentTable.doLayout();
     });
   }
+  /**
+   * 业务变更
+   */
+  @Watch('selectedBiz')
+  private handleBizChange(newValue: number[]) {
+    if (newValue.length !== 1) {
+      // topo未选择时 清空biz不会触发 cascade组件change事件
+      if (this.search.topo.length) {
+        this.topoSelect.clearData();
+        return false;
+      }
+    } else {
+      const bizIdKey = newValue.join('');
+      if (Object.prototype.hasOwnProperty.call(this.topoBizFormat, bizIdKey)
+          && this.topoBizFormat[bizIdKey].needLoad) {
+        this.topoRemotehandler(this.topoBizFormat[bizIdKey], null);
+      }
+    }
+    this.loadingDelay = true;
+    this.loading = true;
+    this.getFilterCondition().then(() => {
+      const copyValue: ISearchItem[] = [];
+      this.searchSelectValue.forEach((item) => {
+        const already = this.filterData.find(opt => opt.id === item.id);
+        if (already) {
+          if (already.children?.length) {
+            copyValue.push({
+              ...item,
+              values: item.values?.filter(opt => already.children?.find(child => child.id === opt.id)),
+            });
+          } else {
+            copyValue.push(item);
+          }
+        }
+      });
+      this.handleSearchSelectChange(copyValue);
+      this.loadingDelay = false;
+      this.table.pagination.current = 1;
+      this.initAgentListDebounce();
+    });
+  }
 
   private created() {
     this.initRouterQuery();
@@ -1019,6 +1062,19 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
   private mounted() {
     this.initAgentListDebounce = debounce(300, this.initAgentList);
     this.handleInit();
+  }
+
+  private async getFilterCondition() {
+    const param = { category: 'host' };
+    if (this.selectedBiz.length) {
+      Object.assign(param, { bk_biz_ids: this.selectedBiz });
+    }
+    const optSearchKeys = ['version', 'bk_cloud_id'];
+    const data = await AgentStore.getFilterCondition(param);
+    this.filterData.splice(0, this.filterData.length, ...data.map(item => (optSearchKeys.includes(item.id)
+      ? ({ ...item, showCheckAll: true, showSearch: true })
+      : item)));
+    return data;
   }
 
   private async handleInit() {
@@ -1038,8 +1094,7 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
     // this.search.biz = this.bk_biz_id.length ? [...this.bk_biz_id] : this.selectedBiz;
     const searchParams: ISearchItem[] = [];
     const { cloud } = this.$route.params;
-    AgentStore.getFilterCondition().then((data) => {
-      this.filterData = data;
+    this.getFilterCondition().then((data) => {
       if (cloud) {
         searchParams.push({
           name: this.filter.bk_cloud_id.name,
@@ -1147,6 +1202,7 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
    * @param {Boolean} spreadChecked 是否是跨页操作
    */
   private async initAgentList(spreadChecked = false) {
+    if (this.loadingDelay) return;
     this.loading = true;
     if (!spreadChecked) {
       this.isSelectedAllPages = false;
@@ -1350,27 +1406,6 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
     return Object.assign(params, this.getCommonCondition());
   }
   /**
-   * 业务变更
-   */
-  @Watch('selectedBiz')
-  private handleBizChange(newValue: number[]) {
-    if (newValue.length !== 1) {
-      // topo未选择时 清空biz不会触发 cascade组件change事件
-      if (this.search.topo.length) {
-        this.topoSelect.clearData();
-        return false;
-      }
-    } else {
-      const bizIdKey = newValue.join('');
-      if (Object.prototype.hasOwnProperty.call(this.topoBizFormat, bizIdKey)
-          && this.topoBizFormat[bizIdKey].needLoad) {
-        this.topoRemotehandler(this.topoBizFormat[bizIdKey], null);
-      }
-    }
-    this.table.pagination.current = 1;
-    this.initAgentListDebounce();
-  }
-  /**
    * 拉取拓扑
    */
   private handleTopoChange(toggle: boolean) {
@@ -1476,15 +1511,27 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
    * 复制 IP
    */
   private async handleCopyIp(type: string) {
-    const key = this.$DHCP && type.includes('v6') ? 'inner_ipv6' : 'inner_ip';
-    let list = this.selection.filter(item => item[key]).map(item => item[key]);
+    const isIPv4 = !this.$DHCP || !type.includes('v6');
+    const ipKey = isIPv4 ? 'inner_ip' : 'inner_ipv6';
+    const associateCloud = type.includes('cloud');
+    const rows = this.selection.filter(item => item[ipKey]);
+    let list = associateCloud
+      ? rows.map(item => (isIPv4
+        ? `${item.bk_cloud_id}:${item[ipKey]}`
+        : `${item.bk_cloud_id}:[${item[ipKey]}]`))
+      : rows.map(item => item[ipKey]);
     const isAll = type.includes('all');
     if (isAll || this.isSelectedAllPages) {
       const params: IAgent = {
         pagesize: -1,
         only_ip: true,
-        return_field: key,
+        return_field: ipKey,
       };
+      if (associateCloud) {
+        params.cloud_id_ip = {
+          [ipKey.includes('v6') ? 'ipv6' : 'ipv4']: true,
+        };
+      }
       if (this.isSelectedAllPages && !isAll && this.markDeleteArr.length) {
         params.exclude_hosts = this.markDeleteArr.map(item => item.bk_host_id);
       }

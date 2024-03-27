@@ -118,6 +118,13 @@ class AddOrUpdateHostsService(AgentBaseService):
             sub_inst.instance_info["host"]["bk_host_id"] = cmdb_host["bk_host_id"]
             return SelectorResult(is_add=False, is_skip=False, sub_inst=sub_inst)
 
+    def mark_and_replace_multi_inner_ip(self, exist_cmdb_hosts: List[Dict[str, Any]]) -> None:
+        for cmdb_host in exist_cmdb_hosts:
+            bk_host_inner_ip = (cmdb_host.get("bk_host_innerip") or "").split(",")
+            if len(bk_host_inner_ip) > 1:
+                cmdb_host["is_multi_inner_ip"] = True
+                cmdb_host["bk_host_innerip"] = bk_host_inner_ip[0]
+
     def dynamic_ip_selector(
         self, sub_inst: models.SubscriptionInstanceRecord, cmdb_hosts: List[Dict[str, Any]]
     ) -> SelectorResult:
@@ -220,6 +227,8 @@ class AddOrUpdateHostsService(AgentBaseService):
         )
 
         processed_cmdb_host_infos: List[Dict[str, Any]] = []
+        self.mark_and_replace_multi_inner_ip(exist_cmdb_hosts=cmdb_host_infos)
+
         host_infos_gby_ip_key: Dict[str, List[Dict[str, Any]]] = self.get_host_infos_gby_ip_key(host_infos)
         cmdb_host_infos_gby_ip_key: Dict[str, List[Dict[str, Any]]] = self.get_host_infos_gby_ip_key(cmdb_host_infos)
         # 模糊查询所得的主机信息列表可能出现：同 IP + 不同管控区域的冗余主机
@@ -271,10 +280,13 @@ class AddOrUpdateHostsService(AgentBaseService):
         get_config_dict_kwargs={"config_name": core.ServiceCCConfigName.HOST_WRITE.value},
     )
     @exc.ExceptionHandler(exc_handler=core.default_sub_insts_task_exc_handler)
-    def handle_update_cmdb_hosts_case(self, sub_insts: List[models.SubscriptionInstanceRecord]) -> List[int]:
+    def handle_update_cmdb_hosts_case(
+        self, sub_insts: List[models.SubscriptionInstanceRecord], host_ids_with_mutil_inner_ip: List[int]
+    ) -> List[int]:
         """
         批量更新 CMDB 主机
         :param sub_insts: 订阅实例列表
+        :param host_ids_with_mutil_inner_ip: 包含多内网IP的主机的 ID 列表
         :return: 返回成功更新的订阅实例 ID 列表
         """
         if not sub_insts:
@@ -289,7 +301,9 @@ class AddOrUpdateHostsService(AgentBaseService):
             properties: Dict[str, Any] = {
                 "bk_cloud_id": host_info["bk_cloud_id"],
                 "bk_addressing": host_info.get("bk_addressing", constants.CmdbAddressingType.STATIC.value),
-                "bk_host_innerip": host_info.get("bk_host_innerip", ""),
+                "bk_host_innerip": host_info.get("bk_host_innerip", "")
+                if host_info["bk_host_id"] not in host_ids_with_mutil_inner_ip
+                else "",
                 "bk_host_innerip_v6": host_info.get("bk_host_innerip_v6", ""),
                 "bk_host_outerip": host_info.get("bk_host_outerip", ""),
                 "bk_host_outerip_v6": host_info.get("bk_host_outerip_v6", ""),
@@ -478,6 +492,9 @@ class AddOrUpdateHostsService(AgentBaseService):
         )
         models.ProcessStatus.objects.bulk_create(proc_status_objs_to_be_created, batch_size=self.batch_size)
 
+    def check_multi_inner_ip(self, cmdb_hosts: List[Dict[str, Any]]) -> List[int]:
+        return [host_info["bk_host_id"] for host_info in cmdb_hosts if host_info.pop("is_multi_inner_ip", False)]
+
     def _execute(self, data, parent_data, common_data: CommonData):
         subscription_instances: List[models.SubscriptionInstanceRecord] = common_data.subscription_instances
 
@@ -486,6 +503,9 @@ class AddOrUpdateHostsService(AgentBaseService):
         id__sub_inst_obj_map: Dict[int, models.SubscriptionInstanceRecord] = {}
         # 获取已存在于 CMDB 的主机信息
         exist_cmdb_hosts: List[Dict[str, Any]] = self.query_hosts(subscription_instances)
+
+        host_ids_with_mutil_inner_ip: List[int] = self.check_multi_inner_ip(exist_cmdb_hosts)
+
         # 按 IpKey 聚合主机信息
         # IpKey：ip（v4 or v6）+ bk_addressing（寻值方式）+ bk_cloud_id（管控区域）
         cmdb_host_infos_gby_ip_key: Dict[str, List[Dict[str, Any]]] = self.get_host_infos_gby_ip_key(exist_cmdb_hosts)
@@ -518,7 +538,7 @@ class AddOrUpdateHostsService(AgentBaseService):
         # 1 - 新增或更新 CMDB 主机
         successfully_added_sub_inst_ids: List[int] = self.handle_add_cmdb_hosts_case(sub_insts=sub_insts_to_be_added)
         successfully_updated_sub_inst_ids: List[int] = self.handle_update_cmdb_hosts_case(
-            sub_insts=sub_insts_to_be_updated
+            sub_insts=sub_insts_to_be_updated, host_ids_with_mutil_inner_ip=host_ids_with_mutil_inner_ip
         )
 
         # 2 - 对操作成功的实例更新本地数据

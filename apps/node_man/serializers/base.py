@@ -17,11 +17,7 @@ from apps.node_man import constants, exceptions, models
 
 # 放在后台会导致循坏导入
 class SubScopeInstSelectorSerializer(serializers.Serializer):
-    instance_selector = serializers.ListField(
-        child=serializers.DictField(),
-        required=False,
-        label="实例筛选器"
-    )
+    instance_selector = serializers.ListField(child=serializers.DictField(), required=False, label="实例筛选器")
 
 
 # 安装插件配置
@@ -100,9 +96,29 @@ class PaginationSerializer(serializers.Serializer):
 
 class HostFieldSelectorSerializer(serializers.Serializer):
     only_ip = serializers.BooleanField(label=_("只返回IP"), required=False, default=False)
+    cloud_id_ip = serializers.DictField(label=_("只返回管控区域:IP"), required=False, default={})
     return_field = serializers.ChoiceField(
-        label=_("仅返回的字段"), required=False, default="inner_ip", choices=["inner_ip", "inner_ipv6"]
+        label=_("仅返回的字段"),
+        required=False,
+        default="inner_ip",
+        choices=[
+            "inner_ip",
+            "inner_ipv6",
+            "cloud_ipv4",
+            "cloud_ipv4_with_brackets",
+            "cloud_ipv6_with_brackets",
+        ],
     )
+
+    def validate_cloud_id_ip(self, value):
+        if not isinstance(value, dict):
+            raise serializers.ValidationError(_("传入的值必须是字典类型"))
+
+        for key, val in value.items():
+            if not isinstance(key, str) or not isinstance(val, bool):
+                raise serializers.ValidationError(_("字典中的键必须是字符串类型，值必须是布尔类型"))
+
+        return value
 
 
 class HostSearchSerializer(PaginationSerializer):

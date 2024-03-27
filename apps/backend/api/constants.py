@@ -23,6 +23,7 @@ class OS(object):
     LINUX = "linux"
     AIX = "aix"
     SOLARIS = "solaris"
+    DARWIN = "darwin"
 
 
 # 操作系统->系统账户映射表
@@ -31,6 +32,7 @@ ACCOUNT_MAP = {
     OS.LINUX: "root",
     OS.AIX: "root",
     OS.SOLARIS: "root",
+    OS.DARWIN: "root",
 }
 
 # 操作系统->后缀映射表
@@ -39,6 +41,7 @@ SUFFIX_MAP = {
     OS.LINUX: "sh",
     OS.AIX: "ksh",
     OS.SOLARIS: "sh",
+    OS.DARWIN: "zsh",
 }
 
 

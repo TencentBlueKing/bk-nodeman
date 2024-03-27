@@ -170,8 +170,8 @@ export default class AgentStore extends VuexModule {
    * @param {*} params
    */
   @Action
-  public async getFilterCondition(category = 'host') {
-    let data: ISearchItem[] = await getFilterCondition({ category }).catch(() => []);
+  public async getFilterCondition(param) {
+    let data: ISearchItem[] = await getFilterCondition(param).catch(() => []);
     data = data.map((item) => {
       if (item.children && item.children.length) {
         item.multiable = true;

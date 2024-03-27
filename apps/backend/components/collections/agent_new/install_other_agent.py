@@ -96,6 +96,7 @@ class InstallOtherAgentService(AgentBaseService):
 
             # AP_ID 偏移规则 ap_id * 100000 + install_channel_id
             offset_ap_id = ap_id * INSTALL_OTHER_AGENT_AP_ID_OFFSET + (host.install_channel_id or 0)
+            agent_setup_extra_info_dict = sub_inst.instance_info["host"].get("agent_setup_extra_info") or {}
             host_info: Dict[str, Any] = {
                 "bk_host_id": host.bk_host_id,
                 "os_type": host.os_type,
@@ -112,6 +113,7 @@ class InstallOtherAgentService(AgentBaseService):
                 "install_channel_id": host.install_channel_id,
                 "peer_exchange_switch_for_agent": host.extra_data.get("peer_exchange_switch_for_agent", 0),
                 "enable_compression": host.extra_data.get("enable_compression", False),
+                "force_update_agent_id": agent_setup_extra_info_dict.get("force_update_agent_id", False),
             }
 
             hosts.append(host_info)

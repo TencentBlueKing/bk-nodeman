@@ -297,3 +297,31 @@ class HostInCloudBlackListTestCase(AddOrUpdateHostsTestCase):
             self.assertFalse(bk_host_id in self.host_ids_with_dynamic_ip)
             self.assertEqual(host_info["bk_biz_id"], host_obj.bk_biz_id)
             self.assertEqual(bk_host_id, host_obj.bk_host_id)
+
+
+class MultiIpHostsTestCase(AddOrUpdateHostsTestCase):
+    @classmethod
+    def structure_cmdb_mock_data(cls):
+        super().structure_cmdb_mock_data()
+        for host_info in cls.list_hosts_without_biz_result["info"]:
+            host_info["bk_host_innerip"] += ",1.2.3.4"
+
+    def assert_in_teardown(self):
+        self.assertTrue(
+            all(
+                "bk_host_innerip" not in host_info["properties"]
+                for host_info in self.cmdb_mock_client.batch_update_host.call_args[0][0]["update"]
+            )
+        )
+        super().assert_in_teardown()
+
+
+class SingleIpHostsTestCase(AddOrUpdateHostsTestCase):
+    def assert_in_teardown(self):
+        self.assertTrue(
+            all(
+                "bk_host_innerip" in host_info["properties"]
+                for host_info in self.cmdb_mock_client.batch_update_host.call_args[0][0]["update"]
+            )
+        )
+        super().assert_in_teardown()

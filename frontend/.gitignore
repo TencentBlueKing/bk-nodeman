@@ -76,3 +76,5 @@ test/unit/coverage
 
 dist/
 local_settings.js
+
+package-lock.json

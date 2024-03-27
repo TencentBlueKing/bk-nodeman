@@ -43,7 +43,7 @@ get_cpu_arch () {
     fi
 }
 
-get_cpu_arch "uname -p" || get_cpu_arch "uname -m"  || arch || fail get_cpu_arch "Failed to get CPU arch, please contact the developer."
+get_cpu_arch "uname -m" || fail get_cpu_arch "Failed to get CPU arch, please contact the developer."
 
 
 get_os_info () {
@@ -80,6 +80,9 @@ get_os_type () {
         RC_LOCAL_FILE="/etc/rc.d/rc.local"
     elif [[ "${OS_INFO,,}" =~ "hat" ]]; then
         OS_TYPE="redhat"
+        RC_LOCAL_FILE="/etc/rc.d/rc.local"
+    elif [[ "${OS_INFO,,}" =~ "mac" ]]; then
+        OS_TYPE="mac"
         RC_LOCAL_FILE="/etc/rc.d/rc.local"
     fi
 }
@@ -184,10 +187,7 @@ is_port_connected_by_pid () {
 
     for i in {0..10}; do
         sleep 1
-        stat -L -c %i /proc/"$pid"/fd/* 2>/dev/null \
-            | grep -qwFf - \
-                <( awk -v p="$port" 'BEGIN{ check=sprintf(":%04X01$", p)} $3$4 ~ check {print $10}' /proc/net/tcp*) \
-                && return 0
+        [ `sudo lsof -i:$port | grep  -w $pid |wc -l` -ge 1 ] && return 0
     done
     return 1
 }
@@ -210,26 +210,26 @@ get_pid_by_comm_path () {
     local _pids pids
     local pid
     if [[ "${worker}" == "WORKER" ]]; then
-        read -r -a _pids <<< "$(ps --no-header -C $comm -o '%P|%p|%a' | awk -F'|' '$1 != 1 && $3 ~ /gse_agent/' | awk -F'|' '{print $2}' | xargs)"
+        read -r -a _pids <<< "$(ps -ax -o ppid,pid,command | grep $comm | grep $AGENT_SETUP_PATH | awk '{print $1 "|" $2 "|" $3}' | awk -F'|' '$1 != 1 && $3 ~ /gse_agent/' | awk -F'|' '{print $2}' | xargs)"
     elif [[ "${worker}" == "MASTER" ]]; then
-        read -r -a _pids <<< "$(ps --no-header -C $comm -o '%P|%p|%a' | awk -F'|' '$1 == 1 && $3 ~ /gse_agent/' | awk -F'|' '{print $2}' | xargs)"
+        read -r -a _pids <<< "$(ps -ax -o ppid,pid,command | grep $comm | grep $AGENT_SETUP_PATH | awk '{print $1 "|" $2 "|" $3}' | awk -F'|' '$1 == 1 && $3 ~ /gse_agent/' | awk -F'|' '{print $2}' | xargs)"
     else
-        read -r -a _pids <<< "$(ps --no-header -C "$comm" -o pid | xargs)"
+        read -r -a _pids <<< "$(ps -ax -o ppid,pid,command | grep $comm | grep $AGENT_SETUP_PATH | awk '{print $1 "|" $2 "|" $3}' | awk -F'|' '$3 ~ /gse_agent/' | awk -F'|' '{print $2}' | xargs)"
     fi
 
+    pids=("${_pids[@]}")
     # 传入了绝对路径，则进行基于二进制路径的筛选
-    if [[ -e "$path" ]]; then
-        for pid in "${_pids[@]}"; do
-            if [[ "$(readlink -f "$path")" = "$(readlink -f /proc/"$pid"/exe)" ]]; then
-                if ! grep -nEq '^\ +$' <<< "$pid"; then
-                    pids+=("$pid")
-                fi
-            fi
-        done
-    else
-        pids=("${_pids[@]}")
-    fi
-
+    # if [[ -e "$path" ]]; then
+    #     for pid in "${_pids[@]}"; do
+    #         if [[ "$(readlink -f "$path")" = "$(sudo lsof -p $_pid | awk '$4=="txt" {print $9}' | grep gse_agent)" ]]; then
+    #             if ! grep -nEq '^\ +$' <<< "$pid"; then
+    #                 pids+=("$pid")
+    #             fi
+    #         fi
+    #     done
+    # else
+    #     pids=("${_pids[@]}")
+    # fi
     echo ${pids[@]}
 }
 
@@ -294,7 +294,7 @@ check_heathz_by_gse () {
                 log healthz_check INFO "gse_agent healthz check return code: ${execution_code}"
                 report_result=$(awk -F': ' '{print $2}' <<< "$result")
                 if is_base64_command_exist; then
-                    report_result=$(echo "$result" | base64 -w 0)
+                    report_result=$(echo "$result" | base64)
                 else
                     report_result=$(echo "$result" | tr "\"" "\'")
                 fi
@@ -305,7 +305,7 @@ check_heathz_by_gse () {
     done
     report_result=$(awk -F': ' '{print $2}' <<< "$result")
     if is_base64_command_exist; then
-        report_result=$(echo "$result" | base64 -w 0)
+        report_result=$(echo "$result" | base64)
     else
         report_result=$(echo "$result" | tr "\"" "\'")
     fi
@@ -326,19 +326,31 @@ remove_crontab () {
     fi
 }
 
+get_daemon_file () {
+    DAEMON_FILE_PATH="/Library/LaunchDaemons/"
+    DAEMON_FILE_NAME="com.tencent.$(echo ${AGENT_SETUP_PATH%*/} | tr '/' '.' | awk -F '.' '{print $(NF-1)"."$NF}').Daemon.plist"
+}
+
 setup_startup_scripts () {
-    check_rc_file
-    local rcfile=$RC_LOCAL_FILE
-
-    if [ $OS_TYPE == "ubuntu" ]; then
-        sed -i "\|\#\!/bin/bash|d" $rcfile
-        sed -i "1i \#\!/bin/bash" $rcfile
-    fi
-    chmod +x $rcfile
-    # 先删后加，避免重复
-    sed -i "\|${AGENT_SETUP_PATH}/bin/gsectl|d" $rcfile
-
-    echo "[ -f $AGENT_SETUP_PATH/bin/gsectl ] && $AGENT_SETUP_PATH/bin/gsectl start >/var/log/gse_start.log 2>&1" >>$rcfile
+    get_daemon_file
+    touch $DAEMON_FILE_PATH$DAEMON_FILE_NAME
+    bash -c "cat >$DAEMON_FILE_NAME" << EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "https://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.tencent.$(echo ${AGENT_SETUP_PATH%*/} | tr '/' '.' | awk -F '.' '{print $(NF-1)"."$NF}')</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>${AGENT_SETUP_PATH}/bin/gsectl</string>
+        <string>start</string>
+    </array>
+    <key>RunAtLoad</key>
+    <true/>
+</dict>
+</plist>
+EOF
 }
 
 registe_agent_with_excepte () {
@@ -443,20 +455,20 @@ stop_agent () {
 
     ! [[ -d $AGENT_SETUP_PATH ]] && return 0
     "$AGENT_SETUP_PATH/bin/gsectl" stop
-
     for i in {1..10}; do
-        for pid in $(pidof "${AGENT_SETUP_PATH}"/bin/gse_agent); do
-          # 富容器场景下，会误杀docker里的agent进程，因此需要判断父进程ID是否为1，仅干掉这些进程
-          if [[ $(ps  --no-header -o ppid -p $pid) -eq 1 ]]; then
-             pids=($pid $(pgrep -P $pid))
-             break
-          fi
-        done
-        if [[ ${#pids[@]} -eq 0 ]]; then
+        # for pid in $(get_pid_by_comm_path gse_agent "$AGENT_SETUP_PATH/bin/gse_agent"); do
+        #   # 富容器场景下，会误杀docker里的agent进程，因此需要判断父进程ID是否为1，仅干掉这些进程
+        #   if [[ $(ps -o ppid= -p $pid) -eq 1 ]]; then
+        #      pids=($pid $(pgrep -P $pid))
+        #      break
+        #   fi
+        # done
+        pids="$(get_pid_by_comm_path gse_agent "$AGENT_SETUP_PATH/bin/gse_agent")"
+        if [[ ! -n "$pids" ]]; then
             log remove_agent SUCCESS 'old agent has been stopped successfully'
             break
         elif [[ $i -eq 10 ]]; then
-            kill -9 "${pids[@]}"
+            kill -9 ${pids[@]}
         else
             sleep 1
         fi
@@ -474,8 +486,8 @@ remove_agent () {
     stop_agent
 
     log remove_agent - "trying to remove old agent directory(${AGENT_SETUP_PATH}/${AGENT_CLEAN_UP_DIRS[@]})"
-    cd "${AGENT_SETUP_PATH}" || return 0
-    for file in `lsattr -R |egrep "i-" |awk '{print $NF}'`;do echo "--- $file" && chattr -i $file ;done
+    cd "${AGENT_SETUP_PATH}"
+    for file in `ls -lR@ |ggrep -E "i-" |awk '{print $NF}'`;do echo "--- $file" && chattr -i $file ;done
     cd -
 
     if [[ "$REMOVE" == "TRUE" ]]; then
@@ -578,6 +590,7 @@ download_pkg () {
     log report_cpu_arch DONE "${CPU_ARCH}"
 }
 
+
 check_deploy_result () {
     # 端口监听状态
     local ret=0
@@ -588,15 +601,12 @@ check_deploy_result () {
 
     [ $ret -eq 0 ] && log check_deploy_result DONE "gse agent has been deployed successfully"
 }
-
 # 日志行转为json格式函数
 log_to_json () {
     local date _time log_level step status message
     read -r date _time log_level step status message <<<"$@"
 
-    printf '{"timestamp": "%s", "level": "%s", "step":"%s", "log":"%s","status":"%s"}' \
-        "$(date +%s -d "$date $_time")" \
-        "$log_level" "$step" "$message" "$status"
+    printf '{"timestamp": "%s", "level": "%s", "step":"%s", "log":"%s","status":"%s"}' "$(date -j -f "%Y-%m-%d %H:%M:%S" "$date $_time" "+%s")" "$log_level" "$step" "$message" "$status"
 }
 
 # 读入LOG_FILE的日志然后批量上报
@@ -720,7 +730,8 @@ check_pkgtool () {
 
 check_disk_space () {
     local dir=$1
-    if df -x tmpfs -x devtmpfs --output=avail -k "$TMP_DIR" | awk 'NR==2 { if ($1 < 300 * 1024 ) { exit 1 } else {exit 0} }'; then
+    # if df -x tmpfs -x devtmpfs --output=avail -k "$TMP_DIR" | awk 'NR==2 { if ($1 < 300 * 1024 ) { exit 1 } else {exit 0} }'; then
+    if df -k "$TMP_DIR" | awk 'NR==2 { if ($4 < 300 * 1024 ) { exit 1 } else {exit 0} }'; then
         log check_env  - "check free disk space. done"
     else
         fail check_env FAILED "no enough space left on $dir"
@@ -901,7 +912,7 @@ done
 
 # 获取包名
 PKG_NAME=${NAME}-${VERSION}.tgz
-COMPLETE_DOWNLOAD_URL="${DOWNLOAD_URL}/agent/linux/${CPU_ARCH}"
+COMPLETE_DOWNLOAD_URL="${DOWNLOAD_URL}/agent/darwin/${CPU_ARCH}"
 GSE_AGENT_CONFIG_PATH="${AGENT_SETUP_PATH}/etc/${GSE_AGENT_CONFIG}"
 
 LOG_FILE="$TMP_DIR"/nm.${0##*/}.$TASK_ID

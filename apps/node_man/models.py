@@ -152,6 +152,8 @@ class GlobalSettings(models.Model):
         ADD_HOST_CLOUD_BLACKLIST = "ADD_HOST_CLOUD_BLACKLIST"
         # 消息中心开关
         ENABLE_NOTICE_CENTER = "ENABLE_NOTICE_CENTER"
+        # 禁用已停用插件
+        DISABLE_STOPPED_PLUGIN = "DISABLE_STOPPED_PLUGIN"
 
     key = models.CharField(_("键"), max_length=255, db_index=True, primary_key=True)
     v_json = JSONField(_("值"))
@@ -589,6 +591,7 @@ class AccessPoint(models.Model):
         if os_type in [
             constants.OsType.AIX.lower(),
             constants.OsType.SOLARIS.lower(),
+            constants.OsType.DARWIN.lower(),
         ]:
             os_type = constants.OsType.LINUX.lower()
         return self.agent_config[os_type]
