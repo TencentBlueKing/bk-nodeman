@@ -18,7 +18,7 @@ from typing import Any, Dict, List, Set
 
 from django.core.cache import caches
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Q, Value
 from django.utils.translation import get_language
 from django.utils.translation import gettext_lazy as _
 from drf_yasg.utils import swagger_auto_schema
@@ -779,8 +779,14 @@ class SubscriptionViewSet(APIViewSet):
         host = models.Host.objects.get(bk_host_id=bk_host_id)
 
         subscription_records = models.SubscriptionInstanceRecord.objects.filter(
-            instance_id__endswith="host|{}".format(host.bk_host_id),
-            is_latest=True,
+            instance_id=tools.create_node_id(
+                {
+                    "node_type": models.Subscription.NodeType.INSTANCE,
+                    "object_type": models.Subscription.ObjectType.HOST,
+                    "bk_host_id": host.bk_host_id,
+                }
+            ),
+            is_latest=Value(1),
         ).values("subscription_id", "update_time", "instance_id", "task_id", "status")
 
         sub_id__sub_record_map = {
