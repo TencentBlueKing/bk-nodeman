@@ -458,9 +458,12 @@ const checkCommit = () => {
 // 跳过检测之前需要校验必填项
 const skipCheck = () => {
   formDataRef.value?.validate?.().then(() => {
-    hostState.checkedResult = true;
+    validate(async () => {
+      // 跳过检测
+      hostState.checkedResult = true;
+    }).catch(() => document.getElementsByClassName('is-error')[0]?.scrollIntoView());
   });
-}
+};
 const submitInfo = () => {
   ConfigStore.updateDetail(formData.value);
   emits('change', true);
