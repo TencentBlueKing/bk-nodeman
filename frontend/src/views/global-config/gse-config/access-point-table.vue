@@ -30,13 +30,13 @@
             <td rowspan="2">{{ server.name }}</td>
             <td>{{ $t('内网IP') }}</td>
             <td class="table-content">
-              {{ formData[server.id]?.inner_ip_infos.map(item => item.ip).join('; ') || '--' }}
+              {{ formData[server.id]?.inner_ip_infos?.map(item => item.ip).join('; ') || '--' }}
             </td>
           </tr>
           <tr :key="`${server.id}_outer_ip_infos`">
             <td>{{ $t('外网IP') }}</td>
             <td class="table-content">
-              {{ formData[server.id]?.outer_ip_infos.map(item => item.ip).join('; ') || '--' }}
+              {{ formData[server.id]?.outer_ip_infos?.map(item => item.ip).join('; ') || '--' }}
             </td>
           </tr>
         </template>
