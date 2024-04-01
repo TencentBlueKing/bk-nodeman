@@ -19,6 +19,10 @@ from django.core.cache import cache
 from django.db.models import Q
 from django.db.utils import IntegrityError
 
+from apps.backend.subscription.tools import (
+    by_biz_dispatch_task_queue,
+    get_biz_ids_gby_queue,
+)
 from apps.component.esbclient import client_v2
 from apps.node_man import constants
 from apps.node_man.models import GlobalSettings, Host, ResourceWatchEvent, Subscription
@@ -427,11 +431,15 @@ def trigger_nodeman_subscription(bk_biz_id, debounce_time=0):
         method="subscription", bk_biz_id=bk_biz_id, debounce_time=debounce_time
     ).inc()
 
+    biz_ids_gby_queue = get_biz_ids_gby_queue()
+    task_queue: str = by_biz_dispatch_task_queue(biz_ids_gby_queue, [bk_biz_id])
+
     update_subscription_instances_chunk.apply_async(
-        kwargs={"subscription_ids": subscription_ids}, countdown=debounce_time
+        kwargs={"subscription_ids": subscription_ids}, countdown=debounce_time, queue=task_queue
     )
 
     logger.info(
         f"[trigger_nodeman_subscription] following subscriptions "
         f"will be run -> ({subscription_ids}) after {debounce_time} s"
+        f" in queue -> ({task_queue})"
     )

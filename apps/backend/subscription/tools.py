@@ -1512,3 +1512,21 @@ def check_subscription_is_disabled(
 
     logger.info(f"[check_subscription_is_disabled] {subscription_identity}: not in the disable list, skipping")
     return False
+
+
+def get_biz_ids_gby_queue() -> Dict[str, List[int]]:
+    """返回任务队列与业务ID列表的映射"""
+    biz_ids_gby_queue: Dict[str, List[int]] = models.GlobalSettings.get_config(
+        key=models.GlobalSettings.KeyEnum.SUBSCRIPTION_UPDATE_TASK_QUEUE.value, default={}
+    )
+    return biz_ids_gby_queue
+
+
+def by_biz_dispatch_task_queue(biz_ids_gby_queue: Dict[str, List[int]], bk_biz_ids: List[Union[int, None]]) -> str:
+    """通过业务ID列表分配任务队列"""
+    default_task_queue: str = "backend_additional_task"
+    for task_queue, partial_biz_ids in biz_ids_gby_queue.items():
+        if set(partial_biz_ids) & set(bk_biz_ids):
+            return task_queue
+
+    return default_task_queue
