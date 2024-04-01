@@ -2,9 +2,14 @@
 import logging
 
 from celery.task import periodic_task
+from django.db.models import Value
 
 from apps.backend.subscription.constants import SUBSCRIPTION_UPDATE_INTERVAL
 from apps.backend.subscription.tasks import update_subscription_instances_chunk
+from apps.backend.subscription.tools import (
+    by_biz_dispatch_task_queue,
+    get_biz_ids_gby_queue,
+)
 from apps.node_man import models
 from apps.utils.periodic_task import calculate_countdown
 
@@ -24,12 +29,19 @@ def update_subscription_instances():
         # 关闭订阅自动巡检
         return
 
-    subscription_ids = list(
-        models.Subscription.objects.filter(enable=True, is_deleted=False).values_list("id", flat=True)
+    subscriptions = models.Subscription.objects.filter(enable=Value(1), is_deleted=Value(0)).values(
+        "id", "bk_biz_id", "bk_biz_scope"
     )
+    subscription_ids = [subscription["id"] for subscription in subscriptions]
+    subscription_id__biz_ids_map = {
+        subscription["id"]: subscription["bk_biz_scope"] + [subscription["bk_biz_id"]] for subscription in subscriptions
+    }
+    biz_ids_gby_queue = get_biz_ids_gby_queue()
+
     count = len(subscription_ids)
     for index, subscription_id in enumerate(subscription_ids):
         # 把订阅平均分布到10分钟内执行，用于削峰
         countdown = calculate_countdown(count=count, index=index, duration=SUBSCRIPTION_UPDATE_INTERVAL)
-        logger.info(f"subscription({subscription_id}) will be run after {countdown} seconds.")
-        update_subscription_instances_chunk.apply_async(([subscription_id],), countdown=countdown)
+        task_queue = by_biz_dispatch_task_queue(biz_ids_gby_queue, subscription_id__biz_ids_map[subscription_id])
+        logger.info(f"subscription({subscription_id}) will be run after {countdown} seconds in queue ({task_queue}).")
+        update_subscription_instances_chunk.apply_async(([subscription_id],), countdown=countdown, queue=task_queue)
