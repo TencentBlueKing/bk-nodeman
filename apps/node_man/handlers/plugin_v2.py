@@ -372,7 +372,7 @@ class PluginV2Handler:
                 defaults=dict(cpu=policy["cpu"], mem=policy["mem"]),
             )
             job_id = cls.operate(
-                job_type=constants.JobType.MAIN_RELOAD_PLUGIN,
+                job_type=constants.JobType.MAIN_RESTART_PLUGIN,
                 plugin_name=policy["plugin_name"],
                 scope={
                     "node_type": models.Subscription.NodeType.SERVICE_TEMPLATE,
