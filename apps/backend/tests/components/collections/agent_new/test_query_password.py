@@ -13,6 +13,8 @@ import importlib
 import random
 
 import mock
+from django.db.models import F
+from django.utils.translation import ugettext as _
 
 from apps.backend.components.collections.agent_new import query_password
 from apps.backend.components.collections.agent_new.components import (
@@ -154,3 +156,20 @@ class QueryPasswordFailedTestCase(QueryPasswordTestCase):
             ).count(),
             len(self.obj_factory.bk_host_ids),
         )
+
+
+class QueryPasswordNotInDefaultCloudIDTestCase(QueryPasswordFailedTestCase):
+    def _do_case_assert(self, service, method, assertion, no, name, args=None, kwargs=None):
+        models.Host.objects.all().update(bk_cloud_id=F("bk_cloud_id") + 1)
+        super()._do_case_assert(service, method, assertion, no, name, args, kwargs)
+        failed_subscription_instance_id_reason_map = service.failed_subscription_instance_id_reason_map
+        self.assertEqual(len(failed_subscription_instance_id_reason_map), self.obj_factory.init_host_num)
+        self.assertEqual(list(failed_subscription_instance_id_reason_map.values()), [_("密码查询逻辑仅支持直连")] * 255)
+
+
+class QueryPasswordInDefaultCloudIDTestCase(QueryPasswordFailedTestCase):
+    def _do_case_assert(self, service, method, assertion, no, name, args=None, kwargs=None):
+        super()._do_case_assert(service, method, assertion, no, name, args, kwargs)
+        failed_subscription_instance_id_reason_map = service.failed_subscription_instance_id_reason_map
+        self.assertEqual(len(failed_subscription_instance_id_reason_map), self.obj_factory.init_host_num)
+        self.assertNotEquals(list(failed_subscription_instance_id_reason_map.values()), [_("密码查询逻辑仅支持直连")] * 255)
