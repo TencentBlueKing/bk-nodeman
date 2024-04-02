@@ -151,6 +151,8 @@ class QueryPasswordService(AgentBaseService):
         )
 
         no_need_query_inst_ids = []
+        direct_connection_only_inst_ids = []
+
         # 这里暂不支持多
         cloud_ip_map = {}
         oa_ticket = ""
@@ -160,6 +162,8 @@ class QueryPasswordService(AgentBaseService):
 
             if host.identity.auth_type != constants.AuthType.TJJ_PASSWORD:
                 no_need_query_inst_ids.append(sub_inst.id)
+            elif host.bk_cloud_id != constants.DEFAULT_CLOUD:
+                direct_connection_only_inst_ids.append(sub_inst.id)
             else:
                 cloud_ip_map[f"{host.bk_cloud_id}-{host.inner_ip}"] = {"host": host, "sub_inst_id": sub_inst.id}
                 # 兼容 extra 为 None 的情况
@@ -167,6 +171,7 @@ class QueryPasswordService(AgentBaseService):
                     oa_ticket = host.identity.extra_data.get("oa_ticket")
 
         self.log_info(sub_inst_ids=no_need_query_inst_ids, log_content=_("当前主机验证类型无需查询密码"))
+        self.move_insts_to_failed(sub_inst_ids=direct_connection_only_inst_ids, log_content=_("密码查询逻辑仅支持直连"))
         need_query_inst_ids = [item["sub_inst_id"] for item in cloud_ip_map.values()]
         if not need_query_inst_ids:
             return True
