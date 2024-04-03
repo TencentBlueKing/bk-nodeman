@@ -1,0 +1,852 @@
+#!/bin/bash
+# vim:ft=sh sts=4 ts=4 expandtab
+
+# 切换到本脚本(gsectl)所在的目录，并设置WORK_HOME变量为上一级目录
+cd ${BASH_SOURCE%/*} 2>/dev/null
+WORK_HOME=${PWD%/bin}
+WORK_HOME=`echo $WORK_HOME |sed 's/\/$//g'`
+INSTALL_ENV=`echo $WORK_HOME |awk -F/ '{print $(NF-1)}'`
+
+# 设置agent的max open files
+ulimit -n 409600 2>/dev/null
+ulimit -c unlimited
+
+usage () {
+    echo "useage: gsectl ACTION [MODULE_NAME ... ]"
+    echo ""
+    echo "ACTION list: start, stop, restart"
+    echo " start    start gse_agent"
+    echo " stop     stop gse_agent"
+    echo " restart  restart gse_agent"
+    echo " reload   reload gse_agent"
+    echo " watch    watch gse_agent without systemd"
+}
+
+# 启动agent
+start_by_binary () {
+
+        local ret=0
+        local rt
+        local -a info
+
+        info=( $(_status) )
+        rt=$?
+        case $rt in
+            0) status="process:gse_agent pid:${info[0]} etime:${info[1]} Already RUNNING" ;;
+            1) status="ERROR STATUS" ;;
+            2) status="EXIT" ;;
+            3) status="Reload failed" ;;
+            4) status="have more than one ppid equal 1" ;;
+        esac
+
+        if [ $rt -eq 0 ];then
+            printf "%s: %s\n" "gse_agent" "$status"
+            exit 0
+        else
+            echo "have no gse_agent Running, status: $status, then starting"
+        fi
+
+        if [ $rt -eq 4 ];then
+            if [ `ps -ef |egrep gse_agent |egrep -w $WORK_HOME |awk '$3 == 1' |egrep -v grep |wc -l` -ge 1 ];then
+                echo "have more than one agentWorker process with ppid equal 1, need to kill"
+                #ps -ef |egrep gse_agent |egrep -w $WORK_HOME |awk '$3 == 1' |awk '{print $2}' |xargs kill -9
+            fi
+        fi
+
+        echo "start gse_agent ..."
+        ( ./gse_agent -f $WORK_HOME/etc/gse_agent.conf ) 1>/tmp/start_${node_type}_tmp.log 2>&1; sleep 3
+
+
+    __status;
+    if [ $? -ne 0 ];then
+        if is_use_systemd ;then
+            systemctl status ${INSTALL_ENV}_${module}
+        else
+            tail /tmp/start_${node_type}_tmp.log
+        fi
+        return 1
+    fi
+}
+
+# 停止agent
+stop_by_binary () {
+    # 调用gse_agent --quit停止进程，并等待它退出
+    if [ -f ./gse_agent ]; then
+        ( ./gse_agent --quit ) >/dev/null 2>&1
+        sleep 3
+    else
+        echo "no such file: gse_agent. "
+        return 1
+    fi
+
+    _status
+    # 状态码为2的时候，表示进程不存在的了
+    if [[ $? -eq 2 ]]; then
+        echo "gse agent stop successful"
+        return 0
+    else
+        echo "gse agent stop failed"
+        return 1
+    fi
+}
+
+# 重启agent
+restart_by_binary () {
+    stop_by_binary $module && start_by_binary $module
+}
+
+# 重载agent
+reload_by_binary () {
+    echo "reload gse_agent ..."
+    ( ./gse_agent --reload ) >/dev/null 2>&1; sleep 5
+
+    __status;
+}
+
+# 检测agent状态
+status_by_binary () {
+    local rt
+    local -a info
+
+    info=( $(_status) )
+    rt=$?
+        case $rt in
+        0) status="pid:${info[0]} etime:${info[1]} RUNNING" ;;
+        1) status="ERROR STATUS" ;;
+        2) status="EXIT" ;;
+        3) status="Reload failed" ;;
+        4) status="have more than one ppid equal 1" ;;
+    esac
+    printf "%s: %s\n" "gse_agent" "$status"
+    return $rt
+}
+
+# 检测agent健康状态
+healthz_by_binary () {
+    local rt
+    local -a info
+
+    info=$(_healthz)
+    printf "%s\n" "$info"
+    return $rt
+}
+
+red_echo ()     { [ "$HASTTY" != "1" ] && echo "$@" || echo -e "\033[031;1m$*\033[0m"; }
+blue_echo ()    { [ "$HASTTY" != "1" ] && echo "$@" || echo -e "\033[034;1m$*\033[0m"; }
+green_echo ()   { [ "$HASTTY" != "1" ] && echo "$@" || echo -e "\033[032;1m$*\033[0m"; }
+
+log () {
+    # 打印消息, 并记录到日志, 日志文件由 LOG_FILE 变量定义
+    local retval=$?
+    local timestamp=$(date +%Y%m%d-%H%M%S)
+    local level=INFO
+    local func_seq=$(echo "${FUNCNAME[@]}" | sed 's/ /-/g')
+    local logfile=${LOG_FILE:=/tmp/watch_${INSTALL_ENV}_${node_type}.log}
+    local minute
+    local firstday
+
+    # 如果当前时间为当月1号0点时间,则重命名日志文件名称
+    # 获取当前时间的分钟数及当月1号
+    minute=$(date +%M)
+    firstday=$(date +%d)
+
+    # 判断是否为当月1号0点时间
+    if [ "$minute" == "00" -a "$firstday" == "01" ]; then
+        if [ -f ${LOG_FILE}_$(date -d "last month" '+%Y%m').log ];then
+            echo "backup log already exists"
+        else
+            echo "[$(blue_echo ${EXTERNAL_IP}-$LAN_IP)]$timestamp $level|$BASH_LINENO|${func_seq} The current day is first day of month, reset the log file to new one ." >>$logfile
+            [ -f $LOG_FILE ] && mv $LOG_FILE ${LOG_FILE}_$(date -d "last month" '+%Y%m').log
+            touch $LOG_FILE
+            if [ -f /tmp/watch_gse2_agent.log ];then
+                mv /tmp/watch_gse2_agent.log /tmp/watch_gse2_agent_$(date -d "last month" '+%Y%m').log
+            fi
+        fi
+    fi
+
+    local opt=
+
+    if [ "${1:0:1}" == "-" ]; then
+         opt=$1
+         shift 1
+    else
+         opt=""
+    fi
+
+    echo -e $opt "[$(blue_echo ${EXTERNAL_IP:-$LAN_IP})]$timestamp|$BASH_LINENO\t$*"
+    echo "[$(blue_echo ${EXTERNAL_IP}-$LAN_IP)]$timestamp $level|$BASH_LINENO|${func_seq} $*" >>$logfile
+
+    return $retval
+}
+
+watch_by_binary () {
+    log "================================="
+    log "Start detecting..."
+    local module="agent"
+
+    # 设置记录上次脚本运行的文件
+    LAST_RUN_FILE=/var/run/already_run_times_$module
+
+    # 如果文件存在，则读取文件中记录的次数
+    if [ -f $LAST_RUN_FILE ]; then
+        run_count=$(cat $LAST_RUN_FILE)
+    else
+        run_count=0
+    fi
+
+    # 如果当前时间为整点时间,则重置计数,重新开始检测
+    # 获取当前时间的分钟数
+    minute=$(date +%M)
+
+    # 判断是否为整点时间
+    if [ "$minute" == "00" ]; then
+        if [ -f $LAST_RUN_FILE -a $run_count -gt 0 ];then
+            log "The current time is on the hour, reset the counter $run_count -> 0, and restart the detection."
+            echo 0 > $LAST_RUN_FILE
+        fi
+    fi
+
+    # 设置告警阈值
+    THRESHOLD=5
+
+    # 检查上一次脚本是否存在
+    if [ -f /var/run/gsectl_check_agent_status.pid ]; then
+        pid=`cat /var/run/gsectl_check_agent_status.pid`
+        if [ -d "/proc/$pid" ]; then
+            log "`date +'%F %T.%N'` Last Script: $0 Detection status: PID:$pid is until running , no longer checking the status of the module: ${module}"
+            return
+        else
+            # 如果超过阈值，则发出告警
+            if [ $run_count -ge $THRESHOLD ]; then
+                log "`date +'%F %T.%N'` Script: $0 Detection status: Failed to start the process, exceeded $run_count cycles, no longer checking the status of the module: ${module}"
+                return
+            else
+                log "`date +'%F %T.%N'` The previous script: $0 watch has ended, starting a new detection"
+            fi
+        fi
+    fi
+
+    # 记录当前脚本的 PID
+    echo $$ > /var/run/gsectl_check_agent_status.pid
+
+    # 检测gse_agent是否正常存在的逻辑
+    if [ -z "${module}" ]; then
+        echo "watch: get module: ${module} failed"
+        log "watch: get module: ${module} failed"
+    else
+        if ! _status ${module}; then
+            stop_by_binary
+            start_by_binary
+            if [ $? -ne 0 ];then
+                log "`date +'%F %T.%N'` Process failed to start, increment counter"
+                run_count=$((run_count + 1))
+                echo $run_count > $LAST_RUN_FILE
+            fi
+        else
+            if [ $run_count -ne 0 ];then
+                log "`date +'%F %T.%N'` The previous script: $0 Detection ${module} status is Running , then reset the count"
+                echo 0 > $LAST_RUN_FILE
+            fi
+        fi
+    fi
+    return
+}
+
+start_by_systemd () {
+    if is_systemd_supported ;then
+        add_config_to_systemd
+    fi
+
+    if is_use_systemd ;then
+        stop_by_binary
+        systemctl start ${INSTALL_ENV}_${module}
+        __status;
+    else
+        start_by_binary
+    fi
+}
+
+stop_by_systemd () {
+    if is_use_systemd ;then
+        systemctl stop ${INSTALL_ENV}_${module}
+        __status;
+    else
+        stop_by_binary
+    fi
+}
+
+restart_by_systemd () {
+    if is_systemd_supported ;then
+        add_config_to_systemd
+    fi
+
+    if is_use_systemd ;then
+        stop_by_binary
+        systemctl restart ${INSTALL_ENV}_${module}
+        __status;
+    else
+        stop_by_binary
+        start_by_systemd
+    fi
+}
+
+reload_by_systemd () {
+    if is_systemd_supported ;then
+        add_config_to_systemd
+    fi
+
+    if is_use_systemd ;then
+        systemctl reload ${INSTALL_ENV}_${module}
+        __status;
+    else
+        reload_by_binary
+    fi
+}
+
+status_by_systemd () {
+    if is_use_systemd ;then
+        systemctl status ${INSTALL_ENV}_${module}
+    else
+        status_by_binary
+    fi
+}
+
+healthz_by_systemd () {
+    healthz_by_binary
+}
+
+start_by_crontab () {
+    if is_use_systemd ;then
+        remove_systemd_config
+        start_by_binary
+        add_startup_to_boot
+        setup_crontab
+    else
+        start_by_binary
+        add_startup_to_boot
+        setup_crontab
+    fi
+    return
+}
+
+stop_by_crontab () {
+    remove_crontab
+    stop_by_binary
+    return
+}
+
+
+reload_by_crontab () {
+    if is_use_systemd ;then
+        remove_systemd_config
+        reload_by_binary
+        add_startup_to_boot
+        setup_crontab
+    else
+        reload_by_binary
+        add_startup_to_boot
+        setup_crontab
+    fi
+    return
+}
+
+restart_by_crontab () {
+    if is_use_systemd ;then
+        remove_systemd_config
+        restart_by_binary
+        add_startup_to_boot
+        setup_crontab
+    else
+        restart_by_binary
+        add_startup_to_boot
+        setup_crontab
+    fi
+    return
+}
+
+
+status_by_crontab () {
+    status_by_binary
+    return
+}
+
+healthz_by_crontab () {
+    healthz_by_binary
+    return
+}
+
+watch_by_crontab () {
+    watch_by_binary
+    return
+}
+
+
+start_by_rclocal () {
+    remove_crontab
+    if is_use_systemd ;then
+        remove_systemd_config
+        start_by_binary
+    else
+        start_by_binary
+    fi
+
+    add_startup_to_boot
+    return
+}
+
+stop_by_rclocal () {
+    stop_by_binary
+    return
+}
+
+reload_by_rclocal () {
+    remove_crontab
+    if is_use_systemd ;then
+        remove_systemd_config
+    fi
+
+    reload_by_binary
+    add_startup_to_boot
+    return
+}
+
+restart_by_rclocal () {
+    remove_crontab
+    if is_use_systemd ;then
+        remove_systemd_config
+    fi
+    restart_by_binary
+    add_startup_to_boot
+    return
+}
+
+
+status_by_rclocal () {
+    status_by_binary
+    return
+}
+
+healthz_by_rclocal () {
+    healthz_by_binary
+    return
+}
+
+is_systemd_supported () {
+    # 是否支持 systemd, systemd:0, sysinit:1
+    if [ "`ps -p 1 -o comm=`" == "systemd" ];then
+        return 0
+    else
+        return 1
+    fi
+}
+
+
+is_use_systemd () {
+    local module="agent"
+    if [ -f /usr/lib/systemd/system/${INSTALL_ENV}_${module}.service ];then
+        return 0
+    else
+        return 1
+    fi
+}
+
+get_os_info () {
+    OS_INFO="-"
+    if [ -f "/proc/version" ]; then
+        OS_INFO="$OS_INFO $(cat /proc/version)"
+    fi
+    if [ -f "/etc/issue" ]; then
+        OS_INFO="$OS_INFO $(cat /etc/issue)"
+    fi
+    OS_INFO="$OS_INFO $(uname -a)"
+    OS_INFO=$(echo ${OS_INFO} | tr 'A-Z' 'a-z')
+}
+
+get_os_type () {
+    get_os_info
+    OS_INFO=$(echo ${OS_INFO} | tr 'A-Z' 'a-z')
+    if [[ "${OS_INFO}" =~ "ubuntu" ]]; then
+        OS_TYPE="ubuntu"
+        RC_LOCAL_FILE="/etc/rc.local"
+    elif [[ "${OS_INFO}" =~ "centos" ]]; then
+        OS_TYPE="centos"
+        RC_LOCAL_FILE="/etc/rc.d/rc.local"
+    elif [[ "${OS_INFO}" =~ "coreos" ]]; then
+        OS_TYPE="coreos"
+        RC_LOCAL_FILE="/etc/rc.d/rc.local"
+    elif [[ "${OS_INFO}" =~ "freebsd" ]]; then
+        OS_TYPE="freebsd"
+        RC_LOCAL_FILE="/etc/rc.d/rc.local"
+    elif [[ "${OS_INFO}" =~ "debian" ]]; then
+        OS_TYPE="debian"
+        RC_LOCAL_FILE="/etc/rc.local"
+    elif [[ "${OS_INFO}" =~ "suse" ]]; then
+        OS_TYPE="suse"
+        RC_LOCAL_FILE="/etc/rc.d/rc.local"
+    elif [[ "${OS_INFO,,}" =~ "hat" ]]; then
+        OS_TYPE="redhat"
+        RC_LOCAL_FILE="/etc/rc.d/rc.local"
+    fi
+}
+
+check_rc_file () {
+    get_os_type
+    if [ -f "$RC_LOCAL_FILE" ]; then
+        return 0
+    elif [ -f "/etc/rc.d/rc.local" ]; then
+        RC_LOCAL_FILE="/etc/rc.d/rc.local"
+    elif [ -f "/etc/init.d/rc.local" ]; then
+        RC_LOCAL_FILE="/etc/init.d/rc.local"
+    elif [ -f "/etc/init.d/boot.local" ]; then
+        RC_LOCAL_FILE="/etc/init.d/boot.local"
+    else
+        RC_LOCAL_FILE="`readlink -f /etc/rc.local`"
+    fi
+}
+
+add_startup_to_boot () {
+
+    local module=agent
+
+    # 添加启动项到 rc.local
+    echo "Check startup items, and if not existing, add the [${module}] startup item to rc.local"
+
+    check_rc_file
+    local rcfile=$RC_LOCAL_FILE
+
+    if [ $OS_TYPE == "ubuntu" ]; then
+        sed -i "\|\#\!/bin/bash|d" $rcfile
+        sed -i "1i \#\!/bin/bash" $rcfile
+    fi
+
+    chmod +x $rcfile
+
+    # 先删后加，避免重复
+    sed -i "\|${WORK_HOME}/bin/gsectl start ${module}|d" $rcfile
+
+    echo "[ -f ${WORK_HOME}/bin/gsectl ] && ${WORK_HOME}/bin/gsectl start ${module} 1>>/var/log/${INSTALL_ENV}_${node_type}.log 2>&1" >>$rcfile
+}
+
+add_config_to_systemd () {
+
+    local module="agent"
+cat > /tmp/${INSTALL_ENV}_${module}.service << EOF
+[Unit]
+Description=GSE2.0 Agent Daemon
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+LimitNOFILE=512000
+LimitCORE=infinity
+WorkingDirectory=${WORK_HOME}/bin
+PIDFile=${WORK_HOME}/bin/run/${module}.pid
+ExecStart=${WORK_HOME}/bin/gse_agent -f /usr/local/${INSTALL_ENV}/${node_type}/etc/gse_agent.conf
+ExecReload=${WORK_HOME}/bin/gse_agent --reload
+ExecStop=${WORK_HOME}/bin/gse_agent --quit
+Type=forking
+KillMode=process
+User=root
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+    if [ -f /usr/lib/systemd/system/${INSTALL_ENV}_${module}.service ];then
+        if [ `md5sum /tmp/${INSTALL_ENV}_${module}.service |awk '{print $1}'` == `md5sum /usr/lib/systemd/system/${INSTALL_ENV}_${module}.service |awk '{print $1}'` ];then
+            echo "${INSTALL_ENV}_${module}.service have no change..."
+        else
+            echo "update ${INSTALL_ENV}_${module}.service"
+            cp /tmp/${INSTALL_ENV}_${module}.service /usr/lib/systemd/system/${INSTALL_ENV}_${module}.service
+            systemctl daemon-reload
+            systemctl enable ${INSTALL_ENV}_${module}.service
+        fi
+    else
+        echo "copy ${INSTALL_ENV}_${module}.service"
+        cp /tmp/${INSTALL_ENV}_${module}.service /usr/lib/systemd/system/${INSTALL_ENV}_${module}.service
+        systemctl daemon-reload
+        systemctl enable ${INSTALL_ENV}_${module}.service
+    fi
+
+    # 删除rc.local里的启动项
+    check_rc_file
+    sed -i "\|${WORK_HOME}/bin/gsectl start ${module}|d" $RC_LOCAL_FILE
+
+    # 删除crontab里的watch条目
+    remove_crontab
+}
+
+remove_systemd_config (){
+    local module="agent"
+
+    if [ -f /usr/lib/systemd/system/${INSTALL_ENV}_${module}.service ];then
+        systemctl stop ${INSTALL_ENV}_${module}.service
+        systemctl disable ${INSTALL_ENV}_${module}.service
+        rm /usr/lib/systemd/system/${INSTALL_ENV}_${module}.service
+    fi
+}
+
+setup_crontab () {
+    local tmpcron
+
+    if [ -n "`crontab -l | grep \"$WORK_HOME/bin/gsectl\" |egrep -v \"^#|\s+#\"`" ];then
+        echo "The watch detection entry is already in the crontab..."
+        return 0
+    fi
+
+    tmpcron=/tmp/cron.XXXXXXX
+
+    (
+        crontab -l | grep -v "$WORK_HOME/bin/gsectl"
+        echo "#$WORK_HOME/bin/gsectl Agent check, add by NodeMan @ `date +'%F %T'`"
+        echo "* * * * * $WORK_HOME/bin/gsectl watch agent 1>>/tmp/watch_gse2_agent.log 2>&1"
+    ) > "$tmpcron"
+
+    crontab "$tmpcron" && rm -f "$tmpcron"
+    crontab -l |egrep "$WORK_HOME"
+}
+
+remove_crontab (){
+    local tmpcron
+    tmpcron=/tmp/cron.XXXXXX
+
+    crontab -l |egrep -v "$WORK_HOME" >$tmpcron
+    crontab $tmpcron && rm -f $tmpcron
+
+    # 下面这段代码是为了确保修改的crontab立即生效
+    if pgrep -x crond &>/dev/null; then
+        pkill -HUP -x crond
+    fi
+}
+
+get_process_runtime (){
+    local p_status tmp_gse_master_pid_info tmp_gse_agent_master_pids _pid PID
+    p_status=1
+
+    sleep 3
+
+    for i in {1..20}
+    do
+        tmp_gse_master_pid_info=$(ps --no-header -C gse_agent -o 'ppid' -o 'pid' -o 'args' | awk '$1 == 1 && $3 ~ /gse_agent/ {print $2}' | xargs)
+        read -r -a tmp_gse_agent_master_pids <<< "$tmp_gse_master_pid_info"
+
+        for _pid in "${tmp_gse_agent_master_pids[@]}"; do
+            tmp_abs_path=$(readlink -f /proc/$_pid/exe)
+            tmp_abs_path=$(echo "${tmp_abs_path}" | sed 's/ (deleted)$//')  # 防止异常情况下二进制更新但是还没重启进程
+            # 两个路径都用readlink -f 防止有软链接目录
+            # master既然存在，先判断路径是否包含WORK_HOME
+            if [ "$tmp_abs_path" == "$(readlink -f ${WORK_HOME}/bin/gse_agent)" ]; then
+                # 找到了匹配的pid
+                # 获取进程pid的启动时间
+                PID=$_pid
+                START_TIME=$(ps -p "$PID" -o lstart=)
+                START_TIME_S=$(date -d "$START_TIME" +%s)
+                CURRENT_TIME_S=$(date +%s)
+                TIME_DIFF=$(($CURRENT_TIME_S - $START_TIME_S))
+
+                if [ $TIME_DIFF -le 20 ]; then
+                    echo "gse_agent -> $PID has been running for $TIME_DIFF seconds, check $i times"
+                    p_status=0
+                    break 2
+                else
+                    echo "gse_agent -> $PID has been running for $TIME_DIFF seconds, restart not yet successful, check $i times"
+                    sleep 1
+                fi
+            fi
+        done
+    done
+    return $p_status
+}
+
+__status (){
+    local module="agent"
+
+    # 最多等待20s来判断是否真正启动成功
+    for i in {0..20}; do
+        if [ "$action" == "stop" ];then
+            if [ $(ps --no-header -C gse_${module} -o 'ppid' -o 'pid' -o 'args' |egrep "${WORK_HOME}" |wc -l) -eq 0 ];then
+                echo gse_${module} $action $action success
+                break
+            elif [ $i -eq 20 ];then
+                echo "gse_${module} $action $action failed"
+                return 1
+            else
+                sleep 1
+            fi
+        else
+            if _status >/dev/null; then
+                # 启动正常，直接退出，返回码0
+                echo "gse agent start successful"
+
+                if [ "$action" == "start" -o "$action" == "restart" ];then
+                    get_process_runtime
+                    if [ $? -ne 0 ];then
+                        echo "gse_agent $action failed"
+                        return 3
+                    fi
+                elif [ "$action" == "reload" ];then
+                    for i in {0..5}; do
+                        get_process_runtime
+                        if [ $? -eq 0 ];then
+                            break
+                        elif [ $? -ne 0 ];then
+                            sleep 2
+                        elif [ $i -eq 5 ];then
+                            echo "gse_agent $action failed"
+                            return 3
+                        fi
+                    done
+                fi
+
+                return 0
+            elif [ $i -eq 20 ]; then
+                # i等于20，超时退出，返回码1
+                echo "gse agent start failed"
+                return 1
+            else
+                sleep 2
+            fi
+        fi
+    done
+}
+
+# 返回码：
+# 0: 正常，且成对出现
+# 1：异常，存在master进程但是worker不存在
+# 2: 异常，没有master进程存在
+# 3: 异常，进程重启、reload、启动失败
+_status () {
+    local gse_master_info _pid pid abs_path
+
+    if [ "$action" == "reload" ];then
+        # 如果是reload,需要新的进程启动,才能继续判断进程是否符合正常情况
+        get_process_runtime
+        if [ $? -ne 0 ];then
+            echo "gse_agent $action failed"
+            return 3
+        fi
+    fi
+
+    # 初筛，考虑到gse组件的父、子进程都是名为gse_agent的，且它的父进程应该是等于1
+    # ps的-o参数指定输出字段ppid(ppid)、%p(pid)、%a(args)
+    # 所以下面命令是拉出所有进程名为gse_agent，且父进程为1，进程参数包含gse_agent的进程信息
+    gse_master_pid_info=$(ps --no-header -C gse_agent -o 'ppid' -o 'pid' -o 'args' | awk '$1 == 1 && $3 ~ /gse_agent/ {print $2}' | xargs)
+    read -r -a gse_agent_master_pids <<< "$gse_master_pid_info"
+
+    if [[ -z "$gse_agent_master_pids" ]]; then
+        # 连master都没有，那不用做更深入的判断，直接返回false
+        return 2
+    fi
+    gse_master_pids_by_exe_path=()
+
+    for _pid in "${gse_agent_master_pids[@]}"; do
+        abs_path=$(readlink -f /proc/$_pid/exe)
+        abs_path=$(echo "${abs_path}" | sed 's/ (deleted)$//')  # 防止异常情况下二进制更新但是还没重启进程
+        # 两个路径都用readlink -f 防止有软链接目录
+        # master既然存在，先判断路径是否包含WORK_HOME
+        if [ "$abs_path" == "$(readlink -f ${WORK_HOME}/bin/gse_agent)" ]; then
+            # 找到了匹配的pid
+            gse_master_pids_by_exe_path+=($_pid)
+        fi
+    done
+
+    agent_id_file=${WORK_HOME}/bin/run/agent.pid
+    if [[ ${#gse_master_pids_by_exe_path} -eq 0 ]]; then
+            # 连master都没有，那不用做更深入的判断，直接返回false
+            return 2
+    elif [[ ${#gse_master_pids_by_exe_path[@]} -gt 1 && -f ${agent_id_file} ]]; then
+        # 兼容存在游离gse_agent worker进程的场景
+        gse_master_pid=$(cat $agent_id_file)
+        return 4
+    else
+        gse_master_pid=$gse_master_pids_by_exe_path
+    fi
+
+    # 查看该gseMaster进程是否子进程Worker(>=1)
+    if [[ $(pgrep -P $gse_master_pid | wc -l) -eq 0 ]]; then
+        return 1
+    fi
+    # 运行到这里时就可以获取进程状态详细信息输出到STDOUT，并返回0了
+    ps --no-header -p $gse_master_pid -o pid,etime,command
+    return 0
+}
+
+_healthz () {
+    ./gse_agent --healthz
+}
+
+get_auto_type () {
+    # 由节点管理进行渲染，当前环境使用 rclocal
+    echo "rclocal"
+    return
+    if is_systemd_supported;then
+        echo "systemd"
+    else
+        echo "crontab"
+    fi
+}
+
+detect_node_type () {
+    case $WORK_HOME in
+        *"$INSTALL_ENV"/proxy) node_type=proxy ;;
+        *"$INSTALL_ENV"/agent) node_type=agent ;;
+        *) node_type=unknown ;;
+    esac
+
+    echo $node_type >$WORK_HOME/.gse_node_type
+}
+
+# main
+action="$1"; shift
+module="agent"
+
+auto_type=$(get_auto_type)
+
+if [ -s $WORK_HOME/.gse_node_type ]; then
+    read node_type ignore <$WORK_HOME/.gse_node_type
+else
+    detect_node_type
+fi
+
+if [ "${node_type}" == "unknown" ];then
+    echo "wrong node type: ${node_type}"
+    exit
+fi
+
+if [ $auto_type == "systemd" ]; then
+      case $action in
+          start) start_by_systemd 2>&1 | tee /tmp/nm_"${auto_type}"_"${action}".log ;;
+          stop) stop_by_systemd 2>&1 | tee /tmp/nm_"${auto_type}"_"${action}".log ;;
+          restart) restart_by_systemd 2>&1 | tee /tmp/nm_"${auto_type}"_"${action}".log ;;
+          status) status_by_systemd 2>&1 | tee /tmp/nm_"${auto_type}"_"${action}".log ;;
+          reload) reload_by_systemd 2>&1 | tee /tmp/nm_"${auto_type}"_"${action}".log ;;
+          healthz) healthz_by_systemd 2>&1 | tee /tmp/nm_"${auto_type}"_"${action}".log ;;
+          -h|*) usage ; exit 255 ;;
+     esac
+elif [ $auto_type == "crontab" ]; then
+      case $action in
+          start) start_by_crontab 2>&1 | tee /tmp/nm_"${auto_type}"_"${action}".log ;;
+          stop) stop_by_crontab 2>&1 | tee /tmp/nm_"${auto_type}"_"${action}".log ;;
+          restart) restart_by_crontab 2>&1 | tee /tmp/nm_"${auto_type}"_"${action}".log ;;
+          status) status_by_crontab 2>&1 | tee /tmp/nm_"${auto_type}"_"${action}".log ;;
+          reload) reload_by_crontab 2>&1 | tee /tmp/nm_"${auto_type}"_"${action}".log ;;
+          healthz) healthz_by_crontab 2>&1 | tee /tmp/nm_"${auto_type}"_"${action}".log ;;
+          watch) watch_by_crontab 2>&1 | tee /tmp/nm_"${auto_type}"_"${action}".log ;;
+          -h|*) usage ; exit 255 ;;
+      esac
+elif [ $auto_type == "rclocal" ]; then
+    case $action in
+        start) start_by_rclocal 2>&1 | tee /tmp/nm_"${auto_type}"_"${action}".log ;;
+        stop) stop_by_rclocal 2>&1 | tee /tmp/nm_"${auto_type}"_"${action}".log ;;
+        restart) restart_by_rclocal 2>&1 | tee /tmp/nm_"${auto_type}"_"${action}".log ;;
+        status) status_by_rclocal 2>&1 | tee /tmp/nm_"${auto_type}"_"${action}".log ;;
+        reload) reload_by_rclocal 2>&1 | tee /tmp/nm_"${auto_type}"_"${action}".log ;;
+        healthz) healthz_by_rclocal 2>&1 | tee /tmp/nm_"${auto_type}"_"${action}".log ;;
+        -h|*) usage ; exit 255 ;;
+    esac
+fi
+
+
+exit
