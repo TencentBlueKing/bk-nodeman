@@ -32,6 +32,14 @@ class BaseHandler:
         return {"scope_type": constants.ScopeType.BIZ.value, "scope_id": str(bk_biz_id), "bk_biz_id": bk_biz_id}
 
     @classmethod
+    def fill_cc_field(cls, host_info: types.HostInfo):
+        host_info["bk_host_id"] = host_info["host_id"]
+        host_info["bk_biz_id"] = host_info["biz"]["id"]
+        host_info["bk_agent_id"] = host_info["agent_id"]
+        host_info["bk_agent_alive"] = host_info["alive"]
+        host_info["bk_cloud_id"] = host_info["cloud_area"]["id"]
+
+    @classmethod
     def format_hosts(cls, untreated_host_infos: typing.List[types.HostInfo]) -> typing.List[types.FormatHostInfo]:
         """
         格式化主机信息
@@ -62,37 +70,36 @@ class BaseHandler:
 
         treated_host_infos: typing.List[types.HostInfo] = []
         for untreated_host_info in untreated_host_infos:
-            treated_host_infos.append(
-                {
-                    "meta": BaseHandler.get_meta_data(untreated_host_info["bk_biz_id"]),
-                    "host_id": untreated_host_info["bk_host_id"],
-                    "agent_id": untreated_host_info["bk_agent_id"],
-                    "ip": untreated_host_info["inner_ip"],
-                    "ipv6": untreated_host_info["inner_ipv6"],
-                    "host_name": untreated_host_info["bk_host_name"],
-                    "os_name": node_man_constants.OS_CHN.get(
-                        untreated_host_info["os_type"], untreated_host_info["os_type"]
+            treated_host_info: types.HostInfo = {
+                "meta": BaseHandler.get_meta_data(untreated_host_info["bk_biz_id"]),
+                "host_id": untreated_host_info["bk_host_id"],
+                "agent_id": untreated_host_info["bk_agent_id"],
+                "ip": untreated_host_info["inner_ip"],
+                "ipv6": untreated_host_info["inner_ipv6"],
+                "host_name": untreated_host_info["bk_host_name"],
+                "os_name": node_man_constants.OS_CHN.get(
+                    untreated_host_info["os_type"], untreated_host_info["os_type"]
+                ),
+                "os_type": node_man_constants.OS_CHN.get(
+                    untreated_host_info["os_type"], untreated_host_info["os_type"]
+                ),
+                # TODO 实时获取状态
+                "alive": (constants.AgentStatusType.NO_ALIVE.value, constants.AgentStatusType.ALIVE.value)[
+                    untreated_host_info["status"] == node_man_constants.ProcStateType.RUNNING
+                ],
+                "cloud_area": {
+                    "id": untreated_host_info["bk_cloud_id"],
+                    "name": cloud_id__info_map.get(untreated_host_info["bk_cloud_id"], {}).get(
+                        "bk_cloud_name", untreated_host_info["bk_cloud_id"]
                     ),
-                    "os_type": node_man_constants.OS_CHN.get(
-                        untreated_host_info["os_type"], untreated_host_info["os_type"]
+                },
+                "biz": {
+                    "id": untreated_host_info["bk_biz_id"],
+                    "name": biz_id__info_map.get(untreated_host_info["bk_biz_id"], {}).get(
+                        "bk_biz_name", untreated_host_info["bk_biz_id"]
                     ),
-                    # TODO 实时获取状态
-                    "alive": (constants.AgentStatusType.NO_ALIVE.value, constants.AgentStatusType.ALIVE.value)[
-                        untreated_host_info["status"] == node_man_constants.ProcStateType.RUNNING
-                    ],
-                    "cloud_area": {
-                        "id": untreated_host_info["bk_cloud_id"],
-                        "name": cloud_id__info_map.get(untreated_host_info["bk_cloud_id"], {}).get(
-                            "bk_cloud_name", untreated_host_info["bk_cloud_id"]
-                        ),
-                    },
-                    "biz": {
-                        "id": untreated_host_info["bk_biz_id"],
-                        "name": biz_id__info_map.get(untreated_host_info["bk_biz_id"], {}).get(
-                            "bk_biz_name", untreated_host_info["bk_biz_id"]
-                        ),
-                    },
-                }
-            )
-
+                },
+            }
+            cls.fill_cc_field(treated_host_info)
+            treated_host_infos.append(treated_host_info)
         return treated_host_infos
