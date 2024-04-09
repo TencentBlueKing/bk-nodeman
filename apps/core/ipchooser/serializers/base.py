@@ -193,7 +193,14 @@ class HostInfoWithMetaSer(serializers.Serializer):
     ip = serializers.IPAddressField(help_text=_("IPv4 协议下的主机IP"), required=False, protocol="ipv4")
     host_id = serializers.IntegerField(help_text=_("主机 ID，优先取 `host_id`，否则取 `ip` + `cloud_id`"), required=False)
 
+    bk_cloud_id = serializers.IntegerField(help_text=_("管控区域 ID"), required=False)
+    bk_host_id = serializers.IntegerField(help_text=_("主机 ID，优先取 `host_id`，否则取 `ip` + `cloud_id`"), required=False)
+
     def validate(self, attrs):
+        field_map: typing.Dict[str, str] = {"bk_cloud_id": "cloud_id", "bk_host_id": "host_id"}
+        for compatible_field, field in field_map.items():
+            if compatible_field in attrs:
+                attrs[field] = attrs[compatible_field]
         if not ("host_id" in attrs or ("ip" in attrs and "cloud_id" in attrs)):
             raise exceptions.SerValidationError(_("请传入 host_id 或者 cloud_id + ip"))
         return attrs
