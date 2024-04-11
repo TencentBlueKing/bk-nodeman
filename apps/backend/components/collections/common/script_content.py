@@ -37,13 +37,26 @@ exit $ret
 """
 
 INITIALIZE_SCRIPT = """
-setup_path="$@"
-cd $setup_path
+setup_path="$2"
+subscription_tmp_dir="$1"
+
+if [ ! -d "$subscription_tmp_dir" ]; then
+  exit 0
+fi
+
+if [ ! -d "$setup_path" ]; then
+  mkdir -p "$setup_path"
+fi
+
+cd "$subscription_tmp_dir"
 for file in $(ls); do
     if echo $file | grep '.*sh$'; then
-        chmod +x $setup_path/${file}
+        chmod +x $subscription_tmp_dir/${file}
+        cp -p $subscription_tmp_dir/${file} $setup_path/${file}
     fi
 done
+
+rm -rf $subscription_tmp_dir
 """
 
 ENVIRON_SH_TEMPLATE = """

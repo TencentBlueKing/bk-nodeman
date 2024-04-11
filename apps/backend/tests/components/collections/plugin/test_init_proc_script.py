@@ -8,11 +8,17 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import os
 
+from mock.mock import patch
+
+from apps.backend.api.job import process_parms
+from apps.backend.components.collections.common.script_content import INITIALIZE_SCRIPT
 from apps.backend.components.collections.plugin import InitProcOperateScriptComponent
 from apps.backend.tests.components.collections.plugin.test_install_package import (
     InstallPackageTest,
 )
+from apps.backend.tests.components.collections.plugin.utils import JOB_INSTANCE_ID
 from pipeline.component_framework.test import (
     ComponentTestCase,
     ExecuteAssertion,
@@ -46,3 +52,28 @@ class InitProcOperateScriptTest(InstallPackageTest):
                 execute_call_assertion=None,
             )
         ]
+
+
+class InitProcOperateInTmpDir(InitProcOperateScriptTest):
+    def test_component(self):
+        with patch(
+            "apps.backend.tests.components.collections.plugin.utils.JobMockClient.fast_execute_script"
+        ) as fast_execute_script:
+            fast_execute_script.return_value = {
+                "job_instance_name": "API Quick execution script1521100521303",
+                "job_instance_id": JOB_INSTANCE_ID,
+            }
+            super().test_component()
+
+            # 验证脚本参数
+            file_target_path = os.path.join("/usr/local/gse", "plugins", "bin")
+            self.assertEqual(
+                process_parms(f"/tmp/plugin_scripts_sub_{self.ids['subscription_id']} {file_target_path}"),
+                fast_execute_script.call_args[0][0]["script_param"],
+            )
+
+            # 验证脚本内容
+            self.assertEqual(
+                process_parms(INITIALIZE_SCRIPT),
+                fast_execute_script.call_args[0][0]["script_content"],
+            )
