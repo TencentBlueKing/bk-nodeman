@@ -1557,10 +1557,15 @@ class TransferScriptService(PluginTransferFileService):
         return host_id__proc_status_map
 
     def get_file_target_path(self, data, common_data: PluginCommonData, host: models.Host) -> str:
+        if host.os_type != constants.OsType.WINDOWS:
+            # 非 windows 下发到临时文件夹中
+            return f"/tmp/plugin_scripts_sub_{common_data.subscription.id}"
+
+        # windows 直接下发到目标路径
         host_id__proc_status_map = self.host_id__proc_status_map(common_data.process_statuses)
         process_status = host_id__proc_status_map[host.bk_host_id]
         agent_config = self.get_agent_config_by_process_status(process_status, common_data)
-        path_sep: str = (constants.LINUX_SEP, constants.WINDOWS_SEP)[host.os_type == constants.OsType.WINDOWS]
+        path_sep: str = constants.WINDOWS_SEP
         file_target_path = path_sep.join([agent_config["setup_path"], "plugins", "bin"])
         return file_target_path
 
@@ -1582,7 +1587,8 @@ class InitProcOperateScriptService(PluginBaseService, JobExecuteScriptService):
         process_status = host_id__proc_status_map[host.bk_host_id]
         agent_config = self.get_agent_config_by_process_status(process_status, common_data)
         file_target_path = os.path.join(agent_config["setup_path"], "plugins", "bin")
-        return file_target_path
+        tmp_file_path = f"/tmp/plugin_scripts_sub_{common_data.subscription.id}"
+        return f"{tmp_file_path} {file_target_path}"
 
     @cache.class_member_cache()
     def host_id__proc_status_map(self, process_statuses: List[models.ProcessStatus]) -> Dict[int, models.ProcessStatus]:
