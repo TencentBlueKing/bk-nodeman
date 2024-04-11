@@ -8,10 +8,13 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from mock.mock import patch
+
 from apps.backend.components.collections.plugin import TransferScriptComponent
 from apps.backend.tests.components.collections.plugin.test_transfer_package import (
     TransferPackageTest,
 )
+from apps.backend.tests.components.collections.plugin.utils import JOB_INSTANCE_ID
 from apps.node_man import constants, models
 from pipeline.component_framework.test import (
     ComponentTestCase,
@@ -58,3 +61,43 @@ class TransferWindowsScriptTest(TransferLinuxScriptTest):
     def setUp(self):
         super().setUp()
         models.Host.objects.all().update(os_type=constants.OsType.WINDOWS)
+
+
+class TransferFileToTmpDirWithLinux(TransferLinuxScriptTest):
+    def test_component(self):
+        with patch(
+            "apps.backend.tests.components.collections.plugin.utils.JobMockClient.fast_transfer_file"
+        ) as fast_transfer_file:
+            fast_transfer_file.return_value = {
+                "job_instance_name": "API Quick Distribution File1521101427176",
+                "job_instance_id": JOB_INSTANCE_ID,
+            }
+            super().test_component()
+            self.assertEqual(
+                f"/tmp/plugin_scripts_sub_{self.ids['subscription_id']}",
+                fast_transfer_file.call_args[0][0]["file_target_path"],
+            )
+
+
+class TransferFileToTmpDirWithAix(TransferAixScriptTest, TransferFileToTmpDirWithLinux):
+    def setUp(self):
+        super(TransferAixScriptTest, self).setUp()
+
+    def test_component(self):
+        super(TransferFileToTmpDirWithLinux, self).test_component()
+
+
+class TransferFileToTmpDirWithWindows(TransferWindowsScriptTest):
+    def test_component(self):
+        with patch(
+            "apps.backend.tests.components.collections.plugin.utils.JobMockClient.fast_transfer_file"
+        ) as fast_transfer_file:
+            fast_transfer_file.return_value = {
+                "job_instance_name": "API Quick Distribution File1521101427176",
+                "job_instance_id": JOB_INSTANCE_ID,
+            }
+            super().test_component()
+            self.assertEqual(
+                "c:\\gse\\plugins\\bin",
+                fast_transfer_file.call_args[0][0]["file_target_path"],
+            )
