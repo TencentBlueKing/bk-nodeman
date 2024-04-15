@@ -3,7 +3,7 @@ import Vue from 'vue';
 import http from '@/api';
 import navList from '@/router/navigation-config';
 import { retrieveBiz, fetchTopo } from '@/api/modules/cmdb';
-import { retrieveGlobalSettings, getFilterCondition } from '@/api/modules/meta';
+import { retrieveGlobalSettings, getFilterCondition, getAgentPackageUI } from '@/api/modules/meta';
 import { fetchPublicKeys } from '@/api/modules/rsa';
 import {
   fetchPermission,
@@ -72,6 +72,16 @@ export default class Main extends VuexModule {
   public noticeShow = false;
   public AUTO_SELECT_INSTALL_CHANNEL = -1;
 
+  // agent_package 显示开关
+  public ENABLE_AGENT_PACKAGE_UI = false;
+  /**
+   * 更新状态
+   *
+   */
+  @Mutation
+  public setAgentPackageUI(switchStatus: boolean) {
+    this.ENABLE_AGENT_PACKAGE_UI = switchStatus;
+  }
   /**
    * 设置全局可视区域的 loading 是否显示
    *
@@ -438,5 +448,12 @@ export default class Main extends VuexModule {
     const data = await retrieveGlobalSettings({ key: 'AUTO_SELECT_INSTALL_CHANNEL_ONLY_DIRECT_AREA' }).catch(() => ({}));
     const dataValue = data.AUTO_SELECT_INSTALL_CHANNEL_ONLY_DIRECT_AREA === undefined ? -1 : Number(data.AUTO_SELECT_INSTALL_CHANNEL_ONLY_DIRECT_AREA);
     this.setAutoJudge(dataValue);
+  /**
+   * agent_package 相关的显示开关配置
+   */
+  @Action
+  public async getAgentPackageUI() {
+    const { ENABLE_AGENT_PACKAGE_UI = false } = await getAgentPackageUI({ key: 'ENABLE_AGENT_PACKAGE_UI' }).catch(() => ({}));
+    this.setAgentPackageUI(ENABLE_AGENT_PACKAGE_UI);
   }
 }
