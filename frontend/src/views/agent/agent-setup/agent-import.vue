@@ -397,17 +397,20 @@ export default class AgentImport extends Mixins(mixin) {
       });
       data = JSON.parse(JSON.stringify(formatData));
     }
-    // 获取agent默认版本
-    await this.getDefaultVersion();
-    // version无值时候，接入点v2则默认为稳定版本,非v2则默认为stable,表头对象中agent版本的getReadonly方法会对version为stable的返回true从而设置不可编辑状态
-    data.map((item) => {
-      if (!this.isApV2(item.ap_id)) {
-        item.version = 'stable';
-      } else {
-        item.version === '' && (item.version = this.defaultVersion);
-      }
-      return item;
-    });
+    // agent开关打开时，显示agent版本，处理相关逻辑
+    if (this.AgentPkgShow) {
+      // 获取agent默认版本
+      await this.getDefaultVersion();
+      // version无值时候，接入点v2则默认为稳定版本,非v2则默认为stable,表头对象中agent版本的getReadonly方法会对version为stable的返回true从而设置不可编辑状态
+      data.map((item) => {
+        if (!this.isApV2(item.ap_id)) {
+          item.version = 'stable';
+        } else {
+          item.version === '' && (item.version = this.defaultVersion);
+        }
+        return item;
+      });
+    }
     // 将原始的数据备份；切换安装方式时，接入点的数据变更后的回退操作时需要用到
     this.tableDataBackup = data;
     this.setupInfo.data = deepClone(data);
@@ -431,6 +434,10 @@ export default class AgentImport extends Mixins(mixin) {
     });
     this.defaultVersion = default_version;
   };
+  // agent包管理开关是否打开
+  private get AgentPkgShow(): Boolean {
+    return MainStore.ENABLE_AGENT_PACKAGE_UI;
+  }
   /**
     * 修改接入点数据时候要调整agent版本
     * @param data - {row:ISetupRow,config: ISetupHead}
@@ -512,7 +519,7 @@ export default class AgentImport extends Mixins(mixin) {
       if (this.type === 'REINSTALL_AGENT') {
         Object.assign(params, {
           agent_setup_info: {
-            'choice_version_type':'by_host',
+            choice_version_type: 'by_host',
             version_map_list: versionList,
           }
         });
@@ -605,10 +612,10 @@ export default class AgentImport extends Mixins(mixin) {
     let apList: IApExpand[] = deepClone(AgentStore.apList);
     if (this.isManual) {
       const configData = this.isEdit ? editConfig : tableConfig;
-      //重装时表格增加agent版本信息
-      this.setupInfo.header = this.type === 'REINSTALL_AGENT' ?
-      configData.filter(item => item.manualProp || item.prop === 'version') :
-      getManualConfig(configData);
+      // 重装时表格增加agent版本信息
+      this.setupInfo.header = this.type === 'REINSTALL_AGENT'
+        ? configData.filter(item => item.manualProp || (this.AgentPkgShow && item.prop === 'version'))
+        : getManualConfig(configData);
       // 手动安装无自动选择
       apList = apList.filter(item => item.id !== -1);
       // 自动接入点改默认接入点
@@ -631,6 +638,8 @@ export default class AgentImport extends Mixins(mixin) {
         apList.unshift(obj as IApExpand);
       }
       this.setupInfo.header = this.isEdit ? editConfig : tableConfig;
+      // agent开关打开则显示agent版本
+      this.setupInfo.header = this.setupInfo.header.filter(item => this.AgentPkgShow || item.prop !== 'version');
       data.forEach((item, index: number) => {
         item.ap_id = this.tableDataBackup[index].ap_id;
       });
@@ -661,11 +670,11 @@ export default class AgentImport extends Mixins(mixin) {
       this.editTableHead.editManualConfig = getManualConfig(editConfig)
         .map(item => Object.assign({ ...item }, { show: true }));
     } else {
-      this.editTableHead.editConfig = editConfig;
-      //重装时表格增加agent版本信息
-      this.editTableHead.editManualConfig = (this.type === 'REINSTALL_AGENT') ?
-      editConfig.filter(item => item.manualProp || item.prop === 'version') :
-      getManualConfig(editConfig);
+      this.editTableHead.editConfig = editConfig.filter(item => this.AgentPkgShow || item.prop !== 'version');
+      // 重装时表格增加agent版本信息
+      this.editTableHead.editManualConfig = (this.type === 'REINSTALL_AGENT')
+        ? editConfig.filter(item => item.manualProp || (this.AgentPkgShow && item.prop === 'version'))
+        : getManualConfig(editConfig);
     }
   }
   private handleShowPanel() {
