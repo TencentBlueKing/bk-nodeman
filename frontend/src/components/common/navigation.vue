@@ -131,7 +131,7 @@ import MixinsControlDropdown from '@/components/common/MixinsControlDropdown.vue
 import ExceptionPage from '@/components/exception/exception-page.vue';
 import routerBackMixin from '@/common/router-back-mixin';
 import { bus } from '@/common/bus';
-import { INavConfig, ISideMenuCofig } from '@/types';
+import { INavConfig, ISideMenuConfig } from '@/types';
 
 interface IUserItem {
   id: string
@@ -234,7 +234,7 @@ export default class NodemanNavigation extends Mixins(routerBackMixin) {
   // 根据开关隐藏Agent包管理菜单
   private get navListHideAgentPkg() {
     // 深拷贝侧边栏菜单列表
-    const navList = JSON.parse(JSON.stringify(this.navList[this.activeIndex].children || [])) as ISideMenuCofig[];
+    const navList = JSON.parse(JSON.stringify(this.navList[this.activeIndex].children || [])) as ISideMenuConfig[];
     // 过滤隐藏Agent包管理菜单
     navList?.forEach((item) => {
       if (item.name === 'nav_Agent状态') {
