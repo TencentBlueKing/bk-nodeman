@@ -296,8 +296,14 @@ export default class CloudManagerSetup extends Mixins(formLabelMixin, FilterIpMi
     CloudStore.setApUrl({ id: this.apId });
     this.loading = false;
   }
+  // 是否显示agent包版本
+  private get AgentPkgShow(): Boolean {
+    // agent包开关开启并且接入点是v2版本时候显示agent包版本
+    return MainStore.ENABLE_AGENT_PACKAGE_UI && this.isApV2;
+  }
   private initForm() {
-    if (!this.isApV2) {
+    // agent包开关关闭或者不是接入点v2版本时候不显示agent包版本
+    if (!this.AgentPkgShow) {
       this.setupConfig.header = this.setupConfig.header?.filter(item => item.prop !== 'version');
     }
     this.formData = {
@@ -311,7 +317,7 @@ export default class CloudManagerSetup extends Mixins(formLabelMixin, FilterIpMi
   }
   // 判断当前接入点是v2版本
   private get isApV2(): Boolean {
-    return this.apList.find(data => data.id == this.apId)?.gse_version === 'V2';
+    return this.apList.find(data => data.id === this.apId)?.gse_version === 'V2';
   }
   /**
    * 重试回填数据
@@ -319,7 +325,7 @@ export default class CloudManagerSetup extends Mixins(formLabelMixin, FilterIpMi
   private initTableData() {
     const defaultAp = this.apList.find(item => item.is_default);
     // 设置默认版本
-    const version = this.isApV2 ? this.defaultVersion : '';
+    const version = this.AgentPkgShow ? this.defaultVersion : '';
     const table = [];
     const initRow = {
       inner_ip: '',
@@ -469,7 +475,7 @@ export default class CloudManagerSetup extends Mixins(formLabelMixin, FilterIpMi
     } else {
       this.setupConfig.header = setupInfo;
     }
-    if (!this.isApV2) {
+    if (!this.AgentPkgShow) {
       this.setupConfig.header = this.setupConfig.header?.filter(item => item.prop !== 'version');
     }
     this.setupTable.handleInit();

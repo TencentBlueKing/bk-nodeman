@@ -92,9 +92,14 @@ export interface INavConfig {
   currentActive?: string // 当前二级导航选中项
   defaultActive?: string // 当前二级导航初始化选中项
   disabled?: boolean // 是否禁用一级导航
-  children?: ISubNavConfig[] // 二级导航配置
+  children?: ISideMenuCofig[] // 二级导航配置
 }
 
+// 侧边栏菜单配置
+export interface ISideMenuCofig {
+  name: string // 侧边栏菜单分类名称
+  children?: ISubNavConfig[] // 子菜单配置
+}
 export interface ISubNavConfig {
   title: string // 二级导航标题
   icon: string // 二级导航icon

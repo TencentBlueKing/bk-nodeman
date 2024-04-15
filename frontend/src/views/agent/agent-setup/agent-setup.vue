@@ -98,8 +98,8 @@
           </bk-form-item>
 
           <bk-form-item
-            v-show="isApVersion2"
-            :required="isApVersion2"
+            v-show="isShowAgentPkg"
+            :required="isShowAgentPkg"
             error-display-type="normal"
             property="choice_version_type"
             :label="$t('agent版本')">
@@ -277,8 +277,13 @@ export default class AgentSetup extends Mixins(mixin, formLabelMixin) {
     agent_version: '',
     osVersions: [],
   };
-  // 根据接入点的gse_version是不是v2版本来显示agent版本选择是否显示（必填）、隐藏（非必填）
-  private isApVersion2 = false;
+  // 根据agent开关和接入点的gse_version是不是v2版本来显示agent版本选择是否显示（必填）、隐藏（非必填）
+  private get isShowAgentPkg() {
+    // 判断接入点版本是否为V2版本
+    const isApVersion2 = this.curApList.length > 0 && !isEmpty(this.formData.ap_id)
+      && this.curApList.find(item => item.id === this.formData.ap_id)?.gse_version === 'V2';
+    return MainStore.ENABLE_AGENT_PACKAGE_UI && isApVersion2;
+  };
   private get rules() {
     const commonRules = {
       bk_biz_id: [reguRequired],
@@ -286,7 +291,7 @@ export default class AgentSetup extends Mixins(mixin, formLabelMixin) {
       install_channel_id: [reguRequired],
       ap_id: [reguRequired],
       agent_version: [{
-        required: this.isApVersion2,
+        required: this.isShowAgentPkg,
         message: window.i18n.t('必填项'),
         trigger: 'blur',
       }],
@@ -400,8 +405,7 @@ export default class AgentSetup extends Mixins(mixin, formLabelMixin) {
   public handleApIdChange(val: number) {
     let urlType = '';
     // 根据接入点选择的ap_id是否是v2版本 来设置布尔值
-    this.isApVersion2 = this.curApList.length > 0 && !isEmpty(this.formData.ap_id)
-      && this.curApList.find(item => item.id === this.formData.ap_id)?.gse_version === 'V2';
+    
     if (isEmpty(this.formData.bk_cloud_id)) {
       urlType = '';
     } else if (this.isDefaultCloud) {
@@ -494,7 +498,7 @@ export default class AgentSetup extends Mixins(mixin, formLabelMixin) {
         const params = {
           job_type: 'INSTALL_AGENT',
           // v2版本接入点传agent_setup_info，非v2不传
-          ...(this.isApVersion2 && {agent_setup_info}),
+          ...(this.isShowAgentPkg && { agent_setup_info }),
           hosts: this.getFormData().map(({ prove, ...item }: ISetupRow) => {
             if (isEmpty(item.login_ip)) {
               delete item.login_ip;
