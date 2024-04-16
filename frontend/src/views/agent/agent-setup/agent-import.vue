@@ -515,8 +515,8 @@ export default class AgentImport extends Mixins(mixin) {
         job_type: this.type,
         hosts,
       };
-      // 重装类型因为能拿到bk_host_id,按统一版本
-      if (this.type === 'REINSTALL_AGENT') {
+      // 重装类型因为能拿到bk_host_id,按统一版本,打开agent开关传agent信息
+      if (this.type === 'REINSTALL_AGENT' && this.AgentPkgShow) {
         Object.assign(params, {
           agent_setup_info: {
             choice_version_type: 'by_host',
