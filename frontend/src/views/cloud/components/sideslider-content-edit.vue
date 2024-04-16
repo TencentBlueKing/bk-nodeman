@@ -91,8 +91,8 @@
         </bk-switcher>
       </bk-form-item>
       <bk-form-item
-        v-show="isApV2"
-        :required="isApV2"
+        v-show="AgentPkgShow"
+        :required="AgentPkgShow"
         :rules="rules.version"
         error-display-type="normal"
         property="version"
@@ -145,7 +145,7 @@
 </template>
 <script lang="ts">
 import { Vue, Component, Prop, Watch, Ref, Emit } from 'vue-property-decorator';
-import { CloudStore } from '@/store';
+import { CloudStore, MainStore } from '@/store';
 import { isEmpty } from '@/common/util';
 import { authentication, DHCP_FILTER_KEYS } from '@/config/config';
 import Upload from '@/components/setup-table/upload.vue';
@@ -205,9 +205,9 @@ export default class SidesliderContentEdit extends Vue {
   private get apList() {
     return CloudStore.apList;
   }
-  // 判断当前接入点是v2版本
-  public get isApV2(): Boolean {
-    return this.apList.find(data => data.id === this.proxyData.ap_id)?.gse_version === 'V2';
+  // 判断当前agent是否打开且接入点是v2版本
+  public get AgentPkgShow(): Boolean {
+    return MainStore.ENABLE_AGENT_PACKAGE_UI && this.apList.find(data => data.id === this.proxyData.ap_id)?.gse_version === 'V2';
   }
   private proxyData: Dictionary = {};
   private get rules() {
@@ -218,7 +218,7 @@ export default class SidesliderContentEdit extends Vue {
       account: [reguRequired],
       speedLimit: [reguFnMinInteger(1)],
       path: [reguRequired, reguFnSysPath({ minLevel: 2 })],
-      version: this.isApV2 ? [reguRequired] : []
+      version: this.AgentPkgShow ? [reguRequired] : [],
     };
     return commonRules;
   };
