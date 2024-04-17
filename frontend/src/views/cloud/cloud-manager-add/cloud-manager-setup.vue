@@ -411,6 +411,7 @@ export default class CloudManagerSetup extends Mixins(formLabelMixin, FilterIpMi
   private async handleCreateOrReplace(data: ISetupRow[], type = 'INSTALL_PROXY') {
     this.loadingSetup = true;
     const ipKeys: IProxyIpKeys[] = ['inner_ip', 'outer_ip', 'login_ip'];
+    const versionList: { bk_host_id: number; version: string; }[] = [];
     const hosts = data.map((item: ISetupRow) => {
       const { inner_ip, outer_ip, login_ip, ...other } = item;
       const host: ISetupRow = {
@@ -419,9 +420,22 @@ export default class CloudManagerSetup extends Mixins(formLabelMixin, FilterIpMi
       ipKeys.forEach((key) => {
         Object.assign(host, this.$setIpProp(key, item));
       });
+      versionList.push({
+        bk_host_id: item.bk_host_id as number,
+        version: item.version || '',
+      });
       return host;
     });
     const params: Dictionary = { job_type: type, hosts };
+    // 显示agent包版本，传agent信息
+    if (this.AgentPkgShow) {
+      Object.assign(params, {
+        agent_setup_info: {
+          choice_version_type: 'by_host',
+          version_map_list: versionList,
+        },
+      });
+    }
     if (type === 'REPLACE_PROXY') {
       params.replace_host_id = this.replaceHostId;
     }
