@@ -15,6 +15,7 @@ from typing import Any, Dict, Iterable, List, Optional, Set, Tuple, Type
 from django.conf import settings
 
 from apps.adapters.api.gse import get_gse_api_helper
+from apps.backend.exceptions import GenCommandsError
 from apps.backend.subscription.steps.agent_adapter.base import AgentSetupInfo
 from apps.core.script_manage.base import ScriptHook
 from apps.core.script_manage.handlers import ScriptManageHandler
@@ -81,6 +82,19 @@ def gen_nginx_download_url(nginx_ip: str) -> str:
         return f"http://{nginx_ip}:{settings.BK_NODEMAN_NGINX_DOWNLOAD_PORT}/"
 
 
+def gen_pagent_upstream_ips(host: models.Host, proxies: List[models.Host]) -> List[str]:
+    proxy_ips: List[str] = []
+    if host.inner_ipv6 and not host.inner_ip:
+        proxy_ips = list(set([proxy.inner_ipv6 for proxy in proxies]))
+        if not proxy_ips:
+            raise GenCommandsError(context=("Proxy IPv6地址获取失败，请检查Proxy是否存在IPv6地址"))
+    else:
+        proxy_ips = list(set([proxy.inner_ip or proxy.inner_ipv6 for proxy in proxies]))
+        if not proxy_ips:
+            raise GenCommandsError(context=("Proxy IP地址获取失败，请检查Proxy是否存在IPv4或IPv6地址"))
+    return proxy_ips
+
+
 def fetch_gse_servers_info(
     agent_setup_info: AgentSetupInfo,
     host: models.Host,
@@ -118,7 +132,7 @@ def fetch_gse_servers_info(
         callback_url = host_ap.outer_callback_url or settings.BKAPP_NODEMAN_OUTER_CALLBACK_URL
     else:
         # PAGENT的场景
-        proxy_ips = list(set([proxy.inner_ip or proxy.inner_ipv6 for proxy in proxies]))
+        proxy_ips: list = gen_pagent_upstream_ips(host, proxies)
         bt_file_server_hosts = proxy_ips
         data_server_hosts = proxy_ips
         task_server_hosts = proxy_ips
