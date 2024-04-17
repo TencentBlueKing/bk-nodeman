@@ -205,9 +205,11 @@ export default class SidesliderContentEdit extends Vue {
   private get apList() {
     return CloudStore.apList;
   }
-  // 判断当前agent是否打开且接入点是v2版本
+  // 判断当前agent是否打开且接入点是v2版本且是重载和重装
   public get AgentPkgShow(): Boolean {
-    return MainStore.ENABLE_AGENT_PACKAGE_UI && this.apList.find(data => data.id === this.proxyData.ap_id)?.gse_version === 'V2';
+    return MainStore.ENABLE_AGENT_PACKAGE_UI
+      && this.apList.find(data => data.id === this.proxyData.ap_id)?.gse_version === 'V2'
+      && ['reinstall', 'reload'].includes(this.editType);
   }
   private proxyData: Dictionary = {};
   private get rules() {
@@ -276,17 +278,25 @@ export default class SidesliderContentEdit extends Vue {
         params.bt_speed_limit = this.proxyData.bt_speed_limit;
       }
       params.peer_exchange_switch_for_agent = Number(this.proxyData.peer_exchange_switch_for_agent || false);
-      this.proxyData.version && (params.version = this.proxyData.version);
+      // 重装和重载时候才允许编辑接口修改agent版本信息
+      ['reinstall', 'reload'].includes(this.editType) && this.proxyData.version && (params.version = this.proxyData.version);
       const result = await CloudStore.updateHost(params);
       if (result) {
+        const agent_setup_info = {
+          choice_version_type: 'by_host',
+          version_map_list: {
+            bk_host_id: this.basic.bk_host_id as number,
+            version: this.proxyData.version as string,
+          },
+        };
         if (this.editType === 'reinstall') {
           // 重装
-          this.handleReinstall(this.basic);
+          this.handleReinstall(this.basic, agent_setup_info);
         } else if (this.editType === 'reload') {
           // 重载
           const basicInfo = JSON.parse(JSON.stringify(this.basic));
           Object.assign(basicInfo, params);
-          this.handleReload(basicInfo);
+          this.handleReload(basicInfo, agent_setup_info);
         } else {
           this.$bkMessage({
             theme: 'success',
@@ -307,10 +317,11 @@ export default class SidesliderContentEdit extends Vue {
   /**
    * 重装主机
   */
-  public async handleReinstall(row: IProxyDetail) {
+  public async handleReinstall(row: IProxyDetail, agent_setup_info: {}) {
     const result = await CloudStore.operateJob({
       job_type: 'REINSTALL_PROXY',
       bk_host_id: [row.bk_host_id],
+      agent_setup_info,
     });
     if (result.job_id) {
       this.handleRouterPush('taskDetail', { taskId: result.job_id });
@@ -319,7 +330,7 @@ export default class SidesliderContentEdit extends Vue {
   /**
    * 重载配置
   */
-  public async handleReload(row: Dictionary) {
+  public async handleReload(row: Dictionary, agent_setup_info: {}) {
     let paramKey = [
       'ap_id', 'bk_biz_id', 'bk_cloud_id', 'inner_ip', 'inner_ipv6',
       'is_manual', 'peer_exchange_switch_for_agent', 'bk_host_id', 'enable_compression', 'version'
@@ -345,7 +356,7 @@ export default class SidesliderContentEdit extends Vue {
         copyRow[key] = row[key];
       }
     });
-    const res = await CloudStore.setupProxy({ params: { job_type: 'RELOAD_PROXY', hosts: [copyRow] } });
+    const res = await CloudStore.setupProxy({ params: { job_type: 'RELOAD_PROXY', hosts: [copyRow], agent_setup_info } });
     if (res?.job_id) {
       this.handleRouterPush('taskDetail', { taskId: res.job_id });
     }
