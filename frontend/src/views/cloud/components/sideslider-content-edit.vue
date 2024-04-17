@@ -284,10 +284,12 @@ export default class SidesliderContentEdit extends Vue {
       if (result) {
         const agent_setup_info = {
           choice_version_type: 'by_host',
-          version_map_list: {
-            bk_host_id: this.basic.bk_host_id as number,
-            version: this.proxyData.version as string,
-          },
+          version_map_list: [
+            {
+              bk_host_id: this.proxyData.bk_host_id as number,
+              version: this.proxyData.version as string,
+            },
+          ],
         };
         if (this.editType === 'reinstall') {
           // 重装
