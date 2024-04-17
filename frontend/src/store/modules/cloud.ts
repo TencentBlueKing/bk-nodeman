@@ -180,7 +180,7 @@ export default class CloudStore extends VuexModule {
    * @param {*} params
    */
   @Action
-  public async operateJob(params: { 'job_type': string, 'bk_host_id': number[] }): Promise<{ 'job_id'?: number }> {
+  public async operateJob(params: { 'job_type': string, 'bk_host_id': number[], agent_setup_info?: {} }): Promise<{ 'job_id'?: number }> {
     const data = await operateJob(params).catch(() => false);
     return data;
   }
