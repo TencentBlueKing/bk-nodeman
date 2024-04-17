@@ -45,10 +45,11 @@ class FuncCacheDecorator:
 
         if self.check_is_split(key, func_result):
             func_result = self.join_splitted_cache(using, func_result)
+
         try:
             return json.loads(func_result)
         except Exception:
-            return func_result
+            return None
 
     def set_to_cache(self, using: str, key: str, value: typing.Any):
         cache = caches[using]
@@ -79,7 +80,7 @@ class FuncCacheDecorator:
             return False
 
         list_result = list(cache_result)
-        pattern = re.compile(rf"{key}|\d+")
+        pattern = re.compile(rf"{key}\|\d+")
         return bool(re.search(pattern, list_result[0]))
 
     def join_splitted_cache(self, using: str, keys: typing.List[str]) -> typing.Any:
@@ -91,6 +92,11 @@ class FuncCacheDecorator:
         for future in as_completed(futures):
             key = futures[future]
             results[key] = future.result()
+
+        if len(keys) != len(results):
+            missing_keys = set(keys) - set(results.keys())
+            for miss_key in missing_keys:
+                results[miss_key] = cache.get(miss_key, None)
 
         sorted_keys = sorted(results.keys(), key=lambda x: int(x.split("|")[-1]))
         return "".join(str(results[key]) for key in sorted_keys)
