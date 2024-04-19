@@ -196,3 +196,10 @@ class _CCApi(BaseApi):
             description="获取推送主机身份到机器结果",
             before_request=add_esb_info_before_request,
         )
+        self.list_service_instance_detail = DataAPI(
+            method="POST",
+            url=CC_APIGATEWAY_ROOT_V2 + "list_service_instance_detail/",
+            module=self.MODULE,
+            description="查询服务实例详情",
+            before_request=add_esb_info_before_request,
+        )

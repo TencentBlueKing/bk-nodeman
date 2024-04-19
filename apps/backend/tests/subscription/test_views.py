@@ -58,7 +58,7 @@ class TestSubscription(TestCase):
             "apps.backend.subscription.commons.get_host_object_attribute", lambda args: []
         )
         self.get_process_by_biz_id_client = mock.patch(
-            "apps.backend.subscription.tools.get_process_by_biz_id", lambda args: defaultdict(dict)
+            "apps.backend.subscription.tools.get_process_by_biz_id", lambda args, bk_host_list: defaultdict(dict)
         )
         self.tools_client = mock.patch("apps.backend.subscription.tools.client_v2", CmdbClient)
         self.commons_client = mock.patch("apps.backend.subscription.commons.client_v2", CmdbClient)

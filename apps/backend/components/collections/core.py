@@ -17,7 +17,7 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Set, Tuple, Un
 from django.utils.translation import ugettext_lazy as _
 
 from apps.core.concurrent import core_concurrent_constants
-from apps.node_man import models
+from apps.node_man import constants, models
 from apps.utils import enum
 from common.log import logger
 
@@ -31,6 +31,7 @@ class ServiceCCConfigName(enum.EnhanceEnum):
     JOB_CMD = "SERVICE_JOB_CMD"
     QUERY_PASSWORD = "SERVICE_QUERY_PASSWORD"
     HOST_WRITE = "HOST_WRITE"
+    CMDB_QUERY = "CMDB_QUERY"
 
     @classmethod
     def _get_member__alias_map(cls) -> Dict[Enum, str]:
@@ -40,6 +41,7 @@ class ServiceCCConfigName(enum.EnhanceEnum):
             cls.JOB_CMD: _("使用 job 执行命令"),
             cls.QUERY_PASSWORD: _("查询密码"),
             cls.HOST_WRITE: _("主机写入操作"),
+            cls.CMDB_QUERY: _("cc 并发查询数量"),
         }
 
 
@@ -57,6 +59,8 @@ def get_config_dict(config_name: str) -> Dict[str, Any]:
     elif config_name == ServiceCCConfigName.HOST_WRITE:
         # 每一批的数量不能过多，不然可能会出现单台主机校验失败导致整个安装任务失败
         default_concurrent_control_config.update(limit=100)
+    elif config_name == ServiceCCConfigName.CMDB_QUERY.value:
+        default_concurrent_control_config.update(limit=constants.QUERY_CMDB_LIMIT)
 
     current_controller_settings = models.GlobalSettings.get_config(
         key=models.GlobalSettings.KeyEnum.CONCURRENT_CONTROLLER_SETTINGS.value, default={}
