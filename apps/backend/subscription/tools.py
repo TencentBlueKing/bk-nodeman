@@ -26,6 +26,7 @@ from django.conf import settings
 from django.db.models import Q
 from django.utils import timezone
 
+from apps.backend.components.collections import core
 from apps.backend.constants import InstNodeType
 from apps.backend.subscription import task_tools
 from apps.backend.subscription.commons import get_host_by_inst, list_biz_hosts
@@ -37,16 +38,18 @@ from apps.backend.subscription.errors import (
 )
 from apps.backend.utils.data_renderer import nested_render_data
 from apps.component.esbclient import client_v2
+from apps.core.concurrent import controller
 from apps.core.concurrent.cache import FuncCacheDecorator
 from apps.core.ipchooser.tools.base import HostQuerySqlHelper
-from apps.exceptions import ComponentCallError
 from apps.node_man import constants, models
 from apps.node_man import tools as node_man_tools
 from apps.prometheus import metrics
 from apps.prometheus.helper import SetupObserve, get_call_resource_labels_func
+from apps.utils import concurrent
 from apps.utils.basic import chunk_lists, distinct_dict_list, order_dict
 from apps.utils.batch_request import batch_request, request_multi_thread
 from apps.utils.time_handler import strftime_local
+from common.api import CCApi
 
 logger = logging.getLogger("app")
 
@@ -274,10 +277,44 @@ def find_host_biz_relations(bk_host_ids: List[int]) -> List[Dict]:
     return host_biz_relations
 
 
-def get_process_by_biz_id(bk_biz_id: int) -> Dict:
+@controller.ConcurrentController(
+    data_list_name="bk_host_list",
+    batch_call_func=concurrent.batch_call,
+    get_config_dict_func=core.get_config_dict,
+    get_config_dict_kwargs={"config_name": core.ServiceCCConfigName.CMDB_QUERY.value},
+)
+def get_service_instances(bk_biz_id: int, bk_host_list: List[int]) -> List[Dict]:
     """
-    查询业务主机进程
+    分批查询业务主机进程
     :param bk_biz_id: 业务ID
+    :param bk_host_list: 实例主机id列表
+    :return: 主机进程
+    """
+    try:
+        params = {
+            "bk_biz_id": int(bk_biz_id),
+            "with_name": True,
+            "bk_host_list": bk_host_list,
+            "page": {
+                "start": 0,
+                "limit": len(bk_host_list),
+            },
+        }
+        result = CCApi.list_service_instance_detail(params)["info"]
+    except Exception:
+        logger.exception(f"Failed to list_service_instance_detail with biz_id={bk_biz_id}, bk_host_list={bk_host_list}")
+        service_instances = []
+    else:
+        service_instances = result
+
+    return service_instances
+
+
+def get_process_by_biz_id(bk_biz_id: int, bk_host_list: List[int]) -> Dict:
+    """
+    查询并汇总业务主机进程
+    :param bk_biz_id: 业务ID
+    :param bk_host_list: 实例主机id列表
     :return: 主机进程
     {
         "123": {
@@ -285,14 +322,7 @@ def get_process_by_biz_id(bk_biz_id: int) -> Dict:
         }
     }
     """
-    try:
-        params = {"bk_biz_id": int(bk_biz_id), "with_name": True}
-        result = batch_request(client_v2.cc.list_service_instance_detail, params)
-    except (TypeError, ComponentCallError):
-        logger.warning(f"Failed to list_service_instance_detail with biz_id={bk_biz_id}")
-        service_instances = []
-    else:
-        service_instances = result
+    service_instances = get_service_instances(bk_biz_id=bk_biz_id, bk_host_list=bk_host_list)
 
     host_processes = defaultdict(dict)
 
@@ -987,7 +1017,12 @@ def _add_process_info_to_host_instances(bk_biz_id: int, instances: List[Dict]):
     :param bk_biz_id: 业务ID
     :param instances: 实例列表
     """
-    host_processes = get_process_by_biz_id(bk_biz_id)
+    bk_host_list = [instance["host"]["bk_host_id"] for instance in instances]
+    host_processes = get_process_by_biz_id(bk_biz_id, bk_host_list)
+    logging.info(
+        f"[add_process_info_to_host_instances] instance_hosts_count -> {len(bk_host_list)}, "
+        f"cc_query_count -> {len(host_processes)}"
+    )
     for instance in instances:
         bk_host_id = instance["host"]["bk_host_id"]
         instance["process"] = host_processes[bk_host_id]
