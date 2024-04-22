@@ -24,6 +24,7 @@ import { IAuthApply, IBkBiz } from '@/types/index';
 import BkPaasLogin from '@blueking/paas-login/dist/paas-login.umd';
 import NoticeComponent from '@blueking/notice-component-vue2';
 import '@blueking/notice-component-vue2/dist/style.css';
+import { showLoginModal } from '@blueking/login-modal';
 
 @Component({
   name: 'app',
@@ -96,30 +97,28 @@ export default class App extends Vue {
   private mounted() {
     window.LoginModal = this.$refs.login;
     bus.$on('show-login-modal', () => {
+      // static_url： '/static/' or '/'
+      const static_url = window.PROJECT_CONFIG?.STATIC_URL ? window.PROJECT_CONFIG.STATIC_URL : '/';
+      // 登录成功之后的回调地址，用于执行关闭登录窗口或刷新父窗口页面等动作
+      const successUrl = `${window.location.origin}${static_url}login_success.html`;
       const { href, protocol } = window.location;
+      let loginUrl = '';
       if (process.env.NODE_ENV === 'development') {
-        window.location.href = LOGIN_DEV_URL + href;
+        // 本地登录地址不需要bknodeman前缀
+        loginUrl = LOGIN_DEV_URL.replace('bknodeman.','') + encodeURIComponent(successUrl);
       } else {
-        // 目前仅ieod取消登录弹框
-        // if (window.PROJECT_CONFIG.RUN_VER === 'ieod') {
-        let loginUrl = window.PROJECT_CONFIG.LOGIN_URL;
+        loginUrl = window.PROJECT_CONFIG.LOGIN_URL;
         if (!/http(s)?:\/\//.test(loginUrl)) {
           loginUrl = `${protocol}//${loginUrl}`;
         }
-        if (!loginUrl.includes('?')) {
-          loginUrl += '?';
-        }
-        window.location.href = `${loginUrl}&c_url=${encodeURIComponent(href)}`;
-        // } else {
-        //   const res = data?.data || {};
-        //   if (res.has_plain) {
-        //     MainStore.setLoginUrl(res.login_url);
-        //     window.LoginModal && window.LoginModal.show();
-        //   } else {
-        //     window.location.href = res.login_url ? res.login_url : (LOGIN_DEV_URL + href);
-        //   }
-        // }
       }
+      // 处理登录地址为登录小窗需要的格式，主要是设置c_url参数
+      const loginURL = new URL(loginUrl);
+      loginURL.searchParams.set('c_url', successUrl);
+      const pathname = loginURL.pathname.endsWith('/') ? loginURL.pathname : `${loginURL.pathname}/`;
+      loginUrl = `${loginURL.origin}${pathname}plain/${loginURL.search}`;
+      // 使用登录弹框登录
+      showLoginModal({ loginUrl });
     });
     bus.$on('show-permission-modal', (data: { trigger: 'request' | 'click', params: IAuthApply }) => {
       this.permissionModal.show(data);
