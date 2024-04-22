@@ -11,13 +11,13 @@ specific language governing permissions and limitations under the License.
 
 import os
 
-from celery import Celery, platforms
+from celery import Celery
 from django.conf import settings
 
 # http://docs.celeryproject.org/en/latest/userguide/daemonizing.html#running-the-worker-with-superuser-privileges-root
 # for root start celery
 
-platforms.C_FORCE_ROOT = True
+os.environ.setdefault("C_FORCE_ROOT", "true")
 
 # set the default Django settings module for the 'celery' program.
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "settings")

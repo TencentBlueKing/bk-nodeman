@@ -42,7 +42,6 @@ drf-yasg==1.20.3
 
 # pipeline
 ujson==4.3.0
-bamboo-pipeline==3.24.6
 pyparsing==2.2.0
 redis==4.3.6
 django-timezone-field==4.1.0
