@@ -179,6 +179,12 @@ const baseConfig: webpack.Configuration = {
         from: resolve('static/images'),
         to: resolve('dist/static/images'),
         toType: 'dir'
+      },
+      // 成功登录页面构建
+      {
+        from: resolve('./login_success.html'),
+        to: `${config.build.assetsRoot}/login_success.html`,
+        toType: 'file'
       }]
     }),
     new ProgressBarPlugin({

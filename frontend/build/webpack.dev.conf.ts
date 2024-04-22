@@ -177,6 +177,12 @@ const webpackConfig = merge(baseConf, {
             inject: true
         }),
 
+        new HtmlWebpackPlugin({
+            filename: 'login_success.html',
+            template: 'login_success.html',
+            inject: true
+        }),
+
         // new AnalyzerPlugin.BundleAnalyzerPlugin()
         // new FriendlyErrorsPlugin()
     ]
