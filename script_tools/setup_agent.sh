@@ -511,7 +511,7 @@ remove_agent () {
 
     backup_config_file
     log remove_agent - "trying to remove old agent directory(${AGENT_SETUP_PATH})"
-    cd "${AGENT_SETUP_PATH}"
+    cd "${AGENT_SETUP_PATH}" || return 0
     for file in `lsattr -R |egrep "i-" |awk '{print $NF}'`;do echo "--- $file" && chattr -i $file ;done
     cd -
     rm -rf "${AGENT_SETUP_PATH}"
