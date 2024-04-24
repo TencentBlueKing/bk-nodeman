@@ -214,7 +214,7 @@ const config: ISetupHead[] = [
     parentProp: 'trans_info',
   },
   {
-    label: 'Agent 包版本',
+    label: 'Agent包版本',
     prop: 'version',
     type: 'choose',
     required: true,
