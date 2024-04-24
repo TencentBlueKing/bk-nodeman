@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import logging
 
-from celery.task import periodic_task, task
+from celery import current_app
 from django.core.cache import caches
 
 from apps.backend.subscription import constants, tools
@@ -22,7 +22,7 @@ logger = logging.getLogger("celery")
 cache = caches["db"]
 
 
-@task(queue="default", ignore_result=True)
+@current_app.task(queue="default", ignore_result=True)
 def get_instances_by_scope_task(subscription_id):
     subscription = models.Subscription.objects.get(id=subscription_id)
     scope_md5 = count_md5(subscription.scope)
@@ -35,7 +35,7 @@ def get_instances_by_scope_task(subscription_id):
     logger.info(f"[cache_subscription_scope_instances] (subscription: {subscription_id}) end.")
 
 
-@periodic_task(
+@current_app.task(
     run_every=constants.SUBSCRIPTION_UPDATE_INTERVAL,
     queue="backend",
     options={"queue": "backend"},

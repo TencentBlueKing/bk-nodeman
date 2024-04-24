@@ -13,6 +13,7 @@ from typing import Any, Callable, Dict, List, Optional
 
 from bkstorages.backends import bkrepo
 from django.conf import settings
+from django.core.files import File
 from django.core.files.storage import FileSystemStorage, Storage, get_storage_class
 from django.utils.deconstruct import deconstructible
 from django.utils.functional import cached_property
@@ -79,6 +80,18 @@ class CustomBKRepoStorage(BaseStorage, bkrepo.BKRepoStorage):
         file_metadata = self.get_file_metadata(key=file_name)
         file_md5 = file_metadata["X-Checksum-Md5"]
         return file_md5
+
+    def save(self, name, content, max_length=None):
+        if name is None:
+            name = content.name
+
+        if not hasattr(content, "chunks"):
+            content = File(content, name)
+
+        name = self.get_available_name(name, max_length=max_length)
+        name = self._save(name, content)
+        """去除 django 对于文件路径的校验，直接返回原文件名"""
+        return name
 
     def _handle_file_source_list(
         self, file_source_list: List[Dict[str, Any]], extra_transfer_file_params: Dict[str, Any]
@@ -157,6 +170,18 @@ class AdminFileSystemStorage(BaseStorage, FileSystemStorage):
     def location(self):
         """路径指向 / ，重写前路径指向「项目根目录」"""
         return self.base_location
+
+    def save(self, name, content, max_length=None):
+        if name is None:
+            name = content.name
+
+        if not hasattr(content, "chunks"):
+            content = File(content, name)
+
+        name = self.get_available_name(name, max_length=max_length)
+        name = self._save(name, content)
+        """去除 django 对于文件路径的校验，直接返回原文件名"""
+        return name
 
     def _save(self, name, content):
         # 如果允许覆盖，保存前删除文件

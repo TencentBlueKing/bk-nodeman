@@ -11,8 +11,8 @@ specific language governing permissions and limitations under the License.
 import math
 import typing
 
+from celery import current_app
 from celery.schedules import crontab
-from celery.task import periodic_task
 from django.conf import settings
 from django.db import transaction
 
@@ -472,7 +472,7 @@ def sync_cmdb_host(bk_biz_id=None, task_id=None):
     logger.info(f"[sync_cmdb_host] complete: task_id -> {task_id}, bk_biz_ids -> {bk_biz_ids}")
 
 
-@periodic_task(
+@current_app.task(
     queue="default",
     options={"queue": "default"},
     run_every=crontab(hour="0", minute="0", day_of_week="*", day_of_month="*", month_of_year="*"),

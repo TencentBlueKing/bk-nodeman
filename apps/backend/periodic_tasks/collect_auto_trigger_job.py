@@ -12,7 +12,7 @@ specific language governing permissions and limitations under the License.
 import logging
 from collections import defaultdict
 
-from celery.task import periodic_task
+from celery import current_app
 from django.conf import settings
 from django.db import transaction
 from django.db.models import Q
@@ -22,7 +22,7 @@ from apps.node_man import constants, models
 logger = logging.getLogger("celery")
 
 
-@periodic_task(
+@current_app.task(
     run_every=constants.COLLECT_AUTO_TRIGGER_JOB_INTERVAL,
     queue="backend",  # 这个是用来在代码调用中指定队列的，例如： update_subscription_instances.delay()
     options={"queue": "backend"},  # 这个是用来celery beat调度指定队列的

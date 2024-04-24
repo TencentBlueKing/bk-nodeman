@@ -15,7 +15,7 @@ import contextlib
 import logging
 import traceback
 
-from celery.task.control import revoke
+from celery import current_app
 from django.db import models, transaction
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
@@ -621,7 +621,13 @@ class NodeRelationship(models.Model):
     objects = RelationshipManager()
 
     def __unicode__(self):
-        return str("#{} -({})-> #{}".format(self.ancestor_id, self.distance, self.descendant_id,))
+        return str(
+            "#{} -({})-> #{}".format(
+                self.ancestor_id,
+                self.distance,
+                self.descendant_id,
+            )
+        )
 
 
 class StatusManager(models.Manager):
@@ -1164,7 +1170,7 @@ class ProcessCeleryTaskManager(models.Manager):
     def revoke(self, process_id, kill=False):
         task = self.get(process_id=process_id)
         kwargs = {} if not kill else {"signal": "SIGKILL"}
-        revoke(task.celery_task_id, terminate=True, **kwargs)
+        current_app.control.revoke(task.celery_task_id, terminate=True, **kwargs)
         self.destroy(process_id)
 
 
@@ -1221,7 +1227,7 @@ class NodeCeleryTaskManager(models.Manager):
 
     def revoke(self, node_id):
         task = self.get(node_id=node_id)
-        revoke(task.celery_task_id)
+        current_app.control.revoke(task.celery_task_id)
         self.destroy(node_id)
 
 
