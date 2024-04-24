@@ -372,6 +372,10 @@ export default class AgentImport extends Mixins(mixin) {
         if (!item.install_channel_id) {
           item.install_channel_id = 'default';
         }
+        // 未分配管控区域,bk_cloud_id改为-1
+        if (item.is_unassigned) {
+          item.bk_cloud_id = -1;
+        }
         const prove: { [key: string]: string } = {};
         const copyRow = Object.assign({}, item, item.identity_info, apDefault, prove);
         // 不同版本的GSE不能混用对应版本的接入点
@@ -384,6 +388,10 @@ export default class AgentImport extends Mixins(mixin) {
     } else {
       defaultAp = { ap_id: apDefault };
       const formatData = this.tableData.map((item) => {
+        // 未分配管控区域,bk_cloud_id改为-1
+        if (item.is_unassigned) {
+          item.bk_cloud_id = -1;
+        }
         const copyRow = { ...item };
         if (this.isNotAutoSelect && item.ap_id === -1) {
           Object.assign(copyRow, defaultAp);

@@ -24,6 +24,7 @@ export interface IAgentHost {
   bk_biz_id: number
   bk_biz_name: string
   bk_cloud_id: number
+  is_unassigned?: boolean
   bk_cloud_name: string
   bk_host_name: string
   is_manual: boolean
