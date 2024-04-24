@@ -464,7 +464,7 @@ export default class SetupTable extends Vue {
     const [newValue] = arg;
     const prop = config.prop as IKeysMatch<ISetupRow, string>;
     const sync = config.sync as IKeysMatch<ISetupRow, string>;
-    const syncSource = typeof row[prop] === 'undefined' ? '' : row[prop].trim();
+    const syncSource = typeof row[prop] === 'undefined' ? '' : row[prop]?.trim();
     const syncTarget = typeof row[sync] === 'undefined' ? '' : row[sync].trim();
     if (sync && syncSource === syncTarget) {
       row[sync] = newValue;
@@ -480,7 +480,7 @@ export default class SetupTable extends Vue {
     MainStore.updateEdited(true);
     const prop = config.prop as IKeysMatch<ISetupRow, string>;
     if (config.type !== 'textarea' && row[prop] && typeof row[prop] === 'string') {
-      row[prop] = row[prop].trim();
+      row[prop] = row[prop]?.trim();
     }
     if (config.handleValueChange) {
       config.handleValueChange.call(this, row);
@@ -583,7 +583,7 @@ export default class SetupTable extends Vue {
     }
     const ipRepeat = this.table.data.some((row: ISetupRow | any) => {
       if (row.id === rowId) return false;
-      let targetValue = !isEmpty(row[prop]) ? row[prop].trim() : '';
+      let targetValue = !isEmpty(row[prop]) ? row[prop]?.trim() : '';
       // 1. 处理多值的情况
       // eslint-disable-next-line @typescript-eslint/prefer-optional-chain
       if (splitCode && splitCode.length) {
