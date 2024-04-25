@@ -156,6 +156,8 @@ class GlobalSettings(models.Model):
         DISABLE_STOPPED_PLUGIN = "DISABLE_STOPPED_PLUGIN"
         # 根据订阅分配任务队列
         SUBSCRIPTION_UPDATE_TASK_QUEUE = "SUBSCRIPTION_UPDATE_TASK_QUEUE"
+        # JOB任务策略
+        JOB_TASK_POLICY = "JOB_TASK_POLICY"
 
     key = models.CharField(_("键"), max_length=255, db_index=True, primary_key=True)
     v_json = JSONField(_("值"))

@@ -83,6 +83,10 @@ class GrayTools:
             bk_host_id__in=bk_host_ids
         ).values("bk_host_id", "ap_id")
         host_id__ap_id_map: typing.Dict[int, typing.Optional[int]] = {}
+        job_task_policy: typing.Dict[str, typing.List[int]] = node_man_models.GlobalSettings.get_config(
+            key=node_man_models.GlobalSettings.KeyEnum.JOB_TASK_POLICY.value, default={}
+        )
+        biz_ids_list: typing.List[int] = job_task_policy.get(node_man_constants.BkJobScopeType.BIZ.value, [])
 
         for host_info in host_infos:
             host_id__ap_id_map[host_info["bk_host_id"]] = host_info["ap_id"]
@@ -95,9 +99,12 @@ class GrayTools:
             if host_info.get("is_need_inject_ap_id"):
                 # 双如果为安装额外Agent 将ap_id 注入 meta
                 meta["AP_ID"] = ap_id
-
+            bk_biz_id = host_info.get("bk_biz_id")
+            if bk_biz_id in biz_ids_list:
+                meta["SCOPE_ID"] = bk_biz_id
+                meta["SCOPE_TYPE"] = node_man_constants.BkJobScopeType.BIZ.value
             gse_version: str = self.get_host_ap_gse_version(
-                bk_biz_id=host_info.get("bk_biz_id"),
+                bk_biz_id=bk_biz_id,
                 ap_id=ap_id,
                 is_install_other_agent=host_info.get("is_need_inject_ap_id"),
             )

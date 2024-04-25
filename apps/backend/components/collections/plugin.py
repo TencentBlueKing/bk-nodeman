@@ -526,6 +526,7 @@ class TransferPackageService(JobV3BaseService, PluginBaseService):
     """调用作业平台传输插件包"""
 
     def _execute(self, data, parent_data, common_data: PluginCommonData):
+        job_meta = self.get_job_meta(data)
         process_statuses = common_data.process_statuses
         group_id_instance_map = common_data.group_id_instance_map
         host_id_obj_map = common_data.host_id_obj_map
@@ -567,6 +568,7 @@ class TransferPackageService(JobV3BaseService, PluginBaseService):
                         "file_source_list": [{"file_list": file_list}],
                         "os_type": job["os_type"],
                         "target_server": {"ip_list": job["ip_list"], "host_id_list": job["host_id_list"]},
+                        "meta": job_meta,
                     },
                 }
             )
@@ -621,6 +623,7 @@ class PluginExecuteScriptService(PluginBaseService, JobV3BaseService, metaclass=
         return False
 
     def _execute(self, data, parent_data, common_data: PluginCommonData):
+        job_meta = self.get_job_meta(data)
         process_statuses = common_data.process_statuses
         timeout = data.get_one_of_inputs("timeout")
         group_id_instance_map = common_data.group_id_instance_map
@@ -652,6 +655,7 @@ class PluginExecuteScriptService(PluginBaseService, JobV3BaseService, metaclass=
                     {"bk_cloud_id": host.bk_cloud_id, "ip": host.inner_ip}
                 )
                 multi_job_params_map[key]["job_params"]["target_server"]["host_id_list"].append(host.bk_host_id)
+                multi_job_params_map[key]["job_params"]["meta"] = job_meta
             else:
                 multi_job_params_map[key] = {
                     "job_func": JobApi.fast_execute_script,
@@ -666,6 +670,7 @@ class PluginExecuteScriptService(PluginBaseService, JobV3BaseService, metaclass=
                         "script_param": script_param,
                         "timeout": timeout,
                         "os_type": host.os_type,
+                        "meta": job_meta,
                     },
                 }
         self.run_job_or_finish_schedule(multi_job_params_map)
@@ -827,15 +832,13 @@ class JobAllocatePortService(PluginExecuteScriptService):
         subscription_instance: models.SubscriptionInstanceRecord,
         job_instance_id: int,
         step_instance_id: int,
+        meta: Dict[str, Any],
     ):
         """根据job返回日志分配端口"""
         bk_host_id = process_status.bk_host_id
-
         # 查询并解析该主机已被占用的端口号
         instance_log_base_params: Dict[str, Union[str, int]] = {
-            "bk_biz_id": settings.BLUEKING_BIZ_ID,
-            "bk_scope_type": constants.BkJobScopeType.BIZ_SET.value,
-            "bk_scope_id": settings.BLUEKING_BIZ_ID,
+            **meta,
             "job_instance_id": job_instance_id,
             "step_instance_id": step_instance_id,
         }
@@ -870,7 +873,9 @@ class JobAllocatePortService(PluginExecuteScriptService):
             [subscription_instance.id], _("主机[{}]在ip->[{}]上无可用端口").format(host.inner_ip, listen_ip)
         )
 
-    def get_job_instance_status(self, job_sub_map: models.JobSubscriptionInstanceMap, common_data: PluginCommonData):
+    def get_job_instance_status(
+        self, job_sub_map: models.JobSubscriptionInstanceMap, common_data: PluginCommonData, meta: Dict[str, Any]
+    ):
         """查询作业平台执行状态"""
         bk_host_ids = common_data.bk_host_ids
         process_statuses = common_data.process_statuses
@@ -879,9 +884,7 @@ class JobAllocatePortService(PluginExecuteScriptService):
 
         result = JobApi.get_job_instance_status(
             {
-                "bk_biz_id": settings.BLUEKING_BIZ_ID,
-                "bk_scope_type": constants.BkJobScopeType.BIZ_SET.value,
-                "bk_scope_id": settings.BLUEKING_BIZ_ID,
+                **meta,
                 "job_instance_id": job_sub_map.job_instance_id,
                 "return_ip_result": True,
             }
@@ -910,6 +913,7 @@ class JobAllocatePortService(PluginExecuteScriptService):
                     "subscription_instance": subscription_instance,
                     "job_instance_id": job_sub_map.job_instance_id,
                     "step_instance_id": step_instance_id,
+                    "meta": meta,
                 }
             )
         request_multi_thread(self.allocate_port_to_process_status, multi_allocate_params)
@@ -918,8 +922,9 @@ class JobAllocatePortService(PluginExecuteScriptService):
 
     def _schedule(self, data, parent_data, callback_data=None):
         # 查询未完成的作业, 批量查询作业状态并更新DB
+        job_meta = self.get_job_meta(data)
         multi_params = [
-            {"job_sub_map": job_sub_map, "common_data": self.get_common_data(data)}
+            {"job_sub_map": job_sub_map, "common_data": self.get_common_data(data), "meta": job_meta}
             for job_sub_map in models.JobSubscriptionInstanceMap.objects.filter(
                 node_id=self.id, status=constants.BkJobStatus.PENDING
             )
@@ -939,6 +944,7 @@ class RenderAndPushConfigService(PluginBaseService, JobV3BaseService):
     """
 
     def _execute(self, data, parent_data, common_data: PluginCommonData):
+        job_meta = self.get_job_meta(data)
         subscription_step_id = data.get_one_of_inputs("subscription_step_id")
         process_statuses = common_data.process_statuses
         policy_step_adapter = common_data.policy_step_adapter
@@ -993,6 +999,7 @@ class RenderAndPushConfigService(PluginBaseService, JobV3BaseService):
                         host_obj=target_host,
                         sub_inst=subscription_instance,
                     )
+                    multi_job_params_map[key]["job_params"]["meta"] = job_meta
                 else:
                     multi_job_params_map[key] = {
                         "job_func": JobApi.push_config_file,
@@ -1011,6 +1018,7 @@ class RenderAndPushConfigService(PluginBaseService, JobV3BaseService):
                             },
                             "file_target_path": file_target_path,
                             "file_list": [{"file_name": file_name, "content": process_parms(file_content)}],
+                            "meta": job_meta,
                         },
                     }
 
@@ -1366,12 +1374,11 @@ class DebugService(PluginExecuteScriptService):
         job_sub_inst_map = models.JobSubscriptionInstanceMap.objects.filter(node_id=self.id).first()
         subscription_instance_id = job_sub_inst_map.subscription_instance_ids[0]
         job_instance_id = job_sub_inst_map.job_instance_id
+        job_meta = self.get_job_meta(data)
 
         result = JobApi.get_job_instance_status(
             {
-                "bk_biz_id": settings.BLUEKING_BIZ_ID,
-                "bk_scope_type": constants.BkJobScopeType.BIZ_SET.value,
-                "bk_scope_id": settings.BLUEKING_BIZ_ID,
+                **job_meta,
                 "job_instance_id": job_instance_id,
                 "return_ip_result": True,
             }
@@ -1389,9 +1396,7 @@ class DebugService(PluginExecuteScriptService):
 
         instance_log_base_params: Dict[str, Union[str, int]] = {
             "job_instance_id": job_instance_id,
-            "bk_biz_id": settings.BLUEKING_BIZ_ID,
-            "bk_scope_type": constants.BkJobScopeType.BIZ_SET.value,
-            "bk_scope_id": settings.BLUEKING_BIZ_ID,
+            **job_meta,
             "bk_username": settings.BACKEND_JOB_OPERATOR,
             "step_instance_id": result["step_instance_list"][0]["step_instance_id"],
         }

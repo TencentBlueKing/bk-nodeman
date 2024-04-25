@@ -31,7 +31,7 @@ from apps.node_man import constants, models
 from apps.node_man import tools as node_man_tools
 from apps.node_man.handlers.cmdb import CmdbHandler
 from apps.prometheus import metrics
-from apps.utils import translation
+from apps.utils import md5, translation
 from pipeline import builder
 from pipeline.builder import Data, NodeOutput, ServiceActivity, Var
 from pipeline.core.pipeline import Pipeline
@@ -211,16 +211,19 @@ def create_pipeline(
     }
 
     sub_insts_gby_metadata: Dict[str, List[models.SubscriptionInstanceRecord]] = defaultdict(list)
+    md5_value__metadata = {}
     for instance_id, step_actions in instances_action.items():
         if instance_id not in subscription_instance_map:
             continue
         sub_inst = subscription_instance_map[instance_id]
         # metadata 包含：meta-任务元数据、step_actions-操作步骤及类型
         metadata = {"meta": sub_inst.instance_info["meta"], "step_actions": step_actions}
+        metadata_md5_value = md5.count_md5(metadata)
+        if metadata_md5_value not in md5_value__metadata:
+            md5_value__metadata[metadata_md5_value] = metadata
         # 聚合同 metadata 的任务
-        sub_insts_gby_metadata[json.dumps(metadata)].append(sub_inst)
+        sub_insts_gby_metadata[json.dumps(md5_value__metadata[metadata_md5_value])].append(sub_inst)
 
-    #
     # # 把同类型操作进行聚合
     # action_instances = defaultdict(list)
     # for instance_id, step_actions in instances_action.items():
