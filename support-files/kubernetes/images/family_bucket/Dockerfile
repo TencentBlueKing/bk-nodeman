@@ -46,7 +46,7 @@ WORKDIR /
 RUN set -ex &&  \
     apt-get update && \
     apt-get install -y --no-install-recommends \
-        gcc gettext mariadb-client libmariadbclient-dev default-libmysqlclient-dev && \
+        gcc gettext make mariadb-client libmariadbclient-dev default-libmysqlclient-dev && \
     rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt /
