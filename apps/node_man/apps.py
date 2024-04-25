@@ -113,12 +113,15 @@ class ApiConfig(AppConfig):
             key=GlobalSettings.KeyEnum.ENABLE_NOTICE_CENTER.value, defaults=dict(v_json=False)
         )
         enable_notice_center: bool = obj.v_json
-        if not enable_notice_center:
-            response = api_call(
-                api_method="register_application", success_message="注册平台成功", error_message="注册平台异常", success_code=201
-            )
-            if response.get("result") is True:
-                GlobalSettings.update_config(key=GlobalSettings.KeyEnum.ENABLE_NOTICE_CENTER.value, value=True)
-                enable_notice_center: bool = True
+        # if not enable_notice_center:
+        #     try:
+        #         response = api_call(
+        #             api_method="register_application", success_message="注册平台成功", error_message="注册平台异常", success_code=201
+        #         )
+        #         if response.get("result") is True:
+        #             GlobalSettings.update_config(key=GlobalSettings.KeyEnum.ENABLE_NOTICE_CENTER.value, value=True)
+        #             enable_notice_center: bool = True
+        #     except Exception as e:
+        #         pass
 
         settings.ENABLE_NOTICE_CENTER = enable_notice_center
