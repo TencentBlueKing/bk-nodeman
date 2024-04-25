@@ -101,3 +101,31 @@ class TransferFileToTmpDirWithWindows(TransferWindowsScriptTest):
                 "c:\\gse\\plugins\\bin",
                 fast_transfer_file.call_args[0][0]["file_target_path"],
             )
+
+
+class TransferScriptBySingleBiz(TransferWindowsScriptTest):
+    def test_component(self):
+        models.GlobalSettings.set_config(key=models.GlobalSettings.KeyEnum.JOB_TASK_POLICY.value, value={"biz": [10]})
+        with patch("apps.backend.components.collections.base.BaseService.get_job_meta") as get_job_meta:
+            get_job_meta.return_value = {"bk_biz_id": 10, "bk_scope_type": "biz", "bk_scope_id": 10}
+            with patch(
+                "apps.backend.tests.components.collections.plugin.utils.JobMockClient.fast_transfer_file"
+            ) as fast_transfer_file:
+                fast_transfer_file.return_value = {
+                    "job_instance_name": "API Quick Distribution File1521101427176",
+                    "job_instance_id": JOB_INSTANCE_ID,
+                }
+                super().test_component()
+                print(fast_transfer_file.call_args)
+                self.assertEqual(
+                    10,
+                    fast_transfer_file.call_args[0][0]["bk_biz_id"],
+                )
+                self.assertEqual(
+                    10,
+                    fast_transfer_file.call_args[0][0]["bk_scope_id"],
+                )
+                self.assertEqual(
+                    "biz",
+                    fast_transfer_file.call_args[0][0]["bk_scope_type"],
+                )

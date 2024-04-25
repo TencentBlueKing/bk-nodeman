@@ -101,11 +101,11 @@ class JobV3BaseService(six.with_metaclass(abc.ABCMeta, BaseService)):
         script_language = (constants.ScriptLanguageType.SHELL.value, constants.ScriptLanguageType.BAT.value)[
             os_type == constants.OsType.WINDOWS
         ]
+        meta: Dict[str, Union[str, int]] = job_params.pop("meta")
+
         job_params.update(
             {
-                "bk_biz_id": settings.BLUEKING_BIZ_ID,
-                "bk_scope_type": constants.BkJobScopeType.BIZ_SET.value,
-                "bk_scope_id": settings.BLUEKING_BIZ_ID,
+                **meta,
                 "script_language": script_language,
                 "script_content": process_parms(job_params.get("script_content", "")),
                 "script_param": process_parms(job_params.get("script_param", "")),
@@ -188,17 +188,16 @@ class JobV3BaseService(six.with_metaclass(abc.ABCMeta, BaseService)):
         job_params.pop("target_server", None)
         return json.dumps(job_params, indent=2)
 
-    def handler_job_result(self, job_sub_map: models.JobSubscriptionInstanceMap) -> List[int]:
+    def handler_job_result(self, job_sub_map: models.JobSubscriptionInstanceMap, meta: Dict[str, Any]) -> List[int]:
         """
         处理作业平台执行结果
         :param job_sub_map: 作业平台ID映射
+        :param meta: 注入实例的meta信息
         :return: succeed_sub_inst_ids
         """
         ip_results = JobApi.get_job_instance_status(
             {
-                "bk_biz_id": settings.BLUEKING_BIZ_ID,
-                "bk_scope_type": constants.BkJobScopeType.BIZ_SET.value,
-                "bk_scope_id": settings.BLUEKING_BIZ_ID,
+                **meta,
                 "job_instance_id": job_sub_map.job_instance_id,
                 "return_ip_result": True,
             }
@@ -262,17 +261,16 @@ class JobV3BaseService(six.with_metaclass(abc.ABCMeta, BaseService)):
                 succeed_sub_inst_ids.append(sub_inst.id)
         return succeed_sub_inst_ids
 
-    def request_get_job_instance_status(self, job_sub_map: models.JobSubscriptionInstanceMap):
+    def request_get_job_instance_status(self, job_sub_map: models.JobSubscriptionInstanceMap, meta: Dict[str, Any]):
         """
         查询作业平台执行状态
         :param job_sub_map:
+        :param meta: 注入实例的meta信息
         :return:
         """
         result = JobApi.get_job_instance_status(
             {
-                "bk_biz_id": settings.BLUEKING_BIZ_ID,
-                "bk_scope_type": constants.BkJobScopeType.BIZ_SET.value,
-                "bk_scope_id": settings.BLUEKING_BIZ_ID,
+                **meta,
                 "job_instance_id": job_sub_map.job_instance_id,
                 "return_ip_result": False,
             }
@@ -290,7 +288,7 @@ class JobV3BaseService(six.with_metaclass(abc.ABCMeta, BaseService)):
             return
 
         # 其它都认为存在失败的情况，需要具体查作业平台的接口查IP详情
-        self.handler_job_result(job_sub_map)
+        self.handler_job_result(job_sub_map, meta)
 
         job_sub_map.status = job_status
         job_sub_map.save()
@@ -316,11 +314,12 @@ class JobV3BaseService(six.with_metaclass(abc.ABCMeta, BaseService)):
         ).update(status=constants.BkJobStatus.SUCCEEDED)
 
     def _schedule(self, data, parent_data, callback_data=None):
+        job_meta = self.get_job_meta(data)
         polling_time = data.get_one_of_outputs("polling_time") or 0
         skip_polling_result = data.get_one_of_inputs("skip_polling_result", default=False)
         # 查询未完成的作业, 批量查询作业状态并更新DB
         multi_params = [
-            {"job_sub_map": job_sub_map}
+            {"job_sub_map": job_sub_map, "meta": job_meta}
             for job_sub_map in models.JobSubscriptionInstanceMap.objects.filter(
                 node_id=self.id, status=constants.BkJobStatus.PENDING
             )
@@ -346,7 +345,7 @@ class JobV3BaseService(six.with_metaclass(abc.ABCMeta, BaseService)):
                 node_id=self.id, status=constants.BkJobStatus.PENDING
             )
             handler_job_result_params_list = [
-                {"job_sub_map": pending_job_sub_map} for pending_job_sub_map in pending_job_sub_maps
+                {"job_sub_map": pending_job_sub_map, "meta": job_meta} for pending_job_sub_map in pending_job_sub_maps
             ]
             # 挽救策略，查询作业中已完成的节点，避免全部误判为超时失败
             succeed_sub_inst_ids: Set[int] = set(
@@ -427,7 +426,7 @@ class JobExecuteScriptService(JobV3BaseService, metaclass=abc.ABCMeta):
         return ""
 
     def _execute(self, data, parent_data, common_data: CommonData):
-
+        job_meta = self.get_job_meta(data)
         timeout = data.get_one_of_inputs("timeout")
         # 批量请求作业平台的参数
         multi_job_params_map: Dict[str, Dict[str, Any]] = defaultdict(lambda: defaultdict(list))
@@ -450,6 +449,7 @@ class JobExecuteScriptService(JobV3BaseService, metaclass=abc.ABCMeta):
                     sub_inst=sub_inst,
                     host_infos=target_servers,
                 )
+                multi_job_params_map[md5_key]["job_params"]["meta"] = job_meta
             else:
                 multi_job_params_map[md5_key] = {
                     "job_func": JobApi.fast_execute_script,
@@ -461,6 +461,7 @@ class JobExecuteScriptService(JobV3BaseService, metaclass=abc.ABCMeta):
                         "script_param": script_param,
                         "timeout": timeout,
                         "os_type": self.get_job_param_os_type(host_obj),
+                        "meta": job_meta,
                     },
                 }
 
@@ -495,6 +496,7 @@ class JobTransferFileService(JobV3BaseService, metaclass=abc.ABCMeta):
         ]
 
     def _execute(self, data, parent_data, common_data: CommonData):
+        job_meta = self.get_job_meta(data)
         timeout = data.get_one_of_inputs("timeout")
         # 批量请求作业平台的参数
         multi_job_params_map: Dict[str, Dict[str, Any]] = {}
@@ -518,6 +520,7 @@ class JobTransferFileService(JobV3BaseService, metaclass=abc.ABCMeta):
                         host_infos=target_servers,
                         sub_inst=sub_inst,
                     )
+                    multi_job_params_map[md5_key]["job_params"]["meta"] = job_meta
                 else:
                     multi_job_params_map[md5_key] = {
                         "job_func": JobApi.fast_transfer_file,
@@ -529,6 +532,7 @@ class JobTransferFileService(JobV3BaseService, metaclass=abc.ABCMeta):
                             "file_source_list": [{"file_list": file_list}],
                             "timeout": timeout,
                             "os_type": self.get_job_param_os_type(host_obj),
+                            "meta": job_meta,
                         },
                     }
 
@@ -591,6 +595,7 @@ class JobPushConfigService(JobV3BaseService, metaclass=abc.ABCMeta):
         return f"{'-'.join(sorted(config_unique_keys))}-{file_target_path}"
 
     def _execute(self, data, parent_data, common_data: CommonData):
+        job_meta = self.get_job_meta(data)
         timeout = data.get_one_of_inputs("timeout")
         # 批量请求作业平台的参数
         multi_job_params_map: Dict[str, Dict[str, Any]] = {}
@@ -609,6 +614,7 @@ class JobPushConfigService(JobV3BaseService, metaclass=abc.ABCMeta):
                     host_obj=host_obj,
                     sub_inst=sub_inst,
                 )
+                multi_job_params_map[job_unique_key]["job_params"]["meta"] = job_meta
             else:
                 file_source_list = []
                 for config_info in config_info_list:
@@ -633,6 +639,7 @@ class JobPushConfigService(JobV3BaseService, metaclass=abc.ABCMeta):
                         "file_list": file_source_list,
                         "timeout": timeout,
                         "os_type": self.get_job_param_os_type(host_obj),
+                        "meta": job_meta,
                     },
                 }
 

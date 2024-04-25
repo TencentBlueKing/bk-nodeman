@@ -363,6 +363,13 @@ class BaseService(Service, LogMixin, DBHelperMixin, PollingTimeoutMixin):
             meta["STEPS"] = []
         return meta
 
+    @staticmethod
+    def get_job_meta(data) -> Dict[str, Any]:
+        meta: Dict[str, Any] = data.get_one_of_inputs("meta", {})
+        scope_id = meta.get("SCOPE_ID", settings.BLUEKING_BIZ_ID)
+        scope_type = meta.get("SCOPE_TYPE", constants.BkJobScopeType.BIZ_SET.value)
+        return {"bk_biz_id": scope_id, "bk_scope_type": scope_type, "bk_scope_id": scope_id}
+
     @classmethod
     def get_common_data(cls, data):
         """
