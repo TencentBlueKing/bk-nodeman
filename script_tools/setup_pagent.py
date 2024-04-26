@@ -4,70 +4,25 @@
 
 from __future__ import print_function
 
+import abc
 import argparse
 import base64
+import hashlib
 import ipaddress
 import json
+import logging
 import os
 import re
 import socket
 import sys
 import time
 import traceback
+import typing
 from functools import partial
 from io import StringIO
 from pathlib import Path
 from subprocess import Popen
-from typing import Any, Dict, List, Optional
-
-PRIVATE_KEY_MERGED_TEXT = """
-%%PRIVATE_KEY_MERGED_TEXT%%
-"""
-
-CA_FILE_MERGED_TEXT = """
-%%PRIVATE_KEY_MERGED_TEXT%%
-"""
-
-# SSH通道recv接收缓冲区大小
-RECV_BUFLEN = 32768
-# SSH通道recv超时 RECV_TIMEOUT秒
-RECV_TIMEOUT = 90
-# SSH连接超时设置10s
-SSH_CON_TIMEOUT = 10
-# 最大重试等待recv_ready次数
-MAX_WAIT_OUTPUT = 32
-# recv等待间隔
-SLEEP_INTERVAL = 0.3
-# 去掉回车、空格、颜色码
-CLEAR_CONSOLE_RE = re.compile(r"\\u001b\[\D|\[\d{1,2}\D?|\\u001b\[\d{1,2}\D?~?|\r|\n|\s+", re.I | re.U)
-# 去掉其他杂项
-CLEAR_MISC_RE = re.compile(r"\$.?\[\D", re.I | re.U)
-# 换行转换
-LINE_BREAK_RE = re.compile(r"\r\n|\r|\n", re.I | re.U)
-JOB_PRIVATE_KEY_RE = re.compile(r"^(-{5}BEGIN .*? PRIVATE KEY-{5})(.*?)(-{5}END .*? PRIVATE KEY-{5}.?)$")
-
-
-def is_ip(ip: str, _version: Optional[int] = None) -> bool:
-    """
-    判断是否为合法 IP
-    :param ip:
-    :param _version: 是否为合法版本，缺省表示 both
-    :return:
-    """
-    try:
-        ip_address = ipaddress.ip_address(ip)
-    except ValueError:
-        return False
-    if _version is None:
-        return True
-    return ip_address.version == _version
-
-
-# 判断是否为合法 IPv6
-is_v6 = partial(is_ip, _version=6)
-
-# 判断是否为合法 IPv4
-is_v4 = partial(is_ip, _version=4)
+from typing import Any, Callable, Dict, List, Optional, Union
 
 
 def arg_parser() -> argparse.ArgumentParser:
@@ -119,19 +74,6 @@ def arg_parser() -> argparse.ArgumentParser:
 
 args = arg_parser().parse_args(sys.argv[1:])
 
-DEFAULT_HTTP_PROXY_SERVER_PORT = args.host_proxy_port
-
-
-class DownloadFileError(Exception):
-    """文件"""
-
-    pass
-
-
-class ExecuteWinCmdError(Exception):
-    pass
-
-
 try:
     # import 3rd party libraries here, in case the python interpreter does not have them
     import paramiko  # noqa
@@ -170,6 +112,123 @@ except ImportError as err:
     exit()
 
 
+# 自定义日志处理器
+class ReportLogHandler(logging.Handler):
+    def __init__(self, report_log_url):
+        super().__init__()
+        self._report_log_url = report_log_url
+
+    def emit(self, record):
+
+        is_report: bool = getattr(record, "is_report", False)
+
+        if not is_report:
+            return
+
+        status: str = ("-", "FAILED")[record.levelname == "ERROR"]
+        query_params = {
+            "task_id": args.task_id,
+            "token": args.token,
+            "logs": [
+                {
+                    "timestamp": round(time.time()),
+                    "level": record.levelname,
+                    "step": record.step,
+                    "metrics": record.metrics,
+                    "log": f"({status}) {record.message}",
+                    "status": status,
+                    "prefix": "[proxy]",
+                }
+            ],
+        }
+        if args.channel_proxy_address:
+            proxy_address = {
+                "http": args.channel_proxy_address,
+                "https": args.channel_proxy_address,
+            }
+            requests.post(self._report_log_url, json=query_params, proxies=proxy_address)
+        else:
+            requests.post(self._report_log_url, json=query_params)
+
+
+class CustomLogger(logging.LoggerAdapter):
+    def _log(self, level, msg, *args, extra=None, **kwargs):
+        if extra is None:
+            extra = {}
+
+        step: str = extra.pop("step", "N/A")
+        is_report: str = extra.pop("is_report", True)
+        metrics: typing.Dict[str, typing.Any] = extra.pop("metrics", {})
+        kwargs = {"step": step, "is_report": is_report, "metrics": metrics}
+        kwargs.update(extra)
+
+        super()._log(level, msg, args, extra=kwargs)
+
+    def logging(
+        self,
+        step: str,
+        msg: str,
+        metrics: typing.Optional[typing.Dict[str, typing.Any]] = None,
+        level: int = logging.INFO,
+        is_report: bool = True,
+    ):
+        self._log(level, msg, extra={"step": step, "is_report": is_report, "metrics": metrics or {}})
+
+
+console_handler = logging.StreamHandler()
+console_handler.stream = os.fdopen(sys.stdout.fileno(), "w", 1)
+
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)-8s %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+    handlers=[console_handler, ReportLogHandler(f"{args.callback_url}/report_log/")],
+)
+
+logger = CustomLogger(logging.getLogger(), {})
+
+
+# 默认的连接最长等待时间
+DEFAULT_CONNECT_TIMEOUT = 30
+
+# 默认的命令执行最长等待时间
+DEFAULT_CMD_RUN_TIMEOUT = 30
+
+DEFAULT_HTTP_PROXY_SERVER_PORT = args.host_proxy_port
+
+JOB_PRIVATE_KEY_RE = re.compile(r"^(-{5}BEGIN .*? PRIVATE KEY-{5})(.*?)(-{5}END .*? PRIVATE KEY-{5}.?)$")
+
+
+def is_ip(ip: str, _version: Optional[int] = None) -> bool:
+    """
+    判断是否为合法 IP
+    :param ip:
+    :param _version: 是否为合法版本，缺省表示 both
+    :return:
+    """
+    try:
+        ip_address = ipaddress.ip_address(ip)
+    except ValueError:
+        return False
+    if _version is None:
+        return True
+    return ip_address.version == _version
+
+
+# 判断是否为合法 IPv6
+is_v6 = partial(is_ip, _version=6)
+
+# 判断是否为合法 IPv4
+is_v4 = partial(is_ip, _version=4)
+
+
+class DownloadFileError(Exception):
+    """文件"""
+
+    pass
+
+
 def json_b64_decode(json_b64: str) -> Any:
     """
     base64(json_str) to python type
@@ -201,38 +260,6 @@ def execute_cmd(
     return {"result": True, "data": result_data}
 
 
-def report_log(step, text, status="-"):
-    if not args.callback_url:
-        return None
-
-    # 日志打屏，便于定位问题
-    print(f"[{step}]({status}) {text}")
-
-    query_params = {
-        "task_id": args.task_id,
-        "token": args.token,
-        "logs": [
-            {
-                "timestamp": round(time.time()),
-                "level": "INFO",
-                "step": step,
-                "log": text,
-                "status": status,
-                "prefix": "[proxy]",
-            }
-        ],
-    }
-    if args.channel_proxy_address:
-        proxy_address = {
-            "http": args.channel_proxy_address,
-            "https": args.channel_proxy_address,
-        }
-        r = requests.post(f"{args.callback_url}/report_log/", json=query_params, proxies=proxy_address)
-    else:
-        r = requests.post(f"{args.callback_url}/report_log/", json=query_params)
-    return r
-
-
 def execute_batch_solution(
     login_ip: str,
     account: str,
@@ -241,11 +268,12 @@ def execute_batch_solution(
     execution_solution: Dict[str, Any],
 ):
     if os.path.isfile(identity):
-        report_log(
-            "execute_batch_solution",
-            "identity seems like a key file, which is not supported by windows authentication",
-            "FAILED",
+        logger.logging(
+            step="execute_batch_solution",
+            msg="identity seems like a key file, which is not supported by windows authentication",
+            level=logging.ERROR,
         )
+
         return False
 
     for step in execution_solution["steps"]:
@@ -257,7 +285,7 @@ def execute_batch_solution(
                 localpath = os.path.join(download_path, content["name"])
                 # 文件不存在，从下载源同步
                 if not os.path.exists(localpath) or content.get("always_download"):
-                    report_log(
+                    logger.logging(
                         "execute_batch_solution", f"file -> {content['name']} not exists, sync from {content['text']}"
                     )
                     download_file(content["text"], download_path)
@@ -267,43 +295,62 @@ def execute_batch_solution(
             elif step["type"] == "commands":
                 cmd: str = content["text"]
             else:
-                report_log("execute_batch_solution", f"unknown step type -> {step['type']}")
+                logger.logging("execute_batch_solution", f"unknown step type -> {step['type']}")
                 continue
 
-            report_log("send_cmd", cmd)
+            logger.logging("send_cmd", cmd)
 
             try:
                 res = execute_cmd(cmd, login_ip, account, identity, is_no_output=content["name"] == "run_cmd")
-            except Exception as exc:
+            except Exception:
                 # 过程中只要有一条命令执行失败，视为执行方案失败
-                report_log("execute_batch_solution", f"execute {cmd} failed, err_msg -> {exc}", "FAILED")
-                return
+                logger.logging("execute_batch_solution", f"execute {cmd} failed", level=logging.WARNING)
+                # 把异常抛给最外层
+                raise
 
             print(res)
 
 
 def execute_shell_solution(
-    login_ip: str, account: str, port: int, identity: str, os_type: str, execution_solution: Dict[str, Any]
+    login_ip: str,
+    account: str,
+    port: int,
+    identity: str,
+    auth_type: str,
+    os_type: str,
+    execution_solution: Dict[str, Any],
 ):
-    ssh_man = SshMan(login_ip, port, account, identity)
-    ssh_man.get_and_set_prompt()
+    client_key_strings: List[str] = []
+    if auth_type == "KEY":
+        client_key_strings.append(identity)
 
-    cmds: List[str] = []
-    shell_pkg: str = ("bash", "ksh")[os_type == "aix"]
-    for step in execution_solution["steps"]:
-        # 暂不支持 dependencies 等其他步骤类型
-        if step["type"] == "commands":
+    with ParamikoConn(
+        host=login_ip,
+        port=port,
+        username=account,
+        password=identity,
+        client_key_strings=client_key_strings,
+        connect_timeout=15,
+    ) as conn:
+        for step in execution_solution["steps"]:
+            # 暂不支持 dependencies 等其他步骤类型
+            if step["type"] != "commands":
+                continue
             for content in step["contents"]:
-                cmds.append(content["text"])
+                cmd: str = content["text"]
 
-    # 串联执行
-    command: str = "{shell_pkg} -c 'exec 2>&1 && {multi_cmds_str} '\n".format(
-        shell_pkg=shell_pkg, multi_cmds_str=" && ".join(cmds)
-    )
-    report_log("send_cmd", command)
-    ssh_man.send_cmd(command, wait_console_ready=False)
-    time.sleep(5)
-    ssh_man.safe_close(ssh_man.ssh)
+                # 根据用户名判断是否采用sudo
+                if account not in ["root", "Administrator", "administrator"] and not cmd.startswith("sudo"):
+                    cmd = "sudo %s" % cmd
+
+                if content["name"] == "run_cmd":
+                    logger.logging("send_cmd", cmd, is_report=True)
+                else:
+                    logger.logging("send_cmd", cmd, is_report=False)
+                run_output: RunOutput = conn.run(cmd, check=True, timeout=30)
+                if run_output.exit_status != 0:
+                    raise ProcessError(f"Command returned non-zero: {run_output}")
+                logger.logging("send_cmd", str(run_output), is_report=False)
 
 
 def is_port_listen(ip: str, port: int) -> bool:
@@ -318,35 +365,16 @@ def is_port_listen(ip: str, port: int) -> bool:
 
 def start_http_proxy(ip: str, port: int) -> Any:
     if is_port_listen(ip, port):
-        report_log("start_http_proxy", "http proxy exists")
+        logger.logging("start_http_proxy", "http proxy exists", is_report=False)
     else:
         Popen("/opt/nginx-portable/nginx-portable restart", shell=True)
 
         time.sleep(5)
         if is_port_listen(ip, port):
-            report_log("start_http_proxy", "http proxy started")
+            logger.logging("start_http_proxy", "http proxy started")
         else:
-            report_log("start_http_proxy", "http proxy start failed", "FAILED")
+            logger.logging("start_http_proxy", "http proxy start failed", level=logging.ERROR)
             raise Exception("http proxy start failed.")
-
-
-def check_and_start_nginx():
-    report_log("start_nginx", "starting nginx")
-    Popen(
-        "if ! [ -f /opt/nginx-portable/logs/nginx.pid ];then /opt/nginx-portable/nginx-portable start; fi",
-        shell=True,
-    )
-
-
-def config_parser(conf_file: str) -> List:
-    """Resolve formatted lines to object from config file"""
-
-    configs = []
-
-    with open(conf_file, "r", encoding="utf-8") as f:
-        for line in f.readlines():
-            configs.append(tuple(line.split()))
-    return configs
 
 
 def json_parser(json_file: str) -> List:
@@ -374,25 +402,55 @@ def download_file(url: str, dest_dir: str):
             # 如果修改时间临近，跳过下载，避免多个 setup 脚本文件互相覆盖
             mtimestamp: float = os.path.getmtime(local_file)
             if time.time() - mtimestamp < 10:
-                report_log(
+                logger.logging(
                     "download_file", f"File download skipped due to sync time approaching, mtimestamp -> {mtimestamp}"
                 )
                 return
 
+        if args.lan_eth_ip in url:
+            logger.logging("download_file", "File download skipped due to lo ip")
+            return
+
         r = requests.get(url, stream=True)
         r.raise_for_status()
 
-        # 采用覆盖更新策略
-        with open(str(local_file), "wb") as f:
+        # 先下载到临时文件夹，再通过 os.replace 命名到目标文件路径，通过该方式防止同一时间多同步任务相互干扰，确保文件操作原子性
+        # Refer: https://stackoverflow.com/questions/2333872/
+        local_tmp_file = os.path.join(
+            dest_dir, local_filename + "." + hashlib.md5(args.token.encode("utf-8")).hexdigest()
+        )
+        with open(str(local_tmp_file), "wb") as f:
             for chunk in r.iter_content(chunk_size=1024):
                 # filter out keep-alive new chunks
                 if chunk:
                     f.write(chunk)
 
+        os.replace(local_tmp_file, local_file)
+
     except Exception as exc:
         err_msg: str = f"download file from {url} to {dest_dir} failed: {str(exc)}"
-        report_log("download_file", err_msg)
+        logger.logging("download_file", err_msg, level=logging.WARNING)
         raise DownloadFileError(err_msg) from exc
+
+
+def use_shell() -> bool:
+    os_type: str = args.host_os_type
+    port = int(args.host_port)
+    if os_type not in ["windows"] or (os_type in ["windows"] and port != 445):
+        return True
+    else:
+        return False
+
+
+def get_common_labels() -> typing.Dict[str, typing.Any]:
+    os_type: str = args.host_os_type or "unknown"
+    return {
+        "method": ("proxy_wmiexe", "proxy_ssh")[use_shell()],
+        "username": args.host_account,
+        "port": int(args.host_port),
+        "auth_type": args.host_auth_type,
+        "os_type": os_type.upper(),
+    }
 
 
 def main() -> None:
@@ -401,6 +459,7 @@ def main() -> None:
     user = args.host_account
     port = int(args.host_port)
     identity = args.host_identity
+    auth_type = args.host_auth_type
     os_type = args.host_os_type
     tmp_dir = args.host_dest_dir
     host_solutions_json_b64 = args.host_solutions_json_b64
@@ -417,6 +476,7 @@ def main() -> None:
             login_ip=login_ip,
             account=user,
             port=port,
+            auth_type=auth_type,
             identity=identity,
             os_type=os_type,
             execution_solution=host_solution,
@@ -431,412 +491,333 @@ def main() -> None:
             execution_solution=host_solution,
         )
 
+    app_core_remote_connects_total_labels = {**get_common_labels(), "status": "success"}
+    logger.logging(
+        "metrics",
+        f"app_core_remote_connects_total_labels -> {app_core_remote_connects_total_labels}",
+        metrics={"name": "app_core_remote_connects_total", "labels": app_core_remote_connects_total_labels},
+    )
 
-def ssh_login(login_ip, port, account, identity):
-    ssh = paramiko.SSHClient()
-    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    matched_private_key = JOB_PRIVATE_KEY_RE.match(identity)
-    if matched_private_key:
-        start, content, end = matched_private_key.groups()
-        # 作业平台传参后key的换行符被转义为【空格】，需重新替换为换行符
-        content = content.replace(" ", "\n")
-        # 手动安装命令key的换行符被转义为 \n 字符串，需重新替换为换行符
-        content = content.replace("\\n", "\n")
-        identity = f"{start}{content}{end}"
 
-    try:
-        if identity.startswith("-----BEGIN RSA"):
-            try:
-                pkey = paramiko.RSAKey.from_private_key(StringIO(identity))
-            except paramiko.PasswordRequiredException:
-                report_log("login_pagent", "RSAKey need password!", status="FAILED")
-            else:
-                ssh.connect(
-                    hostname=login_ip,
-                    username=account,
-                    port=port,
-                    pkey=pkey,
-                    timeout=SSH_CON_TIMEOUT,
-                )
-        elif identity.startswith("-----BEGIN DSA"):
-            # 尝试dsa登录
-            try:
-                pkey = paramiko.DSSKey.from_private_key(StringIO(identity))
-            except paramiko.PasswordRequiredException:
-                report_log("login_pagent", "DSAKey need password!", status="FAILED")
-            else:
-                ssh.connect(
-                    hostname=login_ip,
-                    username=account,
-                    port=port,
-                    pkey=pkey,
-                    timeout=SSH_CON_TIMEOUT,
-                )
+BytesOrStr = Union[str, bytes]
+
+
+class RemoteBaseException(Exception):
+    code = 0
+
+
+class RunCmdError(RemoteBaseException):
+    code = 1
+
+
+class PermissionDeniedError(RemoteBaseException):
+    code = 2
+
+
+class DisconnectError(RemoteBaseException):
+    code = 3
+
+
+class RemoteTimeoutError(RemoteBaseException):
+    code = 4
+
+
+class ProcessError(RemoteBaseException):
+    code = 5
+
+
+class RunOutput:
+    command: str = None
+    exit_status: int = None
+    stdout: Optional[str] = None
+    stderr: Optional[str] = None
+
+    def __init__(self, command: BytesOrStr, exit_status: int, stdout: BytesOrStr, stderr: BytesOrStr):
+        self.exit_status = exit_status
+        self.command = self.bytes2str(command)
+        self.stdout = self.bytes2str(stdout)
+        self.stderr = self.bytes2str(stderr)
+
+    @staticmethod
+    def bytes2str(val: BytesOrStr) -> str:
+        if isinstance(val, bytes):
+            return val.decode(encoding="utf-8")
+        return val
+
+    def __str__(self):
+        outputs = [
+            f"exit_status -> {self.exit_status}",
+            f"stdout -> {self.stdout}",
+            f"stderr -> {self.stderr}",
+        ]
+        return "|".join(outputs)
+
+
+class BaseConn(abc.ABC):
+    """连接基类"""
+
+    # 连接地址或域名
+    host: str = None
+    # 连接端口
+    port: int = None
+    # 登录用户名
+    username: str = None
+    # 登录密码
+    password: Optional[str] = None
+    # 登录密钥
+    client_key_strings: Optional[List[str]] = None
+    # 连接超时时间
+    connect_timeout: Union[int, float] = None
+    # 检查器列表，用于输出预处理
+    inspectors: List[Callable[["BaseConn", RunOutput], None]] = None
+    # 连接参数
+    options: Dict[str, Any] = None
+    # 连接对象
+    _conn: Any = None
+
+    def __init__(
+        self,
+        host: str,
+        port: int,
+        username: str,
+        password: Optional[str] = None,
+        client_key_strings: Optional[List[str]] = None,
+        connect_timeout: Optional[Union[int, float]] = None,
+        inspectors: List[Callable[["BaseConn", RunOutput], bool]] = None,
+        **options,
+    ):
+        self.host = host
+        self.port = port
+        self.username = username
+        self.password = password
+        self.client_key_strings = client_key_strings or []
+        self.connect_timeout = (connect_timeout, DEFAULT_CONNECT_TIMEOUT)[connect_timeout is None]
+        self.inspectors = inspectors or []
+        self.options = options
+
+    @abc.abstractmethod
+    def close(self):
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def connect(self):
+        """
+        创建一个连接
+        :return:
+        :raises:
+            KeyExchangeError
+            PermissionDeniedError 认证失败
+            ConnectionLostError 连接丢失
+            RemoteTimeoutError 连接超时
+            DisconnectError 远程连接失败
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def _run(
+        self, command: str, check: bool = False, timeout: Optional[Union[int, float]] = None, **kwargs
+    ) -> RunOutput:
+        """命令执行"""
+        raise NotImplementedError
+
+    def run(
+        self, command: str, check: bool = False, timeout: Optional[Union[int, float]] = None, **kwargs
+    ) -> RunOutput:
+        """
+        命令执行
+        :param command: 命令
+        :param check: 返回码非0抛出 ProcessError 异常
+        :param timeout: 命令执行最大等待时间，超时抛出 RemoteTimeoutError 异常
+        :param kwargs:
+        :return:
+        :raises:
+            SessionError 回话异常，连接被重置等
+            ProcessError 命令执行异常
+            RemoteTimeoutError 执行超时
+        """
+        run_output = self._run(command, check, timeout, **kwargs)
+        # 输出预处理
+        for inspector in self.inspectors:
+            inspector(self, run_output)
+        return run_output
+
+    def __enter__(self) -> "BaseConn":
+        self.connect()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+        self._conn = None
+
+
+class ParamikoConn(BaseConn):
+    """
+    基于 paramiko 实现的同步 SSH 连接
+    paramiko
+        仓库：https://github.com/paramiko/paramiko
+        文档：https://www.paramiko.org/
+    """
+
+    _conn: Optional[paramiko.SSHClient] = None
+
+    @staticmethod
+    def get_key_instance(key_content: str):
+
+        matched_private_key = JOB_PRIVATE_KEY_RE.match(key_content)
+        if matched_private_key:
+            start, content, end = matched_private_key.groups()
+            # 作业平台传参后key的换行符被转义为【空格】，需重新替换为换行符
+            content = content.replace(" ", "\n")
+            # 手动安装命令key的换行符被转义为 \n 字符串，需重新替换为换行符
+            content = content.replace("\\n", "\n")
+            key_content = f"{start}{content}{end}"
+
+        key_instance = None
+        with StringIO(key_content) as key_file:
+            for cls in [paramiko.RSAKey, paramiko.DSSKey, paramiko.ECDSAKey, paramiko.Ed25519Key]:
+                try:
+                    key_instance = cls.from_private_key(key_file)
+                    logger.logging("[get_key_instance]", f"match {cls.__name__}", is_report=False)
+                    break
+                except paramiko.ssh_exception.PasswordRequiredException:
+                    raise PermissionDeniedError("Password is required for the private key")
+                except paramiko.ssh_exception.SSHException:
+                    logger.logging("[get_key_instance]", f"not match {cls.__name__}, skipped", is_report=False)
+                    key_file.seek(0)
+                    continue
+
+        if not key_instance:
+            raise PermissionDeniedError("Unsupported key type")
+
+        return key_instance
+
+    def close(self):
+        self._conn.close()
+
+    def connect(self) -> paramiko.SSHClient:
+        ssh = paramiko.SSHClient()
+        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
+        # 仅支持单个密钥
+        if self.client_key_strings:
+            pkey = self.get_key_instance(self.client_key_strings[0])
         else:
-            ssh.connect(login_ip, port, account, identity)
-    except paramiko.BadAuthenticationType:
+            pkey = None
+
+        # API 文档：https://docs.paramiko.org/en/stable/api/client.html#paramiko.client.SSHClient.connect
+        # 认证顺序：
+        #  - pkey or key_filename
+        #  - Any “id_rsa”, “id_dsa” or “id_ecdsa” key discoverable in ~/.ssh/ (look_for_keys=True)
+        #  - username/password auth, if a password was given
         try:
-            #  SSH AUTH WITH PAM
-            def handler(title, instructions, fields):
-                resp = []
-
-                if len(fields) > 1:
-                    raise paramiko.SSHException("Fallback authentication failed.")
-
-                if len(fields) == 0:
-                    # for some reason, at least on os x, a 2nd request will
-                    # be made with zero fields requested.  maybe it's just
-                    # to try to fake out automated scripting of the exact
-                    # type we're doing here.  *shrug* :)
-                    return resp
-
-                for pr in fields:
-                    if pr[0].strip() == "Username:":
-                        resp.append(account)
-                    elif pr[0].strip() == "Password:":
-                        resp.append(identity)
-
-                report_log("login_pagent", "SSH auth with interactive")
-
-                return resp
-
-            ssh_transport = ssh.get_transport()
-            if ssh_transport is None:
-                report_log("login_pagent", "get_transport is None")
-                ssh_transport = paramiko.Transport((login_ip, port))
-            try:
-                ssh_transport = paramiko.Transport((login_ip, port))
-                ssh._transport = ssh_transport
-                ssh_transport.start_client()
-            except Exception as e:
-                report_log("login_pagent", str(e))
-
-            ssh_transport.auth_interactive(account, handler)
-
-            return ssh
-
-        except paramiko.BadAuthenticationType as e:
-            SshMan.safe_close(ssh)
-            msg = "{}, {}".format(e, "认证方式错误或不支持，请确认。")
-            report_log("login_pagent", msg, status="FAILED")
-            raise e  # 认证类型错误或不支持
-
-        except paramiko.SSHException as e:
-            report_log(
-                "login_pagent",
-                "attempt failed; just raise the original exception",
-                status="FAILED",
+            ssh.connect(
+                hostname=self.host,
+                port=self.port,
+                username=self.username,
+                pkey=pkey,
+                password=self.password,
+                timeout=self.connect_timeout,
+                allow_agent=False,
+                # 从安全上考虑，禁用本地RSA私钥扫描
+                look_for_keys=False,
+                **self.options,
             )
-            raise e
-
-    except paramiko.BadHostKeyException as e:
-        SshMan.safe_close(ssh)
-        msg = "SSH authentication key could not be verified.- {}@{}:{} - exception: {}".format(
-            account, login_ip, port, e
-        )
-        msg = "{}, {}".format(msg, "请尝试删除 /root/.ssh/known_hosts 再重试")
-        report_log("login_pagent", msg, status="FAILED")
-        raise e  # Host Key 验证错误
-    except paramiko.AuthenticationException as e:
-        SshMan.safe_close(ssh)
-        msg = "SSH authentication failed.- {}@{}:{} - exception: {}".format(account, login_ip, port, e)
-        msg = "{}, {}".format(msg, "登录认证失败，请确认账号，密码，密钥或IP是否正确。")
-        report_log("login_pagent", msg, status="FAILED")
-        raise e  # 密码错或者用户错(Authentication failed)
-    except paramiko.SSHException as e:
-        SshMan.safe_close(ssh)
-        msg = "SSH connect failed.- {}@{}:{} - exception: {}".format(account, login_ip, port, e)
-        msg = "{}, {}".format(msg, "ssh登录，请确认IP是否正确或目标机器是否可被正常登录。")
-        report_log("login_pagent", msg, status="FAILED")
-        raise e  # 登录失败，原因可能有not a valid RSA private key file
-    except socket.error as e:
-        SshMan.safe_close(ssh)
-        msg = "TCP connect failed, timeout({}) - {}@{}:{}".format(e, account, login_ip, port)
-        msg = "{}, {}".format(msg, "ssh登录连接超时，请确认IP是否正确或ssh端口号是否正确或网络策略是否正确开通。")
-        report_log("login_pagent", msg, status="FAILED")
-        raise e  # 超时
-    else:
+        except paramiko.BadHostKeyException as e:
+            raise PermissionDeniedError(f"Key verification failed：{e}") from e
+        except paramiko.AuthenticationException as e:
+            raise PermissionDeniedError(
+                f"Authentication failed, please check the authentication information for errors: {e}"
+            ) from e
+        except (paramiko.SSHException, socket.error, Exception) as e:
+            raise DisconnectError(f"Remote connection failed: {e}") from e
+        self._conn = ssh
         return ssh
 
+    def _run(
+        self, command: str, check: bool = False, timeout: Optional[Union[int, float]] = None, **kwargs
+    ) -> RunOutput:
 
-class Inspector(object):
-    @staticmethod
-    def clear(s):
+        begin_time = time.time()
         try:
-            # 尝试clear，出现异常（编码错误）则返回原始字符串
-            _s = CLEAR_CONSOLE_RE.sub("", s)
-            _s = CLEAR_MISC_RE.sub("$", _s)
-        except Exception:
-            _s = s
-        if type(_s) is bytes:
-            _s = str(_s, encoding="utf-8")
-        return _s
-
-    @staticmethod
-    def clear_yes_or_no(s):
-        return s.replace("yes/no", "").replace("'yes'or'no':", "")
-
-    def is_wait_password_input(self, buff):
-        buff = self.clear(buff)
-        return buff.endswith("assword:") or buff.endswith("Password:")
-
-    def is_too_open(self, buff):
-        buff = self.clear(buff)
-        return buff.find("tooopen") != -1 or buff.find("ignorekey") != -1
-
-    def is_permission_denied(self, buff):
-        buff = self.clear(buff)
-        return buff.find("Permissiondenied") != -1
-
-    def is_public_key_denied(self, buff):
-        buff = self.clear(buff)
-        return buff.find("Permissiondenied(publickey") != -1
-
-    def is_invalid_key(self, buff):
-        buff = self.clear(buff)
-        return buff.find("passphraseforkey") != -1
-
-    def is_timeout(self, buff):
-        buff = self.clear(buff)
-        return (
-            buff.find("lostconnectinfo") != -1
-            or buff.find("Noroutetohost") != -1
-            or buff.find("Connectiontimedout") != -1
-            or buff.find("Connectiontimeout") != -1
-        )
-
-    def is_key_login_required(self, buff):
-        buff = self.clear(buff)
-        return not buff.find("publickey,gssapi-keyex,gssapi-with-mic") == -1
-
-    def is_refused(self, buff):
-        buff = self.clear(buff)
-        return not buff.find("Connectionrefused") == -1
-
-    def is_fingerprint(self, buff):
-        buff = self.clear(buff)
-        return not buff.find("fingerprint:") == -1
-
-    def is_wait_known_hosts_add(self, buff):
-        buff = self.clear(buff)
-        return not buff.find("tothelistofknownhosts") == -1
-
-    def is_yes_input(self, buff):
-        buff = self.clear(buff)
-        return not buff.find("yes/no") == -1 or not buff.find("'yes'or'no':") == -1
-
-    def is_console_ready(self, buff):
-        buff = self.clear(buff)
-        return buff.endswith("#") or buff.endswith("$") or buff.endswith(">")
-
-    def has_lastlogin(self, buff):
-        buff = self.clear(buff)
-        return buff.find("Lastlogin") != -1
-
-    def is_no_such_file(self, buff):
-        buff = self.clear(buff)
-        return not buff.find("Nosuchfileordirectory") == -1
-
-    def is_cmd_not_found(self, buff):
-        buff = self.clear(buff)
-        return not buff.find("Commandnotfound") == -1
-
-    def is_transported_ok(self, buff):
-        buff = self.clear(buff)
-        return buff.find("100%") != -1
-
-    def is_curl_failed(self, buff):
-        _buff = buff.lower()
-        return (
-            _buff.find("failedconnectto") != -1
-            or _buff.find("connectiontimedout") != -1
-            or _buff.find("couldnotreso") != -1
-            or _buff.find("connectionrefused") != -1
-            or _buff.find("couldn'tconnect") != -1
-            or _buff.find("sockettimeout") != -1
-            or _buff.find("notinstalled") != -1
-            or _buff.find("error") != -1
-            or _buff.find("resolvehost") != -1
-        )
-
-    # 脚本输出解析方式
-    def is_setup_done(self, buff):
-        return buff.find("setup done") != -1 and buff.find("install_success") != -1
-
-    def is_setup_failed(self, buff):
-        return buff.find("setup failed") != -1
-
-    def parse_err_msg(self, buff):
-        return re.split(":|--", buff)[1]
-
-    def is_cmd_started_on_aix(self, cmd, output):
-        """
-        :param cmd:
-        :param output:
-        :return:
-        """
-        cmd_chars = "".join(c for c in cmd if c.isalpha())
-        output_chars = "".join(c for c in output if c.isalpha())
-        is_common_substring = re.search(r"\w*".join(list(cmd_chars)), output_chars)
-        return is_common_substring or (cmd_chars in output_chars) or (cmd_chars.startswith(output_chars))
+            __, stdout, stderr = self._conn.exec_command(command=command, timeout=timeout)
+            # 获取 exit_status 方式参考：https://stackoverflow.com/questions/3562403/
+            exit_status = stdout.channel.recv_exit_status()
+        except paramiko.SSHException as e:
+            if check:
+                raise ProcessError(f"Command returned non-zero: {e}")
+            # exec_command 方法没有明确抛出 timeout 异常，需要记录调用前后时间差进行抛出
+            cost_time = time.time() - begin_time
+            if cost_time > timeout:
+                raise RemoteTimeoutError(f"Connect timeout：{e}") from e
+            exit_status, stdout, stderr = 1, StringIO(""), StringIO(str(e))
+        return RunOutput(command=command, exit_status=exit_status, stdout=stdout.read(), stderr=stderr.read())
 
 
-class SshMan(object):
-    def __init__(self, ip, port, account, identity):
-        self.set_proxy_prompt = r'export PS1="[\u@\h_BKproxy \W]\$"'
-
-        # 初始化ssh会话
-        self.ssh = ssh_login(ip, port, account, identity)
-        self.account = account
-        self.password = identity
-        self.chan = self.ssh.invoke_shell()
-        self.setup_channel()
-
-    def setup_channel(self, blocking=0, timeout=-1):
-        """
-        # settimeout(0) -> setblocking(0)
-        # settimeout(None) -> setblocking(1)
-        """
-        # set socket read time out
-        self.chan.setblocking(blocking=blocking)
-        timeout = RECV_TIMEOUT if timeout < 0 else timeout
-        self.chan.settimeout(timeout=timeout)
-
-    def wait_for_output(self):
-        """
-        等待通道标准输出可读，重试32次
-        """
-
-        cnt = 0
-        while not self.chan.recv_ready():
-            time.sleep(SLEEP_INTERVAL)
-            cnt += 1
-            if cnt > MAX_WAIT_OUTPUT:  # 32
-                break
-
-    def send_cmd(self, cmd, wait_console_ready=True, check_output=True):
-        """
-        用指定账户user发送命令cmd
-        check_output: 是否需要从output中分析异常
-        """
-
-        # 根据用户名判断是否采用sudo
-        if self.account not in ["root", "Administrator", "administrator"]:
-            cmd = "sudo %s" % cmd
-
-        # 增加回车符
-        cmd = cmd if cmd.endswith("\n") else "%s\n" % cmd
-
-        # 发送命令并等待结束
-        cmd_cleared = inspector.clear(cmd)
-        self.chan.sendall(cmd)
-        self.wait_for_output()
-
-        cmd_sent = False
-        while True:
-            time.sleep(SLEEP_INTERVAL)
-            try:
-                try:
-                    output = str(self.chan.recv(RECV_BUFLEN), encoding="utf-8")
-                except UnicodeDecodeError:
-                    output = str(self.chan.recv(RECV_BUFLEN))
-                # 剔除空格、回车和换行
-                _output = inspector.clear(output)
-
-            except socket.timeout:
-                raise Exception(f"recv socket timeout after %s seconds: {RECV_TIMEOUT}")
-            except Exception as e:
-                raise Exception(f"recv exception: {e}")
-
-            if _output.find("sudo:notfound") != 1:
-                cmd = cmd[len("sudo ") :]
-                self.chan.sendall(cmd)
-
-            # [sudo] password for vagrant:
-            if check_output and _output.endswith(f"passwordfor{self.account}:"):
-                if not cmd_sent:
-                    cmd_sent = True
-                    self.chan.sendall(self.password + "\n")
-                    time.sleep(SLEEP_INTERVAL)
-                else:
-                    raise Exception(f"password error，sudo failed: {output}")
-            elif check_output and (_output.find("tryagain") != -1 or _output.find("incorrectpassword") != -1):
-                if cmd_sent:
-                    raise Exception(f"password error，sudo failed: {output}")
-            elif not wait_console_ready:
-                return output
-            elif check_output and inspector.is_curl_failed(_output):
-                raise Exception(f"curl failed: {output}")
-            elif check_output and inspector.is_no_such_file(_output):
-                raise Exception(f"no such file: {output}")
-            elif inspector.is_console_ready(_output):
-                return output.replace(cmd_cleared, "").replace(inspector.clear(self.get_prompt()), "")
-            elif _output.find(cmd_cleared) != -1 or cmd_cleared.startswith(_output):
-                continue
-            elif inspector.is_cmd_started_on_aix(cmd_cleared, _output):
-                continue
-
-    def get_and_set_prompt(self):
-
-        prompt = ""
-        try:
-            self.set_prompt(self.set_proxy_prompt)
-
-            prompt = self.get_prompt()
-            is_prompt_set = True
-        except Exception:
-            is_prompt_set = False
-
-        return is_prompt_set, prompt
-
-    def get_prompt(self):
-        """
-        尝试获取终端提示符
-        """
-
-        self.chan.sendall("\n")
-
-        while True:
-            time.sleep(SLEEP_INTERVAL)
-            res = self.chan.recv(RECV_BUFLEN)
-            buff = inspector.clear(res)
-            if inspector.is_console_ready(buff):
-                prompt = LINE_BREAK_RE.split(buff)[-1]
-                break
-        return prompt
-
-    def set_prompt(self, cmd=None):
-        """
-        尝试设置新的终端提示符
-        """
-        if cmd is None:
-            cmd = self.set_proxy_prompt
-
-        self.chan.sendall(cmd + "\n")
-        while True:
-            time.sleep(0.3)
-            res = self.chan.recv(RECV_BUFLEN)
-            buff = inspector.clear(res)
-            if buff.find("BKproxy") != -1:
-                break
-
-    @staticmethod
-    def safe_close(ssh_or_chan):
-        """
-        安全关闭ssh连接或会话
-        """
-
-        try:
-            if ssh_or_chan:
-                ssh_or_chan.close()
-        except Exception:
-            pass
-
-
-# 状态检测
-inspector = Inspector()
 if __name__ == "__main__":
+
+    _paramiko_version: str = "-"
+    try:
+        _paramiko_version = str(paramiko.__version__)
+    except Exception:
+        logger.logging("proxy", "Failed to get paramiko version", is_report=False, level=logging.WARNING)
+
+    _app_core_remote_proxy_info_labels = {
+        "proxy_name": socket.gethostname(),
+        "proxy_ip": args.lan_eth_ip,
+        "bk_cloud_id": args.host_cloud,
+        "paramiko_version": _paramiko_version,
+    }
+    logger.logging(
+        "metrics",
+        f"app_core_remote_proxy_info_labels -> {_app_core_remote_proxy_info_labels}",
+        metrics={"name": "app_core_remote_proxy_info", "labels": _app_core_remote_proxy_info_labels},
+    )
+
+    logger.logging("proxy", "setup_pagent2 will start running now.", is_report=False)
+    _start = time.perf_counter()
+
     try:
         main()
-    except Exception:
-        report_log("proxy_fail", traceback.format_exc(), status="FAILED")
+    except Exception as _e:
+        _app_core_remote_connects_total_labels = {**get_common_labels(), "status": "failed"}
+        logger.logging(
+            "metrics",
+            f"app_core_remote_connects_total_labels -> {_app_core_remote_connects_total_labels}",
+            metrics={"name": "app_core_remote_connects_total", "labels": _app_core_remote_connects_total_labels},
+        )
+
+        if isinstance(_e, RemoteBaseException):
+            exc_type = "app"
+            exc_code = str(_e.code)
+        else:
+            exc_type = "unknown"
+            exc_code = _e.__class__.__name__
+
+        _app_core_remote_connect_exceptions_total_labels = {
+            **get_common_labels(),
+            "exc_type": exc_type,
+            "exc_code": exc_code,
+        }
+        logger.logging(
+            "metrics",
+            f"app_core_remote_connect_exceptions_total_labels -> {_app_core_remote_connect_exceptions_total_labels}",
+            metrics={
+                "name": "app_core_remote_connect_exceptions_total",
+                "labels": _app_core_remote_connect_exceptions_total_labels,
+            },
+        )
+        logger.logging("proxy_fail", str(_e), level=logging.ERROR)
+        logger.logging("proxy_fail", traceback.format_exc(), level=logging.ERROR, is_report=False)
+    else:
+        _app_core_remote_execute_duration_seconds_labels = {"method": ("proxy_wmiexe", "proxy_ssh")[use_shell()]}
+        cost_time = time.perf_counter() - _start
+        logger.logging(
+            "metrics",
+            f"app_core_remote_execute_duration_seconds_labels -> {_app_core_remote_execute_duration_seconds_labels}",
+            metrics={
+                "name": "app_core_remote_execute_duration_seconds",
+                "labels": _app_core_remote_execute_duration_seconds_labels,
+                "data": {"cost_time": cost_time},
+            },
+        )
+        logger.logging("proxy", f"setup_pagent2 succeeded: cost_time -> {cost_time}", is_report=False)
