@@ -215,11 +215,7 @@ class DBHelperMixin:
         获取 setup_pagent 文件内容
         :return:
         """
-        setup_pagent_filename: str = models.GlobalSettings.get_config(
-            models.GlobalSettings.KeyEnum.SETUP_PAGENT_SCRIPT_FILENAME.value,
-            constants.SetupScriptFileName.SETUP_PAGENT_PY.value,
-        )
-
+        setup_pagent_filename: str = constants.SetupScriptFileName.SETUP_PAGENT_PY.value
         try:
             # 动态从 storage 取，便于进行热修复
             with get_storage().open(os.path.join(settings.DOWNLOAD_PATH, setup_pagent_filename)) as fs:
