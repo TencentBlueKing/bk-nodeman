@@ -46,7 +46,7 @@ from apps.backend.subscription.errors import (
 )
 from apps.backend.subscription.handler import SubscriptionHandler
 from apps.backend.subscription.tasks import run_subscription_task_and_create_instance
-from apps.backend.subscription.tools import get_service_instance_by_ids
+from apps.backend.subscription.tools import get_service_instances
 from apps.core.files import core_files_constants
 from apps.core.files.storage import get_storage
 from apps.exceptions import AppBaseException, ValidationError
@@ -574,8 +574,11 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         else:
             bk_biz_id: int = instance_info["bk_biz_id"]
             service_instance_id: Optional[int] = instance_info["id"]
-            service_instance_result: List[Dict[str, Any]] = get_service_instance_by_ids(
-                bk_biz_id=instance_info["bk_biz_id"], ids=[service_instance_id]
+            service_instance_result: List[Dict[str, Any]] = get_service_instances(
+                bk_biz_id=instance_info["bk_biz_id"],
+                filter_id_list=[service_instance_id],
+                filter_field_name="service_instance_ids",
+                network_id=False,
             )
             try:
                 bk_host_id: int = service_instance_result[0]["bk_host_id"]
