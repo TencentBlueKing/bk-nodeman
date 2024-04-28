@@ -386,6 +386,7 @@ def get_service_instance_by_inst(bk_biz_id, inst_list, module_to_topo):
             }
             for bk_module_id in module_ids
         ]
+
         service_instances = [
             service_instance
             for service_instances in batch_call(batch_request, params)
