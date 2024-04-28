@@ -42,9 +42,7 @@ class DebugPluginTestCase(utils.PluginTestObjFactory, CustomAPITestCase):
             }
         ]
 
-        mock.patch(
-            "apps.backend.plugin.views.get_service_instance_by_ids", return_value=service_instance_result
-        ).start()
+        mock.patch("apps.backend.plugin.views.get_service_instances", return_value=service_instance_result).start()
 
     def test_host_info_debug(self):
         base_host_info_data: typing.Dict[str, typing.Union[str, int]] = {

@@ -142,3 +142,21 @@ class SubscriptionSwithBizAction(enum.EnhanceEnum):
 class ProxyConfigFile(enum.EnhanceEnum):
     V1 = ["agent.conf", "btsvr.conf", "transit.conf", "opts.conf", "plugin_info.json", "data.conf", "dataflow.conf"]
     V2 = ["gse_agent.conf", "gse_data_proxy.conf", "gse_file_proxy.conf"]
+
+
+class FilterFieldName(enum.EnhanceEnum):
+    BK_HOST_LIST = "bk_host_list"
+    SERVICE_INSTANCE_IDS = "service_instance_ids"
+
+    @classmethod
+    def _get_member__alias_map(cls) -> Dict[Enum, str]:
+        return {cls.BK_HOST_LIST: _("主机id列表"), cls.SERVICE_INSTANCE_IDS: _("服务实例id列表")}
+
+    @property
+    def needs_batch_request(self) -> bool:
+        if self == FilterFieldName.BK_HOST_LIST:
+            return True
+        elif self == FilterFieldName.SERVICE_INSTANCE_IDS:
+            return False
+
+        return True

@@ -27,7 +27,7 @@ from django.db.models import Q
 from django.utils import timezone
 
 from apps.backend.components.collections import core
-from apps.backend.constants import InstNodeType
+from apps.backend.constants import FilterFieldName, InstNodeType
 from apps.backend.subscription import task_tools
 from apps.backend.subscription.commons import get_host_by_inst, list_biz_hosts
 from apps.backend.subscription.constants import SUBSCRIPTION_SCOPE_CACHE_TIME
@@ -48,6 +48,7 @@ from apps.prometheus.helper import SetupObserve, get_call_resource_labels_func
 from apps.utils import concurrent
 from apps.utils.basic import chunk_lists, distinct_dict_list, order_dict
 from apps.utils.batch_request import batch_request, request_multi_thread
+from apps.utils.concurrent import batch_call
 from apps.utils.time_handler import strftime_local
 from common.api import CCApi
 
@@ -278,31 +279,46 @@ def find_host_biz_relations(bk_host_ids: List[int]) -> List[Dict]:
 
 
 @controller.ConcurrentController(
-    data_list_name="bk_host_list",
+    data_list_name="filter_id_list",
     batch_call_func=concurrent.batch_call,
     get_config_dict_func=core.get_config_dict,
     get_config_dict_kwargs={"config_name": core.ServiceCCConfigName.CMDB_QUERY.value},
 )
-def get_service_instances(bk_biz_id: int, bk_host_list: List[int]) -> List[Dict]:
+def get_service_instances(
+    bk_biz_id: int, filter_id_list: List[int], filter_field_name: FilterFieldName, ignore_exception: bool = True
+) -> List[Dict]:
     """
     分批查询业务主机进程
     :param bk_biz_id: 业务ID
-    :param bk_host_list: 实例主机id列表
+    :param filter_id_list: 筛选字段列表
+    :param filter_field_name: 筛选字段名字
+    :param ignore_exception: 是否忽略错误
     :return: 主机进程
     """
+    if not filter_id_list:
+        return []
+
+    params = {
+        "bk_biz_id": int(bk_biz_id),
+        "with_name": True,
+        filter_field_name.value: filter_id_list,
+    }
     try:
-        params = {
-            "bk_biz_id": int(bk_biz_id),
-            "with_name": True,
-            "bk_host_list": bk_host_list,
-            "page": {
+        if filter_field_name.needs_batch_request:
+            result = batch_request(CCApi.list_service_instance_detail, params)
+        else:
+            params["page"] = {
                 "start": 0,
-                "limit": len(bk_host_list),
-            },
-        }
-        result = CCApi.list_service_instance_detail(params)["info"]
+                "limit": len(filter_id_list),
+            }
+            result = CCApi.list_service_instance_detail(params)["info"]
     except Exception:
-        logger.exception(f"Failed to list_service_instance_detail with biz_id={bk_biz_id}, bk_host_list={bk_host_list}")
+        logger.exception(
+            f"Failed to list_service_instance_detail with biz_id={bk_biz_id}, "
+            f"{filter_field_name.value}={filter_id_list}"
+        )
+        if not ignore_exception:
+            raise
         service_instances = []
     else:
         service_instances = result
@@ -322,7 +338,12 @@ def get_process_by_biz_id(bk_biz_id: int, bk_host_list: List[int]) -> Dict:
         }
     }
     """
-    service_instances = get_service_instances(bk_biz_id=bk_biz_id, bk_host_list=bk_host_list)
+    service_instances = get_service_instances(
+        bk_biz_id=bk_biz_id,
+        filter_id_list=bk_host_list,
+        filter_field_name=FilterFieldName.BK_HOST_LIST,
+        ignore_exception=True,
+    )
 
     host_processes = defaultdict(dict)
 
@@ -354,32 +375,33 @@ def get_modules_by_inst_list(inst_list, module_to_topo):
 
 def get_service_instance_by_inst(bk_biz_id, inst_list, module_to_topo):
     module_ids, no_module_inst_list = get_modules_by_inst_list(inst_list, module_to_topo)
-    params = {"bk_biz_id": int(bk_biz_id), "with_name": True}
+    if not module_ids:
+        return []
 
-    service_instances = batch_request(client_v2.cc.list_service_instance_detail, params, sort="id")
+    if len(module_ids) <= constants.QUERY_MODULE_ID_THRESHOLD:
+        params = [
+            {
+                "func": CCApi.list_service_instance_detail,
+                "params": {
+                    "bk_biz_id": int(bk_biz_id),
+                    "with_name": True,
+                    "bk_module_id": bk_module_id,
+                },
+                "sort": "id",
+            }
+            for bk_module_id in module_ids
+        ]
+
+        service_instances = batch_call(batch_request, params, extend_result=True)
+    else:
+        params = {"bk_biz_id": int(bk_biz_id), "with_name": True}
+        service_instances = batch_request(CCApi.list_service_instance_detail, params, sort="id")
 
     service_instances = [
         service_instance for service_instance in service_instances if service_instance["bk_module_id"] in module_ids
     ]
 
     return service_instances
-
-
-def get_service_instance_by_ids(bk_biz_id, ids):
-    """
-    根据服务实例id获取服务实例详情
-    :param bk_biz_id: int 业务id
-    :param ids: list 服务实例id
-    :return:
-    """
-    params = {
-        "bk_biz_id": int(bk_biz_id),
-        "with_name": True,
-        "service_instance_ids": ids,
-    }
-
-    result = batch_request(client_v2.cc.list_service_instance_detail, params)
-    return result
 
 
 @FuncCacheDecorator(cache_time=1 * constants.TimeUnit.MINUTE)
@@ -847,7 +869,15 @@ def get_instances_by_scope(scope: Dict[str, Union[Dict, int, Any]]) -> Dict[str,
         else:
             service_instance_ids = [int(node["id"]) for node in nodes]
             instances.extend(
-                [{"service": inst} for inst in get_service_instance_by_ids(bk_biz_id, service_instance_ids)]
+                [
+                    {"service": inst}
+                    for inst in get_service_instances(
+                        bk_biz_id=bk_biz_id,
+                        filter_id_list=service_instance_ids,
+                        filter_field_name=FilterFieldName.SERVICE_INSTANCE_IDS,
+                        ignore_exception=False,
+                    )
+                ]
             )
 
     # 按照模板查询
