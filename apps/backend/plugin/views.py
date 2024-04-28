@@ -578,7 +578,7 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
                 bk_biz_id=instance_info["bk_biz_id"],
                 filter_id_list=[service_instance_id],
                 filter_field_name="service_instance_ids",
-                network_id=False,
+                need_batch_request=False,
             )
             try:
                 bk_host_id: int = service_instance_result[0]["bk_host_id"]
