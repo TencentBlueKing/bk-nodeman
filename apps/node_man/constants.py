@@ -557,6 +557,7 @@ WRITE_CMDB_LIMIT = 500
 QUERY_CMDB_MODULE_LIMIT = 500
 QUERY_CLOUD_LIMIT = 200
 QUERY_HOST_SERVICE_TEMPLATE_LIMIT = 200
+QUERY_MODULE_ID_THRESHOLD = 15
 VERSION_PATTERN = re.compile(r"[vV]?(\d+\.){1,5}\d+(-rc\d)?$")
 # 语义化版本正则，参考：https://semver.org/#is-there-a-suggested-regular-expression-regex-to-check-a-semver-string
 SEMANTIC_VERSION_PATTERN = re.compile(
