@@ -53,8 +53,8 @@ class MockReturn:
         self.return_type = return_type
 
         if self.return_type == MockReturnType.SIDE_EFFECT.value:
-            if not callable(return_obj):
-                raise ValueError(f"return_obj must be callable because return type is {self.return_type}")
+            if not (callable(return_obj) or isinstance(return_obj, list)):
+                raise ValueError(f"return_obj must be callable or list because return type is {self.return_type}")
         self.return_obj = return_obj
 
 
