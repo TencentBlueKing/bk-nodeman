@@ -38,7 +38,7 @@ from apps.backend.utils.wmi import execute_cmd, put_file
 from apps.core.concurrent import controller
 from apps.core.concurrent.retry import RetryHandler
 from apps.core.remote import conns
-from apps.exceptions import AuthOverdueException, parse_exception
+from apps.exceptions import ApiResultError, AuthOverdueException, parse_exception
 from apps.node_man import constants, models
 from apps.prometheus import metrics
 from apps.prometheus.helper import SetupObserve
@@ -889,9 +889,10 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
         get_config_dict_func=core.get_config_dict,
         get_config_dict_kwargs={"config_name": core.ServiceCCConfigName.HOST_WRITE.value},
     )
-    @ExceptionHandler(exc_handler=core.default_sub_insts_task_exc_handler)
+    @ExceptionHandler(exc_handler=core.update_cpu_arch_sub_insts_task_exc_handler)
+    @RetryHandler(interval=3, retry_times=2, exception_types=[ApiResultError])
     def update_db_and_report_cpu_arch(
-        self, host_info_list: List[Dict[str, any]], host_id__sub_inst_id_map: Dict[int, int]
+        self, host_info_list: List[Dict[str, Any]], host_id__sub_inst_id_map: Dict[int, int]
     ):
         """
         :param host_info_list: 包含bk_host_id与cpu_arch字段的主机信息列表

@@ -97,6 +97,21 @@ def default_sub_inst_ids_extractor(args: Tuple[Any], kwargs: Dict[str, Any]) -> 
     return [sub_inst.id for sub_inst in sub_insts]
 
 
+def update_cpu_arch_sub_inst_ids_extractor(args: Tuple[Any], kwargs: Dict[str, Any]) -> List[int]:
+    """
+    上报cpu架构订阅实例ID列表提取器
+    :param args: 位置参数
+    :param kwargs: 关键字参数
+    :return: 订阅实例ID列表
+    """
+    host_info_list: List[Dict[str, Any]] = kwargs.get("host_info_list", [])
+    host_id__sub_inst_id_map: Dict[int, int] = kwargs.get("host_id__sub_inst_id_map", {})
+
+    sub_inst_ids = [host_id__sub_inst_id_map[host_info["bk_host_id"]] for host_info in host_info_list]
+
+    return sub_inst_ids
+
+
 def default_task_exc_handler(
     sub_inst_id_extractor: Callable[[Tuple, Dict], Union[int, Set[int], List[int]]],
     wrapped: Callable,
@@ -127,3 +142,7 @@ def default_task_exc_handler(
 default_sub_inst_task_exc_handler = functools.partial(default_task_exc_handler, default_sub_inst_id_extractor)
 
 default_sub_insts_task_exc_handler = functools.partial(default_task_exc_handler, default_sub_inst_ids_extractor)
+
+update_cpu_arch_sub_insts_task_exc_handler = functools.partial(
+    default_task_exc_handler, update_cpu_arch_sub_inst_ids_extractor
+)
