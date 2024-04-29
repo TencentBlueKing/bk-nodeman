@@ -33,6 +33,7 @@ from apps.core.remote import exceptions
 from apps.core.remote.tests import base
 from apps.core.remote.tests.base import AsyncMockConn
 from apps.core.script_manage.handlers import ScriptManageHandler
+from apps.exceptions import ApiResultError
 from apps.mock_data import api_mkd
 from apps.mock_data import utils as mock_data_utils
 from apps.node_man import constants, models
@@ -1110,3 +1111,43 @@ class KeyErrorWithPullPartialBackTestCase(InstallBaseTestCase):
             "count": len(structure_instance_host_info_list),
             "info": structure_instance_host_info_list,
         }
+
+
+class IndexOutOfRangeTestCase(LinuxInstallTestCase):
+    """验证【安装额外agent获取订阅实例时出现索引越界】问题"""
+
+    def init_mock_clients(self):
+        super().init_mock_clients()
+        self.cmdb_mock_client = api_mkd.cmdb.utils.CCApiMockClient(
+            batch_update_host=mock_data_utils.MockReturn(
+                return_type=mock_data_utils.MockReturnType.SIDE_EFFECT.value,
+                return_obj=[ApiResultError("更新主机cpu架构信息失败"), ApiResultError("更新主机cpu架构信息失败")],
+            )
+        )
+
+    def _do_case_assert(self, service, method, assertion, no, name, args=None, kwargs=None):
+        try:
+            super()._do_case_assert(service, method, assertion, no, name, args, kwargs)
+        except AssertionError:
+            # 验证是否被移到失败实例中
+            failed_subscription_instance_id_reason_map = service.failed_subscription_instance_id_reason_map
+            self.assertEqual(len(failed_subscription_instance_id_reason_map), 1)
+            self.assertEqual(
+                list(failed_subscription_instance_id_reason_map.keys()),
+                self.obj_factory.sub_inst_record_ids,
+            )
+            self.assertEqual(list(failed_subscription_instance_id_reason_map.values()), ["[3800002] 更新主机cpu架构信息失败"])
+
+            # 验证重试次数
+            self.assertEqual(self.cmdb_mock_client.batch_update_host.call_count, 2)
+
+
+class RetrySuccessTestCase(LinuxInstallTestCase):
+    def init_mock_clients(self):
+        super().init_mock_clients()
+        self.cmdb_mock_client = api_mkd.cmdb.utils.CCApiMockClient(
+            batch_update_host=mock_data_utils.MockReturn(
+                return_type=mock_data_utils.MockReturnType.SIDE_EFFECT.value,
+                return_obj=[ApiResultError("更新主机cpu架构信息失败"), {"message": "success"}],
+            )
+        )
