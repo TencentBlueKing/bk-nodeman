@@ -580,6 +580,9 @@ ResourceType = choices_to_namedtuple(RESOURCE_CHOICES)
 
 QUERY_BIZ_LENS = 200
 
+# 默认插件进程启动检查时间
+DEFAULT_PLUGIN_PROC_START_CHECK_SECS = 9
+
 
 class ProxyFileFromType(Enum):
     """Proxy上传文件名称来源"""

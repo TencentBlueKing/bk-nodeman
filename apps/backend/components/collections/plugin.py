@@ -1170,6 +1170,10 @@ class GseOperateProcService(PluginBaseService):
 
         host_id__resource_policy_map = self.get_resource_policy(common_data.bk_host_ids, plugin.name)
         proc_operate_req = []
+        start_check_secs = models.GlobalSettings.get_config(
+            models.GlobalSettings.KeyEnum.PLUGIN_PROC_START_CHECK_SECS.value,
+            default=constants.DEFAULT_PLUGIN_PROC_START_CHECK_SECS,
+        )
         for process_status in process_statuses:
             bk_host_id = process_status.bk_host_id
             host = host_id_obj_map.get(bk_host_id)
@@ -1206,7 +1210,7 @@ class GseOperateProcService(PluginBaseService):
                     "alive_monitor_policy": {
                         # 托管类型，0为周期执行进程，1为常驻进程，2为单次执行进程, 1.0沿用1
                         "auto_type": plugin.auto_type if gse_version == GseVersion.V2.value else 1,
-                        "start_check_secs": 9,
+                        "start_check_secs": start_check_secs,
                     },
                 },
             }
