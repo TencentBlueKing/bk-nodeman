@@ -103,10 +103,11 @@
                   v-else
                   @jump-proxy="handleGotoProxy(row)"
                   @validator-change="setValidator(row, config.prop, ...arguments)">
-                  <!-- 查看态（不要嵌入组件，防止虚拟滚动的时候渲染卡顿） -->
+                  <!-- 查看态（不要嵌入组件，防止虚拟滚动的时候渲染卡顿） 在非禁止编辑时增加一个相对定位，避开mask遮罩，使可点击-->
                   <div :class="['ghost-wrapper', {
                          'is-disabled': getCellDisabled(row, config)
                        }]"
+                       :style="{ position: getCellDisabled(row, config) ? 'static' : 'relative' }"
                        v-if="virtualScroll && !editStatus(row, config) && getDisabledType(row, config)"
                        @click="handleShowEdit(row, config)">
                     <!-- 下拉框 -->

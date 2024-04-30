@@ -43,7 +43,8 @@
             :virtual-scroll="true"
             :extra-params="extraParams"
             auto-sort
-            @delete="handleItemDelete">
+            @delete="handleItemDelete"
+            @change="handleValueChange">
             <template #empty>
               <parser-excel v-model="importDialog" @uploading="handleUploading"></parser-excel>
             </template>
@@ -341,6 +342,10 @@ export default class AgentImport extends Mixins(mixin) {
         if (!item.install_channel_id) {
           item.install_channel_id = 'default';
         }
+        // 未分配管控区域,bk_cloud_id改为-1
+        if (item.is_unassigned) {
+          item.bk_cloud_id = -1;
+        }
         const prove: { [key: string]: string } = {};
         const copyRow = Object.assign({}, item, item.identity_info, apDefault, prove);
         // 不同版本的GSE不能混用对应版本的接入点
@@ -353,6 +358,10 @@ export default class AgentImport extends Mixins(mixin) {
     } else {
       defaultAp = { ap_id: apDefault };
       const formatData = this.tableData.map((item) => {
+        // 未分配管控区域,bk_cloud_id改为-1
+        if (item.is_unassigned) {
+          item.bk_cloud_id = -1;
+        }
         const copyRow = { ...item };
         if (this.isNotAutoSelect && item.ap_id === -1) {
           Object.assign(copyRow, defaultAp);
@@ -376,6 +385,38 @@ export default class AgentImport extends Mixins(mixin) {
     this.setupTable.handleInit();
     this.setupTable.handleScroll();
   }
+
+  // 当前管控区域列表
+  private get bkCloudList() {
+    return AgentStore.cloudList;
+  }
+
+  // 安装通道
+  private get channelList() {
+    return AgentStore.channelList;
+  }
+  /**
+   * 管控区域变更
+   * @param {Object} data { row, config } 当前行,当前表格的editTableConfig
+   * @param {Object} config 当前行数据row
+   */
+  private handleValueChange(data: any, config: any) {
+    // 管控区域变更,触发安装通道和接入点逻辑相应变化
+    if (data.config.prop === 'bk_cloud_id') {
+      const bkCloudList = this.bkCloudList.filter(item => !item.bk_biz_scope
+        || item.bk_biz_scope.includes(config.bk_biz_id));
+      const bkCloud = bkCloudList.find(item => item.bk_cloud_id === config.bk_cloud_id);
+      // 远程安装，非默认管控区域
+      if (!this.isManual && config.bk_cloud_id !== window.PROJECT_CONFIG.DEFAULT_CLOUD) {
+        data.row.ap_id = bkCloud?.ap_id;
+      } else {
+        data.row.ap_id = this.tableDataBackup.find(item => item.inner_ip === config.inner_ip)?.ap_id || config.ap_id;
+      }
+      const filterChannelList = this.channelList.filter(item => item.id === 'default' || item.bk_cloud_id === config.bk_cloud_id);
+      data.row.install_channel_id = filterChannelList.length === 1 ? 'default' : '';
+    }
+  }
+
   /**
    * 监听界面滚动
    */
@@ -406,7 +447,7 @@ export default class AgentImport extends Mixins(mixin) {
       this.loadingSetupBtn = true;
       this.showFilterTips = false;
       let hosts = this.setupTable.getData();
-      hosts.forEach((item: ISetupRow) => {
+      hosts.forEach((item: ISetupRow, index: number) => {
         if (isEmpty(item.login_ip)) {
           delete item.login_ip;
         }
@@ -422,6 +463,10 @@ export default class AgentImport extends Mixins(mixin) {
         const authType = item.auth_type?.toLowerCase() as ('key' | 'password');
         if (item[authType]) {
           item[authType] = this.$safety.encrypt(item[authType] as string);
+        }
+        // 无管控参数回填
+        if ('is_unassigned' in this.tableDataBackup[index]) {
+          item.is_unassigned = this.tableDataBackup[index].is_unassigned;
         }
       });
       // 安装agent或pagent时，需要设置初始的安装类型
