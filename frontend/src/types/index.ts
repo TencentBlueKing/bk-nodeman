@@ -227,6 +227,7 @@ export interface ISetupValidator {
 // 集合了agent 安装&导入、proxy安装
 export interface ISetupRow {
   id: number
+  is_unassigned?: boolean
   is_manual?: boolean
   inner_ip?: string
   outer_ip?: string

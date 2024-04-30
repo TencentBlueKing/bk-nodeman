@@ -21,21 +21,44 @@ export const config: ISetupHead[] = [
     prop: 'bk_cloud_id',
     type: 'select',
     required: true,
+    // 管控区域可以批量编辑
+    batch: true,
     popoverMinWidth: 160,
     noRequiredMark: false,
     parentProp: 'cloud_attr',
     placeholder: window.i18n.t('请选择'),
     manualProp: true,
+    // 管控区域校验，是未分配时提示必填
+    rules: [
+      {
+        trigger: 'blur',
+        message: window.i18n.t('请选择管控区域'),
+        validator(v: number, id: number) {
+          if (typeof v === 'undefined' || v === null || v === -1) return false;
+          const row = this.table.data.find(item => item.id === id);
+          if (!row) return;
+          return row.bk_cloud_id !== -1;
+        },
+      },
+    ],
     getOptions() {
-      return this.cloudList.map((item: ICloudSource) => ({
+      const options = [{
+        name: window.i18n.t('未分配'),
+        id: -1,
+        disabled: true,
+      }];
+      return options.concat(this.cloudList.map((item: ICloudSource) => ({
         name: item.bk_cloud_name,
         id: item.bk_cloud_id,
-      }));
+      })));
     },
     getProxyStatus(row: ISetupRow) {
       return row.proxyStatus;
     },
-    readonly: true,
+    // 未分配允许修改
+    getReadonly(row: ISetupRow) {
+      return !row.is_unassigned;
+    },
   },
   {
     label: '安装通道',
@@ -110,6 +133,10 @@ export const config: ISetupHead[] = [
         disabled: item.id === -1
           && (row.bk_cloud_id !== window.PROJECT_CONFIG.DEFAULT_CLOUD || row.install_channel_id !== 'default'),
       }));
+    },
+    // 根据管控区域变更设置接入点只读，无管控未安装+远程安装+管控区域不是默认值
+    getReadonly(row: ISetupRow) {
+      return row.is_unassigned && !this.isManual && row.bk_cloud_id !== window.PROJECT_CONFIG.DEFAULT_CLOUD;
     },
   },
   {
@@ -189,6 +216,7 @@ export const config: ISetupHead[] = [
     default: getDefaultConfig(defaultOsType, 'port', defaultPort),
     tips: 'agentSetupPort',
     parentProp: 'login_info',
+    placeholder: window.i18n.t('请输入'),
     rules: [reguPort],
     // getReadonly(row: ISetupRow) {
     //   return row && row.os_type === 'WINDOWS' && row.bk_cloud_id !== window.PROJECT_CONFIG.DEFAULT_CLOUD;
