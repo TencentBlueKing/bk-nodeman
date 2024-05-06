@@ -73,9 +73,10 @@ export const config: ISetupHead[] = [
     placeholder: window.i18n.t('请选择'),
     manualProp: true,
     getBatch() {
+      // 同一类数据（都是v1或者v2）时候可以批量
       return !window.PROJECT_CONFIG?.ENABLE_AP_VERSION_MUTEX
         || window.PROJECT_CONFIG?.ENABLE_AP_VERSION_MUTEX !== 'True'
-        || this.table?.data?.every(row => row.gse_version === 'V1');
+        || this.table?.data?.every((row: ISetupRow) => row.gse_version === this.table?.data[0].gse_version);
     },
     getOptions(oldRow) {
       let row = oldRow;
