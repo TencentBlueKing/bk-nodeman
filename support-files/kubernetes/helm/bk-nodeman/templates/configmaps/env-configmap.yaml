@@ -57,6 +57,9 @@ data:
   {{- if .Values.config.bkAppBkGseApiGateway }}
   BKAPP_BK_GSE_APIGATEWAY: "{{ .Values.config.bkAppBkGseApiGateway }}/"
   {{- end }}
+  {{- if .Values.config.bkAppBkCcApiGateway }}
+  BKAPP_BK_CC_APIGATEWAY: "{{ .Values.config.bkAppBkCcApiGateway }}/"
+  {{- end }}
 
   BK_NODEMAN_URL: "{{ .Values.bkNodemanUrl }}"
   BKAPP_BACKEND_HOST: "{{ .Values.config.bkAppBackendHost | default .Values.bkNodemanApiUrl }}"
