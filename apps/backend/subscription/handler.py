@@ -320,17 +320,22 @@ class SubscriptionHandler(object):
             filter_empty=True,
         )
 
-        # 需要排除处在执行状态或执行成功的订阅实例 ID
-        exclude_instance_ids: Set[int] = set(
-            models.SubscriptionInstanceRecord.objects.filter(
-                **base_filter_kwargs,
-                status__in=[
-                    constants.JobStatusType.RUNNING,
-                    constants.JobStatusType.PENDING,
-                    constants.JobStatusType.SUCCESS,
-                ],
-            ).values_list("instance_id", flat=True)
+        # 需要排除执行中/执行成功订阅实例 ID
+        # 对于指定 task_id_list 的情况，确保需要重试的实例在范围内没有成功过
+        exclude_instance_record_qs = models.SubscriptionInstanceRecord.objects.filter(
+            **base_filter_kwargs,
+            status__in=[
+                constants.JobStatusType.RUNNING,
+                constants.JobStatusType.PENDING,
+                constants.JobStatusType.SUCCESS,
+            ],
         )
+        # 如果没有按 task_id_list 隔离，并不能简单排除非失败状态，因为在订阅巡检周期内实例存在多次结果不同的快照
+        # 在上述情况下，仅需保证需要重试的实例在最新快照没有成功即可
+        if not task_id_list:
+            exclude_instance_record_qs.filter(is_latest=Value(1))
+
+        exclude_instance_ids: Set[int] = set(exclude_instance_record_qs.values_list("instance_id", flat=True))
         instance_record_qs = models.SubscriptionInstanceRecord.objects.filter(
             Q(**base_filter_kwargs) & ~Q(instance_id__in=exclude_instance_ids)
         )
