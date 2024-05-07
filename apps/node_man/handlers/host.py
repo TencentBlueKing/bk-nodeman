@@ -9,7 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from collections import defaultdict
-from typing import Any, Dict, Iterable, List, Set
+from typing import Any, Dict, Iterable, List, Optional, Set
 
 from django.db.models import Count, Q
 from django.utils import timezone
@@ -33,6 +33,7 @@ from apps.node_man.handlers.validator import update_pwd_validate
 from apps.node_man.models import (
     AccessPoint,
     Cloud,
+    GlobalSettings,
     Host,
     IdentityData,
     InstallChannel,
@@ -237,6 +238,11 @@ class HostHandler(APIModel):
         # 获得拓扑结构数据
         topology = CmdbHandler().cmdb_or_cache_topo(username, user_biz, biz_host_id_map)
 
+        # 获取未分配管控区域
+        unassigned_bk_cloud_id: List[Optional(int)] = GlobalSettings.get_config(
+            key=GlobalSettings.KeyEnum.UNASSIGNED_BK_CLOUD_ID.value, default=[]
+        )
+
         # 汇总
         for hs in hosts_status:
             hs["status_display"] = const.PROC_STATUS_CHN.get(hs["status"], "")
@@ -247,6 +253,7 @@ class HostHandler(APIModel):
             hs["job_result"] = host_id_job_status.get(hs["bk_host_id"], {})
             hs["topology"] = topology.get(hs["bk_host_id"], [])
             hs["operate_permission"] = hs["bk_biz_id"] in agent_operate_bizs
+            hs["is_unassigned"] = True if int(hs["bk_cloud_id"]) in unassigned_bk_cloud_id else False
 
         result = {"total": hosts_status_count, "list": hosts_status}
 
