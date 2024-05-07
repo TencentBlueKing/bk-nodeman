@@ -25,7 +25,13 @@ from apps.node_man.exceptions import (
     ProxyNotAvaliableError,
 )
 from apps.node_man.handlers.cloud import CloudHandler
-from apps.node_man.models import AccessPoint, Host, IdentityData, ProcessStatus
+from apps.node_man.models import (
+    AccessPoint,
+    GlobalSettings,
+    Host,
+    IdentityData,
+    ProcessStatus,
+)
 
 
 def check_available_proxy():
@@ -378,6 +384,7 @@ def operate_ip_checker(
     error_host: typing.Dict[str, typing.Dict],
     op_type: str,
     node_type: str,
+    unassigned_bk_host_ids: typing.List[typing.Optional[int]],
 ):
 
     host_infos_with_the_same_ips: typing.List[
@@ -385,6 +392,9 @@ def operate_ip_checker(
     ] = tools.HostV2Tools.get_host_infos_with_the_same_ips(
         host_infos_gby_ip_key=host_infos_gby_ip_key, host_info=host_info, ip_field_names=["inner_ip", "inner_ipv6"]
     )
+    bk_host_id: int = host_info.get("bk_host_id")
+    if bk_host_id and bk_host_id in unassigned_bk_host_ids:
+        return True
 
     if not host_infos_with_the_same_ips:
         error_host["msg"] = _("尚未被安装，无法执行 {op_type} 操作").format(op_type=const.JOB_TYPE_DICT[op_type + "_" + node_type])
@@ -479,6 +489,14 @@ def install_validate(
     else:
         host_id__agent_state_info_map = {}
 
+    # 查询未分配主机
+    unassigned_cloud_ids: typing.List[typing.Optional[int]] = GlobalSettings.get_config(
+        key=GlobalSettings.KeyEnum.UNASSIGNED_BK_CLOUD_ID.value, default=[]
+    )
+    unassigned_bk_host_ids: typing.List[typing.Optional[int]] = Host.objects.filter(
+        bk_host_id__in=[host.get("bk_host_id") for host in hosts], bk_cloud_id__in=unassigned_cloud_ids
+    ).values_list("bk_host_id", flat=True)
+
     for host in hosts:
         ap_id = host.get("ap_id")
         bk_biz_id = host["bk_biz_id"]
@@ -508,6 +526,15 @@ def install_validate(
         # 检查：管控区域是否存在
         if bk_cloud_id != const.DEFAULT_CLOUD and bk_cloud_id not in cloud_info:
             raise CloudNotExistError(_("管控区域(ID:{bk_cloud_id}) 不存在").format(bk_cloud_id=bk_cloud_id))
+
+        # 检查：管控区域是否为未分配
+        if bk_cloud_id in unassigned_cloud_ids:
+            error_host["msg"] = _("管控区域(ID:{bk_cloud_id}) 为【未分配】的管控区域不允许安装Agent, 再选择可用管控区域").format(
+                bk_cloud_id=bk_cloud_id
+            )
+            error_host["exception"] = "cloud_unassigned"
+            ip_filter_list.append(error_host)
+            continue
 
         # 检查：直连区域不允许安装 PROXY
         if bk_cloud_id == const.DEFAULT_CLOUD and node_type == const.NodeType.PROXY:
@@ -556,6 +583,7 @@ def install_validate(
                 error_host=error_host,
                 op_type=op_type,
                 node_type=node_type,
+                unassigned_bk_host_ids=unassigned_bk_host_ids,
             )
 
         if is_check_pass:

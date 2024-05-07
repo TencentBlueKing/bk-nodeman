@@ -81,7 +81,10 @@ class AddOrUpdateHostsService(AgentBaseService):
         return CCApi.search_business(search_business_params)["info"][0]
 
     def static_ip_selector(
-        self, sub_inst: models.SubscriptionInstanceRecord, cmdb_hosts: List[Dict[str, Any]]
+        self,
+        sub_inst: models.SubscriptionInstanceRecord,
+        cmdb_hosts: List[Dict[str, Any]],
+        unassigned_bk_host_ids: List[Optional[int]],
     ) -> SelectorResult:
         """
         静态 IP 处理器
@@ -113,6 +116,19 @@ class AddOrUpdateHostsService(AgentBaseService):
                 ),
             )
             return SelectorResult(is_add=False, is_skip=True, sub_inst=sub_inst)
+        elif sub_inst.instance_info["host"].get("bk_host_id") in unassigned_bk_host_ids:
+            self.move_insts_to_failed(
+                [sub_inst.id],
+                log_content=_(
+                    "主机期望被分配到业务【ID：{except_bk_biz_id}】，但实际业务【ID: {actual_biz_id}】"
+                    "中已存在相同IP, host_id: {bk_host_id}，请选择对应主机或者更改寻址方式为动态"
+                ).format(
+                    except_bk_biz_id=except_bk_biz_id,
+                    actual_biz_id=cmdb_host["bk_biz_id"],
+                    bk_host_id=cmdb_host["bk_host_id"],
+                ),
+            )
+            return SelectorResult(is_add=False, is_skip=True, sub_inst=sub_inst)
         else:
             # 同业务下视为更新
             sub_inst.instance_info["host"]["bk_host_id"] = cmdb_host["bk_host_id"]
@@ -126,7 +142,10 @@ class AddOrUpdateHostsService(AgentBaseService):
                 cmdb_host["bk_host_innerip"] = bk_host_inner_ip[0]
 
     def dynamic_ip_selector(
-        self, sub_inst: models.SubscriptionInstanceRecord, cmdb_hosts: List[Dict[str, Any]]
+        self,
+        sub_inst: models.SubscriptionInstanceRecord,
+        cmdb_hosts: List[Dict[str, Any]],
+        unassigned_bk_host_ids: List[Optional[int]],
     ) -> SelectorResult:
         """
         动态 IP 处理器
@@ -328,6 +347,47 @@ class AddOrUpdateHostsService(AgentBaseService):
         get_config_dict_func=core.get_config_dict,
         get_config_dict_kwargs={"config_name": core.ServiceCCConfigName.HOST_WRITE.value},
     )
+    def handle_update_cmdb_hosts_cloud_id_case(self, sub_insts: List[models.SubscriptionInstanceRecord]):
+        """
+        批量更新 CMDB 主机管控区域
+        :param sub_insts: 订阅实例列表
+        :return: 返回成功更新的订阅实例 ID 列表
+        """
+        if not sub_insts:
+            return []
+
+        sub_inst_ids: List[int] = []
+        update_list: List[Dict[str, Any]] = []
+        for sub_inst in sub_insts:
+            sub_inst_ids.append(sub_inst.id)
+            sub_inst.update_time = timezone.now()
+            host_info: Dict[str, Any] = sub_inst.instance_info["host"]
+            properties: Dict[str, Any] = {
+                "bk_cloud_id": host_info["bk_cloud_id"],
+                "bk_addressing": host_info.get("bk_addressing", constants.CmdbAddressingType.STATIC.value),
+                "bk_os_type": constants.BK_OS_TYPE[host_info["os_type"]],
+            }
+            update_params: Dict[str, Any] = {
+                "bk_host_ids": [host_info["bk_host_id"]],
+                "properties": {k: v for k, v in properties.items() if v is not None and v != ""},
+            }
+            self.log_info(
+                sub_inst_ids=sub_inst.id,
+                log_content=_("更新 CMDB 主机信息:\n {params}").format(params=json.dumps(update_params, indent=2)),
+            )
+            update_list.append(update_params)
+        CCApi.batch_update_host_all_properties({"update": update_list})
+        models.SubscriptionInstanceRecord.objects.bulk_update(
+            sub_insts, fields=["instance_info", "update_time"], batch_size=self.batch_size
+        )
+        return sub_inst_ids
+
+    @controller.ConcurrentController(
+        data_list_name="sub_insts",
+        batch_call_func=concurrent.batch_call,
+        get_config_dict_func=core.get_config_dict,
+        get_config_dict_kwargs={"config_name": core.ServiceCCConfigName.HOST_WRITE.value},
+    )
     @exc.ExceptionHandler(exc_handler=core.default_sub_insts_task_exc_handler)
     def add_host_to_business_idle(self, biz_info: Dict[str, Any], sub_insts: List[models.SubscriptionInstanceRecord]):
         sub_inst_ids: List[int] = []
@@ -498,6 +558,7 @@ class AddOrUpdateHostsService(AgentBaseService):
 
         sub_insts_to_be_added: List[models.SubscriptionInstanceRecord] = []
         sub_insts_to_be_updated: List[models.SubscriptionInstanceRecord] = []
+        sub_insts_to_be_updated_cloud_id: List[models.SubscriptionInstanceRecord] = []
         id__sub_inst_obj_map: Dict[int, models.SubscriptionInstanceRecord] = {}
         # 获取已存在于 CMDB 的主机信息
         exist_cmdb_hosts: List[Dict[str, Any]] = self.query_hosts(subscription_instances)
@@ -507,6 +568,15 @@ class AddOrUpdateHostsService(AgentBaseService):
         # 按 IpKey 聚合主机信息
         # IpKey：ip（v4 or v6）+ bk_addressing（寻值方式）+ bk_cloud_id（管控区域）
         cmdb_host_infos_gby_ip_key: Dict[str, List[Dict[str, Any]]] = self.get_host_infos_gby_ip_key(exist_cmdb_hosts)
+
+        # 查询未分配管控区域ID的主机
+        unassigned_cloud_id: List[Optional[int]] = models.GlobalSettings.get_config(
+            key=models.GlobalSettings.KeyEnum.UNASSIGNED_BK_CLOUD_ID.value, default=[]
+        )
+        unassigned_bk_host_ids: List[Optional[int]] = [
+            host.bk_host_id for host in common_data.host_id_obj_map.values() if host.bk_cloud_id in unassigned_cloud_id
+        ]
+
         for sub_inst in subscription_instances:
             id__sub_inst_obj_map[sub_inst.id] = sub_inst
             host_info: Dict[str, Any] = sub_inst.instance_info["host"]
@@ -521,13 +591,19 @@ class AddOrUpdateHostsService(AgentBaseService):
 
             # 按照寻址方式通过不同的选择器，选择更新或新增主机到 CMDB
             if bk_addressing == constants.CmdbAddressingType.DYNAMIC.value:
-                selector_result: SelectorResult = self.dynamic_ip_selector(sub_inst, cmdb_hosts_with_the_same_ips)
+                selector_result: SelectorResult = self.dynamic_ip_selector(
+                    sub_inst, cmdb_hosts_with_the_same_ips, unassigned_bk_host_ids
+                )
             else:
-                selector_result: SelectorResult = self.static_ip_selector(sub_inst, cmdb_hosts_with_the_same_ips)
+                selector_result: SelectorResult = self.static_ip_selector(
+                    sub_inst, cmdb_hosts_with_the_same_ips, unassigned_bk_host_ids
+                )
 
             if selector_result.is_skip:
                 # 选择器已处理，跳过
                 continue
+            elif host_info.get("bk_host_id") and host_info["bk_host_id"] in unassigned_bk_host_ids:
+                sub_insts_to_be_updated_cloud_id.append(selector_result.sub_inst)
             elif selector_result.is_add:
                 sub_insts_to_be_added.append(selector_result.sub_inst)
             else:
@@ -538,9 +614,16 @@ class AddOrUpdateHostsService(AgentBaseService):
         successfully_updated_sub_inst_ids: List[int] = self.handle_update_cmdb_hosts_case(
             sub_insts=sub_insts_to_be_updated, host_ids_with_mutil_inner_ip=host_ids_with_mutil_inner_ip
         )
+        successfully_updated_cloud_id_sub_inst_ids: List[int] = self.handle_update_cmdb_hosts_cloud_id_case(
+            sub_insts=sub_insts_to_be_updated_cloud_id
+        )
 
         # 2 - 对操作成功的实例更新本地数据
         succeed_sub_insts: List[models.SubscriptionInstanceRecord] = []
-        for sub_inst_id in successfully_added_sub_inst_ids + successfully_updated_sub_inst_ids:
+        for sub_inst_id in (
+            successfully_added_sub_inst_ids
+            + successfully_updated_sub_inst_ids
+            + successfully_updated_cloud_id_sub_inst_ids
+        ):
             succeed_sub_insts.append(id__sub_inst_obj_map[sub_inst_id])
         self.handle_update_db(succeed_sub_insts)
