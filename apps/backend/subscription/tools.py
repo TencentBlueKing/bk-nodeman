@@ -298,12 +298,12 @@ def get_service_instances(
     if not filter_id_list:
         return []
 
-    params = {
-        "bk_biz_id": int(bk_biz_id),
-        "with_name": True,
-        filter_field_name.value: filter_id_list,
-    }
     try:
+        params = {
+            "bk_biz_id": int(bk_biz_id),
+            "with_name": True,
+            filter_field_name.value: filter_id_list,
+        }
         if filter_field_name.needs_batch_request:
             result = batch_request(CCApi.list_service_instance_detail, params)
         else:
