@@ -86,7 +86,7 @@ class CustomBKRepoStorage(BaseStorage, bkrepo.BKRepoStorage):
 
         # 获取或创建文件源
         file_source_obj = BkJobFileSourceManager.get_or_create_file_source(
-            bk_biz_id=extra_transfer_file_params["bk_biz_id"],
+            bk_biz_id=settings.BLUEKING_BIZ_ID,
             storage_type=self.storage_type,
             credential_type=constants.FileCredentialType.USERNAME_PASSWORD.value,
             credential_auth_info={"credential_username": self.username, "credential_password": self.password},
