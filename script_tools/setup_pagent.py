@@ -252,7 +252,8 @@ def execute_cmd(
         from wmiexec import WMIEXEC
     except ImportError:
         # WMI 执行文件不存在，从下载源同步
-        download_file(f"{args.download_url}/wmiexec.py", str(Path(__file__).parent))
+        # wmiexec 是下载到脚本执行目录下，不属于回环
+        download_file(f"{args.download_url}/wmiexec.py", str(Path(__file__).parent), skip_lo_check=True)
         from wmiexec import WMIEXEC
 
     executor = WMIEXEC(cmd_str, username, password, domain, share=share, noOutput=is_no_output)
@@ -389,7 +390,7 @@ def json_parser(json_file: str) -> List:
     return configs
 
 
-def download_file(url: str, dest_dir: str):
+def download_file(url: str, dest_dir: str, skip_lo_check: bool = False):
     """get files via http"""
     try:
         # 创建下载目录
@@ -407,7 +408,7 @@ def download_file(url: str, dest_dir: str):
                 )
                 return
 
-        if args.lan_eth_ip in url:
+        if args.lan_eth_ip in url and not skip_lo_check:
             logger.logging("download_file", "File download skipped due to lo ip")
             return
 
