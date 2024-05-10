@@ -69,21 +69,28 @@ def batch_request(
     if not get_count:
         return sync_batch_request(func, params, get_data, limit)
 
+    start = 0
+    data = []
     if not split_params:
-        final_request_params = [
-            {"count": get_count(func(dict(page={"start": 0, "limit": 1}, **params))), "params": params}
-        ]
+        request_params = dict(page={"start": 0, "limit": limit}, **params)
+        if sort:
+            request_params["page"]["sort"] = sort
+        query_res = func(request_params)
+        final_request_params = [{"count": get_count(query_res), "params": params}]
+        data = get_data(query_res)
+        # 如果count小于等于limit，直接返回
+        if final_request_params[0]["count"] <= limit:
+            return data
+
+        start = limit
     else:
         final_request_params = format_params(params, get_count, func)
-
-    data = []
 
     # 根据请求总数并发请求
     pool = ThreadPool(20)
     futures = []
 
     for req in final_request_params:
-        start = 0
         while start < req["count"]:
             request_params = {"page": {"limit": limit, "start": start}}
             if sort:
