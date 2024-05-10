@@ -305,7 +305,7 @@ def get_service_instances(
             filter_field_name.value: filter_id_list,
         }
         if filter_field_name.needs_batch_request:
-            result = batch_request(CCApi.list_service_instance_detail, params)
+            result = batch_request(CCApi.list_service_instance_detail, params, sort="id")
         else:
             params["page"] = {
                 "start": 0,
@@ -378,7 +378,9 @@ def get_service_instance_by_inst(bk_biz_id, inst_list, module_to_topo):
     if not module_ids:
         return []
 
-    if len(module_ids) <= constants.QUERY_MODULE_ID_THRESHOLD:
+    if len(module_ids) <= models.GlobalSettings.get_config(
+        models.GlobalSettings.KeyEnum.SERVICE_INSTANCE_MODULE_ID_THRESHOLD.value, constants.QUERY_MODULE_ID_THRESHOLD
+    ):
         params = [
             {
                 "func": CCApi.list_service_instance_detail,
@@ -492,7 +494,7 @@ def get_service_instances_by_template(bk_obj_id, template_info_list: list, bk_bi
         params = dict(bk_set_template_ids=template_ids, bk_biz_id=int(bk_biz_id), fields=("bk_host_id", "bk_cloud_id"))
     host_info_result = batch_request(call_func, params)
     bk_host_ids = [inst["bk_host_id"] for inst in host_info_result]
-    all_service_instances = batch_request(client_v2.cc.list_service_instance_detail, params)
+    all_service_instances = batch_request(CCApi.list_service_instance_detail, params, sort="id")
     service_instances = [instance for instance in all_service_instances if instance["bk_host_id"] in bk_host_ids]
 
     return service_instances
@@ -1049,7 +1051,7 @@ def _add_process_info_to_host_instances(bk_biz_id: int, instances: List[Dict]):
     """
     bk_host_list = [instance["host"]["bk_host_id"] for instance in instances]
     host_processes = get_process_by_biz_id(bk_biz_id, bk_host_list)
-    logging.info(
+    logger.info(
         f"[add_process_info_to_host_instances] instance_hosts_count -> {len(bk_host_list)}, "
         f"cc_query_count -> {len(host_processes)}"
     )
