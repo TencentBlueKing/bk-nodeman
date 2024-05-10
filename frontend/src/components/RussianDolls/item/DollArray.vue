@@ -5,7 +5,7 @@
     :required="item.required"
     :property="item.property"
     :desc="item.description">
-    <div class="array-child-group" v-if="value?.length">
+    <div class="array-child-group" v-if="value && String(value).length">
       <div class="array-child flex" v-for="(option, index) in value" :key="option">
         <DollIndex
           v-for="(child, idx) in children"
@@ -15,15 +15,15 @@
           :value="option"
           :value-prop="getRealProp(valueProp, index)"
           :label-width="110" />
-        <i class="array-content-delete nodeman-icon nc-delete-2 ml10" @click.stop="() => deleteItem(index)" />
+        <i class="array-content-delete nodeman-icon nc-delete-2 ml10" @click.stop="() => deleteItem(index)"></i>
       </div>
       <div class="array-content-add" @click.stop="() => addItem(value.length - 1)">
-        <i class="nodeman-icon nc-plus" />
+        <i class="nodeman-icon nc-plus"></i>
         {{ item.title }}
       </div>
     </div>
     <div v-else class="array-content-add" @click.stop="() => addItem(-1)">
-      <i class="nodeman-icon nc-plus" />
+      <i class="nodeman-icon nc-plus"></i>
       {{ item.title }}
     </div>
   </bk-form-item>

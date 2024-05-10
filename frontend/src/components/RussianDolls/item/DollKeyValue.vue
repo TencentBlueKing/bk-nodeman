@@ -1,6 +1,6 @@
 <template>
   <div class="item-key-value bk-form-item">
-    <template v-if="value?.length">
+    <template v-if="values && String(values).length">
       <bk-form-item
         v-for="(child, idx) in value"
         :label="idx ? '' : item.title"
@@ -24,18 +24,18 @@
           <div class="child-btns ml10">
             <i
               class="nodeman-icon nc-plus"
-              @click.stop="() => addItem(idx)" />
+              @click.stop="() => addItem(idx)"></i>
             <!-- :class="['nodeman-icon nc-minus ', { 'disabled': disabledMinus }]" -->
             <i
               class="nodeman-icon nc-minus"
-              @click.stop="() => deleteItem(idx)" />
+              @click.stop="() => deleteItem(idx)"></i>
           </div>
         </div>
       </bk-form-item>
     </template>
     <bk-form-item v-else :label="item.title">
       <div class="array-content-add" @click.stop="() => addItem(-1)">
-        <i class="nodeman-icon nc-plus" />
+        <i class="nodeman-icon nc-plus"></i>
         {{ item.title }}
       </div>
     </bk-form-item>

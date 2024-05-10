@@ -6,7 +6,7 @@
       :key="child.id"
       :item="child"
       :item-index="itemIndex"
-      :value="value[child.prop]"
+      :value="value[child?.prop]"
       :value-prop="getRealProp(valueProp, child.prop)" />
   </div>
 </template>
