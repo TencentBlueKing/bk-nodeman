@@ -584,6 +584,10 @@ QUERY_BIZ_LENS = 200
 # 默认插件进程启动检查时间
 DEFAULT_PLUGIN_PROC_START_CHECK_SECS = 9
 
+# list_service_instance_detail接口调用参数配置
+LIST_SERVICE_INSTANCE_DETAIL_LIMIT = 1000
+LIST_SERVICE_INSTANCE_DETAIL_INTERVAL = 0.2
+
 
 class ProxyFileFromType(Enum):
     """Proxy上传文件名称来源"""

@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from copy import deepcopy
 from multiprocessing.pool import ThreadPool
@@ -52,6 +53,7 @@ def batch_request(
     limit=constants.QUERY_CMDB_LIMIT,
     sort=None,
     split_params=False,
+    interval=0,
 ):
     """
     异步并发请求接口
@@ -62,6 +64,7 @@ def batch_request(
     :param limit: 一次请求数量
     :param sort: 排序
     :param split_params: 是否拆分参数
+    :param interval: 任务提交间隔
     :return: 请求结果
     """
 
@@ -77,7 +80,7 @@ def batch_request(
             request_params["page"]["sort"] = sort
         query_res = func(request_params)
         final_request_params = [{"count": get_count(query_res), "params": params}]
-        data = get_data(query_res)
+        data = get_data(query_res) or []
         # 如果count小于等于limit，直接返回
         if final_request_params[0]["count"] <= limit:
             return data
@@ -90,8 +93,10 @@ def batch_request(
     pool = ThreadPool(20)
     futures = []
 
-    for req in final_request_params:
+    for idx, req in enumerate(final_request_params):
         while start < req["count"]:
+            if idx != 0 and interval:
+                time.sleep(interval)
             request_params = {"page": {"limit": limit, "start": start}}
             if sort:
                 request_params["page"]["sort"] = sort
