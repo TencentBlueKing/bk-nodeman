@@ -31,7 +31,9 @@ def get_instances_by_scope_task(subscription_id):
         f" scope_md5: {scope_md5}, scope: {subscription.scope}"
     )
     # 查询后会进行缓存，详见 get_instances_by_scope 的装饰器 func_cache_decorator
-    tools.get_instances_by_scope(subscription.scope, source="get_instances_by_scope_task")
+    tools.get_instances_by_scope_with_checker(
+        subscription.scope, subscription.steps, source="get_instances_by_scope_task"
+    )
     logger.info(f"[cache_subscription_scope_instances] (subscription: {subscription_id}) end.")
 
 

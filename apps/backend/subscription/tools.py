@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 import copy
 import hashlib
 import ipaddress
+import json
 import logging
 import math
 import os
@@ -27,7 +28,7 @@ from django.db.models import Q
 from django.utils import timezone
 
 from apps.backend.components.collections import core
-from apps.backend.constants import FilterFieldName, InstNodeType
+from apps.backend.constants import CMDBInstanceChoices, FilterFieldName, InstNodeType
 from apps.backend.subscription import task_tools
 from apps.backend.subscription.commons import get_host_by_inst, list_biz_hosts
 from apps.backend.subscription.constants import SUBSCRIPTION_SCOPE_CACHE_TIME
@@ -305,7 +306,13 @@ def get_service_instances(
             filter_field_name.value: filter_id_list,
         }
         if filter_field_name.needs_batch_request:
-            result = batch_request(CCApi.list_service_instance_detail, params, sort="id")
+            result = batch_request(
+                CCApi.list_service_instance_detail,
+                params,
+                sort="id",
+                limit=constants.LIST_SERVICE_INSTANCE_DETAIL_LIMIT,
+                interval=constants.LIST_SERVICE_INSTANCE_DETAIL_INTERVAL,
+            )
         else:
             params["page"] = {
                 "start": 0,
@@ -390,14 +397,23 @@ def get_service_instance_by_inst(bk_biz_id, inst_list, module_to_topo):
                     "bk_module_id": bk_module_id,
                 },
                 "sort": "id",
+                "limit": constants.LIST_SERVICE_INSTANCE_DETAIL_LIMIT,
             }
             for bk_module_id in module_ids
         ]
 
-        service_instances = batch_call(batch_request, params, extend_result=True)
+        service_instances = batch_call(
+            batch_request, params, extend_result=True, interval=constants.LIST_SERVICE_INSTANCE_DETAIL_INTERVAL
+        )
     else:
         params = {"bk_biz_id": int(bk_biz_id), "with_name": True}
-        service_instances = batch_request(CCApi.list_service_instance_detail, params, sort="id")
+        service_instances = batch_request(
+            CCApi.list_service_instance_detail,
+            params,
+            sort="id",
+            limit=constants.LIST_SERVICE_INSTANCE_DETAIL_LIMIT,
+            interval=constants.LIST_SERVICE_INSTANCE_DETAIL_INTERVAL,
+        )
 
     service_instances = [
         service_instance for service_instance in service_instances if service_instance["bk_module_id"] in module_ids
@@ -494,7 +510,13 @@ def get_service_instances_by_template(bk_obj_id, template_info_list: list, bk_bi
         params = dict(bk_set_template_ids=template_ids, bk_biz_id=int(bk_biz_id), fields=("bk_host_id", "bk_cloud_id"))
     host_info_result = batch_request(call_func, params)
     bk_host_ids = [inst["bk_host_id"] for inst in host_info_result]
-    all_service_instances = batch_request(CCApi.list_service_instance_detail, params, sort="id")
+    all_service_instances = batch_request(
+        CCApi.list_service_instance_detail,
+        params,
+        sort="id",
+        limit=constants.LIST_SERVICE_INSTANCE_DETAIL_LIMIT,
+        interval=constants.LIST_SERVICE_INSTANCE_DETAIL_INTERVAL,
+    )
     service_instances = [instance for instance in all_service_instances if instance["bk_host_id"] in bk_host_ids]
 
     return service_instances
@@ -764,6 +786,7 @@ def support_multi_biz(get_instances_by_scope_func):
                     "node_type": scope["node_type"],
                     "nodes": list(nodes),
                     "instance_selector": scope.get("instance_selector"),
+                    "with_info": scope["with_info"],
                 },
                 **kwargs,
             }
@@ -794,6 +817,23 @@ def get_scope_labels_func(
         "node_type": scope["node_type"],
         "source": get_call_resource_labels_func(wrapped, instance, args, kwargs)["source"],
     }
+
+
+def get_instances_by_scope_with_checker(
+    scope: Dict[str, Union[Dict, int, Any]], steps: List[models.SubscriptionStep], *args, **kwargs
+) -> Dict[str, Dict[str, Union[Dict, Any]]]:
+
+    if "with_info" in scope:
+        scope["with_info"]["process"] = False
+    else:
+        scope["with_info"] = {"process": False}
+
+    for step in steps:
+        if CMDBInstanceChoices.PROCESS.value in json.dumps(step.params):
+            scope["with_info"]["process"] = True
+            break
+
+    return get_instances_by_scope(scope, *args, **kwargs)
 
 
 @support_multi_biz
@@ -924,7 +964,9 @@ def get_instances_by_scope(scope: Dict[str, Union[Dict, int, Any]]) -> Dict[str,
 
         add_host_info_to_instances(bk_biz_id, scope, instances)
         add_scope_info_to_instances(nodes, scope, instances, module_to_topo)
-        add_process_info_to_instances(bk_biz_id, scope, instances)
+
+        if scope["with_info"]["process"]:
+            add_process_info_to_instances(bk_biz_id, scope, instances)
 
     instances_dict = {}
     data = {
