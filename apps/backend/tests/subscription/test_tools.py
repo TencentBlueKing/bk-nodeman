@@ -14,18 +14,23 @@ import mock
 from django.test import TestCase
 
 from apps.backend.subscription.tools import (
-    get_instances_by_scope,
+    get_instances_by_scope_with_checker,
     parse_group_id,
     parse_host_key,
 )
+from apps.backend.tests.subscription.test_performance import SubscriptionRunner
 from apps.backend.tests.subscription.utils import (
     CmdbClient,
     list_biz_hosts_without_info_client,
 )
+from apps.mock_data.backend_mkd.subscription.unit import SUBSCRIPTION_DATA
 from apps.node_man import constants, models
 
 # 全局使用的mock
 run_task = mock.patch("apps.backend.subscription.tasks.run_subscription_task").start()
+
+
+SUBSCRIPTION_DATA["steps"][0]["params"] = {"context": {"xxx": "{{ cmdb_instance.process.xxx }}"}}
 
 
 class TestTools(TestCase):
@@ -47,6 +52,7 @@ class TestTools(TestCase):
         self.tools_client = mock.patch("apps.backend.subscription.tools.client_v2", CmdbClient)
         self.commons_client = mock.patch("apps.backend.subscription.commons.client_v2", CmdbClient)
         self.handlers_client = mock.patch("apps.node_man.handlers.cmdb.client_v2", CmdbClient)
+        self.ccapi_client = mock.patch("apps.backend.subscription.tools.CCApi", CmdbClient.cc)
         self.batch_request_client = mock.patch(
             "apps.backend.subscription.commons.batch_request", list_biz_hosts_without_info_client
         )
@@ -54,6 +60,7 @@ class TestTools(TestCase):
         self.tools_client.start()
         self.commons_client.start()
         self.handlers_client.start()
+        self.ccapi_client.start()
         self.get_host_object_attribute_client.start()
         self.get_process_by_biz_id_client.start()
         self.batch_request_client.start()
@@ -76,6 +83,8 @@ class TestTools(TestCase):
             proc_type=constants.ProcType.AGENT,
             source_type=models.ProcessStatus.SourceType.DEFAULT,
         )
+
+        SubscriptionRunner.create_subscription(SUBSCRIPTION_DATA)
 
     def tearDown(self):
         self.tools_client.stop()
@@ -101,7 +110,7 @@ class TestTools(TestCase):
         assert res["bk_host_id"] == 1024
 
     def test_get_host_instance_scope(self):
-        instances = get_instances_by_scope(
+        instances = get_instances_by_scope_with_checker(
             {
                 "bk_biz_id": 2,
                 "object_type": "HOST",
@@ -110,14 +119,15 @@ class TestTools(TestCase):
                     {"ip": "127.0.0.1", "bk_cloud_id": 0, "bk_supplier_id": 0},
                     {"ip": "127.0.0.1", "bk_cloud_id": 0, "bk_supplier_id": 0},
                 ],
-            }
+            },
+            steps=[],
         )
 
         self.assertEqual(len(list(instances.keys())), 1)
         assert "host|instance|host|1" in instances
 
     def test_get_host_topo_scope(self):
-        instances = get_instances_by_scope(
+        instances = get_instances_by_scope_with_checker(
             {
                 "bk_biz_id": 2,
                 "object_type": "HOST",
@@ -127,14 +137,15 @@ class TestTools(TestCase):
                     {"bk_obj_id": "set", "bk_inst_id": 2},
                     {"bk_obj_id": "test", "bk_inst_id": 1000},
                 ],
-            }
+            },
+            steps=[],
         )
 
         self.assertEqual(len(list(instances.keys())), 1)
         self.assertIn("host|instance|host|1", instances)
 
     def test_get_host_topo_scope_with_multi_biz(self):
-        instances = get_instances_by_scope(
+        instances = get_instances_by_scope_with_checker(
             {
                 "object_type": "HOST",
                 "node_type": "TOPO",
@@ -144,40 +155,61 @@ class TestTools(TestCase):
                     {"bk_obj_id": "test", "bk_inst_id": 1000, "bk_biz_id": 2},
                 ],
             },
+            steps=[],
             get_cache=True,
         )
 
         self.assertEqual(len(list(instances.keys())), 1)
 
     def test_get_service_topo_scope(self):
-        instances = get_instances_by_scope(
-            {
-                "bk_biz_id": 2,
-                "object_type": "SERVICE",
-                "node_type": "TOPO",
-                "nodes": [{"bk_obj_id": "module", "bk_inst_id": 12}],
-            }
+        scope = {
+            "bk_biz_id": 2,
+            "object_type": "SERVICE",
+            "node_type": "TOPO",
+            "nodes": [{"bk_obj_id": "module", "bk_inst_id": 12}],
+        }
+        instances = get_instances_by_scope_with_checker(
+            scope=scope,
+            steps=[],
+        )
+
+        instances_with_process_info = get_instances_by_scope_with_checker(
+            scope=scope,
+            steps=list(models.SubscriptionStep.objects.all()),
         )
 
         self.assertEqual(len(list(instances.keys())), 1)
         for instance_id in instances:
             instance = instances[instance_id]
             self.assertEqual(instance["service"]["bk_module_id"], 12)
+            self.assertSetEqual({"scope", "host", "service"}, set(instance.keys()))
+
+        for instance in instances_with_process_info.values():
             self.assertSetEqual({"process", "scope", "host", "service"}, set(instance.keys()))
 
     def test_get_service_instance_scope(self):
-        instances = get_instances_by_scope(
-            {"bk_biz_id": 2, "object_type": "SERVICE", "node_type": "INSTANCE", "nodes": [{"id": 10}]}
+        scope = {"bk_biz_id": 2, "object_type": "SERVICE", "node_type": "INSTANCE", "nodes": [{"id": 10}]}
+        instances = get_instances_by_scope_with_checker(
+            scope=scope,
+            steps=[],
+        )
+
+        instances_with_process_info = get_instances_by_scope_with_checker(
+            scope=scope,
+            steps=list(models.SubscriptionStep.objects.all()),
         )
 
         self.assertEqual(len(list(instances.keys())), 1)
         for instance_id in instances:
             instance = instances[instance_id]
             self.assertEqual(instance["service"]["id"], 10)
+            self.assertSetEqual({"scope", "host", "service"}, set(instance.keys()))
+
+        for instance in instances_with_process_info.values():
             self.assertSetEqual({"process", "scope", "host", "service"}, set(instance.keys()))
 
     def test_get_instance_selector_scope(self):
-        instances = get_instances_by_scope(
+        instances = get_instances_by_scope_with_checker(
             {
                 "bk_biz_id": 2,
                 "object_type": "HOST",
@@ -186,12 +218,13 @@ class TestTools(TestCase):
                 "nodes": [
                     {"ip": "127.0.0.1", "bk_cloud_id": 0, "bk_supplier_id": 0},
                 ],
-            }
+            },
+            steps=[],
         )
         self.assertEqual(len(list(instances.keys())), 0)
 
     def test_get_empty_list_instance_selector_scope(self):
-        instances = get_instances_by_scope(
+        instances = get_instances_by_scope_with_checker(
             {
                 "bk_biz_id": 2,
                 "object_type": "HOST",
@@ -200,13 +233,14 @@ class TestTools(TestCase):
                 "nodes": [
                     {"ip": "127.0.0.1", "bk_cloud_id": 0, "bk_supplier_id": 0},
                 ],
-            }
+            },
+            steps=[],
         )
         self.assertEqual(len(list(instances.keys())), 0)
 
     def test_sub_biz_priority(self):
         # 之前订阅优先使用 scope.bk_biz_id 作为整个订阅的业务范围，后面调整为优先使用 scope.nodes 内的业务范围
-        instances = get_instances_by_scope(
+        instances = get_instances_by_scope_with_checker(
             {
                 "object_type": "HOST",
                 "node_type": "INSTANCE",
@@ -215,18 +249,20 @@ class TestTools(TestCase):
                     {"ip": "127.0.0.1", "bk_cloud_id": 0, "bk_supplier_id": 0, "bk_biz_id": 2},
                     {"ip": "127.0.0.2", "bk_cloud_id": 0, "bk_supplier_id": 0, "bk_biz_id": 3},
                 ],
-            }
+            },
+            steps=[],
         )
 
         self.assertEqual(len(list(instances.keys())), 1)
-        instances = get_instances_by_scope(
+        instances = get_instances_by_scope_with_checker(
             {
                 "object_type": "HOST",
                 "node_type": "INSTANCE",
                 "nodes": [
                     {"ip": "127.0.0.1", "bk_cloud_id": 0, "bk_supplier_id": 0, "bk_inst_id": 2, "bk_obj_id": "biz"},
                 ],
-            }
+            },
+            steps=[],
         )
         self.assertEqual(len(list(instances.keys())), 1)
 
@@ -236,7 +272,7 @@ class TestTools(TestCase):
             ]
         )
         with mock.patch("apps.backend.subscription.tools.request_multi_thread", request_handler):
-            get_instances_by_scope(
+            get_instances_by_scope_with_checker(
                 {
                     "object_type": "HOST",
                     "node_type": "INSTANCE",
@@ -248,7 +284,8 @@ class TestTools(TestCase):
                         {"ip": "127.0.0.2", "bk_cloud_id": 0, "bk_supplier_id": 0, "bk_biz_id": 4},
                         {"ip": "127.0.0.6", "bk_cloud_id": 0, "bk_supplier_id": 0, "bk_biz_id": 4},
                     ],
-                }
+                },
+                steps=[],
             )
 
         self.assertEqual(len(request_handler.call_args[0][1]), 3)

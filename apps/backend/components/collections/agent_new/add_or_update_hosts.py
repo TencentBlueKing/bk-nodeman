@@ -299,8 +299,6 @@ class AddOrUpdateHostsService(AgentBaseService):
             sub_inst.update_time = timezone.now()
             host_info: Dict[str, Any] = sub_inst.instance_info["host"]
             properties: Dict[str, Any] = {
-                "bk_cloud_id": host_info["bk_cloud_id"],
-                "bk_addressing": host_info.get("bk_addressing", constants.CmdbAddressingType.STATIC.value),
                 "bk_host_innerip": host_info.get("bk_host_innerip", "")
                 if host_info["bk_host_id"] not in host_ids_with_mutil_inner_ip
                 else "",

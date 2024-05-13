@@ -595,9 +595,13 @@ def run_subscription_task_and_create_instance(
         scope["bk_biz_id"] = subscription.bk_biz_id
 
     # 获取订阅范围内全部实例
-    instances = tools.get_instances_by_scope(scope, source="run_subscription_task_and_create_instance")
+    steps = subscription.steps
+    instances = tools.get_instances_by_scope_with_checker(
+        scope, steps, source="run_subscription_task_and_create_instance"
+    )
     logger.info(
-        "[sub_lifecycle<sub(%s), task(%s)>][run_subscription_task_and_create_instance] get_instances_by_scope -> %s",
+        "[sub_lifecycle<sub(%s), task(%s)>][run_subscription_task_and_create_instance] "
+        "get_instances_by_scope_with_checker -> %s",
         subscription.id,
         subscription_task.id,
         len(instances),
@@ -698,13 +702,14 @@ def run_subscription_task_and_create_instance(
             subscription_task.id,
             deleted_id_not_in_scope,
         )
-        deleted_instance_info = tools.get_instances_by_scope(
+        deleted_instance_info = tools.get_instances_by_scope_with_checker(
             {
                 "bk_biz_id": subscription.bk_biz_id,
                 "object_type": subscription.object_type,
                 "node_type": models.Subscription.NodeType.INSTANCE,
                 "nodes": deleted_id_not_in_scope,
             },
+            steps,
             source="find_deleted_instances",
         )
 

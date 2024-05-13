@@ -160,3 +160,19 @@ class FilterFieldName(enum.EnhanceEnum):
             return False
 
         return True
+
+
+class CMDBInstanceChoices(enum.EnhanceEnum):
+    HOST = "cmdb_instance.host"
+    SCOPE = "cmdb_instance.scope"
+    PROCESS = "cmdb_instance.process"
+    SERVICE = "cmdb_instance.service"
+
+    @classmethod
+    def _get_member__alias_map(cls) -> Dict[Enum, str]:
+        return {
+            cls.HOST: _("cmdb_instance.host参数"),
+            cls.SCOPE: _("cmdb_instance.scope参数"),
+            cls.PROCESS: _("cmdb_instance.process参数"),
+            cls.SERVICE: _("cmdb_instance.service参数"),
+        }
