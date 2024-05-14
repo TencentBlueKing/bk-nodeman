@@ -116,7 +116,6 @@ class TransferScriptBySingleBiz(TransferWindowsScriptTest):
                     "job_instance_id": JOB_INSTANCE_ID,
                 }
                 super().test_component()
-                print(fast_transfer_file.call_args)
                 self.assertEqual(
                     10,
                     fast_transfer_file.call_args[0][0]["bk_biz_id"],
