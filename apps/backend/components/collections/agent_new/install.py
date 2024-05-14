@@ -168,12 +168,13 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
         get_config_dict_func=core.get_config_dict,
         get_config_dict_kwargs={"config_name": core.ServiceCCConfigName.JOB_CMD.value},
     )
-    def handle_non_lan_inst(self, install_sub_inst_objs: List[InstallSubInstObj]) -> List[int]:
+    def handle_non_lan_inst(self, install_sub_inst_objs: List[InstallSubInstObj], bk_biz_id: int) -> List[int]:
         """处理跨云机器，通过执行作业平台脚本来操作"""
         params_list = [
             {
                 "sub_inst_id": install_sub_inst_obj.sub_inst_id,
                 "installation_tool": install_sub_inst_obj.installation_tool,
+                "bk_biz_id": bk_biz_id,
             }
             for install_sub_inst_obj in install_sub_inst_objs
         ]
@@ -378,7 +379,11 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
         remote_conn_helpers_gby_result_type = self.bulk_check_ssh(remote_conn_helpers=lan_windows_sub_inst)
 
         if non_lan_sub_inst:
-            succeed_non_lan_inst_ids = self.handle_non_lan_inst(install_sub_inst_objs=non_lan_sub_inst)
+            job_meta: Dict[str, Any] = self.get_job_meta(data)
+            bk_biz_id: int = job_meta["bk_biz_id"]
+            succeed_non_lan_inst_ids = self.handle_non_lan_inst(
+                install_sub_inst_objs=non_lan_sub_inst, bk_biz_id=bk_biz_id
+            )
         else:
             succeed_non_lan_inst_ids = []
 
@@ -533,7 +538,7 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
         # 不统计异常耗时
         include_exception_histogram=False,
     )
-    def execute_job_commands(self, sub_inst_id, installation_tool: InstallationTools):
+    def execute_job_commands(self, sub_inst_id, installation_tool: InstallationTools, bk_biz_id: int):
         # p-agent 走 作业平台，再 ssh 到 p-agent，这样可以无需保存 proxy 密码
         host = installation_tool.host
         jump_server = installation_tool.jump_server
@@ -546,8 +551,6 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
             log_content=_("已选择 {inner_ip} 作为本次安装的跳板机").format(inner_ip=jump_server.inner_ip or jump_server.inner_ipv6),
         )
 
-        # 使用全业务执行作业
-        bk_biz_id = settings.BLUEKING_BIZ_ID
         target_server: Dict[str, List[Union[int, Dict[str, Union[int, str]]]]] = (
             {"host_id_list": [jump_server.bk_host_id]}
             if settings.BKAPP_ENABLE_DHCP
