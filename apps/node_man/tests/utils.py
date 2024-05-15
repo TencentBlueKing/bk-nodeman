@@ -33,6 +33,7 @@ from apps.node_man.models import (
     Job,
     ProcessStatus,
 )
+from apps.node_man.tools import JobTools
 from apps.utils.basic import filter_values, get_chr_seq
 
 CONST_IP_LEN = 2234
@@ -561,6 +562,10 @@ class NodeApi:
     @staticmethod
     def plugin_info(*args, **kwargs):
         return {}
+
+    @staticmethod
+    def install(*args, **kwargs):
+        return {"job_id": 397, "job_url": JobTools.get_job_url(397), "ip_filter": []}
 
 
 def create_cloud_area(number, creator="admin", begin=1):

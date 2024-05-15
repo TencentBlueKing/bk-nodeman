@@ -14,10 +14,7 @@ from typing import Any, Dict, List
 from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
 
-from apps.backend.api.constants import (
-    INSTALL_OTHER_AGENT_POLLING_TIMEOUT,
-    POLLING_INTERVAL,
-)
+from apps.backend.api.constants import POLLING_INTERVAL
 from apps.core.concurrent.retry import RetryHandler
 from apps.core.gray.constants import INSTALL_OTHER_AGENT_AP_ID_OFFSET
 from apps.core.gray.handlers import GrayHandler
@@ -191,6 +188,15 @@ class InstallOtherAgentService(AgentBaseService):
         # TODO: 由于apigw接口与esb接口路径存在不一致情况暂不使用接口直接使用JobHandler
         # task_results = request_multi_thread(NodeApi.job_details, params_list, lambda x: x["list"])
         task_results = request_multi_thread(JobHandler(job_result["job_id"]).retrieve, params_list, lambda x: x["list"])
+        if not task_results:
+            data.outputs.polling_time: int = next_polling_time
+            if next_polling_time > self.service_polling_timeout:
+                # 任务未就绪
+                error_log: str = _("安装额外Agent失败, 任务未就绪")
+                self.move_insts_to_failed(common_data.subscription_instance_ids, error_log)
+                self.finish_schedule()
+                return False
+            return True
 
         host_id_status_map: Dict[str, Dict[str, Any]] = {}
         for instance in task_results:
@@ -228,7 +234,7 @@ class InstallOtherAgentService(AgentBaseService):
                     error_log: str = _("安装额外Agent失败, 请点任务链接查看详情")
                     self.move_insts_to_failed([sub_inst.id], error_log)
 
-        if next_polling_time > INSTALL_OTHER_AGENT_POLLING_TIMEOUT:
+        if next_polling_time > self.service_polling_timeout:
             # 任务执行超时
             self.log_error(
                 running_inst_ids,
