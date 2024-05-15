@@ -124,3 +124,5 @@ data:
   BKPAAS_BK_DOMAIN: "{{ .Values.global.bkDomain }}"
   BKPAAS_BK_CRYPTO_TYPE: "{{ .Values.global.bkCryptoType | default "CLASSIC" }}"
   BK_DOCS_CENTER_HOST: "{{ .Values.bkDocsCenterHost }}"
+
+  BKAPP_SYNC_PROC_STATUS_TASK_INTERVAL: "{{ .Values.config.bkAppSyncProcStatusTaskInterval }}"
