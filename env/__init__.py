@@ -58,6 +58,8 @@ __all__ = [
     # 提供给权限中心的资源回调地址
     "BK_IAM_RESOURCE_API_HOST",
     "BK_DOMAIN",
+    # 插件进程状态同步周期
+    "BKAPP_SYNC_PROC_STATUS_TASK_INTERVAL",
 ]
 
 # ===============================================================================
@@ -74,6 +76,9 @@ BK_BACKEND_CONFIG = BK_BACKEND_CONFIG
 # 加密类型，默认值为 `CLASSIC`，可选项：`CLASSIC-国际密码算法`, `SHANGMI-国际商用算法`
 BKPAAS_BK_CRYPTO_TYPE = get_type_env(
     key="BKPAAS_BK_CRYPTO_TYPE", default=constants.BkCryptoType.CLASSIC.value, _type=str
+)
+BKAPP_SYNC_PROC_STATUS_TASK_INTERVAL = get_type_env(
+    key="BKAPP_SYNC_PROC_STATUS_TASK_INTERVAL", default=20 * 60, _type=int
 )
 
 # ===============================================================================
