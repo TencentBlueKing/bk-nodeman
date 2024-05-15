@@ -107,10 +107,12 @@ class SubscriptionHandler(object):
                 )
             task_id_list = [subscription_tasks[0]["id"]]
 
-        # 检查任务是否已准备就绪
-        is_ready = self.check_task_ready(task_id_list)
-        if not is_ready:
-            raise errors.SubscriptionTaskNotReadyError(task_id_list=task_id_list)
+        # 如果不需要聚合全部 task，这里需要检查任务是否就绪
+        if not need_aggregate_all_tasks:
+            # 检查任务是否已准备就绪
+            is_ready = self.check_task_ready(task_id_list)
+            if not is_ready:
+                raise errors.SubscriptionTaskNotReadyError(task_id_list=task_id_list)
 
         begin, end = None, None
         if pagesize != -1:
