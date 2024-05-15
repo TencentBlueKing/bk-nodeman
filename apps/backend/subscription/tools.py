@@ -304,6 +304,8 @@ def get_service_instances(
             "bk_biz_id": int(bk_biz_id),
             "with_name": True,
             filter_field_name.value: filter_id_list,
+            # CC 接口统一使用后台访问
+            "no_request": True,
         }
         if filter_field_name.needs_batch_request:
             result = batch_request(
@@ -395,6 +397,8 @@ def get_service_instance_by_inst(bk_biz_id, inst_list, module_to_topo):
                     "bk_biz_id": int(bk_biz_id),
                     "with_name": True,
                     "bk_module_id": bk_module_id,
+                    # CC 接口统一使用后台访问
+                    "no_request": True,
                 },
                 "sort": "id",
                 "limit": constants.LIST_SERVICE_INSTANCE_DETAIL_LIMIT,
@@ -406,7 +410,7 @@ def get_service_instance_by_inst(bk_biz_id, inst_list, module_to_topo):
             batch_request, params, extend_result=True, interval=constants.LIST_SERVICE_INSTANCE_DETAIL_INTERVAL
         )
     else:
-        params = {"bk_biz_id": int(bk_biz_id), "with_name": True}
+        params = {"bk_biz_id": int(bk_biz_id), "with_name": True, "no_request": True}
         service_instances = batch_request(
             CCApi.list_service_instance_detail,
             params,
@@ -512,7 +516,7 @@ def get_service_instances_by_template(bk_obj_id, template_info_list: list, bk_bi
     bk_host_ids = [inst["bk_host_id"] for inst in host_info_result]
     all_service_instances = batch_request(
         CCApi.list_service_instance_detail,
-        params,
+        {**params, "no_request": True},
         sort="id",
         limit=constants.LIST_SERVICE_INSTANCE_DETAIL_LIMIT,
         interval=constants.LIST_SERVICE_INSTANCE_DETAIL_INTERVAL,
@@ -1013,6 +1017,9 @@ def add_host_info_to_instances(bk_biz_id: int, scope: Dict, instances: Dict):
     :param instances: 实例列表
     """
     if scope["object_type"] != models.Subscription.ObjectType.SERVICE:
+        # 补充缺省字段，兜底 cmdb_instance.service 的配置定义场景
+        for instance in instances:
+            instance["service"] = instance.get("service")
         # 非服务实例，不需要补充实例主机信息
         return
 
@@ -1100,8 +1107,6 @@ def _add_process_info_to_host_instances(bk_biz_id: int, instances: List[Dict]):
     for instance in instances:
         bk_host_id = instance["host"]["bk_host_id"]
         instance["process"] = host_processes[bk_host_id]
-        # 补全字段
-        instance["service"] = None
 
 
 def _add_process_info_to_service_instances(instances: List[Dict]):
