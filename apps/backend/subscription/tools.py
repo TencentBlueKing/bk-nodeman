@@ -28,7 +28,7 @@ from django.db.models import Q
 from django.utils import timezone
 
 from apps.backend.components.collections import core
-from apps.backend.constants import CMDBInstanceChoices, FilterFieldName, InstNodeType
+from apps.backend.constants import FilterFieldName, InstNodeType
 from apps.backend.subscription import task_tools
 from apps.backend.subscription.commons import get_host_by_inst, list_biz_hosts
 from apps.backend.subscription.constants import SUBSCRIPTION_SCOPE_CACHE_TIME
@@ -833,7 +833,8 @@ def get_instances_by_scope_with_checker(
         scope["with_info"] = {"process": False}
 
     for step in steps:
-        if CMDBInstanceChoices.PROCESS.value in json.dumps(step.params):
+        params_str: str = json.dumps(step.params)
+        if "cmdb_instance.process" in params_str or "target.process" in params_str:
             scope["with_info"]["process"] = True
             break
 
