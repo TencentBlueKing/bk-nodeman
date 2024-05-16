@@ -31,7 +31,7 @@
 | data_ip                        | string | 否                                 | 数据IP                                                    |
 | inner_ipv6                     | string | 否                                 | 内网IPv6                                                  |
 | outer_ipv6                     | string | 否                                 | 外网IPv6                                                  |
-| os_type                        | string | 否                                 | 操作系统，1：LINUX 2：WINDOWS 3：AIX 4：SOLARIS                  |
+| os_type                        | string | 是                                | 操作系统，1：LINUX 2：WINDOWS 3：AIX 4：SOLARIS                  |
 | auth_type                      | string | 否                                 | 认证类型，1：PASSWORD，密码认证 2: KEY，秘钥认证 3：TJJ_PASSWORD，默认为密码认证 |
 | account                        | string | 否                                 | 账户                                                      |
 | password                       | string | 否                                 | 密码                                                      |
