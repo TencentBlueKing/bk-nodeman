@@ -66,6 +66,7 @@ CLEAN_EXPIRED_INFO_INTERVAL = 6 * TimeUnit.HOUR
 
 SYNC_CMDB_BIZ_TOPO_TASK_INTERVAL = 1 * TimeUnit.DAY
 SYNC_CMDB_HOST_INTERVAL = 1 * TimeUnit.DAY
+CLEAR_NEED_DELETE_HOST_IDS_INTERVAL = 1 * TimeUnit.MINUTE
 
 ########################################################################################################
 # 第三方系统相关配置
@@ -587,6 +588,11 @@ DEFAULT_PLUGIN_PROC_START_CHECK_SECS = 9
 # list_service_instance_detail接口调用参数配置
 LIST_SERVICE_INSTANCE_DETAIL_LIMIT = 1000
 LIST_SERVICE_INSTANCE_DETAIL_INTERVAL = 0.2
+
+# redis键名模板
+REDIS_NEED_DELETE_HOST_IDS_KEY_TPL = f"{settings.APP_CODE}:node_man:need_delete_host_ids:list"
+# 从redis中读取bk_host_ids最大长度
+MAX_HOST_IDS_LENGTH = 5000
 
 
 class ProxyFileFromType(Enum):
