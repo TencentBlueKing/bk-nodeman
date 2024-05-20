@@ -11,9 +11,14 @@ specific language governing permissions and limitations under the License.
 import copy
 from unittest.mock import patch
 
+from apps.backend.views import LPUSH_AND_EXPIRE_FUNC
+from apps.mock_data.common_unit.host import PROCESS_STATUS_MODEL_DATA
 from apps.node_man import constants
-from apps.node_man.models import Host
-from apps.node_man.periodic_tasks.sync_cmdb_host import sync_cmdb_host_periodic_task
+from apps.node_man.models import Host, ProcessStatus
+from apps.node_man.periodic_tasks.sync_cmdb_host import (
+    clear_need_delete_host_ids_task,
+    sync_cmdb_host_periodic_task,
+)
 from apps.utils.unittest.testcase import CustomBaseTestCase
 
 from .mock_data import MOCK_BK_BIZ_ID, MOCK_HOST, MOCK_HOST_NUM
@@ -56,3 +61,39 @@ class TestSyncCMDBHost(CustomBaseTestCase):
 
         # 验证主机信息是否删除成功
         self.assertEqual(Host.objects.filter(bk_host_id=-1).count(), 0)
+
+
+class TestClearNeedDeleteHostIds(CustomBaseTestCase):
+    @staticmethod
+    def init_db():
+        proc_status_data = copy.deepcopy(PROCESS_STATUS_MODEL_DATA)
+        proc_status_list = []
+        for bk_host_id in range(1, 6):
+            proc_status_data["bk_host_id"] = bk_host_id
+            proc_status_list.append(ProcessStatus(**proc_status_data))
+
+        ProcessStatus.objects.bulk_create(proc_status_list)
+
+        need_delete_host_ids = range(1, 6)
+        name = constants.REDIS_NEED_DELETE_HOST_IDS_KEY_TPL
+        LPUSH_AND_EXPIRE_FUNC(keys=[name], args=[constants.TimeUnit.DAY] + list(need_delete_host_ids))
+
+    @staticmethod
+    def list_hosts_without_biz(*args, **kwargs):
+        return {
+            "count": 1,
+            "info": [
+                {"bk_host_id": 1},
+            ],
+        }
+
+    def start_patch(self):
+        MockClient.cc.list_hosts_without_biz = self.list_hosts_without_biz
+
+    @patch("apps.node_man.periodic_tasks.sync_cmdb_host.client_v2", MockClient)
+    def test_clear_need_delete_host_ids(self):
+        self.init_db()
+        self.start_patch()
+        clear_need_delete_host_ids_task()
+        # 验证ProcessStatus中信息是否删除成功
+        self.assertEqual(ProcessStatus.objects.count(), 1)
