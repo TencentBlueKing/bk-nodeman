@@ -432,7 +432,9 @@ class JobExecuteScriptService(JobV3BaseService, metaclass=abc.ABCMeta):
         multi_job_params_map: Dict[str, Dict[str, Any]] = defaultdict(lambda: defaultdict(list))
         for sub_inst in common_data.subscription_instances:
             bk_host_id = sub_inst.instance_info["host"]["bk_host_id"]
-            host_obj = common_data.host_id_obj_map[bk_host_id]
+            host_obj: Optional[models.Host] = self.get_host(common_data, bk_host_id)
+            if not host_obj:
+                continue
             script_param = self.get_script_param(data=data, common_data=common_data, host=host_obj)
             script_content = self.get_script_content(data=data, common_data=common_data, host=host_obj)
             target_servers = self.get_target_servers(data=data, common_data=common_data, host=host_obj)
@@ -502,7 +504,10 @@ class JobTransferFileService(JobV3BaseService, metaclass=abc.ABCMeta):
         multi_job_params_map: Dict[str, Dict[str, Any]] = {}
         for sub_inst in common_data.subscription_instances:
             bk_host_id = sub_inst.instance_info["host"]["bk_host_id"]
-            host_obj = common_data.host_id_obj_map[bk_host_id]
+            host_obj: Optional[models.Host] = self.get_host(common_data, bk_host_id)
+            if not host_obj:
+                continue
+
             target_servers = self.get_target_servers(data=data, common_data=common_data, host=host_obj)
 
             # 所有的逻辑处理都基于 host_obj, 仅执行目标使用 target_host
@@ -601,7 +606,9 @@ class JobPushConfigService(JobV3BaseService, metaclass=abc.ABCMeta):
         multi_job_params_map: Dict[str, Dict[str, Any]] = {}
         for sub_inst in common_data.subscription_instances:
             bk_host_id = sub_inst.instance_info["host"]["bk_host_id"]
-            host_obj = common_data.host_id_obj_map[bk_host_id]
+            host_obj: Optional[models.Host] = self.get_host(common_data, bk_host_id)
+            if not host_obj:
+                continue
 
             config_info_list = self.get_config_info_list(data=data, common_data=common_data, host=host_obj)
             file_target_path = self.get_file_target_path(data=data, common_data=common_data, host=host_obj)

@@ -28,7 +28,6 @@ from apps.backend.exceptions import OsVersionPackageValidationError
 from apps.backend.subscription.steps.agent_adapter.adapter import AgentStepAdapter
 from apps.node_man import constants, models
 from apps.node_man.exceptions import AliveProxyNotExistsError
-from apps.node_man.periodic_tasks.sync_cmdb_host import bulk_differential_sync_biz_hosts
 from apps.prometheus import metrics
 from apps.prometheus.helper import SetupObserve
 
@@ -77,22 +76,6 @@ class AgentBaseService(BaseService, metaclass=abc.ABCMeta):
         # 主机ID - 接入点 映射关系
         # 引入背景：在聚合流程中，类似 host.agent_config, host.ap 的逻辑会引发 n + 1 DB查询问题
         host_id__ap_map: Dict[int, models.AccessPoint] = {}
-
-        expected_bk_host_ids_gby_bk_biz_id: Dict[int, List[int]] = defaultdict(list)
-        if len(common_data.host_id_obj_map) < len(common_data.bk_host_ids):
-            deleted_host_ids = set(common_data.bk_host_ids) - set(common_data.host_id_obj_map.keys())
-            for deleted_host_id in deleted_host_ids:
-                bk_biz_id = common_data.sub_inst_id__sub_inst_obj_map[
-                    common_data.host_id__sub_inst_id_map[deleted_host_id]
-                ].instance_info["host"]["bk_biz_id"]
-                expected_bk_host_ids_gby_bk_biz_id[bk_biz_id].append(deleted_host_id)
-
-            bulk_differential_sync_biz_hosts(expected_bk_host_ids_gby_bk_biz_id=expected_bk_host_ids_gby_bk_biz_id)
-
-            host_id__ap_map_with_pullback: Dict[int, models.AccessPoint] = models.Host.host_id_obj_map(
-                bk_host_id__in=deleted_host_ids
-            )
-            common_data.host_id_obj_map.update(host_id__ap_map_with_pullback)
 
         for bk_host_id in common_data.bk_host_ids:
             host = common_data.host_id_obj_map.get(bk_host_id)
@@ -367,19 +350,6 @@ class AgentBaseService(BaseService, metaclass=abc.ABCMeta):
             )
 
         return host_ap
-
-    def get_host(self, common_data: AgentCommonData, host_id: int) -> Optional[models.Host]:
-        host_id_obj_map = common_data.host_id_obj_map
-        host = host_id_obj_map.get(host_id)
-        if not host:
-            code = self.__class__.__name__
-            logger.info(f"[task_engine][service_run_exc_handler:{code}] exc -> GetHostError, host_id -> {host_id}")
-            self.move_insts_to_failed(
-                [common_data.host_id__sub_inst_id_map[host_id]],
-                _("主机不存在或未同步"),
-            )
-
-        return host
 
 
 # 根据 JOB 的插件额外封装一层，保证后续基于 Agent 增加定制化功能的可扩展性
