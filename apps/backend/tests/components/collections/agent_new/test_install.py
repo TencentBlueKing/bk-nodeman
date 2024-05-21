@@ -1067,6 +1067,23 @@ class ReportCpuArchTestCase(LinuxInstallTestCase):
 
 
 class KeyErrorWithPullAllBackTestCase(InstallBaseTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.common_inputs["meta"] = {
+            "GSE_VERSION": "V2",
+            "STEPS": [
+                {
+                    "action": "REINSTALL_AGENT_2",
+                    "extra_info": {},
+                    "id": "agent",
+                    "index": 0,
+                    "node_name": "[agent] 重装",
+                    "pipeline_id": "xxxxxxxxxxxxxxxxxxxxxxx",
+                    "type": "AGENT",
+                }
+            ],
+        }
+
     @classmethod
     def get_default_case_name(cls) -> str:
         return "测试主机误删除全部拉回来的场景"
@@ -1081,15 +1098,10 @@ class KeyErrorWithPullAllBackTestCase(InstallBaseTestCase):
         super()._do_case_assert(service, method, assertion, no, name, args, kwargs)
 
 
-class KeyErrorWithPullPartialBackTestCase(InstallBaseTestCase):
+class KeyErrorWithPullPartialBackTestCase(KeyErrorWithPullAllBackTestCase):
     @classmethod
     def get_default_case_name(cls) -> str:
         return "测试主机拉回来部分，host_id_obj_map获取host_obj过程中出现KeyError场景"
-
-    @classmethod
-    def setup_obj_factory(cls):
-        """设置 obj_factory"""
-        cls.obj_factory.init_host_num = 20
 
     def _do_case_assert(self, service, method, assertion, no, name, args=None, kwargs=None):
         models.Host.objects.all().delete()
@@ -1121,7 +1133,11 @@ class IndexOutOfRangeTestCase(LinuxInstallTestCase):
         self.cmdb_mock_client = api_mkd.cmdb.utils.CCApiMockClient(
             batch_update_host=mock_data_utils.MockReturn(
                 return_type=mock_data_utils.MockReturnType.SIDE_EFFECT.value,
-                return_obj=[ApiResultError("更新主机cpu架构信息失败"), ApiResultError("更新主机cpu架构信息失败")],
+                return_obj=[
+                    ApiResultError("更新主机cpu架构信息失败"),
+                    ApiResultError("更新主机cpu架构信息失败"),
+                    ApiResultError("更新主机cpu架构信息失败"),
+                ],
             )
         )
 
@@ -1139,7 +1155,7 @@ class IndexOutOfRangeTestCase(LinuxInstallTestCase):
             self.assertEqual(list(failed_subscription_instance_id_reason_map.values()), ["[3800002] 更新主机cpu架构信息失败"])
 
             # 验证重试次数
-            self.assertEqual(self.cmdb_mock_client.batch_update_host.call_count, 2)
+            self.assertEqual(self.cmdb_mock_client.batch_update_host.call_count, 3)
 
 
 class RetrySuccessTestCase(LinuxInstallTestCase):
