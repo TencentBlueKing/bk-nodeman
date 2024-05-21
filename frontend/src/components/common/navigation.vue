@@ -132,7 +132,6 @@ import ExceptionPage from '@/components/exception/exception-page.vue';
 import routerBackMixin from '@/common/router-back-mixin';
 import { bus } from '@/common/bus';
 import { INavConfig } from '@/types';
-import { showLoginModal } from '@blueking/login-modal';
 
 interface IUserItem {
   id: string
@@ -369,17 +368,9 @@ export default class NodemanNavigation extends Mixins(routerBackMixin) {
   }
   private async handleUser(userItem: IUserItem) {
     if (userItem.id === 'LOGOUT') {
-      if (NODE_ENV === 'development') {
-        const successUrl = `${window.location.origin}/login_success.html`;
-        // 不需要bknodeman前缀
-        const loginUrl = LOGIN_DEV_URL.replace('bknodeman.','') + encodeURIComponent(successUrl);
-        // 使用登录弹框登录
-        showLoginModal({ loginUrl });
-      } else {
-        this.$http.get?.(`${window.PROJECT_CONFIG.SITE_URL}logout/`);
-        // window.location.href = `${window.PROJECT_CONFIG.BK_PAAS_HOST}/console/accounts/logout/`;
-        // window.location.href = `${window.PROJECT_CONFIG.LOGIN_URL}?&c_url=${window.location}`;
-      }
+      // 注销登录弃用注销链接，统一使用登录弹窗
+      // 统一登录弹窗使用方式
+      bus.$emit('show-login-modal', 'logout');
     }
   }
   private handleApplyPermission() {
