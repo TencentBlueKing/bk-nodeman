@@ -12,6 +12,7 @@ import logging
 import os
 import traceback
 import typing
+from collections import defaultdict
 from dataclasses import dataclass
 from typing import (
     Any,
@@ -34,10 +35,12 @@ from django.utils.translation import ugettext as _
 
 from apps.adapters.api.gse import GseApiBaseHelper, get_gse_api_helper
 from apps.backend.api.constants import POLLING_TIMEOUT
+from apps.backend.constants import ActionNameType
 from apps.backend.subscription import errors
 from apps.core.files.storage import get_storage
 from apps.exceptions import parse_exception
 from apps.node_man import constants, models
+from apps.node_man.periodic_tasks.sync_cmdb_host import bulk_differential_sync_biz_hosts
 from apps.prometheus import metrics
 from apps.prometheus.helper import SetupObserve
 from apps.utils import cache, time_handler, translation
@@ -367,6 +370,31 @@ class BaseService(Service, LogMixin, DBHelperMixin, PollingTimeoutMixin):
         return {"bk_biz_id": scope_id, "bk_scope_type": scope_type, "bk_scope_id": scope_id}
 
     @classmethod
+    def handle_deleted_host_ids(
+        cls,
+        deleted_host_ids: Set[int],
+        host_id_obj_map: Dict[int, models.Host],
+        sub_inst_id__sub_inst_obj_map: Dict[int, Any],
+        host_id__sub_inst_id_map: Dict[int, int],
+    ) -> None:
+        expected_bk_host_ids_gby_bk_biz_id: Dict[int, List[int]] = defaultdict(list)
+        for deleted_host_id in deleted_host_ids:
+            bk_biz_id = sub_inst_id__sub_inst_obj_map[host_id__sub_inst_id_map[deleted_host_id]].instance_info["host"][
+                "bk_biz_id"
+            ]
+            expected_bk_host_ids_gby_bk_biz_id[bk_biz_id].append(deleted_host_id)
+
+        bulk_differential_sync_biz_hosts(expected_bk_host_ids_gby_bk_biz_id=expected_bk_host_ids_gby_bk_biz_id)
+
+        host_id__obj_map_with_pullback: Dict[int, models.Host] = models.Host.host_id_obj_map(
+            bk_host_id__in=deleted_host_ids
+        )
+
+        pullback_host_ids: List[int] = [host_obj.bk_host_id for host_obj in host_id__obj_map_with_pullback.values()]
+        logger.info("[handle_deleted_host_ids][engine] pullback host_ids -> %s", pullback_host_ids)
+        host_id_obj_map.update(host_id__obj_map_with_pullback)
+
+    @classmethod
     def get_common_data(cls, data):
         """
         初始化常用数据，注意这些数据不能放在 self 属性里，否则会产生较大的 process snap shot，
@@ -402,6 +430,21 @@ class BaseService(Service, LogMixin, DBHelperMixin, PollingTimeoutMixin):
                 sub_inst_id__sub_inst_obj_map[subscription_instance.id] = subscription_instance
 
         host_id_obj_map: Dict[int, models.Host] = models.Host.host_id_obj_map(bk_host_id__in=bk_host_ids)
+
+        steps: List[Dict[str, Any]] = cls.get_meta(data)["STEPS"]
+        for step in steps:
+            action = step.get("action")
+
+            # 【插件安装】或【非插件操作】做主机差量同步
+            if action and (action == ActionNameType.MAIN_INSTALL_PLUGIN or "AGENT" in action):
+                if len(host_id_obj_map) < len(bk_host_ids):
+                    cls.handle_deleted_host_ids(
+                        deleted_host_ids=set(bk_host_ids) - set(host_id_obj_map.keys()),
+                        host_id_obj_map=host_id_obj_map,
+                        sub_inst_id__sub_inst_obj_map=sub_inst_id__sub_inst_obj_map,
+                        host_id__sub_inst_id_map=host_id__sub_inst_id_map,
+                    )
+                    break
 
         ap_id_obj_map = models.AccessPoint.ap_id_obj_map()
         return CommonData(
@@ -578,3 +621,16 @@ class BaseService(Service, LogMixin, DBHelperMixin, PollingTimeoutMixin):
                 required=True,
             )
         ]
+
+    def get_host(self, common_data: CommonData, host_id: int) -> Optional[models.Host]:
+        host_id_obj_map = common_data.host_id_obj_map
+        host = host_id_obj_map.get(host_id)
+        if not host:
+            code = self.__class__.__name__
+            logger.info(f"[task_engine][service_run_exc_handler:{code}] exc -> GetHostError, host_id -> {host_id}")
+            self.move_insts_to_failed(
+                [common_data.host_id__sub_inst_id_map[host_id]],
+                _("主机不存在或未同步"),
+            )
+
+        return host
