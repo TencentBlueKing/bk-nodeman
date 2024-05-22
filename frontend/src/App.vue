@@ -96,7 +96,7 @@ export default class App extends Vue {
   }
   private mounted() {
     window.LoginModal = this.$refs.login;
-    bus.$on('show-login-modal', (message: any) => {
+    bus.$on('show-login-modal', () => {
       // static_url： '/static/' or '/'
       const static_url = window.PROJECT_CONFIG?.STATIC_URL ? window.PROJECT_CONFIG.STATIC_URL : '/';
       // 登录成功之后的回调地址，用于执行关闭登录窗口或刷新父窗口页面等动作
@@ -114,8 +114,6 @@ export default class App extends Vue {
       }
       // 处理登录地址为登录小窗需要的格式，主要是设置c_url参数
       const loginURL = new URL(loginUrl);
-      // 注销登录添加is_from_logout参数，用于在注销登录时，清除bk_token
-      message === 'logout' && loginURL.searchParams.set('is_from_logout', '1');
       loginURL.searchParams.set('c_url', successUrl);
       const pathname = loginURL.pathname.endsWith('/') ? loginURL.pathname : `${loginURL.pathname}/`;
       loginUrl = `${loginURL.origin}${pathname}plain/${loginURL.search}`;

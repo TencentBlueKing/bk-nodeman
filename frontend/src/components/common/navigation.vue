@@ -368,9 +368,12 @@ export default class NodemanNavigation extends Mixins(routerBackMixin) {
   }
   private async handleUser(userItem: IUserItem) {
     if (userItem.id === 'LOGOUT') {
-      // 注销登录弃用注销链接，统一使用登录弹窗
-      // 统一登录弹窗使用方式
-      bus.$emit('show-login-modal', 'logout');
+      if (NODE_ENV === 'development') {
+        // 注销登录，添加is_from_logout=1参数，用于清除bk_token
+        window.location.href = LOGIN_DEV_URL.replace('bknodeman.','') + window.location.href + '&is_from_logout=1';
+      } else {
+        this.$http.get?.(`${window.PROJECT_CONFIG.SITE_URL}logout/`);
+      }
     }
   }
   private handleApplyPermission() {
