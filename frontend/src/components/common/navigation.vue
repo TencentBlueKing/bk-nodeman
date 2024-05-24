@@ -370,15 +370,11 @@ export default class NodemanNavigation extends Mixins(routerBackMixin) {
   private async handleUser(userItem: IUserItem) {
     if (userItem.id === 'LOGOUT') {
       if (NODE_ENV === 'development') {
-        const successUrl = `${window.location.origin}/login_success.html`;
-        // 不需要bknodeman前缀
-        const loginUrl = LOGIN_DEV_URL.replace('bknodeman.','') + encodeURIComponent(successUrl);
-        // 使用登录弹框登录
-        showLoginModal({ loginUrl });
+        // 注销登录，添加is_from_logout=1参数，用于清除bk_token
+        window.location.href = LOGIN_DEV_URL.replace('bknodeman.','') + window.location.href + '&is_from_logout=1';
       } else {
-        this.$http.get?.(`${window.PROJECT_CONFIG.SITE_URL}logout/`);
-        // window.location.href = `${window.PROJECT_CONFIG.BK_PAAS_HOST}/console/accounts/logout/`;
-        // window.location.href = `${window.PROJECT_CONFIG.LOGIN_URL}?&c_url=${window.location}`;
+        //去除重复拼接的window.PROJECT_CONFIG.SITE_URL
+        this.$http.get?.(`logout/`);
       }
     }
   }
