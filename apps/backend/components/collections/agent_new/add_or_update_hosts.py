@@ -428,13 +428,6 @@ class AddOrUpdateHostsService(AgentBaseService):
             outer_ipv6: str = host_info.get("bk_host_outerip_v6") or ""
             login_ip: str = host_info.get("login_ip") or ""
 
-            if host_info["host_node_type"] == constants.NodeType.PROXY:
-                # Proxy login_ip 为空的情况取值顺序：外网 IP（v4 -> v6）-> 内网 IP（v4 -> v6）
-                login_ip = login_ip or outer_ip or outer_ipv6 or inner_ip or inner_ipv6
-            else:
-                # 其他情况下：内网 IP（v4 -> v6）
-                login_ip = login_ip or inner_ip or inner_ipv6
-
             extra_data = {
                 "peer_exchange_switch_for_agent": host_info.get("peer_exchange_switch_for_agent", 0),
                 "bt_speed_limit": host_info.get("bt_speed_limit", 0),

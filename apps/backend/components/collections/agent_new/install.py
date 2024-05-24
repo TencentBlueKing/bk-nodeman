@@ -446,7 +446,7 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
         self, sub_inst_id: int, host: models.Host, commands: List[str], identity_data: models.IdentityData
     ):
         # windows command executing
-        ip = host.login_ip or host.inner_ip
+        ip = host.login_ip or host.inner_ip or host.inner_ipv6
         if (identity_data.auth_type == constants.AuthType.PASSWORD and not identity_data.password) or (
             identity_data.auth_type == constants.AuthType.KEY and not identity_data.key
         ):
