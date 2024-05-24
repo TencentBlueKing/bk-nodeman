@@ -372,7 +372,8 @@ export default class NodemanNavigation extends Mixins(routerBackMixin) {
         // 注销登录，添加is_from_logout=1参数，用于清除bk_token
         window.location.href = LOGIN_DEV_URL.replace('bknodeman.','') + window.location.href + '&is_from_logout=1';
       } else {
-        this.$http.get?.(`${window.PROJECT_CONFIG.SITE_URL}logout/`);
+        //去除重复拼接的window.PROJECT_CONFIG.SITE_URL
+        this.$http.get?.(`logout/`);
       }
     }
   }
