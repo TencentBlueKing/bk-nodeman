@@ -97,7 +97,7 @@ else:
             cmd_str=cmd_str,
         )
         params = "-l {login_ip} -p {port} -a {account} -i {identity} -d {download_url}".format(
-            login_ip=host.login_ip,
+            login_ip=host.login_ip or host.inner_ip or host.inner_ipv6,
             port=host.identity.port,
             account=host.identity.account,
             identity=host.identity.key if host.identity.auth_type == constants.AuthType.KEY else host.identity.password,
@@ -161,7 +161,7 @@ else:
         else:
             output = execute_cmd(
                 f"type {dest_dir}nm.setup_agent.bat.{node_id}",
-                host.login_ip or host.inner_ip,
+                host.login_ip or host.inner_ip or host.inner_ipv6,
                 host.identity.account,
                 host.identity.password,
             )["data"]

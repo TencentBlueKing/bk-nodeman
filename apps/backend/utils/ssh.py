@@ -406,9 +406,9 @@ class SshMan(object):
 
         # 初始化ssh会话
         if host.node_type == constants.NodeType.PROXY:
-            ip = host.login_ip or host.outer_ip
+            ip = host.login_ip or host.outer_ip or host.outer_ipv6 or host.inner_ip or host.inner_ipv6
         else:
-            ip = host.login_ip or host.inner_ip
+            ip = host.login_ip or host.inner_ip or host.inner_ipv6
         identity_data = identity_data or host.identity
         if (identity_data.auth_type == AuthType.PASSWORD and not identity_data.password) or (
             identity_data.auth_type == AuthType.KEY and not identity_data.key

@@ -325,3 +325,26 @@ class SingleIpHostsTestCase(AddOrUpdateHostsTestCase):
             )
         )
         super().assert_in_teardown()
+
+
+class UpdateOldWhenNoLoginInParamTestCase(AddOrUpdateHostsTestCase):
+    @classmethod
+    def adjust_test_data_in_db(cls):
+        super().adjust_test_data_in_db()
+
+        # 假设用户不填写login_ip参数
+        for sub_inst_obj in cls.obj_factory.sub_inst_record_objs:
+            sub_inst_obj.instance_info["host"].pop("login_ip")
+        models.SubscriptionInstanceRecord.objects.bulk_update(
+            cls.obj_factory.sub_inst_record_objs, fields=["instance_info"]
+        )
+
+    def assert_in_teardown(self):
+        super().assert_in_teardown()
+        self.assertEqual(models.Host.objects.filter(login_ip="").count(), self.obj_factory.init_host_num)
+
+
+class UpdateOldWhenIncludeLoginInParamTestCase(AddOrUpdateHostsTestCase):
+    def assert_in_teardown(self):
+        super().assert_in_teardown()
+        self.assertEqual(models.Host.objects.filter(login_ip="").count(), 0)

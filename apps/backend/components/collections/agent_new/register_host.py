@@ -336,11 +336,6 @@ class RegisterHostService(AgentBaseService):
             inner_ip = host_info["bk_host_innerip"]
             outer_ip = host_info.get("bk_host_outerip", "")
             login_ip = host_info.get("login_ip", "")
-            # 写入数据库
-            if host_info["host_node_type"] == constants.NodeType.PROXY:
-                login_ip = login_ip or outer_ip or inner_ip
-            else:
-                login_ip = login_ip or inner_ip
 
             extra_data = {
                 "peer_exchange_switch_for_agent": host_info.get("peer_exchange_switch_for_agent", 0),
