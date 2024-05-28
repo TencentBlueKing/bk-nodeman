@@ -358,6 +358,9 @@ CONCURRENT_NUMBER = int(os.getenv("CONCURRENT_NUMBER", 50) or 50)
 # 插件进程状态同步周期
 SYNC_PROC_STATUS_TASK_INTERVAL = env.BKAPP_SYNC_PROC_STATUS_TASK_INTERVAL
 
+# Agent安装前置脚本
+SCRIPT_HOOKS = env.BKAPP_SCRIPT_HOOKS
+
 # 敏感参数
 SENSITIVE_PARAMS = ["app_code", "app_secret", "bk_app_code", "bk_app_secret", "auth_info"]
 

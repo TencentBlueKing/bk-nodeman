@@ -419,6 +419,10 @@ class BaseExecutionSolutionMaker(metaclass=abc.ABCMeta):
 
         script_hook_steps: typing.List[ExecutionSolutionStep] = []
         for script_hook_obj in self.script_hook_objs:
+            support_cloud_id: typing.Optional[int] = script_hook_obj.script_info_obj.support_cloud_id
+            if support_cloud_id is not None and self.host.bk_cloud_id != support_cloud_id:
+                continue
+
             if script_hook_obj.script_info_obj.oneline:
                 # 如果可以一行命令执行，直接执行相应的命令
                 script_hook_steps.append(

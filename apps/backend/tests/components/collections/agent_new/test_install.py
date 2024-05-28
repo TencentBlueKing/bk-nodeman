@@ -948,9 +948,9 @@ class InstallWindowsWithScriptHooksTestCase(InstallWindowsTestCase):
         )
         sub_step_obj.save()
 
-    def test_batch_solution(self):
+    def build_solution_result(self, script_hooks):
         host = models.Host.objects.get(bk_host_id=self.obj_factory.bk_host_ids[0])
-        script_hook_objs = ScriptManageHandler.fetch_match_script_hook_objs([{"name": "firewall_off"}], host.os_type)
+        script_hook_objs = ScriptManageHandler.fetch_match_script_hook_objs(script_hooks, host.os_type)
         installation_tool = gen_commands(
             self.LEGACY_SETUP_INFO,
             host,
@@ -963,6 +963,13 @@ class InstallWindowsWithScriptHooksTestCase(InstallWindowsTestCase):
             installation_tool=installation_tool,
             solution_type=constants.CommonExecutionSolutionType.BATCH.value,
             run_cmd_param_extract={"token": r"(.*) -c (.*?) -s"},
+        )
+
+        return host, script_hook_objs, installation_tool, solution_parse_result
+
+    def test_batch_solution(self):
+        host, script_hook_objs, installation_tool, solution_parse_result = self.build_solution_result(
+            script_hooks=[{"name": "firewall_off"}]
         )
 
         self.assertEqual(
@@ -1167,3 +1174,89 @@ class RetrySuccessTestCase(LinuxInstallTestCase):
                 return_obj=[ApiResultError("更新主机cpu架构信息失败"), {"message": "success"}],
             )
         )
+
+
+class WindowsActiveFirewallPolicyInDirectAreaTestCase(InstallWindowsWithScriptHooksTestCase):
+    def adjust_db(self):
+        sub_step_obj: models.SubscriptionStep = self.obj_factory.sub_step_objs[0]
+        sub_step_obj.params.update(
+            {
+                "script_hooks": [
+                    {"name": "ieod_active_firewall_policy"},
+                ]
+            }
+        )
+        sub_step_obj.save()
+
+    def test_batch_solution(self):
+        host, script_hook_objs, installation_tool, solution_parse_result = self.build_solution_result(
+            script_hooks=[{"name": "ieod_active_firewall_policy"}]
+        )
+
+        self.assertEqual(
+            constants.AgentWindowsDependencies.list_member_values() + ["setup_agent.bat"],
+            solution_parse_result["dependencies"],
+        )
+        script_hook_obj = script_hook_objs[0]
+        self.assertEqual(
+            solution_parse_result["cmds"],
+            [
+                # 一：创建临时目录
+                f"mkdir {installation_tool.dest_dir}",
+                # 二：将script_manage_tmp/active_firewall_policy.bat拉下来
+                f"C:\\tmp\\curl.exe "
+                f"{models.AccessPoint.objects.first().package_outer_url}/{script_hook_obj.script_info_obj.path} "
+                f"-o {installation_tool.dest_dir}{script_hook_obj.script_info_obj.filename} --connect-timeout 5 -sSfg",
+                # 三：执行active_firewall_policy.bat
+                f"{installation_tool.dest_dir}{script_hook_obj.script_info_obj.filename}",
+                # 四：执行安装脚本
+                f"{installation_tool.dest_dir}setup_agent.bat"
+                f" -O 48668 -E 58925 -A 58625 -V 58930 -B 10020 -S 60020 -Z 60030 -K 10030"
+                f' -e "127.0.0.1" -a "127.0.0.1" -k "127.0.0.1"'
+                f" -l http://127.0.0.1/download -r http://127.0.0.1/backend"
+                f" -i 0 -I {host.inner_ip} -T C:\\tmp\\ -p c:\\gse"
+                f" -c {solution_parse_result['params']['token']} -s {mock_data_utils.JOB_TASK_PIPELINE_ID} -N SERVER",
+            ],
+        )
+
+
+class WindowsActiveFirewallPolicyNotInDirectAreaTestCase(WindowsActiveFirewallPolicyInDirectAreaTestCase):
+    def adjust_db(self):
+        super().adjust_db()
+        self.update_cloud_id = 2
+        models.Host.objects.update(bk_cloud_id=self.update_cloud_id)
+
+    def test_batch_solution(self):
+        host, script_hook_objs, installation_tool, solution_parse_result = self.build_solution_result(
+            script_hooks=[{"name": "ieod_active_firewall_policy"}]
+        )
+
+        self.assertEqual(
+            constants.AgentWindowsDependencies.list_member_values() + ["setup_agent.bat"],
+            solution_parse_result["dependencies"],
+        )
+        self.assertEqual(
+            solution_parse_result["cmds"],
+            [
+                # 一：创建临时目录
+                f"mkdir {installation_tool.dest_dir}",
+                # 二：执行安装脚本
+                f"{installation_tool.dest_dir}setup_agent.bat"
+                f" -O 48668 -E 58925 -A 58625 -V 58930 -B 10020 -S 60020 -Z 60030 -K 10030"
+                f' -e "127.0.0.1" -a "127.0.0.1" -k "127.0.0.1"'
+                f" -l http://127.0.0.1/download -r http://127.0.0.1/backend"
+                f" -i {self.update_cloud_id} -I {host.inner_ip} -T C:\\tmp\\ -p c:\\gse"
+                f" -c {solution_parse_result['params']['token']} -s {mock_data_utils.JOB_TASK_PIPELINE_ID} -N SERVER",
+            ],
+        )
+
+    def _do_case_assert(self, service, method, assertion, no, name, args=None, kwargs=None):
+        try:
+            super()._do_case_assert(service, method, assertion, no, name, args, kwargs)
+        except AssertionError:
+            failed_subscription_instance_id_reason_map = service.failed_subscription_instance_id_reason_map
+            self.assertEqual(len(failed_subscription_instance_id_reason_map), self.obj_factory.init_host_num)
+            self.assertEqual(
+                list(failed_subscription_instance_id_reason_map.values()),
+                [f"管控区域 -> {self.update_cloud_id} 下无存活的 Proxy"],
+            )

@@ -24,6 +24,9 @@ class ScriptInfo:
     # 短命令
     oneline: typing.Optional[str] = None
 
+    # 支持的云区域
+    support_cloud_id: typing.Optional[int] = None
+
 
 @dataclass
 class ScriptHook:
