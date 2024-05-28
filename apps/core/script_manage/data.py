@@ -15,6 +15,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from apps.node_man import constants as node_man_constants
 
+from ...node_man.constants import DEFAULT_CLOUD
 from . import base
 
 FIREWALL_OFF_SCRIPT_INFO: base.ScriptInfo = base.ScriptInfo(
@@ -34,7 +35,17 @@ ACTIVE_FIREWALL_POLICY_SCRIPT_INFO: base.ScriptInfo = base.ScriptInfo(
     support_os_list=[node_man_constants.OsType.WINDOWS],
 )
 
+IEOD_ACTIVE_FIREWALL_POLICY_SCRIPT_INFO: base.ScriptInfo = base.ScriptInfo(
+    name="ieod_active_firewall_policy",
+    filename="ieod_active_firewall_policy.bat",
+    path="script_manage_tmp/ieod_active_firewall_policy.bat",
+    description=_("IDC Windows 物理机安装策略开通"),
+    support_os_list=[node_man_constants.OsType.WINDOWS],
+    support_cloud_id=DEFAULT_CLOUD,
+)
+
 SCRIPT_NAME__INFO_OBJ_MAP: typing.Dict[str, base.ScriptInfo] = {
     FIREWALL_OFF_SCRIPT_INFO.name: FIREWALL_OFF_SCRIPT_INFO,
     ACTIVE_FIREWALL_POLICY_SCRIPT_INFO.name: ACTIVE_FIREWALL_POLICY_SCRIPT_INFO,
+    IEOD_ACTIVE_FIREWALL_POLICY_SCRIPT_INFO.name: IEOD_ACTIVE_FIREWALL_POLICY_SCRIPT_INFO,
 }
