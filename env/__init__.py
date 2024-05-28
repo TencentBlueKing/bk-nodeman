@@ -60,6 +60,8 @@ __all__ = [
     "BK_DOMAIN",
     # 插件进程状态同步周期
     "BKAPP_SYNC_PROC_STATUS_TASK_INTERVAL",
+    # Agent安装前置脚本
+    "BKAPP_SCRIPT_HOOKS",
 ]
 
 # ===============================================================================
@@ -80,6 +82,7 @@ BKPAAS_BK_CRYPTO_TYPE = get_type_env(
 BKAPP_SYNC_PROC_STATUS_TASK_INTERVAL = get_type_env(
     key="BKAPP_SYNC_PROC_STATUS_TASK_INTERVAL", default=20 * 60, _type=int
 )
+BKAPP_SCRIPT_HOOKS = get_type_env(key="BKAPP_SCRIPT_HOOKS", default="", _type=str)
 
 # ===============================================================================
 # 日志

@@ -270,7 +270,14 @@ class InstallSerializer(InstallBaseSerializer):
     replace_host_id = serializers.IntegerField(label=_("被替换的Proxy主机ID"), required=False)
     is_install_latest_plugins = serializers.BooleanField(label=_("是否安装最新版本插件"), required=False, default=True)
     is_install_other_agent = serializers.BooleanField(label=_("是否为安装额外Agent"), required=False, default=False)
-    script_hooks = serializers.ListField(label=_("脚本钩子列表"), required=False, child=ScriptHook(), default=[])
+    script_hooks = serializers.ListField(
+        label=_("脚本钩子列表"),
+        required=False,
+        child=ScriptHook(),
+        default=[{"name": script_name} for script_name in settings.SCRIPT_HOOKS.split(",")]
+        if settings.SCRIPT_HOOKS
+        else [],
+    )
 
     # 以下非参数传值
     op_type = serializers.CharField(label=_("操作类型"), required=False)

@@ -465,6 +465,8 @@ config:
   bkAppEnableDHCP: false
   ## 插件进程状态同步周期
   bkAppSyncProcStatusTaskInterval: 1200
+  ## Agent安装前置脚本
+  bkAppScriptHooks: ""
 
 
 ## --------------------------------------
