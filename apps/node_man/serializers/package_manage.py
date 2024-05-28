@@ -20,7 +20,6 @@ from apps.node_man.constants import (
 )
 from apps.node_man.handlers.gse_package import gse_package_handler
 from apps.node_man.models import UploadPackage
-from apps.utils.local import get_request_username
 
 
 class TagSerializer(serializers.Serializer):
@@ -195,7 +194,7 @@ class UploadSerializer(serializers.Serializer):
 
         if not overload:
             upload_package: UploadPackage = UploadPackage.objects.filter(
-                file_name=file_name, creator=get_request_username(), module=TargetType.AGENT.value
+                file_name=file_name, module=TargetType.AGENT.value
             ).first()
             if upload_package:
                 raise ValidationError(
