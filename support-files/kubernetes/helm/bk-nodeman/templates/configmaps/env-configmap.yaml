@@ -126,3 +126,5 @@ data:
   BK_DOCS_CENTER_HOST: "{{ .Values.bkDocsCenterHost }}"
 
   BKAPP_SYNC_PROC_STATUS_TASK_INTERVAL: "{{ .Values.config.bkAppSyncProcStatusTaskInterval }}"
+
+  BKAPP_SCRIPT_HOOKS: "{{ .Values.config.bkAppScriptHooks }}"
