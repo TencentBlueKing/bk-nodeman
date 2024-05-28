@@ -13,7 +13,7 @@ import copy
 import importlib
 import random
 import typing
-from typing import Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional, Set
 
 import mock
 
@@ -150,6 +150,10 @@ class AddOrUpdateHostsTestCase(utils.AgentServiceBaseTestCase):
             add_host_to_business_idle_return=mock_data_utils.MockReturn(
                 return_type=mock_data_utils.MockReturnType.SIDE_EFFECT.value,
                 return_obj=self.add_host_to_business_idle_func,
+            ),
+            batch_update_host_all_properties_return=mock_data_utils.MockReturn(
+                return_type=mock_data_utils.MockReturnType.RETURN_VALUE.value,
+                return_obj={},
             ),
         )
 
@@ -325,3 +329,79 @@ class SingleIpHostsTestCase(AddOrUpdateHostsTestCase):
             )
         )
         super().assert_in_teardown()
+
+
+class UnassignedHostsTestCase(AddOrUpdateHostsTestCase):
+    @classmethod
+    def get_default_case_name(cls) -> str:
+        return "未分配管控区域主机"
+
+    @classmethod
+    def structure_cmdb_mock_data(cls):
+        """
+        构造CMDB接口返回数据
+        :return:
+        """
+        super().structure_cmdb_mock_data()
+        cls.list_hosts_without_biz_result = {"count": 0, "info": []}
+
+    @classmethod
+    def adjust_test_data_in_db(cls):
+        models.GlobalSettings.set_config(models.GlobalSettings.KeyEnum.UNASSIGNED_BK_CLOUD_ID.value, [900001])
+        models.Host.objects.filter(bk_host_id__in=cls.to_be_updated_host_ids).update(bk_cloud_id=900001)
+
+    def assert_in_teardown(self):
+        not_updated_count = models.Host.objects.filter(
+            bk_host_id__in=self.to_be_updated_host_ids, bk_cloud_id=900001
+        ).count()
+        # 检测是否全部被更新
+        self.assertEqual(not_updated_count, 0)
+
+
+class UnassignedDuplicateHostsTestCase(UnassignedHostsTestCase):
+    @classmethod
+    def get_default_case_name(cls) -> str:
+        return "未分配管控区域主机,存在相同主机"
+
+    @classmethod
+    def structure_cmdb_mock_data(cls):
+        """
+        构造CMDB接口返回数据
+        :return:
+        """
+        super().structure_cmdb_mock_data()
+        host = models.Host.objects.filter(bk_host_id__in=cls.to_be_updated_host_ids, bk_addressing="STATIC").first()
+        host_info: Dict = copy.deepcopy(api_mkd.cmdb.unit.CMDB_HOST_INFO)
+        host_info.update(
+            {
+                "bk_host_id": host.bk_host_id,
+                "bk_addressing": host.bk_addressing,
+                "bk_host_innerip": host.inner_ip,
+                "bk_host_outerip": host.outer_ipv6,
+                "bk_host_innerip_v6": host.inner_ipv6,
+                "bk_host_outerip_v6": host.outer_ipv6,
+            }
+        )
+        cls.list_hosts_without_biz_result = {"count": 1, "info": [host_info]}
+        cls.error_instance_id = f"host|instance|host|{host.inner_ip}-{host.bk_cloud_id}-0"
+
+    def assert_in_teardown(self):
+        not_updated_count = models.Host.objects.filter(
+            bk_host_id__in=self.to_be_updated_host_ids, bk_cloud_id=900001
+        ).count()
+        # 检测是否全部被更新
+        self.assertEqual(not_updated_count, 1)
+
+    def structure_common_inputs(self) -> Dict[str, Any]:
+        """
+        构造原子的公共输入，基础的输入数据对标 apps/backend/components/collections/base.py inputs_format
+        :return:
+        """
+        inputs = super().structure_common_inputs()
+        subscription_instance_ids = [
+            sub_inst_obj.id
+            for sub_inst_obj in self.obj_factory.sub_inst_record_objs
+            if sub_inst_obj.instance_id != self.error_instance_id
+        ]
+        inputs["subscription_instance_ids"] = subscription_instance_ids
+        return inputs
