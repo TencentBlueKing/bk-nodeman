@@ -162,8 +162,7 @@ class GlobalSettings(models.Model):
         SERVICE_INSTANCE_MODULE_ID_THRESHOLD = "SERVICE_INSTANCE_MODULE_ID_THRESHOLD"
         # 未分配管控区域
         UNASSIGNED_BK_CLOUD_ID = "UNASSIGNED_BK_CLOUD_ID"
-        # 查询服务实例时module_id阈值，当小于该阈值时以单module_id并发查询
-        SERVICE_INSTANCE_MODULE_ID_THRESHOLD = "SERVICE_INSTANCE_MODULE_ID_THRESHOLD"
+        
 
     key = models.CharField(_("键"), max_length=255, db_index=True, primary_key=True)
     v_json = JSONField(_("值"))
