@@ -14,6 +14,7 @@
       <div class="setup-form">
         <bk-form ref="form" class="mb30" :model="formData" :rules="rules" v-test="'formSetup'">
           <install-method :is-manual="isManual" required @change="installMethodHandle"></install-method>
+
           <bk-form-item error-display-type="normal" property="bk_biz_id" :label="$t('安装到业务')" required>
             <bk-biz-select
               class="content-basic"
@@ -25,6 +26,7 @@
               @change="handleBizChange">
             </bk-biz-select>
           </bk-form-item>
+
           <bk-form-item error-display-type="normal" :label="$t('管控区域')" property="bk_cloud_id" required>
             <permission-select
               :class="['content-basic', { 'is-error': ['no_proxy', 'overdue'].includes(proxyStatus) }]"
@@ -54,6 +56,7 @@
               </span>
             </i18n>
           </bk-form-item>
+
           <bk-form-item
             property="install_channel_id"
             error-display-type="normal"
@@ -70,11 +73,8 @@
               <bk-option v-for="item in filterChannelList" :key="item.id" :id="item.id" :name="item.name"></bk-option>
             </bk-select>
           </bk-form-item>
-          <bk-form-item
-            error-display-type="normal"
-            property="ap_id"
-            :label="$t('接入点')"
-            required>
+
+          <bk-form-item error-display-type="normal" property="ap_id" :label="$t('接入点')" required>
             <bk-select
               class="content-basic"
               v-model="formData.ap_id"
@@ -96,6 +96,51 @@
                 :disabled="item.id === -1 && formData.install_channel_id !== 'default'" />
             </bk-select>
           </bk-form-item>
+
+          <bk-form-item
+            v-show="isShowAgentPkg"
+            :required="isShowAgentPkg"
+            error-display-type="normal"
+            property="choice_version_type"
+            :label="$t('agent版本')">
+            <div style="display: flex; flex-wrap: wrap; max-width: 600px;">
+              <bk-select
+                style="width: 150px; height: 32px;"
+                :clearable="false"
+                v-model="formData.choice_version_type">
+                <bk-option id="unified" :name="$t('统一版本')" />
+                <bk-option id="by_system_arch" :name="$t('按操作系统选版本')" />
+              </bk-select>
+              <bk-form-item
+                v-if="formData.choice_version_type === 'unified'"
+                class="version-type"
+                error-display-type="normal"
+                property="agent_version">
+                <div
+                  :class="['versions-choose-btn flex', { 'versions-choose-detail': formData.agent_version }]"
+                  @click="() => chooseAgentVersion({ type: 'unified', version: formData.agent_version })">
+                  <template v-if="formData.agent_version" class="versions-choose-detail">
+                    <div class="prefix-area">
+                      <i class="nodeman-icon nc-package-2" />
+                    </div>
+                    <div class="version-text">{{ formData.agent_version }}</div>
+                    <i class="nodeman-icon nc-icon-edit-2 versions-choose-icon" />
+                  </template>
+                  <template v-else>
+                    <i class="nodeman-icon nc-plus-line" />
+                    {{ $t('选择版本') }}
+                  </template>
+                </div>
+              </bk-form-item>
+              <div v-if="formData.choice_version_type === 'by_system_arch'" style="margin-top: 8px;width: 600px;">
+                <SetupPkgTable
+                  ref="setupPkgTableRef"
+                  :table-data="formData.osVersions"
+                  @choose="chooseAgentVersion">
+                </SetupPkgTable>
+              </div>
+            </div>
+          </bk-form-item>
           <bk-form-item :label="$t('安装信息')" required>
             <filter-ip-tips
               class="filter-tips"
@@ -103,6 +148,7 @@
               @click="handleShowDetail">
             </filter-ip-tips>
           </bk-form-item>
+
           <bk-form-item class="form-item-vertical" :class="['mt0', { 'mb30': isScroll }]">
             <InstallTable
               :class="{ 'agent-setup-table': isManual }"
@@ -118,6 +164,7 @@
             </InstallTable>
           </bk-form-item>
         </bk-form>
+
         <div class="form-btn" :class="{ 'fixed': isScroll, 'shrink': isScroll && showRightPanel }">
           <bk-button
             theme="primary"
@@ -134,13 +181,27 @@
         </div>
       </div>
     </section>
+
     <!--右侧提示信息-->
     <section class="agent-setup-right" :class="{ 'right-panel': showRightPanel }">
       <right-panel v-model="showRightPanel" :host-type="hostType" :host-list="hostList"></right-panel>
       <!-- <right-panel v-model="showRightPanel" :list="tipsList" :title="$t('安装要求')"></right-panel> -->
     </section>
+
     <!--过滤ip信息-->
     <filter-dialog v-model="showFilterDialog" :list="filterList" :title="$t('忽略详情')"></filter-dialog>
+
+    <!-- agent包版本 -->
+    <ChoosePkgDialog
+      v-model="versionsDialog.show"
+      :type="versionsDialog.type"
+      :show-os="versionsDialog.type === 'by_system_arch'"
+      :title="versionsDialog.title"
+      :version="versionsDialog.version"
+      :os-type="versionsDialog.os_type"
+      :cpu-arch="versionsDialog.cpu_arch"
+      :os-versions="formData.osVersions"
+      @confirm="updateAgentVersion" />
   </article>
 </template>
 <script lang="ts">
@@ -155,6 +216,8 @@ import mixin from '@/components/common/filter-ip-mixin';
 import formLabelMixin from '@/common/form-label-mixin';
 import FilterDialog from '@/components/common/filter-dialog.vue';
 import PermissionSelect from '@/components/common/permission-select.vue';
+import SetupPkgTable from '../components/setup-pkg-table.vue';
+import ChoosePkgDialog from '../components/choose-pkg-dialog.vue';
 import getTipsTemplate from '../config/tips-template';
 import { setupTableConfig, parentHead, setupDiffConfigs } from '../config/setupTableConfig';
 import { addListener, removeListener } from 'resize-detector';
@@ -165,6 +228,22 @@ import { ISetupHead, ISetupRow, ISetupParent } from '@/types';
 import { regIPv6 } from '@/common/regexp';
 import { reguRequired } from '@/common/form-check';
 import { getDefaultConfig } from '@/config/config';
+import { IPkgTag } from '@/types/agent/pkg-manage';
+
+type VerionType = 'unified' | 'by_system_arch';
+
+interface IForm extends IAgent {
+  choice_version_type: VerionType;
+  agent_version: string;
+  osVersions: {
+    id: string;
+    name: string;
+    os_type: string;
+    cpu_arch: string;
+    version: string;
+    tags: IPkgTag[]
+  }[];
+}
 
 @Component({
   name: 'agent-setup',
@@ -176,27 +255,48 @@ import { getDefaultConfig } from '@/config/config';
     FilterIpTips,
     FilterDialog,
     PermissionSelect,
+    SetupPkgTable,
+    ChoosePkgDialog,
   },
 })
 
 export default class AgentSetup extends Mixins(mixin, formLabelMixin) {
   @Ref('form') private readonly form!: any;
   @Ref('installTable') private readonly installTable!: any;
+  @Ref('setupPkgTableRef') private readonly setupPkgTableRef!: any;
 
   // 是否为安装方式
   private isManual = false;
   // 表单数据
-  private formData: IAgent = {
+  private formData: IForm = {
     bk_biz_id: MainStore.selectedBiz.length === 1 ? MainStore.selectedBiz[0] : '',
     bk_cloud_id: '',
     install_channel_id: '',
     ap_id: '',
+    choice_version_type: 'unified' as VerionType,
+    agent_version: '',
+    osVersions: [],
   };
-  private rules = {
-    bk_biz_id: [reguRequired],
-    bk_cloud_id: [reguRequired],
-    install_channel_id: [reguRequired],
-    ap_id: [reguRequired],
+  // 根据agent开关和接入点的gse_version是不是v2版本来显示agent版本选择是否显示（必填）、隐藏（非必填）
+  private get isShowAgentPkg() {
+    // 判断接入点版本是否为V2版本
+    const isApVersion2 = this.curApList.length > 0 && !isEmpty(this.formData.ap_id)
+      && this.curApList.find(item => item.id === this.formData.ap_id)?.gse_version === 'V2';
+    return MainStore.ENABLE_AGENT_PACKAGE_UI && isApVersion2;
+  };
+  private get rules() {
+    const commonRules = {
+      bk_biz_id: [reguRequired],
+      bk_cloud_id: [reguRequired],
+      install_channel_id: [reguRequired],
+      ap_id: [reguRequired],
+      agent_version: [{
+        required: this.isShowAgentPkg,
+        message: window.i18n.t('必填项'),
+        trigger: 'blur',
+      }],
+    };
+    return commonRules;
   };
   // 右侧提示面板是否显示
   private showRightPanel = false;
@@ -227,6 +327,14 @@ export default class AgentSetup extends Mixins(mixin, formLabelMixin) {
   private proxyStatus = '';
   // Proxy所在管控区域ID
   private proxyCloudId: undefined | number = undefined;
+  public versionsDialog = {
+    show: false,
+    type: 'unified' as VerionType,
+    title: '',
+    version: '',
+    os_type: '',
+    cpu_arch: '',
+  };
 
   private get permissionSwitch() {
     return MainStore.permissionSwitch;
@@ -296,6 +404,8 @@ export default class AgentSetup extends Mixins(mixin, formLabelMixin) {
   @Watch('formData.ap_id')
   public handleApIdChange(val: number) {
     let urlType = '';
+    // 根据接入点选择的ap_id是否是v2版本 来设置布尔值
+    
     if (isEmpty(this.formData.bk_cloud_id)) {
       urlType = '';
     } else if (this.isDefaultCloud) {
@@ -326,6 +436,7 @@ export default class AgentSetup extends Mixins(mixin, formLabelMixin) {
     this.initApList();
     this.initCloudList();
     this.initChannelList();
+    this.getOsAndPkg();
   }
   public async initApList() {
     this.loadingApList = true;
@@ -368,12 +479,26 @@ export default class AgentSetup extends Mixins(mixin, formLabelMixin) {
    */
   public handleSetup() {
     const setupTableValidate = this.installTable.validate();
+    const setupPkgTableValidate = this.setupPkgTableRef ? this.setupPkgTableRef.validate() : true;
     this.form.validate().then(async () => {
-      if (setupTableValidate) {
-        this.loadingSetupBtn = true;
+      if (setupTableValidate && setupPkgTableValidate) {
+        // this.loadingSetupBtn = true;
         this.showFilterTips = false;
+        const { choice_version_type, agent_version, osVersions  } = this.formData;
+        const isUnified = choice_version_type === 'unified';
+        const agent_setup_info = {
+          choice_version_type,
+          [isUnified ? 'version' : 'version_map_list']: isUnified
+            ? agent_version
+            : osVersions.map(item => ({
+              os_cpu_arch: item.id,
+              version: item.version,
+            })),
+        };
         const params = {
           job_type: 'INSTALL_AGENT',
+          // v2版本接入点传agent_setup_info，非v2不传
+          ...(this.isShowAgentPkg && { agent_setup_info }),
           hosts: this.getFormData().map(({ prove, ...item }: ISetupRow) => {
             if (isEmpty(item.login_ip)) {
               delete item.login_ip;
@@ -566,10 +691,57 @@ export default class AgentSetup extends Mixins(mixin, formLabelMixin) {
   public handleShowSetting() {
     this.installTable.handleToggleSetting(true);
   }
+
+  public async getOsAndPkg() {
+    const list = await AgentStore.apiPkgQuickSearch({ project: 'gse_agent' });
+    this.formData.osVersions = (list.find(item => item.id === 'os_cpu_arch')?.children || []).map((item) => {
+      const [os, ...other] = item.id.split('_');
+      return {
+        id: item.id,
+        name: item.name as string,
+        os_type: os,
+        cpu_arch: other.join('_') || '',
+        version: '',
+        tags: [],
+      };
+    });
+  }
+  // 选择agent版本
+  public chooseAgentVersion(info: {
+    type: VerionType;
+    version?: string;
+    os_type?: string;
+    cpu_arch?: string;
+  }) {
+    const { type = 'unified', version = '', os_type = '', cpu_arch = '' } = info;
+    this.versionsDialog.show = true;
+    this.versionsDialog.type = type;
+    this.versionsDialog.version = version;
+    this.versionsDialog.os_type = os_type;
+    this.versionsDialog.cpu_arch = cpu_arch;
+    this.versionsDialog.title = type === 'unified' ? this.$t('选择统一的 Agent 版本') : this.$t('按操作系统选版本 ');
+  }
+
+  public updateAgentVersion(info) {
+    const { type, os_type, cpu_arch } = this.versionsDialog;
+    if (type === 'unified') {
+      this.formData.agent_version = info.version;
+    } else {
+      const index = this.formData.osVersions.findIndex(v => v.os_type === os_type && v.cpu_arch === cpu_arch);
+      if (index > -1) {
+        this.formData.osVersions.splice(index, 1, {
+          ...this.formData.osVersions[index],
+          version: info.version,
+          tags: info.tags,
+        });
+      }
+    }
+  }
 }
 </script>
 <style lang="postcss" scoped>
 @import "@/css/mixins/nodeman.css";
+@import "@/css/variable.css";
 
 >>> .bk-select {
   background-color: #fff;
@@ -590,6 +762,7 @@ export default class AgentSetup extends Mixins(mixin, formLabelMixin) {
     /* >>> .agent-setup-table {
       max-width: 1200px;
     } */
+    padding-bottom: 40px;
     >>> .install-table-body {
       overflow: visible;
     }
@@ -597,6 +770,73 @@ export default class AgentSetup extends Mixins(mixin, formLabelMixin) {
       width: 480px;
       &.is-error {
         border-color: #ff5656;
+      }
+    }
+
+    .version-type {
+      width: 322px;
+      margin-left: 8px;
+      >>> .bk-form-content {
+        margin-left: 0!important;
+      }
+      &.is-error .versions-choose-btn:not(:hover) {
+        border-color: #ff5656;
+      }
+    }
+    .versions-choose-btn {
+      width: 100%;
+      position: relative;
+      align-items: center;
+      justify-content: center;
+      border: 1px dashed #c4c6cc;
+      border-radius: 2px;
+      background-color: #fafbfd;
+      cursor: pointer;
+      .nc-plus-line {
+        margin-right: 6px;
+      }
+      .nodeman-icon {
+        color: #979ba5;
+      }
+      &:hover {
+        color: $primaryFontColor;
+        border-color: $primaryFontColor;
+      }
+      &:hover .nodeman-icon {
+        color: $primaryFontColor;
+      }
+    }
+    .versions-choose-detail {
+      border-style: solid;
+      .prefix-area {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 30px;
+        border-right: 1px solid #c4c6cc;
+        background-color: #fafbfd;
+      }
+      .version-text {
+        padding: 0 8px;
+        flex: 1;
+        color: #63656e;
+        background-color: #fff;
+      }
+      .versions-choose-icon {
+        position: absolute;
+        right: 8px;
+        top: 8px;
+        display: none;
+      }
+      &:hover {
+        .prefix-area {
+          background-color: #e1ecff;
+          border-color: $primaryFontColor;
+        }
+        .versions-choose-icon {
+          display: inline-block;
+        }
       }
     }
     .item-error-tips .btn {
@@ -634,7 +874,7 @@ export default class AgentSetup extends Mixins(mixin, formLabelMixin) {
       &.fixed {
         position: fixed;
         height: 54px;
-        left: 60px;
+        left: 0;
         bottom: 0;
         right: 0;
         background: #fff;

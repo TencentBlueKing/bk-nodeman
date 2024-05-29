@@ -2,6 +2,8 @@ import RequestQueue from '@/api/request-queue';
 import CachedPromise from '@/api/cached-promise';
 import { CancelToken, Canceler } from 'axios';
 
+export type Mixin<T, X> = T & X;
+
 export type IKeysMatch<T, V> = {[K in keyof T]-?: T[K] extends V ? K : never}[keyof T]; // 根据value类型找key
 
 export type IAgentStatus = 'running' | 'terminated' | 'not_installed'; // 正常 异常 未安装
@@ -90,9 +92,14 @@ export interface INavConfig {
   currentActive?: string // 当前二级导航选中项
   defaultActive?: string // 当前二级导航初始化选中项
   disabled?: boolean // 是否禁用一级导航
-  children?: ISubNavConfig[] // 二级导航配置
+  children?: ISideMenuCofig[] // 二级导航配置
 }
 
+// 侧边栏菜单配置
+export interface ISideMenuCofig {
+  name: string // 侧边栏菜单分类名称
+  children?: ISubNavConfig[] // 子菜单配置
+}
 export interface ISubNavConfig {
   title: string // 二级导航标题
   icon: string // 二级导航icon
@@ -151,7 +158,7 @@ export interface IIsp {
 export interface ISearchChild {
   id: string
   name: string
-  checked: boolean
+  checked?: boolean
 }
 
 // searchselect item
@@ -227,6 +234,7 @@ export interface ISetupValidator {
 // 集合了agent 安装&导入、proxy安装
 export interface ISetupRow {
   id: number
+  is_unassigned?: boolean
   is_manual?: boolean
   inner_ip?: string
   outer_ip?: string
@@ -256,6 +264,8 @@ export interface ISetupRow {
   install_channel_id: string | number | null
   bk_addressing: 'static' | 'dynamic'
   gse_version?: 'V1'|'V2' // 前端添加 用于操作主机仅能选择对应版本的接入点
+  bk_host_id?: number;
+  version?: string;
 }
 
 export interface ISetupParent {

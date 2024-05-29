@@ -43,9 +43,8 @@
   },
   "dependencies": {
     "@blueking/crypto-js-sdk": "0.0.4",
-    "@blueking/ip-selector": "0.2.0-beta",
-    "@blueking/login-modal": "^1.0.1",
-    "@blueking/notice-component-vue2": "~2.0.1",
+    "@blueking/ip-selector": "0.0.1-beta.113",
+    "@blueking/notice-component-vue2": "2.0.2",
     "@blueking/paas-login": "0.0.9",
     "@icon-cool/bk-icon-node-manager": "latest",
     "axios": "0.26.1",

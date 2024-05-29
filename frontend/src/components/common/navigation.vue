@@ -1,5 +1,5 @@
 <template>
-  <article>
+  <article class="nodeman-wrapper">
     <!--导航-->
     <bk-navigation
       ref="navigation"
@@ -131,8 +131,7 @@ import MixinsControlDropdown from '@/components/common/MixinsControlDropdown.vue
 import ExceptionPage from '@/components/exception/exception-page.vue';
 import routerBackMixin from '@/common/router-back-mixin';
 import { bus } from '@/common/bus';
-import { INavConfig } from '@/types';
-import { showLoginModal } from '@blueking/login-modal';
+import { INavConfig, ISideMenuConfig } from '@/types';
 
 interface IUserItem {
   id: string
@@ -232,10 +231,29 @@ export default class NodemanNavigation extends Mixins(routerBackMixin) {
     if (this.activeIndex === -1) return false;
     return !!this.navList[this.activeIndex as number].children?.length;
   }
+  // 根据开关隐藏Agent包管理菜单
+  private get navListHideAgentPkg() {
+    // 深拷贝侧边栏菜单列表
+    const navList = JSON.parse(JSON.stringify(this.navList[this.activeIndex].children || [])) as ISideMenuConfig[];
+    // 过滤隐藏Agent包管理菜单
+    navList?.forEach((item) => {
+      if (item.name === 'nav_Agent状态') {
+        item.children = item.children?.filter((child: { name: string; }) => child.name !== 'agentPackage');
+      }
+    });
+    return navList;
+  }
+  private async created() {
+    // 获取开关状态
+    await this.getAgentPackageUI();
+  }
   // 左侧导航list
   private get sideMenuList() {
     if (this.activeIndex === -1) return [];
-    return this.navList[this.activeIndex].children || [];
+    // 根据开关状态过滤agent包管理菜单
+    const agentSwitch = MainStore.ENABLE_AGENT_PACKAGE_UI;
+    const menuList = !agentSwitch ? this.navListHideAgentPkg : this.navList[this.activeIndex].children;
+    return menuList || [];
   }
   // 子菜单默认激活项
   private get currentActive() {
@@ -370,11 +388,11 @@ export default class NodemanNavigation extends Mixins(routerBackMixin) {
   private async handleUser(userItem: IUserItem) {
     if (userItem.id === 'LOGOUT') {
       if (NODE_ENV === 'development') {
-        // 注销登录，添加is_from_logout=1参数，用于清除bk_token
-        window.location.href = LOGIN_DEV_URL.replace('bknodeman.','') + window.location.href + '&is_from_logout=1';
+        window.location.href = LOGIN_DEV_URL + window.location.href;
       } else {
-        //去除重复拼接的window.PROJECT_CONFIG.SITE_URL
-        this.$http.get?.(`logout/`);
+        this.$http.get?.(`${window.PROJECT_CONFIG.SITE_URL}logout/`);
+        // window.location.href = `${window.PROJECT_CONFIG.BK_PAAS_HOST}/console/accounts/logout/`;
+        // window.location.href = `${window.PROJECT_CONFIG.LOGIN_URL}?&c_url=${window.location}`;
       }
     }
   }
@@ -399,15 +417,20 @@ export default class NodemanNavigation extends Mixins(routerBackMixin) {
   public handleBizChange(newBizIds: number[]) {
     MainStore.setSelectedBiz(newBizIds);
   }
+  public async getAgentPackageUI() {
+    await MainStore.getAgentPackageUI();
+  }
 }
 </script>
-<style lang="postcss" scoped>
-  @import "@/css/mixins/nodeman.css";
-  @import "@/css/variable.css";
+<style lang="postcss">
+@import "@/css/mixins/nodeman.css";
+@import "@/css/variable.css";
 
-  $navColor: #96a2b9;
-  $navHoverColor: #d3d9e4;
-  $headerColor: #313238;
+$navColor: #96a2b9;
+$navHoverColor: #d3d9e4;
+$headerColor: #313238;
+
+.nodeman-wrapper {
 
   .menu-biz-shrink-text {
     opacity: 0;
@@ -472,6 +495,12 @@ export default class NodemanNavigation extends Mixins(routerBackMixin) {
       >>> .bk-tooltip-ref {
         overflow: hidden;
       }
+    }
+  }
+  .nav-content-wrapper {
+    height: 100%;
+    & > div {
+      height: 100%;
     }
   }
   .nodeman-main-loading {
@@ -592,4 +621,5 @@ export default class NodemanNavigation extends Mixins(routerBackMixin) {
       display: none;
     }
   }
+}
 </style>

@@ -39,7 +39,8 @@
               :setup-info="formData.bkCloudSetupInfo"
               :key="net.active"
               :before-delete="handleBeforeDeleteRow"
-              @change="handleSetupTableChange">
+              @change="handleSetupTableChange"
+              @choose="handleChoose">
             </InstallTable>
           </bk-form-item>
           <bk-form-item error-display-type="normal" :label="$t('密码/密钥')" required>
@@ -99,11 +100,22 @@
     </div>
     <!--过滤ip信息-->
     <filter-dialog v-model="showFilterDialog" :list="filterList" :title="$t('忽略详情')"></filter-dialog>
+    <!-- agent包版本 -->
+    <ChoosePkgDialog
+      v-model="versionsDialog.show"
+      :type="versionsDialog.type"
+      :title="versionsDialog.title"
+      :version="versionsDialog.version"
+      :os-type="versionsDialog.os_type"
+      :cpu-arch="versionsDialog.cpu_arch"
+      :project="versionsDialog.project"
+      @confirm="versionConfirm"
+      @cancel="versionCancel" />
   </section>
 </template>
 <script lang="ts">
 import { Component, Prop, Ref, Mixins } from 'vue-property-decorator';
-import { MainStore, CloudStore } from '@/store/index';
+import { MainStore, CloudStore, AgentStore } from '@/store/index';
 import InstallTable from '@/components/setup-table/install-table.vue';
 import InstallMethod from '@/components/common/install-method.vue';
 import RightPanel from '@/components/common/right-panel-tips.vue';
@@ -119,6 +131,7 @@ import { defaultPort, getDefaultConfig } from '@/config/config';
 import { ISetupHead, ISetupRow, IProxyIpKeys, ISetupParent } from '@/types';
 import { reguPort, reguRequired } from '@/common/form-check';
 import { getManualConfig } from '@/common/util';
+import ChoosePkgDialog from '../../agent/components/choose-pkg-dialog.vue';
 
 @Component({
   name: 'cloud-manager-setup',
@@ -129,6 +142,7 @@ import { getManualConfig } from '@/common/util';
     Tips,
     FilterIpTips,
     FilterDialog,
+    ChoosePkgDialog,
   },
 })
 
@@ -183,7 +197,53 @@ export default class CloudManagerSetup extends Mixins(formLabelMixin, FilterIpMi
   private apId = 0;
   private marginLeft = 108;
   private cloudName = '';
+  private gse_version = '';
 
+  // agent版本弹框显示参数
+  public versionsDialog = {
+    show: false,
+    type: 'by_system_arch',
+    title: this.$t('选择 Agent 版本'),
+    version: '',
+    os_type: 'linux',
+    cpu_arch: '',
+    project: 'gse_proxy',
+    row: null as any,
+    instance: null as any,
+  };
+  /**
+   * 获取agent默认版本数据
+   * @param {ISetupRow[]} data - 设置行数据
+   * @returns {Promise<ISetupRow[]>} - 包含默认版本的数据
+   */
+  private defaultVersion = '';
+  private async getDefaultVersion() {
+    const { default_version } = await AgentStore.apiGetPkgVersion({
+      project: 'gse_proxy',
+      os: 'linux',
+      cpu_arch: ''
+    });
+    this.defaultVersion = default_version;
+  };
+
+  // 选择agent版本
+  public handleChoose({ row, instance }: { row: ISetupRow; instance: any; }) {
+    const { version = '' } = row;
+    this.versionsDialog.show = true;
+    this.versionsDialog.version = version;
+    this.versionsDialog.row = row;
+    this.$nextTick(() => {
+      this.versionsDialog.instance = instance;
+      instance.handleFocus?.();
+    });
+  }
+  public versionConfirm(info: { version: string; }) {
+    this.versionsDialog.row.version = info.version;
+    this.versionCancel();
+  }
+  public versionCancel() {
+    this.versionsDialog.instance?.handleBlur?.();
+  }
   private get apList() {
     return CloudStore.apList;
   }
@@ -216,6 +276,8 @@ export default class CloudManagerSetup extends Mixins(formLabelMixin, FilterIpMi
   }
 
   private async handleInit() {
+    // 获取默认版本
+    await this.getDefaultVersion();
     this.loading = true;
     switch (this.type) {
       case 'create':
@@ -234,7 +296,16 @@ export default class CloudManagerSetup extends Mixins(formLabelMixin, FilterIpMi
     CloudStore.setApUrl({ id: this.apId });
     this.loading = false;
   }
+  // 是否显示agent包版本
+  private get AgentPkgShow(): Boolean {
+    // agent包开关开启并且接入点是v2版本时候显示agent包版本
+    return MainStore.ENABLE_AGENT_PACKAGE_UI && this.isApV2;
+  }
   private initForm() {
+    // agent包开关关闭或者不是接入点v2版本时候不显示agent包版本
+    if (!this.AgentPkgShow) {
+      this.setupConfig.header = this.setupConfig.header?.filter(item => item.prop !== 'version');
+    }
     this.formData = {
       bkCloudSetupInfo: this.setupConfig,
       retention: -1,
@@ -244,11 +315,17 @@ export default class CloudManagerSetup extends Mixins(formLabelMixin, FilterIpMi
       bkBizId: '',
     };
   }
+  // 判断当前接入点是v2版本
+  private get isApV2(): Boolean {
+    return this.apList.find(data => data.id === this.apId)?.gse_version === 'V2';
+  }
   /**
    * 重试回填数据
    */
   private initTableData() {
     const defaultAp = this.apList.find(item => item.is_default);
+    // 设置默认版本
+    const version = this.AgentPkgShow ? this.defaultVersion : '';
     const table = [];
     const initRow = {
       inner_ip: '',
@@ -258,6 +335,7 @@ export default class CloudManagerSetup extends Mixins(formLabelMixin, FilterIpMi
       prove: '',
       retention: -1,
       data_path: defaultAp?.file_cache_dirs || '',
+      version,
     };
     // 默认给两行数据
     table.push({ ...initRow });
@@ -333,6 +411,7 @@ export default class CloudManagerSetup extends Mixins(formLabelMixin, FilterIpMi
   private async handleCreateOrReplace(data: ISetupRow[], type = 'INSTALL_PROXY') {
     this.loadingSetup = true;
     const ipKeys: IProxyIpKeys[] = ['inner_ip', 'outer_ip', 'login_ip'];
+    const versionList: { bk_host_id: number; version: string; }[] = [];
     const hosts = data.map((item: ISetupRow) => {
       const { inner_ip, outer_ip, login_ip, ...other } = item;
       const host: ISetupRow = {
@@ -341,9 +420,22 @@ export default class CloudManagerSetup extends Mixins(formLabelMixin, FilterIpMi
       ipKeys.forEach((key) => {
         Object.assign(host, this.$setIpProp(key, item));
       });
+      versionList.push({
+        bk_host_id: item.bk_host_id as number,
+        version: item.version || '',
+      });
       return host;
     });
     const params: Dictionary = { job_type: type, hosts };
+    // 显示agent包版本，传agent信息
+    if (this.AgentPkgShow) {
+      Object.assign(params, {
+        agent_setup_info: {
+          choice_version_type: 'by_host',
+          version_map_list: versionList,
+        },
+      });
+    }
     if (type === 'REPLACE_PROXY') {
       params.replace_host_id = this.replaceHostId;
     }
@@ -396,6 +488,9 @@ export default class CloudManagerSetup extends Mixins(formLabelMixin, FilterIpMi
       this.setupConfig.header = getManualConfig(setupInfo, setupDiffConfigs);
     } else {
       this.setupConfig.header = setupInfo;
+    }
+    if (!this.AgentPkgShow) {
+      this.setupConfig.header = this.setupConfig.header?.filter(item => item.prop !== 'version');
     }
     this.setupTable.handleInit();
     this.setupTable.handleScroll();

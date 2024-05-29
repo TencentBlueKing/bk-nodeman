@@ -163,6 +163,7 @@
                     @focus="handleCellFocus(arguments, { row, config, rowIndex, colIndex })"
                     @blur="handleCellBlur(arguments, { row, config, rowIndex, colIndex })"
                     @input="handleCellValueInput(arguments, row, config)"
+                    @choose="handleCellChoose(arguments, { row, config, rowIndex, colIndex })"
                     @change="handleCellValueChange(row, config)"
                     @upload-change="handleCellUploadChange($event, row)">
                   </InstallInputType>
@@ -245,6 +246,7 @@ export default class SetupTable extends Vue {
   @Prop({ type: Array }) private readonly aps!: IAp[];
   @Prop({ type: Array }) private readonly clouds!: ICloudSource[];
   @Prop() private readonly arbitrary!: any; // 可以是任意值, 用来在config文件里做为必要的一些参数
+  @Prop({ type: String, default: '' }) private readonly type!: string;
 
   @Ref('tableBody') private readonly tableBody!: any;
   @Ref('scrollPlace') private readonly scrollPlace!: any;
@@ -266,7 +268,7 @@ export default class SetupTable extends Vue {
   // 滚动节流
   private handleScroll!: Function;
   // 处于编辑态的数据
-  private editData: {  id: number, prop: string }[] = [];
+  public editData: {  id: number, prop: string }[] = [];
   private hasScroll= false;
   private listenResize!: Function;
   private focusRow: any = {};
@@ -462,7 +464,7 @@ export default class SetupTable extends Vue {
     const [newValue] = arg;
     const prop = config.prop as IKeysMatch<ISetupRow, string>;
     const sync = config.sync as IKeysMatch<ISetupRow, string>;
-    const syncSource = typeof row[prop] === 'undefined' ? '' : row[prop].trim();
+    const syncSource = typeof row[prop] === 'undefined' ? '' : row[prop]?.trim();
     const syncTarget = typeof row[sync] === 'undefined' ? '' : row[sync].trim();
     if (sync && syncSource === syncTarget) {
       row[sync] = newValue;
@@ -478,7 +480,7 @@ export default class SetupTable extends Vue {
     MainStore.updateEdited(true);
     const prop = config.prop as IKeysMatch<ISetupRow, string>;
     if (config.type !== 'textarea' && row[prop] && typeof row[prop] === 'string') {
-      row[prop] = row[prop].trim();
+      row[prop] = row[prop]?.trim();
     }
     if (config.handleValueChange) {
       config.handleValueChange.call(this, row);
@@ -496,6 +498,12 @@ export default class SetupTable extends Vue {
       return config.getProxyStatus.call(this, row);
     }
     return '';
+  }
+  @Emit('choose')
+  private handleCellChoose(arg: any[], bb: { row: ISetupRow }) {
+    const [param] = arg;
+    const { row } = bb;
+    return { instance: param.instance, row };
   }
   private rootScroll() {
     if (!this.virtualScroll) return;
@@ -575,7 +583,7 @@ export default class SetupTable extends Vue {
     }
     const ipRepeat = this.table.data.some((row: ISetupRow | any) => {
       if (row.id === rowId) return false;
-      let targetValue = !isEmpty(row[prop]) ? row[prop].trim() : '';
+      let targetValue = !isEmpty(row[prop]) ? row[prop]?.trim() : '';
       // 1. 处理多值的情况
       // eslint-disable-next-line @typescript-eslint/prefer-optional-chain
       if (splitCode && splitCode.length) {

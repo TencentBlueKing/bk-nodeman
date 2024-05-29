@@ -20,6 +20,7 @@ const config: IHead[] = [
   { name: window.i18n.t('密码/密钥'), prop: 'prove' },
   { name: window.i18n.t('外网IP'), prop: 'outer_ip', colOptional: true, optional: true, width: 150 },
   { name: window.i18n.t('登录IP'), prop: 'login_ip', optional: true, width: 150 },
+  { name: window.i18n.t('Agent包版本'), prop: 'version' },
   { name: window.i18n.t('业务'), prop: 'bk_biz_id', optional: true },
   { name: window.i18n.t('管控区域'), prop: 'bk_cloud_id', optional: true },
   { name: window.i18n.t('接入点'), prop: 'ap_id', optional: true },
