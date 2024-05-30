@@ -4,11 +4,20 @@
     :value="value"
     :width="showOs ? 1048 : 960"
     :position="{ top: 100 }"
-    :draggable="false"
+    :draggable="$props.operate === 'UPGRADE_AGENT'"
     :mask-close="false"
     :title="title"
     header-position="left"
     @cancel="handleCancel">
+    <template slot="header">
+      <span class="header">{{ title }}</span>
+      <span v-if="operate === 'UPGRADE_AGENT'" class="subTitle">
+        <i18n path="已选IP" class="IP-selection">
+          <span class="selection-num">{{ num }}</span>
+        </i18n>
+      </span>
+      
+    </template>
     <div class="pkg-version-wrapper">
       <ul class="os-list" v-if="showOs">
         <li
@@ -38,7 +47,9 @@
                   :value="selectedVersion === row.version"
                   width="90"
                   v-bk-tooltips.left="{
-                    content: row.isBelowVersion ? $t('版本未处于正式状态') : $t('不能低于当前版本'),
+                    content: $props.operate === 'UPGRADE_AGENT'
+                      ? row.isLatestVersion ? $t('已是目标版本') : $t('当前版本')
+                      : row.isBelowVersion ? $t('版本未处于正式状态') : $t('不能低于当前版本'),
                     disabled: !row.disabled
                   }">
                 </bk-radio>
@@ -57,7 +68,7 @@
             </NmColumn>
           </bk-table>
         </div>
-        <div class="pkg-desc">
+        <div class="pkg-desc" :style="{ flex: showOs ? 'initial' : 2 }">
           <p class="title">{{ selectedRow ? $t('pkg的详细信息', [selectedRow.version]) : $t('版本详情') }}</p>
           <!-- eslint-disable-next-line vue/no-v-html -->
           <pre class="content" v-html="markdown" />
@@ -71,7 +82,7 @@
   </bk-dialog>
 </template>
 <script lang="ts">
-import { defineComponent, nextTick, ref, toRefs, watch, PropType } from 'vue';
+import { defineComponent, nextTick, ref, toRefs, watch, PropType, computed } from 'vue';
 import { AgentStore } from '@/store';
 import FlexibleTag from '@/components/common/flexible-tag.vue';
 import { IPkgVersion, PkgType } from '@/types/agent/pkg-manage';
@@ -94,9 +105,9 @@ export default defineComponent({
       type: Boolean,
       default: false,
     },
-    version: {
-      type: String,
-      default: '',
+    versions: {
+      type: Array as () => string[],
+      default: () => [],
     },
     osType: {
       type: String,
@@ -114,6 +125,10 @@ export default defineComponent({
       type: String,
       default: '',
     },
+    operate: {
+      type: String,
+      default: '',
+    },
     project: {
       type: String as PropType<PkgType>,
       default: 'gse_agent',
@@ -125,27 +140,37 @@ export default defineComponent({
     const selectedRowRef = ref<any>();
 
     const loading = ref(false);
-    const tableData = ref<IPkgVersion[]>([]);
+    const tableData = ref<any[]>([]);
     const selectedVersion = ref('');
     const selectedRow = ref<IPkgVersion|null>(null);
     const markdown = ref('');
     const lastOs = ref('');
     const defaultVersion = ref('');
-
+    // 当前传入的最高版本
+    const currentLatestVersion = ref('');
+    
+    const num = props.versions.length;
+    console.log("🚀 ~ setup ~ props.versions:", props.versions)
     const getPkgVersions = async () => {
       const {
         default_version,
+        package_latest_version,
+        machine_latest_version,
         pkg_info,
       } = await AgentStore.apiGetPkgVersion({
         // 新增加project的传入
         project: props.project,
         os: props.osType,
-        cpu_arch: props.cpuArch
+        cpu_arch: props.cpuArch,
+        versions:props.versions,
       });
       defaultVersion.value = default_version;
+      currentLatestVersion.value = machine_latest_version;
       const builtinTags = ['stable', 'latest', 'test'];
       tableData.value.splice(0, tableData.value.length, ...pkg_info.map(item => ({
         ...item,
+        disabled: item.disabled || item.version === machine_latest_version,
+        isLatestVersion: machine_latest_version === package_latest_version,
         tags: item.tags.filter(tag => builtinTags.includes(tag.name)).map(tag => ({
           className: tag.name,
           description: tag.description,
@@ -171,6 +196,7 @@ export default defineComponent({
 
     // 参考 部署策略 - 选择插件版本
     const handleRowClass = ({ row }: {row: IPkgVersion}) => {
+      console.log("🚀 ~ handleRowClass ~ row:", row)
       if (row.disabled) {
         return 'row-disabled';
       }
@@ -188,6 +214,7 @@ export default defineComponent({
     };
 
     watch(() => props.value, async (val: boolean) => {
+      // val dialog显示隐藏
       if (val) {
         if (lastOs.value !== `${props.osType}_${props.cpuArch}`) {
           loading.value = true;
@@ -199,7 +226,10 @@ export default defineComponent({
         // 默认选中default_version,已经选过有props.version的就不默认了
         props.version === '' && defaultVersion && tableData.value.forEach(row=>{
           row.version === defaultVersion.value && handleRowClick(row)
-        })
+        });
+        props.operate === 'UPGRADE_AGENT' && tableData.value.forEach(row=>{
+          row.version === currentLatestVersion.value && handleRowClick(row)
+        });
       } else {
         lastOs.value = `${props.osType}_${props.cpuArch}`;
         selectedVersion.value = props.version;
@@ -214,6 +244,7 @@ export default defineComponent({
 
     return {
       ...toRefs(props),
+      num,
       selectedRowRef,
       loading,
       tableData,
@@ -230,6 +261,24 @@ export default defineComponent({
 </script>
 <style lang="postcss">
 @import "@/css/variable.css";
+.header {
+  font-size: 20px;
+  color: #313238;
+}
+span.subTitle:before {
+  content: "|";
+  margin: 0 13px 0 10px;
+  color: #DCDEE5;
+}
+.IP-selection {
+  font-size: 14px;
+  color: #63656E;
+  letter-spacing: 0;
+  .selection-num {
+    color: #3A84FF;
+    margin: 0 3px;
+  }
+}
 
 .pkg-version-wrapper {
   display: flex;
