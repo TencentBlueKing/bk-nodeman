@@ -158,10 +158,11 @@ class GsePackageTools:
                     {
                         "id": version,
                         "name": version.capitalize(),
-                        "count": count,
+                        "count": version__count_map[version],
                         "description": version__version_log_map[version],
                     }
-                    for version, count in version__count_map.items()
+                    # for version, count in version__count_map.items()
+                    for version in sorted(version__count_map, reverse=True)
                 ],
                 "count": sum(version__count_map.values()),
             },

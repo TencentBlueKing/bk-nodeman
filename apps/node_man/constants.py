@@ -1201,6 +1201,7 @@ class OsBitType(EnhanceEnum):
     def cpu_type__os_bit_map(cls):
         return {CpuType.x86: cls.BIT32.value, CpuType.x86_64: cls.BIT64.value, CpuType.aarch64: cls.ARM.value}
 
+
 class AgentVersionType(EnhanceEnum):
     UNIFIED = "unified"
     BY_HOST = "by_host"
@@ -1228,3 +1229,25 @@ TAG_DESCRIPTION_MAP = {
     "测试版本": _("测试版本"),
 }
 STABLE_DESCRIPTION = _("稳定版本")
+
+A = {
+    "stable": "stable",
+    "latest": "latest",
+    "test": "test",
+    "稳定版本": "stable",
+    "最新版本": "latest",
+    "测试版本": "test",
+}
+
+B = {
+    "stable": "稳定版本",
+    "latest": "最新版本",
+    "test": "测试版本",
+    "稳定版本": "稳定版本",
+    "最新版本": "最新版本",
+    "测试版本": "测试版本",
+}
+
+C = {
+    "AGENT": "gse_agent",
+}

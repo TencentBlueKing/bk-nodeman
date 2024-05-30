@@ -649,7 +649,7 @@ class MetaHandler(APIModel):
             },
             {
                 "name": _("上传用户"),
-                "id": "creator",
+                "id": "created_by",
                 "children": [
                     {
                         "id": creator,

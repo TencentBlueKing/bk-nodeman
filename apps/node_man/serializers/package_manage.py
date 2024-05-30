@@ -13,11 +13,7 @@ from rest_framework import serializers
 
 from apps.core.tag.constants import TargetType
 from apps.exceptions import ValidationError
-from apps.node_man.constants import (
-    BUILT_IN_TAG_DESCRIPTIONS,
-    BUILT_IN_TAG_NAMES,
-    GsePackageCode,
-)
+from apps.node_man.constants import GsePackageCode
 from apps.node_man.handlers.gse_package import gse_package_handler
 from apps.node_man.models import UploadPackage
 
@@ -143,11 +139,18 @@ class PackageDescResponseSerializer(serializers.Serializer):
     list = PackageDescSerializer(many=True)
 
 
+class OperateTagSerializer(serializers.Serializer):
+    tag_id = serializers.CharField(required=False)
+    tag_name = serializers.CharField(required=False)
+    action = serializers.ChoiceField(choices=["add", "update", "delete"], label="标签动作")
+
+
 class OperateSerializer(serializers.Serializer):
     is_ready = serializers.BooleanField()
     modify_tags = serializers.ListField(child=serializers.DictField(), default=[])
     add_tags = serializers.ListField(child=serializers.CharField(), default=[])
     remove_tags = serializers.ListField(child=serializers.CharField(), default=[])
+    tags = serializers.ListField(child=OperateTagSerializer(), default=[])
 
     def update(self, instance, validated_data):
         for attr, value in validated_data.items():
@@ -157,20 +160,24 @@ class OperateSerializer(serializers.Serializer):
         return instance
 
     def validate(self, attrs):
-        for tag_dict in attrs.get("modify_tags", []):
-            if "description" not in tag_dict and "name" not in tag_dict:
-                raise ValidationError(_("description和name参数必须同时传入"))
+        for tag in attrs.get("tags", []):
+            if tag["action"] in ["update", "delete"] and "tag_id" not in tag:
+                raise ValidationError(_("action为update, delete时id要传"))
 
-            if tag_dict["name"] in BUILT_IN_TAG_NAMES or tag_dict["description"] in BUILT_IN_TAG_DESCRIPTIONS:
-                raise ValidationError(_("内置标签不支持修改，自定义标签的名字不能与内置标签的名字冲突"))
-
-        for tag_description in attrs.get("add_tags", []):
-            if tag_description in BUILT_IN_TAG_DESCRIPTIONS:
-                raise ValidationError(_("自定义标签的名字不能与内置标签的名字冲突"))
-
-        for tag_name in attrs.get("remove_tags", []):
-            if tag_name in BUILT_IN_TAG_NAMES:
-                raise ValidationError(_("内置标签不允许删除"))
+        # for tag_dict in attrs.get("modify_tags", []):
+        #     if "description" not in tag_dict and "name" not in tag_dict:
+        #         raise ValidationError(_("description和name参数必须同时传入"))
+        #
+        #     if tag_dict["name"] in BUILT_IN_TAG_NAMES or tag_dict["description"] in BUILT_IN_TAG_DESCRIPTIONS:
+        #         raise ValidationError(_("内置标签不支持修改，自定义标签的名字不能与内置标签的名字冲突"))
+        #
+        # for tag_description in attrs.get("add_tags", []):
+        #     if tag_description in BUILT_IN_TAG_DESCRIPTIONS:
+        #         raise ValidationError(_("自定义标签的名字不能与内置标签的名字冲突"))
+        #
+        # for tag_name in attrs.get("remove_tags", []):
+        #     if tag_name in BUILT_IN_TAG_NAMES:
+        #         raise ValidationError(_("内置标签不允许删除"))
 
         return attrs
 
@@ -194,7 +201,7 @@ class UploadSerializer(serializers.Serializer):
 
         if not overload:
             upload_package: UploadPackage = UploadPackage.objects.filter(
-                file_name=file_name, module=TargetType.AGENT.value
+                file_name__contains=file_name, module=TargetType.AGENT.value
             ).first()
             if upload_package:
                 raise ValidationError(

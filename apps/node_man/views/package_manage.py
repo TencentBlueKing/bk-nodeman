@@ -38,7 +38,6 @@ from apps.node_man.permissions import package_manage as pkg_permission
 from apps.node_man.serializers import package_manage as pkg_manage
 from apps.node_man.tools.gse_package import GsePackageTools
 from apps.node_man.tools.package import PackageTools
-from apps.utils.local import get_request_username
 from common.api import NodeApi
 from common.utils.drf_utils import swagger_auto_schema
 
@@ -55,7 +54,7 @@ class BooleanInFilter(django_filters.BaseInFilter):
         return super().filter(qs, bool_values)
 
 
-class GsePackageFilter(FilterSet):
+class PackageManageFilterSet(FilterSet):
     os = django_filters.BaseInFilter(field_name="os", lookup_expr="in")
     cpu_arch = django_filters.BaseInFilter(field_name="cpu_arch", lookup_expr="in")
     tag_names = django_filters.BaseInFilter(lookup_expr="in", method="filter_tag_names")
@@ -77,11 +76,11 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
     serializer_class = pkg_manage.PackageSerializer
     permission_classes = (pkg_permission.PackageManagePermission,)
     filter_backends = (DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter)
-    filter_class = GsePackageFilter
+    filter_class = PackageManageFilterSet
     ordering_fields = ["version", "created_time"]
 
     def get_queryset(self):
-        return models.GsePackages.objects.all()
+        return models.GsePackages.objects.all().order_by("-is_ready")
 
     @swagger_auto_schema(
         responses={200: pkg_manage.ListResponseSerializer},
@@ -121,55 +120,156 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
         return super().list(request, *args, **kwargs)
 
     def perform_update(self, serializer):
+        # serializer.save()
+        #
+        # if not any(
+        #     [
+        #         serializer.validated_data.get("tags"),
+        #         serializer.validated_data.get("modify_tags"),
+        #         serializer.validated_data.get("add_tags"),
+        #     ]
+        # ):
+        #     return
+        #
+        # instance: GsePackages = self.get_object()
+        # tags: QuerySet = gse_package_handler.get_tag_objs(instance.project, instance.version)
+        # tag_name__tag_obj_map: Dict[str, Tag] = {tag.name: tag for tag in tags}
+        # exist_tag_names: List[str] = list(tag_name__tag_obj_map.keys())
+        # exist_tag_descriptions = list(tags.values_list("description", flat=True))
+        #
+        # # 修改标签
+        # for tag_dict in serializer.validated_data.get("modify_tags", []):
+        #     if tag_dict["name"] not in exist_tag_names:
+        #         continue
+        #
+        #     tag_obj: Tag = tag_name__tag_obj_map[tag_dict["name"]]
+        #     tag_obj.description = tag_dict["description"]
+        #     tag_obj.save(update_fields=["description"])
+        #
+        # # 添加标签
+        # for tag_description in serializer.validated_data.get("add_tags", []):
+        #     if tag_description in exist_tag_descriptions:
+        #         continue
+        #
+        #     gse_package_desc_obj, _ = GsePackageDesc.objects.get_or_create(
+        #         project=instance.project, category=CategoryType.official
+        #     )
+        #
+        #     Tag.objects.create(
+        #         name=GsePackageTools.generate_name_by_description(tag_description),
+        #         description=tag_description,
+        #         target_type=TargetType.AGENT.value,
+        #         target_id=gse_package_desc_obj.id,
+        #         target_version=instance.version,
+        #     )
+        #
+        # # 移除标签
+        # for tag_name in serializer.validated_data.get("remove_tags", []):
+        #     if tag_name not in exist_tag_names:
+        #         continue
+        #
+        #     Tag.objects.filter(name=tag_name).delete()
         serializer.save()
 
-        if not any(
-            [
-                serializer.validated_data.get("tags"),
-                serializer.validated_data.get("modify_tags"),
-                serializer.validated_data.get("add_tags"),
-            ]
-        ):
+        # if not any(
+        #         [
+        #             serializer.validated_data.get("tags"),
+        #             serializer.validated_data.get("modify_tags"),
+        #             serializer.validated_data.get("add_tags"),
+        #         ]
+        # ):
+        if not serializer.validated_data.get("tags"):
             return
 
         instance: GsePackages = self.get_object()
         tags: QuerySet = gse_package_handler.get_tag_objs(instance.project, instance.version)
         tag_name__tag_obj_map: Dict[str, Tag] = {tag.name: tag for tag in tags}
-        exist_tag_names: List[str] = list(tag_name__tag_obj_map.keys())
-        exist_tag_descriptions = list(tags.values_list("description", flat=True))
+        # exist_tag_names: List[str] = list(tag_name__tag_obj_map.keys())
+        # exist_tag_descriptions = list(tags.values_list("description", flat=True))
 
-        # 修改标签
-        for tag_dict in serializer.validated_data["modify_tags"]:
-            if tag_dict["name"] not in exist_tag_names:
-                continue
+        for tag_info in serializer.validated_data.get("tags", []):
+            if tag_info["action"] == "add":
+                tag_name = tag_info["tag_name"]
+                if tag_name in ["test", "latest", "stable", "测试版本", "最新版本", "稳定版本"]:
+                    Tag.objects.filter(
+                        name=constants.A[tag_name], target_id=GsePackageDesc.objects.get(project=instance.project).id
+                    ).update(target_version=instance.version)
+                    continue
 
-            tag_obj: Tag = tag_name__tag_obj_map[tag_dict["name"]]
-            tag_obj.description = tag_dict["description"]
-            tag_obj.save(update_fields=["description"])
+                gse_package_desc_obj, _ = GsePackageDesc.objects.get_or_create(
+                    project=instance.project, category=CategoryType.official
+                )
 
-        # 添加标签
-        for tag_description in serializer.validated_data["add_tags"]:
-            if tag_description in exist_tag_descriptions:
-                continue
+                Tag.objects.create(
+                    name=GsePackageTools.generate_name_by_description(tag_info["tag_name"]),
+                    description=tag_info["tag_name"],
+                    target_type=TargetType.AGENT.value,
+                    target_id=gse_package_desc_obj.id,
+                    target_version=instance.version,
+                )
+            elif tag_info["action"] == "update":
+                try:
+                    tag_obj: Tag = tag_name__tag_obj_map[tag_info["tag_id"]]
+                except KeyError:
+                    continue
 
-            gse_package_desc_obj, _ = GsePackageDesc.objects.get_or_create(
-                project=instance.project, category=CategoryType.official
-            )
+                tag_name = tag_info["tag_name"]
+                if tag_name in ["test", "latest", "stable", "测试版本", "最新版本", "稳定版本"]:
+                    Tag.objects.filter(
+                        name=constants.A[tag_name], target_id=GsePackageDesc.objects.get(project=instance.project).id
+                    ).update(target_version=instance.version)
+                    tag_obj.delete()
+                    continue
 
-            Tag.objects.create(
-                name=GsePackageTools.generate_name_by_description(tag_description),
-                description=tag_description,
-                target_type=TargetType.AGENT.value,
-                target_id=gse_package_desc_obj.id,
-                target_version=instance.version,
-            )
+                tag_obj.description = tag_info["tag_name"]
+                tag_obj.save()
+            elif tag_info["action"] == "delete":
+                tag_id = tag_info["tag_id"]
+                if tag_id in ["test", "latest", "stable"]:
+                    Tag.objects.filter(
+                        name=tag_id, target_id=GsePackageDesc.objects.get(project=instance.project).id
+                    ).update(target_version="")
+                    continue
 
-        # 移除标签
-        for tag_name in serializer.validated_data["remove_tags"]:
-            if tag_name not in exist_tag_names:
-                continue
+                try:
+                    tag_obj: Tag = tag_name__tag_obj_map[tag_info["tag_id"]]
+                except KeyError:
+                    continue
 
-            Tag.objects.filter(name=tag_name).delete()
+                tag_obj.delete()
+
+        # # 修改标签
+        # for tag_dict in serializer.validated_data.get("modify_tags", []):
+        #     if tag_dict["name"] not in exist_tag_names:
+        #         continue
+        #
+        #     tag_obj: Tag = tag_name__tag_obj_map[tag_dict["name"]]
+        #     tag_obj.description = tag_dict["description"]
+        #     tag_obj.save(update_fields=["description"])
+        #
+        # # 添加标签
+        # for tag_description in serializer.validated_data.get("add_tags", []):
+        #     if tag_description in exist_tag_descriptions:
+        #         continue
+        #
+        # gse_package_desc_obj, _ = GsePackageDesc.objects.get_or_create(
+        #     project=instance.project, category=CategoryType.official
+        # )
+        #
+        # Tag.objects.create(
+        #     name=GsePackageTools.generate_name_by_description(tag_description),
+        #     description=tag_description,
+        #     target_type=TargetType.AGENT.value,
+        #     target_id=gse_package_desc_obj.id,
+        #     target_version=instance.version,
+        # )
+        #
+        # # 移除标签
+        # for tag_name in serializer.validated_data.get("remove_tags", []):
+        #     if tag_name not in exist_tag_names:
+        #         continue
+        #
+        #     Tag.objects.filter(name=tag_name).delete()
 
     @swagger_auto_schema(
         operation_summary="操作类动作：启用/停用",
@@ -264,7 +364,7 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
             package_file: InMemoryUploadedFile = validated_data["package_file"]
 
             upload_package: UploadPackage = UploadPackage.objects.filter(
-                file_name=package_file.name, creator=get_request_username(), module=TargetType.AGENT.value
+                file_name__contains=package_file.name, module=TargetType.AGENT.value
             ).first()
 
             if upload_package and storage.exists(name=upload_package.file_path):
@@ -423,8 +523,7 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
             return Response(
                 gse_package_handler.handle_tags(
                     tags=Tag.objects.filter(
-                        target_id=GsePackageDesc.objects.get(project=validated_data["project"]).id,
-                        created_by=get_request_username(),
+                        target_id=GsePackageDesc.objects.get(project=validated_data["project"]).id
                     ).values("id", "name", "description"),
                     tag_description=request.query_params.get("tag_description"),
                     unique=True,
