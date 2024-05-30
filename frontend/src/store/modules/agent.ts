@@ -258,8 +258,8 @@ export default class AgentStore extends VuexModule {
     return quickSearchCondition(param).catch(() => []);
   }
   @Action
-  public apiPkgUpdateStatus({ id, is_ready }: { id: string|number; is_ready: boolean; }): Promise<IPkgInfo> {
-    return updatePackage(id, { is_ready }).catch(() => {});
+  public apiPkgUpdateStatus({ id, is_ready, tags }: { id: string|number; is_ready: boolean; tags?: any[] }): Promise<IPkgInfo> {
+    return updatePackage(id, { is_ready, tags }).catch(() => {});
   }
   @Action
   public apiPkgDelete(id: number): Promise<boolean> {
@@ -307,10 +307,13 @@ export default class AgentStore extends VuexModule {
   }
 
   @Action
-  public apiGetPkgVersion(param: { project: PkgType; os: string; cpu_arch: string }): Promise<{
+  public apiGetPkgVersion(param: { project: PkgType; os: string; cpu_arch: string; versions?: string[] }): Promise<{
     default_version: string;
+    machine_latest_version: string;
+    package_latest_version: string;
+    is_visible: Boolean;
     pkg_info: IPkgVersion[];
   }> {
-    return getVersion(param).catch(() => ({ default_version: '', pkg_info: [] }));
+    return getVersion(param).catch(() => ({ default_version: '', machine_latest_version: '', pkg_info: [], is_visible: false, package_latest_version: '' }));
   }
 }

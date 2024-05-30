@@ -438,7 +438,7 @@ export default class Main extends VuexModule {
    */
   @Action
   public async getAgentPackageUI() {
-    const { ENABLE_AGENT_PACKAGE_UI = false } = await getAgentPackageUI({ key: 'ENABLE_AGENT_PACKAGE_UI' }).catch(() => ({}));
+    const { ENABLE_AGENT_PACKAGE_UI = false } = await retrieveGlobalSettings({ key: 'ENABLE_AGENT_PACKAGE_UI' }).catch(() => ({}));
     this.setAgentPackageUI(ENABLE_AGENT_PACKAGE_UI);
   }
 }

@@ -7,7 +7,7 @@ export const navConfig: INavConfig[] = [
     defaultActive: 'agentStatus',
     children: [
       {
-        name: 'nav_Agent状态',
+        name: 'nav_Agent',
         children: [
           {
             title: 'nav_Agent状态',
@@ -17,7 +17,7 @@ export const navConfig: INavConfig[] = [
           },
           {
             title: 'nav_Agent包管理',
-            icon: 'nc-state',
+            icon: 'nc-package-2',
             path: '/agent-manager/package',
             name: 'agentPackage',
           },

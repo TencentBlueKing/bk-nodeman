@@ -244,7 +244,7 @@ export default class NodemanNavigation extends Mixins(routerBackMixin) {
     const navList = JSON.parse(JSON.stringify(this.navList[this.activeIndex].children || [])) as ISideMenuConfig[];
     // 过滤隐藏Agent包管理菜单
     navList?.forEach((item) => {
-      if (item.name === 'nav_Agent状态') {
+      if (item.name === 'nav_Agent') {
         item.children = item.children?.filter((child: { name: string; }) => child.name !== 'agentPackage');
       }
     });

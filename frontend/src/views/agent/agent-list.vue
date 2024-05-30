@@ -586,6 +586,16 @@
         @limit-change="handlePageLimitChange">
       </bk-pagination>
     </section>
+    <!-- agent包版本 -->
+    <ChoosePkgDialog
+      v-model="versionsDialog.show"
+      :type="versionsDialog.type"
+      :title="versionsDialog.title"
+      :versions="versionsDialog.versions"
+      :os-type="versionsDialog.os_type"
+      :cpu-arch="versionsDialog.cpu_arch"
+      :operate="versionsDialog.operate"
+      @confirm="updateAgentVersion" />
     <bk-footer></bk-footer>
   </section>
 </template>
@@ -610,12 +620,16 @@ import { debounce, getFilterChildBySelected, searchSelectPaste } from '@/common/
 import { bus } from '@/common/bus';
 import { STORAGE_KEY_COL } from '@/config/storage-key';
 import { getDefaultConfig, DHCP_FILTER_KEYS } from '@/config/config';
+import ChoosePkgDialog from './components/choose-pkg-dialog.vue';
+
+type VerionType = 'unified' | 'by_system_arch';
 
 @Component({
   name: 'agent-list',
   components: {
     BkFooter,
     CopyDropdown,
+    ChoosePkgDialog,
   },
 })
 export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, authorityMixin())<IAgent> {
@@ -643,6 +657,15 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
       limit: 50,
       limitList: [50, 100, 200],
     },
+  };
+  public versionsDialog = {
+    show: false,
+    type: 'unified',
+    title: '',
+    versions: [] as string[],
+    os_type: '',
+    cpu_arch: '',
+    operate: 'UPGRADE_AGENT',
   };
   private sortData: ISortData = {
     head: '',
@@ -821,12 +844,13 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
   };
   // 批量操作
   private operate: IOperateItem[] = [
-    {
-      id: 'reinstall',
-      name: window.i18n.t('安装重装'),
-      disabled: false,
-      show: false,
-    },
+    // 勾选数据后点击安装Agent也是进入安装重装，此处重复
+    // {
+    //   id: 'reinstall',
+    //   name: window.i18n.t('安装重装'),
+    //   disabled: false,
+    //   show: false,
+    // },
     {
       id: 'upgrade',
       name: window.i18n.t('升级'),
@@ -918,6 +942,32 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
       .sort((a, b) => b - a);
     return ipv6SortRows.length ? Math.ceil(ipv6SortRows[0] * 6.9) : 90;
   }
+
+  // 升级Agent版本
+  public async updateAgentVersion(info: { version: string }) {
+    const data = this.isSelectedAllPages ? this.markDeleteArr : this.selection;
+    this.loading = true;
+    const params = this.getOperateHostCondition(data, 'UPGRADE_AGENT') as IAgentJob;
+    const versionList: { bk_host_id: number; version: string; }[] = [];
+    data.forEach(item => {
+      versionList.push({
+        bk_host_id: item.bk_host_id as number,
+        version: info.version as string,
+      });
+    })
+    Object.assign(params, {
+      agent_setup_info: {
+        choice_version_type: 'by_host',
+        version_map_list: versionList,
+      }
+    });
+    const result = await AgentStore.operateJob(params);
+    this.loading = false;
+    if (result.job_id) {
+      this.$router.push({ name: 'taskDetail', params: { taskId: result.job_id, routerBackName: 'taskList' } });
+    }
+  }
+
   // 可操作的数据
   private get datasheets() {
     return this.table.data.filter(item => item.job_result.status !== 'RUNNING' && item.operate_permission);
@@ -1766,11 +1816,12 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
       },
     });
   }
+ 
   /**
    * 重启Host
    * @param {Array} data
    */
-  private handleOperatetHost(data: IAgentHost[], batch: boolean, operateType: string) {
+  private async handleOperatetHost(data: IAgentHost[], batch: boolean, operateType: string) {
     const titleObj = {
       firstIp: batch ? this.selection[0].inner_ip : data[0].inner_ip,
       num: batch ? this.selectionCount : data.length,
@@ -1797,6 +1848,32 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
       case 'REMOVE_AGENT':
         type = window.i18n.t('移除lower');
         break;
+    }
+    
+    if (operateType === 'UPGRADE_AGENT') {
+      const versions:string[] = data.filter(item => !!item.version).map(item => item.version) || [];
+      const {
+        is_visible
+      } = await AgentStore.apiGetPkgVersion({
+        // 新增加project的传入
+        project: 'gse_agent',
+        os: '',
+        cpu_arch: '',
+        versions,
+      });
+      if (!is_visible) {
+        this.$bkMessage({
+          theme: 'warning',
+          message: this.$t('不在可升级范围'),
+        });
+        return;
+      }
+      this.versionsDialog.show = true;
+      this.versionsDialog.versions = versions;
+      this.versionsDialog.title = `${this.$t('确认 Agent 升级版本')}`;
+      this.versionsDialog.type = 'unified';
+      this.versionsDialog.operate = 'UPGRADE_AGENT';
+      return;
     }
     this.$bkInfo({
       title: batch
