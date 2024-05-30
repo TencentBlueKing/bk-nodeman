@@ -14,8 +14,9 @@ from typing import Any, Dict, List
 
 import django_filters
 from django.core.files.uploadedfile import InMemoryUploadedFile
-from django.db.models import QuerySet
+from django.db.models import Min, QuerySet
 from django.http import JsonResponse
+from django.utils.translation import ugettext_lazy as _
 from django_filters.rest_framework import DjangoFilterBackend, FilterSet
 from drf_yasg import openapi
 from rest_framework import filters
@@ -28,17 +29,17 @@ from apps.core.files.storage import get_storage
 from apps.core.ipchooser.tools.base import HostQuerySqlHelper
 from apps.core.tag.constants import TargetType
 from apps.core.tag.models import Tag
+from apps.exceptions import ValidationError
 from apps.generic import ApiMixinModelViewSet as ModelViewSet
 from apps.generic import ValidationMixin
 from apps.node_man import constants, exceptions, models
-from apps.node_man.constants import STABLE_DESCRIPTION, CategoryType
-from apps.node_man.handlers.gse_package import gse_package_handler
+from apps.node_man.constants import STABLE_DESCRIPTION
+from apps.node_man.handlers.gse_package import GsePackageHandler, gse_package_handler
 from apps.node_man.models import GsePackageDesc, GsePackages, UploadPackage
 from apps.node_man.permissions import package_manage as pkg_permission
 from apps.node_man.serializers import package_manage as pkg_manage
 from apps.node_man.tools.gse_package import GsePackageTools
 from apps.node_man.tools.package import PackageTools
-from apps.utils.local import get_request_username
 from common.api import NodeApi
 from common.utils.drf_utils import swagger_auto_schema
 
@@ -47,26 +48,40 @@ PACKAGE_DES_VIEW_TAGS = ["PKG_Desc"]
 logger = logging.getLogger("app")
 
 
-class BooleanInFilter(django_filters.BaseInFilter):
-    def filter(self, qs, value):
-        if not value:
-            return qs
-        bool_values = [v.capitalize() for v in value]
-        return super().filter(qs, bool_values)
+class PackageManageOrderingFilterSet(filters.OrderingFilter):
+    def filter_queryset(self, request, queryset, view):
+        ordering = self.get_ordering(request, queryset, view)
+        if not ordering:
+            return queryset
+
+        for field in ordering[::-1]:
+            reverse = field.startswith("-")
+            if field.lstrip("-") == "version":
+                # 版本按这样排 V2.1.6-beta.10 -> [2, 1, 5, 10]
+                queryset: List[GsePackages] = sorted(
+                    queryset, key=lambda obj: GsePackageTools.extract_numbers(obj.version), reverse=reverse
+                )
+            else:
+                queryset: List[GsePackages] = sorted(
+                    queryset, key=lambda obj: getattr(obj, field.lstrip("-")), reverse=reverse
+                )
+
+        return queryset
 
 
-class GsePackageFilter(FilterSet):
+class PackageManageFilterClass(FilterSet):
     os = django_filters.BaseInFilter(field_name="os", lookup_expr="in")
     cpu_arch = django_filters.BaseInFilter(field_name="cpu_arch", lookup_expr="in")
     tag_names = django_filters.BaseInFilter(lookup_expr="in", method="filter_tag_names")
     created_by = django_filters.BaseInFilter(field_name="created_by", lookup_expr="in")
-    is_ready = BooleanInFilter(field_name="is_ready", lookup_expr="in")
+    is_ready = django_filters.BooleanFilter(field_name="is_ready")
     version = django_filters.BaseInFilter(field_name="version", lookup_expr="in")
     created_time = django_filters.DateTimeFromToRangeFilter()
 
     def filter_tag_names(self, queryset, name, tag_names):
-        # 筛选标签必须带上project筛选条件，否则会出现数据和预期不一致的情况
-        return gse_package_handler.filter_tags(queryset, self.request.query_params.get("project"), tag_names=tag_names)
+        if "project" not in self.request.query_params:
+            raise ValidationError(_("筛选tag_names时必须传入project"))
+        return gse_package_handler.filter_tags(queryset, self.request.query_params["project"], tag_names=tag_names)
 
     class Meta:
         model = GsePackages
@@ -76,12 +91,12 @@ class GsePackageFilter(FilterSet):
 class PackageManageViewSet(ValidationMixin, ModelViewSet):
     serializer_class = pkg_manage.PackageSerializer
     permission_classes = (pkg_permission.PackageManagePermission,)
-    filter_backends = (DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter)
-    filter_class = GsePackageFilter
+    filter_backends = (DjangoFilterBackend, filters.SearchFilter, PackageManageOrderingFilterSet)
+    filter_class = PackageManageFilterClass
     ordering_fields = ["version", "created_time"]
 
     def get_queryset(self):
-        return models.GsePackages.objects.all()
+        return models.GsePackages.objects.all().order_by("-is_ready")
 
     @swagger_auto_schema(
         responses={200: pkg_manage.ListResponseSerializer},
@@ -123,53 +138,69 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
     def perform_update(self, serializer):
         serializer.save()
 
-        if not any(
-            [
-                serializer.validated_data.get("tags"),
-                serializer.validated_data.get("modify_tags"),
-                serializer.validated_data.get("add_tags"),
-            ]
-        ):
+        if not serializer.validated_data.get("tags"):
             return
 
-        instance: GsePackages = self.get_object()
-        tags: QuerySet = gse_package_handler.get_tag_objs(instance.project, instance.version)
+        package_obj: GsePackages = self.get_object()
+        tags: QuerySet = gse_package_handler.get_tag_objs(package_obj.project, package_obj.version)
         tag_name__tag_obj_map: Dict[str, Tag] = {tag.name: tag for tag in tags}
-        exist_tag_names: List[str] = list(tag_name__tag_obj_map.keys())
-        exist_tag_descriptions = list(tags.values_list("description", flat=True))
 
-        # 修改标签
-        for tag_dict in serializer.validated_data["modify_tags"]:
-            if tag_dict["name"] not in exist_tag_names:
-                continue
+        package_desc_obj: GsePackageDesc = GsePackageDesc.objects.get(project=package_obj.project).id
 
-            tag_obj: Tag = tag_name__tag_obj_map[tag_dict["name"]]
-            tag_obj.description = tag_dict["description"]
-            tag_obj.save(update_fields=["description"])
+        for tag_info in serializer.validated_data.get("tags", []):
+            if tag_info["action"] == "add":
+                GsePackageHandler.handle_add_tag(tag_info["tag_name"], package_obj, package_desc_obj)
+            elif tag_info["action"] == "update" and tag_info["tag_id"] in tag_name__tag_obj_map:
+                GsePackageHandler.handle_update_tag(
+                    tag_info["tag_name"], package_obj, package_desc_obj, tag_name__tag_obj_map["tag_id"]
+                )
+            elif tag_info["action"] == "delete" and tag_info["tag_id"] in tag_name__tag_obj_map:
+                GsePackageHandler.handle_delete_tag(tag_info["tag_id"], tag_name__tag_obj_map["tag_id"])
 
-        # 添加标签
-        for tag_description in serializer.validated_data["add_tags"]:
-            if tag_description in exist_tag_descriptions:
-                continue
-
-            gse_package_desc_obj, _ = GsePackageDesc.objects.get_or_create(
-                project=instance.project, category=CategoryType.official
-            )
-
-            Tag.objects.create(
-                name=GsePackageTools.generate_name_by_description(tag_description),
-                description=tag_description,
-                target_type=TargetType.AGENT.value,
-                target_id=gse_package_desc_obj.id,
-                target_version=instance.version,
-            )
-
-        # 移除标签
-        for tag_name in serializer.validated_data["remove_tags"]:
-            if tag_name not in exist_tag_names:
-                continue
-
-            Tag.objects.filter(name=tag_name).delete()
+            # if tag_info["action"] == "add":
+            #     tag_name = tag_info["tag_name"]
+            #     if tag_name in ["test", "latest", "stable", "测试版本", "最新版本", "稳定版本"]:
+            #         Tag.objects.filter(
+            #             name=constants.A[tag_name], target_id=GsePackageDesc.objects.get(project=instance.project).id
+            #         ).update(target_version=instance.version)
+            #     else:
+            #         Tag.objects.create(
+            #             name=GsePackageTools.generate_name_by_description(tag_info["tag_name"]),
+            #             description=tag_info["tag_name"],
+            #             target_type=TargetType.AGENT.value,
+            #             target_id=GsePackageDesc.objects.get(
+            #                 project=instance.project, category=CategoryType.official
+            #             ).id,
+            #             target_version=instance.version,
+            #         )
+            # elif tag_info["action"] == "update":
+            #     try:
+            #         tag_obj: Tag = tag_name__tag_obj_map[tag_info["tag_id"]]
+            #     except KeyError:
+            #         continue
+            #
+            #     tag_name = tag_info["tag_name"]
+            #     if tag_name in ["test", "latest", "stable", "测试版本", "最新版本", "稳定版本"]:
+            #         Tag.objects.filter(
+            #             name=constants.A[tag_name], target_id=GsePackageDesc.objects.get(project=instance.project).id
+            #         ).update(target_version=instance.version)
+            #         tag_obj.delete()
+            #     else:
+            #         tag_obj.description = tag_info["tag_name"]
+            #         tag_obj.save()
+            # elif tag_info["action"] == "delete":
+            #     try:
+            #         tag_obj: Tag = tag_name__tag_obj_map[tag_info["tag_id"]]
+            #     except KeyError:
+            #         continue
+            #
+            #     tag_id = tag_info["tag_id"]
+            #     if tag_id in ["test", "latest", "stable"]:
+            #         Tag.objects.filter(
+            #             name=tag_id, target_id=GsePackageDesc.objects.get(project=instance.project).id
+            #         ).update(target_version="")
+            #     else:
+            #         tag_obj.delete()
 
     @swagger_auto_schema(
         operation_summary="操作类动作：启用/停用",
@@ -205,9 +236,9 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
         tags=PACKAGE_MANAGE_VIEW_TAGS,
     )
     def destroy(self, request, *args, **kwargs):
-        # todo: 前端要求返回不为空
         gse_package_obj: GsePackages = self.get_object()
 
+        # 如果最后一个版本的包被清除了，将标签的target_version置空，防止下次上传这个版本的包时留下以前的标签
         if GsePackages.objects.filter(version=gse_package_obj.version).count() == 1:
             Tag.objects.filter(target_version=gse_package_obj.version).update(target_version=None)
 
@@ -227,19 +258,68 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
     def quick_search_condition(self, request, *args, **kwargs):
         """
         return: [
-            {"name": "操作系统/架构", "id": "os_cpu_arch", "children": [
-                {"name": "Linux_x86_64", "id": "linux_x86_64", "count": 10},
-                {"name": "Linux_x86", "id": "linux_x86", "count": 10},
-                {"name": "ALL", "id": "ALL", "count": 20},
-            ]},
-            {"name": "版本号", "id": "version", "children": [
-                {"name": "2.1.8", "id": "2.1.8", "count": 10},
-                {"name": "2.1.7", "id": "2.1.7", "count": 10},
-                {"name": "ALL", "id": "ALL", "count": 20},
-            ]},
+            {
+                "name": "操作系统/架构",
+                "id": "os_cpu_arch",
+                "children": [
+                    {"name": "Linux_x86_64", "id": "linux_x86_64", "count": 10},
+                    {"name": "Linux_x86", "id": "linux_x86", "count": 10},
+                    {"name": "ALL", "id": "ALL", "count": 20},
+                ]
+            },
+            {
+                "name": "版本号",
+                "id": "version",
+                "children": [
+                    {"name": "2.1.8", "id": "2.1.8", "count": 10},
+                    {"name": "2.1.7", "id": "2.1.7", "count": 10},
+                    {"name": "ALL", "id": "ALL", "count": 20},
+                ]
+            },
         ]
         """
-        return Response(GsePackageTools.get_quick_search_condition(self.filter_queryset(self.get_queryset())))
+        gse_packages = self.filter_queryset(self.get_queryset()).values("version", "os", "cpu_arch", "version_log")
+
+        version__count_map: Dict[str, int] = defaultdict(int)
+        os_cpu_arch__count_map: Dict[str, int] = defaultdict(int)
+
+        for package in gse_packages.values("version", "os", "cpu_arch", "version_log"):
+            version, os_cpu_arch = package["version"], f"{package['os']}_{package['cpu_arch']}"
+
+            version__count_map[version] += 1
+            os_cpu_arch__count_map[os_cpu_arch] += 1
+
+        return Response(
+            [
+                {
+                    "name": _("操作系统/架构"),
+                    "id": "os_cpu_arch",
+                    "children": [
+                        {
+                            "id": os_cpu_arch,
+                            "name": os_cpu_arch.capitalize(),
+                            "count": count,
+                        }
+                        for os_cpu_arch, count in os_cpu_arch__count_map.items()
+                    ],
+                    "count": sum(os_cpu_arch__count_map.values()),
+                },
+                {
+                    "name": _("版本号"),
+                    "id": "version",
+                    "children": [
+                        {
+                            "id": version,
+                            "name": version.capitalize(),
+                            "count": version__count_map[version],
+                        }
+                        # 版本按这样排 V2.1.6-beta.10 -> [2, 1, 5, 10]
+                        for version in sorted(version__count_map, reverse=True, key=GsePackageTools.extract_numbers)
+                    ],
+                    "count": sum(version__count_map.values()),
+                },
+            ]
+        )
 
     @swagger_auto_schema(
         operation_summary="Agent包上传",
@@ -263,15 +343,18 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
             storage = get_storage()
             package_file: InMemoryUploadedFile = validated_data["package_file"]
 
+            # 只选择最新上传的记录
+            # 使用contains是因为上传之后得到的文件名前面带有前缀
+            # gse_ce-v2.1.3-beta.13.tgz -> HR7vt0c_gse_ce-v2.1.3-beta.13.tgz
             upload_package: UploadPackage = UploadPackage.objects.filter(
-                file_name=package_file.name, creator=get_request_username(), module=TargetType.AGENT.value
+                file_name__contains=package_file.name, module=TargetType.AGENT.value
             ).first()
 
+            # 如果需要覆盖，且数据库找得到该记录并且storage存在的情况下，将记录和相对应的包清掉
             if upload_package and storage.exists(name=upload_package.file_path):
                 storage.delete(name=upload_package.file_path)
                 upload_package.delete()
 
-        # todo: 如果不对upload进行侵入式修改，会存在大量的storage upload和download操作
         res = PackageTools.upload(package_file=validated_data["package_file"], module=TargetType.AGENT.value)
 
         if "result" in res:
@@ -323,19 +406,19 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
         """
         validated_data = self.validated_data
 
+        extra_tag_names: List[str] = [
+            tag_info["name"]
+            for tag_info in GsePackageTools.create_agent_tags(
+                tag_descriptions=validated_data["tag_descriptions"],
+                project=validated_data["project"],
+            )
+        ]
         response = NodeApi.sync_task_create(
             {
                 "task_name": SyncTaskType.REGISTER_GSE_PACKAGE.value,
                 "task_params": {
                     "file_name": validated_data["file_name"],
-                    "tags": validated_data["tags"]
-                    + [
-                        tag_info["name"]
-                        for tag_info in GsePackageTools.create_agent_tags(
-                            tag_descriptions=validated_data["tag_descriptions"],
-                            project=validated_data["project"],
-                        )
-                    ],
+                    "tags": validated_data["tags"] + extra_tag_names,
                 },
             }
         )
@@ -360,6 +443,7 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
 
         task_result = NodeApi.sync_task_status({"task_id": validated_data["task_id"]})
 
+        # 在celery任务中无法获取正确的用户名，当上传成功时，更新用户名
         if task_result["status"] == "SUCCESS":
             GsePackages.objects.filter(version=validated_data["version"]).update(created_by=request.user.username)
 
@@ -422,13 +506,17 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
         try:
             return Response(
                 gse_package_handler.handle_tags(
-                    tags=Tag.objects.filter(
-                        target_id=GsePackageDesc.objects.get(project=validated_data["project"]).id,
-                        created_by=get_request_username(),
-                    ).values("id", "name", "description"),
+                    tags=list(
+                        Tag.objects.filter(target_id=GsePackageDesc.objects.get(project=validated_data["project"]).id)
+                        .values("name")
+                        .distinct()
+                        .annotate(
+                            id=Min("id"),
+                            description=Min("description"),
+                        )
+                    ),
                     tag_description=request.query_params.get("tag_description"),
-                    unique=True,
-                    get_template_tags=False,
+                    enable_tag_separation=True,
                 )
             )
         except GsePackageDesc.DoesNotExist:
@@ -473,40 +561,50 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
         )
 
         version__pkg_version_info_map: Dict[str, Dict[str, Any]] = {}
-        default_version = ""
+        max_version_count: int = 0
+        default_version: str = ""
         for package in gse_packages:
-            version, project, pkg_name = package["version"], package["project"], package.pop("pkg_name")
+            version, project, pkg_name = package["version"], package["project"], package["pkg_name"]
             tags: List[Dict[str, Any]] = gse_package_handler.get_tags(
                 version=version,
                 project=project,
-                to_top=True,
-                use_cache=True,
-                unique=True,
-                get_template_tags=False,
+                enable_tag_separation=False,
             )
 
+            # 获取默认标签
             if not default_version and any(tag["description"] == STABLE_DESCRIPTION for tag in tags):
                 default_version = version
 
+            # 初始化某个版本的包
             if version not in version__pkg_version_info_map:
-                # 初始化某个版本的包
                 version__pkg_version_info_map[version] = {
                     "version": version,
                     "project": project,
                     "packages": [],
                     "tags": tags,
-                    "description": gse_package_handler.get_description(project=project, use_cache=True),
+                    "description": gse_package_handler.get_description(project=project),
+                    "count": 0,
+                    "os_choices": set(),
+                    "cpu_arch_choices": set(),
                 }
+
+            # 累加同个版本包的数量，并统计版本包最大数量
+            version__pkg_version_info_map[version]["count"] += 1
+            max_version_count = max(max_version_count, version__pkg_version_info_map[version]["count"])
+
+            # 聚合操作系统和cpu架构信息
+            version__pkg_version_info_map[version]["os_choices"].add(package["os"])
+            version__pkg_version_info_map[version]["cpu_arch_choices"].add(package["cpu_arch"])
 
             # 添加小包包名和小包标签信息
             version__pkg_version_info_map[version]["packages"].append(
                 {"pkg_name": pkg_name, "tags": tags, "os": package["os"], "cpu_arch": package["cpu_arch"]}
             )
 
-            # 聚合小包之间的共同标签
-            common_tags: List[Dict[str, Any]] = version__pkg_version_info_map[version]["tags"]
-            if common_tags != tags:
-                version__pkg_version_info_map[version]["tags"] = [tag for tag in common_tags if tag in tags]
+            # 将上一次的标签和这次的标签取共同的部分
+            last_tags: List[Dict[str, Any]] = version__pkg_version_info_map[version]["tags"]
+            if last_tags != tags:
+                version__pkg_version_info_map[version]["tags"] = [tag for tag in last_tags if tag in tags]
 
         filter_keys = [key for key in ["os", "cpu_arch"] if key in validated_data]
         if filter_keys:
@@ -514,32 +612,15 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
             version__pkg_version_info_map = {
                 version: pkg_version_info
                 for version, pkg_version_info in version__pkg_version_info_map.items()
-                if any(
-                    all(validated_data[key] == package.get(key) for key in filter_keys)
-                    for package in pkg_version_info["packages"]
-                )
+                if GsePackageTools.match_criteria(pkg_version_info, validated_data, filter_keys)
             }
         else:
-            # 不筛选
-            version_info_map = [
-                condition
-                for condition in GsePackageTools.get_quick_search_condition(
-                    self.get_queryset().filter(is_ready=True, project=validated_data["project"])
-                )
-                if condition["id"] == "version"
-            ][0]["children"]
-
-            versions_with_max_count = max(version_count_map["count"] for version_count_map in version_info_map)
-            max_count_version_list = [
-                version_count_map["id"]
-                for version_count_map in version_info_map
-                if version_count_map["count"] == versions_with_max_count
-            ]
-
+            # 不筛选，默认为统一版本，统一版本需要各个系统的包都齐了才能算入
+            # 如果count数量不等于包版本最大数量，则说明缺少某些系统的包
             version__pkg_version_info_map = {
                 version: pkg_version_info
                 for version, pkg_version_info in version__pkg_version_info_map.items()
-                if version in max_count_version_list
+                if pkg_version_info["count"] == max_version_count
             }
 
         return Response(
@@ -624,7 +705,7 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
             is_proxy=False if project == constants.GsePackageCode.AGENT.value else True,
         ).filter(**host_kwargs)
 
-        # 分组统计数量，使用values + annotate分组统计不管用，原因不详
+        # 分组统计数量
         dimension__count_map: Dict[str, int] = defaultdict(int)
         for host in host_queryset.values(*dimensions):
             dimension__count_map["|".join(host.get(d, "").lower() for d in dimensions)] += 1

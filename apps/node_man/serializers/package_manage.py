@@ -13,11 +13,7 @@ from rest_framework import serializers
 
 from apps.core.tag.constants import TargetType
 from apps.exceptions import ValidationError
-from apps.node_man.constants import (
-    BUILT_IN_TAG_DESCRIPTIONS,
-    BUILT_IN_TAG_NAMES,
-    GsePackageCode,
-)
+from apps.node_man.constants import GsePackageCode
 from apps.node_man.handlers.gse_package import gse_package_handler
 from apps.node_man.models import UploadPackage
 
@@ -58,22 +54,16 @@ class ConditionsSerializer(serializers.Serializer):
 
 
 class BasePackageSerializer(serializers.Serializer):
-    def get_tags(self, obj, to_top=False):
+    def get_tags(self, obj, enable_tag_separation=True):
         return gse_package_handler.get_tags(
             project=obj.project,
             version=obj.version,
-            to_top=to_top,
-            use_cache=True,
-            unique=True,
-            get_template_tags=False,
+            enable_tag_separation=enable_tag_separation,
         )
 
     @classmethod
     def get_description(cls, obj):
-        return gse_package_handler.get_description(
-            project=obj.project,
-            use_cache=True,
-        )
+        return gse_package_handler.get_description(project=obj.project)
 
 
 class PackageSerializer(BasePackageSerializer):
@@ -109,8 +99,8 @@ class VersionDescPackageSerializer(BasePackageSerializer):
     pkg_name = serializers.CharField()
     packages = serializers.ListField(default=[])
 
-    def get_tags(self, obj, to_top=False):
-        return super().get_tags(obj, to_top=True)
+    def get_tags(self, obj, enable_tag_separation=True):
+        return super().get_tags(obj, enable_tag_separation=False)
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
@@ -143,11 +133,18 @@ class PackageDescResponseSerializer(serializers.Serializer):
     list = PackageDescSerializer(many=True)
 
 
+class OperateTagSerializer(serializers.Serializer):
+    tag_id = serializers.CharField(required=False)
+    tag_name = serializers.CharField(required=False)
+    action = serializers.ChoiceField(choices=["add", "update", "delete"], label="标签动作")
+
+
 class OperateSerializer(serializers.Serializer):
     is_ready = serializers.BooleanField()
     modify_tags = serializers.ListField(child=serializers.DictField(), default=[])
     add_tags = serializers.ListField(child=serializers.CharField(), default=[])
     remove_tags = serializers.ListField(child=serializers.CharField(), default=[])
+    tags = serializers.ListField(child=OperateTagSerializer(), default=[])
 
     def update(self, instance, validated_data):
         for attr, value in validated_data.items():
@@ -157,20 +154,12 @@ class OperateSerializer(serializers.Serializer):
         return instance
 
     def validate(self, attrs):
-        for tag_dict in attrs.get("modify_tags", []):
-            if "description" not in tag_dict and "name" not in tag_dict:
-                raise ValidationError(_("description和name参数必须同时传入"))
+        for tag in attrs.get("tags", []):
+            if tag["action"] in ["update", "delete"] and "tag_id" not in tag:
+                raise ValidationError(_("action为update, delete时tag_id要传"))
 
-            if tag_dict["name"] in BUILT_IN_TAG_NAMES or tag_dict["description"] in BUILT_IN_TAG_DESCRIPTIONS:
-                raise ValidationError(_("内置标签不支持修改，自定义标签的名字不能与内置标签的名字冲突"))
-
-        for tag_description in attrs.get("add_tags", []):
-            if tag_description in BUILT_IN_TAG_DESCRIPTIONS:
-                raise ValidationError(_("自定义标签的名字不能与内置标签的名字冲突"))
-
-        for tag_name in attrs.get("remove_tags", []):
-            if tag_name in BUILT_IN_TAG_NAMES:
-                raise ValidationError(_("内置标签不允许删除"))
+            elif tag["action"] == "add" and "tag_name" not in tag:
+                raise ValidationError(_("action为add的时候tag_name要传"))
 
         return attrs
 
@@ -194,7 +183,7 @@ class UploadSerializer(serializers.Serializer):
 
         if not overload:
             upload_package: UploadPackage = UploadPackage.objects.filter(
-                file_name=file_name, module=TargetType.AGENT.value
+                file_name__contains=file_name, module=TargetType.AGENT.value
             ).first()
             if upload_package:
                 raise ValidationError(
@@ -241,13 +230,7 @@ class AgentRegisterSerializer(serializers.Serializer):
     file_name = serializers.CharField()
     tags = serializers.ListField(child=serializers.CharField(), default=[])
     tag_descriptions = serializers.ListField(child=serializers.CharField(), default=[])
-    project = serializers.CharField(default="gse_agent")
-
-    def validate(self, attrs):
-        if attrs.get("tag_descriptions") and not attrs.get("project"):
-            raise ValidationError(_("project和tag_descriptions参数必须同时传入"))
-
-        return attrs
+    project = serializers.CharField(default=GsePackageCode.AGENT.value)
 
 
 class AgentRegisterTaskSerializer(serializers.Serializer):

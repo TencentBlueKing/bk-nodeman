@@ -10,12 +10,11 @@ specific language governing permissions and limitations under the License.
 """
 import hashlib
 import os
+import re
 import tarfile
 import time
-from collections import defaultdict
-from typing import Any, Dict, List, Type
+from typing import Dict, List, Type
 
-from django.db.models import QuerySet
 from django.utils.translation import ugettext as _
 
 from apps.backend.agent.artifact_builder import agent, proxy
@@ -24,13 +23,7 @@ from apps.core.files.storage import get_storage
 from apps.core.tag.constants import TargetType
 from apps.core.tag.models import Tag
 from apps.node_man import constants, exceptions, models
-from apps.node_man.constants import (
-    BUILT_IN_TAG_DESCRIPTIONS,
-    BUILT_IN_TAG_NAMES,
-    TAG_DESCRIPTION_MAP,
-    TAG_NAME_MAP,
-    CategoryType,
-)
+from apps.node_man.constants import CategoryType
 from apps.node_man.models import GsePackageDesc
 
 
@@ -55,7 +48,7 @@ class GsePackageTools:
     def distinguish_gse_package(cls, file_path: str) -> (str, Type[BaseArtifactBuilder]):
         """
         区分agent和proxy包
-        :param file_path: 文件路径
+        :param file_path: agent包文件路径
         """
         storage = get_storage()
         with storage.open(name=file_path) as fs:
@@ -76,7 +69,8 @@ class GsePackageTools:
     @classmethod
     def generate_name_by_description(cls, description: str) -> str:
         """
-        根据标签的description生成对应唯一的name
+        根据标签描述生成对应唯一的id
+        :param description: agent包标签描述
         """
         current_time: str = str(time.time())
         unique_string: str = description + current_time
@@ -84,27 +78,54 @@ class GsePackageTools:
 
     @classmethod
     def create_agent_tags(cls, tag_descriptions, project):
+        """
+        根据agent包标签描述列表自动创建或返回已有的标签信息
+
+        :input
+        {
+            "project": "gse_agent",
+            "tag_descriptions": ["aaa", "bbb"]
+        }
+
+        :return
+        [
+            {
+                "name": "7188612c63753ec339500e72083fe8ac",
+                "description": "aaa"
+            },
+            {
+                "name": "381b9dc36b32195acb53418b588bb99b",
+                "description": "bbb"
+            }
+        ]
+
+        :params tag_descriptions: 标签描述列表
+        :params project: gse_agent或gse_proxy
+
+        """
         tags: List[Dict[str, str]] = []
         for tag_description in tag_descriptions:
             gse_package_desc_obj, _ = GsePackageDesc.objects.get_or_create(
                 project=project, category=CategoryType.official
             )
 
-            if tag_description in BUILT_IN_TAG_NAMES + BUILT_IN_TAG_DESCRIPTIONS:
+            if tag_description in ["stable", "latest", "test", "稳定版本", "最新版本", "测试版本"]:
                 # 内置标签，手动指定name和description
-                name: str = TAG_NAME_MAP[tag_description]
-                tag_description: str = TAG_DESCRIPTION_MAP[tag_description]
+                name: str = constants.A[tag_description]
+                tag_description: str = constants.B[tag_description]
             else:
                 # 自定义标签，自动生成name
                 name: str = GsePackageTools.generate_name_by_description(tag_description)
 
-            tag_queryset: QuerySet = Tag.objects.filter(
+            tag_queryset = Tag.objects.filter(
                 description=tag_description,
                 target_id=gse_package_desc_obj.id,
                 target_type=TargetType.AGENT.value,
             )
+
+            # 如果已存在标签，直接返回已存在的标签，否则创建一个新的标签
             if tag_queryset.exists():
-                tag_obj: Tag = min(tag_queryset, key=lambda x: len(x.name))
+                tag_obj: Tag = tag_queryset.first()
             else:
                 tag_obj, _ = Tag.objects.update_or_create(
                     defaults={"description": tag_description},
@@ -117,52 +138,17 @@ class GsePackageTools:
 
         return tags
 
+    @staticmethod
+    def extract_numbers(s):
+        """从字符串中提取所有的数字，并返回它们的整数列表"""
+        numbers = re.findall(r"\d+", s)
+        return [int(num) for num in numbers]
+
     @classmethod
-    def get_quick_search_condition(cls, gse_packages: QuerySet) -> List[Dict[str, Any]]:
-        version__count_map: Dict[str, int] = defaultdict(int)
-        os_cpu_arch__count_map: Dict[str, int] = defaultdict(int)
-        version__version_log_map: Dict[str, str] = defaultdict(str)
-        os_cpu_arch__version_log_map: Dict[str, str] = defaultdict(str)
-
-        for package in gse_packages.values("version", "os", "cpu_arch", "version_log"):
-            version, os_cpu_arch = package["version"], f"{package['os']}_{package['cpu_arch']}"
-
-            version__count_map[version] += 1
-            os_cpu_arch__count_map[os_cpu_arch] += 1
-
-            if version not in version__version_log_map:
-                version__version_log_map[version] = package["version_log"]
-
-            if os_cpu_arch not in os_cpu_arch__version_log_map:
-                os_cpu_arch__version_log_map[os_cpu_arch] = package["version_log"]
-
-        return [
-            {
-                "name": _("操作系统/架构"),
-                "id": "os_cpu_arch",
-                "children": [
-                    {
-                        "id": os_cpu_arch,
-                        "name": os_cpu_arch.capitalize(),
-                        "count": count,
-                        "description": os_cpu_arch__version_log_map[os_cpu_arch],
-                    }
-                    for os_cpu_arch, count in os_cpu_arch__count_map.items()
-                ],
-                "count": sum(os_cpu_arch__count_map.values()),
-            },
-            {
-                "name": _("版本号"),
-                "id": "version",
-                "children": [
-                    {
-                        "id": version,
-                        "name": version.capitalize(),
-                        "count": count,
-                        "description": version__version_log_map[version],
-                    }
-                    for version, count in version__count_map.items()
-                ],
-                "count": sum(version__count_map.values()),
-            },
-        ]
+    def match_criteria(cls, pkg_version_info, validated_data, filter_keys):
+        for key in filter_keys:
+            if key == "os" and validated_data["os"] not in pkg_version_info["os_choices"]:
+                return True
+            elif key == "cpu_arch" and validated_data["cpu_arch"] not in pkg_version_info["cpu_arch_choices"]:
+                return True
+        return False
