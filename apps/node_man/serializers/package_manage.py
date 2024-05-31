@@ -162,22 +162,10 @@ class OperateSerializer(serializers.Serializer):
     def validate(self, attrs):
         for tag in attrs.get("tags", []):
             if tag["action"] in ["update", "delete"] and "tag_id" not in tag:
-                raise ValidationError(_("action为update, delete时id要传"))
+                raise ValidationError(_("action为update, delete时tag_id要传"))
 
-        # for tag_dict in attrs.get("modify_tags", []):
-        #     if "description" not in tag_dict and "name" not in tag_dict:
-        #         raise ValidationError(_("description和name参数必须同时传入"))
-        #
-        #     if tag_dict["name"] in BUILT_IN_TAG_NAMES or tag_dict["description"] in BUILT_IN_TAG_DESCRIPTIONS:
-        #         raise ValidationError(_("内置标签不支持修改，自定义标签的名字不能与内置标签的名字冲突"))
-        #
-        # for tag_description in attrs.get("add_tags", []):
-        #     if tag_description in BUILT_IN_TAG_DESCRIPTIONS:
-        #         raise ValidationError(_("自定义标签的名字不能与内置标签的名字冲突"))
-        #
-        # for tag_name in attrs.get("remove_tags", []):
-        #     if tag_name in BUILT_IN_TAG_NAMES:
-        #         raise ValidationError(_("内置标签不允许删除"))
+            elif tag["action"] == "add" and "tag_name" not in tag:
+                raise ValidationError(_("action为add的时候tag_name要传"))
 
         return attrs
 
