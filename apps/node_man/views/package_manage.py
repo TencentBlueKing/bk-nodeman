@@ -194,19 +194,16 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
                     Tag.objects.filter(
                         name=constants.A[tag_name], target_id=GsePackageDesc.objects.get(project=instance.project).id
                     ).update(target_version=instance.version)
-                    continue
-
-                gse_package_desc_obj, _ = GsePackageDesc.objects.get_or_create(
-                    project=instance.project, category=CategoryType.official
-                )
-
-                Tag.objects.create(
-                    name=GsePackageTools.generate_name_by_description(tag_info["tag_name"]),
-                    description=tag_info["tag_name"],
-                    target_type=TargetType.AGENT.value,
-                    target_id=gse_package_desc_obj.id,
-                    target_version=instance.version,
-                )
+                else:
+                    Tag.objects.create(
+                        name=GsePackageTools.generate_name_by_description(tag_info["tag_name"]),
+                        description=tag_info["tag_name"],
+                        target_type=TargetType.AGENT.value,
+                        target_id=GsePackageDesc.objects.get(
+                            project=instance.project, category=CategoryType.official
+                        ).id,
+                        target_version=instance.version,
+                    )
             elif tag_info["action"] == "update":
                 try:
                     tag_obj: Tag = tag_name__tag_obj_map[tag_info["tag_id"]]
@@ -219,24 +216,22 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
                         name=constants.A[tag_name], target_id=GsePackageDesc.objects.get(project=instance.project).id
                     ).update(target_version=instance.version)
                     tag_obj.delete()
-                    continue
-
-                tag_obj.description = tag_info["tag_name"]
-                tag_obj.save()
+                else:
+                    tag_obj.description = tag_info["tag_name"]
+                    tag_obj.save()
             elif tag_info["action"] == "delete":
-                tag_id = tag_info["tag_id"]
-                if tag_id in ["test", "latest", "stable"]:
-                    Tag.objects.filter(
-                        name=tag_id, target_id=GsePackageDesc.objects.get(project=instance.project).id
-                    ).update(target_version="")
-                    continue
-
                 try:
                     tag_obj: Tag = tag_name__tag_obj_map[tag_info["tag_id"]]
                 except KeyError:
                     continue
 
-                tag_obj.delete()
+                tag_id = tag_info["tag_id"]
+                if tag_id in ["test", "latest", "stable"]:
+                    Tag.objects.filter(
+                        name=tag_id, target_id=GsePackageDesc.objects.get(project=instance.project).id
+                    ).update(target_version="")
+                else:
+                    tag_obj.delete()
 
         # # 修改标签
         # for tag_dict in serializer.validated_data.get("modify_tags", []):
