@@ -62,4 +62,5 @@ def user_exit(request):
     # 验证不通过，需要跳转至统一登录平台
     request.path = request.path.replace("logout", "")
     handler = ResponseHandler(ConfFixture, settings)
+    requests.get(settings.BK_LOGIN_URL, params={"is_from_logout": 1, "c_url": settings.BK_NODEMAN_HOST})
     return handler.build_401_response(request)
