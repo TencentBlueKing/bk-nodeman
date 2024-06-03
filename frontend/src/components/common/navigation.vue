@@ -132,7 +132,6 @@ import ExceptionPage from '@/components/exception/exception-page.vue';
 import routerBackMixin from '@/common/router-back-mixin';
 import { bus } from '@/common/bus';
 import { INavConfig } from '@/types';
-import { showLoginModal } from '@blueking/login-modal';
 
 interface IUserItem {
   id: string
@@ -371,10 +370,15 @@ export default class NodemanNavigation extends Mixins(routerBackMixin) {
     if (userItem.id === 'LOGOUT') {
       if (NODE_ENV === 'development') {
         // 注销登录，添加is_from_logout=1参数，用于清除bk_token
-        window.location.href = LOGIN_DEV_URL.replace('bknodeman.','') + window.location.href + '&is_from_logout=1';
+        window.location.href = `${LOGIN_DEV_URL.replace('bknodeman.','')}?is_from_logout=1&c_url=${encodeURIComponent(window.location.href)}`;
       } else {
-        //去除重复拼接的window.PROJECT_CONFIG.SITE_URL
-        this.$http.get?.(`logout/`);
+        // 废弃使用退出登录接口的方式，改为使用统一注销登录方式
+        let loginUrl = window.PROJECT_CONFIG.LOGIN_URL;
+        // 添加协议头
+        if (!/http(s)?:\/\//.test(loginUrl)) {
+          loginUrl = `${window.location.protocol}//${loginUrl}`;
+        }
+        window.location.href = `${loginUrl}?is_from_logout=1&c_url=${encodeURIComponent(window.location.href)}`
       }
     }
   }
