@@ -14,7 +14,7 @@ from typing import Any, Dict, List
 
 import django_filters
 from django.core.files.uploadedfile import InMemoryUploadedFile
-from django.db.models import QuerySet
+from django.db.models import Min, QuerySet
 from django.http import JsonResponse
 from django_filters.rest_framework import DjangoFilterBackend, FilterSet
 from drf_yasg import openapi
@@ -517,12 +517,17 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
         try:
             return Response(
                 gse_package_handler.handle_tags(
-                    tags=Tag.objects.filter(
-                        target_id=GsePackageDesc.objects.get(project=validated_data["project"]).id
-                    ).values("id", "name", "description"),
+                    tags=list(
+                        Tag.objects.filter(target_id=GsePackageDesc.objects.get(project=validated_data["project"]).id)
+                        .values("name")
+                        .distinct()
+                        .annotate(
+                            id=Min("id"),
+                            description=Min("description"),
+                        )
+                    ),
                     tag_description=request.query_params.get("tag_description"),
-                    unique=True,
-                    get_template_tags=False,
+                    enable_tag_separation=True,
                 )
             )
         except GsePackageDesc.DoesNotExist:
@@ -575,8 +580,6 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
                 project=project,
                 to_top=True,
                 use_cache=True,
-                unique=True,
-                get_template_tags=False,
             )
 
             if not default_version and any(tag["description"] == STABLE_DESCRIPTION for tag in tags):

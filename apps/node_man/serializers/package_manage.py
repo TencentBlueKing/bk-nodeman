@@ -54,14 +54,12 @@ class ConditionsSerializer(serializers.Serializer):
 
 
 class BasePackageSerializer(serializers.Serializer):
-    def get_tags(self, obj, to_top=False):
+    def get_tags(self, obj, enable_tag_separation=True):
         return gse_package_handler.get_tags(
             project=obj.project,
             version=obj.version,
-            to_top=to_top,
+            enable_tag_separation=enable_tag_separation,
             use_cache=True,
-            unique=True,
-            get_template_tags=False,
         )
 
     @classmethod
@@ -105,8 +103,8 @@ class VersionDescPackageSerializer(BasePackageSerializer):
     pkg_name = serializers.CharField()
     packages = serializers.ListField(default=[])
 
-    def get_tags(self, obj, to_top=False):
-        return super().get_tags(obj, to_top=True)
+    def get_tags(self, obj, enable_tag_separation=True):
+        return super().get_tags(obj, enable_tag_separation=False)
 
     def to_representation(self, instance):
         data = super().to_representation(instance)

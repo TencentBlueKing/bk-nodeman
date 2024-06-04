@@ -24,13 +24,7 @@ from apps.core.files.storage import get_storage
 from apps.core.tag.constants import TargetType
 from apps.core.tag.models import Tag
 from apps.node_man import constants, exceptions, models
-from apps.node_man.constants import (
-    BUILT_IN_TAG_DESCRIPTIONS,
-    BUILT_IN_TAG_NAMES,
-    TAG_DESCRIPTION_MAP,
-    TAG_NAME_MAP,
-    CategoryType,
-)
+from apps.node_man.constants import CategoryType
 from apps.node_man.models import GsePackageDesc
 
 
@@ -90,10 +84,10 @@ class GsePackageTools:
                 project=project, category=CategoryType.official
             )
 
-            if tag_description in BUILT_IN_TAG_NAMES + BUILT_IN_TAG_DESCRIPTIONS:
+            if tag_description in ["stable", "latest", "test", "稳定版本", "最新版本", "测试版本"]:
                 # 内置标签，手动指定name和description
-                name: str = TAG_NAME_MAP[tag_description]
-                tag_description: str = TAG_DESCRIPTION_MAP[tag_description]
+                name: str = constants.A[tag_description]
+                tag_description: str = constants.B[tag_description]
             else:
                 # 自定义标签，自动生成name
                 name: str = GsePackageTools.generate_name_by_description(tag_description)
@@ -103,10 +97,12 @@ class GsePackageTools:
                 target_id=gse_package_desc_obj.id,
                 target_type=TargetType.AGENT.value,
             )
+
+            # 如果已存在标签，直接返回已存在的标签，否则创建一个新的标签
             if tag_queryset.exists():
-                tag_obj: Tag = min(tag_queryset, key=lambda x: len(x.name))
+                tag_obj: Tag = tag_queryset.first()
             else:
-                tag_obj, _ = Tag.objects.update_or_create(
+                tag_obj, _ = Tag.objects.create(
                     defaults={"description": tag_description},
                     name=name,
                     target_id=gse_package_desc_obj.id,
