@@ -1,7 +1,7 @@
 ARG BKAPP_RUN_ENV=ee
 
 
-FROM node:12.13.1-stretch-slim AS static-builder
+FROM node:16.15.0-buster-slim AS static-builder
 
 ENV NPM_VERSION 6.14.4
 
