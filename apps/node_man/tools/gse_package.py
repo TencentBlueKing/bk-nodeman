@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import hashlib
 import os
+import re
 import tarfile
 import time
 from collections import defaultdict
@@ -113,24 +114,22 @@ class GsePackageTools:
 
         return tags
 
+    @staticmethod
+    def extract_numbers(s):
+        """从字符串中提取所有的数字，并返回它们的整数列表"""
+        numbers = re.findall(r"\d+", s)
+        return [int(num) for num in numbers]
+
     @classmethod
     def get_quick_search_condition(cls, gse_packages: QuerySet) -> List[Dict[str, Any]]:
         version__count_map: Dict[str, int] = defaultdict(int)
         os_cpu_arch__count_map: Dict[str, int] = defaultdict(int)
-        version__version_log_map: Dict[str, str] = defaultdict(str)
-        os_cpu_arch__version_log_map: Dict[str, str] = defaultdict(str)
 
         for package in gse_packages.values("version", "os", "cpu_arch", "version_log"):
             version, os_cpu_arch = package["version"], f"{package['os']}_{package['cpu_arch']}"
 
             version__count_map[version] += 1
             os_cpu_arch__count_map[os_cpu_arch] += 1
-
-            if version not in version__version_log_map:
-                version__version_log_map[version] = package["version_log"]
-
-            if os_cpu_arch not in os_cpu_arch__version_log_map:
-                os_cpu_arch__version_log_map[os_cpu_arch] = package["version_log"]
 
         return [
             {
@@ -141,7 +140,6 @@ class GsePackageTools:
                         "id": os_cpu_arch,
                         "name": os_cpu_arch.capitalize(),
                         "count": count,
-                        "description": os_cpu_arch__version_log_map[os_cpu_arch],
                     }
                     for os_cpu_arch, count in os_cpu_arch__count_map.items()
                 ],
@@ -155,10 +153,9 @@ class GsePackageTools:
                         "id": version,
                         "name": version.capitalize(),
                         "count": version__count_map[version],
-                        "description": version__version_log_map[version],
                     }
-                    # for version, count in version__count_map.items()
-                    for version in sorted(version__count_map, reverse=True)
+                    # 版本按这样排 V2.1.6-beta.10 -> [2, 1, 5, 10]
+                    for version in sorted(version__count_map, reverse=True, key=cls.extract_numbers)
                 ],
                 "count": sum(version__count_map.values()),
             },

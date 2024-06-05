@@ -16,6 +16,7 @@ import django_filters
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.db.models import Min, QuerySet
 from django.http import JsonResponse
+from django.utils.translation import ugettext_lazy as _
 from django_filters.rest_framework import DjangoFilterBackend, FilterSet
 from drf_yasg import openapi
 from rest_framework import filters
@@ -28,6 +29,7 @@ from apps.core.files.storage import get_storage
 from apps.core.ipchooser.tools.base import HostQuerySqlHelper
 from apps.core.tag.constants import TargetType
 from apps.core.tag.models import Tag
+from apps.exceptions import ValidationError
 from apps.generic import ApiMixinModelViewSet as ModelViewSet
 from apps.generic import ValidationMixin
 from apps.node_man import constants, exceptions, models
@@ -46,26 +48,40 @@ PACKAGE_DES_VIEW_TAGS = ["PKG_Desc"]
 logger = logging.getLogger("app")
 
 
-class BooleanInFilter(django_filters.BaseInFilter):
-    def filter(self, qs, value):
-        if not value:
-            return qs
-        bool_values = [v.capitalize() for v in value]
-        return super().filter(qs, bool_values)
+class PackageManageOrderingFilterSet(filters.OrderingFilter):
+    def filter_queryset(self, request, queryset, view):
+        ordering = self.get_ordering(request, queryset, view)
+        if not ordering:
+            return queryset
+
+        for field in ordering[::-1]:
+            reverse = field.startswith("-")
+            if field.lstrip("-") == "version":
+                # 版本按这样排 V2.1.6-beta.10 -> [2, 1, 5, 10]
+                queryset: List[GsePackages] = sorted(
+                    queryset, key=lambda obj: GsePackageTools.extract_numbers(obj.version), reverse=reverse
+                )
+            else:
+                queryset: List[GsePackages] = sorted(
+                    queryset, key=lambda obj: getattr(obj, field.lstrip("-")), reverse=reverse
+                )
+
+        return queryset
 
 
-class PackageManageFilterSet(FilterSet):
+class PackageManageFilterClass(FilterSet):
     os = django_filters.BaseInFilter(field_name="os", lookup_expr="in")
     cpu_arch = django_filters.BaseInFilter(field_name="cpu_arch", lookup_expr="in")
     tag_names = django_filters.BaseInFilter(lookup_expr="in", method="filter_tag_names")
     created_by = django_filters.BaseInFilter(field_name="created_by", lookup_expr="in")
-    is_ready = BooleanInFilter(field_name="is_ready", lookup_expr="in")
+    is_ready = django_filters.BooleanFilter(field_name="is_ready")
     version = django_filters.BaseInFilter(field_name="version", lookup_expr="in")
     created_time = django_filters.DateTimeFromToRangeFilter()
 
     def filter_tag_names(self, queryset, name, tag_names):
-        # 筛选标签必须带上project筛选条件，否则会出现数据和预期不一致的情况
-        return gse_package_handler.filter_tags(queryset, self.request.query_params.get("project"), tag_names=tag_names)
+        if "project" not in self.request.query_params:
+            raise ValidationError(_("筛选tag_names时必须传入project"))
+        return gse_package_handler.filter_tags(queryset, self.request.query_params["project"], tag_names=tag_names)
 
     class Meta:
         model = GsePackages
@@ -75,8 +91,8 @@ class PackageManageFilterSet(FilterSet):
 class PackageManageViewSet(ValidationMixin, ModelViewSet):
     serializer_class = pkg_manage.PackageSerializer
     permission_classes = (pkg_permission.PackageManagePermission,)
-    filter_backends = (DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter)
-    filter_class = PackageManageFilterSet
+    filter_backends = (DjangoFilterBackend, filters.SearchFilter, PackageManageOrderingFilterSet)
+    filter_class = PackageManageFilterClass
     ordering_fields = ["version", "created_time"]
 
     def get_queryset(self):
@@ -120,64 +136,8 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
         return super().list(request, *args, **kwargs)
 
     def perform_update(self, serializer):
-        # serializer.save()
-        #
-        # if not any(
-        #     [
-        #         serializer.validated_data.get("tags"),
-        #         serializer.validated_data.get("modify_tags"),
-        #         serializer.validated_data.get("add_tags"),
-        #     ]
-        # ):
-        #     return
-        #
-        # instance: GsePackages = self.get_object()
-        # tags: QuerySet = gse_package_handler.get_tag_objs(instance.project, instance.version)
-        # tag_name__tag_obj_map: Dict[str, Tag] = {tag.name: tag for tag in tags}
-        # exist_tag_names: List[str] = list(tag_name__tag_obj_map.keys())
-        # exist_tag_descriptions = list(tags.values_list("description", flat=True))
-        #
-        # # 修改标签
-        # for tag_dict in serializer.validated_data.get("modify_tags", []):
-        #     if tag_dict["name"] not in exist_tag_names:
-        #         continue
-        #
-        #     tag_obj: Tag = tag_name__tag_obj_map[tag_dict["name"]]
-        #     tag_obj.description = tag_dict["description"]
-        #     tag_obj.save(update_fields=["description"])
-        #
-        # # 添加标签
-        # for tag_description in serializer.validated_data.get("add_tags", []):
-        #     if tag_description in exist_tag_descriptions:
-        #         continue
-        #
-        #     gse_package_desc_obj, _ = GsePackageDesc.objects.get_or_create(
-        #         project=instance.project, category=CategoryType.official
-        #     )
-        #
-        #     Tag.objects.create(
-        #         name=GsePackageTools.generate_name_by_description(tag_description),
-        #         description=tag_description,
-        #         target_type=TargetType.AGENT.value,
-        #         target_id=gse_package_desc_obj.id,
-        #         target_version=instance.version,
-        #     )
-        #
-        # # 移除标签
-        # for tag_name in serializer.validated_data.get("remove_tags", []):
-        #     if tag_name not in exist_tag_names:
-        #         continue
-        #
-        #     Tag.objects.filter(name=tag_name).delete()
         serializer.save()
 
-        # if not any(
-        #         [
-        #             serializer.validated_data.get("tags"),
-        #             serializer.validated_data.get("modify_tags"),
-        #             serializer.validated_data.get("add_tags"),
-        #         ]
-        # ):
         if not serializer.validated_data.get("tags"):
             return
 
@@ -233,39 +193,6 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
                 else:
                     tag_obj.delete()
 
-        # # 修改标签
-        # for tag_dict in serializer.validated_data.get("modify_tags", []):
-        #     if tag_dict["name"] not in exist_tag_names:
-        #         continue
-        #
-        #     tag_obj: Tag = tag_name__tag_obj_map[tag_dict["name"]]
-        #     tag_obj.description = tag_dict["description"]
-        #     tag_obj.save(update_fields=["description"])
-        #
-        # # 添加标签
-        # for tag_description in serializer.validated_data.get("add_tags", []):
-        #     if tag_description in exist_tag_descriptions:
-        #         continue
-        #
-        # gse_package_desc_obj, _ = GsePackageDesc.objects.get_or_create(
-        #     project=instance.project, category=CategoryType.official
-        # )
-        #
-        # Tag.objects.create(
-        #     name=GsePackageTools.generate_name_by_description(tag_description),
-        #     description=tag_description,
-        #     target_type=TargetType.AGENT.value,
-        #     target_id=gse_package_desc_obj.id,
-        #     target_version=instance.version,
-        # )
-        #
-        # # 移除标签
-        # for tag_name in serializer.validated_data.get("remove_tags", []):
-        #     if tag_name not in exist_tag_names:
-        #         continue
-        #
-        #     Tag.objects.filter(name=tag_name).delete()
-
     @swagger_auto_schema(
         operation_summary="操作类动作：启用/停用",
         body_in=pkg_manage.OperateSerializer,
@@ -300,9 +227,9 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
         tags=PACKAGE_MANAGE_VIEW_TAGS,
     )
     def destroy(self, request, *args, **kwargs):
-        # todo: 前端要求返回不为空
         gse_package_obj: GsePackages = self.get_object()
 
+        # 如果最后一个版本的包被清除了，将标签的target_version置空，防止下次上传这个版本的包时留下以前的标签
         if GsePackages.objects.filter(version=gse_package_obj.version).count() == 1:
             Tag.objects.filter(target_version=gse_package_obj.version).update(target_version=None)
 
@@ -366,7 +293,6 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
                 storage.delete(name=upload_package.file_path)
                 upload_package.delete()
 
-        # todo: 如果不对upload进行侵入式修改，会存在大量的storage upload和download操作
         res = PackageTools.upload(package_file=validated_data["package_file"], module=TargetType.AGENT.value)
 
         if "result" in res:
@@ -721,7 +647,7 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
             is_proxy=False if project == constants.GsePackageCode.AGENT.value else True,
         ).filter(**host_kwargs)
 
-        # 分组统计数量，使用values + annotate分组统计不管用，原因不详
+        # 分组统计数量
         dimension__count_map: Dict[str, int] = defaultdict(int)
         for host in host_queryset.values(*dimensions):
             dimension__count_map["|".join(host.get(d, "").lower() for d in dimensions)] += 1
