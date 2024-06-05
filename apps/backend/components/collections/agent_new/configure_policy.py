@@ -13,7 +13,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from apps.backend.api.constants import POLLING_INTERVAL
 from apps.backend.components.collections.agent_new.base import AgentBaseService
-from apps.node_man import models
+from apps.node_man import constants, models
 from apps.node_man.handlers.security_group import get_security_group_factory
 from pipeline.core.flow import StaticIntervalGenerator
 
@@ -34,7 +34,13 @@ class ConfigurePolicyService(AgentBaseService):
         security_group_factory = get_security_group_factory(security_group_type)
         ip_list = []
         for host in host_id_obj_map.values():
-            ip_list.extend([host.outer_ip, host.login_ip])
+            bk_host_multi_outerip = host.extra_data.get("bk_host_multi_outerip", "")
+            if bk_host_multi_outerip and host.node_type == constants.NodeType.PROXY:
+                outer_ip_list = bk_host_multi_outerip.split(",")
+                ip_list.extend(outer_ip_list)
+                ip_list.append(host.login_ip)
+            else:
+                ip_list.extend([host.outer_ip, host.login_ip])
         # 不同的安全组工厂添加策略后得到的输出可能是不同的，输出到outputs中，在schedule中由工厂对应的check_result方法来校验结果
         creator: str = common_data.subscription.creator
         data.outputs.add_ip_output = security_group_factory.add_ips_to_security_group(ip_list, creator=creator)

@@ -26,7 +26,8 @@ from .utils import MockClient
 
 
 class TestSyncCMDBHost(CustomBaseTestCase):
-    def init_db(self):
+    @staticmethod
+    def init_db():
         """
         先在数据库提前构造一些数据
         """
@@ -97,3 +98,44 @@ class TestClearNeedDeleteHostIds(CustomBaseTestCase):
         clear_need_delete_host_ids_task()
         # 验证ProcessStatus中信息是否删除成功
         self.assertEqual(ProcessStatus.objects.count(), 1)
+
+
+class TestSyncCMDBMultiOuterIPHost(CustomBaseTestCase):
+    @staticmethod
+    def init_db():
+        host_data = copy.deepcopy(MOCK_HOST)
+        host_list = []
+        for index in range(1, MOCK_HOST_NUM):
+            host_data["node_type"] = constants.NodeType.PROXY if index % 2 else constants.NodeType.AGENT
+            host_data["inner_ip"] = f"127.0.0.{index}"
+            host_data["bk_host_id"] = index
+            host_list.append(Host(**host_data))
+
+        Host.objects.bulk_create(host_list)
+
+    @staticmethod
+    def list_biz_hosts(*args, **kwargs):
+        return_value = MockClient.cc.list_resource_pool_hosts(*args, **kwargs)
+        host_info = return_value["info"]
+        for host in host_info:
+            host["bk_host_outerip"] += ",1.2.3.4"
+        return return_value
+
+    def start_patch(self):
+        MockClient.cc.list_biz_hosts = self.list_biz_hosts
+
+    @patch("apps.node_man.periodic_tasks.sync_cmdb_host.client_v2", MockClient)
+    def test_sync_multi_outer_ip_host(self):
+        self.init_db()
+        self.start_patch()
+        sync_cmdb_host_periodic_task(bk_biz_id=2)
+        # 验证proxy多外网IP将数据存至extra_data中
+        proxy_extra_data = Host.objects.filter(node_type=constants.NodeType.PROXY).values("extra_data")
+        for extra_data in proxy_extra_data:
+            bk_host_multi_outerip = extra_data["extra_data"]["bk_host_multi_outerip"]
+            self.assertEqual(len(bk_host_multi_outerip.split(",")), 2)
+        # 验证不影响Agent存在多外网IP的情况
+        agent_extra_data = Host.objects.filter(node_type=constants.NodeType.AGENT).values("extra_data")
+        for data in agent_extra_data:
+            extra_data = data["extra_data"]
+            self.assertEqual(extra_data.get("bk_host_multi_outerip"), None)

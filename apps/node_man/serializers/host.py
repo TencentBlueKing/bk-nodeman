@@ -8,6 +8,8 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from ipaddress import IPv4Address
+
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
@@ -37,7 +39,7 @@ class HostUpdateSerializer(serializers.Serializer):
     bk_cloud_id = serializers.IntegerField(label=_("管控区域ID"), required=False)
     inner_ip = serializers.IPAddressField(label=_("内网IP"), required=False, protocol="ipv4")
     inner_ipv6 = serializers.IPAddressField(label=_("内网IPv6"), required=False, protocol="ipv6")
-    outer_ip = serializers.IPAddressField(label=_("外网IP"), required=False, protocol="ipv4")
+    outer_ip = serializers.CharField(label=_("外网IP"), required=False)
     outer_ipv6 = serializers.IPAddressField(label=_("外网IPv6"), required=False, protocol="ipv6")
     # 登录 IP & 数据 IP 支持多 IP 协议
     login_ip = serializers.IPAddressField(label=_("登录IP"), required=False, protocol="both")
@@ -63,6 +65,12 @@ class HostUpdateSerializer(serializers.Serializer):
                 cipher=cipher, encrypt_message=attrs[field_need_encrypt], raise_exec=ValidationError
             )
         basic.ipv6_formatter(data=attrs, ipv6_field_names=["inner_ipv6", "outer_ipv6", "login_ip", "data_ip"])
+        if not attrs.get("outer_ipv6") and attrs.get("outer_ip"):
+            outer_ips = attrs["outer_ip"].split(",")
+            try:
+                [IPv4Address(outer_ip) for outer_ip in outer_ips]
+            except ValueError:
+                raise ValidationError(_("更新Proxy信息请求参数 outer_ip:请输入一个合法的IPv4地址"))
         return attrs
 
 
