@@ -504,7 +504,7 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
             tags: List[Dict[str, Any]] = gse_package_handler.get_tags(
                 version=version,
                 project=project,
-                to_top=True,
+                enable_tag_separation=False,
                 use_cache=True,
             )
 
