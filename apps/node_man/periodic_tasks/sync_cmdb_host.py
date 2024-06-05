@@ -243,6 +243,8 @@ def update_or_create_host_base(biz_id, ap_map_config, is_gse2_gray, task_id, cmd
 
     need_update_hosts: typing.List[models.Host] = []
     need_update_hosts_with_arch: typing.List[models.Host] = []
+    host_id__multi_outer_ip_map: typing.Dict[int, str] = {}
+    multi_outer_ip_host_ids: typing.List[int] = []
 
     need_create_hosts: typing.List[models.Host] = []
     need_create_host_identity_objs: typing.List[models.IdentityData] = []
@@ -275,6 +277,12 @@ def update_or_create_host_base(biz_id, ap_map_config, is_gse2_gray, task_id, cmd
             "inner_ipv6": (host.get("bk_host_innerip_v6") or "").split(",")[0],
             "outer_ipv6": (host.get("bk_host_outerip_v6") or "").split(",")[0],
         }
+        outer_ip = host.get("bk_host_outerip") or ""
+        outer_ip_list = outer_ip.split(",")
+        if len(outer_ip_list) > 1 and host["bk_host_id"] in exist_proxy_host_ids:
+            bk_host_id = host["bk_host_id"]
+            multi_outer_ip_host_ids.append(bk_host_id)
+            host_id__multi_outer_ip_map[bk_host_id] = outer_ip
 
         if host["bk_host_id"] in exist_agent_host_ids:
             host_params["os_type"] = tools.HostV2Tools.get_os_type(host, is_os_type_priority)
@@ -346,6 +354,18 @@ def update_or_create_host_base(biz_id, ap_map_config, is_gse2_gray, task_id, cmd
             )
         if need_create_process_status_objs:
             models.ProcessStatus.objects.bulk_create(need_create_process_status_objs, batch_size=500)
+        if multi_outer_ip_host_ids:
+            host_queryset = models.Host.objects.filter(bk_host_id__in=multi_outer_ip_host_ids)
+            need_update_hosts_with_extra_data: typing.List[models.Host] = []
+            for host_obj in host_queryset:
+                host_obj.extra_data["bk_host_multi_outerip"] = host_id__multi_outer_ip_map[host_obj.bk_host_id]
+                need_update_hosts_with_extra_data.append(host_obj)
+            models.Host.objects.bulk_update(need_update_hosts_with_extra_data, fields=["extra_data"], batch_size=500)
+            logger.info(
+                f"[sync_cmdb_host] update_or_create_host: task_id -> {task_id}, bk_biz_id -> {biz_id}, "
+                f"bk_host_ids -> {multi_outer_ip_host_ids} update proxy host_extra_data success, "
+                f"len -> {len(multi_outer_ip_host_ids)}"
+            )
 
     return bk_host_ids
 

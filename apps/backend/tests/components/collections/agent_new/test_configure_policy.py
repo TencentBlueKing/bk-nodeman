@@ -303,3 +303,36 @@ class YunTiConfigurePolicyComponentBaseTest(ConfigurePolicyComponentBaseTest):
                 execute_call_assertion=None,
             ),
         ]
+
+
+class YunTiConfigureMultiOuterIpPolicyTestCase(YunTiConfigurePolicyComponentBaseTest):
+    def cases(self):
+        outer_ip = self.obj_factory.host_objs[0].outer_ip
+        login_ip = self.obj_factory.host_objs[0].login_ip
+        return [
+            ComponentTestCase(
+                name="通过云梯配置多外网IP策略",
+                inputs=self.common_inputs,
+                parent_data={},
+                execute_assertion=ExecuteAssertion(
+                    success=bool(self.common_inputs["subscription_instance_ids"]),
+                    outputs={
+                        "add_ip_output": {"ip_list": [outer_ip, login_ip]},
+                        "polling_time": 0,
+                        "succeeded_subscription_instance_ids": self.common_inputs["subscription_instance_ids"],
+                    },
+                ),
+                schedule_assertion=[
+                    ScheduleAssertion(
+                        success=True,
+                        schedule_finished=True,
+                        outputs={
+                            "add_ip_output": {"ip_list": [outer_ip, login_ip]},
+                            "polling_time": 0,
+                            "succeeded_subscription_instance_ids": self.common_inputs["subscription_instance_ids"],
+                        },
+                    ),
+                ],
+                execute_call_assertion=None,
+            ),
+        ]

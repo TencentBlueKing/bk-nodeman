@@ -666,3 +666,52 @@ class TestHost(TestCase):
         }
         res = HostHandler().list(params, "admin")
         self.assertEqual(len(res["list"]), 0)
+
+    @patch("apps.node_man.handlers.cmdb.CmdbHandler.cmdb_or_cache_biz", cmdb_or_cache_biz)
+    @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)
+    def test_update_multi_outer_ip_proxy_info(self):
+        host_to_create, identity_to_create, _ = create_host(
+            number=1,
+            outer_ip="255.255.255.258",
+            login_ip="255.255.255.259",
+            bk_cloud_id=5,
+            bk_host_id=10002,
+            node_type=const.NodeType.PROXY,
+            ip="127.0.0.1",
+        )
+        update_data = {
+            "bk_host_id": host_to_create[0].bk_host_id,
+            "outer_ip": "255.255.255.260,255.255.255.261",
+            "bk_cloud_id": 5,
+        }
+        self.assertEqual(HostHandler().update_proxy_info(update_data), None)
+        proxy_extra_data = Host.objects.get(bk_host_id=10002)
+        extra_data = proxy_extra_data.extra_data
+        # 验证多外网IP存入extra_data中
+        self.assertEqual(extra_data["bk_host_multi_outerip"], "255.255.255.260,255.255.255.261")
+        # 验证传入多外网IP时，保存传入的第一个IP
+        self.assertEqual(proxy_extra_data.outer_ip, "255.255.255.260")
+
+    @patch("apps.node_man.handlers.cmdb.CmdbHandler.cmdb_or_cache_biz", cmdb_or_cache_biz)
+    @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)
+    def test_multi_outer_ip_proxies(self):
+        number = 1
+        create_cloud_area(number)
+        host_to_create, identity_to_create, _ = create_host(
+            number=1,
+            outer_ip="255.255.255.262",
+            login_ip="255.255.255.263",
+            bk_cloud_id=1,
+            bk_host_id=10003,
+            node_type=const.NodeType.PROXY,
+            ip="127.0.0.1",
+        )
+        update_data = {
+            "bk_host_id": host_to_create[0].bk_host_id,
+            "outer_ip": "255.255.255.264,255.255.255.265",
+            "bk_cloud_id": 1,
+        }
+        HostHandler().update_proxy_info(update_data)
+        result = HostHandler.proxies(number)
+        # 如果是多IP场景返回多IP
+        self.assertEqual(result[0]["outer_ip"], "255.255.255.264,255.255.255.265")
