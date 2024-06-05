@@ -435,6 +435,11 @@ class AddOrUpdateHostsService(AgentBaseService):
             }
             if host_info.get("data_path"):
                 extra_data.update({"data_path": host_info.get("data_path")})
+            outer_ip_list = outer_ip.split(",")
+            if len(outer_ip_list) > 1 and host_info["host_node_type"] == constants.NodeType.PROXY:
+                extra_data.update({"bk_host_multi_outerip": outer_ip})
+                outer_ip = outer_ip_list[0]
+
             host_obj = models.Host(
                 bk_host_id=bk_host_id,
                 bk_cloud_id=host_info["bk_cloud_id"],
