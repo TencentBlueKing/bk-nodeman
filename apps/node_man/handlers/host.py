@@ -277,6 +277,10 @@ class HostHandler(APIModel):
             )
         )
         bk_host_id_list = [proxy["bk_host_id"] for proxy in proxies]
+        for proxy in proxies:
+            bk_host_multi_outerip = proxy["extra_data"].get("bk_host_multi_outerip", "")
+            if len(bk_host_multi_outerip.split(",")) > 1:
+                proxy["outer_ip"] = bk_host_multi_outerip
 
         # 获得使用proxy的PAGENT个数
         pagent_upstream_nodes = {}
@@ -488,6 +492,12 @@ class HostHandler(APIModel):
             ).exists()
         ):
             CmdbHandler().cmdb_update_host(kwargs["bk_host_id"], update_properties)
+        # 向CC更新完后处理DB要更新的数据
+        outer_ips = kwargs.get("outer_ip", "").split(",")
+        if len(outer_ips) > 1:
+            extra_data["bk_host_multi_outerip"] = kwargs["outer_ip"]
+            # 取第一个外网IP
+            kwargs["outer_ip"] = outer_ips[0]
 
         # 如果需要更新Host的Cloud信息
         if (
