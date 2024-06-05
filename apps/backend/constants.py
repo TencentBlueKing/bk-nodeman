@@ -160,3 +160,7 @@ class FilterFieldName(enum.EnhanceEnum):
             return False
 
         return True
+
+
+DEFAULT_ALIVE_TIME = 30
+DEFAULT_CLEAN_RECORD_LIMIT = 5000

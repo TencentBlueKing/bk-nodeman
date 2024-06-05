@@ -15,12 +15,11 @@ from celery.task import periodic_task
 from django.db import connection
 from django.utils import timezone
 
+from apps.backend.constants import DEFAULT_ALIVE_TIME, DEFAULT_CLEAN_RECORD_LIMIT
 from apps.node_man import constants, models
 from apps.utils.time_handler import strftime_local
 from common.log import logger
 
-DEFAULT_ALIVE_TIME = 30
-DEFAULT_CLEAN_RECORD_LIMIT = 5000
 SUBSCRIPTION_INSTANCE_DETAIL_TABLE = "node_man_subscriptioninstancestatusdetail"
 JOB_SUB_INSTANCE_MAP_TABLE = "node_man_jobsubscriptioninstancemap"
 
