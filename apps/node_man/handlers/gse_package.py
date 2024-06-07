@@ -116,7 +116,7 @@ class GsePackageHandler:
     def get_description(self, project: str, use_cache: bool = True) -> str:
         """获取包描述信息"""
         if use_cache:
-            if self.cache_counter[self.PROJECT__DESCRIPTION_MAP]:
+            if not self.cache_counter[self.PROJECT__DESCRIPTION_MAP]:
                 self._init_project__description_map()
 
             cache_key: str = self.get_description_cache_key(project)
