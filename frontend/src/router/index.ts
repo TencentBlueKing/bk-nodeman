@@ -5,6 +5,7 @@ import { MainStore, CloudStore, PluginStore } from '@/store/index';
 import http from '@/api';
 import { PROXY_OPERATE, CLOUD_VIEW, CLOUD_CREATE, CLOUD_EDIT } from '@/router/action-map';
 import axios from 'axios';
+import { rootPath, connectToMain } from '@blueking/sub-saas';
 
 Vue.use(VueRouter);
 // 获取modules下的所有模块
@@ -21,7 +22,7 @@ let defaultConfigLoaded = false;
 
 const routes = [
   {
-    path: '/',
+    path: rootPath,
     component: MainEntry,
     children: [
       {
@@ -30,14 +31,14 @@ const routes = [
           name: 'agentStatus',
         },
       },
+      ...pageRoute.flat(),
+      // 404
+      {
+        path: '*',
+        name: '404',
+        component: NotFound,
+      },
     ],
-  },
-  ...pageRoute.flat(),
-  // 404
-  {
-    path: '*',
-    name: '404',
-    component: NotFound,
   },
 ];
 
@@ -45,6 +46,7 @@ const router = new VueRouter({
   mode: 'hash',
   routes,
 });
+connectToMain(router);
 
 // const loadOsRoute = ['agentSetup', 'agentImport', 'agentEdit'];
 const cancelRequest = async () => {

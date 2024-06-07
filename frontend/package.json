@@ -48,6 +48,7 @@
     "@blueking/notice-component-vue2": "~2.0.1",
     "@blueking/paas-login": "0.0.9",
     "@blueking/platform-config": "^1.0.4",
+    "@blueking/sub-saas": "^0.0.0-beta.9",
     "@icon-cool/bk-icon-node-manager": "latest",
     "axios": "0.26.1",
     "bk-magic-vue": "2.5.6",
