@@ -11,6 +11,8 @@ import NmException from '@/components/common/nm-exception.vue';
 // import '@icon-cool/bk-icon-node-manager';
 import '@/bk_icon_font/style.css';
 import 'github-markdown-css';
+import { subEnv } from '@blueking/sub-saas';
+import IframeApp from './IframeApp.vue';
 
 if (process.env.NODE_ENV === 'development') {
   Vue.config.devtools = true;
@@ -26,6 +28,6 @@ global.mainComponent = new Vue({
   router,
   store,
   i18n,
-  components: { App },
+  components: { App: subEnv ? IframeApp : App },
   template: '<App/>',
 });
