@@ -8,21 +8,21 @@ const TaskLog = () => import(/* webpackChunkName: 'TaskLog' */'@/views/task/task
 export default [
   // 其它saas跳转 - 兼容旧的路由
   {
-    path: '/task-history',
+    path: 'task-history',
     name: 'taskHistory',
     redirect: { name: 'taskList' },
   },
   {
-    path: '/task-history/detail/:taskId',
+    path: 'task-history/detail/:taskId',
     redirect: { name: 'taskDetail' },
   },
   {
-    path: '/task-history/:taskId/log/:instanceId',
+    path: 'task-history/:taskId/log/:instanceId',
     redirect: { name: 'taskLog' },
   },
 
   {
-    path: '/task-list',
+    path: 'task-list',
     name: 'taskList',
     component: TaskList,
     meta: {
@@ -35,7 +35,7 @@ export default [
     },
   },
   {
-    path: '/task-list/detail/:taskId',
+    path: 'task-list/detail/:taskId',
     name: 'taskDetail',
     props: true,
     component: TaskDetail,
@@ -56,7 +56,7 @@ export default [
     },
   },
   {
-    path: '/task-list/:taskId/log/:instanceId',
+    path: 'task-list/:taskId/log/:instanceId',
     name: 'taskLog',
     props: (route: Route) => ({
       ...route.params,
