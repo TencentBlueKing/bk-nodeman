@@ -1232,7 +1232,7 @@ def get_all_subscription_steps_context(
                 "login_ip": target_host.login_ip,
             },
             # 获取插件配置公共常量
-            "constants": get_plugin_common_constants(plugin_name, get_cache=True),
+            "constants": get_plugin_common_constants(plugin_name),
         },
     )
     # 深拷贝一份，避免原数据后续被污染
