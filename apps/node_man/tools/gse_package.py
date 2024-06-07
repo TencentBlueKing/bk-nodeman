@@ -160,3 +160,12 @@ class GsePackageTools:
                 "count": sum(version__count_map.values()),
             },
         ]
+
+    @classmethod
+    def aaa(cls, gse_packages: QuerySet):
+        version__count_map: Dict[str, int] = defaultdict(int)
+
+        for package in gse_packages.values("version"):
+            version__count_map[package["version"]] += 1
+
+        return version__count_map

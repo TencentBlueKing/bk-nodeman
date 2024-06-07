@@ -498,9 +498,10 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
         )
 
         version__pkg_version_info_map: Dict[str, Dict[str, Any]] = {}
-        default_version = ""
+        max_version_count: int = 0
+        default_version: str = ""
         for package in gse_packages:
-            version, project, pkg_name = package["version"], package["project"], package.pop("pkg_name")
+            version, project, pkg_name = package["version"], package["project"], package["pkg_name"]
             tags: List[Dict[str, Any]] = gse_package_handler.get_tags(
                 version=version,
                 project=project,
@@ -508,30 +509,41 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
                 use_cache=True,
             )
 
+            # 获取默认标签
             if not default_version and any(tag["description"] == STABLE_DESCRIPTION for tag in tags):
                 default_version = version
 
+            # 初始化某个版本的包
             if version not in version__pkg_version_info_map:
-                # 初始化某个版本的包
                 version__pkg_version_info_map[version] = {
                     "version": version,
                     "project": project,
                     "packages": [],
                     "tags": tags,
                     "description": gse_package_handler.get_description(project=project, use_cache=True),
+                    "count": 0,
                 }
+
+            # 累加同个版本包的数量，并统计版本包最大数量
+            version__pkg_version_info_map[version]["count"] += 1
+            max_version_count = max(max_version_count, version__pkg_version_info_map[version]["count"])
 
             # 添加小包包名和小包标签信息
             version__pkg_version_info_map[version]["packages"].append(
                 {"pkg_name": pkg_name, "tags": tags, "os": package["os"], "cpu_arch": package["cpu_arch"]}
             )
 
-            # 聚合小包之间的共同标签
-            common_tags: List[Dict[str, Any]] = version__pkg_version_info_map[version]["tags"]
-            if common_tags != tags:
-                version__pkg_version_info_map[version]["tags"] = [tag for tag in common_tags if tag in tags]
+            # 将上一次的标签和这次的标签取共同的部分
+            last_tags: List[Dict[str, Any]] = version__pkg_version_info_map[version]["tags"]
+            if last_tags != tags:
+                version__pkg_version_info_map[version]["tags"] = [tag for tag in last_tags if tag in tags]
 
         filter_keys = [key for key in ["os", "cpu_arch"] if key in validated_data]
+        if "os" in validated_data:
+            pass
+        elif "cpu_arch" in validated_data:
+            pass
+
         if filter_keys:
             # 筛选
             version__pkg_version_info_map = {
@@ -543,27 +555,11 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
                 )
             }
         else:
-            # 不筛选
-            version_info_map = [
-                condition
-                for condition in GsePackageTools.get_quick_search_condition(
-                    self.get_queryset().filter(is_ready=True, project=validated_data["project"])
-                )
-                if condition["id"] == "version"
-            ][0]["children"]
-
-            versions_with_max_count = max(version_count_map["count"] for version_count_map in version_info_map)
-            max_count_version_list = [
-                version_count_map["id"]
-                for version_count_map in version_info_map
-                if version_count_map["count"] == versions_with_max_count
-            ]
-
-            version__pkg_version_info_map = {
-                version: pkg_version_info
-                for version, pkg_version_info in version__pkg_version_info_map.items()
-                if version in max_count_version_list
-            }
+            # 不筛选，默认为统一版本，统一版本需要各个系统的包都齐了才能算入
+            for version, pkg_version_info in version__pkg_version_info_map.copy().items():
+                # 如果该版本的包数量小于最大数量，则说明缺少某些系统的包
+                if pkg_version_info["count"] < max_version_count:
+                    version__pkg_version_info_map.pop(version)
 
         return Response(
             {
