@@ -9,7 +9,7 @@ const CloudManagerDetail = () => import(/* webpackChunkName: 'CloudManagerDetail
 
 export default [
   {
-    path: '/cloud-manager',
+    path: 'cloud-manager',
     name: 'cloudManager',
     component: CloudManager,
     meta: {
@@ -18,7 +18,7 @@ export default [
     },
   },
   {
-    path: '/cloud-manager/form/:type/:id?',
+    path: 'cloud-manager/form/:type/:id?',
     props: true,
     name: 'addCloudManager',
     component: AddCloudManager,
@@ -29,7 +29,7 @@ export default [
     },
   },
   {
-    path: '/cloud-manager/form/:type/:id/preview',
+    path: 'cloud-manager/form/:type/:id/preview',
     props: true,
     name: 'addManagerPreview',
     component: AddCloudManagerPreview,
@@ -48,7 +48,7 @@ export default [
     },
   },
   {
-    path: '/cloud-manager/setup/:type/:id?',
+    path: 'cloud-manager/setup/:type/:id?',
     props: true,
     name: 'setupCloudManager',
     component: SetupCloudManager,
@@ -62,7 +62,7 @@ export default [
     },
   },
   {
-    path: '/cloud-manager/detail/:id?',
+    path: 'cloud-manager/detail/:id?',
     name: 'cloudManagerDetail',
     props: true,
     component: CloudManagerDetail,
