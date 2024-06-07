@@ -122,3 +122,9 @@ class ApiConfig(AppConfig):
                 enable_notice_center: bool = True
 
         settings.ENABLE_NOTICE_CENTER = enable_notice_center
+
+        plugin_common_constants = GlobalSettings.get_config(
+            key=GlobalSettings.KeyEnum.PLUGIN_COMMON_CONSTANTS.value,
+            default={},
+        )
+        settings.PLUGIN_COMMON_CONSTANTS = plugin_common_constants

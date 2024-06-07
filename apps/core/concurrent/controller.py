@@ -131,13 +131,24 @@ class ConcurrentController:
         :param kwargs: 关键字参数
         :return:
         """
+        data_list: List = kwargs.get(self.data_list_name) or []
+        if len(data_list) == 0:
+            return []
+
+        def _commit_single() -> List:
+            return self.batch_call_func(
+                func=wrapped, params_list=[kwargs], get_data=self.get_data, extend_result=self.extend_result
+            )
+
+        if len(data_list) == 1:
+            return _commit_single()
+
         config_obj = self.get_config_obj()
-        # 如果指定全量执行或者待执行对象列表为空，直接执行无需分片
-        if config_obj.execute_all or not kwargs.get(self.data_list_name):
-            return wrapped(*args, **kwargs)
+        if config_obj.execute_all:
+            return _commit_single()
 
         params_list: List[Dict[str, Any]] = []
-        for chunk_list in basic.chunk_lists(kwargs[self.data_list_name], config_obj.limit):
+        for chunk_list in basic.chunk_lists(data_list, config_obj.limit):
             params_list.append(dict(ChainMap({self.data_list_name: chunk_list}, kwargs)))
 
         # 如果批次间非并发，batch_call_func 默认使用 batch_call_serial

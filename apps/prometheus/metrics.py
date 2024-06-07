@@ -252,6 +252,19 @@ app_common_method_requests_total = Counter(
     labelnames=["method", "source"],
 )
 
+app_common_api_call_duration_seconds = Histogram(
+    name="app_common_api_call_duration_seconds",
+    documentation="Histogram of the time (in seconds) each api per module, per api.",
+    buckets=get_histogram_buckets_from_env("BKAPP_MONITOR_METRICS_CORE_BUCKETS"),
+    labelnames=["module", "api"],
+)
+
+app_common_api_call_exceptions_total = Counter(
+    name="app_common_api_call_exceptions_total",
+    documentation="Cumulative count of api call exceptions per module, per api, per code.",
+    labelnames=["module", "api", "code"],
+)
+
 app_resource_watch_events_total = Counter(
     name="app_resource_watch_events_total",
     documentation="Cumulative count of resource watch events per type, per bk_resource, per bk_event_type.",

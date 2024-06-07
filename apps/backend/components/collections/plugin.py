@@ -555,25 +555,23 @@ class TransferPackageService(JobV3BaseService, PluginBaseService):
             jobs[md5_key]["os_type"] = host.os_type
 
         # 组装作业平台请求参数
-        multi_job_params = []
-        for __, job in jobs.items():
+        multi_job_params: Dict = {}
+        for md5_key, job in jobs.items():
             file_list = self.append_extra_files(job["os_type"], job["file_list"], nginx_path)
-            multi_job_params.append(
-                {
-                    "job_func": JobApi.fast_transfer_file,
-                    "subscription_instance_id": job["subscription_instance_ids"],
-                    "subscription_id": common_data.subscription.id,
-                    "job_params": {
-                        "file_target_path": job["file_target_path"],
-                        "file_source_list": [{"file_list": file_list}],
-                        "os_type": job["os_type"],
-                        "target_server": {"ip_list": job["ip_list"], "host_id_list": job["host_id_list"]},
-                        "meta": job_meta,
-                    },
-                }
-            )
-        # 对上面组装好的作业平台参数进行并发请求
-        request_multi_thread(self.request_single_job_and_create_map, multi_job_params)
+            multi_job_params[md5_key] = {
+                "job_func": JobApi.fast_transfer_file,
+                "subscription_instance_id": job["subscription_instance_ids"],
+                "subscription_id": common_data.subscription.id,
+                "job_params": {
+                    "file_target_path": job["file_target_path"],
+                    "file_source_list": [{"file_list": file_list}],
+                    "os_type": job["os_type"],
+                    "target_server": {"ip_list": job["ip_list"], "host_id_list": job["host_id_list"]},
+                    "meta": job_meta,
+                },
+            }
+
+        self.run_job_or_finish_schedule(multi_job_params)
         return True
 
     @staticmethod
@@ -1035,7 +1033,7 @@ class RenderAndPushConfigService(PluginBaseService, JobV3BaseService):
             self.finish_schedule()
             return True
 
-        request_multi_thread(self.request_single_job_and_create_map, multi_job_params_map.values())
+        self.run_job_or_finish_schedule(multi_job_params_map)
         return True
 
 

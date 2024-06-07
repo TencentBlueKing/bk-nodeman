@@ -48,6 +48,7 @@ def yunti_api_after_request(result):
 
 class _YunTiApi(object):
     MODULE = _("云梯")
+    SIMPLE_MODULE = "YUNTI"
 
     def __init__(self):
 
@@ -55,16 +56,20 @@ class _YunTiApi(object):
             method="POST",
             url=BKAPP_YUNTI_API_ROOT + "/account/manage?api_key={api_key}&api_sign={api_sigin}&api_ts={api_ts}",
             module=self.MODULE,
+            simple_module=self.SIMPLE_MODULE,
             description="查询安全组详情",
             before_request=yunti_api_before_request,
             after_request=yunti_api_after_request,
+            api_name="get_security_group_details",
         )
 
         self.operate_security_group = DataAPI(
             method="POST",
             url=BKAPP_YUNTI_API_ROOT + "/apply/api/sg?api_key={api_key}&api_sign={api_sigin}&api_ts={api_ts}",
             module=self.MODULE,
+            simple_module=self.SIMPLE_MODULE,
             description="修改安全组",
             before_request=yunti_api_before_request,
             after_request=yunti_api_after_request,
+            api_name="operate_security_group",
         )

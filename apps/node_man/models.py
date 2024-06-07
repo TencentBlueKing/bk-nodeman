@@ -1917,6 +1917,11 @@ class Subscription(export_subscription_prometheus_mixin(), orm.SoftDeleteModel):
             return True
         return False
 
+    def is_need_realtime(self):
+        if self.category == self.CategoryType.ONCE:
+            return True
+        return False
+
     @classmethod
     def get_host_id__bk_obj_sub_map(
         cls, bk_host_ids: Union[List[int], Set[int]], plugin_name: str, is_latest=True

@@ -17,41 +17,54 @@ from ..domains import GSE_APIGATEWAY_ROOT_V2
 
 class _GseV2Api(BaseApi):
     MODULE = _("管控平台 V2")
+    SIMPLE_MODULE = "GSE_V2"
 
     def __init__(self):
         self.list_agent_state = DataAPI(
             method="POST",
             url=GSE_APIGATEWAY_ROOT_V2 + "api/v2/cluster/list_agent_state/",
             module=self.MODULE,
+            simple_module=self.SIMPLE_MODULE,
             description="获取Agent状态",
+            api_name="list_agent_state",
         )
         self.list_agent_info = DataAPI(
             method="POST",
             url=GSE_APIGATEWAY_ROOT_V2 + "api/v2/cluster/list_agent_info/",
             module=self.MODULE,
+            simple_module=self.SIMPLE_MODULE,
             description="查询Agent详情列表信息",
+            api_name="list_agent_info",
         )
         self.get_proc_status_v2 = DataAPI(
             method="POST",
             url=GSE_APIGATEWAY_ROOT_V2 + "api/v2/proc/get_proc_status_v2/",
             module=self.MODULE,
+            simple_module=self.SIMPLE_MODULE,
             description="查询进程状态信息",
+            api_name="get_proc_status_v2",
         )
         self.operate_proc_multi = DataAPI(
             method="POST",
             url=GSE_APIGATEWAY_ROOT_V2 + "api/v2/proc/operate_proc_multi/",
             module=self.MODULE,
+            simple_module=self.SIMPLE_MODULE,
             description="批量进程操作",
+            api_name="operate_proc_multi",
         )
         self.get_proc_operate_result_v2 = DataAPI(
             method="POST",
             url=GSE_APIGATEWAY_ROOT_V2 + "api/v2/proc/get_proc_operate_result_v2/",
             module=self.MODULE,
+            simple_module=self.SIMPLE_MODULE,
             description="查询进程操作结果",
+            api_name="get_proc_operate_result_v2",
         )
         self.upgrade_to_agent_id = DataAPI(
             method="POST",
             url=GSE_APIGATEWAY_ROOT_V2 + "api/v2/proc/upgrade_to_agent_id/",
             module=self.MODULE,
+            simple_module=self.SIMPLE_MODULE,
             description="将基于Host IP的配置升级到基于Agent-ID的配置",
+            api_name="upgrade_to_agent_id",
         )

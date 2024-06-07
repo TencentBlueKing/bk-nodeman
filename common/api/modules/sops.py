@@ -17,23 +17,30 @@ from ..domains import SOPS_APIGATEWAY_ROOT
 
 class _SopsApi(BaseApi):
     MODULE = _("标准运维")
+    SIMPLE_MODULE = "SOPS"
 
     def __init__(self):
         self.create_task = DataAPI(
             method="POST",
             url=SOPS_APIGATEWAY_ROOT + "create_task/{template_id}/{bk_biz_id}/",
             module=self.MODULE,
+            simple_module=self.SIMPLE_MODULE,
             description="创建任务",
+            api_name="create_task",
         )
         self.start_task = DataAPI(
             method="POST",
             url=SOPS_APIGATEWAY_ROOT + "start_task/{task_id}/{bk_biz_id}/",
             module=self.MODULE,
+            simple_module=self.SIMPLE_MODULE,
             description="启动任务",
+            api_name="start_task",
         )
         self.get_task_status = DataAPI(
             method="GET",
             url=SOPS_APIGATEWAY_ROOT + "get_task_status/{task_id}/{bk_biz_id}/",
             module=self.MODULE,
+            simple_module=self.SIMPLE_MODULE,
             description="查询任务状态",
+            api_name="get_task_status",
         )

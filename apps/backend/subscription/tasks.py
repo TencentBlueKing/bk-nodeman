@@ -597,8 +597,9 @@ def run_subscription_task_and_create_instance(
 
     # 获取订阅范围内全部实例
     steps = subscription.steps
+    tolerance_time: int = (59, 0)[subscription.is_need_realtime()]
     instances = tools.get_instances_by_scope_with_checker(
-        scope, steps, source="run_subscription_task_and_create_instance"
+        scope, steps, source="run_subscription_task_and_create_instance", tolerance_time=tolerance_time
     )
     logger.info(
         "[sub_lifecycle<sub(%s), task(%s)>][run_subscription_task_and_create_instance] "

@@ -667,6 +667,7 @@ class JobHandler(APIModel):
         extra_config = extra_config or {}
         params = {
             "run_immediately": True,
+            "category": models.Subscription.CategoryType.ONCE,
             "bk_app_code": "nodeman",
             "bk_username": "admin",
             "scope": {"node_type": "INSTANCE", "object_type": "HOST", "nodes": nodes},
