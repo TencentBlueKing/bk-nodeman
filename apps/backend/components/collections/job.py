@@ -23,10 +23,13 @@ from django.utils.translation import ugettext_lazy as _
 
 from apps.backend.api.constants import POLLING_INTERVAL
 from apps.backend.api.job import process_parms
+from apps.backend.components.collections import core
 from apps.backend.components.collections.base import BaseService, CommonData
+from apps.core.concurrent import controller
 from apps.core.files.storage import get_storage
 from apps.exceptions import AppBaseException
 from apps.node_man import constants, models
+from apps.utils import concurrent
 from apps.utils.batch_request import request_multi_thread
 from common.api import JobApi
 from pipeline.component_framework.component import Component
@@ -71,10 +74,21 @@ class JobV3BaseService(six.with_metaclass(abc.ABCMeta, BaseService)):
         md5.update(content.encode("utf-8"))
         return md5.hexdigest()
 
+    @controller.ConcurrentController(
+        data_list_name="job_params_list",
+        batch_call_func=concurrent.batch_call,
+        get_config_dict_func=core.get_config_dict,
+        get_config_dict_kwargs={"config_name": core.ServiceCCConfigName.JOB_EXECUTE.value},
+    )
+    def job_execute(self, job_params_list: List[Dict[str, Any]]):
+        concurrent.batch_call(self.request_single_job_and_create_map, job_params_list)
+        return []
+
     def run_job_or_finish_schedule(self, multi_job_params_map: Dict):
         """如果作业平台参数为空，代表无需执行，直接finish_schedule去执行下一个原子"""
         if multi_job_params_map:
-            request_multi_thread(self.request_single_job_and_create_map, multi_job_params_map.values())
+            job_params_list: List = list(multi_job_params_map.values())
+            self.job_execute(job_params_list=job_params_list)
         else:
             self.finish_schedule()
 
@@ -313,6 +327,16 @@ class JobV3BaseService(six.with_metaclass(abc.ABCMeta, BaseService)):
             node_id=self.id, job_instance_id__in=skip_job_instance_ids, status=constants.BkJobStatus.PENDING
         ).update(status=constants.BkJobStatus.SUCCEEDED)
 
+    @controller.ConcurrentController(
+        data_list_name="job_params_list",
+        batch_call_func=concurrent.batch_call,
+        get_config_dict_func=core.get_config_dict,
+        get_config_dict_kwargs={"config_name": core.ServiceCCConfigName.JOB_STATUS.value},
+    )
+    def job_status(self, job_params_list: List[Dict[str, Any]]):
+        concurrent.batch_call(self.request_get_job_instance_status, job_params_list)
+        return []
+
     def _schedule(self, data, parent_data, callback_data=None):
         job_meta = self.get_job_meta(data)
         polling_time = data.get_one_of_outputs("polling_time") or 0
@@ -331,7 +355,7 @@ class JobV3BaseService(six.with_metaclass(abc.ABCMeta, BaseService)):
             self.finish_schedule()
             return
 
-        request_multi_thread(self.request_get_job_instance_status, multi_params)
+        self.job_status(job_params_list=multi_params)
 
         # 判断 JobSubscriptionInstanceMap 中对应的 job_instance_id 都执行完成的，把成功的 subscription_instance_ids 向下传递
         is_finished = not models.JobSubscriptionInstanceMap.objects.filter(

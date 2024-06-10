@@ -51,6 +51,7 @@ class InstallPluginsService(SubSubscriptionBaseService, AgentBaseService):
                 {
                     "params": {
                         "run_immediately": True,
+                        "category": models.Subscription.CategoryType.ONCE,
                         "bk_username": settings.SYSTEM_USE_API_ACCOUNT,
                         "scope": {
                             "node_type": models.Subscription.NodeType.INSTANCE,
