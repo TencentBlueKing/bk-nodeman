@@ -18,188 +18,241 @@ from .utils import add_esb_info_before_request
 
 class _CCApi(BaseApi):
     MODULE = _("配置平台")
+    SIMPLE_MODULE = "CC"
 
     def __init__(self):
         self.search_business = DataAPI(
             method="POST",
             url=CC_APIGATEWAY_ROOT_V2 + "search_business/",
             module=self.MODULE,
+            simple_module=self.SIMPLE_MODULE,
             description="查询业务列表",
             before_request=add_esb_info_before_request,
+            api_name="search_business",
         )
         self.search_cloud_area = DataAPI(
             method="POST",
             url=CC_APIGATEWAY_ROOT_V2 + "search_cloud_area/",
             module=self.MODULE,
+            simple_module=self.SIMPLE_MODULE,
             description="查询管控区域",
             before_request=add_esb_info_before_request,
+            api_name="search_cloud_area",
         )
         self.search_biz_inst_topo = DataAPI(
             method="POST",
             url=CC_APIGATEWAY_ROOT_V2 + "search_biz_inst_topo/",
             module=self.MODULE,
+            simple_module=self.SIMPLE_MODULE,
             description="查询业务实例拓扑",
             before_request=add_esb_info_before_request,
+            api_name="search_biz_inst_topo",
         )
         self.get_biz_internal_module = DataAPI(
             method="POST",
             url=CC_APIGATEWAY_ROOT_V2 + "get_biz_internal_module/",
             module=self.MODULE,
+            simple_module=self.SIMPLE_MODULE,
             description="根据业务ID获取业务空闲机, 故障机和待回收模块",
             before_request=add_esb_info_before_request,
+            api_name="get_biz_internal_module",
         )
         self.find_topo_node_paths = DataAPI(
             method="POST",
             url=CC_APIGATEWAY_ROOT_V2 + "find_topo_node_paths/",
             module=self.MODULE,
+            simple_module=self.SIMPLE_MODULE,
             description="查询业务拓扑节点的拓扑路径",
             before_request=add_esb_info_before_request,
+            api_name="find_topo_node_paths",
         )
         self.find_module_batch = DataAPI(
             method="POST",
             url=CC_APIGATEWAY_ROOT_V2 + "find_module_batch/",
             module=self.MODULE,
+            simple_module=self.SIMPLE_MODULE,
             description="批量获取模块详情",
             before_request=add_esb_info_before_request,
+            api_name="find_module_batch",
         )
         self.list_hosts_without_biz = DataAPI(
             method="POST",
             url=CC_APIGATEWAY_ROOT_V2 + "list_hosts_without_biz/",
             module=self.MODULE,
+            simple_module=self.SIMPLE_MODULE,
             description="没有业务ID的主机查询",
             before_request=add_esb_info_before_request,
+            api_name="list_hosts_without_biz",
         )
         self.list_biz_hosts = DataAPI(
             method="POST",
             url=CC_APIGATEWAY_ROOT_V2 + "list_biz_hosts/",
             module=self.MODULE,
+            simple_module=self.SIMPLE_MODULE,
             description="带业务的主机查询",
             before_request=add_esb_info_before_request,
+            api_name="list_biz_hosts",
         )
         self.list_service_template = DataAPI(
             method="POST",
             url=CC_APIGATEWAY_ROOT_V2 + "list_service_template/",
             module=self.MODULE,
+            simple_module=self.SIMPLE_MODULE,
             description="查询服务模板列表",
             before_request=add_esb_info_before_request,
+            api_name="list_service_template",
         )
         self.list_service_instance = DataAPI(
             method="POST",
             url=CC_APIGATEWAY_ROOT_V2 + "list_service_instance/",
             module=self.MODULE,
+            simple_module=self.SIMPLE_MODULE,
             description="查询服务实例列表",
             before_request=add_esb_info_before_request,
+            api_name="list_service_instance",
         )
         self.list_process_instance = DataAPI(
             method="POST",
             url=CC_APIGATEWAY_ROOT_V2 + "list_process_instance/",
             module=self.MODULE,
+            simple_module=self.SIMPLE_MODULE,
             description="查询进程实例列表",
             before_request=add_esb_info_before_request,
+            api_name="list_process_instance",
         )
         self.list_proc_template = DataAPI(
             method="POST",
             url=CC_APIGATEWAY_ROOT_V2 + "list_proc_template/",
             module=self.MODULE,
+            simple_module=self.SIMPLE_MODULE,
             description="查询进程模板信息",
             before_request=add_esb_info_before_request,
+            api_name="list_proc_template",
         )
         self.find_set_batch = DataAPI(
             method="POST",
             url=CC_APIGATEWAY_ROOT_V2 + "find_set_batch/",
             module=self.MODULE,
+            simple_module=self.SIMPLE_MODULE,
             description="批量获取指定业务下集群",
             before_request=add_esb_info_before_request,
+            api_name="find_set_batch",
         )
         self.search_set = DataAPI(
             method="POST",
             url=CC_APIGATEWAY_ROOT_V2 + "search_set/",
             module=self.MODULE,
+            simple_module=self.SIMPLE_MODULE,
             description="查询集群",
             before_request=add_esb_info_before_request,
+            api_name="search_set",
         )
         self.search_module = DataAPI(
             method="POST",
             url=CC_APIGATEWAY_ROOT_V2 + "search_module/",
             module=self.MODULE,
+            simple_module=self.SIMPLE_MODULE,
             description="查询模块",
             before_request=add_esb_info_before_request,
+            api_name="search_module",
         )
         self.search_object_attribute = DataAPI(
             method="POST",
             url=CC_APIGATEWAY_ROOT_V2 + "search_object_attribute/",
             module=self.MODULE,
+            simple_module=self.SIMPLE_MODULE,
             description="查询对象模型属性",
             before_request=add_esb_info_before_request,
+            api_name="search_object_attribute",
         )
         self.find_host_topo_relation = DataAPI(
             method="POST",
             url=CC_APIGATEWAY_ROOT_V2 + "find_host_topo_relation/",
             module=self.MODULE,
+            simple_module=self.SIMPLE_MODULE,
             description="获取主机与拓扑的关系",
             before_request=add_esb_info_before_request,
+            api_name="find_host_topo_relation",
         )
         self.find_host_biz_relations = DataAPI(
             method="POST",
             url=CC_APIGATEWAY_ROOT_V2 + "find_host_biz_relations/",
             module=self.MODULE,
+            simple_module=self.SIMPLE_MODULE,
             description="查询主机业务关系信息",
             before_request=add_esb_info_before_request,
+            api_name="find_host_biz_relations",
         )
         self.batch_update_host = DataAPI(
             method="POST",
             url=CC_APIGATEWAY_ROOT_V2 + "batch_update_host/",
             module=self.MODULE,
+            simple_module=self.SIMPLE_MODULE,
             description="批量更新主机属性",
             before_request=add_esb_info_before_request,
+            api_name="batch_update_host",
         )
         self.resource_watch = DataAPI(
             method="POST",
             url=CC_APIGATEWAY_ROOT_V2 + "resource_watch/",
             module=self.MODULE,
+            simple_module=self.SIMPLE_MODULE,
             description="监听资源变化事件",
             before_request=add_esb_info_before_request,
+            api_name="resource_watch",
         )
         #
         self.bind_host_agent = DataAPI(
             method="POST",
             url=CC_APIGATEWAY_ROOT_V2 + "bind_host_agent/",
             module=self.MODULE,
+            simple_module=self.SIMPLE_MODULE,
             description="将agent绑定到主机上",
             before_request=add_esb_info_before_request,
+            api_name="bind_host_agent",
         )
         self.unbind_host_agent = DataAPI(
             method="POST",
             url=CC_APIGATEWAY_ROOT_V2 + "unbind_host_agent/",
             module=self.MODULE,
+            simple_module=self.SIMPLE_MODULE,
             description="将agent和主机解绑",
             before_request=add_esb_info_before_request,
+            api_name="unbind_host_agent",
         )
         self.add_host_to_business_idle = DataAPI(
             method="POST",
             url=CC_APIGATEWAY_ROOT_V2 + "add_host_to_business_idle/",
             module=self.MODULE,
+            simple_module=self.SIMPLE_MODULE,
             description="添加主机到业务空闲机",
             before_request=add_esb_info_before_request,
+            api_name="add_host_to_business_idle",
         )
         self.push_host_identifier = DataAPI(
             method="POST",
             url=CC_APIGATEWAY_ROOT_V2 + "push_host_identifier/",
             module=self.MODULE,
+            simple_module=self.SIMPLE_MODULE,
             description="推送主机身份到机器上",
             before_request=add_esb_info_before_request,
+            api_name="push_host_identifier",
         )
         self.find_host_identifier_push_result = DataAPI(
             method="POST",
             url=CC_APIGATEWAY_ROOT_V2 + "find_host_identifier_push_result/",
             module=self.MODULE,
+            simple_module=self.SIMPLE_MODULE,
             description="获取推送主机身份到机器结果",
             before_request=add_esb_info_before_request,
+            api_name="find_host_identifier_push_result",
         )
         self.list_service_instance_detail = DataAPI(
             method="POST",
             url=CC_APIGATEWAY_ROOT_V2 + "list_service_instance_detail/",
             module=self.MODULE,
+            simple_module=self.SIMPLE_MODULE,
             description="查询服务实例详情",
             before_request=add_esb_info_before_request,
+            api_name="list_service_instance_detail",
         )

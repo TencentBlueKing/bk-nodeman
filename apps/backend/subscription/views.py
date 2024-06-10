@@ -39,6 +39,7 @@ from apps.backend.utils.pipeline_parser import PipelineParser
 from apps.core.script_manage.handlers import ScriptManageHandler
 from apps.generic import APIViewSet
 from apps.node_man import constants, models
+from apps.node_man import tools as node_man_tools
 from apps.utils import basic
 
 logger = logging.getLogger("app")
@@ -802,6 +803,7 @@ class SubscriptionViewSet(APIViewSet):
         subscriptions = models.Subscription.objects.filter(
             id__in=sub_id__sub_record_map.keys(),
             category__in=[models.Subscription.CategoryType.POLICY, models.Subscription.CategoryType.ONCE],
+            plugin_name__in=node_man_tools.plugin_v2.PluginV2Tools.fetch_head_plugins(),
         ).values("id", "name", "enable", "plugin_name", "category")
 
         subscription_ids = [subscription["id"] for subscription in subscriptions]
