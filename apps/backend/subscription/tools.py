@@ -1170,17 +1170,13 @@ def get_plugin_path(plugin_name: str, target_host: models.Host, agent_config: Di
     return plugin_path
 
 
-@FuncCacheDecorator(cache_time=5 * constants.TimeUnit.MINUTE)
 def get_plugin_common_constants(plugin_name: str) -> Dict:
     """
     获取插件配置公共常量
     https://github.com/TencentBlueKing/bk-nodeman/issues/1500
     :param plugin_name: 插件名称
     """
-    plugin_common_constants = models.GlobalSettings.get_config(
-        key=models.GlobalSettings.KeyEnum.PLUGIN_COMMON_CONSTANTS.value,
-        default={},
-    )
+    plugin_common_constants = getattr(settings, models.GlobalSettings.KeyEnum.PLUGIN_COMMON_CONSTANTS.value, {})
     # 获取特定插件公共常量
     plugin_constants = plugin_common_constants.get(plugin_name, {})
     plugin_constants.update({"global": plugin_common_constants.get("global", {})})
@@ -1236,7 +1232,7 @@ def get_all_subscription_steps_context(
                 "login_ip": target_host.login_ip,
             },
             # 获取插件配置公共常量
-            "constants": get_plugin_common_constants(plugin_name, get_cache=True),
+            "constants": get_plugin_common_constants(plugin_name),
         },
     )
     # 深拷贝一份，避免原数据后续被污染

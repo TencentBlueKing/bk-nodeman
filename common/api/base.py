@@ -12,6 +12,7 @@ import hashlib
 import json
 import logging
 import time
+import typing
 from typing import Dict
 from urllib import parse
 
@@ -23,6 +24,8 @@ from django.utils.module_loading import import_string
 from django.utils.translation import ugettext as _
 
 from apps.exceptions import ApiRequestError, ApiResultError, AppBaseException
+from apps.prometheus import metrics
+from apps.prometheus.helper import SetupObserve
 from apps.utils import remove_auth_args
 from apps.utils.local import get_request, get_request_id, get_request_username
 from apps.utils.time_handler import timestamp_to_datetime
@@ -86,6 +89,15 @@ class DataResponse(object):
         return self.response.get("errors", None)
 
 
+def get_labels_func(
+    wrapped: typing.Callable,
+    instance: "DataAPI",
+    args: typing.Tuple[typing.Any],
+    kwargs: typing.Dict[str, typing.Any],
+) -> typing.Dict[str, str]:
+    return {"module": instance.simple_module, "api": instance.api_name}
+
+
 class DataAPI(object):
     """Single API for DATA"""
 
@@ -96,6 +108,7 @@ class DataAPI(object):
         method,
         url,
         module,
+        simple_module,
         description="",
         default_return_value=None,
         before_request=None,
@@ -107,6 +120,7 @@ class DataAPI(object):
         after_serializer=None,
         cache_time=0,
         default_timeout=300,
+        api_name="",
     ):
         """
         初始化一个请求句柄
@@ -126,6 +140,7 @@ class DataAPI(object):
         @param {int} default_timeout 默认超时时间
         """
         self.url = url
+        self.simple_module = simple_module
         self.module = module
         self.method = method
         self.default_return_value = default_return_value
@@ -144,6 +159,7 @@ class DataAPI(object):
 
         self.cache_time = cache_time
         self.default_timeout = default_timeout
+        self.api_name = api_name
 
     def __call__(
         self,
@@ -203,6 +219,7 @@ class DataAPI(object):
             message += f" path => {url_path}"
         return message
 
+    @SetupObserve(histogram=metrics.app_common_api_call_duration_seconds, get_labels_func=get_labels_func)
     def _send_request(self, params, headers, use_admin=False):
         # 请求前的参数清洗处理
         if self.before_request is not None:
@@ -240,12 +257,21 @@ class DataAPI(object):
             try:
                 raw_response = self._send(params, headers, use_admin=use_admin)
             except requests.exceptions.ReadTimeout as error:
+                metrics.app_common_api_call_exceptions_total.labels(
+                    module=self.simple_module, api=self.url, code="1"
+                ).inc()
                 raise DataAPIException(self, self.get_error_message(str(error)))
             except requests.exceptions.RequestException as error:
+                metrics.app_common_api_call_exceptions_total.labels(
+                    module=self.simple_module, api=self.url, code="2"
+                ).inc()
                 raise DataAPIException(self, self.get_error_message(str(error)))
 
             # http层面的处理结果
             if raw_response.status_code != self.HTTP_STATUS_OK:
+                metrics.app_common_api_call_exceptions_total.labels(
+                    module=self.simple_module, api=self.url, code=str(raw_response.status_code)
+                ).inc()
                 request_response = {
                     "result": False,
                     "message": f"[{raw_response.status_code}]" + (raw_response.text or raw_response.reason),
@@ -263,7 +289,9 @@ class DataAPI(object):
                     raw_response.text,
                 )
                 logger.exception(error_message)
-
+                metrics.app_common_api_call_exceptions_total.labels(
+                    module=self.simple_module, api=self.url, code="3"
+                ).inc()
                 raise DataAPIException(self, _("返回数据格式不正确，结果格式非json."), response=raw_response)
             else:
                 # 防止第三方接口不规范，补充返回数据
