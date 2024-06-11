@@ -144,11 +144,12 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
         package_obj: GsePackages = self.get_object()
         tags: QuerySet = gse_package_handler.get_tag_objs(package_obj.project, package_obj.version)
         tag_name__tag_obj_map: Dict[str, Tag] = {tag.name: tag for tag in tags}
+        tag_descriptions: List[str] = list(tags.values_list("description", flat=True))
 
-        package_desc_obj: GsePackageDesc = GsePackageDesc.objects.get(project=package_obj.project).id
+        package_desc_obj: GsePackageDesc = GsePackageDesc.objects.get(project=package_obj.project)
 
         for tag_info in serializer.validated_data.get("tags", []):
-            if tag_info["action"] == "add":
+            if tag_info["action"] == "add" and tag_info["tag_name"] not in tag_descriptions:
                 GsePackageHandler.handle_add_tag(tag_info["tag_name"], package_obj, package_desc_obj)
             elif tag_info["action"] == "update" and tag_info["tag_id"] in tag_name__tag_obj_map:
                 GsePackageHandler.handle_update_tag(
@@ -611,7 +612,7 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
             # 筛选
             version__pkg_version_info_map = {
                 version: pkg_version_info
-                for version, pkg_version_info in version__pkg_version_info_map.items()
+                for version, pkg_version_info in version__pkg_version_info_map.copy().items()
                 if GsePackageTools.match_criteria(pkg_version_info, validated_data, filter_keys)
             }
         else:
@@ -619,7 +620,7 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
             # 如果count数量不等于包版本最大数量，则说明缺少某些系统的包
             version__pkg_version_info_map = {
                 version: pkg_version_info
-                for version, pkg_version_info in version__pkg_version_info_map.items()
+                for version, pkg_version_info in version__pkg_version_info_map.copy().items()
                 if pkg_version_info["count"] == max_version_count
             }
 

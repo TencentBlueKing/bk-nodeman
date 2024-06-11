@@ -182,22 +182,23 @@ class GsePackageHandler:
         return built_in_tags, custom_tags
 
     @classmethod
-    def handle_add_tag(cls, tag_name: str, package_obj: GsePackages, package_desc_obj: GsePackageDesc):
+    def handle_add_tag(cls, tag_description: str, package_obj: GsePackages, package_desc_obj: GsePackageDesc):
         """
         给已有的agent包新增标签，即添加名为tag_name的标签
-        :param tag_name: 添加的标签名
+        :param tag_description: 添加的标签名
         :param package_obj: Gse包记录
         :param package_desc_obj: Gse包描述记录
         """
         # 如果新增的是内置标签，将原有的内置标签中的target_version进行修改即可，否则创建一个新的标签
-        if tag_name in ["test", "latest", "stable", "测试版本", "最新版本", "稳定版本"]:
-            Tag.objects.filter(name=A[tag_name], target_id=package_desc_obj.id).update(
+        if tag_description in ["test", "latest", "stable", "测试版本", "最新版本", "稳定版本"]:
+            Tag.objects.filter(name=A[tag_description], target_id=package_desc_obj.id).update(
                 target_version=package_obj.version
             )
         else:
+            tag: Tag = Tag.objects.filter(name=A[tag_description], target_id=package_desc_obj.id).first()
             Tag.objects.create(
-                name=GsePackageTools.generate_name_by_description(tag_name),
-                description=tag_name,
+                name=tag.name if tag else GsePackageTools.generate_name_by_description(tag_description),
+                description=tag_description,
                 target_type=TargetType.AGENT.value,
                 target_id=package_desc_obj.id,
                 target_version=package_obj.version,
@@ -216,22 +217,35 @@ class GsePackageHandler:
         # 2. 自定义标签 -> 内置标签
         # 3. 内置标签 -> 自定义标签
         # 4. 自定义标签 -> 自定义标签
+
+        # 处理目标标签
         if tag_name in ["test", "latest", "stable", "测试版本", "最新版本", "稳定版本"]:
-            # 情况1, 2, 将原有内置标签的target_version进行修改
-            # 对应情况1，...
+            # 将目标内置标签的target_version进行修改(情况1, 情况2)
             Tag.objects.filter(name=A[tag_name], target_id=package_desc_obj.id).update(
                 target_version=package_obj.version
             )
 
+            # 如果原有的标签为内置标签(情况1), 需要将原有的内置标签的target_version置空，否则(情况2)删除原有的标签
             if tag_obj.name in ["test", "latest", "stable"]:
-                # 情况
+                # 情况1
                 tag_obj.target_version = ""
                 tag_obj.save()
             else:
+                # 情况2
                 tag_obj.delete()
         else:
-            # 1, 3情况
-            tag_obj.description = tag_name
+            if tag_obj.name in ["test", "latest", "stable"]:
+                tag_obj.target_version = ""
+                tag_obj.save()
+            else:
+                tag_obj.description = tag_name
+                tag_obj.save()
+
+        # 处理原有标签
+        # 如果原有的标签为内置标签, 需要将原有的内置标签的target_version置空，否则(情况2)删除原有的标签
+        if tag_obj.name in ["test", "latest", "stable"]:
+            # 情况1
+            tag_obj.target_version = ""
             tag_obj.save()
 
     @classmethod

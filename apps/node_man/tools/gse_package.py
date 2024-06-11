@@ -147,8 +147,8 @@ class GsePackageTools:
     @classmethod
     def match_criteria(cls, pkg_version_info, validated_data, filter_keys):
         for key in filter_keys:
-            if key == "os" and validated_data["os"] not in pkg_version_info["os_choices"]:
+            if key == "os" and validated_data["os"] in pkg_version_info["os_choices"]:
                 return True
-            elif key == "cpu_arch" and validated_data["cpu_arch"] not in pkg_version_info["cpu_arch_choices"]:
+            elif key == "cpu_arch" and validated_data["cpu_arch"] in pkg_version_info["cpu_arch_choices"]:
                 return True
         return False
