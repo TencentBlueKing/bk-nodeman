@@ -62,6 +62,8 @@ def do_delete(table_name: str, field: str, ids: typing.List[typing.Union[str, in
         metrics.app_clean_data_records_total.labels(task=TASK, table=table_name, source=source).inc(0)
         return
 
+    ids = list(set(ids))
+
     with connection.cursor() as cursor:
         cursor.execute(generate_delete_sql(table_name, field, ids, other_cond=other_cond))
         try:
@@ -243,9 +245,9 @@ def clean_sub_data(config: CleanConfig):
     # 下一次从本轮的最后一个 task 开始
     next_begin: int = sub_tasks[-1]["id"]
     # 在到达最右端时重置
-    if next_begin >= max_id:
-        config.begin = 0
+    config.begin = (next_begin, 0)[next_begin >= max_id]
     logger.info("[clean_sub_data] sub_tasks -> %s, max_id -> %s, next_begin -> %s", len(sub_tasks), max_id, next_begin)
+
     policy_sub_ids: typing.Set[int] = set(
         models.Subscription.objects.filter(category=models.Subscription.CategoryType.POLICY).values_list(
             "id", flat=True
