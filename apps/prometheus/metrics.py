@@ -221,8 +221,8 @@ app_core_cache_decorator_requests_total = Counter(
 
 app_core_cache_decorator_hits_total = Counter(
     name="app_core_cache_decorator_hits_total",
-    documentation="Cumulative count of cache decorator hits per type, per backend, per method.",
-    labelnames=["type", "backend", "method"],
+    documentation="Cumulative count of cache decorator hits per type, per backend, per method, per get_cache",
+    labelnames=["type", "backend", "method", "get_cache"],
 )
 
 app_core_cache_decorator_get_duration_seconds = Histogram(
@@ -270,15 +270,17 @@ app_resource_watch_biz_events_total = Counter(
     labelnames=["bk_biz_id"],
 )
 
-app_clean_subscription_instance_records_total = Counter(
-    name="app_clean_subscription_instance_records_total",
-    documentation="Cumulative count of clean subscription instance records delete data per table.",
-    labelnames=["table_name"],
+
+app_clean_data_duration_seconds = Histogram(
+    name="app_clean_data_duration_seconds",
+    documentation="Histogram of the time (in seconds) each clean data per task, per method, per source.",
+    buckets=get_histogram_buckets_from_env("BKAPP_MONITOR_METRICS_CORE_BUCKETS"),
+    labelnames=["task", "method", "source"],
 )
 
-app_clean_subscription_instance_records_seconds = Histogram(
-    name="app_clean_subscription_instance_records_seconds",
-    documentation="Histogram of clean subscription instance records per sql",
-    buckets=get_histogram_buckets_from_env("BKAPP_MONITOR_METRICS_CLEAN_BUCKETS"),
-    labelnames=["sql"],
+
+app_clean_data_records_total = Counter(
+    name="app_clean_data_records_total",
+    documentation="Cumulative count of clean data records per task, per table, per source",
+    labelnames=["task", "table", "source"],
 )
