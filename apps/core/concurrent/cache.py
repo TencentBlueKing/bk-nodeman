@@ -103,7 +103,7 @@ class FuncCacheDecorator:
                 self.set_to_cache(using=settings.CACHE_BACKEND, key=cache_key, value=func_result)
         elif get_cache or use_fast_cache:
             # cache hit
-            metrics.app_core_cache_decorator_hits_total.labels(**master_labels).inc()
+            metrics.app_core_cache_decorator_hits_total.labels(get_cache=get_cache, **master_labels).inc()
 
         # 缓存预热
         if settings.CACHE_ENABLE_PREHEAT:
@@ -123,6 +123,6 @@ class FuncCacheDecorator:
                 with observe(metrics.app_core_cache_decorator_set_duration_seconds, **slave_labels):
                     self.set_to_cache(using=cache_using, key=cache_key, value=func_result)
             elif get_cache:
-                metrics.app_core_cache_decorator_hits_total.labels(**slave_labels).inc()
+                metrics.app_core_cache_decorator_hits_total.labels(get_cache=get_cache, **slave_labels).inc()
 
         return func_result
