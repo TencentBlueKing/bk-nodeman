@@ -134,16 +134,13 @@ class PackageDescResponseSerializer(serializers.Serializer):
 
 
 class OperateTagSerializer(serializers.Serializer):
-    tag_id = serializers.CharField(required=False)
     tag_name = serializers.CharField(required=False)
+    tag_description = serializers.CharField(required=False)
     action = serializers.ChoiceField(choices=["add", "update", "delete"], label="标签动作")
 
 
 class OperateSerializer(serializers.Serializer):
     is_ready = serializers.BooleanField()
-    modify_tags = serializers.ListField(child=serializers.DictField(), default=[])
-    add_tags = serializers.ListField(child=serializers.CharField(), default=[])
-    remove_tags = serializers.ListField(child=serializers.CharField(), default=[])
     tags = serializers.ListField(child=OperateTagSerializer(), default=[])
 
     def update(self, instance, validated_data):
@@ -155,11 +152,11 @@ class OperateSerializer(serializers.Serializer):
 
     def validate(self, attrs):
         for tag in attrs.get("tags", []):
-            if tag["action"] in ["update", "delete"] and "tag_id" not in tag:
-                raise ValidationError(_("action为update, delete时tag_id要传"))
+            if tag["action"] in ["update", "delete"] and "tag_name" not in tag:
+                raise ValidationError(_("action为update, delete时tag_name要传"))
 
-            elif tag["action"] == "add" and "tag_name" not in tag:
-                raise ValidationError(_("action为add的时候tag_name要传"))
+            elif tag["action"] in ["add", "update"] and "tag_description" not in tag:
+                raise ValidationError(_("action为add, update的时候tag_description要传"))
 
         return attrs
 

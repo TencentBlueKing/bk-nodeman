@@ -14,7 +14,7 @@ from typing import Any, Dict, List
 
 import django_filters
 from django.core.files.uploadedfile import InMemoryUploadedFile
-from django.db.models import Min, QuerySet
+from django.db.models import Min, Q, QuerySet
 from django.http import JsonResponse
 from django.utils.translation import ugettext_lazy as _
 from django_filters.rest_framework import DjangoFilterBackend, FilterSet
@@ -72,6 +72,7 @@ class PackageManageOrderingFilterSet(filters.OrderingFilter):
 class PackageManageFilterClass(FilterSet):
     os = django_filters.BaseInFilter(field_name="os", lookup_expr="in")
     cpu_arch = django_filters.BaseInFilter(field_name="cpu_arch", lookup_expr="in")
+    os_cpu_arch = django_filters.BaseInFilter(field_name="os_cpu_arch", method="filter_os_cpu_arch")
     tag_names = django_filters.BaseInFilter(lookup_expr="in", method="filter_tag_names")
     created_by = django_filters.BaseInFilter(field_name="created_by", lookup_expr="in")
     is_ready = django_filters.BooleanFilter(field_name="is_ready")
@@ -82,6 +83,18 @@ class PackageManageFilterClass(FilterSet):
         if "project" not in self.request.query_params:
             raise ValidationError(_("筛选tag_names时必须传入project"))
         return gse_package_handler.filter_tags(queryset, self.request.query_params["project"], tag_names=tag_names)
+
+    def filter_os_cpu_arch(self, queryset, name, os_cpu_archs):
+        package_query = Q()
+        for os_cpu_arch in os_cpu_archs:
+            try:
+                os, cpu_arch = os_cpu_arch.split("_", 1)
+            except ValueError:
+                raise ValidationError(_("筛选格式应该为{os}_{cpu_arch}"))
+
+            package_query |= Q(os=os, cpu_arch=cpu_arch)
+
+        return queryset.filter(package_query)
 
     class Meta:
         model = GsePackages
@@ -149,62 +162,26 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
         package_desc_obj: GsePackageDesc = GsePackageDesc.objects.get(project=package_obj.project)
 
         for tag_info in serializer.validated_data.get("tags", []):
-            if tag_info["action"] == "add" and tag_info["tag_name"] not in tag_descriptions:
-                GsePackageHandler.handle_add_tag(tag_info["tag_name"], package_obj, package_desc_obj)
-            elif tag_info["action"] == "update" and tag_info["tag_id"] in tag_name__tag_obj_map:
-                GsePackageHandler.handle_update_tag(
-                    tag_info["tag_name"], package_obj, package_desc_obj, tag_name__tag_obj_map["tag_id"]
+            if tag_info["action"] == "add" and tag_info["tag_description"] not in tag_descriptions:
+                GsePackageHandler.handle_add_tag(
+                    tag_description=tag_info["tag_description"],
+                    package_obj=package_obj,
+                    package_desc_obj=package_desc_obj,
                 )
-            elif tag_info["action"] == "delete" and tag_info["tag_id"] in tag_name__tag_obj_map:
-                GsePackageHandler.handle_delete_tag(tag_info["tag_id"], tag_name__tag_obj_map["tag_id"])
-
-            # if tag_info["action"] == "add":
-            #     tag_name = tag_info["tag_name"]
-            #     if tag_name in ["test", "latest", "stable", "测试版本", "最新版本", "稳定版本"]:
-            #         Tag.objects.filter(
-            #             name=constants.A[tag_name], target_id=GsePackageDesc.objects.get(project=instance.project).id
-            #         ).update(target_version=instance.version)
-            #     else:
-            #         Tag.objects.create(
-            #             name=GsePackageTools.generate_name_by_description(tag_info["tag_name"]),
-            #             description=tag_info["tag_name"],
-            #             target_type=TargetType.AGENT.value,
-            #             target_id=GsePackageDesc.objects.get(
-            #                 project=instance.project, category=CategoryType.official
-            #             ).id,
-            #             target_version=instance.version,
-            #         )
-            # elif tag_info["action"] == "update":
-            #     try:
-            #         tag_obj: Tag = tag_name__tag_obj_map[tag_info["tag_id"]]
-            #     except KeyError:
-            #         continue
-            #
-            #     tag_name = tag_info["tag_name"]
-            #     if tag_name in ["test", "latest", "stable", "测试版本", "最新版本", "稳定版本"]:
-            #         Tag.objects.filter(
-            #             name=constants.A[tag_name], target_id=GsePackageDesc.objects.get(project=instance.project).id
-            #         ).update(target_version=instance.version)
-            #         tag_obj.delete()
-            #     else:
-            #         tag_obj.description = tag_info["tag_name"]
-            #         tag_obj.save()
-            # elif tag_info["action"] == "delete":
-            #     try:
-            #         tag_obj: Tag = tag_name__tag_obj_map[tag_info["tag_id"]]
-            #     except KeyError:
-            #         continue
-            #
-            #     tag_id = tag_info["tag_id"]
-            #     if tag_id in ["test", "latest", "stable"]:
-            #         Tag.objects.filter(
-            #             name=tag_id, target_id=GsePackageDesc.objects.get(project=instance.project).id
-            #         ).update(target_version="")
-            #     else:
-            #         tag_obj.delete()
+            elif tag_info["action"] == "update" and tag_info["tag_name"] in tag_name__tag_obj_map:
+                GsePackageHandler.handle_update_tag(
+                    tag_description=tag_info["tag_description"],
+                    package_obj=package_obj,
+                    package_desc_obj=package_desc_obj,
+                    tag_obj=tag_name__tag_obj_map[tag_info["tag_name"]],
+                )
+            elif tag_info["action"] == "delete" and tag_info["tag_name"] in tag_name__tag_obj_map:
+                GsePackageHandler.handle_delete_tag(
+                    tag_name=tag_info["tag_name"], tag_obj=tag_name__tag_obj_map[tag_info["tag_name"]]
+                )
 
     @swagger_auto_schema(
-        operation_summary="操作类动作：启用/停用",
+        operation_summary="操作类动作：启用/停用/修改(新增, 删除)标签",
         body_in=pkg_manage.OperateSerializer,
         responses={200: pkg_manage.PackageSerializer},
         tags=PACKAGE_MANAGE_VIEW_TAGS,
