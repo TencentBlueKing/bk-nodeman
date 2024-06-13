@@ -47,6 +47,7 @@ class HostCheckResponseSer(serializers.Serializer):
 
 class HostDetailsRequestSer(base.ScopeSelectorBaseSer):
     host_list = serializers.ListField(child=base.HostInfoWithMetaSer(), default=[])
+    agent_realtime_state = serializers.BooleanField(label=_("agent实时状态"), required=False, default=False)
 
     class Meta:
         swagger_schema_fields = {"example": mock_data.API_HOST_DETAILS_REQUEST}

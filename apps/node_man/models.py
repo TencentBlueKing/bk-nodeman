@@ -162,6 +162,8 @@ class GlobalSettings(models.Model):
         PLUGIN_PROC_START_CHECK_SECS = "PLUGIN_PROC_START_CHECK_SECS"
         # 查询服务实例时module_id阈值，当小于该阈值时以单module_id并发查询
         SERVICE_INSTANCE_MODULE_ID_THRESHOLD = "SERVICE_INSTANCE_MODULE_ID_THRESHOLD"
+        # IP选择器详情接口是否实时展示agent状态
+        IP_CHOOSER_ENABLE_SHOW_REALTIME_AGENT_STATE = "IP_CHOOSER_ENABLE_SHOW_REALTIME_AGENT_STATE"
 
     key = models.CharField(_("键"), max_length=255, db_index=True, primary_key=True)
     v_json = JSONField(_("值"))
