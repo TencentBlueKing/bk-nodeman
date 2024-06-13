@@ -128,6 +128,8 @@ class IpChooserHostViewSet(APIViewSet):
     def details(self, request, *args, **kwargs):
         return Response(
             host_handler.HostHandler.details(
-                scope_list=self.validated_data["scope_list"], host_list=self.validated_data["host_list"]
+                scope_list=self.validated_data["scope_list"],
+                host_list=self.validated_data["host_list"],
+                show_agent_realtime_state=self.validated_data["agent_realtime_state"],
             )
         )

@@ -12,6 +12,9 @@ import typing
 
 from django_mysql.models import QuerySet
 
+from apps.core.ipchooser.tools.host_tool import HostTool
+from apps.node_man.models import GlobalSettings
+
 from .. import constants, types
 from ..tools import base
 from .base import BaseHandler
@@ -23,12 +26,14 @@ class HostHandler:
         scope_list: types.ScopeList,
         or_conditions: typing.List[types.Condition],
         limit_host_ids: typing.Optional[typing.List[int]] = None,
+        show_agent_realtime_state: bool = False,
     ) -> typing.List[types.FormatHostInfo]:
         """
         获取主机详情
         :param scope_list: 资源范围数组
         :param or_conditions: 逻辑或查询条件
         :param limit_host_ids: 限制检索的主机 ID 列表
+        :param show_agent_realtime_state: 是否展示Agent实时状态
         :return:
         """
         host_queryset: QuerySet = base.HostQuerySqlHelper.multiple_cond_sql(
@@ -40,6 +45,15 @@ class HostHandler:
         # 获取主机信息
         host_fields: typing.List[str] = constants.CommonEnum.DEFAULT_HOST_FIELDS.value
         untreated_host_infos: typing.List[types.HostInfo] = list(host_queryset.values(*host_fields))
+
+        if show_agent_realtime_state:
+            enable = GlobalSettings.get_config(
+                key=GlobalSettings.KeyEnum.IP_CHOOSER_ENABLE_SHOW_REALTIME_AGENT_STATE.value, default=False
+            )
+            if not enable:
+                return BaseHandler.format_hosts(untreated_host_infos)
+            HostTool.fill_agent_state_info_to_hosts(host_infos=untreated_host_infos)
+
         return BaseHandler.format_hosts(untreated_host_infos)
 
     @classmethod
@@ -107,12 +121,13 @@ class HostHandler:
 
     @classmethod
     def details(
-        cls, scope_list: types.ScopeList, host_list: typing.List[types.FormatHostInfo]
+        cls, scope_list: types.ScopeList, host_list: typing.List[types.FormatHostInfo], show_agent_realtime_state: bool
     ) -> typing.List[types.FormatHostInfo]:
         """
         根据主机关键信息获取机器详情信息
         :param scope_list: 资源范围数组
         :param host_list: 主机关键信息列表
+        :param show_agent_realtime_state: 是否展示Agent实时状态
         :return:
         """
         bk_host_id_set: typing.Set[int] = set()
@@ -129,4 +144,4 @@ class HostHandler:
             {"key": "bk_host_id", "val": bk_host_id_set},
             {"key": "cloud_inner_ip", "val": cloud_inner_ip_set},
         ]
-        return cls.details_base(scope_list, or_conditions)
+        return cls.details_base(scope_list, or_conditions, show_agent_realtime_state=show_agent_realtime_state)
