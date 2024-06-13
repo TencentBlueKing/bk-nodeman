@@ -538,7 +538,7 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
             .values("version", "project", "pkg_name", "os", "cpu_arch")
         )
 
-        version__pkg_version_info_map: Dict[str, Dict[str, Any]] = {}
+        version__pkg_info_map: Dict[str, Dict[str, Any]] = {}
         max_version_count: int = 0
         default_version: str = ""
         for package in gse_packages:
@@ -554,8 +554,8 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
                 default_version = version
 
             # 初始化某个版本的包
-            if version not in version__pkg_version_info_map:
-                version__pkg_version_info_map[version] = {
+            if version not in version__pkg_info_map:
+                version__pkg_info_map[version] = {
                     "version": version,
                     "project": project,
                     "packages": [],
@@ -567,29 +567,38 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
                 }
 
             # 累加同个版本包的数量，并统计版本包最大数量
-            version__pkg_version_info_map[version]["count"] += 1
-            max_version_count = max(max_version_count, version__pkg_version_info_map[version]["count"])
+            version__pkg_info_map[version]["count"] += 1
+            max_version_count = max(max_version_count, version__pkg_info_map[version]["count"])
 
             # 聚合操作系统和cpu架构信息
-            version__pkg_version_info_map[version]["os_choices"].add(package["os"])
-            version__pkg_version_info_map[version]["cpu_arch_choices"].add(package["cpu_arch"])
+            version__pkg_info_map[version]["os_choices"].add(package["os"])
+            version__pkg_info_map[version]["cpu_arch_choices"].add(package["cpu_arch"])
 
             # 添加小包包名和小包标签信息
-            version__pkg_version_info_map[version]["packages"].append(
+            version__pkg_info_map[version]["packages"].append(
                 {"pkg_name": pkg_name, "tags": tags, "os": package["os"], "cpu_arch": package["cpu_arch"]}
             )
 
             # 将上一次的标签和这次的标签取共同的部分
-            last_tags: List[Dict[str, Any]] = version__pkg_version_info_map[version]["tags"]
+            last_tags: List[Dict[str, Any]] = version__pkg_info_map[version]["tags"]
             if last_tags != tags:
-                version__pkg_version_info_map[version]["tags"] = [tag for tag in last_tags if tag in tags]
+                version__pkg_info_map[version]["tags"] = [tag for tag in last_tags if tag in tags]
+
+        # 按版本排序
+        version__pkg_info_map = dict(
+            sorted(
+                version__pkg_info_map.items(),
+                key=lambda version__pkg_info_tuple: GsePackageTools.extract_numbers(version__pkg_info_tuple[0]),
+                reverse=True,
+            )
+        )
 
         filter_keys = [key for key in ["os", "cpu_arch"] if key in validated_data]
         if filter_keys:
             # 筛选
             version__pkg_version_info_map = {
                 version: pkg_version_info
-                for version, pkg_version_info in version__pkg_version_info_map.copy().items()
+                for version, pkg_version_info in version__pkg_info_map.copy().items()
                 if GsePackageTools.match_criteria(pkg_version_info, validated_data, filter_keys)
             }
         else:
@@ -597,7 +606,7 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
             # 如果count数量不等于包版本最大数量，则说明缺少某些系统的包
             version__pkg_version_info_map = {
                 version: pkg_version_info
-                for version, pkg_version_info in version__pkg_version_info_map.copy().items()
+                for version, pkg_version_info in version__pkg_info_map.copy().items()
                 if pkg_version_info["count"] == max_version_count
             }
 
