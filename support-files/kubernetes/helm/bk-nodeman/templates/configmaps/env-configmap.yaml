@@ -126,3 +126,6 @@ data:
   BK_DOCS_CENTER_HOST: "{{ .Values.bkDocsCenterHost }}"
 
   BKAPP_SYNC_PROC_STATUS_TASK_INTERVAL: "{{ .Values.config.bkAppSyncProcStatusTaskInterval }}"
+
+  BKPAAS_SHARED_RES_URL: "{{ .Values.config.sharedResUrl }}"
+  BKPAAS_SHARED_APP_CODE: "{{ .Values.config.SharedAppCode }}"

@@ -466,6 +466,11 @@ config:
   ## 插件进程状态同步周期
   bkAppSyncProcStatusTaskInterval: 1200
 
+  ## 新制品库路径
+  sharedResUrl: ""
+  ## 新制品库app_code
+  SharedAppCode: ""
+
 
 ## --------------------------------------
 ## 节点管理后台环境变量配置
