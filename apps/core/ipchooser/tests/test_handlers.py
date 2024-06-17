@@ -76,3 +76,15 @@ class TestHostHandler(TestCase):
         )
         self.assertEqual(res[0]["alive"], 1)
         self.assertEqual(res[0]["bk_agent_alive"], 1)
+
+        # 验证业务白名单
+        models.GlobalSettings.set_config(
+            key=models.GlobalSettings.KeyEnum.IP_CHOOSER_BIZ_WHITELIST.value, value=list(range(27, 40))
+        )
+        result = HostHandler.details(
+            scope_list=[{"scope_type": "biz", "scope_id": f"{i}", "bk_biz_id": i} for i in range(27, 40)],
+            host_list=[{"host_id": 2, "meta": {"scope_type": "biz", "scope_id": "29", "bk_biz_id": 29}}],
+            show_agent_realtime_state=False,
+        )
+        self.assertEqual(result[0]["alive"], 1)
+        self.assertEqual(result[0]["bk_agent_alive"], 1)
