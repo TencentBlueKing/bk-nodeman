@@ -1,5 +1,108 @@
 # Release
 
+## 2.4.5 - 2024-06-17 
+
+### 🚀 Features
+
+- feat: MAC OS安装脚本适配 (closed #2084)
+
+- feat: Agent 安装适配单机多 IP 场景 (closed #2101)
+
+- feat: 主机「复制」按钮支持导出「管控区域 ID:IP」(closed #1963)
+
+- feat: 「管控区域」「agent版本」筛选能力优化 (closde #1752)
+
+- feat: 安装接口增加force_update_agent_id参数 (closed #2132)
+
+- feat: instance_status 接口优化 (closed #2149)
+
+- feat: MySQL bool 条件查询优化 (closed #2151)
+
+- feat: IP 选择器接口兼容 cc 字段命名规范 (closed #2162)
+
+- feat: 优化 Linux 安装脚本 cd 目录不存在脚本不退出的问题 (closed #2145)
+
+- feat:  后台 Job 任务支持在非全业务集下执行 (closed #2158)
+
+- feat: 对 P-Agent 安装依赖更新场景提供文件原子操作支持 (closed #2194)
+
+- feat: 优化进程启动时间为可配置项 (closed #2178)
+
+- feat: 支持通过环境变量调整插件进程状态同步周期 (closed #2228)
+
+- feat: 插件安装支持不存在主机差量同步 (closed #2183)
+
+- feat: Node 版本升级至 16.15.0 (closed #2266)
+
+- feat: 支持周期清理订阅实例记录(closed #1896)
+
+- feat: 提供任务执行数据定期清理的能力 (closed #1896)
+
+- feat: 提供 Job 接口限流机制 (closed #2268)
+
+- feat: IP选择器查询主机状态接口增加实时功能 (closed #2271)
+
+
+### ✨ Optimizations
+
+- style: 安装/重装如果未填写登录IP不记录登录IP字段 (closed #2053)
+
+
+### 🐛 Bugfixes
+
+- bugfix: 修复插件状态页获取插件主机筛选条件接口慢导致UI阻塞问题(closed #2120)
+
+- bugfix: 插件自定义变量渲染问题(closed #2134)
+
+- fix: 订阅时查询服务实例详情因查询数量过多导致esb内存增加 (closed #2174)
+
+- fix: 安装额外agent获取订阅实例时出现索引越界 (closed #2197)
+
+- fix: 服务节点条件下查询服务实例详情因查询数量过多导致esb内存增加 (closed #2193)
+
+- fix: 修复日志平台重试报错「不存在失败任务」的问题 (fixed #2207)
+
+- fix: 修复获取服务实例过程中因业务id不存在而出现错误 (closed #2209)
+
+- fix: 修复回环检测误判 wmiexe 的问题 (fixed #2194)
+
+- fix: 修复重试接口实例快照筛选不生效的问题 (fixed #2207)
+
+- fix: 修复单业务文件分发创建文件源问题 (closed #2215)
+
+- fix: 服务实例并发请求数量过大
+
+- fix: 解决给主机添加process时并发请求数量过大 (closed #2223)
+
+- fix: 修复订阅任务详情接口报错关联任务不存在的问题 (fixed #2237)
+
+- fix: 修复订阅关联服务实例获取失败的问题 (fixed #2237)
+
+- fix: 修复订阅关联 CMDB 进程获取不到的问题 (fixed #2237)
+
+- fix: 安装P-Agent未在非全业务集下执行 (closed #2233)
+
+- fix: 安装额外agent时因任务未就绪拉取空列表导致整体流程失败 (closed #2196)
+
+- fix: 同步主机差量逻辑修复 (closed #2167)
+
+- fix: 订阅实例属性is_latest为False导致巡检未执行 (closed #2189)
+
+
+### ✏️ Docs
+
+- docs: 蓝盾Agent安装支持手动安装 (closed #2211)
+
+
+## 📦 Dependencies
+
+- chore: 删除husky校验(closed #2102)
+
+
+
+**Full Changelog**: https://github.com/TencentBlueKing/bk-nodeman/compare/v2.4.4...v2.4.5
+
+
 ## 2.4.4 - 2024-06-14 
 
 ### 🚀 Features
