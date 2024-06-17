@@ -46,6 +46,19 @@ class HostHandler:
         host_fields: typing.List[str] = constants.CommonEnum.DEFAULT_HOST_FIELDS.value
         untreated_host_infos: typing.List[types.HostInfo] = list(host_queryset.values(*host_fields))
 
+        bk_biz_ids: typing.List[int] = [scope["bk_biz_id"] for scope in scope_list]
+        biz_whitelist: typing.List[int] = GlobalSettings.get_config(
+            key=GlobalSettings.KeyEnum.IP_CHOOSER_BIZ_WHITELIST.value, default=[]
+        )
+        if any(
+            [
+                bk_biz_ids in biz_whitelist,
+                set(bk_biz_ids) & set(biz_whitelist),
+            ]
+        ):
+            HostTool.fill_agent_state_info_to_hosts(host_infos=untreated_host_infos)
+            return BaseHandler.format_hosts(untreated_host_infos)
+
         if show_agent_realtime_state:
             enable = GlobalSettings.get_config(
                 key=GlobalSettings.KeyEnum.IP_CHOOSER_ENABLE_SHOW_REALTIME_AGENT_STATE.value, default=False
