@@ -60,6 +60,10 @@ __all__ = [
     "BK_DOMAIN",
     # 插件进程状态同步周期
     "BKAPP_SYNC_PROC_STATUS_TASK_INTERVAL",
+    # 新制品库路径
+    "BKPAAS_SHARED_RES_URL",
+    # 新制品库app_code
+    "BKPAAS_SHARED_APP_CODE",
 ]
 
 # ===============================================================================
@@ -181,3 +185,9 @@ BKAPP_NAV_HELPER_URL = get_type_env(
 # 文档中心跳转路由
 
 BK_DOCS_CENTER_HOST = get_type_env(key="BK_DOCS_CENTER_HOST", default="", _type=str)
+
+# 新制品库路径
+BKPAAS_SHARED_RES_URL = get_type_env(key="BKPAAS_SHARED_RES_URL", default="", _type=str)
+
+# 新制品库app_code
+BKPAAS_SHARED_APP_CODE = get_type_env(key="BKPAAS_SHARED_APP_CODE", default="", _type=str)
