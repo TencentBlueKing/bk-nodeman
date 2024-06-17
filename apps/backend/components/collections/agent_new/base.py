@@ -165,6 +165,33 @@ class AgentBaseService(BaseService, metaclass=abc.ABCMeta):
 
         return (agent_pkg_name.format(cpu_arch=host.cpu_arch), agent_pkg_name)[return_name_with_cpu_tmpl]
 
+    @classmethod
+    def get_legacy_aix_agent_pkg_name(
+        cls,
+        host: models.Host,
+        is_upgrade: bool = False,
+    ) -> List[str]:
+        # aix系统在安装时Nodeman不知道是具体是aix6或aix7故需要提供aix的所有安装包
+        # 临时方法 仅用于全新安装的aix系统和升级包 后续建议在aix中增加aix6或aix7这类标识
+        pkg_suffix = "_upgrade" if is_upgrade else ""
+        pkg_names = []
+        if host.os_version:
+            major_version_number = None
+            major_version_match: Optional[Match] = re.compile(r"^(?P<version>\d+).\d+.*$").search(host.os_version or "")
+            major_version_number: Optional[str] = major_version_match.group("version") if major_version_match else ""
+            if not major_version_number:
+                raise OsVersionPackageValidationError(os_version=host.os_version, os_type=host.os_type)
+            pkg_names = [
+                # aix只有powerpc的架构
+                f"gse_client-{host.os_type.lower()}{major_version_number}-powerpc"
+                + f"{pkg_suffix}.tgz"
+            ]
+        else:
+            pkg_names.append(f"gse_client-{host.os_type.lower()}6-powerpc" + f"{pkg_suffix}.tgz")
+            pkg_names.append(f"gse_client-{host.os_type.lower()}7-powerpc" + f"{pkg_suffix}.tgz")
+
+        return pkg_names
+
     def get_agent_pkg_dir(self, common_data: "AgentCommonData", host: models.Host) -> str:
         """
         获取 Agent 安装包目录

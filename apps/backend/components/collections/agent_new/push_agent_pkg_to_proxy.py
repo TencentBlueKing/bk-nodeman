@@ -75,13 +75,17 @@ class PushAgentPkgToProxyService(AgentTransferFileService):
         pkg_name = self.get_agent_pkg_name(common_data, host, return_name_with_cpu_tmpl=True)
 
         if common_data.agent_step_adapter.is_legacy:
-            file_list = []
-            # 由于实际安装前 CPU 架构未知，此处对同操作系统的各类架构包进行一并下发
-            for cpu_arch in constants.CPU_TUPLE:
-                pkg_path = "/".join([agent_dir, pkg_name.format(cpu_arch=cpu_arch)])
-                if storage.exists(pkg_path):
-                    file_list.append(pkg_path)
-            job_file_params = [{"file_list": file_list, "file_target_path": agent_dir}]
+            if host.os_type == constants.OsType.AIX:
+                pkg_names = ["/".join([agent_dir, pkg]) for pkg in self.get_legacy_aix_agent_pkg_name(host)]
+                job_file_params = [{"file_list": pkg_names, "file_target_path": agent_dir}]
+            else:
+                file_list = []
+                # 由于实际安装前 CPU 架构未知，此处对同操作系统的各类架构包进行一并下发
+                for cpu_arch in constants.CPU_TUPLE:
+                    pkg_path = "/".join([agent_dir, pkg_name.format(cpu_arch=cpu_arch)])
+                    if storage.exists(pkg_path):
+                        file_list.append(pkg_path)
+                job_file_params = [{"file_list": file_list, "file_target_path": agent_dir}]
         else:
             cpu_arch_list, _ = storage.listdir(agent_dir)
             job_file_params = [
