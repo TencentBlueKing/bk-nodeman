@@ -164,6 +164,8 @@ class GlobalSettings(models.Model):
         SERVICE_INSTANCE_MODULE_ID_THRESHOLD = "SERVICE_INSTANCE_MODULE_ID_THRESHOLD"
         # IP选择器详情接口是否实时展示agent状态
         IP_CHOOSER_ENABLE_SHOW_REALTIME_AGENT_STATE = "IP_CHOOSER_ENABLE_SHOW_REALTIME_AGENT_STATE"
+        # IP选择器详情接口实时展示agent状态业务白名单
+        IP_CHOOSER_BIZ_WHITELIST = "IP_CHOOSER_BIZ_WHITELIST"
 
     key = models.CharField(_("键"), max_length=255, db_index=True, primary_key=True)
     v_json = JSONField(_("值"))
