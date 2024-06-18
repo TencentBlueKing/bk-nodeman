@@ -256,7 +256,7 @@ export default class ParserExcel extends Vue {
             const data = MainStore.bkBizList.find(data => data.bk_biz_name === item[`${key}${this.$tc('可选')}`]);
             info[header.prop] = data && !isEmpty(data.bk_biz_id) ? data.bk_biz_id : '';
           } else if (key === this.$tc('管控区域')) {
-            const data = AgentStore.cloudList.find(data => data.bk_cloud_name === item[`${key}${this.$tc('可选')}`]);
+            const data = AgentStore.cloudList.find(data => data.bk_cloud_name === String(item[`${key}${this.$tc('可选')}`]));
             info[header.prop] = data && !isEmpty(data.bk_cloud_id) ? data.bk_cloud_id : '';
           } else if (key === this.$tc('接入点')) {
             const data = AgentStore.apList.find(data => data.name === item[`${key}${this.$tc('可选')}`]);
