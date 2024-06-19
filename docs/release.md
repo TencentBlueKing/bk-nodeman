@@ -1,5 +1,27 @@
 # Release
 
+## 2.4.6 - 2024-06-19 
+
+### 🚀 Features
+
+- feat: 支持特殊业务实时获取Agent状态 (closed #2285)
+
+- feat: 支持通过环境变量配置 Agent 安装前置脚本 (closed #2236)
+
+- feat: pagent获取上游节点ip时根据pagent提供的ip类型选择对应节点(closed #2032)
+
+
+### 🐛 Bugfixes
+
+- fix: 修复全新安装aix6\7 job分发安装包失败的问题(closed #2213)
+
+- fix: fix: MacOS 插件重启优化(closed #2291)
+
+
+
+**Full Changelog**: https://github.com/TencentBlueKing/bk-nodeman/compare/v2.4.5...v2.4.6
+
+
 ## 2.4.5 - 2024-06-17 
 
 ### 🚀 Features
