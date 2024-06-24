@@ -14,7 +14,7 @@
         :rules="rules.outerIp"
         required
         :desc="descOuterIpTip">
-        <bk-input v-model="proxyData.outer_ip"></bk-input>
+        <bk-input v-model="proxyData.outer_ip" :placeholder="$t('多个外网IP用英文逗号分隔')"></bk-input>
       </bk-form-item>
       <bk-form-item required :label="$t('登录IP')" property="login_ip" error-display-type="normal" :rules="rules.loginIp">
         <bk-input v-model="proxyData.login_ip" :placeholder="$t('留空默认为内网IP')"></bk-input>
