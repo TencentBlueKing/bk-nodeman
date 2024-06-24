@@ -60,6 +60,8 @@ class TestHostHandler(TestCase):
         self.assertEqual(res[0]["ipv6"], "0000:0000:0000:0000:0000:ffff:7f00:0002")
 
     @patch("apps.core.ipchooser.query.resource.CCApi", MockClient.cc)
+    @patch("apps.core.ipchooser.handlers.host_handler.CCApi", MockClient.cc)
+    @patch("apps.node_man.periodic_tasks.sync_cmdb_host.client_v2", MockClient)
     @patch(
         "apps.node_man.periodic_tasks.sync_agent_status_task.get_gse_api_helper",
         get_gse_api_helper(GseVersion.V2.value, GseApiMockClient()),
@@ -88,3 +90,12 @@ class TestHostHandler(TestCase):
         )
         self.assertEqual(result[0]["alive"], 1)
         self.assertEqual(result[0]["bk_agent_alive"], 1)
+
+        # 验证主机不存进同步
+        result = HostHandler.details(
+            scope_list=[{"scope_type": "biz", "scope_id": "100001", "bk_biz_id": 100001}],
+            host_list=[{"host_id": 14110, "meta": {"scope_type": "biz", "scope_id": "100001", "bk_biz_id": 100001}}],
+            show_agent_realtime_state=False,
+        )
+        self.assertEqual(result[0]["alive"], 0)
+        self.assertEqual(result[0]["bk_agent_alive"], 0)
