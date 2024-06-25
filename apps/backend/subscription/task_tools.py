@@ -324,10 +324,13 @@ def update_inst_record_status(
         record_id_gby_status[instance_status["status"]].append(instance_status["record_id"])
 
     with transaction.atomic():
+        batch_size = models.GlobalSettings.get_config("BATCH_SIZE", default=100)
         for status, record_ids in record_id_gby_status.items():
-            models.SubscriptionInstanceRecord.objects.filter(id__in=record_ids).update(
-                status=status, update_time=timezone.now()
-            )
+            for i in range(0, len(record_ids), batch_size):
+                batch_record_ids = record_ids[i : i + batch_size]
+                models.SubscriptionInstanceRecord.objects.filter(id__in=batch_record_ids).update(
+                    status=status, update_time=timezone.now()
+                )
 
 
 def transfer_instance_record_status(subscription_ids: List[int] = None):

@@ -349,12 +349,21 @@ class PluginStep(Step):
 
         elif self.subscription.object_type == self.subscription.ObjectType.HOST:
             # 如果 Agent 状态异常，标记异常并且不执行变更，等到 Agent 状态恢复再执行卸载
-            host_ids_with_alive_agent = models.ProcessStatus.objects.filter(
-                name=models.ProcessStatus.GSE_AGENT_PROCESS_NAME,
-                source_type=models.ProcessStatus.SourceType.DEFAULT,
-                bk_host_id__in=uninstall_ids,
-                status=constants.ProcStateType.RUNNING,
-            ).values_list("bk_host_id", flat=True)
+            batch_size = models.GlobalSettings.get_config("BATCH_SIZE", default=100)
+            host_ids_with_alive_agent = []
+            for i in range(0, len(uninstall_ids), batch_size):
+                batch_uninstall_ids = uninstall_ids[i : i + 1000]
+                batch_host_ids = (
+                    models.ProcessStatus.objects.only("bk_host_id")
+                    .filter(
+                        name=models.ProcessStatus.GSE_AGENT_PROCESS_NAME,
+                        source_type=models.ProcessStatus.SourceType.DEFAULT,
+                        bk_host_id__in=batch_uninstall_ids,
+                        status=constants.ProcStateType.RUNNING,
+                    )
+                    .values_list("bk_host_id", flat=True)
+                )
+                host_ids_with_alive_agent.extend(batch_host_ids)
 
             host_ids_with_no_alive_agent = set(uninstall_ids) - set(host_ids_with_alive_agent)
             for host_id in host_ids_with_no_alive_agent:
