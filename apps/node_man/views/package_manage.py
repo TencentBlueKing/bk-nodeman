@@ -151,34 +151,45 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
     def perform_update(self, serializer):
         serializer.save()
 
-        if not serializer.validated_data.get("tags"):
+        if "tags" not in serializer.validated_data:
             return
 
         package_obj: GsePackages = self.get_object()
         tags: QuerySet = gse_package_handler.get_tag_objs(package_obj.project, package_obj.version)
-        tag_name__tag_obj_map: Dict[str, Tag] = {tag.name: tag for tag in tags}
-        tag_descriptions: List[str] = list(tags.values_list("description", flat=True))
+        tags.filter(name__in=["latest", "test", "stable"]).update(target_version="")
+        tags.exclude(name__in=["latest", "test", "stable"]).delete()
 
         package_desc_obj: GsePackageDesc = GsePackageDesc.objects.get(project=package_obj.project)
+        for tag_description in serializer.validated_data["tags"]:
+            GsePackageHandler.handle_add_tag(
+                tag_description=tag_description,
+                package_obj=package_obj,
+                package_desc_obj=package_desc_obj,
+            )
 
-        for tag_info in serializer.validated_data.get("tags", []):
-            if tag_info["action"] == "add" and tag_info["tag_description"] not in tag_descriptions:
-                GsePackageHandler.handle_add_tag(
-                    tag_description=tag_info["tag_description"],
-                    package_obj=package_obj,
-                    package_desc_obj=package_desc_obj,
-                )
-            elif tag_info["action"] == "update" and tag_info["tag_name"] in tag_name__tag_obj_map:
-                GsePackageHandler.handle_update_tag(
-                    tag_description=tag_info["tag_description"],
-                    package_obj=package_obj,
-                    package_desc_obj=package_desc_obj,
-                    tag_obj=tag_name__tag_obj_map[tag_info["tag_name"]],
-                )
-            elif tag_info["action"] == "delete" and tag_info["tag_name"] in tag_name__tag_obj_map:
-                GsePackageHandler.handle_delete_tag(
-                    tag_name=tag_info["tag_name"], tag_obj=tag_name__tag_obj_map[tag_info["tag_name"]]
-                )
+        # tag_name__tag_obj_map: Dict[str, Tag] = {tag.name: tag for tag in tags}
+        # tag_descriptions: List[str] = list(tags.values_list("description", flat=True))
+        #
+        # package_desc_obj: GsePackageDesc = GsePackageDesc.objects.get(project=package_obj.project)
+        #
+        # for tag_info in serializer.validated_data.get("tags", []):
+        #     if tag_info["action"] == "add" and tag_info["tag_description"] not in tag_descriptions:
+        #         GsePackageHandler.handle_add_tag(
+        #             tag_description=tag_info["tag_description"],
+        #             package_obj=package_obj,
+        #             package_desc_obj=package_desc_obj,
+        #         )
+        #     elif tag_info["action"] == "update" and tag_info["tag_name"] in tag_name__tag_obj_map:
+        #         GsePackageHandler.handle_update_tag(
+        #             tag_description=tag_info["tag_description"],
+        #             package_obj=package_obj,
+        #             package_desc_obj=package_desc_obj,
+        #             tag_obj=tag_name__tag_obj_map[tag_info["tag_name"]],
+        #         )
+        #     elif tag_info["action"] == "delete" and tag_info["tag_name"] in tag_name__tag_obj_map:
+        #         GsePackageHandler.handle_delete_tag(
+        #             tag_name=tag_info["tag_name"], tag_obj=tag_name__tag_obj_map[tag_info["tag_name"]]
+        #         )
 
     @swagger_auto_schema(
         operation_summary="操作类动作：启用/停用/修改(新增, 删除)标签",
@@ -610,8 +621,22 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
                 if pkg_version_info["count"] == max_version_count
             }
 
+        package_versions: List = list(version__pkg_version_info_map.keys())
+        is_visible: bool = True
+        machine_latest_version: str = ""
+        if validated_data.get("versions", ""):
+            machine_versions = validated_data["versions"].split(",")
+            machine_latest_version = max(machine_versions, key=GsePackageTools.extract_numbers)
+
+            for machine_version in machine_versions:
+                if machine_version not in package_versions:
+                    is_visible = False
+
         return Response(
             {
+                "machine_latest_version": machine_latest_version,
+                "package_latest_version": list(version__pkg_version_info_map.keys())[0],
+                "is_visible": is_visible,
                 "default_version": default_version,
                 "pkg_info": list(version__pkg_version_info_map.values()),
             }

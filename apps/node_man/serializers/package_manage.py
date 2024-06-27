@@ -140,8 +140,9 @@ class OperateTagSerializer(serializers.Serializer):
 
 
 class OperateSerializer(serializers.Serializer):
-    is_ready = serializers.BooleanField()
-    tags = serializers.ListField(child=OperateTagSerializer(), default=[])
+    is_ready = serializers.BooleanField(required=False)
+    # tags = serializers.ListField(child=OperateTagSerializer(), default=[])
+    tags = serializers.ListField(required=False)
 
     def update(self, instance, validated_data):
         for attr, value in validated_data.items():
@@ -149,16 +150,6 @@ class OperateSerializer(serializers.Serializer):
 
         instance.save()
         return instance
-
-    def validate(self, attrs):
-        for tag in attrs.get("tags", []):
-            if tag["action"] in ["update", "delete"] and "tag_name" not in tag:
-                raise ValidationError(_("action为update, delete时tag_name要传"))
-
-            elif tag["action"] in ["add", "update"] and "tag_description" not in tag:
-                raise ValidationError(_("action为add, update的时候tag_description要传"))
-
-        return attrs
 
 
 class QuickSearchSerializer(serializers.Serializer):
@@ -250,3 +241,4 @@ class VersionQuerySerializer(serializers.Serializer):
     project = serializers.CharField()
     os = serializers.CharField(required=False)
     cpu_arch = serializers.CharField(required=False)
+    versions = serializers.CharField(required=False)
