@@ -32,9 +32,10 @@ from apps.backend.utils.redis import REDIS_INST
 from apps.core.remote import exceptions
 from apps.core.remote.tests import base
 from apps.core.remote.tests.base import AsyncMockConn
+from apps.core.script_manage.data import JUMP_SERVER_POLICY_SCRIPT_INFO
 from apps.core.script_manage.handlers import ScriptManageHandler
 from apps.exceptions import ApiResultError
-from apps.mock_data import api_mkd
+from apps.mock_data import api_mkd, common_unit
 from apps.mock_data import utils as mock_data_utils
 from apps.node_man import constants, models
 from env.constants import GseVersion
@@ -1260,3 +1261,92 @@ class WindowsActiveFirewallPolicyNotInDirectAreaTestCase(WindowsActiveFirewallPo
                 list(failed_subscription_instance_id_reason_map.values()),
                 [f"管控区域 -> {self.update_cloud_id} 下无存活的 Proxy"],
             )
+
+
+class OpenJumpPolicyUsingChannelInDirect(InstallAgentWithInstallChannelSuccessTest):
+    OS_TYPE = constants.OsType.WINDOWS
+
+    def test_gen_install_channel_agent_command(self):
+
+        host = models.Host.objects.get(bk_host_id=self.obj_factory.bk_host_ids[0])
+        script_hook_objs = ScriptManageHandler.fetch_match_script_hook_objs(
+            [{"name": "jump_server_policy"}], host.os_type
+        )
+        installation_tool = gen_commands(
+            self.LEGACY_SETUP_INFO,
+            host,
+            mock_data_utils.JOB_TASK_PIPELINE_ID,
+            is_uninstall=False,
+            sub_inst_id=0,
+            script_hook_objs=script_hook_objs,
+        )
+
+        shell_solutions, batch_solutions = installation_tool.type__execution_solution_map["shell"].target_host_solutions
+
+        # windows shell方案 新增第二步(原来只有四步，多了一步开通跳板机策略)
+        self.assertEqual(len(shell_solutions.steps), 5)
+        self.assertEqual(
+            shell_solutions.steps[1].contents[0].text,
+            JUMP_SERVER_POLICY_SCRIPT_INFO.oneline.format(jump_server_lan_ip=common_unit.host.PROXY_INNER_IP),
+        )
+
+        # windows batch方案 新增第一步(原来只有三步，多了一步开通跳板机策略)
+        self.assertEqual(len(batch_solutions.steps), 4)
+        self.assertEqual(
+            batch_solutions.steps[1].contents[0].text,
+            JUMP_SERVER_POLICY_SCRIPT_INFO.oneline.format(jump_server_lan_ip=common_unit.host.PROXY_INNER_IP),
+        )
+
+
+class OpenJumpPolicyNoUsingChannelInDirect(InstallAgent2WindowsTestCase):
+    @override_settings(GSE_ENVIRON_WIN_DIR=mock_data_utils.GSE_ENVIRON_WIN_DIR)
+    def test_batch_solution(self):
+        host = models.Host.objects.get(bk_host_id=self.obj_factory.bk_host_ids[0])
+        script_hook_objs = ScriptManageHandler.fetch_match_script_hook_objs(
+            [{"name": "jump_server_policy"}], host.os_type
+        )
+        agent_step_adapter: AgentStepAdapter = AgentStepAdapter(
+            self.obj_factory.sub_step_objs[0],
+            gse_version=GseVersion.V2.value,
+        )
+        installation_tool = gen_commands(
+            agent_step_adapter.setup_info,
+            host,
+            mock_data_utils.JOB_TASK_PIPELINE_ID,
+            is_uninstall=False,
+            sub_inst_id=0,
+            script_hook_objs=script_hook_objs,
+        )
+
+        shell_solutions = installation_tool.type__execution_solution_map["shell"]
+        batch_solutions = installation_tool.type__execution_solution_map["batch"]
+
+        # windows shell方案(保持原有四步)
+        self.assertEqual(len(shell_solutions.steps), 4)
+
+        # windows batch方案(保持原有三步)
+        self.assertEqual(len(batch_solutions.steps), 3)
+
+
+class OpenJumpPolicyUsingChannelNotInDirect(InstallWindowsPagentTestCase):
+    def test_target_host_shell_solution(self):
+        host = models.Host.objects.get(bk_host_id=self.obj_factory.bk_host_ids[0])
+        script_hook_objs = ScriptManageHandler.fetch_match_script_hook_objs(
+            [{"name": "jump_server_policy"}], host.os_type
+        )
+        installation_tool = gen_commands(
+            self.LEGACY_SETUP_INFO,
+            host,
+            mock_data_utils.JOB_TASK_PIPELINE_ID,
+            is_uninstall=False,
+            sub_inst_id=0,
+            script_hook_objs=script_hook_objs,
+        )
+
+        shell_solutions, batch_solutions = installation_tool.type__execution_solution_map["shell"].target_host_solutions
+
+        # windows shell方案(保持原有四步)
+        self.assertEqual(len(shell_solutions.steps), 4)
+
+        # windows batch方案(保持原有三步)
+        self.assertEqual(len(batch_solutions.steps), 3)
