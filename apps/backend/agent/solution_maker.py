@@ -27,6 +27,7 @@ from django.utils.translation import ugettext_lazy as _
 from apps.backend.api import constants as backend_api_constants
 from apps.backend.subscription.steps.agent_adapter.base import AgentSetupInfo
 from apps.core.script_manage.base import ScriptHook
+from apps.core.script_manage.data import JUMP_SERVER_POLICY_SCRIPT_INFO
 from apps.node_man import constants, models
 from apps.utils import basic
 from apps.utils.files import PathHandler
@@ -406,7 +407,9 @@ class BaseExecutionSolutionMaker(metaclass=abc.ABCMeta):
 
         return create_pre_dir_step
 
-    def build_script_hook_steps(self, is_shell_adapter: bool = False) -> typing.List[ExecutionSolutionStep]:
+    def build_need_download_script_hook_steps(
+        self, is_shell_adapter: bool = False
+    ) -> typing.List[ExecutionSolutionStep]:
         """
         构造脚本钩子步骤
         :param is_shell_adapter: 是否需要进行 shell 适配
@@ -418,27 +421,12 @@ class BaseExecutionSolutionMaker(metaclass=abc.ABCMeta):
         curl_cmd: str = ("curl", f"{dest_dir}curl.exe")[is_batch]
 
         script_hook_steps: typing.List[ExecutionSolutionStep] = []
-        for script_hook_obj in self.script_hook_objs:
+        need_download_script_hook_objs: typing.List[ScriptHook] = [
+            script_hook_obj for script_hook_obj in self.script_hook_objs if not script_hook_obj.script_info_obj.oneline
+        ]
+        for script_hook_obj in need_download_script_hook_objs:
             support_cloud_id: typing.Optional[int] = script_hook_obj.script_info_obj.support_cloud_id
             if support_cloud_id is not None and self.host.bk_cloud_id != support_cloud_id:
-                continue
-
-            if script_hook_obj.script_info_obj.oneline:
-                # 如果可以一行命令执行，直接执行相应的命令
-                script_hook_steps.append(
-                    ExecutionSolutionStep(
-                        step_type=constants.CommonExecutionSolutionStepType.COMMANDS.value,
-                        description=str(script_hook_obj.script_info_obj.description),
-                        contents=[
-                            ExecutionSolutionStepContent(
-                                name="run_cmd",
-                                text=script_hook_obj.script_info_obj.oneline,
-                                description=str(script_hook_obj.script_info_obj.description),
-                                show_description=False,
-                            ),
-                        ],
-                    )
-                )
                 continue
 
             download_cmd = (
@@ -483,6 +471,59 @@ class BaseExecutionSolutionMaker(metaclass=abc.ABCMeta):
             script_hook_steps.append(script_hook_step)
 
         return script_hook_steps
+
+    def build_oneline_script_hook_steps(self) -> typing.List[ExecutionSolutionStep]:
+        """
+        构造可直接执行的脚本钩子步骤
+        :return:
+        """
+        script_hook_steps: typing.List[ExecutionSolutionStep] = []
+        oneline_script_hook_objs: typing.List[ScriptHook] = [
+            script_hook_obj for script_hook_obj in self.script_hook_objs if script_hook_obj.script_info_obj.oneline
+        ]
+        for script_hook_obj in oneline_script_hook_objs:
+            support_cloud_id: typing.Optional[int] = script_hook_obj.script_info_obj.support_cloud_id
+            if support_cloud_id is not None and self.host.bk_cloud_id != support_cloud_id:
+                continue
+
+            # 跳板机策略特殊处理
+            if script_hook_obj.script_info_obj.name == JUMP_SERVER_POLICY_SCRIPT_INFO.name:
+                if not self.is_jump_server_policy_steps():
+                    continue
+
+                script_hook_obj.script_info_obj.oneline = script_hook_obj.script_info_obj.oneline.format(
+                    jump_server_lan_ip=self.gse_servers_info["jump_server"].inner_ip
+                )
+
+            # 如果可以一行命令执行，直接执行相应的命令
+            script_hook_steps.append(
+                ExecutionSolutionStep(
+                    step_type=constants.CommonExecutionSolutionStepType.COMMANDS.value,
+                    description=str(script_hook_obj.script_info_obj.description),
+                    contents=[
+                        ExecutionSolutionStepContent(
+                            name="run_cmd",
+                            text=script_hook_obj.script_info_obj.oneline,
+                            description=str(script_hook_obj.script_info_obj.description),
+                            show_description=False,
+                        ),
+                    ],
+                )
+            )
+
+        return script_hook_steps
+
+    def is_jump_server_policy_steps(self) -> bool:
+        # 非直连或非p-agent不需要开通端口策略
+        if not ExecutionSolutionTools.need_jump_server(self.host) or self.host.bk_cloud_id != constants.DEFAULT_CLOUD:
+            return False
+
+        jump_server: models.Host = self.gse_servers_info["jump_server"]
+        jump_server_lan_ip: str = jump_server.inner_ip or jump_server.inner_ipv6
+        if basic.is_v6(jump_server_lan_ip):
+            return False
+
+        return True
 
     @abc.abstractmethod
     def _make(self) -> ExecutionSolution:
@@ -580,10 +621,13 @@ class ShellExecutionSolutionMaker(BaseExecutionSolutionMaker):
         execution_solution: ExecutionSolution = ExecutionSolution(
             solution_type=constants.CommonExecutionSolutionType.SHELL.value,
             description=str(solution_description),
-            steps=self.build_script_hook_steps(is_shell_adapter=True),
+            steps=self.build_need_download_script_hook_steps(is_shell_adapter=True),
         )
 
         if self.host.os_type == constants.OsType.WINDOWS:
+            # 依赖前置条件，直接下发的命令放置到依赖下载步骤之前
+            execution_solution.steps = self.build_oneline_script_hook_steps() + execution_solution.steps
+
             # Windows 需要下载依赖文件
             dependence_download_cmds_step: ExecutionSolutionStep = ExecutionSolutionStep(
                 step_type=constants.CommonExecutionSolutionStepType.COMMANDS.value,
@@ -722,9 +766,11 @@ class BatchExecutionSolutionMaker(BaseExecutionSolutionMaker):
             ),
             steps=[
                 create_pre_dirs_step,
+                # 依赖前置条件，直接下发的命令放置到依赖下载步骤之前
+                *self.build_oneline_script_hook_steps(),
                 dependencies_step,
                 # 脚本的执行可能会有依赖受限，放置到依赖下载步骤之后
-                *self.build_script_hook_steps(),
+                *self.build_need_download_script_hook_steps(),
                 run_cmds_step,
             ],
         )
