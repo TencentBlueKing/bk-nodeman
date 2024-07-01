@@ -858,6 +858,7 @@ goto :EOF
 goto :EOF
 
 :check_deploy_result
+    ping -n 10 127.0.0.1 >nul 2>&1
     call :is_process_start_ok
     if !errorlevel! NEQ 0 (
         exit /b 1
