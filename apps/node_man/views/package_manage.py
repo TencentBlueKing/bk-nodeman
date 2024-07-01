@@ -604,7 +604,7 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
             )
         )
 
-        filter_keys = [key for key in ["os", "cpu_arch"] if key in validated_data]
+        filter_keys = [key for key in ["os", "cpu_arch"] if validated_data.get(key)]
         if filter_keys:
             # 筛选
             version__pkg_version_info_map = {
