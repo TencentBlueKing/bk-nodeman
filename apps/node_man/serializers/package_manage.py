@@ -241,4 +241,4 @@ class VersionQuerySerializer(serializers.Serializer):
     project = serializers.CharField()
     os = serializers.CharField(required=False)
     cpu_arch = serializers.CharField(required=False)
-    versions = serializers.CharField(required=False)
+    versions = serializers.ListField(child=serializers.CharField(), required=False)

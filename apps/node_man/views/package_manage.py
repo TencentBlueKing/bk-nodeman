@@ -516,7 +516,7 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
         tags=PACKAGE_MANAGE_VIEW_TAGS,
         responses={HTTP_200_OK: pkg_manage.PackageDescResponseSerializer},
     )
-    @action(detail=False, methods=["GET"], serializer_class=pkg_manage.VersionQuerySerializer)
+    @action(detail=False, methods=["POST"], serializer_class=pkg_manage.VersionQuerySerializer)
     def version(self, request):
         """
         return: {
@@ -625,17 +625,28 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
         is_visible: bool = True
         machine_latest_version: str = ""
         if validated_data.get("versions", ""):
-            machine_versions = validated_data["versions"].split(",")
-            machine_latest_version = max(machine_versions, key=GsePackageTools.extract_numbers)
+            machine_latest_version = max(validated_data["versions"], key=GsePackageTools.extract_numbers)
 
-            for machine_version in machine_versions:
+            for machine_version in validated_data["versions"]:
                 if machine_version not in package_versions:
                     is_visible = False
+
+            version__pkg_version_info_map = {
+                version: pkg_version_info
+                for version, pkg_version_info in version__pkg_info_map.copy().items()
+                if GsePackageTools.extract_numbers(version) >= GsePackageTools.extract_numbers(machine_latest_version)
+            }
+
+        package_latest_version = list(version__pkg_version_info_map.keys())[0] if version__pkg_version_info_map else ""
+
+        # 版本存在不可见不返回包信息
+        if not is_visible:
+            version__pkg_version_info_map = {}
 
         return Response(
             {
                 "machine_latest_version": machine_latest_version,
-                "package_latest_version": list(version__pkg_version_info_map.keys())[0],
+                "package_latest_version": package_latest_version,
                 "is_visible": is_visible,
                 "default_version": default_version,
                 "pkg_info": list(version__pkg_version_info_map.values()),
