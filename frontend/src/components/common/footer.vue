@@ -1,26 +1,36 @@
 <template>
   <footer class="footer">
-    <p class="footer-link" v-if="link.length">
+    <!-- <p class="footer-link" v-if="link.length">
       <span v-for="(item, index) in link" :key="index" class="footer-link-list">
         <a :href="item.href" :target="item.target" class="footer-link-item">
           {{ item.name }}
         </a>
       </span>
-    </p>
+    </p> -->
+    <p
+      class="footer-link"
+      v-html="config.i18n.footerInfoHTML"
+    ></p>
     <p class="footer-copyright">
-      {{ $t('蓝鲸版权', { year: new Date().getFullYear(), version: version }) }}
+      <!-- {{ $t('蓝鲸版权', { year: new Date().getFullYear(), version: version }) }}
+       -->
+      {{ config.version ? config.footerCopyright : config.footerCopyrightContent }}
     </p>
   </footer>
 </template>
 
 <script lang="ts">
 import { Vue, Component } from 'vue-property-decorator';
+import { PlatformConfigStore } from '@/store/index';
 
 @Component({ name: 'nm-footer' })
 
 export default class NmFooter extends Vue {
   private link: { name: string, href: string, target?: string }[] = [];
-
+  private get config() {
+    return PlatformConfigStore.defaults;
+  }
+  
   private created() {
     this.version =  window.PROJECT_CONFIG.VERSION;
     if (window.PROJECT_CONFIG.BKAPP_RUN_ENV === 'ieod') {

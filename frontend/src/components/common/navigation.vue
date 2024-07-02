@@ -13,8 +13,8 @@
       @toggle-click="handleNavToggle">
       <!--icon-->
       <div slot="side-header" class="nav-header" @click="$router.push('/')">
-        <img src="../../images/logoIcon.png" class="nodeman-logo-icon" />
-        <span class="title-desc">{{ nav.headerTitle }}</span>
+        <img :src="appLogo" class="nodeman-logo-icon" />
+        <span class="title-desc">{{ config.i18n.name }}</span>
       </div>
       <!--顶部导航-->
       <template #header>
@@ -123,7 +123,7 @@
   </article>
 </template>
 <script lang="ts">
-import { MainStore } from '@/store/index';
+import { MainStore, PlatformConfigStore } from '@/store/index';
 import { Component, Ref, Mixins, Watch } from 'vue-property-decorator';
 import NavSideMenu from '@/components/common/nav-side.vue';
 import LogVersion from '@/components/common/log-version.vue';
@@ -210,6 +210,12 @@ export default class NodemanNavigation extends Mixins(routerBackMixin) {
     cloudManagerDetail: window.i18n.t('查看管控区域权限'),
   };
 
+  private get config() {
+    return PlatformConfigStore.defaults;
+  }
+  private get appLogo() {
+    return PlatformConfigStore.defaults.appLogo;
+  }
   private get navList() {
     return MainStore.navList.filter(item => !item.disabled);
   }
@@ -489,6 +495,7 @@ export default class NodemanNavigation extends Mixins(routerBackMixin) {
   .nodeman-logo-icon {
     width: 28px;
     height: 28px;
+    background: v-bind(appLogo) no-repeat 0 center;
   }
   .nav-header {
     display: flex;
