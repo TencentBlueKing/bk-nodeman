@@ -14,7 +14,7 @@
   </div>
 </template>
 <script lang="ts">
-import { MainStore } from '@/store/index';
+import { MainStore, PlatformConfigStore } from '@/store/index';
 import { bus } from '@/common/bus';
 import NodemanNavigation from '@/components/common/navigation.vue';
 import PermissionModal from '@/components/auth/PermissionModal.vue';
@@ -25,6 +25,7 @@ import BkPaasLogin from '@blueking/paas-login/dist/paas-login.umd';
 import NoticeComponent from '@blueking/notice-component-vue2';
 import '@blueking/notice-component-vue2/dist/style.css';
 import { showLoginModal } from '@blueking/login-modal';
+import { setDocumentTitle, setShortcutIcon  } from '@blueking/platform-config';
 
 @Component({
   name: 'app',
@@ -78,7 +79,13 @@ export default class App extends Vue {
     MainStore.setSelectedBiz(selectedBiz);
   }
 
-  private created() {
+  private async created() {
+    // 获取平台配置信息
+    await PlatformConfigStore.getConfig();
+    // 设置网页标题
+    setDocumentTitle(PlatformConfigStore.defaults.i18n);
+    // 设置favicon
+    setShortcutIcon(PlatformConfigStore.defaults.favicon);
     const platform = window.navigator.platform.toLowerCase();
     if (platform.indexOf('win') === 0) {
       this.systemCls = 'win';
