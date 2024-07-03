@@ -2,7 +2,7 @@
   <!-- :max-height="windowHeight - 220" -->
   <bk-table
     :class="`pkg-manage-table ${fontSize}`"
-    :data="rows"
+    :data="tableData"
     :max-height="maxHeight"
     @sort-change="handleSortChange">
     <NmColumn :label="$t('包名称')" prop="pkg_name" min-width="210" fixed />
@@ -163,7 +163,12 @@ export default class PackageCols extends Mixins(HeaderRenderMixin) {
   private handleSearchSelectDataChange(data: ISearchItem[]) {
     this.filterData = JSON.parse(JSON.stringify(data));
   }
-  
+  private tableData: IPkgRow[] = [];
+  @Watch('rows', { deep: true, immediate: true })
+  private updateTableData(data: IPkgRow[]) {
+    this.tableData = data;
+  }
+
   private created() {
     this.filterData.splice(0, this.filterData.length, ...JSON.parse(JSON.stringify(this.searchSelectData)));
   }
@@ -262,7 +267,9 @@ export default class PackageCols extends Mixins(HeaderRenderMixin) {
   }
 
   handleColumnUpdate(data: { [key: string]: ITabelFliter }) {
-    Object.assign(this.filter, data);
+    this.filter = Object.assign({}, this.filter, data);
+    // 更新列显示时，标签列宽度改变，手动更新表格数据触发响应式，解决标签组件不能及时识别当前宽度和计算numTag问题
+    this.tableData = [...this.tableData]
   }
 
   @Emit('orderChange')
