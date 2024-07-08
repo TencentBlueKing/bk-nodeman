@@ -81,19 +81,37 @@ class JobV3BaseService(six.with_metaclass(abc.ABCMeta, BaseService)):
         get_config_dict_kwargs={"config_name": core.ServiceCCConfigName.JOB_EXECUTE.value},
     )
     def job_execute(self, job_params_list: List[Dict[str, Any]]):
-        concurrent.batch_call(self.request_single_job_and_create_map, job_params_list)
-        return []
+        return concurrent.batch_call(self.request_single_job_and_create_map, job_params_list, extend_result=True)
 
     def run_job_or_finish_schedule(self, multi_job_params_map: Dict):
         """如果作业平台参数为空，代表无需执行，直接finish_schedule去执行下一个原子"""
         if multi_job_params_map:
             job_params_list: List = list(multi_job_params_map.values())
-            self.job_execute(job_params_list=job_params_list)
+            return self.job_execute(job_params_list=job_params_list)
+        else:
+            self.finish_schedule()
+
+    def rolling_run_job(self, data, multi_job_params_map: Dict):
+        md5_keys = self.run_job_or_finish_schedule(multi_job_params_map)
+        # 过滤出被job限流的参数
+        need_rolling_multi_job_params_map = {k: v for k, v in multi_job_params_map.items() if k in md5_keys}
+        if need_rolling_multi_job_params_map:
+            data.outputs.multi_job_params_map = need_rolling_multi_job_params_map
+            data.outputs.is_rolling_execute = True
+        else:
+            data.outputs.is_rolling_execute = False
+
+        return True
+
+    def rolling_run_job_or_finish_schedule(self, data, multi_job_params_map: Dict):
+        if multi_job_params_map:
+            # 减少参数开销第一次在execute执行，限流的参数进入schedule滚动执行
+            return self.rolling_run_job(data, multi_job_params_map)
         else:
             self.finish_schedule()
 
     def request_single_job_and_create_map(
-        self, job_func, subscription_instance_id: [int, list], subscription_id, job_params: dict
+        self, md5_key, job_func, subscription_instance_id: List[int], subscription_id, job_params: dict
     ):
         """请求作业平台并创建与订阅实例的映射"""
         host_interaction_from = ("ip_list", "host_id_list")[settings.BKAPP_ENABLE_DHCP]
@@ -115,9 +133,10 @@ class JobV3BaseService(six.with_metaclass(abc.ABCMeta, BaseService)):
         script_language = (constants.ScriptLanguageType.SHELL.value, constants.ScriptLanguageType.BAT.value)[
             os_type == constants.OsType.WINDOWS
         ]
-        meta: Dict[str, Union[str, int]] = job_params.pop("meta")
 
-        job_params.update(
+        request_job_params = copy.deepcopy(job_params)
+        meta: Dict[str, Union[str, int]] = request_job_params.pop("meta")
+        request_job_params.update(
             {
                 **meta,
                 "script_language": script_language,
@@ -128,19 +147,32 @@ class JobV3BaseService(six.with_metaclass(abc.ABCMeta, BaseService)):
             }
         )
 
-        if not job_params.get("timeout"):
+        if not request_job_params.get("timeout"):
             # 设置默认超时时间
-            job_params["timeout"] = constants.JOB_TIMEOUT
+            request_job_params["timeout"] = constants.JOB_TIMEOUT
 
         if isinstance(subscription_instance_id, int):
             subscription_instance_id = [subscription_instance_id]
 
         try:
             storage = get_storage()
-            job_params = storage.process_query_params(job_func, job_params)
+            request_job_params = storage.process_query_params(job_func, request_job_params)
             # 请求作业平台
-            job_instance_id = job_func(job_params)["job_instance_id"]
+            job_instance_id = job_func(request_job_params)["job_instance_id"]
         except AppBaseException as err:
+            if err.code in [
+                constants.BkJobErrorCode.EXCEED_BIZ_QUOTA_LIMIT,
+                constants.BkJobErrorCode.EXCEED_APP_QUOTA_LIMIT,
+                constants.BkJobErrorCode.EXCEED_SYSTEM_QUOTA_LIMIT,
+            ]:
+                # 识别job限制码，将此md5key加入到下一次滚动执行
+                self.log_info(
+                    subscription_instance_id,
+                    _("{err_msg}，任务滚动执行中，请耐心等待.....").format(
+                        err_msg=constants.BkJobErrorCode.BK_JOB_ERROR_CODE_MAP[err.code]
+                    ),
+                )
+                return [md5_key]
             self.move_insts_to_failed(subscription_instance_id, str(err))
         else:
             models.JobSubscriptionInstanceMap.objects.create(
@@ -151,21 +183,21 @@ class JobV3BaseService(six.with_metaclass(abc.ABCMeta, BaseService)):
             self.job_instance_id__call_params_map[job_instance_id] = {
                 "subscription_id": subscription_id,
                 "subscription_instance_id": subscription_instance_id,
-                "job_params": job_params,
+                "job_params": request_job_params,
             }
             # 组装调用作业平台的日志
-            file_target_path = job_params.get("file_target_path")
-            if job_func == JobApi.fast_transfer_file:
+            file_target_path = request_job_params.get("file_target_path")
+            if job_func.api_name == JobApi.fast_transfer_file.api_name:
                 log = storage.gen_transfer_file_log(
-                    file_target_path=file_target_path, file_source_list=job_params.get("file_source_list")
+                    file_target_path=file_target_path, file_source_list=request_job_params.get("file_source_list")
                 )
             # 节点管理仅使用 push_config_file 下发 content，不涉及从文件源读取文件
-            elif job_func == JobApi.push_config_file:
-                file_names = ",".join([file["file_name"] for file in job_params.get("file_list", [])])
+            elif job_func.api_name == JobApi.push_config_file.api_name:
+                file_names = ",".join([file["file_name"] for file in request_job_params.get("file_list", [])])
                 log = _("下发配置文件 [{file_names}] 到目标机器路径 [{file_target_path}]，若下发失败，请检查作业平台所部署的机器是否已安装AGENT").format(
                     file_names=file_names, file_target_path=file_target_path
                 )
-            elif job_func == JobApi.fast_execute_script:
+            elif job_func.api_name == JobApi.fast_execute_script.api_name:
                 log = _("快速执行脚本 {script_name}").format(script_name=getattr(self, "script_name", ""))
             else:
                 log = _("调用作业平台")
@@ -173,7 +205,7 @@ class JobV3BaseService(six.with_metaclass(abc.ABCMeta, BaseService)):
             # 采用拼接上文的方式添加接口请求日志，减少DB操作
             if self.PRINT_PARAMS_TO_LOG:
                 api_params_log = self.generate_api_params_log(
-                    subscription_instance_ids=subscription_instance_id, job_params=job_params, job_func=job_func
+                    subscription_instance_ids=subscription_instance_id, job_params=request_job_params, job_func=job_func
                 )
                 log = f"{log}, 请求参数为：\n {api_params_log}"
 
@@ -338,6 +370,11 @@ class JobV3BaseService(six.with_metaclass(abc.ABCMeta, BaseService)):
         return []
 
     def _schedule(self, data, parent_data, callback_data=None):
+        is_rolling_execute: bool = data.get_one_of_outputs("is_rolling_execute", default=False)
+        if is_rolling_execute:
+            multi_job_params_map = data.get_one_of_outputs("multi_job_params_map")
+            return self.rolling_run_job(data, multi_job_params_map)
+
         job_meta = self.get_job_meta(data)
         polling_time = data.get_one_of_outputs("polling_time") or 0
         skip_polling_result = data.get_one_of_inputs("skip_polling_result", default=False)
@@ -478,6 +515,7 @@ class JobExecuteScriptService(JobV3BaseService, metaclass=abc.ABCMeta):
                 multi_job_params_map[md5_key]["job_params"]["meta"] = job_meta
             else:
                 multi_job_params_map[md5_key] = {
+                    "md5_key": md5_key,
                     "job_func": JobApi.fast_execute_script,
                     "subscription_instance_id": [sub_inst.id],
                     "subscription_id": common_data.subscription.id,
@@ -491,7 +529,7 @@ class JobExecuteScriptService(JobV3BaseService, metaclass=abc.ABCMeta):
                     },
                 }
 
-        self.run_job_or_finish_schedule(multi_job_params_map)
+        self.rolling_run_job_or_finish_schedule(data, multi_job_params_map)
 
     def get_script_content(self, data, common_data: CommonData, host: models.Host) -> str:
         """
@@ -552,6 +590,7 @@ class JobTransferFileService(JobV3BaseService, metaclass=abc.ABCMeta):
                     multi_job_params_map[md5_key]["job_params"]["meta"] = job_meta
                 else:
                     multi_job_params_map[md5_key] = {
+                        "md5_key": md5_key,
                         "job_func": JobApi.fast_transfer_file,
                         "subscription_instance_id": [sub_inst.id],
                         "subscription_id": common_data.subscription.id,
@@ -565,7 +604,7 @@ class JobTransferFileService(JobV3BaseService, metaclass=abc.ABCMeta):
                         },
                     }
 
-        self.run_job_or_finish_schedule(multi_job_params_map)
+        self.rolling_run_job_or_finish_schedule(data, multi_job_params_map)
 
     def get_file_list(self, data, common_data: CommonData, host: models.Host) -> List[str]:
         """
@@ -653,6 +692,7 @@ class JobPushConfigService(JobV3BaseService, metaclass=abc.ABCMeta):
                         {"file_name": config_info["file_name"], "content": process_parms(config_info["content"])}
                     )
                 multi_job_params_map[job_unique_key] = {
+                    "md5_key": job_unique_key,
                     "job_func": JobApi.push_config_file,
                     "subscription_instance_id": [sub_inst.id],
                     "subscription_id": common_data.subscription.id,
@@ -673,8 +713,8 @@ class JobPushConfigService(JobV3BaseService, metaclass=abc.ABCMeta):
                         "meta": job_meta,
                     },
                 }
-
-        self.run_job_or_finish_schedule(multi_job_params_map)
+        # job限流机制，进入schedule滚动执行
+        self.rolling_run_job_or_finish_schedule(data, multi_job_params_map)
 
     def get_config_info_list(self, data, common_data: CommonData, host: models.Host) -> List[Dict[str, Any]]:
         """

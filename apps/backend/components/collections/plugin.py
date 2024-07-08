@@ -559,6 +559,7 @@ class TransferPackageService(JobV3BaseService, PluginBaseService):
         for md5_key, job in jobs.items():
             file_list = self.append_extra_files(job["os_type"], job["file_list"], nginx_path)
             multi_job_params[md5_key] = {
+                "md5_key": md5_key,
                 "job_func": JobApi.fast_transfer_file,
                 "subscription_instance_id": job["subscription_instance_ids"],
                 "subscription_id": common_data.subscription.id,
@@ -571,7 +572,7 @@ class TransferPackageService(JobV3BaseService, PluginBaseService):
                 },
             }
 
-        self.run_job_or_finish_schedule(multi_job_params)
+        self.rolling_run_job_or_finish_schedule(data, multi_job_params)
         return True
 
     @staticmethod
@@ -656,6 +657,7 @@ class PluginExecuteScriptService(PluginBaseService, JobV3BaseService, metaclass=
                 multi_job_params_map[key]["job_params"]["meta"] = job_meta
             else:
                 multi_job_params_map[key] = {
+                    "md5_key": key,
                     "job_func": JobApi.fast_execute_script,
                     "subscription_instance_id": [subscription_instance_id],
                     "subscription_id": common_data.subscription.id,
@@ -671,7 +673,7 @@ class PluginExecuteScriptService(PluginBaseService, JobV3BaseService, metaclass=
                         "meta": job_meta,
                     },
                 }
-        self.run_job_or_finish_schedule(multi_job_params_map)
+        self.rolling_run_job_or_finish_schedule(data, multi_job_params_map)
         return True
 
     def get_script_content(self, os_type: str) -> str:
@@ -1000,6 +1002,7 @@ class RenderAndPushConfigService(PluginBaseService, JobV3BaseService):
                     multi_job_params_map[key]["job_params"]["meta"] = job_meta
                 else:
                     multi_job_params_map[key] = {
+                        "md5_key": key,
                         "job_func": JobApi.push_config_file,
                         "subscription_instance_id": [subscription_instance.id],
                         "subscription_id": common_data.subscription.id,
@@ -1033,7 +1036,7 @@ class RenderAndPushConfigService(PluginBaseService, JobV3BaseService):
             self.finish_schedule()
             return True
 
-        self.run_job_or_finish_schedule(multi_job_params_map)
+        self.rolling_run_job_or_finish_schedule(data, multi_job_params_map)
         return True
 
 

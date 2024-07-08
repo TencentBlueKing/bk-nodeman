@@ -745,6 +745,9 @@ class BkJobErrorCode(object):
     AGENT_ABNORMAL = 117
     SUCCEED = 9
     RUNNING = 7
+    EXCEED_BIZ_QUOTA_LIMIT = 1244032
+    EXCEED_APP_QUOTA_LIMIT = 1244033
+    EXCEED_SYSTEM_QUOTA_LIMIT = 1244034
 
     BK_JOB_ERROR_CODE_MAP = {
         NOT_EXIST_HOST: _("作业平台API返回中不存在此IP的日志，请联系管理员排查问题"),
@@ -774,6 +777,9 @@ class BkJobErrorCode(object):
         329: _("文件传输错误"),
         399: _("任务执行出错"),
         403: _("任务被强制终止"),
+        EXCEED_BIZ_QUOTA_LIMIT: _("当前执行的作业总量超过业务配额限制"),
+        EXCEED_APP_QUOTA_LIMIT: _("当前执行的作业总量超过应用配额限制"),
+        EXCEED_SYSTEM_QUOTA_LIMIT: _("当前执行的作业总量超过系统配额限制"),
     }
 
 
