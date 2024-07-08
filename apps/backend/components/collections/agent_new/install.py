@@ -531,6 +531,29 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
                 raise e
         return sub_inst_id
 
+    def rolling_request_job(self, sub_inst_id, func, job_params):
+        try:
+            data = func(job_params)
+        except ApiResultError as err:
+            if err.code in [
+                constants.BkJobErrorCode.EXCEED_BIZ_QUOTA_LIMIT,
+                constants.BkJobErrorCode.EXCEED_APP_QUOTA_LIMIT,
+                constants.BkJobErrorCode.EXCEED_SYSTEM_QUOTA_LIMIT,
+            ]:
+                # 识别job限制码，将此md5key加入到下一次滚动执行
+                self.log_info(
+                    sub_inst_id,
+                    _("{err_msg}，任务滚动执行中，请耐心等待.....").format(
+                        err_msg=constants.BkJobErrorCode.BK_JOB_ERROR_CODE_MAP[err.code]
+                    ),
+                )
+                time.sleep(3)
+                return self.rolling_request_job(sub_inst_id, func, job_params)
+
+            raise err
+
+        return data
+
     @ExceptionHandler(exc_handler=core.default_sub_inst_task_exc_handler)
     @SetupObserve(
         histogram=metrics.app_core_remote_execute_duration_seconds,
@@ -577,7 +600,7 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
             "script_param": base64.b64encode(execution_solution.steps[0].contents[0].text.encode()).decode(),
             "is_param_sensitive": constants.BkJobParamSensitiveType.YES.value,
         }
-        data = JobApi.fast_execute_script(kwargs)
+        data = self.rolling_request_job(sub_inst_id, JobApi.fast_execute_script, kwargs)
         job_instance_id = data.get("job_instance_id")
         self.log_info(
             sub_inst_ids=sub_inst_id,
