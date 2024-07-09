@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 from telnetlib import Telnet
 from typing import Any, Dict, List, Optional, Tuple
 
-from celery.task import periodic_task
+from celery import current_app
 from django.conf import settings
 from kazoo.client import KazooClient
 from kazoo.exceptions import NoAuthError, NoNodeError
@@ -47,7 +47,7 @@ class ZkSafeClient:
         self.zk_client.stop()
 
 
-@periodic_task(
+@current_app.task(
     queue="default",
     options={"queue": "default"},
     run_every=constants.GSE_SVR_DISCOVERY_INTERVAL,

@@ -13,6 +13,8 @@ from typing import Any, Callable, Dict, List, Optional
 
 from bkstorages.backends import bkrepo
 from django.conf import settings
+from django.core.files import File, locks
+from django.core.files.move import file_move_safe
 from django.core.files.storage import FileSystemStorage, Storage, get_storage_class
 from django.utils.deconstruct import deconstructible
 from django.utils.functional import cached_property
@@ -79,6 +81,17 @@ class CustomBKRepoStorage(BaseStorage, bkrepo.BKRepoStorage):
         file_metadata = self.get_file_metadata(key=file_name)
         file_md5 = file_metadata["X-Checksum-Md5"]
         return file_md5
+
+    def save(self, name, content, max_length=None):
+        if name is None:
+            name = content.name
+
+        if not hasattr(content, "chunks"):
+            content = File(content, name)
+
+        name = self.get_available_name(name, max_length=max_length)
+        # 去除路径校验
+        return self._save(name, content)
 
     def _handle_file_source_list(
         self, file_source_list: List[Dict[str, Any]], extra_transfer_file_params: Dict[str, Any]
@@ -158,11 +171,66 @@ class AdminFileSystemStorage(BaseStorage, FileSystemStorage):
         """路径指向 / ，重写前路径指向「项目根目录」"""
         return self.base_location
 
+    def save(self, name, content, max_length=None):
+        if name is None:
+            name = content.name
+
+        if not hasattr(content, "chunks"):
+            content = File(content, name)
+
+        name = self.get_available_name(name, max_length=max_length)
+        # 去除路径校验
+        return self._save(name, content)
+
     def _save(self, name, content):
         # 如果允许覆盖，保存前删除文件
         if self.file_overwrite:
             self.delete(name)
-        return super()._save(name, content)
+        full_path = self.path(name)
+        directory = os.path.dirname(full_path)
+        try:
+            if self.directory_permissions_mode is not None:
+                old_umask = os.umask(0o777 & ~self.directory_permissions_mode)
+                try:
+                    os.makedirs(directory, self.directory_permissions_mode, exist_ok=True)
+                finally:
+                    os.umask(old_umask)
+            else:
+                os.makedirs(directory, exist_ok=True)
+        except FileExistsError:
+            raise FileExistsError("%s exists and is not a directory." % directory)
+        while True:
+            try:
+                if hasattr(content, "temporary_file_path"):
+                    file_move_safe(content.temporary_file_path(), full_path)
+
+                else:
+                    fd = os.open(full_path, self.OS_OPEN_FLAGS, 0o666)
+                    _file = None
+                    try:
+                        locks.lock(fd, locks.LOCK_EX)
+                        for chunk in content.chunks():
+                            if _file is None:
+                                mode = "wb" if isinstance(chunk, bytes) else "wt"
+                                _file = os.fdopen(fd, mode)
+                            _file.write(chunk)
+                    finally:
+                        locks.unlock(fd)
+                        if _file is not None:
+                            _file.close()
+                        else:
+                            os.close(fd)
+            except FileExistsError:
+                name = self.get_available_name(name)
+                full_path = self.path(name)
+            else:
+                break
+
+        if self.file_permissions_mode is not None:
+            os.chmod(full_path, self.file_permissions_mode)
+
+        # 去除django中相对路径的改造
+        return str(name).replace("\\", "/")
 
     def _handle_file_source_list(
         self, file_source_list: List[Dict[str, Any]], extra_transfer_file_params: Dict[str, Any]

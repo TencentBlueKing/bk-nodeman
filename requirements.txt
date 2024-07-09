@@ -11,7 +11,7 @@ Django==3.2.25
 requests==2.27.1
 celery==5.1.2
 django-celery-beat==2.2.0
-django-celery-results==2.1.0
+django-celery-results==2.2.0
 celery-redbeat==2.0.0
 djangorestframework==3.12.4
 # django-utils-six==2.0
@@ -43,7 +43,6 @@ dacite==1.8.1
 
 # pipeline
 ujson==4.3.0
-bamboo-pipeline==3.24.6
 pyparsing==2.2.0
 redis==4.3.6
 django-timezone-field==4.1.0

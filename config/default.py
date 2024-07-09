@@ -264,7 +264,7 @@ CELERY_IMPORTS = (
     "apps.node_man.periodic_tasks.add_biz_to_gse2_gray_scope",
 )
 
-BK_NODEMAN_CELERY_RESULT_BACKEND_BROKER_URL = "amqp://{user}:{passwd}@{host}:{port}/{vhost}".format(
+BK_NODEMAN_CELERY_RESULT_BACKEND_BROKER_URL = "{user}:{passwd}@{host}:{port}/{vhost}".format(
     user=os.getenv("RABBITMQ_USER"),
     passwd=os.getenv("RABBITMQ_PASSWORD"),
     host=os.getenv("RABBITMQ_HOST"),
@@ -278,7 +278,7 @@ if IS_USE_CELERY:
     INSTALLED_APPS += ("django_celery_beat", "django_celery_results")
     CELERY_ENABLE_UTC = False
     CELERYBEAT_SCHEDULER = "django_celery_beat.schedulers.DatabaseScheduler"
-    CELERY_RESULT_BACKEND = BK_NODEMAN_CELERY_RESULT_BACKEND_BROKER_URL
+    CELERY_RESULT_BACKEND = f"rpc://{BK_NODEMAN_CELERY_RESULT_BACKEND_BROKER_URL}"
     CELERY_RESULT_PERSISTENT = True
     # celery3 的配置，升级后先行注释，待确认无用后废弃
     # CELERY_TASK_RESULT_EXPIRES = 60 * 30  # 30分钟丢弃结果
@@ -754,7 +754,7 @@ if BK_BACKEND_CONFIG:
         )
 
     # BROKER_URL
-    BROKER_URL = BK_NODEMAN_CELERY_RESULT_BACKEND_BROKER_URL
+    BROKER_URL = f"pyamqp://{BK_NODEMAN_CELERY_RESULT_BACKEND_BROKER_URL}"
 
     REDBEAT_KEY_PREFIX = "nodeman"
 
