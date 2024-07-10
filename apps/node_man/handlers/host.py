@@ -235,7 +235,9 @@ class HostHandler(APIModel):
                 biz_host_id_map[hs["bk_biz_id"]].append(hs["bk_host_id"])
 
         # 获得拓扑结构数据
-        topology = CmdbHandler().cmdb_or_cache_topo(username, user_biz, biz_host_id_map)
+        topology = {}
+        if params.get("source_saas", False):
+            topology = CmdbHandler().cmdb_or_cache_topo(username, user_biz, biz_host_id_map)
 
         # 汇总
         for hs in hosts_status:
