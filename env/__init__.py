@@ -62,6 +62,7 @@ __all__ = [
     "BKAPP_SYNC_PROC_STATUS_TASK_INTERVAL",
     # Agent安装前置脚本
     "BKAPP_SCRIPT_HOOKS",
+    "BKPAAS_SHARED_RES_URL",
 ]
 
 # ===============================================================================
@@ -184,3 +185,4 @@ BKAPP_NAV_HELPER_URL = get_type_env(
 # 文档中心跳转路由
 
 BK_DOCS_CENTER_HOST = get_type_env(key="BK_DOCS_CENTER_HOST", default="", _type=str)
+BKPAAS_SHARED_RES_URL = get_type_env(key="BKPAAS_SHARED_RES_URL", default="", _type=str)
