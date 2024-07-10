@@ -49,7 +49,7 @@ export default class AgentStore extends VuexModule {
    */
   @Action
   public async getHostList(params: IAgentSearch) {
-    const data = await listHost(params).catch(() => ({
+    const data = await listHost({...params,source_saas: true}).catch(() => ({
       total: 0,
       list: [],
       isFaied: true,
@@ -80,7 +80,7 @@ export default class AgentStore extends VuexModule {
    */
   @Action
   public async getRunningHost(params: IAgentSearch) {
-    const data = await listHost(params).catch(() => ({
+    const data = await listHost({...params,source_saas: true}).catch(() => ({
       manual_statistics: {
         false: 0,
         true: 0,
@@ -97,7 +97,7 @@ export default class AgentStore extends VuexModule {
    */
   @Action
   public async getHostIp(params: IAgentSearchIp) {
-    const data = await listHost(params).catch(() => ({
+    const data = await listHost({...params,source_saas: true}).catch(() => ({
       total: 0,
       list: [],
     }));
