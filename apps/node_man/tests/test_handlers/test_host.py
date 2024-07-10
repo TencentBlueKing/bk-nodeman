@@ -715,3 +715,14 @@ class TestHost(TestCase):
         result = HostHandler.proxies(number)
         # 如果是多IP场景返回多IP
         self.assertEqual(result[0]["outer_ip"], "255.255.255.264,255.255.255.265")
+
+    @patch("apps.node_man.handlers.cmdb.CmdbHandler.cmdb_or_cache_biz", cmdb_or_cache_biz)
+    @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)
+    def test_get_topology_only_saas(self):
+        page_size = 5
+        number = 5
+        host_to_create, process_to_create, _ = create_host(number)
+        params = {"page": 1, "pagesize": page_size, "only_ip": False, "conditions": [], "source_saas": True}
+        result = HostHandler().list(params, "admin")
+        for host in result["list"]:
+            self.assertLessEqual(len(host["topology"]), 1)
