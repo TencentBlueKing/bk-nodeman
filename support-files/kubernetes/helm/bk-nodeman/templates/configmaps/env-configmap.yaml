@@ -128,3 +128,4 @@ data:
   BKAPP_SYNC_PROC_STATUS_TASK_INTERVAL: "{{ .Values.config.bkAppSyncProcStatusTaskInterval }}"
 
   BKAPP_SCRIPT_HOOKS: "{{ .Values.config.bkAppScriptHooks }}"
+  BKPAAS_REPO_URL: "{{ .Values.bkRepoUrl }}"
