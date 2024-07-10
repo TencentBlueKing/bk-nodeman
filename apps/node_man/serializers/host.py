@@ -24,6 +24,7 @@ class HostSearchSerializer(base.HostSearchSerializer, base.HostFieldSelectorSeri
     version = serializers.ListField(label=_("Agent版本"), required=False, child=serializers.CharField())
     extra_data = serializers.ListField(label=_("额外信息"), required=False, child=serializers.CharField())
     running_count = serializers.BooleanField(label=_("正在运行机器数"), required=False, default=False)
+    source_saas = serializers.BooleanField(label=_("是否来源于SaaS"), required=False, default=False)
 
 
 class ProxySerializer(serializers.Serializer):
