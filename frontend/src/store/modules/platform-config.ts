@@ -50,7 +50,8 @@ export default class PlatformConfigStore extends VuexModule {
 
   @Action
   public async getConfig() {
-    const config = await getPlatformConfig(window.PROJECT_CONFIG?.BKPAAS_SHARED_RES_URL, {
+    const url = `${window.PROJECT_CONFIG?.BKPAAS_SHARED_RES_URL}/bk_nodeman/base.js`
+    const config = await getPlatformConfig(url, {
       name: '蓝鲸节点管理',
       nameEn: 'NodeMan',
       appLogo: logoSrc,
