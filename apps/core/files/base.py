@@ -146,7 +146,7 @@ class BkJobMixin:
         if job_api_func.api_name == JobApi.fast_transfer_file.api_name:
             query_params["file_source_list"] = self._handle_file_source_list(
                 file_source_list=query_params.get("file_source_list", []),
-                extra_transfer_file_params=deepcopy(query_params),
+                extra_transfer_file_params=query_params,
             )
         return query_params
 

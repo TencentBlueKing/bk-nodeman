@@ -133,9 +133,10 @@ class JobV3BaseService(six.with_metaclass(abc.ABCMeta, BaseService)):
         script_language = (constants.ScriptLanguageType.SHELL.value, constants.ScriptLanguageType.BAT.value)[
             os_type == constants.OsType.WINDOWS
         ]
-        meta: Dict[str, Union[str, int]] = job_params.pop("meta")
 
-        job_params.update(
+        request_job_params = copy.deepcopy(job_params)
+        meta: Dict[str, Union[str, int]] = request_job_params.pop("meta")
+        request_job_params.update(
             {
                 **meta,
                 "script_language": script_language,
@@ -146,16 +147,16 @@ class JobV3BaseService(six.with_metaclass(abc.ABCMeta, BaseService)):
             }
         )
 
-        if not job_params.get("timeout"):
+        if not request_job_params.get("timeout"):
             # 设置默认超时时间
-            job_params["timeout"] = constants.JOB_TIMEOUT
+            request_job_params["timeout"] = constants.JOB_TIMEOUT
 
         if isinstance(subscription_instance_id, int):
             subscription_instance_id = [subscription_instance_id]
 
         try:
             storage = get_storage()
-            job_params = storage.process_query_params(job_func, job_params)
+            request_job_params = storage.process_query_params(job_func, request_job_params)
             # 请求作业平台
             job_instance_id = job_func(job_params)["job_instance_id"]
         except AppBaseException as err:
@@ -165,8 +166,6 @@ class JobV3BaseService(six.with_metaclass(abc.ABCMeta, BaseService)):
                 constants.BkJobErrorCode.EXCEED_SYSTEM_QUOTA_LIMIT,
             ]:
                 # 识别job限制码，将此md5key加入到下一次滚动执行
-                # 回填meta信息
-                job_params["meta"] = meta
                 self.log_info(
                     subscription_instance_id,
                     _("{err_msg}，任务滚动执行中，请耐心等待.....").format(
@@ -184,17 +183,17 @@ class JobV3BaseService(six.with_metaclass(abc.ABCMeta, BaseService)):
             self.job_instance_id__call_params_map[job_instance_id] = {
                 "subscription_id": subscription_id,
                 "subscription_instance_id": subscription_instance_id,
-                "job_params": job_params,
+                "job_params": request_job_params,
             }
             # 组装调用作业平台的日志
-            file_target_path = job_params.get("file_target_path")
+            file_target_path = request_job_params.get("file_target_path")
             if job_func.api_name == JobApi.fast_transfer_file.api_name:
                 log = storage.gen_transfer_file_log(
-                    file_target_path=file_target_path, file_source_list=job_params.get("file_source_list")
+                    file_target_path=file_target_path, file_source_list=request_job_params.get("file_source_list")
                 )
             # 节点管理仅使用 push_config_file 下发 content，不涉及从文件源读取文件
             elif job_func.api_name == JobApi.push_config_file.api_name:
-                file_names = ",".join([file["file_name"] for file in job_params.get("file_list", [])])
+                file_names = ",".join([file["file_name"] for file in request_job_params.get("file_list", [])])
                 log = _("下发配置文件 [{file_names}] 到目标机器路径 [{file_target_path}]，若下发失败，请检查作业平台所部署的机器是否已安装AGENT").format(
                     file_names=file_names, file_target_path=file_target_path
                 )
@@ -206,7 +205,7 @@ class JobV3BaseService(six.with_metaclass(abc.ABCMeta, BaseService)):
             # 采用拼接上文的方式添加接口请求日志，减少DB操作
             if self.PRINT_PARAMS_TO_LOG:
                 api_params_log = self.generate_api_params_log(
-                    subscription_instance_ids=subscription_instance_id, job_params=job_params, job_func=job_func
+                    subscription_instance_ids=subscription_instance_id, job_params=request_job_params, job_func=job_func
                 )
                 log = f"{log}, 请求参数为：\n {api_params_log}"
 
