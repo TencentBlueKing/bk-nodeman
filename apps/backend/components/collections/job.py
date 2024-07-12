@@ -158,7 +158,7 @@ class JobV3BaseService(six.with_metaclass(abc.ABCMeta, BaseService)):
             storage = get_storage()
             request_job_params = storage.process_query_params(job_func, request_job_params)
             # 请求作业平台
-            job_instance_id = job_func(job_params)["job_instance_id"]
+            job_instance_id = job_func(request_job_params)["job_instance_id"]
         except AppBaseException as err:
             if err.code in [
                 constants.BkJobErrorCode.EXCEED_BIZ_QUOTA_LIMIT,
