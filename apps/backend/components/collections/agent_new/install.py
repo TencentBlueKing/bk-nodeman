@@ -13,6 +13,7 @@ import binascii
 import json
 import os
 import random
+import re
 import socket
 import time
 import typing
@@ -28,6 +29,7 @@ from apps.backend.agent import solution_maker
 from apps.backend.agent.tools import InstallationTools
 from apps.backend.api.constants import POLLING_INTERVAL
 from apps.backend.constants import (
+    POWERSHELL_SERVICE_CHECK_SSHD,
     REDIS_AGENT_CONF_KEY_TPL,
     REDIS_INSTALL_CALLBACK_KEY_TPL,
     SSH_RUN_TIMEOUT,
@@ -674,7 +676,13 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
         execution_solution = installation_tool.type__execution_solution_map[
             constants.CommonExecutionSolutionType.SHELL.value
         ]
+        command_converter: Dict = {}
+
         async with conns.AsyncsshConn(**install_sub_inst_obj.conns_init_params) as conn:
+            if install_sub_inst_obj.host.os_type == constants.OsType.WINDOWS:
+                sshd_info = await conn.run(POWERSHELL_SERVICE_CHECK_SSHD, check=True, timeout=SSH_RUN_TIMEOUT)
+                sshd_info = sshd_info.stdout.lower()
+                self.build_shell_to_batch_command_converter(execution_solution.steps, command_converter, sshd_info)
 
             for execution_solution_step in execution_solution.steps:
                 if execution_solution_step.type == constants.CommonExecutionSolutionStepType.DEPENDENCIES.value:
@@ -699,11 +707,58 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
 
                 elif execution_solution_step.type == constants.CommonExecutionSolutionStepType.COMMANDS.value:
                     for content in execution_solution_step.contents:
-                        cmd = content.text
+                        cmd = command_converter.get(content.text, content.text)
+                        if not cmd:
+                            continue
                         await log_info(sub_inst_ids=sub_inst_id, log_content=_("执行命令: {cmd}").format(cmd=cmd))
                         await conn.run(command=cmd, check=True, timeout=SSH_RUN_TIMEOUT)
 
         return sub_inst_id
+
+    @classmethod
+    def convert_shell_to_powershell(cls, shell_cmd):
+        # Convert mkdir -p xxx to if not exist xxx mkdir xxx
+        shell_cmd = re.sub(
+            r"mkdir -p\s+(\S+)",
+            r"powershell -c 'if (-Not (Test-Path -Path \1)) { New-Item -ItemType Directory -Path \1 }'",
+            shell_cmd,
+        )
+
+        # Convert chmod +x xxx to ''
+        shell_cmd = re.sub(r"chmod\s+\+x\s+\S+", r"", shell_cmd)
+
+        # Convert curl to Invoke-WebRequest
+        # shell_cmd = re.sub(
+        #     r"curl\s+(http[s]?:\/\/[^\s]+)\s+-o\s+(\/?[^\s]+)\s+--connect-timeout\s+(\d+)\s+-sSfg",
+        #     r"powershell -c 'Invoke-WebRequest -Uri \1 -OutFile \2 -TimeoutSec \3 -UseBasicParsing'",
+        #     shell_cmd,
+        # )
+        shell_cmd = re.sub(r"(curl\s+\S+\s+-o\s+\S+\s+--connect-timeout\s+\d+\s+-sSfg)", r'cmd /c "\1"', shell_cmd)
+
+        # Convert nohup xxx &> ... & to xxx (ignore nohup, output redirection and background execution)
+        shell_cmd = re.sub(
+            r"nohup\s+([^&>]+)(\s*&>\s*.*?&)?",
+            r"powershell -c 'Invoke-Command -Session (New-PSSession) -ScriptBlock { \1 } -AsJob'",
+            shell_cmd,
+        )
+
+        # Remove '&>' and everything after it
+        shell_cmd = re.sub(r"\s*&>.*", "", shell_cmd)
+
+        # Convert \\ to \
+        shell_cmd = shell_cmd.replace("\\\\", "\\")
+
+        return shell_cmd.strip()
+
+    def build_shell_to_batch_command_converter(self, steps, command_converter, sshd_info):
+        if "cygwin" in sshd_info:
+            return
+
+        for execution_solution_step in steps:
+            if execution_solution_step.type == constants.CommonExecutionSolutionStepType.COMMANDS.value:
+                for content in execution_solution_step.contents:
+                    cmd = content.text
+                    command_converter[cmd] = self.convert_shell_to_powershell(cmd)
 
     def handle_report_data(self, host: models.Host, sub_inst_id: int, success_callback_step: str) -> Dict:
         """处理上报数据"""

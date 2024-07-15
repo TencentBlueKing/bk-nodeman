@@ -164,3 +164,5 @@ class FilterFieldName(enum.EnhanceEnum):
 
 DEFAULT_ALIVE_TIME = 30
 DEFAULT_CLEAN_RECORD_LIMIT = 5000
+
+POWERSHELL_SERVICE_CHECK_SSHD = "powershell -c Get-Service -Name sshd"
