@@ -549,9 +549,9 @@ goto :EOF
 goto :EOF
 
 :get_config
-    call :print INFO get_config - "request %NODE_TYPE% config files"
+    call :print INFO get_config - "request agent config files"
     call :multi_report_step_status
-    set PARAM="{\"bk_cloud_id\":%CLOUD_ID%,\"filename\":\"gse_agent.conf\",\"node_type\":\"%NODE_TYPE%\",\"inner_ip\":\"%LAN_ETH_IP%\",\"token\":\"%TOKEN%\"}"
+    set PARAM="{\"bk_cloud_id\":%CLOUD_ID%,\"filename\":\"gse_agent.conf\",\"node_type\":\"agent\",\"inner_ip\":\"%LAN_ETH_IP%\",\"token\":\"%TOKEN%\"}"
     echo call :print INFO get_config - "request config files with: %PARAM%"
     for %%p in (gse_agent.conf) do (
         if "%HTTP_PROXY%" == "" (

@@ -199,6 +199,8 @@ DEFAULT_HTTP_PROXY_SERVER_PORT = args.host_proxy_port
 
 JOB_PRIVATE_KEY_RE = re.compile(r"^(-{5}BEGIN .*? PRIVATE KEY-{5})(.*?)(-{5}END .*? PRIVATE KEY-{5}.?)$")
 
+POWERSHELL_SERVICE_CHECK_SSHD = "powershell -c Get-Service -Name sshd"
+
 
 def is_ip(ip: str, _version: Optional[int] = None) -> bool:
     """
@@ -312,6 +314,41 @@ def execute_batch_solution(
             print(res)
 
 
+def convert_shell_to_powershell(shell_cmd):
+    # Convert mkdir -p xxx to if not exist xxx mkdir xxx
+    shell_cmd = re.sub(
+        r"mkdir -p\s+(\S+)",
+        r"powershell -c 'if (-Not (Test-Path -Path \1)) { New-Item -ItemType Directory -Path \1 }'",
+        shell_cmd,
+    )
+
+    # Convert chmod +x xxx to ''
+    shell_cmd = re.sub(r"chmod\s+\+x\s+\S+", r"", shell_cmd)
+
+    # Convert curl to Invoke-WebRequest
+    # shell_cmd = re.sub(
+    #     r"curl\s+(http[s]?:\/\/[^\s]+)\s+-o\s+(\/?[^\s]+)\s+--connect-timeout\s+(\d+)\s+-sSfg",
+    #     r"powershell -c 'Invoke-WebRequest -Uri \1 -OutFile \2 -TimeoutSec \3 -UseBasicParsing'",
+    #     shell_cmd,
+    # )
+    shell_cmd = re.sub(r"(curl\s+\S+\s+-o\s+\S+\s+--connect-timeout\s+\d+\s+-sSfg)", r'cmd /c "\1"', shell_cmd)
+
+    # Convert nohup xxx &> ... & to xxx (ignore nohup, output redirection and background execution)
+    shell_cmd = re.sub(
+        r"nohup\s+([^&>]+)(\s*&>\s*.*?&)?",
+        r"powershell -c 'Invoke-Command -Session (New-PSSession) -ScriptBlock { \1 } -AsJob'",
+        shell_cmd,
+    )
+
+    # Remove '&>' and everything after it
+    shell_cmd = re.sub(r"\s*&>.*", "", shell_cmd)
+
+    # Convert \\ to \
+    shell_cmd = shell_cmd.replace("\\\\", "\\")
+
+    return shell_cmd.strip()
+
+
 def execute_shell_solution(
     login_ip: str,
     account: str,
@@ -333,12 +370,25 @@ def execute_shell_solution(
         client_key_strings=client_key_strings,
         connect_timeout=15,
     ) as conn:
+        command_converter = {}
+        if os_type == "windows":
+            run_output: RunOutput = conn.run(POWERSHELL_SERVICE_CHECK_SSHD, check=True, timeout=30)
+            if run_output.exit_status == 0 and "cygwin" not in run_output.stdout.lower():
+                for step in execution_solution["steps"]:
+                    if step["type"] != "commands":
+                        continue
+                    for content in step["contents"]:
+                        cmd: str = content["text"]
+                        command_converter[cmd] = convert_shell_to_powershell(cmd)
+
         for step in execution_solution["steps"]:
             # 暂不支持 dependencies 等其他步骤类型
             if step["type"] != "commands":
                 continue
             for content in step["contents"]:
-                cmd: str = content["text"]
+                cmd: str = command_converter.get(content["text"], content["text"])
+                if not cmd:
+                    continue
 
                 # 根据用户名判断是否采用sudo
                 if account not in ["root", "Administrator", "administrator"] and not cmd.startswith("sudo"):
@@ -542,7 +592,10 @@ class RunOutput:
     @staticmethod
     def bytes2str(val: BytesOrStr) -> str:
         if isinstance(val, bytes):
-            return val.decode(encoding="utf-8")
+            try:
+                return val.decode(encoding="utf-8")
+            except UnicodeDecodeError:
+                return val.decode(encoding="gbk")
         return val
 
     def __str__(self):

@@ -33,7 +33,10 @@ class RunOutput:
     @staticmethod
     def bytes2str(val: BytesOrStr) -> str:
         if isinstance(val, bytes):
-            return val.decode(encoding="utf-8")
+            try:
+                return val.decode(encoding="utf-8")
+            except UnicodeDecodeError:
+                return val.decode(encoding="gbk")
         return val
 
     def __str__(self):
