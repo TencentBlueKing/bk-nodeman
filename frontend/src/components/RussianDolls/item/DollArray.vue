@@ -4,6 +4,7 @@
     :label="item.title"
     :required="item.required"
     :property="item.property"
+    :label-width="labelWidth"
     :desc="item.description">
     <div class="array-child-group" v-if="value?.length">
       <div class="array-child flex" v-for="(option, index) in value" :key="option">
@@ -39,6 +40,10 @@ export default defineComponent({
     schema: () => ({}),
     value: () => [],
     valueProp: '',
+    labelWidth: {
+      type: Number,
+      default: 110,
+    },
   },
   setup(props) {
     const updateFormData = inject('updateFormData');
