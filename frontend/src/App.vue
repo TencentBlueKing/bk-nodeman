@@ -86,6 +86,7 @@ export default class App extends Vue {
     setDocumentTitle(PlatformConfigStore.defaults.i18n);
     // 设置favicon
     setShortcutIcon(PlatformConfigStore.defaults.favicon);
+    this.setFavicon()
     const platform = window.navigator.platform.toLowerCase();
     if (platform.indexOf('win') === 0) {
       this.systemCls = 'win';
@@ -101,6 +102,18 @@ export default class App extends Vue {
       });
     });
   }
+
+  // 全局配置只设置了shortcut icon,会失效,这里补充设置rel=icon的favicon
+  private setFavicon () {
+    var r = document.querySelector('link[rel="icon"]');
+    r || (r = document.createElement("link"),
+      r.setAttribute("rel", "icon"),
+      document.head.appendChild(r))
+      
+    r.setAttribute("type", "image/x-icon");
+    r.setAttribute("href", PlatformConfigStore.defaults.favicon);
+  }
+  
   private mounted() {
     window.LoginModal = this.$refs.login;
     bus.$on('show-login-modal', () => {
