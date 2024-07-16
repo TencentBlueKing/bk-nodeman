@@ -3,9 +3,8 @@
     class="russian-dolls-form"
     ref="russianDollsFormRef"
     :model="formModel"
-    :rules="rules"
-    :label-width="labelWidth">
-    <DollIndex :value-prop="''" :value="formModel" :item="baseForm" :item-index="0" />
+    :rules="rules">
+    <DollIndex :value-prop="''" :value="formModel" :item="baseForm" :item-index="0" :label-width="labelWidth"/>
   </bk-form>
 </template>
 
