@@ -132,6 +132,7 @@ import ExceptionPage from '@/components/exception/exception-page.vue';
 import routerBackMixin from '@/common/router-back-mixin';
 import { bus } from '@/common/bus';
 import { INavConfig } from '@/types';
+import logoSrc from '@/images/logoIcon.png';
 
 interface IUserItem {
   id: string
@@ -214,7 +215,7 @@ export default class NodemanNavigation extends Mixins(routerBackMixin) {
     return PlatformConfigStore.defaults;
   }
   private get appLogo() {
-    return PlatformConfigStore.defaults.appLogo;
+    return PlatformConfigStore.defaults.appLogo || logoSrc;
   }
   private get navList() {
     return MainStore.navList.filter(item => !item.disabled);

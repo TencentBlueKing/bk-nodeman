@@ -70,6 +70,9 @@ export default class NmFooter extends Vue {
   width: 100%;
   padding: 19px 0;
   text-align: center;
+  /deep/a.link-item {
+    color: #3a84ff;
+  }
   p {
     line-height: 1;
   }
