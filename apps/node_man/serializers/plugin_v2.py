@@ -189,6 +189,11 @@ class PluginFetchConfigVarsSerializer(serializers.Serializer):
         return data
 
 
+class HostUserInfoSerializer(serializers.Serializer):
+    bk_host_id = serializers.IntegerField(label=_("主机ID"))
+    user = serializers.CharField(label=_("操作用户"))
+
+
 class PluginOperateSerializer(serializers.Serializer):
     job_type = serializers.ChoiceField(label=_("任务类型"), choices=list(constants.PLUGIN_JOB_TUPLE))
     plugin_name = serializers.CharField(label=_("插件名称"))
@@ -196,6 +201,8 @@ class PluginOperateSerializer(serializers.Serializer):
     scope = base.ScopeSerializer()
     # 参数配置
     steps = serializers.ListField(child=base.StepSerializer(), required=False, default=[])
+    operate_info = serializers.ListField(label=_("操作信息"), child=HostUserInfoSerializer(), default=[], required=False)
+    system_account = serializers.DictField(required=False, label=_("操作系统对应账户"))
 
     def validate(self, data):
         if models.GsePluginDesc.objects.filter(name=data["plugin_name"]).first() is None:
@@ -203,6 +210,10 @@ class PluginOperateSerializer(serializers.Serializer):
 
         if data["job_type"] == constants.JobType.MAIN_INSTALL_PLUGIN and not data["steps"]:
             raise ValidationError(_("插件安装/更新需要传递steps"))
+        if data.get("system_account"):
+            for key in data["system_account"]:
+                if key not in constants.OS_TUPLE:
+                    raise ValidationError(_(f"操作系统类型只能为{constants.OS_TUPLE}"))
 
         return data
 
