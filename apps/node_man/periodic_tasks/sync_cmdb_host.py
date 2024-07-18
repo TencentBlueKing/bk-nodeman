@@ -11,8 +11,8 @@ specific language governing permissions and limitations under the License.
 import math
 import typing
 
+from celery import current_app
 from celery.schedules import crontab
-from celery.task import periodic_task
 from django.conf import settings
 from django.db import transaction
 
@@ -575,7 +575,7 @@ def query_cmdb_and_handle_need_delete_host_ids(host_ids: typing.List[int], task_
     return []
 
 
-@periodic_task(
+@current_app.task(
     queue="default",
     options={"queue": "default"},
     run_every=crontab(hour="0", minute="0", day_of_week="*", day_of_month="*", month_of_year="*"),
@@ -597,7 +597,7 @@ def sync_cmdb_host_task(bk_biz_id=None):
     sync_cmdb_host(bk_biz_id, task_id)
 
 
-@periodic_task(
+@current_app.task(
     queue="default",
     options={"queue": "default"},
     run_every=constants.CLEAR_NEED_DELETE_HOST_IDS_INTERVAL,

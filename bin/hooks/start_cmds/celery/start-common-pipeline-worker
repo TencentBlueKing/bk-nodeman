@@ -1,2 +1,2 @@
 #!/bin/bash
-celery -A apps.backend worker -Q backend_additional_task,pipeline,pipeline_priority,service_schedule,service_schedule_priority,pipeline_additional_task,pipeline_additional_task_priority -n pcworker@%h -P threads -c 128 --maxtasksperchild=50 -O fair --time-limit=1800
+celery -A apps.backend worker -Q backend_additional_task,pipeline,pipeline_priority,service_schedule,service_schedule_priority,pipeline_additional_task,pipeline_additional_task_priority -n pcworker@%h -P threads -c 128 --max-tasks-per-child=50 -O fair --time-limit=1800

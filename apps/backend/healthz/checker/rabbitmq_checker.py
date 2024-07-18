@@ -24,8 +24,8 @@ def status(manager, result):
     """rabbitmq队列长度状态"""
     try:
         BROKER_URL = settings.BROKER_URL
-        if not BROKER_URL.startswith("amqp://"):
-            BROKER_URL = "amqp://guest:guest@localhost:5672//"
+        if not BROKER_URL.startswith("pyamqp://"):
+            BROKER_URL = "pyamqp://guest:guest@localhost:5672//"
         conn = Connection(BROKER_URL)
         conn.connect()
         channel = conn.channel()
