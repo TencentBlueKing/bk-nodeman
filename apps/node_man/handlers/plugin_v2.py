@@ -152,7 +152,14 @@ class PluginV2Handler:
         return packages
 
     @staticmethod
-    def operate(job_type: str, plugin_name: str, scope: Dict, steps: List[Dict]):
+    def operate(
+        job_type: str,
+        plugin_name: str,
+        scope: Dict,
+        steps: List[Dict],
+        operate_info: List[Dict] = None,
+        system_account: Dict = None,
+    ):
         bk_biz_scope = list(set([node["bk_biz_id"] for node in scope["nodes"]]))
 
         CmdbHandler().check_biz_permission(bk_biz_scope, IamActionType.plugin_operate)
@@ -166,6 +173,10 @@ class PluginV2Handler:
             "scope": scope,
             "bk_biz_scope": bk_biz_scope,
         }
+        if operate_info:
+            base_create_kwargs["operate_info"] = operate_info
+        if system_account:
+            base_create_kwargs["system_account"] = system_account
 
         if job_type == constants.JobType.MAIN_INSTALL_PLUGIN:
             create_data = {**base_create_kwargs, "steps": steps}

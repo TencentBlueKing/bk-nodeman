@@ -1859,6 +1859,7 @@ class Subscription(export_subscription_prometheus_mixin(), orm.SoftDeleteModel):
     category = models.CharField(_("订阅类别"), max_length=32, null=True, blank=True, db_index=True)
     plugin_name = models.CharField(_("插件名称"), max_length=64, null=True, blank=True, db_index=True)
     bk_biz_scope = JSONField(_("业务范围"), default=list)
+    operate_info = JSONField(_("操作信息"), default=None, null=True)
 
     pid = models.BigIntegerField(_("父订阅ID"), default=ROOT, db_index=True)
 
