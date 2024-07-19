@@ -80,6 +80,10 @@ export default class App extends Vue {
   }
 
   private async created() {
+    const localConfig = JSON.parse(localStorage.getItem('config') as string);
+    if (localConfig) {
+      PlatformConfigStore.updatePlatformConfig(localConfig)
+    }
     // 获取平台配置信息
     await PlatformConfigStore.getConfig();
     // 设置网页标题
