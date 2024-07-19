@@ -106,8 +106,7 @@ opentelemetry-instrumentation-logging==0.30b1
 opentelemetry-instrumentation-requests==0.30b1
 bk-monitor-report==1.2.1
 
-
-apigw-manager[cryptography]==1.1.7
+apigw-manager[cryptography]==1.1.8
 cryptography==3.3.2
 
 # notice
