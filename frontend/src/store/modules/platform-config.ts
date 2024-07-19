@@ -8,8 +8,8 @@ import logoSrc from '@/images/logoIcon.png';
 export default class PlatformConfigStore extends VuexModule {
   public defaults: IPlatformConfig =  {
     bkAppCode: '', // appcode
-    name: '', // 站点的名称，通常显示在页面左上角，也会出现在网页title中
-    nameEn: '', // 站点的名称-英文
+    name: '蓝鲸节点管理', // 站点的名称，通常显示在页面左上角，也会出现在网页title中
+    nameEn: 'BlueKing NodeMan', // 站点的名称-英文
     appLogo: '', // 站点logo
     favicon: '/static/images/favicon.png', // 站点favicon
     helperText: '',
@@ -62,8 +62,10 @@ export default class PlatformConfigStore extends VuexModule {
       helperText: window.i18n.t('联系BK助手'),
       version: window.PROJECT_CONFIG.VERSION,
     });
-    console.log("🚀 ~ PlatformConfigStore ~ getConfig ~ config:", config)
-
-    this.context.commit('updatePlatformConfig', config);
+    // 判断version
+    if (JSON.parse(localStorage.getItem('config') as string)?.version !== config.version ) {      
+      this.context.commit('updatePlatformConfig', config);
+      localStorage.setItem('config',JSON.stringify(config));
+    }
   }
 }
