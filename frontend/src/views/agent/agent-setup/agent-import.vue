@@ -587,6 +587,7 @@ export default class AgentImport extends Mixins(mixin) {
 @import "@/css/mixins/nodeman.css";
 
 .agent-setup {
+  height: calc(100vh - 120px);
   flex: 1;
   @mixin layout-flex row;
   .agent-setup-left {
