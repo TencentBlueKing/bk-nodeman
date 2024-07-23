@@ -593,6 +593,8 @@ LIST_SERVICE_INSTANCE_DETAIL_INTERVAL = 0.2
 REDIS_NEED_DELETE_HOST_IDS_KEY_TPL = f"{settings.APP_CODE}:node_man:need_delete_host_ids:list"
 # 从redis中读取bk_host_ids最大长度
 MAX_HOST_IDS_LENGTH = 5000
+# 操作系统对应账户名
+OS_ACCOUNT = {"LINUX": LINUX_ACCOUNT, "WINDOWS": WINDOWS_ACCOUNT}
 
 
 class ProxyFileFromType(Enum):
