@@ -387,6 +387,8 @@ def execute_shell_solution(
                 continue
             for content in step["contents"]:
                 cmd: str = command_converter.get(content["text"], content["text"])
+                if "c:/Temp/curl.exe" in cmd:
+                    continue
                 if not cmd:
                     continue
 
