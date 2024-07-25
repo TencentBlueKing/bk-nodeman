@@ -60,7 +60,7 @@ mistune==0.8.4
 django-versionlog==1.6.0
 
 # 腾讯云SDK
-tencentcloud-sdk-python==3.0.101
+tencentcloud-sdk-python==3.0.151
 
 # Iam SDK
 bk-iam==1.1.14
