@@ -50,8 +50,7 @@ export default class PlatformConfigStore extends VuexModule {
 
   @Action
   public async getConfig() {
-    const url = `${window.PROJECT_CONFIG?.BKPAAS_SHARED_RES_URL}/bk_nodeman/base.js`
-    const config = await getPlatformConfig(url, {
+    const defaults = {
       name: '蓝鲸节点管理',
       nameEn: 'NodeMan',
       appLogo: logoSrc,
@@ -61,11 +60,14 @@ export default class PlatformConfigStore extends VuexModule {
       helperLink: window.PROJECT_CONFIG.BKAPP_NAV_HELPER_URL,
       helperText: window.i18n.t('联系BK助手'),
       version: window.PROJECT_CONFIG.VERSION,
-    });
-    // 判断version
-    if (JSON.parse(localStorage.getItem('config') as string)?.version !== config.version ) {      
-      this.context.commit('updatePlatformConfig', config);
-      localStorage.setItem('config',JSON.stringify(config));
+    };
+    let config;
+    if (window.PROJECT_CONFIG?.BKPAAS_SHARED_RES_URL) {
+      const url = `${window.PROJECT_CONFIG?.BKPAAS_SHARED_RES_URL}/bk_nodeman/base.js`;
+      config = await getPlatformConfig(url, defaults);
+    } else {
+      config = await getPlatformConfig(defaults);
     }
+    this.context.commit('updatePlatformConfig', config);
   }
 }
