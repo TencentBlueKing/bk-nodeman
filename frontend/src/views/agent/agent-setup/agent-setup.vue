@@ -290,7 +290,8 @@ export default class AgentSetup extends Mixins(mixin, formLabelMixin) {
     return isEmpty(this.formData.bk_cloud_id);
   }
   private get filterChannelList() {
-    return AgentStore.channelList.filter(item => item.id === 'default' || item.bk_cloud_id === this.formData.bk_cloud_id);
+    return AgentStore.channelList.filter(item => item.id === 'default' || item.bk_cloud_id === this.formData.bk_cloud_id
+      || (MainStore.AUTO_SELECT_INSTALL_CHANNEL === 0 && item.id === -1));
   }
 
   @Watch('formData.ap_id')
