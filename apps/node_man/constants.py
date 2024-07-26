@@ -77,6 +77,12 @@ DEFAULT_CLOUD = int(os.environ.get("DEFAULT_CLOUD", 0))
 DEFAULT_CLOUD_NAME = os.environ.get("DEFAULT_CLOUD_NAME", _("直连区域"))
 # 自动选择接入点ID
 DEFAULT_AP_ID = int(os.environ.get("DEFAULT_AP_ID", -1))
+# 自动选择安装通道ID
+DEFAULT_INSTALL_CHANNEL_ID = int(os.environ.get("DEFAULT_AP_ID", -1))
+# 自动选择
+AUTOMATIC_CHOICE = os.environ.get("AUTOMATIC_CHOICE", _("自动选择"))
+# 默认安装通道
+DEFAULT_INSTALL_CHANNEL_NAME = os.environ.get("DEFAULT_INSTALL_CHANNEL_NAME", _("默认通道"))
 # GSE命名空间
 GSE_NAMESPACE = "nodeman"
 

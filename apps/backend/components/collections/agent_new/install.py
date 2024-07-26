@@ -298,6 +298,18 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
         host_id__sub_inst_id = {
             host_id: sub_inst_id for sub_inst_id, host_id in common_data.sub_inst_id__host_id_map.items()
         }
+        # 获取安装通道ID与name映射
+        install_channel_id_name_map: Dict[str, str] = models.InstallChannel.install_channel_id_name_map(get_cache=True)
+        for sub_inst_id, sub_inst_obj in common_data.sub_inst_id__sub_inst_obj_map.items():
+            install_channel_id: Optional[int] = sub_inst_obj.instance_info["host"].get("install_channel_id")
+            install_channel_name: str = install_channel_id_name_map.get(
+                str(install_channel_id), constants.DEFAULT_INSTALL_CHANNEL_NAME
+            )
+            # 输出安装通道日志
+            self.log_info(
+                sub_inst_ids=sub_inst_id,
+                log_content=_(f"选择的安装通道为: {install_channel_name}"),
+            )
         is_uninstall = data.get_one_of_inputs("is_uninstall")
         host_id_obj_map = common_data.host_id_obj_map
         gse_version: str = data.get_one_of_inputs("meta", {}).get("GSE_VERSION")
