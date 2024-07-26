@@ -99,3 +99,8 @@ export interface IChannel {
   jump_servers: string[]
   upstream_servers: { [key: string]: string[] }
 }
+export interface IChannelAuto {
+  id: number | string
+  name: string
+  bk_cloud_id?: number
+}
