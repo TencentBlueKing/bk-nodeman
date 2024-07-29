@@ -3423,6 +3423,10 @@ msgstr "Detect BT distribution strategy (distribute Py36 package)"
 msgid "下发安装工具"
 msgstr "Transfer installation tool"
 
+#: apps/node_man/constants.py: 1134
+msgid "下发windows手动安装工具"
+msgstr "Transfer windows manual installation tool"
+
 #: apps/node_man/constants.py:1065
 msgid "数据传输工具, 用于下载文件依赖"
 msgstr "Data transmission tools for download file dependencies"

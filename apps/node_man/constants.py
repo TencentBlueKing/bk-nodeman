@@ -1125,6 +1125,13 @@ FILES_TO_PUSH_TO_PROXY = TOOLS_TO_PUSH_TO_PROXY + [
     }
 ]
 
+MANUAL_INSTALL_WINDOWS_BATCH_FILES = TOOLS_TO_PUSH_TO_PROXY + [
+    {
+        "files": ["base64.exe", "setup_agent.bat"],
+        "name": _("下发windows手动安装工具"),
+    }
+]
+
 
 class AgentWindowsDependencies(EnhanceEnum):
     CURL = "curl.exe"
