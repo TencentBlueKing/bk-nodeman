@@ -2,6 +2,7 @@ import { Module, VuexModule, Mutation, Action } from 'vuex-module-decorators';
 import { IPlatformConfig } from '@/types/config/config';
 import { getPlatformConfig } from '@blueking/platform-config';
 import logoSrc from '@/images/logoIcon.png';
+import faviconSrc from '/static/images/favicon.png';
 
 // eslint-disable-next-line new-cap
 @Module({ name: 'platformConfig', namespaced: true })
@@ -11,7 +12,7 @@ export default class PlatformConfigStore extends VuexModule {
     name: '蓝鲸节点管理', // 站点的名称，通常显示在页面左上角，也会出现在网页title中
     nameEn: 'BlueKing NodeMan', // 站点的名称-英文
     appLogo: '', // 站点logo
-    favicon: '/static/images/favicon.png', // 站点favicon
+    favicon: '', // 站点favicon
     helperText: '',
     helperTextEn: '',
     helperLink: '',
@@ -56,7 +57,7 @@ export default class PlatformConfigStore extends VuexModule {
       appLogo: logoSrc,
       brandName: '腾讯蓝鲸智云',
       brandNameEn: 'BlueKing',
-      favicon: '/static/images/favicon.png',
+      favicon: faviconSrc,
       helperLink: window.PROJECT_CONFIG.BKAPP_NAV_HELPER_URL,
       helperText: window.i18n.t('联系BK助手'),
       version: window.PROJECT_CONFIG.VERSION,
