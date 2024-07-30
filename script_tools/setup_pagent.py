@@ -199,7 +199,7 @@ DEFAULT_HTTP_PROXY_SERVER_PORT = args.host_proxy_port
 
 JOB_PRIVATE_KEY_RE = re.compile(r"^(-{5}BEGIN .*? PRIVATE KEY-{5})(.*?)(-{5}END .*? PRIVATE KEY-{5}.?)$")
 
-POWERSHELL_SERVICE_CHECK_SSHD = "powershell -c Get-Service -Name sshd"
+POWERSHELL_SERVICE_CHECK_SSHD = "Get-Service -Name sshd"
 
 
 def is_ip(ip: str, _version: Optional[int] = None) -> bool:
@@ -318,7 +318,7 @@ def convert_shell_to_powershell(shell_cmd):
     # Convert mkdir -p xxx to if not exist xxx mkdir xxx
     shell_cmd = re.sub(
         r"mkdir -p\s+(\S+)",
-        r"powershell -c 'if (-Not (Test-Path -Path \1)) { New-Item -ItemType Directory -Path \1 }'",
+        r"if (-Not (Test-Path -Path \1)) { New-Item -ItemType Directory -Path \1 }",
         shell_cmd,
     )
 
@@ -328,7 +328,7 @@ def convert_shell_to_powershell(shell_cmd):
     # Convert curl to Invoke-WebRequest
     # shell_cmd = re.sub(
     #     r"curl\s+(http[s]?:\/\/[^\s]+)\s+-o\s+(\/?[^\s]+)\s+--connect-timeout\s+(\d+)\s+-sSfg",
-    #     r"powershell -c 'Invoke-WebRequest -Uri \1 -OutFile \2 -TimeoutSec \3 -UseBasicParsing'",
+    #     r"Invoke-WebRequest -Uri \1 -OutFile \2 -TimeoutSec \3 -UseBasicParsing",
     #     shell_cmd,
     # )
     shell_cmd = re.sub(r"(curl\s+\S+\s+-o\s+\S+\s+--connect-timeout\s+\d+\s+-sSfg)", r'cmd /c "\1"', shell_cmd)
@@ -336,7 +336,7 @@ def convert_shell_to_powershell(shell_cmd):
     # Convert nohup xxx &> ... & to xxx (ignore nohup, output redirection and background execution)
     shell_cmd = re.sub(
         r"nohup\s+([^&>]+)(\s*&>\s*.*?&)?",
-        r"powershell -c 'Invoke-Command -Session (New-PSSession) -ScriptBlock { \1 } -AsJob'",
+        r"Invoke-Command -Session (New-PSSession) -ScriptBlock { \1 } -AsJob",
         shell_cmd,
     )
 
