@@ -187,11 +187,11 @@ export default class NodemanNavigation extends Mixins(routerBackMixin) {
   private langList = [
     {
       id: 'zh-cn', // zhCN
-      name: this.$t('中文'),
+      name: '中文',
     },
     {
       id: 'en', // enUS
-      name: this.$t('英文'),
+      name: 'English',
     },
   ];
   private userList: IUserItem[] = [
