@@ -318,8 +318,6 @@ export default {
   版本日志: 'Release note',
   问题反馈: 'Feedback',
   开源社区: 'Open source community',
-  中文: 'Chinese',
-  英文: 'English',
   当前版本: 'Current',
   安装到业务: 'Install to business',
   接入点已在管控区域中设定: 'Access point has been set in the "BK-Net"',

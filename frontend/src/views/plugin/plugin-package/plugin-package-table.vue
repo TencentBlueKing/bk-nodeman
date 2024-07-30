@@ -3,7 +3,7 @@
     <bk-table
       :class="`plugin-package-table head-customize-table ${fontSize}`"
       :max-height="tableMaxHeight"
-      :data="tableList"
+      :data="tableData"
       :pagination="pagination"
       :row-class-name="rowClassName"
       :span-method="colspanHandle"
@@ -157,6 +157,12 @@ export default class PackageTable extends Mixins(HeaderRenderMixin) {
   @Prop({ default: () => ([]), type: Array }) private readonly tableList!: IPluginRow[];
   @Prop({ default: () => ({}), type: Object }) private readonly pagination!: IPagination;
   @Prop({ default: true, type: Boolean }) private readonly isLoading!: boolean;
+  private get tableData () {
+    return this.tableList.map(item => ({
+      ...item,
+      nodes_number: item.nodes_number || 0,
+    }));
+  }
   private localMark = 'package_table';
   private filterField = [
     { checked: true, disabled: true, mockChecked: true, name: this.$t('插件别名'), id: 'description' },
