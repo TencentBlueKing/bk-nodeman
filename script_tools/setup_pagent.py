@@ -199,7 +199,7 @@ DEFAULT_HTTP_PROXY_SERVER_PORT = args.host_proxy_port
 
 JOB_PRIVATE_KEY_RE = re.compile(r"^(-{5}BEGIN .*? PRIVATE KEY-{5})(.*?)(-{5}END .*? PRIVATE KEY-{5}.?)$")
 
-POWERSHELL_SERVICE_CHECK_SSHD = "Get-Service -Name sshd"
+POWERSHELL_SERVICE_CHECK_SSHD = "powershell -c Get-Service -Name sshd"
 
 
 def is_ip(ip: str, _version: Optional[int] = None) -> bool:
