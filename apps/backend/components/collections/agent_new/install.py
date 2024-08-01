@@ -681,8 +681,8 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
         async with conns.AsyncsshConn(**install_sub_inst_obj.conns_init_params) as conn:
             if install_sub_inst_obj.host.os_type == constants.OsType.WINDOWS:
                 sshd_info = await conn.run(POWERSHELL_SERVICE_CHECK_SSHD, check=True, timeout=SSH_RUN_TIMEOUT)
-                sshd_info = sshd_info.stdout.lower()
-                self.build_shell_to_batch_command_converter(execution_solution.steps, command_converter, sshd_info)
+                if sshd_info.exit_status == 0 and "cygwin" not in sshd_info.stdout.lower():
+                    self.build_shell_to_batch_command_converter(execution_solution.steps, command_converter)
 
             for execution_solution_step in execution_solution.steps:
                 if execution_solution_step.type == constants.CommonExecutionSolutionStepType.DEPENDENCIES.value:
@@ -750,10 +750,7 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
 
         return shell_cmd.strip()
 
-    def build_shell_to_batch_command_converter(self, steps, command_converter, sshd_info):
-        if "cygwin" in sshd_info:
-            return
-
+    def build_shell_to_batch_command_converter(self, steps, command_converter):
         for execution_solution_step in steps:
             if execution_solution_step.type == constants.CommonExecutionSolutionStepType.COMMANDS.value:
                 for content in execution_solution_step.contents:
