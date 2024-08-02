@@ -50,13 +50,17 @@ export default class PlatformConfigStore extends VuexModule {
 
   @Action
   public async getConfig() {
+    const faviconSrc = process.env.NODE_ENV === 'development'
+      ? '/static/images/favicon.png'
+      : `${window.PROJECT_CONFIG?.STATIC_URL}nodeman/images/favicon.png`;
+      
     const defaults = {
       name: '蓝鲸节点管理',
       nameEn: 'NodeMan',
       appLogo: logoSrc,
-      brandName: '腾讯蓝鲸智云',
-      brandNameEn: 'BlueKing',
-      favicon: '/static/images/favicon.png',
+      brandName: '蓝鲸智云',
+      brandNameEn: 'Tencent BlueKing',
+      favicon: faviconSrc,
       helperLink: window.PROJECT_CONFIG.BKAPP_NAV_HELPER_URL,
       helperText: window.i18n.t('联系BK助手'),
       version: window.PROJECT_CONFIG.VERSION,

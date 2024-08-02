@@ -318,6 +318,8 @@ export default {
   版本日志: 'Release note',
   问题反馈: 'Feedback',
   开源社区: 'Open source community',
+  中文: 'Chinese',
+  英文: 'English',
   当前版本: 'Current',
   安装到业务: 'Install to business',
   接入点已在管控区域中设定: 'Access point has been set in the "BK-Net"',
@@ -1059,6 +1061,8 @@ export default {
   插件别名格式不正确: 'The format is incorrect, it can only contain Chinese characters, English, numbers, spaces and underscores',
 
   // 资源配额
+  无业务权限: 'No business permissions',
+  申请权限: 'Apply for permissions',
   '业务：': 'Business：',
   请输入关键词: 'Please enter the keywords',
   总数运行中异常: 'Total / running / abnormal',
