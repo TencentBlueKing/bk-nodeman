@@ -10,6 +10,12 @@
       @page-change="handlePageChange"
       @page-limit-change="handleLimitChange">
       <NmColumn
+        :label="$t('插件名称')"
+        prop="name"
+        sortable
+        :resizable="false"
+        min-width="120" />
+      <NmColumn
         :label="$t('插件别名')"
         sortable
         :resizable="false"
@@ -29,12 +35,6 @@
           </auth-component>
         </template>
       </NmColumn>
-      <NmColumn
-        :label="$t('插件名称')"
-        prop="name"
-        sortable
-        :resizable="false"
-        min-width="120" />
       <NmColumn
         v-if="getColumnShowStatus('category')"
         :label="$t('开发商')"
@@ -157,7 +157,6 @@ export default class PackageTable extends Mixins(HeaderRenderMixin) {
   @Prop({ default: () => ([]), type: Array }) private readonly tableList!: IPluginRow[];
   @Prop({ default: () => ({}), type: Object }) private readonly pagination!: IPagination;
   @Prop({ default: true, type: Boolean }) private readonly isLoading!: boolean;
-
   private localMark = 'package_table';
   private filterField = [
     { checked: true, disabled: true, mockChecked: true, name: this.$t('插件别名'), id: 'description' },
