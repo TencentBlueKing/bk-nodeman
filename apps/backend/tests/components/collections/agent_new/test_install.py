@@ -1198,19 +1198,12 @@ class WindowsActiveFirewallPolicyInDirectAreaTestCase(InstallWindowsWithScriptHo
             constants.AgentWindowsDependencies.list_member_values() + ["setup_agent.bat"],
             solution_parse_result["dependencies"],
         )
-        script_hook_obj = script_hook_objs[0]
         self.assertEqual(
             solution_parse_result["cmds"],
             [
                 # 一：创建临时目录
                 f"mkdir {installation_tool.dest_dir}",
-                # 二：将script_manage_tmp/active_firewall_policy.bat拉下来
-                f"C:\\tmp\\curl.exe "
-                f"{models.AccessPoint.objects.first().package_outer_url}/{script_hook_obj.script_info_obj.path} "
-                f"-o {installation_tool.dest_dir}{script_hook_obj.script_info_obj.filename} --connect-timeout 5 -sSfg",
-                # 三：执行active_firewall_policy.bat
-                f"{installation_tool.dest_dir}{script_hook_obj.script_info_obj.filename}",
-                # 四：执行安装脚本
+                # 二：执行安装脚本
                 f"{installation_tool.dest_dir}setup_agent.bat"
                 f" -O 48668 -E 58925 -A 58625 -V 58930 -B 10020 -S 60020 -Z 60030 -K 10030"
                 f' -e "127.0.0.1" -a "127.0.0.1" -k "127.0.0.1"'

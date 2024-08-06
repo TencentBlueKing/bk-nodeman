@@ -748,6 +748,8 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
         # Convert \\ to \
         shell_cmd = shell_cmd.replace("\\\\", "\\")
 
+        shell_cmd = shell_cmd.replace(" & ", ";")
+
         return shell_cmd.strip()
 
     def build_shell_to_batch_command_converter(self, steps, command_converter):
