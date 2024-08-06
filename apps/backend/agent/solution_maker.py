@@ -29,6 +29,7 @@ from apps.backend.subscription.steps.agent_adapter.base import AgentSetupInfo
 from apps.core.script_manage.base import ScriptHook
 from apps.core.script_manage.data import JUMP_SERVER_POLICY_SCRIPT_INFO
 from apps.node_man import constants, models
+from apps.node_man.models import GlobalSettings
 from apps.utils import basic
 from apps.utils.files import PathHandler
 
@@ -477,7 +478,17 @@ class BaseExecutionSolutionMaker(metaclass=abc.ABCMeta):
         构造可直接执行的脚本钩子步骤
         :return:
         """
+        script_hook_obj_name__script_content_map: typing.Dict[str, str] = GlobalSettings.get_config(
+            models.GlobalSettings.KeyEnum.AGENT_INSTALL_SCRIPT_HOOK_CONTENT.value, {}
+        )
         script_hook_steps: typing.List[ExecutionSolutionStep] = []
+
+        # 如果全局配置中配置了钩子脚本内容，优先使用
+        for script_hook_obj in self.script_hook_objs:
+            script_hook_obj.script_info_obj.oneline = script_hook_obj_name__script_content_map.get(
+                script_hook_obj.script_info_obj.name, script_hook_obj.script_info_obj.oneline
+            )
+
         oneline_script_hook_objs: typing.List[ScriptHook] = [
             script_hook_obj for script_hook_obj in self.script_hook_objs if script_hook_obj.script_info_obj.oneline
         ]
