@@ -4,7 +4,7 @@
         <link rel="icon" href="/static/images/favicon.png" type="image/x-icon" />
         <link rel="shortcut icon" href="/static/images/favicon.png" type="image/x-icon" />
         <meta charset="utf-8">
-        <title> 蓝鲸节点管理 </title>
+        <title> 节点管理 | 蓝鲸智云 </title>
         <script>
           window.PROJECT_CONFIG = (function () {
               const SITE_URL = '/'
@@ -84,24 +84,6 @@
               }
           })()
           window.$DHCP = window.PROJECT_CONFIG.BKAPP_ENABLE_DHCP === 'True'
-        </script>
-        <script src="http://cdn-go.cn/aegis/aegis-sdk/latest/aegis.min.js?_bid=3977"></script>
-        <script>
-          if(window.PROJECT_CONFIG.TAM_ID && window.Aegis) {
-            const aegis = new Aegis({
-              id: window.PROJECT_CONFIG.TAM_ID, // 项目ID
-              uin: window.PROJECT_CONFIG.USERNAME ? window.PROJECT_CONFIG.USERNAME : 'dev_test', // 用户唯一 ID（可选）
-              reportApiSpeed: true, // 接口测速
-              reportAssetSpeed: true, // 静态资源测速
-              pagePerformance: true, // 页面测速
-              onError: true, // 当前实例是否需要进行错误监听，获取错误日志
-              delay: 1000, // 上报节流时间，在该时间段内的上报将会合并到一个上报请求中
-              repeat: 5, // 重复上报次数，对于同一个错误超过多少次不上报
-              offlineLog: false, // 是否使用离线日志
-              restfulApiList: [], // 当开启了接口测速，且项目中有些接口采用了 restful 规范，需要在该配置中列出，帮助 Aegis 识别哪些接口是同一条接
-              spa: true
-            })
-          }
         </script>
     </head>
     <body>
