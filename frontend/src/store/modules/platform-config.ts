@@ -8,8 +8,8 @@ import logoSrc from '@/images/logoIcon.png';
 export default class PlatformConfigStore extends VuexModule {
   public defaults: IPlatformConfig =  {
     bkAppCode: '', // appcode
-    name: '蓝鲸节点管理', // 站点的名称，通常显示在页面左上角，也会出现在网页title中
-    nameEn: 'BlueKing NodeMan', // 站点的名称-英文
+    name: '节点管理', // 站点的名称，通常显示在页面左上角，也会出现在网页title中
+    nameEn: 'NodeMan', // 站点的名称-英文
     appLogo: '', // 站点logo
     favicon: '/static/images/favicon.png', // 站点favicon
     helperText: '',
@@ -55,7 +55,7 @@ export default class PlatformConfigStore extends VuexModule {
       : `${window.PROJECT_CONFIG?.STATIC_URL}nodeman/images/favicon.png`;
       
     const defaults = {
-      name: '蓝鲸节点管理',
+      name: '节点管理',
       nameEn: 'NodeMan',
       appLogo: logoSrc,
       brandName: '蓝鲸智云',
