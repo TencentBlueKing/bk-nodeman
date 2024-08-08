@@ -150,8 +150,6 @@ class GlobalSettings(models.Model):
         BACKEND_SERVICE_POLLING_TIMEOUT = "BACKEND_SERVICE_POLLING_TIMEOUT"
         # 管控区域新增主机黑名单，用于限制指定管控区域通过安装 Agent 新增主机，配置样例：[1, 2]
         ADD_HOST_CLOUD_BLACKLIST = "ADD_HOST_CLOUD_BLACKLIST"
-        # 消息中心开关
-        ENABLE_NOTICE_CENTER = "ENABLE_NOTICE_CENTER"
         # 禁用已停用插件
         DISABLE_STOPPED_PLUGIN = "DISABLE_STOPPED_PLUGIN"
         # 根据订阅分配任务队列

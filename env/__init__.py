@@ -64,6 +64,7 @@ __all__ = [
     "BKAPP_SCRIPT_HOOKS",
     "BKPAAS_SHARED_RES_URL",
     "BKAPP_LEGACY_AUTH",
+    "BK_NOTICE_ENABLED",
 ]
 
 # ===============================================================================
@@ -188,3 +189,4 @@ BKAPP_NAV_HELPER_URL = get_type_env(
 BK_DOCS_CENTER_HOST = get_type_env(key="BK_DOCS_CENTER_HOST", default="", _type=str)
 BKPAAS_SHARED_RES_URL = get_type_env(key="BKPAAS_SHARED_RES_URL", default="", _type=str)
 BKAPP_LEGACY_AUTH = get_type_env(key="BKAPP_LEGACY_AUTH", default=False, _type=bool)
+BK_NOTICE_ENABLED = get_type_env(key="BK_NOTICE_ENABLED", default=False, _type=bool)

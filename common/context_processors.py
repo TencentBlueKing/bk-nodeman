@@ -112,6 +112,6 @@ def mysetting(request):
         "BK_COMPONENT_API_URL": settings.BK_COMPONENT_API_OUTER_URL,
         "ENABLE_AP_VERSION_MUTEX": get_ap_version_mutex(),
         # 是否开启消息中心
-        "ENABLE_NOTICE_CENTER": settings.ENABLE_NOTICE_CENTER,
+        "ENABLE_NOTICE_CENTER": settings.BK_NOTICE_ENABLED,
         "BKPAAS_SHARED_RES_URL": settings.BKPAAS_SHARED_RES_URL,
     }
