@@ -130,3 +130,4 @@ data:
   BKAPP_SCRIPT_HOOKS: "{{ .Values.config.bkAppScriptHooks }}"
   BKPAAS_SHARED_RES_URL: "{{ .Values.bkSharedResUrl }}"
   BKAPP_LEGACY_AUTH: "{{ .Values.config.bkAppLegacyAuth }}"
+  BK_NOTICE_ENABLED: "{{ .Values.bkNotice.enabled }}"
