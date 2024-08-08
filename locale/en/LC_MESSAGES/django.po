@@ -5842,7 +5842,7 @@ msgid "标准运维"
 msgstr "BK-SOPS"
 
 #: common/context_processors.py:44
-msgid "节点管理 | 腾讯蓝鲸智云"
+msgid "节点管理 | 蓝鲸智云"
 msgstr "NodeMan | Tencent Blueking"
 
 #: pipeline/component_framework/models.py:42

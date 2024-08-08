@@ -436,6 +436,9 @@ class DataAPI(object):
             auth_value = params.get(auth_key)
             if auth_value:
                 api_auth_params[auth_key] = auth_value
+                if not settings.BKAPP_LEGACY_AUTH:
+                    # 未开启情况下删除请求参数中的验证信息
+                    params.pop(auth_key)
         session.headers.update({"X-Bkapi-Authorization": get_request_api_headers(api_auth_params)})
 
         url = self.build_actual_url(params)
