@@ -6,7 +6,7 @@
             "data": {
                 "id": "bk_nodeman",
                 "name": "节点管理",
-                "name_en": "nodeman",
+                "name_en": "Nodeman",
                 "description": "",
                 "description_en": "",
                 "clients": "bk_nodeman,bk_bknodeman",
