@@ -42,7 +42,7 @@ def get_docs_center_url():
 
 
 def get_title():
-    return _("节点管理 | 腾讯蓝鲸智云")
+    return _("节点管理 | 蓝鲸智云")
 
 
 @FuncCacheDecorator(cache_time=60 * constants.TimeUnit.SECOND)
