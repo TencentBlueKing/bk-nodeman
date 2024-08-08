@@ -363,6 +363,7 @@ SCRIPT_HOOKS = env.BKAPP_SCRIPT_HOOKS
 
 BKPAAS_SHARED_RES_URL = env.BKPAAS_SHARED_RES_URL
 BKAPP_LEGACY_AUTH = env.BKAPP_LEGACY_AUTH
+BK_NOTICE_ENABLED = env.BK_NOTICE_ENABLED
 
 # 敏感参数
 SENSITIVE_PARAMS = ["app_code", "app_secret", "bk_app_code", "bk_app_secret", "auth_info"]
