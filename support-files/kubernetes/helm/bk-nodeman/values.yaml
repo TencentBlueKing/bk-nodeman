@@ -742,3 +742,6 @@ externalRabbitMQ:
   vhost: "bk_nodeman"
   username: "bk_nodeman"
   password: "bk_nodeman"
+
+bkNotice:
+  enabled: false
