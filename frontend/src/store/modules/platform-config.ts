@@ -11,6 +11,8 @@ export default class PlatformConfigStore extends VuexModule {
     name: '节点管理', // 站点的名称，通常显示在页面左上角，也会出现在网页title中
     nameEn: 'BK NodeMan', // 站点的名称-英文
     appLogo: '', // 站点logo
+    productName: '', // 品牌名称
+    productNameEn: '', // 品牌英文名称
     favicon: '/static/images/favicon.png', // 站点favicon
     helperText: '',
     helperTextEn: '',
@@ -35,6 +37,7 @@ export default class PlatformConfigStore extends VuexModule {
       helperText: '...',
       brandImg: '...',
       brandName: '...',
+      productName: '...',
       footerInfoHTML: '...',
     },
   };
@@ -56,10 +59,12 @@ export default class PlatformConfigStore extends VuexModule {
       
     const defaults = {
       name: '节点管理',
-      nameEn: 'BK NodeMan',
+      nameEn: 'NodeMan',
       appLogo: logoSrc,
       brandName: '蓝鲸智云',
       brandNameEn: 'Tencent BlueKing',
+      productName: '蓝鲸节点管理',
+      productNameEn: 'BK NodeMan',
       favicon: faviconSrc,
       helperLink: window.PROJECT_CONFIG.BKAPP_NAV_HELPER_URL,
       helperText: window.i18n.t('联系BK助手'),

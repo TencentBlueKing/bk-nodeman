@@ -14,7 +14,7 @@
       <!--icon-->
       <div slot="side-header" class="nav-header" @click="$router.push('/')">
         <img :src="appLogo" class="nodeman-logo-icon" />
-        <span class="title-desc">{{ config.i18n.name }}</span>
+        <span class="title-desc">{{ config.i18n.productName }}</span>
       </div>
       <!--顶部导航-->
       <template #header>
