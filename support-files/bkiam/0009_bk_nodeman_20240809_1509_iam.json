@@ -1,0 +1,17 @@
+{
+    "system_id":"bk_nodeman",
+    "operations":[
+        {
+            "operation": "upsert_system",
+            "data": {
+                "id": "bk_nodeman",
+                "name": "节点管理",
+                "name_en": "NodeMan",
+                "description": "",
+                "description_en": "",
+                "clients": "bk_nodeman,bk_bknodeman",
+                "provider_config": {"host": "http://__BK_NODEMAN_API_ADDR__", "auth": "basic"}
+            }
+        }
+    ]
+}
