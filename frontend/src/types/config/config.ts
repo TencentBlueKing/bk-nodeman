@@ -102,6 +102,8 @@ export interface IPlatformConfig {
   nameEn: string, // 站点的名称-英文
   appLogo: string, // 站点logo
   favicon: string, // 站点favicon
+  productName: string, // 产品名称，展示在logo区域 1.0.5版本新增
+  productNameEn: string, // 产品名称-英文 1.0.5版本新增
   helperText: string,
   helperTextEn: string,
   helperLink: string,
@@ -124,6 +126,7 @@ export interface IPlatformConfig {
     name: string,
     helperText: string,
     brandImg: string,
+    productName: string,
     brandName: string,
     footerInfoHTML: string,
   },
