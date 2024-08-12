@@ -163,10 +163,11 @@ class MetaHandler(APIModel):
         is_manuals = set()
         statuses = set()
         versions = set()
+        dept_names = set()
 
-        col_map = [bk_cloud_ids, os_types, is_manuals, statuses, versions]
+        col_map = [bk_cloud_ids, os_types, is_manuals, statuses, versions, dept_names]
         # 获得数据
-        col_list = ["bk_cloud_id", "os_type", "is_manual", "status", "version"]
+        col_list = ["bk_cloud_id", "os_type", "is_manual", "status", "version", "dept_name"]
         col_data = self.fetch_host_process_unique_col(
             biz_permission, col_list, [constants.NodeType.AGENT, constants.NodeType.PAGENT]
         )
@@ -201,6 +202,7 @@ class MetaHandler(APIModel):
         bt_node_detection_children = [
             {"name": _("启用") if bool(condition) else _("停用"), "id": condition} for condition in condition_value
         ]
+        dept_name_children = self.fetch_dept_name_children(tuple(dept_names))
         condition_result_list = [
             {"name": _("IP"), "id": "ip"},
             {"name": _("管控区域ID:IP"), "id": "bk_cloud_ip"},
@@ -213,6 +215,7 @@ class MetaHandler(APIModel):
             {"name": _("安装方式"), "id": "is_manual", "children": is_manual_children},
             {"name": _("BT节点探测"), "id": "bt_node_detection", "children": bt_node_detection_children},
             {"name": _("寻址方式"), "id": "bk_addressing", "children": bk_addressing_children},
+            {"name": _("运维部门"), "id": "dept_name", "children": dept_name_children},
         ]
         if settings.BKAPP_ENABLE_DHCP:
             condition_result_list.insert(
@@ -589,6 +592,15 @@ class MetaHandler(APIModel):
                 continue
             os_type_children.append({"id": os_type, "name": constants.OS_CHN.get(os_type, os_type)})
         return os_type_children
+
+    @staticmethod
+    def fetch_dept_name_children(dept_names: Tuple):
+        dept_name_children = []
+        for dept_name in dept_names:
+            if dept_name == "":
+                continue
+            dept_name_children.append({"id": dept_name, "name": dept_name})
+        return dept_name_children
 
     def filter_condition(self, category, params=None):
         """

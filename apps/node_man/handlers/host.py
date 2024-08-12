@@ -162,6 +162,7 @@ class HostHandler(APIModel):
                 "updated_at",
                 "is_manual",
                 "extra_data",
+                "dept_name",
             ]
             # sql分页查询获得数据
             hosts_status = list(hosts_status_sql[begin:end].values(*set(host_fields)))
