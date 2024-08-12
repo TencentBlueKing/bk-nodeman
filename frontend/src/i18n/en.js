@@ -134,6 +134,7 @@ export default {
   登录端口: 'Login port',
   登录账号: 'Login account',
   归属业务: 'Affiliated business',
+  运维部门: 'Operation department',
   安装: 'Install',
   上一步: 'Previous',
   简单网络: 'Simple network',
