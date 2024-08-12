@@ -283,6 +283,17 @@
           v-if="filter['bk_biz_name'].mockChecked">
         </NmColumn>
         <NmColumn
+          key="dept"
+          :label="$t('运维部门')"
+          prop="dept_name"
+          :min-width="columnMinWidth['dept_name']"
+          :render-header="renderFilterHeader"
+          v-if="filter['dept_name'].mockChecked">
+          <template #default="{ row }">
+            {{ row.dept_name | filterEmpty }}
+          </template>
+        </NmColumn>
+        <NmColumn
           key="cloudArea"
           :label="$t('管控区域')"
           :min-width="columnMinWidth['bk_cloud_id']"
@@ -740,6 +751,14 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
       name: window.i18n.t('归属业务'),
       id: 'bk_biz_name',
     },
+    dept_name: {
+      checked: false,
+      disabled: false,
+      mockChecked: false,
+      name: window.i18n.t('运维部门'),
+      id: 'dept_name',
+      filter: true,
+    },
     topology: {
       checked: false,
       disabled: false,
@@ -1069,7 +1088,7 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
     if (this.selectedBiz.length) {
       Object.assign(param, { bk_biz_ids: this.selectedBiz });
     }
-    const optSearchKeys = ['version', 'bk_cloud_id'];
+    const optSearchKeys = ['version', 'bk_cloud_id', 'dept_name'];
     const data = await AgentStore.getFilterCondition(param);
     this.filterData.splice(0, this.filterData.length, ...data.map(item => (optSearchKeys.includes(item.id)
       ? ({ ...item, showCheckAll: true, showSearch: true })
