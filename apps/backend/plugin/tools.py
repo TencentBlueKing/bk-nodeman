@@ -28,7 +28,7 @@ from rest_framework.exceptions import ValidationError
 from apps.backend import exceptions
 from apps.core.files.storage import get_storage
 from apps.node_man import constants, models
-from apps.utils import env, files, enum
+from apps.utils import enum, env, files
 
 logger = logging.getLogger("app")
 
@@ -96,7 +96,7 @@ class VariableNodeSerializer(serializers.Serializer):
             else:
                 return bool(default_value)
         elif variable_type == VariableType.STRING.value:
-            return str(variable_type)
+            return str(default_value)
         elif variable_type == VariableType.NUMBER.value:
             if isinstance(default_value, (int, float)):
                 return default_value

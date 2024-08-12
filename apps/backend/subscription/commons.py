@@ -83,7 +83,7 @@ def get_host_by_inst(bk_biz_id, inst_list):
         elif inst["bk_obj_id"] == "set":
             bk_set_ids.append(inst["bk_inst_id"])
         elif inst["bk_obj_id"] == "module":
-            bk_module_ids.append(inst["bk_inst_id"])
+            bk_module_ids.append(int(inst["bk_inst_id"]))
         elif inst["bk_obj_id"] in bk_obj_id_list:
             # 自定义层级
             topo_cond = {"bk_obj_id": inst["bk_obj_id"], "bk_inst_id": inst["bk_inst_id"]}

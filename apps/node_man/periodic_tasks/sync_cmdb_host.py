@@ -103,6 +103,7 @@ def _bulk_update_host(hosts, extra_fields):
         "outer_ipv6",
         "bk_agent_id",
         "os_type",
+        "dept_name",
     ] + extra_fields
     if hosts:
         models.Host.objects.bulk_update(hosts, fields=update_fields)
@@ -175,6 +176,7 @@ def _generate_host(biz_id, host, ap_id, is_os_type_priority=False, is_sync_cmdb_
         if host["bk_cloud_id"] == constants.DEFAULT_CLOUD
         else constants.NodeType.PAGENT,
         ap_id=ap_id,
+        dept_name=host.get("dept_name", ""),
     )
 
     identify_data = models.IdentityData(
@@ -276,6 +278,7 @@ def update_or_create_host_base(biz_id, ap_map_config, is_gse2_gray, task_id, cmd
             "outer_ip": (host.get("bk_host_outerip") or "").split(",")[0],
             "inner_ipv6": (host.get("bk_host_innerip_v6") or "").split(",")[0],
             "outer_ipv6": (host.get("bk_host_outerip_v6") or "").split(",")[0],
+            "dept_name": host.get("dept_name", ""),
         }
         outer_ip = host.get("bk_host_outerip") or ""
         outer_ip_list = outer_ip.split(",")
