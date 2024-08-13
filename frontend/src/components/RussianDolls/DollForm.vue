@@ -110,6 +110,7 @@ export default defineComponent({
     };
     // 补齐form需要的数据
     const completionArrayData = (list, form) => {
+      if (typeof form === 'string') return form;
       // 很关键。form一定要保证是个obj
       const formData = typeof form === 'object' && !Array.isArray(form)
         ? deepClone(form)
