@@ -57,6 +57,7 @@ export default defineComponent({
       const realIndex = index + 1;
       updateFormData?.({ ...props.item, property: getRealProp(props.valueProp, realIndex) }, 'add', index + 1);
     };
+    !props.value?.length && props.item.required && addItem(-1);
     const deleteItem = (index = 0) => {
       updateFormData?.({ ...props.item, property: getRealProp(props.valueProp, index) }, 'delete', index);
     };
