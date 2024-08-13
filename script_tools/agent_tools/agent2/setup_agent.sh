@@ -210,9 +210,9 @@ get_pid_by_comm_path () {
     local _pids pids
     local pid
     if [[ "${worker}" == "WORKER" ]]; then
-        read -r -a _pids <<< "$(ps --no-header -C $comm -o '%P|%p|%a' | awk -F'|' '$1 != 1 && $3 ~ /gse_agent/' | awk -F'|' '{print $2}' | xargs)"
+        read -r -a _pids <<< "$(ps --no-header -C $comm -o 'ppid,pid,args' | awk '$1 != 1 && $3 ~ /gse_agent/ {print $2}' | xargs)"
     elif [[ "${worker}" == "MASTER" ]]; then
-        read -r -a _pids <<< "$(ps --no-header -C $comm -o '%P|%p|%a' | awk -F'|' '$1 == 1 && $3 ~ /gse_agent/' | awk -F'|' '{print $2}' | xargs)"
+        read -r -a _pids <<< "$(ps --no-header -C $comm -o 'ppid,pid,args' | awk '$1 == 1 && $3 ~ /gse_agent/ {print $2}' | xargs)"
     else
         read -r -a _pids <<< "$(ps --no-header -C "$comm" -o pid | xargs)"
     fi
