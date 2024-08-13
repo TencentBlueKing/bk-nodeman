@@ -3,6 +3,28 @@
 
   .bk-form-item + .bk-form-item {
     margin-top: 16px;
+    
+  }
+  .bk-form-item {
+    &.is-required .bk-label:after {
+      content: none;
+    }
+    &.is-required >.bk-label {
+      position: relative;
+
+      &:after {
+          height: 8px;
+          line-height: 1;
+          content: '*';
+          color: #EA3636;
+          font-size: 12px;
+          position: absolute;
+          display: inline-block;
+          vertical-align: middle;
+          top: 50%;
+          transform: translate(3px, -50%);
+      }
+    }
   }
 
   .nodeman-icon {

@@ -365,6 +365,9 @@ export default class CreateRule extends Mixins(routerBackMixin, FormLabelMixin) 
 }
 </script>
 <style lang="postcss" scoped>
+.rule-create {
+  height: calc(100vh - 52px);
+}
 $bgColor: #f5f7fa;
 
 .header {
