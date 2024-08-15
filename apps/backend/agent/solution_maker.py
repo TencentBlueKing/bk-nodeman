@@ -587,7 +587,11 @@ class ShellExecutionSolutionMaker(BaseExecutionSolutionMaker):
                 shell: str = "bash"
             else:
                 shell: str = suffix
-            run_cmd = f"nohup {shell} {run_cmd} &> {self.dest_dir}nm.nohup.out &"
+
+            if self.host.os_type.lower() == backend_api_constants.OS.AIX:
+                run_cmd = f"nohup {shell} {run_cmd} > {self.dest_dir}nm.nohup.out 2>&1 &"
+            else:
+                run_cmd = f"nohup {shell} {run_cmd} &> {self.dest_dir}nm.nohup.out &"
 
         curl_cmd: str = ("curl", f"{dest_dir}curl.exe")[self.host.os_type == constants.OsType.WINDOWS]
         download_cmd = (
