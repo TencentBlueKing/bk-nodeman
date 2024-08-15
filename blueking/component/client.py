@@ -18,7 +18,7 @@ import time
 import requests
 from django.conf import settings
 
-from common.api.base import get_request_api_headers
+from common.api.base import fetch_and_clean_auth_info, get_request_api_headers
 
 from . import collections, conf
 from .compat import urlparse
@@ -91,13 +91,10 @@ class BaseComponentClient(object):
 
     def merge_params_data_with_common_args(self, method, params, data, enable_app_secret=False):
         """get common args when request"""
-        if not settings.BKAPP_LEGACY_AUTH:
-            # 未开启情况下清空请求参数中的验证信息
-            common_args: dict = {}
-        else:
-            common_args = dict(bk_app_code=self.app_code, **self.common_args)
-            if enable_app_secret:
-                common_args["bk_app_secret"] = self.app_secret
+
+        common_args = dict(bk_app_code=self.app_code, **self.common_args)
+        if enable_app_secret:
+            common_args["bk_app_secret"] = self.app_secret
 
         if method == "GET":
             _params = common_args.copy()
@@ -106,7 +103,7 @@ class BaseComponentClient(object):
         elif method == "POST":
             _data = common_args.copy()
             _data.update(data or {})
-            data = json.dumps(_data)
+            data = _data
         return params, data
 
     def request(self, method, url, params=None, data=None, **kwargs):
@@ -118,12 +115,17 @@ class BaseComponentClient(object):
         if self.language:
             headers["blueking-language"] = self.language
 
-        headers.update({"X-Bkapi-Authorization": get_request_api_headers(self.common_args)})
-
         params, data = self.merge_params_data_with_common_args(method, params, data, enable_app_secret=True)
 
+        self.common_args.update(fetch_and_clean_auth_info(params))
+        self.common_args.update(fetch_and_clean_auth_info(data))
+
+        headers.update({"X-Bkapi-Authorization": get_request_api_headers(self.common_args)})
+
         logger.debug("Calling %s %s with params=%s, data=%s, headers=%s", method, url, params, data, headers)
-        return requests.request(method, url, params=params, data=data, verify=False, headers=headers, **kwargs)
+        return requests.request(
+            method, url, params=params, data=json.dumps(data), verify=False, headers=headers, **kwargs
+        )
 
     def __getattr__(self, key):
         if key not in self.available_collections:
