@@ -34,7 +34,21 @@ from .exception import DataAPIException
 from .utils.params import add_esb_info_before_request
 
 logger = logging.getLogger("component")
-API_AUTH_KEYS = ["bk_app_code", "bk_app_secret", "bk_username", "bk_token", "access_token", "bk_ticket"]
+API_AUTH_KEYS = [
+    "bk_app_code",
+    "bk_app_secret",
+    "bk_username",
+    "bk_token",
+    "access_token",
+    "bk_ticket",
+    "auth_info",
+    "uin",
+    "app_code",
+    "app_secret",
+    "bkdata_authentication_method",
+    "appenv",
+    "bk_supplier_account",
+]
 
 
 def get_request_api_headers(params):
@@ -48,6 +62,21 @@ def get_request_api_headers(params):
     }
     api_headers.update(params)
     return json.dumps(api_headers)
+
+
+def fetch_and_clean_auth_info(params):
+    api_auth_params: dict = {}
+    if not isinstance(params, dict):
+        return api_auth_params
+    for auth_key in API_AUTH_KEYS:
+        auth_value = params.get(auth_key)
+        if auth_value:
+            if auth_key != "auth_info":
+                api_auth_params[auth_key] = auth_value
+            if not settings.BKAPP_LEGACY_AUTH:
+                # 未开启情况下删除请求参数中的验证信息
+                params.pop(auth_key)
+    return api_auth_params
 
 
 class DataResponse(object):
@@ -431,14 +460,7 @@ class DataAPI(object):
             session.headers.update({"X-METHOD-OVERRIDE": self.method_override})
 
         # headers 增加api认证数据
-        api_auth_params = {}
-        for auth_key in API_AUTH_KEYS:
-            auth_value = params.get(auth_key)
-            if auth_value:
-                api_auth_params[auth_key] = auth_value
-                if not settings.BKAPP_LEGACY_AUTH:
-                    # 未开启情况下删除请求参数中的验证信息
-                    params.pop(auth_key)
+        api_auth_params: dict = fetch_and_clean_auth_info(params)
         session.headers.update({"X-Bkapi-Authorization": get_request_api_headers(api_auth_params)})
 
         url = self.build_actual_url(params)
