@@ -74,8 +74,8 @@ def fetch_and_clean_auth_info(params, url: str):
             if auth_key != "auth_info":
                 api_auth_params[auth_key] = auth_value
             if not settings.BKAPP_LEGACY_AUTH:
-                if auth_key == "bk_token" and "is_login" in url:
-                    # bk_token是is_login接口参数无法从body中去掉
+                if any([auth_key == "bk_token" and "is_login" in url, auth_key == "bk_token" and "get_user" in url]):
+                    # bk_token是is_login&get_user接口参数无法从body中去掉
                     continue
                 # 未开启情况下删除请求参数中的验证信息
                 params.pop(auth_key)
