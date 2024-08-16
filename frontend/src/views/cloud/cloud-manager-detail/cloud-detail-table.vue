@@ -135,7 +135,7 @@
             {{ row.is_manual ? $t('手动') : $t('远程') }}
           </template>
         </NmColumn>
-        <NmColumn
+        <!-- <NmColumn
           key="bt"
           prop="peer_exchange_switch_for_agent"
           width="110"
@@ -146,7 +146,7 @@
               {{ row.peer_exchange_switch_for_agent ? $t('启用') : $t('停用')}}
             </span>
           </template>
-        </NmColumn>
+        </NmColumn> -->
         <NmColumn
           key="speedLimit"
           prop="bt_speed_limit"
@@ -360,7 +360,7 @@ export default class CloudDetailTable extends Vue {
     { key: 'proxy_status', value: [true, false, true, 'proxy_status', this.$t('Proxy状态')] },
     { key: 'created_at', value: [false, false, false, 'created_at', this.$t('安装时间')] },
     { key: 're_certification', value: [true, false, true, 're_certification', this.$t('密码/密钥')] },
-    { key: 'bt', value: [false, false, false, 'peer_exchange_switch_for_agent', this.$t('BT节点探测')] },
+    // { key: 'bt', value: [false, false, false, 'peer_exchange_switch_for_agent', this.$t('BT节点探测')] },
     { key: 'speedLimit', value: [false, false, false, 'bt_speed_limit', this.$t('传输限速')] },
     { key: 'enable_compression', value: [false, false, false, 'enable_compression', this.$t('数据压缩')] },
   ];
@@ -534,7 +534,7 @@ export default class CloudDetailTable extends Vue {
     const paramExtraKey = ['bt_speed_limit', 'login_ip', 'data_ip'];
     const copyRow = Object.keys(row).reduce((obj: Dictionary, item) => {
       if (paramKey.includes(item)) {
-        obj[item] = item === 'peer_exchange_switch_for_agent' ? row[item] + 0 : row[item];
+        obj[item] = item === 'peer_exchange_switch_for_agent' ? 0 : row[item];
       }
       if (paramExtraKey.includes(item) && row[item]) {
         obj[item] = row[item];
