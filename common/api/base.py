@@ -64,7 +64,7 @@ def get_request_api_headers(params):
     return json.dumps(api_headers)
 
 
-def fetch_and_clean_auth_info(params):
+def fetch_and_clean_auth_info(params, url: str):
     api_auth_params: dict = {}
     if not isinstance(params, dict):
         return api_auth_params
@@ -74,6 +74,9 @@ def fetch_and_clean_auth_info(params):
             if auth_key != "auth_info":
                 api_auth_params[auth_key] = auth_value
             if not settings.BKAPP_LEGACY_AUTH:
+                if auth_key == "bk_token" and "is_login" in url:
+                    # bk_token是is_login接口参数无法从body中去掉
+                    continue
                 # 未开启情况下删除请求参数中的验证信息
                 params.pop(auth_key)
     return api_auth_params
@@ -455,15 +458,16 @@ class DataAPI(object):
             # 用于跨服务调用透传国际化设置
             session.cookies.set("blueking_language", translation.get_language())
 
+        url = self.build_actual_url(params)
+
         # headers 申明重载请求方法
         if self.method_override is not None:
             session.headers.update({"X-METHOD-OVERRIDE": self.method_override})
 
         # headers 增加api认证数据
-        api_auth_params: dict = fetch_and_clean_auth_info(params)
+        api_auth_params: dict = fetch_and_clean_auth_info(params, url)
         session.headers.update({"X-Bkapi-Authorization": get_request_api_headers(api_auth_params)})
 
-        url = self.build_actual_url(params)
         # 发出请求并返回结果
         non_file_data, file_data = self._split_file_data(params)
         request_method = self.method.upper()
