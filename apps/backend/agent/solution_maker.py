@@ -799,7 +799,7 @@ class ProxyExecutionSolutionMaker(BaseExecutionSolutionMaker):
             f"-HC {self.host.bk_cloud_id}",
             f"-HOT {self.host.os_type.lower()}",
             # 目标机器登录信息
-            f"-HI '{host_identity}'",
+            f"---host-identity='{host_identity}'",
             f"-HP {self.identity_data.port}",
             f"-HAT {self.identity_data.auth_type}",
             f"-HA {self.identity_data.account}",
