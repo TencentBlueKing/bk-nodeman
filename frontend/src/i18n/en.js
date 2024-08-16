@@ -702,7 +702,7 @@ export default {
   Agent安装Tip2: 'When using non-root installation on Linux system, it is required to sudo execute /tmp/setup_agent.sh script without secret',
   Agent安装Tip3: 'Directly connected to the proxy: ensure that it can communicate with the following ports of the BlueKing server, you can use telnet <IP> <PORT> to confirm whether the port is reachable',
   Proxy安装Tip1: 'When using non-root installation on Linux / Unix system , it is required to sudo execute the /tmp/setup_agent.sh script without secret',
-  Proxy安装Tip2: 'Directly connected to the Agent: ensure that it can communicate with the following ports of the BlueKing server. You can use telnet <IP> <PORT> to confirm whether the port is reachable',
+  Proxy安装Tip2: 'Directly connect to the Agent: Ensure full bidirectional communication with the BlueKing server. If there are policy restrictions, you can add a control area to manage it',
   agent数量: '({num} in total)',
   请将操作指令中的数据替换再执行: 'Please replace the {0} {1} {2} in the installation instruction with {3} before executing.',
   等待手动操作查看: 'Wait for manual operation to view {0}',

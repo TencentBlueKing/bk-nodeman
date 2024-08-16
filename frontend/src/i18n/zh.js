@@ -702,7 +702,7 @@ export default {
   Agent安装Tip2: 'Linux 系统使用非 root 安装时，要求可以免密sudo执行/tmp/setup_agent.sh 脚本',
   Agent安装Tip3: '直连 Proxy 端：保证与蓝鲸服务端以下端口互通， 可使用telnet<IP><PORT>来确认端口是否可通',
   Proxy安装Tip1: 'Linux/Unix 系统使用非 root 安装时，要求可以免密sudo执行/tmp/setup_agent.sh 脚本',
-  Proxy安装Tip2: '直连 Agent 端：保证与蓝鲸服务端以下端口互通，可使用telnet<IP><PORT>来确认端口是否可通',
+  Proxy安装Tip2: '直连Agent端：保证与蓝鲸服务端双向全通，若存在策略限制，可新增管控区域来管理',
   agent数量: '(共 {num} 个)',
   请将操作指令中的数据替换再执行: '请将操作指令中的 {0} {1} {2} 替换成 {3} 再执行。',
   等待手动操作查看: '等待手动操作，查看 {0}',
