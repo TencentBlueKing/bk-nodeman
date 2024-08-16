@@ -363,7 +363,7 @@
             {{ row.is_manual ? $t('手动') : $t('远程') }}
           </template>
         </NmColumn>
-        <NmColumn
+        <!-- <NmColumn
           key="bt"
           prop="peer_exchange_switch_for_agent"
           :label="$t('BT节点探测')"
@@ -374,7 +374,7 @@
               {{ row.peer_exchange_switch_for_agent ? $t('启用') : $t('停用')}}
             </span>
           </template>
-        </NmColumn>
+        </NmColumn> -->
         <NmColumn
           key="speedLimit"
           prop="bt_speed_limit"
@@ -796,13 +796,13 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
       name: window.i18n.t('更新时间'),
       id: 'updated_at',
     },
-    bt: {
-      checked: false,
-      disabled: false,
-      mockChecked: false,
-      name: window.i18n.t('BT节点探测'),
-      id: 'peer_exchange_switch_for_agent',
-    },
+    // bt: {
+    //   checked: false,
+    //   disabled: false,
+    //   mockChecked: false,
+    //   name: window.i18n.t('BT节点探测'),
+    //   id: 'peer_exchange_switch_for_agent',
+    // },
     speedLimit: {
       checked: false,
       disabled: false,

@@ -319,7 +319,7 @@ export default class CloudManagerSetup extends Mixins(formLabelMixin, FilterIpMi
       } else {
         data.bt_speed_limit = Number(data.bt_speed_limit);
       }
-      data.peer_exchange_switch_for_agent += 0;
+      data.peer_exchange_switch_for_agent = 0;
       const authType = item.auth_type?.toLowerCase() as 'key' | 'password';
       if (item[authType]) {
         data[authType] = this.$safety.encrypt(item[authType] as string);
