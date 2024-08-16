@@ -117,10 +117,11 @@ class BaseComponentClient(object):
 
         params, data = self.merge_params_data_with_common_args(method, params, data, enable_app_secret=True)
 
-        self.common_args.update(fetch_and_clean_auth_info(params))
-        self.common_args.update(fetch_and_clean_auth_info(data))
+        api_auth_params: dict = {}
+        api_auth_params.update(fetch_and_clean_auth_info(params))
+        api_auth_params.update(fetch_and_clean_auth_info(data))
 
-        headers.update({"X-Bkapi-Authorization": get_request_api_headers(self.common_args)})
+        headers.update({"X-Bkapi-Authorization": get_request_api_headers(api_auth_params)})
 
         logger.debug("Calling %s %s with params=%s, data=%s, headers=%s", method, url, params, data, headers)
         return requests.request(
