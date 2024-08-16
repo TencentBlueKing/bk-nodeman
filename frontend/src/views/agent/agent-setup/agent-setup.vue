@@ -388,7 +388,7 @@ export default class AgentSetup extends Mixins(mixin, formLabelMixin) {
             if (item[authType]) {
               item[authType] = this.$safety.encrypt(item[authType] as string);
             }
-            item.peer_exchange_switch_for_agent = Number(item.peer_exchange_switch_for_agent);
+            item.peer_exchange_switch_for_agent = 0;
             if (this.$DHCP && regIPv6.test(item.inner_ip as string)) {
               item.inner_ipv6 = item.inner_ip;
               delete item.inner_ip;

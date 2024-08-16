@@ -155,7 +155,7 @@ export default class CloudStore extends VuexModule {
         status: item.status ? item.status.toLowerCase() : '',
         bt_speed_limit,
         data_path,
-        peer_exchange_switch_for_agent: !!peer_exchange_switch_for_agent,
+        peer_exchange_switch_for_agent: false,
         ...extraOther,
       };
     });
