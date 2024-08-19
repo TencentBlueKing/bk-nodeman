@@ -346,7 +346,7 @@ def convert_shell_to_powershell(shell_cmd):
     # Convert \\ to \
     shell_cmd = shell_cmd.replace("\\\\", "\\")
 
-    shell_cmd = shell_cmd.replace(" & ", ";")
+    shell_cmd = shell_cmd.replace(" & ", " ; ")
 
     return shell_cmd.strip()
 
