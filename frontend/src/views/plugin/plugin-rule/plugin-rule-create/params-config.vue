@@ -252,6 +252,7 @@ import VariablePopover from './variable-popover.vue';
 import ExceptionCard from '@/components/exception/exception-card.vue';
 import { reguRequired } from '@/common/form-check';
 import { pluginOperate } from '../../operateConfig';
+import bus from '@/common/bus';
 
 interface IVariables {
   title: string
@@ -572,6 +573,12 @@ export default class ParamsConfig extends Vue {
 
   // 检查表单
   public async handleValidateForm() {
+    const validateRes: boolean[] = [];
+    bus.$emit('validate', (result: boolean) => {
+      validateRes.push(result);
+    });
+    if(validateRes.some(res => !res)) return true;
+
     const checkList: Promise<boolean>[] = [];
     this.list.forEach((item: IParamsConfig) => {
       const refs: any = this.$refs[`form${item.name}`];
