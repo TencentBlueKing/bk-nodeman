@@ -71,7 +71,9 @@ export default defineComponent({
         if (Array.isArray(data)) {
           const propKey = property?.split('.') || [];
           prop = propKey[propKey.length - 1] || 0;
-          data[prop] = target;
+          // data[prop] = target;
+          // 直接赋值不能触发组件filedModel缓存更新,导致组件校验状态更新问题
+          data.splice(prop, 1, target);
         } else {
           prop = propItem.prop;
           data[propItem.prop] = target;
