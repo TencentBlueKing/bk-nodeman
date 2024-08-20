@@ -66,6 +66,18 @@
       margin-top: 12px;
     }
   }
+  .is-error {
+    .array-content-add {
+      border-color: #ea3636;
+      /* color: #ea3636; */
+    }
+    .error-tip {
+      font-size: 12px;
+      color: #ea3636;
+      line-height: 18px;
+      margin: 2px 0 0;
+    }
+  }
 }
 
 .array-content-add {
