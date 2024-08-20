@@ -7,10 +7,10 @@
     :label-width="labelWidth"
     :desc="item.description">
     <div class="array-child-group" v-if="value?.length">
-      <div class="array-child flex" v-for="(option, index) in value" :key="option">
+      <div class="array-child flex" v-for="(option, index) in value" :key="index">
         <DollIndex
           v-for="(child, idx) in children"
-          :key="`${option}_${idx}`"
+          :key="`${getRealProp(valueProp, index)}_${idx}`"
           :item="child"
           :item-index="value[idx]"
           :value="option"
@@ -23,16 +23,20 @@
         {{ item.title }}
       </div>
     </div>
-    <div v-else class="array-content-add" @click.stop="() => addItem(-1)">
-      <i class="nodeman-icon nc-plus" />
-      {{ item.title }}
+    <div :class="['array-child-group', { 'is-error': isErr }]" v-else>
+      <div class="array-content-add" @click.stop="() => addItem(-1)">
+        <i class="nodeman-icon nc-plus" />
+        {{ item.title }}
+      </div>
+      <div v-if="isErr" class="error-tip">{{ $t('必填项') }}</div>
     </div>
   </bk-form-item>
 </template>
 
 <script>
-import { defineComponent, inject, ref, toRefs } from 'vue';
+import { defineComponent, inject, ref, toRefs, onMounted } from 'vue';
 import { formatSchema } from '../create';
+import bus from '@/common/bus';
 
 export default defineComponent({
   props: {
@@ -61,16 +65,32 @@ export default defineComponent({
     const deleteItem = (index = 0) => {
       updateFormData?.({ ...props.item, property: getRealProp(props.valueProp, index) }, 'delete', index);
     };
+    const isErr = ref(false);
+    const validate = (cb) => {
+      if (props.item.required && !props.value?.length) {
+        isErr.value = true;
+        cb(false);
+      }else{
+        isErr.value = false;
+        cb(true);
+      }
+    }
+
+    onMounted(() => {
+      bus.$on('validate', validate)
+    });
 
     return {
       ...toRefs(props),
 
       itemType,
       children,
+      isErr,
 
       addItem,
       deleteItem,
       getRealProp,
+      validate,
     };
   },
 });
