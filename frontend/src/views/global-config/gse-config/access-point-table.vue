@@ -118,9 +118,9 @@ const { accessPoint } = withDefaults(defineProps<{
 }>(), {});
 
 const serversSets = ref<{ id: IServer; name: TranslateResult }[]>([
-  { id: 'BtfileServer', name: i18n.t('GSE File服务地址') },
-  { id: 'DataServer', name: i18n.t('GSE Data服务地址') },
-  { id: 'TaskServer', name: i18n.t('GSE Cluster服务地址') },
+  { id: 'TaskServer', name: i18n.t('GSECluster服务地址') },
+  { id: 'BtfileServer', name: i18n.t('GSEFile服务地址') },
+  { id: 'DataServer', name: i18n.t('GSEData服务地址') },
 ]);
 
 const state = reactive<{

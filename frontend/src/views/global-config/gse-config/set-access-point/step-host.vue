@@ -5,7 +5,7 @@
         <!-- zk&server - table -->
         <template v-if="formItem.type === 'zk'">
           <!-- Zookeeper -->
-          <div
+          <div v-if="formData.version === 'V1'"
             :style="{ width: `${relatedContentWidth}px` }"
             class="bk-form-item ip-related-item clearfix mb40"
             :key="itemIndex">
@@ -129,7 +129,7 @@
         </bk-form-item>
 
         <bk-form-item
-          v-else-if="formItem.type === 'zkPassword'"
+          v-else-if="formItem.type === 'zkPassword' && formData.version === 'V1'"
           :key="itemIndex"
           :label="$t('Zookeeper密码')"
           property="zk_password">
@@ -165,7 +165,20 @@
         </template>
 
         <bk-form-item
-          v-else
+          v-else-if="formItem.type === 'select'"
+          :key="itemIndex"
+          :label="formItem.label"
+          :required="formItem.required"
+          :desc="formItem.desc"
+          :property="formItem.key">
+          <InstallInputType
+            type="select"
+            v-model.trim="formData.version"
+            :options="formItem.options"/>
+        </bk-form-item>
+
+        <bk-form-item
+          v-else-if="formItem.key !== 'zk_account' || (formItem.key === 'zk_account' && formData.version === 'V1')"
           :class="formItem.extCls"
           :key="itemIndex"
           :label="formItem.label"
@@ -252,6 +265,7 @@ const checkedResultList = ref<{
 
 const formData = ref<IApBase>({
   name: '',
+  version: props.isEdit ? '' : 'V2',
   description: '',
   region_id: '',
   city_id: '',
@@ -314,9 +328,9 @@ const labelTableList = ref<{
   thead: 'zkHead'| 'head';
 }[]>([
   // { name: 'Zookeeper', key: 'zk_hosts', thead: 'zkHead' },
+  { name: i18n.t('GSECluster服务地址'), key: 'taskserver', thead: 'head' },
   { name: i18n.t('GSEFile服务地址'), key: 'btfileserver', thead: 'head' },
   { name: i18n.t('GSEData服务地址'), key: 'dataserver', thead: 'head' },
-  { name: i18n.t('GSECluster服务地址'), key: 'taskserver', thead: 'head' },
 ]);
 const checkConfig = ref({
   zkHead: [
@@ -593,6 +607,13 @@ defineExpose({
 
 >>> .bk-form-content .bk-form-control {
   width: 580px;
+}
+.input-select {
+  width: 580px;
+  height: 32px;
+  color: #63656e;
+  background-color: #fff;
+  border-radius: 2px;
 }
 .access-point-host {
   .bg-white {

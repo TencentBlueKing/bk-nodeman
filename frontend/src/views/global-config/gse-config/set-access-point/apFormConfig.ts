@@ -9,6 +9,24 @@ export const stepHost = [
     placeholder: window.i18n.t('用户创建的接入点'),
   },
   {
+    label: window.i18n.t('接入点版本'),
+    key: 'version',
+    required: true,
+    ruleName: 'version',
+    desc: window.i18n.t('接入点描述'),
+    type: 'select',
+    options: [
+      {
+        id: 'V1',
+        name: 'V1'
+      },
+      {
+        id: 'V2',
+        name: 'V2'
+      },
+    ],
+  },
+  {
     label: window.i18n.t('接入点说明'),
     key: 'description',
     type: 'textarea',
