@@ -26,7 +26,9 @@ from apps.node_man.exceptions import (
     MixedOperationError,
 )
 from apps.node_man.handlers.job import JobHandler
-from apps.node_man.models import Host, Job, SubscriptionInstanceRecord
+from apps.node_man.models import Host, Job
+from apps.node_man.models import Subscription as models_Subscription
+from apps.node_man.models import SubscriptionInstanceRecord
 from apps.node_man.tests.utils import (
     SEARCH_BUSINESS,
     MockClient,
@@ -120,29 +122,26 @@ class TestJob(TestCase):
         """测试 无权限/自身创建 任务"""
         number = 1
 
-        create_job(
-            number,
-            bk_biz_scope=[SEARCH_BUSINESS[0]["bk_biz_id"]],
-            created_by="blueking"
-        )
-        create_job(
-            number,
-            id=999,
-            bk_biz_scope=[999],
-            created_by="admin"
-        )
+        create_job(number, bk_biz_scope=[SEARCH_BUSINESS[0]["bk_biz_id"]], created_by="blueking")
+        create_job(number, id=999, bk_biz_scope=[999], created_by="admin")
 
-        result = JobHandler().list({
-            "page": 1,
-            "pagesize": 10,
-            "bk_biz_id": [SEARCH_BUSINESS[0]["bk_biz_id"]],
-        }, "admin")
+        result = JobHandler().list(
+            {
+                "page": 1,
+                "pagesize": 10,
+                "bk_biz_id": [SEARCH_BUSINESS[0]["bk_biz_id"]],
+            },
+            "admin",
+        )
         self.assertEqual(result["total"], 1)
 
-        result = JobHandler().list({
-            "page": 1,
-            "pagesize": 10,
-        }, "admin")
+        result = JobHandler().list(
+            {
+                "page": 1,
+                "pagesize": 10,
+            },
+            "admin",
+        )
         self.assertEqual(result["total"], 2)
 
     @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)
@@ -166,26 +165,18 @@ class TestJob(TestCase):
                 subscription_id=2,
                 instance_id="host|instance|host|127.0.0.2-0-0",
                 is_latest=True,
-            )
+            ),
         ]
         SubscriptionInstanceRecord.objects.bulk_create(sub_inst_record_objs)
 
         single_ip_result = JobHandler().list(
-            {
-                "page": 1,
-                "pagesize": 10,
-                "inner_ip_list": ["127.0.0.1"]
-            },
+            {"page": 1, "pagesize": 10, "inner_ip_list": ["127.0.0.1"]},
             "admin",
         )
         self.assertEqual(single_ip_result["total"], 2)
 
         multiple_ip_result = JobHandler().list(
-            {
-                "page": 1,
-                "pagesize": 10,
-                "inner_ip_list": ["127.0.0.1", "127.0.0.2"]
-            },
+            {"page": 1, "pagesize": 10, "inner_ip_list": ["127.0.0.1", "127.0.0.2"]},
             "admin",
         )
         self.assertEqual(multiple_ip_result["total"], 2)
@@ -204,12 +195,7 @@ class TestJob(TestCase):
 
         start_time = time.time()
         JobHandler().list(
-            {
-                "page": 1,
-                "pagesize": 200,
-                "hide_auto_trigger_job": False,
-                "inner_ip_list": ["127.0.0.1"]
-            },
+            {"page": 1, "pagesize": 200, "hide_auto_trigger_job": False, "inner_ip_list": ["127.0.0.1"]},
             "admin",
         )
         spend_time = time.time() - start_time
@@ -587,3 +573,30 @@ class TestJob(TestCase):
 
         self.assertRaises(HostNotExists, JobHandler(job_id=lan_job_id).get_commands, 10, False)
         JobHandler(job_id=lan_job_id).get_commands(1, False)
+
+    @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)
+    def test_policy_deleted_job_list(self):
+        # 测试策略被删除后，任务历史接口仍能找到
+        number = 1
+        create_job(number)
+        job_qs = Job.objects.filter(id=number).values("subscription_id")
+        subscription_id = job_qs[0]["subscription_id"]
+        models_Subscription.objects.create(
+            id=subscription_id,
+            name="test",
+            object_type=models_Subscription.ObjectType.HOST,
+            node_type=models_Subscription.NodeType.INSTANCE,
+            nodes=[{"ip": None, "bk_biz_id": 35, "bk_host_id": 411}],
+            from_system="test",
+            creator="test",
+            enable=True,
+            is_main=True,
+            bk_biz_scope=[35],
+            category=models_Subscription.CategoryType.POLICY,
+            pid=models_Subscription.ROOT,
+        )
+        # 软删
+        models_Subscription.objects.filter(id=subscription_id).update(enable=False, is_deleted=True)
+        params = {"page": 1, "pagesize": 50, "hide_auto_trigger_job": False, "policy_name": ["test"]}
+        result = JobHandler().list(params=params, username="admin")
+        self.assertEqual(result["total"], 1)
