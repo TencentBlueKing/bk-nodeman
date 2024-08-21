@@ -97,9 +97,9 @@ class JobTools:
 
         if query_params.get("policy_name"):
             sub_ids = list(
-                models.Subscription.objects.filter(name__in=set(query_params["policy_name"])).values_list(
-                    "id", flat=True
-                )
+                models.Subscription.objects.filter(
+                    name__in=set(query_params["policy_name"]), show_deleted=True
+                ).values_list("id", flat=True)
             )
             filter_kwargs["subscription_id__in"] = sub_ids
 
