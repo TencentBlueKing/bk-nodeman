@@ -33,6 +33,7 @@ from apps.node_man.views import (
     install_channel,
     job,
     meta,
+    network_strategy,
     password,
     permission,
     plugin,
@@ -67,6 +68,7 @@ router.register(r"plugin/process", plugin.ProcessStatusViewSet, basename="proces
 router.register(r"v2/plugin", PluginV2ViewSet, basename="plugin_v2")
 router.register(r"healthz", HealthzViewSet, basename="healthz")
 router.register(r"sync_task", SyncTaskViewSet, basename="sync_task")
+router.register(r"network_strategy", network_strategy.NetworkStrategyViews, basename="network_strategy")
 
 biz_dispatcher = DjangoBasicResourceApiDispatcher(iam, settings.BK_IAM_SYSTEM_ID)
 biz_dispatcher.register("biz", BusinessResourceProvider())
