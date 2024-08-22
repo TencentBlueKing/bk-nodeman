@@ -65,6 +65,8 @@ __all__ = [
     "BKPAAS_SHARED_RES_URL",
     "BKAPP_LEGACY_AUTH",
     "BK_NOTICE_ENABLED",
+    # WINDOWS IEOD脚本内容
+    "BKAPP_IEOD_ACTIVE_FIREWALL_POLICY_SCRIPT_INFO",
 ]
 
 # ===============================================================================
@@ -86,6 +88,9 @@ BKAPP_SYNC_PROC_STATUS_TASK_INTERVAL = get_type_env(
     key="BKAPP_SYNC_PROC_STATUS_TASK_INTERVAL", default=20 * 60, _type=int
 )
 BKAPP_SCRIPT_HOOKS = get_type_env(key="BKAPP_SCRIPT_HOOKS", default="", _type=str)
+BKAPP_IEOD_ACTIVE_FIREWALL_POLICY_SCRIPT_INFO = get_type_env(
+    key="BKAPP_IEOD_ACTIVE_FIREWALL_POLICY_SCRIPT_INFO", default="", _type=str
+)
 
 # ===============================================================================
 # 日志

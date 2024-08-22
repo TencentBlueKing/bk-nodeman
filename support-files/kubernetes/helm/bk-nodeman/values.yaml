@@ -467,6 +467,8 @@ config:
   bkAppSyncProcStatusTaskInterval: 1200
   ## Agent安装前置脚本
   bkAppScriptHooks: ""
+  ## WINDOWS IEOD脚本内容
+  bkAppIEODActiveFirewallPolicyScriptInfo: ""
 
 
 ## --------------------------------------
