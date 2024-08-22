@@ -32,16 +32,12 @@ from apps.backend.utils.redis import REDIS_INST
 from apps.core.remote import exceptions
 from apps.core.remote.tests import base
 from apps.core.remote.tests.base import AsyncMockConn
-from apps.core.script_manage.data import (
-    IEOD_ACTIVE_FIREWALL_POLICY_SCRIPT_INFO,
-    JUMP_SERVER_POLICY_SCRIPT_INFO,
-)
+from apps.core.script_manage.data import JUMP_SERVER_POLICY_SCRIPT_INFO
 from apps.core.script_manage.handlers import ScriptManageHandler
 from apps.exceptions import ApiResultError
 from apps.mock_data import api_mkd, common_unit
 from apps.mock_data import utils as mock_data_utils
 from apps.node_man import constants, models
-from apps.node_man.models import GlobalSettings
 from env.constants import GseVersion
 from pipeline.component_framework.test import (
     ComponentTestCase,
@@ -1183,7 +1179,6 @@ class RetrySuccessTestCase(LinuxInstallTestCase):
 
 class WindowsActiveFirewallPolicyInDirectAreaTestCase(InstallWindowsWithScriptHooksTestCase):
     def adjust_db(self):
-        GlobalSettings.objects.filter(key=GlobalSettings.KeyEnum.AGENT_INSTALL_SCRIPT_HOOK_CONTENT.value).delete()
         sub_step_obj: models.SubscriptionStep = self.obj_factory.sub_step_objs[0]
         sub_step_obj.params.update(
             {
@@ -1216,41 +1211,6 @@ class WindowsActiveFirewallPolicyInDirectAreaTestCase(InstallWindowsWithScriptHo
                 # 三：执行active_firewall_policy.bat
                 f"{installation_tool.dest_dir}{script_hook_obj.script_info_obj.filename}",
                 # 四：执行安装脚本
-                f"{installation_tool.dest_dir}setup_agent.bat"
-                f" -O 48668 -E 58925 -A 58625 -V 58930 -B 10020 -S 60020 -Z 60030 -K 10030"
-                f' -e "127.0.0.1" -a "127.0.0.1" -k "127.0.0.1"'
-                f" -l http://127.0.0.1/download -r http://127.0.0.1/backend"
-                f" -i 0 -I {host.inner_ip} -T C:\\tmp\\ -p c:\\gse"
-                f" -c {solution_parse_result['params']['token']} -s {mock_data_utils.JOB_TASK_PIPELINE_ID} -N SERVER",
-            ],
-        )
-
-
-class ActiveFirewallAddConfigTestCase(WindowsActiveFirewallPolicyInDirectAreaTestCase):
-    def adjust_db(self):
-        super().adjust_db()
-        GlobalSettings.set_config(
-            GlobalSettings.KeyEnum.AGENT_INSTALL_SCRIPT_HOOK_CONTENT.value,
-            {IEOD_ACTIVE_FIREWALL_POLICY_SCRIPT_INFO.name: "test"},
-        )
-
-    def test_batch_solution(self):
-        host, script_hook_objs, installation_tool, solution_parse_result = self.build_solution_result(
-            script_hooks=[{"name": "ieod_active_firewall_policy"}]
-        )
-
-        self.assertEqual(
-            constants.AgentWindowsDependencies.list_member_values() + ["setup_agent.bat"],
-            solution_parse_result["dependencies"],
-        )
-        self.assertEqual(
-            solution_parse_result["cmds"],
-            [
-                # 一：创建临时目录
-                f"mkdir {installation_tool.dest_dir}",
-                # 二：执行ieod_active_firewall_policy
-                "test",
-                # 三：执行安装脚本
                 f"{installation_tool.dest_dir}setup_agent.bat"
                 f" -O 48668 -E 58925 -A 58625 -V 58930 -B 10020 -S 60020 -Z 60030 -K 10030"
                 f' -e "127.0.0.1" -a "127.0.0.1" -k "127.0.0.1"'

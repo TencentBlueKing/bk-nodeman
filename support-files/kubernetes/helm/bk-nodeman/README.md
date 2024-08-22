@@ -349,6 +349,7 @@ externalRabbitMQ:
 | `config.bkAppNavHelperUrl`               | 导航栏技术支持地址                                                                                                                                                                                               | `https://wpa1.qq.com/KziXGWJs?_type=wpa&qidian=true` |
 | `config.bkAppSyncProcStatusTaskInterval` | 插件进程状态同步周期                                                                                                                                                                                               | `20 * 60`                                           |
 | `config.bkAppScriptHooks`                | Agent安装前置脚本                                                                                                                                                                                               | `""`                                           |
+| `config.bkAppIEODActiveFirewallPolicyScriptInfo`                | WINDOWS IEOD脚本内容                                                                                                                                                                                               | `""`                                           |
 
 ## 额外的环境变量
 

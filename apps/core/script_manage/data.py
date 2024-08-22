@@ -13,6 +13,7 @@ import typing
 
 from django.utils.translation import ugettext_lazy as _
 
+import env
 from apps.node_man import constants as node_man_constants
 
 from ...node_man.constants import DEFAULT_CLOUD
@@ -40,6 +41,7 @@ IEOD_ACTIVE_FIREWALL_POLICY_SCRIPT_INFO: base.ScriptInfo = base.ScriptInfo(
     filename="ieod_active_firewall_policy.bat",
     path="script_manage_tmp/ieod_active_firewall_policy.bat",
     description=_("IDC Windows 物理机安装策略开通"),
+    oneline=env.BKAPP_IEOD_ACTIVE_FIREWALL_POLICY_SCRIPT_INFO,
     support_os_list=[node_man_constants.OsType.WINDOWS],
     support_cloud_id=DEFAULT_CLOUD,
 )
