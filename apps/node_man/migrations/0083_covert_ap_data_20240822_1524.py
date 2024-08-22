@@ -18,7 +18,7 @@ def covert_ap_data(apps, schema_editor):
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("node_man", "0081_auto_20240307_1656"),
+        ("node_man", "0082_host_dept_name"),
     ]
 
     operations = [
