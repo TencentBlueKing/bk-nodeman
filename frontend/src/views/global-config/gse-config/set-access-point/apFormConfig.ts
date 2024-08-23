@@ -10,9 +10,9 @@ export const stepHost = [
   },
   {
     label: window.i18n.t('接入点版本'),
-    key: 'version',
+    key: 'gse_version',
     required: true,
-    ruleName: 'version',
+    ruleName: 'gse_version',
     desc: window.i18n.t('接入点描述'),
     type: 'select',
     options: [

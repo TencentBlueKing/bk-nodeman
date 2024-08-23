@@ -37,7 +37,6 @@ export interface IConfigAgent {
 
 export interface IApBase {
   name: string
-  version: string
   zk_account: string
   zk_password?: string // 编辑可不填
   zk_hosts: IZk[]

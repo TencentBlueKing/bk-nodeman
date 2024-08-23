@@ -5,7 +5,7 @@
         <!-- zk&server - table -->
         <template v-if="formItem.type === 'zk'">
           <!-- Zookeeper -->
-          <div v-if="formData.version === 'V1'"
+          <div v-if="formData.gse_version === 'V1'"
             :style="{ width: `${relatedContentWidth}px` }"
             class="bk-form-item ip-related-item clearfix mb40"
             :key="itemIndex">
@@ -128,19 +128,21 @@
           </section>
         </bk-form-item>
 
-        <bk-form-item
-          v-else-if="formItem.type === 'zkPassword' && formData.version === 'V1'"
-          :key="itemIndex"
-          :label="$t('Zookeeper密码')"
-          property="zk_password">
-          <InstallInputType
-            class="zk-pwd-item"
-            type="password"
-            :placeholder="$t('请输入')"
-            v-model.trim="formData.zk_password"
-            :pwd-fill="detail.pwsFill"
-            @change="hadleFormChange" />
-        </bk-form-item>
+        <template v-else-if="formItem.type === 'zkPassword'">
+          <bk-form-item
+            v-if="formData.gse_version === 'V1'"
+            :key="itemIndex"
+            :label="$t('Zookeeper密码')"
+            property="zk_password">
+            <InstallInputType
+              class="zk-pwd-item"
+              type="password"
+              :placeholder="$t('请输入')"
+              v-model.trim="formData.zk_password"
+              :pwd-fill="detail.pwsFill"
+              @change="hadleFormChange" />
+          </bk-form-item>
+        </template>
 
         <template v-else-if="formItem.type === 'url'">
           <bk-form-item
@@ -173,12 +175,13 @@
           :property="formItem.key">
           <InstallInputType
             type="select"
-            v-model.trim="formData.version"
+            :disabled="isEdit"
+            v-model.trim="formData.gse_version"
             :options="formItem.options"/>
         </bk-form-item>
 
         <bk-form-item
-          v-else-if="formItem.key !== 'zk_account' || (formItem.key === 'zk_account' && formData.version === 'V1')"
+          v-else-if="formItem.key !== 'zk_account' || (formItem.key === 'zk_account' && formData.gse_version === 'V1')"
           :class="formItem.extCls"
           :key="itemIndex"
           :label="formItem.label"
@@ -265,7 +268,7 @@ const checkedResultList = ref<{
 
 const formData = ref<IApBase>({
   name: '',
-  version: props.isEdit ? '' : 'V2',
+  gse_version: props.isEdit ? 'V1' : 'V2',
   description: '',
   region_id: '',
   city_id: '',
