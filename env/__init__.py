@@ -71,6 +71,8 @@ __all__ = [
     "BKAPP_DEFAULT_INSTALL_CHANNEL_ID",
     "BKAPP_AUTOMATIC_CHOICE_CLOUD_ID",
     "TXY_ENDPOINT",
+    # 未分配管控区域ID
+    "BKAPP_UNASSIGNED_CLOUD_ID",
 ]
 
 # ===============================================================================
@@ -97,6 +99,7 @@ BKAPP_IEOD_ACTIVE_FIREWALL_POLICY_SCRIPT_INFO = get_type_env(
 )
 BKAPP_DEFAULT_INSTALL_CHANNEL_ID = get_type_env(key="BKAPP_DEFAULT_INSTALL_CHANNEL_ID", default=-1, _type=int)
 BKAPP_AUTOMATIC_CHOICE_CLOUD_ID = get_type_env(key="BKAPP_AUTOMATIC_CHOICE_CLOUD_ID", default=-1, _type=int)
+BKAPP_UNASSIGNED_CLOUD_ID = get_type_env(key="BKAPP_UNASSIGNED_CLOUD_ID", default=90000001, _type=int)
 
 # ===============================================================================
 # 日志

@@ -199,7 +199,8 @@ class CloudHandler(APIModel):
         """
 
         bk_cloud_name = params["bk_cloud_name"]
-        bk_cloud_id = CmdbHandler.get_or_create_cloud(bk_cloud_name)
+        bk_cloud_vendor = const.CMDB_CLOUD_VENDOR_MAP.get(params["isp"])
+        bk_cloud_id = CmdbHandler.get_or_create_cloud(bk_cloud_name, bk_cloud_vendor=bk_cloud_vendor)
 
         if bk_cloud_name == str(DEFAULT_CLOUD_NAME):
             raise ValidationError(_("管控区域不可名为「直连区域」"))
@@ -236,8 +237,9 @@ class CloudHandler(APIModel):
         if Cloud.objects.filter(bk_cloud_name=bk_cloud_name).exclude(bk_cloud_id=bk_cloud_id).exists():
             raise ValidationError(_("管控区域名称不可重复"))
 
-        # 向CMDB修改管控区域名称
-        CmdbHandler.rename_cloud(bk_cloud_id, bk_cloud_name)
+        # 向CMDB修改管控区域名称以及云服务商
+        bk_cloud_vendor: str = const.CMDB_CLOUD_VENDOR_MAP.get(isp)
+        CmdbHandler.rename_cloud(bk_cloud_id, bk_cloud_name, bk_cloud_vendor=bk_cloud_vendor)
 
         cloud.bk_cloud_name = bk_cloud_name
         cloud.isp = isp

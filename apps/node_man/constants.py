@@ -59,6 +59,7 @@ GSE_SVR_DISCOVERY_INTERVAL = 1 * TimeUnit.MINUTE
 COLLECT_AUTO_TRIGGER_JOB_INTERVAL = 5 * TimeUnit.MINUTE
 SYNC_CMDB_CLOUD_AREA_INTERVAL = 10 * TimeUnit.SECOND
 SYNC_AGENT_STATUS_TASK_INTERVAL = 10 * TimeUnit.MINUTE
+SYNC_ISP_TO_CMDB_INTERVAL = 1 * TimeUnit.DAY
 SYNC_PROC_STATUS_TASK_INTERVAL = settings.SYNC_PROC_STATUS_TASK_INTERVAL
 SYNC_BIZ_TO_GRAY_SCOPE_LIST_INTERVAL = 30 * TimeUnit.MINUTE
 
@@ -75,12 +76,14 @@ CLEAR_NEED_DELETE_HOST_IDS_INTERVAL = 1 * TimeUnit.MINUTE
 # 默认管控区域ID
 DEFAULT_CLOUD = int(os.environ.get("DEFAULT_CLOUD", 0))
 DEFAULT_CLOUD_NAME = os.environ.get("DEFAULT_CLOUD_NAME", _("直连区域"))
+# 未分配管控区域ID
+UNASSIGNED_CLOUD_ID = int(os.environ.get("BKAPP_UNASSIGNED_CLOUD_ID", 90000001))
 # 自动选择接入点ID
 DEFAULT_AP_ID = int(os.environ.get("DEFAULT_AP_ID", -1))
 # 自动选择安装通道ID
-DEFAULT_INSTALL_CHANNEL_ID = int(os.environ.get("DEFAULT_INSTALL_CHANNEL_ID", -1))
+DEFAULT_INSTALL_CHANNEL_ID = int(os.environ.get("BKAPP_DEFAULT_INSTALL_CHANNEL_ID", -1))
 # 自动选择的云区域ID
-AUTOMATIC_CHOICE_CLOUD_ID = int(os.environ.get("AUTOMATIC_CHOICE_CLOUD_ID", -1))
+AUTOMATIC_CHOICE_CLOUD_ID = int(os.environ.get("BKAPP_AUTOMATIC_CHOICE_CLOUD_ID", -1))
 # 自动选择
 AUTOMATIC_CHOICE = os.environ.get("AUTOMATIC_CHOICE", _("自动选择"))
 # 默认安装通道
@@ -567,6 +570,7 @@ QUERY_CMDB_MODULE_LIMIT = 500
 QUERY_CLOUD_LIMIT = 200
 QUERY_HOST_SERVICE_TEMPLATE_LIMIT = 200
 QUERY_MODULE_ID_THRESHOLD = 15
+UPDATE_CMDB_CLOUD_AREA_LIMIT = 50
 VERSION_PATTERN = re.compile(r"[vV]?(\d+\.){1,5}\d+(-rc\d)?$")
 # 语义化版本正则，参考：https://semver.org/#is-there-a-suggested-regular-expression-regex-to-check-a-semver-string
 SEMANTIC_VERSION_PATTERN = re.compile(
@@ -603,6 +607,27 @@ REDIS_NEED_DELETE_HOST_IDS_KEY_TPL = f"{settings.APP_CODE}:node_man:need_delete_
 MAX_HOST_IDS_LENGTH = 5000
 # 操作系统对应账户名
 OS_ACCOUNT = {"LINUX": LINUX_ACCOUNT, "WINDOWS": WINDOWS_ACCOUNT}
+# NODEMAN云服务商对应CMDB接口云服务商映射
+CMDB_CLOUD_VENDOR_MAP = {
+    "AWS": "1",
+    "TencentCloud": "2",
+    "GoogleCloud": "3",
+    "Azure": "4",
+    "PrivateCloud": "5",
+    "SalesForce": "6",
+    "OracleCloud": "7",
+    "IBMCloud": "8",
+    "AlibabaCloud": "9",
+    "ECloud": "10",
+    "UCloud": "11",
+    "MOS": "12",
+    "KSyun": "13",
+    "BaiduCloud": "14",
+    "HuaweiCloud": "15",
+    "capitalonline": "16",
+    "TencentPrivateCloud": "17",
+    "Zenlayer": "18",
+}
 
 
 class ProxyFileFromType(Enum):

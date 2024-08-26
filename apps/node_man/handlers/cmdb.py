@@ -323,12 +323,12 @@ class CmdbHandler(APIModel):
         raise PermissionDeniedError(action_name=action, apply_url=apply_url, permission=apply_data)
 
     @staticmethod
-    def add_cloud(bk_cloud_name):
+    def add_cloud(bk_cloud_name: str, bk_cloud_vendor: str = None):
         """
         新增管控区域
         """
         # 增删改查CMDB操作以admin用户进行
-        data = client_v2.cc.create_cloud_area({"bk_cloud_name": bk_cloud_name})
+        data = client_v2.cc.create_cloud_area({"bk_cloud_name": bk_cloud_name, "bk_cloud_vendor": bk_cloud_vendor})
         return data.get("created", {}).get("id")
 
     @staticmethod
@@ -364,20 +364,24 @@ class CmdbHandler(APIModel):
         raise CloudNotExistError
 
     @staticmethod
-    def rename_cloud(bk_cloud_id, bk_cloud_name):
+    def rename_cloud(bk_cloud_id: int, bk_cloud_name: str, bk_cloud_vendor: str = None):
         try:
             # 增删改查CMDB操作以admin用户进行
-            client_v2.cc.update_cloud_area({"bk_cloud_id": bk_cloud_id, "bk_cloud_name": bk_cloud_name})
+            client_v2.cc.update_cloud_area(
+                {"bk_cloud_id": bk_cloud_id, "bk_cloud_name": bk_cloud_name, "bk_cloud_vendor": bk_cloud_vendor}
+            )
         except ComponentCallError as e:
             logger.error("esb->call update_cloud_area error %s" % e.message)
-            client_v2.cc.update_inst(bk_obj_id="plat", bk_inst_id=bk_cloud_id, bk_cloud_name=bk_cloud_name)
+            client_v2.cc.update_inst(
+                bk_obj_id="plat", bk_inst_id=bk_cloud_id, bk_cloud_name=bk_cloud_name, bk_cloud_vendor=bk_cloud_vendor
+            )
 
     @classmethod
-    def get_or_create_cloud(cls, bk_cloud_name):
+    def get_or_create_cloud(cls, bk_cloud_name: str, bk_cloud_vendor: str = None):
         try:
             return cls.get_cloud(bk_cloud_name)
         except CloudNotExistError:
-            return cls.add_cloud(bk_cloud_name)
+            return cls.add_cloud(bk_cloud_name, bk_cloud_vendor=bk_cloud_vendor)
 
     def fetch_topo(self, bk_biz_id: int, with_biz_node: bool = False) -> List:
         """
