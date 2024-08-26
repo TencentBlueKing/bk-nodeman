@@ -473,6 +473,8 @@ config:
   bkAppDefaultInstallChannelId: -1
   ## 自动选择安装通道对应云区域ID
   bkAppAutomaticChoiceCloudId: -1
+  ## 未分配管控区域ID
+  bkAppUnassignedCloudId: 90000001
 
 
 ## --------------------------------------

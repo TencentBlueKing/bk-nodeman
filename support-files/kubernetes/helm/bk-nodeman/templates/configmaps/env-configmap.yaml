@@ -137,3 +137,4 @@ data:
   TXY_ENDPOINT: "{{ .Values.config.TXYEndpoint }}"
   TXY_SECRETID: "{{ .Values.config.TXYSecretId }}"
   TXY_SECRETKEY: "{{ .Values.config.TXYSecretKey }}"
+  BKAPP_UNASSIGNED_CLOUD_ID: "{{ .Values.config.bkAppUnassignedCloudId}}"

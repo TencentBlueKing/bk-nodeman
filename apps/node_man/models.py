@@ -175,6 +175,8 @@ class GlobalSettings(models.Model):
         TXY_POLICY_CONFIGS = "TXY_POLICY_CONFIGS"
         # 业务新增主机黑名单，用于限制指定业务通过安装 Agent 新增主机，配置样例：[1, 2]
         ADD_HOST_BIZ_BLACKLIST = "ADD_HOST_BIZ_BLACKLIST"
+        # CMDB内置云区域IDS
+        CMDB_INTERNAL_CLOUD_IDS = "CMDB_INTERNAL_CLOUD_IDS"
 
     key = models.CharField(_("键"), max_length=255, db_index=True, primary_key=True)
     v_json = JSONField(_("值"))
@@ -192,7 +194,7 @@ class GlobalSettings(models.Model):
     def fetch_isp(self):
         isps = dict(GlobalSettings.objects.filter(key="isp").values_list("key", "v_json")).get("isp", [])
         result = self.map_values(
-            isps, lambda isp: isp["isp"], lambda isp: {"isp_name": isp["isp_name"], "isp_icon": isp["isp_icon"]}
+            isps, lambda isp: isp["isp"], lambda isp: {"isp_name": isp["isp_name"]}
         )
 
         return result

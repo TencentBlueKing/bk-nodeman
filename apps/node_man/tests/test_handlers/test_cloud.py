@@ -181,3 +181,42 @@ class TestCloud(TestCase):
 
         cloud_info = CloudHandler().list_cloud_name()
         self.assertEqual(len(cloud_info), 1)
+
+    @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)
+    def test_cloud_create_and_sync_isp(self):
+        with patch("apps.node_man.handlers.cmdb.client_v2.cc.search_cloud_area") as search_cloud:
+            search_cloud.return_value = {"info": []}
+            with patch("apps.node_man.handlers.cmdb.client_v2.cc.create_cloud_area") as create_cloud:
+                create_cloud.return_value = {"created": {"id": 10000}}
+                CloudHandler().create(
+                    {
+                        "isp": ["TencentCloud", "AlibabaCloud", "AWS"][random.randint(0, 2)],
+                        "ap_id": -1,
+                        "bk_cloud_name": "".join(random.choice(DIGITS) for x in range(8)),
+                    },
+                    "admin",
+                )
+                call_args = create_cloud.call_args
+                bk_cloud_vendor_scope = [str(bk_cloud_vendor) for bk_cloud_vendor in range(1, 19)]
+                self.assertIn(call_args[0][0]["bk_cloud_vendor"], bk_cloud_vendor_scope)
+
+    @patch("apps.node_man.handlers.cmdb.client_v2", MockClient)
+    def test_update_cloud_and_isp(self):
+        kwarg = {
+            "isp": ["TencentCloud", "AlibabaCloud", "AWS"][random.randint(0, 2)],
+            "ap_id": -1,
+            "bk_cloud_name": "".join(random.choice(DIGITS) for x in range(8)),
+        }
+        cloud = CloudHandler().create(kwarg, "admin")
+
+        # 测试更新isp
+        bk_cloud_id = cloud["bk_cloud_id"]
+        kwarg["ap_id"] = 1
+        kwarg["bk_cloud_name"] = "cdtest"
+
+        with patch("apps.node_man.handlers.cmdb.client_v2.cc.update_cloud_area") as update_cloud:
+            update_cloud.return_value = {"result": True}
+            CloudHandler().update(bk_cloud_id, kwarg["bk_cloud_name"], kwarg["isp"], kwarg["ap_id"])
+            call_args = update_cloud.call_args
+            bk_cloud_vendor_scope = [str(bk_cloud_vendor) for bk_cloud_vendor in range(1, 19)]
+            self.assertIn(call_args[0][0]["bk_cloud_vendor"], bk_cloud_vendor_scope)
