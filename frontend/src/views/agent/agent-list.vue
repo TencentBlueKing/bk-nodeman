@@ -549,7 +549,7 @@
                           :class="[
                             'list-item',
                             fontSize,
-                            { 'disabled': row.status === 'not_installed' && !(['log', 'remove'].includes(item.id)) }
+                            { 'disabled': ['terminated', 'not_installed'].includes(row.status) && !(['log', 'remove'].includes(item.id)) }
                           ]"
                           :key="item.id"
                           v-test.common="`moreItem.${item.id}`"
@@ -1684,7 +1684,7 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
    * Linux、window卸载都不需要经过编辑页面 *****
    */
   private handleOperate(type: string, data: IAgentHost[], batch = false) {
-    if (!batch && data[0].status === 'not_installed' && !(['log', 'reinstall', 'remove'].includes(type))) {
+    if (!batch && ['terminated', 'not_installed'].includes(data[0].status) && !(['log', 'reinstall', 'remove'].includes(type))) {
       return;
     }
     if (!batch && this.$refs[data[0].bk_host_id]) {
