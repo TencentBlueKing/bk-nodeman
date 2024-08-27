@@ -220,3 +220,9 @@ class YunTiPolicyConfigNotExistsError(NodeManBaseException):
     MESSAGE = _("云梯策略配置不存在")
     MESSAGE_TPL = _("云梯策略配置不存在")
     ERROR_CODE = 43
+
+
+class DefaultCloudNotExistsNetworkStrategy(NodeManBaseException):
+    MESSAGE = _("直连区域无需配置网络策略")
+    MESSAGE_TPL = _("直连区域无需配置网络策略")
+    ERROR_CODE = 44

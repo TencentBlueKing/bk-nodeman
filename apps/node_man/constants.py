@@ -568,6 +568,8 @@ SEMANTIC_VERSION_PATTERN = re.compile(
 )
 WINDOWS_PORT = 445
 WINDOWS_ACCOUNT = "Administrator"
+SSH_PORT = 22
+LINUX_PORT = 36000
 LINUX_ACCOUNT = "root"
 APPLY_RESOURCE_WATCH_EVENT_LENS = 2000
 
@@ -1193,3 +1195,54 @@ class OsBitType(EnhanceEnum):
     @classmethod
     def cpu_type__os_bit_map(cls):
         return {CpuType.x86: cls.BIT32.value, CpuType.x86_64: cls.BIT64.value, CpuType.aarch64: cls.ARM.value}
+
+
+class HttpPortType(EnhanceEnum):
+    HTTP_PORT = 80
+    HTTPS_PORT = 443
+
+    @classmethod
+    def _get_member__alias_map(cls) -> Dict[Enum, str]:
+        return {cls.HTTP_PORT: _("HTTP端口"), cls.HTTPS_PORT: _("HTTPS端口")}
+
+
+class NginxPortType(EnhanceEnum):
+    NGINX_DOWNLOAD_PORT = 17980
+    NGINX_PROXY_PASS_PORT = 17981
+
+    @classmethod
+    def _get_member__alias_map(cls) -> Dict[Enum, str]:
+        return {cls.NGINX_DOWNLOAD_PORT: _("Nginx下载端口"), cls.NGINX_PROXY_PASS_PORT: _("Nginx代理端口")}
+
+
+class PortProtocolType(EnhanceEnum):
+    TCP = "TCP"
+    UDP = "UDP"
+
+    @classmethod
+    def _get_member__alias_map(cls) -> Dict[Enum, str]:
+        return {cls.TCP: _("TCP协议"), cls.UDP: _("UDP协议")}
+
+
+class UseType(EnhanceEnum):
+    SSH_CONNECT_PORT = "ssh_connect_port"
+    NGINX_DOWNLOAD = "nginx_download"
+    NGINX_PROXY_PASS = "nginx_proxy_pass"
+    REPORT_LOG = "report_log"
+    GET_CONFIG = "get_config"
+    TASK_SERVE_PORT = "task_serve_port"
+    DATA_SERVE_PORT = "data_serve_port"
+    FILE_TRANSMIT_PORT = "file_transmit_port"
+
+    @classmethod
+    def _get_member__alias_map(cls) -> Dict[Enum, str]:
+        return {
+            cls.SSH_CONNECT_PORT: _("ssh连接端口"),
+            cls.NGINX_DOWNLOAD: _("nginx下载"),
+            cls.NGINX_PROXY_PASS: _("nginx代理"),
+            cls.REPORT_LOG: _("上报日志"),
+            cls.GET_CONFIG: _("获取配置"),
+            cls.TASK_SERVE_PORT: _("任务服务端口"),
+            cls.DATA_SERVE_PORT: _("数据服务端口"),
+            cls.FILE_TRANSMIT_PORT: _("文件传输端口"),
+        }
