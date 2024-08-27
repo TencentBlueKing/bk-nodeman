@@ -137,4 +137,3 @@
 | child_dir        | string | 子路径           |
 | show_description | bool   | 是否展示描述信息 |
 | always_download  | bool   | 是否实时更新     |
-
