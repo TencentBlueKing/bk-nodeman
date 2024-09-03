@@ -627,14 +627,19 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
         if validated_data.get("versions", ""):
             machine_latest_version = max(validated_data["versions"], key=GsePackageTools.extract_numbers)
 
-            for machine_version in validated_data["versions"]:
-                if machine_version not in package_versions:
-                    is_visible = False
+            extract_machine_latest_version = GsePackageTools.extract_numbers(machine_latest_version)
+
+            # 如果所有当前可用包的版本都比传进的最高版本低，则不可升级
+            if all([
+                GsePackageTools.extract_numbers(current_package_version) <= extract_machine_latest_version
+                for current_package_version in package_versions
+            ]):
+                is_visible = False
 
             version__pkg_version_info_map = {
                 version: pkg_version_info
-                for version, pkg_version_info in version__pkg_info_map.copy().items()
-                if GsePackageTools.extract_numbers(version) >= GsePackageTools.extract_numbers(machine_latest_version)
+                for version, pkg_version_info in version__pkg_version_info_map.copy().items()
+                if GsePackageTools.extract_numbers(version) >= extract_machine_latest_version
             }
 
         package_latest_version = list(version__pkg_version_info_map.keys())[0] if version__pkg_version_info_map else ""
