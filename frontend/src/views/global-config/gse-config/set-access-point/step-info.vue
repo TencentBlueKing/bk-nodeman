@@ -141,7 +141,7 @@ export default class StepInfo extends Vue {
   public submitHandle() {
     this.formDataRef.validate().then(async () => {
       const {
-        name, zk_account, zk_password, region_id, city_id, zk_hosts,
+        name, gse_version, zk_account, zk_password, region_id, city_id, zk_hosts,
         btfileserver, dataserver, taskserver,
         callback_url, outer_callback_url, package_inner_url, package_outer_url,
         nginx_path, description,
@@ -164,6 +164,7 @@ export default class StepInfo extends Vue {
       // detail里边多余的字段不能传入，否则通不过后端校验
       const formatData: IApParams = {
         name,
+        gse_version,
         zk_account,
         zk_password,
         region_id,
