@@ -84,7 +84,7 @@
                   </template>
                 </auth-component>
               </div>
-              <p class="access-point-remarks" v-if="accessPoint.description">
+              <p class="access-point-remarks">
                 <span>ID:</span>
                 <span class="point-id">{{ accessPoint.id | filterEmpty }}</span>
                 <span class="point-desc" v-if="accessPoint.description">{{ accessPoint.description }}</span>
