@@ -84,17 +84,17 @@
                   </template>
                 </auth-component>
               </div>
-              <p class="access-point-remarks" v-if="accessPoint.description">
+              <p class="access-point-remarks">
                 <span>ID:</span>
                 <span class="point-id">{{ accessPoint.id | filterEmpty }}</span>
                 <span class="point-desc" v-if="accessPoint.description">{{ accessPoint.description }}</span>
+                <span class="point-desc">{{ accessPoint.gse_version }}</span>
               </p>
             </div>
           </div>
           <div class="collapse-container" slot>
             <AccessPointTable
               v-if="accessPoint.view"
-              class="access-point-table"
               :access-point="accessPoint">
             </AccessPointTable>
             <exception-card
@@ -318,9 +318,6 @@ export default class GseConfig extends Vue {
   }
   .collapse-container {
     background: #fff;
-  }
-  >>> .access-point-table tr:last-child td {
-    border-bottom: 0;
   }
 }
 </style>
