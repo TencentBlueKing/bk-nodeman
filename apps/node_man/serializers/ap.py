@@ -123,13 +123,14 @@ class UpdateOrCreateSerializer(serializers.ModelSerializer):
             return attrs
 
     class ZKSerializer(serializers.Serializer):
-        zk_ip = serializers.CharField(label=_("ZK IP地址"))
-        zk_port = serializers.CharField(label=_("ZK 端口"))
+        zk_ip = serializers.CharField(label=_("ZK IP地址"), required=False, allow_blank=True)
+        zk_port = serializers.CharField(label=_("ZK 端口"), required=False, allow_blank=True)
 
     btfileserver = ServersSerializer()
     dataserver = ServersSerializer()
     taskserver = ServersSerializer()
-    zk_hosts = serializers.ListField(child=ZKSerializer())
+    gse_version = serializers.ChoiceField(label=_("GSE版本"), choices=GseVersion.list_choices(), required=False)
+    zk_hosts = serializers.ListField(child=ZKSerializer(), required=False, default=[])
     zk_account = serializers.CharField(label=_("ZK账号"), required=False, allow_blank=True)
     zk_password = serializers.CharField(label=_("ZK密码"), required=False, allow_blank=True)
     agent_config = serializers.DictField(label=_("Agent配置"))
