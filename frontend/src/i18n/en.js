@@ -316,7 +316,7 @@ export default {
   前往更新: 'Go update',
   无匹配数据: 'No Data',
   产品文档: 'Documentation',
-  版本日志: 'Release note',
+  版本日志: 'Release Notes',
   问题反馈: 'Feedback',
   开源社区: 'Open source community',
   当前版本: 'Current',
