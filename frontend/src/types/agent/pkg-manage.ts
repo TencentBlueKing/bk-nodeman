@@ -6,6 +6,8 @@ export type PkgTagType = 'builtin' | 'custom';
 
 // tag相关的参数 都是使用原本的name字段, 原本的description用于展示
 export interface IPkgTag {
+  // 标签id名
+  tag_name?: string,
   id?: number;
   name:  string;
   description: string;
@@ -35,6 +37,7 @@ export interface IPkgParams {
   version?: string; // ,分隔
   created_time_before?: string; // 2022-10-01T00:00:00
   created_time_after?: string;
+  ordering?: string;
 }
 
 export interface IPkgQuickOpt {

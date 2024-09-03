@@ -299,7 +299,7 @@ export const config: ISetupHead[] = [
     readonly: false,
     noRequiredMark: false,
     placeholder: window.i18n.t('请选择'),
-    batch: false,
+    batch: true,
     default: '',
     width: 100,
     parentProp: 'install_info',
