@@ -123,3 +123,26 @@
 .russian-dolls-form > .item-object > .item-array > .bk-form-content > .array-child-group > .array-child > .array-content-delete {
   left: 100%;
 }
+
+.item-key-value {
+  .flex {
+    background-color: #f5f7fa;
+  }
+  .flex1 {
+    display: flex;
+    position: relative;
+    .is-error {
+      & input[type=text] {
+        border-color: #ff5656;
+        color: #ff5656;
+      }
+      &.error-tip {
+        position: absolute;
+        right: 8px;
+        font-size: 16px;
+        color: #ea3636;
+        cursor: pointer;
+      }
+    }
+  }
+}
