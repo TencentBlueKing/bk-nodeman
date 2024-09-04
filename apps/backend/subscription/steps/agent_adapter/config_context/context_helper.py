@@ -112,7 +112,7 @@ class ConfigContextHelper:
                         ]
                     )
                 ],
-                extra_config_directory=ExecutionSolutionTools.get_gse_extra_config_dir(self.host.os_type),
+                extra_config_directory=ExecutionSolutionTools.get_gse_extra_config_dir(self.host),
             ),
             context_dataclass.AccessConfigContext(
                 cluster_endpoints=",".join(

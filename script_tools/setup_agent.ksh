@@ -101,7 +101,7 @@ cleanup () {
 }
 
 validate_setup_path () {
-    set -A invalid_path_prefix /tmp /var /etc /bin /lib /lib64 /boot /mnt /proc /dev /run /sys /sbin /root /home
+    set -A invalid_path_prefix /tmp /var /etc /bin /lib /lib64 /boot /mnt /proc /dev /run /sys /sbin /root
 
     set -A invalid_path /usr /usr/bin /usr/sbin /usr/local/lib /usr/include /usr/lib /usr/lib64 /usr/libexec
 
@@ -305,6 +305,11 @@ setup_crontab () {
 }
 
 remove_crontab () {
+
+    if [ $IS_SUPER == false ]; then
+        return
+    fi
+
     local tmpcron
     local datatemp=$(date +%s)
 
@@ -316,6 +321,10 @@ remove_crontab () {
 }
 
 setup_startup_scripts () {
+    if [ $IS_SUPER == false ]; then
+        return
+    fi
+
     local rcfile=/etc/rc.local
 
     if [ -f $rcfile ];then
@@ -391,7 +400,9 @@ backup_config_file () {
             tmp_backup_file=$(mktemp "${TMP_DIR}"/nodeman_${file}_config.XXXXXXX)
             log backup_config_file - "backup $file to $tmp_backup_file"
             cp -rf "${AGENT_SETUP_PATH}"/etc/"${file}" "${tmp_backup_file}"
-            chattr +i "${tmp_backup_file}"
+            if [ $IS_SUPER == true ]; then
+                chattr +i "${tmp_backup_file}"
+            fi
         fi
     done
 }
@@ -402,7 +413,9 @@ recovery_config_file () {
         time_filter_config_file=$(find "${TMP_DIR}" -ctime -1 -name "nodeman_${file}_config*")
         [ -z "${time_filter_config_file}" ] && return 0
         latest_config_file=$(find "${TMP_DIR}" -ctime -1 -name "nodeman_${file}_config*" | xargs ls -rth | tail -n 1)
-        chattr -i "${latest_config_file}"
+        if [ $IS_SUPER == true ]; then
+            chattr -i "${latest_config_file}"
+        fi
         cp -rf "${latest_config_file}" "${AGENT_SETUP_PATH}"/etc/"${file}"
         rm -f "${latest_config_file}"
         log recovery_config_file - "recovery ${AGENT_SETUP_PATH}/etc/${file} from $latest_config_file"
@@ -537,7 +550,7 @@ check_deploy_result () {
 }
 
 validate_vars_string () {
-    echo "$1" | grep -Pq '^[a-zA-Z_][a-zA-Z0-9]+='
+    echo "$1" | grep -Pq '^[a-zA-Z_][a-zA-Z0-9_]*='
 }
 
 check_pkgtool () {
@@ -730,6 +743,13 @@ while getopts I:i:l:s:uc:r:x:p:e:a:k:N:v:oT:RO:E:A:V:B:S:Z:K: arg; do
         *)  _help ;;
     esac
 done
+
+IS_SUPER=true
+if sudo -n true 2>/dev/null; then
+    IS_SUPER=true
+else
+    IS_SUPER=false
+fi
 
 ## 检查自定义环境变量
 VARS_LIST=$(echo "$VARS_LIST" | sed 's/;/ /g')
