@@ -81,7 +81,7 @@ function getDefaultComponent(params: IItem) {
   let realComponent = component.name;
   if (type === 'array') {
     const { title, items: { properties = {} } } = params;
-    const propKeys = title === bfArrayTitle ? Object.keys(properties) : [];
+    const propKeys = title.includes(bfArrayTitle) ? Object.keys(properties) : [];
     if (propKeys.length === 2 && [bfArrayKey, bfArrayValue].every(key => propKeys.includes(key))) {
       realComponent = 'bfArray';
     }
