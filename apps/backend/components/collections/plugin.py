@@ -1204,7 +1204,7 @@ class GseOperateProcService(PluginBaseService):
                         "proc_name": package_control.process_name or plugin.name,
                         "setup_path": process_status.setup_path,
                         "pid_path": process_status.pid_path,
-                        "user": constants.ACCOUNT_MAP.get(host.os_type, "root"),
+                        "user": host.identity.account,
                     },
                     "control": gse_control,
                     "resource": host_id__resource_policy_map[bk_host_id]["resource"],
