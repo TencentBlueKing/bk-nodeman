@@ -577,6 +577,9 @@ export default class ParamsConfig extends Vue {
     bus.$emit('validate', (result: boolean) => {
       validateRes.push(result);
     });
+    bus.$emit('validateKV', (result: boolean) => {
+      validateRes.push(result);
+    });
     if(validateRes.some(res => !res)) return true;
 
     const checkList: Promise<boolean>[] = [];
