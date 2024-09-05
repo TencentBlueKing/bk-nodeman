@@ -177,6 +177,8 @@ def _generate_host(biz_id, host, ap_id, is_os_type_priority=False, is_sync_cmdb_
         else constants.NodeType.PAGENT,
         ap_id=ap_id,
         dept_name=host.get("dept_name", ""),
+        bk_idc_area_id=host.get("bk_idc_area_id"),
+        idc_city_id=host.get("idc_city_id", ""),
     )
 
     identify_data = models.IdentityData(
@@ -279,6 +281,8 @@ def update_or_create_host_base(biz_id, ap_map_config, is_gse2_gray, task_id, cmd
             "inner_ipv6": (host.get("bk_host_innerip_v6") or "").split(",")[0],
             "outer_ipv6": (host.get("bk_host_outerip_v6") or "").split(",")[0],
             "dept_name": host.get("dept_name", ""),
+            "bk_idc_area_id": host.get("bk_idc_area_id"),
+            "idc_city_id": host.get("idc_city_id", ""),
         }
         outer_ip = host.get("bk_host_outerip") or ""
         outer_ip_list = outer_ip.split(",")
