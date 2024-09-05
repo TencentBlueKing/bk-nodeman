@@ -94,7 +94,7 @@ export default defineComponent({
         property: getRealProp(props.valueProp, `${index}.${item.prop}`),
       }, 'assign', value);
     };
-    const isValid = ref([]);
+    const isValid = ref(new Array(props.value.length).fill(false));
     const addItem = (index) => {
       isValid.value.push(false);
       const realIndex = index + 1;
@@ -107,7 +107,9 @@ export default defineComponent({
     const validate = (cb) => {
       isValid.value.fill(true);
       isValid.value = [...isValid.value];
-      const hasEmpty = props.value.some((item) => item[children.value[0].prop] === '' || item[children.value[1].prop] === '');
+      const hasEmpty = props.value.some((item) => 
+        (item[children.value[0].prop] === '' && children.value[0].required)
+        || (item[children.value[1].prop] === '' && children.value[1].required));
       if (hasEmpty) {
         cb(false);
       }else{
