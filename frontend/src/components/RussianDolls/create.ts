@@ -184,6 +184,72 @@ export function initSchema(schema: IItem): Doll[] {
   // return formatSchema(schema, schema.property)
 }
 
+export const transformSchema = (schema: any, parentRequired: any[] = [], key: string = '') => {
+  if (!schema || typeof schema !== 'object') return schema;
+
+  // 处理对象类型的属性
+  if (schema.type === 'object' && schema.properties) {
+      const requiredProps = [];
+      for (const key in schema.properties) {
+          const prop = schema.properties[key];
+          if (prop.required) {
+              requiredProps.push(key);
+              delete prop.required; // 删除所有的 required
+              if (prop.type === 'array') {
+                prop['minItems'] = 1;
+                prop['ui:group'] = {
+                  "props": {
+                      "verifiable": true
+                  }}
+                }
+              prop['ui:rules'] = ['required']; // 增加 ui:rules
+          }
+          transformSchema(prop, requiredProps, key); // 递归处理子属性
+      }
+      if (requiredProps.length > 0) {
+          schema.required = requiredProps;
+      }
+  }
+
+  // 处理数组类型的项
+  if (schema.type === 'array' && schema.items) {
+    const itemRequiredProps: any = [];
+      transformSchema(schema.items, itemRequiredProps, key);
+      if (schema.required !== undefined) {
+          delete schema.required; // 删除数组项中的 required
+      }
+      if (schema.items.properties && Object.keys(schema.items.properties).length >= 2) {
+        // 如果是 key 和 value，添加 ui:component
+        if (schema.items.properties.key && schema.items.properties.value) {
+          schema['ui:component'] = { "name": "bfArray" };
+        }
+        schema.items['ui:group'] = {
+            "props": {
+                "type": "card"
+            },
+            "style": {
+                "background": "#F5F7FA"
+            }
+        };
+      }
+      if (schema.items.type === 'string' || schema.items.type === 'boolean' || schema.items.type === 'integer') {
+        parentRequired.push(key);
+      }
+  }
+
+  // 处理字符串类型的属性，删除 required
+  if (schema.type === 'string' || schema.type === 'boolean' || schema.type === 'integer') {
+    if (schema.required !== undefined) {
+        if (schema.required === true) {
+            schema['ui:rules'] = ['required'];
+        }
+        delete schema.required;
+    }
+  }
+
+  return schema;
+}
+
 export const createItem = (property: string, params: IItem, id?: string): Doll => {
   console.log('property: ', property, params.type, '; params: ', params);
   return {
