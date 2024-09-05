@@ -269,6 +269,8 @@ class Host(models.Model):
     created_at = models.DateTimeField(_("创建时间"), auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(_("更新时间"), null=True, auto_now=False, db_index=True)
     dept_name = models.CharField(_("运维部门"), max_length=128, db_index=True, blank=True, null=True, default="")
+    bk_idc_area_id = models.IntegerField(_("区域ID"), null=True, db_index=True)
+    idc_city_id = models.CharField(_("城市ID"), max_length=16, db_index=True, blank=True, null=True, default="")
 
     extra_data = JSONField(_("额外数据"), blank=True, null=True)
 
