@@ -868,8 +868,7 @@ class PluginStep(Step):
                 if any(
                     [
                         self.subscription.category == constants.SubscriptionType.POLICY,
-                        not self.plugin_desc.is_official
-                        and self.subscription.bk_biz_id in allowed_version_change_to_upgrade_biz_list,
+                        not self.plugin_desc.is_official,
                     ]
                 ):
 
