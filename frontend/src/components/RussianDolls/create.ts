@@ -55,7 +55,7 @@ export const uuid = (n = 10, str = lowerStr): string => {
 };
 
 const complexType = ['array', 'object'];
-const bfArrayTitle = 'labels';
+const bfArrayTitle = ['labels', '标签'];
 const bfArrayKey = 'key';
 const bfArrayValue = 'value';
 
@@ -81,7 +81,7 @@ function getDefaultComponent(params: IItem) {
   let realComponent = component.name;
   if (type === 'array') {
     const { title, items: { properties = {} } } = params;
-    const propKeys = title.includes(bfArrayTitle) ? Object.keys(properties) : [];
+    const propKeys = bfArrayTitle.some(t => title.includes(t)) ? Object.keys(properties) : [];
     if (propKeys.length === 2 && [bfArrayKey, bfArrayValue].every(key => propKeys.includes(key))) {
       realComponent = 'bfArray';
     }
