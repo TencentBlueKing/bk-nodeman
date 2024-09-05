@@ -42,6 +42,7 @@
     }
   },
   "dependencies": {
+    "@blueking/bkui-form": "^0.0.42-beta.16",
     "@blueking/crypto-js-sdk": "0.0.4",
     "@blueking/ip-selector": "0.2.0-beta",
     "@blueking/login-modal": "^1.0.1",
