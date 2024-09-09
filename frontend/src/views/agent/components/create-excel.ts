@@ -37,7 +37,7 @@ export const demoData = [
   {
     inner_ip: '1.1.1.1',
     os_type: 'LINUX',
-    install_channel_id: 'default',
+    install_channel_id: '',
     port: '22',
     account: 'root',
     auth_type: window.i18n.t('密码'),
@@ -54,7 +54,7 @@ export const demoData = [
   {
     inner_ip: '1.1.1.2',
     os_type: 'WINDOWS',
-    install_channel_id: 'default',
+    install_channel_id: '',
     port: '445',
     account: 'test',
     auth_type: '',
@@ -71,7 +71,7 @@ export const demoData = [
   {
     inner_ip: '1.1.1.3',
     os_type: 'LINUX',
-    install_channel_id: 'default',
+    install_channel_id: '',
     port: '8080',
     account: 'root2',
     auth_type: window.i18n.t('密码'),

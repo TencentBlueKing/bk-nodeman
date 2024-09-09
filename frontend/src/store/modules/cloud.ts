@@ -9,9 +9,10 @@ import {
   listInstallChannel, updateInstallChannel,
 } from '@/api/modules/installchannel';
 import { transformDataKey } from '@/common/util';
-import { ICloud, ICloudAuth, ICloudForm, ICloudSource, IProxyDetail, IChannel } from '@/types/cloud/cloud';
+import { ICloud, ICloudAuth, ICloudForm, ICloudSource, IProxyDetail, IChannel, IChannelAuto } from '@/types/cloud/cloud';
 import { IAp } from '@/types/config/config';
 import axios from 'axios';
+import { MainStore } from '@/store/index';
 
 export const SET_CLOUD_AP = 'SET_CLOUD_AP';
 export const SET_CLOUD_LIST = 'SET_CLOUD_LIST';
@@ -253,8 +254,21 @@ export default class CloudStore extends VuexModule {
   @Action
   public async getChannelList(params?: { 'bk_cloud_id': number }) {
     const list = await listInstallChannel(params).catch(() => []);
+    const autoChannel: IChannelAuto = { id: -1, name: window.i18n.t('自动选择') };
     const defaultChannel = { id: 'default', name: window.i18n.t('默认通道') };
-    this.store.commit('agent/setChannelList', [defaultChannel, ...list]);
+    const index = list.findIndex((data :any) => data.id === -1);
+    let listData;
+    if (index === -1) {
+      listData = [autoChannel, defaultChannel, ...list];
+    } else {
+      listData = [...list.slice(0, index + 1), defaultChannel, ...list.slice(index + 1)];
+    }
+    if (MainStore.AUTO_SELECT_INSTALL_CHANNEL === -1) {
+      listData = listData.filter((data :any) => data.id !== -1);
+    } else if (MainStore.AUTO_SELECT_INSTALL_CHANNEL === 1) {
+      listData[0].bk_cloud_id = window.PROJECT_CONFIG.DEFAULT_CLOUD;
+    }
+    this.store.commit('agent/setChannelList', listData);
     return list;
   }
   @Action

@@ -70,6 +70,7 @@ export default class Main extends VuexModule {
   public osMap: Dictionary = {};
   public installDefaultValues: Dictionary = {};
   public noticeShow = false;
+  public AUTO_SELECT_INSTALL_CHANNEL = -1;
 
   /**
    * 设置全局可视区域的 loading 是否显示
@@ -290,7 +291,10 @@ export default class Main extends VuexModule {
   public updateNoticeShow(isShow: boolean) {
     this.noticeShow = isShow;
   }
-
+  @Mutation
+  public setAutoJudge(val: number) {
+    this.AUTO_SELECT_INSTALL_CHANNEL = val;
+  }
 
   /**
    * 获取用户信息
@@ -423,5 +427,16 @@ export default class Main extends VuexModule {
       }
     });
     this.updateInstallDefaultValues(config);
+  }
+
+  /**
+   * 获取判断是否获取直连安装通道下拉选择数据的布尔字段AUTO_SELECT_INSTALL_CHANNEL_ONLY_DIRECT_AREA
+   * @param {*} param
+   */
+  @Action
+  public async getAutoJudgeInstallChannel() {
+    const data = await retrieveGlobalSettings({ key: 'AUTO_SELECT_INSTALL_CHANNEL_ONLY_DIRECT_AREA' }).catch(() => ({}));
+    const dataValue = data.AUTO_SELECT_INSTALL_CHANNEL_ONLY_DIRECT_AREA === undefined ? -1 : Number(data.AUTO_SELECT_INSTALL_CHANNEL_ONLY_DIRECT_AREA);
+    this.setAutoJudge(dataValue);
   }
 }

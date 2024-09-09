@@ -87,7 +87,9 @@ export default class App extends Vue {
     setDocumentTitle(PlatformConfigStore.defaults.i18n);
     // 设置favicon
     setShortcutIcon(PlatformConfigStore.defaults.favicon);
-    this.setFavicon()
+    this.setFavicon();
+    // 获取自动判断安装通道参数
+    await MainStore.getAutoJudgeInstallChannel();
     const platform = window.navigator.platform.toLowerCase();
     if (platform.indexOf('win') === 0) {
       this.systemCls = 'win';
