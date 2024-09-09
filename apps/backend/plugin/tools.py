@@ -178,7 +178,6 @@ def validate_config_variables(variables_root: Optional[Dict[str, Any]]) -> Dict[
             # 初始化 properties
             validated_node["properties"] = {}
             for title, property_node in node["properties"].items():
-                property_node["title"] = title
                 property_node["depth"] = depth
                 stack.append(property_node)
                 # 初始化 properties 子节点
