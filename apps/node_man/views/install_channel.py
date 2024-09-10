@@ -40,7 +40,17 @@ class InstallChannelViewSet(ModelViewSet):
 
     def list(self, request, *args, **kwargs):
         response = super().list(request, *args, **kwargs)
-        response.data.insert(0, {"id": constants.DEFAULT_INSTALL_CHANNEL_ID, "name": constants.AUTOMATIC_CHOICE})
+        response.data.insert(
+            0,
+            {
+                "id": constants.DEFAULT_INSTALL_CHANNEL_ID,
+                "name": constants.AUTOMATIC_CHOICE,
+                "bk_cloud_id": constants.AUTOMATIC_CHOICE_CLOUD_ID,
+                "jump_servers": [],
+                "upstream_servers": {},
+                "hidden": False,
+            },
+        )
         return response
 
     @swagger_auto_schema(

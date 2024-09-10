@@ -132,3 +132,5 @@ data:
   BKAPP_LEGACY_AUTH: "{{ .Values.config.bkAppLegacyAuth }}"
   BK_NOTICE_ENABLED: "{{ .Values.bkNotice.enabled }}"
   BKAPP_IEOD_ACTIVE_FIREWALL_POLICY_SCRIPT_INFO: '{{ .Values.config.bkAppIEODActiveFirewallPolicyScriptInfo }}'
+  BKAPP_DEFAULT_INSTALL_CHANNEL_ID: "{{ .Values.config.bkAppDefaultInstallChannelId}}"
+  BKAPP_AUTOMATIC_CHOICE_CLOUD_ID: "{{ .Values.config.bkAppAutomaticChoiceCloudId}}"
