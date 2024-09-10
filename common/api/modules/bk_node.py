@@ -335,4 +335,6 @@ class _BKNodeApi(object):
             module=self.MODULE,
             description="解析agent包",
             before_request=add_esb_info_before_request,
+            simple_module=self.SIMPLE_MODULE,
+            api_name="agent_parse",
         )
