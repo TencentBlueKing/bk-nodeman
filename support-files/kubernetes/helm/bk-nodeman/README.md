@@ -350,6 +350,8 @@ externalRabbitMQ:
 | `config.bkAppSyncProcStatusTaskInterval` | 插件进程状态同步周期                                                                                                                                                                                               | `20 * 60`                                           |
 | `config.bkAppScriptHooks`                | Agent安装前置脚本                                                                                                                                                                                               | `""`                                           |
 | `config.bkAppIEODActiveFirewallPolicyScriptInfo`                | WINDOWS IEOD脚本内容                                                                                                                                                                                               | `""`                                           |
+| `config.bkAppDefaultInstallChannelId`                | 自动选择安装通道ID                                                                                                                                                                                               | `-1`                                           |
+| `config.bkAppAutomaticChoiceCloudId`                | 自动选择安装通道对应云区域ID                                                                                                                                                                                               | `-1`                                           |
 
 ## 额外的环境变量
 
