@@ -67,6 +67,9 @@ __all__ = [
     "BK_NOTICE_ENABLED",
     # WINDOWS IEOD脚本内容
     "BKAPP_IEOD_ACTIVE_FIREWALL_POLICY_SCRIPT_INFO",
+    # 自动选择安装通道相关配置
+    "BKAPP_DEFAULT_INSTALL_CHANNEL_ID",
+    "BKAPP_AUTOMATIC_CHOICE_CLOUD_ID",
 ]
 
 # ===============================================================================
@@ -91,6 +94,8 @@ BKAPP_SCRIPT_HOOKS = get_type_env(key="BKAPP_SCRIPT_HOOKS", default="", _type=st
 BKAPP_IEOD_ACTIVE_FIREWALL_POLICY_SCRIPT_INFO = get_type_env(
     key="BKAPP_IEOD_ACTIVE_FIREWALL_POLICY_SCRIPT_INFO", default="", _type=str
 )
+BKAPP_DEFAULT_INSTALL_CHANNEL_ID = get_type_env(key="BKAPP_DEFAULT_INSTALL_CHANNEL_ID", default=-1, _type=int)
+BKAPP_AUTOMATIC_CHOICE_CLOUD_ID = get_type_env(key="BKAPP_AUTOMATIC_CHOICE_CLOUD_ID", default=-1, _type=int)
 
 # ===============================================================================
 # 日志

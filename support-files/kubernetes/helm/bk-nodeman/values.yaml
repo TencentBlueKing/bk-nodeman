@@ -469,6 +469,10 @@ config:
   bkAppScriptHooks: ""
   ## WINDOWS IEOD脚本内容
   bkAppIEODActiveFirewallPolicyScriptInfo: ""
+  ## 自动选择安装通道ID
+  bkAppDefaultInstallChannelId: -1
+  ## 自动选择安装通道对应云区域ID
+  bkAppAutomaticChoiceCloudId: -1
 
 
 ## --------------------------------------
