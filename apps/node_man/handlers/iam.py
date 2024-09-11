@@ -41,7 +41,11 @@ class IamHandler(APIModel):
 
     if settings.USE_IAM:
         _iam = IAM(
-            settings.APP_CODE, settings.SECRET_KEY, settings.BK_IAM_INNER_HOST, settings.BK_COMPONENT_API_OVERWRITE_URL
+            settings.APP_CODE,
+            settings.SECRET_KEY,
+            settings.BK_IAM_INNER_HOST,
+            settings.BK_COMPONENT_API_OVERWRITE_URL,
+            settings.BK_IAM_APIGATEWAY,
         )
     else:
         _iam = object

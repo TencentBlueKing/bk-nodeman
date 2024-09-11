@@ -78,9 +78,9 @@ DEFAULT_CLOUD_NAME = os.environ.get("DEFAULT_CLOUD_NAME", _("直连区域"))
 # 自动选择接入点ID
 DEFAULT_AP_ID = int(os.environ.get("DEFAULT_AP_ID", -1))
 # 自动选择安装通道ID
-DEFAULT_INSTALL_CHANNEL_ID = int(os.environ.get("DEFAULT_INSTALL_CHANNEL_ID", -1))
+DEFAULT_INSTALL_CHANNEL_ID = int(os.environ.get("BKAPP_DEFAULT_INSTALL_CHANNEL_ID", -1))
 # 自动选择的云区域ID
-AUTOMATIC_CHOICE_CLOUD_ID = int(os.environ.get("AUTOMATIC_CHOICE_CLOUD_ID", -1))
+AUTOMATIC_CHOICE_CLOUD_ID = int(os.environ.get("BKAPP_AUTOMATIC_CHOICE_CLOUD_ID", -1))
 # 自动选择
 AUTOMATIC_CHOICE = os.environ.get("AUTOMATIC_CHOICE", _("自动选择"))
 # 默认安装通道
