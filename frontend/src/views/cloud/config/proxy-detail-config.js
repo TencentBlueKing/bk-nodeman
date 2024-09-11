@@ -54,13 +54,13 @@ const config = [
     type: 'auth',
     readonly: true,
   },
-  {
-    prop: 'peer_exchange_switch_for_agent',
-    label: window.i18n.t('BT节点探测'),
-    tips: window.i18n.t('BT节点探测提示'),
-    type: 'tag-switch',
-    readonly: true,
-  },
+  // {
+  //   prop: 'peer_exchange_switch_for_agent',
+  //   label: window.i18n.t('BT节点探测'),
+  //   tips: window.i18n.t('BT节点探测提示'),
+  //   type: 'tag-switch',
+  //   readonly: true,
+  // },
   {
     prop: 'bt_speed_limit',
     label: window.i18n.t('传输限速'),

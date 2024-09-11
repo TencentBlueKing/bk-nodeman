@@ -73,13 +73,13 @@
         :rules="rules.path">
         <bk-input v-model="proxyData.data_path" @blur="(value) => pathInputBlur(value, 'data_path')" />
       </bk-form-item>
-      <bk-form-item :label="$t('BT节点探测')" property="peer_exchange_switch_for_agent">
+      <!-- <bk-form-item :label="$t('BT节点探测')" property="peer_exchange_switch_for_agent">
         <bk-switcher
           theme="primary"
           size="small"
           v-model="proxyData.peer_exchange_switch_for_agent">
         </bk-switcher>
-      </bk-form-item>
+      </bk-form-item> -->
       <bk-form-item :label="$t('传输限速')" property="bt_speed_limit" error-display-type="normal" :rules="rules.speedLimit">
         <bk-input v-model="proxyData.bt_speed_limit"></bk-input>
       </bk-form-item>

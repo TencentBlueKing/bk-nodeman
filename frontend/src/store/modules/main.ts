@@ -70,6 +70,8 @@ export default class Main extends VuexModule {
   public osMap: Dictionary = {};
   public installDefaultValues: Dictionary = {};
   public noticeShow = false;
+  public AUTO_SELECT_INSTALL_CHANNEL = -1;
+
   // agent_package 显示开关
   public ENABLE_AGENT_PACKAGE_UI = false;
   /**
@@ -299,7 +301,10 @@ export default class Main extends VuexModule {
   public updateNoticeShow(isShow: boolean) {
     this.noticeShow = isShow;
   }
-
+  @Mutation
+  public setAutoJudge(val: number) {
+    this.AUTO_SELECT_INSTALL_CHANNEL = val;
+  }
 
   /**
    * 获取用户信息
@@ -433,12 +438,23 @@ export default class Main extends VuexModule {
     });
     this.updateInstallDefaultValues(config);
   }
+
+  /**
+   * 获取判断是否获取直连安装通道下拉选择数据的布尔字段AUTO_SELECT_INSTALL_CHANNEL_ONLY_DIRECT_AREA
+   * @param {*} param
+   */
+  @Action
+  public async getAutoJudgeInstallChannel() {
+    const data = await retrieveGlobalSettings({ key: 'AUTO_SELECT_INSTALL_CHANNEL_ONLY_DIRECT_AREA' }).catch(() => ({}));
+    const dataValue = data.AUTO_SELECT_INSTALL_CHANNEL_ONLY_DIRECT_AREA === undefined ? -1 : Number(data.AUTO_SELECT_INSTALL_CHANNEL_ONLY_DIRECT_AREA);
+    this.setAutoJudge(dataValue);
+  }
   /**
    * agent_package 相关的显示开关配置
    */
   @Action
   public async getAgentPackageUI() {
-    const { ENABLE_AGENT_PACKAGE_UI = false } = await getAgentPackageUI({ key: 'ENABLE_AGENT_PACKAGE_UI' }).catch(() => ({}));
+    const { ENABLE_AGENT_PACKAGE_UI = false } = await retrieveGlobalSettings({ key: 'ENABLE_AGENT_PACKAGE_UI' }).catch(() => ({}));
     this.setAgentPackageUI(ENABLE_AGENT_PACKAGE_UI);
   }
 }

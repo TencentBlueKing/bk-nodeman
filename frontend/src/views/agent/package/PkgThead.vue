@@ -27,7 +27,6 @@
           <div class="batch-edit-sub-title">{{ $t('统一填充') }}</div>
           <div class="batch-edit-content" v-if="isShow">
             <bk-tag-input
-              allow-create
               searchable
               has-delete-icon
               use-group
@@ -35,7 +34,17 @@
               :list="options"
               :placeholder="$t('请输入或选择')"
               :tag-tpl="tagTpl"
-              v-model="value" />
+              v-model="value"
+              :collapse-tags="true"
+              @blur="handleBlur"
+              @inputchange="handleInputchange" />
+            <div class="create-tag-pop" v-if="popShow" @click="createTag">
+              <div class="create-tag-box">
+                <i18n path="新建标签" class="create-tag">
+                  <span>{{ tag }}</span>
+                </i18n>
+              </div>
+            </div>
           </div>
           <div class="footer">
             <bk-button theme="primary" size="small" @click="handleBatchConfirm">{{ $t('确定') }}</bk-button>
@@ -47,7 +56,8 @@
   </div>
 </template>
 <script lang="ts">
-import { IPkgTagOpt } from '@/types/agent/pkg-manage';
+import { IPkgTagOpt, PkgType} from '@/types/agent/pkg-manage';
+import { AgentStore } from '@/store';
 import { ref, defineComponent, reactive, getCurrentInstance, toRefs, PropType } from 'vue';
 
 export default defineComponent({
@@ -77,6 +87,10 @@ export default defineComponent({
       type: String,
       default: '',
     },
+    active: {
+      type: String as PropType<PkgType>,
+      default: 'gse_agent',
+    }
   },
   emits: ['confirm'],
   setup(props, { emit }) {
@@ -85,15 +99,18 @@ export default defineComponent({
     const batchRef = ref<any>();
     const tipSpanRef = ref<any>();
     const tipRef = ref<any>();
+    const tag = ref<any>();
 
     const state = reactive<{
       isActive: boolean;
       value: string[];
       isShow: boolean;
+      popShow: boolean; // 输入未匹配标签时候展示
     }>({
       isActive: false, // 当前批量编辑icon是否激活
       value: [],
       isShow: false,
+      popShow: false,
     });
 
     const handleBatchClick = () => {
@@ -134,6 +151,39 @@ export default defineComponent({
         proxy?.$createElement('span', { class: 'text' }, opt.name),
     ]);
 
+    // 处理输入值更改时候的option效果
+    const handleInputchange = (value: string) => {
+      const index = props.options.findIndex((item: any) => item.children.find((child: any) => child.name === value)) || -1;
+      if (index === -1 && value && !state.value.includes(value)) {
+        state.popShow = true;
+        tag.value = value;
+      } else {
+        state.popShow = false;
+        tag.value = '';
+      }
+    };
+    // 输入框失去焦点
+    const handleBlur = () => {
+      state.popShow = false;
+      tag.value = '';
+    }
+
+    // 新建标签
+    const createTag = async () => {
+      const backup = tag.value;
+      tag.value = '';
+      state.popShow = false;
+      const customLabels: any= props.options.find((item: any) => item.id === 'custom');
+      customLabels?.children.push({
+        id: backup,
+        name: backup,
+        className: '',
+      });
+      
+      state.value.push(backup);
+      await AgentStore.apiPkgCreateTags({ project: props.active, tag_descriptions: state.value });
+    }
+
     return {
       ...toRefs(props),
       ...toRefs(state),
@@ -141,6 +191,7 @@ export default defineComponent({
       batchRef,
       tipSpanRef,
       tipRef,
+      tag,
 
       handleBatchClick,
       handleBatchConfirm,
@@ -150,6 +201,9 @@ export default defineComponent({
       handleOnHide,
       hidePopover,
       tagTpl,
+      handleInputchange,
+      handleBlur,
+      createTag,
     };
   },
 });
@@ -203,6 +257,37 @@ export default defineComponent({
       }
       &.active {
         color: #3a84ff;
+      }
+    }
+  }
+
+  .batch-edit-content {
+    display: flex;
+    flex-direction: column;
+    .create-tag-pop {
+      cursor: pointer;
+      width: 100%;
+      margin-top: 4px;
+      transition-duration: 325ms;
+      height: 40px;
+      background: #fff;
+      border: 1px solid #DCDEE5;
+      box-shadow: 0 2px 6px 0 #0000001a;
+      border-radius: 2px;
+      .create-tag-box {
+        width: 100%;
+        height: 32px;
+        margin: 4px 0;
+        line-height: 32px;
+        background: #F5F7FA;
+        .create-tag {
+          color: #63656E;
+          margin-left: 24px;
+          font-size: 12px;
+          span {
+            color: #3A84FF;
+          }
+        }
       }
     }
   }

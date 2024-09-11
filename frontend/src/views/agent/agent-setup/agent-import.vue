@@ -405,6 +405,15 @@ export default class AgentImport extends Mixins(mixin) {
       });
       data = JSON.parse(JSON.stringify(formatData));
     }
+    const channelFlag = MainStore.AUTO_SELECT_INSTALL_CHANNEL;
+    channelFlag !== -1 && data.forEach((item: ISetupRow) => {
+      if (channelFlag === 1) {
+        item.install_channel_id = item.bk_cloud_id === 0 ? -1 : 'default';
+      } else if (channelFlag === 0) {
+        item.install_channel_id = -1;
+      }
+    });
+    const filterData = data.filter(item => item.bk_cloud_id === 0);
     // agent开关打开时，显示agent版本，处理相关逻辑
     if (this.AgentPkgShow) {
       // 获取agent默认版本
@@ -501,7 +510,7 @@ export default class AgentImport extends Mixins(mixin) {
         } else {
           item.bt_speed_limit = Number(item.bt_speed_limit);
         }
-        item.peer_exchange_switch_for_agent = Number(item.peer_exchange_switch_for_agent);
+        item.peer_exchange_switch_for_agent = 0;
         if (item.install_channel_id === 'default') {
           item.install_channel_id = null;
         }
@@ -598,6 +607,18 @@ export default class AgentImport extends Mixins(mixin) {
     if (!this.isUploading && v && v.length) {
       this.tableDataBackup = v;
       this.setupInfo.data = deepClone(v);
+      const channelFlag = MainStore.AUTO_SELECT_INSTALL_CHANNEL;
+      this.setupInfo.data.forEach((item: ISetupRow) => {
+        if (!item.install_channel_id) {
+          if (channelFlag === 1) {
+            item.install_channel_id = item.bk_cloud_id === 0 ? -1 : 'default';
+          } else if (channelFlag === 0) {
+            item.install_channel_id = -1;
+          } else {
+            item.install_channel_id = 'default';
+          }
+        }
+      });
     }
   }
   /**
