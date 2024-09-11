@@ -14,6 +14,7 @@ from typing import Any, Dict, List
 
 import django_filters
 from django.core.files.uploadedfile import InMemoryUploadedFile
+from django.db import transaction
 from django.db.models import Min, Q, QuerySet
 from django.http import JsonResponse
 from django.utils.translation import ugettext_lazy as _
@@ -156,16 +157,17 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
 
         package_obj: GsePackages = self.get_object()
         tags: QuerySet = gse_package_handler.get_tag_objs(package_obj.project, package_obj.version)
-        tags.filter(name__in=["latest", "test", "stable"]).update(target_version="")
-        tags.exclude(name__in=["latest", "test", "stable"]).delete()
+        with transaction.atomic():
+            tags.filter(name__in=["latest", "test"]).update(target_version="")
+            tags.exclude(name__in=["latest", "test", "stable"]).delete()
 
-        package_desc_obj: GsePackageDesc = GsePackageDesc.objects.get(project=package_obj.project)
-        for tag_description in serializer.validated_data["tags"]:
-            GsePackageHandler.handle_add_tag(
-                tag_description=tag_description,
-                package_obj=package_obj,
-                package_desc_obj=package_desc_obj,
-            )
+            package_desc_obj: GsePackageDesc = GsePackageDesc.objects.get(project=package_obj.project)
+            for tag_description in serializer.validated_data["tags"]:
+                GsePackageHandler.handle_add_tag(
+                    tag_description=tag_description,
+                    package_obj=package_obj,
+                    package_desc_obj=package_desc_obj,
+                )
 
         # tag_name__tag_obj_map: Dict[str, Tag] = {tag.name: tag for tag in tags}
         # tag_descriptions: List[str] = list(tags.values_list("description", flat=True))
@@ -417,7 +419,6 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
     @swagger_auto_schema(
         operation_summary="查询Agent包注册任务",
         tags=PACKAGE_MANAGE_VIEW_TAGS,
-        query_in=pkg_manage.AgentRegisterTaskSerializer,
         responses={HTTP_200_OK: pkg_manage.AgentRegisterTaskResponseSerializer},
     )
     @action(detail=False, methods=["GET"], serializer_class=pkg_manage.AgentRegisterTaskSerializer)
@@ -441,7 +442,6 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
     @swagger_auto_schema(
         operation_summary="获取Agent包标签",
         tags=PACKAGE_MANAGE_VIEW_TAGS,
-        responses={HTTP_200_OK: pkg_manage.TagSerializer(many=True)},
     )
     @action(detail=False, methods=["GET"], serializer_class=pkg_manage.TagProjectSerializer)
     def tags(self, request):
@@ -514,7 +514,6 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
     @swagger_auto_schema(
         operation_summary="获取Agent包版本",
         tags=PACKAGE_MANAGE_VIEW_TAGS,
-        responses={HTTP_200_OK: pkg_manage.PackageDescResponseSerializer},
     )
     @action(detail=False, methods=["POST"], serializer_class=pkg_manage.VersionQuerySerializer)
     def version(self, request):
@@ -621,21 +620,26 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
                 if pkg_version_info["count"] == max_version_count
             }
 
-        package_versions: List = list(version__pkg_version_info_map.keys())
+        # package_versions: List = list(version__pkg_version_info_map.keys())
         is_visible: bool = True
         machine_latest_version: str = ""
-        if validated_data.get("versions", ""):
-            machine_latest_version = max(validated_data["versions"], key=GsePackageTools.extract_numbers)
-
-            for machine_version in validated_data["versions"]:
-                if machine_version not in package_versions:
-                    is_visible = False
-
-            version__pkg_version_info_map = {
-                version: pkg_version_info
-                for version, pkg_version_info in version__pkg_info_map.copy().items()
-                if GsePackageTools.extract_numbers(version) >= GsePackageTools.extract_numbers(machine_latest_version)
-            }
+        # if validated_data.get("versions", ""):
+        #     machine_latest_version = max(validated_data["versions"], key=GsePackageTools.extract_numbers)
+        #
+        #     extract_machine_latest_version = GsePackageTools.extract_numbers(machine_latest_version)
+        #
+        #     # 如果所有当前可用包的版本都比传进的最高版本低，则不可升级
+        #     if all([
+        #         GsePackageTools.extract_numbers(current_package_version) <= extract_machine_latest_version
+        #         for current_package_version in package_versions
+        #     ]):
+        #         is_visible = False
+        #
+        #     version__pkg_version_info_map = {
+        #         version: pkg_version_info
+        #         for version, pkg_version_info in version__pkg_version_info_map.copy().items()
+        #         if GsePackageTools.extract_numbers(version) >= extract_machine_latest_version
+        #     }
 
         package_latest_version = list(version__pkg_version_info_map.keys())[0] if version__pkg_version_info_map else ""
 
@@ -650,8 +654,31 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
                 "is_visible": is_visible,
                 "default_version": default_version,
                 "pkg_info": list(version__pkg_version_info_map.values()),
+                "versions_count": len(validated_data["versions"]) if validated_data.get("versions") else 0,
             }
         )
+
+    @swagger_auto_schema(
+        operation_summary="Agent包版本比较",
+        tags=PACKAGE_MANAGE_VIEW_TAGS,
+    )
+    @action(detail=False, methods=["POST"], serializer_class=pkg_manage.VersionCompareSerializer)
+    def version_compare(self, request):
+        validated_data = self.validated_data
+
+        extracted_current_version: List[int] = GsePackageTools.extract_numbers(validated_data["current_version"])
+        version_to_compares: List[str] = validated_data["version_to_compares"]
+
+        upgrade_count = 0
+        downgrade_count = 0
+
+        for version_to_compare in version_to_compares:
+            if GsePackageTools.extract_numbers(version_to_compare) > extracted_current_version:
+                upgrade_count += 1
+            elif GsePackageTools.extract_numbers(version_to_compare) < extracted_current_version:
+                downgrade_count += 1
+
+        return Response({"upgrade_count": upgrade_count, "downgrade_count": downgrade_count})
 
     @swagger_auto_schema(
         operation_summary="获取已部署主机数量",

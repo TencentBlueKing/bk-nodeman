@@ -333,6 +333,8 @@ class _BKNodeApi(object):
             method="POST",
             url=BK_NODE_APIGATEWAY_ROOT + "backend/api/agent/parse/",
             module=self.MODULE,
+            simple_module=self.SIMPLE_MODULE,
             description="解析agent包",
             before_request=add_esb_info_before_request,
+            api_name="agent_parse",
         )

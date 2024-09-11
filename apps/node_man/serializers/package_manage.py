@@ -242,3 +242,8 @@ class VersionQuerySerializer(serializers.Serializer):
     os = serializers.CharField(required=False, allow_blank=True)
     cpu_arch = serializers.CharField(required=False, allow_blank=True)
     versions = serializers.ListField(child=serializers.CharField(), required=False)
+
+
+class VersionCompareSerializer(serializers.Serializer):
+    current_version = serializers.CharField()
+    version_to_compares = serializers.ListField(child=serializers.CharField())

@@ -24,7 +24,7 @@ from apps.core.tag.constants import TargetType
 from apps.core.tag.models import Tag
 from apps.node_man import constants, exceptions, models
 from apps.node_man.constants import CategoryType
-from apps.node_man.models import GsePackageDesc
+from apps.node_man.models import GsePackageDesc, UploadPackage
 
 
 class GsePackageTools:
@@ -61,6 +61,9 @@ class GsePackageTools:
             elif directory.name.startswith("gse/") and constants.AGENT_PATH_RE.match(directory.name[4:]):
                 return constants.GsePackageCode.AGENT.value, agent.AgentArtifactBuilder
 
+        # 文件解析失败，将上传记录和包都干掉
+        storage.delete(name=file_path)
+        UploadPackage.objects.filter(file_path=file_path).delete()
         raise exceptions.GsePackageUploadError(
             agent_name=os.path.basename(file_path),
             error=_("该agent包无效，" "gse_proxy的gse目录中应该包含server文件夹，" "gse_agent的gse目录中应该包含agent_(os)_(cpu_arch)的文件夹"),

@@ -366,7 +366,7 @@ IamActionType = choices_to_namedtuple(IAM_ACTION_CHOICES)
 
 GSE_PACKAGE_ENABLE_ALIAS_MAP = {
     True: _("启用"),
-    False: _("禁用"),
+    False: _("停用"),
 }
 
 
