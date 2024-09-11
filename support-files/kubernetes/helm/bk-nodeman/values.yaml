@@ -364,6 +364,8 @@ config:
   bkAppBkNodeApiGateway: ""
   ## 管控平台 API 访问地址，用于覆盖 bkComponentApiUrl 访问管控平台 API
   bkAppBkGseApiGateway: ""
+  ## 权限中心 API 访问地址，用于覆盖 bkComponentApiUrl 访问权限中心 API 及标准化认证
+  bkAppBkIamApiGateway: ""
 
   ## 节点管理自身模块依赖
   ##

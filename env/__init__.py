@@ -70,6 +70,8 @@ __all__ = [
     # 自动选择安装通道相关配置
     "BKAPP_DEFAULT_INSTALL_CHANNEL_ID",
     "BKAPP_AUTOMATIC_CHOICE_CLOUD_ID",
+    # IAM网关路由
+    "BKAPP_BK_IAM_APIGATEWAY",
 ]
 
 # ===============================================================================
@@ -96,6 +98,7 @@ BKAPP_IEOD_ACTIVE_FIREWALL_POLICY_SCRIPT_INFO = get_type_env(
 )
 BKAPP_DEFAULT_INSTALL_CHANNEL_ID = get_type_env(key="BKAPP_DEFAULT_INSTALL_CHANNEL_ID", default=-1, _type=int)
 BKAPP_AUTOMATIC_CHOICE_CLOUD_ID = get_type_env(key="BKAPP_AUTOMATIC_CHOICE_CLOUD_ID", default=-1, _type=int)
+BKAPP_BK_IAM_APIGATEWAY = get_type_env(key="BKAPP_BK_IAM_APIGATEWAY", default="", _type=str)
 
 # ===============================================================================
 # 日志
