@@ -669,16 +669,23 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
         extracted_current_version: List[int] = GsePackageTools.extract_numbers(validated_data["current_version"])
         version_to_compares: List[str] = validated_data["version_to_compares"]
 
-        upgrade_count = 0
-        downgrade_count = 0
+        upgrade_count, downgrade_count, no_change_count = 0, 0, 0
 
         for version_to_compare in version_to_compares:
             if GsePackageTools.extract_numbers(version_to_compare) > extracted_current_version:
                 upgrade_count += 1
             elif GsePackageTools.extract_numbers(version_to_compare) < extracted_current_version:
                 downgrade_count += 1
+            else:
+                no_change_count += 1
 
-        return Response({"upgrade_count": upgrade_count, "downgrade_count": downgrade_count})
+        return Response(
+            {
+                "upgrade_count": upgrade_count,
+                "downgrade_count": downgrade_count,
+                "no_change_count": no_change_count,
+            }
+        )
 
     @swagger_auto_schema(
         operation_summary="获取已部署主机数量",
