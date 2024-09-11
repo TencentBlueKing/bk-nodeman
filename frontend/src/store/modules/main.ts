@@ -448,6 +448,7 @@ export default class Main extends VuexModule {
     const data = await retrieveGlobalSettings({ key: 'AUTO_SELECT_INSTALL_CHANNEL_ONLY_DIRECT_AREA' }).catch(() => ({}));
     const dataValue = data.AUTO_SELECT_INSTALL_CHANNEL_ONLY_DIRECT_AREA === undefined ? -1 : Number(data.AUTO_SELECT_INSTALL_CHANNEL_ONLY_DIRECT_AREA);
     this.setAutoJudge(dataValue);
+  }
   /**
    * agent_package 相关的显示开关配置
    */
