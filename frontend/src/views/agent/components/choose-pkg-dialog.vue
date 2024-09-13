@@ -15,6 +15,14 @@
         <i18n path="已选IP" class="IP-selection">
           <span class="selection-num">{{ num }}</span>
         </i18n>
+        <template v-if="selectedVersion">
+          <i18n path="升级IP" class="IP-selection">
+            <span class="selection-num">，{{ upgrades }}</span>
+          </i18n>
+          <i18n path="回退IP" class="IP-selection">
+            <span class="selection-num">，{{ rollbacks }}</span>
+          </i18n>
+        </template>
       </span>
       
     </template>
@@ -149,8 +157,9 @@ export default defineComponent({
     // 当前传入的最高版本
     const currentLatestVersion = ref('');
     
-    const num = props.versions.length;
-    console.log("🚀 ~ setup ~ props.versions:", props.versions)
+    const num = ref(0);
+    const upgrades = ref(0);
+    const rollbacks = ref(0);
     const getPkgVersions = async () => {
       const {
         default_version,
@@ -196,7 +205,6 @@ export default defineComponent({
 
     // 参考 部署策略 - 选择插件版本
     const handleRowClass = ({ row }: {row: IPkgVersion}) => {
-      console.log("🚀 ~ handleRowClass ~ row:", row)
       if (row.disabled) {
         return 'row-disabled';
       }
@@ -205,17 +213,32 @@ export default defineComponent({
       }
     };
 
-    const handleRowClick = (row: IPkgVersion) => {
+    const handleRowClick = async (row: IPkgVersion) => {
       if (!row.disabled) {
         selectedRow.value = row;
         selectedVersion.value = row.version as string;
         markdown.value = row.description;
+        await getCompareVersion(row.version);
       }
     };
 
+    const getCompareVersion = async (version: string) => {
+      const {
+        upgrade_count,
+        downgrade_count,
+        no_change_count
+      } = await AgentStore.apiVersionCompare({
+        current_version: version,
+        version_to_compares: props.versions,
+      });
+      upgrades.value = upgrade_count;
+      rollbacks.value = downgrade_count;
+    }
+  
     watch(() => props.value, async (val: boolean) => {
       // val dialog显示隐藏
       if (val) {
+        num.value = props.versions.length;
         if (lastOs.value !== `${props.osType}_${props.cpuArch}`) {
           loading.value = true;
           selectedRow.value = null;
@@ -245,6 +268,8 @@ export default defineComponent({
     return {
       ...toRefs(props),
       num,
+      upgrades,
+      rollbacks,
       selectedRowRef,
       loading,
       tableData,

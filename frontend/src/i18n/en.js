@@ -164,6 +164,8 @@ export default {
   正在升级: 'Upgrading',
   复制: 'Copy',
   已选IP: 'Selected {0} IP addresses',
+  升级IP: '{0} upgrades',
+  回退IP: '{0} rollbacks',
   全部: 'All',
   复制IPv4: 'Copy IPv4',
   复制IPv6: 'Copy IPv6',

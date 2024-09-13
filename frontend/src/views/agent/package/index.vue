@@ -214,9 +214,9 @@ export default defineComponent({
     };
 
     // 更新快捷筛选列表
-    const getOptionalList = (id: PkgQuickType = 'os_cpu_arch') => {
-      // 维度不变且不是第一次获取快捷筛选列表则无需更新
-      if(state.dimension === id && dimensionOptionalList.value.length > 0) return;
+    const getOptionalList = (id: PkgQuickType = 'os_cpu_arch',isTabChange:boolean = false) => {
+      // 维度不变且不是第一次获取快捷筛选列表则无需更新且不是切换tab
+      if(state.dimension === id && dimensionOptionalList.value.length > 0 && !isTabChange) return;
       state.dimension = id;
       const { children = [] } = dimensionList.value.find(item => item.id === id) || {};
       
@@ -254,9 +254,9 @@ export default defineComponent({
     };
 
     // 更新快捷筛选 维度
-    const updateOptionalList = (id: PkgQuickType = 'os_cpu_arch') => {
+    const updateOptionalList = (id: PkgQuickType = 'os_cpu_arch', isTabChange:boolean = false) => {
       // 获取当前维度的optionList
-      getOptionalList(id);
+      getOptionalList(id, isTabChange);
       // 此处只需要id，但是传的类型是IPkgQuickOpt，所以设置count为0
       const allOpt = { id: 'all', name: i18n.t('全部'), isAll: true, count: 0 };
       selectDimensionOptional(allOpt);
@@ -460,6 +460,7 @@ export default defineComponent({
     };
 
     const updateTabActive = async (type: PkgType = 'gse_agent') => {
+      const isTabChange = state.active !== type;
       if (type !== state.active) {
         searchSelectValue.value.splice(0, searchSelectValue.value.length);
       }
@@ -483,7 +484,7 @@ export default defineComponent({
         return item;
       }));
       insertSysData();
-      updateOptionalList();
+      updateOptionalList('os_cpu_arch', isTabChange);
     };
 
     const created = () => {
