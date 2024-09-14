@@ -466,13 +466,6 @@ export default class ParamsConfig extends Vue {
             ...value,
           });
         });
-        const rules = {
-          "required": {
-            validator: "{{ $self.value !== ''}}",
-            message: window.i18n.t ? window.i18n.t('必填项') : '必填项',
-            trigger: 'blur',
-          }
-        }
         this.list.forEach((sysItem: IParamsConfig) => {
           if (sysItem.config_templates && sysItem.config_templates.find((config: any) => item.id === config.id)) {
             const copyForm = Object.assign({}, form);
