@@ -37,7 +37,7 @@
               </div>
               <template #content>
                 <ul class="bk-dropdown-list">
-                  <li class="dropdown-list-item" v-for="item in langList" :key="item.id" @click="toggleLang(item)">
+                  <li class="dropdown-list-item" :class="{'active': item.id === language}" v-for="item in langList" :key="item.id" @click="toggleLang(item)">
                     <i :class="`nodeman-icon nc-lang-${item.id}`" /> {{ item.name }}
                   </li>
                 </ul>
@@ -525,7 +525,7 @@ export default class NodemanNavigation extends Mixins(routerBackMixin) {
           @mixin layout-flex row, center, center;
           min-width: 32px;
           min-height: 32px;
-          margin-left: 12px;
+          margin-left: 10px;
           padding: 0 7px;
         }
         .header-nav-icon-btn {
