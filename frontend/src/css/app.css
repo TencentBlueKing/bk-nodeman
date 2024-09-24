@@ -765,7 +765,12 @@ body {
             white-space: nowrap;
             cursor: pointer;
             &:hover {
-                background: #f5f7fa;
+                background-color: #eaf3ff;
+                color: #3a84ff;
+            }
+            &.active {
+                background-color: #eaf3ff;
+                color: #3a84ff;
             }
 
             .nodeman-icon {
