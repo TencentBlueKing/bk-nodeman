@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import datetime
 import os
+import re
 
 from blueapps.account.conf import ConfFixture
 from django.conf import settings
@@ -29,7 +30,10 @@ context_processor for common(setting)
 
 
 def get_docs_center_url():
-    docs_suffix: str = "markdown/NodeMan/UserGuide/Introduce/Overview.md"
+    version: str = get_latest_version()
+    match = re.search(r"(\d+\.\d+)", version)
+    major_minor_version: str = match.group() if match else version
+    docs_suffix: str = f"markdown/ZH/NodeMan/{major_minor_version}/UserGuide/Introduce/Overview.md"
     if settings.BK_DOCS_CENTER_HOST:
         docs_prefix = settings.BK_DOCS_CENTER_HOST
         return f"{docs_prefix}/{docs_suffix}"
