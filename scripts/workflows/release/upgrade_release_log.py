@@ -60,7 +60,7 @@ if __name__ == "__main__":
         changelog = changelog_fs.read()
 
     # 拼接日志
-    release_text = f"\n## {prerelease_version} - {datetime.date.today()} \n\n{changelog}"
+    release_text = f"\n## {prerelease_version} 版本更新日志 \n\n{changelog}"
 
     # 如果发布日志目录路径不存在，逐层进行创建，并且忽略已创建的层级（exist_ok）
     if not os.path.exists(release_log_root):
