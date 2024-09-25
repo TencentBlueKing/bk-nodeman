@@ -2,7 +2,7 @@
 
 ## 2.4.6 - 2024-06-19 
 
-### 🚀 Features
+### 功能
 
 - feat: 支持特殊业务实时获取Agent状态 (closed #2285)
 
@@ -11,7 +11,7 @@
 - feat: pagent获取上游节点ip时根据pagent提供的ip类型选择对应节点(closed #2032)
 
 
-### 🐛 Bugfixes
+### 修复
 
 - fix: 修复全新安装aix6\7 job分发安装包失败的问题(closed #2213)
 
@@ -19,12 +19,12 @@
 
 
 
-**Full Changelog**: https://github.com/TencentBlueKing/bk-nodeman/compare/v2.4.5...v2.4.6
+**Full Release Notes**: https://github.com/TencentBlueKing/bk-nodeman/compare/v2.4.5...v2.4.6
 
 
 ## 2.4.5 - 2024-06-17 
 
-### 🚀 Features
+### 功能
 
 - feat: MAC OS安装脚本适配 (closed #2084)
 
@@ -65,12 +65,12 @@
 - feat: IP选择器查询主机状态接口增加实时功能 (closed #2271)
 
 
-### ✨ Optimizations
+### 优化
 
 - style: 安装/重装如果未填写登录IP不记录登录IP字段 (closed #2053)
 
 
-### 🐛 Bugfixes
+### 修复
 
 - bugfix: 修复插件状态页获取插件主机筛选条件接口慢导致UI阻塞问题(closed #2120)
 
@@ -122,12 +122,12 @@
 
 
 
-**Full Changelog**: https://github.com/TencentBlueKing/bk-nodeman/compare/v2.4.4...v2.4.5
+**Full Release Notes**: https://github.com/TencentBlueKing/bk-nodeman/compare/v2.4.4...v2.4.5
 
 
 ## 2.4.4 - 2024-06-14 
 
-### 🚀 Features
+### 功能
 
 - feature:  同步插件进程状态优化 (closed #1887)
 
@@ -188,7 +188,7 @@
 - feat: 适配GSE单次执行进程 (closed #2078)
 
 
-### ✨ Optimizations
+### 优化
 
 - optimization:  灰度回滚逻辑优化 (closed #1893)
 
@@ -213,7 +213,7 @@
 - style: rollback
 
 
-### 🐛 Bugfixes
+### 修复
 
 - bugfix: 第三方插件同主机并发安装异常 (closed #1923)
 
@@ -250,12 +250,12 @@
 
 
 
-**Full Changelog**: https://github.com/TencentBlueKing/bk-nodeman/compare/v2.4.3...v2.4.4
+**Full Release Notes**: https://github.com/TencentBlueKing/bk-nodeman/compare/v2.4.3...v2.4.4
 
 
 ## 2.4.4 - 2024-03-01 
 
-### 🚀 Features
+### 功能
 
 - feature:  同步插件进程状态优化 (closed #1887)
 
@@ -316,7 +316,7 @@
 - feat: 适配GSE单次执行进程 (closed #2078)
 
 
-### ✨ Optimizations
+### 优化
 
 - optimization:  灰度回滚逻辑优化 (closed #1893)
 
@@ -341,7 +341,7 @@
 - style: rollback
 
 
-### 🐛 Bugfixes
+### 修复
 
 - bugfix: 第三方插件同主机并发安装异常 (closed #1923)
 
@@ -378,12 +378,12 @@
 
 
 
-**Full Changelog**: https://github.com/TencentBlueKing/bk-nodeman/compare/v2.4.3...v2.4.4
+**Full Release Notes**: https://github.com/TencentBlueKing/bk-nodeman/compare/v2.4.3...v2.4.4
 
 
 ## 2.4.3 - 2023-11-02 
 
-### 🚀 Features
+### 功能
 
 - feature:  plugin_search 接口支持返回部分接入点信息 (closed #1858)
 
@@ -396,12 +396,12 @@
 - feature: 支持可配置化指定管控区域限制新增主机 (closed #1905)
 
 
-### ✨ Optimizations
+### 优化
 
 - optimization:  安装Gse2.0 查询Agent状态优化  (closed #1883)
 
 
-### 🐛 Bugfixes
+### 修复
 
 - bugfix:  安装额外Agent查询任务状态修复 (closed #1881)
 
@@ -409,12 +409,12 @@
 
 
 
-**Full Changelog**: https://github.com/TencentBlueKing/bk-nodeman/compare/v2.4.2...v2.4.3
+**Full Release Notes**: https://github.com/TencentBlueKing/bk-nodeman/compare/v2.4.2...v2.4.3
 
 
 ## 2.4.2 - 2023-10-24 
 
-### 🚀 Features
+### 功能
 
 - feature: 插件包描述文件支持定义配置模板填写参数(closed #654)
 
@@ -439,7 +439,7 @@
 - feature: 可观测建设 (closed #1852)
 
 
-### 🐛 Bugfixes
+### 修复
 
 - bugfix:  插件标签映射错误 (closed #1799)
 
@@ -465,12 +465,12 @@
 
 
 
-**Full Changelog**: https://github.com/TencentBlueKing/bk-nodeman/compare/v2.4.1...v2.4.2
+**Full Release Notes**: https://github.com/TencentBlueKing/bk-nodeman/compare/v2.4.1...v2.4.2
 
 
 ## 2.4.1 - 2023-08-30 
 
-### 🚀 Features
+### 功能
 
 - feature: 订阅支持按操作系统等主机属性进行范围筛选(closed #1452)
 
@@ -483,12 +483,12 @@
 - feature: Agent 导入支持指定标签 (closed #1787) (#1788)
 
 
-### ✨ Optimizations
+### 优化
 
 - optimization:  注册 agent_id 重试机制 (closed #1609) (#1750)
 
 
-### 🐛 Bugfixes
+### 修复
 
 - bugfix: 修复非超管查询全部业务历史任务报错(fixed #1631)
 
@@ -508,12 +508,12 @@
 
 
 
-**Full Changelog**: https://github.com/TencentBlueKing/bk-nodeman/compare/v2.4.0...v2.4.1
+**Full Release Notes**: https://github.com/TencentBlueKing/bk-nodeman/compare/v2.4.0...v2.4.1
 
 
 ## 2.4.0 - 2023-08-10 
 
-### 🚀 Features
+### 功能
 
 - feature: 提供国密支持 (closed #1649)
 
@@ -534,7 +534,7 @@
 - feature: 任务历史支持IP过滤(closed #1631)
 
 
-### ✨ Optimizations
+### 优化
 
 - optimization:  支持周期删除订阅执行日志 (closed #1348)
 
@@ -546,12 +546,12 @@
 
 
 
-**Full Changelog**: https://github.com/TencentBlueKing/bk-nodeman/compare/v2.3.3...v2.4.0
+**Full Release Notes**: https://github.com/TencentBlueKing/bk-nodeman/compare/v2.3.3...v2.4.0
 
 
 ## 2.3.3 - 2023-07-25 
 
-### 🚀 Features
+### 功能
 
 - feature:  双 Agent / Proxy 安装支持 (closed #1592)
 
@@ -562,7 +562,7 @@
 - feature: 提升云区域 Agent 安装效率 (closed #1699)
 
 
-### 🐛 Bugfixes
+### 修复
 
 - bugfix:  Proxy 状态不准确 (closed #1668)
 
@@ -570,7 +570,7 @@
 
 
 
-**Full Changelog**: https://github.com/TencentBlueKing/bk-nodeman/compare/v2.3.2...v2.3.3
+**Full Release Notes**: https://github.com/TencentBlueKing/bk-nodeman/compare/v2.3.2...v2.3.3
 
 
 ## 2.3.2 - 2023-07-12 
@@ -580,7 +580,7 @@
 - refactor: SaaS 端下线后台相关路由 (closed #1569)
 
 
-### 🚀 Features
+### 功能
 
 - feature: 提供主动触发异步任务机制(closed #1473)
 
@@ -635,7 +635,7 @@
 - feature:  统一语言 Cookie (closed #1648)
 
 
-### ✨ Optimizations
+### 优化
 
 - optimization: 减少异步任务执行结果消息在队列端积压 (#1588)
 
@@ -650,7 +650,7 @@
 - optimization:  捕获主机操作类任务灰度异常 (closed #1616) (#1617)
 
 
-### 🐛 Bugfixes
+### 修复
 
 - bugfix:  导入导出使用文档调整 (closed #1525)
 
@@ -673,12 +673,12 @@
 
 
 
-**Full Changelog**: https://github.com/TencentBlueKing/bk-nodeman/compare/v2.3.1...v2.3.2
+**Full Release Notes**: https://github.com/TencentBlueKing/bk-nodeman/compare/v2.3.1...v2.3.2
 
 
 ## 2.3.1 - 2023-04-25 
 
-### 🚀 Features
+### 功能
 
 - feature: 新版 IP 选择器接入 (closed #1211)
 
@@ -749,7 +749,7 @@
 - feature:  提供导入导出工具及指引 (closed #1487)
 
 
-### ✨ Optimizations
+### 优化
 
 - optimization:  2.0 Agent 健康检查动作顺序调整 (closed #1226)
 
@@ -790,7 +790,7 @@
 - optimization: k8s api 模块启动优化 (closed #1521)
 
 
-### 🐛 Bugfixes
+### 修复
 
 - bugfix:  2.0 Agent 注册及健康检查上报错误信息缺失 (closed #1180)
 
@@ -855,7 +855,7 @@
 
 
 
-**Full Changelog**: https://github.com/TencentBlueKing/bk-nodeman/compare/v2.3.0...v2.3.1
+**Full Release Notes**: https://github.com/TencentBlueKing/bk-nodeman/compare/v2.3.0...v2.3.1
 
 
 ## 2.3.0 - 2022-12-22 
