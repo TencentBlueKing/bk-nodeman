@@ -64,6 +64,8 @@ class PluginStep(Step):
 
         self.plugin_name: str = self.policy_step_adapter.plugin_name
         self.plugin_desc: models.GsePluginDesc = self.policy_step_adapter.plugin_desc
+        if not self.plugin_desc.is_ready:
+            raise errors.PluginValidationError(msg="插件 [{name}] 已被禁用".format(name=self.plugin_name))
         self.os_key_pkg_map: Dict[str, models.Packages] = self.policy_step_adapter.os_key_pkg_map
         self.config_tmpl_gby_os_key: Dict[
             str, List[models.PluginConfigTemplate]
@@ -103,7 +105,7 @@ class PluginStep(Step):
             # 此处是为了延迟报错到订阅
             if self.os_key_pkg_map:
                 return list(self.os_key_pkg_map.values())[0]
-            raise errors.PluginValidationError(msg="插件 [{name}] 没有可供选择的插件包")
+            raise errors.PluginValidationError(msg="插件 [{name}] 没有可供选择的插件包".format(name=self.plugin_name))
 
     def get_matching_pkg_real_version(self, os_type: str, cpu_arch: str) -> str:
         package: models.Packages = self.get_matching_package(os_type, cpu_arch)
