@@ -4,7 +4,7 @@
 # 运行时依赖安装
 wheel==0.37.0
 
-blueapps[opentelemetry,bkcrypto]==4.8.0
+blueapps[opentelemetry,bkcrypto]==4.14.0
 
 Django==3.2.4
 
@@ -27,7 +27,7 @@ gunicorn==19.6.0
 arrow==0.15.4
 PyJWT==1.7.1
 whitenoise==5.2.0
-mysqlclient==2.0.3
+pymysql==1.0.2
 eventlet==0.25.1
 gevent==1.2.2
 paramiko==2.7.2
