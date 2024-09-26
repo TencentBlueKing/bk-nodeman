@@ -673,9 +673,9 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
 
         for version_to_compare in version_to_compares:
             if GsePackageTools.extract_numbers(version_to_compare) > extracted_current_version:
-                upgrade_count += 1
-            elif GsePackageTools.extract_numbers(version_to_compare) < extracted_current_version:
                 downgrade_count += 1
+            elif GsePackageTools.extract_numbers(version_to_compare) < extracted_current_version:
+                upgrade_count += 1
             else:
                 no_change_count += 1
 
