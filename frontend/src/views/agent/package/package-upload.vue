@@ -87,6 +87,10 @@
             <pre class="upload-package-desc" v-bk-tooltips="$t('从包中解析的描述文本，不可修改')">{{ pkgDesc }}</pre>
           </div>
         </template>
+        <div v-else-if="pkgDesc" class="upload-table">
+          <p class="upload-item-title">{{ $t('解析错误') }}</p>
+          <p class="upload-parse-err">{{ pkgDesc }}</p>
+        </div>
 
       </section>
       <div class="upload-footer mt32">
@@ -211,16 +215,18 @@ export default defineComponent({
     // 包解析
     const parsePkg = async () => {
       const res = await AgentStore.apiPkgParse({ file_name: state.pkgFileName });
-      if (res) {
+      if (typeof res !== 'string') {
         const {
           packages = [],
           description = '',
         } = res;
         state.pkgParseSucc = true;
-        state.parseLoading = false;
         state.pkgDesc = description;
         tableData.value.splice(0, tableData.value.length, ...packages);
+      } else if (typeof res === 'string'){
+        state.pkgDesc = res;
       }
+      state.parseLoading = false;
     };
     const pollRegisterTask = () => {
       if (!taskState.taskId) {
@@ -326,6 +332,7 @@ export default defineComponent({
         state.pkgParseSucc = false;
         state.parseLoading = false;
         state.pckWarning = '';
+        state.pkgDesc = '';
         taskState.taskId = '';
         selectedTags.value.splice(0, selectedTags.value.length);
         tagsDisplay.value.splice(0, tagsDisplay.value.length);
@@ -397,6 +404,16 @@ export default defineComponent({
     margin-top: 24px;
     margin-bottom: 8px;
 
+  }
+
+  .upload-parse-err{
+    margin-bottom: 8px;
+    color: #FF5656;
+    background-color: #fafbfd;
+    border: 1px solid #c4c6cc;
+    border-radius: 2px;
+    padding: 6px 10px;
+    line-height: 20px;
   }
 
   .upload-package-desc {
