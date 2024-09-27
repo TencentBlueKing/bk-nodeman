@@ -1157,15 +1157,15 @@ export default {
   '存在同名 Agent 包': 'An agent package with the same name exists',
   '支持 tgz、tar、gz 扩展名格式文件': 'Supports tgz, tar, gz format files',
   结果预览: 'Result preview',
+  解析字段不可修改: 'The parsed field cannot be modified',
   包名: 'Package name',
   操作系统架构: 'Operating system architecture',
   包类型: 'Package type',
   标签信息: 'Tag information',
   描述: 'Description',
+  解析错误: 'Parsing error',
   '从包中解析的描述文本，不可修改': 'Description text parsed from the package, cannot be modified',
   请先上传包文件: 'Please upload the package file first',
-  结果预览: 'Result preview',
-  结果预览: 'Result preview',
 
   // form-check
   正常输入内容校验: 'Chinese and English, numbers, hyphens and underscores with a length not exceeding {0}',

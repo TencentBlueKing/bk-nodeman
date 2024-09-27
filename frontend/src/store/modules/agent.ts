@@ -266,11 +266,18 @@ export default class AgentStore extends VuexModule {
     return deletePackage(`${id}`).catch(() => false);
   }
   @Action
-  public apiPkgParse(param: { file_name: string }): Promise<{
+  public async apiPkgParse(param: { file_name: string }): Promise<{
+    packages: IPkgParseInfo[];
     description: string;
-    packages: IPkgParseInfo[]
-  } | false> {
-    return parsePackage(param).catch(() => false);
+  } | string> {
+    try {
+      const result = await parsePackage(param);
+      return result;
+    } catch (error: any) {
+      // 假设 error 对象包含 message 属性
+      const errorMessage = error.message || 'An error occurred';
+      return errorMessage;
+    }
   }
   @Action
   public apiPkgRegister(param: {
