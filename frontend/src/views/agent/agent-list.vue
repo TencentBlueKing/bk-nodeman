@@ -872,7 +872,7 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
     // },
     {
       id: 'upgrade',
-      name: window.i18n.t('升级'),
+      name: window.i18n.t('升级回退'),
       disabled: false,
       show: true,
     },

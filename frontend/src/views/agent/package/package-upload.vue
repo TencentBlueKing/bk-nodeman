@@ -1,7 +1,6 @@
 <template>
   <bk-sideslider
     transfer
-    quick-close
     :is-show="show"
     :width="960"
     :title="$t('包上传')"

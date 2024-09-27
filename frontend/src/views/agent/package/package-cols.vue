@@ -98,9 +98,20 @@
             <p>{{ $t('确认停用该Agent包Tip1', [row.pkg_name]) }}</p>
             <p>{{ $t('确认停用该Agent包Tip2') }}</p>
           </div>
-          <bk-button v-if="row.is_ready" text theme="primary" :disabled="btnLoading[row.id]">
-            {{ $t('停用') }}
-          </bk-button>
+          <div
+            v-bk-tooltips="{
+              content: $t('稳定版本不可停用'),
+              disabled: !getDisable(row),
+              placement: 'left'
+            }">
+            <bk-button
+              v-if="row.is_ready" text
+              theme="primary"
+              :disabled="btnLoading[row.id] || getDisable(row)">
+              {{ $t('停用') }}
+            </bk-button>
+          </div>
+          
         </bk-popconfirm>
         <bk-popconfirm
           width="320"
@@ -112,14 +123,21 @@
             <p>{{ $t('确认删除该Agent包Tip1', [row.pkg_name]) }}</p>
             <p>{{ $t('确认删除该Agent包Tip2') }}</p>
           </div>
-          <bk-button
-            v-if="!row.is_ready"
-            class="ml10"
-            text
-            theme="primary"
-            :disabled="btnLoading[row.id]">
-            {{ $t('删除') }}
-          </bk-button>
+          <div
+            v-bk-tooltips="{
+              content: $t('稳定版本不可删除'),
+              disabled: !getDisable(row),
+              placement: 'left'
+            }">
+            <bk-button
+              v-if="!row.is_ready"
+              class="ml10"
+              text
+              theme="primary"
+              :disabled="btnLoading[row.id] || getDisable(row)">
+              {{ $t('删除') }}
+            </bk-button>
+          </div>
         </bk-popconfirm>
       </template>
     </NmColumn>
@@ -173,6 +191,9 @@ export default class PackageCols extends Mixins(HeaderRenderMixin) {
     this.filterData.splice(0, this.filterData.length, ...JSON.parse(JSON.stringify(this.searchSelectData)));
   }
 
+  private getDisable(row: IPkgRow) {
+    return row.formatTags.some((item: any) => item.name === '稳定版本')
+  }
   filter = reactive<{ [key: string]: ITabelFliter }>({
     pkg_name: {
       checked: true,

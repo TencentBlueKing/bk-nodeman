@@ -24,7 +24,11 @@
           </i18n>
         </template>
       </span>
-      
+      <span v-if="operate === 'reinstall_batch'">
+        <i18n path="批量编辑Agent" class="batchEdit">
+          <span class="batchSupportOs">{{ allOsVersions }}</span>
+        </i18n>
+      </span>
     </template>
     <div class="pkg-version-wrapper">
       <ul class="os-list" v-if="showOs">
@@ -221,8 +225,20 @@ export default defineComponent({
         await getCompareVersion(row.version);
       }
     };
+    const allOsVersions = ref('');
+    const getOs = async () => {
+      const list = await AgentStore.apiPkgQuickSearch({ project: 'gse_agent' });
+      const osVersions = (list.find(item => item.id === 'os_cpu_arch')?.children || []).reduce((acc, item) => {
+        const [os] = item.id.split('_');
+        const system = os.charAt(0).toUpperCase() + os.slice(1);
+        acc.push(system);
+        return acc;
+      }, [] as string[]);
+      allOsVersions.value = osVersions.join('、');
+    }
 
     const getCompareVersion = async (version: string) => {
+      if(props.operate !== 'UPGRADE_AGENT') return;
       const {
         upgrade_count,
         downgrade_count,
@@ -238,16 +254,18 @@ export default defineComponent({
     watch(() => props.value, async (val: boolean) => {
       // val dialog显示隐藏
       if (val) {
+        props.operate === 'reinstall_batch' && await getOs();
+        console.log("🚀 ~ watch ~ props:", props,allOsVersions.value.toUpperCase())
         num.value = props.versions.length;
         if (lastOs.value !== `${props.osType}_${props.cpuArch}`) {
           loading.value = true;
           selectedRow.value = null;
           await getPkgVersions();
         }
-        const selected = props.version ? tableData.value.find(row => row.version === props.version) || null : null;
+        const selected = props.versions.length === 1 ? tableData.value.find(row => row.version === props.versions[0]) || null : null;
         selected && handleRowClick(selected);
         // 默认选中default_version,已经选过有props.version的就不默认了
-        props.version === '' && defaultVersion && tableData.value.forEach(row=>{
+        props.versions.length === 0 && defaultVersion && tableData.value.forEach(row=>{
           row.version === defaultVersion.value && handleRowClick(row)
         });
         props.operate === 'UPGRADE_AGENT' && tableData.value.forEach(row=>{
@@ -255,8 +273,8 @@ export default defineComponent({
         });
       } else {
         lastOs.value = `${props.osType}_${props.cpuArch}`;
-        selectedVersion.value = props.version;
-        selectedRow.value = tableData.value.find(row => row.version === props.version) || null;
+        selectedVersion.value = props.versions[0] || '';
+        selectedRow.value = tableData.value.find(row => row.version === props.versions[0]) || null;
         if (selectedRow.value) {
           nextTick(() => {
             selectedRowRef.value?.$el.scrollIntoView();
@@ -276,6 +294,7 @@ export default defineComponent({
       selectedVersion,
       selectedRow,
       markdown,
+      allOsVersions,
       handleConfirm,
       handleCancel,
       handleRowClass,
@@ -304,7 +323,12 @@ span.subTitle:before {
     margin: 0 3px;
   }
 }
-
+.batchEdit {
+  color: #fe3917;
+  font-size: 14px;
+  margin-left: 29px;
+  letter-spacing: 0.5px;
+}
 .pkg-version-wrapper {
   display: flex;
   height: 490px;
