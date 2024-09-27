@@ -135,7 +135,7 @@
             {{ row.is_manual ? $t('手动') : $t('远程') }}
           </template>
         </NmColumn>
-        <NmColumn
+        <!-- <NmColumn
           key="bt"
           prop="peer_exchange_switch_for_agent"
           width="110"
@@ -146,7 +146,7 @@
               {{ row.peer_exchange_switch_for_agent ? $t('启用') : $t('停用')}}
             </span>
           </template>
-        </NmColumn>
+        </NmColumn> -->
         <NmColumn
           key="speedLimit"
           prop="bt_speed_limit"
@@ -294,6 +294,16 @@
       :edit-type="editType"
       @save="handleReloadTable">
     </CloudDetailSlider>
+
+    <!--升级proxy-->
+    <ChoosePkgDialog
+      v-model="versionsDialog.show"
+      :type="versionsDialog.type"
+      :title="versionsDialog.title"
+      :versions="versionsDialog.versions"
+      :operate="versionsDialog.operate"
+      :project="versionsDialog.project"
+      @confirm="updateProxyVersion" />
   </section>
 </template>
 
@@ -309,12 +319,14 @@ import { IBkColumn, ITabelFliter } from '@/types';
 import { TranslateResult } from 'vue-i18n';
 import { DHCP_FILTER_KEYS } from '@/config/config';
 import CopyDropdown, { allChildList } from '@/components/common/copy-dropdown.vue';
+import ChoosePkgDialog from '@/views/agent/components/choose-pkg-dialog.vue';
 
 @Component({
   name: 'CloudDetailTable',
   components: {
     CloudDetailSlider,
     CopyDropdown,
+    ChoosePkgDialog,
   },
 })
 
@@ -339,6 +351,15 @@ export default class CloudDetailTable extends Vue {
     { id: 'upgrade', name: this.$t('升级'), disabled: false, show: true },
     { id: 'log', name: this.$t('最新执行日志'), disabled: false, show: true },
   ];
+  public versionsDialog = {
+    show: false,
+    type: 'unified',
+    title: this.$t('升级Proxy版本'),
+    versions: [] as string[],
+    row: null as any,
+    operate: 'UPGRADE_PROXY',
+    project: 'gse_proxy'
+  };
   // 状态map
   private statusMap = {
     running: this.$t('正常'),
@@ -363,7 +384,7 @@ export default class CloudDetailTable extends Vue {
     { key: 'proxy_status', value: [true, false, true, 'proxy_status', this.$t('Proxy状态')] },
     { key: 'created_at', value: [false, false, false, 'created_at', this.$t('安装时间')] },
     { key: 're_certification', value: [true, false, true, 're_certification', this.$t('密码/密钥')] },
-    { key: 'bt', value: [false, false, false, 'peer_exchange_switch_for_agent', this.$t('BT节点探测')] },
+    // { key: 'bt', value: [false, false, false, 'peer_exchange_switch_for_agent', this.$t('BT节点探测')] },
     { key: 'speedLimit', value: [false, false, false, 'bt_speed_limit', this.$t('传输限速')] },
     { key: 'enable_compression', value: [false, false, false, 'enable_compression', this.$t('数据压缩')] },
   ];
@@ -384,6 +405,32 @@ export default class CloudDetailTable extends Vue {
   }
   private get proxyOperateList() {
     return (this.authority.proxy_operate || []).map(item => item.bk_biz_id);
+  }
+  // 升级主机Proxy版本
+  private async updateProxyVersion(info: { version: string }) {
+    this.loadingProxy = true;
+    const data = this.versionsDialog.row;
+    const params = {
+      job_type: 'UPGRADE_PROXY',
+      bk_host_id: [data.bk_host_id],
+    };
+    const versionList: { bk_host_id: number; version: string; }[] = [
+      {
+        bk_host_id: data.bk_host_id as number,
+        version: info.version as string,
+      }
+    ];
+    Object.assign(params, {
+      agent_setup_info: {
+        choice_version_type: 'by_host',
+        version_map_list: versionList,
+      }
+    });
+    const result = await CloudStore.operateJob(params);
+    this.loadingProxy = false;
+    if (result.job_id) {
+      this.handleRouterPush('taskDetail', { taskId: result.job_id });
+    }
   }
   protected get copyMenu() {
     return allChildList.filter(item => !item.id.includes('cloud'))
@@ -469,20 +516,26 @@ export default class CloudDetailTable extends Vue {
     }
   }
   public handleConfirmOperate(title: string | TranslateResult, row: IProxyDetail, type: Function | string) {
-    this.$bkInfo({
-      title,
-      extCls: 'wrap-title',
-      confirmFn: () => {
-        if (typeof type === 'function') {
-          type(row);
-        } else {
-          this.handleOperateHost(row, type);
-        }
-      },
-    });
+    if(type === 'UPGRADE_PROXY') {
+      this.versionsDialog.show = true;
+      this.versionsDialog.row = row;
+      this.versionsDialog.versions = [row.version as string];
+    } else {
+      this.$bkInfo({
+        title,
+        extCls: 'wrap-title',
+        confirmFn: () => {
+          if (typeof type === 'function') {
+            type(row);
+          } else {
+            this.handleOperateHost(row, type);
+          }
+        },
+      });
+    }
   }
   /**
-     * 升级主机、卸载主机、重启主机
+     * 卸载主机、重启主机
      */
   public async handleOperateHost(row: IProxyDetail, type: string) {
     this.loadingProxy = true;
@@ -539,7 +592,7 @@ export default class CloudDetailTable extends Vue {
     const paramExtraKey = ['bt_speed_limit', 'login_ip', 'data_ip'];
     const copyRow = Object.keys(row).reduce((obj: Dictionary, item) => {
       if (paramKey.includes(item)) {
-        obj[item] = item === 'peer_exchange_switch_for_agent' ? row[item] + 0 : row[item];
+        obj[item] = item === 'peer_exchange_switch_for_agent' ? 0 : row[item];
       }
       if (paramExtraKey.includes(item) && row[item]) {
         obj[item] = row[item];

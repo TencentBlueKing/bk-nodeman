@@ -197,7 +197,7 @@
       :type="versionsDialog.type"
       :show-os="versionsDialog.type === 'by_system_arch'"
       :title="versionsDialog.title"
-      :version="versionsDialog.version"
+      :versions="versionsDialog.versions"
       :os-type="versionsDialog.os_type"
       :cpu-arch="versionsDialog.cpu_arch"
       :os-versions="formData.osVersions"
@@ -331,7 +331,7 @@ export default class AgentSetup extends Mixins(mixin, formLabelMixin) {
     show: false,
     type: 'unified' as VerionType,
     title: '',
-    version: '',
+    versions: [] as string[],
     os_type: '',
     cpu_arch: '',
   };
@@ -398,7 +398,8 @@ export default class AgentSetup extends Mixins(mixin, formLabelMixin) {
     return isEmpty(this.formData.bk_cloud_id);
   }
   private get filterChannelList() {
-    return AgentStore.channelList.filter(item => item.id === 'default' || item.bk_cloud_id === this.formData.bk_cloud_id);
+    return AgentStore.channelList.filter(item => item.id === 'default' || item.bk_cloud_id === this.formData.bk_cloud_id
+      || (MainStore.AUTO_SELECT_INSTALL_CHANNEL === 0 && item.id === -1));
   }
 
   @Watch('formData.ap_id')
@@ -512,7 +513,7 @@ export default class AgentSetup extends Mixins(mixin, formLabelMixin) {
             if (item[authType]) {
               item[authType] = this.$safety.encrypt(item[authType] as string);
             }
-            item.peer_exchange_switch_for_agent = Number(item.peer_exchange_switch_for_agent);
+            item.peer_exchange_switch_for_agent = 0;
             if (this.$DHCP && regIPv6.test(item.inner_ip as string)) {
               item.inner_ipv6 = item.inner_ip;
               delete item.inner_ip;
@@ -716,7 +717,7 @@ export default class AgentSetup extends Mixins(mixin, formLabelMixin) {
     const { type = 'unified', version = '', os_type = '', cpu_arch = '' } = info;
     this.versionsDialog.show = true;
     this.versionsDialog.type = type;
-    this.versionsDialog.version = version;
+    this.versionsDialog.versions = version ? [version] : [];
     this.versionsDialog.os_type = os_type;
     this.versionsDialog.cpu_arch = cpu_arch;
     this.versionsDialog.title = type === 'unified' ? this.$t('选择统一的 Agent 版本') : this.$t('按操作系统选版本 ');

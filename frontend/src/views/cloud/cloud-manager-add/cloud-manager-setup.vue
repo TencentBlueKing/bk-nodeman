@@ -105,7 +105,7 @@
       v-model="versionsDialog.show"
       :type="versionsDialog.type"
       :title="versionsDialog.title"
-      :version="versionsDialog.version"
+      :versions="versionsDialog.versions"
       :os-type="versionsDialog.os_type"
       :cpu-arch="versionsDialog.cpu_arch"
       :project="versionsDialog.project"
@@ -204,7 +204,7 @@ export default class CloudManagerSetup extends Mixins(formLabelMixin, FilterIpMi
     show: false,
     type: 'by_system_arch',
     title: this.$t('选择 Agent 版本'),
-    version: '',
+    versions: [] as string[],
     os_type: 'linux',
     cpu_arch: '',
     project: 'gse_proxy',
@@ -230,7 +230,7 @@ export default class CloudManagerSetup extends Mixins(formLabelMixin, FilterIpMi
   public handleChoose({ row, instance }: { row: ISetupRow; instance: any; }) {
     const { version = '' } = row;
     this.versionsDialog.show = true;
-    this.versionsDialog.version = version;
+    this.versionsDialog.versions = version ? [version] : [];
     this.versionsDialog.row = row;
     this.$nextTick(() => {
       this.versionsDialog.instance = instance;
@@ -397,7 +397,7 @@ export default class CloudManagerSetup extends Mixins(formLabelMixin, FilterIpMi
       } else {
         data.bt_speed_limit = Number(data.bt_speed_limit);
       }
-      data.peer_exchange_switch_for_agent += 0;
+      data.peer_exchange_switch_for_agent = 0;
       const authType = item.auth_type?.toLowerCase() as 'key' | 'password';
       if (item[authType]) {
         data[authType] = this.$safety.encrypt(item[authType] as string);

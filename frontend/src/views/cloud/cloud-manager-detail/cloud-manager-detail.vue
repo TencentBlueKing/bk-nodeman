@@ -227,6 +227,8 @@ export default class CloudManagerDetail extends Mixins(pollMixin, routerBackMixi
 @import "@/css/mixins/nodeman.css";
 
 .cloud-manager-detail {
+  display: flex;
+  height: 100%;
   flex: 1;
   overflow: hidden;
 

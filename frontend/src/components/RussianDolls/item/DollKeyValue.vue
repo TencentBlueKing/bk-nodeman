@@ -3,23 +3,39 @@
     <template v-if="value?.length">
       <bk-form-item
         v-for="(child, idx) in value"
+        :required="item.required"
+        :label-width="labelWidth"
         :label="idx ? '' : item.title"
         :key="idx">
         <div class="flex">
           <div class="flex1" style="flex: 1">
             <bk-input
+              :class="{'is-error': children[0].required && child[children[0].prop] === '' && isValid[idx]}"
               :value="child[children[0].prop]"
               :placeholder="children[0].title"
               @focus="inputFocus"
-              @change="(val) => updateKeyValue(val, idx, children[0])" />
+              @change="(val) => updateKeyValue(val, idx, children[0])"/>
+            <span
+              v-if="children[0].required && child[children[0].prop] === '' && isValid[idx]"
+              class="error-tip is-error"
+              v-bk-tooltips="$t('必填项')">
+              <i class="bk-icon icon-exclamation-circle-shape"></i>
+            </span>
           </div>
           <div class="pl10 pr10">=</div>
           <div class="flex1" style="flex: 1">
             <bk-input
+              :class="{'is-error': children[1].required && child[children[1].prop] === '' && isValid[idx]}"
               :value="child[children[1].prop]"
               :placeholder="children[1].title"
               @blur="inputBlur"
               @change="(val) => updateKeyValue(val, idx, children[1])" />
+            <span
+              v-if="children[1].required && child[children[1].prop] === '' && isValid[idx]"
+              class="error-tip is-error"
+              v-bk-tooltips="$t('必填项')">
+              <i class="bk-icon icon-exclamation-circle-shape"></i>
+            </span>
           </div>
           <div class="child-btns ml10">
             <i
@@ -33,7 +49,7 @@
         </div>
       </bk-form-item>
     </template>
-    <bk-form-item v-else :label="item.title">
+    <bk-form-item v-else :label="item.title" :label-width="labelWidth">
       <div class="array-content-add" @click.stop="() => addItem(-1)">
         <i class="nodeman-icon nc-plus" />
         {{ item.title }}
@@ -43,8 +59,9 @@
 </template>
 
 <script>
-import { computed, defineComponent, inject, ref, toRefs } from 'vue';
+import { computed, defineComponent, inject, ref, toRefs, onMounted } from 'vue';
 import { formatSchema } from '../create';
+import bus from '@/common/bus';
 
 export default defineComponent({
   props: {
@@ -53,6 +70,10 @@ export default defineComponent({
     itemIndex: -1,
     value: () => [],
     valueProp: '',
+    labelWidth: {
+      type: Number,
+      default: 110,
+    },
   },
   emits: ['add', 'delete'],
   setup(props) {
@@ -73,13 +94,31 @@ export default defineComponent({
         property: getRealProp(props.valueProp, `${index}.${item.prop}`),
       }, 'assign', value);
     };
+    const isValid = ref(new Array(props.value.length).fill(false));
     const addItem = (index) => {
+      isValid.value.push(false);
       const realIndex = index + 1;
       updateFormData?.({ ...props.item, property: getRealProp(props.valueProp, realIndex) }, 'add', index + 1);
     };
     const deleteItem = (index) => {
+      isValid.value.pop();
       updateFormData?.({ ...props.item, property: getRealProp(props.valueProp, index) }, 'delete', index);
     };
+    const validate = (cb) => {
+      isValid.value.fill(true);
+      isValid.value = [...isValid.value];
+      const hasEmpty = props.value.some((item) => 
+        (item[children.value[0].prop] === '' && children.value[0].required)
+        || (item[children.value[1].prop] === '' && children.value[1].required));
+      if (hasEmpty) {
+        cb(false);
+      }else{
+        cb(true);
+      }
+    }
+    onMounted(() => {
+      bus.$on('validateKV', validate)
+    });
 
     return {
       ...toRefs(props),
@@ -88,6 +127,7 @@ export default defineComponent({
       valueModel,
       children,
       disabledMinus,
+      isValid,
 
       updateKeyValue,
       addItem,

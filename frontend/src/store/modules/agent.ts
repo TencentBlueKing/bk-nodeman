@@ -7,7 +7,7 @@ import { listCloud } from '@/api/modules/cloud';
 import { getFilterCondition } from '@/api/modules/meta';
 import { fetchPwd } from '@/api/modules/tjj';
 import {
-  createAgentRegisterTask, createAgentTags, deletePackage,
+  createAgentRegisterTask, createAgentTags, versionCompare, deletePackage,
   getDeployedHostsCount, getTags, getVersion, listPackage, parsePackage,
   queryAgentRegisterTask, quickSearchCondition, updatePackage,
 } from '@/api/modules/pkg_manage';
@@ -74,7 +74,7 @@ export default class AgentStore extends VuexModule {
         job_result: item.job_result ? item.job_result : {} as any,
         topology: item.topology && item.topology.length ? item.topology : [],
         bt_speed_limit: btSpeedLimit || '',
-        peer_exchange_switch_for_agent: !!peerExchangeSwitchForAgent || false,
+        peer_exchange_switch_for_agent: false,
       };
     });
     return data;
@@ -258,8 +258,8 @@ export default class AgentStore extends VuexModule {
     return quickSearchCondition(param).catch(() => []);
   }
   @Action
-  public apiPkgUpdateStatus({ id, is_ready }: { id: string|number; is_ready: boolean; }): Promise<IPkgInfo> {
-    return updatePackage(id, { is_ready }).catch(() => {});
+  public apiPkgUpdateStatus({ id, is_ready, tags }: { id: string|number; is_ready: boolean; tags?: any[] }): Promise<IPkgInfo> {
+    return updatePackage(id, { is_ready, tags }).catch(() => {});
   }
   @Action
   public apiPkgDelete(id: number): Promise<boolean> {
@@ -305,12 +305,23 @@ export default class AgentStore extends VuexModule {
   }): Promise<IPkgTag[] | false> {
     return createAgentTags(param).catch(() => false);
   }
-
+  
   @Action
-  public apiGetPkgVersion(param: { project: PkgType; os: string; cpu_arch: string }): Promise<{
+  public apiGetPkgVersion(param: { project: PkgType; os: string; cpu_arch: string; versions?: string[] }): Promise<{
     default_version: string;
+    machine_latest_version: string;
+    package_latest_version: string;
+    is_visible: Boolean;
     pkg_info: IPkgVersion[];
   }> {
-    return getVersion(param).catch(() => ({ default_version: '', pkg_info: [] }));
+    return getVersion(param).catch(() => ({ default_version: '', machine_latest_version: '', pkg_info: [], is_visible: false, package_latest_version: '' }));
+  }
+
+  @Action
+  public apiVersionCompare(param: {
+    current_version: string;
+    version_to_compares: string[];
+  }): Promise<{upgrade_count: 0,downgrade_count: 0, no_change_count: 0}> {
+    return versionCompare(param).catch(() => false);
   }
 }

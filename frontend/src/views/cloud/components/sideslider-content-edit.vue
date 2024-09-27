@@ -73,13 +73,13 @@
         :rules="rules.path">
         <bk-input v-model="proxyData.data_path" @blur="(value) => pathInputBlur(value, 'data_path')" />
       </bk-form-item>
-      <bk-form-item :label="$t('BT节点探测')" property="peer_exchange_switch_for_agent">
+      <!-- <bk-form-item :label="$t('BT节点探测')" property="peer_exchange_switch_for_agent">
         <bk-switcher
           theme="primary"
           size="small"
           v-model="proxyData.peer_exchange_switch_for_agent">
         </bk-switcher>
-      </bk-form-item>
+      </bk-form-item> -->
       <bk-form-item :label="$t('传输限速')" property="bt_speed_limit" error-display-type="normal" :rules="rules.speedLimit">
         <bk-input v-model="proxyData.bt_speed_limit"></bk-input>
       </bk-form-item>
@@ -137,7 +137,7 @@
       v-model="versionsDialog.show"
       :type="versionsDialog.type"
       :title="versionsDialog.title"
-      :version="versionsDialog.version"
+      :versions="versionsDialog.versions"
       :os-type="versionsDialog.os_type"
       :project="versionsDialog.project"
       @confirm="updateAgentVersion" />
@@ -185,7 +185,7 @@ export default class SidesliderContentEdit extends Vue {
     show: false,
     type: 'by_system_arch',
     title: this.$t('选择 Agent 版本'),
-    version: '',
+    versions: [] as string[],
     os_type: 'linux',
     project: 'gse_proxy'
   };
@@ -195,7 +195,7 @@ export default class SidesliderContentEdit extends Vue {
   }) {
     const { version = '' } = info;
     this.versionsDialog.show = true;
-    this.versionsDialog.version = version;
+    this.versionsDialog.versions = version ? [version] : [];
   }
   // 回填agent版本
   public updateAgentVersion(info: any) {

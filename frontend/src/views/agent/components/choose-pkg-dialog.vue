@@ -4,11 +4,32 @@
     :value="value"
     :width="showOs ? 1048 : 960"
     :position="{ top: 100 }"
-    :draggable="false"
+    :draggable="$props.operate === 'UPGRADE_AGENT'"
     :mask-close="false"
     :title="title"
     header-position="left"
     @cancel="handleCancel">
+    <template slot="header">
+      <span class="header">{{ title }}</span>
+      <span v-if="operate === 'UPGRADE_AGENT'" class="subTitle">
+        <i18n path="已选IP" class="IP-selection">
+          <span class="selection-num">{{ num }}</span>
+        </i18n>
+        <template v-if="selectedVersion">
+          <i18n path="升级IP" class="IP-selection">
+            <span class="selection-num">，{{ upgrades }}</span>
+          </i18n>
+          <i18n path="回退IP" class="IP-selection">
+            <span class="selection-num">，{{ rollbacks }}</span>
+          </i18n>
+        </template>
+      </span>
+      <span v-if="operate === 'reinstall_batch'">
+        <i18n path="批量编辑Agent" class="batchEdit">
+          <span class="batchSupportOs">{{ allOsVersions }}</span>
+        </i18n>
+      </span>
+    </template>
     <div class="pkg-version-wrapper">
       <ul class="os-list" v-if="showOs">
         <li
@@ -38,7 +59,9 @@
                   :value="selectedVersion === row.version"
                   width="90"
                   v-bk-tooltips.left="{
-                    content: row.isBelowVersion ? $t('版本未处于正式状态') : $t('不能低于当前版本'),
+                    content: $props.operate === 'UPGRADE_AGENT'
+                      ? row.isLatestVersion ? $t('已是目标版本') : $t('当前版本')
+                      : row.isBelowVersion ? $t('版本未处于正式状态') : $t('不能低于当前版本'),
                     disabled: !row.disabled
                   }">
                 </bk-radio>
@@ -57,7 +80,7 @@
             </NmColumn>
           </bk-table>
         </div>
-        <div class="pkg-desc">
+        <div class="pkg-desc" :style="{ flex: showOs ? 'initial' : 2 }">
           <p class="title">{{ selectedRow ? $t('pkg的详细信息', [selectedRow.version]) : $t('版本详情') }}</p>
           <!-- eslint-disable-next-line vue/no-v-html -->
           <pre class="content" v-html="markdown" />
@@ -71,7 +94,7 @@
   </bk-dialog>
 </template>
 <script lang="ts">
-import { defineComponent, nextTick, ref, toRefs, watch, PropType } from 'vue';
+import { defineComponent, nextTick, ref, toRefs, watch, PropType, computed } from 'vue';
 import { AgentStore } from '@/store';
 import FlexibleTag from '@/components/common/flexible-tag.vue';
 import { IPkgVersion, PkgType } from '@/types/agent/pkg-manage';
@@ -94,9 +117,9 @@ export default defineComponent({
       type: Boolean,
       default: false,
     },
-    version: {
-      type: String,
-      default: '',
+    versions: {
+      type: Array as () => string[],
+      default: () => [],
     },
     osType: {
       type: String,
@@ -114,6 +137,10 @@ export default defineComponent({
       type: String,
       default: '',
     },
+    operate: {
+      type: String,
+      default: '',
+    },
     project: {
       type: String as PropType<PkgType>,
       default: 'gse_agent',
@@ -125,27 +152,38 @@ export default defineComponent({
     const selectedRowRef = ref<any>();
 
     const loading = ref(false);
-    const tableData = ref<IPkgVersion[]>([]);
+    const tableData = ref<any[]>([]);
     const selectedVersion = ref('');
     const selectedRow = ref<IPkgVersion|null>(null);
     const markdown = ref('');
     const lastOs = ref('');
     const defaultVersion = ref('');
-
+    // 当前传入的最高版本
+    const currentLatestVersion = ref('');
+    
+    const num = ref(0);
+    const upgrades = ref(0);
+    const rollbacks = ref(0);
     const getPkgVersions = async () => {
       const {
         default_version,
+        package_latest_version,
+        machine_latest_version,
         pkg_info,
       } = await AgentStore.apiGetPkgVersion({
         // 新增加project的传入
         project: props.project,
         os: props.osType,
-        cpu_arch: props.cpuArch
+        cpu_arch: props.cpuArch,
+        versions:props.versions,
       });
       defaultVersion.value = default_version;
+      currentLatestVersion.value = machine_latest_version;
       const builtinTags = ['stable', 'latest', 'test'];
       tableData.value.splice(0, tableData.value.length, ...pkg_info.map(item => ({
         ...item,
+        disabled: item.disabled || item.version === machine_latest_version,
+        isLatestVersion: machine_latest_version === package_latest_version,
         tags: item.tags.filter(tag => builtinTags.includes(tag.name)).map(tag => ({
           className: tag.name,
           description: tag.description,
@@ -179,31 +217,64 @@ export default defineComponent({
       }
     };
 
-    const handleRowClick = (row: IPkgVersion) => {
+    const handleRowClick = async (row: IPkgVersion) => {
       if (!row.disabled) {
         selectedRow.value = row;
         selectedVersion.value = row.version as string;
         markdown.value = row.description;
+        await getCompareVersion(row.version);
       }
     };
+    const allOsVersions = ref('');
+    const getOs = async () => {
+      const list = await AgentStore.apiPkgQuickSearch({ project: 'gse_agent' });
+      const osVersions = (list.find(item => item.id === 'os_cpu_arch')?.children || []).reduce((acc, item) => {
+        const [os] = item.id.split('_');
+        const system = os.charAt(0).toUpperCase() + os.slice(1);
+        acc.push(system);
+        return acc;
+      }, [] as string[]);
+      allOsVersions.value = osVersions.join('、');
+    }
 
+    const getCompareVersion = async (version: string) => {
+      if(props.operate !== 'UPGRADE_AGENT') return;
+      const {
+        upgrade_count,
+        downgrade_count,
+        no_change_count
+      } = await AgentStore.apiVersionCompare({
+        current_version: version,
+        version_to_compares: props.versions,
+      });
+      upgrades.value = upgrade_count;
+      rollbacks.value = downgrade_count;
+    }
+  
     watch(() => props.value, async (val: boolean) => {
+      // val dialog显示隐藏
       if (val) {
+        props.operate === 'reinstall_batch' && await getOs();
+        console.log("🚀 ~ watch ~ props:", props,allOsVersions.value.toUpperCase())
+        num.value = props.versions.length;
         if (lastOs.value !== `${props.osType}_${props.cpuArch}`) {
           loading.value = true;
           selectedRow.value = null;
           await getPkgVersions();
         }
-        const selected = props.version ? tableData.value.find(row => row.version === props.version) || null : null;
+        const selected = props.versions.length === 1 ? tableData.value.find(row => row.version === props.versions[0]) || null : null;
         selected && handleRowClick(selected);
         // 默认选中default_version,已经选过有props.version的就不默认了
-        props.version === '' && defaultVersion && tableData.value.forEach(row=>{
+        props.versions.length === 0 && defaultVersion && tableData.value.forEach(row=>{
           row.version === defaultVersion.value && handleRowClick(row)
-        })
+        });
+        props.operate === 'UPGRADE_AGENT' && tableData.value.forEach(row=>{
+          row.version === currentLatestVersion.value && handleRowClick(row)
+        });
       } else {
         lastOs.value = `${props.osType}_${props.cpuArch}`;
-        selectedVersion.value = props.version;
-        selectedRow.value = tableData.value.find(row => row.version === props.version) || null;
+        selectedVersion.value = props.versions[0] || '';
+        selectedRow.value = tableData.value.find(row => row.version === props.versions[0]) || null;
         if (selectedRow.value) {
           nextTick(() => {
             selectedRowRef.value?.$el.scrollIntoView();
@@ -214,12 +285,16 @@ export default defineComponent({
 
     return {
       ...toRefs(props),
+      num,
+      upgrades,
+      rollbacks,
       selectedRowRef,
       loading,
       tableData,
       selectedVersion,
       selectedRow,
       markdown,
+      allOsVersions,
       handleConfirm,
       handleCancel,
       handleRowClass,
@@ -230,7 +305,30 @@ export default defineComponent({
 </script>
 <style lang="postcss">
 @import "@/css/variable.css";
-
+.header {
+  font-size: 20px;
+  color: #313238;
+}
+span.subTitle:before {
+  content: "|";
+  margin: 0 13px 0 10px;
+  color: #DCDEE5;
+}
+.IP-selection {
+  font-size: 14px;
+  color: #63656E;
+  letter-spacing: 0;
+  .selection-num {
+    color: #3A84FF;
+    margin: 0 3px;
+  }
+}
+.batchEdit {
+  color: #fe3917;
+  font-size: 14px;
+  margin-left: 29px;
+  letter-spacing: 0.5px;
+}
 .pkg-version-wrapper {
   display: flex;
   height: 490px;

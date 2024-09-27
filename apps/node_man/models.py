@@ -164,6 +164,10 @@ class GlobalSettings(models.Model):
         IP_CHOOSER_ENABLE_SHOW_REALTIME_AGENT_STATE = "IP_CHOOSER_ENABLE_SHOW_REALTIME_AGENT_STATE"
         # IP选择器详情接口实时展示agent状态业务白名单
         IP_CHOOSER_BIZ_WHITELIST = "IP_CHOOSER_BIZ_WHITELIST"
+        # 是否仅在直连区域开启自动选择安装通道
+        AUTO_SELECT_INSTALL_CHANNEL_ONLY_DIRECT_AREA = "AUTO_SELECT_INSTALL_CHANNEL_ONLY_DIRECT_AREA"
+        # 安装通道ID与网段列表映射
+        INSTALL_CHANNEL_ID_NETWORK_SEGMENT = "INSTALL_CHANNEL_ID_NETWORK_SEGMENT"
 
     key = models.CharField(_("键"), max_length=255, db_index=True, primary_key=True)
     v_json = JSONField(_("值"))
@@ -825,6 +829,14 @@ class InstallChannel(models.Model):
                 result[install_channel_id].append(host)
 
         return result
+
+    @classmethod
+    @FuncCacheDecorator(cache_time=20 * constants.TimeUnit.MINUTE)
+    def install_channel_id_name_map(cls) -> Dict[str, str]:
+        all_install_channel_map = {
+            str(install_channel["id"]): install_channel["name"] for install_channel in cls.objects.values("id", "name")
+        }
+        return all_install_channel_map
 
     class Meta:
         verbose_name = _("安装通道（InstallChannel）")

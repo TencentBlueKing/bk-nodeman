@@ -10,6 +10,11 @@
     </section>
 
     <section class="package-manage-body">
+      <div class="default_version">
+        <i18n path="默认升级/安装版本" tag="span" v-bk-tooltips.right="$t('通过修改“稳定版本”标签来指定')">
+          <span>{{ defaultVersion }}</span>
+        </i18n>
+      </div>
       <bk-search-select
         ref="searchSelect"
         ext-cls="package-search-select"
@@ -18,7 +23,7 @@
         :show-condition="false"
         :placeholder="$t('版本号、操作系统/架构、标签、上传用户、状态')"
         v-test="'search'"
-        @change="() => pagetionChange()">
+        @change="handleSearchSelectValueChange">
         <!-- @paste.native.capture.prevent="handlePaste"
         :key="searchInputKey" -->
       </bk-search-select>
@@ -37,7 +42,7 @@
             </bk-compose-form-item>
           </div>
           <div class="optional-wrapper">
-            <ul class="optional-list">
+            <ul class="optional-list ">
               <li
                 v-for="(optItem, index) in dimensionOptionalList"
                 :class="['optional-item', { 'is-all': !index, selected: optItem.id === dimensionOptional }]"
@@ -54,7 +59,16 @@
         </div>
 
         <div class="package-select-result" v-bkloading="{ isLoading }">
-          <PackageCols :rows="tableData" :maxHeight="tableHeight" :pagetion="pagetion" @pagetion="pagetionChange" />
+          <PackageCols
+            :rows="tableData"
+            :max-height="tableHeight"
+            :pagetion="pagetion"
+            :options="tagGroup"
+            :search-select-data="searchSelectData"
+            @pagetion="pagetionChange"
+            @orderChange="orderChange"
+            @filter-confirm="handleFilterHeaderConfirm"
+            @filter-reset="handleFilterHeaderReset" />
           <bk-pagination
             ext-cls="pagination"
             size="small"
@@ -80,17 +94,20 @@
 <script lang="ts">
 import i18n from '@/setup';
 import { AgentStore } from '@/store';
-import { computed, defineComponent, provide, reactive, ref, toRefs } from 'vue';
+import { computed, defineComponent, provide, reactive, ref, toRefs, watch } from 'vue';
 import PackageCols from './package-cols.vue';
 import PackageUpload from './package-upload.vue';
-import { IPagination, ISearchItem } from '@/types';
+import { IPagination, ISearchItem, ISearchChild } from '@/types';
 import { MainStore } from '@/store/index';
 import {
   IPkgParams, IPkgTag, IPkgTagOpt, PkgType,
   IPkgQuickOpt, IPkgDimension, IPkgRow,
 } from '@/types/agent/pkg-manage';
+import { toLine } from '@/common/util';
 
 type PkgQuickType = 'os_cpu_arch' | 'version';
+// 排序类型
+type PkgOrderType = 'version' | '-version';
 
 export default defineComponent({
   components: {
@@ -105,7 +122,8 @@ export default defineComponent({
       dimension: PkgQuickType;
       dimensionOptional: string;
       uploadShow: boolean;
-      pagetion: IPagination
+      pagetion: IPagination;
+      ordering: PkgOrderType | '';
     }>({
       isLoading: true,
       panels: [
@@ -120,9 +138,10 @@ export default defineComponent({
         current: 1,
         limit: 50,
         count: 0,
-        limitList: [20, 50, 100, 200]
+        limitList: [20, 50, 100, 200],
       },
       uploadShow: false,
+      ordering: '',
     });
 
     // 可选维度
@@ -135,6 +154,8 @@ export default defineComponent({
     const tableData = ref<IPkgRow[]>([]);
     const tagList = ref<IPkgTagOpt[]>([]);
     const tagGroup = ref<ISearchItem[]>([]);
+    const multipleKey = ['version', 'tags', 'tag_names'];
+
 
     const tagsMap = computed(() => tagList.value.reduce((nameMap: { [k: string]: string }, item) => {
       Object.assign(nameMap, {
@@ -143,6 +164,48 @@ export default defineComponent({
       });
       return nameMap;
     }, {}));
+
+    // 表头筛选变更
+    const handleFilterHeaderConfirm = ({ prop, list }: { prop: string, list: ISearchChild[] }) => {
+      const index = searchSelectValue.value.findIndex(item => item.id === prop || item.id === toLine(prop));
+      const values = list.reduce((pre: ISearchChild[], item) => {
+        if (item.checked) {
+          pre.push({
+            id: item.id,
+            name: item.name,
+            checked: true,
+          });
+        }
+        return pre;
+      }, []);
+      if (index > -1) {
+        // 已经存在就覆盖
+        searchSelectValue.value[index].values = values;
+      } else {
+        const data = searchSelectData.value.find(data => data.id === prop || data.id === toLine(prop));
+        // 不存在就添加
+        searchSelectValue.value.push({
+          id: prop,
+          name: data ? data.name : '',
+          values,
+        });
+      }
+      // 更新快捷筛选
+      updateQuickSearch(searchSelectValue.value);
+      handlePageChange(1);
+    };
+
+    // 表头筛选重置
+    const handleFilterHeaderReset = ({ prop }: {prop: string}) => {
+      const index = searchSelectValue.value.findIndex(item => item.id === prop);
+      if (index > -1) {
+        // 清除搜索栏对应表头筛选项
+        searchSelectValue.value.splice(index, 1);
+        // 更新快捷筛选
+        updateQuickSearch(searchSelectValue.value);
+        handlePageChange(1);
+      }
+    };
 
     // 升级后的组件应该是 onlyRecommendChildren属性来代替此数据
     const searchData = computed(() => searchSelectData.value
@@ -155,24 +218,61 @@ export default defineComponent({
       state.uploadShow = !state.uploadShow;
     };
 
-    // 更新快捷筛选 维度
-    const updateOptionalList = (id: PkgQuickType = 'os_cpu_arch') => {
+    const defaultVersion = ref<string>('');
+    const getDefaultVersion = async () => {
+      const { default_version } = await AgentStore.apiGetPkgVersion({
+        project: 'gse_agent',
+        os: '',
+        cpu_arch: ''
+      });
+      defaultVersion.value = default_version;
+    };
+    // 更新快捷筛选列表
+    const getOptionalList = (id: PkgQuickType = 'os_cpu_arch',isTabChange:boolean = false) => {
+      // 维度不变且不是第一次获取快捷筛选列表则无需更新且不是切换tab
+      if(state.dimension === id && dimensionOptionalList.value.length > 0 && !isTabChange) return;
       state.dimension = id;
       const { children = [] } = dimensionList.value.find(item => item.id === id) || {};
-      const copyChildren = [...children];
-      let count = 0;
-      if (children.length) {
-        const isOs = state.dimension === 'os_cpu_arch';
-        copyChildren.forEach((child) => {
-          if (isOs) {
-            child.icon = `nc-${child.id.split('_')[0]}`;
-          }
-          count += child.count || 0;
-        });
+      
+      dimensionOptionalList.value.splice(0, dimensionOptionalList.value.length, ...children);
+    };
+
+    // 快捷筛选数据更新，同步到搜索栏，防止操作冲突
+    const updateQuickOptToSearch = () => {
+      if (state.dimensionOptional === 'all') {
+        searchSelectValue.value = searchSelectValue.value.filter(item => item.id !== state.dimension);
+        // 搜索栏变更同步到表头筛选勾选状态
+        updateCheckStatus(searchSelectValue.value);
+        return;
       }
-      const allOpt = { id: 'all', name: i18n.t('全部'), isAll: true, count };
-      copyChildren.unshift(allOpt);
-      dimensionOptionalList.value.splice(0, dimensionOptionalList.value.length, ...copyChildren);
+      const data = searchSelectValue.value.find(item => item.id === state.dimension);
+      const child = data?.values?.find(item => item.id === state.dimensionOptional);
+      if (!child) {
+        const item = {
+          id: state.dimensionOptional,
+          name: state.dimensionOptional,
+          checked: true,
+        };
+        if (data) {
+          data.values = [item];
+        } else {
+          searchSelectValue.value = [{
+            id: state.dimension,
+            name: dimensionList.value.find(item => item.id === state.dimension)?.name || '',
+            values: [item],
+          }];
+        }
+        // 搜索栏变更同步到表头筛选勾选状态
+        updateCheckStatus(searchSelectValue.value);
+      }
+    };
+
+    // 更新快捷筛选 维度
+    const updateOptionalList = (id: PkgQuickType = 'os_cpu_arch', isTabChange:boolean = false) => {
+      // 获取当前维度的optionList
+      getOptionalList(id, isTabChange);
+      // 此处只需要id，但是传的类型是IPkgQuickOpt，所以设置count为0
+      const allOpt = { id: 'all', name: i18n.t('全部'), isAll: true, count: 0 };
       selectDimensionOptional(allOpt);
     };
 
@@ -180,6 +280,7 @@ export default defineComponent({
     const selectDimensionOptional = (opt: IPkgQuickOpt, type?: string) => {
       if (type === 'click' && opt.id === state.dimensionOptional) return;
       state.dimensionOptional = opt.id;
+      updateQuickOptToSearch();
       getTableData();
     };
 
@@ -211,7 +312,7 @@ export default defineComponent({
         category: 'agent_pkg_manage',
         project: state.active,
       });
-      const multipleKey = ['version', 'tags', 'tag_names'];
+
       searchSelectData.value.splice(0, searchSelectData.value.length, ...list.map(item => ({
         ...item,
         multiable: multipleKey.includes(item.id), // multiple
@@ -225,6 +326,7 @@ export default defineComponent({
         project: state.active,
         page: state.pagetion.current,
         pagesize: state.pagetion.limit,
+        ordering: state.ordering
       };
       if (state.dimensionOptional !== 'all') {
         if (state.dimension === 'os_cpu_arch') {
@@ -252,6 +354,7 @@ export default defineComponent({
         formatTags: row.tags.reduce((arr: IPkgTag[], item) => {
           arr.push(...item.children.map(child => ({
             ...child,
+            tag_name: child.name,
             name: child.description,
             className: item.name === 'builtin' ? child.name : '',
           })));
@@ -282,17 +385,17 @@ export default defineComponent({
       });
     };
     const tableHeight = computed(() =>{
-      return MainStore.windowHeight - 300 - (MainStore.noticeShow ? 40 : 0);
-    })
+      return MainStore.windowHeight - 337 - (MainStore.noticeShow ? 40 : 0);
+    });
     const handlePageChange = (page?: number) => {
       state.pagetion.current = page || 1;
       getTableData();
-    }
+    };
     const handlePageLimitChange = (limit: number) => {
       state.pagetion.current = 1;
       state.pagetion.limit = limit;
       getTableData();
-    }
+    };
     const pagetionChange = (pagetion: { page?: number; pagesize?: number } = {}) => {
       const { page, pagesize } = pagetion;
       Object.assign(state.pagetion, {
@@ -302,20 +405,105 @@ export default defineComponent({
       });
       getTableData();
     };
+    const orderChange = (type: PkgOrderType) => {
+      state.ordering = type;
+      getTableData();
+    };
+
+    // 同步到表头筛选勾选状态
+    const updateCheckStatus = (list: ISearchItem[]) => {
+      searchSelectData.value.forEach((data) => {
+        const item = list.find(item => item.id === data.id);
+        if (data.children) {
+          data.children = data.children.map((child) => {
+            if (!item) {
+              child.checked = false;
+            } else {
+              child.checked = item.values ? item.values.some(value => value.id === child.id) : false;
+            }
+            return child;
+          });
+        }
+      });
+    };
+
+    // 同步到快捷筛选, searchSelectValue.value等同于list
+    const updateQuickSearch = (list: ISearchItem[]) => {
+      if (list.length === 0) {
+        state.dimensionOptional = 'all';
+        return;
+      }
+      // 只更新最新项
+      const item = list[list.length - 1];
+      const dimension = ['version', 'os_cpu_arch'];
+      if (dimension.includes(item.id)) {
+        // 获取当前维度的快捷筛选的optionList
+        getOptionalList(item.id as PkgQuickType);
+        // 更新active项
+        if (!!item.values?.[1]) { // 多条时
+          state.dimensionOptional = 'all';
+        } else {
+          state.dimensionOptional = item.values?.[0].id || '';
+        }
+      }
+    }
+    // 搜索值变更
+    const handleSearchSelectValueChange = (list: ISearchItem[]) => {
+      // 清除非法选项
+      if (list.length >= 1 && list[list.length - 1].id === undefined) {
+        searchSelectValue.value.splice(list.length - 1, 1);
+        return;
+      }
+      // 同步到快捷筛选
+      updateQuickSearch(list);
+      
+      // 同步到表头筛选
+      updateCheckStatus(list);
+      pagetionChange();
+    };
+
+    // 快捷筛选的数据更新时，给搜索栏增加操作系统搜索
+    const insertSysData = () => {
+      const sysData = dimensionList.value.find(item => item.id === 'os_cpu_arch');
+      const sysSearchData: ISearchItem = JSON.parse(JSON.stringify(sysData));
+      sysSearchData.children = sysSearchData.children?.filter(item => item.id !== 'all')
+      sysSearchData.children?.[0] && searchSelectData.value.splice(1, 0, sysSearchData); // 操作系统下拉有值才增加
+      searchSelectData.value?.forEach((item: ISearchItem) => item.children?.forEach((child: ISearchChild) => {
+        child.checked = false;
+      }));
+    };
 
     const updateTabActive = async (type: PkgType = 'gse_agent') => {
+      const isTabChange = state.active !== type;
       if (type !== state.active) {
         searchSelectValue.value.splice(0, searchSelectValue.value.length);
       }
       state.active = type;
-      updateSearchData();
+      // 此处加await等待搜索数据请求，防止insertSysData失效
+      await updateSearchData();
       const list = await AgentStore.apiPkgQuickSearch({ project: type });
-      dimensionList.value.splice(0, dimensionList.value.length, ...list);
-      updateOptionalList();
+      dimensionList.value.splice(0, dimensionList.value.length, ...list.map(item => {
+        if (item.children.length) {
+          
+          let count = 0;
+          item.children.forEach((child) => {
+            if (item.id === 'version') {
+              child.icon = `nc-${child.id.split('_')[0]}`;
+            }
+            count += child.count || 0;
+          });
+          const allOpt = { id: 'all', name: i18n.t('全部'), isAll: true, count };
+          item.children.unshift(allOpt);
+        };
+        return item;
+      }));
+      insertSysData();
+      updateOptionalList('os_cpu_arch', isTabChange);
     };
 
-    const created = () => {
+    const created = async () => {
       updateTabActive();
+      await getDefaultVersion();
     };
     created();
 
@@ -328,15 +516,21 @@ export default defineComponent({
       tableData,
       searchData,
       tableHeight,
+      tagGroup,
+      defaultVersion,
 
+      handleFilterHeaderConfirm,
+      handleFilterHeaderReset,
       toggleUploadShow,
       updateOptionalList,
       selectDimensionOptional,
       updateTabActive,
       getTableData,
       pagetionChange,
+      orderChange,
       handlePageChange,
-      handlePageLimitChange
+      handlePageLimitChange,
+      handleSearchSelectValueChange,
     };
   },
 });
@@ -380,7 +574,12 @@ export default defineComponent({
   flex-direction: column;
   padding: 24px 24px 0;
   overflow: hidden;
-
+  .default_version {
+    height: 17px;
+    font-size: 13px;
+    text-decoration: underline;
+    margin: 0 0 20px 0;
+  }
   .package-search-select {
     flex-shrink: 0;
     margin-bottom: 18px;
@@ -415,14 +614,16 @@ export default defineComponent({
     overflow-x: hidden;
     overflow-y: auto;
   }
+
   .optional-item {
     display: flex;
     align-items: center;
-    padding: 0 16px 0 18px;
     height: 36px;
+    padding: 0 16px 0 18px;
     cursor: pointer;
+    position: relative;
     &:hover {
-      background-color: $bgOptHover;
+      background-color: #F5F7FA;
     }
     &.selected {
       color: $primaryFontColor;
@@ -435,7 +636,18 @@ export default defineComponent({
         background-color: #a3c5fd;
        }
     }
+    /* 全选 行内容区域下划线 */
+    &.is-all::after {
+      content: '';                        /* 伪元素内容为空 */
+      position: absolute;                 /* 绝对定位 */
+      bottom: 0;                          /* 定位到盒子的底部 */
+      left: 18px;                         /* 左边距为内边距宽度 */
+      right: 16px;                        /* 右边距为内边距宽度 */
+      height: 1px;                        /* 边框高度 */
+      background-color: #EAEBF0;      /* 边框颜色 */
+    }
   }
+
   .option-icon-image {
     margin-right: 6px;
     flex-basis: 0;

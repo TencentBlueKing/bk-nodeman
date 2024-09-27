@@ -44,7 +44,7 @@
                       batch: config.getBatch ? config.getBatch.call(_self) : config.batch,
                       isBatchIconShow: !!table.data.length
                         && (config.getBatch ? config.getBatch.call(_self) : config.batch),
-                      type: config.type,
+                      type: getHeadType({}, config),
                       subTitle: config.subTitle,
                       options: getCellInputOptions({}, config),
                       multiple: !!config.multiple,
@@ -55,6 +55,7 @@
                       parentTip: config.parentTip,
                       focusRow: focusRow
                     }"
+                    @chooseVersion="handleChooseVersion"
                     @confirm="handleBatchConfirm(arguments, config)">
                   </TableHeader>
                 </div>
@@ -282,6 +283,28 @@ export default class SetupTable extends Vue {
   private get apList() {
     return this.aps || AgentStore.apList;
   }
+  private pkgVersionList: any = [];
+  // 获取agent包版本
+  private async getPkgVersions() {
+    const {
+      pkg_info,
+    } = await AgentStore.apiGetPkgVersion({
+      project: 'gse_agent',
+      os: '',
+      cpu_arch: ''
+    });
+    const builtinTags = ['stable', 'latest', 'test'];
+    this.pkgVersionList.splice(0, this.pkgVersionList.length, ...pkg_info.map(item => ({
+      ...item,
+      id: item.version,
+      name: item.version,
+      tags: item.tags.filter(tag => builtinTags.includes(tag.name)).map(tag => ({
+        className: tag.name,
+        description: tag.description,
+        name: tag.description,
+      })),
+    })));
+  }
   private get channelList() {
     return AgentStore.channelList;
   }
@@ -314,9 +337,11 @@ export default class SetupTable extends Vue {
 
   private created() {
     this.handleInit();
+    
   }
   private mounted() {
     this.handleScroll();
+    this.getPkgVersions();
     window.addEventListener('resize', this.initTableHead);
   }
   private beforeDestroy() {
@@ -401,6 +426,17 @@ export default class SetupTable extends Vue {
     row.validator = {};
   }
   /**
+   * 获取表头类型
+   * @param {Object} row 当前行
+   * @param {Object} config 当前配置项
+   */
+  private getHeadType(row: ISetupRow, config: ISetupHead): string {
+    if (config.prop === 'version' && config.batch) {
+      return 'version';
+    }
+    return config.type;
+  }
+  /**
    * 获取select框的options数据
    * @param {Object} row 当前行
    * @param {Object} config 当前配置项
@@ -413,6 +449,8 @@ export default class SetupTable extends Vue {
       }));
     } if (config.type === 'select') {
       return config.getOptions ? config.getOptions.call(this, row) : config.options;
+    } if (config.prop === 'version') {
+      return this.pkgVersionList;
     }
     return [];
   }
@@ -865,6 +903,14 @@ export default class SetupTable extends Vue {
       return this.handleTrimArray(val.split(splitCode as string)) || [];
     }
     return [];
+  }
+  /**
+   * 单独处理agent版本选择
+   */
+  private handleChooseVersion(version: string) {
+    this.table.data.forEach((row) => {
+      row.version = version;
+    });
   }
   /**
    * 批量编辑确定事件

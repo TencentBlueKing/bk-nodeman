@@ -31,6 +31,7 @@ from apps.node_man.handlers.ap import APHandler
 from apps.node_man.handlers.cloud import CloudHandler
 from apps.node_man.handlers.cmdb import CmdbHandler
 from apps.node_man.handlers.host import HostHandler
+from apps.node_man.handlers.install_channel import InstallChannelHandler
 from apps.node_man.tools import JobTools
 from apps.utils import APIModel
 from apps.utils.basic import filter_values, to_int_or_default
@@ -286,6 +287,10 @@ class JobHandler(APIModel):
             host["ticket"] = ticket
             if host.get("ap_id"):
                 ap_ids.add(host["ap_id"])
+            install_channel_id = host.get("install_channel_id")
+            if install_channel_id == constants.DEFAULT_INSTALL_CHANNEL_ID and host.get("inner_ip"):
+                install_channel_id = InstallChannelHandler.judge_install_channel(host["inner_ip"])
+                host["install_channel_id"] = install_channel_id
 
         # 如果混合了【手动安装】，【自动安装】则不允许通过
         # 此处暂不合入 job validator.

@@ -1,7 +1,6 @@
 <template>
   <bk-sideslider
     transfer
-    quick-close
     :is-show="show"
     :width="960"
     :title="$t('包上传')"
@@ -57,34 +56,38 @@
             </template>
           </Upload>
         </div>
-        <div class="parseLoading" v-bkloading="{ isLoading: parseLoading }">
-          <template v-if="pkgParseSucc">
-            <div class="upload-result">
-              <p class="upload-item-title">{{ $t('结果预览') }}</p>
-              <bk-table class="pkg-manage-table pkg-parse-table" col-border :data="tableData">
-                <NmColumn :label="$t('包名')" prop="pkg_name" width="260" />
-                <NmColumn :label="$t('操作系统架构')" prop="sys" width="160">
-                  <template #default="{ row }">
-                    {{ `${row.os}_${row.cpu_arch}` }}
-                  </template>
-                </NmColumn>
-                <NmColumn :label="$t('包类型')" prop="project" width="120">
-                  <template #default="{ row }">
-                    {{ pkgType[row.project] }}
-                  </template>
-                </NmColumn>
-                <NmColumn :label="$t('标签信息')" prop="tags" :show-overflow-tooltip="false" :render-header="editTheadRender">
-                  <FlexibleTag :list="tagsDisplay" />
-                </NmColumn>
-              </bk-table>
-            </div>
-            <div class="upload-table">
-              <p class="upload-item-title">{{ $t('描述') }}</p>
-              <!-- 文本和标签不要换行 -->
-              <pre class="upload-package-desc" v-bk-tooltips="$t('从包中解析的描述文本，不可修改')">{{ pkgDesc }}</pre>
-            </div>
-          </template>
-        </div>
+        <div class="parseLoading" v-bkloading="{ isLoading: parseLoading }" v-show="parseLoading"></div>
+        <template v-if="pkgParseSucc">
+          <div class="upload-result">
+            <p class="upload-item-title">{{ $t('结果预览') }}</p>
+            <bk-table class="pkg-manage-table pkg-parse-table" col-border :data="tableData">
+              <NmColumn :label="$t('包名')" prop="pkg_name" width="260">
+                <template #default="{ row }">
+                  <span class="disabled" v-bk-tooltips="$t('解析字段不可修改')">{{ row.pkg_name }}</span>
+                </template>
+              </NmColumn>
+              <NmColumn :label="$t('操作系统架构')" prop="sys" width="160" >
+                <template #default="{ row }">
+                  <span class="disabled" v-bk-tooltips="$t('解析字段不可修改')">{{ `${row.os}_${row.cpu_arch}` }}</span>
+                </template>
+              </NmColumn>
+              <NmColumn :label="$t('包类型')" prop="project" width="120">
+                <template #default="{ row }">
+                  <span class="disabled" v-bk-tooltips="$t('解析字段不可修改')">{{ pkgType[row.project] }}</span>
+                </template>
+              </NmColumn>
+              <NmColumn :label="$t('标签信息')" prop="tags" :show-overflow-tooltip="false" :render-header="editTheadRender">
+                <FlexibleTag :list="tagsDisplay" />
+              </NmColumn>
+            </bk-table>
+          </div>
+          <div class="upload-table">
+            <p class="upload-item-title">{{ $t('描述') }}</p>
+            <!-- 文本和标签不要换行 -->
+            <pre class="upload-package-desc" v-bk-tooltips="$t('从包中解析的描述文本，不可修改')">{{ pkgDesc }}</pre>
+          </div>
+        </template>
+
       </section>
       <div class="upload-footer mt32">
         <bk-popover :disabled="pkgUploaded" :content="$t('请先上传包文件')">
@@ -100,18 +103,21 @@
 <script lang="ts">
 import i18n from '@/setup';
 import { AgentStore } from '@/store';
-import { defineComponent, getCurrentInstance, reactive, ref, Ref, toRefs, watch, inject, CreateElement, PropType } from 'vue';
+import { defineComponent, getCurrentInstance, reactive, ref, Ref, toRefs, watch, inject, CreateElement, PropType, computed } from 'vue';
 import cookie from 'cookie';
 import Upload from '@/components/common/upload.vue';
 import FlexibleTag from '@/components/common/flexible-tag.vue';
 import PkgThead from './PkgThead.vue';
-import { IPkgParseInfo, PkgType } from '@/types/agent/pkg-manage';
+import { IPkgParseInfo, PkgType, IPkgTagOpt } from '@/types/agent/pkg-manage';
 import { IBkColumn, ISearchItem } from '@/types';
+
 
 interface IUploadInfo {
   id: number;
   name: string;
   pkg_size: string;
+  file_name: string;
+  md5: string;
 }
 
 export default defineComponent({
@@ -134,9 +140,11 @@ export default defineComponent({
     const { proxy } = (getCurrentInstance() || {});
     const pkgUploadRef = ref<any>();
 
+    const isActiveId = ref<Number>(-1);
     const tagGroup = inject<Ref<ISearchItem[]>>('tagGroup');
     const tagsMap = inject<Ref<{ [k: string]: string }>>('tagsMap');
 
+    const tagsList = computed(() => tagGroup?.value || []);
     const state = reactive({
       baseUrl: `${window.PROJECT_CONFIG.SITE_URL}${AJAX_URL_PREFIX}`,
       uploadHeader: [
@@ -177,6 +185,8 @@ export default defineComponent({
     const handleUploadSuccess = (res: { code: number; result?: boolean; data: IUploadInfo }) => {
       state.pkgLoading = false;
       if (res.code === 3800002) { // result === false
+        state.pkgFileName = res.data.file_name;    // 同名包 包名
+        state.pkgFileMd5 = res.data.md5; //同名包 MD5
         state.pckWarning = 'before';
         return;
       }
@@ -285,21 +295,26 @@ export default defineComponent({
           label,
           type: '',
           batch: true,
+          active: props.active,
           options: tagGroup?.value || [],
           moduleValue: selectedTags.value,
         },
         on: {
           confirm: ({ value }: { value: string[] }) => {
-            selectedTags.value.splice(0, selectedTags.value.length, ...value);
-            tagsDisplay.value.splice(0, tagsDisplay.value.length, ...value
-              .map(id =>  ({
-                id,
-                name: tagsMap?.value[id] || id,
-                className: tagsMap?.value[`${id}_class`],
-              })));
+            deelTags(value);
           },
         },
       });
+    };
+
+    const deelTags = (value: string[]) => {
+      selectedTags.value.splice(0, selectedTags.value.length, ...value);
+      tagsDisplay.value.splice(0, tagsDisplay.value.length, ...value
+        .map(id =>  ({
+          id,
+          name: tagsMap?.value[id] || id,
+          className: tagsMap?.value[`${id}_class`],
+        })));
     };
 
     watch(() => props.show, (isShow) => {
@@ -321,6 +336,11 @@ export default defineComponent({
     // state.pckWarning = '';
     // state.pkgUploaded = true;
     // parsePkg();
+    const tagTpl = (opt: IPkgTagOpt) => proxy?.$createElement('div', {
+      class: `tag ${opt.className}`,
+    }, [
+        proxy?.$createElement('span', { class: 'text' }, opt.name),
+    ]);
 
     return {
       pkgUploadRef,
@@ -331,6 +351,9 @@ export default defineComponent({
       tableData,
       selectedTags,
       tagsDisplay,
+      tagTpl,
+      tagsList,
+      isActiveId,
 
       handleToggle,
       handleUploadSuccess,
@@ -347,7 +370,7 @@ export default defineComponent({
 @import "@/css/variable.css";
 
 .package-upload {
-  height: calc(100vh - 108px);
+  max-height: calc(100vh - 108px); /* 设置最大高度,让底部按钮跟随*/
   padding: 30px 40px;
   overflow-y: auto;
 
@@ -356,10 +379,7 @@ export default defineComponent({
   }
 
   .parseLoading {
-    height: 600px;
-    top: 40%;
-    left: 50%;
-    transform: translate(-50%, -50%)
+    height: 100px; /* 加载动画,相对定位,只需要设置100高度*/
   }
 
   .upload-conflict {
@@ -396,12 +416,15 @@ export default defineComponent({
     }
     td {
       background-color: #fafbfd;
-      &:last-child {
+      &.noEmpty{
         background-color: #fff;
       }
     }
   }
 
+  .disabled{
+    cursor: not-allowed;
+  }
 }
 
 .upload-footer {
