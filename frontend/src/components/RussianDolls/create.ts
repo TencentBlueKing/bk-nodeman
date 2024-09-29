@@ -7,6 +7,7 @@ interface IItem {
   required: boolean;
   description: string;
   property: string;
+  prop: string;
   default: any;
   isAdd: boolean;
   'ui:component': {
@@ -123,9 +124,9 @@ export function getConvertible(schema: IItem) {
 
 export const getRealProp = (parentProp?: string, prop: string): string => (parentProp ? `${parentProp}.${prop}` : prop);
 
-export function formatSchema(schema: IItem, parentProp = '', level = 0): Doll {
+export function formatSchema(schema: IItem, parentProp = '', level = 0, key?: string): Doll {
   const { type = 'string', properties = {} } = schema;
-  const prop = schema.prop || schema.title;
+  const prop = key ? key : schema.prop || schema.title;
   const property = parentProp ? `${parentProp}.${prop}` : prop;
   // console.log(parentProp, '+', prop, '=', property);
   const baseItem: Doll = {
@@ -162,7 +163,7 @@ export function formatSchema(schema: IItem, parentProp = '', level = 0): Doll {
       baseItem.children = [formatSchema(schema.items || {}, `${property}`, newLevel)];
       // properties = schema.items || {}
     } else {
-      baseItem.children = Object.keys(properties).map(key => formatSchema(Object.assign({ title: key }, { ...properties[key] }), `${property}`, newLevel));
+      baseItem.children = Object.keys(properties).map(key => formatSchema(Object.assign({ title: key }, { ...properties[key] }), `${property}`, newLevel, key));
     }
     // console.log(property, 'cccccccc');
   }
