@@ -217,7 +217,8 @@ class CmdbHandler(APIModel):
         user_page_topology_cache = cache.get(username + "_" + str(biz_host_id_map) + "_topo_cache")
 
         if user_page_topology_cache:
-            # 如果存在缓存则返回
+            # 如果存在缓存则返回,缓存读出来的key为str，适配后续逻辑转化成整型
+            user_page_topology_cache = {int(key): value for key, value in user_page_topology_cache.items()}
             return user_page_topology_cache
         else:
             # 缓存已过期，重新获取
