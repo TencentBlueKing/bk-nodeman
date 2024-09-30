@@ -59,6 +59,7 @@ GSE_SVR_DISCOVERY_INTERVAL = 1 * TimeUnit.MINUTE
 COLLECT_AUTO_TRIGGER_JOB_INTERVAL = 5 * TimeUnit.MINUTE
 SYNC_CMDB_CLOUD_AREA_INTERVAL = 10 * TimeUnit.SECOND
 SYNC_AGENT_STATUS_TASK_INTERVAL = 10 * TimeUnit.MINUTE
+SYNC_ISP_TO_CMDB_INTERVAL = 1 * TimeUnit.DAY
 SYNC_PROC_STATUS_TASK_INTERVAL = settings.SYNC_PROC_STATUS_TASK_INTERVAL
 SYNC_BIZ_TO_GRAY_SCOPE_LIST_INTERVAL = 30 * TimeUnit.MINUTE
 
@@ -567,6 +568,7 @@ QUERY_CMDB_MODULE_LIMIT = 500
 QUERY_CLOUD_LIMIT = 200
 QUERY_HOST_SERVICE_TEMPLATE_LIMIT = 200
 QUERY_MODULE_ID_THRESHOLD = 15
+UPDATE_CMDB_CLOUD_AREA_LIMIT = 50
 VERSION_PATTERN = re.compile(r"[vV]?(\d+\.){1,5}\d+(-rc\d)?$")
 # 语义化版本正则，参考：https://semver.org/#is-there-a-suggested-regular-expression-regex-to-check-a-semver-string
 SEMANTIC_VERSION_PATTERN = re.compile(
@@ -603,6 +605,25 @@ REDIS_NEED_DELETE_HOST_IDS_KEY_TPL = f"{settings.APP_CODE}:node_man:need_delete_
 MAX_HOST_IDS_LENGTH = 5000
 # 操作系统对应账户名
 OS_ACCOUNT = {"LINUX": LINUX_ACCOUNT, "WINDOWS": WINDOWS_ACCOUNT}
+# NODEMAN云服务商对应CMDB接口云服务商映射
+CMDB_CLOUD_VENDOR_MAP = {
+    "Amazon": "1",
+    "Tencent": "2",
+    "Google": "3",
+    "MicroSoft": "4",
+    "PrivateCloud": "5",
+    "SalesForce": "6",
+    "Oracle": "7",
+    "IBM": "8",
+    "Aliyun": "9",
+    "ECloud": "10",
+    "UCloud": "11",
+    "MOS": "12",
+    "KSCLOUD": "13",
+    "baidu": "14",
+    "huawei": "15",
+    "capitalonline": "16",
+}
 
 
 class ProxyFileFromType(Enum):
