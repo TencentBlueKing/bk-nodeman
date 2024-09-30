@@ -190,3 +190,25 @@ class Agent2StepAdapterTestCase(AgentStepAdapterTestCase):
         config: str = self.get_config(self.agent_step_adapter.get_main_config_filename())
         self.assertTrue('"bind_ip": "::"' in config)
         self.assertTrue('"enable_compression": false' in config)
+
+
+class Agent2GenerateConfigTestCase(Agent2StepAdapterTestCase):
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
+
+    def test_get_config(self):
+        # 使用主机的区域ID和城市ID
+        self.host = models.Host.objects.get(bk_host_id=common_unit.host.DEFAULT_HOST_ID)
+        self.host.bk_idc_area_id = common_unit.host.DEFAULT_HOST_ID
+        self.host.idc_city_id = str(common_unit.host.DEFAULT_HOST_ID)
+        config: str = self.get_config(self.agent_step_adapter.get_main_config_filename())
+        self.assertTrue('"zone_id": "1"' in config)
+        self.assertTrue('"city_id": "1"' in config)
+
+        # 使用接入点的区域ID和城市ID
+        self.host.bk_idc_area_id = None
+        self.host.idc_city_id = ""
+        config: str = self.get_config(self.agent_step_adapter.get_main_config_filename())
+        self.assertTrue('"zone_id": "test"' in config)
+        self.assertTrue('"city_id": "test"' in config)
