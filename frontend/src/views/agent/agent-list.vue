@@ -1873,7 +1873,7 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
       const versions:string[] = data.filter(item => !!item.version).map(item => item.version) || [];
       this.versionsDialog.show = true;
       this.versionsDialog.versions = versions;
-      this.versionsDialog.title = `${this.$t('确认 Agent 升级版本')}`;
+      this.versionsDialog.title = `${this.$t('确认Agent目标版本')}`;
       this.versionsDialog.type = 'unified';
       this.versionsDialog.operate = 'UPGRADE_AGENT';
       return;

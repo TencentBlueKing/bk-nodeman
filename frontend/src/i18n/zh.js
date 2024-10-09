@@ -306,6 +306,7 @@ export default {
   卸载lower: '卸载',
   升级lower: '升级',
   移除lower: '移除',
+  确认Agent目标版本: '确认 Agent 目标版本',
   请确认是否操作: '请确认是否{type}？',
   请确认是否批量操作: '请确认是否批量{type}？',
   单条确认操作提示: '{type} {ip} 的Agent{suffix}',

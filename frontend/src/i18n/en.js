@@ -304,6 +304,7 @@ export default {
   卸载lower: 'uninstall',
   升级lower: 'upgrade',
   移除lower: 'remove',
+  确认Agent目标版本: 'Confirm Agent Target Version',
   请确认是否操作: 'Please confirm whether to {type}?',
   请确认是否批量操作: 'Please confirm whether to {type} in batch?',
   单条确认操作提示: '{type} {ip} Agent{suffix}',

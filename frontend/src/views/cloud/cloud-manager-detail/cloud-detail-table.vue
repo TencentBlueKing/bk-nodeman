@@ -348,7 +348,7 @@ export default class CloudDetailTable extends Vue {
     // { id: 'remove', name: this.$t('移除'), disabled: false, show: true },
     { id: 'reboot', name: this.$t('重启'), disabled: false, show: true },
     { id: 'reload', name: this.$t('重载配置'), disabled: false, show: true },
-    { id: 'upgrade', name: this.$t('升级'), disabled: false, show: true },
+    { id: 'upgrade', name: this.$t('升级回退'), disabled: false, show: true },
     { id: 'log', name: this.$t('最新执行日志'), disabled: false, show: true },
   ];
   public versionsDialog = {

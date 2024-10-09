@@ -498,7 +498,7 @@ export default defineComponent({
         return item;
       }));
       insertSysData();
-      updateOptionalList('os_cpu_arch', isTabChange);
+      updateOptionalList('version', isTabChange);
     };
 
     const created = async () => {
@@ -579,6 +579,7 @@ export default defineComponent({
     font-size: 13px;
     text-decoration: underline;
     margin: 0 0 20px 0;
+    cursor: pointer;
   }
   .package-search-select {
     flex-shrink: 0;
