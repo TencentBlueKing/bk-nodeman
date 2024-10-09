@@ -1,5 +1,5 @@
 <template>
-  <div class="rule-create" v-test.policy="'policyProcess'">
+  <div class="rule-create" v-test.policy="'policyProcess'" :class="{'hasNoticeHeight': hasNotice, 'noNoticeHeight': !hasNotice}">
     <div :class="[isPolicyOperate ? '' : 'header']">
       <div class="page-header">
         <span class="content-icon">
@@ -68,6 +68,7 @@ import FormLabelMixin from '@/common/form-label-mixin';
 import { TranslateResult } from 'vue-i18n';
 import { pluginOperate, previewOperate, policyOperateType, stepOperate } from '@/views/plugin/operateConfig';
 import { IStep, IStrategy } from '@/types/plugin/plugin-type';
+import { MainStore } from '@/store';
 
 const formatStepMap: { [key: string]: IStep[] } = {};
 Object.keys(stepMap).forEach((key) => {
@@ -135,6 +136,9 @@ export default class CreateRule extends Mixins(routerBackMixin, FormLabelMixin) 
   }
   private get isPolicyOperate() {
     return policyOperateType.includes(this.type);
+  }
+  private get hasNotice() {
+    return MainStore.noticeShow;
   }
   private get isPluginRule() {
     return PluginStore.isPluginRule;
@@ -366,7 +370,12 @@ export default class CreateRule extends Mixins(routerBackMixin, FormLabelMixin) 
 </script>
 <style lang="postcss" scoped>
 .rule-create {
-  height: calc(100vh - 52px);
+  &.hasNoticeHeight {
+    height: calc(100vh - 92px);
+  }
+  &.noNoticeHeight {
+    height: calc(100vh - 52px);
+  }
 }
 $bgColor: #f5f7fa;
 
