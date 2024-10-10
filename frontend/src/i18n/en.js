@@ -1131,7 +1131,7 @@ export default {
   // agent包管理
   统一填充: 'Fill in uniformly',
   包上传: 'Package upload',
-  '默认升级/安装版本': 'Default upgrade/install version: {0}',
+  '默认升级/安装版本': 'Default upgrade/install version',
   '通过修改“稳定版本”标签来指定': 'Specify by modifying the "stable version" tag',
   快捷筛选: 'Quick filter',
   维度: 'Dimension',
