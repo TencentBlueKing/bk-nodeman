@@ -167,6 +167,7 @@ export default {
   已选IP: 'Selected {0} IP addresses',
   升级IP: '{0} upgrades',
   回退IP: '{0} rollbacks',
+  已是目标版本Ip: '{0} already the target version',
   全部: 'All',
   复制IPv4: 'Copy IPv4',
   复制IPv6: 'Copy IPv6',

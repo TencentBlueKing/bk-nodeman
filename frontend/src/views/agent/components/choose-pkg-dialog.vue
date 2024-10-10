@@ -22,6 +22,9 @@
           <i18n path="回退IP" class="IP-selection">
             <span class="selection-num">，{{ rollbacks }}</span>
           </i18n>
+          <i18n path="已是目标版本Ip" class="IP-selection">
+            <span class="selection-num">，{{ nochanges }}</span>
+          </i18n>
         </template>
       </span>
       <span v-if="operate === 'reinstall_batch'">
@@ -164,6 +167,7 @@ export default defineComponent({
     const num = ref(0);
     const upgrades = ref(0);
     const rollbacks = ref(0);
+    const nochanges = ref(0);
     const getPkgVersions = async () => {
       const {
         default_version,
@@ -249,6 +253,7 @@ export default defineComponent({
       });
       upgrades.value = upgrade_count;
       rollbacks.value = downgrade_count;
+      nochanges.value = no_change_count;
     }
   
     watch(() => props.value, async (val: boolean) => {
@@ -292,6 +297,7 @@ export default defineComponent({
       num,
       upgrades,
       rollbacks,
+      nochanges,
       selectedRowRef,
       loading,
       tableData,
