@@ -10,6 +10,11 @@
     </section>
 
     <section class="package-manage-body">
+      <div class="default_version">
+        <i18n path="默认升级/安装版本" tag="span" v-bk-tooltips.right="$t('通过修改“稳定版本”标签来指定')">
+          <span>{{ defaultVersion }}</span>
+        </i18n>
+      </div>
       <bk-search-select
         ref="searchSelect"
         ext-cls="package-search-select"
@@ -213,10 +218,19 @@ export default defineComponent({
       state.uploadShow = !state.uploadShow;
     };
 
+    const defaultVersion = ref<string>('');
+    const getDefaultVersion = async () => {
+      const { default_version } = await AgentStore.apiGetPkgVersion({
+        project: 'gse_agent',
+        os: '',
+        cpu_arch: ''
+      });
+      defaultVersion.value = default_version;
+    };
     // 更新快捷筛选列表
-    const getOptionalList = (id: PkgQuickType = 'os_cpu_arch') => {
-      // 维度不变且不是第一次获取快捷筛选列表则无需更新
-      if(state.dimension === id && dimensionOptionalList.value.length > 0) return;
+    const getOptionalList = (id: PkgQuickType = 'os_cpu_arch',isTabChange:boolean = false) => {
+      // 维度不变且不是第一次获取快捷筛选列表则无需更新且不是切换tab
+      if(state.dimension === id && dimensionOptionalList.value.length > 0 && !isTabChange) return;
       state.dimension = id;
       const { children = [] } = dimensionList.value.find(item => item.id === id) || {};
       
@@ -254,9 +268,9 @@ export default defineComponent({
     };
 
     // 更新快捷筛选 维度
-    const updateOptionalList = (id: PkgQuickType = 'os_cpu_arch') => {
+    const updateOptionalList = (id: PkgQuickType = 'os_cpu_arch', isTabChange:boolean = false) => {
       // 获取当前维度的optionList
-      getOptionalList(id);
+      getOptionalList(id, isTabChange);
       // 此处只需要id，但是传的类型是IPkgQuickOpt，所以设置count为0
       const allOpt = { id: 'all', name: i18n.t('全部'), isAll: true, count: 0 };
       selectDimensionOptional(allOpt);
@@ -371,7 +385,7 @@ export default defineComponent({
       });
     };
     const tableHeight = computed(() =>{
-      return MainStore.windowHeight - 300 - (MainStore.noticeShow ? 40 : 0);
+      return MainStore.windowHeight - 337 - (MainStore.noticeShow ? 40 : 0);
     });
     const handlePageChange = (page?: number) => {
       state.pagetion.current = page || 1;
@@ -460,6 +474,7 @@ export default defineComponent({
     };
 
     const updateTabActive = async (type: PkgType = 'gse_agent') => {
+      const isTabChange = state.active !== type;
       if (type !== state.active) {
         searchSelectValue.value.splice(0, searchSelectValue.value.length);
       }
@@ -483,11 +498,12 @@ export default defineComponent({
         return item;
       }));
       insertSysData();
-      updateOptionalList();
+      updateOptionalList('version', isTabChange);
     };
 
-    const created = () => {
+    const created = async () => {
       updateTabActive();
+      await getDefaultVersion();
     };
     created();
 
@@ -501,6 +517,7 @@ export default defineComponent({
       searchData,
       tableHeight,
       tagGroup,
+      defaultVersion,
 
       handleFilterHeaderConfirm,
       handleFilterHeaderReset,
@@ -557,7 +574,13 @@ export default defineComponent({
   flex-direction: column;
   padding: 24px 24px 0;
   overflow: hidden;
-
+  .default_version {
+    height: 17px;
+    font-size: 13px;
+    text-decoration: underline;
+    margin: 0 0 20px 0;
+    cursor: pointer;
+  }
   .package-search-select {
     flex-shrink: 0;
     margin-bottom: 18px;

@@ -15,8 +15,20 @@
         <i18n path="已选IP" class="IP-selection">
           <span class="selection-num">{{ num }}</span>
         </i18n>
+        <template v-if="selectedVersion">
+          <i18n path="升级IP" class="IP-selection">
+            <span class="selection-num">，{{ upgrades }}</span>
+          </i18n>
+          <i18n path="回退IP" class="IP-selection">
+            <span class="selection-num">，{{ rollbacks }}</span>
+          </i18n>
+        </template>
       </span>
-      
+      <span v-if="operate === 'reinstall_batch'">
+        <i18n path="批量编辑Agent" class="batchEdit">
+          <span class="batchSupportOs">{{ allOsVersions }}</span>
+        </i18n>
+      </span>
     </template>
     <div class="pkg-version-wrapper">
       <ul class="os-list" v-if="showOs">
@@ -149,8 +161,9 @@ export default defineComponent({
     // 当前传入的最高版本
     const currentLatestVersion = ref('');
     
-    const num = props.versions.length;
-    console.log("🚀 ~ setup ~ props.versions:", props.versions)
+    const num = ref(0);
+    const upgrades = ref(0);
+    const rollbacks = ref(0);
     const getPkgVersions = async () => {
       const {
         default_version,
@@ -196,7 +209,6 @@ export default defineComponent({
 
     // 参考 部署策略 - 选择插件版本
     const handleRowClass = ({ row }: {row: IPkgVersion}) => {
-      console.log("🚀 ~ handleRowClass ~ row:", row)
       if (row.disabled) {
         return 'row-disabled';
       }
@@ -205,26 +217,59 @@ export default defineComponent({
       }
     };
 
-    const handleRowClick = (row: IPkgVersion) => {
+    const handleRowClick = async (row: IPkgVersion) => {
       if (!row.disabled) {
         selectedRow.value = row;
         selectedVersion.value = row.version as string;
         markdown.value = row.description;
+        await getCompareVersion(row.version);
       }
     };
+    const allOsVersions = ref('');
+    const getOs = async () => {
+      const list = await AgentStore.apiPkgQuickSearch({ project: 'gse_agent' });
+      const osVersions = (list.find(item => item.id === 'os_cpu_arch')?.children || []).reduce((acc, item) => {
+        const [os] = item.id.split('_');
+        const system = os.charAt(0).toUpperCase() + os.slice(1);
+        !acc.includes(system) && acc.push(system);
+        return acc;
+      }, [] as string[]);
+      allOsVersions.value = osVersions.join('、');
+    }
 
+    const getCompareVersion = async (version: string) => {
+      if(props.operate !== 'UPGRADE_AGENT') return;
+      const {
+        upgrade_count,
+        downgrade_count,
+        no_change_count
+      } = await AgentStore.apiVersionCompare({
+        current_version: version,
+        version_to_compares: props.versions,
+      });
+      upgrades.value = upgrade_count;
+      rollbacks.value = downgrade_count;
+    }
+  
     watch(() => props.value, async (val: boolean) => {
       // val dialog显示隐藏
       if (val) {
+        props.operate === 'reinstall_batch' && await getOs();
+        num.value = props.versions.length;
         if (lastOs.value !== `${props.osType}_${props.cpuArch}`) {
           loading.value = true;
           selectedRow.value = null;
           await getPkgVersions();
         }
-        const selected = props.version ? tableData.value.find(row => row.version === props.version) || null : null;
-        selected && handleRowClick(selected);
+        const selected = props.versions.length >= 1 ? tableData.value.find(row => row.version === props.versions[0]) || null : null;
+        if(selected) {
+          handleRowClick(selected);
+        } else {
+          selectedVersion.value = '';
+          selectedRow.value = null;
+        }
         // 默认选中default_version,已经选过有props.version的就不默认了
-        props.version === '' && defaultVersion && tableData.value.forEach(row=>{
+        props.versions.length === 0 && defaultVersion && tableData.value.forEach(row=>{
           row.version === defaultVersion.value && handleRowClick(row)
         });
         props.operate === 'UPGRADE_AGENT' && tableData.value.forEach(row=>{
@@ -232,8 +277,8 @@ export default defineComponent({
         });
       } else {
         lastOs.value = `${props.osType}_${props.cpuArch}`;
-        selectedVersion.value = props.version;
-        selectedRow.value = tableData.value.find(row => row.version === props.version) || null;
+        selectedVersion.value = props.versions[0] || '';
+        selectedRow.value = tableData.value.find(row => row.version === props.versions[0]) || null;
         if (selectedRow.value) {
           nextTick(() => {
             selectedRowRef.value?.$el.scrollIntoView();
@@ -245,12 +290,15 @@ export default defineComponent({
     return {
       ...toRefs(props),
       num,
+      upgrades,
+      rollbacks,
       selectedRowRef,
       loading,
       tableData,
       selectedVersion,
       selectedRow,
       markdown,
+      allOsVersions,
       handleConfirm,
       handleCancel,
       handleRowClass,
@@ -279,7 +327,12 @@ span.subTitle:before {
     margin: 0 3px;
   }
 }
-
+.batchEdit {
+  color: #979BA5;
+  font-size: 14px;
+  margin-left: 29px;
+  letter-spacing: 0.5px;
+}
 .pkg-version-wrapper {
   display: flex;
   height: 490px;
