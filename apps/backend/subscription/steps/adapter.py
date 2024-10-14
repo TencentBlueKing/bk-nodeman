@@ -23,6 +23,7 @@ from apps.core.tag.constants import TargetType
 from apps.core.tag.models import Tag
 from apps.core.tag.targets.plugin import PluginTargetHelper
 from apps.node_man import constants, models
+from apps.node_man.constants import CPU_TUPLE, PLUGIN_OS_TUPLE
 
 logger = logging.getLogger("app")
 
@@ -281,6 +282,30 @@ class PolicyStepAdapter:
                 os_cpu__max_id_map[os_key] = item["id"]
         return list(os_cpu__max_id_map.values())
 
+    def get_latest_package_ids(self, plugin_name: str, plugin_version: str):
+        # 先获取所有的 package
+        all_packages = models.Packages.objects.filter(project=plugin_name).values("id", "os", "cpu_arch", "version")
+        version_packages = {pkg["id"]: pkg for pkg in all_packages if pkg["version"] == plugin_version}
+
+        package_ids = set(version_packages.keys())
+
+        # 获取所有的 OS 和 CPU 架构组合
+        for os in PLUGIN_OS_TUPLE:
+            for cpu_arch in CPU_TUPLE:
+                # 使用any函数来检查是否存在特定的os和cpu_arch组合，避免了多次查询
+                if not any(
+                    pkg["os"] == os and pkg["cpu_arch"] == cpu_arch
+                    for pkg in all_packages
+                    if pkg["version"] == plugin_version
+                ):
+                    # 查找该 OS 和 CPU 架构的最大 ID
+                    max_pkg_ids: List[int] = self.max_ids_by_key(
+                        [pkg for pkg in all_packages if pkg["os"] == os and pkg["cpu_arch"] == cpu_arch]
+                    )
+                    package_ids.update(max_pkg_ids)
+
+        return list(package_ids)
+
     def format2policy_packages_new(
         self, plugin_id: int, plugin_name: str, plugin_version: str, config_templates: List[Dict[str, Any]]
     ) -> List[Dict[str, Any]]:
@@ -291,7 +316,8 @@ class PolicyStepAdapter:
 
         if plugin_version != latest_flag or is_tag:
             # 如果 latest 是 tag，走取指定版本的逻辑
-            packages = models.Packages.objects.filter(project=plugin_name, version=plugin_version)
+            pkg_ids = self.get_latest_package_ids(plugin_name, plugin_version)
+            packages = models.Packages.objects.filter(id__in=pkg_ids)
         else:
             max_pkg_ids: List[int] = self.max_ids_by_key(
                 list(models.Packages.objects.filter(project=plugin_name).values("id", "os", "cpu_arch"))
