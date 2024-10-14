@@ -16,6 +16,7 @@ from typing import Any, Dict, List, Union
 
 from django.db.models import Max, Subquery, Value
 from django.utils.translation import ugettext as _
+from packaging import version
 from rest_framework import exceptions, serializers
 
 from apps.backend.subscription import errors
@@ -117,7 +118,7 @@ class PolicyStepAdapter:
     def config(self) -> OrderedDict:
         if hasattr(self, "_config") and self._config:
             return self._config
-        policy_config = self.format2policy_config(self.subscription_step.config)
+        policy_config = self.format2policy_config(self.subscription_step.config, self.subscription.bk_biz_id)
 
         # 处理同名配置模板，取最新版本
         for selected_pkg_info in policy_config["details"]:
@@ -281,22 +282,91 @@ class PolicyStepAdapter:
                 os_cpu__max_id_map[os_key] = item["id"]
         return list(os_cpu__max_id_map.values())
 
+    def get_packages(self, plugin_name: str, plugin_version: str):
+        # 先获取所有的 package
+        all_packages = models.Packages.objects.filter(project=plugin_name).values("id", "os", "cpu_arch", "version")
+        version_packages = {pkg["id"]: pkg for pkg in all_packages if pkg["version"] == plugin_version}
+        package_ids = set(version_packages.keys())
+        # 获取所有的 OS 和 CPU 架构组合
+        for os in constants.PLUGIN_OS_TUPLE:
+            for cpu_arch in constants.CPU_TUPLE:
+                # 使用 any 函数来检查是否存在特定的 os 和 cpu_arch 组合，避免了多次查询
+                if not any(
+                    pkg["os"] == os and pkg["cpu_arch"] == cpu_arch
+                    for pkg in all_packages
+                    if pkg["version"] == plugin_version
+                ):
+                    # 查找该 OS 和 CPU 架构的最大 ID
+                    max_pkg_ids: List[int] = self.max_ids_by_key(
+                        [pkg for pkg in all_packages if pkg["os"] == os and pkg["cpu_arch"] == cpu_arch]
+                    )
+                    # package = all_packages.get(max_pkg_ids[0])
+                    # if biz_plugin_version:
+                    #     if package["version"] > biz_plugin_version:
+                    #         package_ids.update(max_pkg_ids)
+                    #     else:
+                    #         continue
+                    # else:
+                    package_ids.update(max_pkg_ids)
+        packages = models.Packages.objects.filter(id__in=package_ids)
+        return packages
+
     def format2policy_packages_new(
-        self, plugin_id: int, plugin_name: str, plugin_version: str, config_templates: List[Dict[str, Any]]
+        self,
+        plugin_id: int,
+        plugin_name: str,
+        plugin_version: str,
+        config_templates: List[Dict[str, Any]],
+        bk_biz_id: int,
     ) -> List[Dict[str, Any]]:
         latest_flag: str = "latest"
-        is_tag: bool = Tag.objects.filter(
+        stable_flag: str = "stable"
+        is_latest_tag: bool = Tag.objects.filter(
             target_id=plugin_id, name=latest_flag, target_type=TargetType.PLUGIN.value
         ).exists()
-
-        if plugin_version != latest_flag or is_tag:
-            # 如果 latest 是 tag，走取指定版本的逻辑
-            packages = models.Packages.objects.filter(project=plugin_name, version=plugin_version)
+        is_stable_tag: bool = Tag.objects.filter(
+            target_id=plugin_id, name=stable_flag, target_type=TargetType.PLUGIN.value
+        ).exists()
+        global_version_config = models.GlobalSettings.get_config(
+            models.GlobalSettings.KeyEnum.PLUGIN_VERSION_CONFIG.value
+        )
+        biz_plugin_version = None
+        if bk_biz_id in global_version_config:
+            biz_version_config = global_version_config[bk_biz_id]
+            for biz_plugin_name, biz_plugin_version in biz_version_config.items():
+                if plugin_name == biz_plugin_name:
+                    biz_plugin_version = biz_plugin_version
+        if plugin_version not in (latest_flag, stable_flag) or is_latest_tag or is_stable_tag:
+            if biz_plugin_version:
+                if version.Version(plugin_version) > version.Version(biz_plugin_version):
+                    packages = self.get_packages(plugin_name, biz_plugin_version)
+                    packages = [
+                        package
+                        for package in packages
+                        if version.Version(package.version) <= version.Version(biz_plugin_version)
+                    ]
+                else:
+                    packages = self.get_packages(plugin_name, plugin_version)
+                    packages = [
+                        package
+                        for package in packages
+                        if version.Version(package.version) <= version.Version(biz_plugin_version)
+                    ]
+            else:
+                packages = self.get_packages(plugin_name, plugin_version)
         else:
-            max_pkg_ids: List[int] = self.max_ids_by_key(
-                list(models.Packages.objects.filter(project=plugin_name).values("id", "os", "cpu_arch"))
-            )
-            packages = models.Packages.objects.filter(id__in=max_pkg_ids)
+            if biz_plugin_version:
+                packages = self.get_packages(plugin_name, biz_plugin_version)
+                packages = [
+                    package
+                    for package in packages
+                    if version.Version(package.version) <= version.Version(biz_plugin_version)
+                ]
+            else:
+                max_pkg_ids: List[int] = self.max_ids_by_key(
+                    list(models.Packages.objects.filter(project=plugin_name).values("id", "os", "cpu_arch"))
+                )
+                packages = models.Packages.objects.filter(id__in=max_pkg_ids)
 
         if not packages:
             raise errors.PluginValidationError(
@@ -306,11 +376,11 @@ class PolicyStepAdapter:
         os_cpu__config_templates_map = defaultdict(list)
         for template in config_templates:
             is_main_template = template["is_main"]
-            if template["version"] != latest_flag or is_tag:
+            if template["version"] not in (latest_flag, stable_flag) or is_latest_tag or is_stable_tag:
                 plugin_version_set = {plugin_version, "*"}
             else:
-                latest_packages_version_set = set(packages.values_list("version", flat=True))
-                plugin_version_set = latest_packages_version_set | {"*"}
+                tag_packages_version_set = set(packages.values_list("version", flat=True))
+                plugin_version_set = tag_packages_version_set | {"*"}
 
             max_config_tmpl_ids: typing.List[int] = self.max_ids_by_key(
                 list(
@@ -356,7 +426,7 @@ class PolicyStepAdapter:
 
         return policy_packages
 
-    def format2policy_config(self, original_config: Dict):
+    def format2policy_config(self, original_config: Dict, bk_biz_id: int):
         try:
             format_result = self.validated_data(data=original_config, serializer=PolicyStepConfigSerializer)
         except exceptions.ValidationError:
@@ -374,6 +444,7 @@ class PolicyStepAdapter:
             raise errors.PluginValidationError(msg="插件 [{name}] 信息不存在".format(name=self.plugin_name))
 
         policy_packages = self.format2policy_packages_new(
+            bk_biz_id=bk_biz_id,
             plugin_id=plugin_desc.id,
             plugin_name=plugin_name,
             plugin_version=plugin_version,
