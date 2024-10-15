@@ -294,6 +294,16 @@
       :edit-type="editType"
       @save="handleReloadTable">
     </CloudDetailSlider>
+
+    <!--升级proxy-->
+    <ChoosePkgDialog
+      v-model="versionsDialog.show"
+      :type="versionsDialog.type"
+      :title="versionsDialog.title"
+      :versions="versionsDialog.versions"
+      :operate="versionsDialog.operate"
+      :project="versionsDialog.project"
+      @confirm="updateProxyVersion" />
   </section>
 </template>
 
@@ -309,12 +319,14 @@ import { IBkColumn, ITabelFliter } from '@/types';
 import { TranslateResult } from 'vue-i18n';
 import { DHCP_FILTER_KEYS } from '@/config/config';
 import CopyDropdown, { allChildList } from '@/components/common/copy-dropdown.vue';
+import ChoosePkgDialog from '@/views/agent/components/choose-pkg-dialog.vue';
 
 @Component({
   name: 'CloudDetailTable',
   components: {
     CloudDetailSlider,
     CopyDropdown,
+    ChoosePkgDialog,
   },
 })
 
@@ -336,9 +348,18 @@ export default class CloudDetailTable extends Vue {
     // { id: 'remove', name: this.$t('移除'), disabled: false, show: true },
     { id: 'reboot', name: this.$t('重启'), disabled: false, show: true },
     { id: 'reload', name: this.$t('重载配置'), disabled: false, show: true },
-    { id: 'upgrade', name: this.$t('升级'), disabled: false, show: true },
+    { id: 'upgrade', name: this.$t('升级回退'), disabled: false, show: true },
     { id: 'log', name: this.$t('最新执行日志'), disabled: false, show: true },
   ];
+  public versionsDialog = {
+    show: false,
+    type: 'unified',
+    title: this.$t('升级Proxy版本'),
+    versions: [] as string[],
+    row: null as any,
+    operate: 'UPGRADE_PROXY',
+    project: 'gse_proxy'
+  };
   // 状态map
   private statusMap = {
     running: this.$t('正常'),
@@ -384,6 +405,32 @@ export default class CloudDetailTable extends Vue {
   }
   private get proxyOperateList() {
     return (this.authority.proxy_operate || []).map(item => item.bk_biz_id);
+  }
+  // 升级主机Proxy版本
+  private async updateProxyVersion(info: { version: string }) {
+    this.loadingProxy = true;
+    const data = this.versionsDialog.row;
+    const params = {
+      job_type: 'UPGRADE_PROXY',
+      bk_host_id: [data.bk_host_id],
+    };
+    const versionList: { bk_host_id: number; version: string; }[] = [
+      {
+        bk_host_id: data.bk_host_id as number,
+        version: info.version as string,
+      }
+    ];
+    Object.assign(params, {
+      agent_setup_info: {
+        choice_version_type: 'by_host',
+        version_map_list: versionList,
+      }
+    });
+    const result = await CloudStore.operateJob(params);
+    this.loadingProxy = false;
+    if (result.job_id) {
+      this.handleRouterPush('taskDetail', { taskId: result.job_id });
+    }
   }
   protected get copyMenu() {
     return allChildList.filter(item => !item.id.includes('cloud'))
@@ -469,20 +516,26 @@ export default class CloudDetailTable extends Vue {
     }
   }
   public handleConfirmOperate(title: string | TranslateResult, row: IProxyDetail, type: Function | string) {
-    this.$bkInfo({
-      title,
-      extCls: 'wrap-title',
-      confirmFn: () => {
-        if (typeof type === 'function') {
-          type(row);
-        } else {
-          this.handleOperateHost(row, type);
-        }
-      },
-    });
+    if(type === 'UPGRADE_PROXY') {
+      this.versionsDialog.show = true;
+      this.versionsDialog.row = row;
+      this.versionsDialog.versions = [row.version as string];
+    } else {
+      this.$bkInfo({
+        title,
+        extCls: 'wrap-title',
+        confirmFn: () => {
+          if (typeof type === 'function') {
+            type(row);
+          } else {
+            this.handleOperateHost(row, type);
+          }
+        },
+      });
+    }
   }
   /**
-     * 升级主机、卸载主机、重启主机
+     * 卸载主机、重启主机
      */
   public async handleOperateHost(row: IProxyDetail, type: string) {
     this.loadingProxy = true;

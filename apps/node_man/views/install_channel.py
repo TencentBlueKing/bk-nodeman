@@ -12,6 +12,7 @@ from drf_yasg.utils import swagger_auto_schema
 from rest_framework.response import Response
 
 from apps.generic import ModelViewSet
+from apps.node_man import constants
 from apps.node_man.handlers.install_channel import InstallChannelHandler
 from apps.node_man.handlers.permission import InstallChannelPermission
 from apps.node_man.models import InstallChannel
@@ -36,6 +37,11 @@ class InstallChannelViewSet(ModelViewSet):
         else:
             # 如果 hidden 为 False, 则返回所有未隐藏的安装通道
             return InstallChannel.objects.filter(hidden=False)
+
+    def list(self, request, *args, **kwargs):
+        response = super().list(request, *args, **kwargs)
+        response.data.insert(0, {"id": constants.DEFAULT_INSTALL_CHANNEL_ID, "name": constants.AUTOMATIC_CHOICE})
+        return response
 
     @swagger_auto_schema(
         operation_summary="创建安装通道",

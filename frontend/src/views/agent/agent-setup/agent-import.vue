@@ -97,7 +97,7 @@
       v-model="versionsDialog.show"
       :type="versionsDialog.type"
       :title="versionsDialog.title"
-      :version="versionsDialog.version"
+      :versions="versionsDialog.versions"
       :os-type="versionsDialog.os_type"
       :cpu-arch="versionsDialog.cpu_arch"
       @confirm="versionConfirm"
@@ -197,7 +197,7 @@ export default class AgentImport extends Mixins(mixin) {
     show: false,
     type: 'by_system_arch',
     title: this.$t('选择 Agent 版本'),
-    version: '',
+    versions: [] as string[],
     os_type: '',
     cpu_arch: '',
     row: null as any,
@@ -719,7 +719,7 @@ export default class AgentImport extends Mixins(mixin) {
   public handleChoose({ row, instance }: { row: ISetupRow; instance: any; }) {
     const { version = '', os_type = '' } = row; // , cpu_arch = ''
     this.versionsDialog.show = true;
-    this.versionsDialog.version = version;
+    this.versionsDialog.versions = version ? [version] : [];
     this.versionsDialog.os_type = this.osMap[os_type] || os_type;
     this.versionsDialog.row = row;
     this.$nextTick(() => {

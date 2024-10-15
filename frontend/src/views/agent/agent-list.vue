@@ -872,7 +872,7 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
     // },
     {
       id: 'upgrade',
-      name: window.i18n.t('升级'),
+      name: window.i18n.t('升级回退'),
       disabled: false,
       show: true,
     },
@@ -1871,25 +1871,9 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
     
     if (operateType === 'UPGRADE_AGENT') {
       const versions:string[] = data.filter(item => !!item.version).map(item => item.version) || [];
-      const {
-        is_visible
-      } = await AgentStore.apiGetPkgVersion({
-        // 新增加project的传入
-        project: 'gse_agent',
-        os: '',
-        cpu_arch: '',
-        versions,
-      });
-      if (!is_visible) {
-        this.$bkMessage({
-          theme: 'warning',
-          message: this.$t('不在可升级范围'),
-        });
-        return;
-      }
       this.versionsDialog.show = true;
       this.versionsDialog.versions = versions;
-      this.versionsDialog.title = `${this.$t('确认 Agent 升级版本')}`;
+      this.versionsDialog.title = `${this.$t('确认Agent目标版本')}`;
       this.versionsDialog.type = 'unified';
       this.versionsDialog.operate = 'UPGRADE_AGENT';
       return;

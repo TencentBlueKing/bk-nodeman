@@ -55,6 +55,7 @@
                       parentTip: config.parentTip,
                       focusRow: focusRow
                     }"
+                    @chooseVersion="handleChooseVersion"
                     @confirm="handleBatchConfirm(arguments, config)">
                   </TableHeader>
                 </div>
@@ -431,7 +432,7 @@ export default class SetupTable extends Vue {
    */
   private getHeadType(row: ISetupRow, config: ISetupHead): string {
     if (config.prop === 'version' && config.batch) {
-      return 'select';
+      return 'version';
     }
     return config.type;
   }
@@ -902,6 +903,14 @@ export default class SetupTable extends Vue {
       return this.handleTrimArray(val.split(splitCode as string)) || [];
     }
     return [];
+  }
+  /**
+   * 单独处理agent版本选择
+   */
+  private handleChooseVersion(version: string) {
+    this.table.data.forEach((row) => {
+      row.version = version;
+    });
   }
   /**
    * 批量编辑确定事件
