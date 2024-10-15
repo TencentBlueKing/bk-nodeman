@@ -10,22 +10,24 @@
     </section>
 
     <section class="package-manage-body">
-      <div class="default_version">
-        <span class="title">{{ $t('默认升级/安装版本') }}</span>：
-        <span class="version">{{ defaultVersion }}</span>
+      <div class="package-manage-header">
+        <div class="default_version">
+          <span class="title">{{ $t('默认升级/安装版本') }}</span>：
+          <span class="version">{{ defaultVersion }}</span>
+        </div>
+        <bk-search-select
+          ref="searchSelect"
+          ext-cls="package-search-select"
+          :data="searchData"
+          v-model="searchSelectValue"
+          :show-condition="false"
+          :placeholder="$t('版本号、操作系统/架构、标签、上传用户、状态')"
+          v-test="'search'"
+          @change="handleSearchSelectValueChange">
+          <!-- @paste.native.capture.prevent="handlePaste"
+          :key="searchInputKey" -->
+        </bk-search-select>
       </div>
-      <bk-search-select
-        ref="searchSelect"
-        ext-cls="package-search-select"
-        :data="searchData"
-        v-model="searchSelectValue"
-        :show-condition="false"
-        :placeholder="$t('版本号、操作系统/架构、标签、上传用户、状态')"
-        v-test="'search'"
-        @change="handleSearchSelectValueChange">
-        <!-- @paste.native.capture.prevent="handlePaste"
-        :key="searchInputKey" -->
-      </bk-search-select>
 
       <section class="package-search-content">
         <div class="package-select-quick">
@@ -573,21 +575,25 @@ export default defineComponent({
   flex-direction: column;
   padding: 24px 24px 0;
   overflow: hidden;
-  .default_version {
-    height: 17px;
-    font-size: 13px;
-    margin: 0 0 20px 0;
-    cursor: pointer;
-    .title {
-      text-decoration: underline;
-    }
-    .version {
-      color: #3a84ff;
-      font-weight: bold;
-      font-size: 15px;
+
+  .package-manage-header {
+    display: flex;
+    .default_version {
+      width: 240px;
+      margin-right: 18px;
+      height: 32px;
+      line-height: 32px;
+      background: #F0F5FF;
+      border: 1px solid #A3C5FD;
+      border-radius: 2px;
+      font-size: 12px;
+      cursor: pointer;
+      padding-left: 12px;
     }
   }
+  
   .package-search-select {
+    flex: 1;
     flex-shrink: 0;
     margin-bottom: 18px;
     background-color: $whiteColor;
