@@ -2,6 +2,22 @@
 # vim:ft=sh expandtab sts=4 ts=4 sw=4 nu
 # gse proxy 2.0 安装脚本, 仅在节点管理2.0中使用
 
+get_cpu_arch () {
+    local cmd=$1
+    CPU_ARCH=$($cmd)
+    CPU_ARCH=$(echo ${CPU_ARCH} | tr 'A-Z' 'a-z')
+    if [[ "${CPU_ARCH}" =~ "x86_64" ]]; then
+        return 0
+    elif [[ "${CPU_ARCH}" =~ "x86" || "${CPU_ARCH}" =~ ^i[3456]86 ]]; then
+        return 1
+    elif [[ "${CPU_ARCH}" =~ "aarch" ]]; then
+        return 0
+    else
+        return 1
+    fi
+}
+get_cpu_arch "uname -p" || get_cpu_arch "uname -m" || fail get_cpu_arch "Failed to get CPU arch or unsupported CPU arch, please contact the developer."
+
 NODE_TYPE=proxy
 PROC_LIST=(agent data file)
 GSE_AGENT_RUN_DIR=/var/run/gse
@@ -592,6 +608,7 @@ download_pkg () {
     done
 
     log download_pkg DONE "gse_proxy package download succeeded"
+    log report_cpu_arch DONE "${CPU_ARCH}"
 }
 
 check_deploy_result () {
@@ -877,7 +894,7 @@ DEBUG_LOG_FILE=${TMP_DIR}/nm.${0##*/}.${TASK_ID}.debug
 
 # 获取包名
 PKG_NAME=${NAME}-${VERSION}.tgz
-COMPLETE_DOWNLOAD_URL="${DOWNLOAD_URL}/agent/linux/x86_64/"
+COMPLETE_DOWNLOAD_URL="${DOWNLOAD_URL}/agent/linux/${CPU_ARCH}/"
 GSE_AGENT_CONFIG_PATH="${AGENT_SETUP_PATH}/etc/${GSE_AGENT_CONFIG}"
 
 # redirect STDOUT & STDERR to DEBUG
