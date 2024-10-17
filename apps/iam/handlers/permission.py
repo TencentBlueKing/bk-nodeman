@@ -62,7 +62,13 @@ class Permission(object):
             return DummyIAM(
                 settings.APP_ID, settings.APP_TOKEN, settings.BK_IAM_INNER_HOST, settings.BK_PAAS_INNER_HOST
             )
-        return IAM(settings.APP_ID, settings.APP_TOKEN, settings.BK_IAM_INNER_HOST, settings.BK_PAAS_INNER_HOST)
+        return IAM(
+            settings.APP_ID,
+            settings.APP_TOKEN,
+            settings.BK_IAM_INNER_HOST,
+            settings.BK_PAAS_INNER_HOST,
+            settings.BK_IAM_APIGATEWAY,
+        )
 
     def make_request(self, action: Union[ActionMeta, str], resources: List[Resource] = None) -> Request:
         """

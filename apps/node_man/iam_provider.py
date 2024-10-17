@@ -126,6 +126,9 @@ class BusinessResourceProvider(ResourceProvider):
         """
         return ListResult(results=[], count=0)
 
+    def search_instance(self, filter, page, **options):
+        pass
+
 
 class CloudResourceProvider(ResourceProvider):
     """
@@ -319,6 +322,9 @@ class ApResourceProvider(ResourceProvider):
         不需要动态查询资源实例进行预览
         """
         return ListResult(results=[], count=0)
+
+    def search_instance(self, filter, page, **options):
+        pass
 
 
 class PackageResourceProvider(ResourceProvider):
@@ -591,7 +597,11 @@ class IamRegister(object):
 
     def __init__(self):
         self._iam = IAM(
-            settings.APP_CODE, settings.SECRET_KEY, settings.BK_IAM_INNER_HOST, settings.BK_COMPONENT_API_OVERWRITE_URL
+            settings.APP_CODE,
+            settings.SECRET_KEY,
+            settings.BK_IAM_INNER_HOST,
+            settings.BK_COMPONENT_API_OVERWRITE_URL,
+            settings.BK_IAM_APIGATEWAY,
         )
 
     def register_system(self):
