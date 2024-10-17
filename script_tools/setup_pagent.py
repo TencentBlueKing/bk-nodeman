@@ -374,7 +374,7 @@ def execute_shell_solution(
     ) as conn:
         command_converter = {}
         if os_type == "windows":
-            run_output: RunOutput = conn.run(POWERSHELL_SERVICE_CHECK_SSHD, check=True, timeout=30)
+            run_output: RunOutput = conn.run(POWERSHELL_SERVICE_CHECK_SSHD, check=False, timeout=30)
             if run_output.exit_status == 0 and "cygwin" not in run_output.stdout.lower():
                 for step in execution_solution["steps"]:
                     if step["type"] != "commands":
