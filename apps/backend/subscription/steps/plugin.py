@@ -1016,9 +1016,9 @@ class InstallPlugin(PluginAction):
             plugin_manager.transfer_package(),
             plugin_manager.install_package(),
             plugin_manager.allocate_port(),
-            plugin_manager.set_process_status(constants.ProcStateType.RUNNING),
             plugin_manager.render_and_push_config_by_subscription(self.step.subscription_step.id),
             plugin_manager.operate_proc(op_type=constants.GseOpType.RESTART, plugin_desc=self.step.plugin_desc),
+            plugin_manager.set_process_status(constants.ProcStateType.RUNNING),
         ]
 
         return activities, None
