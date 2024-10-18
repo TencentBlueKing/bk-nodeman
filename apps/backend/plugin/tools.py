@@ -79,6 +79,9 @@ class VariableNodeSerializer(serializers.Serializer):
     items = serializers.DictField(required=False, label=_("子变量"))
     default = LiteralField(required=False, label=_("默认值"))
     depth = serializers.IntegerField(label=_("嵌套深度"), max_value=5)
+    ui_component = serializers.DictField(required=False, label=_("UI组件"))
+    description = serializers.CharField(required=False, label=_("tips描述说明"), max_length=128)
+    value = serializers.CharField(required=False, label=_("下拉列表值"), max_length=128)
 
     @classmethod
     def parse_default(cls, default_value: Union[str, bool, int, float], variable_type: str):
