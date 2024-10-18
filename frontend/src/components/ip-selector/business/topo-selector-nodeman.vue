@@ -425,7 +425,7 @@ export default class TopoSelector extends Vue {
       if (bkBizId.length) {
         params.bk_biz_id = bkBizId;
       }
-      const { list = [], total } = await tableListHost(params).catch(() => ({ list: [] }));
+      const { list = [], total } = await tableListHost({...params,source_saas: true}).catch(() => ({ list: [] }));
       this.staticTableData = list;
       data = list;
       count = total;

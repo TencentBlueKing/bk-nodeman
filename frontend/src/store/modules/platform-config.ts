@@ -1,0 +1,82 @@
+import { Module, VuexModule, Mutation, Action } from 'vuex-module-decorators';
+import { IPlatformConfig } from '@/types/config/config';
+import { getPlatformConfig } from '@blueking/platform-config';
+import logoSrc from '@/images/logoIcon.png';
+
+// eslint-disable-next-line new-cap
+@Module({ name: 'platformConfig', namespaced: true })
+export default class PlatformConfigStore extends VuexModule {
+  public defaults: IPlatformConfig =  {
+    bkAppCode: '', // appcode
+    name: '节点管理', // 站点的名称，通常显示在页面左上角，也会出现在网页title中
+    nameEn: 'BK NodeMan', // 站点的名称-英文
+    appLogo: '', // 站点logo
+    productName: '', // 品牌名称
+    productNameEn: '', // 品牌英文名称
+    favicon: '/static/images/favicon.png', // 站点favicon
+    helperText: '',
+    helperTextEn: '',
+    helperLink: '',
+    brandImg: '',
+    brandImgEn: '',
+    brandName: '', // 品牌名，会用于拼接在站点名称后面显示在网页title中
+    favIcon: '',
+    brandNameEn: '', // 品牌名-英文
+    footerInfo: '', // 页脚的内容，仅支持 a 的 markdown 内容格式
+    footerInfoEn: '', // 页脚的内容-英文
+    footerCopyright: '', // 版本信息，包含 version 变量，展示在页脚内容下方
+
+    footerInfoHTML: '',
+    footerInfoHTMLEn: '',
+    footerCopyrightContent: '',
+    version: '',
+
+    // 需要国际化的字段，根据当前语言cookie自动匹配，页面中应该优先使用这里的字段
+    i18n: {
+      name: '',
+      helperText: '...',
+      brandImg: '...',
+      brandName: '...',
+      productName: '...',
+      footerInfoHTML: '...',
+    },
+  };
+  /**
+  * 获取远程配置
+  * @param {*} param0
+  */
+  
+  @Mutation
+  public updatePlatformConfig(value: IPlatformConfig) {
+    Object.assign(this.defaults, value);
+  }
+
+  @Action
+  public async getConfig() {
+    const faviconSrc = process.env.NODE_ENV === 'development'
+      ? '/static/images/favicon.png'
+      : `${window.PROJECT_CONFIG?.STATIC_URL}nodeman/images/favicon.png`;
+      
+    const defaults = {
+      name: '节点管理',
+      nameEn: 'NodeMan',
+      appLogo: logoSrc,
+      brandName: '蓝鲸智云',
+      brandNameEn: 'Tencent BlueKing',
+      productName: '蓝鲸节点管理',
+      productNameEn: 'BK NodeMan',
+      favicon: faviconSrc,
+      helperLink: window.PROJECT_CONFIG.BKAPP_NAV_HELPER_URL,
+      helperText: window.i18n.t('联系BK助手'),
+      version: window.PROJECT_CONFIG.VERSION,
+    };
+    let config;
+    if (window.PROJECT_CONFIG?.BKPAAS_SHARED_RES_URL) {
+      const url = `${window.PROJECT_CONFIG?.BKPAAS_SHARED_RES_URL}/bk_nodeman/base.js`;
+      config = await getPlatformConfig(url, defaults);
+    } else {
+      config = await getPlatformConfig(defaults);
+    }
+    this.context.commit('updatePlatformConfig', config);
+  }
+}

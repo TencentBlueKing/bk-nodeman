@@ -6,7 +6,7 @@ const AgentImport = () => import(/* webpackChunkName: 'AgentImport' */'@/views/a
 
 export default [
   {
-    path: '/agent-manager/status',
+    path: 'agent-manager/status',
     name: 'agentStatus',
     props: (router) => {
       const props: any = {};
@@ -30,7 +30,7 @@ export default [
     },
   },
   {
-    path: '/agent-manager/setup',
+    path: 'agent-manager/setup',
     name: 'agentSetup',
     component: AgentSetup,
     meta: {
@@ -43,7 +43,7 @@ export default [
     },
   },
   {
-    path: '/agent-manager/import',
+    path: 'agent-manager/import',
     name: 'agentImport',
     props: true,
     component: AgentImport,
@@ -57,7 +57,7 @@ export default [
     },
   },
   {
-    path: '/agent-manager/edit',
+    path: 'agent-manager/edit',
     name: 'agentEdit',
     props: true,
     component: AgentImport,

@@ -13,6 +13,7 @@ import binascii
 import json
 import os
 import random
+import re
 import socket
 import time
 import typing
@@ -28,6 +29,7 @@ from apps.backend.agent import solution_maker
 from apps.backend.agent.tools import InstallationTools
 from apps.backend.api.constants import POLLING_INTERVAL
 from apps.backend.constants import (
+    POWERSHELL_SERVICE_CHECK_SSHD,
     REDIS_AGENT_CONF_KEY_TPL,
     REDIS_INSTALL_CALLBACK_KEY_TPL,
     SSH_RUN_TIMEOUT,
@@ -296,6 +298,18 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
         host_id__sub_inst_id = {
             host_id: sub_inst_id for sub_inst_id, host_id in common_data.sub_inst_id__host_id_map.items()
         }
+        # 获取安装通道ID与name映射
+        install_channel_id_name_map: Dict[str, str] = models.InstallChannel.install_channel_id_name_map(get_cache=True)
+        for sub_inst_id, sub_inst_obj in common_data.sub_inst_id__sub_inst_obj_map.items():
+            install_channel_id: Optional[int] = sub_inst_obj.instance_info["host"].get("install_channel_id")
+            install_channel_name: str = install_channel_id_name_map.get(
+                str(install_channel_id), constants.DEFAULT_INSTALL_CHANNEL_NAME
+            )
+            # 输出安装通道日志
+            self.log_info(
+                sub_inst_ids=sub_inst_id,
+                log_content=_(f"选择的安装通道为: {install_channel_name}"),
+            )
         is_uninstall = data.get_one_of_inputs("is_uninstall")
         host_id_obj_map = common_data.host_id_obj_map
         gse_version: str = data.get_one_of_inputs("meta", {}).get("GSE_VERSION")
@@ -531,6 +545,29 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
                 raise e
         return sub_inst_id
 
+    def rolling_request_job(self, sub_inst_id: int, func: Callable, job_params: Dict[str, Any]):
+        try:
+            data = func(job_params)
+        except ApiResultError as err:
+            if err.code in [
+                constants.BkJobErrorCode.EXCEED_BIZ_QUOTA_LIMIT,
+                constants.BkJobErrorCode.EXCEED_APP_QUOTA_LIMIT,
+                constants.BkJobErrorCode.EXCEED_SYSTEM_QUOTA_LIMIT,
+            ]:
+                # 识别job限制码，将此md5key加入到下一次滚动执行
+                self.log_info(
+                    sub_inst_id,
+                    _("{err_msg}，任务滚动执行中，请耐心等待.....").format(
+                        err_msg=constants.BkJobErrorCode.BK_JOB_ERROR_CODE_MAP[err.code]
+                    ),
+                )
+                time.sleep(3)
+                return self.rolling_request_job(sub_inst_id, func, job_params)
+
+            raise err
+
+        return data
+
     @ExceptionHandler(exc_handler=core.default_sub_inst_task_exc_handler)
     @SetupObserve(
         histogram=metrics.app_core_remote_execute_duration_seconds,
@@ -577,7 +614,7 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
             "script_param": base64.b64encode(execution_solution.steps[0].contents[0].text.encode()).decode(),
             "is_param_sensitive": constants.BkJobParamSensitiveType.YES.value,
         }
-        data = JobApi.fast_execute_script(kwargs)
+        data = self.rolling_request_job(sub_inst_id, JobApi.fast_execute_script, kwargs)
         job_instance_id = data.get("job_instance_id")
         self.log_info(
             sub_inst_ids=sub_inst_id,
@@ -651,7 +688,13 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
         execution_solution = installation_tool.type__execution_solution_map[
             constants.CommonExecutionSolutionType.SHELL.value
         ]
+        command_converter: Dict = {}
+
         async with conns.AsyncsshConn(**install_sub_inst_obj.conns_init_params) as conn:
+            if install_sub_inst_obj.host.os_type == constants.OsType.WINDOWS:
+                sshd_info = await conn.run(POWERSHELL_SERVICE_CHECK_SSHD, check=False, timeout=SSH_RUN_TIMEOUT)
+                if sshd_info.exit_status == 0 and "cygwin" not in sshd_info.stdout.lower():
+                    self.build_shell_to_batch_command_converter(execution_solution.steps, command_converter)
 
             for execution_solution_step in execution_solution.steps:
                 if execution_solution_step.type == constants.CommonExecutionSolutionStepType.DEPENDENCIES.value:
@@ -676,11 +719,57 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
 
                 elif execution_solution_step.type == constants.CommonExecutionSolutionStepType.COMMANDS.value:
                     for content in execution_solution_step.contents:
-                        cmd = content.text
+                        cmd = command_converter.get(content.text, content.text)
+                        if not cmd:
+                            continue
                         await log_info(sub_inst_ids=sub_inst_id, log_content=_("执行命令: {cmd}").format(cmd=cmd))
                         await conn.run(command=cmd, check=True, timeout=SSH_RUN_TIMEOUT)
 
         return sub_inst_id
+
+    @classmethod
+    def convert_shell_to_powershell(cls, shell_cmd):
+        # Convert mkdir -p xxx to if not exist xxx mkdir xxx
+        shell_cmd = re.sub(
+            r"mkdir -p\s+(\S+)",
+            r"if (-Not (Test-Path -Path \1)) { New-Item -ItemType Directory -Path \1 }",
+            shell_cmd,
+        )
+
+        # Convert chmod +x xxx to ''
+        shell_cmd = re.sub(r"chmod\s+\+x\s+\S+", r"", shell_cmd)
+
+        # Convert curl to Invoke-WebRequest
+        # shell_cmd = re.sub(
+        #     r"curl\s+(http[s]?:\/\/[^\s]+)\s+-o\s+(\/?[^\s]+)\s+--connect-timeout\s+(\d+)\s+-sSfg",
+        #     r"Invoke-WebRequest -Uri \1 -OutFile \2 -TimeoutSec \3 -UseBasicParsing",
+        #     shell_cmd,
+        # )
+        shell_cmd = re.sub(r"(curl\s+\S+\s+-o\s+\S+\s+--connect-timeout\s+\d+\s+-sSfg)", r'cmd /c "\1"', shell_cmd)
+
+        # Convert nohup xxx &> ... & to xxx (ignore nohup, output redirection and background execution)
+        shell_cmd = re.sub(
+            r"nohup\s+([^&>]+)(\s*&>\s*.*?&)?",
+            r"Invoke-Command -Session (New-PSSession) -ScriptBlock { \1 } -AsJob",
+            shell_cmd,
+        )
+
+        # Remove '&>' and everything after it
+        shell_cmd = re.sub(r"\s*&>.*", "", shell_cmd)
+
+        # Convert \\ to \
+        shell_cmd = shell_cmd.replace("\\\\", "\\")
+
+        shell_cmd = shell_cmd.replace(" & ", " ; ")
+
+        return shell_cmd.strip()
+
+    def build_shell_to_batch_command_converter(self, steps, command_converter):
+        for execution_solution_step in steps:
+            if execution_solution_step.type == constants.CommonExecutionSolutionStepType.COMMANDS.value:
+                for content in execution_solution_step.contents:
+                    cmd = content.text
+                    command_converter[cmd] = self.convert_shell_to_powershell(cmd)
 
     def handle_report_data(self, host: models.Host, sub_inst_id: int, success_callback_step: str) -> Dict:
         """处理上报数据"""

@@ -366,6 +366,15 @@ export default class AgentImport extends Mixins(mixin) {
       });
       data = JSON.parse(JSON.stringify(formatData));
     }
+    const channelFlag = MainStore.AUTO_SELECT_INSTALL_CHANNEL;
+    channelFlag !== -1 && data.forEach((item: ISetupRow) => {
+      if (channelFlag === 1) {
+        item.install_channel_id = item.bk_cloud_id === 0 ? -1 : 'default';
+      } else if (channelFlag === 0) {
+        item.install_channel_id = -1;
+      }
+    });
+    const filterData = data.filter(item => item.bk_cloud_id === 0);
     // 将原始的数据备份；切换安装方式时，接入点的数据变更后的回退操作时需要用到
     this.tableDataBackup = data;
     this.setupInfo.data = deepClone(data);
@@ -415,7 +424,7 @@ export default class AgentImport extends Mixins(mixin) {
         } else {
           item.bt_speed_limit = Number(item.bt_speed_limit);
         }
-        item.peer_exchange_switch_for_agent = Number(item.peer_exchange_switch_for_agent);
+        item.peer_exchange_switch_for_agent = 0;
         if (item.install_channel_id === 'default') {
           item.install_channel_id = null;
         }
@@ -499,6 +508,18 @@ export default class AgentImport extends Mixins(mixin) {
     if (!this.isUploading && v && v.length) {
       this.tableDataBackup = v;
       this.setupInfo.data = deepClone(v);
+      const channelFlag = MainStore.AUTO_SELECT_INSTALL_CHANNEL;
+      this.setupInfo.data.forEach((item: ISetupRow) => {
+        if (!item.install_channel_id) {
+          if (channelFlag === 1) {
+            item.install_channel_id = item.bk_cloud_id === 0 ? -1 : 'default';
+          } else if (channelFlag === 0) {
+            item.install_channel_id = -1;
+          } else {
+            item.install_channel_id = 'default';
+          }
+        }
+      });
     }
   }
   /**
@@ -587,6 +608,7 @@ export default class AgentImport extends Mixins(mixin) {
 @import "@/css/mixins/nodeman.css";
 
 .agent-setup {
+  height: calc(100vh - 120px);
   flex: 1;
   @mixin layout-flex row;
   .agent-setup-left {

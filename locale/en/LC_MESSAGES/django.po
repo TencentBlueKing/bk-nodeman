@@ -3423,6 +3423,10 @@ msgstr "Detect BT distribution strategy (distribute Py36 package)"
 msgid "下发安装工具"
 msgstr "Transfer installation tool"
 
+#: apps/node_man/constants.py: 1134
+msgid "下发windows手动安装工具"
+msgstr "Transfer windows manual installation tool"
+
 #: apps/node_man/constants.py:1065
 msgid "数据传输工具, 用于下载文件依赖"
 msgstr "Data transmission tools for download file dependencies"
@@ -5842,7 +5846,7 @@ msgid "标准运维"
 msgstr "BK-SOPS"
 
 #: common/context_processors.py:44
-msgid "节点管理 | 腾讯蓝鲸智云"
+msgid "节点管理 | 蓝鲸智云"
 msgstr "NodeMan | Tencent Blueking"
 
 #: pipeline/component_framework/models.py:42

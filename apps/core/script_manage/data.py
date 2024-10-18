@@ -13,6 +13,7 @@ import typing
 
 from django.utils.translation import ugettext_lazy as _
 
+import env
 from apps.node_man import constants as node_man_constants
 
 from ...node_man.constants import DEFAULT_CLOUD
@@ -40,6 +41,22 @@ IEOD_ACTIVE_FIREWALL_POLICY_SCRIPT_INFO: base.ScriptInfo = base.ScriptInfo(
     filename="ieod_active_firewall_policy.bat",
     path="script_manage_tmp/ieod_active_firewall_policy.bat",
     description=_("IDC Windows 物理机安装策略开通"),
+    oneline=env.BKAPP_IEOD_ACTIVE_FIREWALL_POLICY_SCRIPT_INFO,
+    support_os_list=[node_man_constants.OsType.WINDOWS],
+    support_cloud_id=DEFAULT_CLOUD,
+)
+
+JUMP_SERVER_POLICY_SCRIPT_INFO: base.ScriptInfo = base.ScriptInfo(
+    name="jump_server_policy",
+    filename="jump_server_policy.bat",
+    path="",
+    description=_("开通跳板机17980和17981端口"),
+    oneline=(
+        "netsh advfirewall firewall show rule name=IEOD_Outbound_NodeMan_Rule_TCP 2>&1 > NUL || "
+        "netsh advfirewall firewall add rule name=IEOD_Outbound_NodeMan_Rule_TCP "
+        'dir=out remoteip="{jump_server_lan_ip}/32" protocol=tcp remoteport="17980,17981" '
+        "profile=public enable=yes action=allow"
+    ),
     support_os_list=[node_man_constants.OsType.WINDOWS],
     support_cloud_id=DEFAULT_CLOUD,
 )
@@ -48,4 +65,5 @@ SCRIPT_NAME__INFO_OBJ_MAP: typing.Dict[str, base.ScriptInfo] = {
     FIREWALL_OFF_SCRIPT_INFO.name: FIREWALL_OFF_SCRIPT_INFO,
     ACTIVE_FIREWALL_POLICY_SCRIPT_INFO.name: ACTIVE_FIREWALL_POLICY_SCRIPT_INFO,
     IEOD_ACTIVE_FIREWALL_POLICY_SCRIPT_INFO.name: IEOD_ACTIVE_FIREWALL_POLICY_SCRIPT_INFO,
+    JUMP_SERVER_POLICY_SCRIPT_INFO.name: JUMP_SERVER_POLICY_SCRIPT_INFO,
 }

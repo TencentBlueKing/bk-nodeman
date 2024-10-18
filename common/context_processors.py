@@ -10,16 +10,18 @@ specific language governing permissions and limitations under the License.
 """
 import datetime
 import os
+import re
 
 from blueapps.account.conf import ConfFixture
 from django.conf import settings
+from django.utils.translation import get_language
 from django.utils.translation import ugettext as _
+from version_log.utils import get_latest_version
 
 from apps.core.concurrent.cache import FuncCacheDecorator
 from apps.node_man import constants, models
 from apps.node_man.handlers.iam import IamHandler
 from apps.utils.local import get_request_username
-from version_log.utils import get_latest_version
 
 """
 context_processor for common(setting)
@@ -29,7 +31,11 @@ context_processor for common(setting)
 
 
 def get_docs_center_url():
-    docs_suffix: str = "markdown/NodeMan/UserGuide/Introduce/Overview.md"
+    version: str = get_latest_version()
+    match = re.search(r"(\d+\.\d+)", version)
+    major_minor_version: str = match.group() if match else version
+    language: str = "EN" if get_language() == "en" else "ZH"
+    docs_suffix: str = f"markdown/{language}/NodeMan/{major_minor_version}/UserGuide/Introduce/Overview.md"
     if settings.BK_DOCS_CENTER_HOST:
         docs_prefix = settings.BK_DOCS_CENTER_HOST
         return f"{docs_prefix}/{docs_suffix}"
@@ -42,7 +48,7 @@ def get_docs_center_url():
 
 
 def get_title():
-    return _("节点管理 | 腾讯蓝鲸智云")
+    return _("节点管理 | 蓝鲸智云")
 
 
 @FuncCacheDecorator(cache_time=60 * constants.TimeUnit.SECOND)
@@ -112,5 +118,6 @@ def mysetting(request):
         "BK_COMPONENT_API_URL": settings.BK_COMPONENT_API_OUTER_URL,
         "ENABLE_AP_VERSION_MUTEX": get_ap_version_mutex(),
         # 是否开启消息中心
-        "ENABLE_NOTICE_CENTER": settings.ENABLE_NOTICE_CENTER,
+        "ENABLE_NOTICE_CENTER": settings.BK_NOTICE_ENABLED,
+        "BKPAAS_SHARED_RES_URL": settings.BKPAAS_SHARED_RES_URL,
     }

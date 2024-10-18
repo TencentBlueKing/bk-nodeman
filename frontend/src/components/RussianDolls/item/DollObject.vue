@@ -7,6 +7,7 @@
       :item="child"
       :item-index="itemIndex"
       :value="value[child.prop]"
+      :label-width="labelWidth"
       :value-prop="getRealProp(valueProp, child.prop)" />
   </div>
 </template>
@@ -21,6 +22,10 @@ export default defineComponent({
     itemIndex: -1,
     value: () => ({}),
     valueProp: '',
+    labelWidth: {
+      type: Number,
+      default: 110,
+    },
   },
   setup(props) {
     const getRealProp = inject('getRealProp');

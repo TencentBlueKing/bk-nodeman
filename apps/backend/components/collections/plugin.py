@@ -559,6 +559,7 @@ class TransferPackageService(JobV3BaseService, PluginBaseService):
         for md5_key, job in jobs.items():
             file_list = self.append_extra_files(job["os_type"], job["file_list"], nginx_path)
             multi_job_params[md5_key] = {
+                "md5_key": md5_key,
                 "job_func": JobApi.fast_transfer_file,
                 "subscription_instance_id": job["subscription_instance_ids"],
                 "subscription_id": common_data.subscription.id,
@@ -571,7 +572,7 @@ class TransferPackageService(JobV3BaseService, PluginBaseService):
                 },
             }
 
-        self.run_job_or_finish_schedule(multi_job_params)
+        self.rolling_run_job_or_finish_schedule(data, multi_job_params)
         return True
 
     @staticmethod
@@ -656,6 +657,7 @@ class PluginExecuteScriptService(PluginBaseService, JobV3BaseService, metaclass=
                 multi_job_params_map[key]["job_params"]["meta"] = job_meta
             else:
                 multi_job_params_map[key] = {
+                    "md5_key": key,
                     "job_func": JobApi.fast_execute_script,
                     "subscription_instance_id": [subscription_instance_id],
                     "subscription_id": common_data.subscription.id,
@@ -671,7 +673,7 @@ class PluginExecuteScriptService(PluginBaseService, JobV3BaseService, metaclass=
                         "meta": job_meta,
                     },
                 }
-        self.run_job_or_finish_schedule(multi_job_params_map)
+        self.rolling_run_job_or_finish_schedule(data, multi_job_params_map)
         return True
 
     def get_script_content(self, os_type: str) -> str:
@@ -1000,6 +1002,7 @@ class RenderAndPushConfigService(PluginBaseService, JobV3BaseService):
                     multi_job_params_map[key]["job_params"]["meta"] = job_meta
                 else:
                     multi_job_params_map[key] = {
+                        "md5_key": key,
                         "job_func": JobApi.push_config_file,
                         "subscription_instance_id": [subscription_instance.id],
                         "subscription_id": common_data.subscription.id,
@@ -1033,7 +1036,7 @@ class RenderAndPushConfigService(PluginBaseService, JobV3BaseService):
             self.finish_schedule()
             return True
 
-        self.run_job_or_finish_schedule(multi_job_params_map)
+        self.rolling_run_job_or_finish_schedule(data, multi_job_params_map)
         return True
 
 
@@ -1165,6 +1168,12 @@ class GseOperateProcService(PluginBaseService):
         plugin = policy_step_adapter.plugin_desc
         group_id_instance_map = common_data.group_id_instance_map
         host_id_obj_map = common_data.host_id_obj_map
+        operate_info: List = common_data.subscription.operate_info
+        host_id_user_map = {}
+        system_account = {}
+        if operate_info:
+            host_id_user_map: Dict[int, str] = {info.get("bk_host_id"): info.get("user") for info in operate_info}
+            system_account: Dict[str, str] = operate_info[0]
 
         host_id__resource_policy_map = self.get_resource_policy(common_data.bk_host_ids, plugin.name)
         proc_operate_req = []
@@ -1175,6 +1184,7 @@ class GseOperateProcService(PluginBaseService):
         for process_status in process_statuses:
             bk_host_id = process_status.bk_host_id
             host = host_id_obj_map.get(bk_host_id)
+            operate_user = host_id_user_map.get(bk_host_id) or system_account.get(host.os_type)
             subscription_instance = group_id_instance_map.get(process_status.group_id)
             package = self.get_package_by_process_status(process_status, common_data)
             package_control = package.proc_control
@@ -1201,7 +1211,7 @@ class GseOperateProcService(PluginBaseService):
                         "proc_name": package_control.process_name or plugin.name,
                         "setup_path": process_status.setup_path,
                         "pid_path": process_status.pid_path,
-                        "user": constants.ACCOUNT_MAP.get(host.os_type, "root"),
+                        "user": operate_user or constants.ACCOUNT_MAP.get(host.os_type, "root"),
                     },
                     "control": gse_control,
                     "resource": host_id__resource_policy_map[bk_host_id]["resource"],

@@ -14,7 +14,7 @@
   </div>
 </template>
 <script lang="ts">
-import { MainStore } from '@/store/index';
+import { MainStore, PlatformConfigStore } from '@/store/index';
 import { bus } from '@/common/bus';
 import NodemanNavigation from '@/components/common/navigation.vue';
 import PermissionModal from '@/components/auth/PermissionModal.vue';
@@ -25,6 +25,7 @@ import BkPaasLogin from '@blueking/paas-login/dist/paas-login.umd';
 import NoticeComponent from '@blueking/notice-component-vue2';
 import '@blueking/notice-component-vue2/dist/style.css';
 import { showLoginModal } from '@blueking/login-modal';
+import { setDocumentTitle, setShortcutIcon  } from '@blueking/platform-config';
 
 @Component({
   name: 'app',
@@ -78,7 +79,17 @@ export default class App extends Vue {
     MainStore.setSelectedBiz(selectedBiz);
   }
 
-  private created() {
+  private async created() {
+    // 先不做缓存机制,等后续定方案
+    // 获取平台配置信息
+    await PlatformConfigStore.getConfig();
+    // 设置网页标题
+    setDocumentTitle(PlatformConfigStore.defaults.i18n);
+    // 设置favicon
+    setShortcutIcon(PlatformConfigStore.defaults.favicon);
+    this.setFavicon();
+    // 获取自动判断安装通道参数
+    await MainStore.getAutoJudgeInstallChannel();
     const platform = window.navigator.platform.toLowerCase();
     if (platform.indexOf('win') === 0) {
       this.systemCls = 'win';
@@ -94,6 +105,18 @@ export default class App extends Vue {
       });
     });
   }
+
+  // 全局配置只设置了shortcut icon,会失效,这里补充设置rel=icon的favicon
+  private setFavicon () {
+    var r = document.querySelector('link[rel="icon"]');
+    r || (r = document.createElement("link"),
+      r.setAttribute("rel", "icon"),
+      document.head.appendChild(r))
+      
+    r.setAttribute("type", "image/x-icon");
+    r.setAttribute("href", PlatformConfigStore.defaults.favicon);
+  }
+  
   private mounted() {
     window.LoginModal = this.$refs.login;
     bus.$on('show-login-modal', () => {

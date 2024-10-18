@@ -1066,7 +1066,7 @@ class MockClient(object):
 
         @classmethod
         def list_biz_hosts(cls, *args, **kwargs):
-            if args[0]["bk_biz_id"] == 1:
+            if args[0]["bk_biz_id"] in [1, 100001]:
                 return {
                     "count": 1,
                     "info": [
@@ -1160,6 +1160,15 @@ class MockClient(object):
         @classmethod
         def list_service_template(cls, *args, **kwargs):
             return {"count": 1, "info": [{"id": 1}, {"id": 2}]}
+
+        @classmethod
+        def find_host_biz_relations(cls, *args, **kwargs):
+            return [
+                {
+                    "bk_biz_id": 100001,
+                    "bk_host_id": 14110,
+                }
+            ]
 
 
 class MockPermission(object):

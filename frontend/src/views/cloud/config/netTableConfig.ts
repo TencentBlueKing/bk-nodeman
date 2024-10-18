@@ -81,6 +81,7 @@ const config: ISetupHead[] = [
     required: true,
     iconOffset: 10,
     manualProp: true,
+    placeholder: window.i18n.t('多个外网IP用英文逗号分隔'),
     parentProp: 'host_attr',
     rules: [reguIPMixins,
       {
@@ -175,18 +176,18 @@ const config: ISetupHead[] = [
       row[config.prop] = `/${osDirReplace(row[config.prop])}`;
     },
   },
-  {
-    label: 'BT节点探测',
-    prop: 'peer_exchange_switch_for_agent',
-    tips: 'BT节点探测提示',
-    type: 'switcher',
-    default: getDefaultConfig(defaultOsType, 'peer_exchange_switch_for_agent', false),
-    required: false,
-    show: true,
-    width: 115,
-    manualProp: true,
-    parentProp: 'trans_info',
-  },
+  // {
+  //   label: 'BT节点探测',
+  //   prop: 'peer_exchange_switch_for_agent',
+  //   tips: 'BT节点探测提示',
+  //   type: 'switcher',
+  //   default: getDefaultConfig(defaultOsType, 'peer_exchange_switch_for_agent', false),
+  //   required: false,
+  //   show: true,
+  //   width: 115,
+  //   manualProp: true,
+  //   parentProp: 'trans_info',
+  // },
   {
     label: '传输限速Unit',
     prop: 'bt_speed_limit',

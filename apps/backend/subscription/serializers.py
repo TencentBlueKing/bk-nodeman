@@ -70,6 +70,11 @@ class TargetHostSerializer(serializers.Serializer):
         raise ValidationError("目前机器参数必须要有 bk_host_id 或者 (ip/bk_host_innerip + bk_cloud_id)")
 
 
+class HostOperateInfoSerializer(serializers.Serializer):
+    bk_host_id = serializers.IntegerField(label=_("主机ID"))
+    user = serializers.CharField(label=_("操作用户"))
+
+
 class CreateSubscriptionSerializer(GatewaySerializer):
     class CreateStepSerializer(serializers.Serializer):
         id = serializers.CharField(label="步骤标识符", validators=[])
@@ -83,6 +88,8 @@ class CreateSubscriptionSerializer(GatewaySerializer):
     target_hosts = TargetHostSerializer(many=True, label="下发的目标机器列表", required=False, allow_empty=False)
     run_immediately = serializers.BooleanField(required=False, default=False, label="是否立即执行")
     is_main = serializers.BooleanField(required=False, default=False, label="是否为主配置")
+    operate_info = serializers.ListField(required=False, child=HostOperateInfoSerializer(), default=[], label="操作信息")
+    system_account = serializers.DictField(required=False, label=_("操作系统对应账户"))
 
     # 策略新参数
     plugin_name = serializers.CharField(required=False, label="插件名")
@@ -102,6 +109,10 @@ class CreateSubscriptionSerializer(GatewaySerializer):
         ):
             raise ValidationError(_("订阅范围包含Gse2.0灰度业务"))
         step_types = {step["type"] for step in attrs["steps"]}
+        if attrs.get("system_account"):
+            for key in attrs["system_account"]:
+                if key not in constants.OS_TUPLE:
+                    raise ValidationError(_(f"操作系统类型只能为{constants.OS_TUPLE}"))
         if constants.SubStepType.AGENT not in step_types:
             return attrs
 
@@ -147,11 +158,20 @@ class UpdateSubscriptionSerializer(GatewaySerializer):
     scope = UpdateScopeSerializer()
     steps = serializers.ListField(child=UpdateStepSerializer())
     run_immediately = serializers.BooleanField(required=False, default=False)
+    operate_info = serializers.ListField(required=False, child=HostOperateInfoSerializer(), default=[], label="操作信息")
+    system_account = serializers.DictField(required=False, label=_("操作系统对应账户"))
 
     # 策略新参数
     plugin_name = serializers.CharField(required=False)
     bk_biz_scope = serializers.ListField(child=serializers.IntegerField(), required=False, default=[])
     category = serializers.CharField(required=False)
+
+    def validate(self, attrs):
+        if attrs.get("system_account"):
+            for key in attrs["system_account"]:
+                if key not in constants.OS_TUPLE:
+                    raise ValidationError(_(f"操作系统类型只能为{constants.OS_TUPLE}"))
+        return attrs
 
 
 class DeleteSubscriptionSerializer(GatewaySerializer):

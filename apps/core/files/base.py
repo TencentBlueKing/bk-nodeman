@@ -143,10 +143,10 @@ class BkJobMixin:
         :return: 预处理后的参数
         """
         # 如果后续预处理的job api增多，考虑拆分逻辑
-        if job_api_func == JobApi.fast_transfer_file:
-            query_params = deepcopy(query_params)
+        if job_api_func.api_name == JobApi.fast_transfer_file.api_name:
             query_params["file_source_list"] = self._handle_file_source_list(
-                file_source_list=query_params.get("file_source_list", []), extra_transfer_file_params=query_params
+                file_source_list=query_params.get("file_source_list", []),
+                extra_transfer_file_params=query_params,
             )
         return query_params
 

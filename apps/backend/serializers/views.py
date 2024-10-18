@@ -18,5 +18,7 @@ from apps.node_man import constants
 class PackageDownloadSerializer(serializers.Serializer):
     file_name = serializers.ChoiceField(
         help_text=_("下载文件名，只能下载script_tools下的文件"),
-        choices=[file_name for file_set in constants.FILES_TO_PUSH_TO_PROXY for file_name in file_set["files"]],
+        choices=[
+            file_name for file_set in constants.MANUAL_INSTALL_WINDOWS_BATCH_FILES for file_name in file_set["files"]
+        ],
     )

@@ -749,6 +749,8 @@ class PluginV2ViewSet(ModelViewSet):
                 plugin_name=params["plugin_name"],
                 scope=params["scope"],
                 steps=params.get("steps"),
+                operate_info=params.get("operate_info"),
+                system_account=params.get("system_account"),
             )
         )
 

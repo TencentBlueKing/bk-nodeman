@@ -13,7 +13,7 @@ from django.test import TestCase
 from apps.mock_data import common_unit, utils
 from apps.node_man import constants
 from apps.node_man.handlers.install_channel import InstallChannelHandler
-from apps.node_man.models import InstallChannel
+from apps.node_man.models import GlobalSettings, InstallChannel
 from apps.node_man.tests.utils import create_install_channel
 from apps.utils.unittest.testcase import CustomAPITestCase
 
@@ -64,6 +64,17 @@ class TestInstallChannel(TestCase):
                     install_channel_id=install_channel.id,
                 )
         self.assertEqual(len(InstallChannelHandler.list()), 0)
+
+    def test_judge_install_channel(self, *args, **kwargs):
+        # 构造安装通道与网段映射
+        GlobalSettings.set_config(
+            key=GlobalSettings.KeyEnum.INSTALL_CHANNEL_ID_NETWORK_SEGMENT.value, value={"1": ["127.0.0.0/30"]}
+        )
+        # 创建安装通道
+        create_install_channel(1)
+        inner_ip = "127.0.0.1"
+        res = InstallChannelHandler.judge_install_channel(inner_ip=inner_ip)
+        self.assertEqual(res, 1)
 
 
 class InstallChannelHiddenTestCase(CustomAPITestCase):

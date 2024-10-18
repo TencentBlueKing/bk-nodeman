@@ -1,6 +1,7 @@
 import { ISetupHead, ISetupRow } from '@/types';
 import { authentication, defaultPort, sysOptions, defaultOsType, getDefaultConfig, addressingMode, DHCP_FILTER_KEYS } from '@/config/config';
 import { ICloudSource } from '@/types/cloud/cloud';
+import { MainStore } from '@/store/index';
 import { reguFnMinInteger, reguPort, reguIPMixins, reguIp, reguIPv6 } from '@/common/form-check';
 
 export const config: ISetupHead[] = [
@@ -55,7 +56,8 @@ export const config: ISetupHead[] = [
     },
     getOptions(row) {
       return row.bk_cloud_id || row.bk_cloud_id === 0
-        ? this.channelList.filter(item => item.bk_cloud_id === row.bk_cloud_id || item.id === 'default')
+        ? this.channelList.filter(item => item.bk_cloud_id === row.bk_cloud_id || item.id === 'default'
+        || (MainStore.AUTO_SELECT_INSTALL_CHANNEL === 0 && item.id === -1))
         : this.channelList;
     },
   },
@@ -268,19 +270,19 @@ export const config: ISetupHead[] = [
     manualProp: true,
     rules: [reguIPMixins],
   },
-  {
-    label: 'BT节点探测',
-    prop: 'peer_exchange_switch_for_agent',
-    tips: 'BT节点探测提示',
-    type: 'switcher',
-    default: getDefaultConfig(defaultOsType, 'peer_exchange_switch_for_agent', false),
-    batch: true,
-    required: false,
-    noRequiredMark: false,
-    width: 90,
-    parentProp: 'trans_info',
-    manualProp: true,
-  },
+  // {
+  //   label: 'BT节点探测',
+  //   prop: 'peer_exchange_switch_for_agent',
+  //   tips: 'BT节点探测提示',
+  //   type: 'switcher',
+  //   default: getDefaultConfig(defaultOsType, 'peer_exchange_switch_for_agent', false),
+  //   batch: true,
+  //   required: false,
+  //   noRequiredMark: false,
+  //   width: 90,
+  //   parentProp: 'trans_info',
+  //   manualProp: true,
+  // },
   {
     label: '传输限速Unit',
     prop: 'bt_speed_limit',

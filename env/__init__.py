@@ -62,6 +62,14 @@ __all__ = [
     "BKAPP_SYNC_PROC_STATUS_TASK_INTERVAL",
     # Agent安装前置脚本
     "BKAPP_SCRIPT_HOOKS",
+    "BKPAAS_SHARED_RES_URL",
+    "BKAPP_LEGACY_AUTH",
+    "BK_NOTICE_ENABLED",
+    # WINDOWS IEOD脚本内容
+    "BKAPP_IEOD_ACTIVE_FIREWALL_POLICY_SCRIPT_INFO",
+    # 自动选择安装通道相关配置
+    "BKAPP_DEFAULT_INSTALL_CHANNEL_ID",
+    "BKAPP_AUTOMATIC_CHOICE_CLOUD_ID",
 ]
 
 # ===============================================================================
@@ -83,6 +91,11 @@ BKAPP_SYNC_PROC_STATUS_TASK_INTERVAL = get_type_env(
     key="BKAPP_SYNC_PROC_STATUS_TASK_INTERVAL", default=20 * 60, _type=int
 )
 BKAPP_SCRIPT_HOOKS = get_type_env(key="BKAPP_SCRIPT_HOOKS", default="", _type=str)
+BKAPP_IEOD_ACTIVE_FIREWALL_POLICY_SCRIPT_INFO = get_type_env(
+    key="BKAPP_IEOD_ACTIVE_FIREWALL_POLICY_SCRIPT_INFO", default="", _type=str
+)
+BKAPP_DEFAULT_INSTALL_CHANNEL_ID = get_type_env(key="BKAPP_DEFAULT_INSTALL_CHANNEL_ID", default=-1, _type=int)
+BKAPP_AUTOMATIC_CHOICE_CLOUD_ID = get_type_env(key="BKAPP_AUTOMATIC_CHOICE_CLOUD_ID", default=-1, _type=int)
 
 # ===============================================================================
 # 日志
@@ -184,3 +197,6 @@ BKAPP_NAV_HELPER_URL = get_type_env(
 # 文档中心跳转路由
 
 BK_DOCS_CENTER_HOST = get_type_env(key="BK_DOCS_CENTER_HOST", default="", _type=str)
+BKPAAS_SHARED_RES_URL = get_type_env(key="BKPAAS_SHARED_RES_URL", default="", _type=str)
+BKAPP_LEGACY_AUTH = get_type_env(key="BKAPP_LEGACY_AUTH", default=False, _type=bool)
+BK_NOTICE_ENABLED = get_type_env(key="BK_NOTICE_ENABLED", default=False, _type=bool)

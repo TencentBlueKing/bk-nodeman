@@ -14,7 +14,7 @@
         :rules="rules.outerIp"
         required
         :desc="descOuterIpTip">
-        <bk-input v-model="proxyData.outer_ip"></bk-input>
+        <bk-input v-model="proxyData.outer_ip" :placeholder="$t('多个外网IP用英文逗号分隔')"></bk-input>
       </bk-form-item>
       <bk-form-item required :label="$t('登录IP')" property="login_ip" error-display-type="normal" :rules="rules.loginIp">
         <bk-input v-model="proxyData.login_ip" :placeholder="$t('留空默认为内网IP')"></bk-input>
@@ -73,13 +73,13 @@
         :rules="rules.path">
         <bk-input v-model="proxyData.data_path" @blur="(value) => pathInputBlur(value, 'data_path')" />
       </bk-form-item>
-      <bk-form-item :label="$t('BT节点探测')" property="peer_exchange_switch_for_agent">
+      <!-- <bk-form-item :label="$t('BT节点探测')" property="peer_exchange_switch_for_agent">
         <bk-switcher
           theme="primary"
           size="small"
           v-model="proxyData.peer_exchange_switch_for_agent">
         </bk-switcher>
-      </bk-form-item>
+      </bk-form-item> -->
       <bk-form-item :label="$t('传输限速')" property="bt_speed_limit" error-display-type="normal" :rules="rules.speedLimit">
         <bk-input v-model="proxyData.bt_speed_limit"></bk-input>
       </bk-form-item>
@@ -196,7 +196,7 @@ export default class SidesliderContentEdit extends Vue {
       if (this.proxyData.bt_speed_limit) {
         params.bt_speed_limit = this.proxyData.bt_speed_limit;
       }
-      params.peer_exchange_switch_for_agent = Number(this.proxyData.peer_exchange_switch_for_agent || false);
+      params.peer_exchange_switch_for_agent = 0;
       const result = await CloudStore.updateHost(params);
       if (result) {
         this.$bkMessage({

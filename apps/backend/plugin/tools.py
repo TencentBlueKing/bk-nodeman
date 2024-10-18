@@ -28,7 +28,7 @@ from rest_framework.exceptions import ValidationError
 from apps.backend import exceptions
 from apps.core.files.storage import get_storage
 from apps.node_man import constants, models
-from apps.utils import env, files, enum
+from apps.utils import enum, env, files
 
 logger = logging.getLogger("app")
 
@@ -96,7 +96,7 @@ class VariableNodeSerializer(serializers.Serializer):
             else:
                 return bool(default_value)
         elif variable_type == VariableType.STRING.value:
-            return str(variable_type)
+            return str(default_value)
         elif variable_type == VariableType.NUMBER.value:
             if isinstance(default_value, (int, float)):
                 return default_value
@@ -178,7 +178,6 @@ def validate_config_variables(variables_root: Optional[Dict[str, Any]]) -> Dict[
             # 初始化 properties
             validated_node["properties"] = {}
             for title, property_node in node["properties"].items():
-                property_node["title"] = title
                 property_node["depth"] = depth
                 stack.append(property_node)
                 # 初始化 properties 子节点

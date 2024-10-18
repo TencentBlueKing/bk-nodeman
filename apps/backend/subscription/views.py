@@ -75,7 +75,8 @@ class SubscriptionViewSet(APIViewSet):
         if category == models.Subscription.CategoryType.POLICY:
             # 策略类型订阅默认开启
             enable = True
-
+        if params.get("system_account"):
+            params["operate_info"].insert(0, params["system_account"])
         with transaction.atomic():
             # 创建订阅
             subscription = models.Subscription.objects.create(
@@ -95,6 +96,8 @@ class SubscriptionViewSet(APIViewSet):
                 category=params.get("category"),
                 plugin_name=params.get("plugin_name"),
                 pid=params.get("pid", models.Subscription.ROOT),
+                # 指定操作进程用户新增
+                operate_info=params.get("operate_info"),
             )
 
             # 创建订阅步骤
@@ -212,6 +215,10 @@ class SubscriptionViewSet(APIViewSet):
             # 策略部署新增
             subscription.plugin_name = params.get("plugin_name")
             subscription.bk_biz_scope = params.get("bk_biz_scope")
+            # 指定操作进程用户新增
+            if params.get("system_account"):
+                params["operate_info"].insert(0, params["system_account"])
+            subscription.operate_info = params["operate_info"]
             subscription.save()
 
             step_ids: Set[str] = set()

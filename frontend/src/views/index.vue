@@ -1,5 +1,5 @@
 <template>
-  <article>
+  <article style="height: 100%;">
     <router-view></router-view>
     <!--需要缓存的路由-->
     <keep-alive>

@@ -310,7 +310,7 @@ export default class StrategyTable extends Vue {
       },
       {
         source: 'Agent',
-        targetAdress: 'Proxy(GSE_agent)',
+        targetAdress: 'Proxy(gse_agent)',
         protocol: 'TCP',
         portKey: 'io_port',
         use: this.$t('任务服务端口'),
@@ -321,7 +321,7 @@ export default class StrategyTable extends Vue {
       },
       {
         source: 'Agent',
-        targetAdress: 'Proxy(GSE_transit)',
+        targetAdress: 'Proxy(gse_data)',
         protocol: 'TCP',
         portKey: 'data_port',
         use: this.$t('数据上报端口'),
@@ -332,7 +332,7 @@ export default class StrategyTable extends Vue {
       },
       {
         source: 'Agent',
-        targetAdress: 'Proxy(GSE_btsvr)',
+        targetAdress: 'Proxy(gse_file)',
         protocol: 'TCP',
         portKey: 'file_svr_port',
         use: this.$t('BT传输'),
@@ -343,7 +343,7 @@ export default class StrategyTable extends Vue {
       },
       {
         source: 'Agent',
-        targetAdress: 'Proxy(GSE_btsvr)',
+        targetAdress: 'Proxy(gse_file)',
         protocol: 'TCP,UDP',
         portKey: 'bt_port',
         use: this.$t('BT传输'),
@@ -354,7 +354,7 @@ export default class StrategyTable extends Vue {
       },
       {
         source: 'Agent',
-        targetAdress: 'Proxy(GSE_btsvr)',
+        targetAdress: 'Proxy(gse_file)',
         protocol: 'UDP',
         portKey: 'tracker_port',
         use: this.$t('BT传输'),
@@ -364,7 +364,7 @@ export default class StrategyTable extends Vue {
         targetKey: 'proxy',
       },
       {
-        source: 'Proxy(GSE_btsvr)',
+        source: 'Proxy(gse_file)',
         targetAdress: 'Agent',
         protocol: 'TCP,UDP',
         portKey: 'bt_range',
@@ -396,7 +396,7 @@ export default class StrategyTable extends Vue {
     ],
     Proxy: [
       {
-        source: 'Proxy(GSE_agent)',
+        source: 'Proxy(gse_agent)',
         targetAdress: 'GSE_task',
         protocol: 'TCP',
         portKey: 'io_port',
@@ -407,7 +407,7 @@ export default class StrategyTable extends Vue {
         targetKey: 'taskserver',
       },
       {
-        source: 'Proxy(GSE_transit)',
+        source: 'Proxy(gse_data)',
         targetAdress: 'GSE_data',
         protocol: 'TCP',
         portKey: 'data_port',
@@ -418,7 +418,7 @@ export default class StrategyTable extends Vue {
         targetKey: 'dataserver',
       },
       {
-        source: 'Proxy(GSE_btsvr)',
+        source: 'Proxy(gse_file)',
         targetAdress: 'GSE_btsvr',
         protocol: 'TCP',
         portKey: 'btsvr_thrift_port',
@@ -429,7 +429,7 @@ export default class StrategyTable extends Vue {
         targetKey: 'btfileserver',
       },
       {
-        source: 'Proxy(GSE_btsvr)',
+        source: 'Proxy(gse_file)',
         targetAdress: 'GSE_btsvr',
         protocol: 'TCP,UDP',
         portKey: 'bt_port',
@@ -440,7 +440,7 @@ export default class StrategyTable extends Vue {
         targetKey: 'btfileserver',
       },
       {
-        source: 'Proxy(GSE_btsvr)',
+        source: 'Proxy(gse_file)',
         targetAdress: 'GSE_btsvr',
         protocol: 'UDP',
         portKey: 'tracker_port',
@@ -452,7 +452,7 @@ export default class StrategyTable extends Vue {
       },
       {
         source: 'GSE_btsvr',
-        targetAdress: 'Proxy(GSE_btsvr)',
+        targetAdress: 'Proxy(gse_file)',
         protocol: 'TCP',
         portKey: 'btsvr_thrift_port',
         use: this.$t('BT传输'),
@@ -463,7 +463,7 @@ export default class StrategyTable extends Vue {
       },
       {
         source: 'GSE_btsvr',
-        targetAdress: 'Proxy(GSE_btsvr)',
+        targetAdress: 'Proxy(gse_file)',
         protocol: 'TCP,UDP',
         portKey: 'bt_port',
         use: this.$t('BT传输'),
@@ -474,7 +474,7 @@ export default class StrategyTable extends Vue {
       },
       {
         source: 'GSE_btsvr',
-        targetAdress: 'Proxy(GSE_btsvr)',
+        targetAdress: 'Proxy(gse_file)',
         protocol: 'UDP',
         portKey: 'tracker_port',
         use: this.$t('BT传输'),
@@ -484,8 +484,8 @@ export default class StrategyTable extends Vue {
         targetKey: 'agent',
       },
       {
-        source: 'Proxy(GSE_btsvr)',
-        targetAdress: 'Proxy(GSE_btsvr)',
+        source: 'Proxy(gse_file)',
+        targetAdress: 'Proxy(gse_file)',
         protocol: 'TCP',
         portKey: 'btsvr_thrift_port',
         use: `${this.$t('BT传输')}${this.$t('同一子网')}`,
@@ -495,8 +495,8 @@ export default class StrategyTable extends Vue {
         targetKey: 'agent',
       },
       {
-        source: 'Proxy(GSE_btsvr)',
-        targetAdress: 'Proxy(GSE_btsvr)',
+        source: 'Proxy(gse_file)',
+        targetAdress: 'Proxy(gse_file)',
         protocol: 'TCP,UDP',
         portKey: 'bt_port',
         use: `${this.$t('BT传输')}${this.$t('同一子网')}`,
@@ -506,8 +506,8 @@ export default class StrategyTable extends Vue {
         targetKey: 'agent',
       },
       {
-        source: 'Proxy(GSE_btsvr)',
-        targetAdress: 'Proxy(GSE_btsvr)',
+        source: 'Proxy(gse_file)',
+        targetAdress: 'Proxy(gse_file)',
         protocol: 'UDP',
         portKey: 'tracker_port',
         use: `${this.$t('BT传输')}${this.$t('同一子网')}`,
@@ -517,7 +517,7 @@ export default class StrategyTable extends Vue {
         targetKey: 'agent',
       },
       {
-        source: 'Proxy(GSE_agent)',
+        source: 'Proxy(gse_file)',
         targetAdress: '',
         protocol: '',
         port: this.$t('监听随机端口'),
@@ -526,7 +526,7 @@ export default class StrategyTable extends Vue {
         sourceKey: 'agent',
       },
       {
-        source: 'Proxy(GSE_btsvr)',
+        source: 'Proxy(gse_file)',
         targetAdress: '',
         protocol: '',
         port: this.$t('监听随机端口'),

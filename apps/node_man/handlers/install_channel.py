@@ -8,11 +8,13 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from ipaddress import IPv4Network, ip_address, ip_network
 from typing import Dict, List
 
 from django.forms import model_to_dict
 
-from apps.node_man import models
+from apps.core.concurrent.cache import FuncCacheDecorator
+from apps.node_man import constants, models
 from apps.utils import APIModel
 
 
@@ -54,3 +56,30 @@ class InstallChannelHandler(APIModel):
 
     def destroy(self, install_channel_id: int):
         models.InstallChannel.objects.filter(bk_cloud_id=self.bk_cloud_id, id=install_channel_id).delete()
+
+    @staticmethod
+    @FuncCacheDecorator(cache_time=20 * constants.TimeUnit.MINUTE)
+    def get_install_channel_id_network_segment():
+        install_channel_id_network_segment: Dict[str, List[str]] = models.GlobalSettings.get_config(
+            key=models.GlobalSettings.KeyEnum.INSTALL_CHANNEL_ID_NETWORK_SEGMENT.value, default={}
+        )
+        return install_channel_id_network_segment
+
+    @classmethod
+    def judge_install_channel(cls, inner_ip: str):
+        """
+        :param inner_ip: 内网IPv4地址
+        :return: 安装通道ID
+        """
+        install_channel_id_network_segment: Dict[str, List[str]] = cls.get_install_channel_id_network_segment(
+            get_cache=True
+        )
+        network_obj__install_channel_id_map: Dict[IPv4Network, int] = {
+            ip_network(network_segment): int(install_channel_id)
+            for install_channel_id, network_segments in install_channel_id_network_segment.items()
+            for network_segment in network_segments
+        }
+        for network_obj, install_channel_id in network_obj__install_channel_id_map.items():
+            if ip_address(inner_ip) in network_obj:
+                return install_channel_id
+        return None

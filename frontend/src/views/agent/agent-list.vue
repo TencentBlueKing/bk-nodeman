@@ -283,6 +283,17 @@
           v-if="filter['bk_biz_name'].mockChecked">
         </NmColumn>
         <NmColumn
+          key="dept"
+          :label="$t('运维部门')"
+          prop="dept_name"
+          :min-width="columnMinWidth['dept_name']"
+          :render-header="renderFilterHeader"
+          v-if="filter['dept_name'].mockChecked">
+          <template #default="{ row }">
+            {{ row.dept_name | filterEmpty }}
+          </template>
+        </NmColumn>
+        <NmColumn
           key="cloudArea"
           :label="$t('管控区域')"
           :min-width="columnMinWidth['bk_cloud_id']"
@@ -352,7 +363,7 @@
             {{ row.is_manual ? $t('手动') : $t('远程') }}
           </template>
         </NmColumn>
-        <NmColumn
+        <!-- <NmColumn
           key="bt"
           prop="peer_exchange_switch_for_agent"
           :label="$t('BT节点探测')"
@@ -363,7 +374,7 @@
               {{ row.peer_exchange_switch_for_agent ? $t('启用') : $t('停用')}}
             </span>
           </template>
-        </NmColumn>
+        </NmColumn> -->
         <NmColumn
           key="speedLimit"
           prop="bt_speed_limit"
@@ -538,7 +549,7 @@
                           :class="[
                             'list-item',
                             fontSize,
-                            { 'disabled': row.status === 'not_installed' && !(['log', 'remove'].includes(item.id)) }
+                            { 'disabled': ['terminated', 'not_installed'].includes(row.status) && !(['log', 'remove'].includes(item.id)) }
                           ]"
                           :key="item.id"
                           v-test.common="`moreItem.${item.id}`"
@@ -740,6 +751,14 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
       name: window.i18n.t('归属业务'),
       id: 'bk_biz_name',
     },
+    dept_name: {
+      checked: false,
+      disabled: false,
+      mockChecked: false,
+      name: window.i18n.t('运维部门'),
+      id: 'dept_name',
+      filter: true,
+    },
     topology: {
       checked: false,
       disabled: false,
@@ -777,13 +796,13 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
       name: window.i18n.t('更新时间'),
       id: 'updated_at',
     },
-    bt: {
-      checked: false,
-      disabled: false,
-      mockChecked: false,
-      name: window.i18n.t('BT节点探测'),
-      id: 'peer_exchange_switch_for_agent',
-    },
+    // bt: {
+    //   checked: false,
+    //   disabled: false,
+    //   mockChecked: false,
+    //   name: window.i18n.t('BT节点探测'),
+    //   id: 'peer_exchange_switch_for_agent',
+    // },
     speedLimit: {
       checked: false,
       disabled: false,
@@ -1069,7 +1088,7 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
     if (this.selectedBiz.length) {
       Object.assign(param, { bk_biz_ids: this.selectedBiz });
     }
-    const optSearchKeys = ['version', 'bk_cloud_id'];
+    const optSearchKeys = ['version', 'bk_cloud_id', 'dept_name'];
     const data = await AgentStore.getFilterCondition(param);
     this.filterData.splice(0, this.filterData.length, ...data.map(item => (optSearchKeys.includes(item.id)
       ? ({ ...item, showCheckAll: true, showSearch: true })
@@ -1665,7 +1684,7 @@ export default class AgentList extends Mixins(pollMixin, TableHeaderMixins, auth
    * Linux、window卸载都不需要经过编辑页面 *****
    */
   private handleOperate(type: string, data: IAgentHost[], batch = false) {
-    if (!batch && data[0].status === 'not_installed' && !(['log', 'reinstall', 'remove'].includes(type))) {
+    if (!batch && ['terminated', 'not_installed'].includes(data[0].status) && !(['log', 'reinstall', 'remove'].includes(type))) {
       return;
     }
     if (!batch && this.$refs[data[0].bk_host_id]) {

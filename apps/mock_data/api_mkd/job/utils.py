@@ -50,3 +50,7 @@ class JobApiMockClient(utils.BaseMockClient):
         self.fast_execute_script = self.call_recorder.start(self.fast_execute_script, key=JobApi.fast_execute_script)
         self.fast_transfer_file = self.call_recorder.start(self.fast_transfer_file, key=JobApi.fast_transfer_file)
         self.push_config_file = self.call_recorder.start(self.push_config_file, key=JobApi.push_config_file)
+
+        setattr(self.fast_execute_script, "api_name", "fast_execute_script")
+        setattr(self.push_config_file, "api_name", "push_config_file")
+        setattr(self.fast_transfer_file, "api_name", "fast_transfer_file")

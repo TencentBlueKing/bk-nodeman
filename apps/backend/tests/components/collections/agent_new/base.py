@@ -46,7 +46,7 @@ class PollingTimeoutMixinTestCase(TestCase):
         expected_timeout = 20
         models.GlobalSettings.set_config(
             models.GlobalSettings.KeyEnum.BACKEND_SERVICE_POLLING_TIMEOUT.value,
-            {"PollingTimeoutMixin": expected_timeout}
+            {"PollingTimeoutMixin": expected_timeout},
         )
         timeout = self.mixin.service_polling_timeout
         self.assertEqual(timeout, expected_timeout)
@@ -132,7 +132,10 @@ class JobBaseTestCase(utils.AgentServiceBaseTestCase, ABC):
         :param extra_kw: 额外需要添加的数据
         :return:
         """
-        base_common_outputs = {"succeeded_subscription_instance_ids": self.fetch_succeeded_sub_inst_ids()}
+        base_common_outputs = {
+            "is_rolling_execute": False,
+            "succeeded_subscription_instance_ids": self.fetch_succeeded_sub_inst_ids(),
+        }
         if polling_time is not None:
             base_common_outputs["polling_time"] = polling_time
 
@@ -263,7 +266,7 @@ class JobTimeOutBaseTestCase(JobBaseTestCase, ABC):
         super().setUp()
         mock.patch(
             "apps.backend.components.collections.base.PollingTimeoutMixin.service_polling_timeout",
-            (self.POLLING_COUNT - 1) * POLLING_INTERVAL
+            (self.POLLING_COUNT - 1) * POLLING_INTERVAL,
         ).start()
 
     def fetch_schedule_assertion(self) -> List[ScheduleAssertion]:

@@ -75,13 +75,17 @@ class DebugTest(TestCase, TestCaseLifeCycleMixin, ComponentTestMixin):
                 parent_data={},
                 execute_assertion=ExecuteAssertion(
                     success=True,
-                    outputs={"succeeded_subscription_instance_ids": [self.ids["subscription_instance_record_id"]]},
+                    outputs={
+                        "is_rolling_execute": False,
+                        "succeeded_subscription_instance_ids": [self.ids["subscription_instance_record_id"]],
+                    },
                 ),
                 schedule_assertion=[
                     ScheduleAssertion(
                         success=True,
                         schedule_finished=False,
                         outputs={
+                            "is_rolling_execute": False,
                             "last_logs": "job_start\n",
                             "polling_time": 5,
                             "succeeded_subscription_instance_ids": [self.ids["subscription_instance_record_id"]],
@@ -92,6 +96,7 @@ class DebugTest(TestCase, TestCaseLifeCycleMixin, ComponentTestMixin):
                         success=True,
                         schedule_finished=False,
                         outputs={
+                            "is_rolling_execute": False,
                             "last_logs": "job_start\n",
                             "polling_time": 10,
                             "succeeded_subscription_instance_ids": [self.ids["subscription_instance_record_id"]],
@@ -102,6 +107,7 @@ class DebugTest(TestCase, TestCaseLifeCycleMixin, ComponentTestMixin):
                         success=True,
                         schedule_finished=True,
                         outputs={
+                            "is_rolling_execute": False,
                             "last_logs": "job_start\n",
                             "polling_time": 10,
                             "succeeded_subscription_instance_ids": [self.ids["subscription_instance_record_id"]],
@@ -129,13 +135,17 @@ class DebugEmptyLogTest(DebugTest):
                 parent_data={},
                 execute_assertion=ExecuteAssertion(
                     success=True,
-                    outputs={"succeeded_subscription_instance_ids": [self.ids["subscription_instance_record_id"]]},
+                    outputs={
+                        "is_rolling_execute": False,
+                        "succeeded_subscription_instance_ids": [self.ids["subscription_instance_record_id"]],
+                    },
                 ),
                 schedule_assertion=[
                     ScheduleAssertion(
                         success=True,
                         schedule_finished=True,
                         outputs={
+                            "is_rolling_execute": False,
                             "last_logs": "",
                             "succeeded_subscription_instance_ids": [self.ids["subscription_instance_record_id"]],
                         },

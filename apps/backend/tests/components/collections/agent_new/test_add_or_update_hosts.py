@@ -348,3 +348,40 @@ class UpdateOldWhenIncludeLoginInParamTestCase(AddOrUpdateHostsTestCase):
     def assert_in_teardown(self):
         super().assert_in_teardown()
         self.assertEqual(models.Host.objects.filter(login_ip="").count(), 0)
+
+
+class MultiOuterIpHostsTestCase(AddOrUpdateHostsTestCase):
+    @classmethod
+    def adjust_test_data_in_db(cls):
+        super().adjust_test_data_in_db()
+
+        # 多外网IP情况
+        for sub_inst_obj in cls.obj_factory.sub_inst_record_objs:
+            sub_inst_obj.instance_info["host"]["bk_host_outerip"] += ",1.2.3.4"
+            sub_inst_obj.instance_info["host"]["host_node_type"] = constants.NodeType.PROXY
+        models.SubscriptionInstanceRecord.objects.bulk_update(
+            cls.obj_factory.sub_inst_record_objs, fields=["instance_info"]
+        )
+
+    def assert_in_teardown(self):
+        # 更新主机情况
+        for host_info in self.cmdb_mock_client.batch_update_host.call_args[0][0]["update"]:
+            bk_host_outerip = host_info["properties"]["bk_host_outerip"]
+            outer_ips = bk_host_outerip.split(",")
+            self.assertEqual(len(outer_ips), 2)
+        # 新增主机情况
+        for bk_host_info in self.cmdb_mock_client.add_host_to_business_idle.call_args[0][0]["bk_host_list"]:
+            bk_host_outerip = bk_host_info["bk_host_outerip"]
+            outer_ips = bk_host_outerip.split(",")
+            self.assertEqual(len(outer_ips), 2)
+        # 更新DB情况
+        host_datas = models.Host.objects.filter(bk_cloud_id=0)[:2].values("outer_ip", "extra_data")
+        for host in host_datas:
+            outer_ip = host["outer_ip"].split(",")
+            # 验证不影响原有的outer_ip处理逻辑
+            self.assertEqual(len(outer_ip), 1)
+            bk_host_multi_outerip = host["extra_data"]["bk_host_multi_outerip"]
+            outer_ips = bk_host_multi_outerip.split(",")
+            self.assertEqual(len(outer_ips), 2)
+
+        super().assert_in_teardown()

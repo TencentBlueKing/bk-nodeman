@@ -9,6 +9,7 @@ import pluginNew from '@/store/modules/plugin-new';
 import pluginOld from '@/store/modules/plugin';
 import task from '@/store/modules/task';
 import config from '@/store/modules/config';
+import platformConfig from '@/store/modules/platform-config';
 
 
 Vue.use(Vuex);
@@ -24,6 +25,7 @@ const store = new Vuex.Store({
     task,
     config,
     main,
+    platformConfig,
   },
 });
 
@@ -68,6 +70,7 @@ const PluginStore = getModule(pluginNew, store);
 const PluginOldStore = getModule(pluginOld, store);
 const TaskStore = getModule(task, store);
 const ConfigStore = getModule(config, store);
+const PlatformConfigStore = getModule(platformConfig, store);
 
 export {
   MainStore,
@@ -77,6 +80,7 @@ export {
   PluginOldStore,
   TaskStore,
   ConfigStore,
+  PlatformConfigStore,
 };
 
 export default store;

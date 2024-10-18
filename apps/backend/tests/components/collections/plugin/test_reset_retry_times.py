@@ -51,7 +51,9 @@ class ResetRetryTimesTest(TestCase, ComponentTestMixin):
                 schedule_assertion=ScheduleAssertion(
                     success=True,
                     schedule_finished=True,
-                    outputs={"succeeded_subscription_instance_ids": [self.ids["subscription_instance_record_id"]]},
+                    outputs={
+                        "succeeded_subscription_instance_ids": [self.ids["subscription_instance_record_id"]],
+                    },
                     callback_data=[],
                 ),
                 execute_call_assertion=None,

@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import typing
 from collections import defaultdict
+from ipaddress import IPv4Address
 
 from django.conf import settings
 from django.db.models import Q
@@ -171,7 +172,7 @@ class HostSerializer(InstallBaseSerializer):
     ap_id = serializers.IntegerField(label=_("接入点ID"), required=False)
     install_channel_id = serializers.IntegerField(label=_("安装通道ID"), required=False, allow_null=True)
     inner_ip = serializers.IPAddressField(label=_("内网IP"), required=False, allow_blank=True, protocol="ipv4")
-    outer_ip = serializers.IPAddressField(label=_("外网IP"), required=False, allow_blank=True, protocol="ipv4")
+    outer_ip = serializers.CharField(label=_("外网IP"), required=False, allow_blank=True)
     login_ip = serializers.IPAddressField(label=_("登录IP"), required=False, allow_blank=True, protocol="both")
     data_ip = serializers.IPAddressField(label=_("数据IP"), required=False, allow_blank=True, protocol="both")
     inner_ipv6 = serializers.IPAddressField(label=_("内网IPv6"), required=False, allow_blank=True, protocol="ipv6")
@@ -203,6 +204,12 @@ class HostSerializer(InstallBaseSerializer):
             raise ValidationError(_("请求参数 inner_ip 和 inner_ipv6 不能同时为空"))
         if node_type == constants.NodeType.PROXY and not (attrs.get("outer_ip") or attrs.get("outer_ipv6")):
             raise ValidationError(_("Proxy 操作的请求参数 outer_ip 和 outer_ipv6 不能同时为空"))
+        if not attrs.get("outer_ipv6") and attrs.get("outer_ip"):
+            outer_ips = attrs["outer_ip"].split(",")
+            try:
+                [IPv4Address(outer_ip) for outer_ip in outer_ips]
+            except ValueError:
+                raise ValidationError(_("Proxy 操作的请求参数 outer_ip:请输入一个合法的IPv4地址"))
 
         basic.ipv6_formatter(data=attrs, ipv6_field_names=["inner_ipv6", "outer_ipv6", "login_ip", "data_ip"])
 

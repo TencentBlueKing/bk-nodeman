@@ -7,6 +7,7 @@ interface IItem {
   required: boolean;
   description: string;
   property: string;
+  prop: string;
   default: any;
   isAdd: boolean;
   'ui:component': {
@@ -55,7 +56,7 @@ export const uuid = (n = 10, str = lowerStr): string => {
 };
 
 const complexType = ['array', 'object'];
-const bfArrayTitle = 'labels';
+const bfArrayTitle = ['labels', '标签'];
 const bfArrayKey = 'key';
 const bfArrayValue = 'value';
 
@@ -81,7 +82,7 @@ function getDefaultComponent(params: IItem) {
   let realComponent = component.name;
   if (type === 'array') {
     const { title, items: { properties = {} } } = params;
-    const propKeys = title === bfArrayTitle ? Object.keys(properties) : [];
+    const propKeys = bfArrayTitle.some(t => title.includes(t)) ? Object.keys(properties) : [];
     if (propKeys.length === 2 && [bfArrayKey, bfArrayValue].every(key => propKeys.includes(key))) {
       realComponent = 'bfArray';
     }
@@ -123,9 +124,9 @@ export function getConvertible(schema: IItem) {
 
 export const getRealProp = (parentProp?: string, prop: string): string => (parentProp ? `${parentProp}.${prop}` : prop);
 
-export function formatSchema(schema: IItem, parentProp = '', level = 0): Doll {
+export function formatSchema(schema: IItem, parentProp = '', level = 0, key?: string): Doll {
   const { type = 'string', properties = {} } = schema;
-  const prop = schema.prop || schema.title;
+  const prop = key ? key : schema.prop || schema.title;
   const property = parentProp ? `${parentProp}.${prop}` : prop;
   // console.log(parentProp, '+', prop, '=', property);
   const baseItem: Doll = {
@@ -162,7 +163,7 @@ export function formatSchema(schema: IItem, parentProp = '', level = 0): Doll {
       baseItem.children = [formatSchema(schema.items || {}, `${property}`, newLevel)];
       // properties = schema.items || {}
     } else {
-      baseItem.children = Object.keys(properties).map(key => formatSchema(Object.assign({ title: key }, { ...properties[key] }), `${property}`, newLevel));
+      baseItem.children = Object.keys(properties).map(key => formatSchema(Object.assign({ title: key }, { ...properties[key] }), `${property}`, newLevel, key));
     }
     // console.log(property, 'cccccccc');
   }

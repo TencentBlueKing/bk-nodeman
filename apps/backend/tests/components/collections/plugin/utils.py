@@ -412,12 +412,22 @@ class CmdbClient:
             ]
 
 
+def add_api_name(func):
+    def wrapper(*args, **kwargs):
+        return func(*args, **kwargs)
+
+    setattr(wrapper, "api_name", func.__name__)
+    return wrapper
+
+
 class JobMockClient:
     @classmethod
+    @add_api_name
     def fast_transfer_file(cls, *args, **kwargs):
         return {"job_instance_name": "API Quick Distribution File1521101427176", "job_instance_id": JOB_INSTANCE_ID}
 
     @classmethod
+    @add_api_name
     def get_job_instance_status(cls, *args, **kwargs):
         return {
             "finished": True,
@@ -444,14 +454,17 @@ class JobMockClient:
         }
 
     @classmethod
+    @add_api_name
     def fast_execute_script(cls, *args, **kwargs):
         return {"job_instance_name": "API Quick execution script1521100521303", "job_instance_id": JOB_INSTANCE_ID}
 
     @classmethod
+    @add_api_name
     def push_config_file(cls, *args, **kwargs):
         return
 
     @classmethod
+    @add_api_name
     def get_job_instance_ip_log(cls, *args, **kwargs):
         return {"ip": TEST_IP, "bk_cloud_id": const.DEFAULT_CLOUD, "log_content": "job_start\n"}
 

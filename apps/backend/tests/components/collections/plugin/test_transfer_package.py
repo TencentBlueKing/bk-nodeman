@@ -53,12 +53,16 @@ class TransferPackageTest(CustomBaseTestCase, ComponentTestMixin):
                 parent_data={},
                 execute_assertion=ExecuteAssertion(
                     success=True,
-                    outputs={"succeeded_subscription_instance_ids": [self.ids["subscription_instance_record_id"]]},
+                    outputs={
+                        "is_rolling_execute": False,
+                        "succeeded_subscription_instance_ids": [self.ids["subscription_instance_record_id"]],
+                    },
                 ),
                 schedule_assertion=ScheduleAssertion(
                     success=True,
                     schedule_finished=True,
                     outputs={
+                        "is_rolling_execute": False,
                         "succeeded_subscription_instance_ids": [self.ids["subscription_instance_record_id"]],
                         "polling_time": 5,
                     },

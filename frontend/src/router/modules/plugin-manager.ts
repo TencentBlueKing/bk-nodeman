@@ -17,17 +17,17 @@ const ResourceQuotaEdit = () => import(/* webpackChunkName: 'ResourceQuotaEdit' 
 export default [
   // 其它saas跳转
   {
-    path: '/plugin-manager',
+    path: 'plugin-manager',
     name: 'pluginManager',
     redirect: { name: 'plugin' },
   },
   {
-    path: '/plugin-manager/list',
+    path: 'plugin-manager/list',
     name: 'pluginManager',
     redirect: { name: 'plugin' },
   },
   {
-    path: '/plugin-new/list', // path: 'plugin-manager/list',
+    path: 'plugin-new/list', // path: 'plugin-manager/list',
     name: 'plugin',
     component: Plugin,
     props: route => ({ // 兼容旧的路由
@@ -54,7 +54,7 @@ export default [
     },
   },
   {
-    path: '/plugin-new/list/:type',
+    path: 'plugin-new/list/:type',
     name: 'pluginOperation',
     props: true,
     component: CreateRule,
@@ -76,7 +76,7 @@ export default [
     },
   },
   {
-    path: '/plugin-manager/rule',
+    path: 'plugin-manager/rule',
     name: 'pluginRule',
     component: pluginRule,
     meta: {
@@ -89,7 +89,7 @@ export default [
     },
   },
   {
-    path: '/plugin-manager/choose-rule',
+    path: 'plugin-manager/choose-rule',
     name: 'chooseRule',
     props: true,
     component: ChooseRule,
@@ -109,7 +109,7 @@ export default [
     },
   },
   {
-    path: '/plugin-manager/rule/:type/:id?',
+    path: 'plugin-manager/rule/:type/:id?',
     name: 'createRule',
     component: CreateRule,
     props: true,
@@ -155,7 +155,7 @@ export default [
     },
   },
   {
-    path: '/plugin-manager/package',
+    path: 'plugin-manager/package',
     name: 'pluginPackage',
     component: PluginPackage,
     meta: {
@@ -168,7 +168,7 @@ export default [
     },
   },
   {
-    path: '/plugin-manager/package-parse/:filename',
+    path: 'plugin-manager/package-parse/:filename',
     props: true,
     name: 'pluginPackageParse',
     component: PackageParse,
@@ -186,7 +186,7 @@ export default [
     },
   },
   {
-    path: '/plugin-manager/plugin-detail/:id',
+    path: 'plugin-manager/plugin-detail/:id',
     name: 'pluginDetail',
     props: true,
     component: PluginDetail,
@@ -201,7 +201,7 @@ export default [
     },
   },
   {
-    path: '/plugin-manager/resource-quota',
+    path: 'plugin-manager/resource-quota',
     name: 'resourceQuota',
     props: route => ({
       bizId: Number(route.query.bizId || -1) || -1,
@@ -219,7 +219,7 @@ export default [
     },
   },
   {
-    path: '/plugin-manager/resource-quota/edit',
+    path: 'plugin-manager/resource-quota/edit',
     name: 'resourceQuotaEdit',
     props: route => ({
       bizId: Number(route.query.bizId || -1),

@@ -3,9 +3,8 @@
     class="russian-dolls-form"
     ref="russianDollsFormRef"
     :model="formModel"
-    :rules="rules"
-    :label-width="labelWidth">
-    <DollIndex :value-prop="''" :value="formModel" :item="baseForm" :item-index="0" />
+    :rules="rules">
+    <DollIndex :value-prop="''" :value="formModel" :item="baseForm" :item-index="0" :label-width="labelWidth"/>
   </bk-form>
 </template>
 
@@ -60,7 +59,9 @@ export default defineComponent({
         if (Array.isArray(data)) {
           const propKey = property?.split('.') || [];
           prop = propKey[propKey.length - 1] || 0;
-          data[prop] = target;
+          // data[prop] = target;
+          // 直接赋值不能触发组件filedModel缓存更新,导致组件校验状态更新问题
+          data.splice(prop, 1, target);
         } else {
           prop = propItem.prop;
           data[propItem.prop] = target;
@@ -111,6 +112,7 @@ export default defineComponent({
     };
     // 补齐form需要的数据
     const completionArrayData = (list, form) => {
+      if (typeof form === 'string') return form;
       // 很关键。form一定要保证是个obj
       const formData = typeof form === 'object' && !Array.isArray(form)
         ? deepClone(form)

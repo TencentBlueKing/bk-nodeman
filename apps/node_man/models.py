@@ -150,8 +150,6 @@ class GlobalSettings(models.Model):
         BACKEND_SERVICE_POLLING_TIMEOUT = "BACKEND_SERVICE_POLLING_TIMEOUT"
         # 管控区域新增主机黑名单，用于限制指定管控区域通过安装 Agent 新增主机，配置样例：[1, 2]
         ADD_HOST_CLOUD_BLACKLIST = "ADD_HOST_CLOUD_BLACKLIST"
-        # 消息中心开关
-        ENABLE_NOTICE_CENTER = "ENABLE_NOTICE_CENTER"
         # 禁用已停用插件
         DISABLE_STOPPED_PLUGIN = "DISABLE_STOPPED_PLUGIN"
         # 根据订阅分配任务队列
@@ -166,6 +164,10 @@ class GlobalSettings(models.Model):
         IP_CHOOSER_ENABLE_SHOW_REALTIME_AGENT_STATE = "IP_CHOOSER_ENABLE_SHOW_REALTIME_AGENT_STATE"
         # IP选择器详情接口实时展示agent状态业务白名单
         IP_CHOOSER_BIZ_WHITELIST = "IP_CHOOSER_BIZ_WHITELIST"
+        # 是否仅在直连区域开启自动选择安装通道
+        AUTO_SELECT_INSTALL_CHANNEL_ONLY_DIRECT_AREA = "AUTO_SELECT_INSTALL_CHANNEL_ONLY_DIRECT_AREA"
+        # 安装通道ID与网段列表映射
+        INSTALL_CHANNEL_ID_NETWORK_SEGMENT = "INSTALL_CHANNEL_ID_NETWORK_SEGMENT"
 
     key = models.CharField(_("键"), max_length=255, db_index=True, primary_key=True)
     v_json = JSONField(_("值"))
@@ -266,6 +268,7 @@ class Host(models.Model):
 
     created_at = models.DateTimeField(_("创建时间"), auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(_("更新时间"), null=True, auto_now=False, db_index=True)
+    dept_name = models.CharField(_("运维部门"), max_length=128, db_index=True, blank=True, null=True, default="")
 
     extra_data = JSONField(_("额外数据"), blank=True, null=True)
 
@@ -826,6 +829,14 @@ class InstallChannel(models.Model):
                 result[install_channel_id].append(host)
 
         return result
+
+    @classmethod
+    @FuncCacheDecorator(cache_time=20 * constants.TimeUnit.MINUTE)
+    def install_channel_id_name_map(cls) -> Dict[str, str]:
+        all_install_channel_map = {
+            str(install_channel["id"]): install_channel["name"] for install_channel in cls.objects.values("id", "name")
+        }
+        return all_install_channel_map
 
     class Meta:
         verbose_name = _("安装通道（InstallChannel）")
@@ -1848,6 +1859,7 @@ class Subscription(export_subscription_prometheus_mixin(), orm.SoftDeleteModel):
     category = models.CharField(_("订阅类别"), max_length=32, null=True, blank=True, db_index=True)
     plugin_name = models.CharField(_("插件名称"), max_length=64, null=True, blank=True, db_index=True)
     bk_biz_scope = JSONField(_("业务范围"), default=list)
+    operate_info = JSONField(_("操作信息"), default=None, null=True)
 
     pid = models.BigIntegerField(_("父订阅ID"), default=ROOT, db_index=True)
 

@@ -77,6 +77,14 @@ DEFAULT_CLOUD = int(os.environ.get("DEFAULT_CLOUD", 0))
 DEFAULT_CLOUD_NAME = os.environ.get("DEFAULT_CLOUD_NAME", _("直连区域"))
 # 自动选择接入点ID
 DEFAULT_AP_ID = int(os.environ.get("DEFAULT_AP_ID", -1))
+# 自动选择安装通道ID
+DEFAULT_INSTALL_CHANNEL_ID = int(os.environ.get("DEFAULT_INSTALL_CHANNEL_ID", -1))
+# 自动选择的云区域ID
+AUTOMATIC_CHOICE_CLOUD_ID = int(os.environ.get("AUTOMATIC_CHOICE_CLOUD_ID", -1))
+# 自动选择
+AUTOMATIC_CHOICE = os.environ.get("AUTOMATIC_CHOICE", _("自动选择"))
+# 默认安装通道
+DEFAULT_INSTALL_CHANNEL_NAME = os.environ.get("DEFAULT_INSTALL_CHANNEL_NAME", _("默认通道"))
 # GSE命名空间
 GSE_NAMESPACE = "nodeman"
 
@@ -593,6 +601,8 @@ LIST_SERVICE_INSTANCE_DETAIL_INTERVAL = 0.2
 REDIS_NEED_DELETE_HOST_IDS_KEY_TPL = f"{settings.APP_CODE}:node_man:need_delete_host_ids:list"
 # 从redis中读取bk_host_ids最大长度
 MAX_HOST_IDS_LENGTH = 5000
+# 操作系统对应账户名
+OS_ACCOUNT = {"LINUX": LINUX_ACCOUNT, "WINDOWS": WINDOWS_ACCOUNT}
 
 
 class ProxyFileFromType(Enum):
@@ -685,6 +695,7 @@ CC_HOST_FIELDS = [
     "bk_state_name",
     "bk_supplier_account",
     "bk_cpu_architecture",
+    "dept_name",
 ]
 
 # 限流窗口配置，用于控制CMDB订阅触发的变更频率
@@ -743,6 +754,9 @@ class BkJobErrorCode(object):
     AGENT_ABNORMAL = 117
     SUCCEED = 9
     RUNNING = 7
+    EXCEED_BIZ_QUOTA_LIMIT = 1244032
+    EXCEED_APP_QUOTA_LIMIT = 1244033
+    EXCEED_SYSTEM_QUOTA_LIMIT = 1244034
 
     BK_JOB_ERROR_CODE_MAP = {
         NOT_EXIST_HOST: _("作业平台API返回中不存在此IP的日志，请联系管理员排查问题"),
@@ -772,6 +786,9 @@ class BkJobErrorCode(object):
         329: _("文件传输错误"),
         399: _("任务执行出错"),
         403: _("任务被强制终止"),
+        EXCEED_BIZ_QUOTA_LIMIT: _("当前执行的作业总量超过业务配额限制"),
+        EXCEED_APP_QUOTA_LIMIT: _("当前执行的作业总量超过应用配额限制"),
+        EXCEED_SYSTEM_QUOTA_LIMIT: _("当前执行的作业总量超过系统配额限制"),
     }
 
 
@@ -1114,6 +1131,13 @@ FILES_TO_PUSH_TO_PROXY = TOOLS_TO_PUSH_TO_PROXY + [
         "files": GSE_CLIENT_PACKAGES,
         "name": _("下发安装包"),
         "from_type": ProxyFileFromType.AP_CONFIG.value,
+    }
+]
+
+MANUAL_INSTALL_WINDOWS_BATCH_FILES = TOOLS_TO_PUSH_TO_PROXY + [
+    {
+        "files": ["base64.exe", "setup_agent.bat"],
+        "name": _("下发windows手动安装工具"),
     }
 ]
 

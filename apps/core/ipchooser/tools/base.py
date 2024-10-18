@@ -234,6 +234,7 @@ class HostQuerySqlHelper:
                 "bk_addressing",
                 "bk_host_name",
                 "bk_agent_id",
+                "dept_name",
             ]:
                 if condition["key"] in ["inner_ipv6"]:
                     condition["value"] = basic.ipv6s_formatter(condition["value"])

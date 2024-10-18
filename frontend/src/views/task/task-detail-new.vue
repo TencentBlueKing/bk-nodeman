@@ -240,6 +240,7 @@ export default class TaskDeatail extends Mixins(PollMixin, HeaderFilterMixins) {
     }
   }
 
+
   // 进入详情页才缓存界面
   private beforeRouteLeave(to: Route, from: Route, next: () => void) {
     if (to.name !== 'taskList') {
@@ -571,6 +572,7 @@ export default class TaskDeatail extends Mixins(PollMixin, HeaderFilterMixins) {
     left: 3px;
   }
   .task-detail-wrapper {
+    height: calc(100vh - 52px);
     display: flex;
     flex-direction: column;
     padding: 0 0 30px 0;

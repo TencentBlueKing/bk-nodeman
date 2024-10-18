@@ -20,7 +20,7 @@
 </template>
 
 <script lang="ts">
-import { Vue, Component, Ref } from 'vue-property-decorator';
+import { Vue, Component, Ref, Watch } from 'vue-property-decorator';
 import { ConfigStore } from '@/store/index';
 import ExceptionCard from '@/components/exception/exception-card.vue';
 
@@ -40,7 +40,8 @@ export default class HealthzServiceTable extends Vue {
     return ConfigStore.allIPs.map(item => ({ ip: item }));
   }
 
-  private mounted() {
+  @Watch('tableData', { deep: true, immediate: true })
+  private toggleSelect() {
     this.$nextTick(() => {
       this.toggleSelection(this.tableData);
     });
@@ -51,9 +52,7 @@ export default class HealthzServiceTable extends Vue {
   }
   public toggleSelection(rows?: Dictionary[]) {
     if (rows) {
-      rows.forEach((row) => {
-        this.serviceTable.toggleRowSelection(row);
-      });
+      this.serviceTable.toggleAllSelection(rows);
     } else {
       this.serviceTable.clearSelection();
     }

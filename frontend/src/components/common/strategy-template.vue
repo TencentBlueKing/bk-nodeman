@@ -6,33 +6,33 @@
       :key="`operation${index}`">
       {{ `${ index + 1 }. ${ item }` }}
     </p>
-    <div class="cloud-panel" v-if="cloudAreaList.length">
-      <RightPanel
-        v-for="cloudArea in cloudAreaList"
-        :key="`${cloudArea.bk_cloud_id}_${cloudArea.ap_id}`"
-        :class="['cloud-panel-item', { 'is-close': !cloudArea.collapse }]"
-        :need-border="false"
-        :icon-style="{ padding: '4px 4px', fontSize: '12px' }"
-        collapse-color="#979BA5"
-        title-bg-color="#F0F1F5"
-        :collapse="cloudArea.collapse"
-        :type="`${cloudArea.bk_cloud_id}_${cloudArea.ap_id}`"
-        @change="handleToggle">
-        <div class="collapse-header" slot="title">
-          {{ `${ cloudArea.bk_cloud_name } - ${ cloudArea.ap_name }` }}
-        </div>
-        <div class="collapse-container" slot>
-          <StrategyTable
-            :has-cloud="!!cloudArea.bk_cloud_name"
-            :host-type="cloudArea.type"
-            :area="cloudArea">
-          </StrategyTable>
-        </div>
-      </RightPanel>
+    <div class="cloud-panel" v-if="this.cloudAreaList.length">
+      <template v-if="hostType === 'Pagent'">
+        <RightPanel
+          v-for="cloudArea in cloudAreaList"
+          :key="`${cloudArea.bk_cloud_id}_${cloudArea.ap_id}`"
+          :class="['cloud-panel-item', { 'is-close': !cloudArea.collapse }]"
+          :need-border="false"
+          :icon-style="{ padding: '4px 4px', fontSize: '12px' }"
+          collapse-color="#979BA5"
+          title-bg-color="#F0F1F5"
+          :collapse="cloudArea.collapse"
+          :type="`${cloudArea.bk_cloud_id}_${cloudArea.ap_id}`"
+          @change="handleToggle">
+          <div class="collapse-header" slot="title">
+            {{ `${ cloudArea.bk_cloud_name } - ${ cloudArea.ap_name }` }}
+          </div>
+          <div class="collapse-container" slot>
+            <StrategyTable
+              :has-cloud="!!cloudArea.bk_cloud_name"
+              :host-type="cloudArea.type"
+              :area="cloudArea">
+            </StrategyTable>
+          </div>
+        </RightPanel>
+      </template>
     </div>
-    <div class="mt15" v-else>
-      <StrategyTable :host-type="hostType === 'mixed' ? 'Agent' : hostType"></StrategyTable>
-    </div>
+    
   </div>
 </template>
 
@@ -61,6 +61,7 @@ export default class StrategyTemplate extends Vue {
   private cloudAreaList: any[] = [];
 
   private get tipList() {
+
     if (this.hostType === 'Proxy') {
       return [
         this.$t('Agent安装Tip1'),
@@ -152,6 +153,8 @@ export default class StrategyTemplate extends Vue {
       }, arr);
       return arr;
     }, []);
+    console.log("🚀 ~ StrategyTemplate ~ this.cloudAreaList=Object.values ~ this.cloudAreaList:", this.cloudAreaList)
+    
   }
   /**
    * 手风琴模式

@@ -10,14 +10,14 @@ const globalConfig = navList.find(item => item.name === 'globalConfig');
 
 export default globalConfig && !globalConfig.disabled ? [
   {
-    path: '/global-config',
+    path: 'global-config',
     name: 'globalConfig',
     redirect: {
       name: 'GseConfig',
     },
   },
   {
-    path: '/global-config/gse-config',
+    path: 'global-config/gse-config',
     name: 'gseConfig',
     component: GseConfig,
     meta: {
@@ -26,7 +26,7 @@ export default globalConfig && !globalConfig.disabled ? [
     },
   },
   {
-    path: '/global-config/access-point/:pointId?',
+    path: 'global-config/access-point/:pointId?',
     name: 'accessPoint',
     props: true,
     component: AccessPoint,
@@ -42,7 +42,7 @@ export default globalConfig && !globalConfig.disabled ? [
     },
   },
   {
-    path: '/global-config/healthz',
+    path: 'global-config/healthz',
     name: 'healthz',
     component: Healthz,
     meta: {

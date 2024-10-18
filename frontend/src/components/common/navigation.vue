@@ -13,8 +13,8 @@
       @toggle-click="handleNavToggle">
       <!--icon-->
       <div slot="side-header" class="nav-header" @click="$router.push('/')">
-        <img src="../../images/logoIcon.png" class="nodeman-logo-icon" />
-        <span class="title-desc">{{ nav.headerTitle }}</span>
+        <img :src="appLogo" class="nodeman-logo-icon" />
+        <span class="title-desc">{{ config.i18n.productName }}</span>
       </div>
       <!--顶部导航-->
       <template #header>
@@ -37,7 +37,7 @@
               </div>
               <template #content>
                 <ul class="bk-dropdown-list">
-                  <li class="dropdown-list-item" v-for="item in langList" :key="item.id" @click="toggleLang(item)">
+                  <li class="dropdown-list-item" :class="{'active': item.id === language}" v-for="item in langList" :key="item.id" @click="toggleLang(item)">
                     <i :class="`nodeman-icon nc-lang-${item.id}`" /> {{ item.name }}
                   </li>
                 </ul>
@@ -123,7 +123,7 @@
   </article>
 </template>
 <script lang="ts">
-import { MainStore } from '@/store/index';
+import { MainStore, PlatformConfigStore } from '@/store/index';
 import { Component, Ref, Mixins, Watch } from 'vue-property-decorator';
 import NavSideMenu from '@/components/common/nav-side.vue';
 import LogVersion from '@/components/common/log-version.vue';
@@ -132,6 +132,7 @@ import ExceptionPage from '@/components/exception/exception-page.vue';
 import routerBackMixin from '@/common/router-back-mixin';
 import { bus } from '@/common/bus';
 import { INavConfig } from '@/types';
+import logoSrc from '@/images/logoIcon.png';
 
 interface IUserItem {
   id: string
@@ -210,6 +211,12 @@ export default class NodemanNavigation extends Mixins(routerBackMixin) {
     cloudManagerDetail: window.i18n.t('查看管控区域权限'),
   };
 
+  private get config() {
+    return PlatformConfigStore.defaults;
+  }
+  private get appLogo() {
+    return PlatformConfigStore.defaults.appLogo || logoSrc;
+  }
   private get navList() {
     return MainStore.navList.filter(item => !item.disabled);
   }
@@ -489,6 +496,7 @@ export default class NodemanNavigation extends Mixins(routerBackMixin) {
   .nodeman-logo-icon {
     width: 28px;
     height: 28px;
+    background: v-bind(appLogo) no-repeat 0 center;
   }
   .nav-header {
     display: flex;
@@ -517,7 +525,7 @@ export default class NodemanNavigation extends Mixins(routerBackMixin) {
           @mixin layout-flex row, center, center;
           min-width: 32px;
           min-height: 32px;
-          margin-left: 12px;
+          margin-left: 10px;
           padding: 0 7px;
         }
         .header-nav-icon-btn {
