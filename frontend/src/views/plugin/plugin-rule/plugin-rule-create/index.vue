@@ -418,6 +418,7 @@ $bgColor: #f5f7fa;
   }
 }
 .rule-create {
+  height: 100%;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -431,5 +432,10 @@ $bgColor: #f5f7fa;
       flex: 1;
     }
   }
+}
+</style>
+<style>
+article {
+  height: 100%;
 }
 </style>
