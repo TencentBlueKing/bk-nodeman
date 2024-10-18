@@ -362,8 +362,11 @@ export default class NodemanNavigation extends Mixins(routerBackMixin) {
    * 系统外链
    */
   private handleGotoLink(item: IUserItem) {
+    const convertLanguage = this.language === 'en' ? 'EN' : 'ZH';
     switch (item.id) {
       case 'DOC':
+        // 使用字符串替换方法来插入语言标识
+        item.href = item.href?.replace('/markdown/', `/markdown/${convertLanguage}/`);
       case 'FAQ':
         item.href && window.open(item.href);
         break;
