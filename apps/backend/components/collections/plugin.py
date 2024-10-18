@@ -1194,6 +1194,8 @@ class GseOperateProcService(PluginBaseService):
 
             meta_name = self.get_plugin_meta_name(plugin, process_status)
             gse_control = self.get_gse_control(host.os_type, package_control, process_status)
+            # 优先使用instance_info里的最新的Agent-ID，host里的Agent-ID可能为旧的
+            bk_agent_id: str = subscription_instance.instance_info["host"].get("bk_agent_id") or host.bk_agent_id
 
             gse_op_params = {
                 "meta": {"namespace": constants.GSE_NAMESPACE, "name": meta_name},
@@ -1203,7 +1205,7 @@ class GseOperateProcService(PluginBaseService):
                     "process_status_id": process_status.id,
                     "subscription_instance_id": subscription_instance.id,
                 },
-                "hosts": [{"ip": host.inner_ip, "bk_agent_id": host.bk_agent_id, "bk_cloud_id": host.bk_cloud_id}],
+                "hosts": [{"ip": host.inner_ip, "bk_agent_id": bk_agent_id, "bk_cloud_id": host.bk_cloud_id}],
                 "spec": {
                     "identity": {
                         "index_key": "",
