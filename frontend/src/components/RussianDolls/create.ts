@@ -251,6 +251,26 @@ export const transformSchema = (schema: any, parentRequired: any[] = [], key: st
     }
   }
 
+  // 转换 ui_component 属性到 ui:component
+  if (schema.ui_component && schema.ui_component.type === 'select') {
+    const datasource = [];
+    for (const optionKey in schema.ui_component.properties) {
+      const option = schema.ui_component.properties[optionKey];
+      datasource.push({
+        label: option.title,
+        value: option.value
+      });
+    }
+    schema['ui:component'] = {
+      name: 'select',
+      props: {
+        datasource,
+        clearable: false
+      }
+    };
+    delete schema.ui_component; // 删除原始的 ui_component
+  }
+  
   // 处理字符串、布尔和整数类型的属性，删除 required
   if (schema.type === 'string' || schema.type === 'boolean' || schema.type === 'integer') {
     if (schema.required !== undefined) {
