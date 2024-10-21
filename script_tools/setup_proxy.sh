@@ -3,9 +3,26 @@
 # gse proxy安装脚本, 仅在节点管理2.0中使用
 
 # DEFAULT DEFINITION
+
+get_cpu_arch () {
+    local cmd=$1
+    CPU_ARCH=$($cmd)
+    CPU_ARCH=$(echo ${CPU_ARCH} | tr 'A-Z' 'a-z')
+    if [[ "${CPU_ARCH}" =~ "x86_64" ]]; then
+        return 0
+    elif [[ "${CPU_ARCH}" =~ "x86" || "${CPU_ARCH}" =~ ^i[3456]86 ]]; then
+        return 1
+    elif [[ "${CPU_ARCH}" =~ "aarch" ]]; then
+        return 0
+    else
+        return 1
+    fi
+}
+get_cpu_arch "uname -p" || get_cpu_arch "uname -m" || fail get_cpu_arch "Failed to get CPU arch or unsupported CPU arch, please contact the developer."
+
 GSE_COMPARE_VERSION="1.7.2"
 NODE_TYPE=proxy
-PKG_NAME=gse_${NODE_TYPE}-linux-x86_64.tgz
+PKG_NAME=gse_${NODE_TYPE}-linux-${CPU_ARCH}.tgz
 BACKUP_CONFIG_FILES=("procinfo.json")
 
 GSE_AGENT_RUN_DIR=/var/run/gse
