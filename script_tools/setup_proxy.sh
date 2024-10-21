@@ -572,6 +572,7 @@ download_pkg () {
     done
 
     log download_pkg DONE "gse_proxy package download succeeded"
+    log report_cpu_arch DONE "${CPU_ARCH}"
 }
 
 check_deploy_result () {
