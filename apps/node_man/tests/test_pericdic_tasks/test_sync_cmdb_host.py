@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import copy
+import random
 from unittest.mock import patch
 
 from apps.backend.views import LPUSH_AND_EXPIRE_FUNC
@@ -139,3 +140,28 @@ class TestSyncCMDBMultiOuterIPHost(CustomBaseTestCase):
         for data in agent_extra_data:
             extra_data = data["extra_data"]
             self.assertEqual(extra_data.get("bk_host_multi_outerip"), None)
+
+
+class TestSyncCMDBAreaIdAndCityId(CustomBaseTestCase):
+    @staticmethod
+    def list_biz_hosts(*args, **kwargs):
+        return_value = MockClient.cc.list_resource_pool_hosts(*args, **kwargs)
+        host_info = return_value["info"]
+        for host in host_info:
+            host["bk_idc_area_id"] = random.randint(1, 3)
+            host["idc_city_id"] = str(random.randint(20, 30))
+        return return_value
+
+    def start_patch(self):
+        MockClient.cc.list_biz_hosts = self.list_biz_hosts
+
+    @patch("apps.node_man.periodic_tasks.sync_cmdb_host.client_v2", MockClient)
+    def test_sync_area_id_and_city_id(self):
+        self.start_patch()
+        sync_cmdb_host_periodic_task(bk_biz_id=2)
+        hosts = Host.objects.values("bk_idc_area_id", "idc_city_id")
+        bk_idc_area_ids = list(range(1, 4))
+        idc_city_ids = [str(idc_city_id) for idc_city_id in range(20, 31)]
+        for host in hosts:
+            self.assertIn(host["bk_idc_area_id"], bk_idc_area_ids)
+            self.assertIn(host["idc_city_id"], idc_city_ids)
