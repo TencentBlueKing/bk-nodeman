@@ -232,6 +232,14 @@ export const transformSchema = (schema: any, parentRequired: any[] = [], key: st
     if (schema.required !== undefined) {
       delete schema.required; // 删除数组项中的 required
     }
+    // 处理描述信息
+    if (schema.description) {
+      schema['ui:group'] = {
+        "props": {
+          "description": schema.description,
+        },
+      };
+    }
     if (schema.items.properties && Object.keys(schema.items.properties).length >= 2) {
       // 如果是 key 和 value，添加 ui:component
       if (schema.items.properties.key && schema.items.properties.value) {
