@@ -222,7 +222,7 @@
           </VariablePopover>
         </div>
       </bk-collapse>
-
+      <div v-if="isScroll" style="height: 53px;"></div>
       <section v-if="!loading" :class="['footer', { 'fixed': isScroll }]">
         <div class="footer-content">
           <bk-button v-test.common="'stepNext'" theme="primary" class="nodeman-primary-btn" @click="handleNextStep">
@@ -860,9 +860,6 @@ export default class ParamsConfig extends Vue {
     overflow: auto;
   }
   &.has-scroll {
-    .scroll-content {
-      padding-bottom: 36px;
-    }
     .footer {
       position: absolute;
       right: 0;
