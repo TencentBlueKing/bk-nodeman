@@ -56,6 +56,8 @@ for file in $(ls); do
     fi
 done
 
+cd "$setup_path"
+
 rm -rf $subscription_tmp_dir
 """
 
