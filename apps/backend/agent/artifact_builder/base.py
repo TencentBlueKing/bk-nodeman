@@ -431,18 +431,18 @@ class BaseArtifactBuilder(abc.ABC):
             raise exceptions.NotSemanticVersionError({"version": version_match})
 
     @cache.class_member_cache()
-    def _get_changelog(self, extract_dir: str) -> str:
+    def _get_description(self, extract_dir: str) -> str:
         """
         获取版本日志
         :param extract_dir: 解压目录
         :return:
         """
-        changelog_file_path: str = os.path.join(extract_dir, "CHANGELOG.md")
-        if not os.path.exists(changelog_file_path):
-            raise exceptions.FileNotExistError(_("版本日志文件不存在"))
-        with open(changelog_file_path, "r", encoding="utf-8") as changelog_fs:
-            changelog: str = changelog_fs.read()
-        return changelog
+        description_file_path: str = os.path.join(extract_dir, "DESCRIPTION")
+        if not os.path.exists(description_file_path):
+            return ""
+        with open(description_file_path, "r", encoding="utf-8") as description_fs:
+            description: str = description_fs.read()
+        return description
 
     def generate_location_path(self, upload_path: str, pkg_name: str) -> str:
         if settings.STORAGE_TYPE == core_files_constants.StorageType.BLUEKING_ARTIFACTORY.value:
@@ -576,7 +576,7 @@ class BaseArtifactBuilder(abc.ABC):
         # 配置文件
         support_files_info = self._get_support_files_info(extract_dir)
         # changelog
-        changelog: str = self._get_changelog(extract_dir)
+        changelog: str = self._get_description(extract_dir)
 
         return {
             "name": self.NAME,
