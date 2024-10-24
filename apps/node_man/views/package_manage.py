@@ -471,7 +471,7 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
         responses={HTTP_200_OK: pkg_manage.AgentRegisterTaskResponseSerializer},
     )
     @action(detail=False, methods=["GET"], serializer_class=pkg_manage.AgentRegisterTaskSerializer)
-    def query_register_task(self, request, validated_data):
+    def query_register_task(self, request):
         """
         return: {
             "is_finish": True,
@@ -479,6 +479,8 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
             "message": "",
         }
         """
+
+        validated_data = self.validated_data
 
         task_result = NodeApi.sync_task_status({"task_id": validated_data["task_id"]})
 
