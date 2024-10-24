@@ -104,7 +104,7 @@ import {
   IPkgParams, IPkgTag, IPkgTagOpt, PkgType,
   IPkgQuickOpt, IPkgDimension, IPkgRow,
 } from '@/types/agent/pkg-manage';
-import { toLine } from '@/common/util';
+import { toLine, getFilterChildBySelected } from '@/common/util';
 
 type PkgQuickType = 'os_cpu_arch' | 'version';
 // 排序类型
@@ -327,7 +327,8 @@ export default defineComponent({
         project: state.active,
         page: state.pagetion.current,
         pagesize: state.pagetion.limit,
-        ordering: state.ordering
+        ordering: state.ordering,
+        condition: [],
       };
       if (state.dimensionOptional !== 'all') {
         if (state.dimension === 'os_cpu_arch') {
@@ -339,6 +340,15 @@ export default defineComponent({
         }
       }
       searchSelectValue.value.forEach((item) => {
+        if (Array.isArray(item.values)) {
+          const value: string[] = [];
+          item.values.forEach((child) => {
+            value.push(...getFilterChildBySelected(item.id, child.name, searchSelectData.value).map(item => item.id));
+          });
+          params.condition?.push({ key: item.id, value: value.join(',') });
+        } else {
+          params.condition?.push({ key: 'query', value: item.name });
+        }
         Object.assign(params, {
           [item.id]: item.values?.map(child => `${child.id}`).join(','),
         });
@@ -435,7 +445,7 @@ export default defineComponent({
         return;
       }
       // 只更新最新项
-      const item = list[list.length - 1];
+      const item: any = list[list.length - 1];
       const dimension = ['version', 'os_cpu_arch'];
       if (dimension.includes(item.id)) {
         // 获取当前维度的快捷筛选的optionList
@@ -455,11 +465,15 @@ export default defineComponent({
         searchSelectValue.value.splice(list.length - 1, 1);
         return;
       }
+      const filterList = list.filter((item) => {
+        return !!searchSelectData.value.find((data) => data.id === item.id);
+      });
+
       // 同步到快捷筛选
-      updateQuickSearch(list);
+      updateQuickSearch(filterList);
       
       // 同步到表头筛选
-      updateCheckStatus(list);
+      updateCheckStatus(filterList);
       pagetionChange();
     };
 

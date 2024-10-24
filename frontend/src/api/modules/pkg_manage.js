@@ -1,6 +1,7 @@
 import { request } from '../base';
 
 export const listPackage = request('GET', 'api/agent/package/');
+export const listPackageNew = request('POST', 'api/agent/package/search/{{pk}}');
 export const updatePackage = request('PUT', 'api/agent/package/{{pk}}/');
 export const deletePackage = request('DELETE', 'api/agent/package/{{pk}}/');
 export const quickSearchCondition = request('GET', 'api/agent/package/quick_search_condition/');
@@ -17,6 +18,7 @@ export const versionCompare = request('POST', 'api/agent/package/version_compare
 export default {
   listPackage,
   updatePackage,
+  listPackageNew,
   deletePackage,
   quickSearchCondition,
   uploadPackage,

@@ -91,7 +91,7 @@
       </div>
     </div>
     <template slot="footer">
-      <bk-button theme="primary" :disabled="!selectedVersion" @click="handleConfirm">{{ $t('确定') }}</bk-button>
+      <bk-button theme="primary" :disabled="disabledClick" @click="handleConfirm">{{ $t('确定') }}</bk-button>
       <bk-button class="ml10" @click="handleCancel">{{ $t('取消') }}</bk-button>
     </template>
   </bk-dialog>
@@ -196,7 +196,9 @@ export default defineComponent({
       })));
       loading.value = false;
     };
-
+    const disabledClick = computed(() => {
+      return !selectedVersion || nochanges.value === props.versions.length;
+    });
     const handleConfirm = () => {
       emit('confirm', {
         osType: props.osType,
@@ -294,6 +296,7 @@ export default defineComponent({
 
     return {
       ...toRefs(props),
+      disabledClick,
       num,
       upgrades,
       rollbacks,

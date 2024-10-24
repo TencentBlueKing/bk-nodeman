@@ -38,6 +38,7 @@ export interface IPkgParams {
   created_time_before?: string; // 2022-10-01T00:00:00
   created_time_after?: string;
   ordering?: string;
+  condition?: any[];
 }
 
 export interface IPkgQuickOpt {

@@ -8,7 +8,7 @@ import { getFilterCondition } from '@/api/modules/meta';
 import { fetchPwd } from '@/api/modules/tjj';
 import {
   createAgentRegisterTask, createAgentTags, versionCompare, deletePackage,
-  getDeployedHostsCount, getTags, getVersion, listPackage, parsePackage,
+  getDeployedHostsCount, getTags, getVersion, listPackageNew, parsePackage,
   queryAgentRegisterTask, quickSearchCondition, updatePackage,
 } from '@/api/modules/pkg_manage';
 import { sort } from '@/common/util';
@@ -16,7 +16,7 @@ import { Mixin, ISearchChild, ISearchItem } from '@/types';
 import { IAgentSearch, IAgentSearchIp, IAgentJob, IAgentHost } from '@/types/agent/agent-type';
 import { IAp } from '@/types/config/config';
 import { IChannel, ICloudSource } from '@/types/cloud/cloud';
-import { IPkgDelpyNumber, IPkgDimension, IPkgInfo, IPkgTagList, IPkgParseInfo, PkgType, IPkgVersion } from '@/types/agent/pkg-manage';
+import { IPkgDelpyNumber, IPkgDimension, IPkgInfo, IPkgTagList, IPkgParseInfo, PkgType, IPkgVersion, IPkgParams } from '@/types/agent/pkg-manage';
 
 export const SET_AP_LIST = 'setApList';
 export const SET_CLOUD_LIST = 'setCloudList';
@@ -247,7 +247,7 @@ export default class AgentStore extends VuexModule {
   // agent包管理
   @Action
   public apiPkgList(param: IPkgParams): Promise<{ total: number; list: IPkgInfo[] }> {
-    return listPackage(param).catch(() => ({}));
+    return listPackageNew(`?page=${param.page}&pagesize=${param.pagesize}`,param).catch(() => ({}));
   }
   @Action
   public apiPkgFilterCondtion(param: { category: 'agent_pkg_manage'; project?: PkgType }): Promise<ISearchItem[]> {
