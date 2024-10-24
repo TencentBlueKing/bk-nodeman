@@ -80,13 +80,13 @@ class PackageManageFilterClass(FilterSet):
     # version = django_filters.BaseInFilter(field_name="version", lookup_expr="in")
     # created_time = django_filters.DateTimeFromToRangeFilter()
     # condition = django_filters.CharFilter(method="filter_condition")
-    os = django_filters.Filter(field_name="os", lookup_expr="in")
-    cpu_arch = django_filters.Filter(field_name="cpu_arch", lookup_expr="in")
-    os_cpu_arch = django_filters.Filter(field_name="os_cpu_arch", method="filter_os_cpu_arch")
-    tag_names = django_filters.Filter(lookup_expr="in", method="filter_tag_names")
-    created_by = django_filters.Filter(field_name="created_by", lookup_expr="in")
-    is_ready = django_filters.Filter(field_name="is_ready")
-    version = django_filters.Filter(field_name="version", lookup_expr="in")
+    os = django_filters.BaseInFilter(field_name="os", lookup_expr="in")
+    cpu_arch = django_filters.BaseInFilter(field_name="cpu_arch", lookup_expr="in")
+    os_cpu_arch = django_filters.BaseInFilter(field_name="os_cpu_arch", method="filter_os_cpu_arch")
+    tag_names = django_filters.BaseInFilter(lookup_expr="in", method="filter_tag_names")
+    created_by = django_filters.BaseInFilter(field_name="created_by", lookup_expr="in")
+    is_ready = django_filters.BooleanFilter(field_name="is_ready")
+    version = django_filters.BaseInFilter(field_name="version", lookup_expr="in")
     created_time = django_filters.DateTimeFromToRangeFilter()
     condition = django_filters.Filter(method="filter_condition")
 
@@ -116,7 +116,7 @@ class PackageManageFilterClass(FilterSet):
         model_field_query, tag_query = Q(), Q()
         tag_names: List[str] = []
         for query_info in query_list:
-            if not isinstance(query_info, dict) or "value" not in query_info:
+            if not isinstance(query_info, dict) or query_info.get("key") != "query" or "value" not in query_info:
                 continue
 
             tag_names.append(query_info["value"])
@@ -124,7 +124,7 @@ class PackageManageFilterClass(FilterSet):
             for field in fields_to_search:
                 model_field_query |= Q(**{f"{field}__icontains": query_info["value"]})
 
-        if "project" in self.request.data:
+        if "project" in self.request.data and tag_names:
             tag_query = Q(
                 id__in=gse_package_handler.filter_tags(
                     queryset, self.request.data["project"], tag_names=tag_names
