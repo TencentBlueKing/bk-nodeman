@@ -193,11 +193,13 @@ export default defineComponent ({
             handleEdit();
             nextTick(() => {
                 // 获取所有带有 stable 类的元素
-                const stableElements = document.querySelector('.stable');
-                const nextSiblingElement = stableElements?.nextElementSibling  as HTMLElement;
-                if(nextSiblingElement) {
-                    nextSiblingElement.style.display = 'none';
-                }
+                const stableAllElements = document.querySelectorAll('.stable');
+                stableAllElements?.forEach(el => {
+                    const nextSiblingElement = el.nextElementSibling  as HTMLElement;
+                    if(nextSiblingElement) {
+                        nextSiblingElement.style.display = 'none';
+                    }
+                });
             });
         };
 
