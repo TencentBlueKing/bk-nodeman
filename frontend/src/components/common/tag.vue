@@ -13,8 +13,8 @@
                 class="value-text"
                 tag-edit-tag>
                 <slot>
-                    <template v-if="text">
-                        <FlexibleTag :list="localValue" />
+                    <template v-if="flexibleTags.length">
+                        <FlexibleTag :list="flexibleTags" />
                     </template>
                     <span v-else>--</span>
                 </slot>
@@ -73,7 +73,7 @@ interface Tag {
     className: string
 }
 import i18n from '@/setup';
-import { computed, defineComponent, getCurrentInstance, ref, toRefs, reactive, watch, PropType, onMounted } from 'vue';
+import { computed, defineComponent, getCurrentInstance, ref, toRefs, reactive, watch, PropType, onMounted, nextTick } from 'vue';
 import FlexibleTag from '@/components/common/flexible-tag.vue';
 import { IPkgTagOpt, PkgType} from '@/types/agent/pkg-manage';
 import { AgentStore } from '@/store';
@@ -121,8 +121,13 @@ export default defineComponent ({
         const { proxy } = (getCurrentInstance() || {});
         const isEditing = ref(false);
         const isLoading = ref(false);
-        const localValue = ref(props.value);
+        const localValue = ref<string[]>(props.value.map((item :any) => item.className === '' ? item.name : item.className));
+        const flexibleTags = ref(props.value); //用于展示的标签列表，带有className
+        watch(()=> props.value, (val) => {
+            flexibleTags.value = val;
+        });
         const tag = ref<any>();
+        
         const state = reactive<{
             value: string[];
             popShow: boolean; // 输入未匹配标签时候展示
@@ -130,23 +135,15 @@ export default defineComponent ({
             value: [],
             popShow: false,
         });
-        watch(() => props.value, (val) => {
-            localValue.value = val;
-        })
-        const text = computed(() => {
-            return localValue.value.map((item: any) => item.name).join('，');
-        });
 
         const tagTpl = (opt: IPkgTagOpt) => proxy?.$createElement('div', {
             class: `tag ${opt.className}`,
         }, [
             proxy?.$createElement('span', { class: 'text' }, opt.name),
         ]);
-
         onMounted(() => {
             document.body.addEventListener('click', hideEdit);
         });
-
         const hideEdit = (event: any) => {
             if (!isEditing.value) return;
                 const eventPath = event.composedPath();
@@ -159,14 +156,34 @@ export default defineComponent ({
             }
             isEditing.value = false;
             isLoading.value = true;
+
+            if(HaveSameElements(localValue.value))return;
             emit('editTag', localValue.value);
+        }
+        const HaveSameElements = (compare: Array<any>) => {
+            // 将数组转换为集合
+            const set1 = new Set(props.value.map((item :any) => item.className === '' ? item.name : item.className));
+            const set2 = new Set(compare);
+
+            // 如果集合的大小不相等，则数组不相同
+            if (set1.size !== set2.size) {
+                return false;
+            }
+
+            // 检查每个元素是否都存在于另一个集合中
+            for (let element of set1) {
+                if (!set2.has(element)) {
+                    return false;
+                }
+            }
+
+            return true;
+
         }
         const handleEdit = () => {
             // 关闭其他弹框
             document.body.click();
             isEditing.value = true;
-
-            localValue.value = props.value.map((item :any) => item.className === '' ? item.name : item.className);
         };
 
         const handleTextClick = () => {
@@ -174,6 +191,16 @@ export default defineComponent ({
             //     return;
             // }
             handleEdit();
+            nextTick(() => {
+                // 获取所有带有 stable 类的元素
+                const stableAllElements = document.querySelectorAll('.stable');
+                stableAllElements?.forEach(el => {
+                    const nextSiblingElement = el.nextElementSibling  as HTMLElement;
+                    if(nextSiblingElement) {
+                        nextSiblingElement.style.display = 'none';
+                    }
+                });
+            });
         };
 
         const handleCopy = () => {
@@ -208,8 +235,7 @@ export default defineComponent ({
             const index = props.options.findIndex((item: any) => (
                 item.children.some((child: any) => child.name === value || child.id === value)
             ));
-            const finalIndex = index ;
-            if (finalIndex === -1 && value && !localValue.value.includes(value)) {
+            if (index === -1 && value && !localValue.value.includes(value)) {
                 state.popShow = true;
                 tag.value = value;
             } else {
@@ -251,7 +277,7 @@ export default defineComponent ({
             isEditing,
             isLoading,
             localValue,
-            text,
+            flexibleTags,
             tag,
             tagTpl,
             
@@ -305,7 +331,6 @@ export default defineComponent ({
             }
         }
     }
-    
     .pkg-manage-table {
         .flexible-tag-group {
             height: 30px;

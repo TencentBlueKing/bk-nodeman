@@ -137,7 +137,7 @@
       v-model="versionsDialog.show"
       :type="versionsDialog.type"
       :title="versionsDialog.title"
-      :version="versionsDialog.version"
+      :versions="versionsDialog.versions"
       :os-type="versionsDialog.os_type"
       :project="versionsDialog.project"
       @confirm="updateAgentVersion" />
@@ -185,7 +185,7 @@ export default class SidesliderContentEdit extends Vue {
     show: false,
     type: 'by_system_arch',
     title: this.$t('选择 Agent 版本'),
-    version: '',
+    versions: [] as string[],
     os_type: 'linux',
     project: 'gse_proxy'
   };
@@ -195,7 +195,7 @@ export default class SidesliderContentEdit extends Vue {
   }) {
     const { version = '' } = info;
     this.versionsDialog.show = true;
-    this.versionsDialog.version = version;
+    this.versionsDialog.versions = version ? [version] : [];
   }
   // 回填agent版本
   public updateAgentVersion(info: any) {

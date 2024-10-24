@@ -1,6 +1,7 @@
 import { request } from '../base';
 
 export const listPackage = request('GET', 'api/agent/package/');
+export const listPackageNew = request('POST', 'api/agent/package/search/{{pk}}');
 export const updatePackage = request('PUT', 'api/agent/package/{{pk}}/');
 export const deletePackage = request('DELETE', 'api/agent/package/{{pk}}/');
 export const quickSearchCondition = request('GET', 'api/agent/package/quick_search_condition/');
@@ -12,10 +13,12 @@ export const getTags = request('GET', 'api/agent/package/tags/');
 export const getVersion = request('POST', 'api/agent/package/version/');
 export const getDeployedHostsCount = request('POST', 'api/agent/package/deployed_hosts_count/');
 export const createAgentTags = request('POST', 'api/agent/package/create_agent_tags/');
+export const versionCompare = request('POST', 'api/agent/package/version_compare/');
 
 export default {
   listPackage,
   updatePackage,
+  listPackageNew,
   deletePackage,
   quickSearchCondition,
   uploadPackage,
@@ -26,4 +29,5 @@ export default {
   getVersion,
   getDeployedHostsCount,
   createAgentTags,
+  versionCompare,
 };

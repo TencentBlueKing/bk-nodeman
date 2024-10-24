@@ -7,8 +7,8 @@ import { listCloud } from '@/api/modules/cloud';
 import { getFilterCondition } from '@/api/modules/meta';
 import { fetchPwd } from '@/api/modules/tjj';
 import {
-  createAgentRegisterTask, createAgentTags, deletePackage,
-  getDeployedHostsCount, getTags, getVersion, listPackage, parsePackage,
+  createAgentRegisterTask, createAgentTags, versionCompare, deletePackage,
+  getDeployedHostsCount, getTags, getVersion, listPackageNew, parsePackage,
   queryAgentRegisterTask, quickSearchCondition, updatePackage,
 } from '@/api/modules/pkg_manage';
 import { sort } from '@/common/util';
@@ -16,7 +16,7 @@ import { Mixin, ISearchChild, ISearchItem } from '@/types';
 import { IAgentSearch, IAgentSearchIp, IAgentJob, IAgentHost } from '@/types/agent/agent-type';
 import { IAp } from '@/types/config/config';
 import { IChannel, ICloudSource } from '@/types/cloud/cloud';
-import { IPkgDelpyNumber, IPkgDimension, IPkgInfo, IPkgTagList, IPkgParseInfo, PkgType, IPkgVersion } from '@/types/agent/pkg-manage';
+import { IPkgDelpyNumber, IPkgDimension, IPkgInfo, IPkgTagList, IPkgParseInfo, PkgType, IPkgVersion, IPkgParams } from '@/types/agent/pkg-manage';
 
 export const SET_AP_LIST = 'setApList';
 export const SET_CLOUD_LIST = 'setCloudList';
@@ -247,7 +247,7 @@ export default class AgentStore extends VuexModule {
   // agent包管理
   @Action
   public apiPkgList(param: IPkgParams): Promise<{ total: number; list: IPkgInfo[] }> {
-    return listPackage(param).catch(() => ({}));
+    return listPackageNew(`?page=${param.page}&pagesize=${param.pagesize}`,param).catch(() => ({}));
   }
   @Action
   public apiPkgFilterCondtion(param: { category: 'agent_pkg_manage'; project?: PkgType }): Promise<ISearchItem[]> {
@@ -266,11 +266,18 @@ export default class AgentStore extends VuexModule {
     return deletePackage(`${id}`).catch(() => false);
   }
   @Action
-  public apiPkgParse(param: { file_name: string }): Promise<{
+  public async apiPkgParse(param: { file_name: string }): Promise<{
+    packages: IPkgParseInfo[];
     description: string;
-    packages: IPkgParseInfo[]
-  } | false> {
-    return parsePackage(param).catch(() => false);
+  } | string> {
+    try {
+      const result = await parsePackage(param);
+      return result;
+    } catch (error: any) {
+      // 假设 error 对象包含 message 属性
+      const errorMessage = error.message || 'An error occurred';
+      return errorMessage;
+    }
   }
   @Action
   public apiPkgRegister(param: {
@@ -305,7 +312,7 @@ export default class AgentStore extends VuexModule {
   }): Promise<IPkgTag[] | false> {
     return createAgentTags(param).catch(() => false);
   }
-
+  
   @Action
   public apiGetPkgVersion(param: { project: PkgType; os: string; cpu_arch: string; versions?: string[] }): Promise<{
     default_version: string;
@@ -315,5 +322,13 @@ export default class AgentStore extends VuexModule {
     pkg_info: IPkgVersion[];
   }> {
     return getVersion(param).catch(() => ({ default_version: '', machine_latest_version: '', pkg_info: [], is_visible: false, package_latest_version: '' }));
+  }
+
+  @Action
+  public apiVersionCompare(param: {
+    current_version: string;
+    version_to_compares: string[];
+  }): Promise<{upgrade_count: 0,downgrade_count: 0, no_change_count: 0}> {
+    return versionCompare(param).catch(() => false);
   }
 }

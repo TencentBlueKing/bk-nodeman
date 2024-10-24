@@ -197,7 +197,7 @@
       :type="versionsDialog.type"
       :show-os="versionsDialog.type === 'by_system_arch'"
       :title="versionsDialog.title"
-      :version="versionsDialog.version"
+      :versions="versionsDialog.versions"
       :os-type="versionsDialog.os_type"
       :cpu-arch="versionsDialog.cpu_arch"
       :os-versions="formData.osVersions"
@@ -331,7 +331,7 @@ export default class AgentSetup extends Mixins(mixin, formLabelMixin) {
     show: false,
     type: 'unified' as VerionType,
     title: '',
-    version: '',
+    versions: [] as string[],
     os_type: '',
     cpu_arch: '',
   };
@@ -717,7 +717,7 @@ export default class AgentSetup extends Mixins(mixin, formLabelMixin) {
     const { type = 'unified', version = '', os_type = '', cpu_arch = '' } = info;
     this.versionsDialog.show = true;
     this.versionsDialog.type = type;
-    this.versionsDialog.version = version;
+    this.versionsDialog.versions = version ? [version] : [];
     this.versionsDialog.os_type = os_type;
     this.versionsDialog.cpu_arch = cpu_arch;
     this.versionsDialog.title = type === 'unified' ? this.$t('选择统一的 Agent 版本') : this.$t('按操作系统选版本 ');

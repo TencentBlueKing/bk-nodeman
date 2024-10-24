@@ -16,9 +16,29 @@
       <span :title="$t(label)">{{ $t(label) }}</span>
       <!-- <div v-bk-overflow-tips><span>{{ $t(label) }}</span></div> -->
     </div>
+    <!-- agent包版本 -->
+    <template v-if="prop === 'version'">
+      <span
+        v-bk-tooltips.top="{
+          'content': $t('批量编辑', { title: '' }),
+          'delay': [300, 0]
+        }"
+        class="batch-icon nodeman-icon nc-bulk-edit"
+        :class="{ 'active': isActive }"
+        @click="handleChooseClick"
+        v-show="isBatchIconShow">
+      </span>
+      <ChoosePkgDialog
+        v-model="versionsDialog.show"
+        :type="versionsDialog.type"
+        :title="versionsDialog.title"
+        :versions="versionsDialog.versions"
+        :operate="versionsDialog.operate"
+        @confirm="versionConfirm" />
+    </template>
     <bk-popover
       class="batch-btn"
-      v-if="batch"
+      v-else-if="batch"
       theme="light batch-edit"
       trigger="manual"
       placement="bottom"
@@ -100,12 +120,14 @@ import InstallInputType from './install-input-type.vue';
 import { IFileInfo, ISetupRow } from '@/types';
 import TableHeaderTip from './table-header-tip.vue';
 import { getConfigRemark } from '@/config/config';
+import ChoosePkgDialog from '@/views/agent/components/choose-pkg-dialog.vue';
 
 @Component({
   name: 'table-header',
   components: {
     InstallInputType,
     TableHeaderTip,
+    ChoosePkgDialog,
   },
 })
 
@@ -139,7 +161,20 @@ export default class TableHeader extends Vue {
   private popoverInstance: any = null;
   // 切换Popover的触发方式, 规避无法切换导致的问题 (setProps函数的替代方案, 低版tippy本无此方法)
   private tipsTrigger: 'mouseenter' | 'manual' = 'mouseenter';
-
+  private chooseVersion = '';
+  private versionsDialog = {
+    show: false,
+    type: 'unified',
+    operate: 'reinstall_batch',
+    title: this.$t('选择 Agent 版本'),
+    versions: [] as string[],
+  };
+  @Emit('chooseVersion')
+  public versionConfirm(info: { version: string; }) {
+    this.chooseVersion = info.version;
+    return info.version;
+  }
+ 
   private get remark() {
     return getConfigRemark(`${this.prop}__description`, this.focusRow.os_type);
   }
@@ -175,6 +210,16 @@ export default class TableHeader extends Vue {
       this.handleBatchCancel();
     } else {
       this.batchRef && this.batchRef.instance.show();
+      this.isActive = true;
+      bus.$emit('batch-btn-click', this);
+    }
+  }
+  public handleChooseClick() {
+    if (this.isActive) {
+      this.versionsDialog.show = false;
+    } else {
+      this.versionsDialog.show = true;
+      this.versionsDialog.versions = this.chooseVersion ? [this.chooseVersion] : [];
       this.isActive = true;
       bus.$emit('batch-btn-click', this);
     }
