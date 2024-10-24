@@ -141,7 +141,7 @@ class PackageManageFilterClass(FilterSet):
 class PackageManageFilterBackend(DjangoFilterBackend):
     def get_filterset_kwargs(self, request, queryset, view):
         return {
-            "data": request.data,
+            "data": {**request.data, **dict(request.query_params.items())},
             "queryset": queryset,
             "request": request,
         }
@@ -155,7 +155,7 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
     ordering_fields = ["version", "created_time"]
 
     def get_queryset(self):
-        if not self.action == "search":  # noqa
+        if self.action not in ["search", "quick_search_condition"]:  # noqa
             self.filter_class = None
         return models.GsePackages.objects.all().order_by("-is_ready")
 
