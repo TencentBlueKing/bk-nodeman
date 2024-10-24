@@ -71,19 +71,29 @@ class PackageManageOrderingFilterSet(filters.OrderingFilter):
 
 
 class PackageManageFilterClass(FilterSet):
-    os = django_filters.BaseInFilter(field_name="os", lookup_expr="in")
-    cpu_arch = django_filters.BaseInFilter(field_name="cpu_arch", lookup_expr="in")
-    os_cpu_arch = django_filters.BaseInFilter(field_name="os_cpu_arch", method="filter_os_cpu_arch")
-    tag_names = django_filters.BaseInFilter(lookup_expr="in", method="filter_tag_names")
-    created_by = django_filters.BaseInFilter(field_name="created_by", lookup_expr="in")
-    is_ready = django_filters.BooleanFilter(field_name="is_ready")
-    version = django_filters.BaseInFilter(field_name="version", lookup_expr="in")
+    # os = django_filters.BaseInFilter(field_name="os", lookup_expr="in")
+    # cpu_arch = django_filters.BaseInFilter(field_name="cpu_arch", lookup_expr="in")
+    # # os_cpu_arch = django_filters.BaseInFilter(field_name="os_cpu_arch", method="filter_os_cpu_arch")
+    # tag_names = django_filters.BaseInFilter(lookup_expr="in", method="filter_tag_names")
+    # created_by = django_filters.BaseInFilter(field_name="created_by", lookup_expr="in")
+    # is_ready = django_filters.BooleanFilter(field_name="is_ready")
+    # version = django_filters.BaseInFilter(field_name="version", lookup_expr="in")
+    # created_time = django_filters.DateTimeFromToRangeFilter()
+    # condition = django_filters.CharFilter(method="filter_condition")
+    os = django_filters.Filter(field_name="os", lookup_expr="in")
+    cpu_arch = django_filters.Filter(field_name="cpu_arch", lookup_expr="in")
+    os_cpu_arch = django_filters.Filter(field_name="os_cpu_arch", method="filter_os_cpu_arch")
+    tag_names = django_filters.Filter(lookup_expr="in", method="filter_tag_names")
+    created_by = django_filters.Filter(field_name="created_by", lookup_expr="in")
+    is_ready = django_filters.Filter(field_name="is_ready")
+    version = django_filters.Filter(field_name="version", lookup_expr="in")
     created_time = django_filters.DateTimeFromToRangeFilter()
+    condition = django_filters.Filter(method="filter_condition")
 
     def filter_tag_names(self, queryset, name, tag_names):
-        if "project" not in self.request.query_params:
+        if "project" not in self.request.data:
             raise ValidationError(_("筛选tag_names时必须传入project"))
-        return gse_package_handler.filter_tags(queryset, self.request.query_params["project"], tag_names=tag_names)
+        return gse_package_handler.filter_tags(queryset, self.request.data["project"], tag_names=tag_names)
 
     def filter_os_cpu_arch(self, queryset, name, os_cpu_archs):
         package_query = Q()
@@ -97,19 +107,56 @@ class PackageManageFilterClass(FilterSet):
 
         return queryset.filter(package_query)
 
+    def filter_condition(self, queryset, name, query_list):
+        if not isinstance(query_list, list):
+            return queryset
+
+        fields_to_search = ["os", "cpu_arch", "created_by", "is_ready", "version"]
+
+        model_field_query, tag_query = Q(), Q()
+        tag_names: List[str] = []
+        for query_info in query_list:
+            if not isinstance(query_info, dict) or "value" not in query_info:
+                continue
+
+            tag_names.append(query_info["value"])
+
+            for field in fields_to_search:
+                model_field_query |= Q(**{f"{field}__icontains": query_info["value"]})
+
+        if "project" in self.request.data:
+            tag_query = Q(
+                id__in=gse_package_handler.filter_tags(
+                    queryset, self.request.data["project"], tag_names=tag_names
+                ).values_list("id", flat=True)
+            )
+
+        return queryset.filter(model_field_query | tag_query)
+
     class Meta:
         model = GsePackages
         fields = ["tag_names", "project", "created_by", "is_ready", "version", "os", "cpu_arch"]
 
 
+class PackageManageFilterBackend(DjangoFilterBackend):
+    def get_filterset_kwargs(self, request, queryset, view):
+        return {
+            "data": request.data,
+            "queryset": queryset,
+            "request": request,
+        }
+
+
 class PackageManageViewSet(ValidationMixin, ModelViewSet):
     serializer_class = pkg_manage.PackageSerializer
     permission_classes = (pkg_permission.PackageManagePermission,)
-    filter_backends = (DjangoFilterBackend, filters.SearchFilter, PackageManageOrderingFilterSet)
+    filter_backends = (PackageManageFilterBackend, filters.SearchFilter, PackageManageOrderingFilterSet)
     filter_class = PackageManageFilterClass
     ordering_fields = ["version", "created_time"]
 
     def get_queryset(self):
+        if not self.action == "search":  # noqa
+            self.filter_class = None
         return models.GsePackages.objects.all().order_by("-is_ready")
 
     @swagger_auto_schema(
@@ -147,6 +194,10 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
             ],
         }
         """
+        return super().list(request, *args, **kwargs)
+
+    @action(detail=False, methods=["POST"])
+    def search(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
 
     def perform_update(self, serializer):
@@ -422,7 +473,7 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
         responses={HTTP_200_OK: pkg_manage.AgentRegisterTaskResponseSerializer},
     )
     @action(detail=False, methods=["GET"], serializer_class=pkg_manage.AgentRegisterTaskSerializer)
-    def query_register_task(self, request, validated_data):
+    def query_register_task(self, request):
         """
         return: {
             "is_finish": True,
@@ -430,6 +481,8 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
             "message": "",
         }
         """
+
+        validated_data = self.validated_data
 
         task_result = NodeApi.sync_task_status({"task_id": validated_data["task_id"]})
 
@@ -545,7 +598,7 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
         gse_packages: QuerySet = (
             self.get_queryset()
             .filter(project=validated_data["project"], is_ready=True)
-            .values("version", "project", "pkg_name", "os", "cpu_arch")
+            .values("version", "project", "pkg_name", "os", "cpu_arch", "version_log")
         )
 
         version__pkg_info_map: Dict[str, Dict[str, Any]] = {}
@@ -570,7 +623,7 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
                     "project": project,
                     "packages": [],
                     "tags": tags,
-                    "description": gse_package_handler.get_description(project=project),
+                    "description": package["version_log"],
                     "count": 0,
                     "os_choices": set(),
                     "cpu_arch_choices": set(),
