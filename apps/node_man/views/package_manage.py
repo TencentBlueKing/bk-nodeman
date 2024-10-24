@@ -596,7 +596,7 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
         gse_packages: QuerySet = (
             self.get_queryset()
             .filter(project=validated_data["project"], is_ready=True)
-            .values("version", "project", "pkg_name", "os", "cpu_arch")
+            .values("version", "project", "pkg_name", "os", "cpu_arch", "version_log")
         )
 
         version__pkg_info_map: Dict[str, Dict[str, Any]] = {}
@@ -621,7 +621,7 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
                     "project": project,
                     "packages": [],
                     "tags": tags,
-                    "description": gse_package_handler.get_description(project=project),
+                    "description": package["version_log"],
                     "count": 0,
                     "os_choices": set(),
                     "cpu_arch_choices": set(),
