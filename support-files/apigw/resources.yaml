@@ -1,0 +1,2832 @@
+swagger: '2.0'
+info:
+  title: Bk Nodeman API
+  description: "\u8282\u70B9\u7BA1\u7406"
+  termsOfService: https://bk.tencent.com/info/#laws
+  contact:
+    email: contactus_bk@tencent.com
+  license:
+    name: MIT License
+  version: v1
+basePath: /
+paths:
+  /open/api/ap/:
+    get:
+      operationId: ap_list
+      summary: "\u67E5\u8BE2\u4EFB\u52A1\u5217\u8868"
+      tags:
+        - ap
+      x-bk-apigateway-resource:
+        allowApplyPermission: true
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: true
+        backend:
+          matchSubpath: false
+          method: get
+          name: default
+          path: /api/ap/
+          timeout: 0
+        isPublic: true
+        matchSubpath: false
+  /system/api/ap/:
+    get:
+      operationId: system_ap_list
+      summary: "\u67E5\u8BE2\u4EFB\u52A1\u5217\u8868"
+      tags:
+        - ap
+      x-bk-apigateway-resource:
+        allowApplyPermission: false
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: false
+        backend:
+          matchSubpath: false
+          method: get
+          name: default
+          path: /api/ap/
+          timeout: 0
+        isPublic: false
+        matchSubpath: false
+  /open/api/cloud/:
+    get:
+      operationId: cloud_list
+      summary: "\u67E5\u8BE2\u7BA1\u63A7\u533A\u57DF\u5217\u8868"
+      tags:
+        - cloud
+      x-bk-apigateway-resource:
+        allowApplyPermission: true
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: true
+        backend:
+          matchSubpath: false
+          method: get
+          name: default
+          path: /api/cloud/
+          timeout: 0
+        isPublic: true
+        matchSubpath: false
+    post:
+      operationId: create_cloud_area
+      summary: "\u521B\u5EFA\u7BA1\u63A7\u533A\u57DF"
+      tags:
+        - cloud
+      x-bk-apigateway-resource:
+        allowApplyPermission: true
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: true
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /api/cloud/
+          timeout: 0
+        isPublic: true
+        matchSubpath: false
+  /system/api/cloud/:
+    get:
+      operationId: system_cloud_list
+      summary: "\u67E5\u8BE2\u7BA1\u63A7\u533A\u57DF\u5217\u8868"
+      tags:
+        - cloud
+      x-bk-apigateway-resource:
+        allowApplyPermission: false
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: false
+        backend:
+          matchSubpath: false
+          method: get
+          name: default
+          path: /api/cloud/
+          timeout: 0
+        isPublic: false
+        matchSubpath: false
+    post:
+      operationId: system_create_cloud_area
+      summary: "\u521B\u5EFA\u7BA1\u63A7\u533A\u57DF"
+      tags:
+        - cloud
+      x-bk-apigateway-resource:
+        allowApplyPermission: false
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: false
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /api/cloud/
+          timeout: 0
+        isPublic: false
+        matchSubpath: false
+  /open/api/host/biz_proxies/:
+    get:
+      operationId: list_biz_proxies
+      summary: "\u67E5\u8BE2\u4E1A\u52A1\u4E0B\u7BA1\u63A7\u533A\u57DF\u7684proxy\u96C6\
+        \u5408"
+      tags:
+        - host
+      x-bk-apigateway-resource:
+        allowApplyPermission: true
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: true
+        backend:
+          matchSubpath: false
+          method: get
+          name: default
+          path: /api/host/biz_proxies/
+          timeout: 0
+        isPublic: true
+        matchSubpath: false
+  /system/api/host/biz_proxies/:
+    get:
+      operationId: system_list_biz_proxies
+      summary: "\u67E5\u8BE2\u4E1A\u52A1\u4E0B\u7BA1\u63A7\u533A\u57DF\u7684proxy\u96C6\
+        \u5408"
+      tags:
+        - host
+      x-bk-apigateway-resource:
+        allowApplyPermission: false
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: false
+        backend:
+          matchSubpath: false
+          method: get
+          name: default
+          path: /api/host/biz_proxies/
+          timeout: 0
+        isPublic: false
+        matchSubpath: false
+  /open/api/host/proxies/:
+    get:
+      operationId: list_cloud_proxies
+      summary: "\u67E5\u8BE2\u7BA1\u63A7\u533A\u57DF\u4E0B\u6709\u64CD\u4F5C\u6743\
+        \u9650\u7684proxy\u5217\u8868"
+      tags:
+        - host
+      x-bk-apigateway-resource:
+        allowApplyPermission: true
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: true
+        backend:
+          matchSubpath: false
+          method: get
+          name: default
+          path: /api/host/proxies/
+          timeout: 0
+        isPublic: true
+        matchSubpath: false
+  /system/api/host/proxies/:
+    get:
+      operationId: system_list_cloud_proxies
+      summary: "\u67E5\u8BE2\u7BA1\u63A7\u533A\u57DF\u4E0B\u6709\u64CD\u4F5C\u6743\
+        \u9650\u7684proxy\u5217\u8868"
+      tags:
+        - host
+      x-bk-apigateway-resource:
+        allowApplyPermission: false
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: false
+        backend:
+          matchSubpath: false
+          method: get
+          name: default
+          path: /api/host/proxies/
+          timeout: 0
+        isPublic: false
+        matchSubpath: false
+  /open/api/host/search/:
+    post:
+      operationId: list_hosts
+      summary: "\u67E5\u8BE2\u4E3B\u673A\u5217\u8868"
+      tags:
+        - host
+      x-bk-apigateway-resource:
+        allowApplyPermission: true
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: true
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /api/host/search/
+          timeout: 0
+        isPublic: true
+        matchSubpath: false
+  /system/api/host/search/:
+    post:
+      operationId: system_list_hosts
+      summary: "\u67E5\u8BE2\u4E3B\u673A\u5217\u8868"
+      tags:
+        - host
+      x-bk-apigateway-resource:
+        allowApplyPermission: false
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: false
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /api/host/search/
+          timeout: 0
+        isPublic: false
+        matchSubpath: false
+  /open/api/install_channel/:
+    get:
+      operationId: install_channel_list
+      summary: "\u5217\u51FA\u6240\u6709\u5B89\u88C5\u901A\u9053"
+      tags:
+        - channel
+      x-bk-apigateway-resource:
+        allowApplyPermission: true
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: true
+        backend:
+          matchSubpath: false
+          method: get
+          name: default
+          path: /api/install_channel/
+          timeout: 0
+        isPublic: true
+        matchSubpath: false
+  /system/api/install_channel/:
+    get:
+      operationId: system_install_channel_list
+      summary: "\u5217\u51FA\u6240\u6709\u5B89\u88C5\u901A\u9053"
+      tags:
+        - channel
+      x-bk-apigateway-resource:
+        allowApplyPermission: false
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: false
+        backend:
+          matchSubpath: false
+          method: get
+          name: default
+          path: /api/install_channel/
+          timeout: 0
+        isPublic: false
+        matchSubpath: false
+  /open/api/job/install/:
+    post:
+      operationId: job_install
+      summary: "\u5B89\u88C5\u7C7B\u4EFB\u52A1"
+      tags:
+        - job
+      x-bk-apigateway-resource:
+        allowApplyPermission: true
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: true
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /api/job/install/
+          timeout: 0
+        isPublic: true
+        matchSubpath: false
+  /system/api/job/install/:
+    post:
+      operationId: system_job_install
+      summary: "\u5B89\u88C5\u7C7B\u4EFB\u52A1"
+      tags:
+        - job
+      x-bk-apigateway-resource:
+        allowApplyPermission: false
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: false
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /api/job/install/
+          timeout: 0
+        isPublic: false
+        matchSubpath: false
+  /open/api/job/operate/:
+    post:
+      operationId: job_operate
+      summary: "\u64CD\u4F5C\u7C7B\u4EFB\u52A1"
+      tags:
+        - job
+      x-bk-apigateway-resource:
+        allowApplyPermission: true
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: true
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /api/job/operate/
+          timeout: 0
+        isPublic: true
+        matchSubpath: false
+  /system/api/job/operate/:
+    post:
+      operationId: system_job_operate
+      summary: "\u64CD\u4F5C\u7C7B\u4EFB\u52A1"
+      tags:
+        - job
+      x-bk-apigateway-resource:
+        allowApplyPermission: false
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: false
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /api/job/operate/
+          timeout: 0
+        isPublic: false
+        matchSubpath: false
+  /open/api/job/{id}/details/:
+    post:
+      operationId: job_details
+      summary: "\u67E5\u8BE2\u4EFB\u52A1\u8BE6\u60C5"
+      tags:
+        - job
+      x-bk-apigateway-resource:
+        allowApplyPermission: true
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: true
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /api/job/{id}/details/
+          timeout: 0
+        isPublic: true
+        matchSubpath: false
+  /system/api/job/{id}/details/:
+    post:
+      operationId: system_job_details
+      summary: "\u67E5\u8BE2\u4EFB\u52A1\u8BE6\u60C5"
+      tags:
+        - job
+      x-bk-apigateway-resource:
+        allowApplyPermission: false
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: false
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /api/job/{id}/details/
+          timeout: 0
+        isPublic: false
+        matchSubpath: false
+  /open/api/job/{id}/log/:
+    get:
+      operationId: get_job_log
+      summary: "\u67E5\u8BE2\u65E5\u5FD7"
+      tags:
+        - job
+      x-bk-apigateway-resource:
+        allowApplyPermission: true
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: true
+        backend:
+          matchSubpath: false
+          method: get
+          name: default
+          path: /api/job/{id}/log/
+          timeout: 0
+        isPublic: true
+        matchSubpath: false
+  /system/api/job/{id}/log/:
+    get:
+      operationId: system_get_job_log
+      summary: "\u67E5\u8BE2\u65E5\u5FD7"
+      tags:
+        - job
+      x-bk-apigateway-resource:
+        allowApplyPermission: false
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: false
+        backend:
+          matchSubpath: false
+          method: get
+          name: default
+          path: /api/job/{id}/log/
+          timeout: 0
+        isPublic: false
+        matchSubpath: false
+  /open/api/plugin/operate/:
+    post:
+      operationId: operate_plugin
+      summary: "\u63D2\u4EF6\u64CD\u4F5C\u7C7B\u4EFB\u52A1"
+      tags:
+        - api_plugin
+      x-bk-apigateway-resource:
+        allowApplyPermission: true
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: true
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /api/plugin/operate/
+          timeout: 0
+        isPublic: true
+        matchSubpath: false
+  /system/api/plugin/operate/:
+    post:
+      operationId: system_operate_plugin
+      summary: "\u63D2\u4EF6\u64CD\u4F5C\u7C7B\u4EFB\u52A1"
+      tags:
+        - api_plugin
+      x-bk-apigateway-resource:
+        allowApplyPermission: false
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: false
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /api/plugin/operate/
+          timeout: 0
+        isPublic: false
+        matchSubpath: false
+  /open/api/plugin/search/:
+    post:
+      operationId: search_host_plugin
+      summary: "\u67E5\u8BE2\u63D2\u4EF6\u5217\u8868"
+      tags:
+        - api_plugin
+      x-bk-apigateway-resource:
+        allowApplyPermission: true
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: true
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /api/plugin/search/
+          timeout: 0
+        isPublic: true
+        matchSubpath: false
+  /system/api/plugin/search/:
+    post:
+      operationId: system_search_host_plugin
+      summary: "\u67E5\u8BE2\u63D2\u4EF6\u5217\u8868"
+      tags:
+        - api_plugin
+      x-bk-apigateway-resource:
+        allowApplyPermission: false
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: false
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /api/plugin/search/
+          timeout: 0
+        isPublic: false
+        matchSubpath: false
+  /open/api/plugin/{category}/process/:
+    get:
+      operationId: list_processes
+      summary: "\u67E5\u8BE2\u63D2\u4EF6\u5217\u8868"
+      tags:
+        - gse_plugin
+      x-bk-apigateway-resource:
+        allowApplyPermission: true
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: true
+        backend:
+          matchSubpath: false
+          method: get
+          name: default
+          path: /api/plugin/{category}/process/
+          timeout: 0
+        isPublic: true
+        matchSubpath: false
+  /system/api/plugin/{category}/process/:
+    get:
+      operationId: system_list_processes
+      summary: "\u67E5\u8BE2\u63D2\u4EF6\u5217\u8868"
+      tags:
+        - gse_plugin
+      x-bk-apigateway-resource:
+        allowApplyPermission: false
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: false
+        backend:
+          matchSubpath: false
+          method: get
+          name: default
+          path: /api/plugin/{category}/process/
+          timeout: 0
+        isPublic: false
+        matchSubpath: false
+  /open/api/plugin/{process}/package/:
+    get:
+      operationId: list_packages
+      summary: "\u67E5\u8BE2\u8FDB\u7A0B\u5305\u5217\u8868"
+      tags:
+        - package
+      x-bk-apigateway-resource:
+        allowApplyPermission: true
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: true
+        backend:
+          matchSubpath: false
+          method: get
+          name: default
+          path: /api/plugin/{process}/package/
+          timeout: 0
+        isPublic: true
+        matchSubpath: false
+  /system/api/plugin/{process}/package/:
+    get:
+      operationId: system_list_packages
+      summary: "\u67E5\u8BE2\u8FDB\u7A0B\u5305\u5217\u8868"
+      tags:
+        - package
+      x-bk-apigateway-resource:
+        allowApplyPermission: false
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: false
+        backend:
+          matchSubpath: false
+          method: get
+          name: default
+          path: /api/plugin/{process}/package/
+          timeout: 0
+        isPublic: false
+        matchSubpath: false
+  /open/backend/api/healthz/:
+    get:
+      operationId: metric_list
+      summary: "\u5065\u5EB7\u7EDF\u8BA1\u6307\u6807"
+      tags:
+        - healthz
+      x-bk-apigateway-resource:
+        allowApplyPermission: true
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: true
+        backend:
+          matchSubpath: false
+          method: get
+          name: default
+          path: /backend/api/healthz/
+          timeout: 0
+        isPublic: true
+        matchSubpath: false
+  /system/backend/api/healthz/:
+    get:
+      operationId: system_metric_list
+      summary: "\u5065\u5EB7\u7EDF\u8BA1\u6307\u6807"
+      tags:
+        - healthz
+      x-bk-apigateway-resource:
+        allowApplyPermission: false
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: false
+        backend:
+          matchSubpath: false
+          method: get
+          name: default
+          path: /backend/api/healthz/
+          timeout: 0
+        isPublic: false
+        matchSubpath: false
+  /open/backend/api/plugin/:
+    get:
+      operationId: plugin_list
+      summary: "\u67E5\u8BE2\u63D2\u4EF6\u5217\u8868"
+      tags:
+        - backend_plugin
+      x-bk-apigateway-resource:
+        allowApplyPermission: true
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: true
+        backend:
+          matchSubpath: false
+          method: get
+          name: default
+          path: /backend/api/plugin/
+          timeout: 0
+        isPublic: true
+        matchSubpath: false
+  /system/backend/api/plugin/:
+    get:
+      operationId: system_plugin_list
+      summary: "\u67E5\u8BE2\u63D2\u4EF6\u5217\u8868"
+      tags:
+        - backend_plugin
+      x-bk-apigateway-resource:
+        allowApplyPermission: false
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: false
+        backend:
+          matchSubpath: false
+          method: get
+          name: default
+          path: /backend/api/plugin/
+          timeout: 0
+        isPublic: false
+        matchSubpath: false
+  /open/backend/api/plugin/create_config_template/:
+    post:
+      operationId: plugin_create_config_template
+      summary: "\u521B\u5EFA\u914D\u7F6E\u6A21\u677F"
+      tags:
+        - backend_plugin
+      x-bk-apigateway-resource:
+        allowApplyPermission: true
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: true
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /backend/api/plugin/create_config_template/
+          timeout: 0
+        isPublic: true
+        matchSubpath: false
+  /system/backend/api/plugin/create_config_template/:
+    post:
+      operationId: system_plugin_create_config_template
+      summary: "\u521B\u5EFA\u914D\u7F6E\u6A21\u677F"
+      tags:
+        - backend_plugin
+      x-bk-apigateway-resource:
+        allowApplyPermission: false
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: false
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /backend/api/plugin/create_config_template/
+          timeout: 0
+        isPublic: false
+        matchSubpath: false
+  /open/backend/api/plugin/create_export_task/:
+    post:
+      operationId: plugin_create_export_task
+      summary: "\u89E6\u53D1\u63D2\u4EF6\u6253\u5305\u5BFC\u51FA"
+      tags:
+        - backend_plugin
+      x-bk-apigateway-resource:
+        allowApplyPermission: true
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: true
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /backend/api/plugin/create_export_task/
+          timeout: 0
+        isPublic: true
+        matchSubpath: false
+  /system/backend/api/plugin/create_export_task/:
+    post:
+      operationId: system_plugin_create_export_task
+      summary: "\u89E6\u53D1\u63D2\u4EF6\u6253\u5305\u5BFC\u51FA"
+      tags:
+        - backend_plugin
+      x-bk-apigateway-resource:
+        allowApplyPermission: false
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: false
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /backend/api/plugin/create_export_task/
+          timeout: 0
+        isPublic: false
+        matchSubpath: false
+  /open/backend/api/plugin/create_register_task/:
+    post:
+      operationId: plugin_create_register_task
+      summary: "\u521B\u5EFA\u6CE8\u518C\u4EFB\u52A1"
+      tags:
+        - backend_plugin
+      x-bk-apigateway-resource:
+        allowApplyPermission: true
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: true
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /backend/api/plugin/create_register_task/
+          timeout: 0
+        isPublic: true
+        matchSubpath: false
+  /system/backend/api/plugin/create_register_task/:
+    post:
+      operationId: system_plugin_create_register_task
+      summary: "\u521B\u5EFA\u6CE8\u518C\u4EFB\u52A1"
+      tags:
+        - backend_plugin
+      x-bk-apigateway-resource:
+        allowApplyPermission: false
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: false
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /backend/api/plugin/create_register_task/
+          timeout: 0
+        isPublic: false
+        matchSubpath: false
+  /open/backend/api/plugin/delete/:
+    post:
+      operationId: plugin_delete
+      summary: "\u5220\u9664\u63D2\u4EF6"
+      tags:
+        - backend_plugin
+      x-bk-apigateway-resource:
+        allowApplyPermission: true
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: true
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /backend/api/plugin/delete/
+          timeout: 0
+        isPublic: true
+        matchSubpath: false
+  /system/backend/api/plugin/delete/:
+    post:
+      operationId: system_plugin_delete
+      summary: "\u5220\u9664\u63D2\u4EF6"
+      tags:
+        - backend_plugin
+      x-bk-apigateway-resource:
+        allowApplyPermission: false
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: false
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /backend/api/plugin/delete/
+          timeout: 0
+        isPublic: false
+        matchSubpath: false
+  /open/backend/api/plugin/info/:
+    get:
+      operationId: plugin_info
+      summary: "\u67E5\u8BE2\u63D2\u4EF6\u4FE1\u606F"
+      tags:
+        - backend_plugin
+      x-bk-apigateway-resource:
+        allowApplyPermission: true
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: true
+        backend:
+          matchSubpath: false
+          method: get
+          name: default
+          path: /backend/api/plugin/info/
+          timeout: 0
+        isPublic: true
+        matchSubpath: false
+  /system/backend/api/plugin/info/:
+    get:
+      operationId: system_plugin_info
+      summary: "\u67E5\u8BE2\u63D2\u4EF6\u4FE1\u606F"
+      tags:
+        - backend_plugin
+      x-bk-apigateway-resource:
+        allowApplyPermission: false
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: false
+        backend:
+          matchSubpath: false
+          method: get
+          name: default
+          path: /backend/api/plugin/info/
+          timeout: 0
+        isPublic: false
+        matchSubpath: false
+  /open/backend/api/plugin/package_status_operation/:
+    post:
+      operationId: package_status_operation
+      summary: "\u63D2\u4EF6\u5305\u72B6\u6001\u7C7B\u64CD\u4F5C"
+      tags:
+        - backend_plugin
+      x-bk-apigateway-resource:
+        allowApplyPermission: true
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: true
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /backend/api/plugin/package_status_operation/
+          timeout: 0
+        isPublic: true
+        matchSubpath: false
+  /system/backend/api/plugin/package_status_operation/:
+    post:
+      operationId: system_package_status_operation
+      summary: "\u63D2\u4EF6\u5305\u72B6\u6001\u7C7B\u64CD\u4F5C"
+      tags:
+        - backend_plugin
+      x-bk-apigateway-resource:
+        allowApplyPermission: false
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: false
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /backend/api/plugin/package_status_operation/
+          timeout: 0
+        isPublic: false
+        matchSubpath: false
+  /open/backend/api/plugin/parse/:
+    post:
+      operationId: plugin_parse
+      summary: "\u89E3\u6790\u63D2\u4EF6\u5305"
+      tags:
+        - backend_plugin
+      x-bk-apigateway-resource:
+        allowApplyPermission: true
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: true
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /backend/api/plugin/parse/
+          timeout: 0
+        isPublic: true
+        matchSubpath: false
+  /system/backend/api/plugin/parse/:
+    post:
+      operationId: system_plugin_parse
+      summary: "\u89E3\u6790\u63D2\u4EF6\u5305"
+      tags:
+        - backend_plugin
+      x-bk-apigateway-resource:
+        allowApplyPermission: false
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: false
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /backend/api/plugin/parse/
+          timeout: 0
+        isPublic: false
+        matchSubpath: false
+  /open/backend/api/plugin/plugin_status_operation/:
+    post:
+      operationId: plugin_status_operation
+      summary: "\u63D2\u4EF6\u72B6\u6001\u7C7B\u64CD\u4F5C"
+      tags:
+        - backend_plugin
+      x-bk-apigateway-resource:
+        allowApplyPermission: true
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: true
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /backend/api/plugin/plugin_status_operation/
+          timeout: 0
+        isPublic: true
+        matchSubpath: false
+  /system/backend/api/plugin/plugin_status_operation/:
+    post:
+      operationId: system_plugin_status_operation
+      summary: "\u63D2\u4EF6\u72B6\u6001\u7C7B\u64CD\u4F5C"
+      tags:
+        - backend_plugin
+      x-bk-apigateway-resource:
+        allowApplyPermission: false
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: false
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /backend/api/plugin/plugin_status_operation/
+          timeout: 0
+        isPublic: false
+        matchSubpath: false
+  /open/backend/api/plugin/query_debug/:
+    get:
+      operationId: plugin_query_debug
+      summary: "\u67E5\u8BE2\u8C03\u8BD5\u7ED3\u679C"
+      tags:
+        - backend_plugin
+      x-bk-apigateway-resource:
+        allowApplyPermission: true
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: true
+        backend:
+          matchSubpath: false
+          method: get
+          name: default
+          path: /backend/api/plugin/query_debug/
+          timeout: 0
+        isPublic: true
+        matchSubpath: false
+  /system/backend/api/plugin/query_debug/:
+    get:
+      operationId: system_plugin_query_debug
+      summary: "\u67E5\u8BE2\u8C03\u8BD5\u7ED3\u679C"
+      tags:
+        - backend_plugin
+      x-bk-apigateway-resource:
+        allowApplyPermission: false
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: false
+        backend:
+          matchSubpath: false
+          method: get
+          name: default
+          path: /backend/api/plugin/query_debug/
+          timeout: 0
+        isPublic: false
+        matchSubpath: false
+  /open/backend/api/plugin/query_export_task/:
+    get:
+      operationId: plugin_query_export_task
+      summary: "\u83B7\u53D6\u4E00\u4E2A\u5BFC\u51FA\u4EFB\u52A1\u7ED3\u679C"
+      tags:
+        - backend_plugin
+      x-bk-apigateway-resource:
+        allowApplyPermission: true
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: true
+        backend:
+          matchSubpath: false
+          method: get
+          name: default
+          path: /backend/api/plugin/query_export_task/
+          timeout: 0
+        isPublic: true
+        matchSubpath: false
+  /system/backend/api/plugin/query_export_task/:
+    get:
+      operationId: system_plugin_query_export_task
+      summary: "\u83B7\u53D6\u4E00\u4E2A\u5BFC\u51FA\u4EFB\u52A1\u7ED3\u679C"
+      tags:
+        - backend_plugin
+      x-bk-apigateway-resource:
+        allowApplyPermission: false
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: false
+        backend:
+          matchSubpath: false
+          method: get
+          name: default
+          path: /backend/api/plugin/query_export_task/
+          timeout: 0
+        isPublic: false
+        matchSubpath: false
+  /open/backend/api/plugin/query_register_task/:
+    get:
+      operationId: plugin_query_register_task
+      summary: "\u67E5\u8BE2\u63D2\u4EF6\u6CE8\u518C\u4EFB\u52A1"
+      tags:
+        - backend_plugin
+      x-bk-apigateway-resource:
+        allowApplyPermission: true
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: true
+        backend:
+          matchSubpath: false
+          method: get
+          name: default
+          path: /backend/api/plugin/query_register_task/
+          timeout: 0
+        isPublic: true
+        matchSubpath: false
+  /system/backend/api/plugin/query_register_task/:
+    get:
+      operationId: system_plugin_query_register_task
+      summary: "\u67E5\u8BE2\u63D2\u4EF6\u6CE8\u518C\u4EFB\u52A1"
+      tags:
+        - backend_plugin
+      x-bk-apigateway-resource:
+        allowApplyPermission: false
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: false
+        backend:
+          matchSubpath: false
+          method: get
+          name: default
+          path: /backend/api/plugin/query_register_task/
+          timeout: 0
+        isPublic: false
+        matchSubpath: false
+  /open/backend/api/plugin/release/:
+    post:
+      operationId: plugin_release
+      summary: "\u53D1\u5E03\u63D2\u4EF6\u5305"
+      tags:
+        - backend_plugin
+      x-bk-apigateway-resource:
+        allowApplyPermission: true
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: true
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /backend/api/plugin/release/
+          timeout: 0
+        isPublic: true
+        matchSubpath: false
+  /system/backend/api/plugin/release/:
+    post:
+      operationId: system_plugin_release
+      summary: "\u53D1\u5E03\u63D2\u4EF6\u5305"
+      tags:
+        - backend_plugin
+      x-bk-apigateway-resource:
+        allowApplyPermission: false
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: false
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /backend/api/plugin/release/
+          timeout: 0
+        isPublic: false
+        matchSubpath: false
+  /open/backend/api/plugin/release_config_template/:
+    post:
+      operationId: plugin_release_config_template
+      summary: "\u53D1\u5E03\u914D\u7F6E\u6A21\u677F"
+      tags:
+        - backend_plugin
+      x-bk-apigateway-resource:
+        allowApplyPermission: true
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: true
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /backend/api/plugin/release_config_template/
+          timeout: 0
+        isPublic: true
+        matchSubpath: false
+  /system/backend/api/plugin/release_config_template/:
+    post:
+      operationId: system_plugin_release_config_template
+      summary: "\u53D1\u5E03\u914D\u7F6E\u6A21\u677F"
+      tags:
+        - backend_plugin
+      x-bk-apigateway-resource:
+        allowApplyPermission: false
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: false
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /backend/api/plugin/release_config_template/
+          timeout: 0
+        isPublic: false
+        matchSubpath: false
+  /open/backend/api/plugin/render_config_template/:
+    post:
+      operationId: plugin_render_config_template
+      summary: "\u6E32\u67D3\u914D\u7F6E\u6A21\u677F"
+      tags:
+        - backend_plugin
+      x-bk-apigateway-resource:
+        allowApplyPermission: true
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: true
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /backend/api/plugin/render_config_template/
+          timeout: 0
+        isPublic: true
+        matchSubpath: false
+  /system/backend/api/plugin/render_config_template/:
+    post:
+      operationId: system_plugin_render_config_template
+      summary: "\u6E32\u67D3\u914D\u7F6E\u6A21\u677F"
+      tags:
+        - backend_plugin
+      x-bk-apigateway-resource:
+        allowApplyPermission: false
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: false
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /backend/api/plugin/render_config_template/
+          timeout: 0
+        isPublic: false
+        matchSubpath: false
+  /open/backend/api/plugin/start_debug/:
+    post:
+      operationId: plugin_start_debug
+      summary: "\u5F00\u59CB\u8C03\u8BD5"
+      tags:
+        - backend_plugin
+      x-bk-apigateway-resource:
+        allowApplyPermission: true
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: true
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /backend/api/plugin/start_debug/
+          timeout: 0
+        isPublic: true
+        matchSubpath: false
+  /system/backend/api/plugin/start_debug/:
+    post:
+      operationId: system_plugin_start_debug
+      summary: "\u5F00\u59CB\u8C03\u8BD5"
+      tags:
+        - backend_plugin
+      x-bk-apigateway-resource:
+        allowApplyPermission: false
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: false
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /backend/api/plugin/start_debug/
+          timeout: 0
+        isPublic: false
+        matchSubpath: false
+  /open/backend/api/plugin/stop_debug/:
+    post:
+      operationId: plugin_stop_debug
+      summary: "\u505C\u6B62\u8C03\u8BD5"
+      tags:
+        - backend_plugin
+      x-bk-apigateway-resource:
+        allowApplyPermission: true
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: true
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /backend/api/plugin/stop_debug/
+          timeout: 0
+        isPublic: true
+        matchSubpath: false
+  /system/backend/api/plugin/stop_debug/:
+    post:
+      operationId: system_plugin_stop_debug
+      summary: "\u505C\u6B62\u8C03\u8BD5"
+      tags:
+        - backend_plugin
+      x-bk-apigateway-resource:
+        allowApplyPermission: false
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: false
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /backend/api/plugin/stop_debug/
+          timeout: 0
+        isPublic: false
+        matchSubpath: false
+  /open/backend/api/plugin/upload/:
+    post:
+      operationId: plugin_upload
+      summary: "\u4E0A\u4F20\u6587\u4EF6\u63A5\u53E3"
+      tags:
+        - backend_plugin
+      x-bk-apigateway-resource:
+        allowApplyPermission: true
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: true
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /backend/api/plugin/upload/
+          timeout: 0
+        isPublic: true
+        matchSubpath: false
+  /system/backend/api/plugin/upload/:
+    post:
+      operationId: system_plugin_upload
+      summary: "\u4E0A\u4F20\u6587\u4EF6\u63A5\u53E3"
+      tags:
+        - backend_plugin
+      x-bk-apigateway-resource:
+        allowApplyPermission: false
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: false
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /backend/api/plugin/upload/
+          timeout: 0
+        isPublic: false
+        matchSubpath: false
+  /open/backend/api/plugin/{id}/:
+    get:
+      operationId: plugin_detail
+      summary: "\u63D2\u4EF6\u8BE6\u60C5"
+      tags:
+        - backend_plugin
+      x-bk-apigateway-resource:
+        allowApplyPermission: true
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: true
+        backend:
+          matchSubpath: false
+          method: get
+          name: default
+          path: /backend/api/plugin/{id}/
+          timeout: 0
+        isPublic: true
+        matchSubpath: false
+  /system/backend/api/plugin/{id}/:
+    get:
+      operationId: system_plugin_detail
+      summary: "\u63D2\u4EF6\u8BE6\u60C5"
+      tags:
+        - backend_plugin
+      x-bk-apigateway-resource:
+        allowApplyPermission: false
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: false
+        backend:
+          matchSubpath: false
+          method: get
+          name: default
+          path: /backend/api/plugin/{id}/
+          timeout: 0
+        isPublic: false
+        matchSubpath: false
+  /open/backend/api/plugin/{id}/history/:
+    get:
+      operationId: plugin_history
+      summary: "\u67E5\u8BE2\u63D2\u4EF6\u5305\u5386\u53F2"
+      tags:
+        - backend_plugin
+      x-bk-apigateway-resource:
+        allowApplyPermission: true
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: true
+        backend:
+          matchSubpath: false
+          method: get
+          name: default
+          path: /backend/api/plugin/{id}/history/
+          timeout: 0
+        isPublic: true
+        matchSubpath: false
+  /system/backend/api/plugin/{id}/history/:
+    get:
+      operationId: system_plugin_history
+      summary: "\u67E5\u8BE2\u63D2\u4EF6\u5305\u5386\u53F2"
+      tags:
+        - backend_plugin
+      x-bk-apigateway-resource:
+        allowApplyPermission: false
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: false
+        backend:
+          matchSubpath: false
+          method: get
+          name: default
+          path: /backend/api/plugin/{id}/history/
+          timeout: 0
+        isPublic: false
+        matchSubpath: false
+  /open/backend/api/subscription/check_task_ready/:
+    post:
+      operationId: subscription_check_task_ready
+      summary: "\u67E5\u8BE2\u4EFB\u52A1\u662F\u5426\u5DF2\u51C6\u5907\u5B8C\u6210"
+      tags:
+        - subscription
+      x-bk-apigateway-resource:
+        allowApplyPermission: true
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: true
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /backend/api/subscription/check_task_ready/
+          timeout: 0
+        isPublic: true
+        matchSubpath: false
+  /system/backend/api/subscription/check_task_ready/:
+    post:
+      operationId: system_subscription_check_task_ready
+      summary: "\u67E5\u8BE2\u4EFB\u52A1\u662F\u5426\u5DF2\u51C6\u5907\u5B8C\u6210"
+      tags:
+        - subscription
+      x-bk-apigateway-resource:
+        allowApplyPermission: false
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: false
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /backend/api/subscription/check_task_ready/
+          timeout: 0
+        isPublic: false
+        matchSubpath: false
+  /open/backend/api/subscription/collect_task_result_detail/:
+    post:
+      operationId: collect_task_result_detail
+      summary: "\u91C7\u96C6\u4EFB\u52A1\u6267\u884C\u8BE6\u7EC6\u7ED3\u679C"
+      tags:
+        - subscription
+      x-bk-apigateway-resource:
+        allowApplyPermission: true
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: true
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /backend/api/subscription/collect_task_result_detail/
+          timeout: 0
+        isPublic: true
+        matchSubpath: false
+  /system/backend/api/subscription/collect_task_result_detail/:
+    post:
+      operationId: system_collect_task_result_detail
+      summary: "\u91C7\u96C6\u4EFB\u52A1\u6267\u884C\u8BE6\u7EC6\u7ED3\u679C"
+      tags:
+        - subscription
+      x-bk-apigateway-resource:
+        allowApplyPermission: false
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: false
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /backend/api/subscription/collect_task_result_detail/
+          timeout: 0
+        isPublic: false
+        matchSubpath: false
+  /open/backend/api/subscription/create/:
+    post:
+      operationId: subscription_create
+      summary: "\u521B\u5EFA\u8BA2\u9605"
+      tags:
+        - subscription
+      x-bk-apigateway-resource:
+        allowApplyPermission: true
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: true
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /backend/api/subscription/create/
+          timeout: 0
+        isPublic: true
+        matchSubpath: false
+  /system/backend/api/subscription/create/:
+    post:
+      operationId: system_subscription_create
+      summary: "\u521B\u5EFA\u8BA2\u9605"
+      tags:
+        - subscription
+      x-bk-apigateway-resource:
+        allowApplyPermission: false
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: false
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /backend/api/subscription/create/
+          timeout: 0
+        isPublic: false
+        matchSubpath: false
+  /open/backend/api/subscription/delete/:
+    post:
+      operationId: subscription_delete
+      summary: "\u5220\u9664\u8BA2\u9605"
+      tags:
+        - subscription
+      x-bk-apigateway-resource:
+        allowApplyPermission: true
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: true
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /backend/api/subscription/delete/
+          timeout: 0
+        isPublic: true
+        matchSubpath: false
+  /system/backend/api/subscription/delete/:
+    post:
+      operationId: system_subscription_delete
+      summary: "\u5220\u9664\u8BA2\u9605"
+      tags:
+        - subscription
+      x-bk-apigateway-resource:
+        allowApplyPermission: false
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: false
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /backend/api/subscription/delete/
+          timeout: 0
+        isPublic: false
+        matchSubpath: false
+  /open/backend/api/subscription/fetch_commands/:
+    post:
+      operationId: fetch_commands
+      summary: "\u8FD4\u56DE\u5B89\u88C5\u547D\u4EE4"
+      tags:
+        - subscription
+      x-bk-apigateway-resource:
+        allowApplyPermission: true
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: true
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /backend/api/subscription/fetch_commands/
+          timeout: 0
+        isPublic: true
+        matchSubpath: false
+  /system/backend/api/subscription/fetch_commands/:
+    post:
+      operationId: system_fetch_commands
+      summary: "\u8FD4\u56DE\u5B89\u88C5\u547D\u4EE4"
+      tags:
+        - subscription
+      x-bk-apigateway-resource:
+        allowApplyPermission: false
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: false
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /backend/api/subscription/fetch_commands/
+          timeout: 0
+        isPublic: false
+        matchSubpath: false
+  /open/backend/api/subscription/info/:
+    post:
+      operationId: subscription_info
+      summary: "\u8BA2\u9605\u8BE6\u60C5"
+      tags:
+        - subscription
+      x-bk-apigateway-resource:
+        allowApplyPermission: true
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: true
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /backend/api/subscription/info/
+          timeout: 0
+        isPublic: true
+        matchSubpath: false
+  /system/backend/api/subscription/info/:
+    post:
+      operationId: system_subscription_info
+      summary: "\u8BA2\u9605\u8BE6\u60C5"
+      tags:
+        - subscription
+      x-bk-apigateway-resource:
+        allowApplyPermission: false
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: false
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /backend/api/subscription/info/
+          timeout: 0
+        isPublic: false
+        matchSubpath: false
+  /open/backend/api/subscription/instance_status/:
+    post:
+      operationId: subscription_instance_status
+      summary: "\u67E5\u8BE2\u8BA2\u9605\u8FD0\u884C\u72B6\u6001"
+      tags:
+        - subscription
+      x-bk-apigateway-resource:
+        allowApplyPermission: true
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: true
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /backend/api/subscription/instance_status/
+          timeout: 0
+        isPublic: true
+        matchSubpath: false
+  /system/backend/api/subscription/instance_status/:
+    post:
+      operationId: system_subscription_instance_status
+      summary: "\u67E5\u8BE2\u8BA2\u9605\u8FD0\u884C\u72B6\u6001"
+      tags:
+        - subscription
+      x-bk-apigateway-resource:
+        allowApplyPermission: false
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: false
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /backend/api/subscription/instance_status/
+          timeout: 0
+        isPublic: false
+        matchSubpath: false
+  /open/backend/api/subscription/query_host_policy/:
+    get:
+      operationId: subscription_query_host_policy
+      summary: "\u83B7\u53D6\u4E3B\u673A\u7B56\u7565\u5217\u8868"
+      tags:
+        - subscription
+      x-bk-apigateway-resource:
+        allowApplyPermission: true
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: true
+        backend:
+          matchSubpath: false
+          method: get
+          name: default
+          path: /backend/api/subscription/query_host_policy/
+          timeout: 0
+        isPublic: true
+        matchSubpath: false
+  /system/backend/api/subscription/query_host_policy/:
+    get:
+      operationId: system_subscription_query_host_policy
+      summary: "\u83B7\u53D6\u4E3B\u673A\u7B56\u7565\u5217\u8868"
+      tags:
+        - subscription
+      x-bk-apigateway-resource:
+        allowApplyPermission: false
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: false
+        backend:
+          matchSubpath: false
+          method: get
+          name: default
+          path: /backend/api/subscription/query_host_policy/
+          timeout: 0
+        isPublic: false
+        matchSubpath: false
+  /open/backend/api/subscription/query_host_subscriptions/:
+    get:
+      operationId: query_host_subscriptions
+      summary: "\u83B7\u53D6\u4E3B\u673A\u8BA2\u9605\u5217\u8868"
+      tags:
+        - subscription
+      x-bk-apigateway-resource:
+        allowApplyPermission: true
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: true
+        backend:
+          matchSubpath: false
+          method: get
+          name: default
+          path: /backend/api/subscription/query_host_subscriptions/
+          timeout: 0
+        isPublic: true
+        matchSubpath: false
+  /system/backend/api/subscription/query_host_subscriptions/:
+    get:
+      operationId: system_query_host_subscriptions
+      summary: "\u83B7\u53D6\u4E3B\u673A\u8BA2\u9605\u5217\u8868"
+      tags:
+        - subscription
+      x-bk-apigateway-resource:
+        allowApplyPermission: false
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: false
+        backend:
+          matchSubpath: false
+          method: get
+          name: default
+          path: /backend/api/subscription/query_host_subscriptions/
+          timeout: 0
+        isPublic: false
+        matchSubpath: false
+  /open/backend/api/subscription/retry/:
+    post:
+      operationId: subscription_retry
+      summary: "\u91CD\u8BD5\u5931\u8D25\u7684\u4EFB\u52A1"
+      tags:
+        - subscription
+      x-bk-apigateway-resource:
+        allowApplyPermission: true
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: true
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /backend/api/subscription/retry/
+          timeout: 0
+        isPublic: true
+        matchSubpath: false
+  /system/backend/api/subscription/retry/:
+    post:
+      operationId: system_subscription_retry
+      summary: "\u91CD\u8BD5\u5931\u8D25\u7684\u4EFB\u52A1"
+      tags:
+        - subscription
+      x-bk-apigateway-resource:
+        allowApplyPermission: false
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: false
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /backend/api/subscription/retry/
+          timeout: 0
+        isPublic: false
+        matchSubpath: false
+  /open/backend/api/subscription/revoke/:
+    post:
+      operationId: subscription_revoke
+      summary: "\u7EC8\u6B62\u6B63\u5728\u6267\u884C\u7684\u4EFB\u52A1"
+      tags:
+        - subscription
+      x-bk-apigateway-resource:
+        allowApplyPermission: true
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: true
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /backend/api/subscription/revoke/
+          timeout: 0
+        isPublic: true
+        matchSubpath: false
+  /system/backend/api/subscription/revoke/:
+    post:
+      operationId: system_subscription_revoke
+      summary: "\u7EC8\u6B62\u6B63\u5728\u6267\u884C\u7684\u4EFB\u52A1"
+      tags:
+        - subscription
+      x-bk-apigateway-resource:
+        allowApplyPermission: false
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: false
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /backend/api/subscription/revoke/
+          timeout: 0
+        isPublic: false
+        matchSubpath: false
+  /open/backend/api/subscription/run/:
+    post:
+      operationId: subscription_run
+      summary: "\u6267\u884C\u8BA2\u9605"
+      tags:
+        - subscription
+      x-bk-apigateway-resource:
+        allowApplyPermission: true
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: true
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /backend/api/subscription/run/
+          timeout: 0
+        isPublic: true
+        matchSubpath: false
+  /system/backend/api/subscription/run/:
+    post:
+      operationId: system_subscription_run
+      summary: "\u6267\u884C\u8BA2\u9605"
+      tags:
+        - subscription
+      x-bk-apigateway-resource:
+        allowApplyPermission: false
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: false
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /backend/api/subscription/run/
+          timeout: 0
+        isPublic: false
+        matchSubpath: false
+  /open/backend/api/subscription/search_deploy_policy/:
+    post:
+      operationId: subscription_search_policy
+      summary: "\u67E5\u8BE2\u7B56\u7565\u5217\u8868"
+      tags:
+        - subscription
+      x-bk-apigateway-resource:
+        allowApplyPermission: true
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: true
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /backend/api/subscription/search_deploy_policy/
+          timeout: 0
+        isPublic: true
+        matchSubpath: false
+  /system/backend/api/subscription/search_deploy_policy/:
+    post:
+      operationId: system_subscription_search_policy
+      summary: "\u67E5\u8BE2\u7B56\u7565\u5217\u8868"
+      tags:
+        - subscription
+      x-bk-apigateway-resource:
+        allowApplyPermission: false
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: false
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /backend/api/subscription/search_deploy_policy/
+          timeout: 0
+        isPublic: false
+        matchSubpath: false
+  /open/backend/api/subscription/statistic/:
+    post:
+      operationId: subscription_statistic
+      summary: "\u7EDF\u8BA1\u8BA2\u9605\u4EFB\u52A1\u6570\u636E"
+      tags:
+        - subscription
+      x-bk-apigateway-resource:
+        allowApplyPermission: true
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: true
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /backend/api/subscription/statistic/
+          timeout: 0
+        isPublic: true
+        matchSubpath: false
+  /system/backend/api/subscription/statistic/:
+    post:
+      operationId: system_subscription_statistic
+      summary: "\u7EDF\u8BA1\u8BA2\u9605\u4EFB\u52A1\u6570\u636E"
+      tags:
+        - subscription
+      x-bk-apigateway-resource:
+        allowApplyPermission: false
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: false
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /backend/api/subscription/statistic/
+          timeout: 0
+        isPublic: false
+        matchSubpath: false
+  /open/backend/api/subscription/switch/:
+    post:
+      operationId: subscription_switch
+      summary: "\u8BA2\u9605\u542F\u505C"
+      tags:
+        - subscription
+      x-bk-apigateway-resource:
+        allowApplyPermission: true
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: true
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /backend/api/subscription/switch/
+          timeout: 0
+        isPublic: true
+        matchSubpath: false
+  /system/backend/api/subscription/switch/:
+    post:
+      operationId: system_subscription_switch
+      summary: "\u8BA2\u9605\u542F\u505C"
+      tags:
+        - subscription
+      x-bk-apigateway-resource:
+        allowApplyPermission: false
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: false
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /backend/api/subscription/switch/
+          timeout: 0
+        isPublic: false
+        matchSubpath: false
+  /open/backend/api/subscription/switch_biz/:
+    post:
+      operationId: subscription_switch_biz
+      summary: "\u542F\u7528/\u7981\u7528\u4E1A\u52A1\u8BA2\u9605\u5DE1\u68C0"
+      tags:
+        - subscription
+      x-bk-apigateway-resource:
+        allowApplyPermission: true
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: true
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /backend/api/subscription/switch_biz/
+          timeout: 0
+        isPublic: true
+        matchSubpath: false
+  /system/backend/api/subscription/switch_biz/:
+    post:
+      operationId: system_subscription_switch_biz
+      summary: "\u542F\u7528/\u7981\u7528\u4E1A\u52A1\u8BA2\u9605\u5DE1\u68C0"
+      tags:
+        - subscription
+      x-bk-apigateway-resource:
+        allowApplyPermission: false
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: false
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /backend/api/subscription/switch_biz/
+          timeout: 0
+        isPublic: false
+        matchSubpath: false
+  /open/backend/api/subscription/task_result/:
+    post:
+      operationId: subscription_task_result
+      summary: "\u4EFB\u52A1\u6267\u884C\u7ED3\u679C"
+      tags:
+        - subscription
+      x-bk-apigateway-resource:
+        allowApplyPermission: true
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: true
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /backend/api/subscription/task_result/
+          timeout: 0
+        isPublic: true
+        matchSubpath: false
+  /system/backend/api/subscription/task_result/:
+    post:
+      operationId: system_subscription_task_result
+      summary: "\u4EFB\u52A1\u6267\u884C\u7ED3\u679C"
+      tags:
+        - subscription
+      x-bk-apigateway-resource:
+        allowApplyPermission: false
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: false
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /backend/api/subscription/task_result/
+          timeout: 0
+        isPublic: false
+        matchSubpath: false
+  /open/backend/api/subscription/task_result_detail/:
+    post:
+      operationId: subscription_task_result_detail
+      summary: "\u4EFB\u52A1\u6267\u884C\u8BE6\u7EC6\u7ED3\u679C"
+      tags:
+        - subscription
+      x-bk-apigateway-resource:
+        allowApplyPermission: true
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: true
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /backend/api/subscription/task_result_detail/
+          timeout: 0
+        isPublic: true
+        matchSubpath: false
+  /system/backend/api/subscription/task_result_detail/:
+    post:
+      operationId: system_subscription_task_result_detail
+      summary: "\u4EFB\u52A1\u6267\u884C\u8BE6\u7EC6\u7ED3\u679C"
+      tags:
+        - subscription
+      x-bk-apigateway-resource:
+        allowApplyPermission: false
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: false
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /backend/api/subscription/task_result_detail/
+          timeout: 0
+        isPublic: false
+        matchSubpath: false
+  /open/backend/api/subscription/update/:
+    post:
+      operationId: subscription_update
+      summary: "\u66F4\u65B0\u8BA2\u9605"
+      tags:
+        - subscription
+      x-bk-apigateway-resource:
+        allowApplyPermission: true
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: true
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /backend/api/subscription/update/
+          timeout: 0
+        isPublic: true
+        matchSubpath: false
+  /system/backend/api/subscription/update/:
+    post:
+      operationId: system_subscription_update
+      summary: "\u66F4\u65B0\u8BA2\u9605"
+      tags:
+        - subscription
+      x-bk-apigateway-resource:
+        allowApplyPermission: false
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: false
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /backend/api/subscription/update/
+          timeout: 0
+        isPublic: false
+        matchSubpath: false
+  /open/backend/api/sync_task/create/:
+    post:
+      operationId: sync_task_create
+      summary: "\u521B\u5EFA\u540C\u6B65\u4EFB\u52A1"
+      tags:
+        - sync_task
+      x-bk-apigateway-resource:
+        allowApplyPermission: true
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: true
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /backend/api/sync_task/create/
+          timeout: 0
+        isPublic: true
+        matchSubpath: false
+  /system/backend/api/sync_task/create/:
+    post:
+      operationId: system_sync_task_create
+      summary: "\u521B\u5EFA\u540C\u6B65\u4EFB\u52A1"
+      tags:
+        - sync_task
+      x-bk-apigateway-resource:
+        allowApplyPermission: false
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: false
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /backend/api/sync_task/create/
+          timeout: 0
+        isPublic: false
+        matchSubpath: false
+  /open/backend/api/sync_task/status/:
+    get:
+      operationId: sync_task_status
+      summary: "\u67E5\u8BE2\u540C\u6B65\u4EFB\u52A1\u72B6\u6001"
+      tags:
+        - sync_task
+      x-bk-apigateway-resource:
+        allowApplyPermission: true
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: true
+        backend:
+          matchSubpath: false
+          method: get
+          name: default
+          path: /backend/api/sync_task/status/
+          timeout: 0
+        isPublic: true
+        matchSubpath: false
+  /system/backend/api/sync_task/status/:
+    get:
+      operationId: system_sync_task_status
+      summary: "\u67E5\u8BE2\u540C\u6B65\u4EFB\u52A1\u72B6\u6001"
+      tags:
+        - sync_task
+      x-bk-apigateway-resource:
+        allowApplyPermission: false
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: false
+        backend:
+          matchSubpath: false
+          method: get
+          name: default
+          path: /backend/api/sync_task/status/
+          timeout: 0
+        isPublic: false
+        matchSubpath: false
+  /open/core/api/encrypt_rsa/fetch_public_keys/:
+    post:
+      operationId: fetch_public_keys
+      summary: "\u83B7\u53D6\u516C\u94A5\u5217\u8868"
+      tags:
+        - rsa
+      x-bk-apigateway-resource:
+        allowApplyPermission: true
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: true
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /core/api/encrypt_rsa/fetch_public_keys/
+          timeout: 0
+        isPublic: true
+        matchSubpath: false
+  /system/core/api/encrypt_rsa/fetch_public_keys/:
+    post:
+      operationId: system_fetch_public_keys
+      summary: "\u83B7\u53D6\u516C\u94A5\u5217\u8868"
+      tags:
+        - rsa
+      x-bk-apigateway-resource:
+        allowApplyPermission: false
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: false
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /core/api/encrypt_rsa/fetch_public_keys/
+          timeout: 0
+        isPublic: false
+        matchSubpath: false
+  /open/core/api/gray/build/:
+    post:
+      operationId: gray_build
+      summary: "GSE 2.0\u7070\u5EA6"
+      tags:
+        - gray
+      x-bk-apigateway-resource:
+        allowApplyPermission: true
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: true
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /core/api/gray/build/
+          timeout: 0
+        isPublic: true
+        matchSubpath: false
+  /system/core/api/gray/build/:
+    post:
+      operationId: system_gray_build
+      summary: "GSE 2.0\u7070\u5EA6"
+      tags:
+        - gray
+      x-bk-apigateway-resource:
+        allowApplyPermission: false
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: false
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /core/api/gray/build/
+          timeout: 0
+        isPublic: false
+        matchSubpath: false
+  /open/core/api/gray/info/:
+    get:
+      operationId: gray_info
+      summary: "\u83B7\u53D6GSE 2.0\u7070\u5EA6\u4FE1\u606F"
+      tags:
+        - gray
+      x-bk-apigateway-resource:
+        allowApplyPermission: true
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: true
+        backend:
+          matchSubpath: false
+          method: get
+          name: default
+          path: /core/api/gray/info/
+          timeout: 0
+        isPublic: true
+        matchSubpath: false
+  /system/core/api/gray/info/:
+    get:
+      operationId: system_gray_info
+      summary: "\u83B7\u53D6GSE 2.0\u7070\u5EA6\u4FE1\u606F"
+      tags:
+        - gray
+      x-bk-apigateway-resource:
+        allowApplyPermission: false
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: false
+        backend:
+          matchSubpath: false
+          method: get
+          name: default
+          path: /core/api/gray/info/
+          timeout: 0
+        isPublic: false
+        matchSubpath: false
+  /open/core/api/gray/rollback/:
+    post:
+      operationId: gray_rollback
+      summary: "GSE 2.0\u7070\u5EA6\u56DE\u6EDA"
+      tags:
+        - gray
+      x-bk-apigateway-resource:
+        allowApplyPermission: true
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: true
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /core/api/gray/rollback/
+          timeout: 0
+        isPublic: true
+        matchSubpath: false
+  /system/core/api/gray/rollback/:
+    post:
+      operationId: system_gray_rollback
+      summary: "GSE 2.0\u7070\u5EA6\u56DE\u6EDA"
+      tags:
+        - gray
+      x-bk-apigateway-resource:
+        allowApplyPermission: false
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: false
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /core/api/gray/rollback/
+          timeout: 0
+        isPublic: false
+        matchSubpath: false
+  /open/core/api/gray/rollback_agent_id/:
+    post:
+      operationId: rollback_agent_id
+      summary: "\u56DE\u6EDAAgent ID\u914D\u7F6E"
+      tags:
+        - gray
+      x-bk-apigateway-resource:
+        allowApplyPermission: true
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: true
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /core/api/gray/rollback_agent_id/
+          timeout: 0
+        isPublic: true
+        matchSubpath: false
+  /system/core/api/gray/rollback_agent_id/:
+    post:
+      operationId: system_rollback_agent_id
+      summary: "\u56DE\u6EDAAgent ID\u914D\u7F6E"
+      tags:
+        - gray
+      x-bk-apigateway-resource:
+        allowApplyPermission: false
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: false
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /core/api/gray/rollback_agent_id/
+          timeout: 0
+        isPublic: false
+        matchSubpath: false
+  /open/core/api/gray/upgrade_to_agent_id/:
+    post:
+      operationId: upgrade_to_agent_id
+      summary: "\u5347\u7EA7\u5230Agent ID\u914D\u7F6E"
+      tags:
+        - gray
+      x-bk-apigateway-resource:
+        allowApplyPermission: true
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: true
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /core/api/gray/upgrade_to_agent_id/
+          timeout: 0
+        isPublic: true
+        matchSubpath: false
+  /system/core/api/gray/upgrade_to_agent_id/:
+    post:
+      operationId: system_upgrade_to_agent_id
+      summary: "\u5347\u7EA7\u5230Agent ID\u914D\u7F6E"
+      tags:
+        - gray
+      x-bk-apigateway-resource:
+        allowApplyPermission: false
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: false
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /core/api/gray/upgrade_to_agent_id/
+          timeout: 0
+        isPublic: false
+        matchSubpath: false
+  /open/core/api/ipchooser_host/check/:
+    post:
+      operationId: ipchooser_host_check
+      summary: "\u6839\u636E\u7528\u6237\u624B\u52A8\u8F93\u5165\u7684`IP`/`IPv6`/`\u4E3B\
+        \u673A\u540D`/`host_id`\u7B49\u5173\u952E\u5B57\u4FE1\u606F\u83B7\u53D6\u771F\
+        \u5B9E\u5B58\u5728\u7684\u673A\u5668\u4FE1\u606F"
+      tags:
+        - ipchooser
+      x-bk-apigateway-resource:
+        allowApplyPermission: true
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: true
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /core/api/ipchooser_host/check/
+          timeout: 0
+        isPublic: true
+        matchSubpath: false
+  /system/core/api/ipchooser_host/check/:
+    post:
+      operationId: system_ipchooser_host_check
+      summary: "\u6839\u636E\u7528\u6237\u624B\u52A8\u8F93\u5165\u7684`IP`/`IPv6`/`\u4E3B\
+        \u673A\u540D`/`host_id`\u7B49\u5173\u952E\u5B57\u4FE1\u606F\u83B7\u53D6\u771F\
+        \u5B9E\u5B58\u5728\u7684\u673A\u5668\u4FE1\u606F"
+      tags:
+        - ipchooser
+      x-bk-apigateway-resource:
+        allowApplyPermission: false
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: false
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /core/api/ipchooser_host/check/
+          timeout: 0
+        isPublic: false
+        matchSubpath: false
+  /open/core/api/ipchooser_host/details/:
+    post:
+      operationId: ipchooser_host_details
+      summary: "\u6839\u636E\u4E3B\u673A\u5173\u952E\u4FE1\u606F\u83B7\u53D6\u673A\
+        \u5668\u8BE6\u60C5\u4FE1\u606F"
+      tags:
+        - ipchooser
+      x-bk-apigateway-resource:
+        allowApplyPermission: true
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: true
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /core/api/ipchooser_host/details/
+          timeout: 0
+        isPublic: true
+        matchSubpath: false
+  /system/core/api/ipchooser_host/details/:
+    post:
+      operationId: system_ipchooser_host_details
+      summary: "\u6839\u636E\u4E3B\u673A\u5173\u952E\u4FE1\u606F\u83B7\u53D6\u673A\
+        \u5668\u8BE6\u60C5\u4FE1\u606F"
+      tags:
+        - ipchooser
+      x-bk-apigateway-resource:
+        allowApplyPermission: false
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: false
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /core/api/ipchooser_host/details/
+          timeout: 0
+        isPublic: false
+        matchSubpath: false
+  /open/core/api/ipchooser_topo/agent_statistics/:
+    post:
+      operationId: ipchooser_topo_agent_statistics
+      summary: "\u83B7\u53D6\u591A\u4E2A\u62D3\u6251\u8282\u70B9\u7684\u4E3B\u673A\
+        \ Agent \u72B6\u6001\u7EDF\u8BA1\u4FE1\u606F"
+      tags:
+        - ipchooser
+      x-bk-apigateway-resource:
+        allowApplyPermission: true
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: true
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /core/api/ipchooser_topo/agent_statistics/
+          timeout: 0
+        isPublic: true
+        matchSubpath: false
+  /system/core/api/ipchooser_topo/agent_statistics/:
+    post:
+      operationId: system_ipchooser_topo_agent_statistics
+      summary: "\u83B7\u53D6\u591A\u4E2A\u62D3\u6251\u8282\u70B9\u7684\u4E3B\u673A\
+        \ Agent \u72B6\u6001\u7EDF\u8BA1\u4FE1\u606F"
+      tags:
+        - ipchooser
+      x-bk-apigateway-resource:
+        allowApplyPermission: false
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: false
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /core/api/ipchooser_topo/agent_statistics/
+          timeout: 0
+        isPublic: false
+        matchSubpath: false
+  /open/core/api/ipchooser_topo/query_host_id_infos/:
+    post:
+      operationId: ipchooser_topo_query_host_id_infos
+      summary: "\u6839\u636E\u591A\u4E2A\u62D3\u6251\u8282\u70B9\u4E0E\u641C\u7D22\
+        \u6761\u4EF6\u6279\u91CF\u5206\u9875\u67E5\u8BE2\u6240\u5305\u542B\u7684\u4E3B\
+        \u673A ID \u4FE1\u606F"
+      tags:
+        - ipchooser
+      x-bk-apigateway-resource:
+        allowApplyPermission: true
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: true
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /core/api/ipchooser_topo/query_host_id_infos/
+          timeout: 0
+        isPublic: true
+        matchSubpath: false
+  /system/core/api/ipchooser_topo/query_host_id_infos/:
+    post:
+      operationId: system_ipchooser_topo_query_host_id_infos
+      summary: "\u6839\u636E\u591A\u4E2A\u62D3\u6251\u8282\u70B9\u4E0E\u641C\u7D22\
+        \u6761\u4EF6\u6279\u91CF\u5206\u9875\u67E5\u8BE2\u6240\u5305\u542B\u7684\u4E3B\
+        \u673A ID \u4FE1\u606F"
+      tags:
+        - ipchooser
+      x-bk-apigateway-resource:
+        allowApplyPermission: false
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: false
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /core/api/ipchooser_topo/query_host_id_infos/
+          timeout: 0
+        isPublic: false
+        matchSubpath: false
+  /open/core/api/ipchooser_topo/query_hosts/:
+    post:
+      operationId: ipchooser_topo_query_hosts
+      summary: "\u6839\u636E\u591A\u4E2A\u62D3\u6251\u8282\u70B9\u4E0E\u641C\u7D22\
+        \u6761\u4EF6\u6279\u91CF\u5206\u9875\u67E5\u8BE2\u6240\u5305\u542B\u7684\u4E3B\
+        \u673A\u4FE1\u606F"
+      tags:
+        - ipchooser
+      x-bk-apigateway-resource:
+        allowApplyPermission: true
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: true
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /core/api/ipchooser_topo/query_hosts/
+          timeout: 0
+        isPublic: true
+        matchSubpath: false
+  /system/core/api/ipchooser_topo/query_hosts/:
+    post:
+      operationId: system_ipchooser_topo_query_hosts
+      summary: "\u6839\u636E\u591A\u4E2A\u62D3\u6251\u8282\u70B9\u4E0E\u641C\u7D22\
+        \u6761\u4EF6\u6279\u91CF\u5206\u9875\u67E5\u8BE2\u6240\u5305\u542B\u7684\u4E3B\
+        \u673A\u4FE1\u606F"
+      tags:
+        - ipchooser
+      x-bk-apigateway-resource:
+        allowApplyPermission: false
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: false
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /core/api/ipchooser_topo/query_hosts/
+          timeout: 0
+        isPublic: false
+        matchSubpath: false
+  /open/core/api/ipchooser_topo/query_path/:
+    post:
+      operationId: ipchooser_topo_query_path
+      summary: "\u67E5\u8BE2\u591A\u4E2A\u8282\u70B9\u62D3\u6251\u8DEF\u5F84"
+      tags:
+        - ipchooser
+      x-bk-apigateway-resource:
+        allowApplyPermission: true
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: true
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /core/api/ipchooser_topo/query_path/
+          timeout: 0
+        isPublic: true
+        matchSubpath: false
+  /system/core/api/ipchooser_topo/query_path/:
+    post:
+      operationId: system_ipchooser_topo_query_path
+      summary: "\u67E5\u8BE2\u591A\u4E2A\u8282\u70B9\u62D3\u6251\u8DEF\u5F84"
+      tags:
+        - ipchooser
+      x-bk-apigateway-resource:
+        allowApplyPermission: false
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: false
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /core/api/ipchooser_topo/query_path/
+          timeout: 0
+        isPublic: false
+        matchSubpath: false
+  /open/core/api/ipchooser_topo/trees/:
+    post:
+      operationId: ipchooser_topo_trees
+      summary: "\u6279\u91CF\u83B7\u53D6\u542B\u5404\u8282\u70B9\u4E3B\u673A\u6570\
+        \u91CF\u7684\u62D3\u6251\u6811"
+      tags:
+        - ipchooser
+      x-bk-apigateway-resource:
+        allowApplyPermission: true
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: true
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /core/api/ipchooser_topo/trees/
+          timeout: 0
+        isPublic: true
+        matchSubpath: false
+  /system/core/api/ipchooser_topo/trees/:
+    post:
+      operationId: system_ipchooser_topo_trees
+      summary: "\u6279\u91CF\u83B7\u53D6\u542B\u5404\u8282\u70B9\u4E3B\u673A\u6570\
+        \u91CF\u7684\u62D3\u6251\u6811"
+      tags:
+        - ipchooser
+      x-bk-apigateway-resource:
+        allowApplyPermission: false
+        authConfig:
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+          userVerifiedRequired: false
+        backend:
+          matchSubpath: false
+          method: post
+          name: default
+          path: /core/api/ipchooser_topo/trees/
+          timeout: 0
+        isPublic: false
+        matchSubpath: false

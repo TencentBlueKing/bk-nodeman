@@ -74,8 +74,10 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
 
     # permission_classes = (BackendBasePermission,)
     @swagger_auto_schema(
+        operation_id="plugin_create_register_task",
         operation_summary="创建注册任务",
         tags=PLUGIN_VIEW_TAGS,
+        extra_overrides={"is_register_apigw": True},
     )
     @action(
         detail=False,
@@ -130,8 +132,10 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         return Response({"job_id": job.id})
 
     @swagger_auto_schema(
+        operation_id="plugin_query_register_task",
         operation_summary="查询插件注册任务",
         tags=PLUGIN_VIEW_TAGS,
+        extra_overrides={"is_register_apigw": True},
     )
     @action(
         detail=False,
@@ -176,8 +180,10 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         )
 
     @swagger_auto_schema(
+        operation_id="plugin_info",
         operation_summary="查询插件信息",
         tags=PLUGIN_VIEW_TAGS,
+        extra_overrides={"is_register_apigw": True},
     )
     @action(detail=False, methods=["GET"], serializer_class=serializers.PluginInfoSerializer)
     def info(self, request):
@@ -203,8 +209,10 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         return Response(package_infos)
 
     @swagger_auto_schema(
+        operation_id="plugin_release",
         operation_summary="发布插件包",
         tags=PLUGIN_VIEW_TAGS,
+        extra_overrides={"is_register_apigw": True},
     )
     @action(detail=False, methods=["POST"], serializer_class=serializers.ReleasePluginSerializer)
     def release(self, request):
@@ -251,8 +259,10 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         return Response([package.id for package in plugin_packages])
 
     @swagger_auto_schema(
+        operation_id="package_status_operation",
         operation_summary="插件包状态类操作",
         tags=PLUGIN_VIEW_TAGS,
+        extra_overrides={"is_register_apigw": True},
     )
     @action(detail=False, methods=["POST"], serializer_class=serializers.PkgStatusOperationSerializer)
     def package_status_operation(self, request):
@@ -295,8 +305,10 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         return Response([package.id for package in plugin_packages])
 
     @swagger_auto_schema(
+        operation_id="plugin_delete",
         operation_summary="删除插件",
         tags=PLUGIN_VIEW_TAGS,
+        extra_overrides={"is_register_apigw": True},
     )
     @action(detail=False, methods=["POST"], serializer_class=serializers.DeletePluginSerializer)
     def delete(self, request):
@@ -328,8 +340,10 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         return Response()
 
     @swagger_auto_schema(
+        operation_id="plugin_create_config_template",
         operation_summary="创建配置模板",
         tags=PLUGIN_VIEW_TAGS,
+        extra_overrides={"is_register_apigw": True},
     )
     @action(detail=False, methods=["POST"], serializer_class=serializers.CreatePluginConfigTemplateSerializer)
     def create_config_template(self, request):
@@ -378,8 +392,10 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         return Response(params)
 
     @swagger_auto_schema(
+        operation_id="plugin_release_config_template",
         operation_summary="发布配置模板",
         tags=PLUGIN_VIEW_TAGS,
+        extra_overrides={"is_register_apigw": True},
     )
     @action(detail=False, methods=["POST"], serializer_class=serializers.ReleasePluginConfigTemplateSerializer)
     def release_config_template(self, request):
@@ -421,8 +437,10 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         return Response(result)
 
     @swagger_auto_schema(
+        operation_id="plugin_render_config_template",
         operation_summary="渲染配置模板",
         tags=PLUGIN_VIEW_TAGS,
+        extra_overrides={"is_register_apigw": True},
     )
     @action(detail=False, methods=["POST"], serializer_class=serializers.RenderPluginConfigTemplateSerializer)
     def render_config_template(self, request):
@@ -539,8 +557,10 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         return Response(result)
 
     @swagger_auto_schema(
+        operation_id="plugin_start_debug",
         operation_summary="开始调试",
         tags=PLUGIN_VIEW_TAGS,
+        extra_overrides={"is_register_apigw": True},
     )
     @action(detail=False, methods=["POST"], serializer_class=serializers.PluginStartDebugSerializer)
     def start_debug(self, request):
@@ -668,8 +688,10 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         return Response({"task_id": subscription_task.id})
 
     @swagger_auto_schema(
+        operation_id="plugin_stop_debug",
         operation_summary="停止调试",
         tags=PLUGIN_VIEW_TAGS,
+        extra_overrides={"is_register_apigw": True},
     )
     @action(detail=False, methods=["POST"])
     def stop_debug(self, request):
@@ -711,8 +733,10 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         return Response()
 
     @swagger_auto_schema(
+        operation_id="plugin_query_debug",
         operation_summary="查询调试结果",
         tags=PLUGIN_VIEW_TAGS,
+        extra_overrides={"is_register_apigw": True},
     )
     @action(detail=False, methods=["GET"])
     def query_debug(self, request):
@@ -750,8 +774,10 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         return Response({"status": status, "step": step_name, "message": "\n".join(log_content)})
 
     @swagger_auto_schema(
+        operation_id="plugin_create_export_task",
         operation_summary="触发插件打包导出",
         tags=PLUGIN_VIEW_TAGS,
+        extra_overrides={"is_register_apigw": True},
     )
     @action(detail=False, methods=["POST"], serializer_class=serializers.ExportSerializer)
     def create_export_task(self, request):
@@ -803,8 +829,10 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         return Response({"job_id": record.id})
 
     @swagger_auto_schema(
+        operation_id="plugin_query_export_task",
         operation_summary="获取一个导出任务结果",
         tags=PLUGIN_VIEW_TAGS,
+        extra_overrides={"is_register_apigw": True},
     )
     @action(detail=False, methods=["GET"])
     def query_export_task(self, request):
@@ -858,8 +886,10 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         return Response(response_data)
 
     @swagger_auto_schema(
+        operation_id="plugin_parse",
         operation_summary="解析插件包",
         tags=PLUGIN_VIEW_TAGS,
+        extra_overrides={"is_register_apigw": True},
     )
     @action(detail=False, methods=["POST"], serializer_class=serializers.PluginParseSerializer)
     def parse(self, request):
@@ -941,8 +971,10 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         return Response(pkg_parse_results)
 
     @swagger_auto_schema(
+        operation_id="plugin_list",
         operation_summary="查询插件列表",
         tags=PLUGIN_VIEW_TAGS,
+        extra_overrides={"is_register_apigw": True},
     )
     def list(self, request, *args, **kwargs):
         """
@@ -1037,8 +1069,10 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         return Response({"total": len(plugins), "list": ret_plugins})
 
     @swagger_auto_schema(
+        operation_id="plugin_detail",
         operation_summary="插件详情",
         tags=PLUGIN_VIEW_TAGS,
+        extra_overrides={"is_register_apigw": True},
     )
     def retrieve(self, request, *args, **kwargs):
         """
@@ -1098,8 +1132,10 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         return Response(PluginHandler.retrieve(kwargs["pk"]))
 
     @swagger_auto_schema(
+        operation_id="plugin_status_operation",
         operation_summary="插件状态类操作",
         tags=PLUGIN_VIEW_TAGS,
+        extra_overrides={"is_register_apigw": True},
     )
     @action(detail=False, methods=["POST"], serializer_class=serializers.PluginStatusOperationSerializer)
     def plugin_status_operation(self, request):
@@ -1127,9 +1163,11 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         return Response([plugin.id for plugin in update_plugins])
 
     @swagger_auto_schema(
+        operation_id="plugin_history",
         operation_summary="查询插件包历史",
         methods=["GET"],
         tags=PLUGIN_VIEW_TAGS,
+        extra_overrides={"is_register_apigw": True},
     )
     @action(detail=True, methods=["GET", "POST"], serializer_class=serializers.PluginQueryHistorySerializer)
     def history(self, request, pk):
@@ -1200,8 +1238,10 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
         )
 
     @swagger_auto_schema(
+        operation_id="plugin_upload",
         operation_summary="上传文件接口",
         tags=PLUGIN_VIEW_TAGS,
+        extra_overrides={"is_register_apigw": True},
     )
     @action(detail=False, methods=["POST"], serializer_class=serializers.CosUploadSerializer)
     def upload(self, request, *args, **kwargs):

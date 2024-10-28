@@ -22,8 +22,10 @@ class HealthzViewSet(APIViewSet, mixins.ListModelMixin):
     queryset = ""
 
     @swagger_auto_schema(
+        operation_id="metric_list",
         operation_summary="健康统计指标",
         tags=HEALTHZ_VIEW_TAGS,
+        extra_overrides={"is_register_apigw": True},
     )
     def list(self, request, *args, **kwargs):
         # 统计指标
