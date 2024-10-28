@@ -38,9 +38,11 @@ class HostViewSet(ModelViewSet):
     permission_classes = (HostPermission,)
 
     @swagger_auto_schema(
+        operation_id="list_hosts",
         operation_summary="查询主机列表",
         responses={status.HTTP_200_OK: response.HostSearchResponseSerializer()},
         tags=HOST_VIEW_TAGS,
+        extra_overrides={"is_register_apigw": True},
     )
     @action(detail=False, methods=["POST"], serializer_class=HostSearchSerializer)
     def search(self, request):
@@ -52,10 +54,12 @@ class HostViewSet(ModelViewSet):
         return Response(HostHandler().list(self.validated_data, get_request_username()))
 
     @swagger_auto_schema(
+        operation_id="list_cloud_proxies",
         operation_summary="查询管控区域下有操作权限的proxy列表",
         query_serializer=ProxySerializer(),
         responses={status.HTTP_200_OK: response.HostBizProxyResponseSerializer()},
         tags=HOST_VIEW_TAGS,
+        extra_overrides={"is_register_apigw": True},
     )
     @action(detail=False, serializer_class=ProxySerializer)
     def proxies(self, request, *args, **kwargs):
@@ -73,10 +77,12 @@ class HostViewSet(ModelViewSet):
         return Response(proxies)
 
     @swagger_auto_schema(
+        operation_id="list_biz_proxies",
         operation_summary="查询业务下管控区域的proxy集合",
         query_serializer=BizProxySerializer(),
         responses={status.HTTP_200_OK: response.HostBizProxyResponseSerializer()},
         tags=HOST_VIEW_TAGS,
+        extra_overrides={"is_register_apigw": True},
     )
     @action(detail=False, serializer_class=BizProxySerializer)
     def biz_proxies(self, request, *args, **kwargs):

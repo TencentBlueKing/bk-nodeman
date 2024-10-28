@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from celery.result import AsyncResult
+from drf_yasg.utils import swagger_auto_schema
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
@@ -16,11 +17,17 @@ from apps.backend.sync_task import serializers
 from apps.backend.sync_task.handler import AsyncTaskHandler
 from apps.generic import APIViewSet
 
+SYNC_TASK_VIEW_TAGS = ["sync_task"]
+
 
 class SyncTaskViewSet(APIViewSet):
-    @action(
-        detail=False, methods=["POST"], url_path="create", serializer_class=serializers.CreateSyncTaskSerializer
+    @swagger_auto_schema(
+        operation_id="sync_task_create",
+        operation_summary="创建同步任务",
+        tags=SYNC_TASK_VIEW_TAGS,
+        extra_overrides={"is_register_apigw": True},
     )
+    @action(detail=False, methods=["POST"], url_path="create", serializer_class=serializers.CreateSyncTaskSerializer)
     def create_sync_task(self, request):
         """
         @api {POST} /sync_task/create/ 创建同步任务
@@ -37,9 +44,13 @@ class SyncTaskViewSet(APIViewSet):
 
         return Response({"task_id": task_id})
 
-    @action(
-        detail=False, methods=["GET"], url_path="status", serializer_class=serializers.SyncTaskStatusSerializer
+    @swagger_auto_schema(
+        operation_id="sync_task_status",
+        operation_summary="查询同步任务状态",
+        tags=SYNC_TASK_VIEW_TAGS,
+        extra_overrides={"is_register_apigw": True},
     )
+    @action(detail=False, methods=["GET"], url_path="status", serializer_class=serializers.SyncTaskStatusSerializer)
     def status(self, request):
         """
         @api {GET} /sync_task/status/ 查询同步任务状态

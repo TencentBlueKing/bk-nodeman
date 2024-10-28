@@ -23,8 +23,10 @@ class RSAViewSet(APIViewSet):
     URL_BASE_NAME = "encrypt_rsa"
 
     @swagger_auto_schema(
+        operation_id="fetch_public_keys",
         operation_summary="获取公钥列表",
         tags=RSA_VIEW_TAGS,
+        extra_overrides={"is_register_apigw": True},
     )
     @action(detail=False, methods=["POST"], serializer_class=serializers.AsymmetricFetchKeysSerializer)
     def fetch_public_keys(self, request):
