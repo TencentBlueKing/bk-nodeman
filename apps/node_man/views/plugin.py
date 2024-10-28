@@ -53,8 +53,10 @@ class GsePluginViewSet(ModelViewSet):
         return self.queryset
 
     @swagger_auto_schema(
+        operation_id="list_processes",
         operation_summary="查询插件列表",
         tags=GSE_PLUGIN_VIEW_TAGS,
+        extra_overrides={"is_register_apigw": True},
     )
     def list(self, *args, **kwargs):
         """
@@ -84,9 +86,11 @@ class PluginViewSet(ModelViewSet):
     model = Host
 
     @swagger_auto_schema(
+        operation_id="search_host_plugin",
         operation_summary="查询插件列表",
         responses={status.HTTP_200_OK: response.PluginSearchResponseSerializer()},
         tags=PLUGIN_VIEW_TAGS,
+        extra_overrides={"is_register_apigw": True},
     )
     @action(detail=False, methods=["POST"], serializer_class=PluginListSerializer)
     def search(self, request):
@@ -100,8 +104,10 @@ class PluginViewSet(ModelViewSet):
         return Response(hosts)
 
     @swagger_auto_schema(
+        operation_id="operate_plugin",
         operation_summary="插件操作类任务",
         tags=PLUGIN_VIEW_TAGS,
+        extra_overrides={"is_register_apigw": True},
     )
     @action(detail=False, methods=["POST"], serializer_class=OperateSerializer)
     def operate(self, request):
@@ -179,8 +185,10 @@ class PackagesViews(ModelViewSet):
     serializer_class = ProcessPackageSerializer
 
     @swagger_auto_schema(
+        operation_id="list_packages",
         operation_summary="查询进程包列表",
         tags=PACKAGE_VIEW_TAGS,
+        extra_overrides={"is_register_apigw": True},
     )
     def list(self, request, *args, **kwargs):
         """
