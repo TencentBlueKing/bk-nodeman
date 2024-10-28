@@ -60,8 +60,8 @@ class TestSyncCMDBHost(CustomBaseTestCase):
         )
         self.assertEqual(itf_results.sort(key=lambda t: t[0]), list(db_result).sort(key=lambda t: t[0]))
 
-        # 验证主机信息是否删除成功
-        self.assertEqual(Host.objects.filter(bk_host_id=-1).count(), 0)
+        # 验证主机信息是否删除成功/proxy主机信息先保留
+        self.assertEqual(Host.objects.filter(bk_host_id=-1).count(), 1)
 
 
 class TestClearNeedDeleteHostIds(CustomBaseTestCase):
@@ -139,3 +139,42 @@ class TestSyncCMDBMultiOuterIPHost(CustomBaseTestCase):
         for data in agent_extra_data:
             extra_data = data["extra_data"]
             self.assertEqual(extra_data.get("bk_host_multi_outerip"), None)
+
+
+class TestProxyTransferModule(CustomBaseTestCase):
+    @staticmethod
+    def init_db():
+        host_data = copy.deepcopy(MOCK_HOST)
+        host_list = []
+        for index in range(1, MOCK_HOST_NUM):
+            host_data["node_type"] = constants.NodeType.PROXY if index % 2 else constants.NodeType.AGENT
+            host_data["inner_ip"] = f"127.0.0.{index}"
+            host_data["bk_host_id"] = index
+            host_list.append(Host(**host_data))
+        host_data["bk_host_id"] = 100
+        host_list.append(Host(**host_data))
+
+        Host.objects.bulk_create(host_list)
+
+    @staticmethod
+    def list_hosts_without_biz(*args, **kwargs):
+        return {
+            "count": 1,
+            "info": [
+                {"bk_host_id": 100},
+            ],
+        }
+
+    def start_patch(self):
+        MockClient.cc.list_hosts_without_biz = self.list_hosts_without_biz
+
+    @patch("apps.node_man.periodic_tasks.sync_cmdb_host.client_v2", MockClient)
+    def test_transfer_module_proxy(self):
+        self.init_db()
+        sync_cmdb_host_periodic_task(bk_biz_id=MOCK_BK_BIZ_ID)
+        # 验证需要删除的proxy主机暂存
+        self.assertEqual(Host.objects.filter(bk_host_id=100, node_type=constants.NodeType.PROXY).count(), 1)
+        self.start_patch()
+        clear_need_delete_host_ids_task()
+        # 验证转移业务/模块的proxy主未被删除
+        self.assertEqual(Host.objects.filter(bk_host_id=100, node_type=constants.NodeType.PROXY).count(), 1)

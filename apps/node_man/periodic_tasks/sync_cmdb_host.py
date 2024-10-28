@@ -491,7 +491,13 @@ def sync_cmdb_host(bk_biz_id=None, task_id=None):
     # 节点管理需要删除的host_id
     need_delete_host_ids = set(node_man_host_ids) - set(cc_bk_host_ids)
     if need_delete_host_ids:
-        models.Host.objects.filter(bk_host_id__in=need_delete_host_ids).delete()
+        proxy_host_ids: typing.Set[int] = set(
+            models.Host.objects.filter(
+                bk_host_id__in=need_delete_host_ids, node_type=constants.NodeType.PROXY
+            ).values_list("bk_host_id", flat=True)
+        )
+        need_delete_agent_host_ids = need_delete_host_ids - proxy_host_ids
+        models.Host.objects.filter(bk_host_id__in=need_delete_agent_host_ids).delete()
         models.IdentityData.objects.filter(bk_host_id__in=need_delete_host_ids).delete()
         if not LPUSH_AND_EXPIRE_FUNC:
             models.ProcessStatus.objects.filter(bk_host_id__in=need_delete_host_ids).delete()
@@ -566,6 +572,7 @@ def query_cmdb_and_handle_need_delete_host_ids(host_ids: typing.List[int], task_
         )
     )
     final_delete_host_ids = set(host_ids) - set(bk_host_ids_in_cmdb)
+    models.Host.objects.filter(bk_host_id__in=final_delete_host_ids).delete()
     models.ProcessStatus.objects.filter(bk_host_id__in=final_delete_host_ids).delete()
     logger.info(
         "[clear_final_delete_host_ids] task_id -> %s, final_delete_host_ids -> %s, num -> %s"
