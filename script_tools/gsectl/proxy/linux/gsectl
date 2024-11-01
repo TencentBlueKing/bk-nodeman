@@ -309,7 +309,7 @@ get_process_runtime (){
 
     for i in {1..20}
     do
-        tmp_gse_master_pid_info=$(ps --no-header -C gse_${module} -o '%P' -o '|%p' -o '|%a' | awk -F'|' '$1 == 1 && $3 ~ /gse_'${module}'/' | awk -F'|' '{print $2}' | xargs)
+        tmp_gse_master_pid_info=$(ps --no-header -C gse_${module} -o 'ppid,pid,args' | awk '$1 == 1 && $3 ~ /'gse_${module}'/ {print $2}' | xargs)
         read -r -a tmp_gse_agent_master_pids <<< "$tmp_gse_master_pid_info"
 
         for _pid in "${tmp_gse_agent_master_pids[@]}"; do
@@ -351,7 +351,7 @@ __status (){
     # 最多等待20s来判断是否真正启动成功
     for i in {0..20}; do
         if [ "$action" == "stop" ];then
-            if [ $(ps --no-header -C gse_${module} -o '%P' -o '|%p' -o '|%a' |egrep "${WORK_HOME}" |wc -l) -eq 0 ];then
+            if [ $(ps --no-header -C gse_${module} -o 'ppid,pid,args' |egrep "${WORK_HOME}" |wc -l) -eq 0 ];then
                 echo gse_${module} $action $action success
                 break
             elif [ $i -eq 20 ];then
@@ -423,7 +423,7 @@ _status () {
     # 初筛，考虑到gse组件的父、子进程都是名为gse_${module}的，且它的父进程应该是等于1
     # ps的-o参数指定输出字段%P(ppid)、%p(pid)、%a(args)
     # 所以下面命令是拉出所有进程名为gse_${module}，且父进程为1，进程参数包含gse_${module}的进程信息
-    gse_master_pid_info=$(ps --no-header -C gse_${module} -o '%P' -o '|%p' -o '|%a' | awk -F'|' '$1 == 1 && $3 ~ /'gse_${module}'/' | awk -F'|' '{print $2}' | xargs)
+    gse_master_pid_info=$(ps --no-header -C gse_${module} -o 'ppid,pid,args' | awk '$1 == 1 && $3 ~ /'gse_${module}'/ {print $2}' | xargs)
     read -r -a gse_agent_master_pids <<< "$gse_master_pid_info"
 
     if [[ -z "$gse_agent_master_pids" ]]; then
