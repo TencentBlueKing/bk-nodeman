@@ -281,7 +281,7 @@ class PolicyStepAdapter:
                 os_cpu__max_id_map[os_key] = item["id"]
         return list(os_cpu__max_id_map.values())
 
-    def get_latest_package_ids(self, plugin_name: str, plugin_version: str):
+    def get_tag_package_ids(self, plugin_name: str, plugin_version: str):
         # 先获取所有的 package
         all_packages = models.Packages.objects.filter(project=plugin_name).values("id", "os", "cpu_arch", "version")
         version_packages = {pkg["id"]: pkg for pkg in all_packages if pkg["version"] == plugin_version}
@@ -308,13 +308,17 @@ class PolicyStepAdapter:
         self, plugin_id: int, plugin_name: str, plugin_version: str, config_templates: List[Dict[str, Any]]
     ) -> List[Dict[str, Any]]:
         latest_flag: str = "latest"
-        is_tag: bool = Tag.objects.filter(
+        stable_flag: str = "stable"
+        is_latest_tag: bool = Tag.objects.filter(
             target_id=plugin_id, name=latest_flag, target_type=TargetType.PLUGIN.value
         ).exists()
+        is_stable_tag: bool = Tag.objects.filter(
+            target_id=plugin_id, name=stable_flag, target_type=TargetType.PLUGIN.value
+        ).exists()
 
-        if plugin_version != latest_flag or is_tag:
+        if plugin_version != latest_flag or is_latest_tag or is_stable_tag:
             # 如果 latest 是 tag，走取指定版本的逻辑
-            pkg_ids = self.get_latest_package_ids(plugin_name, plugin_version)
+            pkg_ids = self.get_tag_package_ids(plugin_name, plugin_version)
             packages = models.Packages.objects.filter(id__in=pkg_ids)
         else:
             max_pkg_ids: List[int] = self.max_ids_by_key(
@@ -330,11 +334,11 @@ class PolicyStepAdapter:
         os_cpu__config_templates_map = defaultdict(list)
         for template in config_templates:
             is_main_template = template["is_main"]
-            if template["version"] != latest_flag or is_tag:
+            if template["version"] != latest_flag or is_latest_tag or is_stable_tag:
                 plugin_version_set = {plugin_version, "*"}
             else:
-                latest_packages_version_set = set(packages.values_list("version", flat=True))
-                plugin_version_set = latest_packages_version_set | {"*"}
+                tag_packages_version_set = set(packages.values_list("version", flat=True))
+                plugin_version_set = tag_packages_version_set | {"*"}
 
             max_config_tmpl_ids: typing.List[int] = self.max_ids_by_key(
                 list(

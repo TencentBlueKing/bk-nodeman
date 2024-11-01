@@ -168,6 +168,8 @@ class GlobalSettings(models.Model):
         AUTO_SELECT_INSTALL_CHANNEL_ONLY_DIRECT_AREA = "AUTO_SELECT_INSTALL_CHANNEL_ONLY_DIRECT_AREA"
         # 安装通道ID与网段列表映射
         INSTALL_CHANNEL_ID_NETWORK_SEGMENT = "INSTALL_CHANNEL_ID_NETWORK_SEGMENT"
+        # 业务指定插件版本
+        PLUGIN_VERSION_CONFIG = "PLUGIN_VERSION_CONFIG"
 
     key = models.CharField(_("键"), max_length=255, db_index=True, primary_key=True)
     v_json = JSONField(_("值"))

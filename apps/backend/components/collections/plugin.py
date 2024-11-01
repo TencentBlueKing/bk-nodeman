@@ -23,6 +23,7 @@ from django.db import IntegrityError
 from django.db.models import F, Q
 from django.utils import timezone
 from django.utils.translation import ugettext as _
+from packaging import version
 
 from apps.backend.api.constants import (
     GSE_RUNNING_TASK_CODE,
@@ -280,6 +281,7 @@ class InitProcessStatusService(PluginBaseService):
                 # target_host_objs 的长度通常为1或2，此处也不必担心时间复杂度问题
                 # 指定 target_host 主要用于远程采集的场景，常见于第三方插件，如拨测
                 for host in target_host_objs:
+                    bk_biz_id = host.bk_biz_id
                     bk_host_id = host.bk_host_id
                     os_type = host.os_type.lower()
                     cpu_arch = host.cpu_arch
@@ -291,8 +293,24 @@ class InitProcessStatusService(PluginBaseService):
                     )
                     # 如果版本号匹配到标签名称，取对应标签下的真实版本号
                     version_str = getattr(package, "version", "")
+                    golbal_version_config = models.GlobalSettings.get_config(
+                        models.GlobalSettings.KeyEnum.PLUGIN_VERSION_CONFIG.value
+                    )
+                    biz_version = None
                     if version_str in tag_name__obj_map:
                         version_str = tag_name__obj_map[package.version].target_version
+                    if bk_biz_id in golbal_version_config:
+                        biz_version_config = golbal_version_config[bk_biz_id]
+                        for plugin_name, plugin_version in biz_version_config.items():
+                            if plugin_name == package.project:
+                                biz_version = plugin_version
+                    if biz_version:
+                        if not self.is_valid_version(version_str):
+                            version_str = biz_version
+                        else:
+                            version_str_obj = version.Version(version_str)
+                            biz_version_obj = version.Version(biz_version)
+                            version_str = biz_version if version_str_obj > biz_version_obj else version_str
                     process_status_property = dict(
                         bk_host_id=bk_host_id,
                         name=plugin_name,
@@ -328,6 +346,14 @@ class InitProcessStatusService(PluginBaseService):
             fields=["setup_path", "log_path", "data_path", "pid_path", "version"],
             batch_size=self.batch_size,
         )
+
+    @staticmethod
+    def is_valid_version(version_str: str):
+        try:
+            version.Version(version_str)
+            return True  # 如果没有异常，说明是有效的版本号
+        except version.InvalidVersion:
+            return False  # 捕获到异常，说明不是有效的版本号
 
     def inputs_format(self):
         return self.inputs_format() + [
