@@ -224,9 +224,9 @@ get_pid_by_comm_path () {
     local _pids pids
     local pid
     if [[ "${worker}" == "WORKER" ]]; then
-        read -r -a _pids <<< "$(ps --no-header -C $comm -o '%P|%p|%a' | awk -v proc="${comm}" -F'|' '$1 != 1 && $3 ~ proc' | awk -F'|' '{print $2}' | xargs)"
+        read -r -a _pids <<< "$(ps --no-header -C $comm -o 'ppid,pid,args' | awk -v proc="${comm}"  '$1 != 1 && $3 ~ proc {print $2}' | xargs)"
     elif [[ "${worker}" == "MASTER" ]]; then
-        read -r -a _pids <<< "$(ps --no-header -C $comm -o '%P|%p|%a' | awk -v proc="${comm}" -F'|' '$1 == 1 && $3 ~ proc' | awk -F'|' '{print $2}' | xargs)"
+        read -r -a _pids <<< "$(ps --no-header -C $comm -o 'ppid,pid,args' | awk -v proc="${comm}"  '$1 == 1 && $3 ~ proc {print $2}' | xargs)"
     else
         read -r -a _pids <<< "$(ps --no-header -C "$comm" -o pid | xargs)"
     fi
