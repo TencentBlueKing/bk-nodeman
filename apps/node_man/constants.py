@@ -1248,3 +1248,101 @@ class OsBitType(EnhanceEnum):
     @classmethod
     def cpu_type__os_bit_map(cls):
         return {CpuType.x86: cls.BIT32.value, CpuType.x86_64: cls.BIT64.value, CpuType.aarch64: cls.ARM.value}
+
+
+########################################################################################################
+# EXCEL
+########################################################################################################
+
+
+class ExcelField(EnhanceEnum):
+    INNER_IPV4 = "inner_ip"
+    INNER_IPV6 = "inner_ipv6"
+    OS_TYPE = "os_type"
+    INSTALL_CHANNEL = "install_channel_id"
+    LOGIN_PORT = "port"
+    LOGIN_ACCOUNT = "account"
+    AUTH_TYPE = "auth_type"
+    CREDENTIALS = "credentials"
+    OUTER_IP = "outer_ip"
+    LOGIN_IP = "login_ip"
+    BIZ = "bk_biz_id"
+    CLOUD = "bk_cloud_id"
+    AP = "ap_id"
+    TRANSFER_SPEED_LIMIT = "bt_speed_limit"
+    ADDRESS_TYPE = "bk_addressing"
+    DATA_COMPRESSION = "enable_compression"
+
+    @classmethod
+    def _get_member__alias_map(cls) -> Dict[Enum, str]:
+        return {
+            cls.INNER_IPV4: _("内网 IPv4"),
+            cls.INNER_IPV6: _("内网 IPv6"),
+            cls.OS_TYPE: _("操作系统"),
+            cls.INSTALL_CHANNEL: _("安装通道"),
+            cls.LOGIN_PORT: _("登录端口"),
+            cls.LOGIN_ACCOUNT: _("登录账号"),
+            cls.AUTH_TYPE: _("认证方式"),
+            cls.CREDENTIALS: _("凭证"),
+            cls.OUTER_IP: _("外网 IP"),
+            cls.LOGIN_IP: _("登录 IP"),
+            cls.BIZ: _("业务"),
+            cls.CLOUD: _("管控区域"),
+            cls.AP: _("接入点"),
+            cls.TRANSFER_SPEED_LIMIT: _("传输限速"),
+            cls.ADDRESS_TYPE: _("寻址方式"),
+            cls.DATA_COMPRESSION: _("数据压缩"),
+        }
+
+
+EXCEL_REQUIRED = "必填"
+EXCEL_OPTIONAL = "可选"
+EXCEL_BOTH_NOT_EMPTY = "与「{}」不能同时为空"
+
+EXCEL_TITLE_OPTIONAL = {
+    ExcelField.INNER_IPV4.value: EXCEL_BOTH_NOT_EMPTY.format("内网 IPv6"),
+    ExcelField.INNER_IPV6.value: EXCEL_BOTH_NOT_EMPTY.format("内网 IPv4"),
+    ExcelField.OS_TYPE.value: EXCEL_REQUIRED,
+    ExcelField.INSTALL_CHANNEL.value: EXCEL_REQUIRED,
+    ExcelField.LOGIN_PORT.value: EXCEL_REQUIRED,
+    ExcelField.LOGIN_ACCOUNT.value: EXCEL_REQUIRED,
+    ExcelField.AUTH_TYPE.value: EXCEL_REQUIRED,
+    ExcelField.CREDENTIALS.value: EXCEL_REQUIRED,
+    ExcelField.OUTER_IP.value: EXCEL_OPTIONAL,
+    ExcelField.LOGIN_IP.value: EXCEL_OPTIONAL,
+    ExcelField.BIZ.value: EXCEL_OPTIONAL,
+    ExcelField.CLOUD.value: EXCEL_OPTIONAL,
+    ExcelField.AP.value: EXCEL_REQUIRED,
+    ExcelField.TRANSFER_SPEED_LIMIT.value: EXCEL_OPTIONAL,
+    ExcelField.ADDRESS_TYPE.value: EXCEL_REQUIRED,
+    ExcelField.DATA_COMPRESSION.value: EXCEL_OPTIONAL,
+}
+
+EXCEL_TITLE_DESCRIBE = {
+    ExcelField.INNER_IPV4.value: "目标主机 IPv4 地址。",
+    ExcelField.INNER_IPV6.value: "目标主机 IPv6 地址。",
+    ExcelField.OS_TYPE.value: "目标主机操作系统类型。",
+    ExcelField.INSTALL_CHANNEL.value: "在特殊复杂网络下，目标主机无法与「管控区域」内主机直接连通，可通过指定「安装通道」进行 Agent 安装。默认使用「default」即可。",
+    ExcelField.LOGIN_PORT.value: "登录到目标主机上的sshd端口。",
+    ExcelField.LOGIN_ACCOUNT.value: "登录到目标主机上所使用的用户。",
+    ExcelField.AUTH_TYPE.value: "登录到目标主机上所使用的认证方式。",
+    ExcelField.CREDENTIALS.value: "登录到目标主机上所使用的凭证，根据认证方式提供密码或私钥，某些「认证方式」的选项可能会忽略这个字段。",
+    ExcelField.OUTER_IP.value: "会自动注册到 CMDB。",
+    ExcelField.LOGIN_IP.value: "目标主机的用于登录进行 Agent 安装的 IP 地址，区别于记录在 CMDB 中的 IP；支持 IPv4、IPv6。"
+    "若未填写，优先使用「内网IPv4」来登录目标机器，若「内网IPv4」未填写，使用「内网IPv6」。",
+    ExcelField.BIZ.value: "目标主机归属业务。默认使用「蓝鲸」业务",
+    ExcelField.CLOUD.value: "目标主机所在的管控区域。若是在某个云区域内，选择该云区域的名字。默认使用「直连区域」。",
+    ExcelField.AP.value: "一般情况下使用「自动选择」即可，若有特殊的接入点无法自动识别到，可以手动选择对应接入点。",
+    ExcelField.TRANSFER_SPEED_LIMIT.value: "Agent配置中对文件传输速率的硬限制，单位「Mbytes/s」，不填则使用Agent默认值100Mbytes/s。",
+    ExcelField.ADDRESS_TYPE.value: "记录到 CMDB 中的对应枚举字段。默认为「静态」。",
+    ExcelField.DATA_COMPRESSION.value: "开启数据压缩后，所有通过数据管道传输的日志采集数据的流量都将进行压缩，可一定程度上降低数据上报所带来的带宽压力。但会带来少量额外的CPU消耗。",
+}
+
+
+class ExcelAuthType(EnhanceEnum):
+    PASSWORD = "PASSWORD"
+    KEY = "KEY"
+
+    @classmethod
+    def _get_member__alias_map(cls) -> Dict[Enum, str]:
+        return {cls.PASSWORD: _("密码"), cls.KEY: _("密钥")}

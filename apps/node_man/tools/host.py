@@ -95,3 +95,25 @@ class HostTools:
         else:
             result = []
         return result
+
+    @classmethod
+    def encrypt_with_friendly_exc_handle(
+        cls, cipher: BaseAsymmetricCipher, unencrypt_message: str, raise_exec: Type[Exception]
+    ) -> str:
+        """
+        加密友好提示处理
+        :param cipher: 密码器
+        :param unencrypt_message:
+        :param raise_exec:
+        :return:
+        """
+
+        try:
+            encrypt_message: str = cipher.encrypt(unencrypt_message)
+        except ValueError as e:
+            raise raise_exec(_("密文无法加密，请检查是否按规则使用密钥加密：{err_msg}").format(err_msg=e))
+        except Exception as e:
+            raise raise_exec(_("密文加密失败：{err_msg").format(err_msg=e))
+
+        # 加密
+        return encrypt_message
