@@ -231,7 +231,11 @@ setup_startup_scripts () {
 	touch "$rcfile" && chmod 755 "$rcfile"
     fi
 
-    echo "[ -f $AGENT_SETUP_PATH/bin/gsectl ] && $AGENT_SETUP_PATH/bin/gsectl start >/var/log/gse_start.log 2>&1" >>$rcfile
+    if systemctl list-unit-files | grep -q rc-local.service; then
+        echo "[ -f $AGENT_SETUP_PATH/bin/gsectl ] && sh -c 'echo \"\$\$\" > /sys/fs/cgroup/systemd/tasks; exec $AGENT_SETUP_PATH/bin/gsectl start' >/var/log/gse_start.log 2>&1" >>$rcfile
+    else
+        echo "[ -f $AGENT_SETUP_PATH/bin/gsectl ] && $AGENT_SETUP_PATH/bin/gsectl start >/var/log/gse_start.log 2>&1" >>$rcfile
+    fi
 }
 
 registe_agent_with_excepte () {

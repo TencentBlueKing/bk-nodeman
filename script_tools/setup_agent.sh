@@ -109,7 +109,7 @@ cleanup () {
 # 打印错误行数信息
 report_err () {
     awk -v LN="$1" -v L="ERROR" -v D="$(date +%F\ %T)" \
-        'NR>LN-3 && NR<LN+3 { printf "%s %s cmd-return-err %-5d%3s%s\n", D, L, NR, (NR==LN?">>>":""), $0 }' $0 
+        'NR>LN-3 && NR<LN+3 { printf "%s %s cmd-return-err %-5d%3s%s\n", D, L, NR, (NR==LN?">>>":""), $0 }' $0
 }
 
 validate_setup_path () {
@@ -401,7 +401,7 @@ remove_crontab () {
 
     # 下面这段代码是为了确保修改的crontab能立即生效
     if pgrep -x crond &>/dev/null; then
-        pkill -HUP -x crond 
+        pkill -HUP -x crond
     fi
 }
 
@@ -417,7 +417,11 @@ setup_startup_scripts () {
     # 先删后加，避免重复
     sed -i "\|${AGENT_SETUP_PATH}/bin/gsectl|d" $rcfile
 
-    echo "[ -f $AGENT_SETUP_PATH/bin/gsectl ] && $AGENT_SETUP_PATH/bin/gsectl start >/var/log/gse_start.log 2>&1" >>$rcfile
+    if systemctl list-unit-files | grep -q rc-local.service; then
+        echo "[ -f $AGENT_SETUP_PATH/bin/gsectl ] && sh -c 'echo \"\$\$\" > /sys/fs/cgroup/systemd/tasks; exec $AGENT_SETUP_PATH/bin/gsectl start' >/var/log/gse_start.log 2>&1" >>$rcfile
+    else
+        echo "[ -f $AGENT_SETUP_PATH/bin/gsectl ] && $AGENT_SETUP_PATH/bin/gsectl start >/var/log/gse_start.log 2>&1" >>$rcfile
+    fi
 }
 
 start_agent () {
