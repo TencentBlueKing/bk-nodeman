@@ -12,6 +12,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from copy import deepcopy
 from multiprocessing.pool import ThreadPool
+from typing import Union
 
 from django.conf import settings
 from django.utils.translation import get_language
@@ -19,6 +20,7 @@ from django.utils.translation import get_language
 from apps.exceptions import AppBaseException
 from apps.node_man import constants
 from apps.utils.local import get_request
+from apps.utils.redis import DynamicContainer, RedisDict, RedisList
 
 from . import translation
 from .concurrent import inject_request
@@ -54,6 +56,7 @@ def batch_request(
     sort=None,
     split_params=False,
     interval=0,
+    data_backend: str = None,
 ):
     """
     异步并发请求接口
@@ -73,14 +76,16 @@ def batch_request(
         return sync_batch_request(func, params, get_data, limit)
 
     start = 0
-    data = []
+    data: Union[RedisList, list] = DynamicContainer(
+        return_type=constants.DCReturnType.LIST.value, data_backend=data_backend
+    ).container
     if not split_params:
         request_params = dict(page={"start": 0, "limit": limit}, **params)
         if sort:
             request_params["page"]["sort"] = sort
         query_res = func(request_params)
         final_request_params = [{"count": get_count(query_res), "params": params}]
-        data = get_data(query_res) or []
+        data.extend(get_data(query_res) or [])
         # 如果count小于等于limit，直接返回
         if final_request_params[0]["count"] <= limit:
             return data
@@ -142,7 +147,7 @@ def sync_batch_request(func, params, get_data=lambda x: x["info"], limit=500):
     return data
 
 
-def request_multi_thread(func, params_list, get_data=lambda x: []):
+def request_multi_thread(func, params_list, get_data=lambda x: [], data_backend: str = None):
     """
     并发请求接口，每次按不同参数请求最后叠加请求结果
     :param func: 请求方法
@@ -161,11 +166,18 @@ def request_multi_thread(func, params_list, get_data=lambda x: []):
             if "params" in params:
                 params["params"]["_request"] = _request
 
-    result = []
+    result: Union[RedisList, list] = DynamicContainer(
+        return_type=constants.DCReturnType.LIST.value, data_backend=data_backend
+    ).container
     with ThreadPoolExecutor(max_workers=settings.CONCURRENT_NUMBER) as ex:
         tasks = [
             ex.submit(translation.RespectsLanguage(language=get_language())(func), **params) for params in params_list
         ]
     for future in as_completed(tasks):
-        result.extend(get_data(future.result()))
+        _result = future.result()
+        if isinstance(_result, RedisDict):
+            for k, v in _result.items():
+                result.extend(get_data({k: v}))
+        else:
+            result.extend(get_data(_result))
     return result

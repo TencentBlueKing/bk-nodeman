@@ -140,5 +140,6 @@ class Action(object, metaclass=abc.ABCMeta):
         global_pipeline_data: builder.Data,
         meta: Dict[str, Any],
         current_activities=None,
+        is_multi_paralle_gateway=False,
     ) -> Tuple[List[Union[builder.ServiceActivity, Element]], Optional[builder.Data]]:
         raise NotImplementedError

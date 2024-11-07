@@ -32,5 +32,8 @@ MAX_RETRY_TIME = 3
 # 单个任务主机数量
 TASK_HOST_LIMIT = 500
 
+# 单个并行网关的子进程数量 并行网关主机数量 1000*500
+PARALLE_GATEWAY_PROCESS_LIMIT = 1000
+
 # 订阅范围实例缓存时间，比自动下发周期多1小时
 SUBSCRIPTION_SCOPE_CACHE_TIME = SUBSCRIPTION_UPDATE_INTERVAL + constants.TimeUnit.HOUR

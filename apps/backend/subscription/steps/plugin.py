@@ -31,6 +31,7 @@ from apps.core.tag.models import Tag
 from apps.node_man import constants, models
 from apps.node_man.exceptions import ApIDNotExistsError
 from apps.utils import concurrent
+from apps.utils.redis import RedisDict
 from common.log import logger
 from pipeline.builder import Data, Var
 
@@ -384,7 +385,7 @@ class PluginStep(Step):
     def handle_new_add_instances(
         self,
         install_action: str,
-        instances: Dict[str, Dict],
+        instances: Union[RedisDict, Dict[str, Dict]],
         instance_actions: Dict[str, str],
         bk_host_id__host_map: Dict[int, models.Host],
         group_id__host_key__proc_status_map: Dict[str, Dict[str, models.ProcessStatus]],
@@ -442,7 +443,7 @@ class PluginStep(Step):
 
     def handle_manual_op_instances(
         self,
-        instances: Dict[str, Dict],
+        instances: Union[RedisDict, Dict[str, Dict]],
         instance_actions: Dict[str, str],
         auto_trigger: bool,
         push_migrate_reason_func: Callable,
@@ -493,7 +494,10 @@ class PluginStep(Step):
             )
 
     def handle_not_change_instances(
-        self, instances: Dict[str, Dict], migrate_reasons: Dict[str, Dict], push_migrate_reason_func: Callable
+        self,
+        instances: Union[RedisDict, Dict[str, Dict]],
+        migrate_reasons: Dict[str, Dict],
+        push_migrate_reason_func: Callable,
     ):
         """
         处理无需变更实例，请在最后调用该钩子
@@ -585,7 +589,7 @@ class PluginStep(Step):
         instance_actions: Dict[str, str],
         push_migrate_reason_func: Callable,
         bk_host_id__host_map: Dict[int, models.Host],
-        instances: Dict[str, Dict[str, Union[Dict, Any]]],
+        instances: Union[RedisDict, Dict[str, Dict]],
     ):
         """
         插件状态及版本检查，确定是否执行安装
@@ -715,7 +719,7 @@ class PluginStep(Step):
 
     def make_instances_migrate_actions(
         self,
-        instances: Dict[str, Dict[str, Union[Dict, Any]]],
+        instances: Union[RedisDict, Dict[str, Dict]],
         auto_trigger: bool = False,
         preview_only: bool = False,
         **kwargs,
@@ -765,7 +769,7 @@ class PluginStep(Step):
         id_to_instance_id = {}
         instance_key = "host" if self.subscription.object_type == models.Subscription.ObjectType.HOST else "service"
         id_key = "bk_host_id" if instance_key == "host" else "id"
-        for instance_id, instance in list(instances.items()):
+        for instance_id, instance in instances.items():
             instance_ids.add(instance_id)
             bk_host_ids.add(instance["host"]["bk_host_id"])
             id_to_instance_id[instance[instance_key][id_key]] = instance_id
@@ -951,6 +955,7 @@ class BasePluginAction(six.with_metaclass(abc.ABCMeta, Action)):
         global_pipeline_data: Data,
         meta: Dict[str, Any],
         current_activities=None,
+        is_multi_paralle_gateway=False,
     ) -> Tuple[List[PluginServiceActivity], Data]:
         plugin_manager = self.get_plugin_manager(subscription_instances)
         activities = []
@@ -980,6 +985,7 @@ class BasePluginAction(six.with_metaclass(abc.ABCMeta, Action)):
             act.component.inputs.plugin_name = Var(type=Var.PLAIN, value=self.step.plugin_name)
             act.component.inputs.subscription_step_id = Var(type=Var.PLAIN, value=self.step.subscription_step.id)
             act.component.inputs.meta = Var(type=Var.PLAIN, value=meta)
+            act.component.inputs.is_multi_paralle_gateway = Var(type=Var.PLAIN, value=is_multi_paralle_gateway)
         return activities, pipeline_data
 
     @abc.abstractmethod

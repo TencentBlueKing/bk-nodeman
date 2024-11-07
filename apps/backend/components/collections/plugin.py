@@ -31,7 +31,11 @@ from apps.backend.api.constants import (
     GseDataErrCode,
 )
 from apps.backend.api.job import process_parms
-from apps.backend.components.collections.base import BaseService, CommonData
+from apps.backend.components.collections.base import (
+    BaseService,
+    CommonData,
+    RedisCommonData,
+)
 from apps.backend.components.collections.common.script_content import INITIALIZE_SCRIPT
 from apps.backend.components.collections.job import (
     JobExecuteScriptService,
@@ -86,6 +90,34 @@ class PluginCommonData(CommonData):
         self.plugin_name = self.policy_step_adapter.plugin_name
 
 
+class RedisPluginCommonData(RedisCommonData):
+
+    # 进程状态列表
+    @property
+    def process_statuses(self) -> List[models.ProcessStatus]:
+        return self._get_attr_from_redis("process_statuses")
+
+    # 目标主机列表，用于远程采集场景
+    @property
+    def target_host_objs(self) -> Optional[List[models.Host]]:
+        return self._get_attr_from_redis("target_host_objs")
+
+    # PluginStep 适配器，用于屏蔽不同类型的插件操作类订阅差异
+    @property
+    def policy_step_adapter(self) -> PolicyStepAdapter:
+        return self._get_attr_from_redis("policy_step_adapter")
+
+    # group_id - 订阅实例记录映射关系
+    @property
+    def group_id_instance_map(self) -> Dict[str, models.SubscriptionInstanceRecord]:
+        return self._get_attr_from_redis("group_id_instance_map")
+
+    # 插件名称
+    @property
+    def plugin_name(self) -> str:
+        return self._get_attr_from_redis("policy_step_adapter").plugin_name
+
+
 class PluginBaseService(BaseService, metaclass=abc.ABCMeta):
     """
     插件原子基类，提供一些常用的数据获取方法
@@ -134,7 +166,8 @@ class PluginBaseService(BaseService, metaclass=abc.ABCMeta):
         process_statuses = models.ProcessStatus.objects.filter(
             name=policy_step_adapter.plugin_name, group_id__in=group_id_instance_map.keys()
         )
-        return PluginCommonData(
+        plugin_common_data_cls = PluginCommonData if isinstance(common_data, CommonData) else RedisPluginCommonData
+        return plugin_common_data_cls(
             bk_host_ids=common_data.bk_host_ids,
             host_id_obj_map=common_data.host_id_obj_map,
             ap_id_obj_map=common_data.ap_id_obj_map,

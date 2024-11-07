@@ -195,12 +195,14 @@ class AgentAction(Action, abc.ABC):
         global_pipeline_data: builder.Data,
         meta: Dict[str, Any],
         current_activities=None,
+        is_multi_paralle_gateway=False,
     ) -> Tuple[List[Union[builder.ServiceActivity, Element]], Optional[builder.Data]]:
         agent_manager = self.get_agent_manager(subscription_instances)
         activities, pipeline_data = self._generate_activities(agent_manager)
         for act in activities:
             act.component.inputs.subscription_step_id = Var(type=Var.PLAIN, value=self.step.subscription_step.id)
             act.component.inputs.meta = Var(type=Var.PLAIN, value=meta)
+            act.component.inputs.is_multi_paralle_gateway = Var(type=Var.PLAIN, value=is_multi_paralle_gateway)
         self.inject_vars_to_global_data(global_pipeline_data, meta)
         if self.is_install_other_agent:
             activities = list(filter(lambda x: x.component["code"] in self.install_other_agent_codes, activities))

@@ -15,6 +15,7 @@ from django.core.cache import caches
 
 from apps.backend.subscription import constants, tools
 from apps.node_man import models
+from apps.node_man.constants import DataBackend
 from apps.utils.md5 import count_md5
 from apps.utils.periodic_task import calculate_countdown
 
@@ -31,8 +32,9 @@ def get_instances_by_scope_task(subscription_id):
         f" scope_md5: {scope_md5}, scope: {subscription.scope}"
     )
     # 查询后会进行缓存，详见 get_instances_by_scope 的装饰器 func_cache_decorator
+    data_backend = DataBackend.REDIS.value if subscription.is_multi_paralle_gateway else DataBackend.MEM.value
     tools.get_instances_by_scope_with_checker(
-        subscription.scope, subscription.steps, source="get_instances_by_scope_task"
+        subscription.scope, subscription.steps, source="get_instances_by_scope_task", data_backend=data_backend
     )
     logger.info(f"[cache_subscription_scope_instances] (subscription: {subscription_id}) end.")
 

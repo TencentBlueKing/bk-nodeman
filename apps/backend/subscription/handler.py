@@ -15,7 +15,7 @@ import logging
 import random
 from collections import Counter, defaultdict
 from copy import deepcopy
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional, Set, Union
 
 from django.conf import settings
 from django.core.cache import cache
@@ -32,6 +32,7 @@ from apps.core.concurrent import controller
 from apps.node_man import constants, models
 from apps.utils import concurrent
 from apps.utils.basic import filter_values
+from apps.utils.redis import RedisDict
 from pipeline.engine.models import PipelineProcess
 from pipeline.service import task_service
 
@@ -135,9 +136,18 @@ class SubscriptionHandler(object):
         if not need_out_of_scope_snapshots:
             # 如果不需要已不在订阅范围内的执行快照，查询订阅范围过滤掉移除的实例 ID
             subscription = models.Subscription.objects.get(id=self.subscription_id)
+            data_backend = (
+                constants.DataBackend.REDIS.value
+                if subscription.is_multi_paralle_gateway
+                else constants.DataBackend.MEM.value
+            )
             scope_instance_id_list: Set[str] = set(
                 tools.get_instances_by_scope_with_checker(
-                    subscription.scope, subscription.steps, get_cache=True, source="task_result"
+                    subscription.scope,
+                    subscription.steps,
+                    get_cache=True,
+                    source="task_result",
+                    data_backend=data_backend,
                 ).keys()
             )
             base_kwargs["instance_id__in"] = scope_instance_id_list
@@ -523,8 +533,13 @@ class SubscriptionHandler(object):
         sub_statistic_list: List[Dict] = []
         for subscription in subscriptions:
             sub_statistic = {"subscription_id": subscription.id, "status": []}
-            current_instances = tools.get_instances_by_scope_with_checker(
-                subscription.scope, subscription.steps, get_cache=True, source="statistic"
+            data_backend = (
+                constants.DataBackend.REDIS.value
+                if subscription.is_multi_paralle_gateway
+                else constants.DataBackend.MEM.value
+            )
+            current_instances: Union[RedisDict, dict] = tools.get_instances_by_scope_with_checker(
+                subscription.scope, subscription.steps, get_cache=True, source="statistic", data_backend=data_backend
             )
 
             status_statistic = {"SUCCESS": 0, "PENDING": 0, "FAILED": 0, "RUNNING": 0}
@@ -637,8 +652,17 @@ class SubscriptionHandler(object):
         result = []
         for subscription in subscriptions:
             subscription_result = []
-            current_instances = tools.get_instances_by_scope_with_checker(
-                subscription.scope, subscription.steps, get_cache=True, source="instance_status"
+            data_backend = (
+                constants.DataBackend.REDIS.value
+                if subscription.is_multi_paralle_gateway
+                else constants.DataBackend.MEM.value
+            )
+            current_instances: Union[RedisDict, dict] = tools.get_instances_by_scope_with_checker(
+                subscription.scope,
+                subscription.steps,
+                get_cache=True,
+                source="instance_status",
+                data_backend=data_backend,
             )
 
             # 对于每个instance，通过group_id找到其对应的host_status

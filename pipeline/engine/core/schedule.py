@@ -19,8 +19,18 @@ from django.db import transaction
 
 from pipeline.django_signal_valve import valve
 from pipeline.engine import exceptions, signals, states
-from pipeline.engine.core.data import delete_parent_data, get_schedule_parent_data, set_schedule_data
-from pipeline.engine.models import Data, MultiCallbackData, PipelineProcess, ScheduleService, Status
+from pipeline.engine.core.data import (
+    delete_parent_data,
+    get_schedule_parent_data,
+    set_schedule_data,
+)
+from pipeline.engine.models import (
+    Data,
+    MultiCallbackData,
+    PipelineProcess,
+    ScheduleService,
+    Status,
+)
 
 logger = logging.getLogger("celery")
 
@@ -31,7 +41,7 @@ def schedule_exception_handler(process_id, schedule_id):
         yield
     except Exception as e:
         activity_id = schedule_id[: ScheduleService.SCHEDULE_ID_SPLIT_DIVISION]
-        version = schedule_id[ScheduleService.SCHEDULE_ID_SPLIT_DIVISION:]
+        version = schedule_id[ScheduleService.SCHEDULE_ID_SPLIT_DIVISION :]
         if Status.objects.filter(id=activity_id, version=version).exists():
             logger.error(traceback.format_exc())
             process = PipelineProcess.objects.get(id=process_id)
@@ -158,13 +168,16 @@ def schedule(process_id, schedule_id, data_id=None):
 
                 Data.objects.write_node_data(service_act, ex_data=ex_data)
 
+                is_multi_paralle_gateway = service_act.data.get_one_of_inputs("is_multi_paralle_gateway")
+
                 with transaction.atomic():
                     process = PipelineProcess.objects.select_for_update().get(id=sched_service.process_id)
                     if not process.is_alive:
                         logger.info("pipeline %s has been revoked, status adjust failed." % process.root_pipeline_id)
                         return
 
-                    process.adjust_status()
+                    if not is_multi_paralle_gateway:
+                        process.adjust_status()
 
                 # send activity error signal
                 try:
@@ -172,18 +185,36 @@ def schedule(process_id, schedule_id, data_id=None):
                 except Exception:
                     logger.error("schedule_fail handler fail: %s" % traceback.format_exc())
 
-                signals.service_schedule_fail.send(
-                    sender=ScheduleService, activity_shell=service_act, schedule_service=sched_service, ex_data=ex_data
-                )
+                if is_multi_paralle_gateway:
 
-                valve.send(
-                    signals,
-                    "activity_failed",
-                    sender=process.root_pipeline,
-                    pipeline_id=process.root_pipeline_id,
-                    pipeline_activity_id=service_act.id,
-                    subprocess_id_stack=process.subprocess_stack,
-                )
+                    signals.service_schedule_success.send(
+                        sender=ScheduleService, activity_shell=service_act, schedule_service=sched_service
+                    )
+
+                    valve.send(
+                        signals,
+                        "wake_from_schedule",
+                        sender=ScheduleService,
+                        process_id=sched_service.process_id,
+                        activity_id=sched_service.activity_id,
+                    )
+                else:
+                    signals.service_schedule_fail.send(
+                        sender=ScheduleService,
+                        activity_shell=service_act,
+                        schedule_service=sched_service,
+                        ex_data=ex_data,
+                    )
+
+                    valve.send(
+                        signals,
+                        "activity_failed",
+                        sender=process.root_pipeline,
+                        pipeline_id=process.root_pipeline_id,
+                        pipeline_activity_id=service_act.id,
+                        subprocess_id_stack=process.subprocess_stack,
+                    )
+
                 return
 
             # schedule execute finished or one time callback finished

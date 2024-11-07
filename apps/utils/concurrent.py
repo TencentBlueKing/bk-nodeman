@@ -15,14 +15,16 @@ import time
 from concurrent.futures import as_completed
 from concurrent.futures.thread import ThreadPoolExecutor
 from multiprocessing import cpu_count, get_context
-from typing import Callable, Coroutine, Dict, List
+from typing import Callable, Coroutine, Dict, List, Union
 
 from asgiref.sync import async_to_sync
 from django.conf import settings
 from django.utils.translation import get_language
 
 from apps.exceptions import AppBaseException
+from apps.node_man.constants import DCReturnType
 from apps.utils import local
+from apps.utils.redis import DynamicContainer, RedisList
 
 from . import translation
 
@@ -48,6 +50,7 @@ def batch_call(
     get_data=lambda x: x,
     extend_result: bool = False,
     interval: float = 0,
+    data_backend: str = None,
     **kwargs
 ) -> List:
     """
@@ -61,7 +64,9 @@ def batch_call(
     :return: 请求结果累计
     """
 
-    result = []
+    result: Union[RedisList, list] = DynamicContainer(
+        return_type=DCReturnType.LIST.value, data_backend=data_backend
+    ).container
 
     # 不存在参数列表，直接返回
     if not params_list:
