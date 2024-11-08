@@ -8,12 +8,15 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from copy import deepcopy
 from unittest.mock import patch
 
 from django.test import TestCase
 
+from apps.backend.api.job import process_parms
 from apps.backend.components.collections.plugin import InstallPackageComponent
 from apps.backend.tests.components.collections.plugin import utils
+from apps.node_man import constants, models
 from pipeline.component_framework.test import (
     ComponentTestCase,
     ComponentTestMixin,
@@ -83,3 +86,31 @@ class InstallPackageTest(TestCase, ComponentTestMixin):
                 execute_call_assertion=None,
             )
         ]
+
+
+class TestInstallPackageUnpackTempDir(InstallPackageTest):
+    def setUp(self):
+        super().setUp()
+        models.Host.objects.all().update(os_type=constants.OsType.WINDOWS)
+        windows_package_info = deepcopy(utils.PKG_INFO)
+        windows_package_info["os"] = "windows"
+        models.Packages.objects.create(**windows_package_info)
+
+        config = {"details": [windows_package_info]}
+        models.SubscriptionStep.objects.filter(id=self.ids["subscription_step_id"]).update(config=config)
+
+    def test_component(self):
+        with patch(
+            "apps.backend.tests.components.collections.plugin.utils.JobMockClient.fast_execute_script"
+        ) as fast_execute_script:
+            fast_execute_script.return_value = {
+                "job_instance_name": "API Quick execution script1521100521303",
+                "job_instance_id": utils.JOB_INSTANCE_ID,
+            }
+            super().test_component()
+            group_id = models.ProcessStatus.objects.filter(bk_host_id=self.ids["bk_host_id"]).first().group_id
+            process_params = process_parms(
+                f"-t official -p c:\\gse -n gseagent -f basereport-10.8.50.tgz -m OVERRIDE "
+                f"-z C:\\tmp -u C:\\tmp\\{group_id}"
+            )
+            self.assertEqual(fast_execute_script.call_args[0][0]["script_param"], process_params)
