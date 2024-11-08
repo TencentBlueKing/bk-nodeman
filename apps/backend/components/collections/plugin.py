@@ -723,6 +723,11 @@ class InstallPackageService(PluginExecuteScriptService):
         if category == constants.CategoryType.external and group_id:
             # 设置插件实例目录
             script_param += " -i %s" % group_id
+        host = self.get_host_by_process_status(process_status, common_data)
+        if host.os_type == constants.OsType.WINDOWS:
+            # 设置Windows临时解压目录
+            temp_sub_unpack_dir: str = "{}\\{}".format(agent_config["temp_path"], group_id)
+            script_param += " -u %s" % temp_sub_unpack_dir
         return script_param
 
 
