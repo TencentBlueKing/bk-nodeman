@@ -112,10 +112,9 @@ class GsePackageTools:
                 project=project, category=CategoryType.official
             )
 
-            if tag_description in ["stable", "latest", "test", "稳定版本", "最新版本", "测试版本"]:
+            if tag_description in constants.BUILT_IN_TAG_DESCRIPTIONS:
                 # 内置标签，手动指定name和description
-                name: str = constants.A[tag_description]
-                tag_description: str = constants.B[tag_description]
+                name: str = constants.TAG_DESCRIPTION__TAG_NAME[tag_description]
             else:
                 # 自定义标签，自动生成name
                 name: str = GsePackageTools.generate_name_by_description(tag_description)

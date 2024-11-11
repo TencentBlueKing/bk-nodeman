@@ -18,12 +18,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from apps.core.tag.constants import TargetType
 from apps.core.tag.models import Tag
-from apps.node_man.constants import (
-    BUILT_IN_TAG_NAMES,
-    A,
-    GsePackageCacheKey,
-    GsePackageCode,
-)
+from apps.node_man import constants
 from apps.node_man.models import GsePackageDesc, GsePackages
 from apps.node_man.tools.gse_package import GsePackageTools
 
@@ -53,7 +48,7 @@ class GsePackageHandler:
 
     def _init_project_version__tags_map(self):
         """初始化项目版本标签映射"""
-        for project in GsePackageCode.values():
+        for project in constants.GsePackageCode.values():
             tags: QuerySet = self.get_tag_objs(project).values("name", "description", "target_version")
 
             for tag in tags:
@@ -65,7 +60,7 @@ class GsePackageHandler:
 
     def _init_project__description_map(self):
         """初始化项目描述映射"""
-        for project in GsePackageCode.values():
+        for project in constants.GsePackageCode.values():
             description = GsePackageDesc.objects.filter(project=project).first().description
             cache_key = self.get_description_cache_key(project)
             self.cache[self.PROJECT__DESCRIPTION_MAP][cache_key] = description
@@ -75,12 +70,12 @@ class GsePackageHandler:
     @classmethod
     def get_tags_cache_key(cls, project: str, version: str) -> str:
         """获取标签缓存key"""
-        return f"{GsePackageCacheKey.TAGS_PREFIX.value}:{project}:{version}"
+        return f"{constants.GsePackageCacheKey.TAGS_PREFIX.value}:{project}:{version}"
 
     @classmethod
     def get_description_cache_key(cls, project: str) -> str:
         """获取描述缓存key"""
-        return f"{GsePackageCacheKey.DESCRIPTION_PREFIX.value}:{project}"
+        return f"{constants.GsePackageCacheKey.DESCRIPTION_PREFIX.value}:{project}"
 
     @classmethod
     def get_tag_objs(cls, project: str, version: str = None) -> QuerySet:
@@ -175,7 +170,7 @@ class GsePackageHandler:
         """将标签拆分为内置的和自定义的"""
         built_in_tags, custom_tags = [], []
         for tag in tags:
-            if tag["name"] in BUILT_IN_TAG_NAMES:
+            if tag["name"] in constants.BUILT_IN_TAG_NAMES:
                 built_in_tags.append(tag)
             else:
                 custom_tags.append(tag)
@@ -191,10 +186,10 @@ class GsePackageHandler:
         :param package_desc_obj: Gse包描述记录
         """
         # 如果新增的是内置标签，将原有的内置标签中的target_version进行修改即可，否则创建一个新的标签
-        if tag_description in ["test", "latest", "stable", "测试版本", "最新版本", "稳定版本"]:
-            Tag.objects.filter(name=A[tag_description], target_id=package_desc_obj.id).update(
-                target_version=package_obj.version
-            )
+        if tag_description in constants.BUILT_IN_TAG_DESCRIPTIONS:
+            Tag.objects.filter(
+                name=constants.TAG_DESCRIPTION__TAG_NAME[tag_description], target_id=package_desc_obj.id
+            ).update(target_version=package_obj.version)
         else:
             tag: Tag = Tag.objects.filter(description=tag_description, target_id=package_desc_obj.id).first()
             Tag.objects.create(
@@ -224,12 +219,12 @@ class GsePackageHandler:
         # 如果目标标签为内置标签的话，将内置标签的target_version进行覆盖，并对原来的标签进行删除或者清空
         # 如果目标标签为自定义标签，原有标签为内置标签的话，原有标签target_version置空，并新增自定义标签
         # 否则(目标和原有都为自定义标签)将直接修改原有标签的target_version
-        if tag_description in ["test", "latest", "stable", "测试版本", "最新版本", "稳定版本"]:
-            Tag.objects.filter(name=A[tag_description], target_id=package_desc_obj.id).update(
-                target_version=package_obj.version
-            )
+        if tag_description in constants.BUILT_IN_TAG_DESCRIPTIONS:
+            Tag.objects.filter(
+                name=constants.TAG_DESCRIPTION__TAG_NAME[tag_description], target_id=package_desc_obj.id
+            ).update(target_version=package_obj.version)
             cls.handle_delete_tag(tag_obj.name, tag_obj)
-        elif tag_obj.name in ["test", "latest", "stable"]:
+        elif tag_obj.name in constants.BUILT_IN_TAG_NAMES:
             tag_obj.target_version = ""
             tag_obj.save()
             cls.handle_add_tag(tag_description, package_obj, package_desc_obj)
@@ -247,7 +242,7 @@ class GsePackageHandler:
         :param tag_obj: 待删除的标签记录
         """
         # 如果是删除内置标签，将target_version置空即可，不需要删除
-        if tag_name in ["test", "latest", "stable"]:
+        if tag_name in constants.BUILT_IN_TAG_NAMES:
             tag_obj.target_version = ""
             tag_obj.save()
         else:

@@ -1244,48 +1244,8 @@ class AgentVersionType(EnhanceEnum):
         }
 
 
-BUILT_IN_TAG_DESCRIPTIONS: List[str] = [_("稳定版本"), _("最新版本"), _("测试版本")]
+BUILT_IN_TAG_DESCRIPTIONS: List[str] = ["稳定版本", "最新版本", "测试版本"]
 BUILT_IN_TAG_NAMES: List[str] = ["stable", "latest", "test"]
-# TAG_NAME_MAP = dict(zip(BUILT_IN_TAG_DESCRIPTIONS, BUILT_IN_TAG_NAMES))
-# TAG_NAME_MAP.update({name: name for name in BUILT_IN_TAG_NAMES})
-# TAG_DESCRIPTION_MAP = {
-#     "stable": _("稳定版本"),
-#     "latest": _("最新版本"),
-#     "test": _("测试版本"),
-#     "稳定版本": _("稳定版本"),
-#     "最新版本": _("最新版本"),
-#     "测试版本": _("测试版本"),
-# }
-STABLE_DESCRIPTION = _("稳定版本")
-
-
-A = {
-    "stable": "stable",
-    "latest": "latest",
-    "test": "test",
-    "稳定版本": "stable",
-    "最新版本": "latest",
-    "测试版本": "test",
-}
-
-B = {
-    "stable": "稳定版本",
-    "latest": "最新版本",
-    "test": "测试版本",
-    "稳定版本": "稳定版本",
-    "最新版本": "最新版本",
-    "测试版本": "测试版本",
-}
-
-C = {
-    "AGENT": "gse_agent",
-}
-
-D = {
-    "stable": "stable",
-    "latest": "latest",
-    "test": "test",
-    "稳定版本": "stable",
-    "最新版本": "latest",
-    "测试版本": "test",
-}
+TAG_NAME__TAG_DESCRIPTION = dict(zip(BUILT_IN_TAG_NAMES, BUILT_IN_TAG_DESCRIPTIONS))
+TAG_DESCRIPTION__TAG_NAME = dict(zip(BUILT_IN_TAG_DESCRIPTIONS, BUILT_IN_TAG_NAMES))
+STABLE_DESCRIPTION = "稳定版本"

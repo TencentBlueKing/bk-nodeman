@@ -632,7 +632,7 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
             )
 
             # 获取默认标签
-            if not default_version and any(_(tag["description"]) == STABLE_DESCRIPTION for tag in tags):
+            if not default_version and any(tag["description"] == STABLE_DESCRIPTION for tag in tags):
                 default_version = version
 
             # 初始化某个版本的包
