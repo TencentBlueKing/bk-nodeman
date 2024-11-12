@@ -657,6 +657,8 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
             }
 
         machine_latest_version: str = ""
+        if validated_data.get("versions", ""):
+            machine_latest_version = max(validated_data["versions"], key=GsePackageTools.extract_numbers)
         package_latest_version = list(version__pkg_version_info_map.keys())[0] if version__pkg_version_info_map else ""
 
         return Response(

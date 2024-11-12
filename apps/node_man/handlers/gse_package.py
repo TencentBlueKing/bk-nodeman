@@ -186,9 +186,10 @@ class GsePackageHandler:
         :param package_desc_obj: Gse包描述记录
         """
         # 如果新增的是内置标签，将原有的内置标签中的target_version进行修改即可，否则创建一个新的标签
-        if tag_description in constants.BUILT_IN_TAG_DESCRIPTIONS:
+        if tag_description in constants.BUILT_IN_TAG_DESCRIPTIONS + constants.BUILT_IN_TAG_NAMES:
             Tag.objects.filter(
-                name=constants.TAG_DESCRIPTION__TAG_NAME[tag_description], target_id=package_desc_obj.id
+                name=constants.TAG_DESCRIPTION__TAG_NAME.get(tag_description, tag_description),
+                target_id=package_desc_obj.id,
             ).update(target_version=package_obj.version)
         else:
             tag: Tag = Tag.objects.filter(description=tag_description, target_id=package_desc_obj.id).first()
@@ -219,9 +220,10 @@ class GsePackageHandler:
         # 如果目标标签为内置标签的话，将内置标签的target_version进行覆盖，并对原来的标签进行删除或者清空
         # 如果目标标签为自定义标签，原有标签为内置标签的话，原有标签target_version置空，并新增自定义标签
         # 否则(目标和原有都为自定义标签)将直接修改原有标签的target_version
-        if tag_description in constants.BUILT_IN_TAG_DESCRIPTIONS:
+        if tag_description in constants.BUILT_IN_TAG_DESCRIPTIONS + constants.BUILT_IN_TAG_NAMES:
             Tag.objects.filter(
-                name=constants.TAG_DESCRIPTION__TAG_NAME[tag_description], target_id=package_desc_obj.id
+                name=constants.TAG_DESCRIPTION__TAG_NAME.get(tag_description, tag_description),
+                target_id=package_desc_obj.id,
             ).update(target_version=package_obj.version)
             cls.handle_delete_tag(tag_obj.name, tag_obj)
         elif tag_obj.name in constants.BUILT_IN_TAG_NAMES:
