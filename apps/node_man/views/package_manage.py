@@ -163,9 +163,6 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
             self.filter_class = None
         return models.GsePackages.objects.all().order_by("-is_ready")
 
-    def list(self, request, *args, **kwargs):
-        return super().list(request, *args, **kwargs)
-
     @swagger_auto_schema(
         responses={200: pkg_manage.ListResponseSerializer},
         operation_summary="安装包列表",
@@ -264,8 +261,7 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
         if GsePackages.objects.filter(version=gse_package_obj.version).count() == 1:
             Tag.objects.filter(target_version=gse_package_obj.version).update(target_version=None)
 
-        super(PackageManageViewSet, self).destroy(request, *args, **kwargs)
-        return Response(data=[])
+        return super().destroy(request, *args, **kwargs)
 
     @swagger_auto_schema(
         operation_summary="获取快速筛选信息",
@@ -660,38 +656,13 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
                 if pkg_version_info["count"] == max_version_count
             }
 
-        # package_versions: List = list(version__pkg_version_info_map.keys())
-        is_visible: bool = True
         machine_latest_version: str = ""
-        # if validated_data.get("versions", ""):
-        #     machine_latest_version = max(validated_data["versions"], key=GsePackageTools.extract_numbers)
-        #
-        #     extract_machine_latest_version = GsePackageTools.extract_numbers(machine_latest_version)
-        #
-        #     # 如果所有当前可用包的版本都比传进的最高版本低，则不可升级
-        #     if all([
-        #         GsePackageTools.extract_numbers(current_package_version) <= extract_machine_latest_version
-        #         for current_package_version in package_versions
-        #     ]):
-        #         is_visible = False
-        #
-        #     version__pkg_version_info_map = {
-        #         version: pkg_version_info
-        #         for version, pkg_version_info in version__pkg_version_info_map.copy().items()
-        #         if GsePackageTools.extract_numbers(version) >= extract_machine_latest_version
-        #     }
-
         package_latest_version = list(version__pkg_version_info_map.keys())[0] if version__pkg_version_info_map else ""
-
-        # 版本存在不可见不返回包信息
-        if not is_visible:
-            version__pkg_version_info_map = {}
 
         return Response(
             {
                 "machine_latest_version": machine_latest_version,
                 "package_latest_version": package_latest_version,
-                "is_visible": is_visible,
                 "default_version": default_version,
                 "pkg_info": list(version__pkg_version_info_map.values()),
                 "versions_count": len(validated_data["versions"]) if validated_data.get("versions") else 0,
@@ -853,43 +824,3 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
                 project=validated_data["project"],
             )
         )
-
-
-# class AgentPackageDescViewSet(ModelViewSet):
-#     queryset = models.AgentPackageDesc.objects.all()
-#     # model = models.Packages
-#     # http_method_names = ["get", "post"]
-#     # ordering_fields = ("module",)
-#     # serializer_class = pkg_manage.PackageSerializer
-#     # filter_backends = (DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter)
-
-#     # filter_fields = ("module", "creator", "is_ready", "version")
-
-#     @swagger_auto_schema(
-#         query_in=pkg_manage.PackageDescSearchSerializer,
-# responses={200: pkg_manage.PackageDescResponseSerialiaer},
-#         operation_summary="Agent版本列表",
-#         tags=PACKAGE_DES_VIEW_TAGS,
-#     )
-#     def list(self, request, *args, **kwargs):
-
-#         mock_data = {
-#             "total": 10,
-#             "list": [
-#                 {
-#                     "id": 1,
-#                     "version": "2.1.2",
-#                     "tags": [{"id": "stable", "name": "稳定版本"}],
-#                     "is_ready": True,
-#                     "description": "我是描述",
-#                     "packages": [
-#                         {
-#                             "pkg_name": "gseagent-2.1.2.tgz",
-#                             "tags": [{"id": "stable", "name": "稳定版本"}, {"id": "latest", "name": "最新版本"}],
-#                         }
-#                     ],
-#                 }
-#             ],
-#         }
-#         return Response(mock_data)
-#         # return super().list(request, *args, **kwargs)

@@ -54,7 +54,8 @@ class ConditionsSerializer(serializers.Serializer):
 
 
 class BasePackageSerializer(serializers.Serializer):
-    def get_tags(self, obj, enable_tag_separation=True):
+    @staticmethod
+    def get_tags(obj, enable_tag_separation=True):
         return gse_package_handler.get_tags(
             project=obj.project,
             version=obj.version,
@@ -78,70 +79,13 @@ class PackageSerializer(BasePackageSerializer):
     is_ready = serializers.BooleanField()
 
 
-class FilterConditionPackageSerializer(BasePackageSerializer):
-    version = serializers.CharField()
-    tags = serializers.SerializerMethodField()
-    created_by = serializers.CharField()
-    is_ready = serializers.BooleanField()
-
-
-class QuickFilterConditionPackageSerializer(BasePackageSerializer):
-    version = serializers.CharField()
-    os = serializers.CharField()
-    cpu_arch = serializers.CharField()
-
-
-class VersionDescPackageSerializer(BasePackageSerializer):
-    version = serializers.CharField()
-    tags = serializers.SerializerMethodField()
-    is_ready = serializers.BooleanField()
-    description = serializers.SerializerMethodField()
-    pkg_name = serializers.CharField()
-    packages = serializers.ListField(default=[])
-
-    def get_tags(self, obj, enable_tag_separation=True):
-        return super().get_tags(obj, enable_tag_separation=False)
-
-    def to_representation(self, instance):
-        data = super().to_representation(instance)
-        data["packages"] = [{"pkg_name": data.pop("pkg_name"), "tags": data["tags"]}]
-        return data
-
-
-class DescPackageSerializer(BasePackageSerializer):
-    version = serializers.CharField()
-    tags = serializers.SerializerMethodField()
-    is_ready = serializers.BooleanField()
-    description = serializers.SerializerMethodField()
-
-
-class PackageDescSerializer(BasePackageSerializer):
-    id = serializers.IntegerField()
-    version = serializers.CharField()
-    tags = serializers.SerializerMethodField()
-    packages = serializers.SerializerMethodField()
-    is_ready = serializers.BooleanField()
-
-
 class ListResponseSerializer(serializers.Serializer):
     total = serializers.IntegerField()
     list = PackageSerializer(many=True)
 
 
-class PackageDescResponseSerializer(serializers.Serializer):
-    total = serializers.IntegerField()
-    list = PackageDescSerializer(many=True)
-
-
-class OperateTagSerializer(serializers.Serializer):
-    tag_name = serializers.CharField(required=False)
-    tag_description = serializers.CharField(required=False)
-    action = serializers.ChoiceField(choices=["add", "update", "delete"], label="标签动作")
-
-
 class OperateSerializer(serializers.Serializer):
     is_ready = serializers.BooleanField(required=False)
-    # tags = serializers.ListField(child=OperateTagSerializer(), default=[])
     tags = serializers.ListField(required=False)
 
     def update(self, instance, validated_data):
@@ -152,8 +96,8 @@ class OperateSerializer(serializers.Serializer):
         return instance
 
 
-class QuickSearchSerializer(serializers.Serializer):
-    project = serializers.ChoiceField(choices=GsePackageCode.list_choices())
+# class QuickSearchSerializer(serializers.Serializer):
+#     project = serializers.ChoiceField(choices=GsePackageCode.list_choices())
 
 
 class UploadSerializer(serializers.Serializer):
