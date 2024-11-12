@@ -53,6 +53,7 @@ logger = logging.getLogger("app")
 
 class PackageManageOrderingFilterSet(filters.OrderingFilter):
     def get_ordering(self, request, queryset, view):
+        # 这里由原来的request.params变为了request.data，其余不变
         params = request.data.get(self.ordering_param)
         if params:
             fields = [param.strip() for param in params.split(",")]
@@ -83,15 +84,6 @@ class PackageManageOrderingFilterSet(filters.OrderingFilter):
 
 
 class PackageManageFilterClass(FilterSet):
-    # os = django_filters.BaseInFilter(field_name="os", lookup_expr="in")
-    # cpu_arch = django_filters.BaseInFilter(field_name="cpu_arch", lookup_expr="in")
-    # # os_cpu_arch = django_filters.BaseInFilter(field_name="os_cpu_arch", method="filter_os_cpu_arch")
-    # tag_names = django_filters.BaseInFilter(lookup_expr="in", method="filter_tag_names")
-    # created_by = django_filters.BaseInFilter(field_name="created_by", lookup_expr="in")
-    # is_ready = django_filters.BooleanFilter(field_name="is_ready")
-    # version = django_filters.BaseInFilter(field_name="version", lookup_expr="in")
-    # created_time = django_filters.DateTimeFromToRangeFilter()
-    # condition = django_filters.CharFilter(method="filter_condition")
     os = django_filters.BaseInFilter(field_name="os", lookup_expr="in")
     cpu_arch = django_filters.BaseInFilter(field_name="cpu_arch", lookup_expr="in")
     os_cpu_arch = django_filters.BaseInFilter(field_name="os_cpu_arch", method="filter_os_cpu_arch")
@@ -171,12 +163,16 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
             self.filter_class = None
         return models.GsePackages.objects.all().order_by("-is_ready")
 
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
     @swagger_auto_schema(
         responses={200: pkg_manage.ListResponseSerializer},
         operation_summary="安装包列表",
         tags=PACKAGE_MANAGE_VIEW_TAGS,
     )
-    def list(self, request, *args, **kwargs):
+    @action(detail=False, methods=["POST"])
+    def search(self, request, *args, **kwargs):
         """
         return: {
             "total": 2,
@@ -208,10 +204,6 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
         """
         return super().list(request, *args, **kwargs)
 
-    @action(detail=False, methods=["POST"])
-    def search(self, request, *args, **kwargs):
-        return super().list(request, *args, **kwargs)
-
     def perform_update(self, serializer):
         serializer.save()
 
@@ -231,30 +223,6 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
                     package_obj=package_obj,
                     package_desc_obj=package_desc_obj,
                 )
-
-        # tag_name__tag_obj_map: Dict[str, Tag] = {tag.name: tag for tag in tags}
-        # tag_descriptions: List[str] = list(tags.values_list("description", flat=True))
-        #
-        # package_desc_obj: GsePackageDesc = GsePackageDesc.objects.get(project=package_obj.project)
-        #
-        # for tag_info in serializer.validated_data.get("tags", []):
-        #     if tag_info["action"] == "add" and tag_info["tag_description"] not in tag_descriptions:
-        #         GsePackageHandler.handle_add_tag(
-        #             tag_description=tag_info["tag_description"],
-        #             package_obj=package_obj,
-        #             package_desc_obj=package_desc_obj,
-        #         )
-        #     elif tag_info["action"] == "update" and tag_info["tag_name"] in tag_name__tag_obj_map:
-        #         GsePackageHandler.handle_update_tag(
-        #             tag_description=tag_info["tag_description"],
-        #             package_obj=package_obj,
-        #             package_desc_obj=package_desc_obj,
-        #             tag_obj=tag_name__tag_obj_map[tag_info["tag_name"]],
-        #         )
-        #     elif tag_info["action"] == "delete" and tag_info["tag_name"] in tag_name__tag_obj_map:
-        #         GsePackageHandler.handle_delete_tag(
-        #             tag_name=tag_info["tag_name"], tag_obj=tag_name__tag_obj_map[tag_info["tag_name"]]
-        #         )
 
     @swagger_auto_schema(
         operation_summary="操作类动作：启用/停用/修改(新增, 删除)标签",
