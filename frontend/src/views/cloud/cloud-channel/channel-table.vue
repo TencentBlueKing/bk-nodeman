@@ -42,13 +42,19 @@ import { CloudStore } from '@/store';
 export default class ChannelTable extends Vue {
   @Prop({ default: () => ({}), type: Object }) private readonly channel!: Dictionary;
 
+  private label: Dictionary = {
+    btfileserver: this.$t('GSE File服务地址'),
+    dataserver: this.$t('GSE Data服务地址'),
+    taskserver: this.$t('GSE Cluster服务地址'),
+  };
+
   private get channelServerKeys() {
     return CloudStore.channelServerKeys;
   }
   private get serverList() {
     const { upstream_servers: servers = {} } = this.channel;
     return this.channelServerKeys.map(key => ({
-      key,
+      key: this.label[key],
       value: servers[key] ? servers[key].join(';') : '',
     }));
   }

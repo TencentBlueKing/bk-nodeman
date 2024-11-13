@@ -1,3 +1,4 @@
+import i18n from '@/setup';
 import { isEmpty } from './util';
 import {
   splitCodeArr,
@@ -34,7 +35,7 @@ export function createIpRegu(type: 'IPv4' | 'IPv6' | 'mixins' = 'IPv4', isBatch 
     : (val: string) => !val || regex.test(val);
   return {
     trigger: 'blur',
-    message: window.i18n.t('IP格式不正确'),
+    message: i18n.t('IP格式不正确'),
     // regex,
     validator,
   };
@@ -45,7 +46,7 @@ export function createIpRegu(type: 'IPv4' | 'IPv6' | 'mixins' = 'IPv4', isBatch 
  */
 export const reguRequired = {
   required: true,
-  message: window.i18n.t('必填项'),
+  message: i18n.t('必填项'),
   trigger: 'blur',
 };
 export const reguIp = createIpRegu();
@@ -57,39 +58,41 @@ export const reguIpMixinsBatch = createIpRegu('mixins', true);
 export const reguUrl = {
   regex: regUrl,
   validator: (val: string) => regUrl.test(val),
-  message: window.i18n.t('URL格式不正确'),
+  message: i18n.t('URL格式不正确'),
   trigger: 'blur',
 };
 export const reguUrlMixinIp = {
   regex: regUrlMixinIp,
-  message: window.i18n.t('URL格式不正确'),
+  message: i18n.t('URL格式不正确'),
   trigger: 'blur',
   validator: (val: string) => regUrlMixinIp.test(val),
 };
 export const reguPort = {
   // validator: (val: string) => regNaturalNumber.test(val) && parseInt(val, 10) <= 65535, // 端口范围不应该包括
-  validator: (val: string) => regNaturalNumber.test(val) && val && parseInt(val, 10) && parseInt(val, 10) <= 65535,
-  message: window.i18n.t('端口范围', { range: '1-65535' }),
+  validator: (val: string): boolean => regNaturalNumber.test(val)
+    && val && parseInt(val, 10)
+    && parseInt(val, 10) <= 65535,
+  message: i18n.t('端口范围', { range: '1-65535' }),
   trigger: 'blur',
 };
 export const reguNaturalNumber = {
   regex: regNaturalNumber,
   validator: (val: string) => regNaturalNumber.test(val),
-  message: window.i18n.t('不小于零的整数'),
+  message: i18n.t('不小于零的整数'),
   trigger: 'blur',
 };
 export function reguFnName(params?: { max: number } = {}) {
   const { max = 32 } = params;
   return {
     validator: (val: string) => regNormalText.test(val) && regrLengthCheck(val, max),
-    message: window.i18n.t('正常输入内容校验', [max]),
+    message: i18n.t('正常输入内容校验', [max]),
     trigger: 'blur',
   };
 }
 export function reguFnStrLength(max = 40) {
   return {
     validator: (val: string) => regrLengthCheck(val, max),
-    message: window.i18n.t('字符串长度校验', [Math.floor(max / 2), max]),
+    message: i18n.t('字符串长度校验', [Math.floor(max / 2), max]),
     trigger: 'blur',
   };
 }
@@ -98,14 +101,14 @@ export function reguFnSysPath(params?: { [key: string]: number | string } = {}) 
   const reg = regFnSysPath({ minText, maxText, minLevel, type });
   return {
     type,
-    message: window.i18n.t(i18nMap[type], { minLevel, maxText }),
+    message: i18n.t(i18nMap[type], { minLevel, maxText }),
     trigger: 'blur',
     validator: (val: string)  => reg.test(val),
   };
 }
 export function reguFnMinInteger(min = 0) {
   return {
-    message: window.i18n.t('整数最小值校验提示', { min }),
+    message: i18n.t('整数最小值校验提示', { min }),
     validator: (val: string)  => isEmpty(val) || (regInteger.test(val) && parseInt(val, 10) >= min),
     trigger: 'blur',
   };
@@ -113,14 +116,14 @@ export function reguFnMinInteger(min = 0) {
 export function reguFnRangeInteger(min: number, max: number) {
   return {
     validator: (val: string) => regInteger.test(val) && Number(val) <= max && Number(val) >= min,
-    message: window.i18n.t('整数范围校验提示', { max, min }),
+    message: i18n.t('整数范围校验提示', { max, min }),
     trigger: 'blur',
   };
 }
 // 一行内不能重复
 export const reguIpInLineRepeat = {
   trigger: 'blur',
-  message: window.i18n.t('冲突校验', { prop: 'IP' }),
+  message: i18n.t('冲突校验', { prop: 'IP' }),
   validator(val: string) {
     if (!val) return true;
     const splitCode = splitCodeArr.find(split => val.indexOf(split) > 0);
