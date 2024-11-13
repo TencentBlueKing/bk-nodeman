@@ -12,15 +12,15 @@ from __future__ import absolute_import, unicode_literals
 
 import logging
 import operator
+from collections import defaultdict
 from dataclasses import asdict
 from functools import cmp_to_key, reduce
-from typing import Any, Dict, List, Set
+from typing import Any, Dict, List
 
 from django.core.cache import caches
 from django.db import transaction
 from django.db.models import Q, Value
 from django.utils.translation import get_language
-from django.utils.translation import gettext_lazy as _
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status
 from rest_framework.decorators import action
@@ -189,107 +189,8 @@ class SubscriptionViewSet(APIViewSet):
         @apiName update_subscription
         @apiGroup subscription
         """
-        params = self.validated_data
-        scope = params["scope"]
-        run_immediately = params["run_immediately"]
-        with transaction.atomic():
-            try:
-                subscription = models.Subscription.objects.get(id=params["subscription_id"], is_deleted=False)
-            except models.Subscription.DoesNotExist:
-                raise errors.SubscriptionNotExist({"subscription_id": params["subscription_id"]})
-            # 更新订阅不在序列化器中做校验，因为获取更新订阅的类型 step 需要查一次表
-            if tools.check_subscription_is_disabled(
-                subscription_identity=f"subscription -> [{subscription.id}]",
-                steps=subscription.steps,
-                scope=scope,
-            ):
-                raise errors.SubscriptionIncludeGrayBizError()
-
-            subscription.name = params.get("name", "")
-            subscription.node_type = scope["node_type"]
-            subscription.nodes = scope["nodes"]
-            subscription.bk_biz_id = scope.get("bk_biz_id")
-            # 避免空列表误判
-            if scope.get("instance_selector") is not None:
-                subscription.instance_selector = scope["instance_selector"]
-            # 策略部署新增
-            subscription.plugin_name = params.get("plugin_name")
-            subscription.bk_biz_scope = params.get("bk_biz_scope")
-            # 指定操作进程用户新增
-            if params.get("system_account"):
-                params["operate_info"].insert(0, params["system_account"])
-            subscription.operate_info = params["operate_info"]
-            subscription.save()
-
-            step_ids: Set[str] = set()
-            step_id__obj_map: Dict[str, models.SubscriptionStep] = {
-                step_obj.step_id: step_obj for step_obj in subscription.steps
-            }
-            step_objs_to_be_created: List[models.SubscriptionStep] = []
-            step_objs_to_be_updated: List[models.SubscriptionStep] = []
-
-            for index, step_info in enumerate(params["steps"]):
-
-                if step_info["id"] in step_id__obj_map:
-                    # 存在则更新
-                    step_obj: models.SubscriptionStep = step_id__obj_map[step_info["id"]]
-                    step_obj.params = step_info["params"]
-                    if "config" in step_info:
-                        step_obj.config = step_info["config"]
-                    step_obj.index = index
-                    step_objs_to_be_updated.append(step_obj)
-                else:
-                    # 新增场景
-                    try:
-                        step_obj_to_be_created: models.SubscriptionStep = models.SubscriptionStep(
-                            subscription_id=subscription.id,
-                            index=index,
-                            step_id=step_info["id"],
-                            type=step_info["type"],
-                            config=step_info["config"],
-                            params=step_info["params"],
-                        )
-                    except KeyError as e:
-                        logger.warning(
-                            f"update subscription[{subscription.id}] to add step[{step_info['id']}] error: "
-                            f"err_msg -> {e}"
-                        )
-                        raise errors.SubscriptionUpdateError(
-                            {
-                                "subscription_id": subscription.id,
-                                "msg": _("新增订阅步骤[{step_id}] 需要提供 type & config，错误信息 -> {err_msg}").format(
-                                    step_id=step_info["id"], err_msg=e
-                                ),
-                            }
-                        )
-                    step_objs_to_be_created.append(step_obj_to_be_created)
-                step_ids.add(step_info["id"])
-
-            # 删除更新后不存在的 step
-            models.SubscriptionStep.objects.filter(
-                subscription_id=subscription.id, step_id__in=set(step_id__obj_map.keys()) - step_ids
-            ).delete()
-            models.SubscriptionStep.objects.bulk_update(step_objs_to_be_updated, fields=["config", "params", "index"])
-            models.SubscriptionStep.objects.bulk_create(step_objs_to_be_created)
-            # 更新 steps 需要移除缓存
-            if hasattr(subscription, "_steps"):
-                delattr(subscription, "_steps")
-
-        result = {"subscription_id": subscription.id}
-
-        if run_immediately:
-            if subscription.is_running():
-                raise InstanceTaskIsRunning()
-
-            subscription_task = models.SubscriptionTask.objects.create(
-                subscription_id=subscription.id, scope=subscription.scope, actions={}
-            )
-            tasks.run_subscription_task_and_create_instance.delay(
-                subscription, subscription_task, language=get_language()
-            )
-            result["task_id"] = subscription_task.id
-
-        return Response(result)
+        params: Dict[str, Any] = self.validated_data
+        return Response(SubscriptionHandler.update_subscription(params))
 
     @swagger_auto_schema(
         operation_summary="删除订阅",
@@ -306,13 +207,14 @@ class SubscriptionViewSet(APIViewSet):
         @apiGroup subscription
         """
         params = self.validated_data
-        try:
-            subscription = models.Subscription.objects.get(id=params["subscription_id"], is_deleted=False)
-        except models.Subscription.DoesNotExist:
-            raise errors.SubscriptionNotExist({"subscription_id": params["subscription_id"]})
-        subscription.is_deleted = True
-        subscription.save()
-        return Response()
+        subscription_id = params["subscription_id"]
+        subscription_qs = models.Subscription.objects.filter(id=subscription_id, is_deleted=False)
+        if not subscription_qs.exists():
+            raise errors.SubscriptionNotExist({"subscription_id": subscription_id})
+        # 调用delete()方法才会记录删除时间
+        subscription_qs.delete()
+        logger.info(f"deleted subscription: {subscription_id}")
+        return Response({"deleted_subscription_id": subscription_id})
 
     @swagger_auto_schema(
         operation_summary="执行订阅",
@@ -969,3 +871,55 @@ class SubscriptionViewSet(APIViewSet):
                 value=list(set(disable_subscription_bk_biz_ids + data["bk_biz_ids"])),
             )
         return Response(data)
+
+    @swagger_auto_schema(operation_summary="清除野/遗留订阅", tags=SUBSCRIPTION_VIEW_TAGS)
+    @action(detail=False, methods=["POST"], serializer_class=serializers.ClearnSubscriptionSerializer)
+    def clean_subscription(self, request):
+        """
+        @api {POST} /subscription/clean_subscription/ 清除野/遗留订阅
+        @apiName clean_subscription
+        @apiGroup subscription
+        """
+        validated_data = self.validated_data
+        is_force: bool = validated_data["is_force"]
+        action_type = validated_data["action_type"]
+        subscription_ids = set(validated_data["subscription_id_list"])
+
+        # 如果不是强制清理，需要判断订阅是不是已被删除了，已删除的才允许操作
+        if not is_force:
+            # 先查一次确认是否为遗留的订阅配置。如果订阅ID还存在，则不允许此操作
+            exist_subscription_ids = set(
+                models.Subscription.objects.filter(id__in=subscription_ids).values_list("id", flat=True)
+            )
+            if exist_subscription_ids:
+                raise errors.SubscriptionNotDeletedCantOperateError({"subscription_id": exist_subscription_ids})
+        # 1.修改订阅配置，把删除状态更新成未删除，同时enable改成不启动
+        models.Subscription.objects.filter(id__in=subscription_ids, show_deleted=True).update(
+            enable=False, is_deleted=False
+        )
+        final_handle_subscription_ids = set(
+            models.Subscription.objects.filter(id__in=subscription_ids).values_list("id", flat=True)
+        )
+        not_exists_subscription_ids = list(subscription_ids - final_handle_subscription_ids)
+        if not_exists_subscription_ids:
+            raise errors.SubscriptionNotExist({"subscription_id": not_exists_subscription_ids})
+        # 2.获取订阅步骤
+        step_qs = models.SubscriptionStep.objects.filter(subscription_id__in=final_handle_subscription_ids).values(
+            "subscription_id", "step_id"
+        )
+        subscription_id__step_id_map = defaultdict(list)
+        for step in step_qs:
+            subscription_id__step_id_map[step["subscription_id"]].append(step["step_id"])
+
+        results = []
+        for subscription_id in final_handle_subscription_ids:
+            step_ids = subscription_id__step_id_map[subscription_id]
+            # 拼接动作参数,默认仅停用,不删除文件
+            execute_actions = {step_id: action_type for step_id in step_ids}
+            result = SubscriptionHandler(subscription_id).clean_subscription(execute_actions)
+            results.append(result)
+        logger.info(
+            f"clean subscription result: {results}, deleted subscription: {final_handle_subscription_ids},"
+            f"length: {len(final_handle_subscription_ids)}"
+        )
+        return Response(results)

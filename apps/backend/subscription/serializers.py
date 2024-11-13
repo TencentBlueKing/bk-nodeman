@@ -284,3 +284,9 @@ class QueryHostSubscriptionsSerializer(TargetHostSerializer):
 class SubscriptionSwitchBizSerializer(serializers.Serializer):
     bk_biz_ids = serializers.ListField(child=serializers.IntegerField())
     action = serializers.ChoiceField(choices=SubscriptionSwithBizAction.list_choices())
+
+
+class ClearnSubscriptionSerializer(serializers.Serializer):
+    subscription_id_list = serializers.ListField(required=True, label=_("订阅ID列表"), child=serializers.IntegerField())
+    action_type = serializers.ChoiceField(choices=constants.OpType, default="STOP", label=_("执行动作类型"))
+    is_force = serializers.BooleanField(default=False, label=_("是否强制清理"))

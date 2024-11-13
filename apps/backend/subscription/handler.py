@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 from __future__ import absolute_import, unicode_literals
 
+import json
 import logging
 import random
 from collections import Counter, defaultdict
@@ -18,13 +19,15 @@ from typing import Any, Dict, List, Optional, Set
 
 from django.conf import settings
 from django.core.cache import cache
+from django.db import transaction
 from django.db.models import Max, Q, QuerySet, Value
 from django.utils.translation import get_language
 from django.utils.translation import ugettext as _
 
+from apps.backend import constants as backend_constants
 from apps.backend.subscription import errors, task_tools, tasks, tools
-from apps.backend.subscription.errors import InstanceTaskIsRunning
 from apps.backend.utils.pipeline_parser import PipelineParser
+from apps.backend.utils.redis import REDIS_INST
 from apps.core.concurrent import controller
 from apps.node_man import constants, models
 from apps.utils import concurrent
@@ -432,16 +435,18 @@ class SubscriptionHandler(object):
             subscription = models.Subscription.objects.get(id=self.subscription_id)
         except models.Subscription.DoesNotExist:
             raise errors.SubscriptionNotExist({"subscription_id": self.subscription_id})
-
-        if subscription.is_running():
-            raise InstanceTaskIsRunning()
-
         if tools.check_subscription_is_disabled(
             subscription_identity=f"subscription -> [{subscription.id}]",
             scope=subscription.scope,
             steps=subscription.steps,
         ):
             raise errors.SubscriptionIncludeGrayBizError()
+
+        if subscription.is_running():
+            params = json.dumps({"subscription_id": subscription.id, "scope": scope, "actions": actions})
+            REDIS_INST.lpush(backend_constants.RUN_SUBSCRIPTION_REDIS_KEY_TPL, params)
+            logger.info(f"run subscription[{subscription.id}] store params into redis: {params}")
+            return {"subscription_id": subscription.id, "message": _("该订阅ID下有正在RUNNING的订阅任务，已进入任务编排")}
 
         subscription_task = models.SubscriptionTask.objects.create(
             subscription_id=subscription.id, scope=subscription.scope, actions={}
@@ -668,5 +673,122 @@ class SubscriptionHandler(object):
                         )
                     subscription_result.append(instance_result)
             result.append({"subscription_id": subscription.id, "instances": subscription_result})
+
+        return result
+
+    def clean_subscription(self, execute_actions: Dict[str, str]):
+        """
+        :param execute_actions: {"bk-beat": "STOP", "exporter": "STOP"}
+        """
+        try:
+            # 3.调用执行订阅的方法
+            result = self.run(actions=execute_actions)
+        except Exception as e:
+            result = {"result": False, "message": str(e)}
+        # 4.删除订阅,使用delete()方法才会记录删除时间
+        models.Subscription.objects.filter(id=self.subscription_id).delete()
+        return result
+
+    @staticmethod
+    def update_subscription(params: Dict[str, Any]):
+        scope = params["scope"]
+        try:
+            subscription = models.Subscription.objects.get(id=params["subscription_id"], is_deleted=False)
+        except models.Subscription.DoesNotExist:
+            raise errors.SubscriptionNotExist({"subscription_id": params["subscription_id"]})
+        # 更新订阅不在序列化器中做校验，因为获取更新订阅的类型 step 需要查一次表
+        if tools.check_subscription_is_disabled(
+            subscription_identity=f"subscription -> [{subscription.id}]",
+            steps=subscription.steps,
+            scope=scope,
+        ):
+            raise errors.SubscriptionIncludeGrayBizError()
+        if subscription.is_running():
+            REDIS_INST.lpush(backend_constants.UPDATE_SUBSCRIPTION_REDIS_KEY_TPL, json.dumps(params))
+            logger.info(f"update subscription[{subscription.id}] store params into redis: {params}")
+            return {"subscription_id": subscription.id, "message": _("该订阅ID下有正在RUNNING的订阅任务，已进入任务编排")}
+
+        with transaction.atomic():
+            subscription.name = params.get("name", "")
+            subscription.node_type = scope["node_type"]
+            subscription.nodes = scope["nodes"]
+            subscription.bk_biz_id = scope.get("bk_biz_id")
+            # 避免空列表误判
+            if scope.get("instance_selector") is not None:
+                subscription.instance_selector = scope["instance_selector"]
+            # 策略部署新增
+            subscription.plugin_name = params.get("plugin_name")
+            subscription.bk_biz_scope = params.get("bk_biz_scope")
+            # 指定操作进程用户新增
+            if params.get("system_account"):
+                params["operate_info"].insert(0, params["system_account"])
+            subscription.operate_info = params["operate_info"]
+            subscription.save()
+
+            step_ids: Set[str] = set()
+            step_id__obj_map: Dict[str, models.SubscriptionStep] = {
+                step_obj.step_id: step_obj for step_obj in subscription.steps
+            }
+            step_objs_to_be_created: List[models.SubscriptionStep] = []
+            step_objs_to_be_updated: List[models.SubscriptionStep] = []
+
+            for index, step_info in enumerate(params["steps"]):
+
+                if step_info["id"] in step_id__obj_map:
+                    # 存在则更新
+                    step_obj: models.SubscriptionStep = step_id__obj_map[step_info["id"]]
+                    step_obj.params = step_info["params"]
+                    if "config" in step_info:
+                        step_obj.config = step_info["config"]
+                    step_obj.index = index
+                    step_objs_to_be_updated.append(step_obj)
+                else:
+                    # 新增场景
+                    try:
+                        step_obj_to_be_created: models.SubscriptionStep = models.SubscriptionStep(
+                            subscription_id=subscription.id,
+                            index=index,
+                            step_id=step_info["id"],
+                            type=step_info["type"],
+                            config=step_info["config"],
+                            params=step_info["params"],
+                        )
+                    except KeyError as e:
+                        logger.warning(
+                            f"update subscription[{subscription.id}] to add step[{step_info['id']}] error: "
+                            f"err_msg -> {e}"
+                        )
+                        raise errors.SubscriptionUpdateError(
+                            {
+                                "subscription_id": subscription.id,
+                                "msg": _("新增订阅步骤[{step_id}] 需要提供 type & config，错误信息 -> {err_msg}").format(
+                                    step_id=step_info["id"], err_msg=e
+                                ),
+                            }
+                        )
+                    step_objs_to_be_created.append(step_obj_to_be_created)
+                step_ids.add(step_info["id"])
+
+            # 删除更新后不存在的 step
+            models.SubscriptionStep.objects.filter(
+                subscription_id=subscription.id, step_id__in=set(step_id__obj_map.keys()) - step_ids
+            ).delete()
+            models.SubscriptionStep.objects.bulk_update(step_objs_to_be_updated, fields=["config", "params", "index"])
+            models.SubscriptionStep.objects.bulk_create(step_objs_to_be_created)
+            # 更新 steps 需要移除缓存
+            if hasattr(subscription, "_steps"):
+                delattr(subscription, "_steps")
+
+        result = {"subscription_id": subscription.id}
+
+        run_immediately = params["run_immediately"]
+        if run_immediately:
+            subscription_task = models.SubscriptionTask.objects.create(
+                subscription_id=subscription.id, scope=subscription.scope, actions={}
+            )
+            tasks.run_subscription_task_and_create_instance.delay(
+                subscription, subscription_task, language=get_language()
+            )
+            result["task_id"] = subscription_task.id
 
         return result
