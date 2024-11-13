@@ -129,6 +129,12 @@ REDIS_INSTALL_CALLBACK_KEY_TPL = f"{settings.APP_CODE}:backend:agent:log:list:" 
 # redis Gse Agent 配置缓存
 REDIS_AGENT_CONF_KEY_TPL = f"{settings.APP_CODE}:backend:agent:config:" + "{file_name}:str:{sub_inst_id}"
 
+# 更新订阅参数储存redis键名模板
+UPDATE_SUBSCRIPTION_REDIS_KEY_TPL = f"{settings.APP_CODE}:backend:subscription:update_subscription:params"
+
+# 执行订阅参数储存redis键名模板
+RUN_SUBSCRIPTION_REDIS_KEY_TPL = f"{settings.APP_CODE}:backend:subscription:run_subscription:params"
+
 
 class SubscriptionSwithBizAction(enum.EnhanceEnum):
     ENABLE = "enable"
@@ -166,3 +172,17 @@ DEFAULT_ALIVE_TIME = 30
 DEFAULT_CLEAN_RECORD_LIMIT = 5000
 
 POWERSHELL_SERVICE_CHECK_SSHD = "powershell -c Get-Service -Name sshd"
+
+# 处理更新订阅任务间隔
+UPDATE_SUBSCRIPTION_TASK_INTERVAL = 2 * 60
+
+# 处理执行订阅任务间隔
+RUN_SUBSCRIPTION_TASK_INTERVAL = 3 * 60
+# 处理卸载残留订阅任务间隔
+HANDLE_UNINSTALL_REST_SUBSCRIPTION_TASK_INTERVAL = 6 * 60 * 60
+
+# 最大订阅任务数量
+MAX_SUBSCRIPTION_TASK_COUNT = 50
+
+# 订阅删除时间小时数
+SUBSCRIPTION_DELETE_HOURS = 6
