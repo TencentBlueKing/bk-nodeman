@@ -45,7 +45,7 @@ class ExcelTools:
         sheet = excel.create_sheet(title=src_sheet)
         main_sheet = excel[dst_sheet]
         for i, option in enumerate(options, start=1):
-            sheet[f"A{i}"] = option
+            sheet[f"A{i}"] = str(option)
 
         dv = DataValidation(type="list", formula1=f"={src_sheet}!$A$1:$A${len(options)}", allow_blank=True)
 

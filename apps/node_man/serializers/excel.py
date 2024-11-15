@@ -13,7 +13,3 @@ from rest_framework import serializers
 
 class ExcelDownloadSerializer(serializers.Serializer):
     pass
-
-
-class ExcelUploadSerializer(serializers.Serializer):
-    file = serializers.FileField()

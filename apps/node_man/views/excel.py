@@ -14,14 +14,10 @@ from django.http import StreamingHttpResponse
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status
 from rest_framework.decorators import action
-from rest_framework.response import Response
 
 from apps.generic import APIViewSet
 from apps.node_man.handlers.excel import ExcelHandler
-from apps.node_man.serializers.excel import (
-    ExcelDownloadSerializer,
-    ExcelUploadSerializer,
-)
+from apps.node_man.serializers.excel import ExcelDownloadSerializer
 
 EXCEL_VIEW_TAGS = ["excel"]
 
@@ -56,30 +52,3 @@ class ExcelHandlerViewSet(APIViewSet):
         response.headers["Content-Type"] = "application/octet-stream"
         response.headers["Content-Disposition"] = 'attachment;filename="{}"'.format(filename)
         return response
-
-    @swagger_auto_schema(
-        operation_summary="上传excel",
-        request_body=ExcelUploadSerializer(),
-        tags=EXCEL_VIEW_TAGS,
-    )
-    @action(detail=False, methods=["POST"], serializer_class=ExcelUploadSerializer)
-    def upload(self, request):
-        """
-        @api {POST} /excel/upload/ 上传excel
-        @apiName upload_excel
-        @apiGroup Excel
-        @apiParam {File} file excel文件
-        @apiParamExample {Form} 请求例子:
-        {
-            "file": file
-        }
-        @apiSuccessExample {Json} 成功返回:
-        {
-        }
-        """
-        ser = self.serializer_class(data=request.data)
-        ser.is_valid(raise_exception=True)
-        data = ser.validated_data
-        file = data["file"]
-
-        return Response(ExcelHandler().analyze_excel(file))
