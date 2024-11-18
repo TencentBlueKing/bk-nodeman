@@ -50,9 +50,9 @@ export const config: ISetupHead[] = [
     placeholder: window.i18n.t('请选择'),
     manualProp: true,
     handleValueChange(row) {
-      if (row.install_channel_id !== 'default' && row.bk_cloud_id === window.PROJECT_CONFIG.DEFAULT_CLOUD) {
-        row.ap_id = this.apList.find(item => item.id !== -1)?.id || '';
-      }
+      // if (row.install_channel_id !== 'default' && row.bk_cloud_id === window.PROJECT_CONFIG.DEFAULT_CLOUD) {
+      //   row.ap_id = this.apList.find(item => item.id !== -1)?.id || '';
+      // }
     },
     getOptions(row) {
       return row.bk_cloud_id || row.bk_cloud_id === 0
@@ -103,8 +103,8 @@ export const config: ISetupHead[] = [
             disabled,
           };
         });
-        list.sort(p => (p.disabled ? 1 : -1));
-        return list;
+        // list.sort(p => (p.disabled ? 1 : -1));
+        return list.filter(item => !item.disabled || item.id === -1);
       }
       return this.apList.map(item => ({
         ...item,
