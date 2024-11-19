@@ -6688,7 +6688,7 @@ msgid "认证方式"
 msgstr "Authentication"
 
 #: apps/node_man/constants.py: 1247
-msgid "密码/密钥"
+msgid "密钥/密码"
 msgstr "Key/Password"
 
 #: apps/node_man/constants.py: 1248

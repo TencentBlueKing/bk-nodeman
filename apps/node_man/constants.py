@@ -1244,7 +1244,7 @@ class ExcelField(EnhanceEnum):
             cls.LOGIN_PORT: _("登录端口"),
             cls.LOGIN_ACCOUNT: _("登录账号"),
             cls.AUTH_TYPE: _("认证方式"),
-            cls.CREDENTIALS: _("密码/密钥"),
+            cls.CREDENTIALS: _("密钥/密码"),
             cls.OUTER_IP: _("外网 IP"),
             cls.LOGIN_IP: _("登录 IP"),
             cls.BIZ: _("业务"),

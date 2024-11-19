@@ -65,21 +65,23 @@ class ExcelHandler:
             ExcelTools.set_font_style(describe_row_cell, font_size=12, color="000000")
 
             if key == constants.ExcelField.OS_TYPE:
-                ExcelTools.create_dropdown(excel, 4, col, key.value, MAIN_SHEET_NAME, all_os)
+                ExcelTools.create_dropdown(excel, 4, col, str(excel_field[key]), MAIN_SHEET_NAME, all_os)
             elif key == constants.ExcelField.INSTALL_CHANNEL:
-                ExcelTools.create_dropdown(excel, 4, col, key.value, MAIN_SHEET_NAME, all_install_channel)
+                ExcelTools.create_dropdown(excel, 4, col, str(excel_field[key]), MAIN_SHEET_NAME, all_install_channel)
             elif key == constants.ExcelField.AUTH_TYPE:
-                ExcelTools.create_dropdown(excel, 4, col, key.value, MAIN_SHEET_NAME, all_auth_type)
+                ExcelTools.create_dropdown(excel, 4, col, str(excel_field[key]), MAIN_SHEET_NAME, all_auth_type)
             elif key == constants.ExcelField.BIZ:
-                ExcelTools.create_dropdown(excel, 4, col, key.value, MAIN_SHEET_NAME, all_biz)
+                ExcelTools.create_dropdown(excel, 4, col, str(excel_field[key]), MAIN_SHEET_NAME, all_biz)
             elif key == constants.ExcelField.CLOUD:
-                ExcelTools.create_dropdown(excel, 4, col, key.value, MAIN_SHEET_NAME, all_cloud)
+                ExcelTools.create_dropdown(excel, 4, col, str(excel_field[key]), MAIN_SHEET_NAME, all_cloud)
             elif key == constants.ExcelField.AP:
-                ExcelTools.create_dropdown(excel, 4, col, key.value, MAIN_SHEET_NAME, all_ap)
+                ExcelTools.create_dropdown(excel, 4, col, str(excel_field[key]), MAIN_SHEET_NAME, all_ap)
             elif key == constants.ExcelField.ADDRESS_TYPE:
-                ExcelTools.create_dropdown(excel, 4, col, key.value, MAIN_SHEET_NAME, all_addressing)
+                ExcelTools.create_dropdown(excel, 4, col, str(excel_field[key]), MAIN_SHEET_NAME, all_addressing)
             elif key == constants.ExcelField.DATA_COMPRESSION:
-                ExcelTools.create_dropdown(excel, 4, col, key.value, MAIN_SHEET_NAME, all_enable_compression)
+                ExcelTools.create_dropdown(
+                    excel, 4, col, str(excel_field[key]), MAIN_SHEET_NAME, all_enable_compression
+                )
             else:
                 pass
 
