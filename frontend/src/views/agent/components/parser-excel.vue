@@ -174,6 +174,7 @@ export default class ParserExcel extends Vue {
           const workbook = XLSX.read(data, { type: 'binary' });
           const sheets = Object.keys(workbook.Sheets);
           const sheetData: any[] = XLSX.utils.sheet_to_json(workbook.Sheets[sheets[0]]);
+          sheetData.splice(0,2);
           let sheetHead = XLSX.utils.sheet_to_csv(workbook.Sheets[sheets[0]]).split('\n');
           sheetHead = sheetHead[0].split(',');
 
@@ -220,7 +221,7 @@ export default class ParserExcel extends Vue {
         // .filter(item => !item.colOptional)
         .map(item => item.prop);
       const configHeaders = tableConfig.filter(item => !requiredColProps.includes(item.prop)).map(item => item.label);
-
+      
 
       const firstMissLabel = configHeaders.find(label => !sheetsHeaders.includes(this.$tc(label)));
       if (firstMissLabel) { // 第一个未缺失的表头
@@ -253,16 +254,16 @@ export default class ParserExcel extends Vue {
         tableConfig.forEach((header) => {
           const key = this.$tc(header.label);
           if (key === this.$tc('业务')) {
-            const data = MainStore.bkBizList.find(data => data.bk_biz_name === item[`${key}${this.$tc('可选')}`]);
+            const data = MainStore.bkBizList.find(data => data.bk_biz_name === item[`${key}`]);
             info[header.prop] = data && !isEmpty(data.bk_biz_id) ? data.bk_biz_id : '';
           } else if (key === this.$tc('管控区域')) {
-            const data = AgentStore.cloudList.find(data => data.bk_cloud_name === item[`${key}${this.$tc('可选')}`]);
+            const data = AgentStore.cloudList.find(data => data.bk_cloud_name === item[`${key}`]);
             info[header.prop] = data && !isEmpty(data.bk_cloud_id) ? data.bk_cloud_id : '';
           } else if (key === this.$tc('接入点')) {
-            const data = AgentStore.apList.find(data => data.name === item[`${key}${this.$tc('可选')}`]);
+            const data = AgentStore.apList.find(data => data.name === item[`${key}`]);
             info[header.prop] = data && !isEmpty(data.id) ? data.id : -1;
           } else if (key === this.$tc('寻址方式')) {
-            info[header.prop] = item[`${key}${this.$tc('可选')}`] === this.$tc('动态') ? 'dynamic' : 'static';
+            info[header.prop] = item[`${key}`] === this.$tc('动态') ? 'dynamic' : 'static';
           } else if (key === this.$tc('认证方式')) { // 密钥 || 铁将军 需覆盖填写值
             let val = '';
             if (!isEmpty(item[key])) {
@@ -348,7 +349,8 @@ export default class ParserExcel extends Vue {
    * 下载模板文件
    */
   public handleDownload() {
-    const { url } = createExcel('bk_nodeman_info', headConfig);
+    // const { url } = createExcel('bk_nodeman_info', headConfig);
+    const url = `${window.location.origin}${window.PROJECT_CONFIG.SITE_URL}${AJAX_URL_PREFIX}api/excel/download`;
     download('bk_nodeman_info.xlsx', url);
   }
 }
