@@ -32,6 +32,8 @@ from pipeline.celery.settings import CELERY_ROUTES as PIPELINE_CELERY_ROUTES
 from .patchers import logging
 from .patchers.monitor_reporter import monitor_report_config
 
+ENVIRONMENT = env.ENVIRONMENT
+
 # ===============================================================================
 # 运行时，用于区分环境差异
 # ===============================================================================
@@ -320,6 +322,8 @@ BK_APIGW_NAME = "bk-nodeman"
 BK_API_URL_TMPL = env.BK_API_URL_TMPL
 BK_DOMAIN = env.BK_DOMAIN
 
+SYNC_APIGATEWAY_ENABLED = env.SYNC_APIGATEWAY_ENABLED
+
 BK_NODEMAN_HOST = env.BK_NODEMAN_HOST
 # 节点管理后台外网域名，用于构造文件导入导出的API URL
 BK_NODEMAN_BACKEND_HOST = env.BK_NODEMAN_BACKEND_HOST
@@ -367,6 +371,10 @@ BK_NOTICE_ENABLED = env.BK_NOTICE_ENABLED
 
 # 敏感参数
 SENSITIVE_PARAMS = ["app_code", "app_secret", "bk_app_code", "bk_app_secret", "auth_info"]
+
+SWAGGER_SETTINGS = {
+    "DEFAULT_INFO": "urls.openapi_info",
+}
 
 # rest_framework
 REST_FRAMEWORK = {
