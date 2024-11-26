@@ -208,7 +208,7 @@ export default defineComponent({
   },
 });
 </script>
-<style lang="postcss">
+<style lang="postcss" scoped>
   @import "@/css/variable.css";
 
   .setup-header {
