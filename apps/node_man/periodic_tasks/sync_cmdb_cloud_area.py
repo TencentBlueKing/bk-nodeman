@@ -35,7 +35,9 @@ def update_or_create_cloud_area(task_id, start):
 
     cc_cloud_id_list = [cloud["bk_cloud_id"] for cloud in cloud_list]
 
-    exist_cloud_ids = Cloud.objects.filter(bk_cloud_id__in=cc_cloud_id_list).values_list("bk_cloud_id", flat=True)
+    exist_cc_cloud_ids = Cloud.objects.filter(bk_cloud_id__in=cc_cloud_id_list).values_list("bk_cloud_id", flat=True)
+    all_cloud_ids = Cloud.objects.values_list("bk_cloud_id", flat=True)
+    not_exist_cc_cloud_ids = set(all_cloud_ids) - set(cc_cloud_id_list)
 
     need_update_cloud = []
     need_create_cloud = []
@@ -51,7 +53,7 @@ def update_or_create_cloud_area(task_id, start):
         # 默认管控区域不同步
         if _cloud["bk_cloud_id"] == constants.DEFAULT_CLOUD:
             continue
-        elif _cloud["bk_cloud_id"] in exist_cloud_ids:
+        elif _cloud["bk_cloud_id"] in exist_cc_cloud_ids:
             need_update_cloud.append(Cloud(bk_cloud_id=_cloud["bk_cloud_id"], bk_cloud_name=_cloud["bk_cloud_name"]))
         else:
             need_create_cloud.append(
@@ -66,6 +68,9 @@ def update_or_create_cloud_area(task_id, start):
 
     Cloud.objects.bulk_create(need_create_cloud)
     Cloud.objects.bulk_update(need_update_cloud, fields=["bk_cloud_name"])
+    if not_exist_cc_cloud_ids:
+        Cloud.objects.filter(bk_cloud_id__in=not_exist_cc_cloud_ids).delete()
+        logger.info(f"{task_id} | delete cloud area -> {not_exist_cc_cloud_ids}, len -> {len(not_exist_cc_cloud_ids)}")
 
     if cloud_count > start + constants.QUERY_CLOUD_LIMIT:
         update_or_create_cloud_area(task_id, start + constants.QUERY_CLOUD_LIMIT)

@@ -31,3 +31,11 @@ class TestSyncCMDBCloudArea(CustomBaseTestCase):
         with modify_constant_data([(MOCK_SEARCH_CLOUD_AREA["info"][0], {"bk_cloud_name": "test_cloud_2"})]):
             update_or_create_cloud_area(None, 0)
             self.assertEqual(Cloud.objects.all().first().bk_cloud_name, "test_cloud_2")
+
+    @patch("apps.node_man.periodic_tasks.sync_cmdb_cloud_area.client_v2", MockClient)
+    def test_delete_not_exist_cc_cloud_area(self):
+        Cloud.objects.create(bk_cloud_id=9, bk_cloud_name="test_cloud_3")
+        # 测试删除CC不存在的管控区域
+        update_or_create_cloud_area(None, 0)
+        cloud = list(Cloud.objects.filter(bk_cloud_id=9))
+        self.assertEqual(len(cloud), 0)
