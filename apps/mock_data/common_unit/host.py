@@ -30,9 +30,18 @@ AP_MODEL_DATA = {
     "ap_type": "system",
     "region_id": "test",
     "city_id": "test",
-    "btfileserver": [{"inner_ip": DEFAULT_IP, "outer_ip": DEFAULT_IP}],
-    "dataserver": [{"inner_ip": DEFAULT_IP, "outer_ip": DEFAULT_IP}],
-    "taskserver": [{"inner_ip": DEFAULT_IP, "outer_ip": DEFAULT_IP}],
+    "btfileserver": {
+        "inner_ip_infos": [{"ip": DEFAULT_IP}],
+        "outer_ip_infos": [{"ip": DEFAULT_IP}],
+    },
+    "dataserver": {
+        "inner_ip_infos": [{"ip": DEFAULT_IP}],
+        "outer_ip_infos": [{"ip": DEFAULT_IP}],
+    },
+    "taskserver": {
+        "inner_ip_infos": [{"ip": DEFAULT_IP}],
+        "outer_ip_infos": [{"ip": DEFAULT_IP}],
+    },
     "zk_hosts": [{"zk_ip": DEFAULT_IP, "zk_port": "2181"}],
     "zk_account": "zk_account",
     "zk_password": "zk_password",

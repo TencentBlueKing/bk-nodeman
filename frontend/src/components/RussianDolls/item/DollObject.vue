@@ -17,11 +17,26 @@ import { defineComponent, inject, toRefs } from 'vue';
 
 export default defineComponent({
   props: {
-    item: () => ({}),
-    schema: () => ({}),
-    itemIndex: -1,
-    value: () => ({}),
-    valueProp: '',
+    item: {
+      type: Object,
+      default: () => ({}),
+    },
+    schema: {
+      type: Object,
+      default: () => ({}),
+    },
+    itemIndex: {
+      type: Number,
+      default: -1,
+    },
+    value: {
+      type: Object,
+      default: () => ({}),
+    },
+    valueProp: {
+      type: String,
+      default: '',
+    },
     labelWidth: {
       type: Number,
       default: 110,

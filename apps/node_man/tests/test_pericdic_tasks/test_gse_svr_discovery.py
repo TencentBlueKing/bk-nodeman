@@ -38,7 +38,7 @@ class TestGseSvrDiscovery(CustomBaseTestCase):
         # 检查ap_field是否已经更新。注: 如果gse_svr_discovery的ap_field更改了，单测这里也需要同步更改
         ap_field_list = ["dataserver", "dataserver", "btfileserver"]
         for ap_field in ap_field_list:
-            self.assertEqual(getattr(ap, ap_field, []), MOCK_AP_FIELD_MAP)
+            self.assertEqual(getattr(ap, ap_field, {}), MOCK_AP_FIELD_MAP)
 
 
 class TestGseSvrDiscoveryEmptyRegionCity(TestGseSvrDiscovery):
@@ -47,3 +47,27 @@ class TestGseSvrDiscoveryEmptyRegionCity(TestGseSvrDiscovery):
         ap = AccessPoint.objects.all().first()
         ap.city_id = ap.region_id = None
         ap.save()
+
+
+class TestExistOuterIpInfoDiscovery(CustomBaseTestCase):
+    @classmethod
+    def setUpTestData(cls):
+        ap = AccessPoint.objects.all().first()
+        ap.city_id = ap.region_id = "test"
+        ap.btfileserver = {"inner_ip_infos": [{"ip": "127.0.0.1"}], "outer_ip_infos": [{"ip": "121.0.0.1"}]}
+        ap.save()
+
+    @patch("apps.node_man.periodic_tasks.gse_svr_discovery.settings.GSE_ENABLE_SVR_DISCOVERY", True)
+    @patch("apps.node_man.periodic_tasks.gse_svr_discovery.KazooClient", MockKazooClient)
+    @patch("apps.node_man.periodic_tasks.gse_svr_discovery.check_ip_ports_reachable", check_ip_ports_reachable)
+    def test_gse_bt_svr_discovery(self):
+        gse_svr_discovery_periodic_task()
+        ap = AccessPoint.objects.all().first()
+
+        self.assertEqual(
+            ap.btfileserver,
+            {
+                "inner_ip_infos": [{"ip": "127.0.0.1"}, {"ip": "127.0.0.2"}, {"ip": "127.0.0.3"}],
+                "outer_ip_infos": [{"ip": "121.0.0.1"}],
+            },
+        )
