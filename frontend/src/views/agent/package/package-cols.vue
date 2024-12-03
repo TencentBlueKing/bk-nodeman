@@ -4,6 +4,7 @@
     :class="`pkg-manage-table ${fontSize}`"
     :data="tableData"
     :max-height="maxHeight"
+    :empty-text="$t('暂无数据')"
     @sort-change="handleSortChange">
     <NmColumn :label="$t('包名称')" prop="pkg_name" min-width="210" fixed />
     <NmColumn

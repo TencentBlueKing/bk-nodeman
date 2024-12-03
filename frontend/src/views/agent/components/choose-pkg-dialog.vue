@@ -188,7 +188,7 @@ export default defineComponent({
       const builtinTags = ['stable', 'latest', 'test'];
       tableData.value.splice(0, tableData.value.length, ...pkg_info.map(item => ({
         ...item,
-        disabled: item.disabled || item.version === machine_latest_version,
+        disabled: item.disabled || compareVersions(item.version, machine_latest_version) < 0,
         isLatestVersion: machine_latest_version === package_latest_version,
         tags: item.tags.filter(tag => builtinTags.includes(tag.name)).map(tag => ({
           className: tag.name,
@@ -273,14 +273,14 @@ export default defineComponent({
       // val dialog显示隐藏
       if (val) {
         props.operate === 'reinstall_batch' && await getOs();
-        num.value = props.versions.length;
+                num.value = props.versions.length;
         if (lastOs.value !== `${props.osType}_${props.cpuArch}`) {
           loading.value = true;
           selectedRow.value = null;
           await getPkgVersions();
         }
         const selected = props.versions.length >= 1 ? tableData.value.find(row => row.version === props.versions[0]) || null : null;
-        if(selected) {
+                if(selected) {
           handleRowClick(selected);
         } else {
           selectedVersion.value = '';

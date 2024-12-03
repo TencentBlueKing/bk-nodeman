@@ -418,6 +418,8 @@ export default defineComponent({
       getTableData();
     };
     const tagChange = async() => {
+      // 更改了标签后需要同步更新筛选数据，以同步筛选数据中的标签
+      getPkgTags();
       await getDefaultVersion(state.active);
       pagetionChange();
     }

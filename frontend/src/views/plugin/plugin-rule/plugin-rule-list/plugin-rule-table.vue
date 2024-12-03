@@ -101,10 +101,10 @@
         min-width="140"
         :show-overflow-tooltip="false">
         <template #default="{ row, $index }">
-          <FlexibleTag
+                    <FlexibleTag
             :ref="`flexibleTagRef${$index}`"
             v-if="row.bk_biz_scope && row.bk_biz_scope.length"
-            lable-key="bk_biz_name"
+            :labelKey="'bk_biz_name'"
             :list="row.bk_biz_scope">
           </FlexibleTag>
           <span v-else>--</span>
