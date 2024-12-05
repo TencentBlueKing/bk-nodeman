@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import ipaddress
 import math
 import typing
 
@@ -15,6 +16,7 @@ from celery.schedules import crontab
 from celery.task import periodic_task
 from django.conf import settings
 from django.db import transaction
+from django.db.models import Q
 
 from apps.backend.celery import app
 from apps.backend.utils.redis import REDIS_INST
@@ -374,7 +376,11 @@ def update_or_create_host_base(biz_id, ap_map_config, is_gse2_gray, task_id, cmd
 
 
 def sync_biz_incremental_hosts(
-    bk_biz_id: int, ap_map_config: SyncHostApMapConfig, expected_bk_host_ids: typing.Iterable[int], is_gse2_gray: bool
+    bk_biz_id: int,
+    ap_map_config: SyncHostApMapConfig,
+    expected_bk_host_ids: typing.Iterable[int],
+    is_gse2_gray: bool,
+    inner_ips: typing.List[str],
 ):
     """
     同步业务增量主机
@@ -382,6 +388,7 @@ def sync_biz_incremental_hosts(
     :param ap_map_config:
     :param expected_bk_host_ids: 期望得到的主机ID列表
     :param is_gse2_gray:
+    :param inner_ips:内网IPv4/IPv6列表
     :return:
     """
     logger.info(
@@ -389,13 +396,18 @@ def sync_biz_incremental_hosts(
         f"bk_biz_id -> {bk_biz_id}, expected_bk_host_ids -> {expected_bk_host_ids}"
     )
     expected_bk_host_ids: typing.Set[int] = set(expected_bk_host_ids)
+    common_query_conditions = Q(bk_biz_id=bk_biz_id) & Q(bk_host_id__in=expected_bk_host_ids)
+    if inner_ips:
+        # 因经给序列化器校验后，必定有一个IP类型列表是有值的
+        ipv4_list, ipv6_list = filter_ipv4_and_ipv6(inner_ips)
+        common_query_conditions &= Q(inner_ip__in=ipv4_list) | Q(inner_ipv6__in=ipv6_list)
+
     exists_host_ids: typing.Set[int] = set(
-        models.Host.objects.filter(bk_biz_id=bk_biz_id, bk_host_id__in=expected_bk_host_ids).values_list(
-            "bk_host_id", flat=True
-        )
+        models.Host.objects.filter(common_query_conditions).values_list("bk_host_id", flat=True)
     )
     # 计算出对比本地主机缓存，增量的主机 ID
     incremental_host_ids: typing.List[int] = list(expected_bk_host_ids - exists_host_ids)
+    logger.info(f"need sync hosts id: {incremental_host_ids}, length -> {len(incremental_host_ids)}")
     # 尝试获取增量主机信息
     hosts: typing.List[typing.Dict] = query_biz_hosts(bk_biz_id=bk_biz_id, bk_host_ids=incremental_host_ids)
     # 更新本地缓存
@@ -408,10 +420,14 @@ def sync_biz_incremental_hosts(
     )
 
 
-def bulk_differential_sync_biz_hosts(expected_bk_host_ids_gby_bk_biz_id: typing.Dict[int, typing.Iterable[int]]):
+def bulk_differential_sync_biz_hosts(
+    expected_bk_host_ids_gby_bk_biz_id: typing.Dict[int, typing.Iterable[int]],
+    inner_ips_gby_bk_biz_id: typing.Dict[int, typing.List[str]] = None,
+):
     """
     并发同步增量主机
     :param expected_bk_host_ids_gby_bk_biz_id: 按业务ID聚合主机ID列表
+    :param inner_ips_gby_bk_biz_id: 按业务ID聚合主机内网IP列表
     :return:
     """
     params_list: typing.List[typing.Dict] = []
@@ -419,14 +435,16 @@ def bulk_differential_sync_biz_hosts(expected_bk_host_ids_gby_bk_biz_id: typing.
     gray_tools: GrayTools = GrayTools()
     # TODO 开始跳跃
     for bk_biz_id, bk_host_ids in expected_bk_host_ids_gby_bk_biz_id.items():
-        params_list.append(
-            {
-                "bk_biz_id": bk_biz_id,
-                "ap_map_config": ap_map_config,
-                "expected_bk_host_ids": bk_host_ids,
-                "is_gse2_gray": gray_tools.is_gse2_gray(bk_biz_id=bk_biz_id),
-            }
-        )
+        params = {
+            "bk_biz_id": bk_biz_id,
+            "ap_map_config": ap_map_config,
+            "expected_bk_host_ids": bk_host_ids,
+            "is_gse2_gray": gray_tools.is_gse2_gray(bk_biz_id=bk_biz_id),
+            "inner_ips": None,
+        }
+        if inner_ips_gby_bk_biz_id:
+            params["inner_ips"] = inner_ips_gby_bk_biz_id.get(bk_biz_id)
+        params_list.append(params)
     batch_call(func=sync_biz_incremental_hosts, params_list=params_list)
 
 
@@ -618,3 +636,25 @@ def clear_need_delete_host_ids_task():
     """
     task_id = clear_need_delete_host_ids_task.request.id
     clear_need_delete_host_ids(task_id)
+
+
+def filter_ipv4_and_ipv6(ip_list):
+    """
+    过滤出列表中的IPv4、IPv6地址
+    :param ip_list: 包含IP地址的列表
+    :return: 包含IPv4、IPv6地址的列表
+    """
+    ipv4_list = []
+    ipv6_list = []
+    for ip in ip_list:
+        try:
+            # 尝试将字符串解析为IP地址对象
+            ip_obj = ipaddress.ip_address(ip)
+            if isinstance(ip_obj, ipaddress.IPv4Address):
+                ipv4_list.append(ip)
+            if isinstance(ip_obj, ipaddress.IPv6Address):
+                ipv6_list.append(ip)
+        except ValueError:
+            # 如果解析失败，则跳过该IP地址
+            continue
+    return ipv4_list, ipv6_list
