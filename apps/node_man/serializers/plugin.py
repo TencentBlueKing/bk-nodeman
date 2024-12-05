@@ -12,6 +12,7 @@ from django.utils.translation import get_language
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
+from apps.core.ipchooser.handlers.host_handler import HostHandler
 from apps.exceptions import ValidationError
 from apps.node_man.constants import (
     CATEGORY_CHOICES,
@@ -25,6 +26,7 @@ from apps.node_man.constants import (
 from apps.node_man.models import (
     GlobalSettings,
     GsePluginDesc,
+    Host,
     Packages,
     ProcControl,
     ProcessStatus,
@@ -265,6 +267,14 @@ class OperateSerializer(serializers.Serializer):
             raise ValidationError(_("跨页全选模式下不允许传bk_host_id参数."))
         if attrs.get("exclude_hosts") is None and attrs.get("bk_host_id") is None:
             raise ValidationError(_("必须选择一种模式(【是否跨页全选】)"))
+        if attrs.get("bk_host_id") and not attrs.get("exclude_hosts"):
+            exist_host_ids = set(
+                Host.objects.filter(bk_host_id__in=attrs["bk_host_id"]).values_list("bk_host_id", flat=True)
+            )
+            # 需要去同步的主机ID
+            need_differential_sync_bk_host_ids = list(set(attrs["bk_host_id"]) - exist_host_ids)
+            if need_differential_sync_bk_host_ids:
+                HostHandler.bulk_differential_sync_hosts(need_differential_sync_bk_host_ids)
 
         if attrs["node_type"] != ProcType.PLUGIN:
             raise ValidationError(_("插件管理只允许对插件进行操作."))
