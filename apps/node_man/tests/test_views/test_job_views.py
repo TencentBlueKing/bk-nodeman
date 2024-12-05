@@ -17,8 +17,8 @@ from apps.mock_data import utils
 from apps.mock_data.common_unit import host
 from apps.mock_data.views_mkd import job
 from apps.node_man import constants
-from apps.node_man.models import Host
-from apps.node_man.tests.utils import Subscription
+from apps.node_man.models import Host, IdentityData
+from apps.node_man.tests.utils import MockClient, Subscription
 from apps.utils.unittest.testcase import CustomAPITestCase, MockSuperUserMixin
 
 
@@ -94,3 +94,31 @@ class TestOuterIpNotEmptyAtTheSameTimeError(TestJobValidationError):
         data["hosts"][0]["outer_ip"] = ""
         data["hosts"][0]["outer_ipv6"] = ""
         return data
+
+
+class TestHostInfoNotUpdateCase(MockSuperUserMixin, CustomAPITestCase):
+    def setUp(self) -> None:
+        Host.objects.update_or_create(
+            defaults={
+                "bk_cloud_id": constants.DEFAULT_CLOUD,
+                "node_type": constants.NodeType.AGENT,
+                "bk_biz_id": 100001,
+                "inner_ip": host.DEFAULT_IP,
+            },
+            bk_host_id=14110,
+        )
+        identify_data = copy.deepcopy(host.IDENTITY_MODEL_DATA)
+        identify_data["bk_host_id"] = 14110
+        IdentityData.objects.create(**identify_data)
+        return super().setUp()
+
+    @patch("apps.node_man.handlers.job.JobHandler.create_subscription", Subscription.create_subscription)
+    @patch("apps.node_man.periodic_tasks.sync_cmdb_host.client_v2", MockClient)
+    def test_install(self):
+        data = copy.deepcopy(job.JOB_REINSTALL_REQUEST_PARAMS)
+        data["hosts"][0]["inner_ip"] = "2.1.2.52"
+
+        response = self.client.post(path="/api/job/install/", data=data)
+        # 成功创建安装任务
+        self.assertEqual(response["result"], True)
+        self.assertEqual(type(response["data"]["job_id"]), int)

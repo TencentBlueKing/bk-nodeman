@@ -308,6 +308,7 @@ class InstallSerializer(InstallBaseSerializer):
 
         bk_biz_ids = set()
         expected_bk_host_ids_gby_bk_biz_id: typing.Dict[int, typing.List[int]] = defaultdict(list)
+        inner_ips_gby_bk_biz_id: typing.Dict[int, typing.List[str]] = defaultdict(list)
         cipher = tools.HostTools.get_asymmetric_cipher()
         fields_need_decrypt = ["password", "key"]
         # 密码解密
@@ -325,10 +326,17 @@ class InstallSerializer(InstallBaseSerializer):
                 if "bk_biz_id" not in host:
                     raise ValidationError(_("主机信息缺少业务ID（bk_biz_id）"))
                 expected_bk_host_ids_gby_bk_biz_id[host["bk_biz_id"]].append(host["bk_host_id"])
+                if host.get("inner_ip"):
+                    inner_ips_gby_bk_biz_id[host["bk_biz_id"]].append(host["inner_ip"])
+                elif host.get("inner_ipv6"):
+                    inner_ips_gby_bk_biz_id[host["bk_biz_id"]].append(host["inner_ipv6"])
 
         if attrs["op_type"] not in [constants.OpType.INSTALL, constants.OpType.REPLACE]:
             # 差量同步主机
-            bulk_differential_sync_biz_hosts(expected_bk_host_ids_gby_bk_biz_id)
+            bulk_differential_sync_biz_hosts(
+                expected_bk_host_ids_gby_bk_biz_id=expected_bk_host_ids_gby_bk_biz_id,
+                inner_ips_gby_bk_biz_id=inner_ips_gby_bk_biz_id,
+            )
 
         set_agent_setup_info_to_attrs(attrs)
 
