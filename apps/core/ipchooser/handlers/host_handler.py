@@ -126,7 +126,7 @@ class HostHandler:
             bk_host_ids=need_differential_sync_bk_host_ids
         )
 
-        expected_bk_host_ids_gby_bk_biz_id: typing.Dict[str, typing.List[int]] = defaultdict(list)
+        expected_bk_host_ids_gby_bk_biz_id: typing.Dict[int, typing.List[int]] = defaultdict(list)
         for host_biz_realtion in host_biz_relations:
             expected_bk_host_ids_gby_bk_biz_id[host_biz_realtion["bk_biz_id"]].append(host_biz_realtion["bk_host_id"])
 
