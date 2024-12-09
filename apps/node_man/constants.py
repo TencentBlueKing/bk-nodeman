@@ -1114,6 +1114,17 @@ class CmdbIpVersion(EnhanceEnum):
         return {cls.V4: _("IPv4"), cls.V6: _("IPv6")}
 
 
+class CmdbGroupObjId(EnhanceEnum):
+    """CMDB 动态分组目标"""
+
+    HOST = "host"
+    SET = "set"
+
+    @classmethod
+    def _get_member__alias_map(cls) -> Dict[Enum, str]:
+        return {cls.HOST: _("主机"), cls.SET: _("集群")}
+
+
 class PolicyRollBackType:
     SUPPRESSED = "SUPPRESSED"
     LOSE_CONTROL = "LOSE_CONTROL"
