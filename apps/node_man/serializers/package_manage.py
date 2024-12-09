@@ -179,6 +179,7 @@ class AgentRegisterTaskResponseSerializer(serializers.Serializer):
 class DeployedAgentCountSerializer(serializers.Serializer):
     items = serializers.JSONField(default=[])
     project = serializers.CharField(default=GsePackageCode.AGENT.value)
+    biz_scope = serializers.ListField(child=serializers.IntegerField(), default=[])
 
 
 class VersionQuerySerializer(serializers.Serializer):
