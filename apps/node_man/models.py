@@ -173,6 +173,8 @@ class GlobalSettings(models.Model):
         NEED_CLEAN_SUBSCRIPTION_APP_CODE = "NEED_CLEAN_SUBSCRIPTION_APP_CODE"
         # 腾讯云安全组策略配置
         TXY_POLICY_CONFIGS = "TXY_POLICY_CONFIGS"
+        # 业务新增主机黑名单，用于限制指定业务通过安装 Agent 新增主机，配置样例：[1, 2]
+        ADD_HOST_BIZ_BLACKLIST = "ADD_HOST_BIZ_BLACKLIST"
 
     key = models.CharField(_("键"), max_length=255, db_index=True, primary_key=True)
     v_json = JSONField(_("值"))
