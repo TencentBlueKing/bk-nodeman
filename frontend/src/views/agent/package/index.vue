@@ -106,6 +106,7 @@ import {
   IPkgQuickOpt, IPkgDimension, IPkgRow,
 } from '@/types/agent/pkg-manage';
 import { toLine, getFilterChildBySelected } from '@/common/util';
+import { TranslateResult } from 'vue-i18n';
 
 type PkgQuickType = 'os_cpu_arch' | 'version';
 // 排序类型
@@ -467,6 +468,17 @@ export default defineComponent({
     }
     // 搜索值变更
     const handleSearchSelectValueChange = (list: ISearchItem[]) => {
+      /* 自定义搜索时，在勾选状态后手动输入启用和停用，因为中文后端无法搜索，
+        在此处匹配这两个值$t('启用状态') : $t('停用状态')并更换英文is_ready
+        */
+      const findItem = list.find(item => item.id === 'is_ready');
+      if(findItem) {
+        if(findItem.values?.[0].id === i18n.t('启用状态')) {
+          findItem.values[0].id = true;
+        } else if(findItem.values?.[0].id === i18n.t('停用状态')) {
+          findItem.values[0].id = false;
+        }
+      }
       // 清除非法选项
       if (list.length >= 1 && list[list.length - 1].id === undefined) {
         searchSelectValue.value.splice(list.length - 1, 1);
@@ -475,7 +487,7 @@ export default defineComponent({
       const filterList = list.filter((item) => {
         return !!searchSelectData.value.find((data) => data.id === item.id);
       });
-
+      
       // 同步到快捷筛选
       updateQuickSearch(filterList);
       

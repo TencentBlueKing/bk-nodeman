@@ -156,7 +156,7 @@ export interface IIsp {
 }
 
 export interface ISearchChild {
-  id: string
+  id: string | boolean
   name: string
   checked?: boolean
 }
