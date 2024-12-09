@@ -38,6 +38,8 @@ LEGACY = "legacy"
 class AgentVersionSerializer(serializers.Serializer):
     os_cpu_arch = serializers.CharField(label="系统CPU架构", required=False)
     bk_host_id = serializers.IntegerField(label="主机ID", required=False)
+    bk_cloud_id = serializers.IntegerField(label="云区域id", required=False)
+    inner_ip = serializers.IPAddressField(label="内网ip", required=False)
     version = serializers.CharField(label="Agent Version")
 
 
@@ -189,6 +191,14 @@ class AgentStepAdapter:
     def bk_host_id_version_map(self) -> typing.Dict[int, str]:
         return {versiom_map["bk_host_id"]: versiom_map["version"] for versiom_map in self.config["version_map_list"]}
 
+    @property
+    @cache.class_member_cache()
+    def bk_cloud_and_inner_ip__version_map(self) -> typing.Dict[str, str]:
+        return {
+            f"{version_map['bk_cloud_id']}:{version_map['inner_ip']}": version_map["version"]
+            for version_map in self.config["version_map_list"]
+        }
+
     def get_host_setup_info(self, host: models.Host) -> base.AgentSetupInfo:
         """
         获取 Agent 设置信息
@@ -218,9 +228,11 @@ class AgentStepAdapter:
                     f"agent_name:{self.agent_name}:type:{constants.AgentVersionType.BY_SYSTEM_ARCH.value}:"
                     f"os:{host.os_type.lower()}:version:{agent_version}"
                 )
-            else:
+            elif self.config["choice_version_type"] == constants.AgentVersionType.BY_HOST.value:
                 # 按主机维度
                 agent_version: str = self.bk_host_id_version_map[host.bk_host_id]
+            else:
+                agent_version = self.bk_cloud_and_inner_ip__version_map[f"{host.bk_cloud_id}:{host.inner_ip}"]
 
             target_version_cache_key: str = f"agent_desc_id:{self.agent_desc.id}:agent_version:{agent_version}"
             target_version: str = self._target_version_cache.get(target_version_cache_key)
@@ -231,7 +243,10 @@ class AgentStepAdapter:
                 )
                 self._target_version_cache[target_version_cache_key] = target_version
 
-        if self.config["choice_version_type"] != constants.AgentVersionType.BY_HOST.value:
+        if self.config["choice_version_type"] not in [
+            constants.AgentVersionType.BY_HOST.value,
+            constants.AgentVersionType.BY_CLOUD_ID_AND_INNER_IP.value,
+        ]:
             agent_setup_info: typing.Optional[base.AgentSetupInfo] = self._setup_info_cache.get(setup_info_cache_key)
             if agent_setup_info:
                 return agent_setup_info
@@ -242,7 +257,10 @@ class AgentStepAdapter:
             name=self.config.get("name"),
             version=target_version,
         )
-        if self.config["choice_version_type"] != constants.AgentVersionType.BY_HOST.value:
+        if self.config["choice_version_type"] not in [
+            constants.AgentVersionType.BY_HOST.value,
+            constants.AgentVersionType.BY_CLOUD_ID_AND_INNER_IP.value,
+        ]:
             self._setup_info_cache[setup_info_cache_key] = agent_setup_info
         return agent_setup_info
 
