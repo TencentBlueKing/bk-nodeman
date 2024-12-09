@@ -383,3 +383,12 @@ class _CCApi(BaseApi):
             before_request=add_esb_info_before_request,
             api_name="list_business_set",
         )
+        self.execute_dynamic_group = DataAPI(
+            method="POST",
+            url=CC_APIGATEWAY_ROOT_V2 + "execute_dynamic_group/",
+            module=self.MODULE,
+            simple_module=self.SIMPLE_MODULE,
+            description="执行动态分组",
+            before_request=add_esb_info_before_request,
+            api_name="execute_dynamic_group",
+        )
