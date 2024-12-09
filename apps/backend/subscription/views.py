@@ -123,9 +123,7 @@ class SubscriptionViewSet(APIViewSet):
             subscription_task = models.SubscriptionTask.objects.create(
                 subscription_id=subscription.id, scope=subscription.scope, actions={}
             )
-            tasks.run_subscription_task_and_create_instance.delay(
-                subscription, subscription_task, language=get_language()
-            )
+            tasks.run_subscription_task_and_create_instance(subscription, subscription_task, language=get_language())
             result["task_id"] = subscription_task.id
 
         return Response(result)
