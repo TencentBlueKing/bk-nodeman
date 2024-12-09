@@ -89,7 +89,7 @@ class PackageManageFilterClass(FilterSet):
     os_cpu_arch = django_filters.BaseInFilter(field_name="os_cpu_arch", method="filter_os_cpu_arch")
     tag_names = django_filters.BaseInFilter(lookup_expr="in", method="filter_tag_names")
     created_by = django_filters.BaseInFilter(field_name="created_by", lookup_expr="in")
-    is_ready = django_filters.BooleanFilter(field_name="is_ready")
+    is_ready = django_filters.CharFilter(field_name="is_ready", method="filter_is_ready")
     version = django_filters.BaseInFilter(field_name="version", lookup_expr="in")
     created_time = django_filters.DateTimeFromToRangeFilter()
     condition = django_filters.Filter(method="filter_condition")
@@ -99,7 +99,8 @@ class PackageManageFilterClass(FilterSet):
             raise ValidationError(_("筛选tag_names时必须传入project"))
         return gse_package_handler.filter_tags(queryset, self.request.data["project"], tag_names=tag_names)
 
-    def filter_os_cpu_arch(self, queryset, name, os_cpu_archs):
+    @staticmethod
+    def filter_os_cpu_arch(queryset, name, os_cpu_archs):
         package_query = Q()
         for os_cpu_arch in os_cpu_archs:
             try:
@@ -136,6 +137,15 @@ class PackageManageFilterClass(FilterSet):
             )
 
         return queryset.filter(model_field_query | tag_query)
+
+    @staticmethod
+    def filter_is_ready(queryset, name, is_ready):
+        if is_ready in (True, "True", "true", "1"):
+            return queryset.filter(is_ready=True)
+        elif is_ready in (False, "False", "false", "0"):
+            return queryset.filter(is_ready=False)
+        else:
+            return queryset.none()
 
     class Meta:
         model = GsePackages

@@ -155,7 +155,7 @@ class GsePackageHandler:
         combined_tag_names_conditions: Q = Q()
 
         for tag_name in tag_names or []:
-            combined_tag_names_conditions |= Q(name__contains=tag_name)
+            combined_tag_names_conditions |= Q(name=tag_name)
 
         filter_conditions: Q = Q(target_id=project__id_map.get(project)) & combined_tag_names_conditions
 
