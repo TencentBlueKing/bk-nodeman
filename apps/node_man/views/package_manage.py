@@ -785,8 +785,8 @@ class PackageManageViewSet(ValidationMixin, ModelViewSet):
         # 主机和进程连表查询
         host_queryset: QuerySet = HostQuerySqlHelper.multiple_cond_sql(
             params=process_params,
-            biz_scope=[],
-            need_biz_scope=False,
+            biz_scope=validated_data["biz_scope"],
+            need_biz_scope=True if validated_data["biz_scope"] else False,
             is_proxy=False if project == constants.GsePackageCode.AGENT.value else True,
         ).filter(**host_kwargs)
 
