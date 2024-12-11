@@ -196,6 +196,7 @@ export default {
   accessPoint: {
     apBaseForm: 'form_apBase',
     apBaseTable: 'table_apBase',
+    apOmitBtn: 'btn_apOmit',
     apTestBtn: 'btn_apTest',
     apBaseInput: 'input_apBase',
     addRowBtn: 'btn_addRow',
