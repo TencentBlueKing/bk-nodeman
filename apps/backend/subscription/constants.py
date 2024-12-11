@@ -20,6 +20,8 @@ SUBSCRIPTION_UPDATE_INTERVAL = 2 * constants.TimeUnit.HOUR
 
 # 检查僵尸订阅实例记录周期
 CHECK_ZOMBIE_SUB_INST_RECORD_INTERVAL = 15 * constants.TimeUnit.MINUTE
+# 僵尸订阅实例记录数量
+ZOMBIE_SUB_INST_RECORD_COUNT = 100
 
 # 任务超时时间。距离 create_time 多久后会被判定为超时，防止 pipeline 后台僵死的情况
 TASK_TIMEOUT = 15 * constants.TimeUnit.MINUTE

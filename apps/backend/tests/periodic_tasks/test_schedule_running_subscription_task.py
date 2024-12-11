@@ -53,7 +53,7 @@ class TestScheduleRunningSubscriptionTask(CreatePreData):
 
     def test_schedule_running_subscription_task(self):
         name: str = constants.RUN_SUBSCRIPTION_REDIS_KEY_TPL
-        length: int = min(REDIS_INST.llen(name), constants.MAX_SUBSCRIPTION_TASK_COUNT)
+        length: int = min(REDIS_INST.llen(name), constants.MAX_RUN_SUBSCRIPTION_TASK_COUNT)
         run_params = REDIS_INST.lrange(name, -length, -1)
         self.assertEqual(
             json.loads(run_params[0].decode()),
@@ -102,9 +102,10 @@ class TestScheduleUpdateSubscriptionTask(CreatePreData):
 
     def test_schedule_update_subscription_task(self):
         name: str = constants.UPDATE_SUBSCRIPTION_REDIS_KEY_TPL
-        length: int = min(REDIS_INST.llen(name), constants.MAX_SUBSCRIPTION_TASK_COUNT)
-        run_params = REDIS_INST.lrange(name, -length, -1)
-        self.assertEqual(json.loads(run_params[0].decode()), self.params)
+
+        update_params = REDIS_INST.hgetall(name=name)
+        for update_param in update_params.values():
+            self.assertEqual(json.loads(update_param.decode()), self.params)
         models.SubscriptionInstanceRecord.objects.filter(
             id=self.ids["subscription_instance_record_id"], subscription_id=self.ids["subscription_id"]
         ).update(status="SUCCESS")

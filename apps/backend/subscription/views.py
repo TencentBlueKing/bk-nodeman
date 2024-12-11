@@ -213,7 +213,7 @@ class SubscriptionViewSet(APIViewSet):
             raise errors.SubscriptionNotExist({"subscription_id": subscription_id})
         # 调用delete()方法才会记录删除时间
         subscription_qs.delete()
-        logger.info(f"deleted subscription: {subscription_id}")
+        logger.info(f"deleted_subscription_id: {subscription_id}")
         return Response({"deleted_subscription_id": subscription_id})
 
     @swagger_auto_schema(

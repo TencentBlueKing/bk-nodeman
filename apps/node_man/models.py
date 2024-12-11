@@ -21,6 +21,7 @@ import traceback
 import uuid
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import timedelta
 from distutils.dir_util import copy_tree
 from enum import Enum
 from functools import cmp_to_key, reduce
@@ -1930,7 +1931,12 @@ class Subscription(export_subscription_prometheus_mixin(), orm.SoftDeleteModel):
 
     def is_running(self, instance_id_list: List[str] = None):
         """订阅下是否有运行中的任务"""
-        base_kwargs = {"subscription_id": self.id, "is_latest": True}
+        # 只需检查近两小时内的订阅实例
+        base_kwargs = {
+            "subscription_id": self.id,
+            "is_latest": True,
+            "update_time__gte": timezone.now() - timedelta(hours=2),
+        }
         if instance_id_list is not None:
             base_kwargs["instance_id__in"] = instance_id_list
         status_set = set(SubscriptionInstanceRecord.objects.filter(**base_kwargs).values_list("status", flat=True))
