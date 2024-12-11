@@ -443,8 +443,16 @@ class SubscriptionHandler(object):
             raise errors.SubscriptionIncludeGrayBizError()
 
         if subscription.is_running():
+            # 这里仍使用lpush的原因在于订阅任务可能执行的动作不一样，不能使用更新
+            name = backend_constants.RUN_SUBSCRIPTION_REDIS_KEY_TPL
+            if REDIS_INST.llen(name) > backend_constants.MAX_STORE_SUBSCRIPTION_TASK_COUNT:
+                logger.info("redis list store params is full")
+                return {
+                    "subscription_id": subscription.id,
+                    "message": _("该订阅ID下有正在RUNNING的订阅任务，且任务编排数量已达阈值，请稍后再试，如造成不便，请联系管理员处理"),
+                }
             params = json.dumps({"subscription_id": subscription.id, "scope": scope, "actions": actions})
-            REDIS_INST.lpush(backend_constants.RUN_SUBSCRIPTION_REDIS_KEY_TPL, params)
+            REDIS_INST.lpush(name, params)
             logger.info(f"run subscription[{subscription.id}] store params into redis: {params}")
             return {"subscription_id": subscription.id, "message": _("该订阅ID下有正在RUNNING的订阅任务，已进入任务编排")}
 
@@ -704,8 +712,15 @@ class SubscriptionHandler(object):
         ):
             raise errors.SubscriptionIncludeGrayBizError()
         if subscription.is_running():
-            REDIS_INST.lpush(backend_constants.UPDATE_SUBSCRIPTION_REDIS_KEY_TPL, json.dumps(params))
-            logger.info(f"update subscription[{subscription.id}] store params into redis: {params}")
+            name = backend_constants.UPDATE_SUBSCRIPTION_REDIS_KEY_TPL
+            if REDIS_INST.hlen(name=name) > backend_constants.MAX_STORE_SUBSCRIPTION_TASK_COUNT:
+                logger.info("redis hashset store params is full")
+                return {
+                    "subscription_id": subscription.id,
+                    "message": _("该订阅ID下有正在RUNNING的订阅任务，且任务编排数量已达阈值，请稍后再试，如造成不便，请联系管理员处理"),
+                }
+            REDIS_INST.hset(name, key=f"subscription_id_{subscription.id}", value=json.dumps(params))
+            logger.info(f"update subscription[{subscription.id}] store or update params into redis: {params}")
             return {"subscription_id": subscription.id, "message": _("该订阅ID下有正在RUNNING的订阅任务，已进入任务编排")}
 
         with transaction.atomic():

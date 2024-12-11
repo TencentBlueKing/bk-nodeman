@@ -37,18 +37,14 @@ def get_need_clean_subscription_app_code():
 @periodic_task(run_every=constants.UPDATE_SUBSCRIPTION_TASK_INTERVAL, queue="backend", options={"queue": "backend"})
 def schedule_update_subscription():
     name: str = constants.UPDATE_SUBSCRIPTION_REDIS_KEY_TPL
-    # 先计算出要从redis取数据的长度
-    length: int = min(REDIS_INST.llen(name), constants.MAX_SUBSCRIPTION_TASK_COUNT)
-    # 从redis中取出对应长度的数据
-    update_params: List[bytes] = REDIS_INST.lrange(name, -length, -1)
-    # 使用ltrim保留剩下的，可以保证redis中新push的值不会丢失
-    REDIS_INST.ltrim(name, 0, -length - 1)
-    # 翻转数据，先进的数据先处理
-    update_params.reverse()
+    # 取出该hashset中所有的参数
+    update_params: Dict[str, bytes] = REDIS_INST.hgetall(name=name)
+    # 删除该hashset内的所有参数
+    REDIS_INST.delete(name)
     results = []
     if not update_params:
         return
-    for update_param in update_params:
+    for update_param in update_params.values():
         # redis取出为bytes类型，需进行解码后转字典
         params = json.loads(update_param.decode())
         subscription_id = params["subscription_id"]
@@ -64,7 +60,7 @@ def schedule_update_subscription():
 @periodic_task(run_every=constants.UPDATE_SUBSCRIPTION_TASK_INTERVAL, queue="backend", options={"queue": "backend"})
 def schedule_run_subscription():
     name: str = constants.RUN_SUBSCRIPTION_REDIS_KEY_TPL
-    length: int = min(REDIS_INST.llen(name), constants.MAX_SUBSCRIPTION_TASK_COUNT)
+    length: int = min(REDIS_INST.llen(name), constants.MAX_RUN_SUBSCRIPTION_TASK_COUNT)
     run_params: List[bytes] = REDIS_INST.lrange(name, -length, -1)
     REDIS_INST.ltrim(name, 0, -length - 1)
     run_params.reverse()

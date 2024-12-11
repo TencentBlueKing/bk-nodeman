@@ -18,7 +18,10 @@ from django.db.models.functions import Concat
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
-from apps.backend.subscription.constants import CHECK_ZOMBIE_SUB_INST_RECORD_INTERVAL
+from apps.backend.subscription.constants import (
+    CHECK_ZOMBIE_SUB_INST_RECORD_INTERVAL,
+    ZOMBIE_SUB_INST_RECORD_COUNT,
+)
 from apps.node_man import constants, models
 from apps.utils.time_handler import strftime_local
 
@@ -48,10 +51,20 @@ def check_zombie_sub_inst_record():
         "status__in": [constants.JobStatusType.PENDING, constants.JobStatusType.RUNNING],
     }
     base_update_kwargs = {"status": constants.JobStatusType.FAILED, "update_time": timezone.now()}
-
-    forced_failed_inst_num = models.SubscriptionInstanceRecord.objects.filter(**query_kwargs).update(
-        **base_update_kwargs
-    )
+    # 先count确认是否需要update，如果count数量小于100传主键 update，否则继续沿用现在的方式
+    subscription_instance_record_qs = models.SubscriptionInstanceRecord.objects.filter(**query_kwargs)
+    if not subscription_instance_record_qs.exists():
+        logger.info("no zombie_sub_inst_record skipped")
+        return
+    if subscription_instance_record_qs.count() < ZOMBIE_SUB_INST_RECORD_COUNT:
+        forced_failed_inst_record_ids = set(subscription_instance_record_qs.values_list("id", flat=True))
+        forced_failed_inst_num = models.SubscriptionInstanceRecord.objects.filter(
+            id__in=forced_failed_inst_record_ids
+        ).update(**base_update_kwargs)
+    else:
+        forced_failed_inst_num = models.SubscriptionInstanceRecord.objects.filter(**query_kwargs).update(
+            **base_update_kwargs
+        )
 
     forced_failed_status_detail_num = models.SubscriptionInstanceStatusDetail.objects.filter(**query_kwargs).update(
         **base_update_kwargs,
