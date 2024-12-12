@@ -705,7 +705,15 @@ export default class AgentImport extends Mixins(mixin) {
       this.editTableHead.editManualConfig = getManualConfig(editConfig)
         .map(item => Object.assign({ ...item }, { show: true }));
     } else {
-      this.editTableHead.editConfig = editConfig.filter(item => this.AgentPkgShow || item.prop !== 'version');
+      // 除了重载模式,卸载模式和其他模式在关闭agent开关时,都不显示agent版本
+      this.editTableHead.editConfig = editConfig.filter(item => 
+        {
+          if (item.prop === 'version') {
+            return this.type !== 'UNINSTALL_AGENT' && this.AgentPkgShow;
+          }
+          return true;
+        }
+      );
       // 重装时表格增加agent版本信息
       this.editTableHead.editManualConfig = (this.type === 'REINSTALL_AGENT')
         ? editConfig.filter(item => item.manualProp || (this.AgentPkgShow && item.prop === 'version'))
