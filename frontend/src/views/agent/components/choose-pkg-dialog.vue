@@ -188,7 +188,7 @@ export default defineComponent({
       const builtinTags = ['stable', 'latest', 'test'];
       tableData.value.splice(0, tableData.value.length, ...pkg_info.map(item => ({
         ...item,
-        disabled: item.disabled || compareVersions(item.version, machine_latest_version) < 0,
+        disabled: item.disabled || (compareVersions(item.version, machine_latest_version) < 0 && props.operate !== 'UPGRADE_AGENT'),
         isLatestVersion: machine_latest_version === package_latest_version,
         tags: item.tags.filter(tag => builtinTags.includes(tag.name)).map(tag => ({
           className: tag.name,
