@@ -4,7 +4,6 @@
     :class="`pkg-manage-table ${fontSize}`"
     :data="tableData"
     :max-height="maxHeight"
-    :empty-text="$t('暂无数据')"
     @sort-change="handleSortChange">
     <NmColumn :label="$t('包名称')" prop="pkg_name" min-width="210" fixed />
     <NmColumn
@@ -151,6 +150,11 @@
       :resizable="false"
       fixed="right">
     </NmColumn>
+    <NmException
+      slot="empty"
+      :delay="loading"
+      :type="tableEmptyType"
+      @empty-clear="searchClear" />
   </bk-table>
 </template>
 <script lang="ts">
@@ -177,6 +181,8 @@ export default class PackageCols extends Mixins(HeaderRenderMixin) {
   @Prop({ type: Number, default: 0 }) maxHeight!: number;
   @Prop({ type: Array, default: () => [] }) options!: ISearchItem[];
   @Prop({ default: () => ([]), type: Array }) private readonly searchSelectData!: ISearchItem[];
+  @Prop({ default: () => ([]), type: Array }) private readonly searchSelectValue!: ISearchItem[];
+  @Prop({ type: Boolean, default: false }) loading!: boolean;
 
   @Watch('searchSelectData', { deep: true, immediate: true })
   private handleSearchSelectDataChange(data: ISearchItem[]) {
@@ -332,6 +338,13 @@ export default class PackageCols extends Mixins(HeaderRenderMixin) {
     }
   }
 
+  // 列表数据为空时显示的类型，搜索条件不为空时就需要清除搜索条件的样式，所以应该是search-empty样式
+  private get tableEmptyType() {
+    return this.searchSelectValue.length ? 'search-empty' : 'empty';
+  }
+  // 搜索操作在父组件中触发，所以需要通过$emit到父组件去做清空搜索条件相关操作
+  @Emit('searchClear')
+  public searchClear() {}
 
   goAgentStatus(row: IPkgRow) {
     this.$router.push({
