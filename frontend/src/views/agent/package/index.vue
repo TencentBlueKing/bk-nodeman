@@ -66,6 +66,9 @@
             :pagetion="pagetion"
             :options="tagGroup"
             :search-select-data="searchSelectData"
+            :searchSelectValue="searchSelectValue"
+            :loading="isLoading"
+            @searchClear="searchClear"
             @pagetion="pagetionChange"
             @tagChange="tagChange"
             @orderChange="orderChange"
@@ -379,8 +382,10 @@ export default defineComponent({
       }
       state.isLoading = false;
     };
+    
     const getHostNumber = async () => {
       const params = {
+        biz_scope: MainStore.selectedBiz,
         project: state.active,
         items: tableData.value.map(({ os, cpu_arch, version }) => ({
           os_type: os,
@@ -389,7 +394,7 @@ export default defineComponent({
         })),
       };
       const list = await AgentStore.apiPkgHostsCount(params);
-      list.forEach((item) => {
+      list?.forEach((item) => {
         const child = tableData.value.find(row => row.os === item.os_type
           && row.version === item.version && row.cpu_arch === item.cpu_arch);
         if (child) {
@@ -397,6 +402,10 @@ export default defineComponent({
         }
       });
     };
+    // 更改业务后，需要重新获取已部署主机数量
+    watch(() => MainStore.selectedBiz, () => {
+      getHostNumber();
+    },{deep: true,immediate: true});
     const tableHeight = computed(() =>{
       return MainStore.windowHeight - 337 - (MainStore.noticeShow ? 40 : 0);
     });
@@ -429,6 +438,12 @@ export default defineComponent({
       getTableData();
     };
 
+    // 清空搜索条件
+    const searchClear = () => {
+      state.isLoading = true;
+      searchSelectValue.value = [];
+      handleSearchSelectValueChange([]);
+    }
     // 同步到表头筛选勾选状态
     const updateCheckStatus = (list: ISearchItem[]) => {
       searchSelectData.value.forEach((data) => {
@@ -566,6 +581,7 @@ export default defineComponent({
       handlePageChange,
       handlePageLimitChange,
       handleSearchSelectValueChange,
+      searchClear,
     };
   },
 });
