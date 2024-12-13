@@ -273,7 +273,7 @@ export default class AgentSetup extends Mixins(mixin, formLabelMixin) {
     if (isEmpty(this.formData.bk_cloud_id)) {
       return 'mixed';
     } if (this.isDefaultCloud) {
-      return 'agent';
+      return 'Agent';
     }
     return 'Pagent';
   }

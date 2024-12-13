@@ -7,7 +7,7 @@
       {{ `${ index + 1 }. ${ item }` }}
     </p>
     <div class="cloud-panel" v-if="this.cloudAreaList.length">
-      <template v-if="hostType === 'Pagent'">
+      <template v-if="hostType !== 'Agent'">
         <RightPanel
           v-for="cloudArea in cloudAreaList"
           :key="`${cloudArea.bk_cloud_id}_${cloudArea.ap_id}`"
@@ -56,7 +56,7 @@ export default class StrategyTemplate extends Vue {
   @Prop({ type: String, default: 'Agent' }) private readonly hostType!: string;
   // key => bk_cloud_id、inner_ip、bk_cloud_name (ap_id、ap_name)
   @Prop({ type: Array, default: () => [] }) private readonly hostList!: any[];
-
+  
   private loading = true;
   private cloudAreaList: any[] = [];
 
@@ -107,7 +107,7 @@ export default class StrategyTemplate extends Vue {
       }
       return obj;
     }, {});
-    let collapse = true;
+        let collapse = true;
     // 填充 接入点信息、proxy信息、端口信息
     this.cloudAreaList = Object.values(cloudMap).reduce((arr: any[], children: any) => {
       const apMap: IAgent = {};
@@ -134,12 +134,12 @@ export default class StrategyTemplate extends Vue {
               bk_cloud_name: cloud.bk_cloud_name,
               ap_id: idKey,
               ap_name: ap.name,
-              zk: ap.zk_hosts.map(zk => zk.zk_ip), // 仅Agent
+              zk: ap.zk_hosts?.map(zk => zk.zk_ip) || [], // 仅Agent
               zkHosts: ap.zk_hosts,
-              btfileserver: ap.btfileserver.map(server => server[serverKey]),
-              dataserver: ap.dataserver.map(server => server[serverKey]),
-              taskserver: ap.taskserver.map(server => server[serverKey]),
-              proxy: cloud.proxy.map((item: any) => item[proxyKey]),
+              btfileserver: ap.btfileserver[serverKey]?.map(item => item.ip) || [],
+              dataserver: ap.btfileserver[serverKey]?.map(item => item.ip) || [],
+              taskserver: ap.btfileserver[serverKey]?.map(item => item.ip) || [],
+              proxy: cloud.proxy?.map((item: any) => item[proxyKey]) || [],
               agent: cloud[proxyKey] ? [cloud[proxyKey]] : [], // Proxy 非必要
               ...ap.port_config,
             };
