@@ -223,6 +223,7 @@ const config: ISetupHead[] = [
     noRequiredMark: false,
     placeholder: window.i18n.t('请选择'),
     batch: true,
+    show: true,
     default: '',
     width: MainStore.language === 'en' ? 170 : 120,
     manualProp: true,
