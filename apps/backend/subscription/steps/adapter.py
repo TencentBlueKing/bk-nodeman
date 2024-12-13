@@ -16,6 +16,7 @@ from typing import Any, Dict, List, Union
 
 from django.db.models import Max, Subquery, Value
 from django.utils.translation import ugettext as _
+from packaging import version
 from rest_framework import exceptions, serializers
 
 from apps.backend.subscription import errors
@@ -444,27 +445,117 @@ class PolicyStepAdapter:
             return self.os_key_params_map.get(os_key)
         return self.os_key_params_map.get(self.get_os_key(os_type, cpu_arch), {})
 
-    def get_matching_package_obj(self, os_type: str, cpu_arch: str) -> models.Packages:
+    def get_matching_package_obj(self, os_type: str, cpu_arch: str, bk_biz_id: int) -> models.Packages:
         try:
             package = self.os_key_pkg_map[self.get_os_key(os_type, cpu_arch)]
         except KeyError:
-            msg = _("插件 [{name}] 不支持 系统:{os_type}-架构:{cpu_arch}-版本:{plugin_version}").format(
-                name=self.plugin_name,
-                os_type=os_type,
-                cpu_arch=cpu_arch,
-                plugin_version=self.get_matching_package_dict(os_type, cpu_arch)["version"],
+            # 如果不存在某个系统架构的版本，则获取最大id的版本
+            package = (
+                models.Packages.objects.filter(project=self.plugin_name, os=os_type, cpu_arch=cpu_arch)
+                .order_by("-id")
+                .first()
             )
-            raise errors.PackageNotExists(msg)
-        else:
-            if not package.is_ready:
-                msg = _("插件 [{name}] 系统:{os_type}-架构:{cpu_arch}-版本:{plugin_version} 未启用").format(
+            if not package:
+                msg = _("插件 [{name}] 不支持 系统:{os_type}-架构:{cpu_arch}-版本:{plugin_version}").format(
                     name=self.plugin_name,
                     os_type=os_type,
                     cpu_arch=cpu_arch,
                     plugin_version=self.get_matching_package_dict(os_type, cpu_arch)["version"],
                 )
-                raise errors.PluginValidationError(msg)
-            return package
+                raise errors.PackageNotExists(msg)
 
-    def get_matching_config_tmpl_objs(self, os_type: str, cpu_arch: str) -> List[models.PluginConfigTemplate]:
+        if not package.is_ready:
+            msg = _("插件 [{name}] 系统:{os_type}-架构:{cpu_arch}-版本:{plugin_version} 未启用").format(
+                name=self.plugin_name,
+                os_type=os_type,
+                cpu_arch=cpu_arch,
+                plugin_version=self.get_matching_package_dict(os_type, cpu_arch)["version"],
+            )
+            raise errors.PluginValidationError(msg)
+
+        if len(self.selected_pkg_infos) > 1:
+            package = self.check_biz_version(package, bk_biz_id)
+        return package
+
+    def get_matching_config_tmpl_objs(
+        self, os_type: str, cpu_arch: str, package: models.Packages = None, config: Dict = None
+    ) -> List[models.PluginConfigTemplate]:
+        """如果 package 是重新获取的(包括业务锁定版本和tag不存在的版本两种情况)，则重新从数据库中获取配置模板"""
+        if not self.is_pkg_in_selected_pkg(package, self.selected_pkg_infos):
+            plugin_config_templates = []
+            for config_template in config["config_templates"]:
+                config_tmpl = (
+                    models.PluginConfigTemplate.objects.filter(
+                        name=config_template["name"],
+                        plugin_name=package.project,
+                        plugin_version=package.version,
+                        is_main=Value(1 if config_template["is_main"] else 0),
+                    )
+                    .order_by("-id")
+                    .first()
+                )
+                plugin_config_templates.append(config_tmpl)
+            return plugin_config_templates
         return self.config_tmpl_obj_gby_os_key.get(self.get_os_key(os_type, cpu_arch), [])
+
+    def check_biz_version(self, package: models.Packages, bk_biz_id: int):
+        """如果设定了业务最大版本，则判断当前版本是否大于业务设定的最大版本"""
+        plugin_version_config = self.plugin_version_config()
+        if str(bk_biz_id) in plugin_version_config:
+            biz_version_config = plugin_version_config[str(bk_biz_id)]
+            biz_version = next(
+                (
+                    biz_plugin_version
+                    for biz_plugin_name, biz_plugin_version in biz_version_config.items()
+                    if package.project == biz_plugin_name
+                ),
+                None,
+            )
+            if biz_version:
+                version_str = getattr(package, "version", "")
+                tag_name__obj_map: Dict[str, Tag] = PluginTargetHelper.get_tag_name__obj_map(
+                    target_id=self.plugin_desc.id,
+                )
+                if version_str in tag_name__obj_map:
+                    version_str = tag_name__obj_map[version_str].target_version
+                if version.Version(version_str) > version.Version(biz_version):
+                    package = self.get_biz_max_package(package.project, package.os, package.cpu_arch, biz_version)
+        return package
+
+    @staticmethod
+    def get_biz_max_package(plugin_name: str, os_type: str, cpu_arch: str, biz_version: str):
+        """获取业务锁定版本的插件包"""
+        packages = models.Packages.objects.filter(project=plugin_name, os=os_type, cpu_arch=cpu_arch)
+        lte_biz_version_packages = []
+        for package in packages:
+            try:
+                pkg_version = version.Version(package.version)
+                if pkg_version <= version.Version(biz_version):
+                    lte_biz_version_packages.append(package)
+            except version.InvalidVersion:
+                continue
+        max_version_package = None
+        if lte_biz_version_packages:
+            max_version_package = max(lte_biz_version_packages, key=lambda pkg: version.Version(pkg.version))
+        return max_version_package
+
+    @staticmethod
+    def plugin_version_config():
+        """业务锁定版本配置"""
+        plugin_version_config: Dict[str, Dict[str, str]] = models.GlobalSettings.get_config(
+            models.GlobalSettings.KeyEnum.PLUGIN_VERSION_CONFIG.value, default={}
+        )
+        return plugin_version_config
+
+    @staticmethod
+    def is_pkg_in_selected_pkg(package: models.Packages, selected_pkg_infos: List[Dict]) -> bool:
+        for pkg_info in selected_pkg_infos:
+            if (
+                package.project == pkg_info["project"]
+                and package.id == pkg_info["id"]
+                and package.version == pkg_info["version"]
+                and package.os == pkg_info["os"]
+                and package.cpu_arch == pkg_info["cpu_arch"]
+            ):
+                return True
+        return False

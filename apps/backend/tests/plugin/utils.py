@@ -149,27 +149,10 @@ PROJECT_YAML_CONTENT_CONFIG_TEMPLATE_VARIABLES = {
     "type": "object",
     "required": True,
     "properties": {
-        "token": {
-            "title": "token",
-            "type": "string",
-            "required": True
-        },
-        "logVerbosity": {
-            "title": "logVerbosity",
-            "type": "number",
-            "required": False,
-            "default": 5
-        },
-        "tempDir": {
-            "title": "tempDir",
-            "type": "string",
-            "required": False
-        },
-        "uid": {
-            "title": "uid",
-            "type": "string",
-            "required": False
-        },
+        "token": {"title": "token", "type": "string", "required": True},
+        "logVerbosity": {"title": "logVerbosity", "type": "number", "required": False, "default": 5},
+        "tempDir": {"title": "tempDir", "type": "string", "required": False},
+        "uid": {"title": "uid", "type": "string", "required": False},
         "labels": {
             "title": "labels",
             "type": "array",
@@ -177,17 +160,8 @@ PROJECT_YAML_CONTENT_CONFIG_TEMPLATE_VARIABLES = {
                 "title": "label",
                 "type": "object",
                 "required": False,
-                "properties": {
-                    "key": {
-                        "title": "key",
-                        "type": "string"
-                    },
-                    "value": {
-                        "title": "value",
-                        "type": "string"
-                    }
-                }
-            }
+                "properties": {"key": {"title": "键", "type": "string"}, "value": {"title": "值", "type": "string"}},
+            },
         },
         "apps": {
             "title": "apps",
@@ -196,16 +170,8 @@ PROJECT_YAML_CONTENT_CONFIG_TEMPLATE_VARIABLES = {
                 "title": "named_label",
                 "type": "object",
                 "properties": {
-                    "name": {
-                        "title": "name",
-                        "type": "string",
-                        "required": True
-                    },
-                    "uid": {
-                        "title": "uid",
-                        "type": "string",
-                        "required": False
-                    },
+                    "name": {"title": "name", "type": "string", "required": True},
+                    "uid": {"title": "uid", "type": "string", "required": False},
                     "labels": {
                         "title": "labels",
                         "type": "array",
@@ -215,21 +181,15 @@ PROJECT_YAML_CONTENT_CONFIG_TEMPLATE_VARIABLES = {
                             "type": "object",
                             "required": False,
                             "properties": {
-                                "key": {
-                                    "title": "key",
-                                    "type": "string"
-                                },
-                                "value": {
-                                    "title": "value",
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
+                                "key": {"title": "键", "type": "string"},
+                                "value": {"title": "值", "type": "string"},
+                            },
+                        },
+                    },
+                },
+            },
+        },
+    },
 }
 
 # 插件名称
