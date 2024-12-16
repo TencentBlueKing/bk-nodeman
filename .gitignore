@@ -189,3 +189,7 @@ build.yml
 support-files/**/private_values.yaml
 support-files/**/*.tgz
 .codecc
+.idea
+.vscode
+
+pre-*-bkcodeai
