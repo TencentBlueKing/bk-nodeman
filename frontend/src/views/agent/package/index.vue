@@ -293,7 +293,7 @@ export default defineComponent({
     // 所有pkg标签
     const getPkgTags = async () => {
       const res = await AgentStore.apiPkgGetTags({ project: state.active });
-      const standardGroupData: ISearchItem[] = [];
+            const standardGroupData: ISearchItem[] = [];
       const opts: IPkgTagOpt[] = [];
       res.forEach((item) => {
         const children = item.children.map(child => ({
@@ -429,7 +429,7 @@ export default defineComponent({
     };
     const tagChange = async() => {
       // 更改了标签后需要同步更新筛选数据，以同步筛选数据中的标签
-      getPkgTags();
+      await updateSearchData();
       await getDefaultVersion(state.active);
       pagetionChange();
     }
