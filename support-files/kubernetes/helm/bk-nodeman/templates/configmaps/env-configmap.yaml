@@ -134,3 +134,6 @@ data:
   BKAPP_IEOD_ACTIVE_FIREWALL_POLICY_SCRIPT_INFO: '{{ .Values.config.bkAppIEODActiveFirewallPolicyScriptInfo }}'
   BKAPP_DEFAULT_INSTALL_CHANNEL_ID: "{{ .Values.config.bkAppDefaultInstallChannelId}}"
   BKAPP_AUTOMATIC_CHOICE_CLOUD_ID: "{{ .Values.config.bkAppAutomaticChoiceCloudId}}"
+  TXY_ENDPOINT: "{{ .Values.config.TXYEndpoint }}"
+  TXY_SECRETID: "{{ .Values.config.TXYSecretId }}"
+  TXY_SECRETKEY: "{{ .Values.config.TXYSecretKey }}"

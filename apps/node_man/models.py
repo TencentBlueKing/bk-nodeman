@@ -170,6 +170,8 @@ class GlobalSettings(models.Model):
         INSTALL_CHANNEL_ID_NETWORK_SEGMENT = "INSTALL_CHANNEL_ID_NETWORK_SEGMENT"
         # 需要执行清理订阅的APP_CODE
         NEED_CLEAN_SUBSCRIPTION_APP_CODE = "NEED_CLEAN_SUBSCRIPTION_APP_CODE"
+        # 腾讯云安全组策略配置
+        TXY_POLICY_CONFIGS = "TXY_POLICY_CONFIGS"
 
     key = models.CharField(_("键"), max_length=255, db_index=True, primary_key=True)
     v_json = JSONField(_("值"))

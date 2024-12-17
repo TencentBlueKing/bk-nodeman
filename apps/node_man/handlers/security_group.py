@@ -4,10 +4,13 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
 from django.conf import settings
+from tencentcloud.common.profile.client_profile import ClientProfile
+from tencentcloud.common.profile.http_profile import HttpProfile
 
 from apps.backend.utils.dataclass import asdict
 from apps.node_man.exceptions import (
     ConfigurationPolicyError,
+    TXYPolicyConfigNotExistsError,
     YunTiPolicyConfigNotExistsError,
 )
 from apps.node_man.models import GlobalSettings
@@ -36,6 +39,25 @@ class YunTiPolicyConfig:
     port: str
     action: str
     protocol: str
+
+
+@dataclass
+class TXYPolicyConfig:
+    region: str
+    sid: str
+    port: str
+    action: str
+    protocol: str
+
+
+@dataclass
+class TXYPolicyData:
+    Protocol: str
+    CidrBlock: str
+    Port: str
+    Action: str
+    PolicyDescription: Optional[str] = None
+    Ipv6CidrBlock: Optional[str] = None
 
 
 class BaseSecurityGroupFactory(abc.ABC):
@@ -249,6 +271,95 @@ class YunTiSecurityGroupFactory(BaseSecurityGroupFactory):
             config = YunTiPolicyConfig(**policy_config)
             current_policies: List[Dict[str, Any]] = result[config.sid]["pilicies"]["SecurityGroupPolicySet"]["Ingress"]
             current_ip_list = [policy["CidrBlock"] for policy in current_policies]
+            logger.info(
+                f"check_result: Add proxy whitelist to Shangyun security group security. "
+                f"sid: {config.sid} ip_list: {add_ip_output['ip_list']}"
+            )
+            # 需添加的IP列表是已有IP的子集，则认为已添加成功
+            is_success: bool = is_success and set(add_ip_output["ip_list"]).issubset(set(current_ip_list))
+
+        return is_success
+
+
+class TXYSecurityGroupFactory(BaseSecurityGroupFactory):
+    SECURITY_GROUP_TYPE: str = "TXY"
+
+    def __init__(self) -> None:
+        """
+        policies_config: example
+        [
+            {
+                "region": "ap-xxx",
+                "sid": "xxxx",
+                "port": "ALL",
+                "action": "ACCEPT",
+                "protocol": "ALL"
+            }
+        ]
+        """
+        self.policy_configs: List[Dict[str, Any]] = GlobalSettings.get_config(
+            key=GlobalSettings.KeyEnum.TXY_POLICY_CONFIGS.value, default=[]
+        )
+        if not self.policy_configs:
+            raise TXYPolicyConfigNotExistsError()
+
+        self.endpoint = settings.TXY_ENDPOINT
+
+    @property
+    def profile(self):
+        httpProfile = HttpProfile()
+        httpProfile.endpoint = self.endpoint
+
+        # 设置客户端相关配置
+        clientProfile = ClientProfile()
+        clientProfile.httpProfile = httpProfile
+        return clientProfile
+
+    def describe_security_group_address(self, client: VpcClient, sid: str) -> List[str]:
+        is_ok, result = client.DescribeSecurityGroupPolicies(sid)
+        if not is_ok:
+            raise ConfigurationPolicyError(result)
+
+        current_policies: List[Dict[str, Any]] = result["SecurityGroupPolicySet"]["Ingress"]
+        current_ip_list = [policy["CidrBlock"] for policy in current_policies]
+        return current_ip_list
+
+    def add_ips_to_security_group(self, ip_list: List[str], creator: str = None):
+        for policy_config in self.policy_configs:
+            config = TXYPolicyConfig(**policy_config)
+            new_in_gress: Dict[str, List[Dict[str, Any]]] = []
+            client = VpcClient(config.region, self.profile)
+            current_ip_list: List[str] = self.describe_security_group_address(client, config.sid)
+            need_add_ip_list: set = set(ip_list) - set(current_ip_list)
+            if need_add_ip_list:
+                for ip in need_add_ip_list:
+                    new_in_gress.append(
+                        asdict(
+                            TXYPolicyData(
+                                Protocol=config.protocol,
+                                CidrBlock=ip,
+                                Port=config.port,
+                                Action=config.action,
+                                PolicyDescription=f"Add by {creator}",
+                                Ipv6CidrBlock="",
+                            )
+                        )
+                    )
+                is_ok, message = client.CreateSecurityGroupPolicies(
+                    sg_id=config.sid, policies={"Ingress": new_in_gress}
+                )
+                if not is_ok:
+                    raise ConfigurationPolicyError(message)
+
+        return {"ip_list": ip_list}
+
+    def check_result(self, add_ip_output: Dict) -> bool:
+        """检查IP列表是否已添加到安全组中"""
+        is_success: bool = True
+        for policy_config in self.policy_configs:
+            config = TXYPolicyConfig(**policy_config)
+            client = VpcClient(config.region, self.profile)
+            current_ip_list: List[str] = self.describe_security_group_address(client, config.sid)
             logger.info(
                 f"check_result: Add proxy whitelist to Shangyun security group security. "
                 f"sid: {config.sid} ip_list: {add_ip_output['ip_list']}"
