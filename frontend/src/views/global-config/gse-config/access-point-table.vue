@@ -23,7 +23,7 @@
         </tr>
         <tr>
           <td colspan="2">{{ $t('Zookeeper集群地址') }}</td>
-          <td class="table-content">{{ zookeeper }}</td>
+          <td class="table-content">{{ zookeeper || '--' }}</td>
         </tr>
         <template v-for="server in serversSets">
           <tr :key="`${server.id}_inner_ip_infos`">
@@ -155,7 +155,7 @@ const rowspanNum = computed<{ [key: string]: number }>(() => {
   return tableRow;
 });
 const zookeeper = computed(() => {
-  if (accessPoint.zk_hosts) {
+  if (accessPoint.zk_hosts && accessPoint.zk_hosts.length && accessPoint.zk_hosts[0].zk_ip) {
     return accessPoint.zk_hosts.map((host: IZk) => (proxy?.$DHCP && regIPv6.test(host.zk_ip)
       ? `[${host.zk_ip}]:${host.zk_port}`
       : `${host.zk_ip}:${host.zk_port}`)).join(',');
