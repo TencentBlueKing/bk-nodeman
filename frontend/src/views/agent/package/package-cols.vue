@@ -65,7 +65,9 @@
       align="right"
       sortable>
       <template #default="{ row }">
-        <span v-if="row.hostNumber" class="nm-link" @click="goAgentStatus(row)">{{ row.hostNumber }}</span>
+        <span v-if="row.hostNumber" :class="{'nm-link': active === 'gse_agent'}" @click="goAgentStatus(row)">
+          {{ row.hostNumber }}
+        </span>
         <span v-else>0</span>
       </template>
     </NmColumn>
@@ -169,6 +171,7 @@ import { IPkgRow } from '@/types/agent/pkg-manage';
 import HeaderRenderMixin from '@/components/common/header-render-mixins';
 import EditTag from '@/components/common/tag.vue';
 import { MainStore } from '@/store/index';
+import { PkgType } from '@/types/agent/pkg-manage';
 
 @Component({
   components: {
@@ -183,6 +186,7 @@ export default class PackageCols extends Mixins(HeaderRenderMixin) {
   @Prop({ default: () => ([]), type: Array }) private readonly searchSelectData!: ISearchItem[];
   @Prop({ default: () => ([]), type: Array }) private readonly searchSelectValue!: ISearchItem[];
   @Prop({ type: Boolean, default: false }) loading!: boolean;
+  @Prop({ type: String, default: 'gse_agent' }) active!: PkgType;
 
   @Watch('searchSelectData', { deep: true, immediate: true })
   private handleSearchSelectDataChange(data: ISearchItem[]) {
@@ -347,6 +351,7 @@ export default class PackageCols extends Mixins(HeaderRenderMixin) {
   public searchClear() {}
 
   goAgentStatus(row: IPkgRow) {
+    if (this.active !== 'gse_agent') return;
     this.$router.push({
       name: 'agentStatus',
       params: {
