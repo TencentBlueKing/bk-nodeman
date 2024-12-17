@@ -68,6 +68,7 @@
             :search-select-data="searchSelectData"
             :searchSelectValue="searchSelectValue"
             :loading="isLoading"
+            :active="active"
             @searchClear="searchClear"
             @pagetion="pagetionChange"
             @tagChange="tagChange"
