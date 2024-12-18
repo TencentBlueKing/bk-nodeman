@@ -42,6 +42,7 @@ from django.utils.translation import ugettext_lazy as _
 from django_mysql.models import JSONField
 from jinja2 import Template
 
+from apps.backend.constants import InstNodeType
 from apps.backend.subscription.errors import PipelineExecuteFailed, SubscriptionNotExist
 from apps.backend.subscription.render_functions import get_hosts_by_node
 from apps.backend.utils.data_renderer import nested_render_data
@@ -177,6 +178,10 @@ class GlobalSettings(models.Model):
         ADD_HOST_BIZ_BLACKLIST = "ADD_HOST_BIZ_BLACKLIST"
         # CMDB内置云区域IDS
         CMDB_INTERNAL_CLOUD_IDS = "CMDB_INTERNAL_CLOUD_IDS"
+        # pipeline 主机数量配置
+        TASK_HOST_LIMIT_CONFIG = "TASK_HOST_LIMIT_CONFIG"
+        # pipeline 主机数量配置
+        SUBSCRIPTION_DATA_REDIS_BIZ_LIST = "SUBSCRIPTION_DATA_REDIS_BIZ_LIST"
 
     key = models.CharField(_("键"), max_length=255, db_index=True, primary_key=True)
     v_json = JSONField(_("值"))
@@ -2172,6 +2177,34 @@ class Subscription(export_subscription_prometheus_mixin(), orm.SoftDeleteModel):
             )
         return _construct_return_data(False, sub_inst_bk_obj_id, _ordered_bk_obj_subs=ordered_bk_obj_subs)
 
+    @property
+    def is_multi_paralle_gateway(self) -> bool:
+        cache_key = f"{self.id}_is_multi_paralle_gateway"
+        if cache.get(cache_key):
+            return cache.get(cache_key)
+
+        # bk_biz_ids: List[int] = list(
+        #     Host.objects.filter(bk_host_id__in=bk_host_ids).values_list("bk_biz_id", flat=True))
+        bk_biz_ids = set()
+        if self.bk_biz_id:
+            bk_biz_ids.add(self.bk_biz_id)
+
+        for node in self.nodes:
+            if node.get("bk_biz_id") is not None:
+                bk_biz_ids.add(node["bk_biz_id"])
+
+            if node.get("instance_info", {}).get("bk_biz_id") is not None:
+                bk_biz_ids.add(node["instance_info"]["bk_biz_id"])
+
+            if node.get("bk_obj_id") == InstNodeType.BIZ and node.get("bk_inst_id") is not None:
+                bk_biz_ids.add(node["bk_inst_id"])
+        redis_biz_list: List[int] = GlobalSettings.get_config(
+            GlobalSettings.KeyEnum.SUBSCRIPTION_DATA_REDIS_BIZ_LIST.value, default=[]
+        )
+        is_multi_paralle_gateway: bool = bool(set(bk_biz_ids) & set(redis_biz_list))
+        cache.set(cache_key, is_multi_paralle_gateway)
+        return is_multi_paralle_gateway
+
     class Meta:
         verbose_name = _("订阅（Subscription）")
         verbose_name_plural = _("订阅（Subscription）")
@@ -2432,7 +2465,7 @@ class PipelineTree(models.Model):
 
     def run(self, priority=None):
         # 根据流程描述结构创建流程对象
-        parser = PipelineParser(pipeline_tree=self.tree)
+        parser = PipelineParser(pipeline_tree=self.tree, cycle_tolerate=True)
         pipeline = parser.parse()
         if priority is not None:
             action_result = task_service.run_pipeline(pipeline, priority=priority)

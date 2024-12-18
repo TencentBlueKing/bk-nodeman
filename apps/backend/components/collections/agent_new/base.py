@@ -32,7 +32,7 @@ from apps.prometheus import metrics
 from apps.prometheus.helper import SetupObserve
 
 from .. import job
-from ..base import BaseService, CommonData
+from ..base import BaseService, CommonData, RedisCommonData
 
 logger = logging.getLogger("celery")
 
@@ -47,6 +47,29 @@ class AgentCommonData(CommonData):
     agent_step_adapter: AgentStepAdapter
     # 注入AP_ID
     injected_ap_id: int
+
+
+class RedisAgentCommonData(RedisCommonData):
+
+    # 默认接入点
+    @property
+    def default_ap(self) -> models.AccessPoint:
+        return self._get_attr_from_redis("default_ap")
+
+    # 主机ID - 接入点 映射关系
+    @property
+    def host_id__ap_map(self) -> Dict[int, models.AccessPoint]:
+        return self._get_attr_from_redis("host_id__ap_map")
+
+    # AgentStep 适配器
+    @property
+    def agent_step_adapter(self) -> AgentStepAdapter:
+        return self._get_attr_from_redis("agent_step_adapter")
+
+    # 注入AP_ID
+    @property
+    def injected_ap_id(self) -> int:
+        return self._get_attr_from_redis("injected_ap_id")
 
 
 class AgentBaseService(BaseService, metaclass=abc.ABCMeta):
@@ -91,7 +114,9 @@ class AgentBaseService(BaseService, metaclass=abc.ABCMeta):
             common_data.subscription_step, gse_version=data.get_one_of_inputs("meta", {}).get("GSE_VERSION")
         )
 
-        return AgentCommonData(
+        agent_common_data_cls = AgentCommonData if isinstance(common_data, CommonData) else RedisAgentCommonData
+
+        return agent_common_data_cls(
             bk_host_ids=common_data.bk_host_ids,
             host_id_obj_map=common_data.host_id_obj_map,
             ap_id_obj_map=common_data.ap_id_obj_map,

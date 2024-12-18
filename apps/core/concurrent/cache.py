@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 
 import typing
+import uuid
 
 import ujson as json
 import wrapt
@@ -19,6 +20,7 @@ from django.core.cache import caches
 from apps.prometheus import metrics
 from apps.prometheus.helper import observe
 from apps.utils.cache import format_cache_key
+from apps.utils.redis import RedisDict, RedisList
 from env.constants import CacheBackend
 
 DEFAULT_CACHE_TIME = 60 * 15
@@ -28,11 +30,12 @@ class FuncCacheDecorator:
 
     cache_time: int = DEFAULT_CACHE_TIME
 
-    def __init__(self, cache_time: typing.Optional[int] = None):
+    def __init__(self, cache_time: typing.Optional[int] = None, uuid_cache_enable: bool = False):
         """
         :param cache_time: 缓存事件（秒）
         """
         self.cache_time = cache_time or DEFAULT_CACHE_TIME
+        self.uuid_cache_enable = uuid_cache_enable
 
     def get_from_cache(self, using: str, key: str) -> typing.Any:
         cache = caches[using]
@@ -42,12 +45,36 @@ class FuncCacheDecorator:
 
         if using == CacheBackend.DB.value:
             return json.loads(func_result)
+
+        if self.uuid_cache_enable:
+            if isinstance(func_result, str) and func_result.startswith("data_backend_redis"):
+                data_type = func_result.split("_")[-2]
+                if data_type == "dict":
+                    return RedisDict(cache_uuid_key=func_result)
+                elif data_type == "list":
+                    return RedisList(cache_uuid_key=func_result)
+
         return func_result
 
     def set_to_cache(self, using: str, key: str, value: typing.Any):
         cache = caches[using]
         if using == CacheBackend.DB.value:
             value = json.dumps(value)
+
+        if self.uuid_cache_enable:
+            # 变量上下文会将原本的uuid_key删除，这里重新命名，即可达到缓存目的
+            new_uuid_key = None
+            if isinstance(value, RedisDict):
+                new_uuid_key = f"data_backend_redis_dict_{uuid.uuid4().hex}"
+            elif isinstance(value, RedisList):
+                new_uuid_key = f"data_backend_redis_list_{uuid.uuid4().hex}"
+
+            if new_uuid_key:
+                value._update_redis_expiry(self.cache_time)
+                value.client.rename(value.uuid_key, new_uuid_key)
+                value.cache_uuid_key = new_uuid_key
+                value = new_uuid_key
+
         cache.set(key, value, self.cache_time)
 
     def ttl_from_cache(self, using: str, key: str) -> int:
@@ -76,7 +103,6 @@ class FuncCacheDecorator:
         :param kwargs: 关键字参数
         :return:
         """
-
         func_result: typing.Any = None
         func_name: str = wrapped.__name__
         use_fast_cache: bool = False

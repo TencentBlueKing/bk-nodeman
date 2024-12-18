@@ -377,6 +377,8 @@ REST_FRAMEWORK = {
 }
 
 
+# DATA BACKEND
+DATA_BACKEND = os.getenv("BKAPP_DATA_BACKEND", "MEM")
 ESB_SDK_NAME = "blueking.component"
 
 BKCRYPTO = {

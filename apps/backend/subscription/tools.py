@@ -50,6 +50,7 @@ from apps.utils import concurrent
 from apps.utils.basic import chunk_lists, distinct_dict_list, order_dict
 from apps.utils.batch_request import batch_request, request_multi_thread
 from apps.utils.concurrent import batch_call
+from apps.utils.redis import DynamicContainer, RedisDict, RedisList
 from apps.utils.time_handler import strftime_local
 from common.api import CCApi
 
@@ -251,7 +252,7 @@ def create_host_key(data: Dict) -> str:
 
 
 @SetupObserve(counter=metrics.app_common_method_requests_total, get_labels_func=get_call_resource_labels_func)
-def find_host_biz_relations(bk_host_ids: List[int]) -> List[Dict]:
+def find_host_biz_relations(bk_host_ids: List[int], data_backend: str = None) -> List[Dict]:
     """
     查询主机所属拓扑关系
     :param bk_host_ids: 主机ID列表 [1, 2, 3]
@@ -268,15 +269,16 @@ def find_host_biz_relations(bk_host_ids: List[int]) -> List[Dict]:
     """
     # 查询条件为空提前返回
     if not bk_host_ids:
-        return []
+        return DynamicContainer(return_type=constants.DCReturnType.LIST.value, data_backend=data_backend).container
 
     # CMDB 限制了单次查询数量，这里需分批并发请求查询
     param_list = [
         {"bk_host_id": bk_host_ids[count * constants.QUERY_CMDB_LIMIT : (count + 1) * constants.QUERY_CMDB_LIMIT]}
         for count in range(math.ceil(len(bk_host_ids) / constants.QUERY_CMDB_LIMIT))
     ]
-    host_biz_relations = request_multi_thread(client_v2.cc.find_host_biz_relations, param_list, get_data=lambda x: x)
-    return host_biz_relations
+    return request_multi_thread(
+        client_v2.cc.find_host_biz_relations, param_list, get_data=lambda x: x, data_backend=data_backend
+    )
 
 
 @controller.ConcurrentController(
@@ -286,7 +288,11 @@ def find_host_biz_relations(bk_host_ids: List[int]) -> List[Dict]:
     get_config_dict_kwargs={"config_name": core.ServiceCCConfigName.CMDB_QUERY.value},
 )
 def get_service_instances(
-    bk_biz_id: int, filter_id_list: List[int], filter_field_name: FilterFieldName, ignore_exception: bool = True
+    bk_biz_id: int,
+    filter_id_list: List[int],
+    filter_field_name: FilterFieldName,
+    ignore_exception: bool = True,
+    data_backend: str = None,
 ) -> List[Dict]:
     """
     分批查询业务主机进程
@@ -308,12 +314,13 @@ def get_service_instances(
             "no_request": True,
         }
         if filter_field_name.needs_batch_request:
-            result = batch_request(
+            result: Union[RedisList, List] = batch_request(
                 CCApi.list_service_instance_detail,
                 params,
                 sort="id",
                 limit=constants.LIST_SERVICE_INSTANCE_DETAIL_LIMIT,
                 interval=constants.LIST_SERVICE_INSTANCE_DETAIL_INTERVAL,
+                data_backend=data_backend,
             )
         else:
             params["page"] = {
@@ -382,7 +389,7 @@ def get_modules_by_inst_list(inst_list, module_to_topo):
     return module_ids, no_module_inst_list
 
 
-def get_service_instance_by_inst(bk_biz_id, inst_list, module_to_topo):
+def get_service_instance_by_inst(bk_biz_id, inst_list, module_to_topo, data_backend: str = None):
     module_ids, no_module_inst_list = get_modules_by_inst_list(inst_list, module_to_topo)
     if not module_ids:
         return []
@@ -402,28 +409,36 @@ def get_service_instance_by_inst(bk_biz_id, inst_list, module_to_topo):
                 },
                 "sort": "id",
                 "limit": constants.LIST_SERVICE_INSTANCE_DETAIL_LIMIT,
+                "data_backend": data_backend,
             }
             for bk_module_id in module_ids
         ]
 
-        service_instances = batch_call(
-            batch_request, params, extend_result=True, interval=constants.LIST_SERVICE_INSTANCE_DETAIL_INTERVAL
+        service_instances: Union[RedisList, list] = batch_call(
+            batch_request,
+            params,
+            extend_result=True,
+            interval=constants.LIST_SERVICE_INSTANCE_DETAIL_INTERVAL,
+            data_backend=data_backend,
         )
     else:
         params = {"bk_biz_id": int(bk_biz_id), "with_name": True, "no_request": True}
-        service_instances = batch_request(
+        service_instances: Union[RedisList, list] = batch_request(
             CCApi.list_service_instance_detail,
             params,
             sort="id",
             limit=constants.LIST_SERVICE_INSTANCE_DETAIL_LIMIT,
             interval=constants.LIST_SERVICE_INSTANCE_DETAIL_INTERVAL,
+            data_backend=data_backend,
         )
 
-    service_instances = [
-        service_instance for service_instance in service_instances if service_instance["bk_module_id"] in module_ids
-    ]
-
-    return service_instances
+    redis_service_instances: Union[RedisList, list] = DynamicContainer(
+        return_type=constants.DCReturnType.LIST.value, data_backend=data_backend
+    ).container
+    for service_instance in service_instances:
+        if service_instance["bk_module_id"] in module_ids:
+            redis_service_instances.append(service_instance)
+    return redis_service_instances
 
 
 @FuncCacheDecorator(cache_time=1 * constants.TimeUnit.MINUTE)
@@ -448,7 +463,7 @@ def fetch_biz_info(bk_biz_ids: typing.List[int]) -> typing.Dict[int, typing.Dict
     return {bk_biz_id: biz_info_map.get(str(bk_biz_id)) or {} for bk_biz_id in bk_biz_ids}
 
 
-def get_host_detail_by_template(bk_obj_id, template_info_list: list, bk_biz_id: int = None):
+def get_host_detail_by_template(bk_obj_id, template_info_list: list, bk_biz_id: int = None, data_backend: str = None):
     """
     根据集群模板ID/服务模板ID获得主机的详细信息
     :param bk_obj_id: 模板类型
@@ -465,15 +480,17 @@ def get_host_detail_by_template(bk_obj_id, template_info_list: list, bk_biz_id: 
         # 服务模板
         call_func = client_v2.cc.find_host_by_service_template
         template_ids = [info["bk_inst_id"] for info in template_info_list]
-        host_info_result = batch_request(
-            call_func, dict(bk_service_template_ids=template_ids, bk_biz_id=bk_biz_id, fields=fields)
+        host_info_result: Union[RedisList, list] = batch_request(
+            call_func,
+            dict(bk_service_template_ids=template_ids, bk_biz_id=bk_biz_id, fields=fields, data_backend=data_backend),
         )
     else:
         # 集群模板
         call_func = client_v2.cc.find_host_by_set_template
         template_ids = [info["bk_inst_id"] for info in template_info_list]
-        host_info_result = batch_request(
-            call_func, dict(bk_set_template_ids=template_ids, bk_biz_id=bk_biz_id, fields=fields)
+        host_info_result: Union[RedisList, list] = batch_request(
+            call_func,
+            dict(bk_set_template_ids=template_ids, bk_biz_id=bk_biz_id, fields=fields, data_backend=data_backend),
         )
     biz_info = fetch_biz_info([bk_biz_id])
     cloud_id_name_map = models.Cloud.cloud_id_name_map(get_cache=True)
@@ -481,12 +498,18 @@ def get_host_detail_by_template(bk_obj_id, template_info_list: list, bk_biz_id: 
     if not biz_info[bk_biz_id]:
         logger.warning("[get_host_detail_by_template] can not find biz_info -> %s", bk_biz_id)
 
+    is_redis_data_backend: bool = data_backend == constants.DataBackend.REDIS.value
+    if is_redis_data_backend:
+        redis_host_info_result: RedisList = RedisList()
+
     for host in host_info_result:
         host["bk_biz_id"] = bk_biz_id
         host["bk_biz_name"] = host["bk_biz_name"] = biz_info[bk_biz_id].get("bk_biz_name")
         host["bk_cloud_name"] = cloud_id_name_map.get(str(host["bk_cloud_id"]))
+        if is_redis_data_backend:
+            redis_host_info_result.append(host)
 
-    return host_info_result
+    return redis_host_info_result if is_redis_data_backend else host_info_result
 
 
 def get_service_instances_by_template(bk_obj_id, template_info_list: list, bk_biz_id: int = None):
@@ -527,7 +550,7 @@ def get_service_instances_by_template(bk_obj_id, template_info_list: list, bk_bi
 
 
 @SetupObserve(counter=metrics.app_common_method_requests_total, get_labels_func=get_call_resource_labels_func)
-def get_host_detail(host_info_list: list, bk_biz_id: int = None):
+def get_host_detail(host_info_list: list, bk_biz_id: int = None, data_backend: str = None):
     """
     获取主机详情
     :param bk_biz_id: 业务ID
@@ -544,10 +567,11 @@ def get_host_detail(host_info_list: list, bk_biz_id: int = None):
     }]
     :return: list 主机详细信息
     """
+    host_details: Union[RedisList, list] = DynamicContainer(
+        return_type=constants.DCReturnType.LIST.value, data_backend=data_backend
+    ).container
     if not host_info_list:
-        return []
-
-    host_details = []
+        return host_details
 
     # 仅支持一种主机格式
     first_host_info = host_info_list[0]
@@ -613,15 +637,22 @@ def get_host_detail(host_info_list: list, bk_biz_id: int = None):
         #   2. 无有效 ip 在后续执行 create_host_key 获取 bk_cloud_id 也会 KeyError
         #   3. 综上所述，提前返回可以减少无效执行逻辑及网络IO
         return []
-
-    hosts = list_biz_hosts(bk_biz_id, cond, "list_hosts_without_biz", source="get_host_detail:list_hosts_without_biz")
+    hosts: Union[RedisList, list] = list_biz_hosts(
+        bk_biz_id,
+        cond,
+        "list_hosts_without_biz",
+        source="get_host_detail:list_hosts_without_biz",
+        data_backend=data_backend,
+    )
     bk_host_ids = []
     bk_cloud_ids = []
     for host in hosts:
         bk_host_ids.append(host["bk_host_id"])
         bk_cloud_ids.append(host["bk_cloud_id"])
 
-    host_relations = find_host_biz_relations(list(set(bk_host_ids)), source="get_host_detail")
+    host_relations: Union[RedisList, list] = find_host_biz_relations(
+        list(set(bk_host_ids)), source="get_host_detail", data_backend=data_backend
+    )
     host_biz_map = {}
     for host in host_relations:
         host_biz_map[host["bk_host_id"]] = host["bk_biz_id"]
@@ -632,8 +663,12 @@ def get_host_detail(host_info_list: list, bk_biz_id: int = None):
     all_biz_ids = list(set(host_biz_map.values()) - {settings.BK_CMDB_RESOURCE_POOL_BIZ_ID})
     all_biz_info = fetch_biz_info(all_biz_ids)
 
-    host_key_dict = {}
-    host_id_dict = {}
+    host_key_dict: Union[RedisDict, dict] = DynamicContainer(
+        return_type=constants.DCReturnType.DICT.value, data_backend=data_backend
+    ).container
+    host_id_dict: Union[RedisDict, dict] = DynamicContainer(
+        return_type=constants.DCReturnType.DICT.value, data_backend=data_backend
+    ).container
     for _host in hosts:
         _host["bk_biz_id"] = host_biz_map[_host["bk_host_id"]]
         _host["bk_biz_name"] = (
@@ -652,23 +687,23 @@ def get_host_detail(host_info_list: list, bk_biz_id: int = None):
         ip = _host.get("bk_host_innerip") or _host.get("ip") or _host.get("bk_host_innerip_v6")
         host_key = f'{ip}-{_host["bk_cloud_id"]}-{constants.DEFAULT_SUPPLIER_ID}'
         host_key_dict[host_key] = _host
-        host_id_dict[_host["bk_host_id"]] = _host
+        host_id_dict[str(_host["bk_host_id"])] = _host
 
     for host_info in host_info_list:
         if "bk_host_id" in host_info:
-            if host_info["bk_host_id"] in host_id_dict:
-                host_info.update(host_id_dict[host_info["bk_host_id"]])
+            if str(host_info["bk_host_id"]) in host_id_dict.keys():
+                host_info.update(host_id_dict[str(host_info["bk_host_id"])])
                 host_details.append(host_info)
         else:
             host_key = create_host_key(host_info)
-            if host_key in host_key_dict:
+            if host_key in host_key_dict.keys():
                 host_info.update(host_key_dict[host_key])
                 host_details.append(host_info)
 
     return host_details
 
 
-def add_host_module_info(host_biz_relations, instances):
+def add_host_module_info(host_biz_relations, instances, data_backend: str = None):
     """
     增加主机的模块信息（为降低圈复杂度所写）
     :param host_biz_relations: 主机的业务相关信息
@@ -683,10 +718,18 @@ def add_host_module_info(host_biz_relations, instances):
         else:
             bk_host_module_map_id[relation["bk_host_id"]].append(relation["bk_module_id"])
 
+    is_reids_data_backend: bool = data_backend == constants.DataBackend.REDIS.value
+    if is_reids_data_backend:
+        redis_instances: RedisList = RedisList()
+
     for instance in instances:
         if "module" not in instance["host"]:
             instance["host"]["module"] = bk_host_module_map_id.get(instance["host"]["bk_host_id"])
-    return instances
+
+        if is_reids_data_backend:
+            redis_instances.append(instance)
+
+    return redis_instances if is_reids_data_backend else instances
 
 
 def check_instances_object_type(nodes):
@@ -729,11 +772,15 @@ def set_template_scope_nodes(scope):
     return scope["nodes"]
 
 
-def get_host_relation(bk_biz_id, nodes):
-    data = []
-    hosts = get_host_by_inst(bk_biz_id, nodes)
+def get_host_relation(bk_biz_id, nodes, data_backend: str):
+    data: Union[RedisList, list] = DynamicContainer(
+        return_type=constants.DCReturnType.LIST.value, data_backend=data_backend
+    ).container
+    hosts: Union[RedisList, list] = get_host_by_inst(bk_biz_id, nodes, data_backend)
 
-    host_biz_relations = find_host_biz_relations([_host["bk_host_id"] for _host in hosts], source="get_host_relation")
+    host_biz_relations: Union[RedisList, list] = find_host_biz_relations(
+        [_host["bk_host_id"] for _host in hosts], source="get_host_relation", data_backend=data_backend
+    )
 
     relations = defaultdict(lambda: defaultdict(list))
     for item in host_biz_relations:
@@ -769,7 +816,9 @@ def support_multi_biz(get_instances_by_scope_func):
     """支持scope多范围"""
 
     @wraps(get_instances_by_scope_func)
-    def wrapper(scope: Dict[str, Union[Dict, Any]], *args, **kwargs) -> Dict[str, Dict[str, Union[Dict, Any]]]:
+    def wrapper(
+        scope: Dict[str, Union[Dict, Any]], data_backend: str, *args, **kwargs
+    ) -> Dict[str, Dict[str, Union[Dict, Any]]]:
         nodes: typing.List[typing.Dict[str, typing.Union[str, int]]] = scope["nodes"]
         fill_nodes_biz_info(nodes=nodes)
         # 兼容只传bk_host_id的情况
@@ -778,12 +827,13 @@ def support_multi_biz(get_instances_by_scope_func):
             and scope["node_type"] == models.Subscription.NodeType.INSTANCE
         ):
             if None in [node.get("bk_biz_id") for node in scope["nodes"]]:
-                return get_instances_by_scope_func(scope, **kwargs)
+                return get_instances_by_scope_func(scope, data_backend, **kwargs)
 
-        instance_id_info_map = {}
+        instance_id_info_map: typing.Union[RedisDict, dict] = DynamicContainer(data_backend=data_backend).container
         nodes = sorted(scope["nodes"], key=lambda node: node.get("bk_biz_id") or scope.get("bk_biz_id"))
         params_list = [
             {
+                "data_backend": data_backend,
                 "scope": {
                     "bk_biz_id": bk_biz_id,
                     "object_type": scope["object_type"],
@@ -796,7 +846,9 @@ def support_multi_biz(get_instances_by_scope_func):
             }
             for bk_biz_id, nodes in groupby(nodes, key=lambda x: x.get("bk_biz_id") or scope.get("bk_biz_id"))
         ]
-        results = request_multi_thread(get_instances_by_scope_func, params_list, get_data=lambda x: [x])
+        results = request_multi_thread(
+            get_instances_by_scope_func, params_list, get_data=lambda x: [x], data_backend=data_backend
+        )
         for result in results:
             instance_id_info_map.update(result)
         return instance_id_info_map
@@ -824,7 +876,11 @@ def get_scope_labels_func(
 
 
 def get_instances_by_scope_with_checker(
-    scope: Dict[str, Union[Dict, int, Any]], steps: List[models.SubscriptionStep], *args, **kwargs
+    scope: Dict[str, Union[Dict, int, Any]],
+    steps: List[models.SubscriptionStep],
+    data_backend: str = constants.DataBackend.MEM.value,
+    *args,
+    **kwargs,
 ) -> Dict[str, Dict[str, Union[Dict, Any]]]:
 
     if "with_info" in scope:
@@ -838,13 +894,15 @@ def get_instances_by_scope_with_checker(
             scope["with_info"]["process"] = True
             break
 
-    return get_instances_by_scope(scope, *args, **kwargs)
+    return get_instances_by_scope(scope, data_backend, *args, **kwargs)
 
 
 @support_multi_biz
 @SetupObserve(histogram=metrics.app_task_get_instances_by_scope_duration_seconds, get_labels_func=get_scope_labels_func)
-@FuncCacheDecorator(cache_time=SUBSCRIPTION_SCOPE_CACHE_TIME)
-def get_instances_by_scope(scope: Dict[str, Union[Dict, int, Any]]) -> Dict[str, Dict[str, Union[Dict, Any]]]:
+@FuncCacheDecorator(cache_time=SUBSCRIPTION_SCOPE_CACHE_TIME, uuid_cache_enable=True)
+def get_instances_by_scope(
+    scope: Dict[str, Union[Dict, int, Any]], data_backend: str
+) -> Dict[str, Dict[str, Union[Dict, Any]]]:
     """
     获取范围内的所有主机
     :param scope: dict {
@@ -881,7 +939,6 @@ def get_instances_by_scope(scope: Dict[str, Union[Dict, int, Any]]) -> Dict[str,
     if instance_selector == []:
         return {}
 
-    instances = []
     bk_biz_id = scope["bk_biz_id"]
     if bk_biz_id:
         module_to_topo = get_module_to_topo_dict(bk_biz_id)
@@ -894,25 +951,30 @@ def get_instances_by_scope(scope: Dict[str, Union[Dict, int, Any]]) -> Dict[str,
         return {}
 
     need_register = scope.get("need_register", False)
+
+    instances = DynamicContainer(return_type=constants.DCReturnType.LIST.value, data_backend=data_backend).container
     # 按照拓扑查询
     if scope["node_type"] == models.Subscription.NodeType.TOPO:
         if scope["object_type"] == models.Subscription.ObjectType.HOST:
-            instances.extend([{"host": inst} for inst in get_host_relation(bk_biz_id, nodes)])
+            instances.extend([{"host": inst} for inst in get_host_relation(bk_biz_id, nodes, data_backend)])
         else:
             # 补充服务实例中的信息
             instances.extend(
-                [{"service": inst} for inst in get_service_instance_by_inst(bk_biz_id, nodes, module_to_topo)]
+                [
+                    {"service": inst}
+                    for inst in get_service_instance_by_inst(
+                        bk_biz_id, nodes, module_to_topo, data_backend=data_backend
+                    )
+                ]
             )
 
     # 按照实例查询
     elif scope["node_type"] == models.Subscription.NodeType.INSTANCE:
         if scope["object_type"] == models.Subscription.ObjectType.HOST:
-            instances.extend(
-                [
-                    {"host": inst}
-                    for inst in get_host_detail(nodes, bk_biz_id=bk_biz_id, source="get_instances_by_scope")
-                ]
+            host_detail: Union[RedisList, list] = get_host_detail(
+                nodes, bk_biz_id=bk_biz_id, source="get_instances_by_scope", data_backend=data_backend
             )
+            instances.extend([{"host": inst} for inst in host_detail])
         else:
             service_instance_ids = [int(node["id"]) for node in nodes]
             instances.extend(
@@ -923,6 +985,7 @@ def get_instances_by_scope(scope: Dict[str, Union[Dict, int, Any]]) -> Dict[str,
                         filter_id_list=service_instance_ids,
                         filter_field_name=FilterFieldName.SERVICE_INSTANCE_IDS,
                         ignore_exception=False,
+                        data_backend=data_backend,
                     )
                 ]
             )
@@ -936,11 +999,15 @@ def get_instances_by_scope(scope: Dict[str, Union[Dict, int, Any]]) -> Dict[str,
         bk_obj_id_set = check_instances_object_type(nodes)
         if scope["object_type"] == models.Subscription.ObjectType.HOST:
             # 补充实例所属模块ID
-            host_biz_relations = []
+            host_biz_relations: Union[RedisList, list] = DynamicContainer(
+                return_type=constants.DCReturnType.LIST.value, data_backend=data_backend
+            ).container
             instances.extend(
                 [
                     {"host": inst}
-                    for inst in get_host_detail_by_template(list(bk_obj_id_set)[0], nodes, bk_biz_id=bk_biz_id)
+                    for inst in get_host_detail_by_template(
+                        list(bk_obj_id_set)[0], nodes, bk_biz_id=bk_biz_id, data_backend=data_backend
+                    )
                 ]
             )
             bk_host_id_chunks = chunk_lists([instance["host"]["bk_host_id"] for instance in instances], 500)
@@ -954,26 +1021,34 @@ def get_instances_by_scope(scope: Dict[str, Union[Dict, int, Any]]) -> Dict[str,
 
             # 转化模板为节点
             nodes = set_template_scope_nodes(scope)
-            instances = add_host_module_info(host_biz_relations, instances)
+            instances: Union[RedisList, list] = add_host_module_info(
+                host_biz_relations, instances, data_backend=data_backend
+            )
 
         else:
             # 补充服务实例中的信息
             # 转化模板为节点，**注意不可在get_service_instance_by_inst之后才转换**
             nodes = set_template_scope_nodes(scope)
             instances.extend(
-                [{"service": inst} for inst in get_service_instance_by_inst(bk_biz_id, nodes, module_to_topo)]
+                [
+                    {"service": inst}
+                    for inst in get_service_instance_by_inst(
+                        bk_biz_id, nodes, module_to_topo, data_backend=data_backend
+                    )
+                ]
             )
 
     if not need_register:
         # 补充必要的主机或实例相关信息
-
-        add_host_info_to_instances(bk_biz_id, scope, instances)
-        add_scope_info_to_instances(nodes, scope, instances, module_to_topo)
+        instances: Union[RedisList, list] = add_host_info_to_instances(bk_biz_id, scope, instances, data_backend)
+        instances: Union[RedisList, list] = add_scope_info_to_instances(
+            nodes, scope, instances, module_to_topo, data_backend
+        )
 
         if scope["with_info"]["process"]:
-            add_process_info_to_instances(bk_biz_id, scope, instances)
+            instances: Union[RedisList, list] = add_process_info_to_instances(bk_biz_id, scope, instances, data_backend)
 
-    instances_dict = {}
+    instances_dict: typing.Union[RedisDict, dict] = DynamicContainer(data_backend=data_backend).container
     data = {
         "object_type": scope["object_type"],
         "node_type": models.Subscription.NodeType.INSTANCE,
@@ -997,7 +1072,7 @@ def get_instances_by_scope(scope: Dict[str, Union[Dict, int, Any]]) -> Dict[str,
             return_all_node_type=True,
         ).values_list("bk_host_id", flat=True)
 
-        selector_instances_dict = {}
+        selector_instances_dict: typing.Union[RedisDict, dict] = DynamicContainer(data_backend=data_backend).container
         for node_id, instance in instances_dict.items():
             is_host = data["object_type"] == models.Subscription.ObjectType.HOST
             instance_data = instance["host"] if is_host else instance["service"]
@@ -1010,28 +1085,44 @@ def get_instances_by_scope(scope: Dict[str, Union[Dict, int, Any]]) -> Dict[str,
     return instances_dict
 
 
-def add_host_info_to_instances(bk_biz_id: int, scope: Dict, instances: Dict):
+def add_host_info_to_instances(bk_biz_id: int, scope: Dict, instances: RedisList, data_backend: str):
     """
     补全实例的主机信息
     :param bk_biz_id: 业务ID
     :param scope: 目标范围
     :param instances: 实例列表
     """
+    is_redis_data_backend = data_backend == constants.DataBackend.REDIS.value
+
+    redis_instances: Union[RedisList, list] = DynamicContainer(
+        return_type=constants.DCReturnType.LIST.value, data_backend=data_backend
+    ).container
     if scope["object_type"] != models.Subscription.ObjectType.SERVICE:
         # 补充缺省字段，兜底 cmdb_instance.service 的配置定义场景
         for instance in instances:
             instance["service"] = instance.get("service")
+            if is_redis_data_backend:
+                redis_instances.append(instance)
         # 非服务实例，不需要补充实例主机信息
-        return
+        return redis_instances if is_redis_data_backend else instances
 
-    host_dict = {
-        host_info["bk_host_id"]: host_info
-        for host_info in get_host_detail(
-            [instance["service"] for instance in instances], bk_biz_id=bk_biz_id, source="add_host_info_to_instances"
-        )
-    }
+    host_dict = DynamicContainer(data_backend=data_backend).container
+
+    hosts_detail: Union[RedisList, list] = get_host_detail(
+        [instance["service"] for instance in instances],
+        bk_biz_id=bk_biz_id,
+        source="add_host_info_to_instances",
+        data_backend=data_backend,
+    )
+    for host_info in hosts_detail:
+        host_dict[host_info["bk_host_id"]] = host_info
+
     for instance in instances:
         instance["host"] = host_dict[instance["service"]["bk_host_id"]]
+        if is_redis_data_backend:
+            redis_instances.append(instance)
+
+    return redis_instances if is_redis_data_backend else instances
 
 
 def _add_scope_info_to_inst_instances(scope: Dict, instance: Dict):
@@ -1077,7 +1168,9 @@ def _add_scope_info_to_topo_instances(scope: Dict, instance: Dict, nodes: List[D
     instance["scope"] = instance_scope
 
 
-def add_scope_info_to_instances(nodes: List, scope: Dict, instances: List[Dict], module_to_topo: Dict[str, List]):
+def add_scope_info_to_instances(
+    nodes: List, scope: Dict, instances: Union[RedisList, list], module_to_topo: Dict[str, List], data_backend: str
+):
     """
     给实例添加目标范围信息
     :param nodes: 节点列表
@@ -1086,20 +1179,34 @@ def add_scope_info_to_instances(nodes: List, scope: Dict, instances: List[Dict],
     :param module_to_topo: 模块拓扑 {"module|1": ["biz|2", "set|3", "module|1"]}
     :return:
     """
+    is_redis_data_backend = data_backend == constants.DataBackend.REDIS.value
+    redis_instances: Union[RedisList, list] = DynamicContainer(
+        return_type=constants.DCReturnType.LIST.value, data_backend=data_backend
+    ).container
     for instance in instances:
         if scope["node_type"] == models.Subscription.NodeType.INSTANCE:
             _add_scope_info_to_inst_instances(scope, instance)
         else:
             _add_scope_info_to_topo_instances(scope, instance, nodes, module_to_topo)
 
+        if is_redis_data_backend:
+            redis_instances.append(instance)
 
-def _add_process_info_to_host_instances(bk_biz_id: int, instances: List[Dict]):
+    return redis_instances if is_redis_data_backend else instances
+
+
+def _add_process_info_to_host_instances(bk_biz_id: int, instances: Union[RedisList, list], data_backend: str):
     """
     给主机实例添加进程信息
     :param bk_biz_id: 业务ID
     :param instances: 实例列表
     """
+    is_redis_data_backend = data_backend == constants.DataBackend.REDIS.value
+    redis_instances: Union[RedisList, list] = DynamicContainer(
+        return_type=constants.DCReturnType.LIST.value, data_backend=data_backend
+    ).container
     bk_host_list = [instance["host"]["bk_host_id"] for instance in instances]
+    # TODO REDIS_DICT
     host_processes = get_process_by_biz_id(bk_biz_id, bk_host_list)
     logger.info(
         f"[add_process_info_to_host_instances] instance_hosts_count -> {len(bk_host_list)}, "
@@ -1108,22 +1215,34 @@ def _add_process_info_to_host_instances(bk_biz_id: int, instances: List[Dict]):
     for instance in instances:
         bk_host_id = instance["host"]["bk_host_id"]
         instance["process"] = host_processes[bk_host_id]
+        if is_redis_data_backend:
+            redis_instances.append(instance)
+
+    return redis_instances if is_redis_data_backend else instances
 
 
-def _add_process_info_to_service_instances(instances: List[Dict]):
+def _add_process_info_to_service_instances(instances: List[Dict], data_backend: str = None):
     """
     给服务实例添加进程信息
     :param instances: 实例列表
     """
+    is_redis_data_backend = data_backend == constants.DataBackend.REDIS.value
+    redis_instances: Union[RedisList, list] = DynamicContainer(
+        return_type=constants.DCReturnType.LIST.value, data_backend=data_backend
+    ).container
     for instance in instances:
         processes = {}
         for process in instance["service"].get("process_instances") or []:
             processes[process["process"]["bk_process_name"]] = process["process"]
         instance["process"] = processes
         del instance["service"]["process_instances"]
+        if is_redis_data_backend:
+            redis_instances.append(instance)
+
+    return redis_instances if is_redis_data_backend else instances
 
 
-def add_process_info_to_instances(bk_biz_id: int, scope, instances):
+def add_process_info_to_instances(bk_biz_id: int, scope, instances: RedisList, data_backend: str):
     """
     给实例列表添加进程信息
     :param bk_biz_id: 业务
@@ -1131,9 +1250,9 @@ def add_process_info_to_instances(bk_biz_id: int, scope, instances):
     :param instances: 实例列表
     """
     if scope["object_type"] == models.Subscription.ObjectType.HOST:
-        _add_process_info_to_host_instances(bk_biz_id, instances)
+        return _add_process_info_to_host_instances(bk_biz_id, instances, data_backend)
     else:
-        _add_process_info_to_service_instances(instances)
+        return _add_process_info_to_service_instances(instances, data_backend)
 
 
 def get_plugin_path(plugin_name: str, target_host: models.Host, agent_config: Dict) -> Dict:

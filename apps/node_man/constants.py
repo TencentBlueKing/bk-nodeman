@@ -1234,3 +1234,13 @@ class OsBitType(EnhanceEnum):
     @classmethod
     def cpu_type__os_bit_map(cls):
         return {CpuType.x86: cls.BIT32.value, CpuType.x86_64: cls.BIT64.value, CpuType.aarch64: cls.ARM.value}
+
+
+class DataBackend(EnhanceEnum):
+    MEM = "MEM"
+    REDIS = "REDIS"
+
+
+class DCReturnType(EnhanceEnum):
+    DICT = "DICT"
+    LIST = "LIST"

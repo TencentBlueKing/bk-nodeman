@@ -22,6 +22,7 @@ from pipeline.builder import ServiceActivity, Var
 class AgentServiceActivity(ServiceActivity):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.is_multi_paralle_gateway: bool = False
         self.component.inputs.meta = Var(type=Var.SPLICE, value="${meta}")
         self.component.inputs.description = Var(type=Var.SPLICE, value="${description}")
         self.component.inputs.blueking_language = Var(type=Var.SPLICE, value="${blueking_language}")

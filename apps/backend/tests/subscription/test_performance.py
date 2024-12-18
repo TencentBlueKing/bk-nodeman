@@ -215,7 +215,7 @@ class TestPerformance(TestCase):
 
     @classmethod
     def mock_get_instance_by_scope(cls, instance_num):
-        def get_instances_by_scope(scope, *args, **kwargs):
+        def get_instances_by_scope(scope, data_backend, *args, **kwargs):
             if scope["nodes"]:
                 mocked_instances = {}
                 for i in range(instance_num):

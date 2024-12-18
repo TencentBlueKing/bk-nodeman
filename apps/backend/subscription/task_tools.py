@@ -32,31 +32,34 @@ class TaskResultTools:
     def list_pipeline_processes(pipeline_id: str) -> Dict[str, List[Dict]]:
         pipeline = models.PipelineTree.objects.get(id=pipeline_id).tree
 
-        parallel_gw = next(
-            (gw for gw in pipeline["gateways"].values() if gw["type"] == pipeline_parser.ActType.PARALLEL), None
-        )
+        # parallel_gw = next(
+        #     (gw for gw in pipeline["gateways"].values() if gw["type"] == pipeline_parser.ActType.PARALLEL), None
+        # )
+        parallel_gws = [gw for gw in pipeline["gateways"].values() if gw["type"] == pipeline_parser.ActType.PARALLEL]
 
         pipeline_processes = {}
-        for outgoing in parallel_gw["outgoing"]:
-            pipeline_process = []
-            index = 0
-            while True:
-                next_node = next(
-                    (node for node in pipeline["activities"].values() if outgoing in node["incoming"]), None
-                )
-                if not next_node:
-                    break
-                pipeline_process.append(
-                    {
-                        "node_id": next_node["id"],
-                        "name": next_node["name"],
-                        "step_code": next_node["component"].get("code"),
-                        "index": index,
-                    }
-                )
-                index = index + 1
-                outgoing = next_node["outgoing"]
-            pipeline_processes[pipeline_process[0]["node_id"]] = pipeline_process
+        for parallel_gw in parallel_gws:
+            for outgoing in parallel_gw["outgoing"]:
+                pipeline_process = []
+                index = 0
+                while True:
+                    next_node = next(
+                        (node for node in pipeline["activities"].values() if outgoing in node["incoming"]), None
+                    )
+                    if not next_node:
+                        break
+                    pipeline_process.append(
+                        {
+                            "node_id": next_node["id"],
+                            "name": next_node["name"],
+                            "step_code": next_node["component"].get("code"),
+                            "index": index,
+                        }
+                    )
+                    index = index + 1
+                    outgoing = next_node["outgoing"]
+                pipeline_processes[pipeline_process[0]["node_id"]] = pipeline_process
+
         return pipeline_processes
 
     @staticmethod

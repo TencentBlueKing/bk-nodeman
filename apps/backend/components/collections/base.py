@@ -8,10 +8,13 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import ast
 import logging
 import os
+import pickle
 import traceback
 import typing
+import uuid
 from collections import defaultdict
 from dataclasses import dataclass
 from typing import (
@@ -32,6 +35,7 @@ from django.db.models import Value
 from django.db.models.functions import Concat
 from django.utils import timezone
 from django.utils.translation import ugettext as _
+from django_redis import get_redis_connection
 
 from apps.adapters.api.gse import GseApiBaseHelper, get_gse_api_helper
 from apps.backend.api.constants import POLLING_TIMEOUT
@@ -45,6 +49,7 @@ from apps.prometheus import metrics
 from apps.prometheus.helper import SetupObserve
 from apps.utils import cache, time_handler, translation
 from apps.utils.exc import ExceptionHandler
+from apps.utils.redis import REDIS_CACHE_DATA_TIMEOUT
 from pipeline.core.flow import Service
 
 logger = logging.getLogger("celery")
@@ -263,6 +268,73 @@ class CommonData:
     subscription_instance_ids: Set[int]
 
 
+class RedisCommonData:
+    def __init__(self, *args, **kwargs):
+        self.uuid_key = uuid.uuid4().hex
+        self.client = get_redis_connection()
+
+        for k, v in dict(*args, **kwargs).items():
+            self.client.hset(self.uuid_key, k, str(pickle.dumps(v)))
+
+        self.client.expire(self.uuid_key, REDIS_CACHE_DATA_TIMEOUT)
+
+    def _get_attr_from_redis(self, key):
+        return pickle.loads(ast.literal_eval(self.client.hget(self.uuid_key, key)))
+
+    def __del__(self):
+        self.client.delete(self.uuid_key)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args, **kwargs):
+        self.__del__()
+
+    @property
+    def bk_host_ids(self) -> Set[int]:
+        return self._get_attr_from_redis("bk_host_ids")
+
+    @property
+    def host_id_obj_map(self) -> Dict[int, models.Host]:
+        return self._get_attr_from_redis("host_id_obj_map")
+
+    @property
+    def sub_inst_id__host_id_map(self) -> Dict[int, int]:
+        return self._get_attr_from_redis("sub_inst_id__host_id_map")
+
+    @property
+    def host_id__sub_inst_id_map(self) -> Dict[int, int]:
+        return self._get_attr_from_redis("host_id__sub_inst_id_map")
+
+    @property
+    def ap_id_obj_map(self) -> Dict[int, models.AccessPoint]:
+        return self._get_attr_from_redis("ap_id_obj_map")
+
+    @property
+    def sub_inst_id__sub_inst_obj_map(self) -> Dict[int, models.SubscriptionInstanceRecord]:
+        return self._get_attr_from_redis("sub_inst_id__sub_inst_obj_map")
+
+    @property
+    def gse_api_helper(self) -> GseApiBaseHelper:
+        return self._get_attr_from_redis("gse_api_helper")
+
+    @property
+    def subscription(self) -> models.Subscription:
+        return self._get_attr_from_redis("subscription")
+
+    @property
+    def subscription_step(self) -> models.SubscriptionStep:
+        return self._get_attr_from_redis("subscription_step")
+
+    @property
+    def subscription_instances(self) -> List[models.SubscriptionInstanceRecord]:
+        return self._get_attr_from_redis("subscription_instances")
+
+    @property
+    def subscription_instance_ids(self) -> Set[int]:
+        return self._get_attr_from_redis("subscription_instance_ids")
+
+
 class BaseService(Service, LogMixin, DBHelperMixin, PollingTimeoutMixin):
 
     # 失败订阅实例ID - 失败原因 映射关系
@@ -447,7 +519,10 @@ class BaseService(Service, LogMixin, DBHelperMixin, PollingTimeoutMixin):
                     break
 
         ap_id_obj_map = models.AccessPoint.ap_id_obj_map()
-        return CommonData(
+
+        common_data_cls = RedisCommonData if data.get_one_of_inputs("is_multi_paralle_gateway") else CommonData
+
+        return common_data_cls(
             bk_host_ids=bk_host_ids,
             host_id_obj_map=host_id_obj_map,
             sub_inst_id__host_id_map=sub_inst_id__host_id_map,
@@ -610,6 +685,9 @@ class BaseService(Service, LogMixin, DBHelperMixin, PollingTimeoutMixin):
             ),
             Service.InputItem(name="subscription_step_id", key="subscription_step_id", type="int", required=True),
             Service.InputItem(name="blueking_language", key="blueking_language", type="str", required=True),
+            Service.InputItem(
+                name="is_multi_paralle_gateway", key="is_multi_paralle_gateway", type="bool", required=True
+            ),
         ]
 
     def outputs_format(self):

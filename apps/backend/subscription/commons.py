@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import logging
+from typing import Union
 
 from django.core.cache import cache
 
@@ -18,6 +19,7 @@ from apps.node_man import constants
 from apps.prometheus import metrics
 from apps.prometheus.helper import SetupObserve, get_call_resource_labels_func
 from apps.utils.batch_request import batch_request
+from apps.utils.redis import DynamicContainer, RedisList
 
 logger = logging.getLogger("app")
 
@@ -38,7 +40,7 @@ def get_host_object_attribute(bk_biz_id):
 
 
 @SetupObserve(counter=metrics.app_common_method_requests_total, get_labels_func=get_call_resource_labels_func)
-def list_biz_hosts(bk_biz_id, condition, func, split_params=False):
+def list_biz_hosts(bk_biz_id, condition, func, split_params=False, data_backend: str = None):
     biz_custom_property = []
     kwargs = {
         "fields": constants.CC_HOST_FIELDS,
@@ -50,14 +52,16 @@ def list_biz_hosts(bk_biz_id, condition, func, split_params=False):
     kwargs["fields"] += list(set(biz_custom_property))
     kwargs["fields"] = list(set(kwargs["fields"]))
     kwargs.update(condition)
-
-    hosts = batch_request(getattr(client_v2.cc, func), kwargs, split_params=split_params)
+    hosts = batch_request(getattr(client_v2.cc, func), kwargs, split_params=split_params, data_backend=data_backend)
     # 排除掉CMDB中内网IP为空的主机
-    cleaned_hosts = [host for host in hosts if host.get("bk_host_innerip") or host.get("bk_host_innerip_v6")]
+    cleaned_hosts: Union[RedisList, list] = DynamicContainer(
+        return_type=constants.DCReturnType.LIST.value, data_backend=data_backend
+    ).container
+    cleaned_hosts.extend([host for host in hosts if host.get("bk_host_innerip") or host.get("bk_host_innerip_v6")])
     return cleaned_hosts
 
 
-def get_host_by_inst(bk_biz_id, inst_list):
+def get_host_by_inst(bk_biz_id, inst_list, data_backend: str = None):
     """
     根据拓扑节点查询主机
     :param inst_list: 实例列表
@@ -67,7 +71,9 @@ def get_host_by_inst(bk_biz_id, inst_list):
     if not bk_biz_id:
         raise BizNotExistError()
 
-    hosts = []
+    hosts: Union[RedisList, list] = DynamicContainer(
+        return_type=constants.DCReturnType.LIST.value, data_backend=data_backend
+    ).container
     bk_module_ids = []
     bk_set_ids = []
     bk_biz_ids = []
@@ -88,13 +94,27 @@ def get_host_by_inst(bk_biz_id, inst_list):
             # 自定义层级
             topo_cond = {"bk_obj_id": inst["bk_obj_id"], "bk_inst_id": inst["bk_inst_id"]}
             hosts.extend(
-                list_biz_hosts(bk_biz_id, topo_cond, "find_host_by_topo", source="get_host_by_inst:find_host_by_topo")
+                list_biz_hosts(
+                    bk_biz_id,
+                    topo_cond,
+                    "find_host_by_topo",
+                    source="get_host_by_inst:find_host_by_topo",
+                    data_backend=data_backend,
+                )
             )
 
     if bk_biz_ids:
         # 业务查询
         for bk_biz_id in bk_biz_ids:
-            hosts.extend(list_biz_hosts(bk_biz_id, {}, "list_biz_hosts", source="get_host_by_inst:list_biz_hosts:biz"))
+            hosts.extend(
+                list_biz_hosts(
+                    bk_biz_id,
+                    {},
+                    "list_biz_hosts",
+                    source="get_host_by_inst:list_biz_hosts:biz",
+                    data_backend=data_backend,
+                )
+            )
     if bk_set_ids:
         # 集群查询
         hosts.extend(
@@ -102,6 +122,7 @@ def get_host_by_inst(bk_biz_id, inst_list):
                 bk_biz_id,
                 {"set_cond": [{"field": "bk_set_id", "operator": "$in", "value": bk_set_ids}]},
                 "list_biz_hosts",
+                data_backend=data_backend,
             )
         )
     if bk_module_ids:
@@ -113,6 +134,7 @@ def get_host_by_inst(bk_biz_id, inst_list):
                 "list_biz_hosts",
                 split_params=True,
                 source="get_host_by_inst:list_biz_hosts:module",
+                data_backend=data_backend,
             )
         )
 

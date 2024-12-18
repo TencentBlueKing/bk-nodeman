@@ -24,7 +24,10 @@ from django.utils.translation import ugettext as _
 from apps.backend.celery import app
 from apps.backend.components.collections.base import ActivityType
 from apps.backend.subscription import handler, tools
-from apps.backend.subscription.constants import TASK_HOST_LIMIT
+from apps.backend.subscription.constants import (
+    PARALLE_GATEWAY_PROCESS_LIMIT,
+    TASK_HOST_LIMIT,
+)
 from apps.backend.subscription.errors import SubscriptionInstanceEmpty
 from apps.backend.subscription.steps import StepFactory, agent
 from apps.core.gray.tools import GrayTools
@@ -33,6 +36,7 @@ from apps.node_man import tools as node_man_tools
 from apps.node_man.handlers.cmdb import CmdbHandler
 from apps.prometheus import metrics
 from apps.utils import md5, translation
+from apps.utils.redis import DynamicContainer, RedisDict
 from pipeline import builder
 from pipeline.builder import Data, NodeOutput, ServiceActivity, Var
 from pipeline.core.pipeline import Pipeline
@@ -107,6 +111,7 @@ def build_instances_task(
             global_pipeline_data=global_pipeline_data,
             meta=inject_meta,
             current_activities=current_activities,
+            is_multi_paralle_gateway=subscription.is_multi_paralle_gateway,
         )
 
         # 记录每个 step 的起始 id 及步骤名称
@@ -172,7 +177,8 @@ def create_pipeline(
     subscription: models.Subscription,
     instances_action: Dict[str, Dict[str, str]],
     subscription_instances: List[models.SubscriptionInstanceRecord],
-    task_host_limit: int,
+    task_host_limit_config: Dict[str, int],
+    is_multi_paralle_gateway: bool,
 ) -> Pipeline:
     """
       批量执行实例的步骤的动作
@@ -187,6 +193,22 @@ def create_pipeline(
       :param task_host_limit:
     构造形如以下的pipeline，根据 ${TASK_HOST_LIMIT} 来决定单条流水线的执行机器数量
                          StartEvent
+                             |
+                      ParallelGateway
+                             |
+          ---------------------------------------
+          |                  |                  |
+    500_host_init      500_host_init         .......
+          |                  |                  |
+    install_plugin     install_plugin        .......
+          |                  |                  |
+    render_config      render_config         .......
+          |                  |                  |
+       .......            .......            .......
+          |                  |                  |
+          ---------------------------------------
+                             |
+                      ConvergeGateway
                              |
                       ParallelGateway
                              |
@@ -231,9 +253,12 @@ def create_pipeline(
     #     if instance_id in subscription_instance_map:
     #         action_instances[json.dumps(step_actions)].append(subscription_instance_map[instance_id])
 
+    task_host_limit: int = task_host_limit_config["task_host_limit"]
+    paralle_gateway_process_limit: int = task_host_limit_config["paralle_gateway_process_limit"]
+
     sub_processes = []
+
     global_pipeline_data = Data()
-    start_event = builder.EmptyStartEvent()
     for metadata_json_str, sub_insts in sub_insts_gby_metadata.items():
         start = 0
         metadata = json.loads(metadata_json_str)
@@ -247,16 +272,46 @@ def create_pipeline(
             )
             sub_processes.append(activities_start_event)
             start = start + task_host_limit
-    parallel_gw = builder.ParallelGateway()
-    converge_gw = builder.ConvergeGateway()
+
+    start_event = builder.EmptyStartEvent()
     end_event = builder.EmptyEndEvent()
-    start_event.extend(parallel_gw).connect(*sub_processes).to(parallel_gw).converge(converge_gw).extend(end_event)
+
+    if not is_multi_paralle_gateway:
+        # 保留原有逻辑，新逻辑按业务进行灰度，稳定后，此部分逻辑可以清理
+        parallel_gw = builder.ParallelGateway()
+        converge_gw = builder.ConvergeGateway()
+        start_event.extend(parallel_gw).connect(*sub_processes).to(parallel_gw).converge(converge_gw).extend(end_event)
+    else:
+        sub_processes.reverse()
+
+        parallel_gws = []
+        converge_gws = []
+
+        for start in range(0, len(sub_processes), paralle_gateway_process_limit):
+            parallel_gw = builder.ParallelGateway()
+            converge_gw = builder.ConvergeGateway()
+            parallel_gw.connect(*sub_processes[start : start + paralle_gateway_process_limit]).to(parallel_gw).converge(
+                converge_gw
+            )
+
+            parallel_gws.append(parallel_gw)
+            converge_gws.append(converge_gw)
+
+        for _converge_gw, _parallel_gw in zip(converge_gws[0:-1], parallel_gws[1:]):
+            _converge_gw.extend(_parallel_gw)
+
+        start_event.extend(parallel_gws[0])
+        converge_gws[-1].extend(end_event)
 
     # 构造pipeline树
     tree = builder.build_tree(start_event, data=global_pipeline_data)
     models.PipelineTree.objects.create(id=tree["id"], tree=tree)
 
-    parser = PipelineParser(pipeline_tree=tree)
+    # 固定流程无需检查是否存在cycle, cycle_tolerate=True 跳过cycle检查可节省大部分时间
+    if is_multi_paralle_gateway:
+        parser = PipelineParser(pipeline_tree=tree, cycle_tolerate=True)
+    else:
+        parser = PipelineParser(pipeline_tree=tree)
     pipeline = parser.parse()
     return pipeline
 
@@ -319,9 +374,10 @@ def create_task_transaction(create_task_func):
 def create_task(
     subscription: models.Subscription,
     subscription_task: models.SubscriptionTask,
-    instances: Dict[str, Dict[str, Union[Dict, Any]]],
+    instances: Union[RedisDict, Dict[str, Dict]],
     instance_actions: Dict[str, Dict[str, str]],
     preview_only: bool = False,
+    data_backend: str = None,
 ):
     """
     创建执行任务
@@ -338,12 +394,12 @@ def create_task(
     :return: SubscriptionTask
     """
     # 兜底注入 Meta，此处注入是覆盖面最全的（包含历史被移除实例）
-    GrayTools().inject_meta_to_instances(instances)
+    injected_instances: Union[RedisDict, dict] = GrayTools().inject_meta_to_instances(instances, data_backend)
     logger.info(
         "[sub_lifecycle<sub(%s), task(%s)>][create_task] inject meta to instances[num=%s] successfully",
         subscription.id,
         subscription_task.id,
-        len(instances),
+        len(injected_instances),
     )
 
     topo_order = CmdbHandler.get_topo_order()
@@ -361,8 +417,9 @@ def create_task(
     # 批量创建订阅实例执行记录
     to_be_created_records_map = {}
     plugin__host_id__bk_obj_sub_map = {}
+    instance_ids = injected_instances.keys()
     for instance_id, step_action in instance_actions.items():
-        if instance_id not in instances:
+        if instance_id not in instance_ids:
             # instance_id不在instances中，则说明该实例可能已经不在该业务中，因此无法操作，故不处理。
             continue
 
@@ -373,7 +430,7 @@ def create_task(
             agent.InstallProxy.ACTION_NAME,
             agent.InstallProxy2.ACTION_NAME,
         ]
-        instance_info = instances[instance_id]
+        instance_info = injected_instances[instance_id]
         host_info = instance_info["host"]
         record = models.SubscriptionInstanceRecord(
             task_id=subscription_task.id,
@@ -502,10 +559,17 @@ def create_task(
         amount=len(created_instance_records)
     )
 
-    task_host_limit = models.GlobalSettings.get_config(
-        models.GlobalSettings.KeyEnum.TASK_HOST_LIMIT.value, default=TASK_HOST_LIMIT
+    task_host_limit_config: Dict[str, int] = models.GlobalSettings.get_config(
+        models.GlobalSettings.KeyEnum.TASK_HOST_LIMIT_CONFIG.value,
+        default={"task_host_limit": TASK_HOST_LIMIT, "paralle_gateway_process_limit": PARALLE_GATEWAY_PROCESS_LIMIT},
     )
-    pipeline = create_pipeline(subscription, instance_actions, created_instance_records, task_host_limit)
+    pipeline = create_pipeline(
+        subscription,
+        instance_actions,
+        created_instance_records,
+        task_host_limit_config,
+        subscription.is_multi_paralle_gateway,
+    )
     # 保存pipeline id
     subscription_task.pipeline_id = pipeline.id
     subscription_task.save(update_fields=["actions", "pipeline_id"])
@@ -598,9 +662,19 @@ def run_subscription_task_and_create_instance(
     # 获取订阅范围内全部实例
     steps = subscription.steps
     tolerance_time: int = (59, 0)[subscription.is_need_realtime()]
-    instances = tools.get_instances_by_scope_with_checker(
-        scope, steps, source="run_subscription_task_and_create_instance", tolerance_time=tolerance_time
+
+    data_backend = (
+        constants.DataBackend.REDIS.value if subscription.is_multi_paralle_gateway else constants.DataBackend.MEM.value
     )
+
+    instances: Union[RedisDict, dict] = tools.get_instances_by_scope_with_checker(
+        scope,
+        steps,
+        source="run_subscription_task_and_create_instance",
+        tolerance_time=tolerance_time,
+        data_backend=data_backend,
+    )
+
     logger.info(
         "[sub_lifecycle<sub(%s), task(%s)>][run_subscription_task_and_create_instance] "
         "get_instances_by_scope_with_checker -> %s",
@@ -624,34 +698,41 @@ def run_subscription_task_and_create_instance(
 
     if actions is not None:
         # 指定了动作，不需要计算，直接执行即可
-        instance_actions = {instance_id: actions for instance_id in instances}
+        instance_actions: Union[RedisDict, dict] = DynamicContainer(data_backend=data_backend).container
+        for instance_id in instances.keys():
+            instance_actions[instance_id] = actions
         create_task(subscription, subscription_task, instances, instance_actions)
         return
 
     # 预注入 Meta，用于变更计算（仅覆盖当前订阅范围，移除场景通过 create_task 兜底注入）
-    GrayTools().inject_meta_to_instances(instances)
+    injected_instances: Union[RedisDict, dict] = GrayTools().inject_meta_to_instances(instances, data_backend)
     logger.info(
         "[sub_lifecycle<sub(%s), task(%s)>][run_subscription_task_and_create_instance] "
         "pre-inject meta to instances[num=%s] successfully",
         subscription.id,
         subscription_task.id,
-        len(instances),
+        len(injected_instances),
     )
 
     # 按步骤顺序计算实例变更所需的动作
-    instance_actions = defaultdict(dict)
-    instance_migrate_reasons = defaultdict(dict)
+    instance_actions: dict = {}
+    instance_migrate_reasons: Union[RedisDict, dict] = DynamicContainer(data_backend=data_backend).container
     is_unknown_migrate_type_exists: bool = False
     for step in step_managers.values():
         # 计算变更的动作
         migrate_results = step.make_instances_migrate_actions(
-            instances, auto_trigger=subscription_task.is_auto_trigger, preview_only=preview_only
+            injected_instances, auto_trigger=subscription_task.is_auto_trigger, preview_only=preview_only
         )
         # 归类变更动作
         # eg: {"host|instance|host|1": "MAIN_INSTALL_PLUGIN"}
         instance_id_action_map: Dict[str, str] = migrate_results["instance_actions"]
+
         for instance_id, action in instance_id_action_map.items():
-            instance_actions[instance_id][step.step_id] = action
+            instance_step_id_action = instance_actions.get(instance_id, {})
+            instance_step_id_action[step.step_id] = action
+            instance_actions[instance_id] = instance_step_id_action
+
+            # instance_actions[instance_id][step.step_id] = action
             metrics.app_task_instances_migrate_actions_total.labels(step_id=step.step_id, action=action).inc()
 
         # 归类变更原因
@@ -667,7 +748,10 @@ def run_subscription_task_and_create_instance(
         # }
         instance_id_action_reason_map: Dict[str, Dict] = migrate_results["migrate_reasons"]
         for instance_id, migrate_reason in instance_id_action_reason_map.items():
-            instance_migrate_reasons[instance_id][step.step_id] = migrate_reason
+            instance_step_migrate_reasons = instance_migrate_reasons.get(instance_id, {})
+            instance_step_migrate_reasons[step.step_id] = migrate_reason
+            instance_migrate_reasons[instance_id] = instance_step_migrate_reasons
+            # instance_migrate_reasons[instance_id][step.step_id] = migrate_reason
             if "migrate_type" not in migrate_reason:
                 is_unknown_migrate_type_exists = True
             metrics.app_task_instances_migrate_reasons_total.labels(
@@ -685,7 +769,9 @@ def run_subscription_task_and_create_instance(
     )
 
     # 查询被从范围内移除的实例
-    instance_not_in_scope = [instance_id for instance_id in instance_actions if instance_id not in instances]
+    instance_not_in_scope = [
+        instance_id for instance_id in instance_actions if instance_id not in injected_instances.keys()
+    ]
 
     if instance_not_in_scope:
         deleted_id_not_in_scope = []
@@ -704,7 +790,7 @@ def run_subscription_task_and_create_instance(
             subscription_task.id,
             deleted_id_not_in_scope,
         )
-        deleted_instance_info = tools.get_instances_by_scope_with_checker(
+        deleted_instance_info: Union[RedisDict, dict] = tools.get_instances_by_scope_with_checker(
             {
                 "bk_biz_id": subscription.bk_biz_id,
                 "object_type": subscription.object_type,
@@ -713,10 +799,11 @@ def run_subscription_task_and_create_instance(
             },
             steps,
             source="find_deleted_instances",
+            data_backend=data_backend,
         )
 
         # 如果被删掉的实例在 CMDB 找不到，那么就使用最近一次的 InstanceRecord 的快照数据
-        not_exist_instance_id = set(instance_not_in_scope) - set(deleted_instance_info)
+        not_exist_instance_id = set(instance_not_in_scope) - set(deleted_instance_info.keys())
         latest_instance_ids = set()
         if not_exist_instance_id:
             records = list(
@@ -765,10 +852,10 @@ def run_subscription_task_and_create_instance(
                 len(not_exist_db_instance_id_set),
             )
 
-        instances.update(deleted_instance_info)
+        injected_instances.update(deleted_instance_info)
 
     create_task_result = create_task(
-        subscription, subscription_task, instances, instance_actions, preview_only=preview_only
+        subscription, subscription_task, injected_instances, instance_actions, preview_only=preview_only
     )
 
     return {
@@ -776,7 +863,7 @@ def run_subscription_task_and_create_instance(
         "error_hosts": create_task_result["error_hosts"],
         "instance_actions": instance_actions,
         "instance_migrate_reasons": instance_migrate_reasons,
-        "instance_id__inst_info_map": instances,
+        "instance_id__inst_info_map": injected_instances,
     }
 
 

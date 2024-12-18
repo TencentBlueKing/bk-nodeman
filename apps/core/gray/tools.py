@@ -16,6 +16,7 @@ from apps.core.concurrent.cache import FuncCacheDecorator
 from apps.exceptions import ApiError
 from apps.node_man import constants as node_man_constants
 from apps.node_man import models as node_man_models
+from apps.utils.redis import DynamicContainer, RedisDict
 from env.constants import GseVersion
 
 
@@ -67,13 +68,14 @@ class GrayTools:
         return gse_version
 
     def inject_meta_to_instances(
-        self, instances: typing.Dict[str, typing.Dict[str, typing.Union[typing.Dict, typing.Any]]]
+        self, instances: typing.Dict[str, typing.Dict[str, typing.Union[typing.Dict, typing.Any]]], data_backend: str
     ):
         """
         在 instances 中注入 Meta 信息
         :param instances:
         :return:
         """
+        injected_instances: typing.Union[RedisDict, dict] = DynamicContainer(data_backend=data_backend).container
         bk_host_ids: typing.Set[int] = {
             instance_info["host"]["bk_host_id"]
             for instance_info in instances.values()
@@ -110,6 +112,10 @@ class GrayTools:
             )
             meta["GSE_VERSION"] = gse_version
             instance_info["meta"] = meta
+
+            injected_instances[instance_id] = instance_info
+
+        return injected_instances
 
     @classmethod
     def get_gray_ap_map(cls) -> typing.Dict[int, int]:

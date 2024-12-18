@@ -36,6 +36,7 @@ from apps.node_man.handlers.iam import IamHandler
 from apps.utils import concurrent
 from apps.utils.basic import distinct_dict_list
 from apps.utils.local import get_request_username
+from apps.utils.redis import RedisDict
 from common.api import NodeApi
 
 logger = logging.getLogger("app")
@@ -136,9 +137,9 @@ class PolicyHandler:
         all_policy_ids = [policy["id"] for policy in all_policies]
 
         # 查询每个策略下最新的任务
-        sub_task_infos = models.SubscriptionTask.objects.filter(
-            subscription_id__in=all_policy_ids
-        ).values("id", "subscription_id")
+        sub_task_infos = models.SubscriptionTask.objects.filter(subscription_id__in=all_policy_ids).values(
+            "id", "subscription_id"
+        )
 
         max_sub_task_id_list, task_ids_gby_sub_id = [], defaultdict(list)
         for sub_task_dict in sub_task_infos:
@@ -362,7 +363,7 @@ class PolicyHandler:
 
     @staticmethod
     def get_host_id__plugin_version_map(
-        step_objs: List[models.SubscriptionStep], instance_id__inst_info_map: Dict[str, Dict]
+        step_objs: List[models.SubscriptionStep], instance_id__inst_info_map: RedisDict
     ) -> Dict[int, str]:
         project = None
         for step_obj in step_objs:
@@ -478,7 +479,7 @@ class PolicyHandler:
         action_instance_map = defaultdict(list)
         instance_actions = preview_result["instance_actions"]
         instance_migrate_reasons = preview_result["instance_migrate_reasons"]
-        instance_id__inst_info_map = preview_result["instance_id__inst_info_map"]
+        instance_id__inst_info_map: Union[RedisDict, dict] = preview_result["instance_id__inst_info_map"]
         host_id__plugin_version_map = cls.get_host_id__plugin_version_map(step_objs, instance_id__inst_info_map)
         for instance_id, instance_record in preview_result["to_be_created_records_map"].items():
             host_info = instance_record.instance_info["host"]
