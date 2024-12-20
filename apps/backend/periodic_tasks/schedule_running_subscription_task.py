@@ -36,6 +36,7 @@ def get_need_clean_subscription_app_code():
 
 @periodic_task(run_every=constants.UPDATE_SUBSCRIPTION_TASK_INTERVAL, queue="backend", options={"queue": "backend"})
 def schedule_update_subscription():
+    logger.info("start schedule update subscription")
     name: str = constants.UPDATE_SUBSCRIPTION_REDIS_KEY_TPL
     # 取出该hashset中所有的参数
     update_params: Dict[str, bytes] = REDIS_INST.hgetall(name=name)
@@ -59,6 +60,7 @@ def schedule_update_subscription():
 
 @periodic_task(run_every=constants.UPDATE_SUBSCRIPTION_TASK_INTERVAL, queue="backend", options={"queue": "backend"})
 def schedule_run_subscription():
+    logger.info("start schedule run subscription")
     name: str = constants.RUN_SUBSCRIPTION_REDIS_KEY_TPL
     length: int = min(REDIS_INST.llen(name), constants.MAX_RUN_SUBSCRIPTION_TASK_COUNT)
     run_params: List[bytes] = REDIS_INST.lrange(name, -length, -1)

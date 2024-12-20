@@ -618,7 +618,7 @@ class InstallLinuxPagentTestCase(InstallBaseTestCase):
                 f"-l http://127.0.0.1/download -r http://127.0.0.1/backend -L {self.DOWNLOAD_PATH}"
                 f" -c {solution_parse_result['params']['token']} -s {mock_data_utils.JOB_TASK_PIPELINE_ID}"
                 f" -HNT PAGENT -HIIP {host.inner_ip}"
-                f" -HC {self.CLOUD_ID} -HOT {host.os_type.lower()} -HI '{host.identity.password}'"
+                f" -HC {self.CLOUD_ID} -HOT {host.os_type.lower()} --host-identity='{host.identity.password}'"
                 f" -HP {host.identity.port} -HAT {host.identity.auth_type}"
                 f" -HA {host.identity.account} -HLIP {host.inner_ip}"
                 f" -HDD '{installation_tool.dest_dir}' -HPP '17981' -I 1.1.1.1"
@@ -826,7 +826,8 @@ class InstallAgentWithInstallChannelSuccessTest(InstallBaseTestCase):
                 f"-l http://1.1.1.1:17980/ -r http://127.0.0.1/backend -L {self.DOWNLOAD_PATH}"
                 f" -c {solution_parse_result['params']['token']} -s {mock_data_utils.JOB_TASK_PIPELINE_ID}"
                 f" -HNT AGENT -HIIP {host.inner_ip}"
-                f" -HC 0 -HOT linux -HI 'password' -HP 22 -HAT {host.identity.auth_type} -HA root -HLIP {host.inner_ip}"
+                f" -HC 0 -HOT linux --host-identity='password' -HP 22 "
+                f"-HAT {host.identity.auth_type} -HA root -HLIP {host.inner_ip}"
                 f" -HDD '/tmp/' -HPP '17981' -I 1.1.1.1 -CPA 'http://127.0.0.1:17981'"
                 f" -HSJB {solution_parse_result['params']['host_solutions_json_b64']}"
             ],

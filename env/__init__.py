@@ -99,7 +99,8 @@ BKAPP_IEOD_ACTIVE_FIREWALL_POLICY_SCRIPT_INFO = get_type_env(
 )
 BKAPP_DEFAULT_INSTALL_CHANNEL_ID = get_type_env(key="BKAPP_DEFAULT_INSTALL_CHANNEL_ID", default=-1, _type=int)
 BKAPP_AUTOMATIC_CHOICE_CLOUD_ID = get_type_env(key="BKAPP_AUTOMATIC_CHOICE_CLOUD_ID", default=-1, _type=int)
-BKAPP_UNASSIGNED_CLOUD_ID = get_type_env(key="BKAPP_UNASSIGNED_CLOUD_ID", default=90000001, _type=int)
+# 适配从k8s读取值变成科学计数法问题
+BKAPP_UNASSIGNED_CLOUD_ID = int(get_type_env(key="BKAPP_UNASSIGNED_CLOUD_ID", default=90000001, _type=float))
 
 # ===============================================================================
 # 日志
