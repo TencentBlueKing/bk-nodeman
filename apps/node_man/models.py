@@ -177,6 +177,8 @@ class GlobalSettings(models.Model):
         ADD_HOST_BIZ_BLACKLIST = "ADD_HOST_BIZ_BLACKLIST"
         # CMDB内置云区域IDS
         CMDB_INTERNAL_CLOUD_IDS = "CMDB_INTERNAL_CLOUD_IDS"
+        # GSE查询进程状态信息分片大小
+        QUERY_PROC_STATUS_HOST_LENS = "QUERY_PROC_STATUS_HOST_LENS"
 
     key = models.CharField(_("键"), max_length=255, db_index=True, primary_key=True)
     v_json = JSONField(_("值"))
@@ -193,9 +195,7 @@ class GlobalSettings(models.Model):
 
     def fetch_isp(self):
         isps = dict(GlobalSettings.objects.filter(key="isp").values_list("key", "v_json")).get("isp", [])
-        result = self.map_values(
-            isps, lambda isp: isp["isp"], lambda isp: {"isp_name": isp["isp_name"]}
-        )
+        result = self.map_values(isps, lambda isp: isp["isp"], lambda isp: {"isp_name": isp["isp_name"]})
 
         return result
 
