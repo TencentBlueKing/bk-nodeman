@@ -77,7 +77,7 @@ CLEAR_NEED_DELETE_HOST_IDS_INTERVAL = 1 * TimeUnit.MINUTE
 DEFAULT_CLOUD = int(os.environ.get("DEFAULT_CLOUD", 0))
 DEFAULT_CLOUD_NAME = os.environ.get("DEFAULT_CLOUD_NAME", _("直连区域"))
 # 未分配管控区域ID
-UNASSIGNED_CLOUD_ID = int(os.environ.get("BKAPP_UNASSIGNED_CLOUD_ID", 90000001))
+UNASSIGNED_CLOUD_ID = int(float(os.environ.get("BKAPP_UNASSIGNED_CLOUD_ID", 90000001)))
 # 自动选择接入点ID
 DEFAULT_AP_ID = int(os.environ.get("DEFAULT_AP_ID", -1))
 # 自动选择安装通道ID
