@@ -433,9 +433,5 @@ $bgColor: #f5f7fa;
     }
   }
 }
-</style>
-<style>
-article {
-  height: 100%;
-}
+
 </style>
