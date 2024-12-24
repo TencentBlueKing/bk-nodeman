@@ -87,6 +87,7 @@ class CreateSubscriptionSerializer(GatewaySerializer):
     steps = serializers.ListField(child=CreateStepSerializer(), min_length=1, label="事件订阅触发的动作列表")
     target_hosts = TargetHostSerializer(many=True, label="下发的目标机器列表", required=False, allow_empty=False)
     run_immediately = serializers.BooleanField(required=False, default=False, label="是否立即执行")
+    enable = serializers.BooleanField(required=False, default=False, label="是否开启订阅巡检")
     is_main = serializers.BooleanField(required=False, default=False, label="是否为主配置")
     operate_info = serializers.ListField(required=False, child=HostOperateInfoSerializer(), default=[], label="操作信息")
     system_account = serializers.DictField(required=False, label=_("操作系统对应账户"))
