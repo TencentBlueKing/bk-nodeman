@@ -481,7 +481,7 @@ class PolicyStepAdapter:
         self, os_type: str, cpu_arch: str, package: models.Packages = None, config: Dict = None
     ) -> List[models.PluginConfigTemplate]:
         """如果 package 是重新获取的(包括业务锁定版本和tag不存在的版本两种情况)，则重新从数据库中获取配置模板"""
-        if not self.is_pkg_in_selected_pkg(package, self.selected_pkg_infos):
+        if package is not None and not self.is_pkg_in_selected_pkgs(package, self.selected_pkg_infos):
             plugin_config_templates = []
             for config_template in config["config_templates"]:
                 config_tmpl = (
@@ -548,7 +548,7 @@ class PolicyStepAdapter:
         return plugin_version_config
 
     @staticmethod
-    def is_pkg_in_selected_pkg(package: models.Packages, selected_pkg_infos: List[Dict]) -> bool:
+    def is_pkg_in_selected_pkgs(package: models.Packages, selected_pkg_infos: List[Dict]) -> bool:
         for pkg_info in selected_pkg_infos:
             if (
                 package.project == pkg_info["project"]
