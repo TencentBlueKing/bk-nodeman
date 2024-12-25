@@ -67,13 +67,15 @@ class RedisListIterator:
 
 
 class RedisDataBase:
-    def __init__(self, uuid_key: str = None, cache_uuid_key: str = None):
+    def __init__(self, uuid_key: str = None, cache_uuid_key: str = None, cache_time=None):
         self.cache_uuid_key = cache_uuid_key
         self.uuid_key = uuid_key or f"{uuid.uuid4().hex}"
         self.client = get_redis_connection()
+        self.cache_time = cache_time or REDIS_CACHE_DATA_TIMEOUT
+        self._update_redis_expiry()
 
     def _update_redis_expiry(self, cache_time=None):
-        self.client.expire(self.cache_uuid_key or self.uuid_key, cache_time or REDIS_CACHE_DATA_TIMEOUT)
+        self.client.expire(self.cache_uuid_key or self.uuid_key, cache_time or self.cache_time)
 
     def __del__(self):
         self.client.delete(self.uuid_key)
@@ -99,7 +101,10 @@ class RedisDict(RedisDataBase, dict):
         self._update_redis_expiry()
 
     def __getitem__(self, key: Any) -> Any:
-        return json.loads(self.client.hget(self.cache_uuid_key or self.uuid_key, key) or "null")
+        data = json.loads(self.client.hget(self.cache_uuid_key or self.uuid_key, key) or "null")
+        if data:
+            return data
+        raise KeyError()
 
     def __len__(self) -> int:
         return self.client.hlen(self.cache_uuid_key or self.uuid_key)
@@ -148,10 +153,19 @@ class RedisList(RedisDataBase, list):
 
 
 class DynamicContainer:
-    def __init__(self, return_type: str = DCReturnType.DICT.value, data_backend: str = DataBackend.REDIS.value):
+    def __init__(
+        self,
+        return_type: str = DCReturnType.DICT.value,
+        data_backend: str = DataBackend.REDIS.value,
+        cache_time: int = None,
+    ):
 
         if settings.DATA_BACKEND == DataBackend.REDIS.value or data_backend == DataBackend.REDIS.value:
-            self._container = RedisDict() if return_type == DCReturnType.DICT.value else RedisList()
+            self._container = (
+                RedisDict(cache_time=cache_time)
+                if return_type == DCReturnType.DICT.value
+                else RedisList(cache_time=cache_time)
+            )
         else:
             self._container = {} if return_type == DCReturnType.DICT.value else []
 

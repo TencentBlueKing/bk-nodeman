@@ -1048,7 +1048,9 @@ def get_instances_by_scope(
         if scope["with_info"]["process"]:
             instances: Union[RedisList, list] = add_process_info_to_instances(bk_biz_id, scope, instances, data_backend)
 
-    instances_dict: typing.Union[RedisDict, dict] = DynamicContainer(data_backend=data_backend).container
+    instances_dict: typing.Union[RedisDict, dict] = DynamicContainer(
+        data_backend=data_backend, cache_time=SUBSCRIPTION_SCOPE_CACHE_TIME
+    ).container
     data = {
         "object_type": scope["object_type"],
         "node_type": models.Subscription.NodeType.INSTANCE,
