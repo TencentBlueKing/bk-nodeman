@@ -6,11 +6,17 @@ import { listAp } from '@/api/modules/ap';
 import { listCloud } from '@/api/modules/cloud';
 import { getFilterCondition } from '@/api/modules/meta';
 import { fetchPwd } from '@/api/modules/tjj';
+import {
+  createAgentRegisterTask, createAgentTags, versionCompare, deletePackage,
+  getDeployedHostsCount, getTags, getVersion, listPackageNew, parsePackage,
+  queryAgentRegisterTask, quickSearchCondition, updatePackage,
+} from '@/api/modules/pkg_manage';
 import { sort } from '@/common/util';
-import { ISearchChild, ISearchItem } from '@/types';
+import { Mixin, ISearchChild, ISearchItem } from '@/types';
 import { IAgentSearch, IAgentSearchIp, IAgentJob, IAgentHost } from '@/types/agent/agent-type';
 import { IAp } from '@/types/config/config';
 import { IChannel, ICloudSource } from '@/types/cloud/cloud';
+import { IPkgDelpyNumber, IPkgDimension, IPkgInfo, IPkgTagList, IPkgParseInfo, PkgType, IPkgVersion, IPkgParams } from '@/types/agent/pkg-manage';
 
 export const SET_AP_LIST = 'setApList';
 export const SET_CLOUD_LIST = 'setCloudList';
@@ -64,7 +70,7 @@ export default class AgentStore extends VuexModule {
         ...extraOther,
         ...item,
         status: item.status ? item.status.toLowerCase() : 'unknown',
-        version: item.version ? item.version : '--',
+        version: item.version ? item.version : '',
         job_result: item.job_result ? item.job_result : {} as any,
         topology: item.topology && item.topology.length ? item.topology : [],
         bt_speed_limit: btSpeedLimit || '',
@@ -236,5 +242,93 @@ export default class AgentStore extends VuexModule {
       apUrl = filterAp.map((item: any) => item[urlType]).join(', ');
     }
     this[UPDATE_AP_URL](apUrl);
+  }
+
+  // agent包管理
+  @Action
+  public apiPkgList(param: IPkgParams): Promise<{ total: number; list: IPkgInfo[] }> {
+    return listPackageNew(`?page=${param.page}&pagesize=${param.pagesize}`,param).catch(() => ({}));
+  }
+  @Action
+  public apiPkgFilterCondtion(param: { category: 'agent_pkg_manage'; project?: PkgType }): Promise<ISearchItem[]> {
+    return getFilterCondition(param).catch(() => []);
+  }
+  @Action
+  public apiPkgQuickSearch(param): Promise<IPkgDimension[]> {
+    return quickSearchCondition(param).catch(() => []);
+  }
+  @Action
+  public apiPkgUpdateStatus({ id, is_ready, tags }: { id: string|number; is_ready: boolean; tags?: any[] }): Promise<IPkgInfo> {
+    return updatePackage(id, { is_ready, tags }).catch(() => {});
+  }
+  @Action
+  public apiPkgDelete(id: number): Promise<boolean> {
+    return deletePackage(`${id}`).catch(() => false);
+  }
+  @Action
+  public async apiPkgParse(param: { file_name: string }): Promise<{
+    packages: IPkgParseInfo[];
+    description: string;
+  } | string> {
+    try {
+      const result = await parsePackage(param);
+      return result;
+    } catch (error: any) {
+      // 假设 error 对象包含 message 属性
+      const errorMessage = error.message || 'An error occurred';
+      return errorMessage;
+    }
+  }
+  @Action
+  public apiPkgRegister(param: {
+    project: PkgType;
+    file_name: string;
+    tag_descriptions: string[];
+  }): Promise<{ task_id: string }> {
+    return createAgentRegisterTask(param).catch(() => false);
+  }
+  /**
+   * 查询注册任务状态
+   */
+  @Action
+  public apiPkgRegisterQuery(param: { task_id: string, version?: string}): Promise<{ status: 'PENDING'|'SUCCESS'|'FAILURE'; task_id: string }> {
+    return queryAgentRegisterTask(param).catch(() => ({ status: 'FAILURE' }));
+  }
+  @Action
+  public apiPkgHostsCount(param: {
+    project: PkgType,
+    items: IPkgDelpyNumber[]
+  }): Promise<Mixin<IPkgDelpyNumber, { count: number }>[]> {
+    return getDeployedHostsCount(param).catch(() => []);
+  }
+  @Action
+  public apiPkgGetTags(param: { project: PkgType; tag_description?: string; }): Promise<IPkgTagList[]> {
+    return getTags(param).catch(() => []);
+  }
+  @Action
+  public apiPkgCreateTags(param: {
+    project: PkgType;
+    tag_descriptions: string[];
+  }): Promise<IPkgTag[] | false> {
+    return createAgentTags(param).catch(() => false);
+  }
+  
+  @Action
+  public apiGetPkgVersion(param: { project: PkgType; os: string; cpu_arch: string; versions?: string[] }): Promise<{
+    default_version: string;
+    machine_latest_version: string;
+    package_latest_version: string;
+    is_visible: Boolean;
+    pkg_info: IPkgVersion[];
+  }> {
+    return getVersion(param).catch(() => ({ default_version: '', machine_latest_version: '', pkg_info: [], is_visible: false, package_latest_version: '' }));
+  }
+
+  @Action
+  public apiVersionCompare(param: {
+    current_version: string;
+    version_to_compares: string[];
+  }): Promise<{upgrade_count: 0,downgrade_count: 0, no_change_count: 0}> {
+    return versionCompare(param).catch(() => false);
   }
 }

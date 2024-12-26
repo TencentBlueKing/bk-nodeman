@@ -44,7 +44,7 @@
                       batch: config.getBatch ? config.getBatch.call(_self) : config.batch,
                       isBatchIconShow: !!table.data.length
                         && (config.getBatch ? config.getBatch.call(_self) : config.batch),
-                      type: config.type,
+                      type: getHeadType({}, config),
                       subTitle: config.subTitle,
                       options: getCellInputOptions({}, config),
                       multiple: !!config.multiple,
@@ -53,8 +53,10 @@
                       appendSlot: config.appendSlot,
                       parentProp: config.parentProp,
                       parentTip: config.parentTip,
-                      focusRow: focusRow
+                      focusRow: focusRow,
+                      extraInfo: config.extraInfo || {}
                     }"
+                    @chooseVersion="handleChooseVersion"
                     @confirm="handleBatchConfirm(arguments, config)">
                   </TableHeader>
                 </div>
@@ -163,6 +165,7 @@
                     @focus="handleCellFocus(arguments, { row, config, rowIndex, colIndex })"
                     @blur="handleCellBlur(arguments, { row, config, rowIndex, colIndex })"
                     @input="handleCellValueInput(arguments, row, config)"
+                    @choose="handleCellChoose(arguments, { row, config, rowIndex, colIndex })"
                     @change="handleCellValueChange(row, config)"
                     @upload-change="handleCellUploadChange($event, row)">
                   </InstallInputType>
@@ -245,6 +248,7 @@ export default class SetupTable extends Vue {
   @Prop({ type: Array }) private readonly aps!: IAp[];
   @Prop({ type: Array }) private readonly clouds!: ICloudSource[];
   @Prop() private readonly arbitrary!: any; // 可以是任意值, 用来在config文件里做为必要的一些参数
+  @Prop({ type: String, default: '' }) private readonly type!: string;
 
   @Ref('tableBody') private readonly tableBody!: any;
   @Ref('scrollPlace') private readonly scrollPlace!: any;
@@ -266,7 +270,7 @@ export default class SetupTable extends Vue {
   // 滚动节流
   private handleScroll!: Function;
   // 处于编辑态的数据
-  private editData: {  id: number, prop: string }[] = [];
+  public editData: {  id: number, prop: string }[] = [];
   private hasScroll= false;
   private listenResize!: Function;
   private focusRow: any = {};
@@ -279,6 +283,28 @@ export default class SetupTable extends Vue {
   }
   private get apList() {
     return this.aps || AgentStore.apList;
+  }
+  private pkgVersionList: any = [];
+  // 获取agent包版本
+  private async getPkgVersions() {
+    const {
+      pkg_info,
+    } = await AgentStore.apiGetPkgVersion({
+      project: 'gse_agent',
+      os: '',
+      cpu_arch: ''
+    });
+    const builtinTags = ['stable', 'latest', 'test'];
+    this.pkgVersionList.splice(0, this.pkgVersionList.length, ...pkg_info.map(item => ({
+      ...item,
+      id: item.version,
+      name: item.version,
+      tags: item.tags.filter(tag => builtinTags.includes(tag.name)).map(tag => ({
+        className: tag.name,
+        description: tag.description,
+        name: tag.description,
+      })),
+    })));
   }
   private get channelList() {
     return AgentStore.channelList;
@@ -312,9 +338,11 @@ export default class SetupTable extends Vue {
 
   private created() {
     this.handleInit();
+    
   }
   private mounted() {
     this.handleScroll();
+    this.getPkgVersions();
     window.addEventListener('resize', this.initTableHead);
   }
   private beforeDestroy() {
@@ -399,6 +427,17 @@ export default class SetupTable extends Vue {
     row.validator = {};
   }
   /**
+   * 获取表头类型
+   * @param {Object} row 当前行
+   * @param {Object} config 当前配置项
+   */
+  private getHeadType(row: ISetupRow, config: ISetupHead): string {
+    if (config.prop === 'version' && config.batch) {
+      return 'version';
+    }
+    return config.type;
+  }
+  /**
    * 获取select框的options数据
    * @param {Object} row 当前行
    * @param {Object} config 当前配置项
@@ -411,6 +450,8 @@ export default class SetupTable extends Vue {
       }));
     } if (config.type === 'select') {
       return config.getOptions ? config.getOptions.call(this, row) : config.options;
+    } if (config.prop === 'version') {
+      return this.pkgVersionList;
     }
     return [];
   }
@@ -462,7 +503,7 @@ export default class SetupTable extends Vue {
     const [newValue] = arg;
     const prop = config.prop as IKeysMatch<ISetupRow, string>;
     const sync = config.sync as IKeysMatch<ISetupRow, string>;
-    const syncSource = typeof row[prop] === 'undefined' ? '' : row[prop].trim();
+    const syncSource = typeof row[prop] === 'undefined' ? '' : row[prop]?.trim();
     const syncTarget = typeof row[sync] === 'undefined' ? '' : row[sync].trim();
     if (sync && syncSource === syncTarget) {
       row[sync] = newValue;
@@ -478,7 +519,7 @@ export default class SetupTable extends Vue {
     MainStore.updateEdited(true);
     const prop = config.prop as IKeysMatch<ISetupRow, string>;
     if (config.type !== 'textarea' && row[prop] && typeof row[prop] === 'string') {
-      row[prop] = row[prop].trim();
+      row[prop] = row[prop]?.trim();
     }
     if (config.handleValueChange) {
       config.handleValueChange.call(this, row);
@@ -496,6 +537,12 @@ export default class SetupTable extends Vue {
       return config.getProxyStatus.call(this, row);
     }
     return '';
+  }
+  @Emit('choose')
+  private handleCellChoose(arg: any[], bb: { row: ISetupRow }) {
+    const [param] = arg;
+    const { row } = bb;
+    return { instance: param.instance, row };
   }
   private rootScroll() {
     if (!this.virtualScroll) return;
@@ -575,7 +622,7 @@ export default class SetupTable extends Vue {
     }
     const ipRepeat = this.table.data.some((row: ISetupRow | any) => {
       if (row.id === rowId) return false;
-      let targetValue = !isEmpty(row[prop]) ? row[prop].trim() : '';
+      let targetValue = !isEmpty(row[prop]) ? row[prop]?.trim() : '';
       // 1. 处理多值的情况
       // eslint-disable-next-line @typescript-eslint/prefer-optional-chain
       if (splitCode && splitCode.length) {
@@ -857,6 +904,14 @@ export default class SetupTable extends Vue {
       return this.handleTrimArray(val.split(splitCode as string)) || [];
     }
     return [];
+  }
+  /**
+   * 单独处理agent版本选择
+   */
+  private handleChooseVersion(version: string) {
+    this.table.data.forEach((row) => {
+      row.version = version;
+    });
   }
   /**
    * 批量编辑确定事件

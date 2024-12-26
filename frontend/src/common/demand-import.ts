@@ -4,7 +4,8 @@ import Vue from 'vue';
 
 import {
   bkBadge, bkButton, bkCheckbox, bkCheckboxGroup, bkCol, bkCollapse, bkCollapseItem, bkContainer, bkDatePicker,
-  bkDialog, bkDropdownMenu, bkException, bkForm, bkFormItem, bkInfoBox, bkInput, bkLoading, bkMessage,
+  bkDialog, bkDropdownMenu, bkException, bkForm, bkFormItem, bkComposeFormItem,
+  bkInfoBox, bkInput, bkLoading, bkMessage,
   bkNavigation, bkNavigationMenu, bkNavigationMenuItem, bkNotify, bkOption, bkOptionGroup, bkPagination,
   bkPopover, bkProcess, bkProgress, bkRadio, bkRadioGroup, bkRoundProgress, bkRow, bkSearchSelect, bkSelect,
   bkSideslider, bkSlider, bkSteps, bkSwitcher, bkTab, bkTabPanel, bkTable, bkTableColumn, bkTagInput, bkTimePicker,
@@ -31,6 +32,7 @@ Vue.use(bkDropdownMenu);
 Vue.use(bkException);
 Vue.use(bkForm);
 Vue.use(bkFormItem);
+Vue.use(bkComposeFormItem);
 Vue.use(bkInput);
 Vue.use(bkNavigation);
 Vue.use(bkNavigationMenu);
