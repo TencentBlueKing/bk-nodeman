@@ -572,6 +572,8 @@ QUERY_HOST_SERVICE_TEMPLATE_LIMIT = 200
 QUERY_MODULE_ID_THRESHOLD = 15
 UPDATE_CMDB_CLOUD_AREA_LIMIT = 50
 VERSION_PATTERN = re.compile(r"[vV]?(\d+\.){1,5}\d+(-rc\d)?$")
+# 进程表插件查询分片数量
+PROC_CHUNK_SIZE = 30000
 # 语义化版本正则，参考：https://semver.org/#is-there-a-suggested-regular-expression-regex-to-check-a-semver-string
 SEMANTIC_VERSION_PATTERN = re.compile(
     r"^v?(?P<major>0|[1-9]\d*)\.(?P<minor>0|[1-9]\d*)\.(?P<patch>0|[1-9]\d*)"

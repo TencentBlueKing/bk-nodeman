@@ -137,4 +137,7 @@ data:
   TXY_ENDPOINT: "{{ .Values.config.TXYEndpoint }}"
   TXY_SECRETID: "{{ .Values.config.TXYSecretId }}"
   TXY_SECRETKEY: "{{ .Values.config.TXYSecretKey }}"
-  BKAPP_UNASSIGNED_CLOUD_ID: "{{ .Values.config.bkAppUnassignedCloudId}}"
+  BKAPP_UNASSIGNED_CLOUD_ID: "{{ .Values.config.bkAppUnassignedCloudId }}"
+  TAIHU_MAIL_SENDER: "{{ .Values.config.TaiHuMailSender }}"
+  TAIHU_TOKEN: "{{ .Values.config.TaiHuToken }}"
+  TAIHU_API_ROOT: "{{ .Values.config.TaiHuApiRoot }}"

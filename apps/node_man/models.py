@@ -181,6 +181,8 @@ class GlobalSettings(models.Model):
         QUERY_PROC_STATUS_HOST_LENS = "QUERY_PROC_STATUS_HOST_LENS"
         # 业务最大插件版本
         PLUGIN_VERSION_CONFIG = "PLUGIN_VERSION_CONFIG"
+        # 发送邮件业务黑名单
+        SEND_MAIL_BIZ_BLACKLIST = "SEND_MAIL_BIZ_BLACKLIST"
 
     key = models.CharField(_("键"), max_length=255, db_index=True, primary_key=True)
     v_json = JSONField(_("值"))
