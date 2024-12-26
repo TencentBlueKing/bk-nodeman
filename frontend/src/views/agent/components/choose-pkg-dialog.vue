@@ -275,12 +275,13 @@ export default defineComponent({
         props.operate === 'reinstall_batch' && await getOs();
                 num.value = props.versions.length;
         if (lastOs.value !== `${props.osType}_${props.cpuArch}`) {
-          loading.value = true;
           selectedRow.value = null;
-          await getPkgVersions();
         }
+        // 每次进入弹窗页都获取一次，避免数据被更改的情况
+        loading.value = true;
+        await getPkgVersions();
         const selected = props.versions.length >= 1 ? tableData.value.find(row => row.version === props.versions[0]) || null : null;
-                if(selected) {
+        if(selected) {
           handleRowClick(selected);
         } else {
           selectedVersion.value = '';
@@ -295,7 +296,7 @@ export default defineComponent({
         });
       } else {
         lastOs.value = `${props.osType}_${props.cpuArch}`;
-        selectedVersion.value = props.versions[0] || '';
+        selectedVersion.value = '';
         selectedRow.value = tableData.value.find(row => row.version === props.versions[0]) || null;
         if (selectedRow.value) {
           nextTick(() => {
