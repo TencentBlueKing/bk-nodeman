@@ -203,7 +203,7 @@ class PluginBaseService(BaseService, metaclass=abc.ABCMeta):
         """通过进程状态得到插件包对象"""
         host = self.get_host_by_process_status(process_status, common_data)
         policy_step_adapter = common_data.policy_step_adapter
-        package = policy_step_adapter.get_matching_package_obj(host.os_type, host.cpu_arch)
+        package = policy_step_adapter.get_matching_package_obj(host.os_type, host.cpu_arch, host.bk_biz_id)
         return package
 
     def get_plugin_root_by_process_status(
@@ -280,11 +280,12 @@ class InitProcessStatusService(PluginBaseService):
                 # target_host_objs 的长度通常为1或2，此处也不必担心时间复杂度问题
                 # 指定 target_host 主要用于远程采集的场景，常见于第三方插件，如拨测
                 for host in target_host_objs:
+                    bk_biz_id = host.bk_biz_id
                     bk_host_id = host.bk_host_id
                     os_type = host.os_type.lower()
                     cpu_arch = host.cpu_arch
                     group_id = create_group_id(subscription, subscription_instance.instance_info)
-                    package = self.get_package(subscription_instance, policy_step_adapter, os_type, cpu_arch)
+                    package = self.get_package(subscription_instance, policy_step_adapter, os_type, cpu_arch, bk_biz_id)
                     ap_config = self.get_ap_config(ap_id_obj_map, host)
                     setup_path, pid_path, log_path, data_path = self.get_plugins_paths(
                         package, plugin_name, ap_config, group_id, subscription
@@ -340,10 +341,11 @@ class InitProcessStatusService(PluginBaseService):
         policy_step_adapter: PolicyStepAdapter,
         os_type: str,
         cpu_arch: str,
+        bk_biz_id: int,
     ) -> models.Packages:
         """获取插件包对象"""
         try:
-            return policy_step_adapter.get_matching_package_obj(os_type, cpu_arch)
+            return policy_step_adapter.get_matching_package_obj(os_type, cpu_arch, bk_biz_id)
         except errors.PackageNotExists as error:
             # 插件包不支持或不存在时，记录异常信息，此实例不参与后续流程
             self.move_insts_to_failed([subscription_instance.id], str(error))
@@ -979,7 +981,9 @@ class RenderAndPushConfigService(PluginBaseService, JobV3BaseService):
 
             # 根据配置模板和上下文变量渲染配置文件
             rendered_configs = render_config_files_by_config_templates(
-                policy_step_adapter.get_matching_config_tmpl_objs(target_host.os_type, target_host.cpu_arch),
+                policy_step_adapter.get_matching_config_tmpl_objs(
+                    target_host.os_type, target_host.cpu_arch, package, subscription_step.config
+                ),
                 {"group_id": process_status.group_id},
                 context,
                 package_obj=package,
