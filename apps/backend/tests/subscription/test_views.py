@@ -95,6 +95,7 @@ class TestSubscription(TestCase):
                 {
                     "bk_username": "admin",
                     "bk_app_code": "blueking",
+                    "enable": True,
                     "scope": {
                         "bk_biz_id": self.TEST_BIZ_ID,
                         "node_type": "TOPO",
@@ -125,7 +126,8 @@ class TestSubscription(TestCase):
         subscription_id = r.data["data"]["subscription_id"]
 
         # 探测数据库是否创建了对应的记录
-        Subscription.objects.get(id=r.data["data"]["subscription_id"])
+        subscription_obj = Subscription.objects.get(id=r.data["data"]["subscription_id"])
+        self.assertEqual(subscription_obj.enable, True)
         SubscriptionStep.objects.get(step_id="my_first", subscription_id=subscription_id)
 
         return subscription_id
