@@ -39,8 +39,9 @@ def sync_all_isp_to_cmdb(task_id):
             try:
                 client_v2.cc.update_cloud_area({"bk_cloud_id": bk_cloud_id, "bk_cloud_vendor": bk_cloud_vendor})
             except ComponentCallError as e:
-                logger.error("esb->call update_cloud_area error %s" % e.message)
-                client_v2.cc.update_inst(bk_obj_id="plat", bk_inst_id=bk_cloud_id, bk_cloud_vendor=bk_cloud_vendor)
+                logger.error("call update_cloud_area bk_cloud_id -> %s error -> %s" % (bk_cloud_id, e.message))
+                # 后续统一云区域操作管理，打平数量nodeman==cmdb；云区域不存在则跳过,
+                continue
         # 休眠1秒避免一次性全量请求导致接口超频
         time.sleep(1)
 
