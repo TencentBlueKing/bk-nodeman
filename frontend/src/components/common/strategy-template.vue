@@ -115,7 +115,7 @@ export default class StrategyTemplate extends Vue {
         let idKey = cloud.ap_id;
         let ap = AgentStore.apList.find(apItem => apItem.id === idKey) as IApExpand;
 
-        const serverKey = cloud.type === 'Agent' ? 'inner_ip' : 'outer_ip'; // Pagent 非必要
+        const serverKey = cloud.type === 'Agent' ? 'inner_ip_infos' : 'outer_ip_infos'; // Pagent 非必要
         const proxyKey = cloud.type === 'Proxy' ? 'outer_ip' : 'inner_ip'; // Agent 非必要
         // 先排除掉找不到接入点的主机
         if (ap) {
