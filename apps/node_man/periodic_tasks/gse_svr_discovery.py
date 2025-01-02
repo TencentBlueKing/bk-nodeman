@@ -9,7 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from telnetlib import Telnet
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from celery.task import periodic_task
 from django.conf import settings
@@ -21,7 +21,6 @@ from common.log import logger
 
 
 def check_ip_ports_reachable(host: str, ports: List[int]) -> bool:
-
     for port in ports:
         try:
             with Telnet(host=host, port=port, timeout=2):
@@ -33,7 +32,6 @@ def check_ip_ports_reachable(host: str, ports: List[int]) -> bool:
 
 
 class ZkSafeClient:
-
     zk_client: Optional[KazooClient]
 
     def __init__(self, hosts: str, auth_data: List[Tuple[str, str]], **kwargs):
@@ -110,16 +108,15 @@ def gse_svr_discovery_periodic_task():
                     continue
                 logger.info(f"zk_node_path -> {zk_node_path}, svr_ips -> {svr_ips}")
 
-                inner_ip__outer_ip_map: Dict[str, str] = {}
-                for svr_info in getattr(ap, ap_field, []):
-                    inner_ip__outer_ip_map[svr_info.get("inner_ip")] = svr_info.get("outer_ip")
+                outer_ips = getattr(ap, ap_field, {}).get("outer_ip_infos") or {}
+                inner_ip_infos: List[Dict[str, str]] = [{"ip": inner_ip} for inner_ip in svr_ips]
 
-                svr_infos: List[Dict[str, Any]] = []
-                for svr_ip in svr_ips:
-                    # svr_ip 通常解析为内网IP，外网IP允许自定义，如果为空再取 svr_ip
-                    outer_ip = inner_ip__outer_ip_map.get(svr_ip) or svr_ip
-                    svr_infos.append({"inner_ip": svr_ip, "outer_ip": outer_ip})
+                svr_infos: Dict[str, List[Dict[str, str]]] = {
+                    "inner_ip_infos": inner_ip_infos,
+                    "outer_ip_infos": outer_ips if outer_ips else inner_ip_infos,
+                }
                 setattr(ap, ap_field, svr_infos)
+                logger.info(f"update ap -> {ap}, {ap_field} -> {svr_infos}")
                 is_change = True
     if is_change:
         ap.save()
