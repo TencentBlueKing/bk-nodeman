@@ -114,7 +114,7 @@ class GsePackageTools:
 
             if tag_description in constants.BUILT_IN_TAG_DESCRIPTIONS + constants.BUILT_IN_TAG_NAMES:
                 # 内置标签，手动指定name和description
-                name: str = constants.TAG_DESCRIPTION__TAG_NAME[tag_description]
+                name: str = constants.TAG_DESCRIPTION__TAG_NAME.get(tag_description, tag_description)
                 tag_description = constants.TAG_NAME__TAG_DESCRIPTION.get(tag_description, tag_description)
             else:
                 # 自定义标签，自动生成name
