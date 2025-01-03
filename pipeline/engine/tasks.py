@@ -13,8 +13,7 @@ specific language governing permissions and limitations under the License.
 
 import logging
 
-from celery import task
-from celery.decorators import periodic_task
+from celery import current_app
 from celery.schedules import crontab
 
 from pipeline.conf import default_settings
@@ -22,12 +21,18 @@ from pipeline.core.pipeline import Pipeline
 from pipeline.engine import api, signals, states
 from pipeline.engine.core import runtime, schedule
 from pipeline.engine.health import zombie
-from pipeline.engine.models import NodeCeleryTask, NodeRelationship, PipelineProcess, ProcessCeleryTask, Status
+from pipeline.engine.models import (
+    NodeCeleryTask,
+    NodeRelationship,
+    PipelineProcess,
+    ProcessCeleryTask,
+    Status,
+)
 
 logger = logging.getLogger("celery")
 
 
-@task(ignore_result=True)
+@current_app.task(ignore_result=True)
 def process_unfreeze(process_id):
     process = PipelineProcess.objects.get(id=process_id)
     if not process.is_alive:
@@ -37,7 +42,7 @@ def process_unfreeze(process_id):
     runtime.run_loop(process)
 
 
-@task(ignore_result=True)
+@current_app.task(ignore_result=True)
 def start(process_id):
     process = PipelineProcess.objects.get(id=process_id)
     if not process.is_alive:
@@ -56,7 +61,7 @@ def start(process_id):
     runtime.run_loop(process)
 
 
-@task(ignore_result=True)
+@current_app.task(ignore_result=True)
 def dispatch(child_id):
     process = PipelineProcess.objects.get(id=child_id)
     if not process.is_alive:
@@ -66,7 +71,7 @@ def dispatch(child_id):
     runtime.run_loop(process)
 
 
-@task(ignore_result=True)
+@current_app.task(ignore_result=True)
 def process_wake_up(process_id, current_node_id=None, call_from_child=False):
     process = PipelineProcess.objects.get(id=process_id)
     if not process.is_alive:
@@ -92,7 +97,7 @@ def process_wake_up(process_id, current_node_id=None, call_from_child=False):
     runtime.run_loop(process)
 
 
-@task(ignore_result=True)
+@current_app.task(ignore_result=True)
 def wake_up(process_id):
     process = PipelineProcess.objects.get(id=process_id)
     if not process.is_alive:
@@ -103,7 +108,7 @@ def wake_up(process_id):
     runtime.run_loop(process)
 
 
-@task(ignore_result=True)
+@current_app.task(ignore_result=True)
 def batch_wake_up(process_id_list, pipeline_id):
     action_result = Status.objects.transit(pipeline_id, to_state=states.RUNNING, is_pipeline=True)
     if not action_result.result:
@@ -114,7 +119,7 @@ def batch_wake_up(process_id_list, pipeline_id):
         ProcessCeleryTask.objects.bind(process_id, task_id)
 
 
-@task(ignore_result=True)
+@current_app.task(ignore_result=True)
 def wake_from_schedule(process_id, service_act_id):
     process = PipelineProcess.objects.get(id=process_id)
     process.wake_up()
@@ -124,12 +129,12 @@ def wake_from_schedule(process_id, service_act_id):
     runtime.run_loop(process)
 
 
-@task(ignore_result=True)
+@current_app.task(ignore_result=True)
 def service_schedule(process_id, schedule_id, data_id=None):
     schedule.schedule(process_id, schedule_id, data_id)
 
 
-@task(ignore_result=True)
+@current_app.task(ignore_result=True)
 def node_timeout_check(node_id, version, root_pipeline_id):
     NodeCeleryTask.objects.destroy(node_id)
     state = Status.objects.state_for(node_id, version=version, may_not_exist=True)
@@ -144,7 +149,7 @@ def node_timeout_check(node_id, version, root_pipeline_id):
         logger.warning("node {} - {} timeout kill failed".format(node_id, version))
 
 
-@periodic_task(run_every=(crontab(**default_settings.ENGINE_ZOMBIE_PROCESS_HEAL_CRON)), ignore_result=True)
+@current_app.task(run_every=(crontab(**default_settings.ENGINE_ZOMBIE_PROCESS_HEAL_CRON)), ignore_result=True)
 def heal_zombie_process():
     logger.info("Zombie process heal start")
 

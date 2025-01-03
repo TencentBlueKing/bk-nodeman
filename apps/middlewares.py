@@ -36,7 +36,7 @@ from django.http import HttpResponse, JsonResponse
 from django.middleware.locale import LocaleMiddleware as GenericLocaleMiddleware
 from django.utils import translation
 from django.utils.deprecation import MiddlewareMixin
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from apps.exceptions import AppBaseException, BkJwtVerifyFailException
 from apps.utils.local import activate_request

@@ -14,7 +14,7 @@ import time
 import typing
 from collections import defaultdict
 
-from django_mysql.models import QuerySet
+from django.db.models import QuerySet
 
 from apps.backend.utils.redis import REDIS_INST
 from apps.core.concurrent import controller

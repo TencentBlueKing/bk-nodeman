@@ -10,13 +10,13 @@ specific language governing permissions and limitations under the License.
 """
 from datetime import datetime, timedelta
 
+from celery import current_app
 from celery.schedules import crontab
-from celery.task import periodic_task
 
 from common.api.models import DataAPIRecord
 
 
-@periodic_task(run_every=crontab(minute="0", hour="0"))
+@current_app.task(run_every=crontab(minute="0", hour="0"))
 def delete_api_log():
     """
     每天清理dataapi日志

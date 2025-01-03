@@ -8,11 +8,11 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from celery.task import task
+from celery import current_app
 
 from pipeline.service import task_service
 
 
-@task(ignore_result=True)
+@current_app.task(ignore_result=True)
 def callback(*args, **kwargs):
     task_service.callback(*args, **kwargs)

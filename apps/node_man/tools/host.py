@@ -13,7 +13,7 @@ from typing import Dict, List, Type
 
 from bkcrypto.asymmetric.ciphers import BaseAsymmetricCipher
 from django.db.models import QuerySet
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from apps.core.encrypt import constants as core_encrypt_constants
 from apps.core.encrypt import handlers as core_encrypt_handlers

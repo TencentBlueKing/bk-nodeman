@@ -14,7 +14,7 @@ import traceback
 from enum import Enum
 from typing import Any, Callable, Dict, Iterable, List, Optional, Set, Tuple, Union
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from apps.core.concurrent import core_concurrent_constants
 from apps.node_man import constants, models

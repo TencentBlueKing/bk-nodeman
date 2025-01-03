@@ -13,7 +13,7 @@ import abc
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 from django.conf import settings
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from apps.backend import constants as backend_const
 from apps.backend.agent.manager import AgentManager

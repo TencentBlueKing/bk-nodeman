@@ -9,7 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from django.utils.encoding import force_text
+from django.utils.encoding import force_str
 
 from apps.exceptions import AppBaseException
 
@@ -19,7 +19,7 @@ class DataAPIException(AppBaseException):
 
     def __init__(self, api_obj, error_message, response=None):
         self.api_obj = api_obj
-        self.error_message = force_text(error_message)
+        self.error_message = force_str(error_message)
         self.response = response
 
         if self.response is not None:

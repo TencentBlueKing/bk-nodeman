@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 from django.conf import settings
 from django.db.transaction import atomic
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework.decorators import action
 from rest_framework.response import Response

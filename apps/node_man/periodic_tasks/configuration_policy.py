@@ -8,7 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from celery.task import periodic_task
+from celery import current_app
 
 from apps.node_man import constants
 from apps.node_man.constants import NodeType
@@ -18,7 +18,7 @@ from apps.node_man.policy.tencent_vpc_client import VpcClient
 from common.log import logger
 
 
-@periodic_task(
+@current_app.task(
     queue="default",
     options={"queue": "default"},
     run_every=constants.CONFIGURATION_POLICY_INTERVAL,

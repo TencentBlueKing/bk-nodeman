@@ -19,7 +19,7 @@ from functools import wraps
 from typing import Any, Dict, List, Optional, Set, Union
 
 from django.db.models import Value
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from apps.backend.celery import app
 from apps.backend.components.collections.base import ActivityType

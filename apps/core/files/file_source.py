@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 from typing import Any, Dict, Optional
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from apps.utils.md5 import count_md5
 from common.api import JobApi

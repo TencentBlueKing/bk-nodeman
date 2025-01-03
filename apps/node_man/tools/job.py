@@ -17,7 +17,7 @@ from typing import Any, Dict, Iterable, List, Optional, Union
 from django.conf import settings
 from django.db.models import Q
 from django.utils import timezone
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from apps.backend.subscription import tools
 from apps.node_man import constants, models

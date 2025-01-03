@@ -31,7 +31,7 @@ from django.conf import settings
 from django.db.models import Value
 from django.db.models.functions import Concat
 from django.utils import timezone
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from apps.adapters.api.gse import GseApiBaseHelper, get_gse_api_helper
 from apps.backend.api.constants import POLLING_TIMEOUT

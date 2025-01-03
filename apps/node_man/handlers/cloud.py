@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 from django.conf import settings
 from django.db.models.aggregates import Count
 from django.db.transaction import atomic
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from apps.exceptions import ValidationError
 from apps.node_man import constants as const

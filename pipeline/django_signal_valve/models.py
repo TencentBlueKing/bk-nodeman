@@ -15,7 +15,7 @@ import pickle
 import zlib
 
 from django.db import models
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 
 class IOField(models.BinaryField):

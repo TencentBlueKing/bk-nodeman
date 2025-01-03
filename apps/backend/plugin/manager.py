@@ -14,7 +14,7 @@ from __future__ import absolute_import, unicode_literals
 import logging
 from typing import List
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from apps.backend.components.collections import plugin
 from apps.backend.utils.pipeline_parser import PipelineParser as CustomPipelineParser

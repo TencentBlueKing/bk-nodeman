@@ -13,8 +13,7 @@ specific language governing permissions and limitations under the License.
 from subprocess import check_output
 
 from django.conf import settings
-from django.utils.translation import ugettext as _
-from six.moves import zip
+from django.utils.translation import gettext as _
 
 from common.log import logger
 

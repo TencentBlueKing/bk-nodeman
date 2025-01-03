@@ -16,8 +16,8 @@ from collections import defaultdict
 from json import JSONDecodeError
 from typing import Dict, List, Union
 
+from celery import current_app
 from celery.schedules import crontab
-from celery.task import periodic_task
 from django.conf import settings
 from django.db.models import Q
 
@@ -32,7 +32,7 @@ from common.api import JobApi
 from common.log import logger
 
 
-@periodic_task(
+@current_app.task(
     queue="default",
     options={"queue": "default"},
     run_every=crontab(hour="1", minute="0", day_of_week="*", day_of_month="*", month_of_year="*"),
