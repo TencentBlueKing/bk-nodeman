@@ -11,7 +11,7 @@ See the License for the specific language governing permissions and limitations 
 from typing import Dict, List, Union
 
 from django.conf import settings
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from iam import IAM, DummyIAM, MultiActionRequest, Request, Resource, Subject
 from iam.apply.models import (
     ActionWithoutResources,

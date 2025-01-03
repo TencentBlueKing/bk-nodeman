@@ -14,7 +14,7 @@ from ipaddress import IPv4Address
 
 from django.conf import settings
 from django.db.models import Q
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from apps.backend.subscription.steps.agent_adapter.adapter import LEGACY

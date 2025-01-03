@@ -9,8 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from django.db import models
-from django.utils.translation import ugettext_lazy as _
-from django_mysql.models import JSONField
+from django.utils.translation import gettext_lazy as _
 
 from apps.utils.cache import class_member_cache
 
@@ -40,7 +39,7 @@ class BKJobFileSource(models.Model):
 
     code = models.CharField(_("文件源标识"), max_length=128)
     alias = models.CharField(_("文件源别名"), max_length=128)
-    access_params = JSONField(_("文件源接入参数"), default=dict)
+    access_params = models.JSONField(_("文件源接入参数"), default=dict)
     file_prefix = models.CharField(_("文件源标识"), max_length=128, default="")
 
     update_time = models.DateTimeField(_("更新时间"), auto_now=True, db_index=True)

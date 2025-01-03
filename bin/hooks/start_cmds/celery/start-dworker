@@ -1,2 +1,2 @@
 #!/bin/bash
-celery -A apps.backend worker -Q default -n default@%h -P threads -c 64 --maxtasksperchild=50 -O fair --time-limit=1800
+celery -A apps.backend worker -Q default -n default@%h -P threads -c 64 --max-tasks-per-child=50 -O fair --time-limit=1800

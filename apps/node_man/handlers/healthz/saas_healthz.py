@@ -15,7 +15,7 @@ import copy
 import time
 
 import six
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from apps.component.esbclient import client_v2
 from apps.node_man.handlers.healthz.constants import CheckerStatus

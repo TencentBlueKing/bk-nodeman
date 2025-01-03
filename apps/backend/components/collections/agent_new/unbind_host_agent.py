@@ -12,7 +12,7 @@ specific language governing permissions and limitations under the License.
 from typing import Dict, List, Optional, Set, Union
 
 from django.utils import timezone
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from apps.core.concurrent import controller
 from apps.node_man import models

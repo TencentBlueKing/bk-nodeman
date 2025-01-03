@@ -10,11 +10,8 @@ specific language governing permissions and limitations under the License.
 """
 
 import re
+import xmlrpc.client
 
-# six.moves是一个虚拟命名空间，提供Py2 / 3 之间重命名模块的访问，此处 xmlrpc_client IDE报红是正常的，无需安装依赖
-# 通过 six.moves.xmlrpc_client 导入是无需考虑是是位于 py2-xmlrpclib 或者 py3-xmlrpc.client
-# 参考：https://stackoverflow.com/questions/27668081/how-to-install-six-moves-xmlrpc-client
-import six.moves.xmlrpc_client
 from django.conf import settings
 from supervisor.xmlrpc import SupervisorTransport
 
@@ -41,7 +38,7 @@ def get_supervisor_client():
     else:
         url = settings.SUPERVISOR_SERVER
 
-    return six.moves.xmlrpc_client.ServerProxy(
+    return xmlrpc.client.ServerProxy(
         "http://127.0.0.1",
         transport=SupervisorTransport(
             settings.SUPERVISOR_USERNAME,

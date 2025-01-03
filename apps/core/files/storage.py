@@ -14,6 +14,7 @@ from typing import Any, Callable, Dict, List, Optional
 from bkstorages.backends import bkrepo
 from django.conf import settings
 from django.core.exceptions import SuspiciousFileOperation
+from django.core.files import File
 from django.core.files.storage import FileSystemStorage, Storage, get_storage_class
 from django.utils._os import safe_join
 from django.utils.deconstruct import deconstructible
@@ -143,6 +144,21 @@ class CustomBKRepoStorage(BaseStorage, bkrepo.BKRepoStorage):
         file_md5 = file_metadata["X-Checksum-Md5"]
         return file_md5
 
+    def save(self, name, content, max_length=None):
+        # django3.2 之后存储文件名不能为绝对路径 此处采用兼容方式
+        if name is None:
+            name = content.name
+        if not hasattr(content, "chunks"):
+            content = File(content, name)
+        name = self.get_available_name(name, max_length=max_length)
+        name = self._save(name, content)
+        return name
+
+    def _save(self, name, content):
+        storage_path = super()._save(name, content)
+        # bkstorage == 2.0.0 后如果 name 以 / 开头 _save会将其抛弃，需要手动拼接
+        return f"/{storage_path}" if name.startswith("/") else storage_path
+
     def _handle_file_source_list(
         self, file_source_list: List[Dict[str, Any]], extra_transfer_file_params: Dict[str, Any]
     ) -> List[Dict[str, Any]]:
@@ -220,6 +236,16 @@ class AdminFileSystemStorage(BaseStorage, FileSystemStorage):
     def location(self):
         """路径指向 / ，重写前路径指向「项目根目录」"""
         return self.base_location
+
+    def save(self, name, content, max_length=None):
+        # django3.2 之后存储文件名不能为绝对路径 此处采用兼容方式
+        if name is None:
+            name = content.name
+        if not hasattr(content, "chunks"):
+            content = File(content, name)
+        name = self.get_available_name(name, max_length=max_length)
+        name = self._save(name, content)
+        return name
 
     def _save(self, name, content):
         # 如果允许覆盖，保存前删除文件

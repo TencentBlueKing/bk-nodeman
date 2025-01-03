@@ -14,7 +14,7 @@ from typing import Any, Dict, List, Optional, Set, Union
 
 from django.utils import timezone
 from django.utils.translation import get_language
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from apps.node_man import exceptions, models
 from apps.node_man.handlers.cmdb import CmdbHandler

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import logging
 
-from celery.task import periodic_task
+from celery import current_app
 from django.db.models import Value
 
 from apps.backend.subscription.constants import SUBSCRIPTION_UPDATE_INTERVAL
@@ -16,7 +16,7 @@ from apps.utils.periodic_task import calculate_countdown
 logger = logging.getLogger("celery")
 
 
-@periodic_task(
+@current_app.task(
     run_every=SUBSCRIPTION_UPDATE_INTERVAL,
     queue="backend",  # 这个是用来在代码调用中指定队列的，例如： update_subscription_instances.delay()
     options={"queue": "backend"},  # 这个是用来celery beat调度指定队列的

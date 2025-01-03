@@ -19,7 +19,7 @@ from typing import Any, Callable, Dict, List, Optional, Set, Union
 
 import six
 from django.conf import settings
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from apps.backend.api.constants import POLLING_INTERVAL
 from apps.backend.api.job import process_parms

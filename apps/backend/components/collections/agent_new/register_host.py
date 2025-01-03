@@ -16,7 +16,7 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Set
 from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from apps.backend.subscription import tools
 from apps.component.esbclient import client_v2

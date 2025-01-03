@@ -13,7 +13,7 @@ from __future__ import absolute_import, unicode_literals
 import base64
 import hashlib
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from apps.exceptions import BackendValidationError, ValidationError

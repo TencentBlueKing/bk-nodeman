@@ -22,7 +22,7 @@ from django.core.cache import cache
 from django.db import transaction
 from django.db.models import Max, Q, QuerySet, Value
 from django.utils.translation import get_language
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from apps.backend import constants as backend_constants
 from apps.backend.subscription import errors, task_tools, tasks, tools

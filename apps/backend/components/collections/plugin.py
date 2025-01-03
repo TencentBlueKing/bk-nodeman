@@ -22,7 +22,7 @@ from django.conf import settings
 from django.db import IntegrityError
 from django.db.models import F, Q
 from django.utils import timezone
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from apps.backend.api.constants import (
     GSE_RUNNING_TASK_CODE,

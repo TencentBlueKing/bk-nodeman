@@ -12,7 +12,7 @@ import json
 from datetime import timedelta
 from typing import Any, Dict, List, Set
 
-from celery.task import periodic_task
+from celery import current_app
 from django.db.models import QuerySet
 from django.utils import timezone
 
@@ -34,7 +34,7 @@ def get_need_clean_subscription_app_code():
     return app_codes
 
 
-@periodic_task(run_every=constants.UPDATE_SUBSCRIPTION_TASK_INTERVAL, queue="backend", options={"queue": "backend"})
+@current_app.task(run_every=constants.UPDATE_SUBSCRIPTION_TASK_INTERVAL, queue="backend", options={"queue": "backend"})
 def schedule_update_subscription():
     logger.info("start schedule update subscription")
     name: str = constants.UPDATE_SUBSCRIPTION_REDIS_KEY_TPL
@@ -58,7 +58,7 @@ def schedule_update_subscription():
     logger.info(f"update subscription with results: {results}, length -> {len(results)} ")
 
 
-@periodic_task(run_every=constants.UPDATE_SUBSCRIPTION_TASK_INTERVAL, queue="backend", options={"queue": "backend"})
+@current_app.task(run_every=constants.UPDATE_SUBSCRIPTION_TASK_INTERVAL, queue="backend", options={"queue": "backend"})
 def schedule_run_subscription():
     logger.info("start schedule run subscription")
     name: str = constants.RUN_SUBSCRIPTION_REDIS_KEY_TPL
@@ -84,7 +84,7 @@ def schedule_run_subscription():
     logger.info(f"run subscription with results: {results}, length -> {len(results)}")
 
 
-@periodic_task(
+@current_app.task(
     run_every=constants.HANDLE_UNINSTALL_REST_SUBSCRIPTION_TASK_INTERVAL,
     queue="default",
     options={"queue": "default"},

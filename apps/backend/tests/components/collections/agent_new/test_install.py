@@ -19,7 +19,7 @@ from typing import Any, Dict, List, Optional
 import mock
 from django.conf import settings
 from django.test import override_settings
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from apps.backend.agent.solution_maker import ExecutionSolution
 from apps.backend.agent.tools import InstallationTools, gen_commands

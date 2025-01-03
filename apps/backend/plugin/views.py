@@ -29,7 +29,7 @@ from django.db import transaction
 from django.db.models import Q
 from django.http import HttpResponseForbidden, JsonResponse
 from django.utils.translation import get_language
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from django.views.decorators.csrf import csrf_exempt
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import mixins

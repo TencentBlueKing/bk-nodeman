@@ -9,14 +9,14 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+from celery import current_app
 from celery.schedules import crontab
-from celery.task import periodic_task
 
 from apps.node_man.models import ResourceWatchEvent
 from common.log import logger
 
 
-@periodic_task(
+@current_app.task(
     queue="default",
     options={"queue": "default"},
     run_every=crontab(hour="2", minute="0", day_of_week="*", day_of_month="*", month_of_year="*"),

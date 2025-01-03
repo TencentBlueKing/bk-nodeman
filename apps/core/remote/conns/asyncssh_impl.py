@@ -13,7 +13,7 @@ import typing
 from concurrent import futures
 
 import asyncssh
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from .. import constants, exceptions
 from ..clients import file
