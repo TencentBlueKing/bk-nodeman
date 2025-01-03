@@ -535,7 +535,7 @@ setup_proxy () {
         fi
     done
 
-    # setup_py36
+    # setup_py311
 
     # create dir
     mkdir -p "$GSE_AGENT_RUN_DIR" "$GSE_AGENT_DATA_DIR" "$GSE_AGENT_LOG_DIR"
@@ -547,10 +547,10 @@ setup_proxy () {
     log setup_proxy DONE "gse proxy setup successfully"
 }
 
-setup_py36 () {
+setup_py311 () {
     (
-        # 默认带好requirements, 直接解压即可, 固定目录/opt/py36/bin/python。不需要走pip install
-        cd /opt && tar xf "$TMP_DIR/py36.tgz"
+        # 默认带好requirements, 直接解压即可, 固定目录/opt/py311/bin/python。不需要走pip install
+        cd /opt && tar xf "$TMP_DIR/py311-$(arch).tgz"
     )
 }
 
@@ -560,7 +560,7 @@ download_pkg () {
     log download_pkg START "download gse agent package from $DOWNLOAD_URL/$PKG_NAME)."
     cd "$TMP_DIR" && rm -f "$PKG_NAME" {agent,btsvr,transit,opts,data,dataflow}.conf."$LAN_ETH_IP"
 
-    # 安装Proxy，需要下载py36.tgz
+    # 安装Proxy，需要下载py311-$(arch).tgz
     # 该包中包含impackt，ssh2-python, proxy.py 等安装p-agent所需的模块
     for f in $PKG_NAME; do
         http_status=$(http_proxy=$HTTP_PROXY https_proxy=$HTTPS_PROXY curl -o "$TMP_DIR/$f" \
