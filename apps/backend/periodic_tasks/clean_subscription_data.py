@@ -10,8 +10,8 @@ specific language governing permissions and limitations under the License.
 """
 from typing import Dict, List, Optional, Union
 
+from celery import current_app
 from celery.schedules import crontab
-from celery.task import periodic_task
 from django.db import connection
 from django.utils import timezone
 
@@ -24,7 +24,7 @@ SUBSCRIPTION_INSTANCE_DETAIL_TABLE = "node_man_subscriptioninstancestatusdetail"
 JOB_SUB_INSTANCE_MAP_TABLE = "node_man_jobsubscriptioninstancemap"
 
 
-@periodic_task(
+@current_app.task(
     queue="default",
     options={"queue": "default"},
     run_every=crontab(minute="*/5"),

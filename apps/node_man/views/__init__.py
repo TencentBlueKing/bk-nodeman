@@ -16,7 +16,7 @@ from django.conf import settings
 from django.contrib.auth import logout
 from django.http import HttpResponse, JsonResponse, StreamingHttpResponse
 from django.shortcuts import render
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from django.views.decorators.cache import never_cache
 from django_prometheus.exports import ExportToDjangoView
 

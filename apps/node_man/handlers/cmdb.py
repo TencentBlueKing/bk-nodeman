@@ -16,7 +16,7 @@ from typing import Dict, List
 from blueapps.account.models import User
 from django.conf import settings
 from django.core.cache import cache
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from apps.component.esbclient import client_v2
 from apps.exceptions import ComponentCallError

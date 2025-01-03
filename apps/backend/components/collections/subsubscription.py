@@ -13,7 +13,7 @@ import logging
 from collections import defaultdict
 from typing import Any, Dict, List, Optional, Tuple
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from apps.backend.api.constants import (
     POLLING_INTERVAL,

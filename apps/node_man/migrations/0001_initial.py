@@ -9,7 +9,6 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import bkcrypto.contrib.django.fields
-import django_mysql.models
 from django.db import migrations, models
 
 import apps.node_man.models
@@ -32,8 +31,8 @@ class Migration(migrations.Migration):
                 ("ap_type", models.CharField(default="user", max_length=255, verbose_name="接入点类型")),
                 ("region_id", models.CharField(default="", max_length=255, verbose_name="区域id")),
                 ("city_id", models.CharField(default="", max_length=255, verbose_name="城市id")),
-                ("servers", django_mysql.models.JSONField(default=dict, verbose_name="服务器列表")),
-                ("zk_hosts", django_mysql.models.JSONField(default=dict, verbose_name="ZK服务器列表")),
+                ("servers", models.JSONField(default=dict, verbose_name="服务器列表")),
+                ("zk_hosts", models.JSONField(default=dict, verbose_name="ZK服务器列表")),
                 ("zk_account", models.CharField(default="", max_length=255, verbose_name="ZK账号")),
                 (
                     "zk_password",
@@ -43,7 +42,7 @@ class Migration(migrations.Migration):
                 ),
                 ("package_inner_url", models.TextField(verbose_name="安装包内网地址")),
                 ("package_outer_url", models.TextField(verbose_name="安装包外网地址")),
-                ("agent_config", django_mysql.models.JSONField(default=dict, verbose_name="Agent配置信息")),
+                ("agent_config", models.JSONField(default=dict, verbose_name="Agent配置信息")),
                 ("status", models.CharField(default="", max_length=255, verbose_name="接入点状态")),
                 ("description", models.TextField(verbose_name="接入点描述")),
                 ("is_enabled", models.BooleanField(default=True, verbose_name="是否启用")),
@@ -61,7 +60,7 @@ class Migration(migrations.Migration):
                 ("bk_cloud_name", models.CharField(max_length=45)),
                 ("isp", models.CharField(blank=True, max_length=45, null=True, verbose_name="云服务商")),
                 ("ap_id", models.IntegerField(null=True, verbose_name="接入点ID")),
-                ("creator", django_mysql.models.JSONField(default=dict, verbose_name="管控区域创建者")),
+                ("creator", models.JSONField(default=dict, verbose_name="管控区域创建者")),
                 ("is_visible", models.BooleanField(default=True, verbose_name="是否可见")),
                 ("is_deleted", models.BooleanField(default=False, verbose_name="是否删除")),
             ],
@@ -79,7 +78,7 @@ class Migration(migrations.Migration):
                 ("event_type", models.CharField(max_length=20, verbose_name="事件类型")),
                 ("action", models.CharField(max_length=20, verbose_name="动作")),
                 ("obj_type", models.CharField(max_length=32, verbose_name="对象类型")),
-                ("data", django_mysql.models.JSONField(default=dict, verbose_name="实例信息")),
+                ("data", models.JSONField(default=dict, verbose_name="实例信息")),
                 ("create_time", models.DateTimeField(auto_now_add=True, verbose_name="创建时间")),
             ],
         ),
@@ -112,7 +111,7 @@ class Migration(migrations.Migration):
                         db_index=True, max_length=255, primary_key=True, serialize=False, verbose_name="键"
                     ),
                 ),
-                ("v_json", django_mysql.models.JSONField(default=dict, verbose_name="值")),
+                ("v_json", models.JSONField(default=dict, verbose_name="值")),
             ],
             options={
                 "verbose_name": "配置表",
@@ -203,7 +202,7 @@ class Migration(migrations.Migration):
                     ),
                 ),
                 ("ap_id", models.IntegerField(null=True, verbose_name="接入点ID")),
-                ("upstream_nodes", django_mysql.models.JSONField(default=list, verbose_name="上游节点")),
+                ("upstream_nodes", models.JSONField(default=list, verbose_name="上游节点")),
                 ("created_at", models.DateTimeField(auto_now_add=True, verbose_name="创建时间")),
                 ("updated_at", models.DateTimeField(null=True, verbose_name="更新时间")),
             ],
@@ -242,7 +241,7 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "extra_data",
-                    django_mysql.models.JSONField(blank=True, default=dict, null=True, verbose_name="额外认证资料"),
+                    models.JSONField(blank=True, default=dict, null=True, verbose_name="额外认证资料"),
                 ),
                 ("retention", models.IntegerField(default=1, verbose_name="保留天数")),
                 ("updated_at", models.DateTimeField(null=True, verbose_name="更新时间")),
@@ -293,7 +292,7 @@ class Migration(migrations.Migration):
                     ),
                 ),
                 ("subscription_id", models.IntegerField(db_index=True, verbose_name="订阅ID")),
-                ("task_id_list", django_mysql.models.JSONField(default=list, verbose_name="任务ID列表")),
+                ("task_id_list", models.JSONField(default=list, verbose_name="任务ID列表")),
                 ("start_time", models.DateTimeField(auto_now_add=True, verbose_name="创建任务时间")),
                 ("end_time", models.DateTimeField(blank=True, null=True, verbose_name="任务结束时间")),
                 (
@@ -314,14 +313,14 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "global_params",
-                    django_mysql.models.JSONField(blank=True, default=dict, null=True, verbose_name="全局运行参数"),
+                    models.JSONField(blank=True, default=dict, null=True, verbose_name="全局运行参数"),
                 ),
                 (
                     "statistics",
-                    django_mysql.models.JSONField(blank=True, default=dict, null=True, verbose_name="任务统计信息"),
+                    models.JSONField(blank=True, default=dict, null=True, verbose_name="任务统计信息"),
                 ),
-                ("bk_biz_scope", django_mysql.models.JSONField(default=dict, verbose_name="业务范围")),
-                ("error_hosts", django_mysql.models.JSONField(default=dict, verbose_name="发生错误的主机")),
+                ("bk_biz_scope", models.JSONField(default=dict, verbose_name="业务范围")),
+                ("error_hosts", models.JSONField(default=dict, verbose_name="发生错误的主机")),
             ],
             options={
                 "verbose_name": "任务信息",
@@ -406,7 +405,7 @@ class Migration(migrations.Migration):
             name="PipelineTree",
             fields=[
                 ("id", models.CharField(max_length=32, primary_key=True, serialize=False, verbose_name="PipelineID")),
-                ("tree", django_mysql.models.JSONField(default=dict, verbose_name="Pipeline拓扑树")),
+                ("tree", models.JSONField(default=dict, verbose_name="Pipeline拓扑树")),
             ],
         ),
         migrations.CreateModel(
@@ -500,7 +499,7 @@ class Migration(migrations.Migration):
                         verbose_name="进程类型",
                     ),
                 ),
-                ("configs", django_mysql.models.JSONField(default=list, verbose_name="配置文件")),
+                ("configs", models.JSONField(default=list, verbose_name="配置文件")),
                 ("listen_ip", models.CharField(max_length=45, null=True, verbose_name="监听IP")),
                 ("listen_port", models.IntegerField(null=True, verbose_name="监听端口")),
                 ("setup_path", models.TextField(default="", verbose_name="二进制文件所在路径")),
@@ -529,7 +528,7 @@ class Migration(migrations.Migration):
             fields=[
                 ("id", models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
                 ("bk_username", models.CharField(max_length=45, verbose_name="用户名")),
-                ("favorite", django_mysql.models.JSONField(default=dict, verbose_name="用户收藏信息,比如管控区域等")),
+                ("favorite", models.JSONField(default=dict, verbose_name="用户收藏信息,比如管控区域等")),
                 ("update_time", models.DateTimeField(auto_now_add=True)),
             ],
             options={
@@ -554,8 +553,8 @@ class Migration(migrations.Migration):
                         verbose_name="节点类型",
                     ),
                 ),
-                ("nodes", django_mysql.models.JSONField(default=list, verbose_name="节点")),
-                ("target_hosts", django_mysql.models.JSONField(default=None, null=True, verbose_name="下发的目标机器")),
+                ("nodes", models.JSONField(default=list, verbose_name="节点")),
+                ("target_hosts", models.JSONField(default=None, null=True, verbose_name="下发的目标机器")),
                 ("from_system", models.CharField(max_length=30, verbose_name="所属系统")),
                 ("update_time", models.DateTimeField(auto_now=True, verbose_name="更新时间")),
                 ("create_time", models.DateTimeField(auto_now_add=True, verbose_name="创建时间")),
@@ -571,8 +570,8 @@ class Migration(migrations.Migration):
                 ("task_id", models.IntegerField(db_index=True, verbose_name="任务ID")),
                 ("subscription_id", models.IntegerField(db_index=True, verbose_name="订阅ID")),
                 ("instance_id", models.CharField(db_index=True, max_length=50, verbose_name="实例ID")),
-                ("instance_info", django_mysql.models.JSONField(default=dict, verbose_name="实例信息")),
-                ("steps", django_mysql.models.JSONField(default=dict, verbose_name="步骤信息")),
+                ("instance_info", models.JSONField(default=dict, verbose_name="实例信息")),
+                ("steps", models.JSONField(default=dict, verbose_name="步骤信息")),
                 ("pipeline_id", models.CharField(blank=True, default="", max_length=50, verbose_name="Pipeline ID")),
                 ("update_time", models.DateTimeField(auto_now=True, verbose_name="更新时间")),
                 ("create_time", models.DateTimeField(auto_now_add=True, verbose_name="创建时间")),
@@ -585,8 +584,8 @@ class Migration(migrations.Migration):
             fields=[
                 ("id", models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
                 ("subscription_id", models.IntegerField(db_index=True, verbose_name="订阅ID")),
-                ("scope", django_mysql.models.JSONField(default=dict, verbose_name="执行范围")),
-                ("actions", django_mysql.models.JSONField(default=dict, verbose_name="不同step执行的动作名称。键值对")),
+                ("scope", models.JSONField(default=dict, verbose_name="执行范围")),
+                ("actions", models.JSONField(default=dict, verbose_name="不同step执行的动作名称。键值对")),
                 ("create_time", models.DateTimeField(auto_now_add=True, verbose_name="创建时间")),
                 ("is_auto_trigger", models.BooleanField(default=False, verbose_name="是否为自动触发")),
             ],
@@ -620,8 +619,8 @@ class Migration(migrations.Migration):
                 ("index", models.IntegerField(default=0, verbose_name="顺序")),
                 ("step_id", models.CharField(max_length=64, verbose_name="步骤ID")),
                 ("type", models.CharField(max_length=20, verbose_name="步骤类型")),
-                ("config", django_mysql.models.JSONField(default=dict, verbose_name="配置")),
-                ("params", django_mysql.models.JSONField(default=dict, verbose_name="参数")),
+                ("config", models.JSONField(default=dict, verbose_name="配置")),
+                ("params", models.JSONField(default=dict, verbose_name="参数")),
             ],
             options={
                 "ordering": ["index"],

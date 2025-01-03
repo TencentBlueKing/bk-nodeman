@@ -12,7 +12,7 @@ import re
 from collections import defaultdict
 from typing import Any, Dict, List, Optional, Set
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from apps.backend import constants as backend_constants
 from apps.backend.agent.tools import get_cloud_id__proxies_map

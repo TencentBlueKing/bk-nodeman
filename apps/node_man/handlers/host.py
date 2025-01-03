@@ -13,7 +13,7 @@ from typing import Any, Dict, Iterable, List, Set
 
 from django.db.models import Count, Q
 from django.utils import timezone
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from apps.core.ipchooser import core_ipchooser_constants
 from apps.core.ipchooser.tools.base import HostQuerySqlHelper

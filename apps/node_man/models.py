@@ -33,13 +33,12 @@ from bkcrypto.contrib.django.fields import SymmetricTextField
 from django.conf import settings
 from django.core.cache import cache
 from django.db import models
-from django.db.models import Q, QuerySet
+from django.db.models import JSONField, Q, QuerySet
 from django.utils import timezone
-from django.utils.encoding import force_text
+from django.utils.encoding import force_str
 from django.utils.functional import Promise
 from django.utils.translation import get_language
-from django.utils.translation import ugettext_lazy as _
-from django_mysql.models import JSONField
+from django.utils.translation import gettext_lazy as _
 from jinja2 import Template
 
 from apps.backend.subscription.errors import PipelineExecuteFailed, SubscriptionNotExist
@@ -73,12 +72,14 @@ from pipeline.service import task_service
 class LazyJSONEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, Promise):
-            return force_text(obj)
+            return force_str(obj)
         return super(LazyJSONEncoder, self).default(obj)
 
 
 class LazyJSONField(JSONField):
-    _default_json_encoder = LazyJSONEncoder(allow_nan=False)
+    def __init__(self, *args, **kwargs):
+        kwargs["encoder"] = LazyJSONEncoder
+        super().__init__(*args, **kwargs)
 
 
 class GlobalSettings(models.Model):
@@ -183,7 +184,7 @@ class GlobalSettings(models.Model):
         PLUGIN_VERSION_CONFIG = "PLUGIN_VERSION_CONFIG"
 
     key = models.CharField(_("键"), max_length=255, db_index=True, primary_key=True)
-    v_json = JSONField(_("值"))
+    v_json = JSONField(_("值"), default=dict)
 
     def map_values(self, objs, source, target):
         """
@@ -230,7 +231,7 @@ class IdentityData(models.Model):
     password = SymmetricTextField(_("密码"), blank=True, null=True)
     port = models.IntegerField(_("端口"), null=True, default=22)
     key = SymmetricTextField(_("密钥"), blank=True, null=True)
-    extra_data = JSONField(_("额外认证资料"), blank=True, null=True)
+    extra_data = JSONField(_("额外认证资料"), blank=True, null=True, default=dict)
     retention = models.IntegerField(_("保留天数"), default=1)
     updated_at = models.DateTimeField(_("更新时间"), null=True, auto_now=False)
 
@@ -281,7 +282,7 @@ class Host(models.Model):
     updated_at = models.DateTimeField(_("更新时间"), null=True, auto_now=False, db_index=True)
     dept_name = models.CharField(_("运维部门"), max_length=128, db_index=True, blank=True, null=True, default="")
 
-    extra_data = JSONField(_("额外数据"), blank=True, null=True)
+    extra_data = JSONField(_("额外数据"), blank=True, null=True, default=dict)
 
     @classmethod
     def get_by_host_info(cls, host_info):
@@ -555,17 +556,17 @@ class AccessPoint(models.Model):
     gse_version = models.CharField(
         _("GSE 版本"), max_length=32, default=GseVersion.V1.value, choices=GseVersion.list_choices()
     )
-    btfileserver = JSONField(_("GSE BT文件服务器列表"))
-    dataserver = JSONField(_("GSE 数据服务器列表"))
-    taskserver = JSONField(_("GSE 任务服务器列表"))
-    zk_hosts = JSONField(_("ZK服务器列表"))
+    btfileserver = JSONField(_("GSE BT文件服务器列表"), default=dict)
+    dataserver = JSONField(_("GSE 数据服务器列表"), default=dict)
+    taskserver = JSONField(_("GSE 任务服务器列表"), default=dict)
+    zk_hosts = JSONField(_("ZK服务器列表"), default=dict)
     zk_account = models.CharField(_("ZK账号"), max_length=255, default="", blank=True, null=True)
     zk_password = SymmetricTextField(_("密码"), blank=True, null=True)
     package_inner_url = models.TextField(_("安装包内网地址"))
     package_outer_url = models.TextField(_("安装包外网地址"))
     # 历史遗留命名，现在该路径表示存储源的存储目录路径
     nginx_path = models.TextField(_("Nginx路径"), blank=True, null=True)
-    agent_config = JSONField(_("Agent配置信息"))
+    agent_config = JSONField(_("Agent配置信息"), default=dict)
     status = models.CharField(_("接入点状态"), max_length=255, default="", blank=True, null=True)
     description = models.TextField(_("接入点描述"))
     is_enabled = models.BooleanField(_("是否启用"), default=True)
@@ -753,7 +754,7 @@ class Cloud(models.Model):
     isp = models.CharField(_("云服务商"), max_length=45, null=True, blank=True)
     ap_id = models.IntegerField(_("接入点ID"), null=True)
     gse_v1_ap_id = models.IntegerField(_("GSE1.0接入点ID"), null=True, blank=True)
-    creator = JSONField(_("管控区域创建者"))
+    creator = JSONField(_("管控区域创建者"), default=dict)
 
     is_visible = models.BooleanField(_("是否可见"), default=True)
     is_deleted = models.BooleanField(_("是否删除"), default=False)
@@ -791,8 +792,8 @@ class InstallChannel(models.Model):
 
     name = models.CharField(_("名称"), max_length=45)
     bk_cloud_id = models.IntegerField(_("管控区域ID"))
-    jump_servers = JSONField(_("安装通道跳板机"))
-    upstream_servers = JSONField(_("上游节点"))
+    jump_servers = JSONField(_("安装通道跳板机"), default=dict)
+    upstream_servers = JSONField(_("上游节点"), default=dict)
     hidden = models.BooleanField(_("是否隐藏"), default=False)
 
     def get_upstream_servers_by_ap_id(self, ap_id):
@@ -877,10 +878,10 @@ class Job(export_job_prometheus_mixin(), models.Model):
         choices=constants.JobStatusType.get_choices(),
         default=constants.JobStatusType.PENDING,
     )
-    global_params = JSONField(_("全局运行参数"), blank=True, null=True)
+    global_params = JSONField(_("全局运行参数"), blank=True, null=True, default=dict)
     statistics = JSONField(_("任务统计信息"), blank=True, null=True, default=dict)
-    bk_biz_scope = JSONField(_("业务范围"))
-    error_hosts = JSONField(_("发生错误的主机"))
+    bk_biz_scope = JSONField(_("业务范围"), default=dict)
+    error_hosts = JSONField(_("发生错误的主机"), default=dict)
     is_auto_trigger = models.BooleanField(_("是否为自动触发"), default=False)
 
     class Meta:
@@ -946,7 +947,7 @@ class GsePluginDesc(models.Model):
     )
     source_app_code = models.CharField(_("来源系统APP CODE"), max_length=64, null=True, blank=True)
 
-    node_manage_control = JSONField(_("节点管理管控插件信息"), null=True, blank=True)
+    node_manage_control = JSONField(_("节点管理管控插件信息"), null=True, blank=True, default=dict)
 
     class Meta:
         verbose_name = _("插件信息（GsePluginDesc）")
@@ -1786,8 +1787,8 @@ class SubscriptionStep(models.Model):
     index = models.IntegerField(_("顺序"), default=0)
     step_id = models.CharField(_("步骤ID"), max_length=64, db_index=True)
     type = models.CharField(_("步骤类型"), max_length=20)
-    config = JSONField(_("配置"))
-    params = JSONField(_("参数"))
+    config = JSONField(_("配置"), default=dict)
+    params = JSONField(_("参数"), default=dict)
 
     @property
     def subscription(self):
@@ -1859,7 +1860,7 @@ class Subscription(export_subscription_prometheus_mixin(), orm.SoftDeleteModel):
     object_type = models.CharField(_("对象类型"), max_length=20, choices=OBJECT_TYPE_CHOICES, db_index=True)
     node_type = models.CharField(_("节点类型"), max_length=20, choices=NODE_TYPE_CHOICES, db_index=True)
     nodes = JSONField(_("节点"), default=list)
-    instance_selector = JSONField(_("订阅任务范围主机属性筛选"), null=True, blank=True)
+    instance_selector = JSONField(_("订阅任务范围主机属性筛选"), null=True, blank=True, default=dict)
     target_hosts = JSONField(_("下发的目标机器"), default=None, null=True)
     from_system = models.CharField(_("所属系统"), max_length=30)
     update_time = models.DateTimeField(_("更新时间"), auto_now=True, db_index=True)
@@ -2190,8 +2191,8 @@ class SubscriptionTask(models.Model):
     """订阅执行任务"""
 
     subscription_id = models.IntegerField(_("订阅ID"), db_index=True)
-    scope = JSONField(_("执行范围"))
-    actions = JSONField(_("不同step执行的动作名称。键值对"))
+    scope = JSONField(_("执行范围"), default=dict)
+    actions = JSONField(_("不同step执行的动作名称。键值对"), default=dict)
     create_time = models.DateTimeField(_("创建时间"), auto_now_add=True, db_index=True)
     err_msg = models.TextField(_("错误信息"), blank=True, null=True)
     is_ready = models.BooleanField(_("是否准备就绪"), default=False)
@@ -2235,8 +2236,8 @@ class SubscriptionInstanceRecord(models.Model):
     task_id = models.IntegerField(_("任务ID"), db_index=True)
     subscription_id = models.IntegerField(_("订阅ID"), db_index=True)
     instance_id = models.CharField(_("实例ID"), max_length=128, db_index=True)
-    instance_info = JSONField(_("实例信息"))
-    steps = JSONField(_("步骤信息"))
+    instance_info = JSONField(_("实例信息"), default=dict)
+    steps = JSONField(_("步骤信息"), default=dict)
     pipeline_id = models.CharField(_("Pipeline ID"), max_length=50, default="", blank=True, db_index=True)
     start_pipeline_id = models.CharField(_("Start Pipeline ID"), max_length=50, default="", blank=True, db_index=True)
     update_time = models.DateTimeField(_("更新时间"), default=timezone.now, db_index=True)
@@ -2416,7 +2417,7 @@ class CmdbEventRecord(models.Model):
     event_type = models.CharField(_("事件类型"), max_length=20)
     action = models.CharField(_("动作"), max_length=20)
     obj_type = models.CharField(_("对象类型"), max_length=32)
-    data = JSONField(_("实例信息"))
+    data = JSONField(_("实例信息"), default=dict)
     create_time = models.DateTimeField(_("创建时间"), auto_now_add=True)
 
     class Meta:
@@ -2430,7 +2431,7 @@ class PipelineTree(models.Model):
     """
 
     id = models.CharField(_("PipelineID"), primary_key=True, max_length=32)
-    tree = LazyJSONField(_("Pipeline拓扑树"))
+    tree = LazyJSONField(_("Pipeline拓扑树"), default=dict)
 
     def run(self, priority=None):
         # 根据流程描述结构创建流程对象

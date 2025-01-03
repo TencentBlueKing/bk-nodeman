@@ -10,7 +10,7 @@ See the License for the specific language governing permissions and limitations 
 """
 from blueapps.account.decorators import login_exempt
 from django.conf import settings
-from django.conf.urls import include, url
+from django.urls import include, re_path
 from iam.contrib.django.dispatcher import DjangoBasicResourceApiDispatcher
 from rest_framework import routers
 
@@ -20,4 +20,4 @@ dispatcher = DjangoBasicResourceApiDispatcher(Permission.get_iam_client(), setti
 
 router = routers.DefaultRouter(trailing_slash=True)
 
-urlpatterns = [url(r"^", include(router.urls)), url(r"^resource/$", dispatcher.as_view([login_exempt]))]
+urlpatterns = [re_path(r"^", include(router.urls)), re_path(r"^resource/$", dispatcher.as_view([login_exempt]))]

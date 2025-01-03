@@ -17,7 +17,7 @@ from typing import Any, Callable, Dict, Optional, Tuple
 
 import paramiko
 import wrapt
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from six import StringIO
 
 from apps.backend.constants import (

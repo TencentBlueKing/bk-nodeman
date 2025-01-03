@@ -15,7 +15,7 @@ from bkcrypto import constants as bkcrypto_constants
 from bkcrypto.asymmetric.configs import KeyConfig as AsymmetricKeyConfig
 from bkcrypto.symmetric.configs import KeyConfig as SymmetricKeyConfig
 from django.conf import settings
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from apps.node_man.exceptions import QueryGlobalSettingsException
 from apps.node_man.models import GlobalSettings

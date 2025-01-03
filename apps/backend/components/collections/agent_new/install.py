@@ -22,7 +22,7 @@ from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
 
 from django.conf import settings
 from django.utils import timezone, translation
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from redis.client import Pipeline
 
 from apps.backend.agent import solution_maker

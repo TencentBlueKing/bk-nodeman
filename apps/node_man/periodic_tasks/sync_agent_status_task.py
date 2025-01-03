@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 import typing
 from collections import defaultdict
 
-from celery.task import periodic_task, task
+from celery import current_app
 from django.conf import settings
 from django.db.models import QuerySet
 from django.db.transaction import atomic
@@ -25,7 +25,7 @@ from apps.utils.periodic_task import calculate_countdown
 from common.log import logger
 
 
-@task(queue="default", ignore_result=True)
+@current_app.task(queue="default", ignore_result=True)
 def update_or_create_host_agent_status(task_id: int, host_queryset: QuerySet):
     """
     更新 Agent 状态
@@ -169,7 +169,7 @@ def update_or_create_host_agent_status(task_id: int, host_queryset: QuerySet):
     return host_id__agent_state_info
 
 
-@periodic_task(
+@current_app.task(
     queue="default",
     options={"queue": "default"},
     run_every=constants.SYNC_AGENT_STATUS_TASK_INTERVAL,

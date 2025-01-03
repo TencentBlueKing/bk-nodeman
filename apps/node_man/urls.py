@@ -10,8 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 from blueapps.account.decorators import login_exempt
 from django.conf import settings
-from django.conf.urls import url
-from django.urls import include
+from django.urls import include, re_path
 from iam import IAM
 from iam.contrib.django.dispatcher import DjangoBasicResourceApiDispatcher
 from rest_framework import routers
@@ -80,16 +79,16 @@ package_dispatcher = DjangoBasicResourceApiDispatcher(iam, settings.BK_IAM_SYSTE
 package_dispatcher.register("package", PackageResourceProvider())
 
 urlpatterns = [
-    url(r"^$", views.index),
-    url(r"^ping/?$", views.ping),
-    url(r"^version/?$", views.version),
-    url(r"^metrics/?$", views.metrics),
-    url(r"^logout/?$", views.user_exit),
-    url(r"^tools/download/$", views.tools_download),
-    url(r"api/", include(router.urls)),
-    url(r"api/iam/v1/biz", biz_dispatcher.as_view([login_exempt])),
-    url(r"api/iam/v1/cloud", cloud_dispatcher.as_view([login_exempt])),
-    url(r"api/iam/v1/ap", ap_dispatcher.as_view([login_exempt])),
-    url(r"api/iam/v1/strategy", strategy_dispatcher.as_view([login_exempt])),
-    url(r"api/iam/v1/package", package_dispatcher.as_view([login_exempt])),
+    re_path(r"^$", views.index),
+    re_path(r"^ping/?$", views.ping),
+    re_path(r"^version/?$", views.version),
+    re_path(r"^metrics/?$", views.metrics),
+    re_path(r"^logout/?$", views.user_exit),
+    re_path(r"^tools/download/$", views.tools_download),
+    re_path(r"api/", include(router.urls)),
+    re_path(r"api/iam/v1/biz", biz_dispatcher.as_view([login_exempt])),
+    re_path(r"api/iam/v1/cloud", cloud_dispatcher.as_view([login_exempt])),
+    re_path(r"api/iam/v1/ap", ap_dispatcher.as_view([login_exempt])),
+    re_path(r"api/iam/v1/strategy", strategy_dispatcher.as_view([login_exempt])),
+    re_path(r"api/iam/v1/package", package_dispatcher.as_view([login_exempt])),
 ]
