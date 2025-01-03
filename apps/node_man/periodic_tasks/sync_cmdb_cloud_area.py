@@ -8,7 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from blueapps.contrib.celery_tools.periodic import periodic_task
+from celery import current_app
 
 from apps.component.esbclient import client_v2
 from apps.exceptions import ComponentCallError
@@ -71,10 +71,10 @@ def update_or_create_cloud_area(task_id, start):
         update_or_create_cloud_area(task_id, start + constants.QUERY_CLOUD_LIMIT)
 
 
-@periodic_task(
-    run_every=constants.SYNC_CMDB_CLOUD_AREA_INTERVAL,
+@current_app.task(
     queue="default",
     options={"queue": "default"},
+    run_every=constants.SYNC_CMDB_CLOUD_AREA_INTERVAL,
 )
 def sync_cmdb_cloud_area_periodic_task():
     """

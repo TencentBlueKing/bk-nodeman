@@ -55,7 +55,7 @@ dnspython==2.7.0
 django-cors-headers==3.5.0
 
 # 版本日志
-mistune==0.8.4
+mistune==2.0.5
 django-versionlog==1.8.1
 
 # 腾讯云SDK

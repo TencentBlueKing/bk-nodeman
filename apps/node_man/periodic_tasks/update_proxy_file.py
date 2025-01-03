@@ -16,7 +16,7 @@ from collections import defaultdict
 from json import JSONDecodeError
 from typing import Dict, List, Union
 
-from blueapps.contrib.celery_tools.periodic import periodic_task
+from celery import current_app
 from celery.schedules import crontab
 from django.conf import settings
 from django.db.models import Q
@@ -32,10 +32,10 @@ from common.api import JobApi
 from common.log import logger
 
 
-@periodic_task(
-    run_every=crontab(hour="1", minute="0", day_of_week="*", day_of_month="*", month_of_year="*"),
+@current_app.task(
     queue="default",
     options={"queue": "default"},
+    run_every=crontab(hour="1", minute="0", day_of_week="*", day_of_month="*", month_of_year="*"),
 )
 def update_proxy_files():
     alive_hosts: List[Dict[str, str]] = []

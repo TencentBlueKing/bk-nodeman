@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 from typing import Dict, List
 
-from blueapps.contrib.celery_tools.periodic import periodic_task
+from celery import current_app
 from django.db import transaction
 
 from apps.backend.subscription.tools import fetch_biz_info_map
@@ -20,10 +20,10 @@ from apps.node_man.models import GlobalSettings
 from common.log import logger
 
 
-@periodic_task(
-    run_every=SYNC_BIZ_TO_GRAY_SCOPE_LIST_INTERVAL,
+@current_app.task(
     queue="default",
     options={"queue": "default"},
+    run_every=SYNC_BIZ_TO_GRAY_SCOPE_LIST_INTERVAL,
 )
 def sync_new_biz_to_gray_scope_list():
     """

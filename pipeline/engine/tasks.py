@@ -150,7 +150,7 @@ def node_timeout_check(node_id, version, root_pipeline_id):
         logger.warning("node {} - {} timeout kill failed".format(node_id, version))
 
 
-@periodic_task(run_every=(crontab(**default_settings.ENGINE_ZOMBIE_PROCESS_HEAL_CRON)), ignore_result=True)
+@current_app.task(run_every=(crontab(**default_settings.ENGINE_ZOMBIE_PROCESS_HEAL_CRON)), ignore_result=True)
 def heal_zombie_process():
     logger.info("Zombie process heal start")
 
