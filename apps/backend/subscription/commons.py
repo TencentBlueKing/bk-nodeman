@@ -18,6 +18,7 @@ from apps.node_man import constants
 from apps.prometheus import metrics
 from apps.prometheus.helper import SetupObserve, get_call_resource_labels_func
 from apps.utils.batch_request import batch_request
+from common.api import CCApi
 
 logger = logging.getLogger("app")
 
@@ -31,7 +32,7 @@ def get_host_object_attribute(bk_biz_id):
         return biz_property
 
     kwargs = {"bk_obj_id": "host", "bk_biz_id": bk_biz_id}
-    data = client_v2.cc.search_object_attribute(kwargs) or []
+    data = CCApi.search_object_attribute(kwargs) or []
     custom_fields = [_property["bk_property_id"] for _property in data if _property["bk_biz_id"] != 0]
     cache.set(biz_property_cache_key, custom_fields, 600)
     return custom_fields
@@ -73,7 +74,7 @@ def get_host_by_inst(bk_biz_id, inst_list):
     bk_biz_ids = []
 
     # 获取主线模型的业务拓扑信息
-    topo_data_list = client_v2.cc.get_mainline_object_topo()
+    topo_data_list = CCApi.get_mainline_object_topo()
     bk_obj_id_list = [topo_data["bk_obj_id"] for topo_data in topo_data_list]
 
     for inst in inst_list:

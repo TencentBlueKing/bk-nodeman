@@ -14,6 +14,7 @@ from apps.component.esbclient import client_v2
 from apps.exceptions import ComponentCallError
 from apps.node_man import constants
 from apps.node_man.models import AccessPoint, Cloud
+from common.api import CCApi
 from common.log import logger
 
 
@@ -22,7 +23,7 @@ def update_or_create_cloud_area(task_id, start):
 
     # 查询管控区域兼容低版本paas无search_cloud_area情况
     try:
-        plats = client_v2.cc.search_cloud_area({"page": {"start": start, "limit": constants.QUERY_CLOUD_LIMIT}})
+        plats = CCApi.search_cloud_area({"page": {"start": start, "limit": constants.QUERY_CLOUD_LIMIT}})
     except ComponentCallError as e:
         logger.error(f"{task_id} | call search_cloud_area error {e.message}")
         plats = client_v2.cc.search_inst({"bk_obj_id": "plat"})

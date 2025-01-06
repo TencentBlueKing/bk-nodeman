@@ -33,6 +33,7 @@ from apps.node_man.periodic_tasks.utils import (
 )
 from apps.utils.batch_request import batch_request
 from apps.utils.concurrent import batch_call, batch_call_serial
+from common.api import CCApi
 from common.log import logger
 
 
@@ -57,7 +58,7 @@ def query_biz_hosts(bk_biz_id: int, bk_host_ids: typing.List[int]) -> typing.Lis
         query_hosts_api = client_v2.cc.list_resource_pool_hosts
     else:
         query_params["bk_biz_id"] = bk_biz_id
-        query_hosts_api = client_v2.cc.list_biz_hosts
+        query_hosts_api = CCApi.list_biz_hosts
 
     hosts = batch_request(query_hosts_api, query_params)
 
@@ -65,7 +66,7 @@ def query_biz_hosts(bk_biz_id: int, bk_host_ids: typing.List[int]) -> typing.Lis
 
 
 def _list_biz_hosts(biz_id: int, start: int) -> dict:
-    biz_hosts = client_v2.cc.list_biz_hosts(
+    biz_hosts = CCApi.list_biz_hosts(
         {
             "bk_biz_id": biz_id,
             "fields": constants.CC_HOST_FIELDS,
@@ -200,7 +201,7 @@ def _generate_host(biz_id, host, ap_id, is_os_type_priority=False, is_sync_cmdb_
 def find_host_biz_relations(find_host_biz_ids):
     host_biz_relation = {}
     for count in range(math.ceil(len(find_host_biz_ids) / constants.QUERY_CMDB_LIMIT)):
-        cc_host_biz_relations = client_v2.cc.find_host_biz_relations(
+        cc_host_biz_relations = CCApi.find_host_biz_relations(
             {
                 "bk_host_id": find_host_biz_ids[
                     count * constants.QUERY_CMDB_LIMIT : (count + 1) * constants.QUERY_CMDB_LIMIT
@@ -577,9 +578,7 @@ def query_cmdb_and_handle_need_delete_host_ids(host_ids: typing.List[int], task_
             "rules": [{"field": "bk_host_id", "operator": "in", "value": host_ids}],
         },
     }
-    cmdb_host_infos: typing.List[typing.Dict[str, int]] = client_v2.cc.list_hosts_without_biz(query_hosts_params)[
-        "info"
-    ]
+    cmdb_host_infos: typing.List[typing.Dict[str, int]] = CCApi.list_hosts_without_biz(query_hosts_params)["info"]
     bk_host_ids_in_cmdb: typing.List[int] = [cmdb_host_info.get("bk_host_id") for cmdb_host_info in cmdb_host_infos]
     logger.info(
         "[find_hosts_in_cmdb] task_id -> %s, bk_host_ids -> %s , num -> %s"

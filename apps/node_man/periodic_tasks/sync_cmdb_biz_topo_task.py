@@ -15,10 +15,10 @@ from celery.task import periodic_task, task
 from django.conf import settings
 from django.core.cache import cache
 
-from apps.component.esbclient import client_v2
 from apps.node_man import constants
 from apps.node_man.handlers import cmdb
 from apps.utils.periodic_task import calculate_countdown
+from common.api import CCApi
 from common.log import logger
 
 
@@ -148,7 +148,7 @@ def cache_all_biz_topo():
     多线程缓存全业务拓扑及业务拓扑节点列表
     :return:
     """
-    biz_data = client_v2.cc.search_business({"fields": ["bk_biz_id"]})
+    biz_data = CCApi.search_business({"fields": ["bk_biz_id"]})
     bk_biz_ids = [biz["bk_biz_id"] for biz in biz_data.get("info", []) if biz["default"] == 0]
 
     with ThreadPoolExecutor(max_workers=settings.CONCURRENT_NUMBER) as ex:
@@ -173,7 +173,7 @@ def sync_cmdb_biz_topo_periodic_task():
     task_id = sync_cmdb_biz_topo_periodic_task.request.id
     logger.info(f"{task_id} | sync_cmdb_biz_topo_task: Start sync cmdb biz topo task.")
 
-    biz_data = client_v2.cc.search_business({"fields": ["bk_biz_id"]})
+    biz_data = CCApi.search_business({"fields": ["bk_biz_id"]})
     bk_biz_ids = [biz["bk_biz_id"] for biz in biz_data.get("info", []) if biz["default"] == 0]
     for index, bk_biz_id in enumerate(bk_biz_ids):
         countdown = calculate_countdown(
