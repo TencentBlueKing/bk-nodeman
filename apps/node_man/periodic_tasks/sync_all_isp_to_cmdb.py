@@ -13,11 +13,11 @@ from typing import Any, Dict, List
 
 from celery import current_app
 
-from apps.component.esbclient import client_v2
 from apps.exceptions import ComponentCallError
 from apps.node_man import constants
 from apps.node_man.models import Cloud, GlobalSettings
 from apps.utils.basic import chunk_lists
+from common.api import CCApi
 from common.log import logger
 
 
@@ -37,7 +37,7 @@ def sync_all_isp_to_cmdb(task_id):
                 continue
             bk_cloud_vendor: str = constants.CMDB_CLOUD_VENDOR_MAP.get(cloud["isp"])
             try:
-                client_v2.cc.update_cloud_area({"bk_cloud_id": bk_cloud_id, "bk_cloud_vendor": bk_cloud_vendor})
+                CCApi.update_cloud_area({"bk_cloud_id": bk_cloud_id, "bk_cloud_vendor": bk_cloud_vendor})
             except ComponentCallError as e:
                 logger.error("call update_cloud_area bk_cloud_id -> %s error -> %s" % (bk_cloud_id, e.message))
                 # 后续统一云区域操作管理，打平数量nodeman==cmdb；云区域不存在则跳过,

@@ -38,7 +38,6 @@ from apps.backend.subscription.errors import (
     PipelineTreeParseError,
 )
 from apps.backend.utils.data_renderer import nested_render_data
-from apps.component.esbclient import client_v2
 from apps.core.concurrent import controller
 from apps.core.concurrent.cache import FuncCacheDecorator
 from apps.core.ipchooser.tools.base import HostQuerySqlHelper
@@ -54,8 +53,6 @@ from apps.utils.time_handler import strftime_local
 from common.api import CCApi
 
 logger = logging.getLogger("app")
-
-client_v2.backend = True
 
 
 def create_group_id(subscription: models.Subscription, instance: Dict) -> str:
@@ -122,8 +119,8 @@ def get_module_to_topo_dict(bk_biz_id: int) -> Dict:
         "module|1": ["biz|2", "set|3", "module|1"]
     }
     """
-    topo_tree = client_v2.cc.search_biz_inst_topo({"bk_username": "admin", "bk_biz_id": bk_biz_id})
-    internal_module = client_v2.cc.get_biz_internal_module({"bk_biz_id": bk_biz_id})
+    topo_tree = CCApi.search_biz_inst_topo({"bk_username": "admin", "bk_biz_id": bk_biz_id})
+    internal_module = CCApi.get_biz_internal_module({"bk_biz_id": bk_biz_id})
 
     node_relations = {}
 
@@ -275,7 +272,7 @@ def find_host_biz_relations(bk_host_ids: List[int]) -> List[Dict]:
         {"bk_host_id": bk_host_ids[count * constants.QUERY_CMDB_LIMIT : (count + 1) * constants.QUERY_CMDB_LIMIT]}
         for count in range(math.ceil(len(bk_host_ids) / constants.QUERY_CMDB_LIMIT))
     ]
-    host_biz_relations = request_multi_thread(client_v2.cc.find_host_biz_relations, param_list, get_data=lambda x: x)
+    host_biz_relations = request_multi_thread(CCApi.find_host_biz_relations, param_list, get_data=lambda x: x)
     return host_biz_relations
 
 
@@ -433,7 +430,7 @@ def fetch_biz_info_map(fields: typing.Optional[typing.List[str]] = None) -> typi
     :return: 主机业务关系列表
     """
     fields = fields or ["bk_biz_id", "bk_biz_name"]
-    biz_infos: typing.List[typing.Dict] = batch_request(client_v2.cc.search_business, {"fields": fields})
+    biz_infos: typing.List[typing.Dict] = batch_request(CCApi.search_business, {"fields": fields})
     biz_infos.append({"bk_biz_id": settings.BK_CMDB_RESOURCE_POOL_BIZ_ID, "bk_biz_name": "资源池"})
 
     biz_info_map: typing.Dict[str, typing.Dict] = {str(biz_info["bk_biz_id"]): biz_info for biz_info in biz_infos}
@@ -463,14 +460,14 @@ def get_host_detail_by_template(bk_obj_id, template_info_list: list, bk_biz_id: 
 
     if bk_obj_id == models.Subscription.NodeType.SERVICE_TEMPLATE:
         # 服务模板
-        call_func = client_v2.cc.find_host_by_service_template
+        call_func = CCApi.find_host_by_service_template
         template_ids = [info["bk_inst_id"] for info in template_info_list]
         host_info_result = batch_request(
             call_func, dict(bk_service_template_ids=template_ids, bk_biz_id=bk_biz_id, fields=fields)
         )
     else:
         # 集群模板
-        call_func = client_v2.cc.find_host_by_set_template
+        call_func = CCApi.find_host_by_set_template
         template_ids = [info["bk_inst_id"] for info in template_info_list]
         host_info_result = batch_request(
             call_func, dict(bk_set_template_ids=template_ids, bk_biz_id=bk_biz_id, fields=fields)
@@ -504,13 +501,13 @@ def get_service_instances_by_template(bk_obj_id, template_info_list: list, bk_bi
 
     if bk_obj_id == models.Subscription.NodeType.SERVICE_TEMPLATE:
         # 服务模板下的服务实例
-        call_func = client_v2.cc.find_host_by_service_template
+        call_func = CCApi.find_host_by_service_template
         params = dict(
             bk_service_template_ids=template_ids, bk_biz_id=int(bk_biz_id), fields=("bk_host_id", "bk_cloud_id")
         )
     else:
         # 集群模板下的服务实例
-        call_func = client_v2.cc.find_host_by_set_template
+        call_func = CCApi.find_host_by_set_template
         params = dict(bk_set_template_ids=template_ids, bk_biz_id=int(bk_biz_id), fields=("bk_host_id", "bk_cloud_id"))
     host_info_result = batch_request(call_func, params)
     bk_host_ids = [inst["bk_host_id"] for inst in host_info_result]
@@ -708,7 +705,7 @@ def set_template_scope_nodes(scope):
     """
     # 现在search_module同时返回集群模板ID和服务模板ID
     params = {"bk_biz_id": int(scope["bk_biz_id"])}
-    modules_info = batch_request(client_v2.cc.search_module, params)
+    modules_info = batch_request(CCApi.search_module, params)
     template_ids = [node["bk_inst_id"] for node in scope["nodes"]]
     if scope["node_type"] == models.Subscription.NodeType.SERVICE_TEMPLATE:
         # 转化服务模板为node
@@ -946,7 +943,7 @@ def get_instances_by_scope(scope: Dict[str, Union[Dict, int, Any]]) -> Dict[str,
             bk_host_id_chunks = chunk_lists([instance["host"]["bk_host_id"] for instance in instances], 500)
             with ThreadPoolExecutor(max_workers=settings.CONCURRENT_NUMBER) as ex:
                 tasks = [
-                    ex.submit(client_v2.cc.find_host_biz_relations, dict(bk_host_id=chunk, bk_biz_id=bk_biz_id))
+                    ex.submit(CCApi.find_host_biz_relations, dict(bk_host_id=chunk, bk_biz_id=bk_biz_id))
                     for chunk in bk_host_id_chunks
                 ]
                 for future in as_completed(tasks):

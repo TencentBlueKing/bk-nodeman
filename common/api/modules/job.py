@@ -76,3 +76,11 @@ class _JobApi(BaseApi):
             description="新建文件源",
             api_name="create_file_source",
         )
+        self.get_job_instance_ip_log = DataAPI(
+            method="GET",
+            url=JOB_APIGATEWAY_ROOT_V3 + "get_job_instance_ip_log/",
+            module=self.MODULE,
+            simple_module=self.SIMPLE_MODULE,
+            description="根据作业实例ID查询作业执行日志",
+            api_name="get_job_instance_ip_log",
+        )

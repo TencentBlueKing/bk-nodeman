@@ -87,7 +87,7 @@ class TestPolicy(TestCase):
         self.get_process_by_biz_id_client = mock.patch(
             "apps.backend.subscription.tools.get_process_by_biz_id", lambda args, bk_host_list: defaultdict(dict)
         )
-        self.tools_client = mock.patch("apps.backend.subscription.tools.client_v2", CmdbClient)
+        self.tools_client = mock.patch("apps.backend.subscription.tools.CCApi", CmdbClient.cc)
         self.commons_client = mock.patch("apps.backend.subscription.commons.client_v2", CmdbClient)
         self.handlers_client = mock.patch("apps.node_man.handlers.cmdb.client_v2", CmdbClient)
         self.batch_request_client = mock.patch(

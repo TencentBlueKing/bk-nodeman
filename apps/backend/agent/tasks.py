@@ -15,10 +15,10 @@ import traceback
 from apps.backend.celery import app
 from apps.backend.utils.ssh import SshMan
 from apps.backend.utils.wmi import execute_cmd
-from apps.component.esbclient import client_v2
 from apps.node_man import constants
 from apps.node_man.models import Host
 from apps.utils.basic import suffix_slash
+from common.api import JobApi
 from common.log import logger
 from pipeline.log.models import LogEntry
 
@@ -115,7 +115,7 @@ else:
                 "ip_list": [{"bk_cloud_id": proxy.bk_cloud_id, "ip": proxy.inner_ip, "host_id": proxy.bk_host_id}]
             },
         }
-        data = client_v2.job.fast_execute_script(kwargs)
+        data = JobApi.fast_execute_script(kwargs)
         job_instance_id = data["job_instance_id"]
 
         # 等待6s拉取日志，接取失败直接返回
@@ -123,7 +123,7 @@ else:
         error_msg = f"拉取debug日志失败，如需查看最新日志请登录目标机器查看[{dest_dir}nm.setup_agent.{script_type}.{node_id}{log_file_suffix}]"
         for i in range(10):
             time.sleep(6)
-            log_result = client_v2.job.get_job_instance_log(
+            log_result = JobApi.get_job_instance_ip_log(
                 {"bk_biz_id": proxy.bk_biz_id, "job_instance_id": job_instance_id}
             )
 

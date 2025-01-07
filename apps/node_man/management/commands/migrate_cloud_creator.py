@@ -12,8 +12,8 @@ specific language governing permissions and limitations under the License.
 
 from django.core.management.base import BaseCommand
 
-from apps.component.esbclient import client_v2
 from apps.node_man.models import Cloud
+from common.api import CCApi
 
 
 class Command(BaseCommand):
@@ -23,7 +23,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **kwargs):
         bk_biz_maintainer = (
-            client_v2.cc.search_business(
+            CCApi.search_business(
                 {
                     "fields": ["bk_biz_id", "bk_biz_name", "bk_biz_maintainer"],
                     "condition": {"bk_biz_id": kwargs["bk_biz_id"]},

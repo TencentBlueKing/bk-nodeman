@@ -11,16 +11,14 @@ specific language governing permissions and limitations under the License.
 import logging
 
 from apps.backend.subscription.commons import get_host_by_inst
-from apps.component.esbclient import client_v2
 from apps.node_man import constants, models
 from apps.utils.batch_request import batch_request
+from common.api import CCApi
 
 """
 此文件的函数不应被其他任何函数共用，仅用于处理渲染逻辑
 """
 logger = logging.getLogger("app")
-
-client_v2.backend = True
 
 
 def get_host_detail_by_template(bk_obj_id, template_info_list: list, bk_biz_id: int = None):
@@ -38,14 +36,14 @@ def get_host_detail_by_template(bk_obj_id, template_info_list: list, bk_biz_id: 
 
     if bk_obj_id == models.Subscription.NodeType.SERVICE_TEMPLATE:
         # 服务模板
-        call_func = client_v2.cc.find_host_by_service_template
+        call_func = CCApi.find_host_by_service_template
         template_ids = [info["bk_inst_id"] for info in template_info_list]
         host_info_result = batch_request(
             call_func, dict(bk_service_template_ids=template_ids, bk_biz_id=bk_biz_id, fields=fields)
         )
     else:
         # 集群模板
-        call_func = client_v2.cc.find_host_by_set_template
+        call_func = CCApi.find_host_by_set_template
         template_ids = [info["bk_inst_id"] for info in template_info_list]
         host_info_result = batch_request(
             call_func, dict(bk_set_template_ids=template_ids, bk_biz_id=bk_biz_id, fields=fields)

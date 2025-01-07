@@ -38,6 +38,7 @@ from apps.node_man.periodic_tasks.sync_cmdb_biz_topo_task import (
 from apps.utils import APIModel
 from apps.utils.batch_request import batch_request, request_multi_thread
 from apps.utils.local import get_request_username
+from common.api import CCApi
 from common.log import logger
 
 # TODO 权限和逻辑层解耦
@@ -83,7 +84,7 @@ class CmdbHandler(APIModel):
 
             try:
                 # 需要以用户的名字进行请求
-                result = client_v2.cc.search_business(kwargs)
+                result = CCApi.search_business(kwargs)
                 cache.set(username + BIZ_CACHE_SUFFIX, result, 60)
                 return result
             except ComponentCallError as e:
@@ -154,7 +155,7 @@ class CmdbHandler(APIModel):
         kwargs = {"bk_biz_id": biz}
         try:
             # 需要以用户的名字进行请求
-            result = client_v2.cc.search_biz_inst_topo(kwargs)
+            result = CCApi.search_biz_inst_topo(kwargs)
             return result
         except ComponentCallError as e:
             logger.error("esb->call search_biz_inst_topo error %s" % e.message)
@@ -169,7 +170,7 @@ class CmdbHandler(APIModel):
         kwargs = {"bk_biz_id": biz}
         try:
             # 需要以用户的名字进行请求
-            result = client_v2.cc.get_biz_internal_module(kwargs)
+            result = CCApi.get_biz_internal_module(kwargs)
             return result
         except ComponentCallError as e:
             logger.error("esb->call get_biz_internal_module error %s" % e.message)
@@ -195,7 +196,7 @@ class CmdbHandler(APIModel):
                 kwargs["bk_set_ids"] = bk_set_ids
             if bk_module_ids:
                 kwargs["bk_module_ids"] = bk_module_ids
-            result = client_v2.cc.list_biz_hosts(kwargs)
+            result = CCApi.list_biz_hosts(kwargs)
             return result
         except ComponentCallError as e:
             logger.error("esb->call list_biz_hosts error %s" % e.message)
@@ -269,7 +270,7 @@ class CmdbHandler(APIModel):
 
         kwargs = {"update": [{"properties": properties, "bk_host_id": bk_host_id}]}
         # 增删改查CMDB操作以admin用户进行
-        client_v2.cc.batch_update_host(kwargs)
+        CCApi.batch_update_host(kwargs)
 
     def cmdb_update_host_cloud(self, kwargs: dict):
         """
@@ -279,7 +280,7 @@ class CmdbHandler(APIModel):
         """
 
         # 增删改查CMDB操作以admin用户进行
-        client_v2.cc.update_host_cloud_area_field(kwargs)
+        CCApi.update_host_cloud_area_field(kwargs)
 
     def find_host_topo(self, username, bk_biz_id: int, bk_host_ids: list, topology: dict, user_biz: dict):
         kwargs = {
@@ -292,7 +293,7 @@ class CmdbHandler(APIModel):
             },
         }
         # 异步需要用用户的名字，并且backend为True的形式请求
-        host_topos = client_v2.cc.list_biz_hosts_topo(kwargs, bk_username=username).get("info") or []
+        host_topos = CCApi.list_biz_hosts_topo(kwargs, bk_username=username).get("info") or []
         for topos in host_topos:
             topology[topos["host"]["bk_host_id"]] = []
             # 集群
@@ -328,7 +329,7 @@ class CmdbHandler(APIModel):
         新增管控区域
         """
         # 增删改查CMDB操作以admin用户进行
-        data = client_v2.cc.create_cloud_area({"bk_cloud_name": bk_cloud_name, "bk_cloud_vendor": bk_cloud_vendor})
+        data = CCApi.create_cloud_area({"bk_cloud_name": bk_cloud_name, "bk_cloud_vendor": bk_cloud_vendor})
         return data.get("created", {}).get("id")
 
     @staticmethod
@@ -338,7 +339,7 @@ class CmdbHandler(APIModel):
         """
         try:
             # 增删改查CMDB操作以admin用户进行
-            return client_v2.cc.delete_cloud_area({"bk_cloud_id": bk_cloud_id})
+            return CCApi.delete_cloud_area({"bk_cloud_id": bk_cloud_id})
         except ComponentCallError as e:
             if e.message and e.message["code"] == 1101030:
                 raise CloudUpdateAgentError(
@@ -349,10 +350,10 @@ class CmdbHandler(APIModel):
     def get_cloud(bk_cloud_name):
         try:
             # 增删改查CMDB操作以admin用户进行
-            plats = client_v2.cc.search_cloud_area({"condition": {"bk_cloud_name": bk_cloud_name}})
+            plats = CCApi.search_cloud_area({"condition": {"bk_cloud_name": bk_cloud_name}})
         except ComponentCallError as e:
             logger.error("esb->call search_cloud_area error %s" % e.message)
-            plats = client_v2.cc.search_inst(
+            plats = CCApi.search_inst(
                 {
                     "bk_obj_id": "plat",
                     "condition": {"plat": [{"field": "bk_cloud_name", "operator": "$eq", "value": bk_cloud_name}]},
@@ -367,12 +368,12 @@ class CmdbHandler(APIModel):
     def rename_cloud(bk_cloud_id: int, bk_cloud_name: str, bk_cloud_vendor: str = None):
         try:
             # 增删改查CMDB操作以admin用户进行
-            client_v2.cc.update_cloud_area(
+            CCApi.update_cloud_area(
                 {"bk_cloud_id": bk_cloud_id, "bk_cloud_name": bk_cloud_name, "bk_cloud_vendor": bk_cloud_vendor}
             )
         except ComponentCallError as e:
             logger.error("esb->call update_cloud_area error %s" % e.message)
-            client_v2.cc.update_inst(
+            CCApi.update_inst(
                 bk_obj_id="plat", bk_inst_id=bk_cloud_id, bk_cloud_name=bk_cloud_name, bk_cloud_vendor=bk_cloud_vendor
             )
 
@@ -567,7 +568,7 @@ class CmdbHandler(APIModel):
         获取主线模型的业务拓扑层级顺序
         :return: ["biz", "set", "module", "host"]
         """
-        topo = client_v2.cc.get_mainline_object_topo()
+        topo = CCApi.get_mainline_object_topo()
         return [obj["bk_obj_id"] for obj in topo]
 
     @staticmethod
@@ -594,4 +595,4 @@ class CmdbHandler(APIModel):
 
     @staticmethod
     def get_biz_service_template(bk_biz_id: int) -> List[Dict]:
-        return batch_request(client_v2.cc.list_service_template, {"bk_biz_id": bk_biz_id})
+        return batch_request(CCApi.list_service_template, {"bk_biz_id": bk_biz_id})

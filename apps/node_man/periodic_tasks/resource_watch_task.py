@@ -23,11 +23,11 @@ from apps.backend.subscription.tools import (
     by_biz_dispatch_task_queue,
     get_biz_ids_gby_queue,
 )
-from apps.component.esbclient import client_v2
 from apps.node_man import constants
 from apps.node_man.models import GlobalSettings, Host, ResourceWatchEvent, Subscription
 from apps.prometheus import metrics
 from apps.utils.cache import format_cache_key
+from common.api import CCApi
 
 logger = logging.getLogger("app")
 
@@ -186,7 +186,7 @@ def _resource_watch(cursor_key, kwargs):
         if bk_cursor:
             kwargs["bk_cursor"] = bk_cursor
 
-        data = client_v2.cc.resource_watch(kwargs)
+        data = CCApi.resource_watch(kwargs)
         if not data["bk_watched"]:
             # 记录最新cursor
             set_cursor(data, cursor_key)
