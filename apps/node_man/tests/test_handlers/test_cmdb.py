@@ -14,7 +14,6 @@ from unittest.mock import patch
 
 from django.test import TestCase
 
-from apps.component.esbclient import client_v2
 from apps.node_man.exceptions import CloudNotExistError, CloudUpdateAgentError
 from apps.node_man.handlers.cmdb import CmdbHandler
 from apps.node_man.tests.utils import (
@@ -26,6 +25,7 @@ from apps.node_man.tests.utils import (
     create_host,
 )
 from apps.utils.batch_request import request_multi_thread
+from common.api import CCApi
 
 
 class TestCmdb(TestCase):
@@ -214,5 +214,5 @@ def batch_add_host_to_biz():
             param_list.append(register_args)
         start = end
 
-    request_multi_thread(client_v2.cc.add_host_to_resource, param_list, get_data=lambda x: [])
+    request_multi_thread(CCApi.add_host_to_resource, param_list, get_data=lambda x: [])
     pass

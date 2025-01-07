@@ -21,7 +21,6 @@ from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.db.models import Count
 from django.utils.translation import gettext_lazy as _
 
-from apps.component.esbclient import client_v2
 from apps.core.files import core_files_constants
 from apps.core.files.storage import get_storage
 from apps.node_man import constants, exceptions, models, tools
@@ -33,7 +32,7 @@ from apps.utils.batch_request import batch_request
 from apps.utils.concurrent import batch_call
 from apps.utils.files import md5sum
 from apps.utils.local import get_request_username
-from common.api import NodeApi
+from common.api import CCApi, NodeApi
 
 
 class PluginV2Handler:
@@ -309,7 +308,7 @@ class PluginV2Handler:
         # 暂时只支持服务模板，需扩展时可通过bk_obj_id进一步区分
         if bk_obj_id == constants.CmdbObjectId.SERVICE_TEMPLATE:
             hosts = batch_request(
-                client_v2.cc.find_host_by_service_template,
+                CCApi.find_host_by_service_template,
                 {"bk_service_template_ids": [bk_inst_id], "bk_biz_id": bk_biz_id, "fields": ["bk_host_id"]},
             )
         else:

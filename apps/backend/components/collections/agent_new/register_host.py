@@ -19,10 +19,10 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from apps.backend.subscription import tools
-from apps.component.esbclient import client_v2
 from apps.node_man import constants, models
 from apps.node_man.models import ProcessStatus
 from apps.utils import basic, batch_request, concurrent
+from common.api import CCApi
 
 from .base import AgentBaseService, AgentCommonData
 
@@ -57,7 +57,7 @@ class RegisterHostService(AgentBaseService):
             "fields": ["bk_biz_id", "bk_biz_name", "bk_biz_maintainer"],
             "condition": {"bk_biz_id": bk_biz_id},
         }
-        return client_v2.cc.search_business(search_business_params)["info"][0]
+        return CCApi.search_business(search_business_params)["info"][0]
 
     @classmethod
     def query_cmdb_hosts_and_structure(
@@ -93,7 +93,7 @@ class RegisterHostService(AgentBaseService):
                 ],
             },
         }
-        if cmdb_query_api_func == client_v2.cc.list_hosts_without_biz:
+        if cmdb_query_api_func == CCApi.list_hosts_without_biz:
             list_cmdb_hosts_params.pop("bk_biz_id")
 
         cmdb_host_infos: List[Dict[str, Any]] = batch_request.batch_request(
@@ -166,7 +166,7 @@ class RegisterHostService(AgentBaseService):
                 log_content=_("注册主机参数为:\n {params}").format(params=json.dumps(register_params, indent=2)),
             )
 
-        add_host_to_resource_result: Dict = client_v2.cc.add_host_to_resource(add_host_to_resource_params)
+        add_host_to_resource_result: Dict = CCApi.add_host_to_resource(add_host_to_resource_params)
         error_msgs: List[str] = add_host_to_resource_result.get("error")
         if error_msgs:
             # 对CMDB而言，批量添加主机具有原子性
@@ -217,7 +217,7 @@ class RegisterHostService(AgentBaseService):
         hosts_struct_in_except_cmdb_biz = self.query_cmdb_hosts_and_structure(
             bk_biz_id=bk_biz_id,
             host_keys=host_keys_try_to_add,
-            cmdb_query_api_func=client_v2.cc.list_biz_hosts,
+            cmdb_query_api_func=CCApi.list_biz_hosts,
             host_key__sub_inst_map=host_key__sub_inst_map,
         )
 
@@ -227,7 +227,7 @@ class RegisterHostService(AgentBaseService):
         )
         hosts_struct_in_other_biz = self.query_cmdb_hosts_and_structure(
             host_keys=host_keys_not_in_except_biz,
-            cmdb_query_api_func=client_v2.cc.list_hosts_without_biz,
+            cmdb_query_api_func=CCApi.list_hosts_without_biz,
             host_key__sub_inst_map=host_key__sub_inst_map,
         )
 
