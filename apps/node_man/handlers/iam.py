@@ -14,12 +14,12 @@ from blueapps.account.models import User
 from django.conf import settings
 from iam import IAM
 
-from apps.component.esbclient import client_v2
 from apps.node_man import constants as const
 from apps.node_man.constants import IamActionType
 from apps.node_man.exceptions import IamRequestException
 from apps.node_man.models import AccessPoint, Cloud, GsePluginDesc, Subscription
 from apps.utils import APIModel
+from common.api import CCApi
 
 
 class IamHandler(APIModel):
@@ -53,7 +53,7 @@ class IamHandler(APIModel):
 
         result = [
             {"bk_biz_id": business["bk_biz_id"], "bk_biz_name": business["bk_biz_name"]}
-            for business in client_v2.cc.search_business({"fields": ["bk_biz_id", "bk_biz_name"]}).get("info") or []
+            for business in CCApi.search_business({"fields": ["bk_biz_id", "bk_biz_name"]}).get("info") or []
         ]
         result.insert(0, {"bk_biz_id": settings.BK_CMDB_RESOURCE_POOL_BIZ_ID, "bk_biz_name": "资源池"})
         return result

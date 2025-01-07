@@ -20,18 +20,17 @@ from django.conf import settings
 
 from apps.backend.api.constants import POLLING_INTERVAL, POLLING_TIMEOUT, JobIPStatus
 from apps.backend.api.errors import JobPollTimeout
-from apps.component.esbclient import client_v2
 from apps.core.gray.tools import GrayTools
 from apps.exceptions import ApiError, ValidationError
 from apps.node_man import constants, models
-from common.api import JobApi
+from common.api import CCApi, JobApi
 from env.constants import GseVersion
 
 logger = logging.getLogger("app")
 
 
 def query_bk_biz_ids(task_id):
-    biz_data = client_v2.cc.search_business({"fields": ["bk_biz_id"]})
+    biz_data = CCApi.search_business({"fields": ["bk_biz_id"]})
     bk_biz_ids = [biz["bk_biz_id"] for biz in biz_data.get("info") or [] if biz["default"] == 0]
 
     # 排除掉黑名单业务的主机同步，比如 SA 业务，包含大量主机但无需同步

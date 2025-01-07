@@ -23,7 +23,7 @@ class _CCApi(BaseApi):
     def __init__(self):
         self.search_business = DataAPI(
             method="POST",
-            url=CC_APIGATEWAY_ROOT_V2 + "search_business/",
+            url=CC_APIGATEWAY_ROOT_V2 + "biz/search/{bk_supplier_account}/",
             module=self.MODULE,
             simple_module=self.SIMPLE_MODULE,
             description="查询业务列表",
@@ -32,7 +32,7 @@ class _CCApi(BaseApi):
         )
         self.search_cloud_area = DataAPI(
             method="POST",
-            url=CC_APIGATEWAY_ROOT_V2 + "search_cloud_area/",
+            url=CC_APIGATEWAY_ROOT_V2 + "findmany/cloudarea/",
             module=self.MODULE,
             simple_module=self.SIMPLE_MODULE,
             description="查询管控区域",
@@ -41,7 +41,7 @@ class _CCApi(BaseApi):
         )
         self.search_biz_inst_topo = DataAPI(
             method="POST",
-            url=CC_APIGATEWAY_ROOT_V2 + "search_biz_inst_topo/",
+            url=CC_APIGATEWAY_ROOT_V2 + "find/topoinst/biz/{bk_biz_id}/",
             module=self.MODULE,
             simple_module=self.SIMPLE_MODULE,
             description="查询业务实例拓扑",
@@ -50,7 +50,7 @@ class _CCApi(BaseApi):
         )
         self.get_biz_internal_module = DataAPI(
             method="POST",
-            url=CC_APIGATEWAY_ROOT_V2 + "get_biz_internal_module/",
+            url=CC_APIGATEWAY_ROOT_V2 + "topo/internal/{bk_supplier_account}/{bk_biz_id}/",
             module=self.MODULE,
             simple_module=self.SIMPLE_MODULE,
             description="根据业务ID获取业务空闲机, 故障机和待回收模块",
@@ -59,7 +59,7 @@ class _CCApi(BaseApi):
         )
         self.find_topo_node_paths = DataAPI(
             method="POST",
-            url=CC_APIGATEWAY_ROOT_V2 + "find_topo_node_paths/",
+            url=CC_APIGATEWAY_ROOT_V2 + "cache/find/cache/topo/node_path/biz/{bk_biz_id}/",
             module=self.MODULE,
             simple_module=self.SIMPLE_MODULE,
             description="查询业务拓扑节点的拓扑路径",
@@ -68,7 +68,7 @@ class _CCApi(BaseApi):
         )
         self.find_module_batch = DataAPI(
             method="POST",
-            url=CC_APIGATEWAY_ROOT_V2 + "find_module_batch/",
+            url=CC_APIGATEWAY_ROOT_V2 + "findmany/module/bk_biz_id/{bk_biz_id}/",
             module=self.MODULE,
             simple_module=self.SIMPLE_MODULE,
             description="批量获取模块详情",
@@ -77,7 +77,7 @@ class _CCApi(BaseApi):
         )
         self.list_hosts_without_biz = DataAPI(
             method="POST",
-            url=CC_APIGATEWAY_ROOT_V2 + "list_hosts_without_biz/",
+            url=CC_APIGATEWAY_ROOT_V2 + "hosts/list_hosts_without_app/",
             module=self.MODULE,
             simple_module=self.SIMPLE_MODULE,
             description="没有业务ID的主机查询",
@@ -86,7 +86,7 @@ class _CCApi(BaseApi):
         )
         self.list_biz_hosts = DataAPI(
             method="POST",
-            url=CC_APIGATEWAY_ROOT_V2 + "list_biz_hosts/",
+            url=CC_APIGATEWAY_ROOT_V2 + "hosts/app/{bk_biz_id}/list_hosts/",
             module=self.MODULE,
             simple_module=self.SIMPLE_MODULE,
             description="带业务的主机查询",
@@ -95,7 +95,7 @@ class _CCApi(BaseApi):
         )
         self.list_service_template = DataAPI(
             method="POST",
-            url=CC_APIGATEWAY_ROOT_V2 + "list_service_template/",
+            url=CC_APIGATEWAY_ROOT_V2 + "findmany/proc/service_template/",
             module=self.MODULE,
             simple_module=self.SIMPLE_MODULE,
             description="查询服务模板列表",
@@ -104,7 +104,7 @@ class _CCApi(BaseApi):
         )
         self.list_service_instance = DataAPI(
             method="POST",
-            url=CC_APIGATEWAY_ROOT_V2 + "list_service_instance/",
+            url=CC_APIGATEWAY_ROOT_V2 + "findmany/proc/service_instance/",
             module=self.MODULE,
             simple_module=self.SIMPLE_MODULE,
             description="查询服务实例列表",
@@ -113,7 +113,7 @@ class _CCApi(BaseApi):
         )
         self.list_process_instance = DataAPI(
             method="POST",
-            url=CC_APIGATEWAY_ROOT_V2 + "list_process_instance/",
+            url=CC_APIGATEWAY_ROOT_V2 + "findmany/proc/process_instance/",
             module=self.MODULE,
             simple_module=self.SIMPLE_MODULE,
             description="查询进程实例列表",
@@ -122,7 +122,7 @@ class _CCApi(BaseApi):
         )
         self.list_proc_template = DataAPI(
             method="POST",
-            url=CC_APIGATEWAY_ROOT_V2 + "list_proc_template/",
+            url=CC_APIGATEWAY_ROOT_V2 + "findmany/proc/proc_template/",
             module=self.MODULE,
             simple_module=self.SIMPLE_MODULE,
             description="查询进程模板信息",
@@ -131,7 +131,7 @@ class _CCApi(BaseApi):
         )
         self.find_set_batch = DataAPI(
             method="POST",
-            url=CC_APIGATEWAY_ROOT_V2 + "find_set_batch/",
+            url=CC_APIGATEWAY_ROOT_V2 + "findmany/set/bk_biz_id/{bk_biz_id}/",
             module=self.MODULE,
             simple_module=self.SIMPLE_MODULE,
             description="批量获取指定业务下集群",
@@ -140,7 +140,7 @@ class _CCApi(BaseApi):
         )
         self.search_set = DataAPI(
             method="POST",
-            url=CC_APIGATEWAY_ROOT_V2 + "search_set/",
+            url=CC_APIGATEWAY_ROOT_V2 + "set/search/{bk_supplier_account}/{bk_biz_id}/",
             module=self.MODULE,
             simple_module=self.SIMPLE_MODULE,
             description="查询集群",
@@ -149,7 +149,7 @@ class _CCApi(BaseApi):
         )
         self.search_module = DataAPI(
             method="POST",
-            url=CC_APIGATEWAY_ROOT_V2 + "search_module/",
+            url=CC_APIGATEWAY_ROOT_V2 + "module/search/{bk_supplier_account}/{bk_biz_id}/{bk_set_id}/",
             module=self.MODULE,
             simple_module=self.SIMPLE_MODULE,
             description="查询模块",
@@ -158,7 +158,7 @@ class _CCApi(BaseApi):
         )
         self.search_object_attribute = DataAPI(
             method="POST",
-            url=CC_APIGATEWAY_ROOT_V2 + "search_object_attribute/",
+            url=CC_APIGATEWAY_ROOT_V2 + "find/objectattr/",
             module=self.MODULE,
             simple_module=self.SIMPLE_MODULE,
             description="查询对象模型属性",
@@ -167,7 +167,7 @@ class _CCApi(BaseApi):
         )
         self.find_host_topo_relation = DataAPI(
             method="POST",
-            url=CC_APIGATEWAY_ROOT_V2 + "find_host_topo_relation/",
+            url=CC_APIGATEWAY_ROOT_V2 + "host/topo/relation/read/",
             module=self.MODULE,
             simple_module=self.SIMPLE_MODULE,
             description="获取主机与拓扑的关系",
@@ -176,7 +176,7 @@ class _CCApi(BaseApi):
         )
         self.find_host_biz_relations = DataAPI(
             method="POST",
-            url=CC_APIGATEWAY_ROOT_V2 + "find_host_biz_relations/",
+            url=CC_APIGATEWAY_ROOT_V2 + "hosts/modules/read/",
             module=self.MODULE,
             simple_module=self.SIMPLE_MODULE,
             description="查询主机业务关系信息",
@@ -184,8 +184,8 @@ class _CCApi(BaseApi):
             api_name="find_host_biz_relations",
         )
         self.batch_update_host = DataAPI(
-            method="POST",
-            url=CC_APIGATEWAY_ROOT_V2 + "batch_update_host/",
+            method="PUT",
+            url=CC_APIGATEWAY_ROOT_V2 + "hosts/property/batch/",
             module=self.MODULE,
             simple_module=self.SIMPLE_MODULE,
             description="批量更新主机属性",
@@ -194,17 +194,16 @@ class _CCApi(BaseApi):
         )
         self.resource_watch = DataAPI(
             method="POST",
-            url=CC_APIGATEWAY_ROOT_V2 + "resource_watch/",
+            url=CC_APIGATEWAY_ROOT_V2 + "event/watch/resource/{bk_resource}/",
             module=self.MODULE,
             simple_module=self.SIMPLE_MODULE,
             description="监听资源变化事件",
             before_request=add_esb_info_before_request,
             api_name="resource_watch",
         )
-        #
         self.bind_host_agent = DataAPI(
             method="POST",
-            url=CC_APIGATEWAY_ROOT_V2 + "bind_host_agent/",
+            url=CC_APIGATEWAY_ROOT_V2 + "host/bind/agent/",
             module=self.MODULE,
             simple_module=self.SIMPLE_MODULE,
             description="将agent绑定到主机上",
@@ -213,7 +212,7 @@ class _CCApi(BaseApi):
         )
         self.unbind_host_agent = DataAPI(
             method="POST",
-            url=CC_APIGATEWAY_ROOT_V2 + "unbind_host_agent/",
+            url=CC_APIGATEWAY_ROOT_V2 + "host/unbind/agent/",
             module=self.MODULE,
             simple_module=self.SIMPLE_MODULE,
             description="将agent和主机解绑",
@@ -222,7 +221,7 @@ class _CCApi(BaseApi):
         )
         self.add_host_to_business_idle = DataAPI(
             method="POST",
-            url=CC_APIGATEWAY_ROOT_V2 + "add_host_to_business_idle/",
+            url=CC_APIGATEWAY_ROOT_V2 + "hosts/add/business_idle/",
             module=self.MODULE,
             simple_module=self.SIMPLE_MODULE,
             description="添加主机到业务空闲机",
@@ -231,7 +230,7 @@ class _CCApi(BaseApi):
         )
         self.push_host_identifier = DataAPI(
             method="POST",
-            url=CC_APIGATEWAY_ROOT_V2 + "push_host_identifier/",
+            url=CC_APIGATEWAY_ROOT_V2 + "event/push/host_identifier/",
             module=self.MODULE,
             simple_module=self.SIMPLE_MODULE,
             description="推送主机身份到机器上",
@@ -240,7 +239,7 @@ class _CCApi(BaseApi):
         )
         self.find_host_identifier_push_result = DataAPI(
             method="POST",
-            url=CC_APIGATEWAY_ROOT_V2 + "find_host_identifier_push_result/",
+            url=CC_APIGATEWAY_ROOT_V2 + "event/find/host_identifier_push_result/",
             module=self.MODULE,
             simple_module=self.SIMPLE_MODULE,
             description="获取推送主机身份到机器结果",
@@ -249,7 +248,7 @@ class _CCApi(BaseApi):
         )
         self.list_service_instance_detail = DataAPI(
             method="POST",
-            url=CC_APIGATEWAY_ROOT_V2 + "list_service_instance_detail/",
+            url=CC_APIGATEWAY_ROOT_V2 + "findmany/proc/service_instance/details/",
             module=self.MODULE,
             simple_module=self.SIMPLE_MODULE,
             description="查询服务实例详情",
@@ -291,4 +290,121 @@ class _CCApi(BaseApi):
             description="查询业务实例拓扑(缓存)",
             # before_request=add_esb_info_before_request,
             api_name="get_biz_brief_cache_topo",
+        )
+        self.add_host_to_resource = DataAPI(
+            method="POST",
+            url=CC_APIGATEWAY_ROOT_V2 + "hosts/add/",
+            module=self.MODULE,
+            simple_module=self.SIMPLE_MODULE,
+            description="新增主机到资源池",
+            before_request=add_esb_info_before_request,
+            api_name="add_host_to_resource",
+        )
+        self.get_mainline_object_topo = DataAPI(
+            method="GET",
+            url=CC_APIGATEWAY_ROOT_V2 + "find/topomodelmainline/",
+            module=self.MODULE,
+            simple_module=self.SIMPLE_MODULE,
+            description="查询主线模型的业务拓扑",
+            before_request=add_esb_info_before_request,
+            api_name="get_mainline_object_topo",
+        )
+        self.find_host_by_service_template = DataAPI(
+            method="POST",
+            url=CC_APIGATEWAY_ROOT_V2 + "findmany/hosts/by_service_templates/biz/{bk_biz_id}/",
+            module=self.MODULE,
+            simple_module=self.SIMPLE_MODULE,
+            description="查询服务模板下的主机",
+            before_request=add_esb_info_before_request,
+            api_name="find_host_by_service_template",
+        )
+        self.find_host_by_set_template = DataAPI(
+            method="POST",
+            url=CC_APIGATEWAY_ROOT_V2 + "findmany/hosts/by_set_templates/biz/{bk_biz_id}/",
+            module=self.MODULE,
+            simple_module=self.SIMPLE_MODULE,
+            description="查询集群模板下的主机",
+            before_request=add_esb_info_before_request,
+            api_name="find_host_by_set_template",
+        )
+        self.list_biz_hosts_topo = DataAPI(
+            method="POST",
+            url=CC_APIGATEWAY_ROOT_V2 + "hosts/app/{bk_biz_id}/list_hosts_topo/",
+            module=self.MODULE,
+            simple_module=self.SIMPLE_MODULE,
+            description="查询业务下的主机和拓扑信息",
+            before_request=add_esb_info_before_request,
+            api_name="list_biz_hosts_topo",
+        )
+        self.update_host_cloud_area_field = DataAPI(
+            method="PUT",
+            url=CC_APIGATEWAY_ROOT_V2 + "updatemany/hosts/cloudarea_field/",
+            module=self.MODULE,
+            simple_module=self.SIMPLE_MODULE,
+            description="更新主机的管控区域字段",
+            before_request=add_esb_info_before_request,
+            api_name="update_host_cloud_area_field",
+        )
+        self.search_inst = DataAPI(
+            method="POST",
+            url=CC_APIGATEWAY_ROOT_V2 + "find/instassociation/object/{bk_obj_id}/",
+            module=self.MODULE,
+            simple_module=self.SIMPLE_MODULE,
+            description="根据关联关系实例查询模型实例",
+            before_request=add_esb_info_before_request,
+            api_name="search_inst",
+        )
+        self.list_resource_pool_hosts = DataAPI(
+            method="POST",
+            url=CC_APIGATEWAY_ROOT_V2 + "hosts/list_resource_pool_hosts/",
+            module=self.MODULE,
+            simple_module=self.SIMPLE_MODULE,
+            description="查询资源池中的主机",
+            before_request=add_esb_info_before_request,
+            api_name="list_resource_pool_hosts",
+        )
+        self.create_cloud_area = DataAPI(
+            method="POST",
+            url=CC_APIGATEWAY_ROOT_V2 + "create/cloudarea/",
+            module=self.MODULE,
+            simple_module=self.SIMPLE_MODULE,
+            description="创建管控区域",
+            before_request=add_esb_info_before_request,
+            api_name="create_cloud_area",
+        )
+        self.delete_cloud_area = DataAPI(
+            method="POST",
+            url=CC_APIGATEWAY_ROOT_V2 + "delete/cloudarea/{bk_cloud_id}/",
+            module=self.MODULE,
+            simple_module=self.SIMPLE_MODULE,
+            description="删除管控区域",
+            before_request=add_esb_info_before_request,
+            api_name="delete_cloud_area",
+        )
+        self.update_cloud_area = DataAPI(
+            method="PUT",
+            url=CC_APIGATEWAY_ROOT_V2 + "update/cloudarea/{bk_cloud_id}/",
+            module=self.MODULE,
+            simple_module=self.SIMPLE_MODULE,
+            description="更新管控区域",
+            before_request=add_esb_info_before_request,
+            api_name="update_cloud_area",
+        )
+        self.update_inst = DataAPI(
+            method="PUT",
+            url=CC_APIGATEWAY_ROOT_V2 + "update/instance/object/{bk_obj_id}/inst/{bk_inst_id}/",
+            module=self.MODULE,
+            simple_module=self.SIMPLE_MODULE,
+            description="更新对象实例",
+            before_request=add_esb_info_before_request,
+            api_name="update_inst",
+        )
+        self.find_host_by_topo = DataAPI(
+            method="POST",
+            url=CC_APIGATEWAY_ROOT_V2 + "findmany/hosts/by_topo/biz/{bk_biz_id}/",
+            module=self.MODULE,
+            simple_module=self.SIMPLE_MODULE,
+            description="查询拓扑节点下的主机",
+            before_request=add_esb_info_before_request,
+            api_name="find_host_by_topo",
         )
