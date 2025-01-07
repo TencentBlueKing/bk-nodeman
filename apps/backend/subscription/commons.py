@@ -77,6 +77,9 @@ def get_host_by_inst(bk_biz_id, inst_list):
     bk_obj_id_list = [topo_data["bk_obj_id"] for topo_data in topo_data_list]
 
     for inst in inst_list:
+        if "bk_obj_id" not in inst:
+            continue
+
         # 处理各种类型的节点
         if inst["bk_obj_id"] == "biz":
             bk_biz_ids.append(bk_biz_id)
