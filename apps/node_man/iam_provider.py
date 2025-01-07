@@ -15,10 +15,10 @@ from django.core.paginator import Paginator
 from iam import IAM
 from iam.resource.provider import ListResult, ResourceProvider
 
-from apps.component.esbclient import client_v2
 from apps.node_man.constants import IamActionType
 from apps.node_man.handlers.iam import IamHandler
 from apps.node_man.models import AccessPoint, Cloud, GsePluginDesc, Subscription
+from common.api import CCApi
 
 SYSTEM_ID = settings.BK_IAM_SYSTEM_ID
 
@@ -54,7 +54,7 @@ class BusinessResourceProvider(ResourceProvider):
         """
         all_business = [
             {"bk_biz_id": business["bk_biz_id"], "bk_biz_name": business["bk_biz_name"]}
-            for business in client_v2.cc.search_business({"fields": ["bk_biz_id", "bk_biz_name"]}).get("info") or []
+            for business in CCApi.search_business({"fields": ["bk_biz_id", "bk_biz_name"]}).get("info") or []
         ]
         all_business.insert(0, {"bk_biz_id": settings.BK_CMDB_RESOURCE_POOL_BIZ_ID, "bk_biz_name": "资源池"})
         for business in all_business:
