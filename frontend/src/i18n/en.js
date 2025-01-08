@@ -1054,6 +1054,8 @@ export default {
   查看: 'View',
   更新: 'Update',
   包名称: 'Package name',
+  注册成功: 'Registration succeeded',
+  注册失败: 'Registration failed',
   主程序版本: 'Main version',
   主配置版本: 'Main config version',
   子配置版本: 'Sub-config version',
