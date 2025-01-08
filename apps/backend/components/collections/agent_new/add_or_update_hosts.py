@@ -20,8 +20,7 @@ from django.utils.translation import gettext_lazy as _
 
 from apps.core.concurrent import controller
 from apps.node_man import constants, models, tools
-from apps.node_man.models import ProcessStatus
-from apps.utils import batch_request, concurrent, exc
+from apps.utils import batch_request, concurrent, exc, local
 from common.api import CCApi
 
 from .. import core
@@ -68,12 +67,14 @@ class AddOrUpdateHostsService(AgentBaseService):
         :param bk_biz_id: 业务ID
         :return: 列表 ，包含 业务ID、名字、业务运维
         """
+        # TODO 等待CC资源池ID的调整
         if bk_biz_id == settings.BK_CMDB_RESOURCE_POOL_BIZ_ID:
-            return {
-                "bk_biz_maintainer": "",
-                "bk_biz_id": bk_biz_id,
-                "bk_biz_name": settings.BK_CMDB_RESOURCE_POOL_BIZ_NAME,
-            }
+            pass
+        #     return {
+        #         "bk_biz_maintainer": "",
+        #         "bk_biz_id": bk_biz_id,
+        #         "bk_biz_name": settings.BK_CMDB_RESOURCE_POOL_BIZ_NAME,
+        #     }
         search_business_params = {
             "fields": ["bk_biz_id", "bk_biz_name", "bk_biz_maintainer"],
             "condition": {"bk_biz_id": bk_biz_id},
@@ -427,6 +428,7 @@ class AddOrUpdateHostsService(AgentBaseService):
             outer_ip: str = host_info.get("bk_host_outerip") or ""
             outer_ipv6: str = host_info.get("bk_host_outerip_v6") or ""
             login_ip: str = host_info.get("login_ip") or ""
+            tenant_id: str = host_info.get("tenant_id") or local.get_tenant_id()
 
             extra_data = {
                 "peer_exchange_switch_for_agent": host_info.get("peer_exchange_switch_for_agent", 0),
@@ -459,6 +461,7 @@ class AddOrUpdateHostsService(AgentBaseService):
                 upstream_nodes=host_info.get("upstream_nodes", []),
                 updated_at=timezone.now(),
                 extra_data=extra_data,
+                tenant_id=tenant_id,
             )
             if bk_host_id in host_ids_in_exist_hosts:
                 host_objs_to_be_updated.append(host_obj)
@@ -472,9 +475,10 @@ class AddOrUpdateHostsService(AgentBaseService):
             if bk_host_id not in host_ids_in_exist_proc_statuses:
                 proc_status_obj = models.ProcessStatus(
                     bk_host_id=bk_host_id,
-                    source_type=ProcessStatus.SourceType.DEFAULT,
+                    source_type=models.ProcessStatus.SourceType.DEFAULT,
                     status=constants.ProcStateType.NOT_INSTALLED,
                     name=models.ProcessStatus.GSE_AGENT_PROCESS_NAME,
+                    tenant_id=tenant_id,
                 )
                 proc_status_objs_to_be_created.append(proc_status_obj)
 

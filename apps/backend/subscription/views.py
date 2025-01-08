@@ -40,7 +40,7 @@ from apps.core.script_manage.handlers import ScriptManageHandler
 from apps.generic import APIViewSet
 from apps.node_man import constants, models
 from apps.node_man import tools as node_man_tools
-from apps.utils import basic
+from apps.utils import basic, local
 
 logger = logging.getLogger("app")
 cache = caches["db"]
@@ -68,6 +68,7 @@ class SubscriptionViewSet(APIViewSet):
         @apiName create_subscription
         @apiGroup subscription
         """
+        tenant_id = local.get_tenant_id()
         params = self.validated_data
         scope = params["scope"]
         run_immediately = params["run_immediately"]
@@ -100,6 +101,7 @@ class SubscriptionViewSet(APIViewSet):
                 pid=params.get("pid", models.Subscription.ROOT),
                 # 指定操作进程用户新增
                 operate_info=params.get("operate_info"),
+                tenant_id=tenant_id,
             )
 
             # 创建订阅步骤
@@ -662,7 +664,7 @@ class SubscriptionViewSet(APIViewSet):
             ]
         }
         """
-
+        tenant_id = local.get_tenant_id()
         params = self.validated_data
         begin, end = None, None
         if params["pagesize"] != -1:
@@ -671,7 +673,7 @@ class SubscriptionViewSet(APIViewSet):
 
         or_query = Q()
         root_query = Q()
-        and_query = Q(category=models.Subscription.CategoryType.POLICY)
+        and_query = Q(category=models.Subscription.CategoryType.POLICY, tenant_id=tenant_id)
         # 构造查询条件
         for condition in params.get("conditions", []):
             # 1. 精确查找

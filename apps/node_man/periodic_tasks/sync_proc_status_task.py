@@ -199,7 +199,7 @@ def sync_proc_status_periodic_task():
     sync_proc_list = tools.PluginV2Tools.fetch_head_plugins()
 
     # 查询所有需要同步的业务id
-    bk_biz_ids = query_bk_biz_ids(task_id)
+    bk_biz_ids, biz_id_map_tenant_id_map = query_bk_biz_ids(task_id)
     # 若没有指定业务时，也同步资源池主机
     bk_biz_ids.append(settings.BK_CMDB_RESOURCE_POOL_BIZ_ID)
 

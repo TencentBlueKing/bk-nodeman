@@ -12,22 +12,36 @@ specific language governing permissions and limitations under the License.
 import base64
 
 from bkcrypto.asymmetric.ciphers import BaseAsymmetricCipher
+from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from apps.backend.constants import SubscriptionSwithBizAction
+from apps.backend.subscription.errors import SubscriptionNotExist
 from apps.backend.subscription.tools import check_subscription_is_disabled
 from apps.exceptions import ValidationError
 from apps.node_man import constants, models, tools
 from apps.node_man.models import ProcessStatus
 from apps.node_man.serializers import policy
 from apps.node_man.serializers.base import SubScopeInstSelectorSerializer
-from apps.utils import basic
+from apps.utils import basic, local
 
 
 class GatewaySerializer(serializers.Serializer):
     bk_username = serializers.CharField()
     bk_app_code = serializers.CharField()
+
+    @staticmethod
+    def validate_tenant_id(subscription_id):
+        if not settings.ENABLE_MULTI_TENANT_MODE:
+            return
+        try:
+            subscription: models.Subscription = models.Subscription.objects.get(id=subscription_id)
+        except models.Subscription.DoesNotExist:
+            raise SubscriptionNotExist({"subscription_id": subscription_id})
+        if subscription.tenant_id != local.get_tenant_id():
+            raise ValidationError(_("当前租户ID与DB保存不一致无法操作"))
+        return
 
 
 class ScopeSerializer(SubScopeInstSelectorSerializer):
@@ -172,16 +186,25 @@ class UpdateSubscriptionSerializer(GatewaySerializer):
             for key in attrs["system_account"]:
                 if key not in constants.OS_TUPLE:
                     raise ValidationError(_(f"操作系统类型只能为{constants.OS_TUPLE}"))
+        self.validate_tenant_id(attrs["subscription_id"])
         return attrs
 
 
 class DeleteSubscriptionSerializer(GatewaySerializer):
     subscription_id = serializers.IntegerField(label="订阅ID")
 
+    def validate(self, attrs):
+        self.validate_tenant_id(attrs["subscription_id"])
+        return attrs
+
 
 class SwitchSubscriptionSerializer(GatewaySerializer):
     subscription_id = serializers.IntegerField(label="订阅ID")
     action = serializers.ChoiceField(choices=["enable", "disable"], label="启停动作")
+
+    def validate(self, attrs):
+        self.validate_tenant_id(attrs["subscription_id"])
+        return attrs
 
 
 class BatchSwitchSubscriptionSerializer(GatewaySerializer):
@@ -201,6 +224,10 @@ class RunSubscriptionSerializer(GatewaySerializer):
     subscription_id = serializers.IntegerField(label="订阅ID")
     scope = RunScopeSerializer(required=False, label="订阅监听的范围")
     actions = serializers.DictField(child=serializers.CharField(), required=False)
+
+    def validate(self, attrs):
+        self.validate_tenant_id(attrs["subscription_id"])
+        return attrs
 
 
 class RevokeSubscriptionSerializer(GatewaySerializer):

@@ -20,12 +20,13 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from apps.backend.subscription import tools
-from apps.node_man import constants, models
+from apps.node_man import constants, exceptions, models
 from apps.utils import basic
 from apps.utils.basic import filter_values
 from apps.utils.local import (
     get_request_app_code_or_local_app_code,
     get_request_username,
+    get_tenant_id,
 )
 from common.api import NodeApi
 
@@ -374,7 +375,7 @@ class JobTools:
         statistics: Optional[Dict[str, int]] = None,
         error_hosts: Optional[List[Dict[str, Any]]] = None,
     ) -> Dict[str, Any]:
-
+        tenant_id = get_tenant_id()
         job = models.Job.objects.create(
             job_type=job_type,
             bk_biz_scope=list(set(bk_biz_scope)),
@@ -385,6 +386,7 @@ class JobTools:
             error_hosts=error_hosts or [],
             created_by=get_request_username(),
             from_system=get_request_app_code_or_local_app_code(),
+            tenant_id=tenant_id,
         )
 
         return {"job_id": job.id, "job_url": cls.get_job_url(job.id)}
@@ -458,3 +460,15 @@ class JobTools:
         job_result = job_result.filter(~Q(bk_biz_scope__isnull=True) & ~Q(bk_biz_scope={}))
 
         return job_result
+
+    @staticmethod
+    def isolate_tenant_job(job_id):
+        """判断当前任务ID是否属于当前租户"""
+        if not settings.ENABLE_MULTI_TENANT_MODE:
+            return
+        try:
+            tenant_id = models.Job.objects.get(id=job_id).tenant_id
+        except models.Job.DoesNotExist:
+            raise exceptions.JobNotExistsError(job_id=job_id)
+        if tenant_id != get_tenant_id():
+            raise exceptions.JobPermissionError(job_id=job_id)

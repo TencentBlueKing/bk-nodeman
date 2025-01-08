@@ -44,7 +44,13 @@ from apps.node_man.views.plugin import GsePluginViewSet
 from apps.node_man.views.plugin_v2 import PluginV2ViewSet
 from apps.node_man.views.sync_task import SyncTaskViewSet
 
-iam = IAM(settings.APP_CODE, settings.SECRET_KEY, settings.BK_IAM_INNER_HOST, settings.BK_COMPONENT_API_OVERWRITE_URL)
+iam = IAM(
+    settings.APP_CODE,
+    settings.SECRET_KEY,
+    settings.BK_IAM_INNER_HOST,
+    settings.BK_COMPONENT_API_OVERWRITE_URL,
+    settings.BK_IAM_APIGW,
+)
 
 router = routers.DefaultRouter(trailing_slash=True)
 

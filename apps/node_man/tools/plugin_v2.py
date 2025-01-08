@@ -22,7 +22,7 @@ from jinja2.sandbox import SandboxedEnvironment as Environment
 from packaging import version
 
 from apps.node_man import constants, models
-from apps.utils import basic
+from apps.utils import basic, local
 from common.log import logger
 
 
@@ -89,11 +89,13 @@ class PluginV2Tools:
         :param keys: 统计维度
         :return:
         """
+        tenant_id = local.get_tenant_id()
         proc_list = list(
             models.ProcessStatus.objects.filter(
                 name__in=projects,
                 source_type=models.ProcessStatus.SourceType.DEFAULT,
                 is_latest=True,
+                tenant_id=tenant_id,
             ).values("bk_host_id", "name", "version")
         )
 

@@ -18,7 +18,9 @@ from copy import deepcopy
 from functools import wraps
 from typing import Any, Dict, List, Optional, Set, Union
 
-from django.db.models import Value
+from celery import Task
+from celery.utils import abstract
+from django.db.models import QuerySet, Value
 from django.utils.translation import gettext as _
 
 from apps.backend.celery import app
@@ -36,6 +38,7 @@ from apps.node_man import tools as node_man_tools
 from apps.node_man.handlers.cmdb import CmdbHandler
 from apps.prometheus import metrics
 from apps.utils import md5, translation
+from apps.utils.local import get_tenant_id, set_tenant_id
 from pipeline import builder
 from pipeline.builder import Data, NodeOutput, ServiceActivity, Var
 from pipeline.core.pipeline import Pipeline
@@ -43,6 +46,13 @@ from pipeline.parser import PipelineParser
 from pipeline.service import task_service
 
 logger = logging.getLogger("app")
+
+
+@abstract.CallableTask.register
+class TenantTask(Task):
+    def delay(self, *args, **kwargs):
+        kwargs["tenant_id"] = get_tenant_id()
+        return super().delay(*args, **kwargs)
 
 
 def mark_acts_tail_and_head(activities: List[ServiceActivity]) -> None:
@@ -277,6 +287,7 @@ def create_task_transaction(create_task_func):
             subscription_task,
         )
         try:
+            set_tenant_id(kwargs.pop("tenant_id", None) or get_tenant_id())
             func_return = create_task_func(subscription, subscription_task, *args, **kwargs)
         except Exception as err:
             logger.exception(
@@ -316,7 +327,7 @@ def create_task_transaction(create_task_func):
     return wrapper
 
 
-@app.task(queue="backend", ignore_result=True)
+@app.task(queue="backend", ignore_result=True, base=TenantTask)
 @translation.RespectsLanguage()
 @create_task_transaction
 def create_task(
@@ -545,6 +556,7 @@ def run_subscription_task_and_create_instance_transaction(func):
             subscription_task,
         )
         try:
+            set_tenant_id(kwargs.pop("tenant_id", None) or get_tenant_id())
             func_result = func(subscription, subscription_task, *args, **kwargs)
         except Exception as err:
             logger.exception(
@@ -663,7 +675,7 @@ def get_deleted_instance_info(subscription, subscription_task, not_exist_instanc
     return deleted_instance_info
 
 
-@app.task(queue="backend", ignore_result=True)
+@app.task(queue="backend", ignore_result=True, base=TenantTask)
 @translation.RespectsLanguage()
 @run_subscription_task_and_create_instance_transaction
 def run_subscription_task_and_create_instance(
@@ -925,7 +937,9 @@ def update_subscription_instances_chunk(subscription_ids: List[int]):
     """
     分片更新订阅状态
     """
-    subscriptions = models.Subscription.objects.filter(id__in=subscription_ids, enable=True)
+    subscriptions: QuerySet[models.Subscription] = models.Subscription.objects.filter(
+        id__in=subscription_ids, enable=True
+    )
     for subscription in subscriptions:
         if subscription.id in models.GlobalSettings.get_config(
             key=models.GlobalSettings.KeyEnum.DISABLED_SUBSCRIPTIONS.value, default=[]
@@ -953,6 +967,7 @@ def update_subscription_instances_chunk(subscription_ids: List[int]):
                 actions={},
                 is_auto_trigger=True,
             )
+            set_tenant_id(subscription.tenant_id)
             run_subscription_task_and_create_instance(subscription, subscription_task)
             logger.info(f"[update_subscription_instances] succeed: subscription_task -> {subscription_task}")
         except SubscriptionInstanceEmpty:
