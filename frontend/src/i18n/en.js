@@ -103,6 +103,7 @@ export default {
   取消: 'Cancel',
   必填项: 'Required',
   请输入: 'Please enter',
+  请输入或选择: 'Please enter or choose',
   请选择: 'Please choose',
   待选择: 'Please choose',
   搜索别名: 'Search alias',

@@ -199,6 +199,8 @@ export default defineComponent({
       }
       // 更新快捷筛选
       updateQuickSearch(searchSelectValue.value);
+      // 同步到表头筛选
+      updateCheckStatus(searchSelectValue.value);
       handlePageChange(1);
     };
 
@@ -210,6 +212,8 @@ export default defineComponent({
         searchSelectValue.value.splice(index, 1);
         // 更新快捷筛选
         updateQuickSearch(searchSelectValue.value);
+        // 同步到表头筛选
+        updateCheckStatus(searchSelectValue.value);
         handlePageChange(1);
       }
     };
