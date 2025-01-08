@@ -570,7 +570,7 @@ QUERY_CMDB_MODULE_LIMIT = 500
 QUERY_CLOUD_LIMIT = 200
 QUERY_HOST_SERVICE_TEMPLATE_LIMIT = 200
 QUERY_MODULE_ID_THRESHOLD = 15
-UPDATE_CMDB_CLOUD_AREA_LIMIT = 50
+UPDATE_CMDB_CLOUD_AREA_LIMIT = 100
 VERSION_PATTERN = re.compile(r"[vV]?(\d+\.){1,5}\d+(-rc\d)?$")
 # 语义化版本正则，参考：https://semver.org/#is-there-a-suggested-regular-expression-regex-to-check-a-semver-string
 SEMANTIC_VERSION_PATTERN = re.compile(
@@ -856,10 +856,11 @@ class BkJobScopeType(EnhanceEnum):
 
     BIZ = "biz"
     BIZ_SET = "biz_set"
+    TENANT_SET = "tenant_set"
 
     @classmethod
     def _get_member__alias_map(cls) -> Dict[Enum, str]:
-        return {cls.BIZ: _("业务"), cls.BIZ_SET: _("业务集")}
+        return {cls.BIZ: _("业务"), cls.BIZ_SET: _("业务集"), cls.TENANT_SET: _("租户集")}
 
 
 class ScriptLanguageType(EnhanceEnum):

@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 import os
 from abc import ABC, abstractmethod
 from copy import deepcopy
-from typing import Any, Callable, Dict, List, Union
+from typing import Any, Dict, List, Union
 
 from django.conf import settings
 from django.core.exceptions import SuspiciousFileOperation
@@ -20,6 +20,7 @@ from django.utils.crypto import get_random_string
 from django.utils.translation import gettext_lazy as _
 
 from common.api import JobApi
+from common.api.base import DataAPI
 
 from . import constants, exceptions, models
 
@@ -133,9 +134,7 @@ class BkJobMixin:
 
         return "\n".join(files_transfer_log_list)
 
-    def process_query_params(
-        self, job_api_func: Callable[[Dict[str, Any]], Dict[str, Any]], query_params: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    def process_query_params(self, job_api_func: DataAPI, query_params: Dict[str, Any]) -> Dict[str, Any]:
         """
         预处理请求参数
         :param job_api_func: JobApi method

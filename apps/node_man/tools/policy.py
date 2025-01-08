@@ -12,12 +12,14 @@ specific language governing permissions and limitations under the License.
 from collections import Counter, defaultdict
 from typing import Any, Dict, List, Optional, Set, Union
 
+from django.conf import settings
 from django.utils import timezone
 from django.utils.translation import get_language
 from django.utils.translation import gettext_lazy as _
 
 from apps.node_man import exceptions, models
 from apps.node_man.handlers.cmdb import CmdbHandler
+from apps.utils import local
 
 
 class PolicyTools:
@@ -275,3 +277,16 @@ class PolicyTools:
                 )
 
         return host_nodes_gby_2th_policy_id
+
+    @staticmethod
+    def isolate_tenant_policy(policy_id: int):
+        """判断当前策略ID是否属于当前租户"""
+        if not settings.ENABLE_MULTI_TENANT_MODE:
+            return
+        request_tenant_id = local.get_tenant_id()
+        try:
+            tenant_id: str = models.Subscription.objects.get(id=policy_id).tenant_id
+        except models.Subscription.DoesNotExist:
+            raise exceptions.PolicyNotExistError(_("不存在ID为: {id} 的策略").format(id=policy_id))
+        if tenant_id != request_tenant_id:
+            raise exceptions.PolicyPermissionError(policy_id=policy_id)

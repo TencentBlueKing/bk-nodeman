@@ -27,7 +27,13 @@ from apps.exceptions import ApiRequestError, ApiResultError, AppBaseException
 from apps.prometheus import metrics
 from apps.prometheus.helper import SetupObserve
 from apps.utils import remove_auth_args
-from apps.utils.local import get_request, get_request_id, get_request_username
+from apps.utils.local import (
+    get_request,
+    get_request_id,
+    get_request_username,
+    get_tenant_id,
+    set_tenant_id,
+)
 from apps.utils.time_handler import timestamp_to_datetime
 
 from .exception import DataAPIException
@@ -47,7 +53,8 @@ API_AUTH_KEYS = [
     "app_secret",
     "bkdata_authentication_method",
     "appenv",
-    "bk_supplier_account",
+    # 按照CC接口调用指示，去掉该值
+    # "bk_supplier_account",
 ]
 
 
@@ -94,6 +101,9 @@ class DataResponse(object):
         self.request_id = request_id
 
     def is_success(self):
+        # 兼容用户管理接口返回；他们不规范
+        if self.data and not self.response["result"]:
+            return self.response["data"]
         # 防止接口返回没有result，再补上code做判断
         if "result" in self.response:
             return self.response["result"]
@@ -203,12 +213,17 @@ class DataAPI(object):
         use_admin=False,
         headers=None,
         url=None,
+        tenant_id=None,
     ):
         """
         调用传参
 
         @param {Boolean} raw 是否返回原始内容
         """
+        if self.simple_module == "JOB" and settings.ENABLE_MULTI_TENANT_MODE:
+            bk_scope_id = params.get("bk_scope_id")
+            if bk_scope_id == settings.TENANT_BLUEKING_SCOPE_ID:
+                set_tenant_id("system")
         if params is None:
             params = {}
         if headers is None:
@@ -216,6 +231,8 @@ class DataAPI(object):
         self.timeout = timeout or self.default_timeout
         self.request_id = get_request_id()
         self.data = data
+        if tenant_id:
+            set_tenant_id(tenant_id)
 
         try:
             if "no_request" in params and params["no_request"]:
@@ -393,6 +410,7 @@ class DataAPI(object):
                 "cost_time": (end_time - start_time),
                 "request_id": self.request_id,
                 "request_user": bk_username,
+                "tenant_id": get_tenant_id(),
             }
 
             _log = _("[BKAPI] {info}").format(
@@ -467,6 +485,7 @@ class DataAPI(object):
         # headers 增加api认证数据
         api_auth_params: dict = fetch_and_clean_auth_info(params, url)
         session.headers.update({"X-Bkapi-Authorization": get_request_api_headers(api_auth_params)})
+        session.headers.update({"X-Bk-Tenant-Id": get_tenant_id()})
 
         # 发出请求并返回结果
         non_file_data, file_data = self._split_file_data(params)

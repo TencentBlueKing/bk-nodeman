@@ -28,6 +28,7 @@ from apps.node_man.serializers.job import (
     OperateSerializer,
     RetrieveSerializer,
 )
+from apps.node_man.tools.job import JobTools
 from apps.utils.local import get_request_username
 
 JOB_VIEW_TAGS = ["job"]
@@ -102,7 +103,9 @@ class JobViewSet(ModelViewSet):
         @apiName retrieve_job
         @apiGroup Job
         """
-        return Response(JobHandler(job_id=kwargs["pk"]).retrieve(self.validated_data))
+        job_id = kwargs["pk"]
+        JobTools.isolate_tenant_job(job_id)
+        return Response(JobHandler(job_id).retrieve(self.validated_data))
 
     @swagger_auto_schema(
         operation_id="job_install",
@@ -180,7 +183,9 @@ class JobViewSet(ModelViewSet):
             "instance_id_list": [1, 2, 3]
         }
         """
-        return Response(JobHandler(job_id=kwargs["pk"]).retry(request.data.get("instance_id_list")))
+        job_id = kwargs["pk"]
+        JobTools.isolate_tenant_job(job_id)
+        return Response(JobHandler(job_id).retry(request.data.get("instance_id_list")))
 
     @swagger_auto_schema(
         operation_summary="终止任务",
@@ -198,7 +203,9 @@ class JobViewSet(ModelViewSet):
             "instance_id_list": [1, 2, 3]
         }
         """
-        return Response(JobHandler(job_id=kwargs["pk"]).revoke(request.data.get("instance_id_list", [])))
+        job_id = kwargs["pk"]
+        JobTools.isolate_tenant_job(job_id)
+        return Response(JobHandler(job_id).revoke(request.data.get("instance_id_list", [])))
 
     @swagger_auto_schema(
         operation_summary="原子粒度重试任务",
@@ -226,7 +233,9 @@ class JobViewSet(ModelViewSet):
             "message": ""
         }
         """
-        return Response(JobHandler(job_id=kwargs["pk"]).retry_node(request.data.get("instance_id", None)))
+        job_id = kwargs["pk"]
+        JobTools.isolate_tenant_job(job_id)
+        return Response(JobHandler(job_id=job_id).retry_node(request.data.get("instance_id", None)))
 
     @swagger_auto_schema(
         operation_id="get_job_log",
@@ -262,7 +271,9 @@ class JobViewSet(ModelViewSet):
             }
         ]
         """
-        return Response(JobHandler(job_id=kwargs["pk"]).get_log(request.query_params["instance_id"]))
+        job_id = kwargs["pk"]
+        JobTools.isolate_tenant_job(job_id)
+        return Response(JobHandler(job_id).get_log(request.query_params["instance_id"]))
 
     @swagger_auto_schema(
         operation_summary="查询日志",
@@ -280,7 +291,9 @@ class JobViewSet(ModelViewSet):
             "celery_id": "c0072075-730b-461b-8c3e-1f00095b7348"
         },
         """
-        return Response(JobHandler(job_id=kwargs["pk"]).collect_log(request.data.get("instance_id")))
+        job_id = kwargs["pk"]
+        JobTools.isolate_tenant_job(job_id)
+        return Response(JobHandler(job_id).collect_log(request.data.get("instance_id")))
 
     @swagger_auto_schema(
         operation_summary="获取安装命令",
@@ -304,8 +317,10 @@ class JobViewSet(ModelViewSet):
         },
         """
         validated_data = self.validated_data
+        job_id = kwargs["pk"]
+        JobTools.isolate_tenant_job(job_id)
         return Response(
-            JobHandler(job_id=kwargs["pk"]).get_commands(
+            JobHandler(job_id).get_commands(
                 request_bk_host_id=validated_data["bk_host_id"],
                 is_uninstall=validated_data["is_uninstall"],
             )

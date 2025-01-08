@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import sys
 
 from bk_notice_sdk.views import api_call
 from blueapps.utils.esbclient import get_client_by_user
@@ -126,10 +127,13 @@ class ApiConfig(AppConfig):
             default={},
         )
         settings.PLUGIN_COMMON_CONSTANTS = plugin_common_constants
-        # 根据开关来决定是否执行 sync_apigw
-        if settings.SYNC_APIGATEWAY_ENABLED:
-            try:
-                call_command("sync_apigw")
-                logger.info("Successfully executed sync_apigw")
-            except Exception as e:
-                logger.error(f"Error executing sync_apigw: {e}")
+
+        # 执行数据库迁移/命令时才会自动同步，避免执行其他指令也自动同步
+        if len(sys.argv) > 1 and (sys.argv[1] == "migrate" or sys.argv[0] == "gunicorn"):
+            # 根据开关来决定是否执行 sync_apigw，上云环境不开启
+            if settings.SYNC_APIGATEWAY_ENABLED:
+                try:
+                    call_command("sync_apigw")
+                    logger.info("Successfully executed sync_apigw")
+                except Exception as e:
+                    logger.error(f"Error executing sync_apigw: {e}")

@@ -46,7 +46,7 @@ class SubSubscriptionBaseService(BaseService, metaclass=abc.ABCMeta):
         ]
 
     @classmethod
-    def create_subscriptions(cls, common_data: CommonData) -> List[int]:
+    def create_subscriptions(cls, common_data: CommonData, tenant_id: str) -> List[int]:
         raise NotImplementedError()
 
     @staticmethod
@@ -149,7 +149,12 @@ class SubSubscriptionBaseService(BaseService, metaclass=abc.ABCMeta):
             self.log_info(sub_inst_ids=sub_inst_ids, log_content=message)
 
     def _execute(self, data, parent_data, common_data: CommonData):
-        data.outputs.subscription_ids = self.create_subscriptions(common_data)
+        tenant_id = self.tenant_id(data)
+        sub_inst_ids = common_data.subscription_instance_ids
+        for sub_inst_id in sub_inst_ids:
+            self.log_info(sub_inst_ids=sub_inst_id, log_content=f"tenant_id====8 {tenant_id}")
+        subscription_ids = self.create_subscriptions(common_data, tenant_id)
+        data.outputs.subscription_ids = subscription_ids
         data.outputs.all_subscription_ids = data.outputs.subscription_ids
         # 不存在需要轮询结果的子订阅，手动结束调度
         if not data.outputs.subscription_ids:

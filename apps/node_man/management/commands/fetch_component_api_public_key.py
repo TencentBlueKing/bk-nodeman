@@ -8,14 +8,12 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-
-
 from apigw_manager.apigw.helper import PublicKeyManager
-from blueapps.utils.esbclient import get_client_by_user
 from django.conf import settings
 from django.core.management import call_command
 from django.core.management.base import BaseCommand
 
+from common.api import GatewayApi
 from common.log import logger
 from env import constants as env_constants
 
@@ -32,21 +30,21 @@ class Command(BaseCommand):
         # 当环境整体使用 APIGW 时，尝试通过 apigw-manager 获取 esb & apigw 公钥
         if settings.BKPAAS_MAJOR_VERSION == env_constants.BkPaaSVersion.V3.value:
 
-            for component_name in ["esb", "apigw"]:
+            for component_name in ["apigw"]:
                 try:
                     call_command(f"fetch_{component_name}_public_key")
-                except Exception:
-                    logger.info(f"[JWT][{component_name.upper()}] fetch {component_name} public key error")
+                except Exception as e:
+                    logger.exception(f"[JWT][{component_name.upper()}] fetch apigw public key error: {str(e)}")
                 else:
                     logger.info(f"[JWT][{component_name.upper()}] fetch {component_name} public key success")
 
-        client = get_client_by_user(user_or_username=settings.SYSTEM_USE_API_ACCOUNT)
-        esb_result = client.esb.get_api_public_key()
-        if not esb_result["result"]:
-            logger.error(f'[JWT][ESB] get esb api public key error:{esb_result["message"]}')
+        query_args = {"api_name": "bk-nodeman"}
+        apigw_result = GatewayApi.get_apigw_public_key(query_args)
+        if not apigw_result["public_key"]:
+            logger.error(f'[JWT][APIGW] get esb api public key error:{apigw_result["message"]}')
             return
 
-        api_public_key = esb_result["data"]["public_key"]
+        api_public_key = apigw_result["public_key"]
         # esb-ieod-clouds / bk-esb / apigw 为各个环境的约定值，由 ESB 调用时解析 jwt header 的 kid 属性获取
         # Refer：site-packages/apigw_manager/apigw/providers.py
         if settings.RUN_VER == "ieod":

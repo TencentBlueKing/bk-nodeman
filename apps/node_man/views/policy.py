@@ -17,6 +17,7 @@ from apps.node_man import models
 from apps.node_man.handlers.permission import PolicyPermission
 from apps.node_man.handlers.policy import PolicyHandler
 from apps.node_man.serializers import policy
+from apps.node_man.tools.policy import PolicyTools
 from common.api import NodeApi
 
 POLICY_VIEW_TAGS = ["policy"]
@@ -104,7 +105,9 @@ class PolicyViewSet(ModelViewSet):
             ]
         }
         """
-        return Response(PolicyHandler.policy_info(kwargs["pk"]))
+        policy_id = kwargs["pk"]
+        PolicyTools.isolate_tenant_policy(policy_id)
+        return Response(PolicyHandler.policy_info(policy_id))
 
     @swagger_auto_schema(
         operation_summary="编辑策略概要信息",
@@ -122,8 +125,10 @@ class PolicyViewSet(ModelViewSet):
         }
         """
         self.serializer_class = policy.SimpleUpdatePolicySerializer
+        policy_id = kwargs["pk"]
+        PolicyTools.isolate_tenant_policy(policy_id)
         PolicyHandler.update_policy_info(
-            username=request.user.username, policy_id=kwargs["pk"], update_data=self.validated_data
+            username=request.user.username, policy_id=policy_id, update_data=self.validated_data
         )
         return Response({})
 
@@ -645,6 +650,7 @@ class PolicyViewSet(ModelViewSet):
             "job_id": 1
         }
         """
+        PolicyTools.isolate_tenant_policy(policy_id=pk)
         return Response(PolicyHandler.update_policy(update_data=self.validated_data, policy_id=pk))
 
     @swagger_auto_schema(
@@ -696,6 +702,7 @@ class PolicyViewSet(ModelViewSet):
             }
         ]
         """
+        PolicyTools.isolate_tenant_policy(policy_id=pk)
         return Response(PolicyHandler.upgrade_preview(policy_id=pk))
 
     @swagger_auto_schema(
@@ -764,10 +771,10 @@ class PolicyViewSet(ModelViewSet):
             "task_id": 2
         }
         """
+        policy_id = self.validated_data["policy_id"]
+        PolicyTools.isolate_tenant_policy(policy_id=policy_id)
         return Response(
-            PolicyHandler.policy_operate(
-                self.validated_data["policy_id"], self.validated_data["op_type"], self.validated_data["only_disable"]
-            )
+            PolicyHandler.policy_operate(policy_id, self.validated_data["op_type"], self.validated_data["only_disable"])
         )
 
     @swagger_auto_schema(
@@ -810,7 +817,9 @@ class PolicyViewSet(ModelViewSet):
             }
         ]
         """
-        return Response(PolicyHandler.rollback_preview(self.validated_data["policy_id"], self.validated_data))
+        policy_id = self.validated_data["policy_id"]
+        PolicyTools.isolate_tenant_policy(policy_id=policy_id)
+        return Response(PolicyHandler.rollback_preview(policy_id, self.validated_data))
 
     @swagger_auto_schema(
         operation_summary="获取策略异常信息",

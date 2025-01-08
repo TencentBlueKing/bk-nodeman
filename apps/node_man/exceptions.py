@@ -226,3 +226,27 @@ class TXYPolicyConfigNotExistsError(NodeManBaseException):
     MESSAGE = _("腾讯云策略配置不存在")
     MESSAGE_TPL = _("腾讯云策略配置不存在")
     ERROR_CODE = 44
+
+
+class CloudPermissionError(NodeManBaseException):
+    MESSAGE = _("该「管控区域」不属于当前租户，无权限查看与操作")
+    MESSAGE_TPL = _("该「管控区域」{bk_cloud_name} 不属于当前租户，无权限查看与操作")
+    ERROR_CODE = 100
+
+
+class JobNotExistsError(NodeManBaseException):
+    MESSAGE = _("该任务不存在")
+    MESSAGE_TPL = _("该任务ID: {job_id}不存在")
+    ERROR_CODE = 101
+
+
+class JobPermissionError(NodeManBaseException):
+    MESSAGE = _("该任务不属于当前租户，无权限查看与操作")
+    MESSAGE_TPL = _("该任务ID: {job_id}不属于当前租户，无权限查看与操作")
+    ERROR_CODE = 102
+
+
+class PolicyPermissionError(NodeManBaseException):
+    MESSAGE = _("该策略不属于当前租户，无权限查看与操作")
+    MESSAGE_TPL = _("该策略ID: {policy_id}不属于当前租户，无权限查看与操作")
+    ERROR_CODE = 103

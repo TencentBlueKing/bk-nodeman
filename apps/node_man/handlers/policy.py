@@ -35,7 +35,7 @@ from apps.node_man.handlers.host_v2 import HostV2Handler
 from apps.node_man.handlers.iam import IamHandler
 from apps.utils import concurrent
 from apps.utils.basic import distinct_dict_list
-from apps.utils.local import get_request_username
+from apps.utils.local import get_request_username, get_tenant_id
 from common.api import NodeApi
 
 logger = logging.getLogger("app")
@@ -269,6 +269,7 @@ class PolicyHandler:
         :return: 策略拓扑
         """
         # 没有指定业务id列表时取用户有权限的全部业务
+        tenant_id: str = get_tenant_id()
         user_biz_ids = set(CmdbHandler().biz_id_name({"action": constants.IamActionType.strategy_view}).keys())
         if bk_biz_ids is not None:
             bk_biz_ids = set(bk_biz_ids) & user_biz_ids
@@ -280,7 +281,9 @@ class PolicyHandler:
 
         # 构造业务ID筛选逻辑，筛选出 策略业务范围 与 搜索业务范围 有交集的策略，contains仅支持单值包含筛选，需要Q通过逻辑或的方式进行查找
         biz_query = reduce(operator.or_, [Q(bk_biz_scope__contains=bk_biz_id) for bk_biz_id in bk_biz_ids], Q())
-        policy_qs = models.Subscription.objects.filter(Q(category=models.Subscription.CategoryType.POLICY), biz_query)
+        policy_qs = models.Subscription.objects.filter(
+            Q(category=models.Subscription.CategoryType.POLICY, tenant_id=tenant_id), biz_query
+        )
 
         if plugin_name:
             policy_qs = policy_qs.filter(plugin_name=plugin_name)
@@ -322,6 +325,7 @@ class PolicyHandler:
         """
         result = {}
         if "policy_id" in query_params:
+            tools.PolicyTools.isolate_tenant_policy(query_params["policy_id"])
             # 预览涉及更新场景，优先使用接口传入的修改参数
             query_params = dict(
                 ChainMap(query_params, tools.PolicyTools.get_policy(query_params["policy_id"], need_steps=True))
@@ -394,6 +398,7 @@ class PolicyHandler:
         scope = query_params["scope"]
         try:
             subscription = models.Subscription.objects.get(id=query_params.get("policy_id"), is_deleted=False)
+            tools.PolicyTools.isolate_tenant_policy(subscription.id)
         except models.Subscription.DoesNotExist:
             subscription = models.Subscription(
                 bk_biz_id=scope.get("bk_biz_id"),
@@ -575,8 +580,8 @@ class PolicyHandler:
             )
         )
 
-        # 灰度策略不需要创建关联权限 # todo 创建需要传pid
-        if create_data.get("pid", -1) == -1 and settings.USE_IAM:
+        # 灰度策略不需要创建关联权限 # todo 创建需要传pid  等待权限中心适配目前直接放开了！
+        if create_data.get("pid", -1) == -1 and settings.USE_IAM and False:
             # 将创建者返回权限中心
             ok, message = IamHandler.return_resource_instance_creator(
                 "strategy", create_result["subscription_id"], create_data["name"], get_request_username()

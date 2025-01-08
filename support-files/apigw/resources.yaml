@@ -10,7 +10,7 @@ info:
   version: v1
 basePath: /
 paths:
-  /open/api/ap/:
+  /api/ap/:
     get:
       operationId: ap_list
       summary: 查询任务列表
@@ -50,7 +50,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
-  /open/api/cloud/:
+  /api/cloud/:
     get:
       operationId: cloud_list
       summary: 查询管控区域列表
@@ -128,7 +128,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
-  /open/api/host/biz_proxies/:
+  /api/host/biz_proxies/:
     get:
       operationId: list_biz_proxies
       summary: 查询业务下管控区域的proxy集合
@@ -168,7 +168,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
-  /open/api/host/proxies/:
+  /api/host/proxies/:
     get:
       operationId: list_cloud_proxies
       summary: 查询管控区域下有操作权限的proxy列表
@@ -208,7 +208,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
-  /open/api/host/search/:
+  /api/host/search/:
     post:
       operationId: list_hosts
       summary: 查询主机列表
@@ -248,7 +248,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
-  /open/api/install_channel/:
+  /api/install_channel/:
     get:
       operationId: install_channel_list
       summary: 列出所有安装通道
@@ -288,7 +288,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
-  /open/api/job/install/:
+  /api/job/install/:
     post:
       operationId: job_install
       summary: 安装类任务
@@ -328,7 +328,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
-  /open/api/job/operate/:
+  /api/job/operate/:
     post:
       operationId: job_operate
       summary: 操作类任务
@@ -368,7 +368,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
-  /open/api/job/{id}/details/:
+  /api/job/{id}/details/:
     post:
       operationId: job_details
       summary: 查询任务详情
@@ -408,7 +408,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
-  /open/api/job/{id}/log/:
+  /api/job/{id}/log/:
     get:
       operationId: get_job_log
       summary: 查询日志
@@ -448,7 +448,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
-  /open/api/plugin/operate/:
+  /api/plugin/operate/:
     post:
       operationId: operate_plugin
       summary: 插件操作类任务
@@ -488,7 +488,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
-  /open/api/plugin/search/:
+  /api/plugin/search/:
     post:
       operationId: search_host_plugin
       summary: 查询插件列表
@@ -528,7 +528,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
-  /open/api/plugin/{category}/process/:
+  /api/plugin/{category}/process/:
     get:
       operationId: list_processes
       summary: 查询插件列表
@@ -568,7 +568,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
-  /open/api/plugin/{process}/package/:
+  /api/plugin/{process}/package/:
     get:
       operationId: list_packages
       summary: 查询进程包列表
@@ -608,7 +608,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
-  /open/backend/api/healthz/:
+  /backend/api/healthz/:
     get:
       operationId: metric_list
       summary: 健康统计指标
@@ -648,7 +648,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
-  /open/backend/api/plugin/:
+  /backend/api/plugin/:
     get:
       operationId: plugin_list
       summary: 查询插件列表
@@ -688,7 +688,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
-  /open/backend/api/plugin/create_config_template/:
+  /backend/api/plugin/create_config_template/:
     post:
       operationId: plugin_create_config_template
       summary: 创建配置模板
@@ -728,7 +728,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
-  /open/backend/api/plugin/create_export_task/:
+  /backend/api/plugin/create_export_task/:
     post:
       operationId: plugin_create_export_task
       summary: 触发插件打包导出
@@ -768,7 +768,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
-  /open/backend/api/plugin/create_register_task/:
+  /backend/api/plugin/create_register_task/:
     post:
       operationId: plugin_create_register_task
       summary: 创建注册任务
@@ -808,7 +808,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
-  /open/backend/api/plugin/delete/:
+  /backend/api/plugin/delete/:
     post:
       operationId: plugin_delete
       summary: 删除插件
@@ -848,7 +848,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
-  /open/backend/api/plugin/info/:
+  /backend/api/plugin/info/:
     get:
       operationId: plugin_info
       summary: 查询插件信息
@@ -888,7 +888,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
-  /open/backend/api/plugin/package_status_operation/:
+  /backend/api/plugin/package_status_operation/:
     post:
       operationId: package_status_operation
       summary: 插件包状态类操作
@@ -928,7 +928,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
-  /open/backend/api/plugin/parse/:
+  /backend/api/plugin/parse/:
     post:
       operationId: plugin_parse
       summary: 解析插件包
@@ -968,7 +968,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
-  /open/backend/api/plugin/plugin_status_operation/:
+  /backend/api/plugin/plugin_status_operation/:
     post:
       operationId: plugin_status_operation
       summary: 插件状态类操作
@@ -1008,7 +1008,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
-  /open/backend/api/plugin/query_debug/:
+  /backend/api/plugin/query_debug/:
     get:
       operationId: plugin_query_debug
       summary: 查询调试结果
@@ -1048,7 +1048,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
-  /open/backend/api/plugin/query_export_task/:
+  /backend/api/plugin/query_export_task/:
     get:
       operationId: plugin_query_export_task
       summary: 获取一个导出任务结果
@@ -1088,7 +1088,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
-  /open/backend/api/plugin/query_register_task/:
+  /backend/api/plugin/query_register_task/:
     get:
       operationId: plugin_query_register_task
       summary: 查询插件注册任务
@@ -1128,7 +1128,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
-  /open/backend/api/plugin/release/:
+  /backend/api/plugin/release/:
     post:
       operationId: plugin_release
       summary: 发布插件包
@@ -1168,7 +1168,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
-  /open/backend/api/plugin/release_config_template/:
+  /backend/api/plugin/release_config_template/:
     post:
       operationId: plugin_release_config_template
       summary: 发布配置模板
@@ -1208,7 +1208,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
-  /open/backend/api/plugin/render_config_template/:
+  /backend/api/plugin/render_config_template/:
     post:
       operationId: plugin_render_config_template
       summary: 渲染配置模板
@@ -1248,7 +1248,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
-  /open/backend/api/plugin/start_debug/:
+  /backend/api/plugin/start_debug/:
     post:
       operationId: plugin_start_debug
       summary: 开始调试
@@ -1288,7 +1288,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
-  /open/backend/api/plugin/stop_debug/:
+  /backend/api/plugin/stop_debug/:
     post:
       operationId: plugin_stop_debug
       summary: 停止调试
@@ -1328,7 +1328,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
-  /open/backend/api/plugin/upload/:
+  /backend/api/plugin/upload/:
     post:
       operationId: plugin_upload
       summary: 上传文件接口
@@ -1368,7 +1368,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
-  /open/backend/api/plugin/{id}/:
+  /backend/api/plugin/{id}/:
     get:
       operationId: plugin_detail
       summary: 插件详情
@@ -1408,7 +1408,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
-  /open/backend/api/plugin/{id}/history/:
+  /backend/api/plugin/{id}/history/:
     get:
       operationId: plugin_history
       summary: 查询插件包历史
@@ -1448,7 +1448,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
-  /open/backend/api/subscription/check_task_ready/:
+  /backend/api/subscription/check_task_ready/:
     post:
       operationId: subscription_check_task_ready
       summary: 查询任务是否已准备完成
@@ -1488,7 +1488,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
-  /open/backend/api/subscription/collect_task_result_detail/:
+  /backend/api/subscription/collect_task_result_detail/:
     post:
       operationId: collect_task_result_detail
       summary: 采集任务执行详细结果
@@ -1528,7 +1528,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
-  /open/backend/api/subscription/create/:
+  /backend/api/subscription/create/:
     post:
       operationId: subscription_create
       summary: 创建订阅
@@ -1568,7 +1568,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
-  /open/backend/api/subscription/delete/:
+  /backend/api/subscription/delete/:
     post:
       operationId: subscription_delete
       summary: 删除订阅
@@ -1608,7 +1608,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
-  /open/backend/api/subscription/fetch_commands/:
+  /backend/api/subscription/fetch_commands/:
     post:
       operationId: fetch_commands
       summary: 返回安装命令
@@ -1648,7 +1648,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
-  /open/backend/api/subscription/info/:
+  /backend/api/subscription/info/:
     post:
       operationId: subscription_info
       summary: 订阅详情
@@ -1688,7 +1688,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
-  /open/backend/api/subscription/instance_status/:
+  /backend/api/subscription/instance_status/:
     post:
       operationId: subscription_instance_status
       summary: 查询订阅运行状态
@@ -1728,7 +1728,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
-  /open/backend/api/subscription/query_host_policy/:
+  /backend/api/subscription/query_host_policy/:
     get:
       operationId: subscription_query_host_policy
       summary: 获取主机策略列表
@@ -1768,7 +1768,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
-  /open/backend/api/subscription/query_host_subscriptions/:
+  /backend/api/subscription/query_host_subscriptions/:
     get:
       operationId: query_host_subscriptions
       summary: 获取主机订阅列表
@@ -1808,7 +1808,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
-  /open/backend/api/subscription/retry/:
+  /backend/api/subscription/retry/:
     post:
       operationId: subscription_retry
       summary: 重试失败的任务
@@ -1848,7 +1848,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
-  /open/backend/api/subscription/revoke/:
+  /backend/api/subscription/revoke/:
     post:
       operationId: subscription_revoke
       summary: 终止正在执行的任务
@@ -1888,7 +1888,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
-  /open/backend/api/subscription/run/:
+  /backend/api/subscription/run/:
     post:
       operationId: subscription_run
       summary: 执行订阅
@@ -1928,7 +1928,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
-  /open/backend/api/subscription/search_deploy_policy/:
+  /backend/api/subscription/search_deploy_policy/:
     post:
       operationId: subscription_search_policy
       summary: 查询策略列表
@@ -1968,7 +1968,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
-  /open/backend/api/subscription/statistic/:
+  /backend/api/subscription/statistic/:
     post:
       operationId: subscription_statistic
       summary: 统计订阅任务数据
@@ -2008,7 +2008,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
-  /open/backend/api/subscription/switch/:
+  /backend/api/subscription/switch/:
     post:
       operationId: subscription_switch
       summary: 订阅启停
@@ -2048,7 +2048,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
-  /open/backend/api/subscription/switch_biz/:
+  /backend/api/subscription/switch_biz/:
     post:
       operationId: subscription_switch_biz
       summary: 启用/禁用业务订阅巡检
@@ -2088,7 +2088,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
-  /open/backend/api/subscription/task_result/:
+  /backend/api/subscription/task_result/:
     post:
       operationId: subscription_task_result
       summary: 任务执行结果
@@ -2128,7 +2128,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
-  /open/backend/api/subscription/task_result_detail/:
+  /backend/api/subscription/task_result_detail/:
     post:
       operationId: subscription_task_result_detail
       summary: 任务执行详细结果
@@ -2168,7 +2168,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
-  /open/backend/api/subscription/update/:
+  /backend/api/subscription/update/:
     post:
       operationId: subscription_update
       summary: 更新订阅
@@ -2208,7 +2208,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
-  /open/backend/api/sync_task/create/:
+  /backend/api/sync_task/create/:
     post:
       operationId: sync_task_create
       summary: 创建同步任务
@@ -2248,7 +2248,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
-  /open/backend/api/sync_task/status/:
+  /backend/api/sync_task/status/:
     get:
       operationId: sync_task_status
       summary: 查询同步任务状态
@@ -2288,7 +2288,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
-  /open/core/api/encrypt_rsa/fetch_public_keys/:
+  /core/api/encrypt_rsa/fetch_public_keys/:
     post:
       operationId: fetch_public_keys
       summary: 获取公钥列表
@@ -2328,7 +2328,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
-  /open/core/api/gray/build/:
+  /core/api/gray/build/:
     post:
       operationId: gray_build
       summary: GSE 2.0灰度
@@ -2368,7 +2368,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
-  /open/core/api/gray/info/:
+  /core/api/gray/info/:
     get:
       operationId: gray_info
       summary: 获取GSE 2.0灰度信息
@@ -2408,7 +2408,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
-  /open/core/api/gray/rollback/:
+  /core/api/gray/rollback/:
     post:
       operationId: gray_rollback
       summary: GSE 2.0灰度回滚
@@ -2448,7 +2448,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
-  /open/core/api/gray/rollback_agent_id/:
+  /core/api/gray/rollback_agent_id/:
     post:
       operationId: rollback_agent_id
       summary: 回滚Agent ID配置
@@ -2488,7 +2488,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
-  /open/core/api/gray/upgrade_to_agent_id/:
+  /core/api/gray/upgrade_to_agent_id/:
     post:
       operationId: upgrade_to_agent_id
       summary: 升级到Agent ID配置
@@ -2528,7 +2528,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
-  /open/core/api/ipchooser_host/check/:
+  /core/api/ipchooser_host/check/:
     post:
       operationId: ipchooser_host_check
       summary: 根据用户手动输入的`IP`/`IPv6`/`主机名`/`host_id`等关键字信息获取真实存在的机器信息
@@ -2568,7 +2568,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
-  /open/core/api/ipchooser_host/details/:
+  /core/api/ipchooser_host/details/:
     post:
       operationId: ipchooser_host_details
       summary: 根据主机关键信息获取机器详情信息
@@ -2608,7 +2608,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
-  /open/core/api/ipchooser_topo/agent_statistics/:
+  /core/api/ipchooser_topo/agent_statistics/:
     post:
       operationId: ipchooser_topo_agent_statistics
       summary: 获取多个拓扑节点的主机 Agent 状态统计信息
@@ -2648,7 +2648,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
-  /open/core/api/ipchooser_topo/query_host_id_infos/:
+  /core/api/ipchooser_topo/query_host_id_infos/:
     post:
       operationId: ipchooser_topo_query_host_id_infos
       summary: 根据多个拓扑节点与搜索条件批量分页查询所包含的主机 ID 信息
@@ -2688,7 +2688,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
-  /open/core/api/ipchooser_topo/query_hosts/:
+  /core/api/ipchooser_topo/query_hosts/:
     post:
       operationId: ipchooser_topo_query_hosts
       summary: 根据多个拓扑节点与搜索条件批量分页查询所包含的主机信息
@@ -2728,7 +2728,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
-  /open/core/api/ipchooser_topo/query_path/:
+  /core/api/ipchooser_topo/query_path/:
     post:
       operationId: ipchooser_topo_query_path
       summary: 查询多个节点拓扑路径
@@ -2768,7 +2768,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
-  /open/core/api/ipchooser_topo/trees/:
+  /core/api/ipchooser_topo/trees/:
     post:
       operationId: ipchooser_topo_trees
       summary: 批量获取含各节点主机数量的拓扑树

@@ -9,7 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from collections import defaultdict
-from typing import List
+from typing import Any, Dict, List
 
 from django.conf import settings
 
@@ -27,11 +27,11 @@ from .base import AgentBaseService
 class InstallPluginsService(SubSubscriptionBaseService, AgentBaseService):
     @staticmethod
     @RetryHandler(interval=1, retry_times=1, exception_types=[DataAPIException])
-    def call_create_subscription_api(params):
-        return NodeApi.create_subscription(params)
+    def call_create_subscription_api(params: Dict[str, Any], tenant_id: str):
+        return NodeApi.create_subscription(params, tenant_id=tenant_id)
 
     @classmethod
-    def create_subscriptions(cls, common_data: CommonData) -> List[int]:
+    def create_subscriptions(cls, common_data: CommonData, tenant_id: str) -> List[int]:
         host_ids_group_by_os = defaultdict(list)
         for host in common_data.host_id_obj_map.values():
             host_ids_group_by_os[host.os_type.lower()].append(host.bk_host_id)
@@ -73,7 +73,8 @@ class InstallPluginsService(SubSubscriptionBaseService, AgentBaseService):
                                 "params": {"context": {}},
                             }
                         ],
-                    }
+                    },
+                    "tenant_id": tenant_id,
                 }
             )
         subscription_ids = request_multi_thread(
