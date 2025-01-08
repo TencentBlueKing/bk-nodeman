@@ -171,6 +171,7 @@ class GsePackageHandler:
         built_in_tags, custom_tags = [], []
         for tag in tags:
             if tag["name"] in constants.BUILT_IN_TAG_NAMES:
+                tag["description"] = _(tag["description"])
                 built_in_tags.append(tag)
             else:
                 custom_tags.append(tag)

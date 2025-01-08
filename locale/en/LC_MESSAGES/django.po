@@ -6670,6 +6670,15 @@ msgstr "Tag information"
 msgid "上传用户"
 msgstr "Upload user"
 
+msgid "BT节点探测"
+msgstr "BT node detection"
+
+msgid "管控区域ID:IP"
+msgstr "Cloud ID:IP"
+
+msgid "数据压缩"
+msgstr "Data compression"
+
 #~ msgid "用户名"
 #~ msgstr "Username"
 

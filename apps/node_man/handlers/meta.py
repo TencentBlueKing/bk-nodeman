@@ -605,7 +605,8 @@ class MetaHandler(APIModel):
             dept_name_children.append({"id": dept_name, "name": dept_name})
         return dept_name_children
 
-    def fetch_agent_pkg_manager_children(self, params=None):
+    @staticmethod
+    def fetch_agent_pkg_manager_children(params=None):
         params: Dict[str, Any] = params or {}
         project: str = params.get("project", "gse_agent")
 
