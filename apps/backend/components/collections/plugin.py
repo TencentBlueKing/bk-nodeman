@@ -228,6 +228,7 @@ class InitProcessStatusService(PluginBaseService):
     """初始化进程状态，持久化记录并用于后续流程使用"""
 
     def _execute(self, data, parent_data, common_data: PluginCommonData):
+        tenant_id: str = self.tenant_id(data)
         action = data.get_one_of_inputs("action")
         bk_host_ids = common_data.bk_host_ids
         subscription = common_data.subscription
@@ -307,6 +308,7 @@ class InitProcessStatusService(PluginBaseService):
                         data_path=data_path,
                         pid_path=pid_path,
                         version=version_str,
+                        tenant_id=tenant_id,
                     )
                     # 唯一性校验
                     process_status_property_md5 = md5.count_md5(process_status_property)

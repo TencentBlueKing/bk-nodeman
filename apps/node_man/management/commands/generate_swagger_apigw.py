@@ -200,8 +200,9 @@ class ApigwOpenAPISchemaGenerator(OpenAPISchemaGenerator):
                 if not path_suffix.startswith("/"):
                     path_suffix = "/" + path_suffix
 
-                open_path = f"/open{path_suffix}"
-                paths[open_path] = self.get_path_item(path, view_cls, operations)
+                # open_path = f"/open{path_suffix}"
+                # paths[open_path] = self.get_path_item(path, view_cls, operations)
+                paths[path_suffix] = self.get_path_item(path, view_cls, operations)
 
                 system_path = f"/system{path_suffix}"
                 system_operations = {

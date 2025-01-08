@@ -13,16 +13,22 @@ from celery import current_app
 from apps.exceptions import ComponentCallError
 from apps.node_man import constants
 from apps.node_man.models import AccessPoint, Cloud
+from apps.node_man.periodic_tasks.utils import get_tenant_id_list
 from common.api import CCApi
 from common.log import logger
 
 
-def update_or_create_cloud_area(task_id, start):
+def update_or_create_cloud_area(task_id, start, tenant_id=None):
     logger.info(f"{task_id} | Sync cloud area task start.[{start}-{start + constants.QUERY_CLOUD_LIMIT}]")
 
     # 查询管控区域兼容低版本paas无search_cloud_area情况
     try:
-        plats = CCApi.search_cloud_area({"page": {"start": start, "limit": constants.QUERY_CLOUD_LIMIT}})
+        plats = CCApi.search_cloud_area(
+            {"page": {"start": start, "limit": constants.QUERY_CLOUD_LIMIT}}, tenant_id=tenant_id
+        )
+    except Exception as e:
+        logger.error(f"request cmdb search_cloud_area error: {e}")
+        return
     except ComponentCallError as e:
         logger.error(f"{task_id} | call search_cloud_area error {e.message}")
         plats = CCApi.search_inst({"bk_obj_id": "plat"})
@@ -61,6 +67,7 @@ def update_or_create_cloud_area(task_id, start):
                     ap_id=default_ap_id,
                     creator=["system"],
                     isp="PrivateCloud",
+                    tenant_id=tenant_id,
                 )
             )
 
@@ -82,5 +89,7 @@ def sync_cmdb_cloud_area_periodic_task():
     """
     task_id = sync_cmdb_cloud_area_periodic_task.request.id
     logger.info(f"{task_id} | Start syncing cloud area.")
-    update_or_create_cloud_area(task_id, 0)
+    tenant_id_list = get_tenant_id_list()
+    for tenant_id in tenant_id_list:
+        update_or_create_cloud_area(task_id, 0, tenant_id=tenant_id)
     logger.info(f"{task_id} | Sync cloud area task complete.")

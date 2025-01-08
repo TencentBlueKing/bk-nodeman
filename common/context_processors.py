@@ -120,4 +120,6 @@ def mysetting(request):
         # 是否开启消息中心
         "ENABLE_NOTICE_CENTER": settings.BK_NOTICE_ENABLED,
         "BKPAAS_SHARED_RES_URL": settings.BKPAAS_SHARED_RES_URL,
+        # 是否开启多租户
+        "ENABLE_MULTI_TENANT_MODE": settings.ENABLE_MULTI_TENANT_MODE,
     }

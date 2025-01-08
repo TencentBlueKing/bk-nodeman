@@ -11,18 +11,18 @@ specific language governing permissions and limitations under the License.
 import ipaddress
 import math
 import typing
+from collections import defaultdict
 
 from celery import current_app
 from celery.schedules import crontab
 from django.conf import settings
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Q, QuerySet
 
 from apps.backend.celery import app
 from apps.backend.utils.redis import REDIS_INST
 from apps.core.concurrent import controller
 from apps.core.gray.tools import GrayTools
-from apps.exceptions import ComponentCallError
 from apps.node_man import constants, models, tools
 from apps.node_man.periodic_tasks.utils import (
     SyncHostApMapConfig,
@@ -32,6 +32,7 @@ from apps.node_man.periodic_tasks.utils import (
 )
 from apps.utils.batch_request import batch_request
 from apps.utils.concurrent import batch_call, batch_call_serial
+from apps.utils.local import get_tenant_id
 from common.api import CCApi
 from common.log import logger
 
@@ -64,13 +65,18 @@ def query_biz_hosts(bk_biz_id: int, bk_host_ids: typing.List[int]) -> typing.Lis
     return hosts
 
 
-def _list_biz_hosts(biz_id: int, start: int) -> dict:
+def _list_biz_hosts(biz_id: int, start: int, biz_id_map_tenant_id_map=None) -> dict:
+    if biz_id_map_tenant_id_map:
+        tenant_id = biz_id_map_tenant_id_map[biz_id]
+    else:
+        tenant_id = get_tenant_id()
     biz_hosts = CCApi.list_biz_hosts(
         {
             "bk_biz_id": biz_id,
             "fields": constants.CC_HOST_FIELDS,
             "page": {"start": start, "limit": constants.QUERY_CMDB_LIMIT, "sort": "bk_host_id"},
-        }
+        },
+        tenant_id=tenant_id,
     )
     # 去除内网IP为空的主机
     biz_hosts["info"] = [
@@ -88,7 +94,8 @@ def _list_resource_pool_hosts(start):
             }
         )
         return result
-    except ComponentCallError:
+    except Exception as e:
+        logger.error(str(e))
         return {"info": []}
 
 
@@ -156,7 +163,18 @@ def apply_gray_compensation_strategy(
     )
 
 
-def _generate_host(biz_id, host, ap_id, is_os_type_priority=False, is_sync_cmdb_host_apply_cpu_arch=False):
+def _generate_host(
+    biz_id,
+    host,
+    ap_id,
+    is_os_type_priority=False,
+    is_sync_cmdb_host_apply_cpu_arch=False,
+    biz_id_map_tenant_id_map=None,
+):
+    if biz_id_map_tenant_id_map:
+        tenant_id = biz_id_map_tenant_id_map[biz_id]
+    else:
+        tenant_id = get_tenant_id()
     os_type = tools.HostV2Tools.get_os_type(host, is_os_type_priority)
     cpu_arch = tools.HostV2Tools.get_cpu_arch(host, is_sync_cmdb_host_apply_cpu_arch, os_type=os_type)
 
@@ -179,6 +197,7 @@ def _generate_host(biz_id, host, ap_id, is_os_type_priority=False, is_sync_cmdb_
         else constants.NodeType.PAGENT,
         ap_id=ap_id,
         dept_name=host.get("dept_name", ""),
+        tenant_id=tenant_id,
     )
 
     identify_data = models.IdentityData(
@@ -192,6 +211,7 @@ def _generate_host(biz_id, host, ap_id, is_os_type_priority=False, is_sync_cmdb_
         bk_host_id=host["bk_host_id"],
         source_type=models.ProcessStatus.SourceType.DEFAULT,
         name=models.ProcessStatus.GSE_AGENT_PROCESS_NAME,
+        tenant_id=tenant_id,
     )
 
     return host_data, identify_data, process_status_data
@@ -213,7 +233,9 @@ def find_host_biz_relations(find_host_biz_ids):
     return host_biz_relation
 
 
-def update_or_create_host_base(biz_id, ap_map_config, is_gse2_gray, task_id, cmdb_host_data):
+def update_or_create_host_base(
+    biz_id, ap_map_config, is_gse2_gray, task_id, cmdb_host_data, biz_id_map_tenant_id_map=None
+):
     bk_host_ids = [_host["bk_host_id"] for _host in cmdb_host_data]
 
     # 查询节点管理已存在的主机
@@ -309,6 +331,7 @@ def update_or_create_host_base(biz_id, ap_map_config, is_gse2_gray, task_id, cmd
                 ),
                 is_os_type_priority,
                 is_sync_cmdb_host_apply_cpu_arch,
+                biz_id_map_tenant_id_map=biz_id_map_tenant_id_map,
             )
             need_create_hosts.append(host_data)
             if identify_data.bk_host_id not in host_ids_in_exist_identity_data:
@@ -448,11 +471,14 @@ def bulk_differential_sync_biz_hosts(
     batch_call(func=sync_biz_incremental_hosts, params_list=params_list)
 
 
-def _update_or_create_host(biz_id, ap_map_config: SyncHostApMapConfig, is_gse2_gray=False, start=0, task_id=None):
+def _update_or_create_host(
+    biz_id, ap_map_config: SyncHostApMapConfig, is_gse2_gray=False, start=0, task_id=None, biz_id_map_tenant_id_map=None
+):
+    # TODO 等待CC资源池接口调整
     if biz_id == settings.BK_CMDB_RESOURCE_POOL_BIZ_ID:
         cc_result = _list_resource_pool_hosts(start)
     else:
-        cc_result = _list_biz_hosts(biz_id, start)
+        cc_result = _list_biz_hosts(biz_id, start, biz_id_map_tenant_id_map=biz_id_map_tenant_id_map)
 
     host_data = cc_result.get("info") or []
     host_count = cc_result.get("count", 0)
@@ -462,12 +488,19 @@ def _update_or_create_host(biz_id, ap_map_config: SyncHostApMapConfig, is_gse2_g
         f"host_count -> {host_count}, range -> {start}-{start + constants.QUERY_CMDB_LIMIT}"
     )
 
-    bk_host_ids = update_or_create_host_base(biz_id, ap_map_config, is_gse2_gray, task_id, host_data)
+    bk_host_ids = update_or_create_host_base(
+        biz_id, ap_map_config, is_gse2_gray, task_id, host_data, biz_id_map_tenant_id_map=biz_id_map_tenant_id_map
+    )
 
     # 递归
     if host_count > start + constants.QUERY_CMDB_LIMIT:
         bk_host_ids += _update_or_create_host(
-            biz_id, ap_map_config, is_gse2_gray, start + constants.QUERY_CMDB_LIMIT, task_id=task_id
+            biz_id,
+            ap_map_config,
+            is_gse2_gray,
+            start + constants.QUERY_CMDB_LIMIT,
+            task_id=task_id,
+            biz_id_map_tenant_id_map=biz_id_map_tenant_id_map,
         )
 
     return bk_host_ids
@@ -485,12 +518,19 @@ def sync_cmdb_host(bk_biz_id=None, task_id=None):
 
     # 记录CC所有host id
     cc_bk_host_ids = []
-
     if bk_biz_id:
         bk_biz_ids = [bk_biz_id]
+        host_qs: QuerySet = models.Host.objects.filter(bk_biz_id=bk_biz_id)
+        if host_qs.exists():
+            tenant_id = host_qs.first().tenant_id
+        else:
+            need_sync_biz_ids, biz_id_map_tenant_id_map = query_bk_biz_ids(task_id)
+            tenant_id = biz_id_map_tenant_id_map.get(bk_biz_id)
+        # 触发任务皆为单业务，节省内存传单业务对应租户ID字典
+        biz_id_map_tenant_id_map = {bk_biz_id: tenant_id}
     else:
         # 查询所有需要同步的业务id
-        bk_biz_ids = query_bk_biz_ids(task_id)
+        bk_biz_ids, biz_id_map_tenant_id_map = query_bk_biz_ids(task_id)
         # 若没有指定业务时，也同步资源池主机
         bk_biz_ids.append(settings.BK_CMDB_RESOURCE_POOL_BIZ_ID)
 
@@ -501,6 +541,7 @@ def sync_cmdb_host(bk_biz_id=None, task_id=None):
             ap_map_config=ap_map_config,
             is_gse2_gray=gray_tools.is_gse2_gray(bk_biz_id=bk_biz_id),
             task_id=task_id,
+            biz_id_map_tenant_id_map=biz_id_map_tenant_id_map,
         )
 
     # 查询节点管理所有主机
@@ -569,25 +610,36 @@ def query_cmdb_and_handle_need_delete_host_ids(host_ids: typing.List[int], task_
     :param host_ids: 主机ID列表
     :param task_id: 任务ID
     """
-    query_hosts_params: typing.Dict[str, typing.Any] = {
-        "page": {"start": 0, "limit": constants.QUERY_CMDB_LIMIT},
-        "fields": [constants.CC_HOST_FIELDS[0]],
-        "host_property_filter": {
-            "condition": "AND",
-            "rules": [{"field": "bk_host_id", "operator": "in", "value": host_ids}],
-        },
-    }
-    cmdb_host_infos: typing.List[typing.Dict[str, int]] = CCApi.list_hosts_without_biz(query_hosts_params)["info"]
-    bk_host_ids_in_cmdb: typing.List[int] = [cmdb_host_info.get("bk_host_id") for cmdb_host_info in cmdb_host_infos]
+    tenant_id__host_ids: typing.Dict[str, typing.List[int]] = defaultdict(list)
+    exist_cmdb_host_ids: typing.List[int] = []
+    tenant_id_host_id_qs = models.ProcessStatus.objects.filter(bk_host_id__in=host_ids).values(
+        "tenant_id", "bk_host_id"
+    )
+    for tenant_id_host_id in tenant_id_host_id_qs:
+        tenant_id__host_ids[tenant_id_host_id["tenant_id"]].append(tenant_id_host_id["bk_host_id"])
+    for tenant_id, host_ids in tenant_id__host_ids.items():
+        query_hosts_params: typing.Dict[str, typing.Any] = {
+            "page": {"start": 0, "limit": constants.QUERY_CMDB_LIMIT},
+            "fields": [constants.CC_HOST_FIELDS[0]],
+            "host_property_filter": {
+                "condition": "AND",
+                "rules": [{"field": "bk_host_id", "operator": "in", "value": host_ids}],
+            },
+        }
+        cmdb_host_infos: typing.List[typing.Dict[str, int]] = CCApi.list_hosts_without_biz(
+            query_hosts_params, tenant_id=tenant_id
+        )["info"]
+        bk_host_ids_in_cmdb: typing.List[int] = [cmdb_host_info.get("bk_host_id") for cmdb_host_info in cmdb_host_infos]
+        exist_cmdb_host_ids.extend(bk_host_ids_in_cmdb)
     logger.info(
         "[find_hosts_in_cmdb] task_id -> %s, bk_host_ids -> %s , num -> %s"
         % (
             task_id,
-            bk_host_ids_in_cmdb,
-            len(bk_host_ids_in_cmdb),
+            exist_cmdb_host_ids,
+            len(exist_cmdb_host_ids),
         )
     )
-    final_delete_host_ids = set(host_ids) - set(bk_host_ids_in_cmdb)
+    final_delete_host_ids = set(host_ids) - set(exist_cmdb_host_ids)
     models.Host.objects.filter(bk_host_id__in=final_delete_host_ids).delete()
     models.ProcessStatus.objects.filter(bk_host_id__in=final_delete_host_ids).delete()
     logger.info(

@@ -101,8 +101,11 @@ class CustomBKRepoStorage(BaseStorage, bkrepo.BKRepoStorage):
     ) -> List[Dict[str, Any]]:
 
         # 获取或创建文件源
+        bk_biz_id: int = (
+            settings.TENANT_BLUEKING_SCOPE_ID if settings.ENABLE_MULTI_TENANT_MODE else settings.BLUEKING_BIZ_ID
+        )
         file_source_obj = BkJobFileSourceManager.get_or_create_file_source(
-            bk_biz_id=settings.BLUEKING_BIZ_ID,
+            bk_biz_id=bk_biz_id,
             storage_type=self.storage_type,
             credential_type=constants.FileCredentialType.USERNAME_PASSWORD.value,
             credential_auth_info={"credential_username": self.username, "credential_password": self.password},

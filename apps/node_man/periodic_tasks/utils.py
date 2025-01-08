@@ -21,17 +21,45 @@ from django.conf import settings
 from apps.backend.api.constants import POLLING_INTERVAL, POLLING_TIMEOUT, JobIPStatus
 from apps.backend.api.errors import JobPollTimeout
 from apps.core.gray.tools import GrayTools
-from apps.exceptions import ApiError, ValidationError
+from apps.exceptions import ApiError, ApiResultError, ValidationError
 from apps.node_man import constants, models
-from common.api import CCApi, JobApi
+from common.api import CCApi, JobApi, UserApi
 from env.constants import GseVersion
 
 logger = logging.getLogger("app")
 
 
+def get_tenant_id_list() -> typing.List[str]:
+    """获取所有的租户ID列表，不开启多租户的环境下为default"""
+    if settings.ENABLE_MULTI_TENANT_MODE:
+        try:
+            tenants = UserApi.list_tenant()
+            tenant_id_list = [tenant["id"] for tenant in tenants if tenant["status"] == "enabled"]
+        except Exception as e:
+            tenant_id_list = ["default"]
+            logger.error(msg=str(e))
+        return tenant_id_list
+    return ["default"]
+
+
+def generate_biz_id_tenant_id_map():
+    tenant_id_list = get_tenant_id_list()
+    biz_id_map_tenant_id_map: Dict[int, str] = {}
+    all_biz_ids = []
+    for tenant_id in tenant_id_list:
+        try:
+            biz_data = CCApi.search_business({"fields": ["bk_biz_id"]}, tenant_id=tenant_id)
+            tenant_biz_ids = [biz["bk_biz_id"] for biz in biz_data.get("info") or [] if biz["default"] == 0]
+            all_biz_ids.extend(tenant_biz_ids)
+            biz_id_map_tenant_id_map.update({biz: tenant_id for biz in tenant_biz_ids})
+        except ApiResultError:
+            logger.error(msg="current tenant_id request cmdb error")
+
+    return all_biz_ids, biz_id_map_tenant_id_map
+
+
 def query_bk_biz_ids(task_id):
-    biz_data = CCApi.search_business({"fields": ["bk_biz_id"]})
-    bk_biz_ids = [biz["bk_biz_id"] for biz in biz_data.get("info") or [] if biz["default"] == 0]
+    bk_biz_ids, biz_id_map_tenant_id_map = generate_biz_id_tenant_id_map()
 
     # 排除掉黑名单业务的主机同步，比如 SA 业务，包含大量主机但无需同步
     bk_biz_ids = list(
@@ -45,7 +73,7 @@ def query_bk_biz_ids(task_id):
 
     logger.info(f"[query_bk_biz_ids] synchronize full business: task_id -> {task_id}, count -> {len(bk_biz_ids)}")
 
-    return bk_biz_ids
+    return bk_biz_ids, biz_id_map_tenant_id_map
 
 
 class JobDemand(object):

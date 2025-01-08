@@ -26,6 +26,7 @@ class AgentServiceActivity(ServiceActivity):
         self.component.inputs.description = Var(type=Var.SPLICE, value="${description}")
         self.component.inputs.blueking_language = Var(type=Var.SPLICE, value="${blueking_language}")
         self.component.inputs.act_name = Var(type=Var.PLAIN, value=kwargs.get("name"))
+        self.component.inputs.tenant_id = Var(type=Var.SPLICE, value="${tenant_id}")
 
 
 class AgentManager(object):

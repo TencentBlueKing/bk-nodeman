@@ -22,7 +22,7 @@ class _JobApi(BaseApi):
     def __init__(self):
         self.fast_execute_script = DataAPI(
             method="POST",
-            url=JOB_APIGATEWAY_ROOT_V3 + "fast_execute_script/",
+            url=JOB_APIGATEWAY_ROOT_V3 + "system/fast_execute_script/",
             module=self.MODULE,
             simple_module=self.SIMPLE_MODULE,
             description="快速执行脚本",
@@ -30,7 +30,7 @@ class _JobApi(BaseApi):
         )
         self.fast_transfer_file = DataAPI(
             method="POST",
-            url=JOB_APIGATEWAY_ROOT_V3 + "fast_transfer_file/",
+            url=JOB_APIGATEWAY_ROOT_V3 + "system/fast_transfer_file/",
             module=self.MODULE,
             simple_module=self.SIMPLE_MODULE,
             description="快速分发文件",
@@ -38,7 +38,7 @@ class _JobApi(BaseApi):
         )
         self.push_config_file = DataAPI(
             method="POST",
-            url=JOB_APIGATEWAY_ROOT_V3 + "push_config_file/",
+            url=JOB_APIGATEWAY_ROOT_V3 + "system/push_config_file/",
             module=self.MODULE,
             simple_module=self.SIMPLE_MODULE,
             description="快速分发配置",
@@ -46,7 +46,7 @@ class _JobApi(BaseApi):
         )
         self.get_job_instance_status = DataAPI(
             method="GET",
-            url=JOB_APIGATEWAY_ROOT_V3 + "get_job_instance_status/",
+            url=JOB_APIGATEWAY_ROOT_V3 + "system/get_job_instance_status/",
             module=self.MODULE,
             simple_module=self.SIMPLE_MODULE,
             description="查询作业执行状态",
@@ -54,7 +54,7 @@ class _JobApi(BaseApi):
         )
         self.get_job_instance_ip_log = DataAPI(
             method="GET",
-            url=JOB_APIGATEWAY_ROOT_V3 + "get_job_instance_ip_log/",
+            url=JOB_APIGATEWAY_ROOT_V3 + "system/get_job_instance_ip_log/",
             module=self.MODULE,
             simple_module=self.SIMPLE_MODULE,
             description="根据作业实例ID查询作业执行日志",
@@ -62,7 +62,7 @@ class _JobApi(BaseApi):
         )
         self.create_credential = DataAPI(
             method="POST",
-            url=JOB_APIGATEWAY_ROOT_V3 + "create_credential/",
+            url=JOB_APIGATEWAY_ROOT_V3 + "system/create_credential/",
             module=self.MODULE,
             simple_module=self.SIMPLE_MODULE,
             description="新建凭证",
@@ -70,17 +70,17 @@ class _JobApi(BaseApi):
         )
         self.create_file_source = DataAPI(
             method="POST",
-            url=JOB_APIGATEWAY_ROOT_V3 + "create_file_source/",
+            url=JOB_APIGATEWAY_ROOT_V3 + "system/create_file_source/",
             module=self.MODULE,
             simple_module=self.SIMPLE_MODULE,
             description="新建文件源",
             api_name="create_file_source",
         )
-        self.get_job_instance_ip_log = DataAPI(
-            method="GET",
-            url=JOB_APIGATEWAY_ROOT_V3 + "get_job_instance_ip_log/",
+        self.batch_get_job_instance_ip_log = DataAPI(
+            method="POST",
+            url=JOB_APIGATEWAY_ROOT_V3 + "system/batch_get_job_instance_ip_log/",
             module=self.MODULE,
             simple_module=self.SIMPLE_MODULE,
-            description="根据作业实例ID查询作业执行日志",
+            description="根据ip列表批量查询作业执行日志",
             api_name="get_job_instance_ip_log",
         )

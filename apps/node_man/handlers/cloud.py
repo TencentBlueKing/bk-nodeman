@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from django.conf import settings
+from django.db.models import Q
 from django.db.models.aggregates import Count
 from django.db.transaction import atomic
 from django.utils.translation import gettext_lazy as _
@@ -16,7 +17,11 @@ from django.utils.translation import gettext_lazy as _
 from apps.exceptions import ValidationError
 from apps.node_man import constants as const
 from apps.node_man.constants import DEFAULT_CLOUD, DEFAULT_CLOUD_NAME, IamActionType
-from apps.node_man.exceptions import CloudNotExistError, CloudUpdateHostError
+from apps.node_man.exceptions import (
+    CloudNotExistError,
+    CloudPermissionError,
+    CloudUpdateHostError,
+)
 from apps.node_man.handlers.cmdb import CmdbHandler
 from apps.node_man.handlers.iam import IamHandler
 from apps.node_man.models import (
@@ -28,7 +33,7 @@ from apps.node_man.models import (
     ProcessStatus,
 )
 from apps.utils import APIModel
-from apps.utils.local import get_request_username
+from apps.utils.local import get_request_username, get_tenant_id
 
 
 class CloudHandler(APIModel):
@@ -41,9 +46,12 @@ class CloudHandler(APIModel):
         查询管控区域详情
         :param bk_cloud_id: 管控区域id
         """
+        tenant_id = get_tenant_id()
         cloud = Cloud.objects.filter(pk=bk_cloud_id).first()
         if cloud is None:
             raise CloudNotExistError(_("不存在ID为: {bk_cloud_id} 的「管控区域」").format(bk_cloud_id=bk_cloud_id))
+        if cloud.tenant_id != tenant_id:
+            raise CloudPermissionError(cloud_name=cloud.name)
 
         # 获得接入点名称
         ap_name = dict(AccessPoint.objects.values_list("id", "name"))
@@ -70,10 +78,15 @@ class CloudHandler(APIModel):
         :param params: 参数
         :return: 管控区域列表
         """
-
+        tenant_id = get_tenant_id()
         # 管控区域查看、编辑、删除、创建权限
         if settings.USE_IAM:
-            clouds = list(Cloud.objects.values("bk_cloud_id", "bk_cloud_name", "isp", "ap_id", "is_visible"))
+            # clouds = list(Cloud.objects.values("bk_cloud_id", "bk_cloud_name", "isp", "ap_id", "is_visible"))
+            clouds = list(
+                Cloud.objects.filter(Q(tenant_id=tenant_id) | Q(bk_cloud_id=DEFAULT_CLOUD)).values(
+                    "bk_cloud_id", "bk_cloud_name", "isp", "ap_id", "is_visible"
+                )
+            )
             perms = IamHandler().fetch_policy(
                 get_request_username(),
                 [
@@ -105,6 +118,7 @@ class CloudHandler(APIModel):
 
         # 是否返回直连区域
         if params["with_default_area"]:
+            # 租户环境给直连区域的是1，后续再看
             clouds.insert(0, {"bk_cloud_id": const.DEFAULT_CLOUD, "bk_cloud_name": _("直连区域")})
 
         # 用户默认拥有直连区域使用权限
@@ -208,7 +222,7 @@ class CloudHandler(APIModel):
         created = Cloud.objects.filter(bk_cloud_name=params["bk_cloud_name"]).exists()
         if created:
             raise ValidationError(_("管控区域名称不可重复"))
-
+        tenant_id = get_tenant_id()
         with atomic():
             cloud = Cloud.objects.create(
                 bk_cloud_id=bk_cloud_id,
@@ -216,6 +230,7 @@ class CloudHandler(APIModel):
                 ap_id=params["ap_id"],
                 bk_cloud_name=params["bk_cloud_name"],
                 creator=[username],
+                tenant_id=tenant_id,
             )
 
             if settings.USE_IAM:
@@ -233,10 +248,16 @@ class CloudHandler(APIModel):
         """
         编辑管控区域
         """
-        cloud = Cloud.objects.get(pk=bk_cloud_id)
+        try:
+            cloud = Cloud.objects.get(pk=bk_cloud_id)
+        except Cloud.DoesNotExist:
+            raise CloudNotExistError(_("不存在ID为: {bk_cloud_id} 的「管控区域」").format(bk_cloud_id=bk_cloud_id))
+
         if Cloud.objects.filter(bk_cloud_name=bk_cloud_name).exclude(bk_cloud_id=bk_cloud_id).exists():
             raise ValidationError(_("管控区域名称不可重复"))
-
+        tenant_id = get_tenant_id()
+        if cloud.tenant_id != tenant_id:
+            raise CloudPermissionError(cloud_name=cloud.name)
         # 向CMDB修改管控区域名称以及云服务商
         bk_cloud_vendor: str = const.CMDB_CLOUD_VENDOR_MAP.get(isp)
         CmdbHandler.rename_cloud(bk_cloud_id, bk_cloud_name, bk_cloud_vendor=bk_cloud_vendor)
@@ -251,7 +272,13 @@ class CloudHandler(APIModel):
         删除管控区域
         :param bk_cloud_id: 管控区域ID
         """
-
+        tenant_id = get_tenant_id()
+        try:
+            cloud = Cloud.objects.get(bk_cloud_id=bk_cloud_id)
+        except Cloud.DoesNotExist:
+            raise CloudNotExistError(_("不存在ID为: {bk_cloud_id} 的「管控区域」").format(bk_cloud_id=bk_cloud_id))
+        if cloud.tenant_id != tenant_id:
+            raise CloudPermissionError(_("该「管控区域」{cloud_name}不属于当前租户，无权限删除").format(cloud_name=cloud.name))
         hosted = Host.objects.filter(bk_cloud_id=bk_cloud_id).exists()
         if hosted:
             raise CloudUpdateHostError(_("该区域已存在主机"))
@@ -273,8 +300,9 @@ class CloudHandler(APIModel):
             }
         }
         """
+        tenant_id = get_tenant_id()
         clouds = list(
-            Cloud.objects.filter(bk_cloud_id__in=bk_cloud_ids).values(
+            Cloud.objects.filter(bk_cloud_id__in=bk_cloud_ids, tenant_id=tenant_id).values(
                 "bk_cloud_id", "bk_cloud_name", "ap_id", "creator"
             )
         )
@@ -316,8 +344,9 @@ class CloudHandler(APIModel):
         :param bk_cloud_id: 管控区域ID
         """
         # 查询管控区域下的主机的全部业务
+        tenant_id = get_tenant_id()
         return list(
-            Host.objects.filter(bk_cloud_id=bk_cloud_id)
+            Host.objects.filter(bk_cloud_id=bk_cloud_id, tenant_id=tenant_id)
             .values_list("bk_biz_id", flat=True)
             .order_by("bk_biz_id")
             .distinct()

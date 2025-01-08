@@ -25,6 +25,7 @@ from apps.exceptions import AppBaseException
 from apps.utils import local
 
 from . import translation
+from .local import get_tenant_id, set_tenant_id
 
 
 def inject_request(func: Callable):
@@ -40,6 +41,16 @@ def inject_request(func: Callable):
         return func(*args, **kwargs)
 
     return inner
+
+
+def inject_tenant_id_to_thread(func):
+    """注入租户ID到开启线程池中的线程"""
+
+    def wrapper(*args, **kwargs):
+        set_tenant_id(kwargs.pop("inject_tenant_id", get_tenant_id()))
+        return func(*args, **kwargs)
+
+    return wrapper
 
 
 def batch_call(
@@ -77,10 +88,17 @@ def batch_call(
     with ThreadPoolExecutor(max_workers=settings.CONCURRENT_NUMBER) as ex:
         tasks = []
         for idx, params in enumerate(params_list):
+            if "inject_tenant_id" not in params:
+                params["inject_tenant_id"] = get_tenant_id()
             if idx != 0 and interval:
                 time.sleep(interval)
             tasks.append(
-                ex.submit(translation.RespectsLanguage(language=get_language())(inject_request(func)), **params)
+                ex.submit(
+                    translation.RespectsLanguage(language=get_language())(
+                        inject_request(inject_tenant_id_to_thread(func))
+                    ),
+                    **params
+                )
             )
 
     for future in as_completed(tasks):

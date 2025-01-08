@@ -23,7 +23,7 @@ class _BKNodeApi(object):
 
         self.upload = DataAPI(
             method="POST",
-            url=BK_NODE_APIGATEWAY_ROOT + "backend/api/plugin/upload/",
+            url=BK_NODE_APIGATEWAY_ROOT + "system/backend/api/plugin/upload/",
             module=self.MODULE,
             simple_module=self.SIMPLE_MODULE,
             description="上传插件",
@@ -33,7 +33,7 @@ class _BKNodeApi(object):
 
         self.create_subscription = DataAPI(
             method="POST",
-            url=BK_NODE_APIGATEWAY_ROOT + "backend/api/subscription/create/",
+            url=BK_NODE_APIGATEWAY_ROOT + "system/backend/api/subscription/create/",
             module=self.MODULE,
             simple_module=self.SIMPLE_MODULE,
             description="创建订阅配置",
@@ -42,7 +42,7 @@ class _BKNodeApi(object):
         )
         self.get_subscription_task_status = DataAPI(
             method="POST",
-            url=BK_NODE_APIGATEWAY_ROOT + "backend/api/subscription/task_result/",
+            url=BK_NODE_APIGATEWAY_ROOT + "system/backend/api/subscription/task_result/",
             module=self.MODULE,
             simple_module=self.SIMPLE_MODULE,
             description="查看订阅任务运行状态",
@@ -51,7 +51,7 @@ class _BKNodeApi(object):
         )
         self.collect_subscription_task_detail = DataAPI(
             method="POST",
-            url=BK_NODE_APIGATEWAY_ROOT + "backend/api/subscription/collect_task_result_detail/",
+            url=BK_NODE_APIGATEWAY_ROOT + "system/backend/api/subscription/collect_task_result_detail/",
             module=self.MODULE,
             simple_module=self.SIMPLE_MODULE,
             description="采集订阅任务中实例的详细状态",
@@ -60,7 +60,7 @@ class _BKNodeApi(object):
         )
         self.get_subscription_task_detail = DataAPI(
             method="POST",
-            url=BK_NODE_APIGATEWAY_ROOT + "backend/api/subscription/task_result_detail/",
+            url=BK_NODE_APIGATEWAY_ROOT + "system/backend/api/subscription/task_result_detail/",
             module=self.MODULE,
             simple_module=self.SIMPLE_MODULE,
             description="查询订阅任务中实例的详细状态",
@@ -69,7 +69,7 @@ class _BKNodeApi(object):
         )
         self.check_subscription_task_ready = DataAPI(
             method="POST",
-            url=BK_NODE_APIGATEWAY_ROOT + "backend/api/subscription/check_task_ready/",
+            url=BK_NODE_APIGATEWAY_ROOT + "system/backend/api/subscription/check_task_ready/",
             module=self.MODULE,
             simple_module=self.SIMPLE_MODULE,
             description="查询任务是否已准备完成",
@@ -78,7 +78,7 @@ class _BKNodeApi(object):
         )
         self.run_subscription_task = DataAPI(
             method="POST",
-            url=BK_NODE_APIGATEWAY_ROOT + "backend/api/subscription/run/",
+            url=BK_NODE_APIGATEWAY_ROOT + "system/backend/api/subscription/run/",
             module=self.MODULE,
             simple_module=self.SIMPLE_MODULE,
             description="执行订阅下发任务",
@@ -87,7 +87,7 @@ class _BKNodeApi(object):
         )
         self.subscription_delete = DataAPI(
             method="POST",
-            url=BK_NODE_APIGATEWAY_ROOT + "backend/api/subscription/delete/",
+            url=BK_NODE_APIGATEWAY_ROOT + "system/backend/api/subscription/delete/",
             module=self.MODULE,
             simple_module=self.SIMPLE_MODULE,
             description="删除订阅",
@@ -96,7 +96,7 @@ class _BKNodeApi(object):
         )
         self.subscription_update = DataAPI(
             method="POST",
-            url=BK_NODE_APIGATEWAY_ROOT + "backend/api/subscription/update/",
+            url=BK_NODE_APIGATEWAY_ROOT + "system/backend/api/subscription/update/",
             module=self.MODULE,
             simple_module=self.SIMPLE_MODULE,
             description="更新订阅",
@@ -105,7 +105,7 @@ class _BKNodeApi(object):
         )
         self.subscription_info = DataAPI(
             method="POST",
-            url=BK_NODE_APIGATEWAY_ROOT + "backend/api/subscription/info/",
+            url=BK_NODE_APIGATEWAY_ROOT + "system/backend/api/subscription/info/",
             module=self.MODULE,
             simple_module=self.SIMPLE_MODULE,
             description="订阅详细",
@@ -114,7 +114,7 @@ class _BKNodeApi(object):
         )
         self.subscription_search_policy = DataAPI(
             method="POST",
-            url=BK_NODE_APIGATEWAY_ROOT + "backend/api/subscription/search_deploy_policy/",
+            url=BK_NODE_APIGATEWAY_ROOT + "system/backend/api/subscription/search_deploy_policy/",
             module=self.MODULE,
             simple_module=self.SIMPLE_MODULE,
             description="查询策略列表",
@@ -123,7 +123,7 @@ class _BKNodeApi(object):
         )
         self.subscription_fetch_policy_topo = DataAPI(
             method="POST",
-            url=BK_NODE_APIGATEWAY_ROOT + "backend/api/subscription/fetch_policy_topo/",
+            url=BK_NODE_APIGATEWAY_ROOT + "system/backend/api/subscription/fetch_policy_topo/",
             module=self.MODULE,
             simple_module=self.SIMPLE_MODULE,
             description="插件策略拓扑",
@@ -132,7 +132,7 @@ class _BKNodeApi(object):
         )
         self.retry_subscription_task = DataAPI(
             method="POST",
-            url=BK_NODE_APIGATEWAY_ROOT + "backend/api/subscription/retry/",
+            url=BK_NODE_APIGATEWAY_ROOT + "system/backend/api/subscription/retry/",
             module=self.MODULE,
             simple_module=self.SIMPLE_MODULE,
             description="重试任务",
@@ -141,7 +141,7 @@ class _BKNodeApi(object):
         )
         self.revoke_subscription_task = DataAPI(
             method="POST",
-            url=BK_NODE_APIGATEWAY_ROOT + "backend/api/subscription/revoke/",
+            url=BK_NODE_APIGATEWAY_ROOT + "system/backend/api/subscription/revoke/",
             module=self.MODULE,
             simple_module=self.SIMPLE_MODULE,
             description="终止正在执行的订阅任务",
@@ -150,7 +150,7 @@ class _BKNodeApi(object):
         )
         self.fetch_commands = DataAPI(
             method="POST",
-            url=BK_NODE_APIGATEWAY_ROOT + "backend/api/subscription/fetch_commands/",
+            url=BK_NODE_APIGATEWAY_ROOT + "system/backend/api/subscription/fetch_commands/",
             module=self.MODULE,
             simple_module=self.SIMPLE_MODULE,
             description="获取安装命令",
@@ -159,7 +159,7 @@ class _BKNodeApi(object):
         )
         self.retry_node = DataAPI(
             method="POST",
-            url=BK_NODE_APIGATEWAY_ROOT + "backend/api/subscription/retry_node/",
+            url=BK_NODE_APIGATEWAY_ROOT + "system/backend/api/subscription/retry_node/",
             module=self.MODULE,
             simple_module=self.SIMPLE_MODULE,
             description="原子粒度重试任务",
@@ -169,7 +169,7 @@ class _BKNodeApi(object):
         # 插件包接口
         self.create_register_task = DataAPI(
             method="POST",
-            url=BK_NODE_APIGATEWAY_ROOT + "backend/api/plugin/create_register_task/",
+            url=BK_NODE_APIGATEWAY_ROOT + "system/backend/api/plugin/create_register_task/",
             module=self.MODULE,
             simple_module=self.SIMPLE_MODULE,
             description="创建注册任务",
@@ -178,7 +178,7 @@ class _BKNodeApi(object):
         )
         self.query_register_task = DataAPI(
             method="GET",
-            url=BK_NODE_APIGATEWAY_ROOT + "backend/api/plugin/query_register_task/",
+            url=BK_NODE_APIGATEWAY_ROOT + "system/backend/api/plugin/query_register_task/",
             module=self.MODULE,
             simple_module=self.SIMPLE_MODULE,
             description="查询插件注册任务",
@@ -187,7 +187,7 @@ class _BKNodeApi(object):
         )
         self.release = DataAPI(
             method="POST",
-            url=BK_NODE_APIGATEWAY_ROOT + "backend/api/plugin/release/",
+            url=BK_NODE_APIGATEWAY_ROOT + "system/backend/api/plugin/release/",
             module=self.MODULE,
             simple_module=self.SIMPLE_MODULE,
             description="发布（上线）插件包",
@@ -196,7 +196,7 @@ class _BKNodeApi(object):
         )
         self.package_status_operation = DataAPI(
             method="POST",
-            url=BK_NODE_APIGATEWAY_ROOT + "backend/api/plugin/package_status_operation/",
+            url=BK_NODE_APIGATEWAY_ROOT + "system/backend/api/plugin/package_status_operation/",
             module=self.MODULE,
             simple_module=self.SIMPLE_MODULE,
             description="插件包状态类操作",
@@ -205,7 +205,7 @@ class _BKNodeApi(object):
         )
         self.create_export_task = DataAPI(
             method="POST",
-            url=BK_NODE_APIGATEWAY_ROOT + "backend/api/plugin/create_export_task/",
+            url=BK_NODE_APIGATEWAY_ROOT + "system/backend/api/plugin/create_export_task/",
             module=self.MODULE,
             simple_module=self.SIMPLE_MODULE,
             description="触发插件打包导出",
@@ -214,7 +214,7 @@ class _BKNodeApi(object):
         )
         self.query_export_task = DataAPI(
             method="GET",
-            url=BK_NODE_APIGATEWAY_ROOT + "backend/api/plugin/query_export_task/",
+            url=BK_NODE_APIGATEWAY_ROOT + "system/backend/api/plugin/query_export_task/",
             module=self.MODULE,
             simple_module=self.SIMPLE_MODULE,
             description="获取一个导出任务结果",
@@ -223,7 +223,7 @@ class _BKNodeApi(object):
         )
         self.parse = DataAPI(
             method="POST",
-            url=BK_NODE_APIGATEWAY_ROOT + "backend/api/plugin/parse/",
+            url=BK_NODE_APIGATEWAY_ROOT + "system/backend/api/plugin/parse/",
             module=self.MODULE,
             simple_module=self.SIMPLE_MODULE,
             description="解析插件包",
@@ -232,7 +232,7 @@ class _BKNodeApi(object):
         )
         self.plugin_list = DataAPI(
             method="GET",
-            url=BK_NODE_APIGATEWAY_ROOT + "backend/api/plugin/",
+            url=BK_NODE_APIGATEWAY_ROOT + "system/backend/api/plugin/",
             module=self.MODULE,
             simple_module=self.SIMPLE_MODULE,
             description="插件列表",
@@ -241,7 +241,7 @@ class _BKNodeApi(object):
         )
         self.plugin_retrieve = DataAPI(
             method="GET",
-            url=BK_NODE_APIGATEWAY_ROOT + "backend/api/plugin/{plugin_id}/",
+            url=BK_NODE_APIGATEWAY_ROOT + "system/backend/api/plugin/{plugin_id}/",
             module=self.MODULE,
             simple_module=self.SIMPLE_MODULE,
             description="插件详细",
@@ -250,7 +250,7 @@ class _BKNodeApi(object):
         )
         self.plugin_status_operation = DataAPI(
             method="POST",
-            url=BK_NODE_APIGATEWAY_ROOT + "backend/api/plugin/plugin_status_operation/",
+            url=BK_NODE_APIGATEWAY_ROOT + "system/backend/api/plugin/plugin_status_operation/",
             module=self.MODULE,
             simple_module=self.SIMPLE_MODULE,
             description="插件状态类操作",
@@ -259,7 +259,7 @@ class _BKNodeApi(object):
         )
         self.plugin_history = DataAPI(
             method="GET",
-            url=BK_NODE_APIGATEWAY_ROOT + "backend/api/plugin/{plugin_id}/history/",
+            url=BK_NODE_APIGATEWAY_ROOT + "system/backend/api/plugin/{plugin_id}/history/",
             module=self.MODULE,
             simple_module=self.SIMPLE_MODULE,
             description="插件包历史",
@@ -268,7 +268,7 @@ class _BKNodeApi(object):
         )
         self.query_host_policy = DataAPI(
             method="GET",
-            url=BK_NODE_APIGATEWAY_ROOT + "backend/api/subscription/query_host_policy/",
+            url=BK_NODE_APIGATEWAY_ROOT + "system/backend/api/subscription/query_host_policy/",
             module=self.MODULE,
             simple_module=self.SIMPLE_MODULE,
             description="主机策略列表",
@@ -277,7 +277,7 @@ class _BKNodeApi(object):
         )
         self.migrate_preview = DataAPI(
             method="POST",
-            url=BK_NODE_APIGATEWAY_ROOT + "backend/api/subscription/migrate_preview/",
+            url=BK_NODE_APIGATEWAY_ROOT + "system/backend/api/subscription/migrate_preview/",
             module=self.MODULE,
             simple_module=self.SIMPLE_MODULE,
             description="变更计算预览",
@@ -286,7 +286,7 @@ class _BKNodeApi(object):
         )
         self.metric_list = DataAPI(
             method="GET",
-            url=BK_NODE_APIGATEWAY_ROOT + "backend/api/healthz/",
+            url=BK_NODE_APIGATEWAY_ROOT + "system/backend/api/healthz/",
             module=self.MODULE,
             simple_module=self.SIMPLE_MODULE,
             description="自监控指标检查",
@@ -295,7 +295,7 @@ class _BKNodeApi(object):
         )
         self.sync_task_create = DataAPI(
             method="POST",
-            url=BK_NODE_APIGATEWAY_ROOT + "backend/api/sync_task/create/",
+            url=BK_NODE_APIGATEWAY_ROOT + "system/backend/api/sync_task/create/",
             module=self.MODULE,
             simple_module=self.SIMPLE_MODULE,
             description="创建同步任务",
@@ -304,7 +304,7 @@ class _BKNodeApi(object):
         )
         self.sync_task_status = DataAPI(
             method="GET",
-            url=BK_NODE_APIGATEWAY_ROOT + "backend/api/sync_task/status/",
+            url=BK_NODE_APIGATEWAY_ROOT + "system/backend/api/sync_task/status/",
             module=self.MODULE,
             simple_module=self.SIMPLE_MODULE,
             description="查询同步任务状态",
@@ -313,7 +313,7 @@ class _BKNodeApi(object):
         )
         self.install = DataAPI(
             method="POST",
-            url=BK_NODE_APIGATEWAY_ROOT + "/api/job/install/",
+            url=BK_NODE_APIGATEWAY_ROOT + "system/api/job/install/",
             module=self.MODULE,
             simple_module=self.SIMPLE_MODULE,
             description="安装类任务",
@@ -322,7 +322,7 @@ class _BKNodeApi(object):
         )
         self.job_details = DataAPI(
             method="POST",
-            url=BK_NODE_APIGATEWAY_ROOT + "/api/job/{pk}/details/",
+            url=BK_NODE_APIGATEWAY_ROOT + "system/api/job/{pk}/details/",
             module=self.MODULE,
             simple_module=self.SIMPLE_MODULE,
             description="查询任务详情",

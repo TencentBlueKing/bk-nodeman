@@ -17,6 +17,7 @@ from django.conf import settings
 from django.utils.translation import get_language
 
 from apps.node_man import models
+from apps.utils.local import get_tenant_id
 from pipeline import builder
 from pipeline.builder.flow.base import Element
 
@@ -132,6 +133,7 @@ class Action(object, metaclass=abc.ABCMeta):
         global_pipeline_data.inputs["${blueking_language}"] = builder.Var(
             type=builder.Var.PLAIN, value=blueking_language
         )
+        global_pipeline_data.inputs["${tenant_id}"] = builder.Var(type=builder.Var.SPLICE, value=get_tenant_id())
 
     @abc.abstractmethod
     def generate_activities(

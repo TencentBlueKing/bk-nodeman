@@ -72,6 +72,7 @@ __all__ = [
     "BKAPP_AUTOMATIC_CHOICE_CLOUD_ID",
     "SYNC_APIGATEWAY_ENABLED",
     "TXY_ENDPOINT",
+    "ENABLE_MULTI_TENANT_MODE",
 ]
 
 # ===============================================================================
@@ -204,3 +205,5 @@ BKAPP_LEGACY_AUTH = get_type_env(key="BKAPP_LEGACY_AUTH", default=False, _type=b
 BK_NOTICE_ENABLED = get_type_env(key="BK_NOTICE_ENABLED", default=False, _type=bool)
 SYNC_APIGATEWAY_ENABLED = get_type_env(key="SYNC_APIGATEWAY_ENABLED", default=True, _type=bool)
 TXY_ENDPOINT = get_type_env(key="TXY_ENDPOINT", default="", _type=str)
+# 多租户开关
+ENABLE_MULTI_TENANT_MODE = get_type_env(key="ENABLE_MULTI_TENANT_MODE", default=False, _type=bool)

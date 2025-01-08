@@ -48,14 +48,18 @@ class BindHostAgentService(AgentBaseService):
         self,
         host_id__sub_inst_id_map: Dict[int, int],
         host_agent_relations: List[Dict[str, Union[int, str]]],
+        tenant_id: str,
     ) -> List[int]:
         """
         绑定 Agent 到 主机
         :param host_id__sub_inst_id_map: 主机ID - 订阅实例ID 映射
         :param host_agent_relations: 主机 Agent 绑定关系
+        :param tenant_id: 租户ID
         :return:
         """
-        CCApi.bind_host_agent({"list": host_agent_relations})
+        for sub_inst_id in host_id__sub_inst_id_map.values():
+            self.log_info(sub_inst_ids=sub_inst_id, log_content=f"tenant_id==6 {tenant_id}")
+        CCApi.bind_host_agent({"list": host_agent_relations}, tenant_id=tenant_id)
         succeed_host_ids: List[int] = []
         for host_agent_relation in host_agent_relations:
             succeed_host_ids.append(host_agent_relation["bk_host_id"])
@@ -73,22 +77,21 @@ class BindHostAgentService(AgentBaseService):
         get_config_dict_func=lambda: {"limit": 200},
     )
     @exc.ExceptionHandler(exc_handler=exc_handler)
-    def unbind_host_agent(
-        self,
-        host_agent_relations: List[Dict[str, Union[int, str]]],
-    ) -> List[int]:
+    def unbind_host_agent(self, host_agent_relations: List[Dict[str, Union[int, str]]], tenant_id: str) -> List[int]:
         """
         解除主机和 Agent 间的绑定关系
         :param host_agent_relations: 主机 Agent 绑定关系
+        :param tenant_id: 租户ID
         :return:
         """
         succeed_host_ids: List[int] = []
-        CCApi.unbind_host_agent({"list": host_agent_relations})
+        CCApi.unbind_host_agent({"list": host_agent_relations}, tenant_id=tenant_id)
         for host_agent_relation in host_agent_relations:
             succeed_host_ids.append(host_agent_relation["bk_host_id"])
         return succeed_host_ids
 
     def _execute(self, data, parent_data, common_data: AgentCommonData):
+        tenant_id: str = self.tenant_id(data)
         host_ids: List[int] = []
         agent_ids: List[str] = []
         sub_inst_ids_without_agent_id: Set[int] = set()
@@ -116,7 +119,7 @@ class BindHostAgentService(AgentBaseService):
         )
         if need_release_host_agent_relations:
             succeed_unbind_host_ids: List[int] = self.unbind_host_agent(
-                host_agent_relations=need_release_host_agent_relations
+                host_agent_relations=need_release_host_agent_relations, tenant_id=tenant_id
             )
             models.Host.objects.filter(bk_host_id__in=succeed_unbind_host_ids).update(bk_agent_id=None)
 
@@ -129,5 +132,7 @@ class BindHostAgentService(AgentBaseService):
             ]
             models.Host.objects.bulk_update(report_agent_id_hosts, fields=["bk_agent_id"])
             self.bind_host_agent(
-                host_id__sub_inst_id_map=common_data.host_id__sub_inst_id_map, host_agent_relations=host_agent_relations
+                host_id__sub_inst_id_map=common_data.host_id__sub_inst_id_map,
+                host_agent_relations=host_agent_relations,
+                tenant_id=tenant_id,
             )

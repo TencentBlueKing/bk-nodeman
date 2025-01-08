@@ -35,7 +35,7 @@ from apps.node_man.handlers.install_channel import InstallChannelHandler
 from apps.node_man.tools import JobTools
 from apps.utils import APIModel
 from apps.utils.basic import filter_values, to_int_or_default
-from apps.utils.local import get_request_username
+from apps.utils.local import get_request_username, get_tenant_id
 from apps.utils.time_tools import local_dt_str2utc_dt
 from common.api import NodeApi
 from common.api.exception import DataAPIException
@@ -149,6 +149,7 @@ class JobHandler(APIModel):
         :param params: 请求参数的字典
         :param username: 用户名
         """
+        tenant_id = get_tenant_id()
         kwargs = {
             **tools.JobTools.parse_job_list_filter_kwargs(query_params=params),
             "status__in": params.get("status"),
@@ -156,6 +157,7 @@ class JobHandler(APIModel):
             "start_time__gte": params.get("start_time"),
             "start_time__lte": params.get("end_time"),
             "is_auto_trigger": False if params.get("hide_auto_trigger_job") else None,
+            "tenant_id": tenant_id,
         }
 
         # 获得业务id与名字的映射关系(用户有权限获取的业务)
@@ -393,6 +395,7 @@ class JobHandler(APIModel):
         # 节点变量，用于后续订阅任务注册主机，安装等操作
         subscription_nodes = []
         cipher = tools.HostTools.get_asymmetric_cipher()
+        tenant_id = get_tenant_id()
         for host in accept_list:
             host_ap_id, host_node_type = self.check_ap_and_biz_scope(node_type, host, cloud_info)
             instance_info = copy.deepcopy(host)
@@ -426,6 +429,7 @@ class JobHandler(APIModel):
                     "bt_speed_limit": host.get("bt_speed_limit"),
                     "enable_compression": host.get("enable_compression"),
                     "agent_setup_extra_info": {"force_update_agent_id": host.get("force_update_agent_id", False)},
+                    "tenant_id": tenant_id,
                 }
             )
 

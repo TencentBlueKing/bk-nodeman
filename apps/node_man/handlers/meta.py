@@ -23,6 +23,7 @@ from apps.node_man.handlers.cmdb import CmdbHandler
 from apps.node_man.handlers.install_channel import InstallChannelHandler
 from apps.node_man.tools import JobTools
 from apps.utils import APIModel
+from apps.utils.local import get_tenant_id
 
 
 class MetaHandler(APIModel):
@@ -228,10 +229,12 @@ class MetaHandler(APIModel):
         获取任务历史接口的条件
         :return: Host接口所有条件
         """
+        tenant_id = get_tenant_id()
         params = params or {}
         kwargs = {
             "start_time__gte": params.get("start_time"),
             "start_time__lte": params.get("end_time"),
+            "tenant_id": tenant_id,
         }
 
         # 获得业务id与名字的映射关系(用户有权限获取的业务)

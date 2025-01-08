@@ -31,7 +31,7 @@ from apps.utils.basic import distinct_dict_list, list_slice
 from apps.utils.batch_request import batch_request
 from apps.utils.concurrent import batch_call
 from apps.utils.files import md5sum
-from apps.utils.local import get_request_username
+from apps.utils.local import get_request_username, get_tenant_id
 from common.api import CCApi, NodeApi
 
 
@@ -178,14 +178,14 @@ class PluginV2Handler:
             base_create_kwargs["system_account"] = system_account
 
         if job_type == constants.JobType.MAIN_INSTALL_PLUGIN:
-            create_data = {**base_create_kwargs, "steps": steps}
+            create_data: Dict[str, Any] = {**base_create_kwargs, "steps": steps}
             tools.PolicyTools.parse_steps(create_data, settings_key="config", simple_key="configs")
             tools.PolicyTools.parse_steps(create_data, settings_key="params", simple_key="params")
 
             create_data["steps"][0]["config"]["job_type"] = job_type
         else:
             config_templates = models.PluginConfigTemplate.objects.filter(plugin_name=plugin_name, is_main=True)
-            create_data = {
+            create_data: Dict[str, Any] = {
                 **base_create_kwargs,
                 "steps": [
                     {
@@ -232,12 +232,12 @@ class PluginV2Handler:
         :param keys: 聚合关键字
         :return: 聚合关键字 - 插件包部署信息
         """
-
-        cache_deploy_number_template = "plugin_v2:fetch_package_deploy_info:{project}:{keys_combine_str}"
+        tenant_id: str = get_tenant_id()
+        cache_deploy_number_template = "{tenant_id}:plugin_v2:fetch_package_deploy_info:{project}:{keys_combine_str}"
 
         # 以project & keys 粒度查询已缓存的数据
         cache_key__project_key_str__deploy_number_map = cache.get_many(
-            cache_deploy_number_template.format(project=project, keys_combine_str="|".join(keys))
+            cache_deploy_number_template.format(tenant_id=tenant_id, project=project, keys_combine_str="|".join(keys))
             for project in projects
         )
 
@@ -276,7 +276,9 @@ class PluginV2Handler:
         for project, project_key_str__deploy_number_map in project__key_str__deploy_number_map.items():
             # 过期时间分散设置，防止缓存雪崩
             cache.set(
-                cache_deploy_number_template.format(project=project, keys_combine_str="|".join(keys)),
+                cache_deploy_number_template.format(
+                    tenant_id=tenant_id, project=project, keys_combine_str="|".join(keys)
+                ),
                 project_key_str__deploy_number_map,
                 constants.TimeUnit.DAY + random.randint(constants.TimeUnit.DAY, 2 * constants.TimeUnit.DAY),
             )
@@ -303,7 +305,11 @@ class PluginV2Handler:
         )
         head_plugins = list(set(head_plugins + extra_plugins))
         resource_policy_qs = models.PluginResourcePolicy.objects.filter(
-            bk_biz_id=bk_biz_id, bk_obj_id=bk_obj_id, bk_inst_id=bk_inst_id, plugin_name__in=head_plugins
+            bk_biz_id=bk_biz_id,
+            bk_obj_id=bk_obj_id,
+            bk_inst_id=bk_inst_id,
+            plugin_name__in=head_plugins,
+            tenant_id=get_tenant_id(),
         )
         # 暂时只支持服务模板，需扩展时可通过bk_obj_id进一步区分
         if bk_obj_id == constants.CmdbObjectId.SERVICE_TEMPLATE:
@@ -357,7 +363,9 @@ class PluginV2Handler:
         # 查询数据库中已配置的资源策略
         plugin_name_policy_map = {
             policy.plugin_name: policy
-            for policy in models.PluginResourcePolicy.objects.filter(bk_obj_id=bk_obj_id, bk_inst_id=bk_inst_id)
+            for policy in models.PluginResourcePolicy.objects.filter(
+                bk_obj_id=bk_obj_id, bk_inst_id=bk_inst_id, tenant_id=get_tenant_id()
+            )
         }
 
         # 对比差异，得出需要重新设定的插件及主机
@@ -380,6 +388,7 @@ class PluginV2Handler:
                 bk_obj_id=bk_obj_id,
                 bk_inst_id=bk_inst_id,
                 defaults=dict(cpu=policy["cpu"], mem=policy["mem"]),
+                tenant_id=get_tenant_id(),
             )
             job_id = cls.operate(
                 job_type=constants.JobType.MAIN_RESTART_PLUGIN,
@@ -404,9 +413,9 @@ class PluginV2Handler:
     def fetch_resource_policy_status(cls, bk_biz_id: int, bk_obj_id: str) -> List[Dict[str, Union[int, bool]]]:
         """查询资源策略状态"""
         exist_policy_bk_inst_ids = list(
-            models.PluginResourcePolicy.objects.filter(bk_biz_id=bk_biz_id, bk_obj_id=bk_obj_id).values_list(
-                "bk_inst_id", flat=True
-            )
+            models.PluginResourcePolicy.objects.filter(
+                bk_biz_id=bk_biz_id, bk_obj_id=bk_obj_id, tenant_id=get_tenant_id()
+            ).values_list("bk_inst_id", flat=True)
         )
         biz_inst_ids = []
         if bk_obj_id == constants.CmdbObjectId.SERVICE_TEMPLATE:

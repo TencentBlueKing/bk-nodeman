@@ -23,10 +23,15 @@ from apps.backend.subscription.tools import (
     by_biz_dispatch_task_queue,
     get_biz_ids_gby_queue,
 )
+
+# from apps.exceptions import ApiResultError
 from apps.node_man import constants
 from apps.node_man.models import GlobalSettings, Host, ResourceWatchEvent, Subscription
+from apps.node_man.periodic_tasks.utils import get_tenant_id_list
 from apps.prometheus import metrics
 from apps.utils.cache import format_cache_key
+
+# from apps.utils.concurrent import batch_call
 from common.api import CCApi
 
 logger = logging.getLogger("app")
@@ -185,8 +190,38 @@ def _resource_watch(cursor_key, kwargs):
         bk_cursor = cache.get(cursor_key)
         if bk_cursor:
             kwargs["bk_cursor"] = bk_cursor
+        if settings.ENABLE_MULTI_TENANT_MODE:
+            data = {"bk_watched": False, "bk_events": []}
+            # 根据是否开启多租户模式请求CC
+            tenant_id_list = get_tenant_id_list()
+            for tenant_id in tenant_id_list:
+                try:
+                    tenant_event = CCApi.resource_watch(kwargs, tenant_id=tenant_id)
+                    if not tenant_event["bk_watched"]:
+                        continue
+                    data["bk_events"].extend(tenant_event["bk_events"])
+                    data["bk_watched"] = tenant_event["bk_watched"]
+                except Exception as e:
+                    logger.error(f"current tenant f{tenant_id} get cmdb resource error -> {str(e)}")
+            # 并发的写法
+            # params_list = [{"params": kwargs, "tenant_id": tenant_id} for tenant_id in tenant_id_list]
+            # try:
+            #     # 并发请求回来的数据格式为 [{"bk_events":[{},{}], "bk_watched": True}, {"bk_events":[{},{}]}, "bk_watched": False]
+            #     events_list = batch_call(func=CCApi.resource_watch, params_list=params_list)
+            #     data = {"bk_watched": False, "bk_events": []}
+            #     for event in events_list:
+            #         if not event["bk_watched"]:
+            #             continue
+            #         data["bk_events"].extend(event["bk_events"])
+            #         data["bk_watched"] = event["bk_watched"]
+            #
+            # except ApiResultError:
+            #     logger.error("get cmdb resource watch error")
+            #     return
 
-        data = CCApi.resource_watch(kwargs)
+        else:
+            data = CCApi.resource_watch(kwargs)
+
         if not data["bk_watched"]:
             # 记录最新cursor
             set_cursor(data, cursor_key)

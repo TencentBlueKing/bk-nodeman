@@ -54,14 +54,31 @@ def get_hostname():
     return _HOSTNAME
 
 
+def set_tenant_id(tenant_id):
+    _local.tenant_id = tenant_id
+
+
+def get_tenant_id():
+    try:
+        return _local.tenant_id
+    except AttributeError:
+        return "system" if settings.ENABLE_MULTI_TENANT_MODE else "default"
+
+
 def activate_request(request, request_id=None):
     """
     激活request线程变量
     """
+    from common.log import logger
+
     if not request_id:
         request_id = str(uuid.uuid4())
     request.request_id = request_id
     _local.request = request
+    header_tenant_id = request.headers.get("x-bk-tenant-id", "default")
+    logger.info("=========================[activate_request]==================")
+    logger.info(f"[activate_request] header_tenant_id:{header_tenant_id}")
+    _local.tenant_id = getattr(request.user, "tenant_id", None) or header_tenant_id or "default"
     return request
 
 

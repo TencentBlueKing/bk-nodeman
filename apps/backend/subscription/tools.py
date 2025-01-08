@@ -18,7 +18,6 @@ import os
 import pprint
 import typing
 from collections import Counter, defaultdict
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from functools import wraps
 from itertools import groupby
 from typing import Any, Dict, List, Union
@@ -119,8 +118,8 @@ def get_module_to_topo_dict(bk_biz_id: int) -> Dict:
         "module|1": ["biz|2", "set|3", "module|1"]
     }
     """
-    topo_tree = CCApi.search_biz_inst_topo({"bk_username": "admin", "bk_biz_id": bk_biz_id})
-    internal_module = CCApi.get_biz_internal_module({"bk_biz_id": bk_biz_id})
+    topo_tree = CCApi.search_biz_inst_topo({"bk_username": "admin", "bk_biz_id": bk_biz_id, "no_request": True})
+    internal_module = CCApi.get_biz_internal_module({"bk_biz_id": bk_biz_id, "no_request": True})
 
     node_relations = {}
 
@@ -268,11 +267,18 @@ def find_host_biz_relations(bk_host_ids: List[int]) -> List[Dict]:
         return []
 
     # CMDB 限制了单次查询数量，这里需分批并发请求查询
-    param_list = [
-        {"bk_host_id": bk_host_ids[count * constants.QUERY_CMDB_LIMIT : (count + 1) * constants.QUERY_CMDB_LIMIT]}
+    params_list = [
+        {
+            "params": {
+                "bk_host_id": bk_host_ids[
+                    count * constants.QUERY_CMDB_LIMIT : (count + 1) * constants.QUERY_CMDB_LIMIT
+                ],
+                "no_request": True,
+            }
+        }
         for count in range(math.ceil(len(bk_host_ids) / constants.QUERY_CMDB_LIMIT))
     ]
-    host_biz_relations = request_multi_thread(CCApi.find_host_biz_relations, param_list, get_data=lambda x: x)
+    host_biz_relations = batch_call(func=CCApi.find_host_biz_relations, params_list=params_list, extend_result=True)
     return host_biz_relations
 
 
@@ -430,7 +436,7 @@ def fetch_biz_info_map(fields: typing.Optional[typing.List[str]] = None) -> typi
     :return: 主机业务关系列表
     """
     fields = fields or ["bk_biz_id", "bk_biz_name"]
-    biz_infos: typing.List[typing.Dict] = batch_request(CCApi.search_business, {"fields": fields})
+    biz_infos: typing.List[typing.Dict] = batch_request(CCApi.search_business, {"fields": fields, "no_request": True})
     biz_infos.append({"bk_biz_id": settings.BK_CMDB_RESOURCE_POOL_BIZ_ID, "bk_biz_name": "资源池"})
 
     biz_info_map: typing.Dict[str, typing.Dict] = {str(biz_info["bk_biz_id"]): biz_info for biz_info in biz_infos}
@@ -625,8 +631,9 @@ def get_host_detail(host_info_list: list, bk_biz_id: int = None):
 
     cloud_id_name_map = models.Cloud.cloud_id_name_map(get_cache=True)
 
-    # 需要将资源池移除
-    all_biz_ids = list(set(host_biz_map.values()) - {settings.BK_CMDB_RESOURCE_POOL_BIZ_ID})
+    # TODO 需要将资源池移除
+    # all_biz_ids = list(set(host_biz_map.values()) - {settings.BK_CMDB_RESOURCE_POOL_BIZ_ID})
+    all_biz_ids = list(set(host_biz_map.values()))
     all_biz_info = fetch_biz_info(all_biz_ids)
 
     host_key_dict = {}
@@ -933,7 +940,6 @@ def get_instances_by_scope(scope: Dict[str, Union[Dict, int, Any]]) -> Dict[str,
         bk_obj_id_set = check_instances_object_type(nodes)
         if scope["object_type"] == models.Subscription.ObjectType.HOST:
             # 补充实例所属模块ID
-            host_biz_relations = []
             instances.extend(
                 [
                     {"host": inst}
@@ -941,14 +947,10 @@ def get_instances_by_scope(scope: Dict[str, Union[Dict, int, Any]]) -> Dict[str,
                 ]
             )
             bk_host_id_chunks = chunk_lists([instance["host"]["bk_host_id"] for instance in instances], 500)
-            with ThreadPoolExecutor(max_workers=settings.CONCURRENT_NUMBER) as ex:
-                tasks = [
-                    ex.submit(CCApi.find_host_biz_relations, dict(bk_host_id=chunk, bk_biz_id=bk_biz_id))
-                    for chunk in bk_host_id_chunks
-                ]
-                for future in as_completed(tasks):
-                    host_biz_relations.extend(future.result())
-
+            params_list = [{"bk_host_id": chunk, "bk_biz_id": bk_biz_id} for chunk in bk_host_id_chunks]
+            host_biz_relations = batch_call(
+                func=CCApi.find_host_biz_relations, params_list=params_list, extend_result=True
+            )
             # 转化模板为节点
             nodes = set_template_scope_nodes(scope)
             instances = add_host_module_info(host_biz_relations, instances)

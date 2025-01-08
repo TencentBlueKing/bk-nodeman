@@ -283,6 +283,7 @@ class Host(models.Model):
     dept_name = models.CharField(_("运维部门"), max_length=128, db_index=True, blank=True, null=True, default="")
 
     extra_data = JSONField(_("额外数据"), blank=True, null=True, default=dict)
+    tenant_id = models.CharField(_("租户ID"), default="default", max_length=64, null=True, blank=True, db_index=True)
 
     @classmethod
     def get_by_host_info(cls, host_info):
@@ -515,6 +516,7 @@ class ProcessStatus(models.Model):
     retry_times = models.IntegerField("重试次数", default=0)
     bk_obj_id = models.CharField(_("CMDB对象ID"), max_length=32, default=None, null=True)
     is_latest = models.BooleanField(_("是否是最新记录"), default=False)
+    tenant_id = models.CharField(_("租户ID"), default="default", max_length=64, null=True, blank=True, db_index=True)
 
     @classmethod
     def hosts_agent_status_map(cls, bk_host_ids: List[int]) -> Dict[int, str]:
@@ -758,6 +760,7 @@ class Cloud(models.Model):
 
     is_visible = models.BooleanField(_("是否可见"), default=True)
     is_deleted = models.BooleanField(_("是否删除"), default=False)
+    tenant_id = models.CharField(_("租户ID"), default="default", max_length=64, null=True, blank=True, db_index=True)
 
     @classmethod
     @FuncCacheDecorator(cache_time=20 * constants.TimeUnit.SECOND)
@@ -883,6 +886,7 @@ class Job(export_job_prometheus_mixin(), models.Model):
     bk_biz_scope = JSONField(_("业务范围"), default=dict)
     error_hosts = JSONField(_("发生错误的主机"), default=dict)
     is_auto_trigger = models.BooleanField(_("是否为自动触发"), default=False)
+    tenant_id = models.CharField(_("租户ID"), default="default", max_length=64, null=True, blank=True, db_index=True)
 
     class Meta:
         verbose_name = _("任务信息（Job）")
@@ -1599,6 +1603,7 @@ class PluginResourcePolicy(models.Model):
     bk_inst_id = models.IntegerField(_("CMDB实例ID"), db_index=True)
     created_at = models.DateTimeField(_("创建时间"), auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(_("更新时间"), auto_now=True, db_index=True)
+    tenant_id = models.CharField(_("租户ID"), default="default", max_length=64, null=True, blank=True, db_index=True)
 
     class Meta:
         verbose_name = _("插件资源设置")
@@ -1872,6 +1877,7 @@ class Subscription(export_subscription_prometheus_mixin(), orm.SoftDeleteModel):
     plugin_name = models.CharField(_("插件名称"), max_length=64, null=True, blank=True, db_index=True)
     bk_biz_scope = JSONField(_("业务范围"), default=list)
     operate_info = JSONField(_("操作信息"), default=None, null=True)
+    tenant_id = models.CharField(_("租户ID"), default="default", max_length=64, null=True, blank=True, db_index=True)
 
     pid = models.BigIntegerField(_("父订阅ID"), default=ROOT, db_index=True)
 

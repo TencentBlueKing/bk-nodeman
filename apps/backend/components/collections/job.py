@@ -19,6 +19,7 @@ from typing import Any, Callable, Dict, List, Optional, Set, Union
 
 import six
 from django.conf import settings
+from django.db.models import QuerySet
 from django.utils.translation import gettext_lazy as _
 
 from apps.backend.api.constants import POLLING_INTERVAL
@@ -209,14 +210,19 @@ class JobV3BaseService(six.with_metaclass(abc.ABCMeta, BaseService)):
                 )
                 log = f"{log}, 请求参数为：\n {api_params_log}"
 
-            self.log_info(
-                subscription_instance_id,
-                _('{log}\n作业任务ID为 [{job_instance_id}]，点击跳转到 <a href="{link}" target="_blank">[作业平台]</a>').format(
-                    log=log,
-                    job_instance_id=job_instance_id,
-                    link=f"{settings.BK_JOB_HOST}/api_execute/{job_instance_id}",
-                ),
-            )
+            if settings.ENABLE_MULTI_TENANT_MODE:
+                self.log_info(
+                    subscription_instance_id, log_content=_(f"作业任务ID为{job_instance_id},等待作业执行完成,如有执行异常,展示错误日志.")
+                )
+            else:
+                self.log_info(
+                    subscription_instance_id,
+                    _('{log}\n作业任务ID为 [{job_instance_id}]，点击跳转到 <a href="{link}" target="_blank">[作业平台]</a>').format(
+                        log=log,
+                        job_instance_id=job_instance_id,
+                        link=f"{settings.BK_JOB_HOST}/api_execute/{job_instance_id}",
+                    ),
+                )
         return []
 
     def generate_api_params_log(
@@ -241,14 +247,15 @@ class JobV3BaseService(six.with_metaclass(abc.ABCMeta, BaseService)):
         :param meta: 注入实例的meta信息
         :return: succeed_sub_inst_ids
         """
+        job_instance_id = job_sub_map.job_instance_id
         ip_results = JobApi.get_job_instance_status(
             {
                 **meta,
-                "job_instance_id": job_sub_map.job_instance_id,
+                "job_instance_id": job_instance_id,
                 "return_ip_result": True,
             }
         )
-
+        step_instance_id = ip_results["step_instance_list"][0]["step_instance_id"]
         # 构造主机作业状态映射表
         host_key_status_map: Dict[str, Dict] = {}
         for ip_result in ip_results["step_instance_list"][0].get("step_ip_result_list") or []:
@@ -259,6 +266,7 @@ class JobV3BaseService(six.with_metaclass(abc.ABCMeta, BaseService)):
                 host_key_status_map[f'{ip_result["bk_cloud_id"]}-{ip_result["ip"]}'] = ip_result
 
         succeed_sub_inst_ids: List[int] = []
+        failed_sub_inst_ids: List[int] = []
         subscription_instances = models.SubscriptionInstanceRecord.objects.filter(
             id__in=job_sub_map.subscription_instance_ids
         )
@@ -302,9 +310,12 @@ class JobV3BaseService(six.with_metaclass(abc.ABCMeta, BaseService)):
                 err_msg=constants.BkJobErrorCode.BK_JOB_ERROR_CODE_MAP.get(err_code),
             )
             if ip_status != constants.BkJobIpStatus.SUCCEEDED:
+                failed_sub_inst_ids.append(sub_inst.id)
                 self.move_insts_to_failed([sub_inst.id], _("作业平台执行失败: {err_msg}").format(err_msg=err_msg))
             else:
                 succeed_sub_inst_ids.append(sub_inst.id)
+        if failed_sub_inst_ids:
+            self.get_job_execute_log(meta, failed_sub_inst_ids, job_instance_id, step_instance_id)
         return succeed_sub_inst_ids
 
     def request_get_job_instance_status(self, job_sub_map: models.JobSubscriptionInstanceMap, meta: Dict[str, Any]):
@@ -471,6 +482,47 @@ class JobV3BaseService(six.with_metaclass(abc.ABCMeta, BaseService)):
 
     def get_job_param_os_type(self, host: models.Host) -> str:
         return host.os_type
+
+    def get_job_execute_log(
+        self, meta: Dict[str, Any], subscription_instance_ids: List[int], job_instance_id: int, step_instance_id: int
+    ):
+        """获取job作业执行日志"""
+        if not settings.ENABLE_MULTI_TENANT_MODE:
+            return
+        sub_inst_qs: QuerySet[models.SubscriptionInstanceRecord] = models.SubscriptionInstanceRecord.objects.filter(
+            id__in=subscription_instance_ids
+        )
+        host_id_list = []
+        host_id__sub_inst_id = {}
+        for sub_inst in sub_inst_qs:
+            host_id = sub_inst.instance_info["host"]["bk_host_id"]
+            host_id_list.append(host_id)
+            host_id__sub_inst_id[host_id] = sub_inst.id
+        request_batch_get_job_instance_ip_log_params = {
+            **meta,
+            "job_instance_id": job_instance_id,
+            "step_instance_id": step_instance_id,
+            "host_id_list": host_id_list,
+        }
+        batch_log_content: Dict[str, Any] = JobApi.batch_get_job_instance_ip_log(
+            request_batch_get_job_instance_ip_log_params
+        )
+        script_task_logs: List[Dict[str, Any]] = batch_log_content["script_task_logs"]
+        file_task_logs: List[Dict[str, Any]] = batch_log_content["file_task_logs"]
+
+        if script_task_logs:
+            for script_task_log in script_task_logs:
+                host_id = script_task_log["host_id"]
+                log_content = script_task_log["log_content"]
+                self.log_info(sub_inst_ids=host_id__sub_inst_id[host_id], log_content=log_content)
+
+        elif file_task_logs:
+            for file_task_log in file_task_logs:
+                bk_host_id = file_task_log["bk_host_id"]
+                file_logs: [List, Dict[str, Any]] = file_task_log["file_logs"]
+                for file_log in file_logs:
+                    log_content = file_log["log_content"]
+                    self.log_info(sub_inst_ids=host_id__sub_inst_id[bk_host_id], log_content=log_content)
 
 
 class JobExecuteScriptService(JobV3BaseService, metaclass=abc.ABCMeta):

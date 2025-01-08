@@ -503,6 +503,7 @@ class ChooseAccessPointService(AgentBaseService, remote.RemoteServiceMixin):
         return sub_inst_ids__gby_log
 
     def _execute(self, data, parent_data, common_data: AgentCommonData):
+        tenant_id = self.tenant_id(data)
         ap_id_obj_map = common_data.ap_id_obj_map
         host_id_obj_map = common_data.host_id_obj_map
         ap_objs = models.AccessPoint.objects.all()
@@ -536,6 +537,7 @@ class ChooseAccessPointService(AgentBaseService, remote.RemoteServiceMixin):
         pagent_host_ids__gby_cloud_id: Dict[int, List[int]] = defaultdict(list)
 
         for sub_inst in common_data.subscription_instances:
+            self.log_info(sub_inst_ids=sub_inst.id, log_content=f"tenant_id==2 {tenant_id}")
             bk_host_id = sub_inst.instance_info["host"]["bk_host_id"]
             host: Optional[models.Host] = self.get_host(common_data, bk_host_id)
             if not host:

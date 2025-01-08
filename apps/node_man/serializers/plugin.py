@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from django.conf import settings
 from django.utils.translation import get_language
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
@@ -32,6 +33,7 @@ from apps.node_man.models import (
     ProcessStatus,
 )
 from apps.node_man.serializers import base
+from apps.utils.local import get_tenant_id
 
 
 class GsePluginSerializer(serializers.ModelSerializer):
@@ -268,6 +270,7 @@ class OperateSerializer(serializers.Serializer):
         if attrs.get("exclude_hosts") is None and attrs.get("bk_host_id") is None:
             raise ValidationError(_("必须选择一种模式(【是否跨页全选】)"))
         if attrs.get("bk_host_id") and not attrs.get("exclude_hosts"):
+            self.isolate_tenant_operate(attrs["bk_host_id"])
             exist_host_ids = set(
                 Host.objects.filter(bk_host_id__in=attrs["bk_host_id"]).values_list("bk_host_id", flat=True)
             )
@@ -283,3 +286,14 @@ class OperateSerializer(serializers.Serializer):
         if len(plugin_names) != len(set(plugin_names)):
             raise ValidationError(_("不允许选择重复的插件进行操作"))
         return attrs
+
+    @staticmethod
+    def isolate_tenant_operate(bk_host_id_list):
+        if not settings.ENABLE_MULTI_TENANT_MODE:
+            return
+        tenant_id: str = get_tenant_id()
+        tenant_id_set: set = set(
+            Host.objects.filter(bk_host_id__in=bk_host_id_list).values_list("tenant_id", flat=True)
+        )
+        if not all(tenant_id == host_tenant for host_tenant in tenant_id_set):
+            raise ValidationError(_("参数中传递的主机ID包含不属于当前租户的主机ID,请核对再试!"))

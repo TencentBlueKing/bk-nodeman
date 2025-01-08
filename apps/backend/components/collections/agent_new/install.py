@@ -170,13 +170,15 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
         get_config_dict_func=core.get_config_dict,
         get_config_dict_kwargs={"config_name": core.ServiceCCConfigName.JOB_CMD.value},
     )
-    def handle_non_lan_inst(self, install_sub_inst_objs: List[InstallSubInstObj], bk_biz_id: int) -> List[int]:
+    def handle_non_lan_inst(
+        self, install_sub_inst_objs: List[InstallSubInstObj], job_meta: Dict[str, Any]
+    ) -> List[int]:
         """处理跨云机器，通过执行作业平台脚本来操作"""
         params_list = [
             {
                 "sub_inst_id": install_sub_inst_obj.sub_inst_id,
                 "installation_tool": install_sub_inst_obj.installation_tool,
-                "bk_biz_id": bk_biz_id,
+                "job_meta": job_meta,
             }
             for install_sub_inst_obj in install_sub_inst_objs
         ]
@@ -295,6 +297,7 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
         return concurrent.batch_call_coroutine(func=self.execute_shell_solution_async, params_list=params_list)
 
     def _execute(self, data, parent_data, common_data: base.AgentCommonData):
+        tenant_id = self.tenant_id(data)
         host_id__sub_inst_id = {
             host_id: sub_inst_id for sub_inst_id, host_id in common_data.sub_inst_id__host_id_map.items()
         }
@@ -309,6 +312,10 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
             self.log_info(
                 sub_inst_ids=sub_inst_id,
                 log_content=_(f"选择的安装通道为: {install_channel_name}"),
+            )
+            self.log_info(
+                sub_inst_ids=sub_inst_id,
+                log_content=_(f"tenant_id==3 {tenant_id}"),
             )
         is_uninstall = data.get_one_of_inputs("is_uninstall")
         host_id_obj_map = common_data.host_id_obj_map
@@ -394,9 +401,8 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
 
         if non_lan_sub_inst:
             job_meta: Dict[str, Any] = self.get_job_meta(data)
-            bk_biz_id: int = job_meta["bk_biz_id"]
             succeed_non_lan_inst_ids = self.handle_non_lan_inst(
-                install_sub_inst_objs=non_lan_sub_inst, bk_biz_id=bk_biz_id
+                install_sub_inst_objs=non_lan_sub_inst, job_meta=job_meta
             )
         else:
             succeed_non_lan_inst_ids = []
@@ -575,7 +581,7 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
         # 不统计异常耗时
         include_exception_histogram=False,
     )
-    def execute_job_commands(self, sub_inst_id, installation_tool: InstallationTools, bk_biz_id: int):
+    def execute_job_commands(self, sub_inst_id, installation_tool: InstallationTools, job_meta: Dict[str, Any]):
         # p-agent 走 作业平台，再 ssh 到 p-agent，这样可以无需保存 proxy 密码
         host = installation_tool.host
         jump_server = installation_tool.jump_server
@@ -604,7 +610,7 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
             constants.CommonExecutionSolutionType.SHELL.value
         ]
         kwargs = {
-            "bk_biz_id": bk_biz_id,
+            **job_meta,
             "task_name": f"NODEMAN_{sub_inst_id}_{self.__class__.__name__}",
             "target_server": target_server,
             "timeout": constants.JOB_TIMEOUT,
@@ -616,13 +622,16 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
         }
         data = self.rolling_request_job(sub_inst_id, JobApi.fast_execute_script, kwargs)
         job_instance_id = data.get("job_instance_id")
-        self.log_info(
-            sub_inst_ids=sub_inst_id,
-            log_content=_('作业任务ID为[{job_instance_id}]，点击跳转到<a href="{link}" target="_blank">[作业平台]</a>').format(
-                job_instance_id=job_instance_id,
-                link=f"{settings.BK_JOB_HOST}/api_execute/{job_instance_id}",
-            ),
-        )
+        if settings.ENABLE_MULTI_TENANT_MODE:
+            self.log_info(sub_inst_ids=sub_inst_id, log_content=f"作业任务ID为{job_instance_id},等待作业执行完成并输出日志")
+        else:
+            self.log_info(
+                sub_inst_ids=sub_inst_id,
+                log_content=_('作业任务ID为[{job_instance_id}]，点击跳转到<a href="{link}" target="_blank">[作业平台]</a>').format(
+                    job_instance_id=job_instance_id,
+                    link=f"{settings.BK_JOB_HOST}/api_execute/{job_instance_id}",
+                ),
+            )
         name = REDIS_INSTALL_CALLBACK_KEY_TPL.format(sub_inst_id=sub_inst_id)
         REDIS_INST.lpush(
             name,
@@ -636,7 +645,6 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
                         "1. P-Agent({host_inner_ip}) 到 Proxy({jump_server_ip})"
                         " 的 {download_port}、{proxy_pass_port} 是否可连通。 \n"
                         "2. Proxy是否已正确完成所有安装步骤且状态正常。 \n"
-                        "3. 点击上面链接跳转到作业平台查看任务执行情况。\n"
                     ).format(
                         host_inner_ip=host.inner_ip or host.inner_ipv6,
                         jump_server_ip=jump_server.inner_ip or host.inner_ipv6,
@@ -644,7 +652,7 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
                         proxy_pass_port=settings.BK_NODEMAN_NGINX_PROXY_PASS_PORT,
                     ),
                     "status": "-",
-                    "job_status_kwargs": {"bk_biz_id": bk_biz_id, "job_instance_id": job_instance_id},
+                    "job_status_kwargs": {"bk_biz_id": job_meta["bk_scope_id"], "job_instance_id": job_instance_id},
                     "prefix": "job",
                 }
             ),
@@ -891,6 +899,7 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
     def _schedule(self, data, parent_data, callback_data=None):
         """通过轮询redis的方式来处理，避免使用callback的方式频繁调用schedule"""
         common_data = self.get_common_data(data)
+        tenant_id: str = self.tenant_id(data)
         success_callback_step = data.get_one_of_inputs("success_callback_step")
         # 与上一轮次的订阅实例ID取交集，确保本轮次需执行的订阅实例ID已排除手动终止的情况
         scheduling_sub_inst_ids = (
@@ -942,7 +951,9 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
                 os_version__host_id_map[os_version].append(bk_host_id)
         # 批量更新CPU架构并且上报至CMDB
         self.update_db_and_report_cpu_arch(
-            host_info_list=host_info_list, host_id__sub_inst_id_map=common_data.host_id__sub_inst_id_map
+            host_info_list=host_info_list,
+            host_id__sub_inst_id_map=common_data.host_id__sub_inst_id_map,
+            tenant_id=tenant_id,
         )
 
         # 批量更新主机操作系统版本号
@@ -984,11 +995,12 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
     @ExceptionHandler(exc_handler=core.update_cpu_arch_sub_insts_task_exc_handler)
     @RetryHandler(interval=3, retry_times=2, exception_types=[ApiResultError])
     def update_db_and_report_cpu_arch(
-        self, host_info_list: List[Dict[str, Any]], host_id__sub_inst_id_map: Dict[int, int]
+        self, host_info_list: List[Dict[str, Any]], host_id__sub_inst_id_map: Dict[int, int], tenant_id: str
     ):
         """
         :param host_info_list: 包含bk_host_id与cpu_arch字段的主机信息列表
         :param host_id__sub_inst_id_map:主机ID与订阅实例ID的映射
+        :param tenant_id: 租户ID
         return:
         """
         update_list: List[Dict[str, Any]] = []
@@ -1006,6 +1018,7 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
                     "bk_os_bit": constants.OsBitType.cpu_type__os_bit_map()[report_cpu_arch],
                 },
             }
+            self.log_info(sub_inst_ids=sub_inst_id, log_content=f"tenant_id==5 {tenant_id}")
             self.log_info(
                 sub_inst_ids=sub_inst_id,
                 log_content=_("更新 CMDB 主机信息:\n {params}").format(params=json.dumps(update_params, indent=2)),
@@ -1016,5 +1029,5 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
         for cpu_arch, bk_host_ids in cpu_arch__host_id_map.items():
             models.Host.objects.filter(bk_host_id__in=bk_host_ids).update(cpu_arch=cpu_arch)
 
-        CCApi.batch_update_host({"update": update_list})
+        CCApi.batch_update_host({"update": update_list}, tenant_id=tenant_id)
         return []

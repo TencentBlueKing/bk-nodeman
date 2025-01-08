@@ -23,11 +23,10 @@ class _CCApi(BaseApi):
     def __init__(self):
         self.search_business = DataAPI(
             method="POST",
-            url=CC_APIGATEWAY_ROOT_V2 + "biz/search/{bk_supplier_account}/",
+            url=CC_APIGATEWAY_ROOT_V2 + "biz/search/0/",
             module=self.MODULE,
             simple_module=self.SIMPLE_MODULE,
             description="查询业务列表",
-            before_request=add_esb_info_before_request,
             api_name="search_business",
         )
         self.search_cloud_area = DataAPI(
@@ -45,16 +44,14 @@ class _CCApi(BaseApi):
             module=self.MODULE,
             simple_module=self.SIMPLE_MODULE,
             description="查询业务实例拓扑",
-            before_request=add_esb_info_before_request,
             api_name="search_biz_inst_topo",
         )
         self.get_biz_internal_module = DataAPI(
-            method="POST",
-            url=CC_APIGATEWAY_ROOT_V2 + "topo/internal/{bk_supplier_account}/{bk_biz_id}/",
+            method="GET",
+            url=CC_APIGATEWAY_ROOT_V2 + "topo/internal/0/{bk_biz_id}/",
             module=self.MODULE,
             simple_module=self.SIMPLE_MODULE,
             description="根据业务ID获取业务空闲机, 故障机和待回收模块",
-            before_request=add_esb_info_before_request,
             api_name="get_biz_internal_module",
         )
         self.find_topo_node_paths = DataAPI(
@@ -81,7 +78,6 @@ class _CCApi(BaseApi):
             module=self.MODULE,
             simple_module=self.SIMPLE_MODULE,
             description="没有业务ID的主机查询",
-            before_request=add_esb_info_before_request,
             api_name="list_hosts_without_biz",
         )
         self.list_biz_hosts = DataAPI(
@@ -90,7 +86,6 @@ class _CCApi(BaseApi):
             module=self.MODULE,
             simple_module=self.SIMPLE_MODULE,
             description="带业务的主机查询",
-            before_request=add_esb_info_before_request,
             api_name="list_biz_hosts",
         )
         self.list_service_template = DataAPI(
@@ -140,7 +135,7 @@ class _CCApi(BaseApi):
         )
         self.search_set = DataAPI(
             method="POST",
-            url=CC_APIGATEWAY_ROOT_V2 + "set/search/{bk_supplier_account}/{bk_biz_id}/",
+            url=CC_APIGATEWAY_ROOT_V2 + "set/search/0/{bk_biz_id}/",
             module=self.MODULE,
             simple_module=self.SIMPLE_MODULE,
             description="查询集群",
@@ -149,7 +144,7 @@ class _CCApi(BaseApi):
         )
         self.search_module = DataAPI(
             method="POST",
-            url=CC_APIGATEWAY_ROOT_V2 + "module/search/{bk_supplier_account}/{bk_biz_id}/{bk_set_id}/",
+            url=CC_APIGATEWAY_ROOT_V2 + "module/search/0/{bk_biz_id}/0/",
             module=self.MODULE,
             simple_module=self.SIMPLE_MODULE,
             description="查询模块",
@@ -180,7 +175,6 @@ class _CCApi(BaseApi):
             module=self.MODULE,
             simple_module=self.SIMPLE_MODULE,
             description="查询主机业务关系信息",
-            before_request=add_esb_info_before_request,
             api_name="find_host_biz_relations",
         )
         self.batch_update_host = DataAPI(
@@ -265,7 +259,7 @@ class _CCApi(BaseApi):
             api_name="add_host_to_resource",
         )
         self.get_mainline_object_topo = DataAPI(
-            method="GET",
+            method="POST",
             url=CC_APIGATEWAY_ROOT_V2 + "find/topomodelmainline/",
             module=self.MODULE,
             simple_module=self.SIMPLE_MODULE,
@@ -369,6 +363,14 @@ class _CCApi(BaseApi):
             module=self.MODULE,
             simple_module=self.SIMPLE_MODULE,
             description="查询拓扑节点下的主机",
-            before_request=add_esb_info_before_request,
             api_name="find_host_by_topo",
+        )
+        self.find_host_service_template = DataAPI(
+            method="POST",
+            url=CC_APIGATEWAY_ROOT_V2 + "findmany/hosts/service_template/",
+            module=self.MODULE,
+            simple_module=self.SIMPLE_MODULE,
+            description="查询主机服务模板",
+            before_request=add_esb_info_before_request,
+            api_name="find_host_service_template",
         )

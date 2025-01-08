@@ -10,8 +10,10 @@ specific language governing permissions and limitations under the License.
 """
 from typing import Any, Dict, Optional
 
+from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 
+from apps.node_man.constants import BkJobScopeType
 from apps.utils.md5 import count_md5
 from common.api import JobApi
 
@@ -25,6 +27,14 @@ def get_valid_storage_alias(storage_type: str) -> str:
             _("storage_type must be one of {choices}").format(choices={constants.StorageType.list_choices()})
         )
     return storage_type_alias
+
+
+def get_bk_scope_type() -> str:
+    """返回JobAPi所需的bk_scope_type"""
+    bk_scope_type = (
+        BkJobScopeType.TENANT_SET.value if settings.ENABLE_MULTI_TENANT_MODE else BkJobScopeType.BIZ_SET.value
+    )
+    return bk_scope_type
 
 
 class BkJobFileCredentialManager:
@@ -77,9 +87,10 @@ class BkJobFileCredentialManager:
         name = cls.gen_credential_name(storage_type=storage_type)
         description = cls.gen_credential_description(bk_biz_id=bk_biz_id, storage_type=storage_type)
 
-        # 交给作业平台执行参数校验，无需冗余校验
+        # 交给作业平台执行参数校验，无需冗余校验;多租户版本后废弃了bk_biz_id参数
         create_credential_query_params = {
-            "bk_biz_id": bk_biz_id,
+            "bk_scope_id": bk_biz_id,
+            "bk_scope_type": get_bk_scope_type(),
             "type": credential_type,
             "name": name,
             "description": description,
@@ -183,10 +194,11 @@ class BkJobFileSourceManager:
 
         code = cls.gen_file_source_code(storage_type=credential.storage_type)
         alias = cls.gen_file_source_alias(bk_biz_id=credential.bk_biz_id, storage_type=credential.storage_type)
-
+        # 多租户版本后废弃了bk_biz_id参数
         create_file_source_query_params = {
             "type": credential.storage_type,
-            "bk_biz_id": credential.bk_biz_id,
+            "bk_scope_id": credential.bk_biz_id,
+            "bk_scope_type": get_bk_scope_type(),
             "credential_id": credential.credential_id,
             "code": code,
             "alias": alias,

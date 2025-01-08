@@ -45,6 +45,7 @@ from apps.prometheus import metrics
 from apps.prometheus.helper import SetupObserve
 from apps.utils import cache, time_handler, translation
 from apps.utils.exc import ExceptionHandler
+from apps.utils.local import get_tenant_id, set_tenant_id
 from pipeline.core.flow import Service
 
 logger = logging.getLogger("celery")
@@ -365,9 +366,19 @@ class BaseService(Service, LogMixin, DBHelperMixin, PollingTimeoutMixin):
     @staticmethod
     def get_job_meta(data) -> Dict[str, Any]:
         meta: Dict[str, Any] = data.get_one_of_inputs("meta", {})
+        if settings.ENABLE_MULTI_TENANT_MODE:
+            scope_id = meta.get("SCOPE_ID", settings.TENANT_BLUEKING_SCOPE_ID)
+            scope_type = meta.get("SCOPE_TYPE", constants.BkJobScopeType.TENANT_SET.value)
+            return {"bk_scope_type": scope_type, "bk_scope_id": scope_id}
+
         scope_id = meta.get("SCOPE_ID", settings.BLUEKING_BIZ_ID)
         scope_type = meta.get("SCOPE_TYPE", constants.BkJobScopeType.BIZ_SET.value)
-        return {"bk_biz_id": scope_id, "bk_scope_type": scope_type, "bk_scope_id": scope_id}
+        return {"bk_scope_type": scope_type, "bk_scope_id": scope_id}
+
+    @staticmethod
+    def tenant_id(data):
+        tenant_id = data.get_one_of_inputs("tenant_id", None) or get_tenant_id()
+        return tenant_id
 
     @classmethod
     def handle_deleted_host_ids(
@@ -570,6 +581,7 @@ class BaseService(Service, LogMixin, DBHelperMixin, PollingTimeoutMixin):
         common_data = self.get_common_data(data)
         act_name = data.get_one_of_inputs("act_name")
         act_type = data.get_one_of_inputs("act_type")
+        set_tenant_id(self.tenant_id(data))
         if act_type in [ActivityType.HEAD, ActivityType.HEAD_TAIL]:
             logger.info(
                 "[sub_lifecycle<sub(%s), task(%s)>][engine] enter",

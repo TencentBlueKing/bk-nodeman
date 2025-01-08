@@ -17,6 +17,7 @@ from django.db.models.functions import Concat
 from apps.node_man import constants as node_man_constants
 from apps.node_man import models as node_man_models
 from apps.utils import basic, concurrent, string
+from apps.utils.local import get_tenant_id
 
 from .. import constants, types
 from ..query import resource
@@ -193,6 +194,7 @@ class HostQuerySqlHelper:
         :param extra_wheres: 额外的查询条件
         :return: 根据条件查询的所有结果
         """
+        tenant_id = get_tenant_id()
         select: typing.Dict[str, str] = {
             "status": f"{node_man_models.ProcessStatus._meta.db_table}.status",
             "version": f"{node_man_models.ProcessStatus._meta.db_table}.version",
@@ -348,7 +350,9 @@ class HostQuerySqlHelper:
 
         host_queryset: QuerySet = (
             node_man_models.Host.objects.filter(
-                node_type__in=cls.fetch_match_node_types(is_proxy, return_all_node_type), bk_biz_id__in=final_biz_scope
+                node_type__in=cls.fetch_match_node_types(is_proxy, return_all_node_type),
+                bk_biz_id__in=final_biz_scope,
+                tenant_id=tenant_id,
             )
             .extra(
                 select=select, tables=[node_man_models.ProcessStatus._meta.db_table], where=wheres, params=sql_params
