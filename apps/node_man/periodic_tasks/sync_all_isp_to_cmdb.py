@@ -13,7 +13,6 @@ from typing import Any, Dict, List
 
 from celery import current_app
 
-from apps.exceptions import ComponentCallError
 from apps.node_man import constants
 from apps.node_man.models import Cloud, GlobalSettings
 from apps.utils.basic import chunk_lists
@@ -28,18 +27,21 @@ def sync_all_isp_to_cmdb(task_id):
         key=GlobalSettings.KeyEnum.CMDB_INTERNAL_CLOUD_IDS.value,
         default=[constants.DEFAULT_CLOUD, constants.UNASSIGNED_CLOUD_ID],
     )
-    cloud_info: List[Dict[str, Any]] = list(Cloud.objects.values("bk_cloud_id", "isp"))
-    # 分片请求：一次五十条
+    cloud_info: List[Dict[str, Any]] = list(Cloud.objects.values("bk_cloud_id", "isp", "tenant_id"))
+    # 分片请求：一次一百条条
     for chunk_clouds in chunk_lists(cloud_info, constants.UPDATE_CMDB_CLOUD_AREA_LIMIT):
         for cloud in chunk_clouds:
             bk_cloud_id: int = cloud["bk_cloud_id"]
             if bk_cloud_id in cmdb_internal_cloud_ids:
                 continue
             bk_cloud_vendor: str = constants.CMDB_CLOUD_VENDOR_MAP.get(cloud["isp"])
+            tenant_id: str = cloud["tenant_id"]
             try:
-                CCApi.update_cloud_area({"bk_cloud_id": bk_cloud_id, "bk_cloud_vendor": bk_cloud_vendor})
-            except ComponentCallError as e:
-                logger.error("call update_cloud_area bk_cloud_id -> %s error -> %s" % (bk_cloud_id, e.message))
+                CCApi.update_cloud_area(
+                    {"bk_cloud_id": bk_cloud_id, "bk_cloud_vendor": bk_cloud_vendor}, tenant_id=tenant_id
+                )
+            except Exception as e:
+                logger.exception("call update_cloud_area bk_cloud_id -> %s error -> %s" % (bk_cloud_id, e))
                 # 后续统一云区域操作管理，打平数量nodeman==cmdb；云区域不存在则跳过,
                 continue
         # 休眠1秒避免一次性全量请求导致接口超频

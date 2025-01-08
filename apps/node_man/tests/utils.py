@@ -1177,11 +1177,12 @@ class MockPermission(object):
 
 
 class MockIAM(object):
-    def __init__(self, app_code, secret_key, bk_iam_inner_host, bk_component_api_url):
+    def __init__(self, app_code, secret_key, bk_iam_inner_host, bk_component_api_url, bk_iam_apigw):
         self.app_code = app_code
         self.secret_key = secret_key
         self.bk_iam_inner_host = bk_iam_inner_host
         self.bk_component_api_url = bk_component_api_url
+        self.bk_iam_apigw = bk_iam_apigw
 
     class _client:
         @staticmethod

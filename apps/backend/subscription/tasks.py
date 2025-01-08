@@ -18,7 +18,9 @@ from copy import deepcopy
 from functools import wraps
 from typing import Any, Dict, List, Optional, Set, Union
 
-from django.db.models import Value
+from celery import Task
+from celery.utils import abstract
+from django.db.models import QuerySet, Value
 from django.utils.translation import gettext as _
 
 from apps.backend.celery import app
@@ -36,6 +38,7 @@ from apps.node_man import tools as node_man_tools
 from apps.node_man.handlers.cmdb import CmdbHandler
 from apps.prometheus import metrics
 from apps.utils import md5, translation
+from apps.utils.local import get_tenant_id, set_tenant_id
 from pipeline import builder
 from pipeline.builder import Data, NodeOutput, ServiceActivity, Var
 from pipeline.core.pipeline import Pipeline
@@ -43,6 +46,13 @@ from pipeline.parser import PipelineParser
 from pipeline.service import task_service
 
 logger = logging.getLogger("app")
+
+
+@abstract.CallableTask.register
+class TenantTask(Task):
+    def delay(self, *args, **kwargs):
+        kwargs["tenant_id"] = get_tenant_id()
+        return super().delay(*args, **kwargs)
 
 
 def mark_acts_tail_and_head(activities: List[ServiceActivity]) -> None:
@@ -277,6 +287,7 @@ def create_task_transaction(create_task_func):
             subscription_task,
         )
         try:
+            set_tenant_id(kwargs.pop("tenant_id", None) or get_tenant_id())
             func_return = create_task_func(subscription, subscription_task, *args, **kwargs)
         except Exception as err:
             logger.exception(
@@ -316,7 +327,7 @@ def create_task_transaction(create_task_func):
     return wrapper
 
 
-@app.task(queue="backend", ignore_result=True)
+@app.task(queue="backend", ignore_result=True, base=TenantTask)
 @translation.RespectsLanguage()
 @create_task_transaction
 def create_task(
@@ -545,6 +556,7 @@ def run_subscription_task_and_create_instance_transaction(func):
             subscription_task,
         )
         try:
+            set_tenant_id(kwargs.pop("tenant_id", None) or get_tenant_id())
             func_result = func(subscription, subscription_task, *args, **kwargs)
         except Exception as err:
             logger.exception(
@@ -663,7 +675,100 @@ def get_deleted_instance_info(subscription, subscription_task, not_exist_instanc
     return deleted_instance_info
 
 
-@app.task(queue="backend", ignore_result=True)
+def get_deleted_instance_info(subscription, subscription_task, not_exist_instance_id, instance_host_id_map):
+    deleted_instance_info = {}
+    # 查找最新的记录
+    latest_instance_ids = set()
+    if not_exist_instance_id:
+        records = list(
+            models.SubscriptionInstanceRecord.objects.filter(
+                subscription_id=subscription.id, instance_id__in=not_exist_instance_id, is_latest=Value(1)
+            )
+        )
+        for record in records:
+            deleted_instance_info[record.instance_id] = record.instance_info
+            latest_instance_ids.add(record.instance_id)
+
+        logger.info(
+            "[sub_lifecycle<sub(%s), task(%s)>][run_subscription_task_and_create_instance] "
+            "deleted instances not exist in cc, find from db -> %s, find num -> %s",
+            subscription.id,
+            subscription_task.id,
+            not_exist_instance_id,
+            len(records),
+        )
+
+    not_latest_instance_ids: Set[str] = not_exist_instance_id - latest_instance_ids
+    exist_db_instance_id_set = set()
+    not_exist_db_instance_id_set = set()
+    if not_latest_instance_ids:
+        sub_inst_record_qs = models.SubscriptionInstanceRecord.objects.filter(
+            subscription_id=subscription.id, instance_id__in=not_latest_instance_ids, is_latest=Value(0)
+        )
+        max_instance_record_ids: List[int] = handler.SubscriptionTools.fetch_latest_record_ids_in_same_inst_id(
+            sub_inst_record_qs
+        )
+        instance_records = models.SubscriptionInstanceRecord.objects.filter(id__in=max_instance_record_ids).values(
+            "instance_id", "instance_info"
+        )
+        for instance_record in instance_records:
+            deleted_instance_info[instance_record["instance_id"]] = instance_record["instance_info"]
+            exist_db_instance_id_set.add(instance_record["instance_id"])
+
+        not_exist_db_instance_id_set: Set[str] = not_latest_instance_ids - exist_db_instance_id_set
+        logger.info(
+            "[sub_lifecycle<sub(%s), task(%s)>][run_subscription_task_and_create_instance] "
+            "deleted instances not latest, find latest record from db -> %s, find num -> %s, "
+            "can't find latest record from db -> %s, num -> %s",
+            subscription.id,
+            subscription_task.id,
+            not_latest_instance_ids,
+            len(instance_records),
+            not_exist_db_instance_id_set,
+            len(not_exist_db_instance_id_set),
+        )
+
+    if subscription.object_type == models.Subscription.ObjectType.SERVICE and not_exist_db_instance_id_set:
+        if instance_host_id_map:
+            bk_host_ids = []
+            for instance_id in not_exist_db_instance_id_set:
+                _instance_id = instance_id.split("|")[-1]
+                bk_host_id = instance_host_id_map.get(_instance_id)
+                if bk_host_id is not None:
+                    bk_host_ids.append(bk_host_id)
+
+            host_detail_list = get_host_detail(
+                host_info_list=[{"bk_host_id": bk_host_id} for bk_host_id in set(bk_host_ids)],
+                bk_biz_id=subscription.bk_biz_id,
+            )
+        else:
+            group_ids = []
+            for instance_id in not_exist_db_instance_id_set:
+                _instance_id = instance_id.split("|")[-1]
+                group_id = create_group_id(subscription, {"service": {"id": _instance_id}})
+                group_ids.append(group_id)
+
+            process_status_records = models.ProcessStatus.objects.filter(group_id__in=group_ids).values(
+                "bk_host_id", "group_id"
+            )
+            instance_host_id_map = {
+                _host["group_id"].split("_")[-1]: _host["bk_host_id"] for _host in process_status_records
+            }
+
+            host_detail_list = get_host_detail(host_info_list=process_status_records, bk_biz_id=subscription.bk_biz_id)
+
+        host_id_info_map = {host_detail["bk_host_id"]: host_detail for host_detail in host_detail_list}
+        for instance_id in not_exist_db_instance_id_set:
+            _instance_id = instance_id.split("|")[-1]
+            deleted_instance_info[instance_id] = {
+                "host": host_id_info_map.get(instance_host_id_map.get(_instance_id), {}),
+                "service": {"id": _instance_id},
+            }
+
+    return deleted_instance_info
+
+
+@app.task(queue="backend", ignore_result=True, base=TenantTask)
 @translation.RespectsLanguage()
 @run_subscription_task_and_create_instance_transaction
 def run_subscription_task_and_create_instance(
@@ -925,7 +1030,9 @@ def update_subscription_instances_chunk(subscription_ids: List[int]):
     """
     分片更新订阅状态
     """
-    subscriptions = models.Subscription.objects.filter(id__in=subscription_ids, enable=True)
+    subscriptions: QuerySet[models.Subscription] = models.Subscription.objects.filter(
+        id__in=subscription_ids, enable=True
+    )
     for subscription in subscriptions:
         if subscription.id in models.GlobalSettings.get_config(
             key=models.GlobalSettings.KeyEnum.DISABLED_SUBSCRIPTIONS.value, default=[]
@@ -953,6 +1060,7 @@ def update_subscription_instances_chunk(subscription_ids: List[int]):
                 actions={},
                 is_auto_trigger=True,
             )
+            set_tenant_id(subscription.tenant_id)
             run_subscription_task_and_create_instance(subscription, subscription_task)
             logger.info(f"[update_subscription_instances] succeed: subscription_task -> {subscription_task}")
         except SubscriptionInstanceEmpty:

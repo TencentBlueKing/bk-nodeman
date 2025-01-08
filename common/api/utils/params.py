@@ -73,7 +73,7 @@ else:
             auth_info = build_auth_args(req)
             params.update(auth_info)
 
-            bk_username = req.user.bk_username if hasattr(req.user, "bk_username") else req.user.username
+            bk_username = req.user.bk_username if hasattr(req.user, "bk_username") else req.user.username or "admin"
             params["bk_username"] = bk_username
 
         params.pop("_request", None)

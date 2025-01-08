@@ -19,7 +19,6 @@ import pprint
 import time
 import typing
 from collections import Counter, defaultdict
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from functools import wraps
 from itertools import groupby
 from typing import Any, Dict, List, Optional, Union
@@ -461,11 +460,18 @@ def find_host_biz_relations(bk_host_ids: List[int]) -> List[Dict]:
         return []
 
     # CMDB 限制了单次查询数量，这里需分批并发请求查询
-    param_list = [
-        {"bk_host_id": bk_host_ids[count * constants.QUERY_CMDB_LIMIT : (count + 1) * constants.QUERY_CMDB_LIMIT]}
+    params_list = [
+        {
+            "params": {
+                "bk_host_id": bk_host_ids[
+                    count * constants.QUERY_CMDB_LIMIT : (count + 1) * constants.QUERY_CMDB_LIMIT
+                ],
+                "no_request": True,
+            }
+        }
         for count in range(math.ceil(len(bk_host_ids) / constants.QUERY_CMDB_LIMIT))
     ]
-    host_biz_relations = request_multi_thread(CCApi.find_host_biz_relations, param_list, get_data=lambda x: x)
+    host_biz_relations = batch_call(func=CCApi.find_host_biz_relations, params_list=params_list, extend_result=True)
     return host_biz_relations
 
 
@@ -623,7 +629,7 @@ def fetch_biz_info_map(fields: typing.Optional[typing.List[str]] = None) -> typi
     :return: 主机业务关系列表
     """
     fields = fields or ["bk_biz_id", "bk_biz_name"]
-    biz_infos: typing.List[typing.Dict] = batch_request(CCApi.search_business, {"fields": fields})
+    biz_infos: typing.List[typing.Dict] = batch_request(CCApi.search_business, {"fields": fields, "no_request": True})
     biz_infos.append({"bk_biz_id": settings.BK_CMDB_RESOURCE_POOL_BIZ_ID, "bk_biz_name": "资源池"})
 
     biz_info_map: typing.Dict[str, typing.Dict] = {str(biz_info["bk_biz_id"]): biz_info for biz_info in biz_infos}
@@ -841,8 +847,9 @@ def get_host_detail(host_info_list: list, bk_biz_id: int = None):
 
     cloud_id_name_map = models.Cloud.cloud_id_name_map(get_cache=True)
 
-    # 需要将资源池移除
-    all_biz_ids = list(set(host_biz_map.values()) - {settings.BK_CMDB_RESOURCE_POOL_BIZ_ID})
+    # TODO 需要将资源池移除
+    # all_biz_ids = list(set(host_biz_map.values()) - {settings.BK_CMDB_RESOURCE_POOL_BIZ_ID})
+    all_biz_ids = list(set(host_biz_map.values()))
     all_biz_info = fetch_biz_info(all_biz_ids)
 
     host_key_dict = {}

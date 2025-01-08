@@ -43,6 +43,10 @@ NodeApi = SimpleLazyObject(lambda: new_api_module("bk_node", "_BKNodeApi"))
 EsbApi = SimpleLazyObject(lambda: new_api_module("esb", "_ESBApi"))
 # YUNTI
 YunTiApi = SimpleLazyObject(lambda: new_api_module("yunti", "_YunTiApi"))
+# 用户管理
+UserApi = SimpleLazyObject(lambda: new_api_module("user", "_UserApi"))
+# 网关
+GatewayApi = SimpleLazyObject(lambda: new_api_module("apigateway", "_GatewayApi"))
 
 __all__ = [
     "CCApi",
@@ -53,6 +57,8 @@ __all__ = [
     "CmsiApi",
     "NodeApi",
     "YunTiApi",
+    "UserApi",
+    "GatewayApi",
 ]
 
 

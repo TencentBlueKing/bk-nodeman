@@ -28,7 +28,7 @@ def get_host_object_attribute(bk_biz_id):
     if biz_property is not None:
         return biz_property
 
-    kwargs = {"bk_obj_id": "host", "bk_biz_id": bk_biz_id}
+    kwargs = {"bk_obj_id": "host", "bk_biz_id": bk_biz_id, "no_request": True}
     data = CCApi.search_object_attribute(kwargs) or []
     custom_fields = [_property["bk_property_id"] for _property in data if _property["bk_biz_id"] != 0]
     cache.set(biz_property_cache_key, custom_fields, 600)
@@ -48,6 +48,7 @@ def list_biz_hosts(bk_biz_id, condition, func, split_params=False):
     kwargs["fields"] += list(set(biz_custom_property))
     kwargs["fields"] = list(set(kwargs["fields"]))
     kwargs.update(condition)
+    kwargs["no_request"] = True
 
     hosts = batch_request(getattr(CCApi, func), kwargs, split_params=split_params)
     # 排除掉CMDB中内网IP为空的主机
@@ -71,7 +72,7 @@ def get_host_by_inst(bk_biz_id, inst_list):
     bk_biz_ids = []
 
     # 获取主线模型的业务拓扑信息
-    topo_data_list = CCApi.get_mainline_object_topo()
+    topo_data_list = CCApi.get_mainline_object_topo({"no_request": True})
     bk_obj_id_list = [topo_data["bk_obj_id"] for topo_data in topo_data_list]
 
     for inst in inst_list:

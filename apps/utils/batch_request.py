@@ -20,7 +20,8 @@ from django.utils.translation import get_language
 
 from apps.exceptions import AppBaseException
 from apps.node_man import constants
-from apps.utils.local import get_request
+from apps.utils.concurrent import inject_tenant_id_to_thread
+from apps.utils.local import get_request, get_tenant_id
 
 from . import translation
 from .concurrent import inject_request
@@ -34,14 +35,19 @@ def format_params(params, get_count, func):
 
     # 请求第一次获取总数
     if not bk_module_ids:
-        request_params.append({"count": get_count(func(page={"start": 0, "limit": 1}, **params)), "params": params})
+        request_params.append(
+            {"count": get_count(func(dict(page={"start": 0, "limit": 1}, **params))), "params": params}
+        )
 
     for s_index in range(0, len(bk_module_ids), constants.QUERY_CMDB_MODULE_LIMIT):
         single_params = deepcopy(params)
 
         single_params.update({"bk_module_ids": bk_module_ids[s_index : s_index + constants.QUERY_CMDB_MODULE_LIMIT]})
         request_params.append(
-            {"count": get_count(func(page={"start": 0, "limit": 1}, **single_params)), "params": single_params}
+            {
+                "count": get_count(func(params=dict(page={"start": 0, "limit": 1}, **single_params))),
+                "params": single_params,
+            }
         )
 
     return request_params
@@ -103,7 +109,9 @@ def batch_request(
             if sort:
                 request_params["page"]["sort"] = sort
             request_params.update(req["params"])
-            futures.append(pool.apply_async(inject_request(func), args=(request_params,)))
+            futures.append(
+                pool.apply_async(inject_request(func), args=(request_params,), kwds={"tenant_id": get_tenant_id()})
+            )
 
             start += limit
 
@@ -157,16 +165,23 @@ def request_multi_thread(func, params_list, get_data=lambda x: []):
         _request = get_request()
     except AppBaseException:
         # celery下 无request对象
+        for params in params_list:
+            # 线程内注入租户ID
+            if "inject_tenant_id" not in params:
+                params["inject_tenant_id"] = get_tenant_id()
         pass
     else:
         for params in params_list:
             if "params" in params:
                 params["params"]["_request"] = _request
+            if "inject_tenant_id" not in params:
+                params["inject_tenant_id"] = get_tenant_id()
 
     result = []
     with ThreadPoolExecutor(max_workers=settings.CONCURRENT_NUMBER) as ex:
         tasks = [
-            ex.submit(translation.RespectsLanguage(language=get_language())(func), **params) for params in params_list
+            ex.submit(translation.RespectsLanguage(language=get_language())(inject_tenant_id_to_thread(func)), **params)
+            for params in params_list
         ]
     for future in as_completed(tasks):
         result.extend(get_data(future.result()))

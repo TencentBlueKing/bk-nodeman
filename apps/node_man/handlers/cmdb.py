@@ -18,7 +18,6 @@ from django.conf import settings
 from django.core.cache import cache
 from django.utils.translation import gettext as _
 
-from apps.component.esbclient import client_v2
 from apps.exceptions import ComponentCallError
 from apps.iam import Permission
 from apps.iam.exceptions import PermissionDeniedError
@@ -37,7 +36,8 @@ from apps.node_man.periodic_tasks.sync_cmdb_biz_topo_task import (
 )
 from apps.utils import APIModel
 from apps.utils.batch_request import batch_request, request_multi_thread
-from apps.utils.local import get_request_username
+from apps.utils.concurrent import inject_request
+from apps.utils.local import get_request_username, get_tenant_id
 from common.api import CCApi
 from common.log import logger
 
@@ -93,8 +93,9 @@ class CmdbHandler(APIModel):
 
     @classmethod
     def biz_id_name_without_permission(cls, username=None) -> Dict[int, str]:
+        tenant_id: str = get_tenant_id()
 
-        biz_cache = cache.get("biz_id_name" + BIZ_CACHE_SUFFIX)
+        biz_cache = cache.get("biz_id_name" + BIZ_CACHE_SUFFIX + tenant_id)
         if biz_cache:
             biz_id_name: Dict[int, str] = {}
             for bk_biz_id_str, bk_biz_name in biz_cache.items():
@@ -112,7 +113,7 @@ class CmdbHandler(APIModel):
 
         data = {biz["bk_biz_id"]: biz["bk_biz_name"] for biz in all_biz}
 
-        cache.set("biz_id_name" + BIZ_CACHE_SUFFIX, data, 300)
+        cache.set("biz_id_name" + BIZ_CACHE_SUFFIX + tenant_id, data, 300)
 
         return data
 
@@ -127,13 +128,14 @@ class CmdbHandler(APIModel):
 
         # 如果是超管，增加资源池权限
         is_superuser = IamHandler.is_superuser(username)
-        if is_superuser:
-            resource_pool_biz = {
-                "bk_biz_id": settings.BK_CMDB_RESOURCE_POOL_BIZ_ID,
-                "bk_biz_name": "资源池",
-                "has_permission": True,
-            }
-            all_biz.insert(0, resource_pool_biz)
+        # TODO 等待CC资源池ID的调整
+        # if is_superuser:
+        #     resource_pool_biz = {
+        #         "bk_biz_id": settings.BK_CMDB_RESOURCE_POOL_BIZ_ID,
+        #         "bk_biz_name": "资源池",
+        #         "has_permission": True,
+        #     }
+        #     all_biz.insert(0, resource_pool_biz)
 
         if is_superuser or not settings.USE_IAM:
             for biz in all_biz:
@@ -228,7 +230,14 @@ class CmdbHandler(APIModel):
             # 异步需要用用户的名字，并且backend为True的形式请求
             with ThreadPoolExecutor(max_workers=settings.CONCURRENT_NUMBER) as ex:
                 tasks = [
-                    ex.submit(CmdbHandler().find_host_topo, username, biz, biz_host_id_map[biz], topology, user_biz)
+                    ex.submit(
+                        inject_request(CmdbHandler().find_host_topo),
+                        username,
+                        biz,
+                        biz_host_id_map[biz],
+                        topology,
+                        user_biz,
+                    )
                     for biz in biz_host_id_map
                 ]
                 as_completed(tasks)
@@ -291,9 +300,10 @@ class CmdbHandler(APIModel):
                 "condition": "AND",
                 "rules": [{"field": "bk_host_id", "operator": "in", "value": bk_host_ids}],
             },
+            "bk_username": username,
         }
         # 异步需要用用户的名字，并且backend为True的形式请求
-        host_topos = CCApi.list_biz_hosts_topo(kwargs, bk_username=username).get("info") or []
+        host_topos = CCApi.list_biz_hosts_topo(kwargs).get("info") or []
         for topos in host_topos:
             topology[topos["host"]["bk_host_id"]] = []
             # 集群
@@ -580,16 +590,18 @@ class CmdbHandler(APIModel):
         # CMDB 限制了单次查询数量，这里需分批并发请求查询
         param_list = [
             {
-                "bk_host_id": bk_host_ids[
-                    page
-                    * constants.QUERY_HOST_SERVICE_TEMPLATE_LIMIT : (page + 1)
-                    * constants.QUERY_HOST_SERVICE_TEMPLATE_LIMIT
-                ]
+                "params": {
+                    "bk_host_id": bk_host_ids[
+                        page
+                        * constants.QUERY_HOST_SERVICE_TEMPLATE_LIMIT : (page + 1)
+                        * constants.QUERY_HOST_SERVICE_TEMPLATE_LIMIT
+                    ]
+                }
             }
             for page in range(math.ceil(len(bk_host_ids) / constants.QUERY_HOST_SERVICE_TEMPLATE_LIMIT))
         ]
         host_service_templates = request_multi_thread(
-            client_v2.cc.find_host_service_template, param_list, get_data=lambda x: x
+            CCApi.find_host_service_template, param_list, get_data=lambda x: x
         )
         return host_service_templates
 
