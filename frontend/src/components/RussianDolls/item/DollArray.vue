@@ -40,10 +40,22 @@ import bus from '@/common/bus';
 
 export default defineComponent({
   props: {
-    item: () => ({}),
-    schema: () => ({}),
-    value: () => [],
-    valueProp: '',
+    item: {
+      type: Object,
+      default: () => ({}),
+    },
+    schema: {
+      type: Object,
+      default: () => ({}),
+    },
+    value: {
+      type: Array,
+      default: () => [],
+    },
+    valueProp: {
+      type: String,
+      default: '',
+    },
     labelWidth: {
       type: Number,
       default: 110,
