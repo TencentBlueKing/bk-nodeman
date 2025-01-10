@@ -127,7 +127,7 @@ export default defineComponent ({
             localValue.value = val.map((item :any) => item.className === '' ? item.name : item.className)
         });
         const tag = ref<any>();
-        
+
         const state = reactive<{
             value: string[];
             popShow: boolean; // 输入未匹配标签时候展示
@@ -233,10 +233,13 @@ export default defineComponent ({
         // 处理输入值更改时候的option效果
         const handleInputchange = (value: string) => {
             value = value.trim();
+            if ( value.length > 32) {
+                return;
+            }
             const index = props.options.findIndex((item: any) => (
                 item.children.some((child: any) => child.name === value || child.id === value)
             ));
-                        if (index === -1 && value && !localValue.value.includes(value)) {
+            if (index === -1 && value && !localValue.value.includes(value)) {
                 state.popShow = true;
                 tag.value = value;
             } else {
@@ -318,13 +321,12 @@ export default defineComponent ({
         z-index: 999;
         .create-tag-box {
             width: 100%;
-            height: 32px;
             margin: 4px 0;
             line-height: 32px;
             background: #F5F7FA;
+            padding: 0 14px;
             .create-tag {
                 color: #63656E;
-                margin-left: 24px;
                 font-size: 12px;
                 span {
                     color: #3A84FF;
@@ -332,6 +334,7 @@ export default defineComponent ({
             }
         }
     }
+
     .pkg-manage-table {
         .flexible-tag-group {
             height: 30px;
