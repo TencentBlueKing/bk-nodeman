@@ -47,6 +47,7 @@
 import { Vue, Component, Model, Prop, Emit, Ref, Watch } from 'vue-property-decorator';
 import { IFileInfo } from '@/types';
 import { OutgoingHttpHeaders } from 'http';
+import i18n from '@/setup';
 
 interface IObject {
   [key: string]: any
@@ -59,10 +60,11 @@ export default class Upload extends Vue {
 
   @Prop({ type: String, default: 'file_data' }) private readonly name!: string; // 上传至服务器的名称
   @Prop({ type: String, default: '' }) private readonly accept!: string; // mime类型
-  @Prop({ type: String, default: window.i18n.t('文件类型不符') }) private readonly acceptTips!: string; // 接受类型提示信息
+  @Prop({ type: String, default: i18n.t('版本包文件类型') }) public readonly acceptDesc!: string; // mime类型提示
+  @Prop({ type: String, default: i18n.t('文件类型不符') }) private readonly acceptTips!: string; // 类型错误提示信息
   @Prop({ type: String, default: '' }) private readonly action!: string; // URL
   @Prop({ type: Number, default: 500 }) private readonly maxSize!: number; // 最大文件大小,单位M
-  @Prop({ type: String, default: 'MB', validator(v) {
+  @Prop({ type: String, default: 'MB', validator(v: string) {
     return ['KB', 'MB'].includes(v);
   } }) private readonly unit!: string;
   @Prop({ type: [Array, Object], default: () => ([]) }) private readonly headers!: OutgoingHttpHeaders; // 请求头
@@ -77,6 +79,7 @@ export default class Upload extends Vue {
   @Prop({ type: Boolean, default: false }) private readonly parseText!: boolean; // 是否前端解析
   @Prop({ type: Boolean, default: false }) private readonly disableHoverCls!: boolean; // 禁用文件框悬浮样式
   @Prop({ type: Object, default: () => ({}) }) private readonly fileInfo!: IFileInfo; // 回显文件信息
+  @Prop({ type: Object, default: () => ({}) }) private readonly attached!: Dictionary; // 附带的参数
 
   @Ref('uploadel') private readonly uploadel: any;
 
@@ -243,13 +246,22 @@ export default class Upload extends Vue {
 
     const formData = new FormData();
     formData.append(option.filename, option.file, option.file.name);
+    try {
+      if (typeof this.attached === 'object') {
+        Object.keys(this.attached).forEach((key) => {
+          formData.append(key, this.attached[key]);
+        });
+      }
+    } catch (_) {}
     xhr.onerror = (e) => {
       option.onError(e);
     };
 
     const { action } = option;
     xhr.onload = () => {
-      if (xhr.status < 200 || xhr.status >= 300 || !JSON.parse(xhr.response).result) {
+      const { result, code } = JSON.parse(xhr.response);
+      // 3800002 包管理 - 包名重复
+      if (xhr.status < 200 || xhr.status >= 300 || (!result && code !== 3800002)) {
         return option.onError(this.onError(action, xhr));
       }
       option.onSuccess(this.onSuccess(xhr));

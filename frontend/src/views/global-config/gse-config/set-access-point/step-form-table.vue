@@ -76,7 +76,7 @@ export default class SetupFormTable extends Vue {
             text-align: left;
             font-weight: 400;
             &:first-child {
-              padding-left: 16px;
+              text-align: center;
             }
           }
         }

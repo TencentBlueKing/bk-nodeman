@@ -1,10 +1,16 @@
 /* eslint-disable camelcase */
+export type IServerProp = 'inner_ip_infos' | 'outer_ip_infos';
 export interface IIpGroup {
-  inner_ip: string
-  outer_ip: string
-  inner_ipv6?: string
-  outer_ipv6?: string
+  inner_ip_infos: { ip: string }[]
+  outer_ip_infos: { ip: string }[]
+
+//   inner_ip: string
+//   outer_ip: string
+//   inner_ipv6?: string
+//   outer_ipv6?: string
 }
+
+
 export interface IZk {
   zk_ip: string
   zk_port: string
@@ -36,16 +42,16 @@ export interface IApBase {
   zk_hosts: IZk[]
   city_id: string
   region_id: string
-  btfileserver: IIpGroup[]
-  dataserver: IIpGroup[]
-  taskserver: IIpGroup[]
+  btfileserver: IIpGroup
+  dataserver: IIpGroup
+  taskserver: IIpGroup
   description: string
   callback_url: string
   outer_callback_url: string
   package_inner_url: string
   package_outer_url: string
   nginx_path: null | ''
-  gse_version: 'V1' | 'V2' // ENABLE_AP_VERSION_MUTEX 开启时使用
+  gse_version?: 'V1' | 'V2' // ENABLE_AP_VERSION_MUTEX 开启时使用
 }
 
 export interface IApParams extends IApBase {
@@ -66,12 +72,15 @@ export interface IAp extends IApParams {
 }
 
 export interface IApExpand extends IAp {
-  BtfileServer: IIpGroup[]
-  DataServer: IIpGroup[]
-  TaskServer: IIpGroup[]
-  is_used?: boolean
-  // is_default?: boolean
-  collapse: boolean
+  BtfileServer: IIpGroup;
+  DataServer: IIpGroup;
+  TaskServer: IIpGroup;
+  is_used?: boolean;
+  // is_default?: boolean;
+  collapse: boolean;
+  linux: { name: TranslateResult; value: string; }[];
+  windows: { name: TranslateResult; value: string; }[];
+  view?: boolean;
 }
 
 export interface ITaskConfig {
@@ -86,9 +95,9 @@ export interface ITaskConfig {
 
 // server 可用性
 export interface IAvailable {
-  btfileserver: IIpGroup[]
-  dataserver: IIpGroup[]
-  taskserver: IIpGroup[]
+  btfileserver: IIpGroup
+  dataserver: IIpGroup
+  taskserver: IIpGroup
   package_inner_url: string
   package_outer_url: string
   callback_url?: string

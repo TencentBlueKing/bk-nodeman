@@ -2,12 +2,14 @@ import { authentication, DHCP_FILTER_KEYS, getDefaultConfig } from '@/config/con
 import { ISetupHead, ISetupRow } from '@/types';
 import { osDirReplace, reguFnMinInteger, reguFnSysPath, reguIp, reguIPMixins, reguIPv6 } from '@/common/form-check';
 import { splitCodeArr } from '@/common/regexp';
+import { MainStore } from '@/store';
 
 export const parentHead = [
   { label: '主机IPTip', prop: 'host_ip', type: 'text', colspan: 0, required: true, tips: 'proxySetupHostIp' },
   { label: '主机属性', prop: 'host_attr', type: 'text', colspan: 0 },
   { label: '登录信息', prop: 'login_info', type: 'text', tips: 'proxySetupLoginInfo', colspan: 0 },
   { label: '传输信息', prop: 'trans_info', type: 'text', colspan: 0 },
+  { label: '安装信息', prop: 'install_info', type: 'text', colspan: 0 },
   { label: '', prop: '', type: 'operate' },
 ];
 
@@ -214,6 +216,23 @@ const config: ISetupHead[] = [
     parentProp: 'trans_info',
   },
   {
+    label: 'Proxy包版本',
+    prop: 'version',
+    type: 'choose',
+    required: true,
+    noRequiredMark: false,
+    placeholder: window.i18n.t('请选择'),
+    batch: true,
+    show: true,
+    default: '',
+    width: MainStore.language === 'en' ? 170 : 120,
+    manualProp: true,
+    parentProp: 'install_info',
+    extraInfo: {
+      pkgType: 'gse_proxy',
+    }
+  },
+  {
     label: '',
     prop: '',
     type: 'operate',
@@ -233,6 +252,7 @@ export const setupDiffConfigs = {
   bt_speed_limit: {
     width: 160,
   },
+
   operate: {
     local: true,
   },
