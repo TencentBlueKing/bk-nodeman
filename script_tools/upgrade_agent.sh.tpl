@@ -131,7 +131,14 @@ fi
 
 {process_pull_configuration_cmd}
 
-cd "{setup_path}"
-for file in `lsattr -R |egrep "i-" |awk "{{print $NF}}"`;do echo "--- $file" && chattr -i $file ;done
-tar xf "{temp_path}/{package_name}" || echo "tar xf {temp_path}/{package_name} failed"
-{reload_cmd}
+if [ $OS_TYPE == "aix" ]; then
+    cd {setup_path}/{node_type}/bin && ./gsectl stop
+    cd "{setup_path}"
+    gunzip -dc "{temp_path}/{package_name}" | tar -xf - || echo "gunzip {temp_path}/{package_name} failed"
+    cd {setup_path}/{node_type}/bin && ./gsectl start
+else
+    cd "{setup_path}"
+    for file in `lsattr -R |egrep "i-" |awk "{{print $NF}}"`;do echo "--- $file" && chattr -i $file ;done
+    tar xf "{temp_path}/{package_name}" || echo "tar xf {temp_path}/{package_name} failed"
+    {reload_cmd}
+fi
