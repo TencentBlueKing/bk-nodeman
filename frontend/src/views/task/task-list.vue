@@ -60,11 +60,11 @@ export default class TaskList extends Mixins(PollMixin, HeaderFilterMixins)<Dict
   private storageKey = 'task_filter_autoDeploy';
   private date: Date[] = [];
   private dateType: 'date' | Dictionary = {
-    text: window.i18n.t('近30天'),
+    text: window.i18n.t('近7天'),
     value() {
       const end = new Date();
       const start = new Date();
-      start.setTime(start.getTime() - (3600 * 1000 * 24 * 30));
+      start.setTime(start.getTime() - (3600 * 1000 * 24 * 7));
       return [start, end];
     },
   };
