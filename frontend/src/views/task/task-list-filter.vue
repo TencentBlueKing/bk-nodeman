@@ -10,7 +10,7 @@
           :type="'datetimerange'"
           :shortcut-close="true"
           :use-shortcut-text="true"
-          :shortcut-selected-index="3"
+          :shortcut-selected-index="1"
           :value="dateTimeRange"
           :placeholder="$t('选择日期范围')"
           @change="handlePickerChange"
@@ -57,7 +57,7 @@ export default class PluginRule extends Vue {
   @Prop({ type: Array, default: () => {
     const end = new Date();
     const start = new Date();
-    start.setTime(start.getTime() - (3600 * 1000 * 24 * 30));
+    start.setTime(start.getTime() - (3600 * 1000 * 24 * 7));
     return [start, end];
   } }) private readonly dateTimeRange!: Date[];
   @Prop({ type: Array, default: () => [
