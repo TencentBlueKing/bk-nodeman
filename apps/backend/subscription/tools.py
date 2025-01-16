@@ -468,6 +468,14 @@ def get_host_detail_by_template(bk_obj_id, template_info_list: list, bk_biz_id: 
         host_info_result = batch_request(
             call_func, dict(bk_service_template_ids=template_ids, bk_biz_id=bk_biz_id, fields=fields)
         )
+    elif bk_obj_id == models.Subscription.NodeType.DYNAMIC_GROUP:
+        # 集群模板
+        call_func = client_v2.cc.find_host_by_set_template
+        template_ids = [info["bk_inst_id"] for info in template_info_list]
+        bk_set_ids = [info["bk_set_id"] for info in template_info_list]
+        host_info_result = batch_request(
+            call_func, dict(bk_set_template_ids=template_ids, bk_set_ids=bk_set_ids, bk_biz_id=bk_biz_id, fields=fields)
+        )
     else:
         # 集群模板
         call_func = client_v2.cc.find_host_by_set_template
@@ -487,6 +495,26 @@ def get_host_detail_by_template(bk_obj_id, template_info_list: list, bk_biz_id: 
         host["bk_cloud_name"] = cloud_id_name_map.get(str(host["bk_cloud_id"]))
 
     return host_info_result
+
+
+def get_host_module_info_by_host_ids(bk_host_id_chunks, bk_biz_id):
+    """
+    根据主机id列表查询主机业务关系信息
+    :param bk_host_id_chunks: 主机id列表
+    :param bk_biz_id: 业务ID
+    """
+    # 补充实例所属模块ID
+    host_biz_relations = []
+
+    with ThreadPoolExecutor(max_workers=settings.CONCURRENT_NUMBER) as ex:
+        tasks = [
+            ex.submit(client_v2.cc.find_host_biz_relations, dict(bk_host_id=chunk, bk_biz_id=bk_biz_id))
+            for chunk in bk_host_id_chunks
+        ]
+        for future in as_completed(tasks):
+            host_biz_relations.extend(future.result())
+
+    return host_biz_relations
 
 
 def get_service_instances_by_template(bk_obj_id, template_info_list: list, bk_biz_id: int = None):
@@ -718,6 +746,14 @@ def set_template_scope_nodes(scope):
             # 兼容 service_template_id 不存在的场景
             if "service_template_id" in node and node["service_template_id"] in template_ids
         ]
+    elif scope["node_type"] == models.Subscription.NodeType.DYNAMIC_GROUP:
+        # 转化服务模板为node
+        scope["nodes"] = [
+            {"bk_inst_id": node["bk_module_id"], "bk_obj_id": "module"}
+            for node in modules_info
+            # 兼容 bk_set_id 不存在的场景
+            if "bk_set_id" in node and node["bk_set_id"] in template_ids
+        ]
     else:
         # 转化集群模板为node
         scope["nodes"] = [
@@ -823,6 +859,35 @@ def get_scope_labels_func(
     }
 
 
+def execute_dynamic_groups(nodes: List[dict], bk_biz_id: int, bk_obj_id: str, fields: List[str]):
+    """
+    执行动态分组
+    :param nodes: 节点列表
+    :param bk_biz_id: 业务id
+    :param bk_obj_id: 分组目标(目前只支持 host 和 set )
+    :param fields: 属性列表
+    """
+    params = [
+        {
+            "func": CCApi.execute_dynamic_group,
+            "params": {
+                "fields": fields,
+                "bk_biz_id": bk_biz_id,
+                "id": node["bk_inst_id"],
+                "no_request": True,
+            },
+            "sort": "id",
+            "limit": constants.LIST_SERVICE_INSTANCE_DETAIL_LIMIT,
+        }
+        for node in nodes
+        if node["bk_obj_id"] == bk_obj_id
+    ]
+
+    return batch_call(
+        batch_request, params, extend_result=True, interval=constants.LIST_SERVICE_INSTANCE_DETAIL_INTERVAL
+    )
+
+
 def get_instances_by_scope_with_checker(
     scope: Dict[str, Union[Dict, int, Any]], steps: List[models.SubscriptionStep], *args, **kwargs
 ) -> Dict[str, Dict[str, Union[Dict, Any]]]:
@@ -888,7 +953,7 @@ def get_instances_by_scope(scope: Dict[str, Union[Dict, int, Any]]) -> Dict[str,
     else:
         module_to_topo = {}
 
-    nodes = scope["nodes"]
+    nodes: List[dict] = scope["nodes"]
     if not nodes:
         # 兼容节点为空的情况
         return {}
@@ -935,27 +1000,21 @@ def get_instances_by_scope(scope: Dict[str, Union[Dict, int, Any]]) -> Dict[str,
         # 校验是否都选择了同一种模板
         bk_obj_id_set = check_instances_object_type(nodes)
         if scope["object_type"] == models.Subscription.ObjectType.HOST:
-            # 补充实例所属模块ID
-            host_biz_relations = []
             instances.extend(
                 [
                     {"host": inst}
                     for inst in get_host_detail_by_template(list(bk_obj_id_set)[0], nodes, bk_biz_id=bk_biz_id)
                 ]
             )
-            bk_host_id_chunks = chunk_lists([instance["host"]["bk_host_id"] for instance in instances], 500)
-            with ThreadPoolExecutor(max_workers=settings.CONCURRENT_NUMBER) as ex:
-                tasks = [
-                    ex.submit(client_v2.cc.find_host_biz_relations, dict(bk_host_id=chunk, bk_biz_id=bk_biz_id))
-                    for chunk in bk_host_id_chunks
-                ]
-                for future in as_completed(tasks):
-                    host_biz_relations.extend(future.result())
+
+            host_biz_relations = get_host_module_info_by_host_ids(
+                bk_host_id_chunks=chunk_lists([instance["host"]["bk_host_id"] for instance in instances], 500),
+                bk_biz_id=bk_biz_id,
+            )
 
             # 转化模板为节点
             nodes = set_template_scope_nodes(scope)
             instances = add_host_module_info(host_biz_relations, instances)
-
         else:
             # 补充服务实例中的信息
             # 转化模板为节点，**注意不可在get_service_instance_by_inst之后才转换**
@@ -963,6 +1022,125 @@ def get_instances_by_scope(scope: Dict[str, Union[Dict, int, Any]]) -> Dict[str,
             instances.extend(
                 [{"service": inst} for inst in get_service_instance_by_inst(bk_biz_id, nodes, module_to_topo)]
             )
+
+    # 按照动态分组查询
+    elif scope["node_type"] == models.Subscription.NodeType.DYNAMIC_GROUP:
+        # 获取动态分组主机信息
+        host_infos = execute_dynamic_groups(
+            nodes=nodes,
+            bk_biz_id=bk_biz_id,
+            bk_obj_id=constants.CmdbGroupObjId.HOST.value,
+            fields=["bk_host_id"],
+        )
+
+        # 获取动态分组集群信息
+        set_infos = execute_dynamic_groups(
+            nodes=nodes,
+            bk_biz_id=bk_biz_id,
+            bk_obj_id=constants.CmdbGroupObjId.SET.value,
+            fields=["bk_set_id", "set_template_id"],
+        )
+
+        if scope["object_type"] == models.Subscription.ObjectType.HOST:
+            # 根据主机信息填充主机实例
+            if host_infos:
+                instances.extend(
+                    [
+                        {"host": inst, "source": "host_infos"}
+                        for inst in get_host_detail(
+                            host_info_list=[
+                                {
+                                    "bk_biz_id": bk_biz_id,
+                                    "bk_host_id": host_info["bk_host_id"],
+                                }
+                                for host_info in host_infos
+                            ],
+                            bk_biz_id=bk_biz_id,
+                            source="get_instances_by_scope",
+                        )
+                    ]
+                )
+
+            # 根据集群信息填充主机实例
+            if set_infos:
+                instances.extend(
+                    [
+                        {"host": inst, "source": "set_infos"}
+                        for inst in get_host_detail_by_template(
+                            bk_obj_id=models.Subscription.NodeType.DYNAMIC_GROUP,
+                            template_info_list=[
+                                {
+                                    "bk_set_id": set_info["bk_set_id"],
+                                    "bk_inst_id": set_info["set_template_id"],
+                                }
+                                for set_info in set_infos
+                            ],
+                            bk_biz_id=bk_biz_id,
+                        )
+                    ]
+                )
+
+                host_biz_relations = get_host_module_info_by_host_ids(
+                    bk_host_id_chunks=chunk_lists([instance["host"]["bk_host_id"] for instance in instances], 500),
+                    bk_biz_id=bk_biz_id,
+                )
+
+                # 转化模板为节点
+                nodes = set_template_scope_nodes(
+                    scope={
+                        "bk_biz_id": bk_biz_id,
+                        "node_type": models.Subscription.NodeType.DYNAMIC_GROUP,
+                        "nodes": [
+                            {
+                                "bk_inst_id": set_info["bk_set_id"],
+                            }
+                            for set_info in set_infos
+                        ],
+                    }
+                )
+                instances = add_host_module_info(host_biz_relations, instances)
+
+            # 去重主机id去重
+            instances = list({instance["host"]["bk_host_id"]: instance for instance in instances}.values())
+
+        else:
+            # 根据主机信息填充服务实例
+            if host_infos:
+                instances.extend(
+                    [
+                        {"service": inst, "source": "host_infos"}
+                        for inst in get_service_instances(
+                            bk_biz_id=bk_biz_id,
+                            filter_id_list=[host_info["bk_host_id"] for host_info in host_infos],
+                            filter_field_name=FilterFieldName.BK_HOST_LIST,
+                            ignore_exception=False,
+                        )
+                    ]
+                )
+
+            # 根据集群信息填充服务实例
+            if set_infos:
+                nodes = set_template_scope_nodes(
+                    scope={
+                        "bk_biz_id": bk_biz_id,
+                        "node_type": models.Subscription.NodeType.DYNAMIC_GROUP,
+                        "nodes": [
+                            {
+                                "bk_inst_id": set_info["bk_set_id"],
+                            }
+                            for set_info in set_infos
+                        ],
+                    }
+                )
+                instances.extend(
+                    [
+                        {"service": inst, "source": "set_infos"}
+                        for inst in get_service_instance_by_inst(bk_biz_id, nodes, module_to_topo)
+                    ]
+                )
+
+            # 根据服务实例id去重
+            instances = list({instance["service"]["id"]: instance for instance in instances}.values())
 
     if not need_register:
         # 补充必要的主机或实例相关信息
@@ -1010,7 +1188,7 @@ def get_instances_by_scope(scope: Dict[str, Union[Dict, int, Any]]) -> Dict[str,
     return instances_dict
 
 
-def add_host_info_to_instances(bk_biz_id: int, scope: Dict, instances: Dict):
+def add_host_info_to_instances(bk_biz_id: int, scope: Dict, instances: List):
     """
     补全实例的主机信息
     :param bk_biz_id: 业务ID
@@ -1087,7 +1265,7 @@ def add_scope_info_to_instances(nodes: List, scope: Dict, instances: List[Dict],
     :return:
     """
     for instance in instances:
-        if scope["node_type"] == models.Subscription.NodeType.INSTANCE:
+        if scope["node_type"] == models.Subscription.NodeType.INSTANCE or instance.pop("source", "") == "host_infos":
             _add_scope_info_to_inst_instances(scope, instance)
         else:
             _add_scope_info_to_topo_instances(scope, instance, nodes, module_to_topo)
