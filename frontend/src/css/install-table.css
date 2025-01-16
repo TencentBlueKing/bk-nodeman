@@ -150,6 +150,7 @@
   /* form-item-ghost */
   .ghost-wrapper {
     width: 100%;
+    z-index: 1;
     &.is-disabled {
       background-color: #fafbfd;
       cursor: not-allowed;
@@ -306,6 +307,10 @@
       display: block;
       z-index: 2;
     }
+  }
+  .input-choose {
+    line-height: 42px;
+    white-space: nowrap;
   }
   .upload-btn {
     height: 42px;
