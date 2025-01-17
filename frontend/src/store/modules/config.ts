@@ -7,7 +7,7 @@ import { apIsUsing, listAp, retrieveAp, createAp, updateAp, testAp, deleteAp } f
 import { retrieveGlobalSettings, jobSettings } from '@/api/modules/meta';
 import { listApPermission } from '@/api/modules/permission';
 import { healthz } from '@/api/modules/healthz';
-import { initIpProp } from '@/setup/ipv6';
+// import { initIpProp } from '@/setup/ipv6';
 
 // eslint-disable-next-line new-cap
 @Module({ name: 'config', namespaced: true })
@@ -39,15 +39,18 @@ export default class ConfigStore extends VuexModule {
       zk_hosts: [
         { zk_ip: '', zk_port: '' },
       ],
-      btfileserver: [
-        { inner_ip: '', outer_ip: '' },
-      ],
-      dataserver: [
-        { inner_ip: '', outer_ip: '' },
-      ],
-      taskserver: [
-        { inner_ip: '', outer_ip: '' },
-      ],
+      btfileserver: {
+        inner_ip_infos: [{ ip: '' }],
+        outer_ip_infos: [{ ip: '' }],
+      },
+      dataserver: {
+        inner_ip_infos: [{ ip: '' }],
+        outer_ip_infos: [{ ip: '' }],
+      },
+      taskserver: {
+        inner_ip_infos: [{ ip: '' }],
+        outer_ip_infos: [{ ip: '' }],
+      },
       callback_url: '',
       outer_callback_url: '',
       package_inner_url: '',
@@ -68,11 +71,12 @@ export default class ConfigStore extends VuexModule {
       //   this.apDetail[`${key}`] = detail[key]
       // } else {
       if (['btfileserver', 'dataserver', 'taskserver'].includes(key)) {
-        Vue.set(this.apDetail, key, detail[key].map((server) => {
-          const copyServer = { ...server };
-          initIpProp(copyServer, ['inner_ip', 'outer_ip']);
-          return copyServer;
-        }));
+        Vue.set(this.apDetail, key, { ...detail[key] });
+        // Vue.set(this.apDetail, key, detail[key].map((server) => {
+        //   const copyServer = { ...server };
+        //   initIpProp(copyServer, ['inner_ip', 'outer_ip']);
+        //   return copyServer;
+        // }));
       } else {
         Vue.set(this.apDetail, key, detail[key]);
       }
