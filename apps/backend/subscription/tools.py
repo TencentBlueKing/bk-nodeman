@@ -441,16 +441,21 @@ def get_service_instance_by_inst(bk_biz_id, inst_list, module_to_topo):
 
         # 如果module_ids只有一个，没必要使用第一种方式，一定会出现一次list_service_instance_detail查询
         if len(module_ids) > 1 and random.random() < 0.5:
+            service_instance_ids = get_service_instance_ids(bk_biz_id, list(module_ids))
+            if not service_instance_ids:
+                return []
+
             service_instances = batch_request(
                 func=CCApi.list_service_instance_detail,
                 params={
                     "bk_biz_id": int(bk_biz_id),
                     "with_name": True,
                     "no_request": True,
-                    "service_instance_ids": get_service_instance_ids(bk_biz_id, list(module_ids)),
+                    "service_instance_ids": service_instance_ids,
                 },
                 sort="id",
                 interval=constants.LIST_SERVICE_INSTANCE_DETAIL_INTERVAL,
+                limit=constants.LIST_SERVICE_INSTANCE_DETAIL_LIMIT,
             )
         else:
             service_instances = batch_call(
