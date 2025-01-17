@@ -3328,6 +3328,28 @@ class CmdbClient(object):
             return SERVICE_DETAIL
 
         @classmethod
+        def list_service_instance(cls, *args, **kwargs):
+            return {
+                "count": 49,
+                "info": [
+                    {
+                        "bk_biz_id": 1,
+                        "id": 10,
+                        "name": "127.0.0.1_gse_agent",
+                        "labels": None,
+                        "service_template_id": 14,
+                        "bk_host_id": 1,
+                        "bk_module_id": 12,
+                        "creator": "cc_system",
+                        "modifier": "cc_system",
+                        "create_time": "2019-07-09T13:06:54.384+08:00",
+                        "last_time": "2019-07-09T13:06:54.384+08:00",
+                        "bk_supplier_account": "0",
+                    }
+                ],
+            }
+
+        @classmethod
         def find_host_by_topo(cls, *args, **kwargs):
             return {"count": 4, "info": LIST_BIZ_HOSTS_WITHOUT_INFO}
 
