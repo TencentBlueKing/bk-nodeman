@@ -1261,6 +1261,7 @@ class AgentVersionType(EnhanceEnum):
     BY_SYSTEM_ARCH = "by_system_arch"
     BY_CLOUD_ID_AND_INNER_IP = "by_cloud_id_and_inner_ip"
 
+    @classmethod
     def _get_member__alias_map(cls) -> Dict[Enum, str]:
         return {
             cls.UNIFIED: _("统一的版本"),
