@@ -1261,7 +1261,6 @@ class AgentVersionType(EnhanceEnum):
     BY_SYSTEM_ARCH = "by_system_arch"
     BY_CLOUD_ID_AND_INNER_IP = "by_cloud_id_and_inner_ip"
 
-    @classmethod
     def _get_member__alias_map(cls) -> Dict[Enum, str]:
         return {
             cls.UNIFIED: _("统一的版本"),
@@ -1276,3 +1275,117 @@ BUILT_IN_TAG_NAMES: List[str] = ["stable", "latest", "test"]
 TAG_NAME__TAG_DESCRIPTION = dict(zip(BUILT_IN_TAG_NAMES, BUILT_IN_TAG_DESCRIPTIONS))
 TAG_DESCRIPTION__TAG_NAME = dict(zip(BUILT_IN_TAG_DESCRIPTIONS, BUILT_IN_TAG_NAMES))
 STABLE_DESCRIPTION = _("稳定版本")
+
+
+########################################################################################################
+# EXCEL
+########################################################################################################
+
+
+class ExcelField(EnhanceEnum):
+    INNER_IPV4 = "inner_ip"
+    INNER_IPV6 = "inner_ipv6"
+    OS_TYPE = "os_type"
+    INSTALL_CHANNEL = "install_channel_id"
+    LOGIN_PORT = "port"
+    LOGIN_ACCOUNT = "account"
+    AUTH_TYPE = "auth_type"
+    CREDENTIALS = "credentials"
+    OUTER_IP = "outer_ip"
+    LOGIN_IP = "login_ip"
+    BIZ = "bk_biz_id"
+    CLOUD = "bk_cloud_id"
+    AP = "ap_id"
+    TRANSFER_SPEED_LIMIT = "bt_speed_limit"
+    ADDRESS_TYPE = "bk_addressing"
+    DATA_COMPRESSION = "enable_compression"
+
+    @classmethod
+    def _get_member__alias_map(cls) -> Dict[Enum, str]:
+        return {
+            cls.INNER_IPV4: _("内网 IPv4"),
+            cls.INNER_IPV6: _("内网 IPv6"),
+            cls.OS_TYPE: _("操作系统"),
+            cls.INSTALL_CHANNEL: _("安装通道"),
+            cls.LOGIN_PORT: _("登录端口"),
+            cls.LOGIN_ACCOUNT: _("登录账号"),
+            cls.AUTH_TYPE: _("认证方式"),
+            cls.CREDENTIALS: _("密钥/密码"),
+            cls.OUTER_IP: _("外网 IP"),
+            cls.LOGIN_IP: _("登录 IP"),
+            cls.BIZ: _("业务"),
+            cls.CLOUD: _("管控区域"),
+            cls.AP: _("接入点"),
+            cls.TRANSFER_SPEED_LIMIT: _("传输限速"),
+            cls.ADDRESS_TYPE: _("寻址方式"),
+            cls.DATA_COMPRESSION: _("数据压缩"),
+        }
+
+    @classmethod
+    def get_excel_optional_map(cls) -> Dict[str, str]:
+        excel_optional_map = ExcelOptionalType._get_member__alias_map()
+
+        return {
+            cls.INNER_IPV4: excel_optional_map[ExcelOptionalType.BOTH_NOT_EMPTY].format(
+                cls._get_member__alias_map()[cls.INNER_IPV6]
+            ),
+            cls.INNER_IPV6: excel_optional_map[ExcelOptionalType.BOTH_NOT_EMPTY].format(
+                cls._get_member__alias_map()[cls.INNER_IPV4]
+            ),
+            cls.OS_TYPE: excel_optional_map[ExcelOptionalType.REQUIRED],
+            cls.INSTALL_CHANNEL: excel_optional_map[ExcelOptionalType.REQUIRED],
+            cls.LOGIN_PORT: excel_optional_map[ExcelOptionalType.REQUIRED],
+            cls.LOGIN_ACCOUNT: excel_optional_map[ExcelOptionalType.REQUIRED],
+            cls.AUTH_TYPE: excel_optional_map[ExcelOptionalType.REQUIRED],
+            cls.CREDENTIALS: excel_optional_map[ExcelOptionalType.REQUIRED],
+            cls.OUTER_IP: excel_optional_map[ExcelOptionalType.OPTIONAL],
+            cls.LOGIN_IP: excel_optional_map[ExcelOptionalType.OPTIONAL],
+            cls.BIZ: excel_optional_map[ExcelOptionalType.OPTIONAL],
+            cls.CLOUD: excel_optional_map[ExcelOptionalType.OPTIONAL],
+            cls.AP: excel_optional_map[ExcelOptionalType.REQUIRED],
+            cls.TRANSFER_SPEED_LIMIT: excel_optional_map[ExcelOptionalType.OPTIONAL],
+            cls.ADDRESS_TYPE: excel_optional_map[ExcelOptionalType.OPTIONAL],
+            cls.DATA_COMPRESSION: excel_optional_map[ExcelOptionalType.OPTIONAL],
+        }
+
+    @classmethod
+    def get_excel_describe_map(cls) -> Dict[str, str]:
+        return {
+            cls.INNER_IPV4: _("目标主机 IPv4 地址"),
+            cls.INNER_IPV6: _("目标主机 IPv6 地址"),
+            cls.OS_TYPE: _("目标主机操作系统类型"),
+            cls.INSTALL_CHANNEL: _("在特殊复杂网络下，目标主机无法与「管控区域」内主机直接连通，可通过指定「安装通道」进行 Agent 安装。默认使用「default」即可"),
+            cls.LOGIN_PORT: _("登录到目标主机上的sshd端口"),
+            cls.LOGIN_ACCOUNT: _("登录到目标主机上所使用的用户"),
+            cls.AUTH_TYPE: _("登录到目标主机上所使用的认证方式"),
+            cls.CREDENTIALS: _("登录到目标主机上所使用的凭证，根据认证方式提供密码或私钥"),
+            cls.OUTER_IP: _("目标主机外网IP，会自动注册到 CMDB"),
+            cls.LOGIN_IP: _(
+                "用于登录目标主机执行安装的 IP 地址，区别于记录在 CMDB 中的 IP；支持 IPv4、IPv6。若未填写，优先使用「内网IPv4」来登录目标机器，若「内网IPv4」未填写，使用「内网IPv6」"
+            ),
+            cls.BIZ: _("目标主机归属业务。默认使用「蓝鲸」业务"),
+            cls.CLOUD: _("目标主机所在的管控区域。若是在某个云区域内，选择该云区域的名字。默认使用「直连区域」"),
+            cls.AP: _("一般情况下使用「自动选择」即可，若有特殊的接入点无法自动识别到，可以手动选择对应接入点"),
+            cls.TRANSFER_SPEED_LIMIT: _("Agent配置中对文件传输速率的硬限制，单位「Mbytes/s」，不填则使用Agent默认值100Mbytes/s"),
+            cls.ADDRESS_TYPE: _("记录到 CMDB 中的对应枚举字段。默认为「静态」"),
+            cls.DATA_COMPRESSION: _("开启数据压缩后，所有通过数据管道传输的日志采集数据的流量都将进行压缩，可一定程度上降低数据上报所带来的带宽压力。但会带来少量额外的CPU消耗"),
+        }
+
+
+class ExcelOptionalType(EnhanceEnum):
+    REQUIRED = 0
+    OPTIONAL = 1
+    BOTH_NOT_EMPTY = 2
+
+    @classmethod
+    def _get_member__alias_map(cls) -> Dict[Enum, str]:
+        return {cls.REQUIRED: _("必填"), cls.OPTIONAL: _("可选"), cls.BOTH_NOT_EMPTY: _("与「{}」不能同时为空")}
+
+
+class ExcelAuthType(EnhanceEnum):
+    PASSWORD = "PASSWORD"
+    KEY = "KEY"
+
+    @classmethod
+    def _get_member__alias_map(cls) -> Dict[Enum, str]:
+        return {cls.PASSWORD: _("密码"), cls.KEY: _("密钥")}

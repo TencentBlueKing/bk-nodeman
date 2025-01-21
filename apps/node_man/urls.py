@@ -46,6 +46,7 @@ from apps.node_man.views.package_manage import (  # AgentPackageDescViewSet,
 from apps.node_man.views.plugin import GsePluginViewSet
 from apps.node_man.views.plugin_v2 import PluginV2ViewSet
 from apps.node_man.views.sync_task import SyncTaskViewSet
+from apps.node_man.views.excel import ExcelHandlerViewSet
 
 iam = IAM(settings.APP_CODE, settings.SECRET_KEY, settings.BK_IAM_INNER_HOST, settings.BK_COMPONENT_API_OVERWRITE_URL)
 
@@ -71,7 +72,7 @@ router.register(r"v2/plugin", PluginV2ViewSet, basename="plugin_v2")
 router.register(r"healthz", HealthzViewSet, basename="healthz")
 router.register(r"sync_task", SyncTaskViewSet, basename="sync_task")
 router.register(r"agent/package", PackageManageViewSet, basename="package_manage")
-# router.register(r"agent/package_desc", AgentPackageDescViewSet, basename="package_desc")
+router.register(r"excel", ExcelHandlerViewSet, basename="excel")
 
 biz_dispatcher = DjangoBasicResourceApiDispatcher(iam, settings.BK_IAM_SYSTEM_ID)
 biz_dispatcher.register("biz", BusinessResourceProvider())
