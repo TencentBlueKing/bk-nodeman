@@ -323,6 +323,16 @@ remove_crontab () {
     fi
 }
 
+remove_directory () {
+    for dir in "$@"; do
+        if [ -d "$dir" ]; then
+            log remove_directory - "trying to remove directory [${dir}]"
+            rm -rf "$dir"
+            log remove_directory - "directory [${dir}] removed"
+        fi
+    done
+}
+
 setup_startup_scripts () {
     check_rc_file
     local rcfile=$RC_LOCAL_FILE
@@ -520,7 +530,7 @@ remove_proxy () {
 
     if [[ "$REMOVE" == "TRUE" ]]; then
         unregister_agent_id SKIP
-        clean_up_proxy_directory
+        remove_directory "$GSE_HOME" "$GSE_AGENT_RUN_DIR" "$GSE_AGENT_DATA_DIR" "$GSE_AGENT_LOG_DIR"
         log remove_proxy DONE "proxy removed"
         exit 0
     else
@@ -896,6 +906,7 @@ DEBUG_LOG_FILE=${TMP_DIR}/nm.${0##*/}.${TASK_ID}.debug
 PKG_NAME=${NAME}-${VERSION}.tgz
 COMPLETE_DOWNLOAD_URL="${DOWNLOAD_URL}/agent/linux/${CPU_ARCH}/"
 GSE_AGENT_CONFIG_PATH="${AGENT_SETUP_PATH}/etc/${GSE_AGENT_CONFIG}"
+GSE_HOME=$(dirname ${AGENT_SETUP_PATH})
 
 # redirect STDOUT & STDERR to DEBUG
 exec &> >(tee "$DEBUG_LOG_FILE")

@@ -324,10 +324,31 @@ setup_startup_scripts () {
         tmp_rcfile=$(grep -v "${AGENT_SETUP_PATH}/bin/gsectl")
         echo "$tmp_rcfile" >$rcfile
     else
-	touch "$rcfile" && chmod 755 "$rcfile"
+	    touch "$rcfile" && chmod 755 "$rcfile"
     fi
 
     echo "[ -f $AGENT_SETUP_PATH/bin/gsectl ] && $AGENT_SETUP_PATH/bin/gsectl start >/var/log/gse_start.log 2>&1" >>$rcfile
+}
+
+remove_startup () {
+    local rcfile=/etc/rc.local
+
+    if [ -f $rcfile ];then
+        tmp_rcfile=$(grep -v "${AGENT_SETUP_PATH}/bin/gsectl")
+        echo "$tmp_rcfile" >$rcfile
+    else
+	    touch "$rcfile" && chmod 755 "$rcfile"
+    fi
+}
+
+remove_directory () {
+    for dir in "$@"; do
+        if [ -d "$dir" ]; then
+            log remove_directory - "trying to remove directory [${dir}]"
+            rm -rf "$dir"
+            log remove_directory - "directory [${dir}] removed"
+        fi
+    done
 }
 
 start_agent () {
@@ -417,6 +438,11 @@ remove_agent () {
     rm -rf "${AGENT_SETUP_PATH}"
 
     if [[ "$REMOVE" == "TRUE" ]]; then
+        remove_directory ${GSE_HOME} ${GSE_AGENT_RUN_DIR} ${GSE_AGENT_DATA_DIR} ${GSE_AGENT_LOG_DIR}
+
+        remove_startup
+        log remove_agent - "rc.local startup script removed"
+
         log remove_agent DONE "agent removed"
         exit 0
     else
@@ -503,6 +529,11 @@ setup_agent () {
 }
 
 download_pkg () {
+    if [[ "${REMOVE}" == "TRUE" ]]; then
+        log download_pkg - "remove agent, no need to download package"
+        return 0
+    fi
+
     local f http_status
 
     # 区分下载版本
@@ -746,6 +777,7 @@ for var_name in ${VARS_LIST}; do
 done
 
 LOG_FILE=/tmp/nm.${0##*/}.$TASK_ID
+GSE_HOME=$(dirname ${AGENT_SETUP_PATH})
 
 log check_env - "$@"
 # 整体安装流程:

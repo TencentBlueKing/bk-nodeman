@@ -25,7 +25,7 @@ report_step_status () {
     [ -z "$CALLBACK_URL" ] && return 0
 
     # echo "$@" | read  date _time log_level step status message
-    echo "$@" | read  date _time log_level step 
+    echo "$@" | read  date _time log_level step
 
     tmp_time=$(date +%Y%m%d_%H%M%S)
     tmp_date=$(date +%s)
@@ -79,7 +79,7 @@ PKG_NAME=gse_client-mac-${CPU_ARCH}.tgz
 
 
 get_daemon_file () {
-    daemon_fill_path="/Library/LaunchDaemons/"
+    DAEMON_FILE_PATH="/Library/LaunchDaemons/"
     setup_path=$(echo ${AGENT_SETUP_PATH%*/} | tr '\/' '.')
     DAEMON_FILE_NAME="com.tencent.gse_${NODE_TYPE}${setup_path}.Daemon.plist"
 }
@@ -379,15 +379,14 @@ remove_crontab () {
 
     # 下面这段代码是为了确保修改的crontab能立即生效
     if pgrep -x crond &>/dev/null; then
-        pkill -HUP -x crond 
+        pkill -HUP -x crond
     fi
 }
 
 setup_startup_scripts () {
     get_daemon_file
-    local damonfile=$DAEMON_FILE_NAME
 
-    cat >$damonfile << EOF
+    bash -c "cat >$DAEMON_FILE_PATH$DAEMON_FILE_NAME" << EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -411,6 +410,24 @@ setup_startup_scripts () {
 </dict>
 </plist>
 EOF
+    launchctl load $DAEMON_FILE_NAME
+}
+
+remove_startup () {
+    get_daemon_file
+
+    launchctl unload $DAEMON_FILE_NAME
+    rm -f $DAEMON_FILE_PATH$DAEMON_FILE_NAME
+}
+
+remove_directory () {
+    for dir in "$@"; do
+        if [ -d "$dir" ]; then
+            log remove_directory - "trying to remove directory [${dir}]"
+            rm -rf "$dir"
+            log remove_directory - "directory [${dir}] removed"
+        fi
+    done
 }
 
 start_agent () {
@@ -506,6 +523,11 @@ remove_agent () {
     rm -rf "${AGENT_SETUP_PATH}"
 
     if [[ "$REMOVE" == "TRUE" ]]; then
+        remove_directory ${GSE_HOME} ${GSE_AGENT_RUN_DIR} ${GSE_AGENT_DATA_DIR} ${GSE_AGENT_LOG_DIR}
+
+        remove_startup
+        log remove_agent - "startup script removed"
+
         log remove_agent DONE "agent removed"
         exit 0
     fi
@@ -575,6 +597,11 @@ setup_agent () {
 }
 
 download_pkg () {
+    if [[ "${REMOVE}" == "TRUE" ]]; then
+        log download_pkg - "remove agent, no need to download package"
+        return 0
+    fi
+
     local f http_status
     local tmp_stdout tmp_stderr curl_pid
 
@@ -826,6 +853,7 @@ done
 
 LOG_FILE="$TMP_DIR"/nm.${0##*/}.$TASK_ID
 DEBUG_LOG_FILE=${TMP_DIR}/nm.${0##*/}.${TASK_ID}.debug
+GSE_HOME=$(dirname ${AGENT_SETUP_PATH})
 
 # redirect STDOUT & STDERR to DEBUG
 # exec &> >(tee "$DEBUG_LOG_FILE")

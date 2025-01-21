@@ -395,6 +395,7 @@ start_by_rclocal () {
 }
 
 stop_by_rclocal () {
+    remove_startup
     stop_by_binary
     return
 }
@@ -525,6 +526,15 @@ add_startup_to_boot () {
     sed -i "\|${WORK_HOME}/bin/gsectl start ${module}|d" $rcfile
 
     echo "[ -f ${WORK_HOME}/bin/gsectl ] && ${WORK_HOME}/bin/gsectl start ${module} 1>>/var/log/${INSTALL_ENV}_${node_type}.log 2>&1" >>$rcfile
+}
+
+remove_startup () {
+    local module=agent
+
+    check_rc_file
+    local rcfile=$RC_LOCAL_FILE
+
+    sed -i "\|${WORK_HOME}/bin/gsectl start ${module}|d" $RC_LOCAL_FILE
 }
 
 add_config_to_systemd () {

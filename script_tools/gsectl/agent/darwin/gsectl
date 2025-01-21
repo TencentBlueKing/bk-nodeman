@@ -396,6 +396,7 @@ start_by_rclocal () {
 }
 
 stop_by_rclocal () {
+    remove_startup
     stop_by_binary
     return
 }
@@ -534,6 +535,12 @@ add_startup_to_boot () {
 </plist>
 EOF
     launchctl load $DAEMON_FILE_NAME
+}
+
+remove_startup () {
+    get_daemon_file
+    launchctl unload $DAEMON_FILE_NAME
+    rm -f $DAEMON_FILE_PATH$DAEMON_FILE_NAME
 }
 
 add_config_to_systemd () {

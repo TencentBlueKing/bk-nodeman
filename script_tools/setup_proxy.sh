@@ -396,6 +396,24 @@ setup_startup_scripts () {
     echo "[ -f $AGENT_SETUP_PATH/bin/gsectl ] && $AGENT_SETUP_PATH/bin/gsectl start >/var/log/gse_start.log 2>&1" >>$rcfile
 }
 
+
+remove_startup () {
+    check_rc_file
+    local rcfile=$RC_LOCAL_FILE
+
+    sed -i "\|${AGENT_SETUP_PATH}/bin/gsectl|d" $rcfile
+}
+
+remove_directory () {
+    for dir in "$@"; do
+        if [ -d "$dir" ]; then
+            log remove_directory - "trying to remove directory [${dir}]"
+            rm -rf "$dir"
+            log remove_directory - "directory [${dir}] removed"
+        fi
+    done
+}
+
 start_proxy () {
     local i p
 
@@ -461,6 +479,11 @@ remove_proxy () {
     rm -rf "${AGENT_SETUP_PATH}"
 
     if [[ "$REMOVE" = "TRUE" ]]; then
+        remove_directory ${GSE_HOME} ${GSE_AGENT_RUN_DIR} ${GSE_AGENT_DATA_DIR} ${GSE_AGENT_LOG_DIR}
+
+        remove_startup
+        log remove_proxy - "startup script removed"
+
         log remove_proxy DONE "proxy removed"
         exit 0
     else
@@ -555,6 +578,11 @@ setup_py36 () {
 }
 
 download_pkg () {
+    if [[ "${REMOVE}" == "TRUE" ]]; then
+        log download_pkg - "remove agent, no need to download package"
+        return 0
+    fi
+
     local f http_status path
 
     log download_pkg START "download gse agent package from $DOWNLOAD_URL/$PKG_NAME)."
@@ -843,6 +871,7 @@ done
 
 LOG_FILE="$TMP_DIR"/nm.${0##*/}.$TASK_ID
 DEBUG_LOG_FILE=${TMP_DIR}/nm.${0##*/}.${TASK_ID}.debug
+GSE_HOME=$(dirname ${AGENT_SETUP_PATH})
 
 # redirect STDOUT & STDERR to DEBUG
 exec &> >(tee "$DEBUG_LOG_FILE")

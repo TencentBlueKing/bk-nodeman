@@ -679,15 +679,18 @@ start_by_rclocal () {
         else
             start_by_binary "${module}"
         fi
+
+        add_startup_to_boot "${module}"
     done
 
-    add_startup_to_boot "${module}"
     return
 }
 
 stop_by_rclocal () {
     for module in $modules
     do
+        remove_startup "${module}"
+
         stop_by_binary "${module}"
         if [ $? -ne 0 ];then
             echo "have $? module start failed"
@@ -851,6 +854,15 @@ add_startup_to_boot () {
     sed -i "\|${WORK_HOME}/bin/gsectl start ${module}|d" $rcfile
 
     echo "[ -f ${WORK_HOME}/bin/gsectl ] && ${WORK_HOME}/bin/gsectl start ${module} 1>>/var/log/${INSTALL_ENV}_${node_type}.log 2>&1" >>$rcfile
+}
+
+remove_startup() {
+    local module=$1
+
+    check_rc_file
+    local rcfile=$RC_LOCAL_FILE
+
+    sed -i "\|${WORK_HOME}/bin/gsectl start ${module}|d" $rcfile
 }
 
 add_config_to_systemd () {
