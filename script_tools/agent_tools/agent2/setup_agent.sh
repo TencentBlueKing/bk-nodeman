@@ -130,7 +130,6 @@ validate_setup_path () {
         /sys
         /sbin
         /root
-        /home
     )
 
     local invalid_path=(
@@ -314,6 +313,10 @@ check_heathz_by_gse () {
 }
 
 remove_crontab () {
+    if [ $IS_SUPER == false ]; then
+        return
+    fi
+
     local tmpcron
     tmpcron=$(mktemp "$TMP_DIR"/cron.XXXXXXX)
 
@@ -327,6 +330,10 @@ remove_crontab () {
 }
 
 setup_startup_scripts () {
+    if [ $IS_SUPER == false ]; then
+        return
+    fi
+
     check_rc_file
     local rcfile=$RC_LOCAL_FILE
 
@@ -475,7 +482,10 @@ remove_agent () {
 
     log remove_agent - "trying to remove old agent directory(${AGENT_SETUP_PATH}/${AGENT_CLEAN_UP_DIRS[@]})"
     cd "${AGENT_SETUP_PATH}" || return 0
-    for file in `lsattr -R |egrep "i-" |awk '{print $NF}'`;do echo "--- $file" && chattr -i $file ;done
+
+    if [ $IS_SUPER == true ]; then
+        for file in `lsattr -R |egrep "i-" |awk '{print $NF}'`;do echo "--- $file" && chattr -i $file ;done
+    fi
     cd -
 
     if [[ "$REMOVE" == "TRUE" ]]; then
@@ -686,7 +696,7 @@ _OO_
 }
 
 validate_vars_string () {
-    echo "$1" | grep -Pq '^[a-zA-Z_][a-zA-Z0-9]+='
+    echo "$1" | grep -Pq '^[a-zA-Z_][a-zA-Z0-9_]*='
 }
 
 check_pkgtool () {
@@ -885,6 +895,13 @@ while getopts n:t:I:i:l:s:uc:r:x:p:e:a:k:N:v:oT:RDO:E:A:V:B:S:Z:K:F arg; do
         *)  _help ;;
     esac
 done
+
+IS_SUPER=true
+if sudo -n true 2>/dev/null; then
+    IS_SUPER=true
+else
+    IS_SUPER=false
+fi
 
 ## 检查自定义环境变量
 for var_name in ${VARS_LIST//;/ /}; do
