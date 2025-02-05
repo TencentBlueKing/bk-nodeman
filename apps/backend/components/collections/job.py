@@ -130,6 +130,22 @@ class JobV3BaseService(six.with_metaclass(abc.ABCMeta, BaseService)):
         account_alias = (settings.BACKEND_UNIX_ACCOUNT, settings.BACKEND_WINDOWS_ACCOUNT)[
             os_type == constants.OsType.WINDOWS
         ]
+
+        account_set: set = set()
+        for host in job_params["target_server"][host_interaction_from]:
+            if host_interaction_from == "host_id_list":
+                account = models.Host.objects.get(bk_host_id=host).identity.account
+                account_set.add(account)
+
+            if host_interaction_from == "ip_list":
+                account = models.Host.objects.get(inner_ip=host["ip"]).identity.account
+                account_set.add(account)
+
+        if len(account_set) > 1:
+            raise AppBaseException(_("目标机器账户不一致，请检查"))
+
+        account_alias = account_set.pop()
+
         script_language = (constants.ScriptLanguageType.SHELL.value, constants.ScriptLanguageType.BAT.value)[
             os_type == constants.OsType.WINDOWS
         ]

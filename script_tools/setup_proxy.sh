@@ -117,7 +117,6 @@ validate_setup_path () {
         /sys
         /sbin
         /root
-        /home
     )
 
     local invalid_path=(
@@ -366,6 +365,10 @@ pre_view () {
 }
 
 remove_crontab () {
+    if [ $IS_SUPER == false ]; then
+        return
+    fi
+
     local tmpcron
     tmpcron=$(mktemp "$TMP_DIR"/cron.XXXXXXX)
 
@@ -380,6 +383,10 @@ remove_crontab () {
 }
 
 setup_startup_scripts () {
+    if [ $IS_SUPER == false ]; then
+        return
+    fi
+
     check_rc_file
     local rcfile=$RC_LOCAL_FILE
 
@@ -516,9 +523,11 @@ setup_proxy () {
 
     cd "$AGENT_SETUP_PATH/.." && tar xf "$TMP_DIR/$PKG_NAME"
 
-    # update gsecmdline under /bin
-    cp -fp plugins/bin/gsecmdline /bin/
-    chmod 775 /bin/gsecmdline
+    if [ $IS_SUPER == true ]; then
+        # update gsecmdline under /bin
+        cp -fp plugins/bin/gsecmdline /bin/
+        chmod 775 /bin/gsecmdline
+    fi
 
     # setup config file
     get_config
@@ -622,7 +631,7 @@ _OO_
 }
 
 validate_vars_string () {
-    echo "$1" | grep -Pq '^[a-zA-Z_][a-zA-Z0-9]+='
+    echo "$1" | grep -Pq '^[a-zA-Z_][a-zA-Z0-9_]*='
 }
 
 check_pkgtool () {
@@ -717,7 +726,9 @@ backup_config_file () {
             tmp_backup_file=$(mktemp "${TMP_DIR}"/nodeman_${file}_config.XXXXXXX)
             log backup_config_file - "backup $file to $tmp_backup_file"
             cp -rf "${AGENT_SETUP_PATH}"/etc/"${file}" "${tmp_backup_file}"
-            chattr +i "${tmp_backup_file}"
+            if [ $IS_SUPER == true ]; then
+                chattr +i "${tmp_backup_file}"
+            fi
         fi
     done
 }
@@ -728,7 +739,9 @@ recovery_config_file () {
         time_filter_config_file=$(find "${TMP_DIR}" -ctime -1 -name "nodeman_${file}_config*")
         [ -z "${time_filter_config_file}" ] && return 0
         latest_config_file=$(find "${TMP_DIR}" -ctime -1 -name "nodeman_${file}_config*" | xargs ls -rth | tail -n 1)
-        chattr -i "${latest_config_file}"
+        if [ $IS_SUPER == true ]; then
+            chattr -i "${latest_config_file}"
+        fi
         cp -rf "${latest_config_file}" "${AGENT_SETUP_PATH}"/etc/"${file}"
         rm -f "${latest_config_file}"
         log recovery_config_file - "recovery ${AGENT_SETUP_PATH}/etc/${file} from $latest_config_file"
@@ -827,6 +840,12 @@ while getopts I:i:l:s:uc:r:x:p:e:a:k:N:g:v:oT:RO:E:A:V:B:S:Z:K: arg; do
     esac
 done
 
+IS_SUPER=true
+if sudo -n true 2>/dev/null; then
+    IS_SUPER=true
+else
+    IS_SUPER=false
+fi
 
 ## 检查自定义环境变量
 for var_name in ${VARS_LIST//;/ /}; do
