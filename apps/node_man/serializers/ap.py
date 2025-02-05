@@ -52,6 +52,7 @@ class ListSerializer(serializers.ModelSerializer):
     is_default = serializers.BooleanField(label=_("是否默认接入点，不可删除"))
     proxy_package = serializers.JSONField(label=_("Proxy上的安装包"))
     file_cache_dirs = serializers.SerializerMethodField(label=_("文件缓存目录"))
+    is_use_sudo = serializers.BooleanField(label=_("是否使用sudo执行安装命令"))
 
     def to_representation(self, instance):
         ret = super(ListSerializer, self).to_representation(instance)
@@ -117,6 +118,7 @@ class UpdateOrCreateSerializer(serializers.ModelSerializer):
     bscp_config = serializers.DictField(_("BSCP配置"), required=False)
     outer_callback_url = serializers.CharField(label=_("节点管理外网回调地址"), required=False, allow_blank=True)
     callback_url = serializers.CharField(label=_("节点管理内网回调地址"), required=False, allow_blank=True)
+    is_use_sudo = serializers.BooleanField(label=_("是否使用sudo执行安装命令"), required=False, default=True)
 
     def validate(self, data):
         gse_version_list: List[str] = list(set(AccessPoint.objects.values_list("gse_version", flat=True)))

@@ -821,6 +821,8 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
                     untreated_healthz_result = base64.b64decode(untreated_healthz_result.encode()).decode()
                 except binascii.Error:
                     pass
+                except UnicodeDecodeError:
+                    pass
 
                 # 去除可能存在的前缀
                 if untreated_healthz_result.startswith("healthz:"):

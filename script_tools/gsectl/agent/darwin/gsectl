@@ -8,6 +8,21 @@ WORK_HOME=${PWD%/bin}
 WORK_HOME=`echo $WORK_HOME |sed 's/\/$//g'`
 INSTALL_ENV=`echo $WORK_HOME |awk -F/ '{print $(NF-1)}'`
 
+IS_SUPER=true
+if sudo -n true 2>/dev/null; then
+    IS_SUPER=true
+else
+    IS_SUPER=false
+fi
+
+VAR_RUN_DIR=/var/run
+if [ $IS_SUPER == false ]; then
+    if [ ! -d ${PWD}/run ]; then
+        mkdir -p ${PWD}/run
+    fi
+    VAR_RUN_DIR=${PWD}/run
+fi
+
 # 设置agent的max open files
 ulimit -n 409600 2>/dev/null
 ulimit -c unlimited
@@ -186,7 +201,7 @@ watch_by_binary () {
     local module="agent"
 
     # 设置记录上次脚本运行的文件
-    LAST_RUN_FILE=/var/run/already_run_times_$module
+    LAST_RUN_FILE=$VAR_RUN_DIR/already_run_times_$module
 
     # 如果文件存在，则读取文件中记录的次数
     if [ -f $LAST_RUN_FILE ]; then
@@ -211,8 +226,8 @@ watch_by_binary () {
     THRESHOLD=5
 
     # 检查上一次脚本是否存在
-    if [ -f /var/run/gsectl_check_agent_status.pid ]; then
-        pid=`cat /var/run/gsectl_check_agent_status.pid`
+    if [ -f $VAR_RUN_DIR/gsectl_check_agent_status.pid ]; then
+        pid=`cat $VAR_RUN_DIR/gsectl_check_agent_status.pid`
         if lsof -p $pid >/dev/null; then
             log "`date +'%F %T.%N'` Last Script: $0 Detection status: PID:$pid is until running , no longer checking the status of the module: ${module}"
             return
@@ -228,7 +243,7 @@ watch_by_binary () {
     fi
 
     # 记录当前脚本的 PID
-    echo $$ > /var/run/gsectl_check_agent_status.pid
+    echo $$ > $VAR_RUN_DIR/gsectl_check_agent_status.pid
 
     # 检测gse_agent是否正常存在的逻辑
     if [ -z "${module}" ]; then
@@ -444,10 +459,18 @@ is_systemd_supported () {
 
 is_use_systemd () {
     local module="agent"
-    if [ -f /usr/lib/systemd/system/${INSTALL_ENV}_${module}.service ];then
-        return 0
+    if [ $IS_SUPER == false ]; then
+        if [ -f $HOME/.config/systemd/user/${INSTALL_ENV}_${module}.service ];then
+            return 0
+        else
+            return 1
+        fi
     else
-        return 1
+        if [ -f /usr/lib/systemd/system/${INSTALL_ENV}_${module}.service ];then
+            return 0
+        else
+            return 1
+        fi
     fi
 }
 
@@ -509,7 +532,11 @@ check_rc_file () {
 }
 
 get_daemon_file () {
-    DAEMON_FILE_PATH="/Library/LaunchDaemons/"
+    if [ $IS_SUPER == true ]; then
+        DAEMON_FILE_PATH="/Library/LaunchDaemons/"
+    else
+        DAEMON_FILE_PATH="~/Library/LaunchAgents/"
+    fi
     DAEMON_FILE_NAME="com.tencent.$(echo ${WORK_HOME%*/} | tr '/' '.' | awk -F '.' '{print $(NF-1)"."$NF}').Daemon.plist"
 }
 
@@ -550,7 +577,7 @@ LimitNOFILE=512000
 LimitCORE=infinity
 WorkingDirectory=${WORK_HOME}/bin
 PIDFile=${WORK_HOME}/bin/run/${module}.pid
-ExecStart=${WORK_HOME}/bin/gse_agent -f /usr/local/${INSTALL_ENV}/${node_type}/etc/gse_agent.conf
+ExecStart=${WORK_HOME}/bin/gse_agent -f ${WORK_HOME}/etc/gse_agent.conf
 ExecReload=${WORK_HOME}/bin/gse_agent --reload
 ExecStop=${WORK_HOME}/bin/gse_agent --quit
 Type=forking
@@ -563,25 +590,47 @@ RestartSec=10
 WantedBy=multi-user.target
 EOF
 
-    if [ -f /usr/lib/systemd/system/${INSTALL_ENV}_${module}.service ];then
-        if [ `md5sum /tmp/${INSTALL_ENV}_${module}.service |awk '{print $1}'` == `md5sum /usr/lib/systemd/system/${INSTALL_ENV}_${module}.service |awk '{print $1}'` ];then
-            echo "${INSTALL_ENV}_${module}.service have no change..."
+    if [ $IS_SUPER == true ]; then
+        if [ -f /usr/lib/systemd/system/${INSTALL_ENV}_${module}.service ];then
+            if [ `md5sum /tmp/${INSTALL_ENV}_${module}.service |awk '{print $1}'` == `md5sum /usr/lib/systemd/system/${INSTALL_ENV}_${module}.service |awk '{print $1}'` ];then
+                echo "${INSTALL_ENV}_${module}.service have no change..."
+            else
+                echo "update ${INSTALL_ENV}_${module}.service"
+                cp /tmp/${INSTALL_ENV}_${module}.service /usr/lib/systemd/system/${INSTALL_ENV}_${module}.service
+                systemctl daemon-reload
+                systemctl enable ${INSTALL_ENV}_${module}.service
+            fi
         else
-            echo "update ${INSTALL_ENV}_${module}.service"
+            echo "copy ${INSTALL_ENV}_${module}.service"
             cp /tmp/${INSTALL_ENV}_${module}.service /usr/lib/systemd/system/${INSTALL_ENV}_${module}.service
             systemctl daemon-reload
             systemctl enable ${INSTALL_ENV}_${module}.service
         fi
-    else
-        echo "copy ${INSTALL_ENV}_${module}.service"
-        cp /tmp/${INSTALL_ENV}_${module}.service /usr/lib/systemd/system/${INSTALL_ENV}_${module}.service
-        systemctl daemon-reload
-        systemctl enable ${INSTALL_ENV}_${module}.service
-    fi
 
-    # 删除rc.local里的启动项
-    check_rc_file
-    sed -i "\|${WORK_HOME}/bin/gsectl start ${module}|d" $RC_LOCAL_FILE
+        # 删除rc.local里的启动项
+        check_rc_file
+        sed -i "\|${WORK_HOME}/bin/gsectl start ${module}|d" $RC_LOCAL_FILE
+    else
+        if [ -f $HOME/.config/systemd/user/${INSTALL_ENV}_${module}.service ];then
+            if [ `md5sum /tmp/${INSTALL_ENV}_${module}.service |awk '{print $1}'` == `md5sum $HOME/.config/systemd/user/${INSTALL_ENV}_${module}.service |awk '{print $1}'` ];then
+                echo "${INSTALL_ENV}_${module}.service have no change..."
+            else
+                echo "update ${INSTALL_ENV}_${module}.service"
+                cp /tmp/${INSTALL_ENV}_${module}.service $HOME/.config/systemd/user/${INSTALL_ENV}_${module}.service
+                systemctl --user daemon-reload
+                systemctl --user enable ${INSTALL_ENV}_${module}.service
+            fi
+        else
+            if [ ! -d "$HOME/.config/systemd" ]; then
+                echo "文件夹 ~/.config/systemd 不存在，正在创建..."
+                mkdir -p $HOME/.config/systemd/user
+            fi
+            echo "copy ${INSTALL_ENV}_${module}.service"
+            cp /tmp/${INSTALL_ENV}_${module}.service $HOME/.config/systemd/user/${INSTALL_ENV}_${module}.service
+            systemctl --user daemon-reload
+            systemctl --user enable ${INSTALL_ENV}_${module}.service
+        fi
+    fi
 
     # 删除crontab里的watch条目
     remove_crontab
@@ -590,10 +639,18 @@ EOF
 remove_systemd_config (){
     local module="agent"
 
-    if [ -f /usr/lib/systemd/system/${INSTALL_ENV}_${module}.service ];then
-        systemctl stop ${INSTALL_ENV}_${module}.service
-        systemctl disable ${INSTALL_ENV}_${module}.service
-        rm /usr/lib/systemd/system/${INSTALL_ENV}_${module}.service
+    if [ $IS_SUPER == true ]; then
+        if [ -f /usr/lib/systemd/system/${INSTALL_ENV}_${module}.service ];then
+            systemctl stop ${INSTALL_ENV}_${module}.service
+            systemctl disable ${INSTALL_ENV}_${module}.service
+            rm /usr/lib/systemd/system/${INSTALL_ENV}_${module}.service
+        fi
+    else
+        if [ -f $HOME/.config/systemd/user/${INSTALL_ENV}_${module}.service ];then
+            systemctl --user stop ${INSTALL_ENV}_${module}.service
+            systemctl --user disable ${INSTALL_ENV}_${module}.service
+            rm $HOME/.config/systemd/user/${INSTALL_ENV}_${module}.service
+        fi
     fi
 }
 
@@ -619,14 +676,18 @@ setup_crontab () {
 
 remove_crontab (){
     local tmpcron
-    tmpcron=/tmp/cron.XXXXXX
+    tmpcron= /tmp/cron.XXXXXX
 
     crontab -l |grep -E -v "$WORK_HOME" >$tmpcron
     crontab $tmpcron && rm -f $tmpcron
 
     # 下面这段代码是为了确保修改的crontab立即生效
-    if pgrep -x crond &>/dev/null; then
-        pkill -HUP -x crond
+    if [ $IS_SUPER == true ]; then
+        if pgrep -x crond &>/dev/null; then
+            pkill -HUP -x crond
+        fi
+    else
+        crontab -l | crontab -
     fi
 }
 
@@ -830,33 +891,33 @@ if [ "${node_type}" == "unknown" ];then
 fi
 if [ $auto_type == "systemd" ]; then
       case $action in
-          start) start_by_systemd 2>&1 | tee /tmp/nm_"${auto_type}"_"${action}".log ;;
-          stop) stop_by_systemd 2>&1 | tee /tmp/nm_"${auto_type}"_"${action}".log ;;
-          restart) restart_by_systemd 2>&1 | tee /tmp/nm_"${auto_type}"_"${action}".log ;;
-          status) status_by_systemd 2>&1 | tee /tmp/nm_"${auto_type}"_"${action}".log ;;
-          reload) reload_by_systemd 2>&1 | tee /tmp/nm_"${auto_type}"_"${action}".log ;;
-          healthz) healthz_by_systemd 2>&1 | tee /tmp/nm_"${auto_type}"_"${action}".log ;;
+          start) start_by_systemd 2>&1 | tee  /tmp/nm_"${auto_type}"_"${action}".log ;;
+          stop) stop_by_systemd 2>&1 | tee  /tmp/nm_"${auto_type}"_"${action}".log ;;
+          restart) restart_by_systemd 2>&1 | tee  /tmp/nm_"${auto_type}"_"${action}".log ;;
+          status) status_by_systemd 2>&1 | tee  /tmp/nm_"${auto_type}"_"${action}".log ;;
+          reload) reload_by_systemd 2>&1 | tee  /tmp/nm_"${auto_type}"_"${action}".log ;;
+          healthz) healthz_by_systemd 2>&1 | tee  /tmp/nm_"${auto_type}"_"${action}".log ;;
           -h|*) usage ; exit 255 ;;
      esac
 elif [ $auto_type == "crontab" ]; then
       case $action in
-          start) start_by_crontab 2>&1 | tee /tmp/nm_"${auto_type}"_"${action}".log ;;
-          stop) stop_by_crontab 2>&1 | tee /tmp/nm_"${auto_type}"_"${action}".log ;;
-          restart) restart_by_crontab 2>&1 | tee /tmp/nm_"${auto_type}"_"${action}".log ;;
-          status) status_by_crontab 2>&1 | tee /tmp/nm_"${auto_type}"_"${action}".log ;;
-          reload) reload_by_crontab 2>&1 | tee /tmp/nm_"${auto_type}"_"${action}".log ;;
-          healthz) healthz_by_crontab 2>&1 | tee /tmp/nm_"${auto_type}"_"${action}".log ;;
-          watch) watch_by_crontab 2>&1 | tee /tmp/nm_"${auto_type}"_"${action}".log ;;
+          start) start_by_crontab 2>&1 | tee  /tmp/nm_"${auto_type}"_"${action}".log ;;
+          stop) stop_by_crontab 2>&1 | tee  /tmp/nm_"${auto_type}"_"${action}".log ;;
+          restart) restart_by_crontab 2>&1 | tee  /tmp/nm_"${auto_type}"_"${action}".log ;;
+          status) status_by_crontab 2>&1 | tee  /tmp/nm_"${auto_type}"_"${action}".log ;;
+          reload) reload_by_crontab 2>&1 | tee  /tmp/nm_"${auto_type}"_"${action}".log ;;
+          healthz) healthz_by_crontab 2>&1 | tee  /tmp/nm_"${auto_type}"_"${action}".log ;;
+          watch) watch_by_crontab 2>&1 | tee  /tmp/nm_"${auto_type}"_"${action}".log ;;
           -h|*) usage ; exit 255 ;;
       esac
 elif [ $auto_type == "rclocal" ]; then
     case $action in
-        start) start_by_rclocal 2>&1 | tee /tmp/nm_"${auto_type}"_"${action}".log ;;
-        stop) stop_by_rclocal 2>&1 | tee /tmp/nm_"${auto_type}"_"${action}".log ;;
-        restart) restart_by_rclocal 2>&1 | tee /tmp/nm_"${auto_type}"_"${action}".log ;;
-        status) status_by_rclocal 2>&1 | tee /tmp/nm_"${auto_type}"_"${action}".log ;;
-        reload) reload_by_rclocal 2>&1 | tee /tmp/nm_"${auto_type}"_"${action}".log ;;
-        healthz) healthz_by_rclocal 2>&1 | tee /tmp/nm_"${auto_type}"_"${action}".log ;;
+        start) start_by_rclocal 2>&1 | tee  /tmp/nm_"${auto_type}"_"${action}".log ;;
+        stop) stop_by_rclocal 2>&1 | tee  /tmp/nm_"${auto_type}"_"${action}".log ;;
+        restart) restart_by_rclocal 2>&1 | tee  /tmp/nm_"${auto_type}"_"${action}".log ;;
+        status) status_by_rclocal 2>&1 | tee  /tmp/nm_"${auto_type}"_"${action}".log ;;
+        reload) reload_by_rclocal 2>&1 | tee  /tmp/nm_"${auto_type}"_"${action}".log ;;
+        healthz) healthz_by_rclocal 2>&1 | tee  /tmp/nm_"${auto_type}"_"${action}".log ;;
         -h|*) usage ; exit 255 ;;
     esac
 fi

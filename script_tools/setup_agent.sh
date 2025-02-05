@@ -109,7 +109,7 @@ cleanup () {
 # 打印错误行数信息
 report_err () {
     awk -v LN="$1" -v L="ERROR" -v D="$(date +%F\ %T)" \
-        'NR>LN-3 && NR<LN+3 { printf "%s %s cmd-return-err %-5d%3s%s\n", D, L, NR, (NR==LN?">>>":""), $0 }' $0 
+        'NR>LN-3 && NR<LN+3 { printf "%s %s cmd-return-err %-5d%3s%s\n", D, L, NR, (NR==LN?">>>":""), $0 }' $0
 }
 
 validate_setup_path () {
@@ -128,7 +128,6 @@ validate_setup_path () {
         /sys
         /sbin
         /root
-        /home
     )
 
     local invalid_path=(
@@ -235,7 +234,7 @@ is_connected () {
 }
 
 is_gsecmdline_ok () {
-   /bin/gsecmdline -d 1430 -s test
+   $AGENT_SETUP_PATH/../plugins/bin/gsecmdline -d 1430 -s test
 }
 
 # 用法：通过ps的comm字段和二进制的绝对路径来精确获取pid
@@ -392,6 +391,10 @@ pre_view () {
 }
 
 remove_crontab () {
+    if [ $IS_SUPER == false ]; then
+        return
+    fi
+
     local tmpcron
     tmpcron=$(mktemp "$TMP_DIR"/cron.XXXXXXX)
 
@@ -401,11 +404,15 @@ remove_crontab () {
 
     # 下面这段代码是为了确保修改的crontab能立即生效
     if pgrep -x crond &>/dev/null; then
-        pkill -HUP -x crond 
+        pkill -HUP -x crond
     fi
 }
 
 setup_startup_scripts () {
+    if [ $IS_SUPER == false ]; then
+        return
+    fi
+
     check_rc_file
     local rcfile=$RC_LOCAL_FILE
 
@@ -487,7 +494,9 @@ backup_config_file () {
             tmp_backup_file=$(mktemp "${TMP_DIR}"/nodeman_${file}_config.XXXXXXX)
             log backup_config_file - "backup $file to $tmp_backup_file"
             cp -rf "${AGENT_SETUP_PATH}"/etc/"${file}" "${tmp_backup_file}"
-            chattr +i "${tmp_backup_file}"
+            if [ $IS_SUPER == true ]; then
+                chattr +i "${tmp_backup_file}"
+            fi
         fi
     done
 }
@@ -498,7 +507,9 @@ recovery_config_file () {
         time_filter_config_file=$(find "${TMP_DIR}" -ctime -1 -name "nodeman_${file}_config*")
         [ -z "${time_filter_config_file}" ] && return 0
         latest_config_file=$(find "${TMP_DIR}" -ctime -1 -name "nodeman_${file}_config*" | xargs ls -rth | tail -n 1)
-        chattr -i "${latest_config_file}"
+        if [ $IS_SUPER == true ]; then
+            chattr -i "${latest_config_file}"
+        fi
         cp -rf "${latest_config_file}" "${AGENT_SETUP_PATH}"/etc/"${file}"
         rm -f "${latest_config_file}"
         log recovery_config_file - "recovery ${AGENT_SETUP_PATH}/etc/${file} from $latest_config_file"
@@ -512,7 +523,9 @@ remove_agent () {
     backup_config_file
     log remove_agent - "trying to remove old agent directory(${AGENT_SETUP_PATH})"
     cd "${AGENT_SETUP_PATH}" || return 0
-    for file in `lsattr -R |egrep "i-" |awk '{print $NF}'`;do echo "--- $file" && chattr -i $file ;done
+    if [ $IS_SUPER == true ]; then
+        for file in `lsattr -R |egrep "i-" |awk '{print $NF}'`;do echo "--- $file" && chattr -i $file ;done
+    fi
     cd -
     rm -rf "${AGENT_SETUP_PATH}"
 
@@ -557,11 +570,13 @@ setup_agent () {
 
     cd "$AGENT_SETUP_PATH/.." && tar xf "$TMP_DIR/$PKG_NAME"
 
-    # update gsecmdline under /bin
-    cp -fp plugins/bin/gsecmdline /bin/
-    # 注意这里 /bin/ 可能是软链
-    cp -fp plugins/etc/gsecmdline.conf /bin/../etc/
-    chmod 775 /bin/gsecmdline
+    if [ $IS_SUPER == true ]; then
+        # update gsecmdline under /bin
+        cp -fp plugins/bin/gsecmdline /bin/
+        # 注意这里 /bin/ 可能是软链
+        cp -fp plugins/etc/gsecmdline.conf /bin/../etc/
+        chmod 775 /bin/gsecmdline
+    fi
 
     # setup config file
     get_config
@@ -726,7 +741,7 @@ _OO_
 }
 
 validate_vars_string () {
-    echo "$1" | grep -Pq '^[a-zA-Z_][a-zA-Z0-9]+='
+    echo "$1" | grep -Pq '^[a-zA-Z_][a-zA-Z0-9_]*='
 }
 
 check_pkgtool () {
@@ -913,6 +928,13 @@ while getopts I:i:l:s:uc:r:x:p:e:a:k:N:v:oT:RDO:E:A:V:B:S:Z:K: arg; do
         *)  _help ;;
     esac
 done
+
+IS_SUPER=true
+if sudo -n true 2>/dev/null; then
+    IS_SUPER=true
+else
+    IS_SUPER=false
+fi
 
 ## 检查自定义环境变量
 for var_name in ${VARS_LIST//;/ /}; do

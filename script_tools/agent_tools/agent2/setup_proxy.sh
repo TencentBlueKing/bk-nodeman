@@ -311,6 +311,10 @@ report_mkdir () {
 }
 
 remove_crontab () {
+    if [ $IS_SUPER == false ]; then
+        return
+    fi
+
     local tmpcron
     tmpcron=$(mktemp "$TMP_DIR"/cron.XXXXXXX)
 
@@ -324,6 +328,10 @@ remove_crontab () {
 }
 
 setup_startup_scripts () {
+    if [ $IS_SUPER == false ]; then
+        return
+    fi
+
     check_rc_file
     local rcfile=$RC_LOCAL_FILE
 
@@ -663,7 +671,7 @@ _OO_
 }
 
 validate_vars_string () {
-    echo "$1" | grep -Pq '^[a-zA-Z_][a-zA-Z0-9]+='
+    echo "$1" | grep -Pq '^[a-zA-Z_][a-zA-Z0-9_]*='
 }
 
 check_pkgtool () {
@@ -875,6 +883,12 @@ while getopts n:t:I:i:l:s:uc:r:x:p:e:a:k:N:g:v:oT:RO:E:A:V:B:S:Z:K:F arg; do
     esac
 done
 
+IS_SUPER=true
+if sudo -n true 2>/dev/null; then
+    IS_SUPER=true
+else
+    IS_SUPER=false
+fi
 
 ## 检查自定义环境变量
 for var_name in ${VARS_LIST//;/ /}; do
