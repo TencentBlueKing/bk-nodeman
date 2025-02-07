@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+import logging
 from collections import defaultdict
 from typing import List
 
@@ -23,6 +24,8 @@ from common.api.exception import DataAPIException
 from ..base import CommonData
 from ..subsubscription import SubSubscriptionBaseService
 from .base import AgentBaseService
+
+logger = logging.getLogger("app")
 
 
 class StopPluginsService(SubSubscriptionBaseService, AgentBaseService):
@@ -83,4 +86,5 @@ class StopPluginsService(SubSubscriptionBaseService, AgentBaseService):
         subscription_ids = request_multi_thread(
             cls.call_create_subscription_api, params_list, get_data=lambda x: [x["subscription_id"]]
         )
+        logger.info(f"订阅ID列表: {str(subscription_ids)}")
         return subscription_ids
