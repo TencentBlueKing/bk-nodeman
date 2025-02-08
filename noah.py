@@ -1,0 +1,54 @@
+feat: 安装插件中原子执行动作顺序优化 (closed #2438)
+feat: arm架构安装proxy优化 (closed #2472)
+feat: 优化订阅任务按顺序执行而非抛错 (closed #2447)
+feat: agent重装优化 
+feat: tlinux4系统 proxy安装脚本及gsectl适配 (closed #2483)
+feat: 插件部署-插件包参数优化 (closed #2461)
+feat: 替换表单 
+feat: 插件operate接口支持主机差量同步 (closed #2510)                     
+feat: 安装策略修改 
+feat: 切换云上API (closed #2515)
+feat: 上云环境针对0区域限制新增主机校验提到API层级 (closed #2501) 
+feat: gse 接口调用分片优化 (closed #2520)
+feat: 向cmdb同步云区域服务商 (closed #2386)
+feat: 创建订阅支持开启订阅巡检 (closed #2525)
+feat: 安装预设插件锁定版本 (closed #2482) 
+feat: 安装预设插件锁定版本 (closed #2482)
+feat: 订阅下发支持动态分组 (closed #2507) 
+feat: 重启进程优化 (closed #2551)
+feat: Instance info增加集群、模块信息 (closed #2553)
+feat: 适配job任务分配端口无执行日志情况 (closed #2572) 
+feat: 插件渲染参数 支持bk_cpu, bk_mem字段 (closed #2561) 
+feat: 修改任务历史默认时间范围 
+
+fix: 修复host_search接口业务拓扑丢失 (closed #2449)
+                            
+fix: 修复主机信息未更新成功导致沿用旧Agent-ID问题 (closed #2451)
+                                 
+fix: 修复proxy主机转移模块后变成pagent问题 (closed #2474)
+                               
+fix: 修复Windows下解压插件进程占用问题 (closed #2486)
+                           
+fix: 修复差量同步主机忽略内网IP变更场景 (closed #2504)
+                         
+fix: 适配编排更新订阅任务兜底 (closed #2506)
+                   
+fix: 修复读取k8s大整型变成浮点数问题及单测修复 (closed #2521)
+                             
+fix: 修复article高度设置引起的外部样式污染问题修复 
+
+fix: 修复同步云服务商CC不存在某个云区域问题 (closed #2529)
+                           
+fix: 非centos或debian等操作系统下安装插件时初始化脚本可能存在报错 (closed #2470)
+                                           
+fix: 修复已禁用插件仍能通过监控平台的相关订阅步骤触发下发动作问题(closed #2313)
+                                    
+fix: 修复主机同步查询顺序 (closed #2543)
+                 
+fix: CC接口请求过大问题修复
+
+fix:Mac机器start脚本去除nohub 
+
+fix: InitProcess差量主机同步
+
+fix: linux Agent重启命令修复 (closed #2589)
