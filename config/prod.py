@@ -8,7 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-
+from env import BK_NODEMAN_HOST
 from config import RUN_VER
 
 if RUN_VER == "open":
@@ -19,6 +19,7 @@ else:
 # 正式环境
 RUN_MODE = "PRODUCT"
 CSRF_COOKIE_NAME = f"{APP_CODE}_csrftoken"
+CSRF_TRUSTED_ORIGINS = [BK_NODEMAN_HOST]
 
 # 只对正式环境日志级别进行配置，可以在这里修改
 LOG_LEVEL = os.environ.get("LOG_LEVEL", "ERROR")
