@@ -494,6 +494,9 @@ def sync_cmdb_host(bk_biz_id=None, task_id=None):
         # 若没有指定业务时，也同步资源池主机
         bk_biz_ids.append(settings.BK_CMDB_RESOURCE_POOL_BIZ_ID)
 
+    # 查询节点管理所有主机
+    node_man_host_ids = models.Host.objects.filter(bk_biz_id__in=bk_biz_ids).values_list("bk_host_id", flat=True)
+
     gray_tools: GrayTools = GrayTools()
     for bk_biz_id in bk_biz_ids:
         cc_bk_host_ids += _update_or_create_host(
@@ -502,9 +505,6 @@ def sync_cmdb_host(bk_biz_id=None, task_id=None):
             is_gse2_gray=gray_tools.is_gse2_gray(bk_biz_id=bk_biz_id),
             task_id=task_id,
         )
-
-    # 查询节点管理所有主机
-    node_man_host_ids = models.Host.objects.filter(bk_biz_id__in=bk_biz_ids).values_list("bk_host_id", flat=True)
 
     # 节点管理需要删除的host_id
     need_delete_host_ids = set(node_man_host_ids) - set(cc_bk_host_ids)
