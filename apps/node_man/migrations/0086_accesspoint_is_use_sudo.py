@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("node_man", "0084_update_isp_and_accesspoint_regionid_cityid"),
+        ("node_man", "0085_alter_subscription_node_type"),
     ]
 
     operations = [
