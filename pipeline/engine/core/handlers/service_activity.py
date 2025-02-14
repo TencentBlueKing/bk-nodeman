@@ -17,8 +17,9 @@ import traceback
 from pipeline.conf import default_settings
 from pipeline.core.data.hydration import hydrate_node_data
 from pipeline.core.flow.activity import ServiceActivity
+from pipeline.core.flow.gateway import ConvergeGateway
 from pipeline.django_signal_valve import valve
-from pipeline.engine import signals
+from pipeline.engine import signals, states
 from pipeline.engine.models import Data, ScheduleService, Status
 
 from .base import FlowElementHandler
@@ -34,6 +35,24 @@ class ServiceActivityHandler(FlowElementHandler):
         return ServiceActivity
 
     def handle(self, process, element, status):
+
+        is_multi_paralle_gateway: bool = isinstance(element, ServiceActivity) and element.data.get_one_of_inputs(
+            "is_multi_paralle_gateway"
+        )
+
+        if is_multi_paralle_gateway and element.incoming:
+            incoming_service = element.incoming.flows[0].source.service
+            act_id = incoming_service.id
+            if all(
+                [incoming_service.need_schedule(), not Status.objects.filter(id=act_id, state=states.FINISHED).exists()]
+            ):
+                next_node = element.next()
+                while is_multi_paralle_gateway:
+                    # 跳过所有未执行的ServiceActivity寻找最近的ConvergeGateway
+                    if isinstance(next_node, ConvergeGateway):
+                        return self.HandleResult(next_node=next_node, should_return=False, should_sleep=False)
+                    next_node = next_node.next()
+
         success = False
         exception_occurred = False
         monitoring = False
@@ -70,7 +89,8 @@ class ServiceActivityHandler(FlowElementHandler):
             monitoring = True
 
         element.setup_runtime_attrs(
-            id=element.id, root_pipeline_id=root_pipeline.id,
+            id=element.id,
+            root_pipeline_id=root_pipeline.id,
         )
 
         # execute service
@@ -110,6 +130,13 @@ class ServiceActivityHandler(FlowElementHandler):
                 pipeline_activity_id=element.id,
                 subprocess_id_stack=process.subprocess_stack,
             )
+
+            next_node = element.next()
+            while is_multi_paralle_gateway:
+                # 跳过所有未执行的ServiceActivity寻找最近的ConvergeGateway
+                if isinstance(next_node, ConvergeGateway):
+                    return self.HandleResult(next_node=next_node, should_return=False, should_sleep=False)
+                next_node = next_node.next()
 
             return self.HandleResult(next_node=None, should_return=False, should_sleep=True)
         else:

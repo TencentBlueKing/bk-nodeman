@@ -598,9 +598,17 @@ def run_subscription_task_and_create_instance(
     # 获取订阅范围内全部实例
     steps = subscription.steps
     tolerance_time: int = (59, 0)[subscription.is_need_realtime()]
-    instances = tools.get_instances_by_scope_with_checker(
-        scope, steps, source="run_subscription_task_and_create_instance", tolerance_time=tolerance_time
-    )
+
+    if models.GlobalSettings.get_config(
+        key=models.GlobalSettings.KeyEnum.ENABLE_GET_INSTANCES_BY_SCOPE_SHARDING.value, default=False
+    ):
+        instances = tools.get_instances_by_scope_with_checker__using_slices(
+            scope, steps, source="run_subscription_task_and_create_instance", tolerance_time=tolerance_time
+        )
+    else:
+        instances = tools.get_instances_by_scope_with_checker(
+            scope, steps, source="run_subscription_task_and_create_instance", tolerance_time=tolerance_time
+        )
     logger.info(
         "[sub_lifecycle<sub(%s), task(%s)>][run_subscription_task_and_create_instance] "
         "get_instances_by_scope_with_checker -> %s",
@@ -629,7 +637,7 @@ def run_subscription_task_and_create_instance(
         return
 
     # 预注入 Meta，用于变更计算（仅覆盖当前订阅范围，移除场景通过 create_task 兜底注入）
-    GrayTools().inject_meta_to_instances(instances)
+    instances = GrayTools().inject_meta_to_instances(instances)
     logger.info(
         "[sub_lifecycle<sub(%s), task(%s)>][run_subscription_task_and_create_instance] "
         "pre-inject meta to instances[num=%s] successfully",

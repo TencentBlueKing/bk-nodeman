@@ -386,6 +386,7 @@ class JobV3BaseService(six.with_metaclass(abc.ABCMeta, BaseService)):
         return []
 
     def _schedule(self, data, parent_data, callback_data=None):
+        self.get_common_data(data)
         is_rolling_execute: bool = data.get_one_of_outputs("is_rolling_execute", default=False)
         if is_rolling_execute:
             multi_job_params_map = data.get_one_of_outputs("multi_job_params_map")

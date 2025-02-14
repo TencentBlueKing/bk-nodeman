@@ -54,6 +54,157 @@ def batch_request(
     sort=None,
     split_params=False,
     interval=0,
+    start=0,
+    end=None,
+):
+    """
+    异步并发请求接口
+    :param func: 请求方法
+    :param params: 请求参数
+    :param get_data: 获取数据函数
+    :param get_count: 获取总数函数
+    :param limit: 一次请求数量
+    :param sort: 排序
+    :param split_params: 是否拆分参数
+    :param interval: 任务提交间隔
+    :param start: 开始索引
+    :param end: 结束索引
+    :return: 请求结果
+    """
+
+    # 如果该接口没有返回count参数，只能同步请求
+    if not get_count:
+        return sync_batch_request(func, params, get_data, limit)
+
+    data = []
+    if not split_params:
+        if end:
+            limit = min(end - start, limit)
+        request_params = dict(page={"start": start, "limit": limit}, **params)
+        if sort:
+            request_params["page"]["sort"] = sort
+        query_res = func(request_params)
+        count = min(get_count(query_res), end) if end else get_count(query_res)
+        final_request_params = [{"count": count, "params": params}]
+        data = get_data(query_res) or []
+        # 如果count小于等于limit，直接返回
+        if final_request_params[0]["count"] <= limit:
+            return data
+
+        start = start + limit
+    else:
+        final_request_params = format_params(params, get_count, func)
+
+    # 根据请求总数并发请求
+    pool = ThreadPool(20)
+    futures = []
+
+    for idx, req in enumerate(final_request_params):
+        while start < req["count"]:
+            if idx != 0 and interval:
+                time.sleep(interval)
+            request_params = {"page": {"limit": limit, "start": start}}
+            if sort:
+                request_params["page"]["sort"] = sort
+            request_params.update(req["params"])
+            futures.append(pool.apply_async(inject_request(func), args=(request_params,)))
+
+            start += limit
+
+    pool.close()
+    pool.join()
+
+    # 取值
+    for future in futures:
+        data.extend(get_data(future.get()))
+
+    return data
+
+
+def batch_request3(
+    func,
+    params,
+    get_data=lambda x: x["info"],
+    get_count=lambda x: x["count"],
+    limit=constants.QUERY_CMDB_LIMIT,
+    sort=None,
+    split_params=False,
+    interval=0,
+    start=0,
+    end=None,
+):
+    """
+    异步并发请求接口
+    :param func: 请求方法
+    :param params: 请求参数
+    :param get_data: 获取数据函数
+    :param get_count: 获取总数函数
+    :param limit: 一次请求数量
+    :param sort: 排序
+    :param split_params: 是否拆分参数
+    :param interval: 任务提交间隔
+    :param start: 开始索引
+    :param end: 结束索引
+    :return: 请求结果
+    """
+
+    # 如果该接口没有返回count参数，只能同步请求
+    if not get_count:
+        return sync_batch_request(func, params, get_data, limit)
+
+    data = []
+    if not split_params:
+        request_params = dict(page={"start": start, "limit": limit}, **params)
+        if sort:
+            request_params["page"]["sort"] = sort
+        query_res = func(request_params)
+        total_count = get_count(query_res)
+        final_request_params = [{"count": total_count, "params": params}]
+        data = get_data(query_res) or []
+
+        # 如果count小于等于limit或者开始索引大于等于总数，直接返回
+        if total_count <= limit or start >= total_count:
+            return data
+
+        start += limit
+    else:
+        final_request_params = format_params(params, get_count, func)
+
+    # 根据请求总数并发请求
+    pool = ThreadPool(20)
+    futures = []
+
+    for idx, req in enumerate(final_request_params):
+        while start < req["count"] and (end is None or start < end):
+            if idx != 0 and interval:
+                time.sleep(interval)
+            request_params = {"page": {"limit": limit, "start": start}}
+            if sort:
+                request_params["page"]["sort"] = sort
+            request_params.update(req["params"])
+            futures.append(pool.apply_async(inject_request(func), args=(request_params,)))
+
+            start += limit
+
+    pool.close()
+    pool.join()
+
+    # 取值
+    for future in futures:
+        data.extend(get_data(future.get()))
+
+    return data
+
+
+def batch_request_backup(
+    func,
+    params,
+    get_data=lambda x: x["info"],
+    get_count=lambda x: x["count"],
+    limit=constants.QUERY_CMDB_LIMIT,
+    sort=None,
+    split_params=False,
+    interval=0,
 ):
     """
     异步并发请求接口

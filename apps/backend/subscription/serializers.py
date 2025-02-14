@@ -46,6 +46,17 @@ class ScopeSerializer(SubScopeInstSelectorSerializer):
                 data=node.get("instance_info", {}),
                 ipv6_field_names=["bk_host_innerip_v6", "bk_host_outerip_v6", "login_ip", "data_ip"],
             )
+
+        required_keys_in_node: set = set()
+        if attrs["node_type"] == models.Subscription.NodeType.HOST_PROPERTY:
+            required_keys_in_node = {"field", "operator", "value"}
+
+        if attrs["node_type"] == models.Subscription.NodeType.NODE_MIXIN:
+            required_keys_in_node = {"node_type", "bk_biz_id", "sub_nodes"}
+
+        if required_keys_in_node and not all(required_keys_in_node.issubset(node.keys()) for node in attrs["nodes"]):
+            raise ValidationError(_(f"参数不合法，每个node应包含{str(required_keys_in_node)}"))
+
         return attrs
 
 

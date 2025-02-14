@@ -601,6 +601,9 @@ DEFAULT_PLUGIN_PROC_START_CHECK_SECS = 9
 LIST_SERVICE_INSTANCE_DETAIL_LIMIT = 1000
 LIST_SERVICE_INSTANCE_DETAIL_INTERVAL = 0.2
 
+# get_instances_by_scope 分片数量
+GET_INSTANCES_BY_SCOPE_SHARD_COUNT = 1000
+
 # redis键名模板
 REDIS_NEED_DELETE_HOST_IDS_KEY_TPL = f"{settings.APP_CODE}:node_man:need_delete_host_ids:list"
 # 从redis中读取bk_host_ids最大长度
@@ -1245,3 +1248,13 @@ class OsBitType(EnhanceEnum):
     @classmethod
     def cpu_type__os_bit_map(cls):
         return {CpuType.x86: cls.BIT32.value, CpuType.x86_64: cls.BIT64.value, CpuType.aarch64: cls.ARM.value}
+
+
+class DataBackend(EnhanceEnum):
+    MEM = "MEM"
+    REDIS = "REDIS"
+
+
+class DCReturnType(EnhanceEnum):
+    DICT = "DICT"
+    LIST = "LIST"

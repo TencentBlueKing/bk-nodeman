@@ -377,6 +377,8 @@ REST_FRAMEWORK = {
 }
 
 
+DATA_BACKEND = "REDIS"
+
 ESB_SDK_NAME = "blueking.component"
 
 BKCRYPTO = {

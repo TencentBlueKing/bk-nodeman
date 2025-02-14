@@ -16,6 +16,7 @@ from apps.core.concurrent.cache import FuncCacheDecorator
 from apps.exceptions import ApiError
 from apps.node_man import constants as node_man_constants
 from apps.node_man import models as node_man_models
+from apps.utils.redis import RedisDict
 from env.constants import GseVersion
 
 
@@ -91,6 +92,7 @@ class GrayTools:
         for host_info in host_infos:
             host_id__ap_id_map[host_info["bk_host_id"]] = host_info["ap_id"]
 
+        injected_instances = RedisDict()
         for instance_id, instance_info in instances.items():
             host_info = instance_info["host"]
             # 优先取 host_info 中的 ap_id，用于 Agent 操作场景下确定 ap
@@ -110,6 +112,9 @@ class GrayTools:
             )
             meta["GSE_VERSION"] = gse_version
             instance_info["meta"] = meta
+            injected_instances[instance_id] = instance_info
+
+        return injected_instances
 
     @classmethod
     def get_gray_ap_map(cls) -> typing.Dict[int, int]:
