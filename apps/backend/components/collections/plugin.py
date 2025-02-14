@@ -1314,6 +1314,8 @@ class GseOperateProcService(PluginBaseService):
         for process_status in process_statuses:
             host = self.get_host_by_process_status(process_status, common_data)
             subscription_instance = group_id_instance_map.get(process_status.group_id)
+            bk_agent_id = subscription_instance.instance_info["host"].get("bk_agent_id") or host.bk_agent_id
+            host.bk_agent_id = bk_agent_id
 
             proc_name = self.get_plugin_meta_name(plugin, process_status)
             gse_proc_key = common_data.gse_api_helper.get_gse_proc_key(host, constants.GSE_NAMESPACE, proc_name)
