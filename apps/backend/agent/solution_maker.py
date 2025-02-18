@@ -279,12 +279,6 @@ class BaseExecutionSolutionMaker(metaclass=abc.ABCMeta):
             f"-s {self.pipeline_id}",
         ]
 
-        if self.host_ap.is_use_sudo:
-            run_dir = f'GSE_AGENT_RUN_DIR={self.agent_config["run_path"]}'
-            data_dir = f'GSE_AGENT_DATA_DIR={self.agent_config["data_path"]}'
-            log_dir = f'GSE_AGENT_LOG_DIR={self.agent_config["log_path"]}'
-            run_cmd_params.append(f"-v {run_dir} {data_dir} {log_dir}")
-
         # 系统开启使用密码注册 Windows 服务时，需额外传入 -U -P 参数，用于注册 Windows 服务，详见 setup_agent.bat 脚本
         if self.need_encrypted_password():
             # GSE 密码注册场景暂不启用国密，使用固定 RSA 的方式
@@ -315,6 +309,13 @@ class BaseExecutionSolutionMaker(metaclass=abc.ABCMeta):
             run_cmd_params.extend(["-R"])
         if not self.agent_setup_info.is_legacy and self.agent_setup_info.force_update_agent_id:
             run_cmd_params.extend(["-F"])
+
+        # 因 shell 脚本读取 VARS_LIST 逻辑会忽略后续的参数故将其放置在最后, 仅非 root 无免密 sudo 用户安装时附带
+        if not self.host_ap.is_use_sudo and self.host.os_type != constants.OsType.WINDOWS:
+            run_dir = f'GSE_AGENT_RUN_DIR={self.agent_config["run_path"]}'
+            data_dir = f'GSE_AGENT_DATA_DIR={self.agent_config["data_path"]}'
+            log_dir = f'GSE_AGENT_LOG_DIR={self.agent_config["log_path"]}'
+            run_cmd_params.append(f"-v {run_dir} {data_dir} {log_dir}")
 
         return list(filter(None, run_cmd_params))
 
