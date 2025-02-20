@@ -779,3 +779,15 @@ class CollectionsCC(object):
             path="/api/c/compapi{bk_api_ver}/cc/list_service_template/",
             description="查询业务服务模板列表",
         )
+        self.find_module_batch = ComponentAPI(
+            client=self.client,
+            method="POST",
+            path="/api/c/compapi{bk_api_ver}/cc/find_module_batch/",
+            description="查询业务模块详情",
+        )
+        self.find_set_batch = ComponentAPI(
+            client=self.client,
+            method="POST",
+            path="/api/c/compapi{bk_api_ver}/cc/find_set_batch/",
+            description="查询业务集群详情",
+        )

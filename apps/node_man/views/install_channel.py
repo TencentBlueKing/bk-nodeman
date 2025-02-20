@@ -45,7 +45,7 @@ class InstallChannelViewSet(ModelViewSet):
             {
                 "id": constants.DEFAULT_INSTALL_CHANNEL_ID,
                 "name": constants.AUTOMATIC_CHOICE,
-                "bk_cloud_id": constants.AUTOMATIC_CHOICE_CLOUD_ID,
+                "bk_cloud_id": constants.DEFAULT_CLOUD,
                 "jump_servers": [],
                 "upstream_servers": {},
                 "hidden": False,

@@ -265,3 +265,21 @@ class _CCApi(BaseApi):
             before_request=add_esb_info_before_request,
             api_name="search_set_v2",
         )
+        self.find_module_batch = DataAPI(
+            method="POST",
+            url=CC_APIGATEWAY_ROOT_V2 + "find_module_batch/",
+            module=self.MODULE,
+            simple_module=self.SIMPLE_MODULE,
+            description="批量查询某业务的模块详情",
+            # before_request=add_esb_info_before_request,
+            api_name="find_module_batch",
+        )
+        self.find_set_batch = DataAPI(
+            method="POST",
+            url=CC_APIGATEWAY_ROOT_V2 + "find_set_batch/",
+            module=self.MODULE,
+            simple_module=self.SIMPLE_MODULE,
+            description="批量查询某业务的集群详情",
+            # before_request=add_esb_info_before_request,
+            api_name="find_set_batch",
+        )
