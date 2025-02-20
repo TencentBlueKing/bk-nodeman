@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import sys
+import time
 
 from blueapps.utils.request_provider import get_request
 from django.conf import settings
@@ -116,15 +117,30 @@ def _wrap_data_handler(sdk_method):
         ignore_error = args[0].get("ignore_error", False) if args else False
         if ignore_error:
             args[0].pop("ignore_error")
-        response = sdk_method(*args, **kwargs)
 
-        # When ignore_error is False, only the first part "not response['result']" works.
-        # When ignore_error is True, and response["data"] exists, the error will be ignored
-        # (skip the if block via short circuit of response["result"])
-        # The key point here is ComponentCallError(response) will ignore the response["data"] info
-        if not response["result"] and (not ignore_error or response["data"] is None):
+        max_retries = 5
+        retry_count = 0
+
+        while retry_count < max_retries:
+            response = sdk_method(*args, **kwargs)
+
+            # Return data immediately if request was successful
+            if response["result"]:
+                return response["data"]
+
+            # Handle error cases
+            if ignore_error and response["data"] is not None:
+                return response["data"]
+
+            # Check for rate limit error
+            if response.get("code") == 1642903 and response.get("code_name") == "RATE_LIMIT_RESTRICTION":
+                if retry_count < max_retries - 1:
+                    retry_count += 1
+                    time.sleep(1)
+                    continue
+
+            # Raise error for non-rate-limit failures or if retries exhausted
             raise ComponentCallError(response, (args, kwargs))
-        return response["data"]
 
     return _wrap
 

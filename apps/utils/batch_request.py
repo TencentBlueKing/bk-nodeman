@@ -8,10 +8,12 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import random
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from copy import deepcopy
 from multiprocessing.pool import ThreadPool
+from typing import Any, Dict, List
 
 from django.conf import settings
 from django.utils.translation import get_language
@@ -168,4 +170,26 @@ def request_multi_thread(func, params_list, get_data=lambda x: []):
         ]
     for future in as_completed(tasks):
         result.extend(get_data(future.result()))
+    return result
+
+
+def request_api_multi_thread(func: callable, params_list: List[Dict[str, Any]]) -> List[Any]:
+    """
+    Multi-thread API request with rate limiting
+    :param func: API function to call
+    :param params_list: List of parameter dictionaries
+    :param interval: Time interval between API calls in seconds
+    :return: Combined results from all API calls
+    """
+    result = []
+    with ThreadPoolExecutor(max_workers=settings.CONCURRENT_NUMBER) as ex:
+        # Submit tasks with time interval between submissions
+        tasks = []
+        for params in params_list:
+            # Add delay between submissions
+            time.sleep(random.choice([0.2, 0.3, 0.4, 0.5, 0.6]))
+            tasks.append(ex.submit(func, params))
+
+    for future in as_completed(tasks):
+        result.extend(future.result())
     return result

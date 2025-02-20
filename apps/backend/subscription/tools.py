@@ -47,7 +47,7 @@ from apps.node_man import tools as node_man_tools
 from apps.prometheus import metrics
 from apps.prometheus.helper import SetupObserve, get_call_resource_labels_func
 from apps.utils import concurrent
-from apps.utils.basic import chunk_lists, distinct_dict_list, order_dict
+from apps.utils.basic import distinct_dict_list, order_dict
 from apps.utils.batch_request import batch_request, request_multi_thread
 from apps.utils.concurrent import batch_call
 from apps.utils.time_handler import strftime_local
@@ -489,10 +489,13 @@ def get_host_detail_by_template(bk_obj_id, template_info_list: list, bk_biz_id: 
     if not biz_info[bk_biz_id]:
         logger.warning("[get_host_detail_by_template] can not find biz_info -> %s", bk_biz_id)
 
+    host_relation_map, _ = get_full_host_biz_relations(host_info_result)
+
     for host in host_info_result:
         host["bk_biz_id"] = bk_biz_id
         host["bk_biz_name"] = host["bk_biz_name"] = biz_info[bk_biz_id].get("bk_biz_name")
         host["bk_cloud_name"] = cloud_id_name_map.get(str(host["bk_cloud_id"]))
+        host["relations"] = host_relation_map[host["bk_host_id"]]
 
     return host_info_result
 
@@ -643,16 +646,8 @@ def get_host_detail(host_info_list: list, bk_biz_id: int = None):
         return []
 
     hosts = list_biz_hosts(bk_biz_id, cond, "list_hosts_without_biz", source="get_host_detail:list_hosts_without_biz")
-    bk_host_ids = []
-    bk_cloud_ids = []
-    for host in hosts:
-        bk_host_ids.append(host["bk_host_id"])
-        bk_cloud_ids.append(host["bk_cloud_id"])
 
-    host_relations = find_host_biz_relations(list(set(bk_host_ids)), source="get_host_detail")
-    host_biz_map = {}
-    for host in host_relations:
-        host_biz_map[host["bk_host_id"]] = host["bk_biz_id"]
+    host_relation_map, host_biz_map = get_full_host_biz_relations(hosts, return_biz_map=True)
 
     cloud_id_name_map = models.Cloud.cloud_id_name_map(get_cache=True)
 
@@ -664,6 +659,7 @@ def get_host_detail(host_info_list: list, bk_biz_id: int = None):
     host_id_dict = {}
     for _host in hosts:
         _host["bk_biz_id"] = host_biz_map[_host["bk_host_id"]]
+        _host["relations"] = host_relation_map[_host["bk_host_id"]]
         _host["bk_biz_name"] = (
             all_biz_info.get(_host["bk_biz_id"], {}).get("bk_biz_name", "")
             if _host["bk_biz_id"] != settings.BK_CMDB_RESOURCE_POOL_BIZ_ID
@@ -765,26 +761,102 @@ def set_template_scope_nodes(scope):
     return scope["nodes"]
 
 
+def get_full_host_biz_relations(hosts: List[Dict[str, Any]], return_biz_map: bool = False):
+    """
+    获取主机与业务的完整关系信息
+
+    :param hosts: 主机列表，每个主机信息包含 bk_host_id 字段
+    :return: 返回两个字典:
+        1. host_relation_map: 主机ID到其拓扑关系的映射
+           {
+               host_id: [
+                   {
+                       "bk_module_id": 模块ID,
+                       "bk_set_id": 集群ID,
+                       "bk_module_name": 模块名称,
+                       "bk_set_name": 集群名称
+                   },
+                   ...
+               ]
+           }
+        2. host_biz_map: 主机ID到业务ID的映射
+           {host_id: bk_biz_id}
+    """
+    # 查询主机与业务的关系信息
+    host_biz_relations = find_host_biz_relations(
+        list(set([_host["bk_host_id"] for _host in hosts])), source="get_host_relation"
+    )
+
+    # # 初始化业务-模块和业务-集群的映射关系
+    # biz_module_map: Dict[int, set] = defaultdict(set)  # 业务ID -> 模块ID集合
+    # biz_set_map: Dict[int, set] = defaultdict(set)  # 业务ID -> 集群ID集合
+
+    # 临时存储主机关系信息
+    host_relation_map: Dict[int, List[str, Any]] = defaultdict(list)
+
+    # 存储主机到业务的映射关系
+    host_biz_map = {}
+
+    # 遍历关系信息，构建各种映射关系
+    for relation in host_biz_relations:
+        if return_biz_map:
+            host_biz_map[relation["bk_host_id"]] = relation["bk_biz_id"]
+        # biz_set_map[relation["bk_biz_id"]].add(relation["bk_set_id"])
+        # biz_module_map[relation["bk_biz_id"]].add(relation["bk_module_id"])
+        host_relation_map[relation["bk_host_id"]].append(
+            {
+                "bk_module_id": relation["bk_module_id"],
+                "bk_set_id": relation["bk_set_id"],
+            }
+        )
+
+    # # 格式化CMDB查询参数
+    # bk_module_params: List[Dict[str, Any]] = format_cmdb_params(
+    #     biz_module_map, fields=["bk_module_id", "bk_module_name"]
+    # )
+    # bk_set_params: List[Dict[str, Any]] = format_cmdb_params(biz_set_map, fields=["bk_set_id", "bk_set_name"])
+
+    # TODO 查询量太大，需要更新方式，方案待确认
+    # # 并发查询模块和集群的名称信息
+    # module_id_name_map: Dict[int, str] = {
+    #     module["bk_module_id"]: module["bk_module_name"]
+    #     for module in request_api_multi_thread(client_v2.cc.find_module_batch, bk_module_params)
+    # }
+    # set_id_name_map: Dict[int, str] = {
+    #     module["bk_set_id"]: module["bk_set_name"]
+    #     for module in request_api_multi_thread(client_v2.cc.find_set_batch, bk_set_params)
+    # }
+
+    # 构建最终的主机关系映射，包含完整的名称信息
+    # host_relation_map: Dict[int, List[str, Any]] = defaultdict(list)
+    # for host_id, relations in _host_relation_map.items():
+    #     for relation in relations:
+    #         host_relation_map[host_id].append(
+    #             {
+    #                 "bk_module_id": relation["bk_module_id"],
+    #                 "bk_set_id": relation["bk_set_id"],
+    #                 # "bk_module_name": module_id_name_map.get(relation["bk_module_id"], ""),
+    #                 # "bk_set_name": set_id_name_map.get(relation["bk_set_id"], ""),
+    #             }
+    #         )
+
+    return host_relation_map, host_biz_map
+
+
 def get_host_relation(bk_biz_id, nodes):
     data = []
     hosts = get_host_by_inst(bk_biz_id, nodes)
-
-    host_biz_relations = find_host_biz_relations([_host["bk_host_id"] for _host in hosts], source="get_host_relation")
-
-    relations = defaultdict(lambda: defaultdict(list))
-    for item in host_biz_relations:
-        relations[item["bk_host_id"]]["bk_module_ids"].append(item["bk_module_id"])
-        relations[item["bk_host_id"]]["bk_set_ids"].append(item["bk_set_id"])
 
     biz_info = fetch_biz_info([bk_biz_id])
     if not biz_info[bk_biz_id]:
         logger.warning("[set_template_scope_nodes] can not find biz_info -> %s", bk_biz_id)
 
+    host_relation_map, _ = get_full_host_biz_relations(hosts)
+
     for host in hosts:
         host["bk_biz_id"] = bk_biz_id
         host["bk_biz_name"] = biz_info[bk_biz_id].get("bk_biz_name", "")
-        host["module"] = relations[host["bk_host_id"]]["bk_module_ids"]
-        host["set"] = relations[host["bk_host_id"]]["bk_set_ids"]
+        host["relations"] = host_relation_map[host["bk_host_id"]]
         data.append(host)
 
     return data
@@ -886,6 +958,23 @@ def execute_dynamic_groups(nodes: List[dict], bk_biz_id: int, bk_obj_id: str, fi
     return batch_call(
         batch_request, params, extend_result=True, interval=constants.LIST_SERVICE_INSTANCE_DETAIL_INTERVAL
     )
+
+
+def format_cmdb_params(data: Dict[int, set], fields: List[str]):
+    params_list = []
+    for biz_id, bk_ids in data.items():
+        bk_ids = list(bk_ids)
+        for i in range(0, len(bk_ids), constants.QUERY_CMDB_LIMIT):
+
+            params_list.append(
+                {
+                    "bk_biz_id": biz_id,
+                    "bk_ids": bk_ids[i : i + constants.QUERY_CMDB_LIMIT],
+                    "fields": fields,
+                }
+            )
+
+    return params_list
 
 
 def get_instances_by_scope_with_checker(
@@ -1007,14 +1096,8 @@ def get_instances_by_scope(scope: Dict[str, Union[Dict, int, Any]]) -> Dict[str,
                 ]
             )
 
-            host_biz_relations = get_host_module_info_by_host_ids(
-                bk_host_id_chunks=chunk_lists([instance["host"]["bk_host_id"] for instance in instances], 500),
-                bk_biz_id=bk_biz_id,
-            )
-
             # 转化模板为节点
             nodes = set_template_scope_nodes(scope)
-            instances = add_host_module_info(host_biz_relations, instances)
         else:
             # 补充服务实例中的信息
             # 转化模板为节点，**注意不可在get_service_instance_by_inst之后才转换**
@@ -1080,11 +1163,6 @@ def get_instances_by_scope(scope: Dict[str, Union[Dict, int, Any]]) -> Dict[str,
                     ]
                 )
 
-                host_biz_relations = get_host_module_info_by_host_ids(
-                    bk_host_id_chunks=chunk_lists([instance["host"]["bk_host_id"] for instance in instances], 500),
-                    bk_biz_id=bk_biz_id,
-                )
-
                 # 转化模板为节点
                 nodes = set_template_scope_nodes(
                     scope={
@@ -1098,7 +1176,6 @@ def get_instances_by_scope(scope: Dict[str, Union[Dict, int, Any]]) -> Dict[str,
                         ],
                     }
                 )
-                instances = add_host_module_info(host_biz_relations, instances)
 
             # 去重主机id去重
             instances = list({instance["host"]["bk_host_id"]: instance for instance in instances}.values())
@@ -1242,7 +1319,8 @@ def _add_scope_info_to_topo_instances(scope: Dict, instance: Dict, nodes: List[D
     """
     instance_scope = []
     if scope["object_type"] == models.Subscription.ObjectType.HOST:
-        module_ids = instance["host"]["module"]
+        # module_ids = instance["host"]["module"]
+        module_ids = set([relation["bk_module_id"] for relation in instance["host"]["relations"]])
     else:
         module_ids = [instance["service"]["bk_module_id"]]
 

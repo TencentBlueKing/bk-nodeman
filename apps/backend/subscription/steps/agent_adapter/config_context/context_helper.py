@@ -133,6 +133,8 @@ class ConfigContextHelper:
                 tls_cert_file=agent_tls_cert_file,
                 tls_key_file=agent_tls_key_file,
                 tls_password_file=agent_tls_password_file,
+                plugin_ipc=agent_config.get("pluginipc", ""),
+                alarm_event_data_id=agent_config.get("alarm_event_data_id", 1000),
             ),
             context_dataclass.ProxyConfigContext(
                 bind_port=self.ap.port_config["io_port"],
