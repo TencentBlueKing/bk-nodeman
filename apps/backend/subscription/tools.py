@@ -23,6 +23,8 @@ from functools import wraps
 from itertools import groupby
 from typing import Any, Dict, List, Union
 
+from celery import group
+from celery.task import task
 from django.conf import settings
 from django.db.models import Q
 from django.utils import timezone
@@ -286,7 +288,12 @@ def find_host_biz_relations(bk_host_ids: List[int]) -> List[Dict]:
     get_config_dict_kwargs={"config_name": core.ServiceCCConfigName.CMDB_QUERY.value},
 )
 def get_service_instances(
-    bk_biz_id: int, filter_id_list: List[int], filter_field_name: FilterFieldName, ignore_exception: bool = True
+    bk_biz_id: int,
+    filter_id_list: List[int],
+    filter_field_name: FilterFieldName,
+    ignore_exception: bool = True,
+    start: int = 0,
+    end: int = None,
 ) -> List[Dict]:
     """
     分批查询业务主机进程
@@ -314,6 +321,8 @@ def get_service_instances(
                 sort="id",
                 limit=constants.LIST_SERVICE_INSTANCE_DETAIL_LIMIT,
                 interval=constants.LIST_SERVICE_INSTANCE_DETAIL_INTERVAL,
+                start=start,
+                end=end,
             )
         else:
             params["page"] = {
@@ -382,7 +391,7 @@ def get_modules_by_inst_list(inst_list, module_to_topo):
     return module_ids, no_module_inst_list
 
 
-def get_service_instance_by_inst(bk_biz_id, inst_list, module_to_topo):
+def get_service_instance_by_inst(bk_biz_id, inst_list, module_to_topo, start=0, end=None):
     module_ids, no_module_inst_list = get_modules_by_inst_list(inst_list, module_to_topo)
     if not module_ids:
         return []
@@ -407,7 +416,12 @@ def get_service_instance_by_inst(bk_biz_id, inst_list, module_to_topo):
         ]
 
         service_instances = batch_call(
-            batch_request, params, extend_result=True, interval=constants.LIST_SERVICE_INSTANCE_DETAIL_INTERVAL
+            batch_request,
+            params,
+            extend_result=True,
+            interval=constants.LIST_SERVICE_INSTANCE_DETAIL_INTERVAL,
+            start=start,
+            end=end,
         )
     else:
         params = {"bk_biz_id": int(bk_biz_id), "with_name": True, "no_request": True}
@@ -417,6 +431,8 @@ def get_service_instance_by_inst(bk_biz_id, inst_list, module_to_topo):
             sort="id",
             limit=constants.LIST_SERVICE_INSTANCE_DETAIL_LIMIT,
             interval=constants.LIST_SERVICE_INSTANCE_DETAIL_INTERVAL,
+            start=start,
+            end=end,
         )
 
     service_instances = [
@@ -448,12 +464,16 @@ def fetch_biz_info(bk_biz_ids: typing.List[int]) -> typing.Dict[int, typing.Dict
     return {bk_biz_id: biz_info_map.get(str(bk_biz_id)) or {} for bk_biz_id in bk_biz_ids}
 
 
-def get_host_detail_by_template(bk_obj_id, template_info_list: list, bk_biz_id: int = None):
+def get_host_detail_by_template(
+    bk_obj_id, template_info_list: list, bk_biz_id: int = None, start: int = 0, end: typing.Optional[int] = None
+):
     """
     根据集群模板ID/服务模板ID获得主机的详细信息
     :param bk_obj_id: 模板类型
     :param template_info_list: 模板信息列表
     :param bk_biz_id: 业务ID
+    :param start: CC查询开始索引
+    :param end: CC查询结束索引
     :return: 主机列表信息
     """
     if not template_info_list:
@@ -466,7 +486,10 @@ def get_host_detail_by_template(bk_obj_id, template_info_list: list, bk_biz_id: 
         call_func = client_v2.cc.find_host_by_service_template
         template_ids = [info["bk_inst_id"] for info in template_info_list]
         host_info_result = batch_request(
-            call_func, dict(bk_service_template_ids=template_ids, bk_biz_id=bk_biz_id, fields=fields)
+            call_func,
+            dict(bk_service_template_ids=template_ids, bk_biz_id=bk_biz_id, fields=fields),
+            start=start,
+            end=end,
         )
     elif bk_obj_id == models.Subscription.NodeType.DYNAMIC_GROUP:
         # 集群模板
@@ -474,14 +497,20 @@ def get_host_detail_by_template(bk_obj_id, template_info_list: list, bk_biz_id: 
         template_ids = [info["bk_inst_id"] for info in template_info_list]
         bk_set_ids = [info["bk_set_id"] for info in template_info_list]
         host_info_result = batch_request(
-            call_func, dict(bk_set_template_ids=template_ids, bk_set_ids=bk_set_ids, bk_biz_id=bk_biz_id, fields=fields)
+            call_func,
+            dict(bk_set_template_ids=template_ids, bk_set_ids=bk_set_ids, bk_biz_id=bk_biz_id, fields=fields),
+            start=start,
+            end=end,
         )
     else:
         # 集群模板
         call_func = client_v2.cc.find_host_by_set_template
         template_ids = [info["bk_inst_id"] for info in template_info_list]
         host_info_result = batch_request(
-            call_func, dict(bk_set_template_ids=template_ids, bk_biz_id=bk_biz_id, fields=fields)
+            call_func,
+            dict(bk_set_template_ids=template_ids, bk_biz_id=bk_biz_id, fields=fields),
+            start=start,
+            end=end,
         )
     biz_info = fetch_biz_info([bk_biz_id])
     cloud_id_name_map = models.Cloud.cloud_id_name_map(get_cache=True)
@@ -555,7 +584,7 @@ def get_service_instances_by_template(bk_obj_id, template_info_list: list, bk_bi
 
 
 @SetupObserve(counter=metrics.app_common_method_requests_total, get_labels_func=get_call_resource_labels_func)
-def get_host_detail(host_info_list: list, bk_biz_id: int = None):
+def get_host_detail(host_info_list: list, bk_biz_id: int = None, start=0, end=None):
     """
     获取主机详情
     :param bk_biz_id: 业务ID
@@ -642,7 +671,9 @@ def get_host_detail(host_info_list: list, bk_biz_id: int = None):
         #   3. 综上所述，提前返回可以减少无效执行逻辑及网络IO
         return []
 
-    hosts = list_biz_hosts(bk_biz_id, cond, "list_hosts_without_biz", source="get_host_detail:list_hosts_without_biz")
+    hosts = list_biz_hosts(
+        bk_biz_id, cond, "list_hosts_without_biz", source="get_host_detail:list_hosts_without_biz", start=start, end=end
+    )
     bk_host_ids = []
     bk_cloud_ids = []
     for host in hosts:
@@ -765,9 +796,9 @@ def set_template_scope_nodes(scope):
     return scope["nodes"]
 
 
-def get_host_relation(bk_biz_id, nodes):
+def get_host_relation(bk_biz_id, nodes, start=0, end=None):
     data = []
-    hosts = get_host_by_inst(bk_biz_id, nodes)
+    hosts = get_host_by_inst(bk_biz_id, nodes, start=start, end=end)
 
     host_biz_relations = find_host_biz_relations([_host["bk_host_id"] for _host in hosts], source="get_host_relation")
 
@@ -906,7 +937,44 @@ def get_instances_by_scope_with_checker(
     return get_instances_by_scope(scope, *args, **kwargs)
 
 
-def get_hosts_by_property_conditions(property_conditions: List[dict]):
+def get_instances_by_scope_with_checker__using_slices(
+    scope: Dict[str, Union[Dict, int, Any]], steps: List[models.SubscriptionStep], *args, **kwargs
+) -> Dict[str, Dict[str, Union[Dict, Any]]]:
+
+    if "with_info" in scope:
+        scope["with_info"]["process"] = False
+    else:
+        scope["with_info"] = {"process": False}
+
+    for step in steps:
+        params_str: str = json.dumps(step.params)
+        if "cmdb_instance.process" in params_str or "target.process" in params_str:
+            scope["with_info"]["process"] = True
+            break
+
+    count = calculate_call_count(scope)
+
+    # 分批调用
+    step = models.GlobalSettings.get_config(
+        key=models.GlobalSettings.KeyEnum.GET_INSTANCES_BY_SCOPE_SHARD_COUNT.value,
+        default=constants.GET_INSTANCES_BY_SCOPE_SHARD_COUNT,
+    )
+
+    # 创建一个任务组
+    tasks = group(get_instances_by_scope__with_slices.s(scope, start, start + step) for start in range(0, count, step))
+    for start in range(0, count, step):
+        print(f"start = {start}, end = {start + step}")
+
+    # 调用任务组并等待所有任务完成
+    result = tasks.delay()
+    result.join()  # 这将阻塞主线程，直到所有任务完成
+
+    get_instances_by_scope(scope)
+
+    return {}
+
+
+def get_hosts_by_property_conditions(property_conditions: List[dict], start: int = 0, end: typing.Optional[int] = None):
     filter_bk_biz_ids: List[int] = []
     blacklist_bk_biz_ids: List[int] = []
 
@@ -937,6 +1005,8 @@ def get_hosts_by_property_conditions(property_conditions: List[dict]):
                     "condition": condition,
                     "func": "list_biz_hosts",
                     "source": "get_host_detail:list_biz_hosts",
+                    "start": start,
+                    "end": end,
                 }
                 for bk_biz_id in filter_bk_biz_ids
             ],
@@ -948,6 +1018,8 @@ def get_hosts_by_property_conditions(property_conditions: List[dict]):
             condition=condition,
             func="list_hosts_without_biz",
             source="get_host_detail:list_hosts_without_biz",
+            start=start,
+            end=end,
         )
 
     bk_host_ids: set = set()
@@ -1018,9 +1090,680 @@ def get_service_instances_by_hosts(hosts: List[dict]):
     return service_instances
 
 
+def execute_and_get_count(func, params):
+    """
+    执行给定的函数并从结果中提取计数。
+
+    :param func: 要调用的函数
+    :param params: 提供给函数的参数
+    :return:
+    """
+    params = dict(page={"start": 0, "limit": 1}, **params)
+    query_res = func(params)
+    return query_res["count"]
+
+
+def calculate_count_with_instance__host(nodes, bk_biz_id):
+    # 仅支持一种主机格式
+    first_host_info = nodes[0]
+    if "instance_info" in first_host_info:
+        # 当已存在instance_info时，不到 CMDB 查询，用于新安装AGENT的场景
+        return 0
+
+    if "bk_host_id" in first_host_info:
+        params = {
+            "host_property_filter": {
+                "condition": "AND",
+                "rules": [{"field": "bk_host_id", "operator": "in", "value": [host["bk_host_id"] for host in nodes]}],
+            }
+        }
+
+    elif "ip" in first_host_info and "bk_cloud_id" in first_host_info:
+
+        host_infos_gby_bk_cloud_id = defaultdict(list)
+        for host_info in nodes:
+            host_infos_gby_bk_cloud_id[host_info["bk_cloud_id"]].append(host_info)
+        rules = []
+        for bk_cloud_id, host_infos in host_infos_gby_bk_cloud_id.items():
+            ipv4s = set()
+            ipv6s = set()
+            for host_info in host_infos:
+                if ipaddress.ip_address(host_info["ip"]).version == constants.CmdbIpVersion.V6.value:
+                    ipv6s.add(host_info["ip"])
+                else:
+                    ipv4s.add(host_info["ip"])
+            for ip_field_name, ips in [("bk_host_innerip", ipv4s), ("bk_host_innerip_v6", ipv6s)]:
+                # 如果为空，
+                if not ips:
+                    continue
+
+                rule = {
+                    "condition": "AND",
+                    # 仅允许静态 IP 通过 ip + 管控区域 方式下发订阅
+                    "rules": [
+                        {"field": ip_field_name, "operator": "in", "value": list(ips)},
+                        {"field": "bk_cloud_id", "operator": "equal", "value": bk_cloud_id},
+                    ],
+                }
+                # 如果启用动态 IP 适配，ip + bk_cloud_id 的方式仅允许静态 IP 使用
+                if settings.BKAPP_ENABLE_DHCP:
+                    rule["rules"].insert(
+                        0,
+                        {
+                            "field": "bk_addressing",
+                            "operator": "equal",
+                            "value": constants.CmdbAddressingType.STATIC.value,
+                        },
+                    )
+
+                rules.append(rule)
+
+        params = {"host_property_filter": {"condition": "OR", "rules": rules}}
+
+    else:
+        # 如果不满足 bk_host_id / ip & bk_cloud_id 的传入格式，此时直接返回空列表，表示查询不到任何主机
+        # 说明：
+        #   1. list_hosts_without_biz 无需业务进行全量查询，无效传参格式会匹配单业务或全业务（不传bk_biz_id）主机
+        #   2. 无有效 ip 在后续执行 create_host_key 获取 bk_cloud_id 也会 KeyError
+        #   3. 综上所述，提前返回可以减少无效执行逻辑及网络IO
+        return 0
+
+    if bk_biz_id:
+        params["bk_biz_id"] = bk_biz_id
+        func = CCApi.list_biz_hosts
+    else:
+        func = CCApi.list_hosts_without_biz
+
+    count = execute_and_get_count(func, params)
+    return count
+
+
+def calculate_count_with_topo__host(nodes, bk_biz_id):
+    bk_biz_ids, bk_set_ids, bk_module_ids, count = [], [], [], 0
+
+    # 获取主线模型的业务拓扑信息
+    topo_data_list = client_v2.cc.get_mainline_object_topo()
+    bk_obj_id_list = [topo_data["bk_obj_id"] for topo_data in topo_data_list]
+
+    for inst in nodes:
+        if inst["bk_obj_id"] == "biz":
+            bk_biz_ids.append(bk_biz_id)
+            break
+        elif inst["bk_obj_id"] == "set":
+            bk_set_ids.append(inst["bk_inst_id"])
+        elif inst["bk_obj_id"] == "module":
+            bk_module_ids.append(int(inst["bk_inst_id"]))
+        elif inst["bk_obj_id"] in bk_obj_id_list:
+            # 自定义层级
+            count = max(
+                count,
+                execute_and_get_count(
+                    client_v2.cc.find_host_by_topo,
+                    {
+                        "bk_biz_id": bk_biz_id,
+                        "bk_obj_id": inst["bk_obj_id"],
+                        "bk_inst_id": inst["bk_inst_id"],
+                        "fields": constants.CC_HOST_FIELDS,
+                    },
+                ),
+            )
+
+    if bk_biz_ids:
+        count = max(
+            count,
+            execute_and_get_count(
+                client_v2.cc.list_biz_hosts,
+                {
+                    "bk_biz_id": bk_biz_ids[0],
+                },
+            ),
+        )
+
+    if bk_set_ids:
+        count = max(
+            count,
+            execute_and_get_count(
+                client_v2.cc.list_biz_hosts,
+                {
+                    "set_cond": [{"field": "bk_set_id", "operator": "$in", "value": bk_set_ids}],
+                    "bk_biz_id": bk_biz_id,
+                },
+            ),
+        )
+
+    if bk_module_ids:
+        count = max(
+            count,
+            execute_and_get_count(
+                client_v2.cc.list_biz_hosts,
+                {
+                    "bk_module_ids": bk_module_ids,
+                    "bk_biz_id": bk_biz_id,
+                },
+            ),
+        )
+
+    return count
+
+
+def calculate_count_with_topo__service(nodes, bk_biz_id, module_to_topo):
+    count = 0
+    module_ids, no_module_inst_list = get_modules_by_inst_list(nodes, module_to_topo)
+    if not module_ids:
+        return []
+
+    if len(module_ids) <= models.GlobalSettings.get_config(
+        models.GlobalSettings.KeyEnum.SERVICE_INSTANCE_MODULE_ID_THRESHOLD.value,
+        constants.QUERY_MODULE_ID_THRESHOLD,
+    ):
+        for bk_module_id in module_ids:
+            count += execute_and_get_count(
+                CCApi.list_service_instance_detail,
+                {
+                    "bk_biz_id": int(bk_biz_id),
+                    "bk_module_id": bk_module_id,
+                },
+            )
+    else:
+        count = execute_and_get_count(
+            CCApi.list_service_instance_detail,
+            {"bk_biz_id": int(bk_biz_id), "with_name": True, "no_request": True},
+        )
+    return count
+
+
+def calculate_count_with_template__host(nodes, bk_biz_id, bk_obj_id_set):
+    bk_obj_id = list(bk_obj_id_set)[0]
+    fields = constants.CC_HOST_FIELDS
+    if bk_obj_id == models.Subscription.NodeType.SERVICE_TEMPLATE:
+        count = execute_and_get_count(
+            client_v2.cc.find_host_by_service_template,
+            {
+                "bk_service_template_ids": [info["bk_inst_id"] for info in nodes],
+                "bk_biz_id": bk_biz_id,
+                "fields": fields,
+            },
+        )
+    elif bk_obj_id == models.Subscription.NodeType.DYNAMIC_GROUP:
+        count = execute_and_get_count(
+            client_v2.cc.find_host_by_set_template,
+            {
+                "bk_set_template_ids": [info["bk_inst_id"] for info in nodes],
+                "bk_set_ids": [info["bk_set_id"] for info in nodes],
+                "fields": fields,
+            },
+        )
+    else:
+        count = execute_and_get_count(
+            client_v2.cc.find_host_by_set_template,
+            {
+                "bk_set_template_ids": [info["bk_inst_id"] for info in nodes],
+                "bk_biz_id": bk_biz_id,
+                "fields": fields,
+            },
+        )
+
+    return count
+
+
+def calculate_count_with_template__service(scope, bk_biz_id, module_to_topo):
+    count = 0
+    # 补充服务实例中的信息
+    # 转化模板为节点，**注意不可在get_service_instance_by_inst之后才转换**
+    nodes = set_template_scope_nodes(scope.copy())
+    module_ids, no_module_inst_list = get_modules_by_inst_list(nodes, module_to_topo)
+    if not module_ids:
+        return []
+
+    if len(module_ids) <= models.GlobalSettings.get_config(
+        models.GlobalSettings.KeyEnum.SERVICE_INSTANCE_MODULE_ID_THRESHOLD.value,
+        constants.QUERY_MODULE_ID_THRESHOLD,
+    ):
+        for bk_module_id in module_ids:
+            count += execute_and_get_count(
+                CCApi.list_service_instance_detail,
+                {
+                    "bk_biz_id": int(bk_biz_id),
+                    "with_name": True,
+                    "bk_module_id": bk_module_id,
+                    # CC 接口统一使用后台访问
+                    "no_request": True,
+                },
+            )
+
+    else:
+        count += execute_and_get_count(
+            CCApi.list_service_instance_detail,
+            {"bk_biz_id": int(bk_biz_id), "with_name": True, "no_request": True},
+        )
+
+    return count
+
+
+def calculate_count_with_host_property(nodes):
+    count = 0
+    filter_bk_biz_ids: List[int] = []
+
+    # 业务id不支持在host_property_filter中筛选，单独拎出来处理
+    biz_condition = next((node for node in nodes if node["field"] == "bk_biz_id"), None)
+    property_conditions = [node for node in nodes if node["field"] != "bk_biz_id"]
+    if biz_condition:
+        value, operator = biz_condition["value"], biz_condition["operator"]
+        bk_biz_ids = [value] if isinstance(value, int) else value
+
+        if operator in ["equal", "in"]:
+            filter_bk_biz_ids = bk_biz_ids
+
+    # rules不允许为[]，不筛选只能让condition为{}
+    if property_conditions:
+        condition = {"host_property_filter": {"condition": "AND", "rules": property_conditions}}
+    else:
+        condition = {}
+
+    if filter_bk_biz_ids:
+        for bk_biz_id in filter_bk_biz_ids:
+            condition["bk_biz_id"] = bk_biz_id
+            count = max(
+                count,
+                execute_and_get_count(
+                    client_v2.cc.list_biz_hosts,
+                    condition,
+                ),
+            )
+    else:
+        count = execute_and_get_count(
+            client_v2.cc.list_hosts_without_biz,
+            condition,
+        )
+
+    return count
+
+
+def calculate_call_count(scope):
+    nodes = scope["nodes"]
+    bk_biz_id = scope["bk_biz_id"]
+    if bk_biz_id and bk_biz_id != -1:
+        module_to_topo = get_module_to_topo_dict(bk_biz_id)
+    else:
+        module_to_topo = {}
+
+    # cc最大请求数量
+    count = 0
+
+    # 按照拓扑查询
+    if scope["node_type"] == models.Subscription.NodeType.INSTANCE:
+        if scope["object_type"] == models.Subscription.ObjectType.HOST:
+            count = calculate_count_with_instance__host(nodes, bk_biz_id)
+        else:
+            # func = CCApi.list_service_instance_detail
+            # params = {
+            #     "bk_biz_id": int(bk_biz_id),
+            #     "with_name": True,
+            #     FilterFieldName.SERVICE_INSTANCE_IDS.value: [int(node["id"]) for node in nodes],
+            #     # CC 接口统一使用后台访问
+            #     "no_request": True,
+            # }
+            # count = execute_and_get_count(func, params)
+
+            # 这里特殊处理, 不需要计算数量
+            count = 1
+
+    # 按照实例查询
+    elif scope["node_type"] == models.Subscription.NodeType.TOPO:
+        if scope["object_type"] == models.Subscription.ObjectType.HOST:
+            count = calculate_count_with_topo__host(nodes, bk_biz_id)
+        else:
+            count = calculate_count_with_topo__service(nodes, bk_biz_id, module_to_topo)
+
+    # 按照模板查询
+    elif scope["node_type"] in [
+        models.Subscription.NodeType.SERVICE_TEMPLATE,
+        models.Subscription.NodeType.SET_TEMPLATE,
+    ]:
+        # 校验是否都选择了同一种模板
+        bk_obj_id_set = check_instances_object_type(nodes)
+        if scope["object_type"] == models.Subscription.ObjectType.HOST:
+            count = calculate_count_with_template__host(nodes, bk_biz_id, bk_obj_id_set)
+        else:
+            count = calculate_count_with_template__service(nodes, bk_biz_id, module_to_topo)
+
+    # 按照主机属性查询
+    elif scope["node_type"] == models.Subscription.NodeType.HOST_PROPERTY:
+        count = calculate_count_with_host_property(nodes)
+
+    return count
+
+
+@task(queue="default")
+def get_instances_by_scope__with_slices(
+    scope: Dict[str, Union[Dict, int, Any]], start=0, end=None
+) -> Dict[str, Dict[str, Union[Dict, Any]]]:
+    """
+    获取范围内的所有主机
+    :param scope: dict {
+        "bk_biz_id": 2,
+        "object_type": "SERVICE",
+        "node_type": "TOPO",
+        "need_register": False, // 是否需要注册到CMDB
+        "nodes": [
+            // SERVICE-INSTANCE 待补充
+            // HOST-TOPO
+            {
+                "bk_inst_id": 33,   // 节点实例ID
+                "bk_obj_id": "module",  // 节点对象ID
+            },
+            // HOST-INSTANCE
+            {
+                "ip": "127.0.0.1",
+                "bk_cloud_id": 0,
+                "bk_supplier_id": 0,
+                "instance_info": {}  // 注册到CMDB的主机信息
+            },
+            {
+                'bk_host_id': 1,
+            }
+        ]
+    }
+    :param start: 开始索引
+    :param end: 结束索引
+    :return: dict {
+        "host|instance|host|xxxx": {...},
+        "host|instance|host|yyyy": {...},
+    }
+    """
+
+    print(f"start = {start}, end = {end}")
+    instance_selector = scope.get("instance_selector")
+    # 不进行主机筛选时传入 None，传入空列表则识别为全部过滤
+    if instance_selector == []:
+        return {}
+
+    instances = []
+    bk_biz_id = scope["bk_biz_id"]
+    if bk_biz_id and bk_biz_id != -1:
+        module_to_topo = get_module_to_topo_dict(bk_biz_id)
+    else:
+        module_to_topo = {}
+
+    nodes: List[dict] = scope["nodes"]
+    if not nodes:
+        # 兼容节点为空的情况
+        return {}
+
+    need_register = scope.get("need_register", False)
+    host_dict: dict = {}
+    # 按照拓扑查询
+    if scope["node_type"] == models.Subscription.NodeType.TOPO:
+        if scope["object_type"] == models.Subscription.ObjectType.HOST:
+            instances.extend([{"host": inst} for inst in get_host_relation(bk_biz_id, nodes, start=start, end=end)])
+        else:
+            # 补充服务实例中的信息
+            instances.extend(
+                [
+                    {"service": inst}
+                    for inst in get_service_instance_by_inst(bk_biz_id, nodes, module_to_topo, start=start, end=end)
+                ]
+            )
+
+    # 按照实例查询
+    elif scope["node_type"] == models.Subscription.NodeType.INSTANCE:
+        if scope["object_type"] == models.Subscription.ObjectType.HOST:
+            instances.extend(
+                [
+                    {"host": inst}
+                    for inst in get_host_detail(
+                        nodes, bk_biz_id=bk_biz_id, source="get_instances_by_scope", start=start, end=end
+                    )
+                ]
+            )
+        else:
+            service_instance_ids = [int(node["id"]) for node in nodes]
+            instances.extend(
+                [
+                    {"service": inst}
+                    for inst in get_service_instances(
+                        bk_biz_id=bk_biz_id,
+                        filter_id_list=service_instance_ids,
+                        filter_field_name=FilterFieldName.SERVICE_INSTANCE_IDS,
+                        ignore_exception=False,
+                        start=start,
+                        end=end,
+                    )
+                ]
+            )
+
+    # 按照模板查询
+    elif scope["node_type"] in [
+        models.Subscription.NodeType.SERVICE_TEMPLATE,
+        models.Subscription.NodeType.SET_TEMPLATE,
+    ]:
+        # 校验是否都选择了同一种模板
+        bk_obj_id_set = check_instances_object_type(nodes)
+        if scope["object_type"] == models.Subscription.ObjectType.HOST:
+            instances.extend(
+                [
+                    {"host": inst}
+                    for inst in get_host_detail_by_template(
+                        list(bk_obj_id_set)[0], nodes, bk_biz_id=bk_biz_id, start=start, end=end
+                    )
+                ]
+            )
+
+            host_biz_relations = get_host_module_info_by_host_ids(
+                bk_host_id_chunks=chunk_lists([instance["host"]["bk_host_id"] for instance in instances], 500),
+                bk_biz_id=bk_biz_id,
+            )
+
+            # 转化模板为节点
+            nodes = set_template_scope_nodes(scope)
+            instances = add_host_module_info(host_biz_relations, instances)
+        else:
+            # 补充服务实例中的信息
+            # 转化模板为节点，**注意不可在get_service_instance_by_inst之后才转换**
+            nodes = set_template_scope_nodes(scope)
+            instances.extend(
+                [
+                    {"service": inst}
+                    for inst in get_service_instance_by_inst(bk_biz_id, nodes, module_to_topo, start=start, end=end)
+                ]
+            )
+
+    # 按照动态分组查询
+    elif scope["node_type"] == models.Subscription.NodeType.DYNAMIC_GROUP:
+        # 获取动态分组主机信息
+        host_infos = execute_dynamic_groups(
+            nodes=nodes,
+            bk_biz_id=bk_biz_id,
+            bk_obj_id=constants.CmdbGroupObjId.HOST.value,
+            fields=["bk_host_id"],
+        )
+
+        # 获取动态分组集群信息
+        set_infos = execute_dynamic_groups(
+            nodes=nodes,
+            bk_biz_id=bk_biz_id,
+            bk_obj_id=constants.CmdbGroupObjId.SET.value,
+            fields=["bk_set_id", "set_template_id"],
+        )
+
+        if scope["object_type"] == models.Subscription.ObjectType.HOST:
+            # 根据主机信息填充主机实例
+            if host_infos:
+                instances.extend(
+                    [
+                        {"host": inst, "source": "host_infos"}
+                        for inst in get_host_detail(
+                            host_info_list=[
+                                {
+                                    "bk_biz_id": bk_biz_id,
+                                    "bk_host_id": host_info["bk_host_id"],
+                                }
+                                for host_info in host_infos
+                            ],
+                            bk_biz_id=bk_biz_id,
+                            source="get_instances_by_scope",
+                        )
+                    ]
+                )
+
+            # 根据集群信息填充主机实例
+            if set_infos:
+                instances.extend(
+                    [
+                        {"host": inst, "source": "set_infos"}
+                        for inst in get_host_detail_by_template(
+                            bk_obj_id=models.Subscription.NodeType.DYNAMIC_GROUP,
+                            template_info_list=[
+                                {
+                                    "bk_set_id": set_info["bk_set_id"],
+                                    "bk_inst_id": set_info["set_template_id"],
+                                }
+                                for set_info in set_infos
+                            ],
+                            bk_biz_id=bk_biz_id,
+                        )
+                    ]
+                )
+
+                host_biz_relations = get_host_module_info_by_host_ids(
+                    bk_host_id_chunks=chunk_lists([instance["host"]["bk_host_id"] for instance in instances], 500),
+                    bk_biz_id=bk_biz_id,
+                )
+
+                # 转化模板为节点
+                nodes = set_template_scope_nodes(
+                    scope={
+                        "bk_biz_id": bk_biz_id,
+                        "node_type": models.Subscription.NodeType.DYNAMIC_GROUP,
+                        "nodes": [
+                            {
+                                "bk_inst_id": set_info["bk_set_id"],
+                            }
+                            for set_info in set_infos
+                        ],
+                    }
+                )
+                instances = add_host_module_info(host_biz_relations, instances)
+
+            # 去重主机id去重
+            instances = list({instance["host"]["bk_host_id"]: instance for instance in instances}.values())
+
+        else:
+            # 根据主机信息填充服务实例
+            if host_infos:
+                instances.extend(
+                    [
+                        {"service": inst, "source": "host_infos"}
+                        for inst in get_service_instances(
+                            bk_biz_id=bk_biz_id,
+                            filter_id_list=[host_info["bk_host_id"] for host_info in host_infos],
+                            filter_field_name=FilterFieldName.BK_HOST_LIST,
+                            ignore_exception=False,
+                        )
+                    ]
+                )
+
+            # 根据集群信息填充服务实例
+            if set_infos:
+                nodes = set_template_scope_nodes(
+                    scope={
+                        "bk_biz_id": bk_biz_id,
+                        "node_type": models.Subscription.NodeType.DYNAMIC_GROUP,
+                        "nodes": [
+                            {
+                                "bk_inst_id": set_info["bk_set_id"],
+                            }
+                            for set_info in set_infos
+                        ],
+                    }
+                )
+                instances.extend(
+                    [
+                        {"service": inst, "source": "set_infos"}
+                        for inst in get_service_instance_by_inst(bk_biz_id, nodes, module_to_topo)
+                    ]
+                )
+
+            # 根据服务实例id去重
+            instances = list({instance["service"]["id"]: instance for instance in instances}.values())
+
+    # 按照主机属性查询
+    elif scope["node_type"] == models.Subscription.NodeType.HOST_PROPERTY:
+        hosts: List[dict] = get_hosts_by_property_conditions(nodes, start=start, end=end)
+
+        if scope["object_type"] == models.Subscription.ObjectType.HOST:
+            instances.extend([{"host": inst} for inst in hosts])
+        else:
+            # 主机id -> 主机详细信息
+            host_dict: dict = {host_info["bk_host_id"]: host_info for host_info in hosts}
+            instances.extend([{"service": inst} for inst in get_service_instances_by_hosts(hosts)])
+
+    # 节点类型混合
+    elif scope["node_type"] == models.Subscription.NodeType.NODE_MIXIN:
+        instances_dict = {}
+        for node in nodes:
+            scope["node_type"] = node["node_type"]
+            scope["bk_biz_id"] = node["bk_biz_id"]
+            scope["nodes"] = node["sub_nodes"]
+            instances_dict.update(get_instances_by_scope(scope))
+
+        return instances_dict
+
+    if not need_register:
+        # 补充必要的主机或实例相关信息
+
+        add_host_info_to_instances(bk_biz_id, scope, instances, host_dict)
+        add_scope_info_to_instances(nodes, scope, instances, module_to_topo)
+
+        if scope["with_info"]["process"]:
+            add_process_info_to_instances(bk_biz_id, scope, instances)
+
+    instances_dict = {}
+    data = {
+        "object_type": scope["object_type"],
+        "node_type": models.Subscription.NodeType.INSTANCE,
+    }
+
+    bk_host_ids = []
+
+    for instance in instances:
+        is_host = data["object_type"] == models.Subscription.ObjectType.HOST
+        instance_data = instance["host"] if is_host else instance["service"]
+
+        data.update(instance_data)
+        bk_host_ids.append(instance_data.get("bk_host_id"))
+        instances_dict[create_node_id(data)] = instance
+
+    # 对 instances 进行二次过滤
+    if instance_selector and bk_host_ids:
+        instance_selector_host_ids = HostQuerySqlHelper.multiple_cond_sql(
+            params={"bk_host_id": bk_host_ids, "conditions": instance_selector},
+            biz_scope=[bk_biz_id],
+            return_all_node_type=True,
+        ).values_list("bk_host_id", flat=True)
+
+        selector_instances_dict = {}
+        for node_id, instance in instances_dict.items():
+            is_host = data["object_type"] == models.Subscription.ObjectType.HOST
+            instance_data = instance["host"] if is_host else instance["service"]
+
+            if instance_data["bk_host_id"] in instance_selector_host_ids:
+                selector_instances_dict[node_id] = instance if is_host else instance["service"]
+
+        return selector_instances_dict
+
+    import pprint
+
+    pprint.pprint(f"keys={instances_dict.keys()}")
+    print(f"instances_dict_count = {len(instances_dict)}")
+
+    return instances_dict
+
+
 @support_multi_biz
 @SetupObserve(histogram=metrics.app_task_get_instances_by_scope_duration_seconds, get_labels_func=get_scope_labels_func)
 @FuncCacheDecorator(cache_time=SUBSCRIPTION_SCOPE_CACHE_TIME)
+@task(queue="default")
 def get_instances_by_scope(scope: Dict[str, Union[Dict, int, Any]]) -> Dict[str, Dict[str, Union[Dict, Any]]]:
     """
     获取范围内的所有主机
@@ -1320,6 +2063,7 @@ def get_instances_by_scope(scope: Dict[str, Union[Dict, int, Any]]) -> Dict[str,
 
         return selector_instances_dict
 
+    print(f"总的长度 len(instances_dict)) = {len(instances_dict)}")
     return instances_dict
 
 

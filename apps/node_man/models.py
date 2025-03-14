@@ -181,6 +181,10 @@ class GlobalSettings(models.Model):
         QUERY_PROC_STATUS_HOST_LENS = "QUERY_PROC_STATUS_HOST_LENS"
         # 业务最大插件版本
         PLUGIN_VERSION_CONFIG = "PLUGIN_VERSION_CONFIG"
+        # 是否将 get_instances_by_scope 分片
+        ENABLE_GET_INSTANCES_BY_SCOPE_SHARDING = "ENABLE_GET_INSTANCES_BY_SCOPE_SHARDING"
+        # get_instances_by_scope 分片数量
+        GET_INSTANCES_BY_SCOPE_SHARD_COUNT = "GET_INSTANCES_BY_SCOPE_SHARD_COUNT"
 
     key = models.CharField(_("键"), max_length=255, db_index=True, primary_key=True)
     v_json = JSONField(_("值"))
