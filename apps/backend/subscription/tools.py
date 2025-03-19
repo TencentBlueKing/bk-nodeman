@@ -788,8 +788,8 @@ def get_full_host_biz_relations(hosts: List[Dict[str, Any]], return_biz_map: boo
     )
 
     # # 初始化业务-模块和业务-集群的映射关系
-    # biz_module_map: Dict[int, set] = defaultdict(set)  # 业务ID -> 模块ID集合
-    # biz_set_map: Dict[int, set] = defaultdict(set)  # 业务ID -> 集群ID集合
+    biz_module_map: Dict[int, set] = defaultdict(set)  # 业务ID -> 模块ID集合
+    biz_set_map: Dict[int, set] = defaultdict(set)  # 业务ID -> 集群ID集合
 
     # 临时存储主机关系信息
     host_relation_map: Dict[int, List[str, Any]] = defaultdict(list)
@@ -801,8 +801,8 @@ def get_full_host_biz_relations(hosts: List[Dict[str, Any]], return_biz_map: boo
     for relation in host_biz_relations:
         if return_biz_map:
             host_biz_map[relation["bk_host_id"]] = relation["bk_biz_id"]
-        # biz_set_map[relation["bk_biz_id"]].add(relation["bk_set_id"])
-        # biz_module_map[relation["bk_biz_id"]].add(relation["bk_module_id"])
+        biz_set_map[relation["bk_biz_id"]].add(relation["bk_set_id"])
+        biz_module_map[relation["bk_biz_id"]].add(relation["bk_module_id"])
         host_relation_map[relation["bk_host_id"]].append(
             {
                 "bk_module_id": relation["bk_module_id"],
@@ -856,6 +856,8 @@ def get_host_relation(bk_biz_id, nodes):
     for host in hosts:
         host["bk_biz_id"] = bk_biz_id
         host["bk_biz_name"] = biz_info[bk_biz_id].get("bk_biz_name", "")
+        host["module"] = list(set([relation["bk_module_id"] for relation in host_relation_map[host["bk_host_id"]]]))
+        host["set"] = list(set([relation["bk_set_id"] for relation in host_relation_map[host["bk_host_id"]]]))
         host["relations"] = host_relation_map[host["bk_host_id"]]
         data.append(host)
 
