@@ -187,6 +187,7 @@ class SwitchSubscriptionSerializer(GatewaySerializer):
 class RunSubscriptionSerializer(GatewaySerializer):
     class RunScopeSerializer(SubScopeInstSelectorSerializer):
         node_type = serializers.ChoiceField(choices=models.Subscription.NODE_TYPE_CHOICES, label="节点类型")
+        object_type = serializers.ChoiceField(choices=models.Subscription.OBJECT_TYPE_CHOICES, label="对象类型")
         nodes = serializers.ListField(child=serializers.DictField(), label="拓扑节点列表")
 
     subscription_id = serializers.IntegerField(label="订阅ID")
