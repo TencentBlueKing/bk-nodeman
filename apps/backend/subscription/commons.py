@@ -38,7 +38,7 @@ def get_host_object_attribute(bk_biz_id):
 
 
 @SetupObserve(counter=metrics.app_common_method_requests_total, get_labels_func=get_call_resource_labels_func)
-def list_biz_hosts(bk_biz_id, condition, func, split_params=False):
+def list_biz_hosts(bk_biz_id, condition, func, split_params=False, start=0, end=None):
     biz_custom_property = []
     kwargs = {
         "fields": constants.CC_HOST_FIELDS,
@@ -51,13 +51,13 @@ def list_biz_hosts(bk_biz_id, condition, func, split_params=False):
     kwargs["fields"] = list(set(kwargs["fields"]))
     kwargs.update(condition)
 
-    hosts = batch_request(getattr(client_v2.cc, func), kwargs, split_params=split_params)
+    hosts = batch_request(getattr(client_v2.cc, func), kwargs, split_params=split_params, start=start, end=end)
     # 排除掉CMDB中内网IP为空的主机
     cleaned_hosts = [host for host in hosts if host.get("bk_host_innerip") or host.get("bk_host_innerip_v6")]
     return cleaned_hosts
 
 
-def get_host_by_inst(bk_biz_id, inst_list):
+def get_host_by_inst(bk_biz_id, inst_list, start=0, end=None):
     """
     根据拓扑节点查询主机
     :param inst_list: 实例列表
@@ -80,6 +80,7 @@ def get_host_by_inst(bk_biz_id, inst_list):
         # 处理各种类型的节点
         if inst["bk_obj_id"] == "biz":
             bk_biz_ids.append(bk_biz_id)
+            break
         elif inst["bk_obj_id"] == "set":
             bk_set_ids.append(inst["bk_inst_id"])
         elif inst["bk_obj_id"] == "module":
@@ -88,13 +89,24 @@ def get_host_by_inst(bk_biz_id, inst_list):
             # 自定义层级
             topo_cond = {"bk_obj_id": inst["bk_obj_id"], "bk_inst_id": inst["bk_inst_id"]}
             hosts.extend(
-                list_biz_hosts(bk_biz_id, topo_cond, "find_host_by_topo", source="get_host_by_inst:find_host_by_topo")
+                list_biz_hosts(
+                    bk_biz_id,
+                    topo_cond,
+                    "find_host_by_topo",
+                    source="get_host_by_inst:find_host_by_topo",
+                    start=start,
+                    end=end,
+                )
             )
 
     if bk_biz_ids:
         # 业务查询
         for bk_biz_id in bk_biz_ids:
-            hosts.extend(list_biz_hosts(bk_biz_id, {}, "list_biz_hosts", source="get_host_by_inst:list_biz_hosts:biz"))
+            hosts.extend(
+                list_biz_hosts(
+                    bk_biz_id, {}, "list_biz_hosts", source="get_host_by_inst:list_biz_hosts:biz", start=start, end=end
+                )
+            )
     if bk_set_ids:
         # 集群查询
         hosts.extend(
@@ -102,6 +114,8 @@ def get_host_by_inst(bk_biz_id, inst_list):
                 bk_biz_id,
                 {"set_cond": [{"field": "bk_set_id", "operator": "$in", "value": bk_set_ids}]},
                 "list_biz_hosts",
+                start=start,
+                end=end,
             )
         )
     if bk_module_ids:
@@ -113,6 +127,8 @@ def get_host_by_inst(bk_biz_id, inst_list):
                 "list_biz_hosts",
                 split_params=True,
                 source="get_host_by_inst:list_biz_hosts:module",
+                start=start,
+                end=end,
             )
         )
 

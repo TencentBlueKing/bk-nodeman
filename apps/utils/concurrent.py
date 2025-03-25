@@ -15,7 +15,7 @@ import time
 from concurrent.futures import as_completed
 from concurrent.futures.thread import ThreadPoolExecutor
 from multiprocessing import cpu_count, get_context
-from typing import Callable, Coroutine, Dict, List
+from typing import Callable, Coroutine, Dict, List, Optional
 
 from asgiref.sync import async_to_sync
 from django.conf import settings
@@ -48,6 +48,9 @@ def batch_call(
     get_data=lambda x: x,
     extend_result: bool = False,
     interval: float = 0,
+    start: int = 0,
+    end: Optional[int] = None,
+    need_start_and_end_params: bool = False,
     **kwargs
 ) -> List:
     """
@@ -77,6 +80,9 @@ def batch_call(
     with ThreadPoolExecutor(max_workers=settings.CONCURRENT_NUMBER) as ex:
         tasks = []
         for idx, params in enumerate(params_list):
+            if need_start_and_end_params:
+                params.update({"start": start, "end": end})
+
             if idx != 0 and interval:
                 time.sleep(interval)
             tasks.append(

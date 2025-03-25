@@ -54,6 +54,8 @@ def batch_request(
     sort=None,
     split_params=False,
     interval=0,
+    start=0,
+    end=None,
 ):
     """
     异步并发请求接口
@@ -65,6 +67,8 @@ def batch_request(
     :param sort: 排序
     :param split_params: 是否拆分参数
     :param interval: 任务提交间隔
+    :param start: 开始索引
+    :param end: 结束索引
     :return: 请求结果
     """
 
@@ -72,20 +76,22 @@ def batch_request(
     if not get_count:
         return sync_batch_request(func, params, get_data, limit)
 
-    start = 0
     data = []
     if not split_params:
-        request_params = dict(page={"start": 0, "limit": limit}, **params)
+        if end:
+            limit = min(end - start, limit)
+        request_params = dict(page={"start": start, "limit": limit}, **params)
         if sort:
             request_params["page"]["sort"] = sort
         query_res = func(request_params)
-        final_request_params = [{"count": get_count(query_res), "params": params}]
+        count = min(get_count(query_res), end) if end else get_count(query_res)
+        final_request_params = [{"count": count, "params": params}]
         data = get_data(query_res) or []
         # 如果count小于等于limit，直接返回
         if final_request_params[0]["count"] <= limit:
             return data
 
-        start = limit
+        start = start + limit
     else:
         final_request_params = format_params(params, get_count, func)
 
