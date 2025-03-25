@@ -825,6 +825,9 @@ VERSION_LOG = {"MD_FILES_DIR": os.path.join(PROJECT_ROOT, "release"), "LANGUAGE_
 # 腾讯云endpoint
 TXY_ENDPOINT = env.TXY_ENDPOINT
 
+# 需要使用缓存的业务ID列表，多个业务ID用逗号分隔
+BKAPP_CACHE_BIZ_IDS = os.getenv("BKAPP_CACHE_BIZ_IDS", "")
+
 # ==============================================================================
 # 可观测
 # ==============================================================================

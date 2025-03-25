@@ -16,12 +16,13 @@ import logging
 import math
 import os
 import pprint
+import time
 import typing
 from collections import Counter, defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from functools import wraps
 from itertools import groupby
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Optional, Union
 
 from django.conf import settings
 from django.db.models import Q
@@ -38,6 +39,7 @@ from apps.backend.subscription.errors import (
     PipelineTreeParseError,
 )
 from apps.backend.utils.data_renderer import nested_render_data
+from apps.backend.utils.redis import REDIS_INST
 from apps.component.esbclient import client_v2
 from apps.core.concurrent import controller
 from apps.core.concurrent.cache import FuncCacheDecorator
@@ -114,6 +116,163 @@ def create_topo_node_id(topo_node: Dict) -> str:
     return "{}|{}".format(topo_node["bk_obj_id"], topo_node["bk_inst_id"])
 
 
+def get_cached_topo_data(bk_biz_id: int, cache_key: str) -> Optional[List]:
+    """
+    获取并解析业务拓扑的缓存数据
+    :param bk_biz_id: 业务ID
+    :param cache_key: 缓存key
+    :return: 缓存的拓扑数据，如果不存在或解析失败则返回None
+    """
+    cached_data = REDIS_INST.get(cache_key)
+    if not cached_data:
+        return None
+
+    try:
+        return json.loads(cached_data)
+    except (json.JSONDecodeError, TypeError):
+        logger.exception(f"[get_cached_topo_data] Failed to decode cached data for biz_id={bk_biz_id}")
+        # 解析缓存数据失败，删除缓存
+        REDIS_INST.delete(cache_key)
+        return None
+
+
+def get_data_with_cache(
+    bk_biz_id: int,
+    cache_key: str,
+    lock_key: str,
+    data_fetch_func: typing.Callable,
+    func_name: str,
+    cache_expire: int = 15 * 60,
+    lock_expire: int = 30,
+    max_wait_time: int = 30,
+) -> typing.Union[Dict, List]:
+    """
+    通用的带缓存和分布式锁的数据获取函数
+    :param bk_biz_id: 业务ID
+    :param cache_key: 缓存key
+    :param lock_key: 分布式锁key
+    :param data_fetch_func: 获取数据的函数
+    :param func_name: 函数名称，用于日志
+    :param cache_expire: 缓存过期时间，默认15分钟
+    :param lock_expire: 锁过期时间，默认30秒
+    :param max_wait_time: 最大等待时间，默认30秒
+    :return: 获取的数据
+    """
+    # 从环境变量获取需要缓存的业务ID，如果环境变量未设置或为空字符串则默认为空列表
+    cache_biz_ids = []
+    if settings.BKAPP_CACHE_BIZ_IDS and settings.BKAPP_CACHE_BIZ_IDS.strip():
+        try:
+            cache_biz_ids = list(map(int, settings.BKAPP_CACHE_BIZ_IDS.split(",")))
+        except ValueError:
+            logger.warning(
+                f"Invalid BKAPP_CACHE_BIZ_IDS format: {settings.BKAPP_CACHE_BIZ_IDS}, "
+                f"should be comma-separated integers"
+            )
+
+    if bk_biz_id not in cache_biz_ids:
+        return data_fetch_func()
+
+    start_time = time.time()
+
+    # 首次尝试获取缓存
+    cached_data = REDIS_INST.get(cache_key)
+    if cached_data:
+        try:
+            return json.loads(cached_data)
+        except (json.JSONDecodeError, TypeError):
+            logger.exception(f"[{func_name}] Failed to decode cached data for biz_id={bk_biz_id}")
+            # 解析缓存数据失败，删除缓存
+            REDIS_INST.delete(cache_key)
+
+    while True:
+        # 尝试获取锁
+        if REDIS_INST.set(lock_key, "1", ex=lock_expire, nx=True):
+            try:
+                # 获取到锁后，再次检查缓存，防止其他进程已经更新了缓存
+                cached_data = REDIS_INST.get(cache_key)
+                if cached_data:
+                    try:
+                        return json.loads(cached_data)
+                    except (json.JSONDecodeError, TypeError):
+                        logger.exception(f"[{func_name}] Failed to decode cached data for biz_id={bk_biz_id}")
+                        # 解析缓存数据失败，继续获取新数据
+
+                # 调用接口获取数据
+                data = data_fetch_func()
+
+                try:
+                    # 将数据写入缓存
+                    REDIS_INST.set(cache_key, json.dumps(data), ex=cache_expire)
+                except (TypeError, ValueError):
+                    logger.exception(f"[{func_name}] Failed to encode data for biz_id={bk_biz_id}")
+
+                return data
+            finally:
+                # 释放锁
+                REDIS_INST.delete(lock_key)
+
+        # 获取不到锁时，尝试获取缓存数据
+        cached_data = REDIS_INST.get(cache_key)
+        if cached_data:
+            try:
+                return json.loads(cached_data)
+            except (json.JSONDecodeError, TypeError):
+                logger.exception(f"[{func_name}] Failed to decode cached data for biz_id={bk_biz_id}")
+
+        # 如果等待时间超过最大等待时间，直接查询不使用缓存
+        if time.time() - start_time > max_wait_time:
+            logger.warning(
+                f"[{func_name}] Failed to acquire lock for biz_id={bk_biz_id} "
+                f"after {max_wait_time}s, querying without cache"
+            )
+            # 直接调用接口获取数据
+            data = data_fetch_func()
+
+            try:
+                # 尝试将数据写入缓存，即使没有获取到锁也尝试写入
+                REDIS_INST.set(cache_key, json.dumps(data), ex=cache_expire)
+            except (TypeError, ValueError):
+                logger.exception(
+                    f"[{func_name}] Failed to encode data for biz_id={bk_biz_id} "
+                    f"when writing to cache after timeout"
+                )
+
+            return data
+
+        # 增加休眠时间到1秒，减少Redis的压力
+        time.sleep(1)
+
+
+def _get_biz_inst_topo(bk_biz_id: int) -> List:
+    """
+    获取业务实例拓扑，仅对特定业务ID使用缓存，并使用分布式锁防止缓存击穿
+    :param bk_biz_id: 业务ID
+    :return: CMDB拓扑树
+    """
+    return get_data_with_cache(
+        bk_biz_id=bk_biz_id,
+        cache_key=f"subscription:topo:cache:{bk_biz_id}",
+        lock_key=f"subscription:topo:lock:{bk_biz_id}",
+        data_fetch_func=lambda: client_v2.cc.search_biz_inst_topo({"bk_username": "admin", "bk_biz_id": bk_biz_id}),
+        func_name="_get_biz_inst_topo",
+    )
+
+
+def _get_biz_internal_module(bk_biz_id: int) -> Dict:
+    """
+    获取业务的内部模块信息，对特定业务ID使用缓存，并使用分布式锁防止缓存击穿
+    :param bk_biz_id: 业务ID
+    :return: 内部模块信息
+    """
+    return get_data_with_cache(
+        bk_biz_id=bk_biz_id,
+        cache_key=f"subscription:internal_module:cache:{bk_biz_id}",
+        lock_key=f"subscription:internal_module:lock:{bk_biz_id}",
+        data_fetch_func=lambda: client_v2.cc.get_biz_internal_module({"bk_biz_id": bk_biz_id}),
+        func_name="_get_biz_internal_module",
+    )
+
+
 def get_module_to_topo_dict(bk_biz_id: int) -> Dict:
     """
     获取业务的模块拓扑映射
@@ -122,8 +281,8 @@ def get_module_to_topo_dict(bk_biz_id: int) -> Dict:
         "module|1": ["biz|2", "set|3", "module|1"]
     }
     """
-    topo_tree = client_v2.cc.search_biz_inst_topo({"bk_username": "admin", "bk_biz_id": bk_biz_id})
-    internal_module = client_v2.cc.get_biz_internal_module({"bk_biz_id": bk_biz_id})
+    topo_tree = _get_biz_inst_topo(bk_biz_id)
+    internal_module = _get_biz_internal_module(bk_biz_id)
 
     node_relations = {}
 
