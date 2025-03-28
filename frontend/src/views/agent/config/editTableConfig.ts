@@ -1,7 +1,7 @@
 import { ISetupHead, ISetupRow } from '@/types';
 import { authentication, defaultPort, sysOptions, defaultOsType, getDefaultConfig, addressingMode, DHCP_FILTER_KEYS } from '@/config/config';
 import { ICloudSource } from '@/types/cloud/cloud';
-import { MainStore } from '@/store/index';
+import { MainStore, AgentStore } from '@/store/index';
 import { reguFnMinInteger, reguPort, reguIPMixins, reguIp, reguIPv6 } from '@/common/form-check';
 
 export const config: ISetupHead[] = [
@@ -57,7 +57,7 @@ export const config: ISetupHead[] = [
     getOptions(row) {
       return row.bk_cloud_id || row.bk_cloud_id === 0
         ? this.channelList.filter(item => item.bk_cloud_id === row.bk_cloud_id || item.id === 'default'
-        || (MainStore.AUTO_SELECT_INSTALL_CHANNEL === 0 && item.id === -1))
+        || (MainStore.AUTO_SELECT_INSTALL_CHANNEL === 1 && row.bk_cloud_id === 0 && item.id == AgentStore.channelList[0].id))
         : this.channelList;
     },
   },
