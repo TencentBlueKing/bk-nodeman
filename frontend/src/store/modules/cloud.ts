@@ -254,19 +254,12 @@ export default class CloudStore extends VuexModule {
   @Action
   public async getChannelList(params?: { 'bk_cloud_id': number }) {
     const list = await listInstallChannel(params).catch(() => []);
-    const autoChannel: IChannelAuto = { id: -1, name: window.i18n.t('自动选择') };
     const defaultChannel = { id: 'default', name: window.i18n.t('默认通道') };
-    const index = list.findIndex((data :any) => data.id === -1);
     let listData;
-    if (index === -1) {
-      listData = [autoChannel, defaultChannel, ...list];
+    if (MainStore.AUTO_SELECT_INSTALL_CHANNEL === 1) {
+      listData = [...list.slice(0, 1), defaultChannel, ...list.slice(1)];
     } else {
-      listData = [...list.slice(0, index + 1), defaultChannel, ...list.slice(index + 1)];
-    }
-    if (MainStore.AUTO_SELECT_INSTALL_CHANNEL === -1) {
-      listData = listData.filter((data :any) => data.id !== -1);
-    } else if (MainStore.AUTO_SELECT_INSTALL_CHANNEL === 1) {
-      listData[0].bk_cloud_id = window.PROJECT_CONFIG.DEFAULT_CLOUD;
+      listData = [defaultChannel, ...list.filter((data :any) => data.name !== '自动选择')];
     }
     this.store.commit('agent/setChannelList', listData);
     return list;

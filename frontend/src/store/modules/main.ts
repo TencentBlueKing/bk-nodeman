@@ -70,7 +70,7 @@ export default class Main extends VuexModule {
   public osMap: Dictionary = {};
   public installDefaultValues: Dictionary = {};
   public noticeShow = false;
-  public AUTO_SELECT_INSTALL_CHANNEL = -1;
+  public AUTO_SELECT_INSTALL_CHANNEL = 0;
 
   /**
    * 设置全局可视区域的 loading 是否显示
@@ -436,7 +436,7 @@ export default class Main extends VuexModule {
   @Action
   public async getAutoJudgeInstallChannel() {
     const data = await retrieveGlobalSettings({ key: 'AUTO_SELECT_INSTALL_CHANNEL_ONLY_DIRECT_AREA' }).catch(() => ({}));
-    const dataValue = data.AUTO_SELECT_INSTALL_CHANNEL_ONLY_DIRECT_AREA === undefined ? -1 : Number(data.AUTO_SELECT_INSTALL_CHANNEL_ONLY_DIRECT_AREA);
+    const dataValue = data.AUTO_SELECT_INSTALL_CHANNEL_ONLY_DIRECT_AREA ? 1 : 0;
     this.setAutoJudge(dataValue);
   }
 }
