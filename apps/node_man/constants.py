@@ -721,8 +721,6 @@ CC_HOST_FIELDS = [
     "bk_supplier_account",
     "bk_cpu_architecture",
     "dept_name",
-    "bk_cpu",
-    "bk_mem",
 ]
 
 # 限流窗口配置，用于控制CMDB订阅触发的变更频率
