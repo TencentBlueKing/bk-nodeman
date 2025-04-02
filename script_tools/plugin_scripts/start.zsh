@@ -103,7 +103,7 @@ else
 fi
 
 if [ -f ../etc/${1}.conf ]; then
-    nohup ./$1 -c ../etc/${1}.conf >/dev/null 2>/tmp/xuoasefasd.err &
+    ./$1 -c ../etc/${1}.conf >/dev/null 2>/tmp/xuoasefasd.err &
     sleep 1
     if _status $1; then
         green_echo "Done"
