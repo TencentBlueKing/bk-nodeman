@@ -119,7 +119,7 @@ class JobV3BaseService(six.with_metaclass(abc.ABCMeta, BaseService)):
 
         if not host_interaction_data_list:
             return []
-        job_params["target_server"] = {host_interaction_from: list({host_interaction_data_list})}
+        job_params["target_server"] = {host_interaction_from: list(set(host_interaction_data_list))}
         # 补充作业平台通用参数
         if not job_params.get("os_type"):
             job_params["os_type"] = self.DEFAULT_OS_TYPE
