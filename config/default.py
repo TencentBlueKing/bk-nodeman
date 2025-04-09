@@ -263,13 +263,15 @@ CELERY_IMPORTS = (
     "apps.node_man.periodic_tasks.add_biz_to_gse2_gray_scope",
 )
 
-BK_NODEMAN_CELERY_RESULT_BACKEND_BROKER_URL = "{user}:{passwd}@{host}:{port}/{vhost}".format(
+BK_NODEMAN_CELERY_BACKEND = os.getenv("BK_NODEMAN_CELERY_BACKEND", "rabbitmq")
+BK_NODEMAN_CELERY_URL = "amqp://{user}:{passwd}@{host}:{port}/{vhost}".format(
     user=os.getenv("RABBITMQ_USER"),
     passwd=os.getenv("RABBITMQ_PASSWORD"),
     host=os.getenv("RABBITMQ_HOST"),
     port=os.getenv("RABBITMQ_PORT"),
     vhost=os.getenv("RABBITMQ_VHOST") or "bk_bknodeman",
 )
+CELERY_RESULT_BACKEND = "rpc://"
 
 # celery settings
 if IS_USE_CELERY:
@@ -277,9 +279,7 @@ if IS_USE_CELERY:
     INSTALLED_APPS += ("django_celery_beat", "django_celery_results")
     CELERY_ENABLE_UTC = False
     CELERYBEAT_SCHEDULER = "django_celery_beat.schedulers.DatabaseScheduler"
-    CELERY_RESULT_BACKEND = f"rpc://{BK_NODEMAN_CELERY_RESULT_BACKEND_BROKER_URL}"
     CELERY_RESULT_PERSISTENT = True
-    CELERY_RESULT_EXPIRES = 60 * 30  # 30分钟丢弃结果
 
 CELERY_ROUTES = {
     "apps.backend.subscription.tasks.*": {"queue": "backend"},
@@ -691,6 +691,24 @@ if REDIS_MODE == "replication":
             **DJANGO_REDIS_COMMON_OPTIONS,
         },
     }
+
+    if BK_NODEMAN_CELERY_BACKEND == env.constants.TaskQueueBackend.REDIS.value:
+        BK_NODEMAN_CELERY_URL = "sentinel://:{passwd}@{host}:{port}/0".format(
+            passwd=REDIS_PASSWORD,
+            host=REDIS_HOST,
+            port=REDIS_PORT,
+        )
+        BROKER_TRANSPORT_OPTIONS = {
+            "visibility_timeout": 3600,
+            "master_name": REDIS_MASTER_NAME,
+            "sentinel_kwargs": {"password": REDIS_SENTINEL_PASSWORD},
+        }
+        CELERY_RESULT_BACKEND = BK_NODEMAN_CELERY_URL
+        CELERY_RESULT_BACKEND_TRANSPORT_OPTIONS = {
+            "visibility_timeout": 3600,
+            "master_name": REDIS_MASTER_NAME,
+            "sentinel_kwargs": {"password": REDIS_SENTINEL_PASSWORD},
+        }
 else:
     REDIS_HOST = os.getenv("REDIS_HOST")
     REDIS_PORT = os.getenv("REDIS_PORT")
@@ -706,6 +724,14 @@ else:
         "KEY_FUNCTION": "apps.utils.cache.django_cache_key_maker",
         "OPTIONS": {**DJANGO_REDIS_COMMON_OPTIONS},
     }
+
+    if BK_NODEMAN_CELERY_BACKEND == env.constants.TaskQueueBackend.REDIS.value:
+        BK_NODEMAN_CELERY_URL = "redis://:{passwd}@{host}:{port}/0".format(
+            passwd=REDIS_PASSWORD,
+            host=REDIS_HOST,
+            port=REDIS_PORT or 6379,
+        )
+        CELERY_RESULT_BACKEND = BK_NODEMAN_CELERY_URL
 
 REDIS = {
     "host": REDIS_HOST,
@@ -759,7 +785,7 @@ if BK_BACKEND_CONFIG:
         )
 
     # BROKER_URL
-    BROKER_URL = f"amqp://{BK_NODEMAN_CELERY_RESULT_BACKEND_BROKER_URL}"
+    BROKER_URL = BK_NODEMAN_CELERY_URL
 
     REDBEAT_KEY_PREFIX = "nodeman"
 
