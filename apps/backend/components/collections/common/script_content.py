@@ -31,7 +31,6 @@ is_target_reachable () {
     return $ret;
 }
 ret=0
-is_target_reachable %(proxy_ip)s %(btsvr_thrift_port)s || ret=$?
 is_target_reachable %(proxy_ip)s %(bt_port)s-%(tracker_port)s || ret=$?
 exit $ret
 """

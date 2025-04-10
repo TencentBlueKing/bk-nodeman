@@ -64,7 +64,8 @@ class CheckPolicyGseToProxyService(AgentExecuteScriptService):
 
         return REACHABLE_SCRIPT_TEMPLATE % {
             "proxy_ip": host.outer_ip or host.outer_ipv6,
-            "btsvr_thrift_port": btsvr_thrift_port,
+            # 禁用 btsvr_thrift_port 探测，避免 Proxy 2.0 版本的探测脚本中有 btsvr_thrift_port 探测
+            # "btsvr_thrift_port": btsvr_thrift_port,
             # Agent 2.0 bt_port & tracker_port 不属于 Proxy <> Server 的策略
             # 在上述情况下冗余探测 btsvr_thrift_port
             # Refer: https://github.com/TencentBlueKing/bk-nodeman/issues/1239
