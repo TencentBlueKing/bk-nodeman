@@ -30,7 +30,7 @@ def get_host_object_attribute(bk_biz_id):
     if biz_property is not None:
         return biz_property
 
-    kwargs = {"bk_obj_id": "host", "bk_biz_id": bk_biz_id}
+    kwargs = {"bk_obj_id": "host", "bk_biz_id": int(bk_biz_id)}
     data = client_v2.cc.search_object_attribute(kwargs) or []
     custom_fields = [_property["bk_property_id"] for _property in data if _property["bk_biz_id"] != 0]
     cache.set(biz_property_cache_key, custom_fields, 600)
