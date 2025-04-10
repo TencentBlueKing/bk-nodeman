@@ -685,10 +685,11 @@ GSE_PORT_DEFAULT_VALUE["file_svr_port_v1"] = GSE_PORT_DEFAULT_VALUE["file_svr_po
 GSE_V2_PORT_DEFAULT_VALUE = deepcopy(GSE_PORT_DEFAULT_VALUE)
 GSE_V2_PORT_DEFAULT_VALUE.update(
     {
-        "bt_port": 20020,
+        # v2 与 v1 对bt与tracker使用统一端口
+        "bt_port": 10020,
         "io_port": 28668,
         "data_port": 28625,
-        "tracker_port": 20030,
+        "tracker_port": 10030,
         "file_svr_port": 28925,
         "file_svr_port_v1": 58926,
         "btsvr_thrift_port": 58931,
