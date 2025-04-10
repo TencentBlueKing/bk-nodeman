@@ -906,6 +906,8 @@ class JobAllocatePortService(PluginExecuteScriptService):
         # 其它 job_status 则认为任务已结束，进一步查询IP的 JOB 日志，并进行端口分配
         multi_allocate_params = []
         for process_status in process_statuses:
+            if self.need_skipped(process_status, common_data):
+                continue
 
             bk_host_id = process_status.bk_host_id
             host = host_id_obj_map.get(bk_host_id)
