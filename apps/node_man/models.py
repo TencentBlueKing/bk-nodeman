@@ -187,6 +187,8 @@ class GlobalSettings(models.Model):
         DISABLED_SUBSCRIPTIONS = "DISABLED_SUBSCRIPTIONS"
         # 是否默认当前环境为仅GSE2环境
         IS_PURE_GSE2_VERSION = "IS_PURE_GSE2_VERSION"
+        # 管理GSE2 Agent监听BT端口开关
+        GSE2_AGENT_LISTEN_BT_SOCKET = "GSE2_AGENT_LISTEN_BT_SOCKET"
 
     key = models.CharField(_("键"), max_length=255, db_index=True, primary_key=True)
     v_json = JSONField(_("值"))
