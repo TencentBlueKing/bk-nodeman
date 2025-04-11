@@ -150,6 +150,13 @@ class ConfigContextHelper:
             ),
             context_dataclass.FileConfigContext(
                 max_transfer_speed_mb_per_sec=self.host.extra_data.get("bt_speed_limit") or 100,
+                disable_listen_sockets=["false", "true"][
+                    bool(
+                        models.GlobalSettings.get_config(
+                            key=models.GlobalSettings.KeyEnum.GSE2_AGENT_LISTEN_BT_SOCKET.value, default=False
+                        )
+                    )
+                ],
             ),
             context_dataclass.LogConfigContext(path=log_path),
             context_dataclass.DataMetricConfigContext(exporter_bind_port=self.ap.port_config["data_prometheus_port"]),

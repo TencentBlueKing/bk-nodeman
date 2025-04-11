@@ -27,7 +27,8 @@ GSE_AGENT_CONFIG_TMPL: str = """
         "tls_key_file": "__BK_GSE_AGENT_BASE_TLS_KEY_FILE__",
         "tls_passwd_file": "__BK_GSE_AGENT_BASE_TLS_PASSWORD_FILE__",
         "processor_num": __BK_GSE_AGENT_BASE_PROCESSOR_NUM__,
-        "processor_size": __BK_GSE_AGENT_BASE_PROCESSOR_SIZE__
+        "processor_size": __BK_GSE_AGENT_BASE_PROCESSOR_SIZE__,
+        "plugin_ipc": "__BK_GSE_AGENT_BASE_PLUGIN_IPC__"
     },
     "proxy": {
         "tls_ca_file": "__BK_GSE_PROXY_TLS_CA_FILE__",
@@ -57,7 +58,8 @@ GSE_AGENT_CONFIG_TMPL: str = """
     },
     "file": {
         "max_transfer_speed_mb_per_sec": __BK_GSE_FILE_MAX_TRANSFER_SPEED_MB_PER_SEC__,
-        "max_transfer_concurrent_num": __BK_GSE_FILE_MAX_TRANSFER_CONCURRENT_NUM__
+        "max_transfer_concurrent_num": __BK_GSE_FILE_MAX_TRANSFER_CONCURRENT_NUM__,
+        "disable_listen_sockets": __BK_GSE_FILE_DISABLE_LISTEN_SOCKETS__,
     },
     "logger": {
         "path": "__BK_GSE_LOG_PATH__",
