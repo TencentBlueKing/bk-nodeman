@@ -161,6 +161,7 @@ class FileConfigContext(GseConfigContext):
 
     max_transfer_speed_mb_per_sec: str = 100
     max_transfer_concurrent_num: str = 10
+    disable_listen_sockets: str = "false"
 
 
 @dataclass
