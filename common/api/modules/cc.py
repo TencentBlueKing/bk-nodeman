@@ -367,7 +367,7 @@ class _CCApi(BaseApi):
             api_name="create_cloud_area",
         )
         self.delete_cloud_area = DataAPI(
-            method="POST",
+            method="DELETE",
             url=CC_APIGATEWAY_ROOT_V2 + "delete/cloudarea/{bk_cloud_id}/",
             module=self.MODULE,
             simple_module=self.SIMPLE_MODULE,
