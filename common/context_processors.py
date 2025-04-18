@@ -21,7 +21,7 @@ from version_log.utils import get_latest_version
 from apps.core.concurrent.cache import FuncCacheDecorator
 from apps.node_man import constants, models
 from apps.node_man.handlers.iam import IamHandler
-from apps.utils.local import get_request_username
+from apps.utils.local import get_request_username, get_tenant_id
 
 """
 context_processor for common(setting)
@@ -57,6 +57,13 @@ def get_ap_version_mutex():
         key=models.GlobalSettings.KeyEnum.ENABLE_AP_VERSION_MUTEX.value,
         default=False,
     )
+
+
+def display_tag():
+    tenant_id = get_tenant_id()
+    if settings.ENABLE_MULTI_TENANT_MODE and tenant_id != "system":
+        return False
+    return True
 
 
 def mysetting(request):
@@ -122,4 +129,6 @@ def mysetting(request):
         "BKPAAS_SHARED_RES_URL": settings.BKPAAS_SHARED_RES_URL,
         # 是否开启多租户
         "ENABLE_MULTI_TENANT_MODE": settings.ENABLE_MULTI_TENANT_MODE,
+        # 是否展示前端 TAG
+        "DISPLAY_TAG": display_tag(),
     }

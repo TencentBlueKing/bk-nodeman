@@ -47,6 +47,7 @@
               const ENABLE_AP_VERSION_MUTEX = '{{ ENABLE_AP_VERSION_MUTEX }}'
               const ENABLE_NOTICE_CENTER = '{{ ENABLE_NOTICE_CENTER }}'
               const BKPAAS_SHARED_RES_URL = '{{ BKPAAS_SHARED_RES_URL }}'
+              const DISPLAY_TAG = '{{ DISPLAY_TAG }}'
 
               return {
                   APP_CODE,
@@ -85,6 +86,7 @@
                   VERSION,
                   WEB_TITLE,
                   WXWORK_UIN,
+                  DISPLAY_TAG,
               }
           })()
           window.$DHCP = window.PROJECT_CONFIG.BKAPP_ENABLE_DHCP === 'True'
