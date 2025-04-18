@@ -65,7 +65,7 @@
                             </template>
                           </P>
                           <p v-for="(file, idx) in step.contents" :key="idx">
-                            <bk-link theme="primary" target="_blank" @click="handleDownload(file.name)">
+                            <bk-link theme="primary" target="_blank" @click="handleDownload(file)">
                               {{ file.name }}
                               <template v-if="file.description"> ({{ file.description }})</template>
                             </bk-link>
@@ -190,18 +190,18 @@ export default class TaskDetailSlider extends Vue {
       });
     }
   }
-  public handleDownload(name: string) {
+  public handleDownload(file: ITaskSolutionsFile) {
     const element = document.createElement('a');
-    element.setAttribute('href', `tools/download/?file_name=${name}`);
-    element.setAttribute('download', name);
+    element.setAttribute('href', file.text);
+    element.setAttribute('download', file.name);
     element.style.display = 'none';
     document.body.appendChild(element);
     element.click();
     document.body.removeChild(element);
   }
   public handleDownloadAll(list: ITaskSolutionsFile[]) {
-    list.forEach(({ name }) => {
-      this.handleDownload(name);
+    list.forEach((file) => {
+      this.handleDownload(file);
     });
   }
 
