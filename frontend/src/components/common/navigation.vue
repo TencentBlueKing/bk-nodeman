@@ -131,7 +131,7 @@ import MixinsControlDropdown from '@/components/common/MixinsControlDropdown.vue
 import ExceptionPage from '@/components/exception/exception-page.vue';
 import routerBackMixin from '@/common/router-back-mixin';
 import { bus } from '@/common/bus';
-import { INavConfig } from '@/types';
+import { INavConfig, ISubNavConfig } from '@/types';
 import logoSrc from '@/images/logoIcon.png';
 
 interface IUserItem {
@@ -241,7 +241,15 @@ export default class NodemanNavigation extends Mixins(routerBackMixin) {
   // 左侧导航list
   private get sideMenuList() {
     if (this.activeIndex === -1) return [];
-    return this.navList[this.activeIndex].children || [];
+    const list = this.navList[this.activeIndex].children || [];
+    const display = window.PROJECT_CONFIG.DISPLAY_TAG !== 'False';
+    const filteredList = list.map((item: any) => {
+        return {
+          ...item,
+          children: item.children?.filter((child: ISubNavConfig) => child.name === "pluginPackage" ? display : true)
+        };
+    });
+    return filteredList;
   }
   // 子菜单默认激活项
   private get currentActive() {
