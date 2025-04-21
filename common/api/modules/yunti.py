@@ -15,7 +15,7 @@ import time
 import typing
 
 from django.conf import settings
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from ..base import DataAPI
 from ..domains import BKAPP_YUNTI_API_ROOT

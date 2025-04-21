@@ -21,6 +21,7 @@
 
 
 import calendar
+import configparser
 import datetime
 import errno
 import fnmatch
@@ -33,6 +34,7 @@ import os
 import random
 import shutil
 import socket
+import socketserver
 import string
 import struct
 import sys
@@ -41,7 +43,6 @@ import time
 from binascii import a2b_hex, hexlify, unhexlify
 
 from six import PY2, b, text_type
-from six.moves import configparser, socketserver
 
 # For signing
 from impacket import nmb, ntlm, smb

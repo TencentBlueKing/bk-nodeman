@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 import typing
 
 from django.http import QueryDict
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from apps.iam import Permission
 from apps.iam.exceptions import PermissionDeniedError

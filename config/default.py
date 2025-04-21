@@ -18,7 +18,7 @@ from bkcrypto.symmetric.options import AESSymmetricOptions, SM4SymmetricOptions
 from blueapps.conf.default_settings import *  # noqa
 from django.http import HttpResponseRedirect
 from django.urls import reverse
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 import env
 from apps.utils.encrypt.crypto import Interceptor
@@ -55,7 +55,6 @@ IS_AJAX_PLAIN_MODE = True
 
 # 请在这里加入你的自定义 APP
 INSTALLED_APPS += (
-    "django_mysql",
     "drf_yasg",
     "rest_framework",
     "common.api",
@@ -264,7 +263,7 @@ CELERY_IMPORTS = (
     "apps.node_man.periodic_tasks.add_biz_to_gse2_gray_scope",
 )
 
-BK_NODEMAN_CELERY_RESULT_BACKEND_BROKER_URL = "amqp://{user}:{passwd}@{host}:{port}/{vhost}".format(
+BK_NODEMAN_CELERY_RESULT_BACKEND_BROKER_URL = "{user}:{passwd}@{host}:{port}/{vhost}".format(
     user=os.getenv("RABBITMQ_USER"),
     passwd=os.getenv("RABBITMQ_PASSWORD"),
     host=os.getenv("RABBITMQ_HOST"),
@@ -278,10 +277,9 @@ if IS_USE_CELERY:
     INSTALLED_APPS += ("django_celery_beat", "django_celery_results")
     CELERY_ENABLE_UTC = False
     CELERYBEAT_SCHEDULER = "django_celery_beat.schedulers.DatabaseScheduler"
-    CELERY_RESULT_BACKEND = BK_NODEMAN_CELERY_RESULT_BACKEND_BROKER_URL
+    CELERY_RESULT_BACKEND = f"rpc://{BK_NODEMAN_CELERY_RESULT_BACKEND_BROKER_URL}"
     CELERY_RESULT_PERSISTENT = True
-    # celery3 的配置，升级后先行注释，待确认无用后废弃
-    # CELERY_TASK_RESULT_EXPIRES = 60 * 30  # 30分钟丢弃结果
+    CELERY_RESULT_EXPIRES = 60 * 30  # 30分钟丢弃结果
 
 CELERY_ROUTES = {
     "apps.backend.subscription.tasks.*": {"queue": "backend"},
@@ -441,6 +439,9 @@ TIME_ZONE = "Etc/GMT-8"
 
 DATAAPI_TIME_ZONE = "Etc/GMT-8"
 DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S%z"
+
+# 4.2 django.utils的timezone默认使用zoneinfo
+USE_DEPRECATED_PYTZ = True
 
 # 翻译
 USE_I18N = True
@@ -758,7 +759,7 @@ if BK_BACKEND_CONFIG:
         )
 
     # BROKER_URL
-    BROKER_URL = BK_NODEMAN_CELERY_RESULT_BACKEND_BROKER_URL
+    BROKER_URL = f"amqp://{BK_NODEMAN_CELERY_RESULT_BACKEND_BROKER_URL}"
 
     REDBEAT_KEY_PREFIX = "nodeman"
 

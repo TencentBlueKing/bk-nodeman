@@ -20,7 +20,7 @@ import yaml
 from django.conf import settings
 from django.db import transaction
 from django.utils import timezone, translation
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from packaging import version
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError

@@ -16,7 +16,6 @@ from functools import wraps
 
 import mock
 from django.test import TestCase
-from six.moves import range
 
 from apps.backend.subscription.tasks import (
     run_subscription_task,

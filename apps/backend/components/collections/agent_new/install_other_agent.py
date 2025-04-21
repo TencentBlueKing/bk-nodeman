@@ -12,7 +12,7 @@ import math
 from typing import Any, Dict, List
 
 from django.conf import settings
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from apps.backend.api.constants import POLLING_INTERVAL
 from apps.core.concurrent.retry import RetryHandler

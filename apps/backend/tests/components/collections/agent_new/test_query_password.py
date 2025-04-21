@@ -14,7 +14,7 @@ import random
 
 import mock
 from django.db.models import F
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from apps.backend.components.collections.agent_new import query_password
 from apps.backend.components.collections.agent_new.components import (

@@ -14,7 +14,7 @@ import copy
 import json
 
 from django.conf import settings
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from apps.backend.healthz.constants import HEALTHZ_FIELD_NAMES
 from config.default import CELERY_QUEUES

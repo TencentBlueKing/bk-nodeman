@@ -9,7 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from django.conf import settings
-from django.conf.urls import include, url
+from django.urls import include, re_path
 from rest_framework import routers as drf_routers
 
 from apps.backend import views
@@ -19,7 +19,7 @@ from apps.backend.subscription.views import SubscriptionViewSet
 from apps.backend.sync_task.views import SyncTaskViewSet
 
 urlpatterns = [
-    url(r"^version/?$", views.version),
+    re_path(r"^version/?$", views.version),
 ]
 
 if settings.BK_BACKEND_CONFIG or settings.IN_TEST or settings.DEBUG:
@@ -31,13 +31,13 @@ if settings.BK_BACKEND_CONFIG or settings.IN_TEST or settings.DEBUG:
     export_routers = drf_routers.DefaultRouter(trailing_slash=True)
     urlpatterns.extend(
         [
-            url(r"api/", include(routers.urls)),
-            url(r"^package/upload/$", upload_package),
-            url(r"^export/download/$", export_download, name="export_download"),
-            url(r"^export/", include(export_routers.urls)),
-            url(r"^get_gse_config/", views.get_gse_config),
-            url(r"^report_log/", views.report_log),
-            url(r"^api/job_callback/", views.job_callback),
-            url(r"tools/download/", views.tools_download),
+            re_path(r"api/", include(routers.urls)),
+            re_path(r"^package/upload/$", upload_package),
+            re_path(r"^export/download/$", export_download, name="export_download"),
+            re_path(r"^export/", include(export_routers.urls)),
+            re_path(r"^get_gse_config/", views.get_gse_config),
+            re_path(r"^report_log/", views.report_log),
+            re_path(r"^api/job_callback/", views.job_callback),
+            re_path(r"tools/download/", views.tools_download),
         ]
     )

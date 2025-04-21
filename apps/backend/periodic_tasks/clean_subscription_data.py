@@ -10,8 +10,8 @@ specific language governing permissions and limitations under the License.
 """
 from typing import Dict, List, Optional, Union
 
+from blueapps.contrib.celery_tools.periodic import periodic_task
 from celery.schedules import crontab
-from celery.task import periodic_task
 from django.db import connection
 from django.utils import timezone
 
@@ -25,9 +25,9 @@ JOB_SUB_INSTANCE_MAP_TABLE = "node_man_jobsubscriptioninstancemap"
 
 
 @periodic_task(
+    run_every=crontab(minute="*/5"),
     queue="default",
     options={"queue": "default"},
-    run_every=crontab(minute="*/5"),
 )
 def clean_subscription_data():
     """

@@ -9,8 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-import django_mysql.models
-from django.db import migrations
+from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
@@ -23,6 +22,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name="subscription",
             name="operate_info",
-            field=django_mysql.models.JSONField(default=None, null=True, verbose_name="操作信息"),
+            field=models.JSONField(default=None, null=True, verbose_name="操作信息"),
         ),
     ]

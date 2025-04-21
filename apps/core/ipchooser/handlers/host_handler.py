@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 import typing
 from collections import defaultdict
 
-from django_mysql.models import QuerySet
+from django.db.models import QuerySet
 
 from apps.core.concurrent import controller
 from apps.core.ipchooser.tools.host_tool import HostTool

@@ -12,7 +12,7 @@ import json
 from datetime import timedelta
 from typing import Any, Dict, List, Set
 
-from celery.task import periodic_task
+from blueapps.contrib.celery_tools.periodic import periodic_task
 from django.db.models import QuerySet
 from django.utils import timezone
 

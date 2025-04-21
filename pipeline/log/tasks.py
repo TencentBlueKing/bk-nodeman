@@ -13,10 +13,10 @@ specific language governing permissions and limitations under the License.
 
 import logging
 
-from celery.decorators import periodic_task
 from celery.schedules import crontab
 from django.conf import settings
 
+from pipeline.contrib.celery_tools.periodic import periodic_task
 from pipeline.log.models import LogEntry
 
 logger = logging.getLogger(__name__)

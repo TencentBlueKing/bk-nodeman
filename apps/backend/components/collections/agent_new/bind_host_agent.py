@@ -12,7 +12,7 @@ import traceback
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
 
 from django.db.models import Q
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from apps.core.concurrent import controller
 from apps.node_man import models

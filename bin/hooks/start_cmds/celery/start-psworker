@@ -4,4 +4,4 @@
 # this problem solution is not use eventlet
 # refer to -> https://github.com/celery/celery/issues/5924
 # refer to -> https://github.com/intelowlproject/IntelOwl/issues/379
-celery -A apps.backend worker -Q service_schedule,service_schedule_priority -n schedule_worker@%h -P threads -c 100 --maxtasksperchild=50 -O fair --time-limit=1800
+celery -A apps.backend worker -Q service_schedule,service_schedule_priority -n schedule_worker@%h -P threads -c 100 --max-tasks-per-child=50 -O fair --time-limit=1800

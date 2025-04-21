@@ -11,7 +11,7 @@ RUN npm install
 RUN npm run build
 
 
-FROM python:3.6.12-slim-buster AS base
+FROM python:3.11.10-slim-bookworm AS base
 
 ENV LC_ALL=C.UTF-8 \
     LANG=C.UTF-8
@@ -28,11 +28,7 @@ ENV PATH="/venv/bin:$PATH"
 
 RUN set -ex && \
     chmod 1777 /tmp && \
-    rm /etc/apt/sources.list && \
-    echo "deb https://mirrors.cloud.tencent.com/debian buster main contrib non-free" >> /etc/apt/sources.list && \
-    echo "deb https://mirrors.cloud.tencent.com/debian buster-updates main contrib non-free" >> /etc/apt/sources.list && \
-    echo "deb-src https://mirrors.cloud.tencent.com/debian buster main contrib non-free" >> /etc/apt/sources.list && \
-    echo "deb-src https://mirrors.cloud.tencent.com/debian buster-updates main contrib non-free" >> /etc/apt/sources.list
+    sed -i 's/deb.debian.org/mirrors.tencent.com/g' /etc/apt/sources.list.d/debian.sources
 
 RUN set -ex && mkdir ~/.pip && printf '[global]\nindex-url = https://mirrors.tencent.com/pypi/simple/' > ~/.pip/pip.conf
 
@@ -46,7 +42,7 @@ WORKDIR /
 RUN set -ex &&  \
     apt-get update && \
     apt-get install -y --no-install-recommends \
-        gcc gettext mariadb-client libmariadbclient-dev default-libmysqlclient-dev && \
+        gcc gettext mariadb-client libmariadb-dev default-libmysqlclient-dev && \
     rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt /

@@ -14,7 +14,7 @@ import shutil
 import tarfile
 import typing
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from apps.node_man import constants
 

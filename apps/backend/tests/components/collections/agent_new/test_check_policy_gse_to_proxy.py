@@ -13,7 +13,7 @@ import copy
 from typing import Any, Dict
 
 from django.conf import settings
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from mock.mock import patch
 
 from apps.backend.components.collections.agent_new import (
