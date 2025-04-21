@@ -14,7 +14,7 @@ import itertools
 import logging
 from collections import Counter, defaultdict
 
-from celery.task import periodic_task
+from blueapps.contrib.celery_tools.periodic import periodic_task
 from django.utils import timezone
 
 from apps.backend.subscription import task_tools

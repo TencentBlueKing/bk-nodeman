@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import logging
 
-from celery.task import periodic_task
+from blueapps.contrib.celery_tools.periodic import periodic_task
 from django.db.models import Value
 
 from apps.backend.subscription.constants import SUBSCRIPTION_UPDATE_INTERVAL

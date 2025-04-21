@@ -11,7 +11,7 @@ See the License for the specific language governing permissions and limitations 
 import json
 from typing import Dict, List, Union
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from iam import Action
 
 from apps.iam.exceptions import ActionNotExistError

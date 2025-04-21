@@ -12,7 +12,7 @@ import os
 from typing import Any, Dict, List
 
 from django.conf import settings
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from apps.backend.components.collections.agent_new import components
 from apps.node_man.constants import NodeType

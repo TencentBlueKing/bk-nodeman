@@ -17,7 +17,7 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Match, Optional, Set, Tuple, Union
 
 from django.conf import settings
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from apps.backend.agent.tools import (
     InstallationTools,

@@ -15,7 +15,7 @@ import re
 from blueapps.account.conf import ConfFixture
 from django.conf import settings
 from django.utils.translation import get_language
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from version_log.utils import get_latest_version
 
 from apps.core.concurrent.cache import FuncCacheDecorator

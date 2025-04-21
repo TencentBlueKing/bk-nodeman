@@ -14,7 +14,7 @@ from unittest.mock import patch
 
 from django.conf import settings
 from django.test import override_settings
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from apps.node_man import constants as const
 from apps.node_man import tools

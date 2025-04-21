@@ -19,7 +19,7 @@ from enum import Enum
 from typing import Any, Dict, List, Union
 
 from django.conf import settings
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from apps.backend import constants as backend_const
 from apps.utils.basic import (

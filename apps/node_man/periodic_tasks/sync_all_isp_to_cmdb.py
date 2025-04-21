@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 import time
 from typing import Any, Dict, List
 
-from celery.task import periodic_task
+from blueapps.contrib.celery_tools.periodic import periodic_task
 
 from apps.component.esbclient import client_v2
 from apps.exceptions import ComponentCallError
@@ -49,9 +49,9 @@ def sync_all_isp_to_cmdb(task_id):
 
 
 @periodic_task(
+    run_every=constants.SYNC_ISP_TO_CMDB_INTERVAL,
     queue="default",
     options={"queue": "default"},
-    run_every=constants.SYNC_ISP_TO_CMDB_INTERVAL,
 )
 def sync_all_isp_to_cmdb_periodic_task():
     """

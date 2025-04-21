@@ -9,17 +9,17 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+from blueapps.contrib.celery_tools.periodic import periodic_task
 from celery.schedules import crontab
-from celery.task import periodic_task
 
 from apps.node_man.models import ResourceWatchEvent
 from common.log import logger
 
 
 @periodic_task(
+    run_every=crontab(hour="2", minute="0", day_of_week="*", day_of_month="*", month_of_year="*"),
     queue="default",
     options={"queue": "default"},
-    run_every=crontab(hour="2", minute="0", day_of_week="*", day_of_month="*", month_of_year="*"),
 )
 def clean_resource_watch_event_periodic_task():
     """

@@ -8,7 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from celery.task import periodic_task
+from blueapps.contrib.celery_tools.periodic import periodic_task
 from django.utils import timezone
 
 from apps.node_man import constants
@@ -37,9 +37,9 @@ def clean_identity_data(task_id, start, end):
 
 
 @periodic_task(
+    run_every=constants.CLEAN_EXPIRED_INFO_INTERVAL,
     queue="default",
     options={"queue": "default"},
-    run_every=constants.CLEAN_EXPIRED_INFO_INTERVAL,
 )
 def clean_expired_info_periodic_task():
     """

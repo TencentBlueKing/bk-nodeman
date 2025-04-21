@@ -11,7 +11,8 @@ specific language governing permissions and limitations under the License.
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from copy import deepcopy
 
-from celery.task import periodic_task, task
+from blueapps.contrib.celery_tools.periodic import periodic_task
+from celery import current_app
 from django.conf import settings
 from django.core.cache import cache
 
@@ -85,7 +86,7 @@ def format_biz_topo(biz_topo: dict) -> dict:
     return {"biz_format_topo": biz_topo_copy, "biz_nodes": biz_nodes}
 
 
-@task(queue="default", ignore_result=True)
+@current_app.task(queue="default", ignore_result=True)
 def get_and_cache_format_biz_topo(bk_biz_id: int) -> dict:
     """
     获取格式化业务拓扑并缓存
@@ -156,7 +157,7 @@ def cache_all_biz_topo():
         as_completed(tasks)
 
 
-@task(queue="default", ignore_result=True)
+@current_app.task(queue="default", ignore_result=True)
 def cache_all_biz_topo_delay_task():
     task_id = sync_cmdb_biz_topo_periodic_task.request.id
     logger.warning(f"{task_id} | cache_all_biz_topo_delay_task: Sync cmdb biz topo task' cache expired")
@@ -165,9 +166,9 @@ def cache_all_biz_topo_delay_task():
 
 
 @periodic_task(
+    run_every=constants.SYNC_CMDB_BIZ_TOPO_TASK_INTERVAL,
     queue="default",
     options={"queue": "default"},
-    run_every=constants.SYNC_CMDB_BIZ_TOPO_TASK_INTERVAL,
 )
 def sync_cmdb_biz_topo_periodic_task():
     task_id = sync_cmdb_biz_topo_periodic_task.request.id
