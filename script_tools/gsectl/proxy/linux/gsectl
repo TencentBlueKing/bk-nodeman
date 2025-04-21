@@ -811,6 +811,9 @@ get_os_type () {
     elif [[ "${OS_INFO,,}" =~ "hat" ]]; then
         OS_TYPE="redhat"
         RC_LOCAL_FILE="/etc/rc.d/rc.local"
+    else
+        OS_TYPE="other"
+        RC_LOCAL_FILE="/etc/rc.d/rc.local"
     fi
 }
 
@@ -850,7 +853,18 @@ add_startup_to_boot () {
     # 先删后加，避免重复
     sed -i "\|${WORK_HOME}/bin/gsectl start ${module}|d" $rcfile
 
-    echo "[ -f ${WORK_HOME}/bin/gsectl ] && ${WORK_HOME}/bin/gsectl start ${module} 1>>/var/log/${INSTALL_ENV}_${node_type}.log 2>&1" >>$rcfile
+    local insert_content
+    if systemctl list-unit-files | grep -q rc-local.service; then
+        insert_content="[ -f $AGENT_SETUP_PATH/bin/gsectl ] && sh -c 'echo \"\$\$\" > /sys/fs/cgroup/systemd/tasks; exec $AGENT_SETUP_PATH/bin/gsectl start' >/var/log/gse_start.log 2>&1"
+    else
+        insert_content="[ -f $AGENT_SETUP_PATH/bin/gsectl ] && $AGENT_SETUP_PATH/bin/gsectl start >/var/log/gse_start.log 2>&1"
+    fi
+
+    if grep -q "^exit 0" "$rcfile"; then
+        sed -i "/^exit 0/i ${insert_content}" $rcfile
+    else
+        echo "${insert_content}" >>$rcfile
+    fi
 }
 
 add_config_to_systemd () {

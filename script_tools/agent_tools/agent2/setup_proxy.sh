@@ -16,7 +16,7 @@ get_cpu_arch () {
         return 1
     fi
 }
-get_cpu_arch "uname -p" || get_cpu_arch "uname -m" || fail get_cpu_arch "Failed to get CPU arch or unsupported CPU arch, please contact the developer."
+get_cpu_arch "uname -p" || get_cpu_arch "uname -m" || get_cpu_arch "arch" || fail get_cpu_arch "Failed to get CPU arch or unsupported CPU arch, please contact the developer."
 
 NODE_TYPE=proxy
 PROC_LIST=(agent data file)

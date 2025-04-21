@@ -18,7 +18,7 @@ get_cpu_arch () {
         return 1
     fi
 }
-get_cpu_arch "uname -p" || get_cpu_arch "uname -m" || fail get_cpu_arch "Failed to get CPU arch or unsupported CPU arch, please contact the developer."
+get_cpu_arch "uname -p" || get_cpu_arch "uname -m" || get_cpu_arch "arch" || fail get_cpu_arch "Failed to get CPU arch or unsupported CPU arch, please contact the developer."
 
 GSE_COMPARE_VERSION="1.7.2"
 NODE_TYPE=proxy
@@ -490,10 +490,17 @@ setup_rclocal () {
 
     chmod +x $rcfile
 
+    local insert_content
     if systemctl list-unit-files | grep -q rc-local.service; then
-        echo "[ -f $AGENT_SETUP_PATH/bin/gsectl ] && sh -c 'echo \"\$\$\" > /sys/fs/cgroup/systemd/tasks; exec $AGENT_SETUP_PATH/bin/gsectl start' >/var/log/gse_start.log 2>&1" >>$rcfile
+        insert_content="[ -f $AGENT_SETUP_PATH/bin/gsectl ] && sh -c 'echo \"\$\$\" > /sys/fs/cgroup/systemd/tasks; exec $AGENT_SETUP_PATH/bin/gsectl start' >/var/log/gse_start.log 2>&1"
     else
-        echo "[ -f $AGENT_SETUP_PATH/bin/gsectl ] && $AGENT_SETUP_PATH/bin/gsectl start >/var/log/gse_start.log 2>&1" >>$rcfile
+        insert_content="[ -f $AGENT_SETUP_PATH/bin/gsectl ] && $AGENT_SETUP_PATH/bin/gsectl start >/var/log/gse_start.log 2>&1"
+    fi
+
+    if grep -q "^exit 0" "$rcfile"; then
+        sed -i "/^exit 0/i ${insert_content}" $rcfile
+    else
+        echo "${insert_content}" >>$rcfile
     fi
 
     log setup_rclocal DONE "setup rclocal done"

@@ -490,6 +490,9 @@ get_os_type () {
     elif [[ "${OS_INFO}" =~ "darwin" ]]; then
         OS_TYPE="macos"
         RC_LOCAL_FILE="/etc/rc.d/rc.local"
+    else
+        OS_TYPE="other"
+        RC_LOCAL_FILE="/etc/rc.d/rc.local"
     fi
 }
 

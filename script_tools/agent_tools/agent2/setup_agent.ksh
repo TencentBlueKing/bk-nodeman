@@ -41,7 +41,7 @@ get_cpu_arch () {
     fi
 }
 
-get_cpu_arch "uname -p" || get_cpu_arch "uname -m"  || arch || fail get_cpu_arch "Failed to get CPU arch, please contact the developer."
+get_cpu_arch "uname -p" || get_cpu_arch "uname -m"  || get_cpu_arch "arch" || fail get_cpu_arch "Failed to get CPU arch, please contact the developer."
 
 # 清理逻辑：保留本次的LOG_FILE,下次运行时会删除历史的LOG_FILE。
 # 保留安装脚本本身

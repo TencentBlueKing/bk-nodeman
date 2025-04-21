@@ -89,7 +89,7 @@ get_cpu_arch () {
     fi
 }
 
-get_cpu_arch "uname -p" || get_cpu_arch "uname -m" || fail get_cpu_arch FAILED "Failed to get CPU arch, please contact the developer."
+get_cpu_arch "uname -p" || get_cpu_arch "uname -m" || get_cpu_arch "arch" || fail get_cpu_arch FAILED "Failed to get CPU arch, please contact the developer."
 
 # 清理逻辑：保留本次的LOG_FILE,下次运行时会删除历史的LOG_FILE。
 # 保留安装脚本本身
@@ -327,10 +327,17 @@ setup_startup_scripts () {
 	touch "$rcfile" && chmod 755 "$rcfile"
     fi
 
+    local insert_content
     if systemctl list-unit-files | grep -q rc-local.service; then
-        echo "[ -f $AGENT_SETUP_PATH/bin/gsectl ] && sh -c 'echo \"\$\$\" > /sys/fs/cgroup/systemd/tasks; exec $AGENT_SETUP_PATH/bin/gsectl start' >/var/log/gse_start.log 2>&1" >>$rcfile
+        insert_content="[ -f $AGENT_SETUP_PATH/bin/gsectl ] && sh -c 'echo \"\$\$\" > /sys/fs/cgroup/systemd/tasks; exec $AGENT_SETUP_PATH/bin/gsectl start' >/var/log/gse_start.log 2>&1"
     else
-        echo "[ -f $AGENT_SETUP_PATH/bin/gsectl ] && $AGENT_SETUP_PATH/bin/gsectl start >/var/log/gse_start.log 2>&1" >>$rcfile
+        insert_content="[ -f $AGENT_SETUP_PATH/bin/gsectl ] && $AGENT_SETUP_PATH/bin/gsectl start >/var/log/gse_start.log 2>&1"
+    fi
+
+    if grep -q "^exit 0" "$rcfile"; then
+        sed -i "/^exit 0/i ${insert_content}" $rcfile
+    else
+        echo "${insert_content}" >>$rcfile
     fi
 }
 
