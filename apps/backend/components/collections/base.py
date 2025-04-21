@@ -37,6 +37,7 @@ from apps.adapters.api.gse import GseApiBaseHelper, get_gse_api_helper
 from apps.backend.api.constants import POLLING_TIMEOUT
 from apps.backend.constants import ActionNameType
 from apps.backend.subscription import errors
+from apps.backend.subscription.task_tools import get_udpate_subscription_records_length
 from apps.core.files.storage import get_storage
 from apps.exceptions import parse_exception
 from apps.node_man import constants, models
@@ -296,9 +297,12 @@ class BaseService(Service, LogMixin, DBHelperMixin, PollingTimeoutMixin):
     @SetupObserve(histogram=metrics.app_task_engine_set_sub_inst_statuses_duration_seconds)
     def bulk_set_sub_inst_status(self, data, status: str, sub_inst_ids: Union[List[int], Set[int]]):
         """批量设置实例状态，对于实例及原子的状态更新只应该在base内部使用"""
-        models.SubscriptionInstanceRecord.objects.filter(id__in=sub_inst_ids).update(
-            status=status, update_time=timezone.now()
-        )
+        batch_size = get_udpate_subscription_records_length()
+        for i in range(0, len(sub_inst_ids), batch_size):
+            batch = list(sub_inst_ids)[i : i + batch_size]
+            models.SubscriptionInstanceRecord.objects.filter(id__in=batch).update(
+                status=status, update_time=timezone.now()
+            )
         # status -> PENDING -> RUNNING -> FAILED | SUCCESS
         metrics.app_task_engine_sub_inst_statuses_total.labels(status=status).inc(len(sub_inst_ids))
 

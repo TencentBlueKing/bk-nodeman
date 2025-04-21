@@ -292,6 +292,15 @@ class TaskResultTools:
         return instance_status
 
 
+def get_udpate_subscription_records_length():
+    batch_size = int(
+        models.GlobalSettings.get_config(
+            key=models.GlobalSettings.KeyEnum.UPDATE_SUBSCRIPTION_RECORDS_LENGTH.value, default=1000
+        )
+    )
+    return batch_size
+
+
 def update_inst_record_status(
     inst_record_queryset: QuerySet,
     subscription_task_id_obj_map: Dict[int, models.SubscriptionTask],
@@ -325,9 +334,12 @@ def update_inst_record_status(
 
     with transaction.atomic():
         for status, record_ids in record_id_gby_status.items():
-            models.SubscriptionInstanceRecord.objects.filter(id__in=record_ids).update(
-                status=status, update_time=timezone.now()
-            )
+            batch_size = get_udpate_subscription_records_length()
+            for i in range(0, len(record_ids), batch_size):
+                batch = record_ids[i : i + batch_size]
+                models.SubscriptionInstanceRecord.objects.filter(id__in=batch).update(
+                    status=status, update_time=timezone.now()
+                )
 
 
 def transfer_instance_record_status(subscription_ids: List[int] = None):
@@ -344,6 +356,7 @@ def transfer_instance_record_status(subscription_ids: List[int] = None):
                 continue
 
             base_kwargs = {"subscription_id": subscription_id, "is_latest": True}
+            # TODO 慢查询
             update_inst_record_status(
                 models.SubscriptionInstanceRecord.objects.filter(**base_kwargs), subscription_task_id_obj_map
             )

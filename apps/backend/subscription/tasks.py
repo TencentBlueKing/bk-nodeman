@@ -23,10 +23,13 @@ from django.utils.translation import ugettext as _
 
 from apps.backend.celery import app
 from apps.backend.components.collections.base import ActivityType
+from apps.backend.constants import ActionNameType
 from apps.backend.subscription import handler, tools
 from apps.backend.subscription.constants import TASK_HOST_LIMIT
 from apps.backend.subscription.errors import SubscriptionInstanceEmpty
 from apps.backend.subscription.steps import StepFactory, agent
+from apps.backend.subscription.task_tools import get_udpate_subscription_records_length
+from apps.backend.subscription.tools import create_group_id, get_host_detail
 from apps.core.gray.tools import GrayTools
 from apps.node_man import constants, models
 from apps.node_man import tools as node_man_tools
@@ -484,9 +487,14 @@ def create_task(
 
     # 将最新属性置为False并批量创建订阅实例
     # TODO 偶发死锁
-    models.SubscriptionInstanceRecord.objects.filter(
-        subscription_id=subscription.id, instance_id__in=instance_id_list
-    ).update(is_latest=False)
+    # 分批更新防止慢查询
+    batch_size = get_udpate_subscription_records_length()
+    for i in range(0, len(instance_id_list), batch_size):
+        batch = instance_id_list[i : i + batch_size]
+        models.SubscriptionInstanceRecord.objects.filter(subscription_id=subscription.id, instance_id__in=batch).update(
+            is_latest=False
+        )
+
     # TODO 偶发死锁
     models.SubscriptionInstanceRecord.objects.bulk_create(to_be_created_records_map.values(), batch_size=batch_size)
 
@@ -562,6 +570,86 @@ def run_subscription_task_and_create_instance_transaction(func):
     return wrapper
 
 
+def get_deleted_instance_info(subscription, subscription_task, not_exist_instance_id):
+    deleted_instance_info = {}
+    # 查找最新的记录
+    latest_instance_ids = set()
+    if not_exist_instance_id:
+        records = list(
+            models.SubscriptionInstanceRecord.objects.filter(
+                subscription_id=subscription.id, instance_id__in=not_exist_instance_id, is_latest=Value(1)
+            )
+        )
+        for record in records:
+            deleted_instance_info[record.instance_id] = record.instance_info
+            latest_instance_ids.add(record.instance_id)
+
+        logger.info(
+            "[sub_lifecycle<sub(%s), task(%s)>][run_subscription_task_and_create_instance] "
+            "deleted instances not exist in cc, find from db -> %s, find num -> %s",
+            subscription.id,
+            subscription_task.id,
+            not_exist_instance_id,
+            len(records),
+        )
+
+    not_latest_instance_ids: Set[str] = not_exist_instance_id - latest_instance_ids
+    exist_db_instance_id_set = set()
+    not_exist_db_instance_id_set = set()
+    if not_latest_instance_ids:
+        sub_inst_record_qs = models.SubscriptionInstanceRecord.objects.filter(
+            subscription_id=subscription.id, instance_id__in=not_latest_instance_ids, is_latest=Value(0)
+        )
+        max_instance_record_ids: List[int] = handler.SubscriptionTools.fetch_latest_record_ids_in_same_inst_id(
+            sub_inst_record_qs
+        )
+        instance_records = models.SubscriptionInstanceRecord.objects.filter(id__in=max_instance_record_ids).values(
+            "instance_id", "instance_info"
+        )
+        for instance_record in instance_records:
+            deleted_instance_info[instance_record["instance_id"]] = instance_record["instance_info"]
+            exist_db_instance_id_set.add(instance_record["instance_id"])
+
+        not_exist_db_instance_id_set: Set[str] = not_latest_instance_ids - exist_db_instance_id_set
+        logger.info(
+            "[sub_lifecycle<sub(%s), task(%s)>][run_subscription_task_and_create_instance] "
+            "deleted instances not latest, find latest record from db -> %s, find num -> %s, "
+            "can't find latest record from db -> %s, num -> %s",
+            subscription.id,
+            subscription_task.id,
+            not_latest_instance_ids,
+            len(instance_records),
+            not_exist_db_instance_id_set,
+            len(not_exist_db_instance_id_set),
+        )
+
+    if subscription.object_type == models.Subscription.ObjectType.SERVICE and not_exist_db_instance_id_set:
+        group_ids = []
+        for instance_id in not_exist_db_instance_id_set:
+            _instance_id = instance_id.split("|")[-1]
+            group_id = create_group_id(subscription, {"service": {"id": _instance_id}})
+            group_ids.append(group_id)
+
+        process_status_records = models.ProcessStatus.objects.filter(group_id__in=group_ids).values(
+            "bk_host_id", "group_id"
+        )
+        instance_host_id_map = {
+            _host["group_id"].split("_")[-1]: _host["bk_host_id"] for _host in process_status_records
+        }
+
+        host_detail_list = get_host_detail(host_info_list=process_status_records, bk_biz_id=subscription.bk_biz_id)
+        host_id_info_map = {host_detail["bk_host_id"]: host_detail for host_detail in host_detail_list}
+
+        for instance_id in not_exist_db_instance_id_set:
+            _instance_id = instance_id.split("|")[-1]
+            deleted_instance_info[instance_id] = {
+                "host": host_id_info_map.get(instance_host_id_map[_instance_id], {}),
+                "service": {"id": _instance_id},
+            }
+
+    return deleted_instance_info
+
+
 @app.task(queue="backend", ignore_result=True)
 @translation.RespectsLanguage()
 @run_subscription_task_and_create_instance_transaction
@@ -624,6 +712,29 @@ def run_subscription_task_and_create_instance(
 
     if actions is not None:
         # 指定了动作，不需要计算，直接执行即可
+        action_name_list = list(set(actions.values()))
+        if not instances and len(action_name_list) == 1 and action_name_list[0] == ActionNameType.UNINSTALL:
+            # 暂只支持全部为卸载并且没有instance情况
+            # 传入的nodes 范围在CC中不存在使用最近的Recoreds记录
+            # 如果被删掉的实例在 CMDB 找不到，那么就使用最近一次的 InstanceRecord 的快照数据
+            not_exist_instance_id = []
+            for node in scope["nodes"]:
+                instance_key = "host" if scope["node_type"] == models.Subscription.ObjectType.HOST else "service"
+                id_key = "bk_host_id" if instance_key == "host" else "id"
+                instance_id = tools.create_node_id(
+                    {
+                        "object_type": subscription.object_type,
+                        "node_type": scope["node_type"],
+                        id_key: node["id"],
+                    }
+                )
+                not_exist_instance_id.append(instance_id)
+
+            deleted_instance_info = get_deleted_instance_info(
+                subscription, subscription_task, set(not_exist_instance_id)
+            )
+            instances.update(deleted_instance_info)
+
         instance_actions = {instance_id: actions for instance_id in instances}
         create_task(subscription, subscription_task, instances, instance_actions)
         return
@@ -717,53 +828,7 @@ def run_subscription_task_and_create_instance(
 
         # 如果被删掉的实例在 CMDB 找不到，那么就使用最近一次的 InstanceRecord 的快照数据
         not_exist_instance_id = set(instance_not_in_scope) - set(deleted_instance_info)
-        latest_instance_ids = set()
-        if not_exist_instance_id:
-            records = list(
-                models.SubscriptionInstanceRecord.objects.filter(
-                    subscription_id=subscription.id, instance_id__in=not_exist_instance_id, is_latest=Value(1)
-                )
-            )
-            for record in records:
-                deleted_instance_info[record.instance_id] = record.instance_info
-                latest_instance_ids.add(record.instance_id)
-
-            logger.info(
-                "[sub_lifecycle<sub(%s), task(%s)>][run_subscription_task_and_create_instance] "
-                "deleted instances not exist in cc, find from db -> %s, find num -> %s",
-                subscription.id,
-                subscription_task.id,
-                not_exist_instance_id,
-                len(records),
-            )
-        not_latest_instance_ids: Set[str] = not_exist_instance_id - latest_instance_ids
-        exist_db_instance_id_set = set()
-        if not_latest_instance_ids:
-            sub_inst_record_qs = models.SubscriptionInstanceRecord.objects.filter(
-                subscription_id=subscription.id, instance_id__in=not_latest_instance_ids, is_latest=Value(0)
-            )
-            max_instance_record_ids: List[int] = handler.SubscriptionTools.fetch_latest_record_ids_in_same_inst_id(
-                sub_inst_record_qs
-            )
-            instance_records = models.SubscriptionInstanceRecord.objects.filter(id__in=max_instance_record_ids).values(
-                "instance_id", "instance_info"
-            )
-            for instance_record in instance_records:
-                deleted_instance_info[instance_record["instance_id"]] = instance_record["instance_info"]
-                exist_db_instance_id_set.add(instance_record["instance_id"])
-
-            not_exist_db_instance_id_set: Set[str] = not_latest_instance_ids - exist_db_instance_id_set
-            logger.info(
-                "[sub_lifecycle<sub(%s), task(%s)>][run_subscription_task_and_create_instance] "
-                "deleted instances not latest, find latest record from db -> %s, find num -> %s, "
-                "can't find latest record from db -> %s, num -> %s",
-                subscription.id,
-                subscription_task.id,
-                not_latest_instance_ids,
-                len(instance_records),
-                not_exist_db_instance_id_set,
-                len(not_exist_db_instance_id_set),
-            )
+        deleted_instance_info.update(get_deleted_instance_info(subscription, subscription_task, not_exist_instance_id))
 
         instances.update(deleted_instance_info)
 
@@ -841,6 +906,12 @@ def update_subscription_instances_chunk(subscription_ids: List[int]):
     """
     subscriptions = models.Subscription.objects.filter(id__in=subscription_ids, enable=True)
     for subscription in subscriptions:
+        if subscription.id in models.GlobalSettings.get_config(
+            key=models.GlobalSettings.KeyEnum.DISABLED_SUBSCRIPTIONS.value, default=[]
+        ):
+            logger.info(f"[update_subscription_instances] {subscription.id} skipped for subscription disabled")
+            continue
+
         if tools.check_subscription_is_disabled(
             subscription_identity=f"subscription -> [{subscription.id}]",
             scope=subscription.scope,

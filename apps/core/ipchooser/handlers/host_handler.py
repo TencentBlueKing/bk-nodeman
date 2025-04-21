@@ -8,11 +8,15 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import hashlib
+import json
+import time
 import typing
 from collections import defaultdict
 
 from django_mysql.models import QuerySet
 
+from apps.backend.utils.redis import REDIS_INST
 from apps.core.concurrent import controller
 from apps.core.ipchooser.tools.host_tool import HostTool
 from apps.node_man.constants import QUERY_CMDB_LIMIT
@@ -115,12 +119,9 @@ class HostHandler:
         )
 
         return need_differential_sync_bk_host_ids
-
+    
     @classmethod
-    def bulk_differential_sync_hosts(cls, need_differential_sync_bk_host_ids):
-        """
-        差量同步所有需要同步的主机
-        """
+    def _bulk_differential_sync_hosts(cls, need_differential_sync_bk_host_ids):
         # 查询主机id所属业务
         host_biz_relations: typing.List[typing.Optional[typing.Dict[str, typing.Any]]] = cls.find_host_biz_relations(
             bk_host_ids=need_differential_sync_bk_host_ids
@@ -131,6 +132,39 @@ class HostHandler:
             expected_bk_host_ids_gby_bk_biz_id[host_biz_realtion["bk_biz_id"]].append(host_biz_realtion["bk_host_id"])
 
         bulk_differential_sync_biz_hosts(expected_bk_host_ids_gby_bk_biz_id)
+
+    @classmethod
+    def bulk_differential_sync_hosts(cls, need_differential_sync_bk_host_ids):
+        """
+        差量同步所有需要同步的主机
+        """
+        lock_key = f"lock:bulk_diff_sync_hosts:{hashlib.md5(json.dumps(need_differential_sync_bk_host_ids).encode()).hexdigest()}"
+        lock_expire = 120
+        max_retries = 20
+        retry_delay = 5
+        is_first = True
+        for attempt in range(max_retries + 1):
+            # 尝试获取锁
+            if REDIS_INST.set(lock_key, "1", ex=lock_expire, nx=True):
+                try:
+                    # 获取到锁后，执行函数
+                    if not is_first:
+                        # 说明自己不是第一个执行的进程，直接跳过无需重复执行
+                        return
+
+                    cls._bulk_differential_sync_hosts(need_differential_sync_bk_host_ids)
+                    return
+                finally:
+                    # 释放锁
+                    REDIS_INST.delete(lock_key)
+
+            # 未获取到锁
+            elif attempt < max_retries:
+                time.sleep(retry_delay)
+                is_first = False
+
+        # 超过最大等待时间
+        cls._bulk_differential_sync_hosts(need_differential_sync_bk_host_ids)
 
     @classmethod
     def fetch_untreated_host_infos(

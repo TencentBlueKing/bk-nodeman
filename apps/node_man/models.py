@@ -181,6 +181,10 @@ class GlobalSettings(models.Model):
         QUERY_PROC_STATUS_HOST_LENS = "QUERY_PROC_STATUS_HOST_LENS"
         # 业务最大插件版本
         PLUGIN_VERSION_CONFIG = "PLUGIN_VERSION_CONFIG"
+        # 更新订阅实例长度
+        UPDATE_SUBSCRIPTION_RECORDS_LENGTH = "UPDATE_SUBSCRIPTION_RECORDS_LENGTH"
+        # 禁用的订阅
+        DISABLED_SUBSCRIPTIONS = "DISABLED_SUBSCRIPTIONS"
 
     key = models.CharField(_("键"), max_length=255, db_index=True, primary_key=True)
     v_json = JSONField(_("值"))
