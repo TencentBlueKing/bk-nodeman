@@ -116,6 +116,15 @@ def create_topo_node_id(topo_node: Dict) -> str:
     return "{}|{}".format(topo_node["bk_obj_id"], topo_node["bk_inst_id"])
 
 
+def create_topo_node_id_with_cache_topo(topo_node: Dict) -> str:
+    """
+    创建拓扑节点ID
+    :param topo_node: CMDB拓扑节点，如{"obj": "biz", "id": 2}
+    :return: "biz|2"
+    """
+    return "{}|{}".format(topo_node["obj"], topo_node["id"])
+
+
 def get_cached_topo_data(bk_biz_id: int, cache_key: str) -> Optional[List]:
     """
     获取并解析业务拓扑的缓存数据
@@ -243,17 +252,26 @@ def get_data_with_cache(
         time.sleep(1)
 
 
-def _get_biz_inst_topo(bk_biz_id: int) -> List:
+def get_biz_brief_cache_topo(bk_biz_id):
+    return CCApi.get_biz_brief_cache_topo({"bk_biz_id": bk_biz_id, "no_request": True})
+
+
+def search_biz_inst_topo(bk_biz_id):
+    return client_v2.cc.search_biz_inst_topo({"bk_username": "admin", "bk_biz_id": bk_biz_id})
+
+
+def _get_biz_inst_topo(bk_biz_id: int, data_fetch_func) -> List:
     """
     获取业务实例拓扑，仅对特定业务ID使用缓存，并使用分布式锁防止缓存击穿
     :param bk_biz_id: 业务ID
     :return: CMDB拓扑树
     """
+
     return get_data_with_cache(
         bk_biz_id=bk_biz_id,
         cache_key=f"subscription:topo:cache:{bk_biz_id}",
         lock_key=f"subscription:topo:lock:{bk_biz_id}",
-        data_fetch_func=lambda: client_v2.cc.search_biz_inst_topo({"bk_username": "admin", "bk_biz_id": bk_biz_id}),
+        data_fetch_func=lambda: data_fetch_func(bk_biz_id),
         func_name="_get_biz_inst_topo",
     )
 
@@ -273,6 +291,34 @@ def _get_biz_internal_module(bk_biz_id: int) -> Dict:
     )
 
 
+def get_node_relations(topo_tree, internal_module, bk_biz_id, create_id_func):
+    node_relations = {}
+    # 处理内部模块
+    for _internal_module in internal_module.get("module") or []:
+        module_node_id = "module|{}".format(_internal_module["bk_module_id"])
+        node_relations[module_node_id] = [f"biz|{bk_biz_id}", f"set|{internal_module['bk_set_id']}", module_node_id]
+    # 处理拓扑树
+    if isinstance(topo_tree, dict):
+        queue = [{"obj": "biz", "id": topo_tree["biz"]["id"], "nds": topo_tree["nds"]}]
+    else:
+        queue = topo_tree
+    while queue:
+        topo_node = queue.pop()
+        topo_node_id = create_id_func(topo_node)
+        if topo_node_id not in node_relations:
+            node_relations[topo_node_id] = [topo_node_id]
+        children = topo_node.get("nds") or topo_node.get("child") or []
+        queue.extend(children)
+        for child in children:
+            child_node_id = create_id_func(child)
+            node_relations[child_node_id] = node_relations[topo_node_id] + [child_node_id]
+    return {
+        topo_node_id: node_relations[topo_node_id]
+        for topo_node_id in node_relations
+        if topo_node_id.startswith("module")
+    }
+
+
 def get_module_to_topo_dict(bk_biz_id: int) -> Dict:
     """
     获取业务的模块拓扑映射
@@ -281,33 +327,17 @@ def get_module_to_topo_dict(bk_biz_id: int) -> Dict:
         "module|1": ["biz|2", "set|3", "module|1"]
     }
     """
-    topo_tree = _get_biz_inst_topo(bk_biz_id)
+
+    if settings.BKAPP_RUN_ENV == constants.BkappRunEnvType.IEOD.value:
+        data_fetch_func = get_biz_brief_cache_topo
+        create_node_id_func = create_topo_node_id_with_cache_topo
+    else:
+        data_fetch_func = search_biz_inst_topo
+        create_node_id_func = create_topo_node_id
+
     internal_module = _get_biz_internal_module(bk_biz_id)
-
-    node_relations = {}
-
-    for _internal_module in internal_module.get("module") or []:
-        module_node_id = "module|{}".format(_internal_module["bk_module_id"])
-        node_relations[module_node_id] = [f"biz|{bk_biz_id}", f"set|{internal_module['bk_set_id']}", module_node_id]
-
-    queue = topo_tree
-    while queue:
-        topo_node = queue.pop()
-        topo_node_id = create_topo_node_id(topo_node)
-
-        if topo_node_id not in node_relations:
-            node_relations[topo_node_id] = [topo_node_id]
-
-        queue.extend(topo_node["child"])
-        for child in topo_node["child"]:
-            child_node_id = create_topo_node_id(child)
-            node_relations[child_node_id] = node_relations[topo_node_id] + [child_node_id]
-
-    return {
-        topo_node_id: node_relations[topo_node_id]
-        for topo_node_id in node_relations
-        if topo_node_id.startswith("module")
-    }
+    topo_tree = _get_biz_inst_topo(bk_biz_id, data_fetch_func=data_fetch_func)
+    return get_node_relations(topo_tree, internal_module, bk_biz_id, create_node_id_func)
 
 
 def create_node_id(data: Dict) -> str:
@@ -1198,6 +1228,7 @@ def get_instances_by_scope(scope: Dict[str, Union[Dict, int, Any]]) -> Dict[str,
 
     instances = []
     bk_biz_id = scope["bk_biz_id"]
+    module_to_topo = {}
     if bk_biz_id:
         module_to_topo = get_module_to_topo_dict(bk_biz_id)
     else:

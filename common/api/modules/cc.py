@@ -12,7 +12,7 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import ugettext_lazy as _
 
 from ..base import BaseApi, DataAPI
-from ..domains import CC_APIGATEWAY_ROOT_V2
+from ..domains import CC_APIGATEWAY_ROOT_V2, CC_APIGATEWAY_ROOT_V3
 from .utils import add_esb_info_before_request
 
 
@@ -282,4 +282,13 @@ class _CCApi(BaseApi):
             description="批量查询某业务的集群详情",
             # before_request=add_esb_info_before_request,
             api_name="find_set_batch",
+        )
+        self.get_biz_brief_cache_topo = DataAPI(
+            method="GET",
+            url=CC_APIGATEWAY_ROOT_V3 + "api/v3/cache/find/cache/topo/brief/biz/{bk_biz_id}",
+            module=self.MODULE,
+            simple_module=self.SIMPLE_MODULE,
+            description="查询业务实例拓扑(缓存)",
+            # before_request=add_esb_info_before_request,
+            api_name="get_biz_brief_cache_topo",
         )

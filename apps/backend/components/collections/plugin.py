@@ -49,6 +49,7 @@ from apps.core.tag.models import Tag
 from apps.exceptions import AppBaseException, ComponentCallError
 from apps.node_man import constants, exceptions, models
 from apps.node_man.handlers.cmdb import CmdbHandler
+from apps.core.ipchooser.handlers.host_handler import HostHandler
 from apps.prometheus import metrics
 from apps.prometheus.helper import SetupObserve
 from apps.utils import cache, md5
@@ -241,6 +242,14 @@ class InitProcessStatusService(PluginBaseService):
         to_be_created_process_status = []
         to_be_updated_process_status = []
         process_status_property_md5_set = set()
+
+        # 差量同步主机防止主机未同步的情况导致失败
+        need_differential_sync_bk_host_ids: List = list(set(bk_host_ids) - set(host_id_obj_map.keys()))
+
+        if need_differential_sync_bk_host_ids:
+            # 差量同步主机
+            HostHandler.bulk_differential_sync_hosts(need_differential_sync_bk_host_ids)
+            host_id_obj_map.update(models.Host.host_id_obj_map(bk_host_id__in=need_differential_sync_bk_host_ids))
 
         # 提前查询拓扑顺序，用于策略抑制计算，得到当期策略所属层级
         topo_order = CmdbHandler.get_topo_order()

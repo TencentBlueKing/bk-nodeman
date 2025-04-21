@@ -642,6 +642,7 @@ class BkappRunEnvType(Enum):
 
     CE = "ce"
     EE = "ee"
+    IEOD = "ieod"
 
 
 # GSE 端口默认值
