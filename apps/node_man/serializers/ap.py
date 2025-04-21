@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 from typing import List
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from apps.backend.subscription.steps.agent_adapter.base import AgentSetupTools
@@ -111,10 +111,10 @@ class UpdateOrCreateSerializer(serializers.ModelSerializer):
     zk_password = serializers.CharField(label=_("ZK密码"), required=False, allow_blank=True)
     agent_config = serializers.DictField(label=_("Agent配置"))
     description = serializers.CharField(label=_("接入点描述"), allow_blank=True)
-    creator = serializers.JSONField(_("接入点创建者"), required=False)
+    creator = serializers.JSONField(label=_("接入点创建者"), required=False)
     port_config = serializers.DictField(default=GSE_PORT_DEFAULT_VALUE)
     proxy_package = serializers.ListField()
-    bscp_config = serializers.DictField(_("BSCP配置"), required=False)
+    bscp_config = serializers.DictField(label=_("BSCP配置"), required=False)
     outer_callback_url = serializers.CharField(label=_("节点管理外网回调地址"), required=False, allow_blank=True)
     callback_url = serializers.CharField(label=_("节点管理内网回调地址"), required=False, allow_blank=True)
 

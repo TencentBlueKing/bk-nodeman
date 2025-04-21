@@ -12,7 +12,7 @@ import json
 
 from django.conf import settings
 from django.http import Http404, JsonResponse
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from rest_framework import exceptions, filters, status
 from rest_framework.authentication import BasicAuthentication
 from rest_framework.response import Response

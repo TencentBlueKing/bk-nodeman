@@ -15,7 +15,7 @@ from collections import ChainMap, OrderedDict, defaultdict
 from typing import Any, Dict, List, Union
 
 from django.db.models import Max, Subquery, Value
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from packaging import version
 from rest_framework import exceptions, serializers
 

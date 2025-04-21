@@ -12,13 +12,13 @@ import ipaddress
 import math
 import typing
 
+from blueapps.contrib.celery_tools.periodic import periodic_task
+from celery import current_app
 from celery.schedules import crontab
-from celery.task import periodic_task
 from django.conf import settings
 from django.db import transaction
 from django.db.models import Q
 
-from apps.backend.celery import app
 from apps.backend.utils.redis import REDIS_INST
 from apps.component.esbclient import client_v2
 from apps.core.concurrent import controller
@@ -604,9 +604,9 @@ def query_cmdb_and_handle_need_delete_host_ids(host_ids: typing.List[int], task_
 
 
 @periodic_task(
+    run_every=crontab(hour="0", minute="0", day_of_week="*", day_of_month="*", month_of_year="*"),
     queue="default",
     options={"queue": "default"},
-    run_every=crontab(hour="0", minute="0", day_of_week="*", day_of_month="*", month_of_year="*"),
 )
 def sync_cmdb_host_periodic_task(bk_biz_id=None):
     """
@@ -616,7 +616,7 @@ def sync_cmdb_host_periodic_task(bk_biz_id=None):
     sync_cmdb_host(bk_biz_id, task_id)
 
 
-@app.task(queue="default")
+@current_app.task(queue="default")
 def sync_cmdb_host_task(bk_biz_id=None):
     """
     主动同步cmdb主机
@@ -626,9 +626,9 @@ def sync_cmdb_host_task(bk_biz_id=None):
 
 
 @periodic_task(
+    run_every=constants.CLEAR_NEED_DELETE_HOST_IDS_INTERVAL,
     queue="default",
     options={"queue": "default"},
-    run_every=constants.CLEAR_NEED_DELETE_HOST_IDS_INTERVAL,
 )
 def clear_need_delete_host_ids_task():
     """

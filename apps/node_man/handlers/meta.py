@@ -14,7 +14,7 @@ from typing import Any, Callable, Dict, Tuple
 
 from django.conf import settings
 from django.db import connection
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from apps.core.concurrent.cache import FuncCacheDecorator
 from apps.node_man import constants, models, tools

@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 from collections import defaultdict
 from typing import Dict, List, Optional, Set, Union
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from apps.backend.api.constants import POLLING_INTERVAL
 from apps.node_man import constants, models

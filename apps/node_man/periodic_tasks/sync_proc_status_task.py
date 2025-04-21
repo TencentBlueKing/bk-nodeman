@@ -12,7 +12,8 @@ import typing
 from collections import defaultdict
 
 from blueapps.conf import settings
-from celery.task import periodic_task, task
+from blueapps.contrib.celery_tools.periodic import periodic_task
+from celery import current_app
 from django.db.models import QuerySet
 from django.db.transaction import atomic
 
@@ -26,7 +27,7 @@ from apps.utils.periodic_task import calculate_countdown
 from common.log import logger
 
 
-@task(queue="default", ignore_result=True)
+@current_app.task(queue="default", ignore_result=True)
 def update_or_create_proc_status(
     task_id: int,
     host_queryset: QuerySet,
@@ -191,9 +192,9 @@ def update_or_create_proc_status(
 
 
 @periodic_task(
+    run_every=constants.SYNC_PROC_STATUS_TASK_INTERVAL,
     queue="default",
     options={"queue": "default"},
-    run_every=constants.SYNC_PROC_STATUS_TASK_INTERVAL,
 )
 def sync_proc_status_periodic_task():
 

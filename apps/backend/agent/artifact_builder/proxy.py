@@ -14,7 +14,7 @@ import shutil
 import tarfile
 import typing
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from apps.node_man import constants
 
@@ -94,15 +94,14 @@ class ProxyArtifactBuilder(base.BaseArtifactBuilder):
 
     def _get_elf_arch(self, proxy_bin_dir: str) -> str:
         import struct
-        EM_X86_64 = 0x3e  # x86_64 架构
-        EM_AARCH64 = 0xb7  # AARCH64 架构
+
+        EM_AARCH64 = 0xB7  # AARCH64 架构
         for filename in os.listdir(proxy_bin_dir):
             if filename in self.PROXY_SVR_EXES:
                 file_path = os.path.join(proxy_bin_dir, filename)
-                with open(file_path, 'rb') as f:
-                    header = f.read(16)
+                with open(file_path, "rb") as f:
                     f.seek(18)
-                    e_machine = struct.unpack('H', f.read(2))[0]
+                    e_machine = struct.unpack("H", f.read(2))[0]
                     if e_machine == EM_AARCH64:
                         return constants.CpuType.aarch64
                     else:

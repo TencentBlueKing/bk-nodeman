@@ -12,7 +12,7 @@ specific language governing permissions and limitations under the License.
 """
 
 import abc
-from collections import Mapping
+from collections.abc import Mapping
 
 
 class DataItem(object, metaclass=abc.ABCMeta):

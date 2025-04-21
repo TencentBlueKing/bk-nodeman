@@ -22,7 +22,7 @@ from bkcrypto.contrib.django.ciphers import (
     symmetric_cipher_manager,
 )
 from django.conf import settings
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from apps.backend.api import constants as backend_api_constants
 from apps.backend.subscription.steps.agent_adapter.base import AgentSetupInfo

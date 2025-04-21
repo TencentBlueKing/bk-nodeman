@@ -20,7 +20,7 @@ from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
 from django.utils.translation import get_language
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from apps.backend.subscription.errors import SubscriptionTaskNotReadyError
 from apps.core.concurrent.retry import RetryHandler

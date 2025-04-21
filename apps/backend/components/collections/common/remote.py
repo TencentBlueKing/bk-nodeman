@@ -14,7 +14,7 @@ from abc import ABC
 from collections import ChainMap, defaultdict
 from enum import Enum
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from apps.backend import constants as backend_constants
 from apps.core.concurrent import controller

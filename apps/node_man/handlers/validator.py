@@ -13,7 +13,7 @@ from collections import defaultdict
 
 from django.conf import settings
 from django.db.models.aggregates import Count
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from apps.adapters.api.gse import get_gse_api_helper
 from apps.backend.components.collections.base import DBHelperMixin

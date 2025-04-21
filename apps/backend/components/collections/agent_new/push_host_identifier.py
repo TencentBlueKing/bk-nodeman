@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 from typing import Any, Dict, List, Optional
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from apps.backend.api.constants import POLLING_INTERVAL
 from apps.core.concurrent import controller

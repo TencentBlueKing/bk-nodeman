@@ -10,8 +10,8 @@ specific language governing permissions and limitations under the License.
 """
 from datetime import datetime, timedelta
 
+from blueapps.contrib.celery_tools.periodic import periodic_task
 from celery.schedules import crontab
-from celery.task import periodic_task
 
 from common.api.models import DataAPIRecord
 

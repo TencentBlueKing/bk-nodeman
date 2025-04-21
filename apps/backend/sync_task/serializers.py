@@ -8,8 +8,8 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
-from django.utils.translation import ugettext_lazy as _
 
 from apps.backend.sync_task.handler import AsyncTaskHandler
 from apps.exceptions import ValidationError
@@ -26,7 +26,7 @@ class CreateSyncTaskSerializer(GatewaySerializer):
 
     def validate(self, attrs):
         if not hasattr(AsyncTaskHandler, attrs["task_name"]):
-            raise ValidationError(_("不支持的任务名称: {}".format(attrs['task_name'])))
+            raise ValidationError(_("不支持的任务名称: {}".format(attrs["task_name"])))
         return attrs
 
 

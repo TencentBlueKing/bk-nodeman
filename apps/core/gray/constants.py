@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 # from enum import Enum
 # from typing import Dict
 #
-# from django.utils.translation import ugettext_lazy as _
+# from django.utils.translation import gettext_lazy as _
 #
 # from apps.utils.enum import EnhanceEnum
 
