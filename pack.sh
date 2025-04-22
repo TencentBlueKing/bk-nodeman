@@ -96,7 +96,7 @@ cat > ${CODE_DIST_DIR}/projects.yaml << EOF
   project_dir: bknodeman/nodeman
   alias: nodeman
   version_type: ee
-  language: python/3.6
+  language: python/3.11
   version: ${RELEASE_VERSION}
 EOF
 

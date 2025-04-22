@@ -97,8 +97,8 @@ If the upstream address is an ``ipv6`` host, please adjust the ``upstream proxy`
                }
            }
            upstream proxy {
-               server 10.0.0.1:17981;         
-               server 10.0.0.2:17981;         
+               server 10.0.0.1:17981;
+               server 10.0.0.2:17981;
            }
            server {
                listen 17981;
@@ -146,7 +146,8 @@ If the upstream address is an ``ipv6`` host, please adjust the ``upstream proxy`
     ├── libcurl-x64.dll
     ├── nginx-portable.tgz
     ├── ntrights.exe
-    ├── py36.tgz
+    ├── py311-x86_64.tgz
+    ├── py311-aarch64.tgz
     ├── setup_agent.bat
     ├── setup_agent.ksh
     ├── setup_agent.sh
@@ -157,8 +158,8 @@ If the upstream address is an ``ipv6`` host, please adjust the ``upstream proxy`
     ├── tcping.exe
     └── unixdate.exe
    ```
-   
-7. Unzip ``py36.tgz`` in the download directory to the `/opt` directory
+
+7. Unzip ``py311-$(arch).tgz`` in the download directory to the `/opt` directory
     ```bash
-    tar xvf /data/bkee/public/bknodeman/download/py36.tgz -C /opt
+    tar xvf /data/bkee/public/bknodeman/download/py311-$(arch).tgz -C /opt
     ```

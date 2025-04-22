@@ -10,28 +10,28 @@
 - QQ交流群:495299374
 
 2）如果你希望使用蓝鲸所有开源产品，进行定制开发，你可以部署开源的蓝鲸智云PaaS平台和蓝鲸智云配置平台。
-- [蓝鲸智云PaaS平台](https://github.com/Tencent/bk-PaaS)  
-- [蓝鲸智云配置平台](https://github.com/Tencent/bk-cmdb)  
+- [蓝鲸智云PaaS平台](https://github.com/Tencent/bk-PaaS)
+- [蓝鲸智云配置平台](https://github.com/Tencent/bk-cmdb)
 
 部署方法请参考各个开源产品的相关文档，在蓝鲸智云PaaS平台部署完成后，你还需要上传部署蓝鲸节点管理SaaS并开通应用免登录态验证白名单。
 你可以[点击这里](https://github.com/TencentBlueKing/bk-nodeman/releases)下载蓝鲸节点管理Release版本(选择.tar.gz格式压缩包)，然后前往蓝鲸PaaS平台的"开发者中心"->"S-mart应用"上传部署新应用。
 你可以参考蓝鲸PaaS平台的"开发者中心"->"API网关"->"使用指南"->"API调用说明"页面中"用户认证"文档，添加默认蓝鲸节点管理APP_ID即bk_nodeman到应用免登录态验证白名单。
 
 
-## 准备本地 rabbitmq 资源  
+## 准备本地 rabbitmq 资源
 在本地安装 rabbitmq，并启动 rabbitmq-server，服务监听的端口保持默认（5672）。
 
 
-## 准备本地 redis 资源  
+## 准备本地 redis 资源
 在本地安装 redis，并启动 redis-server，服务监听的端口保持默认（6379）。
 
 
-## 准备本地 mysql  
+## 准备本地 mysql
 在本地安装 mysql，并启动 mysql-server，服务监听的端口保持默认（3306）。
 
 
 ## 安装 python 和依赖库
-在本地安装 python3.6.7 和 pip，通过 git 拉取源代码到工程目录后，并进入目录下运行 pip 命令安装 python 包。
+在本地安装 python3.11.10 和 pip，通过 git 拉取源代码到工程目录后，并进入目录下运行 pip 命令安装 python 包。
 ```bash
 pip install -r requirements.txt
 ```
@@ -82,7 +82,7 @@ DATABASES = {
 ```
 
 
-## 创建并初始化数据库  
+## 创建并初始化数据库
 
 1) 在 mysql 中创建名为 bk_nodeman 的数据库
 ```sql
@@ -105,8 +105,8 @@ npm run build
 ```
 
 
-## 配置本地 hosts  
-windows: 在 C:\Windows\System32\drivers\etc\hosts 文件中添加“127.0.0.1 dev.{BK_PAAS_HOST}”。  
+## 配置本地 hosts
+windows: 在 C:\Windows\System32\drivers\etc\hosts 文件中添加“127.0.0.1 dev.{BK_PAAS_HOST}”。
 mac: 执行 “sudo vim /etc/hosts”，添加“127.0.0.1 dev.{BK_PAAS_HOST}”。
 
 
@@ -117,5 +117,5 @@ python manage.py runserver 8000
 ```
 
 
-## 访问页面  
+## 访问页面
 使用浏览器开发 http://dev.{BK_PAAS_HOST}:8000/ 访问应用。
