@@ -8,7 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.conf import settings
+from django.db.models import Q
 from django.db.transaction import atomic
 from django.utils.translation import gettext as _
 from drf_yasg.utils import swagger_auto_schema
@@ -19,10 +19,9 @@ from apps.generic import ModelViewSet
 from apps.node_man import models
 from apps.node_man.exceptions import ApIdIsUsing, DuplicateAccessPointNameException
 from apps.node_man.handlers.ap import APHandler
-from apps.node_man.handlers.iam import IamHandler
 from apps.node_man.handlers.permission import GlobalSettingPermission
 from apps.node_man.serializers.ap import ListSerializer, UpdateOrCreateSerializer
-from apps.utils.local import get_request_username
+from apps.utils.local import get_request_username, get_tenant_id
 
 AP_VIEW_TAGS = ["ap"]
 
@@ -84,7 +83,8 @@ class ApViewSet(ModelViewSet):
         }]
         """
 
-        queryset = models.AccessPoint.objects.all()
+        tenant_id = get_tenant_id()
+        queryset = models.AccessPoint.objects.filter(Q(tenant_id=tenant_id) | Q(is_default=True))
         serializer = ListSerializer(queryset, many=True)
         return Response(serializer.data)
 
@@ -259,13 +259,13 @@ class ApViewSet(ModelViewSet):
         with atomic():
             ap = super().create(request, *args, **kwargs)
 
-            if settings.USE_IAM:
-                # 将创建者返回权限中心
-                ok, message = IamHandler.return_resource_instance_creator(
-                    "ap", ap.data["id"], ap.data["name"], get_request_username()
-                )
-                if not ok:
-                    raise PermissionError(_("权限中心创建关联权限失败: {}".format(message)))
+            # if settings.USE_IAM:
+            #     # 将创建者返回权限中心
+            #     ok, message = IamHandler.return_resource_instance_creator(
+            #         "ap", ap.data["id"], ap.data["name"], get_request_username()
+            #     )
+            #     if not ok:
+            #         raise PermissionError(_("权限中心创建关联权限失败: {}".format(message)))
 
             return ap
 
