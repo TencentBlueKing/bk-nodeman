@@ -233,13 +233,13 @@ class CloudHandler(APIModel):
                 tenant_id=tenant_id,
             )
 
-            if settings.USE_IAM:
-                # 将创建者返回权限中心
-                ok, message = IamHandler.return_resource_instance_creator(
-                    "cloud", bk_cloud_id, params["bk_cloud_name"], username
-                )
-                if not ok:
-                    raise PermissionError(_("权限中心创建关联权限失败: {}".format(message)))
+            # if settings.USE_IAM:
+            #     # 将创建者返回权限中心
+            #     ok, message = IamHandler.return_resource_instance_creator(
+            #         "cloud", bk_cloud_id, params["bk_cloud_name"], username
+            #     )
+            #     if not ok:
+            #         raise PermissionError(_("权限中心创建关联权限失败: {}".format(message)))
 
             return {"bk_cloud_id": cloud.bk_cloud_id}
 
