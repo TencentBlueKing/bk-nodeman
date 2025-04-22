@@ -152,7 +152,7 @@ def correct_file_action(download_path: str, hosts: List[Dict[str, Union[str, int
         return True
 
     files = [file for file in local_file__md5_map.keys()]
-    script = """#!/opt/py36/bin/python
+    script = """#!/opt/py311/bin/python
 # -*- encoding:utf-8 -*-
 import os
 import json

@@ -16,9 +16,9 @@ get_cpu_arch "uname -p" || get_cpu_arch "uname -m" || fail get_cpu_arch "Failed 
 
 /opt/nginx-portable/nginx-portable stop || :;
 rm -rf /opt/nginx-portable/;
-rm -rf /opt/py36/;
+rm -rf /opt/py311/;
 
-tar xvf %(nginx_path)s/py36-${CPU_ARCH}.tgz -C /opt;
+tar xvf %(nginx_path)s/py311-${CPU_ARCH}.tgz -C /opt;
 tar xvf %(nginx_path)s/nginx-portable-${CPU_ARCH}.tgz -C /opt;
 
 timeout 120 chmod -R 755 %(nginx_path)s || echo "chmod directory %(nginx_path)s failed"

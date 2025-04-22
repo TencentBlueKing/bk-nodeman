@@ -1,4 +1,4 @@
-#!/opt/py36/bin/python
+#!/opt/py311/bin/python
 # -*- encoding:utf-8 -*-
 # vim:ft=python sts=4 sw=4 expandtab nu
 
@@ -79,8 +79,7 @@ try:
     import paramiko  # noqa
     import requests  # noqa
 
-    import impacket  # noqa
-
+    # import impacket  # noqa
     # import psutil
 
 except ImportError as err:
