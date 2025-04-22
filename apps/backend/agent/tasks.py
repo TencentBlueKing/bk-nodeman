@@ -60,7 +60,7 @@ def collect_log(bk_host_id, node_id=None):
         else:
             cmd, script_type = ("cat", "sh")
             cmd_str = f"{cmd} {dest_dir}nm.setup_agent.{script_type}.{node_id}.debug"
-        script = """#!/opt/py36/bin/python
+        script = """#!/opt/py311/bin/python
 # -*- encoding:utf-8 -*-
 import sys
 import argparse

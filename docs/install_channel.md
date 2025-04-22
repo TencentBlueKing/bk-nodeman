@@ -34,9 +34,9 @@
       echo ${nginx_dns_list[@]}
       ```
    * 根据不同的网络场景，酌情选择以下对应的配置模板
-     * 请注意: `nginx` 对于 ``ipv4`` 与 ``ipv6`` 的端口监听配置是不同的，配置项 `listen` 需要根据实际情况进行配置 
-     * 请注意: `nginx` 对于 ``ipv4`` 与 ``ipv6`` 的上游地址配置方式是不同的，配置项 `upstream` 中的上游地址 `proxy` 需要根据上游实际地址进行配置, 
-如果上游地址为``ipv6``主机时，以下模板二中的``upstream proxy`` 配置项请调整为 `[::ip]:17981;`，其中`::ip` 代表实际的 `ipv6` 地址 
+     * 请注意: `nginx` 对于 ``ipv4`` 与 ``ipv6`` 的端口监听配置是不同的，配置项 `listen` 需要根据实际情况进行配置
+     * 请注意: `nginx` 对于 ``ipv4`` 与 ``ipv6`` 的上游地址配置方式是不同的，配置项 `upstream` 中的上游地址 `proxy` 需要根据上游实际地址进行配置,
+如果上游地址为``ipv6``主机时，以下模板二中的``upstream proxy`` 配置项请调整为 `[::ip]:17981;`，其中`::ip` 代表实际的 `ipv6` 地址
      * 模板一: 常规通道主机`nginx`配置模板
          ```nginx
          events {
@@ -98,8 +98,8 @@
                }
            }
            upstream proxy {
-               server 10.0.0.1:17981;         
-               server 10.0.0.2:17981;         
+               server 10.0.0.1:17981;
+               server 10.0.0.2:17981;
            }
            server {
                listen 17981;
@@ -147,7 +147,8 @@
     ├── libcurl-x64.dll
     ├── nginx-portable.tgz
     ├── ntrights.exe
-    ├── py36.tgz
+    ├── py311-x86_64.tgz
+    ├── py311-aarch64.tgz
     ├── setup_agent.bat
     ├── setup_agent.ksh
     ├── setup_agent.sh
@@ -158,8 +159,8 @@
     ├── tcping.exe
     └── unixdate.exe
    ```
-   
-7. 解压下载目录中的 ``py36.tgz`` 到 `/opt` 目录
+
+7. 解压下载目录中的 ``py311-$(arch).tgz`` 到 `/opt` 目录
     ```bash
-    tar xvf /data/bkee/public/bknodeman/download/py36.tgz -C /opt
+    tar xvf /data/bkee/public/bknodeman/download/py311-$(arch).tgz -C /opt
     ```

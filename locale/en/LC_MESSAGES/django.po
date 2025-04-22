@@ -3416,8 +3416,8 @@ msgid "IPv6"
 msgstr "IPv6"
 
 #: apps/node_man/constants.py:1026
-msgid "检测 BT 分发策略（下发Py36包）"
-msgstr "Detect BT distribution strategy (distribute Py36 package)"
+msgid "检测 BT 分发策略（下发Py311包）"
+msgstr "Detect BT distribution strategy (distribute Py311 package)"
 
 #: apps/node_man/constants.py:1040
 msgid "下发安装工具"
