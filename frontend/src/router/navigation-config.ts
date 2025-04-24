@@ -69,7 +69,7 @@ export const navConfig: INavConfig[] = [
     name: 'globalConfig',
     currentActive: 'gseConfig',
     defaultActive: 'gseConfig',
-    disabled: window.PROJECT_CONFIG.GLOBAL_SETTING_PERMISSION !== 'True',
+    disabled: window.PROJECT_CONFIG.GLOBAL_SETTING_PERMISSION !== 'True' || window.PROJECT_CONFIG.DISPLAY_TAG !== 'True',
     children: [
       {
         title: 'nav_GSE环境管理',

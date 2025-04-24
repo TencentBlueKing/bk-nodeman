@@ -246,7 +246,7 @@ export default class NodemanNavigation extends Mixins(routerBackMixin) {
     const filteredList = list.map((item: any) => {
         return {
           ...item,
-          children: item.children.filter((child: ISubNavConfig) => child.name === "pluginPackage" ? display : true)
+          children: item.children?.filter((child: ISubNavConfig) => child.name === "pluginPackage" ? display : true)
         };
     });
     return filteredList;
