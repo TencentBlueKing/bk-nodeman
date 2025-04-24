@@ -578,6 +578,7 @@ class AccessPoint(models.Model):
     proxy_package = JSONField(_("Proxy上的安装包"), default=list)
     outer_callback_url = models.CharField(_("节点管理外网回调地址"), max_length=128, blank=True, null=True, default="")
     callback_url = models.CharField(_("节点管理内网回调地址"), max_length=128, blank=True, null=True, default="")
+    tenant_id = models.CharField(_("租户ID"), default="default", max_length=64, null=True, blank=True, db_index=True)
 
     @property
     def file_endpoint_info(self) -> EndpointInfo:
