@@ -27,6 +27,7 @@ from apps.backend.subscription import handler, tools
 from apps.backend.subscription.constants import TASK_HOST_LIMIT
 from apps.backend.subscription.errors import SubscriptionInstanceEmpty
 from apps.backend.subscription.steps import StepFactory, agent
+from apps.backend.subscription.task_tools import get_udpate_subscription_records_length
 from apps.core.gray.tools import GrayTools
 from apps.node_man import constants, models
 from apps.node_man import tools as node_man_tools
@@ -484,9 +485,14 @@ def create_task(
 
     # 将最新属性置为False并批量创建订阅实例
     # TODO 偶发死锁
-    models.SubscriptionInstanceRecord.objects.filter(
-        subscription_id=subscription.id, instance_id__in=instance_id_list
-    ).update(is_latest=False)
+    # 分批更新防止慢查询
+    batch_size = get_udpate_subscription_records_length()
+    for i in range(0, len(instance_id_list), batch_size):
+        batch = instance_id_list[i : i + batch_size]
+        models.SubscriptionInstanceRecord.objects.filter(subscription_id=subscription.id, instance_id__in=batch).update(
+            is_latest=False
+        )
+
     # TODO 偶发死锁
     models.SubscriptionInstanceRecord.objects.bulk_create(to_be_created_records_map.values(), batch_size=batch_size)
 
@@ -841,6 +847,12 @@ def update_subscription_instances_chunk(subscription_ids: List[int]):
     """
     subscriptions = models.Subscription.objects.filter(id__in=subscription_ids, enable=True)
     for subscription in subscriptions:
+        if subscription.id in models.GlobalSettings.get_config(
+            key=models.GlobalSettings.KeyEnum.DISABLED_SUBSCRIPTIONS.value, default=[]
+        ):
+            logger.info(f"[update_subscription_instances] {subscription.id} skipped for subscription disabled")
+            continue
+
         if tools.check_subscription_is_disabled(
             subscription_identity=f"subscription -> [{subscription.id}]",
             scope=subscription.scope,

@@ -139,3 +139,5 @@ data:
   TXY_SECRETKEY: "{{ .Values.config.TXYSecretKey }}"
   BKAPP_UNASSIGNED_CLOUD_ID: "{{ .Values.config.bkAppUnassignedCloudId}}"
   BKAPP_CACHE_BIZ_IDS: "{{.Values.config.CacheBizIds}}"
+  BKAPP_BK_CC_APIGATEWAY_V3: "{{.Values.config.bkAppBkCcApiGatewayV3}}"
+  
