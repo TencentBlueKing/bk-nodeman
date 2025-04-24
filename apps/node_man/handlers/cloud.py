@@ -212,6 +212,7 @@ class CloudHandler(APIModel):
         :param username: 用户名
         """
 
+        tenant_id = get_tenant_id()
         bk_cloud_name = params["bk_cloud_name"]
         bk_cloud_vendor = const.CMDB_CLOUD_VENDOR_MAP.get(params["isp"])
         bk_cloud_id = CmdbHandler.get_or_create_cloud(bk_cloud_name, bk_cloud_vendor=bk_cloud_vendor)
@@ -219,10 +220,9 @@ class CloudHandler(APIModel):
         if bk_cloud_name == str(DEFAULT_CLOUD_NAME):
             raise ValidationError(_("管控区域不可名为「直连区域」"))
 
-        created = Cloud.objects.filter(bk_cloud_name=params["bk_cloud_name"]).exists()
+        created = Cloud.objects.filter(bk_cloud_name=params["bk_cloud_name"], tenant_id=tenant_id).exists()
         if created:
             raise ValidationError(_("管控区域名称不可重复"))
-        tenant_id = get_tenant_id()
         with atomic():
             cloud = Cloud.objects.create(
                 bk_cloud_id=bk_cloud_id,

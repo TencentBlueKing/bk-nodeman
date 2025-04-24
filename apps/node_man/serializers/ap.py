@@ -24,7 +24,7 @@ from apps.node_man.constants import (
 from apps.node_man.handlers.iam import IamHandler
 from apps.node_man.models import AccessPoint
 from apps.utils import basic
-from apps.utils.local import get_request_username, get_tenant_id
+from apps.utils.local import get_request_username
 from env.constants import GseVersion
 
 
@@ -117,11 +117,8 @@ class UpdateOrCreateSerializer(serializers.ModelSerializer):
     bscp_config = serializers.DictField(label=_("BSCP配置"), required=False)
     outer_callback_url = serializers.CharField(label=_("节点管理外网回调地址"), required=False, allow_blank=True)
     callback_url = serializers.CharField(label=_("节点管理内网回调地址"), required=False, allow_blank=True)
-    tenant_id = serializers.CharField(label=_("租户ID"), required=False)
 
     def validate(self, data):
-        if "tenant_id" not in data:
-            data["tenant_id"] = get_tenant_id()
         gse_version_list: List[str] = list(set(AccessPoint.objects.values_list("gse_version", flat=True)))
         # 存量接入点版本全部为V2新建/更新版本也为V2版本
         if GseVersion.V1.value not in gse_version_list:
