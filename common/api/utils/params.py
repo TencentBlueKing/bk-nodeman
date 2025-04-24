@@ -68,8 +68,7 @@ else:
         else:
             # _request，用于并发请求的场景
             _request = params.get("_request")
-            # req = _request or get_request()
-            req = get_request() or _request
+            req = _request or get_request()
             # 补充请求凭证，如bk_token
             auth_info = build_auth_args(req)
             params.update(auth_info)
