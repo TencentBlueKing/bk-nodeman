@@ -323,6 +323,9 @@ export default class AgentImport extends Mixins(mixin) {
       this.loading = false;
     });
   }
+  private get autoSelectId() {
+    return AgentStore.channelList[0].id;
+  }
   /**
      * 初始化编辑态数据
      */
@@ -367,12 +370,8 @@ export default class AgentImport extends Mixins(mixin) {
       data = JSON.parse(JSON.stringify(formatData));
     }
     const channelFlag = MainStore.AUTO_SELECT_INSTALL_CHANNEL;
-    channelFlag !== -1 && data.forEach((item: ISetupRow) => {
-      if (channelFlag === 1) {
-        item.install_channel_id = item.bk_cloud_id === 0 ? -1 : 'default';
-      } else if (channelFlag === 0) {
-        item.install_channel_id = -1;
-      }
+    channelFlag && data.forEach((item: ISetupRow) => {
+      item.install_channel_id = item.bk_cloud_id === 0 ? Number(this.autoSelectId) : 'default';
     });
     const filterData = data.filter(item => item.bk_cloud_id === 0);
     // 将原始的数据备份；切换安装方式时，接入点的数据变更后的回退操作时需要用到
@@ -511,10 +510,8 @@ export default class AgentImport extends Mixins(mixin) {
       const channelFlag = MainStore.AUTO_SELECT_INSTALL_CHANNEL;
       this.setupInfo.data.forEach((item: ISetupRow) => {
         if (!item.install_channel_id) {
-          if (channelFlag === 1) {
-            item.install_channel_id = item.bk_cloud_id === 0 ? -1 : 'default';
-          } else if (channelFlag === 0) {
-            item.install_channel_id = -1;
+          if (channelFlag === 1 && item.bk_cloud_id === 0) {
+            item.install_channel_id = Number(this.autoSelectId);
           } else {
             item.install_channel_id = 'default';
           }
