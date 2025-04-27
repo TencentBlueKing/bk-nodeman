@@ -70,6 +70,7 @@ __all__ = [
     # 自动选择安装通道相关配置
     "BKAPP_DEFAULT_INSTALL_CHANNEL_ID",
     "BKAPP_AUTOMATIC_CHOICE_CLOUD_ID",
+    "TXY_ENDPOINT",
 ]
 
 # ===============================================================================
@@ -200,3 +201,4 @@ BK_DOCS_CENTER_HOST = get_type_env(key="BK_DOCS_CENTER_HOST", default="", _type=
 BKPAAS_SHARED_RES_URL = get_type_env(key="BKPAAS_SHARED_RES_URL", default="", _type=str)
 BKAPP_LEGACY_AUTH = get_type_env(key="BKAPP_LEGACY_AUTH", default=False, _type=bool)
 BK_NOTICE_ENABLED = get_type_env(key="BK_NOTICE_ENABLED", default=False, _type=bool)
+TXY_ENDPOINT = get_type_env(key="TXY_ENDPOINT", default="", _type=str)

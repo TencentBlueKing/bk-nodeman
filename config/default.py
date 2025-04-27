@@ -822,6 +822,9 @@ USE_CMDB_SUBSCRIPTION_TRIGGER = get_type_env(key="BKAPP_USE_CMDB_SUBSCRIPTION_TR
 
 VERSION_LOG = {"MD_FILES_DIR": os.path.join(PROJECT_ROOT, "release"), "LANGUAGE_MAPPINGS": {"en": "en"}}
 
+# 腾讯云endpoint
+TXY_ENDPOINT = env.TXY_ENDPOINT
+
 # ==============================================================================
 # 可观测
 # ==============================================================================

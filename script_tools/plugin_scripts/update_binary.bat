@@ -35,6 +35,10 @@ IF NOT "%1"=="" (
         SET GROUP_DIR=%2
         SHIFT
     )
+    IF "%1"=="-u" (
+        SET TEMP_SUB_UNPACK_DIR=%2
+        SHIFT
+    )
     SHIFT
     GOTO :loop
 )
@@ -119,7 +123,11 @@ rem 解压配置到目标路径
 :unzip_config
 echo "coming into %SWWIN_GSE_HOME%"
 cd %SWWIN_GSE_HOME%
-%s7zPath%\7z.exe x -aoa %SWWIN_TMP%\%SWWIN_PACKAGE% -o%SWWIN_GSE_HOME%
+echo "copy package into temp_sub_unpack_dir: %TEMP_SUB_UNPACK_DIR%"
+xcopy %SWWIN_TMP%\%SWWIN_PACKAGE% %TEMP_SUB_UNPACK_DIR%\ /I /Y
+%s7zPath%\7z.exe x -aoa %TEMP_SUB_UNPACK_DIR%\%SWWIN_PACKAGE% -o%SWWIN_GSE_HOME%
+echo "unpack package into %SWWIN_GSE_HOME% from dir %TEMP_SUB_UNPACK_DIR%"
+rd /S /Q %TEMP_SUB_UNPACK_DIR%
 if exist %SWWIN_PACKAGE:~0,-4%.tar (
     set TAR_FILE_NAME=%SWWIN_PACKAGE:~0,-4%.tar
 ) else if exist %SWWIN_PACKAGE:~0,-4%.tgz (

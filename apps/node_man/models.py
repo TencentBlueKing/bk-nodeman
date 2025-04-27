@@ -21,6 +21,7 @@ import traceback
 import uuid
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import timedelta
 from distutils.dir_util import copy_tree
 from enum import Enum
 from functools import cmp_to_key, reduce
@@ -168,6 +169,18 @@ class GlobalSettings(models.Model):
         AUTO_SELECT_INSTALL_CHANNEL_ONLY_DIRECT_AREA = "AUTO_SELECT_INSTALL_CHANNEL_ONLY_DIRECT_AREA"
         # 安装通道ID与网段列表映射
         INSTALL_CHANNEL_ID_NETWORK_SEGMENT = "INSTALL_CHANNEL_ID_NETWORK_SEGMENT"
+        # 需要执行清理订阅的APP_CODE
+        NEED_CLEAN_SUBSCRIPTION_APP_CODE = "NEED_CLEAN_SUBSCRIPTION_APP_CODE"
+        # 腾讯云安全组策略配置
+        TXY_POLICY_CONFIGS = "TXY_POLICY_CONFIGS"
+        # 业务新增主机黑名单，用于限制指定业务通过安装 Agent 新增主机，配置样例：[1, 2]
+        ADD_HOST_BIZ_BLACKLIST = "ADD_HOST_BIZ_BLACKLIST"
+        # CMDB内置云区域IDS
+        CMDB_INTERNAL_CLOUD_IDS = "CMDB_INTERNAL_CLOUD_IDS"
+        # GSE查询进程状态信息分片大小
+        QUERY_PROC_STATUS_HOST_LENS = "QUERY_PROC_STATUS_HOST_LENS"
+        # 业务最大插件版本
+        PLUGIN_VERSION_CONFIG = "PLUGIN_VERSION_CONFIG"
 
     key = models.CharField(_("键"), max_length=255, db_index=True, primary_key=True)
     v_json = JSONField(_("值"))
@@ -184,9 +197,7 @@ class GlobalSettings(models.Model):
 
     def fetch_isp(self):
         isps = dict(GlobalSettings.objects.filter(key="isp").values_list("key", "v_json")).get("isp", [])
-        result = self.map_values(
-            isps, lambda isp: isp["isp"], lambda isp: {"isp_name": isp["isp_name"], "isp_icon": isp["isp_icon"]}
-        )
+        result = self.map_values(isps, lambda isp: isp["isp"], lambda isp: {"isp_name": isp["isp_name"]})
 
         return result
 
@@ -564,6 +575,7 @@ class AccessPoint(models.Model):
     proxy_package = JSONField(_("Proxy上的安装包"), default=list)
     outer_callback_url = models.CharField(_("节点管理外网回调地址"), max_length=128, blank=True, null=True, default="")
     callback_url = models.CharField(_("节点管理内网回调地址"), max_length=128, blank=True, null=True, default="")
+    is_use_sudo = models.BooleanField(_("是否使用sudo执行安装命令"), default=True)
 
     @property
     def file_endpoint_info(self) -> EndpointInfo:
@@ -1822,12 +1834,14 @@ class Subscription(export_subscription_prometheus_mixin(), orm.SoftDeleteModel):
         INSTANCE = "INSTANCE"
         SERVICE_TEMPLATE = "SERVICE_TEMPLATE"
         SET_TEMPLATE = "SET_TEMPLATE"
+        DYNAMIC_GROUP = "DYNAMIC_GROUP"
 
     NODE_TYPE_CHOICES = (
         (NodeType.TOPO, _("动态实例（拓扑）")),
         (NodeType.INSTANCE, _("静态实例")),
         (NodeType.SERVICE_TEMPLATE, _("服务模板")),
         (NodeType.SET_TEMPLATE, _("集群模板")),
+        (NodeType.DYNAMIC_GROUP, _("动态分组")),
     )
 
     class CategoryType(object):
@@ -1926,7 +1940,12 @@ class Subscription(export_subscription_prometheus_mixin(), orm.SoftDeleteModel):
 
     def is_running(self, instance_id_list: List[str] = None):
         """订阅下是否有运行中的任务"""
-        base_kwargs = {"subscription_id": self.id, "is_latest": True}
+        # 只需检查近两小时内的订阅实例
+        base_kwargs = {
+            "subscription_id": self.id,
+            "is_latest": True,
+            "update_time__gte": timezone.now() - timedelta(hours=2),
+        }
         if instance_id_list is not None:
             base_kwargs["instance_id__in"] = instance_id_list
         status_set = set(SubscriptionInstanceRecord.objects.filter(**base_kwargs).values_list("status", flat=True))

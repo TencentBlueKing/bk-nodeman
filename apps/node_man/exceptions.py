@@ -220,3 +220,9 @@ class YunTiPolicyConfigNotExistsError(NodeManBaseException):
     MESSAGE = _("云梯策略配置不存在")
     MESSAGE_TPL = _("云梯策略配置不存在")
     ERROR_CODE = 43
+
+
+class TXYPolicyConfigNotExistsError(NodeManBaseException):
+    MESSAGE = _("腾讯云策略配置不存在")
+    MESSAGE_TPL = _("腾讯云策略配置不存在")
+    ERROR_CODE = 44

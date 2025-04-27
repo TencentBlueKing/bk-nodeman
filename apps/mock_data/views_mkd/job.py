@@ -39,6 +39,26 @@ JOB_INSTALL_REQUEST_PARAMS = {
     ],
     "retention": 1,
 }
+# 因为MockClient中接口数据定义死了,如需调用使用,深拷贝后update原数据
+JOB_REINSTALL_REQUEST_PARAMS = {
+    "job_type": constants.JobType.REINSTALL_AGENT,
+    "hosts": [
+        {
+            "bk_host_id": 14110,
+            "bk_cloud_id": constants.DEFAULT_CLOUD,
+            "ap_id": constants.DEFAULT_AP_ID,
+            "install_channel_id": None,
+            "bk_biz_id": 100001,
+            "os_type": constants.OsType.LINUX,
+            "inner_ip": host.DEFAULT_IP,
+            "inner_ipv6": host.DEFAULT_IPV6,
+            "account": constants.LINUX_ACCOUNT,
+            "port": settings.BKAPP_DEFAULT_SSH_PORT,
+            "auth_type": constants.AuthType.PASSWORD,
+            "password": "password",
+        }
+    ],
+}
 
 
 JOB_OPERATE_REQUEST_PARAMS = {"job_type": constants.JobType.REINSTALL_AGENT, "bk_host_id": [host.DEFAULT_HOST_ID]}

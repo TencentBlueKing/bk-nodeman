@@ -16,4 +16,5 @@ from .check_zombie_sub_inst_record import check_zombie_sub_inst_record  # noqa
 from .clean_sub_data import clean_sub_data_task  # noqa
 from .clean_subscription_data import clean_subscription_data  # noqa
 from .collect_auto_trigger_job import collect_auto_trigger_job  # noqa
+from .schedule_running_subscription_task import *  # noqa
 from .update_subscription_instances import update_subscription_instances  # noqa

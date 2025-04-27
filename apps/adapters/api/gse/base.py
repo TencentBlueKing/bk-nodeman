@@ -155,7 +155,12 @@ class GseApiBaseHelper(abc.ABC):
             data_list_name="_host_info_list",
             batch_call_func=concurrent.batch_call,
             extend_result=False,
-            get_config_dict_func=lambda: {"limit": constants.QUERY_PROC_STATUS_HOST_LENS},
+            get_config_dict_func=lambda: {
+                "limit": models.GlobalSettings.get_config(
+                    key=models.GlobalSettings.KeyEnum.QUERY_PROC_STATUS_HOST_LENS.value,
+                    default=constants.QUERY_PROC_STATUS_HOST_LENS,
+                )
+            },
         )
         def get_proc_status_inner(
             _namespace: str,

@@ -2,7 +2,7 @@
 
 ## 2.4.7 版本更新日志 
 
-功能
+### 功能
 
 - feat: IP选择器差量同步主机(closed #2294)
 
@@ -43,7 +43,7 @@
 - feat: 订阅接口支持指定用户操作进程 (closed #2297)
 
 
-修复
+### 修复
 
 - fix: IDC windows机器开通前置策略 (closed #2301)
 
@@ -78,6 +78,7 @@
 
 
 **Full Release Notes**: https://github.com/TencentBlueKing/bk-nodeman/compare/v2.4.6...v2.4.7
+
 
 ## 2.4.6 - 2024-06-19 
 

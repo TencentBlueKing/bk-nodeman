@@ -22,21 +22,21 @@ from common.log import logger
 
 
 class VpcClient(object):
-    def __init__(self, region="ap-guangzhou"):
+    def __init__(self, region="ap-guangzhou", profile=None):
         self.region = region
         self.client = None
         self.tencent_secret_id = os.getenv("TXY_SECRETID")
         self.tencent_secret_key = os.getenv("TXY_SECRETKEY")
-        self.ip_templates = os.getenv("TXY_IP_TEMPLATES")
+        self.ip_templates = os.getenv("TXY_IP_TEMPLATES", "")
 
         # 配置文件包含敏感信息，不需要的环境需要注意去掉
-        if not all([self.tencent_secret_id, self.tencent_secret_key, self.ip_templates]):
+        if not all([self.tencent_secret_id, self.tencent_secret_key]):
             raise ConfigurationPolicyError("Please contact maintenaner to check Tencent cloud configuration.")
 
         # 将字符串变量转换为列表
         self.ip_templates = self.ip_templates.split(",")
         cred = credential.Credential(self.tencent_secret_id, self.tencent_secret_key)
-        self.client = vpc_client.VpcClient(cred, self.region)
+        self.client = vpc_client.VpcClient(cred, self.region, profile)
 
     def describe_address_templates(self, template_name):
         req = models.DescribeAddressTemplatesRequest()
@@ -60,6 +60,36 @@ class VpcClient(object):
             result = json.loads(resp.to_json_string())
             logger.info(f"tencent_cloud_add_ip_to_template: {result}")
             return True, f"request_id: {result.get('RequestId')}"
+        except TencentCloudSDKException as err:
+            if err.code == "InvalidParameterValue.Duplicate":
+                return True, err.message
+            return False, err
+
+    def CreateSecurityGroupPolicies(self, sg_id, policies):
+        """本接口（CreateSecurityGroupPolicies）用于创建安全组规则（SecurityGroupPolicy）。"""
+        try:
+            req = models.CreateSecurityGroupPoliciesRequest()
+            params = {"SecurityGroupId": sg_id, "SecurityGroupPolicySet": policies}
+            req.from_json_string(json.dumps(params))
+            resp = self.client.CreateSecurityGroupPolicies(req)
+            result = json.loads(resp.to_json_string())
+            logger.info(f"create_security_group_policies: {result}")
+            return True, f"request_id: {result.get('RequestId')}"
+        except TencentCloudSDKException as err:
+            if err.code == "InvalidParameterValue.Duplicate":
+                return True, err.message
+            return False, err
+
+    def DescribeSecurityGroupPolicies(self, sg_id):
+        """本接口（DescribeSecurityGroupPolicies）用于查询安全组规则（SecurityGroupPolicy）。"""
+        try:
+            req = models.DescribeSecurityGroupPoliciesRequest()
+            params = {"SecurityGroupId": sg_id}
+            req.from_json_string(json.dumps(params))
+            resp = self.client.DescribeSecurityGroupPolicies(req)
+            result = json.loads(resp.to_json_string())
+            logger.info(f"describe_security_group_policies: {result}")
+            return True, result
         except TencentCloudSDKException as err:
             if err.code == "InvalidParameterValue.Duplicate":
                 return True, err.message

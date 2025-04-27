@@ -845,6 +845,7 @@ export default {
   选择版本: 'Choose version',
   '静态 - IP 选择': 'Static-IP selection',
   '动态 - 拓扑选择': 'Dynamic-Topo selection',
+  添加: 'Add',
   已部署: 'Deployed',
   全部主机: 'All hosts',
   搜索拓扑节点: 'Search topology node',

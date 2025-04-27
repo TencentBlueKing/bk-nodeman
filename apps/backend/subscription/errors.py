@@ -169,3 +169,9 @@ class SubscriptionIncludeGrayBizError(AppBaseException):
     ERROR_CODE = 19
     MESSAGE = _("订阅任务包含Gse2.0灰度业务，任务将暂缓执行无需重复点击")
     MESSAGE_TPL = _("订阅任务包含Gse2.0灰度业务，任务将暂缓执行无需重复点击")
+
+
+class SubscriptionNotDeletedCantOperateError(AppBaseException):
+    ERROR_CODE = 20
+    MESSAGE = _("订阅未被删除，无法操作")
+    MESSAGE_TPL = _("订阅ID:{subscription_id}未被删除，无法进行清理操作，可增加参数is_force=true强制操作")

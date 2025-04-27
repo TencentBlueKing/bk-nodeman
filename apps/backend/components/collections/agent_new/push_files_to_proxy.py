@@ -22,6 +22,15 @@ from .base import AgentCommonData, AgentTransferFileService
 class PushFilesToProxyService(AgentTransferFileService):
     def get_file_list(self, data, common_data: AgentCommonData, host: models.Host) -> List[str]:
         file_list = data.get_one_of_inputs("file_list", default=[])
+        exclude_map = {
+            # 后续加入新的架构需要加入到此map
+            constants.CpuType.x86_64: ("aarch64.tgz",),
+            constants.CpuType.aarch64: ("x86_64.tgz",),
+        }
+        # 获取当前架构对应的排除后缀
+        exclude_suffix = exclude_map.get(host.cpu_arch, tuple())
+        if exclude_suffix:
+            file_list = [item for item in file_list if not item.endswith(exclude_suffix)]
         from_type = data.get_one_of_inputs("from_type")
         host_ap: Optional[models.AccessPoint] = self.get_host_ap(common_data, host)
         if not host_ap:

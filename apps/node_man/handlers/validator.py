@@ -16,8 +16,9 @@ from django.db.models.aggregates import Count
 from django.utils.translation import ugettext_lazy as _
 
 from apps.adapters.api.gse import get_gse_api_helper
+from apps.backend.components.collections.base import DBHelperMixin
 from apps.node_man import constants as const
-from apps.node_man import tools
+from apps.node_man import models, tools
 from apps.node_man.exceptions import (
     ApIDNotExistsError,
     CloudNotExistError,
@@ -479,6 +480,12 @@ def install_validate(
     else:
         host_id__agent_state_info_map = {}
 
+    add_host_biz_blacklist = []
+    if job_type in [const.JobType.INSTALL_AGENT]:
+        add_host_biz_blacklist: typing.List[int] = models.GlobalSettings.get_config(
+            models.GlobalSettings.KeyEnum.ADD_HOST_BIZ_BLACKLIST.value, default=[]
+        )
+
     for host in hosts:
         ap_id = host.get("ap_id")
         bk_biz_id = host["bk_biz_id"]
@@ -500,6 +507,19 @@ def install_validate(
             "exception": "",
             "msg": "",
         }
+
+        # 检查：bk_biz_id和bk_cloud_id是否在新增主机黑名单
+        if all(
+            [
+                job_type in [const.JobType.INSTALL_AGENT],
+                bk_cloud_id in DBHelperMixin().add_host_cloud_blacklist,
+                bk_biz_id in add_host_biz_blacklist,
+            ]
+        ):
+            error_host["msg"] = _("管控区域【ID：{bk_cloud_id}】已被管理员限制新增主机").format(bk_cloud_id=bk_cloud_id)
+            error_host["exception"] = "limit_add_host"
+            ip_filter_list.append(error_host)
+            continue
 
         # 检查：是否有操作系统参数
         if not host.get("os_type") and node_type != const.NodeType.PROXY:

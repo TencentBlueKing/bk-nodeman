@@ -104,12 +104,20 @@ class ExecutionSolutionTools:
         return script_file_name
 
     @staticmethod
-    def get_gse_extra_config_dir(os_type: str):
+    def get_gse_extra_config_dir(host: models.Host):
         extra_config_sub_dir: str = "user_conf"
+        os_type: str = host.os_type
+        extra_dir: str = settings.GSE_ENVIRON_DIR
         if os_type.upper() == constants.OsType.WINDOWS:
-            return json.dumps(PathHandler(os_type).join(settings.GSE_ENVIRON_WIN_DIR, extra_config_sub_dir))[1:-1]
+            extra_dir = settings.GSE_ENVIRON_WIN_DIR
+
+        if not host.ap.is_use_sudo:
+            extra_dir: str = host.ap.get_agent_config(os_type)["setup_path"]
+
+        if os_type.upper() == constants.OsType.WINDOWS:
+            return json.dumps(PathHandler(os_type).join(extra_dir, extra_config_sub_dir))[1:-1]
         else:
-            return PathHandler(os_type).join(settings.GSE_ENVIRON_DIR, extra_config_sub_dir)
+            return PathHandler(os_type).join(extra_dir, extra_config_sub_dir)
 
 
 class BaseExecutionSolutionMaker(metaclass=abc.ABCMeta):
@@ -302,6 +310,13 @@ class BaseExecutionSolutionMaker(metaclass=abc.ABCMeta):
         if not self.agent_setup_info.is_legacy and self.agent_setup_info.force_update_agent_id:
             run_cmd_params.extend(["-F"])
 
+        # 因 shell 脚本读取 VARS_LIST 逻辑会忽略后续的参数故将其放置在最后, 仅非 root 无免密 sudo 用户安装时附带
+        if not self.host_ap.is_use_sudo and self.host.os_type != constants.OsType.WINDOWS:
+            run_dir = f'GSE_AGENT_RUN_DIR={self.agent_config["run_path"]}'
+            data_dir = f'GSE_AGENT_DATA_DIR={self.agent_config["data_path"]}'
+            log_dir = f'GSE_AGENT_LOG_DIR={self.agent_config["log_path"]}'
+            run_cmd_params.append(f"-v {run_dir} {data_dir} {log_dir}")
+
         return list(filter(None, run_cmd_params))
 
     def add_sudo_to_cmds(self, execution_solution: ExecutionSolution):
@@ -313,6 +328,7 @@ class BaseExecutionSolutionMaker(metaclass=abc.ABCMeta):
                 self.host.os_type == constants.OsType.WINDOWS,
                 self.identity_data.account in [constants.LINUX_ACCOUNT],
                 self.script_file_name == constants.SetupScriptFileName.SETUP_PAGENT_PY.value,
+                self.host_ap.is_use_sudo is False,
             ]
         ):
             return
@@ -366,7 +382,7 @@ class BaseExecutionSolutionMaker(metaclass=abc.ABCMeta):
 
         if not self.agent_setup_info.is_legacy:
             # GSE 1.0 不需要创建额外配置目录
-            filepath_necessary_names.append(ExecutionSolutionTools.get_gse_extra_config_dir(self.host.os_type))
+            filepath_necessary_names.append(ExecutionSolutionTools.get_gse_extra_config_dir(self.host))
 
         dirs_to_be_created: typing.Set[str] = {self.dest_dir}
         for filepath_necessary_name in filepath_necessary_names:
@@ -533,6 +549,7 @@ class BaseExecutionSolutionMaker(metaclass=abc.ABCMeta):
         execution_solution: ExecutionSolution = self._make()
         if self.is_combine_cmd_step:
             self.combine_cmd_step(execution_solution)
+
         self.add_sudo_to_cmds(execution_solution)
         return execution_solution
 
@@ -587,7 +604,11 @@ class ShellExecutionSolutionMaker(BaseExecutionSolutionMaker):
                 shell: str = "bash"
             else:
                 shell: str = suffix
-            run_cmd = f"nohup {shell} {run_cmd} &> {self.dest_dir}nm.nohup.out &"
+
+            if self.host.os_type.lower() == backend_api_constants.OS.AIX:
+                run_cmd = f"nohup {shell} {run_cmd} > {self.dest_dir}nm.nohup.out 2>&1 &"
+            else:
+                run_cmd = f"nohup {shell} {run_cmd} &> {self.dest_dir}nm.nohup.out &"
 
         curl_cmd: str = ("curl", f"{dest_dir}curl.exe")[self.host.os_type == constants.OsType.WINDOWS]
         download_cmd = (

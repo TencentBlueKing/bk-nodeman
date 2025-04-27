@@ -47,16 +47,25 @@
 
             <!-- :ref="`form${mainItem.name}`" -->
             <!-- ref="nnnnnnnn" -->
-            <DollForm
+            <!-- <DollForm
               v-if="!isPluginType && mainItem.variables?.properties"
               :ref="`form${mainItem.name}`"
               :data="mainItem.variables"
               :label-width="200"
               :value="mainItem.form"
-              @change="formChange" />
+              @change="formChange" /> -->
               <!-- @focus="handleOperate(arguments, mainItem, 'focus')"
               @blur="handleOperate(arguments, mainItem, 'blur')" -->
-
+              <BKUIFrom
+                v-if="!isPluginType && mainItem.variables?.properties"
+                ref="bkuiFormRef"
+                :label-width="300"
+                v-model="mainItem.form"
+                :schema="mainItem.variables"
+                form-type="vertical"
+                :key="mainItem.id"
+              >
+              </BKUIFrom>
             <!-- <bk-form
               v-if="mainItem.data.length"
               :model="mainItem.form"
@@ -253,6 +262,16 @@ import ExceptionCard from '@/components/exception/exception-card.vue';
 import { reguRequired } from '@/common/form-check';
 import { pluginOperate } from '../../operateConfig';
 import bus from '@/common/bus';
+import createForm from '@blueking/bkui-form';
+import '@blueking/bkui-form/dist/bkui-form.css';
+import { transformSchema } from '@/components/RussianDolls/create';
+import keyValue from '@/components/common/key-value';
+
+const BKUIFrom = createForm({
+  components: {
+    bfArray: keyValue
+  }
+})
 
 interface IVariables {
   title: string
@@ -284,6 +303,7 @@ interface IVariablesItem {
   components: {
     VariablePopover,
     ExceptionCard,
+    BKUIFrom,
   },
 })
 /**
@@ -320,6 +340,7 @@ export default class ParamsConfig extends Vue {
     [key: string]: IVariablesItem[]
   } = {};
   private popoverInstance: any = null;
+  private bkuiFormRef: any = null;
 
   @Ref('popoverRef') private readonly popoverRef!: any;
   @Ref('configContent') private readonly configContent!: any;
@@ -393,7 +414,30 @@ export default class ParamsConfig extends Vue {
     });
     this.variableMap = res;
   }
-
+  private getDefaultValue(type: string) {
+    let defaultValue;
+    switch(type){
+      case 'string':
+        defaultValue = '';
+        break;
+      case 'boolean':
+        defaultValue = false;
+        break;
+      case 'number':
+        defaultValue = 0;
+        break;
+      case 'object':
+        defaultValue = {};
+        break;
+      case 'array':
+        defaultValue = [];
+        break;
+      default:
+        defaultValue = '';
+        break;
+    }
+    return defaultValue;
+  }
   // 初始化主配置和子配置，并按操作系统分类 && 回填表单
   private async getVariablesConfig() {
     let idList: number[] = [];
@@ -406,7 +450,7 @@ export default class ParamsConfig extends Vue {
     idList = Array.from(new Set(idList));
     if (idList.length) {
       this.loading = true;
-      const list = await PluginStore.getConfigVariables({ config_tpl_ids: idList });
+      let list = await PluginStore.getConfigVariables({ config_tpl_ids: idList });
       this.loading = false;
       list.forEach((item: IVariablesRes) => {
         const itemList = Object.entries(item.variables?.properties || {});
@@ -414,7 +458,7 @@ export default class ParamsConfig extends Vue {
         let variableList: IParamsData[] = [];
         // 处理表单遍历所需的统一格式 && 回填参数
         itemList.forEach(([key, value]) => {
-          form[key] = value.default || '';
+          form[key] = value.default || this.getDefaultValue(value.type);
           variableList.push({
             prop: key,
             type: value.type === 'number' ? 'number' : 'string', // 强制转为字符串
@@ -460,6 +504,7 @@ export default class ParamsConfig extends Vue {
                 variables: item.variables || {},
               });
             }
+            sysItem.variables = transformSchema(item.variables);
           }
         });
       });
@@ -577,46 +622,46 @@ export default class ParamsConfig extends Vue {
     bus.$emit('validate', (result: boolean) => {
       validateRes.push(result);
     });
-    bus.$emit('validateKV', (result: boolean) => {
-      validateRes.push(result);
-    });
-    if(validateRes.some(res => !res)) return true;
 
-    const checkList: Promise<boolean>[] = [];
-    this.list.forEach((item: IParamsConfig) => {
-      const refs: any = this.$refs[`form${item.name}`];
-      if (refs?.length) {
-        refs.reduce((list: Promise<boolean>[], ref: any) => {
-          list.push(ref.validate());
-          return list;
-        }, checkList);
-      }
-    });
-    return new Promise((resolve) => {
-      Promise.all(checkList)
-        .then(() => {
-          resolve(false);
-        })
-        .catch(() => {
-          // const active = this.list.filter(item =>
-          //   Object.values(item.form).some(value => !value)).map(item => item.name);
-          // this.activeName = Array.from(new Set((active as string[])
-          //   .concat(this.activeName)));
-          resolve(true);
-        });
-    });
+    // const checkList: Promise<boolean>[] = [];
+    // this.list.forEach((item: IParamsConfig) => {
+    //   const refs: any = this.$refs[`form${item.name}`];
+    //   if (refs?.length) {
+    //     refs.reduce((list: Promise<boolean>[], ref: any) => {
+    //       list.push(ref.validate());
+    //       return list;
+    //     }, checkList);
+    //   }
+    // });
+    // return new Promise((resolve) => {
+    //   Promise.all(checkList)
+    //     .then(() => {
+    //       resolve(false);
+    //     })
+    //     .catch(() => {
+    //       // const active = this.list.filter(item =>
+    //       //   Object.values(item.form).some(value => !value)).map(item => item.name);
+    //       // this.activeName = Array.from(new Set((active as string[])
+    //       //   .concat(this.activeName)));
+    //       resolve(true);
+    //     });
+    // });
+    (this.$refs.bkuiFormRef as Array<any>)?.forEach((item: any) => {
+      validateRes.push(item.validateForm());
+    })
+    return validateRes.some(valid => !valid);
   }
 
   // 更新策略的 params 和 configs 属性
   public async beforeStepLeave() {
     await this.handleValidateForm();
     const formatValue = JSON.parse(JSON.stringify(PluginStore.strategyData.params));
-    this.list.forEach((item) => {
-      const formRef = (this.$refs[`form${item.name}`] as any)?.[0];
+    this.list.forEach((item, ind) => {
+      const formRef = (this.$refs.bkuiFormRef as Array<any>)?.[ind];
       const params: Dictionary = {
         cpu_arch: item.cpu_arch,
         os: item.os,
-        context: formRef?.getFormData?.(), // 主配置、子配置的值都集合到context
+        context: formRef?.value, // 主配置、子配置的值都集合到context
       };
       // const itemList = Object.entries(item.form);
       // itemList.forEach(([key, value]) => {

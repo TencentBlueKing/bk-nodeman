@@ -87,6 +87,7 @@ class CreateSubscriptionSerializer(GatewaySerializer):
     steps = serializers.ListField(child=CreateStepSerializer(), min_length=1, label="事件订阅触发的动作列表")
     target_hosts = TargetHostSerializer(many=True, label="下发的目标机器列表", required=False, allow_empty=False)
     run_immediately = serializers.BooleanField(required=False, default=False, label="是否立即执行")
+    enable = serializers.BooleanField(required=False, default=False, label="是否开启订阅巡检")
     is_main = serializers.BooleanField(required=False, default=False, label="是否为主配置")
     operate_info = serializers.ListField(required=False, child=HostOperateInfoSerializer(), default=[], label="操作信息")
     system_account = serializers.DictField(required=False, label=_("操作系统对应账户"))
@@ -284,3 +285,9 @@ class QueryHostSubscriptionsSerializer(TargetHostSerializer):
 class SubscriptionSwitchBizSerializer(serializers.Serializer):
     bk_biz_ids = serializers.ListField(child=serializers.IntegerField())
     action = serializers.ChoiceField(choices=SubscriptionSwithBizAction.list_choices())
+
+
+class ClearnSubscriptionSerializer(serializers.Serializer):
+    subscription_id_list = serializers.ListField(required=True, label=_("订阅ID列表"), child=serializers.IntegerField())
+    action_type = serializers.ChoiceField(choices=constants.OpType, default="STOP", label=_("执行动作类型"))
+    is_force = serializers.BooleanField(default=False, label=_("是否强制清理"))

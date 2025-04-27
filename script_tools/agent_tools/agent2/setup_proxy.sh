@@ -2,6 +2,22 @@
 # vim:ft=sh expandtab sts=4 ts=4 sw=4 nu
 # gse proxy 2.0 安装脚本, 仅在节点管理2.0中使用
 
+get_cpu_arch () {
+    local cmd=$1
+    CPU_ARCH=$($cmd)
+    CPU_ARCH=$(echo ${CPU_ARCH} | tr 'A-Z' 'a-z')
+    if [[ "${CPU_ARCH}" =~ "x86_64" ]]; then
+        return 0
+    elif [[ "${CPU_ARCH}" =~ "x86" || "${CPU_ARCH}" =~ ^i[3456]86 ]]; then
+        return 1
+    elif [[ "${CPU_ARCH}" =~ "aarch" ]]; then
+        return 0
+    else
+        return 1
+    fi
+}
+get_cpu_arch "uname -p" || get_cpu_arch "uname -m" || fail get_cpu_arch "Failed to get CPU arch or unsupported CPU arch, please contact the developer."
+
 NODE_TYPE=proxy
 PROC_LIST=(agent data file)
 GSE_AGENT_RUN_DIR=/var/run/gse
@@ -208,9 +224,9 @@ get_pid_by_comm_path () {
     local _pids pids
     local pid
     if [[ "${worker}" == "WORKER" ]]; then
-        read -r -a _pids <<< "$(ps --no-header -C $comm -o '%P|%p|%a' | awk -v proc="${comm}" -F'|' '$1 != 1 && $3 ~ proc' | awk -F'|' '{print $2}' | xargs)"
+        read -r -a _pids <<< "$(ps --no-header -C $comm -o 'ppid,pid,args' | awk -v proc="${comm}"  '$1 != 1 && $3 ~ proc {print $2}' | xargs)"
     elif [[ "${worker}" == "MASTER" ]]; then
-        read -r -a _pids <<< "$(ps --no-header -C $comm -o '%P|%p|%a' | awk -v proc="${comm}" -F'|' '$1 == 1 && $3 ~ proc' | awk -F'|' '{print $2}' | xargs)"
+        read -r -a _pids <<< "$(ps --no-header -C $comm -o 'ppid,pid,args' | awk -v proc="${comm}"  '$1 == 1 && $3 ~ proc {print $2}' | xargs)"
     else
         read -r -a _pids <<< "$(ps --no-header -C "$comm" -o pid | xargs)"
     fi
@@ -295,6 +311,10 @@ report_mkdir () {
 }
 
 remove_crontab () {
+    if [ $IS_SUPER == false ]; then
+        return
+    fi
+
     local tmpcron
     tmpcron=$(mktemp "$TMP_DIR"/cron.XXXXXXX)
 
@@ -308,6 +328,10 @@ remove_crontab () {
 }
 
 setup_startup_scripts () {
+    if [ $IS_SUPER == false ]; then
+        return
+    fi
+
     check_rc_file
     local rcfile=$RC_LOCAL_FILE
 
@@ -592,6 +616,7 @@ download_pkg () {
     done
 
     log download_pkg DONE "gse_proxy package download succeeded"
+    log report_cpu_arch DONE "${CPU_ARCH}"
 }
 
 check_deploy_result () {
@@ -646,7 +671,7 @@ _OO_
 }
 
 validate_vars_string () {
-    echo "$1" | grep -Pq '^[a-zA-Z_][a-zA-Z0-9]+='
+    echo "$1" | grep -Pq '^[a-zA-Z_][a-zA-Z0-9_]*='
 }
 
 check_pkgtool () {
@@ -858,6 +883,12 @@ while getopts n:t:I:i:l:s:uc:r:x:p:e:a:k:N:g:v:oT:RO:E:A:V:B:S:Z:K:F arg; do
     esac
 done
 
+IS_SUPER=true
+if sudo -n true 2>/dev/null; then
+    IS_SUPER=true
+else
+    IS_SUPER=false
+fi
 
 ## 检查自定义环境变量
 for var_name in ${VARS_LIST//;/ /}; do
@@ -877,7 +908,7 @@ DEBUG_LOG_FILE=${TMP_DIR}/nm.${0##*/}.${TASK_ID}.debug
 
 # 获取包名
 PKG_NAME=${NAME}-${VERSION}.tgz
-COMPLETE_DOWNLOAD_URL="${DOWNLOAD_URL}/agent/linux/x86_64/"
+COMPLETE_DOWNLOAD_URL="${DOWNLOAD_URL}/agent/linux/${CPU_ARCH}/"
 GSE_AGENT_CONFIG_PATH="${AGENT_SETUP_PATH}/etc/${GSE_AGENT_CONFIG}"
 
 # redirect STDOUT & STDERR to DEBUG
