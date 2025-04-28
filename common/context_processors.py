@@ -22,6 +22,7 @@ from apps.core.concurrent.cache import FuncCacheDecorator
 from apps.node_man import constants, models
 from apps.node_man.handlers.iam import IamHandler
 from apps.utils.local import get_request_username, get_tenant_id
+from common.api.domains import USER_WEB_APIGATEWAY_ROOT_V3
 
 """
 context_processor for common(setting)
@@ -97,6 +98,7 @@ def mysetting(request):
         "VERSION": get_latest_version(),
         "DEFAULT_CLOUD": constants.DEFAULT_CLOUD,
         "USERNAME": request.user.username,
+        "TENANT_ID": get_tenant_id(),
         # 是否使用权限中心
         "USE_IAM": settings.USE_IAM,
         # 如果是权限中心，使用权限中心的全局配置权限
@@ -131,4 +133,6 @@ def mysetting(request):
         "ENABLE_MULTI_TENANT_MODE": settings.ENABLE_MULTI_TENANT_MODE,
         # 是否展示前端 TAG
         "DISPLAY_TAG": display_tag(),
+        # display_name 展示 API 网关地址
+        "API_BASE_URL": USER_WEB_APIGATEWAY_ROOT_V3,
     }

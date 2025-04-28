@@ -27,11 +27,11 @@ class _UserApi(BaseApi):
             description="查询租户列表",
             api_name="list_tenant",
         )
-        self.batch_query_user_display_name = DataAPI(
+        self.batch_query_user_display_info = DataAPI(
             method="GET",
-            url=USER_APIGATEWAY_ROOT_V3 + "open/tenant/users/-/display_name/",
+            url=USER_APIGATEWAY_ROOT_V3 + "open/tenant/users/-/display_info/",
             module=self.MODULE,
             simple_module=self.SIMPLE_MODULE,
-            description="批量查询用户展示名",
-            api_name="batch_query_user_display_name",
+            description="批量查询用户展示信息",
+            api_name="batch_query_user_display_info",
         )

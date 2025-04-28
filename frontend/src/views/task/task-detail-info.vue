@@ -18,7 +18,12 @@
               {{ item.name }}
             </span>
             <span class="info-value text-ellipsis" v-if="item.name" v-bk-overflow-tips>
-              {{ detail[item.id] | filterEmpty }}
+              <template v-if="item.id === 'createdBy' && ENABLE_MULTI_TENANT_MODE && detail[item.id]">
+                <bk-user-display-name :user-id="detail[item.id]"></bk-user-display-name>
+              </template>
+              <template v-else>
+                {{ detail[item.id] | filterEmpty }}
+              </template>
             </span>
           </li>
         </ul>
@@ -32,6 +37,7 @@ import { Component, Prop, Mixins } from 'vue-property-decorator';
 import Tips from '@/components/common/tips.vue';
 import RouterBackMixin from '@/common/router-back-mixin';
 import { MainStore } from '@/store';
+import BkUserDisplayName from '@blueking/bk-user-display-name';
 
 @Component({
   name: 'task-detail-info',
@@ -70,8 +76,27 @@ export default class TaskDeatail extends Mixins(RouterBackMixin) {
   private get manualWaitingTitle() {
     return /UN/ig.test(this.detail.jobType) ? this.$t('等待手动卸载') : this.$t('等待手动安装');
   }
-
+  
+  private get API_BASE_URL() {
+    return window.PROJECT_CONFIG.API_BASE_URL;
+  }
+  private get ENABLE_MULTI_TENANT_MODE() {
+    return window.PROJECT_CONFIG.ENABLE_MULTI_TENANT_MODE;
+  }
+  
   private created() {
+    if (this.API_BASE_URL) {
+      BkUserDisplayName.configure({
+        // 必填，租户 ID
+        tenantId: window.PROJECT_CONFIG.TENANT_ID,
+        // 必填，网关地址
+        apiBaseUrl: window.PROJECT_CONFIG.API_BASE_URL,
+        // 可选，缓存时间，单位为毫秒, 默认 5 分钟, 只对单一值生效
+        cacheDuration: 1000 * 60 * 5,
+        // 可选，当输入为空时，显示的文本，默认为 '--'
+        emptyText: '--'
+      });
+    }
     if (this.operateHost === 'Plugin') {
       let name = this.$t('插件名称');
       let id = 'pluginName';

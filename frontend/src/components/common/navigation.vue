@@ -57,7 +57,12 @@
             </MixinsControlDropdown>
             <MixinsControlDropdown ext-cls="menu-dropdown">
               <div class="header-user header-nav-btn">
-                {{ currentUser }}
+                <template v-if="ENABLE_MULTI_TENANT_MODE && currentUser">
+                  <bk-user-display-name :user-id="currentUser"></bk-user-display-name>
+                </template>
+                <template v-else>
+                  {{ currentUser }}
+                </template>
                 <i class="bk-icon icon-down-shape"></i>
               </div>
               <template #content>
@@ -133,6 +138,7 @@ import routerBackMixin from '@/common/router-back-mixin';
 import { bus } from '@/common/bus';
 import { INavConfig, ISubNavConfig } from '@/types';
 import logoSrc from '@/images/logoIcon.png';
+import BkUserDisplayName from '@blueking/bk-user-display-name';
 
 interface IUserItem {
   id: string
@@ -312,7 +318,26 @@ export default class NodemanNavigation extends Mixins(routerBackMixin) {
   public watchBizChange(value: number[]) {
     this.biz = [...value];
   }
-
+  private get API_BASE_URL() {
+    return window.PROJECT_CONFIG.API_BASE_URL;
+  }
+  private get ENABLE_MULTI_TENANT_MODE() {
+    return window.PROJECT_CONFIG.ENABLE_MULTI_TENANT_MODE;
+  }
+  private created() {
+    if (this.API_BASE_URL) {
+      BkUserDisplayName.configure({
+        // 必填，租户 ID
+        tenantId: window.PROJECT_CONFIG.TENANT_ID,
+        // 必填，网关地址
+        apiBaseUrl: window.PROJECT_CONFIG.API_BASE_URL,
+        // 可选，缓存时间，单位为毫秒, 默认 5 分钟, 只对单一值生效
+        cacheDuration: 1000 * 60 * 5,
+        // 可选，当输入为空时，显示的文本，默认为 '--'
+        emptyText: '--'
+      });
+    }
+  }
   private mounted() {
     this.resetNavToggle();
     this.biz = [...this.selectedBiz];
