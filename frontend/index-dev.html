@@ -44,6 +44,9 @@
               const ENABLE_NOTICE_CENTER = 'False'
               const BKPAAS_SHARED_RES_URL  = ''
               const DISPLAY_TAG  = 'True'
+              API_BASE_URL = ''
+              TENANT_ID = ''
+              ENABLE_MULTI_TENANT_MODE = ''
 
               return {
                   SITE_URL: SITE_URL,
@@ -83,6 +86,9 @@
                   ENABLE_NOTICE_CENTER,
                   BKPAAS_SHARED_RES_URL,
                   DISPLAY_TAG,
+                  API_BASE_URL,
+                  TENANT_ID,
+                  ENABLE_MULTI_TENANT_MODE,
               }
           })()
           window.$DHCP = window.PROJECT_CONFIG.BKAPP_ENABLE_DHCP === 'True'

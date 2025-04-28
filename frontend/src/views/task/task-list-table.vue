@@ -61,7 +61,12 @@
           :min-width="columnMinWidth['created_by']"
           :render-header="renderFilterHeader">
           <template #default="{ row }">
-            {{ row.createdBy ? row.createdBy : '--' }}
+            <template v-if="ENABLE_MULTI_TENANT_MODE && row.createdBy">
+              <bk-user-display-name :user-id="row.createdBy"></bk-user-display-name>
+            </template>
+            <template v-else>
+              {{ row.createdBy ? row.createdBy : '--' }}
+            </template>
           </template>
         </NmColumn>
         <NmColumn min-width="150" :label="$t('执行时间')" prop="startTime">
@@ -119,6 +124,7 @@ import { IHistory } from '@/types/task/task';
 import HeaderRenderMixin from '@/components/common/header-render-mixins';
 import { isEmpty, takesTimeFormat } from '@/common/util';
 import { MainStore } from '@/store/index';
+import BkUserDisplayName from '@blueking/bk-user-display-name';
 
 @Component({ name: 'task-list-table' })
 export default class TaskListTable extends Mixins(HeaderRenderMixin) {
@@ -166,8 +172,27 @@ export default class TaskListTable extends Mixins(HeaderRenderMixin) {
     return (this.hideAutoDeploy || this.searchSelectValue.length) ? 'search-empty' : 'empty';
   }
 
+  private get API_BASE_URL() {
+    return window.PROJECT_CONFIG.API_BASE_URL;
+  }
+  private get ENABLE_MULTI_TENANT_MODE() {
+    return window.PROJECT_CONFIG.ENABLE_MULTI_TENANT_MODE;
+  }
+
   private created() {
     this.computedColumnWidth();
+    if (this.API_BASE_URL) {
+      BkUserDisplayName.configure({
+        // 必填，租户 ID
+        tenantId: window.PROJECT_CONFIG.TENANT_ID,
+        // 必填，网关地址
+        apiBaseUrl: window.PROJECT_CONFIG.API_BASE_URL,
+        // 可选，缓存时间，单位为毫秒, 默认 5 分钟, 只对单一值生效
+        cacheDuration: 1000 * 60 * 5,
+        // 可选，当输入为空时，显示的文本，默认为 '--'
+        emptyText: '--'
+      });
+    }
   }
 
   @Emit('pagination-change')
