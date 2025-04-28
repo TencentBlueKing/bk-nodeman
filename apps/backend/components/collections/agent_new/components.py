@@ -36,6 +36,7 @@ from .reload_agent_config import ReloadAgentConfigService
 from .render_and_push_gse_config import RenderAndPushGseConfigService
 from .restart import RestartService
 from .run_upgrade_command import RunUpgradeCommandService
+from .stop_plugins import StopPluginsService
 from .unbind_host_agent import UnBindHostAgentService
 from .update_install_info import UpdateInstallInfoService
 from .update_process_status import UpdateProcessStatusService
@@ -221,3 +222,9 @@ class InstallOtherAgentComponent(Component):
     name = _("安装额外Agent")
     code = "install_other_agent"
     bound_service = InstallOtherAgentService
+
+
+class StopPluginsComponent(Component):
+    name = _("停止插件")
+    code = "stop_plugins"
+    bound_service = StopPluginsService

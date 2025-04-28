@@ -347,6 +347,16 @@ remove_crontab () {
     fi
 }
 
+remove_directory () {
+    for dir in "$@"; do
+        if [ -d "$dir" ]; then
+            log remove_directory - "trying to remove directory [${dir}]"
+            rm -rf "$dir"
+            log remove_directory - "directory [${dir}] removed"
+        fi
+    done
+}
+
 setup_startup_scripts () {
     check_rc_file
     local os_type=$OS_TYPE
@@ -450,6 +460,8 @@ remove_agent () {
     rm -rf "${AGENT_SETUP_PATH}"
 
     if [[ "$REMOVE" == "TRUE" ]]; then
+        remove_directory ${GSE_HOME} ${GSE_AGENT_RUN_DIR} ${GSE_AGENT_DATA_DIR} ${GSE_AGENT_LOG_DIR}
+
         log remove_agent DONE "agent removed"
         exit 0
     fi
@@ -519,6 +531,11 @@ setup_agent () {
 }
 
 download_pkg () {
+    if [[ "${REMOVE}" == "TRUE" ]]; then
+        log download_pkg - "remove agent, no need to download package"
+        return 0
+    fi
+
     local f http_status path
     local tmp_stdout tmp_stderr curl_pid
 
@@ -861,6 +878,7 @@ done
 
 LOG_FILE="$TMP_DIR"/nm.${0##*/}.$TASK_ID
 DEBUG_LOG_FILE=${TMP_DIR}/nm.${0##*/}.${TASK_ID}.debug
+GSE_HOME=$(dirname ${AGENT_SETUP_PATH})
 
 # redirect STDOUT & STDERR to DEBUG
 exec &> >(tee "$DEBUG_LOG_FILE")

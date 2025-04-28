@@ -297,3 +297,11 @@ class AgentManager(object):
         act.component.inputs.extra_agent_version = Var(type=Var.PLAIN, value=extra_agent_version)
         act.component.inputs.node_type = Var(type=Var.PLAIN, value=node_type)
         return act
+
+    @classmethod
+    def stop_plugins(cls):
+        """停止插件"""
+        act = AgentServiceActivity(
+            component_code=components.StopPluginsComponent.code, name=components.StopPluginsComponent.name
+        )
+        return act

@@ -329,6 +329,16 @@ remove_crontab () {
     fi
 }
 
+remove_directory () {
+    for dir in "$@"; do
+        if [ -d "$dir" ]; then
+            log remove_directory - "trying to remove directory [${dir}]"
+            rm -rf "$dir"
+            log remove_directory - "directory [${dir}] removed"
+        fi
+    done
+}
+
 get_daemon_file () {
     DAEMON_FILE_PATH="/Library/LaunchDaemons/"
     DAEMON_FILE_NAME="com.tencent.$(echo ${AGENT_SETUP_PATH%*/} | tr '/' '.' | awk -F '.' '{print $(NF-1)"."$NF}').Daemon.plist"
@@ -501,7 +511,7 @@ remove_agent () {
 
     if [[ "$REMOVE" == "TRUE" ]]; then
         unregister_agent_id
-        clean_up_agent_directory
+        remove_directory "$GSE_HOME" "$GSE_AGENT_RUN_DIR" "$GSE_AGENT_DATA_DIR" "$GSE_AGENT_LOG_DIR"
         log remove_agent DONE "agent removed"
         exit 0
     fi
@@ -859,6 +869,7 @@ check_env () {
 CLOUD_ID=0
 TMP_DIR=/tmp
 AGENT_SETUP_PATH="/usr/local/gse/${NODE_TYPE}"
+
 CURR_PID=$$
 OVERIDE=false
 REMOVE=false
@@ -930,6 +941,7 @@ done
 PKG_NAME=${NAME}-${VERSION}.tgz
 COMPLETE_DOWNLOAD_URL="${DOWNLOAD_URL}/agent/darwin/${CPU_ARCH}"
 GSE_AGENT_CONFIG_PATH="${AGENT_SETUP_PATH}/etc/${GSE_AGENT_CONFIG}"
+GSE_HOME=$(dirname ${AGENT_SETUP_PATH})
 
 LOG_FILE="$TMP_DIR"/nm.${0##*/}.$TASK_ID
 DEBUG_LOG_FILE=${TMP_DIR}/nm.${0##*/}.${TASK_ID}.debug
