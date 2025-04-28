@@ -24,6 +24,7 @@ from apps.node_man.handlers.install_channel import InstallChannelHandler
 from apps.node_man.tools import JobTools
 from apps.utils import APIModel
 from apps.utils.local import get_tenant_id
+from common.api import UserApi
 
 
 class MetaHandler(APIModel):
@@ -278,6 +279,12 @@ class MetaHandler(APIModel):
         created_bys_children = [
             {"name": created_by, "id": created_by} for created_by in created_bys if created_by != ""
         ]
+        if settings.ENABLE_MULTI_TENANT_MODE:
+            bk_usernames = ",".join([item["id"] for item in created_bys_children])
+            user_data = UserApi.batch_query_user_display_info({"bk_usernames": bk_usernames})
+            display_name_map = {user["bk_username"]: user["display_name"] for user in user_data}
+            for item in created_bys_children:
+                item["name"] = display_name_map.get(item["name"], item["name"])
 
         statuses_children = [
             {"name": dict(constants.JobStatusType.get_choices()).get(status, status), "id": status}

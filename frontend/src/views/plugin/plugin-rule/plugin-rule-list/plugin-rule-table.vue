@@ -126,7 +126,16 @@
           <span v-else>--</span>
         </div>
       </NmColumn>
-      <NmColumn v-if="filter['creator'].mockChecked" :label="$t('操作账号')" prop="creator" min-width="120" />
+      <NmColumn v-if="filter['creator'].mockChecked" :label="$t('操作账号')" prop="creator" min-width="120">
+        <template #default="{ row }">
+          <template v-if="ENABLE_MULTI_TENANT_MODE && row.creator">
+              <bk-user-display-name :user-id="row.creator"></bk-user-display-name>
+            </template>
+            <template v-else>
+              {{ row.creator ? row.creator : '--' }}
+            </template>
+        </template>
+      </NmColumn>
       <NmColumn
         v-if="filter['update_time'].mockChecked"
         :label="$t('最近操作时间')"
@@ -257,6 +266,7 @@ import FlexibleTag from '@/components/common/flexible-tag.vue';
 import ColumnSetting from '@/components/common/column-setting.vue';
 import { CreateElement } from 'vue/types/umd';
 import { regrLengthCheck } from '@/common/form-check';
+import BkUserDisplayName from '@blueking/bk-user-display-name';
 
 type GrayType = 'createGray' | 'editGray' | 'deleteGray' | 'releaseGray';
 type PolicyType = 'edit' | 'start' | 'stop' | 'delete' | 'stop_and_delete' | 'RETRY_ABNORMAL';
@@ -313,6 +323,27 @@ export default class PluginRuleTable extends Mixins(HeaderRenderMixin) {
     return this.searchSelectValue.length ? 'search-empty' : 'empty';
   }
 
+  private get API_BASE_URL() {
+    return window.PROJECT_CONFIG.API_BASE_URL;
+  }
+  private get ENABLE_MULTI_TENANT_MODE() {
+    return window.PROJECT_CONFIG.ENABLE_MULTI_TENANT_MODE;
+  }
+  private created() {
+    if (this.API_BASE_URL) {
+      BkUserDisplayName.configure({
+        // 必填，租户 ID
+        tenantId: window.PROJECT_CONFIG.TENANT_ID,
+        // 必填，网关地址
+        apiBaseUrl: window.PROJECT_CONFIG.API_BASE_URL,
+        // 可选，缓存时间，单位为毫秒, 默认 5 分钟, 只对单一值生效
+        cacheDuration: 1000 * 60 * 5,
+        // 可选，当输入为空时，显示的文本，默认为 '--'
+        emptyText: '--'
+      });
+    }
+  }
+  
   private mounted() {
     window.addEventListener('resize', this.reCalcFlexibleTag);
   }

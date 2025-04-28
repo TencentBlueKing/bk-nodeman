@@ -142,6 +142,7 @@ data:
   ENABLE_MULTI_TENANT_MODE: "{{ .Values.config.EnableMultiTenantMode }}"
   BKAPP_BK_CC_APIGATEWAY: "{{ .Values.config.bkAppBkCcApiGateway }}"
   BKAPP_BK_USER_APIGATEWAY: "{{ .Values.config.bkAppBkUserApiGateway }}"
+  BKAPP_BK_USER_WEB_APIGATEWAY: "{{ .Values.config.bkAppBkUserWebApiGateway }}"
   BKAPP_BK_APIGATEWAY: "{{ .Values.config.bkAppBkApiGateway }}"
   BKAPP_BK_JOB_APIGATEWAY: "{{ .Values.config.bkAppBkJobApiGateway }}"
   BKAPP_CSRF_TRUSTED_ORIGINS: "{{ .Values.config.bkAppCsrfTrustedOrigins }}"
