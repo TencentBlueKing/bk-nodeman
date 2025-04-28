@@ -395,6 +395,7 @@ start_by_rclocal () {
 }
 
 stop_by_rclocal () {
+    remove_startup
     stop_by_binary
     return
 }
@@ -545,6 +546,15 @@ add_startup_to_boot () {
     else
         echo "${insert_content}" >>$rcfile
     fi
+}
+
+remove_startup () {
+    local module=agent
+
+    check_rc_file
+    local rcfile=$RC_LOCAL_FILE
+
+    sed -i "\|${WORK_HOME}/bin/gsectl start ${module}|d" $RC_LOCAL_FILE
 }
 
 add_config_to_systemd () {
