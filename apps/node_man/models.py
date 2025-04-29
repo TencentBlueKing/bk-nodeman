@@ -185,6 +185,8 @@ class GlobalSettings(models.Model):
         UPDATE_SUBSCRIPTION_RECORDS_LENGTH = "UPDATE_SUBSCRIPTION_RECORDS_LENGTH"
         # 禁用的订阅
         DISABLED_SUBSCRIPTIONS = "DISABLED_SUBSCRIPTIONS"
+        # 是否默认当前环境为仅GSE2环境
+        IS_PURE_GSE2_VERSION = "IS_PURE_GSE2_VERSION"
 
     key = models.CharField(_("键"), max_length=255, db_index=True, primary_key=True)
     v_json = JSONField(_("值"))
