@@ -55,6 +55,11 @@ class GrayTools:
         if is_install_other_agent:
             # 注入AP ID 优先使用注入AP 的GSE 版本
             gse_version: str = self.ap_id_obj_map[ap_id].gse_version
+        elif node_man_models.GlobalSettings.get_config(
+            node_man_models.GlobalSettings.KeyEnum.IS_PURE_GSE2_VERSION.value, False
+        ):
+            # 纯 GSE2.0 版本
+            gse_version: str = GseVersion.V2.value
         elif self.is_gse2_gray(bk_biz_id):
             # 业务整体处于 2.0 灰度
             gse_version: str = GseVersion.V2.value
