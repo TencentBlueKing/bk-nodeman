@@ -65,6 +65,17 @@ class GseV2ApiHelper(GseV1ApiHelper):
                 "is_auto": constants.AutoStateType.AUTO if proc_info["isauto"] else constants.AutoStateType.UNAUTO,
                 "name": proc_info["meta"]["name"],
             }
+
+        # 查询不到进程状态时，视为进程已注销
+        for agent_id in agent_id_list:
+            if agent_id not in agent_id__proc_info_map:
+                agent_id__proc_info_map[agent_id] = {
+                    "version": "",
+                    "status": constants.ProcStateType.UNREGISTER,
+                    "is_auto": constants.AutoStateType.UNAUTO,
+                    "name": proc_name,
+                }
+
         return agent_id__proc_info_map
 
     def _list_agent_state(self, host_info_list: base.InfoDictList) -> base.AgentIdInfoMap:
