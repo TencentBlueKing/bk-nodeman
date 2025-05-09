@@ -115,6 +115,7 @@ class ApiConfig(AppConfig):
             try:
                 api_call(
                     api_method="register_application",
+                    tenant_id="system" if settings.ENABLE_MULTI_TENANT_MODE else "default",
                     success_message="注册平台成功",
                     error_message="注册平台异常",
                     success_code=201,
