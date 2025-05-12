@@ -173,6 +173,21 @@ processType: "metrics"
 - name: gse-cert
   configMap:
     name: "{{ include "bk-nodeman.fullname" . }}-gse-cert-configmap"
+{{- if .Values.externalRedis.tls.enabled }}
+- name: redis-tls-cert
+  secret:
+    secretName: {{ .Values.externalRedis.tls.existingSecret }}
+{{- end}}
+{{- if .Values.externalRabbitMQ.tls.enabled }}
+- name: rabbitmq-tls-cert
+  secret:
+    secretName: {{ .Values.externalRabbitMQ.tls.existingSecret }}
+{{- end}}
+{{- if .Values.externalMySQL.tls.enabled }}
+- name: mysql-tls-cert
+  secret:
+    secretName: {{ .Values.externalMySQL.tls.existingSecret }}
+{{- end}}
 {{- if .Values.volumes }}
 {{ toYaml .Values.volumes }}
 {{- end }}
@@ -185,6 +200,18 @@ processType: "metrics"
 {{- define "bk-nodeman.volumeMounts" -}}
 - name: gse-cert
   mountPath: {{ include "bk-nodeman.env.gseCertPath" . }}
+{{- if .Values.externalRedis.tls.enabled }}
+- name: redis-tls-cert
+  mountPath: {{ .Values.externalRedis.tls.mountPath }}
+{{- end}}
+{{- if .Values.externalRabbitMQ.tls.enabled }}
+- name: rabbitmq-tls-cert
+  mountPath: {{ .Values.externalRabbitMQ.tls.mountPath }}
+{{- end}}
+{{- if .Values.externalMySQL.tls.enabled }}
+- name: mysql-tls-cert
+  mountPath: {{ .Values.externalMySQL.tls.mountPath }}
+{{- end}}
 {{- if .Values.volumeMounts }}
 {{ toYaml .Values.volumeMounts }}
 {{- end }}

@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import ssl
 import sys
 from enum import Enum
 from typing import Dict, Optional
@@ -662,6 +663,21 @@ DJANGO_REDIS_COMMON_OPTIONS = {
     "SERIALIZER": "apps.utils.cache.JSONSerializer",
 }
 
+# 添加 TLS 配置（如果启用）
+if env.REDIS_TLS_ENABLED:
+    DJANGO_REDIS_COMMON_OPTIONS["CONNECTION_POOL_KWARGS"] = {
+        "ssl_cert_reqs": ssl.CERT_REQUIRED,
+        "ssl_ca_certs": env.REDIS_TLS_CERT_CA_FILE,
+        "ssl_check_hostname": env.REDIS_TLS_CHECK_HOSTNAME,
+    }
+    if env.REDIS_TLS_CERT_FILE and env.REDIS_TLS_CERT_KEY_FILE:
+        DJANGO_REDIS_COMMON_OPTIONS["CONNECTION_POOL_KWARGS"].update(
+            {
+                "ssl_certfile": env.REDIS_TLS_CERT_FILE,
+                "ssl_keyfile": env.REDIS_TLS_CERT_KEY_FILE,
+            }
+        )
+
 if REDIS_MODE == "replication":
     # redis 集群sentinel模式
     REDIS_HOST = os.getenv("REDIS_SENTINEL_HOST")
@@ -676,10 +692,17 @@ if REDIS_MODE == "replication":
         "retry_period": 60,
         "sentinel_kwargs": {"password": REDIS_SENTINEL_PASSWORD},
     }
+    # 添加 TLS 配置（如果启用）
+    if env.REDIS_TLS_ENABLED:
+        # 使用 rediss:// 前缀表示启用 TLS
+        LOCATION_URL = f"rediss://{REDBEAT_REDIS_OPTIONS['service_name']}:{REDIS_PORT}/0"
+    else:
+        LOCATION_URL = f"redis://{REDBEAT_REDIS_OPTIONS['service_name']}:{REDIS_PORT}/0"
+
     DJANGO_REDIS_CONNECTION_FACTORY = "apps.utils.cache.SentinelConnectionFactory"
     CACHES["redis"] = {
         "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": f"redis://{REDBEAT_REDIS_OPTIONS['service_name']}:{REDIS_PORT}/0",
+        "LOCATION": LOCATION_URL,
         "KEY_PREFIX": "nodeman",
         "KEY_FUNCTION": "apps.utils.cache.django_cache_key_maker",
         "OPTIONS": {
@@ -697,6 +720,9 @@ else:
     REDBEAT_REDIS_URL = "redis://:{passwd}@{host}:{port}/0".format(
         passwd=REDIS_PASSWORD, host=REDIS_HOST, port=REDIS_PORT or 6379
     )
+    if env.REDIS_TLS_ENABLED:
+        REDBEAT_REDIS_URL = REDBEAT_REDIS_URL.replace("redis://", "rediss://")
+
     DJANGO_REDIS_CONNECTION_FACTORY = "apps.utils.cache.ConnectionFactory"
     CACHES["redis"] = {
         "BACKEND": "django_redis.cache.RedisCache",
@@ -712,13 +738,18 @@ REDIS = {
     "password": REDIS_PASSWORD,
     "service_name": REDIS_MASTER_NAME,
     "sentinel_password": REDIS_SENTINEL_PASSWORD,
-    "mode": REDIS_MODE,  # 哨兵模式，可选 single, cluster, replication
+    "mode": REDIS_MODE,  # 哨兵模式，可选 single, cluster, replication,
+    "ssl_cert_reqs": ssl.CERT_REQUIRED,
+    "ssl_ca_certs": env.REDIS_TLS_CERT_CA_FILE,
+    "ssl_certfile": env.REDIS_TLS_CERT_FILE,
+    "ssl_keyfile": env.REDIS_TLS_CERT_KEY_FILE,
+    "ssl_check_hostname": env.REDIS_TLS_CHECK_HOSTNAME,
+    "tls_enabled": env.REDIS_TLS_ENABLED,
 }
 
 CACHE_BACKEND = env.CACHE_BACKEND
 CACHE_ENABLE_PREHEAT = env.CACHE_ENABLE_PREHEAT
 CACHES["default"] = CACHES[CACHE_BACKEND]
-
 
 # ==============================================================================
 # 后台配置
@@ -745,6 +776,7 @@ if BK_BACKEND_CONFIG:
             "OPTIONS": {"isolation_level": "repeatable read"},
         }
     }
+
     BK_OFFICIAL_PLUGINS_INIT_PATH = os.path.join(PROJECT_ROOT, "official_plugin")
     REST_FRAMEWORK["DEFAULT_AUTHENTICATION_CLASSES"] = [
         "apps.utils.drf.CsrfExemptSessionAuthentication",
@@ -762,6 +794,37 @@ if BK_BACKEND_CONFIG:
 
     REDBEAT_KEY_PREFIX = "nodeman"
 
+# 是否开启SSL连接
+if env.MYSQL_TLS_ENABLED:
+    ssl_config = {
+        "ssl": {
+            "ca": env.MYSQL_TLS_CERT_CA_FILE,
+            "check_hostname": env.MYSQL_TLS_CHECK_HOSTNAME,
+        }
+    }
+    if env.MYSQL_TLS_CERT_FILE and env.MYSQL_TLS_CERT_KEY_FILE:
+        ssl_config["ssl"].update(
+            {
+                "cert": env.MYSQL_TLS_CERT_FILE,
+                "key": env.MYSQL_TLS_CERT_KEY_FILE,
+            }
+        )
+
+    DATABASES["default"]["OPTIONS"].update(ssl_config)
+
+# 是否开启SSL连接
+if env.RABBITMQ_TLS_ENABLED:
+    BROKER_USE_SSL = {
+        "ca_certs": env.RABBITMQ_TLS_CERT_CA_FILE,
+        "cert_reqs": ssl.CERT_REQUIRED,
+    }
+    if env.RABBITMQ_TLS_CERT_KEY_FILE and env.RABBITMQ_TLS_CERT_FILE:
+        BROKER_USE_SSL.update(
+            {
+                "keyfile": env.RABBITMQ_TLS_CERT_KEY_FILE,
+                "certfile": env.RABBITMQ_TLS_CERT_FILE,
+            }
+        )
 
 # TODO 目前后台使用
 # 节点管理后台 BKAPP_LAN_IP 或 BKAPP_NFS_IP 进行文件分发，是否能统一变量

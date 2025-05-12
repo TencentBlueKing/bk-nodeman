@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import os
 
 from apps.utils.env import get_type_env
 
@@ -71,6 +72,21 @@ __all__ = [
     "BKAPP_DEFAULT_INSTALL_CHANNEL_ID",
     "BKAPP_AUTOMATIC_CHOICE_CLOUD_ID",
     "TXY_ENDPOINT",
+    "MYSQL_TLS_ENABLED",
+    "MYSQL_TLS_CERT_CA_FILE",
+    "MYSQL_TLS_CERT_FILE",
+    "MYSQL_TLS_CERT_KEY_FILE",
+    "MYSQL_TLS_CHECK_HOSTNAME",
+    "REDIS_TLS_ENABLED",
+    "REDIS_TLS_CERT_CA_FILE",
+    "REDIS_TLS_CERT_FILE",
+    "REDIS_TLS_CERT_KEY_FILE",
+    "REDIS_TLS_CHECK_HOSTNAME",
+    "RABBITMQ_TLS_ENABLED",
+    "RABBITMQ_TLS_CERT_CA_FILE",
+    "RABBITMQ_TLS_CERT_FILE",
+    "RABBITMQ_TLS_CERT_KEY_FILE",
+    "RABBITMQ_TLS_CHECK_HOSTNAME",
 ]
 
 # ===============================================================================
@@ -202,3 +218,30 @@ BKPAAS_SHARED_RES_URL = get_type_env(key="BKPAAS_SHARED_RES_URL", default="", _t
 BKAPP_LEGACY_AUTH = get_type_env(key="BKAPP_LEGACY_AUTH", default=False, _type=bool)
 BK_NOTICE_ENABLED = get_type_env(key="BK_NOTICE_ENABLED", default=False, _type=bool)
 TXY_ENDPOINT = get_type_env(key="TXY_ENDPOINT", default="", _type=str)
+
+def get_tls_path(mount_path: str, env_key: str) -> str:
+    env_value = get_type_env(key=env_key, default="", _type=str)
+    if env_value:
+        return os.path.join(mount_path, env_value)
+    return ""
+
+MYSQL_TLS_MOUNT_PATH = get_type_env(key="MYSQL_TLS_MOUNT_PATH", default="", _type=str)
+MYSQL_TLS_ENABLED = get_type_env(key="MYSQL_TLS_ENABLED", default=False, _type=bool)
+MYSQL_TLS_CHECK_HOSTNAME = get_type_env(key="MYSQL_TLS_CHECK_HOSTNAME", default=False, _type=bool)
+MYSQL_TLS_CERT_CA_FILE = get_tls_path(MYSQL_TLS_MOUNT_PATH, "MYSQL_TLS_CERT_CA_FILE")
+MYSQL_TLS_CERT_FILE = get_tls_path(MYSQL_TLS_MOUNT_PATH, "MYSQL_TLS_CERT_FILE")
+MYSQL_TLS_CERT_KEY_FILE = get_tls_path(MYSQL_TLS_MOUNT_PATH, "MYSQL_TLS_CERT_KEY_FILE")
+
+REDIS_TLS_MOUNT_PATH = get_type_env(key="REDIS_TLS_MOUNT_PATH", default="", _type=str)
+REDIS_TLS_ENABLED = get_type_env(key="REDIS_TLS_ENABLED", default=False, _type=bool)
+REDIS_TLS_CHECK_HOSTNAME = get_type_env(key="REDIS_TLS_CHECK_HOSTNAME", default=False, _type=bool)
+REDIS_TLS_CERT_CA_FILE = get_tls_path(REDIS_TLS_MOUNT_PATH, "REDIS_TLS_CERT_CA_FILE")
+REDIS_TLS_CERT_FILE = get_tls_path(REDIS_TLS_MOUNT_PATH, "REDIS_TLS_CERT_FILE")
+REDIS_TLS_CERT_KEY_FILE = get_tls_path(REDIS_TLS_MOUNT_PATH, "REDIS_TLS_CERT_KEY_FILE")
+
+RABBITMQ_TLS_MOUNT_PATH = get_type_env(key="RABBITMQ_TLS_MOUNT_PATH", default="", _type=str)
+RABBITMQ_TLS_ENABLED = get_type_env(key="RABBITMQ_TLS_ENABLED", default=False, _type=bool)
+RABBITMQ_TLS_CHECK_HOSTNAME = get_type_env(key="RABBITMQ_TLS_CHECK_HOSTNAME", default=False, _type=bool)
+RABBITMQ_TLS_CERT_CA_FILE = get_tls_path(RABBITMQ_TLS_MOUNT_PATH, "RABBITMQ_TLS_CERT_CA_FILE")
+RABBITMQ_TLS_CERT_FILE = get_tls_path(RABBITMQ_TLS_MOUNT_PATH, "RABBITMQ_TLS_CERT_FILE")
+RABBITMQ_TLS_CERT_KEY_FILE = get_tls_path(RABBITMQ_TLS_MOUNT_PATH, "RABBITMQ_TLS_CERT_KEY_FILE")
