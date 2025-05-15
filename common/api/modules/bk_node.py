@@ -114,7 +114,7 @@ class _BKNodeApi(object):
         )
         self.subscription_search_policy = DataAPI(
             method="POST",
-            url=BK_NODE_APIGATEWAY_ROOT + "system/backend/api/subscription/search_deploy_policy/",
+            url=BK_NODE_APIGATEWAY_ROOT + "backend/api/subscription/search_deploy_policy/",
             module=self.MODULE,
             simple_module=self.SIMPLE_MODULE,
             description="查询策略列表",
