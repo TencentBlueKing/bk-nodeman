@@ -19,6 +19,7 @@ from apps.node_man.constants import IamActionType
 from apps.node_man.exceptions import IamRequestException
 from apps.node_man.models import AccessPoint, Cloud, GsePluginDesc, Subscription
 from apps.utils import APIModel
+from apps.utils.local import get_tenant_id
 from common.api import CCApi
 
 
@@ -39,16 +40,18 @@ class IamHandler(APIModel):
         IamActionType.task_history_view,
     ]
 
-    if settings.USE_IAM:
-        _iam = IAM(
-            settings.APP_CODE,
-            settings.SECRET_KEY,
-            settings.BK_IAM_INNER_HOST,
-            settings.BK_COMPONENT_API_OVERWRITE_URL,
-            settings.BK_IAM_APIGW,
-        )
-    else:
-        _iam = object
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if settings.USE_IAM:
+            self.tenant_id = get_tenant_id()
+            self._iam = IAM(
+                settings.APP_CODE,
+                settings.SECRET_KEY,
+                settings.BK_IAM_APIGW,
+                self.tenant_id,
+            )
+        else:
+            self._iam = object
 
     def fetch_biz(self):
         """
@@ -327,7 +330,7 @@ class IamHandler(APIModel):
                     if instances:
                         apply_info["related_resource_types"][0]["instances"] = instances
             data["actions"].append(apply_info)
-        ok, message, result = IamHandler._iam._client.get_apply_url(bk_token="", bk_username=username, data=data)
+        ok, message, result = IamHandler()._iam._client.get_apply_url(data=data)
         return result or settings.BK_IAM_SAAS_HOST
 
     @staticmethod
@@ -347,9 +350,7 @@ class IamHandler(APIModel):
             "name": instance_name,
             "creator": creator,
         }
-        ok, message = IamHandler._iam._client.grant_resource_creator_actions(
-            bk_token="", bk_username=creator, data=data
-        )
+        ok, message = IamHandler()._iam._client.grant_resource_creator_actions(data=data)
         return ok, message
 
     @staticmethod
@@ -379,7 +380,7 @@ class IamHandler(APIModel):
                 }
             ],
         }
-        ok, message = IamHandler._iam._client.grant_batch_instance(bk_token="", bk_username=creator, data=data)
+        ok, message = IamHandler()._iam._client.grant_batch_instance(bk_token="", bk_username=creator, data=data)
         return ok, message
 
     @staticmethod
@@ -392,7 +393,7 @@ class IamHandler(APIModel):
 
         # TODO: 等待权限中心用户组注册功能上线
         # return iam.is_superuser
-        is_superuser = User.objects.filter(username=username, is_superuser=True).exists() or True
+        is_superuser = User.objects.filter(username=username, is_superuser=True).exists()
         return is_superuser
 
     @staticmethod
