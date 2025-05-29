@@ -69,14 +69,14 @@ class CmdbHandler(APIModel):
             'bk_biz_name': bk_biz_name
         }]
         """
-        user_biz_cache = cache.get(username + BIZ_CACHE_SUFFIX)
+        user_biz_cache = None
 
         if user_biz_cache:
             # 如果存在缓存则返回
             return user_biz_cache
         else:
             # 缓存已过期，重新获取
-            kwargs = {"fields": ["bk_biz_id", "bk_biz_name"]}
+            kwargs = {"fields": ["bk_biz_id", "bk_biz_name"], "no_request": True}
 
             # 如果不使用权限中心，则需要拿到业务运维
             if not (settings.USE_IAM or User.objects.filter(username=username, is_superuser=True).exists()):

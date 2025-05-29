@@ -32,7 +32,7 @@ from apps.iam.exceptions import (
 )
 from apps.iam.handlers.actions import ActionMeta, _all_actions, get_action_by_id
 from apps.iam.handlers.resources import _all_resources, get_resource_by_id
-from apps.utils.local import get_request
+from apps.utils.local import get_request, get_tenant_id
 from common.log import logger
 
 
@@ -58,17 +58,10 @@ class Permission(object):
 
     @classmethod
     def get_iam_client(cls):
+        tenant_id = get_tenant_id()
         if settings.BK_IAM_SKIP:
-            return DummyIAM(
-                settings.APP_ID, settings.APP_TOKEN, settings.BK_IAM_INNER_HOST, settings.BK_PAAS_INNER_HOST
-            )
-        return IAM(
-            settings.APP_ID,
-            settings.APP_TOKEN,
-            settings.BK_IAM_INNER_HOST,
-            settings.BK_PAAS_INNER_HOST,
-            settings.BK_IAM_APIGW,
-        )
+            return DummyIAM(settings.APP_ID, settings.APP_TOKEN, settings.BK_IAM_APIGW, tenant_id)
+        return IAM(settings.APP_ID, settings.APP_TOKEN, settings.BK_IAM_APIGW, tenant_id)
 
     def make_request(self, action: Union[ActionMeta, str], resources: List[Resource] = None) -> Request:
         """
