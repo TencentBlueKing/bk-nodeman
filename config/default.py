@@ -355,6 +355,8 @@ BK_IAM_APIGW = BK_API_URL_TMPL.format(api_name=BK_IAM_APIGW_NAME) + "/" + env.EN
 
 # 多租户开关
 ENABLE_MULTI_TENANT_MODE = env.ENABLE_MULTI_TENANT_MODE
+# 调用 do_migrate 脚本时需要插入 bk_tenant_id 参数
+BK_APP_TENANT_ID = env.BK_APP_TENANT_ID
 # 全租户应用网关
 IS_GLOBAL_TENANT = True
 # 多租户业务集ID

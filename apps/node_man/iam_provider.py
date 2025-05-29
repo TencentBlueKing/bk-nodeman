@@ -18,6 +18,7 @@ from iam.resource.provider import ListResult, ResourceProvider
 from apps.node_man.constants import IamActionType
 from apps.node_man.handlers.iam import IamHandler
 from apps.node_man.models import AccessPoint, Cloud, GsePluginDesc, Subscription
+from apps.utils.local import get_tenant_id
 from common.api import CCApi
 
 SYSTEM_ID = settings.BK_IAM_SYSTEM_ID
@@ -135,7 +136,7 @@ class CloudResourceProvider(ResourceProvider):
     管控区域资源Provider
     """
 
-    def fetch_clouds(self, condition=None):
+    def fetch_clouds(self, condition=None, tenant_id=None):
         """
         获得所有管控区域列表
         :return:
@@ -146,6 +147,9 @@ class CloudResourceProvider(ResourceProvider):
         """
         if not condition:
             condition = {}
+
+        if tenant_id:
+            condition["tenant_id"] = tenant_id
 
         result = []
         for cloud in list(Cloud.objects.filter(**condition).values("bk_cloud_id", "bk_cloud_name", "creator")):
@@ -175,10 +179,11 @@ class CloudResourceProvider(ResourceProvider):
         """
         管控区域资源属性值
         """
+        tenant_id = options.get("bk_tenant_id")
         if filter.get("attr") == "cloud" and (filter.get("keyword") or filter.get("ids")):
-            results = resources_filter(filter, self.fetch_clouds())
+            results = resources_filter(filter, self.fetch_clouds(tenant_id=tenant_id))
         elif filter.get("attr") == "cloud":
-            results = self.fetch_clouds()
+            results = self.fetch_clouds(tenant_id=tenant_id)
         else:
             return ListResult(results=[], count=0)
 
@@ -192,14 +197,15 @@ class CloudResourceProvider(ResourceProvider):
         """
         管控区域属性值过滤
         """
+        tenant_id = options.get("bk_tenant_id")
         if filter.get("search", {}):
             results = []
-            resource_data = self.fetch_clouds()
+            resource_data = self.fetch_clouds(tenant_id=tenant_id)
             for resource in resource_data:
                 if resource["display_name"] in filter["search"].get("cloud"):
                     results.append(resource)
         else:
-            results = self.fetch_clouds()
+            results = self.fetch_clouds(tenant_id=tenant_id)
 
         # 分页
         paginator = Paginator(list(results), page.limit)
@@ -211,8 +217,9 @@ class CloudResourceProvider(ResourceProvider):
         """
         管控区域搜索
         """
+        tenant_id = options.get("bk_tenant_id")
         condition = {"bk_cloud_name__icontains": filter.get("keyword", "")}
-        results = self.fetch_clouds(condition)
+        results = self.fetch_clouds(condition, tenant_id=tenant_id)
 
         paginator = Paginator(list(results), page.limit)
         page = int(page.offset / page.limit) + 1
@@ -223,14 +230,15 @@ class CloudResourceProvider(ResourceProvider):
         """
         批量获取资源实例详情
         """
+        tenant_id = options.get("bk_tenant_id")
         if filter.get("search", {}):
             results = []
-            resource_data = self.fetch_clouds()
+            resource_data = self.fetch_clouds(tenant_id=tenant_id)
             for resource in resource_data:
                 if resource["display_name"] in filter["search"].get("cloud"):
                     results.append(resource)
         else:
-            results = self.fetch_clouds()
+            results = self.fetch_clouds(tenant_id=tenant_id)
 
         return ListResult(results, len(results))
 
@@ -246,7 +254,7 @@ class ApResourceProvider(ResourceProvider):
     接入点资源Provider
     """
 
-    def fetch_aps(self):
+    def fetch_aps(self, tenant_id):
         """
         获得所有接入点列表
         :return:
@@ -255,6 +263,9 @@ class ApResourceProvider(ResourceProvider):
             'display_name': ap_name
         }]
         """
+        if tenant_id != "system":
+            return []
+
         return [
             {"id": ap["id"], "display_name": ap["name"]} for ap in list(AccessPoint.objects.all().values("id", "name"))
         ]
@@ -270,10 +281,11 @@ class ApResourceProvider(ResourceProvider):
         """
         接入点资源属性值
         """
+        tenant_id = options.get("bk_tenant_id")
         if filter.get("attr") == "ap" and (filter.get("keyword") or filter.get("ids")):
-            results = resources_filter(filter, self.fetch_aps())
+            results = resources_filter(filter, self.fetch_aps(tenant_id))
         elif filter.get("attr") == "ap":
-            results = self.fetch_aps()
+            results = self.fetch_aps(tenant_id)
         else:
             return ListResult(results=[], count=0)
 
@@ -287,14 +299,15 @@ class ApResourceProvider(ResourceProvider):
         """
         接入点属性值过滤
         """
+        tenant_id = options.get("bk_tenant_id")
         if filter.get("search", {}):
             results = []
-            resource_data = self.fetch_aps()
+            resource_data = self.fetch_aps(tenant_id)
             for resource in resource_data:
                 if resource["display_name"] in filter["search"].get("ap"):
                     results.append(resource)
         else:
-            results = self.fetch_aps()
+            results = self.fetch_aps(tenant_id)
 
         # 分页
         paginator = Paginator(list(results), page.limit)
@@ -306,14 +319,15 @@ class ApResourceProvider(ResourceProvider):
         """
         批量获取资源实例详情
         """
+        tenant_id = options.get("bk_tenant_id")
         if filter.get("search", {}):
             results = []
-            resource_data = self.fetch_aps()
+            resource_data = self.fetch_aps(tenant_id)
             for resource in resource_data:
                 if resource["display_name"] in filter["search"].get("ap"):
                     results.append(resource)
         else:
-            results = self.fetch_aps()
+            results = self.fetch_aps(tenant_id)
 
         return ListResult(results, len(results))
 
@@ -332,7 +346,7 @@ class PackageResourceProvider(ResourceProvider):
     插件包资源Provider
     """
 
-    def fetch_packages(self, condition=None):
+    def fetch_packages(self, condition=None, tenant_id=None):
         """
         获得所有插件包列表
         :return:
@@ -341,6 +355,8 @@ class PackageResourceProvider(ResourceProvider):
             'display_name': ap_name
         }]
         """
+        if tenant_id != "system":
+            return []
         if not condition:
             condition = {}
         return [
@@ -359,10 +375,11 @@ class PackageResourceProvider(ResourceProvider):
         """
         接入点资源属性值
         """
+        tenant_id = options.get("bk_tenant_id")
         if filter.get("attr") == "package" and (filter.get("keyword") or filter.get("ids")):
-            results = resources_filter(filter, self.fetch_packages())
+            results = resources_filter(filter, self.fetch_packages(tenant_id=tenant_id))
         elif filter.get("attr") == "package":
-            results = self.fetch_packages()
+            results = self.fetch_packages(tenant_id=tenant_id)
         else:
             return ListResult(results=[], count=0)
 
@@ -376,14 +393,15 @@ class PackageResourceProvider(ResourceProvider):
         """
         接入点属性值过滤
         """
+        tenant_id = options.get("bk_tenant_id")
         if filter.get("search", {}):
             results = []
-            resource_data = self.fetch_packages()
+            resource_data = self.fetch_packages(tenant_id=tenant_id)
             for resource in resource_data:
                 if resource["display_name"] in filter["search"].get("package"):
                     results.append(resource)
         else:
-            results = self.fetch_packages()
+            results = self.fetch_packages(tenant_id=tenant_id)
 
         # 分页
         paginator = Paginator(list(results), page.limit)
@@ -395,14 +413,15 @@ class PackageResourceProvider(ResourceProvider):
         """
         批量获取资源实例详情
         """
+        tenant_id = options.get("bk_tenant_id")
         if filter.get("search", {}):
             results = []
-            resource_data = self.fetch_packages()
+            resource_data = self.fetch_packages(tenant_id=tenant_id)
             for resource in resource_data:
                 if resource["display_name"] in filter["search"].get("package"):
                     results.append(resource)
         else:
-            results = self.fetch_packages()
+            results = self.fetch_packages(tenant_id=tenant_id)
 
         return ListResult(results, len(results))
 
@@ -411,7 +430,7 @@ class PackageResourceProvider(ResourceProvider):
         管控区域搜索
         """
         condition = {"description__icontains": filter.get("keyword", "")}
-        results = self.fetch_packages(condition)
+        results = self.fetch_packages(condition, tenant_id=options.get("bk_tenant_id"))
 
         paginator = Paginator(list(results), page.limit)
         page = int(page.offset / page.limit) + 1
@@ -430,7 +449,7 @@ class StrategyResourceProvider(ResourceProvider):
     策略资源Provider
     """
 
-    def fetch_strategy(self, condition=None):
+    def fetch_strategy(self, condition=None, tenant_id=None):
         """
         获得所有策略列表
         :return:
@@ -447,6 +466,9 @@ class StrategyResourceProvider(ResourceProvider):
             condition = init_condition
         else:
             condition.update(init_condition)
+
+        if tenant_id:
+            condition["tenant_id"] = tenant_id
 
         result = []
         for strategy in list(Subscription.objects.filter(**condition).values("id", "name", "creator")):
@@ -470,10 +492,11 @@ class StrategyResourceProvider(ResourceProvider):
         """
         资源属性值
         """
+        tenant_id = options.get("bk_tenant_id")
         if filter.get("attr") == "strategy" and (filter.get("keyword") or filter.get("ids")):
-            results = resources_filter(filter, self.fetch_strategy())
+            results = resources_filter(filter, self.fetch_strategy(tenant_id=tenant_id))
         elif filter.get("attr") == "strategy":
-            results = self.fetch_strategy()
+            results = self.fetch_strategy(tenant_id=tenant_id)
         else:
             return ListResult(results=[], count=0)
 
@@ -487,14 +510,15 @@ class StrategyResourceProvider(ResourceProvider):
         """
         策略属性值过滤
         """
+        tenant_id = options.get("bk_tenant_id")
         if filter.get("search", {}):
             results = []
-            resource_data = self.fetch_strategy()
+            resource_data = self.fetch_strategy(tenant_id=tenant_id)
             for resource in resource_data:
                 if resource["display_name"] in filter["search"].get("stratety"):
                     results.append(resource)
         else:
-            results = self.fetch_strategy()
+            results = self.fetch_strategy(tenant_id=tenant_id)
 
         # 分页
         paginator = Paginator(list(results), page.limit)
@@ -507,7 +531,7 @@ class StrategyResourceProvider(ResourceProvider):
         策略搜索
         """
         condition = {"name__icontains": filter.get("keyword", "")}
-        results = self.fetch_strategy(condition)
+        results = self.fetch_strategy(condition, tenant_id=options.get("bk_tenant_id"))
 
         paginator = Paginator(list(results), page.limit)
         page = int(page.offset / page.limit) + 1
@@ -518,14 +542,15 @@ class StrategyResourceProvider(ResourceProvider):
         """
         批量获取资源实例详情
         """
+        tenant_id = options.get("bk_tenant_id")
         if filter.get("search", {}):
             results = []
-            resource_data = self.fetch_strategy()
+            resource_data = self.fetch_strategy(tenant_id=tenant_id)
             for resource in resource_data:
                 if resource["display_name"] in filter["search"].get("stratety"):
                     results.append(resource)
         else:
-            results = self.fetch_strategy()
+            results = self.fetch_strategy(tenant_id=tenant_id)
 
         return ListResult(results, len(results))
 
@@ -596,13 +621,8 @@ class IamRegister(object):
     ]
 
     def __init__(self):
-        self._iam = IAM(
-            settings.APP_CODE,
-            settings.SECRET_KEY,
-            settings.BK_IAM_INNER_HOST,
-            settings.BK_COMPONENT_API_OVERWRITE_URL,
-            settings.BK_IAM_APIGW,
-        )
+        self.tenant_id = get_tenant_id()
+        self._iam = IAM(settings.APP_CODE, settings.SECRET_KEY, settings.BK_IAM_APIGW, self.tenant_id)
 
     def register_system(self):
         # ***需要将placeholder改为内网访问地址***

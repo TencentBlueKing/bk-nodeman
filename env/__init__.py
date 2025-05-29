@@ -207,3 +207,5 @@ SYNC_APIGATEWAY_ENABLED = get_type_env(key="SYNC_APIGATEWAY_ENABLED", default=Tr
 TXY_ENDPOINT = get_type_env(key="TXY_ENDPOINT", default="", _type=str)
 # 多租户开关
 ENABLE_MULTI_TENANT_MODE = get_type_env(key="ENABLE_MULTI_TENANT_MODE", default=False, _type=bool)
+# 调用 do_migrate 脚本时需要插入 bk_tenant_id 参数
+BK_APP_TENANT_ID = get_type_env(key="BK_APP_TENANT_ID", default="system", _type=str)

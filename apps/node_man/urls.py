@@ -42,14 +42,9 @@ from apps.node_man.views.host_v2 import HostV2ViewSet
 from apps.node_man.views.plugin import GsePluginViewSet
 from apps.node_man.views.plugin_v2 import PluginV2ViewSet
 from apps.node_man.views.sync_task import SyncTaskViewSet
+from apps.utils.local import get_tenant_id
 
-iam = IAM(
-    settings.APP_CODE,
-    settings.SECRET_KEY,
-    settings.BK_IAM_INNER_HOST,
-    settings.BK_COMPONENT_API_OVERWRITE_URL,
-    settings.BK_IAM_APIGW,
-)
+iam = IAM(settings.APP_CODE, settings.SECRET_KEY, settings.BK_IAM_APIGW, get_tenant_id())
 
 router = routers.DefaultRouter(trailing_slash=True)
 
