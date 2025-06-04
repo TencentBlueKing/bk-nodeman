@@ -164,7 +164,6 @@
 **Full Release Notes**: https://github.com/TencentBlueKing/bk-nodeman/compare/v2.4.7...v2.4.8
 
 
-
 ## 2.4.7 版本更新日志 
 
 ### 功能
