@@ -117,9 +117,8 @@ class HostHandler:
             f"need_differential_sync_bk_host_ids "
             f"count:{len(need_differential_sync_bk_host_ids)} -> {need_differential_sync_bk_host_ids}"
         )
-
         return need_differential_sync_bk_host_ids
-    
+
     @classmethod
     def _bulk_differential_sync_hosts(cls, need_differential_sync_bk_host_ids):
         # 查询主机id所属业务
@@ -138,7 +137,8 @@ class HostHandler:
         """
         差量同步所有需要同步的主机
         """
-        lock_key = f"lock:bulk_diff_sync_hosts:{hashlib.md5(json.dumps(need_differential_sync_bk_host_ids).encode()).hexdigest()}"
+        json_str = json.dumps(need_differential_sync_bk_host_ids).encode()
+        lock_key = f"lock:bulk_diff_sync_hosts:{hashlib.md5(json_str).hexdigest()}"
         lock_expire = 120
         max_retries = 20
         retry_delay = 5
