@@ -11,10 +11,10 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     env:
       # 构建环境的Python版本
-      PYTHON_VERSION: "3.7"
+      PYTHON_VERSION: "3.8"
       # yaml中版本的描述路径
       VERSION_KW_P: "version"
       # 描述app的yaml文件

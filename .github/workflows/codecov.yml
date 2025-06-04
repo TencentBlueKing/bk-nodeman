@@ -10,7 +10,7 @@ jobs:
           - "CLASSIC"
           - "SHANGMI"
         PYTHON_VERSION:
-          - "3.6"
+          - "3.7"
     name: "[CodeCov][${{ matrix.BKPAAS_BK_CRYPTO_TYPE }}] with Python ${{ matrix.PYTHON_VERSION }}"
     env:
       DJANGO_SETTINGS_MODULE: "settings"
@@ -39,7 +39,7 @@ jobs:
       MYSQL_TEST_NAME: "bk_nodeman_test"
       WORKFLOW_DIR: "scripts/workflows"
       YUM_INSTALL_SERVICE: ""
-      CREATE_PYTHON_VENV: ""
+      CREATE_PYTHON_VENV: 1
     services:
       # Label used to access the service container
       redis:
@@ -56,7 +56,7 @@ jobs:
           - 6379:6379
     steps:
     - name: Checkout Repository
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
     - name: Setup Python
       uses: actions/setup-python@v3
       with:
@@ -67,5 +67,7 @@ jobs:
     - name: Generate Report
       run: |
         ./scripts/workflows/bk_ci.sh
+    - name: Setup tmate session
+      uses: mxschmitt/action-tmate@v3
     - name: Upload Coverage to Codecov
       uses: codecov/codecov-action@v1
