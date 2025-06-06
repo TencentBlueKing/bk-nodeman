@@ -595,7 +595,7 @@ export default {
   正在执行: 'Running',
   失败: 'failed',
   已终止: 'Terminated',
-  执行成功: 'Successed',
+  执行成功: 'Succeeded',
   执行失败: 'Failed',
   部分失败: 'Partially failed',
   等待执行: 'Waiting',
