@@ -18,22 +18,29 @@ class SyncTaskType(EnhanceEnum):
     """同步任务类型"""
 
     SYNC_CMDB_HOST = "sync_cmdb_host"
+    REGISTER_GSE_PACKAGE = "register_gse_package"
 
     @classmethod
     def _get_member__alias_map(cls):
-        return {cls.SYNC_CMDB_HOST: _("同步 CMDB 主机数据")}
+        return {
+            cls.SYNC_CMDB_HOST: _("同步 CMDB 主机数据"),
+            cls.REGISTER_GSE_PACKAGE: _("注册gse package任务"),
+        }
 
     @classmethod
     def get_member__cache_key_map(cls):
         """获取缓存键名"""
         cache_key_map = {
-            cls.SYNC_CMDB_HOST: f"{settings.APP_CODE}:backend:sync_task:sync_cmdb_host:" + "biz:{bk_biz_id}"
+            cls.SYNC_CMDB_HOST: f"{settings.APP_CODE}:backend:sync_task:sync_cmdb_host:" + "biz:{bk_biz_id}",
+            cls.REGISTER_GSE_PACKAGE: f"{settings.APP_CODE}:backend:sync_task:register_gse_package:"
+            + "file_name={file_name}:tags={tags}",
         }
         return cache_key_map
 
     @classmethod
     def get_member__import_path_map(cls):
         import_path_map = {
-            cls.SYNC_CMDB_HOST: "apps.node_man.periodic_tasks.sync_cmdb_host.sync_cmdb_host_task"
+            cls.SYNC_CMDB_HOST: "apps.node_man.periodic_tasks.sync_cmdb_host.sync_cmdb_host_task",
+            cls.REGISTER_GSE_PACKAGE: "apps.node_man.periodic_tasks.register_gse_package.register_gse_package_task",
         }
         return import_path_map

@@ -116,13 +116,12 @@ class AgentBaseTestCase(CustomAPITestCase):
             )
             # exist_ok 目录存在直接跳过，不抛出 FileExistsError
             os.makedirs(overwrite_path, exist_ok=True)
+            target_gsectl_dir = os.path.join(overwrite_path, "gsectl")
 
             if setting_name == PathSettingOverwrite.GSE_CERT_PATH.value:
                 self.gen_cert_files(overwrite_path)
-            elif setting_name == PathSettingOverwrite.DOWNLOAD_PATH.value:
-                shutil.copytree(
-                    os.path.join(settings.BK_SCRIPTS_PATH, "gsectl"), os.path.join(overwrite_path, "gsectl")
-                )
+            elif setting_name == PathSettingOverwrite.DOWNLOAD_PATH.value and not os.path.isdir(target_gsectl_dir):
+                shutil.copytree(os.path.join(settings.BK_SCRIPTS_PATH, "gsectl"), target_gsectl_dir)
 
         artifact_dir = self.gen_base_artifact_files(os_cpu_choices=self.OS_CPU_CHOICES)
         self.pack_pkg(artifact_dir=artifact_dir, arcname=self.ARTIFACT_BUILDER_CLASS.BASE_PKG_DIR)

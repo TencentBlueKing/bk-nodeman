@@ -184,6 +184,7 @@ class InstallBaseTestCase(utils.AgentServiceBaseTestCase):
             fs.write("哈哈哈113343ddfd")
 
     def setUp(self) -> None:
+        self.obj_factory.init_gse_package_desc()
         self.update_callback_url()
         self.init_mock_clients()
         self.init_hosts()
@@ -412,7 +413,9 @@ class InstallWindowsTestCase(InstallBaseTestCase):
 class InstallAgent2WindowsTestCase(InstallWindowsTestCase):
     def adjust_db(self):
         sub_step_obj: models.SubscriptionStep = self.obj_factory.sub_step_objs[0]
-        sub_step_obj.config.update({"name": "gse_agent", "version": "2.0.0"})
+        sub_step_obj.config.update(
+            {"name": "gse_agent", "version": "2.0.0", "version_map_list": [], "choice_version_type": "unified"}
+        )
         sub_step_obj.save(update_fields=["config"])
 
     def structure_common_inputs(self):
@@ -428,7 +431,7 @@ class InstallAgent2WindowsTestCase(InstallWindowsTestCase):
             gse_version=GseVersion.V2.value,
         )
         installation_tool = gen_commands(
-            agent_step_adapter.setup_info,
+            agent_step_adapter.get_host_setup_info(host),
             host,
             mock_data_utils.JOB_TASK_PIPELINE_ID,
             is_uninstall=False,
@@ -886,7 +889,9 @@ class LinuxAgent2InstallTestCase(InstallBaseTestCase):
 
     def adjust_db(self):
         sub_step_obj: models.SubscriptionStep = self.obj_factory.sub_step_objs[0]
-        sub_step_obj.config.update({"name": "gse_agent", "version": "2.0.0"})
+        sub_step_obj.config.update(
+            {"name": "gse_agent", "version": "2.0.0", "version_map_list": [], "choice_version_type": "unified"}
+        )
         sub_step_obj.save()
 
     def structure_common_inputs(self):
@@ -902,7 +907,7 @@ class LinuxAgent2InstallTestCase(InstallBaseTestCase):
             gse_version=GseVersion.V2.value,
         )
         installation_tool = gen_commands(
-            agent_step_adapter.setup_info,
+            agent_step_adapter.get_host_setup_info(host),
             host,
             mock_data_utils.JOB_TASK_PIPELINE_ID,
             is_uninstall=False,
@@ -1311,7 +1316,7 @@ class OpenJumpPolicyNoUsingChannelInDirect(InstallAgent2WindowsTestCase):
             gse_version=GseVersion.V2.value,
         )
         installation_tool = gen_commands(
-            agent_step_adapter.setup_info,
+            agent_step_adapter.get_host_setup_info(host),
             host,
             mock_data_utils.JOB_TASK_PIPELINE_ID,
             is_uninstall=False,
