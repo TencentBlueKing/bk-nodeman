@@ -11,8 +11,10 @@ specific language governing permissions and limitations under the License.
 
 
 import logging
+import typing
 
 from apps.core.tag.models import Tag
+from apps.node_man.models import GsePackageDesc
 
 from .. import constants
 from . import base
@@ -26,12 +28,42 @@ class AgentTargetHelper(base.BaseTargetHelper):
     TARGET_TYPE = constants.TargetType.AGENT.value
 
     def _publish_tag_version(self):
-        Tag.objects.update_or_create(
-            defaults={"target_version": self.target_version},
+        if self.tag_name in ["stable", "latest", "test"]:
+            # 内置标签相互覆盖
+            Tag.objects.update_or_create(
+                defaults={"target_version": self.target_version},
+                name=self.tag_name,
+                target_id=self.target_id,
+                target_type=self.TARGET_TYPE,
+            )
+            return
+
+        tag: typing.Optional[Tag] = Tag.objects.filter(
             name=self.tag_name,
             target_id=self.target_id,
             target_type=self.TARGET_TYPE,
-        )
+        ).first()
+
+        if not tag:
+            return
+
+        if not tag.target_version:
+            # 刚创建的未指定版本的标签
+            tag.target_version = self.target_version
+            tag.save()
+        else:
+            Tag.objects.update_or_create(
+                name=self.tag_name,
+                target_id=self.target_id,
+                target_type=self.TARGET_TYPE,
+                target_version=self.target_version,
+                description=tag.description,
+            )
 
     def _delete_tag_version(self):
-        return super()._delete_tag_version()
+        pass
+
+    @classmethod
+    def get_agent_name_target_id_map(cls) -> typing.Dict[str, int]:
+        package_descs = GsePackageDesc.objects.values("project", "id")
+        return {package_desc["project"]: package_desc["id"] for package_desc in package_descs}

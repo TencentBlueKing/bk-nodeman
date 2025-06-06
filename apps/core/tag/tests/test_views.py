@@ -17,7 +17,7 @@ from .. import constants, models
 
 
 class TagPluginTestCase(utils.PluginBaseTestCase):
-    DEFAULT_TAG_NAME: str = "stable"
+    DEFAULT_TAG_NAME: str = "stable2"
 
     def create_tag(self, tag_name: str, target_version: str) -> typing.Dict[str, typing.Any]:
         upload_result = self.upload_plugin()

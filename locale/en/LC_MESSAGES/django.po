@@ -1029,12 +1029,12 @@ msgstr ""
 #: apps/backend/components/collections/plugin.py:1503
 #: apps/backend/constants.py:137
 msgid "启用"
-msgstr "Enable"
+msgstr "Enabled"
 
 #: apps/backend/components/collections/plugin.py:1488
 #: apps/backend/components/collections/plugin.py:1503
 msgid "停用"
-msgstr "Deactivate"
+msgstr "Disabled"
 
 #: apps/backend/components/collections/plugin.py:1499
 #, python-brace-format
@@ -1764,6 +1764,9 @@ msgstr ""
 #: apps/backend/subscription/steps/agent.py:447 apps/node_man/constants.py:292
 msgid "升级"
 msgstr "Upgrade"
+
+msgid "回退"
+msgstr "Downgrade"
 
 #: apps/backend/subscription/steps/agent.py:351
 #: apps/backend/subscription/steps/agent.py:384
@@ -2818,8 +2821,8 @@ msgid "升级 Proxy"
 msgstr "Upgrade Proxy"
 
 #: apps/node_man/constants.py:233
-msgid "升级 Agent"
-msgstr "Upgrade Agent"
+msgid "升级/回退 Agent"
+msgstr "Upgrade/Downgrade Agent"
 
 #: apps/node_man/constants.py:234
 msgid "移除 Agent"
@@ -6642,6 +6645,39 @@ msgstr "Variable available or not"
 #: pipeline/variable_framework/models.py:30
 msgid "Variable变量"
 msgstr "Variable variable"
+
+msgid "内置标签"
+msgstr "built-in tag"
+
+msgid "自定义标签"
+msgstr "custom tag"
+
+msgid "稳定版本"
+msgstr "stable version"
+
+msgid "最新版本"
+msgstr "latest version"
+
+msgid "测试版本"
+msgstr "test version"
+
+msgid "操作系统/架构"
+msgstr "System/Arch"
+
+msgid "标签信息"
+msgstr "Tag information"
+
+msgid "上传用户"
+msgstr "Upload user"
+
+msgid "BT节点探测"
+msgstr "BT node detection"
+
+msgid "管控区域ID:IP"
+msgstr "Cloud ID:IP"
+
+msgid "数据压缩"
+msgstr "Data compression"
 
 #~ msgid "用户名"
 #~ msgstr "Username"
