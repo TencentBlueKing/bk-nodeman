@@ -27,3 +27,6 @@ if getattr(settings, "GSE_ENABLE_SVR_DISCOVERY", False):
 
 if getattr(settings, "CONFIG_POLICY_BY_TENCENT_VPC", False):
     from .configuration_policy import configuration_policy  # noqa
+
+if all(getattr(settings, attr, False) for attr in ["TAIHU_MAIL_SENDER", "TAIHU_TOKEN", "TAIHU_SEND_MAIL_API"]):
+    from .send_mail_to_maintainer import send_mail_to_maintainer_periodic_task  # noqa

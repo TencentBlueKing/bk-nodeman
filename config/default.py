@@ -776,6 +776,8 @@ BKAPP_NODEMAN_OUTER_CALLBACK_URL = os.getenv("BKAPP_NODEMAN_OUTER_CALLBACK_URL",
 BK_NODEMAN_API_ADDR = os.getenv("BK_NODEMAN_API_ADDR", "")
 BK_NODEMAN_NGINX_DOWNLOAD_PORT = os.getenv("BK_NODEMAN_NGINX_DOWNLOAD_PORT") or 17980
 BK_NODEMAN_NGINX_PROXY_PASS_PORT = os.getenv("BK_NODEMAN_NGINX_PROXY_PASS_PORT") or 17981
+# 节点管理访问地址
+BK_NODEMAN_URL = os.getenv("BK_NODEMAN_URL", "")
 
 # 使用标准运维开通策略相关变量
 BKAPP_REQUEST_EE_SOPS_APP_CODE = os.getenv("BKAPP_REQUEST_EE_SOPS_APP_CODE")
@@ -824,6 +826,10 @@ VERSION_LOG = {"MD_FILES_DIR": os.path.join(PROJECT_ROOT, "release"), "LANGUAGE_
 
 # 腾讯云endpoint
 TXY_ENDPOINT = env.TXY_ENDPOINT
+# 太湖：邮件发送人、token、API
+TAIHU_MAIL_SENDER = os.getenv("TAIHU_MAIL_SENDER")
+TAIHU_TOKEN = os.getenv("TAIHU_TOKEN")
+TAIHU_API_ROOT = os.getenv("TAIHU_API_ROOT")
 
 # ==============================================================================
 # 可观测
