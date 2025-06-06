@@ -21,7 +21,9 @@ from apps.backend.constants import ProxyConfigFile
 from apps.core.tag.constants import AGENT_NAME_TARGET_ID_MAP, TargetType
 from apps.core.tag.targets import get_target_helper
 from apps.node_man import constants, models
+from apps.node_man.models import BizEventDataIdMap
 from apps.utils import cache
+from common.api import MonitorApi
 from env.constants import GseVersion
 
 from . import base, legacy
@@ -106,6 +108,22 @@ class AgentStepAdapter:
     ) -> str:
         agent_setup_info: base.AgentSetupInfo = self.setup_info
         # 目标版本优先使用传入版本，传入版本必不会是标签所以可直接使用
+
+        try:
+            event_map, created = BizEventDataIdMap.objects.get_or_create(
+                bk_biz_id=host.bk_biz_id,
+                defaults={
+                    "alarm_event_data_id": MonitorApi.get_or_create_agent_event_data_id({"bk_biz_id": host.bk_biz_id})[
+                        "bk_data_id"
+                    ]
+                },
+            )
+            alarm_event_data_id = event_map.alarm_event_data_id
+        except Exception as e:  # 捕获所有可能的异常（包括API和数据库错误）
+            logger.error(f"处理告警事件data_id失败，业务ID: {host.bk_biz_id}，错误详情: {str(e)}")
+            alarm_event_data_id = None
+        agent_setup_info.alarm_event_data_id = alarm_event_data_id
+
         config_handler: GseConfigHandler = self.get_config_handler(
             agent_setup_info.name, target_version or agent_setup_info.version
         )

@@ -69,7 +69,7 @@ class CmdbHandler(APIModel):
             'bk_biz_name': bk_biz_name
         }]
         """
-        user_biz_cache = None
+        user_biz_cache = cache.get(username + BIZ_CACHE_SUFFIX)
 
         if user_biz_cache:
             # 如果存在缓存则返回
