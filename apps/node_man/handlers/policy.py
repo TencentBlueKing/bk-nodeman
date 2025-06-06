@@ -20,7 +20,7 @@ from typing import Any, Dict, List, Optional, Set, Union
 from django.conf import settings
 from django.db.models import Q
 from django.utils import timezone
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from packaging import version
 
 from apps.backend.constants import PluginMigrateType
@@ -136,9 +136,9 @@ class PolicyHandler:
         all_policy_ids = [policy["id"] for policy in all_policies]
 
         # 查询每个策略下最新的任务
-        sub_task_infos = models.SubscriptionTask.objects.filter(
-            subscription_id__in=all_policy_ids
-        ).values("id", "subscription_id")
+        sub_task_infos = models.SubscriptionTask.objects.filter(subscription_id__in=all_policy_ids).values(
+            "id", "subscription_id"
+        )
 
         max_sub_task_id_list, task_ids_gby_sub_id = [], defaultdict(list)
         for sub_task_dict in sub_task_infos:

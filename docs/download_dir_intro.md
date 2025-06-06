@@ -117,7 +117,8 @@
 # 升级 Agent 二进制脚本（1.0 / 2.0 通用）
 ├── upgrade_agent.sh.tpl
 # Proxy 依赖包，用于 Proxy Python、Nginx 环境搭建
-├── py36.tgz
+├── py311-x86_64.tgz
+├── py311-aarch64.tgz
 ├── nginx-portable.tgz
 ├── start_nginx.sh.tpl
 # Windows Agent 安装依赖

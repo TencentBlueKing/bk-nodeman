@@ -18,7 +18,6 @@ from multiprocessing.pool import ThreadPool
 
 from django.core import signals
 from django.db import connections
-from six.moves import zip
 
 from apps.backend.healthz.constants import CheckerStatus
 from common.log import logger
@@ -38,12 +37,13 @@ class CheckerItem(object):
     def _get_func_args_decl(self, func, skip=0):
         args = []
         kwargs = {}
-        argspec = inspect.getargspec(func)
-        iargs = iter(argspec.args[::-1])
-        if argspec.defaults:
-            defaults = argspec.defaults[::-1]
-            kwargs.update((k, v) for v, k in zip(defaults, iargs))
-        args.extend(iargs)
+        sig = inspect.signature(func)
+        params = sig.parameters
+        for name, param in params.items():
+            if param.default == param.empty:
+                args.append(name)
+            else:
+                kwargs[name] = param.default
         return args[:-skip], kwargs
 
     def get_argspec(self):

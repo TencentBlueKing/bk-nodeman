@@ -11,13 +11,11 @@ specific language governing permissions and limitations under the License.
 
 from bk_notice_sdk import config as notice_config
 from django.conf import settings
-from django.conf.urls import include, url
 from django.contrib import admin
-from django.urls import re_path
+from django.urls import include, re_path
 from drf_yasg import openapi
 from drf_yasg.views import get_schema_view
 from rest_framework import permissions
-
 from version_log import config
 
 schema_view = get_schema_view(
@@ -34,13 +32,13 @@ schema_view = get_schema_view(
 )
 
 urlpatterns = [
-    url(r"^admin_nodeman/", admin.site.urls),
-    url(r"^account/", include("blueapps.account.urls")),
-    url(r"^backend/", include("apps.backend.urls")),
-    url(r"^core/", include("apps.core.urls")),
-    url(r"^", include("apps.node_man.urls")),
-    url(r"^{}".format(config.ENTRANCE_URL), include("version_log.urls", namespace="version_log")),
-    url(r"^{}".format(notice_config.ENTRANCE_URL), include(("bk_notice_sdk.urls", "notice"), namespace="notice")),
+    re_path(r"^admin_nodeman/", admin.site.urls),
+    re_path(r"^account/", include("blueapps.account.urls")),
+    re_path(r"^backend/", include("apps.backend.urls")),
+    re_path(r"^core/", include("apps.core.urls")),
+    re_path(r"^", include("apps.node_man.urls")),
+    re_path(r"^{}".format(config.ENTRANCE_URL), include("version_log.urls", namespace="version_log")),
+    re_path(r"^{}".format(notice_config.ENTRANCE_URL), include(("bk_notice_sdk.urls", "notice"), namespace="notice")),
 ]
 
 if settings.ENVIRONMENT not in ["production", "prod"]:

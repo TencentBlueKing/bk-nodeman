@@ -10,7 +10,7 @@ jobs:
           - "CLASSIC"
           - "SHANGMI"
         PYTHON_VERSION:
-          - "3.6"
+          - "3.11"
     name: "[CodeCov][${{ matrix.BKPAAS_BK_CRYPTO_TYPE }}] with Python ${{ matrix.PYTHON_VERSION }}"
     env:
       DJANGO_SETTINGS_MODULE: "settings"

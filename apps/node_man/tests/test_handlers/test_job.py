@@ -14,7 +14,7 @@ from unittest.mock import patch
 
 from django.test import TestCase
 from django.utils import timezone
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from apps.mock_data import common_unit
 from apps.node_man import constants, tools

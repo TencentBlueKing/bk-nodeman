@@ -14,10 +14,15 @@ specific language governing permissions and limitations under the License.
 from abc import ABCMeta, abstractmethod
 from copy import deepcopy
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from pipeline.core.flow.activity.base import Activity
-from pipeline.core.flow.io import BooleanItemSchema, InputItem, IntItemSchema, OutputItem
+from pipeline.core.flow.io import (
+    BooleanItemSchema,
+    InputItem,
+    IntItemSchema,
+    OutputItem,
+)
 from pipeline.utils.utils import convert_bytes_to_str
 
 
@@ -227,13 +232,13 @@ class AbstractIntervalGenerator(object, metaclass=ABCMeta):
 class DefaultIntervalGenerator(AbstractIntervalGenerator):
     def next(self):
         super(DefaultIntervalGenerator, self).next()
-        return self.count ** 2
+        return self.count**2
 
 
 class SquareIntervalGenerator(AbstractIntervalGenerator):
     def next(self):
         super(SquareIntervalGenerator, self).next()
-        return self.count ** 2
+        return self.count**2
 
 
 class NullIntervalGenerator(AbstractIntervalGenerator):

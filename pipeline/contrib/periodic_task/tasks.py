@@ -16,7 +16,7 @@ import logging
 import traceback
 
 import pytz
-from celery import task
+from celery import current_app
 from django.utils import timezone
 
 from pipeline.contrib.periodic_task import signals
@@ -27,7 +27,7 @@ from pipeline.models import PipelineInstance
 logger = logging.getLogger("celery")
 
 
-@task(ignore_result=True)
+@current_app.task(ignore_result=True)
 def periodic_task_start(*args, **kwargs):
     try:
         periodic_task = PeriodicTask.objects.get(id=kwargs["period_task_id"])

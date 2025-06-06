@@ -19,7 +19,7 @@ from enum import Enum
 from typing import Any, Dict, List, Union
 
 from django.conf import settings
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from apps.backend import constants as backend_const
 from apps.utils.basic import (
@@ -1143,7 +1143,7 @@ GSE_CLIENT_PACKAGES: List[str] = [
 ]
 
 TOOLS_TO_PUSH_TO_PROXY: List[Dict[str, Union[List[str], Any]]] = [
-    {"files": ["py36-x86_64.tgz", "py36-aarch64.tgz"], "name": _("检测 BT 分发策略（下发Py36包）")},
+    {"files": ["py311-x86_64.tgz", "py311-aarch64.tgz"], "name": _("检测 BT 分发策略（下发Py311包）")},
     {
         "files": [
             "ntrights.exe",

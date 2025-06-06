@@ -16,8 +16,8 @@ from collections import defaultdict
 from json import JSONDecodeError
 from typing import Dict, List, Union
 
+from blueapps.contrib.celery_tools.periodic import periodic_task
 from celery.schedules import crontab
-from celery.task import periodic_task
 from django.conf import settings
 from django.db.models import Q
 
@@ -33,9 +33,9 @@ from common.log import logger
 
 
 @periodic_task(
+    run_every=crontab(hour="1", minute="0", day_of_week="*", day_of_month="*", month_of_year="*"),
     queue="default",
     options={"queue": "default"},
-    run_every=crontab(hour="1", minute="0", day_of_week="*", day_of_month="*", month_of_year="*"),
 )
 def update_proxy_files():
     alive_hosts: List[Dict[str, str]] = []
@@ -152,7 +152,7 @@ def correct_file_action(download_path: str, hosts: List[Dict[str, Union[str, int
         return True
 
     files = [file for file in local_file__md5_map.keys()]
-    script = """#!/opt/py36/bin/python
+    script = """#!/opt/py311/bin/python
 # -*- encoding:utf-8 -*-
 import os
 import json

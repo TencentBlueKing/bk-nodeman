@@ -15,7 +15,7 @@ from django.conf import settings
 from django.db.models import F, QuerySet
 from django.db.transaction import atomic
 from django.utils import timezone
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from apps.adapters.api.gse import get_gse_api_helper
 from apps.core.ipchooser.constants import CommonEnum

@@ -13,7 +13,7 @@ import base64
 from typing import Any, Dict, List, Optional, Union
 
 from django.utils import timezone
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from apps.core.concurrent import controller
 from apps.node_man import constants, models

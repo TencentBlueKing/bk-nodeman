@@ -18,7 +18,7 @@ from bkcrypto.contrib.django.ciphers import symmetric_cipher_manager
 from blueapps.account.decorators import login_exempt
 from django.conf import settings
 from django.http import HttpResponse, JsonResponse, StreamingHttpResponse
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
 
 from apps.backend.constants import (
