@@ -93,24 +93,28 @@ class PluginV2Tools:
                 name__in=projects,
                 source_type=models.ProcessStatus.SourceType.DEFAULT,
                 is_latest=True,
-            ).values("bk_host_id", "name", "version")
+            )
+            .extra(
+                tables=[f"{models.Host._meta.db_table}"],
+                where=[f"{models.Host._meta.db_table}.bk_host_id = {models.ProcessStatus._meta.db_table}.bk_host_id"],
+                select={
+                    "os_type": f"{models.Host._meta.db_table}.os_type",
+                    "cpu_arch": f"{models.Host._meta.db_table}.cpu_arch",
+                },
+            )
+            .values("bk_host_id", "name", "version", "os_type", "cpu_arch")
         )
 
         # proc_list有重复的情况会在此步骤构建映射时自动去重
         proj_host_id_proc_map = {f"{proc['name']}_{proc['bk_host_id']}": proc for proc in proc_list}
 
-        host_list = models.Host.objects.filter(bk_host_id__in={proc["bk_host_id"] for proc in proc_list}).values(
-            "bk_host_id", "os_type", "cpu_arch"
-        )
-
         proj_deploy_infos = []
-        for host in host_list:
-            host.update({"os": host["os_type"].lower()})
+        for proc in proc_list:
             proj_deploy_infos.extend(
                 [
-                    {**host, **proj_host_id_proc_map[f"{project}_{host['bk_host_id']}"], "project": project}
+                    {**proc, "project": project, "os": proc["os_type"].lower()}
                     for project in projects
-                    if f"{project}_{host['bk_host_id']}" in proj_host_id_proc_map
+                    if f"{project}_{proc['bk_host_id']}" in proj_host_id_proc_map
                 ]
             )
         deploy_infos_group_by_keys = groupby(
