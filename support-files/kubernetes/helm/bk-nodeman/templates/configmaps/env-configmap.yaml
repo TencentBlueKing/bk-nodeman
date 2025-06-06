@@ -147,6 +147,7 @@ data:
   BKAPP_BK_USER_WEB_APIGATEWAY: "{{ .Values.config.bkAppBkUserWebApiGateway }}"
   BKAPP_BK_APIGATEWAY: "{{ .Values.config.bkAppBkApiGateway }}"
   BKAPP_BK_JOB_APIGATEWAY: "{{ .Values.config.bkAppBkJobApiGateway }}"
+  BKAPP_BK_MONITOR_APIGATEWAY: "{{ .Values.config.bkAppBkMonitorApiGateway }}"
   BKAPP_CSRF_TRUSTED_ORIGINS: "{{ .Values.config.bkAppCsrfTrustedOrigins }}"
   BKAPP_SESSION_COOKIE_DOMAIN: "{{ .Values.config.bkAppSessionCookieDomain }}"
   TENANT_BLUEKING_SCOPE_ID: "{{ .Values.config.TenantBluekingScopeId}}"
