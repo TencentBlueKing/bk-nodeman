@@ -16,6 +16,7 @@ import logging
 import math
 import os
 import pprint
+import random
 import typing
 from collections import Counter, defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -41,6 +42,7 @@ from apps.backend.utils.data_renderer import nested_render_data
 from apps.component.esbclient import client_v2
 from apps.core.concurrent import controller
 from apps.core.concurrent.cache import FuncCacheDecorator
+from apps.core.concurrent.retry import RetryHandler
 from apps.core.ipchooser.tools.base import HostQuerySqlHelper
 from apps.node_man import constants, models
 from apps.node_man import tools as node_man_tools
@@ -251,6 +253,7 @@ def create_host_key(data: Dict) -> str:
 
 
 @SetupObserve(counter=metrics.app_common_method_requests_total, get_labels_func=get_call_resource_labels_func)
+@RetryHandler(interval=3, retry_times=2)
 def find_host_biz_relations(bk_host_ids: List[int]) -> List[Dict]:
     """
     查询主机所属拓扑关系
@@ -275,7 +278,13 @@ def find_host_biz_relations(bk_host_ids: List[int]) -> List[Dict]:
         {"bk_host_id": bk_host_ids[count * constants.QUERY_CMDB_LIMIT : (count + 1) * constants.QUERY_CMDB_LIMIT]}
         for count in range(math.ceil(len(bk_host_ids) / constants.QUERY_CMDB_LIMIT))
     ]
-    host_biz_relations = request_multi_thread(client_v2.cc.find_host_biz_relations, param_list, get_data=lambda x: x)
+    host_biz_relations = batch_call(
+        func=client_v2.cc.find_host_biz_relations,
+        params_list=param_list,
+        interval=constants.FIND_HOST_BIZ_RELATIONS_INTERVAL,
+        extend_result=True,
+    )
+
     return host_biz_relations
 
 
@@ -382,17 +391,17 @@ def get_modules_by_inst_list(inst_list, module_to_topo):
     return module_ids, no_module_inst_list
 
 
-def get_service_instance_by_inst(bk_biz_id, inst_list, module_to_topo):
-    module_ids, no_module_inst_list = get_modules_by_inst_list(inst_list, module_to_topo)
-    if not module_ids:
-        return []
-
-    if len(module_ids) <= models.GlobalSettings.get_config(
-        models.GlobalSettings.KeyEnum.SERVICE_INSTANCE_MODULE_ID_THRESHOLD.value, constants.QUERY_MODULE_ID_THRESHOLD
-    ):
-        params = [
+def get_service_instance_ids(bk_biz_id: int, module_ids: List[int]) -> List[int]:
+    """
+    查询服务实例ID列表
+    :param bk_biz_id: 业务ID
+    :param module_ids: 模块id列表
+    """
+    service_instances = batch_call(
+        batch_request,
+        params_list=[
             {
-                "func": CCApi.list_service_instance_detail,
+                "func": CCApi.list_service_instance,
                 "params": {
                     "bk_biz_id": int(bk_biz_id),
                     "with_name": True,
@@ -404,11 +413,71 @@ def get_service_instance_by_inst(bk_biz_id, inst_list, module_to_topo):
                 "limit": constants.LIST_SERVICE_INSTANCE_DETAIL_LIMIT,
             }
             for bk_module_id in module_ids
-        ]
+        ],
+        extend_result=True,
+        interval=constants.LIST_SERVICE_INSTANCE_INTERVAL,
+    )
 
-        service_instances = batch_call(
-            batch_request, params, extend_result=True, interval=constants.LIST_SERVICE_INSTANCE_DETAIL_INTERVAL
-        )
+    return [service_instance["id"] for service_instance in service_instances]
+
+
+@RetryHandler(interval=3, retry_times=2)
+def get_service_instance_by_inst(bk_biz_id, inst_list, module_to_topo):
+    module_ids, no_module_inst_list = get_modules_by_inst_list(inst_list, module_to_topo)
+    if not module_ids:
+        return []
+
+    service_instance_module_id_threshold = models.GlobalSettings.get_config(
+        key=models.GlobalSettings.KeyEnum.SERVICE_INSTANCE_MODULE_ID_THRESHOLD.value,
+        default={},
+    )
+
+    if len(module_ids) <= service_instance_module_id_threshold.get(str(bk_biz_id), constants.QUERY_MODULE_ID_THRESHOLD):
+        # 随机挑选一种方式获取服务实例详情，分摊list_service_instance_detail压力
+        # 1. 通过模块id分片查询所有的[服务实例ID列表]，再通过[服务实例ID列表]一次性筛选服务实例详情，避免了分片查询
+        # 结果 -> n次list_service_instance查询 + 1次list_service_instance_detail查询
+        # 2. 通过模块id分片查询服务实例详情
+        # 结果 -> n次list_service_instance_detail查询
+
+        # 如果module_ids只有一个，没必要使用第一种方式，一定会出现一次list_service_instance_detail查询
+        if len(module_ids) > 1 and random.random() < 0.5:
+            service_instance_ids = get_service_instance_ids(bk_biz_id, list(module_ids))
+            if not service_instance_ids:
+                return []
+
+            service_instances = batch_request(
+                func=CCApi.list_service_instance_detail,
+                params={
+                    "bk_biz_id": int(bk_biz_id),
+                    "with_name": True,
+                    "no_request": True,
+                    "service_instance_ids": service_instance_ids,
+                },
+                sort="id",
+                interval=constants.LIST_SERVICE_INSTANCE_DETAIL_INTERVAL,
+                limit=constants.LIST_SERVICE_INSTANCE_DETAIL_LIMIT,
+            )
+        else:
+            service_instances = batch_call(
+                func=batch_request,
+                params_list=[
+                    {
+                        "func": CCApi.list_service_instance_detail,
+                        "params": {
+                            "bk_biz_id": int(bk_biz_id),
+                            "with_name": True,
+                            "bk_module_id": bk_module_id,
+                            # CC 接口统一使用后台访问
+                            "no_request": True,
+                        },
+                        "sort": "id",
+                        "limit": constants.LIST_SERVICE_INSTANCE_DETAIL_LIMIT,
+                    }
+                    for bk_module_id in module_ids
+                ],
+                extend_result=True,
+                interval=constants.LIST_SERVICE_INSTANCE_DETAIL_INTERVAL,
+            )
     else:
         params = {"bk_biz_id": int(bk_biz_id), "with_name": True, "no_request": True}
         service_instances = batch_request(
@@ -426,7 +495,54 @@ def get_service_instance_by_inst(bk_biz_id, inst_list, module_to_topo):
     return service_instances
 
 
-@FuncCacheDecorator(cache_time=1 * constants.TimeUnit.MINUTE)
+@RetryHandler(interval=3, retry_times=2)
+def get_service_instance_by_set_templates(bk_biz_id: int, set_template_ids: List[int]):
+    """
+    通过集群模板获取服务实例详情
+    :param bk_biz_id: 业务ID
+    :param set_template_ids: 集群模板id列表
+    """
+    params = [
+        {
+            "func": CCApi.list_service_instance_by_set_template,
+            "params": {
+                "bk_biz_id": int(bk_biz_id),
+                "set_template_id": set_template_id,
+                # CC 接口统一使用后台访问
+                "no_request": True,
+            },
+            "sort": "id",
+            "limit": constants.QUERY_CMDB_LIMIT,
+        }
+        for set_template_id in set_template_ids
+    ]
+
+    service_instance_ids: List[int] = [
+        service_instance["id"]
+        for service_instance in batch_call(
+            func=batch_request,
+            params_list=params,
+            extend_result=True,
+            interval=constants.LIST_SERVICE_INSTANCE_BY_SET_TEMPLATE_INTERVAL,
+        )
+    ]
+
+    service_instance_details = batch_request(
+        CCApi.list_service_instance_detail,
+        params={
+            "bk_biz_id": int(bk_biz_id),
+            "service_instance_ids": service_instance_ids,
+            "no_request": True,
+        },
+        sort="id",
+        limit=constants.LIST_SERVICE_INSTANCE_DETAIL_LIMIT,
+        interval=constants.LIST_SERVICE_INSTANCE_DETAIL_INTERVAL,
+    )
+
+    return service_instance_details
+
+
+@FuncCacheDecorator(cache_time=15 * constants.TimeUnit.MINUTE)
 def fetch_biz_info_map(fields: typing.Optional[typing.List[str]] = None) -> typing.Dict[str, typing.Dict]:
     """
     查询所有业务
@@ -649,10 +765,13 @@ def get_host_detail(host_info_list: list, bk_biz_id: int = None):
         bk_host_ids.append(host["bk_host_id"])
         bk_cloud_ids.append(host["bk_cloud_id"])
 
-    host_relations = find_host_biz_relations(list(set(bk_host_ids)), source="get_host_detail")
-    host_biz_map = {}
-    for host in host_relations:
-        host_biz_map[host["bk_host_id"]] = host["bk_biz_id"]
+    if bk_biz_id:
+        host_biz_map = {_host["bk_host_id"]: bk_biz_id for _host in hosts}
+    else:
+        host_relations = find_host_biz_relations(list(set(bk_host_ids)), source="get_host_detail")
+        host_biz_map = {}
+        for host in host_relations:
+            host_biz_map[host["bk_host_id"]] = host["bk_biz_id"]
 
     cloud_id_name_map = models.Cloud.cloud_id_name_map(get_cache=True)
 
@@ -663,7 +782,10 @@ def get_host_detail(host_info_list: list, bk_biz_id: int = None):
     host_key_dict = {}
     host_id_dict = {}
     for _host in hosts:
-        _host["bk_biz_id"] = host_biz_map[_host["bk_host_id"]]
+        if bk_biz_id:
+            _host["bk_biz_id"] = bk_biz_id
+        else:
+            _host["bk_biz_id"] = host_biz_map[_host["bk_host_id"]]
         _host["bk_biz_name"] = (
             all_biz_info.get(_host["bk_biz_id"], {}).get("bk_biz_name", "")
             if _host["bk_biz_id"] != settings.BK_CMDB_RESOURCE_POOL_BIZ_ID
@@ -948,7 +1070,7 @@ def get_instances_by_scope(scope: Dict[str, Union[Dict, int, Any]]) -> Dict[str,
 
     instances = []
     bk_biz_id = scope["bk_biz_id"]
-    if bk_biz_id:
+    if bk_biz_id and scope["object_type"] == models.Subscription.ObjectType.SERVICE:
         module_to_topo = get_module_to_topo_dict(bk_biz_id)
     else:
         module_to_topo = {}
@@ -1016,12 +1138,26 @@ def get_instances_by_scope(scope: Dict[str, Union[Dict, int, Any]]) -> Dict[str,
             nodes = set_template_scope_nodes(scope)
             instances = add_host_module_info(host_biz_relations, instances)
         else:
+            template_ids = [node["bk_inst_id"] for node in scope["nodes"]]
+
             # 补充服务实例中的信息
             # 转化模板为节点，**注意不可在get_service_instance_by_inst之后才转换**
             nodes = set_template_scope_nodes(scope)
-            instances.extend(
-                [{"service": inst} for inst in get_service_instance_by_inst(bk_biz_id, nodes, module_to_topo)]
-            )
+
+            if scope["node_type"] == models.Subscription.NodeType.SET_TEMPLATE:
+                instances.extend(
+                    [
+                        {"service": inst}
+                        for inst in get_service_instance_by_set_templates(
+                            bk_biz_id=bk_biz_id,
+                            set_template_ids=template_ids,
+                        )
+                    ]
+                )
+            else:
+                instances.extend(
+                    [{"service": inst} for inst in get_service_instance_by_inst(bk_biz_id, nodes, module_to_topo)]
+                )
 
     # 按照动态分组查询
     elif scope["node_type"] == models.Subscription.NodeType.DYNAMIC_GROUP:

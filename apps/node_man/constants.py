@@ -599,7 +599,16 @@ DEFAULT_PLUGIN_PROC_START_CHECK_SECS = 9
 
 # list_service_instance_detail接口调用参数配置
 LIST_SERVICE_INSTANCE_DETAIL_LIMIT = 1000
-LIST_SERVICE_INSTANCE_DETAIL_INTERVAL = 0.2
+LIST_SERVICE_INSTANCE_DETAIL_INTERVAL = 0.3
+
+# list_service_instance_by_set_template接口调用间隔
+LIST_SERVICE_INSTANCE_BY_SET_TEMPLATE_INTERVAL = 0.3
+
+# find_host_biz_relations接口调用间隔
+FIND_HOST_BIZ_RELATIONS_INTERVAL = 0.3
+
+# list_service_instance接口调用间隔
+LIST_SERVICE_INSTANCE_INTERVAL = 0.3
 
 # redis键名模板
 REDIS_NEED_DELETE_HOST_IDS_KEY_TPL = f"{settings.APP_CODE}:node_man:need_delete_host_ids:list"

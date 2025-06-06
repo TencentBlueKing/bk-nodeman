@@ -265,3 +265,12 @@ class _CCApi(BaseApi):
             before_request=add_esb_info_before_request,
             api_name="search_set_v2",
         )
+        self.list_service_instance_by_set_template = DataAPI(
+            method="POST",
+            url=CC_APIGATEWAY_ROOT_V2 + "list_service_instance_by_set_template/",
+            module=self.MODULE,
+            simple_module=self.SIMPLE_MODULE,
+            description="通过集群模版查询关联的服务实例列表",
+            before_request=add_esb_info_before_request,
+            api_name="list_service_instance_by_set_template",
+        )
