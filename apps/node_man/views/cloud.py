@@ -30,10 +30,12 @@ class CloudViewSet(ModelViewSet):
     permission_classes = (CloudPermission,)
 
     @swagger_auto_schema(
+        operation_id="cloud_list",
         operation_summary="查询管控区域列表",
         query_serializer=ListSerializer(),
         responses={status.HTTP_200_OK: response.CloudListResponseSerializer()},
         tags=CLOUD_VIEW_TAGS,
+        extra_overrides={"is_register_apigw": True},
     )
     def list(self, request, *args, **kwargs):
         """
@@ -74,8 +76,10 @@ class CloudViewSet(ModelViewSet):
         return Response(cloud)
 
     @swagger_auto_schema(
+        operation_id="create_cloud_area",
         operation_summary="创建管控区域",
         tags=CLOUD_VIEW_TAGS,
+        extra_overrides={"is_register_apigw": True},
     )
     def create(self, request, *args, **kwargs):
         """

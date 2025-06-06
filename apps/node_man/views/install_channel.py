@@ -38,6 +38,12 @@ class InstallChannelViewSet(ModelViewSet):
             # 如果 hidden 为 False, 则返回所有未隐藏的安装通道
             return InstallChannel.objects.filter(hidden=False)
 
+    @swagger_auto_schema(
+        operation_id="install_channel_list",
+        operation_summary="列出所有安装通道",
+        tags=INSTALL_CHANNEL_VIEW_TAGS,
+        extra_overrides={"is_register_apigw": True},
+    )
     def list(self, request, *args, **kwargs):
         response = super().list(request, *args, **kwargs)
         response.data.insert(

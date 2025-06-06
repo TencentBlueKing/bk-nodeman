@@ -1,0 +1,50 @@
+spec_version: 2
+
+release:
+  # 发布版本号
+  version: 1.0.0
+  title: "API 初始化"
+  comment: "API 初始化"
+
+# 定义网关基本信息，用于命令 `sync_apigw_config`
+apigateway:
+  description: "节点管理 API"
+  # 网关的英文描述，蓝鲸官方网关需提供英文描述，以支持国际化
+  description_en: "NodeMan API"
+  is_public: true
+  api_type: 1
+  maintainers:
+    - "admin"
+
+# 定义环境信息，用于命令 `sync_apigw_stage`
+stages:
+  - name: "{{ settings.ENVIRONMENT }}"
+{% if settings.ENVIRONMENT == "prod" %}
+    description: "正式环境"
+    description_en: "Prod"
+{% elif settings.ENVIRONMENT == "stag" %}
+    description: "预发布环境"
+    description_en: "Test"
+{% else %}
+    description: "开发测试环境"
+    description_en: "Development"
+{% endif %}
+    backends:
+      - name: "default"
+        config:
+          timeout: 180
+          loadbalance: "roundrobin"
+          hosts:
+          # 网关调用后端服务的默认域名或IP，不包含Path，比如：      http://api.example.com
+            - host: "{{ settings.BK_NODEMAN_BACKEND_HOST }}"
+              weight: 100
+grant_permissions:
+  - bk_app_code: "{{ settings.APP_CODE }}"
+    # grant_dimension: "gateway"
+
+resource_docs:
+  # 资源文档的归档文件，可为 tar.gz，zip 格式文件；创建归档文件可使用指令 `tar czvf xxx.tgz en zh`
+  # archivefile: "{{ settings.BK_APIGW_RESOURCE_DOCS_ARCHIVE_FILE }}"
+  # 资源文档目录，basedir 与 archivefile 二者至少一个有效，若同时存在，则 archivefile 优先
+  # basedir: "{{ settings.BK_APIGW_RESOURCE_DOCS_BASE_DIR }}"
+  basedir: "support-files/apigw/apidocs"

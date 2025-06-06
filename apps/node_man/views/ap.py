@@ -33,8 +33,10 @@ class ApViewSet(ModelViewSet):
     permission_classes = (GlobalSettingPermission,)
 
     @swagger_auto_schema(
+        operation_id="ap_list",
         operation_summary="查询任务列表",
         tags=AP_VIEW_TAGS,
+        extra_overrides={"is_register_apigw": True},
     )
     def list(self, request, *args, **kwargs):
         """
