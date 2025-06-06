@@ -37,6 +37,7 @@ class AgentSetupInfo:
     # extra setup info
     # 是否强制更新 AgentID，True：注册 AgentID 前会先
     force_update_agent_id: bool = False
+    alarm_event_data_id: typing.Optional[int] = None
 
 
 class AgentSetupTools:

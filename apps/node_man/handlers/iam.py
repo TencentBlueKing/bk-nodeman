@@ -60,7 +60,10 @@ class IamHandler(APIModel):
 
         result = [
             {"bk_biz_id": business["bk_biz_id"], "bk_biz_name": business["bk_biz_name"]}
-            for business in CCApi.search_business({"fields": ["bk_biz_id", "bk_biz_name"]}).get("info") or []
+            for business in CCApi.search_business({"fields": ["bk_biz_id", "bk_biz_name"], "no_request": True}).get(
+                "info"
+            )
+            or []
         ]
         result.insert(0, {"bk_biz_id": settings.BK_CMDB_RESOURCE_POOL_BIZ_ID, "bk_biz_name": "资源池"})
         return result
@@ -88,10 +91,10 @@ class IamHandler(APIModel):
         :param instance_type: 实例类型
         :return: 实例id集合
         """
-
+        tenant_id = self.tenant_id
         if instance_type == "cloud":
             # 拥有所有管控区域权限
-            return list(Cloud.objects.all().values_list("bk_cloud_id", flat=True))
+            return list(Cloud.objects.filter(tenant_id=tenant_id).values_list("bk_cloud_id", flat=True))
         elif instance_type in ["biz", "agent", "plugin", "proxy", "task"]:
             # 拥有所有业务权限
             return [business["bk_biz_id"] for business in self.fetch_biz()]

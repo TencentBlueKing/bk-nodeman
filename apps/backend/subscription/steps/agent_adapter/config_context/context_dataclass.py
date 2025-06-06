@@ -109,6 +109,9 @@ class AgentBaseConfigContext(GseConfigContext, TlsBaseConfigContext):
     processor_num: int = 4
     processor_size: int = 4096
 
+    plugin_ipc: str = ""
+    alarm_event_data_id: int = 1000
+
 
 @dataclass
 class ProxyConfigContext(GseConfigContext, TlsBaseConfigContext):

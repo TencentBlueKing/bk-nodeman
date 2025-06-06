@@ -52,7 +52,9 @@ def collect_auto_trigger_job():
         ).values_list("subscription_id", flat=True)
     )
 
-    subscriptions = models.Subscription.objects.filter(id__in=subscription_ids).values("id", "bk_biz_scope")
+    subscriptions = models.Subscription.objects.filter(id__in=subscription_ids).values(
+        "id", "bk_biz_scope", "tenant_id"
+    )
 
     # 过滤非SaaS侧策略自动触发的订阅任务
     auto_task_infos = [
@@ -104,6 +106,7 @@ def collect_auto_trigger_job():
                 # TODO 将历史多个自动触发task先行整合到一个job，后续根据实际情况考虑是否拆分
                 task_id_list=task_ids_gby_sub_id[subscription["id"]],
                 is_auto_trigger=True,
+                tenant_id=subscription["tenant_id"],
             )
         )
 

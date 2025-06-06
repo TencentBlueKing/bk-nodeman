@@ -2556,3 +2556,12 @@ class GseConfigExtraEnv(models.Model):
         index_together = [
             ["bk_biz_id", "enable"],
         ]
+
+
+class BizEventDataIdMap(models.Model):
+    bk_biz_id = models.IntegerField(_("业务ID"), db_index=True)
+    alarm_event_data_id = models.IntegerField(_("监控告警事件data_id"), db_index=True)
+
+    class Meta:
+        verbose_name = _("业务告警事件data_id映射表")
+        verbose_name_plural = _("业务告警事件data_id映射表")
