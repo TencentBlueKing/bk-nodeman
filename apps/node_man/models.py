@@ -1835,6 +1835,8 @@ class Subscription(export_subscription_prometheus_mixin(), orm.SoftDeleteModel):
         SERVICE_TEMPLATE = "SERVICE_TEMPLATE"
         SET_TEMPLATE = "SET_TEMPLATE"
         DYNAMIC_GROUP = "DYNAMIC_GROUP"
+        HOST_PROPERTY = "HOST_PROPERTY"
+        NODE_MIXIN = "NODE_MIXIN"
 
     NODE_TYPE_CHOICES = (
         (NodeType.TOPO, _("动态实例（拓扑）")),
@@ -1842,6 +1844,8 @@ class Subscription(export_subscription_prometheus_mixin(), orm.SoftDeleteModel):
         (NodeType.SERVICE_TEMPLATE, _("服务模板")),
         (NodeType.SET_TEMPLATE, _("集群模板")),
         (NodeType.DYNAMIC_GROUP, _("动态分组")),
+        (NodeType.HOST_PROPERTY, _("主机属性")),
+        (NodeType.NODE_MIXIN, _("节点类型混合")),
     )
 
     class CategoryType(object):
