@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 
 import abc
+import os
 from abc import ABC
 from collections import ChainMap, defaultdict
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
@@ -225,7 +226,16 @@ class PluginStep(Step):
         for field in control_info_fields:
             control_info[field] = getattr(proc_control, field)
 
+        if host.os_type == constants.OsType.WINDOWS:
+            dataipc = "127.0.0.1:{}".format(agent_config.get("dataipc", 47000))
+            pluginipc = agent_config.get("pluginipc", 26000)
+        else:
+            dataipc = agent_config.get("dataipc", "/var/run/ipc.state.report")
+            pluginipc = os.path.join(agent_config["setup_path"], "agent/lib/ipc.state.message")
+
         control_info.update(
+            pluginipc=pluginipc,
+            dataipc=dataipc,
             gse_agent_home=agent_config["setup_path"],
             listen_ip=process_status_info["listen_ip"],
             listen_port=process_status_info["listen_port"],
