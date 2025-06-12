@@ -490,7 +490,7 @@ export default class ParamsConfig extends Vue {
             })));
             // 如果是主配置
             if (item.is_main) {
-              sysItem.variables = item.variables || {};
+              sysItem.variables = item.variables ? transformSchema(item.variables) : {};
               sysItem.data.splice(0, sysItem.data.length, ...variableList);
               this.$set(sysItem, 'form', Object.assign({}, copyForm)); // 回填
             } else { // 如果是子配置，放入child
@@ -501,10 +501,9 @@ export default class ParamsConfig extends Vue {
                 is_main: item.is_main,
                 form: Object.assign({}, copyForm),
                 data: [...variableList],
-                variables: item.variables || {},
+                variables: item.variables ? transformSchema(item.variables) : {},
               });
             }
-            sysItem.variables = transformSchema(item.variables);
           }
         });
       });
