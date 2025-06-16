@@ -30,6 +30,7 @@ except ImportError:
         from _thread import get_ident
 
 import ujson as json
+from blueapps.account import get_user_model
 from django.conf import settings
 from django.dispatch import Signal
 from django.http import HttpResponse, JsonResponse
@@ -246,7 +247,27 @@ class ApiGatewayJWTUserInjectAppMiddleware(ApiGatewayJWTUserMiddleware):
             request.jwt.payload["user"] = request.jwt.payload.get("user") or {"bk_username": jwt_app.bk_app_code}
             request.jwt.payload["user"]["verified"] = True
 
-        return super().__call__(request)
+        jwt_info = getattr(request, "jwt", None)
+        if not jwt_info:
+            return self.get_response(request)
+
+        # skip when authenticated
+        if hasattr(request, "user") and request.user.is_authenticated:
+            return self.get_response(request)
+
+        jwt_user = (jwt_info.payload.get("user") or {}).copy()
+        logger.info(f"===========jwt_user: {jwt_user}===========")
+        # jwt_user.setdefault("bk_username", jwt_user.pop("username", None))
+
+        user_model = get_user_model()
+        user, _ = user_model.objects.get_or_create(username=jwt_user["username"])
+        user.tenant_id = request.headers.get("x-bk-tenant-id", "default")
+        user.save()
+        request.user = user
+        jwt_user.setdefault("bk_username", jwt_user.pop("username", None))
+        # request.user = self.get_user(request, gateway_name=jwt_info.gateway_name, **jwt_user)
+        logger.info(f"===========request.user: {request.user}===========")
+        return self.get_response(request)
 
 
 class ApiGatewayForceVerifyMiddleware(MiddlewareMixin):

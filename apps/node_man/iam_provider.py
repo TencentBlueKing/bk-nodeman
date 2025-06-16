@@ -622,7 +622,7 @@ class IamRegister(object):
 
     def __init__(self):
         self.tenant_id = get_tenant_id()
-        self._iam = IAM(settings.APP_CODE, settings.SECRET_KEY, settings.BK_IAM_APIGW, self.tenant_id)
+        self._iam = IAM(settings.APP_CODE, settings.SECRET_KEY, settings.BK_IAM_APIGATEWAY_URL, self.tenant_id)
 
     def register_system(self):
         # ***需要将placeholder改为内网访问地址***
