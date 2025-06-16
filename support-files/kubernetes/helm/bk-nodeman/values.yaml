@@ -337,7 +337,7 @@ config:
   ## 蓝鲸配置平台
   ##
   ## 资源池 ID
-  bkCmdbResourcePoolBizId: 1
+  bkCmdbResourcePoolBizId: 10000
   ## 企业账户
   defaultSupplierAccount: "0"
 

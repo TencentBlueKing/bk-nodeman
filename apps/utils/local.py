@@ -77,6 +77,7 @@ def activate_request(request, request_id=None):
     _local.request = request
     header_tenant_id = request.headers.get("x-bk-tenant-id", "default")
     logger.info("=========================[activate_request]==================")
+    logger.info(f"[activate_request] request.headers:{request.headers}")
     logger.info(f"[activate_request] header_tenant_id:{header_tenant_id}")
     _local.tenant_id = getattr(request.user, "tenant_id", None) or header_tenant_id or "default"
     return request

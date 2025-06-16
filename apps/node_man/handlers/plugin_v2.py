@@ -315,7 +315,12 @@ class PluginV2Handler:
         if bk_obj_id == constants.CmdbObjectId.SERVICE_TEMPLATE:
             hosts = batch_request(
                 CCApi.find_host_by_service_template,
-                {"bk_service_template_ids": [bk_inst_id], "bk_biz_id": bk_biz_id, "fields": ["bk_host_id"]},
+                {
+                    "bk_service_template_ids": [bk_inst_id],
+                    "bk_biz_id": bk_biz_id,
+                    "fields": ["bk_host_id"],
+                    "no_request": True,
+                },
             )
         else:
             hosts = []

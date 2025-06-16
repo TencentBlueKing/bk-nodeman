@@ -47,7 +47,7 @@ class IamHandler(APIModel):
             self._iam = IAM(
                 settings.APP_CODE,
                 settings.SECRET_KEY,
-                settings.BK_IAM_APIGW,
+                settings.BK_IAM_APIGATEWAY_URL,
                 self.tenant_id,
             )
         else:

@@ -60,8 +60,8 @@ class Permission(object):
     def get_iam_client(cls):
         tenant_id = get_tenant_id()
         if settings.BK_IAM_SKIP:
-            return DummyIAM(settings.APP_ID, settings.APP_TOKEN, settings.BK_IAM_APIGW, tenant_id)
-        return IAM(settings.APP_ID, settings.APP_TOKEN, settings.BK_IAM_APIGW, tenant_id)
+            return DummyIAM(settings.APP_ID, settings.APP_TOKEN, settings.BK_IAM_APIGATEWAY_URL, tenant_id)
+        return IAM(settings.APP_ID, settings.APP_TOKEN, settings.BK_IAM_APIGATEWAY_URL, tenant_id)
 
     def make_request(self, action: Union[ActionMeta, str], resources: List[Resource] = None) -> Request:
         """
