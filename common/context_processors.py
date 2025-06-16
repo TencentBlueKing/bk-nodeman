@@ -103,7 +103,7 @@ def mysetting(request):
         "USE_IAM": settings.USE_IAM,
         # 如果是权限中心，使用权限中心的全局配置权限
         # 如果不是权限中心，使用超管权限
-        "GLOBAL_SETTING_PERMISSION": IamHandler.iam_global_settings_permission(get_request_username()),
+        # "GLOBAL_SETTING_PERMISSION": IamHandler.iam_global_settings_permission(get_request_username()),
         # 任务配置权限
         "GLOBAL_TASK_CONFIG_PERMISSION": IamHandler.globe_task_config(get_request_username()),
         "GSE_LISTEN_PORT": "48668,58625,58925,10020-10030",

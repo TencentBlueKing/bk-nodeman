@@ -38,7 +38,8 @@ def sync_all_isp_to_cmdb(task_id):
             tenant_id: str = cloud["tenant_id"]
             try:
                 CCApi.update_cloud_area(
-                    {"bk_cloud_id": bk_cloud_id, "bk_cloud_vendor": bk_cloud_vendor}, tenant_id=tenant_id
+                    {"bk_cloud_id": bk_cloud_id, "bk_cloud_vendor": bk_cloud_vendor, "no_request": True},
+                    tenant_id=tenant_id,
                 )
             except Exception as e:
                 logger.exception("call update_cloud_area bk_cloud_id -> %s error -> %s" % (bk_cloud_id, e))

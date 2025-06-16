@@ -281,8 +281,11 @@ class MetaHandler(APIModel):
         ]
         if settings.ENABLE_MULTI_TENANT_MODE:
             bk_usernames = ",".join([item["id"] for item in created_bys_children])
-            user_data = UserApi.batch_query_user_display_info({"bk_usernames": bk_usernames})
-            display_name_map = {user["bk_username"]: user["display_name"] for user in user_data}
+            if bk_usernames:
+                user_data = UserApi.batch_query_user_display_info({"bk_usernames": bk_usernames})
+                display_name_map = {user["bk_username"]: user["display_name"] for user in user_data}
+            else:
+                display_name_map = {}
             for item in created_bys_children:
                 item["name"] = display_name_map.get(item["name"], item["name"])
 
