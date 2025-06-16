@@ -24,14 +24,14 @@ def update_or_create_cloud_area(task_id, start, tenant_id=None):
     # 查询管控区域兼容低版本paas无search_cloud_area情况
     try:
         plats = CCApi.search_cloud_area(
-            {"page": {"start": start, "limit": constants.QUERY_CLOUD_LIMIT}}, tenant_id=tenant_id
+            {"page": {"start": start, "limit": constants.QUERY_CLOUD_LIMIT}, "no_request": True}, tenant_id=tenant_id
         )
     except Exception as e:
         logger.error(f"request cmdb search_cloud_area error: {e}")
         return
     except ComponentCallError as e:
         logger.error(f"{task_id} | call search_cloud_area error {e.message}")
-        plats = CCApi.search_inst({"bk_obj_id": "plat"})
+        plats = CCApi.search_inst({"bk_obj_id": "plat", "no_request": True})
 
     cloud_list = plats.get("info") or []
     cloud_count = plats.get("count", 0)

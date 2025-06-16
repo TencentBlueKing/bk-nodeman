@@ -339,7 +339,9 @@ class CmdbHandler(APIModel):
         新增管控区域
         """
         # 增删改查CMDB操作以admin用户进行
-        data = CCApi.create_cloud_area({"bk_cloud_name": bk_cloud_name, "bk_cloud_vendor": bk_cloud_vendor})
+        data = CCApi.create_cloud_area(
+            {"bk_cloud_name": bk_cloud_name, "bk_cloud_vendor": bk_cloud_vendor, "no_request": True}
+        )
         return data.get("created", {}).get("id")
 
     @staticmethod
@@ -349,7 +351,7 @@ class CmdbHandler(APIModel):
         """
         try:
             # 增删改查CMDB操作以admin用户进行
-            return CCApi.delete_cloud_area({"bk_cloud_id": bk_cloud_id})
+            return CCApi.delete_cloud_area({"bk_cloud_id": bk_cloud_id, "no_request": True})
         except ComponentCallError as e:
             if e.message and e.message["code"] == 1101030:
                 raise CloudUpdateAgentError(
@@ -360,13 +362,14 @@ class CmdbHandler(APIModel):
     def get_cloud(bk_cloud_name):
         try:
             # 增删改查CMDB操作以admin用户进行
-            plats = CCApi.search_cloud_area({"condition": {"bk_cloud_name": bk_cloud_name}})
+            plats = CCApi.search_cloud_area({"condition": {"bk_cloud_name": bk_cloud_name}, "no_request": True})
         except ComponentCallError as e:
             logger.error("esb->call search_cloud_area error %s" % e.message)
             plats = CCApi.search_inst(
                 {
                     "bk_obj_id": "plat",
                     "condition": {"plat": [{"field": "bk_cloud_name", "operator": "$eq", "value": bk_cloud_name}]},
+                    "no_request": True,
                 }
             )
 
@@ -379,12 +382,21 @@ class CmdbHandler(APIModel):
         try:
             # 增删改查CMDB操作以admin用户进行
             CCApi.update_cloud_area(
-                {"bk_cloud_id": bk_cloud_id, "bk_cloud_name": bk_cloud_name, "bk_cloud_vendor": bk_cloud_vendor}
+                {
+                    "bk_cloud_id": bk_cloud_id,
+                    "bk_cloud_name": bk_cloud_name,
+                    "bk_cloud_vendor": bk_cloud_vendor,
+                    "no_request": True,
+                }
             )
         except ComponentCallError as e:
             logger.error("esb->call update_cloud_area error %s" % e.message)
             CCApi.update_inst(
-                bk_obj_id="plat", bk_inst_id=bk_cloud_id, bk_cloud_name=bk_cloud_name, bk_cloud_vendor=bk_cloud_vendor
+                bk_obj_id="plat",
+                bk_inst_id=bk_cloud_id,
+                bk_cloud_name=bk_cloud_name,
+                bk_cloud_vendor=bk_cloud_vendor,
+                no_request=True,
             )
 
     @classmethod
