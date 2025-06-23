@@ -5847,7 +5847,7 @@ msgstr "BK-SOPS"
 
 #: common/context_processors.py:44
 msgid "节点管理 | 蓝鲸智云"
-msgstr "NodeMan | Tencent Blueking"
+msgstr "NodeMan | Blueking"
 
 #: pipeline/component_framework/models.py:42
 #: pipeline/contrib/statistics/models.py:19
@@ -6666,3 +6666,12 @@ msgstr "Variable variable"
 
 #~ msgid "日志详情获取成功"
 #~ msgstr "Log details fetched successfully"
+
+msgid "BT节点探测"
+msgstr "BT accelerate"
+
+msgid "数据压缩"
+msgstr "Data Compression"
+
+msgid "管控区域ID:IP"
+msgstr "BK-Net ID:IP"
