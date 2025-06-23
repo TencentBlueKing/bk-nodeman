@@ -19,7 +19,7 @@ django-filter==21.1
 django-mysql==3.3.0
 django-redis==5.3.0
 Mako==1.0.6
-MarkupSafe==1.1.1
+MarkupSafe==1.0.1
 pyCryptodome==3.9.7
 pyOpenSSL==21.0.0
 pynacl==1.4.0
