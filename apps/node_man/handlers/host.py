@@ -350,7 +350,7 @@ class HostHandler(APIModel):
             proxy["version"] = host_id_status.get(proxy["bk_host_id"], {}).get("version", "")
             proxy["account"] = host_id_identities.get(proxy["bk_host_id"], {}).get("account", "")
             proxy["auth_type"] = host_id_identities.get(proxy["bk_host_id"], {}).get("auth_type", "")
-            proxy["port"] = host_id_identities.get(proxy["bk_host_id"], {}).get("port", "")
+            proxy["port"] = host_id_identities.get(proxy["bk_host_id"], {}).get("port", 22)
             proxy["re_certification"] = host_id_identities.get(proxy["bk_host_id"], {}).get("re_certification", "")
             proxy["job_result"] = host_id_job_status.get(proxy["bk_host_id"], {})
             proxy["pagent_count"] = pagent_upstream_nodes.get(proxy["inner_ip"], 0)
