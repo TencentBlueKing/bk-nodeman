@@ -1,5 +1,18 @@
 # Release
 
+## 2.5.0 版本更新日志 
+
+修复
+
+- fix: 修复proxy认证信息 port的默认值 (closed #2599)
+
+- fix: 接入点City_id&Region_id恢复test (closed #2601)
+
+
+
+**Full Release Notes**: https://github.com/TencentBlueKing/bk-nodeman/compare/v2.4.9...v2.5.0
+
+
 ## 2.4.9 版本更新日志 
 
 功能
