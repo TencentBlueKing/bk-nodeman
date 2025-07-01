@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import logging
 import random
+import threading
 import time
 import typing
 from functools import wraps
@@ -175,80 +176,83 @@ def is_lock(config_key, id_key):
 
 
 def _resource_watch(cursor_key, kwargs):
-    # 用于标识自己
-    id_key = random_key()
+    if not settings.ENABLE_MULTI_TENANT_MODE:
+        id_key = random_key()
+        logger.info(f"[{cursor_key}] start: id_key -> {id_key}")
+        _watch_single_tenant(cursor_key, kwargs, id_key=id_key)
+    else:
+        # 多租户模式，按租户分别监听
+        tenant_ids = get_tenant_id_list()
+        threads = []
 
-    logger.info(f"[{cursor_key}] start: id_key -> {id_key}")
+        for tenant_id in tenant_ids:
+            per_tenant_cursor_key = f"{cursor_key}_{tenant_id}"
+            per_tenant_id_key = random_key()
+            logger.info(f"[{per_tenant_cursor_key}] start: id_key -> {per_tenant_id_key}")
+            thread = threading.Thread(
+                target=_watch_single_tenant,
+                args=(per_tenant_cursor_key, kwargs, per_tenant_id_key),
+                kwargs={"tenant_id": tenant_id},
+                daemon=True,
+            )
+            threads.append(thread)
+            thread.start()
+
+        for thread in threads:
+            thread.join()
+
+
+def _watch_single_tenant(cursor_key, kwargs, id_key, tenant_id=None):
+    logger.info(f"[{cursor_key}] watching for tenant: {tenant_id or 'not multi tenant mode'}")
 
     while True:
-        if not is_lock(cursor_key, id_key):
-            logger.error(f"[{cursor_key}] failed to get lock: id_key -> {id_key}")
-            time.sleep(60)
-            logger.info(f"[{cursor_key}] will try to acquire the lock, if there is no error output, it means listening")
-            continue
+        try:
+            if not is_lock(cursor_key, id_key):
+                logger.error(f"[{cursor_key}] failed to get lock: id_key -> {id_key}")
+                time.sleep(60)
+                logger.info(f"[{cursor_key}] will try to acquire the lock")
+                continue
 
-        bk_cursor = cache.get(cursor_key)
-        if bk_cursor:
-            kwargs["bk_cursor"] = bk_cursor
-        if settings.ENABLE_MULTI_TENANT_MODE:
-            data = {"bk_watched": False, "bk_events": []}
-            # 根据是否开启多租户模式请求CC
-            tenant_id_list = get_tenant_id_list()
-            for tenant_id in tenant_id_list:
-                try:
-                    tenant_event = CCApi.resource_watch(kwargs, tenant_id=tenant_id)
-                    if not tenant_event["bk_watched"]:
-                        continue
-                    data["bk_events"].extend(tenant_event["bk_events"])
-                    data["bk_watched"] = tenant_event["bk_watched"]
-                except Exception as e:
-                    logger.error(f"current tenant f{tenant_id} get cmdb resource error -> {str(e)}")
-            # 并发的写法
-            # params_list = [{"params": kwargs, "tenant_id": tenant_id} for tenant_id in tenant_id_list]
-            # try:
-            #     # 并发请求回来的数据格式为 [{"bk_events":[{},{}], "bk_watched": True}, {"bk_events":[{},{}]}, "bk_watched": False]
-            #     events_list = batch_call(func=CCApi.resource_watch, params_list=params_list)
-            #     data = {"bk_watched": False, "bk_events": []}
-            #     for event in events_list:
-            #         if not event["bk_watched"]:
-            #             continue
-            #         data["bk_events"].extend(event["bk_events"])
-            #         data["bk_watched"] = event["bk_watched"]
-            #
-            # except ApiResultError:
-            #     logger.error("get cmdb resource watch error")
-            #     return
+            bk_cursor = cache.get(cursor_key)
+            if bk_cursor:
+                kwargs["bk_cursor"] = bk_cursor
 
-        else:
-            data = CCApi.resource_watch(kwargs)
+            if tenant_id:
+                data = CCApi.resource_watch(kwargs, tenant_id=tenant_id)
+            else:
+                data = CCApi.resource_watch(kwargs)
 
-        if not data["bk_watched"]:
-            # 记录最新cursor
+            if not data["bk_watched"]:
+                set_cursor(data, cursor_key)
+                continue
+
+            event_helper: typing.Type[BaseEventPreprocessHelper] = RESOURCE_TYPE__EVENT_HELPER_MAP[
+                kwargs["bk_resource"]
+            ]
+
+            objs = [
+                ResourceWatchEvent(
+                    bk_cursor=event["bk_cursor"],
+                    bk_event_type=event["bk_event_type"],
+                    bk_resource=event["bk_resource"],
+                    bk_detail=event["bk_detail"],
+                )
+                for event in event_helper.do_preprocess(data["bk_events"])
+            ]
+
+            ResourceWatchEvent.objects.bulk_create(objs)
+
+            for obj in objs:
+                metrics.app_resource_watch_events_total.labels(
+                    type="producer", bk_resource=obj.bk_resource, bk_event_type=obj.bk_event_type
+                ).inc()
+
+            logger.info(f"[{cursor_key}] receive new resource watch event: count -> {len(objs)}")
+
             set_cursor(data, cursor_key)
-            continue
-
-        event_helper: typing.Type[BaseEventPreprocessHelper] = RESOURCE_TYPE__EVENT_HELPER_MAP[kwargs["bk_resource"]]
-
-        objs = [
-            ResourceWatchEvent(
-                bk_cursor=event["bk_cursor"],
-                bk_event_type=event["bk_event_type"],
-                bk_resource=event["bk_resource"],
-                bk_detail=event["bk_detail"],
-            )
-            for event in event_helper.do_preprocess(data["bk_events"])
-        ]
-        ResourceWatchEvent.objects.bulk_create(objs)
-
-        for obj in objs:
-            metrics.app_resource_watch_events_total.labels(
-                type="producer", bk_resource=obj.bk_resource, bk_event_type=obj.bk_event_type
-            ).inc()
-
-        logger.info(f"[{cursor_key}] receive new resource watch event: count -> {len(objs)}")
-
-        # 记录最新cursor
-        set_cursor(data, cursor_key)
+        except Exception as e:
+            logger.error(f"current tenant f{tenant_id} get cmdb resource error -> {str(e)}")
+            time.sleep(60)
 
 
 def sync_resource_watch_host_event():
