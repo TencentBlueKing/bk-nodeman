@@ -40,7 +40,7 @@ from django.utils.functional import Promise
 from django.utils.translation import get_language
 from django.utils.translation import ugettext_lazy as _
 from django_mysql.models import JSONField
-from jinja2 import Template
+from jinja2.sandbox import SandboxedEnvironment as Environment
 
 from apps.backend.subscription.errors import PipelineExecuteFailed, SubscriptionNotExist
 from apps.backend.subscription.render_functions import get_hosts_by_node
@@ -1728,7 +1728,7 @@ class PluginConfigInstance(models.Model):
         :param name: 名称参数
         :return: 渲染后的结果
         """
-        template = Template(name)
+        template = Environment().from_string(name)
         try:
             render_data = json.loads(self.render_data)
         except BaseException as e:
@@ -1769,7 +1769,7 @@ class PluginConfigInstance(models.Model):
     @property
     def jinja_template(self):
         if not hasattr(self, "_jinja_template"):
-            self._jinja_template = Template(self.template.content)
+            self._jinja_template = Environment().from_string(self.template.content)
         return self._jinja_template
 
     @property
