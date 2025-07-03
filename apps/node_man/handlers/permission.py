@@ -92,6 +92,10 @@ class CloudPermission(permissions.BasePermission):
     def has_permission(self, request, view):
         # 管控区域查看、编辑、删除、创建权限
 
+        from common.log import logger
+
+        logger.info(f"================ request_bk_username: {request.user.username}")
+
         if view.action == "list":
             # List接口不需要鉴权
             return True
