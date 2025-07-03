@@ -12,7 +12,7 @@ import copy
 import logging
 
 import six
-from jinja2 import Template
+from jinja2.sandbox import SandboxedEnvironment as Environment
 
 """
 jinja2渲染相关的公共函数
@@ -48,7 +48,7 @@ def nested_render_data(data, context):
             # 尝试渲染用户参数，一旦失败，立即返回原数据
             template = TEMPLATE_CACHE.get(data)
             if not template:
-                template = Template(data)
+                template = Environment().from_string(data)
                 TEMPLATE_CACHE[data] = template
             return template.render(context)
         except Exception as err:
