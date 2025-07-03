@@ -17,7 +17,8 @@ from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
 import jinja2schema
 from django.conf import settings
-from jinja2 import Environment, meta
+from jinja2 import meta
+from jinja2.sandbox import SandboxedEnvironment as Environment
 from packaging import version
 
 from apps.node_man import constants, models
