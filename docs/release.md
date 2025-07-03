@@ -1,6 +1,6 @@
 # Release
 
-## 2.4.11 版本更新日志 
+## 2.4.11 版本更新日志
 
 修复
 
@@ -11,7 +11,7 @@
 **Full Release Notes**: https://github.com/TencentBlueKing/bk-nodeman/compare/v2.4.10...v2.4.11
 
 
-## 2.4.10 版本更新日志 
+## 2.4.10 版本更新日志
 
 修复
 
@@ -24,7 +24,7 @@
 **Full Release Notes**: https://github.com/TencentBlueKing/bk-nodeman/compare/v2.4.9...v2.4.10
 
 
-## 2.4.9 版本更新日志 
+## 2.4.9 版本更新日志
 
 功能
 
@@ -92,7 +92,7 @@
 **Full Release Notes**: https://github.com/TencentBlueKing/bk-nodeman/compare/v2.4.8...v2.4.9
 
 
-## 2.4.8 版本更新日志 
+## 2.4.8 版本更新日志
 
 ### 功能
 
@@ -102,19 +102,19 @@
 
 - feat: 优化订阅任务按顺序执行而非抛错 (closed #2447)
 
-- feat: agent重装优化 
+- feat: agent重装优化
 
 - feat: tlinux4系统 proxy安装脚本及gsectl适配 (closed #2483)
 
 - feat: 插件部署-插件包参数优化 (closed #2461)
 
-- feat: 插件operate接口支持主机差量同步 (closed #2510)     
-                
-- feat: 安装策略修改 
+- feat: 插件operate接口支持主机差量同步 (closed #2510)
+
+- feat: 安装策略修改
 
 - feat: 切换云上API (closed #2515)
 
-- feat: 上云环境针对0区域限制新增主机校验提到API层级 (closed #2501) 
+- feat: 上云环境针对0区域限制新增主机校验提到API层级 (closed #2501)
 
 - feat: gse 接口调用分片优化 (closed #2520)
 
@@ -122,50 +122,50 @@
 
 - feat: 创建订阅支持开启订阅巡检 (closed #2525)
 
-- feat: 安装预设插件锁定版本 (closed #2482) 
+- feat: 安装预设插件锁定版本 (closed #2482)
 
-- feat: 订阅下发支持动态分组 (closed #2507) 
+- feat: 订阅下发支持动态分组 (closed #2507)
 
 - feat: 重启进程优化 (closed #2551)
 
 - feat: Instance info增加集群、模块信息 (closed #2553)
 
-- feat: 适配job任务分配端口无执行日志情况 (closed #2572) 
+- feat: 适配job任务分配端口无执行日志情况 (closed #2572)
 
-- feat: 插件渲染参数 支持bk_cpu, bk_mem字段 (closed #2561) 
+- feat: 插件渲染参数 支持bk_cpu, bk_mem字段 (closed #2561)
 
-- feat: 修改任务历史默认时间范围 
+- feat: 修改任务历史默认时间范围
 
 
 ### 修复
 
 - fix: 修复host_search接口业务拓扑丢失 (closed #2449)
-                            
+
 - fix: 修复主机信息未更新成功导致沿用旧Agent-ID问题 (closed #2451)
-                                 
+
 - fix: 修复proxy主机转移模块后变成pagent问题 (closed #2474)
-                               
+
 - fix: 修复Windows下解压插件进程占用问题 (closed #2486)
-                           
+
 - fix: 修复差量同步主机忽略内网IP变更场景 (closed #2504)
-                         
+
 - fix: 适配编排更新订阅任务兜底 (closed #2506)
-                   
+
 - fix: 修复读取k8s大整型变成浮点数问题及单测修复 (closed #2521)
-                             
-- fix: 修复article高度设置引起的外部样式污染问题修复 
+
+- fix: 修复article高度设置引起的外部样式污染问题修复
 
 - fix: 修复同步云服务商CC不存在某个云区域问题 (closed #2529)
-                           
+
 - fix: 非centos或debian等操作系统下安装插件时初始化脚本可能存在报错 (closed #2470)
-                                           
+
 - fix: 修复已禁用插件仍能通过监控平台的相关订阅步骤触发下发动作问题(closed #2313)
-                                    
+
 - fix: 修复主机同步查询顺序 (closed #2543)
-                 
+
 - fix: CC接口请求过大问题修复
 
-- fix:Mac机器start脚本去除nohub 
+- fix:Mac机器start脚本去除nohub
 
 - fix: InitProcess差量主机同步
 
@@ -175,7 +175,7 @@
 **Full Release Notes**: https://github.com/TencentBlueKing/bk-nodeman/compare/v2.4.7...v2.4.8
 
 
-## 2.4.7 版本更新日志 
+## 2.4.7 版本更新日志
 
 ### 功能
 
@@ -255,7 +255,7 @@
 **Full Release Notes**: https://github.com/TencentBlueKing/bk-nodeman/compare/v2.4.6...v2.4.7
 
 
-## 2.4.6 - 2024-06-19 
+## 2.4.6 - 2024-06-19
 
 ### 功能
 
@@ -277,7 +277,7 @@
 **Full Release Notes**: https://github.com/TencentBlueKing/bk-nodeman/compare/v2.4.5...v2.4.6
 
 
-## 2.4.5 - 2024-06-17 
+## 2.4.5 - 2024-06-17
 
 ### 功能
 
@@ -380,7 +380,7 @@
 **Full Release Notes**: https://github.com/TencentBlueKing/bk-nodeman/compare/v2.4.4...v2.4.5
 
 
-## 2.4.4 - 2024-06-14 
+## 2.4.4 - 2024-06-14
 
 ### 功能
 
@@ -508,7 +508,7 @@
 **Full Release Notes**: https://github.com/TencentBlueKing/bk-nodeman/compare/v2.4.3...v2.4.4
 
 
-## 2.4.4 - 2024-03-01 
+## 2.4.4 - 2024-03-01
 
 ### 功能
 
@@ -636,7 +636,7 @@
 **Full Release Notes**: https://github.com/TencentBlueKing/bk-nodeman/compare/v2.4.3...v2.4.4
 
 
-## 2.4.3 - 2023-11-02 
+## 2.4.3 - 2023-11-02
 
 ### 功能
 
@@ -667,7 +667,7 @@
 **Full Release Notes**: https://github.com/TencentBlueKing/bk-nodeman/compare/v2.4.2...v2.4.3
 
 
-## 2.4.2 - 2023-10-24 
+## 2.4.2 - 2023-10-24
 
 ### 功能
 
@@ -723,7 +723,7 @@
 **Full Release Notes**: https://github.com/TencentBlueKing/bk-nodeman/compare/v2.4.1...v2.4.2
 
 
-## 2.4.1 - 2023-08-30 
+## 2.4.1 - 2023-08-30
 
 ### 功能
 
@@ -766,7 +766,7 @@
 **Full Release Notes**: https://github.com/TencentBlueKing/bk-nodeman/compare/v2.4.0...v2.4.1
 
 
-## 2.4.0 - 2023-08-10 
+## 2.4.0 - 2023-08-10
 
 ### 功能
 
@@ -804,7 +804,7 @@
 **Full Release Notes**: https://github.com/TencentBlueKing/bk-nodeman/compare/v2.3.3...v2.4.0
 
 
-## 2.3.3 - 2023-07-25 
+## 2.3.3 - 2023-07-25
 
 ### 功能
 
@@ -828,7 +828,7 @@
 **Full Release Notes**: https://github.com/TencentBlueKing/bk-nodeman/compare/v2.3.2...v2.3.3
 
 
-## 2.3.2 - 2023-07-12 
+## 2.3.2 - 2023-07-12
 
 ### 🔥 Refactors
 
@@ -931,7 +931,7 @@
 **Full Release Notes**: https://github.com/TencentBlueKing/bk-nodeman/compare/v2.3.1...v2.3.2
 
 
-## 2.3.1 - 2023-04-25 
+## 2.3.1 - 2023-04-25
 
 ### 功能
 
@@ -1113,93 +1113,93 @@
 **Full Release Notes**: https://github.com/TencentBlueKing/bk-nodeman/compare/v2.3.0...v2.3.1
 
 
-## 2.3.0 - 2022-12-22 
+## 2.3.0 - 2022-12-22
 
 - no changes
 
 
-## 2.2.31 - 2022-11-01 
+## 2.2.31 - 2022-11-01
 
 
-### bugfix: 
+### bugfix:
   * 修复临时文件目录不同导致下发路径不符合预期的问题 (fixed #1204)
   * 2.0 Agent 配置文件更新流程错误 (closed #1202)
   * 2.0 P-Agent 安装报错：gse_agent Worker not found  (closed #1179)
 
-### feature: 
+### feature:
   * Windows Agent 安装依赖文件更新 (closed #1197)
   * Agent 安装前置脚本执行支持单命令下发 (closed #1205)
   * 2.0 Agent healthz 信息解析 (fixed #1208)
 
-### optimization: 
+### optimization:
   * Agent 安装日志展示优化 (closed #1198)
 
-## 2.2.30 - 2022-10-28 
+## 2.2.30 - 2022-10-28
 
 
-### bugfix: 
+### bugfix:
   * 安装 Agent 新增主机到 CMDB 报错 (fixed #1190)
   * 修复 Windows Agent2.0 安装获取配置文件失败的问题 (fixed #1192)
   * 前端构建报错：Module not found: Error: Can't resolve './JSEncrypt' in '/frontend/node_modules/jsencrypt/lib' (fixed #1187)
 
-### feature: 
+### feature:
   * 安装 Agent 前置脚本执行 (closed #1173)
   * 部分资源权限审批人切换为实例所有者 (closed #1184)
   * 新版 IP 选择器后台接入 (closed #1040)
 
-## 2.2.29 - 2022-10-21 
+## 2.2.29 - 2022-10-21
 
 
-### feature: 
+### feature:
   * 直连 Agent2.0 安装后台适配 (closed #1158)
   * Agent 2.0 Linux Agent 安装脚本 (closed #1166)
   * Agent 2.0 Proxy 安装脚本 (1167 #closed)
 
-### bugfix: 
+### bugfix:
   * Windows Agent 重装后采集丢失 (closed #1152)
 
-## 2.2.28 - 2022-09-29 
+## 2.2.28 - 2022-09-29
 
 
-### bugfix: 
+### bugfix:
   * Windows 配置备份逻辑错误 (closed #1150)
   * 任务历史日志全屏展示异常 (closed #1153)
 
-## 2.2.27 - 2022-09-27 
+## 2.2.27 - 2022-09-27
 
 
-### optimization: 
+### optimization:
   * 国际化处理 (closed #1146)
 
-## 2.2.26 - 2022-09-26 
+## 2.2.26 - 2022-09-26
 
 
-### optimization: 
+### optimization:
   * 复制IP默认以换行符进行分隔 (closed #1140)
 
-### minor: 
+### minor:
   * pyOpenSSL 版本固化 21.0.0 (closed #1144)
 
-## 2.2.25 - 2022-09-23 
+## 2.2.25 - 2022-09-23
 
 
-### bugfix: 
+### bugfix:
   * 插件状态 - 过滤图标不展示问题修复 (closed #1137)
 
-## 2.2.24 - 2022-09-23 
+## 2.2.24 - 2022-09-23
 
 
-### bugfix: 
+### bugfix:
   * Agent状态 - 表格的缩略规则不一致 (closed #1104)
   * 插件状态 - 过滤图标被遮挡 (closed #1092)
 
-### optimization: 
+### optimization:
   * 资源配额 - 规则及使用增加说明tips (closed #1087)
 
-## 2.2.23 - 2022-09-22 
+## 2.2.23 - 2022-09-22
 
 
-### optimization: 
+### optimization:
   * 插件包 表格列展示不全时提供tooltips (closed #1086)
   * API 在线文档在生产环境隐藏 (closed #1107)
   * 资源配额 - 修改 执行文案改为下发配额 (closed #1089)
@@ -1213,20 +1213,20 @@
   * 资源配额-配额百分比例含义不明确 (closed #1093)
   * 手动安装的安装说明需要完善 (closed #1082)
 
-### bugfix: 
+### bugfix:
   * 卸载界面去除安装agent提示 (closed #1099)
   * Windows卸载命令拼接错误 (closed #1078)
   * 编辑配额 - 编辑返回后，业务由全业务变成了单个业务 (closed #1088)
   * 手动卸载无指导方案问题 (fixed #1100)
   * 修复插件操作流水记录 Windows 服务器目录分隔符错误的问题 (fixed #1090)
 
-### feature: 
+### feature:
   * 管控区域 - 调整列【proxy数量】为【可用Proxy数量】 (closed #1083)
 
-## 2.2.22 - 2022-09-14 
+## 2.2.22 - 2022-09-14
 
 
-### feature: 
+### feature:
   * 部署策略执行被抑制时，主抑制策略增加超链接 (closed #889)
   * Agent 安装前置创建目录 (closed #977)
   * 完善权限中心「业务运维」权限配置，新增业务只读推荐权限 (closed #1060)
@@ -1235,7 +1235,7 @@
   * 重装 agent 时保存的密码如果仍在有效期内，需要回显成 * (close #905)
   * 产品导航新版设计 (close #882)
 
-### optimization: 
+### optimization:
   * 安装命令生成执行方案，Windows 非直连安装 Agent 支持 Cygwin (close #740)
   * 管控区域支持全量排序 (closed #1046)
   * 插件任务版本提示优化 (close #1048)
@@ -1246,39 +1246,39 @@
   * 手动安装操作指引完善 (closed #722)
   * helm charts matchLabels 补充 (closed #1024)
 
-### bugfix: 
+### bugfix:
   * 指定安装通道安装 Agent 自动选择接入点报错 (closed #949)
   * 修复判断主机能否使用第三方查询密码服务不可用的问题 (fixed #1008)
   * 自定义业务拓扑场景下新建策略报错 (closed #1010)
   * 插件模板序列化器错误 (closed #1037)
 
-### docs: 
+### docs:
   * 常用 API 文档整理 (closed #930)
 
-## 2.2.21 - 2022-08-12 
+## 2.2.21 - 2022-08-12
 
 
-### bugfix: 
+### bugfix:
   * 修复插件调试接口报错的问题 (fixed #995)
 
-### feature: 
+### feature:
   * 插件管理支持版本标签 (closed #732)
 
-## 2.2.20 - 2022-08-10 
+## 2.2.20 - 2022-08-10
 
 
-### bugfix: 
+### bugfix:
   * AIX 适配升级脚本语法错误 (closed #987)
   * JOB API适配接口错误 (closed #988)
 
-### feature: 
+### feature:
   * Agent 安装表单优化 (closed #869)
   * 未启用 DHCP 适配时前端关闭部分入口 (closed #978)
 
-## 2.2.19 - 2022-08-02 
+## 2.2.19 - 2022-08-02
 
 
-### feature: 
+### feature:
   * 支持 AIX 操作系统区分版本 (closed #815)
   * 历史任务-执行日志整体重试改为重试 (closed #899)
   * JOB API 适配 (closed #785)
@@ -1298,103 +1298,103 @@
   * 支持 bk_agent_id (closed #562)
   * Nginx 重新编译，修复 DNS 漏洞 (closed #918)
 
-### bugfix: 
+### bugfix:
   * Agent 安装校验提示信息错位 (closed #669)
   * Linux Agent dbgipc 配置渲染值有误 (fixed #973)
 
-### docs: 
+### docs:
   * 开源信息更新 (closed #953)
 
-### optimization: 
+### optimization:
   * Agent 状态查询兼容 NOT FOUND 场景 (closed #863)
   * IPv6 校验及展示优化 (closed #942)
   * GSE 配置文件去掉相关注释，保证json格式合法 (closed #955)
 
-## 2.2.18 - 2022-07-07 
+## 2.2.18 - 2022-07-07
 
 
-### feature: 
+### feature:
   * 支持 bkmonitorproxy 的资源配额设置 (closed #868)
   *  查看类的弹窗点击非遮罩处需要能够关闭 (closed #859)
 
-### optimization: 
+### optimization:
   * 登录跳转取消弹框 (close #843)
   * 添加主机到 CMDB 兼容接口数据延迟的情况 (close #920)
   * 部署策略展示顺序优化 (closed #856 closed #857)
   * 手动安装引导页去除冗余提示信息 (closed #855)
   * 登录跳转取消弹框 (closed #843)
 
-### bugfix: 
+### bugfix:
   * 修复 KubeVersion < 1.18-0 ingress 渲染错误：Service(nodeman/bk-nodeman-saas-api) do not have port 80. 的问题 (fixed #876)
   * Agent 安装表单无法选择操作系统 (closed #865)
   * Windows 拼接注册服务名称错误 (closed #870)
   * 已选中的策略需要有一个「选中态」样式 (closed #858)
   * 二进制部署下任务链接返回错误 (closed #841)
 
-## 2.2.17 - 2022-06-13 
+## 2.2.17 - 2022-06-13
 
 
-### feature: 
+### feature:
   * 提出插件管理页面的安装操作入口 (closed #807)
 
-### optimization: 
+### optimization:
   * 更新 Charts 依赖 (closed #827)
 
-## 2.2.16 - 2022-06-09 
+## 2.2.16 - 2022-06-09
 
 
-### optimization: 
+### optimization:
   * 消除运行环境差异 (closed #779)
   * Agent 管理列表「业务拓扑」支持拖动改变宽度 (closed #470)
   * 重装 Agent 保留procinfo.json文件 (closed #791)
   * Linux 相关 Agent 安装服务探测优化 (closed #774)
   * 插件包解析页面 '支持系统' 列展示操作系统类型 (closed #711)
 
-### bugfix: 
+### bugfix:
   * 节点列表-操作流水跳转到部署策略后 Drawer 未关闭 (close #689)
   * 版本日志展示位置调整 (closed #756)
 
-## 2.2.15 - 2022-06-01 
+## 2.2.15 - 2022-06-01
 
 
-### optimization: 
+### optimization:
   * 页面安装插件不展示子配置 (closed #793)
   * Agent新增事件告警配置 (closed #799)
 
-### bugfix: 
+### bugfix:
   * 非直连 Windows 机器安装 Agent, gsecmdline 报错 (closed #664)
   * 打包部署报错：Package 'protobuf' requires a different Python: 3.6.X not in '>=3.7' (fixed #796)
   * 安装预设插件检查任务是否就绪不准确 (#790)
 
-### docs: 
+### docs:
   * Helm Charts NOTES 新增同步主机相关数据指引 (closed #798)
 
-## 2.2.14 - 2022-05-19 
+## 2.2.14 - 2022-05-19
 
 
-### feature: 
+### feature:
   * 多环境部署镜像差异化构建方案 (closed #735)
 
-### optimization: 
+### optimization:
   * 主机存在性校验兼容 CMDB 注册延迟 (closed #765)
   * 完善 CMDB 资源监听处理日志 (closed #763)
   * celery 队列消费不及时 (closed #767)
 
-### bugfix: 
+### bugfix:
   * 订阅状态统计不准确 (closed #758)
 
-## 2.2.13 - 2022-05-12 
+## 2.2.13 - 2022-05-12
 
 
-### feature: 
+### feature:
   * 安装主插件支持检查是否存在并跳过 (closed #509)
   * 插件配置模板新增节点管理侧上下文 (closed #741)
   * bkunifylogbeat cpu limit 调整为 30% (closed #745)
 
-### bugfix: 
+### bugfix:
   * AIX 服务器接入点信息获取失败 (closed #737)
 
-### optimization: 
+### optimization:
   * celery 启动命令优化 (closed #743)
   * 提供更准确的 GSE 服务发现规则 (closed #733)
   * 检查订阅任务是否就绪接口 任务ID列表为空时取最新任务ID进行判断 (close #713)
@@ -1402,46 +1402,46 @@
   * 统计订阅任务数据接口优化 (closed #695)
   * Windows Agent 安装脚本移除启动插件相关逻辑(close #726)
 
-## 2.2.12 - 2022-04-27 
+## 2.2.12 - 2022-04-27
 
 
-### bugfix: 
+### bugfix:
   * 二进制部署后台状态展示异常(close #741)
   * Helm ServiceMonitor 渲染错误 (fixed #701)
   * init_official_plugins 命令支持第三方存储(close #708)
 
-### feature: 
+### feature:
   * Agent 安装接口提供 是否安装最新版本插件 选项 (closed #692)
   * 同步业务主机接口 (closed #694)
   * SaaS 相关任务创建接口返回任务链接 (closed #691)
   * Agent 操作前同步增量主机 (closed #706)
 
-### optimization: 
+### optimization:
   * Agent 安装操作若主机存在于同业务下，视为重装 (closed #707)
 
-## 2.2.11 - 2022-04-15 
+## 2.2.11 - 2022-04-15
 
 
-### bugfix: 
+### bugfix:
   * 修复多插件场景上下文渲染错误的问题 (fixed #683)
 
-### feature: 
+### feature:
   * blueapps 升级至 4.2.3 (closed #685)
 
-## 2.2.10 - 2022-04-15 
+## 2.2.10 - 2022-04-15
 
 
-### optimization: 
+### optimization:
   * 插件配置实例查询优化 (closed #677)
   * 修复下发服务模板采集报错：keyError 'service_template_id' 的问题 (fixed #679)
   * 安装Proxy时检查 GSE_BT_SERVER 的网络连通性 (close #612)
 
-### feature: 
+### feature:
   * 国际化 (closed #672)
   * 支持通过 Helm Chart 部署节点管理到 Kubernetes (closed #584)
   * Mac Os安装Agent脚本(close #663)
 
-### bugfix: 
+### bugfix:
   * 修复 Proxy 重载配置导致临时文件路径置空的问题 (closed #627)
   * 修复 cookies 清除或过期后登录跳转异常的问题 (fixed #675)
   * 国际化 - 前端补充 (closed #670)
@@ -1449,47 +1449,47 @@
   * 修复插件部署策略编辑预览报错的问题 (closed #661)
   * 修复插件包停用后仍可被选中的问题 (closed #658)
 
-### test: 
+### test:
   * 配置模板渲染单元测试(close #646)
 
-## 2.2.9 - 2022-03-31 
+## 2.2.9 - 2022-03-31
 
 
-### optimization: 
+### optimization:
   * 安装 PROXY 时下发的安装包使用接入点指定的包 (close #622)
   * subscription statistic 接口缓存不生效的问题 (close #634)
   * Agent 非 root 安装切换 sudo 执行安装命令 (closed #637)
   * Django Admin 优化 (close #619)
 
-### bugfix: 
+### bugfix:
   * 登陆续期窗口登陆后界面显示异常(close #626)
   * 同名多配置文件渲染时过滤错误(close #624)
   * CMDB 资源池删除主机后节点管理未同步 (fixed #639)
   * 插件版本全部停用时报错(close #629)
 
-## 2.2.8 - 2022-03-23 
+## 2.2.8 - 2022-03-23
 
 
-### feature: 
+### feature:
   * 依赖包升级 (fixed #601)
   * 可观测性建设 (close #603)
   * 作业平台业务集支持 (close #604)
 
-### optimization: 
+### optimization:
   * 插件订阅变更计算优化 (closed #599)
   * Windows安装使用ntrights添加权限 (close #616)
 
-### bugfix: 
+### bugfix:
   * 已重试成功主机，下次重试仍会执行 (closed #350)
   * 修复协程 MySQL server has gone away 的问题 (closed #610)
   * Agent安装为Proxy未更新节点类型 (fixed #605)
   * 安装 Proxy 去除 check_policy_gse_to_proxy 步骤 (fixed #612)
   * 标准运维接口调用问题修复 (fixed #606)
 
-## 2.2.7 - 2022-03-15 
+## 2.2.7 - 2022-03-15
 
 
-### bugfix: 
+### bugfix:
   * 修复 Agent 安装失败：'NoneType' object has no attribute 'get' 的问题 (fixed #587)
   * 手动卸载没有给出命令 (fixed #581)
   * 修复手动安装命令获取失败的问题 (fixed #586)
@@ -1497,23 +1497,23 @@
   * 无法编辑保存proxy主机信息 (fixed #589)
   * 修复作业平台少数IP超时导致整体任务失败的问题 (fixed #573)
 
-### feature: 
+### feature:
   * Agent 配置调整脚本清理策略(close #580)
 
-### optimization: 
+### optimization:
   * 仅初始化情况下更新默认接入点下载地址 (closed #594)
   * 多内网IP兼容 (closed #572)
 
-## 2.2.6 - 2022-03-10 
+## 2.2.6 - 2022-03-10
 
 
-### bugfix: 
+### bugfix:
   * PaaSV2部署下admin页面缺少静态文件 (close #570)
 
-## 2.2.5 - 2022-03-09 
+## 2.2.5 - 2022-03-09
 
 
-### bugfix: 
+### bugfix:
   * Agent 批量操作按钮跨页全选模式下仅在过滤安装方式后可用 (close #498)
   * 安装预装插件时不存在的插件包报错 (close #565)
   * 修复 Proxy dataflow.conf addresses 渲染值有误的问题 (fixed #552)
@@ -1523,46 +1523,46 @@
   * 修复卸载 Agent 失败: not enough values to unpack (expected 2, got 1) 的问题 (closed #544)
   * 部署策略灰度列表展开错位 (close #449)
 
-### feature: 
+### feature:
   * 支持子订阅功能 (close #517)
   * PaaS 镜像部署适配 (closed #558)
   * 接入点支持配置内网回调地址 (close #440)
 
-### docs: 
+### docs:
   * Agent 安装压力测试文档 (closed #476)
 
-## 2.2.4 - 2022-03-04 
+## 2.2.4 - 2022-03-04
 
 
-## 2.2.3 - 2022-03-04 
+## 2.2.3 - 2022-03-04
 
 
-### feature: 
+### feature:
   * 资源限额接口权限控制 (close #536)
 
-## 2.2.2 - 2022-03-04 
+## 2.2.2 - 2022-03-04
 
 
-### optimization: 
+### optimization:
   * 资源配额 - 搜索、业务下拉 优化 (close #527)
   * 优化CPU架构获取和检查 (close #530)
 
-### bugfix: 
+### bugfix:
   * 资源配额相关的问题修复 (close #523)
   * 修复存在未完成任务时，已失败的任务会重复刷错误日志的问题 (closed #520)
   * 解决主机数量超过200时CMDB接口报错问题 (fixed #521)
 
-### feature: 
+### feature:
   * 接入点支持配置内网回调地址 (closed #440)
   * 直连安装 Windows Agent 放开仅允许 445 端口的限制 (close #507)
   * Agent 安装默认值支持全局配置 (closed #445)
   *  Agent 安装默认值支持全局配置 (close #512)
   * Cygwin 安装 Agent 支持 curl 拉取依赖文件 (closed #532)
 
-## 2.2.1 - 2022-03-01 
+## 2.2.1 - 2022-03-01
 
 
-### bugfix: 
+### bugfix:
   * 权限弹窗未展示完整 (fixed #501)
   * 多级目录copy_file_to_nginx报错的问题 (fixed #490)
   * 手动安装命令错误(fixed issue#496)
@@ -1570,7 +1570,7 @@
   * 版本日志路由错误问题 (fixed #489)
   * 旧版本非标准路径crontab清理 (close #473)
 
-### feature: 
+### feature:
   * 资源限额功能 (closed #478)
   * 作业平台调用支持业务集 (closed #493)
   * 优化插件配置模板扩充方式 (close #518)
@@ -1579,86 +1579,86 @@
   * Windows 直连安装 Agent 支持 Cygwin (closed #475)
   * feature: 插件配置文件支持多系统(close #392)
 
-### optimization: 
+### optimization:
   * 提升通过 SSH 通道批量安装 Agent 的稳定性和效率 (closed #463)
 
-## 2.2.0 - 2022-02-21 
+## 2.2.0 - 2022-02-21
 
 
-### feature: 
+### feature:
   * Agent 并发安装性能提升
   * 提供验证访问模块可达的接口 (closed #441)
 
-## 2.2.0 - 2022-01-20 
+## 2.2.0 - 2022-01-20
 
 
-### feature: 
+### feature:
   * 提供验证访问模块可达的接口 (closed #441)
   * Agent 并发安装性能提升
 
-## 2.1.365 - 2022-01-19 
+## 2.1.365 - 2022-01-19
 
 
-### bugfix: 
+### bugfix:
   * redis sentinel 连接死循环(fixed #427)
 
-### feature: 
+### feature:
   * 去掉 agent、proxy 的「移除」入口(close #436)
   * 插件操作入口优化(close #434)
 
-### optimization: 
+### optimization:
   * Agent升级去除目录保护(close #428)
 
-## 2.1.364 - 2022-01-11 
+## 2.1.364 - 2022-01-11
 
 
-### feature: 
+### feature:
   * 补充周期任务的单元测试 (close #391)
   * gent 管理页面支持在 url 中进行条件过滤 (fixed #405)
   * 异步接口超时复制IP失败优化 (close #404)
 
-### optimization: 
+### optimization:
   * 周期任务削峰打散度不足 (close #400)
   * 安装脚本优化(close #415)
 
-### bugfix: 
+### bugfix:
   * 修复 PyNaCl 依赖安装报错的问题 (fixed #422)
 
-## 2.1.363 - 2021-12-24 
+## 2.1.363 - 2021-12-24
 
 
-### optimization: 
+### optimization:
   * windows脚本兼容性优化 (fixed #397)
 
-## 2.1.362 - 2021-12-24 
+## 2.1.362 - 2021-12-24
 
 
-### optimization: 
+### optimization:
   * 忽略无效拓扑节点 (close #191)
   * 重装 Agent Windows 登录端口自动更正 (close #363)
   * Agent 安装弹出参数校验失败列 (close #376)
 
-### bugfix: 
+### bugfix:
   * 安装通道服务器文件同步
   * 跨页全选情况下安装通道没有默认值 (close #377)
   * 富容器场景Agent安装脚本问题修复 (fixed #384)
   * windows安装上报系统架构错误 (fixed #394)
   * Firefox 浏览器粘贴 IP 解析错误 (close #378)
 
-### feature: 
+### feature:
   * 周期任务同步进程状态 (close #380)
 
-## 2.1.361 - 2021-12-17 
+## 2.1.361 - 2021-12-17
 
 
-### bugfix: 
+### bugfix:
   * P-Agent无法连接外网时，安装失败的问题 (fixed #354)
   * 使用私钥安装P-Agent时，校验key失败的问题 (fixed #365)
 
-## 2.1.360 - 2021-12-16 
+## 2.1.360 - 2021-12-16
 
 
-### bugfix: 
+### bugfix:
   * 使用私钥安装P-Agent时，校验key失败的问题 (fixed #365)
   * P-Agent无法连接外网时，安装失败的问题 (fixed #354)
   * 任务历史详情左侧IP列表分页异常 (fixed #349)
@@ -1667,36 +1667,36 @@
   * 修复windows插件卸载失败的问题 (fixed #366)
   * 插件配置版本匹配不符合预期的问题 (fixed #357)
 
-## 2.1.359 - 2021-12-14 
+## 2.1.359 - 2021-12-14
 
 
-## 2.1.358 - 2021-12-14 
+## 2.1.358 - 2021-12-14
 
 
-### optimization: 
+### optimization:
   * 任务日志 优化error、debug类型展示 (close #333)
   * 下发插件匹配不到插件包时报错粒度优化 (close #250)
 
-### feature: 
+### feature:
   * 新增CMDB进程实例监听，优化周期任务 (close #329)
 
-### bugfix: 
+### bugfix:
   * 节点列表页面加载异常 (fixed #334)
   * 修复插件操作选择部署版本时报错无权限的问题 (closed #346)
 
-## 2.1.357 - 2021-12-09 
+## 2.1.357 - 2021-12-09
 
 
-### bugfix: 
+### bugfix:
   * 修复后台管理页面显示异常的问题 (fixed #330)
 
-## 2.1.356 - 2021-12-08 
+## 2.1.356 - 2021-12-08
 
 
-### optimization: 
+### optimization:
   * 升级 Django3 (closed #111)
 
-### feature: 
+### feature:
   * 敏感信息传输加密 (closed #226)
   * PaaS容器部署适配 (closed #10)
   * 灰度策略支持自定义输入多IP (closed #235)
@@ -1707,42 +1707,42 @@
   * Windows Agent安装支持用administrator用户注册服务(close #277)
   * 新增安装通道上游配置项，适配更复杂网络场景 (closed #234)
 
-### bugfix: 
+### bugfix:
   * 手动安装window机器补充curl.exe下载链接 (closed #321)
   * 修复访问后台接口出现 JWT 校验异常的问题 (fixed #323)
 
-## 2.1.355 - 2021-11-04 
+## 2.1.355 - 2021-11-04
 
 
-### bugfix: 
+### bugfix:
   * gse agent 缺少 dbgipc 配置项(close #244)
   * 手动安装p-agent,windows服务器失败(close #233)
   * 修复本地存储保存文件与源文件不一致的问题 (fixed #254)
   * 修复查询主机插件操作流水异常的问题 (fixed #252)
 
-### optimization: 
+### optimization:
   * 优化、统一用户退出操作  (closed #220)
   * workflow 优化 (#121)
   * 前端 api module 代码生成规范改进(closed #228)
 
-### feature: 
+### feature:
   * 新增安装通道上游配置项，适配更复杂网络场景(close #234)
 
-### docs: 
+### docs:
   * 安装通道多级代理nginx配置补充(closed #227)
 
-## 2.1.354 - 2021-11-04 
+## 2.1.354 - 2021-11-04
 
-### bugfix: 
+### bugfix:
   * gse agent 缺少 dbgipc 配置项(close #244)
   * 手动安装p-agent,windows服务器失败(close #233)
-### optimization: 
+### optimization:
   * 优化、统一用户退出操作  (closed #220)
   * workflow 优化 (#121)
   * 前端 api module 代码生成规范改进(closed #228)
-### feature: 
+### feature:
   * 新增安装通道上游配置项，适配更复杂网络场景(close #234)
-### docs: 
+### docs:
   * 安装通道多级代理nginx配置补充(closed #227)
 
 ## 2.1.353
