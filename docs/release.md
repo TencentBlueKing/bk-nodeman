@@ -1,6 +1,6 @@
 # Release
 
-## 2.5.0 版本更新日志 
+## 2.4.10 版本更新日志 
 
 修复
 
@@ -10,7 +10,7 @@
 
 
 
-**Full Release Notes**: https://github.com/TencentBlueKing/bk-nodeman/compare/v2.4.9...v2.5.0
+**Full Release Notes**: https://github.com/TencentBlueKing/bk-nodeman/compare/v2.4.9...v2.4.10
 
 
 ## 2.4.9 版本更新日志 
