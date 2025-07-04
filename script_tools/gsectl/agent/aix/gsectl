@@ -391,7 +391,7 @@ remove_crontab () {
     local tmpcron
     local datatemp=$(date +%s)
 
-    crontab -l | grep -v "$AGENT_SETUP_PATH/bin/gsectl" > /tmp/cron.$datatemp
+    crontab -l | grep -v "$WORK_HOME/bin/gsectl" > /tmp/cron.$datatemp
     crontab /tmp/cron.$datatemp && rm -f /tmp/cron.$datatemp
 
     # 下面这段代码是为了确保修改的crontab能立即生效

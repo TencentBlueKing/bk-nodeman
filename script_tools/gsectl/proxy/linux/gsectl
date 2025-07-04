@@ -858,9 +858,9 @@ add_startup_to_boot () {
 
     local insert_content
     if systemctl list-unit-files | grep -q rc-local.service; then
-        insert_content="[ -f $AGENT_SETUP_PATH/bin/gsectl ] && sh -c 'echo \"\$\$\" > /sys/fs/cgroup/systemd/tasks; exec $AGENT_SETUP_PATH/bin/gsectl start' >/var/log/gse_start.log 2>&1"
+        insert_content="[ -f ${WORK_HOME}/bin/gsectl ] && sh -c 'echo \"\$\$\" > /sys/fs/cgroup/systemd/tasks; exec ${WORK_HOME}/bin/gsectl start ${module}' >/var/log/gse_start.log 2>&1"
     else
-        insert_content="[ -f $AGENT_SETUP_PATH/bin/gsectl ] && $AGENT_SETUP_PATH/bin/gsectl start >/var/log/gse_start.log 2>&1"
+        insert_content="[ -f ${WORK_HOME}/bin/gsectl ] && ${WORK_HOME}/bin/gsectl start ${module} >/var/log/gse_start.log 2>&1"
     fi
 
     if grep -q "^exit 0" "$rcfile"; then
