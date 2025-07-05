@@ -454,6 +454,12 @@ class StorageType(Enum):
     BLUEKING_ARTIFACTORY = "BLUEKING_ARTIFACTORY"
 
 
+ALLOWED_BKREPO_PATHS = [
+    "/data/bkee/public/bknodeman/",
+    "/data/bkee/public/bknodeman/download/",
+    "/data/bkee/public/bknodeman/upload/",
+]
+
 # 用于控制默认的文件存储类型
 # 更多类型参考 apps.node_man.constants.STORAGE_TYPE
 STORAGE_TYPE = os.getenv("STORAGE_TYPE", StorageType.FILE_SYSTEM.value)

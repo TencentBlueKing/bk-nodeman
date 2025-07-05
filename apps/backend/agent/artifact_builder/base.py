@@ -296,7 +296,7 @@ class BaseArtifactBuilder(abc.ABC):
         with open(package_tmp_path, mode="rb") as tf:
             # 采用同名覆盖策略，保证同版本 Agent 包仅保存一份
             storage_path = self.storage.save(package_target_path, tf)
-            if storage_path != package_target_path:
+            if storage_path != self.storage._normalize_name(package_target_path):
                 raise exceptions.CreatePackageRecordError(
                     _("Agent 包保存错误，期望保存到 -> {package_target_path}, 实际保存到 -> {storage_path}").format(
                         package_target_path=package_target_path, storage_path=storage_path
