@@ -13,8 +13,9 @@ from typing import Any, Callable, Dict, List, Optional
 
 from bkstorages.backends import bkrepo
 from django.conf import settings
-from django.core.files import File
+from django.core.exceptions import SuspiciousFileOperation
 from django.core.files.storage import FileSystemStorage, Storage, get_storage_class
+from django.utils._os import safe_join
 from django.utils.deconstruct import deconstructible
 from django.utils.functional import cached_property
 
@@ -28,7 +29,6 @@ from .file_source import BkJobFileSourceManager
 
 @deconstructible
 class CustomBKRepoStorage(BaseStorage, bkrepo.BKRepoStorage):
-
     storage_type: str = constants.StorageType.BLUEKING_ARTIFACTORY.value
     location: str = getattr(settings, "BKREPO_LOCATION", "")
     file_overwrite: Optional[bool] = None
@@ -49,7 +49,6 @@ class CustomBKRepoStorage(BaseStorage, bkrepo.BKRepoStorage):
         endpoint_url=None,
         file_overwrite=None,
     ):
-        # 类成员变量应该和构造函数解耦，通过 params or default 的形式给构造参数赋值，防止该类被继承扩展时需要覆盖全部的成员默认值
         root_path = root_path or self.location
         self.username = username or settings.BKREPO_USERNAME
         self.password = password or settings.BKREPO_PASSWORD
@@ -58,8 +57,6 @@ class CustomBKRepoStorage(BaseStorage, bkrepo.BKRepoStorage):
         self.endpoint_url = endpoint_url or settings.BKREPO_ENDPOINT_URL
         self.file_overwrite = file_overwrite or settings.FILE_OVERWRITE
 
-        # 根据 MRO 顺序，super() 仅调用 BaseStorage.__init__()，通过显式调用 BKRepoStorage 的初始化函数
-        # 获得自定义 BaseStorage 类的重写特性，同时向 BKRepoStorage 注入成员变量
         bkrepo.BKRepoStorage.__init__(
             self,
             root_path=root_path,
@@ -72,34 +69,83 @@ class CustomBKRepoStorage(BaseStorage, bkrepo.BKRepoStorage):
         )
 
     def path(self, name):
-        raise NotImplementedError()
+        """
+        返回文件的完整路径
+        注意：制品库存储通常不需要此方法，但为了安全起见，我们实现它
+        """
+        # 如果是相对路径，拼接根路径
+        if not name.startswith("/"):
+            return safe_join(self.location, name)
+        # 如果是绝对路径，直接返回（需要确保路径安全）
+        if self._is_safe_path(name):
+            return name
+        raise SuspiciousFileOperation(f"Detected path traversal attempt in '{name}'")
+
+    def _is_safe_path(self, path):
+        """验证路径是否安全"""
+        # 检查路径是否在允许的目录列表中
+        allowed_paths = [self.location]
+
+        # 可以添加其他允许的路径前缀
+        if hasattr(settings, "ALLOWED_BKREPO_PATHS"):
+            allowed_paths.extend(settings.ALLOWED_BKREPO_PATHS)
+
+        return any(path.startswith(allowed_path) for allowed_path in allowed_paths)
+
+    def _normalize_name(self, name):
+        """
+        规范化文件名，防止路径遍历攻击
+        """
+        # 移除路径中的点和双点
+        name = os.path.normpath(name).replace("\\", "/")
+
+        # 确保路径不以斜杠开头
+        if name.startswith("/"):
+            name = name[1:]
+
+        return name
+
+    def save(self, name, content, max_length=None):
+        """
+        重写save方法，增加路径安全检查
+        """
+        # 规范化名称
+        name = self._normalize_name(name)
+
+        # 验证路径安全性
+        if not self._is_safe_path(name):
+            raise SuspiciousFileOperation(f"Path '{name}' is not allowed")
+
+        return super().save(name, content, max_length)
+
+    def exists(self, name):
+        """
+        重写exists方法，规范化名称
+        """
+        name = self._normalize_name(name)
+        return super().exists(name)
+
+    def delete(self, name):
+        """
+        重写delete方法，规范化名称
+        """
+        name = self._normalize_name(name)
+        return super().delete(name)
 
     def get_file_md5(self, file_name: str) -> str:
+        # 规范化文件名
+        file_name = self._normalize_name(file_name)
+
         if not self.exists(name=file_name):
             raise FileExistsError(f"{self.project_id}/{self.bucket}/{file_name} not exist.")
+
         file_metadata = self.get_file_metadata(key=file_name)
         file_md5 = file_metadata["X-Checksum-Md5"]
         return file_md5
 
-    def save(self, name, content, max_length=None):
-        # django3.2 之后存储文件名不能为绝对路径 此处采用兼容方式
-        if name is None:
-            name = content.name
-        if not hasattr(content, "chunks"):
-            content = File(content, name)
-        name = self.get_available_name(name, max_length=max_length)
-        name = self._save(name, content)
-        return name
-
-    def _save(self, name, content):
-        storage_path = super()._save(name, content)
-        # bkstorage == 2.0.0 后如果 name 以 / 开头 _save会将其抛弃，需要手动拼接
-        return f"/{storage_path}" if name.startswith("/") else storage_path
-
     def _handle_file_source_list(
         self, file_source_list: List[Dict[str, Any]], extra_transfer_file_params: Dict[str, Any]
     ) -> List[Dict[str, Any]]:
-
         # 获取或创建文件源
         file_source_obj = BkJobFileSourceManager.get_or_create_file_source(
             bk_biz_id=settings.BLUEKING_BIZ_ID,
@@ -111,10 +157,11 @@ class CustomBKRepoStorage(BaseStorage, bkrepo.BKRepoStorage):
 
         file_source_with_source_info_list = []
         for file_source in file_source_list:
+            # 规范化每个文件路径
+            file_list = [self._normalize_name(file_path) for file_path in file_source.get("file_list", [])]
+
             # 作业平台要求制品库分发的路径带上 project/bucket 前缀
-            file_list = [
-                os.path.join(self.project_id, self.bucket) + file_path for file_path in file_source.get("file_list", [])
-            ]
+            file_list = [os.path.join(self.project_id, self.bucket, file_path) for file_path in file_list]
 
             file_source_with_source_info_list.append(
                 {
@@ -173,16 +220,6 @@ class AdminFileSystemStorage(BaseStorage, FileSystemStorage):
     def location(self):
         """路径指向 / ，重写前路径指向「项目根目录」"""
         return self.base_location
-
-    def save(self, name, content, max_length=None):
-        # django3.2 之后存储文件名不能为绝对路径 此处采用兼容方式
-        if name is None:
-            name = content.name
-        if not hasattr(content, "chunks"):
-            content = File(content, name)
-        name = self.get_available_name(name, max_length=max_length)
-        name = self._save(name, content)
-        return name
 
     def _save(self, name, content):
         # 如果允许覆盖，保存前删除文件
