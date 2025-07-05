@@ -560,8 +560,9 @@ def create_pkg_record(
     package_target_path = os.path.join(settings.DOWNLOAD_PATH, pkg_record.os, pkg_record.cpu_arch, pkg_record.pkg_name)
     with open(package_tmp_path, mode="rb") as tf:
         # 采用同名覆盖策略，保证同版本插件包仅保存一份
-        storage_path = get_storage(file_overwrite=True).save(package_target_path, tf)
-        if storage_path != package_target_path:
+        storage = get_storage(file_overwrite=True)
+        storage_path = storage.save(package_target_path, tf)
+        if storage_path != storage._normalize_name(package_target_path):
             logger.error(
                 "package save error, except save to -> {package_target_path}, but -> {storage_path}".format(
                     package_target_path=package_target_path, storage_path=storage_path
