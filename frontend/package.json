@@ -174,7 +174,7 @@
     "vue-property-decorator": "^9.0.0",
     "vue-template-compiler": "2.7.14",
     "vuex-module-decorators": "^0.17.0",
-    "webpack": "5.30.0",
+    "webpack": ">=5.94.0",
     "webpack-bundle-analyzer": "^4.1.0",
     "webpack-cli": "^4.2.0",
     "webpack-dev-server": "^3.11.0",
