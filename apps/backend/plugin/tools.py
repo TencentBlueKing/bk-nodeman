@@ -189,6 +189,23 @@ def validate_config_variables(variables_root: Optional[Dict[str, Any]]) -> Dict[
     return validated_variables_root
 
 
+def is_within_directory(directory, target):
+    abs_directory = os.path.abspath(directory)
+    abs_target = os.path.abspath(target)
+    return os.path.commonpath([abs_directory]) == os.path.commonpath([abs_directory, abs_target])
+
+
+def safe_extract(tar, path=".", members=None):
+    for member in tar.getmembers():
+        # 检验软连接（新增）
+        if member.islnk() or member.issym():
+            raise exceptions.PluginParseError(_("文件包含非法路径成员 -> {name}，请检查").format(name=member.name))
+        member_path = os.path.join(path, member.name)
+        if not is_within_directory(path, member_path):
+            raise exceptions.PluginParseError(_("文件包含非法路径成员 -> {name}，请检查").format(name=member.name))
+    tar.extractall(path=path, members=members)
+
+
 def list_package_infos(file_path: str) -> List[Dict[str, Any]]:
     """
     :param file_path: 插件包所在路径
@@ -231,7 +248,8 @@ def list_package_infos(file_path: str) -> List[Dict[str, Any]]:
             logger.info(
                 "file-> {file_path} extract to path -> {tmp_dir} success.".format(file_path=file_path, tmp_dir=tmp_dir)
             )
-            tf.extractall(path=tmp_dir)
+            # 安全解压
+            safe_extract(tf, path=tmp_dir)
 
     package_infos = []
 
