@@ -68,7 +68,7 @@
           :disabled="!url || !actionsList.length"
           :loading="loading"
           @click="goToApply">
-          {{ $t('去申请') }}
+          {{ !isApplied ? $t('去申请') : $t('已申请') }}
         </bk-button>
         <bk-button theme="default" @click="onCloseDialog">{{ $t('取消') }}</bk-button>
       </div>
@@ -92,6 +92,7 @@ interface ITrigger {
 export default class PermissionModal extends Vue {
   private url = '';
   private isModalShow = false;
+  private isApplied = false;
   private actionsList: {
     system?: string
     action?: string
@@ -149,12 +150,17 @@ export default class PermissionModal extends Vue {
     return data;
   }
   private goToApply() {
+    if(this.isApplied) {
+      window.location.reload();
+      return;
+    }
     if (this.loading) {
       return;
     }
 
     if (self === top) {
       window.open(this.url, '__blank');
+      this.isApplied = true;
     } else {
       try {
         window.top.BLUEKING.api.open_app_by_other('bk_iam', this.url);

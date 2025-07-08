@@ -372,10 +372,11 @@ export default class NodemanNavigation extends Mixins(routerBackMixin) {
         BK_COMPONENT_API_URL: overwriteUrl = '',
         BK_DOMAIN: domain = '',
         TENANT_ID: tenant_id = '',
+        API_BASE_URL: apiBaseUrl = ''
       } = window.PROJECT_CONFIG;
       if(this.ENABLE_MULTI_TENANT_MODE) {
         try {
-          const url = `${overwriteUrl}/api/v3/open-web/tenant/current-user/language/`;
+          const url = `${apiBaseUrl}/api/v3/open-web/tenant/current-user/language/`;
           await fetch(url, {
             method: 'PUT',
             headers: {
