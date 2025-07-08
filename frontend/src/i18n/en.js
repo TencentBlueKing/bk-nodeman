@@ -772,6 +772,7 @@ export default {
   搜索为空: 'Search is empty',
   数据异常: 'Abnormal data',
   去申请: 'Go to apply',
+  已申请: 'Already applied',
   权限不足: 'Sorry, you have insufficient permissions!',
   页面找不到了: 'The page cannot be found!',
   服务器维护中: 'Server maintenance, please try again later',

@@ -366,29 +366,52 @@ export default class NodemanNavigation extends Mixins(routerBackMixin) {
   private handleBack() {
     this.routerBack();
   }
-  private toggleLang(item: IUserItem) {
+  private async toggleLang(item: IUserItem) {
     if (item.id !== this.language) {
       const {
         BK_COMPONENT_API_URL: overwriteUrl = '',
         BK_DOMAIN: domain = '',
+        TENANT_ID: tenant_id = '',
+        API_BASE_URL: apiBaseUrl = ''
       } = window.PROJECT_CONFIG;
+      if(this.ENABLE_MULTI_TENANT_MODE) {
+        try {
+          const url = `${apiBaseUrl}/api/v3/open-web/tenant/current-user/language/`;
+          await fetch(url, {
+            method: 'PUT',
+            headers: {
+              'X-Bk-Tenant-Id': tenant_id,
+              'Content-type': 'application/json',
+            },
+            body: JSON.stringify({
+              language: item.id,
+            }),
+            credentials: 'include',
+          });
+          document.cookie = `blueking_language=${item.id};path=/;domain=${domain};expires=3600`;
+          document.querySelector('html')?.setAttribute('lang', item.id);
+          window.location.reload();
+        } catch (err) {
+          console.error(err);
+        }
+      } else {
+        const api = `${overwriteUrl}/api/c/compapi/v2/usermanage/fe_update_user_language/?language=${item.id}`;
+        const scriptId = 'jsonp-script';
+        const prevJsonpScript = document.getElementById(scriptId);
+        if (prevJsonpScript) {
+          document.body.removeChild(prevJsonpScript);
+        }
+        const scriptEl = document.createElement('script');
+        scriptEl.type = 'text/javascript';
+        scriptEl.src = api;
+        scriptEl.id = scriptId;
+        document.body.appendChild(scriptEl);
 
-      const api = `${overwriteUrl}/api/c/compapi/v2/usermanage/fe_update_user_language/?language=${item.id}`;
-      const scriptId = 'jsonp-script';
-      const prevJsonpScript = document.getElementById(scriptId);
-      if (prevJsonpScript) {
-        document.body.removeChild(prevJsonpScript);
+        const today = new Date();
+        today.setTime(today.getTime() + 1000 * 60 * 60 * 24);
+        document.cookie = `blueking_language=${item.id};path=/;domain=${domain};expires=${today.toUTCString()}`;
+        location.reload();
       }
-      const scriptEl = document.createElement('script');
-      scriptEl.type = 'text/javascript';
-      scriptEl.src = api;
-      scriptEl.id = scriptId;
-      document.body.appendChild(scriptEl);
-
-      const today = new Date();
-      today.setTime(today.getTime() + 1000 * 60 * 60 * 24);
-      document.cookie = `blueking_language=${item.id};path=/;domain=${domain};expires=${today.toUTCString()}`;
-      location.reload();
     }
   }
   /**
