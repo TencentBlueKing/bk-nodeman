@@ -162,6 +162,8 @@ class GlobalSettings(models.Model):
         PLUGIN_PROC_START_CHECK_SECS = "PLUGIN_PROC_START_CHECK_SECS"
         # 查询服务实例时module_id阈值，当小于该阈值时以单module_id并发查询
         SERVICE_INSTANCE_MODULE_ID_THRESHOLD = "SERVICE_INSTANCE_MODULE_ID_THRESHOLD"
+        # 未分配管控区域
+        UNASSIGNED_BK_CLOUD_ID = "UNASSIGNED_BK_CLOUD_ID"
         # IP选择器详情接口是否实时展示agent状态
         IP_CHOOSER_ENABLE_SHOW_REALTIME_AGENT_STATE = "IP_CHOOSER_ENABLE_SHOW_REALTIME_AGENT_STATE"
         # IP选择器详情接口实时展示agent状态业务白名单
@@ -2468,6 +2470,7 @@ class ResourceWatchEvent(models.Model):
     bk_resource = models.CharField(_("资源"), max_length=32)
     bk_detail = JSONField(_("事件详情"), default=dict)
     create_time = models.DateTimeField(_("创建时间"), auto_now_add=True)
+    tenant_id = models.CharField(_("租户ID"), default="default", max_length=64, null=True, blank=True, db_index=True)
 
     class Meta:
         verbose_name = _("CMDB资源监听事件")
