@@ -108,6 +108,7 @@ MIDDLEWARE = (
     "apigw_manager.apigw.authentication.ApiGatewayJWTGenericMiddleware",  # JWT 认证
     "apigw_manager.apigw.authentication.ApiGatewayJWTAppMiddleware",  # JWT 透传的应用信息
     "apps.middlewares.ApiGatewayJWTUserInjectAppMiddleware",  # JWT 透传的用户信息
+    # "apigw_manager.apigw.authentication.ApiGatewayJWTUserMiddleware",  # JWT 透传的用户信息
     # exception middleware
     "blueapps.core.exceptions.middleware.AppExceptionMiddleware",
     # 自定义中间件
@@ -488,6 +489,7 @@ LOCALE_PATHS = (os.path.join(PROJECT_ROOT, "locale"),)
 AUTH_USER_MODEL = "account.User"
 AUTHENTICATION_BACKENDS = (
     "apps.authentication.ApiGatewayJWTUserModelBackend",
+    # "apigw_manager.apigw.authentication.UserModelBackend",
     "blueapps.account.backends.BkJwtBackend",
     "blueapps.account.backends.UserBackend",
     "django.contrib.auth.backends.ModelBackend",
