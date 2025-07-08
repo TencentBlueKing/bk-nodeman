@@ -179,6 +179,17 @@ class JobHandler(APIModel):
 
         if params.get("sort"):
             sort_head = params["sort"]["head"]
+            sort_fields = [
+                "total_count",
+                "failed_count",
+                "ignored_count",
+                "pending_count",
+                "running_count",
+                "success_count",
+            ]
+            if sort_head not in sort_fields:
+                raise ApiResultError(_("排序字段不合法"))
+
             job_result = job_result.extra(select={sort_head: f"JSON_EXTRACT(statistics, '$.{sort_head}')"})
             if params["sort"]["sort_type"] == constants.SortType.DEC:
                 job_result = job_result.order_by(str("-") + sort_head)
