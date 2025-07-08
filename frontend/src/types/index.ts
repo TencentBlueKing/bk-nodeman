@@ -256,6 +256,7 @@ export interface ISetupRow {
   install_channel_id: string | number | null
   bk_addressing: 'static' | 'dynamic'
   gse_version?: 'V1'|'V2' // 前端添加 用于操作主机仅能选择对应版本的接入点
+  is_unassigned: boolean // 是否分配管控区域
 }
 
 export interface ISetupParent {

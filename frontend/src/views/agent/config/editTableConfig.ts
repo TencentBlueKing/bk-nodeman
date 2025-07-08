@@ -36,7 +36,9 @@ export const config: ISetupHead[] = [
     getProxyStatus(row: ISetupRow) {
       return row.proxyStatus;
     },
-    readonly: true,
+    getReadonly(row: ISetupRow) {
+      return !row.is_unassigned;
+    },
   },
   {
     label: '安装通道',
