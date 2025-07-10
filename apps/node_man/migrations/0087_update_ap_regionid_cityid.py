@@ -20,7 +20,7 @@ def update_ap_config(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("node_man", "0086_add_agent_config_plugin_ipc_and_alarm_event_data_id"),
+        ("node_man", "0086_bizeventdataidmap"),
     ]
 
     operations = [

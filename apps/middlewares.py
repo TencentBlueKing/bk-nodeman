@@ -257,16 +257,8 @@ class ApiGatewayJWTUserInjectAppMiddleware(ApiGatewayJWTUserMiddleware):
             return self.get_response(request)
 
         jwt_user = (jwt_info.payload.get("user") or {}).copy()
-        logger.info(f"===========jwt_user: {jwt_user}===========")
-
-        # user_model = get_user_model()
-        # user, _ = user_model.objects.get_or_create(username=jwt_user["username"])
-        # user.tenant_id = request.headers.get("x-bk-tenant-id", "default")
-        # user.save()
-        # request.user = user
         jwt_user.setdefault("bk_username", jwt_user.pop("username", None))
         request.user = self.get_user(request, gateway_name=jwt_info.gateway_name, **jwt_user)
-        logger.info(f"===========request.user: {request.user}===========")
         return self.get_response(request)
 
 
