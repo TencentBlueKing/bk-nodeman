@@ -794,6 +794,9 @@ class PluginStep(Step):
 
         action_dict = self.get_action_dict()
         ap_id_obj_map = models.AccessPoint.ap_id_obj_map()
+        allowed_version_change_to_upgrade_biz_list = models.GlobalSettings.get_config(
+            key=models.GlobalSettings.KeyEnum.SUBSCRIPTION_ALLOWED_VERSION_CHANGE_TO_UPGRADE.value, default=[]
+        )
         for group_id, host_key__proc_status_map in list(group_id__host_key__proc_status_map.items()):
             _id = int(tools.parse_group_id(group_id)["id"])
             instance_id = tools.create_node_id(
@@ -852,7 +855,14 @@ class PluginStep(Step):
                     )
 
                 # 如果下发版本发生变化，则重新下发
-                if self.subscription.category == constants.SubscriptionType.POLICY:
+                if any(
+                    [
+                        self.subscription.category == constants.SubscriptionType.POLICY,
+                        not self.plugin_desc.is_official
+                        and self.subscription.bk_biz_id in allowed_version_change_to_upgrade_biz_list,
+                    ]
+                ):
+
                     if check_version_result["has_change"]:
                         instance_actions[instance_id] = action_dict["install_action"]
                         _push_migrate_reason(
