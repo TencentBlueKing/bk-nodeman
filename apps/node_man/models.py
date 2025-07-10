@@ -188,6 +188,12 @@ class GlobalSettings(models.Model):
         UPDATE_SUBSCRIPTION_RECORDS_LENGTH = "UPDATE_SUBSCRIPTION_RECORDS_LENGTH"
         # 禁用的订阅
         DISABLED_SUBSCRIPTIONS = "DISABLED_SUBSCRIPTIONS"
+        # 禁用的订阅
+        SUBSCRIPTION_ALLOWED_VERSION_CHANGE_TO_UPGRADE = "SUBSCRIPTION_ALLOWED_VERSION_CHANGE_TO_UPGRADE"
+        # 更新订阅实例长度
+        UPDATE_SUBSCRIPTION_RECORDS_LENGTH = "UPDATE_SUBSCRIPTION_RECORDS_LENGTH"
+        # 禁用的订阅
+        DISABLED_SUBSCRIPTIONS = "DISABLED_SUBSCRIPTIONS"
         # 是否默认当前环境为仅GSE2环境
         IS_PURE_GSE2_VERSION = "IS_PURE_GSE2_VERSION"
         # 管理GSE2 Agent监听BT端口开关
@@ -201,6 +207,7 @@ class GlobalSettings(models.Model):
         INJECT_CLUSTER_MODULE_NAME_BIZ_WHITELIST = "INJECT_CLUSTER_MODULE_NAME_BIZ_WHITELIST"
         # 无需排队执行的订阅白名单
         UNQUEUED_SUBSCRIPTION_WHITELIST = "UNQUEUED_SUBSCRIPTION_WHITELIST"
+
 
     key = models.CharField(_("键"), max_length=255, db_index=True, primary_key=True)
     v_json = JSONField(_("值"), default=dict)
