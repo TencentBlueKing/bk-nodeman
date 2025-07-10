@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("node_man", "0085_cloud_tenant_id_host_tenant_id_job_tenant_id_and_more"),
+        ("node_man", "0088_accesspoint_is_use_sudo"),
     ]
 
     operations = [
