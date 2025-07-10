@@ -2470,7 +2470,6 @@ class ResourceWatchEvent(models.Model):
     bk_resource = models.CharField(_("资源"), max_length=32)
     bk_detail = JSONField(_("事件详情"), default=dict)
     create_time = models.DateTimeField(_("创建时间"), auto_now_add=True)
-    tenant_id = models.CharField(_("租户ID"), default="default", max_length=64, null=True, blank=True, db_index=True)
 
     class Meta:
         verbose_name = _("CMDB资源监听事件")
