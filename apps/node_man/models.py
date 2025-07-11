@@ -190,6 +190,9 @@ class GlobalSettings(models.Model):
         DISABLED_SUBSCRIPTIONS = "DISABLED_SUBSCRIPTIONS"
         # 禁用的订阅
         SUBSCRIPTION_ALLOWED_VERSION_CHANGE_TO_UPGRADE = "SUBSCRIPTION_ALLOWED_VERSION_CHANGE_TO_UPGRADE"
+        # 接入点url端口黑名单
+        AP_BLOCKED_PORTS = "AP_BLOCKED_PORTS"
+        AP_BLOCKED_NETWORKS = "AP_BLOCKED_NETWORKS"
         # 更新订阅实例长度
         UPDATE_SUBSCRIPTION_RECORDS_LENGTH = "UPDATE_SUBSCRIPTION_RECORDS_LENGTH"
         # 禁用的订阅
@@ -207,7 +210,6 @@ class GlobalSettings(models.Model):
         INJECT_CLUSTER_MODULE_NAME_BIZ_WHITELIST = "INJECT_CLUSTER_MODULE_NAME_BIZ_WHITELIST"
         # 无需排队执行的订阅白名单
         UNQUEUED_SUBSCRIPTION_WHITELIST = "UNQUEUED_SUBSCRIPTION_WHITELIST"
-
 
     key = models.CharField(_("键"), max_length=255, db_index=True, primary_key=True)
     v_json = JSONField(_("值"), default=dict)
