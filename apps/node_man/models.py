@@ -60,7 +60,9 @@ from apps.prometheus.models import (
     export_job_prometheus_mixin,
     export_subscription_prometheus_mixin,
 )
+
 from apps.utils import files, orm, translation
+from apps.utils.security import is_safe_url
 from common.log import logger
 from pipeline.parser import PipelineParser
 from pipeline.service import task_service
@@ -102,6 +104,8 @@ class GlobalSettings(models.Model):
         NOT_READY_TASK_INFO_MAP = "NOT_READY_TASK_INFO_MAP"  # 定时任务 collect_auto_trigger_job 记录未就绪 sub_task 信息
         HEAD_PLUGINS = "HEAD_PLUGINS"  # 插件类型名字
         INSTALL_DEFAULT_VALUES = "INSTALL_DEFAULT_VALUES"  # 安装默认值
+        AP_BLOCKED_PORTS = "AP_BLOCKED_PORTS"
+        AP_BLOCKED_NETWORKS = "AP_BLOCKED_NETWORKS"
 
     key = models.CharField(_("键"), max_length=255, db_index=True, primary_key=True)
     v_json = JSONField(_("值"))
@@ -781,6 +785,23 @@ class AccessPoint(models.Model):
         test_logs = []
 
         servers = params.get("btfileserver", []) + params.get("dataserver", []) + params.get("taskserver", [])
+
+        blocked_ports: list = GlobalSettings.get_config(key=GlobalSettings.KeyEnum.AP_BLOCKED_PORTS.value, default=[])
+        blocked_networks: list = GlobalSettings.get_config(
+            key=GlobalSettings.KeyEnum.AP_BLOCKED_NETWORKS.value, default=[]
+        )
+        is_ok, message = is_safe_url(
+            [
+                params["package_inner_url"],
+                params["package_outer_url"],
+                params.get("outer_callback_url", ""),
+                params.get("callback_url", ""),
+            ],
+            blocked_ports=blocked_ports,
+            blocked_networks=blocked_networks,
+        )
+        if not is_ok:
+            raise ValidationError(message)
 
         with ThreadPoolExecutor(max_workers=settings.CONCURRENT_NUMBER) as ex:
             tasks = [ex.submit(_check_ip, server["inner_ip"], test_logs) for server in servers]

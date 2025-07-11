@@ -11,10 +11,12 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
+from apps.exceptions import ValidationError
 from apps.node_man.constants import GSE_PORT_DEFAULT_VALUE, IamActionType
 from apps.node_man.handlers.iam import IamHandler
-from apps.node_man.models import AccessPoint
+from apps.node_man.models import AccessPoint, GlobalSettings
 from apps.utils.local import get_request_username
+from apps.utils.security import is_safe_url
 
 
 class ListSerializer(serializers.ModelSerializer):
@@ -86,6 +88,26 @@ class UpdateOrCreateSerializer(serializers.ModelSerializer):
     bscp_config = serializers.DictField(_("BSCP配置"), required=False)
     outer_callback_url = serializers.CharField(label=_("节点管理外网回调地址"), required=False, allow_blank=True)
     callback_url = serializers.CharField(label=_("节点管理内网回调地址"), required=False, allow_blank=True)
+
+    def validate(self, data):
+        blocked_ports: list = GlobalSettings.get_config(key=GlobalSettings.KeyEnum.AP_BLOCKED_PORTS.value, default=[])
+        blocked_networks: list = GlobalSettings.get_config(
+            key=GlobalSettings.KeyEnum.AP_BLOCKED_NETWORKS.value, default=[]
+        )
+        is_ok, message = is_safe_url(
+            [
+                data["package_inner_url"],
+                data["package_outer_url"],
+                data.get("outer_callback_url", ""),
+                data.get("callback_url", ""),
+            ],
+            blocked_ports=blocked_ports,
+            blocked_networks=blocked_networks,
+        )
+        if not is_ok:
+            raise ValidationError(message)
+
+        return data
 
     class Meta:
         fields = "__all__"
