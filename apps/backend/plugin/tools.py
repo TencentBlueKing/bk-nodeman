@@ -245,11 +245,12 @@ def list_package_infos(file_path: str) -> List[Dict[str, Any]]:
                         )
                     )
                     raise exceptions.PluginParseError(_("文件包含非法路径成员 -> {name}，请检查").format(name=file_info.name))
+
+            # 安全解压
+            safe_extract(tf, path=tmp_dir)
             logger.info(
                 "file-> {file_path} extract to path -> {tmp_dir} success.".format(file_path=file_path, tmp_dir=tmp_dir)
             )
-            # 安全解压
-            safe_extract(tf, path=tmp_dir)
 
     package_infos = []
 
