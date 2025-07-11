@@ -4,7 +4,6 @@ import {
   regIp,
   regIPv6,
   regIpMixin,
-  regUrl,
   regUrlMixinIp,
   regNormalText,
   regNaturalNumber,
@@ -54,12 +53,6 @@ export const reguIPMixins = createIpRegu('mixins');
 export const reguIPv4Batch = createIpRegu('IPv4', true);
 export const reguIPv6Batch = createIpRegu('IPv6', true);
 export const reguIpMixinsBatch = createIpRegu('mixins', true);
-export const reguUrl = {
-  regex: regUrl,
-  validator: (val: string) => regUrl.test(val),
-  message: window.i18n.t('URL格式不正确'),
-  trigger: 'blur',
-};
 export const reguUrlMixinIp = {
   regex: regUrlMixinIp,
   message: window.i18n.t('URL格式不正确'),
