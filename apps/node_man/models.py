@@ -64,6 +64,7 @@ from apps.prometheus.models import (
 )
 from apps.utils import basic, files, orm, translation
 from apps.utils.cache import class_member_cache
+from apps.utils.security import is_safe_url
 from common.log import logger
 from env.constants import GseVersion
 from pipeline.parser import PipelineParser
@@ -191,6 +192,9 @@ class GlobalSettings(models.Model):
         GSE2_AGENT_LISTEN_BT_SOCKET = "GSE2_AGENT_LISTEN_BT_SOCKET"
         # 禁用的订阅
         SUBSCRIPTION_ALLOWED_VERSION_CHANGE_TO_UPGRADE = "SUBSCRIPTION_ALLOWED_VERSION_CHANGE_TO_UPGRADE"
+        # 接入点url端口黑名单
+        AP_BLOCKED_PORTS = "AP_BLOCKED_PORTS"
+        AP_BLOCKED_NETWORKS = "AP_BLOCKED_NETWORKS"
 
     key = models.CharField(_("键"), max_length=255, db_index=True, primary_key=True)
     v_json = JSONField(_("值"))
@@ -734,6 +738,23 @@ class AccessPoint(models.Model):
         detect_hosts: Set[str] = set()
         for server in params.get("btfileserver", []) + params.get("dataserver", []) + params.get("taskserver", []):
             detect_hosts.add(server.get("inner_ip") or server.get("inner_ipv6"))
+
+        blocked_ports: list = GlobalSettings.get_config(key=GlobalSettings.KeyEnum.AP_BLOCKED_PORTS.value, default=[])
+        blocked_networks: list = GlobalSettings.get_config(
+            key=GlobalSettings.KeyEnum.AP_BLOCKED_NETWORKS.value, default=[]
+        )
+        is_ok, message = is_safe_url(
+            [
+                params["package_inner_url"],
+                params["package_outer_url"],
+                params.get("outer_callback_url", ""),
+                params.get("callback_url", ""),
+            ],
+            blocked_ports=blocked_ports,
+            blocked_networks=blocked_networks,
+        )
+        if not is_ok:
+            raise ValidationError(message)
 
         with ThreadPoolExecutor(max_workers=settings.CONCURRENT_NUMBER) as ex:
             tasks = [ex.submit(_check_ip, detect_host, test_logs) for detect_host in detect_hosts]

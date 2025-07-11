@@ -22,9 +22,10 @@ from apps.node_man.constants import (
     OsType,
 )
 from apps.node_man.handlers.iam import IamHandler
-from apps.node_man.models import AccessPoint
+from apps.node_man.models import AccessPoint, GlobalSettings
 from apps.utils import basic
 from apps.utils.local import get_request_username
+from apps.utils.security import is_safe_url
 from env.constants import GseVersion
 
 
@@ -126,6 +127,24 @@ class UpdateOrCreateSerializer(serializers.ModelSerializer):
         if GseVersion.V1.value not in gse_version_list:
             data["gse_version"] = GseVersion.V2.value
             data["port_config"] = GSE_V2_PORT_DEFAULT_VALUE
+
+        blocked_ports: list = GlobalSettings.get_config(key=GlobalSettings.KeyEnum.AP_BLOCKED_PORTS.value, default=[])
+        blocked_networks: list = GlobalSettings.get_config(
+            key=GlobalSettings.KeyEnum.AP_BLOCKED_NETWORKS.value, default=[]
+        )
+        is_ok, message = is_safe_url(
+            [
+                data["package_inner_url"],
+                data["package_outer_url"],
+                data.get("outer_callback_url", ""),
+                data.get("callback_url", ""),
+            ],
+            blocked_ports=blocked_ports,
+            blocked_networks=blocked_networks,
+        )
+        if not is_ok:
+            raise ValidationError(message)
+
         return data
 
     class Meta:
