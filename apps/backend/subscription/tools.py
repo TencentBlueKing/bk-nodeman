@@ -50,7 +50,11 @@ from apps.prometheus import metrics
 from apps.prometheus.helper import SetupObserve, get_call_resource_labels_func
 from apps.utils import concurrent
 from apps.utils.basic import distinct_dict_list, order_dict
-from apps.utils.batch_request import batch_request, request_multi_thread
+from apps.utils.batch_request import (
+    batch_request,
+    request_api_multi_thread,
+    request_multi_thread,
+)
 from apps.utils.concurrent import batch_call
 from apps.utils.time_handler import strftime_local
 from common.api import CCApi
@@ -976,12 +980,12 @@ def get_full_host_biz_relations(hosts: List[Dict[str, Any]], return_biz_map: boo
         list(set([_host["bk_host_id"] for _host in hosts])), source="get_host_relation"
     )
 
-    # # 初始化业务-模块和业务-集群的映射关系
-    # biz_module_map: Dict[int, set] = defaultdict(set)  # 业务ID -> 模块ID集合
-    # biz_set_map: Dict[int, set] = defaultdict(set)  # 业务ID -> 集群ID集合
+    # 初始化业务-模块和业务-集群的映射关系
+    biz_module_map: Dict[int, set] = defaultdict(set)  # 业务ID -> 模块ID集合
+    biz_set_map: Dict[int, set] = defaultdict(set)  # 业务ID -> 集群ID集合
 
-    # 临时存储主机关系信息
-    host_relation_map: Dict[int, List[str, Any]] = defaultdict(list)
+    # 存储主机关系信息
+    host_relation_map: Dict[int, List[Dict[str, Any]]] = defaultdict(list)
 
     # 存储主机到业务的映射关系
     host_biz_map = {}
@@ -990,44 +994,46 @@ def get_full_host_biz_relations(hosts: List[Dict[str, Any]], return_biz_map: boo
     for relation in host_biz_relations:
         if return_biz_map:
             host_biz_map[relation["bk_host_id"]] = relation["bk_biz_id"]
-        # biz_set_map[relation["bk_biz_id"]].add(relation["bk_set_id"])
-        # biz_module_map[relation["bk_biz_id"]].add(relation["bk_module_id"])
+        biz_set_map[relation["bk_biz_id"]].add(relation["bk_set_id"])
+        biz_module_map[relation["bk_biz_id"]].add(relation["bk_module_id"])
         host_relation_map[relation["bk_host_id"]].append(
             {
                 "bk_module_id": relation["bk_module_id"],
                 "bk_set_id": relation["bk_set_id"],
+                "bk_module_name": "",
+                "bk_set_name": "",
             }
         )
 
     # # 格式化CMDB查询参数
-    # bk_module_params: List[Dict[str, Any]] = format_cmdb_params(
-    #     biz_module_map, fields=["bk_module_id", "bk_module_name"]
-    # )
-    # bk_set_params: List[Dict[str, Any]] = format_cmdb_params(biz_set_map, fields=["bk_set_id", "bk_set_name"])
+    bk_module_params: List[Dict[str, Any]] = format_cmdb_params(
+        biz_module_map, fields=["bk_module_id", "bk_module_name"]
+    )
+    bk_set_params: List[Dict[str, Any]] = format_cmdb_params(biz_set_map, fields=["bk_set_id", "bk_set_name"])
 
-    # TODO 查询量太大，需要更新方式，方案待确认
-    # # 并发查询模块和集群的名称信息
-    # module_id_name_map: Dict[int, str] = {
-    #     module["bk_module_id"]: module["bk_module_name"]
-    #     for module in request_api_multi_thread(client_v2.cc.find_module_batch, bk_module_params)
-    # }
-    # set_id_name_map: Dict[int, str] = {
-    #     module["bk_set_id"]: module["bk_set_name"]
-    #     for module in request_api_multi_thread(client_v2.cc.find_set_batch, bk_set_params)
-    # }
+    # 查询量太大，以业务白名单方式支持, 如未配置白名单, 查询参数会空
+    # 并发查询模块和集群的名称信息
+    module_id_name_map: Dict[int, str] = {}
+    set_id_name_map: Dict[int, str] = {}
 
-    # 构建最终的主机关系映射，包含完整的名称信息
-    # host_relation_map: Dict[int, List[str, Any]] = defaultdict(list)
-    # for host_id, relations in _host_relation_map.items():
-    #     for relation in relations:
-    #         host_relation_map[host_id].append(
-    #             {
-    #                 "bk_module_id": relation["bk_module_id"],
-    #                 "bk_set_id": relation["bk_set_id"],
-    #                 # "bk_module_name": module_id_name_map.get(relation["bk_module_id"], ""),
-    #                 # "bk_set_name": set_id_name_map.get(relation["bk_set_id"], ""),
-    #             }
-    #         )
+    if bk_module_params:
+        # 有模块必有集群
+        # 并发查询模块和集群的名称信息
+        module_id_name_map: Dict[int, str] = {}
+        set_id_name_map: Dict[int, str] = {}
+        module_id_name_map: Dict[int, str] = {
+            module["bk_module_id"]: module["bk_module_name"]
+            for module in request_api_multi_thread(client_v2.cc.find_module_batch, bk_module_params)
+        }
+        set_id_name_map: Dict[int, str] = {
+            module["bk_set_id"]: module["bk_set_name"]
+            for module in request_api_multi_thread(client_v2.cc.find_set_batch, bk_set_params)
+        }
+        # 构建最终的主机关系映射，包含完整的名称信息
+        for _, relations in host_relation_map.items():
+            for relation in relations:
+                relation["bk_module_name"] = module_id_name_map.get(relation["bk_module_id"], "")
+                relation["bk_set_name"] = set_id_name_map.get(relation["bk_set_id"], "")
 
     return host_relation_map, host_biz_map
 
@@ -1152,8 +1158,14 @@ def execute_dynamic_groups(nodes: List[dict], bk_biz_id: int, bk_obj_id: str, fi
 
 
 def format_cmdb_params(data: Dict[int, set], fields: List[str]):
+    # 需要配置业务白名单
+    biz_whitelist = models.GlobalSettings.get_config(
+        key=models.GlobalSettings.KeyEnum.INJECT_CLUSTER_MODULE_NAME_BIZ_WHITELIST.value, default=[]
+    )
     params_list = []
     for biz_id, bk_ids in data.items():
+        if biz_id not in biz_whitelist:
+            continue
         bk_ids = list(bk_ids)
         for i in range(0, len(bk_ids), constants.QUERY_CMDB_LIMIT):
 
