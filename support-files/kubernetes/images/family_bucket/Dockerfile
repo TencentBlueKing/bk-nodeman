@@ -29,10 +29,10 @@ ENV PATH="/venv/bin:$PATH"
 RUN set -ex && \
     chmod 1777 /tmp && \
     rm /etc/apt/sources.list && \
-    echo "deb https://mirrors.cloud.tencent.com/debian buster main contrib non-free" >> /etc/apt/sources.list && \
-    echo "deb https://mirrors.cloud.tencent.com/debian buster-updates main contrib non-free" >> /etc/apt/sources.list && \
-    echo "deb-src https://mirrors.cloud.tencent.com/debian buster main contrib non-free" >> /etc/apt/sources.list && \
-    echo "deb-src https://mirrors.cloud.tencent.com/debian buster-updates main contrib non-free" >> /etc/apt/sources.list
+    echo "deb https://mirrors.cloud.tencent.com/debian-archive/debian buster main contrib non-free" >> /etc/apt/sources.list && \
+    echo "deb https://mirrors.cloud.tencent.com/debian-archive/debian buster-updates main contrib non-free" >> /etc/apt/sources.list && \
+    echo "deb-src https://mirrors.cloud.tencent.com/debian-archive/debian buster main contrib non-free" >> /etc/apt/sources.list && \
+    echo "deb-src https://mirrors.cloud.tencent.com/debian-archive/debian buster-updates main contrib non-free" >> /etc/apt/sources.list
 
 RUN set -ex && mkdir ~/.pip && printf '[global]\nindex-url = https://mirrors.tencent.com/pypi/simple/' > ~/.pip/pip.conf
 
