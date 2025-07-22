@@ -43,12 +43,28 @@ class IpChooserBasePermission:
                     [scope["bk_biz_id"] for scope in validated_data["scope_list"]], validated_data["action"]
                 )
         else:
-            # 默认返回用户所拥有的业务权限
+            # all_scope 为 True
+            # 从host_list 的meta里获取scope_list
+            unique_scopes = set()
             scope_list: types.ScopeList = []
-            for biz_id in user_biz_ids:
-                scope_list.append(
-                    {"scope_id": str(biz_id), "scope_type": constants.ScopeType.BIZ.value, "bk_biz_id": biz_id}
-                )
+
+            for host in validated_data["host_list"]:
+                meta = host["meta"]
+                scope_key = (meta["scope_type"], meta["scope_id"], meta["bk_biz_id"])
+                if scope_key not in unique_scopes:
+                    unique_scopes.add(scope_key)
+                    scope_list.append({
+                        "scope_type": meta["scope_type"],
+                        "scope_id": meta["scope_id"],
+                        "bk_biz_id": meta["bk_biz_id"]
+                    })
+
+            # # 默认返回用户所拥有的业务权限
+            # scope_list: types.ScopeList = []
+            # for biz_id in user_biz_ids:
+            #     scope_list.append(
+            #         {"scope_id": str(biz_id), "scope_type": constants.ScopeType.BIZ.value, "bk_biz_id": biz_id}
+            #     )
             request.data["scope_list"] = scope_list
         return True
 

@@ -184,6 +184,15 @@ class SwitchSubscriptionSerializer(GatewaySerializer):
     action = serializers.ChoiceField(choices=["enable", "disable"], label="启停动作")
 
 
+class BatchSwitchSubscriptionSerializer(GatewaySerializer):
+    subscription_ids = serializers.ListField(
+        child=serializers.IntegerField(), 
+        label="订阅ID列表",
+        max_length=100,
+    )
+    action = serializers.ChoiceField(choices=["enable", "disable"], label="启停动作")
+
+
 class RunSubscriptionSerializer(GatewaySerializer):
     class RunScopeSerializer(SubScopeInstSelectorSerializer):
         node_type = serializers.ChoiceField(choices=models.Subscription.NODE_TYPE_CHOICES, label="节点类型")
