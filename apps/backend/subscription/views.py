@@ -374,6 +374,24 @@ class SubscriptionViewSet(APIViewSet):
 
         return Response()
 
+    @swagger_auto_schema(operation_summary="批量订阅启停", tags=SUBSCRIPTION_VIEW_TAGS)
+    @action(detail=False, methods=["POST"], serializer_class=serializers.BatchSwitchSubscriptionSerializer)
+    def batch_switch(self, request):
+        """
+        @api {POST} /subscription/batch_switch/ 订阅启停
+        @apiName subscription_batch_switch
+        @apiGroup subscription
+        """
+        params = self.validated_data
+        action_map = {
+            "enable": True,
+            "disable": False
+        }
+        enable = action_map[params["action"]]
+        models.Subscription.objects.filter(id__in=params["subscription_ids"], is_deleted=False).update(enable=enable)
+
+        return Response()
+
     @swagger_auto_schema(operation_summary="终止正在执行的任务", tags=SUBSCRIPTION_VIEW_TAGS)
     @action(detail=False, methods=["POST"], serializer_class=serializers.RevokeSubscriptionSerializer)
     def revoke(self, request):
