@@ -29,7 +29,7 @@ class IpChooserBasePermission:
         raise PermissionDeniedError(action_name=action, apply_url=apply_url, permission=apply_data)
 
     def has_scope_list_permission(
-        self, request, validated_data: typing.Dict[str, typing.Any], user_biz_ids: typing.Set[int]
+        self, request, validated_data: typing.Dict[str, typing.Any], user_biz_ids: typing.Set[int], action: str = None
     ) -> bool:
         if not validated_data["all_scope"]:
             scope_list: types.ScopeList = [
@@ -43,28 +43,31 @@ class IpChooserBasePermission:
                     [scope["bk_biz_id"] for scope in validated_data["scope_list"]], validated_data["action"]
                 )
         else:
+            scope_list: types.ScopeList = []
             # all_scope 为 True
             # 从host_list 的meta里获取scope_list
-            unique_scopes = set()
-            scope_list: types.ScopeList = []
+            if action in ["details"]:
+                unique_scopes = set()
 
-            for host in validated_data["host_list"]:
-                meta = host["meta"]
-                scope_key = (meta["scope_type"], meta["scope_id"], meta["bk_biz_id"])
-                if scope_key not in unique_scopes:
-                    unique_scopes.add(scope_key)
-                    scope_list.append({
-                        "scope_type": meta["scope_type"],
-                        "scope_id": meta["scope_id"],
-                        "bk_biz_id": meta["bk_biz_id"]
-                    })
+                for host in validated_data["host_list"]:
+                    meta = host["meta"]
+                    scope_key = (meta["scope_type"], meta["scope_id"], meta["bk_biz_id"])
+                    if scope_key not in unique_scopes:
+                        unique_scopes.add(scope_key)
+                        scope_list.append(
+                            {
+                                "scope_type": meta["scope_type"],
+                                "scope_id": meta["scope_id"],
+                                "bk_biz_id": meta["bk_biz_id"],
+                            }
+                        )
+            else:
+                # 默认返回用户所拥有的业务权限
+                for biz_id in user_biz_ids:
+                    scope_list.append(
+                        {"scope_id": str(biz_id), "scope_type": constants.ScopeType.BIZ.value, "bk_biz_id": biz_id}
+                    )
 
-            # # 默认返回用户所拥有的业务权限
-            # scope_list: types.ScopeList = []
-            # for biz_id in user_biz_ids:
-            #     scope_list.append(
-            #         {"scope_id": str(biz_id), "scope_type": constants.ScopeType.BIZ.value, "bk_biz_id": biz_id}
-            #     )
             request.data["scope_list"] = scope_list
         return True
 
@@ -120,6 +123,6 @@ class IpChooserHostPermission(IpChooserBasePermission):
             delattr(view, "_validated_data")
 
         if view.action in ["check", "details"]:
-            return self.has_scope_list_permission(request, validated_data, user_biz_ids)
+            return self.has_scope_list_permission(request, validated_data, user_biz_ids, view.action)
 
         return False
