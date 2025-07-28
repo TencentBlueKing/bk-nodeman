@@ -186,7 +186,7 @@ class SwitchSubscriptionSerializer(GatewaySerializer):
 
 class BatchSwitchSubscriptionSerializer(GatewaySerializer):
     subscription_ids = serializers.ListField(
-        child=serializers.IntegerField(), 
+        child=serializers.IntegerField(),
         label="订阅ID列表",
         max_length=100,
     )

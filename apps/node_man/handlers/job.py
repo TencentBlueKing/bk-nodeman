@@ -123,9 +123,14 @@ class JobHandler(APIModel):
             # 获取每台主机安装任务的pipeline_id
             sub_steps = result["steps"][0]["target_hosts"][0]["sub_steps"]
             for step in sub_steps:
-                if step["node_name"] in ["安装", "卸载Agent", "Uninstall Agent", "Install"] and (
-                    step["status"] in [constants.JobStatusType.RUNNING, constants.JobStatusType.SUCCESS]
-                ):
+                if step["node_name"] in [
+                    "安装",
+                    "卸载Agent",
+                    "Uninstall Agent",
+                    "Install",
+                    "卸载Proxy",
+                    "Uninstall Proxy",
+                ] and (step["status"] in [constants.JobStatusType.RUNNING, constants.JobStatusType.SUCCESS]):
                     pipeline_id = step["pipeline_id"]
                     host_id__pipeline_id_map[bk_host_id] = pipeline_id
 
