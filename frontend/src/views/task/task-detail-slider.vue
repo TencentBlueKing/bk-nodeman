@@ -86,7 +86,7 @@
                                   </p>
                                 </div>
                                 <!-- eslint-disable-next-line vue/no-v-html -->
-                                <div v-html="item.text" class="commands-right"></div>
+                                <div v-html="sanitize(item.text)" class="commands-right"></div>
                               </div>
                             </li>
                           </ul>
@@ -114,6 +114,7 @@ import ExceptionCard from '@/components/exception/exception-card.vue';
 import { copyText } from '@/common/util';
 import { TaskStore } from '@/store';
 import { ITaskHost, ITaskSolutions, ITaskSolutionsFile } from '@/types/task/task';
+import xss from 'xss';
 
 @Component({
   name: 'TaskDetailSlider',
@@ -152,7 +153,9 @@ export default class TaskDetailSlider extends Vue {
       ? this.commandData.find(item => item.type === this.commandType)?.description || ''
       : '';
   }
-
+  private sanitize(input: string): string {
+    return xss(input);
+  } 
   @Watch('show')
   public handleShowChange(isShow: boolean) {
     if (isShow) {
