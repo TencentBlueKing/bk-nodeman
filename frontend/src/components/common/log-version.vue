@@ -21,7 +21,7 @@
       </div>
       <div class="log-version-right">
         <!-- eslint-disable-next-line vue/no-v-html -->
-        <div class="detail-container" v-html="currentLog.detail"></div>
+        <div class="detail-container" v-html="safeHTML"></div>
       </div>
     </div>
   </bk-dialog>
@@ -29,6 +29,7 @@
 <script lang="ts">
 import { Vue, Component, Emit, Watch, Model } from 'vue-property-decorator';
 import { axiosInstance } from '@/api';
+import xss from 'xss';
 
 interface ILog {
   title: string
@@ -49,7 +50,10 @@ export default class LogVersion extends Vue {
   private get currentLog() {
     return this.logList[this.active] || {};
   }
-
+  private get safeHTML() {
+    // 使用 xss 进行安全过滤
+    return xss(this.currentLog.detail);
+  }
   @Watch('dialogShow')
   private async handleShowChange(v: boolean) {
     this.show = v;

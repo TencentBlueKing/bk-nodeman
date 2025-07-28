@@ -186,8 +186,7 @@
                             log.type.join(' '),
                             { 'fold-block': log.foldAble, 'is-fold': log.isFold
                             }]">
-                          <!-- eslint-disable-next-line vue/no-v-html -->
-                          <span class="log-text" v-html="log.content"></span>
+                          <span class="log-text" v-html="sanitize(log.content)"></span>
                           <i
                             v-if="log.foldAble"
                             :class="`log-fold-icon bk-icon icon-play-shape ${ log.isFold ? 'right' : 'down'}`"
@@ -229,6 +228,7 @@ import Tips from '@/components/common/tips.vue';
 import { downloadLog, debounce, isEmpty, takesTimeFormat, toHump } from '@/common/util';
 import routerBackMixin from '@/common/router-back-mixin';
 import TaskDetailSlider from './task-detail-slider.vue';
+import xss from 'xss';
 
 export default {
   name: 'TaskLog',
@@ -325,6 +325,9 @@ export default {
     };
   },
   computed: {
+    sanitize(input){
+      return xss(input);
+    },
     routetParent() {
       return TaskStore.routetParent;
     },

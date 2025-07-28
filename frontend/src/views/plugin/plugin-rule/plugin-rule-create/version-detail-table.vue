@@ -57,7 +57,7 @@
       <div class="detail-table-right">
         <p class="title">{{ $t('版本描述') }}</p>
         <!-- eslint-disable-next-line vue/no-v-html -->
-        <div class="markdown-body" v-html="markdown"></div>
+        <div class="markdown-body" v-html="safeHTML"></div>
       </div>
     </div>
     <template slot="footer">
@@ -70,6 +70,7 @@
 import { Vue, Component, Prop, Emit, Model, Watch, Ref } from 'vue-property-decorator';
 import { IPkVersionRow } from '@/types/plugin/plugin-type';
 import { MainStore } from '@/store';
+import xss from 'xss';
 
 @Component({
   name: 'version-detail-table',
@@ -85,7 +86,10 @@ export default class VersionDetailTable extends Vue {
   private selectedVersion = '';
   private selectedRow: IPkVersionRow | null = null;
   private markdown = '';
-
+  private get safeHTML() {
+    // 使用 xss 进行安全过滤
+    return xss(this.markdown);
+  }
   private get isEnLanguage() {
     return MainStore.language === 'en';
   }
