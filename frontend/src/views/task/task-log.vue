@@ -325,9 +325,6 @@ export default {
     };
   },
   computed: {
-    sanitize(input){
-      return xss(input);
-    },
     routetParent() {
       return TaskStore.routetParent;
     },
@@ -451,6 +448,9 @@ export default {
     this.hostRuningQueue = [];
   },
   methods: {
+    sanitize(input){
+      return xss(input);
+    },
     /**
      * 拉取左侧任务下的主机列表
      */
