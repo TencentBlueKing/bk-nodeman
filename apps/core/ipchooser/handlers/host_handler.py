@@ -313,17 +313,39 @@ class HostHandler:
         :return:
         """
         bk_host_id_set: typing.Set[int] = set()
-        cloud_inner_ip_set: typing.Set[str] = set()
+        bk_cloud_ip_map: typing.Dict[str, typing.Dict[str, typing.Union[int, str]]] = {}
 
         for host_info in host_list:
             # 优先取主机 ID 作为查询条件
             if "host_id" in host_info:
                 bk_host_id_set.add(host_info["host_id"])
             else:
-                cloud_inner_ip_set.add(f"{host_info['cloud_id']}{constants.CommonEnum.SEP.value}{host_info['ip']}")
+                cloud_id = host_info["cloud_id"]
+                ip = host_info["ip"]
+                key = f"{cloud_id}{constants.CommonEnum.SEP.value}{ip}"
+                bk_cloud_ip_map[key] = {"bk_cloud_id": cloud_id, "bk_host_innerip": ip}
+
+        if bk_cloud_ip_map:
+            bk_cloud_ids: typing.Set[int] = {info["bk_cloud_id"] for info in bk_cloud_ip_map.values()}
+            bk_host_innerips: typing.Set[str] = {info["bk_host_innerip"] for info in bk_cloud_ip_map.values()}
+            query_hosts_params: typing.Dict[str, typing.Any] = {
+                "fields": ["bk_host_id"],
+                "host_property_filter": {
+                    "condition": "AND",
+                    "rules": [
+                        {"field": "bk_host_innerip", "operator": "in", "value": list(bk_host_innerips)},
+                        {"field": "bk_cloud_id", "operator": "in", "value": list(bk_cloud_ids)},
+                    ],
+                },
+            }
+            cmdb_host_infos: typing.List[typing.Dict[str, typing.Any]] = batch_request.batch_request(
+                func=CCApi.list_hosts_without_biz, params=query_hosts_params
+            )
+            for host_info in cmdb_host_infos:
+                bk_host_id_set.add(host_info["bk_host_id"])
+
         # 构造逻辑或查询条件
         or_conditions: typing.List[types.Condition] = [
             {"key": "bk_host_id", "val": bk_host_id_set},
-            {"key": "cloud_inner_ip", "val": cloud_inner_ip_set},
         ]
         return cls.details_base(scope_list, or_conditions, show_agent_realtime_state=show_agent_realtime_state)
