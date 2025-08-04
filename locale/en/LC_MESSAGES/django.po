@@ -6666,3 +6666,119 @@ msgstr "Variable variable"
 
 #~ msgid "日志详情获取成功"
 #~ msgstr "Log details fetched successfully"
+
+#: apps/node_man/constants.py: 1240
+msgid "内网 IPv4"
+msgstr "LAN IPv4"
+
+#: apps/node_man/constants.py: 1241
+msgid "内网 IPv6"
+msgstr "LAN IPv6"
+
+#: apps/node_man/constants.py: 1244
+msgid "登录端口"
+msgstr "Login port"
+
+#: apps/node_man/constants.py: 1245
+msgid "登录账号"
+msgstr "Login account"
+
+#: apps/node_man/constants.py: 1246
+msgid "认证方式"
+msgstr "Authentication"
+
+#: apps/node_man/constants.py: 1247
+msgid "密钥/密码"
+msgstr "Key/Password"
+
+#: apps/node_man/constants.py: 1248
+msgid "外网 IP"
+msgstr "WAN IP"
+
+#: apps/node_man/constants.py: 1249
+msgid "登录 IP"
+msgstr "Login IP"
+
+#: apps/node_man/constants.py: 1252
+msgid "接入点"
+msgstr "Access point"
+
+#: apps/node_man/constants.py: 1255
+msgid "数据压缩"
+msgstr "Data Compression"
+
+#: apps/node_man/constants.py: 1316
+msgid "必填"
+msgstr "Required"
+
+#: apps/node_man/constants.py: 1316
+msgid "可选"
+msgstr "Optional"
+
+#: apps/node_man/constants.py: 1316
+msgid "与「{}」不能同时为空"
+msgstr "Cannot be empty at the same time as「{}」"
+
+#: apps/node_man/constants.py: 1288
+msgid "目标主机 IPv4 地址"
+msgstr "Target host IPv4 address"
+
+#: apps/node_man/constants.py: 1289
+msgid "目标主机 IPv6 地址"
+msgstr "Target host IPv6 address"
+
+#: apps/node_man/constants.py: 1290
+msgid "目标主机操作系统类型"
+msgstr "Target host operating system type"
+
+#: apps/node_man/constants.py: 1291
+msgid "在特殊复杂网络下，目标主机无法与「管控区域」内主机直接连通，可通过指定「安装通道」进行 Agent 安装。默认使用「default」即可"
+msgstr "In a special complex network, the target host cannot directly connect with the hosts in the 「BK-Net」, and can install the agent by specifying the 「Install channel」. Just use 「default」 by default"
+
+#: apps/node_man/constants.py: 1292
+msgid "登录到目标主机上的sshd端口"
+msgstr "Log in to the sshd port on the target host"
+
+#: apps/node_man/constants.py: 1293
+msgid "登录到目标主机上所使用的用户"
+msgstr "The user used to log in to the target host"
+
+#: apps/node_man/constants.py: 1294
+msgid "登录到目标主机上所使用的认证方式"
+msgstr "The authentication method used to log in to the target host"
+
+#: apps/node_man/constants.py: 1295
+msgid "登录到目标主机上所使用的凭证，根据认证方式提供密码或私钥"
+msgstr "The credentials used to log in to the target host, provide the password or private key according to the authentication method"
+
+#: apps/node_man/constants.py: 1296
+msgid "目标主机外网IP，会自动注册到 CMDB"
+msgstr "The external IP address of the target host, it will be automatically registered into CMDB"
+
+#: apps/node_man/constants.py: 1298
+msgid "用于登录目标主机执行安装的 IP 地址，区别于记录在 CMDB 中的 IP；支持 IPv4、IPv6。若未填写，优先使用「内网IPv4」来登录目标机器，若「内网IPv4」未填写，使用「内网IPv6」"
+msgstr "The IP address used to log in to the target host for installation is different from the IP recorded in CMDB; supports IPv4 and IPv6. If not filled in, priority is given to using 「LAN IPv4」 to log in to the target machine. If 「LAN IPv4」 is not filled in, use 「LAN IPv6」"
+
+#: apps/node_man/constants.py: 1300
+msgid "目标主机归属业务。默认使用「蓝鲸」业务"
+msgstr "The target host belongs to the business. Default use of 「Blueking」 business"
+
+#: apps/node_man/constants.py: 1301
+msgid "目标主机所在的管控区域。若是在某个云区域内，选择该云区域的名字。默认使用「直连区域」"
+msgstr "The control area where the target host is located. If within a certain cloud region, select the name of that cloud region. Default use of 「Direct Mode」"
+
+#: apps/node_man/constants.py: 1302
+msgid "一般情况下使用「自动选择」即可，若有特殊的接入点无法自动识别到，可以手动选择对应接入点"
+msgstr "In general, 「Choose automatically」 is sufficient. If there are special access points that cannot be automatically recognized, the corresponding access points can be manually selected"
+
+#: apps/node_man/constants.py: 1303
+msgid "Agent配置中对文件传输速率的硬限制，单位「Mbytes/s」，不填则使用Agent默认值100Mbytes/s"
+msgstr "Hard limit on file transfer rate in Agent configuration, in Mbytes/s. If left blank, the default value of 100Mbytes/s for Agent will be used"
+
+#: apps/node_man/constants.py: 1304
+msgid "记录到 CMDB 中的对应枚举字段。默认为「静态」"
+msgstr "Record the corresponding enumeration fields in CMDB. Default to 「static」"
+
+#: apps/node_man/constants.py: 1305
+msgid "开启数据压缩后，所有通过数据管道传输的日志采集数据的流量都将进行压缩，可一定程度上降低数据上报所带来的带宽压力。但会带来少量额外的CPU消耗"
+msgstr "After enabling data compression, all the traffic of log collection data transmitted through the data pipeline will be compressed, which can to some extent reduce the bandwidth pressure caused by data reporting. But it will bring a small amount of additional CPU consumption"
