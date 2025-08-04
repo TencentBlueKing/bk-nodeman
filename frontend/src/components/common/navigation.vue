@@ -133,6 +133,7 @@ import routerBackMixin from '@/common/router-back-mixin';
 import { bus } from '@/common/bus';
 import { INavConfig } from '@/types';
 import logoSrc from '@/images/logoIcon.png';
+import xss from 'xss';
 
 interface IUserItem {
   id: string
@@ -159,7 +160,7 @@ export default class NodemanNavigation extends Mixins(routerBackMixin) {
     navigationType: 'top-bottom',
     headerTitle: window.i18n.t('蓝鲸节点管理'),
   };
-  private currentUser = window.PROJECT_CONFIG.USERNAME;
+  private currentUser = xss(window.PROJECT_CONFIG.USERNAME);
   private navToggle = false;
   private navHover = false;
   private bizSelectFocus = false;
