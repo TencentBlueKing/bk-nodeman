@@ -111,3 +111,6 @@ cryptography==3.3.2
 
 # notice
 bk-notice-sdk==1.2.0
+
+# excel
+openpyxl==3.1.3
