@@ -35,3 +35,11 @@ class _UserApi(BaseApi):
             description="批量查询用户展示信息",
             api_name="batch_query_user_display_info",
         )
+        self.batch_lookup_virtual_user = DataAPI(
+            method="GET",
+            url=USER_APIGATEWAY_ROOT_V3 + "open/tenant/virtual-users/-/lookup/",
+            module=self.MODULE,
+            simple_module=self.SIMPLE_MODULE,
+            description="批量查询虚拟用户信息",
+            api_name="batch_lookup_virtual_user",
+        )

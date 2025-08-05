@@ -224,6 +224,8 @@ class DataAPI(object):
             bk_scope_id = params.get("bk_scope_id")
             if bk_scope_id == settings.TENANT_BLUEKING_SCOPE_ID:
                 set_tenant_id("system")
+        if self.simple_module == "SOPS" and settings.ENABLE_MULTI_TENANT_MODE:
+            set_tenant_id("system")
         if params is None:
             params = {}
         if headers is None:
