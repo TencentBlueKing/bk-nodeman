@@ -442,7 +442,12 @@ class SubscriptionHandler(object):
         ):
             raise errors.SubscriptionIncludeGrayBizError()
 
-        if subscription.is_running():
+        # 获取无需排队的订阅白名单
+        subscription_whitelist: List[int] = models.GlobalSettings.get_config(
+            key=models.GlobalSettings.KeyEnum.UNQUEUED_SUBSCRIPTION_WHITELIST.value, default=[]
+        )
+
+        if subscription.id not in subscription_whitelist and subscription.is_running():
             # 这里仍使用lpush的原因在于订阅任务可能执行的动作不一样，不能使用更新
             name = backend_constants.RUN_SUBSCRIPTION_REDIS_KEY_TPL
             if REDIS_INST.llen(name) > backend_constants.MAX_STORE_SUBSCRIPTION_TASK_COUNT:
