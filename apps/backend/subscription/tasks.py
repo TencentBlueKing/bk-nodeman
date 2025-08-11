@@ -570,7 +570,7 @@ def run_subscription_task_and_create_instance_transaction(func):
     return wrapper
 
 
-def get_deleted_instance_info(subscription, subscription_task, not_exist_instance_id, instance_host_id_map):
+def get_deleted_instance_info(subscription, subscription_task, not_exist_instance_id, scope):
     deleted_instance_info = {}
     # 查找最新的记录
     latest_instance_ids = set()
@@ -624,6 +624,9 @@ def get_deleted_instance_info(subscription, subscription_task, not_exist_instanc
         )
 
     if subscription.object_type == models.Subscription.ObjectType.SERVICE and not_exist_db_instance_id_set:
+        instance_host_id_map = {
+            node["id"]: node.get("bk_host_id") for node in scope["nodes"] if node.get("bk_host_id") is not None
+        }
         if instance_host_id_map:
             bk_host_ids = []
             for instance_id in not_exist_db_instance_id_set:
@@ -696,10 +699,6 @@ def run_subscription_task_and_create_instance(
         scope["object_type"] = subscription.object_type
         scope["bk_biz_id"] = subscription.bk_biz_id
 
-    instance_host_id_map = {
-        node["id"]: node.get("bk_host_id") for node in scope["nodes"] if node.get("bk_host_id") is not None
-    }
-
     # 获取订阅范围内全部实例
     steps = subscription.steps
     tolerance_time: int = (59, 0)[subscription.is_need_realtime()]
@@ -746,9 +745,8 @@ def run_subscription_task_and_create_instance(
                     }
                 )
                 not_exist_instance_id.append(instance_id)
-
             deleted_instance_info = get_deleted_instance_info(
-                subscription, subscription_task, set(not_exist_instance_id), instance_host_id_map
+                subscription, subscription_task, set(not_exist_instance_id), scope
             )
             instances.update(deleted_instance_info)
 
@@ -846,7 +844,7 @@ def run_subscription_task_and_create_instance(
         # 如果被删掉的实例在 CMDB 找不到，那么就使用最近一次的 InstanceRecord 的快照数据
         not_exist_instance_id = set(instance_not_in_scope) - set(deleted_instance_info)
         deleted_instance_info.update(
-            get_deleted_instance_info(subscription, subscription_task, not_exist_instance_id, instance_host_id_map)
+            get_deleted_instance_info(subscription, subscription_task, not_exist_instance_id, scope)
         )
 
         instances.update(deleted_instance_info)
