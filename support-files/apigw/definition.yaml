@@ -40,6 +40,40 @@ stages:
               weight: 100
 
 grant_permissions:
+  - bk_app_code: "bk_nodeman"
+    grant_dimension: "resource"
+    resource_names:
+      - system_plugin_upload
+      - system_subscription_create
+      - system_subscription_task_result
+      - system_collect_task_result_detail
+      - system_subscription_task_result_detail
+      - system_subscription_check_task_ready
+      - system_subscription_run
+      - system_subscription_delete
+      - system_subscription_update
+      - system_subscription_info
+      - system_subscription_search_policy
+      - system_subscription_retry
+      - system_subscription_revoke
+      - system_fetch_commands
+      - system_plugin_create_register_task
+      - system_plugin_query_register_task
+      - system_plugin_release
+      - system_package_status_operation
+      - system_plugin_create_export_task
+      - system_plugin_query_export_task
+      - system_plugin_parse
+      - system_plugin_list
+      - system_plugin_detail
+      - system_plugin_status_operation
+      - system_plugin_history
+      - system_subscription_query_host_policy
+      - system_metric_list
+      - system_sync_task_create
+      - system_sync_task_status
+      - system_job_install
+      - system_job_details
   - bk_app_code: "bk_sops"
     grant_dimension: "resource"
     resource_names:
