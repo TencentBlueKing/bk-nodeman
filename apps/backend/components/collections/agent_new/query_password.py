@@ -143,7 +143,6 @@ class QueryPasswordService(AgentBaseService):
         return sub_insts_with_auth_info
 
     def _execute(self, data, parent_data, common_data: AgentCommonData):
-        tenant_id = self.tenant_id(data)
         creator = data.get_one_of_inputs("creator")
 
         subscription_instances: List[models.SubscriptionInstanceRecord] = self.check_and_update_identity_data(
@@ -173,7 +172,6 @@ class QueryPasswordService(AgentBaseService):
                     oa_ticket = host.identity.extra_data.get("oa_ticket")
 
         self.log_info(sub_inst_ids=no_need_query_inst_ids, log_content=_("当前主机验证类型无需查询密码"))
-        self.log_info(sub_inst_ids=no_need_query_inst_ids, log_content=f"tenant_id===1 {tenant_id}")
         self.move_insts_to_failed(sub_inst_ids=direct_connection_only_inst_ids, log_content=_("密码查询逻辑仅支持直连"))
         need_query_inst_ids = [item["sub_inst_id"] for item in cloud_ip_map.values()]
         if not need_query_inst_ids:

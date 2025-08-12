@@ -150,9 +150,6 @@ class SubSubscriptionBaseService(BaseService, metaclass=abc.ABCMeta):
 
     def _execute(self, data, parent_data, common_data: CommonData):
         tenant_id = self.tenant_id(data)
-        sub_inst_ids = common_data.subscription_instance_ids
-        for sub_inst_id in sub_inst_ids:
-            self.log_info(sub_inst_ids=sub_inst_id, log_content=f"tenant_id====8 {tenant_id}")
         subscription_ids = self.create_subscriptions(common_data, tenant_id)
         data.outputs.subscription_ids = subscription_ids
         data.outputs.all_subscription_ids = data.outputs.subscription_ids
