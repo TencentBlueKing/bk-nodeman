@@ -297,7 +297,6 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
         return concurrent.batch_call_coroutine(func=self.execute_shell_solution_async, params_list=params_list)
 
     def _execute(self, data, parent_data, common_data: base.AgentCommonData):
-        tenant_id = self.tenant_id(data)
         host_id__sub_inst_id = {
             host_id: sub_inst_id for sub_inst_id, host_id in common_data.sub_inst_id__host_id_map.items()
         }
@@ -312,10 +311,6 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
             self.log_info(
                 sub_inst_ids=sub_inst_id,
                 log_content=_(f"选择的安装通道为: {install_channel_name}"),
-            )
-            self.log_info(
-                sub_inst_ids=sub_inst_id,
-                log_content=_(f"tenant_id==3 {tenant_id}"),
             )
         is_uninstall = data.get_one_of_inputs("is_uninstall")
         host_id_obj_map = common_data.host_id_obj_map
@@ -1020,7 +1015,6 @@ class InstallService(base.AgentBaseService, remote.RemoteServiceMixin):
                     "bk_os_bit": constants.OsBitType.cpu_type__os_bit_map()[report_cpu_arch],
                 },
             }
-            self.log_info(sub_inst_ids=sub_inst_id, log_content=f"tenant_id==5 {tenant_id}")
             self.log_info(
                 sub_inst_ids=sub_inst_id,
                 log_content=_("更新 CMDB 主机信息:\n {params}").format(params=json.dumps(update_params, indent=2)),

@@ -57,8 +57,6 @@ class BindHostAgentService(AgentBaseService):
         :param tenant_id: 租户ID
         :return:
         """
-        for sub_inst_id in host_id__sub_inst_id_map.values():
-            self.log_info(sub_inst_ids=sub_inst_id, log_content=f"tenant_id==6 {tenant_id}")
         CCApi.bind_host_agent({"list": host_agent_relations}, tenant_id=tenant_id)
         succeed_host_ids: List[int] = []
         for host_agent_relation in host_agent_relations:

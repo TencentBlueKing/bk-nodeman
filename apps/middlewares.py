@@ -266,8 +266,6 @@ class ApiGatewayForceVerifyMiddleware(MiddlewareMixin):
     def process_view(self, request, view_func, view_args, view_kwargs):
         try:
             header, secure_value = settings.SECURE_PROXY_SSL_HEADER
-            header_value = request.META.get(header)
-            logger.error("+++++++++++{}: {}++++++++++".format(header, header_value))
         except ValueError:
             raise Exception("The SECURE_PROXY_SSL_HEADER setting must be a tuple containing two values.")
 
