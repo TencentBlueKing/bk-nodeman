@@ -29,4 +29,10 @@ data:
     MYSQL_USER: "{{ .Values.externalMySQL.username | default .Release.Name }}"
     MYSQL_PASSWORD: "{{ .Values.externalMySQL.password | default .Release.Name }}"
     MYSQL_NAME: "{{ .Values.externalMySQL.database | default .Release.Name }}"
+    MYSQL_TLS_ENABLED: "{{ .Values.externalMySQL.tls.enabled | default false }}"
+    MYSQL_TLS_CERT_FILE: "{{ .Values.externalMySQL.tls.certFilename }}"
+    MYSQL_TLS_CERT_KEY_FILE: "{{ .Values.externalMySQL.tls.certKeyFilename }}"
+    MYSQL_TLS_CERT_CA_FILE: "{{ .Values.externalMySQL.tls.certCAFilename }}"
+    MYSQL_TLS_CHECK_HOSTNAME: "{{ .Values.externalMySQL.tls.checkHostname }}"
+    MYSQL_TLS_MOUNT_PATH: "{{ .Values.externalMySQL.tls.mountPath }}"
   {{- end }}
