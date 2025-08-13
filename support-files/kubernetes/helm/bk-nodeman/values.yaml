@@ -732,6 +732,16 @@ externalRedis:
   host: "bk_nodeman"
   port: 6379
   password: "bk_nodeman"
+  tls:
+    enabled: false
+    mountPath: "/opt/blueking/bk-nodeman-redis/certs"
+    existingSecret: ""
+    certCAFilename: "ca.pem"
+    # if mTLS, the certFilename, certKeyFilename are required; default value is cert.pem/cert.key/ca.pem
+    certFilename: ""
+    certKeyFilename: ""
+    # 设置为 False 时会跳过主机名/IP 验证，会降低安全性，仅限测试时使用
+    checkHostname: true
 
 ## External MySQL configuration
 ##
@@ -741,6 +751,16 @@ externalMySQL:
   username: "bk_nodeman"
   password: "bk_nodeman"
   database: "bk_nodeman"
+  tls:
+    enabled: false
+    mountPath: "/opt/blueking/bk-nodeman-db/certs"
+    existingSecret: ""
+    certCAFilename: "ca.pem"
+    # if mTLS, the certFilename, certKeyFilename are required; default value is cert.pem/cert.key/ca.pem
+    certFilename: ""
+    certKeyFilename: ""
+    # 设置为 False 时会跳过主机名/IP 验证，会降低安全性，仅限测试时使用
+    checkHostname: true
 
 ## External RabbitMQ configuration
 ##
@@ -750,6 +770,16 @@ externalRabbitMQ:
   vhost: "bk_nodeman"
   username: "bk_nodeman"
   password: "bk_nodeman"
+  tls:
+    enabled: false
+    mountPath: "/opt/blueking/bk-nodeman-rabbitmq/certs"
+    existingSecret: ""
+    certCAFilename: "ca.pem"
+    # if mTLS, the certFilename, certKeyFilename are required; default value is cert.pem/cert.key/ca.pem
+    certFilename: ""
+    certKeyFilename: ""
+    # 设置为 False 时会跳过主机名/IP 验证，会降低安全性，仅限测试时使用
+    checkHostname: true
 
 bkNotice:
   enabled: false

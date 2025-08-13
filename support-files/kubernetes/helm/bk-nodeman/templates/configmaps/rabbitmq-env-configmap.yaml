@@ -25,4 +25,10 @@ data:
   RABBITMQ_PORT: "{{ .Values.externalRabbitMQ.port | default 5672 }}"
   RABBITMQ_USER: "{{ .Values.externalRabbitMQ.username | default .Release.Name }}"
   RABBITMQ_PASSWORD: "{{ .Values.externalRabbitMQ.password | default .Release.Name }}"
+  RABBITMQ_TLS_ENABLED: "{{ .Values.externalRabbitMQ.tls.enabled | default false }}"
+  RABBITMQ_TLS_CERT_FILE: "{{ .Values.externalRabbitMQ.tls.certFilename }}"
+  RABBITMQ_TLS_CERT_KEY_FILE: "{{ .Values.externalRabbitMQ.tls.certKeyFilename }}"
+  RABBITMQ_TLS_CERT_CA_FILE: "{{ .Values.externalRabbitMQ.tls.certCAFilename }}"
+  RABBITMQ_TLS_CHECK_HOSTNAME: "{{ .Values.externalRabbitMQ.tls.checkHostname }}"
+  RABBITMQ_TLS_MOUNT_PATH: "{{ .Values.externalRabbitMQ.tls.mountPath }}"
   {{- end }}

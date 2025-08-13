@@ -12,6 +12,7 @@ specific language governing permissions and limitations under the License.
 """
 
 import logging
+import ssl
 import traceback
 
 import redis
@@ -42,6 +43,20 @@ def get_client_through_sentinel():
             [p.strip() for p in str(port).split(",")],
         )
     )
+    if settings.REDIS.get("tls_enabled", False):
+        kwargs["connection_kwargs"] = {
+            "ssl_cert_reqs": ssl.CERT_REQUIRED,
+            "ssl_ca_certs": settings.REDIS.get("ssl_ca_certs"),
+            "ssl_check_hostname": settings.REDIS.get("ssl_check_hostname"),
+        }
+        if settings.REDIS["ssl_certfile"] and settings.REDIS["ssl_certfile"]:
+            kwargs["connection_kwargs"].update(
+                {
+                    "ssl_certfile": settings.REDIS.get("ssl_certfile"),
+                    "ssl_keyfile": settings.REDIS.get("ssl_keyfile"),
+                }
+            )
+
     rs = Sentinel(sentinels, **kwargs)
     # avoid None value in settings.REDIS
     r = rs.master_for(settings.REDIS.get("service_name") or "mymaster")
@@ -54,6 +69,23 @@ def get_cluster_client():
     kwargs = {"startup_nodes": [{"host": settings.REDIS["host"], "port": settings.REDIS["port"]}]}
     if "password" in settings.REDIS:
         kwargs["password"] = settings.REDIS["password"]
+
+    if settings.DJANGO_REDIS_COMMON_OPTIONS.get("CONNECTION_POOL_KWARGS", {}):
+        kwargs.update(settings.DJANGO_REDIS_COMMON_OPTIONS["CONNECTION_POOL_KWARGS"])
+
+    # 添加 TLS 支持
+    if settings.REDIS.get("tls_enabled", False):
+        kwargs["ssl_cert_reqs"] = ssl.CERT_REQUIRED
+        kwargs["ssl_ca_certs"] = settings.REDIS.get("ssl_ca_certs")
+        kwargs["ssl_check_hostname"] = settings.REDIS.get("ssl_check_hostname")
+
+        if settings.REDIS["ssl_certfile"] and settings.REDIS["ssl_certfile"]:
+            kwargs.update(
+                {
+                    "ssl_certfile": settings.REDIS.get("ssl_certfile"),
+                    "ssl_keyfile": settings.REDIS.get("ssl_keyfile"),
+                }
+            )
 
     r = RedisCluster(**kwargs)
     r.echo("Hello Redis")
@@ -69,6 +101,21 @@ def get_single_client():
         kwargs["password"] = settings.REDIS["password"]
     if "db" in settings.REDIS:
         kwargs["db"] = settings.REDIS["db"]
+
+    # 添加 TLS 支持
+    if settings.REDIS.get("tls_enabled", False):
+        kwargs["connection_class"] = redis.SSLConnection
+        kwargs["ssl_cert_reqs"] = ssl.CERT_REQUIRED
+        kwargs["ssl_ca_certs"] = settings.REDIS.get("ssl_ca_certs")
+        kwargs["ssl_check_hostname"] = settings.REDIS.get("ssl_check_hostname")
+
+        if settings.REDIS["ssl_certfile"] and settings.REDIS["ssl_certfile"]:
+            kwargs.update(
+                {
+                    "ssl_certfile": settings.REDIS.get("ssl_certfile"),
+                    "ssl_keyfile": settings.REDIS.get("ssl_keyfile"),
+                }
+            )
 
     pool = redis.ConnectionPool(**kwargs)
     return redis.StrictRedis(connection_pool=pool)

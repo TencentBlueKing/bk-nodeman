@@ -29,4 +29,10 @@ data:
   REDIS_PORT: "{{ .Values.externalRedis.port | default 6379 }}"
   {{- end }}
   REDIS_PASSWORD: "{{ .Values.externalRedis.password | default .Release.Name }}"
+  REDIS_TLS_ENABLED: "{{ .Values.externalRedis.tls.enabled | default false }}"
+  REDIS_TLS_CERT_FILE: "{{ .Values.externalRedis.tls.certFilename }}"
+  REDIS_TLS_CERT_KEY_FILE: "{{ .Values.externalRedis.tls.certKeyFilename }}"
+  REDIS_TLS_CERT_CA_FILE: "{{ .Values.externalRedis.tls.certCAFilename }}"
+  REDIS_TLS_CHECK_HOSTNAME: "{{ .Values.externalRedis.tls.checkHostname }}"
+  REDIS_TLS_MOUNT_PATH: "{{ .Values.externalRedis.tls.mountPath }}"
   {{- end }}
