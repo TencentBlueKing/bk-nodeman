@@ -20,6 +20,7 @@ from django.utils.functional import cached_property
 
 from apps.utils.basic import filter_values
 from apps.utils.files import md5sum
+from common.api import CCApi
 
 from . import constants
 from .base import BaseStorage
@@ -101,9 +102,10 @@ class CustomBKRepoStorage(BaseStorage, bkrepo.BKRepoStorage):
     ) -> List[Dict[str, Any]]:
 
         # 获取或创建文件源
-        bk_biz_id: int = (
-            settings.TENANT_BLUEKING_SCOPE_ID if settings.ENABLE_MULTI_TENANT_MODE else settings.BLUEKING_BIZ_ID
-        )
+        # bk_biz_id: int = (
+        #     settings.TENANT_BLUEKING_SCOPE_ID if settings.ENABLE_MULTI_TENANT_MODE else settings.BLUEKING_BIZ_ID
+        # )
+        bk_biz_id = self.get_biz_set_id()
         file_source_obj = BkJobFileSourceManager.get_or_create_file_source(
             bk_biz_id=bk_biz_id,
             storage_type=self.storage_type,
@@ -128,6 +130,15 @@ class CustomBKRepoStorage(BaseStorage, bkrepo.BKRepoStorage):
             )
 
         return file_source_with_source_info_list
+
+    @staticmethod
+    def get_biz_set_id():
+        resp = CCApi.list_business_set({}, tenant_id="system" if settings.ENABLE_MULTI_TENANT_MODE else "default")
+        for biz_set in resp.get("info", []):
+            name = biz_set.get("bk_biz_set_name")
+            if name in ["BlueKing", "All"]:
+                return biz_set.get("bk_biz_set_id")
+        return None
 
 
 @deconstructible

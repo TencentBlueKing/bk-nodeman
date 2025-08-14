@@ -374,3 +374,12 @@ class _CCApi(BaseApi):
             before_request=add_esb_info_before_request,
             api_name="find_host_service_template",
         )
+        self.list_business_set = DataAPI(
+            method="POST",
+            url=CC_APIGATEWAY_ROOT_V2 + "findmany/biz_set/",
+            module=self.MODULE,
+            simple_module=self.SIMPLE_MODULE,
+            description="查询业务集",
+            before_request=add_esb_info_before_request,
+            api_name="list_business_set",
+        )
