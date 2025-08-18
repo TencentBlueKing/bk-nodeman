@@ -24,6 +24,7 @@ from django.utils.module_loading import import_string
 from django.utils.translation import gettext as _
 
 from apps.exceptions import ApiRequestError, ApiResultError, AppBaseException
+from apps.node_man import models
 from apps.prometheus import metrics
 from apps.prometheus.helper import SetupObserve
 from apps.utils import remove_auth_args
@@ -36,6 +37,7 @@ from apps.utils.local import (
 )
 from apps.utils.time_handler import timestamp_to_datetime
 
+from . import UserApi
 from .exception import DataAPIException
 from .utils.params import add_esb_info_before_request
 
@@ -270,6 +272,26 @@ class DataAPI(object):
             message += f" path => {url_path}"
         return message
 
+    @staticmethod
+    def get_bk_username_by_tenant(tenant_id):
+        tenant_bk_username_map = models.GlobalSettings.get_config(
+            key=models.GlobalSettings.KeyEnum.TENANT_BK_USERNAME_MAP.value, default={}
+        )
+        if tenant_id in tenant_bk_username_map:
+            return tenant_bk_username_map[tenant_id]
+        result = UserApi.batch_lookup_virtual_user(
+            {"lookups": "bk_admin", "lookup_field": "login_name"}, tenant_id=tenant_id
+        )
+        if result:
+            bk_username = result[0]["bk_username"]
+            tenant_bk_username_map[tenant_id] = bk_username
+            models.GlobalSettings.set_config(
+                key=models.GlobalSettings.KeyEnum.TENANT_BK_USERNAME_MAP.value, value=tenant_bk_username_map
+            )
+            return bk_username
+        else:
+            return "bk_admin"
+
     @SetupObserve(histogram=metrics.app_common_api_call_duration_seconds, get_labels_func=get_labels_func)
     def _send_request(self, params, headers, use_admin=False):
         # 请求前的参数清洗处理
@@ -280,7 +302,10 @@ class DataAPI(object):
 
         # 使用管理员账户请求时，设置用户名为管理员用户名，移除bk_token等认证信息
         if use_admin:
-            params["bk_username"] = "admin"
+            if settings.ENABLE_MULTI_TENANT_MODE:
+                params["bk_username"] = self.get_bk_username_by_tenant(get_tenant_id())
+            else:
+                params["bk_username"] = "admin"
             params = remove_auth_args(params)
 
         # 是否有默认返回，调试阶段可用

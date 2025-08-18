@@ -40,41 +40,10 @@ stages:
               weight: 100
 
 grant_permissions:
-  - bk_app_code: "bk_nodeman"
-    grant_dimension: "resource"
-    resource_names:
-      - system_plugin_upload
-      - system_subscription_create
-      - system_subscription_task_result
-      - system_collect_task_result_detail
-      - system_subscription_task_result_detail
-      - system_subscription_check_task_ready
-      - system_subscription_run
-      - system_subscription_delete
-      - system_subscription_update
-      - system_subscription_info
-      - system_subscription_search_policy
-      - system_subscription_retry
-      - system_subscription_revoke
-      - system_fetch_commands
-      - system_plugin_create_register_task
-      - system_plugin_query_register_task
-      - system_plugin_release
-      - system_package_status_operation
-      - system_plugin_create_export_task
-      - system_plugin_query_export_task
-      - system_plugin_parse
-      - system_plugin_list
-      - system_plugin_detail
-      - system_plugin_status_operation
-      - system_plugin_history
-      - system_subscription_query_host_policy
-      - system_metric_list
-      - system_sync_task_create
-      - system_sync_task_status
-      - system_job_install
-      - system_job_details
-  - bk_app_code: "bk_sops"
+  - bk_app_code: {{ settings.APP_CODE }}
+    grant_dimension: "gateway"
+  # bk_sops
+  - bk_app_code: bk_sops
     grant_dimension: "resource"
     resource_names:
       - system_ap_list
@@ -90,11 +59,13 @@ grant_permissions:
       - system_search_host_plugin
       - system_operate_plugin
       - system_plugin_list
-  - bk_app_code: "bk_dataweb"
+  # bk_dataweb
+  - bk_app_code: bk_dataweb
     grant_dimension: "resource"
     resource_names:
       - system_ipchooser_host_details
-  - bk_app_code: "bk_bkdata"
+  # bk_bkdata
+  - bk_app_code: bk_bkdata
     grant_dimension: "resource"
     resource_names:
       - system_subscription_create
@@ -108,14 +79,16 @@ grant_permissions:
       - system_subscription_task_result_detail
       - system_list_hosts
       - system_search_host_plugin
-  - bk_app_code: "bk_bcs_app"
+  # bk_bcs_app
+  - bk_app_code: bk_bcs_app
     grant_dimension: "resource"
     resource_names:
       - system_cloud_list
       - system_job_install
       - system_job_details
       - system_list_hosts
-  - bk_app_code: "bk_monitorv3"
+  # bk_monitorv3
+  - bk_app_code: bk_monitorv3
     grant_dimension: "resource"
     resource_names:
       - system_plugin_render_config_template
@@ -150,6 +123,26 @@ grant_permissions:
       - system_subscription_check_task_ready
       - system_subscription_statistic
       - system_ipchooser_host_details
+  # bk_log_search
+  - bk_app_code: bk_log_search
+    grant_dimension: "resource"
+    resource_names:
+      - system_subscription_create
+      - system_subscription_update
+      - system_subscription_info
+      - system_subscription_run
+      - system_subscription_instance_status
+      - system_subscription_task_result
+      - system_search_host_plugin
+      - system_subscription_check_task_ready
+      - system_subscription_delete
+      - system_subscription_task_result_detail
+      - system_subscription_switch
+      - system_subscription_statistic
+      - system_query_host_subscriptions
+      - system_subscription_retry
+      - system_ipchooser_host_details
+      - system_list_biz_proxies
 
 resource_docs:
   # 资源文档的归档文件，可为 tar.gz，zip 格式文件；创建归档文件可使用指令 `tar czvf xxx.tgz en zh`

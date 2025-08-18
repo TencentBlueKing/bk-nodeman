@@ -184,6 +184,8 @@ class GlobalSettings(models.Model):
         QUERY_PROC_STATUS_HOST_LENS = "QUERY_PROC_STATUS_HOST_LENS"
         # 业务最大插件版本
         PLUGIN_VERSION_CONFIG = "PLUGIN_VERSION_CONFIG"
+        # 租户bk_admin对应的bk_username映射
+        TENANT_BK_USERNAME_MAP = "TENANT_BK_USERNAME_MAP"
 
     key = models.CharField(_("键"), max_length=255, db_index=True, primary_key=True)
     v_json = JSONField(_("值"), default=dict)
