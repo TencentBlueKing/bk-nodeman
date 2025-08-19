@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import logging
 
+from blueapps.contrib.celery_tools.periodic import periodic_task
 from celery import current_app
 from django.core.cache import caches
 
@@ -37,7 +38,7 @@ def get_instances_by_scope_task(subscription_id):
     logger.info(f"[cache_subscription_scope_instances] (subscription: {subscription_id}) end.")
 
 
-@current_app.task(
+@periodic_task(
     run_every=constants.SUBSCRIPTION_UPDATE_INTERVAL,
     queue="backend",
     options={"queue": "backend"},

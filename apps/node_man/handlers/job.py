@@ -212,6 +212,17 @@ class JobHandler(APIModel):
         # 排序
         if params.get("sort"):
             sort_head = params["sort"]["head"]
+            sort_fields = [
+                "total_count",
+                "failed_count",
+                "ignored_count",
+                "pending_count",
+                "running_count",
+                "success_count",
+            ]
+            if sort_head not in sort_fields:
+                raise ApiResultError(_("排序字段不合法"))
+
             job_result = job_result.extra(select={sort_head: f"JSON_EXTRACT(statistics, '$.{sort_head}')"})
             if params["sort"]["sort_type"] == constants.SortType.DEC:
                 job_result = job_result.order_by(str("-") + sort_head)
@@ -497,6 +508,7 @@ class JobHandler(APIModel):
                 "bk_host_id": host["bk_host_id"],
                 "bk_biz_id": host["bk_biz_id"],
                 "bk_cloud_id": host["bk_cloud_id"],
+                "bk_agent_id": host["bk_agent_id"],
                 "inner_ip": host["inner_ip"],
                 "inner_ipv6": host["inner_ipv6"],
                 "outer_ip": host["outer_ip"],
@@ -573,6 +585,7 @@ class JobHandler(APIModel):
                         "bk_host_id": origin_host["bk_host_id"],
                         "bk_biz_id": origin_host["bk_biz_id"],
                         "bk_cloud_id": origin_host["bk_cloud_id"],
+                        "bk_agent_id": origin_host["bk_agent_id"] or "",
                         "inner_ip": origin_host["inner_ip"],
                         "outer_ip": origin_host["outer_ip"],
                         "inner_ipv6": origin_host["inner_ipv6"],

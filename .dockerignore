@@ -182,6 +182,8 @@ site
 
 ## Output of 'npm pack'
 **/*.tgz
+!script_tools/py*.tgz
+!script_tools/nginx*.tgz
 
 ## Yarn Integrity file
 **/.yarn-integrity

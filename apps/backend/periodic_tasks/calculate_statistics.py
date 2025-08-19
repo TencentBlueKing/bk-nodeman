@@ -14,7 +14,7 @@ import itertools
 import logging
 from collections import Counter, defaultdict
 
-from celery import current_app
+from blueapps.contrib.celery_tools.periodic import periodic_task
 from django.utils import timezone
 
 from apps.backend.subscription import task_tools
@@ -23,7 +23,7 @@ from apps.node_man import constants, models, tools
 logger = logging.getLogger("celery")
 
 
-@current_app.task(run_every=30, queue="backend", options={"queue": "backend"}, ignore_result=True)
+@periodic_task(run_every=30, queue="backend", options={"queue": "backend"}, ignore_result=True)
 def calculate_statistics():
     """
     统计任务汇总状态

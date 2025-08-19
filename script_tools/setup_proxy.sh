@@ -18,12 +18,13 @@ get_cpu_arch () {
         return 1
     fi
 }
-get_cpu_arch "uname -p" || get_cpu_arch "uname -m" || fail get_cpu_arch "Failed to get CPU arch or unsupported CPU arch, please contact the developer."
+get_cpu_arch "uname -p" || get_cpu_arch "uname -m" || get_cpu_arch "arch" || fail get_cpu_arch "Failed to get CPU arch or unsupported CPU arch, please contact the developer."
 
 GSE_COMPARE_VERSION="1.7.2"
 NODE_TYPE=proxy
 PKG_NAME=gse_${NODE_TYPE}-linux-${CPU_ARCH}.tgz
 BACKUP_CONFIG_FILES=("procinfo.json")
+AUTO_TYPE=rclocal
 
 GSE_AGENT_RUN_DIR=/var/run/gse
 GSE_AGENT_DATA_DIR=/var/lib/gse
@@ -365,21 +366,120 @@ pre_view () {
     fi
 }
 
-remove_crontab () {
-    local tmpcron
-    tmpcron=$(mktemp "$TMP_DIR"/cron.XXXXXXX)
+add_config_to_systemd () {
+    log add_config_to_systemd - "trying to add config to systemd"
 
-    # 仅删除关联到安装目录的 crontab，避免多 Agent 互相影响
-    crontab -l | grep -v "${AGENT_SETUP_PATH}"  >"$tmpcron"
-    crontab "$tmpcron" && rm -f "$tmpcron"
+    local module="${1}"
+    local install_env=`echo $AGENT_SETUP_PATH |awk -F/ '{print $(NF-1)}'`
 
-    # 下面这段代码是为了确保修改的crontab能立即生效
-    if pgrep -x crond &>/dev/null; then
-        pkill -HUP -x crond
+    if [[ "${module}" =~ "data" ]]; then
+        config="data_proxy"
+    elif [[ "${module}" =~ "file" ]]; then
+        config="file_proxy"
+    else
+        config="${module}"
+    fi
+cat > /tmp/${install_env}_${node_type}_${module}.service << EOF
+[Unit]
+Description=GSE2.0 Proxy Daemon
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+LimitNOFILE=512000
+LimitCORE=infinity
+WorkingDirectory=${WORK_HOME}/bin
+PIDFile=${WORK_HOME}/bin/run/${module}.pid
+ExecStart=${WORK_HOME}/bin/gse_${module} -f ${WORK_HOME}/etc/gse_${config}.conf
+ExecReload=${WORK_HOME}/bin/gse_${module} --reload
+ExecStop=${WORK_HOME}/bin/gse_${module} --quit
+Type=forking
+KillMode=process
+User=root
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+    if [ -f /usr/lib/systemd/system/${install_env}_${node_type}_${module}.service ];then
+        if [ `md5sum /tmp/${install_env}_${node_type}_${module}.service |awk '{print $1}'` == `md5sum /usr/lib/systemd/system/${install_env}_${node_type}_${module}.service |awk '{print $1}'` ];then
+            echo "${install_env}_${node_type}_${module}.service have no change..."
+        else
+            echo "update ${install_env}_${node_type}_${module}.service"
+            cp /tmp/${install_env}_${node_type}_${module}.service /usr/lib/systemd/system/${install_env}_${node_type}_${module}.service
+            systemctl daemon-reload
+            systemctl enable ${install_env}_${node_type}_${module}.service
+        fi
+    else
+        echo "copy ${install_env}_${node_type}_${module}.service"
+        cp /tmp/${install_env}_${node_type}_${module}.service /usr/lib/systemd/system/${install_env}_${node_type}_${module}.service
+        systemctl daemon-reload
+        systemctl enable ${install_env}_${node_type}_${module}.service
+    fi
+
+    [ -f /tmp/${install_env}_${node_type}_${module}.service ] && rm /tmp/${install_env}_${node_type}_${module}.service
+
+    log add_config_to_systemd DONE "add config to systemd done"
+}
+
+
+remove_systemd_service () {
+    local module=$1
+    local install_env=`echo $AGENT_SETUP_PATH |awk -F/ '{print $(NF-1)}'`
+
+    if [ -f /usr/lib/systemd/system/${install_env}_${node_type}_${module}.service ];then
+        systemctl stop ${install_env}_${node_type}_${module}.service
+        systemctl disable ${install_env}_${node_type}_${module}.service
+        rm /usr/lib/systemd/system/${install_env}_${node_type}_${module}.service
     fi
 }
 
-setup_startup_scripts () {
+
+setup_crontab () {
+    log setup_crontab - "trying to setup crontab"
+
+    local module=$1
+    local tmpcron
+
+    if [ -n "`crontab -l | grep \"$AGENT_SETUP_PATH/bin/gsectl\" |egrep -v \"^#|\s+#\"`" ];then
+        echo "The watch detection entry is already in the crontab..."
+        return 0
+    fi
+
+    tmpcron=/tmp/cron.XXXXXXX
+
+    (
+        crontab -l | grep -v "$AGENT_SETUP_PATH/bin/gsectl"
+        echo "#$AGENT_SETUP_PATH/bin/gsectl Agent check, add by NodeMan @ `date +'%F %T'`"
+        echo "* * * * * $AGENT_SETUP_PATH/bin/gsectl watch all 1>>/tmp/watch_gse2_${node_type}.log 2>&1"
+    ) > "$tmpcron"
+
+    crontab "$tmpcron" && rm -f "$tmpcron"
+    crontab -l |egrep "$AGENT_SETUP_PATH"
+
+    log setup_crontab DONE "setup crontab done"
+}
+
+remove_crontab (){
+    local tmpcron
+    tmpcron=/tmp/cron.XXXXXX
+
+    if [ `crontab -l |egrep  "$AGENT_SETUP_PATH" |wc -l` -ne 0 ];then
+        crontab -l |egrep -v "$AGENT_SETUP_PATH" >$tmpcron
+        crontab $tmpcron && rm -f $tmpcron
+
+        # 下面这段代码是为了确保修改的crontab立即生效
+        if pgrep -x crond &>/dev/null; then
+            pkill -HUP -x crond
+        fi
+    fi
+}
+
+setup_rclocal () {
+    log setup_rclocal - "trying to setup rclocal"
+
     check_rc_file
     local rcfile=$RC_LOCAL_FILE
 
@@ -390,10 +490,78 @@ setup_startup_scripts () {
 
     chmod +x $rcfile
 
-    # 先删后加，避免重复
-    sed -i "\|${AGENT_SETUP_PATH}/bin/gsectl|d" $rcfile
+    local insert_content
+    if systemctl list-unit-files | grep -q rc-local.service; then
+        insert_content="[ -f $AGENT_SETUP_PATH/bin/gsectl ] && sh -c 'echo \"\$\$\" > /sys/fs/cgroup/systemd/tasks; exec $AGENT_SETUP_PATH/bin/gsectl start' >/var/log/gse_start.log 2>&1"
+    else
+        insert_content="[ -f $AGENT_SETUP_PATH/bin/gsectl ] && $AGENT_SETUP_PATH/bin/gsectl start >/var/log/gse_start.log 2>&1"
+    fi
 
-    echo "[ -f $AGENT_SETUP_PATH/bin/gsectl ] && $AGENT_SETUP_PATH/bin/gsectl start >/var/log/gse_start.log 2>&1" >>$rcfile
+    if grep -q "^exit 0" "$rcfile"; then
+        sed -i "/^exit 0/i ${insert_content}" $rcfile
+    else
+        echo "${insert_content}" >>$rcfile
+    fi
+
+    log setup_rclocal DONE "setup rclocal done"
+}
+
+remove_rclocal () {
+    check_rc_file
+    sed -i "\|${AGENT_SETUP_PATH}/bin/gsectl|d" $RC_LOCAL_FILE
+}
+
+remove_directory () {
+    for dir in "$@"; do
+        if [ -d "$dir" ]; then
+            log remove_directory - "trying to remove directory [${dir}]"
+            rm -rf "$dir"
+            log remove_directory - "directory [${dir}] removed"
+        fi
+    done
+}
+
+setup_startup_scripts () {
+    if [ $AUTO_TYPE == "rclocal" ]; then
+        setup_rclocal
+    elif [ $AUTO_TYPE == "systemd" ]; then
+        add_config_to_systemd
+    elif [ $AUTO_TYPE == "crontab" ]; then
+        setup_crontab
+    fi
+}
+
+remove_startup_scripts () {
+    log remove_startup_scripts - "trying to remove startup scripts"
+
+    remove_rclocal
+    log remove_startup_scripts - "remove rclocal done"
+
+    remove_systemd_config
+    log remove_startup_scripts - "remove systemd done"
+
+    remove_crontab
+    log remove_startup_scripts - "remove crontab done"
+
+    log remove_startup_scripts DONE "remove startup scripts done"
+}
+
+
+remove_startup () {
+    check_rc_file
+    local rcfile=$RC_LOCAL_FILE
+
+    sed -i "\|${AGENT_SETUP_PATH}/bin/gsectl|d" $rcfile
+}
+
+remove_directory () {
+    for dir in "$@"; do
+        if [ -d "$dir" ]; then
+            log remove_directory - "trying to remove directory [${dir}]"
+            rm -rf "$dir"
+            log remove_directory - "directory [${dir}] removed"
+        fi
+    done
 }
 
 start_proxy () {
@@ -461,6 +629,11 @@ remove_proxy () {
     rm -rf "${AGENT_SETUP_PATH}"
 
     if [[ "$REMOVE" = "TRUE" ]]; then
+        remove_directory ${GSE_HOME} ${GSE_AGENT_RUN_DIR} ${GSE_AGENT_DATA_DIR} ${GSE_AGENT_LOG_DIR}
+
+        remove_startup
+        log remove_proxy - "startup script removed"
+
         log remove_proxy DONE "proxy removed"
         exit 0
     else
@@ -555,6 +728,11 @@ setup_py311 () {
 }
 
 download_pkg () {
+    if [[ "${REMOVE}" == "TRUE" ]]; then
+        log download_pkg - "remove agent, no need to download package"
+        return 0
+    fi
+
     local f http_status path
 
     log download_pkg START "download gse agent package from $DOWNLOAD_URL/$PKG_NAME)."
@@ -622,7 +800,7 @@ _OO_
 }
 
 validate_vars_string () {
-    echo "$1" | grep -Pq '^[a-zA-Z_][a-zA-Z0-9]+='
+    echo "$1" | grep -Pq '^[a-zA-Z_][a-zA-Z0-9_]*='
 }
 
 check_pkgtool () {
@@ -843,6 +1021,7 @@ done
 
 LOG_FILE="$TMP_DIR"/nm.${0##*/}.$TASK_ID
 DEBUG_LOG_FILE=${TMP_DIR}/nm.${0##*/}.${TASK_ID}.debug
+GSE_HOME=$(dirname ${AGENT_SETUP_PATH})
 
 # redirect STDOUT & STDERR to DEBUG
 exec &> >(tee "$DEBUG_LOG_FILE")
@@ -852,7 +1031,7 @@ log check_env - "$@"
 #pre_view
 for step in check_env \
             download_pkg \
-            remove_crontab \
+            remove_startup_scripts \
             remove_proxy \
             remove_agent_if_exists \
             setup_proxy \

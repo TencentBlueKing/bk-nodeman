@@ -17,6 +17,7 @@ from celery import current_app
 from celery.schedules import crontab
 
 from pipeline.conf import default_settings
+from pipeline.contrib.celery_tools.periodic import periodic_task
 from pipeline.core.pipeline import Pipeline
 from pipeline.engine import api, signals, states
 from pipeline.engine.core import runtime, schedule

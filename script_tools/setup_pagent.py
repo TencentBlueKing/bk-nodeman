@@ -79,8 +79,7 @@ try:
     import paramiko  # noqa
     import requests  # noqa
 
-    import impacket  # noqa
-
+    # import impacket  # noqa
     # import psutil
 
 except ImportError as err:
@@ -256,6 +255,12 @@ def execute_cmd(
         # WMI 执行文件不存在，从下载源同步
         # wmiexec 是下载到脚本执行目录下，不属于回环
         download_file(f"{args.download_url}/wmiexec.py", str(Path(__file__).parent), skip_lo_check=True)
+        download_file(f"{args.download_url}/impacket.tgz", str(Path(__file__).parent), skip_lo_check=True)
+        import tarfile
+
+        with tarfile.open(f"{str(Path(__file__).parent)}/impacket.tgz", "r:gz") as tar:
+            tar.extractall(path=str(Path(__file__).parent))
+        os.remove(f"{str(Path(__file__).parent)}/impacket.tgz")
         from wmiexec import WMIEXEC
 
     executor = WMIEXEC(cmd_str, username, password, domain, share=share, noOutput=is_no_output)

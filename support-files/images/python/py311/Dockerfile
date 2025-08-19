@@ -54,5 +54,4 @@ RUN  ${PYTHON_DIR}/bin/pip3 install -i https://mirrors.tencent.com/pypi/simple/ 
 
 RUN cd ${PYTHON_DIR}/bin && ln -sf python3 python && ln -sf pip3 pip
 RUN cd ${PYTHON_DIR} && find . -type f -name '*.py[co]' -delete -o -type d -name __pycache__ -delete
-RUN rm -rf ${PYTHON_DIR}/lib/python3.11/site-packages/impacket/examples
 RUN tar czvf ${PKG_PATH} -C /opt py311

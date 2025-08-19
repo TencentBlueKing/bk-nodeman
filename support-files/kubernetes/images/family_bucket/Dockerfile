@@ -42,7 +42,7 @@ WORKDIR /
 RUN set -ex &&  \
     apt-get update && \
     apt-get install -y --no-install-recommends \
-        gcc gettext mariadb-client libmariadb-dev default-libmysqlclient-dev && \
+        gcc gettext make mariadb-client libmariadb-dev default-libmysqlclient-dev && \
     rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt /
@@ -75,10 +75,6 @@ COPY --from=static-builder /static/ /app/static/
 
 FROM base-app AS ieod-app
 
-RUN set -ex && \
-    rm -rf bkoauth && \
-    pip install --no-cache-dir python-crontab==2.6.0 && \
-    pip install --no-cache-dir bkoauth==0.0.22
 
 # 移除 upstreams 检查
 RUN set -ex && sed -i '/check_polices_\${node_type}_to_upstream/s/^/#/' script_tools/setup_agent.sh

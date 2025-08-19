@@ -14,10 +14,10 @@ from __future__ import absolute_import, unicode_literals
 import logging
 import traceback
 
+from celery import current_app
 from django.utils import timezone
 from django.utils.translation import gettext as _
 
-from apps.backend.celery import app
 from apps.backend.plugin import tools
 from apps.backend.utils.pipeline_parser import PipelineParser as CustomPipelineParser
 from apps.node_man import constants as const
@@ -29,7 +29,7 @@ logger = logging.getLogger("app")
 
 # 注意，这里强行写入了queue为backend，因为发现settings中的CELERY_ROUTES失效
 # 有哪位大锅有好的想法的话，可以考虑减少这个配置
-@app.task(queue="backend")
+@current_app.task(queue="backend")
 def package_task(job_id, task_params):
     """
     执行一个指定的打包任务
@@ -90,7 +90,7 @@ def package_task(job_id, task_params):
         logger.info("task -> {job_id} has finish all job.".format(job_id=job.id))
 
 
-@app.task(queue="backend")
+@current_app.task(queue="backend")
 def export_plugin(job_id):
     """
     开始导出一个插件
@@ -109,12 +109,12 @@ def export_plugin(job_id):
     return
 
 
-@app.task(queue="backend")
+@current_app.task(queue="backend")
 def run_pipeline(pipeline):
     task_service.run_pipeline(pipeline)
 
 
-@app.task(queue="backend")
+@current_app.task(queue="backend")
 def stop_pipeline(pipeline_id, node_id):
     result = True
     message = "success"

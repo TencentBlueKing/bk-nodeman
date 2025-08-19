@@ -12,6 +12,7 @@ import typing
 from collections import defaultdict
 
 from blueapps.conf import settings
+from blueapps.contrib.celery_tools.periodic import periodic_task
 from celery import current_app
 from django.db.models import QuerySet
 from django.db.transaction import atomic
@@ -190,10 +191,10 @@ def update_or_create_proc_status(
     )
 
 
-@current_app.task(
+@periodic_task(
+    run_every=constants.SYNC_PROC_STATUS_TASK_INTERVAL,
     queue="default",
     options={"queue": "default"},
-    run_every=constants.SYNC_PROC_STATUS_TASK_INTERVAL,
 )
 def sync_proc_status_periodic_task():
 

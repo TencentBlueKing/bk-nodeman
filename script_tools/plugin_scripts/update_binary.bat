@@ -132,8 +132,10 @@ if exist %SWWIN_PACKAGE:~0,-4%.tar (
     set TAR_FILE_NAME=%SWWIN_PACKAGE:~0,-4%.tar
 ) else if exist %SWWIN_PACKAGE:~0,-4%.tgz (
     set TAR_FILE_NAME=%SWWIN_PACKAGE:~0,-4%.tgz
-) else (
+) else if exist %SWWIN_PACKAGE:~0,-4%-windows-x86_64.tgz (
     set TAR_FILE_NAME="%SWWIN_PACKAGE:~0,-4%-windows-x86_64.tgz"
+) else (
+    set TAR_FILE_NAME="%SWWIN_PACKAGE:~0,-4%-windows-x86.tgz"
 )
 %s7zPath%\7z.exe x -aoa %SWWIN_GSE_HOME%\%TAR_FILE_NAME% -o%SWWIN_GSE_HOME%
 rem 拷贝插件脚本到官方插件目录下,避免脚本老旧有bug或者不存在的情况

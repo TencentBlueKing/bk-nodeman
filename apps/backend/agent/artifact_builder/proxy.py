@@ -45,7 +45,7 @@ class ProxyArtifactBuilder(base.BaseArtifactBuilder):
 
         # 把基础 Agent 包拉过来
         os_str: str = constants.PluginOsType.linux
-        cpu_arch: str = constants.CpuType.x86_64
+        cpu_arch: str = self._get_elf_arch(os.path.join(extract_dir, self.SERVER_BIN_DIR))
         pkg_name: str = f"{constants.GsePackageCode.AGENT.value}-{self._get_version(extract_dir)}.tgz"
         base_agent_pkg_path: str = os.path.join(self.download_path, self.BASE_STORAGE_DIR, os_str, cpu_arch, pkg_name)
         if not self.storage.exists(base_agent_pkg_path):
@@ -91,6 +91,21 @@ class ProxyArtifactBuilder(base.BaseArtifactBuilder):
 
         self._inject_dependencies(extract_dir)
         return extract_dir
+
+    def _get_elf_arch(self, proxy_bin_dir: str) -> str:
+        import struct
+
+        EM_AARCH64 = 0xB7  # AARCH64 架构
+        for filename in os.listdir(proxy_bin_dir):
+            if filename in self.PROXY_SVR_EXES:
+                file_path = os.path.join(proxy_bin_dir, filename)
+                with open(file_path, "rb") as f:
+                    f.seek(18)
+                    e_machine = struct.unpack("H", f.read(2))[0]
+                    if e_machine == EM_AARCH64:
+                        return constants.CpuType.aarch64
+                    else:
+                        return constants.CpuType.x86_64
 
     def _get_support_files_info(self, extract_dir: str) -> typing.Dict[str, typing.Any]:
         return super()._get_support_files_info(extract_dir=extract_dir)

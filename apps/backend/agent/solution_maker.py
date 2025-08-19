@@ -296,6 +296,13 @@ class BaseExecutionSolutionMaker(metaclass=abc.ABCMeta):
         if not self.agent_setup_info.is_legacy:
             run_cmd_params.extend([f"-n {self.agent_setup_info.name}", f"-t {self.agent_setup_info.version}"])
 
+        # 1.0自启动参数
+        if self.agent_setup_info.is_legacy and self.host.os_type != constants.OsType.WINDOWS:
+            auto_type = models.GlobalSettings.get_config(
+                models.GlobalSettings.KeyEnum.GSE2_LINUX_AUTO_TYPE.value, constants.GseLinuxAutoType.RCLOCAL.value
+            )
+            run_cmd_params.extend([f"-v AUTO_TYPE={auto_type}"])
+
         # 因 bat 脚本逻辑，-R 参数只能放在最后一位
         if self.is_uninstall:
             run_cmd_params.extend(["-R"])
@@ -587,7 +594,11 @@ class ShellExecutionSolutionMaker(BaseExecutionSolutionMaker):
                 shell: str = "bash"
             else:
                 shell: str = suffix
-            run_cmd = f"nohup {shell} {run_cmd} &> {self.dest_dir}nm.nohup.out &"
+
+            if self.host.os_type.lower() == backend_api_constants.OS.AIX:
+                run_cmd = f"nohup {shell} {run_cmd} > {self.dest_dir}nm.nohup.out 2>&1 &"
+            else:
+                run_cmd = f"nohup {shell} {run_cmd} &> {self.dest_dir}nm.nohup.out &"
 
         curl_cmd: str = ("curl", f"{dest_dir}curl.exe")[self.host.os_type == constants.OsType.WINDOWS]
         download_cmd = (

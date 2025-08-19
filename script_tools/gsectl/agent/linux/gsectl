@@ -395,6 +395,7 @@ start_by_rclocal () {
 }
 
 stop_by_rclocal () {
+    remove_startup
     stop_by_binary
     return
 }
@@ -486,6 +487,15 @@ get_os_type () {
     elif [[ "${OS_INFO,,}" =~ "hat" ]]; then
         OS_TYPE="redhat"
         RC_LOCAL_FILE="/etc/rc.d/rc.local"
+    elif [[ "${OS_INFO}" =~ "ky10" ]]; then
+        OS_TYPE="ky10"
+        RC_LOCAL_FILE="/etc/rc.d/rc.local"
+    elif [[ "${OS_INFO}" =~ "ctl2" ]]; then
+        OS_TYPE="ctl2"
+        RC_LOCAL_FILE="/etc/rc.d/rc.local"
+    else
+        OS_TYPE="other"
+        RC_LOCAL_FILE="/etc/rc.d/rc.local"
     fi
 }
 
@@ -524,7 +534,27 @@ add_startup_to_boot () {
     # 先删后加，避免重复
     sed -i "\|${WORK_HOME}/bin/gsectl start ${module}|d" $rcfile
 
-    echo "[ -f ${WORK_HOME}/bin/gsectl ] && ${WORK_HOME}/bin/gsectl start ${module} 1>>/var/log/${INSTALL_ENV}_${node_type}.log 2>&1" >>$rcfile
+    local insert_content
+    if systemctl list-unit-files | grep -q rc-local.service; then
+        insert_content="[ -f ${WORK_HOME}/bin/gsectl ] && sh -c 'echo \"\$\$\" > /sys/fs/cgroup/systemd/tasks; exec ${WORK_HOME}/bin/gsectl start ${module}' >/var/log/gse_start.log 2>&1"
+    else
+        insert_content="[ -f ${WORK_HOME}/bin/gsectl ] && ${WORK_HOME}/bin/gsectl start ${module} >/var/log/gse_start.log 2>&1"
+    fi
+
+    if grep -q "^exit 0" "$rcfile"; then
+        sed -i "/^exit 0/i ${insert_content}" $rcfile
+    else
+        echo "${insert_content}" >>$rcfile
+    fi
+}
+
+remove_startup () {
+    local module=agent
+
+    check_rc_file
+    local rcfile=$RC_LOCAL_FILE
+
+    sed -i "\|${WORK_HOME}/bin/gsectl start ${module}|d" $rcfile
 }
 
 add_config_to_systemd () {

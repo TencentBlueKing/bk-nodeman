@@ -18,6 +18,7 @@ from .sync_agent_status_task import sync_agent_status_periodic_task  # noqa
 from .sync_all_isp_to_cmdb import sync_all_isp_to_cmdb_periodic_task  # noqa
 from .sync_cmdb_cloud_area import sync_cmdb_cloud_area_periodic_task  # noqa
 from .sync_cmdb_host import sync_cmdb_host_periodic_task  # noqa
+from .sync_pagent_ap_id_by_cloud import sync_pagent_ap_id_by_cloud_periodic_task  # noqa
 from .sync_proc_status_task import sync_proc_status_periodic_task  # noqa
 from .update_proxy_file import update_proxy_files  # noqa
 
