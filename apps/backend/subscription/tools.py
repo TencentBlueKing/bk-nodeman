@@ -1230,6 +1230,7 @@ def get_all_subscription_steps_context(
                 "outer_ip": target_host.outer_ip,
                 "login_ip": target_host.login_ip,
             },
+            "is_multi_tenant": str(settings.ENABLE_MULTI_TENANT_MODE).lower(),
             # 获取插件配置公共常量
             "constants": get_plugin_common_constants(plugin_name),
         },
