@@ -262,6 +262,9 @@ export default class ParserExcel extends Vue {
           } else if (key === this.$tc('接入点')) {
             const data = AgentStore.apList.find(data => data.name === item[`${key}`]);
             info[header.prop] = data && !isEmpty(data.id) ? data.id : -1;
+          } else if (key === this.$tc('安装通道')) {
+            const data = AgentStore.channelList.find(data => data.name === item[`${key}`]);
+            info[header.prop] = data && !isEmpty(data.id) ? data.id : 'default';
           } else if (key === this.$tc('寻址方式')) {
             info[header.prop] = item[`${key}`] === this.$tc('动态') ? 'dynamic' : 'static';
           } else if (key === this.$tc('认证方式')) { // 密钥 || 铁将军 需覆盖填写值
@@ -301,7 +304,7 @@ export default class ParserExcel extends Vue {
     } catch (_) {
       parseData = [];
     }
-    return parseData;
+        return parseData;
   }
   /**
    * 组装文件信息
