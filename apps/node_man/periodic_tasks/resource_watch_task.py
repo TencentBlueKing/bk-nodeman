@@ -410,17 +410,26 @@ def trigger_nodeman_subscription(bk_biz_id, debounce_time=0):
     from apps.backend.subscription.tasks import update_subscription_instances_chunk
 
     # 获取当前业务的订阅ID，进行变更判断。使用celery变更将于 debounce_time 后执行
-    subscription_ids = list(
-        Subscription.objects.filter(Q(bk_biz_id=bk_biz_id) | Q(bk_biz_scope__contains=bk_biz_id))
-        .filter(
-            enable=True,
-            is_deleted=False,
-            node_type__in=[
+    auto_trigger_subscription_biz = GlobalSettings.get_config(GlobalSettings.KeyEnum.AUTO_TRIGGER_SUBSCRIPTION_BIZ_KEY.value, default=[])
+    if bk_biz_id in auto_trigger_subscription_biz:
+        # 自动触发所有订阅
+        kwargs = {
+            "enable": True,
+            "is_deleted": False
+        }
+    else:
+        kwargs = {
+            "enable": True,
+            "is_deleted": False,
+            "node_type__in": [
                 Subscription.NodeType.TOPO,
                 Subscription.NodeType.SERVICE_TEMPLATE,
                 Subscription.NodeType.SET_TEMPLATE,
             ],
-        )
+        }
+    subscription_ids = list(
+        Subscription.objects.filter(Q(bk_biz_id=bk_biz_id) | Q(bk_biz_scope__contains=bk_biz_id))
+        .filter(**kwargs)
         .values_list("id", flat=True)
     )
 
