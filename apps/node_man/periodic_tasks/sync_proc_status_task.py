@@ -156,6 +156,7 @@ def update_or_create_proc_status(
                     bk_host_id=agent_id__host_id_map[agent_id],
                     is_latest=True,
                 )
+                to_be_created_process_status_objs.append(obj)
 
         logger.info(
             f"{task_id} | sync_proc_status_task: Not need to update record "
