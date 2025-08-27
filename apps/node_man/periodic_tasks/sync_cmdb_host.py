@@ -33,6 +33,7 @@ from apps.node_man.periodic_tasks.utils import (
 )
 from apps.utils.batch_request import batch_request
 from apps.utils.concurrent import batch_call, batch_call_serial
+from common.api import CCApi
 from common.log import logger
 
 
@@ -507,7 +508,24 @@ def sync_cmdb_host(bk_biz_id=None, task_id=None):
         )
 
     # 节点管理需要删除的host_id
-    need_delete_host_ids = set(node_man_host_ids) - set(cc_bk_host_ids)
+    need_delete_candidat_ids = set(node_man_host_ids) - set(cc_bk_host_ids)
+    if not need_delete_candidat_ids:
+        logger.info("[sync_cmdb_host] complete: task_id -> %s, bk_biz_ids -> %s" % (task_id, bk_biz_ids))
+        return
+    # 对于转移模块的情况，不删除主机
+    query_hosts_params: typing.Dict[str, typing.Any] = {
+        "fields": ["bk_host_id"],
+        "host_property_filter": {
+            "condition": "AND",
+            "rules": [{"field": "bk_host_id", "operator": "in", "value": list(need_delete_candidat_ids)}],
+        },
+    }
+    cmdb_host_infos: typing.List[typing.Dict[str, typing.Any]] = batch_request(
+        func=CCApi.list_hosts_without_biz, params=query_hosts_params
+    )
+    exist_cc_host_ids = set([host_info["bk_host_id"] for host_info in cmdb_host_infos])
+    need_delete_host_ids = need_delete_candidat_ids - exist_cc_host_ids
+
     if need_delete_host_ids:
         proxy_host_ids: typing.Set[int] = set(
             models.Host.objects.filter(
