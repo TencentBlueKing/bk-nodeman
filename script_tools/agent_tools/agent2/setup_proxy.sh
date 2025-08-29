@@ -364,7 +364,8 @@ registe_agent_with_excepte () {
         fi
         registe_code=$?
         if [[ "${registe_code}" -eq 0 ]] && [[ ! "${registe_result}" =~ "overwrite" ]]; then
-            log report_agent_id DONE "$registe_result"
+            agent_id=$(echo "$registe_result" | grep -oP 'agent-id.*')
+            log report_agent_id DONE "$agent_id"
             break
         else
             sleep "${SLEEP_TIME}"
