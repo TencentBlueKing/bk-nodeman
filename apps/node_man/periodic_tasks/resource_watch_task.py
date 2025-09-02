@@ -251,7 +251,7 @@ def _watch_single_tenant(cursor_key, kwargs, id_key, tenant_id=None):
 
             set_cursor(data, cursor_key)
         except Exception as e:
-            logger.error(f"current tenant f{tenant_id} get cmdb resource error -> {str(e)}")
+            logger.error(f"current tenant {tenant_id} get cmdb resource error -> {str(e)}")
             time.sleep(60)
 
 

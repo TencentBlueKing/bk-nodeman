@@ -28,7 +28,7 @@ class Command(BaseCommand):
         call_command("sync_apigw_config", f"--api-name={gateway_name}", f"--file={definition_path}")
         call_command("sync_apigw_stage", f"--api-name={gateway_name}", f"--file={definition_path}")
         call_command("sync_apigw_resources", f"--api-name={gateway_name}", "--delete", f"--file={resources_path}")
-        # call_command("sync_resource_docs_by_archive", f"--api-name={gateway_name}", f"--file={definition_path}")
+        call_command("sync_resource_docs_by_archive", f"--api-name={gateway_name}", f"--file={definition_path}")
         call_command(
             "create_version_and_release_apigw",
             f"--api-name={gateway_name}",
