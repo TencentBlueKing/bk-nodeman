@@ -13,7 +13,7 @@ paths:
   /api/ap/:
     get:
       operationId: ap_list
-      summary: 查询任务列表
+      summary: 查询接入点列表
       tags:
       - ap
       x-bk-apigateway-resource:
@@ -30,10 +30,11 @@ paths:
           userVerifiedRequired: true
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Query access point list
   /system/api/ap/:
     get:
       operationId: system_ap_list
-      summary: 查询任务列表
+      summary: 查询接入点列表
       tags:
       - ap
       x-bk-apigateway-resource:
@@ -50,6 +51,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Query access point list
   /api/cloud/:
     get:
       operationId: cloud_list
@@ -70,6 +72,7 @@ paths:
           userVerifiedRequired: true
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Query bk-network area list
     post:
       operationId: create_cloud_area
       summary: 创建管控区域
@@ -89,6 +92,7 @@ paths:
           userVerifiedRequired: true
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Create bk-network area
   /system/api/cloud/:
     get:
       operationId: system_cloud_list
@@ -109,6 +113,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Query bk-network area list
     post:
       operationId: system_create_cloud_area
       summary: 创建管控区域
@@ -128,6 +133,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Create bk-network area
   /api/host/biz_proxies/:
     get:
       operationId: list_biz_proxies
@@ -148,6 +154,7 @@ paths:
           userVerifiedRequired: true
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Query the proxy set of the bk-network area under the business
   /system/api/host/biz_proxies/:
     get:
       operationId: system_list_biz_proxies
@@ -168,6 +175,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Query the proxy set of the bk-network area under the business
   /api/host/proxies/:
     get:
       operationId: list_cloud_proxies
@@ -188,6 +196,7 @@ paths:
           userVerifiedRequired: true
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Query the proxy list with operation permissions of the bk-network area
   /system/api/host/proxies/:
     get:
       operationId: system_list_cloud_proxies
@@ -208,6 +217,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Query the proxy list with operation permissions of the bk-network area
   /api/host/search/:
     post:
       operationId: list_hosts
@@ -228,6 +238,7 @@ paths:
           userVerifiedRequired: true
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Query host list
   /system/api/host/search/:
     post:
       operationId: system_list_hosts
@@ -248,6 +259,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Query host list
   /api/install_channel/:
     get:
       operationId: install_channel_list
@@ -268,6 +280,7 @@ paths:
           userVerifiedRequired: true
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: List all install channels
   /system/api/install_channel/:
     get:
       operationId: system_install_channel_list
@@ -288,6 +301,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: List all install channels
   /api/job/install/:
     post:
       operationId: job_install
@@ -308,6 +322,7 @@ paths:
           userVerifiedRequired: true
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Install task
   /system/api/job/install/:
     post:
       operationId: system_job_install
@@ -328,6 +343,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Install task
   /api/job/operate/:
     post:
       operationId: job_operate
@@ -348,6 +364,7 @@ paths:
           userVerifiedRequired: true
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Operate task
   /system/api/job/operate/:
     post:
       operationId: system_job_operate
@@ -368,6 +385,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Operate task
   /api/job/{id}/details/:
     post:
       operationId: job_details
@@ -388,6 +406,7 @@ paths:
           userVerifiedRequired: true
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Query task details
   /system/api/job/{id}/details/:
     post:
       operationId: system_job_details
@@ -408,6 +427,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Query task details
   /api/job/{id}/log/:
     get:
       operationId: get_job_log
@@ -428,6 +448,7 @@ paths:
           userVerifiedRequired: true
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Query log
   /system/api/job/{id}/log/:
     get:
       operationId: system_get_job_log
@@ -448,6 +469,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Query log
   /api/plugin/operate/:
     post:
       operationId: operate_plugin
@@ -468,6 +490,7 @@ paths:
           userVerifiedRequired: true
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Plugin operate task
   /system/api/plugin/operate/:
     post:
       operationId: system_operate_plugin
@@ -488,6 +511,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Plugin operate task
   /api/plugin/search/:
     post:
       operationId: search_host_plugin
@@ -508,6 +532,7 @@ paths:
           userVerifiedRequired: true
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Query the list of plugins on the host
   /system/api/plugin/search/:
     post:
       operationId: system_search_host_plugin
@@ -528,6 +553,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Query the list of plugins on the host
   /api/plugin/{category}/process/:
     get:
       operationId: list_processes
@@ -548,6 +574,7 @@ paths:
           userVerifiedRequired: true
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Query plugin list
   /system/api/plugin/{category}/process/:
     get:
       operationId: system_list_processes
@@ -568,6 +595,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Query plugin list
   /api/plugin/{process}/package/:
     get:
       operationId: list_packages
@@ -588,6 +616,7 @@ paths:
           userVerifiedRequired: true
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Query the plugin package list
   /system/api/plugin/{process}/package/:
     get:
       operationId: system_list_packages
@@ -608,6 +637,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Query the plugin package list
   /backend/api/healthz/:
     get:
       operationId: metric_list
@@ -628,6 +658,7 @@ paths:
           userVerifiedRequired: true
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Health statistics metrics
   /system/backend/api/healthz/:
     get:
       operationId: system_metric_list
@@ -648,6 +679,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Health statistics metrics
   /backend/api/plugin/:
     get:
       operationId: plugin_list
@@ -668,6 +700,7 @@ paths:
           userVerifiedRequired: true
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Query plugin list
   /system/backend/api/plugin/:
     get:
       operationId: system_plugin_list
@@ -688,6 +721,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Query plugin list
   /backend/api/plugin/create_config_template/:
     post:
       operationId: plugin_create_config_template
@@ -708,6 +742,7 @@ paths:
           userVerifiedRequired: true
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Create config template
   /system/backend/api/plugin/create_config_template/:
     post:
       operationId: system_plugin_create_config_template
@@ -728,6 +763,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Create config template
   /backend/api/plugin/create_export_task/:
     post:
       operationId: plugin_create_export_task
@@ -748,6 +784,7 @@ paths:
           userVerifiedRequired: true
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Create plugin packaging export task
   /system/backend/api/plugin/create_export_task/:
     post:
       operationId: system_plugin_create_export_task
@@ -768,6 +805,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Create plugin packaging export task
   /backend/api/plugin/create_register_task/:
     post:
       operationId: plugin_create_register_task
@@ -788,6 +826,7 @@ paths:
           userVerifiedRequired: true
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Create registration task
   /system/backend/api/plugin/create_register_task/:
     post:
       operationId: system_plugin_create_register_task
@@ -808,6 +847,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Create registration task
   /backend/api/plugin/delete/:
     post:
       operationId: plugin_delete
@@ -828,6 +868,7 @@ paths:
           userVerifiedRequired: true
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Delete plugin
   /system/backend/api/plugin/delete/:
     post:
       operationId: system_plugin_delete
@@ -848,6 +889,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Delete plugin
   /backend/api/plugin/info/:
     get:
       operationId: plugin_info
@@ -868,6 +910,7 @@ paths:
           userVerifiedRequired: true
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Query plugin information
   /system/backend/api/plugin/info/:
     get:
       operationId: system_plugin_info
@@ -888,6 +931,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Query plugin information
   /backend/api/plugin/package_status_operation/:
     post:
       operationId: package_status_operation
@@ -908,6 +952,7 @@ paths:
           userVerifiedRequired: true
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Plugin package status operation
   /system/backend/api/plugin/package_status_operation/:
     post:
       operationId: system_package_status_operation
@@ -928,6 +973,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Plugin package status operation
   /backend/api/plugin/parse/:
     post:
       operationId: plugin_parse
@@ -948,6 +994,7 @@ paths:
           userVerifiedRequired: true
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Parse plugin package
   /system/backend/api/plugin/parse/:
     post:
       operationId: system_plugin_parse
@@ -968,6 +1015,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Parse plugin package
   /backend/api/plugin/plugin_status_operation/:
     post:
       operationId: plugin_status_operation
@@ -988,6 +1036,7 @@ paths:
           userVerifiedRequired: true
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Plugin status operation
   /system/backend/api/plugin/plugin_status_operation/:
     post:
       operationId: system_plugin_status_operation
@@ -1008,6 +1057,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Plugin status operation
   /backend/api/plugin/query_debug/:
     get:
       operationId: plugin_query_debug
@@ -1028,6 +1078,7 @@ paths:
           userVerifiedRequired: true
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Query plugin debug result
   /system/backend/api/plugin/query_debug/:
     get:
       operationId: system_plugin_query_debug
@@ -1048,6 +1099,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Query plugin debug result
   /backend/api/plugin/query_export_task/:
     get:
       operationId: plugin_query_export_task
@@ -1068,6 +1120,7 @@ paths:
           userVerifiedRequired: true
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Get an export task result
   /system/backend/api/plugin/query_export_task/:
     get:
       operationId: system_plugin_query_export_task
@@ -1088,6 +1141,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Get an export task result
   /backend/api/plugin/query_register_task/:
     get:
       operationId: plugin_query_register_task
@@ -1108,6 +1162,7 @@ paths:
           userVerifiedRequired: true
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Query plugin register task
   /system/backend/api/plugin/query_register_task/:
     get:
       operationId: system_plugin_query_register_task
@@ -1128,6 +1183,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Query plugin register task
   /backend/api/plugin/release/:
     post:
       operationId: plugin_release
@@ -1148,6 +1204,7 @@ paths:
           userVerifiedRequired: true
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Release plugin package
   /system/backend/api/plugin/release/:
     post:
       operationId: system_plugin_release
@@ -1168,6 +1225,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Release plugin package
   /backend/api/plugin/release_config_template/:
     post:
       operationId: plugin_release_config_template
@@ -1188,6 +1246,7 @@ paths:
           userVerifiedRequired: true
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Release plugin config template
   /system/backend/api/plugin/release_config_template/:
     post:
       operationId: system_plugin_release_config_template
@@ -1208,6 +1267,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Release plugin config template
   /backend/api/plugin/render_config_template/:
     post:
       operationId: plugin_render_config_template
@@ -1228,6 +1288,7 @@ paths:
           userVerifiedRequired: true
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Render plugin config template
   /system/backend/api/plugin/render_config_template/:
     post:
       operationId: system_plugin_render_config_template
@@ -1248,6 +1309,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Render plugin config template
   /backend/api/plugin/start_debug/:
     post:
       operationId: plugin_start_debug
@@ -1268,6 +1330,7 @@ paths:
           userVerifiedRequired: true
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Start debug
   /system/backend/api/plugin/start_debug/:
     post:
       operationId: system_plugin_start_debug
@@ -1288,6 +1351,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Start debug
   /backend/api/plugin/stop_debug/:
     post:
       operationId: plugin_stop_debug
@@ -1308,6 +1372,7 @@ paths:
           userVerifiedRequired: true
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Stop debug
   /system/backend/api/plugin/stop_debug/:
     post:
       operationId: system_plugin_stop_debug
@@ -1328,6 +1393,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Stop debug
   /backend/api/plugin/upload/:
     post:
       operationId: plugin_upload
@@ -1348,6 +1414,7 @@ paths:
           userVerifiedRequired: true
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Upload file
   /system/backend/api/plugin/upload/:
     post:
       operationId: system_plugin_upload
@@ -1368,6 +1435,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Upload file
   /backend/api/plugin/{id}/:
     get:
       operationId: plugin_detail
@@ -1388,6 +1456,7 @@ paths:
           userVerifiedRequired: true
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Plugin detail
   /system/backend/api/plugin/{id}/:
     get:
       operationId: system_plugin_detail
@@ -1408,6 +1477,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Plugin detail
   /backend/api/plugin/{id}/history/:
     get:
       operationId: plugin_history
@@ -1428,6 +1498,7 @@ paths:
           userVerifiedRequired: true
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Query plugin history
   /system/backend/api/plugin/{id}/history/:
     get:
       operationId: system_plugin_history
@@ -1448,6 +1519,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Query plugin history
   /backend/api/subscription/check_task_ready/:
     post:
       operationId: subscription_check_task_ready
@@ -1468,6 +1540,7 @@ paths:
           userVerifiedRequired: true
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Check task ready
   /system/backend/api/subscription/check_task_ready/:
     post:
       operationId: system_subscription_check_task_ready
@@ -1488,6 +1561,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Check task ready
   /backend/api/subscription/collect_task_result_detail/:
     post:
       operationId: collect_task_result_detail
@@ -1508,6 +1582,7 @@ paths:
           userVerifiedRequired: true
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Collect task result detail
   /system/backend/api/subscription/collect_task_result_detail/:
     post:
       operationId: system_collect_task_result_detail
@@ -1528,6 +1603,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Collect task result detail
   /backend/api/subscription/create/:
     post:
       operationId: subscription_create
@@ -1548,6 +1624,7 @@ paths:
           userVerifiedRequired: true
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Create subscription
   /system/backend/api/subscription/create/:
     post:
       operationId: system_subscription_create
@@ -1568,6 +1645,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Create subscription
   /backend/api/subscription/delete/:
     post:
       operationId: subscription_delete
@@ -1588,6 +1666,7 @@ paths:
           userVerifiedRequired: true
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Delete subscription
   /system/backend/api/subscription/delete/:
     post:
       operationId: system_subscription_delete
@@ -1608,6 +1687,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Delete subscription
   /backend/api/subscription/fetch_commands/:
     post:
       operationId: fetch_commands
@@ -1628,6 +1708,7 @@ paths:
           userVerifiedRequired: true
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Fetch installation commands
   /system/backend/api/subscription/fetch_commands/:
     post:
       operationId: system_fetch_commands
@@ -1648,6 +1729,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Fetch installation commands
   /backend/api/subscription/info/:
     post:
       operationId: subscription_info
@@ -1668,6 +1750,7 @@ paths:
           userVerifiedRequired: true
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Subscription information
   /system/backend/api/subscription/info/:
     post:
       operationId: system_subscription_info
@@ -1688,6 +1771,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Subscription information
   /backend/api/subscription/instance_status/:
     post:
       operationId: subscription_instance_status
@@ -1708,6 +1792,7 @@ paths:
           userVerifiedRequired: true
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Query subscription instance status
   /system/backend/api/subscription/instance_status/:
     post:
       operationId: system_subscription_instance_status
@@ -1728,6 +1813,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Query subscription instance status
   /backend/api/subscription/query_host_policy/:
     get:
       operationId: subscription_query_host_policy
@@ -1748,6 +1834,7 @@ paths:
           userVerifiedRequired: true
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Query host policy
   /system/backend/api/subscription/query_host_policy/:
     get:
       operationId: system_subscription_query_host_policy
@@ -1768,6 +1855,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Query host policy
   /backend/api/subscription/query_host_subscriptions/:
     get:
       operationId: query_host_subscriptions
@@ -1788,6 +1876,7 @@ paths:
           userVerifiedRequired: true
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Query host subscriptions
   /system/backend/api/subscription/query_host_subscriptions/:
     get:
       operationId: system_query_host_subscriptions
@@ -1808,6 +1897,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Query host subscriptions
   /backend/api/subscription/retry/:
     post:
       operationId: subscription_retry
@@ -1828,6 +1918,7 @@ paths:
           userVerifiedRequired: true
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Retry failed task
   /system/backend/api/subscription/retry/:
     post:
       operationId: system_subscription_retry
@@ -1848,6 +1939,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Retry failed task
   /backend/api/subscription/revoke/:
     post:
       operationId: subscription_revoke
@@ -1868,6 +1960,7 @@ paths:
           userVerifiedRequired: true
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Revoke running task
   /system/backend/api/subscription/revoke/:
     post:
       operationId: system_subscription_revoke
@@ -1888,6 +1981,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Revoke running task
   /backend/api/subscription/run/:
     post:
       operationId: subscription_run
@@ -1908,6 +2002,7 @@ paths:
           userVerifiedRequired: true
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Run subscription
   /system/backend/api/subscription/run/:
     post:
       operationId: system_subscription_run
@@ -1928,6 +2023,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Run subscription
   /backend/api/subscription/search_deploy_policy/:
     post:
       operationId: subscription_search_policy
@@ -1948,6 +2044,7 @@ paths:
           userVerifiedRequired: true
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Search deploy policy
   /system/backend/api/subscription/search_deploy_policy/:
     post:
       operationId: system_subscription_search_policy
@@ -1968,6 +2065,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Search deploy policy
   /backend/api/subscription/statistic/:
     post:
       operationId: subscription_statistic
@@ -1988,6 +2086,7 @@ paths:
           userVerifiedRequired: true
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Statistic subscription task data
   /system/backend/api/subscription/statistic/:
     post:
       operationId: system_subscription_statistic
@@ -2008,6 +2107,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Statistic subscription task data
   /backend/api/subscription/switch/:
     post:
       operationId: subscription_switch
@@ -2028,6 +2128,7 @@ paths:
           userVerifiedRequired: true
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Switch subscription
   /system/backend/api/subscription/switch/:
     post:
       operationId: system_subscription_switch
@@ -2048,6 +2149,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Switch subscription
   /backend/api/subscription/switch_biz/:
     post:
       operationId: subscription_switch_biz
@@ -2068,6 +2170,7 @@ paths:
           userVerifiedRequired: true
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: enable/disable business subscription inspection
   /system/backend/api/subscription/switch_biz/:
     post:
       operationId: system_subscription_switch_biz
@@ -2088,6 +2191,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: enable/disable business subscription inspection
   /backend/api/subscription/task_result/:
     post:
       operationId: subscription_task_result
@@ -2108,6 +2212,7 @@ paths:
           userVerifiedRequired: true
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Task execution result
   /system/backend/api/subscription/task_result/:
     post:
       operationId: system_subscription_task_result
@@ -2128,6 +2233,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Task execution result
   /backend/api/subscription/task_result_detail/:
     post:
       operationId: subscription_task_result_detail
@@ -2148,6 +2254,7 @@ paths:
           userVerifiedRequired: true
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Task execution detailed result
   /system/backend/api/subscription/task_result_detail/:
     post:
       operationId: system_subscription_task_result_detail
@@ -2168,6 +2275,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Task execution detailed result
   /backend/api/subscription/update/:
     post:
       operationId: subscription_update
@@ -2188,6 +2296,7 @@ paths:
           userVerifiedRequired: true
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Update subscription
   /system/backend/api/subscription/update/:
     post:
       operationId: system_subscription_update
@@ -2208,6 +2317,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Update subscription
   /backend/api/sync_task/create/:
     post:
       operationId: sync_task_create
@@ -2228,6 +2338,7 @@ paths:
           userVerifiedRequired: true
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Create synchronization task
   /system/backend/api/sync_task/create/:
     post:
       operationId: system_sync_task_create
@@ -2248,6 +2359,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Create synchronization task
   /backend/api/sync_task/status/:
     get:
       operationId: sync_task_status
@@ -2268,6 +2380,7 @@ paths:
           userVerifiedRequired: true
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Query synchronization task status
   /system/backend/api/sync_task/status/:
     get:
       operationId: system_sync_task_status
@@ -2288,6 +2401,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Query synchronization task status
   /core/api/encrypt_rsa/fetch_public_keys/:
     post:
       operationId: fetch_public_keys
@@ -2308,6 +2422,7 @@ paths:
           userVerifiedRequired: true
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Get public key list
   /system/core/api/encrypt_rsa/fetch_public_keys/:
     post:
       operationId: system_fetch_public_keys
@@ -2328,6 +2443,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Get public key list
   /core/api/gray/build/:
     post:
       operationId: gray_build
@@ -2348,6 +2464,7 @@ paths:
           userVerifiedRequired: true
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: GSE 2.0 gray
   /system/core/api/gray/build/:
     post:
       operationId: system_gray_build
@@ -2368,6 +2485,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: GSE 2.0 gray
   /core/api/gray/info/:
     get:
       operationId: gray_info
@@ -2388,6 +2506,7 @@ paths:
           userVerifiedRequired: true
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Get GSE 2.0 gray information
   /system/core/api/gray/info/:
     get:
       operationId: system_gray_info
@@ -2408,6 +2527,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Get GSE 2.0 gray information
   /core/api/gray/rollback/:
     post:
       operationId: gray_rollback
@@ -2428,6 +2548,7 @@ paths:
           userVerifiedRequired: true
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: GSE 2.0 gray rollback
   /system/core/api/gray/rollback/:
     post:
       operationId: system_gray_rollback
@@ -2448,6 +2569,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: GSE 2.0 gray rollback
   /core/api/gray/rollback_agent_id/:
     post:
       operationId: rollback_agent_id
@@ -2468,6 +2590,7 @@ paths:
           userVerifiedRequired: true
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Rollback Agent ID
   /system/core/api/gray/rollback_agent_id/:
     post:
       operationId: system_rollback_agent_id
@@ -2488,6 +2611,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Rollback Agent ID
   /core/api/gray/upgrade_to_agent_id/:
     post:
       operationId: upgrade_to_agent_id
@@ -2508,6 +2632,7 @@ paths:
           userVerifiedRequired: true
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Upgrade to Agent ID
   /system/core/api/gray/upgrade_to_agent_id/:
     post:
       operationId: system_upgrade_to_agent_id
@@ -2528,6 +2653,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Upgrade to Agent ID
   /core/api/ipchooser_host/check/:
     post:
       operationId: ipchooser_host_check
@@ -2548,6 +2674,7 @@ paths:
           userVerifiedRequired: true
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Get real machine information based on keywords such as `IP`/`IPv6`/`hostname`/`host_id` manually entered by the user
   /system/core/api/ipchooser_host/check/:
     post:
       operationId: system_ipchooser_host_check
@@ -2568,6 +2695,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Get real machine information based on keywords such as `IP`/`IPv6`/`hostname`/`host_id` manually entered by the user
   /core/api/ipchooser_host/details/:
     post:
       operationId: ipchooser_host_details
@@ -2588,6 +2716,7 @@ paths:
           userVerifiedRequired: true
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Get machine details based on host critical information
   /system/core/api/ipchooser_host/details/:
     post:
       operationId: system_ipchooser_host_details
@@ -2608,6 +2737,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Get machine details based on host critical information
   /core/api/ipchooser_topo/agent_statistics/:
     post:
       operationId: ipchooser_topo_agent_statistics
@@ -2628,6 +2758,7 @@ paths:
           userVerifiedRequired: true
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Get the statistics of the host Agent status for multiple topology nodes
   /system/core/api/ipchooser_topo/agent_statistics/:
     post:
       operationId: system_ipchooser_topo_agent_statistics
@@ -2648,6 +2779,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Get the statistics of the host Agent status for multiple topology nodes
   /core/api/ipchooser_topo/query_host_id_infos/:
     post:
       operationId: ipchooser_topo_query_host_id_infos
@@ -2668,6 +2800,7 @@ paths:
           userVerifiedRequired: true
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Batch page query the host ID information contained in multiple topology nodes and search conditions
   /system/core/api/ipchooser_topo/query_host_id_infos/:
     post:
       operationId: system_ipchooser_topo_query_host_id_infos
@@ -2688,6 +2821,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Batch page query the host ID information contained in multiple topology nodes and search conditions
   /core/api/ipchooser_topo/query_hosts/:
     post:
       operationId: ipchooser_topo_query_hosts
@@ -2708,6 +2842,7 @@ paths:
           userVerifiedRequired: true
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Batch page query the host information contained in multiple topology nodes and search conditions
   /system/core/api/ipchooser_topo/query_hosts/:
     post:
       operationId: system_ipchooser_topo_query_hosts
@@ -2728,6 +2863,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Batch page query the host information contained in multiple topology nodes and search conditions
   /core/api/ipchooser_topo/query_path/:
     post:
       operationId: ipchooser_topo_query_path
@@ -2748,6 +2884,7 @@ paths:
           userVerifiedRequired: true
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Query the topology path of multiple nodes
   /system/core/api/ipchooser_topo/query_path/:
     post:
       operationId: system_ipchooser_topo_query_path
@@ -2768,6 +2905,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Query the topology path of multiple nodes
   /core/api/ipchooser_topo/trees/:
     post:
       operationId: ipchooser_topo_trees
@@ -2788,6 +2926,7 @@ paths:
           userVerifiedRequired: true
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Batch get topology trees containing the number of hosts for each node
   /system/core/api/ipchooser_topo/trees/:
     post:
       operationId: system_ipchooser_topo_trees
@@ -2808,3 +2947,4 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
+        descriptionEn: Batch get topology trees containing the number of hosts for each node
