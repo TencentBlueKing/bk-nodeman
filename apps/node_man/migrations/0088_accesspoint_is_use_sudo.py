@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("node_man", "0086_add_agent_config_plugin_ipc_and_alarm_event_data_id"),
+        ("node_man", "0087_update_ap_regionid_cityid"),
     ]
 
     operations = [
