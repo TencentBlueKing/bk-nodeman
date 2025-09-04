@@ -390,10 +390,12 @@ export default class ResourceQuota extends Mixins(HeaderFilterMixins) {
     }
   }
 
+  // 这里优化一下，当搜索的是1.只有父项匹配，那么展示父项和其所有子项，2.如果是子项匹配，则展示对应的父项和子项，3.如果两级都匹配，按照2
   public handleSearchTree() {
     const searchKey = `${this.searchKey}`.toLowerCase();
     let hasTreeNode = false;
     this.treeSourceList.forEach((item) => {
+      const hasShowParent = `${item.name}`.toLowerCase().includes(searchKey);
       let hasShowChild = false;
       item.child.forEach((child) => {
         const show = `${child.name}`.toLowerCase().includes(searchKey);
@@ -403,10 +405,16 @@ export default class ResourceQuota extends Mixins(HeaderFilterMixins) {
         }
         child.show = show;
       });
-      const parentShow =  `${item.name}`.toLowerCase().includes(searchKey) || hasShowChild;
+      const parentShow = hasShowParent || hasShowChild;
       item.show = parentShow;
       if (parentShow) {
         hasTreeNode = true;
+      }
+      // 1.如果父项匹配但没有子项匹配，确保展示所有子项
+      if (hasShowParent && !hasShowChild) {
+        item.child.forEach(child => {
+          child.show = true;
+        });
       }
     });
     this.isEmptyTree = !hasTreeNode;
