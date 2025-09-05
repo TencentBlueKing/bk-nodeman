@@ -696,10 +696,6 @@ def run_subscription_task_and_create_instance(
         scope["object_type"] = subscription.object_type
         scope["bk_biz_id"] = subscription.bk_biz_id
 
-    instance_host_id_map = {
-        node["id"]: node.get("bk_host_id") for node in scope["nodes"] if node.get("bk_host_id") is not None
-    }
-
     # 获取订阅范围内全部实例
     steps = subscription.steps
     tolerance_time: int = (59, 0)[subscription.is_need_realtime()]
@@ -734,6 +730,9 @@ def run_subscription_task_and_create_instance(
             # 暂只支持全部为卸载并且没有instance情况
             # 传入的nodes 范围在CC中不存在使用最近的Recoreds记录
             # 如果被删掉的实例在 CMDB 找不到，那么就使用最近一次的 InstanceRecord 的快照数据
+            instance_host_id_map = {
+                node["id"]: node.get("bk_host_id") for node in scope["nodes"] if node.get("bk_host_id") is not None
+            }
             not_exist_instance_id = []
             for node in scope["nodes"]:
                 instance_key = "host" if scope["node_type"] == models.Subscription.ObjectType.HOST else "service"
@@ -816,6 +815,9 @@ def run_subscription_task_and_create_instance(
     instance_not_in_scope = [instance_id for instance_id in instance_actions if instance_id not in instances]
 
     if instance_not_in_scope:
+        instance_host_id_map = {
+            node["id"]: node.get("bk_host_id") for node in scope["nodes"] if node.get("bk_host_id") is not None
+        }
         deleted_id_not_in_scope = []
         for instance_id in instance_not_in_scope:
             if subscription.object_type == models.Subscription.ObjectType.HOST:
