@@ -52,7 +52,6 @@ class ApiConfig(AppConfig):
                 settings.BK_BACKEND_CONFIG,
             ]
         ):
-            logger.info("[JWT] skip fetch component api public key")
             return
 
         from apigw_manager.apigw.models import Context
@@ -60,7 +59,6 @@ class ApiConfig(AppConfig):
         # 当依赖表暂未创建时，视为 migrate 尚未执行的阶段, 暂不同步
         # 后置这个检查，减少 DB IO
         if Context._meta.db_table not in connection.introspection.table_names():
-            logger.info("[JWT] skip fetch component api public key")
             return
 
         client = get_client_by_user(user_or_username=settings.SYSTEM_USE_API_ACCOUNT)

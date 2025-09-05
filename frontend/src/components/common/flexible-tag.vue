@@ -23,10 +23,11 @@ import { Component, Vue, Prop } from 'vue-property-decorator';
 export default class BkBizSelect extends Vue {
   @Prop({ type: Array, default: () => [] }) private readonly list!: any[];
   @Prop({ type: String, default: '' }) private readonly idKey!: string;
-  @Prop({ type: Number, default: 140 }) private readonly maxWidth!: number;
+  @Prop({ type: Number, default: 150 }) private readonly maxWidth!: number;
 
   private numTagNode: any = null;
   private overflowTagIndex = -1;
+  private resizeObserver: ResizeObserver | null = null;
 
   private get allTagContext() {
     return this.list.map(item => (this.idKey ? item[this.idKey] : item)).join(', ');
@@ -34,6 +35,21 @@ export default class BkBizSelect extends Vue {
 
   private mounted() {
     this.reCalcOverflow();
+    this.initResizeObserver();
+  }
+
+  beforeDestroy() {
+    if (this.resizeObserver) {
+      this.resizeObserver.disconnect();
+    }
+  }
+
+  // 初始化 ResizeObserver
+  private initResizeObserver() {
+    this.resizeObserver = new ResizeObserver(() => {
+      this.reCalcOverflow(); // 监听到尺寸变化时重新计算溢出
+    });
+    this.resizeObserver.observe(this.$el);
   }
 
   private reCalcOverflow() {
