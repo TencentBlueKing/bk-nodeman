@@ -9,14 +9,14 @@
       :style="{
         maxWidth: `${maxWidth}px`
       }"
-      v-for="(item, index) in list"
+      v-for="(item, index) in filterList"
       :key="index">
       {{ idKey ? item[idKey] : item }}
     </div>
   </div>
 </template>
 <script lang="ts">
-import { Component, Vue, Prop } from 'vue-property-decorator';
+import { Component, Vue, Prop, Watch } from 'vue-property-decorator';
 
 @Component({ name: 'flexible-tag' })
 
@@ -29,8 +29,12 @@ export default class BkBizSelect extends Vue {
   private overflowTagIndex = -1;
   private resizeObserver: ResizeObserver | null = null;
 
+  private get filterList() {
+    return this.list.filter(item => !!item[this.idKey]);
+  }
+
   private get allTagContext() {
-    return this.list.map(item => (this.idKey ? item[this.idKey] : item)).join(', ');
+    return this.filterList.map(item => (this.idKey ? item[this.idKey] : item)).join(', ');
   }
 
   private mounted() {
@@ -54,7 +58,7 @@ export default class BkBizSelect extends Vue {
 
   private reCalcOverflow() {
     this.removeOverflowTagNode();
-    if (this.list.length < 2) {
+    if (this.filterList.length < 2) {
       return false;
     }
     setTimeout(() => {
@@ -98,7 +102,7 @@ export default class BkBizSelect extends Vue {
     });
   }
   private setOverflowTagContent() {
-    this.numTagNode.textContent = `+${this.list.length - this.overflowTagIndex}`;
+    this.numTagNode.textContent = `+${this.filterList.length - this.overflowTagIndex}`;
   }
   private getTagDOM(index?: number) {
     const tags = [].slice.call(this.$el.querySelectorAll('.tag-item'));
@@ -118,6 +122,10 @@ export default class BkBizSelect extends Vue {
     if (this.numTagNode && this.numTagNode.parentNode === this.$el) {
       this.$el.removeChild(this.numTagNode);
     }
+  }
+  @Watch('list')
+  public updateList() {
+    this.reCalcOverflow();
   }
 }
 </script>
