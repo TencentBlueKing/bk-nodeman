@@ -111,6 +111,10 @@ class PluginManager(object):
         act = PluginServiceActivity(component_code=plugin.DeleteSubscriptionComponent.code, name=_("删除策略"))
         return act
 
+    def direct_delete_subscription(self):
+        act = PluginServiceActivity(component_code=plugin.DirectDeleteSubscriptionComponent.code, name=_("删除订阅"))
+        return act
+
     def switch_subscription_enable(self, enable: bool):
         act = PluginServiceActivity(component_code=plugin.SwitchSubscriptionEnableComponent.code, name=_("切换订阅启用状态"))
         act.component.inputs.enable = Var(type=Var.PLAIN, value=enable)
