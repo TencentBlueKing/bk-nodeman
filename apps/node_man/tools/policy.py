@@ -147,6 +147,11 @@ class PolicyTools:
         updated_cnt = models.Subscription.objects.filter(id__in=set(policy_ids)).update(
             enable=enable, update_time=timezone.now()
         )
+        child_policy_ids = models.Subscription.objects.filter(pid__in=set(policy_ids)).values_list("id", flat=True)
+        if child_policy_ids:
+            models.Subscription.objects.filter(id__in=set(child_policy_ids)).update(
+                enable=enable, update_time=timezone.now()
+            )
         return updated_cnt
 
     @classmethod
