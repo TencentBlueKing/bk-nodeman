@@ -44,12 +44,12 @@ from apps.backend.subscription.tools import (
     get_all_subscription_steps_context,
     render_config_files_by_config_templates,
 )
+from apps.core.ipchooser.handlers.host_handler import HostHandler
 from apps.core.tag import targets
 from apps.core.tag.models import Tag
 from apps.exceptions import AppBaseException, ComponentCallError
 from apps.node_man import constants, exceptions, models
 from apps.node_man.handlers.cmdb import CmdbHandler
-from apps.core.ipchooser.handlers.host_handler import HostHandler
 from apps.prometheus import metrics
 from apps.prometheus.helper import SetupObserve
 from apps.utils import cache, md5
@@ -1520,6 +1520,13 @@ class DeleteSubscriptionService(PluginBaseService):
         )
 
 
+class DirectDeleteSubscriptionService(PluginBaseService):
+    def _execute(self, data, parent_data, common_data: PluginCommonData):
+        subscription = common_data.subscription
+        subscription.delete()
+        self.log_info(log_content=_("订阅 -> {id} 删除成功").format(id=subscription.id))
+
+
 class SwitchSubscriptionEnableService(PluginBaseService):
     def inputs_format(self):
         return [
@@ -1733,6 +1740,12 @@ class DeleteSubscriptionComponent(Component):
     name = "DeleteSubscriptionComponent"
     code = "delete_subscription"
     bound_service = DeleteSubscriptionService
+
+
+class DirectDeleteSubscriptionComponent(Component):
+    name = "DirectDeleteSubscriptionComponent"
+    code = "direct_delete_subscription"
+    bound_service = DirectDeleteSubscriptionService
 
 
 class SwitchSubscriptionEnableComponent(Component):
