@@ -60,6 +60,7 @@ ACTION_NAME_TUPLE = (
     "RESTART",
     "START",
     "STOP",
+    "UNINSTALL_AND_DELETE",
     # Agent
     "INSTALL_AGENT",
     "REINSTALL_AGENT",

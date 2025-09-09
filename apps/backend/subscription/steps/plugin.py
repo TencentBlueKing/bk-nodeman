@@ -140,6 +140,7 @@ class PluginStep(Step):
                     backend_const.ActionNameType.PUSH_CONFIG: PushConfig,
                     backend_const.ActionNameType.START: PushConfig,
                     backend_const.ActionNameType.STOP: RemoveConfig,
+                    backend_const.ActionNameType.UninstallAndDeletePlugin: UninstallAndDeletePlugin,
                 }
             )
         else:
@@ -150,6 +151,7 @@ class PluginStep(Step):
                     backend_const.ActionNameType.PUSH_CONFIG: PushConfig,
                     backend_const.ActionNameType.START: StartPlugin,
                     backend_const.ActionNameType.STOP: StopPlugin,
+                    backend_const.ActionNameType.UninstallAndDeletePlugin: UninstallAndDeletePlugin,
                 }
             )
         return actions
@@ -804,9 +806,9 @@ class PluginStep(Step):
 
         action_dict = self.get_action_dict()
         ap_id_obj_map = models.AccessPoint.ap_id_obj_map()
-        allowed_version_change_to_upgrade_biz_list = models.GlobalSettings.get_config(
-            key=models.GlobalSettings.KeyEnum.SUBSCRIPTION_ALLOWED_VERSION_CHANGE_TO_UPGRADE.value, default=[]
-        )
+        # allowed_version_change_to_upgrade_biz_list = models.GlobalSettings.get_config(
+        #     key=models.GlobalSettings.KeyEnum.SUBSCRIPTION_ALLOWED_VERSION_CHANGE_TO_UPGRADE.value, default=[]
+        # )
         for group_id, host_key__proc_status_map in list(group_id__host_key__proc_status_map.items()):
             _id = int(tools.parse_group_id(group_id)["id"])
             instance_id = tools.create_node_id(
@@ -1096,6 +1098,52 @@ class UninstallPlugin(PluginAction):
             plugin_manager.set_process_status(constants.ProcStateType.REMOVED),
         ]
         return activities, None
+
+
+class UninstallAndDeletePlugin(PluginAction):
+    """
+    卸载插件并删除订阅
+    """
+
+    ACTION_NAME = backend_const.ActionNameType.UNINSTALL_AND_DELETE
+    ACTION_DESCRIPTION = _("卸载插件并删除订阅")
+
+    def _generate_activities(self, plugin_manager):
+        # 停用插件 -> 卸载插件
+        if plugin_manager.step.plugin_desc.is_official:
+            activities = [
+                plugin_manager.remove_config(),
+                plugin_manager.operate_proc(constants.GseOpType.RELOAD, plugin_desc=self.step.plugin_desc),
+                plugin_manager.set_process_status(constants.ProcStateType.REMOVED),
+            ]
+        else:
+            activities = [
+                plugin_manager.operate_proc(constants.GseOpType.STOP, self.step.plugin_desc),
+                # TODO 卸载时需要在GSE注销进程
+                plugin_manager.uninstall_package(),
+                plugin_manager.set_process_status(constants.ProcStateType.REMOVED),
+            ]
+        return activities, None
+
+    def generate_activities(
+        self,
+        subscription_instances: List[models.SubscriptionInstanceRecord],
+        global_pipeline_data: Data,
+        meta: Dict[str, Any],
+        current_activities=None,
+    ):
+        plugin_manager = self.get_plugin_manager(subscription_instances)
+        activities, pipeline_data = super().generate_activities(
+            subscription_instances, global_pipeline_data, meta, current_activities
+        )
+        # 最后一个批次删除订阅
+        if meta.get("is_last_batch", False):
+            activities.append(plugin_manager.direct_delete_subscription())
+            for act in activities:
+                act.component.inputs.plugin_name = Var(type=Var.PLAIN, value=self.step.plugin_name)
+                act.component.inputs.subscription_step_id = Var(type=Var.PLAIN, value=self.step.subscription_step.id)
+                act.component.inputs.meta = Var(type=Var.PLAIN, value=meta)
+        return activities, pipeline_data
 
 
 class PushConfig(PluginAction):

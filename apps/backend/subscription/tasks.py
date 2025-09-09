@@ -60,6 +60,7 @@ def build_instances_task(
     step_actions: Dict[str, str],
     subscription: models.Subscription,
     global_pipeline_data: Data,
+    all_instance_ids: List[str] = None,
 ):
     """
     对同类step_actions任务进行任务编排
@@ -68,6 +69,7 @@ def build_instances_task(
     :param step_actions: {"basereport": "MAIN_INSTALL_PLUGIN"}
     :param subscription: 订阅对象
     :param global_pipeline_data: 全局pipeline公共变量
+    :param all_instance_ids: 全部的实例id，用于卸载并删除订阅
     :return:
     """
     # 首先获取当前订阅对应步骤的工厂类
@@ -93,6 +95,16 @@ def build_instances_task(
 
     # 将 step_actions 信息注入 meta
     inject_meta: Dict[str, Any] = {**meta, "STEPS": list(step_id_record_step_map.values())}
+    if ActionNameType.UNINSTALL_AND_DELETE in step_actions.values() and all_instance_ids:
+        total = len(all_instance_ids)
+        task_host_limit = models.GlobalSettings.get_config(
+            models.GlobalSettings.KeyEnum.TASK_HOST_LIMIT.value, default=TASK_HOST_LIMIT
+        )
+        last_group_start = total - (total % task_host_limit or task_host_limit)
+        last_group_instance_ids = set(all_instance_ids[last_group_start:])
+        batch_ids = [inst.instance_id for inst in subscription_instances]
+        # 判断当前批次是否为最后一个批次并注入 meta
+        inject_meta["is_last_batch"] = set(batch_ids).issubset(last_group_instance_ids)
 
     # 对流程步骤进行编排
     current_activities = []
@@ -216,10 +228,13 @@ def create_pipeline(
 
     sub_insts_gby_metadata: Dict[str, List[models.SubscriptionInstanceRecord]] = defaultdict(list)
     md5_value__metadata = {}
+    all_instance_ids = []
     for instance_id, step_actions in instances_action.items():
         if instance_id not in subscription_instance_map:
             continue
         sub_inst = subscription_instance_map[instance_id]
+        if ActionNameType.UNINSTALL_AND_DELETE in step_actions.values():
+            all_instance_ids.append(sub_inst.instance_id)
         # metadata 包含：meta-任务元数据、step_actions-操作步骤及类型
         metadata = {"meta": sub_inst.instance_info["meta"], "step_actions": step_actions}
         metadata_md5_value = md5.count_md5(metadata)
@@ -247,6 +262,7 @@ def create_pipeline(
                 metadata["step_actions"],
                 subscription,
                 global_pipeline_data,
+                all_instance_ids=all_instance_ids if all_instance_ids else None,
             )
             sub_processes.append(activities_start_event)
             start = start + task_host_limit
@@ -731,7 +747,9 @@ def run_subscription_task_and_create_instance(
             # 传入的nodes 范围在CC中不存在使用最近的Recoreds记录
             # 如果被删掉的实例在 CMDB 找不到，那么就使用最近一次的 InstanceRecord 的快照数据
             instance_host_id_map = {
-                node["id"]: node.get("bk_host_id") for node in scope["nodes"] if node.get("bk_host_id") is not None
+                node["id"]: node["bk_host_id"]
+                for node in scope["nodes"]
+                if "id" in node and node.get("bk_host_id") is not None
             }
             not_exist_instance_id = []
             for node in scope["nodes"]:
