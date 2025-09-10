@@ -20,7 +20,16 @@
         </template>
       </NmColumn>
       <NmColumn :label="$t('策略名称')" prop="name" :render-header="renderHeader" />
-      <NmColumn :label="$t('最近修改人')" prop="creator" sortable />
+      <NmColumn :label="$t('最近修改人')" prop="creator" sortable>
+        <template #default="{ row }">
+          <template v-if="ENABLE_MULTI_TENANT_MODE">
+            <bk-user-display-name :user-id="row.creator"></bk-user-display-name>
+          </template>
+          <template v-else>
+            {{ row.creator }}
+          </template>
+        </template>
+      </NmColumn>
       <NmColumn :label="$t('最近部署时间')" prop="update_time" sortable>
         <template #default="{ row }">
           {{ row.update_time | filterTimezone }}
@@ -69,6 +78,7 @@ import NodePreview from '@/components/ip-select-nm/node-preview.vue';
 import { MainStore, PluginStore } from '@/store';
 import { IPolicyBase } from '@/types/plugin/plugin-type';
 import { IBkColumn } from '@/types';
+import BkUserDisplayName from '@blueking/bk-user-display-name';
 import { bus } from '@/common/bus';
 
 @Component({
@@ -92,6 +102,27 @@ export default class RuleTable extends Vue {
   private showPreview = false;
   private currentRow: IPolicyBase | null = null;
   private targetType: 'TOPO' | 'HOST' = 'TOPO';
+
+  private get API_BASE_URL() {
+    return window.PROJECT_CONFIG.API_BASE_URL;
+  }
+  private get ENABLE_MULTI_TENANT_MODE() {
+    return window.PROJECT_CONFIG.ENABLE_MULTI_TENANT_MODE;
+  }
+  private created() {
+    if (this.API_BASE_URL) {
+      BkUserDisplayName.configure({
+        // 必填，租户 ID
+        tenantId: window.PROJECT_CONFIG.TENANT_ID,
+        // 必填，网关地址
+        apiBaseUrl: window.PROJECT_CONFIG.API_BASE_URL,
+        // 可选，缓存时间，单位为毫秒, 默认 5 分钟, 只对单一值生效
+        cacheDuration: 1000 * 60 * 5,
+        // 可选，当输入为空时，显示的文本，默认为 '--'
+        emptyText: '--'
+      });
+    }
+  }
 
   private get sortTableData() {
     const data = this.tableData.slice(0);
