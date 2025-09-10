@@ -25,7 +25,16 @@
           {{ row.pkg_mtime | filterTimezone }}
         </template>
       </NmColumn>
-      <NmColumn :label="$t('更新人')" prop="creator" width="100" sortable></NmColumn>
+      <NmColumn :label="$t('更新人')" prop="creator" width="100" sortable>
+        <template #default="{ row }">
+          <template v-if="ENABLE_MULTI_TENANT_MODE">
+            <bk-user-display-name :user-id="row.creator"></bk-user-display-name>
+          </template>
+          <template v-else>
+            {{ row.creator }}
+          </template>
+        </template>
+      </NmColumn>
       <NmColumn :label="$t('状态')" sortable width="75">
         <template #default="{ row }">
           <span v-if="!row.is_ready" class="tag-switch tag-indeterminate">{{ $t('停用') }}</span>
@@ -82,6 +91,7 @@ import { MainStore, PluginStore } from '@/store';
 import pollMixin from '@/common/poll-mixin';
 import { IPkVersionRow } from '@/types/plugin/plugin-type';
 import { IOperateItem } from '@/types/agent/agent-type';
+import BkUserDisplayName from '@blueking/bk-user-display-name';
 
 @Component({
   name: 'plugin-version-table',
@@ -97,6 +107,13 @@ export default class PackageVersion extends Mixins(pollMixin) {
 
   private get windowHeight() {
     return MainStore.windowHeight;
+  }
+
+  private get API_BASE_URL() {
+    return window.PROJECT_CONFIG.API_BASE_URL;
+  }
+  private get ENABLE_MULTI_TENANT_MODE() {
+    return window.PROJECT_CONFIG.ENABLE_MULTI_TENANT_MODE;
   }
 
   @Watch('id', { immediate: true })
@@ -121,6 +138,18 @@ export default class PackageVersion extends Mixins(pollMixin) {
         tips: this.$t('停用版本不可以被部署到新的主机上'),
       },
     ];
+    if (this.API_BASE_URL) {
+      BkUserDisplayName.configure({
+        // 必填，租户 ID
+        tenantId: window.PROJECT_CONFIG.TENANT_ID,
+        // 必填，网关地址
+        apiBaseUrl: window.PROJECT_CONFIG.API_BASE_URL,
+        // 可选，缓存时间，单位为毫秒, 默认 5 分钟, 只对单一值生效
+        cacheDuration: 1000 * 60 * 5,
+        // 可选，当输入为空时，显示的文本，默认为 '--'
+        emptyText: '--'
+      });
+    }
   }
 
   public async getVersionHistory(id: number) {
