@@ -4,13 +4,11 @@
 
 ### 请求参数
 
-{{ common_args_desc }}
-
 #### 接口参数
 
-| 字段          | 类型  | <div style="width: 50pt">必选</div> | 描述   |
-| ----------- | --- | --------------------------------- | ---- |
-| bk_cloud_id | int | 是                                 | 业务ID |
+| 字段          | 类型  | <div style="width: 50pt">必选</div> | 描述       |
+| ----------- | --- |----------------------------------|----------|
+| bk_cloud_id | int | 是                                | 管控区域 ID  |
 
 ### 请求参数示例
 
@@ -71,50 +69,50 @@
 
 #### response
 
-| 字段      | 类型           | 描述                         |
-| ------- | ------------ | -------------------------- |
-| result  | bool         | 请求成功与否。true:请求成功；false请求失败 |
-| code    | int          | 错误编码。 0表示success，>0表示失败错误  |
-| message | string       | 请求失败返回的错误信息                |
-| data    | array | 请求返回的数据，见data定义            |
+| 字段      | 类型     | 描述                         |
+| ------- |--------| -------------------------- |
+| result  | bool   | 请求成功与否。true:请求成功；false请求失败 |
+| code    | int    | 错误编码。 0表示success，>0表示失败错误  |
+| message | string | 请求失败返回的错误信息                |
+| data    | array  | 请求返回的数据，见data定义            |
 
 #### data
 
-| 字段               | 类型     | <div style="width: 50pt">必选</div> | 描述                                              |
-| ---------------- | ------ | --------------------------------- | ----------------------------------------------- |
-| bk_cloud_id      | int    | 是                                 | 管控区域ID                                           |
-| bk_host_id       | int    | 是                                 | 主机ID                                            |
-| inner_ip         | string | 是                                 | 内网IPv4地址                                        |
-| inner_ipv6       | string | 是                                 | 内网IPv6地址                                        |
-| outer_ip         | string | 是                                 | 外网IPv4地址                                        |
-| outer_ipv6       | string | 是                                 | 外网IPv6地址                                        |
-| login_ip         | string | 是                                 | 登录IP                                            |
-| data_ip          | string | 是                                 | 数据IP                                            |
-| bk_biz_id        | string | 是                                 | 业务ID                                            |
-| is_manual        | string | 是                                 | 是否手动安装模式                                        |
-| extra_data       | string | 是                                 | 额外信息，见extra_data定义                              |
-| bk_biz_name      | string | 否                                 | 业务名称                                            |
-| ap_id            | int    | 否                                 | 接入点ID                                           |
-| ap_name          | string | 否                                 | 接入点名称                                           |
-| status           | string | 否                                 | 运行状态，见status定义                                  |
-| status_display   | string | 否                                 | 运行执行状态名称，见status定义                              |
-| version          | string | 否                                 | Agent版本                                         |
-| account          | string | 否                                 | 用户名                                             |
-| auth_type        | string | 否                                 | 认证类型，1：PASSWORD，密码认证 2: KEY，秘钥认证 3：TJJ_PASSWORD，默认为密码认证 |
-| port             | string | 否                                 | 登录端口                                            |
-| re_certification | bool   | 否                                 | 鉴权信息是否过期                                        |
-| job_result       | object | 否                                 | 执行任务结果，见job_result定义                            |
-| pagent_count     | int    | 否                                 | 使用proxy的PAGENT个数                                |
-| permissions      | object | 否                                 | 是否具备操作权限                                        |
+| 字段                | 类型       | 描述                                                      |
+|-------------------|----------|---------------------------------------------------------|
+| bk_cloud_id       | int      | 管控区域ID                                                  |
+| bk_host_id        | int      | 主机ID                                                    |
+| inner_ip          | string   | 内网IPv4地址                                                |
+| inner_ipv6        | string   | 内网IPv6地址                                                |
+| outer_ip          | string   | 外网IPv4地址                                                |
+| outer_ipv6        | string   | 外网IPv6地址                                                |
+| login_ip          | string   | 登录IP                                                    |
+| data_ip           | string   | 数据IP                                                    |
+| bk_biz_id         | string   | 业务ID                                                    |
+| is_manual         | string   | 是否手动安装模式                                                |
+| extra_data        | string   | 额外信息，见extra_data定义                                      |
+| bk_biz_name       | string   | 业务名称                                                    |
+| ap_id             | int      | 接入点ID                                                   |
+| ap_name           | string   | 接入点名称                                                   |
+| status            | string   | 运行状态，见status定义                                          |
+| status_display    | string   | 运行执行状态名称，见status定义                                      |
+| version           | string   | Agent版本                                                 |
+| account           | string   | 用户名                                                     |
+| auth_type         | string   | 认证类型，1：PASSWORD，密码认证 2: KEY，秘钥认证 3：TJJ_PASSWORD，默认为密码认证 |
+| port              | string   | 登录端口                                                    |
+| re_certification  | bool     | 鉴权信息是否过期                                                |
+| job_result        | object   | 执行任务结果，见job_result定义                                    |
+| pagent_count      | int      | 使用proxy的PAGENT个数                                        |
+| permissions       | object   | 是否具备操作权限                                                |
 
 ##### extra_data
 
-| 字段                             | 类型     | <div style="width: 50pt">必选</div> | 描述                 |
-| ------------------------------ | ------ | --------------------------------- | ------------------ |
-| bt_speed_limit                 | int    | 否                                 | bt传输限制速度值，单位M/s    |
-| peer_exchange_switch_for_agent | int    | 否                                 | bt传输开关，1: 开启 0: 关闭 |
-| data_path                      | string | 否                                 | 数据文件路径             |
-| enable_compression             | bool   | 否                                 | 数据压缩开关             |
+| 字段                             | 类型     | 描述                 |
+| ------------------------------ | ------ | ------------------ |
+| bt_speed_limit                 | int    | bt传输限制速度值，单位M/s    |
+| peer_exchange_switch_for_agent | int    | bt传输开关，1: 开启 0: 关闭 |
+| data_path                      | string | 数据文件路径             |
+| enable_compression             | bool   | 数据压缩开关             |
 
 ##### status
 
@@ -130,9 +128,9 @@
 
 ##### job_result
 
-| 字段           | 类型     | <div style="width: 50pt">必选</div> | 描述                 |
-| ------------ | ------ | --------------------------------- | ------------------ |
-| instance_id  | string | 否                                 | 实例ID               |
-| job_id       | int    | 否                                 | 作业ID               |
-| status       | string | 否                                 | 执行状态，见job_status定义 |
-| current_step | string | 否                                 | 当前步骤名称             |
+| 字段             | 类型       | 描述                 |
+|----------------|----------|--------------------|
+| instance_id    | string   | 实例ID               |
+| job_id         | int      | 作业ID               |
+| status         | string   | 执行状态，见job_status定义 |
+| current_step   | string   | 当前步骤名称             |

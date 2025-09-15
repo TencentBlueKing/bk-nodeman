@@ -4,8 +4,6 @@
 
 ### 请求参数
 
-{{ common_args_desc }}
-
 #### 接口参数
 
 | 字段                 | 类型       | <div style="width: 50pt">必选</div> | 描述       |
@@ -71,15 +69,15 @@
 
 #### data
 
-| 字段                 | 类型        | <div style="width: 50pt">必选</div> | 描述            |
-|--------------------|-----------| --------------------------------- |---------------|
-| plugin_name        | string    | 是                                 | 插件名           |
-| plugin_version     | string    | 是                                 | 版本号           |
-| name               | string    | 是                                 | 配置模板名         |
-| version            | string    | 是                                 | 配置模板版本        |
-| format             | string    | 是                                 | 文件格式          |
-| file_path          | string    | 是                                 | 文件在该插件目录中相对路径 |
-| content            | string    | 是                                 | 配置内容          |
-| md5                | string    | 是                                 | md5值          |
-| is_release_version | bool      | 是                                 | 是否已经发布版本      |
-| ids                | int array | 是                                 | 创建的模板id       |
+| 字段                 | 类型        | 描述            |
+|--------------------|-----------|---------------|
+| plugin_name        | string    | 插件名           |
+| plugin_version     | string    | 版本号           |
+| name               | string    | 配置模板名         |
+| version            | string    | 配置模板版本        |
+| format             | string    | 文件格式          |
+| file_path          | string    | 文件在该插件目录中相对路径 |
+| content            | string    | 配置内容          |
+| md5                | string    | md5值          |
+| is_release_version | bool      | 是否已经发布版本      |
+| ids                | int array | 创建的模板id       |

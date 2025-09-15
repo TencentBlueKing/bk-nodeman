@@ -4,8 +4,6 @@
 
 ### 请求参数
 
-{{ common_args_desc }}
-
 #### 接口参数
 
 | 字段              | 类型        | <div style="width: 50pt">必选</div> | 描述                                             |
@@ -32,15 +30,15 @@
 
 #### scope
 
-| 字段            | 类型        | 必选  | 描述                                                                                  |
-| ------------- | --------- | --- | ----------------------------------------------------------------------------------- |
-| bk_biz_id         | int       | 否   | 蓝鲸业务ID                                                                              |
-| bk_biz_scope      | int array | 否   | 蓝鲸业务ID列表                                                                            |
-| node_type         | string    | 是   | 节点类别，1: TOPO，动态实例（拓扑）2: INSTANCE，静态实例 3: SERVICE_TEMPLATE，服务模板 4: SET_TEMPLATE，集群模板 |
-| object_type       | string    | 是   | 对象类型，1：HOST，主机类型  2：SERVICE，服务类型                                                    |
-| need_register     | bool      | 否   | 是否需要注册到CMDB，false是不注册，true是注册。默认为不注册                                                |
-| nodes             | objects   | 是   | 节点列表，见nodes定义        
-| instance_selector | objects   | 否   | 主机属性筛选列表                                                                 |
+| 字段                 | 类型        | 必选   | 描述                                                                                  |
+|--------------------|-----------|------|-------------------------------------------------------------------------------------|
+| bk_biz_id          | int       | 否    | 蓝鲸业务ID                                                                              |
+| bk_biz_scope       | int array | 否    | 蓝鲸业务ID列表                                                                            |
+| node_type          | string    | 是    | 节点类别，1: TOPO，动态实例（拓扑）2: INSTANCE，静态实例 3: SERVICE_TEMPLATE，服务模板 4: SET_TEMPLATE，集群模板 |
+| object_type        | string    | 是    | 对象类型，1：HOST，主机类型  2：SERVICE，服务类型                                                    |
+| need_register      | bool      | 否    | 是否需要注册到CMDB，false是不注册，true是注册。默认为不注册                                                |
+| nodes              | objects   | 是    | 节点列表，见nodes定义                                                                       
+| instance_selector  | objects   | 否    | 主机属性筛选列表                                                                            |
 
 ##### config
 
@@ -83,9 +81,9 @@
 | bk_biz_id           | int    | 否   | 业务ID                    |
 | bk_inst_id          | int    | 否   | 实例ID                    |
 | bk_obj_id           | int    | 否   | 对象ID                    |
-| instance_info       | object | 否   | 主机示例信息，见instance_info定义 |
+| instance_info       | object | 否   | 主机实例信息，见instance_info定义 |
 
-instance_info
+###### instance_info
 
 | 字段                             | 类型     | 必选  | 描述                                                      |
 | ------------------------------ | ------ | --- | ------------------------------------------------------- |

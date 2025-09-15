@@ -4,8 +4,6 @@
 
 ### 请求参数
 
-{{ common_args_desc }}
-
 #### 接口参数
 
 | 字段                        | 类型     | <div style="width: 50pt">必选</div> | 描述                  |
@@ -17,32 +15,32 @@
 
 ##### hosts
 
-| 字段                             | 类型     | <div style="width: 50pt">必选</div> | 描述                                                      |
-| ------------------------------ | ------ | --------------------------------- | ------------------------------------------------------- |
-| bk_biz_id                      | int    | 是                                 | 业务ID                                                    |
+| 字段                             | 类型     | <div style="width: 50pt">必选</div> | 描述                                                       |
+| ------------------------------ | ------ |-----------------------------------|----------------------------------------------------------|
+| bk_biz_id                      | int    | 是                                 | 业务ID                                                     |
 | bk_cloud_id                    | int    | 是                                 | 管控区域ID                                                   |
-| bk_host_id                     | int    | 否                                 | 主机ID                                                    |
-| bk_addressing                  | int    | 否                                 | 寻址方式，1: 0，静态 2: 1，动态                                    |
-| ap_id                          | int    | 否                                 | 接入点ID                                                   |
-| install_channel_id             | int    | 否                                 | 安装通道ID                                                  |
-| inner_ip                       | string | 否                                 | 内网IPV4地址，inner_ip和inner_ipv6必选其一                        |
-| outer_ip                       | string | 否                                 | 外网IP                                                    |
-| login_ip                       | string | 否                                 | 登录IP                                                    |
-| data_ip                        | string | 否                                 | 数据IP                                                    |
-| inner_ipv6                     | string | 否                                 | 内网IPv6                                                  |
-| outer_ipv6                     | string | 否                                 | 外网IPv6                                                  |
-| os_type                        | string | 是                                | 操作系统，1：LINUX 2：WINDOWS 3：AIX 4：SOLARIS                  |
-| auth_type                      | string | 否                                 | 认证类型，1：PASSWORD，密码认证 2: KEY，秘钥认证 3：TJJ_PASSWORD，默认为密码认证 |
-| account                        | string | 否                                 | 账户                                                      |
-| password                       | string | 否                                 | 密码                                                      |
-| port                           | string | 否                                 | 端口                                                      |
-| key                            | string | 否                                 | 密钥                                                      |
-| is_manual                      | bool   | 否                                 | 是否手动模式                                                  |
-| retention                      | int    | 否                                 | 密码保留天数，默认保留一天                                           |
-| peer_exchange_switch_for_agent | int   | 否                                 | 加速设置，默认为0                                        |
-| bt_speed_limit                 | string | 否                                 | 传输限速                                                    |
-| enable_compression             | bool   | 否                                 | 数据压缩开关，默认是关闭                                              |
-| data_path                      | string | 否                                 | 数据文件路径                                                  |
+| bk_host_id                     | int    | 否                                 | 主机ID                                                     |
+| bk_addressing                  | int    | 否                                 | 寻址方式，1: 0，静态 2: 1，动态                                     |
+| ap_id                          | int    | 否                                 | 接入点ID                                                    |
+| install_channel_id             | int    | 否                                 | 安装通道ID                                                   |
+| inner_ip                       | string | 否                                 | 内网IPV4地址，inner_ip和inner_ipv6必选其一                         |
+| outer_ip                       | string | 否                                 | 外网IP                                                     |
+| login_ip                       | string | 否                                 | 登录IP                                                     |
+| data_ip                        | string | 否                                 | 数据IP                                                     |
+| inner_ipv6                     | string | 否                                 | 内网IPv6                                                   |
+| outer_ipv6                     | string | 否                                 | 外网IPv6                                                   |
+| os_type                        | string | 是                                 | 操作系统，1：LINUX 2：WINDOWS 3：AIX 4：SOLARIS                   |
+| auth_type                      | string | 否                                 | 认证类型，1：PASSWORD，密码认证 2: KEY，秘钥认证 3：TJJ_PASSWORD，默认为密码认证，非手动和reload操作都需要填写 |
+| account                        | string | 否                                 | 账户                                                       |
+| password                       | string | 否                                 | 密码                                                       |
+| port                           | string | 否                                 | 端口                                                       |
+| key                            | string | 否                                 | 密钥                                                       |
+| is_manual                      | bool   | 否                                 | 是否手动模式                                                   |
+| retention                      | int    | 否                                 | 密码保留天数，默认保留一天                                            |
+| peer_exchange_switch_for_agent | int   | 否                                 | 加速设置，默认为0                                                |
+| bt_speed_limit                 | string | 否                                 | 传输限速                                                     |
+| enable_compression             | bool   | 否                                 | 数据压缩开关，默认是关闭                                             |
+| data_path                      | string | 否                                 | 数据文件路径                                                   |
 
 #### actions
 
@@ -72,6 +70,8 @@ Agent
 | UNINSTALL_PROXY | string | 卸载Proxy   |
 | UPGRADE_PROXY   | string | 升级Proxy   |
 | RELOAD_PROXY    | string | 重载Proxy配置 |
+
+### 请求参数示例
 
 ```json
 {
@@ -148,11 +148,11 @@ Agent
 #### response
 
 | 字段      | 类型     | 描述                         |
-| ------- | ------ | -------------------------- |
+| ------- |--------| -------------------------- |
 | result  | bool   | 请求成功与否。true:请求成功；false请求失败 |
 | code    | int    | 错误编码。 0表示success，>0表示失败错误  |
 | message | string | 请求失败返回的错误信息                |
-| data    | array  | 请求返回的数据，见data定义            |
+| data    | object | 请求返回的数据，见data定义            |
 
 #### data
 

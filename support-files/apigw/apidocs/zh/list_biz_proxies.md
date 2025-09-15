@@ -4,8 +4,6 @@
 
 ### 请求参数
 
-{{ common_args_desc }}
-
 #### 接口参数
 
 | 字段        | 类型  | <div style="width: 50pt">必选</div> | 描述   |
@@ -58,23 +56,23 @@
 
 #### response
 
-| 字段      | 类型           | 描述                         |
-| ------- | ------------ | -------------------------- |
-| result  | bool         | 请求成功与否。true:请求成功；false请求失败 |
-| code    | int          | 错误编码。 0表示success，>0表示失败错误  |
-| message | string       | 请求失败返回的错误信息                |
-| data    | array | 请求返回的数据，见data定义            |
+| 字段        | 类型        | 描述                         |
+|-----------|-----------|----------------------------|
+| result    | bool      | 请求成功与否。true:请求成功；false请求失败 |
+| code      | int       | 错误编码。 0表示success，>0表示失败错误  |
+| message   | string    | 请求失败返回的错误信息                |
+| data      | array     | 请求返回的数据，见data定义            |
 
 #### data
 
-| 字段            | 类型     | <div style="width: 50pt">必选</div> | 描述                   |
-| ------------- | ------ | --------------------------------- | -------------------- |
-| bk_cloud_id   | int    | 是                                 | 管控区域ID                |
-| bk_addressing | int    | 是                                 | 寻址方式，1: 0，静态 2: 1，动态 |
-| inner_ip      | string | 是                                 | 主机内网IPV4地址           |
-| inner_ipv6    | string | 否                                 | 主机内网IPV6地址           |
-| outer_ip      | string | 否                                 | 主机外网IPV4地址           |
-| outer_ipv6    | string | 否                                 | 主机外网IPV6地址           |
-| login_ip      | string | 否                                 | 登录IP                 |
-| data_ip       | string | 否                                 | 数据IP                 |
-| bk_biz_id     | int    | 是                                 | 业务ID                 |
+| 字段             | 类型       | 描述                   |
+|----------------|----------|----------------------|
+| bk_cloud_id    | int      | 管控区域ID               |
+| bk_addressing  | int      | 寻址方式，1: 0，静态 2: 1，动态 |
+| inner_ip       | string   | 主机内网IPV4地址           |
+| inner_ipv6     | string   | 主机内网IPV6地址           |
+| outer_ip       | string   | 主机外网IPV4地址           |
+| outer_ipv6     | string   | 主机外网IPV6地址           |
+| login_ip       | string   | 登录IP                 |
+| data_ip        | string   | 数据IP                 |
+| bk_biz_id      | int      | 业务ID                 |

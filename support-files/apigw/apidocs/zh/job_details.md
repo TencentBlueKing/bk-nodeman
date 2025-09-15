@@ -4,23 +4,21 @@
 
 ### 请求参数
 
-{{ common_args_desc }}
-
 #### 接口参数
 
-| 字段         | 类型           | <div style="width: 50pt">必选</div> | 描述                 |
-| ---------- | ------------ | --------------------------------- | ------------------ |
-| job_id     | int          | 是                                 | 任务ID               |
-| page       | int          | 否                                 | 当前页数，默认为1          |
-| pagesize   | int          | 否                                 | 分页大小，默认为10         |
-| conditions | array | 否                                 | 搜索条件，见conditions定义 |
+| 字段     | 类型           | <div style="width: 50pt">必选</div> | 描述                 |
+| ------ | ------------ | --------------------------------- | ------------------ |
+| id     | int          | 任务ID               |
+| page   | int          | 当前页数，默认为1          |
+| pagesize | int          | 分页大小，默认为10         |
+| conditions | array | 搜索条件，见conditions定义 |
 
-##### 见conditions定义
+##### conditions
 
 | 字段    | 类型     | <div style="width: 50pt">必选</div> | 描述                                                                                             |
 | ----- | ------ | --------------------------------- | ---------------------------------------------------------------------------------------------- |
-| key   | string | 否                                 | 查询类型，1: ip，IP地址 2:instance_id，主机实例ID 3: status，执行状态                                            |
-| value | string | 否                                 | 查询关键词，1：当key为ip时，可以指定查询IP地址 2：当key 为instance_id时，可以指定对应的实例ID 3：当key为status时，可以指定查询状态，见status定义 |
+| key   | string | 查询类型，1: ip，IP地址 2:instance_id，主机实例ID 3: status，执行状态                                            |
+| value | string | 查询关键词，1：当key为ip时，可以指定查询IP地址 2：当key 为instance_id时，可以指定对应的实例ID 3：当key为status时，可以指定查询状态，见status定义 |
 
 ###### status
 
@@ -94,30 +92,30 @@
 
 #### response
 
-| 字段      | 类型           | 描述                         |
-| ------- | ------------ | -------------------------- |
-| result  | bool         | 请求成功与否。true:请求成功；false请求失败 |
-| code    | int          | 错误编码。 0表示success，>0表示失败错误  |
-| message | string       | 请求失败返回的错误信息                |
-| data    | array | 请求返回的数据，见data定义            |
+| 字段      | 类型     | 描述                         |
+| ------- |--------| -------------------------- |
+| result  | bool   | 请求成功与否。true:请求成功；false请求失败 |
+| code    | int    | 错误编码。 0表示success，>0表示失败错误  |
+| message | string | 请求失败返回的错误信息                |
+| data    | object | 请求返回的数据，见data定义            |
 
 #### data
 
-| 字段               | 类型           | <div style="width: 50pt">必选</div> | 描述                   |
-| ---------------- | ------------ | --------------------------------- | -------------------- |
-| job_id           | int          | 是                                 | 作业任务ID               |
-| created_by       | string       | 是                                 | 创建者                  |
-| job_type         | string       | 是                                 | 作业类型，见job_type定义     |
-| job_type_display | string       | 是                                 | 作业类型名称               |
-| ip_filter_list   | string arary | 是                                 | 过滤的IP列表，不在指定的筛选范围内   |
-| total            | int          | 否                                 | 实例记录数量总和             |
-| list             | object       | 否                                 | 过滤的主机详细信息列表，见list定义  |
-| statistics       | object       | 是                                 | 任务统计信息，见statistics定义 |
-| status           | string       | 是                                 | 执行状态，见status定义       |
-| end_time         | string       | 是                                 | 完成时间                 |
-| start_time       | string       | 是                                 | 启动时间时间               |
-| cost_time        | string       | 是                                 | 执行耗时，单位为秒            |
-| meta             | object       | 是                                 | 执行任务元数据信息，见meta定义    |
+| 字段               | 类型           | 描述                   |
+| ---------------- | ------------ | -------------------- |
+| job_id           | int          | 作业任务ID               |
+| created_by       | string       | 创建者                  |
+| job_type         | string       | 作业类型，见job_type定义     |
+| job_type_display | string       | 作业类型名称               |
+| ip_filter_list   | string arary | 过滤的IP列表，不在指定的筛选范围内   |
+| total            | int          | 实例记录数量总和             |
+| list             | object       | 过滤的主机详细信息列表，见list定义  |
+| statistics       | object       | 任务统计信息，见statistics定义 |
+| status           | string       | 执行状态，见status定义       |
+| end_time         | string       | 完成时间                 |
+| start_time       | string       | 启动时间时间               |
+| cost_time        | string       | 执行耗时，单位为秒            |
+| meta             | object       | 执行任务元数据信息，见meta定义    |
 
 ###### job_type
 
@@ -149,7 +147,6 @@ Plugin
 | MAIN_RELOAD_PLUGIN          | string | 重载插件配置         |
 | MAIN_DELEGATE_PLUGIN        | string | 托管插件           |
 | MAIN_UNDELEGATE_PLUGIN      | string | 取消插件托管         |
-| MAIN_INSTALL_PLUGIN         | string | 安装插件           |
 | DEBUG_PLUGIN                | string | 调试插件           |
 | STOP_DEBUG_PLUGIN           | string | 停止调试插件         |
 | MAIN_INSTALL_PLUGIN         | string | 部署插件程序，下发并安装插件 |
@@ -177,20 +174,20 @@ Plugin
 
 ##### list
 
-| 字段             | 类型     | <div style="width: 50pt">必选</div> | 描述                 |
-| -------------- | ------ | --------------------------------- | ------------------ |
-| filter_host    | bool   | 否                                 | 是否存在过滤的主机          |
-| bk_host_id     | int    | 否                                 | 主机ID               |
-| ip             | string | 否                                 | 主机IP地址             |
-| inner_ip       | string | 否                                 | 主机内网IPV4地址         |
-| inner_ipv6     | string | 否                                 | 主机内网IPV6地址         |
-| bk_cloud_id    | int    | 否                                 | 管控区域ID              |
-| bk_cloud_name  | string | 否                                 | 管控区域名称              |
-| bk_biz_id      | int    | 否                                 | 业务ID               |
-| bk_biz_name    | string | 否                                 | 业务名称               |
-| job_id         | int    | 否                                 | 任务ID               |
-| status         | string | 否                                 | 任务执行状态，见status定义   |
-| status_display | string | 否                                 | 任务执行状态名称，见status定义 |
+| 字段             | 类型     | 描述                 |
+| -------------- | ------ | ------------------ |
+| filter_host    | bool   | 是否存在过滤的主机          |
+| bk_host_id     | int    | 主机ID               |
+| ip             | string | 主机IP地址             |
+| inner_ip       | string | 主机内网IPV4地址         |
+| inner_ipv6     | string | 主机内网IPV6地址         |
+| bk_cloud_id    | int    | 管控区域ID              |
+| bk_cloud_name  | string | 管控区域名称              |
+| bk_biz_id      | int    | 业务ID               |
+| bk_biz_name    | string | 业务名称               |
+| job_id         | int    | 任务ID               |
+| status         | string | 任务执行状态，见status定义   |
+| status_display | string | 任务执行状态名称，见status定义 |
 
 ##### statistics
 
@@ -205,16 +202,16 @@ Plugin
 
 ##### meta
 
-| 字段                | 类型     | <div style="width: 50pt">必选</div> | 描述                                |
-| ----------------- | ------ | --------------------------------- | --------------------------------- |
-| type              | string | 是                                 | 任务对象类型，1: AGENT  2：PLUGIN 3：PROXY |
-| step_type         | string | 是                                 | 步骤类型                              |
-| op_type           | string | 是                                 | 操作类型，见op_type定义                   |
-| op_type_display   | string | 是                                 | 操作类型名称，见op_type定义                 |
-| step_type_display | string | 是                                 | 订阅步骤类型，1: Agent 2: 插件 3: Proxy    |
-| name              | string | 否                                 | 订阅名称                              |
-| category          | string | 否                                 | 订阅类别，1: None，普通插件任务，2: POLIC， 策略  |
-| plugin_name       | string | 否                                 | 插件名                               |
+| 字段                | 类型     | 描述                                |
+| ----------------- | ------ | --------------------------------- |
+| type              | string | 任务对象类型，1: AGENT  2：PLUGIN 3：PROXY |
+| step_type         | string | 步骤类型                              |
+| op_type           | string | 操作类型，见op_type定义                   |
+| op_type_display   | string | 操作类型名称，见op_type定义                 |
+| step_type_display | string | 订阅步骤类型，1: Agent 2: 插件 3: Proxy    |
+| name              | string | 订阅名称                              |
+| category          | string | 订阅类别，1: None，普通插件任务，2: POLIC， 策略  |
+| plugin_name       | string | 插件名                               |
 
 ###### op_type
 

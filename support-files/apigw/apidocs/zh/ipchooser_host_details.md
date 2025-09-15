@@ -4,17 +4,15 @@
 
 ### 请求参数
 
-{{ common_args_desc }}
-
 #### 接口参数
 
-| 字段                   | 类型    | <div style="width: 50pt">必选</div> | 描述                        |
-|----------------------|-------| --------------------------------- |---------------------------|
-| host_list            | array | 是                                 | 主机列表，见 host_list 定义       | 
-| agent_realtime_state | bool  | 否                                 | agent实时状态，默认为False        |
-| all_scope            | bool  | 否                                 | 是否获取所有资源范围的拓扑结构，默认为 false |
-| scope_list           | array | 否                                 | 要获取拓扑结构的资源范围数组，见 scope_list 定义           |
-| action     | string | 否                                 | 权限类型，默认为`agent_view`,见 action 定义 |
+| 字段                   | 类型      | <div style="width: 50pt">必选</div> | 描述                        |
+|----------------------|---------| --------------------------------- |---------------------------|
+| host_list            | array   | 是                                 | 主机列表，见 host_list 定义       | 
+| agent_realtime_state | bool    | 否                                 | agent实时状态，默认为False        |
+| all_scope            | bool    | 否                                 | 是否获取所有资源范围的拓扑结构，默认为 false |
+| scope_list           | array   | 否                                 | 要获取拓扑结构的资源范围数组，见 scope_list 定义           |
+| action               | string  | 否                                 | 权限类型，默认为`agent_view`,见 action 定义 |
 
 ##### host_list
 
@@ -26,10 +24,11 @@
 
 ###### scope_list
 
-| 字段            | 类型     | <div style="width: 50pt">必选</div> | 描述   |
-|---------------|--------|-----------------------------------|------|
-| scope_type    | string | 是                                 |资源范围类型                        |
-| scope_id      | string | 否                                 |资源范围ID                            |
+| 字段             | 类型     | <div style="width: 50pt">必选</div> | 描述      |
+|----------------|--------|-----------------------------------|---------|
+| scope_type     | string | 是                                 | 资源范围类型  |
+| scope_id       | string | 否                                 | 资源范围ID  |
+| bk_biz_id      | int    | 否                                 | 业务ID    |
 
 ###### action
 
@@ -124,22 +123,22 @@
 }
 ```
 
-### 返回结果参数说明
+ ### 返回结果参数说明
 
-#### response
+ #### response
 
 | 字段      | 类型     | 描述                         |
-| ------- | ------ | -------------------------- |
+| ------- |--------| -------------------------- |
 | result  | bool   | 请求成功与否。true:请求成功；false请求失败 |
 | code    | int    | 错误编码。 0表示success，>0表示失败错误  |
 | message | string | 请求失败返回的错误信息                |
-| data    | object | 请求返回的数据，见data定义            |
+| data    | array  | 请求返回的数据，见data定义            |
 
 #### data
 
 | 字段             | 类型     | 描述                     |
 |----------------|--------|------------------------|
-| meta           | object | 元数据                    |
+| meta           | object | 元数据，见 meta 定义          |
 | host_id        | int    | 主机ID                   |
 | agent_id       | string | AgentID                |
 | ip             | string | 内网IP                   |
@@ -148,10 +147,32 @@
 | os_name        | string | 操作系统名称                 |
 | os_type        | string | 操作系统类型                 |
 | alive          | int    | Agent存活状态，1表示存活，0表示未存活 |
-| cloud_area     | object | 管控区域信息                 |
-| biz            | object | 业务信息                   |
+| cloud_area     | object | 管控区域信息，见cloud_area定义   |
+| biz            | object | 业务信息，见biz定义            |
 | bk_host_id     | int    | 主机ID                   |
 | bk_biz_id      | int    | 业务ID                   |
 | bk_agent_id    | string | AgentID                |
 | bk_agent_alive | int    | Agent存活状态，1表示存活，0表示未存活 |
 | bk_cloud_id    | int    | 管控区域ID                 |
+
+#### meta
+
+| 字段          | 类型     | 描述 |
+|-------------|--------|----|
+| bk_biz_id   | int    | 业务 ID |
+| scope_type  | string | 资源范围类型 |
+| scope_id    | string | 资源范围ID |
+
+#### cloud_area
+
+| 字段       | 类型     | 描述     |
+|----------|--------|--------|
+| id       | int    | 管控区域ID |
+| name     | string | 管控区域名称 |
+
+#### biz
+
+| 字段       | 类型     | 描述   |
+|----------|--------|------|
+| id       | int    | 业务ID |
+| name     | string | 业务名称 |

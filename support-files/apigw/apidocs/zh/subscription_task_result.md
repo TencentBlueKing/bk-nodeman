@@ -4,8 +4,6 @@
 
 ### 请求参数
 
-{{ common_args_desc }}
-
 #### 接口参数
 
 | 字段               | 类型           | <div style="width: 50pt">必选</div> | 描述              |
@@ -183,65 +181,65 @@
 
 #### data
 
-| 字段             | 类型           | <div style="width: 50pt">必选</div> | 描述                       |
-| -------------- | ------------ | --------------------------------- | ------------------------ |
-| total          | int          | 否                                 | 实例记录数量总和                 |
-| list           | array | 否                                 | 实例状态列表，见list定义           |
-| status_counter | object       | 否                                 | 订阅全局状态统计，见status_counter |
+| 字段             | 类型     | 描述                      |
+| -------------- |--------|-------------------------|
+| total          | int    | 实例记录数量总和                |
+| list           | array  | 实例状态列表，见list定义          |
+| status_counter | object | 订阅全局状态统计，见status_counter |
 
 ##### status_counter
 
-| 字段    | 类型  | <div style="width: 50pt">必选</div> | 描述                              |
-| ----- | --- | --------------------------------- | ------------------------------- |
-| 执行状态  | int | 否                                 | 不同执行状态下的数量统计，具体执行状态标识符见status定义 |
-| total | int | 是                                 | 全局状态总和数量                        |
+| 字段       | 类型      | 描述                              |
+|----------|---------|---------------------------------|
+| 执行状态     | string  | 执行状态                            |
+| total    | int     | 不同执行状态下的数量统计，具体执行状态标识符见status定义 |
 
 ##### list
 
-| 字段            | 类型           | <div style="width: 50pt">必选</div> | 描述                      |
-| ------------- | ------------ | --------------------------------- | ----------------------- |
-| task_id       | int          | 否                                 | 任务ID                    |
-| record_id     | int          | 否                                 | 记录ID                    |
-| instance_id   | string       | 否                                 | 实例ID，见instan_id定义       |
-| create_time   | string       | 否                                 | 创建时间                    |
-| pipeline_id   | string       | 否                                 | Pipeline节点ID            |
-| start_time    | string       | 否                                 | 启动时间                    |
-| finish_time   | string       | 否                                 | 完成时间                    |
-| instance_info | object       | 否                                 | 主机实例信息，见instance_info定义 |
-| status        | string       | 否                                 | 执行状态，见status 定义         |
-| steps         | array | 否                                 | 订阅步骤信息，见steps 定义        |
+| 字段            | 类型      | 描述                      |
+| ------------- |---------|-------------------------|
+| task_id       | int     | 任务ID                    |
+| record_id     | int     | 记录ID                    |
+| instance_id   | string  | 实例ID                    |
+| create_time   | string  | 创建时间                    |
+| pipeline_id   | string  | Pipeline节点ID            |
+| start_time    | string  | 启动时间                    |
+| finish_time   | string  | 完成时间                    |
+| instance_info | object  | 主机实例信息，见instance_info定义 |
+| status        | string  | 执行状态，见status 定义         |
+| steps         | array   | 订阅步骤信息，见steps 定义        |
 
 ##### instance_info
 
 当need_detail参数为True时，展示信息将包括但不限于以下字段
 
-| 字段      | 类型     | <div style="width: 50pt">必选</div> | 描述                |
-| ------- | ------ | --------------------------------- | ----------------- |
-| host    | object | 否                                 | 主机信息，见host定义      |
-| service | object | 否                                 | 服务实例信息，见service定义 |
+| 字段      | 类型     | 描述                |
+| ------- | ------ | ----------------- |
+| host    | object | 主机信息，见host定义      |
+| service | object | 服务实例信息，见service定义 |
 
 ##### host
 
-| 字段                  | 类型     | <div style="width: 50pt">必选</div> | 描述         |
-| ------------------- | ------ | --------------------------------- | ---------- |
-| bk_biz_id           | int    | 否                                 | 蓝鲸业务ID     |
-| bk_host_innerip_v6  | string | 否                                 | 主机IPV6内网地址 |
-| bk_host_innerip     | string | 否                                 | 主机IPV4内网地址 |
-| bk_cloud_id         | int    | 否                                 | 管控区域ID      |
-| bk_supplier_account | int    | 否                                 | 服务商ID      |
-| bk_host_name        | string | 否                                 | 主机名        |
-| bk_host_id          | int    | 否                                 | 主机ID       |
-| bk_biz_name         | string | 否                                 | 业务名称       |
-| bk_cloud_name       | string | 否                                 | 管控区域名称      |
+| 字段                  | 类型     | 描述         |
+| ------------------- | ------ | ---------- |
+| bk_biz_id           | int    | 蓝鲸业务ID     |
+| bk_host_innerip_v6  | string | 主机IPV6内网地址 |
+| bk_host_innerip     | string | 主机IPV4内网地址 |
+| bk_cloud_id         | int    | 管控区域ID      |
+| bk_supplier_account | int    | 服务商ID      |
+| bk_host_name        | string | 主机名        |
+| bk_host_id          | int    | 主机ID       |
+| bk_biz_name         | string | 业务名称       |
+| bk_cloud_name       | string | 管控区域名称      |
 
 ##### service
 
-| 字段           | 类型     | <div style="width: 50pt">必选</div> | 描述     |
-| ------------ | ------ | --------------------------------- | ------ |
-| id           | int    | 否                                 | 服务实例ID |
-| name         | string | 否                                 | 服务实例名称 |
-| bk_module_id | int    | 否                                 | 模块ID   |
-| bk_host_id   | int    | 否                                 | 主机ID   |
+| 字段           | 类型     | 描述     |
+| ------------ | ------ | ------ |
+| id           | int    | 服务实例ID |
+| name         | string | 服务实例名称 |
+| bk_module_id | int    | 模块ID   |
+| bk_host_id   | int    | 主机ID   |
 
 ##### status
 
@@ -259,42 +257,42 @@
 
 ##### steps
 
-| 字段           | 类型            | <div style="width: 50pt">必选</div> | 描述                              |
-| ------------ | ------------- | --------------------------------- | ------------------------------- |
-| type         | string        | 是                                 | 步骤类型，1: AGENT，2：PLUGIN，3: PROXY |
-| actions      | string        | 是                                 | 订阅动作，见actions定义                 |
-| extra_info   | object        | 是                                 | 额外信息                            |
-| create_time  | string        | 否                                 | 创建时间                            |
-| pipeline_id  | string        | 否                                 | Pipeline节点ID                    |
-| start_time   | string        | 否                                 | 启动时间                            |
-| finish_time  | string        | 否                                 | 完成时间                            |
-| status       | string        | 是                                 | 执行状态，见status定义                  |
-| node_name    | string        | 是                                 | 节点名称                            |
-| step_code    | string        | 是                                 | Pipeline节点执行码                   |
-| target_hosts | object  array | 是                                 | 目标主机执行信息，见target_hosts定义        |
+| 字段           | 类型       | 描述                             |
+| ------------ |----------| ------------------------------ |
+| type         | string   | 步骤类型，1:AGENT，2：PLUGIN，3: PROXY |
+| actions      | string   | 订阅动作，见actions定义                |
+| extra_info   | object   | 额外信息                           |
+| create_time  | string   | 创建时间                           |
+| pipeline_id  | string   | Pipeline节点ID                   |
+| start_time   | string   | 启动时间                           |
+| finish_time  | string   | 完成时间                           |
+| status       | string   | 执行状态，见status定义                 |
+| node_name    | string   | 节点名称                           |
+| step_code    | string   | Pipeline节点执行码                  |
+| target_hosts | object   | 目标主机执行信息，见target_hosts定义       |
 
 ###### target_hosts
 
-| 字段          | 类型     | <div style="width: 50pt">必选</div> | 描述                                                            |
-| ----------- | ------ | --------------------------------- | ------------------------------------------------------------- |
-| create_time | string | 是                                 | 创建时间                                                          |
-| pipeline_id | string | 是                                 | Pipeline节点ID                                                  |
-| start_time  | string | 是                                 | 启动时间                                                          |
-| finish_time | string | 是                                 | 完成时间                                                          |
-| node_name   | string | 是                                 | Pipeline节点名称                                                  |
-| sub_steps   | object | 否                                 | 子步骤执行信息，一个完整的订阅步骤可以由很多子步骤组装完成，改步骤展示每一个字步骤的相关信息, 见sub_steps 定义 |
+| 字段          | 类型     | 描述                                                            |
+| ----------- | ------ | ------------------------------------------------------------- |
+| create_time | string | 创建时间                                                          |
+| pipeline_id | string | Pipeline节点ID                                                  |
+| start_time  | string | 启动时间                                                          |
+| finish_time | string | 完成时间                                                          |
+| node_name   | string | Pipeline节点名称                                                  |
+| sub_steps   | object | 子步骤执行信息，一个完整的订阅步骤可以由很多子步骤组装完成，改步骤展示每一个字步骤的相关信息, 见sub_steps 定义 |
 
 ###### sub_steps
 
-| 字段          | 类型     | <div style="width: 50pt">必选</div> | 描述              |
-| ----------- | ------ | --------------------------------- | --------------- |
-| create_time | string | 否                                 | 子步骤创建时间         |
-| pipeline_id | string | 否                                 | 子步骤Pipeline节点ID |
-| start_time  | string | 否                                 | 子步骤启动时间         |
-| finish_time | string | 否                                 | 子步骤完成时间         |
-| status      | string | 是                                 | 执行状态，见status定义  |
-| index       | int    | 是                                 | 步骤顺序            |
-| node_name   | string | 是                                 | 子步骤节点名称         |
+| 字段          | 类型     | 描述               |
+| ----------- | ------ |------------------|
+| create_time | string | 子步骤创建时间          |
+| pipeline_id | string | 子步骤Pipeline节点ID |
+| start_time  | string | 子步骤启动时间         |
+| finish_time | string | 子步骤完成时间         |
+| status      | string | 执行状态，见status定义  |
+| index       | int    | 步骤顺序            |
+| node_name   | string | 子步骤节点名称         |
 
 ###### actions
 
