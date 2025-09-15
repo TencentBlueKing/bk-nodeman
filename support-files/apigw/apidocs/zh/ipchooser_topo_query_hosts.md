@@ -4,20 +4,18 @@
 
 ### 请求参数
 
-{{ common_args_desc }}
-
 #### 接口参数
 
-| 字段               | 类型     | <div style="width: 50pt">必选</div> | 描述                        |
-|------------------|--------| --------------------------------- |---------------------------|
-| node_list        | array  | 是                                 | 主机列表，见 node_list 定义       | 
-| search_limit     | object | 否                                 | 检索范围限制，见search_limit定义 |
-| search_condition | object | 否                                 | 搜索条件，见search_condition定义  |
-| search_content   | string | 否                                 | 模糊搜索内容                    |
-| conditions       | array  | 否                                 | 搜索条件                      |
-| start            | int    | 否                                 | 数据起始位置，默认为0               |
-| page_size        | int    | 否                                 | 拉取数据数量，不传或传 `-1` 表示拉取所有   |
-| action           | string | 否                                 | 权限类型，见 action 定义          |
+| 字段               | 类型     | <div style="width: 50pt">必选</div> | 描述                               |
+|------------------|--------| --------------------------------- |----------------------------------|
+| node_list        | array  | 是                                 | 节点列表，见 node_list 定义              | 
+| search_limit     | object | 否                                 | 检索范围限制，见search_limit定义           |
+| search_condition | object | 否                                 | 搜索条件，见search_condition定义         |
+| search_content   | string | 否                                 | 模糊搜索内容                           |
+| conditions       | array  | 否                                 | 搜索条件                             |
+| start            | int    | 否                                 | 数据起始位置，默认为0                      |
+| page_size        | int    | 否                                 | 拉取数据数量，不传或传 `-1` 表示拉取所有          |
+| action           | string | 否                                 | 权限类型，默认为`agent_view`，见 action 定义 |
 
 ##### node_list
 
@@ -72,6 +70,27 @@
 
 ```json
 {
+    "start": 0,
+    "page_size": -1,
+    "node_list": [
+        {
+            "object_id": "biz",
+            "instance_id": 31,
+            "meta": {
+                "scope_type": "biz",
+                "scope_id": "31",
+                "bk_biz_id": 31
+            }
+        }
+    ],
+    "conditions": []
+}
+```
+
+### 返回结果示例
+
+```json
+{
     "result": true,
     "data": {
         "total": 2,
@@ -79,14 +98,14 @@
             {
                 "meta": {
                     "scope_type": "biz",
-                    "scope_id": "5016860",
-                    "bk_biz_id": 5016860
+                    "scope_id": "31",
+                    "bk_biz_id": 31
                 },
-                "host_id": 9113917,
-                "agent_id": "0200000000525400bdc6be17510092823099",
+                "host_id": 72,
+                "agent_id": "02000000005254005ea7e817503824736673",
                 "ip": "127.0.0.1",
                 "ipv6": "",
-                "host_name": "VM-224-76-tencentos",
+                "host_name": "VM-0-1-tencentos",
                 "os_name": "Linux",
                 "os_type": "Linux",
                 "alive": 1,
@@ -95,26 +114,26 @@
                     "name": "直连区域"
                 },
                 "biz": {
-                    "id": 5016860,
-                    "name": "游戏智能NPC"
+                    "id": 31,
+                    "name": "demo"
                 },
-                "bk_host_id": 9113917,
-                "bk_biz_id": 5016860,
-                "bk_agent_id": "0200000000525400bdc6be17510092823099",
+                "bk_host_id": 72,
+                "bk_biz_id": 31,
+                "bk_agent_id": "02000000005254005ea7e817503824736673",
                 "bk_agent_alive": 1,
                 "bk_cloud_id": 0
             },
             {
                 "meta": {
                     "scope_type": "biz",
-                    "scope_id": "5016860",
-                    "bk_biz_id": 5016860
+                    "scope_id": "31",
+                    "bk_biz_id": 31
                 },
-                "host_id": 9113916,
-                "agent_id": "020000000052540026ed8d17510092819512",
-                "ip": "127.0.0.1",
+                "host_id": 4,
+                "agent_id": "02000000005254006c51121744010286088t",
+                "ip": "127.0.0.2",
                 "ipv6": "",
-                "host_name": "VM-224-117-tencentos",
+                "host_name": "VM-0-2-tencentos",
                 "os_name": "Linux",
                 "os_type": "Linux",
                 "alive": 1,
@@ -123,12 +142,12 @@
                     "name": "直连区域"
                 },
                 "biz": {
-                    "id": 5016860,
-                    "name": "游戏智能NPC"
+                    "id": 31,
+                    "name": "demo"
                 },
-                "bk_host_id": 9113916,
-                "bk_biz_id": 5016860,
-                "bk_agent_id": "020000000052540026ed8d17510092819512",
+                "bk_host_id": 4,
+                "bk_biz_id": 31,
+                "bk_agent_id": "02000000005254006c51121744010286088t",
                 "bk_agent_alive": 1,
                 "bk_cloud_id": 0
             }
@@ -139,57 +158,63 @@
 }
 ```
 
-### 返回结果示例
-
-```json
-{
-    "result": true,
-    "data": [
-        {
-            "agent_statistics": {
-                "total_count": 0,
-                "alive_count": 0,
-                "not_alive_count": 0
-            },
-            "node": {
-                "object_id": "biz",
-                "instance_id": 1,
-                "meta": {
-                    "scope_type": "biz",
-                    "scope_id": "1",
-                    "bk_biz_id": 1
-                }
-            }
-        },
-        {
-            "agent_statistics": {
-                "total_count": 143,
-                "alive_count": 136,
-                "not_alive_count": 7
-            },
-            "node": {
-                "object_id": "biz",
-                "instance_id": 61,
-                "meta": {
-                    "scope_type": "biz",
-                    "scope_id": "61",
-                    "bk_biz_id": 61
-                }
-            }
-        }
-    ],
-    "code": 0,
-    "message": ""
-}
-```
-
 ### 返回结果参数说明
 
 #### response
 
 | 字段      | 类型     | 描述                         |
-| ------- | ------ | -------------------------- |
+| ------- |--------| -------------------------- |
 | result  | bool   | 请求成功与否。true:请求成功；false请求失败 |
 | code    | int    | 错误编码。 0表示success，>0表示失败错误  |
 | message | string | 请求失败返回的错误信息                |
 | data    | object | 请求返回的数据，见data定义            |
+
+#### data
+
+| 字段    | 类型    | 描述            |
+|-------|-------|---------------|
+| total | int   | 包含的主机数量       |
+| data  | array | 主机数据，见data定义  |
+
+#### data
+
+| 字段             | 类型     | 描述                     |
+|----------------|--------|------------------------|
+| meta           | object | 元数据，见 meta 定义          |
+| host_id        | int    | 主机ID                   |
+| agent_id       | string | AgentID                |
+| ip             | string | 内网IP                   |
+| ipv6           | string | 内网IPv6                 |
+| host_name      | string | 主机名称                   |
+| os_name        | string | 操作系统名称                 |
+| os_type        | string | 操作系统类型                 |
+| alive          | int    | Agent存活状态，1表示存活，0表示未存活 |
+| cloud_area     | object | 管控区域信息，见cloud_area定义   |
+| biz            | object | 业务信息，见biz定义            |
+| bk_host_id     | int    | 主机ID                   |
+| bk_biz_id      | int    | 业务ID                   |
+| bk_agent_id    | string | AgentID                |
+| bk_agent_alive | int    | Agent存活状态，1表示存活，0表示未存活 |
+| bk_cloud_id    | int    | 管控区域ID                 |
+
+#### meta
+
+| 字段          | 类型     | 描述 |
+|-------------|--------|----|
+| bk_biz_id   | int    | 业务 ID |
+| scope_type  | string | 资源范围类型 |
+| scope_id    | string | 资源范围ID |
+
+#### cloud_area
+
+| 字段       | 类型     | 描述     |
+|----------|--------|--------|
+| id       | int    | 管控区域ID |
+| name     | string | 管控区域名称 |
+
+#### biz
+
+| 字段       | 类型     | 描述   |
+|----------|--------|------|
+| id       | int    | 业务ID |
+| name     | string | 业务名称 |

@@ -4,22 +4,21 @@
 
 ### 请求参数
 
-{{ common_args_desc }}
-
 #### 接口参数
 
-| 字段         | 类型     | <div style="width: 50pt">必选</div> | 描述                               |
-|------------|--------| --------------------------------- |----------------------------------|
-| all_scope  | bool   | 否                                 | 是否获取所有资源范围的拓扑结构，默认为 `false`"     |
-| scope_list | string | 否                                 | 要获取拓扑结构的资源范围数组                   |
-| action     | string | 否                                 | 权限类型，默认为`agent_view`,见 action 定义 |
+| 字段         | 类型     | <div style="width: 50pt">必选</div> | 描述                                 |
+|------------|--------| --------------------------------- |------------------------------------|
+| all_scope  | bool   | 否                                 | 是否获取所有资源范围的拓扑结构，默认为 `false`"       |
+| scope_list | array  | 否                                 | 要获取拓扑结构的资源范围数组，见scope_list定义       |
+| action     | string | 否                                 | 权限类型，默认为`agent_view`,见 action 定义   |
 
 ###### scope_list
 
-| 字段            | 类型     | <div style="width: 50pt">必选</div> | 描述   |
-|---------------|--------|-----------------------------------|------|
-| scope_type    | string | 是                                 |资源范围类型                        |
-| scope_id      | string | 否                                 |资源范围ID                            |
+| 字段             | 类型     | <div style="width: 50pt">必选</div> | 描述      |
+|----------------|--------|-----------------------------------|---------|
+| scope_type     | string | 是                                 | 资源范围类型  |
+| scope_id       | string | 否                                 | 资源范围ID  |
+| bk_biz_id      | int    | 否                                 | 业务ID    |
 
 ###### action
 
@@ -135,27 +134,43 @@
 
 #### response
 
-| 字段      | 类型     | 描述                         |
-| ------- | ------ | -------------------------- |
-| result  | bool   | 请求成功与否。true:请求成功；false请求失败 |
-| code    | int    | 错误编码。 0表示success，>0表示失败错误  |
-| message | string | 请求失败返回的错误信息                |
-| data    | object | 请求返回的数据，见data定义            |
+| 字段        | 类型     | 描述                         |
+|-----------|--------|----------------------------|
+| result    | bool   | 请求成功与否。true:请求成功；false请求失败 |
+| code      | int    | 错误编码。 0表示success，>0表示失败错误  |
+| message   | string | 请求失败返回的错误信息                |
+| data      | array  | 请求返回的数据，见data定义            |
  
 #### data
 
-| 字段            | 类型     | <div style="width: 50pt">必选</div> | 描述          |
-|---------------|--------| --------------------------------- |-------------|
-| meta          | object | 是                                 | 元数据，见meta定义 |
-| object_id     | string | 是                                 | 节点类型ID      |
-| object_name   | string | 是                                 | 节点类型名称      |
-| instance_id   | int    | 是                                 | 节点实例ID      |
-| instance_name | string | 是                                 | 节点实例名称      |
+| 字段            | 类型     | 描述                 |
+|---------------|--------|--------------------|
+| meta          | object | 元数据，见meta定义        |
+| object_id     | string | 节点类型ID             |
+| object_name   | string | 节点类型名称             |
+| instance_id   | int    | 节点实例ID             |
+| instance_name | string | 节点实例名称             |
+| count         | int    | 节点数量               |
+| child         | array  | 子节点，见child定义       |
+| lazy          | bool   | 是否采取懒加载策略（仅返回一级节点） |
+
+#### child
+
+| 字段            | 类型     | 描述                 |
+|---------------|--------|--------------------|
+| meta          | object | 元数据，见meta定义        |
+| object_id     | string | 节点类型ID             |
+| object_name   | string | 节点类型名称             |
+| instance_id   | int    | 节点实例ID             |
+| instance_name | string | 节点实例名称             |
+| count         | int    | 节点数量               |
+| child         | array  | 子节点，见child定义       |
+| lazy          | bool   | 是否采取懒加载策略（仅返回一级节点） |
 
 ###### meta
 
-| 字段          | 类型     | <div style="width: 50pt">必选</div> | 描述 |
-|-------------|--------|-----------------------------------|----|
-| bk_biz_id   | int    | 否                                 |业务 ID |
-| scope_type  | string | 是                                 |资源范围类型 |
-| scope_id    | string | 是                                 |资源范围ID |
+| 字段          | 类型     | 描述       |
+|-------------|--------|----------|
+| bk_biz_id   | int    | 业务 ID    |
+| scope_type  | string | 资源范围类型   |
+| scope_id    | string | 资源范围ID   |
