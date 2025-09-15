@@ -4,23 +4,21 @@
 
 ### 请求参数
 
-{{ common_args_desc }}
-
 #### 接口参数
 
-| 字段                        | 类型           | <div style="width: 50pt">必选</div> | 描述                                  |
-| ------------------------- | ------------ | --------------------------------- | ----------------------------------- |
-| bk_biz_id                 | int array    | 否                                 | 业务ID                                |
-| bk_host_id                | int array    | 否                                 | 主机ID                                |
-| bk_cloud_id               | int array    | 否                                 | 管控区域ID                               |
-| conditions                | array | 否                                 | 搜索条件，见conditions定义                  |
-| exclude_hosts             | int arrray   | 否                                 | 跨页全选排除主机ID列表                        |
-| page                      | int          | 否                                 | 当前页数，默认为1                           |
-| pagesize                  | int          | 否                                 | 分页大小，默认为10                          |
-| only_ip                   | bool         | 否                                 | 只返回IP，不返回其他字段，默认为否                  |
-| simple                    | bool         | 否                                 | 仅返回概要信息(bk_host_id, bk_biz_id)，默认为否 |
-| detail                    | bool         | 否                                 | 是否返回节点详情，默认为否                       |
-| with_agent_status_counter | bool         | 否                                 | 是否返回Agent状态统计信息，默认为否，为True时显示主进程信息  |
+| 字段                        | 类型         | <div style="width: 50pt">必选</div> | 描述                                  |
+| ------------------------- |------------| --------------------------------- | ----------------------------------- |
+| bk_biz_id                 | int array  | 否                                 | 业务ID                                |
+| bk_host_id                | int array  | 否                                 | 主机ID                                |
+| bk_cloud_id               | int array  | 否                                 | 管控区域ID                               |
+| conditions                | array      | 否                                 | 搜索条件，见conditions定义                  |
+| exclude_hosts             | int arrray | 否                                 | 跨页全选排除主机ID列表                        |
+| page                      | int        | 否                                 | 当前页数，默认为1                           |
+| pagesize                  | int        | 否                                 | 分页大小，默认为10                          |
+| only_ip                   | bool       | 否                                 | 只返回IP，不返回其他字段，默认为否                  |
+| simple                    | bool       | 否                                 | 仅返回概要信息(bk_host_id, bk_biz_id)，默认为否 |
+| detail                    | bool       | 否                                 | 是否返回节点详情，默认为否                       |
+| with_agent_status_counter | bool       | 否                                 | 是否返回Agent状态统计信息，默认为否，为True时显示主进程信息  |
 
 ##### conditions
 
@@ -111,59 +109,59 @@
 
 #### response
 
-| 字段      | 类型           | 描述                         |
-| ------- | ------------ | -------------------------- |
-| result  | bool         | 请求成功与否。true:请求成功；false请求失败 |
-| code    | int          | 错误编码。 0表示success，>0表示失败错误  |
-| message | string       | 请求失败返回的错误信息                |
-| data    | array | 请求返回的数据，见data定义            |
+| 字段      | 类型     | 描述                         |
+| ------- |--------| -------------------------- |
+| result  | bool   | 请求成功与否。true:请求成功；false请求失败 |
+| code    | int    | 错误编码。 0表示success，>0表示失败错误  |
+| message | string | 请求失败返回的错误信息                |
+| data    | object | 请求返回的数据，见data定义            |
 
 #### data
 
-| 字段    | 类型           | <div style="width: 50pt">必选</div> | 描述               |
-| ----- | ------------ | --------------------------------- | ---------------- |
-| total | int          | 否                                 | 主机总数             |
-| list  | array | 否                                 | 汇总后的主机信息，见list定义 |
+| 字段    | 类型      | 描述               |
+| ----- |---------| ---------------- |
+| total | int     | 主机总数             |
+| list  | array   | 汇总后的主机信息，见list定义 |
 
 ##### list
 
-| 字段                 | 类型           | <div style="width: 50pt">必选</div> | 描述                                               |
-| ------------------ | ------------ | --------------------------------- | ------------------------------------------------ |
-| bk_cloud_id        | int          | 是                                 | 管控区域ID                                            |
-| bk_biz_id          | int          | 是                                 | 业务ID                                             |
-| bk_host_id         | int          | 是                                 | 主机ID                                             |
-| bk_host_name       | string       | 是                                 | 主机名                                              |
-| bk_addressing      | int          | 是                                 | 寻址方式，1: 0，静态 2: 1，动态                             |
-| node_type          | string       | 是                                 | 节点类型，1: Agent, 2: Proxy, 3: Pagent               |
-| os_type            | string       | 是                                 | 操作系统，1：LINUX 2：WINDOWS 3：AIX 4：SOLARIS           |
-| inner_ip           | string       | 是                                 | 内网IPv4地址                                         |
-| inner_ipv6         | string       | 否                                 | 内网IPv6地址                                         |
-| cpu_arch           | string       | 否                                 | CPU类型，1：x86 2：x86_64 3：powerpc 4：aarch64 5：sparc |
-| status             | string       | 是                                 | 主机Agent状态，见status定义                              |
-| status_display     | string       | 否                                 | 运行执行状态名称，见status定义                               |
-| bk_cloud_name      | string       | 否                                 | 管控区域名称                                            |
-| bk_biz_name        | string       | 否                                 | 业务名称                                             |
-| job_result         | object       | 否                                 | 执行任务结果，见job_result定义                             |
-| plugin_status      | array | 否                                 | 插件状态，见plugin_status定义                            |
-| operate_permission | bool         | 否                                 | 是否具有操作权限                                         |
+| 字段                 | 类型     | 描述                                               |
+| ------------------ |--------| ------------------------------------------------ |
+| bk_cloud_id        | int    | 管控区域ID                                            |
+| bk_biz_id          | int    | 业务ID                                             |
+| bk_host_id         | int    | 主机ID                                             |
+| bk_host_name       | string | 主机名                                              |
+| bk_addressing      | int    | 寻址方式，1: 0，静态 2: 1，动态                             |
+| node_type          | string | 节点类型，1: Agent, 2: Proxy, 3: Pagent               |
+| os_type            | string | 操作系统，1：LINUX 2：WINDOWS 3：AIX 4：SOLARIS           |
+| inner_ip           | string | 内网IPv4地址                                         |
+| inner_ipv6         | string | 内网IPv6地址                                         |
+| cpu_arch           | string | CPU类型，1：x86 2：x86_64 3：powerpc 4：aarch64 5：sparc |
+| status             | string | 主机Agent状态，见status定义                              |
+| status_display     | string | 运行执行状态名称，见status定义                               |
+| bk_cloud_name      | string | 管控区域名称                                            |
+| bk_biz_name        | string | 业务名称                                             |
+| job_result         | object | 执行任务结果，见job_result定义                             |
+| plugin_status      | array  | 插件状态，见plugin_status定义                            |
+| operate_permission | bool   | 是否具有操作权限                                         |
 
 ##### plugin_status
 
-| 字段      | 类型     | <div style="width: 50pt">必选</div> | 描述             |
-| ------- | ------ | --------------------------------- | -------------- |
-| name    | string | 是                                 | 插件名称           |
-| status  | int    | 是                                 | 插件状态，见status定义 |
-| version | string | 是                                 | 插件版本           |
-| host_id | int    | 是                                 | 主机ID           |
+| 字段      | 类型     | 描述             |
+| ------- | ------ | -------------- |
+| name    | string | 插件名称           |
+| status  | int    | 插件状态，见status定义 |
+| version | string | 插件版本           |
+| host_id | int    | 主机ID           |
 
 ##### job_result
 
-| 字段           | 类型     | <div style="width: 50pt">必选</div> | 描述                  |
-| ------------ | ------ | --------------------------------- | ------------------- |
-| instance_id  | string | 否                                 | 实例ID，见instance_id定义 |
-| job_id       | int    | 否                                 | 作业ID                |
-| status       | string | 否                                 | 执行状态，见job_status定义  |
-| current_step | string | 否                                 | 当前步骤名称              |
+| 字段           | 类型     | 描述                  |
+| ------------ | ------ | ------------------- |
+| instance_id  | string | 实例ID，见instance_id定义 |
+| job_id       | int    | 作业ID                |
+| status       | string | 执行状态，见job_status定义  |
+| current_step | string | 当前步骤名称              |
 
 ##### status
 
@@ -191,9 +189,9 @@
 
  由scope内的主机实例信息转换而来，由以下字段拼接，规则：{object_type}|{node_type}|{type}|{id}，示例：1: host|instance|host|1, 2: host|instance|host|127.0.0.1-1-0
 
-| 字段          | 类型     | <div style="width: 50pt">必选</div> | 描述                                                                                  |
-| ----------- | ------ | --------------------------------- | ----------------------------------------------------------------------------------- |
-| object_type | string | 是                                 | 对象类型，1：host，主机类型  2：service，服务类型                                                    |
-| node_type   | string | 是                                 | 节点类别，1: topo，动态实例（拓扑）2: instance，静态实例 3: service_template，服务模板 4: set_template，集群模板 |
-| type        | string | 是                                 | 服务类型，1: host 主机 2: bk_obj_id 模板ID                                                   |
-| id          | string | 是                                 | 服务实例ID，1： 根据ip，bk_cloud_id，bk_supplier_id和分隔符”-“生成key  2: bk_host_id, 主机Host-ID     |
+| 字段          | 类型     | 描述                                                                                  |
+| ----------- | ------ | ----------------------------------------------------------------------------------- |
+| object_type | string | 对象类型，1：host，主机类型  2：service，服务类型                                                    |
+| node_type   | string | 节点类别，1: topo，动态实例（拓扑）2: instance，静态实例 3: service_template，服务模板 4: set_template，集群模板 |
+| type        | string | 服务类型，1: host 主机 2: bk_obj_id 模板ID                                                   |
+| id          | string | 服务实例ID，1： 根据ip，bk_cloud_id，bk_supplier_id和分隔符”-“生成key  2: bk_host_id, 主机Host-ID     |

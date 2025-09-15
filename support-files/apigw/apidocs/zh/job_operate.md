@@ -4,8 +4,6 @@
 
 ### 请求参数
 
-{{ common_args_desc }}
-
 #### 接口参数
 
 | 字段                        | 类型        | <div style="width: 50pt">必选</div> | 描述                                                                                     |
@@ -21,25 +19,25 @@
 
 由指定关键词key和value组成的字典 示例：{"key": "inner_ip", "value": ["127.0.0.1"]}
 
-| key                   | 类型     | value描述                                                     |
-| --------------------- | ------ | ----------------------------------------------------------- |
-| inner_ip              | string | 主机内网IPV4地址                                                  |
-| node_from             | string | 节点来源，1: CMDB,  配置平台同步 2: EXCEL, saas页面表格导入 3: NODE_MAN，节点管理 |
-| node_type             | string | 节点类型，1: AGENT, 2: PROXY, 3: PAGENT                          |
-| bk_addressing         | string | 寻址方式，1: 0，静态 2: 1，动态                                        |
-| bk_host_name          | string | 主机名称                                                        |
-| os_type               | string | 操作系统，1：LINUX 2：WINDOWS 3：AIX 4：SOLARIS                      |
-| status                | string | 进程状态，见status定义                                              |
-| version               | string | Agent版本号                                                    |
-| is_manual             | string | 手动安装                                                        |
-| bk_cloud_id           | string | 管控区域ID                                                       |
-| install_channel_id    | string | 安装通道ID                                                      |
-| topology              | string | 集群与模块的精准搜索                                                  |
-| query                 | string | IP、操作系统、Agent状态、Agent版本、管控区域模糊搜索,对应value为列表时为多模糊搜索           |
-| source_id             | string | 来源ID                                                        |
-| plugin_name           | string | 插件名，展开任务下所有的插件名称                                            |
-| ${plugin_name}        | string | 插件版本的精确搜索，${plugin_name}为对应的目标插件名称                          |
-| ${plugin_name}_status | string | 插件状态的精确搜索，${plugin_name}为对应的目标插件名称                          |
+| key                   | 类型     | value描述                                                   |
+| --------------------- | ------ | --------------------------------------------------------- |
+| inner_ip              | string | 主机内网IPV4地址                                                |
+| node_from             | string | 节点来源，1:CMDB, 配置平台同步 2: EXCEL, saas页面表格导入 3: NODE_MAN，节点管理 |
+| node_type             | string | 节点类型，1: AGENT, 2: PROXY, 3: PAGENT                        |
+| bk_addressing         | string | 寻址方式，1: 0，静态 2: 1，动态                                      |
+| bk_host_name          | string | 主机名称                                                      |
+| os_type               | string | 操作系统，1：LINUX 2：WINDOWS 3：AIX 4：SOLARIS                    |
+| status                | string | 进程状态，见status定义                                            |
+| version               | string | Agent版本号                                                  |
+| is_manual             | string | 手动安装                                                      |
+| bk_cloud_id           | string | 管控区域ID                                                     |
+| install_channel_id    | string | 安装通道ID                                                    |
+| topology              | string | 集群与模块的精准搜索                                                |
+| query                 | string | IP、操作系统、Agent状态、Agent版本、管控区域模糊搜索,对应value为列表时为多模糊搜索         |
+| source_id             | string | 来源ID                                                      |
+| plugin_name           | string | 插件名，展开任务下所有的插件名称                                          |
+| ${plugin_name}        | string | 插件版本的精确搜索，${plugin_name}为对应的目标插件名称                        |
+| ${plugin_name}_status | string | 插件状态的精确搜索，${plugin_name}为对应的目标插件名称                        |
 
 ##### status
 
@@ -96,9 +94,9 @@
         }
     ],
     "exclude_hosts": [
-        1,
-        2,
-        3
+        2000026002,
+        2000062520,
+        2000062463
     ]
 }
 ```
@@ -121,12 +119,12 @@
 
 #### response
 
-| 字段      | 类型           | 描述                         |
-| ------- | ------------ | -------------------------- |
-| result  | bool         | 请求成功与否。true:请求成功；false请求失败 |
-| code    | int          | 错误编码。 0表示success，>0表示失败错误  |
-| message | string       | 请求失败返回的错误信息                |
-| data    | array | 请求返回的数据，见data定义            |
+| 字段      | 类型     | 描述                         |
+| ------- |--------| -------------------------- |
+| result  | bool   | 请求成功与否。true:请求成功；false请求失败 |
+| code    | int    | 错误编码。 0表示success，>0表示失败错误  |
+| message | string | 请求失败返回的错误信息                |
+| data    | object | 请求返回的数据，见data定义            |
 
 #### data
 

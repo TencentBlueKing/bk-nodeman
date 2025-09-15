@@ -4,8 +4,6 @@
 
 ### 请求参数
 
-{{ common_args_desc }}
-
 #### 接口参数
 
 ### 请求参数示例
@@ -118,9 +116,40 @@
 
 #### response
 
-| 字段      | 类型           | 描述                         |
-| ------- | ------------ | -------------------------- |
-| result  | bool         | 请求成功与否。true:请求成功；false请求失败 |
-| code    | int          | 错误编码。 0表示success，>0表示失败错误  |
-| message | string       | 请求失败返回的错误信息                |
-| data    | array | 请求返回的数据，见data定义            |
+| 字段      | 类型      | 描述                         |
+| ------- |---------| -------------------------- |
+| result  | bool    | 请求成功与否。true:请求成功；false请求失败 |
+| code    | int     | 错误编码。 0表示success，>0表示失败错误  |
+| message | string  | 请求失败返回的错误信息                |
+| data    | array   | 请求返回的数据，见data定义            |
+
+#### data
+
+| 字段             | 类型     | 描述               |
+|----------------|--------|------------------|
+| metric_alias   | string | 监控指标名称           |
+| category       | string | 分类               |
+| collect_type   | string | 采集类型             |
+| description    | string | 描述               |
+| node_name      | string | 节点名称             |
+| collect_metric | string | 采集指标名称           |
+| collect_args   | string | 采集参数             |
+| solution       | array  | 解决方案，见solution定义 |
+| result         | object | 结果，见result定义     |
+| server_ip      | string | 目标服务器IP地址        |
+
+###### solution
+
+| 字段       | 类型     | 描述   |
+|----------|--------|------|
+| reason   | string | 问题原因 |
+| solution | string | 解决方法 |
+
+###### result
+
+| 字段       | 类型     | 描述   |
+|----------|--------|------|
+| name     | string | 指标名称 |
+| value    | string | 解决方法 |
+| status   | int    | 状态   |
+| message  | string | 返回信息 |

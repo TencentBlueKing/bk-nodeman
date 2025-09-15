@@ -4,8 +4,6 @@
 
 ### 请求参数
 
-{{ common_args_desc }}
-
 #### 接口参数
 
 | 字段                    | 类型        | <div style="width: 50pt">必选</div> | 描述     |
@@ -103,24 +101,24 @@
 
 #### data
 
-| 字段              | 类型    | <div style="width: 50pt">必选</div> | 描述               |
-|-----------------|-------| --------------------------------- |------------------|
-| subscription_id | int   | 是                                 | 订阅ID             |
-| status          | array | 是                                 | 状态列表，见status定义   |
-| versions        | array | 是                                 | 版本列表，见versions定义 |
-| instances       | int   | 是                                 | 实例数              |
+| 字段              | 类型    | 描述                 |
+|-----------------|-------|--------------------|
+| subscription_id | int   | 订阅ID               |
+| status          | array | 状态列表，见status定义     |
+| versions        | array | 版本列表，见versions定义   |
+| instances       | int   | 实例数                |
 
 ##### status
 
-| 状态类型       | 类型     | 描述                                 |
-|------------|--------|------------------------------------|
-| status     | string | 状态，为SUCCESS、PENDING、FAILED、RUNNING |
-| count      | int    | 当前状态的数量                            |
+| 字段       | 类型     | 描述                                 |
+|----------|--------|------------------------------------|
+| status   | string | 状态，为SUCCESS、PENDING、FAILED、RUNNING |
+| count    | int    | 当前状态的数量                            |
 
 ##### versions
 
-| 状态类型    | 类型        | 描述      |
-|---------|-----------|---------|
-| version | string    | 插件版本    |
-| count   | int       | 当前版本的数量 |
-| name    | string    | 插件名     |
+| 字段       | 类型        | 描述      |
+|----------|-----------|---------|
+| version  | string    | 插件版本    |
+| count    | int       | 当前版本的数量 |
+| name     | string    | 插件名     |

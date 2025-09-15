@@ -4,19 +4,17 @@
 
 ### 请求参数
 
-{{ common_args_desc }}
-
 #### 接口参数
 
-| 字段              | 类型        | <div style="width: 50pt">必选</div> | 描述                             |
-| --------------- | --------- | --------------------------------- | ------------------------------ |
-| subscription_id | int       | 是                                 | 订阅ID                           |
-| name            | string    | 否                                 | 订阅名称                           |
-| scope           | object    | 是                                 | 事件订阅监听的范围, 见scope定义            |
-| steps           | object    | 是                                 | 事件订阅触发的动作列表                    |
-| run_immediately | bool      | 否                                 | 是否立即执行                         |
-| plugin_name     | string    | 否                                 | 插件名                            |
-| bk_biz_scope    | int array | 否                                 | 订阅监听业务范列表，包含相关业务ID             |
+| 字段              | 类型        | <div style="width: 50pt">必选</div> | 描述                            |
+| --------------- | --------- | --------------------------------- |-------------------------------|
+| subscription_id | int       | 是                                 | 订阅ID                          |
+| name            | string    | 否                                 | 订阅名称                          |
+| scope           | object    | 是                                 | 事件订阅监听的范围, 见scope定义           |
+| steps           | object    | 是                                 | 事件订阅触发的动作列表，见steps定义          |
+| run_immediately | bool      | 否                                 | 是否立即执行                        |
+| plugin_name     | string    | 否                                 | 插件名                           |
+| bk_biz_scope    | int array | 否                                 | 订阅监听业务范列表，包含相关业务ID            |
 | category        | string    | 否                                 | 订阅类别，1：debug，调试 2: once，一次性订阅 |
 
 #### steps
@@ -77,7 +75,7 @@
 | bk_biz_id           | int    | 否   | 业务ID                    |
 | bk_inst_id          | int    | 否   | 实例ID                    |
 | bk_obj_id           | int    | 否   | 对象ID                    |
-| instance_info       | object | 否   | 主机示例信息，见instance_info定义 |
+| instance_info       | object | 否   | 主机实例信息，见instance_info定义 |
 
 instance_info
 
@@ -231,7 +229,7 @@ Plugin
                     "install_channel_id": null,
                     "bk_supplier_account": "0",
                     "peer_exchange_switch_for_agent": 0,
-                    "enable_compression": false,
+                    "enable_compression": false
                 },
                 "bk_supplier_account": "0"
             }

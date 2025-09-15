@@ -322,7 +322,7 @@ paths:
           userVerifiedRequired: true
           appVerifiedRequired: true
           resourcePermissionRequired: true
-        descriptionEn: Install task
+        descriptionEn: Installation job tasks, including new Agent installation, new Proxy installation, reinstallation, replacement, etc.
   /system/api/job/install/:
     post:
       operationId: system_job_install
@@ -343,7 +343,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
-        descriptionEn: Install task
+        descriptionEn: Installation job tasks, including new Agent installation, new Proxy installation, reinstallation, replacement, etc.
   /api/job/operate/:
     post:
       operationId: job_operate
@@ -364,7 +364,7 @@ paths:
           userVerifiedRequired: true
           appVerifiedRequired: true
           resourcePermissionRequired: true
-        descriptionEn: Operate task
+        descriptionEn: Operate on job tasks. Used for operations like host offline or restart that only require the `bk_host_id` parameter. This interface cannot be used for installing/replacing Proxy.
   /system/api/job/operate/:
     post:
       operationId: system_job_operate
@@ -385,7 +385,7 @@ paths:
           userVerifiedRequired: false
           appVerifiedRequired: true
           resourcePermissionRequired: true
-        descriptionEn: Operate task
+        descriptionEn: Operate on job tasks. Used for operations like host offline or restart that only require the `bk_host_id` parameter. This interface cannot be used for installing/replacing Proxy.
   /api/job/{id}/details/:
     post:
       operationId: job_details
@@ -2444,216 +2444,6 @@ paths:
           appVerifiedRequired: true
           resourcePermissionRequired: true
         descriptionEn: Get public key list
-  /core/api/gray/build/:
-    post:
-      operationId: gray_build
-      summary: GSE 2.0灰度
-      tags:
-      - gray
-      x-bk-apigateway-resource:
-        isPublic: true
-        allowApplyPermission: true
-        matchSubpath: false
-        backend:
-          name: default
-          method: post
-          path: /core/api/gray/build/
-          matchSubpath: false
-          timeout: 0
-        authConfig:
-          userVerifiedRequired: true
-          appVerifiedRequired: true
-          resourcePermissionRequired: true
-        descriptionEn: GSE 2.0 gray
-  /system/core/api/gray/build/:
-    post:
-      operationId: system_gray_build
-      summary: GSE 2.0灰度
-      tags:
-      - gray
-      x-bk-apigateway-resource:
-        isPublic: false
-        allowApplyPermission: false
-        matchSubpath: false
-        backend:
-          name: default
-          method: post
-          path: /core/api/gray/build/
-          matchSubpath: false
-          timeout: 0
-        authConfig:
-          userVerifiedRequired: false
-          appVerifiedRequired: true
-          resourcePermissionRequired: true
-        descriptionEn: GSE 2.0 gray
-  /core/api/gray/info/:
-    get:
-      operationId: gray_info
-      summary: 获取GSE 2.0灰度信息
-      tags:
-      - gray
-      x-bk-apigateway-resource:
-        isPublic: true
-        allowApplyPermission: true
-        matchSubpath: false
-        backend:
-          name: default
-          method: get
-          path: /core/api/gray/info/
-          matchSubpath: false
-          timeout: 0
-        authConfig:
-          userVerifiedRequired: true
-          appVerifiedRequired: true
-          resourcePermissionRequired: true
-        descriptionEn: Get GSE 2.0 gray information
-  /system/core/api/gray/info/:
-    get:
-      operationId: system_gray_info
-      summary: 获取GSE 2.0灰度信息
-      tags:
-      - gray
-      x-bk-apigateway-resource:
-        isPublic: false
-        allowApplyPermission: false
-        matchSubpath: false
-        backend:
-          name: default
-          method: get
-          path: /core/api/gray/info/
-          matchSubpath: false
-          timeout: 0
-        authConfig:
-          userVerifiedRequired: false
-          appVerifiedRequired: true
-          resourcePermissionRequired: true
-        descriptionEn: Get GSE 2.0 gray information
-  /core/api/gray/rollback/:
-    post:
-      operationId: gray_rollback
-      summary: GSE 2.0灰度回滚
-      tags:
-      - gray
-      x-bk-apigateway-resource:
-        isPublic: true
-        allowApplyPermission: true
-        matchSubpath: false
-        backend:
-          name: default
-          method: post
-          path: /core/api/gray/rollback/
-          matchSubpath: false
-          timeout: 0
-        authConfig:
-          userVerifiedRequired: true
-          appVerifiedRequired: true
-          resourcePermissionRequired: true
-        descriptionEn: GSE 2.0 gray rollback
-  /system/core/api/gray/rollback/:
-    post:
-      operationId: system_gray_rollback
-      summary: GSE 2.0灰度回滚
-      tags:
-      - gray
-      x-bk-apigateway-resource:
-        isPublic: false
-        allowApplyPermission: false
-        matchSubpath: false
-        backend:
-          name: default
-          method: post
-          path: /core/api/gray/rollback/
-          matchSubpath: false
-          timeout: 0
-        authConfig:
-          userVerifiedRequired: false
-          appVerifiedRequired: true
-          resourcePermissionRequired: true
-        descriptionEn: GSE 2.0 gray rollback
-  /core/api/gray/rollback_agent_id/:
-    post:
-      operationId: rollback_agent_id
-      summary: 回滚Agent ID配置
-      tags:
-      - gray
-      x-bk-apigateway-resource:
-        isPublic: true
-        allowApplyPermission: true
-        matchSubpath: false
-        backend:
-          name: default
-          method: post
-          path: /core/api/gray/rollback_agent_id/
-          matchSubpath: false
-          timeout: 0
-        authConfig:
-          userVerifiedRequired: true
-          appVerifiedRequired: true
-          resourcePermissionRequired: true
-        descriptionEn: Rollback Agent ID
-  /system/core/api/gray/rollback_agent_id/:
-    post:
-      operationId: system_rollback_agent_id
-      summary: 回滚Agent ID配置
-      tags:
-      - gray
-      x-bk-apigateway-resource:
-        isPublic: false
-        allowApplyPermission: false
-        matchSubpath: false
-        backend:
-          name: default
-          method: post
-          path: /core/api/gray/rollback_agent_id/
-          matchSubpath: false
-          timeout: 0
-        authConfig:
-          userVerifiedRequired: false
-          appVerifiedRequired: true
-          resourcePermissionRequired: true
-        descriptionEn: Rollback Agent ID
-  /core/api/gray/upgrade_to_agent_id/:
-    post:
-      operationId: upgrade_to_agent_id
-      summary: 升级到Agent ID配置
-      tags:
-      - gray
-      x-bk-apigateway-resource:
-        isPublic: true
-        allowApplyPermission: true
-        matchSubpath: false
-        backend:
-          name: default
-          method: post
-          path: /core/api/gray/upgrade_to_agent_id/
-          matchSubpath: false
-          timeout: 0
-        authConfig:
-          userVerifiedRequired: true
-          appVerifiedRequired: true
-          resourcePermissionRequired: true
-        descriptionEn: Upgrade to Agent ID
-  /system/core/api/gray/upgrade_to_agent_id/:
-    post:
-      operationId: system_upgrade_to_agent_id
-      summary: 升级到Agent ID配置
-      tags:
-      - gray
-      x-bk-apigateway-resource:
-        isPublic: false
-        allowApplyPermission: false
-        matchSubpath: false
-        backend:
-          name: default
-          method: post
-          path: /core/api/gray/upgrade_to_agent_id/
-          matchSubpath: false
-          timeout: 0
-        authConfig:
-          userVerifiedRequired: false
-          appVerifiedRequired: true
-          resourcePermissionRequired: true
-        descriptionEn: Upgrade to Agent ID
   /core/api/ipchooser_host/check/:
     post:
       operationId: ipchooser_host_check

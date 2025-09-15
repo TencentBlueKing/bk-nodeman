@@ -4,8 +4,6 @@
 
 ### 请求参数
 
-{{ common_args_desc }}
-
 #### 接口参数
 
 | 字段                | 类型   | <div style="width: 50pt">必选</div> | 描述            |
@@ -64,21 +62,21 @@
 
 #### data
 
-| 字段            | 类型     | <div style="width: 50pt">必选</div> | 描述                    |
-| ------------- | ------ | --------------------------------- | --------------------- |
-| bk_cloud_id   | string | 是                                 | 管控区域ID                 |
-| bk_cloud_name | string | 是                                 | 管控区域名称                 |
-| isp           | string | 是                                 | 云服务商                  |
-| ap_id         | string | 是                                 | 接入点ID，-1代表自动选择接入点     |
-| is_visible    | string | 是                                 | 是否可见                  |
-| node_count    | string | 否                                 | 主机数量                  |
-| proxy_count   | string | 否                                 | proxy主机数量             |
-| ap_name       | string | 否                                 | 接入点名称                 |
-| isp_name      | string | 否                                 | 云服务商名称                |
-| isp_icon      | string | 否                                 | 云服务商图标                |
-| exception     | string | 否                                 | 管控区域内异常的信息             |
-| proxies       | string | 否                                 | 管控区域内异常的Proxy          |
-| permissions   | object | 否                                 | 对应操作权限，见permissions定义 |
+| 字段            | 类型     | 描述                    |
+| ------------- |--------| --------------------- |
+| bk_cloud_id   | int    | 管控区域ID                 |
+| bk_cloud_name | string | 管控区域名称                 |
+| isp           | string | 云服务商                  |
+| ap_id         | int    | 接入点ID，-1代表自动选择接入点     |
+| is_visible    | string | 是否可见                  |
+| node_count    | int    | 主机数量                  |
+| proxy_count   | int    | proxy主机数量             |
+| ap_name       | string | 接入点名称                 |
+| isp_name      | string | 云服务商名称                |
+| isp_icon      | string | 云服务商图标                |
+| exception     | string | 管控区域内异常的信息             |
+| proxies       | array  | 管控区域内异常的Proxy          |
+| permissions   | object | 对应操作权限，见permissions定义 |
 
 ##### permissions
 
