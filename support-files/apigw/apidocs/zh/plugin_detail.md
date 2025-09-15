@@ -4,8 +4,6 @@
 
 ### 请求参数
 
-{{ common_args_desc }}
-
 #### 接口参数
 
 | 字段   | 类型   | <div style="width: 50pt">必选</div> | 描述   |
@@ -79,10 +77,49 @@
 
 #### response
 
-| 字段      | 类型           | 描述                         |
-| ------- | ------------ | -------------------------- |
-| result  | bool         | 请求成功与否。true:请求成功；false请求失败 |
-| code    | int          | 错误编码。 0表示success，>0表示失败错误  |
-| message | string       | 请求失败返回的错误信息                |
-| data    | array | 请求返回的数据，见data定义            |
+| 字段      | 类型     | 描述                         |
+| ------- |--------| -------------------------- |
+| result  | bool   | 请求成功与否。true:请求成功；false请求失败 |
+| code    | int    | 错误编码。 0表示success，>0表示失败错误  |
+| message | string | 请求失败返回的错误信息                |
+| data    | object | 请求返回的数据，见data定义            |
 
+#### data
+
+| 字段              | 类型     | 描述                        |
+|-----------------|--------|---------------------------|
+| id              | int    | 插件id                      |
+| description     | string | 插件描述                      |
+| name            | string | 插件名                       |
+| category        | string | 所属范围                      |
+| source_app_code | string | 来源系统APP CODE              |
+| scenario        | string | 使用场景                      |
+| deploy_type     | string | 部署方式                      |
+| plugin_packages | object | 插件包信息，见plugin_packages定义  |
+
+###### plugin_packages
+
+| 字段               | 类型     | 描述                         |
+|------------------|--------|----------------------------|
+| id               | int    | 压缩包ID                      |
+| pkg_name         | string | 压缩包名                       |
+| module           | string | 所属服务                       |
+| project          | string | 工程名                        |
+| version          | string | 版本号                        |
+| config_templates | object | 配置模板列表，见config_templates定义 |
+| os               | string | 系统类型                       |
+| cpu_arch         | string | CPU类型                      |
+| support_os_cpu   | string | 支持的系统和cpu类型                |
+| pkg_mtime        | string | 包更新时间                      |
+| creator          | string | 操作人                        |
+| is_ready         | bool   | 插件是否可用                     |
+
+###### config_templates
+
+| 字段       | 类型     | 描述      |
+|----------|--------|---------|
+| id       | int    | 配置文件ID  |
+| name     | string | 配置文件名   |
+| version  | string | 配置文件版本号 |
+| is_main  | bool   | 是否主配置   |
+ 

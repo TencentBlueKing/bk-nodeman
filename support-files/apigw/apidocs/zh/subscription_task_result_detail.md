@@ -4,8 +4,6 @@
 
 ### 请求参数
 
-{{ common_args_desc }}
-
 #### 接口参数
 
 | 字段              | 类型        | <div style="width: 50pt">必选</div> | 描述     |
@@ -288,4 +286,146 @@
 | message | string | 请求失败返回的错误信息                |
 | data    | object | 请求返回的数据，见data定义            |
 
+#### data
 
+| 字段            | 类型      | 描述                      |
+| ------------- |---------|-------------------------|
+| task_id       | int     | 任务ID                    |
+| record_id     | int     | 记录ID                    |
+| instance_id   | string  | 实例ID                    |
+| create_time   | string  | 创建时间                    |
+| pipeline_id   | string  | Pipeline节点ID            |
+| start_time    | string  | 启动时间                    |
+| finish_time   | string  | 完成时间                    |
+| instance_info | object  | 主机实例信息，见instance_info定义 |
+| status        | string  | 执行状态，见status 定义         |
+| steps         | array   | 订阅步骤信息，见steps 定义        |
+
+##### instance_info
+
+当need_detail参数为True时，展示信息将包括但不限于以下字段
+
+| 字段      | 类型     | 描述                |
+| ------- | ------ | ----------------- |
+| host    | object | 主机信息，见host定义      |
+| service | object | 服务实例信息，见service定义 |
+
+##### host
+
+| 字段                  | 类型     | 描述         |
+| ------------------- | ------ | ---------- |
+| bk_biz_id           | int    | 蓝鲸业务ID     |
+| bk_host_innerip_v6  | string | 主机IPV6内网地址 |
+| bk_host_innerip     | string | 主机IPV4内网地址 |
+| bk_cloud_id         | int    | 管控区域ID      |
+| bk_supplier_account | int    | 服务商ID      |
+| bk_host_name        | string | 主机名        |
+| bk_host_id          | int    | 主机ID       |
+| bk_biz_name         | string | 业务名称       |
+| bk_cloud_name       | string | 管控区域名称      |
+
+##### service
+
+| 字段           | 类型     | 描述     |
+| ------------ | ------ | ------ |
+| id           | int    | 服务实例ID |
+| name         | string | 服务实例名称 |
+| bk_module_id | int    | 模块ID   |
+| bk_host_id   | int    | 主机ID   |
+
+##### status
+
+| 状态类型        | 类型     | 描述   |
+| ----------- | ------ | ---- |
+| PENDING     | string | 等待执行 |
+| RUNNING     | string | 正在执行 |
+| FAILED      | string | 执行失败 |
+| SUCCESS     | string | 执行成功 |
+| PART_FAILED | string | 部分失败 |
+| TERMINATED  | string | 已终止  |
+| REMOVED     | string | 已移除  |
+| FILTERED    | string | 被过滤的 |
+| IGNORED     | string | 已忽略  |
+
+##### steps
+
+| 字段           | 类型       | 描述                             |
+|--------------|----------|--------------------------------|
+| id           | string   | 步骤ID                           |
+| type         | string   | 步骤类型，1:AGENT，2：PLUGIN，3: PROXY |
+| index        | object   | 额外信息                           |
+| action       | string   | 订阅动作，见actions定义                |
+| node_name    | string   | Pipeline节点ID                   |
+| extra_info   | string   | 额外信息                           |
+| pipeline_id  | string   | Pipeline节点ID                   |
+| status       | string   | 执行状态，见status定义                 |
+| start_time   | string   | 启动时间                           |
+| finish_time  | string   | 完成时间                           |
+| target_hosts | object   | 目标主机执行信息，见target_hosts定义       |
+
+###### target_hosts
+
+| 字段          | 类型     | 描述                                                            |
+|-------------| ------ |---------------------------------------------------------------|
+| status      | string | 执行状态                                                          |
+| pipeline_id | string | Pipeline节点ID                                                  |
+| start_time  | string | 启动时间                                                          |
+| finish_time | string | 完成时间                                                          |
+| node_name   | string | Pipeline节点名称                                                  |
+| sub_steps   | object | 子步骤执行信息，一个完整的订阅步骤可以由很多子步骤组装完成，改步骤展示每一个字步骤的相关信息, 见sub_steps 定义 |
+
+###### actions
+
+Agent
+
+| 字段              | 类型     | 描述        |
+| --------------- | ------ | --------- |
+| INSTALL_AGENT   | string | 安装Agent   |
+| RESTART_AGENT   | string | 重启Agent   |
+| REINSTALL_AGENT | string | 重装Agent   |
+| UNINSTALL_AGENT | string | 卸载Agent   |
+| REMOVE_AGENT    | string | 移除Agent   |
+| UPGRADE_AGENT   | string | 升级Agent   |
+| RELOAD_AGENT    | string | 重载Agent配置 |
+| INSTALL_PROXY   | string | 安装Proxy   |
+| RESTART_PROXY   | string | 重启Proxy   |
+| REINSTALL_PROXY | string | 重装Proxy   |
+| UNINSTALL_PROXY | string | 卸载Proxy   |
+| UPGRADE_PROXY   | string | 升级Proxy   |
+| RELOAD_PROXY    | string | 重载Proxy配置 |
+
+Plugin
+
+| 字段                          | 类型     | 描述             |
+| --------------------------- | ------ | -------------- |
+| MAIN_START_PLUGIN           | string | 启动插件进程         |
+| MAIN_STOP_PLUGIN            | string | 停止插件进程         |
+| MAIN_RESTART_PLUGIN         | string | 重启插件进程         |
+| MAIN_RELOAD_PLUGIN          | string | 重载插件配置         |
+| MAIN_DELEGATE_PLUGIN        | string | 托管插件           |
+| MAIN_UNDELEGATE_PLUGIN      | string | 取消插件托管         |
+| MAIN_INSTALL_PLUGIN         | string | 安装插件           |
+| DEBUG_PLUGIN                | string | 调试插件           |
+| STOP_DEBUG_PLUGIN           | string | 停止调试插件         |
+| MAIN_INSTALL_PLUGIN         | string | 部署插件程序，下发并安装插件 |
+| MAIN_STOP_AND_DELETE_PLUGIN | string | 停用插件并删除订阅      |
+
+官方插件，是基于多配置的管理模式，安装、卸载、启用、停用等操作仅涉及到配置的增删 
+
+| 字段          | 类型     | 描述     |
+| ----------- | ------ | ------ |
+| INSTALL     | string | 下发插件配置 |
+| UNINSTALL   | string | 移除插件配置 |
+| PUSH_CONFIG | string | 下发插件配置 |
+| START       | string | 下发插件配置 |
+| STOP        | string | 移除插件配置 |
+
+非官方插件
+
+| 字段          | 类型     | 描述     |
+| ----------- | ------ | ------ |
+| INSTALL     | string | 部署插件   |
+| UNINSTALL   | string | 卸载插件   |
+| PUSH_CONFIG | string | 下发插件配置 |
+| START       | string | 启动插件进程 |
+| STOP        | string | 停止插件进程 |

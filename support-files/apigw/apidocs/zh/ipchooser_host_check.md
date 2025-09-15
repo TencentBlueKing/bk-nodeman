@@ -4,8 +4,6 @@
 
  ### 请求参数
 
- {{ common_args_desc }}
-
  #### 接口参数
 
 | 字段           | 类型     | <div style="width: 50pt">必选</div> | 描述                                        |
@@ -83,9 +81,52 @@
 
  #### response
 
- | 字段      | 类型     | 描述                         |
- | ------- | ------ | -------------------------- |
- | result  | bool   | 请求成功与否。true:请求成功；false请求失败 |
- | code    | int    | 错误编码。 0表示success，>0表示失败错误  |
- | message | string | 请求失败返回的错误信息                |
- | data    | object | 请求返回的数据                    |
+| 字段      | 类型     | 描述                         |
+| ------- |--------|----------------------------|
+| result  | bool   | 请求成功与否。true:请求成功；false请求失败 |
+| code    | int    | 错误编码。 0表示success，>0表示失败错误  |
+| message | string | 请求失败返回的错误信息                |
+| data    | array  | 请求返回的数据，见data定义            |
+
+#### data
+
+| 字段             | 类型     | 描述                     |
+|----------------|--------|------------------------|
+| meta           | object | 元数据，见 meta 定义          |
+| host_id        | int    | 主机ID                   |
+| agent_id       | string | AgentID                |
+| ip             | string | 内网IP                   |
+| ipv6           | string | 内网IPv6                 |
+| host_name      | string | 主机名称                   |
+| os_name        | string | 操作系统名称                 |
+| os_type        | string | 操作系统类型                 |
+| alive          | int    | Agent存活状态，1表示存活，0表示未存活 |
+| cloud_area     | object | 管控区域信息，见cloud_area定义   |
+| biz            | object | 业务信息，见biz定义            |
+| bk_host_id     | int    | 主机ID                   |
+| bk_biz_id      | int    | 业务ID                   |
+| bk_agent_id    | string | AgentID                |
+| bk_agent_alive | int    | Agent存活状态，1表示存活，0表示未存活 |
+| bk_cloud_id    | int    | 管控区域ID                 |
+
+#### meta
+
+| 字段          | 类型     | 描述 |
+|-------------|--------|----|
+| bk_biz_id   | int    | 业务 ID |
+| scope_type  | string | 资源范围类型 |
+| scope_id    | string | 资源范围ID |
+
+#### cloud_area
+
+| 字段       | 类型     | 描述     |
+|----------|--------|--------|
+| id       | int    | 管控区域ID |
+| name     | string | 管控区域名称 |
+
+#### biz
+
+| 字段       | 类型     | 描述   |
+|----------|--------|------|
+| id       | int    | 业务ID |
+| name     | string | 业务名称 |
