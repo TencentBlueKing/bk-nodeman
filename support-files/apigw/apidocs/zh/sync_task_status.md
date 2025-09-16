@@ -4,8 +4,6 @@
 
 ### 请求参数
 
-{{ common_args_desc }}
-
 #### 接口参数
 
 | 字段          | 类型     | <div style="width: 50pt">必选</div> | 描述     |

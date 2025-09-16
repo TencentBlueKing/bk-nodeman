@@ -4,8 +4,6 @@
 
 ### 请求参数
 
-{{ common_args_desc }}
-
 #### 接口参数
 
 | 字段            | 类型           | <div style="width: 50pt">必选</div> | 描述                 |
@@ -137,55 +135,55 @@
 
 #### response
 
-| 字段      | 类型           | 描述                         |
-| ------- | ------------ | -------------------------- |
-| result  | bool         | 请求成功与否。true:请求成功；false请求失败 |
-| code    | int          | 错误编码。 0表示success，>0表示失败错误  |
-| message | string       | 请求失败返回的错误信息                |
-| data    | array | 请求返回的数据，见data定义            |
+| 字段      | 类型     | 描述                         |
+| ------- |--------| -------------------------- |
+| result  | bool   | 请求成功与否。true:请求成功；false请求失败 |
+| code    | int    | 错误编码。 0表示success，>0表示失败错误  |
+| message | string | 请求失败返回的错误信息                |
+| data    | object | 请求返回的数据，见data定义            |
 
 #### data
 
-| 字段                  | 类型      | <div style="width: 50pt">必选</div> | 描述                           |
-| ------------------- |---------| --------------------------------- |------------------------------|
-| total               | int     | 否                                 | 主机总数                         |
-| list                | array   | 否                                 | 汇总后的主机信息，见list定义             |
-| running_count       | int     | 否                                 | 正在运行机器的数量                    |
-| no_permission_count | int     | 否                                 | 没有操作权限的主机数量                  |
-| manual_statistics   | array   | 否                                 | 手动安装主机统计，true 为手动安装，false则不是 |
+| 字段                  | 类型      | 描述                           |
+| ------------------- |---------|------------------------------|
+| total               | int     | 主机总数                         |
+| list                | array   | 汇总后的主机信息，见list定义             |
+| running_count       | int     | 正在运行机器的数量                    |
+| no_permission_count | int     | 没有操作权限的主机数量                  |
+| manual_statistics   | array   | 手动安装主机统计，true 为手动安装，false则不是 |
 
 ##### list
 
-| 字段                   | 类型           | <div style="width: 50pt">必选</div> | 描述                                     |
-| -------------------- | ------------ | --------------------------------- | -------------------------------------- |
-| bk_cloud_id          | int          | 是                                 | 管控区域ID                                  |
-| bk_biz_id            | int          | 是                                 | 业务ID                                   |
-| bk_host_id           | int          | 是                                 | 主机ID                                   |
-| bk_host_name         | string       | 是                                 | 主机名                                    |
-| bk_addressing        | int          | 是                                 | 寻址方式，1: 0，静态 2: 1，动态                   |
-| os_type              | string       | 是                                 | 操作系统，1：LINUX 2：WINDOWS 3：AIX 4：SOLARIS |
-| inner_ip             | string       | 是                                 | 内网IPv4地址                               |
-| inner_ipv6           | string       | 否                                 | 内网IPv6地址                               |
-| outer_ip             | string       | 否                                 | 外网IPv4地址                               |
-| outer_ipv6           | string       | 否                                 | 外网IPv6地址                               |
-| ap_id                | int          | 是                                 | 接入点ID                                  |
-| install_channel_id   | int          | 否                                 | 安装通道ID                                 |
-| login_ip             | string       | 是                                 | 登录IP                                   |
-| data_ip              | string       | 是                                 | 数据IP                                   |
-| status               | string       | 是                                 | 运行状态，见status定义                         |
-| version              | string       | 是                                 | Agent版本                                |
-| created_at           | string       | 是                                 | 创建时间                                   |
-| updated_at           | string       | 是                                 | 更新时间                                   |
-| is_manual            | bool         | 是                                 | 是否手动模式                                 |
-| extra_data           | string array | 是                                 | 额外信息，见extra_data定义                     |
-| status_display       | string       | 否                                 | 运行执行状态名称，见status定义                     |
-| bk_cloud_name        | string       | 否                                 | 管控区域名称                                  |
-| install_channel_name | string       | 否                                 | 安装通道名称                                 |
-| bk_biz_name          | string       | 否                                 | 业务名称                                   |
-| identity_info        | object       | 否                                 | 鉴权信息                                   |
-| job_result           | object       | 否                                 | 执行任务结果，见job_result定义                   |
-| topology             | string array | 否                                 | 拓扑信息                                   |
-| operate_permission   | bool         | 否                                 | 是否具有操作权限                               |
+| 字段                   | 类型           | 描述                                   |
+| -------------------- | ------------ |--------------------------------------|
+| bk_cloud_id          | int          | 管控区域ID                                  |
+| bk_biz_id            | int          | 业务ID                                   |
+| bk_host_id           | int          | 主机ID                                   |
+| bk_host_name         | string       | 主机名                                    |
+| bk_addressing        | int          | 寻址方式，1: 0，静态 2: 1，动态                   |
+| os_type              | string       | 操作系统，1：LINUX 2：WINDOWS 3：AIX 4：SOLARIS |
+| inner_ip             | string       | 内网IPv4地址                               |
+| inner_ipv6           | string       | 内网IPv6地址                               |
+| outer_ip             | string       | 外网IPv4地址                               |
+| outer_ipv6           | string       | 外网IPv6地址                               |
+| ap_id                | int          | 接入点ID                                  |
+| install_channel_id   | int          | 安装通道ID                                 |
+| login_ip             | string       | 登录IP                                   |
+| data_ip              | string       | 数据IP                                   |
+| status               | string       | 运行状态，见status定义                         |
+| version              | string       | Agent版本                                |
+| created_at           | string       | 创建时间                                   |
+| updated_at           | string       | 更新时间                                   |
+| is_manual            | bool         | 是否手动模式                                 |
+| extra_data           | string array | 额外信息，见extra_data定义                     |
+| status_display       | string       | 运行执行状态名称，见status定义                     |
+| bk_cloud_name        | string       | 管控区域名称                                  |
+| install_channel_name | string       | 安装通道名称                                 |
+| bk_biz_name          | string       | 业务名称                                   |
+| identity_info        | object       | 鉴权信息                                   |
+| job_result           | object       | 执行任务结果，见job_result定义                   |
+| topology             | string array | 拓扑信息                                   |
+| operate_permission   | bool         | 是否具有操作权限                               |
 
 ##### status
 
@@ -201,20 +199,20 @@
 
 ##### extra_data
 
-| 字段                             | 类型  | <div style="width: 50pt">必选</div> | 描述                 |
-| ------------------------------ | --- | --------------------------------- | ------------------ |
-| bt_speed_limit                 | int | 否                                 | bt传输限制速度值，单位M/s    |
-| peer_exchange_switch_for_agent | int | 否                                 | bt传输开关，1: 开启 0: 关闭 |
-| enable_compression             | bool| 否                                 | 数据压缩开关, 默认并闭 |
+| 字段                             | 类型    |  描述                 |
+| ------------------------------ |-------| ------------------ |
+| bt_speed_limit                 | int   | bt传输限制速度值，单位M/s    |
+| peer_exchange_switch_for_agent | int   | bt传输开关，1: 开启 0: 关闭 |
+| enable_compression             | bool  | 数据压缩开关, 默认并闭 |
 
 ##### job_result
 
-| 字段           | 类型     | <div style="width: 50pt">必选</div> | 描述                 |
-| ------------ | ------ | --------------------------------- | ------------------ |
-| instance_id  | string | 否                                 | 实例ID               |
-| job_id       | int    | 否                                 | 作业ID               |
-| status       | string | 否                                 | 执行状态，见job_status定义 |
-| current_step | string | 否                                 | 当前步骤名称             |
+| 字段           | 类型     | 描述                 |
+| ------------ | ------ | ------------------ |
+| instance_id  | string | 实例ID               |
+| job_id       | int    | 作业ID               |
+| status       | string | 执行状态，见job_status定义 |
+| current_step | string | 当前步骤名称             |
 
 ##### job_status
 

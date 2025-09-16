@@ -4,15 +4,13 @@
 
 ### 请求参数
 
-{{ common_args_desc }}
-
 #### 接口参数
 
-| 字段               | 类型   | <div style="width: 50pt">必选</div> | 描述         |
-| ---------------- | ---- | --------------------------------- | ---------- |
-| subscription_id  | int  | 是                                 | 订阅ID       |
-| show_task_detail | bool | 否                                 | 展示任务详细信息   |
-| need_detail      | bool | 否                                 | 展示实例主机详细信息 |
+| 字段                    | 类型        | <div style="width: 50pt">必选</div> | 描述         |
+|-----------------------|-----------| --------------------------------- | ---------- |
+| subscription_id_list  | int array | 是                                 | 订阅ID       |
+| show_task_detail      | bool      | 否                                 | 展示任务详细信息   |
+| need_detail           | bool      | 否                                 | 展示实例主机详细信息 |
 
 ### 请求参数示例
 
@@ -224,30 +222,30 @@
 #### response
 
 | 字段      | 类型     | 描述                         |
-| ------- | ------ | -------------------------- |
+| ------- |--------| -------------------------- |
 | result  | bool   | 请求成功与否。true:请求成功；false请求失败 |
 | code    | int    | 错误编码。 0表示success，>0表示失败错误  |
 | message | string | 请求失败返回的错误信息                |
-| data    | object | 请求返回的数据，见data定义            |
+| data    | array  | 请求返回的数据，见data定义            |
 
 #### data
 
-| 字段              | 类型     | 描述                    |
-| --------------- | ------ | --------------------- |
-| subscription_id | int    | 订阅ID                  |
-| instances       | object | 主机实例信息列表，见instances定义 |
+| 字段              | 类型    | 描述                    |
+| --------------- |-------| --------------------- |
+| subscription_id | int   | 订阅ID                  |
+| instances       | array | 主机实例信息列表，见instances定义 |
 
 ##### instances
 
-| 字段            | 类型     | <div style="width: 50pt">必选</div> | 描述                             |
-| ------------- | ------ | --------------------------------- | ------------------------------ |
-| instance_id   | string | 是                                 | 实例ID                           |
-| status        | string | 是                                 | 执行状态，见status 定义                |
-| create_time   | string | 否                                 | 创建时间                           |
-| host_statuses | object | 是                                 | 主机状态，见host_status定义            |
-| instance_info | object | 是                                 |                                |
-| running_task  | object | 是                                 | 正在运行中的订阅执行任务信息，见running_task定义 |
-| last_task     | object | 是                                 | 最后一个订阅执行任务，见last_task定义        |
+| 字段            | 类型     | 描述                             |
+| ------------- | ------ |--------------------------------|
+| instance_id   | string | 实例ID                           |
+| status        | string | 执行状态，见status 定义                |
+| create_time   | string | 创建时间                           |
+| host_statuses | object | 主机状态，见host_status定义            |
+| instance_info | object | 主机实例信息，见instance_info定义        |
+| running_task  | object | 正在运行中的订阅执行任务信息，见running_task定义 |
+| last_task     | object | 最后一个订阅执行任务，见last_task定义        |
 
 ##### status
 
@@ -265,44 +263,44 @@
 
 ##### host_statuses
 
-| 字段       | 类型     | <div style="width: 50pt">必选</div> | 描述                  |
-| -------- | ------ | --------------------------------- | ------------------- |
-| name     | string | 否                                 | 进程名称                |
-| status   | string | 否                                 | 进程状态，见proc_status定义 |
-| version  | string | 否                                 | 版本号                 |
-| group_id | int    | 否                                 | 插件组ID               |
+| 字段       | 类型     | 描述                  |
+| -------- | ------ | ------------------- |
+| name     | string | 进程名称                |
+| status   | string | 进程状态，见proc_status定义 |
+| version  | string | 版本号                 |
+| group_id | int    | 插件组ID               |
 
 ##### instance_info
 
 当need_detail参数为True时，展示信息将包括但不限于以下字段
 
-| 字段      | 类型     | <div style="width: 50pt">必选</div> | 描述                |
-| ------- | ------ | --------------------------------- | ----------------- |
-| host    | object | 否                                 | 主机信息，见host定义      |
-| service | object | 否                                 | 服务实例信息，见service定义 |
+| 字段      | 类型     | 描述                |
+| ------- | ------ | ----------------- |
+| host    | object | 主机信息，见host定义      |
+| service | object | 服务实例信息，见service定义 |
 
 ##### host
 
-| 字段                  | 类型     | <div style="width: 50pt">必选</div> | 描述         |
-| ------------------- | ------ | --------------------------------- | ---------- |
-| bk_biz_id           | int    | 否                                 | 蓝鲸业务ID     |
-| bk_host_innerip_v6  | string | 否                                 | 主机IPV6内网地址 |
-| bk_host_innerip     | string | 否                                 | 主机IPV4内网地址 |
-| bk_cloud_id         | int    | 否                                 | 管控区域ID      |
-| bk_supplier_account | int    | 否                                 | 服务商ID      |
-| bk_host_name        | string | 否                                 | 主机名        |
-| bk_host_id          | int    | 否                                 | 主机ID       |
-| bk_biz_name         | string | 否                                 | 业务名称       |
-| bk_cloud_name       | string | 否                                 | 管控区域名称      |
+| 字段                  | 类型     | 描述         |
+| ------------------- | ------ |------------|
+| bk_biz_id           | int    | 蓝鲸业务ID     |
+| bk_host_innerip_v6  | string | 主机IPV6内网地址 |
+| bk_host_innerip     | string | 主机IPV4内网地址 |
+| bk_cloud_id         | int    | 管控区域ID     |
+| bk_supplier_account | int    | 服务商ID      |
+| bk_host_name        | string | 主机名        |
+| bk_host_id          | int    | 主机ID       |
+| bk_biz_name         | string | 业务名称       |
+| bk_cloud_name       | string | 管控区域名称     |
 
 ##### service
 
-| 字段           | 类型     | <div style="width: 50pt">必选</div> | 描述     |
-| ------------ | ------ | --------------------------------- | ------ |
-| id           | int    | 否                                 | 服务实例ID |
-| name         | string | 否                                 | 服务实例名称 |
-| bk_module_id | int    | 否                                 | 模块ID   |
-| bk_host_id   | int    | 否                                 | 主机ID   |
+| 字段           | 类型     | 描述     |
+| ------------ | ------ | ------ |
+| id           | int    | 服务实例ID |
+| name         | string | 服务实例名称 |
+| bk_module_id | int    | 模块ID   |
+| bk_host_id   | int    | 主机ID   |
 
 ##### proc_status
 
@@ -318,19 +316,19 @@
 
 ##### running_task
 
-| 字段              | 类型   | <div style="width: 50pt">必选</div> | 描述       |
-| --------------- | ---- | --------------------------------- | -------- |
-| id              | int  | 是                                 | 订阅执行任务ID |
-| is_auto_trigger | bool | 是                                 | 是否为自动触发  |
+| 字段              | 类型   | 描述       |
+| --------------- | ---- | -------- |
+| id              | int  | 订阅执行任务ID |
+| is_auto_trigger | bool | 是否为自动触发  |
 
 ##### last_task
 
-| 字段          | 类型     | <div style="width: 50pt">必选</div> | 描述        |
-| ----------- | ------ | --------------------------------- | --------- |
-| id          | int    | 是                                 | 订阅执行任务ID  |
-| record_id   | int    | 否                                 | 记录ID      |
-| create_time |        | 否                                 | 创建时间      |
-| pipeline_id | int    | 否                                 | 订阅执行流水线ID |
-| finish_time | int    | 否                                 | 结束时间      |
-| steps       | array  | 否                                 | 订阅执行步骤    |
-| status      | string | 否                                 | 执行状态      |
+| 字段          | 类型     | 描述        |
+| ----------- | ------ | --------- |
+| id          | int    | 订阅执行任务ID  |
+| record_id   | int    | 记录ID      |
+| create_time |        | 创建时间      |
+| pipeline_id | int    | 订阅执行流水线ID |
+| finish_time | int    | 结束时间      |
+| steps       | array  | 订阅执行步骤    |
+| status      | string | 执行状态      |

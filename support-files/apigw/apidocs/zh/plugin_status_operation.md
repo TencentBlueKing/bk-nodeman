@@ -4,8 +4,6 @@
 
 ### 请求参数
 
-{{ common_args_desc }}
-
 #### 接口参数
 
 | 字段           | 类型        | <div style="width: 50pt">必选</div> | 描述    |
@@ -45,3 +43,8 @@
 | message | string | 请求失败返回的错误信息                |
 | data    | object | 请求返回的数据，见data定义            |
 
+#### data
+
+| 字段   | 类型        | 描述          |
+|------|-----------|-------------|
+| data | int array | 操作成功的插件id列表 |

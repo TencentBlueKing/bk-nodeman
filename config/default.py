@@ -107,7 +107,8 @@ MIDDLEWARE = (
     # Auth middleware
     # 'blueapps.account.middlewares.WeixinLoginRequiredMiddleware',
     # "blueapps.account.middlewares.BkJwtLoginRequiredMiddleware",
-    "blueapps.account.middlewares.LoginRequiredMiddleware",
+    # "blueapps.account.middlewares.LoginRequiredMiddleware",
+    "apps.middlewares.CustomLoginRequiredMiddleware",
     "apps.middlewares.ApiGatewayForceVerifyMiddleware",
     "apigw_manager.apigw.authentication.ApiGatewayJWTGenericMiddleware",  # JWT 认证
     "apigw_manager.apigw.authentication.ApiGatewayJWTAppMiddleware",  # JWT 透传的应用信息

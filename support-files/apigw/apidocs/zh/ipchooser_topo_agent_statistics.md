@@ -4,20 +4,18 @@
 
 ### 请求参数
 
-{{ common_args_desc }}
-
 #### 接口参数
 
-| 字段               | 类型     | <div style="width: 50pt">必选</div> | 描述                        |
-|------------------|--------| --------------------------------- |---------------------------|
-| node_list        | array  | 是                                 | 主机列表，见 node_list 定义       | 
-| search_limit     | object | 否                                 | 检索范围限制，见search_limit定义 |
-| search_condition | object | 否                                 | 搜索条件，见search_condition定义  |
-| search_content   | string | 否                                 | 模糊搜索内容                    |
-| conditions       | array  | 否                                 | 搜索条件                      |
-| start            | int    | 否                                 | 数据起始位置，默认为0               |
-| page_size        | int    | 否                                 | 拉取数据数量，不传或传 `-1` 表示拉取所有   |
-| action           | string | 否                                 | 权限类型，见 action 定义          |
+| 字段               | 类型     | <div style="width: 50pt">必选</div> | 描述                               |
+|------------------|--------| --------------------------------- |----------------------------------|
+| node_list        | array  | 是                                 | 节点列表，见 node_list 定义              | 
+| search_limit     | object | 否                                 | 检索范围限制，见search_limit定义           |
+| search_condition | object | 否                                 | 搜索条件，见search_condition定义         |
+| search_content   | string | 否                                 | 模糊搜索内容                           |
+| conditions       | array  | 否                                 | 搜索条件                             |
+| start            | int    | 否                                 | 数据起始位置，默认为0                      |
+| page_size        | int    | 否                                 | 拉取数据数量，不传或传 `-1` 表示拉取所有          |
+| action           | string | 否                                 | 权限类型，默认为`agent_view`，见 action 定义 |
 
 ##### node_list
 
@@ -148,8 +146,39 @@
 #### response
 
 | 字段      | 类型     | 描述                         |
-| ------- | ------ | -------------------------- |
+| ------- |--------| -------------------------- |
 | result  | bool   | 请求成功与否。true:请求成功；false请求失败 |
 | code    | int    | 错误编码。 0表示success，>0表示失败错误  |
 | message | string | 请求失败返回的错误信息                |
-| data    | object | 请求返回的数据，见data定义            |
+| data    | array  | 请求返回的数据，见data定义            |
+
+#### data
+
+| 字段               | 类型      | 描述                            |
+|------------------|---------|-------------------------------|
+| agent_statistics | object  | agent状态统计，见agent_statistics定义 |
+| node             | object  | 节点信息，见node定义                  |
+
+##### agent_statistics
+
+| 字段              | 类型   | 描述          |
+|-----------------|------|-------------|
+| total_count     | int  | agent总数量    |
+| alive_count     | int  | 存活的agent数量  |
+| not_alive_count | int  | 不存活的agent数量 |
+
+##### node
+
+| 字段          | 类型     | 描述              |
+|-------------|--------|-----------------|
+| object_id   | string | 节点类型ID          |
+| instance_id | int    | 实例ID            |
+| meta        | object | 元数据，见 meta 定义   |
+
+#### meta
+
+| 字段          | 类型     | 描述     |
+|-------------|--------|--------|
+| bk_biz_id   | int    | 业务ID   |
+| scope_type  | string | 资源范围类型 |
+| scope_id    | string | 资源范围ID |

@@ -4,8 +4,6 @@
 
 ### 请求参数
 
-{{ common_args_desc }}
-
 #### 接口参数
 
 | 字段            | 类型     | <div style="width: 50pt">必选</div> | 描述         |
@@ -80,23 +78,23 @@
 
 #### response
 
-| 字段      | 类型           | 描述                         |
-| ------- | ------------ | -------------------------- |
-| result  | bool         | 请求成功与否。true:请求成功；false请求失败 |
-| code    | int          | 错误编码。 0表示success，>0表示失败错误  |
-| message | string       | 请求失败返回的错误信息                |
-| data    | array | 请求返回的数据，见data定义            |
+| 字段      | 类型     | 描述                         |
+| ------- |--------| -------------------------- |
+| result  | bool   | 请求成功与否。true:请求成功；false请求失败 |
+| code    | int    | 错误编码。 0表示success，>0表示失败错误  |
+| message | string | 请求失败返回的错误信息                |
+| data    | object | 请求返回的数据，见data定义            |
 
 #### data
 
-| 字段              | 类型     | <div style="width: 50pt">必选</div> | 描述                    |
-|-----------------|--------| --------------------------------- |-----------------------|
-| id              | int    | 是                                 | 插件ID                  |
-| description     | string | 是                                 | 插件描述                  |
-| scenario        | string | 是                                 | 使用场景                  |
-| name            | string | 是                                 | 插件名称                  |
-| category        | string | 是                                 | 插件类型                  |
-| source_app_code | string | 否                                 | 来源系统app code                  |
-| deploy_type     | string | 否                                 | 部署方式             |
-| is_ready        | bool   | 否                                 | 是否启用插件                 |
+| 字段              | 类型     | 描述           |
+|-----------------|--------|--------------|
+| id              | int    | 插件ID         |
+| description     | string | 插件描述         |
+| scenario        | string | 使用场景         |
+| name            | string | 插件名称         |
+| category        | string | 插件类型         |
+| source_app_code | string | 来源系统app code |
+| deploy_type     | string | 部署方式         |
+| is_ready        | bool   | 是否启用插件       |
 

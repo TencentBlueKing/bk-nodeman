@@ -4,8 +4,6 @@
 
 ### 请求参数
 
-{{ common_args_desc }}
-
 #### 接口参数
 
 | 字段          | 类型   | <div style="width: 50pt">必选</div> | 描述         |
@@ -20,7 +18,7 @@
 }
 ```
 
-### 返回结果示例Ï
+### 返回结果示例
 
 ```json
 {
@@ -91,19 +89,19 @@
 
 #### data
 
-| 字段               | 类型           | <div style="width: 50pt">必选</div> | 描述                                |
-| ---------------- | ------------ | --------------------------------- | --------------------------------- |
-| id               | int          | 是                                 | 安装通道ID                            |
-| name             | string       | 是                                 | 安装通道名称                            |
-| bk_cloud_id      | int          | 是                                 | 安装通道管控区域 ID                       |
-| jump_servers     | string array | 是                                 | 安装通道跳板机 IP                        |
-| upstream_servers | object       | 是                                 | 安装通道上游 GSE 地址，见 stream_servers 定义 |
-| hidden           | bool         | 是                                 | 是否为隐藏安装通道                         |
+| 字段               | 类型           | 描述                                |
+|------------------|--------------|-----------------------------------|
+| id               | int          | 安装通道ID                            |
+| name             | string       | 安装通道名称                            |
+| bk_cloud_id      | int          | 安装通道管控区域 ID                       |
+| jump_servers     | string array | 安装通道跳板机 IP                        |
+| upstream_servers | object       | 安装通道上游 GSE 地址，见 stream_servers 定义 |
+| hidden           | bool         | 是否为隐藏安装通道                         |
 
 ##### upstream_servers
 
-| 字段           | 类型           | <div style="width: 50pt">必选</div> | 描述            |
-| ------------ | ------------ | --------------------------------- | ------------- |
-| dataserver   | string array | 是                                 | GSE 数据服务器列表   |
-| taskserver   | string array | 是                                 | GSE 任务服务器列表   |
-| btfileserver | string array | 是                                 | GSE BT文件服务器列表 |
+| 字段            | 类型             | 描述              |
+|---------------|----------------|-----------------|
+| dataserver    | string array   | 数据服务器列表         |
+| taskserver    | string array   | GSE 任务服务器列表     |
+| btfileserver  | string array   | GSE BT文件服务器列表   |

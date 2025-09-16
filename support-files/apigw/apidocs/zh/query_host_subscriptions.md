@@ -4,8 +4,6 @@
 
 ### 请求参数
 
-{{ common_args_desc }}
-
 #### 接口参数
 
 | 字段              | 类型          | <div style="width: 50pt">必选</div> | 描述                                            |
@@ -50,23 +48,23 @@
 
 #### response
 
-| 字段      | 类型           | 描述                         |
-| ------- | ------------ | -------------------------- |
-| result  | bool         | 请求成功与否。true:请求成功；false请求失败 |
-| code    | int          | 错误编码。 0表示success，>0表示失败错误  |
-| message | string       | 请求失败返回的错误信息                |
-| data    | array | 请求返回的数据，见data定义            |
+| 字段      | 类型      | 描述                         |
+| ------- |---------| -------------------------- |
+| result  | bool    | 请求成功与否。true:请求成功；false请求失败 |
+| code    | int     | 错误编码。 0表示success，>0表示失败错误  |
+| message | string  | 请求失败返回的错误信息                |
+| data    | array   | 请求返回的数据，见data定义            |
 
 #### data
 
-| 字段          | 类型     | <div style="width: 50pt">必选</div> | 描述             |
-|-------------|--------| --------------------------------- |----------------|
-| id          | int    | 是                                 | 进程ID           |
-| source_type | string | 是                                 | 来源类型           |
-| source_id   | string | 是                                 | 来源ID           |
-| name        | string | 是                                 | 插件名称           |
-| version     | string | 是                                 | 插件版本           |
-| status      | string | 否                                 | 进程状态，见status定义 |
+| 字段          | 类型     | 描述             |
+|-------------|--------| ----------------|
+| id          | int    | 进程ID           |
+| source_type | string | 来源类型           |
+| source_id   | string | 来源ID           |
+| name        | string | 插件名称           |
+| version     | string | 插件版本           |
+| status      | string | 进程状态，见status定义 |
 
 ##### status
 

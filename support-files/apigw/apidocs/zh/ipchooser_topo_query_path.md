@@ -4,14 +4,12 @@
 
 ### 请求参数
 
-{{ common_args_desc }}
-
 #### 接口参数
 
 | 字段               | 类型     | <div style="width: 50pt">必选</div> | 描述                        |
 |------------------|--------| --------------------------------- |---------------------------|
-| node_list        | array  | 是                                 | 主机列表，见 node_list 定义       |
-| action           | string | 否                                 | 权限类型，见 action 定义          |
+| node_list        | array  | 是                                 | 节点列表，见 node_list 定义       |
+| action           | string | 否                                 | 权限类型，默认为`agent_view`，见 action 定义          |
 
 ##### node_list
 
@@ -113,26 +111,26 @@
 #### response
 
 | 字段      | 类型     | 描述                         |
-| ------- | ------ | -------------------------- |
+| ------- |--------| -------------------------- |
 | result  | bool   | 请求成功与否。true:请求成功；false请求失败 |
 | code    | int    | 错误编码。 0表示success，>0表示失败错误  |
 | message | string | 请求失败返回的错误信息                |
-| data    | object | 请求返回的数据，见data定义            |
+| data    | array  | 请求返回的数据，见data定义            |
  
 #### data
 
-| 字段            | 类型     | <div style="width: 50pt">必选</div> | 描述          |
-|---------------|--------| --------------------------------- |-------------|
-| meta          | object | 是                                 | 元数据，见meta定义 |
-| object_id     | string | 是                                 | 节点类型ID      |
-| object_name   | string | 是                                 | 节点类型名称      |
-| instance_id   | int    | 是                                 | 节点实例ID      |
-| instance_name | string | 是                                 | 节点实例名称      |
+| 字段            | 类型     | 描述          |
+|---------------|--------|-------------|
+| meta          | object | 元数据，见meta定义 |
+| object_id     | string | 节点类型ID      |
+| object_name   | string | 节点类型名称      |
+| instance_id   | int    | 节点实例ID      |
+| instance_name | string | 节点实例名称      |
 
 ###### meta
 
-| 字段          | 类型     | <div style="width: 50pt">必选</div> | 描述 |
-|-------------|--------|-----------------------------------|----|
-| bk_biz_id   | int    | 否                                 |业务 ID |
-| scope_type  | string | 是                                 |资源范围类型 |
-| scope_id    | string | 是                                 |资源范围ID |
+| 字段          | 类型     | 描述       |
+|-------------|--------|----------|
+| bk_biz_id   | int    | 业务 ID    |
+| scope_type  | string | 资源范围类型   |
+| scope_id    | string | 资源范围ID   |

@@ -4,8 +4,6 @@
 
 ### 请求参数
 
-{{ common_args_desc }}
-
 #### 接口参数
 
 | 字段      | 类型     | <div style="width: 50pt">必选</div> | 描述   |
@@ -66,9 +64,28 @@
 
 #### response
 
-| 字段      | 类型           | 描述                         |
-| ------- | ------------ | -------------------------- |
-| result  | bool         | 请求成功与否。true:请求成功；false请求失败 |
-| code    | int          | 错误编码。 0表示success，>0表示失败错误  |
-| message | string       | 请求失败返回的错误信息                |
-| data    | array | 请求返回的数据，见data定义            |
+| 字段      | 类型     | 描述                         |
+| ------- |--------| -------------------------- |
+| result  | bool   | 请求成功与否。true:请求成功；false请求失败 |
+| code    | int    | 错误编码。 0表示success，>0表示失败错误  |
+| message | string | 请求失败返回的错误信息                |
+| data    | array  | 请求返回的数据，见data定义            |
+
+#### data
+
+| 字段                 | 类型     | 描述     |
+|--------------------|--------|--------|
+| id                 | int    | 插件包id  |
+| pkg_name           | string | 压缩包名   |
+| version            | string | 插件版本   |
+| module             | string | 订阅任务名称 |
+| project            | string | 工程名    |
+| pkg_size           | string | 插件包大小  |
+| pkg_path           | string | 包路径    |
+| md5                | string | md5值   |
+| pkg_mtime          | string | 包更新时间  |
+| pkg_ctime          | string | 包创建时间  |
+| location           | string | 安装包链接  |
+| os                 | string | 操作系统   |
+| cpu_arch           | string | cpu架构  |
+
