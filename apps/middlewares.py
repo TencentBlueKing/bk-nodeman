@@ -16,8 +16,12 @@ import os
 import traceback
 
 from apigw_manager.apigw.authentication import ApiGatewayJWTUserMiddleware
+from blueapps.account.conf import ConfFixture
+from blueapps.account.middlewares import LoginRequiredMiddleware
 from blueapps.account.models import User
 from blueapps.core.exceptions.base import BlueException
+from django.contrib import auth
+from django.core.cache import cache
 
 from apps.utils.env import get_type_env
 
@@ -291,3 +295,47 @@ class ApiGatewayForceVerifyMiddleware(MiddlewareMixin):
                     "result": False,
                 }
             )
+
+
+class CustomLoginRequiredMiddleware(LoginRequiredMiddleware):
+    def authenticate(self, request):
+        middleware_path = ConfFixture.LOGIN_REQUIRED_MIDDLEWARE
+        if "bk_token" in middleware_path:
+            from blueapps.account.components.bk_token.forms import AuthenticationForm
+
+            credential_name = "bk_token"
+        elif "bk_ticket" in middleware_path:
+            from blueapps.account.components.bk_ticket.forms import AuthenticationForm
+
+            credential_name = "bk_ticket"
+        elif "ptlogin" in middleware_path:
+            from blueapps.account.components.ptlogin.forms import AuthenticationForm
+
+            credential_name = "ptlogin"
+        else:
+            return None
+
+        form = AuthenticationForm(request.COOKIES)
+        if not form.is_valid():
+            return None
+
+        credential_value = form.cleaned_data[credential_name]
+        session_key = request.session.session_key
+        # 确认 cookie 中的 ticket 和 cache 中的是否一致
+        if session_key:
+            cache_session = cache.get(session_key)
+            is_match = cache_session and credential_value == cache_session.get(credential_name)
+            if is_match and request.user.is_authenticated:
+                return request.user
+
+        user = auth.authenticate(request=request, **{credential_name: credential_value})
+        if user is not None and user.username != request.user.username:
+            auth.login(request, user)
+            # 确保 session_key 存在
+            session_key = request.session.session_key or request.session.create()
+
+        if user is not None and request.user.is_authenticated:
+            # 登录成功，重新调用自身函数，即可退出
+            cache.set(session_key, {credential_name: credential_value}, settings.LOGIN_CACHE_EXPIRED)
+            return self.authenticate(request)
+        return user
