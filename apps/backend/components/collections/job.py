@@ -119,7 +119,23 @@ class JobV3BaseService(six.with_metaclass(abc.ABCMeta, BaseService)):
 
         if not host_interaction_data_list:
             return []
-        job_params["target_server"] = {host_interaction_from: list(set(host_interaction_data_list))}
+
+        # 去重
+        seen = set()
+        unique_host_list = []
+        for item in host_interaction_data_list:
+            if host_interaction_from == "ip_list":
+                key = (item["bk_cloud_id"], item["ip"])
+            elif host_interaction_from == "host_id_list":
+                key = item
+            else:
+                continue
+            if key not in seen:
+                seen.add(key)
+                unique_host_list.append(item)
+        host_interaction_data_list = unique_host_list
+
+        job_params["target_server"] = {host_interaction_from: host_interaction_data_list}
         # 补充作业平台通用参数
         if not job_params.get("os_type"):
             job_params["os_type"] = self.DEFAULT_OS_TYPE
