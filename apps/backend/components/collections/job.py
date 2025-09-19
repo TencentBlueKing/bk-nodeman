@@ -149,19 +149,25 @@ class JobV3BaseService(six.with_metaclass(abc.ABCMeta, BaseService)):
 
         account_set: set = set()
         for host in job_params["target_server"][host_interaction_from]:
-            if host_interaction_from == "host_id_list":
-                account = models.Host.objects.get(bk_host_id=host).identity.account
-                account_set.add(account)
-
             if host_interaction_from == "ip_list":
-                account = models.Host.objects.get(inner_ip=host["ip"]).identity.account
-                account_set.add(account)
+                target_host = models.Host.objects.get(inner_ip=host["ip"])
+            else:
+                target_host = models.Host.objects.get(bk_host_id=host)
+
+            if not target_host.ap.is_use_sudo:
+                account_set.add(target_host.identity.account)
 
         if len(account_set) > 1:
-            raise AppBaseException(_("目标机器账户不一致，请检查"))
+            raise AppBaseException(_("目标机器账户不一致 {account_set}，请检查").format(account_set=account_set))
+        elif len(account_set) == 0:
+            pass
+        else:
+            account_alias = account_set.pop()
 
-        account_alias = account_set.pop()
-
+        self.log_info(
+            subscription_instance_id,
+            _("当前使用 {account_alias} 账户执行任务").format(account_alias=account_alias),
+        )
         script_language = (constants.ScriptLanguageType.SHELL.value, constants.ScriptLanguageType.BAT.value)[
             os_type == constants.OsType.WINDOWS
         ]
