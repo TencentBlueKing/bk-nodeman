@@ -107,6 +107,8 @@ def _bulk_update_host(hosts, extra_fields):
         "bk_agent_id",
         "os_type",
         "dept_name",
+        "bk_idc_area_id",
+        "idc_city_id",
     ] + extra_fields
     if hosts:
         models.Host.objects.bulk_update(hosts, fields=update_fields)
