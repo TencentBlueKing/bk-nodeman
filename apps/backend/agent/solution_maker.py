@@ -14,6 +14,7 @@ import json
 import time
 import typing
 from pathlib import Path
+from urllib.parse import urlparse
 
 from bkcrypto.asymmetric.ciphers import BaseAsymmetricCipher
 from bkcrypto.constants import AsymmetricCipherType
@@ -31,6 +32,7 @@ from apps.core.script_manage.data import JUMP_SERVER_POLICY_SCRIPT_INFO
 from apps.node_man import constants, models
 from apps.utils import basic
 from apps.utils.files import PathHandler
+from env.constants import GseVersion
 
 
 class ExecutionSolutionStepContent:
@@ -721,6 +723,15 @@ class BatchExecutionSolutionMaker(BaseExecutionSolutionMaker):
         # 1. 准备阶段：创建目录
         create_pre_dirs_step: ExecutionSolutionStep = self.get_create_pre_dirs_step()
 
+        if self.host_ap.gse_version == GseVersion.V1.value:
+            setup_agent_bat_path: str = self.script_file_name
+            web_download_package_url: typing.Optional[str] = settings.BK_NODEMAN_HOST + "/tools/download/?file_name="
+        else:
+            setup_agent_bat_path: str = f"{self.agent_setup_info.agent_tools_relative_dir}/{self.script_file_name}"
+            web_download_package_url: typing.Optional[str] = (
+                settings.BKREPO_ENDPOINT_URL + urlparse(self.host_ap.package_inner_url).path + "/"
+            )
+
         # 2. 依赖下载
         dependencies_step: ExecutionSolutionStep = ExecutionSolutionStep(
             step_type=constants.CommonExecutionSolutionStepType.DEPENDENCIES.value,
@@ -728,7 +739,7 @@ class BatchExecutionSolutionMaker(BaseExecutionSolutionMaker):
             contents=[
                 ExecutionSolutionStepContent(
                     name=name,
-                    text=f"{self.gse_servers_info['package_url']}/{name}",
+                    text=f"{web_download_package_url}{name}",
                     description=str(description),
                     show_description=False,
                 )
@@ -739,7 +750,7 @@ class BatchExecutionSolutionMaker(BaseExecutionSolutionMaker):
         dependencies_step.contents.append(
             ExecutionSolutionStepContent(
                 name="setup_agent.bat",
-                text=f"{self.get_agent_tools_url(self.script_file_name)}",
+                text=f"{web_download_package_url}{setup_agent_bat_path}",
                 description="Install Scripts",
                 child_dir=self.agent_setup_info.agent_tools_relative_dir,
                 # 在云区域场景下需要实时更新
