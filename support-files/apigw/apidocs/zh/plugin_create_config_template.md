@@ -22,13 +22,13 @@
 
 ```json
 {
-    "plugin_name": "clb_traffic",
+    "plugin_name": "bkbscp",
     "plugin_version": "*",
     "name": "env.yaml",
     "file_path": "etc",
     "format": "yaml",
-    "content": "R1NFX0FHRU5UX0hPTUU6IHt7IGNvbnRyb2xfaW5mby5nc2VfYWdlbnRfaG9tZSB9fQpCS19QTFVHSU5fTE9HX1BBVEg",
-    "md5": "dab43f1b255a78e1d288783c62fcf1b",
+    "content": "R1NFX0FHRU5UX0hPTUU6IHt7IGNvbnRyb2xfaW5mby5nc2VfYWdlbnRfaG9tZSB9fQpCS19QTFVHSU5fTE9HX1BBVEg6IHt7IGNvbnRyb2xfaW5mby5sb2dfcGF0aCB9fQpCS19QTFVHSU5fUElEX1BBVEg6IHt7IGNvbnRyb2xfaW5mby5waWRfcGF0aCB9fQoKCgoKCgoKCgoKCgoKQktfQ01EX0FSR1M6IHt7IGNtZF9hcmdzIH19",
+    "md5": "dabd43f1b255a78e1d288783c62fcf1b",
     "version": "11",
     "is_release_version": false
 }

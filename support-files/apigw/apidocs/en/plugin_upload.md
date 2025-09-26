@@ -13,10 +13,13 @@ Upload file
 | module        | string  | No                                      | Module to which the plugin package belongs                                                                       |
 | download_url  | string  | No                                      | Publicly accessible URL from which the server can download the file directly. Required if not using file upload. |
 | file_path     | string  | No                                      | Local file path on the server (used internally). Either `download_url` or `file_path` must be provided.          |
+
+### Request Example
+
 ```json
 {
   "md5": "e86c07536ada151dd85ca533874e8883",
-  "filename": "bkmonitorbeat-2.0.48.tgz",
+  "file_name": "bkmonitorbeat-2.0.48.tgz",
   "download_url": "http://xxxx/bkmonitorbeat-2.0.48.tgz"
 }
 ```

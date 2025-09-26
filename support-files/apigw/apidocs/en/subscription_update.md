@@ -6,24 +6,25 @@ Update subscription
 
 #### Interface Parameters
 
-| Field            | Type       | <div style="width: 50pt">Required</div> | Description                                                                                  |
-|------------------|------------|-----------------------------------------|----------------------------------------------------------------------------------------------|
-| subscription_id  | int        | Yes                                     | Unique ID of the subscription to update                                                      |
-| name             | string     | No                                      | New name for the subscription                                                                |
-| scope            | object     | Yes                                     | Target scope of the subscription (e.g., host list, dynamic group). See `scope` definition    |
-| steps            | object     | Yes                                     | Execution actions to be performed when the subscription is triggered. See `steps` definition |
-| run_immediately  | bool       | No                                      | Whether to execute the subscription immediately after updating. Default: `false`             |
-| plugin_name      | string     | No                                      | Name of the plugin associated with the subscription                                          |
-| bk_biz_scope     | int array  | No                                      | List of business IDs that the subscription can operate within                       |
-| category         | string     | No                                      | Subscription category: `debug` (for testing), `once` (one-time execution)                    |
+| Field               | Type       | <div style="width: 50pt">Required</div> | Description                                                                                  |
+|---------------------|------------|-----------------------------------------|----------------------------------------------------------------------------------------------|
+| subscription_id     | int        | Yes                                     | Unique ID of the subscription to update                                                      |
+| name                | string     | No                                      | New name for the subscription                                                                |
+| scope               | object     | Yes                                     | Target scope of the subscription (e.g., host list, dynamic group). See `scope` definition    |
+| steps               | object     | Yes                                     | Execution actions to be performed when the subscription is triggered. See `steps` definition |
+| run_immediately     | bool       | No                                      | Whether to execute the subscription immediately after updating. Default: `false`             |
+| plugin_name         | string     | No                                      | Name of the plugin associated with the subscription                                          |
+| bk_biz_scope        | int array  | No                                      | List of business IDs that the subscription can operate within                                |
+| category            | string     | No                                      | Subscription category: `debug` (for testing), `once` (one-time execution)                    |
 
 #### steps
 
-| Field     | Type      | <div style="width: 50pt">Required</div> | Description                               |
-|-----------|-----------|-----------------------------------------|-------------------------------------------|
-| id        | string    | Yes                                     | Step identifier                           |
-| config    | object    | Yes                                     | Step configuration, see config definition |
-| params    | object    | Yes                                     | Step parameters, see params definition    |
+| Field  | Type      | <div style="width: 50pt">Required</div> | Description                               |
+|--------|-----------|-----------------------------------------|-------------------------------------------|
+| id     | string    | Yes                                     | Step identifier                           |
+| type   | string    | Yes                                     | Step type                                 |
+| config | object    | Yes                                     | Step configuration, see config definition |
+| params | object    | Yes                                     | Step parameters, see params definition    |
 
 #### scope
 
@@ -241,6 +242,7 @@ Non-Official plugins
     "steps": [
         {
             "id": "agent",
+            "type": "AGENT",
             "config": {
                 "job_type": "INSTALL_AGENT"
             },
@@ -261,7 +263,7 @@ Non-Official plugins
 {
     "result": true,
     "code": 0,
-    "message": "success",
+    "message": "",
     "data": {
         "subscription_id": 1,
         "task_id": 1

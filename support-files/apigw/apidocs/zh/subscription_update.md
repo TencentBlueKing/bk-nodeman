@@ -20,9 +20,10 @@
 #### steps
 
 | 字段     | 类型     | <div style="width: 50pt">必选</div> | 描述             |
-| ------ | ------ | --------------------------------- | -------------- |
+|--------| ------ | --------------------------------- |----------------|
 | id     | string | 是                                 | 步骤标识符          |
-| config | object | 否                                 | 步骤配置，见config定义 |
+| type   | string | 是                                 | 步骤类型           |
+| config | object | 是                                 | 步骤配置，见config定义 |
 | params | object | 是                                 | 步骤参数，见params定义 |
 
 #### scope
@@ -238,6 +239,7 @@ Plugin
     "steps": [
         {
             "id": "agent",
+            "type": "AGENT",
             "config": {
                 "job_type": "INSTALL_AGENT"
             },
@@ -258,7 +260,7 @@ Plugin
 {
     "result": true,
     "code": 0,
-    "message": "success",
+    "message": "",
     "data": {
         "subscription_id": 1,
         "task_id": 1

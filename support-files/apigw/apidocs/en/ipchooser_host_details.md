@@ -16,18 +16,19 @@ Get machine details based on host critical information
 
 ##### host_list
 
-| Field     | Type    | <div style="width: 50pt">Required</div> | Description                                                          |
-|-----------|---------|-----------------------------------------|----------------------------------------------------------------------|
-| host_id   | int     | No                                      | Host ID. host_id takes precedence; otherwise, ip + cloud_id is used. |
-| ip        | string  | No                                      | IPv4 address of the host                                             |
-| meta      | object  | No                                      | Metadata, see meta definition                                        |
+| Field    | Type    | <div style="width: 50pt">Required</div> | Description                                                                         |
+|----------|---------|-----------------------------------------|-------------------------------------------------------------------------------------|
+| host_id  | int     | No                                      | Host ID. Either `host_id` 和 (`ip`,`cloud_id`) must be provided..                    |
+| cloud_id | int     | No                                      | Cloud area ID. host_id takes precedence; otherwise, ip + cloud_id is used.          |
+| ip       | string  | No                                      | IPv4 address of the host. Either `host_id` 和 (`ip`,`cloud_id`) must be provided.    |
+| meta     | object  | Yes                                     | Metadata, see meta definition                                                       |
 
 ###### scope_list
 
 | Field          | Type     | <div style="width: 50pt">Required</div> | Description         |
 |----------------|----------|-----------------------------------------|---------------------|
 | scope_type     | string   | Yes                                     | Resource scope type |
-| scope_id       | string   | No                                      | Resource scope ID   |
+| scope_id       | string   | Yes                                     | Resource scope ID   |
 | bk_biz_id      | int      | No                                      | Business ID         |
 
 ###### action

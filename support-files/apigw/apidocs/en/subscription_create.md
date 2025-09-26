@@ -358,7 +358,7 @@ Non-Official plugins
 {
     "result": true,
     "code": 0,
-    "message": "success",
+    "message": "",
     "data": {
         "subscription_id": 1,
         "task_id": 1
