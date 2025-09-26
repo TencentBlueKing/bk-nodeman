@@ -6,15 +6,17 @@
 
 #### 接口参数
 
-| 字段      | 类型     | <div style="width: 50pt">必选</div> | 描述   |
-|---------|--------| --------------------------------- | ---- |
+| 字段      | 类型     | <div style="width: 50pt">必选</div> | 描述            |
+|---------|--------| --------------------------------- |---------------|
 | process | string | 是                                 | process为具体进程名 |
+| os      | string | 是                                 | 系统类型          |
 
 ### 请求参数示例
 
 ```json
 {
-    "process": "bkmonitorbeat"
+    "process": "bkmonitorbeat",
+    "os": "linux"
 }
 ```
 
