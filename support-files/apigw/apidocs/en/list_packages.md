@@ -6,15 +6,18 @@ Query the plugin package list
 
 #### Interface Parameters
 
-| Field     | Type     | <div style="width: 50pt">Required</div> | Description               |
-|-----------|----------|-----------------------------------------|---------------------------|
-| process   | string   | Yes                                     | Specific process name     |
+| Field    | Type     | <div style="width: 50pt">Required</div> | Description                                             |
+|----------|----------|-----------------------------------------|---------------------------------------------------------|
+| process  | string   | Yes                                     | Specific process name                                   |
+| os       | string   | Yes                                     | Operating System: `LINUX`, `WINDOWS`, `AIX`, `SOLARIS`  |
+
 
 ### Request Example
 
 ```json
 {
-    "process": "bkmonitorbeat"
+    "process": "bkmonitorbeat",
+    "os": "linux"
 }
 ```
 

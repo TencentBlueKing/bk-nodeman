@@ -7,10 +7,10 @@ Parse plugin package
 #### Interface Parameters
 
 | Field       | Type    | <div style="width: 50pt">Required</div> | Description                                                      |
-|-------------|---------|----------------------------------------|------------------------------------------------------------------|
-| file_name   | string  | Yes                                    | Name of the plugin package file to parse                         |
-| is_update   | string  | No                                     | Indicates if this is a validation check for an update (optional) |
-| project     | string  | No                                     | Project name associated with the package (optional)              |
+|-------------|---------|-----------------------------------------|------------------------------------------------------------------|
+| file_name   | string  | Yes                                     | Name of the plugin package file to parse                         |
+| is_update   | string  | No                                      | Indicates if this is a validation check for an update (optional) |
+| project     | string  | No                                      | Project name associated with the package (optional)              |
 
 ### Request Example
 
