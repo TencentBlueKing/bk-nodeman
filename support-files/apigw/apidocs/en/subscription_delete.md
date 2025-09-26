@@ -24,7 +24,7 @@
  {
      "result": true,
      "code": 0,
-     "message": "success",
+     "message": "",
      "data": null
  }
  ```

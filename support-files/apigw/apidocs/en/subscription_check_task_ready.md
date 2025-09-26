@@ -25,7 +25,7 @@ Check task ready
  {
      "result": true,
      "code": 0,
-     "message": "success",
+     "message": "",
      "data": true
  }
  ```

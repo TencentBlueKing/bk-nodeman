@@ -19,7 +19,7 @@
 ```json
 {
   "md5": "e86c07536ada151dd85ca533874e8883",
-  "filename": "bkmonitorbeat-2.0.48.tgz",
+  "file_name": "bkmonitorbeat-2.0.48.tgz",
   "download_url": "http://xxxx/bkmonitorbeat-2.0.48.tgz"
 }
 ```
