@@ -38,7 +38,7 @@ Constructed from host instance information within the scope by concatenating the
 {
     "result": true,
     "code": 0,
-    "message": "success",
+    "message": "",
     "data": null
 }
 ```

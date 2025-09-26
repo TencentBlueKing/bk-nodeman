@@ -32,7 +32,7 @@ Task execution result
 {
     "result": true,
     "code": 0,
-    "message": "success",
+    "message": "",
     "data": {
       "total": 1,
       "list": [

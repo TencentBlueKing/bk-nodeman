@@ -106,7 +106,7 @@ Plugin
 {
     "result": true,
     "code": 0,
-    "message": "success",
+    "message": "",
     "data": {
        "task_id": 415
     }

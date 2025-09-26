@@ -16,18 +16,19 @@
 
 ##### host_list
 
-| 字段      | 类型     | <div style="width: 50pt">必选</div> | 描述                                         |
-|---------|--------|-----------------------------------|--------------------------------------------|
-| host_id | int    | 否                                 | 主机 ID，优先取 `host_id`，否则取 `ip` + `cloud_id`" |
-| ip      | string | 否                                 | IPv4 协议下的主机IP                              |
-| meta    | object | 否                                 | 元数据，见 meta 定义                              |
+| 字段       | 类型     | <div style="width: 50pt">必选</div> | 描述                                        |
+|----------|--------|-----------------------------------|-------------------------------------------|
+| host_id  | int    | 否                                 | 主机 ID，`host_id` 和 `ip` + `cloud_id`至少有一个  |
+| cloud_id | int    | 否                                 | 管控区域 ID                                   |
+| ip       | string | 否                                 | 主机IP, `host_id` 和 `ip` + `cloud_id`至少有一个  |
+| meta     | object | 是                                 | 元数据，见 meta 定义                             |
 
 ###### scope_list
 
 | 字段             | 类型     | <div style="width: 50pt">必选</div> | 描述      |
 |----------------|--------|-----------------------------------|---------|
 | scope_type     | string | 是                                 | 资源范围类型  |
-| scope_id       | string | 否                                 | 资源范围ID  |
+| scope_id       | string | 是                                 | 资源范围ID  |
 | bk_biz_id      | int    | 否                                 | 业务ID    |
 
 ###### action
