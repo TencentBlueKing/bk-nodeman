@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 
 # 运行时依赖安装
-setuptools==65.5.0
-wheel==0.43.0
+setuptools==59.6.0
+wheel==0.37.0
 
 blueapps[opentelemetry,bkcrypto]==4.16.rc0
 
