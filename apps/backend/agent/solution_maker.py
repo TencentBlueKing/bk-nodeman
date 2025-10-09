@@ -140,6 +140,7 @@ class BaseExecutionSolutionMaker(metaclass=abc.ABCMeta):
         is_combine_cmd_step: typing.Optional[bool] = False,
         token: typing.Optional[str] = None,
         script_hook_objs: typing.Optional[typing.List[ScriptHook]] = None,
+        show_in_web: bool = False,
     ):
         self.agent_setup_info = agent_setup_info
         self.host = host
@@ -167,6 +168,8 @@ class BaseExecutionSolutionMaker(metaclass=abc.ABCMeta):
                 f"{self.host.bk_host_id}|{self.host.inner_ip or self.host.inner_ipv6}|{self.host.bk_cloud_id}|"
                 f"{self.pipeline_id}|{time.time()}|{self.sub_inst_id}|{self.host_ap.id}"
             )
+
+        self.show_in_web = show_in_web
 
     def get_http_proxy_url(self) -> str:
         jump_server: models.Host = self.gse_servers_info["jump_server"]
@@ -739,7 +742,9 @@ class BatchExecutionSolutionMaker(BaseExecutionSolutionMaker):
             contents=[
                 ExecutionSolutionStepContent(
                     name=name,
-                    text=f"{web_download_package_url}{name}",
+                    text=f"{self.gse_servers_info['package_url']}/{name}"
+                    if not self.show_in_web
+                    else f"{web_download_package_url}{name}",
                     description=str(description),
                     show_description=False,
                 )
@@ -750,7 +755,9 @@ class BatchExecutionSolutionMaker(BaseExecutionSolutionMaker):
         dependencies_step.contents.append(
             ExecutionSolutionStepContent(
                 name="setup_agent.bat",
-                text=f"{web_download_package_url}{setup_agent_bat_path}",
+                text=f"{self.get_agent_tools_url(self.script_file_name)}"
+                if not self.show_in_web
+                else f"{web_download_package_url}{setup_agent_bat_path}",
                 description="Install Scripts",
                 child_dir=self.agent_setup_info.agent_tools_relative_dir,
                 # 在云区域场景下需要实时更新
@@ -913,6 +920,7 @@ class ProxyExecutionSolutionMaker(BaseExecutionSolutionMaker):
                     # 复用代理的 token
                     token=self.token,
                     script_hook_objs=self.script_hook_objs,
+                    show_in_web=self.show_in_web,
                 ).make()
             )
         # 将执行方案通过 json + base64 编码，作为参数传入代理执行脚本
