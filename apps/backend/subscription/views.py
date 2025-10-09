@@ -383,10 +383,7 @@ class SubscriptionViewSet(APIViewSet):
         @apiGroup subscription
         """
         params = self.validated_data
-        action_map = {
-            "enable": True,
-            "disable": False
-        }
+        action_map = {"enable": True, "disable": False}
         enable = action_map[params["action"]]
         models.Subscription.objects.filter(id__in=params["subscription_ids"], is_deleted=False).update(enable=enable)
 
@@ -549,6 +546,7 @@ class SubscriptionViewSet(APIViewSet):
             script_hook_objs=ScriptManageHandler.fetch_match_script_hook_objs(
                 sub_step_obj.params.get("script_hooks") or [], host.os_type
             ),
+            show_in_web=True,
         )
         if installation_tool.is_need_jump_server:
             execution_solutions = installation_tool.type__execution_solution_map[

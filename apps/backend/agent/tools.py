@@ -251,6 +251,7 @@ def gen_commands(
     install_channel: Optional[Tuple[models.Host, Dict[str, List]]] = None,
     is_combine_cmd_step: bool = False,
     script_hook_objs: List[ScriptHook] = None,
+    show_in_web: bool = False,
 ) -> InstallationTools:
     """
     生成安装命令
@@ -305,6 +306,7 @@ def gen_commands(
                 is_uninstall=is_uninstall,
                 is_combine_cmd_step=is_combine_cmd_step,
                 script_hook_objs=script_hook_objs,
+                show_in_web=show_in_web,
             ).make()
         )
 
