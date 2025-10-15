@@ -621,7 +621,7 @@ class InstallProxy2(AgentAction):
             if all([not self.is_install_other_agent, self.is_install_other_agent_v1])
             else None,
             agent_manager.get_agent_status(expect_status=constants.ProcStateType.RUNNING, name=_("查询Proxy状态")),
-            agent_manager.check_policy_gse_to_proxy(),
+            # agent_manager.check_policy_gse_to_proxy(),
         ]
 
         activities = self.append_push_file_activities(agent_manager, activities, files=constants.TOOLS_TO_PUSH_TO_PROXY)
