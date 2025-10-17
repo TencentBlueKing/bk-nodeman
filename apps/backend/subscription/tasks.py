@@ -696,10 +696,6 @@ def run_subscription_task_and_create_instance(
         scope["object_type"] = subscription.object_type
         scope["bk_biz_id"] = subscription.bk_biz_id
 
-    instance_host_id_map = {
-        node["id"]: node.get("bk_host_id") for node in scope["nodes"] if node.get("bk_host_id") is not None
-    }
-
     # 获取订阅范围内全部实例
     steps = subscription.steps
     tolerance_time: int = (59, 0)[subscription.is_need_realtime()]
