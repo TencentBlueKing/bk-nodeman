@@ -9,12 +9,12 @@
 | 字段             | 类型     | <div style="width: 50pt">必选</div> | 描述                |
 |----------------|--------|-----------------------------------|-------------------|
 | plugin_id      | int    | 否                                 | 插件id              |
-| plugin_name    | string | 否                                 | 插件名               |
-| version        | string | 否                                 | 版本号               |
-| config_ids     | array  | 否                                 | 配置id              |
+| plugin_name    | string | 是                                 | 插件名               |
+| version        | string | 是                                 | 版本号               |
+| config_ids     | array  | 是                                 | 配置id              |
 | object_type    | string | 否                                 | 对象类型              |
 | node_type      | string | 否                                 | 节点类别              |
-| host_info      | object | 否                                 | 主机信息，见host_info定义 |
+| host_info      | object | 是                                 | 主机信息，见host_info定义 |
 | instance_info  | object | 否                                 | 实例信息，见instance_info定义   |
 
 #### host_info

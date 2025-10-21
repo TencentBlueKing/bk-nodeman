@@ -25,7 +25,7 @@ from apps.node_man.serializers.plugin import (
     ProcessPackageSerializer,
     ProcessStatusSerializer,
 )
-from apps.utils.local import get_request_username
+from apps.utils.local import get_request_username, get_tenant_id
 
 PLUGIN_VIEW_TAGS = ["api_plugin"]
 
@@ -50,6 +50,8 @@ class GsePluginViewSet(ModelViewSet):
         category = self.kwargs.get("category")
         if category is not None:
             self.queryset = self.queryset.filter(category=category)
+        if category != "official":
+            self.queryset = self.queryset.filter(tenant_id=get_tenant_id())
         return self.queryset
 
     @swagger_auto_schema(

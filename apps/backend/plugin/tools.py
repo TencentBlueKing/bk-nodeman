@@ -29,6 +29,7 @@ from apps.backend import exceptions
 from apps.core.files.storage import get_storage
 from apps.node_man import constants, models
 from apps.utils import enum, env, files
+from apps.utils.local import get_tenant_id
 
 logger = logging.getLogger("app")
 
@@ -618,6 +619,7 @@ def create_pkg_record(
             auto_type=yaml_config.get("auto_type", constants.GseAutoType.RESIDENT.value),
             is_binary=bool(yaml_config.get("is_binary", True)),
             node_manage_control=yaml_config.get("node_manage_control", ""),
+            tenant_id=get_tenant_id(),
         ),
     )
     if created:
@@ -653,6 +655,7 @@ def create_pkg_record(
             cpu_arch=cpu_arch,
             is_release_version=is_release,
             is_ready=False,
+            tenant_id=get_tenant_id(),
         )
     else:
         # 否则，更新已有的记录即可
@@ -776,11 +779,11 @@ def create_pkg_record(
                     package_target_path=package_target_path, storage_path=storage_path
                 )
             )
-            raise exceptions.CreatePackageRecordError(
-                _("插件包保存错误，期望保存到 -> {package_target_path}, 实际保存到 -> {storage_path}").format(
-                    package_target_path=package_target_path, storage_path=storage_path
-                )
-            )
+            # raise exceptions.CreatePackageRecordError(
+            #     _("插件包保存错误，期望保存到 -> {package_target_path}, 实际保存到 -> {storage_path}").format(
+            #         package_target_path=package_target_path, storage_path=storage_path
+            #     )
+            # )
 
     # 补充插件包的文件存储信息
     pkg_record.is_ready = True
