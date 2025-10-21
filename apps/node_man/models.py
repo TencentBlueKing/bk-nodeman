@@ -954,6 +954,7 @@ class GsePluginDesc(models.Model):
     source_app_code = models.CharField(_("来源系统APP CODE"), max_length=64, null=True, blank=True)
 
     node_manage_control = JSONField(_("节点管理管控插件信息"), null=True, blank=True, default=dict)
+    tenant_id = models.CharField(_("租户ID"), default="default", max_length=64, null=True, blank=True, db_index=True)
 
     class Meta:
         verbose_name = _("插件信息（GsePluginDesc）")
@@ -1079,6 +1080,7 @@ class Packages(models.Model):
 
     version_log = models.TextField(_("版本日志"), null=True, blank=True)
     version_log_en = models.TextField(_("英文版本日志"), null=True, blank=True)
+    tenant_id = models.CharField(_("租户ID"), default="default", max_length=64, null=True, blank=True, db_index=True)
 
     @property
     def plugin_desc(self):

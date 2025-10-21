@@ -9,12 +9,12 @@ Start debug
 | Field           | Type     | <div style="width: 50pt">Required</div> | Description                                                                                          |
 |-----------------|----------|-----------------------------------------|------------------------------------------------------------------------------------------------------|
 | plugin_id       | int      | No                                      | Unique ID of the plugin to debug                                                                     |
-| plugin_name     | string   | No                                      | Name of the plugin to debug.                                                                         |
-| version         | string   | No                                      | Version of the plugin to debug.                                                                      |
-| config_ids      | array    | No                                      | List of configuration template IDs to apply during debugging.                                        |
+| plugin_name     | string   | Yes                                     | Name of the plugin to debug.                                                                         |
+| version         | string   | Yes                                     | Version of the plugin to debug.                                                                      |
+| config_ids      | array    | Yes                                     | List of configuration template IDs to apply during debugging.                                        |
 | object_type     | string   | No                                      | Type of the target object (e.g., `HOST`, `SERVICE`).                                                 |
 | node_type       | string   | No                                      | Type of the node (e.g., `AGENT`, `PROXY`, `PLUGIN`).                                                 |
-| host_info       | object   | No                                      | Target host information. Required if debugging on a host. See host_info definition.                  |
+| host_info       | object   | Yes                                     | Target host information. Required if debugging on a host. See host_info definition.                  |
 | instance_info   | object   | No                                      | Target instance information. Required if debugging on a CMDB instance. See instance_info definition. |
 
 #### host_info
