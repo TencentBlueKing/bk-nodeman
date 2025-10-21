@@ -38,7 +38,7 @@ Query task details
 
 ```json
 {
-    "job_id": 1,
+    "id": 1,
     "conditions": [
         {
             "key": "status",
