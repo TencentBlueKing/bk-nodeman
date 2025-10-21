@@ -188,7 +188,14 @@ class PluginV2Tools:
         """
         # 构造DB查询参数，filter_values -> 过滤 None值
         filter_params = basic.filter_values(
-            {"id__in": pkg_ids, "project": project, "os": os_type, "version": pkg_version, "cpu_arch": cpu_arch}
+            {
+                "id__in": pkg_ids,
+                "project": project,
+                "os": os_type,
+                "version": pkg_version,
+                "cpu_arch": cpu_arch,
+                "tenant_id": local.get_tenant_id(),
+            }
         )
         package_infos: List[Dict[str, Any]] = models.Packages.objects.filter(**filter_params).values(
             "id",
