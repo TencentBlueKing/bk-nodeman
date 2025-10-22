@@ -5,7 +5,7 @@
 setuptools==65.5.0
 wheel==0.43.0
 
-blueapps[opentelemetry,bkcrypto]==4.16.rc0
+blueapps[opentelemetry,bkcrypto]==4.16.rc3
 
 Django==4.2
 
