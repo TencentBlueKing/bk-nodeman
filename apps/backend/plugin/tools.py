@@ -777,11 +777,11 @@ def create_pkg_record(
                     package_target_path=package_target_path, storage_path=storage_path
                 )
             )
-            # raise exceptions.CreatePackageRecordError(
-            #     _("插件包保存错误，期望保存到 -> {package_target_path}, 实际保存到 -> {storage_path}").format(
-            #         package_target_path=package_target_path, storage_path=storage_path
-            #     )
-            # )
+            raise exceptions.CreatePackageRecordError(
+                _("插件包保存错误，期望保存到 -> {package_target_path}, 实际保存到 -> {storage_path}").format(
+                    package_target_path=package_target_path, storage_path=storage_path
+                )
+            )
 
     # 补充插件包的文件存储信息
     pkg_record.is_ready = True
