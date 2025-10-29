@@ -43,21 +43,25 @@ def get_client_through_sentinel():
             [p.strip() for p in str(port).split(",")],
         )
     )
+    connection_kwargs = {}
     if settings.REDIS.get("tls_enabled", False):
-        kwargs["connection_kwargs"] = {
-            "ssl_cert_reqs": ssl.CERT_REQUIRED,
-            "ssl_ca_certs": settings.REDIS.get("ssl_ca_certs"),
-            "ssl_check_hostname": settings.REDIS.get("ssl_check_hostname"),
-        }
-        if settings.REDIS["ssl_certfile"] and settings.REDIS["ssl_certfile"]:
-            kwargs["connection_kwargs"].update(
+        connection_kwargs.update(
+            {
+                "ssl": True,
+                "ssl_cert_reqs": ssl.CERT_REQUIRED,
+                "ssl_ca_certs": settings.REDIS.get("ssl_ca_certs"),
+                "ssl_check_hostname": settings.REDIS.get("ssl_check_hostname"),
+            }
+        )
+        if settings.REDIS["ssl_certfile"] and settings.REDIS["ssl_keyfile"]:
+            connection_kwargs.update(
                 {
                     "ssl_certfile": settings.REDIS.get("ssl_certfile"),
                     "ssl_keyfile": settings.REDIS.get("ssl_keyfile"),
                 }
             )
 
-    rs = Sentinel(sentinels, **kwargs)
+    rs = Sentinel(sentinels, **kwargs, **connection_kwargs)
     # avoid None value in settings.REDIS
     r = rs.master_for(settings.REDIS.get("service_name") or "mymaster")
     # try to connect master
@@ -79,7 +83,7 @@ def get_cluster_client():
         kwargs["ssl_ca_certs"] = settings.REDIS.get("ssl_ca_certs")
         kwargs["ssl_check_hostname"] = settings.REDIS.get("ssl_check_hostname")
 
-        if settings.REDIS["ssl_certfile"] and settings.REDIS["ssl_certfile"]:
+        if settings.REDIS["ssl_certfile"] and settings.REDIS["ssl_keyfile"]:
             kwargs.update(
                 {
                     "ssl_certfile": settings.REDIS.get("ssl_certfile"),
@@ -109,7 +113,7 @@ def get_single_client():
         kwargs["ssl_ca_certs"] = settings.REDIS.get("ssl_ca_certs")
         kwargs["ssl_check_hostname"] = settings.REDIS.get("ssl_check_hostname")
 
-        if settings.REDIS["ssl_certfile"] and settings.REDIS["ssl_certfile"]:
+        if settings.REDIS["ssl_certfile"] and settings.REDIS["ssl_keyfile"]:
             kwargs.update(
                 {
                     "ssl_certfile": settings.REDIS.get("ssl_certfile"),
