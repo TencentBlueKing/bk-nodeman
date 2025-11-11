@@ -217,6 +217,7 @@ const config: ISetupHead[] = [
     type: 'text',
     required: true,
     batch: true,
+    manualProp: true,
     tips: 'agentSetupLoginAccount',
     parentProp: 'login_info',
     default: getDefaultConfig(defaultOsType, 'account', 'root'),
