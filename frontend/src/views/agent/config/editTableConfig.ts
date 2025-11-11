@@ -203,7 +203,11 @@ export const config: ISetupHead[] = [
     batch: true,
     tips: 'agentSetupLoginAccount',
     parentProp: 'login_info',
+    manualProp: true,
     placeholder: window.i18n.t('请输入'),
+    getReadonly(row: ISetupRow) {
+      return row.is_manual;
+    },
   },
   {
     label: '认证方式',
