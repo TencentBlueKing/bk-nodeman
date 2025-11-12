@@ -196,10 +196,13 @@ class CustomBKRepoStorage(BaseStorage, bkrepo.BKRepoStorage):
 
     @staticmethod
     def get_biz_set_id():
-        resp = CCApi.list_business_set({}, tenant_id="system" if settings.ENABLE_MULTI_TENANT_MODE else "default")
-        for biz_set in resp.get("info", []):
-            name = biz_set.get("bk_biz_set_name")
-            if name in ["BlueKing", "All"]:
+        resp = CCApi.list_business_set(
+            {"no_request": True}, tenant_id="system" if settings.ENABLE_MULTI_TENANT_MODE else "default"
+        )
+        biz_sets = resp.get("info", [])
+        for biz_set in biz_sets:
+            bk_scope = biz_set.get("bk_scope", {})
+            if bk_scope.get("match_all") is True:
                 return biz_set.get("bk_biz_set_id")
         return None
 
