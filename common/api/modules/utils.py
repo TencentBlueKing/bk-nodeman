@@ -15,7 +15,8 @@ from django.conf import settings
 from django.utils import translation
 
 from apps.utils import build_auth_args
-from apps.utils.local import get_request
+from apps.utils.local import get_request, get_tenant_id
+from common.api.utils.params import get_virtual_username
 
 
 def _clean_auth_info_uin(auth_info):
@@ -43,7 +44,10 @@ if is_celery or is_manage:
         params["bkdata_authentication_method"] = "user"
 
         if "bk_username" not in params:
-            params["bk_username"] = "admin"
+            if settings.ENABLE_MULTI_TENANT_MODE:
+                params["bk_username"] = get_virtual_username(get_tenant_id())
+            else:
+                params["bk_username"] = "admin"
 
         if "operator" not in params:
             params["operator"] = "admin"
@@ -66,7 +70,10 @@ else:
         params["appenv"] = settings.RUN_VER
 
         if "no_request" in params and params["no_request"]:
-            params["bk_username"] = "admin"
+            if settings.ENABLE_MULTI_TENANT_MODE:
+                params["bk_username"] = get_virtual_username(get_tenant_id())
+            else:
+                params["bk_username"] = "admin"
         else:
             req = get_request()
             auth_info = build_auth_args(req)

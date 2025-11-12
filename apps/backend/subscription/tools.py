@@ -118,7 +118,7 @@ def get_module_to_topo_dict(bk_biz_id: int) -> Dict:
         "module|1": ["biz|2", "set|3", "module|1"]
     }
     """
-    topo_tree = CCApi.search_biz_inst_topo({"bk_username": "admin", "bk_biz_id": bk_biz_id, "no_request": True})
+    topo_tree = CCApi.search_biz_inst_topo({"bk_biz_id": bk_biz_id, "no_request": True})
     internal_module = CCApi.get_biz_internal_module({"bk_biz_id": bk_biz_id, "no_request": True})
 
     node_relations = {}

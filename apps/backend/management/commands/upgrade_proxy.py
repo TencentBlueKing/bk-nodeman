@@ -27,7 +27,6 @@ class Command(BaseCommand):
         params = {
             "run_immediately": True,
             "bk_app_code": "nodeman",
-            "bk_username": "admin",
             "scope": {
                 "node_type": "INSTANCE",
                 "object_type": "HOST",
@@ -36,5 +35,6 @@ class Command(BaseCommand):
             "steps": [
                 {"id": "agent", "type": "AGENT", "config": {"job_type": "UPGRADE_PROXY"}, "params": {"context": {}}}
             ],
+            "no_request": True,
         }
         NodeApi.create_subscription(params)

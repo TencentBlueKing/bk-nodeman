@@ -17,6 +17,10 @@ from datetime import datetime
 
 import pymysql
 import requests
+from django.conf import settings
+
+from apps.utils.local import get_tenant_id
+from common.api.utils.params import get_virtual_username
 
 """
 SCRIPT_VERSION: 1.2
@@ -67,7 +71,7 @@ def get_biz_bk_host_id(bk_biz_id, hosts):
         kwargs = {
             "bk_app_code": APP_CODE,
             "bk_app_secret": APP_SECRET,
-            "bk_username": "admin",
+            "bk_username": get_virtual_username(get_tenant_id()) if settings.ENABLE_MULTI_TENANT_MODE else "admin",
             "bk_biz_id": bk_biz_id,
             "bk_supplier_account": "0",
             "page": {"start": start, "limit": 500, "sort": "bk_host_id"},
@@ -289,7 +293,7 @@ def migrate_process_status(process_status_data, process_status_data_no_listen_po
                 "proc_type, configs,listen_ip, listen_port, setup_path, log_path, data_path, "
                 "pid_path, group_id, source_type, source_id) VALUES %s;" % status
             )
-            logger.info(u"插入process_status语句为： %s" % process_status_sql)
+            logger.info("插入process_status语句为： %s" % process_status_sql)
             cursor.execute(process_status_sql)
     if process_status_data_no_listen_port:
         for status in process_status_data_no_listen_port:
@@ -299,7 +303,7 @@ def migrate_process_status(process_status_data, process_status_data_no_listen_po
                 "pid_path, group_id, source_type, source_id)"
                 " VALUES %s;" % status
             )
-            logger.info(u"插入process_status_data_no_listen_port语句为： %s" % sql_no_listen_port)
+            logger.info("插入process_status_data_no_listen_port语句为： %s" % sql_no_listen_port)
             cursor.execute(sql_no_listen_port)
     db.commit()
 
@@ -319,7 +323,9 @@ def migrate_cloud_creator(clouds):
                             json={
                                 "bk_app_code": APP_CODE,
                                 "bk_app_secret": APP_SECRET,
-                                "bk_username": "admin",
+                                "bk_username": get_virtual_username(get_tenant_id())
+                                if settings.ENABLE_MULTI_TENANT_MODE
+                                else "admin",
                                 "fields": ["bk_biz_id", "bk_biz_name", "bk_biz_maintainer"],
                                 "condition": {"bk_biz_id": int(bk_biz_id)},
                             },

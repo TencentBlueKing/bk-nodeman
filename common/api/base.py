@@ -37,7 +37,7 @@ from apps.utils.local import (
 from apps.utils.time_handler import timestamp_to_datetime
 
 from .exception import DataAPIException
-from .utils.params import add_esb_info_before_request
+from .utils.params import add_esb_info_before_request, get_virtual_username
 
 logger = logging.getLogger("component")
 API_AUTH_KEYS = [
@@ -280,7 +280,11 @@ class DataAPI(object):
 
         # 使用管理员账户请求时，设置用户名为管理员用户名，移除bk_token等认证信息
         if use_admin:
-            params["bk_username"] = "admin"
+            if settings.ENABLE_MULTI_TENANT_MODE:
+                bk_username = get_virtual_username(get_tenant_id())
+            else:
+                bk_username = "admin"
+            params["bk_username"] = bk_username
             params = remove_auth_args(params)
 
         # 是否有默认返回，调试阶段可用
