@@ -14,7 +14,6 @@ import sys
 import requests
 from django.conf import settings
 
-from apps.node_man import models
 from apps.utils import build_auth_args
 from apps.utils.local import get_request, get_tenant_id
 from common.api.domains import USER_APIGATEWAY_ROOT_V3
@@ -24,6 +23,8 @@ def get_virtual_username(tenant_id):
     """
     调用蓝鲸用户管理 API 获取虚拟用户 bk_username
     """
+    from apps.node_man import models
+
     tenant_bk_username_map = models.GlobalSettings.get_config(
         key=models.GlobalSettings.KeyEnum.TENANT_BK_USERNAME_MAP.value, default={}
     )

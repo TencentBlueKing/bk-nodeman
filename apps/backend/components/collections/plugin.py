@@ -1440,7 +1440,7 @@ class DebugService(PluginExecuteScriptService):
         instance_log_base_params: Dict[str, Union[str, int]] = {
             "job_instance_id": job_instance_id,
             **job_meta,
-            "bk_username": settings.BACKEND_JOB_OPERATOR,
+            "no_request": True,
             "step_instance_id": result["step_instance_list"][0]["step_instance_id"],
         }
 

@@ -389,7 +389,6 @@ class PluginHandler(APIModel):
         params = {
             "run_immediately": True,
             "bk_app_code": "nodeman",
-            "bk_username": "admin",
             "plugin_name": name,
             "is_main": True,
             # 非策略订阅在SaaS侧定义为一次性下发操作
@@ -412,6 +411,7 @@ class PluginHandler(APIModel):
                     },
                 }
             ],
+            "no_request": True,
         }
 
         return NodeApi.create_subscription(params)

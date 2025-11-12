@@ -12,12 +12,15 @@ from __future__ import absolute_import, unicode_literals
 
 import json
 
+from django.conf import settings
 from django.core.management.base import BaseCommand
 from django.http import HttpRequest
 from rest_framework.request import Request
 
 from apps.backend.subscription.views import SubscriptionViewSet
 from apps.node_man.models import ProcessStatus, Subscription, SubscriptionStep
+from apps.utils.local import get_tenant_id
+from common.api.utils.params import get_virtual_username
 
 
 class Command(BaseCommand):
@@ -37,7 +40,13 @@ class Command(BaseCommand):
             print("Start revoking {}/{} subscription, id: {}".format(index + 1, count, subscription.id))
             http_request = HttpRequest()
             http_request._body = json.dumps(
-                {"subscription_id": subscription.id, "bk_username": "admin", "bk_app_code": "bk_nodeman"}
+                {
+                    "subscription_id": subscription.id,
+                    "bk_username": get_virtual_username(get_tenant_id())
+                    if settings.ENABLE_MULTI_TENANT_MODE
+                    else "admin",
+                    "bk_app_code": "bk_nodeman",
+                }
             )
             drf_request = Request(http_request)
             try:
@@ -53,7 +62,13 @@ class Command(BaseCommand):
             ProcessStatus.objects.filter(source_id=subscription.id).delete()
             http_request = HttpRequest()
             http_request._body = json.dumps(
-                {"subscription_id": subscription.id, "bk_username": "admin", "bk_app_code": "bk_nodeman"}
+                {
+                    "subscription_id": subscription.id,
+                    "bk_username": get_virtual_username(get_tenant_id())
+                    if settings.ENABLE_MULTI_TENANT_MODE
+                    else "admin",
+                    "bk_app_code": "bk_nodeman",
+                }
             )
             drf_request = Request(http_request)
             try:

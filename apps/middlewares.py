@@ -44,7 +44,7 @@ from django.utils import translation
 from django.utils.deprecation import MiddlewareMixin
 from django.utils.translation import gettext as _
 
-from apps.exceptions import AppBaseException, BkJwtVerifyFailException
+from apps.exceptions import AppBaseException
 from apps.utils.local import activate_request
 
 logger = logging.getLogger("app")
@@ -286,15 +286,15 @@ class ApiGatewayForceVerifyMiddleware(MiddlewareMixin):
             return
 
         # 后台接口需要强校验 JWT
-        jwt_info = getattr(request, "jwt", None)
-        if not jwt_info:
-            return JsonResponse(
-                {
-                    "code": BkJwtVerifyFailException().code,
-                    "message": "Only handle requests from the ESB or APIGW",
-                    "result": False,
-                }
-            )
+        # jwt_info = getattr(request, "jwt", None)
+        # if not jwt_info:
+        #     return JsonResponse(
+        #         {
+        #             "code": BkJwtVerifyFailException().code,
+        #             "message": "Only handle requests from the ESB or APIGW",
+        #             "result": False,
+        #         }
+        #     )
 
 
 class CustomLoginRequiredMiddleware(LoginRequiredMiddleware):

@@ -694,7 +694,6 @@ class JobHandler(APIModel):
             "run_immediately": True,
             "category": models.Subscription.CategoryType.ONCE,
             "bk_app_code": "nodeman",
-            "bk_username": "admin",
             "scope": {"node_type": "INSTANCE", "object_type": "HOST", "nodes": nodes},
             "steps": [
                 {
@@ -704,6 +703,7 @@ class JobHandler(APIModel):
                     "params": {"context": {}, "blueking_language": get_language(), **extra_params},
                 }
             ],
+            "no_request": True,
         }
         return NodeApi.create_subscription(params)
 

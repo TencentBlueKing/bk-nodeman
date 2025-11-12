@@ -154,9 +154,8 @@ class CmdbHandler(APIModel):
         :return:
         """
 
-        kwargs = {"bk_biz_id": biz}
+        kwargs = {"bk_biz_id": biz, "no_request": True}
         try:
-            # 需要以用户的名字进行请求
             result = CCApi.search_biz_inst_topo(kwargs)
             return result
         except ComponentCallError as e:
@@ -169,9 +168,8 @@ class CmdbHandler(APIModel):
         :return:
         """
 
-        kwargs = {"bk_biz_id": biz}
+        kwargs = {"bk_biz_id": biz, "no_request": True}
         try:
-            # 需要以用户的名字进行请求
             result = CCApi.get_biz_internal_module(kwargs)
             return result
         except ComponentCallError as e:
