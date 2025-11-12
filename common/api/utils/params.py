@@ -8,12 +8,45 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import json
 import sys
 
+import requests
 from django.conf import settings
 
+from apps.node_man import models
 from apps.utils import build_auth_args
-from apps.utils.local import get_request
+from apps.utils.local import get_request, get_tenant_id
+from common.api.domains import USER_APIGATEWAY_ROOT_V3
+
+
+def get_virtual_username(tenant_id):
+    """
+    调用蓝鲸用户管理 API 获取虚拟用户 bk_username
+    """
+    tenant_bk_username_map = models.GlobalSettings.get_config(
+        key=models.GlobalSettings.KeyEnum.TENANT_BK_USERNAME_MAP.value, default={}
+    )
+    if tenant_id in tenant_bk_username_map:
+        return tenant_bk_username_map[tenant_id]
+
+    auth_data = {"bk_app_code": settings.APP_CODE, "bk_app_secret": settings.SECRET_KEY}
+    response = requests.get(
+        USER_APIGATEWAY_ROOT_V3 + "open/tenant/virtual-users/-/lookup/",
+        headers={"X-Bkapi-Authorization": json.dumps(auth_data), "X-Bk-Tenant-Id": tenant_id},
+        params={"lookup_field": "login_name", "lookups": "bk_admin"},
+    )
+    if response.status_code == 200:
+        result = response.json()
+        data_list = result.get("data", [])
+        if data_list and data_list[0].get("bk_username"):
+            bk_username = data_list[0]["bk_username"]
+            tenant_bk_username_map[tenant_id] = bk_username
+            models.GlobalSettings.update_config(
+                key=models.GlobalSettings.KeyEnum.TENANT_BK_USERNAME_MAP.value, value=tenant_bk_username_map
+            )
+            return bk_username
+    return "bk_admin"
 
 
 def _clean_auth_info_uin(auth_info):
@@ -43,7 +76,10 @@ if IS_BACKEND:
             params["bk_app_secret"] = settings.SECRET_KEY
 
         if "bk_username" not in params:
-            params["bk_username"] = "admin"
+            if settings.ENABLE_MULTI_TENANT_MODE:
+                params["bk_username"] = get_virtual_username(get_tenant_id())
+            else:
+                params["bk_username"] = "admin"
 
         params.pop("_request", None)
         return params
@@ -64,7 +100,10 @@ else:
             params["bk_app_secret"] = settings.SECRET_KEY
 
         if "no_request" in params and params["no_request"]:
-            params["bk_username"] = "admin"
+            if settings.ENABLE_MULTI_TENANT_MODE:
+                params["bk_username"] = get_virtual_username(get_tenant_id())
+            else:
+                params["bk_username"] = "admin"
         else:
             # _request，用于并发请求的场景
             _request = params.get("_request")

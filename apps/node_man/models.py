@@ -212,6 +212,8 @@ class GlobalSettings(models.Model):
         INJECT_CLUSTER_MODULE_NAME_BIZ_WHITELIST = "INJECT_CLUSTER_MODULE_NAME_BIZ_WHITELIST"
         # 无需排队执行的订阅白名单
         UNQUEUED_SUBSCRIPTION_WHITELIST = "UNQUEUED_SUBSCRIPTION_WHITELIST"
+        # 租户 bk_username 映射
+        TENANT_BK_USERNAME_MAP = "TENANT_BK_USERNAME_MAP"
 
     key = models.CharField(_("键"), max_length=255, db_index=True, primary_key=True)
     v_json = JSONField(_("值"), default=dict)

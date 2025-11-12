@@ -607,7 +607,8 @@ class CmdbHandler(APIModel):
                         page
                         * constants.QUERY_HOST_SERVICE_TEMPLATE_LIMIT : (page + 1)
                         * constants.QUERY_HOST_SERVICE_TEMPLATE_LIMIT
-                    ]
+                    ],
+                    "no_request": True,
                 }
             }
             for page in range(math.ceil(len(bk_host_ids) / constants.QUERY_HOST_SERVICE_TEMPLATE_LIMIT))
