@@ -53,6 +53,7 @@ def query_biz_hosts(bk_biz_id: int, bk_host_ids: typing.List[int]) -> typing.Lis
             "condition": "AND",
             "rules": [{"field": "bk_host_id", "operator": "in", "value": bk_host_ids}],
         },
+        "no_request": True,
     }
     if bk_biz_id == settings.BK_CMDB_RESOURCE_POOL_BIZ_ID:
         query_hosts_api = CCApi.list_resource_pool_hosts
@@ -75,6 +76,7 @@ def _list_biz_hosts(biz_id: int, start: int, biz_id_map_tenant_id_map=None) -> d
             "bk_biz_id": biz_id,
             "fields": constants.CC_HOST_FIELDS,
             "page": {"start": start, "limit": constants.QUERY_CMDB_LIMIT, "sort": "bk_host_id"},
+            "no_request": True,
         },
         tenant_id=tenant_id,
     )
@@ -91,6 +93,7 @@ def _list_resource_pool_hosts(start):
             {
                 "page": {"start": start, "limit": constants.QUERY_CMDB_LIMIT, "sort": "bk_host_id"},
                 "fields": constants.CC_HOST_FIELDS,
+                "no_request": True,
             }
         )
         return result
@@ -224,7 +227,8 @@ def find_host_biz_relations(find_host_biz_ids):
             {
                 "bk_host_id": find_host_biz_ids[
                     count * constants.QUERY_CMDB_LIMIT : (count + 1) * constants.QUERY_CMDB_LIMIT
-                ]
+                ],
+                "no_request": True,
             }
         )
         for _host_biz in cc_host_biz_relations:
@@ -625,6 +629,7 @@ def query_cmdb_and_handle_need_delete_host_ids(host_ids: typing.List[int], task_
                 "condition": "AND",
                 "rules": [{"field": "bk_host_id", "operator": "in", "value": host_ids}],
             },
+            "no_request": True,
         }
         cmdb_host_infos: typing.List[typing.Dict[str, int]] = CCApi.list_hosts_without_biz(
             query_hosts_params, tenant_id=tenant_id
