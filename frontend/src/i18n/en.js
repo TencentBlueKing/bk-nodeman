@@ -501,6 +501,8 @@ export default {
   Agent信息Windows: 'Agent Information (Windows)',
   Proxy信息: 'Proxy Information',
   Proxy上的安装包: 'Installation package',
+  非系统管理员启用sudo执行安装命令: 'Non-admin users can enable sudo to run installation commands',
+  启用sudo: 'enable sudo',
   接入点说明: 'Description',
   接入点说明placeholder: 'Describe the New access point information, and precautions',
   Zookeeper集群地址: 'Zookeeper cluster address',
