@@ -44,12 +44,12 @@ from apps.backend.subscription.tools import (
     get_all_subscription_steps_context,
     render_config_files_by_config_templates,
 )
+from apps.core.ipchooser.handlers.host_handler import HostHandler
 from apps.core.tag import targets
 from apps.core.tag.models import Tag
 from apps.exceptions import AppBaseException, ComponentCallError
 from apps.node_man import constants, exceptions, models
 from apps.node_man.handlers.cmdb import CmdbHandler
-from apps.core.ipchooser.handlers.host_handler import HostHandler
 from apps.prometheus import metrics
 from apps.prometheus.helper import SetupObserve
 from apps.utils import cache, md5
@@ -1233,7 +1233,12 @@ class GseOperateProcService(PluginBaseService):
                         "proc_name": package_control.process_name or plugin.name,
                         "setup_path": process_status.setup_path,
                         "pid_path": process_status.pid_path,
-                        "user": operate_user or constants.ACCOUNT_MAP.get(host.os_type, "root"),
+                        "user": (
+                            operate_user
+                            or (host.identity.account, settings.BACKEND_WINDOWS_ACCOUNT)[
+                                host.os_type == constants.OsType.WINDOWS
+                            ]
+                        ),
                     },
                     "control": gse_control,
                     "resource": host_id__resource_policy_map[bk_host_id]["resource"],
