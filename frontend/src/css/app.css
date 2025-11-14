@@ -928,7 +928,7 @@ body {
 }
 
 .rule-create .ip-selector .ip-selector-table-page-check {
-    z-index: 999
+    z-index: 999;
 }
 
 .nm-link {

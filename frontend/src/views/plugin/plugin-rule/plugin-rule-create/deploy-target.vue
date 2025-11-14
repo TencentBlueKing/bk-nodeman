@@ -199,4 +199,7 @@ export default class DeployTarget extends Vue {
 .selector-form {
   padding-right: 30px;
 }
+>>> .ip-selector-table-page-check {
+  z-index: 999 !important;
+}
 </style>
