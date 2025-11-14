@@ -141,28 +141,23 @@ class JobV3BaseService(six.with_metaclass(abc.ABCMeta, BaseService)):
             job_params["os_type"] = self.DEFAULT_OS_TYPE
         os_type = job_params["os_type"]
 
-        # Windows 执行账户问题：已确认用 administrator 注册也可以用 system 账户执行，统一使用 system 执行即可
-        # Ref -> https://github.com/TencentBlueKing/bk-nodeman/pull/290#discussion_r760064447
-        account_alias = (settings.BACKEND_UNIX_ACCOUNT, settings.BACKEND_WINDOWS_ACCOUNT)[
-            os_type == constants.OsType.WINDOWS
-        ]
-
         account_set: set = set()
         for host in job_params["target_server"][host_interaction_from]:
-            if host_interaction_from == "ip_list":
-                target_host = models.Host.objects.get(inner_ip=host["ip"])
-            else:
-                target_host = models.Host.objects.get(bk_host_id=host)
+            target_host = (
+                models.Host.objects.get(inner_ip=host["ip"])
+                if host_interaction_from == "ip_list"
+                else models.Host.objects.get(bk_host_id=host)
+            )
+            account_set.add(target_host.identity.account)
 
-            if not target_host.ap.is_use_sudo:
-                account_set.add(target_host.identity.account)
-
+        # 每个host对应的identitydata都会存在一个account
+        # 即使从CMDB同步来的主机也会有默认的root或Administrator账户
         if len(account_set) > 1:
             raise AppBaseException(_("目标机器账户不一致 {account_set}，请检查").format(account_set=account_set))
-        elif len(account_set) == 0:
-            pass
-        else:
-            account_alias = account_set.pop()
+
+        # Windows 执行账户问题：已确认用 administrator 注册也可以用 system 账户执行，统一使用 system 执行即可
+        # Ref -> https://github.com/TencentBlueKing/bk-nodeman/pull/290#discussion_r760064447
+        account_alias = (account_set.pop(), settings.BACKEND_WINDOWS_ACCOUNT)[os_type == constants.OsType.WINDOWS]
 
         self.log_info(
             subscription_instance_id,
