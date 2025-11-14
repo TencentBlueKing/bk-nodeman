@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("node_man", "0085_cloud_tenant_id_host_tenant_id_job_tenant_id_and_more"),
+        ("node_man", "0087_add_agent_config_plugin_ipc_and_alarm_event_data_id"),
     ]
 
     operations = [

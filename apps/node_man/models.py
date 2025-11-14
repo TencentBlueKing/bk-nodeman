@@ -39,7 +39,6 @@ from django.utils.encoding import force_str
 from django.utils.functional import Promise
 from django.utils.translation import get_language
 from django.utils.translation import gettext_lazy as _
-from django_mysql.models import JSONField
 from jinja2.sandbox import SandboxedEnvironment as Environment
 
 from apps.backend.subscription.errors import PipelineExecuteFailed, SubscriptionNotExist
@@ -195,19 +194,10 @@ class GlobalSettings(models.Model):
         # 接入点url端口黑名单
         AP_BLOCKED_PORTS = "AP_BLOCKED_PORTS"
         AP_BLOCKED_NETWORKS = "AP_BLOCKED_NETWORKS"
-        # 更新订阅实例长度
-        UPDATE_SUBSCRIPTION_RECORDS_LENGTH = "UPDATE_SUBSCRIPTION_RECORDS_LENGTH"
-        # 禁用的订阅
-        DISABLED_SUBSCRIPTIONS = "DISABLED_SUBSCRIPTIONS"
         # 是否默认当前环境为仅GSE2环境
         IS_PURE_GSE2_VERSION = "IS_PURE_GSE2_VERSION"
         # 管理GSE2 Agent监听BT端口开关
         GSE2_AGENT_LISTEN_BT_SOCKET = "GSE2_AGENT_LISTEN_BT_SOCKET"
-        # 禁用的订阅
-        SUBSCRIPTION_ALLOWED_VERSION_CHANGE_TO_UPGRADE = "SUBSCRIPTION_ALLOWED_VERSION_CHANGE_TO_UPGRADE"
-        # 接入点url端口黑名单
-        AP_BLOCKED_PORTS = "AP_BLOCKED_PORTS"
-        AP_BLOCKED_NETWORKS = "AP_BLOCKED_NETWORKS"
         # 注入主机集群模块名称业务白名单
         INJECT_CLUSTER_MODULE_NAME_BIZ_WHITELIST = "INJECT_CLUSTER_MODULE_NAME_BIZ_WHITELIST"
         # 无需排队执行的订阅白名单

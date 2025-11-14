@@ -66,7 +66,7 @@ def add_agent_config(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("node_man", "0085_alter_subscription_node_type"),
+        ("node_man", "0086_cloud_tenant_id_host_tenant_id_job_tenant_id_and_more"),
     ]
 
     operations = [

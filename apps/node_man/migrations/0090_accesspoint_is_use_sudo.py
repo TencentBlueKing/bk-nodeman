@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("node_man", "0087_update_ap_regionid_cityid"),
+        ("node_man", "0089_update_ap_regionid_cityid"),
     ]
 
     operations = [
