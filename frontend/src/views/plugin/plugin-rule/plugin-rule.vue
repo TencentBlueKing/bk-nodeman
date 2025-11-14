@@ -113,6 +113,8 @@ export default class PluginRule extends Mixins(authorityMixin(), pollMixin) {
   }
 
   private created() {
+    // 原本放在新建策略的取消按钮的操作中，取消是跳转到这个list页面，且跳转中有确认是否退出的弹窗，如果不退出又直接重置数据会出现问题
+    PluginStore.setStrategyData();
     const { query = {}, params: { name = '', id = [] } } = this.$route;
     this.searchSelectValue = name || query.name as string;
     this.queryIds = (query.id ? [query.id] : id) as string[] ;

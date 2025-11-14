@@ -310,7 +310,6 @@ export default class CreateRule extends Mixins(routerBackMixin, FormLabelMixin) 
   }
 
   public handleCancel() {
-    PluginStore.setStrategyData();
     const { parentName = 'pluginRule' } = this.$route.meta;
     this.$router.push({ name: parentName });
   }
