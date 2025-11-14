@@ -20,7 +20,7 @@ def update_ap_config(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("node_man", "0086_bizeventdataidmap"),
+        ("node_man", "0088_bizeventdataidmap"),
     ]
 
     operations = [

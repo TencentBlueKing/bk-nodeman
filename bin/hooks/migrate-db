@@ -1,5 +1,11 @@
 #!/bin/bash
 python manage.py createcachetable django_cache
+python manage.py migrate node_man 0085
+python manage.py migrate node_man 0087 --fake
+python manage.py migrate node_man 0088 --fake
+python manage.py migrate node_man 0089 --fake
+python manage.py migrate node_man 0090
+python manage.py migrate node_man 0091 --fake
 python manage.py migrate iam_migration
 python manage.py migrate
 python manage.py fetch_component_api_public_key
