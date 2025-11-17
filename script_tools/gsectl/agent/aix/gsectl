@@ -2,7 +2,6 @@
 # vim:ft=sh sts=4 ts=4 expandtab
 
 # 切换到本脚本(gsectl)所在的目录，并设置WORK_HOME变量为上一级目录
-export LC_ALL=C
 cd ${0%/*} 2>/dev/null
 WORK_HOME=${PWD%/bin}
 WORK_HOME=`echo $WORK_HOME |sed 's/\/$//g'`
