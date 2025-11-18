@@ -97,6 +97,8 @@ router.beforeEach(async (to, from, next) => {
     global.mainComponent.$bkInfo({
       title: window.i18n.t('确定离开当前页'),
       subTitle: window.i18n.t('离开将会导致未保存的信息丢失'),
+      okText: window.i18n.t('确定'),
+      cancelText: window.i18n.t('取消'),
       confirmFn: async () => {
         await beforeRouterMethod(to, next);
       },

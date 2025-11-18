@@ -1097,6 +1097,8 @@ export default {
   搜索任务ID执行者任务类型操作类型部署策略执行状态: 'Search task ID, IP, performer, task type, policy ,execution status',
   开始时间: 'Start time',
   执行账号: 'Execute account',
+  等待手动卸载: 'Waiting for manual uninstallation',
+  等待手动安装: 'Waiting for manual installation',
   失败重试: 'Retry',
   Agent任务: 'Agent task',
   Proxy任务: 'Proxy task',
