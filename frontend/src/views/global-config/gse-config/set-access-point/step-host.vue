@@ -148,7 +148,7 @@ import SetupFormTable from './step-form-table.vue';
 import { isEmpty } from '@/common/util';
 import { stepHost } from './apFormConfig';
 import { regUrlMixinIp, regFnSysPath } from '@/common/regexp';
-import {  reguRequired, reguUrlMixinIp, reguPort, reguFnName, reguIPMixins } from '@/common/form-check';
+import {  reguRequired, reguUrlMixinIp, reguPort, reguFnName, reguIPMixins, reguDomainOrIp } from '@/common/form-check';
 
 type IServer = 'btfileserver' | 'dataserver' | 'taskserver';
 
@@ -243,13 +243,13 @@ export default class StepHost extends formLabelMixin {
         classExt: 'ip-input ip-input-inner',
         required: true,
         placeholder: window.i18n.t('请输入Server的内网IP', { type: 'Btfile' }),
-        rules: [reguIPMixins, this.ipConflictRule('inner_ip', 'btfileserver')],
+        rules: [reguDomainOrIp, this.ipConflictRule('inner_ip', 'btfileserver')],
       },
       {
         prop: 'outer_ip',
         classExt: 'ip-input ip-input-outer',
         placeholder: window.i18n.t('请输入Server的外网IP', { type: 'Btfile' }),
-        rules: [reguIPMixins, this.ipConflictRule('outer_ip', 'btfileserver')],
+        rules: [reguDomainOrIp, this.ipConflictRule('outer_ip', 'btfileserver')],
       },
     ],
     dataserver: [
@@ -258,13 +258,13 @@ export default class StepHost extends formLabelMixin {
         classExt: 'ip-input ip-input-inner',
         required: true,
         placeholder: window.i18n.t('请输入Server的内网IP', { type: 'Data' }),
-        rules: [reguIPMixins, this.ipConflictRule('inner_ip', 'dataserver')],
+        rules: [reguDomainOrIp, this.ipConflictRule('inner_ip', 'dataserver')],
       },
       {
         prop: 'outer_ip',
         classExt: 'ip-input ip-input-outer',
         placeholder: window.i18n.t('请输入Server的外网IP', { type: 'Data' }),
-        rules: [reguIPMixins, this.ipConflictRule('outer_ip', 'dataserver')],
+        rules: [reguDomainOrIp, this.ipConflictRule('outer_ip', 'dataserver')],
       },
     ],
     taskserver: [
@@ -273,13 +273,13 @@ export default class StepHost extends formLabelMixin {
         classExt: 'ip-input ip-input-inner',
         required: true,
         placeholder: window.i18n.t('请输入Server的内网IP', { type: 'Task' }),
-        rules: [reguIPMixins, this.ipConflictRule('inner_ip', 'taskserver')],
+        rules: [reguDomainOrIp, this.ipConflictRule('inner_ip', 'taskserver')],
       },
       {
         prop: 'outer_ip',
         classExt: 'ip-input ip-input-outer',
         placeholder: window.i18n.t('请输入Server的外网IP', { type: 'Task' }),
-        rules: [reguIPMixins, this.ipConflictRule('outer_ip', 'taskserver')],
+        rules: [reguDomainOrIp, this.ipConflictRule('outer_ip', 'taskserver')],
         nginxPath: [
           {
             validator(val: string) {
