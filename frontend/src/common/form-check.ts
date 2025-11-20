@@ -10,6 +10,7 @@ import {
   regNaturalNumber,
   regInteger,
   regFnSysPath,
+  regDomain,
 } from '@/common/regexp';
 
 const i18nMap: Dictionary = {
@@ -39,6 +40,15 @@ export function createIpRegu(type: 'IPv4' | 'IPv6' | 'mixins' = 'IPv4', isBatch 
     validator,
   };
 }
+
+/**
+ * 域名或IP混合验证
+ */
+export const reguDomainOrIp = {
+  trigger: 'blur',
+  message: window.i18n.t('域名或IP格式不正确'),
+  validator: (val: string) => !val || regDomain.test(val) || regIpMixin.test(val),
+};
 
 /**
  * regu: regexp rules

@@ -18,7 +18,7 @@ export const regIp = new RegExp(`^${IpStr}$`);
 export const regFilterIp = new RegExp(`^(?:\\d+:)?(${IpStr})$`);
 export const regExclusiveFilterIp = new RegExp(`^\\d+:${IpStr}$`);
 export const regIPv6 = new RegExp(`^${IPv6Str}$`);
-export const regIpMixin = window.$DHCP ? new RegExp(`^${IpStr}|${IPv6Str}$`) : regIp; // 区分环境可用的IP类型
+export const regIpMixin = window.$DHCP ? new RegExp(`^(${IpStr}|${IPv6Str})$`) : regIp; // 区分环境可用的IP类型
 export const regFilterIpMixin = window.$DHCP ? new RegExp(`^(?:\\d+:)?(${IpStr}|${IPv6Str})$`) : regFilterIp;
 export const regExclusiveFilterIpMixin = window.$DHCP ? new RegExp(`^\\d+:(${IpStr}|${IPv6Str})$`) : regExclusiveFilterIp; // 用于区分IP还是按管控区域筛选ip
 export const regUrl = /^(?:http(s)?:\/\/)?[\w.-]+(?:\.[\w.-]+)+[\w\-._~:/?#[\]@!$&'*+,;=.]+$/;
@@ -36,3 +36,4 @@ export function regFnSysPath(params?: { [key: string]: number | string } = {}) {
     : `^([c-zC-Z]:)(\\\\[A-Za-z0-9_]{${minText},${maxText}}){${minLevel},}$`;
   return new RegExp(regText);
 }
+export const regDomain = /^(?:(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)\.)+[a-zA-Z]{2,}$/;
