@@ -805,9 +805,9 @@ class PluginStep(Step):
 
         action_dict = self.get_action_dict()
         ap_id_obj_map = models.AccessPoint.ap_id_obj_map()
-        allowed_version_change_to_upgrade_biz_list = models.GlobalSettings.get_config(
-            key=models.GlobalSettings.KeyEnum.SUBSCRIPTION_ALLOWED_VERSION_CHANGE_TO_UPGRADE.value, default=[]
-        )
+        # allowed_version_change_to_upgrade_biz_list = models.GlobalSettings.get_config(
+        #     key=models.GlobalSettings.KeyEnum.SUBSCRIPTION_ALLOWED_VERSION_CHANGE_TO_UPGRADE.value, default=[]
+        # )
         for group_id, host_key__proc_status_map in list(group_id__host_key__proc_status_map.items()):
             _id = int(tools.parse_group_id(group_id)["id"])
             instance_id = tools.create_node_id(
@@ -1109,11 +1109,19 @@ class UninstallAndDeletePlugin(PluginAction):
 
     def _generate_activities(self, plugin_manager):
         # 停用插件 -> 卸载插件
-        activities = [
-            plugin_manager.operate_proc(constants.GseOpType.STOP, self.step.plugin_desc),
-            plugin_manager.uninstall_package(),
-            plugin_manager.set_process_status(constants.ProcStateType.REMOVED),
-        ]
+        if self.step.plugin_desc.is_official:
+            activities = [
+                plugin_manager.remove_config(),
+                plugin_manager.operate_proc(constants.GseOpType.RELOAD, plugin_desc=self.step.plugin_desc),
+                plugin_manager.set_process_status(constants.ProcStateType.REMOVED),
+            ]
+        else:
+            activities = [
+                plugin_manager.operate_proc(constants.GseOpType.STOP, self.step.plugin_desc),
+                # TODO 卸载时需要在GSE注销进程
+                plugin_manager.uninstall_package(),
+                plugin_manager.set_process_status(constants.ProcStateType.REMOVED),
+            ]
         return activities, None
 
     def generate_activities(
