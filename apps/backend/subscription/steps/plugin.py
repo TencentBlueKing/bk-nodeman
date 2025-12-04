@@ -1109,7 +1109,7 @@ class UninstallAndDeletePlugin(PluginAction):
 
     def _generate_activities(self, plugin_manager):
         # 停用插件 -> 卸载插件
-        if plugin_manager.step.plugin_desc.is_official:
+        if self.step.plugin_desc.is_official:
             activities = [
                 plugin_manager.remove_config(),
                 plugin_manager.operate_proc(constants.GseOpType.RELOAD, plugin_desc=self.step.plugin_desc),
