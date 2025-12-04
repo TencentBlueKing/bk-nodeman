@@ -130,6 +130,7 @@ class PluginStep(Step):
             backend_const.ActionNameType.MAIN_STOP_AND_DELETE_PLUGIN: MainStopAndDeletePlugin,
             backend_const.ActionNameType.DEBUG_PLUGIN: DebugPlugin,
             backend_const.ActionNameType.STOP_DEBUG_PLUGIN: StopDebugPlugin,
+            backend_const.ActionNameType.UninstallAndDeletePlugin: UninstallAndDeletePlugin,
         }
         if self.plugin_desc.is_official:
             # 官方插件是基于多配置的管理模式，安装、卸载、启用、停用等操作仅涉及到配置的增删
@@ -140,7 +141,6 @@ class PluginStep(Step):
                     backend_const.ActionNameType.PUSH_CONFIG: PushConfig,
                     backend_const.ActionNameType.START: PushConfig,
                     backend_const.ActionNameType.STOP: RemoveConfig,
-                    backend_const.ActionNameType.UninstallAndDeletePlugin: UninstallAndDeletePlugin,
                 }
             )
         else:
@@ -151,7 +151,6 @@ class PluginStep(Step):
                     backend_const.ActionNameType.PUSH_CONFIG: PushConfig,
                     backend_const.ActionNameType.START: StartPlugin,
                     backend_const.ActionNameType.STOP: StopPlugin,
-                    backend_const.ActionNameType.UninstallAndDeletePlugin: UninstallAndDeletePlugin,
                 }
             )
         return actions
