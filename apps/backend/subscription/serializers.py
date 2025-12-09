@@ -43,6 +43,25 @@ class GatewaySerializer(serializers.Serializer):
             raise ValidationError(_("当前租户ID与DB保存不一致无法操作"))
         return
 
+    @staticmethod
+    def validate_tenant_ids(subscription_id_list):
+        if not settings.ENABLE_MULTI_TENANT_MODE:
+            return
+        subscriptions = models.Subscription.objects.filter(id__in=subscription_id_list)
+        db_ids = set(subscriptions.values_list("id", flat=True))
+        missing_ids = set(subscription_id_list) - db_ids
+        if missing_ids:
+            raise SubscriptionNotExist({"subscription_id_list": list(missing_ids)})
+
+        current_tenant = local.get_tenant_id()
+        for sub in subscriptions:
+            if sub.tenant_id != current_tenant:
+                raise ValidationError(
+                    _("订阅ID {sub_id} 的租户ID({tenant})与当前租户({current})不一致").format(
+                        sub_id=sub.id, tenant=sub.tenant_id, current=current_tenant
+                    )
+                )
+
 
 class ScopeSerializer(SubScopeInstSelectorSerializer):
     bk_biz_id = serializers.IntegerField(required=False, default=None)
@@ -155,6 +174,10 @@ class GetSubscriptionSerializer(GatewaySerializer):
     subscription_id_list = serializers.ListField(child=serializers.IntegerField(), label="订阅ID列表")
     show_deleted = serializers.BooleanField(default=False, label="显示已删除的订阅")
 
+    def validate(self, attrs):
+        self.validate_tenant_id(attrs["subscription_id"])
+        return attrs
+
 
 class UpdateSubscriptionSerializer(GatewaySerializer):
     class UpdateScopeSerializer(SubScopeInstSelectorSerializer):
@@ -215,6 +238,9 @@ class BatchSwitchSubscriptionSerializer(GatewaySerializer):
     )
     action = serializers.ChoiceField(choices=["enable", "disable"], label="启停动作")
 
+    def validate(self, attrs):
+        self.validate_tenant_ids(attrs["subscription_ids"])
+
 
 class RunSubscriptionSerializer(GatewaySerializer):
     class RunScopeSerializer(SubScopeInstSelectorSerializer):
@@ -234,6 +260,10 @@ class RevokeSubscriptionSerializer(GatewaySerializer):
     subscription_id = serializers.IntegerField()
     instance_id_list = serializers.ListField(required=False)
 
+    def validate(self, attrs):
+        self.validate_tenant_id(attrs["subscription_id"])
+        return attrs
+
 
 class RetrySubscriptionSerializer(GatewaySerializer):
     subscription_id = serializers.IntegerField()
@@ -242,10 +272,18 @@ class RetrySubscriptionSerializer(GatewaySerializer):
     task_id_list = serializers.ListField(child=serializers.IntegerField(), required=False)
     actions = serializers.DictField(child=serializers.CharField(), required=False)
 
+    def validate(self, attrs):
+        self.validate_tenant_id(attrs["subscription_id"])
+        return attrs
+
 
 class CheckTaskReadySerializer(GatewaySerializer):
     subscription_id = serializers.IntegerField()
     task_id_list = serializers.ListField(child=serializers.IntegerField(), required=False)
+
+    def validate(self, attrs):
+        self.validate_tenant_id(attrs["subscription_id"])
+        return attrs
 
 
 class TaskResultSerializer(GatewaySerializer):
@@ -265,6 +303,10 @@ class TaskResultSerializer(GatewaySerializer):
     need_aggregate_all_tasks = serializers.BooleanField(default=False, label="是否需要聚合全部任务查询最后一次视图")
     need_out_of_scope_snapshots = serializers.BooleanField(default=True, label="是否需要已不在范围内的快照信息")
 
+    def validate(self, attrs):
+        self.validate_tenant_id(attrs["subscription_id"])
+        return attrs
+
 
 class TaskResultDetailSerializer(GatewaySerializer):
     subscription_id = serializers.IntegerField()
@@ -272,16 +314,28 @@ class TaskResultDetailSerializer(GatewaySerializer):
     task_id_list = serializers.ListField(child=serializers.IntegerField(), required=False)
     instance_id = serializers.CharField()
 
+    def validate(self, attrs):
+        self.validate_tenant_id(attrs["subscription_id"])
+        return attrs
+
 
 class InstanceHostStatusSerializer(GatewaySerializer):
     subscription_id_list = serializers.ListField(child=serializers.IntegerField(), label="订阅ID列表")
     show_task_detail = serializers.BooleanField(default=False, label="展示任务详细信息")
     need_detail = serializers.BooleanField(default=False, label="展示实例主机详细信息")
 
+    def validate(self, attrs):
+        self.validate_tenant_ids(attrs["subscription_id_list"])
+        return attrs
+
 
 class RetryNodeSerializer(GatewaySerializer):
     subscription_id = serializers.IntegerField()
     instance_id = serializers.CharField()
+
+    def validate(self, attrs):
+        self.validate_tenant_id(attrs["subscription_id"])
+        return attrs
 
 
 class CMDBSubscriptionSerializer(serializers.Serializer):
@@ -298,11 +352,12 @@ class FetchCommandsSerializer(serializers.Serializer):
     is_uninstall = serializers.BooleanField()
 
 
-class SubscriptionStatisticSerializer(serializers.Serializer):
+class SubscriptionStatisticSerializer(GatewaySerializer):
     subscription_id_list = serializers.ListField()
 
     def validate(self, attrs):
         attrs["subscription_id_list"] = list(set(attrs["subscription_id_list"]))
+        self.validate_tenant_ids(attrs["subscription_id_list"])
         return attrs
 
 

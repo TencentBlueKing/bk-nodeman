@@ -29,7 +29,6 @@ from apps.backend import exceptions
 from apps.core.files.storage import get_storage
 from apps.node_man import constants, models
 from apps.utils import enum, env, files
-from apps.utils.local import get_tenant_id
 
 logger = logging.getLogger("app")
 
@@ -515,6 +514,7 @@ def create_package_records(
     file_path: str,
     file_name: str,
     is_release: bool,
+    tenant_id: str,
     creator: Optional[str] = None,
     select_pkg_relative_paths: Optional[List[str]] = None,
     is_template_load: bool = False,
@@ -524,6 +524,7 @@ def create_package_records(
     :param file_path: 上传插件所在路径
     :param file_name: 上传插件名称
     :param is_release: 是否正式发布
+    :param tenant_id: 租户ID
     :param creator: 操作人
     :param select_pkg_relative_paths: 指定注册插件包的相对路径列表
     :param is_template_load: 是否需要读取配置文件
@@ -549,6 +550,7 @@ def create_package_records(
                 creator=creator,
                 is_external=package_info["is_external"],
                 is_template_load=is_template_load,
+                tenant_id=tenant_id,
             )
 
             logger.info(
@@ -574,6 +576,7 @@ def create_pkg_record(
     package_os: str,
     cpu_arch: str,
     is_external: bool,
+    tenant_id: str,
     creator: Optional[str] = None,
     is_release: bool = True,
     is_template_load: bool = False,
@@ -586,6 +589,7 @@ def create_pkg_record(
     :param package_os: 插件包支持的操作系统类型
     :param cpu_arch: 插件支持的CPU架构
     :param is_external: 是否第三方插件
+    :param tenant_id: 租户ID
     :param creator: 操作人
     :param is_release: 是否发布的版本
     :param is_template_load: 是否需要读取插件包中的配置模板
@@ -619,7 +623,7 @@ def create_pkg_record(
             auto_type=yaml_config.get("auto_type", constants.GseAutoType.RESIDENT.value),
             is_binary=bool(yaml_config.get("is_binary", True)),
             node_manage_control=yaml_config.get("node_manage_control", ""),
-            tenant_id=get_tenant_id(),
+            tenant_id=tenant_id,
         ),
     )
     if created:
@@ -655,7 +659,7 @@ def create_pkg_record(
             cpu_arch=cpu_arch,
             is_release_version=is_release,
             is_ready=False,
-            tenant_id=get_tenant_id(),
+            tenant_id=tenant_id,
         )
     else:
         # 否则，更新已有的记录即可
