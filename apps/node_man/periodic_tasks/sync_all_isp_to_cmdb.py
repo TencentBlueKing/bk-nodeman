@@ -12,6 +12,7 @@ import time
 from typing import Any, Dict, List
 
 from celery import current_app
+from django.conf import settings
 
 from apps.node_man import constants
 from apps.node_man.models import Cloud, GlobalSettings
@@ -25,7 +26,7 @@ def sync_all_isp_to_cmdb(task_id):
     # CMDB内置云区域不更新,默认为直连区域与未分配管控区域，如有其他内置云区域通过GlobalSettings配置
     cmdb_internal_cloud_ids = GlobalSettings.get_config(
         key=GlobalSettings.KeyEnum.CMDB_INTERNAL_CLOUD_IDS.value,
-        default=[constants.DEFAULT_CLOUD, constants.UNASSIGNED_CLOUD_ID],
+        default=[constants.DEFAULT_CLOUD, settings.UNASSIGNED_BK_CLOUD_ID],
     )
     cloud_info: List[Dict[str, Any]] = list(Cloud.objects.values("bk_cloud_id", "isp", "tenant_id"))
     # 分片请求：一次一百条条

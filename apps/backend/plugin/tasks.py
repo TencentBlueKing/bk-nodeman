@@ -60,6 +60,7 @@ def package_task(job_id, task_params):
             creator=task_params["bk_username"],
             select_pkg_relative_paths=select_pkg_relative_paths,
             is_template_load=task_params.get("is_template_load", False),
+            tenant_id=task_params.get("tenant_id"),
         )
 
     except PermissionError:

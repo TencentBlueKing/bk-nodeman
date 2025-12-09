@@ -54,6 +54,7 @@ from apps.exceptions import AppBaseException, ValidationError
 from apps.generic import APIViewSet
 from apps.node_man import constants, models
 from apps.node_man.exceptions import HostNotExists, ServiceInstanceNotFoundError
+from apps.utils.local import get_tenant_id
 from pipeline.engine.exceptions import InvalidOperationException
 from pipeline.service import task_service
 from pipeline.service.pipeline_engine_adapter.adapter_api import STATE_MAP
@@ -124,6 +125,7 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
             status=constants.JobStatusType.RUNNING,
         )
         # 这个新的任务，应该是指派到自己机器上的打包任务
+        params["tenant_id"] = get_tenant_id()
         tasks.package_task.delay(job.id, params)
         logger.info(
             "create job-> {job_id} to unpack file-> {file_name} plugin".format(job_id=job.id, file_name=file_name)

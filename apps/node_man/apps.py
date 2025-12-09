@@ -108,6 +108,12 @@ class ApiConfig(AppConfig):
         )
         settings.REGISTER_WIN_SERVICE_WITH_PASS = obj.v_json
 
+        obj, created = GlobalSettings.objects.get_or_create(
+            key=GlobalSettings.KeyEnum.UNASSIGNED_BK_CLOUD_ID.value,
+            defaults=dict(v_json=[-1] if settings.ENABLE_MULTI_TENANT_MODE else [90000001]),
+        )
+        settings.UNASSIGNED_BK_CLOUD_ID = obj.v_json
+
         # 注册消息中心app(适配各个环境只注册一次)
         if settings.BK_NOTICE_ENABLED:
             try:
