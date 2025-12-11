@@ -15,6 +15,7 @@ from django.db.models import Q
 from django.db.utils import ProgrammingError
 from django.utils.translation import get_language
 
+from apps.backend.subscription.handler import SubscriptionHandler
 from apps.core.ipchooser import core_ipchooser_constants
 from apps.core.ipchooser.tools.base import HostQueryHelper, HostQuerySqlHelper
 from apps.core.tag import targets
@@ -440,6 +441,36 @@ class PluginHandler(APIModel):
         获取主机process状态信息
         """
         return ProcessStatus.objects.filter(bk_host_id__in=bk_host_ids)
+
+    @staticmethod
+    def reset_process_status(host_list: list):
+        """
+        重置主机process状态信息
+        """
+        bk_host_id_set = set()
+        filter_q = Q()
+        for host_info in host_list:
+            # 优先取主机 ID 作为查询条件
+            if "host_id" in host_info:
+                bk_host_id_set.add(host_info["host_id"])
+            else:
+                filter_q |= Q(inner_ip=host_info["ip"], bk_cloud_id=host_info["cloud_id"])
+        host_ids_from_ip = []
+        if filter_q:
+            host_ids_from_ip = Host.objects.filter(filter_q).values_list("bk_host_id", flat=True)
+        bk_host_ids = list(bk_host_id_set) + list(host_ids_from_ip)
+        group_ids = ProcessStatus.objects.filter(bk_host_id__in=bk_host_ids).values("group_id")
+        sub_ids = [int(item["group_id"].split("_")[1]) for item in group_ids if item["group_id"]]
+        if not sub_ids:
+            return
+        enable_sub_ids = list(Subscription.objects.filter(id__in=sub_ids, enable=True).values_list("id", flat=True))
+        if not enable_sub_ids:
+            return
+        ProcessStatus.objects.filter(bk_host_id__in=bk_host_ids, source_id__in=enable_sub_ids).update(
+            status="TERMINATED"
+        )
+        for subscription_id in enable_sub_ids:
+            SubscriptionHandler(subscription_id).run()
 
     @staticmethod
     def get_statistics():

@@ -292,3 +292,20 @@ class ProcessStatusViewSet(ModelViewSet):
 
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
+
+    @swagger_auto_schema(
+        operation_summary="初始化主机进程状态",
+        tags=PROCESS_STATUS_VIEW_TAGS,
+    )
+    @action(methods=["POST"], detail=False, url_path="reset")
+    def reset_process_status(self, request, *args, **kwargs):
+        """
+        @api {POST} /plugin/process/reset/ 初始化主机进程状态
+        @apiName reset_process_status
+        @apiGroup plugin
+        """
+        host_list = request.data.get("host_list")
+        if not host_list:
+            raise ValidationError("host_list is required")
+        PluginHandler.reset_process_status(host_list)
+        return Response()
