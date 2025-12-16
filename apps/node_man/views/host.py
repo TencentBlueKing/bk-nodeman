@@ -29,6 +29,7 @@ from apps.node_man.serializers.host import (
     SyncCmdbHostSerializer,
 )
 from apps.utils.local import get_request_username
+from apps.utils.time_tools import get_user_timezone
 
 HOST_VIEW_TAGS = ["host"]
 
@@ -51,7 +52,8 @@ class HostViewSet(ModelViewSet):
         @apiName list_host
         @apiGroup Host
         """
-        return Response(HostHandler().list(self.validated_data, get_request_username()))
+        user_timezone = get_user_timezone(request)
+        return Response(HostHandler().list(self.validated_data, get_request_username(), user_timezone))
 
     @swagger_auto_schema(
         operation_id="list_cloud_proxies",

@@ -12,8 +12,10 @@ import json
 import os
 import random
 from collections import ChainMap, defaultdict
+from datetime import datetime
 from typing import Any, Dict, List, Union
 
+import pytz
 import requests
 from django.conf import settings
 from django.core.cache import cache
@@ -137,7 +139,7 @@ class PluginV2Handler:
         return config_tmpls
 
     @staticmethod
-    def history(query_params: Dict):
+    def history(query_params: Dict, user_timezone: str):
         packages = NodeApi.plugin_history(query_params)
         if not packages:
             return packages
@@ -147,6 +149,11 @@ class PluginV2Handler:
         for package in packages:
             package["nodes_number"] = nodes_counter.get(
                 f"{package['os']}_{package['cpu_arch']}_{package['version']}", 0
+            )
+            package["pkg_mtime"] = (
+                datetime.fromisoformat(package["pkg_mtime"])
+                .astimezone(pytz.timezone(user_timezone))
+                .strftime("%Y-%m-%d %H:%M:%S %z")
             )
         return packages
 

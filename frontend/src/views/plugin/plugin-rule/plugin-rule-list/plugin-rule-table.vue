@@ -142,7 +142,7 @@
         prop="update_time"
         min-width="180">
         <template #default="{ row }">
-          {{ row.update_time | filterTimezone }}
+          {{ row.update_time }}
         </template>
       </NmColumn>
       <NmColumn prop="colspanOperate" :label="$t('操作')" width="150" :resizable="false" fixed="right">

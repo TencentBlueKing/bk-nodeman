@@ -333,6 +333,7 @@ BK_NODEMAN_HOST = env.BK_NODEMAN_HOST
 BK_NODEMAN_BACKEND_HOST = env.BK_NODEMAN_BACKEND_HOST
 BK_JOB_HOST = os.environ.get("BK_JOB_HOST", BK_PAAS_HOST.replace("paas", "job"))
 BK_CC_HOST = env.BK_CC_HOST
+BK_USER_URL = env.BK_USER_URL
 
 # 是否使用权限中心
 USE_IAM = bool(os.getenv("BKAPP_USE_IAM", False))

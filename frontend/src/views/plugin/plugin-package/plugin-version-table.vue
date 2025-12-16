@@ -22,7 +22,7 @@
       <NmColumn :label="$t('包大小')" prop="pkg_size" width="80" sortable></NmColumn>
       <NmColumn :label="$t('更新时间')" prop="pkg_mtime" min-width="110" sortable>
         <template #default="{ row }">
-          {{ row.pkg_mtime | filterTimezone }}
+          {{ row.pkg_mtime }}
         </template>
       </NmColumn>
       <NmColumn :label="$t('更新人')" prop="creator" width="100" sortable>

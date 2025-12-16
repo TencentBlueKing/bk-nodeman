@@ -71,7 +71,7 @@
         </NmColumn>
         <NmColumn min-width="150" :label="$t('执行时间')" prop="startTime">
           <template #default="{ row }">
-            {{ row.startTime | filterTimezone }}
+            {{ row.startTime }}
           </template>
         </NmColumn>
         <NmColumn align="right" :label="$t('总耗时')" prop="costTime" :min-width="columnMinWidth['costTime']">

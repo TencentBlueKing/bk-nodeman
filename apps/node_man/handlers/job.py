@@ -14,6 +14,7 @@ import operator
 from functools import reduce
 from typing import Any, Dict, List, Optional, Set, Union
 
+import pytz
 from django.conf import settings
 from django.core.paginator import Paginator
 from django.db import transaction
@@ -148,11 +149,12 @@ class JobHandler(APIModel):
 
         return command_solutions
 
-    def list(self, params: dict, username: str):
+    def list(self, params: dict, username: str, user_timezone: str):
         """
         Job 任务历史列表
         :param params: 请求参数的字典
         :param username: 用户名
+        :param user_timezone: 用户时区
         """
         tenant_id = get_tenant_id()
         kwargs = {
@@ -256,6 +258,9 @@ class JobHandler(APIModel):
                 job["cost_time"] = f'{(timezone.now() - job["start_time"]).seconds}'
             else:
                 job["cost_time"] = f'{(job["end_time"] - job["start_time"]).seconds}'
+            job["start_time"] = (
+                job["start_time"].astimezone(pytz.timezone(user_timezone)).strftime("%Y-%m-%d %H:%M:%S %z")
+            )
             job["bk_biz_scope_display"] = [all_biz_info.get(biz) for biz in job["bk_biz_scope"]]
             job["job_type_display"] = constants.JOB_TYPE_DICT.get(job["job_type"])
 

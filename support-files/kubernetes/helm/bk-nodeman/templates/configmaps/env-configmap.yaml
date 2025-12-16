@@ -38,6 +38,7 @@ data:
   BLUEKING_BIZ_ID: "{{ .Values.config.bluekingBizId }}"
   BK_CC_HOST: "{{ .Values.bkCmdbUrl }}"
   BK_JOB_HOST: "{{ .Values.config.bkJobUrl | default .Values.bkJobUrl }}"
+  BK_USER_URL: "{{ .Values.bkUserUrl }}"
 
   BKAPP_USE_IAM: "{{ .Values.config.bkAppUseIam }}"
   BK_IAM_V3_APP_CODE: "{{ .Values.config.bkIamV3AppCode }}"
@@ -145,6 +146,7 @@ data:
   BKAPP_BK_CC_APIGATEWAY: "{{ .Values.config.bkAppBkCcApiGateway }}"
   BKAPP_BK_USER_APIGATEWAY: "{{ .Values.config.bkAppBkUserApiGateway }}"
   BKAPP_BK_USER_WEB_APIGATEWAY: "{{ .Values.config.bkAppBkUserWebApiGateway }}"
+  BKAPP_BK_LOGIN_APIGATEWAY: "{{ .Values.config.bkAppBkLoginApiGateway }}"
   BKAPP_BK_APIGATEWAY: "{{ .Values.config.bkAppBkApiGateway }}"
   BKAPP_BK_JOB_APIGATEWAY: "{{ .Values.config.bkAppBkJobApiGateway }}"
   BKAPP_BK_MONITOR_APIGATEWAY: "{{ .Values.config.bkAppBkMonitorApiGateway }}"

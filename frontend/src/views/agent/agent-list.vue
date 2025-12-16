@@ -419,7 +419,7 @@
           :resizable="false"
           v-if="filter['created_at'].mockChecked">
           <template #default="{ row }">
-            {{ row.created_at | filterTimezone }}
+            {{ row.created_at }}
           </template>
         </NmColumn>
         <NmColumn
@@ -430,7 +430,7 @@
           :resizable="false"
           v-if="filter['updated_at'].mockChecked">
           <template #default="{ row }">
-            {{ row.updated_at | filterTimezone }}
+            {{ row.updated_at }}
           </template>
         </NmColumn>
         <NmColumn

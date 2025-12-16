@@ -108,7 +108,7 @@
         <NmColumn :label="$t('最新程序版本')" prop="version" sortable :resizable="false" min-width="100" />
         <NmColumn :label="$t('更新时间')" prop="pkg_mtime" sortable :resizable="false" min-width="120">
           <template #default="{ row }">
-            {{ row.pkg_mtime | filterTimezone }}
+            {{ row.pkg_mtime }}
           </template>
         </NmColumn>
         <bk-table-column :label="$t('操作')" :resizable="false" :width="isEnLanguage ? 160 : 120">

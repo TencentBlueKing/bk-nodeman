@@ -21,6 +21,8 @@ import pytz
 from django.conf import settings
 from django.utils import timezone
 
+from common.api import LoginApi
+
 
 def now():
     return timezone.now()
@@ -277,3 +279,22 @@ def dt_str2dt_as_timezone(
 local_dt_str2utc_dt = partial(dt_str2dt_as_timezone, origin_tz=timezone.get_current_timezone(), target_tz=pytz.utc)
 
 utc_dt_str2utc_dt = partial(dt_str2dt_as_timezone, origin_tz=pytz.utc, target_tz=pytz.utc)
+
+
+def get_user_timezone(request):
+    """获取用户时区"""
+    default_tz = getattr(settings, "TIME_ZONE", "UTC")
+    try:
+        bk_token = request.COOKIES.get("bk_token")
+        if not bk_token:
+            return default_tz
+        user_info = LoginApi.get_bk_token_userinfo({"bk_token": bk_token})
+        tz_name = user_info.get("time_zone")
+        if not tz_name or not isinstance(tz_name, str) or tz_name.strip() == "":
+            return default_tz
+        if tz_name.strip() in pytz.all_timezones:
+            return tz_name
+        else:
+            return default_tz
+    except Exception:
+        return default_tz
