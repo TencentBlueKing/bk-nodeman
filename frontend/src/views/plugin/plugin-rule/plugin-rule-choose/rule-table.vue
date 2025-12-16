@@ -32,7 +32,7 @@
       </NmColumn>
       <NmColumn :label="$t('最近部署时间')" prop="update_time" sortable>
         <template #default="{ row }">
-          {{ row.update_time | filterTimezone }}
+          {{ row.update_time }}
         </template>
       </NmColumn>
       <NmColumn :label="$t('关联主机数')">

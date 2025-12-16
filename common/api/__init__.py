@@ -48,6 +48,8 @@ YunTiApi = SimpleLazyObject(lambda: new_api_module("yunti", "_YunTiApi"))
 UserApi = SimpleLazyObject(lambda: new_api_module("user", "_UserApi"))
 # 网关
 GatewayApi = SimpleLazyObject(lambda: new_api_module("apigateway", "_GatewayApi"))
+# 登录
+LoginApi = SimpleLazyObject(lambda: new_api_module("login", "_LoginApi"))
 
 __all__ = [
     "CCApi",
@@ -61,6 +63,7 @@ __all__ = [
     "UserApi",
     "GatewayApi",
     "MonitorApi",
+    "LoginApi",
 ]
 
 

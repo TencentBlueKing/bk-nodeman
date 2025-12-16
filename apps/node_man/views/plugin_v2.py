@@ -8,6 +8,9 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from datetime import datetime
+
+import pytz
 from django.http import JsonResponse
 from django.utils.translation import gettext_lazy as _
 from drf_yasg.utils import swagger_auto_schema
@@ -24,6 +27,7 @@ from apps.node_man.handlers.plugin_v2 import PluginV2Handler
 from apps.node_man.models import GsePluginDesc
 from apps.node_man.serializers import plugin_v2
 from apps.utils.local import get_request_username
+from apps.utils.time_tools import get_user_timezone
 from common.api import NodeApi
 
 PLUGIN_V2_VIEW_TAGS = ["plugin_v2"]
@@ -138,7 +142,7 @@ class PluginV2ViewSet(ModelViewSet):
             ]
         }
         """
-
+        user_timezone = get_user_timezone(request)
         is_superuser = IamHandler().is_superuser(get_request_username())
 
         perms_ids = []
@@ -149,6 +153,12 @@ class PluginV2ViewSet(ModelViewSet):
             ]
 
         data = NodeApi.plugin_retrieve({"plugin_id": kwargs["pk"]})
+        for plugin_package in data.get("plugin_packages", []):
+            plugin_package["pkg_mtime"] = (
+                datetime.fromisoformat(plugin_package["pkg_mtime"])
+                .astimezone(pytz.timezone(user_timezone))
+                .strftime("%Y-%m-%d %H:%M:%S %z")
+            )
         data["permissions"] = {"operate": int(kwargs["pk"]) in perms_ids if not is_superuser else True}
         return Response(data)
 
@@ -439,7 +449,8 @@ class PluginV2ViewSet(ModelViewSet):
         """
         params = self.validated_data
         params["plugin_id"] = pk
-        return Response(PluginV2Handler.history(params))
+        user_timezone = get_user_timezone(request)
+        return Response(PluginV2Handler.history(params, user_timezone))
 
     @swagger_auto_schema(
         operation_summary="插件上传",

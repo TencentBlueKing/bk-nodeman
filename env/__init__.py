@@ -193,6 +193,7 @@ BKAPP_MONITOR_REPORTER_CHUNK_SIZE = get_type_env(key="BKAPP_MONITOR_REPORTER_CHU
 # 第三方依赖
 # ===============================================================================
 BK_CC_HOST = get_type_env(key="BK_CC_HOST", default="", _type=str)
+BK_USER_URL = get_type_env(key="BK_USER_URL", default="", _type=str)
 
 # APIGW API 地址模板，在 PaaS 3.0 部署的应用，可从环境变量中获取 BK_API_URL_TMPL
 BK_API_URL_TMPL = get_type_env(key="BK_API_URL_TMPL", default=BK_COMPONENT_API_URL + "/api/{api_name}", _type=str)

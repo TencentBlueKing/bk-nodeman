@@ -55,6 +55,7 @@ from apps.generic import APIViewSet
 from apps.node_man import constants, models
 from apps.node_man.exceptions import HostNotExists, ServiceInstanceNotFoundError
 from apps.utils.local import get_tenant_id
+from apps.utils.time_tools import get_user_timezone
 from pipeline.engine.exceptions import InvalidOperationException
 from pipeline.service import task_service
 from pipeline.service.pipeline_engine_adapter.adapter_api import STATE_MAP
@@ -1131,7 +1132,8 @@ class PluginViewSet(APIViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
             ]
         }
         """
-        return Response(PluginHandler.retrieve(kwargs["pk"]))
+        user_timezone = get_user_timezone(request)
+        return Response(PluginHandler.retrieve(kwargs["pk"], user_timezone))
 
     @swagger_auto_schema(
         operation_id="plugin_status_operation",

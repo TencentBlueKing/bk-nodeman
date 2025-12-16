@@ -30,6 +30,7 @@ from apps.node_man.serializers.job import (
 )
 from apps.node_man.tools.job import JobTools
 from apps.utils.local import get_request_username
+from apps.utils.time_tools import get_user_timezone
 
 JOB_VIEW_TAGS = ["job"]
 
@@ -87,7 +88,8 @@ class JobViewSet(ModelViewSet):
             ]
         }
         """
-        return Response(JobHandler().list(self.validated_data, get_request_username()))
+        user_timezone = get_user_timezone(request)
+        return Response(JobHandler().list(self.validated_data, get_request_username(), user_timezone))
 
     @swagger_auto_schema(
         operation_id="job_details",

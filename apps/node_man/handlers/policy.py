@@ -13,10 +13,12 @@ import logging
 import operator
 from collections import ChainMap, Counter, defaultdict
 from copy import deepcopy
+from datetime import datetime
 from functools import reduce
 from itertools import chain, groupby
 from typing import Any, Dict, List, Optional, Set, Union
 
+import pytz
 from django.conf import settings
 from django.db.models import Q
 from django.utils import timezone
@@ -89,10 +91,11 @@ class PolicyHandler:
         policy.save(update_fields=["creator", "name", "update_time"])
 
     @staticmethod
-    def search_deploy_policy(query_params: Dict[str, Any]) -> Dict[str, Any]:
+    def search_deploy_policy(query_params: Dict[str, Any], user_timezone: str) -> Dict[str, Any]:
         """
         查询策略
         :param query_params: 查询参数
+        :param user_timezone: 用户时区
         :return: 策略列表
         """
 
@@ -240,6 +243,19 @@ class PolicyHandler:
 
         # 灰度策略与父策略的版本比较
         for root_policy in root_policy_page["list"]:
+            # 时间转换
+            root_policy["update_time"] = (
+                datetime.fromisoformat(root_policy["update_time"])
+                .astimezone(pytz.timezone(user_timezone))
+                .strftime("%Y-%m-%d %H:%M:%S %z")
+            )
+            for child_policy in root_policy.get("children", []):
+                if "update_time" in child_policy and child_policy["update_time"]:
+                    child_policy["update_time"] = (
+                        child_policy["update_time"]
+                        .astimezone(pytz.timezone(user_timezone))
+                        .strftime("%Y-%m-%d %H:%M:%S %z")
+                    )
             os_cpu__version_map = {
                 f"{config['os']}_{config['cpu_arch']}": config["version"] for config in root_policy["configs"]
             }

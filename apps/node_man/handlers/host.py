@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 from collections import defaultdict
 from typing import Any, Dict, Iterable, List, Optional, Set
 
+import pytz
 from django.db.models import Count, Q
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
@@ -97,11 +98,12 @@ class HostHandler(APIModel):
         """
         return dict(queryset.values_list("is_manual").order_by("is_manual").annotate(count=Count("is_manual")))
 
-    def list(self, params: dict, username: str):
+    def list(self, params: dict, username: str, user_timezone: str):
         """
         查询主机
         :param params: 经校验后的数据
         :param username: 用户名数据
+        :param user_timezone: 用户时区
         """
 
         # 用户有权限获取的业务
@@ -231,6 +233,14 @@ class HostHandler(APIModel):
         # 获得{biz:[bk_host_id]}格式数据
         biz_host_id_map = {}
         for hs in hosts_status:
+            if hs.get("created_at"):
+                hs["created_at"] = (
+                    hs["created_at"].astimezone(pytz.timezone(user_timezone)).strftime("%Y-%m-%d %H:%M:%S %z")
+                )
+            if hs.get("updated_at"):
+                hs["updated_at"] = (
+                    hs["updated_at"].astimezone(pytz.timezone(user_timezone)).strftime("%Y-%m-%d %H:%M:%S %z")
+                )
             if hs["bk_biz_id"] not in biz_host_id_map:
                 biz_host_id_map[hs["bk_biz_id"]] = [hs["bk_host_id"]]
             else:

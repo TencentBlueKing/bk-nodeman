@@ -12,8 +12,10 @@ import logging
 import os
 import shutil
 from collections import defaultdict
+from datetime import datetime
 from typing import Any, Dict, List, Optional
 
+import pytz
 from django.conf import settings
 from django.utils.translation import gettext as _
 
@@ -108,7 +110,7 @@ class PluginHandler:
         return {"id": record.id, "name": record.file_name, "pkg_size": record.file_size}
 
     @classmethod
-    def retrieve(cls, plugin_id: int):
+    def retrieve(cls, plugin_id: int, user_timezone: str):
         locale_fields = tools.locale_fields()
         gse_plugin_desc = (
             models.GsePluginDesc.objects.filter(id=plugin_id)
@@ -162,6 +164,11 @@ class PluginHandler:
             )
             release_package = package_group[0]
             release_package["support_os_cpu"] = os_cpu
+            release_package["pkg_mtime"] = (
+                datetime.fromisoformat(release_package["pkg_mtime"])
+                .astimezone(pytz.timezone(user_timezone))
+                .strftime("%Y-%m-%d %H:%M:%S %z")
+            )
             plugin_packages.append(release_package)
 
         targets.PluginTargetHelper.fill_latest_config_tmpls_to_packages(packages)

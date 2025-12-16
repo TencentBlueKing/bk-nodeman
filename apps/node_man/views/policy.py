@@ -18,6 +18,7 @@ from apps.node_man.handlers.permission import PolicyPermission
 from apps.node_man.handlers.policy import PolicyHandler
 from apps.node_man.serializers import policy
 from apps.node_man.tools.policy import PolicyTools
+from apps.utils.time_tools import get_user_timezone
 from common.api import NodeApi
 
 POLICY_VIEW_TAGS = ["policy"]
@@ -216,7 +217,10 @@ class PolicyViewSet(ModelViewSet):
             ]
         }
         """
-        return Response(PolicyHandler.search_deploy_policy(query_params=self.validated_data))
+        user_timezone = get_user_timezone(request)
+        return Response(
+            PolicyHandler.search_deploy_policy(query_params=self.validated_data, user_timezone=user_timezone)
+        )
 
     @swagger_auto_schema(
         operation_summary="获取公共变量",
