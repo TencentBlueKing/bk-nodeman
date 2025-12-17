@@ -51,6 +51,8 @@
               const API_BASE_URL = '{{ API_BASE_URL }}'
               const TENANT_ID = '{{ TENANT_ID }}'
               const ENABLE_MULTI_TENANT_MODE = '{{ ENABLE_MULTI_TENANT_MODE }}'
+              const BK_IAM_SAAS_HOST = '{{ BK_IAM_SAAS_HOST }}'
+              const BK_PERSONAL_CENTER_URL = '{{ BK_PERSONAL_CENTER_URL }}'
 
               return {
                   APP_CODE,
@@ -93,6 +95,8 @@
                   API_BASE_URL,
                   TENANT_ID,
                   ENABLE_MULTI_TENANT_MODE,
+                  BK_IAM_SAAS_HOST,
+                  BK_PERSONAL_CENTER_URL,
               }
           })()
           window.$DHCP = window.PROJECT_CONFIG.BKAPP_ENABLE_DHCP === 'True'

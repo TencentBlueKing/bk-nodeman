@@ -201,6 +201,8 @@ export default class NodemanNavigation extends Mixins(routerBackMixin) {
     },
   ];
   private userList: IUserItem[] = [
+    { id: 'PERMISSION', name: window.i18n.t('权限中心'), href: window.PROJECT_CONFIG.BK_IAM_SAAS_HOST },
+    { id: 'PERSONAL', name: window.i18n.t('个人中心'), href: window.PROJECT_CONFIG.BK_PERSONAL_CENTER_URL },
     { id: 'LOGOUT', name: window.i18n.t('退出登录') },
   ];
   private showLog = false;
@@ -443,6 +445,24 @@ export default class NodemanNavigation extends Mixins(routerBackMixin) {
         }
         window.location.href = `${loginUrl}?is_from_logout=1&c_url=${encodeURIComponent(window.location.href)}`
       }
+    } else if (['PERSONAL', 'PERMISSION'].includes(userItem.id)) {
+      // 添加URL安全验证
+      if (userItem.href && this.isSafeUrl(userItem.href)) {
+        window.open(userItem.href, '_blank');
+      } else {
+        console.warn('Invalid or unsafe URL detected:', userItem.href);
+      }
+    }
+  }
+
+  // 验证URL是否安全
+  private isSafeUrl(url: string): boolean {
+    try {
+      // 只允许HTTP和HTTPS协议
+      const urlObj = new URL(url);
+      return ['http:', 'https:'].includes(urlObj.protocol);
+    } catch {
+      return false;
     }
   }
   private handleApplyPermission() {

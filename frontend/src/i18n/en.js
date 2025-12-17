@@ -77,6 +77,8 @@ export default {
   ...nav,
 
   退出登录: 'Sign Out',
+  权限中心: 'Permission Center',
+  个人中心: 'Personal Center',
   请求出错: 'Request error',
   请求的资源没有权限: 'Resources requested do not have permission',
   请求的资源不存在: 'Resources requested do not exist',
