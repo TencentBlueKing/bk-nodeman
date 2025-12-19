@@ -49,6 +49,8 @@
               ENABLE_MULTI_TENANT_MODE = ''
               BK_IAM_SAAS_HOST = ''
               BK_PERSONAL_CENTER_URL = ''
+              BK_STATIC_URL = ''
+              BK_SITE_PATH = ''
 
               return {
                   SITE_URL: SITE_URL,
@@ -93,6 +95,8 @@
                   ENABLE_MULTI_TENANT_MODE,
                   BK_IAM_SAAS_HOST,
                   BK_PERSONAL_CENTER_URL,
+                  BK_STATIC_URL,
+                  BK_SITE_PATH,
               }
           })()
           window.$DHCP = window.PROJECT_CONFIG.BKAPP_ENABLE_DHCP === 'True'

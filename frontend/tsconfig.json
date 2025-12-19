@@ -2,7 +2,8 @@
   "include": [
     "src/**/*",
     ".eslintrc.js",
-    "local_settings.js"
+    "local_settings.js",
+    "static/webpack_public_path.js"
   ],
   "exclude": [
     "node_modules"

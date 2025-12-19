@@ -1,3 +1,4 @@
+import '../static/webpack_public_path';
 import './public-path';
 import Vue from 'vue';
 
