@@ -1,4 +1,5 @@
 {{- $fullName := printf "%s-%s" (include "bk-nodeman.fullname" .) "env-configmap" -}}
+{{- $nodemanUrl := include "bk-nodeman.ingress-url" (list .Values.ingress .Values.global) -}}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -59,7 +60,13 @@ data:
   BKAPP_BK_GSE_APIGATEWAY: "{{ .Values.config.bkAppBkGseApiGateway }}/"
   {{- end }}
 
-  BK_NODEMAN_URL: "{{ .Values.bkNodemanUrl }}"
+  {{- if eq .Values.global.bkWebSiteAccess.mode "subpath"}}
+  BK_NODEMAN_SUBPATH: "/bknodeman/"
+  {{- else}}
+  BK_NODEMAN_SUBPATH: "/"
+  {{- end}}
+
+  BK_NODEMAN_URL: "{{ $nodemanUrl }}"
   BKAPP_BACKEND_HOST: "{{ .Values.config.bkAppBackendHost | default .Values.bkNodemanApiUrl }}"
   BKAPP_NODEMAN_CALLBACK_URL: "{{ .Values.config.bkAppNodemanCallbackUrl | default ( printf "%s/%s" .Values.bkNodemanUrl "backend" ) }}"
   BKAPP_NODEMAN_OUTER_CALLBACK_URL: "{{ .Values.config.bkAppNodemanOuterCallbackUrl | default ( printf "%s/%s" .Values.bkNodemanUrl "backend" ) }}"
