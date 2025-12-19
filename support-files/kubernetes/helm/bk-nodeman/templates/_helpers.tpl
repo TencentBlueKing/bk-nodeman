@@ -291,6 +291,14 @@ initContainers:
       {{- toYaml .Values.migrateJob.fileSync.resources | nindent 6 }}
 {{- end }}
 
+{{- define "bk-nodeman.urljoin" -}}
+{{- $parts := list -}}
+{{- range $part := . -}}
+{{- $parts = append $parts ($part | trimSuffix "/" | trimPrefix "/") -}}
+{{- end -}}
+{{- join "/" $parts -}}
+{{- end -}}
+
 {{- define "bk-nodeman.ingress-host" -}}
   {{- $ingress := index . 0 -}}
   {{- $global := index . 1 -}}
