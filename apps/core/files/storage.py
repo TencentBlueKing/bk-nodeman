@@ -8,10 +8,14 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import logging
 import os
 from typing import Any, Callable, Dict, List, Optional
 
 from bkstorages.backends import bkrepo
+from bkstorages.backends.bkrepo import BKGenericRepoClient
+from bkstorages.exceptions import ObjectAlreadyExists, RequestError, UploadFailedError
+from bkstorages.utils import get_setting
 from django.conf import settings
 from django.core.exceptions import SuspiciousFileOperation
 from django.core.files import File
@@ -28,6 +32,8 @@ from . import constants
 from .base import BaseStorage
 from .file_source import BkJobFileSourceManager
 
+logger = logging.getLogger(__name__)
+
 
 @deconstructible
 class CustomBKRepoStorage(BaseStorage, bkrepo.BKRepoStorage):
@@ -40,6 +46,34 @@ class CustomBKRepoStorage(BaseStorage, bkrepo.BKRepoStorage):
     password: Optional[str] = None
     project_id: Optional[str] = None
     bucket: Optional[str] = None
+
+    class CustomBKGenericRepoClient(BKGenericRepoClient):
+        def upload_fileobj(self, fh, key: str, allow_overwrite: bool = True, **kwargs):
+            """上传通用制品文件
+
+            :param BinaryIO fh: 文件句柄
+            :param str key: 文件完整路径
+            :param bool allow_overwrite: 是否覆盖已存在文件
+            """
+            TIMEOUT_THRESHOLD = float(get_setting("BKREPO_TIMEOUT_THRESHOLD") or 30)
+            client = self.get_client()
+            url = f"{self.endpoint_url}/generic/{self.project}/{self.bucket}/{key}"
+            src = getattr(fh, "name", "<memory>")
+            headers = {"X-BKREPO-OVERWRITE": str(allow_overwrite)}
+
+            try:
+                resp = client.put(url, headers=headers, data=fh, timeout=TIMEOUT_THRESHOLD)
+                self._validate_resp(resp)
+            except RequestError as e:
+                # 250107: 请求资源已经存在
+                # 251012: Node Existed
+                if str(e.code) in ["250107", "251012"]:
+                    raise ObjectAlreadyExists(e.message, e.code, e.response) from e
+                logger.exception("Request success, but the server rejects the upload request.")
+                raise UploadFailedError(key=key, src=src) from e
+            except Exception as e:
+                logger.exception("An unexpected exception occurred, detail: %s", e)
+                raise UploadFailedError(key=key, src=src) from e
 
     def __init__(
         self,
@@ -68,6 +102,14 @@ class CustomBKRepoStorage(BaseStorage, bkrepo.BKRepoStorage):
             bucket=self.bucket,
             endpoint_url=self.endpoint_url,
             file_overwrite=self.file_overwrite,
+        )
+
+        self.client = self.CustomBKGenericRepoClient(
+            bucket=self.bucket,
+            project=self.project_id,
+            username=self.username,
+            password=self.password,
+            endpoint_url=self.endpoint_url,
         )
 
     def path(self, name):
