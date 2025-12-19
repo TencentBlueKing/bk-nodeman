@@ -33,6 +33,10 @@ metadata:
     {{- range $key, $value := .Values.ingress.annotations }}
     {{ $key }}: {{ include "common.tplvalues.render" (dict "value" $value "context" $) | quote }}
     {{- end }}
+    {{- if eq $.Values.global.bkWebSiteAccess.mode "subpath" }}
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: /$1$2
+    {{- end }}
 spec:
   {{- if and .Values.ingress.className (semverCompare ">=1.18-0" .Capabilities.KubeVersion.GitVersion) }}
   ingressClassName: {{ .Values.ingress.className }}
@@ -56,7 +60,12 @@ spec:
           {{- toYaml .Values.ingress.extraPaths | nindent 10 }}
           {{- end }}
           {{- range .Values.ingress.paths }}
-          - path: {{ .path }}
+          {{- $currentPath := .path -}} {{/* 注意这里使用 := */}}
+          {{- if eq (index $.Values "global" "bkWebSiteAccess" "mode" | default "") "subpath" }}
+            {{- $trimmedPath := .path | trimPrefix "/" -}}
+            {{- $currentPath = printf "/bknodeman/(%s)(.*)" $trimmedPath -}}
+          {{- end }}
+          - path: {{ $currentPath | quote }}
             {{- if and .pathType (semverCompare ">=1.18-0" $.Capabilities.KubeVersion.GitVersion) }}
             pathType: {{ .pathType }}
             {{- end }}

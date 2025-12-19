@@ -11,6 +11,8 @@ global:
   bkCryptoType: "CLASSIC"
   ## 蓝鲸主域名访问协议http/https
   bkDomainScheme: http
+  bkWebSiteAccess:
+    mode: "subdomain"
 
 nameOverride: ""
 fullnameOverride: ""
@@ -164,7 +166,9 @@ ingress:
     nginx.ingress.kubernetes.io/proxy-body-size: "1024m"
     # kubernetes.io/ingress.class: nginx
     # kubernetes.io/tls-acme: "true"
-
+  name: "bknodeman"
+  path: "/bknodeman/"
+  port: 80
   hostname: "bknodeman.example.com"
   paths:
     - path: /

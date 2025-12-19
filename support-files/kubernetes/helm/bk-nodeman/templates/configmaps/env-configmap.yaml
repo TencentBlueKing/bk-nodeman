@@ -1,4 +1,5 @@
 {{- $fullName := printf "%s-%s" (include "bk-nodeman.fullname" .) "env-configmap" -}}
+{{- $nodemanUrl := include "bk-nodeman.ingress-url" (list .Values.ingress .Values.global) -}}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -36,13 +37,9 @@ data:
 
   JOB_VERSION: "{{ .Values.config.jobVersion }}"
   BLUEKING_BIZ_ID: "{{ .Values.config.bluekingBizId }}"
-  BK_CC_HOST: "{{ .Values.bkCmdbUrl }}"
-  BK_JOB_HOST: "{{ .Values.config.bkJobUrl | default .Values.bkJobUrl }}"
-  BK_USER_URL: "{{ .Values.bkUserUrl }}"
 
   BKAPP_USE_IAM: "{{ .Values.config.bkAppUseIam }}"
   BK_IAM_V3_APP_CODE: "{{ .Values.config.bkIamV3AppCode }}"
-  BK_IAM_V3_SAAS_HOST: "{{ .Values.bkIamUrl }}"
   BK_IAM_V3_INNER_HOST: "{{ .Values.bkIamApiUrl }}"
   BKAPP_IAM_RESOURCE_API_HOST: "{{ .Values.config.bkAppIamResourceApiHost | default .Values.bkNodemanUrl }}"
 
@@ -59,10 +56,28 @@ data:
   BKAPP_BK_GSE_APIGATEWAY: "{{ .Values.config.bkAppBkGseApiGateway }}/"
   {{- end }}
 
-  BK_NODEMAN_URL: "{{ .Values.bkNodemanUrl }}"
+  {{- if eq .Values.global.bkWebSiteAccess.mode "subpath"}}
+  BKPAAS_SUB_PATH: "/bknodeman/"
+  BK_CC_HOST: "{{ printf "%s://%s/cmdb" .Values.global.bkDomainScheme .Values.global.bkDomain }}"
+  BK_JOB_HOST: "{{ printf "%s://%s/job" .Values.global.bkDomainScheme .Values.global.bkDomain }}"
+  BKREPO_ENDPOINT_URL: "{{ printf "%s://%s/bkrepo" .Values.global.bkDomainScheme .Values.global.bkDomain }}"
+  BK_USER_URL: "{{ printf "%s://%s/bkuser" .Values.global.bkDomainScheme .Values.global.bkDomain }}"
+  BK_IAM_V3_SAAS_HOST: "{{ printf "%s://%s/bkiam" .Values.global.bkDomainScheme .Values.global.bkDomain }}"
+  BKAPP_NODEMAN_CALLBACK_URL: "{{ .Values.config.bkAppNodemanCallbackUrl | default (printf "%s://%s/bknodeman/backend" .Values.global.bkDomainScheme .Values.global.bkDomain) }}"
+  BKAPP_NODEMAN_OUTER_CALLBACK_URL: "{{ .Values.config.bkAppNodemanOuterCallbackUrl | default (printf "%s://%s/bknodeman/backend" .Values.global.bkDomainScheme .Values.global.bkDomain) }}"
+  {{- else}}
+  BKPAAS_SUB_PATH: "/"
+  BK_CC_HOST: "{{ .Values.bkCmdbUrl }}"
+  BK_JOB_HOST: "{{ .Values.config.bkJobUrl | default .Values.bkJobUrl }}"
+  BKREPO_ENDPOINT_URL: "{{ .Values.bkRepoUrl }}"
+  BK_USER_URL: "{{ .Values.bkUserUrl }}"
+  BK_IAM_V3_SAAS_HOST: "{{ .Values.bkIamUrl }}"
+  BKAPP_NODEMAN_CALLBACK_URL: "{{ .Values.config.bkAppNodemanCallbackUrl | default (printf "%s://bknodeman.%s/backend" .Values.global.bkDomainScheme .Values.global.bkDomain) }}"
+  BKAPP_NODEMAN_OUTER_CALLBACK_URL: "{{ .Values.config.bkAppNodemanOuterCallbackUrl | default (printf "%s://bknodeman.%s/backend" .Values.global.bkDomainScheme .Values.global.bkDomain) }}"
+  {{- end}}
+
+  BK_NODEMAN_URL: "{{ $nodemanUrl }}"
   BKAPP_BACKEND_HOST: "{{ .Values.config.bkAppBackendHost | default .Values.bkNodemanApiUrl }}"
-  BKAPP_NODEMAN_CALLBACK_URL: "{{ .Values.config.bkAppNodemanCallbackUrl | default ( printf "%s/%s" .Values.bkNodemanUrl "backend" ) }}"
-  BKAPP_NODEMAN_OUTER_CALLBACK_URL: "{{ .Values.config.bkAppNodemanOuterCallbackUrl | default ( printf "%s/%s" .Values.bkNodemanUrl "backend" ) }}"
 
   GSE_VERSION: "{{ .Values.config.gseVersion }}"
   GSE_CERT_PATH: "{{ include "bk-nodeman.env.gseCertPath" . }}"
@@ -92,7 +107,6 @@ data:
   BKREPO_BUCKET: "{{ .Values.config.bkRepoBucket }}"
   BKREPO_PUBLIC_BUCKET: "{{ .Values.config.bkRepoPublicBucket }}"
   BKREPO_PRIVATE_BUCKET: "{{ .Values.config.bkRepoPrivateBucket }}"
-  BKREPO_ENDPOINT_URL: "{{ .Values.bkRepoUrl }}"
 
   {{- if .Values.config.bkAppEnableOtelTrace }}
   BKAPP_ENABLE_OTEL_TRACE: "{{ .Values.config.bkAppEnableOtelTrace }}"

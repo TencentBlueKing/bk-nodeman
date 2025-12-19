@@ -290,3 +290,36 @@ initContainers:
     resources:
       {{- toYaml .Values.migrateJob.fileSync.resources | nindent 6 }}
 {{- end }}
+
+{{- define "bk-nodeman.urljoin" -}}
+{{- $parts := list -}}
+{{- range $part := . -}}
+{{- $parts = append $parts ($part | trimSuffix "/" | trimPrefix "/") -}}
+{{- end -}}
+{{- join "/" $parts -}}
+{{- end -}}
+
+{{- define "bk-nodeman.ingress-host" -}}
+  {{- $ingress := index . 0 -}}
+  {{- $global := index . 1 -}}
+  {{- if eq $global.bkWebSiteAccess.mode "subpath" -}}
+    {{- $global.bkDomain -}}
+  {{- else -}}
+    {{- printf "%s.%s" $ingress.name $global.bkDomain -}}
+  {{- end -}}
+{{- end -}}
+
+{{- define "bk-nodeman.ingress-url" -}}
+  {{- $ingress := index . 0 -}}
+  {{- $global := index . 1 -}}
+  {{- $host := include "bk-nodeman.ingress-host" (list $ingress $global) -}}
+  {{- if $ingress.port -}}
+    {{- $host = printf "%s:%v" $host $ingress.port -}}
+  {{- end -}}
+  {{- $scheme := $global.bkDomainScheme -}}
+  {{- if eq $global.bkWebSiteAccess.mode "subpath" -}}
+    {{- printf "%s://%s" $scheme (include "bk-nodeman.urljoin" (list $host $ingress.path) | trimSuffix "/") -}}
+  {{- else -}}
+    {{- printf "%s://%s" $scheme (include "bk-nodeman.urljoin" (list $host $ingress.path) | trimSuffix "/") -}}
+  {{- end -}}
+{{- end -}}
