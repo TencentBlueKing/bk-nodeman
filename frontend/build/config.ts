@@ -9,7 +9,7 @@ export default {
         assetsRoot: path.resolve(__dirname, '../../static'),
         assetsSubDirectory: 'nodeman',
         assetsPublicPath: '{{STATIC_URL}}',
-        productionSourceMap: true,
+        productionSourceMap: false,
         productionGzip: false,
         productionGzipExtensions: ['js', 'css'],
         bundleAnalyzerReport: process.env.npm_config_report
