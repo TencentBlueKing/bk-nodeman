@@ -10,11 +10,17 @@ specific language governing permissions and limitations under the License.
 """
 import logging
 import os
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
+import curlify
 from bkstorages.backends import bkrepo
 from bkstorages.backends.bkrepo import BKGenericRepoClient
-from bkstorages.exceptions import ObjectAlreadyExists, RequestError, UploadFailedError
+from bkstorages.exceptions import (
+    DownloadFailedError,
+    ObjectAlreadyExists,
+    RequestError,
+    UploadFailedError,
+)
 from bkstorages.utils import get_setting
 from django.conf import settings
 from django.core.exceptions import SuspiciousFileOperation
@@ -35,6 +41,9 @@ from .file_source import BkJobFileSourceManager
 logger = logging.getLogger(__name__)
 
 
+TIMEOUT_THRESHOLD = float(get_setting("BKREPO_TIMEOUT_THRESHOLD") or 30)
+
+
 @deconstructible
 class CustomBKRepoStorage(BaseStorage, bkrepo.BKRepoStorage):
     storage_type: str = constants.StorageType.BLUEKING_ARTIFACTORY.value
@@ -48,6 +57,36 @@ class CustomBKRepoStorage(BaseStorage, bkrepo.BKRepoStorage):
     bucket: Optional[str] = None
 
     class CustomBKGenericRepoClient(BKGenericRepoClient):
+        def download_fileobj(self, key: str, fh, *args, **kwargs):
+            """下载通用制品文件
+
+            :param str key: 文件完整路径
+            :param IO fh: 文件句柄
+            """
+            client = self.get_client()
+            url = f"{self.endpoint_url}/generic/{self.project}/{self.bucket}/{key}"
+            dest = getattr(fh, "name", "<memory>")
+            try:
+                resp = client.get(url, stream=True, timeout=TIMEOUT_THRESHOLD)
+                logger.info("Calling BkRepo, the equivalent curl command: %s", curlify.to_curl(resp.request))
+            except Exception as e:
+                logger.exception("Fail to init request to BkRepo when calling '%s'", url)
+                raise DownloadFailedError(key=key, dest=dest) from e
+
+            if not resp.ok:
+                logger.exception("Request success, but the server rejects the download request.")
+                raise DownloadFailedError(key=key, dest=dest) from RequestError(
+                    str("下载制品文件失败"), code=str(resp.status_code), response=resp
+                )
+
+            try:
+                for chunk in resp.iter_content(chunk_size=512):
+                    if chunk:
+                        fh.write(chunk)
+            except Exception as e:
+                logger.exception("File save failed, detail %s", e)
+                raise DownloadFailedError(key=key, dest=dest) from e
+
         def upload_fileobj(self, fh, key: str, allow_overwrite: bool = True, **kwargs):
             """上传通用制品文件
 
@@ -55,7 +94,7 @@ class CustomBKRepoStorage(BaseStorage, bkrepo.BKRepoStorage):
             :param str key: 文件完整路径
             :param bool allow_overwrite: 是否覆盖已存在文件
             """
-            TIMEOUT_THRESHOLD = float(get_setting("BKREPO_TIMEOUT_THRESHOLD") or 30)
+
             client = self.get_client()
             url = f"{self.endpoint_url}/generic/{self.project}/{self.bucket}/{key}"
             src = getattr(fh, "name", "<memory>")
@@ -74,6 +113,89 @@ class CustomBKRepoStorage(BaseStorage, bkrepo.BKRepoStorage):
             except Exception as e:
                 logger.exception("An unexpected exception occurred, detail: %s", e)
                 raise UploadFailedError(key=key, src=src) from e
+
+        def get_file_metadata(self, key: str, *args, **kwargs) -> Dict:
+            """具体返回值请看 bk-repo 的文档."""
+            client = self.get_client()
+            url = f"{self.endpoint_url}/generic/{self.project}/{self.bucket}/{key}"
+            resp = client.head(url, timeout=TIMEOUT_THRESHOLD)
+            if resp.status_code == 200:
+                return dict(resp.headers)
+            raise RequestError("Can't get file head info", code=str(resp.status_code), response=resp)
+
+        def delete_file(self, key: str, *args, **kwargs):
+            """删除通用制品文件
+
+            :param str key: 文件完整路径
+            """
+            client = self.get_client()
+            url = f"{self.endpoint_url}/generic/{self.project}/{self.bucket}/{key}"
+            resp = client.delete(url, timeout=TIMEOUT_THRESHOLD)
+            self._validate_resp(resp)
+
+        def build_download_url(self, key: str, force_download: bool = False) -> str:
+            """构造下载url
+
+            :param str key: 文件完整路径
+            :param bool force_download: 如果为true，响应体会添加Content-Disposition，强制浏览器进行下载；不加此参数，浏览器将根据情况展示文件预览
+            """
+            while key.startswith("/"):
+                key = key[1:]
+            download = "true" if force_download else "false"
+            url = f"{self.endpoint_url}/generic/{self.project}/{self.bucket}/{key}?download={download}"
+            return url
+
+        def generate_presigned_url(
+            self, key: str, expires_in: int, token_type: str = "DOWNLOAD", *args, **kwargs
+        ) -> str:
+            """创建临时访问url
+
+            :param str key: 授权路径
+            :param int expires_in: token 有效时间，单位秒，小于等于 0 则永久有效
+            :param str token_type: token类型。UPLOAD:允许上传, DOWNLOAD: 允许下载, ALL: 同时允许上传和下载。
+            """
+            client = self.get_client()
+            url = f"{self.endpoint_url}/generic/temporary/url/create"
+
+            resp = client.post(
+                url,
+                json={
+                    "projectId": self.project,
+                    "repoName": self.bucket,
+                    "fullPathSet": [key],
+                    "expireSeconds": expires_in,
+                    "type": token_type,
+                },
+                timeout=TIMEOUT_THRESHOLD,
+            )
+            try:
+                data = self._validate_resp(resp)
+                return data[0]["url"]
+            except RequestError as e:
+                logger.exception("生成 bkrepo 访问链接时出现异常")
+                if str(e.code) != "250102":
+                    raise
+                logger.warning("BKREPO中不存在该文件, 避免报错仅拼接 url ")
+                return f"{self.endpoint_url}/generic/temporary/token/download/{self.project}/{self.bucket}/{key}"
+
+        def __list_dir(self, key_prefix: str, cur_page: int = 1) -> Tuple[List, List, bool]:
+            """List objs stored in bk-repo, using pagination, returning a 3-tuple of lists;
+            the first item being directories, the second item being files, the third item meaning any more page
+            """
+            directories, files = [], []
+            client = self.get_client()
+            url = f"{self.endpoint_url}/repository/api/node/page/{self.project}/{self.bucket}/{key_prefix}"
+            # NOTE: 按分页查询 bkrepo 的文件数, 1000 是一个经验值, 设置仅可能大的数值是避免发送太多次请求到 bk-repo
+            params = {"pageSize": 1000, "PageNumber": cur_page, "includeFolder": True}
+            resp = client.get(url, params=params, timeout=TIMEOUT_THRESHOLD)
+            data = self._validate_resp(resp)
+            total_pages = data["totalPages"]
+            for record in data["records"]:
+                if record["folder"]:
+                    directories.append(record["name"])
+                else:
+                    files.append(record["name"])
+            return directories, files, (cur_page < total_pages)
 
     def __init__(
         self,

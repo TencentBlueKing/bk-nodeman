@@ -8,15 +8,14 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-
-from celery import current_app
+from blueapps.contrib.celery_tools.periodic import periodic_task
 from celery.schedules import crontab
 
 from apps.node_man.models import ResourceWatchEvent
 from common.log import logger
 
 
-@current_app.task(
+@periodic_task(
     queue="default",
     options={"queue": "default"},
     run_every=crontab(hour="2", minute="0", day_of_week="*", day_of_month="*", month_of_year="*"),

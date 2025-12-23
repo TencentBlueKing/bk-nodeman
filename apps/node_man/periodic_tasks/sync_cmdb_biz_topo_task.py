@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from copy import deepcopy
 
+from blueapps.contrib.celery_tools.periodic import periodic_task
 from celery import current_app
 from django.conf import settings
 from django.core.cache import cache
@@ -164,7 +165,7 @@ def cache_all_biz_topo_delay_task():
     logger.warning(f"{task_id} | cache_all_biz_topo_delay_task: Re-cache finished")
 
 
-@current_app.task(
+@periodic_task(
     queue="default",
     options={"queue": "default"},
     run_every=constants.SYNC_CMDB_BIZ_TOPO_TASK_INTERVAL,

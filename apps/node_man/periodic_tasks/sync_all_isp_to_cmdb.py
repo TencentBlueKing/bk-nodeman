@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 import time
 from typing import Any, Dict, List
 
-from celery import current_app
+from blueapps.contrib.celery_tools.periodic import periodic_task
 from django.conf import settings
 
 from apps.node_man import constants
@@ -52,7 +52,7 @@ def sync_all_isp_to_cmdb(task_id):
     logger.info(f"{task_id} | Sync cloud isp info task complete.")
 
 
-@current_app.task(
+@periodic_task(
     queue="default",
     options={"queue": "default"},
     run_every=constants.SYNC_ISP_TO_CMDB_INTERVAL,
