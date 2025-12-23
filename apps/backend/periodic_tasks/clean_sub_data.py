@@ -14,7 +14,7 @@ import typing
 from dataclasses import asdict, dataclass
 from datetime import timedelta
 
-from celery import current_app
+from blueapps.contrib.celery_tools.periodic import periodic_task
 from celery.schedules import crontab
 from dacite import from_dict
 from django.db import connection
@@ -272,7 +272,7 @@ def clean_sub_data(config: CleanConfig):
     handle_sub_delete(normal_task_ids, task_id__info_map)
 
 
-@current_app.task(queue="default", options={"queue": "default"}, run_every=crontab(minute="*/1"))
+@periodic_task(queue="default", options={"queue": "default"}, run_every=crontab(minute="*/1"))
 def clean_sub_data_task():
     config: CleanConfig = get_config()
     if not config.enable:

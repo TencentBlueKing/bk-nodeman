@@ -12,7 +12,7 @@ specific language governing permissions and limitations under the License.
 import logging
 from datetime import timedelta
 
-from celery import current_app
+from blueapps.contrib.celery_tools.periodic import periodic_task
 from django.db.models import Value
 from django.db.models.functions import Concat
 from django.utils import timezone
@@ -31,7 +31,7 @@ logger = logging.getLogger("celery")
 MAX_RUNNING_TIME_OF_TASK = 30 * 60
 
 
-@current_app.task(
+@periodic_task(
     run_every=CHECK_ZOMBIE_SUB_INST_RECORD_INTERVAL,
     queue="backend",  # 这个是用来在代码调用中指定队列的，例如： update_subscription_instances.delay()
     options={"queue": "backend"},  # 这个是用来celery beat调度指定队列的

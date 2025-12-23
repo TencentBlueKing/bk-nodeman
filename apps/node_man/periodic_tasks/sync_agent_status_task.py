@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 import typing
 from collections import defaultdict
 
+from blueapps.contrib.celery_tools.periodic import periodic_task
 from celery import current_app
 from django.conf import settings
 from django.db.models import QuerySet
@@ -169,7 +170,7 @@ def update_or_create_host_agent_status(task_id: int, host_queryset: QuerySet):
     return host_id__agent_state_info
 
 
-@current_app.task(
+@periodic_task(
     queue="default",
     options={"queue": "default"},
     run_every=constants.SYNC_AGENT_STATUS_TASK_INTERVAL,
