@@ -178,7 +178,23 @@ class CustomBKRepoStorage(BaseStorage, bkrepo.BKRepoStorage):
                 logger.warning("BKREPO中不存在该文件, 避免报错仅拼接 url ")
                 return f"{self.endpoint_url}/generic/temporary/token/download/{self.project}/{self.bucket}/{key}"
 
-        def __list_dir(self, key_prefix: str, cur_page: int = 1) -> Tuple[List, List, bool]:
+        def list_dir(self, key_prefix: str) -> Tuple[List, List]:
+            """
+            Lists the contents of the specified path, returning a 2-tuple of lists;
+            the first item being directories, the second item being files.
+            """
+            cur_page = 0
+            directories, files = [], []
+            while True:
+                cur_page += 1
+                ds, fs, next_page = self._list_dir(key_prefix, cur_page=cur_page)
+                directories.extend(ds)
+                files.extend(fs)
+                if not next_page:
+                    break
+            return directories, files
+
+        def _list_dir(self, key_prefix: str, cur_page: int = 1) -> Tuple[List, List, bool]:
             """List objs stored in bk-repo, using pagination, returning a 3-tuple of lists;
             the first item being directories, the second item being files, the third item meaning any more page
             """
@@ -196,6 +212,14 @@ class CustomBKRepoStorage(BaseStorage, bkrepo.BKRepoStorage):
                 else:
                     files.append(record["name"])
             return directories, files, (cur_page < total_pages)
+
+        def get_bucket_metadata(self) -> Dict:
+            """查询仓库信息"""
+            client = self.get_client()
+            url = f"{self.endpoint_url}/repository/api/repo/info/{self.project}/{self.bucket}/GENERIC"
+            resp = client.get(url)
+            data = self._validate_resp(resp)
+            return data
 
     def __init__(
         self,

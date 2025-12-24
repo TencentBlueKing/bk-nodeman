@@ -21,7 +21,7 @@
           :label="columnFilter[key].name"
           :fixed="key === 'plugin_name'"
           sortable
-          :min-width="columnFilter[key].width || 150"
+          :min-width="columnFilter[key].width || 160"
           v-if="columnFilter[key].mockChecked">
           <template #default="{ row }">
             <!-- 部署方式 -->
@@ -64,7 +64,7 @@
             </div>
 
             <div v-else-if="columnFilter[key].id === 'update_time'">
-              {{ row.update_time | filterTimezone }}
+              {{ row.update_time }}
             </div>
 
             <template v-else>{{ row[columnFilter[key].id] | filterEmpty }}</template>

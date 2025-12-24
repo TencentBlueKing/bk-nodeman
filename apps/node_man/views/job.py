@@ -107,7 +107,8 @@ class JobViewSet(ModelViewSet):
         """
         job_id = kwargs["pk"]
         JobTools.isolate_tenant_job(job_id)
-        return Response(JobHandler(job_id).retrieve(self.validated_data))
+        user_timezone = get_user_timezone(request)
+        return Response(JobHandler(job_id).retrieve(self.validated_data, user_timezone))
 
     @swagger_auto_schema(
         operation_id="job_install",

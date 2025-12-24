@@ -752,10 +752,11 @@ class JobHandler(APIModel):
     def get_subscription_task_status(self, query_params):
         return NodeApi.get_subscription_task_status(query_params)
 
-    def retrieve(self, params: Dict[str, Any]):
+    def retrieve(self, params: Dict[str, Any], user_timezone):
         """
         任务详情页接口
         :param params: 接口请求参数
+        :param user_timezone: 用户时区
         """
         if self.data.task_id_list:
 
@@ -890,6 +891,15 @@ class JobHandler(APIModel):
 
         tools.JobTools.fill_cost_time(job_detail, job_detail)
         tools.JobTools.fill_sub_info_to_job_detail(job=self.data, job_detail=job_detail)
+
+        if job_detail["start_time"]:
+            job_detail["start_time"] = (
+                job_detail["start_time"].astimezone(pytz.timezone(user_timezone)).strftime("%Y-%m-%d %H:%M:%S %z")
+            )
+        if job_detail["end_time"]:
+            job_detail["end_time"] = (
+                job_detail["end_time"].astimezone(pytz.timezone(user_timezone)).strftime("%Y-%m-%d %H:%M:%S %z")
+            )
 
         if job_detail["meta"].get("category") != models.Subscription.CategoryType.POLICY:
             return job_detail

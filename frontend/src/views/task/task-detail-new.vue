@@ -272,7 +272,7 @@ export default class TaskDeatail extends Mixins(PollMixin, HeaderFilterMixins) {
       Object.assign(this.detail, {
         jobType: toHump((jobType || '').toLowerCase()),
         jobTypeDisplay: jobTypeDisplay || '--',
-        timestamp: this.$filters('filterTimezone', startTime),
+        timestamp: startTime,
         createdBy,
         jobId,
         costTime: takesTimeFormat(costTime),
