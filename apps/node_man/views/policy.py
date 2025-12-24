@@ -8,6 +8,9 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from datetime import datetime
+
+import pytz
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -750,8 +753,17 @@ class PolicyViewSet(ModelViewSet):
         ]
         """
         # todo 支持业务查询
+        user_timezone = get_user_timezone(request)
         bk_host_id = self.validated_data["bk_host_id"]
         result = NodeApi.query_host_policy({"bk_host_id": bk_host_id})
+        for item in result:
+            if "update_time" in item and item["update_time"]:
+                item["update_time"] = (
+                    datetime.strptime(item["update_time"], "%Y-%m-%d %H:%M:%S%z")
+                    .astimezone(pytz.timezone(user_timezone))
+                    .strftime("%Y-%m-%d %H:%M:%S %z")
+                )
+
         return Response(result)
 
     @swagger_auto_schema(

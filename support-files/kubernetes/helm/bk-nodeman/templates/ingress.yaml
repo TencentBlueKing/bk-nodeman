@@ -36,6 +36,8 @@ metadata:
     {{- if eq $.Values.global.bkWebSiteAccess.mode "subpath" }}
     nginx.ingress.kubernetes.io/use-regex: "true"
     nginx.ingress.kubernetes.io/rewrite-target: /$1$2
+    nginx.ingress.kubernetes.io/server-snippet: |
+      rewrite ^/bknodeman$ /bknodeman/ permanent;
     {{- end }}
 spec:
   {{- if and .Values.ingress.className (semverCompare ">=1.18-0" .Capabilities.KubeVersion.GitVersion) }}

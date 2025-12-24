@@ -136,7 +136,7 @@ def mysetting(request):
         # display_name 展示 API 网关地址
         "API_BASE_URL": USER_WEB_APIGATEWAY_ROOT_V3,
         # 个人中心访问地址
-        "BK_PERSONAL_CENTER_URL": settings.BK_USER_URL + "personal-center",
+        "BK_PERSONAL_CENTER_URL": settings.BK_USER_URL + "/personal-center",
         # 权限中心访问地址
         "BK_IAM_SAAS_HOST": settings.BK_IAM_SAAS_HOST,
     }
