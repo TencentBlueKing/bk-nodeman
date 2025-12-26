@@ -347,9 +347,7 @@ def update_or_create_host_base(
             continue
 
         cpu_arch = tools.HostV2Tools.get_cpu_arch(
-            host,
-            is_sync_cmdb_host_apply_cpu_arch,
-            get_default=False,
+            host, is_sync_cmdb_host_apply_cpu_arch, get_default=False, os_type=host_params["os_type"]
         )
         if is_sync_cmdb_host_apply_cpu_arch and cpu_arch:
             host_params["cpu_arch"] = cpu_arch
