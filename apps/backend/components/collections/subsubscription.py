@@ -27,6 +27,7 @@ from apps.utils.batch_request import request_multi_thread
 from common.api import NodeApi
 from common.api.exception import DataAPIException
 from pipeline.core.flow import Service, StaticIntervalGenerator
+from apps.utils import local
 
 logger = logging.getLogger("app")
 
@@ -153,12 +154,17 @@ class SubSubscriptionBaseService(BaseService, metaclass=abc.ABCMeta):
         subscription_ids = self.create_subscriptions(common_data, tenant_id)
         data.outputs.subscription_ids = subscription_ids
         data.outputs.all_subscription_ids = data.outputs.subscription_ids
+        data.outputs.tenant_id = tenant_id
         # 不存在需要轮询结果的子订阅，手动结束调度
         if not data.outputs.subscription_ids:
             self.finish_schedule()
             return True
 
     def _schedule(self, data, parent_data, callback_data=None):
+        # 恢复租户ID到当前线程
+        tenant_id = data.get_one_of_outputs("tenant_id")
+        if tenant_id:
+            local.set_tenant_id(tenant_id)
         polling_time: int = data.get_one_of_outputs("polling_time") or 0
         next_polling_time: int = polling_time + POLLING_INTERVAL
         subscription_ids: List[int] = data.get_one_of_outputs("subscription_ids")
